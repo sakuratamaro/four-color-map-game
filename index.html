@@ -1,0 +1,933 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<title>Four Color Map Game — Geometry v4.9 Modes & Collection</title>
+<style>
+:root{
+  --bg:#070b14;--panel:#111827;--panel2:#182235;--panel3:#0b1424;--line:#334155;
+  --text:#f8fafc;--muted:#94a3b8;--good:#86efac;--warn:#fde68a;--bad:#fda4af;
+  --red:#ef4444;--blue:#3b82f6;--yellow:#eab308;--green:#22c55e;
+  --cyan:#22d3ee;--gold:#facc15;--orange:#fb923c;
+  --cat-color:#a855f7;--cat-area:#22d3ee;--cat-disrupt:#fb7185;
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:radial-gradient(circle at top,#172033 0,#0b1020 42%,#050812 100%);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI","Noto Sans JP",sans-serif}
+body{overflow-x:hidden}
+button,input{font:inherit}button{cursor:pointer}.app{max-width:1300px;margin:auto;padding:18px}
+header{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:14px}
+h1{font-size:clamp(22px,4vw,35px);margin:0}.sub{color:var(--muted);font-size:13px;margin-top:4px}
+.header-tools{display:grid;gap:8px;justify-items:end}.profile-switch{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.profile-btn{border:1px solid var(--line);background:#0c1424;color:#cbd5e1;border-radius:999px;padding:7px 11px;font-size:13px}
+.profile-btn.active{background:#f8fafc;color:#111827;border-color:#f8fafc;font-weight:900}.profile-btn:disabled{opacity:.45;cursor:not-allowed}
+.profile-btn.debug-toggle{border-color:#7e22ce;color:#e9d5ff;background:#2e1065;font-weight:950}.profile-btn.debug-toggle.active{border-color:#e879f9;color:#fff;background:linear-gradient(135deg,#7e22ce,#be123c);box-shadow:0 0 18px rgba(232,121,249,.35);animation:debugGlow 1.5s ease-in-out infinite alternate}
+.debug-banner{display:none;border-color:#c026d3;background:linear-gradient(135deg,rgba(88,28,135,.9),rgba(76,5,25,.9));box-shadow:0 0 24px rgba(192,38,211,.18);margin-bottom:10px}.debug-banner.show{display:block}.debug-banner strong{color:#f5d0fe}.debug-banner .debug-features{margin-top:5px;color:#e9d5ff;font-size:12px}.debug-mark{display:inline-flex;align-items:center;border:1px solid #e879f9;background:#701a75;color:#fff;border-radius:999px;padding:2px 8px;font-size:11px;font-weight:950;letter-spacing:.04em}.debug-mode .panel{border-color:#4c1d95}.debug-mode .board-shell{box-shadow:0 0 0 1px rgba(232,121,249,.16),0 0 30px rgba(126,34,206,.1)}
+.chips{display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end}.chip{border:1px solid var(--line);background:#0c1424;border-radius:999px;padding:7px 11px;font-size:13px}
+nav{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}nav button{border:1px solid var(--line);background:#0c1424;color:var(--muted);padding:9px 13px;border-radius:10px}nav button.active{background:#f8fafc;color:#0f172a;border-color:#f8fafc;font-weight:900}
+.screen{display:none}.screen.active{display:block}.layout{display:grid;grid-template-columns:minmax(0,1.42fr) minmax(315px,.62fr);gap:14px}
+.panel{background:rgba(17,24,39,.965);border:1px solid var(--line);border-radius:17px;padding:15px;box-shadow:0 18px 50px rgba(0,0,0,.22)}
+.panel h2,.panel h3{margin-top:0}.muted{color:var(--muted)}.small{font-size:12px}.strong{font-weight:850}.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.between{justify-content:space-between}.stack{display:grid;gap:10px}.hr{height:1px;background:#273449;margin:14px 0}
+.btn{border:1px solid var(--line);background:#1d2a3e;color:var(--text);border-radius:10px;padding:9px 12px}.btn:hover:not(:disabled){filter:brightness(1.14)}.btn.primary{background:#f8fafc;color:#111827;border-color:#f8fafc;font-weight:900}.btn.danger{background:#43151e;border-color:#9f1239}.btn.good{background:#123522;border-color:#166534}.btn:disabled{opacity:.38;cursor:not-allowed}
+.callout{border:1px solid #475569;background:#0b1424;border-radius:12px;padding:11px}.callout.good{border-color:#166534;background:#0b281a}.callout.warn{border-color:#854d0e;background:#30220d}.callout.bad{border-color:#9f1239;background:#35121d}
+.tag{display:inline-block;border:1px solid #475569;border-radius:999px;padding:2px 7px;font-size:11px;color:#cbd5e1}.tag.hot{border-color:#a16207;color:#fde68a;background:#3a2908}
+.category-badge{display:inline-flex;align-items:center;gap:4px;border-radius:999px;padding:3px 8px;font-size:11px;font-weight:850;border:1px solid currentColor}.category-badge.color{color:#d8b4fe;background:#2e1065}.category-badge.area{color:#a5f3fc;background:#083344}.category-badge.disrupt{color:#fecdd3;background:#4c0519}
+.phasebar{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:10px 0}.phase{border:1px solid #334155;border-radius:9px;padding:7px;text-align:center;font-size:12px;color:#64748b}.phase.active{border-color:#e2e8f0;color:#f8fafc;background:#1e293b;font-weight:900}.phase.done{color:#86efac;border-color:#166534}
+.board-shell{background:#050a12;border:1px solid #2c3b51;border-radius:14px;padding:8px;overflow:auto;position:relative}.board-canvas{display:block;width:100%;height:auto;aspect-ratio:1/1;max-width:760px;min-width:320px;margin:auto;background:#0b1220;border:2px solid #475569;touch-action:none;user-select:none;cursor:pointer}
+.board-canvas.contact-pulse{animation:boardPulse .55s ease-out}.target-panel{display:none;margin-top:10px;border-color:#0e7490;background:#082f49}.target-panel.show{display:block}.target-title{font-weight:900;color:#a5f3fc}.target-hint{color:#cbd5e1;font-size:12px;margin-top:4px}
+.palette{display:flex;gap:10px;flex-wrap:wrap}.color-btn{width:72px;height:54px;border-radius:13px;border:3px solid #0b1020;box-shadow:0 0 0 1px #64748b;position:relative;transition:transform .13s,filter .13s;overflow:hidden;color:#fff;font-weight:950;text-shadow:0 2px 5px #000}
+.color-btn:hover:not(:disabled){transform:translateY(-3px) scale(1.04);filter:brightness(1.1)}.color-btn:disabled:not(.sealed){opacity:.34;cursor:not-allowed}.color-btn.temporary::after{content:"一時";position:absolute;right:3px;bottom:2px;font-size:9px;background:rgba(2,6,23,.78);padding:1px 3px;border-radius:4px;color:white}.color-btn.prism{animation:prismRing 1.5s linear infinite}.color-btn.limited{box-shadow:0 0 0 2px #facc15,0 0 20px rgba(250,204,21,.22)}.color-btn.exhausted{opacity:1!important;filter:grayscale(.8) brightness(.48);cursor:not-allowed;border-color:#475569}.limited-uses{position:absolute;left:3px;bottom:2px;font-size:9px;background:rgba(2,6,23,.82);padding:2px 4px;border-radius:5px;color:#fde68a;text-shadow:none}.color-btn.exhausted .limited-uses{color:#cbd5e1}
+.color-btn.sealed{opacity:1;cursor:not-allowed;filter:saturate(.45) brightness(.55);border-color:#020617;box-shadow:0 0 0 2px #fb7185,0 0 22px rgba(251,113,133,.38)}
+.color-btn.sealed::before{content:"";position:absolute;inset:-20%;background:repeating-linear-gradient(135deg,transparent 0 8px,rgba(2,6,23,.86) 8px 15px);animation:chainSlide 1.2s linear infinite;z-index:1}.seal-lock{position:absolute;inset:0;z-index:2;display:grid;place-items:center;font-size:13px;line-height:1.05;text-shadow:0 2px 7px #000}.seal-lock b{font-size:23px;display:block}.seal-summary{min-height:22px;margin-top:8px}.seal-pill{display:inline-flex;align-items:center;gap:5px;border:1px solid #fb7185;background:#4c0519;color:#fecdd3;border-radius:999px;padding:3px 8px;margin:2px;font-size:11px;font-weight:850}.palette-debuff-pill{display:inline-flex;align-items:center;gap:5px;border:1px solid #f59e0b;background:#451a03;color:#fde68a;border-radius:999px;padding:3px 8px;margin:2px;font-size:11px;font-weight:850}
+.secret{border:1px dashed #64748b;border-radius:12px;padding:11px;background:#0b1220}.skill-list{display:grid;gap:8px}.skill-item{border:1px solid #334155;border-radius:11px;padding:9px;background:#111b2b;position:relative;overflow:hidden}.skill-item::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:#64748b}.skill-item.color::before{background:var(--cat-color)}.skill-item.area::before{background:var(--cat-area)}.skill-item.disrupt::before{background:var(--cat-disrupt)}.skill-item.used{opacity:.42}.skill-item .skill-head{display:flex;justify-content:space-between;gap:7px;align-items:flex-start}.skill-item .skill-name{font-weight:900}.skill-item .skill-meta{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end}
+.log{height:200px;overflow:auto;background:#07101d;border:1px solid #273449;border-radius:10px;padding:8px;font-size:12px}.log div{padding:3px 0;border-bottom:1px dotted #1e293b}.region-status{min-height:44px}
+.overlay{position:fixed;inset:0;background:#050914;z-index:100;display:none;align-items:center;justify-content:center;padding:22px}.overlay.show{display:flex}.handover{max-width:600px;width:100%;text-align:center;border:1px solid #475569;background:#111827;border-radius:20px;padding:28px;box-shadow:0 30px 100px rgba(0,0,0,.6)}.handover h2{font-size:clamp(26px,6vw,42px);margin:0 0 10px}.handover .big{font-size:18px;margin:18px 0}.handover button{font-size:17px;padding:12px 18px}.handover-actions{display:flex;justify-content:center;gap:9px;flex-wrap:wrap}.debug-launch{border-color:#e879f9!important;background:linear-gradient(135deg,#7e22ce,#be123c)!important;color:#fff!important;font-weight:950!important;box-shadow:0 0 20px rgba(232,121,249,.28)}
+.modal{position:fixed;inset:0;background:rgba(2,6,23,.86);z-index:120;display:none;align-items:center;justify-content:center;padding:18px}.modal.show{display:flex}.modal-card{max-width:760px;width:100%;max-height:88vh;overflow:auto;border:1px solid #475569;background:#111827;border-radius:17px;padding:18px;box-shadow:0 30px 100px rgba(0,0,0,.55)}.choice-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px}.choice{border:1px solid #475569;border-radius:10px;padding:11px;background:#142033;color:white;text-align:left}.choice:hover:not(:disabled){filter:brightness(1.14)}.choice.selected{outline:3px solid white}.choice:disabled{opacity:.3}.choice .choice-main{font-weight:900}.choice .choice-sub{font-size:11px;color:#94a3b8;margin-top:3px}
+.event-overlay{position:fixed;inset:0;z-index:160;display:none;align-items:center;justify-content:center;pointer-events:none;background:rgba(2,6,23,.18)}.event-overlay.show{display:flex}.event-card{text-align:center;padding:24px 34px;border-radius:20px;background:rgba(2,6,23,.9);border:1px solid #64748b;box-shadow:0 25px 90px rgba(0,0,0,.65);animation:eventPop .55s cubic-bezier(.2,.9,.25,1.25)}.event-overlay.good .event-card{border-color:#22c55e}.event-overlay.warn .event-card{border-color:#eab308}.event-overlay.bad .event-card{border-color:#fb7185}.event-overlay.epic .event-card{border-color:#c084fc;box-shadow:0 0 50px rgba(192,132,252,.35),0 25px 90px rgba(0,0,0,.65)}.event-title{font-size:clamp(30px,8vw,66px);font-weight:1000;letter-spacing:.03em}.event-sub{font-size:clamp(13px,3vw,19px);color:#cbd5e1;margin-top:5px}
+.fx-layer{position:fixed;inset:0;z-index:155;pointer-events:none;overflow:hidden}.particle{position:absolute;width:7px;height:12px;background:var(--pc,#fff);border-radius:2px;animation:particleFly .9s ease-out forwards}.toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(16px);opacity:0;transition:.18s;background:#020617;border:1px solid #475569;border-radius:10px;padding:9px 13px;z-index:220;pointer-events:none;max-width:min(92vw,700px);text-align:center}.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.quiz-wrap{max-width:840px;margin:auto}.difficulty{display:flex;gap:7px;flex-wrap:wrap}.difficulty button.active{outline:2px solid white}.question{font-size:clamp(23px,5.4vw,40px);font-weight:950;text-align:center;margin:22px 0;white-space:pre-line;line-height:1.28}.progress{height:8px;border-radius:99px;background:#0b1220;overflow:hidden}.progress>div{height:100%;background:#e2e8f0;width:0}.timebar{height:11px;border-radius:99px;background:#29131a;border:1px solid #7f1d1d;overflow:hidden;margin-bottom:10px}.timebar>div{height:100%;width:100%;transform-origin:left;background:linear-gradient(90deg,#22c55e,#eab308 65%,#ef4444)}
+.number-arena{position:relative;height:360px;border:1px solid #334155;border-radius:16px;background:radial-gradient(circle at center,#182235,#07101d);overflow:hidden}.number-orb{position:absolute;left:0;top:0;min-width:92px;max-width:156px;height:62px;padding:0 13px;border-radius:999px;border:2px solid #64748b;background:linear-gradient(160deg,#27364f,#101827);color:white;font-size:21px;font-weight:950;box-shadow:0 10px 24px rgba(0,0,0,.3);will-change:transform}.number-orb:hover:not(:disabled){filter:brightness(1.16)}.number-orb.correct{background:#14532d;border-color:#86efac}.number-orb.wrong{background:#4c0519;border-color:#fda4af}.number-orb.reveal-correct{box-shadow:0 0 0 4px #86efac,0 0 28px #22c55e}.quiz-note{text-align:center;color:#64748b;font-size:11px;margin-top:8px}.cooldown-active{color:#fde68a!important;font-weight:850}
+.gacha-results,.inventory-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(205px,1fr));gap:9px}.card{border:1px solid #475569;border-radius:13px;background:linear-gradient(145deg,#1b2940,#0b1220);padding:12px;min-height:150px;position:relative;overflow:hidden}.card.r4{border-color:#a78bfa;box-shadow:0 0 18px rgba(167,139,250,.15)}.card.r5{border-color:#e2e8f0;box-shadow:0 0 25px rgba(255,255,255,.18)}.stars{letter-spacing:1px}.loadout-btn{width:100%;margin-top:10px}.card.equipped{outline:3px solid #f8fafc}.inventory-category{margin-top:18px}.inventory-category:first-child{margin-top:0}.category-title{display:flex;align-items:center;gap:8px;margin:0 0 8px}.loadout-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.loadout-slot{border:1px solid #475569;border-radius:11px;padding:9px;background:#0b1424}.loadout-slot .slot-cat{font-size:11px;color:#94a3b8}.loadout-slot .slot-name{font-weight:900;margin-top:3px}
+.gacha-overlay{position:fixed;inset:0;background:radial-gradient(circle,#172033,#020617 70%);z-index:180;display:none;align-items:center;justify-content:center;padding:20px}.gacha-overlay.show{display:flex}.gacha-stage{width:min(92vw,560px);text-align:center;position:relative}.gacha-skip{position:absolute;right:0;top:-48px}.gacha-stars{font-size:34px;letter-spacing:7px;margin-bottom:10px}.gacha-stars span{color:#334155;transition:.18s}.gacha-stars span.on{color:#fde047;text-shadow:0 0 17px #f59e0b;transform:scale(1.16)}.reveal-card{opacity:0;transform:scale(.7) rotateY(90deg);transition:.5s cubic-bezier(.2,.9,.25,1.15);border:2px solid #64748b;border-radius:22px;background:linear-gradient(160deg,#24344f,#09111f);padding:24px;min-height:270px;display:grid;align-content:center;box-shadow:0 30px 80px rgba(0,0,0,.55)}.reveal-card.show{opacity:1;transform:scale(1) rotateY(0)}.gacha-overlay.r4 .reveal-card{border-color:#c084fc;box-shadow:0 0 55px rgba(192,132,252,.28)}.gacha-overlay.r5 .reveal-card{border-color:#fff;animation:legendary 1s linear infinite;box-shadow:0 0 70px rgba(255,255,255,.35)}
+.rules li{margin:8px 0}.rule-table{width:100%;border-collapse:collapse}.rule-table th,.rule-table td{border:1px solid #334155;padding:7px;text-align:left;vertical-align:top}.footer-note{color:#64748b;font-size:11px;margin-top:14px;text-align:center}
+body.shake{animation:shake .5s linear}body.danger-flash::after{content:"";position:fixed;inset:0;background:rgba(239,68,68,.23);z-index:150;pointer-events:none;animation:flashOut .6s forwards}
+@keyframes eventPop{0%{opacity:0;transform:scale(.55) rotate(-3deg)}70%{opacity:1;transform:scale(1.08) rotate(1deg)}100%{transform:scale(1)}}
+@keyframes particleFly{to{transform:translate(var(--dx),var(--dy)) rotate(var(--rot));opacity:0}}
+@keyframes boardPulse{50%{filter:brightness(1.25);box-shadow:0 0 35px rgba(34,211,238,.45)}}
+@keyframes prismRing{0%{box-shadow:0 0 0 1px #ef4444}33%{box-shadow:0 0 18px 3px #eab308}66%{box-shadow:0 0 18px 3px #22c55e}100%{box-shadow:0 0 18px 3px #3b82f6}}
+@keyframes chainSlide{to{transform:translate(21px,21px)}}
+@keyframes legendary{0%,100%{filter:hue-rotate(0)}50%{filter:hue-rotate(180deg)}}
+@keyframes shake{0%,100%{transform:none}20%{transform:translate(-8px,2px)}40%{transform:translate(7px,-2px)}60%{transform:translate(-5px,1px)}80%{transform:translate(4px,0)}}
+@keyframes flashOut{to{opacity:0}}
+@keyframes debugGlow{from{filter:brightness(.92)}to{filter:brightness(1.18)}}
+@media(max-width:900px){.layout{grid-template-columns:1fr}.app{padding:11px}.panel{padding:12px}.board-canvas{min-width:300px}.header-tools{justify-items:start}.profile-switch,.chips{justify-content:flex-start}.number-orb{min-width:82px;max-width:138px;height:57px;padding:0 10px}.gacha-skip{right:8px;top:8px}.loadout-summary{grid-template-columns:1fr}.color-btn{width:68px;height:52px}}
+
+.mode-selector{margin:10px 0}.mode-buttons{display:flex;gap:7px;flex-wrap:wrap}.mode-btn.active{outline:2px solid #f8fafc;background:#f8fafc;color:#111827;font-weight:900}.mode-btn[data-match-mode="standard"]{border-color:#a78bfa}.mode-btn[data-match-mode="quick"]{border-color:#22d3ee}.wallet{display:inline-flex;align-items:center;gap:5px;border:1px solid #a16207;background:#3a2908;color:#fde68a;border-radius:999px;padding:6px 10px;font-weight:900}.wallet-large{font-size:18px;padding:9px 14px}.wallet-callout{border-color:#a16207}.inventory-actions{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:9px}.inventory-actions .btn{padding:7px 8px;font-size:12px}.protect-btn.active{border-color:#fde68a;background:#422006;color:#fde68a}.coin-value{color:#fde68a;font-weight:850}.depleted{color:#fda4af}.cosmetic-preview{height:72px;border:1px solid #475569;border-radius:11px;margin:9px 0;display:grid;place-items:center;font-weight:900;letter-spacing:.06em;background:#0b1220}.cosmetic-preview.aurora{background:linear-gradient(135deg,#0f172a,#164e63,#581c87);box-shadow:inset 0 0 20px rgba(34,211,238,.35)}.cosmetic-preview.gold{background:linear-gradient(135deg,#422006,#a16207,#111827);border-color:#fde047}.cosmetic-preview.sakura{background:radial-gradient(circle,#fbcfe8,#6b21a8,#111827)}.cosmetic-preview.prism{background:linear-gradient(120deg,#ef4444,#eab308,#22c55e,#3b82f6,#a855f7)}.cosmetic-preview.cartographer{background:repeating-linear-gradient(45deg,#082f49 0 10px,#164e63 10px 20px);border-color:#67e8f9}.card.locked,.trophy-card.locked{opacity:.48;filter:grayscale(.45)}.trophy-icon{font-size:34px}.trophy-progress{margin-top:8px;font-weight:850}.curse-pill{display:inline-flex;align-items:center;gap:5px;border:1px solid #c084fc;background:#3b0764;color:#f5d0fe;border-radius:999px;padding:3px 8px;margin:2px;font-size:11px;font-weight:900}
+body.skin-board-aurora .board-shell{border-color:#22d3ee;box-shadow:0 0 0 1px rgba(34,211,238,.25),0 0 34px rgba(168,85,247,.28)}body.skin-board-gold .board-shell{border-color:#fde047;box-shadow:0 0 0 2px rgba(161,98,7,.35),0 0 30px rgba(250,204,21,.2)}body.skin-board-cartographer .board-shell{border-color:#67e8f9;box-shadow:0 0 0 2px rgba(8,145,178,.35),0 0 34px rgba(34,211,238,.25)}body.skin-nameplate-gold #activePlayerName{color:#fde047;text-shadow:0 0 12px rgba(250,204,21,.45)}body.skin-effect-sakura .event-card{border-color:#f9a8d4;box-shadow:0 20px 80px rgba(244,114,182,.28)}body.skin-effect-prism .event-card{animation:legendary 1.2s linear infinite;border-color:#f8fafc}body.skin-effect-masterpiece .event-card{border-color:#67e8f9;box-shadow:0 20px 90px rgba(34,211,238,.35)}
+@media(max-width:650px){.inventory-actions{grid-template-columns:1fr}.mode-buttons{width:100%}.mode-buttons .btn{flex:1}.wallet-large{font-size:15px}}
+</style>
+</head>
+<body>
+<div class="app">
+<header>
+  <div><h1>Four Color Map Game</h1><div class="sub">熟考モード本編 × 速攻チュートリアル × 消耗カード × コイン外観 × 完塗りトロフィー — Browser Geometry v4.9</div></div>
+  <div class="header-tools">
+    <div class="profile-switch" aria-label="育成プレイヤー切替">
+      <button class="profile-btn active" data-profile="A"></button>
+      <button class="profile-btn" data-profile="B"></button>
+    </div>
+    <div class="chips">
+      <span id="modeChip" class="chip">本編 <b>熟考モード</b></span>
+      <span id="paletteChip" class="chip">持ち色 <b>基本2＋おまけ1</b></span>
+      <span id="coinChip" class="chip">コイン <b>0</b></span>
+      <span class="chip">指定サイズ <b>🎲1・2多め</b></span>
+      <span class="chip">開始盤面 <b>10×10・拡縮可</b></span>
+      <span class="chip">内部幾何 <b>48×48</b></span>
+      <button id="soundToggle" class="profile-btn" type="button">音 ON</button>
+      <button id="debugToggle" class="profile-btn debug-toggle" type="button" aria-pressed="false">DEBUG OFF</button>
+    </div>
+  </div>
+</header>
+<nav>
+  <button class="active" data-screen="battle">対戦</button>
+  <button data-screen="quiz">数字ラッシュ</button>
+  <button data-screen="gacha">ガチャ</button>
+  <button data-screen="cards">カード所持</button>
+  <button data-screen="collection">コイン・外観</button>
+  <button data-screen="rules">ルール</button>
+</nav>
+
+<section id="screen-battle" class="screen active">
+<div class="layout">
+  <main class="panel">
+    <div class="row between">
+      <div><h2 style="margin-bottom:4px">ローカル2人対戦</h2><div id="turnSummary" class="muted"></div></div>
+      <div class="row"><button id="newMatch" class="btn">新しい対戦</button><button id="surrender" class="btn danger">投了</button></div>
+    </div>
+    <div id="debugBanner" class="callout debug-banner"><div class="row between"><strong>🧪 DEBUG PSEUDO BATTLE</strong><span class="debug-mark">育成データ非使用</span></div><div class="debug-features">全19スキルを無制限使用／全4色を常時候補に表示／受け渡し秘密画面をスキップ。通常のタイミング制約・隣接判定・封印UI・違法彩色敗北は維持します。</div></div>
+    <div class="mode-selector callout">
+      <div class="row between"><div><b>対戦モード</b><div id="modeDescription" class="small muted" style="margin-top:4px"></div></div><div class="mode-buttons"><button class="btn mode-btn active" data-match-mode="standard">熟考モード（推奨）</button><button class="btn mode-btn" data-match-mode="quick">速攻チュートリアル</button></div></div>
+    </div>
+    <div class="phasebar"><div id="phaseColor" class="phase">1. 受取エリアを彩色</div><div id="phaseWork" class="phase">2. 幾何操作・エリア指定</div><div id="phasePass" class="phase">3. 相手へ渡す</div></div>
+    <div id="battleMessage" class="callout"></div>
+    <div id="targetPanel" class="callout target-panel"><div class="row between"><div><div id="targetTitle" class="target-title"></div><div id="targetHint" class="target-hint"></div></div><button id="cancelTarget" class="btn">キャンセル</button></div></div>
+    <div class="board-shell" style="margin-top:10px"><canvas id="boardCanvas" class="board-canvas" width="800" height="800" aria-label="10×10 initial playable board in a 12×12 backing grid with 48×48 internal geometry"></canvas></div>
+    <div id="selectionPanel" class="callout" style="margin-top:10px">
+      <div class="row between"><b>次に相手が塗るエリアを指定</b><span id="sizeTag" class="tag hot"></span></div>
+      <div id="regionStatus" class="region-status small muted" style="margin-top:6px"></div>
+      <div class="row" style="margin-top:8px"><button id="clearSelection" class="btn">選択解除</button><button id="confirmRegion" class="btn primary">このエリアを相手へ渡す</button></div>
+    </div>
+    <div id="splitPanel" class="callout warn" style="display:none;margin-top:10px">
+      <b>《エリア二分》：自分が塗る側を選択</b>
+      <div class="small muted" style="margin-top:5px">受取エリアの元マスを2つの連結部分へ分けます。残り側は彩色後、そのまま相手へ返されます。</div>
+      <div id="splitStatus" class="small" style="margin-top:7px"></div>
+      <div class="row" style="margin-top:8px"><button id="cancelSplit" class="btn">キャンセル</button><button id="confirmSplit" class="btn primary">二分を確定</button></div>
+    </div>
+  </main>
+
+  <aside class="stack">
+    <section class="panel">
+      <div class="row between"><h3 style="margin:0"><span id="activePlayerName"></span></h3><span id="phaseLabel" class="tag"></span></div>
+      <div class="secret" style="margin-top:10px">
+        <div class="small muted">秘密の持ち色（相手には見せない）</div>
+        <div id="palette" class="palette" style="margin-top:8px"></div>
+        <div id="paletteNotice" class="small muted" style="margin-top:8px"></div>
+        <div id="sealSummary" class="seal-summary"></div>
+      </div>
+      <div id="lossBox" class="callout bad" style="display:none;margin-top:10px"></div>
+    </section>
+
+    <section class="panel">
+      <h3>持込スキル <span id="skillModeCaption" class="small muted">（各系統2枚・各1回）</span></h3>
+      <div id="skills" class="skill-list"></div>
+      <div id="skillModeNote" class="small muted" style="margin-top:8px">色操作・エリア操作・相手妨害から1枚ずつ。使用時に公開されます。</div>
+    </section>
+
+    <section class="panel"><h3>公開ログ</h3><div id="battleLog" class="log"></div></section>
+  </aside>
+</div>
+</section>
+
+<section id="screen-quiz" class="screen"><div class="panel quiz-wrap">
+  <div class="row between"><div><h2 style="margin-bottom:4px">数字ラッシュ</h2><div class="muted"><span id="quizOwner"></span> のガチャ権チャレンジ</div></div><span class="chip">1問 <b id="quizTimeChip">10～13秒</b></span></div>
+  <div class="callout" style="margin-top:12px"><b>ルール：</b> 10問中、3回目のミスで終了。四則演算だけでなく、小数・分数比較、階乗、Σ、行列などが出題されます。5問連続正解を達成した時点で5連を保証し、その後3ミスしても消えません。全問正解は10連。5連未達でも累計7問以上正解なら選択レベルの3連、そこにも届かない3ミス終了は1ランク下を1回引けます。3ミス終了後は再挑戦まで60秒です。</div>
+  <div class="difficulty" id="difficulty" style="margin-top:12px"></div>
+  <div id="odds" class="small muted" style="margin-top:8px"></div>
+  <div id="quizIdle" style="margin-top:15px"><button id="startQuiz" class="btn primary">10問チャレンジ開始</button><div id="quizCooldown" class="small muted" style="margin-top:8px"></div></div>
+  <div id="quizPlay" hidden style="margin-top:15px">
+    <div class="row between"><span id="quizCounter"></span><span>正解 <b id="correctCount">0</b> / ミス <b id="wrongCount">0</b> / 連続 <b id="streakCount">0</b></span></div>
+    <div class="progress" style="margin-top:8px"><div id="quizProgress"></div></div>
+    <div id="question" class="question"></div>
+    <div class="timebar"><div id="timeProgress"></div></div>
+    <div id="numberArena" class="number-arena" aria-label="数字の選択肢"></div>
+    <div class="quiz-note">選択肢はゆっくり漂います。計算問題では正解の大小順位を毎問ランダム化。小数・分数比較、階乗、Σ、行列などが混在します。</div>
+  </div>
+  <div id="quizResult" hidden style="margin-top:15px"></div>
+</div></section>
+
+<section id="screen-gacha" class="screen"><div class="panel">
+  <div class="row between"><div><h2 style="margin-bottom:4px">スキルカードガチャ</h2><div class="muted"><span id="gachaOwner"></span> のガチャ。レアリティ決定後、3系統から均等抽選します。</div></div><span class="chip">残り <b id="ticketCount">0</b> 回</span></div>
+  <div id="ticketBreakdown" class="small muted" style="margin:10px 0"></div>
+  <div class="row"><button id="drawOne" class="btn primary">1回引く</button><button id="drawAll" class="btn">全部引く</button></div>
+  <div id="gachaResults" class="gacha-results" style="margin-top:12px"></div>
+</div></section>
+
+<section id="screen-cards" class="screen"><div class="panel">
+  <div class="row between"><div><h2 style="margin-bottom:4px">カード所持・持込設定</h2><div class="muted"><span id="cardsOwner"></span> のローカル育成データ</div></div><button id="resetProfile" class="btn danger">このプレイヤーを初期化</button></div>
+  <div class="callout" style="margin-top:10px">
+    <div class="row"><label for="profileIdInput"><b>ローカルID</b></label><input id="profileIdInput" maxlength="20" style="flex:1;min-width:160px;padding:9px;border-radius:9px;border:1px solid #475569;background:#09111f;color:white"><button id="saveProfileId" class="btn">保存</button></div>
+    <div class="small muted" style="margin-top:5px">A・Bで異なるIDを使用します。このブラウザ内だけに保存します。</div>
+  </div>
+  <div class="callout wallet-callout" style="margin-top:10px"><div class="row between"><div><b>カード換金</b><div class="small muted" style="margin-top:4px">カードは対戦で正常発動した時に1枚消費します。余剰分は任意でコインへ換金でき、コインは外観だけに使用します。</div></div><span class="wallet">🪙 <b id="coinBalanceCards">0</b></span></div><div class="small muted" style="margin-top:6px">換金額：★1 10 / ★2 30 / ★3 80 / ★4 200 / ★5 500。保護中のカードは換金できません。</div></div>
+  <div class="callout" style="margin-top:10px"><b>熟考モードの持込構成：</b><div id="loadoutSummary" class="loadout-summary" style="margin-top:8px"></div><div class="small muted" style="margin-top:6px">各系統から異なるカードを2枚ずつ、合計6枚。カード1枚につき1対戦で1回使用でき、正常発動時に所持枚数を1枚消費します。速攻チュートリアルでは固定3枚を貸与し、所持カードは消費しません。</div></div>
+  <div id="inventoryGroups" style="margin-top:14px"></div>
+</div></section>
+
+
+<section id="screen-collection" class="screen"><div class="panel">
+  <div class="row between"><div><h2 style="margin-bottom:4px">コイン・外観・トロフィー</h2><div class="muted"><span id="collectionOwner"></span> の外観コレクション。対戦性能には影響しません。</div></div><span class="wallet wallet-large">🪙 <b id="coinBalanceCollection">0</b></span></div>
+  <div class="callout" style="margin-top:10px"><b>設計方針：</b> カード換金は外観購入へ、トロフィーは限定外観・称号へ接続します。ガチャ券や対戦能力は付与しません。</div>
+  <h3 style="margin-top:18px">外観ショップ</h3><div id="cosmeticShop" class="inventory-grid"></div>
+  <h3 style="margin-top:22px">トロフィー</h3><div id="trophyGrid" class="inventory-grid"></div>
+</div></section>
+
+<section id="screen-rules" class="screen"><div class="panel rules">
+  <h2>Geometry v4.9 Modes & Collection ルール</h2>
+  <ol>
+    <li><b>熟考モードが本編・推奨モード</b>です。基本色2色＋回数制のおまけ色1色を持ち、おまけ色は「1・1・2・2・3・4」の6面相当。各系統2枚・合計6枚の所持カードを持ち込みます。</li>
+    <li><b>速攻チュートリアル</b>は基本色2色・おまけ色なし。《四色解放》《半マスシフト》《色封じ》を1枚ずつ貸与し、所持カードを消費しません。短時間で彩色・幾何操作・妨害と呪返しを学ぶ位置付けです。</li>
+    <li>開始時の新規書込可能範囲は10×10。内部には12×12の余白を持つ48×48座標を用意し、通常1マスを4×4の16内部セルとして扱います。縮小された帯に既塗エリアがあっても消えず、その帯への新規エリア書込みだけが禁止されます。</li>
+    <li>指定ターンごとに1～4のダイスを振り、出目と同じ数の通常マスをぴったり指定します。出目は「1・1・2・2・3・4」の6面相当で、1・2が各1/3です。作れない場合だけ下の数へ自動調整します。</li>
+    <li>隣接は常に「変形後の実形状が正の長さの辺を共有するか」で判定します。点接触だけなら非隣接です。同色エリアが辺接触した場合、その連結成分は1つのエリアへ自動統合します。</li>
+    <li>回数切れ色と妨害カードで封印された色は押せません。隣接済みの違法色は警告せず押せ、選んだ瞬間に敗北します。主な勝ち筋は相手の色詰みです。</li>
+    <li>★2《色封じ》は任意色を相手の次の彩色で封じます。ただし「人を呪わば穴二つ」として、相手が生き残った場合、使用者の次の彩色開始時に未封印・使用可能な持ち色1色がランダム封印されます。</li>
+    <li>熟考モードでは、カード効果が正常に確定した瞬間にプロフィール在庫を1枚消費します。対象選択のキャンセル、条件不成立、未使用カードは消費しません。</li>
+    <li>新規エリアを作れなくなった通常勝利は<b>盤面封鎖</b>です。対戦開始時の対象面積と自分で拡張した面積を、縮小でごまかさず100％実彩色した場合だけ<b>完塗り</b>となり、熟考モードのトロフィーへ記録されます。</li>
+    <li>数字ラッシュ報酬は最高報酬だけを採用します。全問正解10連、5問連続正解5連、累計7問以上正解3連、それ以外の3ミス終了は1ランク下1回です。同じレベル内の問題難度の振れは意図的に残します。</li>
+    <li>カードは任意でコイン換金でき、コインは盤面枠・演出・名札などの外観だけに使用します。トロフィーも限定外観・称号・記録のみで、対戦能力やガチャ券は付与しません。</li>
+    <li><b>DEBUG疑似対戦</b>では全19スキルを無制限、全4色を常時使用候補として扱います。育成データ・ガチャ券・持込設定・トロフィーは変更しません。</li>
+  </ol>
+  <h3>色操作系</h3>
+  <table class="rule-table"><tbody id="ruleColorSkills"></tbody></table>
+  <h3>エリア操作系</h3>
+  <table class="rule-table"><tbody id="ruleAreaSkills"></tbody></table>
+  <h3>相手妨害系</h3>
+  <table class="rule-table"><tbody id="ruleDisruptSkills"></tbody></table>
+  <div class="callout warn" style="margin-top:12px"><b>保存範囲：</b> A・BのID、ガチャ券、所持カード、持込設定、コイン、外観、トロフィーはlocalStorageへ保存します。対戦中盤面の保存、別端末同期、オンライン対戦は含みません。</div>
+</div></section>
+
+<div class="footer-note">単体HTML。外部ライブラリ・画像・音源なし。効果音はブラウザ内で合成します。</div>
+</div>
+
+<div id="handoverOverlay" class="overlay show"><div class="handover">
+  <div class="muted">画面を次のプレイヤーへ渡してください</div><h2 id="handoverPlayer"></h2>
+  <div id="handoverText" class="big"></div>
+  <div class="handover-actions"><button id="revealTurn" class="btn primary">秘密情報を表示して開始</button><button id="debugFromHandover" class="btn debug-launch">🧪 DEBUG疑似対戦を開始</button></div>
+  <div class="small muted" style="margin-top:13px">通常対戦では、このボタンを押すまで持ち色・封印状態・持込カードを表示しません。熟考は6枚消耗、速攻は3枚貸与、DEBUGは全4色・全19スキル無制限です。</div>
+</div></div>
+
+<div id="actionModal" class="modal"><div class="modal-card">
+  <h3 id="actionTitle"></h3><div id="actionText" class="muted" style="margin-bottom:12px"></div>
+  <div id="actionChoices" class="choice-grid"></div>
+  <div class="row" style="margin-top:14px"><button id="cancelAction" class="btn">キャンセル</button></div>
+</div></div>
+
+<div id="eventOverlay" class="event-overlay"><div class="event-card"><div id="eventTitle" class="event-title"></div><div id="eventSub" class="event-sub"></div></div></div>
+<div id="fxLayer" class="fx-layer"></div>
+
+<div id="gachaOverlay" class="gacha-overlay"><div class="gacha-stage">
+  <button id="skipGacha" class="btn gacha-skip">演出をスキップ</button>
+  <div id="gachaRevealMeta" class="muted"></div><div id="gachaStars" class="gacha-stars"></div>
+  <div id="revealCard" class="reveal-card"><div id="revealCategory"></div><div id="revealRarity" class="stars"></div><h2 id="revealName"></h2><div id="revealDesc" class="muted"></div></div>
+</div></div>
+
+<div id="toast" class="toast"></div>
+<script>
+(()=>{"use strict";
+
+// v4.9 integration: standard and quick modes, consumable inventory, curse backlash,
+// 7-correct quiz rewards, coin cosmetics, and full-paint trophies on top of v4.8 geometry.
+
+const CFG={
+  MW:12,MH:12,SCALE:4,UW:48,UH:48,MAX_DIE:4,MAX_WITH_SKILL:5,PALETTE_SIZE:3,QUICK_PALETTE_SIZE:2,LOADOUT_PER_CATEGORY:2,
+  START_BOUNDS:{left:1,top:1,right:10,bottom:10},MIN_BOARD_W:6,MIN_BOARD_H:6,
+  DIE_FACE_POOL:[1,1,2,2,3,4],LIMITED_USE_POOL:[1,1,2,2,3,4],
+  QUIZ_TIME_MS_BY_LEVEL:{1:10000,2:13000,3:18000,4:25000,5:40000},
+  QUIZ_MAX_BONUS_MS_BY_LEVEL:{1:3000,2:4000,3:6000,4:8000,5:10000},QUIZ_FAIL_COOLDOWN_MS:60000
+};
+const COLORS=["red","blue","yellow","green"];
+const COLOR_NAME={red:"赤",blue:"青",yellow:"黄",green:"緑"};
+const COLOR_HEX={red:"#ef4444",blue:"#3b82f6",yellow:"#eab308",green:"#22c55e"};
+const CATEGORY={
+  color:{name:"色操作",className:"color",icon:"◆"},
+  area:{name:"エリア操作",className:"area",icon:"▦"},
+  disrupt:{name:"相手妨害",className:"disrupt",icon:"⛓"}
+};
+const SKILLS={
+  colorRandomBorrow:{name:"色拾い・乱",category:"color",timing:"COLOR",rarity:1,desc:"盤面で使用済みの色からランダム1色を、この彩色だけ追加する。既に持つ色や塗れない色を引くこともある。"},
+  colorChoiceBorrow:{name:"色借り",category:"color",timing:"COLOR",rarity:2,desc:"盤面で使用済みの色から1色を選び、この彩色だけ追加する。合法色かどうかは表示しない。"},
+  colorPrism:{name:"四色解放",category:"color",timing:"COLOR",rarity:3,desc:"この彩色だけ全4色を使用候補にする。隣接済みの色を選べば敗北。"},
+  colorRegionSplit:{name:"エリア二分",category:"color",timing:"COLOR",rarity:4,desc:"受取エリアを2つの連結部分へ分け、一方を塗って残りを相手へ返す。"},
+  colorPaletteChange:{name:"持ち色変更",category:"color",timing:"COLOR",rarity:5,desc:"持ち色1枠を任意の別色へ恒久変更する。変更後の3枠と制限枠は相手に非公開。"},
+
+  areaMicroBloom:{name:"ひとふくらみ",category:"area",timing:"WORK",rarity:1,desc:"相手へ渡す未彩色エリア内からランダムな1マス・1角を選び、点接触を辺接触へ変えるよう膨らませる。"},
+  areaDiePlus:{name:"エリア拡張",category:"area",timing:"WORK",rarity:2,desc:"この指定ターンだけ、ダイスで決まった必要マス数を+1する。通常4→5も可能。"},
+  areaResize:{name:"拡大縮小",category:"area",timing:"WORK",rarity:3,desc:"盤面外周の1行または1列を拡張／縮小する。縮小しても既塗エリアは残り、その帯への新規エリア書込みだけを禁止する。"},
+  areaCornerBloom:{name:"角膨張",category:"area",timing:"WORK",rarity:4,desc:"相手へ渡す未彩色エリア内の1マスを選び、その四隅すべてを外側へ1/4マス膨らませる。既塗エリアと重なる内部セルは侵食して移す。"},
+  areaHalfShift:{name:"半マスシフト",category:"area",timing:"WORK",rarity:4,desc:"基準マスと上下左右を選び、その行または列を0.5マス移動する。目玉幾何スキルとして★4。方向固定なし・変形後へ重ね掛け可能。"},
+  areaTripleShift:{name:"三層断層",category:"area",timing:"WORK",rarity:5,desc:"基準帯の中央を1マス、両脇を0.5マス同方向へ同時移動する。上下左右自由で、現在形状へ重ね掛け可能。"},
+
+  disruptRandomOne:{name:"色封じ・乱",category:"disrupt",timing:"WORK",rarity:1,desc:"全4色からランダム1色を、相手の次の彩色1回だけ封印する。空振りもある。"},
+  disruptChoiceOne:{name:"色封じ",category:"disrupt",timing:"WORK",rarity:2,desc:"任意の1色を相手の次の彩色1回だけ封印する。呪返しとして、自分の次の彩色開始時に未封印の使用可能色1色がランダム封印される。"},
+  disruptRandomTwo:{name:"二重封じ・乱",category:"disrupt",timing:"WORK",rarity:3,desc:"異なる2色をランダムに選び、相手の次の彩色1回だけ封印する。"},
+  disruptPaletteRandom:{name:"持ち色汚染・乱",category:"disrupt",timing:"WORK",rarity:3,desc:"全4色からランダム1色を相手のランダムな持ち色枠へ注入し、次の彩色1回だけ維持する。重複して実質2色になることもある。"},
+  disruptChoiceTwo:{name:"追封",category:"disrupt",timing:"WORK",rarity:4,desc:"任意の1色を、相手の次の彩色2回で封印する。"},
+  disruptPaletteChoice:{name:"持ち色汚染",category:"disrupt",timing:"WORK",rarity:4,desc:"任意の1色を相手のランダムな持ち色枠へ注入し、次の彩色2回だけ維持する。交換された元色は使用者に見えない。"},
+  disruptChoiceThree:{name:"長封",category:"disrupt",timing:"WORK",rarity:5,desc:"任意の1色を、相手の次の彩色3回で封印する。"},
+  disruptForcedPalette:{name:"強制持ち替え",category:"disrupt",timing:"WORK",rarity:5,desc:"任意の1色を相手のランダムな持ち色枠へ恒久注入する。盤面に多い色を押し付ける攻撃に使える。"}
+};
+const SKILL_POOL_BY_CATEGORY_RARITY={
+  color:{1:["colorRandomBorrow"],2:["colorChoiceBorrow"],3:["colorPrism"],4:["colorRegionSplit"],5:["colorPaletteChange"]},
+  area:{1:["areaMicroBloom"],2:["areaDiePlus"],3:["areaResize"],4:["areaCornerBloom","areaHalfShift"],5:["areaTripleShift"]},
+  disrupt:{1:["disruptRandomOne"],2:["disruptChoiceOne"],3:["disruptRandomTwo","disruptPaletteRandom"],4:["disruptChoiceTwo","disruptPaletteChoice"],5:["disruptChoiceThree","disruptForcedPalette"]}
+};
+const SKILL_BY_CATEGORY_RARITY=Object.fromEntries(Object.entries(SKILL_POOL_BY_CATEGORY_RARITY).map(([category,byRarity])=>[category,Object.fromEntries(Object.entries(byRarity).map(([rarity,pool])=>[rarity,pool[0]]))]));
+const GACHA={
+  1:{1:55,2:30,3:12,4:2.8,5:.2},
+  2:{1:40,2:35,3:19,4:5.5,5:.5},
+  3:{1:25,2:35,3:28,4:10,5:2},
+  4:{1:10,2:25,3:35,4:24,5:6},
+  5:{1:2,2:8,3:30,4:40,5:20}
+};
+const MATCH_MODES={
+  standard:{name:"熟考モード",short:"熟考",desc:"本編・推奨。基本色2＋回数制おまけ色1、各系統2枚・合計6枚。使用カードはプロフィール在庫から消費し、完塗りトロフィー対象。"},
+  quick:{name:"速攻チュートリアル",short:"速攻",desc:"基本色2色・おまけ色なし。《四色解放》《半マスシフト》《色封じ》を貸与。カード消費・トロフィー記録なし。"}
+};
+const QUICK_LOANED_SKILLS=["colorPrism","areaHalfShift","disruptChoiceOne"];
+const STARTER_SPOTLIGHT_SKILL="areaHalfShift";
+const CARD_COIN_VALUE={1:10,2:30,3:80,4:200,5:500};
+const COSMETIC_TYPE_NAME={board:"盤面枠",effect:"発動演出",nameplate:"名札"};
+const COSMETICS={
+  boardDefault:{name:"標準盤面",type:"board",price:0,css:"",preview:"DEFAULT",previewClass:""},
+  boardAurora:{name:"オーロラ盤面",type:"board",price:600,css:"skin-board-aurora",preview:"AURORA",previewClass:"aurora"},
+  boardGold:{name:"黄金盤面",type:"board",price:900,css:"skin-board-gold",preview:"GOLD",previewClass:"gold"},
+  boardCartographer:{name:"地図職人の盤面",type:"board",price:0,css:"skin-board-cartographer",preview:"CARTOGRAPHER",previewClass:"cartographer",trophy:"fullPaint"},
+  effectDefault:{name:"標準エフェクト",type:"effect",price:0,css:"",preview:"STANDARD FX",previewClass:""},
+  effectSakura:{name:"桜吹雪",type:"effect",price:500,css:"skin-effect-sakura",preview:"SAKURA FX",previewClass:"sakura"},
+  effectPrism:{name:"四色プリズム",type:"effect",price:850,css:"skin-effect-prism",preview:"PRISM FX",previewClass:"prism"},
+  effectMasterpiece:{name:"完成地図の輝き",type:"effect",price:0,css:"skin-effect-masterpiece",preview:"MASTERPIECE",previewClass:"cartographer",trophy:"fullPaint3"},
+  nameplateDefault:{name:"標準名札",type:"nameplate",price:0,css:"",preview:"PLAYER",previewClass:""},
+  nameplateGold:{name:"黄金名札",type:"nameplate",price:350,css:"skin-nameplate-gold",preview:"PLAYER ★",previewClass:"gold"}
+};
+const TROPHIES={
+  fullPaint:{name:"完塗り",icon:"🏆",desc:"熟考モードで、縮小前を含むトロフィー対象面積を100％実彩色して勝利する。",reward:"限定外観：地図職人の盤面"},
+  fullPaint3:{name:"地図職人",icon:"🗺️",desc:"完塗りを累計3回達成する。",reward:"限定外観：完成地図の輝き"},
+  noSkillFullPaint:{name:"四色の匠",icon:"✨",desc:"熟考モードで、勝者がスキルを1枚も使わず完塗りする。",reward:"プロフィール記録・称号"}
+};
+const STORE_KEY="fourColorMapGame.browser.v4.9";
+const PREVIOUS_STORE_KEY="fourColorMapGame.browser.v4.geometry";
+const OLD_STORE_KEY="fourColorMapGame.browser.v3";
+
+function shuffle(a){a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+function rand(a,b){return Math.floor(Math.random()*(b-a+1))+a;}
+function sample(a){return a[rand(0,a.length-1)];}
+function rollDieSize(){return sample(CFG.DIE_FACE_POOL);}
+function rollLimitedUses(){return sample(CFG.LIMITED_USE_POOL);}
+function skillPool(category,rarity){return [...(SKILL_POOL_BY_CATEGORY_RARITY[category]?.[rarity]||[])];}
+function skillsInCategory(category){return Object.keys(SKILLS).filter(k=>SKILLS[k].category===category).sort((a,b)=>SKILLS[a].rarity-SKILLS[b].rarity||SKILLS[a].name.localeCompare(SKILLS[b].name,"ja"));}
+function randomSkillFromRarity(category,rarity){const pool=skillPool(category,rarity);return pool.length?sample(pool):null;}
+function stars(n){return "★".repeat(n)+"☆".repeat(5-n);}
+function wait(ms){return new Promise(resolve=>setTimeout(resolve,ms));}
+function other(p){return p==="A"?"B":"A";}
+function categoryBadge(category){const m=CATEGORY[category];return '<span class="category-badge '+m.className+'">'+m.icon+' '+m.name+'</span>';}
+function colorDot(c){return '<span style="display:inline-block;width:13px;height:13px;border-radius:50%;background:'+COLOR_HEX[c]+';vertical-align:-2px;border:1px solid rgba(255,255,255,.65)"></span>';}
+function emptyInventory(){return Object.fromEntries(Object.keys(SKILLS).map(k=>[k,0]));}
+function randomSkillInCategory(category){return sample(skillsInCategory(category));}
+function randomDistinctSkillsInCategory(category,count=CFG.LOADOUT_PER_CATEGORY){return shuffle(skillsInCategory(category)).slice(0,count);}
+function defaultCosmeticsOwned(){return Object.keys(COSMETICS).filter(k=>COSMETICS[k].price===0&&!COSMETICS[k].trophy);}
+function defaultEquipped(){return {board:"boardDefault",effect:"effectDefault",nameplate:"nameplateDefault"};}
+function starterLoadout(){const out={};for(const category of Object.keys(CATEGORY)){if(category==="area"){const otherArea=sample(skillsInCategory("area").filter(k=>k!==STARTER_SPOTLIGHT_SKILL));out.area=[STARTER_SPOTLIGHT_SKILL,otherArea];}else out[category]=randomDistinctSkillsInCategory(category);}return out;}
+function createStarterAccount(id){
+  const inventory=emptyInventory(),loadout=starterLoadout();for(const keys of Object.values(loadout))for(const k of keys)inventory[k]=(inventory[k]||0)+1;
+  return {id,tickets:[],inventory,loadout,coins:0,protectedSkills:{[STARTER_SPOTLIGHT_SKILL]:true},cosmeticsOwned:defaultCosmeticsOwned(),equipped:defaultEquipped(),trophies:{fullPaint:false,fullPaint3:false,noSkillFullPaint:false},trophyDates:{},flags:{starterSpotlightGranted:true},stats:{bestStreak:0,perfects:0,wins:0,fullPaints:0},quizCooldownUntil:0};
+}
+function grantStarterSpotlight(a){if(a.flags?.starterSpotlightGranted)return;a.inventory[STARTER_SPOTLIGHT_SKILL]=(a.inventory[STARTER_SPOTLIGHT_SKILL]||0)+1;const list=[...(a.loadout.area||[])].filter(k=>SKILLS[k]?.category==="area"&&k!==STARTER_SPOTLIGHT_SKILL);if(list.length>=CFG.LOADOUT_PER_CATEGORY){let lowest=0;for(let i=1;i<list.length;i++)if(SKILLS[list[i]].rarity<SKILLS[list[lowest]].rarity)lowest=i;list.splice(lowest,1);}a.loadout.area=[STARTER_SPOTLIGHT_SKILL,...list].slice(0,CFG.LOADOUT_PER_CATEGORY);a.protectedSkills[STARTER_SPOTLIGHT_SKILL]=true;a.flags.starterSpotlightGranted=true;}
+function normalizeAccount(raw,id){
+  const a={id,tickets:[],inventory:emptyInventory(),loadout:{},coins:0,protectedSkills:{},cosmeticsOwned:defaultCosmeticsOwned(),equipped:defaultEquipped(),trophies:{fullPaint:false,fullPaint3:false,noSkillFullPaint:false},trophyDates:{},flags:{},stats:{bestStreak:0,perfects:0,wins:0,fullPaints:0},quizCooldownUntil:0,...(raw||{})};
+  a.id=typeof a.id==="string"&&a.id.trim()?a.id.trim().slice(0,20):id;a.tickets=Array.isArray(a.tickets)?a.tickets.filter(x=>Number.isInteger(x)&&x>=1&&x<=5):[];
+  a.inventory={...emptyInventory(),...(a.inventory||{})};for(const k of Object.keys(SKILLS))a.inventory[k]=Math.max(0,Math.floor(Number(a.inventory[k])||0));
+  a.coins=Math.max(0,Math.floor(Number(a.coins)||0));a.protectedSkills={...(a.protectedSkills||{})};for(const k of Object.keys(SKILLS))a.protectedSkills[k]=!!a.protectedSkills[k];
+  const rawLoadout=a.loadout||{};a.loadout={};for(const category of Object.keys(CATEGORY)){const rawList=Array.isArray(rawLoadout[category])?rawLoadout[category]:[rawLoadout[category]].filter(Boolean),selected=[];for(const k of rawList){if(selected.length>=CFG.LOADOUT_PER_CATEGORY)break;if(SKILLS[k]?.category===category&&!selected.includes(k))selected.push(k);}for(const k of skillsInCategory(category)){if(selected.length>=CFG.LOADOUT_PER_CATEGORY)break;if(a.inventory[k]>0&&!selected.includes(k))selected.push(k);}a.loadout[category]=selected.slice(0,CFG.LOADOUT_PER_CATEGORY);}
+  a.cosmeticsOwned=[...new Set([...(Array.isArray(a.cosmeticsOwned)?a.cosmeticsOwned:[]),...defaultCosmeticsOwned()])].filter(k=>COSMETICS[k]);a.equipped={...defaultEquipped(),...(a.equipped||{})};for(const type of Object.keys(COSMETIC_TYPE_NAME)){const key=a.equipped[type];if(!COSMETICS[key]||COSMETICS[key].type!==type)a.equipped[type]=defaultEquipped()[type];}
+  a.trophies={fullPaint:false,fullPaint3:false,noSkillFullPaint:false,...(a.trophies||{})};a.trophyDates={...(a.trophyDates||{})};a.flags={...(a.flags||{})};a.stats={bestStreak:0,perfects:0,wins:0,fullPaints:0,...(a.stats||{})};a.quizCooldownUntil=Math.max(0,Number(a.quizCooldownUntil)||0);
+  grantStarterSpotlight(a);return a;
+}
+function migrateOldProfile(old,id){
+  const a=createStarterAccount(id);if(!old)return a;
+  a.id=typeof old.id==="string"?old.id:id;a.tickets=Array.isArray(old.tickets)?[...old.tickets]:[];a.stats={...a.stats,...(old.stats||{})};
+  const map={areaExpansion:"areaDiePlus",paletteChange:"colorPaletteChange",regionSplit:"colorRegionSplit",colorDraft:"colorChoiceBorrow",prism:"colorPrism"};
+  for(const [oldKey,newKey] of Object.entries(map)){const n=Math.max(0,Math.floor(Number(old.inventory?.[oldKey])||0));if(n)a.inventory[newKey]=(a.inventory[newKey]||0)+n;}
+  for(const [oldKey,newKey] of Object.entries(map)){if((old.loadout?.[oldKey]||0)>0){const cat=SKILLS[newKey].category;a.loadout[cat]=[...(a.loadout[cat]||[]),newKey].filter((v,i,arr)=>arr.indexOf(v)===i).slice(0,CFG.LOADOUT_PER_CATEGORY);}}
+  return normalizeAccount(a,id);
+}
+function loadStore(){
+  try{const raw=JSON.parse(localStorage.getItem(STORE_KEY)||"null");if(raw)return {activeProfile:raw.activeProfile==="B"?"B":"A",sound:raw.sound!==false,matchMode:raw.matchMode==="quick"?"quick":"standard",profiles:{A:normalizeAccount(raw.profiles?.A,"PLAYER-A"),B:normalizeAccount(raw.profiles?.B,"PLAYER-B")}};}catch{}
+  try{const raw=JSON.parse(localStorage.getItem(PREVIOUS_STORE_KEY)||"null");if(raw)return {activeProfile:raw.activeProfile==="B"?"B":"A",sound:raw.sound!==false,matchMode:"standard",profiles:{A:normalizeAccount(raw.profiles?.A,"PLAYER-A"),B:normalizeAccount(raw.profiles?.B,"PLAYER-B")}};}catch{}
+  try{const old=JSON.parse(localStorage.getItem(OLD_STORE_KEY)||"null");if(old)return {activeProfile:old.activeProfile==="B"?"B":"A",sound:old.sound!==false,matchMode:"standard",profiles:{A:migrateOldProfile(old.profiles?.A,"PLAYER-A"),B:migrateOldProfile(old.profiles?.B,"PLAYER-B")}};}catch{}
+  return {activeProfile:"A",sound:true,matchMode:"standard",profiles:{A:createStarterAccount("PLAYER-A"),B:createStarterAccount("PLAYER-B")}};
+}
+const store=loadStore();
+const lastGacha={A:[],B:[]};
+let game=null;
+let splitMode=false,splitPicked=new Set();
+let targetMode=null,hoverMicro=-1,hoverMacro=-1;
+let actionCancel=null;
+let quiz={level:1,running:false,questions:[],i:0,correct:0,wrong:0,streak:0,bestStreak:0,resolved:false,orbs:[],raf:0,lastFrame:0,startedAt:0};
+let gachaBusy=false,gachaSkip=false,eventTimer=0,audioCtx=null,cooldownTimer=0;
+let debugMode=false;
+const COSMETIC_CLASSES=Object.values(COSMETICS).map(x=>x.css).filter(Boolean);
+
+function account(k=store.activeProfile){return store.profiles[k];}
+function playerName(k){return account(k).id;}
+function debugHand(){return Object.fromEntries(Object.keys(SKILLS).map(k=>[k,Number.POSITIVE_INFINITY]));}
+function isDebugMatch(){return !!game?.debug;}
+function saveStore(){try{localStorage.setItem(STORE_KEY,JSON.stringify(store));}catch{}renderPersistentUI();}
+function quizTimeMs(level=quiz.level){return CFG.QUIZ_TIME_MS_BY_LEVEL[level]||CFG.QUIZ_TIME_MS_BY_LEVEL[1];}
+function quizCooldownRemaining(a=account()){return Math.max(0,(Number(a.quizCooldownUntil)||0)-Date.now());}
+function formatCooldown(ms){return Math.max(0,Math.ceil(ms/1000))+"秒";}
+function renderQuizCooldown(){
+  const remaining=quizCooldownRemaining(),start=document.getElementById("startQuiz"),note=document.getElementById("quizCooldown"),retry=document.getElementById("retryQuiz");
+  if(start&&!quiz.running){start.disabled=remaining>0;start.textContent=remaining>0?"再挑戦まで "+formatCooldown(remaining):"10問チャレンジ開始";}
+  if(note){note.className="small muted"+(remaining>0?" cooldown-active":"");note.textContent=remaining>0?"3ミス終了によるクールダウン中：残り "+formatCooldown(remaining):"";}
+  if(retry){retry.disabled=remaining>0;retry.textContent=remaining>0?"再挑戦まで "+formatCooldown(remaining):"もう一度";}
+}
+function startCooldownTicker(){if(cooldownTimer)clearInterval(cooldownTimer);cooldownTimer=setInterval(renderQuizCooldown,250);renderQuizCooldown();}
+
+function cosmeticAccountKey(){return game?(game.winner||game.active):store.activeProfile;}
+function trophyUnlocked(a,key){return !!a.trophies?.[key];}
+function cosmeticAvailable(a,key){const item=COSMETICS[key];return !!item&&(a.cosmeticsOwned.includes(key)||(!item.trophy&&item.price===0)||(item.trophy&&trophyUnlocked(a,item.trophy)));}
+function applyCosmetics(profileKey=cosmeticAccountKey()){const a=account(profileKey);document.body.classList.remove(...COSMETIC_CLASSES);for(const type of Object.keys(COSMETIC_TYPE_NAME)){const key=a.equipped[type],item=COSMETICS[key];if(item?.css&&cosmeticAvailable(a,key))document.body.classList.add(item.css);}}
+function particleColors(fallback){const a=account(cosmeticAccountKey()),effect=a.equipped.effect;if(effect==="effectSakura")return["#f9a8d4","#fbcfe8","#c084fc","#ffffff"];if(effect==="effectPrism")return["#ef4444","#eab308","#22c55e","#3b82f6","#a855f7","#ffffff"];if(effect==="effectMasterpiece")return["#67e8f9","#fde047","#f8fafc","#22d3ee"];return fallback;}
+function tone(freq,duration=.08,type="sine",gain=.035,delay=0){
+  if(!store.sound)return;
+  try{audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)();const o=audioCtx.createOscillator(),g=audioCtx.createGain(),t=audioCtx.currentTime+delay;o.type=type;o.frequency.setValueAtTime(freq,t);g.gain.setValueAtTime(gain,t);g.gain.exponentialRampToValueAtTime(.0001,t+duration);o.connect(g);g.connect(audioCtx.destination);o.start(t);o.stop(t+duration+.02);}catch{}
+}
+function soundSuccess(combo=1){tone(420+Math.min(combo,10)*35,.08,"triangle",.04);tone(630+Math.min(combo,10)*45,.12,"sine",.025,.07);}
+function soundMiss(){tone(170,.16,"sawtooth",.035);tone(110,.18,"square",.02,.08);}
+function soundEpic(){[440,554,659,880].forEach((f,i)=>tone(f,.18,"triangle",.035,i*.08));}
+function soundLock(){tone(125,.11,"square",.04);tone(82,.18,"sawtooth",.028,.08);}
+function vibrate(pattern){try{if(store.sound&&navigator.vibrate)navigator.vibrate(pattern);}catch{}}
+function toast(t){const x=document.getElementById("toast");x.textContent=t;x.classList.add("show");clearTimeout(toast.timer);toast.timer=setTimeout(()=>x.classList.remove("show"),1800);}
+function showEvent(title,sub="",toneClass="good",duration=750){const o=document.getElementById("eventOverlay");clearTimeout(eventTimer);o.className="event-overlay show "+toneClass;document.getElementById("eventTitle").textContent=title;document.getElementById("eventSub").textContent=sub;eventTimer=setTimeout(()=>o.className="event-overlay",duration);}
+function burstAtElement(el,count=28,colors=["#f8fafc","#22d3ee","#fde047"]){if(!el)return;colors=particleColors(colors);const layer=document.getElementById("fxLayer"),r=el.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2;for(let i=0;i<count;i++){const p=document.createElement("i"),a=Math.random()*Math.PI*2,d=45+Math.random()*180;p.className="particle";p.style.left=cx+"px";p.style.top=cy+"px";p.style.setProperty("--dx",Math.cos(a)*d+"px");p.style.setProperty("--dy",Math.sin(a)*d+"px");p.style.setProperty("--rot",rand(-240,240)+"deg");p.style.setProperty("--pc",colors[i%colors.length]);layer.appendChild(p);setTimeout(()=>p.remove(),950);}}
+function shake(danger=false){document.body.classList.remove("shake","danger-flash");void document.body.offsetWidth;document.body.classList.add("shake");if(danger)document.body.classList.add("danger-flash");setTimeout(()=>document.body.classList.remove("shake","danger-flash"),650);}
+
+// ---------- Generic action / target UI ----------
+function openActionModal(title,text,choices,{onCancel=null}={}){
+  actionCancel=onCancel;document.getElementById("actionTitle").textContent=title;document.getElementById("actionText").innerHTML=text||"";
+  const box=document.getElementById("actionChoices");box.innerHTML="";
+  for(const choice of choices){
+    const b=document.createElement("button");b.className="choice"+(choice.selected?" selected":"");b.disabled=!!choice.disabled;
+    b.innerHTML='<div class="choice-main">'+choice.label+'</div>'+(choice.sub?'<div class="choice-sub">'+choice.sub+'</div>':'');
+    b.onclick=()=>{if(choice.keepOpen){choice.onClick?.(b);}else{closeActionModal(false);choice.onClick?.();}};box.appendChild(b);
+  }
+  document.getElementById("actionModal").classList.add("show");
+}
+function closeActionModal(cancelled=true){document.getElementById("actionModal").classList.remove("show");const fn=actionCancel;actionCancel=null;if(cancelled&&fn)fn();}
+function clearSelectionState(){if(!game)return;game.selection.clear();game.selectionExtra?.clear();game.selectionLocked=false;game.selectionContactCount=0;}
+function startTargetMode({kind,title,hint,valid,onPick,preserveSelection=false}){
+  if(!preserveSelection&&game.selection?.size)clearSelectionState();
+  targetMode={kind,title,hint,valid:new Set(valid),onPick,preserveSelection};
+  document.getElementById("targetTitle").textContent=title;document.getElementById("targetHint").textContent=hint||"";document.getElementById("targetPanel").classList.add("show");renderBattle();
+}
+function cancelTargetMode(){targetMode=null;document.getElementById("targetPanel").classList.remove("show");renderBattle();}
+
+// ---------- Geometry helpers ----------
+function uIndex(x,y){return y*CFG.UW+x;}
+function uXY(i){return [i%CFG.UW,Math.floor(i/CFG.UW)];}
+function mIndex(c,r){return r*CFG.MW+c;}
+function mXY(i){return [i%CFG.MW,Math.floor(i/CFG.MW)];}
+function macroOfMicro(i){const [x,y]=uXY(i);return mIndex(Math.floor(x/CFG.SCALE),Math.floor(y/CFG.SCALE));}
+function initialPlayableBounds(){return {...CFG.START_BOUNDS};}
+function boardWidth(bounds=game.playableBounds){return bounds.right-bounds.left+1;}
+function boardHeight(bounds=game.playableBounds){return bounds.bottom-bounds.top+1;}
+function boardSizeText(bounds=game.playableBounds){return boardWidth(bounds)+"×"+boardHeight(bounds);}
+function macroInWorld(mi){return Number.isInteger(mi)&&mi>=0&&mi<CFG.MW*CFG.MH;}
+function microInWorld(ui){return Number.isInteger(ui)&&ui>=0&&ui<CFG.UW*CFG.UH;}
+function macroInPlayable(mi,bounds=game.playableBounds){if(!macroInWorld(mi))return false;const [c,r]=mXY(mi);return c>=bounds.left&&c<=bounds.right&&r>=bounds.top&&r<=bounds.bottom;}
+function microInPlayable(ui,bounds=game.playableBounds){return microInWorld(ui)&&macroInPlayable(macroOfMicro(ui),bounds);}
+function playableMacroIndices(bounds=game.playableBounds){const out=[];for(let r=bounds.top;r<=bounds.bottom;r++)for(let c=bounds.left;c<=bounds.right;c++)out.push(mIndex(c,r));return out;}
+function sideLabel(side){return side==="left"?"左":side==="right"?"右":side==="top"?"上":"下";}
+function sideBandMacros(bounds,side,outer=false){let line=[];if(side==="left"||side==="right"){const c=side==="left"?(outer?bounds.left-1:bounds.left):(outer?bounds.right+1:bounds.right);if(c<0||c>=CFG.MW)return[];for(let r=bounds.top;r<=bounds.bottom;r++)line.push(mIndex(c,r));}else{const r=side==="top"?(outer?bounds.top-1:bounds.top):(outer?bounds.bottom+1:bounds.bottom);if(r<0||r>=CFG.MH)return[];for(let c=bounds.left;c<=bounds.right;c++)line.push(mIndex(c,r));}return line;}
+function bandHasGeometry(macros){return macros.some(mi=>[...microSetForMacro(mi)].some(ui=>!!game.owner[ui]));}
+function microNeighbors(i){const [x,y]=uXY(i),a=[];if(x>0)a.push(i-1);if(x<CFG.UW-1)a.push(i+1);if(y>0)a.push(i-CFG.UW);if(y<CFG.UH-1)a.push(i+CFG.UW);return a;}
+function macroNeighbors(i){const [c,r]=mXY(i),a=[];if(c>0)a.push(i-1);if(c<CFG.MW-1)a.push(i+1);if(r>0)a.push(i-CFG.MW);if(r<CFG.MH-1)a.push(i+CFG.MW);return a;}
+function microSetForMacro(mi){const [c,r]=mXY(mi),set=new Set(),x0=c*CFG.SCALE,y0=r*CFG.SCALE;for(let y=y0;y<y0+CFG.SCALE;y++)for(let x=x0;x<x0+CFG.SCALE;x++)set.add(uIndex(x,y));return set;}
+function freeMicroSetForMacro(mi){const set=new Set();if(!macroInPlayable(mi))return set;for(const ui of microSetForMacro(mi))if(!game.owner[ui])set.add(ui);return set;}
+function macroSelectable(mi){return freeMicroSetForMacro(mi).size>0;}
+function allFreeMacros(){const a=[];for(const i of playableMacroIndices())if(macroSelectable(i))a.push(i);return a;}
+function setConnected(set,neighborFn=microNeighbors){if(!set||set.size===0)return false;const start=set.values().next().value,seen=new Set([start]),q=[start];while(q.length){const x=q.shift();for(const n of neighborFn(x))if(set.has(n)&&!seen.has(n)){seen.add(n);q.push(n);}}return seen.size===set.size;}
+function macroSetConnected(set){return setConnected(set,macroNeighbors);}
+function rebuildOwner(){game.owner=Array(CFG.UW*CFG.UH).fill(null);for(const [id,reg] of Object.entries(game.regions)){for(const ui of reg.micro){if(!microInWorld(ui))throw new Error("micro out of world range");if(game.owner[ui]&&game.owner[ui]!==id)throw new Error("geometry overlap");game.owner[ui]=id;}}}
+function regionAtMicro(ui){const id=game.owner[ui];return id?game.regions[id]:null;}
+function adjacentRegionIds(regionId){const reg=game.regions[regionId],out=new Set();if(!reg)return[];for(const ui of reg.micro)for(const ni of microNeighbors(ui)){const id=game.owner[ni];if(id&&id!==regionId)out.add(id);}return [...out];}
+function adjacentColors(regionId){return [...new Set(adjacentRegionIds(regionId).map(id=>game.regions[id]?.color).filter(Boolean))];}
+function usedBoardColors(){return [...new Set(Object.values(game.regions).map(r=>r.color).filter(Boolean))];}
+function candidateGeometry(macros){const shape=new Set();for(const mi of macros)for(const ui of freeMicroSetForMacro(mi))shape.add(ui);return shape;}
+function candidateTouchesExisting(macros){const shape=candidateGeometry(macros);for(const ui of shape)for(const ni of microNeighbors(ui))if(game.owner[ni])return true;return false;}
+function hasLegalRegionOfSize(size){
+  if(size<=0)return false;const free=allFreeMacros(),freeSet=new Set(free);if(free.length<size)return false;const first=Object.keys(game.regions).length===0;const seen=new Set();
+  function rec(set,frontier){const sig=[...set].sort((a,b)=>a-b).join(",");if(seen.has(sig))return false;seen.add(sig);if(set.size===size){const shape=candidateGeometry(set);return shape.size>0&&setConnected(shape)&&(first||candidateTouchesExisting(set));}for(const n of [...frontier]){const ns=new Set(set);ns.add(n);const nf=new Set(frontier);nf.delete(n);for(const nn of macroNeighbors(n))if(freeSet.has(nn)&&!ns.has(nn))nf.add(nn);if(rec(ns,nf))return true;}return false;}
+  for(const start of free){const frontier=new Set(macroNeighbors(start).filter(n=>freeSet.has(n)));if(rec(new Set([start]),frontier))return true;}return false;
+}
+function bestLegalSize(max){for(let n=max;n>=1;n--)if(hasLegalRegionOfSize(n))return n;return 0;}
+function selectionRequirementText(){if(!game)return"";const notes=[];if(game.baseRequired<game.rolledSize)notes.push(game.baseRequired+"へ自動調整");if(game.sizeBonus>0)notes.push("カード+"+game.sizeBonus);return "🎲"+game.rolledSize+" / "+game.requiredSize+"マスぴったり"+(notes.length?"（"+notes.join("・")+"）":"");}
+function selectedMacroGeometry(){const shape=candidateGeometry(game.selection);for(const ui of game.selectionExtra||[])if(microInPlayable(ui))shape.add(ui);return shape;}
+function selectionContactColorCount(){const shape=selectedMacroGeometry(),colors=new Set();for(const ui of shape)for(const ni of microNeighbors(ui)){if(shape.has(ni))continue;const id=game.owner[ni],c=id&&game.regions[id]?.color;if(c)colors.add(c);}return colors.size;}
+function validateSelection(){
+  const need=game.requiredSize,a=game.selection;if(a.size===0)return[false,need+"マスぴったりで指定してください。"];if(a.size>need)return[false,need+"マスを超えています。"];for(const mi of a)if(!macroSelectable(mi))return[false,"空き内部セルがない通常マスは指定できません。"];if(!macroSetConnected(a))return[false,"通常マスが4近傍で連結していません。"];if(a.size<need)return[false,"あと "+(need-a.size)+"マス必要です。"];const shape=selectedMacroGeometry();if(!shape.size||!setConnected(shape))return[false,"選択マスの空き形状が内部で連結していません。"];if(Object.keys(game.regions).length>0&&!candidateTouchesExisting(a))return[false,"変形後の既存エリアへ辺接触させてください。"];return[true,need+"マスぴったりで条件を満たしています（空き部分を新エリア化）。"];}
+function controlledRegionIds(player=game.active){return Object.values(game.regions).filter(r=>r.color&&r.controllers?.has(player)).map(r=>r.id);}
+function freeExpansionMicros(regionId){const reg=game.regions[regionId],out=new Set();if(!reg)return[];for(const ui of reg.micro)for(const ni of microNeighbors(ui))if(microInPlayable(ni)&&!game.owner[ni])out.add(ni);return [...out];}
+function removableMicros(regionId){const reg=game.regions[regionId],out=[];if(!reg||reg.micro.size<=1)return out;for(const ui of reg.micro){if(microNeighbors(ui).every(n=>reg.micro.has(n)))continue;const next=new Set(reg.micro);next.delete(ui);if(setConnected(next))out.push(ui);}return out;}
+function macroFullyOwnedBy(mi,regionId){for(const ui of microSetForMacro(mi))if(game.owner[ui]!==regionId)return false;return true;}
+function controlledFullMacros(player=game.active){const out=[];for(const mi of playableMacroIndices()){const first=game.owner[[...microSetForMacro(mi)][0]];if(first&&game.regions[first]?.controllers?.has(player)&&macroFullyOwnedBy(mi,first))out.push(mi);}return out;}
+function geometrySnapshot(){const snap={};for(const [id,r] of Object.entries(game.regions))snap[id]=new Set(r.micro);return snap;}
+function restoreGeometry(snap){for(const [id,set] of Object.entries(snap))if(game.regions[id])game.regions[id].micro=new Set(set);rebuildOwner();}
+function geometryValid(){try{rebuildOwner();}catch{return false;}return Object.values(game.regions).every(r=>r.micro.size>0&&setConnected(r.micro)&&[...r.micro].every(microInWorld));}
+function connectedMicroComponents(set){const remaining=new Set(set),out=[];while(remaining.size){const start=remaining.values().next().value,component=new Set([start]),q=[start];remaining.delete(start);while(q.length){const ui=q.shift();for(const ni of microNeighbors(ui))if(remaining.has(ni)){remaining.delete(ni);component.add(ni);q.push(ni);}}out.push(component);}return out.sort((a,b)=>b.size-a.size);}
+function sourceMacrosFromMicro(set){return new Set([...set].map(macroOfMicro));}
+function normalizeRegionAfterIntrusion(regionId){const reg=game.regions[regionId];if(!reg)return {split:0,removed:false};if(reg.micro.size===0){delete game.regions[regionId];addLog(regionId+" は角膨張による侵食で消滅。");return {split:0,removed:true};}const parts=connectedMicroComponents(reg.micro);reg.micro=new Set(parts[0]);reg.sourceMacros=sourceMacrosFromMicro(reg.micro);let split=0;for(const part of parts.slice(1)){const id="R"+game.nextRegion++;game.regions[id]={...reg,id,micro:new Set(part),sourceMacros:sourceMacrosFromMicro(part),controllers:new Set(reg.controllers||[]),isPending:false,reserved:false};split++;addLog(regionId+" は侵食により分断され、"+id+" を新規分離。");}return {split,removed:false};}
+function transferOutgoingIntrusions(shape){const donors=new Set(),claimed=[];for(const ui of shape){const donorId=game.owner[ui];if(!donorId)continue;const donor=game.regions[donorId];if(!donor?.color)throw new Error("uncolored region cannot be intruded");donor.micro.delete(ui);donors.add(donorId);claimed.push(ui);}let split=0,removed=0;for(const id of donors){const result=normalizeRegionAfterIntrusion(id);split+=result.split;if(result.removed)removed++;}return {count:claimed.length,donors:[...donors],split,removed};}
+function mergeSameColorRegions(){
+  let mergedAny=false;while(true){let pair=null;const ids=Object.keys(game.regions);outer:for(const id of ids){const r=game.regions[id];if(!r.color)continue;for(const n of adjacentRegionIds(id)){const nr=game.regions[n];if(nr?.color===r.color){pair=[id,n];break outer;}}}if(!pair)break;
+    const [keep,drop]=pair,a=game.regions[keep],b=game.regions[drop];for(const ui of b.micro)a.micro.add(ui);for(const mi of b.sourceMacros||[])a.sourceMacros.add(mi);for(const p of b.controllers||[])a.controllers.add(p);if(game.pending===drop)game.pending=keep;if(game.reserved===drop)game.reserved=keep;delete game.regions[drop];mergedAny=true;rebuildOwner();addLog("同色接触により "+keep+" と "+drop+" を統合。");
+  }return mergedAny;
+}
+function afterGeometryChange(label){
+  rebuildOwner();const merged=mergeSameColorRegions();game.selection.clear();game.selectionContactCount=0;
+  if(game.phase==="WORK"||game.phase==="CREATE_FIRST"){
+    const next=bestLegalSize(game.requiredSize);if(next<=0){resolveNoRegionWin(game.active);return;}
+    if(next<game.requiredSize){game.requiredSize=next;showEvent("自動調整",next+"マスへ縮小","warn",850);addLog("幾何変化により指定サイズを "+next+"マスへ自動調整。");}
+  }
+  showEvent(label,merged?"同色エリアを統合":"隣接関係を再計算","good",850);soundSuccess(3);burstAtElement(document.getElementById("boardCanvas"),32,["#22d3ee","#f8fafc","#fde047"]);renderBattle();
+}
+
+// ---------- Match flow ----------
+function paletteSignature(p){return [...p].sort().join("|");}
+function drawDistinctStartingPalettes(){const A=shuffle(COLORS).slice(0,CFG.PALETTE_SIZE);let B;do{B=shuffle(COLORS).slice(0,CFG.PALETTE_SIZE);}while(paletteSignature(A)===paletteSignature(B));return {A,B};}
+function drawQuickStartingPalettes(){const A=shuffle(COLORS).slice(0,CFG.QUICK_PALETTE_SIZE);let B;do{B=shuffle(COLORS).slice(0,CFG.QUICK_PALETTE_SIZE);}while(paletteSignature(A)===paletteSignature(B));return {A,B};}
+function drawLimitedPaletteState(palettes){const limitedSlot={},limitedRemaining={};for(const player of ["A","B"]){limitedSlot[player]=rand(0,palettes[player].length-1);limitedRemaining[player]=rollLimitedUses();}return {limitedSlot,limitedRemaining};}
+function handFromLoadout(profileKey){const hand={};const a=account(profileKey);for(const category of Object.keys(CATEGORY))for(const k of a.loadout[category]||[])if(SKILLS[k]&&a.inventory[k]>0)hand[k]=1;return hand;}
+function quickLoanHand(){return Object.fromEntries(QUICK_LOANED_SKILLS.map(k=>[k,1]));}
+function emptySeals(){return Object.fromEntries(COLORS.map(c=>[c,0]));}
+function isQuickMatch(){return game?.mode==="quick";}
+function consumesProfileCards(){return !!game&&!isDebugMatch()&&game.mode==="standard";}
+function modeDefinition(){return MATCH_MODES[store.matchMode]||MATCH_MODES.standard;}
+function newGame(){
+  closeActionModal(false);cancelTargetMode();splitMode=false;splitPicked.clear();const mode=debugMode?"debug":store.matchMode,bounds=initialPlayableBounds();
+  const palettes=debugMode?{A:[...COLORS],B:[...COLORS]}:mode==="quick"?drawQuickStartingPalettes():drawDistinctStartingPalettes();
+  const limited=debugMode||mode==="quick"?{limitedSlot:{A:null,B:null},limitedRemaining:{A:Number.POSITIVE_INFINITY,B:Number.POSITIVE_INFINITY}}:drawLimitedPaletteState(palettes);
+  const hands=debugMode?{A:debugHand(),B:debugHand()}:mode==="quick"?{A:quickLoanHand(),B:quickLoanHand()}:{A:handFromLoadout("A"),B:handFromLoadout("B")};
+  game={debug:debugMode,mode,active:"A",phase:debugMode?"CREATE_FIRST":"AWAIT_REVEAL",turn:1,nextRegion:1,regions:{},owner:Array(CFG.UW*CFG.UH).fill(null),selection:new Set(),selectionExtra:new Set(),selectionLocked:false,selectionContactCount:0,pending:null,reserved:null,winner:null,reason:null,playableBounds:bounds,trophyTargetMacros:new Set(playableMacroIndices(bounds)),newTrophies:[],
+    palettes,limitedSlot:limited.limitedSlot,limitedRemaining:limited.limitedRemaining,paletteDebuffs:{A:[],B:[]},nextDebuffId:1,hands,temporary:{A:[],B:[]},prismActive:{A:false,B:false},seals:{A:emptySeals(),B:emptySeals()},curseBacklash:{A:0,B:0},backlashNotice:{A:[],B:[]},skillsUsed:{A:0,B:0},rolledSize:null,baseRequired:0,requiredSize:0,sizeBonus:0,log:[]};
+  if(debugMode){addLog("DEBUG疑似対戦開始。全19スキル無制限・全4色常時候補・秘密画面スキップ。");addLog("妨害封印・呪返し・タイミング制約・隣接判定・違法彩色敗北は通常どおり有効。");beginSelectionPhase("A",true);}
+  else if(mode==="quick"){addLog("速攻チュートリアル開始。基本色2色・おまけ色なし。");addLog("《四色解放》《半マスシフト》《色封じ》を各1枚貸与。所持カード消費・トロフィー記録なし。");}
+  else{addLog("熟考モード開始。全4色から持ち色3色を抽選し、1枠がおまけ色（1・2回中心の1～4回）。");addLog("各プレイヤーは色操作・エリア操作・相手妨害を異なる2枚ずつ、合計6枚持込。正常発動時に在庫を1枚消費。");}
+  addLog("開始盤面の新規書込範囲は "+boardSizeText()+"。★3《拡大縮小》で外周の書込可否を変更できます。");showHandover("A");renderBattle();renderPersistentUI();
+}
+function addLog(t){if(!game)return;game.log.push("T"+game.turn+"  "+t);renderLog();}
+function phaseName(){if(game?.winner)return"対戦終了";if(game?.phase==="AWAIT_REVEAL")return"対戦準備";return game?.phase==="COLOR"?"彩色フェーズ":game?.phase==="WORK"?"幾何操作・指定フェーズ":"初手エリア指定";}
+function isTrophyFullPaint(){if(!game||game.mode!=="standard")return false;for(const mi of game.trophyTargetMacros||[]){for(const ui of microSetForMacro(mi)){const id=game.owner[ui];if(!id||!game.regions[id]?.color)return false;}}return (game.trophyTargetMacros?.size||0)>0;}
+function awardFullPaintTrophies(player){if(game.mode!=="standard"||isDebugMatch())return[];const a=account(player),newOnes=[];a.stats.fullPaints=(a.stats.fullPaints||0)+1;if(!a.trophies.fullPaint){a.trophies.fullPaint=true;a.trophyDates.fullPaint=new Date().toISOString();newOnes.push("fullPaint");}if(a.stats.fullPaints>=3&&!a.trophies.fullPaint3){a.trophies.fullPaint3=true;a.trophyDates.fullPaint3=new Date().toISOString();newOnes.push("fullPaint3");}if((game.skillsUsed[player]||0)===0&&!a.trophies.noSkillFullPaint){a.trophies.noSkillFullPaint=true;a.trophyDates.noSkillFullPaint=new Date().toISOString();newOnes.push("noSkillFullPaint");}return newOnes;}
+function resolveNoRegionWin(player){const full=isTrophyFullPaint();win(player,full?"FULL_PAINT":"BOARD_LOCK");if(full){showEvent("完塗り勝利！",playerName(player)+" / TROPHY","epic",1500);soundEpic();if(game.newTrophies.length)setTimeout(()=>showEvent("TROPHY UNLOCK",game.newTrophies.map(k=>TROPHIES[k].name).join("・"),"epic",1450),1550);}else{showEvent("盤面封鎖勝利",playerName(player),"good",1200);soundSuccess(4);}return false;}
+function beginSelectionPhase(player,opening=false){
+  game.active=player;game.phase=opening?"CREATE_FIRST":"WORK";clearSelectionState();const rolled=rollDieSize(),required=bestLegalSize(rolled);game.rolledSize=rolled;game.baseRequired=required;game.requiredSize=required;game.sizeBonus=0;
+  if(required<=0)return resolveNoRegionWin(player);addLog(playerName(player)+" の指定サイズ：🎲"+rolled+(required<rolled?" → "+required+"マスへ自動調整。":" → "+required+"マス。"));showEvent("🎲 "+rolled,required<rolled?required+"マスへ自動調整":required+"マスぴったり","warn",900);return true;
+}
+function showHandover(p){if(isDebugMatch()){document.getElementById("handoverOverlay").classList.remove("show");return;}document.getElementById("handoverPlayer").textContent=playerName(p)+"（Player "+p+"）";const prep=isQuickMatch()?"秘密の基本色2色と貸与スキル3枚を確認後、初回サイコロを振ります。":"秘密の持ち色3色・おまけ色残数・持込6枚を確認後、初回サイコロを振ります。";document.getElementById("handoverText").textContent=game.phase==="AWAIT_REVEAL"?prep:game.phase==="COLOR"?"相手から渡されたエリアを彩色してください。":selectionRequirementText()+" の連結エリアを指定してください。";document.getElementById("handoverOverlay").classList.add("show");}
+function revealTurn(){document.getElementById("handoverOverlay").classList.remove("show");if(game.phase==="AWAIT_REVEAL"){setTimeout(()=>{beginSelectionPhase("A",true);renderBattle();},320);return;}renderBattle();if(game.phase==="COLOR")setTimeout(showTurnStatusImpactForActive,180);}
+function createRegionFromSelection(){
+  const [ok,msg]=validateSelection();if(!ok){toast(msg);return;}const id="R"+game.nextRegion++,sourceMacros=new Set(game.selection),micro=selectedMacroGeometry(),extraCount=game.selectionExtra?.size||0;
+  const intrusion=transferOutgoingIntrusions(micro);game.regions[id]={id,sourceMacros,micro,color:null,createdBy:game.active,controllers:new Set(),isPending:true,reserved:false};rebuildOwner();game.pending=id;clearSelectionState();const creator=game.active,details=[];if(extraCount)details.push("角加工 "+extraCount+"内部セル");if(intrusion.count)details.push("既塗 "+intrusion.donors.length+"エリアから "+intrusion.count+"内部セルを所有権移転");if(intrusion.split)details.push("侵食元を "+intrusion.split+"エリア自動分割");if(intrusion.removed)details.push("侵食元 "+intrusion.removed+"エリア消滅");addLog(playerName(creator)+" が "+sourceMacros.size+"マスの "+id+" を指定"+(details.length?"（"+details.join("・")+"）":"")+"。");passTo(other(creator),"COLOR");
+}
+function passTo(player,phase){game.active=player;game.phase=phase;game.turn++;if(phase==="COLOR")applyPendingCurseBacklash(player);showHandover(player);renderBattle();if(isDebugMatch()&&phase==="COLOR")setTimeout(showTurnStatusImpactForActive,180);}
+function visiblePalette(player=game.active){if(isDebugMatch()||game.prismActive[player])return [...COLORS];return [...new Set([...game.palettes[player],...game.temporary[player]])];}
+function limitedColor(player){const slot=game.limitedSlot?.[player];return Number.isInteger(slot)?game.palettes[player]?.[slot]:null;}
+function hasUnlimitedBaseSlot(player,color){const slot=game.limitedSlot?.[player];return game.palettes[player].some((c,i)=>c===color&&i!==slot);}
+function isEffectivelyLimitedBaseColor(player,color){return !isDebugMatch()&&!game.prismActive[player]&&!game.temporary[player].includes(color)&&limitedColor(player)===color&&!hasUnlimitedBaseSlot(player,color);}
+function limitedBaseUnavailable(player,color){return isEffectivelyLimitedBaseColor(player,color)&&(game.limitedRemaining[player]||0)<=0;}
+function currentPalette(player=game.active){return visiblePalette(player).filter(color=>!limitedBaseUnavailable(player,color));}
+function usesLimitedCharge(player,color){return isEffectivelyLimitedBaseColor(player,color)&&(game.limitedRemaining[player]||0)>0;}
+function isSealed(player,color){return (game.seals[player]?.[color]||0)>0;}
+function activeSealEntries(player=game.active){return COLORS.filter(c=>isSealed(player,c)).map(c=>[c,game.seals[player][c]]);}
+function activePaletteDebuffs(player=game.active){return [...(game.paletteDebuffs?.[player]||[])].filter(e=>e.remaining>0);}
+function paletteDebuffAtSlot(player,slot){return activePaletteDebuffs(player).find(e=>e.slot===slot)||null;}
+function restorePaletteDebuffsForSlot(player,slot){const effects=activePaletteDebuffs(player).filter(e=>e.slot===slot).sort((a,b)=>b.id-a.id);for(const effect of effects){if(game.palettes[player][slot]===effect.injectedColor)game.palettes[player][slot]=effect.previousColor;}game.paletteDebuffs[player]=activePaletteDebuffs(player).filter(e=>e.slot!==slot);}
+function clearPaletteDebuffsForSlot(player,slot){game.paletteDebuffs[player]=activePaletteDebuffs(player).filter(e=>e.slot!==slot);}
+function tickPaletteDebuffs(player){const expired=[];for(const effect of activePaletteDebuffs(player)){effect.remaining--;if(effect.remaining<=0)expired.push(effect);}for(const effect of expired){if(game.palettes[player][effect.slot]===effect.injectedColor)game.palettes[player][effect.slot]=effect.previousColor;addLog(playerName(player)+" の持ち色枠 "+(effect.slot+1)+" が妨害前の色へ復帰。");}game.paletteDebuffs[player]=activePaletteDebuffs(player).filter(e=>e.remaining>0);if(expired.length)showEvent("PALETTE RESTORED",expired.length+"枠が復帰","good",800);}
+function paletteInjectionSlot(target,color){const differing=game.palettes[target].map((c,i)=>c!==color?i:-1).filter(i=>i>=0);return differing.length?sample(differing):rand(0,game.palettes[target].length-1);}
+function applyPaletteInjection(k,color,duration=0){const target=other(game.active),slot=paletteInjectionSlot(target,color);restorePaletteDebuffsForSlot(target,slot);const previousColor=game.palettes[target][slot];consumeSkill(k);game.palettes[target][slot]=color;if(duration>0)game.paletteDebuffs[target].push({id:game.nextDebuffId++,slot,previousColor,injectedColor:color,remaining:duration});addLog(playerName(game.active)+" が "+playerName(target)+" に《"+SKILLS[k].name+"》を使用。"+COLOR_NAME[color]+"をランダムな持ち色枠へ"+(duration>0?duration+"彩色だけ注入":"恒久注入")+"。交換元は非公開。");showEvent(duration>0?"PALETTE CORRUPT":"FORCED RECOLOR",COLOR_NAME[color]+(duration>0?" ×"+duration:" / PERMANENT"),"bad",1200);soundLock();vibrate([55,25,95]);renderBattle();}
+function useRandomPaletteInjection(k,duration){applyPaletteInjection(k,sample(COLORS),duration);}
+function choosePaletteInjection(k,duration=0){openActionModal("《"+SKILLS[k].name+"》","相手のランダムな持ち色枠へ注入する色を選択してください。相手の現在色と交換元は表示されません。",COLORS.map(color=>({label:colorDot(color)+" "+COLOR_NAME[color],sub:duration>0?"次の彩色 "+duration+"回だけ維持":"試合終了まで恒久変更",onClick:()=>applyPaletteInjection(k,color,duration)})));}
+function clearTemporaryColorEffects(player){game.temporary[player]=[];game.prismActive[player]=false;}
+function tickSeals(player){for(const color of COLORS)if(game.seals[player][color]>0)game.seals[player][color]--;}
+function applyPendingCurseBacklash(player){const count=Math.max(0,game.curseBacklash?.[player]||0);if(!count)return;const sealed=[];for(let i=0;i<count;i++){const candidates=currentPalette(player).filter(c=>!isSealed(player,c));if(!candidates.length)break;const color=sample(candidates);game.seals[player][color]=Math.max(game.seals[player][color],1);sealed.push(color);}game.curseBacklash[player]=0;game.backlashNotice[player]=sealed;if(sealed.length)addLog("《色封じ》の呪返しが "+playerName(player)+" に発動。自分の使用可能色から "+sealed.map(c=>COLOR_NAME[c]).join("・")+" を1彩色封印。");else addLog("《色封じ》の呪返しが発動したが、追加封印できる色が残っていなかった。");}
+function showTurnStatusImpactForActive(){const backlash=[...(game.backlashNotice?.[game.active]||[])];game.backlashNotice[game.active]=[];const debuffs=activePaletteDebuffs(),hit=activeSealEntries().filter(([c])=>currentPalette().includes(c));if(backlash.length){showEvent("CURSE REBOUND",backlash.map(c=>COLOR_NAME[c]).join("・")+"を自分へ封印","bad",1250);soundLock();vibrate([60,30,100]);if(debuffs.length||hit.length)setTimeout(()=>{showEvent(debuffs.length?"PALETTE CORRUPTED":"COLOR SEALED!",debuffs.length?debuffs.map(e=>COLOR_NAME[e.injectedColor]+" ×"+e.remaining).join(" / "):hit.map(([c,n])=>COLOR_NAME[c]+" ×"+n).join(" / "),"bad",1100);soundLock();},450);return;}if(debuffs.length){showEvent("PALETTE CORRUPTED",debuffs.map(e=>COLOR_NAME[e.injectedColor]+" ×"+e.remaining).join(" / "),"bad",1150);soundLock();vibrate([45,25,80]);if(hit.length)setTimeout(()=>{showEvent("COLOR SEALED!",hit.map(([c,n])=>COLOR_NAME[c]+" ×"+n).join(" / "),"bad",1100);soundLock();},420);return;}if(hit.length){showEvent("COLOR SEALED!",hit.map(([c,n])=>COLOR_NAME[c]+" ×"+n).join(" / "),"bad",1200);soundLock();vibrate([45,25,80]);}}
+function colorPending(color){
+  if(game.phase!=="COLOR"||!game.pending||game.winner)return;if(!currentPalette().includes(color))return;if(isSealed(game.active,color)){showEvent("LOCKED",COLOR_NAME[color]+"は封印中","bad",700);soundLock();return;}
+  const blocked=new Set(adjacentColors(game.pending));if(blocked.has(color)){
+    const loser=game.active,winner=other(loser);addLog(playerName(loser)+" が "+game.pending+" に隣接済みの「"+COLOR_NAME[color]+"」を選択。違法彩色負け。");clearTemporaryColorEffects(loser);win(winner,"ILLEGAL_COLOR");showEvent("違法彩色！",playerName(loser)+" の敗北","bad",1500);burstAtElement(document.getElementById("boardCanvas"),60,["#ef4444","#fda4af","#ffffff"]);soundMiss();vibrate([100,50,180]);shake(true);return;
+  }
+  const id=game.pending,reg=game.regions[id],limitedCharge=usesLimitedCharge(game.active,color);reg.color=color;reg.controllers.add(game.active);reg.isPending=false;if(limitedCharge)game.limitedRemaining[game.active]=Math.max(0,game.limitedRemaining[game.active]-1);addLog(playerName(game.active)+" が "+id+" を「"+COLOR_NAME[color]+"」で彩色。"+(limitedCharge?" 制限色残り "+game.limitedRemaining[game.active]+"回。":""));soundSuccess(1);burstAtElement(document.getElementById("boardCanvas"),18,[COLOR_HEX[color],"#ffffff"]);if(limitedCharge&&game.limitedRemaining[game.active]===0)showEvent("LIMIT USED UP",COLOR_NAME[color]+"は以後、通常持ち色として使用不可","warn",1050);clearTemporaryColorEffects(game.active);tickSeals(game.active);tickPaletteDebuffs(game.active);mergeSameColorRegions();
+  if(game.reserved){const ret=game.reserved;game.reserved=null;game.pending=ret;game.regions[ret].isPending=true;game.regions[ret].reserved=false;addLog("エリア二分により "+ret+" を "+playerName(other(game.active))+" へ返送。");passTo(other(game.active),"COLOR");return;}
+  game.pending=null;if(!beginSelectionPhase(game.active,false))return;renderBattle();
+}
+function win(player,reason){if(!game||game.winner)return;game.winner=player;game.reason=reason;game.phase="GAME_OVER";if(!isDebugMatch()){const a=account(player);a.stats.wins=(a.stats.wins||0)+1;if(reason==="FULL_PAINT")game.newTrophies=awardFullPaintTrophies(player);saveStore();}addLog(playerName(player)+" の勝利（"+reasonLabel(reason)+"）。");renderBattle();document.getElementById("handoverOverlay").classList.remove("show");}
+function reasonLabel(r){return r==="FULL_PAINT"?"完塗り":r==="BOARD_LOCK"?"盤面封鎖":r==="ILLEGAL_COLOR"?"相手の違法彩色":r==="SEALED_OUT"?"相手の色選択肢消失":r==="SURRENDER"?"相手の投了":"勝利";}
+function surrender(){if(!game||game.winner)return;win(other(game.active),"SURRENDER");showEvent("投了",playerName(other(game.active))+" の勝利","warn",1100);}
+function loseBySeal(){if(game.phase!=="COLOR")return;if(currentPalette().some(c=>!isSealed(game.active,c))){toast("封印も回数切れもしていない候補色が残っています。");return;}win(other(game.active),"SEALED_OUT");showEvent("COLOR OUT",playerName(game.active)+" の敗北","bad",1400);soundLock();shake(true);}
+
+// ---------- Canvas board ----------
+const canvas=document.getElementById("boardCanvas"),ctx=canvas.getContext("2d");
+function drawMacroRect(mi,fill,stroke,width=2){const [c,r]=mXY(mi),s=canvas.width/CFG.UW,x=c*CFG.SCALE*s,y=r*CFG.SCALE*s,w=CFG.SCALE*s;if(fill){ctx.fillStyle=fill;ctx.fillRect(x,y,w,w);}if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=width;ctx.strokeRect(x+width/2,y+width/2,w-width,w-width);}}
+function drawMicroRect(ui,fill,stroke,width=1){const [x,y]=uXY(ui),s=canvas.width/CFG.UW;if(fill){ctx.fillStyle=fill;ctx.fillRect(x*s,y*s,s,s);}if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=width;ctx.strokeRect(x*s+width/2,y*s+width/2,s-width,s-width);}}
+function drawRegionBoundary(regionId,color="#020617",width=2.4){const reg=game.regions[regionId],s=canvas.width/CFG.UW;if(!reg)return;ctx.beginPath();for(const ui of reg.micro){const [x,y]=uXY(ui),left=x*s,top=y*s;if(x===0||game.owner[ui-1]!==regionId){ctx.moveTo(left,top);ctx.lineTo(left,top+s);}if(x===CFG.UW-1||game.owner[ui+1]!==regionId){ctx.moveTo(left+s,top);ctx.lineTo(left+s,top+s);}if(y===0||game.owner[ui-CFG.UW]!==regionId){ctx.moveTo(left,top);ctx.lineTo(left+s,top);}if(y===CFG.UH-1||game.owner[ui+CFG.UW]!==regionId){ctx.moveTo(left,top+s);ctx.lineTo(left+s,top+s);}}ctx.strokeStyle=color;ctx.lineWidth=width;ctx.stroke();}
+function regionCentroid(reg){let sx=0,sy=0,n=0;for(const ui of reg.micro){const [x,y]=uXY(ui);sx+=x+.5;sy+=y+.5;n++;}return n?[sx/n,sy/n]:[0,0];}
+function drawBoard(){
+  if(!game)return;const W=canvas.width,H=canvas.height,s=W/CFG.UW;ctx.clearRect(0,0,W,H);ctx.fillStyle="#030712";ctx.fillRect(0,0,W,H);
+  for(let mi=0;mi<CFG.MW*CFG.MH;mi++)if(macroInPlayable(mi))drawMacroRect(mi,"#0b1220",null);
+  for(let mi=0;mi<CFG.MW*CFG.MH;mi++)if(!macroInPlayable(mi)){drawMacroRect(mi,"#030712","rgba(51,65,85,.42)",1);const [c,r]=mXY(mi),ms=CFG.SCALE*s,x=c*ms,y=r*ms;ctx.beginPath();ctx.moveTo(x,y+ms);ctx.lineTo(x+ms,y);ctx.strokeStyle="rgba(71,85,105,.24)";ctx.lineWidth=1;ctx.stroke();}
+  for(let ui=0;ui<game.owner.length;ui++){
+    const id=game.owner[ui];if(!id)continue;const reg=game.regions[id];let fill="#334155";
+    if(reg.color)fill=COLOR_HEX[reg.color];else if(reg.reserved)fill="#8b5cf6";else fill=((uXY(ui)[0]+uXY(ui)[1])%2?"#cbd5e1":"#94a3b8");ctx.fillStyle=fill;const [x,y]=uXY(ui);ctx.fillRect(x*s,y*s,s+.25,s+.25);
+  }
+  // Shrunk bands remain visible, including colored geometry, but are marked as future-write-prohibited.
+  for(let mi=0;mi<CFG.MW*CFG.MH;mi++)if(!macroInPlayable(mi)){const [c,r]=mXY(mi),ms=CFG.SCALE*s,x=c*ms,y=r*ms;ctx.fillStyle="rgba(2,6,23,.32)";ctx.fillRect(x,y,ms,ms);ctx.beginPath();ctx.moveTo(x,y+ms);ctx.lineTo(x+ms,y);ctx.moveTo(x-ms*.15,y+ms*.65);ctx.lineTo(x+ms*.65,y-ms*.15);ctx.moveTo(x+ms*.35,y+ms*1.15);ctx.lineTo(x+ms*1.15,y+ms*.35);ctx.strokeStyle="rgba(251,113,133,.32)";ctx.lineWidth=1.2;ctx.stroke();}
+  // subtle internal quarter-cell grid
+  ctx.beginPath();for(let i=1;i<CFG.UW;i++){ctx.moveTo(i*s,0);ctx.lineTo(i*s,H);}for(let i=1;i<CFG.UH;i++){ctx.moveTo(0,i*s);ctx.lineTo(W,i*s);}ctx.strokeStyle="rgba(148,163,184,.055)";ctx.lineWidth=.7;ctx.stroke();
+  // strong normal-cell grid
+  ctx.beginPath();for(let i=0;i<=CFG.MW;i++){ctx.moveTo(i*CFG.SCALE*s,0);ctx.lineTo(i*CFG.SCALE*s,H);}for(let i=0;i<=CFG.MH;i++){ctx.moveTo(0,i*CFG.SCALE*s);ctx.lineTo(W,i*CFG.SCALE*s);}ctx.strokeStyle="rgba(148,163,184,.24)";ctx.lineWidth=1.25;ctx.stroke();
+  const pb=game.playableBounds,px=pb.left*CFG.SCALE*s,py=pb.top*CFG.SCALE*s,pw=boardWidth()*CFG.SCALE*s,ph=boardHeight()*CFG.SCALE*s;ctx.strokeStyle="#22d3ee";ctx.lineWidth=4;ctx.strokeRect(px+2,py+2,pw-4,ph-4);
+  for(const id of Object.keys(game.regions))drawRegionBoundary(id);
+  // normal macro selection
+  for(const mi of game.selection)drawMacroRect(mi,"rgba(248,250,252,.25)","#f8fafc",4);
+  // pre-pass geometry added to the outgoing uncolored area
+  for(const ui of game.selectionExtra||[])drawMicroRect(ui,"rgba(250,204,21,.5)","#fde047",2);
+  // split selection
+  if(splitMode&&game.pending){const reg=game.regions[game.pending];for(const mi of reg.sourceMacros)drawMacroRect(mi,splitPicked.has(mi)?"rgba(34,211,238,.34)":"rgba(139,92,246,.16)",splitPicked.has(mi)?"#22d3ee":"#a78bfa",4);}
+  // target highlights
+  if(targetMode){
+    if(targetMode.kind==="region")for(const id of targetMode.valid)drawRegionBoundary(id,"#22d3ee",5);
+    if(targetMode.kind==="macro")for(const mi of targetMode.valid)drawMacroRect(mi,"rgba(34,211,238,.15)","#22d3ee",3);
+    if(targetMode.kind==="micro")for(const ui of targetMode.valid)drawMicroRect(ui,"rgba(250,204,21,.38)","#fde047",2);
+  }
+  if(hoverMacro>=0&&!targetMode&&!splitMode&&(game.phase==="WORK"||game.phase==="CREATE_FIRST")&&macroSelectable(hoverMacro))drawMacroRect(hoverMacro,"rgba(248,250,252,.08)","rgba(248,250,252,.55)",2);
+  if(targetMode?.kind==="micro"&&hoverMicro>=0&&targetMode.valid.has(hoverMicro))drawMicroRect(hoverMicro,"rgba(255,255,255,.42)","#fff",3);
+  // labels
+  ctx.textAlign="center";ctx.textBaseline="middle";for(const reg of Object.values(game.regions)){const [cx,cy]=regionCentroid(reg);ctx.font="900 14px system-ui";ctx.lineWidth=4;ctx.strokeStyle="#020617";ctx.fillStyle=reg.color==="yellow"?"#111827":"#f8fafc";const label=reg.id+(reg.isPending?" ?":reg.reserved?" ↪":"");ctx.strokeText(label,cx*s,cy*s);ctx.fillText(label,cx*s,cy*s);}
+}
+function pointerBoardPosition(e){const r=canvas.getBoundingClientRect(),x=Math.max(0,Math.min(CFG.UW-1,Math.floor((e.clientX-r.left)/r.width*CFG.UW))),y=Math.max(0,Math.min(CFG.UH-1,Math.floor((e.clientY-r.top)/r.height*CFG.UH))),ui=uIndex(x,y),mi=mIndex(Math.floor(x/CFG.SCALE),Math.floor(y/CFG.SCALE));return{ui,mi,x,y};}
+function celebrateContact(n){const titles={2:"二色接触！",3:"三色圧力!!",4:"四色包囲!!!"},subs={2:"相手の選択肢へ圧力",3:"強いエリア工作",4:"全色が一点へ集中"};canvas.classList.remove("contact-pulse");void canvas.offsetWidth;canvas.classList.add("contact-pulse");showEvent(titles[n]||n+"色接触！",subs[n]||"","warn",n>=4?1050:780);burstAtElement(canvas,18+n*8,n>=4?["#fde047","#c084fc","#22d3ee","#f8fafc"]:["#22d3ee","#f8fafc","#fde047"]);soundSuccess(n+2);vibrate(n>=4?[35,35,70]:[25]);if(n>=4)shake(false);}
+function handleBoardClick(e){
+  if(!game||game.winner)return;e.preventDefault();const {ui,mi}=pointerBoardPosition(e);
+  if(targetMode){let value=null;if(targetMode.kind==="region")value=game.owner[ui];else if(targetMode.kind==="macro")value=mi;else if(targetMode.kind==="micro")value=ui;if(value!==null&&targetMode.valid.has(value)){const fn=targetMode.onPick;cancelTargetMode();fn(value);}else toast("水色または黄色で示した対象を選んでください。");return;}
+  if(splitMode){const reg=game.regions[game.pending];if(reg?.sourceMacros.has(mi)){splitPicked.has(mi)?splitPicked.delete(mi):splitPicked.add(mi);renderBattle();}return;}
+  if(!(game.phase==="WORK"||game.phase==="CREATE_FIRST"))return;if(game.selectionLocked){toast("未彩色エリアを幾何加工済みのため、選択マスは固定されています。");return;}if(!macroInPlayable(mi)){toast("そのマスは現在のプレイ可能盤面の外です。");return;}if(!macroSelectable(mi)){toast("その通常マスには空き内部セルがありません。");return;}if(!game.selection.has(mi)&&game.selection.size>=game.requiredSize){toast(game.requiredSize+"マスぴったりです。これ以上は選べません。");return;}
+  const before=game.selectionContactCount;game.selectionExtra.clear();game.selection.has(mi)?game.selection.delete(mi):game.selection.add(mi);const after=game.selection.size<=game.requiredSize&&macroSetConnected(game.selection)?selectionContactColorCount():0;game.selectionContactCount=after;renderBattle();if(after>before&&after>=2)celebrateContact(after);
+}
+canvas.addEventListener("pointerdown",handleBoardClick);
+canvas.addEventListener("pointermove",e=>{const p=pointerBoardPosition(e);hoverMicro=p.ui;hoverMacro=p.mi;drawBoard();});
+canvas.addEventListener("pointerleave",()=>{hoverMicro=-1;hoverMacro=-1;drawBoard();});
+
+// ---------- Skills ----------
+function timingOk(skill){return (skill.timing==="COLOR"&&game.phase==="COLOR")||(skill.timing==="WORK"&&(game.phase==="WORK"||game.phase==="CREATE_FIRST"));}
+function consumeSkill(k){if(isDebugMatch())return true;const player=game.active;if((game.hands[player][k]||0)<=0)return false;game.hands[player][k]=Math.max(0,game.hands[player][k]-1);game.skillsUsed[player]=(game.skillsUsed[player]||0)+1;if(consumesProfileCards()){const a=account(player);a.inventory[k]=Math.max(0,(a.inventory[k]||0)-1);saveStore();}return true;}
+function targetOwnedRegion(title,hint,onPick){const ids=controlledRegionIds();if(!ids.length){toast("操作できる自分の彩色済みエリアがありません。");return false;}startTargetMode({kind:"region",title,hint,valid:ids,onPick});return true;}
+function useSkill(k){
+  const s=SKILLS[k];if(!s||!game||game.winner)return;if(!isDebugMatch()&&(game.hands[game.active][k]||0)<=0){toast("この対戦では使用済み、または持込時点で在庫がありません。");return;}if(targetMode||splitMode){toast("先に現在のカード操作を完了またはキャンセルしてください。");return;}if(!timingOk(s)){toast(s.timing==="COLOR"?"彩色前に使うカードです。":"幾何操作・エリア指定フェーズで使うカードです。");return;}
+  if(k==="colorRandomBorrow")return useColorRandomBorrow(k);
+  if(k==="colorChoiceBorrow")return useColorChoiceBorrow(k);
+  if(k==="colorPrism")return useColorPrism(k);
+  if(k==="colorRegionSplit")return startSplit(k);
+  if(k==="colorPaletteChange")return startPaletteChange(k);
+  if(k==="areaMicroBloom")return startMicroBloom(k);
+  if(k==="areaDiePlus")return useDiePlus(k);
+  if(k==="areaResize")return startResize(k);
+  if(k==="areaCornerBloom")return startCornerBloom(k);
+  if(k==="areaHalfShift")return startHalfShift(k);
+  if(k==="areaTripleShift")return startTripleShift(k);
+  if(k==="disruptRandomOne")return useRandomSeal(k,1,1);
+  if(k==="disruptChoiceOne")return chooseSeal(k,1);
+  if(k==="disruptRandomTwo")return useRandomSeal(k,2,1);
+  if(k==="disruptPaletteRandom")return useRandomPaletteInjection(k,1);
+  if(k==="disruptChoiceTwo")return chooseSeal(k,2);
+  if(k==="disruptPaletteChoice")return choosePaletteInjection(k,2);
+  if(k==="disruptChoiceThree")return chooseSeal(k,3);
+  if(k==="disruptForcedPalette")return choosePaletteInjection(k,0);
+}
+function addTemporaryColor(color){if(!game.temporary[game.active].includes(color))game.temporary[game.active].push(color);}
+function useColorRandomBorrow(k){const used=usedBoardColors();if(!used.length){toast("盤面にまだ借りられる使用済み色がありません。");return;}const color=used[rand(0,used.length-1)],before=currentPalette().includes(color);consumeSkill(k);addTemporaryColor(color);addLog(playerName(game.active)+" が《色拾い・乱》を使用。追加色は非公開。");showEvent("色拾い・乱",COLOR_NAME[color]+(before?"（色は増えず）":"を一時追加"),before?"warn":"good",950);soundSuccess(before?1:2);renderBattle();}
+function useColorChoiceBorrow(k){const used=usedBoardColors();if(!used.length){toast("盤面にまだ借りられる使用済み色がありません。");return;}openActionModal("《色借り》","盤面ですでに使われている色から選択します。合法かどうかは表示しません。",used.map(color=>({label:colorDot(color)+" "+COLOR_NAME[color],sub:currentPalette().includes(color)?"すでに候補色に含まれています":"この彩色だけ追加",onClick:()=>{consumeSkill(k);addTemporaryColor(color);addLog(playerName(game.active)+" が《色借り》を使用。追加色は非公開。");showEvent("色借り",COLOR_NAME[color]+"を一時追加","good",850);soundSuccess(2);renderBattle();}})));}
+function useColorPrism(k){consumeSkill(k);game.prismActive[game.active]=true;addLog(playerName(game.active)+" が《四色解放》を使用。全4色が使用候補に追加。");showEvent("四色解放","判断を誤れば敗北","epic",1150);soundEpic();burstAtElement(document.getElementById("palette"),50,["#ef4444","#eab308","#22c55e","#3b82f6","#ffffff"]);renderBattle();}
+function startPaletteChange(k){
+  const player=game.active,current=[...game.palettes[player]],choices=current.map((color,index)=>({
+    label:"枠 "+(index+1)+"："+colorDot(color)+" "+COLOR_NAME[color]+(game.limitedSlot[player]===index?"（おまけ色 残"+game.limitedRemaining[player]+"回）":"")+(paletteDebuffAtSlot(player,index)?"（妨害中）":""),
+    onClick:()=>{const adds=COLORS.filter(c=>c!==color);openActionModal("《持ち色変更》","枠 "+(index+1)+"の「"+COLOR_NAME[color]+"」と入れ替える色を選択してください。重複色も選べます。",adds.map(add=>({label:colorDot(add)+" "+COLOR_NAME[add],onClick:()=>{consumeSkill(k);clearPaletteDebuffsForSlot(player,index);game.palettes[player][index]=add;addLog(playerName(player)+" が《持ち色変更》を使用。持ち色枠 "+(index+1)+" を恒久変更。変更後の3枠とおまけ色は非公開。");showEvent("持ち色変更","枠 "+(index+1)+"を更新","epic",1000);soundEpic();renderBattle();}})));}
+  }));
+  openActionModal("《持ち色変更》","恒久変更する持ち色枠を選択してください。おまけ色の残り使用回数は枠に残ります。",choices);
+}
+
+function startSplit(k){const reg=game.regions[game.pending];if(!reg||reg.sourceMacros.size<2){toast("2マス以上の受取エリアでのみ使えます。");return;}splitMode={skillKey:k};splitPicked=new Set();game.selection.clear();document.getElementById("splitPanel").style.display="block";addLog(playerName(game.active)+" が《エリア二分》の使用を宣言。");renderBattle();}
+function validateSplit(){const reg=game.regions[game.pending];if(!reg)return[false,"対象エリアがありません。"];const a=new Set(splitPicked),b=new Set([...reg.sourceMacros].filter(mi=>!a.has(mi)));if(!a.size||!b.size)return[false,"両側を1マス以上にしてください。"];if(!macroSetConnected(a)||!macroSetConnected(b))return[false,"両側とも通常マスの4近傍で連結する必要があります。"];return[true,"分割条件を満たしています。"];}
+function cancelSplit(){splitMode=false;splitPicked.clear();renderBattle();}
+function confirmSplit(){
+  const [ok,msg]=validateSplit();if(!ok){toast(msg);return;}const old=game.regions[game.pending],aMacros=new Set(splitPicked),bMacros=new Set([...old.sourceMacros].filter(mi=>!aMacros.has(mi))),aMicro=new Set(),bMicro=new Set();for(const ui of old.micro)(aMacros.has(macroOfMicro(ui))?aMicro:bMicro).add(ui);
+  const idA="R"+game.nextRegion++,idB="R"+game.nextRegion++;delete game.regions[old.id];game.regions[idA]={id:idA,sourceMacros:aMacros,micro:aMicro,color:null,createdBy:old.createdBy,controllers:new Set(),isPending:true,reserved:false};game.regions[idB]={id:idB,sourceMacros:bMacros,micro:bMicro,color:null,createdBy:old.createdBy,controllers:new Set(),isPending:false,reserved:true};game.pending=idA;game.reserved=idB;consumeSkill(splitMode.skillKey);splitMode=false;splitPicked.clear();rebuildOwner();addLog("《エリア二分》確定："+idA+" を彩色し、"+idB+" を返送。");showEvent("SPLIT!","相手へ多色接触を押し返せ","warn",1000);soundEpic();renderBattle();
+}
+
+function requirePreparedOutgoingSelection(skillName){
+  const [ok,msg]=validateSelection();if(!ok){toast("《"+skillName+"》は、相手へ渡す未彩色エリアを先に完成させてから使います。"+msg);return false;}return true;
+}
+function cornerDefinitions(mi){const [c,r]=mXY(mi),x0=c*CFG.SCALE,y0=r*CFG.SCALE,x1=x0+CFG.SCALE-1,y1=y0+CFG.SCALE-1;return [
+  {name:"左上",diag:[x0-1,y0-1],plan:[[x0-1,y0],[x0,y0-1],[x0-1,y0-1]]},
+  {name:"右上",diag:[x1+1,y0-1],plan:[[x1+1,y0],[x1,y0-1],[x1+1,y0-1]]},
+  {name:"左下",diag:[x0-1,y1+1],plan:[[x0-1,y1],[x0,y1+1],[x0-1,y1+1]]},
+  {name:"右下",diag:[x1+1,y1+1],plan:[[x1+1,y1],[x1,y1+1],[x1+1,y1+1]]}
+];}
+function shapeTouchesRegion(shape,regionId){for(const ui of shape)for(const ni of microNeighbors(ui)){if(shape.has(ni))continue;if(game.owner[ni]===regionId)return true;}return false;}
+function planCornerForShape(shape,mi,corner){const planned=new Set();for(let pass=0;pass<3;pass++)for(const [x,y] of corner.plan){if(x<0||y<0||x>=CFG.UW||y>=CFG.UH)continue;const ui=uIndex(x,y),ownerId=game.owner[ui],owner=ownerId&&game.regions[ownerId];if(!microInPlayable(ui)||shape.has(ui)||planned.has(ui))continue;if(ownerId&&!owner?.color)continue;if(microNeighbors(ui).some(n=>shape.has(n)||planned.has(n)))planned.add(ui);}return planned;}
+function microBloomCandidates(){if(!requirePreparedOutgoingSelection("ひとふくらみ"))return[];const shape=selectedMacroGeometry(),out=[];for(const mi of game.selection)for(const corner of cornerDefinitions(mi)){const [dx,dy]=corner.diag;if(dx<0||dy<0||dx>=CFG.UW||dy>=CFG.UH)continue;const diagonalRegion=game.owner[uIndex(dx,dy)];if(!diagonalRegion||shapeTouchesRegion(shape,diagonalRegion))continue;const plan=planCornerForShape(shape,mi,corner);if(!plan.size)continue;const expanded=new Set([...shape,...plan]);if(shapeTouchesRegion(expanded,diagonalRegion))out.push({mi,corner,plan,diagonalRegion});}return out;}
+function afterOutgoingGeometryChange(label,added){game.selectionLocked=true;game.selectionContactCount=selectionContactColorCount();showEvent(label,added+"内部セル取得 / 未彩色エリアを固定","good",950);soundSuccess(3);burstAtElement(document.getElementById("boardCanvas"),30,["#fde047","#22d3ee","#f8fafc"]);renderBattle();if(game.selectionContactCount>=2)celebrateContact(game.selectionContactCount);}
+function startMicroBloom(k){const candidates=microBloomCandidates();if(!candidates.length){toast("点接触を辺接触へ変えられる角が、この未彩色エリアにはありません。カードは消費しません。");return;}const pick=candidates[rand(0,candidates.length-1)];consumeSkill(k);for(const ui of pick.plan)game.selectionExtra.add(ui);const ordinal=[...game.selection].indexOf(pick.mi)+1;addLog(playerName(game.active)+" が《ひとふくらみ》を使用。未彩色エリアのランダムな第"+ordinal+"マス・"+pick.corner.name+"を膨張し、"+pick.diagonalRegion+"との点接触を辺接触化。");afterOutgoingGeometryChange("ひとふくらみ",pick.plan.size);}
+function useDiePlus(k){const desired=game.requiredSize+1;if(desired>CFG.MAX_WITH_SKILL){toast("指定サイズは最大5マスです。");return;}if(!hasLegalRegionOfSize(desired)){toast(desired+"マスの合法エリアを作れないため使用できません。");return;}if(game.selectionLocked){toast("未彩色エリアを幾何加工済みのため、先に指定サイズは変更できません。");return;}consumeSkill(k);clearSelectionState();game.requiredSize=desired;game.sizeBonus=(game.sizeBonus||0)+1;addLog(playerName(game.active)+" が《エリア拡張》を使用。今回の指定サイズを "+desired+"マスへ変更。");showEvent("AREA +1",desired+"マスぴったりで指定","good",900);soundSuccess(2);renderBattle();}
+function canExpandBoardSide(side){return sideBandMacros(game.playableBounds,side,true).length>0;}
+function canShrinkBoardSide(side){const horizontal=side==="left"||side==="right";if(horizontal&&boardWidth()<=CFG.MIN_BOARD_W)return false;if(!horizontal&&boardHeight()<=CFG.MIN_BOARD_H)return false;return sideBandMacros(game.playableBounds,side,false).length>0;}
+function startResize(k){openActionModal("《拡大縮小》","エリアではなく、現在の新規書込可能範囲 "+boardSizeText()+" の外周を変更します。既塗エリアは縮小しても残ります。",[
+  {label:"盤面を拡大",sub:"上・下・左・右の外側へ1行または1列追加",onClick:()=>chooseBoardResize(k,"expand")},
+  {label:"盤面を縮小",sub:"外周1行または1列を新規書込み禁止にする。既塗エリアは残る",onClick:()=>chooseBoardResize(k,"shrink")}
+]);}
+function chooseBoardResize(k,mode){const sides=["top","bottom","left","right"],choices=sides.map(side=>{const ok=mode==="expand"?canExpandBoardSide(side):canShrinkBoardSide(side);return {label:sideLabel(side)+"側を"+(mode==="expand"?"拡大":"縮小"),sub:ok?(mode==="expand"?"新規書込み可能な外周を1マス追加":"既塗エリアを残したまま、この外周を新規書込み禁止にする"):(mode==="expand"?"この側は拡張上限です":"この側は最小サイズです"),disabled:!ok,onClick:()=>applyBoardResize(k,mode,side)};});if(!choices.some(x=>!x.disabled)){toast(mode==="expand"?"これ以上拡大できる側がありません。":"これ以上縮小できません。");return;}openActionModal("《拡大縮小》："+(mode==="expand"?"盤面拡大":"盤面縮小"),"変更する外周を選んでください。現在の書込可能範囲 "+boardSizeText()+"。",choices);}
+function recalculateRequiredAfterBoardResize(){const base=bestLegalSize(game.rolledSize);if(base<=0)return resolveNoRegionWin(game.active);game.baseRequired=base;const desired=Math.min(CFG.MAX_WITH_SKILL,base+(game.sizeBonus||0)),required=bestLegalSize(desired);game.requiredSize=required>0?required:base;return true;}
+function applyBoardResize(k,mode,side){const next={...game.playableBounds};if(mode==="expand"){if(side==="left")next.left--;else if(side==="right")next.right++;else if(side==="top")next.top--;else next.bottom++;}else{if(side==="left")next.left++;else if(side==="right")next.right--;else if(side==="top")next.top++;else next.bottom--;}consumeSkill(k);game.playableBounds=next;if(mode==="expand")for(const mi of playableMacroIndices(next))game.trophyTargetMacros.add(mi);clearSelectionState();addLog(playerName(game.active)+" が《拡大縮小》を使用。新規書込可能範囲を"+sideLabel(side)+"側へ"+(mode==="expand"?"拡大":"縮小")+"し、"+boardSizeText()+"へ変更。既塗エリアは維持。");if(!recalculateRequiredAfterBoardResize())return;showEvent(mode==="expand"?"BOARD EXPAND":"BOARD SHRINK",boardSizeText()+" / "+sideLabel(side)+"側","good",1000);soundSuccess(3);burstAtElement(document.getElementById("boardCanvas"),38,["#22d3ee","#fde047","#f8fafc"]);renderBattle();}
+function cornerBloomPlan(mi){const shape=selectedMacroGeometry(),planned=new Set();for(const corner of cornerDefinitions(mi)){const plan=planCornerForShape(new Set([...shape,...planned]),mi,corner);for(const ui of plan)planned.add(ui);}return planned;}
+function startCornerBloom(k){if(!requirePreparedOutgoingSelection("角膨張"))return;const valid=[...game.selection].filter(mi=>cornerBloomPlan(mi).size>0);if(!valid.length){toast("選択中の未彩色エリアには、四隅を膨らませられるマスがありません。");return;}startTargetMode({kind:"macro",title:"《角膨張》：未彩色エリア内の1マスを選択",hint:"選択したマスの四隅すべてを膨張させ、その形状のまま相手へ渡します。",valid,preserveSelection:true,onPick:mi=>applyCornerBloom(k,mi)});}
+function applyCornerBloom(k,mi){const planned=cornerBloomPlan(mi);if(!planned.size){toast("このマスの四隅には膨張可能な空き・侵食先がありません。");return;}consumeSkill(k);for(const ui of planned)game.selectionExtra.add(ui);const ordinal=[...game.selection].indexOf(mi)+1;addLog(playerName(game.active)+" が《角膨張》を使用。未彩色エリアの第"+ordinal+"マスの四隅を "+planned.size+"内部セル膨張。");afterOutgoingGeometryChange("四隅膨張",planned.size);}
+function simulateBandShift(axis,line,delta){const sets={},dest=new Map();let moved=0;for(const [id,reg] of Object.entries(game.regions)){const next=new Set();for(const ui of reg.micro){let [x,y]=uXY(ui),nx=x,ny=y,inside=false;if(axis==="ROW"&&y>=line*CFG.SCALE&&y<(line+1)*CFG.SCALE){nx=x+delta;inside=true;}if(axis==="COLUMN"&&x>=line*CFG.SCALE&&x<(line+1)*CFG.SCALE){ny=y+delta;inside=true;}if(inside)moved++;if(nx<0||ny<0||nx>=CFG.UW||ny>=CFG.UH)return null;const ni=uIndex(nx,ny);if(!microInWorld(ni)||dest.has(ni))return null;dest.set(ni,id);next.add(ni);}if(!setConnected(next))return null;sets[id]=next;}return moved?sets:null;}
+function shiftMovesForMacro(mi){const [c,r]=mXY(mi),defs=[
+  {axis:"ROW",line:r,delta:-2,direction:"左"},{axis:"ROW",line:r,delta:2,direction:"右"},
+  {axis:"COLUMN",line:c,delta:-2,direction:"上"},{axis:"COLUMN",line:c,delta:2,direction:"下"}
+],moves=[];for(const d of defs){const sets=simulateBandShift(d.axis,d.line,d.delta);if(sets)moves.push({...d,sets});}return moves;}
+function allWorldMacroIndices(){return Array.from({length:CFG.MW*CFG.MH},(_,mi)=>mi);}
+function shiftTargetLabel(mi){const [c,r]=mXY(mi),outside=!macroInPlayable(mi);return {row:r+1,col:c+1,outside,label:"基盤 行"+(r+1)+"・列"+(c+1)+(outside?"（新規書込禁止帯）":"")};}
+function startHalfShift(k){const valid=allWorldMacroIndices().filter(mi=>shiftMovesForMacro(mi).length>0);if(!valid.length){toast("現在の盤面では、重なりや分断なしに半マスずらせる対象マスがありません。");return;}startTargetMode({kind:"macro",title:"《半マスシフト》：基準マスを選択",hint:"まずマスをタップし、次に上下左右を選びます。左右はその行、上下はその列を0.5マス移動します。縮小で新規書込禁止になった帯も、既塗形状があれば選択できます。",valid,onPick:mi=>chooseHalfShiftDirection(k,mi)});}
+function chooseHalfShiftDirection(k,mi){const moves=shiftMovesForMacro(mi);if(!moves.length){toast("このマスを基準に実行できる方向がありません。");return;}const loc=shiftTargetLabel(mi);openActionModal("《半マスシフト》：方向選択","基準マス："+loc.label+"／使用のたびに上下左右を自由に選べます。",moves.map(m=>({label:m.direction+"へ0.5マス",sub:m.axis==="ROW"?"基盤 行 "+loc.row+" 全体を移動":"基盤 列 "+loc.col+" 全体を移動",onClick:()=>applyHalfShift(k,m,loc)})));}
+function applyHalfShift(k,m,loc){consumeSkill(k);for(const [id,set] of Object.entries(m.sets))game.regions[id].micro=new Set(set);rebuildOwner();addLog(playerName(game.active)+" が《半マスシフト》を使用。"+(m.axis==="ROW"?"基盤 行"+loc.row:"基盤 列"+loc.col)+(loc.outside?"（新規書込禁止帯）":"")+"を"+m.direction+"へ0.5マス移動。縦横の軸固定なし・現在形状へ重ね掛け。");afterGeometryChange("HALF SHIFT");}
+function simulateTripleShift(axis,line,sign){
+  const maxLine=axis==="ROW"?CFG.MH:CFG.MW;if(line-1<0||line+1>=maxLine)return null;const deltaByLine=new Map([[line-1,sign*2],[line,sign*4],[line+1,sign*2]]),sets={},dest=new Map();let moved=0;
+  for(const [id,reg] of Object.entries(game.regions)){const next=new Set();for(const ui of reg.micro){let [x,y]=uXY(ui),nx=x,ny=y,band=axis==="ROW"?Math.floor(y/CFG.SCALE):Math.floor(x/CFG.SCALE),delta=deltaByLine.get(band)||0;if(delta){if(axis==="ROW")nx+=delta;else ny+=delta;moved++;}if(nx<0||ny<0||nx>=CFG.UW||ny>=CFG.UH)return null;const ni=uIndex(nx,ny);if(dest.has(ni))return null;dest.set(ni,id);next.add(ni);}if(!setConnected(next))return null;sets[id]=next;}return moved?sets:null;
+}
+function tripleShiftMovesForMacro(mi){const [c,r]=mXY(mi),defs=[
+  {axis:"ROW",line:r,sign:-1,direction:"左"},{axis:"ROW",line:r,sign:1,direction:"右"},
+  {axis:"COLUMN",line:c,sign:-1,direction:"上"},{axis:"COLUMN",line:c,sign:1,direction:"下"}
+],moves=[];for(const d of defs){const sets=simulateTripleShift(d.axis,d.line,d.sign);if(sets)moves.push({...d,sets});}return moves;}
+function startTripleShift(k){const valid=allWorldMacroIndices().filter(mi=>tripleShiftMovesForMacro(mi).length>0);if(!valid.length){toast("現在の盤面では、三帯を重なり・分断なしに移動できる基準マスがありません。");return;}startTargetMode({kind:"macro",title:"《三層断層》：中央帯の基準マスを選択",hint:"次に方向を選びます。中央の行／列は1マス、両脇の2帯は0.5マスを同方向へ同時移動します。方向固定なし・重ね掛け可能です。",valid,onPick:mi=>chooseTripleShiftDirection(k,mi)});}
+function chooseTripleShiftDirection(k,mi){const moves=tripleShiftMovesForMacro(mi);if(!moves.length){toast("この基準マスから実行できる方向がありません。");return;}const loc=shiftTargetLabel(mi);openActionModal("《三層断層》：方向選択","中央基準："+loc.label+"。中央1マス／両脇0.5マスを同時移動します。",moves.map(m=>({label:m.direction+"へ三層シフト",sub:m.axis==="ROW"?"中央 行"+loc.row+"を1マス、上下の行を0.5マス":"中央 列"+loc.col+"を1マス、左右の列を0.5マス",onClick:()=>applyTripleShift(k,m,loc)})));}
+function applyTripleShift(k,m,loc){consumeSkill(k);for(const [id,set] of Object.entries(m.sets))game.regions[id].micro=new Set(set);rebuildOwner();addLog(playerName(game.active)+" が《三層断層》を使用。"+(m.axis==="ROW"?"基盤 行"+loc.row+"と上下":"基盤 列"+loc.col+"と左右")+"を"+m.direction+"へ、中央1マス・両脇0.5マス同時移動。現在形状へ重ね掛け。");showEvent("TRIPLE FAULT",m.direction+" / 1.0・0.5・0.5","epic",1100);soundEpic();afterGeometryChange("TRIPLE SHIFT");}
+
+function applySeal(k,colors,duration){const caster=game.active,target=other(caster);consumeSkill(k);for(const color of colors)game.seals[target][color]=Math.max(game.seals[target][color],duration);if(k==="disruptChoiceOne")game.curseBacklash[caster]=(game.curseBacklash[caster]||0)+1;addLog(playerName(caster)+" が "+playerName(target)+" に《"+SKILLS[k].name+"》を使用。封印色："+colors.map(c=>COLOR_NAME[c]).join("・")+" / "+duration+"彩色。"+(k==="disruptChoiceOne"?" 使用者へ呪返し待機。":""));showEvent(k==="disruptChoiceOne"?"COLOR SEAL / CURSE":"COLOR SEAL",colors.map(c=>COLOR_NAME[c]).join("・")+" ×"+duration,"bad",1100);soundLock();vibrate([45,25,80]);renderBattle();}
+function useRandomSeal(k,count,duration){applySeal(k,shuffle(COLORS).slice(0,count),duration);}
+function chooseSeal(k,duration){const curse=k==="disruptChoiceOne"?" 使用後、相手が生き残ると自分の次彩色でランダム1色が呪返し封印されます。":"";openActionModal("《"+SKILLS[k].name+"》","相手に封印する色を選択してください。相手がその色を持つかは表示されません。"+curse,COLORS.map(color=>({label:colorDot(color)+" "+COLOR_NAME[color],sub:"相手の次の彩色 "+duration+"回で使用禁止"+(k==="disruptChoiceOne"?"／自分へ呪返し":""),onClick:()=>applySeal(k,[color],duration)})));}
+
+// ---------- Battle rendering ----------
+function renderBattle(){
+  if(!game)return;applyCosmetics(game.winner||game.active);document.getElementById("activePlayerName").textContent=playerName(game.active)+"（Player "+game.active+"）";document.getElementById("phaseLabel").textContent=phaseName();document.getElementById("turnSummary").textContent=(isDebugMatch()?"🧪 DEBUG / ":"")+"Turn "+game.turn+" / "+playerName(game.active)+" / "+phaseName()+" / 書込範囲 "+boardSizeText()+((game.phase==="WORK"||game.phase==="CREATE_FIRST")?" / "+selectionRequirementText():"");
+  const pc=document.getElementById("phaseColor"),pw=document.getElementById("phaseWork"),pp=document.getElementById("phasePass");[pc,pw,pp].forEach(x=>x.className="phase");if(game.phase==="COLOR")pc.classList.add("active");else if(game.phase==="WORK"){pc.classList.add("done");pw.classList.add("active");}else if(game.phase==="CREATE_FIRST")pw.classList.add("active");if(game.winner){pc.classList.add("done");pw.classList.add("done");pp.classList.add("done");}
+  document.getElementById("targetPanel").classList.toggle("show",!!targetMode);drawBoard();renderPalette();renderSkills();renderSelection();renderSplit();renderMessage();renderLog();
+}
+function renderPalette(){
+  const box=document.getElementById("palette");box.innerHTML="";const visible=visiblePalette(),available=currentPalette();for(const color of visible){const sealed=isSealed(game.active,color),limitedBase=isEffectivelyLimitedBaseColor(game.active,color),exhausted=limitedBase&&(game.limitedRemaining[game.active]||0)<=0,b=document.createElement("button");b.className="color-btn"+(game.temporary[game.active].includes(color)?" temporary":"")+(game.prismActive[game.active]?" prism":"")+(limitedBase?" limited":"")+(exhausted?" exhausted":"")+(sealed?" sealed":"");b.style.background=COLOR_HEX[color];b.title=COLOR_NAME[color]+(limitedBase?"（制限色 残"+game.limitedRemaining[game.active]+"回）":"")+(sealed?"（封印中）":"")+(exhausted?"（使用回数切れ）":"");b.setAttribute("aria-label",b.title);b.disabled=game.phase!=="COLOR"||!!game.winner||!!splitMode||sealed||exhausted;if(sealed)b.innerHTML='<span class="seal-lock"><span><b>🔒</b>SEALED ×'+game.seals[game.active][color]+'</span></span>';else b.innerHTML='<span>'+COLOR_NAME[color]+'</span>'+(limitedBase?'<span class="limited-uses">LIMIT ×'+game.limitedRemaining[game.active]+'</span>':'');b.onclick=()=>colorPending(color);box.appendChild(b);}
+  const note=document.getElementById("paletteNotice"),modeText=isDebugMatch()?"<b>DEBUG：全4色を常時・無制限で候補表示。</b>":isQuickMatch()?"<b>速攻：基本色2色・おまけ色なし。</b>":"基本色2＋<b>LIMIT表示のおまけ色1色（1・2回中心の1～4回）。</b>";if(game.phase==="COLOR")note.innerHTML=modeText+"<b>隣接済みの違法色は押せますが、押した瞬間に敗北します。</b>封印色と回数切れ色だけは押せません。";else note.textContent=isDebugMatch()?"DEBUG：彩色フェーズでは全4色を表示します。":isQuickMatch()?"彩色フェーズになると秘密の基本色2色を表示します。":"彩色フェーズになると秘密持ち色3色とおまけ色の残り回数を表示します。";
+  const sealBox=document.getElementById("sealSummary"),entries=activeSealEntries(),debuffs=activePaletteDebuffs(),curse=game.curseBacklash?.[game.active]||0;sealBox.innerHTML=(entries.length?entries.map(([c,n])=>'<span class="seal-pill">🔒 '+COLOR_NAME[c]+' ×'+n+'彩色</span>').join(""):'')+(debuffs.length?debuffs.map(e=>'<span class="palette-debuff-pill">⚠ 枠'+(e.slot+1)+'：'+COLOR_NAME[e.injectedColor]+' ×'+e.remaining+'</span>').join(""):'')+(curse?'<span class="curse-pill">☯ 呪返し待機 ×'+curse+'</span>':'');
+  const loss=document.getElementById("lossBox"),usable=available.filter(c=>!isSealed(game.active,c)),allUnavailable=game.phase==="COLOR"&&usable.length===0;if(allUnavailable&&!game.winner){loss.style.display="block";loss.innerHTML='<b>持ち色が封印または使用回数切れで、押せる候補色がありません。</b><div class="small" style="margin:5px 0 8px">色操作カードで未封印色を追加・変更できます。救済しない場合は選択肢消失で敗北です。</div><button id="confirmSealLoss" class="btn danger">救済せず敗北を確定</button>';document.getElementById("confirmSealLoss").onclick=loseBySeal;}else loss.style.display="none";
+}
+function renderSkills(){
+  const box=document.getElementById("skills");box.innerHTML="";
+  const entries=[];
+  if(isDebugMatch()){
+    for(const category of Object.keys(CATEGORY))for(const key of skillsInCategory(category))entries.push([key,Number.POSITIVE_INFINITY]);
+  }else{
+    for(const category of Object.keys(CATEGORY))for(const entry of Object.entries(game.hands[game.active]).filter(([k])=>SKILLS[k]?.category===category).sort((a,b)=>SKILLS[a[0]].rarity-SKILLS[b[0]].rarity))entries.push(entry);
+  }
+  for(const [key,count] of entries){const s=SKILLS[key],category=s.category,d=document.createElement("div");d.className="skill-item "+category+(!isDebugMatch()&&count<=0?" used":"");d.innerHTML='<div class="skill-head"><div><div class="skill-name">'+s.name+'</div><div class="stars">'+stars(s.rarity)+'</div></div><div class="skill-meta">'+categoryBadge(category)+'<span class="tag">'+(s.timing==="COLOR"?"彩色前":"工作")+'</span>'+(isDebugMatch()?'<span class="debug-mark">∞</span>':'')+'</div></div><div class="small muted" style="margin-top:5px">'+s.desc+'</div>';
+    const b=document.createElement("button");b.className="btn";b.style.marginTop="7px";b.textContent=isDebugMatch()?"使う ∞":count>0?"使う":"使用済み";b.disabled=(!isDebugMatch()&&count<=0)||!timingOk(s)||!!game.winner||!!targetMode||!!splitMode;b.onclick=()=>useSkill(key);d.appendChild(b);box.appendChild(d);
+  }
+}
+function renderSelection(){const p=document.getElementById("selectionPanel");p.style.display=(game.phase==="CREATE_FIRST"||game.phase==="WORK")&&!game.winner&&!targetMode&&!splitMode?"block":"none";if(p.style.display==="none")return;document.getElementById("sizeTag").textContent=selectionRequirementText()+(game.selectionLocked?" / 加工済み":"");const [ok,msg]=validateSelection(),extra=game.selectionExtra?.size||0;document.getElementById("regionStatus").innerHTML="選択：<b>"+game.selection.size+" / "+game.requiredSize+"マス</b>"+(extra?" ＋ 角加工 <b>"+extra+"内部セル</b>":"")+" — <span style='color:"+(ok?"#86efac":"#94a3b8")+"'>"+msg+"</span>";document.getElementById("confirmRegion").disabled=!ok;document.getElementById("clearSelection").disabled=!game.selection.size||game.selectionLocked;}
+function renderSplit(){const p=document.getElementById("splitPanel");p.style.display=splitMode?"block":"none";if(!splitMode)return;const [ok,msg]=validateSplit();document.getElementById("splitStatus").innerHTML="自分が塗る側：<b>"+splitPicked.size+"マス</b> — "+msg;document.getElementById("confirmSplit").disabled=!ok;}
+function renderMessage(){
+  const m=document.getElementById("battleMessage");if(game.winner){m.className="callout good";m.innerHTML='<b>'+playerName(game.winner)+' の勝利。</b> '+(game.reason==="FULL_PAINT"?"トロフィー対象面積を100％実彩色した完塗りです。":game.reason==="BOARD_LOCK"?"新しい合法エリアを作れない盤面封鎖です。":game.reason==="ILLEGAL_COLOR"?"相手が隣接エリアと同じ色を選びました。":game.reason==="SEALED_OUT"?"相手の候補色が封印または使用回数切れで尽きました。":"相手が投了しました。");return;}
+  m.className="callout";if(targetMode){m.innerHTML='<b>'+targetMode.title+'</b> '+targetMode.hint;return;}if(splitMode){m.innerHTML="《エリア二分》の分割を決めています。水色の通常マスが、この手番で自分が塗る側です。";return;}if(game.phase==="AWAIT_REVEAL")m.innerHTML="<b>"+playerName("A")+"：</b> 秘密情報を表示すると、その後に初回サイコロを振ります。";else if(game.phase==="CREATE_FIRST")m.innerHTML="<b>"+playerName("A")+"：</b> "+selectionRequirementText()+" の連結エリアを指定し、"+playerName("B")+"へ渡してください。";else if(game.phase==="COLOR")m.innerHTML="<b>"+playerName(game.active)+"：</b> 相手から渡された <b>"+game.pending+"</b> を彩色してください。<b>違法色を選んだ瞬間に敗北します。</b>";else m.innerHTML="<b>"+playerName(game.active)+"：</b> "+selectionRequirementText()+" の未彩色エリアを作成し、必要ならそのエリアへ《ひとふくらみ》《角膨張》を施してから相手へ渡してください。";
+}
+function renderLog(){const b=document.getElementById("battleLog");if(!b||!game)return;b.innerHTML=game.log.map(x=>"<div>"+x+"</div>").join("");b.scrollTop=b.scrollHeight;}
+
+// ---------- Profiles / inventory ----------
+function renderPersistentUI(){
+  document.querySelectorAll(".profile-btn[data-profile]").forEach(b=>{const k=b.dataset.profile;b.textContent=(k===store.activeProfile?"育成中 ":"")+k+"："+playerName(k);b.classList.toggle("active",k===store.activeProfile);b.disabled=quiz.running||gachaBusy;});
+  document.getElementById("soundToggle").textContent="音 "+(store.sound?"ON":"OFF");const debugButton=document.getElementById("debugToggle");debugButton.textContent=debugMode?"DEBUG ON":"DEBUG OFF";debugButton.classList.toggle("active",debugMode);debugButton.setAttribute("aria-pressed",String(debugMode));debugButton.disabled=quiz.running||gachaBusy;
+  document.body.classList.toggle("debug-mode",debugMode);document.getElementById("debugBanner").classList.toggle("show",isDebugMatch());document.querySelectorAll("[data-match-mode]").forEach(b=>{b.classList.toggle("active",b.dataset.matchMode===store.matchMode);b.disabled=debugMode||quiz.running||gachaBusy;});
+  const mode=modeDefinition();document.getElementById("modeDescription").textContent=debugMode?"DEBUG疑似対戦中。通常モードへ戻すと選択中の対戦モードを開始します。":mode.desc;document.getElementById("modeChip").innerHTML=debugMode?"対戦 <b>DEBUG</b>":"本編 <b>"+mode.name+"</b>";document.getElementById("paletteChip").innerHTML=debugMode?"持ち色 <b>全4色</b>":store.matchMode==="quick"?"持ち色 <b>基本2色</b>":"持ち色 <b>基本2＋おまけ1</b>";document.getElementById("coinChip").innerHTML="コイン <b>"+account().coins+"</b>";
+  document.getElementById("skillModeCaption").textContent=isDebugMatch()?"（全19種・無制限）":isQuickMatch()?"（固定3枚・貸与）":"（各系統2枚・合計6枚）";document.getElementById("skillModeNote").textContent=isDebugMatch()?"DEBUGでは全カードを何度でも使用できます。通常の使用タイミングと対象条件は維持します。":isQuickMatch()?"《四色解放》《半マスシフト》《色封じ》を各1回。所持在庫は消費しません。":"使用カードは正常発動時にプロフィール在庫を1枚消費します。未使用・キャンセルは消費しません。";
+  document.getElementById("quizOwner").textContent=playerName(store.activeProfile);document.getElementById("gachaOwner").textContent=playerName(store.activeProfile);document.getElementById("cardsOwner").textContent=playerName(store.activeProfile);document.getElementById("collectionOwner").textContent=playerName(store.activeProfile);document.getElementById("coinBalanceCards").textContent=account().coins;document.getElementById("coinBalanceCollection").textContent=account().coins;
+  applyCosmetics();renderProgress();renderInventory();renderCollection();renderQuizCooldown();
+}
+function setMatchMode(mode){if(!MATCH_MODES[mode]||mode===store.matchMode)return;if(debugMode){toast("DEBUGをOFFにしてから対戦モードを変更してください。");return;}if(game&&!game.winner&&Object.keys(game.regions).length&&!confirm("現在の対戦を終了し、"+MATCH_MODES[mode].name+"で新しい対戦を始めますか？"))return;store.matchMode=mode;saveStore();showScreen("battle");newGame();showEvent(MATCH_MODES[mode].name,mode==="standard"?"本編・6枚消耗":"入門・3枚貸与",mode==="standard"?"epic":"good",1100);}
+function setActiveProfile(k){if(quiz.running||gachaBusy){toast("進行中はプレイヤーを切り替えられません。");return;}store.activeProfile=k;saveStore();}
+function toggleDebugMode(){
+  if(quiz.running||gachaBusy){toast("数字ラッシュまたはガチャ進行中は切り替えられません。");return;}
+  debugMode=!debugMode;showScreen("battle");newGame();showEvent(debugMode?"DEBUG MODE":"NORMAL MODE",debugMode?"全19スキル∞・全4色":(store.matchMode==="quick"?"速攻3枚貸与・基本2色":"熟考6枚消耗・基本2＋おまけ1"),debugMode?"epic":"good",1100);if(debugMode)soundEpic();else soundSuccess(2);
+}
+function applyLoadoutReplacement(category,index,newKey){const a=account(),list=[...(a.loadout[category]||[])];list[index]=newKey;a.loadout[category]=[...new Set(list)].slice(0,CFG.LOADOUT_PER_CATEGORY);saveStore();toast(CATEGORY[category].name+"の持込"+(index+1)+"を《"+SKILLS[newKey].name+"》へ変更しました。");}
+function selectLoadout(skillKey){const s=SKILLS[skillKey],a=account();if(!s||a.inventory[skillKey]<=0)return;const list=[...(a.loadout[s.category]||[])];if(list.includes(skillKey)){toast("同じカードを同系統へ重複して持ち込むことはできません。");return;}if(list.length<CFG.LOADOUT_PER_CATEGORY){list.push(skillKey);a.loadout[s.category]=list;saveStore();toast(CATEGORY[s.category].name+"へ《"+s.name+"》を追加しました。");return;}openActionModal("持込カードの入替","《"+s.name+"》を入れる枠を選んでください。同じカードの重複は不可です。",list.map((oldKey,index)=>({label:"枠 "+(index+1)+"：《"+SKILLS[oldKey].name+"》と入替",sub:stars(SKILLS[oldKey].rarity)+" → "+stars(s.rarity),onClick:()=>applyLoadoutReplacement(s.category,index,skillKey)})));}
+function skillCoinValue(k){return CARD_COIN_VALUE[SKILLS[k]?.rarity]||0;}
+function toggleSkillProtection(k){const a=account();a.protectedSkills[k]=!a.protectedSkills[k];saveStore();toast(a.protectedSkills[k]?"《"+SKILLS[k].name+"》を保護しました。":"《"+SKILLS[k].name+"》の保護を解除しました。");}
+function sellSkill(k,count){const a=account(),owned=a.inventory[k]||0;count=Math.max(0,Math.min(owned,Math.floor(count)));if(!count)return;const reservedInMatch=game&&!game.winner&&game.mode==="standard"&&(game.hands?.[store.activeProfile]?.[k]||0)>0;if(reservedInMatch){toast("進行中の熟考モードで持ち込んでいる未使用カードは換金できません。");return;}if(a.protectedSkills[k]){toast("保護中のカードは換金できません。");return;}const skill=SKILLS[k],equipped=(a.loadout[skill.category]||[]).includes(k),sellingLast=count===owned;if((skill.rarity>=4||equipped&&sellingLast)&&!confirm("《"+skill.name+"》を "+count+"枚換金しますか？ "+(sellingLast?"所持0枚になり、次の熟考モードでは使用できません。":"")))return;a.inventory[k]-=count;const earned=skillCoinValue(k)*count;a.coins+=earned;saveStore();showEvent("COIN +"+earned,skill.name+" ×"+count,"warn",900);soundSuccess(2);}
+function renderInventory(){
+  const a=account(),summary=document.getElementById("loadoutSummary");document.getElementById("profileIdInput").value=a.id;summary.innerHTML="";
+  for(const category of Object.keys(CATEGORY)){const list=a.loadout[category]||[];for(let index=0;index<CFG.LOADOUT_PER_CATEGORY;index++){const key=list[index],skill=SKILLS[key],owned=key?(a.inventory[key]||0):0,slot=document.createElement("div");slot.className="loadout-slot";slot.innerHTML='<div class="slot-cat">'+categoryBadge(category)+'　枠 '+(index+1)+'</div><div class="slot-name">'+(skill?skill.name:"未設定")+'</div><div class="stars">'+(skill?stars(skill.rarity):"")+'</div>'+(skill?'<div class="small '+(owned?'muted':'depleted')+'">在庫 '+owned+'枚'+(owned?'':' — 次戦使用不可')+'</div>':'');summary.appendChild(slot);}}
+  const groups=document.getElementById("inventoryGroups");groups.innerHTML="";for(const category of Object.keys(CATEGORY)){const section=document.createElement("section");section.className="inventory-category";section.innerHTML='<h3 class="category-title">'+categoryBadge(category)+'<span>'+CATEGORY[category].name+'系</span></h3>';const grid=document.createElement("div");grid.className="inventory-grid";
+    for(const k of skillsInCategory(category)){const skill=SKILLS[k],rarity=skill.rarity,owned=a.inventory[k]||0,equipped=(a.loadout[category]||[]).includes(k),protectedCard=!!a.protectedSkills[k],d=document.createElement("div");d.className="card r"+rarity+(equipped?" equipped":"");d.innerHTML='<div class="row between">'+categoryBadge(category)+'<div class="stars">'+stars(rarity)+'</div></div><h3 style="margin:7px 0">'+skill.name+'</h3><div class="small muted">'+skill.desc+'</div><div class="row between" style="margin-top:9px"><b>所持 '+owned+'枚</b><span class="coin-value">1枚＝🪙'+skillCoinValue(k)+'</span></div>';
+      const load=document.createElement("button");load.className="btn loadout-btn"+(equipped?" good":"");load.textContent=equipped?"持込設定中":"持込枠へ入れる／入替";load.disabled=owned<=0||equipped;load.onclick=()=>selectLoadout(k);d.appendChild(load);
+      const actions=document.createElement("div");actions.className="inventory-actions";const protect=document.createElement("button");protect.className="btn protect-btn"+(protectedCard?" active":"");protect.textContent=protectedCard?"🔒 保護解除":"🔓 保護";protect.onclick=()=>toggleSkillProtection(k);const sellOne=document.createElement("button");sellOne.className="btn";sellOne.textContent="1枚換金";sellOne.disabled=owned<=0||protectedCard;sellOne.onclick=()=>sellSkill(k,1);const sellExtra=document.createElement("button");sellExtra.className="btn";sellExtra.textContent="1枚残して余剰換金";sellExtra.disabled=owned<=1||protectedCard;sellExtra.onclick=()=>sellSkill(k,owned-1);actions.append(protect,sellOne,sellExtra);d.appendChild(actions);grid.appendChild(d);}section.appendChild(grid);groups.appendChild(section);
+  }
+}
+function buyOrEquipCosmetic(key){const a=account(),item=COSMETICS[key];if(!item)return;if(item.trophy&&!trophyUnlocked(a,item.trophy)){toast("トロフィー《"+TROPHIES[item.trophy].name+"》が必要です。");return;}if(!cosmeticAvailable(a,key)){if(a.coins<item.price){toast("コインが "+(item.price-a.coins)+"不足しています。");return;}if(!confirm("《"+item.name+"》を 🪙"+item.price+" で購入しますか？"))return;a.coins-=item.price;a.cosmeticsOwned.push(key);showEvent("COSMETIC GET",item.name,"epic",1000);soundEpic();}a.equipped[item.type]=key;saveStore();applyCosmetics();toast("《"+item.name+"》を装備しました。");}
+function renderCollection(){const a=account(),shop=document.getElementById("cosmeticShop"),grid=document.getElementById("trophyGrid");if(!shop||!grid)return;shop.innerHTML="";for(const [key,item] of Object.entries(COSMETICS)){const available=cosmeticAvailable(a,key),equipped=a.equipped[item.type]===key,locked=item.trophy&&!trophyUnlocked(a,item.trophy),d=document.createElement("div");d.className="card"+(locked?" locked":"");d.innerHTML='<div class="row between"><b>'+COSMETIC_TYPE_NAME[item.type]+'</b><span class="tag">'+(item.trophy?"TROPHY":item.price?"🪙 "+item.price:"FREE")+'</span></div><div class="cosmetic-preview '+item.previewClass+'">'+item.preview+'</div><h3 style="margin:6px 0">'+item.name+'</h3><div class="small muted">'+(item.trophy?"解放条件：《"+TROPHIES[item.trophy].name+"》":"対戦性能は変化しません。")+'</div>';const b=document.createElement("button");b.className="btn loadout-btn"+(equipped?" good":"");b.textContent=equipped?"装備中":locked?"未解放":available?"装備する":"購入して装備";b.disabled=equipped||locked;b.onclick=()=>buyOrEquipCosmetic(key);d.appendChild(b);shop.appendChild(d);}grid.innerHTML="";for(const [key,t] of Object.entries(TROPHIES)){const unlocked=trophyUnlocked(a,key),d=document.createElement("div");d.className="card trophy-card"+(unlocked?"":" locked");const count=key==="fullPaint"||key==="fullPaint3"?(a.stats.fullPaints||0):null;d.innerHTML='<div class="row between"><span class="trophy-icon">'+t.icon+'</span><span class="tag">'+(unlocked?"UNLOCKED":"LOCKED")+'</span></div><h3 style="margin:6px 0">'+t.name+'</h3><div class="small muted">'+t.desc+'</div><div class="trophy-progress">'+(count!==null?"完塗り累計 "+count+"回":unlocked?"達成済み":"未達成")+'</div><div class="small muted" style="margin-top:6px">'+t.reward+'</div>';grid.appendChild(d);}}
+function saveProfileId(){const input=document.getElementById("profileIdInput"),id=input.value.trim();if(!id){toast("IDを入力してください。");return;}if(id.length>20){toast("IDは20文字以内です。");return;}if(id===account(other(store.activeProfile)).id){toast("AとBには異なるIDを設定してください。");return;}account().id=id;saveStore();renderBattle();toast("ローカルIDを保存しました。");}
+function resetActiveProfile(){if(!confirm(playerName(store.activeProfile)+" のガチャ券・所持カード・コイン・外観・トロフィーを初期化しますか？"))return;store.profiles[store.activeProfile]=createStarterAccount(store.activeProfile==="A"?"PLAYER-A":"PLAYER-B");lastGacha[store.activeProfile]=[];saveStore();renderBattle();toast("半マスシフト★4確定を含む、各系統2枚・合計6枚の初期状態へ戻しました。");}
+function renderRuleTables(){for(const category of Object.keys(CATEGORY)){const id=category==="color"?"ruleColorSkills":category==="area"?"ruleAreaSkills":"ruleDisruptSkills",box=document.getElementById(id);box.innerHTML='<tr><th>レア</th><th>カード</th><th>効果</th></tr>';for(const key of skillsInCategory(category)){const s=SKILLS[key],tr=document.createElement("tr");tr.innerHTML='<td>'+stars(s.rarity)+'</td><td><b>'+s.name+'</b></td><td>'+s.desc+'</td>';box.appendChild(tr);}}}
+
+// ---------- Gacha ----------
+function rollRarity(level){const w=GACHA[level],x=Math.random()*100;let a=0;for(let r=1;r<=5;r++){a+=w[r];if(x<a)return r;}return 1;}
+function drawTickets(count){const a=account();count=Math.min(count,a.tickets.length);if(count<=0)return;const results=[];for(let i=0;i<count;i++){const level=a.tickets.shift(),rarity=rollRarity(level),category=Object.keys(CATEGORY)[rand(0,2)],k=randomSkillFromRarity(category,rarity);if(!k)continue;a.inventory[k]=(a.inventory[k]||0)+1;results.push({level,rarity,category,k});}lastGacha[store.activeProfile]=results;saveStore();runGachaReveal(results);}
+async function concealGachaCard(waitForFade=true){const o=document.getElementById("gachaOverlay"),card=document.getElementById("revealCard"),meta=document.getElementById("gachaRevealMeta"),starsBox=document.getElementById("gachaStars");card.classList.remove("show");o.className="gacha-overlay show";meta.style.opacity="0";starsBox.style.opacity="0";if(waitForFade)await wait(540);card.style.visibility="hidden";document.getElementById("revealCategory").innerHTML="";document.getElementById("revealRarity").textContent="";document.getElementById("revealName").textContent="";document.getElementById("revealDesc").textContent="";starsBox.innerHTML="";}
+async function runGachaReveal(results){gachaBusy=true;gachaSkip=false;renderPersistentUI();const o=document.getElementById("gachaOverlay");o.className="gacha-overlay show";await concealGachaCard(false);for(let i=0;i<results.length;i++){if(gachaSkip)break;if(i>0)await concealGachaCard(true);if(gachaSkip)break;await revealGachaCard(results[i],i+1,results.length);}o.className="gacha-overlay";gachaBusy=false;renderPersistentUI();renderGachaResults(results);if(gachaSkip)toast(results.length+"枚の結果を表示しました。");}
+async function revealGachaCard(x,index,total){
+  const o=document.getElementById("gachaOverlay"),skill=SKILLS[x.k],card=document.getElementById("revealCard"),meta=document.getElementById("gachaRevealMeta"),starBox=document.getElementById("gachaStars");o.className="gacha-overlay show";card.className="reveal-card";card.style.visibility="hidden";meta.textContent="RUSH Lv."+x.level+"　"+index+" / "+total;document.getElementById("revealCategory").innerHTML=categoryBadge(x.category);starBox.innerHTML=Array.from({length:5},()=>"<span>★</span>").join("");document.getElementById("revealRarity").textContent=stars(x.rarity);document.getElementById("revealName").textContent=skill.name;document.getElementById("revealDesc").textContent=skill.desc;meta.style.opacity="1";starBox.style.opacity="1";
+  await wait(420);if(gachaSkip)return;const starEls=[...starBox.children];for(let i=0;i<x.rarity;i++){starEls[i].classList.add("on");tone(350+i*95,.09,"triangle",.032);await wait(x.rarity>=4?145:115);if(gachaSkip)return;}o.classList.add("r"+x.rarity);card.style.visibility="visible";requestAnimationFrame(()=>card.classList.add("show"));if(x.rarity>=4){soundEpic();vibrate(x.rarity===5?[60,40,60,40,120]:[50,35,80]);burstAtElement(card,x.rarity===5?80:48,x.rarity===5?["#ef4444","#eab308","#22c55e","#3b82f6","#a855f7","#ffffff"]:["#c084fc","#fde047","#ffffff"]);}else soundSuccess(x.rarity);await wait(x.rarity===5?1400:x.rarity===4?1080:740);
+}
+function renderGachaResults(a=lastGacha[store.activeProfile]){const box=document.getElementById("gachaResults");box.innerHTML="";for(const x of a){const s=SKILLS[x.k],d=document.createElement("div");d.className="card r"+x.rarity;d.innerHTML='<div class="row between">'+categoryBadge(x.category)+'<div class="small muted">Rush Lv.'+x.level+'</div></div><div class="stars" style="margin-top:6px">'+stars(x.rarity)+'</div><h3 style="margin:6px 0">'+s.name+'</h3><div class="small muted">'+s.desc+'</div>';box.appendChild(d);}if(!a.length)box.innerHTML='<div class="small muted">直近のガチャ結果はありません。</div>';}
+function renderProgress(){const a=account();document.getElementById("ticketCount").textContent=a.tickets.length;const counts={};for(const l of a.tickets)counts[l]=(counts[l]||0)+1;document.getElementById("ticketBreakdown").textContent=a.tickets.length?Object.entries(counts).map(([l,n])=>"Lv."+l+" ×"+n).join(" / "):"ガチャ権はありません。数字ラッシュで獲得できます。";document.getElementById("drawOne").disabled=!a.tickets.length||gachaBusy;document.getElementById("drawAll").disabled=!a.tickets.length||gachaBusy;renderGachaResults();}
+
+// ---------- Number Rush ----------
+let quizOptionSerial=1;
+function quizTimeRangeText(level){const base=quizTimeMs(level),max=base+(CFG.QUIZ_MAX_BONUS_MS_BY_LEVEL[level]||0);return (base/1000)+"～"+(max/1000)+"秒";}
+function renderDifficulty(){const b=document.getElementById("difficulty");b.innerHTML="";for(let i=1;i<=5;i++){const x=document.createElement("button");x.className="btn"+(quiz.level===i?" active":"");x.textContent="Lv."+i+"（"+quizTimeRangeText(i)+"）";x.disabled=quiz.running;x.onclick=()=>{quiz.level=i;renderDifficulty();renderOdds();};b.appendChild(x);}document.getElementById("quizTimeChip").textContent=quizTimeRangeText(quiz.level);renderOdds();}
+function renderOdds(){const w=GACHA[quiz.level];document.getElementById("odds").textContent="Lv."+quiz.level+" 排出率："+[1,2,3,4,5].map(r=>"★"+r+" "+w[r]+"%").join(" / ")+"　問題種別により "+quizTimeRangeText(quiz.level)+"。計算問題の正解順位は毎問ランダム。";}
+function roundTo(value,digits=0){const p=10**digits;return Math.round((value+Number.EPSILON)*p)/p;}
+function formatNumber(value,digits=4){if(Number.isInteger(value))return String(value);return String(roundTo(value,digits)).replace(/\.0+$/,'').replace(/(\.\d*?)0+$/,'$1');}
+function gcd(a,b){a=Math.abs(a);b=Math.abs(b);while(b){[a,b]=[b,a%b];}return a||1;}
+function factorial(n){let v=1;for(let i=2;i<=n;i++)v*=i;return v;}
+function combination(n,r){r=Math.min(r,n-r);let v=1;for(let i=1;i<=r;i++)v=v*(n-r+i)/i;return Math.round(v);}
+function option(label,value,isCorrect=false){return{id:"opt-"+(quizOptionSerial++),label:String(label),value,isCorrect};}
+function makeRankedNumericOptions(answer,{digits=0,formatter=null,count=6}={}){
+  const aboveCount=rand(0,count-1),belowCount=count-1-aboveCount,integer=digits===0,unit=integer?Math.max(1,Math.round(Math.max(1,Math.abs(answer))*.045)):10**(-digits),used=new Set([formatNumber(answer,Math.max(digits,6))]),above=[],below=[];
+  function generate(side,target){let guard=0;while(target.length<(side>0?aboveCount:belowCount)&&guard++<500){const multiplier=rand(1,Math.max(12,count*4)),jitter=integer?rand(0,Math.max(1,Math.round(unit))):rand(0,4)*unit,value=roundTo(answer+side*(unit*multiplier+jitter),digits),key=formatNumber(value,Math.max(digits,6));if(!used.has(key)){used.add(key);target.push(value);}}}
+  generate(1,above);generate(-1,below);
+  while(above.length<aboveCount){const v=roundTo(answer+unit*(above.length+17),digits);above.push(v);}
+  while(below.length<belowCount){const v=roundTo(answer-unit*(below.length+17),digits);below.push(v);}
+  const fmt=formatter||((v)=>formatNumber(v,digits));const correct=option(fmt(answer),answer,true),items=[...above.map(v=>option(fmt(v),v)),correct,...below.map(v=>option(fmt(v),v))];return shuffle(items);
+}
+function numericQuestion(type,prompt,answer,level,{bonusMs=0,digits=0,formatter=null,explanation=""}={}){const options=makeRankedNumericOptions(answer,{digits,formatter});return{type,q:prompt,options,correctId:options.find(o=>o.isCorrect).id,timeMs:quizTimeMs(level)+bonusMs,answerLabel:formatter?formatter(answer):formatNumber(answer,digits),explanation};}
+function mixedNumberEntry(level,usedValues,usedLabels){const forms=level>=3?["fraction","decimal","percent","root"]:["fraction","decimal","percent"];for(let tries=0;tries<300;tries++){
+  const form=sample(forms);let label,value;
+  if(form==="fraction"){const d=rand(2,level>=4?18:10),n=rand(level>=4?-d*2:1,d*3),g=gcd(n,d);label=(n/g)+"/"+(d/g);value=n/d;}
+  else if(form==="decimal"){const digits=level>=3?rand(1,3):rand(1,2),p=10**digits,n=rand(level>=4?-150:5,level>=4?350:160);value=n/p;label=value.toFixed(digits);}
+  else if(form==="percent"){const pct=rand(level>=4?-80:5,level>=4?250:160);value=pct/100;label=pct+"%";}
+  else{const n=rand(2,level>=5?180:80),scale=sample([1,10]);value=Math.sqrt(n)/scale;label="√"+n+(scale===10?"/10":"");}
+  const valueKey=roundTo(value,7).toString();if(!usedValues.has(valueKey)&&!usedLabels.has(label)){usedValues.add(valueKey);usedLabels.add(label);return{label,value};}
+  }return{label:String(rand(1,99)),value:rand(1,99)};
+}
+function comparisonQuestion(level,askMax=true){const usedValues=new Set(),usedLabels=new Set(),entries=[];while(entries.length<6)entries.push(mixedNumberEntry(level,usedValues,usedLabels));const chosen=entries.reduce((best,x)=>askMax?(x.value>best.value?x:best):(x.value<best.value?x:best),entries[0]),options=shuffle(entries.map(x=>option(x.label,x.value,x===chosen)));return{type:"大小比較",q:"次のうち一番"+(askMax?"大きい":"小さい")+"数を選べ！",options,correctId:options.find(o=>o.isCorrect).id,timeMs:quizTimeMs(level)+(level>=4?7000:level>=2?4000:3000),answerLabel:chosen.label,explanation:"値は "+formatNumber(chosen.value,5)};}
+function genLv1Add(){const a=rand(5,75),b=rand(3,45);return numericQuestion("加算",a+" + "+b+" = ?",a+b,1);}
+function genLv1Subtract(){const a=rand(25,110),b=rand(2,a-1);return numericQuestion("減算",a+" − "+b+" = ?",a-b,1);}
+function genLv1Multiply(){const a=rand(2,12),b=rand(2,12);return numericQuestion("乗算",a+" × "+b+" = ?",a*b,1);}
+function genLv1Divide(){const b=rand(2,12),ans=rand(2,14),a=b*ans;return numericQuestion("除算",a+" ÷ "+b+" = ?",ans,1);}
+function genLv1Missing(){const x=rand(2,30),b=rand(2,30),sum=x+b;return numericQuestion("穴埋め","□ + "+b+" = "+sum+"　□ = ?",x,1, {bonusMs:1000});}
+function genLv1Compare(){return comparisonQuestion(1,true);}
+function genLv2Linear(){const x=rand(-9,18),a=rand(2,8),b=rand(-12,12),rhs=a*x+b;return numericQuestion("一次方程式",a+"x "+(b>=0?"+ "+b:"− "+Math.abs(b))+" = "+rhs+"　x = ?",x,2,{bonusMs:3000});}
+function genLv2Percent(){const base=rand(4,40)*10,pct=sample([5,10,15,20,25,30,40,50,60,75]),answer=base*pct/100;return numericQuestion("割合",base+" の "+pct+"% は？",answer,2,{bonusMs:2000,digits:Number.isInteger(answer)?0:1});}
+function genLv2Order(){const a=rand(2,15),b=rand(2,12),c=rand(2,9),answer=a+b*c;return numericQuestion("計算順序",a+" + "+b+" × "+c+" = ?",answer,2,{bonusMs:1000});}
+function genLv2Unit(){const kg=rand(1,25)/10,answer=Math.round(kg*1000);return numericQuestion("単位換算",kg.toFixed(1)+" kg = ? g",answer,2,{bonusMs:2000});}
+function genLv2Average(){const values=Array.from({length:4},()=>rand(5,30)),sum=values.reduce((a,b)=>a+b,0),adjust=(4-sum%4)%4;values[3]+=adjust;const answer=values.reduce((a,b)=>a+b,0)/4;return numericQuestion("平均","平均を求めよ："+values.join("、"),answer,2,{bonusMs:3000});}
+function genLv2Compare(){return comparisonQuestion(2,Math.random()<.8);}
+function genLv3Power(){const a=rand(2,7),n=rand(2,5),answer=a**n;return numericQuestion("累乗",a+"^"+n+" = ?",answer,3,{bonusMs:2000});}
+function genLv3Root(){const r=rand(2,24);return numericQuestion("平方根","√"+(r*r)+" = ?",r,3,{bonusMs:2000});}
+function genLv3Factorial(){const n=rand(3,7),answer=factorial(n);return numericQuestion("階乗",n+"! = ?",answer,3,{bonusMs:5000});}
+function genLv3Sigma(){const n=rand(4,9),answer=n*(n+1)/2;return numericQuestion("Σ","Σ(k=1→"+n+") k = ?",answer,3,{bonusMs:6000});}
+function genLv3Expression(){const x=rand(2,12),a=rand(2,6),b=rand(1,10),c=rand(1,8),answer=a*(x+b)-c;return numericQuestion("展開不要の式",a+"("+x+" + "+b+") − "+c+" = ?",answer,3,{bonusMs:3000});}
+function genLv3Compare(){return comparisonQuestion(3,true);}
+function genLv4Quadratic(){const r1=rand(1,9),r2=rand(r1+1,13);return numericQuestion("二次方程式","x² − "+(r1+r2)+"x + "+(r1*r2)+" = 0\n小さい解 x = ?",r1,4,{bonusMs:5000});}
+function genLv4Combination(){const n=rand(6,11),r=rand(2,Math.min(4,n-2)),answer=combination(n,r);return numericQuestion("組合せ",n+"C"+r+" = ?",answer,4,{bonusMs:6000});}
+function genLv4Sequence(){const a1=rand(1,12),d=rand(2,8),n=rand(6,12),answer=a1+(n-1)*d;return numericQuestion("等差数列","初項 "+a1+"、公差 "+d+" の等差数列\n第"+n+"項は？",answer,4,{bonusMs:6000});}
+function genLv4MatrixAdd(){const A=[[rand(-5,8),rand(-5,8)],[rand(-5,8),rand(-5,8)]],B=[[rand(-5,8),rand(-5,8)],[rand(-5,8),rand(-5,8)]],i=rand(0,1),j=rand(0,1),answer=A[i][j]+B[i][j];return numericQuestion("行列加算","A=[["+A[0].join(", ")+"], ["+A[1].join(", ")+ "]]\nB=[["+B[0].join(", ")+"], ["+B[1].join(", ")+ "]]\nA+B の "+(i+1)+"行"+(j+1)+"列成分は？",answer,4,{bonusMs:8000});}
+function genLv4Determinant(){const a=rand(-6,8),b=rand(-6,8),c=rand(-6,8),d=rand(-6,8),answer=a*d-b*c;return numericQuestion("行列式","det [["+a+", "+b+"], ["+c+", "+d+"]] = ?",answer,4,{bonusMs:7000});}
+function genLv4Sigma(){const n=rand(4,8),a=rand(2,5),b=rand(-3,6),answer=a*n*(n+1)/2+b*n;return numericQuestion("Σ","Σ(k=1→"+n+") ("+a+"k "+(b>=0?"+ "+b:"− "+Math.abs(b))+") = ?",answer,4,{bonusMs:8000});}
+function genLv5MatrixMultiply(){const A=[[rand(-4,6),rand(-4,6)],[rand(-4,6),rand(-4,6)]],B=[[rand(-4,6),rand(-4,6)],[rand(-4,6),rand(-4,6)]],i=rand(0,1),j=rand(0,1),answer=A[i][0]*B[0][j]+A[i][1]*B[1][j];return numericQuestion("行列積","A=[["+A[0].join(", ")+"], ["+A[1].join(", ")+ "]]\nB=[["+B[0].join(", ")+"], ["+B[1].join(", ")+ "]]\nAB の "+(i+1)+"行"+(j+1)+"列成分は？",answer,5,{bonusMs:10000});}
+function genLv5SigmaSquare(){const n=rand(4,8),a=rand(1,4),b=rand(-4,7),sumSquares=n*(n+1)*(2*n+1)/6,answer=a*sumSquares+b*n;return numericQuestion("複合Σ","Σ(k=1→"+n+") ("+a+"k² "+(b>=0?"+ "+b:"− "+Math.abs(b))+") = ?",answer,5,{bonusMs:10000});}
+function genLv5FactorialRatio(){const n=rand(6,10),r=rand(2,4),answer=factorial(n)/factorial(n-r);return numericQuestion("階乗比",n+"! / "+(n-r)+"! = ?",answer,5,{bonusMs:7000});}
+function genLv5System(){const x=rand(-6,9),y=rand(-6,9),a=rand(2,5),b=rand(1,4),c=rand(1,4),d=rand(2,5),r1=a*x+b*y,r2=c*x-d*y;return numericQuestion("連立方程式",a+"x + "+b+"y = "+r1+"\n"+c+"x − "+d+"y = "+r2+"\nx = ?",x,5,{bonusMs:9000});}
+function genLv5DeterminantProduct(){const a=rand(-5,7),b=rand(-5,7),c=rand(-5,7),d=rand(-5,7),e=rand(-5,7),f=rand(-5,7),g=rand(-5,7),h=rand(-5,7),detA=a*d-b*c,detB=e*h-f*g,answer=detA*detB;return numericQuestion("行列式の積","A=[["+a+", "+b+"], ["+c+", "+d+"]]\nB=[["+e+", "+f+"], ["+g+", "+h+"]]\ndet(AB) = ?",answer,5,{bonusMs:10000});}
+function genLv5Compare(){return comparisonQuestion(5,true);}
+const QUESTION_GENERATORS={
+  1:[genLv1Add,genLv1Subtract,genLv1Multiply,genLv1Divide,genLv1Missing,genLv1Compare],
+  2:[genLv2Linear,genLv2Percent,genLv2Order,genLv2Unit,genLv2Average,genLv2Compare],
+  3:[genLv3Power,genLv3Root,genLv3Factorial,genLv3Sigma,genLv3Expression,genLv3Compare],
+  4:[genLv4Quadratic,genLv4Combination,genLv4Sequence,genLv4MatrixAdd,genLv4Determinant,genLv4Sigma],
+  5:[genLv5MatrixMultiply,genLv5SigmaSquare,genLv5FactorialRatio,genLv5System,genLv5DeterminantProduct,genLv5Compare]
+};
+function makeQuestionSet(level,count=10){const out=[];let lastType="";while(out.length<count){const round=shuffle(QUESTION_GENERATORS[level]);let added=0;for(const generator of round){if(out.length>=count)break;const q=generator();if(q.type===lastType&&round.length>1)continue;out.push(q);lastType=q.type;added++;}if(!added){const q=sample(round)();out.push(q);lastType=q.type;}}return out;}
+function startQuiz(){const remaining=quizCooldownRemaining();if(remaining>0){renderQuizCooldown();toast("再挑戦まで "+formatCooldown(remaining)+"です。");return;}quiz={...quiz,running:true,questions:makeQuestionSet(quiz.level,10),i:0,correct:0,wrong:0,streak:0,bestStreak:0,resolved:false,orbs:[],raf:0,lastFrame:0,startedAt:0};document.getElementById("quizIdle").hidden=true;document.getElementById("quizResult").hidden=true;document.getElementById("quizPlay").hidden=false;renderDifficulty();renderPersistentUI();showQuestion();}
+function stopQuizMotion(){if(quiz.raf)cancelAnimationFrame(quiz.raf);quiz.raf=0;quiz.orbs=[];}
+function showQuestion(){stopQuizMotion();quiz.resolved=false;const q=quiz.questions[quiz.i];document.getElementById("quizCounter").textContent="Q"+(quiz.i+1)+" / 10 ・ "+q.type;document.getElementById("correctCount").textContent=quiz.correct;document.getElementById("wrongCount").textContent=quiz.wrong;document.getElementById("streakCount").textContent=quiz.streak;document.getElementById("quizProgress").style.width=(quiz.i/10*100)+"%";document.getElementById("question").textContent=q.q;document.getElementById("quizTimeChip").textContent=(q.timeMs/1000)+"秒";document.getElementById("timeProgress").style.transform="scaleX(1)";const arena=document.getElementById("numberArena");arena.innerHTML="";requestAnimationFrame(()=>createOrbs(q.options));}
+function createOrbs(options){const arena=document.getElementById("numberArena"),w=arena.clientWidth,h=arena.clientHeight,baseH=w<520?57:62,slots=shuffle([[.08,.08],[.42,.07],[.72,.14],[.16,.48],[.58,.43],[.38,.76]]);quiz.orbs=[];options.forEach((opt,i)=>{const b=document.createElement("button");b.className="number-orb";b.textContent=opt.label;b.dataset.optionId=opt.id;b.setAttribute("aria-label",opt.label);arena.appendChild(b);const measured=Math.max(w<520?82:92,Math.min(w<520?138:156,b.scrollWidth+28)),s=slots[i],x=Math.max(4,Math.min(w-measured-4,s[0]*w+rand(-12,12))),y=Math.max(4,Math.min(h-baseH-4,s[1]*h+rand(-10,10))),speed=18+Math.random()*16,a=Math.random()*Math.PI*2,orb={option:opt,el:b,x,y,w:measured,h:baseH,vx:Math.cos(a)*speed,vy:Math.sin(a)*speed};b.style.width=measured+"px";b.onclick=()=>resolveQuizChoice(opt.id,b,false);quiz.orbs.push(orb);});quiz.startedAt=performance.now();quiz.lastFrame=quiz.startedAt;quiz.raf=requestAnimationFrame(animateQuiz);}
+function animateQuiz(now){if(!quiz.running||quiz.resolved)return;const arena=document.getElementById("numberArena"),w=arena.clientWidth,h=arena.clientHeight,dt=Math.min(.034,(now-quiz.lastFrame)/1000);quiz.lastFrame=now;for(const o of quiz.orbs){o.x+=o.vx*dt;o.y+=o.vy*dt;if(o.x<=3){o.x=3;o.vx=Math.abs(o.vx);}if(o.x+o.w>=w-3){o.x=w-o.w-3;o.vx=-Math.abs(o.vx);}if(o.y<=3){o.y=3;o.vy=Math.abs(o.vy);}if(o.y+o.h>=h-3){o.y=h-o.h-3;o.vy=-Math.abs(o.vy);}}
+  for(let i=0;i<quiz.orbs.length;i++)for(let j=i+1;j<quiz.orbs.length;j++){const a=quiz.orbs[i],b=quiz.orbs[j],margin=7,dx=(a.x+a.w/2)-(b.x+b.w/2),dy=(a.y+a.h/2)-(b.y+b.h/2),overlapX=(a.w+b.w)/2+margin-Math.abs(dx),overlapY=(a.h+b.h)/2+margin-Math.abs(dy);if(overlapX>0&&overlapY>0){if(overlapX<overlapY){const push=overlapX/2+.2,sign=dx>=0?1:-1;a.x+=push*sign;b.x-=push*sign;const av=a.vx;a.vx=b.vx;b.vx=av;}else{const push=overlapY/2+.2,sign=dy>=0?1:-1;a.y+=push*sign;b.y-=push*sign;const av=a.vy;a.vy=b.vy;b.vy=av;}}}
+  for(const o of quiz.orbs){o.x=Math.max(3,Math.min(w-o.w-3,o.x));o.y=Math.max(3,Math.min(h-o.h-3,o.y));o.el.style.transform="translate("+o.x.toFixed(1)+"px,"+o.y.toFixed(1)+"px)";}const q=quiz.questions[quiz.i],remain=Math.max(0,1-(now-quiz.startedAt)/q.timeMs);document.getElementById("timeProgress").style.transform="scaleX("+remain+")";if(remain<=0){resolveQuizChoice(null,null,true);return;}quiz.raf=requestAnimationFrame(animateQuiz);
+}
+function resolveQuizChoice(optionId,clicked,timedOut){if(!quiz.running||quiz.resolved)return;quiz.resolved=true;if(quiz.raf)cancelAnimationFrame(quiz.raf);const q=quiz.questions[quiz.i],ok=!timedOut&&optionId===q.correctId;document.querySelectorAll(".number-orb").forEach(b=>{b.disabled=true;if(b.dataset.optionId===q.correctId)b.classList.add("reveal-correct");});if(ok){quiz.correct++;quiz.streak++;quiz.bestStreak=Math.max(quiz.bestStreak,quiz.streak);if(clicked)clicked.classList.add("correct");soundSuccess(quiz.streak);vibrate(20);burstAtElement(clicked,22,["#86efac","#f8fafc","#22d3ee"]);if(quiz.streak===5){showEvent("5連確定！","以後3ミスしても5連報酬を維持","epic",1350);soundEpic();}else showEvent("正解！",quiz.streak+" COMBO","good",650);}else{quiz.wrong++;quiz.streak=0;if(clicked)clicked.classList.add("wrong");soundMiss();vibrate([45,30,55]);shake(false);showEvent(timedOut?"TIME UP":"MISS","正解："+q.answerLabel+(quiz.wrong>=3?" / チャレンジ終了":" / 残りミス "+(3-quiz.wrong)),"bad",1050);}document.getElementById("correctCount").textContent=quiz.correct;document.getElementById("wrongCount").textContent=quiz.wrong;document.getElementById("streakCount").textContent=quiz.streak;setTimeout(()=>{quiz.i++;if(quiz.wrong>=3)finishQuiz(true);else if(quiz.i>=10)finishQuiz(false);else showQuestion();},ok&&quiz.streak===5?1150:900);}
+
+function finishQuiz(failed){
+  stopQuizMotion();quiz.running=false;document.getElementById("quizPlay").hidden=true;document.getElementById("quizProgress").style.width="100%";
+  let draws=1,ticketLevel=quiz.level,why="";
+  if(quiz.correct===10){draws=10;why="10問全問正解";}
+  else if(quiz.bestStreak>=5){draws=5;why=failed?"5問連続正解を達成済みのため、3ミス終了後も5連報酬を維持":"5問以上の連続正解";}
+  else if(quiz.correct>=7){draws=3;why="累計7問以上正解。惜敗報酬として選択Lv.の3連";}
+  else if(failed){draws=1;ticketLevel=Math.max(1,quiz.level-1);why="3回目のミスで終了。救済として"+(ticketLevel<quiz.level?"1ランク下のLv."+ticketLevel:"最低難度のLv.1")+"ガチャを1回";}
+  else{draws=1;why="10問完走";}
+  const a=account();for(let i=0;i<draws;i++)a.tickets.push(ticketLevel);a.stats.bestStreak=Math.max(a.stats.bestStreak,quiz.bestStreak);if(quiz.correct===10)a.stats.perfects++;if(failed)a.quizCooldownUntil=Date.now()+CFG.QUIZ_FAIL_COOLDOWN_MS;saveStore();renderDifficulty();
+  const r=document.getElementById("quizResult"),toneClass=failed&&quiz.bestStreak<5?"warn":"good";r.hidden=false;r.innerHTML='<div class="callout '+toneClass+'"><h3>'+quiz.correct+'正解 / '+quiz.wrong+'ミス</h3><p>'+why+'。<b>Lv.'+ticketLevel+' × '+draws+'回</b>のガチャ権を獲得。</p><button id="toGacha" class="btn primary">ガチャへ</button></div><button id="retryQuiz" class="btn" style="margin-top:8px">もう一度</button>';
+  if(quiz.correct===10){showEvent("REWARD UPGRADE","10連ガチャ確定！","epic",1600);soundEpic();burstAtElement(r,70,["#fde047","#c084fc","#22d3ee","#f8fafc"]);}else if(failed&&quiz.bestStreak>=5){showEvent("5連保護！","3ミスでも報酬は消えない","epic",1450);soundEpic();}
+  document.getElementById("toGacha").onclick=()=>showScreen("gacha");document.getElementById("retryQuiz").onclick=()=>{const remaining=quizCooldownRemaining();if(remaining>0){renderQuizCooldown();toast("再挑戦まで "+formatCooldown(remaining)+"です。");return;}r.hidden=true;document.getElementById("quizIdle").hidden=false;renderQuizCooldown();};renderQuizCooldown();
+}
+
+// ---------- Navigation / bindings ----------
+function showScreen(name){if(quiz.running&&name!=="quiz"){toast("数字ラッシュ進行中です。");return;}if(gachaBusy&&name!=="gacha"){toast("ガチャ演出中です。");return;}document.querySelectorAll(".screen").forEach(x=>x.classList.remove("active"));document.querySelectorAll("nav button").forEach(x=>x.classList.toggle("active",x.dataset.screen===name));document.getElementById("screen-"+name).classList.add("active");if(name==="gacha"||name==="cards"||name==="collection")renderPersistentUI();if(name==="battle")requestAnimationFrame(drawBoard);}
+document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>showScreen(b.dataset.screen));
+document.querySelectorAll(".profile-btn[data-profile]").forEach(b=>b.onclick=()=>setActiveProfile(b.dataset.profile));document.querySelectorAll("[data-match-mode]").forEach(b=>b.onclick=()=>setMatchMode(b.dataset.matchMode));
+document.getElementById("soundToggle").onclick=()=>{store.sound=!store.sound;saveStore();if(store.sound)soundSuccess(1);};
+document.getElementById("debugToggle").onclick=toggleDebugMode;document.getElementById("debugFromHandover").onclick=()=>{if(!debugMode)toggleDebugMode();else newGame();};
+document.getElementById("newMatch").onclick=newGame;document.getElementById("surrender").onclick=surrender;document.getElementById("revealTurn").onclick=revealTurn;
+document.getElementById("confirmRegion").onclick=createRegionFromSelection;document.getElementById("clearSelection").onclick=()=>{if(game.selectionLocked){toast("幾何加工済みの未彩色エリアは選択解除できません。");return;}clearSelectionState();renderBattle();};
+document.getElementById("cancelTarget").onclick=cancelTargetMode;document.getElementById("cancelSplit").onclick=cancelSplit;document.getElementById("confirmSplit").onclick=confirmSplit;
+document.getElementById("cancelAction").onclick=()=>closeActionModal(true);
+document.getElementById("startQuiz").onclick=startQuiz;document.getElementById("drawOne").onclick=()=>drawTickets(1);document.getElementById("drawAll").onclick=()=>drawTickets(account().tickets.length);document.getElementById("skipGacha").onclick=()=>{gachaSkip=true;};
+document.getElementById("saveProfileId").onclick=saveProfileId;document.getElementById("profileIdInput").addEventListener("keydown",e=>{if(e.key==="Enter")saveProfileId();});document.getElementById("resetProfile").onclick=resetActiveProfile;
+window.addEventListener("resize",()=>{drawBoard();});
+
+renderRuleTables();renderDifficulty();renderPersistentUI();startCooldownTicker();newGame();saveStore();
+window.__FCMG_V49__={version:"4.9-modes-economy",getState:()=>game,getStore:()=>store,newGame,setMatchMode,SKILLS,SKILL_POOL_BY_CATEGORY_RARITY,hasLegalRegionOfSize,drawBoard,useSkill,consumeSkill,applySeal,passTo,showScreen,toggleDebugMode,isDebug:()=>debugMode,rollDieSize,rollLimitedUses,makeQuestionSet,makeRankedNumericOptions,quizGenerators:QUESTION_GENERATORS,tripleShiftMovesForMacro,isTrophyFullPaint,awardFullPaintTrophies,resolveNoRegionWin,sellSkill,buyOrEquipCosmetic,finishQuiz,getQuiz:()=>quiz,setQuizForTest:x=>Object.assign(quiz,x)};window.__FCMG_V4__=window.__FCMG_V49__;
+})();
+</script>
+</body>
+</html>

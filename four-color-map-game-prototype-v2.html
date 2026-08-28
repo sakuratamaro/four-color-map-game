@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Four Color Map Game — HTML Prototype</title>
+<style>
+:root{
+  --bg:#0b1020;--panel:#111827;--panel2:#182235;--line:#334155;--text:#f8fafc;--muted:#94a3b8;
+  --good:#86efac;--warn:#fde68a;--bad:#fda4af;--accent:#f8fafc;
+  --red:#ef4444;--blue:#3b82f6;--yellow:#eab308;--green:#22c55e;--purple:#a855f7;
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:radial-gradient(circle at top,#172033 0,#0b1020 45%,#070b14 100%);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI","Noto Sans JP",sans-serif}
+button,input,select{font:inherit}button{cursor:pointer}.app{max-width:1250px;margin:auto;padding:18px}
+header{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:14px}
+h1{font-size:clamp(22px,4vw,34px);margin:0}.sub{color:var(--muted);font-size:13px;margin-top:4px}.chips{display:flex;gap:8px;flex-wrap:wrap}.chip{border:1px solid var(--line);background:#0c1424;border-radius:999px;padding:7px 11px;font-size:13px}
+nav{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}nav button{border:1px solid var(--line);background:#0c1424;color:var(--muted);padding:9px 13px;border-radius:10px}nav button.active{background:#f8fafc;color:#0f172a;border-color:#f8fafc;font-weight:800}
+.screen{display:none}.screen.active{display:block}.layout{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(315px,.65fr);gap:14px}.panel{background:rgba(17,24,39,.96);border:1px solid var(--line);border-radius:16px;padding:15px;box-shadow:0 18px 50px rgba(0,0,0,.2)}
+.panel h2,.panel h3{margin-top:0}.muted{color:var(--muted)}.small{font-size:12px}.strong{font-weight:800}.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.between{justify-content:space-between}.stack{display:grid;gap:10px}.hr{height:1px;background:#273449;margin:14px 0}
+.btn{border:1px solid var(--line);background:#1d2a3e;color:var(--text);border-radius:10px;padding:9px 12px}.btn:hover:not(:disabled){filter:brightness(1.13)}.btn.primary{background:#f8fafc;color:#111827;border-color:#f8fafc;font-weight:800}.btn.danger{background:#43151e;border-color:#7f1d1d}.btn.good{background:#123522;border-color:#166534}.btn:disabled{opacity:.38;cursor:not-allowed}
+.callout{border:1px solid #475569;background:#0b1424;border-radius:12px;padding:11px}.callout.good{border-color:#166534;background:#0b281a}.callout.warn{border-color:#854d0e;background:#30220d}.callout.bad{border-color:#9f1239;background:#35121d}
+.board-shell{background:#050a12;border:1px solid #2c3b51;border-radius:14px;padding:10px;overflow:auto}.board{display:grid;grid-template-columns:repeat(10,minmax(28px,1fr));aspect-ratio:1/1;min-width:420px;max-width:720px;margin:auto;background:#0b1220;border:2px solid #475569;user-select:none;touch-action:manipulation}
+.cell{position:relative;border:1px solid #28364b;background:#162033;color:#e2e8f0;min-width:0;padding:0;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:900;overflow:hidden}.cell:hover{filter:brightness(1.12)}.cell.unused::after{content:"";width:5px;height:5px;border-radius:50%;background:#334155}.cell.selected{box-shadow:inset 0 0 0 4px #f8fafc;background:#475569}.cell.pending{background:repeating-linear-gradient(135deg,#cbd5e1 0,#cbd5e1 7px,#94a3b8 7px,#94a3b8 14px);color:#111827;box-shadow:inset 0 0 0 3px #f8fafc}.cell.reserved{background:repeating-linear-gradient(45deg,#d8b4fe 0,#d8b4fe 7px,#a78bfa 7px,#a78bfa 14px);color:#2e1065}.cell.split-picked{box-shadow:inset 0 0 0 4px #22d3ee}.cell.disabled-space{opacity:.22}.cell .rid{position:absolute;left:3px;top:2px;font-size:8px;opacity:.78}.cell .mark{font-size:14px}
+.phasebar{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:10px 0}.phase{border:1px solid #334155;border-radius:9px;padding:7px;text-align:center;font-size:12px;color:#64748b}.phase.active{border-color:#e2e8f0;color:#f8fafc;background:#1e293b;font-weight:800}.phase.done{color:#86efac;border-color:#166534}
+.palette{display:flex;gap:8px;flex-wrap:wrap}.color-btn{width:58px;height:45px;border-radius:11px;border:3px solid #0b1020;box-shadow:0 0 0 1px #475569;position:relative}.color-btn.blocked{opacity:.24;filter:grayscale(.8)}.color-btn .x{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:26px;color:white;text-shadow:0 2px 5px #000}.secret{border:1px dashed #64748b;border-radius:12px;padding:11px;background:#0b1220}.skill-list{display:grid;gap:7px}.skill-item{border:1px solid #334155;border-radius:11px;padding:9px;background:#111b2b}.skill-item.used{opacity:.38}.tag{display:inline-block;border:1px solid #475569;border-radius:999px;padding:2px 7px;font-size:11px;color:#cbd5e1}
+.log{height:170px;overflow:auto;background:#07101d;border:1px solid #273449;border-radius:10px;padding:8px;font-size:12px}.log div{padding:3px 0;border-bottom:1px dotted #1e293b}.region-status{min-height:44px}
+.overlay{position:fixed;inset:0;background:#050914;z-index:100;display:none;align-items:center;justify-content:center;padding:22px}.overlay.show{display:flex}.handover{max-width:560px;width:100%;text-align:center;border:1px solid #475569;background:#111827;border-radius:20px;padding:28px;box-shadow:0 30px 100px rgba(0,0,0,.6)}.handover h2{font-size:clamp(26px,6vw,42px);margin:0 0 10px}.handover .big{font-size:18px;margin:18px 0}.handover button{font-size:17px;padding:12px 18px}
+.modal{position:fixed;inset:0;background:rgba(2,6,23,.84);z-index:110;display:none;align-items:center;justify-content:center;padding:18px}.modal.show{display:flex}.modal-card{max-width:650px;width:100%;max-height:88vh;overflow:auto;border:1px solid #475569;background:#111827;border-radius:17px;padding:18px}
+.choice-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px}.choice{border:1px solid #475569;border-radius:10px;padding:10px;background:#142033;color:white}.choice.selected{outline:3px solid white}
+.quiz-wrap{max-width:800px;margin:auto}.difficulty{display:flex;gap:7px;flex-wrap:wrap}.difficulty button.active{outline:2px solid white}.question{font-size:clamp(25px,6vw,42px);font-weight:900;text-align:center;margin:28px 0}.answer{display:flex;gap:8px}.answer input{flex:1;min-width:0;padding:12px;border-radius:10px;border:1px solid #475569;background:#09111f;color:white}.progress{height:8px;border-radius:99px;background:#0b1220;overflow:hidden}.progress>div{height:100%;background:#e2e8f0;width:0}
+.gacha-results,.inventory{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:9px}.card{border:1px solid #475569;border-radius:13px;background:linear-gradient(145deg,#1b2940,#0b1220);padding:12px;min-height:125px}.card.r5{border-color:#e2e8f0;box-shadow:0 0 22px rgba(255,255,255,.12)}.stars{letter-spacing:1px}.rules li{margin:7px 0}.toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(16px);opacity:0;transition:.18s;background:#020617;border:1px solid #475569;border-radius:10px;padding:9px 13px;z-index:200;pointer-events:none}.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+@media(max-width:860px){.layout{grid-template-columns:1fr}.app{padding:11px}.panel{padding:12px}.board{min-width:340px}.board-shell{padding:6px}.color-btn{width:52px;height:42px}}
+</style>
+</head>
+<body>
+<div class="app">
+<header>
+  <div><h1>Four Color Map Game</h1><div class="sub">格子上で相手に「次に塗るエリア」を押し付ける、秘密持ち色のターン制対戦 — Single HTML Prototype</div></div>
+  <div class="chips"><span class="chip">盤面 <b>10×10</b></span><span class="chip">全 <b>5色</b> / 持ち色 <b>3色</b></span><span class="chip">通常エリア上限 <b>5セル</b></span></div>
+</header>
+<nav>
+  <button class="active" data-screen="battle">対戦</button>
+  <button data-screen="quiz">数学クイズ</button>
+  <button data-screen="gacha">ガチャ</button>
+  <button data-screen="cards">カード所持</button>
+  <button data-screen="rules">ルール</button>
+</nav>
+
+<section id="screen-battle" class="screen active">
+<div class="layout">
+  <main class="panel">
+    <div class="row between">
+      <div><h2 style="margin-bottom:4px">ローカル2人対戦</h2><div id="turnSummary" class="muted"></div></div>
+      <div class="row"><button id="newMatch" class="btn">新しい対戦</button><button id="surrender" class="btn danger">投了</button></div>
+    </div>
+    <div class="phasebar"><div id="phaseColor" class="phase">1. 受取エリアを彩色</div><div id="phaseWork" class="phase">2. 工作・エリア指定</div><div id="phasePass" class="phase">3. 相手へ渡す</div></div>
+    <div id="battleMessage" class="callout"></div>
+    <div class="board-shell" style="margin-top:10px"><div id="board" class="board" aria-label="10x10 game board"></div></div>
+    <div id="selectionPanel" class="callout" style="margin-top:10px">
+      <div class="row between"><b>次に相手が塗るエリアを指定</b><span id="maxCellsTag" class="tag"></span></div>
+      <div id="regionStatus" class="region-status small muted" style="margin-top:6px"></div>
+      <div class="row" style="margin-top:8px"><button id="clearSelection" class="btn">選択解除</button><button id="confirmRegion" class="btn primary">このエリアを相手へ渡す</button></div>
+    </div>
+    <div id="splitPanel" class="callout warn" style="display:none;margin-top:10px">
+      <b>《エリア二分》：自分が塗る側を選択</b>
+      <div class="small muted" style="margin-top:5px">受け取ったエリア内のセルをクリックしてください。選んだ側・残り側の両方が4近傍で連結している必要があります。残り側は、彩色後そのまま相手へ返されます。</div>
+      <div id="splitStatus" class="small" style="margin-top:7px"></div>
+      <div class="row" style="margin-top:8px"><button id="cancelSplit" class="btn">キャンセル</button><button id="confirmSplit" class="btn primary">二分を確定</button></div>
+    </div>
+  </main>
+
+  <aside class="stack">
+    <section class="panel">
+      <div class="row between"><h3 style="margin:0">Player <span id="activePlayer">A</span></h3><span id="phaseLabel" class="tag"></span></div>
+      <div class="secret" style="margin-top:10px">
+        <div class="small muted">秘密の持ち色（相手には見せない）</div>
+        <div id="palette" class="palette" style="margin-top:8px"></div>
+        <div id="adjacentInfo" class="small muted" style="margin-top:8px"></div>
+      </div>
+      <div id="lossBox" class="callout bad" style="display:none;margin-top:10px"></div>
+    </section>
+
+    <section class="panel">
+      <h3>持込スキル <span class="small muted">（対戦デモ用サンプル）</span></h3>
+      <div id="skills" class="skill-list"></div>
+      <div class="small muted" style="margin-top:8px">数値効果は試作値。使用カードは公開、持ち色変更後の新色は非公開です。</div>
+    </section>
+
+    <section class="panel"><h3>公開ログ</h3><div id="battleLog" class="log"></div></section>
+  </aside>
+</div>
+</section>
+
+<section id="screen-quiz" class="screen"><div class="panel quiz-wrap">
+<h2>数学クイズ → ガチャ権</h2>
+<div class="callout"><b>設計ルール：</b> 10問 / 3問目の誤答で即失敗。完走で1回、5問連続正解で5連、10問全問正解で10連。複数条件は累積せず最高報酬だけ。</div>
+<div class="difficulty" id="difficulty" style="margin-top:12px"></div>
+<div id="odds" class="small muted" style="margin-top:8px"></div>
+<div id="quizIdle" style="margin-top:15px"><button id="startQuiz" class="btn primary">10問チャレンジ開始</button></div>
+<div id="quizPlay" hidden style="margin-top:15px">
+  <div class="row between"><span id="quizCounter"></span><span>正解 <b id="correctCount">0</b> / 誤答 <b id="wrongCount">0</b> / 連続 <b id="streakCount">0</b></span></div>
+  <div class="progress" style="margin-top:8px"><div id="quizProgress"></div></div>
+  <div id="question" class="question"></div>
+  <div class="answer"><input id="answerInput" inputmode="decimal" autocomplete="off" placeholder="答えを入力"><button id="submitAnswer" class="btn primary">回答</button></div>
+  <div id="feedback" class="small muted" style="margin-top:9px"></div>
+</div>
+<div id="quizResult" hidden style="margin-top:15px"></div>
+</div></section>
+
+<section id="screen-gacha" class="screen"><div class="panel">
+<div class="row between"><div><h2 style="margin-bottom:4px">スキルカードガチャ</h2><div class="muted">ガチャ券には獲得時のクイズ難易度が保持され、その難易度の排出テーブルを使います。</div></div><span class="chip">残り <b id="ticketCount">0</b> 回</span></div>
+<div id="ticketBreakdown" class="small muted" style="margin:10px 0"></div>
+<div class="row"><button id="drawOne" class="btn primary">1回引く</button><button id="drawAll" class="btn">全部引く</button></div>
+<div id="gachaResults" class="gacha-results" style="margin-top:12px"></div>
+</div></section>
+
+<section id="screen-cards" class="screen"><div class="panel">
+<div class="row between"><div><h2 style="margin-bottom:4px">カード所持</h2><div class="muted">ガチャ側のデモ在庫。ローカル2人対戦では挙動確認のためサンプルカードを別途配布しています。</div></div><button id="resetProgress" class="btn danger">クイズ・ガチャデータ初期化</button></div>
+<div id="inventory" class="inventory" style="margin-top:12px"></div>
+</div></section>
+
+<section id="screen-rules" class="screen"><div class="panel rules">
+<h2>この試作版で再現しているルール</h2>
+<ol>
+<li><b>先攻Aは最初の未彩色エリアを指定してBへ渡す。</b></li>
+<li>Bは秘密の持ち色3色から、隣接エリアと重複しない合法色を選んでエリア全体を単色で塗る。</li>
+<li>塗ったBが、次にAが塗る新規エリアを1～5セルで指定して渡す。以後交互。</li>
+<li>新規エリアは未使用セルのみ・4近傍で連結・2手目以降は既存エリアへ辺接触必須。点接触は隣接扱いしない。</li>
+<li>合法色が0でも即敗北ではなく、彩色前スキルを任意に使用できる。なお0のままなら敗北を確定する。</li>
+<li>彩色後に合法な新規エリアが1つも作れなければ、彩色したプレイヤーの<b>完塗り勝利</b>。</li>
+<li>《エリア二分》は受取エリアを2つの連結部分へ分け、自分が片方を塗り、もう片方をそのまま相手へ返す。このターンの通常エリア指定は行わない。</li>
+</ol>
+<div class="callout warn"><b>未実装の幾何カード：</b> 0.5マス行/列シフト、プレイ可能領域拡大/縮小、角膨張。これらは格子を単なるDOMセルではなく幾何状態として扱う必要があるため、今回の「コアループ確認用HTML」では実装対象外です。正式実装では設計書どおりゲームエンジン側へ入れます。</div>
+</div></section>
+</div>
+
+<div id="handoverOverlay" class="overlay show"><div class="handover">
+  <div class="muted">画面を次のプレイヤーへ渡してください</div><h2>Player <span id="handoverPlayer">A</span></h2>
+  <div id="handoverText" class="big"></div>
+  <button id="revealTurn" class="btn primary">自分の秘密情報を表示して開始</button>
+  <div class="small muted" style="margin-top:13px">このボタンを押すまで持ち色・持込カードを表示しません。</div>
+</div></div>
+
+<div id="paletteModal" class="modal"><div class="modal-card">
+<h3>《持ち色変更》</h3><p class="muted">現在の持ち色1色を、まだ持っていない色1色へ置き換えます。変更後の持ち色は相手には公開されません。</p>
+<div><b>外す色</b><div id="removeColorChoices" class="choice-grid" style="margin-top:7px"></div></div>
+<div style="margin-top:12px"><b>追加する色</b><div id="addColorChoices" class="choice-grid" style="margin-top:7px"></div></div>
+<div class="row" style="margin-top:14px"><button id="cancelPaletteChange" class="btn">キャンセル</button><button id="confirmPaletteChange" class="btn primary">変更を確定</button></div>
+</div></div>
+
+<div id="toast" class="toast"></div>
+<script>
+(()=>{"use strict";
+const C={W:10,H:10,BASE_MAX:5,ALL:["red","blue","yellow","green","purple"],N:{red:"赤",blue:"青",yellow:"黄",green:"緑",purple:"紫"},HEX:{red:"#ef4444",blue:"#3b82f6",yellow:"#eab308",green:"#22c55e",purple:"#a855f7"}};
+const SKILLS={
+ areaExpansion:{name:"エリア拡張",timing:"WORK",rarity:1,desc:"次に指定する新規エリアの最大セル数を増やす。",implemented:true},
+ paletteChange:{name:"持ち色変更",timing:"COLOR",rarity:2,desc:"自分の持ち色1色を別の色へ交換する。新色は非公開。",implemented:true},
+ regionSplit:{name:"エリア二分",timing:"COLOR",rarity:3,desc:"受取エリアを二分し、片方を塗って残りを相手へ返す。",implemented:true},
+ regionRecolor:{name:"既塗エリア色変更",timing:"COLOR",rarity:3,desc:"既に塗られたエリアの色を変更する。",implemented:false},
+ gridShift:{name:"0.5マスシフト",timing:"WORK",rarity:4,desc:"行または列を0.5セルずらす。初回使用で軸を固定。",implemented:false},
+ playableExpand:{name:"プレイ可能領域拡大",timing:"WORK",rarity:2,desc:"未使用セルの指定可能範囲を拡大する。",implemented:false},
+ playableReduce:{name:"プレイ可能領域縮小",timing:"WORK",rarity:4,desc:"未使用セルを将来の指定候補から除外する。",implemented:false},
+ cornerExpansion:{name:"角膨張",timing:"WORK",rarity:5,desc:"斜め接触を実際の隣接へ変える幾何操作。",implemented:false}
+};
+const GACHA={1:{1:55,2:30,3:12,4:2.8,5:.2},2:{1:40,2:35,3:19,4:5.5,5:.5},3:{1:25,2:35,3:28,4:10,5:2},4:{1:10,2:25,3:35,4:24,5:6},5:{1:2,2:8,3:30,4:40,5:20}};
+const PROFILE_KEY="fourColorMapGame.prototype.v2";
+const profile=loadProfile();
+let game=null,splitMode=false,splitPicked=new Set(),pcRemove=null,pcAdd=null;
+let quiz={level:1,questions:[],i:0,correct:0,wrong:0,streak:0,bestStreak:0,locked:false};
+function loadProfile(){try{const x=JSON.parse(localStorage.getItem(PROFILE_KEY)||"{}");return {tickets:Array.isArray(x.tickets)?x.tickets:[],inventory:{...Object.fromEntries(Object.keys(SKILLS).map(k=>[k,0])),...(x.inventory||{})}}}catch{return {tickets:[],inventory:Object.fromEntries(Object.keys(SKILLS).map(k=>[k,0]))}}}
+function saveProfile(){try{localStorage.setItem(PROFILE_KEY,JSON.stringify(profile))}catch{}renderProgress()}
+function other(p){return p==="A"?"B":"A"}function key(r,c){return r+","+c}function parse(k){return k.split(",").map(Number)}
+function neighbors(k){const [r,c]=parse(k);return [[r-1,c],[r+1,c],[r,c-1],[r,c+1]].filter(([rr,cc])=>rr>=0&&rr<C.H&&cc>=0&&cc<C.W).map(([rr,cc])=>key(rr,cc))}
+function shuffle(a){a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function stars(n){return "★".repeat(n)+"☆".repeat(5-n)}
+function freshHand(){return {areaExpansion:1,paletteChange:1,regionSplit:1}}
+function newGame(){
+ game={active:"A",phase:"CREATE_FIRST",turn:1,nextRegion:1,regions:{},cellRegion:{},canCreate:{},pending:null,reserved:null,selection:new Set(),maxBonus:0,winner:null,reason:null,palettes:{A:shuffle(C.ALL).slice(0,3),B:shuffle(C.ALL).slice(0,3)},hands:{A:freshHand(),B:freshHand()},log:[]};
+ for(let r=0;r<C.H;r++)for(let c=0;c<C.W;c++)game.canCreate[key(r,c)]=true;
+ splitMode=false;splitPicked.clear();addLog("対戦開始。Player A が最初のエリアを指定します。");showHandover("A");renderBattle();
+}
+function addLog(t){game.log.push("T"+game.turn+"  "+t);renderLog()}
+function showHandover(p){document.getElementById("handoverPlayer").textContent=p;document.getElementById("handoverText").textContent=game.phase==="CREATE_FIRST"?"最初のエリアを指定してください。":"相手から渡されたエリアを彩色してください。";document.getElementById("handoverOverlay").classList.add("show")}
+function revealTurn(){document.getElementById("handoverOverlay").classList.remove("show");renderBattle()}
+function phaseName(){if(game.winner)return "対戦終了";return game.phase==="COLOR"?"彩色フェーズ":game.phase==="WORK"?"工作・指定フェーズ":"初手エリア指定"}
+function regionByCell(k){const id=game.cellRegion[k];return id?game.regions[id]:null}
+function getAdjacentRegionIds(regionId){const reg=game.regions[regionId];const s=new Set();for(const ck of reg.cells)for(const nk of neighbors(ck)){const nr=game.cellRegion[nk];if(nr&&nr!==regionId)s.add(nr)}return [...s]}
+function getAdjacentColors(regionId){return [...new Set(getAdjacentRegionIds(regionId).map(id=>game.regions[id]?.color).filter(Boolean))]}
+function playableColors(){if(game.phase!=="COLOR"||!game.pending)return[];const blocked=new Set(getAdjacentColors(game.pending));return game.palettes[game.active].filter(c=>!blocked.has(c))}
+function connected(list){if(!list.length)return false;const set=new Set(list),seen=new Set([list[0]]),q=[list[0]];while(q.length){const x=q.shift();for(const n of neighbors(x))if(set.has(n)&&!seen.has(n)){seen.add(n);q.push(n)}}return seen.size===set.size}
+function touchesExisting(list){return list.some(k=>neighbors(k).some(n=>!!game.cellRegion[n]))}
+function maxCells(){return C.BASE_MAX+game.maxBonus}
+function validateSelection(){const a=[...game.selection];if(!a.length)return [false,"1セル以上選択してください。"];if(a.length>maxCells())return[false,"上限 "+maxCells()+" セルを超えています。"];if(a.some(k=>game.cellRegion[k]))return[false,"使用済みセルが含まれています。"];if(a.some(k=>!game.canCreate[k]))return[false,"指定不可セルが含まれています。"];if(!connected(a))return[false,"選択セルが4近傍で連結していません。"];if(game.phase!=="CREATE_FIRST"&&!touchesExisting(a))return[false,"既存エリアへ辺で接触する必要があります。"];return[true,"合法なエリアです。このまま相手へ渡せます。"];}
+function canSelectCell(k){return (game.phase==="CREATE_FIRST"||game.phase==="WORK")&&!game.cellRegion[k]&&game.canCreate[k]&&!game.winner&&!splitMode}
+function clickCell(k){if(splitMode){const reg=game.regions[game.pending];if(reg&&reg.cells.includes(k)){splitPicked.has(k)?splitPicked.delete(k):splitPicked.add(k);renderBattle()}return}if(!canSelectCell(k))return;game.selection.has(k)?game.selection.delete(k):game.selection.add(k);renderBattle()}
+function createRegionFromSelection(){const [ok,msg]=validateSelection();if(!ok){toast(msg);return}const id="R"+game.nextRegion++;const cells=[...game.selection];game.regions[id]={id,cells,color:null,createdBy:game.active,coloredBy:null,isPending:true};for(const k of cells)game.cellRegion[k]=id;game.pending=id;game.selection.clear();game.maxBonus=0;const creator=game.active;addLog("Player "+creator+" が "+cells.length+"セルの "+id+" を指定。");passTo(other(creator),"COLOR")}
+function passTo(player,phase){game.active=player;game.phase=phase;game.turn++;showHandover(player);renderBattle()}
+function colorPending(color){if(game.phase!=="COLOR"||!game.pending)return;if(!playableColors().includes(color)){toast("その色は合法色ではありません。");return}const id=game.pending,reg=game.regions[id];reg.color=color;reg.coloredBy=game.active;reg.isPending=false;addLog("Player "+game.active+" が "+id+" を「"+C.N[color]+"」で彩色。");
+ if(game.reserved){const ret=game.reserved;game.reserved=null;game.pending=ret;game.regions[ret].isPending=true;addLog("エリア二分により "+ret+" をそのまま Player "+other(game.active)+" へ返送。");passTo(other(game.active),"COLOR");return}
+ game.pending=null;game.phase="WORK";game.selection.clear();if(!hasAnyLegalNewRegion()){win(game.active,"MAP_COMPLETE");return}renderBattle()}
+function hasAnyLegalNewRegion(){for(let r=0;r<C.H;r++)for(let c=0;c<C.W;c++){const k=key(r,c);if(game.canCreate[k]&&!game.cellRegion[k]&&neighbors(k).some(n=>!!game.cellRegion[n]))return true}return false}
+function loseNoColor(){if(playableColors().length!==0){toast("合法色が残っています。");return}win(other(game.active),"FORCED_NO_COLOR")}
+function win(player,reason){game.winner=player;game.reason=reason;game.phase="GAME_OVER";addLog("Player "+player+" の勝利（"+(reason==="MAP_COMPLETE"?"完塗り":"相手の合法色0")+"）。");renderBattle();document.getElementById("handoverOverlay").classList.remove("show")}
+function surrender(){if(!game||game.winner)return;win(other(game.active),"SURRENDER")}
+function useSkill(k){const s=SKILLS[k];if(!s.implemented){toast("このHTML試作では未実装です。");return}if((game.hands[game.active][k]||0)<=0)return;if(!((s.timing==="COLOR"&&game.phase==="COLOR")||(s.timing==="WORK"&&(game.phase==="WORK"||game.phase==="CREATE_FIRST")))){toast(s.timing==="COLOR"?"彩色前に使うカードです。":"工作・指定フェーズで使うカードです。");return}
+ if(k==="areaExpansion"){game.hands[game.active][k]--;game.maxBonus+=2;addLog("Player "+game.active+" が《エリア拡張》を使用（試作値: 上限 +2）。");renderBattle();return}
+ if(k==="paletteChange"){openPaletteModal();return}
+ if(k==="regionSplit"){const reg=game.regions[game.pending];if(!reg||reg.cells.length<2){toast("2セル以上の受取エリアで必要です。");return}splitMode=true;splitPicked.clear();addLog("Player "+game.active+" が《エリア二分》の使用を宣言。");renderBattle();return}
+}
+function openPaletteModal(){pcRemove=null;pcAdd=null;document.getElementById("paletteModal").classList.add("show");renderPaletteChoices()}
+function renderPaletteChoices(){const pal=game.palettes[game.active];const rem=document.getElementById("removeColorChoices"),add=document.getElementById("addColorChoices");rem.innerHTML="";add.innerHTML="";for(const c of pal){const b=document.createElement("button");b.className="choice"+(pcRemove===c?" selected":"");b.innerHTML=colorDot(c)+" "+C.N[c];b.onclick=()=>{pcRemove=c;renderPaletteChoices()};rem.appendChild(b)}for(const c of C.ALL.filter(x=>!pal.includes(x))){const b=document.createElement("button");b.className="choice"+(pcAdd===c?" selected":"");b.innerHTML=colorDot(c)+" "+C.N[c];b.onclick=()=>{pcAdd=c;renderPaletteChoices()};add.appendChild(b)}}
+function confirmPaletteChange(){if(!pcRemove||!pcAdd){toast("外す色と追加する色を選んでください。");return}const pal=game.palettes[game.active];game.palettes[game.active]=pal.map(c=>c===pcRemove?pcAdd:c);game.hands[game.active].paletteChange--;addLog("Player "+game.active+" が《持ち色変更》を使用。変更後の色は非公開。");document.getElementById("paletteModal").classList.remove("show");renderBattle()}
+function cancelSplit(){splitMode=false;splitPicked.clear();renderBattle()}
+function validateSplit(){const reg=game.regions[game.pending];if(!reg)return[false,"対象エリアがありません。"];const a=[...splitPicked],as=new Set(a),b=reg.cells.filter(k=>!as.has(k));if(!a.length||!b.length)return[false,"両側を1セル以上にしてください。"];if(!connected(a)||!connected(b))return[false,"両側とも4近傍で連結する必要があります。"];return[true,"合法な二分です。"]}
+function confirmSplit(){const [ok,msg]=validateSplit();if(!ok){toast(msg);return}const old=game.regions[game.pending],a=[...splitPicked],as=new Set(a),b=old.cells.filter(k=>!as.has(k));delete game.regions[old.id];const idA="R"+game.nextRegion++,idB="R"+game.nextRegion++;game.regions[idA]={id:idA,cells:a,color:null,createdBy:old.createdBy,coloredBy:null,isPending:true};game.regions[idB]={id:idB,cells:b,color:null,createdBy:old.createdBy,coloredBy:null,isPending:false,reserved:true};for(const k of a)game.cellRegion[k]=idA;for(const k of b)game.cellRegion[k]=idB;game.pending=idA;game.reserved=idB;game.hands[game.active].regionSplit--;splitMode=false;splitPicked.clear();addLog("《エリア二分》確定: "+idA+" を自分が彩色し、"+idB+" を相手へ返す。");renderBattle()}
+function colorDot(c){return '<span style="display:inline-block;width:13px;height:13px;border-radius:50%;background:'+C.HEX[c]+';vertical-align:-2px;border:1px solid rgba(255,255,255,.6)"></span>'}
+function renderBattle(){if(!game)return;document.getElementById("activePlayer").textContent=game.active;document.getElementById("phaseLabel").textContent=phaseName();document.getElementById("turnSummary").textContent="Turn "+game.turn+" / Player "+game.active+" / "+phaseName();
+ const pc=document.getElementById("phaseColor"),pw=document.getElementById("phaseWork"),pp=document.getElementById("phasePass");[pc,pw,pp].forEach(x=>x.className="phase");if(game.phase==="COLOR")pc.classList.add("active");else if(game.phase==="WORK"||game.phase==="CREATE_FIRST"){pc.classList.add("done");pw.classList.add("active")}if(game.winner){pc.classList.add("done");pw.classList.add("done");pp.classList.add("done")}
+ renderBoard();renderPalette();renderSkills();renderSelection();renderSplit();renderMessage();renderLog()}
+function renderBoard(){const box=document.getElementById("board");box.innerHTML="";for(let r=0;r<C.H;r++)for(let c=0;c<C.W;c++){const k=key(r,c),rid=game.cellRegion[k],reg=rid?game.regions[rid]:null,b=document.createElement("button");b.className="cell";if(!reg)b.classList.add("unused");if(!game.canCreate[k])b.classList.add("disabled-space");if(game.selection.has(k))b.classList.add("selected");if(reg){if(reg.color){b.style.background=C.HEX[reg.color];b.style.color=(reg.color==="yellow")?"#111827":"#fff"}else if(reg.isPending)b.classList.add("pending");else if(reg.reserved)b.classList.add("reserved");if(splitMode&&splitPicked.has(k))b.classList.add("split-picked");const first=reg.cells[0]===k;b.innerHTML=first?'<span class="rid">'+rid+'</span><span class="mark">'+(reg.isPending?'?':reg.reserved?'↪':'')+'</span>':''}
+ b.title=k+(rid?" / "+rid:"");b.onclick=()=>clickCell(k);box.appendChild(b)}}
+function renderPalette(){const box=document.getElementById("palette");box.innerHTML="";const legal=new Set(playableColors()),blocked=game.phase==="COLOR"?new Set(getAdjacentColors(game.pending)):new Set();for(const c of game.palettes[game.active]){const b=document.createElement("button");b.className="color-btn";b.style.background=C.HEX[c];b.title=C.N[c];if(game.phase!=="COLOR"||!legal.has(c)){b.classList.add("blocked");if(game.phase==="COLOR"&&blocked.has(c))b.innerHTML='<span class="x">×</span>'}b.disabled=game.phase!=="COLOR"||!legal.has(c)||!!game.winner;b.onclick=()=>colorPending(c);box.appendChild(b)}const ai=document.getElementById("adjacentInfo");if(game.phase==="COLOR"){const adj=getAdjacentColors(game.pending);ai.innerHTML="隣接色: "+(adj.length?adj.map(c=>colorDot(c)+C.N[c]).join(" / "):"なし")+"<br>合法色: "+(legal.size?[...legal].map(c=>C.N[c]).join("・"):"0色")}else ai.textContent="彩色フェーズでは、ここから合法色を選びます。";
+ const loss=document.getElementById("lossBox");if(game.phase==="COLOR"&&!game.winner&&legal.size===0){loss.style.display="block";loss.innerHTML='<b>合法色が0です。</b><div class="small" style="margin:5px 0 8px">まだ敗北ではありません。使用可能な彩色前スキルを使えます。救済後も0なら敗北です。</div><button id="confirmLoss" class="btn danger">救済せず敗北を確定</button>';document.getElementById("confirmLoss").onclick=loseNoColor}else loss.style.display="none"}
+function renderSkills(){const box=document.getElementById("skills");box.innerHTML="";for(const [k,s] of Object.entries(SKILLS)){const count=game.hands[game.active][k]||0;if(!count&&!s.implemented)continue;const d=document.createElement("div");d.className="skill-item"+(count<=0?" used":"");d.innerHTML='<div class="row between"><b>'+s.name+'</b><span class="tag">'+(s.timing==="COLOR"?"彩色前":"工作")+' / ×'+count+'</span></div><div class="small muted" style="margin-top:4px">'+s.desc+'</div>';if(s.implemented){const b=document.createElement("button");b.className="btn";b.style.marginTop="7px";b.textContent=count?"使う":"使用済み";b.disabled=count<=0||!((s.timing==="COLOR"&&game.phase==="COLOR")||(s.timing==="WORK"&&(game.phase==="WORK"||game.phase==="CREATE_FIRST")))||!!game.winner||splitMode;b.onclick=()=>useSkill(k);d.appendChild(b)}box.appendChild(d)}}
+function renderSelection(){const p=document.getElementById("selectionPanel");p.style.display=(game.phase==="CREATE_FIRST"||game.phase==="WORK")&&!game.winner?"block":"none";if(p.style.display==="none")return;document.getElementById("maxCellsTag").textContent="最大 "+maxCells()+"セル";const [ok,msg]=validateSelection();document.getElementById("regionStatus").innerHTML="選択: <b>"+game.selection.size+"セル</b> — <span style='color:"+(ok?"#86efac":"#94a3b8")+"'>"+msg+"</span>";document.getElementById("confirmRegion").disabled=!ok;document.getElementById("clearSelection").disabled=!game.selection.size}
+function renderSplit(){const p=document.getElementById("splitPanel");p.style.display=splitMode?"block":"none";if(!splitMode)return;const [ok,msg]=validateSplit();document.getElementById("splitStatus").innerHTML="自分が塗る側: <b>"+splitPicked.size+"セル</b> — "+msg;document.getElementById("confirmSplit").disabled=!ok}
+function renderMessage(){const m=document.getElementById("battleMessage");if(game.winner){m.className="callout good";m.innerHTML='<b>Player '+game.winner+' の勝利。</b> '+(game.reason==="MAP_COMPLETE"?"彩色後、合法な新規エリアが残っていないため完塗り勝利です。":game.reason==="FORCED_NO_COLOR"?"相手がスキル使用後も合法色0を解消できませんでした。":"相手が投了しました。");return}m.className="callout";if(splitMode){m.innerHTML="《エリア二分》の分割線を決めています。水色枠が、この手番で自分が塗る側です。";return}if(game.phase==="CREATE_FIRST")m.innerHTML="<b>Player A：</b> 盤面上で1～5セルの連結エリアを指定し、Player Bへ渡してください。";else if(game.phase==="COLOR")m.innerHTML="<b>Player "+game.active+"：</b> 相手から渡された <b>"+game.pending+"</b> を、自分の秘密の持ち色から合法色で彩色してください。";else m.innerHTML="<b>Player "+game.active+"：</b> 彩色完了。次に相手が塗るエリアを指定してください。2手目以降は既存エリアへの辺接触が必須です。"}
+function renderLog(){const b=document.getElementById("battleLog");if(!b||!game)return;b.innerHTML=game.log.map(x=>"<div>"+x+"</div>").join("");b.scrollTop=b.scrollHeight}
+function toast(t){const x=document.getElementById("toast");x.textContent=t;x.classList.add("show");clearTimeout(toast.timer);toast.timer=setTimeout(()=>x.classList.remove("show"),1700)}
+
+// Quiz + gacha
+function renderDifficulty(){const b=document.getElementById("difficulty");b.innerHTML="";for(let i=1;i<=5;i++){const x=document.createElement("button");x.className="btn"+(quiz.level===i?" active":"");x.textContent="Lv."+i;x.onclick=()=>{if(!document.getElementById("quizPlay").hidden)return;quiz.level=i;renderDifficulty();renderOdds()};b.appendChild(x)}renderOdds()}
+function renderOdds(){const w=GACHA[quiz.level];document.getElementById("odds").textContent="Lv."+quiz.level+" 排出率（仮）: "+[1,2,3,4,5].map(r=>"★"+r+" "+w[r]+"%").join(" / ")+"　※Lv.1でも★5 > 0"}
+function rand(a,b){return Math.floor(Math.random()*(b-a+1))+a}
+function makeQuestion(lv){if(lv===1){const mode=rand(0,2);if(mode===0){let a=rand(5,60),b=rand(3,40);return{q:a+" + "+b+" = ?",a:a+b}}if(mode===1){let a=rand(20,90),b=rand(2,a-1);return{q:a+" − "+b+" = ?",a:a-b}}let a=rand(2,12),b=rand(2,12);return{q:a+" × "+b+" = ?",a:a*b}}
+ if(lv===2){const mode=rand(0,2);if(mode===0){let x=rand(-8,15),a=rand(2,8),b=rand(-12,12),rhs=a*x+b;return{q:a+"x "+(b>=0?"+ "+b:"− "+Math.abs(b))+" = "+rhs+"　x = ?",a:x}}if(mode===1){let base=rand(4,30)*10,p=[10,20,25,40,50][rand(0,4)];return{q:base+" の "+p+"% = ?",a:base*p/100}}let a=rand(2,15),b=rand(2,9);return{q:a+"² + "+b+"² = ?",a:a*a+b*b}}
+ if(lv===3){let mode=rand(0,2);if(mode===0){let r=rand(2,18);return{q:"√"+(r*r)+" = ?",a:r}}if(mode===1){let a=rand(2,7),n=rand(3,5);return{q:a+"^"+n+" = ?",a:a**n}}let x=rand(2,12),a=rand(2,6),b=rand(1,10),c=rand(1,8);return{q:a+"("+x+" + "+b+") − "+c+" = ?",a:a*(x+b)-c}}
+ if(lv===4){let r1=rand(1,8),r2=rand(r1+1,11);return{q:"x² − "+(r1+r2)+"x + "+(r1*r2)+" = 0　小さい解 x = ?",a:r1}}
+ let x=rand(1,9),a=rand(2,5),b=rand(1,7),c=rand(2,6),d=a*(x+b)-c*x;return{q:a+"(x + "+b+") − "+c+"x = "+d+"　x = ?",a:x}}
+function startQuiz(){quiz.questions=Array.from({length:10},()=>makeQuestion(quiz.level));quiz.i=0;quiz.correct=0;quiz.wrong=0;quiz.streak=0;quiz.bestStreak=0;quiz.locked=false;document.getElementById("quizIdle").hidden=true;document.getElementById("quizResult").hidden=true;document.getElementById("quizPlay").hidden=false;showQuestion()}
+function showQuestion(){const q=quiz.questions[quiz.i];document.getElementById("quizCounter").textContent="Q"+(quiz.i+1)+" / 10";document.getElementById("correctCount").textContent=quiz.correct;document.getElementById("wrongCount").textContent=quiz.wrong;document.getElementById("streakCount").textContent=quiz.streak;document.getElementById("quizProgress").style.width=(quiz.i/10*100)+"%";document.getElementById("question").textContent=q.q;const inp=document.getElementById("answerInput");inp.value="";inp.disabled=false;document.getElementById("submitAnswer").disabled=false;document.getElementById("feedback").textContent="";setTimeout(()=>inp.focus(),0)}
+function submitAnswer(){if(quiz.locked)return;const inp=document.getElementById("answerInput"),v=Number(inp.value.replace(/,/g,""));if(inp.value.trim()===""||!Number.isFinite(v)){toast("答えを数値で入力してください。");return}quiz.locked=true;const q=quiz.questions[quiz.i],ok=Math.abs(v-q.a)<1e-9;if(ok){quiz.correct++;quiz.streak++;quiz.bestStreak=Math.max(quiz.bestStreak,quiz.streak);document.getElementById("feedback").textContent="正解"}else{quiz.wrong++;quiz.streak=0;document.getElementById("feedback").textContent="不正解。正解は "+q.a}document.getElementById("correctCount").textContent=quiz.correct;document.getElementById("wrongCount").textContent=quiz.wrong;document.getElementById("streakCount").textContent=quiz.streak;inp.disabled=true;document.getElementById("submitAnswer").disabled=true;setTimeout(()=>{quiz.i++;quiz.locked=false;if(quiz.wrong>=3)finishQuiz(true);else if(quiz.i>=10)finishQuiz(false);else showQuestion()},500)}
+function finishQuiz(failed){document.getElementById("quizPlay").hidden=true;let draws=0,why="";if(failed){draws=0;why="3問目の誤答でチャレンジ失敗"}else if(quiz.correct===10){draws=10;why="10問全問正解"}else if(quiz.bestStreak>=5){draws=5;why="5問以上の連続正解"}else{draws=1;why="10問完走"}for(let i=0;i<draws;i++)profile.tickets.push(quiz.level);saveProfile();const r=document.getElementById("quizResult");r.hidden=false;r.innerHTML='<div class="callout '+(draws?'good':'bad')+'"><h3>'+quiz.correct+'正解 / '+quiz.wrong+'誤答</h3><p>'+why+'。<b>'+draws+'回</b>のガチャ権を獲得。</p>'+(draws?'<button id="toGacha" class="btn primary">ガチャへ</button>':'')+'</div><button id="retryQuiz" class="btn" style="margin-top:8px">もう一度</button>';const tg=document.getElementById("toGacha");if(tg)tg.onclick=()=>showScreen("gacha");document.getElementById("retryQuiz").onclick=()=>{r.hidden=true;document.getElementById("quizIdle").hidden=false}}
+function rollRarity(level){const w=GACHA[level],x=Math.random()*100;let a=0;for(let r=1;r<=5;r++){a+=w[r];if(x<a)return r}return 1}
+function cardPool(r){return Object.entries(SKILLS).filter(([,s])=>s.rarity===r).map(([k])=>k)}
+function drawOne(render=true){if(!profile.tickets.length)return null;const level=profile.tickets.shift(),rarity=rollRarity(level),pool=cardPool(rarity),k=pool[rand(0,pool.length-1)];profile.inventory[k]=(profile.inventory[k]||0)+1;saveProfile();const result={level,rarity,k};if(render)renderGachaResults([result]);return result}
+function drawAll(){const a=[];while(profile.tickets.length)a.push(drawOne(false));saveProfile();renderGachaResults(a)}
+function renderGachaResults(a){const box=document.getElementById("gachaResults");box.innerHTML="";for(const x of a){const s=SKILLS[x.k],d=document.createElement("div");d.className="card"+(x.rarity===5?" r5":"");d.innerHTML='<div class="small muted">Quiz Lv.'+x.level+'</div><div class="stars">'+stars(x.rarity)+'</div><h3 style="margin:6px 0">'+s.name+'</h3><div class="small muted">'+s.desc+'</div>';box.appendChild(d)}}
+function renderProgress(){document.getElementById("ticketCount").textContent=profile.tickets.length;const counts={};for(const l of profile.tickets)counts[l]=(counts[l]||0)+1;document.getElementById("ticketBreakdown").textContent=profile.tickets.length?Object.entries(counts).map(([l,n])=>"Lv."+l+" ×"+n).join(" / "):"ガチャ権はありません。数学クイズで獲得できます。";document.getElementById("drawOne").disabled=!profile.tickets.length;document.getElementById("drawAll").disabled=!profile.tickets.length;const box=document.getElementById("inventory");box.innerHTML="";for(const [k,s] of Object.entries(SKILLS)){const d=document.createElement("div");d.className="card"+(s.rarity===5?" r5":"");d.innerHTML='<div class="stars">'+stars(s.rarity)+'</div><h3 style="margin:6px 0">'+s.name+'</h3><div class="small muted">'+s.desc+'</div><div style="margin-top:9px"><b>所持 '+(profile.inventory[k]||0)+'枚</b></div><div class="small muted">'+(s.implemented?'HTML対戦デモ実装あり':'正式ゲーム向け設計済み / HTML対戦は未実装')+'</div>';box.appendChild(d)}}
+function showScreen(n){document.querySelectorAll(".screen").forEach(x=>x.classList.remove("active"));document.querySelectorAll("nav button").forEach(x=>x.classList.toggle("active",x.dataset.screen===n));document.getElementById("screen-"+n).classList.add("active");if(n==="gacha"||n==="cards")renderProgress()}
+// bindings
+document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>showScreen(b.dataset.screen));document.getElementById("newMatch").onclick=newGame;document.getElementById("surrender").onclick=surrender;document.getElementById("revealTurn").onclick=revealTurn;document.getElementById("confirmRegion").onclick=createRegionFromSelection;document.getElementById("clearSelection").onclick=()=>{game.selection.clear();renderBattle()};document.getElementById("cancelSplit").onclick=cancelSplit;document.getElementById("confirmSplit").onclick=confirmSplit;document.getElementById("cancelPaletteChange").onclick=()=>document.getElementById("paletteModal").classList.remove("show");document.getElementById("confirmPaletteChange").onclick=confirmPaletteChange;document.getElementById("startQuiz").onclick=startQuiz;document.getElementById("submitAnswer").onclick=submitAnswer;document.getElementById("answerInput").addEventListener("keydown",e=>{if(e.key==="Enter")submitAnswer()});document.getElementById("drawOne").onclick=()=>drawOne(true);document.getElementById("drawAll").onclick=drawAll;document.getElementById("resetProgress").onclick=()=>{if(!confirm("クイズ・ガチャ権・カード所持だけを初期化しますか？"))return;profile.tickets=[];for(const k of Object.keys(profile.inventory))profile.inventory[k]=0;saveProfile();toast("進行データを初期化しました。")} ;
+renderDifficulty();renderProgress();newGame();
+})();
+</script>
+</body>
+</html>

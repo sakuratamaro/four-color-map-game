@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>Four Color Map Game v5.0 Online</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <div><h1>Four Color Map Game</h1><p>v5.0 Online — 速攻チュートリアル</p></div>
+    <a href="../index.html">ローカル v4.9</a>
+  </header>
+
+  <main>
+    <section id="connectionCard" class="card">
+      <div class="row between"><strong>接続状態</strong><span id="connectionBadge" class="badge warn">接続中</span></div>
+      <p id="connectionMessage" class="muted">匿名セッションを準備しています。</p>
+    </section>
+
+    <section id="lobby" class="card hidden">
+      <h2>オンライン対戦</h2>
+      <label>プレイヤー名<input id="playerName" maxlength="20" autocomplete="nickname" placeholder="PLAYER"></label>
+      <div class="lobby-grid">
+        <button id="createRoom" class="primary">ルームを作る</button>
+        <div class="join-box">
+          <input id="roomCode" maxlength="6" inputmode="text" autocomplete="off" placeholder="合言葉6文字">
+          <button id="joinRoom">合言葉で参加</button>
+        </div>
+      </div>
+      <p class="muted small">別端末では同じURLを開き、表示された合言葉を入力してください。</p>
+    </section>
+
+    <section id="room" class="card hidden">
+      <div class="row between wrap">
+        <div><span class="muted">合言葉</span><strong id="shownCode" class="room-code">------</strong></div>
+        <div><span id="seatBadge" class="badge"></span><span id="roomStatus" class="badge warn"></span></div>
+      </div>
+      <div id="members" class="members"></div>
+      <p id="waitingMessage" class="callout">相手の参加を待っています。</p>
+      <button id="leaveRoom" class="ghost">この端末でルーム表示を閉じる</button>
+    </section>
+
+    <section id="game" class="game hidden">
+      <div class="card board-card">
+        <div class="row between wrap">
+          <div><span id="turnBadge" class="badge"></span><strong id="phaseText"></strong></div>
+          <div>version <b id="versionText">0</b></div>
+        </div>
+        <canvas id="board" width="720" height="720" aria-label="四色地図ゲーム盤面"></canvas>
+        <div id="selectionControls" class="controls hidden">
+          <span id="selectionCount"></span>
+          <button id="clearSelection" class="ghost">選択解除</button>
+          <button id="submitRegion" class="primary">このエリアを渡す</button>
+        </div>
+        <div id="palette" class="controls"></div>
+        <div id="targetControls" class="controls"></div>
+      </div>
+
+      <aside class="card side-card">
+        <h2>あなたの秘密情報</h2>
+        <div id="privatePalette"></div>
+        <h3>貸与スキル</h3>
+        <div id="skills" class="skills"></div>
+        <button id="surrender" class="danger">投了する</button>
+        <h3>公開ログ</h3>
+        <ol id="gameLog" class="log"></ol>
+      </aside>
+    </section>
+  </main>
+
+  <div id="toast" role="status" aria-live="polite"></div>
+  <script type="module" src="app.js"></script>
+</body>
+</html>

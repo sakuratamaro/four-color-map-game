@@ -1,0 +1,749 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>四色パズル - Single HTML Prototype</title>
+<style>
+  :root{
+    --bg:#0f172a; --panel:#111827; --panel2:#1f2937; --line:#334155;
+    --text:#f8fafc; --muted:#94a3b8; --accent:#e2e8f0; --danger:#fb7185;
+    --c0:#ef4444; --c1:#3b82f6; --c2:#22c55e; --c3:#eab308;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,-apple-system,"Segoe UI","Noto Sans JP",sans-serif;background:linear-gradient(180deg,#0b1020,#111827 45%,#0b1020);color:var(--text);min-height:100vh}
+  button,input,select{font:inherit}
+  button{cursor:pointer}
+  .app{max-width:1120px;margin:auto;padding:20px}
+  header{display:flex;gap:16px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:16px}
+  h1{font-size:clamp(22px,4vw,34px);margin:0}
+  .subtitle{color:var(--muted);font-size:13px}
+  .stats{display:flex;gap:10px;flex-wrap:wrap}
+  .chip{background:#0b1220;border:1px solid var(--line);border-radius:999px;padding:7px 11px;font-size:13px}
+  nav{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+  nav button{background:#0b1220;color:var(--muted);border:1px solid var(--line);border-radius:10px;padding:10px 14px}
+  nav button.active{background:#e2e8f0;color:#111827;border-color:#e2e8f0;font-weight:800}
+  .screen{display:none}.screen.active{display:block}
+  .grid{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(280px,.75fr);gap:16px}
+  .panel{background:rgba(17,24,39,.94);border:1px solid var(--line);border-radius:16px;padding:16px;box-shadow:0 14px 40px rgba(0,0,0,.18)}
+  .panel h2,.panel h3{margin-top:0}
+  .board-wrap{background:#07101d;border-radius:14px;overflow:hidden;border:1px solid #263449}
+  #mapSvg{display:block;width:100%;height:auto;aspect-ratio:600/420;touch-action:manipulation}
+  .region{stroke:#0b1020;stroke-width:5;transition:filter .12s,opacity .12s;cursor:pointer}
+  .region:hover{filter:brightness(1.1)}
+  .region.locked{cursor:not-allowed;filter:saturate(.55)}
+  .region.conflict{filter:drop-shadow(0 0 8px var(--danger))}
+  .region-label{font-weight:900;fill:#f8fafc;stroke:#0b1020;stroke-width:4;paint-order:stroke;pointer-events:none;text-anchor:middle;dominant-baseline:middle}
+  .toolbar{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
+  .palette{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+  .color-btn{height:46px;border:3px solid transparent;border-radius:12px;position:relative}
+  .color-btn.selected{border-color:white;box-shadow:0 0 0 2px #0b1020 inset}
+  .color-btn.illegal{opacity:.2;filter:grayscale(1)}
+  .color-btn::after{content:attr(data-key);position:absolute;right:7px;bottom:4px;color:#fff;font-weight:900;text-shadow:0 1px 4px #000}
+  .btn{border:1px solid var(--line);background:#1e293b;color:var(--text);border-radius:10px;padding:10px 12px}
+  .btn.primary{background:#f8fafc;color:#0f172a;border-color:#f8fafc;font-weight:800}
+  .btn.danger{border-color:#7f1d1d;background:#3f1118}
+  .btn:disabled{opacity:.4;cursor:not-allowed}
+  .stage-list{display:grid;gap:8px}
+  .stage-btn{text-align:left}
+  .stage-btn.active{outline:2px solid #e2e8f0}
+  .skill{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;border-top:1px solid #263449;padding:10px 0}
+  .rarity{letter-spacing:1px}
+  .muted{color:var(--muted)}
+  .small{font-size:12px}
+  .callout{border:1px solid #475569;background:#0b1220;border-radius:12px;padding:12px;margin:10px 0}
+  .success{border-color:#166534;background:#082f1f}
+  .warn{border-color:#854d0e;background:#35230b}
+  .quiz-shell{max-width:760px;margin:auto}
+  .seg{display:flex;gap:8px;flex-wrap:wrap}
+  .seg button.active{outline:2px solid white}
+  .question{font-size:clamp(22px,5vw,36px);font-weight:900;margin:28px 0;text-align:center}
+  .answer-row{display:flex;gap:8px}
+  .answer-row input{flex:1;min-width:0;background:#0b1220;border:1px solid var(--line);border-radius:10px;padding:12px;color:var(--text)}
+  .progress{height:8px;background:#0b1220;border-radius:99px;overflow:hidden;margin:14px 0}
+  .progress>div{height:100%;background:#e2e8f0;width:0}
+  .gacha-results{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:14px}
+  .card{border:1px solid #475569;background:linear-gradient(160deg,#1f2937,#0b1220);border-radius:14px;padding:14px;min-height:118px}
+  .card.r5{box-shadow:0 0 24px rgba(255,255,255,.17);border-color:#cbd5e1}
+  .inventory{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px}
+  .footer-note{margin-top:18px;color:var(--muted);font-size:12px}
+  .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);background:#020617;color:white;border:1px solid #475569;padding:10px 14px;border-radius:10px;opacity:0;pointer-events:none;transition:.2s;z-index:99}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  @media(max-width:800px){.grid{grid-template-columns:1fr}.app{padding:12px}.panel{padding:12px}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div>
+      <h1>四色パズル</h1>
+      <div class="subtitle">Single HTML Prototype — 地図塗り × お勉強クイズ × ガチャ × スキル</div>
+    </div>
+    <div class="stats">
+      <span class="chip">クリア <b id="clearCount">0</b></span>
+      <span class="chip">最高クイズ <b id="bestQuiz">0/5</b></span>
+      <span class="chip">ガチャ権 <b id="pullCount">0</b></span>
+    </div>
+  </header>
+
+  <nav>
+    <button data-screen="map" class="active">1. 四色パズル</button>
+    <button data-screen="study">2. お勉強クイズ</button>
+    <button data-screen="gacha">3. ガチャ</button>
+    <button data-screen="cards">4. スキル所持</button>
+  </nav>
+
+  <section id="screen-map" class="screen active">
+    <div class="grid">
+      <div class="panel">
+        <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap">
+          <div>
+            <h2 id="stageTitle">Stage 1</h2>
+            <div id="stageDesc" class="muted"></div>
+          </div>
+          <div class="chip">同じ辺を共有する領域は同色禁止</div>
+        </div>
+
+        <div class="board-wrap">
+          <svg id="mapSvg" viewBox="0 0 600 420" aria-label="四色パズル盤面"></svg>
+        </div>
+
+        <div class="toolbar">
+          <button id="resetMap" class="btn">盤面をリセット</button>
+          <button id="undoMap" class="btn">1手戻す</button>
+          <button id="toStudy" class="btn primary" disabled>クイズへ進む</button>
+        </div>
+
+        <div class="palette" id="palette">
+          <button class="color-btn selected" data-color="0" data-key="1" style="background:var(--c0)" aria-label="赤"></button>
+          <button class="color-btn" data-color="1" data-key="2" style="background:var(--c1)" aria-label="青"></button>
+          <button class="color-btn" data-color="2" data-key="3" style="background:var(--c2)" aria-label="緑"></button>
+          <button class="color-btn" data-color="3" data-key="4" style="background:var(--c3)" aria-label="黄"></button>
+        </div>
+        <div class="small muted" style="margin-top:7px">色を選び、領域をクリック。キーボードの 1〜4 でも色を選べます。</div>
+        <div id="mapMessage" class="callout">すべての領域を、隣接領域と同じ色にならないよう塗ってください。</div>
+      </div>
+
+      <aside class="panel">
+        <h3>ステージ</h3>
+        <div id="stageList" class="stage-list"></div>
+
+        <h3 style="margin-top:20px">所持スキルを使う</h3>
+        <div id="skillButtons"></div>
+        <div class="small muted">ガチャで獲得したスキルはここで消費します。試作版の効果です。</div>
+      </aside>
+    </div>
+  </section>
+
+  <section id="screen-study" class="screen">
+    <div class="panel quiz-shell">
+      <h2>お勉強クイズ</h2>
+      <p class="muted">5問に挑戦。難しい問題ほどガチャの高レア率が上がります。低難度でも★5は排出されます。</p>
+      <div class="callout warn small">
+        <b>試作ルール：</b> 5/5＝10連、4/5＝5連、3/5＝1回、2/5以下＝ガチャなし。
+        本実装ではこの閾値を設定値として外出しする想定です。
+      </div>
+
+      <div class="seg" id="difficultyButtons">
+        <button class="btn active" data-diff="basic">基礎</button>
+        <button class="btn" data-diff="standard">標準</button>
+        <button class="btn" data-diff="advanced">発展</button>
+      </div>
+
+      <div id="quizIdle">
+        <div class="callout" id="oddsText"></div>
+        <button id="startQuiz" class="btn primary">5問スタート</button>
+      </div>
+
+      <div id="quizPlay" hidden>
+        <div style="display:flex;justify-content:space-between">
+          <span id="quizNo"></span><span>正解 <b id="quizScore">0</b></span>
+        </div>
+        <div class="progress"><div id="quizProgress"></div></div>
+        <div id="question" class="question"></div>
+        <div class="answer-row">
+          <input id="answerInput" inputmode="decimal" autocomplete="off" placeholder="答えを入力">
+          <button id="submitAnswer" class="btn primary">回答</button>
+        </div>
+        <div id="quizFeedback" class="small muted" style="margin-top:10px"></div>
+      </div>
+
+      <div id="quizResult" hidden></div>
+    </div>
+  </section>
+
+  <section id="screen-gacha" class="screen">
+    <div class="panel">
+      <h2>スキルガチャ</h2>
+      <p class="muted">課金・広告視聴ではなく、クイズ成績で得たガチャ権だけを使います。</p>
+      <div class="callout">現在のガチャ権：<b id="gachaPullCount">0</b> 回</div>
+      <button id="pullGacha" class="btn primary">ガチャを回す</button>
+      <div id="gachaMeta" class="small muted" style="margin-top:8px"></div>
+      <div id="gachaResults" class="gacha-results"></div>
+    </div>
+  </section>
+
+  <section id="screen-cards" class="screen">
+    <div class="panel">
+      <h2>所持スキル</h2>
+      <div id="inventory" class="inventory"></div>
+      <div class="toolbar" style="margin-top:18px">
+        <button id="wipeSave" class="btn danger">試作データを初期化</button>
+      </div>
+    </div>
+  </section>
+
+  <div class="footer-note">
+    このファイルだけで動作します。外部ライブラリ・通信・課金・広告は使用していません。進行状況はブラウザの localStorage に保存します。
+  </div>
+</div>
+<div id="toast" class="toast"></div>
+
+<script>
+(() => {
+  "use strict";
+
+  const COLORS = ["#ef4444","#3b82f6","#22c55e","#eab308"];
+  const SAVE_KEY = "fourColorPrototype.v1";
+
+  const skillCatalog = {
+    hint:  {rarity:1,name:"色彩ヒント",desc:"次に塗る1領域について、使える色を表示する。"},
+    auto1: {rarity:2,name:"ひと塗りの術",desc:"未着色の1領域を、自動で合法色に塗る。"},
+    auto2: {rarity:3,name:"二連彩色",desc:"未着色の最大2領域を自動彩色する。"},
+    auto3: {rarity:4,name:"三連彩色",desc:"未着色の最大3領域を自動彩色する。"},
+    solve: {rarity:5,name:"四色の叡智",desc:"現在の盤面を合法な四色で完成させる。"}
+  };
+
+  const rarityToSkill = {1:"hint",2:"auto1",3:"auto2",4:"auto3",5:"solve"};
+  const odds = {
+    basic:    [55,30,11,3,1],
+    standard: [40,32,18,8,2],
+    advanced: [25,30,25,15,5]
+  };
+  const diffLabel = {basic:"基礎",standard:"標準",advanced:"発展"};
+
+  const state = loadState();
+  let currentStageIndex = 0;
+  let selectedColor = 0;
+  let board = {};
+  let history = [];
+  let selectedRegion = null;
+  let hintMode = false;
+  let quizDifficulty = "basic";
+  let quizQuestions = [];
+  let quizIndex = 0;
+  let quizScore = 0;
+  let gachaDifficulty = state.gachaDifficulty || "basic";
+
+  function defaultState(){
+    return {
+      clears:0,
+      bestQuiz:0,
+      pendingPulls:0,
+      gachaDifficulty:"basic",
+      inventory:{hint:0,auto1:0,auto2:0,auto3:0,solve:0}
+    };
+  }
+  function loadState(){
+    try{
+      const raw = localStorage.getItem(SAVE_KEY);
+      const parsed = raw ? JSON.parse(raw) : {};
+      const base = defaultState();
+      return {
+        ...base,
+        ...parsed,
+        inventory:{...base.inventory,...(parsed.inventory||{})}
+      };
+    }catch(_){ return defaultState(); }
+  }
+  function saveState(){
+    localStorage.setItem(SAVE_KEY, JSON.stringify(state));
+    renderStats();
+    renderInventory();
+    renderSkillButtons();
+  }
+
+  function regularPolygon(cx,cy,r,n,offset=-Math.PI/2){
+    return Array.from({length:n},(_,i)=>{
+      const a=offset+i*Math.PI*2/n;
+      return [cx+Math.cos(a)*r, cy+Math.sin(a)*r];
+    });
+  }
+  function pts(arr){ return arr.map(p=>p.map(v=>v.toFixed(1)).join(",")).join(" "); }
+  function polyPath(arr){ return "M "+arr.map(p=>p.map(v=>v.toFixed(1)).join(" ")).join(" L ")+" Z"; }
+
+  function buildWheelStage(n,{outer=false,locked={}}={}){
+    const cx=300, cy=210;
+    const outerPts=regularPolygon(cx,cy,150,n);
+    const innerPts=regularPolygon(cx,cy,62,n);
+    const regions=[];
+    const adjacency={};
+
+    regions.push({id:"C",name:"中央",points:innerPts,label:[cx,cy],locked:locked.C});
+    adjacency.C=[];
+
+    for(let i=0;i<n;i++){
+      const j=(i+1)%n;
+      const midA=-Math.PI/2+(i+.5)*Math.PI*2/n;
+      const rr=108;
+      const id="R"+i;
+      regions.push({
+        id,name:String(i+1),
+        points:[innerPts[i],innerPts[j],outerPts[j],outerPts[i]],
+        label:[cx+Math.cos(midA)*rr,cy+Math.sin(midA)*rr],
+        locked:locked[id]
+      });
+      adjacency[id]=["C","R"+((i-1+n)%n),"R"+j];
+      adjacency.C.push(id);
+    }
+
+    if(outer){
+      const rect=[[14,14],[586,14],[586,406],[14,406]];
+      regions.unshift({
+        id:"O",name:"外周",
+        path:polyPath(rect)+" "+polyPath([...outerPts].reverse()),
+        fillRule:"evenodd",
+        label:[55,50],
+        locked:locked.O
+      });
+      adjacency.O=[];
+      for(let i=0;i<n;i++){
+        adjacency.O.push("R"+i);
+        adjacency["R"+i].push("O");
+      }
+    }
+    return {regions,adjacency};
+  }
+
+  const stages = [
+    {
+      title:"Stage 1：四色の入口",
+      desc:"中央＋3領域。実は4色すべてが必要になる最小級の構成です。",
+      build:()=>buildWheelStage(3),
+      initial:{}
+    },
+    {
+      title:"Stage 2：五角環",
+      desc:"中央・外周・5つの環状領域。奇数環のため、4色目の扱いが鍵になります。",
+      build:()=>buildWheelStage(5,{outer:true}),
+      initial:{}
+    },
+    {
+      title:"Stage 3：七角環",
+      desc:"7つの環状領域に初期色つき。色の選択順まで少し考える試作ステージです。",
+      build:()=>buildWheelStage(7,{outer:true,locked:{C:3,R0:0}}),
+      initial:{C:3,R0:0}
+    }
+  ];
+
+  function stageData(){ return stages[currentStageIndex].build(); }
+
+  function initStage(index=currentStageIndex){
+    currentStageIndex=index;
+    board={...stages[index].initial};
+    history=[];
+    selectedRegion=null;
+    hintMode=false;
+    renderStage();
+    renderStageList();
+    updateMapStatus();
+  }
+
+  function renderStage(){
+    const st=stages[currentStageIndex];
+    document.getElementById("stageTitle").textContent=st.title;
+    document.getElementById("stageDesc").textContent=st.desc;
+    const svg=document.getElementById("mapSvg");
+    svg.innerHTML="";
+    const data=stageData();
+
+    for(const r of data.regions){
+      const shape=document.createElementNS("http://www.w3.org/2000/svg", r.path ? "path":"polygon");
+      shape.setAttribute("class","region"+(r.locked!==undefined?" locked":""));
+      shape.dataset.id=r.id;
+      if(r.path){
+        shape.setAttribute("d",r.path);
+        if(r.fillRule) shape.setAttribute("fill-rule",r.fillRule);
+      }else{
+        shape.setAttribute("points",pts(r.points));
+      }
+      shape.setAttribute("fill", board[r.id]!==undefined ? COLORS[board[r.id]] : "#334155");
+      shape.addEventListener("click",()=>paintRegion(r.id));
+      svg.appendChild(shape);
+
+      const txt=document.createElementNS("http://www.w3.org/2000/svg","text");
+      txt.setAttribute("class","region-label");
+      txt.setAttribute("x",r.label[0]); txt.setAttribute("y",r.label[1]);
+      txt.textContent=r.name;
+      svg.appendChild(txt);
+    }
+  }
+
+  function isLocked(id){
+    const r=stageData().regions.find(x=>x.id===id);
+    return r && r.locked!==undefined;
+  }
+
+  function legalColors(id, boardState=board){
+    const adj=stageData().adjacency[id] || [];
+    const used=new Set(adj.map(n=>boardState[n]).filter(v=>v!==undefined));
+    return [0,1,2,3].filter(c=>!used.has(c));
+  }
+
+  function paintRegion(id){
+    selectedRegion=id;
+    if(isLocked(id)){ toast("この領域は初期色で固定されています。"); return; }
+    if(!legalColors(id).includes(selectedColor)){
+      toast("その色は隣接領域ですでに使われています。");
+      flashConflict(id);
+      refreshPaletteHints();
+      return;
+    }
+    history.push({...board});
+    board[id]=selectedColor;
+    hintMode=false;
+    renderStage();
+    updateMapStatus();
+  }
+
+  function flashConflict(id){
+    const el=document.querySelector('.region[data-id="'+id+'"]');
+    if(!el) return;
+    el.classList.add("conflict");
+    setTimeout(()=>el.classList.remove("conflict"),450);
+  }
+
+  function updateMapStatus(){
+    const data=stageData();
+    const complete=data.regions.every(r=>board[r.id]!==undefined);
+    let valid=true;
+    for(const [id,adj] of Object.entries(data.adjacency)){
+      if(board[id]===undefined) continue;
+      if(adj.some(n=>board[n]!==undefined && board[n]===board[id])) valid=false;
+    }
+    const msg=document.getElementById("mapMessage");
+    const btn=document.getElementById("toStudy");
+    if(complete && valid){
+      msg.className="callout success";
+      msg.innerHTML="<b>クリア！</b> 四色条件を満たしました。クイズに進んでガチャ権を狙えます。";
+      btn.disabled=false;
+      if(!msg.dataset.counted){
+        state.clears++;
+        msg.dataset.counted="1";
+        saveState();
+      }
+    }else{
+      msg.className="callout";
+      msg.textContent="すべての領域を、隣接領域と同じ色にならないよう塗ってください。";
+      msg.dataset.counted="";
+      btn.disabled=true;
+    }
+    refreshPaletteHints();
+  }
+
+  function refreshPaletteHints(){
+    const buttons=[...document.querySelectorAll(".color-btn")];
+    buttons.forEach(b=>b.classList.remove("illegal"));
+    if(hintMode && selectedRegion){
+      const legal=new Set(legalColors(selectedRegion));
+      buttons.forEach(b=>{ if(!legal.has(Number(b.dataset.color))) b.classList.add("illegal"); });
+    }
+  }
+
+  function renderStageList(){
+    const box=document.getElementById("stageList");
+    box.innerHTML="";
+    stages.forEach((s,i)=>{
+      const b=document.createElement("button");
+      b.className="btn stage-btn"+(i===currentStageIndex?" active":"");
+      b.innerHTML="<b>"+s.title+"</b><br><span class='small muted'>"+s.desc+"</span>";
+      b.onclick=()=>initStage(i);
+      box.appendChild(b);
+    });
+  }
+
+  function solveBacktracking(maxToColor=Infinity){
+    const data=stageData();
+    const target={...board};
+    const uncolored=data.regions.filter(r=>target[r.id]===undefined).map(r=>r.id);
+    let solution=null;
+
+    function rec(k){
+      if(k>=uncolored.length){ solution={...target}; return true; }
+      const id=uncolored[k];
+      const used=new Set((data.adjacency[id]||[]).map(n=>target[n]).filter(v=>v!==undefined));
+      for(let c=0;c<4;c++){
+        if(used.has(c)) continue;
+        target[id]=c;
+        if(rec(k+1)) return true;
+        delete target[id];
+      }
+      return false;
+    }
+    rec(0);
+    if(!solution) return false;
+
+    const toApply=uncolored.slice(0,maxToColor);
+    if(toApply.length){
+      history.push({...board});
+      toApply.forEach(id=>board[id]=solution[id]);
+      renderStage();
+      updateMapStatus();
+    }
+    return true;
+  }
+
+  function useSkill(key){
+    if((state.inventory[key]||0)<=0){ toast("そのスキルを持っていません。"); return; }
+    if(key==="hint"){
+      const data=stageData();
+      if(!selectedRegion || board[selectedRegion]!==undefined){
+        selectedRegion=(data.regions.find(r=>board[r.id]===undefined)||{}).id;
+      }
+      if(!selectedRegion){ toast("盤面はすでに完成しています。"); return; }
+      state.inventory[key]--; hintMode=true; saveState(); refreshPaletteHints();
+      toast("使える色だけを明るく表示しました。");
+      return;
+    }
+    const count=key==="auto1"?1:key==="auto2"?2:key==="auto3"?3:999;
+    const remaining=stageData().regions.filter(r=>board[r.id]===undefined).length;
+    if(!remaining){ toast("盤面はすでに完成しています。"); return; }
+    if(solveBacktracking(count)){
+      state.inventory[key]--; saveState();
+      toast(key==="solve"?"四色の叡智で盤面を完成しました。":"自動彩色を使いました。");
+    }
+  }
+
+  function renderSkillButtons(){
+    const box=document.getElementById("skillButtons");
+    if(!box) return;
+    box.innerHTML="";
+    Object.entries(skillCatalog).forEach(([key,s])=>{
+      const row=document.createElement("div");
+      row.className="skill";
+      row.innerHTML="<div><b>"+s.name+"</b> <span class='rarity'>"+stars(s.rarity)+"</span><div class='small muted'>"+s.desc+"</div></div>";
+      const b=document.createElement("button");
+      b.className="btn"; b.textContent="使う ×"+(state.inventory[key]||0);
+      b.disabled=(state.inventory[key]||0)<=0;
+      b.onclick=()=>useSkill(key);
+      row.appendChild(b); box.appendChild(row);
+    });
+  }
+
+  function stars(n){ return "★".repeat(n)+"☆".repeat(5-n); }
+
+  function renderInventory(){
+    const box=document.getElementById("inventory");
+    if(!box) return;
+    box.innerHTML="";
+    Object.entries(skillCatalog).forEach(([key,s])=>{
+      const div=document.createElement("div");
+      div.className="card"+(s.rarity===5?" r5":"");
+      div.innerHTML="<div class='rarity'>"+stars(s.rarity)+"</div><h3 style='margin:6px 0'>"+s.name+"</h3><div class='small muted'>"+s.desc+"</div><div style='margin-top:10px'><b>所持 "+(state.inventory[key]||0)+"</b></div>";
+      box.appendChild(div);
+    });
+  }
+
+  function renderStats(){
+    document.getElementById("clearCount").textContent=state.clears;
+    document.getElementById("bestQuiz").textContent=state.bestQuiz+"/5";
+    document.getElementById("pullCount").textContent=state.pendingPulls;
+    document.getElementById("gachaPullCount").textContent=state.pendingPulls;
+    document.getElementById("pullGacha").disabled=state.pendingPulls<=0;
+    document.getElementById("gachaMeta").textContent="現在の排出テーブル："+diffLabel[gachaDifficulty];
+  }
+
+  function showScreen(name){
+    document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
+    document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("active",b.dataset.screen===name));
+    document.getElementById("screen-"+name).classList.add("active");
+    if(name==="gacha") renderStats();
+  }
+
+  function updateOdds(){
+    const o=odds[quizDifficulty];
+    document.getElementById("oddsText").innerHTML=
+      "<b>"+diffLabel[quizDifficulty]+"の排出率：</b> "+
+      o.map((v,i)=>"★"+(i+1)+" "+v+"%").join(" / ");
+  }
+
+  function makeQuestion(diff){
+    const rnd=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
+    if(diff==="basic"){
+      const mode=rnd(0,2);
+      if(mode===0){ const a=rnd(5,40),b=rnd(2,30); return {text:a+" + "+b+" = ?",answer:a+b};}
+      if(mode===1){ const a=rnd(20,70),b=rnd(2,a-1); return {text:a+" − "+b+" = ?",answer:a-b};}
+      const a=rnd(2,12),b=rnd(2,12); return {text:a+" × "+b+" = ?",answer:a*b};
+    }
+    if(diff==="standard"){
+      const mode=rnd(0,2);
+      if(mode===0){
+        const x=rnd(-8,12),a=rnd(2,7),b=rnd(-10,10),rhs=a*x+b;
+        return {text:a+"x "+(b>=0?"+ "+b:"− "+Math.abs(b))+" = "+rhs+"　x = ?",answer:x};
+      }
+      if(mode===1){
+        const base=rnd(4,20)*10, pct=[10,20,25,30,40,50][rnd(0,5)];
+        return {text:base+" の "+pct+"% は？",answer:base*pct/100};
+      }
+      const a=rnd(2,9),b=rnd(2,6); return {text:a+"² + "+b+"² = ?",answer:a*a+b*b};
+    }
+    const mode=rnd(0,3);
+    if(mode===0){
+      const r1=rnd(1,8),r2=rnd(r1+1,10);
+      return {text:"x² − "+(r1+r2)+"x + "+(r1*r2)+" = 0　小さい解は？",answer:r1};
+    }
+    if(mode===1){
+      const a=rnd(2,6), n=rnd(3,5);
+      return {text:a+"^"+n+" = ?",answer:a**n};
+    }
+    if(mode===2){
+      const root=rnd(2,15); return {text:"√"+(root*root)+" = ?",answer:root};
+    }
+    const x=rnd(2,12),a=rnd(2,6),b=rnd(1,10),c=rnd(2,6);
+    return {text:a+"("+x+" + "+b+") − "+c+" = ?",answer:a*(x+b)-c};
+  }
+
+  function startQuiz(){
+    quizQuestions=Array.from({length:5},()=>makeQuestion(quizDifficulty));
+    quizIndex=0; quizScore=0;
+    document.getElementById("quizIdle").hidden=true;
+    document.getElementById("quizResult").hidden=true;
+    document.getElementById("quizPlay").hidden=false;
+    renderQuestion();
+  }
+
+  function renderQuestion(){
+    const q=quizQuestions[quizIndex];
+    document.getElementById("quizNo").textContent=(quizIndex+1)+" / 5";
+    document.getElementById("quizScore").textContent=quizScore;
+    document.getElementById("quizProgress").style.width=((quizIndex)/5*100)+"%";
+    document.getElementById("question").textContent=q.text;
+    const input=document.getElementById("answerInput");
+    input.value=""; input.focus();
+    document.getElementById("quizFeedback").textContent="";
+  }
+
+  function submitAnswer(){
+    const input=document.getElementById("answerInput");
+    if(input.value.trim()===""){ toast("答えを入力してください。"); return; }
+    const q=quizQuestions[quizIndex];
+    const value=Number(input.value.replace(/,/g,""));
+    const ok=Number.isFinite(value) && Math.abs(value-q.answer)<1e-9;
+    if(ok) quizScore++;
+    document.getElementById("quizFeedback").textContent=ok?"正解！":"不正解。正解は "+q.answer;
+    input.disabled=true;
+    document.getElementById("submitAnswer").disabled=true;
+    setTimeout(()=>{
+      input.disabled=false;
+      document.getElementById("submitAnswer").disabled=false;
+      quizIndex++;
+      if(quizIndex>=5) finishQuiz(); else renderQuestion();
+    },550);
+  }
+
+  function finishQuiz(){
+    document.getElementById("quizPlay").hidden=true;
+    document.getElementById("quizProgress").style.width="100%";
+    const pulls=quizScore===5?10:quizScore===4?5:quizScore===3?1:0;
+    state.bestQuiz=Math.max(state.bestQuiz,quizScore);
+    state.pendingPulls+=pulls;
+    state.gachaDifficulty=quizDifficulty;
+    gachaDifficulty=quizDifficulty;
+    saveState();
+
+    const box=document.getElementById("quizResult");
+    box.hidden=false;
+    box.innerHTML="<div class='callout "+(pulls?"success":"warn")+"'><h3>"+quizScore+"/5 正解</h3>"+
+      (pulls?"<p><b>"+pulls+"回分</b>のガチャ権を獲得しました。</p><button id='goGacha' class='btn primary'>ガチャへ</button>":
+             "<p>今回はガチャ権なし。3問以上の正解で獲得できます。</p>")+
+      "</div><button id='retryQuiz' class='btn'>もう一度</button>";
+    const gg=document.getElementById("goGacha"); if(gg) gg.onclick=()=>showScreen("gacha");
+    document.getElementById("retryQuiz").onclick=()=>{box.hidden=true;document.getElementById("quizIdle").hidden=false;};
+  }
+
+  function rarityRoll(diff){
+    const arr=odds[diff], x=Math.random()*100;
+    let acc=0;
+    for(let i=0;i<arr.length;i++){ acc+=arr[i]; if(x<acc) return i+1; }
+    return 1;
+  }
+
+  function pullGacha(){
+    if(state.pendingPulls<=0) return;
+    const count=state.pendingPulls;
+    state.pendingPulls=0;
+    const results=[];
+    for(let i=0;i<count;i++){
+      const rarity=rarityRoll(gachaDifficulty);
+      const key=rarityToSkill[rarity];
+      state.inventory[key]=(state.inventory[key]||0)+1;
+      results.push({rarity,key});
+    }
+    saveState();
+    const box=document.getElementById("gachaResults");
+    box.innerHTML="";
+    results.forEach(({rarity,key},i)=>{
+      const s=skillCatalog[key];
+      const div=document.createElement("div");
+      div.className="card"+(rarity===5?" r5":"");
+      div.innerHTML="<div class='small muted'>"+(i+1)+"枚目</div><div class='rarity'>"+stars(rarity)+"</div><h3 style='margin:7px 0'>"+s.name+"</h3><div class='small muted'>"+s.desc+"</div>";
+      box.appendChild(div);
+    });
+    toast(count+"回のガチャ結果を所持スキルへ追加しました。");
+  }
+
+  function toast(msg){
+    const t=document.getElementById("toast");
+    t.textContent=msg; t.classList.add("show");
+    clearTimeout(toast.timer);
+    toast.timer=setTimeout(()=>t.classList.remove("show"),1800);
+  }
+
+  document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>showScreen(b.dataset.screen));
+  document.querySelectorAll(".color-btn").forEach(b=>{
+    b.onclick=()=>{
+      selectedColor=Number(b.dataset.color);
+      document.querySelectorAll(".color-btn").forEach(x=>x.classList.toggle("selected",x===b));
+    };
+  });
+  document.addEventListener("keydown",e=>{
+    if(["1","2","3","4"].includes(e.key) && !["INPUT","TEXTAREA"].includes(document.activeElement.tagName)){
+      document.querySelector('.color-btn[data-color="'+(Number(e.key)-1)+'"]').click();
+    }
+  });
+  document.getElementById("resetMap").onclick=()=>initStage(currentStageIndex);
+  document.getElementById("undoMap").onclick=()=>{
+    if(!history.length){toast("戻せる手がありません。");return;}
+    board=history.pop(); renderStage(); updateMapStatus();
+  };
+  document.getElementById("toStudy").onclick=()=>showScreen("study");
+
+  document.querySelectorAll("#difficultyButtons button").forEach(b=>{
+    b.onclick=()=>{
+      quizDifficulty=b.dataset.diff;
+      document.querySelectorAll("#difficultyButtons button").forEach(x=>x.classList.toggle("active",x===b));
+      updateOdds();
+    };
+  });
+  document.getElementById("startQuiz").onclick=startQuiz;
+  document.getElementById("submitAnswer").onclick=submitAnswer;
+  document.getElementById("answerInput").addEventListener("keydown",e=>{if(e.key==="Enter") submitAnswer();});
+  document.getElementById("pullGacha").onclick=pullGacha;
+  document.getElementById("wipeSave").onclick=()=>{
+    if(!confirm("試作版のクリア数・クイズ記録・所持スキルをすべて初期化しますか？")) return;
+    localStorage.removeItem(SAVE_KEY);
+    Object.assign(state,defaultState());
+    gachaDifficulty="basic";
+    saveState(); initStage(0); showScreen("map");
+    toast("試作データを初期化しました。");
+  };
+
+  updateOdds();
+  renderInventory();
+  renderStats();
+  renderSkillButtons();
+  initStage(0);
+})();
+</script>
+</body>
+</html>

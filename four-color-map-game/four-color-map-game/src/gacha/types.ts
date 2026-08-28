@@ -1,0 +1,2 @@
+export type Rarity = 1 | 2 | 3 | 4 | 5;
+export type RarityWeights = Record<Rarity, number>;

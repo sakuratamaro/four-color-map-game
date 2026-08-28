@@ -1,0 +1,49 @@
+{
+  "name": "four-color-map-game",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Turn-based four-color map strategy game with hidden palettes, tactical skills, math quizzes, and collectible skill cards.",
+  "main": "expo-router/entry",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "web": "expo start --web",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "typecheck": "tsc --noEmit",
+    "doctor": "npx expo-doctor@latest",
+    "deps:fix": "npx expo install --fix"
+  },
+  "dependencies": {
+    "@shopify/react-native-skia": "2.6.2",
+    "expo": "~57.0.1",
+    "expo-linking": "~57.0.5",
+    "expo-router": "~57.0.7",
+    "expo-splash-screen": "~57.0.5",
+    "expo-sqlite": "~57.0.1",
+    "expo-status-bar": "~57.0.0",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "react-native": "0.86.0",
+    "react-native-safe-area-context": "~5.7.0",
+    "react-native-screens": "4.25.2",
+    "react-native-web": "~0.21.0"
+  },
+  "devDependencies": {
+    "@types/jest": "^30.0.0",
+    "@types/react": "~19.2.0",
+    "jest": "^30.0.0",
+    "jest-expo": "~57.0.0",
+    "typescript": "~5.8.3"
+  },
+  "jest": {
+    "preset": "jest-expo",
+    "testMatch": [
+      "**/tests/**/*.test.ts"
+    ]
+  },
+  "engines": {
+    "node": ">=22.13.0"
+  }
+}
