@@ -1,44 +1,53 @@
 # Online MVP status
 
-## Implemented locally
+## Public alpha
 
-- Anonymous-authenticated room create/join flow
-- Fixed Player A / Player B seats and third-player rejection
-- Public, seat-private, and server-authoritative state separation
-- UUID action receipts and optimistic version checks
-- Quick-mode server-side action validation
-- Realtime invalidation plus persisted-state reload
-- Browser reload reconnection path
-- Turn lock, surrender, finish, and post-finish rejection paths
-
-## Verified against real Supabase
-
-- Additive migration applies idempotently
-- Public projection tables have RLS
-- Direct client writes are denied
-- Server-only functions are not executable by authenticated clients
-- Realtime publication contains all three public projection tables
-- Cleanup timestamps and cleanup RPC exist
-- Anonymous sign-in works in three independent browser sessions
-- A creates an invite-code room; B joins as the fixed second seat; C is rejected after occupancy
-- Edge Function initializes and atomically advances the persisted game version
-- A/B receive synchronized public state while retaining seat-specific private palettes, hands, and seals
-- Region creation, legal coloring, Color Prism, Half Shift, Color Seal, surrender, and finish all traverse the network path
-- Browser reload restores Player B, the current version, private state, and board
-- Invalid skill targeting returns a specific safe rule reason without degrading connection state
-
-## Not yet verified against real Supabase
-
-- Duplicate action replay and stale-version rejection through the deployed Edge Function
-- Forced Realtime interruption followed by polling recovery (ordinary page-reload recovery is verified)
-- Color Seal's later rebound through the network path (deterministic engine regression passes locally)
-- A direct browser query attempting to read the other seat's private row (catalog/RLS and normal projection behavior are verified)
-
-## Publication status
-
-- Personal public GitHub repository: `https://github.com/sakuratamaro/four-color-map-game`
-- Local `origin` points only to the personal repository.
-- Clean personal-history `main` is pushed; the legacy company-attributed import history remains local-only at `codex/legacy-import`.
-- GitHub Pages root: `https://sakuratamaro.github.io/four-color-map-game/`
+- Repository: `https://github.com/sakuratamaro/four-color-map-game`
+- v4.9 local game: `https://sakuratamaro.github.io/four-color-map-game/`
 - Online quick lobby: `https://sakuratamaro.github.io/four-color-map-game/online-v5/`
-- Pages build succeeded and both URLs passed HTTPS browser smoke checks.
+
+The online quick MVP is deployed and its primary path is playable. The company GitHub remote is not configured; legacy import history is local-only on `codex/legacy-import`.
+
+## Implemented
+
+- Supabase anonymous authentication
+- Six-character room creation/joining
+- Atomic fixed Player A/B assignment and occupied-room rejection
+- Public, seat-private, and server-authoritative state separation
+- Server-owned turn/rule/skill validation
+- UUID action receipts and optimistic version checks
+- Realtime invalidation with persisted polling/reload recovery
+- Surrender, authoritative victory, and post-finish rejection
+- Color Prism, Half Shift, and Color Seal with later curse rebound
+
+## Real-environment evidence
+
+- JWT/RLS/concurrency harness: 25/25
+  - missing/modified JWT and publishable-key-as-Bearer rejected;
+  - request-body user/seat spoofing and nonmember actions rejected;
+  - simultaneous B/C join assigns exactly one B;
+  - duplicate action ID applies once;
+  - same-version competing actions have one winner and one stale rejection;
+  - off-turn, explicit stale, and post-finish actions rejected;
+  - A/B see their member room and own private row; C sees zero rows;
+  - direct browser-table writes denied;
+  - A/B polling returns the final authoritative state.
+- Realtime harness: 2/2
+  - a member receives the authorized membership update;
+  - a third party subscribed to the same filtered topic receives no update.
+- Skill harness: 21/21
+  - Color Seal blocks the chosen color without advancing version;
+  - an alternate legal color succeeds;
+  - the seal curse later rebounds onto its user;
+  - Four Color Release can cover a cursed palette;
+  - adjacent same-color play causes authoritative `ILLEGAL_COLOR` defeat;
+  - further operations after finish are rejected.
+- Manual browser path additionally covered Half Shift, reload reconnection, Japanese rule-error rendering, and connection-health preservation.
+
+## Remaining scope outside the online quick MVP
+
+- Standard-mode quiz hint UX and difficulty curve
+- Additional existing-region skill variants
+- Broader balance simulation and long-session device testing
+
+These are the next product phase, not missing security primitives of the published quick MVP.

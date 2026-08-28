@@ -3,39 +3,57 @@
 ## Local gates
 
 - [x] Migration is additive and limited to `fcg_*` objects.
-- [x] Public browser-readable tables enable RLS and deny direct writes.
+- [x] Every `fcg_*` SECURITY DEFINER function pins `search_path = ''` and fully qualifies data objects.
+- [x] Public tables enable RLS and deny direct writes.
 - [x] Server-only RPCs are limited to `service_role`.
-- [x] Edge handler derives player identity from the verified JWT.
+- [x] Edge handler derives identity from a verified JWT and ignores body identity claims.
+- [x] Function deployment config requires JWT verification.
 - [x] Edge handler uses versioned UUID actions and the shared quick engine.
-- [x] Entire local automated test suite passes after the latest integration changes (27/27 after the final rerun).
-- [x] Original v4.9 local game loads byte-identically and advances to first-area selection.
+- [x] Entire local automated suite passes (28/28).
+- [x] Published local game is byte-identical to the verified v4.9 baseline.
+- [x] Quiz distribution regression covers all 36 answer-slot × numeric-rank cells over 60,000 questions.
 
-## Live Supabase foundation
+## Live identity, RLS, and concurrency
 
-- [x] Migration succeeds on the target project.
-- [x] Re-running the migration succeeds.
-- [x] Public RLS, private tables, Realtime publication, and RPC ACLs match the design.
-- [x] Anonymous authentication succeeds from browser A and browser B.
-- [x] Browser A creates a room and becomes Player A.
-- [x] Browser B joins by code and becomes Player B.
-- [x] Browser C cannot join the occupied room; direct cross-seat read remains a separate explicit probe.
+- [x] Missing JWT is rejected.
+- [x] Modified JWT is rejected.
+- [x] Publishable key used as a Bearer token is rejected.
+- [x] Valid anonymous JWT succeeds.
+- [x] Fake body `userId` / `seat` cannot impersonate a player.
+- [x] Simultaneous B/C join assigns exactly one Player B.
+- [x] Same `action_id` applies once.
+- [x] Different action IDs with the same expected version produce one success and one stale rejection.
+- [x] Explicit stale, off-turn, nonmember, and post-finish actions are rejected.
+- [x] A/B read their member room and both public seats; C reads zero rows.
+- [x] A and B each read only their own private projection.
+- [x] Direct authenticated updates to all three public game tables are denied.
 
-## Match path
+## Live delivery and match rules
 
-- [x] Both clients receive the same initial public board and version.
-- [x] Player A selects the first region; Player B receives it.
-- [x] Player B colors legally and selects the next region; turn returns to A.
-- [x] The inactive player's action controls are disabled.
-- [ ] A stale version fails without changing state.
-- [ ] Repeating an accepted action ID does not apply it twice.
-- [x] Color Prism, Half Shift, and Color Seal synchronize correctly.
-- [ ] Illegal color loss and curse rebound traverse the live network path; both pass deterministic engine regression, while live surrender/victory sync is verified.
-- [x] Live finished-state controls are disabled and deterministic server-engine actions after finish are rejected.
+- [x] Member receives an authorized Realtime update.
+- [x] Third-party subscriber receives no matching Realtime update.
+- [x] Polling/reload restores the final persisted version and status for A/B.
+- [x] Color Prism, Half Shift, and Color Seal traverse the live network path.
+- [x] Sealed color rejection does not advance state.
+- [x] Color Seal curse rebounds onto its user on the later turn.
+- [x] Adjacent same color causes authoritative loss.
+- [x] Surrender and post-finish rejection synchronize.
+- [x] Invalid rule reasons render in Japanese without falsely marking Realtime disconnected.
 
-## Reconnect and delivery
+## Dashboard and publication
 
-- [x] Reload restores the same seat and current version.
-- [ ] Realtime interruption recovers by refetching persisted state.
-- [x] GitHub Pages bundle contains no secret or service-role credential value.
-- [x] Local distribution ZIP and SHA-256 manifest are generated and checked.
-- [x] GitHub Pages deploys from personal `main / (root)` and serves both v4.9 and the online lobby over HTTPS.
+- [x] Security Advisor reports no errors; expected anonymous-game warnings are documented.
+- [x] Performance Advisor reports no errors or warnings.
+- [x] GitHub Pages bundle contains no secret/service-role credential value.
+- [x] Personal public repository and both Pages URLs are live.
+- [x] Delivery ZIP and SHA regenerated after the final hardening changes.
+
+## Repeatable commands
+
+The live scripts create disposable anonymous users and rooms; they require an explicit flag and never print tokens or user IDs.
+
+```powershell
+node scripts/live-security-smoke.mjs --confirm-live
+node scripts/live-realtime-smoke.mjs --confirm-live
+node scripts/live-skill-smoke.mjs --confirm-live
+```

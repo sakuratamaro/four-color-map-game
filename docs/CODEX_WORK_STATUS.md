@@ -1,60 +1,49 @@
 # Codex work status
 
-- Last update: 2026-08-29 01:25 JST
-- Stage: online quick MVP — real Supabase integration
-- Branch / base commit: `main` / `7c3692c`
-- GitHub: personal public repository `sakuratamaro/four-color-map-game`; clean personal-history `main` pushed and Pages enabled
+- Last update: 2026-08-29 01:54 JST
+- Stage: online quick MVP — public alpha hardening complete
+- Branch / base commit: `main` / `abcad3e`
+- GitHub: personal public repository `sakuratamaro/four-color-map-game`; Pages enabled
 
 ## Completed
 
-- Preserved the verified v4.9 game as the baseline.
-- Added the online state codec, pure quick engine, lobby/UI, Supabase migration, and Edge Function handler.
-- Added local migration, Edge handler, engine, codec, and UI tests.
-- Applied `202608280001_online_quick_mvp.sql` to Supabase project `qkcuhludisairpgzhryl` twice successfully.
-- Verified live database objects, public-table RLS, Realtime publication, direct-write denial, and client/server RPC separation.
-- Received and authenticated the older v5.0 RC1 ZIP by SHA-256; it is a regression reference and does not replace the safer server-authoritative design.
-- Added a deterministic 60,000-question v4.9 regression gate for answer-slot and numeric-rank fairness, including all 36 joint combinations, independence, maximum deviation, and slot-only predictability.
-- Incorporated ChatGPT design review for 3–5 second timer-pausing hints and tempo-costed existing-region interference skills.
-- Created the personal public GitHub destination and verified that no company GitHub remote is configured.
-- Deployed `game-action` with its function-local shared-engine copy; no managed secret value was read or exposed.
-- Enabled Supabase anonymous sign-in and verified three distinct anonymous browser sessions.
-- Completed a real A/B quick-match route through room creation/join, server initialization, region creation, coloring, all three loaned skills, reload reconnection, surrender, and synchronized finish.
-- Verified that anonymous Player C is rejected from an occupied room.
-- Added human-readable rule-rejection messages; invalid Half Shift targeting now explains the actual rule without falsely showing a connection outage.
-- Expanded the local regression suite to 27/27, including a byte-identical published v4.9 gate, Half Shift geometry, Color Seal rebound, and post-finish rejection.
-- Replaced the broken compressed v4.9 loader with the byte-identical verified v4.9 source; the published local entry now opens and advances to first-area selection.
-- Built `artifacts/four-color-map-game-v5-online-rc1.zip`; the archive contains the local v4.9 entry, online client, Supabase migration/function, documentation, and tests, but excludes `.git` and the artifact directory itself.
-- Published GitHub Pages from `main / (root)` and verified both the v4.9 root page and the anonymous-authenticated `/online-v5/` lobby over HTTPS.
-
-## Current
-
-- Harden the final delivery bundle and verify it contains no non-public credential.
-- Exercise deployed duplicate-action and stale-version conflicts with a controlled test harness.
-- Implement the one-use formula hint UI and constrained instant/normal/challenge/spike effort curve after the quick online network gate.
-- Implement legal server-side recolor first, then validate later existing-region skill variants in priority order.
-
-## Next
-
-1. Verify deployed duplicate-action and stale-version handling without exposing browser tokens.
-2. Implement the one-use hint system and legal existing-region recolor skill.
-3. Run paired-seat simulations, loadout dominance checks, and a Codex/ChatGPT adversarial playtest before declaring balance complete.
-
-## Blockers
-
-- Standard-mode quiz/hint and existing-region skill expansion remains after the quick online MVP gate.
+- Preserved the verified v4.9 game byte-for-byte as the local two-player baseline.
+- Added the server-authoritative online quick engine, lobby/UI, Supabase migration, RLS projections, and Edge Function.
+- Enabled anonymous sign-in and deployed `game-action` without reading or exposing managed secret values.
+- Published both the v4.9 root game and `/online-v5/` lobby from the personal repository.
+- Verified the normal A/B path: room code, fixed seats, private hands/palettes, all three quick skills, reload, surrender, and synchronized finish.
+- Verified a third anonymous player cannot enter, query, write, impersonate, or subscribe to another match.
+- Added a byte-identical v4.9 publication gate and a 60,000-question distribution gate for answer-slot and numeric-rank fairness.
+- Added repeatable live test harnesses for JWT/RLS/concurrency, Realtime RLS, and networked skill behavior. They print only pass/fail labels and never tokens or user IDs.
+- Kept the applied migration immutable at SHA-256 `0A9ABEC7DD86F30FEA5DECE458C38DC8DF94590D286A78554980DBB7A15846B3`.
 
 ## Latest verification
 
-- Local migration and Edge handler tests: 9/9 passed immediately before live migration.
-- Supabase migration run 1: success, no rows returned.
-- Supabase migration run 2: success, no rows returned.
-- Applied migration SHA-256: `0A9ABEC7DD86F30FEA5DECE458C38DC8DF94590D286A78554980DBB7A15846B3`.
-- Live verification: public tables, RLS, private tables, Realtime, direct-write blocking, client RPC ACL, and server RPC ACL all returned `true`.
-- Processed collaboration instruction: thread `6a90ba06-d1cc-83e8-b66a-b8b7a3794acd`, agent message `b0ac2eb3-8f97-4cee-95f1-9ae70c9f8779`.
-- Processed collaboration review: thread `6a90ba06-d1cc-83e8-b66a-b8b7a3794acd`, agent message `0180592b-5448-40fe-8908-f39ac6ad174f`.
-- Quiz fairness regression: 1/1 passed after adding the 6×6 joint-distribution checks.
-- Full local suite: 26/26 passed after the live-route fixes; the new byte-identical v4.9 publication gate brings the expected next run to 27 tests.
-- Live room `C4376A`: A/B reached version 11; Color Prism, Half Shift, Color Seal, reload reconnect, surrender, and synchronized finish passed; occupied-room C join was rejected.
-- Live rule-error room `12438F`: server reason was rendered in Japanese while the Realtime connection stayed healthy; room was then finished by surrender.
-- Local v4.9 browser smoke: original UI loaded, secret-information handoff completed, and the game advanced to the first-area selection phase.
-- GitHub Pages build `pages-build-deployment #1` completed successfully in 49 seconds; public root and online lobby both passed browser smoke checks.
+- Local automated suite: 28/28 passed.
+- Live security/concurrency: 25/25 passed.
+- Live Realtime isolation: 2/2 passed.
+- Live skills: 21/21 passed.
+- SQL transaction-local RLS probe: A isolated = true, B isolated = true, C blocked = true.
+- Security Advisor: no errors. Expected warnings remain for the three anonymous-auth game tables and the three intentionally callable `fcg_*` SECURITY DEFINER entry/helper functions. Two `public.rls_auto_enable()` warnings predate and are unrelated to this game, so they were not changed.
+- Performance Advisor: no errors and no warnings; three informational suggestions only.
+- GitHub Pages build #1 succeeded; both public URLs passed HTTPS browser smoke checks.
+
+## Migration history note
+
+The first migration was applied manually in the Dashboard SQL Editor. This project has no `supabase_migrations.schema_migrations` relation and the Supabase CLI is not installed locally, so CLI history/dry-run output is unavailable. The exact applied SQL is retained immutably by its SHA-256 above; future schema changes must use a new numbered migration instead of editing it.
+
+## Current
+
+- Delivery ZIP regenerated with 100 entries and no `.git` or nested `artifacts`; the companion manifest records its SHA-256.
+- Commit and push the verified hardening changes to the personal public repository.
+- Keep quiz/hint and additional existing-region skills frozen until this online-MVP checkpoint is recorded, then resume them as the next design phase.
+
+## Next design phase
+
+1. Add the one-use, 3–5 second timer-pausing formula hint and the instant/normal/challenge/spike question curve.
+2. Implement a server-validated legal recolor/blanking skill before adding random variants.
+3. Run paired-seat simulations and loadout-dominance checks before expanding the card pool.
+
+## Processed collaboration messages
+
+- Thread `6a90ba06-d1cc-83e8-b66a-b8b7a3794acd`, agent messages `b0ac2eb3-8f97-4cee-95f1-9ae70c9f8779`, `0180592b-5448-40fe-8908-f39ac6ad174f`, and `cbac4e41-89b8-4f5b-b9e6-9d8442cec7ef`.

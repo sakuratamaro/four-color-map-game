@@ -7,6 +7,7 @@ const test = require("node:test");
 
 const handlerPath = path.join(__dirname, "..", "supabase", "functions", "game-action", "index.ts");
 const source = fs.readFileSync(handlerPath, "utf8");
+const config = fs.readFileSync(path.join(__dirname, "..", "supabase", "config.toml"), "utf8");
 const browserEnginePath = path.join(__dirname, "..", "online", "quick-engine.js");
 const deployEnginePath = path.join(
   __dirname,
@@ -18,6 +19,7 @@ const deployEnginePath = path.join(
 );
 
 test("Edge handler derives identity from verified bearer JWT", () => {
+  assert.match(config, /\[functions\.game-action\][\s\S]*verify_jwt\s*=\s*true/);
   assert.match(source, /authClient\.auth\.getUser\(\)/);
   assert.match(source, /p_actor_id:\s*authData\.user\.id/);
   assert.doesNotMatch(source, /body\.(userId|actorId)/);

@@ -8,6 +8,8 @@ Only the Project URL and publishable key in `online/supabase-config.js` are brow
 
 Run `supabase/migrations/202608280001_online_quick_mvp.sql` once in the project's SQL Editor. It is additive and idempotent by object name. It creates only `fcg_*` objects and the `fcg_private` schema; it does not delete or alter unrelated application objects.
 
+The deployed project received this first migration manually through the Dashboard SQL Editor, so it does not have a `supabase_migrations.schema_migrations` history relation. The local Supabase CLI is also unavailable. Treat the applied file as immutable; its recorded SHA-256 is `0A9ABEC7DD86F30FEA5DECE458C38DC8DF94590D286A78554980DBB7A15846B3`, and any future database change must be a new migration file.
+
 The migration provides:
 
 - anonymous-authenticated room creation and joining via six-character room codes;
@@ -38,10 +40,14 @@ Realtime is used as an invalidation signal. After a change or reconnect, clients
 - [x] Private tables `fcg_private.authoritative_matches` and `fcg_private.action_receipts` exist.
 - [x] Anonymous A can create a room.
 - [x] Anonymous B can join using the returned code.
-- [x] Anonymous C cannot join an occupied A/B room; an explicit cross-room select probe is still pending.
-- [x] Normal A/B client queries each return only that seat's `fcg_player_views` row; an explicit malicious cross-seat selector probe is still pending.
-- [ ] Direct inserts/updates/deletes as `authenticated` are denied.
-- [x] Realtime synchronizes participant-visible room, membership, and own player-view changes; explicit hostile-row subscription remains pending.
+- [x] Anonymous C cannot join an occupied A/B room and reads zero rows for that room.
+- [x] A/B each return only their own `fcg_player_views` row; the opposite seat and C are hidden.
+- [x] Direct authenticated updates to `fcg_rooms`, `fcg_room_members`, and `fcg_player_views` are denied through PostgREST.
+- [x] Realtime sends the filtered room-member update to A and sends no matching update to subscribed outsider C.
 - [x] Edge handler initializes, loads, validates, and atomically commits normal actions.
+- [x] Missing, modified, and publishable-key Bearer tokens are rejected; valid anonymous JWT succeeds.
+- [x] Same-ID replay, same-version conflicts, stale/off-turn/nonmember/post-finish actions all follow the expected server result.
+- [x] Dashboard Security Advisor reports no errors; game-related warnings match the intentional anonymous-auth API surface.
+- [x] Dashboard Performance Advisor reports no errors or warnings.
 
-The dashboard warning about tables being created without RLS was expected: the migration creates the tables first and enables RLS later in the same transaction. The migration's own RLS statements were retained, and the post-run catalog query confirmed RLS on all browser-readable tables.
+The remaining game-related Security Advisor warnings are expected: anonymous-authenticated players must be able to call room create/join and the RLS membership helper, and the three public projections intentionally allow only authenticated anonymous participants through RLS. The separate warnings for `public.rls_auto_enable()` are unrelated pre-existing project objects and were not changed. Post-run SQL and live HTTP/WebSocket probes confirmed the intended isolation.

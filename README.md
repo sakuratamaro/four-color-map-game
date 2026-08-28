@@ -10,9 +10,16 @@ Turn-based four-color map strategy game with hidden palettes, tactical skills, m
 - `index.html`: 検証済みv4.9ローカル2人対戦の原本（単体HTML）
 - `online-v5/index.html`: Supabaseを使うv5.0オンライン速攻チュートリアル
 
+公開版:
+
+- ローカル2人対戦: https://sakuratamaro.github.io/four-color-map-game/
+- オンライン速攻MVP: https://sakuratamaro.github.io/four-color-map-game/online-v5/
+
 オンライン版は、別々のブラウザまたは端末から同じページを開き、一方が表示した6文字の合言葉をもう一方が入力して遊びます。匿名ログインなのでメールアドレス登録は不要です。ブラウザへ含める設定はProject URLとPublishable keyだけで、ゲーム状態の確定はSupabase Edge Functionが行います。
 
-現在のオンライン公開候補は速攻モードMVPです。v4.9本編を作り直したものではなく、v4.9のルールと幾何エンジンを基点に、オンライン同期の主要経路を先に検証するための版です。セットアップと検証状況は `docs/SUPABASE_SETUP.md` と `docs/TEST_CHECKLIST.md` を参照してください。
+現在のオンライン公開版は速攻モードMVPです。v4.9本編を作り直したものではなく、v4.9のルールと幾何エンジンを基点に、オンライン同期の主要経路を先に完成させた版です。セットアップと検証状況は `docs/SUPABASE_SETUP.md` と `docs/TEST_CHECKLIST.md` を参照してください。
+
+実Supabaseでは、JWT/RLS/競合25項目、Realtime隔離2項目、ネットワーク経由スキル21項目を自動検証済みです。再試験用スクリプトは `scripts/live-*-smoke.mjs` にあり、明示フラグなしでは実環境へ書き込みません。
 
 プレイヤーは自分が塗るエリアを選ぶのではなく、**次に相手が塗るエリアを指定**します。
 
@@ -329,7 +336,13 @@ Hard quiz + normal clear
 
 # Technology
 
-Current planned stack:
+Current browser implementation:
+
+* HTML / CSS / JavaScript
+* Supabase Auth / PostgreSQL / Realtime / RLS / Edge Functions
+* GitHub Pages
+
+Longer-term native-app candidate:
 
 * Expo
 * React Native
@@ -339,9 +352,7 @@ Current planned stack:
 * Jest / jest-expo
 * expo-sqlite
 
-Online multiplayer is planned as a later phase.
-
-Current backend candidate:
+Current backend:
 
 * Supabase
 
@@ -522,13 +533,13 @@ Initial candidates:
 
 # Status
 
-**Planning / early prototype stage**
+**Public online quick MVP / standard-mode design continuation**
 
-The current goal is to validate whether the core loop—
+The online quick path is deployed and security-tested. The next goal is to deepen and balance the core loop—
 
 > create a region for the opponent, infer their hidden palette, force difficult coloring decisions, and escape or reverse threats using consumable skill cards
 
-—is enjoyable before investing in advanced online functionality, monetization, or production-level presentation.
+—with the standard-mode quiz/hint flow and additional legal existing-region skills before broader production polish or monetization.
 
 ---
 

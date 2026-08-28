@@ -31,6 +31,31 @@ test("server-only RPCs are granted only to service_role", () => {
   }
 });
 
+test("every fcg SECURITY DEFINER function pins an empty search_path and qualifies data objects", () => {
+  const functions = [
+    "fcg_is_room_member",
+    "fcg_create_room",
+    "fcg_join_room",
+    "fcg_server_initialize_room",
+    "fcg_server_load_room",
+    "fcg_server_commit_action",
+    "fcg_server_cleanup_expired",
+  ];
+  for (const [index, name] of functions.entries()) {
+    const start = sql.search(new RegExp(`create or replace function public\\.${name}\\(`, "i"));
+    assert.notEqual(start, -1, `${name} must exist`);
+    const nextName = functions[index + 1];
+    const end = nextName ? sql.search(new RegExp(`create or replace function public\\.${nextName}\\(`, "i")) : sql.length;
+    const body = sql.slice(start, end);
+    assert.match(body, /security definer\s+set search_path\s*=\s*''/i, `${name} must pin search_path`);
+    assert.doesNotMatch(
+      body,
+      /\b(?:from|into|update|join|delete\s+from)\s+(?:fcg_(?:rooms|room_members|player_views)\b|authoritative_matches\b|action_receipts\b)/i,
+      `${name} must schema-qualify every data object`,
+    );
+  }
+});
+
 test("migration contains version, idempotency, realtime, and expiry controls", () => {
   assert.match(sql, /primary key \(room_id, action_id\)/i);
   assert.match(sql, /stale match version/i);
