@@ -1,9 +1,9 @@
 # Codex work status
 
-- Last update: 2026-08-29 01:35 JST
+- Last update: 2026-08-29 01:25 JST
 - Stage: online quick MVP — real Supabase integration
 - Branch / base commit: `main` / `7c3692c`
-- GitHub: personal public repository `sakuratamaro/four-color-map-game` connected as `origin`; no push performed yet
+- GitHub: personal public repository `sakuratamaro/four-color-map-game`; clean personal-history `main` pushed and Pages enabled
 
 ## Completed
 
@@ -24,6 +24,7 @@
 - Expanded the local regression suite to 27/27, including a byte-identical published v4.9 gate, Half Shift geometry, Color Seal rebound, and post-finish rejection.
 - Replaced the broken compressed v4.9 loader with the byte-identical verified v4.9 source; the published local entry now opens and advances to first-area selection.
 - Built `artifacts/four-color-map-game-v5-online-rc1.zip`; the archive contains the local v4.9 entry, online client, Supabase migration/function, documentation, and tests, but excludes `.git` and the artifact directory itself.
+- Published GitHub Pages from `main / (root)` and verified both the v4.9 root page and the anonymous-authenticated `/online-v5/` lobby over HTTPS.
 
 ## Current
 
@@ -35,13 +36,11 @@
 ## Next
 
 1. Verify deployed duplicate-action and stale-version handling without exposing browser tokens.
-2. Push the verified quick MVP to the personal public repository and enable Pages.
-3. Implement the one-use hint system and legal existing-region recolor skill.
-4. Run paired-seat simulations, loadout dominance checks, and a Codex/ChatGPT adversarial playtest before declaring balance complete.
+2. Implement the one-use hint system and legal existing-region recolor skill.
+3. Run paired-seat simulations, loadout dominance checks, and a Codex/ChatGPT adversarial playtest before declaring balance complete.
 
 ## Blockers
 
-- No code has been pushed to the personal repository until the public-secret scan, v4.9 smoke route, and deploy-conflict checks complete.
 - Standard-mode quiz/hint and existing-region skill expansion remains after the quick online MVP gate.
 
 ## Latest verification
@@ -58,3 +57,4 @@
 - Live room `C4376A`: A/B reached version 11; Color Prism, Half Shift, Color Seal, reload reconnect, surrender, and synchronized finish passed; occupied-room C join was rejected.
 - Live rule-error room `12438F`: server reason was rendered in Japanese while the Realtime connection stayed healthy; room was then finished by surrender.
 - Local v4.9 browser smoke: original UI loaded, secret-information handoff completed, and the game advanced to the first-area selection phase.
+- GitHub Pages build `pages-build-deployment #1` completed successfully in 49 seconds; public root and online lobby both passed browser smoke checks.

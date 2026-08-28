@@ -38,4 +38,7 @@
 
 - Personal public GitHub repository: `https://github.com/sakuratamaro/four-color-map-game`
 - Local `origin` points only to the personal repository.
-- No push has been performed yet; publish only after secret scanning and the live quick-route gate.
+- Clean personal-history `main` is pushed; the legacy company-attributed import history remains local-only at `codex/legacy-import`.
+- GitHub Pages root: `https://sakuratamaro.github.io/four-color-map-game/`
+- Online quick lobby: `https://sakuratamaro.github.io/four-color-map-game/online-v5/`
+- Pages build succeeded and both URLs passed HTTPS browser smoke checks.

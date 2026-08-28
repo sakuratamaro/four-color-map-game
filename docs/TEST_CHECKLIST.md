@@ -38,3 +38,4 @@
 - [ ] Realtime interruption recovers by refetching persisted state.
 - [x] GitHub Pages bundle contains no secret or service-role credential value.
 - [x] Local distribution ZIP and SHA-256 manifest are generated and checked.
+- [x] GitHub Pages deploys from personal `main / (root)` and serves both v4.9 and the online lobby over HTTPS.
