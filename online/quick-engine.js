@@ -128,6 +128,24 @@
     return seen.size === set.size;
   }
 
+  function connectedComponents(values, neighborFn) {
+    const remaining = new Set(values);
+    const result = [];
+    while (remaining.size) {
+      const start = Math.min(...remaining);
+      const component = [];
+      const queue = [start];
+      remaining.delete(start);
+      while (queue.length) {
+        const current = queue.shift();
+        component.push(current);
+        for (const next of neighborFn(current)) if (remaining.delete(next)) queue.push(next);
+      }
+      result.push(component.sort((a, b) => a - b));
+    }
+    return result.sort((a, b) => a[0] - b[0]);
+  }
+
   function randomIndex(length, random) {
     const value = Number(random());
     assertRule(Number.isFinite(value) && value >= 0 && value < 1, "INVALID_RANDOM", "Random source must return [0, 1)");
@@ -335,6 +353,30 @@
     }
   }
 
+  function splitDisconnectedRegions(state) {
+    let splitCount = 0;
+    for (const id of Object.keys(state.regions).sort()) {
+      const region = state.regions[id];
+      const parts = connectedComponents(region.micro, microNeighbors);
+      region.micro = parts[0];
+      region.sourceMacros = [...new Set(parts[0].map(macroOfMicro))];
+      for (const part of parts.slice(1)) {
+        const newId = `R${state.nextRegion}`;
+        state.nextRegion += 1;
+        state.regions[newId] = {
+          ...region,
+          id: newId,
+          sourceMacros: [...new Set(part.map(macroOfMicro))],
+          micro: part,
+          controllers: [...region.controllers],
+          isPending: false,
+        };
+        splitCount += 1;
+      }
+    }
+    return splitCount;
+  }
+
   function consumeSkill(state, actor, key) {
     assertRule((state.hands[actor][key] || 0) > 0, "SKILL_UNAVAILABLE", "Skill is unavailable");
     state.hands[actor][key] -= 1;
@@ -419,12 +461,12 @@
         occupied.add(next);
         nextMicro.push(next);
       }
-      assertRule(connected(nextMicro, microNeighbors), "INVALID_SHIFT", "Shift disconnects a region");
       moved[region.id] = nextMicro;
     }
     assertRule(movedCount > 0, "INVALID_SHIFT", "Selected band contains no geometry");
     consumeSkill(state, actor, "areaHalfShift");
     for (const [id, micro] of Object.entries(moved)) state.regions[id].micro = micro;
+    splitDisconnectedRegions(state);
     mergeSameColorRegions(state);
     const adjusted = bestLegalSize(state, state.requiredSize);
     if (adjusted <= 0) finish(state, actor, TERMINAL_REASONS.BOARD_LOCK);

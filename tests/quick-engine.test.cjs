@@ -114,6 +114,28 @@ test("Half Shift moves a populated band by half a macro and consumes exactly one
   assert.equal(state.version, 3);
 });
 
+test("Half Shift preserves a disconnected result as deterministic separate regions", () => {
+  let state = engine.createQuickGame({ random: cycleRandom() });
+  state.phase = "WORK";
+  state.active = "A";
+  state.requiredSize = 1;
+  state.regions = {
+    R1: { id: "R1", sourceMacros: [0, 1], micro: [3, 4], color: "red", createdBy: "A", controllers: ["A"], isPending: false },
+  };
+  state.nextRegion = 2;
+  state = engine.applyAction(state, "A", action("shiftsp1", 0, "USE_SKILL", {
+    skill: "areaHalfShift",
+    macro: engine.internals.mIndex(1, 0),
+    direction: "down",
+  }), { random: cycleRandom() }).state;
+  assert.deepEqual(state.regions.R1.micro, [3]);
+  assert.deepEqual(state.regions.R2.micro, [100]);
+  assert.equal(state.regions.R1.color, "red");
+  assert.equal(state.regions.R2.color, "red");
+  assert.deepEqual(state.regions.R2.controllers, ["A"]);
+  assert.equal(state.hands.A.areaHalfShift, 0);
+});
+
 test("Color Seal affects the opponent once and later rebounds onto its user", () => {
   const random = cycleRandom();
   let state = engine.createQuickGame({ random });
