@@ -66,6 +66,15 @@
       persist();
       return clone(result);
     }
+    async function drawGacha({ expectedRevision = state.profileRevision, actionId = idFactory(), ticketLevel, count }) {
+      await ensureSession();
+      if (!UUID_PATTERN.test(String(actionId)) || !Number.isSafeInteger(ticketLevel) || ticketLevel < 1 || ticketLevel > 5
+          || !Number.isSafeInteger(count) || count < 1 || count > 100) throw new Error("INVALID_GACHA_REQUEST");
+      const result = await invoke("gacha", { expectedRevision, actionId, ticketLevel, count });
+      state.profileRevision = Number(result.revision);
+      persist();
+      return clone(result);
+    }
     async function readProfile() {
       const currentSession = await ensureSession();
       const result = await supabase.from("fcg_standard_profiles")
@@ -97,6 +106,9 @@
       const response = await supabase.rpc("fcg_standard_join_room", { p_room_code: code, p_display_name: requiredText(displayName, "INVALID_DISPLAY_NAME", 20) });
       if (response.error) throw response.error;
       const row = firstRow(response.data);
+      if (!row || !UUID_PATTERN.test(String(row.room_id)) || row.game_mode !== "standard_v5") {
+        throw Object.assign(new Error("部屋が見つからないか、現在参加できません。"), { code: row?.seat === "ERROR_RATE_LIMIT" ? "RATE_LIMITED" : "JOIN_FAILED" });
+      }
       state.roomId = row.room_id;
       state.roomCode = code;
       state.setupRevision = 0;
@@ -193,6 +205,7 @@
     return Object.freeze({
       clearRoom,
       createRoom,
+      drawGacha,
       ensureSession,
       initialize,
       joinRoom,

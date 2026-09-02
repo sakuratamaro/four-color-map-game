@@ -37,6 +37,14 @@
   }
   function regionId(value) { if (typeof value !== "string" || !/^R[1-9][0-9]*$/.test(value)) invalid(); return value; }
 
+  function availableColorChoices(privateState = {}) {
+    const choices = new Set(Array.isArray(privateState.basicPalette) ? privateState.basicPalette : []);
+    if (privateState.bonusUsesRemaining > 0) choices.add(privateState.bonusColor);
+    for (const color of privateState.privateEffects?.temporaryColors || []) choices.add(color);
+    if (privateState.privateEffects?.prism) for (const color of COLORS) choices.add(color);
+    return Object.freeze(COLORS.filter((color) => choices.has(color)));
+  }
+
   function buildSkillPayload(skill, input = {}) {
     const kind = TARGET_KIND[skill];
     if (!kind) throw Object.assign(new Error("UNKNOWN_STANDARD_SKILL"), { code: "UNKNOWN_STANDARD_SKILL" });
@@ -60,5 +68,5 @@
     invalid();
   }
 
-  return Object.freeze({ COLORS, TARGET_KIND, buildSkillPayload, isImmediate: (skill) => TARGET_KIND[skill] === "none" });
+  return Object.freeze({ COLORS, TARGET_KIND, availableColorChoices, buildSkillPayload, isImmediate: (skill) => TARGET_KIND[skill] === "none" });
 });
