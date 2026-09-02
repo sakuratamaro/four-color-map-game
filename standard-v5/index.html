@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>四色地図 標準モード α</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="terminal-reveal.css">
+  <style>
+    .contact-reveal{position:fixed;inset:0;z-index:45;display:grid;place-items:center;pointer-events:none}
+    .contact-reveal[hidden]{display:none}
+    .contact-reveal-card{min-width:min(440px,90vw);text-align:center;padding:22px;border:2px solid #facc15;border-radius:24px;background:rgba(17,28,48,.94);box-shadow:0 0 70px #facc1555;animation:contact-pop .85s ease-out both}
+    .contact-reveal-card.epic{border-color:#c084fc;box-shadow:0 0 90px #c084fc66}
+    .contact-reveal-card p{margin:0}.contact-reveal-card p:first-child{font-size:clamp(34px,9vw,64px);font-weight:900}.contact-reveal-card p:last-child{margin-top:8px;color:#cbd5e1;font-weight:800}
+    @keyframes contact-pop{0%{transform:scale(.8);opacity:0}20%,75%{transform:scale(1);opacity:1}100%{transform:scale(1.04);opacity:0}}
+    @media(prefers-reduced-motion:reduce){.contact-reveal-card{animation:contact-fade .65s ease-out both}@keyframes contact-fade{0%,85%{opacity:1}100%{opacity:0}}}
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header><div><p class="eyebrow">LOCAL STANDARD α</p><h1>四色地図</h1></div></header>
+    <section class="setup" aria-label="対戦設定">
+      <strong>ローカル2人対戦</strong>
+      <label>ルール<select id="ruleSet"><option value="STANDARD_V5_ALPHA_SLICE">標準α・回帰用</option><option value="STANDARD_V5">標準・熟考モード</option></select></label>
+      <label>Player A<select id="profileA"></select></label>
+      <label>Player B<select id="profileB"></select></label>
+      <label>先手<select id="firstPlayer"><option value="A">Player A</option><option value="B">Player B</option></select></label>
+      <button id="startMatch" type="button">標準α対戦を開始</button>
+      <label class="toggle"><input id="sizeRevealEnabled" type="checkbox" checked> 🎲 Xマス演出</label>
+      <label class="toggle"><input id="paletteRevealEnabled" type="checkbox" checked> 初期持ち色演出</label>
+    </section>
+    <section id="loadoutBuilder" class="loadout-builder panel" aria-label="持込カード選択" hidden>
+      <div class="loadout-seat"><h2>Player A 持込</h2><div id="loadoutA"></div><p id="loadoutAStatus" class="loadout-status" aria-live="polite"></p></div>
+      <div class="loadout-seat"><h2>Player B 持込</h2><div id="loadoutB"></div><p id="loadoutBStatus" class="loadout-status" aria-live="polite"></p></div>
+    </section>
+    <section id="setupDetails" class="status" aria-live="polite"></section>
+    <section class="status" id="status" aria-live="polite"></section>
+    <div class="layout">
+      <section class="panel"><div id="board" class="board" aria-label="盤面"></div></section>
+      <aside class="panel"><div id="privatePanel"></div><div class="actions"><button id="commitRegion" type="button">選んだエリアを渡す</button><button id="surrender" type="button" class="danger">投了</button></div><p id="notice" class="notice" aria-live="polite"></p></aside>
+    </div>
+    <section id="resultPanel" class="panel terminal-result" aria-labelledby="terminalHeadline" hidden>
+      <p class="eyebrow">MATCH RESULT</p>
+      <h2 id="terminalHeadline"></h2>
+      <p id="terminalWinner" class="terminal-winner"></p>
+      <p id="terminalReason" class="terminal-reason"></p>
+      <p id="settlementStatus" class="terminal-settlement"></p>
+      <div id="terminalStats" class="terminal-stats" hidden></div>
+      <div id="unlockedTrophies" class="terminal-trophies" hidden></div>
+      <button id="retrySettlement" type="button" hidden>もう一度保存</button>
+    </section>
+    <section id="quizPanel" class="panel quiz-panel" aria-labelledby="quizHeading">
+      <p class="eyebrow">NUMBER RUSH</p>
+      <h2 id="quizHeading">数字ラッシュ</h2>
+      <p>10問中3回目のミスで終了します。ヒント表示中は解答時間が完全に停止します。</p>
+      <div id="quizSetup" class="quiz-setup">
+        <label>挑戦するプロフィール<select id="quizProfile"></select></label>
+        <label>ガチャ券レベル<select id="quizLevel"><option value="1">Lv.1</option><option value="2">Lv.2</option><option value="3">Lv.3</option><option value="4">Lv.4</option><option value="5">Lv.5</option></select></label>
+        <button id="startQuiz" type="button">10問チャレンジ開始</button>
+      </div>
+      <p id="quizStatus" class="notice" aria-live="polite"></p>
+      <div id="quizPlay" hidden>
+        <div class="quiz-score"><span id="quizCounter"></span><span id="quizScore"></span></div>
+        <div class="quiz-time" aria-label="残り時間"><div id="quizTimeBar"></div></div>
+        <p id="quizQuestion" class="quiz-question"></p>
+        <div id="quizOptions" class="quiz-options"></div>
+        <div class="quiz-controls"><button id="quizHint" type="button">ヒント</button><button id="quizNext" type="button" hidden>次の問題</button></div>
+        <p id="quizHintText" class="quiz-hint" role="status" hidden></p>
+      </div>
+      <div id="quizResult" class="quiz-result" hidden></div>
+      <button id="quizSaveReward" type="button" hidden>報酬保存を再試行</button>
+    </section>
+    <section id="gachaPanel" class="panel gacha-panel" aria-labelledby="gachaHeading">
+      <p class="eyebrow">SKILL GACHA</p>
+      <h2 id="gachaHeading">スキルカードガチャ</h2>
+      <p>数字ラッシュで獲得した券を使い、正規19種類からカードを獲得します。</p>
+      <div class="gacha-setup">
+        <label>プロフィール<select id="gachaProfile"></select></label>
+        <label>使用する券<select id="gachaLevel"><option value="1">Lv.1</option><option value="2">Lv.2</option><option value="3">Lv.3</option><option value="4">Lv.4</option><option value="5">Lv.5</option></select></label>
+        <button id="gachaDrawOne" type="button">1回引く</button>
+        <button id="gachaDrawAll" type="button">このLv.を全部引く</button>
+      </div>
+      <p id="gachaTickets" class="notice"></p>
+      <p id="gachaStatus" class="notice" aria-live="polite"></p>
+      <button id="gachaRetry" type="button" hidden>同じ抽選を再試行</button>
+      <div id="gachaResults" class="gacha-results"></div>
+    </section>
+    <section id="cardSalePanel" class="panel economy-panel" aria-labelledby="cardSaleHeading">
+      <p class="eyebrow">CARD EXCHANGE</p>
+      <h2 id="cardSaleHeading">カード売却・コイン</h2>
+      <p>予約中のカードと最後の1枚は売却できません。保護カードも売却対象外です。</p>
+      <div class="economy-setup">
+        <label>プロフィール<select id="cardSaleProfile"></select></label>
+        <label>売却するカード<select id="cardSaleSkill"></select></label>
+        <label>枚数<input id="cardSaleQuantity" type="number" min="1" step="1" value="1"></label>
+        <button id="cardSaleQuote" type="button">売却内容を確認</button>
+      </div>
+      <p id="cardSaleCoins" class="economy-coins"></p>
+      <p id="cardSaleStatus" class="notice" aria-live="polite"></p>
+      <div id="cardSaleConfirmation" class="economy-confirmation" hidden>
+        <p id="cardSaleConfirmationText"></p>
+        <button id="cardSaleCommit" type="button">この内容で売却</button>
+        <button id="cardSaleCancel" type="button">キャンセル</button>
+      </div>
+      <button id="cardSaleRetry" type="button" hidden>同じ売却を再試行</button>
+    </section>
+    <section id="cosmeticPanel" class="panel collection-panel" aria-labelledby="cosmeticHeading">
+      <p class="eyebrow">COSMETIC COLLECTION</p>
+      <h2 id="cosmeticHeading">外観・称号・トロフィー</h2>
+      <p>コインとトロフィーは外観だけを解放します。カード、ガチャ券、対戦能力は増えません。</p>
+      <div class="collection-setup"><label>プロフィール<select id="cosmeticProfile"></select></label><p id="cosmeticCoins" class="economy-coins"></p></div>
+      <p id="collectionIdentity" class="collection-identity"></p>
+      <p id="cosmeticStatus" class="notice" aria-live="polite"></p>
+      <div id="cosmeticCatalog" class="collection-grid"></div>
+      <div id="cosmeticConfirmation" class="economy-confirmation" hidden>
+        <p id="cosmeticConfirmationText"></p>
+        <button id="cosmeticCommit" type="button">この内容で確定</button>
+        <button id="cosmeticCancel" type="button">キャンセル</button>
+      </div>
+      <button id="cosmeticRetry" type="button" hidden>同じ購入・装備を再試行</button>
+      <h3>トロフィー</h3>
+      <div id="trophyCatalog" class="collection-grid"></div>
+    </section>
+  </main>
+  <div id="handover" class="handover" hidden><div class="handover-card"><p>端末を渡してください</p><h2 id="handoverSeat"></h2><button id="revealTurn" type="button">自分の情報を表示</button></div></div>
+  <div id="eventReveal" class="event-reveal" hidden role="dialog" aria-modal="true" aria-labelledby="eventRevealTitle">
+    <div id="eventRevealCard" class="event-reveal-card">
+      <p id="eventRevealKicker" class="event-reveal-kicker"></p>
+      <div id="eventRevealVisual" class="event-reveal-visual" aria-hidden="true"></div>
+      <h2 id="eventRevealTitle"></h2>
+      <p id="eventRevealDetail" class="event-reveal-detail"></p>
+      <button id="eventRevealSkip" type="button">次へ</button>
+    </div>
+  </div>
+  <script src="app.bundle.js"></script>
+</body>
+</html>

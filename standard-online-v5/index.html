@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>Four Color Map Game v5.0 Standard Online</title>
+  <link rel="stylesheet" href="../online-v5/style.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <div><h1>Four Color Map Game</h1><p>v5.0 Standard Online — 正式6枚対戦</p></div>
+    <a href="../standard-v5/index.html">ローカル Standard</a>
+  </header>
+  <main>
+    <section class="card">
+      <div class="row between"><strong>接続状態</strong><span id="connectionBadge" class="badge warn">接続中</span></div>
+      <p id="connectionMessage" class="muted">匿名セッションを準備しています。</p>
+    </section>
+
+    <section id="profileCard" class="card hidden">
+      <h2>1. ローカルプロフィールを同期</h2>
+      <label>プロフィール<select id="profileSelect"></select></label>
+      <p id="profileSummary" class="muted"></p>
+      <div id="starterCreator" class="join-box hidden">
+        <input id="starterName" maxlength="20" autocomplete="nickname" placeholder="あなたの名前（20文字まで）">
+        <button id="createStarterProfile">はじめて用プロフィールを作る</button>
+      </div>
+      <button id="syncProfile" class="primary">このプロフィールをオンライン用に同期</button>
+      <p class="muted small">この端末のStandardセーブから選べます。初めての場合は、今夜の対戦用スターター6枚をこのオンライン画面だけに作成します。相手には名前と対戦中の公開情報だけが表示されます。</p>
+    </section>
+
+    <section id="lobby" class="card hidden">
+      <h2>2. Standardルーム</h2>
+      <div class="lobby-grid">
+        <button id="createRoom" class="primary">Standardルームを作る</button>
+        <div class="join-box">
+          <input id="roomCode" maxlength="6" autocomplete="off" placeholder="合言葉6文字">
+          <button id="joinRoom">合言葉で参加</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="room" class="card hidden">
+      <div class="row between wrap">
+        <div><span class="muted">合言葉</span><strong id="shownCode" class="room-code">------</strong></div>
+        <div><span id="seatBadge" class="badge"></span><span id="roomStatus" class="badge warn"></span></div>
+      </div>
+      <div id="members" class="members"></div>
+      <p id="waitingMessage" class="callout">相手と6枚セットを待っています。</p>
+      <button id="leaveRoom" class="ghost">この端末でルーム表示を閉じる</button>
+    </section>
+
+    <section id="setupCard" class="card hidden">
+      <h2>3. 正式6枚セット</h2>
+      <p class="muted">色・エリア・妨害から、所持カードを2枚ずつ選びます。</p>
+      <div id="loadoutGrid" class="loadout-grid"></div>
+      <button id="submitSetup" class="primary">この6枚をサーバーで確認</button>
+      <p id="setupStatus" class="muted"></p>
+    </section>
+
+    <section id="matchCard" class="card hidden">
+      <h2>対戦同期</h2>
+      <div class="row wrap"><span id="turnBadge" class="badge"></span><span>version <b id="versionText">0</b></span></div>
+      <p id="phaseText" class="callout"></p>
+      <canvas id="board" width="720" height="720" aria-label="Standardオンライン盤面"></canvas>
+      <div id="regionControls" class="controls hidden">
+        <span id="selectionCount"></span>
+        <button id="clearSelection" class="ghost">選択解除</button>
+        <button id="submitRegion" class="primary">このエリアを渡す</button>
+      </div>
+      <div id="paletteControls" class="controls"></div>
+      <h3>あなたの6枚</h3>
+      <div id="skillControls" class="skills"></div>
+      <div id="skillTargetControls" class="target-panel hidden"></div>
+      <div class="controls">
+        <button id="declareNoColor" class="ghost hidden">使用可能色なしを宣言</button>
+        <button id="surrender" class="danger compact-danger">投了する</button>
+        <button id="retryAction" class="primary hidden">同じ操作を再送</button>
+      </div>
+      <p id="actionStatus" class="muted" aria-live="polite"></p>
+      <div id="rematchControls" class="target-panel hidden">
+        <strong>もう一度対戦</strong>
+        <p id="rematchStatus" class="muted">両プレイヤーの申請後、6枚セットを選び直します。</p>
+        <button id="requestRematch" class="primary">再戦を申し込む</button>
+      </div>
+      <div class="projection-grid">
+        <div><h3>公開状態</h3><pre id="publicProjection"></pre></div>
+        <div><h3>あなたの非公開状態</h3><pre id="privateProjection"></pre></div>
+      </div>
+      <p class="muted small">基本操作はサーバーで判定されます。隣接色や合法色の答えは画面に表示しません。</p>
+    </section>
+  </main>
+  <div id="toast" role="status" aria-live="polite"></div>
+  <script src="standard-online-client.js"></script>
+  <script src="standard-online-skill-intents.js"></script>
+  <script type="module" src="app.js"></script>
+</body>
+</html>
