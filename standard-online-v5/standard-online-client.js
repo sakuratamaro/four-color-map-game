@@ -302,6 +302,24 @@
       }
       return clone(row);
     }
+    async function requestCpuRematch({ roomId = state.roomId, expectedVersion, actionId = null }) {
+      await ensureSession();
+      if (!UUID_PATTERN.test(String(roomId)) || !Number.isSafeInteger(expectedVersion) || expectedVersion < 0) throw new Error("INVALID_CPU_REMATCH_REQUEST");
+      const pendingMatches = state.rematchExpectedVersion === expectedVersion && UUID_PATTERN.test(String(state.rematchActionId));
+      const resolvedActionId = actionId || (pendingMatches ? state.rematchActionId : idFactory());
+      if (!UUID_PATTERN.test(String(resolvedActionId))) throw new Error("INVALID_REMATCH_ID");
+      state.rematchActionId = resolvedActionId;
+      state.rematchExpectedVersion = expectedVersion;
+      persist();
+      const result = await invoke("cpu-rematch", { roomId, expectedVersion, actionId: resolvedActionId });
+      if (result?.readyToSetup || result?.roomStatus === "ready") {
+        state.setupRevision = 0;
+        state.rematchActionId = null;
+        state.rematchExpectedVersion = null;
+        persist();
+      }
+      return clone(result);
+    }
     async function readRoom(roomId = state.roomId) {
       await ensureSession();
       if (!UUID_PATTERN.test(String(roomId))) throw new Error("INVALID_ROOM_ID");
@@ -392,6 +410,7 @@
       readCpuRoster,
       readProfile,
       readRoom,
+      requestCpuRematch,
       requestRematch,
       quoteCardSale,
       recruitOpponent,

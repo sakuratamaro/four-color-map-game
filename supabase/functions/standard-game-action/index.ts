@@ -215,7 +215,7 @@ Deno.serve(async (request: Request) => {
     });
     const body = await request.json() as JsonObject;
     const operation = body.operation;
-    if (!["profile", "gacha", "card-sale-quote", "card-sale", "quiz-start", "quiz-finish", "cpu-roster", "cpu-accept", "cpu-action", "setup", "initialize", "action"].includes(String(operation))) {
+    if (!["profile", "gacha", "card-sale-quote", "card-sale", "quiz-start", "quiz-finish", "cpu-roster", "cpu-accept", "cpu-rematch", "cpu-action", "setup", "initialize", "action"].includes(String(operation))) {
       return json(400, { error: { code: "INVALID_REQUEST", message: "A valid operation is required." } });
     }
 
@@ -564,6 +564,41 @@ Deno.serve(async (request: Request) => {
     let room = await load();
     const seat = room.actor_seat as Seat;
     if (seat !== "A" && seat !== "B") return json(403, { error: { code: "NOT_A_MEMBER", message: "You are not in this room." } });
+
+    if (operation === "cpu-rematch") {
+      const expectedVersion = body.expectedVersion;
+      const actionId = body.actionId;
+      if (!Number.isSafeInteger(expectedVersion) || (expectedVersion as number) < 0 || typeof actionId !== "string" || !UUID_PATTERN.test(actionId)) {
+        return json(400, { error: { code: "INVALID_CPU_REMATCH", message: "A valid version and rematch action ID are required." } });
+      }
+      if (seat !== "A" || room.opponent_kind !== "cpu" || room.room_status !== "finished" || typeof room.cpu_character_id !== "string") {
+        return json(409, { error: { code: "CPU_ROOM_REQUIRED", message: "A finished CPU room is required." } });
+      }
+      let cpu;
+      try { cpu = globalThis.FourColorStandardServerEngine.createCpuProfile(room.cpu_character_id as string); }
+      catch { throw new Error("UNKNOWN_CPU_CHARACTER"); }
+      stage = "cpu-rematch";
+      const { data, error } = await service.rpc("fcg_standard_server_request_cpu_rematch", {
+        p_user_id: actorId,
+        p_room_id: roomId,
+        p_expected_version: expectedVersion,
+        p_action_id: actionId,
+        p_character_id: room.cpu_character_id,
+        p_policy_version: cpu.policyVersion,
+        p_cpu_display_name: (cpu.profile as { displayName?: string }).displayName,
+        p_cpu_profile_state: cpu.profile,
+        p_cpu_loadout: cpu.loadout,
+        p_loadout_fingerprint: await fingerprint(cpu.loadout),
+      });
+      if (error) throw error;
+      const result = firstRow(data);
+      return json(200, {
+        roomStatus: result?.room_status,
+        roomVersion: result?.room_version,
+        readyToSetup: result?.ready_to_setup === true,
+        duplicate: result?.duplicate === true,
+      });
+    }
 
     if (operation === "initialize") {
       if (room.room_status !== "ready" && room.room_status !== "playing") return json(409, { error: { code: "ROOM_NOT_READY", message: "Two validated loadouts are required." } });

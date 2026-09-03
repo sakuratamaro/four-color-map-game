@@ -57,6 +57,7 @@ function supabaseFixture({ roomStatus = "ready", roomVersion = 10 } = {}) {
         if (request.body.operation === "cpu-roster") return { data: { rosterVersion: "standard-character-roster-v1", characters: Array.from({ length: 10 }, (_, index) => ({ id: `cpu${index}`, name: `CPU ${index}` })) } };
         if (request.body.operation === "cpu-accept") return { data: { matchmakingStatus: "matched", roomId: ROOM_ID, seat: "A", characterId: request.body.characterId, duplicate: false } };
         if (request.body.operation === "cpu-action") return { data: { duplicate: false, room: { version: request.body.expectedVersion + 1 } } };
+        if (request.body.operation === "cpu-rematch") return { data: { roomStatus: "ready", roomVersion: request.body.expectedVersion + 1, readyToSetup: true, duplicate: false } };
         if (request.body.operation === "setup") return { data: { setupRevision: 1, profileRevision: 1, quoteId: request.body.setupActionId } };
         return { data: { room: { version: request.body.action?.expectedVersion ?? 0 } } };
       },
@@ -182,6 +183,30 @@ test("CPU roster, explicit acceptance, and one server CPU turn use finite client
   ]);
   assert.equal(Object.hasOwn(invokes[1], "profileState"), false);
   assert.equal(Object.hasOwn(invokes[2], "action"), false);
+});
+
+test("CPU rematch persists one retry identity and resets only after the server returns ready", async () => {
+  const supabase = supabaseFixture({ roomStatus: "finished", roomVersion: 12 });
+  const originalInvoke = supabase.functions.invoke;
+  let failOnce = true;
+  const seenActionIds = [];
+  supabase.functions.invoke = async (name, request) => {
+    if (request.body.operation === "cpu-rematch") seenActionIds.push(request.body.actionId);
+    if (request.body.operation === "cpu-rematch" && failOnce) { failOnce = false; return { error: new Error("response lost") }; }
+    return originalInvoke(name, request);
+  };
+  const storage = storageFixture({ roomId: ROOM_ID, profileRevision: 2, setupRevision: 1 });
+  let allocations = 0;
+  const client = createStandardOnlineClient({ supabase, storage, idFactory: () => { allocations += 1; return ACTION_ID; } });
+  await assert.rejects(client.requestCpuRematch({ expectedVersion: 12 }), /response lost/);
+  assert.equal(client.snapshot().rematchActionId, ACTION_ID);
+  assert.equal(client.snapshot().setupRevision, 1);
+  const result = await client.requestCpuRematch({ expectedVersion: 12 });
+  assert.equal(result.readyToSetup, true);
+  assert.equal(allocations, 1);
+  assert.equal(client.snapshot().setupRevision, 0);
+  assert.equal(client.snapshot().rematchActionId, null);
+  assert.deepEqual(seenActionIds, [ACTION_ID, ACTION_ID]);
 });
 
 test("owner profile read refreshes the compare-and-swap revision", async () => {

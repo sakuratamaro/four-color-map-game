@@ -738,9 +738,9 @@ function render() {
   $("seatBadge").textContent = roomModel?.view?.seat ? `Player ${roomModel.view.seat}` : "席確認中";
   $("roomStatus").textContent = ROOM_STATUS_LABEL[roomModel?.room?.status] || "読み込み中";
   const rematchPending = snapshot.rematchExpectedVersion === roomModel?.room?.version;
-  $("requestRematch").textContent = rematchPending ? "同じ再戦申請を再送" : "再戦を申し込む";
-  $("requestRematch").disabled = rematchBusy || cpuRoom || roomModel?.room?.status !== "finished";
-  $("rematchStatus").textContent = cpuRoom ? "CPUとの再戦は、安全な専用処理を準備中です。いったんロビーへ戻って再募集してください。" : rematchPending ? "再戦を申請済みです。相手の申請を待っています。" : "両プレイヤーの申請後、6枚セットを選び直します。";
+  $("requestRematch").textContent = rematchPending ? "同じ再戦申請を再送" : cpuRoom ? "同じCPUと再戦する" : "再戦を申し込む";
+  $("requestRematch").disabled = rematchBusy || roomModel?.room?.status !== "finished";
+  $("rematchStatus").textContent = cpuRoom ? "CPUの状態だけを初期化し、あなたは6枚セットを選び直します。" : rematchPending ? "再戦を申請済みです。相手の申請を待っています。" : "両プレイヤーの申請後、6枚セットを選び直します。";
   $("members").replaceChildren(...(roomModel?.members || []).map((member) => { const node = document.createElement("span"); node.className = "member"; node.textContent = `Player ${member.seat}: ${member.display_name}`; if (member.is_cpu) node.append("（CPU）"); return node; }));
   $("waitingMessage").textContent = client.snapshot().setupRevision > 0 ? "あなたの6枚は確認済みです。相手の6枚を待っています。" : "6枚セットを確認してください。";
   $("setupStatus").textContent = client.snapshot().setupRevision > 0 ? "あなたの6枚セットは確認済みです" : "まだ確認していません";
@@ -1142,11 +1142,14 @@ async function submitSetup() {
   finally { $("submitSetup").disabled = false; }
 }
 async function requestRematch() {
-  if (rematchBusy || roomModel?.room?.opponent_kind === "cpu" || roomModel?.room?.status !== "finished") return;
+  if (rematchBusy || roomModel?.room?.status !== "finished") return;
   rematchBusy = true; render();
   try {
-    const result = await client.requestRematch({ expectedVersion: roomModel.room.version });
-    toast(result.ready_to_setup ? "再戦用の6枚セットを選んでください。" : "再戦を申請しました。相手を待っています。");
+    const cpuRoom = roomModel.room.opponent_kind === "cpu";
+    const result = cpuRoom
+      ? await client.requestCpuRematch({ expectedVersion: roomModel.room.version })
+      : await client.requestRematch({ expectedVersion: roomModel.room.version });
+    toast(cpuRoom || result.ready_to_setup ? "再戦用の6枚セットを選んでください。" : "再戦を申請しました。相手を待っています。");
     await roomSync.refreshNow();
   } catch (error) {
     toast(error.message || "再戦を申請できませんでした。同じIDで再送できます。");

@@ -90,13 +90,14 @@ test("CPU turns are server-chosen one action at a time and stop while hidden or 
   assert.doesNotMatch(app, /takeCpuTurn\([^)]*(?:type|payload|action|privateState|publicState)/);
 });
 
-test("PvP and CPU records are visibly separate and CPU rematch is fail-closed", () => {
+test("PvP and CPU records are visibly separate and CPU rematch uses its dedicated boundary", () => {
   assert.match(app, /value\.cpuStats \|\| \{\}/);
   assert.match(app, /value\.cpuCharacterStats \|\| \{\}/);
   assert.match(app, /対人戦 勝利/);
   assert.match(app, /CPU戦 勝利/);
   assert.match(app, /entry\.onlineOpponentKind === "cpu"/);
-  assert.match(app, /rematchBusy \|\| roomModel\?\.room\?\.opponent_kind === "cpu"/);
+  assert.match(app, /client\.requestCpuRematch\(\{ expectedVersion: roomModel\.room\.version \}\)/);
+  assert.match(app, /同じCPUと再戦する/);
 });
 
 test("every finished match presents a local-seat victory or defeat overlay, including surrender", () => {

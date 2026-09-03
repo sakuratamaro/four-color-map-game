@@ -82,14 +82,14 @@ async function installMock(context, mode) {
     if (initialMode === "cpuTurn") active.active = "B";
     const runtime = {
       waitStartedAt: initialMode === "cpuWait" ? new Date(Date.now() - 91000).toISOString() : new Date().toISOString(),
-      room: { id, status: initialMode === "finished" ? "finished" : initialMode === "publicFind" ? "ready" : "playing", version: 9, game_mode: "standard_v5", access_mode: initialMode === "cpuTurn" ? "cpu" : initialMode === "publicFind" ? "public_queue" : "private_code", opponent_kind: initialMode === "cpuTurn" ? "cpu" : "human", cpu_character_id: initialMode === "cpuTurn" ? "yuzu" : null, public_state: initialMode === "finished" ? finished : initialMode === "publicFind" ? null : active },
+      room: { id, status: ["finished", "finishedCpu"].includes(initialMode) ? "finished" : initialMode === "publicFind" ? "ready" : "playing", version: 9, game_mode: "standard_v5", access_mode: ["cpuTurn", "finishedCpu"].includes(initialMode) ? "cpu" : initialMode === "publicFind" ? "public_queue" : "private_code", opponent_kind: ["cpuTurn", "finishedCpu"].includes(initialMode) ? "cpu" : "human", cpu_character_id: ["cpuTurn", "finishedCpu"].includes(initialMode) ? "yuzu" : null, public_state: ["finished", "finishedCpu"].includes(initialMode) ? finished : initialMode === "publicFind" ? null : active },
       view: initialMode === "publicFind" ? null : { seat: "A", version: 9, private_state: { hand: { areaDiePlus: 1, areaResize: 1 }, basicPalette: ["red", "blue"], bonusColor: "yellow", bonusUsesRemaining: 2, privateEffects: {} } },
       profile: initialMode === "empty" ? null : { revision: 1, display_name: "A", profile_state: profileState },
       gachaReceipts: {},
       cardSaleReceipts: {},
       calls: [],
     };
-    runtime.members = [{ user_id: "33333333-3333-4333-8333-333333333333", seat: "A", display_name: "A", is_cpu: false }, { user_id: "44444444-4444-4444-8444-444444444444", seat: "B", display_name: initialMode === "cpuTurn" ? "うっかりユズ" : "B", is_cpu: initialMode === "cpuTurn" }];
+    runtime.members = [{ user_id: "33333333-3333-4333-8333-333333333333", seat: "A", display_name: "A", is_cpu: false }, { user_id: "44444444-4444-4444-8444-444444444444", seat: "B", display_name: ["cpuTurn", "finishedCpu"].includes(initialMode) ? "うっかりユズ" : "B", is_cpu: ["cpuTurn", "finishedCpu"].includes(initialMode) }];
     globalThis.__standardOnlineRuntime = runtime;
     const resultFor = (table) => table === "fcg_rooms" ? runtime.room
       : table === "fcg_room_members" ? runtime.members
@@ -147,6 +147,11 @@ async function installMock(context, mode) {
           runtime.room = { ...runtime.room, version: runtime.room.version + 1, public_state: { ...runtime.room.public_state, version: runtime.room.version + 1, active: "A" } };
           runtime.view = { ...runtime.view, version: runtime.room.version };
           return { data: { duplicate: false, room: runtime.room } };
+        }
+        if (request.body.operation === "cpu-rematch") {
+          runtime.room = { ...runtime.room, status: "ready", version: runtime.room.version + 1, public_state: {} };
+          runtime.view = null;
+          return { data: { roomStatus: "ready", roomVersion: runtime.room.version, readyToSetup: true, duplicate: false } };
         }
         return { data: { ok: true } };
       } },
@@ -386,6 +391,24 @@ test("actual Edge asks the server for exactly one CPU action then returns contro
     await page.getByText("あなたの手番").waitFor();
     const actions = await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "cpu-action").map((entry) => entry.body));
     assert.deepEqual(actions, [{ operation: "cpu-action", roomId, expectedVersion: 9 }]);
+  });
+});
+
+test("actual Edge rematches the same visible CPU and returns the human to fresh setup", { timeout: 30000 }, async () => {
+  await withPage("finishedCpu", async (page) => {
+    await page.getByRole("button", { name: "結果を確認して戻る" }).click();
+    await page.getByRole("button", { name: "同じCPUと再戦する" }).click();
+    await page.locator("#setupCard:not(.hidden)").waitFor();
+    assert.equal(await page.locator("#shownCode").textContent(), "CPU：うっかりユズ");
+    const evidence = await page.evaluate(({ key }) => ({
+      stored: JSON.parse(localStorage.getItem(key)),
+      calls: globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "cpu-rematch").map((entry) => entry.body),
+    }), { key: connectionKey });
+    assert.equal(evidence.calls.length, 1);
+    assert.equal(evidence.calls[0].expectedVersion, 9);
+    assert.match(evidence.calls[0].actionId, /^[0-9a-f-]{36}$/i);
+    assert.equal(evidence.stored.setupRevision, 0);
+    assert.equal(evidence.stored.rematchActionId, null);
   });
 });
 

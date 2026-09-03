@@ -123,6 +123,17 @@ test("one CPU action is deterministic, sees only public plus its own private vie
   assert.doesNotMatch(branch, /body\.(?:action|type|payload|seed|privateState|publicState)/);
 });
 
+test("CPU rematch rebuilds the same character profile and loadout on the server", () => {
+  const branch = source.slice(source.indexOf('if (operation === "cpu-rematch")'), source.indexOf('if (operation === "initialize")'));
+  assert.match(branch, /seat !== "A" \|\| room\.opponent_kind !== "cpu" \|\| room\.room_status !== "finished"/);
+  assert.match(branch, /FourColorStandardServerEngine\.createCpuProfile\(room\.cpu_character_id as string\)/);
+  assert.match(branch, /service\.rpc\("fcg_standard_server_request_cpu_rematch"/);
+  assert.match(branch, /p_cpu_profile_state: cpu\.profile/);
+  assert.match(branch, /p_cpu_loadout: cpu\.loadout/);
+  assert.match(branch, /p_policy_version: cpu\.policyVersion/);
+  assert.doesNotMatch(branch, /body\.(?:characterId|profile|profileState|loadout|policyVersion)/);
+});
+
 test("human actions in CPU rooms use CPU-separated settlement", () => {
   assert.match(source, /room\.opponent_kind === "cpu"[\s\S]+FourColorStandardServerEngine\.applyCpuProfiles\([\s\S]+characterId: room\.cpu_character_id as string/);
 });
