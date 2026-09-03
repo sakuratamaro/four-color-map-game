@@ -22,7 +22,7 @@ The migration provides:
 - `last_activity_at`, `finished_at`, and `expires_at` cleanup fields;
 - service-role-only RPCs for the Edge Function action handler.
 
-Do not invoke `fcg_server_cleanup_expired` until an explicit retention interval is chosen. The function deletes only expired `fcg_rooms` rows and their `fcg_*` dependents.
+Do not schedule or invoke cleanup in production until retention boundaries are approved and a dry-run has been reviewed. Migration `202609030012_batched_cleanup.sql` adds the preview-first `fcg_server_cleanup_expired_batched` service RPC, caps each category at 500 rows per call, requires profile-scoped receipts to be at least seven days old, and keeps the legacy room-only entry point compatible but capped at 100 rooms. The intended initial policy to validate in staging is: expired rooms older than 24 hours, resolved tickets/quiz sessions older than 7 days, and profile-scoped idempotency receipts older than 30 days. Scheduling remains a separate production change.
 
 ## Expected security model
 
