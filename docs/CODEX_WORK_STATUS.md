@@ -26,6 +26,8 @@ The authoritative adoption/deferral inventory is `docs/ONLINE_COMPLETION_INVENTO
 - The earlier parallel root run had two timing-sensitive browser leaves fail; both passed independently, and neither reproduced in the serial product run.
 - The supported root entry point is now `node scripts/run-standard-product-tests.mjs`, which enumerates only `tests/*.test.cjs` and defaults to serial execution.
 - Local Postgres, Docker, and the Supabase CLI are unavailable, so migrations `202609030006` through `202609030013` have static/security coverage but have not been parsed or executed by a local database.
+- Read-only live preflight on 2026-09-03 confirmed `origin/main` is still `274e3a7`, Pages returns HTTP 200 with the earlier Standard title, and its JavaScript contains none of public matchmaking, CPU roster, or cosmetics.
+- Secret-free RPC probes confirmed the live `fcg_standard_room_snapshot` exists and rejects the anonymous role, while snapshot v2 and public matchmaking return PostgREST `PGRST202` absent-function responses. No user, room, row, or cleanup action was created.
 
 ## External state and next gate
 

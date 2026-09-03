@@ -15,7 +15,7 @@ migrationやコードの配置だけでは完了にしない。最新の公開UR
 3. Git作業ツリーがcleanで、公開候補commitが記録済みであることを確認する。
 4. 現行Pages commit、現行 `standard-game-action` version、適用済み関数を記録する。
 5. Security Advisor、Performance Advisor、API/Database/Edge使用量の変更前snapshotを保存する。
-6. `fcg_standard_room_snapshot(uuid)` が存在し、`202609030006` 以降の新規関数/表が未適用であることを読取りSQLで確認する。
+6. `node scripts/live-standard-release-preflight.mjs --expect=baseline` で公開UIが旧版、`fcg_standard_room_snapshot(uuid)` が権限保護付きで存在し、snapshot v2と野良募集RPCが未適用であることを秘密鍵なし・書込みなしで確認する。さらにSQL Editorの `to_regclass` / `to_regprocedure` で新規表とservice-only関数も確認する。
 
 確認結果が想定と違う場合は適用を止め、現物に合わせて手順を更新する。
 
@@ -39,10 +39,11 @@ SQL Editorでは内容を全置換し、次を1ファイルずつ順番に実行
 ## EdgeとPagesの順序
 
 1. DB 8本の確認が終わってから `standard-game-action` を更新する。
-2. JWT検証が有効なこと、managed service-role secretの参照だけで値を表示していないことを確認する。
-3. Edgeへ、欠落JWT、改変JWT、正規JWT、プロフィール読取り、見た目catalog、CPU rosterの小さなcanaryを行う。
-4. Edgeが正常なまま、StandardオンラインPagesを公開する。
-5. Pagesの公開commitとbuild成功を確認し、キャッシュをまたぐ通常URLの新しいブラウザーで確認する。
+2. Pagesを更新する前に `node scripts/live-standard-release-preflight.mjs --expect=db-ready` を実行し、新RPCが権限保護付きで存在する一方、公開UIはまだ旧版であることを確認する。
+3. JWT検証が有効なこと、managed service-role secretの参照だけで値を表示していないことを確認する。
+4. Edgeへ、欠落JWT、改変JWT、正規JWT、プロフィール読取り、見た目catalog、CPU rosterの小さなcanaryを行う。
+5. Edgeが正常なまま、StandardオンラインPagesを公開する。
+6. Pagesの公開commitとbuild成功を確認し、`node scripts/live-standard-release-preflight.mjs --expect=candidate` とキャッシュをまたぐ通常URLの新しいブラウザーで確認する。
 
 新クライアントは `fcg_standard_room_snapshot_v2(uuid,bigint)` を必須とするため、PagesをDBより先に公開しない。
 
