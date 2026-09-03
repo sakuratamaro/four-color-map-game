@@ -34,6 +34,8 @@ SQL Editorでは内容を全置換し、次を1ファイルずつ順番に実行
 
 各実行直後に、そのmigrationが追加する表、関数、列、ACLを `to_regclass`、`to_regprocedure`、`information_schema.columns`、`proacl` で確認する。`SECURITY DEFINER` 関数は空の `search_path`、ブラウザー用RPCは `authenticated` のみ、サーバー用RPCは `service_role` のみであることを確認してから次へ進む。
 
+8本すべての適用後、`supabase/verification/standard_candidate_verify.sql` をSQL Editorで実行する。これは読み取りだけを行い、非公開テーブル、追加列、重要関数、RLS/ACL、制約、トリガー、索引、appearance backfill不一致を一覧化する。全行の `ok` が `true` でなければEdge更新へ進まない。
+
 `202609030012` の適用時にはcleanupを実行しない。定期実行も作らない。`202609030013` の既存プロフィールappearance backfill件数と所要時間を記録し、失敗または長時間ロックならEdge/Pagesへ進まない。
 
 ## EdgeとPagesの順序

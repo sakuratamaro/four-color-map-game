@@ -16,6 +16,7 @@
 - Snapshot v2 profile deltas, a small allowlisted appearance projection, single-flight Realtime refresh, and fallback polling controls.
 - Preview-first bounded cleanup and a bounded per-isolate Edge request brake.
 - Reproducible source-to-Edge bundle generation and a staged public-release runbook.
+- Read-only post-migration verification for private tables, columns, functions, ACL/RLS, constraints, triggers, indexes, and appearance backfill consistency.
 
 The authoritative adoption/deferral inventory is `docs/ONLINE_COMPLETION_INVENTORY.md`. Experimental `legalRecolor`, blanking, color exchange, delayed recolor, chain rotation, and split-and-hold remain intentionally outside the public card pool pending rules and balance decisions. The nested Expo/React Native early prototype is retained as historical reference, not as the current product source.
 
