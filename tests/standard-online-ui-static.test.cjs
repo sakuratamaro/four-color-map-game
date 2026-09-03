@@ -20,9 +20,10 @@ test("Standard online setup UI exposes the complete reconnect path", () => {
     "board", "regionControls", "selectionCount", "submitRegion", "paletteControls", "skillControls", "skillTargetControls",
     "declareNoColor", "surrender", "retryAction", "actionStatus", "rematchControls", "rematchStatus", "requestRematch",
     "gachaPanel", "gachaTickets", "gachaLevel", "gachaDrawOne", "gachaDrawAll", "gachaRetry", "gachaStatus", "gachaResults",
-    "progressionPanel", "profileCoins", "profileStats", "trophyList", "matchHistory",
+    "progressionPanel", "profileCoins", "profileStats", "cpuProfileStats", "cpuCharacterRecords", "trophyList", "matchHistory",
     "cardSaleSkill", "cardSaleCount", "cardSaleQuote", "cardSaleCommit", "cardSaleRetry", "cardSaleReset", "cardSaleStatus",
     "matchmakingPanel", "recruitOpponent", "findOpponent", "cancelMatchmaking", "matchmakingWait", "matchmakingElapsed", "matchmakingStatus", "roomIdentityLabel",
+    "cpuOpponentOffer", "cpuOfferMessage", "chooseCpuOpponent", "keepWaitingForHuman", "cpuRosterDialog", "cpuRosterGrid", "cpuRosterStatus", "closeCpuRoster",
     "terminalOverlay", "terminalIcon", "terminalEyebrow", "terminalTitle", "terminalMessage", "terminalReasonText", "terminalClose",
   ]) assert.match(html, new RegExp(`id=["']${id}["']`));
   assert.match(html, /standard-online-client\.js/);
@@ -62,6 +63,40 @@ test("public matchmaking stays code-free, recoverable, cancellable, and separate
   assert.match(app, /accessMode === "public_queue" \? "野良対戦"/);
   assert.match(app, /document\.visibilityState === "hidden"/);
   assert.match(progressionCss, /prefers-reduced-motion: reduce/);
+});
+
+test("CPU fallback is consent-only after 90 seconds, reoffers at 3 minutes, and names all ten choices", () => {
+  assert.match(app, /const CPU_FIRST_OFFER_SECONDS = 90/);
+  assert.match(app, /const CPU_SECOND_OFFER_SECONDS = 180/);
+  assert.match(app, /offerStage > cpuOfferDismissedStage/);
+  assert.match(app, /選ばない限りCPU戦は始まりません/);
+  assert.match(app, /client\.readCpuRoster\(\)/);
+  assert.match(app, /result\.characters\.length !== 10/);
+  assert.match(app, /client\.acceptCpuOpponent\(\{ characterId: character\.id \}\)/);
+  assert.match(app, /client\.readMatchmakingStatus\(\)\.catch/);
+  assert.match(app, /同時に人間の対戦相手が見つかりました/);
+  assert.match(app, /member\.is_cpu/);
+  for (const name of ["うっかりユズ", "せっかちレン", "見習いミナト", "読み違いコハル", "慎重派アオイ", "勝負師カイ", "仕掛け屋ツバサ", "観察役シオン", "カード博士レイ", "四色のクロガネ"]) assert.match(app, new RegExp(name));
+  assert.doesNotMatch(app, /CPU.{0,20}(人間|プレイヤー).{0,20}(装う|偽る|見せかけ)/);
+});
+
+test("CPU turns are server-chosen one action at a time and stop while hidden or offline", () => {
+  assert.match(app, /state\.active === "B"/);
+  assert.match(app, /client\.takeCpuTurn\(\{ expectedVersion \}\)/);
+  assert.match(app, /cpuActionTimer = setTimeout\(runCpuTurn, delay\)/);
+  assert.match(app, /document\.visibilityState === "hidden"/);
+  assert.match(app, /!navigator\.onLine/);
+  assert.match(app, /stopCpuTurnWatch\(\); roomSync\.stop\(\); client\.clearRoom\(\)/);
+  assert.doesNotMatch(app, /takeCpuTurn\([^)]*(?:type|payload|action|privateState|publicState)/);
+});
+
+test("PvP and CPU records are visibly separate and CPU rematch is fail-closed", () => {
+  assert.match(app, /value\.cpuStats \|\| \{\}/);
+  assert.match(app, /value\.cpuCharacterStats \|\| \{\}/);
+  assert.match(app, /対人戦 勝利/);
+  assert.match(app, /CPU戦 勝利/);
+  assert.match(app, /entry\.onlineOpponentKind === "cpu"/);
+  assert.match(app, /rematchBusy \|\| roomModel\?\.room\?\.opponent_kind === "cpu"/);
 });
 
 test("every finished match presents a local-seat victory or defeat overlay, including surrender", () => {

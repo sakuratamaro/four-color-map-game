@@ -73,6 +73,39 @@ test("wins, losses, streaks, history, and full-paint trophies are recorded once"
   assert.throws(() => profileModel.recordMatchOutcome({ profile: current, matchId: "m4", won: false, terminalReason: "SURRENDER", endedAt }), /MATCH_ALREADY_RECORDED/);
 });
 
+test("CPU outcomes stay separate from PvP while shared full-paint trophies progress", () => {
+  const endedAt = "2026-09-03T00:00:00.000Z";
+  const before = profile();
+  const won = profileModel.recordCpuMatchOutcome({
+    profile: before, matchId: "cpu-1", cpuCharacterId: "yuzu", won: true,
+    terminalReason: "BOARD_LOCK", fullPaint: true, skillsUsed: 0, endedAt,
+  });
+  assert.deepEqual(won.stats, { wins: 0, losses: 0, currentWinStreak: 0, bestWinStreak: 0, fullPaints: 1 });
+  assert.deepEqual(won.cpuStats, { wins: 1, losses: 0, currentWinStreak: 1, bestWinStreak: 1, fullPaints: 1 });
+  assert.deepEqual(won.cpuCharacterStats.yuzu, { matches: 1, wins: 1, losses: 0, firstWinAt: endedAt });
+  assert.equal(won.trophies.fullPaint, true);
+  assert.deepEqual(won.matchHistory[0], {
+    matchId: "cpu-1", result: "WIN", terminalReason: "BOARD_LOCK", endedAt,
+    fullPaint: true, skillsUsed: 0, onlineOpponentKind: "cpu", cpuCharacterId: "yuzu",
+  });
+  const lost = profileModel.recordCpuMatchOutcome({ profile: won, matchId: "cpu-2", cpuCharacterId: "yuzu", won: false, terminalReason: "SURRENDER", endedAt });
+  assert.equal(lost.cpuStats.currentWinStreak, 0);
+  assert.deepEqual(lost.cpuCharacterStats.yuzu, { matches: 2, wins: 1, losses: 1, firstWinAt: endedAt });
+  assert.throws(() => profileModel.recordCpuMatchOutcome({ profile: lost, matchId: "cpu-2", cpuCharacterId: "yuzu", won: false, terminalReason: "SURRENDER", endedAt }), /MATCH_ALREADY_RECORDED/);
+});
+
+test("CPU progression accepts legacy profiles and rejects malformed character totals", () => {
+  const legacy = JSON.parse(JSON.stringify(profile()));
+  delete legacy.cpuStats;
+  delete legacy.cpuCharacterStats;
+  const upgraded = profileModel.recordCpuMatchOutcome({ profile: legacy, matchId: "cpu-legacy", cpuCharacterId: "ren", won: false, terminalReason: "SURRENDER" });
+  assert.equal(upgraded.cpuStats.losses, 1);
+  assert.equal(upgraded.cpuCharacterStats.ren.matches, 1);
+  const invalid = JSON.parse(JSON.stringify(profile()));
+  invalid.cpuCharacterStats = { yuzu: { matches: 3, wins: 1, losses: 1, firstWinAt: null } };
+  assert.throws(() => profileModel.recordCpuMatchOutcome({ profile: invalid, matchId: "bad", cpuCharacterId: "yuzu", won: true, terminalReason: "BOARD_LOCK" }), /INVALID_CPU_CHARACTER_STAT/);
+});
+
 test("progression fields survive standard save round-trip and reject malformed data", () => {
   const root = save.createStandardSave({ profiles: { player: profile({ colorPrism: 2 }) } });
   assert.deepEqual(save.decodeStandardSave(save.encodeStandardSave(root)), root);

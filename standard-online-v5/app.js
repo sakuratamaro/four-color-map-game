@@ -38,6 +38,12 @@ const PHASE_LABEL = {
   GAME_OVER: "対戦終了",
 };
 const ROOM_STATUS_LABEL = { waiting: "相手を待っています", ready: "6枚セット選択中", playing: "対戦中", finished: "対戦終了" };
+const CPU_NAMES = Object.freeze({
+  yuzu: "うっかりユズ", ren: "せっかちレン", minato: "見習いミナト", koharu: "読み違いコハル", aoi: "慎重派アオイ",
+  kai: "勝負師カイ", tsubasa: "仕掛け屋ツバサ", shion: "観察役シオン", rei: "カード博士レイ", kurogane: "四色のクロガネ",
+});
+const CPU_FIRST_OFFER_SECONDS = 90;
+const CPU_SECOND_OFFER_SECONDS = 180;
 const TROPHY_META = Object.freeze({
   fullPaint: { icon: "🗺️", name: "完塗り達成", condition: "盤面をすべて塗り切って勝利" },
   fullPaint3: { icon: "🏆", name: "完塗り三冠", condition: "完塗り勝利を3回達成" },
@@ -86,6 +92,13 @@ let cardSaleBusy = false;
 let matchmakingBusy = false;
 let matchmakingStatusTimer = null;
 let matchmakingDisplayTimer = null;
+let cpuRosterCache = null;
+let cpuAcceptBusy = false;
+let cpuOfferTicketId = null;
+let cpuOfferDismissedStage = 0;
+let cpuOfferAnnouncedStage = 0;
+let cpuActionTimer = null;
+let cpuActionBusy = false;
 let lastGachaDraws = [];
 let pendingGacha = (() => { try { return JSON.parse(localStorage.getItem(GACHA_PENDING_KEY) || "null"); } catch { return null; } })();
 let pendingQuiz = (() => { try { return JSON.parse(localStorage.getItem(QUIZ_PENDING_KEY) || "null"); } catch { return null; } })();
@@ -275,11 +288,11 @@ function displayDate(value) {
   return new Intl.DateTimeFormat("ja-JP", { year: "numeric", month: "short", day: "numeric" }).format(timestamp);
 }
 
-function appendStat(label, value) {
+function appendStat(label, value, targetId = "profileStats") {
   const item = document.createElement("div");
   const number = document.createElement("strong"); number.textContent = String(value);
   const caption = document.createElement("span"); caption.textContent = label;
-  item.append(number, caption); $("profileStats").appendChild(item);
+  item.append(number, caption); $(targetId).appendChild(item);
 }
 
 function renderProgression() {
@@ -288,11 +301,32 @@ function renderProgression() {
   const stats = value.stats || {};
   $("profileCoins").textContent = `🪙 ${Number(value.coins || 0)}コイン`;
   $("profileStats").replaceChildren();
-  appendStat("勝利", Number(stats.wins || 0));
-  appendStat("敗北", Number(stats.losses || 0));
-  appendStat("現在の連勝", Number(stats.currentWinStreak || 0));
-  appendStat("最高連勝", Number(stats.bestWinStreak || 0));
-  appendStat("完塗り", Number(stats.fullPaints || 0));
+  appendStat("対人戦 勝利", Number(stats.wins || 0));
+  appendStat("対人戦 敗北", Number(stats.losses || 0));
+  appendStat("対人戦 連勝中", Number(stats.currentWinStreak || 0));
+  appendStat("対人戦 最高連勝", Number(stats.bestWinStreak || 0));
+  appendStat("総合 完塗り", Number(stats.fullPaints || 0));
+
+  const cpuStats = value.cpuStats || {};
+  $("cpuProfileStats").replaceChildren();
+  appendStat("CPU戦 勝利", Number(cpuStats.wins || 0), "cpuProfileStats");
+  appendStat("CPU戦 敗北", Number(cpuStats.losses || 0), "cpuProfileStats");
+  appendStat("CPU戦 連勝中", Number(cpuStats.currentWinStreak || 0), "cpuProfileStats");
+  appendStat("CPU戦 最高連勝", Number(cpuStats.bestWinStreak || 0), "cpuProfileStats");
+  appendStat("CPU戦 完塗り", Number(cpuStats.fullPaints || 0), "cpuProfileStats");
+  $("cpuCharacterRecords").replaceChildren();
+  const characterStats = Object.entries(value.cpuCharacterStats || {}).filter(([, record]) => Number(record?.matches || 0) > 0);
+  if (!characterStats.length) {
+    const empty = document.createElement("p"); empty.className = "muted small"; empty.textContent = "CPUとの対戦記録はまだありません。";
+    $("cpuCharacterRecords").appendChild(empty);
+  } else {
+    for (const [characterId, record] of characterStats.sort((a, b) => Number(b[1].matches) - Number(a[1].matches))) {
+      const item = document.createElement("div"); item.className = "cpu-character-record";
+      const name = document.createElement("strong"); name.textContent = CPU_NAMES[characterId] || characterId;
+      const score = document.createElement("span"); score.textContent = `${Number(record.wins || 0)}勝 ${Number(record.losses || 0)}敗（${Number(record.matches || 0)}戦）`;
+      item.append(name, score); $("cpuCharacterRecords").appendChild(item);
+    }
+  }
 
   $("trophyList").replaceChildren();
   for (const [id, meta] of Object.entries(TROPHY_META)) {
@@ -318,7 +352,8 @@ function renderProgression() {
       const result = document.createElement("strong"); result.textContent = entry.result === "WIN" ? "勝利" : "敗北";
       const detail = document.createElement("span");
       const reason = TERMINAL_REASON_LABEL[entry.terminalReason] || "対戦終了";
-      detail.textContent = `${displayDate(entry.endedAt)} · ${reason}${entry.fullPaint ? " · 完塗り" : ""} · スキル${Number(entry.skillsUsed || 0)}回`;
+      const opponent = entry.onlineOpponentKind === "cpu" ? ` · CPU ${CPU_NAMES[entry.cpuCharacterId] || entry.cpuCharacterId}` : " · 対人戦";
+      detail.textContent = `${displayDate(entry.endedAt)}${opponent} · ${reason}${entry.fullPaint ? " · 完塗り" : ""} · スキル${Number(entry.skillsUsed || 0)}回`;
       item.append(result, detail); $("matchHistory").appendChild(item);
     }
   }
@@ -418,6 +453,8 @@ function starterProfile(displayName) {
     trophies: { fullPaint: false, fullPaint3: false, noSkillFullPaint: false },
     trophyDates: {},
     stats: { wins: 0, losses: 0, currentWinStreak: 0, bestWinStreak: 0, fullPaints: 0 },
+    cpuStats: { wins: 0, losses: 0, currentWinStreak: 0, bestWinStreak: 0, fullPaints: 0 },
+    cpuCharacterStats: {},
     matchHistory: [],
   };
 }
@@ -613,7 +650,7 @@ function selectedLoadout() {
 function validLoadout(loadout) { return ["color", "area", "disrupt"].every((category) => loadout[category].length === 2); }
 
 async function refreshRoom(_reason, expectedRoomId = client.snapshot().roomId) {
-  if (!expectedRoomId) return render();
+  if (!expectedRoomId) { stopCpuTurnWatch(); return render(); }
   const nextRoomModel = await client.readRoom(expectedRoomId);
   if (client.snapshot().roomId !== expectedRoomId) return null;
   if (roomModel?.room?.id === expectedRoomId && Number(nextRoomModel.room.version) < Number(roomModel.room.version)) return null;
@@ -629,6 +666,7 @@ async function refreshRoom(_reason, expectedRoomId = client.snapshot().roomId) {
     } catch (error) { if (!String(error.message).includes("setup")) console.warn(error); }
     finally { initializeBusy = false; render(); }
   }
+  scheduleCpuTurn();
 }
 
 const roomSync = onlineSyncFactory.createStandardOnlineSync({
@@ -644,6 +682,43 @@ const roomSync = onlineSyncFactory.createStandardOnlineSync({
   },
 });
 
+function stopCpuTurnWatch() {
+  clearTimeout(cpuActionTimer);
+  cpuActionTimer = null;
+}
+
+function cpuTurnIsReady() {
+  const state = roomModel?.room?.public_state;
+  return Boolean(client.snapshot().roomId && roomModel?.room?.opponent_kind === "cpu"
+    && roomModel?.room?.status === "playing" && state?.status === "ACTIVE" && state.active === "B");
+}
+
+function scheduleCpuTurn(delay = 700) {
+  stopCpuTurnWatch();
+  if (cpuActionBusy || !cpuTurnIsReady() || document.visibilityState === "hidden" || !navigator.onLine) return;
+  cpuActionTimer = setTimeout(runCpuTurn, delay);
+}
+
+async function runCpuTurn() {
+  stopCpuTurnWatch();
+  if (cpuActionBusy || !cpuTurnIsReady()) return;
+  const expectedVersion = Number(roomModel.room.version);
+  cpuActionBusy = true;
+  $("actionStatus").textContent = `${CPU_NAMES[roomModel.room.cpu_character_id] || "CPU"}が考えています…`;
+  render();
+  try {
+    await client.takeCpuTurn({ expectedVersion });
+    await roomSync.refreshNow();
+  } catch (error) {
+    await roomSync.refreshNow().catch(() => {});
+    if (!String(error?.message || "").match(/CPU_(TURN_CHANGED|NOT_ACTIVE)/)) console.warn(error);
+  } finally {
+    cpuActionBusy = false;
+    render();
+    scheduleCpuTurn();
+  }
+}
+
 function render() {
   const snapshot = client.snapshot();
   show("quizPanel", synced && Boolean(profile()));
@@ -656,16 +731,17 @@ function render() {
   show("matchCard", ["playing", "finished"].includes(roomModel?.room?.status));
   show("rematchControls", roomModel?.room?.status === "finished");
   if (!snapshot.roomId) { renderTerminalResult(null); return; }
+  const cpuRoom = roomModel?.room?.opponent_kind === "cpu";
   const accessMode = roomModel?.room?.access_mode || (snapshot.roomCode ? "private_code" : "public_queue");
   $("roomIdentityLabel").textContent = accessMode === "public_queue" ? "対戦形式" : accessMode === "cpu" ? "対戦相手" : "合言葉";
-  $("shownCode").textContent = accessMode === "public_queue" ? "野良対戦" : accessMode === "cpu" ? "CPU" : snapshot.roomCode || "復帰済";
+  $("shownCode").textContent = accessMode === "public_queue" ? "野良対戦" : accessMode === "cpu" ? `CPU：${CPU_NAMES[roomModel?.room?.cpu_character_id] || playerName("B")}` : snapshot.roomCode || "復帰済";
   $("seatBadge").textContent = roomModel?.view?.seat ? `Player ${roomModel.view.seat}` : "席確認中";
   $("roomStatus").textContent = ROOM_STATUS_LABEL[roomModel?.room?.status] || "読み込み中";
   const rematchPending = snapshot.rematchExpectedVersion === roomModel?.room?.version;
   $("requestRematch").textContent = rematchPending ? "同じ再戦申請を再送" : "再戦を申し込む";
-  $("requestRematch").disabled = rematchBusy || roomModel?.room?.status !== "finished";
-  $("rematchStatus").textContent = rematchPending ? "再戦を申請済みです。相手の申請を待っています。" : "両プレイヤーの申請後、6枚セットを選び直します。";
-  $("members").replaceChildren(...(roomModel?.members || []).map((member) => { const node = document.createElement("span"); node.className = "member"; node.textContent = `Player ${member.seat}: ${member.display_name}`; return node; }));
+  $("requestRematch").disabled = rematchBusy || cpuRoom || roomModel?.room?.status !== "finished";
+  $("rematchStatus").textContent = cpuRoom ? "CPUとの再戦は、安全な専用処理を準備中です。いったんロビーへ戻って再募集してください。" : rematchPending ? "再戦を申請済みです。相手の申請を待っています。" : "両プレイヤーの申請後、6枚セットを選び直します。";
+  $("members").replaceChildren(...(roomModel?.members || []).map((member) => { const node = document.createElement("span"); node.className = "member"; node.textContent = `Player ${member.seat}: ${member.display_name}`; if (member.is_cpu) node.append("（CPU）"); return node; }));
   $("waitingMessage").textContent = client.snapshot().setupRevision > 0 ? "あなたの6枚は確認済みです。相手の6枚を待っています。" : "6枚セットを確認してください。";
   $("setupStatus").textContent = client.snapshot().setupRevision > 0 ? "あなたの6枚セットは確認済みです" : "まだ確認していません";
   if (hasStandardPublicState(roomModel?.room?.public_state)) {
@@ -674,7 +750,7 @@ function render() {
     $("versionText").textContent = publicState.turn;
     $("turnBadge").textContent = publicState.status === "FINISHED"
       ? `勝者 Player ${publicState.winner}`
-      : publicState.active === roomModel?.view?.seat ? "あなたの手番" : `Player ${publicState.active} の手番`;
+      : publicState.active === roomModel?.view?.seat ? "あなたの手番" : cpuRoom && publicState.active === "B" ? "CPUの手番" : `Player ${publicState.active} の手番`;
     $("phaseText").textContent = PHASE_LABEL[publicState.phase] || "対戦進行中";
     $("publicProjection").textContent = safeJson(publicState);
     $("privateProjection").textContent = safeJson(privateState);
@@ -871,10 +947,34 @@ async function syncSelectedProfile() {
   finally { $("syncProfile").disabled = false; }
 }
 
-function updateMatchmakingElapsed() {
+function matchmakingWaitSeconds() {
   const startedAt = Date.parse(client.snapshot().matchmakingStartedAt || "");
-  const seconds = Number.isFinite(startedAt) ? Math.max(0, Math.floor((Date.now() - startedAt) / 1000)) : 0;
+  return Number.isFinite(startedAt) ? Math.max(0, Math.floor((Date.now() - startedAt) / 1000)) : 0;
+}
+
+function updateMatchmakingElapsed() {
+  const snapshot = client.snapshot();
+  const seconds = matchmakingWaitSeconds();
   $("matchmakingElapsed").textContent = `待機 ${seconds}秒`;
+  if (cpuOfferTicketId !== snapshot.matchmakingTicketId) {
+    cpuOfferTicketId = snapshot.matchmakingTicketId;
+    cpuOfferDismissedStage = 0;
+    cpuOfferAnnouncedStage = 0;
+  }
+  const offerStage = seconds >= CPU_SECOND_OFFER_SECONDS ? 2 : seconds >= CPU_FIRST_OFFER_SECONDS ? 1 : 0;
+  const offerVisible = Boolean(snapshot.matchmakingTicketId) && offerStage > cpuOfferDismissedStage;
+  show("cpuOpponentOffer", offerVisible);
+  if (offerVisible) {
+    $("cpuOfferMessage").textContent = offerStage === 2
+      ? "3分待ちました。人間を待ち続けるか、好きなCPUと対戦するかを選べます。"
+      : "90秒待ちました。人間を待ち続けるか、好きなCPUと対戦するかを選べます。";
+  }
+  if (offerStage > cpuOfferAnnouncedStage && !matchmakingBusy) {
+    cpuOfferAnnouncedStage = offerStage;
+    $("matchmakingStatus").textContent = offerStage === 2
+      ? "もう3分待っています。CPUを選ぶことも、このまま人を待つこともできます。"
+      : "CPUとの対戦も選べるようになりました。選ばない限りCPU戦は始まりません。";
+  }
 }
 
 function stopMatchmakingWatch() {
@@ -891,6 +991,8 @@ function scheduleMatchmakingStatus(delay = 15000) {
 
 async function enterPublicMatch(message = "対戦相手が見つかりました。6枚セットを選んでください。") {
   stopMatchmakingWatch();
+  stopCpuTurnWatch();
+  if ($("cpuRosterDialog").open) $("cpuRosterDialog").close();
   $("matchmakingStatus").textContent = message;
   await roomSync.start(client.snapshot().roomId);
   render();
@@ -925,6 +1027,66 @@ function renderMatchmaking() {
   $("cancelMatchmaking").disabled = matchmakingBusy;
   show("matchmakingWait", searching);
   if (searching) updateMatchmakingElapsed();
+  else show("cpuOpponentOffer", false);
+}
+
+function renderCpuRoster(characters) {
+  const grid = $("cpuRosterGrid"); grid.replaceChildren();
+  for (const character of characters) {
+    const item = document.createElement("article"); item.className = "cpu-character-card";
+    const title = document.createElement("h3"); title.textContent = character.name;
+    const line = document.createElement("p"); line.className = "cpu-character-line"; line.textContent = `「${character.line}」`;
+    const strength = document.createElement("p"); strength.textContent = `得意：${character.strength}`;
+    const weakness = document.createElement("p"); weakness.textContent = `苦手：${character.weakness}`;
+    const favorites = document.createElement("p"); favorites.className = "muted small";
+    favorites.textContent = `よく使う：${(character.favorites || []).map((id) => SKILL_META[id]?.name || id).join("・")}`;
+    const choose = button(`${character.name}と対戦`, () => acceptCpuCharacter(character), "primary");
+    choose.type = "button"; choose.disabled = cpuAcceptBusy;
+    item.append(title, line, strength, weakness, favorites, choose); grid.appendChild(item);
+  }
+}
+
+async function openCpuRoster() {
+  if (cpuAcceptBusy || !client.snapshot().matchmakingTicketId) return;
+  $("cpuRosterDialog").showModal();
+  $("cpuRosterStatus").textContent = "CPU一覧を読み込んでいます…";
+  try {
+    const result = cpuRosterCache || await client.readCpuRoster();
+    if (!Array.isArray(result?.characters) || result.characters.length !== 10) throw new Error("INVALID_CPU_ROSTER");
+    cpuRosterCache = result;
+    renderCpuRoster(result.characters);
+    $("cpuRosterStatus").textContent = "選択したCPUだけが対戦相手になります。人間として表示されることはありません。";
+  } catch (error) {
+    $("cpuRosterStatus").textContent = "CPU一覧を読み込めませんでした。閉じてからもう一度お試しください。";
+    toast(error.message || "CPU一覧を読み込めませんでした。");
+  }
+}
+
+async function acceptCpuCharacter(character) {
+  if (cpuAcceptBusy || !client.snapshot().matchmakingTicketId) return;
+  cpuAcceptBusy = true; renderCpuRoster(cpuRosterCache?.characters || []);
+  $("cpuRosterStatus").textContent = `${character.name}との対戦をサーバーで準備しています…`;
+  try {
+    await client.acceptCpuOpponent({ characterId: character.id });
+    return await enterPublicMatch(`CPU「${character.name}」との対戦を始めます。6枚セットを選んでください。`);
+  } catch (error) {
+    const status = await client.readMatchmakingStatus().catch(() => null);
+    if (status?.matchmaking_status === "matched") return await enterPublicMatch("同時に人間の対戦相手が見つかりました。6枚セットを選んでください。");
+    $("cpuRosterStatus").textContent = "CPU対戦を開始できませんでした。募集状態を確認しながら安全に再試行できます。";
+    toast(error.message || "CPU対戦を開始できませんでした。");
+  } finally {
+    cpuAcceptBusy = false;
+    if ($("cpuRosterDialog").open && cpuRosterCache) renderCpuRoster(cpuRosterCache.characters);
+    render();
+  }
+}
+
+function keepWaitingForHuman() {
+  cpuOfferDismissedStage = matchmakingWaitSeconds() >= CPU_SECOND_OFFER_SECONDS ? 2 : 1;
+  show("cpuOpponentOffer", false);
+  $("matchmakingStatus").textContent = cpuOfferDismissedStage === 2
+    ? "このまま人間の対戦相手を待ちます。CPU戦は自動では始まりません。"
+    : "人間の対戦相手を待ち続けます。3分経ったら、CPUの選択肢を一度だけ再表示します。";
 }
 
 async function recruitPublicOpponent() {
@@ -980,7 +1142,7 @@ async function submitSetup() {
   finally { $("submitSetup").disabled = false; }
 }
 async function requestRematch() {
-  if (rematchBusy || roomModel?.room?.status !== "finished") return;
+  if (rematchBusy || roomModel?.room?.opponent_kind === "cpu" || roomModel?.room?.status !== "finished") return;
   rematchBusy = true; render();
   try {
     const result = await client.requestRematch({ expectedVersion: roomModel.room.version });
@@ -1010,6 +1172,9 @@ $("joinRoom").onclick = joinRoom;
 $("recruitOpponent").onclick = recruitPublicOpponent;
 $("findOpponent").onclick = findPublicOpponent;
 $("cancelMatchmaking").onclick = cancelPublicMatchmaking;
+$("chooseCpuOpponent").onclick = openCpuRoster;
+$("keepWaitingForHuman").onclick = keepWaitingForHuman;
+$("closeCpuRoster").onclick = () => $("cpuRosterDialog").close();
 $("roomCode").oninput = () => { $("roomCode").value = $("roomCode").value.replace(/\s/g, "").toUpperCase().slice(0, 6); };
 $("submitSetup").onclick = submitSetup;
 $("board").addEventListener("pointerdown", boardPointer);
@@ -1025,15 +1190,15 @@ $("terminalClose").onclick = () => {
   show("terminalOverlay", false);
   $("requestRematch").focus({ preventScroll: false });
 };
-$("leaveRoom").onclick = () => { clearContactReveal(); roomSync.stop(); client.clearRoom(); roomModel = null; render(); };
+$("leaveRoom").onclick = () => { clearContactReveal(); stopCpuTurnWatch(); roomSync.stop(); client.clearRoom(); roomModel = null; render(); };
 document.addEventListener("visibilitychange", () => {
   roomSync.handleVisibilityChange();
-  if (document.visibilityState === "hidden") stopMatchmakingWatch();
-  else scheduleMatchmakingStatus(250);
+  if (document.visibilityState === "hidden") { stopMatchmakingWatch(); stopCpuTurnWatch(); }
+  else { scheduleMatchmakingStatus(250); scheduleCpuTurn(250); }
 });
-window.addEventListener("focus", () => roomSync.invalidate());
-window.addEventListener("online", () => { roomSync.handleConnectivityChange(); scheduleMatchmakingStatus(250); });
-window.addEventListener("offline", () => { roomSync.handleConnectivityChange(); stopMatchmakingWatch(); });
+window.addEventListener("focus", () => { roomSync.invalidate(); scheduleCpuTurn(250); });
+window.addEventListener("online", () => { roomSync.handleConnectivityChange(); scheduleMatchmakingStatus(250); scheduleCpuTurn(250); });
+window.addEventListener("offline", () => { roomSync.handleConnectivityChange(); stopMatchmakingWatch(); stopCpuTurnWatch(); });
 
 loadProfiles();
 render();

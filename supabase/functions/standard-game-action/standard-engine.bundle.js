@@ -572,6 +572,8 @@ function createProgressionFields() {
     trophies: Object.fromEntries(TROPHY_IDS.map((id) => [id, false])),
     trophyDates: {},
     stats: { wins: 0, losses: 0, currentWinStreak: 0, bestWinStreak: 0, fullPaints: 0 },
+    cpuStats: { wins: 0, losses: 0, currentWinStreak: 0, bestWinStreak: 0, fullPaints: 0 },
+    cpuCharacterStats: {},
     matchHistory: [],
   };
 }
@@ -598,6 +600,20 @@ function validateProgressionFields(profile) {
   assertProfile(isRecord(profile.stats), "INVALID_MATCH_STATS");
   for (const key of ["wins", "losses", "currentWinStreak", "bestWinStreak", "fullPaints"]) nonnegativeInteger(profile.stats[key], "INVALID_MATCH_STAT");
   assertProfile(profile.stats.bestWinStreak >= profile.stats.currentWinStreak, "INVALID_WIN_STREAK");
+  if (Object.hasOwn(profile, "cpuStats")) {
+    assertProfile(isRecord(profile.cpuStats), "INVALID_CPU_MATCH_STATS");
+    for (const key of ["wins", "losses", "currentWinStreak", "bestWinStreak", "fullPaints"]) nonnegativeInteger(profile.cpuStats[key], "INVALID_CPU_MATCH_STAT");
+    assertProfile(profile.cpuStats.bestWinStreak >= profile.cpuStats.currentWinStreak, "INVALID_CPU_WIN_STREAK");
+  }
+  if (Object.hasOwn(profile, "cpuCharacterStats")) {
+    assertProfile(isRecord(profile.cpuCharacterStats), "INVALID_CPU_CHARACTER_STATS");
+    for (const [characterId, record] of Object.entries(profile.cpuCharacterStats)) {
+      assertProfile(/^[a-z][a-z0-9-]{1,31}$/.test(characterId) && isRecord(record), "INVALID_CPU_CHARACTER_STAT");
+      for (const key of ["matches", "wins", "losses"]) nonnegativeInteger(record[key], "INVALID_CPU_CHARACTER_STAT");
+      assertProfile(record.matches === record.wins + record.losses, "INVALID_CPU_CHARACTER_STAT");
+      assertProfile(record.firstWinAt === null || (typeof record.firstWinAt === "string" && Number.isFinite(Date.parse(record.firstWinAt))), "INVALID_CPU_CHARACTER_STAT");
+    }
+  }
   assertProfile(Array.isArray(profile.matchHistory) && profile.matchHistory.length <= MAX_MATCH_HISTORY, "INVALID_MATCH_HISTORY");
   for (const entry of profile.matchHistory) {
     assertProfile(isRecord(entry), "INVALID_MATCH_HISTORY_ENTRY");
@@ -607,6 +623,9 @@ function validateProgressionFields(profile) {
     assertProfile(typeof entry.endedAt === "string" && Number.isFinite(Date.parse(entry.endedAt)), "INVALID_HISTORY_DATE");
     assertProfile(typeof entry.fullPaint === "boolean", "INVALID_HISTORY_FULL_PAINT");
     nonnegativeInteger(entry.skillsUsed, "INVALID_HISTORY_SKILLS_USED");
+    if (Object.hasOwn(entry, "onlineOpponentKind")) {
+      assertProfile(entry.onlineOpponentKind === "cpu" && /^[a-z][a-z0-9-]{1,31}$/.test(entry.cpuCharacterId), "INVALID_ONLINE_CPU_HISTORY");
+    }
     if (Object.hasOwn(entry, "mode")) {
       assertProfile(entry.mode === "standard", "INVALID_HISTORY_MODE");
       assertProfile(typeof entry.profileId === "string" && entry.profileId.length >= 1 && entry.profileId.length <= 64, "INVALID_HISTORY_PROFILE_ID");
@@ -736,6 +755,45 @@ function recordMatchOutcome({ profile, matchId, won, terminalReason, fullPaint =
   return Object.freeze(next);
 }
 
+function recordCpuMatchOutcome({ profile, matchId, cpuCharacterId, won, terminalReason, fullPaint = false, skillsUsed = 0, endedAt = new Date().toISOString() }) {
+  validateProgressionFields(profile);
+  assertProfile(typeof matchId === "string" && matchId.length >= 1 && matchId.length <= 64, "INVALID_HISTORY_MATCH_ID");
+  assertProfile(/^[a-z][a-z0-9-]{1,31}$/.test(cpuCharacterId), "INVALID_CPU_CHARACTER_ID");
+  assertProfile(typeof won === "boolean", "INVALID_MATCH_RESULT");
+  assertProfile(typeof terminalReason === "string" && terminalReason.length <= 80, "INVALID_HISTORY_REASON");
+  assertProfile(typeof fullPaint === "boolean", "INVALID_HISTORY_FULL_PAINT");
+  nonnegativeInteger(skillsUsed, "INVALID_HISTORY_SKILLS_USED");
+  assertProfile(typeof endedAt === "string" && Number.isFinite(Date.parse(endedAt)), "INVALID_HISTORY_DATE");
+  assertProfile(!profile.matchHistory.some((entry) => entry.matchId === matchId), "MATCH_ALREADY_RECORDED");
+  const next = clone(profile);
+  next.cpuStats ||= { wins: 0, losses: 0, currentWinStreak: 0, bestWinStreak: 0, fullPaints: 0 };
+  next.cpuCharacterStats ||= {};
+  if (won) {
+    next.cpuStats.wins += 1;
+    next.cpuStats.currentWinStreak += 1;
+    next.cpuStats.bestWinStreak = Math.max(next.cpuStats.bestWinStreak, next.cpuStats.currentWinStreak);
+  } else {
+    next.cpuStats.losses += 1;
+    next.cpuStats.currentWinStreak = 0;
+  }
+  const character = next.cpuCharacterStats[cpuCharacterId] || { matches: 0, wins: 0, losses: 0, firstWinAt: null };
+  character.matches += 1;
+  character[won ? "wins" : "losses"] += 1;
+  if (won && character.firstWinAt === null) character.firstWinAt = endedAt;
+  next.cpuCharacterStats[cpuCharacterId] = character;
+  if (won && fullPaint) {
+    next.cpuStats.fullPaints += 1;
+    next.stats.fullPaints += 1;
+    unlockTrophy(next, "fullPaint", endedAt);
+    if (next.stats.fullPaints >= 3) unlockTrophy(next, "fullPaint3", endedAt);
+    if (skillsUsed === 0) unlockTrophy(next, "noSkillFullPaint", endedAt);
+  }
+  next.matchHistory.unshift({ matchId, result: won ? "WIN" : "LOSS", terminalReason, endedAt, fullPaint: won && fullPaint, skillsUsed, onlineOpponentKind: "cpu", cpuCharacterId });
+  next.matchHistory = next.matchHistory.slice(0, MAX_MATCH_HISTORY);
+  validateProgressionFields(next);
+  return Object.freeze(next);
+}
+
 module.exports = {
   CARD_COIN_VALUE,
   ECONOMY_VERSION,
@@ -749,6 +807,7 @@ module.exports = {
   coinValueForSkill,
   createProgressionFields,
   quoteCardSale,
+  recordCpuMatchOutcome,
   recordMatchOutcome,
   setCardProtection,
   validateProgressionFields,
@@ -2989,6 +3048,37 @@ function applyProfiles({profiles,beforeState,nextState,actor,action,finishedAt})
   }
   return {profiles:next,changed};
 }
+function applyCpuProfiles({profiles,beforeState,nextState,actor,action,finishedAt,characterId}){
+  const next={A:clone(profiles?.A),B:clone(profiles?.B)};
+  for(const seat of ["A","B"])validateProfile(next[seat]);
+  if(!cpuRoster.CPU_CHARACTERS[characterId])throw new Error("UNKNOWN_CPU_CHARACTER");
+  const changed={A:false,B:false};
+  if(action.type==="USE_SKILL"){
+    const consumed=[];
+    for(const id of new Set([...Object.keys(beforeState.hands[actor]),...Object.keys(nextState.hands[actor])])){
+      const difference=(beforeState.hands[actor][id]||0)-(nextState.hands[actor][id]||0);
+      if(difference!==0)consumed.push({id,difference});
+    }
+    if(consumed.length!==1||consumed[0].difference!==1)throw new Error("CARD_NOT_CONSUMED_ONCE");
+    const id=consumed[0].id;
+    if(!Number.isSafeInteger(next[actor].inventory[id])||next[actor].inventory[id]<1)throw new Error("INVENTORY_EMPTY");
+    next[actor].inventory[id]-=1;
+    validateProfile(next[actor]);
+    changed[actor]=true;
+  }
+  if(nextState.status==="FINISHED"){
+    if(typeof finishedAt!=="string"||!Number.isFinite(Date.parse(finishedAt)))throw new Error("INVALID_FINISHED_AT");
+    const fullPaint=match.isMapCompleteWin(nextState);
+    next.A=clone(profileModel.recordCpuMatchOutcome({
+      profile:next.A,matchId:nextState.matchId,cpuCharacterId:characterId,won:nextState.winner==="A",
+      terminalReason:nextState.terminalReason,fullPaint,skillsUsed:nextState.skillsUsed.A,endedAt:finishedAt,
+    }));
+    validateGachaTickets(next.A);
+    next.A.gachaTickets["1"]=(next.A.gachaTickets["1"]||0)+1;
+    changed.A=true;
+  }
+  return {profiles:next,changed};
+}
 function apply({state,rngSnapshot,actor,action,expectedVersion}){
   match.validateStandardState(state);
   const streams=engine.createRngDomainsFromSnapshot(rngSnapshot,match.REQUIRED_RNG_STREAMS);
@@ -3012,6 +3102,7 @@ globalThis.FourColorStandardServerEngine=Object.freeze({
   REQUIRED_RNG_STREAMS:match.REQUIRED_RNG_STREAMS,
   StandardRuleError:engine.StandardRuleError,
   apply,
+  applyCpuProfiles,
   applyProfiles,
   chooseCpuAction,
   create,

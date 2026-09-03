@@ -181,6 +181,37 @@ function applyProfiles({profiles,beforeState,nextState,actor,action,finishedAt})
   }
   return {profiles:next,changed};
 }
+function applyCpuProfiles({profiles,beforeState,nextState,actor,action,finishedAt,characterId}){
+  const next={A:clone(profiles?.A),B:clone(profiles?.B)};
+  for(const seat of ["A","B"])validateProfile(next[seat]);
+  if(!cpuRoster.CPU_CHARACTERS[characterId])throw new Error("UNKNOWN_CPU_CHARACTER");
+  const changed={A:false,B:false};
+  if(action.type==="USE_SKILL"){
+    const consumed=[];
+    for(const id of new Set([...Object.keys(beforeState.hands[actor]),...Object.keys(nextState.hands[actor])])){
+      const difference=(beforeState.hands[actor][id]||0)-(nextState.hands[actor][id]||0);
+      if(difference!==0)consumed.push({id,difference});
+    }
+    if(consumed.length!==1||consumed[0].difference!==1)throw new Error("CARD_NOT_CONSUMED_ONCE");
+    const id=consumed[0].id;
+    if(!Number.isSafeInteger(next[actor].inventory[id])||next[actor].inventory[id]<1)throw new Error("INVENTORY_EMPTY");
+    next[actor].inventory[id]-=1;
+    validateProfile(next[actor]);
+    changed[actor]=true;
+  }
+  if(nextState.status==="FINISHED"){
+    if(typeof finishedAt!=="string"||!Number.isFinite(Date.parse(finishedAt)))throw new Error("INVALID_FINISHED_AT");
+    const fullPaint=match.isMapCompleteWin(nextState);
+    next.A=clone(profileModel.recordCpuMatchOutcome({
+      profile:next.A,matchId:nextState.matchId,cpuCharacterId:characterId,won:nextState.winner==="A",
+      terminalReason:nextState.terminalReason,fullPaint,skillsUsed:nextState.skillsUsed.A,endedAt:finishedAt,
+    }));
+    validateGachaTickets(next.A);
+    next.A.gachaTickets["1"]=(next.A.gachaTickets["1"]||0)+1;
+    changed.A=true;
+  }
+  return {profiles:next,changed};
+}
 function apply({state,rngSnapshot,actor,action,expectedVersion}){
   match.validateStandardState(state);
   const streams=engine.createRngDomainsFromSnapshot(rngSnapshot,match.REQUIRED_RNG_STREAMS);
@@ -204,6 +235,7 @@ globalThis.FourColorStandardServerEngine=Object.freeze({
   REQUIRED_RNG_STREAMS:match.REQUIRED_RNG_STREAMS,
   StandardRuleError:engine.StandardRuleError,
   apply,
+  applyCpuProfiles,
   applyProfiles,
   chooseCpuAction,
   create,

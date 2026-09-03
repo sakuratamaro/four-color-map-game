@@ -232,6 +232,31 @@
       }
       return clone(row);
     }
+    async function readCpuRoster() {
+      await ensureSession();
+      return clone(await invoke("cpu-roster"));
+    }
+    async function acceptCpuOpponent({ ticketId = state.matchmakingTicketId, characterId }) {
+      await ensureSession();
+      if (!UUID_PATTERN.test(String(ticketId)) || !requiredText(characterId, "INVALID_CPU_CHARACTER", 32)) throw new Error("INVALID_CPU_ACCEPT");
+      const result = await invoke("cpu-accept", { ticketId, characterId });
+      if (!UUID_PATTERN.test(String(result.roomId)) || result.matchmakingStatus !== "matched") throw new Error("INVALID_CPU_ACCEPT_RESULT");
+      state.roomId = result.roomId;
+      state.roomCode = null;
+      state.setupRevision = 0;
+      state.rematchActionId = null;
+      state.rematchExpectedVersion = null;
+      state.matchmakingTicketId = null;
+      state.matchmakingStartedAt = null;
+      state.matchmakingFindActionId = null;
+      persist();
+      return clone(result);
+    }
+    async function takeCpuTurn({ roomId = state.roomId, expectedVersion }) {
+      await ensureSession();
+      if (!UUID_PATTERN.test(String(roomId)) || !Number.isSafeInteger(expectedVersion) || expectedVersion < 0) throw new Error("INVALID_CPU_ACTION");
+      return clone(await invoke("cpu-action", { roomId, expectedVersion }));
+    }
     async function submitSetup({ roomId = state.roomId, expectedSetupRevision = state.setupRevision, loadout, setupActionId = idFactory() }) {
       await ensureSession();
       if (!UUID_PATTERN.test(String(roomId)) || !UUID_PATTERN.test(String(setupActionId))) throw new Error("INVALID_SETUP_ID");
@@ -353,6 +378,7 @@
     }
 
     return Object.freeze({
+      acceptCpuOpponent,
       cancelMatchmaking,
       clearRoom,
       createRoom,
@@ -363,6 +389,7 @@
       initialize,
       joinRoom,
       readMatchmakingStatus,
+      readCpuRoster,
       readProfile,
       readRoom,
       requestRematch,
@@ -376,6 +403,7 @@
       submitSetup,
       subscribeToRoom,
       syncProfile,
+      takeCpuTurn,
     });
   }
 

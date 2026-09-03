@@ -51,11 +51,16 @@ async function installMock(context, mode) {
     if (initialMode !== "empty") {
       localStorage.setItem(save, JSON.stringify({ profiles: { playerA: { displayName: "A", inventory } } }));
       localStorage.setItem("fourColorMapGame.standard.online.v5.profile", "playerA");
-      if (!["lobby", "publicFind"].includes(initialMode)) {
+      if (!["lobby", "publicFind", "cpuWait"].includes(initialMode)) {
         localStorage.setItem(connection, JSON.stringify({
           roomId: id, roomCode: "A1B2C3", profileRevision: 1, setupRevision: 3,
           rematchActionId: initialMode === "finished" ? pendingId : null,
           rematchExpectedVersion: initialMode === "finished" ? 9 : null,
+        }));
+      } else if (initialMode === "cpuWait") {
+        localStorage.setItem(connection, JSON.stringify({
+          roomId: null, roomCode: null, profileRevision: 1, setupRevision: 0,
+          matchmakingTicketId: pendingId, matchmakingStartedAt: new Date(Date.now() - 91000).toISOString(), matchmakingFindActionId: null,
         }));
       }
     }
@@ -74,17 +79,20 @@ async function installMock(context, mode) {
       stats: { wins: 4, losses: 2, currentWinStreak: 2, bestWinStreak: 3, fullPaints: 1 },
       matchHistory: [{ matchId: "history-1", result: "WIN", terminalReason: "BOARD_LOCK", endedAt: "2026-09-01T00:00:00.000Z", fullPaint: true, skillsUsed: 0 }],
     };
+    if (initialMode === "cpuTurn") active.active = "B";
     const runtime = {
-      room: { id, status: initialMode === "finished" ? "finished" : initialMode === "publicFind" ? "ready" : "playing", version: 9, game_mode: "standard_v5", access_mode: initialMode === "publicFind" ? "public_queue" : "private_code", opponent_kind: "human", public_state: initialMode === "finished" ? finished : initialMode === "publicFind" ? null : active },
+      waitStartedAt: initialMode === "cpuWait" ? new Date(Date.now() - 91000).toISOString() : new Date().toISOString(),
+      room: { id, status: initialMode === "finished" ? "finished" : initialMode === "publicFind" ? "ready" : "playing", version: 9, game_mode: "standard_v5", access_mode: initialMode === "cpuTurn" ? "cpu" : initialMode === "publicFind" ? "public_queue" : "private_code", opponent_kind: initialMode === "cpuTurn" ? "cpu" : "human", cpu_character_id: initialMode === "cpuTurn" ? "yuzu" : null, public_state: initialMode === "finished" ? finished : initialMode === "publicFind" ? null : active },
       view: initialMode === "publicFind" ? null : { seat: "A", version: 9, private_state: { hand: { areaDiePlus: 1, areaResize: 1 }, basicPalette: ["red", "blue"], bonusColor: "yellow", bonusUsesRemaining: 2, privateEffects: {} } },
       profile: initialMode === "empty" ? null : { revision: 1, display_name: "A", profile_state: profileState },
       gachaReceipts: {},
       cardSaleReceipts: {},
       calls: [],
     };
+    runtime.members = [{ user_id: "33333333-3333-4333-8333-333333333333", seat: "A", display_name: "A", is_cpu: false }, { user_id: "44444444-4444-4444-8444-444444444444", seat: "B", display_name: initialMode === "cpuTurn" ? "うっかりユズ" : "B", is_cpu: initialMode === "cpuTurn" }];
     globalThis.__standardOnlineRuntime = runtime;
     const resultFor = (table) => table === "fcg_rooms" ? runtime.room
-      : table === "fcg_room_members" ? [{ user_id: "33333333-3333-4333-8333-333333333333", seat: "A", display_name: "A" }, { user_id: "44444444-4444-4444-8444-444444444444", seat: "B", display_name: "B" }]
+      : table === "fcg_room_members" ? runtime.members
         : table === "fcg_player_views" ? runtime.view
           : runtime.profile;
     globalThis.__standardOnlineMockSupabase = {
@@ -125,15 +133,30 @@ async function installMock(context, mode) {
           runtime.cardSaleReceipts[request.body.actionId] = result;
           return { data: result };
         }
+        if (request.body.operation === "cpu-roster") return { data: { rosterVersion: "standard-character-roster-v1", characters: [
+          ["yuzu", "うっかりユズ"], ["ren", "せっかちレン"], ["minato", "見習いミナト"], ["koharu", "読み違いコハル"], ["aoi", "慎重派アオイ"],
+          ["kai", "勝負師カイ"], ["tsubasa", "仕掛け屋ツバサ"], ["shion", "観察役シオン"], ["rei", "カード博士レイ"], ["kurogane", "四色のクロガネ"],
+        ].map(([cpuId, name]) => ({ id: cpuId, name, line: "よろしく！", strength: "得意な一手", weakness: "うっかり", favorites: ["colorRandomBorrow", "areaMicroBloom"] })) } };
+        if (request.body.operation === "cpu-accept") {
+          runtime.room = { ...runtime.room, status: "ready", access_mode: "cpu", opponent_kind: "cpu", cpu_character_id: request.body.characterId, public_state: null };
+          runtime.view = null;
+          runtime.members = [{ user_id: "33333333-3333-4333-8333-333333333333", seat: "A", display_name: "A", is_cpu: false }, { user_id: "55555555-5555-4555-8555-555555555555", seat: "B", display_name: "うっかりユズ", is_cpu: true }];
+          return { data: { matchmakingStatus: "matched", roomId: id, seat: "A", characterId: request.body.characterId, duplicate: false } };
+        }
+        if (request.body.operation === "cpu-action") {
+          runtime.room = { ...runtime.room, version: runtime.room.version + 1, public_state: { ...runtime.room.public_state, version: runtime.room.version + 1, active: "A" } };
+          runtime.view = { ...runtime.view, version: runtime.room.version };
+          return { data: { duplicate: false, room: runtime.room } };
+        }
         return { data: { ok: true } };
       } },
       rpc: async (name, args) => {
         runtime.calls.push({ kind: "rpc", name, args });
         if (name === "fcg_standard_matchmaking_recruit") {
           runtime.ticketId = args.p_ticket_id;
-          return { data: [{ ticket_id: args.p_ticket_id, matchmaking_status: "searching", room_id: null, seat: null, wait_started_at: new Date().toISOString(), server_time: new Date().toISOString() }] };
+          return { data: [{ ticket_id: args.p_ticket_id, matchmaking_status: "searching", room_id: null, seat: null, wait_started_at: runtime.waitStartedAt, server_time: new Date().toISOString() }] };
         }
-        if (name === "fcg_standard_matchmaking_status") return { data: [{ ticket_id: args.p_ticket_id, matchmaking_status: "searching", room_id: null, seat: null, wait_started_at: new Date().toISOString(), server_time: new Date().toISOString() }] };
+        if (name === "fcg_standard_matchmaking_status") return { data: [{ ticket_id: args.p_ticket_id, matchmaking_status: "searching", room_id: null, seat: null, wait_started_at: runtime.waitStartedAt, server_time: new Date().toISOString() }] };
         if (name === "fcg_standard_matchmaking_cancel") return { data: [{ ticket_id: args.p_ticket_id, matchmaking_status: "cancelled", room_id: null, seat: null, server_time: new Date().toISOString() }] };
         if (name === "fcg_standard_matchmaking_find") return { data: [{ matchmaking_status: initialMode === "publicFind" ? "matched" : "none_available", room_id: initialMode === "publicFind" ? id : null, seat: initialMode === "publicFind" ? "B" : null, server_time: new Date().toISOString(), duplicate: false }] };
         if (name === "fcg_standard_room_snapshot") return { data: [{
@@ -182,7 +205,7 @@ async function withPage(mode, run) {
     await installMock(context, mode);
     const page = await context.newPage();
     await page.goto(`${url}/standard-online-v5/index.html`);
-    const readySelector = mode === "empty" ? "#profileCard:not(.hidden)" : ["lobby", "publicFind"].includes(mode) ? "#lobby:not(.hidden)" : "#room:not(.hidden)";
+    const readySelector = mode === "empty" ? "#profileCard:not(.hidden)" : ["lobby", "publicFind", "cpuWait"].includes(mode) ? "#lobby:not(.hidden)" : "#room:not(.hidden)";
     await page.locator(readySelector).waitFor();
     await run(page);
   } finally {
@@ -336,6 +359,33 @@ test("actual Edge recruits and cancels with one persisted public matchmaking tic
     await page.getByText("募集を取り消しました。").waitFor();
     const afterCancel = await page.evaluate(({ key }) => JSON.parse(localStorage.getItem(key)), { key: connectionKey });
     assert.equal(afterCancel.matchmakingTicketId, null);
+  });
+});
+
+test("actual Edge offers ten explicit CPU choices after 90 seconds and labels the accepted room", { timeout: 30000 }, async () => {
+  await withPage("cpuWait", async (page) => {
+    await page.locator("#cpuOpponentOffer:not(.hidden)").waitFor();
+    assert.match(await page.locator("#cpuOfferMessage").textContent(), /90秒/);
+    await page.getByRole("button", { name: "CPUを選ぶ" }).click();
+    await page.locator("#cpuRosterDialog[open]").waitFor();
+    assert.equal(await page.locator("#cpuRosterGrid .cpu-character-card").count(), 10);
+    await page.getByRole("button", { name: "うっかりユズと対戦" }).click();
+    await page.locator("#room:not(.hidden)").waitFor();
+    assert.equal(await page.locator("#roomIdentityLabel").textContent(), "対戦相手");
+    assert.equal(await page.locator("#shownCode").textContent(), "CPU：うっかりユズ");
+    assert.match(await page.locator("#members").textContent(), /うっかりユズ（CPU）/);
+    const bodies = await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.kind === "invoke").map((entry) => entry.body));
+    assert.deepEqual(bodies.slice(-2).map((body) => body.operation), ["cpu-roster", "cpu-accept"]);
+    assert.deepEqual(bodies.at(-1), { operation: "cpu-accept", ticketId: pendingRematchId, characterId: "yuzu" });
+  });
+});
+
+test("actual Edge asks the server for exactly one CPU action then returns control to the human", { timeout: 60000 }, async () => {
+  await withPage("cpuTurn", async (page) => {
+    await page.waitForFunction(() => globalThis.__standardOnlineRuntime.calls.some((entry) => entry.body?.operation === "cpu-action"), null, { timeout: 45000 });
+    await page.getByText("あなたの手番").waitFor();
+    const actions = await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "cpu-action").map((entry) => entry.body));
+    assert.deepEqual(actions, [{ operation: "cpu-action", roomId, expectedVersion: 9 }]);
   });
 });
 

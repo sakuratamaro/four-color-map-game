@@ -28,6 +28,9 @@
 .card-sale-controls { display: flex; align-items: end; gap: 9px; flex-wrap: wrap; }
 .card-sale-controls label { display: grid; gap: 4px; color: #cbd5e1; font-size: 12px; font-weight: 800; }
 .card-sale-controls input { width: 86px; }
+.cpu-character-records { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: -4px 0 16px; }
+.cpu-character-record { display: flex; justify-content: space-between; gap: 10px; padding: 9px 11px; border: 1px solid #334155; border-radius: 10px; background: #0f172a; }
+.cpu-character-record span { color: #cbd5e1; font-size: 13px; }
 
 @media (max-width: 760px) {
   .profile-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -41,7 +44,23 @@
 .public-matchmaking { border-color: #67e8f9; background: linear-gradient(145deg, #08334488, #07111f); }
 .matchmaking-wait { display: flex; align-items: center; gap: 12px; margin-top: 12px; padding: 12px; border: 1px solid #22d3ee; border-radius: 12px; background: #083344; }
 .matchmaking-wait p { margin: 3px 0 0; }
+.cpu-opponent-offer { display: grid; gap: 10px; margin-top: 12px; padding: 13px; border: 1px solid #a78bfa; border-radius: 12px; background: linear-gradient(145deg, #312e8188, #17255488); }
+.cpu-opponent-offer p { margin: 4px 0 0; }
+.cpu-roster-dialog { width: min(940px, calc(100vw - 28px)); max-height: calc(100vh - 28px); padding: 0; border: 1px solid #a78bfa; border-radius: 18px; color: #e2e8f0; background: #07111f; }
+.cpu-roster-dialog::backdrop { background: #020617dd; backdrop-filter: blur(3px); }
+.cpu-roster-dialog form { padding: 20px; }
+.cpu-roster-dialog h2, .cpu-roster-dialog h3 { margin: 0; }
+.dialog-kicker { margin: 0 0 3px; color: #c4b5fd; font-size: 11px; font-weight: 900; letter-spacing: .18em; }
+.cpu-roster-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 16px 0; }
+.cpu-character-card { display: grid; gap: 7px; padding: 14px; border: 1px solid #475569; border-radius: 14px; background: #111c30; }
+.cpu-character-card p { margin: 0; }
+.cpu-character-line { color: #ddd6fe; font-weight: 800; }
+.cpu-character-card button { justify-self: start; margin-top: 4px; }
 .searching-pulse { width: 18px; height: 18px; flex: 0 0 18px; border: 3px solid #164e63; border-top-color: #67e8f9; border-radius: 50%; animation: searching-spin 1s linear infinite; }
 @keyframes searching-spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .searching-pulse { animation: none; border-color: #67e8f9; } }
 @media (max-width: 760px) { .lobby-choice-grid { grid-template-columns: 1fr; } }
+@media (max-width: 760px) {
+  .cpu-character-records, .cpu-roster-grid { grid-template-columns: 1fr; }
+  .cpu-character-record { flex-direction: column; gap: 3px; }
+}

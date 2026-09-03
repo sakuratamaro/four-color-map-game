@@ -56,6 +56,7 @@ test("bundle exposes a deterministic server-only Standard engine", () => {
   assert.equal(typeof api.create, "function");
   assert.equal(typeof api.apply, "function");
   assert.equal(typeof api.applyProfiles, "function");
+  assert.equal(typeof api.applyCpuProfiles, "function");
   assert.equal(typeof api.drawGacha, "function");
   assert.equal(typeof api.quoteCardSale, "function");
   assert.equal(typeof api.sellCards, "function");
@@ -192,4 +193,23 @@ test("terminal profile settlement is derived from the accepted authoritative sta
   assert.equal(settled.profiles.B.matchHistory[0].terminalReason, "SURRENDER");
   assert.equal(settled.profiles.A.gachaTickets["1"], 1);
   assert.equal(settled.profiles.B.gachaTickets["1"], 1);
+});
+
+test("CPU settlement records only the human CPU history and never rewards the synthetic profile", () => {
+  const api = loadApi();
+  const cpu = api.createCpuProfile("yuzu");
+  const human = profiles().A;
+  const created = api.create({ matchId: "cpu-settled-online", loadouts: { A: loadouts.A, B: cpu.loadout }, profiles: { A: human, B: cpu.profile }, seed: 2026, firstSeat: "A" });
+  const applied = api.apply({ state: created.state, rngSnapshot: created.rngSnapshot, actor: "A", action: { id: "cpu-surrender", type: "SURRENDER", payload: {} }, expectedVersion: 0 });
+  const settled = api.applyCpuProfiles({
+    profiles: { A: human, B: cpu.profile }, beforeState: created.state, nextState: applied.state,
+    actor: "A", action: { type: "SURRENDER" }, finishedAt: "2026-09-03T00:00:00.000Z", characterId: "yuzu",
+  });
+  assert.equal(settled.changed.A, true);
+  assert.equal(settled.changed.B, false);
+  assert.equal(settled.profiles.A.stats.losses, 0);
+  assert.equal(settled.profiles.A.cpuStats.losses, 1);
+  assert.equal(settled.profiles.A.cpuCharacterStats.yuzu.matches, 1);
+  assert.equal(settled.profiles.A.gachaTickets["1"], 1);
+  assert.deepEqual(settled.profiles.B, cpu.profile);
 });

@@ -97,6 +97,36 @@ test("initialization uses service-loaded loadouts and profiles with a server see
   assert.match(source, /fcg_standard_server_initialize_room/);
 });
 
+test("CPU roster and consent derive identity, profile, and loadout only on the server", () => {
+  assert.match(source, /operation === "cpu-roster"/);
+  assert.match(source, /FourColorStandardServerEngine\.getCpuRoster\(\)/);
+  const accept = source.slice(source.indexOf('if (operation === "cpu-accept")'), source.indexOf('if (operation === "profile")'));
+  assert.match(accept, /FourColorStandardServerEngine\.createCpuProfile\(characterId\)/);
+  assert.match(accept, /service\.rpc\("fcg_standard_server_accept_cpu"/);
+  assert.match(accept, /p_profile_state: cpu\.profile/);
+  assert.match(accept, /p_loadout: cpu\.loadout/);
+  assert.match(accept, /p_policy_version: cpu\.policyVersion/);
+  assert.doesNotMatch(accept, /body\.(?:profile|profileState|loadout|policyVersion|cpuUserId)/);
+});
+
+test("one CPU action is deterministic, sees only public plus its own private view, and commits separately", () => {
+  const branch = source.slice(source.indexOf('if (operation === "cpu-action")'), source.indexOf("const action = body.action as JsonObject"));
+  assert.match(branch, /seat !== "A" \|\| room\.opponent_kind !== "cpu"/);
+  assert.match(branch, /p_actor_id: room\.cpu_user_id/);
+  assert.match(branch, /FourColorStandardServerEngine\.chooseCpuAction\(\{[\s\S]+publicState: cpuRoom\.action_public_state[\s\S]+ownPrivateState: cpuRoom\.actor_private_state/i);
+  const choice = branch.slice(branch.indexOf("FourColorStandardServerEngine.chooseCpuAction"), branch.indexOf("const action: JsonObject"));
+  assert.doesNotMatch(choice, /private_a|privateA|profile_a_state/i);
+  assert.match(branch, /deterministicCpuIdentity\(roomId, expectedVersion/);
+  assert.match(branch, /FourColorStandardServerEngine\.applyCpuProfiles/);
+  assert.match(branch, /service\.rpc\("fcg_standard_server_commit_action"/);
+  assert.match(branch, /p_actor_id: room\.cpu_user_id/);
+  assert.doesNotMatch(branch, /body\.(?:action|type|payload|seed|privateState|publicState)/);
+});
+
+test("human actions in CPU rooms use CPU-separated settlement", () => {
+  assert.match(source, /room\.opponent_kind === "cpu"[\s\S]+FourColorStandardServerEngine\.applyCpuProfiles\([\s\S]+characterId: room\.cpu_character_id as string/);
+});
+
 test("each rematch generation receives a distinct match id and versioned projections", () => {
   assert.match(source, /const initialVersion = Number\(room\.room_version\)/);
   assert.match(source, /matchId: `\$\{roomId\}:\$\{initialVersion\}`/);

@@ -87,7 +87,10 @@
         <div><h2>戦績とトロフィー</h2><p class="muted">対戦終了時にサーバーへ保存された記録です。</p></div>
         <strong id="profileCoins" class="coin-badge">🪙 0コイン</strong>
       </div>
-      <div id="profileStats" class="profile-stats" aria-label="対戦成績"></div>
+      <div id="profileStats" class="profile-stats" aria-label="対人戦成績"></div>
+      <h3>CPU対戦成績</h3>
+      <div id="cpuProfileStats" class="profile-stats" aria-label="CPU対戦成績"></div>
+      <div id="cpuCharacterRecords" class="cpu-character-records" aria-label="CPUキャラクター別成績"></div>
       <h3>トロフィー</h3>
       <div id="trophyList" class="trophy-list"></div>
       <details class="history-details">
@@ -134,6 +137,13 @@
           <div id="matchmakingWait" class="matchmaking-wait hidden">
             <span class="searching-pulse" aria-hidden="true"></span>
             <div><strong>対戦相手を探しています</strong><p id="matchmakingElapsed" class="muted small">待機 0秒</p></div>
+          </div>
+          <div id="cpuOpponentOffer" class="cpu-opponent-offer hidden">
+            <div><strong>🤖 CPUと対戦できます</strong><p id="cpuOfferMessage" class="muted small">人間の対戦相手を待ち続けることもできます。</p></div>
+            <div class="controls">
+              <button id="chooseCpuOpponent" class="primary">CPUを選ぶ</button>
+              <button id="keepWaitingForHuman" class="ghost">このまま人を待つ</button>
+            </div>
           </div>
           <p id="matchmakingStatus" class="callout" aria-live="polite">募集するか、今待っている人を探してください。</p>
         </section>
@@ -235,6 +245,14 @@
       <p id="skillInfoTiming" class="muted"></p>
       <p id="skillInfoBody"></p>
       <p id="skillInfoRandom" class="random-skill-note hidden">🎲 このスキルにはランダム抽選があります</p>
+    </form>
+  </dialog>
+  <dialog id="cpuRosterDialog" class="cpu-roster-dialog" aria-labelledby="cpuRosterTitle">
+    <form method="dialog">
+      <div class="row between wrap"><div><p class="dialog-kicker">CPU SELECT</p><h2 id="cpuRosterTitle">対戦するCPUを選ぶ</h2></div><button id="closeCpuRoster" class="ghost" type="button">人を待ち続ける</button></div>
+      <p class="muted">CPUであることを明示した対戦です。キャラクターごとに、得意・苦手・よく使うスキルが違います。</p>
+      <div id="cpuRosterGrid" class="cpu-roster-grid"></div>
+      <p id="cpuRosterStatus" class="callout" aria-live="polite">CPU一覧を読み込んでいます…</p>
     </form>
   </dialog>
   <div id="toast" role="status" aria-live="polite"></div>

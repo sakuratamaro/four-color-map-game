@@ -27,11 +27,11 @@
 | Realtime＋単一snapshotによる軽量同期 | snapshot RPCは本番適用・A/B/非メンバー実測済み、軽量クライアントは未公開 | 採用 | 軽量クライアント公開後の二端末復帰・通信量計測 | `STANDARD_ONLINE_TRANSPORT_LITE.md`、live smoke、sync/client/migration tests |
 | 元ソースとデプロイ再現性 | 統合ブランチで復旧済み、未統合 | 採用 | 全試験合格後にコミットし、公開ブランチへ安全に統合 | `standard/`、build scripts、Edge bundle、過去欠落migration、Supabase function config |
 | カード売却 | 統合ブランチでオンライン実装済み、DB/Edge未適用 | 採用・野良対戦より先に正本化 | migration/Edgeを適用し、公開で通常・要確認・再送・対戦ロックを確認 | `202609030006_standard_online_card_sale.sql`、Edge operations、online UI/browser/engine tests |
-| トロフィー、戦績、対戦履歴 | 対人精算・3トロフィー授与・最低限の一覧UIまで統合ブランチで実装済み、未公開 | 採用・授与/書込みは野良対戦より先 | 公開対人戦で一回精算と再読込表示を確認。CPU追加時に対人/CPU別記録へ拡張 | server `applyProfiles`、online progression UI/browser tests |
+| トロフィー、戦績、対戦履歴 | 対人/CPU別精算・キャラクター別CPU戦績・3トロフィー授与・一覧UIまで統合ブランチで実装済み、未公開 | 採用・授与/書込みは野良対戦より先 | 公開の対人戦/CPU戦で各一回精算、重複なし、再読込表示を確認 | server `applyProfiles` / `applyCpuProfiles`、online progression UI/browser tests |
 | 見た目の購入・装備 | ローカルのみ | 採用・詳細UIは野良対戦後でもよい | 先に装備IDの保存/表示境界を固定。購入API、ショップ演出、プレビューは野良対戦後でもよい | `standard-cosmetics.js`、local cosmetic UI/tests |
 | 合言葉不要の野良マッチング | 人間同士の第1段階を統合ブランチで実装済み、DB未適用 | 採用 | migration適用後、2人/10人同時確保、取消競合、再読込、完走を実環境確認 | matchmaking migration/client/UI/browser tests、`PUBLIC_MATCHMAKING_AND_CPU_FALLBACK_PLAN.md` |
-| 90秒/180秒後の同意制CPU案内 | 構想のみ | 採用 | 問題間の案内、人間参加との競合を原子的に一方へ決着、自動開始は禁止 | 同上 |
-| 個性のある固定CPU 10人 | version付きロスター・共通合法手判断・6枚構成を統合ブランチで実装済み。オンライン対戦接続は未実装 | 旧3段階を置換して採用 | 同意制ルーム変換、別トランザクションCPU手、固定台詞UI、個別戦績、公開完走 | `standard-cpu-roster.js`、生成Edge bundle、roster/privacy/legality tests |
+| 90秒/180秒後の同意制CPU案内 | 統合ブランチで実装済み、DB/Edge未適用 | 採用 | 実時間案内、人間参加との実同時競合、再読込を公開環境で確認。自動開始は禁止済み | CPU migration/Edge/client/UI/browser tests、同上 |
+| 個性のある固定CPU 10人 | version付きロスター、サーバー選択、1手ずつの原子的commit、固定台詞UI、個別戦績まで統合ブランチで実装済み、未適用 | 旧3段階を置換して採用 | 実DBで全員の開始、代表3人の公開完走/復帰、CPU専用再戦を実装 | `standard-cpu-roster.js`、`202609030008_standard_cpu_opponents.sql`、Edge bundle、roster/privacy/legality/browser tests |
 | 期限切れルーム/チケットの清掃 | 構想のみ | 採用 | 小分けの定期削除、進行中保護、利用量の前後計測 | transport/CPU plan |
 | レート制限・同時実行・冪等性 | 一部実装済み | 各APIの実装条件として採用 | 最後に後付けせず、matchmaking/CPU/経済APIごとに認可、version、action ID、原子的commit、並行試験を同時実装 | join rate limit、action/setup/gacha/rematch receipts |
 | `legalRecolor` 実験カード | ローカル実験のみ | 保留 | 通常ガチャへ入れず、既存19種と分離したままバランス判断 | Standard spec/matrix |

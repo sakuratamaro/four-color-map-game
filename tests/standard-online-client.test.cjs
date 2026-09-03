@@ -54,6 +54,9 @@ function supabaseFixture({ roomStatus = "ready", roomVersion = 10 } = {}) {
         if (request.body.operation === "card-sale") return { data: { revision: 4, duplicate: false, quote: { skillId: request.body.skillId, count: request.body.count, earnedCoins: 20, remaining: 1 }, profileState: { coins: 20, inventory: { colorRandomBorrow: 1 } } } };
         if (request.body.operation === "quiz-start") return { data: { sessionId: QUIZ_SESSION_ID, duplicate: false, selectedLevel: 2, expiresAt: "2099-01-01T00:00:00Z", questions: Array.from({ length: 10 }, (_, index) => ({ prompt: `Q${index + 1}`, options: [{ id: `q${index + 1}-1`, label: "1" }] })) } };
         if (request.body.operation === "quiz-finish") return { data: { revision: 5, duplicate: false, correct: 10, wrong: 0, bestStreak: 10, reward: { ticketLevel: 2, draws: 10, reason: "全問正解" }, profileState: { gachaTickets: { "2": 10 }, inventory: {} } } };
+        if (request.body.operation === "cpu-roster") return { data: { rosterVersion: "standard-character-roster-v1", characters: Array.from({ length: 10 }, (_, index) => ({ id: `cpu${index}`, name: `CPU ${index}` })) } };
+        if (request.body.operation === "cpu-accept") return { data: { matchmakingStatus: "matched", roomId: ROOM_ID, seat: "A", characterId: request.body.characterId, duplicate: false } };
+        if (request.body.operation === "cpu-action") return { data: { duplicate: false, room: { version: request.body.expectedVersion + 1 } } };
         if (request.body.operation === "setup") return { data: { setupRevision: 1, profileRevision: 1, quoteId: request.body.setupActionId } };
         return { data: { room: { version: request.body.action?.expectedVersion ?? 0 } } };
       },
@@ -156,6 +159,29 @@ test("a failed public find reuses the same persisted action ID on retry", async 
   await client.findOpponent({ displayName: "A" });
   assert.equal(allocations, 1);
   assert.equal(client.snapshot().roomId, ROOM_ID);
+});
+
+test("CPU roster, explicit acceptance, and one server CPU turn use finite client boundaries", async () => {
+  const supabase = supabaseFixture();
+  const storage = storageFixture();
+  const client = createStandardOnlineClient({ supabase, storage, idFactory: () => ACTION_ID });
+  await client.recruitOpponent({ displayName: "A" });
+  const roster = await client.readCpuRoster();
+  assert.equal(roster.characters.length, 10);
+  const accepted = await client.acceptCpuOpponent({ characterId: "yuzu" });
+  assert.equal(accepted.characterId, "yuzu");
+  assert.equal(client.snapshot().roomId, ROOM_ID);
+  assert.equal(client.snapshot().roomCode, null);
+  assert.equal(client.snapshot().matchmakingTicketId, null);
+  await client.takeCpuTurn({ expectedVersion: 7 });
+  const invokes = supabase.calls.filter((call) => call.kind === "invoke").map((call) => call.request.body);
+  assert.deepEqual(invokes, [
+    { operation: "cpu-roster" },
+    { operation: "cpu-accept", ticketId: ACTION_ID, characterId: "yuzu" },
+    { operation: "cpu-action", roomId: ROOM_ID, expectedVersion: 7 },
+  ]);
+  assert.equal(Object.hasOwn(invokes[1], "profileState"), false);
+  assert.equal(Object.hasOwn(invokes[2], "action"), false);
 });
 
 test("owner profile read refreshes the compare-and-swap revision", async () => {

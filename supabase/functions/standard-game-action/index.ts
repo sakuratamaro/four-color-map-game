@@ -7,10 +7,14 @@ type StandardEngineApi = {
   create(input: { matchId: string; loadouts: Record<Seat, JsonObject>; profiles: Record<Seat, JsonObject>; seed: number }): JsonObject;
   apply(input: { state: JsonObject; rngSnapshot: JsonObject; actor: Seat; action: JsonObject; expectedVersion: number }): JsonObject;
   applyProfiles(input: { profiles: Record<Seat, JsonObject>; beforeState: JsonObject; nextState: JsonObject; actor: Seat; action: JsonObject; finishedAt: string }): { profiles: Record<Seat, JsonObject>; changed: Record<Seat, boolean> };
+  applyCpuProfiles(input: { profiles: Record<Seat, JsonObject>; beforeState: JsonObject; nextState: JsonObject; actor: Seat; action: JsonObject; finishedAt: string; characterId: string }): { profiles: Record<Seat, JsonObject>; changed: Record<Seat, boolean> };
   createStarterProfile(displayName: string): JsonObject;
   drawGacha(input: { profile: JsonObject; ticketLevel: number; count: number; seed: number }): { profile: JsonObject; draws: JsonObject[] };
   quoteCardSale(input: { profile: JsonObject; skillId: string; count: number }): JsonObject;
   sellCards(input: { profile: JsonObject; skillId: string; count: number; confirmed: boolean }): { profile: JsonObject; quote: JsonObject };
+  getCpuRoster(): JsonObject[];
+  createCpuProfile(characterId: string): { profile: JsonObject; loadout: JsonObject; policyVersion: string };
+  chooseCpuAction(input: { publicState: JsonObject; ownPrivateState: JsonObject; characterId: string; seed: number }): JsonObject;
   publicState(state: JsonObject): JsonObject;
   privateState(state: JsonObject, seat: Seat): JsonObject;
   validateProfile(profile: JsonObject): boolean;
@@ -70,6 +74,12 @@ function canonical(value: unknown): unknown {
 async function fingerprint(value: unknown): Promise<string> {
   const bytes = new TextEncoder().encode(JSON.stringify(canonical(value)));
   return [...new Uint8Array(await crypto.subtle.digest("SHA-256", bytes))].map((value) => value.toString(16).padStart(2, "0")).join("");
+}
+
+async function deterministicCpuIdentity(roomId: string, version: number, characterId: string, policyVersion: string): Promise<{ actionId: string; seed: number }> {
+  const hex = await fingerprint({ roomId, version, characterId, policyVersion });
+  const actionId = `${hex.slice(0, 8)}-${hex.slice(8, 12)}-5${hex.slice(13, 16)}-8${hex.slice(17, 20)}-${hex.slice(20, 32)}`;
+  return { actionId, seed: Number.parseInt(hex.slice(0, 8), 16) >>> 0 };
 }
 
 function secureSeed(): number {
@@ -180,6 +190,8 @@ function publicError(error: unknown): { status: number; code: string; message: s
   if (detail.includes("INVALID_QUIZ")) return { status: 400, code: "INVALID_QUIZ", message: "Quiz input is invalid." };
   if (candidate?.code === "PT409" || candidate?.code === "40001") return { status: 409, code: "STALE_VERSION", message: "Match changed; reload and retry." };
   if (candidate?.code === "55000" && detail.includes("CARD_SALE_MATCH_LOCKED")) return { status: 409, code: "CARD_SALE_MATCH_LOCKED", message: "Cards cannot be sold after a loadout is submitted or while a match is active." };
+  if (candidate?.code === "55000" && detail.includes("CPU_CONSENT_TOO_EARLY")) return { status: 409, code: "CPU_CONSENT_TOO_EARLY", message: "CPU play becomes available after 90 seconds." };
+  if (candidate?.code === "55000" && detail.includes("MATCHMAKING_")) return { status: 409, code: "MATCHMAKING_RESOLVED", message: "Matchmaking was already resolved or expired." };
   if (candidate?.code === "23505") return { status: 409, code: "IDEMPOTENCY_KEY_REUSE", message: "Action ID was reused with different input." };
   if (candidate?.code === "42501") return { status: 403, code: "NOT_A_MEMBER", message: "You are not in this room." };
   if (candidate?.code === "P0002") return { status: 404, code: "ROOM_NOT_FOUND", message: "Room was not found." };
@@ -203,8 +215,44 @@ Deno.serve(async (request: Request) => {
     });
     const body = await request.json() as JsonObject;
     const operation = body.operation;
-    if (!["profile", "gacha", "card-sale-quote", "card-sale", "quiz-start", "quiz-finish", "setup", "initialize", "action"].includes(String(operation))) {
+    if (!["profile", "gacha", "card-sale-quote", "card-sale", "quiz-start", "quiz-finish", "cpu-roster", "cpu-accept", "cpu-action", "setup", "initialize", "action"].includes(String(operation))) {
       return json(400, { error: { code: "INVALID_REQUEST", message: "A valid operation is required." } });
+    }
+
+    if (operation === "cpu-roster") {
+      return json(200, { rosterVersion: "standard-character-roster-v1", characters: globalThis.FourColorStandardServerEngine.getCpuRoster() });
+    }
+
+    if (operation === "cpu-accept") {
+      const ticketId = body.ticketId;
+      const characterId = body.characterId;
+      if (typeof ticketId !== "string" || !UUID_PATTERN.test(ticketId) || typeof characterId !== "string" || characterId.length > 32) {
+        return json(400, { error: { code: "INVALID_CPU_ACCEPT", message: "A valid ticket and CPU character are required." } });
+      }
+      let cpu;
+      try { cpu = globalThis.FourColorStandardServerEngine.createCpuProfile(characterId); }
+      catch { return json(400, { error: { code: "UNKNOWN_CPU_CHARACTER", message: "That CPU character is not available." } }); }
+      stage = "accept-cpu";
+      const { data, error } = await service.rpc("fcg_standard_server_accept_cpu", {
+        p_user_id: actorId,
+        p_ticket_id: ticketId,
+        p_cpu_user_id: crypto.randomUUID(),
+        p_character_id: characterId,
+        p_policy_version: cpu.policyVersion,
+        p_display_name: (cpu.profile as { displayName?: string }).displayName,
+        p_profile_state: cpu.profile,
+        p_loadout: cpu.loadout,
+        p_loadout_fingerprint: await fingerprint(cpu.loadout),
+      });
+      if (error) throw error;
+      const accepted = firstRow(data);
+      return json(200, {
+        matchmakingStatus: accepted?.matchmaking_status,
+        roomId: accepted?.room_id,
+        seat: accepted?.seat,
+        characterId: accepted?.cpu_character_id,
+        duplicate: accepted?.duplicate === true,
+      });
     }
 
     if (operation === "profile") {
@@ -505,7 +553,7 @@ Deno.serve(async (request: Request) => {
     }
 
     const load = async (): Promise<JsonObject> => {
-      const { data, error } = await service.rpc("fcg_standard_server_load_room", { p_room_id: roomId, p_actor_id: actorId });
+      const { data, error } = await service.rpc("fcg_standard_server_load_room_v2", { p_room_id: roomId, p_actor_id: actorId });
       if (error) throw error;
       const row = firstRow(data);
       if (!row) throw { code: "P0002" };
@@ -548,6 +596,80 @@ Deno.serve(async (request: Request) => {
       return json(200, { room: roomProjection(room) });
     }
 
+    if (operation === "cpu-action") {
+      const expectedVersion = body.expectedVersion;
+      if (!Number.isSafeInteger(expectedVersion) || (expectedVersion as number) < 0) {
+        return json(400, { error: { code: "INVALID_CPU_ACTION", message: "A valid match version is required." } });
+      }
+      if (seat !== "A" || room.opponent_kind !== "cpu" || typeof room.cpu_character_id !== "string"
+          || typeof room.cpu_policy_version !== "string" || typeof room.cpu_user_id !== "string") {
+        return json(409, { error: { code: "CPU_ROOM_REQUIRED", message: "This room has no CPU opponent." } });
+      }
+      stage = "load-cpu-turn";
+      const { data: cpuData, error: cpuLoadError } = await service.rpc("fcg_standard_server_load_room_v2", {
+        p_room_id: roomId, p_actor_id: room.cpu_user_id,
+      });
+      if (cpuLoadError) throw cpuLoadError;
+      const cpuRoom = firstRow(cpuData);
+      if (!cpuRoom || cpuRoom.actor_seat !== "B" || cpuRoom.room_status !== "playing" || !cpuRoom.authoritative_state
+          || !cpuRoom.actor_private_state || Number(cpuRoom.room_version) !== expectedVersion) {
+        return json(409, { error: { code: "CPU_TURN_CHANGED", message: "The CPU turn changed; refresh the room." } });
+      }
+      const authority = cpuRoom.authoritative_state as JsonObject;
+      const state = authority.state as JsonObject;
+      if (state.active !== "B" || state.status === "FINISHED") {
+        return json(409, { error: { code: "CPU_NOT_ACTIVE", message: "It is not the CPU turn." } });
+      }
+      const identity = await deterministicCpuIdentity(roomId, expectedVersion as number, room.cpu_character_id as string, room.cpu_policy_version as string);
+      const chosen = globalThis.FourColorStandardServerEngine.chooseCpuAction({
+        publicState: cpuRoom.action_public_state as JsonObject,
+        ownPrivateState: cpuRoom.actor_private_state as JsonObject,
+        characterId: room.cpu_character_id as string,
+        seed: identity.seed,
+      });
+      if (!chosen || typeof chosen.type !== "string" || !chosen.payload || typeof chosen.payload !== "object") {
+        throw new Error("INVALID_CPU_CHOICE");
+      }
+      const action: JsonObject = { id: identity.actionId, expectedVersion, type: chosen.type, payload: chosen.payload };
+      const actionFingerprint = await fingerprint({ roomId, actorId: room.cpu_user_id, action });
+      stage = "replay-cpu-action";
+      const { data: replayData, error: replayError } = await service.rpc("fcg_standard_server_replay_action", {
+        p_room_id: roomId, p_actor_id: room.cpu_user_id, p_action_id: identity.actionId, p_action_fingerprint: actionFingerprint,
+      });
+      if (replayError) throw replayError;
+      const replay = firstRow(replayData);
+      if (replay?.found === true) return json(200, { duplicate: true, result: replay.action_result, room: roomProjection(room) });
+      stage = "apply-cpu-action";
+      const applied = globalThis.FourColorStandardServerEngine.apply({
+        state, rngSnapshot: authority.rngSnapshot as JsonObject, actor: "B", action, expectedVersion: expectedVersion as number,
+      });
+      if (applied.ok !== true) throw new Error("CPU_RULE_REJECTED");
+      const profiles = globalThis.FourColorStandardServerEngine.applyCpuProfiles({
+        profiles: { A: cpuRoom.profile_a_state as JsonObject, B: cpuRoom.profile_b_state as JsonObject },
+        beforeState: state, nextState: applied.state as JsonObject, actor: "B", action,
+        finishedAt: new Date().toISOString(), characterId: room.cpu_character_id as string,
+      });
+      const safeResult = { code: applied.code, contactColorCount: applied.contactColorCount, terminalReason: applied.terminalReason };
+      stage = "commit-cpu-action";
+      const { data: committed, error: commitError } = await service.rpc("fcg_standard_server_commit_action", {
+        p_room_id: roomId, p_actor_id: room.cpu_user_id, p_action_id: identity.actionId,
+        p_expected_version: expectedVersion, p_action_type: action.type, p_action_fingerprint: actionFingerprint,
+        p_authoritative_state: { state: applied.state, rngSnapshot: applied.rngSnapshot },
+        p_public_state: applied.publicState, p_private_a: applied.privateA, p_private_b: applied.privateB,
+        p_result: safeResult,
+        p_profile_a_expected_revision: profiles.changed.A ? cpuRoom.profile_a_revision : null,
+        p_profile_a_state: profiles.changed.A ? profiles.profiles.A : null,
+        p_profile_b_expected_revision: profiles.changed.B ? cpuRoom.profile_b_revision : null,
+        p_profile_b_state: profiles.changed.B ? profiles.profiles.B : null,
+        p_finished: applied.finished, p_winner_seat: applied.winnerSeat,
+      });
+      if (commitError) throw commitError;
+      const receipt = firstRow(committed) || {};
+      stage = "reload-room";
+      room = await load();
+      return json(200, { duplicate: Boolean(receipt.duplicate), result: receipt.action_result || safeResult, room: roomProjection(room) });
+    }
+
     const action = body.action as JsonObject;
     if (!action || typeof action !== "object" || typeof action.id !== "string" || !UUID_PATTERN.test(action.id)
         || typeof action.type !== "string" || !Number.isSafeInteger(action.expectedVersion)) {
@@ -575,7 +697,17 @@ Deno.serve(async (request: Request) => {
     if (applied.ok !== true) return json(400, { error: { code: applied.code || "RULE_REJECTED", message: "The action is not legal in the current state." } });
 
     const finishedAt = new Date().toISOString();
-    const profiles = globalThis.FourColorStandardServerEngine.applyProfiles({
+    const profiles = room.opponent_kind === "cpu"
+      ? globalThis.FourColorStandardServerEngine.applyCpuProfiles({
+        profiles: { A: room.profile_a_state as JsonObject, B: room.profile_b_state as JsonObject },
+        beforeState: authority.state as JsonObject,
+        nextState: applied.state as JsonObject,
+        actor: seat,
+        action,
+        finishedAt,
+        characterId: room.cpu_character_id as string,
+      })
+      : globalThis.FourColorStandardServerEngine.applyProfiles({
       profiles: { A: room.profile_a_state as JsonObject, B: room.profile_b_state as JsonObject },
       beforeState: authority.state as JsonObject,
       nextState: applied.state as JsonObject,
