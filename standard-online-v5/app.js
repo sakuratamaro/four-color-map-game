@@ -16,6 +16,7 @@ const REMOTE_PROFILE_ID = "online-server";
 const GACHA_PENDING_KEY = "fourColorMapGame.standard.online.v5.pending-gacha";
 const QUIZ_PENDING_KEY = "fourColorMapGame.standard.online.v5.pending-quiz";
 const CARD_SALE_PENDING_KEY = "fourColorMapGame.standard.online.v5.pending-card-sale";
+const COSMETIC_PENDING_KEY = "fourColorMapGame.standard.online.v5.pending-cosmetic";
 const STARTER_INVENTORY = Object.freeze({
   colorRandomBorrow: 3, colorChoiceBorrow: 3,
   areaMicroBloom: 3, areaDiePlus: 3,
@@ -49,6 +50,14 @@ const TROPHY_META = Object.freeze({
   fullPaint3: { icon: "🏆", name: "完塗り三冠", condition: "完塗り勝利を3回達成" },
   noSkillFullPaint: { icon: "✨", name: "四色の匠", condition: "スキルを使わず完塗り勝利" },
 });
+const COSMETIC_TYPE_LABEL = Object.freeze({ board: "盤面枠", effect: "発動演出", nameplate: "名札", title: "称号" });
+const COSMETIC_STYLE_CLASS = Object.freeze({
+  boardAurora: "skin-board-aurora", boardGold: "skin-board-gold", boardCartographer: "skin-board-cartographer",
+  effectSakura: "skin-effect-sakura", effectPrism: "skin-effect-prism", effectMasterpiece: "skin-effect-masterpiece",
+  nameplateGold: "skin-nameplate-gold",
+});
+const COSMETIC_PREVIEW_CLASS = new Set(["aurora", "gold", "sakura", "prism", "cartographer"]);
+const COSMETIC_TITLE_LABEL = Object.freeze({ titleArtisan: "四色の匠" });
 const TERMINAL_REASON_LABEL = Object.freeze({
   SURRENDER: "投了", BOARD_LOCK: "完塗り", ILLEGAL_COLOR: "接色禁止違反",
   SEALED_OUT: "色封じ", NO_LEGAL_COLOR: "使用可能色なし",
@@ -89,6 +98,9 @@ let rematchBusy = false;
 let gachaBusy = false;
 let quizBusy = false;
 let cardSaleBusy = false;
+let cosmeticBusy = false;
+let cosmeticProjection = null;
+let cosmeticCatalogLoaded = false;
 let matchmakingBusy = false;
 let matchmakingStatusTimer = null;
 let matchmakingDisplayTimer = null;
@@ -105,6 +117,7 @@ let pendingQuiz = (() => { try { return JSON.parse(localStorage.getItem(QUIZ_PEN
 let lastQuizResult = null;
 let cardSaleQuote = null;
 let pendingCardSale = (() => { try { return JSON.parse(localStorage.getItem(CARD_SALE_PENDING_KEY) || "null"); } catch { return null; } })();
+let pendingCosmeticAction = (() => { try { return JSON.parse(localStorage.getItem(COSMETIC_PENDING_KEY) || "null"); } catch { return null; } })();
 let pendingAction = null;
 let targetDraft = null;
 let randomRevealTimer = null;
@@ -279,7 +292,7 @@ function renderProfile() {
   show("starterCreator", !value);
   $("syncProfile").disabled = !value || !connected;
   $("profileSummary").textContent = value ? `${value.displayName} — 所持カード ${Object.values(value.inventory || {}).reduce((sum, count) => sum + count, 0)}枚` : "名前を入力して、はじめて用プロフィールを作成してください。";
-  if (value) { renderLoadout(); renderGacha(); renderProgression(); }
+  if (value) { renderLoadout(); renderGacha(); renderProgression(); renderCosmetics(); }
 }
 
 function displayDate(value) {
@@ -358,6 +371,120 @@ function renderProgression() {
     }
   }
   renderCardSale();
+}
+
+function applyCosmeticClasses() {
+  for (const cssClass of Object.values(COSMETIC_STYLE_CLASS)) document.body.classList.remove(cssClass);
+  for (const cosmeticId of Object.values(cosmeticProjection?.equipped || {})) {
+    const cssClass = COSMETIC_STYLE_CLASS[cosmeticId];
+    if (cssClass) document.body.classList.add(cssClass);
+  }
+}
+
+function cosmeticIdentity(name, equipped) {
+  const title = COSMETIC_TITLE_LABEL[equipped?.title];
+  return title ? `${name}｜${title}` : name;
+}
+
+function renderCosmetics() {
+  if (!$("cosmeticPanel")) return;
+  const value = profile();
+  const projection = cosmeticProjection;
+  applyCosmeticClasses();
+  $("cosmeticCatalog").replaceChildren();
+  $("refreshCosmetics").disabled = cosmeticBusy || !synced;
+  if (!value || !projection) {
+    $("collectionIdentity").textContent = value?.displayName || "PLAYER";
+    $("cosmeticCoins").textContent = `🪙 ${Number(value?.coins || 0)}コイン`;
+    if (!cosmeticBusy) $("cosmeticStatus").textContent = synced ? "見た目一覧を読み込めませんでした。更新してください。" : "プロフィール同期後に利用できます。";
+    show("cosmeticConfirmation", Boolean(pendingCosmeticAction));
+    return;
+  }
+  $("collectionIdentity").textContent = cosmeticIdentity(value.displayName || "PLAYER", projection.equipped);
+  $("cosmeticCoins").textContent = `🪙 ${Number(projection.coins || 0)}コイン`;
+  const locked = cosmeticBusy || Boolean(pendingCosmeticAction);
+  for (const item of Array.isArray(projection.items) ? projection.items : []) {
+    const card = document.createElement("article");
+    card.className = `collection-card${item.equipped ? " equipped" : ""}${!item.trophyUnlocked ? " locked" : ""}`;
+    const type = document.createElement("strong"); type.textContent = COSMETIC_TYPE_LABEL[item.type] || "見た目";
+    const preview = document.createElement("div");
+    const previewClass = COSMETIC_PREVIEW_CLASS.has(item.previewClass) ? ` ${item.previewClass}` : "";
+    preview.className = `collection-preview${previewClass}`; preview.textContent = String(item.preview || item.name || "PREVIEW");
+    const name = document.createElement("h3"); name.textContent = String(item.name || item.cosmeticId || "見た目");
+    const detail = document.createElement("p");
+    detail.textContent = item.trophyId ? `トロフィー「${TROPHY_META[item.trophyId]?.name || "実績"}」で解放`
+      : Number(item.price) > 0 ? `${Number(item.price)}コイン・対戦能力への効果なし` : "無料・対戦能力への効果なし";
+    const select = button(item.equipped ? "装備中" : !item.trophyUnlocked ? "未解放" : item.owned ? "装備する" : "購入して装備", () => prepareOnlineCosmetic(item.cosmeticId));
+    select.disabled = locked || item.equipped || !item.trophyUnlocked;
+    card.append(type, preview, name, detail, select); $("cosmeticCatalog").appendChild(card);
+  }
+  const pending = pendingCosmeticAction;
+  show("cosmeticConfirmation", Boolean(pending));
+  show("cosmeticCommit", Boolean(pending) && !pending?.failed);
+  show("cosmeticRetry", Boolean(pending?.failed));
+  $("cosmeticCancel").disabled = cosmeticBusy;
+  if (pending?.quote) {
+    $("cosmeticConfirmationText").textContent = pending.quote.purchaseRequired
+      ? `${pending.quote.name}を${Number(pending.quote.price)}コインで購入して装備します。残高は${Number(pending.quote.coinsAfter)}コインになります。`
+      : `${pending.quote.name}を装備します。コインは消費しません。`;
+  }
+}
+
+async function refreshOnlineCosmetics({ quiet = false } = {}) {
+  if (cosmeticBusy || !synced || !profile()) return;
+  cosmeticBusy = true;
+  if (!quiet) $("cosmeticStatus").textContent = "サーバーから見た目一覧を読み込んでいます…";
+  renderCosmetics();
+  try {
+    const result = await client.readCosmetics();
+    cosmeticProjection = result.cosmetics;
+    cosmeticCatalogLoaded = true;
+    $("cosmeticStatus").textContent = "購入・装備した見た目は、次の端末でも復元されます。";
+  } catch (error) {
+    if (!quiet) $("cosmeticStatus").textContent = "見た目一覧を読み込めませんでした。通信後に更新してください。";
+    toast(error.message || "見た目一覧を取得できませんでした。");
+  } finally { cosmeticBusy = false; renderCosmetics(); }
+}
+
+async function prepareOnlineCosmetic(cosmeticId) {
+  if (cosmeticBusy || pendingCosmeticAction) return;
+  cosmeticBusy = true; $("cosmeticStatus").textContent = "サーバーで購入・装備内容を確認中…"; renderCosmetics();
+  try {
+    const result = await client.quoteCosmetic({ cosmeticId });
+    pendingCosmeticAction = { actionId: crypto.randomUUID(), expectedRevision: Number(result.revision), cosmeticId, quote: result.quote, failed: false };
+    localStorage.setItem(COSMETIC_PENDING_KEY, JSON.stringify(pendingCosmeticAction));
+    $("cosmeticStatus").textContent = "内容を確認してから保存してください。キャンセル時は何も変更されません。";
+  } catch (error) {
+    $("cosmeticStatus").textContent = "この見た目は現在購入・装備できません。残高や解除条件を確認してください。";
+    toast(error.message || "見た目を確認できませんでした。");
+  } finally { cosmeticBusy = false; renderCosmetics(); }
+}
+
+async function commitOnlineCosmetic() {
+  if (cosmeticBusy || !pendingCosmeticAction) return;
+  cosmeticBusy = true; $("cosmeticStatus").textContent = "サーバーへ一度だけ保存しています…"; renderCosmetics();
+  try {
+    const result = await client.applyCosmetic(pendingCosmeticAction);
+    persistRemoteProfile(result.profileState, displayName(), Number(result.revision));
+    cosmeticProjection = result.cosmetics;
+    const name = pendingCosmeticAction.quote?.name || "見た目";
+    pendingCosmeticAction = null; localStorage.removeItem(COSMETIC_PENDING_KEY);
+    $("cosmeticStatus").textContent = `${name}を一度だけ保存して装備しました。対戦能力は変わりません。`;
+  } catch (error) {
+    pendingCosmeticAction.failed = true;
+    localStorage.setItem(COSMETIC_PENDING_KEY, JSON.stringify(pendingCosmeticAction));
+    const remote = await client.readProfile().catch(() => null);
+    if (remote) hydrateProfileRow(remote);
+    $("cosmeticStatus").textContent = "結果を確認できませんでした。同じ処理IDで安全に再送するか、キャンセルして一覧を更新してください。";
+    toast(error.message || "見た目を保存できませんでした。");
+  } finally { cosmeticBusy = false; renderProgression(); renderCosmetics(); render(); }
+}
+
+function cancelOnlineCosmetic() {
+  if (cosmeticBusy) return;
+  pendingCosmeticAction = null; localStorage.removeItem(COSMETIC_PENDING_KEY);
+  $("cosmeticStatus").textContent = "購入・装備をキャンセルしました。サーバーのデータは変更していません。";
+  renderCosmetics();
 }
 
 function renderCardSale() {
@@ -724,6 +851,8 @@ function render() {
   show("quizPanel", synced && Boolean(profile()));
   show("gachaPanel", synced && Boolean(profile()));
   show("progressionPanel", synced && Boolean(profile()));
+  show("cosmeticPanel", synced && Boolean(profile()));
+  renderCosmetics();
   show("lobby", synced && !snapshot.roomId);
   renderMatchmaking();
   show("room", Boolean(snapshot.roomId));
@@ -741,7 +870,14 @@ function render() {
   $("requestRematch").textContent = rematchPending ? "同じ再戦申請を再送" : cpuRoom ? "同じCPUと再戦する" : "再戦を申し込む";
   $("requestRematch").disabled = rematchBusy || roomModel?.room?.status !== "finished";
   $("rematchStatus").textContent = cpuRoom ? "CPUの状態だけを初期化し、あなたは6枚セットを選び直します。" : rematchPending ? "再戦を申請済みです。相手の申請を待っています。" : "両プレイヤーの申請後、6枚セットを選び直します。";
-  $("members").replaceChildren(...(roomModel?.members || []).map((member) => { const node = document.createElement("span"); node.className = "member"; node.textContent = `Player ${member.seat}: ${member.display_name}`; if (member.is_cpu) node.append("（CPU）"); return node; }));
+  $("members").replaceChildren(...(roomModel?.members || []).map((member) => {
+    const node = document.createElement("span");
+    const gold = member.appearance?.nameplate === "nameplateGold";
+    node.className = `member${gold ? " member-nameplate-gold" : ""}`;
+    node.textContent = `Player ${member.seat}: ${cosmeticIdentity(member.display_name, member.appearance)}`;
+    if (member.is_cpu) node.append("（CPU）");
+    return node;
+  }));
   $("waitingMessage").textContent = client.snapshot().setupRevision > 0 ? "あなたの6枚は確認済みです。相手の6枚を待っています。" : "6枚セットを確認してください。";
   $("setupStatus").textContent = client.snapshot().setupRevision > 0 ? "あなたの6枚セットは確認済みです" : "まだ確認していません";
   if (hasStandardPublicState(roomModel?.room?.public_state)) {
@@ -943,6 +1079,7 @@ async function syncSelectedProfile() {
       persistRemoteProfile(created.profileState || value, created.displayName || displayName(), Number(created.revision));
     }
     synced = true; badge("プロフィール同期済み", "good"); render();
+    await refreshOnlineCosmetics({ quiet: true });
   } catch (error) { toast(error.message || "同期に失敗しました。"); }
   finally { $("syncProfile").disabled = false; }
 }
@@ -1170,6 +1307,10 @@ $("cardSaleQuote").onclick = quoteOnlineCardSale;
 $("cardSaleCommit").onclick = () => commitOnlineCardSale(false);
 $("cardSaleRetry").onclick = () => commitOnlineCardSale(true);
 $("cardSaleReset").onclick = clearCardSaleDraft;
+$("refreshCosmetics").onclick = () => refreshOnlineCosmetics();
+$("cosmeticCommit").onclick = commitOnlineCosmetic;
+$("cosmeticRetry").onclick = commitOnlineCosmetic;
+$("cosmeticCancel").onclick = cancelOnlineCosmetic;
 $("createRoom").onclick = createRoom;
 $("joinRoom").onclick = joinRoom;
 $("recruitOpponent").onclick = recruitPublicOpponent;
@@ -1217,6 +1358,7 @@ try {
   else if (client.snapshot().matchmakingFindActionId) await findPublicOpponent();
   else if (client.snapshot().matchmakingTicketId) scheduleMatchmakingStatus(250);
   render();
+  if (synced && !cosmeticCatalogLoaded) await refreshOnlineCosmetics({ quiet: true });
   if (pendingQuiz?.answers?.length === 10) finishOnlineQuiz();
 } catch (error) {
   badge("接続失敗", "bad"); $("connectionMessage").textContent = "Supabaseへ接続できません。匿名ログイン設定を確認してください。"; console.error(error);

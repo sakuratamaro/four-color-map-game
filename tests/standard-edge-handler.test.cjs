@@ -77,6 +77,20 @@ test("card sale quotes and commits only a server-derived profile through a recei
   assert.doesNotMatch(branch, /body\.(?:profileState|earnedCoins|remaining)/);
 });
 
+test("cosmetic catalog, quote, and action are server-derived and idempotent", () => {
+  const branch = source.slice(source.indexOf('if (operation === "cosmetic-catalog"'), source.indexOf('if (operation === "quiz-start"'));
+  assert.match(branch, /FourColorStandardServerEngine\.getCosmetics/);
+  assert.match(branch, /FourColorStandardServerEngine\.quoteCosmetic/);
+  assert.match(branch, /FourColorStandardServerEngine\.applyCosmetic/);
+  assert.match(branch, /fingerprint\(\{ actorId, cosmeticId \}\)/);
+  const replay = branch.indexOf('service.rpc("fcg_standard_server_replay_cosmetic"');
+  const apply = branch.indexOf("FourColorStandardServerEngine.applyCosmetic");
+  assert.ok(replay >= 0 && apply > replay);
+  assert.match(branch, /service\.rpc\("fcg_standard_server_commit_cosmetic"/);
+  assert.match(branch, /p_profile_state: applied\.profile/);
+  assert.doesNotMatch(branch, /body\.(?:profile|profileState|price|coins|equipped|owned)/);
+});
+
 test("setup loads the authenticated profile and issues a server-bounded quote", () => {
   assert.match(source, /operation === "setup"/);
   assert.match(source, /service\.rpc\("fcg_standard_server_load_profile",\s*\{[\s\S]+p_user_id: actorId/);

@@ -52,6 +52,9 @@ function supabaseFixture({ roomStatus = "ready", roomVersion = 10 } = {}) {
         if (request.body.operation === "gacha") return { data: { revision: 4, duplicate: false, draws: [{ skillId: "colorPrism" }], profileState: { gachaTickets: { "1": 1 }, inventory: { colorPrism: 1 } } } };
         if (request.body.operation === "card-sale-quote") return { data: { revision: 3, quote: { skillId: request.body.skillId, count: request.body.count, earnedCoins: 20, remaining: 1, requiresConfirmation: true } } };
         if (request.body.operation === "card-sale") return { data: { revision: 4, duplicate: false, quote: { skillId: request.body.skillId, count: request.body.count, earnedCoins: 20, remaining: 1 }, profileState: { coins: 20, inventory: { colorRandomBorrow: 1 } } } };
+        if (request.body.operation === "cosmetic-catalog") return { data: { revision: 3, cosmetics: { coins: 1000, equipped: { board: "boardDefault" }, items: [] } } };
+        if (request.body.operation === "cosmetic-quote") return { data: { revision: 3, quote: { cosmeticId: request.body.cosmeticId, name: "オーロラ盤面", price: 600, coinsAfter: 400, purchaseRequired: true } } };
+        if (request.body.operation === "cosmetic-action") return { data: { revision: 4, duplicate: false, quote: { cosmeticId: request.body.cosmeticId, price: 600 }, profileState: { coins: 400, equipped: { board: request.body.cosmeticId } }, cosmetics: { coins: 400, equipped: { board: request.body.cosmeticId }, items: [] } } };
         if (request.body.operation === "quiz-start") return { data: { sessionId: QUIZ_SESSION_ID, duplicate: false, selectedLevel: 2, expiresAt: "2099-01-01T00:00:00Z", questions: Array.from({ length: 10 }, (_, index) => ({ prompt: `Q${index + 1}`, options: [{ id: `q${index + 1}-1`, label: "1" }] })) } };
         if (request.body.operation === "quiz-finish") return { data: { revision: 5, duplicate: false, correct: 10, wrong: 0, bestStreak: 10, reward: { ticketLevel: 2, draws: 10, reason: "全問正解" }, profileState: { gachaTickets: { "2": 10 }, inventory: {} } } };
         if (request.body.operation === "cpu-roster") return { data: { rosterVersion: "standard-character-roster-v1", characters: Array.from({ length: 10 }, (_, index) => ({ id: `cpu${index}`, name: `CPU ${index}` })) } };
@@ -250,6 +253,24 @@ test("card sale quotes current server state and retains one action identity for 
   assert.deepEqual(supabase.calls.filter((call) => call.kind === "invoke").map((call) => call.request.body), [
     { operation: "card-sale-quote", expectedRevision: 2, skillId: "colorRandomBorrow", count: 2 },
     { operation: "card-sale", expectedRevision: 3, actionId: ACTION_ID, skillId: "colorRandomBorrow", count: 2, confirmed: true },
+  ]);
+});
+
+test("cosmetics read and quote current server state then retain the caller action identity", async () => {
+  const supabase = supabaseFixture();
+  const storage = storageFixture({ profileRevision: 2 });
+  const client = createStandardOnlineClient({ supabase, storage, idFactory: () => { throw new Error("must not allocate"); } });
+  const catalog = await client.readCosmetics();
+  assert.equal(catalog.cosmetics.coins, 1000);
+  const quoted = await client.quoteCosmetic({ cosmeticId: "boardAurora" });
+  assert.equal(quoted.quote.price, 600);
+  const applied = await client.applyCosmetic({ actionId: ACTION_ID, expectedRevision: 3, cosmeticId: "boardAurora" });
+  assert.equal(applied.profileState.coins, 400);
+  assert.equal(client.snapshot().profileRevision, 4);
+  assert.deepEqual(supabase.calls.filter((call) => call.kind === "invoke").map((call) => call.request.body), [
+    { operation: "cosmetic-catalog" },
+    { operation: "cosmetic-quote", cosmeticId: "boardAurora" },
+    { operation: "cosmetic-action", expectedRevision: 3, actionId: ACTION_ID, cosmeticId: "boardAurora" },
   ]);
 });
 

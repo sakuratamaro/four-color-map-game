@@ -28,7 +28,7 @@
 | 元ソースとデプロイ再現性 | 統合ブランチで復旧済み、未統合 | 採用 | 全試験合格後にコミットし、公開ブランチへ安全に統合 | `standard/`、build scripts、Edge bundle、過去欠落migration、Supabase function config |
 | カード売却 | 統合ブランチでオンライン実装済み、DB/Edge未適用 | 採用・野良対戦より先に正本化 | migration/Edgeを適用し、公開で通常・要確認・再送・対戦ロックを確認 | `202609030006_standard_online_card_sale.sql`、Edge operations、online UI/browser/engine tests |
 | トロフィー、戦績、対戦履歴 | 対人/CPU別精算・キャラクター別CPU戦績・3トロフィー授与・一覧UIまで統合ブランチで実装済み、未公開 | 採用・授与/書込みは野良対戦より先 | 公開の対人戦/CPU戦で各一回精算、重複なし、再読込表示を確認 | server `applyProfiles` / `applyCpuProfiles`、online progression UI/browser tests |
-| 見た目の購入・装備 | ローカルのみ | 採用・詳細UIは野良対戦後でもよい | 先に装備IDの保存/表示境界を固定。購入API、ショップ演出、プレビューは野良対戦後でもよい | `standard-cosmetics.js`、local cosmetic UI/tests |
+| 見た目の購入・装備 | 4系統12種の一覧、サーバー価格判定、確認、購入/装備、再送、再読込復元、相手の安全な名札/称号表示まで統合ブランチで実装済み、DB/Edge未適用 | 採用・対戦能力へ影響させない | migration/Edge適用後、公開で購入・無料装備・取消・応答喪失再送・別端末復元・相手表示を確認 | `standard-cosmetics.js`、`202609030010`/`011`、Edge operations、online UI/client/browser/engine tests |
 | 合言葉不要の野良マッチング | 人間同士の第1段階を統合ブランチで実装済み、DB未適用 | 採用 | migration適用後、2人/10人同時確保、取消競合、再読込、完走を実環境確認 | matchmaking migration/client/UI/browser tests、`PUBLIC_MATCHMAKING_AND_CPU_FALLBACK_PLAN.md` |
 | 90秒/180秒後の同意制CPU案内 | 統合ブランチで実装済み、DB/Edge未適用 | 採用 | 実時間案内、人間参加との実同時競合、再読込を公開環境で確認。自動開始は禁止済み | CPU migration/Edge/client/UI/browser tests、同上 |
 | 個性のある固定CPU 10人 | version付きロスター、サーバー選択、1手ずつの原子的commit、固定台詞UI、個別戦績、同じCPUとの専用再戦まで統合ブランチで実装済み、未適用 | 旧3段階を置換して採用 | 実DBで全員の開始、代表3人の公開完走/復帰/再戦 | `standard-cpu-roster.js`、CPU opponent/rematch migrations、Edge bundle、roster/privacy/legality/browser tests |
@@ -44,7 +44,7 @@
 3. 既存のオンライン機能を二端末で再確認する。ここで合言葉対戦、クイズ、ガチャ、全試合、再戦、再読込を壊していないことを確定する。
 4. 実装済みのカード売却、終局精算、最低限の履歴、既存3トロフィー授与を本番適用・実測する。CPU追加時に対人/CPU戦績を分離する。詳細ショップ・着せ替えUIは後続でもよい。
 5. 原子的な野良マッチングを追加し、その後に明示同意のCPUフォールバックを、性格差の大きい3人で共通判断エンジンを検証してから設定データ10人へ拡張する。
-6. 見た目購入・装備、履歴/トロフィー詳細UIを接続する。
+6. 実装済みの見た目購入・装備を本番へ適用し、購入確認、同一ID再送、別端末復元、相手の名札/称号表示を確認する。
 7. 期限切れ清掃、負荷計測、Realtime障害試験を閉じ、最後に公開URLの二端末人間戦と実時間CPU戦を完走する。同時実行、冪等性、認可、レート制限は各段階のAPI実装時から必須とする。
 
 ## チャッピー先生との合意事項

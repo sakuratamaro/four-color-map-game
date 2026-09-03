@@ -6,13 +6,16 @@ type Seat = "A" | "B";
 type StandardEngineApi = {
   create(input: { matchId: string; loadouts: Record<Seat, JsonObject>; profiles: Record<Seat, JsonObject>; seed: number }): JsonObject;
   apply(input: { state: JsonObject; rngSnapshot: JsonObject; actor: Seat; action: JsonObject; expectedVersion: number }): JsonObject;
+  applyCosmetic(input: { profile: JsonObject; cosmeticId: string }): { profile: JsonObject; quote: JsonObject };
   applyProfiles(input: { profiles: Record<Seat, JsonObject>; beforeState: JsonObject; nextState: JsonObject; actor: Seat; action: JsonObject; finishedAt: string }): { profiles: Record<Seat, JsonObject>; changed: Record<Seat, boolean> };
   applyCpuProfiles(input: { profiles: Record<Seat, JsonObject>; beforeState: JsonObject; nextState: JsonObject; actor: Seat; action: JsonObject; finishedAt: string; characterId: string }): { profiles: Record<Seat, JsonObject>; changed: Record<Seat, boolean> };
   createStarterProfile(displayName: string): JsonObject;
   drawGacha(input: { profile: JsonObject; ticketLevel: number; count: number; seed: number }): { profile: JsonObject; draws: JsonObject[] };
   quoteCardSale(input: { profile: JsonObject; skillId: string; count: number }): JsonObject;
+  quoteCosmetic(input: { profile: JsonObject; cosmeticId: string }): JsonObject;
   sellCards(input: { profile: JsonObject; skillId: string; count: number; confirmed: boolean }): { profile: JsonObject; quote: JsonObject };
   getCpuRoster(): JsonObject[];
+  getCosmetics(input: { profile: JsonObject }): JsonObject;
   createCpuProfile(characterId: string): { profile: JsonObject; loadout: JsonObject; policyVersion: string };
   chooseCpuAction(input: { publicState: JsonObject; ownPrivateState: JsonObject; characterId: string; seed: number }): JsonObject;
   publicState(state: JsonObject): JsonObject;
@@ -215,7 +218,7 @@ Deno.serve(async (request: Request) => {
     });
     const body = await request.json() as JsonObject;
     const operation = body.operation;
-    if (!["profile", "gacha", "card-sale-quote", "card-sale", "quiz-start", "quiz-finish", "cpu-roster", "cpu-accept", "cpu-rematch", "cpu-action", "setup", "initialize", "action"].includes(String(operation))) {
+    if (!["profile", "gacha", "card-sale-quote", "card-sale", "cosmetic-catalog", "cosmetic-quote", "cosmetic-action", "quiz-start", "quiz-finish", "cpu-roster", "cpu-accept", "cpu-rematch", "cpu-action", "setup", "initialize", "action"].includes(String(operation))) {
       return json(400, { error: { code: "INVALID_REQUEST", message: "A valid operation is required." } });
     }
 
@@ -445,6 +448,72 @@ Deno.serve(async (request: Request) => {
         quote: (committed?.action_result as JsonObject)?.quote || sold.quote,
         profileState: current?.profile_state,
       });
+    }
+
+    if (operation === "cosmetic-catalog" || operation === "cosmetic-quote" || operation === "cosmetic-action") {
+      const cosmeticId = body.cosmeticId;
+      const expectedRevision = body.expectedRevision;
+      const actionId = body.actionId;
+      if (operation !== "cosmetic-catalog" && (typeof cosmeticId !== "string" || cosmeticId.length < 1 || cosmeticId.length > 64)) {
+        return json(400, { error: { code: "INVALID_COSMETIC", message: "A valid cosmetic is required." } });
+      }
+      if (operation === "cosmetic-action" && (!Number.isSafeInteger(expectedRevision) || (expectedRevision as number) < 0
+          || typeof actionId !== "string" || !UUID_PATTERN.test(actionId))) {
+        return json(400, { error: { code: "INVALID_COSMETIC_ACTION", message: "A valid revision and action ID are required." } });
+      }
+      const actionFingerprint = operation === "cosmetic-action" ? await fingerprint({ actorId, cosmeticId }) : null;
+      if (operation === "cosmetic-action") {
+        stage = "replay-cosmetic";
+        const { data: replayData, error: replayError } = await service.rpc("fcg_standard_server_replay_cosmetic", {
+          p_user_id: actorId, p_action_id: actionId, p_action_fingerprint: actionFingerprint,
+        });
+        if (replayError) throw replayError;
+        const replay = firstRow(replayData);
+        if (replay?.found === true) {
+          const { data: replayProfileData, error: replayProfileError } = await service.rpc("fcg_standard_server_load_profile", { p_user_id: actorId });
+          if (replayProfileError) throw replayProfileError;
+          const replayProfile = firstRow(replayProfileData);
+          if (!replayProfile?.profile_state) throw { code: "P0002" };
+          return json(200, { revision: replayProfile?.revision ?? replay.profile_revision, duplicate: true,
+            quote: (replay.action_result as JsonObject)?.quote, profileState: replayProfile?.profile_state,
+            cosmetics: globalThis.FourColorStandardServerEngine.getCosmetics({ profile: replayProfile?.profile_state as JsonObject }) });
+        }
+      }
+      stage = "load-profile";
+      const { data: profileData, error: profileError } = await service.rpc("fcg_standard_server_load_profile", { p_user_id: actorId });
+      if (profileError) throw profileError;
+      const profile = firstRow(profileData);
+      if (!profile) throw { code: "P0002" };
+      if (operation === "cosmetic-catalog") {
+        return json(200, { revision: profile.revision, cosmetics: globalThis.FourColorStandardServerEngine.getCosmetics({ profile: profile.profile_state as JsonObject }) });
+      }
+      let quote: JsonObject;
+      try { quote = globalThis.FourColorStandardServerEngine.quoteCosmetic({ profile: profile.profile_state as JsonObject, cosmeticId: cosmeticId as string }); }
+      catch (error) {
+        const code = String((error as { message?: string })?.message || "COSMETIC_REJECTED");
+        return json(400, { error: { code, message: "This cosmetic action is not available." } });
+      }
+      if (operation === "cosmetic-quote") return json(200, { revision: profile.revision, quote });
+      let applied;
+      try { applied = globalThis.FourColorStandardServerEngine.applyCosmetic({ profile: profile.profile_state as JsonObject, cosmeticId: cosmeticId as string }); }
+      catch (error) {
+        const code = String((error as { message?: string })?.message || "COSMETIC_REJECTED");
+        return json(400, { error: { code, message: "This cosmetic action is not available." } });
+      }
+      stage = "commit-cosmetic";
+      const { data, error } = await service.rpc("fcg_standard_server_commit_cosmetic", {
+        p_user_id: actorId, p_expected_revision: expectedRevision, p_action_id: actionId,
+        p_action_fingerprint: actionFingerprint, p_profile_state: applied.profile, p_action_result: { quote: applied.quote },
+      });
+      if (error) throw error;
+      const committed = firstRow(data);
+      const { data: currentData, error: currentError } = await service.rpc("fcg_standard_server_load_profile", { p_user_id: actorId });
+      if (currentError) throw currentError;
+      const current = firstRow(currentData);
+      if (!current?.profile_state) throw { code: "P0002" };
+      return json(200, { revision: current?.revision ?? committed?.new_revision, duplicate: committed?.duplicate === true,
+        quote: (committed?.action_result as JsonObject)?.quote || applied.quote, profileState: current?.profile_state,
+        cosmetics: globalThis.FourColorStandardServerEngine.getCosmetics({ profile: current?.profile_state as JsonObject }) });
     }
 
     if (operation === "quiz-start") {

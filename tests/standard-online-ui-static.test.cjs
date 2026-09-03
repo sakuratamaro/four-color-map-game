@@ -22,6 +22,7 @@ test("Standard online setup UI exposes the complete reconnect path", () => {
     "gachaPanel", "gachaTickets", "gachaLevel", "gachaDrawOne", "gachaDrawAll", "gachaRetry", "gachaStatus", "gachaResults",
     "progressionPanel", "profileCoins", "profileStats", "cpuProfileStats", "cpuCharacterRecords", "trophyList", "matchHistory",
     "cardSaleSkill", "cardSaleCount", "cardSaleQuote", "cardSaleCommit", "cardSaleRetry", "cardSaleReset", "cardSaleStatus",
+    "cosmeticPanel", "cosmeticCoins", "collectionIdentity", "refreshCosmetics", "cosmeticCatalog", "cosmeticConfirmation", "cosmeticConfirmationText", "cosmeticCommit", "cosmeticCancel", "cosmeticRetry", "cosmeticStatus",
     "matchmakingPanel", "recruitOpponent", "findOpponent", "cancelMatchmaking", "matchmakingWait", "matchmakingElapsed", "matchmakingStatus", "roomIdentityLabel",
     "cpuOpponentOffer", "cpuOfferMessage", "chooseCpuOpponent", "keepWaitingForHuman", "cpuRosterDialog", "cpuRosterGrid", "cpuRosterStatus", "closeCpuRoster",
     "terminalOverlay", "terminalIcon", "terminalEyebrow", "terminalTitle", "terminalMessage", "terminalReasonText", "terminalClose",
@@ -51,6 +52,20 @@ test("card sale persists an immutable action before commit and hydrates only the
   assert.match(app, /persistRemoteProfile\(result\.profileState, displayName\(\), Number\(result\.revision\)\)/);
   assert.match(app, /cardSaleQuote\.requiresConfirmation === true/);
   assert.match(app, /client\.snapshot\(\)\.setupRevision > 0/);
+});
+
+test("online cosmetics require confirmation, persist retry identity, and allowlist visual classes", () => {
+  assert.match(app, /const COSMETIC_PENDING_KEY = "fourColorMapGame\.standard\.online\.v5\.pending-cosmetic"/);
+  assert.match(app, /client\.readCosmetics\(\)/);
+  assert.match(app, /client\.quoteCosmetic\(\{ cosmeticId \}\)/);
+  const persisted = app.indexOf("localStorage.setItem(COSMETIC_PENDING_KEY, JSON.stringify(pendingCosmeticAction))");
+  const sent = app.indexOf("client.applyCosmetic(pendingCosmeticAction)");
+  assert.ok(persisted >= 0 && sent > persisted);
+  assert.match(app, /persistRemoteProfile\(result\.profileState, displayName\(\), Number\(result\.revision\)\)/);
+  assert.match(app, /COSMETIC_STYLE_CLASS\[cosmeticId\]/);
+  assert.doesNotMatch(app, /classList\.add\(item\.cssClass\)|innerHTML/);
+  assert.match(css, /\.skin-board-aurora #board/);
+  assert.match(css, /\.member-nameplate-gold/);
 });
 
 test("public matchmaking stays code-free, recoverable, cancellable, and separate from invitation rooms", () => {
@@ -177,7 +192,7 @@ test("a fresh device can create a six-card online-only starter without overwriti
 });
 
 test("remote labels and projections are rendered as text, not HTML", () => {
-  assert.match(app, /node\.textContent = `Player \$\{member\.seat\}: \$\{member\.display_name\}`/);
+  assert.match(app, /node\.textContent = `Player \$\{member\.seat\}: \$\{cosmeticIdentity\(member\.display_name, member\.appearance\)\}`/);
   assert.match(app, /\$\("publicProjection"\)\.textContent = safeJson\(publicState\)/);
   assert.match(app, /\$\("privateProjection"\)\.textContent = safeJson\(privateState\)/);
   assert.doesNotMatch(app, /innerHTML/);

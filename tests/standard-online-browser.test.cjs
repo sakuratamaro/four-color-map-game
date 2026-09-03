@@ -51,7 +51,7 @@ async function installMock(context, mode) {
     if (initialMode !== "empty") {
       localStorage.setItem(save, JSON.stringify({ profiles: { playerA: { displayName: "A", inventory } } }));
       localStorage.setItem("fourColorMapGame.standard.online.v5.profile", "playerA");
-      if (!["lobby", "publicFind", "cpuWait"].includes(initialMode)) {
+      if (!["lobby", "cosmetic", "publicFind", "cpuWait"].includes(initialMode)) {
         localStorage.setItem(connection, JSON.stringify({
           roomId: id, roomCode: "A1B2C3", profileRevision: 1, setupRevision: 3,
           rematchActionId: initialMode === "finished" ? pendingId : null,
@@ -71,7 +71,7 @@ async function installMock(context, mode) {
     };
     const finished = { ...active, status: "FINISHED", phase: "GAME_OVER", winner: "A", terminalReason: "SURRENDER" };
     const profileState = {
-      displayName: "A", inventory, gachaTickets: { "1": 2 }, coins: 0,
+      displayName: "A", inventory, gachaTickets: { "1": 2 }, coins: initialMode === "cosmetic" ? 1000 : 0,
       protectedSkills: { areaHalfShift: true }, cosmeticsOwned: ["boardDefault", "effectDefault", "nameplateDefault", "titleNone"],
       equipped: { board: "boardDefault", effect: "effectDefault", nameplate: "nameplateDefault", title: "titleNone" },
       trophies: { fullPaint: true, fullPaint3: false, noSkillFullPaint: true },
@@ -79,6 +79,9 @@ async function installMock(context, mode) {
       stats: { wins: 4, losses: 2, currentWinStreak: 2, bestWinStreak: 3, fullPaints: 1 },
       matchHistory: [{ matchId: "history-1", result: "WIN", terminalReason: "BOARD_LOCK", endedAt: "2026-09-01T00:00:00.000Z", fullPaint: true, skillsUsed: 0 }],
     };
+    if (initialMode === "cosmetic") {
+      try { Object.assign(profileState, JSON.parse(localStorage.getItem("fourColorMapGame.standard.online.v5.remote-profile") || "null") || {}); } catch { /* fresh mock profile */ }
+    }
     if (initialMode === "cpuTurn") active.active = "B";
     const runtime = {
       waitStartedAt: initialMode === "cpuWait" ? new Date(Date.now() - 91000).toISOString() : new Date().toISOString(),
@@ -87,9 +90,19 @@ async function installMock(context, mode) {
       profile: initialMode === "empty" ? null : { revision: 1, display_name: "A", profile_state: profileState },
       gachaReceipts: {},
       cardSaleReceipts: {},
+      cosmeticReceipts: {},
       calls: [],
     };
-    runtime.members = [{ user_id: "33333333-3333-4333-8333-333333333333", seat: "A", display_name: "A", is_cpu: false }, { user_id: "44444444-4444-4444-8444-444444444444", seat: "B", display_name: ["cpuTurn", "finishedCpu"].includes(initialMode) ? "うっかりユズ" : "B", is_cpu: ["cpuTurn", "finishedCpu"].includes(initialMode) }];
+    runtime.members = [{ user_id: "33333333-3333-4333-8333-333333333333", seat: "A", display_name: "A", is_cpu: false, appearance: { nameplate: "nameplateDefault", title: "titleNone" } }, { user_id: "44444444-4444-4444-8444-444444444444", seat: "B", display_name: ["cpuTurn", "finishedCpu"].includes(initialMode) ? "うっかりユズ" : "B", is_cpu: ["cpuTurn", "finishedCpu"].includes(initialMode), appearance: { nameplate: "nameplateGold", title: "titleArtisan" } }];
+    const cosmeticProjection = () => ({
+      coins: runtime.profile.profile_state.coins,
+      equipped: runtime.profile.profile_state.equipped,
+      items: [
+        { cosmeticId: "boardDefault", name: "標準盤面", type: "board", price: 0, preview: "DEFAULT", previewClass: "", trophyId: null, trophyUnlocked: true, owned: true, equipped: runtime.profile.profile_state.equipped.board === "boardDefault" },
+        { cosmeticId: "boardAurora", name: "オーロラ盤面", type: "board", price: 600, preview: "AURORA", previewClass: "aurora", trophyId: null, trophyUnlocked: true, owned: runtime.profile.profile_state.cosmeticsOwned.includes("boardAurora"), equipped: runtime.profile.profile_state.equipped.board === "boardAurora" },
+        { cosmeticId: "titleArtisan", name: "四色の匠", type: "title", price: 0, preview: "四色の匠", previewClass: "prism", trophyId: "noSkillFullPaint", trophyUnlocked: true, owned: true, equipped: runtime.profile.profile_state.equipped.title === "titleArtisan" },
+      ],
+    });
     globalThis.__standardOnlineRuntime = runtime;
     const resultFor = (table) => table === "fcg_rooms" ? runtime.room
       : table === "fcg_room_members" ? runtime.members
@@ -131,6 +144,22 @@ async function installMock(context, mode) {
           runtime.profile = { ...runtime.profile, revision: runtime.profile.revision + 1, profile_state: next };
           const result = { revision: runtime.profile.revision, duplicate: false, quote: { earnedCoins: request.body.count * 10 }, profileState: next };
           runtime.cardSaleReceipts[request.body.actionId] = result;
+          return { data: result };
+        }
+        if (request.body.operation === "cosmetic-catalog") return { data: { revision: runtime.profile.revision, cosmetics: cosmeticProjection() } };
+        if (request.body.operation === "cosmetic-quote") {
+          const purchaseRequired = !runtime.profile.profile_state.cosmeticsOwned.includes(request.body.cosmeticId);
+          return { data: { revision: runtime.profile.revision, quote: { cosmeticId: request.body.cosmeticId, name: "オーロラ盤面", type: "board", price: purchaseRequired ? 600 : 0, coinsAfter: runtime.profile.profile_state.coins - (purchaseRequired ? 600 : 0), purchaseRequired } } };
+        }
+        if (request.body.operation === "cosmetic-action") {
+          const prior = runtime.cosmeticReceipts[request.body.actionId];
+          if (prior) return { data: { ...prior, duplicate: true } };
+          const next = JSON.parse(JSON.stringify(runtime.profile.profile_state));
+          if (!next.cosmeticsOwned.includes(request.body.cosmeticId)) { next.cosmeticsOwned.push(request.body.cosmeticId); next.coins -= 600; }
+          next.equipped.board = request.body.cosmeticId;
+          runtime.profile = { ...runtime.profile, revision: runtime.profile.revision + 1, profile_state: next };
+          const result = { revision: runtime.profile.revision, duplicate: false, quote: { name: "オーロラ盤面", price: 600 }, profileState: next, cosmetics: cosmeticProjection() };
+          runtime.cosmeticReceipts[request.body.actionId] = result;
           return { data: result };
         }
         if (request.body.operation === "cpu-roster") return { data: { rosterVersion: "standard-character-roster-v1", characters: [
@@ -210,7 +239,7 @@ async function withPage(mode, run) {
     await installMock(context, mode);
     const page = await context.newPage();
     await page.goto(`${url}/standard-online-v5/index.html`);
-    const readySelector = mode === "empty" ? "#profileCard:not(.hidden)" : ["lobby", "publicFind", "cpuWait"].includes(mode) ? "#lobby:not(.hidden)" : "#room:not(.hidden)";
+    const readySelector = mode === "empty" ? "#profileCard:not(.hidden)" : ["lobby", "cosmetic", "publicFind", "cpuWait"].includes(mode) ? "#lobby:not(.hidden)" : "#room:not(.hidden)";
     await page.locator(readySelector).waitFor();
     await run(page);
   } finally {
@@ -295,7 +324,7 @@ test("actual Edge routes immediate skills and keeps target cancellation write-fr
     await page.getByText("操作を保存しました。").waitFor();
     await page.getByRole("button", { name: "拡大縮小 ×1" }).click();
     await page.getByRole("button", { name: "キャンセル" }).click();
-    const calls = await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.kind === "invoke").map((entry) => entry.body));
+    const calls = await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "action").map((entry) => entry.body));
     assert.equal(calls.length, 1);
     assert.equal(calls[0].operation, "action");
     assert.deepEqual(calls[0].action.payload, { skill: "areaDiePlus" });
@@ -350,6 +379,35 @@ test("actual Edge quotes and commits one server-authoritative card sale", { time
     assert.match(evidence.calls[1].actionId, /^[0-9a-f-]{36}$/i);
     assert.equal(evidence.profile.inventory.colorRandomBorrow, 1);
     assert.equal(evidence.profile.coins, 10);
+  });
+});
+
+test("actual Edge confirms, persists, restores, and safely cancels online appearance", { timeout: 30000 }, async () => {
+  await withPage("cosmetic", async (page) => {
+    await page.locator("#cosmeticPanel:not(.hidden)").waitFor();
+    const aurora = page.locator("#cosmeticCatalog .collection-card", { hasText: "オーロラ盤面" });
+    await aurora.getByRole("button", { name: "購入して装備" }).click();
+    await page.getByText(/600コインで購入して装備/).waitFor();
+    const pendingBefore = await page.evaluate(() => JSON.parse(localStorage.getItem("fourColorMapGame.standard.online.v5.pending-cosmetic")));
+    assert.match(pendingBefore.actionId, /^[0-9a-f-]{36}$/i);
+    assert.equal(pendingBefore.expectedRevision, 1);
+    assert.equal((await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "cosmetic-action").length)), 0);
+    await page.getByRole("button", { name: "この内容で保存" }).click();
+    await page.getByText(/オーロラ盤面を一度だけ保存/).waitFor();
+    assert.equal(await page.locator("body").evaluate((node) => node.classList.contains("skin-board-aurora")), true);
+    assert.match(await page.locator("#board").evaluate((node) => getComputedStyle(node).outlineColor), /rgb\(34, 211, 238\)/);
+    const saved = await page.evaluate(({ key }) => JSON.parse(localStorage.getItem(key)), { key: remoteProfileKey });
+    assert.equal(saved.coins, 400);
+    assert.equal(saved.equipped.board, "boardAurora");
+    assert.equal(await page.evaluate(() => localStorage.getItem("fourColorMapGame.standard.online.v5.pending-cosmetic")), null);
+
+    const title = page.locator("#cosmeticCatalog .collection-card", { hasText: "四色の匠" });
+    await title.getByRole("button", { name: "装備する" }).click();
+    await page.getByRole("button", { name: "キャンセル" }).click();
+    assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "cosmetic-action").length), 1);
+    await page.reload();
+    await page.locator("#cosmeticPanel:not(.hidden)").waitFor();
+    assert.equal(await page.locator("body").evaluate((node) => node.classList.contains("skin-board-aurora")), true);
   });
 });
 
@@ -426,6 +484,8 @@ test("actual Edge finds a public opponent and enters setup without exposing a co
 
 test("actual Edge explains private random setup and every visible skill without exposing an oracle", { timeout: 30000 }, async () => {
   await withPage("playing", async (page) => {
+    assert.match(await page.locator("#members").textContent(), /B｜四色の匠/);
+    assert.equal(await page.locator("#members .member-nameplate-gold").count(), 1);
     assert.equal(await page.locator("#roomStatus").textContent(), "対戦中");
     assert.equal(await page.locator("#versionText").textContent(), "3");
     assert.equal(await page.locator("#phaseText").textContent(), "相手に渡すエリアを選んでください");

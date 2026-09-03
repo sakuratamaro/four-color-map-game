@@ -99,6 +99,29 @@
       persist();
       return clone(result);
     }
+    async function readCosmetics() {
+      await ensureSession();
+      const result = await invoke("cosmetic-catalog");
+      state.profileRevision = Number(result.revision);
+      persist();
+      return clone(result);
+    }
+    async function quoteCosmetic({ cosmeticId }) {
+      await ensureSession();
+      if (!requiredText(cosmeticId, "INVALID_COSMETIC_ID", 64)) throw new Error("INVALID_COSMETIC_REQUEST");
+      const result = await invoke("cosmetic-quote", { cosmeticId });
+      state.profileRevision = Number(result.revision);
+      persist();
+      return clone(result);
+    }
+    async function applyCosmetic({ expectedRevision = state.profileRevision, actionId = idFactory(), cosmeticId }) {
+      await ensureSession();
+      if (!UUID_PATTERN.test(String(actionId)) || !requiredText(cosmeticId, "INVALID_COSMETIC_ID", 64)) throw new Error("INVALID_COSMETIC_REQUEST");
+      const result = await invoke("cosmetic-action", { expectedRevision, actionId, cosmeticId });
+      state.profileRevision = Number(result.revision);
+      persist();
+      return clone(result);
+    }
     async function startQuiz({ actionId = idFactory(), selectedLevel }) {
       await ensureSession();
       if (!UUID_PATTERN.test(String(actionId)) || !Number.isSafeInteger(selectedLevel) || selectedLevel < 1 || selectedLevel > 5) {
@@ -397,6 +420,7 @@
 
     return Object.freeze({
       acceptCpuOpponent,
+      applyCosmetic,
       cancelMatchmaking,
       clearRoom,
       createRoom,
@@ -408,11 +432,13 @@
       joinRoom,
       readMatchmakingStatus,
       readCpuRoster,
+      readCosmetics,
       readProfile,
       readRoom,
       requestCpuRematch,
       requestRematch,
       quoteCardSale,
+      quoteCosmetic,
       recruitOpponent,
       resetConnection,
       snapshot: () => Object.freeze(clone(state)),

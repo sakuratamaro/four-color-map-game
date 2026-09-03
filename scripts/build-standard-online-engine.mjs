@@ -21,6 +21,7 @@ const entry = String.raw`
 const engine = load("standard/standard-engine.js");
 const match = load("standard/standard-match.js");
 const profileModel = load("standard/standard-profile.js");
+const cosmetics = load("standard/standard-cosmetics.js");
 const cpuRoster = load("standard/standard-cpu-roster.js");
 const registry = load("standard/standard-skill-registry.js").STANDARD_SKILLS;
 const categories = ["color", "area", "disrupt"];
@@ -149,6 +150,20 @@ function sellCards({profile,skillId,count,confirmed=false}){
   validateProfile(result.profile);
   return {profile:clone(result.profile),quote:clone(result.quote)};
 }
+function getCosmetics({profile}){
+  validateProfile(profile);
+  return clone(cosmetics.projectCosmetics(profile));
+}
+function quoteCosmetic({profile,cosmeticId}){
+  validateProfile(profile);
+  return clone(cosmetics.quoteCosmeticAction({profile,cosmeticId}));
+}
+function applyCosmetic({profile,cosmeticId}){
+  validateProfile(profile);
+  const result=cosmetics.applyCosmeticAction({profile,cosmeticId});
+  validateProfile(result.profile);
+  return {profile:clone(result.profile),quote:clone(result.quote)};
+}
 function applyProfiles({profiles,beforeState,nextState,actor,action,finishedAt}){
   const next={A:clone(profiles?.A),B:clone(profiles?.B)};
   for(const seat of ["A","B"])validateProfile(next[seat]);
@@ -235,6 +250,7 @@ globalThis.FourColorStandardServerEngine=Object.freeze({
   REQUIRED_RNG_STREAMS:match.REQUIRED_RNG_STREAMS,
   StandardRuleError:engine.StandardRuleError,
   apply,
+  applyCosmetic,
   applyCpuProfiles,
   applyProfiles,
   chooseCpuAction,
@@ -243,7 +259,9 @@ globalThis.FourColorStandardServerEngine=Object.freeze({
   createStarterProfile,
   drawGacha,
   getCpuRoster,
+  getCosmetics,
   quoteCardSale,
+  quoteCosmetic,
   sellCards,
   privateState:match.projectStandardPrivateState,
   publicState:match.projectStandardPublicState,

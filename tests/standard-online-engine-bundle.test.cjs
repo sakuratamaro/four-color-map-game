@@ -45,6 +45,7 @@ test("server bundle contains only authoritative Standard rule and profile module
     "standard-skill-handlers.js",
     "standard-skill-dispatcher.js",
     "standard-match.js",
+    "standard-cosmetics.js",
   ]) assert.match(builder, new RegExp(id.replaceAll(".", "\\.")));
   assert.doesNotMatch(builder, /standard-local-session|standard-save|standard-v5\/app/i);
   assert.doesNotMatch(bundle, /SUPABASE_SERVICE_ROLE_KEY|sb_secret_|postgres(?:ql)?:\/\//i);
@@ -60,6 +61,9 @@ test("bundle exposes a deterministic server-only Standard engine", () => {
   assert.equal(typeof api.drawGacha, "function");
   assert.equal(typeof api.quoteCardSale, "function");
   assert.equal(typeof api.sellCards, "function");
+  assert.equal(typeof api.getCosmetics, "function");
+  assert.equal(typeof api.quoteCosmetic, "function");
+  assert.equal(typeof api.applyCosmetic, "function");
   assert.equal(typeof api.getCpuRoster, "function");
   assert.equal(typeof api.createCpuProfile, "function");
   assert.equal(typeof api.chooseCpuAction, "function");
@@ -102,6 +106,22 @@ test("server card sale preserves one copy and applies confirmation rules", () =>
   assert.equal(sold.profile.coins, 20);
   assert.equal(before.inventory.colorRandomBorrow, 3);
   assert.throws(() => api.quoteCardSale({ profile: before, skillId: "colorPrism", count: 2 }), /KEEP_ONE_REQUIRED/);
+});
+
+test("server cosmetics derive price and equip state without changing gameplay capability", () => {
+  const api = loadApi();
+  const before = { ...JSON.parse(JSON.stringify(save.createProfile({ name: "Collector", inventory: { colorPrism: 2 } }))), coins: 1000 };
+  const catalog = api.getCosmetics({ profile: before });
+  assert.equal(catalog.items.length, 12);
+  const quote = api.quoteCosmetic({ profile: before, cosmeticId: "boardAurora" });
+  assert.equal(quote.price, 600);
+  assert.equal(quote.coinsAfter, 400);
+  const applied = api.applyCosmetic({ profile: before, cosmeticId: "boardAurora" });
+  assert.equal(applied.profile.coins, 400);
+  assert.equal(applied.profile.equipped.board, "boardAurora");
+  assert.equal(JSON.stringify(applied.profile.inventory), JSON.stringify(before.inventory));
+  assert.equal(JSON.stringify(applied.profile.protectedSkills), JSON.stringify(before.protectedSkills));
+  assert.equal(before.coins, 1000);
 });
 
 test("one gacha draw deterministically consumes one ticket and adds exactly one card", () => {

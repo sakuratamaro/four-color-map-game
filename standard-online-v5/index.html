@@ -112,6 +112,26 @@
       </div>
     </section>
 
+    <section id="cosmeticPanel" class="card cosmetic-panel hidden">
+      <div class="row between wrap">
+        <div><h2>見た目コレクション</h2><p class="muted">対戦能力には影響しません。購入・装備はサーバーへ一度だけ保存されます。</p></div>
+        <strong id="cosmeticCoins" class="coin-badge">🪙 0コイン</strong>
+      </div>
+      <div id="collectionIdentity" class="collection-identity">PLAYER</div>
+      <button id="refreshCosmetics" class="ghost">見た目一覧を更新</button>
+      <div id="cosmeticCatalog" class="cosmetic-catalog"></div>
+      <div id="cosmeticConfirmation" class="cosmetic-confirmation hidden">
+        <strong>内容を確認</strong>
+        <p id="cosmeticConfirmationText"></p>
+        <div class="controls">
+          <button id="cosmeticCommit" class="primary">この内容で保存</button>
+          <button id="cosmeticCancel" class="ghost">キャンセル</button>
+          <button id="cosmeticRetry" class="ghost hidden">同じ処理IDで再送</button>
+        </div>
+      </div>
+      <p id="cosmeticStatus" class="callout" aria-live="polite">見た目一覧を読み込んでいます…</p>
+    </section>
+
     <section id="lobby" class="card hidden">
       <h2>2. Standardロビー</h2>
       <div class="lobby-choice-grid">
