@@ -30,6 +30,26 @@
       <p class="muted small">この端末のStandardセーブから選べます。初めての場合は、今夜の対戦用スターター6枚をこのオンライン画面だけに作成します。相手には名前と対戦中の公開情報だけが表示されます。</p>
     </section>
 
+    <section id="gachaPanel" class="card gacha-panel hidden">
+      <div class="row between wrap">
+        <div><h2>カードガチャ</h2><p class="muted">対戦を終えると二人ともLv.1券を1枚獲得します。</p></div>
+        <strong id="gachaTickets">Lv.1 ×0 / Lv.2 ×0 / Lv.3 ×0 / Lv.4 ×0 / Lv.5 ×0</strong>
+      </div>
+      <div class="gacha-setup">
+        <label>券レベル
+          <select id="gachaLevel">
+            <option value="1">Lv.1</option><option value="2">Lv.2</option><option value="3">Lv.3</option>
+            <option value="4">Lv.4</option><option value="5">Lv.5</option>
+          </select>
+        </label>
+        <button id="gachaDrawOne" class="primary">1枚引く</button>
+        <button id="gachaDrawAll">このLv.を全部引く</button>
+        <button id="gachaRetry" class="ghost hidden">同じ抽選を再確認</button>
+      </div>
+      <p id="gachaStatus" class="muted" aria-live="polite">スターターはLv.1券を3枚持っています。</p>
+      <div id="gachaResults" class="gacha-results"></div>
+    </section>
+
     <section id="lobby" class="card hidden">
       <h2>2. Standardルーム</h2>
       <div class="lobby-grid">
@@ -61,8 +81,16 @@
 
     <section id="matchCard" class="card hidden">
       <h2>対戦同期</h2>
-      <div class="row wrap"><span id="turnBadge" class="badge"></span><span>version <b id="versionText">0</b></span></div>
+      <div class="row wrap"><span id="turnBadge" class="badge"></span><span>第 <b id="versionText">1</b> 手</span></div>
       <p id="phaseText" class="callout"></p>
+      <section class="random-summary" aria-labelledby="randomSummaryTitle">
+        <div class="random-summary-heading"><span class="dice-mark" aria-hidden="true">🎲</span><div><strong id="randomSummaryTitle">今回のランダム結果</strong><small>サーバーが対戦ごとに抽選</small></div></div>
+        <dl>
+          <div><dt>渡すエリア</dt><dd id="rolledSizeValue">抽選中</dd></div>
+          <div><dt>自分の基本の持ち色</dt><dd id="basicPaletteValue">確認中</dd></div>
+          <div><dt>自分のおまけ色</dt><dd id="bonusColorValue">確認中</dd></div>
+        </dl>
+      </section>
       <canvas id="board" width="720" height="720" aria-label="Standardオンライン盤面"></canvas>
       <div id="regionControls" class="controls hidden">
         <span id="selectionCount"></span>
@@ -84,13 +112,46 @@
         <p id="rematchStatus" class="muted">両プレイヤーの申請後、6枚セットを選び直します。</p>
         <button id="requestRematch" class="primary">再戦を申し込む</button>
       </div>
-      <div class="projection-grid">
-        <div><h3>公開状態</h3><pre id="publicProjection"></pre></div>
-        <div><h3>あなたの非公開状態</h3><pre id="privateProjection"></pre></div>
-      </div>
+      <details class="sync-details">
+        <summary>上級者向け：同期データを表示</summary>
+        <div class="projection-grid">
+          <div><h3>全員に見える対戦データ</h3><pre id="publicProjection"></pre></div>
+          <div><h3>自分だけに見える対戦データ</h3><pre id="privateProjection"></pre></div>
+        </div>
+      </details>
       <p class="muted small">基本操作はサーバーで判定されます。隣接色や合法色の答えは画面に表示しません。</p>
     </section>
   </main>
+  <div id="terminalOverlay" class="terminal-overlay hidden" aria-live="assertive">
+    <section class="terminal-celebration" role="dialog" aria-modal="true" aria-labelledby="terminalTitle" aria-describedby="terminalMessage terminalReasonText">
+      <div class="terminal-confetti" aria-hidden="true">
+        <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+      </div>
+      <div id="terminalIcon" class="terminal-icon" aria-hidden="true">🏆</div>
+      <p id="terminalEyebrow" class="terminal-eyebrow">対戦終了</p>
+      <h2 id="terminalTitle">勝利！</h2>
+      <p id="terminalMessage" class="terminal-message"></p>
+      <p id="terminalReasonText" class="terminal-reason"></p>
+      <button id="terminalClose" class="primary terminal-close">結果を確認して戻る</button>
+    </section>
+  </div>
+  <div id="randomReveal" class="random-reveal hidden" role="status" aria-live="polite">
+    <div class="random-reveal-card">
+      <div class="rolling-dice" aria-hidden="true">🎲</div>
+      <p class="random-reveal-kicker">SERVER RANDOM</p>
+      <strong id="randomRevealTitle"></strong>
+      <p id="randomRevealDetail"></p>
+    </div>
+  </div>
+  <dialog id="skillInfoDialog" class="skill-info-dialog" aria-labelledby="skillInfoTitle">
+    <form method="dialog">
+      <div class="row between"><span class="info-mark" aria-hidden="true">ⓘ</span><button id="closeSkillInfo" class="ghost" type="button" aria-label="説明を閉じる">閉じる</button></div>
+      <h2 id="skillInfoTitle"></h2>
+      <p id="skillInfoTiming" class="muted"></p>
+      <p id="skillInfoBody"></p>
+      <p id="skillInfoRandom" class="random-skill-note hidden">🎲 このスキルにはランダム抽選があります</p>
+    </form>
+  </dialog>
   <div id="toast" role="status" aria-live="polite"></div>
   <script src="standard-online-client.js"></script>
   <script src="standard-online-skill-intents.js"></script>
