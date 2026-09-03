@@ -13,6 +13,7 @@ const STARTER_PROFILE_ID = "online-starter";
 const REMOTE_PROFILE_KEY = "fourColorMapGame.standard.online.v5.remote-profile";
 const REMOTE_PROFILE_ID = "online-server";
 const GACHA_PENDING_KEY = "fourColorMapGame.standard.online.v5.pending-gacha";
+const QUIZ_PENDING_KEY = "fourColorMapGame.standard.online.v5.pending-quiz";
 const STARTER_INVENTORY = Object.freeze({
   colorRandomBorrow: 3, colorChoiceBorrow: 3,
   areaMicroBloom: 3, areaDiePlus: 3,
@@ -70,8 +71,11 @@ let initializeBusy = false;
 let actionBusy = false;
 let rematchBusy = false;
 let gachaBusy = false;
+let quizBusy = false;
 let lastGachaDraws = [];
 let pendingGacha = (() => { try { return JSON.parse(localStorage.getItem(GACHA_PENDING_KEY) || "null"); } catch { return null; } })();
+let pendingQuiz = (() => { try { return JSON.parse(localStorage.getItem(QUIZ_PENDING_KEY) || "null"); } catch { return null; } })();
+let lastQuizResult = null;
 let pendingAction = null;
 let targetDraft = null;
 let randomRevealTimer = null;
@@ -254,6 +258,113 @@ function renderGacha() {
   }
 }
 
+function savePendingQuiz() {
+  if (pendingQuiz) localStorage.setItem(QUIZ_PENDING_KEY, JSON.stringify(pendingQuiz));
+  else localStorage.removeItem(QUIZ_PENDING_KEY);
+}
+
+function renderQuiz() {
+  if (!$('quizPanel')) return;
+  const validPending = pendingQuiz && typeof pendingQuiz.sessionId === "string"
+    && Array.isArray(pendingQuiz.questions) && pendingQuiz.questions.length === 10
+    && Array.isArray(pendingQuiz.answers) && pendingQuiz.answers.length <= 10;
+  if (pendingQuiz && !validPending) { pendingQuiz = null; savePendingQuiz(); }
+  const expired = pendingQuiz && Number.isFinite(Date.parse(pendingQuiz.expiresAt)) && Date.parse(pendingQuiz.expiresAt) <= Date.now();
+  if (expired) {
+    pendingQuiz = null;
+    savePendingQuiz();
+    $('quizStatus').textContent = "前回のクイズは期限切れです。新しく開始してください。";
+  }
+  show("quizSetup", !pendingQuiz);
+  show("quizPlay", Boolean(pendingQuiz));
+  show("quizResult", Boolean(lastQuizResult));
+  $("quizStart").disabled = quizBusy || !synced;
+  $("quizLevel").disabled = quizBusy;
+  if (lastQuizResult) {
+    const reward = lastQuizResult.reward || {};
+    $("quizResult").textContent = `${lastQuizResult.correct}問正解！ Lv.${reward.ticketLevel}ガチャ券を${reward.draws}枚獲得（${reward.reason}）`;
+  }
+  if (!pendingQuiz) return;
+  const index = pendingQuiz.answers.length;
+  $("quizProgress").textContent = `${Math.min(index + 1, 10)} / 10`;
+  $("quizLevelBadge").textContent = `Lv.${pendingQuiz.selectedLevel}`;
+  $("quizOptions").replaceChildren();
+  if (index >= 10) {
+    $("quizQuestion").textContent = "10問回答済みです。サーバーで採点します。";
+    const retry = document.createElement("button");
+    retry.className = "primary";
+    retry.textContent = quizBusy ? "採点中…" : "採点を再試行";
+    retry.disabled = quizBusy;
+    retry.onclick = finishOnlineQuiz;
+    $("quizOptions").appendChild(retry);
+    return;
+  }
+  const question = pendingQuiz.questions[index];
+  $("quizQuestion").textContent = question.prompt;
+  for (const option of question.options || []) {
+    const button = document.createElement("button");
+    button.textContent = option.label;
+    button.disabled = quizBusy;
+    button.onclick = () => answerOnlineQuiz(option.id);
+    $("quizOptions").appendChild(button);
+  }
+}
+
+async function startOnlineQuiz() {
+  if (quizBusy || !synced || !profile()) return;
+  quizBusy = true;
+  lastQuizResult = null;
+  $("quizStatus").textContent = "サーバーで10問を用意しています…";
+  renderQuiz();
+  try {
+    const selectedLevel = Number($("quizLevel").value || 1);
+    const result = await client.startQuiz({ actionId: crypto.randomUUID(), selectedLevel });
+    pendingQuiz = {
+      sessionId: result.sessionId,
+      finishActionId: crypto.randomUUID(),
+      selectedLevel: Number(result.selectedLevel),
+      expiresAt: result.expiresAt,
+      questions: result.questions,
+      answers: [],
+    };
+    savePendingQuiz();
+    $("quizStatus").textContent = "答えを選んでください。10問後にまとめてサーバー採点します。";
+  } catch (error) {
+    $("quizStatus").textContent = "クイズを開始できませんでした。少し待って再試行してください。";
+    toast(error.message || "クイズ開始に失敗しました。");
+  } finally { quizBusy = false; renderQuiz(); }
+}
+
+function answerOnlineQuiz(optionId) {
+  if (quizBusy || !pendingQuiz || pendingQuiz.answers.length >= 10) return;
+  pendingQuiz.answers.push(String(optionId));
+  savePendingQuiz();
+  if (pendingQuiz.answers.length === 10) finishOnlineQuiz();
+  else renderQuiz();
+}
+
+async function finishOnlineQuiz() {
+  if (quizBusy || !pendingQuiz || pendingQuiz.answers.length !== 10) return;
+  quizBusy = true;
+  $("quizStatus").textContent = "サーバーで採点し、ガチャ券を保存しています…";
+  renderQuiz();
+  try {
+    const result = await client.finishQuiz({
+      sessionId: pendingQuiz.sessionId,
+      actionId: pendingQuiz.finishActionId,
+      answers: pendingQuiz.answers,
+    });
+    pendingQuiz = null;
+    savePendingQuiz();
+    lastQuizResult = result;
+    persistRemoteProfile(result.profileState, displayName(), Number(result.revision));
+    $("quizStatus").textContent = result.duplicate ? "採点済みの結果を復元しました。" : "採点とガチャ券の保存が完了しました。";
+  } catch (error) {
+    $("quizStatus").textContent = "採点結果を保存できませんでした。同じ回答で安全に再試行できます。";
+    toast(error.message || "クイズ採点に失敗しました。");
+  } finally { quizBusy = false; renderQuiz(); renderGacha(); render(); }
+}
+
 async function runGacha(requestedCount = 1, retry = false) {
   if (gachaBusy || !profile()) return;
   const level = Number($("gachaLevel").value || 1);
@@ -332,6 +443,7 @@ async function refreshRoom() {
 
 function render() {
   const snapshot = client.snapshot();
+  show("quizPanel", synced && Boolean(profile()));
   show("gachaPanel", synced && Boolean(profile()));
   show("lobby", synced && !snapshot.roomId);
   show("room", Boolean(snapshot.roomId));
@@ -575,6 +687,7 @@ function startPolling() { clearInterval(pollTimer); pollTimer = setInterval(() =
 $("profileSelect").onchange = () => { selectedProfileId = $("profileSelect").value; synced = false; renderProfile(); render(); };
 $("createStarterProfile").onclick = createStarterProfile;
 $("syncProfile").onclick = syncSelectedProfile;
+$("quizStart").onclick = startOnlineQuiz;
 $("gachaLevel").onchange = () => { lastGachaDraws = []; renderGacha(); };
 $("gachaDrawOne").onclick = () => runGacha(1);
 $("gachaDrawAll").onclick = () => runGacha(null);
@@ -610,6 +723,7 @@ try {
   else loadProfiles();
   if (client.snapshot().roomId) { synced = true; await refreshRoom(); startPolling(); }
   render();
+  if (pendingQuiz?.answers?.length === 10) finishOnlineQuiz();
 } catch (error) {
   badge("接続失敗", "bad"); $("connectionMessage").textContent = "Supabaseへ接続できません。匿名ログイン設定を確認してください。"; console.error(error);
 }

@@ -75,6 +75,24 @@
       persist();
       return clone(result);
     }
+    async function startQuiz({ actionId = idFactory(), selectedLevel }) {
+      await ensureSession();
+      if (!UUID_PATTERN.test(String(actionId)) || !Number.isSafeInteger(selectedLevel) || selectedLevel < 1 || selectedLevel > 5) {
+        throw new Error("INVALID_QUIZ_REQUEST");
+      }
+      return clone(await invoke("quiz-start", { actionId, selectedLevel }));
+    }
+    async function finishQuiz({ sessionId, actionId = idFactory(), answers }) {
+      await ensureSession();
+      if (!UUID_PATTERN.test(String(sessionId)) || !UUID_PATTERN.test(String(actionId))
+          || !Array.isArray(answers) || answers.length !== 10 || answers.some((answer) => typeof answer !== "string" || answer.length > 32)) {
+        throw new Error("INVALID_QUIZ_REQUEST");
+      }
+      const result = await invoke("quiz-finish", { sessionId, actionId, answers: clone(answers) });
+      state.profileRevision = Number(result.revision);
+      persist();
+      return clone(result);
+    }
     async function readProfile() {
       const currentSession = await ensureSession();
       const result = await supabase.from("fcg_standard_profiles")
@@ -207,6 +225,7 @@
       createRoom,
       drawGacha,
       ensureSession,
+      finishQuiz,
       initialize,
       joinRoom,
       readProfile,
@@ -214,6 +233,7 @@
       requestRematch,
       resetConnection,
       snapshot: () => Object.freeze(clone(state)),
+      startQuiz,
       submitAction,
       submitSetup,
       syncProfile,

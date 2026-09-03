@@ -10,12 +10,20 @@
 <body>
   <header>
     <div><h1>Four Color Map Game</h1><p>v5.0 Standard Online — 正式6枚対戦</p></div>
-    <a href="../standard-v5/index.html">ローカル Standard</a>
+    <nav class="header-links" aria-label="遊び方を選ぶ">
+      <a href="../solo-v5/index.html">CPUと練習</a>
+      <a href="../standard-v5/index.html">ローカル Standard</a>
+    </nav>
   </header>
   <main>
     <section class="card">
       <div class="row between"><strong>接続状態</strong><span id="connectionBadge" class="badge warn">接続中</span></div>
       <p id="connectionMessage" class="muted">匿名セッションを準備しています。</p>
+    </section>
+
+    <section class="card mode-callout" aria-label="一人で練習">
+      <div><strong>🤖 すぐ遊ぶ：CPU練習</strong><p class="muted small">通信なしの速攻ルール。やさしい・ふつう・つよいから選べます。</p></div>
+      <a class="primary" href="../solo-v5/index.html">CPU対戦を始める</a>
     </section>
 
     <section id="profileCard" class="card hidden">
@@ -28,6 +36,29 @@
       </div>
       <button id="syncProfile" class="primary">このプロフィールをオンライン用に同期</button>
       <p class="muted small">この端末のStandardセーブから選べます。初めての場合は、今夜の対戦用スターター6枚をこのオンライン画面だけに作成します。相手には名前と対戦中の公開情報だけが表示されます。</p>
+    </section>
+
+    <section id="quizPanel" class="card quiz-panel hidden">
+      <div class="row between wrap">
+        <div><h2>ガチャ券クイズ</h2><p class="muted">10問に挑戦。問題と採点はサーバー管理なので、獲得券がそのままオンラインガチャに入ります。</p></div>
+        <span class="quiz-prize">🎫 1・3・5・10枚</span>
+      </div>
+      <div id="quizSetup" class="quiz-setup">
+        <label>難易度／獲得券レベル
+          <select id="quizLevel">
+            <option value="1">Lv.1 基礎</option><option value="2">Lv.2 標準</option><option value="3">Lv.3 発展</option>
+            <option value="4">Lv.4 上級</option><option value="5">Lv.5 最上級</option>
+          </select>
+        </label>
+        <button id="quizStart" class="primary">10問チャレンジ開始</button>
+      </div>
+      <div id="quizPlay" class="quiz-play hidden">
+        <div class="row between"><strong id="quizProgress">1 / 10</strong><span id="quizLevelBadge" class="badge"></span></div>
+        <p id="quizQuestion" class="quiz-question"></p>
+        <div id="quizOptions" class="quiz-options" role="group" aria-label="答えの選択肢"></div>
+      </div>
+      <p id="quizStatus" class="callout" aria-live="polite">難易度を選んで始めてください。</p>
+      <div id="quizResult" class="quiz-result hidden" aria-live="polite"></div>
     </section>
 
     <section id="gachaPanel" class="card gacha-panel hidden">

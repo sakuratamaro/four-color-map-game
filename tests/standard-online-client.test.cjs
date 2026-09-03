@@ -1,0 +1,160 @@
+"use strict";
+
+const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const path = require("node:path");
+const test = require("node:test");
+const { createStandardOnlineClient, STORAGE_KEY } = require("../standard-online-v5/standard-online-client.js");
+
+const ROOM_ID = "11111111-1111-4111-8111-111111111111";
+const ACTION_ID = "22222222-2222-4222-8222-222222222222";
+const QUIZ_SESSION_ID = "44444444-4444-4444-8444-444444444444";
+
+function storageFixture(initial = null) {
+  const values = new Map(initial ? [[STORAGE_KEY, JSON.stringify(initial)]] : []);
+  return { getItem: (key) => values.get(key) || null, setItem: (key, value) => values.set(key, value), removeItem: (key) => values.delete(key), values };
+}
+
+function supabaseFixture({ roomStatus = "ready", roomVersion = 10 } = {}) {
+  const calls = [];
+  return {
+    calls,
+    auth: {
+      getSession: async () => ({ data: { session: { user: { id: "33333333-3333-4333-8333-333333333333" } } } }),
+      signInAnonymously: async () => { throw new Error("unexpected sign-in"); },
+    },
+    rpc: async (name, args) => {
+      calls.push({ kind: "rpc", name, args });
+      if (name === "fcg_standard_create_room") return { data: [{ room_id: ROOM_ID, room_code: "A1B2C3", seat: "A", game_mode: "standard_v5" }] };
+      if (name === "fcg_standard_join_room") return { data: [{ room_id: ROOM_ID, seat: "B", game_mode: "standard_v5" }] };
+      if (name === "fcg_standard_request_rematch") return { data: [{ room_status: "finished", room_version: args.p_expected_version, ready_to_setup: false, duplicate: false }] };
+      throw new Error(`unexpected rpc ${name}`);
+    },
+    functions: {
+      invoke: async (name, request) => {
+        calls.push({ kind: "invoke", name, request });
+        if (request.body.operation === "profile") return { data: { revision: 1 } };
+        if (request.body.operation === "gacha") return { data: { revision: 4, duplicate: false, draws: [{ skillId: "colorPrism" }], profileState: { gachaTickets: { "1": 1 }, inventory: { colorPrism: 1 } } } };
+        if (request.body.operation === "quiz-start") return { data: { sessionId: QUIZ_SESSION_ID, duplicate: false, selectedLevel: 2, expiresAt: "2099-01-01T00:00:00Z", questions: Array.from({ length: 10 }, (_, index) => ({ prompt: `Q${index + 1}`, options: [{ id: `q${index + 1}-1`, label: "1" }] })) } };
+        if (request.body.operation === "quiz-finish") return { data: { revision: 5, duplicate: false, correct: 10, wrong: 0, bestStreak: 10, reward: { ticketLevel: 2, draws: 10, reason: "全問正解" }, profileState: { gachaTickets: { "2": 10 }, inventory: {} } } };
+        if (request.body.operation === "setup") return { data: { setupRevision: 1, profileRevision: 1, quoteId: request.body.setupActionId } };
+        return { data: { room: { version: request.body.action?.expectedVersion ?? 0 } } };
+      },
+    },
+    from: (table) => ({ select: () => {
+      const data = table === "fcg_rooms"
+        ? { id: ROOM_ID, status: roomStatus, version: roomVersion, game_mode: "standard_v5", public_state: null }
+        : table === "fcg_room_members" ? [{ user_id: "33333333-3333-4333-8333-333333333333", seat: "A", display_name: "A" }]
+          : table === "fcg_player_views" ? { seat: "A", version: roomVersion, private_state: {} }
+            : { revision: 3, display_name: "A", profile_state: { inventory: {} } };
+      const chain = { eq: () => chain, order: async () => ({ data }), single: async () => ({ data }), maybeSingle: async () => ({ data }) };
+      return chain;
+    } }),
+  };
+}
+
+test("client restores only finite reconnect identities from its own storage key", () => {
+  const storage = storageFixture({ roomId: ROOM_ID, roomCode: "A1B2C3", profileRevision: 4, setupRevision: 2 });
+  const client = createStandardOnlineClient({ supabase: supabaseFixture(), storage, idFactory: () => ACTION_ID });
+  assert.deepEqual(client.snapshot(), { roomId: ROOM_ID, roomCode: "A1B2C3", profileRevision: 4, setupRevision: 2, rematchActionId: null, rematchExpectedVersion: null });
+});
+
+test("profile, create, setup, initialize, and action use the Standard boundaries", async () => {
+  const supabase = supabaseFixture();
+  const storage = storageFixture();
+  const client = createStandardOnlineClient({ supabase, storage, idFactory: () => ACTION_ID });
+  await client.syncProfile({ displayName: "A", profileState: { inventory: {} } });
+  await client.createRoom("A");
+  await client.submitSetup({ loadout: { color: [], area: [], disrupt: [] } });
+  await client.initialize();
+  await client.submitAction({ expectedVersion: 0, type: "SURRENDER" });
+  assert.deepEqual(supabase.calls.map((call) => call.kind === "invoke" ? call.request.body.operation : call.name), [
+    "profile", "fcg_standard_create_room", "setup", "initialize", "action",
+  ]);
+  assert.equal(client.snapshot().profileRevision, 1);
+  assert.equal(client.snapshot().setupRevision, 1);
+  assert.equal(client.snapshot().roomId, ROOM_ID);
+});
+
+test("join is Standard-mode scoped and persists the normalized code", async () => {
+  const supabase = supabaseFixture();
+  const client = createStandardOnlineClient({ supabase, storage: storageFixture(), idFactory: () => ACTION_ID });
+  await client.joinRoom({ roomCode: "a1b2c3", displayName: "B" });
+  assert.equal(supabase.calls[0].name, "fcg_standard_join_room");
+  assert.equal(supabase.calls[0].args.p_room_code, "A1B2C3");
+  assert.equal(client.snapshot().roomCode, "A1B2C3");
+});
+
+test("owner profile read refreshes the compare-and-swap revision", async () => {
+  const client = createStandardOnlineClient({ supabase: supabaseFixture(), storage: storageFixture(), idFactory: () => ACTION_ID });
+  const profile = await client.readProfile();
+  assert.equal(profile.revision, 3);
+  assert.equal(client.snapshot().profileRevision, 3);
+});
+
+test("caller-supplied action identity is retained exactly for safe retry", async () => {
+  const supabase = supabaseFixture();
+  const client = createStandardOnlineClient({ supabase, storage: storageFixture({ roomId: ROOM_ID }), idFactory: () => { throw new Error("must not allocate"); } });
+  await client.submitAction({ id: ACTION_ID, expectedVersion: 7, type: "COLOR_REGION", payload: { color: "red" } });
+  const body = supabase.calls[0].request.body;
+  assert.deepEqual(body.action, { id: ACTION_ID, expectedVersion: 7, type: "COLOR_REGION", payload: { color: "red" } });
+});
+
+test("gacha retains the caller action identity and persists the committed profile revision", async () => {
+  const supabase = supabaseFixture();
+  const storage = storageFixture({ profileRevision: 3 });
+  const client = createStandardOnlineClient({ supabase, storage, idFactory: () => { throw new Error("must not allocate"); } });
+  const result = await client.drawGacha({ expectedRevision: 3, actionId: ACTION_ID, ticketLevel: 1, count: 1 });
+  const body = supabase.calls[0].request.body;
+  assert.deepEqual(body, { operation: "gacha", expectedRevision: 3, actionId: ACTION_ID, ticketLevel: 1, count: 1 });
+  assert.equal(result.duplicate, false);
+  assert.equal(result.draws[0].skillId, "colorPrism");
+  assert.equal(client.snapshot().profileRevision, 4);
+  assert.equal(JSON.parse(storage.values.get(STORAGE_KEY)).profileRevision, 4);
+});
+
+test("online quiz starts and finishes through server operations and persists the rewarded revision", async () => {
+  const supabase = supabaseFixture();
+  const storage = storageFixture({ profileRevision: 4 });
+  const client = createStandardOnlineClient({ supabase, storage, idFactory: () => ACTION_ID });
+  const started = await client.startQuiz({ actionId: ACTION_ID, selectedLevel: 2 });
+  assert.equal(started.sessionId, QUIZ_SESSION_ID);
+  const answers = Array.from({ length: 10 }, (_, index) => `q${index + 1}-1`);
+  const finished = await client.finishQuiz({ sessionId: QUIZ_SESSION_ID, actionId: ACTION_ID, answers });
+  assert.equal(finished.reward.draws, 10);
+  assert.equal(client.snapshot().profileRevision, 5);
+  assert.equal(JSON.parse(storage.values.get(STORAGE_KEY)).profileRevision, 5);
+  assert.deepEqual(supabase.calls.filter((call) => call.kind === "invoke").map((call) => call.request.body.operation), ["quiz-start", "quiz-finish"]);
+});
+
+test("rematch persists its identity before the RPC and reuses it after reconnect", async () => {
+  const supabase = supabaseFixture();
+  const storage = storageFixture({ roomId: ROOM_ID, setupRevision: 2 });
+  const first = createStandardOnlineClient({ supabase, storage, idFactory: () => ACTION_ID });
+  await first.requestRematch({ expectedVersion: 9 });
+  assert.equal(first.snapshot().rematchActionId, ACTION_ID);
+  assert.equal(first.snapshot().rematchExpectedVersion, 9);
+
+  const second = createStandardOnlineClient({ supabase, storage, idFactory: () => { throw new Error("must reuse pending rematch"); } });
+  await second.requestRematch({ expectedVersion: 9 });
+  const calls = supabase.calls.filter((call) => call.name === "fcg_standard_request_rematch");
+  assert.equal(calls.length, 2);
+  assert.equal(calls[0].args.p_action_id, ACTION_ID);
+  assert.equal(calls[1].args.p_action_id, ACTION_ID);
+});
+
+test("polling a reset room clears the completed rematch and stale setup revision", async () => {
+  const storage = storageFixture({ roomId: ROOM_ID, setupRevision: 4, rematchActionId: ACTION_ID, rematchExpectedVersion: 9 });
+  const client = createStandardOnlineClient({ supabase: supabaseFixture({ roomStatus: "ready", roomVersion: 10 }), storage, idFactory: () => { throw new Error("unexpected allocation"); } });
+  await client.readRoom();
+  assert.equal(client.snapshot().setupRevision, 0);
+  assert.equal(client.snapshot().rematchActionId, null);
+  assert.equal(client.snapshot().rematchExpectedVersion, null);
+});
+
+test("client source contains no privileged credential or caller-provided final state", () => {
+  const source = fs.readFileSync(path.join(__dirname, "..", "standard-online-v5", "standard-online-client.js"), "utf8");
+  assert.doesNotMatch(source, /SUPABASE_SERVICE_ROLE_KEY|sb_secret_|service_role/i);
+  assert.doesNotMatch(source, /body:\s*\{[^}]*publicState|body:\s*\{[^}]*privateState/i);
+  assert.match(source, /standard-game-action/);
+});

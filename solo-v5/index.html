@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <title>Four Color Map Game v5.0 CPU Battle</title>
+  <link rel="stylesheet" href="style.css?v=20260829-1">
+</head>
+<body>
+  <header>
+    <div><h1>Four Color Map Game</h1><p>v5.0 一人用 — 速攻チュートリアル</p></div>
+    <a href="../index.html">ローカル v4.9</a>
+  </header>
+  <main>
+    <section id="setup" class="card setup">
+      <h2>CPUと対戦</h2>
+      <p class="muted">通信・ログインなしで、この端末だけで遊べます。CPUも人間と同じ合法手を使い、あなたの秘密情報は読みません。</p>
+      <div class="setup-grid">
+        <label>CPUの強さ
+          <select id="difficulty">
+            <option value="easy">やさしい</option>
+            <option value="normal" selected>ふつう</option>
+            <option value="hard">つよい（試験中）</option>
+          </select>
+        </label>
+        <label>先攻
+          <select id="firstPlayer">
+            <option value="human">あなた</option>
+            <option value="cpu">CPU</option>
+            <option value="random" selected>ランダム</option>
+          </select>
+        </label>
+      </div>
+      <dl class="difficulty-guide" aria-label="CPUの強さの違い">
+        <div><dt>やさしい</dt><dd>ルールを守る手からランダムに選び、基本的にスキルは使いません。</dd></div>
+        <div><dt>ふつう</dt><dd>広く作れるエリアを優先しつつ、ときどきスキルを使います。</dd></div>
+        <div><dt>つよい（試験中）</dt><dd>有力な候補をさらに絞り、色やスキルの使いどころも評価します。</dd></div>
+      </dl>
+      <p class="fairness-note">どの強さも同じルールで対戦し、あなたの持ち色や手札は見ません。</p>
+      <p class="muted">ZIP版を使う場合は、ZIPの中で直接開かず「すべて展開」してから起動してください。</p>
+      <p id="startupError" class="callout hidden" role="alert"></p>
+      <button id="startGame" class="primary">対戦を始める</button>
+    </section>
+
+    <section id="game" class="game hidden">
+      <div class="card board-card">
+        <div class="row between wrap">
+          <div><span id="turnBadge" class="badge"></span><strong id="phaseText"></strong></div>
+          <div><span id="thinking" class="badge warn hidden">CPU思考中…</span> 第 <b id="versionText">0</b> 手</div>
+        </div>
+        <div class="board-wrap">
+          <canvas id="board" width="720" height="720" aria-hidden="true"></canvas>
+          <div id="macroGrid" class="macro-grid" role="grid" aria-label="四色地図ゲーム盤面のマス"></div>
+        </div>
+        <div id="selectionControls" class="controls hidden">
+          <span id="selectionCount"></span>
+          <button id="clearSelection" class="ghost">選択解除</button>
+          <button id="submitRegion" class="primary">このエリアを渡す</button>
+        </div>
+        <div id="palette" class="controls"></div>
+        <div id="targetControls" class="controls"></div>
+      </div>
+
+      <aside class="card side-card">
+        <div class="row between wrap"><h2>対戦情報</h2><span id="seatBadge" class="badge"></span></div>
+        <p id="result" class="callout hidden"></p>
+        <h3>あなたの持ち色</h3>
+        <div id="privatePalette"></div>
+        <h3>貸与スキル</h3>
+        <div id="skills" class="skills"></div>
+        <button id="surrender" class="danger">投了する</button>
+        <button id="rematch" class="primary wide">設定へ戻る</button>
+        <h3>公開ログ</h3>
+        <ol id="gameLog" class="log"></ol>
+      </aside>
+    </section>
+  </main>
+  <div id="toast" role="status" aria-live="polite"></div>
+  <script src="../online/quick-engine.js?v=20260829-1"></script>
+  <script src="../online/quick-cpu.js?v=20260829-1"></script>
+  <script src="save-codec.js?v=20260829-1"></script>
+  <script src="app.js?v=20260829-4"></script>
+  <script>
+    setTimeout(() => {
+      if (globalThis.FourColorSoloReady) return;
+      const error = document.getElementById("startupError");
+      const start = document.getElementById("startGame");
+      error.textContent = "CPU対戦用ファイルを読み込めませんでした。ZIPをすべて展開してから、このページを開き直してください。";
+      error.classList.remove("hidden");
+      start.disabled = true;
+    }, 0);
+  </script>
+</body>
+</html>
