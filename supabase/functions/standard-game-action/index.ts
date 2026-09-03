@@ -36,6 +36,36 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
+const RATE_WINDOW_MS = 60_000;
+const RATE_ENTRY_LIMIT = 4096;
+const RATE_GROUP = Object.freeze({
+  "cosmetic-catalog": ["read", 120], "cosmetic-quote": ["read", 120], "card-sale-quote": ["read", 120], "cpu-roster": ["read", 120],
+  profile: ["economy", 60], gacha: ["economy", 60], "card-sale": ["economy", 60], "cosmetic-action": ["economy", 60],
+  "quiz-start": ["economy", 60], "quiz-finish": ["economy", 60],
+  setup: ["match", 240], initialize: ["match", 240], action: ["match", 240], "cpu-action": ["match", 240],
+  "cpu-accept": ["match", 240], "cpu-rematch": ["match", 240],
+} as const);
+const rateEntries = new Map<string, { windowStarted: number; count: number }>();
+
+function rateLimited(actorId: string, operation: string, now = Date.now()): boolean {
+  const policy = RATE_GROUP[operation as keyof typeof RATE_GROUP];
+  if (!policy) return false;
+  const [group, limit] = policy;
+  const key = `${actorId}:${group}`;
+  let entry = rateEntries.get(key);
+  if (!entry || now - entry.windowStarted >= RATE_WINDOW_MS) {
+    entry = { windowStarted: now, count: 0 };
+    rateEntries.set(key, entry);
+  }
+  entry.count += 1;
+  if (rateEntries.size > RATE_ENTRY_LIMIT) {
+    for (const [candidate, value] of rateEntries) {
+      if (now - value.windowStarted >= RATE_WINDOW_MS) rateEntries.delete(candidate);
+    }
+    while (rateEntries.size > RATE_ENTRY_LIMIT) rateEntries.delete(rateEntries.keys().next().value as string);
+  }
+  return entry.count > limit;
+}
 
 function json(status: number, body: JsonObject): Response {
   return new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json; charset=utf-8" } });
@@ -220,6 +250,9 @@ Deno.serve(async (request: Request) => {
     const operation = body.operation;
     if (!["profile", "gacha", "card-sale-quote", "card-sale", "cosmetic-catalog", "cosmetic-quote", "cosmetic-action", "quiz-start", "quiz-finish", "cpu-roster", "cpu-accept", "cpu-rematch", "cpu-action", "setup", "initialize", "action"].includes(String(operation))) {
       return json(400, { error: { code: "INVALID_REQUEST", message: "A valid operation is required." } });
+    }
+    if (rateLimited(actorId, String(operation))) {
+      return json(429, { error: { code: "RATE_LIMITED", message: "Too many requests; wait briefly and retry." } });
     }
 
     if (operation === "cpu-roster") {

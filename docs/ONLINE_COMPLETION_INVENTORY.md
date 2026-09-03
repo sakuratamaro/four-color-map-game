@@ -33,7 +33,7 @@
 | 90秒/180秒後の同意制CPU案内 | 統合ブランチで実装済み、DB/Edge未適用 | 採用 | 実時間案内、人間参加との実同時競合、再読込を公開環境で確認。自動開始は禁止済み | CPU migration/Edge/client/UI/browser tests、同上 |
 | 個性のある固定CPU 10人 | version付きロスター、サーバー選択、1手ずつの原子的commit、固定台詞UI、個別戦績、同じCPUとの専用再戦まで統合ブランチで実装済み、未適用 | 旧3段階を置換して採用 | 実DBで全員の開始、代表3人の公開完走/復帰/再戦 | `standard-cpu-roster.js`、CPU opponent/rematch migrations、Edge bundle、roster/privacy/legality/browser tests |
 | 期限切れルーム/チケットの清掃 | preview既定・最大500件/分類のservice-only清掃、索引、旧関数100室上限まで統合ブランチで実装済み、未適用・未実行 | 採用 | stagingでpreview件数、実削除、cascade、ロック競合、処理時間を実測してから定期実行を別承認 | `202609030012_batched_cleanup.sql`、cleanup migration tests、transport plan |
-| レート制限・同時実行・冪等性 | 一部実装済み | 各APIの実装条件として採用 | 最後に後付けせず、matchmaking/CPU/経済APIごとに認可、version、action ID、原子的commit、並行試験を同時実装 | join rate limit、action/setup/gacha/rematch receipts |
+| レート制限・同時実行・冪等性 | join失敗、quiz、野良DB制限、Edgeのbounded per-isolate濫用抑止、各mutationのversion/action ID/原子的receiptまで統合ブランチで実装済み | 各APIの実装条件として採用 | staging負荷試験で正常プレイ非阻害と429を確認。分散攻撃はprovider gateway/WAF側の計測後に追加判断 | join/matchmaking limits、Edge `RATE_GROUP`、action/setup/gacha/rematch/economy receipts |
 | `legalRecolor` 実験カード | ローカル実験のみ | 保留 | 通常ガチャへ入れず、既存19種と分離したままバランス判断 | Standard spec/matrix |
 | 白紙化、色交換、遅延リカラー、連鎖回転、二分・保持 | 設計案のみ | 保留 | ルール、情報漏えい、原子性、手番価値が決まるまで実装しない | `BLANKING_SKILL_DESIGN.md`、skill matrix |
 

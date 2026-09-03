@@ -196,6 +196,17 @@ test("handler keeps credentials in managed environment and diagnostics finite", 
   assert.doesNotMatch(source, /console\.(?:error|log)\([^\n]*(?:authorization|serviceRoleKey|request\.json|candidate\.message|error\.stack)/i);
 });
 
+test("Edge operations have a bounded, low-overhead per-isolate abuse brake", () => {
+  assert.match(source, /const RATE_WINDOW_MS = 60_000/);
+  assert.match(source, /const RATE_ENTRY_LIMIT = 4096/);
+  assert.match(source, /const rateEntries = new Map/);
+  assert.match(source, /entry\.count > limit/);
+  assert.match(source, /while \(rateEntries\.size > RATE_ENTRY_LIMIT\)/);
+  assert.match(source, /if \(rateLimited\(actorId, String\(operation\)\)\)/);
+  assert.match(source, /code: "RATE_LIMITED"/);
+  assert.doesNotMatch(source, /rateEntries[^\n]+(?:token|authorization|profile|room)/i);
+});
+
 test("database conflicts map to finite public errors", () => {
   assert.match(source, /candidate\?\.code === "PT409"/);
   assert.match(source, /candidate\?\.code === "23505"/);
