@@ -2403,11 +2403,433 @@ module.exports = {
   validateStandardState,
 };
 
+},
+"standard/standard-cpu.js":function(require,module,exports){
+"use strict";
+
+const { COLORS, adjacentRegionIds, legalRecolorCandidates } = require("./standard-engine.js");
+const { V49_SKILL_IDS } = require("./standard-skill-registry.js");
+const {
+  cornerBloomPlan,
+  microBloomCandidates,
+  planHalfShift,
+  planTripleShift,
+} = require("./standard-skill-handlers.js");
+
+const LEVELS = Object.freeze(["easy", "normal", "hard"]);
+const POLICY_VERSIONS = Object.freeze({
+  easy: "standard-easy-v1-random-safe",
+  normal: "standard-normal-v1-contact-safe",
+  hard: "standard-hard-v2-color-pressure-safe",
+});
+
+function clone(value) {
+  return JSON.parse(JSON.stringify(value));
+}
+
+function deepFreeze(value) {
+  if (!value || typeof value !== "object" || Object.isFrozen(value)) return value;
+  for (const entry of Object.values(value)) deepFreeze(entry);
+  return Object.freeze(value);
+}
+
+function makeObservation({ publicState, ownPrivateState, difficulty = "normal" }) {
+  if (!LEVELS.includes(difficulty)) throw new TypeError("INVALID_CPU_DIFFICULTY");
+  if (!publicState || !ownPrivateState || publicState.active !== ownPrivateState.seat) throw new TypeError("INVALID_CPU_OBSERVATION");
+  return deepFreeze({
+    difficulty,
+    policyVersion: POLICY_VERSIONS[difficulty],
+    publicState: clone(publicState),
+    ownPrivateState: clone(ownPrivateState),
+  });
+}
+
+function neighbors(macro, width) {
+  const col = macro % width;
+  const result = [macro - width, macro + width];
+  if (col > 0) result.push(macro - 1);
+  if (col < width - 1) result.push(macro + 1);
+  return result;
+}
+
+function playableMacros(bounds) {
+  const result = [];
+  for (let row = bounds.minRow; row <= bounds.maxRow; row += 1) {
+    for (let col = bounds.minCol; col <= bounds.maxCol; col += 1) result.push(row * bounds.macroWidth + col);
+  }
+  return result;
+}
+
+function enumerateRegionActions(publicState, limit = 64, requiredSize = publicState.requiredSize, allowDetached = false) {
+  const bounds = publicState.playableBounds;
+  const width = bounds.macroWidth;
+  const needed = requiredSize;
+  if (!Number.isInteger(needed) || needed < 1) return [];
+  if (publicState.preparedOutgoing) {
+    const sourceMacros = [...publicState.preparedOutgoing.sourceMacros];
+    return sourceMacros.length === needed
+      ? [{ type: "CREATE_REGION", payload: { sourceMacros }, metrics: { contacts: 0, colorPressure: 0, prepared: true } }]
+      : [];
+  }
+  const scale = bounds.microScale;
+  const microWidth = bounds.macroWidth * scale;
+  const macrosFromRegion = (region) => [...new Set([
+    ...(region.sourceMacros || []),
+    ...(region.micro || []).map((cell) => Math.floor(Math.floor(cell / microWidth) / scale) * bounds.macroWidth + Math.floor((cell % microWidth) / scale)),
+  ])];
+  const occupied = new Set(Object.values(publicState.regions || {}).flatMap(macrosFromRegion));
+  const sourceOccupied = new Set(Object.values(publicState.regions || {}).flatMap((region) => region.sourceMacros || []));
+  const macroOwner = new Map();
+  for (const region of Object.values(publicState.regions || {})) {
+    for (const macro of region.sourceMacros || []) macroOwner.set(macro, region.id);
+  }
+  const free = playableMacros(bounds).filter((macro) => !occupied.has(macro));
+  const freeSet = new Set(free);
+  const hasMap = occupied.size > 0;
+  const starts = hasMap && !allowDetached ? free.filter((macro) => neighbors(macro, width).some((next) => sourceOccupied.has(next))) : free;
+  const found = new Map();
+
+  function visit(selected, frontier) {
+    if (found.size >= limit) return;
+    if (selected.size === needed) {
+      const sourceMacros = [...selected].sort((a, b) => a - b);
+      const contacts = sourceMacros.reduce((sum, macro) => sum + neighbors(macro, width).filter((next) => sourceOccupied.has(next)).length, 0);
+      const colors = new Set();
+      for (const macro of sourceMacros) {
+        for (const next of neighbors(macro, width)) {
+          const regionId = macroOwner.get(next);
+          const color = regionId ? publicState.regions[regionId]?.color : null;
+          if (color) colors.add(color);
+        }
+      }
+      if (!hasMap || allowDetached || contacts > 0) found.set(sourceMacros.join(","), { type: "CREATE_REGION", payload: { sourceMacros }, metrics: { contacts, colorPressure: colors.size } });
+      return;
+    }
+    for (const macro of [...frontier].sort((a, b) => a - b)) {
+      const nextSelected = new Set(selected).add(macro);
+      const nextFrontier = new Set(frontier);
+      nextFrontier.delete(macro);
+      for (const next of neighbors(macro, width)) if (freeSet.has(next) && !nextSelected.has(next)) nextFrontier.add(next);
+      visit(nextSelected, nextFrontier);
+      if (found.size >= limit) return;
+    }
+  }
+
+  for (const start of starts) {
+    visit(new Set([start]), new Set(neighbors(start, width).filter((macro) => freeSet.has(macro))));
+    if (found.size >= limit) break;
+  }
+  return [...found.values()];
+}
+
+function availableColors(publicState, ownPrivateState) {
+  const colors = [...ownPrivateState.basicPalette];
+  if (ownPrivateState.bonusUsesRemaining > 0) colors.push(ownPrivateState.bonusColor);
+  if (ownPrivateState.privateEffects?.prism) colors.push("red", "blue", "yellow", "green");
+  const seals = publicState.publicEffects?.[ownPrivateState.seat]?.seals || {};
+  return [...new Set(colors)].filter((color) => !(seals[color] > 0));
+}
+
+function enumerateColorActions(publicState, ownPrivateState) {
+  const blocked = new Set(adjacentRegionIds(publicState, publicState.pending).map((id) => publicState.regions[id]?.color).filter(Boolean));
+  const safe = availableColors(publicState, ownPrivateState).filter((color) => !blocked.has(color));
+  return safe.length
+    ? safe.map((color) => ({ type: "COLOR_REGION", payload: { color }, metrics: { blockedCount: blocked.size } }))
+    : [{ type: "DECLARE_NO_COLOR", payload: {}, metrics: { blockedCount: blocked.size } }];
+}
+
+function skillAction(skill, payload = {}, metrics = {}) {
+  return { type: "USE_SKILL", payload: { skill, ...payload }, metrics: { skillPriority: 1, ...metrics } };
+}
+
+function planningState(publicState) {
+  return {
+    ...publicState,
+    microWidth: publicState.playableBounds.macroWidth * publicState.playableBounds.microScale,
+  };
+}
+
+function connectedMacros(macros, width) {
+  if (!macros.length) return false;
+  const remaining = new Set(macros);
+  const queue = [macros[0]];
+  remaining.delete(macros[0]);
+  while (queue.length) {
+    const macro = queue.shift();
+    for (const next of neighbors(macro, width)) if (remaining.delete(next)) queue.push(next);
+  }
+  return remaining.size === 0;
+}
+
+function splitSelections(region, width) {
+  const macros = [...new Set(region.sourceMacros || [])].sort((a, b) => a - b);
+  const results = [];
+  const fullMask = (1 << macros.length) - 1;
+  for (let mask = 1; mask < fullMask; mask += 1) {
+    if (!(mask & 1)) continue;
+    const selected = macros.filter((_, index) => mask & (1 << index));
+    const returned = macros.filter((_, index) => !(mask & (1 << index)));
+    if (connectedMacros(selected, width) && connectedMacros(returned, width)) results.push(selected);
+  }
+  return results;
+}
+
+function availableHand(ownPrivateState, skill) {
+  return (ownPrivateState.hand?.[skill] || 0) > 0;
+}
+
+function enumerateColorSkillActions(publicState, ownPrivateState) {
+  const actions = [];
+  const boardColors = [...new Set(Object.values(publicState.regions || {}).map((region) => region.color).filter(Boolean))];
+  if (availableHand(ownPrivateState, "colorRandomBorrow") && boardColors.length) actions.push(skillAction("colorRandomBorrow", {}, { skillPriority: 18 }));
+  if (availableHand(ownPrivateState, "colorChoiceBorrow")) {
+    for (const color of boardColors) actions.push(skillAction("colorChoiceBorrow", { color }, { skillPriority: 20 }));
+  }
+  if (availableHand(ownPrivateState, "colorPrism")) actions.push(skillAction("colorPrism", {}, { skillPriority: 24 }));
+  if (availableHand(ownPrivateState, "colorPaletteChange")) {
+    const palette = [...ownPrivateState.basicPalette, ownPrivateState.bonusColor];
+    for (let slot = 0; slot < palette.length; slot += 1) {
+      for (const color of COLORS) if (color !== palette[slot]) actions.push(skillAction("colorPaletteChange", { slot, color }, { skillPriority: 12 }));
+    }
+  }
+  if (availableHand(ownPrivateState, "colorRegionSplit")) {
+    const region = publicState.regions?.[publicState.pending];
+    if (region && !(region.controllers || []).includes(ownPrivateState.seat)) {
+      for (const sourceMacros of splitSelections(region, publicState.playableBounds.macroWidth)) {
+        actions.push(skillAction("colorRegionSplit", { regionId: region.id, sourceMacros }, { skillPriority: 30, splitSize: sourceMacros.length }));
+      }
+    }
+  }
+  return actions;
+}
+
+function enumerateShiftActions(publicState, ownPrivateState, skill, planner) {
+  if (!availableHand(ownPrivateState, skill) || publicState.preparedOutgoing) return [];
+  const state = planningState(publicState);
+  const actions = [];
+  for (const axis of ["ROW", "COLUMN"]) {
+    for (let index = 0; index < publicState.playableBounds.macroWidth; index += 1) {
+      for (const direction of ["minus", "plus"]) {
+        const payload = { axis, index, direction };
+        const plan = planner(state, payload);
+        if (plan.ok) actions.push(skillAction(skill, payload, { skillPriority: 14 + Math.min(6, plan.movedCount || 0), movedCount: plan.movedCount || 0 }));
+      }
+    }
+  }
+  return actions;
+}
+
+function enumerateWorkSkillActions(publicState, ownPrivateState) {
+  const actions = [];
+  const state = planningState(publicState);
+  const outgoing = enumerateRegionActions(publicState, 96, publicState.requiredSize, true);
+  if (availableHand(ownPrivateState, "areaMicroBloom")) {
+    for (const action of outgoing) {
+      const sourceMacros = action.payload.sourceMacros;
+      if (microBloomCandidates(state, sourceMacros).candidates.length) actions.push(skillAction("areaMicroBloom", { sourceMacros }, { skillPriority: 22 }));
+    }
+  }
+  if (availableHand(ownPrivateState, "areaCornerBloom")) {
+    for (const action of outgoing) {
+      const sourceMacros = action.payload.sourceMacros;
+      for (const macro of sourceMacros) {
+        const planned = cornerBloomPlan(state, sourceMacros, macro);
+        if (planned.plan.length && preparedTouchesColoredRegion(state, planned.micro)) actions.push(skillAction("areaCornerBloom", { sourceMacros, macro }, { skillPriority: 20 }));
+      }
+    }
+  }
+  if (availableHand(ownPrivateState, "areaDiePlus") && !publicState.preparedOutgoing && publicState.requiredSize < 5
+      && enumerateRegionActions(publicState, 1, publicState.requiredSize + 1).length) {
+    actions.push(skillAction("areaDiePlus", {}, { skillPriority: 16 }));
+  }
+  if (availableHand(ownPrivateState, "areaResize") && !publicState.preparedOutgoing) {
+    const bounds = publicState.playableBounds;
+    const width = bounds.maxCol - bounds.minCol + 1;
+    const height = bounds.maxRow - bounds.minRow + 1;
+    for (const side of ["top", "bottom", "left", "right"]) {
+      const canExpand = side === "left" ? bounds.minCol > 0 : side === "right" ? bounds.maxCol < bounds.macroWidth - 1 : side === "top" ? bounds.minRow > 0 : bounds.maxRow < bounds.macroWidth - 1;
+      const canShrink = ["left", "right"].includes(side) ? width > 6 : height > 6;
+      if (canExpand) actions.push(skillAction("areaResize", { mode: "expand", side }, { skillPriority: 10 }));
+      if (canShrink) actions.push(skillAction("areaResize", { mode: "shrink", side }, { skillPriority: 8 }));
+    }
+  }
+  actions.push(...enumerateShiftActions(publicState, ownPrivateState, "areaHalfShift", planHalfShift));
+  actions.push(...enumerateShiftActions(publicState, ownPrivateState, "areaTripleShift", planTripleShift));
+
+  for (const skill of ["disruptRandomOne", "disruptRandomTwo", "disruptPaletteRandom"]) {
+    if (availableHand(ownPrivateState, skill)) actions.push(skillAction(skill, {}, { skillPriority: 17 }));
+  }
+  for (const skill of ["disruptChoiceOne", "disruptChoiceTwo", "disruptChoiceThree", "disruptPaletteChoice", "disruptForcedPalette"]) {
+    if (availableHand(ownPrivateState, skill)) for (const color of COLORS) actions.push(skillAction(skill, { color }, { skillPriority: 19 }));
+  }
+  if (availableHand(ownPrivateState, "legalRecolor") && !publicState.interferenceLock) {
+    for (const region of Object.values(publicState.regions || {}).filter((entry) => entry.color && !entry.isPending)) {
+      const candidates = legalRecolorCandidates(publicState, region.id).length;
+      if (candidates > 0) actions.push(skillAction("legalRecolor", { regionId: region.id }, { skillPriority: 15, candidates, degree: adjacentRegionIds(publicState, region.id).length }));
+    }
+  }
+  return actions;
+}
+
+function preparedTouchesColoredRegion(state, micro) {
+  const shape = new Set(micro);
+  const colored = new Set(Object.values(state.regions || {}).filter((region) => region.color).flatMap((region) => region.micro || []));
+  for (const cell of shape) {
+    const x = cell % state.microWidth;
+    const adjacent = [cell - state.microWidth, cell + state.microWidth];
+    if (x > 0) adjacent.push(cell - 1);
+    if (x < state.microWidth - 1) adjacent.push(cell + 1);
+    if (adjacent.some((neighbor) => !shape.has(neighbor) && colored.has(neighbor))) return true;
+  }
+  return false;
+}
+
+function enumerateCpuActions(observation) {
+  const { publicState, ownPrivateState } = observation;
+  if (publicState.status === "FINISHED" || publicState.active !== ownPrivateState.seat) return Object.freeze([]);
+  let actions = [];
+  if (publicState.phase === "COLOR") actions = [...enumerateColorActions(publicState, ownPrivateState), ...enumerateColorSkillActions(publicState, ownPrivateState)];
+  else if (publicState.phase === "CREATE_FIRST" || publicState.phase === "WORK") actions = [...enumerateRegionActions(publicState), ...enumerateWorkSkillActions(publicState, ownPrivateState)];
+  if (!actions.length) actions = [{ type: "SURRENDER", payload: {}, metrics: { fallback: true } }];
+  return deepFreeze(actions);
+}
+
+function chooseIndex(length, random) {
+  const value = random();
+  if (!Number.isFinite(value) || value < 0 || value >= 1) throw new TypeError("INVALID_CPU_RANDOM");
+  return Math.min(length - 1, Math.floor(value * length));
+}
+
+function chooseCpuAction({ observation, random, tieBreakRandom = random }) {
+  const actions = enumerateCpuActions(observation);
+  if (!actions.length) return null;
+  if (observation.difficulty === "easy" || observation.publicState.phase === "COLOR") return actions[chooseIndex(actions.length, random)];
+  const scored = actions.map((action) => ({
+    action,
+    score: action.type === "USE_SKILL"
+      ? (observation.difficulty === "hard"
+        ? (action.metrics.skillPriority || 0) * 10 + (action.metrics.degree || 0) * 2 + (action.metrics.candidates || 0)
+        : (action.metrics.skillPriority || 0))
+      : action.type === "CREATE_REGION"
+        ? (observation.difficulty === "hard" ? action.metrics.colorPressure * 100 + action.metrics.contacts : action.metrics.contacts * 2)
+        : -1000,
+  }));
+  const best = Math.max(...scored.map((entry) => entry.score));
+  const finalists = scored.filter((entry) => entry.score === best).map((entry) => entry.action);
+  return finalists[chooseIndex(finalists.length, tieBreakRandom)];
+}
+
+module.exports = {
+  LEVELS,
+  POLICY_VERSIONS,
+  chooseCpuAction,
+  enumerateCpuActions,
+  makeObservation,
+  V49_SKILL_IDS,
+};
+
+},
+"standard/standard-cpu-roster.js":function(require,module,exports){
+"use strict";
+
+const cpu = require("./standard-cpu.js");
+const { STANDARD_SKILLS } = require("./standard-skill-registry.js");
+
+const ROSTER_VERSION = "standard-character-roster-v1";
+const RANDOM_SKILLS = new Set(["colorRandomBorrow", "areaMicroBloom", "disruptRandomOne", "disruptRandomTwo", "disruptPaletteRandom", "disruptPaletteChoice", "disruptForcedPalette"]);
+
+const definitions = [
+  ["yuzu", "うっかりユズ", "あっ、こっちも塗れそう！", "小さなエリアをテンポよく作る", "終盤の色不足とスキル機会を見落としがち", ["colorRandomBorrow", "areaMicroBloom"], ["colorRandomBorrow", "colorChoiceBorrow", "areaMicroBloom", "areaDiePlus", "disruptRandomOne", "disruptChoiceOne"], [1, .92, .28, .34, .10, .68, .18, .12, .90]],
+  ["ren", "せっかちレン", "先に広げた者勝ちだ！", "序盤の面積争い", "広げすぎて後から塗りづらくする", ["areaDiePlus", "colorPrism"], ["colorPrism", "colorRandomBorrow", "areaDiePlus", "areaResize", "disruptRandomTwo", "disruptChoiceOne"], [2, .48, .58, .55, .28, .90, .38, .35, .82]],
+  ["minato", "見習いミナト", "この技、試してみます！", "意外性のある仕掛け", "対象選択や使う順番がまだ甘い", ["colorRegionSplit", "colorPaletteChange"], ["colorRegionSplit", "colorPaletteChange", "areaHalfShift", "areaCornerBloom", "disruptPaletteChoice", "disruptChoiceTwo"], [2, .62, .82, .42, .30, .62, .40, .48, .88]],
+  ["koharu", "読み違いコハル", "次の色は……たぶん、これ！", "妨害をためらわない", "公開情報からの色予測を外しやすい", ["disruptRandomOne", "disruptPaletteRandom"], ["colorRandomBorrow", "colorChoiceBorrow", "areaMicroBloom", "areaResize", "disruptRandomOne", "disruptPaletteRandom"], [2, .52, .78, .50, .12, .60, .42, .30, .86]],
+  ["aoi", "慎重派アオイ", "一手ずつ、確かめましょう。", "自滅しにくい盤面作り", "好機でも攻めず面積で遅れやすい", ["colorChoiceBorrow", "areaMicroBloom"], ["colorChoiceBorrow", "colorPaletteChange", "areaMicroBloom", "areaCornerBloom", "disruptChoiceOne", "disruptChoiceTwo"], [2, .18, .68, .78, .48, .18, .82, .52, .68]],
+  ["kai", "勝負師カイ", "ここは一発、賭けるぜ！", "劣勢からのランダム逆転", "有利でも賭けて流れを失う", ["colorPrism", "disruptRandomTwo"], ["colorPrism", "colorRandomBorrow", "areaDiePlus", "areaTripleShift", "disruptRandomTwo", "disruptPaletteRandom"], [2, .55, .76, .62, .34, .98, .45, .42, .92]],
+  ["tsubasa", "仕掛け屋ツバサ", "地図は動かしてこそ面白い！", "エリア形状の操作", "形に夢中で色と残り手数を軽視する", ["areaHalfShift", "areaTripleShift"], ["colorRegionSplit", "colorPaletteChange", "areaHalfShift", "areaTripleShift", "disruptChoiceOne", "disruptPaletteChoice"], [3, .34, .90, .86, .38, .76, .36, .50, .96]],
+  ["shion", "観察役シオン", "その手、覚えておきます。", "公開行動からの色の確率予測", "読みを重ねて素直な面積勝負が遅い", ["disruptChoiceOne", "disruptPaletteChoice"], ["colorChoiceBorrow", "colorPaletteChange", "areaMicroBloom", "areaResize", "disruptChoiceOne", "disruptPaletteChoice"], [3, .16, .82, .88, .92, .32, .76, .88, .80]],
+  ["rei", "カード博士レイ", "組み合わせには理由があるんだ。", "スキルの使用順と組み合わせ", "カードを封じられると通常手が単調", ["colorRegionSplit", "disruptChoiceTwo"], ["colorRegionSplit", "colorPrism", "areaCornerBloom", "areaHalfShift", "disruptChoiceTwo", "disruptChoiceThree"], [3, .12, .96, .94, .74, .48, .86, .76, .94]],
+  ["kurogane", "四色のクロガネ", "盤面も色も、すべて読んでみせよう。", "終盤管理と公開情報への適応", "大胆な奇策への反応が少し遅い", ["colorPaletteChange", "disruptChoiceThree"], ["colorPaletteChange", "colorChoiceBorrow", "areaResize", "areaTripleShift", "disruptChoiceThree", "disruptForcedPalette"], [4, .05, .94, .98, .90, .26, .98, .94, .84]],
+];
+
+const PARAMETER_NAMES = ["lookaheadDepth", "legalChoiceNoise", "skillWindowRecall", "skillTargetAccuracy", "hiddenInference", "riskTolerance", "endgameDiscipline", "adaptationRate", "favoriteSkillBias"];
+
+function splitLoadout(ids) {
+  return Object.fromEntries(["color", "area", "disrupt"].map((category) => [category, Object.freeze(ids.filter((id) => STANDARD_SKILLS[id]?.category === category))]));
+}
+
+const CPU_CHARACTERS = Object.freeze(Object.fromEntries(definitions.map(([id, name, line, strength, weakness, favorites, ids, values]) => [id, Object.freeze({
+  id, name, line, strength, weakness, favorites: Object.freeze([...favorites]), loadout: Object.freeze(splitLoadout(ids)),
+  parameters: Object.freeze(Object.fromEntries(PARAMETER_NAMES.map((key, index) => [key, values[index]]))),
+  policyVersion: `${ROSTER_VERSION}:${id}`,
+})])));
+
+function validateRoster() {
+  if (Object.keys(CPU_CHARACTERS).length !== 10) throw new TypeError("INVALID_CPU_ROSTER_SIZE");
+  for (const character of Object.values(CPU_CHARACTERS)) {
+    if (!/^[a-z][a-z0-9-]{1,31}$/.test(character.id) || !character.name || !character.line) throw new TypeError("INVALID_CPU_CHARACTER");
+    for (const category of ["color", "area", "disrupt"]) {
+      if (character.loadout[category].length !== 2) throw new TypeError("INVALID_CPU_LOADOUT");
+      for (const skillId of character.loadout[category]) if (!STANDARD_SKILLS[skillId]?.v49Catalogued || STANDARD_SKILLS[skillId].category !== category) throw new TypeError("INVALID_CPU_LOADOUT");
+    }
+    for (const [key, value] of Object.entries(character.parameters)) {
+      if (key === "lookaheadDepth" ? !Number.isSafeInteger(value) || value < 1 || value > 4 : !Number.isFinite(value) || value < 0 || value > 1) throw new TypeError("INVALID_CPU_PARAMETER");
+    }
+  }
+  return true;
+}
+
+function publicRoster() {
+  return Object.values(CPU_CHARACTERS).map(({ id, name, line, strength, weakness, favorites, policyVersion }) => ({ id, name, line, strength, weakness, favorites: [...favorites], policyVersion }));
+}
+
+function actionScore(action, character) {
+  const p = character.parameters;
+  if (action.type === "DECLARE_NO_COLOR") return 10000;
+  if (action.type === "SURRENDER") return -10000;
+  if (action.type === "COLOR_REGION") return 40 + p.endgameDiscipline * 30;
+  if (action.type === "CREATE_REGION") return 20
+    + (action.metrics.contacts || 0) * (5 + p.endgameDiscipline * 10)
+    + (action.metrics.colorPressure || 0) * (4 + p.hiddenInference * 16)
+    + p.riskTolerance * 5;
+  const skillId = action.payload?.skill;
+  const favorite = character.favorites.includes(skillId) ? 1 : 0;
+  const random = RANDOM_SKILLS.has(skillId) ? 1 : 0;
+  return (action.metrics.skillPriority || 0) * (2 + p.skillWindowRecall * 4)
+    + favorite * p.favoriteSkillBias * 90
+    + random * p.riskTolerance * 24
+    + (action.metrics.candidates || action.metrics.movedCount || action.metrics.splitSize || 0) * p.skillTargetAccuracy;
+}
+
+function chooseCharacterAction({ publicState, ownPrivateState, characterId, random, tieBreakRandom = random }) {
+  validateRoster();
+  const character = CPU_CHARACTERS[characterId];
+  if (!character) throw new TypeError("UNKNOWN_CPU_CHARACTER");
+  const observation = cpu.makeObservation({ publicState, ownPrivateState, difficulty: "hard" });
+  const actions = cpu.enumerateCpuActions(observation);
+  if (!actions.length) return null;
+  const ranked = actions.map((action, index) => ({ action, index, score: actionScore(action, character) }))
+    .sort((a, b) => b.score - a.score || a.index - b.index);
+  const noiseWindow = Math.min(ranked.length, 1 + Math.floor(character.parameters.legalChoiceNoise * Math.min(9, ranked.length - 1)));
+  const value = random();
+  if (!Number.isFinite(value) || value < 0 || value >= 1) throw new TypeError("INVALID_CPU_RANDOM");
+  const noisy = ranked[Math.min(noiseWindow - 1, Math.floor(value * noiseWindow))];
+  const tied = ranked.filter((entry) => entry.score === noisy.score);
+  if (tied.length === 1) return noisy.action;
+  const tie = tieBreakRandom();
+  if (!Number.isFinite(tie) || tie < 0 || tie >= 1) throw new TypeError("INVALID_CPU_RANDOM");
+  return tied[Math.min(tied.length - 1, Math.floor(tie * tied.length))].action;
+}
+
+validateRoster();
+
+module.exports = { CPU_CHARACTERS, ROSTER_VERSION, chooseCharacterAction, publicRoster, validateRoster };
+
 }};const cache={};function normalize(parts){const out=[];for(const part of parts){if(!part||part===".")continue;if(part==="..")out.pop();else out.push(part);}return out.join("/");}function load(id){if(cache[id])return cache[id].exports;if(!modules[id])throw new Error("Unknown module: "+id);const module={exports:{}};cache[id]=module;const base=id.split("/").slice(0,-1);const localRequire=(request)=>load(request.startsWith(".")?normalize([...base,...request.split("/")]):request);modules[id](localRequire,module,module.exports);return module.exports;}
 
 const engine = load("standard/standard-engine.js");
 const match = load("standard/standard-match.js");
 const profileModel = load("standard/standard-profile.js");
+const cpuRoster = load("standard/standard-cpu-roster.js");
 const registry = load("standard/standard-skill-registry.js").STANDARD_SKILLS;
 const categories = ["color", "area", "disrupt"];
 const starterInventory = {
@@ -2439,6 +2861,23 @@ function createStarterProfile(displayName){
   };
   validateProfile(profile);
   return profile;
+}
+function getCpuRoster(){return clone(cpuRoster.publicRoster());}
+function createCpuProfile(characterId){
+  const character=cpuRoster.CPU_CHARACTERS[characterId];
+  if(!character)throw new Error("UNKNOWN_CPU_CHARACTER");
+  const inventory=Object.fromEntries(Object.values(character.loadout).flat().map((id)=>[id,1]));
+  const profile={displayName:character.name,quizRecords:{},gachaTickets:{},inventory,coins:0,achievements:[],...profileModel.createProgressionFields()};
+  validateProfile(profile);
+  return {profile,loadout:clone(character.loadout),policyVersion:character.policyVersion};
+}
+function chooseCpuAction({publicState,ownPrivateState,characterId,seed}){
+  if(!Number.isSafeInteger(seed)||seed<0||seed>0xffffffff)throw new Error("INVALID_SEED");
+  const streams=engine.createRngDomains(seed,match.REQUIRED_RNG_STREAMS);
+  return clone(cpuRoster.chooseCharacterAction({
+    publicState,ownPrivateState,characterId,
+    random:()=>streams["cpu-B"].next(),tieBreakRandom:()=>streams["cpu-tie-break"].next(),
+  }));
 }
 function validateSeatLoadout({loadout,profile=null}){
   if(!loadout||typeof loadout!=="object"||Array.isArray(loadout)||Object.keys(loadout).some((key)=>!categories.includes(key)))throw new Error("INVALID_STANDARD_LOADOUT");
@@ -2574,9 +3013,12 @@ globalThis.FourColorStandardServerEngine=Object.freeze({
   StandardRuleError:engine.StandardRuleError,
   apply,
   applyProfiles,
+  chooseCpuAction,
   create,
+  createCpuProfile,
   createStarterProfile,
   drawGacha,
+  getCpuRoster,
   quoteCardSale,
   sellCards,
   privateState:match.projectStandardPrivateState,

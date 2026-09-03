@@ -59,6 +59,9 @@ test("bundle exposes a deterministic server-only Standard engine", () => {
   assert.equal(typeof api.drawGacha, "function");
   assert.equal(typeof api.quoteCardSale, "function");
   assert.equal(typeof api.sellCards, "function");
+  assert.equal(typeof api.getCpuRoster, "function");
+  assert.equal(typeof api.createCpuProfile, "function");
+  assert.equal(typeof api.chooseCpuAction, "function");
   assert.equal(typeof api.validateProfile, "function");
   assert.equal(typeof api.validateSeatLoadout, "function");
   const first = api.create({ matchId: "online-match-1", loadouts, seed: 0x12345678, firstSeat: "A" });
@@ -67,6 +70,22 @@ test("bundle exposes a deterministic server-only Standard engine", () => {
   assert.equal(first.state.version, 0);
   assert.equal(first.state.active, "A");
   assert.equal(Object.keys(first.rngSnapshot).length, api.REQUIRED_RNG_STREAMS.length);
+});
+
+test("server bundle exposes ten safe CPU identities and deterministic legal decisions", () => {
+  const api = loadApi();
+  const roster = api.getCpuRoster();
+  assert.equal(roster.length, 10);
+  assert.equal(roster.some((entry) => Object.hasOwn(entry, "parameters")), false);
+  const cpuProfile = api.createCpuProfile("yuzu");
+  assert.equal(Object.values(cpuProfile.loadout).flat().length, 6);
+  assert.equal(cpuProfile.profile.displayName, "うっかりユズ");
+  const created = api.create({ matchId: "cpu-server", loadouts: { A: loadouts.A, B: cpuProfile.loadout }, profiles: { A: profiles().A, B: cpuProfile.profile }, seed: 123, firstSeat: "B" });
+  const first = api.chooseCpuAction({ publicState: created.publicState, ownPrivateState: created.privateB, characterId: "yuzu", seed: 999 });
+  const second = api.chooseCpuAction({ publicState: created.publicState, ownPrivateState: created.privateB, characterId: "yuzu", seed: 999 });
+  assert.deepEqual(first, second);
+  const applied = api.apply({ state: created.state, rngSnapshot: created.rngSnapshot, actor: "B", action: { ...first, id: "cpu-action" }, expectedVersion: 0 });
+  assert.equal(applied.ok, true);
 });
 
 test("server card sale preserves one copy and applies confirmation rules", () => {

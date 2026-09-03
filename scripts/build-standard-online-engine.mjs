@@ -12,6 +12,8 @@ const ids = [
   "standard/standard-skill-handlers.js",
   "standard/standard-skill-dispatcher.js",
   "standard/standard-match.js",
+  "standard/standard-cpu.js",
+  "standard/standard-cpu-roster.js",
 ];
 
 const modules = ids.map((id) => `${JSON.stringify(id)}:function(require,module,exports){\n${fs.readFileSync(path.join(root, id), "utf8")}\n}`).join(",\n");
@@ -19,6 +21,7 @@ const entry = String.raw`
 const engine = load("standard/standard-engine.js");
 const match = load("standard/standard-match.js");
 const profileModel = load("standard/standard-profile.js");
+const cpuRoster = load("standard/standard-cpu-roster.js");
 const registry = load("standard/standard-skill-registry.js").STANDARD_SKILLS;
 const categories = ["color", "area", "disrupt"];
 const starterInventory = {
@@ -50,6 +53,23 @@ function createStarterProfile(displayName){
   };
   validateProfile(profile);
   return profile;
+}
+function getCpuRoster(){return clone(cpuRoster.publicRoster());}
+function createCpuProfile(characterId){
+  const character=cpuRoster.CPU_CHARACTERS[characterId];
+  if(!character)throw new Error("UNKNOWN_CPU_CHARACTER");
+  const inventory=Object.fromEntries(Object.values(character.loadout).flat().map((id)=>[id,1]));
+  const profile={displayName:character.name,quizRecords:{},gachaTickets:{},inventory,coins:0,achievements:[],...profileModel.createProgressionFields()};
+  validateProfile(profile);
+  return {profile,loadout:clone(character.loadout),policyVersion:character.policyVersion};
+}
+function chooseCpuAction({publicState,ownPrivateState,characterId,seed}){
+  if(!Number.isSafeInteger(seed)||seed<0||seed>0xffffffff)throw new Error("INVALID_SEED");
+  const streams=engine.createRngDomains(seed,match.REQUIRED_RNG_STREAMS);
+  return clone(cpuRoster.chooseCharacterAction({
+    publicState,ownPrivateState,characterId,
+    random:()=>streams["cpu-B"].next(),tieBreakRandom:()=>streams["cpu-tie-break"].next(),
+  }));
 }
 function validateSeatLoadout({loadout,profile=null}){
   if(!loadout||typeof loadout!=="object"||Array.isArray(loadout)||Object.keys(loadout).some((key)=>!categories.includes(key)))throw new Error("INVALID_STANDARD_LOADOUT");
@@ -185,9 +205,12 @@ globalThis.FourColorStandardServerEngine=Object.freeze({
   StandardRuleError:engine.StandardRuleError,
   apply,
   applyProfiles,
+  chooseCpuAction,
   create,
+  createCpuProfile,
   createStarterProfile,
   drawGacha,
+  getCpuRoster,
   quoteCardSale,
   sellCards,
   privateState:match.projectStandardPrivateState,
