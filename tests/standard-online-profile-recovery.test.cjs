@@ -15,4 +15,5 @@ test("existing Standard profiles are returned without a stale bootstrap commit",
   assert.match(handler, /revision:\s*existing\.revision/);
   assert.match(handler, /profileState:\s*existing\.profile_state/);
   assert.match(handler, /displayName:\s*existing\.display_name/);
+  assert.match(handler, /p_expected_revision:\s*0/);
 });

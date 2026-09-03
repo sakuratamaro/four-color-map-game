@@ -226,7 +226,7 @@ Deno.serve(async (request: Request) => {
       stage = "commit-profile";
       const { data, error } = await service.rpc("fcg_standard_server_commit_profile", {
         p_user_id: actorId,
-        p_expected_revision: expectedRevision,
+        p_expected_revision: 0,
         p_display_name: displayName,
         p_profile_state: committedState,
       });
