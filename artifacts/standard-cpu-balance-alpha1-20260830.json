@@ -1,0 +1,118 @@
+{
+  "schemaVersion": 1,
+  "generatedAtJst": "2026-08-30T06:57:00+09:00",
+  "engineCommitBase": "825457c",
+  "runner": "scripts/standard-cpu-selfplay.cjs",
+  "notes": [
+    "Each scenario alternates first seat across 100 pairs (200 games).",
+    "The current modular alpha implements only the experimental legalRecolor skill; these are engineering-policy results, not final balance claims.",
+    "firstPolicyWins identifies levelFirst, independent of seat."
+  ],
+  "scenarios": {
+    "normalVsNormalWithLegalRecolor": {
+      "seed": 5000,
+      "pairs": 100,
+      "games": 200,
+      "completed": 200,
+      "illegalTerminals": 0,
+      "rejectedActions": 0,
+      "firstPolicyWins": 101,
+      "secondPolicyWins": 99,
+      "firstMoverWins": 111,
+      "firstMoverWinRate": 0.555,
+      "meanActions": 30.79,
+      "skillUses": 396,
+      "skillUsePerGame": 1.98,
+      "terminalReasons": { "NO_LEGAL_COLOR": 200 }
+    },
+    "normalVsNormalWithoutLegalRecolor": {
+      "seed": 5000,
+      "pairs": 100,
+      "games": 200,
+      "completed": 200,
+      "illegalTerminals": 0,
+      "rejectedActions": 0,
+      "firstPolicyWins": 93,
+      "secondPolicyWins": 107,
+      "firstMoverWins": 113,
+      "firstMoverWinRate": 0.565,
+      "meanActions": 26.6,
+      "skillUses": 0,
+      "skillUsePerGame": 0,
+      "terminalReasons": { "BOARD_LOCK": 1, "NO_LEGAL_COLOR": 199 }
+    },
+    "easyVsNormalWithLegalRecolor": {
+      "seed": 6000,
+      "pairs": 100,
+      "games": 200,
+      "completed": 200,
+      "illegalTerminals": 0,
+      "rejectedActions": 0,
+      "firstPolicyWins": 31,
+      "secondPolicyWins": 169,
+      "firstMoverWins": 105,
+      "firstMoverWinRate": 0.525,
+      "meanActions": 28.535,
+      "skillUses": 317,
+      "skillUsePerGame": 1.585,
+      "terminalReasons": { "BOARD_LOCK": 1, "NO_LEGAL_COLOR": 199 }
+    },
+    "normalVsHardWithLegalRecolor": {
+      "seed": 7000,
+      "pairs": 100,
+      "games": 200,
+      "completed": 200,
+      "illegalTerminals": 0,
+      "rejectedActions": 0,
+      "firstPolicyWins": 98,
+      "secondPolicyWins": 102,
+      "firstMoverWins": 104,
+      "firstMoverWinRate": 0.52,
+      "meanActions": 29.65,
+      "skillUses": 394,
+      "skillUsePerGame": 1.97,
+      "terminalReasons": { "NO_LEGAL_COLOR": 200 }
+    }
+  },
+  "findings": {
+    "safety": "All 800 games completed with zero rejected actions and zero illegal-color terminals.",
+    "easyNormalSeparation": "Normal won 169/200 against easy; the first-move rate was 52.5%.",
+    "normalHardSeparation": "Hard won only 102/200 against normal; this is not sufficient evidence of a meaningful strength separation.",
+    "firstMoveRange": "Observed first-move win rates ranged from 52.0% to 56.5% across these scenarios.",
+    "legalRecolorOpportunity": "Normal mirror used 1.98 legalRecolor cards per game with the card enabled; disabling it shortened mean game length from 30.79 to 26.6 actions.",
+    "nextAction": "Keep current rules unchanged; improve hard evaluation and repeat paired gates after profile/loadout and remaining skill handlers are integrated."
+  },
+  "hardPolicyV2FollowUp": {
+    "policyVersion": "standard-hard-v2-color-pressure-safe",
+    "change": "Hard ranks CREATE intents by distinct adjacent public colors before contact count and reserves experimental legal recolor for public regions of degree two or greater.",
+    "seed7000": {
+      "pairs": 100,
+      "normalWins": 85,
+      "hardWins": 115,
+      "firstMoverWinRate": 0.515,
+      "meanActions": 27.78,
+      "skillUsePerGame": 1.91,
+      "rejectedActions": 0,
+      "illegalTerminals": 0
+    },
+    "seed17000": {
+      "pairs": 100,
+      "normalWins": 78,
+      "hardWins": 122,
+      "firstMoverWinRate": 0.49,
+      "meanActions": 26.775,
+      "skillUsePerGame": 1.905,
+      "rejectedActions": 0,
+      "illegalTerminals": 0
+    },
+    "pooled": {
+      "games": 400,
+      "normalWins": 163,
+      "hardWins": 237,
+      "hardWinRate": 0.5925,
+      "rejectedActions": 0,
+      "illegalTerminals": 0
+    },
+    "interpretation": "The public-only evaluator now produces a reproducible strength separation on two independent seed blocks without changing game rules. Re-run after full card/profile integration before final tuning."
+  }
+}

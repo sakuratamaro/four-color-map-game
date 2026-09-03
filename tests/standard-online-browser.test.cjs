@@ -1,0 +1,282 @@
+"use strict";
+
+const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const http = require("node:http");
+const path = require("node:path");
+const test = require("node:test");
+
+let chromium;
+try { ({ chromium } = require("playwright")); } catch { /* explicit actual-browser gate */ }
+
+const root = path.resolve(__dirname, "..");
+const browserPath = "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe";
+const connectionKey = "fourColorMapGame.standard.online.v5.connection";
+const saveKey = "fourColorMapGame.standard.v5.save";
+const remoteProfileKey = "fourColorMapGame.standard.online.v5.remote-profile";
+const roomId = "11111111-1111-4111-8111-111111111111";
+const pendingRematchId = "22222222-2222-4222-8222-222222222222";
+
+function startServer() {
+  return new Promise((resolve, reject) => {
+    const mime = { ".css": "text/css; charset=utf-8", ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8" };
+    const server = http.createServer((request, response) => {
+      const relative = decodeURIComponent(new URL(request.url, "http://127.0.0.1").pathname).replace(/^\/+/, "") || "index.html";
+      const target = path.resolve(root, relative);
+      if (target !== root && !target.startsWith(`${root}${path.sep}`)) return response.writeHead(403).end("Forbidden");
+      fs.readFile(target, (error, body) => {
+        if (error) return response.writeHead(error.code === "ENOENT" ? 404 : 500).end("Not found");
+        response.writeHead(200, { "Cache-Control": "no-store", "Content-Type": mime[path.extname(target)] || "application/octet-stream" });
+        response.end(body);
+      });
+    });
+    server.once("error", reject);
+    server.listen(0, "127.0.0.1", () => resolve({ server, url: `http://127.0.0.1:${server.address().port}` }));
+  });
+}
+
+async function installMock(context, mode) {
+  await context.route("https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm", (route) => route.fulfill({
+    status: 200,
+    contentType: "text/javascript; charset=utf-8",
+    body: "export function createClient(){return globalThis.__standardOnlineMockSupabase}",
+  }));
+  await context.addInitScript(({ connectionKey: connection, saveKey: save, roomId: id, pendingId, mode: initialMode }) => {
+    const inventory = Object.fromEntries([
+      "colorRandomBorrow", "colorChoiceBorrow", "colorPrism", "colorRegionSplit", "colorPaletteChange",
+      "areaMicroBloom", "areaDiePlus", "areaResize", "areaCornerBloom", "areaHalfShift", "areaTripleShift",
+      "disruptRandomOne", "disruptChoiceOne", "disruptRandomTwo", "disruptPaletteRandom", "disruptChoiceTwo",
+      "disruptPaletteChoice", "disruptChoiceThree", "disruptForcedPalette",
+    ].map((skill) => [skill, 2]));
+    if (initialMode !== "empty") {
+      localStorage.setItem(save, JSON.stringify({ profiles: { playerA: { displayName: "A", inventory } } }));
+      localStorage.setItem("fourColorMapGame.standard.online.v5.profile", "playerA");
+      localStorage.setItem(connection, JSON.stringify({
+        roomId: id, roomCode: "A1B2C3", profileRevision: 1, setupRevision: 3,
+        rematchActionId: initialMode === "finished" ? pendingId : null,
+        rematchExpectedVersion: initialMode === "finished" ? 9 : null,
+      }));
+    }
+    const active = {
+      matchId: `${id}:9`, status: "ACTIVE", version: 9, turn: 3, active: "A", phase: "WORK", winner: null, requiredSize: 1, rolledSize: 1, baseRequiredSize: 1,
+      playableBounds: { macroWidth: 4, microScale: 1, minCol: 0, minRow: 0, maxCol: 3, maxRow: 3 },
+      regions: {},
+    };
+    const finished = { ...active, status: "FINISHED", phase: "GAME_OVER", winner: "A", terminalReason: "SURRENDER" };
+    const profileState = {
+      displayName: "A", inventory, gachaTickets: { "1": 2 }, coins: 0,
+      protectedSkills: { areaHalfShift: true }, cosmeticsOwned: ["boardDefault", "effectDefault", "nameplateDefault", "titleNone"],
+      equipped: { board: "boardDefault", effect: "effectDefault", nameplate: "nameplateDefault", title: "titleNone" },
+      trophies: { fullPaint: false, fullPaint3: false, noSkillFullPaint: false }, trophyDates: {},
+      stats: { wins: 0, losses: 0, currentWinStreak: 0, bestWinStreak: 0, fullPaints: 0 }, matchHistory: [],
+    };
+    const runtime = {
+      room: { id, status: initialMode === "finished" ? "finished" : "playing", version: 9, game_mode: "standard_v5", public_state: initialMode === "finished" ? finished : active },
+      view: { seat: "A", version: 9, private_state: { hand: { areaDiePlus: 1, areaResize: 1 }, basicPalette: ["red", "blue"], bonusColor: "yellow", bonusUsesRemaining: 2, privateEffects: {} } },
+      profile: initialMode === "empty" ? null : { revision: 1, display_name: "A", profile_state: profileState },
+      gachaReceipts: {},
+      calls: [],
+    };
+    globalThis.__standardOnlineRuntime = runtime;
+    const resultFor = (table) => table === "fcg_rooms" ? runtime.room
+      : table === "fcg_room_members" ? [{ user_id: "33333333-3333-4333-8333-333333333333", seat: "A", display_name: "A" }, { user_id: "44444444-4444-4444-8444-444444444444", seat: "B", display_name: "B" }]
+        : table === "fcg_player_views" ? runtime.view
+          : runtime.profile;
+    globalThis.__standardOnlineMockSupabase = {
+      auth: { getSession: async () => ({ data: { session: { user: { id: "33333333-3333-4333-8333-333333333333" } } } }), signInAnonymously: async () => { throw new Error("unexpected sign-in"); } },
+      functions: { invoke: async (name, request) => {
+        runtime.calls.push({ kind: "invoke", name, body: request.body });
+        if (request.body.operation === "profile") {
+          runtime.profile = { revision: 1, display_name: request.body.displayName, profile_state: request.body.profileState };
+          return { data: { revision: 1, displayName: request.body.displayName, profileState: request.body.profileState } };
+        }
+        if (request.body.operation === "gacha") {
+          const prior = runtime.gachaReceipts[request.body.actionId];
+          if (prior) return { data: { ...prior, duplicate: true } };
+          const next = JSON.parse(JSON.stringify(runtime.profile.profile_state));
+          next.gachaTickets[String(request.body.ticketLevel)] -= request.body.count;
+          next.inventory.colorRandomBorrow = (next.inventory.colorRandomBorrow || 0) + request.body.count;
+          runtime.profile = { ...runtime.profile, revision: runtime.profile.revision + 1, profile_state: next };
+          const result = { revision: runtime.profile.revision, duplicate: false, draws: Array.from({ length: request.body.count }, () => ({ ticketLevel: 1, rarity: 1, category: "color", skillId: "colorRandomBorrow", displayName: "色拾い・乱" })), profileState: next };
+          runtime.gachaReceipts[request.body.actionId] = result;
+          return { data: result };
+        }
+        return { data: { ok: true } };
+      } },
+      rpc: async (name, args) => {
+        runtime.calls.push({ kind: "rpc", name, args });
+        if (name === "fcg_standard_room_snapshot") return { data: [{
+          snapshot_schema_version: 1,
+          snapshot_version: runtime.room.version,
+          server_time: new Date().toISOString(),
+          room: runtime.room,
+          members: resultFor("fcg_room_members"),
+          view: runtime.view,
+          profile: runtime.profile,
+        }] };
+        if (name !== "fcg_standard_request_rematch") return { error: new Error(`unexpected rpc ${name}`) };
+        runtime.room = { ...runtime.room, status: "ready", version: 10, public_state: null };
+        runtime.view = null;
+        return { data: [{ room_status: "ready", room_version: 10, ready_to_setup: true, duplicate: false }] };
+      },
+      channel: () => {
+        const channel = {
+          on: (_event, _filter, onInvalidate) => {
+            runtime.onInvalidate = onInvalidate;
+            return channel;
+          },
+          subscribe: (onStatus) => {
+            queueMicrotask(() => onStatus("SUBSCRIBED"));
+            return channel;
+          },
+        };
+        return channel;
+      },
+      removeChannel: async () => ({ error: null }),
+      from: (table) => ({ select: () => {
+        const chain = { eq: () => chain, order: async () => ({ data: resultFor(table) }), single: async () => ({ data: resultFor(table) }), maybeSingle: async () => ({ data: resultFor(table) }) };
+        return chain;
+      } }),
+    };
+  }, { connectionKey, saveKey, roomId, pendingId: pendingRematchId, mode });
+}
+
+async function withPage(mode, run) {
+  assert.ok(chromium, "Playwright is required");
+  assert.ok(fs.existsSync(browserPath), "Microsoft Edge is required");
+  const { server, url } = await startServer();
+  const browser = await chromium.launch({ executablePath: browserPath, headless: true });
+  const context = await browser.newContext({ viewport: { width: 900, height: 800 } });
+  try {
+    await installMock(context, mode);
+    const page = await context.newPage();
+    await page.goto(`${url}/standard-online-v5/index.html`);
+    await page.locator(mode === "empty" ? "#profileCard:not(.hidden)" : "#room:not(.hidden)").waitFor();
+    await run(page);
+  } finally {
+    await context.close();
+    await browser.close();
+    await new Promise((resolve) => server.close(resolve));
+  }
+}
+
+test("actual Edge bootstraps a fresh browser without overwriting the local Standard save", { timeout: 30000 }, async () => {
+  await withPage("empty", async (page) => {
+    await page.locator("#starterCreator:not(.hidden)").waitFor();
+    assert.equal(await page.locator("#profileSelect option").count(), 0);
+    assert.equal(await page.locator("#syncProfile").isDisabled(), true);
+    await page.locator("#starterName").fill("新規プレイヤー");
+    await page.getByRole("button", { name: "はじめて用プロフィールを作る" }).click();
+    assert.equal(await page.locator("#profileSelect option").count(), 1);
+    assert.equal(await page.locator('#loadoutGrid input[type="checkbox"]:checked').count(), 6);
+    const evidence = await page.evaluate(({ save, starter }) => {
+      const profile = JSON.parse(localStorage.getItem(starter));
+      return { localSave: localStorage.getItem(save), name: profile.displayName, inventory: profile.inventory };
+    }, { save: saveKey, starter: "fourColorMapGame.standard.online.v5.starter-profile" });
+    assert.equal(evidence.localSave, null);
+    assert.equal(evidence.name, "新規プレイヤー");
+    assert.deepEqual(Object.values(evidence.inventory), [3, 3, 3, 3, 3, 3]);
+    await page.getByRole("button", { name: "このプロフィールをオンライン用に同期" }).click();
+    await page.locator("#lobby:not(.hidden)").waitFor();
+    const profileCall = await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.find((entry) => entry.body?.operation === "profile")?.body);
+    assert.equal(profileCall.expectedRevision, 0);
+    assert.equal(profileCall.displayName, "新規プレイヤー");
+  });
+});
+
+test("actual Edge reuses a persisted rematch ID and returns to fresh setup", { timeout: 30000 }, async () => {
+  await withPage("finished", async (page) => {
+    await page.getByRole("button", { name: "結果を確認して戻る" }).click();
+    await page.getByRole("button", { name: "同じ再戦申請を再送" }).click();
+    await page.locator("#setupCard:not(.hidden)").waitFor();
+    const evidence = await page.evaluate(({ key, expectedId }) => {
+      const stored = JSON.parse(localStorage.getItem(key));
+      const call = globalThis.__standardOnlineRuntime.calls.find((entry) => entry.name === "fcg_standard_request_rematch");
+      return { stored, actionId: call.args.p_action_id, status: globalThis.__standardOnlineRuntime.room.status };
+    }, { key: connectionKey, expectedId: pendingRematchId });
+    assert.equal(evidence.actionId, pendingRematchId);
+    assert.equal(evidence.status, "ready");
+    assert.equal(evidence.stored.setupRevision, 0);
+    assert.equal(evidence.stored.rematchActionId, null);
+  });
+});
+
+test("actual Edge celebrates an opponent surrender and presents defeat from the local seat", { timeout: 30000 }, async () => {
+  await withPage("finished", async (page) => {
+    const overlay = page.locator("#terminalOverlay");
+    await overlay.waitFor();
+    await page.getByRole("heading", { name: "勝利！" }).waitFor();
+    assert.equal(await page.locator("#terminalEyebrow").textContent(), "相手が投了しました");
+    assert.equal(await page.locator("#terminalMessage").textContent(), "A の勝利です！");
+    assert.equal(await page.locator("#terminalReasonText").textContent(), "B が投了しました。");
+    assert.equal(await overlay.evaluate((node) => node.classList.contains("is-victory")), true);
+    assert.equal(await page.locator("#terminalClose").evaluate((node) => node === document.activeElement), true);
+
+    await page.getByRole("button", { name: "結果を確認して戻る" }).click();
+    await page.evaluate(() => {
+      const runtime = globalThis.__standardOnlineRuntime;
+      runtime.room = {
+        ...runtime.room,
+        version: 10,
+        public_state: { ...runtime.room.public_state, version: 10, winner: "B", terminalReason: "SURRENDER" },
+      };
+      runtime.onInvalidate();
+    });
+    await page.getByRole("heading", { name: "敗北" }).waitFor({ timeout: 5000 });
+    assert.equal(await page.locator("#terminalMessage").textContent(), "B の勝利です");
+    assert.equal(await page.locator("#terminalReasonText").textContent(), "A が投了しました。");
+    assert.equal(await overlay.evaluate((node) => node.classList.contains("is-defeat")), true);
+  });
+});
+
+test("actual Edge routes immediate skills and keeps target cancellation write-free", { timeout: 30000 }, async () => {
+  await withPage("playing", async (page) => {
+    await page.getByRole("button", { name: "エリア拡張 ×1" }).click();
+    await page.getByText("操作を保存しました。").waitFor();
+    await page.getByRole("button", { name: "拡大縮小 ×1" }).click();
+    await page.getByRole("button", { name: "キャンセル" }).click();
+    const calls = await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.kind === "invoke").map((entry) => entry.body));
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0].operation, "action");
+    assert.deepEqual(calls[0].action.payload, { skill: "areaDiePlus" });
+    assert.equal(await page.locator("#skillTargetControls").evaluate((node) => node.classList.contains("hidden")), true);
+  });
+});
+
+test("actual Edge gacha persists one server draw and immediately hydrates inventory", { timeout: 30000 }, async () => {
+  await withPage("gacha", async (page) => {
+    await page.locator("#gachaPanel:not(.hidden)").waitFor();
+    await page.getByRole("button", { name: "1枚引く" }).click();
+    await page.getByText("1枚を獲得しました。券消費とカード付与は一度だけ保存済みです。").waitFor();
+    const evidence = await page.evaluate(({ key }) => {
+      const call = globalThis.__standardOnlineRuntime.calls.find((entry) => entry.body?.operation === "gacha");
+      return { call: call.body, profile: JSON.parse(localStorage.getItem(key)) };
+    }, { key: remoteProfileKey });
+    assert.match(evidence.call.actionId, /^[0-9a-f-]{36}$/i);
+    assert.equal(evidence.call.expectedRevision, 1);
+    assert.equal(evidence.call.ticketLevel, 1);
+    assert.equal(evidence.call.count, 1);
+    assert.equal(evidence.profile.gachaTickets["1"], 1);
+    assert.equal(evidence.profile.inventory.colorRandomBorrow, 3);
+    assert.equal(await page.locator("#gachaResults .gacha-card").count(), 1);
+  });
+});
+
+test("actual Edge explains private random setup and every visible skill without exposing an oracle", { timeout: 30000 }, async () => {
+  await withPage("playing", async (page) => {
+    assert.equal(await page.locator("#roomStatus").textContent(), "対戦中");
+    assert.equal(await page.locator("#versionText").textContent(), "3");
+    assert.equal(await page.locator("#phaseText").textContent(), "相手に渡すエリアを選んでください");
+    assert.equal(await page.locator("#rolledSizeValue").textContent(), "1マス");
+    assert.equal(await page.locator("#basicPaletteValue").textContent(), "赤・青");
+    assert.equal(await page.locator("#bonusColorValue").textContent(), "黄（残り2回）");
+    assert.equal(await page.locator("#randomRevealTitle").textContent(), "サイコロは 1マス！");
+    await page.getByRole("button", { name: "エリア拡張の説明" }).click();
+    await page.locator("#skillInfoDialog[open]").waitFor();
+    assert.equal(await page.locator("#skillInfoTitle").textContent(), "エリア拡張");
+    assert.match(await page.locator("#skillInfoBody").textContent(), /渡すエリアを1マス増やします/);
+    assert.equal(await page.locator("#skillInfoRandom").evaluate((node) => node.classList.contains("hidden")), true);
+    await page.getByRole("button", { name: "説明を閉じる" }).click();
+    assert.equal(await page.locator("#skillInfoDialog").evaluate((node) => node.open), false);
+  });
+});

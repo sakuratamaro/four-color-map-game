@@ -1,0 +1,39 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Standard v5 settlement failure browser fixture</title>
+<script>
+  "use strict";
+  // Browser E2E only: bootstrap a valid root, then install a one-shot settlement-write failure before product startup.
+  const bootstrap = document.createElement("iframe");
+  bootstrap.hidden = true;
+  bootstrap.src = "/tests/fixtures/standard-v5-browser-bootstrap.html";
+  bootstrap.onload = async () => {
+    if (bootstrap.contentWindow.location.pathname !== "/standard-v5/") return;
+    let productHtml = await fetch("/standard-v5/").then((response) => response.text());
+    const failureHook = `<script>
+      (() => {
+        const original = Storage.prototype.setItem;
+        let failed = false;
+        Storage.prototype.setItem = function(key, value) {
+          if (!failed && key === "fourColorMapGame.standard.v5.save") {
+            let parsed;
+            try { parsed = JSON.parse(value); } catch { parsed = null; }
+            if (Object.keys(parsed?.receipts?.matchSettlement?.byMatchId || {}).length > 0) {
+              failed = true;
+              throw new Error("forced-settlement-write-failure");
+            }
+          }
+          return original.call(this, key, value);
+        };
+      })();
+    <\/script>`;
+    const productScript = '<scr' + 'ipt src="app.bundle.js"></scr' + 'ipt>';
+    productHtml = productHtml
+      .replace('<link rel="stylesheet" href="style.css">', '<link rel="stylesheet" href="/standard-v5/style.css">')
+      .replace(productScript, `${failureHook}<script src="/standard-v5/app.bundle.js"></scr` + `ipt>`);
+    document.open();
+    document.write(productHtml);
+    document.close();
+  };
+  document.documentElement.appendChild(bootstrap);
+</script>

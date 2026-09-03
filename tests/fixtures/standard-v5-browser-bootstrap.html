@@ -1,0 +1,28 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Standard v5 browser fixture bootstrap</title>
+<script>
+  "use strict";
+  // Browser E2E only: product code never creates profiles or grants these cards.
+  const fixture = {"schemaVersion":5,"rootRevision":0,"economyVersion":"standard-alpha-economy-v1","profiles":{"playerA":{"profileId":"playerA","displayName":"Alice","quizRecords":{},"gachaTickets":{},"inventory":{"colorPrism":1,"areaHalfShift":1,"disruptChoiceOne":1},"coins":0,"achievements":[],"protectedSkills":{"areaHalfShift":true},"cosmeticsOwned":[],"equipped":{},"trophies":{"fullPaint":false,"fullPaint3":false,"noSkillFullPaint":false},"trophyDates":{},"stats":{"wins":0,"losses":0,"currentWinStreak":0,"bestWinStreak":0,"fullPaints":0},"matchHistory":[]},"playerB":{"profileId":"playerB","displayName":"Bob","quizRecords":{},"gachaTickets":{},"inventory":{"colorPrism":1,"areaHalfShift":1,"disruptChoiceOne":1},"coins":0,"achievements":[],"protectedSkills":{"areaHalfShift":true},"cosmeticsOwned":[],"equipped":{},"trophies":{"fullPaint":false,"fullPaint3":false,"noSkillFullPaint":false},"trophyDates":{},"stats":{"wins":0,"losses":0,"currentWinStreak":0,"bestWinStreak":0,"fullPaints":0},"matchHistory":[]}},"activeMatch":null,"reservations":{},"rngSnapshot":{"match-init":2484617902,"palette":762160679,"bonus-color":2252991561,"bonus-use-count":1363795435,"die":2401499094,"skill-effect":3852703833,"cpu-A":4080708004,"cpu-B":4131040861,"cpu-tie-break":3800821995,"quiz-structure":2507461873,"quiz-content":47490889,"quiz-choice-order":3169347494,"quiz-choice-rank":1627695208,"quiz-cosmetic-motion":3146239784,"gacha":3651710130},"receipts":{"matchStart":{"byMatchId":{},"operationIndex":{}},"matchAction":{},"matchConsumption":{},"matchSettlement":{"byMatchId":{},"operationIndex":{}},"cardSale":{},"quizSettlement":{},"gachaDraw":{}}};
+  const fixtureParams = new URLSearchParams(location.search);
+  if (fixtureParams.has("standard")) {
+    const canonicalSkills = ["colorRandomBorrow","colorChoiceBorrow","colorPrism","colorRegionSplit","colorPaletteChange","areaMicroBloom","areaDiePlus","areaResize","areaCornerBloom","areaHalfShift","areaTripleShift","disruptRandomOne","disruptChoiceOne","disruptRandomTwo","disruptPaletteRandom","disruptChoiceTwo","disruptPaletteChoice","disruptChoiceThree","disruptForcedPalette"];
+    for (const profile of Object.values(fixture.profiles)) for (const skillId of canonicalSkills) profile.inventory[skillId] = 1;
+  }
+  if (fixtureParams.has("gacha")) fixture.profiles.playerA.gachaTickets["4"] = 3;
+  if (fixtureParams.has("sale")) {
+    fixture.profiles.playerA.inventory.colorPrism = 4;
+    fixture.profiles.playerA.inventory.areaTripleShift = 2;
+  }
+  if (fixtureParams.has("cosmetic")) fixture.profiles.playerA.coins = 900;
+  if (fixtureParams.has("xss")) {
+    fixture.profiles.playerA.displayName = "><img src=x onerror=document.title=1>";
+    fixture.profiles.playerB.displayName = "<svg onload=document.title=2>";
+    fixture.profiles.playerC = JSON.parse(JSON.stringify(fixture.profiles.playerA));
+    fixture.profiles.playerC.profileId = "playerC";
+    fixture.profiles.playerC.displayName = "<script>alert(1)<\/script>";
+  }
+  localStorage.setItem("fourColorMapGame.standard.v5.save", JSON.stringify(fixture));
+  location.replace("/standard-v5/");
+</script>
