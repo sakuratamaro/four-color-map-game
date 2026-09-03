@@ -22,6 +22,7 @@ test("Standard online setup UI exposes the complete reconnect path", () => {
     "gachaPanel", "gachaTickets", "gachaLevel", "gachaDrawOne", "gachaDrawAll", "gachaRetry", "gachaStatus", "gachaResults",
     "progressionPanel", "profileCoins", "profileStats", "trophyList", "matchHistory",
     "cardSaleSkill", "cardSaleCount", "cardSaleQuote", "cardSaleCommit", "cardSaleRetry", "cardSaleReset", "cardSaleStatus",
+    "matchmakingPanel", "recruitOpponent", "findOpponent", "cancelMatchmaking", "matchmakingWait", "matchmakingElapsed", "matchmakingStatus", "roomIdentityLabel",
     "terminalOverlay", "terminalIcon", "terminalEyebrow", "terminalTitle", "terminalMessage", "terminalReasonText", "terminalClose",
   ]) assert.match(html, new RegExp(`id=["']${id}["']`));
   assert.match(html, /standard-online-client\.js/);
@@ -49,6 +50,18 @@ test("card sale persists an immutable action before commit and hydrates only the
   assert.match(app, /persistRemoteProfile\(result\.profileState, displayName\(\), Number\(result\.revision\)\)/);
   assert.match(app, /cardSaleQuote\.requiresConfirmation === true/);
   assert.match(app, /client\.snapshot\(\)\.setupRevision > 0/);
+});
+
+test("public matchmaking stays code-free, recoverable, cancellable, and separate from invitation rooms", () => {
+  assert.match(html, /友だちと遊ぶ/);
+  assert.match(html, /だれかと遊ぶ/);
+  assert.match(app, /client\.recruitOpponent\(\{ displayName: displayName\(\) \}\)/);
+  assert.match(app, /client\.findOpponent\(\{ displayName: displayName\(\) \}\)/);
+  assert.match(app, /client\.readMatchmakingStatus\(\)/);
+  assert.match(app, /client\.cancelMatchmaking\(\)/);
+  assert.match(app, /accessMode === "public_queue" \? "野良対戦"/);
+  assert.match(app, /document\.visibilityState === "hidden"/);
+  assert.match(progressionCss, /prefers-reduced-motion: reduce/);
 });
 
 test("every finished match presents a local-seat victory or defeat overlay, including surrender", () => {
@@ -97,7 +110,7 @@ test("UI enumerates exactly the 19 canonical Standard cards by category", () => 
 });
 
 test("profile, room, setup, initialize, and reconnect flow only through the client boundary", () => {
-  for (const method of ["ensureSession", "readProfile", "syncProfile", "createRoom", "joinRoom", "submitSetup", "initialize", "readRoom", "clearRoom"]) {
+  for (const method of ["ensureSession", "readProfile", "syncProfile", "createRoom", "joinRoom", "recruitOpponent", "findOpponent", "readMatchmakingStatus", "cancelMatchmaking", "submitSetup", "initialize", "readRoom", "clearRoom"]) {
     assert.match(app, new RegExp(`client\\.${method}\\(`));
   }
   assert.doesNotMatch(app, /supabase\.rpc\(|supabase\.functions\.invoke\(/);

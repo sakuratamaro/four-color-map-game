@@ -29,7 +29,7 @@
 | カード売却 | 統合ブランチでオンライン実装済み、DB/Edge未適用 | 採用・野良対戦より先に正本化 | migration/Edgeを適用し、公開で通常・要確認・再送・対戦ロックを確認 | `202609030006_standard_online_card_sale.sql`、Edge operations、online UI/browser/engine tests |
 | トロフィー、戦績、対戦履歴 | 対人精算・3トロフィー授与・最低限の一覧UIまで統合ブランチで実装済み、未公開 | 採用・授与/書込みは野良対戦より先 | 公開対人戦で一回精算と再読込表示を確認。CPU追加時に対人/CPU別記録へ拡張 | server `applyProfiles`、online progression UI/browser tests |
 | 見た目の購入・装備 | ローカルのみ | 採用・詳細UIは野良対戦後でもよい | 先に装備IDの保存/表示境界を固定。購入API、ショップ演出、プレビューは野良対戦後でもよい | `standard-cosmetics.js`、local cosmetic UI/tests |
-| 合言葉不要の野良マッチング | 構想のみ | 採用 | 原子的ticket/RPC、heartbeat/TTL、取消、再読込、レート制限、UI | `PUBLIC_MATCHMAKING_AND_CPU_FALLBACK_PLAN.md` |
+| 合言葉不要の野良マッチング | 人間同士の第1段階を統合ブランチで実装済み、DB未適用 | 採用 | migration適用後、2人/10人同時確保、取消競合、再読込、完走を実環境確認 | matchmaking migration/client/UI/browser tests、`PUBLIC_MATCHMAKING_AND_CPU_FALLBACK_PLAN.md` |
 | 90秒/180秒後の同意制CPU案内 | 構想のみ | 採用 | 問題間の案内、人間参加との競合を原子的に一方へ決着、自動開始は禁止 | 同上 |
 | 個性のある固定CPU 10人 | 構想のみ。旧ローカルCPUは3段階難度 | 旧3段階を置換して採用 | version付きロスター、合法手のみ、public＋自席privateのみ、性格別評価軸、固定台詞、個別戦績 | 同上、現行CPU tests |
 | 期限切れルーム/チケットの清掃 | 構想のみ | 採用 | 小分けの定期削除、進行中保護、利用量の前後計測 | transport/CPU plan |

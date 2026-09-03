@@ -51,7 +51,7 @@ async function installMock(context, mode) {
     if (initialMode !== "empty") {
       localStorage.setItem(save, JSON.stringify({ profiles: { playerA: { displayName: "A", inventory } } }));
       localStorage.setItem("fourColorMapGame.standard.online.v5.profile", "playerA");
-      if (initialMode !== "lobby") {
+      if (!["lobby", "publicFind"].includes(initialMode)) {
         localStorage.setItem(connection, JSON.stringify({
           roomId: id, roomCode: "A1B2C3", profileRevision: 1, setupRevision: 3,
           rematchActionId: initialMode === "finished" ? pendingId : null,
@@ -75,8 +75,8 @@ async function installMock(context, mode) {
       matchHistory: [{ matchId: "history-1", result: "WIN", terminalReason: "BOARD_LOCK", endedAt: "2026-09-01T00:00:00.000Z", fullPaint: true, skillsUsed: 0 }],
     };
     const runtime = {
-      room: { id, status: initialMode === "finished" ? "finished" : "playing", version: 9, game_mode: "standard_v5", public_state: initialMode === "finished" ? finished : active },
-      view: { seat: "A", version: 9, private_state: { hand: { areaDiePlus: 1, areaResize: 1 }, basicPalette: ["red", "blue"], bonusColor: "yellow", bonusUsesRemaining: 2, privateEffects: {} } },
+      room: { id, status: initialMode === "finished" ? "finished" : initialMode === "publicFind" ? "ready" : "playing", version: 9, game_mode: "standard_v5", access_mode: initialMode === "publicFind" ? "public_queue" : "private_code", opponent_kind: "human", public_state: initialMode === "finished" ? finished : initialMode === "publicFind" ? null : active },
+      view: initialMode === "publicFind" ? null : { seat: "A", version: 9, private_state: { hand: { areaDiePlus: 1, areaResize: 1 }, basicPalette: ["red", "blue"], bonusColor: "yellow", bonusUsesRemaining: 2, privateEffects: {} } },
       profile: initialMode === "empty" ? null : { revision: 1, display_name: "A", profile_state: profileState },
       gachaReceipts: {},
       cardSaleReceipts: {},
@@ -129,6 +129,13 @@ async function installMock(context, mode) {
       } },
       rpc: async (name, args) => {
         runtime.calls.push({ kind: "rpc", name, args });
+        if (name === "fcg_standard_matchmaking_recruit") {
+          runtime.ticketId = args.p_ticket_id;
+          return { data: [{ ticket_id: args.p_ticket_id, matchmaking_status: "searching", room_id: null, seat: null, wait_started_at: new Date().toISOString(), server_time: new Date().toISOString() }] };
+        }
+        if (name === "fcg_standard_matchmaking_status") return { data: [{ ticket_id: args.p_ticket_id, matchmaking_status: "searching", room_id: null, seat: null, wait_started_at: new Date().toISOString(), server_time: new Date().toISOString() }] };
+        if (name === "fcg_standard_matchmaking_cancel") return { data: [{ ticket_id: args.p_ticket_id, matchmaking_status: "cancelled", room_id: null, seat: null, server_time: new Date().toISOString() }] };
+        if (name === "fcg_standard_matchmaking_find") return { data: [{ matchmaking_status: initialMode === "publicFind" ? "matched" : "none_available", room_id: initialMode === "publicFind" ? id : null, seat: initialMode === "publicFind" ? "B" : null, server_time: new Date().toISOString(), duplicate: false }] };
         if (name === "fcg_standard_room_snapshot") return { data: [{
           snapshot_schema_version: 1,
           snapshot_version: runtime.room.version,
@@ -175,7 +182,7 @@ async function withPage(mode, run) {
     await installMock(context, mode);
     const page = await context.newPage();
     await page.goto(`${url}/standard-online-v5/index.html`);
-    const readySelector = mode === "empty" ? "#profileCard:not(.hidden)" : mode === "lobby" ? "#lobby:not(.hidden)" : "#room:not(.hidden)";
+    const readySelector = mode === "empty" ? "#profileCard:not(.hidden)" : ["lobby", "publicFind"].includes(mode) ? "#lobby:not(.hidden)" : "#room:not(.hidden)";
     await page.locator(readySelector).waitFor();
     await run(page);
   } finally {
@@ -315,6 +322,32 @@ test("actual Edge quotes and commits one server-authoritative card sale", { time
     assert.match(evidence.calls[1].actionId, /^[0-9a-f-]{36}$/i);
     assert.equal(evidence.profile.inventory.colorRandomBorrow, 1);
     assert.equal(evidence.profile.coins, 10);
+  });
+});
+
+test("actual Edge recruits and cancels with one persisted public matchmaking ticket", { timeout: 30000 }, async () => {
+  await withPage("lobby", async (page) => {
+    await page.getByRole("button", { name: "対戦相手を募集" }).click();
+    await page.locator("#matchmakingWait:not(.hidden)").waitFor();
+    const beforeCancel = await page.evaluate(({ key }) => JSON.parse(localStorage.getItem(key)), { key: connectionKey });
+    assert.match(beforeCancel.matchmakingTicketId, /^[0-9a-f-]{36}$/i);
+    assert.equal(await page.getByRole("button", { name: "今入れる試合を探す" }).isDisabled(), true);
+    await page.getByRole("button", { name: "募集を取り消す" }).click();
+    await page.getByText("募集を取り消しました。").waitFor();
+    const afterCancel = await page.evaluate(({ key }) => JSON.parse(localStorage.getItem(key)), { key: connectionKey });
+    assert.equal(afterCancel.matchmakingTicketId, null);
+  });
+});
+
+test("actual Edge finds a public opponent and enters setup without exposing a code", { timeout: 30000 }, async () => {
+  await withPage("publicFind", async (page) => {
+    await page.getByRole("button", { name: "今入れる試合を探す" }).click();
+    await page.locator("#room:not(.hidden)").waitFor();
+    assert.equal(await page.locator("#roomIdentityLabel").textContent(), "対戦形式");
+    assert.equal(await page.locator("#shownCode").textContent(), "野良対戦");
+    assert.equal(await page.locator("#setupCard").evaluate((node) => node.classList.contains("hidden")), false);
+    const calls = await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.kind === "rpc").map((entry) => entry.name));
+    assert.deepEqual(calls.slice(0, 2), ["fcg_standard_matchmaking_find", "fcg_standard_room_snapshot"]);
   });
 });
 

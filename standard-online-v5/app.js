@@ -83,6 +83,9 @@ let rematchBusy = false;
 let gachaBusy = false;
 let quizBusy = false;
 let cardSaleBusy = false;
+let matchmakingBusy = false;
+let matchmakingStatusTimer = null;
+let matchmakingDisplayTimer = null;
 let lastGachaDraws = [];
 let pendingGacha = (() => { try { return JSON.parse(localStorage.getItem(GACHA_PENDING_KEY) || "null"); } catch { return null; } })();
 let pendingQuiz = (() => { try { return JSON.parse(localStorage.getItem(QUIZ_PENDING_KEY) || "null"); } catch { return null; } })();
@@ -647,12 +650,15 @@ function render() {
   show("gachaPanel", synced && Boolean(profile()));
   show("progressionPanel", synced && Boolean(profile()));
   show("lobby", synced && !snapshot.roomId);
+  renderMatchmaking();
   show("room", Boolean(snapshot.roomId));
   show("setupCard", Boolean(snapshot.roomId) && Boolean(profile()) && !["playing", "finished"].includes(roomModel?.room?.status));
   show("matchCard", ["playing", "finished"].includes(roomModel?.room?.status));
   show("rematchControls", roomModel?.room?.status === "finished");
   if (!snapshot.roomId) { renderTerminalResult(null); return; }
-  $("shownCode").textContent = snapshot.roomCode || "復帰済";
+  const accessMode = roomModel?.room?.access_mode || (snapshot.roomCode ? "private_code" : "public_queue");
+  $("roomIdentityLabel").textContent = accessMode === "public_queue" ? "対戦形式" : accessMode === "cpu" ? "対戦相手" : "合言葉";
+  $("shownCode").textContent = accessMode === "public_queue" ? "野良対戦" : accessMode === "cpu" ? "CPU" : snapshot.roomCode || "復帰済";
   $("seatBadge").textContent = roomModel?.view?.seat ? `Player ${roomModel.view.seat}` : "席確認中";
   $("roomStatus").textContent = ROOM_STATUS_LABEL[roomModel?.room?.status] || "読み込み中";
   const rematchPending = snapshot.rematchExpectedVersion === roomModel?.room?.version;
@@ -865,6 +871,105 @@ async function syncSelectedProfile() {
   finally { $("syncProfile").disabled = false; }
 }
 
+function updateMatchmakingElapsed() {
+  const startedAt = Date.parse(client.snapshot().matchmakingStartedAt || "");
+  const seconds = Number.isFinite(startedAt) ? Math.max(0, Math.floor((Date.now() - startedAt) / 1000)) : 0;
+  $("matchmakingElapsed").textContent = `待機 ${seconds}秒`;
+}
+
+function stopMatchmakingWatch() {
+  clearTimeout(matchmakingStatusTimer); matchmakingStatusTimer = null;
+  clearInterval(matchmakingDisplayTimer); matchmakingDisplayTimer = null;
+}
+
+function scheduleMatchmakingStatus(delay = 15000) {
+  clearTimeout(matchmakingStatusTimer);
+  if (!client.snapshot().matchmakingTicketId || client.snapshot().roomId || document.visibilityState === "hidden" || !navigator.onLine) return;
+  matchmakingStatusTimer = setTimeout(pollMatchmakingStatus, delay);
+  if (!matchmakingDisplayTimer) matchmakingDisplayTimer = setInterval(updateMatchmakingElapsed, 1000);
+}
+
+async function enterPublicMatch(message = "対戦相手が見つかりました。6枚セットを選んでください。") {
+  stopMatchmakingWatch();
+  $("matchmakingStatus").textContent = message;
+  await roomSync.start(client.snapshot().roomId);
+  render();
+}
+
+async function pollMatchmakingStatus() {
+  if (matchmakingBusy || !client.snapshot().matchmakingTicketId) return scheduleMatchmakingStatus();
+  matchmakingBusy = true;
+  try {
+    const result = await client.readMatchmakingStatus();
+    if (result?.matchmaking_status === "matched") return await enterPublicMatch();
+    if (result?.matchmaking_status === "expired") {
+      stopMatchmakingWatch();
+      $("matchmakingStatus").textContent = "接続が切れたため募集を終了しました。もう一度募集できます。";
+    }
+  } catch (error) {
+    $("matchmakingStatus").textContent = "募集状態を確認できません。自動で再試行します。";
+  } finally {
+    matchmakingBusy = false;
+    render();
+    scheduleMatchmakingStatus();
+  }
+}
+
+function renderMatchmaking() {
+  if (!$("matchmakingPanel")) return;
+  const snapshot = client.snapshot();
+  const searching = Boolean(snapshot.matchmakingTicketId) && !snapshot.roomId;
+  $("recruitOpponent").disabled = matchmakingBusy || searching;
+  $("findOpponent").disabled = matchmakingBusy || searching;
+  show("cancelMatchmaking", searching);
+  $("cancelMatchmaking").disabled = matchmakingBusy;
+  show("matchmakingWait", searching);
+  if (searching) updateMatchmakingElapsed();
+}
+
+async function recruitPublicOpponent() {
+  if (matchmakingBusy || !profile()) return;
+  matchmakingBusy = true; $("matchmakingStatus").textContent = "募集をサーバーへ登録しています…"; renderMatchmaking();
+  try {
+    const result = await client.recruitOpponent({ displayName: displayName() });
+    if (result?.matchmaking_status === "matched") return await enterPublicMatch();
+    $("matchmakingStatus").textContent = "対戦相手を探しています。待っている間もクイズやガチャで遊べます。";
+    scheduleMatchmakingStatus();
+  } catch (error) {
+    $("matchmakingStatus").textContent = "募集を開始できませんでした。同じ募集票で再試行できます。";
+    scheduleMatchmakingStatus(1000);
+    toast(error.message || "対戦相手を募集できませんでした。");
+  } finally { matchmakingBusy = false; render(); }
+}
+
+async function findPublicOpponent() {
+  if (matchmakingBusy || !profile()) return;
+  matchmakingBusy = true; $("matchmakingStatus").textContent = "今入れる試合を探しています…"; renderMatchmaking();
+  try {
+    const result = await client.findOpponent({ displayName: displayName() });
+    if (result?.matchmaking_status === "matched") return await enterPublicMatch();
+    $("matchmakingStatus").textContent = "今すぐ入れる試合はありません。『対戦相手を募集』なら待機を始められます。";
+  } catch (error) {
+    $("matchmakingStatus").textContent = "検索結果を確認できませんでした。同じ検索IDで再試行します。";
+    toast(error.message || "今入れる試合を探せませんでした。");
+  } finally { matchmakingBusy = false; render(); }
+}
+
+async function cancelPublicMatchmaking() {
+  if (matchmakingBusy || !client.snapshot().matchmakingTicketId) return;
+  matchmakingBusy = true; renderMatchmaking();
+  try {
+    const result = await client.cancelMatchmaking();
+    if (result?.matchmaking_status === "matched") return await enterPublicMatch("取消の直前に対戦相手が見つかりました。6枚セットを選んでください。");
+    stopMatchmakingWatch();
+    $("matchmakingStatus").textContent = "募集を取り消しました。";
+  } catch (error) {
+    $("matchmakingStatus").textContent = "募集を取り消せませんでした。状態を再確認します。";
+    scheduleMatchmakingStatus(1000);
+    toast(error.message || "募集を取り消せませんでした。");
+  } finally { matchmakingBusy = false; render(); }
+}
+
 async function createRoom() { try { await client.createRoom(displayName()); await roomSync.start(client.snapshot().roomId); } catch (error) { toast(error.message); } }
 async function joinRoom() { try { await client.joinRoom({ roomCode: $("roomCode").value, displayName: displayName() }); await roomSync.start(client.snapshot().roomId); } catch (error) { toast(error.message); } }
 async function submitSetup() {
@@ -902,6 +1007,9 @@ $("cardSaleRetry").onclick = () => commitOnlineCardSale(true);
 $("cardSaleReset").onclick = clearCardSaleDraft;
 $("createRoom").onclick = createRoom;
 $("joinRoom").onclick = joinRoom;
+$("recruitOpponent").onclick = recruitPublicOpponent;
+$("findOpponent").onclick = findPublicOpponent;
+$("cancelMatchmaking").onclick = cancelPublicMatchmaking;
 $("roomCode").oninput = () => { $("roomCode").value = $("roomCode").value.replace(/\s/g, "").toUpperCase().slice(0, 6); };
 $("submitSetup").onclick = submitSetup;
 $("board").addEventListener("pointerdown", boardPointer);
@@ -918,10 +1026,14 @@ $("terminalClose").onclick = () => {
   $("requestRematch").focus({ preventScroll: false });
 };
 $("leaveRoom").onclick = () => { clearContactReveal(); roomSync.stop(); client.clearRoom(); roomModel = null; render(); };
-document.addEventListener("visibilitychange", () => roomSync.handleVisibilityChange());
+document.addEventListener("visibilitychange", () => {
+  roomSync.handleVisibilityChange();
+  if (document.visibilityState === "hidden") stopMatchmakingWatch();
+  else scheduleMatchmakingStatus(250);
+});
 window.addEventListener("focus", () => roomSync.invalidate());
-window.addEventListener("online", () => roomSync.handleConnectivityChange());
-window.addEventListener("offline", () => roomSync.handleConnectivityChange());
+window.addEventListener("online", () => { roomSync.handleConnectivityChange(); scheduleMatchmakingStatus(250); });
+window.addEventListener("offline", () => { roomSync.handleConnectivityChange(); stopMatchmakingWatch(); });
 
 loadProfiles();
 render();
@@ -934,6 +1046,8 @@ try {
   if (remote) { hydrateProfileRow(remote); synced = true; }
   else loadProfiles();
   if (client.snapshot().roomId) { synced = true; await roomSync.start(client.snapshot().roomId); }
+  else if (client.snapshot().matchmakingFindActionId) await findPublicOpponent();
+  else if (client.snapshot().matchmakingTicketId) scheduleMatchmakingStatus(250);
   render();
   if (pendingQuiz?.answers?.length === 10) finishOnlineQuiz();
 } catch (error) {

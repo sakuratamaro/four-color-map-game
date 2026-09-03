@@ -34,3 +34,14 @@
   .trophy-list { grid-template-columns: 1fr; }
   .match-history li { align-items: flex-start; flex-direction: column; gap: 3px; }
 }
+
+.lobby-choice-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.lobby-choice { padding: 14px; border: 1px solid #334155; border-radius: 14px; background: #07111f; }
+.lobby-choice h3 { margin: 0 0 4px; }
+.public-matchmaking { border-color: #67e8f9; background: linear-gradient(145deg, #08334488, #07111f); }
+.matchmaking-wait { display: flex; align-items: center; gap: 12px; margin-top: 12px; padding: 12px; border: 1px solid #22d3ee; border-radius: 12px; background: #083344; }
+.matchmaking-wait p { margin: 3px 0 0; }
+.searching-pulse { width: 18px; height: 18px; flex: 0 0 18px; border: 3px solid #164e63; border-top-color: #67e8f9; border-radius: 50%; animation: searching-spin 1s linear infinite; }
+@keyframes searching-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .searching-pulse { animation: none; border-color: #67e8f9; } }
+@media (max-width: 760px) { .lobby-choice-grid { grid-template-columns: 1fr; } }

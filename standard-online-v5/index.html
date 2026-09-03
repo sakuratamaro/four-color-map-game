@@ -110,19 +110,39 @@
     </section>
 
     <section id="lobby" class="card hidden">
-      <h2>2. Standardルーム</h2>
-      <div class="lobby-grid">
-        <button id="createRoom" class="primary">Standardルームを作る</button>
-        <div class="join-box">
-          <input id="roomCode" maxlength="6" autocomplete="off" placeholder="合言葉6文字">
-          <button id="joinRoom">合言葉で参加</button>
-        </div>
+      <h2>2. Standardロビー</h2>
+      <div class="lobby-choice-grid">
+        <section class="lobby-choice">
+          <h3>友だちと遊ぶ</h3>
+          <p class="muted small">合言葉を伝えて、決まった相手と対戦します。</p>
+          <div class="lobby-grid">
+            <button id="createRoom" class="primary">合言葉ルームを作る</button>
+            <div class="join-box">
+              <input id="roomCode" maxlength="6" autocomplete="off" placeholder="合言葉6文字">
+              <button id="joinRoom">合言葉で参加</button>
+            </div>
+          </div>
+        </section>
+        <section id="matchmakingPanel" class="lobby-choice public-matchmaking">
+          <h3>だれかと遊ぶ <span class="badge warn">試験中</span></h3>
+          <p class="muted small">合言葉なしでStandard対戦。待機中もクイズやガチャで遊べます。</p>
+          <div class="controls">
+            <button id="recruitOpponent" class="primary">対戦相手を募集</button>
+            <button id="findOpponent">今入れる試合を探す</button>
+            <button id="cancelMatchmaking" class="ghost hidden">募集を取り消す</button>
+          </div>
+          <div id="matchmakingWait" class="matchmaking-wait hidden">
+            <span class="searching-pulse" aria-hidden="true"></span>
+            <div><strong>対戦相手を探しています</strong><p id="matchmakingElapsed" class="muted small">待機 0秒</p></div>
+          </div>
+          <p id="matchmakingStatus" class="callout" aria-live="polite">募集するか、今待っている人を探してください。</p>
+        </section>
       </div>
     </section>
 
     <section id="room" class="card hidden">
       <div class="row between wrap">
-        <div><span class="muted">合言葉</span><strong id="shownCode" class="room-code">------</strong></div>
+        <div><span id="roomIdentityLabel" class="muted">合言葉</span><strong id="shownCode" class="room-code">------</strong></div>
         <div><span id="seatBadge" class="badge"></span><span id="roomStatus" class="badge warn"></span></div>
       </div>
       <div id="members" class="members"></div>

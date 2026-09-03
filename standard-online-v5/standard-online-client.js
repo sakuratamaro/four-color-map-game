@@ -33,6 +33,9 @@
       setupRevision: 0,
       rematchActionId: null,
       rematchExpectedVersion: null,
+      matchmakingTicketId: null,
+      matchmakingStartedAt: null,
+      matchmakingFindActionId: null,
       ...stored(storage),
     };
     let session = null;
@@ -156,6 +159,79 @@
       persist();
       return clone(row);
     }
+    function enterMatchedRoom(row) {
+      if (!row || row.matchmaking_status !== "matched" || !UUID_PATTERN.test(String(row.room_id))) return false;
+      state.roomId = row.room_id;
+      state.roomCode = null;
+      state.setupRevision = 0;
+      state.rematchActionId = null;
+      state.rematchExpectedVersion = null;
+      state.matchmakingTicketId = null;
+      state.matchmakingStartedAt = null;
+      state.matchmakingFindActionId = null;
+      persist();
+      return true;
+    }
+    async function recruitOpponent({ displayName, ticketId = state.matchmakingTicketId || idFactory() }) {
+      await ensureSession();
+      if (!UUID_PATTERN.test(String(ticketId))) throw new Error("INVALID_MATCHMAKING_TICKET");
+      state.matchmakingTicketId = ticketId;
+      persist();
+      const response = await supabase.rpc("fcg_standard_matchmaking_recruit", {
+        p_ticket_id: ticketId,
+        p_display_name: requiredText(displayName, "INVALID_DISPLAY_NAME", 20),
+      });
+      if (response.error) throw response.error;
+      const row = firstRow(response.data);
+      if (!enterMatchedRoom(row)) {
+        state.matchmakingStartedAt = row?.wait_started_at || state.matchmakingStartedAt;
+        persist();
+      }
+      return clone(row);
+    }
+    async function findOpponent({ displayName, actionId = state.matchmakingFindActionId || idFactory() }) {
+      await ensureSession();
+      if (!UUID_PATTERN.test(String(actionId))) throw new Error("INVALID_MATCHMAKING_ACTION");
+      state.matchmakingFindActionId = actionId;
+      persist();
+      const response = await supabase.rpc("fcg_standard_matchmaking_find", {
+        p_action_id: actionId,
+        p_display_name: requiredText(displayName, "INVALID_DISPLAY_NAME", 20),
+      });
+      if (response.error) throw response.error;
+      const row = firstRow(response.data);
+      enterMatchedRoom(row);
+      state.matchmakingFindActionId = null;
+      persist();
+      return clone(row);
+    }
+    async function readMatchmakingStatus(ticketId = state.matchmakingTicketId) {
+      await ensureSession();
+      if (!UUID_PATTERN.test(String(ticketId))) throw new Error("INVALID_MATCHMAKING_TICKET");
+      const response = await supabase.rpc("fcg_standard_matchmaking_status", { p_ticket_id: ticketId });
+      if (response.error) throw response.error;
+      const row = firstRow(response.data);
+      enterMatchedRoom(row);
+      if (row?.matchmaking_status !== "searching" && row?.matchmaking_status !== "matched") {
+        state.matchmakingTicketId = null;
+        state.matchmakingStartedAt = null;
+        persist();
+      }
+      return clone(row);
+    }
+    async function cancelMatchmaking(ticketId = state.matchmakingTicketId) {
+      await ensureSession();
+      if (!UUID_PATTERN.test(String(ticketId))) throw new Error("INVALID_MATCHMAKING_TICKET");
+      const response = await supabase.rpc("fcg_standard_matchmaking_cancel", { p_ticket_id: ticketId });
+      if (response.error) throw response.error;
+      const row = firstRow(response.data);
+      if (!enterMatchedRoom(row)) {
+        state.matchmakingTicketId = null;
+        state.matchmakingStartedAt = null;
+        persist();
+      }
+      return clone(row);
+    }
     async function submitSetup({ roomId = state.roomId, expectedSetupRevision = state.setupRevision, loadout, setupActionId = idFactory() }) {
       await ensureSession();
       if (!UUID_PATTERN.test(String(roomId)) || !UUID_PATTERN.test(String(setupActionId))) throw new Error("INVALID_SETUP_ID");
@@ -271,20 +347,27 @@
       state.setupRevision = 0;
       state.rematchActionId = null;
       state.rematchExpectedVersion = null;
+      state.matchmakingTicketId = null;
+      state.matchmakingStartedAt = null;
+      state.matchmakingFindActionId = null;
     }
 
     return Object.freeze({
+      cancelMatchmaking,
       clearRoom,
       createRoom,
       drawGacha,
       ensureSession,
       finishQuiz,
+      findOpponent,
       initialize,
       joinRoom,
+      readMatchmakingStatus,
       readProfile,
       readRoom,
       requestRematch,
       quoteCardSale,
+      recruitOpponent,
       resetConnection,
       snapshot: () => Object.freeze(clone(state)),
       startQuiz,

@@ -30,6 +30,10 @@ function supabaseFixture({ roomStatus = "ready", roomVersion = 10 } = {}) {
       if (name === "fcg_standard_create_room") return { data: [{ room_id: ROOM_ID, room_code: "A1B2C3", seat: "A", game_mode: "standard_v5" }] };
       if (name === "fcg_standard_join_room") return { data: [{ room_id: ROOM_ID, seat: "B", game_mode: "standard_v5" }] };
       if (name === "fcg_standard_request_rematch") return { data: [{ room_status: "finished", room_version: args.p_expected_version, ready_to_setup: false, duplicate: false }] };
+      if (name === "fcg_standard_matchmaking_recruit") return { data: [{ ticket_id: args.p_ticket_id, matchmaking_status: "searching", room_id: null, seat: null, wait_started_at: "2099-01-01T00:00:00Z" }] };
+      if (name === "fcg_standard_matchmaking_status") return { data: [{ ticket_id: args.p_ticket_id, matchmaking_status: "searching", room_id: null, seat: null, wait_started_at: "2099-01-01T00:00:00Z" }] };
+      if (name === "fcg_standard_matchmaking_cancel") return { data: [{ ticket_id: args.p_ticket_id, matchmaking_status: "cancelled", room_id: null, seat: null }] };
+      if (name === "fcg_standard_matchmaking_find") return { data: [{ matchmaking_status: "matched", room_id: ROOM_ID, seat: "B", duplicate: false }] };
       if (name === "fcg_standard_room_snapshot") return { data: {
         snapshot_schema_version: 1,
         snapshot_version: roomVersion,
@@ -79,7 +83,11 @@ function supabaseFixture({ roomStatus = "ready", roomVersion = 10 } = {}) {
 test("client restores only finite reconnect identities from its own storage key", () => {
   const storage = storageFixture({ roomId: ROOM_ID, roomCode: "A1B2C3", profileRevision: 4, setupRevision: 2 });
   const client = createStandardOnlineClient({ supabase: supabaseFixture(), storage, idFactory: () => ACTION_ID });
-  assert.deepEqual(client.snapshot(), { roomId: ROOM_ID, roomCode: "A1B2C3", profileRevision: 4, setupRevision: 2, rematchActionId: null, rematchExpectedVersion: null });
+  assert.deepEqual(client.snapshot(), {
+    roomId: ROOM_ID, roomCode: "A1B2C3", profileRevision: 4, setupRevision: 2,
+    rematchActionId: null, rematchExpectedVersion: null,
+    matchmakingTicketId: null, matchmakingStartedAt: null, matchmakingFindActionId: null,
+  });
 });
 
 test("profile, create, setup, initialize, and action use the Standard boundaries", async () => {
@@ -106,6 +114,48 @@ test("join is Standard-mode scoped and persists the normalized code", async () =
   assert.equal(supabase.calls[0].name, "fcg_standard_join_room");
   assert.equal(supabase.calls[0].args.p_room_code, "A1B2C3");
   assert.equal(client.snapshot().roomCode, "A1B2C3");
+});
+
+test("public matchmaking persists recruit and find identities and hands matched rooms to normal sync", async () => {
+  const supabase = supabaseFixture();
+  const storage = storageFixture();
+  let allocated = 0;
+  const ids = [ACTION_ID, "55555555-5555-4555-8555-555555555555"];
+  const client = createStandardOnlineClient({ supabase, storage, idFactory: () => ids[allocated++] });
+  const recruited = await client.recruitOpponent({ displayName: "A" });
+  assert.equal(recruited.matchmaking_status, "searching");
+  assert.equal(client.snapshot().matchmakingTicketId, ACTION_ID);
+  await client.readMatchmakingStatus();
+  await client.cancelMatchmaking();
+  assert.equal(client.snapshot().matchmakingTicketId, null);
+  const found = await client.findOpponent({ displayName: "A" });
+  assert.equal(found.matchmaking_status, "matched");
+  assert.equal(client.snapshot().roomId, ROOM_ID);
+  assert.equal(client.snapshot().roomCode, null);
+  assert.equal(client.snapshot().matchmakingFindActionId, null);
+  assert.deepEqual(supabase.calls.filter((call) => call.kind === "rpc").map((call) => call.name), [
+    "fcg_standard_matchmaking_recruit", "fcg_standard_matchmaking_status", "fcg_standard_matchmaking_cancel", "fcg_standard_matchmaking_find",
+  ]);
+});
+
+test("a failed public find reuses the same persisted action ID on retry", async () => {
+  const supabase = supabaseFixture();
+  const rpc = supabase.rpc;
+  let failOnce = true;
+  supabase.rpc = async (name, args) => {
+    if (name === "fcg_standard_matchmaking_find" && failOnce) {
+      failOnce = false;
+      return { error: new Error("response lost") };
+    }
+    return rpc(name, args);
+  };
+  let allocations = 0;
+  const client = createStandardOnlineClient({ supabase, storage: storageFixture(), idFactory: () => { allocations += 1; return ACTION_ID; } });
+  await assert.rejects(client.findOpponent({ displayName: "A" }), /response lost/);
+  assert.equal(client.snapshot().matchmakingFindActionId, ACTION_ID);
+  await client.findOpponent({ displayName: "A" });
+  assert.equal(allocations, 1);
+  assert.equal(client.snapshot().roomId, ROOM_ID);
 });
 
 test("owner profile read refreshes the compare-and-swap revision", async () => {
