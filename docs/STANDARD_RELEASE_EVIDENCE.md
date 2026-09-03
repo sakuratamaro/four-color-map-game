@@ -1,6 +1,6 @@
 # Standard公開候補 証拠台帳
 
-更新日: 2026-09-03
+更新日: 2026-09-04
 
 この文書は「コードがある」と「公開環境で確認した」を混同しないための台帳である。`VERIFIED` は同じ行に再現可能な根拠がある場合だけ使用する。token、API key、user ID、個人情報は記録しない。
 
@@ -10,14 +10,14 @@
 | --- | --- | --- | --- |
 | 採否棚卸し | VERIFIED | `ONLINE_COMPLETION_INVENTORY.md`。旧Expo試作と現行Web Standardを分離済み | 公開後に状態列だけ更新 |
 | 製品コード・生成元 | VERIFIED | `standard/`、build scripts、生成済みEdge bundleが統合ブランチに存在 | 最終公開commitを記録 |
-| ローカル製品試験 | VERIFIED | 既存製品試験659件の直列合格。後続追加4件も対象別に合格 | 公開直前に専用runnerを再実行し、総数と所要時間を記録 |
+| ローカル製品試験 | VERIFIED | 2026-09-04、専用runnerで665件合格、失敗0、769.2秒 | 公開後のcandidate preflightと実端末canary |
 | 公開前Pages | VERIFIED | HTTP 200、旧Standard title。野良、CPU、見た目の文字列なし | 公開後のcandidate preflight |
 | 公開前DB境界 | VERIFIED | 旧snapshotは匿名権限拒否。snapshot v2と野良募集は`PGRST202`で未存在 | migration後のdb-ready preflight |
 | migration 006–013静的検査 | VERIFIED | migration別security/transaction testsと読み取り専用44項目SQL | 実DBで全行`ok=true` |
-| Dashboard Advisor・使用量baseline | BLOCKED | Browser拡張/native-hostがこのPCになく、ログイン済み画面を読み取れない | Browser plugin再導入後、Security/Performance/API/DB/Edge/Realtimeの時刻付き値 |
-| migration 006–013本番適用 | PENDING_APPROVAL | 本番未変更 | 1本ずつ成功、追加直後のobject/ACL確認、最終44項目全true |
-| Edge Function更新 | PENDING_APPROVAL | 本番未変更 | version、JWT 3経路、profile/catalog/CPU roster canary |
-| GitHub main・Pages更新 | PENDING_APPROVAL | `origin/main`は`274e3a7`、公開UIは旧版 | 公開commit、Actions run、candidate preflight |
+| Dashboard Advisor・使用量baseline | PARTIAL | 資源逼迫警告を本番Dashboardで確認。変更前の詳細数値は取得できないままDB/Edge更新済み | Security/Performance/API/DB/Edge/Realtimeの現時点スナップショットとcanary後比較 |
+| migration 006–013本番適用 | VERIFIED | 2026-09-04、8本を順番どおり個別実行。最終読み取り検査は44/44 true、失敗0 | 公開後canaryで実経路を確認 |
+| Edge Function更新 | VERIFIED | deployment 7、JWT検証ON、更新マーク消失。`live-standard-edge-canary.mjs --confirm-live` は6/6合格 | 公開UI経由の完全canary |
+| GitHub main・Pages更新 | APPROVED | `origin/main`は`274e3a7`、公開UIは旧版。公開許可済み | 公開commit、Actions run、candidate preflight |
 | 合言葉対戦canary | PENDING | 最新候補では未実施 | A/B完走、C拒否、再読込、再戦 |
 | 経済・進行・見た目canary | PENDING | 最新候補では未実施 | クイズ、ガチャ、売却、精算、履歴、トロフィー、購入/装備のexactly-onceと復元 |
 | 野良対戦canary | PENDING | 最新候補では未実施 | 募集/検索、取消競合、二重成立なし、完走、再検索 |
@@ -39,9 +39,9 @@
 
 | 項目 | 値 |
 | --- | --- |
-| candidate commit | PENDING |
-| applied migrations | PENDING |
-| `standard-game-action` version | PENDING |
+| candidate code commit | `b9ccdb7` |
+| applied migrations | `202609030006`–`202609030013` |
+| `standard-game-action` version | deployment 7 |
 | Pages Actions run | PENDING |
 | public URL | `https://sakuratamaro.github.io/four-color-map-game/standard-online-v5/` |
 
@@ -51,6 +51,7 @@
 
 | 区分 | 結果 | 時刻 | 有限な証拠 |
 | --- | --- | --- | --- |
+| Edge認証・基本公開 | PASS | 2026-09-04 07:35 JST | 匿名sign-in、JWT欠落/改変拒否、profile、cosmetic catalog、CPU roster 10人の6/6 |
 | A 合言葉・A/B/C・snapshot delta | NOT_RUN | PENDING | PENDING |
 | B クイズ・ガチャ・売却・精算・トロフィー・見た目 | NOT_RUN | PENDING | PENDING |
 | C 野良・競合・完走 | NOT_RUN | PENDING | PENDING |
@@ -59,7 +60,7 @@
 
 ## 残存リスク
 
-- migration SQLはローカルPostgresで未実行。実DBの1本ずつの適用と44項目検査が必要。
+- Dashboardの詳細なAdvisor/使用量baselineは未取得。画面上では資源逼迫警告が継続しているため、公開範囲を広げる前後で使用量を追跡する。
 - Edgeのper-isolate濫用抑止は分散レート制限ではない。公開後の計測で必要性が出た場合だけprovider側制限を検討する。
 - 10人CPUの合法性・決定性は自動検証済みだが、人間が感じる個性と楽しさは代表3人の実プレイ後も定性的判断として残る。
 - cleanup実削除、定期化、課金設定変更はこの公開候補の承認範囲外である。
