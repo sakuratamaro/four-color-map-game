@@ -79,6 +79,8 @@ let lastQuizResult = null;
 let pendingAction = null;
 let targetDraft = null;
 let randomRevealTimer = null;
+let contactRevealTimer = null;
+let contactPresentationGeneration = 0;
 let shownTerminalEventKey = null;
 let dismissedTerminalEventKey = null;
 const selectedMacros = new Set();
@@ -114,6 +116,36 @@ function terminalReasonText(reason, winnerSeat) {
   }[reason] || "対戦結果が確定しました。";
 }
 
+function clearContactReveal() {
+  contactPresentationGeneration += 1;
+  clearTimeout(contactRevealTimer);
+  contactRevealTimer = null;
+  show("contactReveal", false);
+  $("contactRevealCard").className = "contact-reveal-card";
+  $("contactRevealTitle").textContent = "";
+  $("contactRevealDetail").textContent = "";
+}
+
+function showContactReveal(contactColorCount) {
+  const reveals = {
+    2: { title: "二色接触！", detail: "相手の選択肢へ圧力", tone: "contact-pressure-2" },
+    3: { title: "三色圧力!!", detail: "強いエリア工作", tone: "contact-pressure-3" },
+    4: { title: "四色包囲!!!", detail: "全色が一点へ集中", tone: "contact-pressure-4 epic" },
+  };
+  const reveal = reveals[contactColorCount];
+  if (!reveal) return;
+  const generation = ++contactPresentationGeneration;
+  clearTimeout(contactRevealTimer);
+  $("contactRevealCard").className = `contact-reveal-card ${reveal.tone}`;
+  $("contactRevealTitle").textContent = reveal.title;
+  $("contactRevealDetail").textContent = reveal.detail;
+  show("contactReveal", true);
+  contactRevealTimer = setTimeout(() => {
+    if (generation !== contactPresentationGeneration) return;
+    clearContactReveal();
+  }, 900);
+}
+
 function renderTerminalResult(state) {
   const overlay = $("terminalOverlay");
   if (state?.status !== "FINISHED" || !["A", "B"].includes(state.winner)) {
@@ -124,6 +156,7 @@ function renderTerminalResult(state) {
   }
   const eventKey = `${roomModel?.room?.id || client.snapshot().roomId}:${roomModel?.room?.version}:${state.winner}:${state.terminalReason || "FINISHED"}`;
   if (dismissedTerminalEventKey === eventKey) return show("terminalOverlay", false);
+  clearContactReveal();
   const mySeat = roomModel?.view?.seat;
   const won = state.winner === mySeat;
   overlay.classList.toggle("is-victory", won);
@@ -637,9 +670,12 @@ async function sendAction(type, payload = {}, retry = false) {
   }
   actionBusy = true; $("actionStatus").textContent = "サーバーで確認中…"; render();
   try {
-    await client.submitAction(pendingAction);
+    const response = await client.submitAction(pendingAction);
     pendingAction = null; selectedMacros.clear(); $("actionStatus").textContent = "操作を保存しました。";
     await refreshRoom();
+    if (type === "CREATE_REGION" && !response.duplicate && roomModel?.room?.public_state?.status !== "FINISHED") {
+      showContactReveal(response.result?.contactColorCount);
+    }
   } catch (error) {
     $("actionStatus").textContent = "保存できませんでした。同じ操作IDで再送できます。"; toast(error.message || "操作に失敗しました。");
     await refreshRoom().catch(() => {});
@@ -709,7 +745,7 @@ $("terminalClose").onclick = () => {
   show("terminalOverlay", false);
   $("requestRematch").focus({ preventScroll: false });
 };
-$("leaveRoom").onclick = () => { client.clearRoom(); roomModel = null; clearInterval(pollTimer); render(); };
+$("leaveRoom").onclick = () => { clearContactReveal(); client.clearRoom(); roomModel = null; clearInterval(pollTimer); render(); };
 
 loadProfiles();
 render();
