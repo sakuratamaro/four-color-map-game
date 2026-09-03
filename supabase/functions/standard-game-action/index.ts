@@ -215,7 +215,14 @@ Deno.serve(async (request: Request) => {
       const { data: existingData, error: existingError } = await service.rpc("fcg_standard_server_load_profile", { p_user_id: actorId });
       if (existingError) throw existingError;
       const existing = firstRow(existingData);
-      const committedState = existing?.profile_state || globalThis.FourColorStandardServerEngine.createStarterProfile(displayName as string);
+      if (existing) {
+        return json(200, {
+          revision: existing.revision,
+          profileState: existing.profile_state,
+          displayName: existing.display_name,
+        });
+      }
+      const committedState = globalThis.FourColorStandardServerEngine.createStarterProfile(displayName as string);
       stage = "commit-profile";
       const { data, error } = await service.rpc("fcg_standard_server_commit_profile", {
         p_user_id: actorId,
