@@ -56,4 +56,5 @@ The live scripts create disposable anonymous users and rooms; they require an ex
 node scripts/live-security-smoke.mjs --confirm-live
 node scripts/live-realtime-smoke.mjs --confirm-live
 node scripts/live-skill-smoke.mjs --confirm-live
+node scripts/live-standard-room-snapshot-smoke.mjs --confirm-live
 ```
