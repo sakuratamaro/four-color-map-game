@@ -1,49 +1,40 @@
 # Codex work status
 
-- Last update: 2026-08-29 01:54 JST
-- Stage: online quick MVP — public alpha hardening complete
-- Branch / base commit: `main` / `abcad3e`
-- GitHub: personal public repository `sakuratamaro/four-color-map-game`; Pages enabled
+- Last update: 2026-09-03 JST
+- Stage: Standard online public-release candidate — local integration and hardening complete, production rollout not yet authorized
+- Branch: `codex/standard-transport-lite`
+- Public baseline: `origin/main` at `274e3a7`; candidate branch is 18 commits ahead before this status update
+- Public URL currently points to the earlier accepted Standard build and must not be described as containing the candidate features
 
-## Completed
+## Locally integrated
 
-- Preserved the verified v4.9 game byte-for-byte as the local two-player baseline.
-- Added the server-authoritative online quick engine, lobby/UI, Supabase migration, RLS projections, and Edge Function.
-- Enabled anonymous sign-in and deployed `game-action` without reading or exposing managed secret values.
-- Published both the v4.9 root game and `/online-v5/` lobby from the personal repository.
-- Verified the normal A/B path: room code, fixed seats, private hands/palettes, all three quick skills, reload, surrender, and synchronized finish.
-- Verified a third anonymous player cannot enter, query, write, impersonate, or subscribe to another match.
-- Added a byte-identical v4.9 publication gate and a 60,000-question distribution gate for answer-slot and numeric-rank fairness.
-- Added repeatable live test harnesses for JWT/RLS/concurrency, Realtime RLS, and networked skill behavior. They print only pass/fail labels and never tokens or user IDs.
-- Kept the applied migration immutable at SHA-256 `0A9ABEC7DD86F30FEA5DECE458C38DC8DF94590D286A78554980DBB7A15846B3`.
+- Existing invitation-code Standard two-player flow and all 19 canonical skills.
+- Server-authoritative profile, loadout, action, settlement, quiz, gacha, card-sale, trophy, history, and cosmetic boundaries.
+- Code-free public matchmaking with atomic ticket claim, cancel/reconnect handling, and DB-side abuse limits.
+- Consent-only CPU fallback after 90 seconds with a second offer at 180 seconds; no human impersonation and no automatic acceptance.
+- Ten versioned named CPU characters, one-action-at-a-time authoritative play, separate CPU records, and same-character rematch.
+- Snapshot v2 profile deltas, a small allowlisted appearance projection, single-flight Realtime refresh, and fallback polling controls.
+- Preview-first bounded cleanup and a bounded per-isolate Edge request brake.
+- Reproducible source-to-Edge bundle generation and a staged public-release runbook.
 
-## Latest verification
+The authoritative adoption/deferral inventory is `docs/ONLINE_COMPLETION_INVENTORY.md`. Experimental `legalRecolor`, blanking, color exchange, delayed recolor, chain rotation, and split-and-hold remain intentionally outside the public card pool pending rules and balance decisions. The nested Expo/React Native early prototype is retained as historical reference, not as the current product source.
 
-- Local automated suite: 28/28 passed.
-- Live security/concurrency: 25/25 passed.
-- Live Realtime isolation: 2/2 passed.
-- Live skills: 21/21 passed.
-- SQL transaction-local RLS probe: A isolated = true, B isolated = true, C blocked = true.
-- Security Advisor: no errors. Expected warnings remain for the three anonymous-auth game tables and the three intentionally callable `fcg_*` SECURITY DEFINER entry/helper functions. Two `public.rls_auto_enable()` warnings predate and are unrelated to this game, so they were not changed.
-- Performance Advisor: no errors and no warnings; three informational suggestions only.
-- GitHub Pages build #1 succeeded; both public URLs passed HTTPS browser smoke checks.
+## Current verification
 
-## Migration history note
+- Worktree was clean before the 2026-09-03 continuation audit.
+- A serial repository audit produced 659 passing product tests. The only four failures came from Node auto-discovering the nested Expo prototype's Jest/TypeScript tests; those are not root Standard product tests.
+- The earlier parallel root run had two timing-sensitive browser leaves fail; both passed independently, and neither reproduced in the serial product run.
+- The supported root entry point is now `node scripts/run-standard-product-tests.mjs`, which enumerates only `tests/*.test.cjs` and defaults to serial execution.
+- Local Postgres, Docker, and the Supabase CLI are unavailable, so migrations `202609030006` through `202609030013` have static/security coverage but have not been parsed or executed by a local database.
 
-The first migration was applied manually in the Dashboard SQL Editor. This project has no `supabase_migrations.schema_migrations` relation and the Supabase CLI is not installed locally, so CLI history/dry-run output is unavailable. The exact applied SQL is retained immutably by its SHA-256 above; future schema changes must use a new numbered migration instead of editing it.
+## External state and next gate
 
-## Current
+No production DB, Edge Function, Pages, billing, secret, or cleanup-execution change was made by this candidate branch work. The next authorized phase is:
 
-- Delivery ZIP regenerated with 100 entries and no `.git` or nested `artifacts`; the companion manifest records its SHA-256.
-- Commit and push the verified hardening changes to the personal public repository.
-- Keep quiz/hint and additional existing-region skills frozen until this online-MVP checkpoint is recorded, then resume them as the next design phase.
+1. Reconfirm the live Supabase project, deployed function, Pages commit, advisors, and usage baseline by read-only inspection.
+2. Apply migrations `202609030006` through `202609030013` one at a time. Installing the cleanup function is included; executing or scheduling cleanup is not.
+3. Deploy `standard-game-action`, then publish Pages in that order.
+4. Run invitation, economy/appearance, public matchmaking, and CPU canaries, followed by separate-device human and CPU full matches.
+5. Record persistence, privacy, concurrency, rate-limit, snapshot-byte, RPC-count, p50/p95, error-rate, and usage evidence.
 
-## Next design phase
-
-1. Add the one-use, 3–5 second timer-pausing formula hint and the instant/normal/challenge/spike question curve.
-2. Implement a server-validated legal recolor/blanking skill before adding random variants.
-3. Run paired-seat simulations and loadout-dominance checks before expanding the card pool.
-
-## Processed collaboration messages
-
-- Thread `6a90ba06-d1cc-83e8-b66a-b8b7a3794acd`, agent messages `b0ac2eb3-8f97-4cee-95f1-9ae70c9f8779`, `0180592b-5448-40fe-8908-f39ac6ad174f`, and `cbac4e41-89b8-4f5b-b9e6-9d8442cec7ef`.
+These production mutations require the user's narrow approval. Cleanup deletion/scheduling and billing changes require their own later approvals.

@@ -10,11 +10,12 @@ migrationやコードの配置だけでは完了にしない。最新の公開UR
 
 ## 変更前の読取り確認
 
-1. 対象Supabase project refが `qkcuhludisairpgzhryl` であることを画面上で再確認する。
-2. Git作業ツリーがcleanで、公開候補commitが記録済みであることを確認する。
-3. 現行Pages commit、現行 `standard-game-action` version、適用済み関数を記録する。
-4. Security Advisor、Performance Advisor、API/Database/Edge使用量の変更前snapshotを保存する。
-5. `fcg_standard_room_snapshot(uuid)` が存在し、`202609030006` 以降の新規関数/表が未適用であることを読取りSQLで確認する。
+1. `node scripts/run-standard-product-tests.mjs` でroot直下の正式製品試験が全件合格することを確認する。引数なしの `node --test` は入れ子の旧Expo/Jest試作まで探索するため使用しない。
+2. 対象Supabase project refが `qkcuhludisairpgzhryl` であることを画面上で再確認する。
+3. Git作業ツリーがcleanで、公開候補commitが記録済みであることを確認する。
+4. 現行Pages commit、現行 `standard-game-action` version、適用済み関数を記録する。
+5. Security Advisor、Performance Advisor、API/Database/Edge使用量の変更前snapshotを保存する。
+6. `fcg_standard_room_snapshot(uuid)` が存在し、`202609030006` 以降の新規関数/表が未適用であることを読取りSQLで確認する。
 
 確認結果が想定と違う場合は適用を止め、現物に合わせて手順を更新する。
 

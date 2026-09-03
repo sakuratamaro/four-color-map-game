@@ -25,7 +25,7 @@
 | 再戦・復帰・新しい試合 | 実装済み | 採用 | 公開二端末で両者再戦、片側再読込、次試合を完走 | rematch migrations、online browser/client tests |
 | 接触色数の演出 | 実装済み | 採用 | 軽量同期との統合後に実ブラウザ確認 | contact feedback UI/test |
 | Realtime＋単一snapshotによる軽量同期 | 初代snapshot RPCは本番適用・A/B/非メンバー実測済み。統合ブランチではprofile delta v2と小型appearance列まで実装済み、DB/クライアント未公開 | 採用 | migration先行後の二端末復帰、変更時だけprofile本文が返ること、レスポンスbytes/呼出数を実測 | `202609030013_standard_snapshot_profile_delta.sql`、`STANDARD_ONLINE_TRANSPORT_LITE.md`、sync/client/migration tests |
-| 元ソースとデプロイ再現性 | 統合ブランチで復旧済み、未統合 | 採用 | 全試験合格後にコミットし、公開ブランチへ安全に統合 | `standard/`、build scripts、Edge bundle、過去欠落migration、Supabase function config |
+| 元ソースとデプロイ再現性 | 統合ブランチで復旧・commit済み、公開ブランチ未統合 | 採用 | 専用runnerで製品試験を再現し、公開ブランチへ安全に統合 | `standard/`、build scripts、`run-standard-product-tests.mjs`、Edge bundle、過去欠落migration、Supabase function config |
 | カード売却 | 統合ブランチでオンライン実装済み、DB/Edge未適用 | 採用・野良対戦より先に正本化 | migration/Edgeを適用し、公開で通常・要確認・再送・対戦ロックを確認 | `202609030006_standard_online_card_sale.sql`、Edge operations、online UI/browser/engine tests |
 | トロフィー、戦績、対戦履歴 | 対人/CPU別精算・キャラクター別CPU戦績・3トロフィー授与・一覧UIまで統合ブランチで実装済み、未公開 | 採用・授与/書込みは野良対戦より先 | 公開の対人戦/CPU戦で各一回精算、重複なし、再読込表示を確認 | server `applyProfiles` / `applyCpuProfiles`、online progression UI/browser tests |
 | 見た目の購入・装備 | 4系統12種の一覧、サーバー価格判定、確認、購入/装備、再送、再読込復元、相手の安全な名札/称号表示まで統合ブランチで実装済み、DB/Edge未適用 | 採用・対戦能力へ影響させない | migration/Edge適用後、公開で購入・無料装備・取消・応答喪失再送・別端末復元・相手表示を確認 | `standard-cosmetics.js`、`202609030010`/`011`、Edge operations、online UI/client/browser/engine tests |
@@ -34,6 +34,7 @@
 | 個性のある固定CPU 10人 | version付きロスター、サーバー選択、1手ずつの原子的commit、固定台詞UI、個別戦績、同じCPUとの専用再戦まで統合ブランチで実装済み、未適用 | 旧3段階を置換して採用 | 実DBで全員の開始、代表3人の公開完走/復帰/再戦 | `standard-cpu-roster.js`、CPU opponent/rematch migrations、Edge bundle、roster/privacy/legality/browser tests |
 | 期限切れルーム/チケットの清掃 | preview既定・最大500件/分類のservice-only清掃、索引、旧関数100室上限まで統合ブランチで実装済み、未適用・未実行 | 採用 | stagingでpreview件数、実削除、cascade、ロック競合、処理時間を実測してから定期実行を別承認 | `202609030012_batched_cleanup.sql`、cleanup migration tests、transport plan |
 | レート制限・同時実行・冪等性 | join失敗、quiz、野良DB制限、Edgeのbounded per-isolate濫用抑止、各mutationのversion/action ID/原子的receiptまで統合ブランチで実装済み | 各APIの実装条件として採用 | staging負荷試験で正常プレイ非阻害と429を確認。分散攻撃はprovider gateway/WAF側の計測後に追加判断 | join/matchmaking limits、Edge `RATE_GROUP`、action/setup/gacha/rematch/economy receipts |
+| 入れ子のExpo/React Native試作 | `four-color-map-game/four-color-map-game/` にplanning/early prototypeとして残存。旧3色案、2～4枚案、未完成Supabaseを含む | 公開Standardの正本としては見送り。実装済みStandardへ取り込まれた着想だけを採用 | 現行Web Standardの製品試験から分離して保存。将来ネイティブ版を別途決めた場合だけ再評価 | 入れ子README、`docs/STATUS.md`、`package.json` |
 | `legalRecolor` 実験カード | ローカル実験のみ | 保留 | 通常ガチャへ入れず、既存19種と分離したままバランス判断 | Standard spec/matrix |
 | 白紙化、色交換、遅延リカラー、連鎖回転、二分・保持 | 設計案のみ | 保留 | ルール、情報漏えい、原子性、手番価値が決まるまで実装しない | `BLANKING_SKILL_DESIGN.md`、skill matrix |
 
@@ -55,6 +56,13 @@
 - 10人を別々のロジックにせず、共通CPU判断エンジンとversion付きキャラクターパラメーターで表現する。まず差の大きい3人で安全性と個性を検証し、同じ仕組みで10人へ増やす。
 - 既存トロフィー3種を先に完成させ、ID、条件、重複防止、再試行、CPU戦可否、遡及方針まで固定してから種類を増やす。
 - 「エリア二分」と「エリア二分・保持」は別物である。前者は既存19スキルとして維持し、後者だけを未確定案として保留する。
+- 入れ子のExpo試作は古い別系統の雛形であり、未完成項目を現行Web Standardへ再実装する計画とは扱わない。そこにあったオンライン権威境界、クイズ、ガチャ、カード、主要幾何スキルの着想は現行Standardでより厳密に実装済みである。
+
+## ローカル全体試験の境界
+
+- 正式な製品試験入口は `node scripts/run-standard-product-tests.mjs` とする。root直下 `tests/*.test.cjs` だけを列挙し、タイミング競合を避けるため既定で直列実行する。
+- 2026-09-03の直列監査では製品試験659件がすべて合格した。
+- repository rootで引数なしの `node --test` を実行すると、Nodeが入れ子のExpo試作にあるJest/TypeScript用4ファイルまで探索する。この4件はNode直接実行では拡張子解決に失敗するため、製品試験の失敗数へ混ぜない。Expo試作を再開する場合は、そのフォルダーの `npm test` と依存関係を別に整える。
 
 ## 完了判定
 
