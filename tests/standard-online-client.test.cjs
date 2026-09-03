@@ -17,8 +17,10 @@ function storageFixture(initial = null) {
 
 function supabaseFixture({ roomStatus = "ready", roomVersion = 10 } = {}) {
   const calls = [];
+  const subscriptions = [];
   return {
     calls,
+    subscriptions,
     auth: {
       getSession: async () => ({ data: { session: { user: { id: "33333333-3333-4333-8333-333333333333" } } } }),
       signInAnonymously: async () => { throw new Error("unexpected sign-in"); },
@@ -28,6 +30,15 @@ function supabaseFixture({ roomStatus = "ready", roomVersion = 10 } = {}) {
       if (name === "fcg_standard_create_room") return { data: [{ room_id: ROOM_ID, room_code: "A1B2C3", seat: "A", game_mode: "standard_v5" }] };
       if (name === "fcg_standard_join_room") return { data: [{ room_id: ROOM_ID, seat: "B", game_mode: "standard_v5" }] };
       if (name === "fcg_standard_request_rematch") return { data: [{ room_status: "finished", room_version: args.p_expected_version, ready_to_setup: false, duplicate: false }] };
+      if (name === "fcg_standard_room_snapshot") return { data: {
+        snapshot_schema_version: 1,
+        snapshot_version: roomVersion,
+        server_time: "2099-01-01T00:00:00Z",
+        room: { id: ROOM_ID, status: roomStatus, version: roomVersion, game_mode: "standard_v5", public_state: null },
+        members: [{ user_id: "33333333-3333-4333-8333-333333333333", seat: "A", display_name: "A" }],
+        view: { seat: "A", version: roomVersion, private_state: {} },
+        profile: { revision: 3, display_name: "A", profile_state: { inventory: {} } },
+      } };
       throw new Error(`unexpected rpc ${name}`);
     },
     functions: {
@@ -42,14 +53,24 @@ function supabaseFixture({ roomStatus = "ready", roomVersion = 10 } = {}) {
       },
     },
     from: (table) => ({ select: () => {
-      const data = table === "fcg_rooms"
-        ? { id: ROOM_ID, status: roomStatus, version: roomVersion, game_mode: "standard_v5", public_state: null }
-        : table === "fcg_room_members" ? [{ user_id: "33333333-3333-4333-8333-333333333333", seat: "A", display_name: "A" }]
-          : table === "fcg_player_views" ? { seat: "A", version: roomVersion, private_state: {} }
-            : { revision: 3, display_name: "A", profile_state: { inventory: {} } };
+      const data = table === "fcg_standard_profiles" ? { revision: 3, display_name: "A", profile_state: { inventory: {} } } : null;
       const chain = { eq: () => chain, order: async () => ({ data }), single: async () => ({ data }), maybeSingle: async () => ({ data }) };
       return chain;
     } }),
+    channel: (name) => {
+      const subscription = { name, configs: [], invalidations: [], status: null, removed: false };
+      subscriptions.push(subscription);
+      const channel = {
+        on: (_type, config, callback) => { subscription.configs.push(config); subscription.invalidations.push(callback); return channel; },
+        subscribe: (callback) => { subscription.status = callback; return channel; },
+      };
+      subscription.channel = channel;
+      return channel;
+    },
+    removeChannel: async (channel) => {
+      const subscription = subscriptions.find((entry) => entry.channel === channel);
+      if (subscription) subscription.removed = true;
+    },
   };
 }
 
@@ -150,6 +171,32 @@ test("polling a reset room clears the completed rematch and stale setup revision
   assert.equal(client.snapshot().setupRevision, 0);
   assert.equal(client.snapshot().rematchActionId, null);
   assert.equal(client.snapshot().rematchExpectedVersion, null);
+});
+
+test("room refresh uses one member-scoped snapshot RPC instead of four table reads", async () => {
+  const supabase = supabaseFixture({ roomStatus: "playing", roomVersion: 12 });
+  const client = createStandardOnlineClient({ supabase, storage: storageFixture({ roomId: ROOM_ID }), idFactory: () => ACTION_ID });
+  const room = await client.readRoom();
+  assert.equal(room.room.version, 12);
+  assert.equal(room.view.seat, "A");
+  assert.deepEqual(supabase.calls.filter((call) => call.kind === "rpc").map((call) => call.name), ["fcg_standard_room_snapshot"]);
+});
+
+test("room subscription is scoped to the room row and can be removed idempotently", async () => {
+  const supabase = supabaseFixture();
+  const client = createStandardOnlineClient({ supabase, storage: storageFixture({ roomId: ROOM_ID }), idFactory: () => ACTION_ID });
+  let invalidations = 0;
+  const stop = await client.subscribeToRoom({ roomId: ROOM_ID, onInvalidate: () => { invalidations += 1; } });
+  assert.deepEqual(supabase.subscriptions[0].configs, [
+    { event: "*", schema: "public", table: "fcg_rooms", filter: `id=eq.${ROOM_ID}` },
+    { event: "*", schema: "public", table: "fcg_room_members", filter: `room_id=eq.${ROOM_ID}` },
+    { event: "*", schema: "public", table: "fcg_player_views", filter: `room_id=eq.${ROOM_ID}` },
+  ]);
+  supabase.subscriptions[0].invalidations[0]();
+  assert.equal(invalidations, 1);
+  await stop();
+  await stop();
+  assert.equal(supabase.subscriptions[0].removed, true);
 });
 
 test("client source contains no privileged credential or caller-provided final state", () => {

@@ -181,26 +181,58 @@
       return clone(row);
     }
     async function readRoom(roomId = state.roomId) {
-      const currentSession = await ensureSession();
+      await ensureSession();
       if (!UUID_PATTERN.test(String(roomId))) throw new Error("INVALID_ROOM_ID");
-      const [roomResult, membersResult, viewResult, profileResult] = await Promise.all([
-        supabase.from("fcg_rooms").select("id,status,version,game_mode,public_state,winner_seat,expires_at").eq("id", roomId).single(),
-        supabase.from("fcg_room_members").select("user_id,seat,display_name,last_seen_at").eq("room_id", roomId).order("seat"),
-        supabase.from("fcg_player_views").select("seat,version,private_state").eq("room_id", roomId).maybeSingle(),
-        supabase.from("fcg_standard_profiles").select("revision,display_name,profile_state").eq("user_id", currentSession.user.id).maybeSingle(),
-      ]);
-      for (const result of [roomResult, membersResult, viewResult, profileResult]) if (result.error) throw result.error;
-      if (roomResult.data?.game_mode !== "standard_v5") throw new Error("WRONG_GAME_MODE");
-      if (roomResult.data?.status === "ready" && Number.isSafeInteger(state.rematchExpectedVersion)
-          && Number(roomResult.data.version) > state.rematchExpectedVersion) {
+      const response = await supabase.rpc("fcg_standard_room_snapshot", { p_room_id: roomId });
+      if (response.error) throw response.error;
+      const snapshot = firstRow(response.data);
+      if (Number(snapshot?.snapshot_schema_version) !== 1 || !Number.isSafeInteger(Number(snapshot?.snapshot_version))
+          || !snapshot?.room || !Array.isArray(snapshot.members)) throw new Error("INVALID_ROOM_SNAPSHOT");
+      if (snapshot.room.game_mode !== "standard_v5") throw new Error("WRONG_GAME_MODE");
+      if (snapshot.room.status === "ready" && Number.isSafeInteger(state.rematchExpectedVersion)
+          && Number(snapshot.room.version) > state.rematchExpectedVersion) {
         state.setupRevision = 0;
         state.rematchActionId = null;
         state.rematchExpectedVersion = null;
       }
-      if (profileResult.data?.revision !== undefined) state.profileRevision = Number(profileResult.data.revision);
+      if (snapshot.profile?.revision !== undefined) state.profileRevision = Number(snapshot.profile.revision);
       state.roomId = roomId;
       persist();
-      return clone({ room: roomResult.data, members: membersResult.data || [], view: viewResult.data || null, profile: profileResult.data || null });
+      return clone({
+        snapshotSchemaVersion: 1,
+        snapshotVersion: Number(snapshot.snapshot_version),
+        serverTime: snapshot.server_time,
+        room: snapshot.room,
+        members: snapshot.members,
+        view: snapshot.view || null,
+        profile: snapshot.profile || null,
+      });
+    }
+    async function subscribeToRoom({ roomId = state.roomId, onInvalidate, onStatus = () => {} }) {
+      await ensureSession();
+      if (!UUID_PATTERN.test(String(roomId))) throw new Error("INVALID_ROOM_ID");
+      if (typeof onInvalidate !== "function" || typeof onStatus !== "function") throw new Error("INVALID_REALTIME_HANDLERS");
+      if (typeof supabase.channel !== "function" || typeof supabase.removeChannel !== "function") throw new Error("REALTIME_UNAVAILABLE");
+      const changes = [
+        { table: "fcg_rooms", filter: `id=eq.${roomId}` },
+        { table: "fcg_room_members", filter: `room_id=eq.${roomId}` },
+        { table: "fcg_player_views", filter: `room_id=eq.${roomId}` },
+      ];
+      let channel = supabase.channel(`standard-room-${roomId}`);
+      for (const change of changes) {
+        channel = channel.on("postgres_changes", {
+          event: "*",
+          schema: "public",
+          ...change,
+        }, onInvalidate);
+      }
+      channel = channel.subscribe(onStatus);
+      let subscribed = true;
+      return () => {
+        if (!subscribed) return undefined;
+        subscribed = false;
+        return supabase.removeChannel(channel);
+      };
     }
     function clearRoom() {
       state.roomId = null;
@@ -236,6 +268,7 @@
       startQuiz,
       submitAction,
       submitSetup,
+      subscribeToRoom,
       syncProfile,
     });
   }

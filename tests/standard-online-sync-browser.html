@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <title>Standard Online Sync Browser Test</title>
+</head>
+<body>
+  <main>
+    <h1>Standard Online Sync Browser Test</h1>
+    <p id="result" role="status">RUNNING</p>
+  </main>
+  <script src="../standard-online-v5/standard-online-sync.js"></script>
+  <script>
+    (async () => {
+      const scheduled = [];
+      const events = {};
+      let refreshes = 0;
+      const sync = FourColorStandardOnlineSync.createStandardOnlineSync({
+        refreshRoom: async () => { refreshes += 1; },
+        subscribeRoom: async (_roomId, handlers) => {
+          Object.assign(events, handlers);
+          handlers.onStatus("SUBSCRIBED");
+          return () => {};
+        },
+        getRoomStatus: () => "playing",
+        setTimer: (callback, delay) => {
+          const timer = { callback, delay, cancelled: false };
+          scheduled.push(timer);
+          return timer;
+        },
+        clearTimer: (timer) => { timer.cancelled = true; },
+      });
+      await sync.start("11111111-1111-4111-8111-111111111111");
+      events.onInvalidate();
+      events.onInvalidate();
+      events.onInvalidate();
+      const active = scheduled.filter((timer) => !timer.cancelled);
+      const passed = refreshes === 1 && active.length === 1
+        && active[0].delay === FourColorStandardOnlineSync.INVALIDATION_DEBOUNCE_MS;
+      document.getElementById("result").textContent = passed ? "PASS" : "FAIL";
+      document.body.dataset.refreshes = String(refreshes);
+      document.body.dataset.activeTimers = String(active.length);
+      document.body.dataset.nextDelay = String(active[0]?.delay ?? -1);
+    })().catch((error) => {
+      document.getElementById("result").textContent = `FAIL: ${error.message}`;
+    });
+  </script>
+</body>
+</html>

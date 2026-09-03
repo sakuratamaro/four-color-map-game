@@ -4,6 +4,7 @@ import "../online/supabase-config.js";
 const cfg = globalThis.FourColorSupabaseConfig;
 const supabase = createClient(cfg.url, cfg.publishableKey, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false } });
 const client = globalThis.FourColorStandardOnlineClient.createStandardOnlineClient({ supabase, storage: localStorage, idFactory: () => crypto.randomUUID() });
+const onlineSyncFactory = globalThis.FourColorStandardOnlineSync;
 const skillIntents = globalThis.FourColorStandardOnlineSkillIntents;
 const $ = (id) => document.getElementById(id);
 const SAVE_KEY = "fourColorMapGame.standard.v5.save";
@@ -66,7 +67,6 @@ let synced = false;
 let connected = false;
 let hydratedProfileRevision = -1;
 let roomModel = null;
-let pollTimer = null;
 let initializeBusy = false;
 let actionBusy = false;
 let rematchBusy = false;
@@ -428,18 +428,37 @@ function selectedLoadout() {
 }
 function validLoadout(loadout) { return ["color", "area", "disrupt"].every((category) => loadout[category].length === 2); }
 
-async function refreshRoom() {
-  const snapshot = client.snapshot();
-  if (!snapshot.roomId) return render();
-  roomModel = await client.readRoom(snapshot.roomId);
+async function refreshRoom(_reason, expectedRoomId = client.snapshot().roomId) {
+  if (!expectedRoomId) return render();
+  const nextRoomModel = await client.readRoom(expectedRoomId);
+  if (client.snapshot().roomId !== expectedRoomId) return null;
+  if (roomModel?.room?.id === expectedRoomId && Number(nextRoomModel.room.version) < Number(roomModel.room.version)) return null;
+  roomModel = nextRoomModel;
   hydrateProfileRow(roomModel.profile);
   render();
   if (roomModel.room.status === "ready" && client.snapshot().setupRevision > 0 && !hasStandardPublicState(roomModel.room.public_state) && !initializeBusy) {
     initializeBusy = true;
-    try { await client.initialize(); roomModel = await client.readRoom(); } catch (error) { if (!String(error.message).includes("setup")) console.warn(error); }
+    try {
+      await client.initialize();
+      const initializedRoom = await client.readRoom(expectedRoomId);
+      if (client.snapshot().roomId === expectedRoomId) roomModel = initializedRoom;
+    } catch (error) { if (!String(error.message).includes("setup")) console.warn(error); }
     finally { initializeBusy = false; render(); }
   }
 }
+
+const roomSync = onlineSyncFactory.createStandardOnlineSync({
+  refreshRoom,
+  subscribeRoom: (roomId, handlers) => client.subscribeToRoom({ roomId, ...handlers }),
+  getRoomStatus: () => roomModel?.room?.status,
+  isVisible: () => document.visibilityState !== "hidden",
+  isOnline: () => navigator.onLine,
+  onConnectionState: (state) => {
+    if (state === "connected" || state === "realtime") badge("オンライン同期中", "good");
+    else if (state === "offline") badge("オフライン（復帰待ち）", "warn");
+    else badge("再接続中（自動再試行）", "warn");
+  },
+});
 
 function render() {
   const snapshot = client.snapshot();
@@ -639,10 +658,10 @@ async function sendAction(type, payload = {}, retry = false) {
   try {
     await client.submitAction(pendingAction);
     pendingAction = null; selectedMacros.clear(); $("actionStatus").textContent = "操作を保存しました。";
-    await refreshRoom();
+    await roomSync.refreshNow();
   } catch (error) {
     $("actionStatus").textContent = "保存できませんでした。同じ操作IDで再送できます。"; toast(error.message || "操作に失敗しました。");
-    await refreshRoom().catch(() => {});
+    await roomSync.refreshNow().catch(() => {});
   } finally { actionBusy = false; render(); }
 }
 
@@ -661,12 +680,12 @@ async function syncSelectedProfile() {
   finally { $("syncProfile").disabled = false; }
 }
 
-async function createRoom() { try { await client.createRoom(displayName()); await refreshRoom(); startPolling(); } catch (error) { toast(error.message); } }
-async function joinRoom() { try { await client.joinRoom({ roomCode: $("roomCode").value, displayName: displayName() }); await refreshRoom(); startPolling(); } catch (error) { toast(error.message); } }
+async function createRoom() { try { await client.createRoom(displayName()); await roomSync.start(client.snapshot().roomId); } catch (error) { toast(error.message); } }
+async function joinRoom() { try { await client.joinRoom({ roomCode: $("roomCode").value, displayName: displayName() }); await roomSync.start(client.snapshot().roomId); } catch (error) { toast(error.message); } }
 async function submitSetup() {
   const loadout = selectedLoadout(); if (!validLoadout(loadout)) return toast("各カテゴリから2枚ずつ選んでください。");
   $("submitSetup").disabled = true;
-  try { await client.submitSetup({ loadout }); await refreshRoom(); toast("6枚セットを確認しました。"); }
+  try { await client.submitSetup({ loadout }); await roomSync.refreshNow(); toast("6枚セットを確認しました。"); }
   catch (error) { toast(error.message || "6枚セットを確認できませんでした。"); }
   finally { $("submitSetup").disabled = false; }
 }
@@ -676,14 +695,12 @@ async function requestRematch() {
   try {
     const result = await client.requestRematch({ expectedVersion: roomModel.room.version });
     toast(result.ready_to_setup ? "再戦用の6枚セットを選んでください。" : "再戦を申請しました。相手を待っています。");
-    await refreshRoom();
+    await roomSync.refreshNow();
   } catch (error) {
     toast(error.message || "再戦を申請できませんでした。同じIDで再送できます。");
-    await refreshRoom().catch(() => {});
+    await roomSync.refreshNow().catch(() => {});
   } finally { rematchBusy = false; render(); }
 }
-function startPolling() { clearInterval(pollTimer); pollTimer = setInterval(() => refreshRoom().catch(() => badge("再接続中", "warn")), 2500); }
-
 $("profileSelect").onchange = () => { selectedProfileId = $("profileSelect").value; synced = false; renderProfile(); render(); };
 $("createStarterProfile").onclick = createStarterProfile;
 $("syncProfile").onclick = syncSelectedProfile;
@@ -709,7 +726,11 @@ $("terminalClose").onclick = () => {
   show("terminalOverlay", false);
   $("requestRematch").focus({ preventScroll: false });
 };
-$("leaveRoom").onclick = () => { client.clearRoom(); roomModel = null; clearInterval(pollTimer); render(); };
+$("leaveRoom").onclick = () => { roomSync.stop(); client.clearRoom(); roomModel = null; render(); };
+document.addEventListener("visibilitychange", () => roomSync.handleVisibilityChange());
+window.addEventListener("focus", () => roomSync.invalidate());
+window.addEventListener("online", () => roomSync.handleConnectivityChange());
+window.addEventListener("offline", () => roomSync.handleConnectivityChange());
 
 loadProfiles();
 render();
@@ -721,7 +742,7 @@ try {
   const remote = await client.readProfile();
   if (remote) { hydrateProfileRow(remote); synced = true; }
   else loadProfiles();
-  if (client.snapshot().roomId) { synced = true; await refreshRoom(); startPolling(); }
+  if (client.snapshot().roomId) { synced = true; await roomSync.start(client.snapshot().roomId); }
   render();
   if (pendingQuiz?.answers?.length === 10) finishOnlineQuiz();
 } catch (error) {
