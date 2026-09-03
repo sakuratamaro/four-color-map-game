@@ -34,9 +34,10 @@ function supabaseFixture({ roomStatus = "ready", roomVersion = 10 } = {}) {
       if (name === "fcg_standard_matchmaking_status") return { data: [{ ticket_id: args.p_ticket_id, matchmaking_status: "searching", room_id: null, seat: null, wait_started_at: "2099-01-01T00:00:00Z" }] };
       if (name === "fcg_standard_matchmaking_cancel") return { data: [{ ticket_id: args.p_ticket_id, matchmaking_status: "cancelled", room_id: null, seat: null }] };
       if (name === "fcg_standard_matchmaking_find") return { data: [{ matchmaking_status: "matched", room_id: ROOM_ID, seat: "B", duplicate: false }] };
-      if (name === "fcg_standard_room_snapshot") return { data: {
-        snapshot_schema_version: 1,
+      if (name === "fcg_standard_room_snapshot_v2") return { data: {
+        snapshot_schema_version: 2,
         snapshot_version: roomVersion,
+        profile_revision: 3,
         server_time: "2099-01-01T00:00:00Z",
         room: { id: ROOM_ID, status: roomStatus, version: roomVersion, game_mode: "standard_v5", public_state: null },
         members: [{ user_id: "33333333-3333-4333-8333-333333333333", seat: "A", display_name: "A" }],
@@ -313,13 +314,29 @@ test("polling a reset room clears the completed rematch and stale setup revision
   assert.equal(client.snapshot().rematchExpectedVersion, null);
 });
 
-test("room refresh uses one member-scoped snapshot RPC instead of four table reads", async () => {
+test("room refresh uses one member-scoped profile-delta snapshot RPC instead of four table reads", async () => {
   const supabase = supabaseFixture({ roomStatus: "playing", roomVersion: 12 });
   const client = createStandardOnlineClient({ supabase, storage: storageFixture({ roomId: ROOM_ID }), idFactory: () => ACTION_ID });
   const room = await client.readRoom();
   assert.equal(room.room.version, 12);
   assert.equal(room.view.seat, "A");
-  assert.deepEqual(supabase.calls.filter((call) => call.kind === "rpc").map((call) => call.name), ["fcg_standard_room_snapshot"]);
+  assert.deepEqual(supabase.calls.filter((call) => call.kind === "rpc").map((call) => call.name), ["fcg_standard_room_snapshot_v2"]);
+  assert.equal(supabase.calls[0].args.p_known_profile_revision, 0);
+});
+
+test("unchanged profile bodies may be omitted while the snapshot revision remains authoritative", async () => {
+  const supabase = supabaseFixture({ roomStatus: "playing", roomVersion: 13 });
+  const originalRpc = supabase.rpc;
+  supabase.rpc = async (name, args) => {
+    const result = await originalRpc(name, args);
+    if (name === "fcg_standard_room_snapshot_v2") result.data.profile = null;
+    return result;
+  };
+  const client = createStandardOnlineClient({ supabase, storage: storageFixture({ roomId: ROOM_ID, profileRevision: 3 }), idFactory: () => ACTION_ID });
+  const room = await client.readRoom();
+  assert.equal(room.profile, null);
+  assert.equal(client.snapshot().profileRevision, 3);
+  assert.equal(supabase.calls[0].args.p_known_profile_revision, 3);
 });
 
 test("room subscription is scoped to the room row and can be removed idempotently", async () => {

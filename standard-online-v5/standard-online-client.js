@@ -346,10 +346,11 @@
     async function readRoom(roomId = state.roomId) {
       await ensureSession();
       if (!UUID_PATTERN.test(String(roomId))) throw new Error("INVALID_ROOM_ID");
-      const response = await supabase.rpc("fcg_standard_room_snapshot", { p_room_id: roomId });
+      const response = await supabase.rpc("fcg_standard_room_snapshot_v2", { p_room_id: roomId, p_known_profile_revision: state.profileRevision });
       if (response.error) throw response.error;
       const snapshot = firstRow(response.data);
-      if (Number(snapshot?.snapshot_schema_version) !== 1 || !Number.isSafeInteger(Number(snapshot?.snapshot_version))
+      if (Number(snapshot?.snapshot_schema_version) !== 2 || !Number.isSafeInteger(Number(snapshot?.snapshot_version))
+          || !Number.isSafeInteger(Number(snapshot?.profile_revision))
           || !snapshot?.room || !Array.isArray(snapshot.members)) throw new Error("INVALID_ROOM_SNAPSHOT");
       if (snapshot.room.game_mode !== "standard_v5") throw new Error("WRONG_GAME_MODE");
       if (snapshot.room.status === "ready" && Number.isSafeInteger(state.rematchExpectedVersion)
@@ -358,11 +359,11 @@
         state.rematchActionId = null;
         state.rematchExpectedVersion = null;
       }
-      if (snapshot.profile?.revision !== undefined) state.profileRevision = Number(snapshot.profile.revision);
+      state.profileRevision = Number(snapshot.profile_revision);
       state.roomId = roomId;
       persist();
       return clone({
-        snapshotSchemaVersion: 1,
+        snapshotSchemaVersion: 2,
         snapshotVersion: Number(snapshot.snapshot_version),
         serverTime: snapshot.server_time,
         room: snapshot.room,

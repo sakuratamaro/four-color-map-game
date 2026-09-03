@@ -56,7 +56,7 @@ CPU応答は人間と同じ権威的な行動検証・commit境界を通すが�
 ## 今回に混ぜず、後続で行うもの
 
 - 期限切れ検索チケット、waiting/finishedルーム、receiptsのDB定期バッチ整理
-- profileを毎ターンのroom snapshotから外す追加軽量化
+- [統合ブランチで実装済み・未適用] profile revisionをsnapshot v2へ渡し、変更がない場合はプロフィール本文を返さない。装備表示はtrigger管理の小さなallowlist済みappearance列から返す。
 - CPU手の原子的確定または`cpu_pending`再試行ジョブ
 - 専用signal行またはprivate Broadcastへの将来移行
 
@@ -83,4 +83,4 @@ receiptsは再送可能期間より長く保持し、直後に削除しない。
 - 独立した匿名A/B/第三者で実呼出しを行い、A/Bは同一のroom versionとメンバーA/Bを取得し、第三者は `P0002` で拒否された。
 - 検証ルームID: `1650f0b7-75e9-403c-be7c-e42c36d589a6`。削除は行わず、既存の期限切れ処理に任せる。
 
-DB側の追加関数は適用済みだが、軽量同期クライアントはまだ公開URLへ反映していない。したがって、通信軽量化の公開完了とはまだ扱わない。
+DB側の初代snapshot関数は適用済みだが、軽量同期クライアントはまだ公開URLへ反映していない。さらに統合ブランチでは `fcg_standard_room_snapshot_v2(uuid,bigint)` とprofile deltaを追加済みで、こちらはDB未適用である。migrationを先、クライアントを後に反映し、プロフィール変更時だけ本文が返ることとレスポンスbytesを実測するまでは、通信軽量化の公開完了とは扱わない。

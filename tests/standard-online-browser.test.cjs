@@ -193,14 +193,15 @@ async function installMock(context, mode) {
         if (name === "fcg_standard_matchmaking_status") return { data: [{ ticket_id: args.p_ticket_id, matchmaking_status: "searching", room_id: null, seat: null, wait_started_at: runtime.waitStartedAt, server_time: new Date().toISOString() }] };
         if (name === "fcg_standard_matchmaking_cancel") return { data: [{ ticket_id: args.p_ticket_id, matchmaking_status: "cancelled", room_id: null, seat: null, server_time: new Date().toISOString() }] };
         if (name === "fcg_standard_matchmaking_find") return { data: [{ matchmaking_status: initialMode === "publicFind" ? "matched" : "none_available", room_id: initialMode === "publicFind" ? id : null, seat: initialMode === "publicFind" ? "B" : null, server_time: new Date().toISOString(), duplicate: false }] };
-        if (name === "fcg_standard_room_snapshot") return { data: [{
-          snapshot_schema_version: 1,
+        if (name === "fcg_standard_room_snapshot_v2") return { data: [{
+          snapshot_schema_version: 2,
           snapshot_version: runtime.room.version,
+          profile_revision: runtime.profile.revision,
           server_time: new Date().toISOString(),
           room: runtime.room,
           members: resultFor("fcg_room_members"),
           view: runtime.view,
-          profile: runtime.profile,
+          profile: Number(args.p_known_profile_revision) === Number(runtime.profile.revision) ? null : runtime.profile,
         }] };
         if (name !== "fcg_standard_request_rematch") return { error: new Error(`unexpected rpc ${name}`) };
         runtime.room = { ...runtime.room, status: "ready", version: 10, public_state: null };
@@ -478,7 +479,7 @@ test("actual Edge finds a public opponent and enters setup without exposing a co
     assert.equal(await page.locator("#shownCode").textContent(), "野良対戦");
     assert.equal(await page.locator("#setupCard").evaluate((node) => node.classList.contains("hidden")), false);
     const calls = await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.kind === "rpc").map((entry) => entry.name));
-    assert.deepEqual(calls.slice(0, 2), ["fcg_standard_matchmaking_find", "fcg_standard_room_snapshot"]);
+    assert.deepEqual(calls.slice(0, 2), ["fcg_standard_matchmaking_find", "fcg_standard_room_snapshot_v2"]);
   });
 });
 

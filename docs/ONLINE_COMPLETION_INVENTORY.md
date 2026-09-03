@@ -24,7 +24,7 @@
 | ガチャとカード所持 | ソース実装済み・公開確認作業中 | 採用 | 公開で券消費と付与が一度だけ、再読込後も保持 | gacha migration、Edge operation、browser/transaction tests |
 | 再戦・復帰・新しい試合 | 実装済み | 採用 | 公開二端末で両者再戦、片側再読込、次試合を完走 | rematch migrations、online browser/client tests |
 | 接触色数の演出 | 実装済み | 採用 | 軽量同期との統合後に実ブラウザ確認 | contact feedback UI/test |
-| Realtime＋単一snapshotによる軽量同期 | snapshot RPCは本番適用・A/B/非メンバー実測済み、軽量クライアントは未公開 | 採用 | 軽量クライアント公開後の二端末復帰・通信量計測 | `STANDARD_ONLINE_TRANSPORT_LITE.md`、live smoke、sync/client/migration tests |
+| Realtime＋単一snapshotによる軽量同期 | 初代snapshot RPCは本番適用・A/B/非メンバー実測済み。統合ブランチではprofile delta v2と小型appearance列まで実装済み、DB/クライアント未公開 | 採用 | migration先行後の二端末復帰、変更時だけprofile本文が返ること、レスポンスbytes/呼出数を実測 | `202609030013_standard_snapshot_profile_delta.sql`、`STANDARD_ONLINE_TRANSPORT_LITE.md`、sync/client/migration tests |
 | 元ソースとデプロイ再現性 | 統合ブランチで復旧済み、未統合 | 採用 | 全試験合格後にコミットし、公開ブランチへ安全に統合 | `standard/`、build scripts、Edge bundle、過去欠落migration、Supabase function config |
 | カード売却 | 統合ブランチでオンライン実装済み、DB/Edge未適用 | 採用・野良対戦より先に正本化 | migration/Edgeを適用し、公開で通常・要確認・再送・対戦ロックを確認 | `202609030006_standard_online_card_sale.sql`、Edge operations、online UI/browser/engine tests |
 | トロフィー、戦績、対戦履歴 | 対人/CPU別精算・キャラクター別CPU戦績・3トロフィー授与・一覧UIまで統合ブランチで実装済み、未公開 | 採用・授与/書込みは野良対戦より先 | 公開の対人戦/CPU戦で各一回精算、重複なし、再読込表示を確認 | server `applyProfiles` / `applyCpuProfiles`、online progression UI/browser tests |
