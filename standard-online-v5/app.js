@@ -10,6 +10,9 @@ const SAVE_KEY = "fourColorMapGame.standard.v5.save";
 const PROFILE_CHOICE_KEY = "fourColorMapGame.standard.online.v5.profile";
 const STARTER_PROFILE_KEY = "fourColorMapGame.standard.online.v5.starter-profile";
 const STARTER_PROFILE_ID = "online-starter";
+const REMOTE_PROFILE_KEY = "fourColorMapGame.standard.online.v5.remote-profile";
+const REMOTE_PROFILE_ID = "online-server";
+const GACHA_PENDING_KEY = "fourColorMapGame.standard.online.v5.pending-gacha";
 const STARTER_INVENTORY = Object.freeze({
   colorRandomBorrow: 3, colorChoiceBorrow: 3,
   areaMicroBloom: 3, areaDiePlus: 3,
@@ -25,18 +28,55 @@ const SKILLS = [
   ["disruptChoiceThree", "長封", "disrupt"], ["disruptForcedPalette", "強制持ち替え", "disrupt"],
 ];
 const CATEGORY_LABEL = { color: "色カード", area: "エリアカード", disrupt: "妨害カード" };
+const PHASE_LABEL = {
+  CREATE_FIRST: "最初に渡すエリアを選んでください",
+  WORK: "相手に渡すエリアを選んでください",
+  COLOR: "受け取ったエリアを塗ってください",
+  GAME_OVER: "対戦終了",
+};
+const ROOM_STATUS_LABEL = { waiting: "相手を待っています", ready: "6枚セット選択中", playing: "対戦中", finished: "対戦終了" };
+const SKILL_DESCRIPTION = Object.freeze({
+  colorRandomBorrow: "盤面ですでに使われている色から、1色をランダムでこの彩色中だけ借ります。抽選された色は自分だけに表示されます。",
+  colorChoiceBorrow: "盤面ですでに使われている色を1色選び、この彩色中だけ借ります。借りた色は色ボタンに追加されます。",
+  colorPrism: "この彩色中だけ、赤・青・黄・緑の4色を使えるようにします。",
+  colorRegionSplit: "いま塗る相手のエリアを、つながった2つのエリアに分けます。分けた片方を先に塗ります。",
+  colorPaletteChange: "自分の持ち色の枠を1つ選び、好きな色へ変更します。おまけ色の残り回数はその枠に残ります。",
+  areaMicroBloom: "これから渡すエリアの角をランダムに少しふくらませ、斜めのエリアと接触させます。",
+  areaDiePlus: "この手番で相手に渡すエリアを1マス増やします。置ける場所がある時だけ使えます。",
+  areaResize: "盤面の上下左右を1列ぶん拡大、または縮小します。すでに塗られた形はそのまま残ります。",
+  areaCornerBloom: "選んだ基準マスの使える角をすべて少しふくらませます。",
+  areaHalfShift: "指定した行または列を、半マスぶんずらします。エリアが分かれる場合があります。",
+  areaTripleShift: "指定した行または列と、その両隣を段差状にずらします。中央は1マス、両隣は半マス動きます。",
+  disruptRandomOne: "相手の色をランダムに1色選び、次の彩色1回だけ封じます。空振りになる場合もあります。",
+  disruptChoiceOne: "選んだ1色を相手の次の彩色1回だけ封じます。使用後、自分にもランダムな色封じが1回返ってきます。",
+  disruptRandomTwo: "相手の色をランダムに異なる2色選び、次の彩色1回だけ封じます。",
+  disruptPaletteRandom: "色と相手の持ち色枠をランダムに選び、その枠を次の彩色1回だけ入れ替えます。",
+  disruptChoiceTwo: "選んだ1色を、相手の次の彩色2回ぶん封じます。",
+  disruptPaletteChoice: "入れ替える色を選び、相手のどの持ち色枠に入るかはランダムで決まります。効果は彩色2回ぶんです。",
+  disruptChoiceThree: "選んだ1色を、相手の次の彩色3回ぶん封じます。",
+  disruptForcedPalette: "入れ替える色を選び、相手のランダムな持ち色枠を対戦終了まで変更します。",
+});
+const RANDOM_SKILLS = new Set(["colorRandomBorrow", "areaMicroBloom", "disruptRandomOne", "disruptRandomTwo", "disruptPaletteRandom", "disruptPaletteChoice", "disruptForcedPalette"]);
+const RANDOM_REVEAL_PREFIX = "fourColorMapGame.standard.online.v5.random-reveal.";
 let localRoot = null;
 let availableProfiles = {};
 let selectedProfileId = null;
 let synced = false;
 let connected = false;
+let hydratedProfileRevision = -1;
 let roomModel = null;
 let pollTimer = null;
 let initializeBusy = false;
 let actionBusy = false;
 let rematchBusy = false;
+let gachaBusy = false;
+let lastGachaDraws = [];
+let pendingGacha = (() => { try { return JSON.parse(localStorage.getItem(GACHA_PENDING_KEY) || "null"); } catch { return null; } })();
 let pendingAction = null;
 let targetDraft = null;
+let randomRevealTimer = null;
+let shownTerminalEventKey = null;
+let dismissedTerminalEventKey = null;
 const selectedMacros = new Set();
 const COLOR_HEX = { red: "#ef4444", blue: "#3b82f6", yellow: "#eab308", green: "#22c55e" };
 const COLOR_JA = { red: "赤", blue: "青", yellow: "黄", green: "緑" };
@@ -53,12 +93,94 @@ function hasStandardPublicState(value) {
   return Boolean(value && typeof value === "object" && value.playableBounds && Number.isSafeInteger(value.version));
 }
 
+function playerName(seat) {
+  return roomModel?.members?.find((member) => member.seat === seat)?.display_name || `Player ${seat}`;
+}
+
+function terminalReasonText(reason, winnerSeat) {
+  const loserSeat = winnerSeat === "A" ? "B" : "A";
+  const winner = playerName(winnerSeat);
+  const loser = playerName(loserSeat);
+  return {
+    SURRENDER: `${loser} が投了しました。`,
+    BOARD_LOCK: `${winner} が盤面をすべて塗り切りました。`,
+    ILLEGAL_COLOR: `${loser} が接色禁止に違反しました。`,
+    SEALED_OUT: `${loser} は色封じで使える色がなくなりました。`,
+    NO_LEGAL_COLOR: `${loser} は塗れる色がなくなりました。`,
+  }[reason] || "対戦結果が確定しました。";
+}
+
+function renderTerminalResult(state) {
+  const overlay = $("terminalOverlay");
+  if (state?.status !== "FINISHED" || !["A", "B"].includes(state.winner)) {
+    show("terminalOverlay", false);
+    shownTerminalEventKey = null;
+    dismissedTerminalEventKey = null;
+    return;
+  }
+  const eventKey = `${roomModel?.room?.id || client.snapshot().roomId}:${roomModel?.room?.version}:${state.winner}:${state.terminalReason || "FINISHED"}`;
+  if (dismissedTerminalEventKey === eventKey) return show("terminalOverlay", false);
+  const mySeat = roomModel?.view?.seat;
+  const won = state.winner === mySeat;
+  overlay.classList.toggle("is-victory", won);
+  overlay.classList.toggle("is-defeat", !won);
+  $("terminalIcon").textContent = won ? "🏆" : "🗺️";
+  $("terminalEyebrow").textContent = state.terminalReason === "SURRENDER" && won ? "相手が投了しました" : "対戦結果";
+  $("terminalTitle").textContent = won ? "勝利！" : "敗北";
+  $("terminalMessage").textContent = won ? `${playerName(mySeat)} の勝利です！` : `${playerName(state.winner)} の勝利です`;
+  $("terminalReasonText").textContent = terminalReasonText(state.terminalReason, state.winner);
+  show("terminalOverlay", true);
+  if (shownTerminalEventKey !== eventKey) {
+    shownTerminalEventKey = eventKey;
+    requestAnimationFrame(() => $("terminalClose").focus({ preventScroll: true }));
+  }
+}
+
+function colorName(color) { return COLOR_JA[color] || "不明"; }
+
+function renderColorValue(id, color, suffix = "") {
+  const node = $(id); node.replaceChildren();
+  const chip = document.createElement("span"); chip.className = `color-chip ${color || "unknown"}`; chip.setAttribute("aria-hidden", "true"); node.appendChild(chip);
+  const label = document.createElement("span"); label.textContent = `${colorName(color)}${suffix}`; node.appendChild(label);
+}
+
+function renderRandomSummary(publicState, privateState) {
+  const changedSize = publicState.requiredSize !== publicState.rolledSize;
+  $("rolledSizeValue").textContent = `${publicState.rolledSize}マス${changedSize ? `（スキル効果で現在${publicState.requiredSize}マス）` : ""}`;
+  $("basicPaletteValue").textContent = (privateState.basicPalette || []).map(colorName).join("・") || "確認中";
+  renderColorValue("bonusColorValue", privateState.bonusColor, `（残り${privateState.bonusUsesRemaining || 0}回）`);
+}
+
+function revealRandomSetup(publicState, privateState) {
+  const key = `${RANDOM_REVEAL_PREFIX}${publicState.matchId}`;
+  if (!publicState.matchId || sessionStorage.getItem(key)) return;
+  sessionStorage.setItem(key, "shown");
+  $("randomRevealTitle").textContent = `サイコロは ${publicState.rolledSize}マス！`;
+  $("randomRevealDetail").textContent = `あなたの持ち色は ${(privateState.basicPalette || []).map(colorName).join("・")}、おまけ色は${colorName(privateState.bonusColor)}（${privateState.bonusUsesRemaining || 0}回）。すべてサーバーのランダム抽選です。`;
+  show("randomReveal", true);
+  clearTimeout(randomRevealTimer);
+  randomRevealTimer = setTimeout(() => show("randomReveal", false), 2600);
+}
+
+function openSkillInfo(skill) {
+  const meta = SKILL_META[skill]; if (!meta) return;
+  $("skillInfoTitle").textContent = meta.name;
+  $("skillInfoTiming").textContent = meta.category === "color" ? "使えるタイミング：エリアを塗る前" : "使えるタイミング：エリアを渡す前";
+  $("skillInfoBody").textContent = SKILL_DESCRIPTION[skill] || "説明を準備中です。";
+  show("skillInfoRandom", RANDOM_SKILLS.has(skill));
+  const dialog = $("skillInfoDialog");
+  if (!dialog.open) dialog.showModal();
+}
+
 function loadProfiles() {
   try { localRoot = JSON.parse(localStorage.getItem(SAVE_KEY) || "null"); } catch { localRoot = null; }
   let starterProfile = null;
   try { starterProfile = JSON.parse(localStorage.getItem(STARTER_PROFILE_KEY) || "null"); } catch { starterProfile = null; }
+  let remoteProfile = null;
+  try { remoteProfile = JSON.parse(localStorage.getItem(REMOTE_PROFILE_KEY) || "null"); } catch { remoteProfile = null; }
   const profiles = Object.entries(localRoot?.profiles || {});
   if (starterProfile && typeof starterProfile === "object" && !Array.isArray(starterProfile)) profiles.push([STARTER_PROFILE_ID, starterProfile]);
+  if (remoteProfile && typeof remoteProfile === "object" && !Array.isArray(remoteProfile)) profiles.push([REMOTE_PROFILE_ID, remoteProfile]);
   availableProfiles = Object.fromEntries(profiles);
   $("profileSelect").replaceChildren();
   for (const [id, value] of profiles) {
@@ -70,20 +192,35 @@ function loadProfiles() {
   renderProfile();
 }
 
+function persistRemoteProfile(profileState, remoteName = null, revision = null) {
+  if (!profileState || typeof profileState !== "object" || Array.isArray(profileState)) return;
+  const next = JSON.parse(JSON.stringify(profileState));
+  if (remoteName) next.displayName = String(remoteName).trim().slice(0, 20);
+  localStorage.setItem(REMOTE_PROFILE_KEY, JSON.stringify(next));
+  localStorage.setItem(PROFILE_CHOICE_KEY, REMOTE_PROFILE_ID);
+  if (revision !== null && Number.isSafeInteger(Number(revision))) hydratedProfileRevision = Number(revision);
+  loadProfiles();
+}
+
+function hydrateProfileRow(row) {
+  if (!row?.profile_state || Number(row.revision) === hydratedProfileRevision) return;
+  persistRemoteProfile(row.profile_state, row.display_name, Number(row.revision));
+}
+
 function renderProfile() {
   const value = profile();
   show("profileCard", true);
   show("starterCreator", !value);
   $("syncProfile").disabled = !value || !connected;
   $("profileSummary").textContent = value ? `${value.displayName} — 所持カード ${Object.values(value.inventory || {}).reduce((sum, count) => sum + count, 0)}枚` : "名前を入力して、はじめて用プロフィールを作成してください。";
-  if (value) renderLoadout();
+  if (value) { renderLoadout(); renderGacha(); }
 }
 
 function starterProfile(displayName) {
   return {
     displayName,
     quizRecords: {},
-    gachaTickets: {},
+    gachaTickets: { "1": 3 },
     inventory: { ...STARTER_INVENTORY },
     coins: 0,
     achievements: [],
@@ -95,6 +232,52 @@ function starterProfile(displayName) {
     stats: { wins: 0, losses: 0, currentWinStreak: 0, bestWinStreak: 0, fullPaints: 0 },
     matchHistory: [],
   };
+}
+
+function renderGacha() {
+  const value = profile();
+  if (!value || !$("gachaPanel")) return;
+  const tickets = value.gachaTickets || {};
+  const level = Number($("gachaLevel").value || 1);
+  const available = Number(tickets[String(level)] || 0);
+  $("gachaTickets").textContent = [1, 2, 3, 4, 5].map((item) => `Lv.${item} ×${tickets[String(item)] || 0}`).join(" / ");
+  $("gachaDrawOne").disabled = gachaBusy || available < 1;
+  $("gachaDrawAll").disabled = gachaBusy || available < 1;
+  $("gachaRetry").classList.toggle("hidden", !pendingGacha);
+  $("gachaResults").replaceChildren();
+  for (const draw of lastGachaDraws) {
+    const card = document.createElement("article"); card.className = `gacha-card r${draw.rarity}`;
+    const stars = document.createElement("div"); stars.className = "gacha-stars"; stars.textContent = "★".repeat(draw.rarity); card.appendChild(stars);
+    const title = document.createElement("strong"); title.textContent = draw.displayName || SKILL_META[draw.skillId]?.name || draw.skillId; card.appendChild(title);
+    const detail = document.createElement("small"); detail.textContent = `${CATEGORY_LABEL[draw.category] || draw.category} / Lv.${draw.ticketLevel}`; card.appendChild(detail);
+    $("gachaResults").appendChild(card);
+  }
+}
+
+async function runGacha(requestedCount = 1, retry = false) {
+  if (gachaBusy || !profile()) return;
+  const level = Number($("gachaLevel").value || 1);
+  const available = Number(profile().gachaTickets?.[String(level)] || 0);
+  if (!retry) {
+    const count = requestedCount === null ? Math.min(available, 100) : requestedCount;
+    if (count < 1) return toast("このレベルのガチャ券がありません。");
+    pendingGacha = { actionId: crypto.randomUUID(), ticketLevel: level, count };
+    localStorage.setItem(GACHA_PENDING_KEY, JSON.stringify(pendingGacha));
+  }
+  if (!pendingGacha) return;
+  gachaBusy = true; $("gachaStatus").textContent = "サーバーで抽選中…"; renderGacha();
+  try {
+    const result = await client.drawGacha(pendingGacha);
+    persistRemoteProfile(result.profileState, displayName(), Number(result.revision));
+    lastGachaDraws = result.draws || [];
+    pendingGacha = null; localStorage.removeItem(GACHA_PENDING_KEY);
+    $("gachaStatus").textContent = `${lastGachaDraws.length}枚を獲得しました。券消費とカード付与は一度だけ保存済みです。`;
+  } catch (error) {
+    const remote = await client.readProfile().catch(() => null);
+    if (remote) hydrateProfileRow(remote);
+    $("gachaStatus").textContent = "抽選結果を確認できませんでした。同じ抽選IDで安全に再試行できます。";
+    toast(error.message || "ガチャに失敗しました。");
+  } finally { gachaBusy = false; renderGacha(); render(); }
 }
 
 function createStarterProfile() {
@@ -138,6 +321,7 @@ async function refreshRoom() {
   const snapshot = client.snapshot();
   if (!snapshot.roomId) return render();
   roomModel = await client.readRoom(snapshot.roomId);
+  hydrateProfileRow(roomModel.profile);
   render();
   if (roomModel.room.status === "ready" && client.snapshot().setupRevision > 0 && !hasStandardPublicState(roomModel.room.public_state) && !initializeBusy) {
     initializeBusy = true;
@@ -148,32 +332,41 @@ async function refreshRoom() {
 
 function render() {
   const snapshot = client.snapshot();
+  show("gachaPanel", synced && Boolean(profile()));
   show("lobby", synced && !snapshot.roomId);
   show("room", Boolean(snapshot.roomId));
   show("setupCard", Boolean(snapshot.roomId) && Boolean(profile()) && !["playing", "finished"].includes(roomModel?.room?.status));
   show("matchCard", ["playing", "finished"].includes(roomModel?.room?.status));
   show("rematchControls", roomModel?.room?.status === "finished");
-  if (!snapshot.roomId) return;
+  if (!snapshot.roomId) { renderTerminalResult(null); return; }
   $("shownCode").textContent = snapshot.roomCode || "復帰済";
   $("seatBadge").textContent = roomModel?.view?.seat ? `Player ${roomModel.view.seat}` : "席確認中";
-  $("roomStatus").textContent = roomModel?.room?.status || "loading";
+  $("roomStatus").textContent = ROOM_STATUS_LABEL[roomModel?.room?.status] || "読み込み中";
   const rematchPending = snapshot.rematchExpectedVersion === roomModel?.room?.version;
   $("requestRematch").textContent = rematchPending ? "同じ再戦申請を再送" : "再戦を申し込む";
   $("requestRematch").disabled = rematchBusy || roomModel?.room?.status !== "finished";
   $("rematchStatus").textContent = rematchPending ? "再戦を申請済みです。相手の申請を待っています。" : "両プレイヤーの申請後、6枚セットを選び直します。";
   $("members").replaceChildren(...(roomModel?.members || []).map((member) => { const node = document.createElement("span"); node.className = "member"; node.textContent = `Player ${member.seat}: ${member.display_name}`; return node; }));
   $("waitingMessage").textContent = client.snapshot().setupRevision > 0 ? "あなたの6枚は確認済みです。相手の6枚を待っています。" : "6枚セットを確認してください。";
-  $("setupStatus").textContent = client.snapshot().setupRevision > 0 ? `setup revision ${client.snapshot().setupRevision} 確認済み` : "未確認";
+  $("setupStatus").textContent = client.snapshot().setupRevision > 0 ? "あなたの6枚セットは確認済みです" : "まだ確認していません";
   if (hasStandardPublicState(roomModel?.room?.public_state)) {
     const publicState = roomModel.room.public_state;
-    $("versionText").textContent = roomModel.room.version;
-    $("turnBadge").textContent = publicState.status === "FINISHED" ? `勝者 Player ${publicState.winner}` : `Player ${publicState.active} の手番`;
-    $("phaseText").textContent = publicState.phase;
+    const privateState = roomModel.view?.private_state || {};
+    $("versionText").textContent = publicState.turn;
+    $("turnBadge").textContent = publicState.status === "FINISHED"
+      ? `勝者 Player ${publicState.winner}`
+      : publicState.active === roomModel?.view?.seat ? "あなたの手番" : `Player ${publicState.active} の手番`;
+    $("phaseText").textContent = PHASE_LABEL[publicState.phase] || "対戦進行中";
     $("publicProjection").textContent = safeJson(publicState);
-    $("privateProjection").textContent = safeJson(roomModel.view?.private_state || {});
+    $("privateProjection").textContent = safeJson(privateState);
+    renderRandomSummary(publicState, privateState);
+    revealRandomSetup(publicState, privateState);
     renderBoard(publicState);
-    renderBasicActions(publicState, roomModel.view?.private_state || {});
-    renderSkills(publicState, roomModel.view?.private_state || {});
+    renderBasicActions(publicState, privateState);
+    renderSkills(publicState, privateState);
+    renderTerminalResult(publicState);
+  } else {
+    renderTerminalResult(null);
   }
 }
 
@@ -186,9 +379,14 @@ function renderSkills(state, privateState) {
   const myTurn = state.status === "ACTIVE" && state.active === roomModel?.view?.seat;
   for (const [skill, count] of Object.entries(privateState.hand || {})) {
     if (!(count > 0) || !SKILL_META[skill]) continue;
-    const meta = SKILL_META[skill]; const node = button(`${meta.name} ×${count}`, () => beginSkill(skill), "skill");
+    const meta = SKILL_META[skill];
+    const item = document.createElement("div"); item.className = "skill-entry";
+    const node = button(`${meta.name} ×${count}`, () => beginSkill(skill), "skill");
     const timingOkay = meta.category === "color" ? state.phase === "COLOR" : ["CREATE_FIRST", "WORK"].includes(state.phase);
-    node.disabled = actionBusy || !myTurn || !timingOkay; box.appendChild(node);
+    node.disabled = actionBusy || !myTurn || !timingOkay;
+    const info = button("ⓘ", () => openSkillInfo(skill), "skill-info-button");
+    info.type = "button"; info.setAttribute("aria-label", `${meta.name}の説明`); info.title = `${meta.name}の説明`;
+    item.append(node, info); box.appendChild(item);
   }
   renderSkillTarget(state);
 }
@@ -294,7 +492,7 @@ function renderBasicActions(state, privateState) {
   $("submitRegion").disabled = actionBusy || selectedMacros.size !== state.requiredSize;
   const palette = $("paletteControls"); palette.replaceChildren();
   if (myTurn && state.phase === "COLOR") {
-    const colors = [...new Set([...(privateState.basicPalette || []), ...(privateState.bonusUsesRemaining > 0 ? [privateState.bonusColor] : [])])];
+    const colors = skillIntents.availableColorChoices(privateState);
     for (const color of colors) {
       const button = document.createElement("button"); button.className = "color-button"; button.dataset.color = color;
       button.textContent = COLOR_JA[color] || color; button.disabled = actionBusy; button.onclick = () => sendAction("COLOR_REGION", { color }); palette.appendChild(button);
@@ -340,9 +538,13 @@ async function syncSelectedProfile() {
   const value = profile(); if (!value) return;
   $("syncProfile").disabled = true;
   try {
-    await client.readProfile();
-    await client.syncProfile({ displayName: displayName(), profileState: value });
-    synced = true; localStorage.setItem(PROFILE_CHOICE_KEY, selectedProfileId); badge("プロフィール同期済み", "good"); render();
+    const remote = await client.readProfile();
+    if (remote) hydrateProfileRow(remote);
+    else {
+      const created = await client.syncProfile({ displayName: displayName(), profileState: value });
+      persistRemoteProfile(created.profileState || value, created.displayName || displayName(), Number(created.revision));
+    }
+    synced = true; badge("プロフィール同期済み", "good"); render();
   } catch (error) { toast(error.message || "同期に失敗しました。"); }
   finally { $("syncProfile").disabled = false; }
 }
@@ -373,6 +575,10 @@ function startPolling() { clearInterval(pollTimer); pollTimer = setInterval(() =
 $("profileSelect").onchange = () => { selectedProfileId = $("profileSelect").value; synced = false; renderProfile(); render(); };
 $("createStarterProfile").onclick = createStarterProfile;
 $("syncProfile").onclick = syncSelectedProfile;
+$("gachaLevel").onchange = () => { lastGachaDraws = []; renderGacha(); };
+$("gachaDrawOne").onclick = () => runGacha(1);
+$("gachaDrawAll").onclick = () => runGacha(null);
+$("gachaRetry").onclick = () => runGacha(1, true);
 $("createRoom").onclick = createRoom;
 $("joinRoom").onclick = joinRoom;
 $("roomCode").oninput = () => { $("roomCode").value = $("roomCode").value.replace(/\s/g, "").toUpperCase().slice(0, 6); };
@@ -384,6 +590,12 @@ $("declareNoColor").onclick = () => sendAction("DECLARE_NO_COLOR");
 $("surrender").onclick = () => sendAction("SURRENDER");
 $("retryAction").onclick = () => pendingAction && sendAction(pendingAction.type, pendingAction.payload, true);
 $("requestRematch").onclick = requestRematch;
+$("closeSkillInfo").onclick = () => $("skillInfoDialog").close();
+$("terminalClose").onclick = () => {
+  dismissedTerminalEventKey = shownTerminalEventKey;
+  show("terminalOverlay", false);
+  $("requestRematch").focus({ preventScroll: false });
+};
 $("leaveRoom").onclick = () => { client.clearRoom(); roomModel = null; clearInterval(pollTimer); render(); };
 
 loadProfiles();
@@ -392,7 +604,10 @@ try {
   const session = await client.ensureSession();
   connected = true;
   $("connectionMessage").textContent = `端末ユーザー ${session.user.id.slice(0, 8)}…`;
-  badge("匿名ログイン済み", "good"); loadProfiles();
+  badge("匿名ログイン済み", "good");
+  const remote = await client.readProfile();
+  if (remote) { hydrateProfileRow(remote); synced = true; }
+  else loadProfiles();
   if (client.snapshot().roomId) { synced = true; await refreshRoom(); startPolling(); }
   render();
 } catch (error) {
