@@ -1,0 +1,36 @@
+.progression-panel h2 { margin: .2rem 0; }
+.coin-badge { padding: 8px 12px; border: 1px solid #facc15; border-radius: 999px; background: #422006; color: #fef08a; }
+.profile-stats { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; margin: 14px 0; }
+.profile-stats > div { display: grid; gap: 2px; padding: 10px; text-align: center; border: 1px solid #334155; border-radius: 12px; background: #07111f; }
+.profile-stats strong { color: #67e8f9; font-size: 24px; }
+.profile-stats span { color: #94a3b8; font-size: 12px; font-weight: 800; }
+.trophy-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.trophy { display: flex; gap: 10px; align-items: center; padding: 12px; border: 1px solid #475569; border-radius: 14px; background: #111c30; }
+.trophy.unlocked { border-color: #facc15; background: linear-gradient(145deg, #42200688, #111c30); box-shadow: 0 0 18px #facc1522; }
+.trophy.locked { opacity: .68; }
+.trophy-icon { flex: 0 0 auto; font-size: 30px; }
+.trophy > div { display: grid; gap: 3px; }
+.trophy small, .trophy-status { color: #94a3b8; font-size: 12px; }
+.trophy.unlocked .trophy-status { color: #fde68a; font-weight: 800; }
+.history-details { margin-top: 16px; }
+.history-details summary { cursor: pointer; font-weight: 850; color: #cbd5e1; }
+.match-history { display: grid; gap: 7px; margin: 10px 0 0; padding: 0; list-style: none; }
+.match-history li { display: flex; align-items: center; gap: 10px; padding: 9px 11px; border-left: 4px solid #64748b; border-radius: 8px; background: #07111f; }
+.match-history li strong { min-width: 3em; }
+.match-history li span { color: #cbd5e1; font-size: 13px; }
+.match-history .history-win { border-left-color: #4ade80; }
+.match-history .history-win strong { color: #86efac; }
+.match-history .history-loss { border-left-color: #fb7185; }
+.match-history .history-loss strong { color: #fda4af; }
+.match-history .empty-history { border-left-color: #475569; color: #94a3b8; }
+.card-sale-box { margin-top: 18px; padding-top: 14px; border-top: 1px solid #334155; }
+.card-sale-box h3 { margin: 0 0 5px; }
+.card-sale-controls { display: flex; align-items: end; gap: 9px; flex-wrap: wrap; }
+.card-sale-controls label { display: grid; gap: 4px; color: #cbd5e1; font-size: 12px; font-weight: 800; }
+.card-sale-controls input { width: 86px; }
+
+@media (max-width: 760px) {
+  .profile-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .trophy-list { grid-template-columns: 1fr; }
+  .match-history li { align-items: flex-start; flex-direction: column; gap: 3px; }
+}

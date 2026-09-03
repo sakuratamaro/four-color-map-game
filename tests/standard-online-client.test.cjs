@@ -46,6 +46,8 @@ function supabaseFixture({ roomStatus = "ready", roomVersion = 10 } = {}) {
         calls.push({ kind: "invoke", name, request });
         if (request.body.operation === "profile") return { data: { revision: 1 } };
         if (request.body.operation === "gacha") return { data: { revision: 4, duplicate: false, draws: [{ skillId: "colorPrism" }], profileState: { gachaTickets: { "1": 1 }, inventory: { colorPrism: 1 } } } };
+        if (request.body.operation === "card-sale-quote") return { data: { revision: 3, quote: { skillId: request.body.skillId, count: request.body.count, earnedCoins: 20, remaining: 1, requiresConfirmation: true } } };
+        if (request.body.operation === "card-sale") return { data: { revision: 4, duplicate: false, quote: { skillId: request.body.skillId, count: request.body.count, earnedCoins: 20, remaining: 1 }, profileState: { coins: 20, inventory: { colorRandomBorrow: 1 } } } };
         if (request.body.operation === "quiz-start") return { data: { sessionId: QUIZ_SESSION_ID, duplicate: false, selectedLevel: 2, expiresAt: "2099-01-01T00:00:00Z", questions: Array.from({ length: 10 }, (_, index) => ({ prompt: `Q${index + 1}`, options: [{ id: `q${index + 1}-1`, label: "1" }] })) } };
         if (request.body.operation === "quiz-finish") return { data: { revision: 5, duplicate: false, correct: 10, wrong: 0, bestStreak: 10, reward: { ticketLevel: 2, draws: 10, reason: "全問正解" }, profileState: { gachaTickets: { "2": 10 }, inventory: {} } } };
         if (request.body.operation === "setup") return { data: { setupRevision: 1, profileRevision: 1, quoteId: request.body.setupActionId } };
@@ -132,6 +134,22 @@ test("gacha retains the caller action identity and persists the committed profil
   assert.equal(result.draws[0].skillId, "colorPrism");
   assert.equal(client.snapshot().profileRevision, 4);
   assert.equal(JSON.parse(storage.values.get(STORAGE_KEY)).profileRevision, 4);
+});
+
+test("card sale quotes current server state and retains one action identity for commit", async () => {
+  const supabase = supabaseFixture();
+  const storage = storageFixture({ profileRevision: 2 });
+  const client = createStandardOnlineClient({ supabase, storage, idFactory: () => { throw new Error("must not allocate"); } });
+  const quoted = await client.quoteCardSale({ skillId: "colorRandomBorrow", count: 2 });
+  assert.equal(quoted.quote.requiresConfirmation, true);
+  assert.equal(client.snapshot().profileRevision, 3);
+  const sold = await client.sellCards({ actionId: ACTION_ID, skillId: "colorRandomBorrow", count: 2, confirmed: true });
+  assert.equal(sold.profileState.coins, 20);
+  assert.equal(client.snapshot().profileRevision, 4);
+  assert.deepEqual(supabase.calls.filter((call) => call.kind === "invoke").map((call) => call.request.body), [
+    { operation: "card-sale-quote", expectedRevision: 2, skillId: "colorRandomBorrow", count: 2 },
+    { operation: "card-sale", expectedRevision: 3, actionId: ACTION_ID, skillId: "colorRandomBorrow", count: 2, confirmed: true },
+  ]);
 });
 
 test("online quiz starts and finishes through server operations and persists the rewarded revision", async () => {

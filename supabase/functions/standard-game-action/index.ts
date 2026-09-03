@@ -9,6 +9,8 @@ type StandardEngineApi = {
   applyProfiles(input: { profiles: Record<Seat, JsonObject>; beforeState: JsonObject; nextState: JsonObject; actor: Seat; action: JsonObject; finishedAt: string }): { profiles: Record<Seat, JsonObject>; changed: Record<Seat, boolean> };
   createStarterProfile(displayName: string): JsonObject;
   drawGacha(input: { profile: JsonObject; ticketLevel: number; count: number; seed: number }): { profile: JsonObject; draws: JsonObject[] };
+  quoteCardSale(input: { profile: JsonObject; skillId: string; count: number }): JsonObject;
+  sellCards(input: { profile: JsonObject; skillId: string; count: number; confirmed: boolean }): { profile: JsonObject; quote: JsonObject };
   publicState(state: JsonObject): JsonObject;
   privateState(state: JsonObject, seat: Seat): JsonObject;
   validateProfile(profile: JsonObject): boolean;
@@ -177,6 +179,7 @@ function publicError(error: unknown): { status: number; code: string; message: s
   if (detail.includes("QUIZ_SESSION_NOT_FOUND")) return { status: 404, code: "QUIZ_SESSION_NOT_FOUND", message: "Quiz was not found." };
   if (detail.includes("INVALID_QUIZ")) return { status: 400, code: "INVALID_QUIZ", message: "Quiz input is invalid." };
   if (candidate?.code === "PT409" || candidate?.code === "40001") return { status: 409, code: "STALE_VERSION", message: "Match changed; reload and retry." };
+  if (candidate?.code === "55000" && detail.includes("CARD_SALE_MATCH_LOCKED")) return { status: 409, code: "CARD_SALE_MATCH_LOCKED", message: "Cards cannot be sold after a loadout is submitted or while a match is active." };
   if (candidate?.code === "23505") return { status: 409, code: "IDEMPOTENCY_KEY_REUSE", message: "Action ID was reused with different input." };
   if (candidate?.code === "42501") return { status: 403, code: "NOT_A_MEMBER", message: "You are not in this room." };
   if (candidate?.code === "P0002") return { status: 404, code: "ROOM_NOT_FOUND", message: "Room was not found." };
@@ -200,7 +203,7 @@ Deno.serve(async (request: Request) => {
     });
     const body = await request.json() as JsonObject;
     const operation = body.operation;
-    if (!["profile", "gacha", "quiz-start", "quiz-finish", "setup", "initialize", "action"].includes(String(operation))) {
+    if (!["profile", "gacha", "card-sale-quote", "card-sale", "quiz-start", "quiz-finish", "setup", "initialize", "action"].includes(String(operation))) {
       return json(400, { error: { code: "INVALID_REQUEST", message: "A valid operation is required." } });
     }
 
@@ -303,6 +306,95 @@ Deno.serve(async (request: Request) => {
         revision: current?.revision ?? committed?.new_revision,
         duplicate: committed?.duplicate === true,
         draws: (committed?.action_result as JsonObject)?.draws || drawn.draws,
+        profileState: current?.profile_state,
+      });
+    }
+
+    if (operation === "card-sale-quote" || operation === "card-sale") {
+      const expectedRevision = body.expectedRevision;
+      const actionId = body.actionId;
+      const skillId = body.skillId;
+      const count = body.count;
+      const confirmed = body.confirmed === true;
+      if (!Number.isSafeInteger(expectedRevision) || typeof skillId !== "string" || skillId.length > 64
+          || !Number.isSafeInteger(count) || (count as number) < 1 || (count as number) > 100
+          || (operation === "card-sale" && (typeof actionId !== "string" || !UUID_PATTERN.test(actionId)))) {
+        return json(400, { error: { code: "INVALID_CARD_SALE", message: "A valid card and sale count are required." } });
+      }
+      const actionFingerprint = await fingerprint({ actorId, skillId, count, confirmed });
+      if (operation === "card-sale") {
+        stage = "replay-card-sale";
+        const { data: replayData, error: replayError } = await service.rpc("fcg_standard_server_replay_card_sale", {
+          p_user_id: actorId,
+          p_action_id: actionId,
+          p_action_fingerprint: actionFingerprint,
+        });
+        if (replayError) throw replayError;
+        const replay = firstRow(replayData);
+        if (replay?.found === true) {
+          const { data: replayProfileData, error: replayProfileError } = await service.rpc("fcg_standard_server_load_profile", { p_user_id: actorId });
+          if (replayProfileError) throw replayProfileError;
+          const replayProfile = firstRow(replayProfileData);
+          return json(200, {
+            revision: replayProfile?.revision ?? replay.profile_revision,
+            duplicate: true,
+            quote: (replay.action_result as JsonObject)?.quote,
+            profileState: replayProfile?.profile_state,
+          });
+        }
+      }
+      stage = "load-profile";
+      const { data: profileData, error: profileError } = await service.rpc("fcg_standard_server_load_profile", { p_user_id: actorId });
+      if (profileError) throw profileError;
+      const profile = firstRow(profileData);
+      if (!profile) throw { code: "P0002" };
+      let quote: JsonObject;
+      try {
+        quote = globalThis.FourColorStandardServerEngine.quoteCardSale({
+          profile: profile.profile_state as JsonObject,
+          skillId: skillId as string,
+          count: count as number,
+        });
+      } catch (error) {
+        const code = String((error as { message?: string })?.message || "CARD_SALE_REJECTED");
+        return json(400, { error: { code, message: "This card sale is not available." } });
+      }
+      if (operation === "card-sale-quote") {
+        return json(200, { revision: profile.revision, quote });
+      }
+      if ((quote as { requiresConfirmation?: boolean }).requiresConfirmation && !confirmed) {
+        return json(409, { error: { code: "SALE_CONFIRMATION_REQUIRED", message: "Confirm this card sale before continuing.", quote } });
+      }
+      let sold;
+      try {
+        sold = globalThis.FourColorStandardServerEngine.sellCards({
+          profile: profile.profile_state as JsonObject,
+          skillId: skillId as string,
+          count: count as number,
+          confirmed,
+        });
+      } catch (error) {
+        const code = String((error as { message?: string })?.message || "CARD_SALE_REJECTED");
+        return json(400, { error: { code, message: "This card sale is not available." } });
+      }
+      stage = "commit-card-sale";
+      const { data, error } = await service.rpc("fcg_standard_server_commit_card_sale", {
+        p_user_id: actorId,
+        p_expected_revision: expectedRevision,
+        p_action_id: actionId,
+        p_action_fingerprint: actionFingerprint,
+        p_profile_state: sold.profile,
+        p_action_result: { quote: sold.quote },
+      });
+      if (error) throw error;
+      const committed = firstRow(data);
+      const { data: currentData, error: currentError } = await service.rpc("fcg_standard_server_load_profile", { p_user_id: actorId });
+      if (currentError) throw currentError;
+      const current = firstRow(currentData);
+      return json(200, {
+        revision: current?.revision ?? committed?.new_revision,
+        duplicate: committed?.duplicate === true,
+        quote: (committed?.action_result as JsonObject)?.quote || sold.quote,
         profileState: current?.profile_state,
       });
     }

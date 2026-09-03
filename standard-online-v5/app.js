@@ -15,6 +15,7 @@ const REMOTE_PROFILE_KEY = "fourColorMapGame.standard.online.v5.remote-profile";
 const REMOTE_PROFILE_ID = "online-server";
 const GACHA_PENDING_KEY = "fourColorMapGame.standard.online.v5.pending-gacha";
 const QUIZ_PENDING_KEY = "fourColorMapGame.standard.online.v5.pending-quiz";
+const CARD_SALE_PENDING_KEY = "fourColorMapGame.standard.online.v5.pending-card-sale";
 const STARTER_INVENTORY = Object.freeze({
   colorRandomBorrow: 3, colorChoiceBorrow: 3,
   areaMicroBloom: 3, areaDiePlus: 3,
@@ -37,6 +38,15 @@ const PHASE_LABEL = {
   GAME_OVER: "対戦終了",
 };
 const ROOM_STATUS_LABEL = { waiting: "相手を待っています", ready: "6枚セット選択中", playing: "対戦中", finished: "対戦終了" };
+const TROPHY_META = Object.freeze({
+  fullPaint: { icon: "🗺️", name: "完塗り達成", condition: "盤面をすべて塗り切って勝利" },
+  fullPaint3: { icon: "🏆", name: "完塗り三冠", condition: "完塗り勝利を3回達成" },
+  noSkillFullPaint: { icon: "✨", name: "四色の匠", condition: "スキルを使わず完塗り勝利" },
+});
+const TERMINAL_REASON_LABEL = Object.freeze({
+  SURRENDER: "投了", BOARD_LOCK: "完塗り", ILLEGAL_COLOR: "接色禁止違反",
+  SEALED_OUT: "色封じ", NO_LEGAL_COLOR: "使用可能色なし",
+});
 const SKILL_DESCRIPTION = Object.freeze({
   colorRandomBorrow: "盤面ですでに使われている色から、1色をランダムでこの彩色中だけ借ります。抽選された色は自分だけに表示されます。",
   colorChoiceBorrow: "盤面ですでに使われている色を1色選び、この彩色中だけ借ります。借りた色は色ボタンに追加されます。",
@@ -72,10 +82,13 @@ let actionBusy = false;
 let rematchBusy = false;
 let gachaBusy = false;
 let quizBusy = false;
+let cardSaleBusy = false;
 let lastGachaDraws = [];
 let pendingGacha = (() => { try { return JSON.parse(localStorage.getItem(GACHA_PENDING_KEY) || "null"); } catch { return null; } })();
 let pendingQuiz = (() => { try { return JSON.parse(localStorage.getItem(QUIZ_PENDING_KEY) || "null"); } catch { return null; } })();
 let lastQuizResult = null;
+let cardSaleQuote = null;
+let pendingCardSale = (() => { try { return JSON.parse(localStorage.getItem(CARD_SALE_PENDING_KEY) || "null"); } catch { return null; } })();
 let pendingAction = null;
 let targetDraft = null;
 let randomRevealTimer = null;
@@ -250,7 +263,142 @@ function renderProfile() {
   show("starterCreator", !value);
   $("syncProfile").disabled = !value || !connected;
   $("profileSummary").textContent = value ? `${value.displayName} — 所持カード ${Object.values(value.inventory || {}).reduce((sum, count) => sum + count, 0)}枚` : "名前を入力して、はじめて用プロフィールを作成してください。";
-  if (value) { renderLoadout(); renderGacha(); }
+  if (value) { renderLoadout(); renderGacha(); renderProgression(); }
+}
+
+function displayDate(value) {
+  const timestamp = Date.parse(value);
+  if (!Number.isFinite(timestamp)) return "日時不明";
+  return new Intl.DateTimeFormat("ja-JP", { year: "numeric", month: "short", day: "numeric" }).format(timestamp);
+}
+
+function appendStat(label, value) {
+  const item = document.createElement("div");
+  const number = document.createElement("strong"); number.textContent = String(value);
+  const caption = document.createElement("span"); caption.textContent = label;
+  item.append(number, caption); $("profileStats").appendChild(item);
+}
+
+function renderProgression() {
+  const value = profile();
+  if (!value || !$("progressionPanel")) return;
+  const stats = value.stats || {};
+  $("profileCoins").textContent = `🪙 ${Number(value.coins || 0)}コイン`;
+  $("profileStats").replaceChildren();
+  appendStat("勝利", Number(stats.wins || 0));
+  appendStat("敗北", Number(stats.losses || 0));
+  appendStat("現在の連勝", Number(stats.currentWinStreak || 0));
+  appendStat("最高連勝", Number(stats.bestWinStreak || 0));
+  appendStat("完塗り", Number(stats.fullPaints || 0));
+
+  $("trophyList").replaceChildren();
+  for (const [id, meta] of Object.entries(TROPHY_META)) {
+    const unlocked = value.trophies?.[id] === true;
+    const item = document.createElement("article"); item.className = `trophy ${unlocked ? "unlocked" : "locked"}`;
+    const icon = document.createElement("span"); icon.className = "trophy-icon"; icon.textContent = unlocked ? meta.icon : "🔒";
+    const copy = document.createElement("div");
+    const name = document.createElement("strong"); name.textContent = meta.name;
+    const condition = document.createElement("small"); condition.textContent = meta.condition;
+    const status = document.createElement("span"); status.className = "trophy-status";
+    status.textContent = unlocked ? `解除済み ${displayDate(value.trophyDates?.[id])}` : "未解除";
+    copy.append(name, condition, status); item.append(icon, copy); $("trophyList").appendChild(item);
+  }
+
+  const history = Array.isArray(value.matchHistory) ? value.matchHistory.slice(0, 10) : [];
+  $("matchHistory").replaceChildren();
+  if (!history.length) {
+    const empty = document.createElement("li"); empty.className = "empty-history"; empty.textContent = "オンライン対戦の記録はまだありません。";
+    $("matchHistory").appendChild(empty);
+  } else {
+    for (const entry of history) {
+      const item = document.createElement("li"); item.className = entry.result === "WIN" ? "history-win" : "history-loss";
+      const result = document.createElement("strong"); result.textContent = entry.result === "WIN" ? "勝利" : "敗北";
+      const detail = document.createElement("span");
+      const reason = TERMINAL_REASON_LABEL[entry.terminalReason] || "対戦終了";
+      detail.textContent = `${displayDate(entry.endedAt)} · ${reason}${entry.fullPaint ? " · 完塗り" : ""} · スキル${Number(entry.skillsUsed || 0)}回`;
+      item.append(result, detail); $("matchHistory").appendChild(item);
+    }
+  }
+  renderCardSale();
+}
+
+function renderCardSale() {
+  const value = profile();
+  if (!value || !$("cardSaleSkill")) return;
+  const select = $("cardSaleSkill");
+  const previous = select.value;
+  const sellable = SKILLS.filter(([id]) => (value.inventory?.[id] || 0) > 1 && value.protectedSkills?.[id] !== true);
+  select.replaceChildren();
+  for (const [id, name] of sellable) {
+    const option = document.createElement("option"); option.value = id; option.textContent = `${name}（所持${value.inventory[id]}枚）`; select.appendChild(option);
+  }
+  if (sellable.some(([id]) => id === previous)) select.value = previous;
+  const selectedOwned = Number(value.inventory?.[select.value] || 0);
+  $("cardSaleCount").max = String(Math.max(1, Math.min(100, selectedOwned - 1)));
+  const roomLocked = Boolean(client.snapshot().roomId
+    && (client.snapshot().setupRevision > 0 || ["ready", "playing"].includes(roomModel?.room?.status)));
+  select.disabled = cardSaleBusy || roomLocked || !sellable.length;
+  $("cardSaleCount").disabled = select.disabled;
+  $("cardSaleQuote").disabled = select.disabled;
+  $("cardSaleCommit").disabled = cardSaleBusy || roomLocked || !cardSaleQuote;
+  show("cardSaleCommit", Boolean(cardSaleQuote) && !pendingCardSale);
+  show("cardSaleRetry", Boolean(pendingCardSale) && !cardSaleBusy);
+  show("cardSaleReset", Boolean(pendingCardSale) && !cardSaleBusy);
+  if (roomLocked && !pendingCardSale) $("cardSaleStatus").textContent = "6枚セット確認後または対戦中は売却できません。対戦終了後に利用できます。";
+  else if (!sellable.length && !pendingCardSale) $("cardSaleStatus").textContent = "いま売れる余剰カードはありません（各カードを1枚残します）。";
+}
+
+function clearCardSaleDraft() {
+  cardSaleQuote = null;
+  pendingCardSale = null;
+  localStorage.removeItem(CARD_SALE_PENDING_KEY);
+  $("cardSaleStatus").textContent = "カードと枚数を選んでください。";
+  renderCardSale();
+}
+
+async function quoteOnlineCardSale() {
+  if (cardSaleBusy || !profile()) return;
+  const skillId = $("cardSaleSkill").value;
+  const count = Number($("cardSaleCount").value);
+  if (!skillId || !Number.isSafeInteger(count) || count < 1) return toast("売るカードと枚数を確認してください。");
+  cardSaleBusy = true; cardSaleQuote = null; $("cardSaleStatus").textContent = "サーバーで売却内容を確認中…"; renderCardSale();
+  try {
+    const result = await client.quoteCardSale({ skillId, count });
+    cardSaleQuote = { ...result.quote, expectedRevision: Number(result.revision) };
+    const reasons = [];
+    if (cardSaleQuote.confirmationReasons?.includes("HIGH_RARITY")) reasons.push("高レアカード");
+    if (cardSaleQuote.confirmationReasons?.includes("LAST_SELLABLE_COPY")) reasons.push("売れる最後の余剰分");
+    $("cardSaleStatus").textContent = `${cardSaleQuote.count}枚 → ${cardSaleQuote.earnedCoins}コイン（売却後${cardSaleQuote.remaining}枚）${reasons.length ? `。注意：${reasons.join("・")}` : ""}`;
+  } catch (error) {
+    $("cardSaleStatus").textContent = "この内容では売却できません。所持枚数や保護設定を確認してください。";
+    toast(error.message || "売却内容を確認できませんでした。");
+  } finally { cardSaleBusy = false; renderCardSale(); }
+}
+
+async function commitOnlineCardSale(retry = false) {
+  if (cardSaleBusy || (!retry && !cardSaleQuote)) return;
+  if (!retry) {
+    pendingCardSale = {
+      actionId: crypto.randomUUID(), expectedRevision: cardSaleQuote.expectedRevision,
+      skillId: cardSaleQuote.skillId, count: cardSaleQuote.count,
+      confirmed: cardSaleQuote.requiresConfirmation === true,
+    };
+    localStorage.setItem(CARD_SALE_PENDING_KEY, JSON.stringify(pendingCardSale));
+  }
+  if (!pendingCardSale) return;
+  cardSaleBusy = true; $("cardSaleStatus").textContent = "サーバーで売却を保存中…"; renderCardSale();
+  try {
+    const result = await client.sellCards(pendingCardSale);
+    persistRemoteProfile(result.profileState, displayName(), Number(result.revision));
+    const earned = Number(result.quote?.earnedCoins || 0);
+    pendingCardSale = null; cardSaleQuote = null; localStorage.removeItem(CARD_SALE_PENDING_KEY);
+    $("cardSaleStatus").textContent = `${earned}コインを獲得しました。カード減算とコイン加算は一度だけ保存済みです。`;
+  } catch (error) {
+    const remote = await client.readProfile().catch(() => null);
+    if (remote) hydrateProfileRow(remote);
+    $("cardSaleStatus").textContent = "売却結果を確認できませんでした。同じ売却IDで安全に再送するか、やり直してください。";
+    toast(error.message || "カード売却に失敗しました。");
+  } finally { cardSaleBusy = false; renderProgression(); render(); }
 }
 
 function starterProfile(displayName) {
@@ -497,6 +645,7 @@ function render() {
   const snapshot = client.snapshot();
   show("quizPanel", synced && Boolean(profile()));
   show("gachaPanel", synced && Boolean(profile()));
+  show("progressionPanel", synced && Boolean(profile()));
   show("lobby", synced && !snapshot.roomId);
   show("room", Boolean(snapshot.roomId));
   show("setupCard", Boolean(snapshot.roomId) && Boolean(profile()) && !["playing", "finished"].includes(roomModel?.room?.status));
@@ -745,6 +894,12 @@ $("gachaLevel").onchange = () => { lastGachaDraws = []; renderGacha(); };
 $("gachaDrawOne").onclick = () => runGacha(1);
 $("gachaDrawAll").onclick = () => runGacha(null);
 $("gachaRetry").onclick = () => runGacha(1, true);
+$("cardSaleSkill").onchange = () => { cardSaleQuote = null; $("cardSaleStatus").textContent = "枚数を選び、売却内容を確認してください。"; renderCardSale(); };
+$("cardSaleCount").oninput = () => { cardSaleQuote = null; $("cardSaleStatus").textContent = "売却内容をもう一度確認してください。"; renderCardSale(); };
+$("cardSaleQuote").onclick = quoteOnlineCardSale;
+$("cardSaleCommit").onclick = () => commitOnlineCardSale(false);
+$("cardSaleRetry").onclick = () => commitOnlineCardSale(true);
+$("cardSaleReset").onclick = clearCardSaleDraft;
 $("createRoom").onclick = createRoom;
 $("joinRoom").onclick = joinRoom;
 $("roomCode").oninput = () => { $("roomCode").value = $("roomCode").value.replace(/\s/g, "").toUpperCase().slice(0, 6); };

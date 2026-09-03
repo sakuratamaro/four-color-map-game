@@ -61,6 +61,22 @@ test("gacha uses a server seed and commits through an idempotent receipt boundar
   assert.match(source, /draws: \(committed\?\.action_result as JsonObject\)\?\.draws \|\| drawn\.draws/);
 });
 
+test("card sale quotes and commits only a server-derived profile through a receipt boundary", () => {
+  assert.match(source, /operation === "card-sale-quote" \|\| operation === "card-sale"/);
+  assert.match(source, /FourColorStandardServerEngine\.quoteCardSale\(\{/);
+  assert.match(source, /FourColorStandardServerEngine\.sellCards\(\{/);
+  assert.match(source, /fingerprint\(\{ actorId, skillId, count, confirmed \}\)/);
+  const replay = source.indexOf('service.rpc("fcg_standard_server_replay_card_sale"');
+  const sell = source.indexOf("FourColorStandardServerEngine.sellCards({");
+  assert.ok(replay >= 0 && sell > replay);
+  assert.match(source, /SALE_CONFIRMATION_REQUIRED/);
+  assert.match(source, /fcg_standard_server_commit_card_sale/);
+  assert.match(source, /p_profile_state: sold\.profile/);
+  assert.match(source, /profileState: current\?\.profile_state/);
+  const branch = source.slice(source.indexOf('if (operation === "card-sale-quote"'), source.indexOf('if (operation === "quiz-start"'));
+  assert.doesNotMatch(branch, /body\.(?:profileState|earnedCoins|remaining)/);
+});
+
 test("setup loads the authenticated profile and issues a server-bounded quote", () => {
   assert.match(source, /operation === "setup"/);
   assert.match(source, /service\.rpc\("fcg_standard_server_load_profile",\s*\{[\s\S]+p_user_id: actorId/);

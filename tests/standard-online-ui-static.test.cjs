@@ -10,6 +10,7 @@ const root = path.join(__dirname, "..");
 const html = fs.readFileSync(path.join(root, "standard-online-v5", "index.html"), "utf8");
 const app = fs.readFileSync(path.join(root, "standard-online-v5", "app.js"), "utf8");
 const css = fs.readFileSync(path.join(root, "standard-online-v5", "style.css"), "utf8");
+const progressionCss = fs.readFileSync(path.join(root, "standard-online-v5", "progression.css"), "utf8");
 
 test("Standard online setup UI exposes the complete reconnect path", () => {
   for (const id of [
@@ -19,11 +20,35 @@ test("Standard online setup UI exposes the complete reconnect path", () => {
     "board", "regionControls", "selectionCount", "submitRegion", "paletteControls", "skillControls", "skillTargetControls",
     "declareNoColor", "surrender", "retryAction", "actionStatus", "rematchControls", "rematchStatus", "requestRematch",
     "gachaPanel", "gachaTickets", "gachaLevel", "gachaDrawOne", "gachaDrawAll", "gachaRetry", "gachaStatus", "gachaResults",
+    "progressionPanel", "profileCoins", "profileStats", "trophyList", "matchHistory",
+    "cardSaleSkill", "cardSaleCount", "cardSaleQuote", "cardSaleCommit", "cardSaleRetry", "cardSaleReset", "cardSaleStatus",
     "terminalOverlay", "terminalIcon", "terminalEyebrow", "terminalTitle", "terminalMessage", "terminalReasonText", "terminalClose",
   ]) assert.match(html, new RegExp(`id=["']${id}["']`));
   assert.match(html, /standard-online-client\.js/);
   assert.match(html, /standard-online-skill-intents\.js/);
   assert.match(html, /type="module" src="app\.js"/);
+});
+
+test("server-hydrated progression renders stats, three trophies, and recent history as text", () => {
+  assert.match(app, /function renderProgression\(\)/);
+  assert.match(app, /show\("progressionPanel", synced && Boolean\(profile\(\)\)\)/);
+  for (const trophyId of ["fullPaint", "fullPaint3", "noSkillFullPaint"]) assert.match(app, new RegExp(`${trophyId}:`));
+  assert.match(app, /value\.matchHistory\.slice\(0, 10\)/);
+  assert.match(app, /item\.append\(result, detail\)/);
+  assert.doesNotMatch(app, /matchHistory[^\n]+innerHTML/);
+  assert.match(progressionCss, /\.trophy\.unlocked/);
+  assert.match(progressionCss, /\.history-win/);
+});
+
+test("card sale persists an immutable action before commit and hydrates only the server result", () => {
+  assert.match(app, /const CARD_SALE_PENDING_KEY = "fourColorMapGame\.standard\.online\.v5\.pending-card-sale"/);
+  assert.match(app, /client\.quoteCardSale\(\{ skillId, count \}\)/);
+  const persisted = app.indexOf("localStorage.setItem(CARD_SALE_PENDING_KEY, JSON.stringify(pendingCardSale))");
+  const sent = app.indexOf("client.sellCards(pendingCardSale)");
+  assert.ok(persisted >= 0 && sent > persisted);
+  assert.match(app, /persistRemoteProfile\(result\.profileState, displayName\(\), Number\(result\.revision\)\)/);
+  assert.match(app, /cardSaleQuote\.requiresConfirmation === true/);
+  assert.match(app, /client\.snapshot\(\)\.setupRevision > 0/);
 });
 
 test("every finished match presents a local-seat victory or defeat overlay, including surrender", () => {

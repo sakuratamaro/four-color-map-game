@@ -51,11 +51,13 @@ async function installMock(context, mode) {
     if (initialMode !== "empty") {
       localStorage.setItem(save, JSON.stringify({ profiles: { playerA: { displayName: "A", inventory } } }));
       localStorage.setItem("fourColorMapGame.standard.online.v5.profile", "playerA");
-      localStorage.setItem(connection, JSON.stringify({
-        roomId: id, roomCode: "A1B2C3", profileRevision: 1, setupRevision: 3,
-        rematchActionId: initialMode === "finished" ? pendingId : null,
-        rematchExpectedVersion: initialMode === "finished" ? 9 : null,
-      }));
+      if (initialMode !== "lobby") {
+        localStorage.setItem(connection, JSON.stringify({
+          roomId: id, roomCode: "A1B2C3", profileRevision: 1, setupRevision: 3,
+          rematchActionId: initialMode === "finished" ? pendingId : null,
+          rematchExpectedVersion: initialMode === "finished" ? 9 : null,
+        }));
+      }
     }
     const active = {
       matchId: `${id}:9`, status: "ACTIVE", version: 9, turn: 3, active: "A", phase: "WORK", winner: null, requiredSize: 1, rolledSize: 1, baseRequiredSize: 1,
@@ -67,14 +69,17 @@ async function installMock(context, mode) {
       displayName: "A", inventory, gachaTickets: { "1": 2 }, coins: 0,
       protectedSkills: { areaHalfShift: true }, cosmeticsOwned: ["boardDefault", "effectDefault", "nameplateDefault", "titleNone"],
       equipped: { board: "boardDefault", effect: "effectDefault", nameplate: "nameplateDefault", title: "titleNone" },
-      trophies: { fullPaint: false, fullPaint3: false, noSkillFullPaint: false }, trophyDates: {},
-      stats: { wins: 0, losses: 0, currentWinStreak: 0, bestWinStreak: 0, fullPaints: 0 }, matchHistory: [],
+      trophies: { fullPaint: true, fullPaint3: false, noSkillFullPaint: true },
+      trophyDates: { fullPaint: "2026-09-01T00:00:00.000Z", noSkillFullPaint: "2026-09-01T00:00:00.000Z" },
+      stats: { wins: 4, losses: 2, currentWinStreak: 2, bestWinStreak: 3, fullPaints: 1 },
+      matchHistory: [{ matchId: "history-1", result: "WIN", terminalReason: "BOARD_LOCK", endedAt: "2026-09-01T00:00:00.000Z", fullPaint: true, skillsUsed: 0 }],
     };
     const runtime = {
       room: { id, status: initialMode === "finished" ? "finished" : "playing", version: 9, game_mode: "standard_v5", public_state: initialMode === "finished" ? finished : active },
       view: { seat: "A", version: 9, private_state: { hand: { areaDiePlus: 1, areaResize: 1 }, basicPalette: ["red", "blue"], bonusColor: "yellow", bonusUsesRemaining: 2, privateEffects: {} } },
       profile: initialMode === "empty" ? null : { revision: 1, display_name: "A", profile_state: profileState },
       gachaReceipts: {},
+      cardSaleReceipts: {},
       calls: [],
     };
     globalThis.__standardOnlineRuntime = runtime;
@@ -99,6 +104,25 @@ async function installMock(context, mode) {
           runtime.profile = { ...runtime.profile, revision: runtime.profile.revision + 1, profile_state: next };
           const result = { revision: runtime.profile.revision, duplicate: false, draws: Array.from({ length: request.body.count }, () => ({ ticketLevel: 1, rarity: 1, category: "color", skillId: "colorRandomBorrow", displayName: "色拾い・乱" })), profileState: next };
           runtime.gachaReceipts[request.body.actionId] = result;
+          return { data: result };
+        }
+        if (request.body.operation === "card-sale-quote") {
+          const owned = runtime.profile.profile_state.inventory[request.body.skillId] || 0;
+          return { data: { revision: runtime.profile.revision, quote: {
+            skillId: request.body.skillId, count: request.body.count, earnedCoins: request.body.count * 10,
+            remaining: owned - request.body.count, requiresConfirmation: request.body.count === owned - 1,
+            confirmationReasons: request.body.count === owned - 1 ? ["LAST_SELLABLE_COPY"] : [],
+          } } };
+        }
+        if (request.body.operation === "card-sale") {
+          const prior = runtime.cardSaleReceipts[request.body.actionId];
+          if (prior) return { data: { ...prior, duplicate: true } };
+          const next = JSON.parse(JSON.stringify(runtime.profile.profile_state));
+          next.inventory[request.body.skillId] -= request.body.count;
+          next.coins += request.body.count * 10;
+          runtime.profile = { ...runtime.profile, revision: runtime.profile.revision + 1, profile_state: next };
+          const result = { revision: runtime.profile.revision, duplicate: false, quote: { earnedCoins: request.body.count * 10 }, profileState: next };
+          runtime.cardSaleReceipts[request.body.actionId] = result;
           return { data: result };
         }
         return { data: { ok: true } };
@@ -151,7 +175,8 @@ async function withPage(mode, run) {
     await installMock(context, mode);
     const page = await context.newPage();
     await page.goto(`${url}/standard-online-v5/index.html`);
-    await page.locator(mode === "empty" ? "#profileCard:not(.hidden)" : "#room:not(.hidden)").waitFor();
+    const readySelector = mode === "empty" ? "#profileCard:not(.hidden)" : mode === "lobby" ? "#lobby:not(.hidden)" : "#room:not(.hidden)";
+    await page.locator(readySelector).waitFor();
     await run(page);
   } finally {
     await context.close();
@@ -259,6 +284,37 @@ test("actual Edge gacha persists one server draw and immediately hydrates invent
     assert.equal(evidence.profile.gachaTickets["1"], 1);
     assert.equal(evidence.profile.inventory.colorRandomBorrow, 3);
     assert.equal(await page.locator("#gachaResults .gacha-card").count(), 1);
+  });
+});
+
+test("actual Edge presents server-hydrated stats, trophy state, and match history", { timeout: 30000 }, async () => {
+  await withPage("playing", async (page) => {
+    await page.locator("#progressionPanel:not(.hidden)").waitFor();
+    assert.deepEqual(await page.locator("#profileStats strong").allTextContents(), ["4", "2", "2", "3", "1"]);
+    assert.equal(await page.locator("#trophyList .unlocked").count(), 2);
+    assert.equal(await page.locator("#trophyList .locked").count(), 1);
+    assert.match(await page.locator("#matchHistory .history-win").textContent(), /勝利.*完塗り.*スキル0回/);
+  });
+});
+
+test("actual Edge quotes and commits one server-authoritative card sale", { timeout: 30000 }, async () => {
+  await withPage("lobby", async (page) => {
+    await page.locator("#progressionPanel:not(.hidden)").waitFor();
+    await page.locator("#cardSaleSkill").selectOption("colorRandomBorrow");
+    await page.locator("#cardSaleCount").fill("1");
+    await page.getByRole("button", { name: "売却内容を確認" }).click();
+    await page.getByText(/1枚 → 10コイン/).waitFor();
+    await page.getByRole("button", { name: "この内容で売る" }).click();
+    await page.getByText("10コインを獲得しました。カード減算とコイン加算は一度だけ保存済みです。").waitFor();
+    const evidence = await page.evaluate(({ key }) => ({
+      calls: globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation?.startsWith("card-sale")).map((entry) => entry.body),
+      profile: JSON.parse(localStorage.getItem(key)),
+    }), { key: remoteProfileKey });
+    assert.equal(evidence.calls.length, 2);
+    assert.equal(evidence.calls[1].confirmed, true);
+    assert.match(evidence.calls[1].actionId, /^[0-9a-f-]{36}$/i);
+    assert.equal(evidence.profile.inventory.colorRandomBorrow, 1);
+    assert.equal(evidence.profile.coins, 10);
   });
 });
 

@@ -6,6 +6,7 @@
   <title>Four Color Map Game v5.0 Standard Online</title>
   <link rel="stylesheet" href="../online-v5/style.css">
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="progression.css">
 </head>
 <body>
   <header>
@@ -79,6 +80,33 @@
       </div>
       <p id="gachaStatus" class="muted" aria-live="polite">スターターはLv.1券を3枚持っています。</p>
       <div id="gachaResults" class="gacha-results"></div>
+    </section>
+
+    <section id="progressionPanel" class="card progression-panel hidden">
+      <div class="row between wrap">
+        <div><h2>戦績とトロフィー</h2><p class="muted">対戦終了時にサーバーへ保存された記録です。</p></div>
+        <strong id="profileCoins" class="coin-badge">🪙 0コイン</strong>
+      </div>
+      <div id="profileStats" class="profile-stats" aria-label="対戦成績"></div>
+      <h3>トロフィー</h3>
+      <div id="trophyList" class="trophy-list"></div>
+      <details class="history-details">
+        <summary>最近の対戦履歴</summary>
+        <ol id="matchHistory" class="match-history"></ol>
+      </details>
+      <div class="card-sale-box">
+        <h3>余ったカードを売る</h3>
+        <p class="muted small">各カードを必ず1枚残します。保護カードと、6枚セット確認後・対戦中のカードは売れません。</p>
+        <div class="card-sale-controls">
+          <label>カード<select id="cardSaleSkill"></select></label>
+          <label>枚数<input id="cardSaleCount" type="number" min="1" max="100" value="1" inputmode="numeric"></label>
+          <button id="cardSaleQuote">売却内容を確認</button>
+          <button id="cardSaleCommit" class="primary hidden">この内容で売る</button>
+          <button id="cardSaleRetry" class="ghost hidden">同じ売却を再送</button>
+          <button id="cardSaleReset" class="ghost hidden">売却をやり直す</button>
+        </div>
+        <p id="cardSaleStatus" class="callout" aria-live="polite">カードと枚数を選んでください。</p>
+      </div>
     </section>
 
     <section id="lobby" class="card hidden">

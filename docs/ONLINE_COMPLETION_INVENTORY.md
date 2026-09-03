@@ -24,10 +24,10 @@
 | ガチャとカード所持 | ソース実装済み・公開確認作業中 | 採用 | 公開で券消費と付与が一度だけ、再読込後も保持 | gacha migration、Edge operation、browser/transaction tests |
 | 再戦・復帰・新しい試合 | 実装済み | 採用 | 公開二端末で両者再戦、片側再読込、次試合を完走 | rematch migrations、online browser/client tests |
 | 接触色数の演出 | 実装済み | 採用 | 軽量同期との統合後に実ブラウザ確認 | contact feedback UI/test |
-| Realtime＋単一snapshotによる軽量同期 | 統合ブランチで実装済み、未公開 | 採用 | snapshot migration適用、A/B/非メンバー検証、公開計測 | `STANDARD_ONLINE_TRANSPORT_LITE.md`、sync/client/migration tests |
+| Realtime＋単一snapshotによる軽量同期 | snapshot RPCは本番適用・A/B/非メンバー実測済み、軽量クライアントは未公開 | 採用 | 軽量クライアント公開後の二端末復帰・通信量計測 | `STANDARD_ONLINE_TRANSPORT_LITE.md`、live smoke、sync/client/migration tests |
 | 元ソースとデプロイ再現性 | 統合ブランチで復旧済み、未統合 | 採用 | 全試験合格後にコミットし、公開ブランチへ安全に統合 | `standard/`、build scripts、Edge bundle、過去欠落migration、Supabase function config |
-| カード売却 | ローカルのみ | 採用・野良対戦より先に正本化 | サーバー権威API、冪等receipt、競合試験。詳細UIは後続でもよい | local `standard-profile.js` と売却UI/tests |
-| トロフィー、戦績、対戦履歴 | 精算データはオンラインエンジン内、一覧UIはローカルのみ | 採用・授与/書込みは野良対戦より先 | 対人/CPUを分離した保存、既存3トロフィーの一回授与、最低限の履歴書込み。詳細一覧UIは後続でもよい | profile settlement、local trophy/history UI/tests |
+| カード売却 | 統合ブランチでオンライン実装済み、DB/Edge未適用 | 採用・野良対戦より先に正本化 | migration/Edgeを適用し、公開で通常・要確認・再送・対戦ロックを確認 | `202609030006_standard_online_card_sale.sql`、Edge operations、online UI/browser/engine tests |
+| トロフィー、戦績、対戦履歴 | 対人精算・3トロフィー授与・最低限の一覧UIまで統合ブランチで実装済み、未公開 | 採用・授与/書込みは野良対戦より先 | 公開対人戦で一回精算と再読込表示を確認。CPU追加時に対人/CPU別記録へ拡張 | server `applyProfiles`、online progression UI/browser tests |
 | 見た目の購入・装備 | ローカルのみ | 採用・詳細UIは野良対戦後でもよい | 先に装備IDの保存/表示境界を固定。購入API、ショップ演出、プレビューは野良対戦後でもよい | `standard-cosmetics.js`、local cosmetic UI/tests |
 | 合言葉不要の野良マッチング | 構想のみ | 採用 | 原子的ticket/RPC、heartbeat/TTL、取消、再読込、レート制限、UI | `PUBLIC_MATCHMAKING_AND_CPU_FALLBACK_PLAN.md` |
 | 90秒/180秒後の同意制CPU案内 | 構想のみ | 採用 | 問題間の案内、人間参加との競合を原子的に一方へ決着、自動開始は禁止 | 同上 |
@@ -42,7 +42,7 @@
 1. 現行公開変更を取り込み、復元したStandard元ソース・migration・生成手順と全試験を一つの再現可能な基準へまとめる。
 2. 単一snapshotとRealtime同期をDB/公開環境へ適用し、読み取り回数、復帰、非メンバー拒否を測る。プロフィール全件は将来room snapshotから分離し、毎手の応答を再び重くしない。
 3. 既存のオンライン機能を二端末で再確認する。ここで合言葉対戦、クイズ、ガチャ、全試合、再戦、再読込を壊していないことを確定する。
-4. 売却を含む経済正本、終局精算、対人/CPU戦績、最低限の履歴書込み、既存3トロフィーの授与をサーバー権威化する。詳細な一覧・ショップ・着せ替えUIは後続でもよい。
+4. 実装済みのカード売却、終局精算、最低限の履歴、既存3トロフィー授与を本番適用・実測する。CPU追加時に対人/CPU戦績を分離する。詳細ショップ・着せ替えUIは後続でもよい。
 5. 原子的な野良マッチングを追加し、その後に明示同意のCPUフォールバックを、性格差の大きい3人で共通判断エンジンを検証してから設定データ10人へ拡張する。
 6. 見た目購入・装備、履歴/トロフィー詳細UIを接続する。
 7. 期限切れ清掃、負荷計測、Realtime障害試験を閉じ、最後に公開URLの二端末人間戦と実時間CPU戦を完走する。同時実行、冪等性、認可、レート制限は各段階のAPI実装時から必須とする。

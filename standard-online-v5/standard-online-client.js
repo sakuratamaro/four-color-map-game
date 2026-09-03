@@ -75,6 +75,27 @@
       persist();
       return clone(result);
     }
+    async function quoteCardSale({ expectedRevision = state.profileRevision, skillId, count }) {
+      await ensureSession();
+      if (!requiredText(skillId, "INVALID_CARD_SALE_SKILL") || !Number.isSafeInteger(count) || count < 1 || count > 100) {
+        throw new Error("INVALID_CARD_SALE_REQUEST");
+      }
+      const result = await invoke("card-sale-quote", { expectedRevision, skillId, count });
+      state.profileRevision = Number(result.revision);
+      persist();
+      return clone(result);
+    }
+    async function sellCards({ expectedRevision = state.profileRevision, actionId = idFactory(), skillId, count, confirmed = false }) {
+      await ensureSession();
+      if (!UUID_PATTERN.test(String(actionId)) || !requiredText(skillId, "INVALID_CARD_SALE_SKILL")
+          || !Number.isSafeInteger(count) || count < 1 || count > 100 || typeof confirmed !== "boolean") {
+        throw new Error("INVALID_CARD_SALE_REQUEST");
+      }
+      const result = await invoke("card-sale", { expectedRevision, actionId, skillId, count, confirmed });
+      state.profileRevision = Number(result.revision);
+      persist();
+      return clone(result);
+    }
     async function startQuiz({ actionId = idFactory(), selectedLevel }) {
       await ensureSession();
       if (!UUID_PATTERN.test(String(actionId)) || !Number.isSafeInteger(selectedLevel) || selectedLevel < 1 || selectedLevel > 5) {
@@ -263,9 +284,11 @@
       readProfile,
       readRoom,
       requestRematch,
+      quoteCardSale,
       resetConnection,
       snapshot: () => Object.freeze(clone(state)),
       startQuiz,
+      sellCards,
       submitAction,
       submitSetup,
       subscribeToRoom,

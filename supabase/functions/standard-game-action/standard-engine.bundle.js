@@ -2508,6 +2508,16 @@ function drawGacha({profile,ticketLevel,count,seed}){
   validateProfile(next);
   return {profile:next,draws};
 }
+function quoteCardSale({profile,skillId,count}){
+  validateProfile(profile);
+  return clone(profileModel.quoteCardSale({profile,skillId,count,reservedCount:0}));
+}
+function sellCards({profile,skillId,count,confirmed=false}){
+  validateProfile(profile);
+  const result=profileModel.applyCardSale({profile,skillId,count,reservedCount:0,confirmed});
+  validateProfile(result.profile);
+  return {profile:clone(result.profile),quote:clone(result.quote)};
+}
 function applyProfiles({profiles,beforeState,nextState,actor,action,finishedAt}){
   const next={A:clone(profiles?.A),B:clone(profiles?.B)};
   for(const seat of ["A","B"])validateProfile(next[seat]);
@@ -2567,6 +2577,8 @@ globalThis.FourColorStandardServerEngine=Object.freeze({
   create,
   createStarterProfile,
   drawGacha,
+  quoteCardSale,
+  sellCards,
   privateState:match.projectStandardPrivateState,
   publicState:match.projectStandardPublicState,
   validateProfile,

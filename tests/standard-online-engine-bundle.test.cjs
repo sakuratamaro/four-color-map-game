@@ -57,6 +57,8 @@ test("bundle exposes a deterministic server-only Standard engine", () => {
   assert.equal(typeof api.apply, "function");
   assert.equal(typeof api.applyProfiles, "function");
   assert.equal(typeof api.drawGacha, "function");
+  assert.equal(typeof api.quoteCardSale, "function");
+  assert.equal(typeof api.sellCards, "function");
   assert.equal(typeof api.validateProfile, "function");
   assert.equal(typeof api.validateSeatLoadout, "function");
   const first = api.create({ matchId: "online-match-1", loadouts, seed: 0x12345678, firstSeat: "A" });
@@ -65,6 +67,21 @@ test("bundle exposes a deterministic server-only Standard engine", () => {
   assert.equal(first.state.version, 0);
   assert.equal(first.state.active, "A");
   assert.equal(Object.keys(first.rngSnapshot).length, api.REQUIRED_RNG_STREAMS.length);
+});
+
+test("server card sale preserves one copy and applies confirmation rules", () => {
+  const api = loadApi();
+  const before = save.createProfile({ name: "Seller", inventory: { colorRandomBorrow: 3, colorPrism: 2 } });
+  const quote = api.quoteCardSale({ profile: before, skillId: "colorRandomBorrow", count: 2 });
+  assert.equal(quote.remaining, 1);
+  assert.equal(quote.earnedCoins, 20);
+  assert.equal(quote.requiresConfirmation, true);
+  assert.throws(() => api.sellCards({ profile: before, skillId: "colorRandomBorrow", count: 2, confirmed: false }), /SALE_CONFIRMATION_REQUIRED/);
+  const sold = api.sellCards({ profile: before, skillId: "colorRandomBorrow", count: 2, confirmed: true });
+  assert.equal(sold.profile.inventory.colorRandomBorrow, 1);
+  assert.equal(sold.profile.coins, 20);
+  assert.equal(before.inventory.colorRandomBorrow, 3);
+  assert.throws(() => api.quoteCardSale({ profile: before, skillId: "colorPrism", count: 2 }), /KEEP_ONE_REQUIRED/);
 });
 
 test("one gacha draw deterministically consumes one ticket and adds exactly one card", () => {
