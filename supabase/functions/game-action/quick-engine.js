@@ -7,6 +7,13 @@
 
   const COLORS = Object.freeze(["red", "blue", "yellow", "green"]);
   const QUICK_SKILLS = Object.freeze(["colorPrism", "areaHalfShift", "disruptChoiceOne"]);
+  const TERMINAL_REASONS = Object.freeze({
+    BOARD_LOCK: "BOARD_LOCK",
+    ILLEGAL_COLOR: "ILLEGAL_COLOR",
+    NO_LEGAL_COLOR: "NO_LEGAL_COLOR",
+    SEALED_OUT: "SEALED_OUT",
+    SURRENDER: "SURRENDER",
+  });
   const DIE_FACE_POOL = Object.freeze([1, 1, 2, 2, 3, 4]);
   const WIDTH = 12;
   const HEIGHT = 12;
@@ -246,7 +253,7 @@
     state.baseRequired = required;
     state.requiredSize = required;
     state.sizeBonus = 0;
-    if (required <= 0) finish(state, player, "BOARD_LOCK");
+    if (required <= 0) finish(state, player, TERMINAL_REASONS.BOARD_LOCK);
   }
 
   function applyPendingCurse(state, player, random) {
@@ -363,7 +370,7 @@
 
     if (adjacentColors(state, state.pending).has(color)) {
       state.prismActive[actor] = false;
-      finish(state, other(actor), "ILLEGAL_COLOR");
+      finish(state, other(actor), TERMINAL_REASONS.ILLEGAL_COLOR);
       return;
     }
 
@@ -420,7 +427,7 @@
     for (const [id, micro] of Object.entries(moved)) state.regions[id].micro = micro;
     mergeSameColorRegions(state);
     const adjusted = bestLegalSize(state, state.requiredSize);
-    if (adjusted <= 0) finish(state, actor, "BOARD_LOCK");
+    if (adjusted <= 0) finish(state, actor, TERMINAL_REASONS.BOARD_LOCK);
     else state.requiredSize = adjusted;
   }
 
@@ -450,6 +457,9 @@
 
   function createQuickGame(options = {}) {
     const random = options.random || Math.random;
+    const paletteRandom = options.paletteRandom || random;
+    const rollRandom = options.rollRandom || random;
+    const configuredHands = options.hands || {};
     const state = {
       schemaVersion: 1,
       mode: "quick",
@@ -464,8 +474,11 @@
       winner: null,
       reason: null,
       playableBounds: { ...START_BOUNDS },
-      palettes: drawPalettes(random),
-      hands: { A: quickHand(), B: quickHand() },
+      palettes: drawPalettes(paletteRandom),
+      hands: {
+        A: { ...quickHand(), ...(configuredHands.A || {}) },
+        B: { ...quickHand(), ...(configuredHands.B || {}) },
+      },
       prismActive: { A: false, B: false },
       seals: { A: emptySeals(), B: emptySeals() },
       curseBacklash: { A: 0, B: 0 },
@@ -477,12 +490,14 @@
       actionReceipts: {},
       log: [],
     };
-    beginSelection(state, "A", random, true);
+    beginSelection(state, "A", rollRandom, true);
     return state;
   }
 
   function applyAction(currentState, actor, action, options = {}) {
     const random = options.random || Math.random;
+    const rollRandom = options.rollRandom || random;
+    const effectRandom = options.effectRandom || random;
     assertRule(actor === "A" || actor === "B", "NOT_A_PLAYER", "Actor must occupy a seat");
     assertRule(action && typeof action === "object", "INVALID_ACTION", "Action is required");
     assertRule(
@@ -499,15 +514,18 @@
 
     const state = clone(currentState);
     const payload = action.payload || {};
-    if (action.type === "CREATE_REGION") applyCreateRegion(state, actor, payload, random);
-    else if (action.type === "COLOR_REGION") applyColorRegion(state, actor, payload, random);
-    else if (action.type === "USE_SKILL") applySkill(state, actor, payload, random);
+    if (action.type === "CREATE_REGION") applyCreateRegion(state, actor, payload, effectRandom);
+    else if (action.type === "COLOR_REGION") applyColorRegion(state, actor, payload, rollRandom);
+    else if (action.type === "USE_SKILL") applySkill(state, actor, payload, effectRandom);
     else if (action.type === "DECLARE_NO_COLOR") {
       assertRule(state.phase === "COLOR", "WRONG_PHASE", "No-color loss applies only during color phase");
       const palette = state.prismActive[actor] ? COLORS : state.palettes[actor];
-      assertRule(palette.every((color) => state.seals[actor][color] > 0), "COLORS_REMAIN", "At least one usable color remains");
-      finish(state, other(actor), "SEALED_OUT");
-    } else if (action.type === "SURRENDER") finish(state, other(actor), "SURRENDER");
+      const blocked = adjacentColors(state, state.pending);
+      const legal = palette.filter((color) => state.seals[actor][color] <= 0 && !blocked.has(color));
+      assertRule(legal.length === 0, "COLORS_REMAIN", "At least one rule-safe color remains");
+      const allSealed = palette.every((color) => state.seals[actor][color] > 0);
+      finish(state, other(actor), allSealed ? TERMINAL_REASONS.SEALED_OUT : TERMINAL_REASONS.NO_LEGAL_COLOR);
+    } else if (action.type === "SURRENDER") finish(state, other(actor), TERMINAL_REASONS.SURRENDER);
     else throw new RuleError("UNKNOWN_ACTION", "Unknown action type");
 
     state.version += 1;
@@ -538,6 +556,7 @@
   return Object.freeze({
     COLORS,
     QUICK_SKILLS,
+    TERMINAL_REASONS,
     RuleError,
     createQuickGame,
     applyAction,
@@ -546,4 +565,3 @@
     internals: Object.freeze({ mIndex, microForMacro, macroOfMicro, bestLegalSize }),
   });
 });
-
