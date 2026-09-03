@@ -4,6 +4,8 @@
 
 状態: 実行前。公開DB、Edge Function、Pagesを変更する作業は利用者の明示承認後にだけ行う。この文書を作っただけでは本番は変わらない。
 
+実行中の状態、数値、識別子、失敗は `docs/STANDARD_RELEASE_EVIDENCE.md` に追記する。根拠のない項目を`VERIFIED`や`PASS`へ変更しない。
+
 ## 完了の定義
 
 migrationやコードの配置だけでは完了にしない。最新の公開URLと別々の二端末で、合言葉対戦と野良対戦を最後まで行い、再読込、再戦、新しい試合を確認する。さらに実時間90秒待機後に明示同意したCPU戦を完走し、報酬、ガチャ、カード、対人/CPU別戦績、トロフィー、見た目が再読込後も保持されること、private情報が漏れないこと、軽量化の呼出数とbytesを実測して初めて公開完了とする。
@@ -18,6 +20,8 @@ migrationやコードの配置だけでは完了にしない。最新の公開UR
 6. `node scripts/live-standard-release-preflight.mjs --expect=baseline` で公開UIが旧版、`fcg_standard_room_snapshot(uuid)` が権限保護付きで存在し、snapshot v2と野良募集RPCが未適用であることを秘密鍵なし・書込みなしで確認する。さらにSQL Editorの `to_regclass` / `to_regprocedure` で新規表とservice-only関数も確認する。
 
 確認結果が想定と違う場合は適用を止め、現物に合わせて手順を更新する。
+
+Dashboardのbaselineを取得できない場合は理由を証拠台帳へ`BLOCKED`として残し、取得できるようになるまでmigration適用へ進まない。
 
 ## DB適用順序
 

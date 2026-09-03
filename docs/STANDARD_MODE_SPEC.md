@@ -293,7 +293,7 @@ On terminal entry the UI clears the contact reveal, destructively clears private
 
 - Official instruction `dcc17453-8224-4a92-8689-3d00fbb47241` requires actual-browser evidence for `ILLEGAL_COLOR`, `BOARD_LOCK`, `SURRENDER`, `SEALED_OUT`, and `NO_LEGAL_COLOR` before later presentation gates.
 - The test-only matrix injects counters only into the served browser bundle and verifies each reason through the normal transaction/presentation/settlement path. Declaration reasons use a test-only DOM control wired to the real private `dispatch` function because the alpha product intentionally has no declaration button; no legality oracle or debug hook is added to product files.
-- Current evidence is partial (4/5). `BOARD_LOCK` and a complete authoritative run remain pending due host page-file exhaustion; this is not a specification or product acceptance result.
+- At the 2026-08-31 boundary the evidence was partial (4/5) because `BOARD_LOCK` and a complete authoritative run were interrupted by host page-file exhaustion. This historical state is superseded by the 2026-09-01 five-reason acceptance immediately below.
 
 ### Five-reason browser-matrix acceptance (2026-09-01)
 

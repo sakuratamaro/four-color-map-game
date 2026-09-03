@@ -29,6 +29,7 @@ The authoritative adoption/deferral inventory is `docs/ONLINE_COMPLETION_INVENTO
 - Local Postgres, Docker, and the Supabase CLI are unavailable, so migrations `202609030006` through `202609030013` have static/security coverage but have not been parsed or executed by a local database.
 - Read-only live preflight on 2026-09-03 confirmed `origin/main` is still `274e3a7`, Pages returns HTTP 200 with the earlier Standard title, and its JavaScript contains none of public matchmaking, CPU roster, or cosmetics.
 - Secret-free RPC probes confirmed the live `fcg_standard_room_snapshot` exists and rejects the anonymous role, while snapshot v2 and public matchmaking return PostgREST `PGRST202` absent-function responses. No user, room, row, or cleanup action was created.
+- Dashboard Advisor and usage baselines are not yet captured. Browser diagnostics found Chrome installed but the Codex Browser extension/native-host integration absent; no attempt was made to repair it, inspect credentials, or substitute secret access.
 
 ## External state and next gate
 
