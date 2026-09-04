@@ -19,7 +19,7 @@
 
 | 優先度 | 作業 | 主担当 | 状態 | 完了条件 |
 | --- | --- | --- | --- | --- |
-| P0 | Standard公開候補の固定と再検証 | 司令塔 | IN_PROGRESS | dirty回収、status正規化、Realtime復旧を含む統合候補は非browser製品試験515/515合格。browser harnessは段階ログ・有限timeout静的5/5合格、実browser完走待ち |
+| P0 | Standard公開候補の固定と再検証 | 司令塔 | IN_PROGRESS | dirty回収、status正規化、Realtime復旧を含む統合候補は非browser製品試験520/520合格。Windows Chrome/Edge CIの実browser完走待ち |
 | P0 | Pages反映と公開後preflight | 司令塔 | COMPLETED | remote `main=dc5452a`、Pages run `33814089903`成功、candidate preflight合格 |
 | P0 | 合言葉・経済・野良・CPUのlive縦通し | 技術品質 | COMPLETED | deployment 8でEdge 6/6、A 43/43、B 93/93、C 210/210、D 107/107合格 |
 | P0 | 同時profile作成のHTTP 500抑止 | Edge＋運用 | LIVE_VERIFIED | 新規作成をload→commitの2 RPCへ削減。一時障害を503化。C準備の16 profileが逐次で全件成功し、500/429なし |
