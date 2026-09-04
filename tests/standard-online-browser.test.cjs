@@ -249,19 +249,30 @@ async function installMock(context, mode) {
 async function withPage(mode, run) {
   assert.ok(chromium, "Playwright is required");
   assert.ok(fs.existsSync(browserPath), "Microsoft Edge is required");
+  let browser;
+  let context;
   const { server, url } = await startServer();
-  const browser = await chromium.launch({ executablePath: browserPath, headless: true });
-  const context = await browser.newContext({ viewport: { width: 900, height: 800 } });
   try {
+    browser = await chromium.launch({ executablePath: browserPath, headless: true, timeout: 15_000 });
+    context = await browser.newContext({ viewport: { width: 900, height: 800 } });
     await installMock(context, mode);
     const page = await context.newPage();
     await page.goto(`${url}/standard-online-v5/index.html`);
     await page.locator("#connectionBadge.good").waitFor();
     await run(page);
   } finally {
-    await context.close();
-    await browser.close();
-    await new Promise((resolve) => server.close(resolve));
+    try {
+      await context?.close();
+    } finally {
+      try {
+        await browser?.close();
+      } finally {
+        await new Promise((resolve) => {
+          server.close(resolve);
+          server.closeAllConnections?.();
+        });
+      }
+    }
   }
 }
 
