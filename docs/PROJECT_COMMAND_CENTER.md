@@ -21,7 +21,7 @@
 | --- | --- | --- | --- | --- |
 | P0 | Standard公開候補の固定と再検証 | 司令塔 | IN_PROGRESS | clean候補で正式製品試験が全件合格 |
 | P0 | Pages反映と公開後preflight | 司令塔 | COMPLETED | remote `main=dc5452a`、Pages run `33814089903`成功、candidate preflight合格 |
-| P0 | 合言葉・経済・野良・CPUのlive縦通し | 技術品質 | IN_PROGRESS | Edge 6/6、snapshot subgate合格。runbook A〜Dの完走証拠が必要 |
+| P0 | 合言葉・経済・野良・CPUのlive縦通し | 技術品質 | IN_PROGRESS | Edge 6/6、runbook A 43/43合格。runbook B〜Dの完走証拠が必要 |
 | P0 | Supabase資源とRealtime負荷の追跡 | 運用 | IN_PROGRESS | 現況取得済み。24時間後にinfra alertと`realtime.list_changes`比率を再測定 |
 | P0 | 別々の二端末による最終受入 | チャッピー先生＋司令塔 | PENDING | 対人/CPUの完走、復帰、再戦、永続化を確認 |
 | P1 | 対戦を主役にする情報設計 | UX | CANDIDATE | ロビー主CTAがクイズ等に埋もれず初戦到達を短縮 |
@@ -29,6 +29,18 @@
 | P1 | Standardを学んで即CPU戦へ入る導線 | ゲーム体験 | CANDIDATE | 3手ガイドまたは固定スターターCPU戦から本戦へ遷移 |
 | P1 | 未コミット／孤立作業の回収 | 構成管理 | IN_PROGRESS | 保全、比較、採用、破棄候補が全件分類済み |
 | P2 | GitHub Pages actionのNode.js警告解消 | 技術品質 | BACKLOG | 公開結果を変えず、Node.js 20廃止予定warningを消す |
+
+## 旧作業床からの回収候補
+
+古いブランチは丸ごと統合せず、次の意味差分だけを正本と比較する。
+
+| 優先度 | 候補 | 採否条件 |
+| --- | --- | --- |
+| P1 | Quick Half Shiftの非連結領域を決定的に分割 | 両ゲームエンジンで同じ結果になり、既存Standardルールを壊さない |
+| P1 | Quickロビーの期限切れ・Realtime・poll復旧 | 現行Standardにも同型障害が残る場合だけ移植 |
+| P1 | Quickのlive regression/release補助ツール | 現行runbookの不足を埋め、固定データを汚さない |
+| P2 | Quick EdgeのPT409/PGRST003変換 | JWT有効化とlive認証試験を同時に満たす場合だけ採用 |
+| HOLD | Quick待機クイズ・ローカルガチャ | Quickを製品導線として残す決定が出るまでStandard版を正本とする |
 
 ## 作業床の扱い
 

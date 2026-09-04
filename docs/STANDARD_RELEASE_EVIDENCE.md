@@ -18,7 +18,7 @@
 | migration 006–013本番適用 | VERIFIED | 2026-09-04、8本を順番どおり個別実行。最終読み取り検査は44/44 true、失敗0 | 公開後canaryで実経路を確認 |
 | Edge Function更新 | VERIFIED | deployment 7、JWT検証ON。2026-09-04 22:46 JSTの`live-standard-edge-canary.mjs --confirm-live`は6/6合格 | 公開UI経由の完全canary |
 | GitHub main・Pages更新 | VERIFIED | remote `main=dc5452a`、Pages run `33814089903`成功（46秒）、公開candidate preflight合格 | A〜Dの公開UI canary |
-| 合言葉対戦canary | PENDING | 最新候補では未実施 | A/B完走、C拒否、再読込、再戦 |
+| 合言葉対戦canary | VERIFIED | 2026-09-04、`live-standard-runbook-a-canary.mjs --confirm-live`で43/43合格 | 実ブラウザ再読込と二端末最終受入 |
 | 経済・進行・見た目canary | PENDING | 最新候補では未実施 | クイズ、ガチャ、売却、精算、履歴、トロフィー、購入/装備のexactly-onceと復元 |
 | 野良対戦canary | PENDING | 最新候補では未実施 | 募集/検索、取消競合、二重成立なし、完走、再検索 |
 | CPU canary | PENDING | 最新候補では未実施 | 実時間90/180秒、同意、代表3人完走、復帰、同じCPU再戦 |
@@ -34,6 +34,7 @@
 - `live-standard-release-preflight.mjs --expect=candidate` は、公開UI、snapshot v1/v2、野良募集の保護境界を含め合格。
 - `live-standard-edge-canary.mjs --confirm-live` は匿名認証、JWT欠落・改変拒否、profile、見た目catalog、CPU rosterの6/6合格。
 - `live-standard-room-snapshot-smoke.mjs --confirm-live` はA/B snapshot、部外者拒否、同revision profile省略に合格。full 1815 bytes、delta 991 bytes。
+- `live-standard-runbook-a-canary.mjs --confirm-live` は、合言葉部屋作成、A/B参加、部外者のRPC/Edge拒否、setup、初期化、一手、投了、A/B別snapshot、再戦成立を43/43で完走した。初回はprofile作成でHTTP 500、直後の既存Edge canaryは6/6、同runbook再実行は43/43合格だったため、一時障害として記録し再発監視する。
 - Playwrightを同梱ランタイムへ接続した再検証で、証拠台帳2/2、接触演出43/43、Standard Online実ブラウザ14/14が合格。全体連続実行で発生したreduced-motion 1件と後続browser timeoutは、対象ファイル単独で再現せず全件合格したため、実行環境負荷によるflakeとして分離した。
 - Dashboard現況はHealthy、CPU 1%、RAM 59%、disk 16%、disk IO 1%、peak connections 15/60。live接続画面では11/60、active query 0、idle in transaction 0、blocked query 0。
 - 過去24時間の表示はPostgREST 439 requests、Edge Functions 251 requests、API Gateway 0.46% errors、Realtime 5.3% warnings。API詳細は反映待ちでp50/p95とegressを取得できなかった。
@@ -66,7 +67,7 @@
 | 区分 | 結果 | 時刻 | 有限な証拠 |
 | --- | --- | --- | --- |
 | Edge認証・基本公開 | PASS | 2026-09-04 22:46 JST | 匿名sign-in、JWT欠落/改変拒否、profile、cosmetic catalog、CPU roster 10人の6/6 |
-| A 合言葉・A/B/C・snapshot delta | NOT_RUN | snapshot subgateのみ2026-09-04 22:46 JST PASS | 部外者拒否・delta縮小は確認済み。試合完走、再読込、再戦は未実施 |
+| A 合言葉・A/B/C・snapshot delta | PASS | 2026-09-04 | 自動live canary 43/43。A/B参加、C拒否、setup、初期化、一手、投了、seat別finished snapshot、再戦再初期化。実ブラウザ再読込は二端末最終受入で確認 |
 | B クイズ・ガチャ・売却・精算・トロフィー・見た目 | NOT_RUN | PENDING | PENDING |
 | C 野良・競合・完走 | NOT_RUN | PENDING | PENDING |
 | D CPU同意・10人・代表3人・再戦 | NOT_RUN | PENDING | PENDING |
@@ -75,6 +76,7 @@
 ## 残存リスク
 
 - Dashboardの詳細なAdvisor/使用量baselineは未取得。画面上では資源逼迫警告が継続しているため、公開範囲を広げる前後で使用量を追跡する。
+- Runbook Aの初回profile作成でHTTP 500が1回発生した。既存Edge canaryと同runbook再実行は全件合格したが、再発時は一時障害扱いを外してEdge/DBログを調査する。
 - Edgeのper-isolate濫用抑止は分散レート制限ではない。公開後の計測で必要性が出た場合だけprovider側制限を検討する。
 - 10人CPUの合法性・決定性は自動検証済みだが、人間が感じる個性と楽しさは代表3人の実プレイ後も定性的判断として残る。
 - cleanup実削除、定期化、課金設定変更はこの公開候補の承認範囲外である。
