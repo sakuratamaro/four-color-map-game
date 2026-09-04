@@ -492,6 +492,7 @@ function createRegion(state, actor, payload = {}, rngStreams = {}) {
   next.version += 1;
   next.publicLog.push(`T${next.turn - 1} Player ${actor} created ${id}${intrusion.donorCount ? ` with ${intrusion.donorCount} colored-region intrusion${intrusion.splitCount ? ` and ${intrusion.splitCount} donor split` : ""}${intrusion.removedCount ? ` and ${intrusion.removedCount} donor removal` : ""}` : ""}; Player ${next.active} must color it.`);
   applyCurseBacklashOnEnterColor(next, next.active, () => nextRandom(rngStreams, "skill-effect"));
+  finishNoColorOnEntry(next, next.active);
   const contactColorCount = new Set(adjacentRegionIds(next, id)
     .map((regionId) => next.regions[regionId])
     .filter((region) => region && !region.isPending && region.color)
@@ -506,6 +507,25 @@ function availableColors(state, actor) {
   if (state.privateEffects[actor]?.prism) for (const color of COLORS) colors.add(color);
   const seals = state.publicEffects?.[actor]?.seals || {};
   return [...colors].filter((color) => !(seals[color] > 0));
+}
+
+function noColorTerminalReason(state, actor) {
+  const usable = availableColors(state, actor);
+  const blocked = new Set(adjacentRegionIds(state, state.pending).map((id) => state.regions[id]?.color).filter(Boolean));
+  if (!usable.every((color) => blocked.has(color))) return null;
+  return usable.length === 0 ? "SEALED_OUT" : "NO_LEGAL_COLOR";
+}
+
+function finishNoColorOnEntry(state, actor, logMessage = `Player ${actor} has no usable color.`) {
+  const reason = noColorTerminalReason(state, actor);
+  if (!reason) return false;
+  if (state.privateEffects[actor]?.temporaryColors) delete state.privateEffects[actor].temporaryColors;
+  state.status = "FINISHED";
+  state.phase = "GAME_OVER";
+  state.winner = other(actor);
+  state.terminalReason = reason;
+  state.publicLog.push(logMessage);
+  return true;
 }
 
 function colorRegion(state, actor, payload = {}, rngStreams = {}) {
@@ -551,6 +571,7 @@ function colorRegion(state, actor, payload = {}, rngStreams = {}) {
     applyCurseBacklashOnEnterColor(next, next.active, () => nextRandom(rngStreams, "skill-effect"));
     next.version += 1;
     next.publicLog.push(`Player ${actor} colored ${target.id}; split region ${returnedId} returned to Player ${next.active}.`);
+    finishNoColorOnEntry(next, next.active);
     return { ok: true, code: "OK", state: next, returnedRegionId: returnedId };
   }
   next.pending = null;
@@ -586,17 +607,10 @@ function surrender(state, actor) {
 function declareNoColor(state, actor) {
   assertState(state.active === actor, "NOT_YOUR_TURN");
   assertState(state.phase === "COLOR", "WRONG_PHASE");
-  const usable = availableColors(state, actor);
-  const blocked = new Set(adjacentRegionIds(state, state.pending).map((id) => state.regions[id]?.color).filter(Boolean));
-  assertState(usable.every((color) => blocked.has(color)), "COLOR_AVAILABLE");
+  assertState(Boolean(noColorTerminalReason(state, actor)), "COLOR_AVAILABLE");
   const next = clone(state);
-  if (next.privateEffects[actor]?.temporaryColors) delete next.privateEffects[actor].temporaryColors;
-  next.status = "FINISHED";
-  next.phase = "GAME_OVER";
-  next.winner = other(actor);
-  next.terminalReason = usable.length === 0 ? "SEALED_OUT" : "NO_LEGAL_COLOR";
+  finishNoColorOnEntry(next, actor, `Player ${actor} declared no usable color.`);
   next.version += 1;
-  next.publicLog.push(`Player ${actor} declared no usable color.`);
   return { ok: true, code: "OK", state: next };
 }
 

@@ -2,7 +2,7 @@
 
 const assert = require("node:assert/strict");
 const test = require("node:test");
-const { createRngDomains } = require("../standard/standard-engine.js");
+const { COLORS, createRngDomains } = require("../standard/standard-engine.js");
 const match = require("../standard/standard-match.js");
 
 function streams(seed = 1) {
@@ -193,6 +193,50 @@ test("contact pressure counts edges only and ignores corner, pending, uncolored,
   const rejected = match.applyStandardAction({ state: makeState(), actor: "A", action: { type: "CREATE_REGION", payload: { sourceMacros: [] } }, expectedVersion: 0 });
   assert.equal(rejected.ok, false);
   assert.equal(Object.hasOwn(rejected, "contactColorCount"), false);
+});
+
+test("entering COLOR automatically resolves NO_LEGAL_COLOR in the creating action", () => {
+  const state = create(4522);
+  const microFor = (macro) => {
+    const col = macro % 12;
+    const row = Math.floor(macro / 12);
+    return Array.from({ length: 16 }, (_, index) => (row * 4 + Math.floor(index / 4)) * 48 + col * 4 + (index % 4));
+  };
+  const usable = [...state.basicPalettes.B, state.bonusColors.B];
+  state.phase = "WORK";
+  state.requiredSize = 1;
+  state.rolledSize = 1;
+  state.baseRequiredSize = 1;
+  state.regions = {
+    R1: { id: "R1", micro: microFor(13), sourceMacros: [13], controllers: ["A"], color: usable[0], isPending: false },
+    R2: { id: "R2", micro: microFor(15), sourceMacros: [15], controllers: ["B"], color: usable[1], isPending: false },
+    R3: { id: "R3", micro: [3 * 48 + 8], sourceMacros: [], controllers: ["A"], color: usable[2], isPending: false },
+  };
+  const before = JSON.stringify(state);
+  const result = match.applyStandardAction({ state, actor: "A", action: { type: "CREATE_REGION", payload: { sourceMacros: [14] } }, expectedVersion: 0 });
+  assert.equal(result.ok, true);
+  assert.equal(JSON.stringify(state), before);
+  assert.deepEqual([result.state.status, result.state.phase, result.state.winner, result.state.terminalReason], ["FINISHED", "GAME_OVER", "A", "NO_LEGAL_COLOR"]);
+  assert.equal(result.state.version, 1);
+  assert.equal(result.state.pending, "R4");
+  assert.equal(result.contactColorCount, 3);
+});
+
+test("entering COLOR automatically resolves SEALED_OUT when no color is usable", () => {
+  const state = create(4523);
+  state.phase = "WORK";
+  state.requiredSize = 1;
+  state.rolledSize = 1;
+  state.baseRequiredSize = 1;
+  state.publicEffects.B.seals = Object.fromEntries(COLORS.map((color) => [color, 1]));
+  state.regions = {
+    R1: { id: "R1", micro: Array.from({ length: 16 }, (_, index) => 196 + Math.floor(index / 4) * 48 + (index % 4)), sourceMacros: [13], controllers: ["A"], color: "red", isPending: false },
+  };
+  const result = match.applyStandardAction({ state, actor: "A", action: { type: "CREATE_REGION", payload: { sourceMacros: [14] } }, expectedVersion: 0 });
+  assert.equal(result.ok, true);
+  assert.deepEqual([result.state.status, result.state.phase, result.state.winner, result.state.terminalReason], ["FINISHED", "GAME_OVER", "A", "SEALED_OUT"]);
+  assert.equal(result.state.version, 1);
+  assert.equal(result.state.pending, "R2");
 });
 
 test("no-color declaration is accepted only when every usable color is blocked", () => {

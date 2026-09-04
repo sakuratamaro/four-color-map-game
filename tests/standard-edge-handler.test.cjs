@@ -103,6 +103,15 @@ test("setup loads the authenticated profile and issues a server-bounded quote", 
   assert.match(source, /p_actor_id: actorId/);
 });
 
+test("debug setup is authorized from the service-loaded room only", () => {
+  const setup = source.slice(source.indexOf('if (operation === "setup")'), source.indexOf('stage = "load-room"'));
+  assert.match(source, /service\.rpc\("fcg_standard_server_load_room_v2",\s*\{\s*p_room_id: roomId,\s*p_actor_id: actorId\s*\}\)/);
+  assert.match(setup, /if \(debugMode\) \{[\s\S]+const setupRoom = await load\(\)/);
+  assert.match(setup, /setupRoom\.access_mode !== "private_code" \|\| setupRoom\.opponent_kind === "cpu"/);
+  assert.match(setup, /code: "DEBUG_MODE_NOT_ALLOWED"/);
+  assert.doesNotMatch(setup, /body\.(?:accessMode|access_mode|opponentKind|opponent_kind)/);
+});
+
 test("initialization uses service-loaded loadouts and profiles with a server seed", () => {
   assert.match(source, /fcg_standard_server_load_room/);
   assert.match(source, /loadouts: \{ A: playableLoadout\(room\.setup_a[^;]+B: playableLoadout\(room\.setup_b/i);

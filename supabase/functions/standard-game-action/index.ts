@@ -720,6 +720,14 @@ Deno.serve(async (request: Request) => {
       return json(400, { error: { code: "INVALID_REQUEST", message: "A valid roomId is required." } });
     }
 
+    const load = async (): Promise<JsonObject> => {
+      const { data, error } = await service.rpc("fcg_standard_server_load_room_v2", { p_room_id: roomId, p_actor_id: actorId });
+      if (error) throw error;
+      const row = firstRow(data);
+      if (!row) throw { code: "P0002" };
+      return row;
+    };
+
     if (operation === "setup") {
       const setupActionId = body.setupActionId;
       const expectedSetupRevision = body.expectedSetupRevision;
@@ -728,6 +736,13 @@ Deno.serve(async (request: Request) => {
       if (typeof setupActionId !== "string" || !UUID_PATTERN.test(setupActionId)
           || !Number.isSafeInteger(expectedSetupRevision) || !loadout || typeof loadout !== "object" || typeof debugMode !== "boolean") {
         return json(400, { error: { code: "INVALID_SETUP", message: "A setup ID, revision, and six-card loadout are required." } });
+      }
+      if (debugMode) {
+        stage = "authorize-debug-setup";
+        const setupRoom = await load();
+        if (setupRoom.access_mode !== "private_code" || setupRoom.opponent_kind === "cpu") {
+          return json(403, { error: { code: "DEBUG_MODE_NOT_ALLOWED", message: "Debug mode is available only in private human matches." } });
+        }
       }
       stage = "load-profile";
       const { data: profileData, error: profileError } = await service.rpc("fcg_standard_server_load_profile", {
@@ -762,14 +777,6 @@ Deno.serve(async (request: Request) => {
       if (error) throw error;
       return json(200, { setupRevision: firstRow(data) ?? data, profileRevision: profile.revision, quoteId: setupActionId, quoteExpiresAt, debugMode });
     }
-
-    const load = async (): Promise<JsonObject> => {
-      const { data, error } = await service.rpc("fcg_standard_server_load_room_v2", { p_room_id: roomId, p_actor_id: actorId });
-      if (error) throw error;
-      const row = firstRow(data);
-      if (!row) throw { code: "P0002" };
-      return row;
-    };
 
     stage = "load-room";
     let room = await load();

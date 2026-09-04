@@ -188,6 +188,46 @@ test("split terminal paths remain authoritative and do not revive or prematurely
   assert.equal(surrendered.state.reserved, "R3");
 });
 
+test("returning a split half automatically resolves blocked and sealed receiving seats", () => {
+  const blockedSource = fixture();
+  const blocked = split(blockedSource.state, [13], blockedSource.rng).state;
+  const usable = [...blocked.basicPalettes.B, blocked.bonusColors.B];
+  for (const [index, macro] of [2, 3, 26].entries()) {
+    const id = `R${index + 4}`;
+    blocked.regions[id] = { id, micro: microForMacro(macro), sourceMacros: [macro], controllers: ["A"], color: usable[index], isPending: false };
+  }
+  const blockedDie = blockedSource.rng.die.snapshot();
+  const blockedResult = match.applyStandardAction({
+    state: blocked,
+    actor: "A",
+    action: { type: "COLOR_REGION", payload: { color: blocked.basicPalettes.A[0] } },
+    expectedVersion: blocked.version,
+    rngStreams: blockedSource.rng,
+  });
+  assert.equal(blockedResult.ok, true);
+  assert.deepEqual([blockedResult.state.status, blockedResult.state.phase, blockedResult.state.winner, blockedResult.state.terminalReason], ["FINISHED", "GAME_OVER", "A", "NO_LEGAL_COLOR"]);
+  assert.equal(blockedResult.state.version, blocked.version + 1);
+  assert.equal(blockedResult.state.pending, "R3");
+  assert.equal(blockedResult.state.reserved, null);
+  assert.equal(blockedSource.rng.die.snapshot(), blockedDie, "automatic split terminal does not roll the next die");
+
+  const sealedSource = fixture();
+  const sealed = split(sealedSource.state, [13], sealedSource.rng).state;
+  sealed.publicEffects.B.seals = Object.fromEntries(engine.COLORS.map((color) => [color, 1]));
+  const sealedResult = match.applyStandardAction({
+    state: sealed,
+    actor: "A",
+    action: { type: "COLOR_REGION", payload: { color: sealed.basicPalettes.A[0] } },
+    expectedVersion: sealed.version,
+    rngStreams: sealedSource.rng,
+  });
+  assert.equal(sealedResult.ok, true);
+  assert.deepEqual([sealedResult.state.status, sealedResult.state.phase, sealedResult.state.winner, sealedResult.state.terminalReason], ["FINISHED", "GAME_OVER", "A", "SEALED_OUT"]);
+  assert.equal(sealedResult.state.version, sealed.version + 1);
+  assert.equal(sealedResult.state.pending, "R3");
+  assert.equal(sealedResult.state.reserved, null);
+});
+
 test("split halves preserve SEALED_OUT and NO_LEGAL_COLOR declaration semantics", () => {
   const noColorSource = fixture();
   const noColor = split(noColorSource.state, [13], noColorSource.rng).state;

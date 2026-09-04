@@ -284,6 +284,8 @@ function createProgressionFields() {
     trophies: Object.fromEntries(TROPHY_IDS.map((id) => [id, false])),
     trophyDates: {},
     stats: { wins: 0, losses: 0, currentWinStreak: 0, bestWinStreak: 0, fullPaints: 0 },
+    cpuStats: { wins: 0, losses: 0, currentWinStreak: 0, bestWinStreak: 0, fullPaints: 0 },
+    cpuCharacterStats: {},
     matchHistory: [],
   };
 }
@@ -310,6 +312,20 @@ function validateProgressionFields(profile) {
   assertProfile(isRecord(profile.stats), "INVALID_MATCH_STATS");
   for (const key of ["wins", "losses", "currentWinStreak", "bestWinStreak", "fullPaints"]) nonnegativeInteger(profile.stats[key], "INVALID_MATCH_STAT");
   assertProfile(profile.stats.bestWinStreak >= profile.stats.currentWinStreak, "INVALID_WIN_STREAK");
+  if (Object.hasOwn(profile, "cpuStats")) {
+    assertProfile(isRecord(profile.cpuStats), "INVALID_CPU_MATCH_STATS");
+    for (const key of ["wins", "losses", "currentWinStreak", "bestWinStreak", "fullPaints"]) nonnegativeInteger(profile.cpuStats[key], "INVALID_CPU_MATCH_STAT");
+    assertProfile(profile.cpuStats.bestWinStreak >= profile.cpuStats.currentWinStreak, "INVALID_CPU_WIN_STREAK");
+  }
+  if (Object.hasOwn(profile, "cpuCharacterStats")) {
+    assertProfile(isRecord(profile.cpuCharacterStats), "INVALID_CPU_CHARACTER_STATS");
+    for (const [characterId, record] of Object.entries(profile.cpuCharacterStats)) {
+      assertProfile(/^[a-z][a-z0-9-]{1,31}$/.test(characterId) && isRecord(record), "INVALID_CPU_CHARACTER_STAT");
+      for (const key of ["matches", "wins", "losses"]) nonnegativeInteger(record[key], "INVALID_CPU_CHARACTER_STAT");
+      assertProfile(record.matches === record.wins + record.losses, "INVALID_CPU_CHARACTER_STAT");
+      assertProfile(record.firstWinAt === null || (typeof record.firstWinAt === "string" && Number.isFinite(Date.parse(record.firstWinAt))), "INVALID_CPU_CHARACTER_STAT");
+    }
+  }
   assertProfile(Array.isArray(profile.matchHistory) && profile.matchHistory.length <= MAX_MATCH_HISTORY, "INVALID_MATCH_HISTORY");
   for (const entry of profile.matchHistory) {
     assertProfile(isRecord(entry), "INVALID_MATCH_HISTORY_ENTRY");
@@ -319,6 +335,9 @@ function validateProgressionFields(profile) {
     assertProfile(typeof entry.endedAt === "string" && Number.isFinite(Date.parse(entry.endedAt)), "INVALID_HISTORY_DATE");
     assertProfile(typeof entry.fullPaint === "boolean", "INVALID_HISTORY_FULL_PAINT");
     nonnegativeInteger(entry.skillsUsed, "INVALID_HISTORY_SKILLS_USED");
+    if (Object.hasOwn(entry, "onlineOpponentKind")) {
+      assertProfile(entry.onlineOpponentKind === "cpu" && /^[a-z][a-z0-9-]{1,31}$/.test(entry.cpuCharacterId), "INVALID_ONLINE_CPU_HISTORY");
+    }
     if (Object.hasOwn(entry, "mode")) {
       assertProfile(entry.mode === "standard", "INVALID_HISTORY_MODE");
       assertProfile(typeof entry.profileId === "string" && entry.profileId.length >= 1 && entry.profileId.length <= 64, "INVALID_HISTORY_PROFILE_ID");
@@ -448,6 +467,45 @@ function recordMatchOutcome({ profile, matchId, won, terminalReason, fullPaint =
   return Object.freeze(next);
 }
 
+function recordCpuMatchOutcome({ profile, matchId, cpuCharacterId, won, terminalReason, fullPaint = false, skillsUsed = 0, endedAt = new Date().toISOString() }) {
+  validateProgressionFields(profile);
+  assertProfile(typeof matchId === "string" && matchId.length >= 1 && matchId.length <= 64, "INVALID_HISTORY_MATCH_ID");
+  assertProfile(/^[a-z][a-z0-9-]{1,31}$/.test(cpuCharacterId), "INVALID_CPU_CHARACTER_ID");
+  assertProfile(typeof won === "boolean", "INVALID_MATCH_RESULT");
+  assertProfile(typeof terminalReason === "string" && terminalReason.length <= 80, "INVALID_HISTORY_REASON");
+  assertProfile(typeof fullPaint === "boolean", "INVALID_HISTORY_FULL_PAINT");
+  nonnegativeInteger(skillsUsed, "INVALID_HISTORY_SKILLS_USED");
+  assertProfile(typeof endedAt === "string" && Number.isFinite(Date.parse(endedAt)), "INVALID_HISTORY_DATE");
+  assertProfile(!profile.matchHistory.some((entry) => entry.matchId === matchId), "MATCH_ALREADY_RECORDED");
+  const next = clone(profile);
+  next.cpuStats ||= { wins: 0, losses: 0, currentWinStreak: 0, bestWinStreak: 0, fullPaints: 0 };
+  next.cpuCharacterStats ||= {};
+  if (won) {
+    next.cpuStats.wins += 1;
+    next.cpuStats.currentWinStreak += 1;
+    next.cpuStats.bestWinStreak = Math.max(next.cpuStats.bestWinStreak, next.cpuStats.currentWinStreak);
+  } else {
+    next.cpuStats.losses += 1;
+    next.cpuStats.currentWinStreak = 0;
+  }
+  const character = next.cpuCharacterStats[cpuCharacterId] || { matches: 0, wins: 0, losses: 0, firstWinAt: null };
+  character.matches += 1;
+  character[won ? "wins" : "losses"] += 1;
+  if (won && character.firstWinAt === null) character.firstWinAt = endedAt;
+  next.cpuCharacterStats[cpuCharacterId] = character;
+  if (won && fullPaint) {
+    next.cpuStats.fullPaints += 1;
+    next.stats.fullPaints += 1;
+    unlockTrophy(next, "fullPaint", endedAt);
+    if (next.stats.fullPaints >= 3) unlockTrophy(next, "fullPaint3", endedAt);
+    if (skillsUsed === 0) unlockTrophy(next, "noSkillFullPaint", endedAt);
+  }
+  next.matchHistory.unshift({ matchId, result: won ? "WIN" : "LOSS", terminalReason, endedAt, fullPaint: won && fullPaint, skillsUsed, onlineOpponentKind: "cpu", cpuCharacterId });
+  next.matchHistory = next.matchHistory.slice(0, MAX_MATCH_HISTORY);
+  validateProgressionFields(next);
+  return Object.freeze(next);
+}
+
 module.exports = {
   CARD_COIN_VALUE,
   ECONOMY_VERSION,
@@ -461,6 +519,7 @@ module.exports = {
   coinValueForSkill,
   createProgressionFields,
   quoteCardSale,
+  recordCpuMatchOutcome,
   recordMatchOutcome,
   setCardProtection,
   validateProgressionFields,
@@ -2225,6 +2284,7 @@ function createRegion(state, actor, payload = {}, rngStreams = {}) {
   next.version += 1;
   next.publicLog.push(`T${next.turn - 1} Player ${actor} created ${id}${intrusion.donorCount ? ` with ${intrusion.donorCount} colored-region intrusion${intrusion.splitCount ? ` and ${intrusion.splitCount} donor split` : ""}${intrusion.removedCount ? ` and ${intrusion.removedCount} donor removal` : ""}` : ""}; Player ${next.active} must color it.`);
   applyCurseBacklashOnEnterColor(next, next.active, () => nextRandom(rngStreams, "skill-effect"));
+  finishNoColorOnEntry(next, next.active);
   const contactColorCount = new Set(adjacentRegionIds(next, id)
     .map((regionId) => next.regions[regionId])
     .filter((region) => region && !region.isPending && region.color)
@@ -2239,6 +2299,25 @@ function availableColors(state, actor) {
   if (state.privateEffects[actor]?.prism) for (const color of COLORS) colors.add(color);
   const seals = state.publicEffects?.[actor]?.seals || {};
   return [...colors].filter((color) => !(seals[color] > 0));
+}
+
+function noColorTerminalReason(state, actor) {
+  const usable = availableColors(state, actor);
+  const blocked = new Set(adjacentRegionIds(state, state.pending).map((id) => state.regions[id]?.color).filter(Boolean));
+  if (!usable.every((color) => blocked.has(color))) return null;
+  return usable.length === 0 ? "SEALED_OUT" : "NO_LEGAL_COLOR";
+}
+
+function finishNoColorOnEntry(state, actor, logMessage = `Player ${actor} has no usable color.`) {
+  const reason = noColorTerminalReason(state, actor);
+  if (!reason) return false;
+  if (state.privateEffects[actor]?.temporaryColors) delete state.privateEffects[actor].temporaryColors;
+  state.status = "FINISHED";
+  state.phase = "GAME_OVER";
+  state.winner = other(actor);
+  state.terminalReason = reason;
+  state.publicLog.push(logMessage);
+  return true;
 }
 
 function colorRegion(state, actor, payload = {}, rngStreams = {}) {
@@ -2284,6 +2363,7 @@ function colorRegion(state, actor, payload = {}, rngStreams = {}) {
     applyCurseBacklashOnEnterColor(next, next.active, () => nextRandom(rngStreams, "skill-effect"));
     next.version += 1;
     next.publicLog.push(`Player ${actor} colored ${target.id}; split region ${returnedId} returned to Player ${next.active}.`);
+    finishNoColorOnEntry(next, next.active);
     return { ok: true, code: "OK", state: next, returnedRegionId: returnedId };
   }
   next.pending = null;
@@ -2319,17 +2399,10 @@ function surrender(state, actor) {
 function declareNoColor(state, actor) {
   assertState(state.active === actor, "NOT_YOUR_TURN");
   assertState(state.phase === "COLOR", "WRONG_PHASE");
-  const usable = availableColors(state, actor);
-  const blocked = new Set(adjacentRegionIds(state, state.pending).map((id) => state.regions[id]?.color).filter(Boolean));
-  assertState(usable.every((color) => blocked.has(color)), "COLOR_AVAILABLE");
+  assertState(Boolean(noColorTerminalReason(state, actor)), "COLOR_AVAILABLE");
   const next = clone(state);
-  if (next.privateEffects[actor]?.temporaryColors) delete next.privateEffects[actor].temporaryColors;
-  next.status = "FINISHED";
-  next.phase = "GAME_OVER";
-  next.winner = other(actor);
-  next.terminalReason = usable.length === 0 ? "SEALED_OUT" : "NO_LEGAL_COLOR";
+  finishNoColorOnEntry(next, actor, `Player ${actor} declared no usable color.`);
   next.version += 1;
-  next.publicLog.push(`Player ${actor} declared no usable color.`);
   return { ok: true, code: "OK", state: next };
 }
 

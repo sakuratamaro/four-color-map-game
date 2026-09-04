@@ -142,6 +142,7 @@ test("no-color session hook remains test-owned and the product UI has no declara
   assert.match(noColorBrowserGate, /DECLARE_NO_COLOR/);
   assert.doesNotMatch(`${html}\n${app}\n${bundle}`, /__codexStandardSession/);
   assert.doesNotMatch(app, /dispatch\("DECLARE_NO_COLOR"/);
+  assert.match(bundle, /function finishNoColorOnEntry/);
 });
 
 test("settlement delay and metrics adapters remain test-owned", () => {

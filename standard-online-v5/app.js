@@ -1357,8 +1357,6 @@ function renderBasicActions(state, privateState) {
       button.textContent = COLOR_JA[color] || color; button.disabled = actionBusy; button.onclick = () => sendAction("COLOR_REGION", { color }); palette.appendChild(button);
     }
   }
-  show("declareNoColor", myTurn && state.phase === "COLOR");
-  $("declareNoColor").disabled = actionBusy;
   $("surrender").disabled = actionBusy || !myTurn;
   show("retryAction", Boolean(pendingAction) && !actionBusy);
 }
@@ -1657,7 +1655,6 @@ $("submitSetup").onclick = submitSetup;
 $("board").addEventListener("pointerdown", boardPointer);
 $("clearSelection").onclick = () => { selectedMacros.clear(); render(); };
 $("submitRegion").onclick = () => sendAction("CREATE_REGION", { sourceMacros: [...selectedMacros].sort((a, b) => a - b) });
-$("declareNoColor").onclick = () => sendAction("DECLARE_NO_COLOR");
 $("surrender").onclick = () => sendAction("SURRENDER");
 $("retryAction").onclick = () => pendingAction && sendAction(pendingAction.type, pendingAction.payload, true);
 $("requestRematch").onclick = requestRematch;

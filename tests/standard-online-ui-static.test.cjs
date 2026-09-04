@@ -18,7 +18,7 @@ test("Standard online setup UI exposes the complete reconnect path", () => {
     "shownCode", "members", "loadoutGrid", "submitSetup", "setupStatus", "matchCard",
     "publicProjection", "privateProjection", "leaveRoom",
     "board", "regionControls", "selectionCount", "submitRegion", "paletteControls", "skillControls", "skillTargetControls",
-    "declareNoColor", "surrender", "retryAction", "actionStatus", "rematchControls", "rematchStatus", "requestRematch",
+    "surrender", "retryAction", "actionStatus", "rematchControls", "rematchStatus", "requestRematch",
     "gachaPanel", "gachaTickets", "gachaLevel", "gachaDrawOne", "gachaDrawAll", "gachaRetry", "gachaStatus", "gachaResults",
     "progressionPanel", "profileCoins", "profileStats", "cpuProfileStats", "cpuCharacterRecords", "trophyList", "matchHistory",
     "cardSaleSkill", "cardSaleCount", "cardSaleQuote", "cardSaleCommit", "cardSaleRetry", "cardSaleReset", "cardSaleStatus",
@@ -210,8 +210,8 @@ test("basic board actions are intents derived from public and own-private projec
   assert.match(app, /roomModel\.view\?\.private_state/);
   assert.match(app, /sendAction\("CREATE_REGION", \{ sourceMacros:/);
   assert.match(app, /sendAction\("COLOR_REGION", \{ color \}\)/);
-  assert.match(app, /sendAction\("DECLARE_NO_COLOR"\)/);
   assert.match(app, /sendAction\("SURRENDER"\)/);
+  assert.doesNotMatch(html + app, /declareNoColor|使用可能色なしを宣言|sendAction\("DECLARE_NO_COLOR"\)/);
   assert.doesNotMatch(app, /client\.submitAction\([^)]*(?:state|publicState|privateState)/);
 });
 

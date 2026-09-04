@@ -177,6 +177,37 @@ test("the bundle validates, applies, snapshots, and projects one authoritative a
   assert.equal(Object.hasOwn(applied, "candidates"), false);
 });
 
+test("generated server bundle auto-resolves a blocked receiving seat in the creating action", () => {
+  const api = loadApi();
+  const created = api.create({ matchId: "online-no-color", loadouts, seed: 101, firstSeat: "A" });
+  const state = created.state;
+  const microFor = (macro) => {
+    const col = macro % 12;
+    const row = Math.floor(macro / 12);
+    return Array.from({ length: 16 }, (_, index) => (row * 4 + Math.floor(index / 4)) * 48 + col * 4 + (index % 4));
+  };
+  const usable = [...state.basicPalettes.B, state.bonusColors.B];
+  state.phase = "WORK";
+  state.requiredSize = 1;
+  state.rolledSize = 1;
+  state.baseRequiredSize = 1;
+  state.regions = {
+    R1: { id: "R1", micro: microFor(13), sourceMacros: [13], controllers: ["A"], color: usable[0], isPending: false },
+    R2: { id: "R2", micro: microFor(15), sourceMacros: [15], controllers: ["B"], color: usable[1], isPending: false },
+    R3: { id: "R3", micro: [3 * 48 + 8], sourceMacros: [], controllers: ["A"], color: usable[2], isPending: false },
+  };
+  const applied = api.apply({
+    state,
+    rngSnapshot: created.rngSnapshot,
+    actor: "A",
+    expectedVersion: 0,
+    action: { type: "CREATE_REGION", payload: { sourceMacros: [14] } },
+  });
+  assert.equal(applied.ok, true);
+  assert.equal(applied.finished, true);
+  assert.deepEqual([applied.winnerSeat, applied.terminalReason, applied.state.version], ["A", "NO_LEGAL_COLOR", 1]);
+});
+
 test("invalid or duplicated six-card loadouts fail before match creation", () => {
   const api = loadApi();
   const duplicate = JSON.parse(JSON.stringify(loadouts));
