@@ -172,11 +172,13 @@ test("profile, room, setup, initialize, and reconnect flow only through the clie
   assert.match(app, /if \(hasStandardPublicState\(roomModel\?\.room\?\.public_state\)\)/);
 });
 
-test("setup enforces two owned cards from every category before submission", () => {
+test("setup enforces two cards per category and makes unowned cards debug-only", () => {
   assert.match(app, /value\?\.inventory\?\.\[id\]/);
+  assert.match(app, /debugMode \|\| \(value\?\.inventory\?\.\[id\] \|\| 0\) > 0/);
   assert.match(app, /if \(checked\.length > 2\) changed\.checked = false/);
   assert.match(app, /every\(\(category\) => loadout\[category\]\.length === 2\)/);
-  assert.match(app, /client\.submitSetup\(\{ loadout \}\)/);
+  assert.match(app, /client\.submitSetup\(\{ loadout, debugMode \}\)/);
+  assert.match(html, /id="debugUnlimitedMode"/);
 });
 
 test("a fresh device can create a six-card online-only starter without overwriting the Standard save", () => {
@@ -187,7 +189,7 @@ test("a fresh device can create a six-card online-only starter without overwriti
   }
   assert.match(app, /localStorage\.setItem\(STARTER_PROFILE_KEY/);
   assert.doesNotMatch(app, /localStorage\.setItem\(SAVE_KEY/);
-  assert.match(app, /loadProfiles\(\);\s*render\(\);\s*try \{/);
+  assert.match(app, /loadProfiles\(\);\s*activateAppTab\(activeAppTab\);\s*render\(\);\s*try \{/);
   assert.match(app, /syncProfile"\)\.disabled = !value \|\| !connected/);
 });
 

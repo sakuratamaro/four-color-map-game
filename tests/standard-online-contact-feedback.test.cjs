@@ -16,11 +16,10 @@ test("online Standard presents the accepted two, three, and four-color contact t
   }
 });
 
-test("contact feedback occurs only after a new committed CREATE_REGION result", () => {
-  assert.match(app, /const response = await client\.submitAction\(pendingAction\)/);
-  assert.match(app, /type === "CREATE_REGION" && !response\.duplicate/);
-  assert.match(app, /showContactReveal\(response\.result\?\.contactColorCount\)/);
-  assert.match(app, /roomModel\?\.room\?\.public_state\?\.status !== "FINISHED"/);
+test("contact feedback occurs as soon as a complete area is selected", () => {
+  assert.match(app, /function selectedContactColorCount\(state, macros = selectedMacros\)/);
+  assert.match(app, /selectedMacros\.size === state\.requiredSize\) showContactReveal\(selectedContactColorCount\(state\)\)/);
+  assert.doesNotMatch(app, /showContactReveal\(response\.result\?\.contactColorCount\)/);
 });
 
 test("contact feedback is pointer inert, bounded, and reduced-motion safe", () => {

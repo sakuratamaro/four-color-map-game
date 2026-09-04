@@ -98,14 +98,14 @@ test("setup loads the authenticated profile and issues a server-bounded quote", 
   assert.match(source, /const profile = firstRow\(profileData\)/);
   assert.match(source, /FourColorStandardServerEngine\.validateSeatLoadout/);
   assert.match(source, /Date\.now\(\) \+ 5 \* 60 \* 1000/);
-  assert.match(source, /fingerprint\(\{ roomId, actorId, profileRevision: profile\.revision, loadout \}\)/);
+  assert.match(source, /fingerprint\(\{ roomId, actorId, profileRevision: profile\.revision, loadout, debugMode \}\)/);
   assert.match(source, /fcg_standard_server_submit_loadout/);
   assert.match(source, /p_actor_id: actorId/);
 });
 
 test("initialization uses service-loaded loadouts and profiles with a server seed", () => {
   assert.match(source, /fcg_standard_server_load_room/);
-  assert.match(source, /loadouts: \{ A: room\.setup_a[^;]+B: room\.setup_b/i);
+  assert.match(source, /loadouts: \{ A: playableLoadout\(room\.setup_a[^;]+B: playableLoadout\(room\.setup_b/i);
   assert.match(source, /profiles: \{ A: room\.profile_a_state[^;]+B: room\.profile_b_state/i);
   assert.match(source, /seed: secureSeed\(\)/);
   assert.match(source, /fcg_standard_server_initialize_room/);
@@ -157,9 +157,10 @@ test("each rematch generation receives a distinct match id and versioned project
   assert.match(source, /matchId: `\$\{roomId\}:\$\{initialVersion\}`/);
   assert.match(source, /const initialState = \{ \.\.\.\(created\.state as JsonObject\), version: initialVersion \}/);
   assert.match(source, /p_authoritative_state: \{ state: initialState, rngSnapshot: created\.rngSnapshot \}/);
-  assert.match(source, /p_public_state: globalThis\.FourColorStandardServerEngine\.publicState\(initialState\)/);
-  assert.match(source, /p_private_a: globalThis\.FourColorStandardServerEngine\.privateState\(initialState, "A"\)/);
-  assert.match(source, /p_private_b: globalThis\.FourColorStandardServerEngine\.privateState\(initialState, "B"\)/);
+  assert.match(source, /const initialProjection = globalThis\.FourColorStandardServerEngine\.project\(initialState, debugMode\)/);
+  assert.match(source, /p_public_state: initialProjection\.publicState/);
+  assert.match(source, /p_private_a: initialProjection\.privateA/);
+  assert.match(source, /p_private_b: initialProjection\.privateB/);
 });
 
 test("action retries preflight the immutable fingerprint before engine application", () => {

@@ -97,12 +97,15 @@ function validateLoadouts(loadouts){
     validateSeatLoadout({loadout:loadouts[seat]});
   }
 }
-function projections(state){
-  return {publicState:match.projectStandardPublicState(state),privateA:match.projectStandardPrivateState(state,"A"),privateB:match.projectStandardPrivateState(state,"B")};
+function projections(state,debugMode=false){
+  const publicState=clone(match.projectStandardPublicState(state));
+  if(debugMode)publicState.debugUnlimitedSkills=true;
+  return {publicState,privateA:match.projectStandardPrivateState(state,"A"),privateB:match.projectStandardPrivateState(state,"B")};
 }
-function create({matchId,loadouts,profiles=null,seed,firstSeat=null}){
+function create({matchId,loadouts,profiles=null,seed,firstSeat=null,debugMode=false}){
+  if(typeof debugMode!=="boolean")throw new Error("INVALID_DEBUG_MODE");
   validateLoadouts(loadouts);
-  if(profiles!==null){
+  if(profiles!==null&&!debugMode){
     for(const seat of ["A","B"]){
       validateSeatLoadout({loadout:loadouts[seat],profile:profiles?.[seat]});
     }
@@ -111,7 +114,7 @@ function create({matchId,loadouts,profiles=null,seed,firstSeat=null}){
   const streams=engine.createRngDomains(seed,match.REQUIRED_RNG_STREAMS);
   const state=match.createStandardMatch({matchId,loadouts,firstSeat},streams);
   const rngSnapshot=engine.snapshotRngDomains(streams,match.REQUIRED_RNG_STREAMS);
-  return {...projections(state),state,rngSnapshot};
+  return {...projections(state,debugMode),state,rngSnapshot};
 }
 function gachaRarity(value,ticketLevel){
   let cumulative=0;
@@ -164,10 +167,11 @@ function applyCosmetic({profile,cosmeticId}){
   validateProfile(result.profile);
   return {profile:clone(result.profile),quote:clone(result.quote)};
 }
-function applyProfiles({profiles,beforeState,nextState,actor,action,finishedAt}){
+function applyProfiles({profiles,beforeState,nextState,actor,action,finishedAt,debugMode=false}){
   const next={A:clone(profiles?.A),B:clone(profiles?.B)};
   for(const seat of ["A","B"])validateProfile(next[seat]);
   const changed={A:false,B:false};
+  if(debugMode)return {profiles:next,changed};
   if(action.type==="USE_SKILL"){
     const consumed=[];
     for(const id of new Set([...Object.keys(beforeState.hands[actor]),...Object.keys(nextState.hands[actor])])){
@@ -227,19 +231,27 @@ function applyCpuProfiles({profiles,beforeState,nextState,actor,action,finishedA
   }
   return {profiles:next,changed};
 }
-function apply({state,rngSnapshot,actor,action,expectedVersion}){
+function apply({state,rngSnapshot,actor,action,expectedVersion,debugMode=false}){
+  if(typeof debugMode!=="boolean")throw new Error("INVALID_DEBUG_MODE");
   match.validateStandardState(state);
   const streams=engine.createRngDomainsFromSnapshot(rngSnapshot,match.REQUIRED_RNG_STREAMS);
   const applied=match.applyStandardAction({state,actor,action,expectedVersion,rngStreams:streams});
   if(!applied.ok)return {ok:false,code:applied.code};
-  const next=applied.state;
+  let next=applied.state;
+  if(debugMode&&action.type==="USE_SKILL"){
+    const skill=action.payload?.skill;
+    if(typeof skill!=="string")throw new Error("INVALID_DEBUG_SKILL");
+    next=clone(next);
+    next.hands[actor][skill]=(next.hands[actor][skill]||0)+1;
+    match.validateStandardState(next);
+  }
   return {
     ok:true,
     code:applied.code,
     contactColorCount:action.type==="CREATE_REGION"?applied.contactColorCount:null,
     state:next,
     rngSnapshot:engine.snapshotRngDomains(streams,match.REQUIRED_RNG_STREAMS),
-    ...projections(next),
+    ...projections(next,debugMode),
     finished:next.status==="FINISHED",
     winnerSeat:next.winner||null,
     terminalReason:next.terminalReason||null,
@@ -264,6 +276,7 @@ globalThis.FourColorStandardServerEngine=Object.freeze({
   quoteCosmetic,
   sellCards,
   privateState:match.projectStandardPrivateState,
+  project:projections,
   publicState:match.projectStandardPublicState,
   validateProfile,
   validateSeatLoadout,

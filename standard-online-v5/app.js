@@ -15,6 +15,10 @@ const REMOTE_PROFILE_KEY = "fourColorMapGame.standard.online.v5.remote-profile";
 const REMOTE_PROFILE_ID = "online-server";
 const GACHA_PENDING_KEY = "fourColorMapGame.standard.online.v5.pending-gacha";
 const QUIZ_PENDING_KEY = "fourColorMapGame.standard.online.v5.pending-quiz";
+const TERMINAL_PRESENTED_KEY = "fourColorMapGame.standard.online.v5.last-terminal-presentation";
+const APP_TAB_KEY = "fourColorMapGame.standard.online.v5.active-tab";
+const QUIZ_TIMEOUT_ANSWER = "__timeout__";
+const MATHML_NS = "http://www.w3.org/1998/Math/MathML";
 const CARD_SALE_PENDING_KEY = "fourColorMapGame.standard.online.v5.pending-card-sale";
 const COSMETIC_PENDING_KEY = "fourColorMapGame.standard.online.v5.pending-cosmetic";
 const STARTER_INVENTORY = Object.freeze({
@@ -123,11 +127,15 @@ let targetDraft = null;
 let randomRevealTimer = null;
 let contactRevealTimer = null;
 let contactPresentationGeneration = 0;
+let quizClockTimer = null;
+let quizTimeoutQueued = false;
 let shownTerminalEventKey = null;
 let dismissedTerminalEventKey = null;
 const selectedMacros = new Set();
 const COLOR_HEX = { red: "#ef4444", blue: "#3b82f6", yellow: "#eab308", green: "#22c55e" };
 const COLOR_JA = { red: "赤", blue: "青", yellow: "黄", green: "緑" };
+const APP_TABS = new Set(["home", "battle", "quiz", "cards", "profile"]);
+let activeAppTab = APP_TABS.has(location.hash.slice(1)) ? location.hash.slice(1) : localStorage.getItem(APP_TAB_KEY) || "home";
 const SKILL_META = Object.fromEntries(SKILLS.map(([id, name, category]) => [id, { name, category }]));
 
 function show(id, value) { $(id).classList.toggle("hidden", !value); }
@@ -139,6 +147,25 @@ function safeJson(value) { return JSON.stringify(value, null, 2); }
 function actionSignature(type, payload) { return JSON.stringify({ type, payload }); }
 function hasStandardPublicState(value) {
   return Boolean(value && typeof value === "object" && value.playableBounds && Number.isSafeInteger(value.version));
+}
+
+function activateAppTab(requestedTab, { updateHash = true } = {}) {
+  const tab = APP_TABS.has(requestedTab) ? requestedTab : "home";
+  activeAppTab = tab;
+  localStorage.setItem(APP_TAB_KEY, tab);
+  if (updateHash && location.hash !== `#${tab}`) history.replaceState(null, "", `#${tab}`);
+  for (const button of document.querySelectorAll("[data-app-tab]")) {
+    const active = button.dataset.appTab === tab;
+    button.classList.toggle("active", active);
+    button.setAttribute("aria-selected", String(active));
+  }
+  for (const panel of document.querySelectorAll("[data-app-tab-panel]")) {
+    const active = String(panel.dataset.appTabPanel || "").split(/\s+/).includes(tab);
+    panel.classList.toggle("tab-panel-hidden", !active);
+  }
+  document.body.dataset.activeTab = tab;
+  if (tab === "battle") roomSync?.invalidate?.();
+  window.scrollTo({ top: 0, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
 }
 
 function playerName(seat) {
@@ -196,7 +223,10 @@ function renderTerminalResult(state) {
     dismissedTerminalEventKey = null;
     return;
   }
-  const eventKey = `${roomModel?.room?.id || client.snapshot().roomId}:${roomModel?.room?.version}:${state.winner}:${state.terminalReason || "FINISHED"}`;
+  const eventKey = `${state.matchId || roomModel?.room?.id || client.snapshot().roomId}:${roomModel?.room?.version}:${state.winner}:${state.terminalReason || "FINISHED"}`;
+  let alreadyPresented = false;
+  try { alreadyPresented = localStorage.getItem(TERMINAL_PRESENTED_KEY) === eventKey; } catch { alreadyPresented = false; }
+  if (alreadyPresented) return show("terminalOverlay", false);
   if (dismissedTerminalEventKey === eventKey) return show("terminalOverlay", false);
   clearContactReveal();
   const mySeat = roomModel?.view?.seat;
@@ -208,6 +238,7 @@ function renderTerminalResult(state) {
   $("terminalTitle").textContent = won ? "勝利！" : "敗北";
   $("terminalMessage").textContent = won ? `${playerName(mySeat)} の勝利です！` : `${playerName(state.winner)} の勝利です`;
   $("terminalReasonText").textContent = terminalReasonText(state.terminalReason, state.winner);
+  try { localStorage.setItem(TERMINAL_PRESENTED_KEY, eventKey); } catch { /* presentation still works when storage is unavailable */ }
   show("terminalOverlay", true);
   if (shownTerminalEventKey !== eventKey) {
     shownTerminalEventKey = eventKey;
@@ -223,10 +254,24 @@ function renderColorValue(id, color, suffix = "") {
   const label = document.createElement("span"); label.textContent = `${colorName(color)}${suffix}`; node.appendChild(label);
 }
 
+function appendColorValue(node, color, suffix = "") {
+  const value = document.createElement("span");
+  value.className = `inline-color-value ${color || "unknown"}`;
+  const chip = document.createElement("span");
+  chip.className = `color-chip ${color || "unknown"}`;
+  chip.setAttribute("aria-hidden", "true");
+  const label = document.createElement("strong");
+  label.textContent = `${colorName(color)}${suffix}`;
+  value.append(chip, label);
+  node.appendChild(value);
+}
+
 function renderRandomSummary(publicState, privateState) {
   const changedSize = publicState.requiredSize !== publicState.rolledSize;
   $("rolledSizeValue").textContent = `${publicState.rolledSize}マス${changedSize ? `（スキル効果で現在${publicState.requiredSize}マス）` : ""}`;
-  $("basicPaletteValue").textContent = (privateState.basicPalette || []).map(colorName).join("・") || "確認中";
+  $("basicPaletteValue").replaceChildren();
+  for (const color of privateState.basicPalette || []) appendColorValue($("basicPaletteValue"), color);
+  if (!(privateState.basicPalette || []).length) $("basicPaletteValue").textContent = "確認中";
   renderColorValue("bonusColorValue", privateState.bonusColor, `（残り${privateState.bonusUsesRemaining || 0}回）`);
 }
 
@@ -235,7 +280,15 @@ function revealRandomSetup(publicState, privateState) {
   if (!publicState.matchId || sessionStorage.getItem(key)) return;
   sessionStorage.setItem(key, "shown");
   $("randomRevealTitle").textContent = `サイコロは ${publicState.rolledSize}マス！`;
-  $("randomRevealDetail").textContent = `あなたの持ち色は ${(privateState.basicPalette || []).map(colorName).join("・")}、おまけ色は${colorName(privateState.bonusColor)}（${privateState.bonusUsesRemaining || 0}回）。すべてサーバーのランダム抽選です。`;
+  const detail = $("randomRevealDetail");
+  detail.replaceChildren("全4色（赤・青・黄・緑）から、あなたの持ち色は ");
+  (privateState.basicPalette || []).forEach((color, index) => {
+    if (index) detail.append("・");
+    appendColorValue(detail, color);
+  });
+  detail.append("。おまけ色は ");
+  appendColorValue(detail, privateState.bonusColor, `（残り${privateState.bonusUsesRemaining || 0}回）`);
+  detail.append("。すべてサーバーのランダム抽選です。");
   show("randomReveal", true);
   clearTimeout(randomRevealTimer);
   randomRevealTimer = setTimeout(() => show("randomReveal", false), 2600);
@@ -606,9 +659,226 @@ function renderGacha() {
   }
 }
 
+function renderCardLibrary() {
+  if (!$("cardInventory")) return;
+  const value = profile();
+  $("cardInventory").replaceChildren();
+  if (!value) return;
+  for (const [skillId, name, category] of SKILLS) {
+    const card = document.createElement("article");
+    card.className = `inventory-card category-${category}`;
+    const mark = document.createElement("span");
+    mark.className = "inventory-card-mark";
+    mark.textContent = category === "color" ? "●" : category === "area" ? "⬡" : "✦";
+    const copy = document.createElement("div");
+    const title = document.createElement("strong"); title.textContent = name;
+    const type = document.createElement("small"); type.textContent = CATEGORY_LABEL[category] || category;
+    copy.append(title, type);
+    const count = document.createElement("b");
+    count.className = "inventory-count";
+    count.textContent = `×${Number(value.inventory?.[skillId] || 0)}`;
+    card.append(mark, copy, count);
+    card.onclick = () => openSkillInfo(skillId);
+    card.tabIndex = 0;
+    card.setAttribute("role", "button");
+    card.onkeydown = (event) => { if (["Enter", " "].includes(event.key)) { event.preventDefault(); openSkillInfo(skillId); } };
+    $("cardInventory").appendChild(card);
+  }
+}
+
+function mathNode(tag, text = null) {
+  const node = document.createElementNS(MATHML_NS, tag);
+  if (text !== null) node.textContent = String(text);
+  return node;
+}
+
+function mathMatrix(rows) {
+  const fenced = mathNode("mfenced");
+  const table = mathNode("mtable");
+  for (const row of rows || []) {
+    const tr = mathNode("mtr");
+    for (const value of row || []) {
+      const td = mathNode("mtd");
+      td.appendChild(mathNode("mn", value));
+      tr.appendChild(td);
+    }
+    table.appendChild(tr);
+  }
+  fenced.appendChild(table);
+  return fenced;
+}
+
+function appendMathLimits(math, symbol, descriptor) {
+  const limits = mathNode("munderover");
+  limits.append(mathNode("mo", symbol), mathNode("mtext", descriptor.lower), mathNode("mtext", descriptor.upper));
+  math.append(limits, mathNode("mspace"), mathNode("mtext", descriptor.body || ""));
+}
+
+function renderQuizQuestion(question) {
+  const host = $("quizQuestion");
+  host.replaceChildren();
+  const descriptor = question?.math;
+  if (!descriptor || typeof descriptor !== "object") {
+    host.textContent = question?.prompt || "問題を読み込んでいます。";
+    return;
+  }
+  const math = mathNode("math");
+  math.setAttribute("display", "block");
+  math.setAttribute("aria-label", question.prompt || "数式問題");
+  if (descriptor.kind === "sum") {
+    appendMathLimits(math, "∑", descriptor);
+  } else if (descriptor.kind === "integral") {
+    appendMathLimits(math, "∫", descriptor);
+    math.append(mathNode("mspace"), mathNode("mi", `d${descriptor.variable || "x"}`));
+  } else if (descriptor.kind === "fraction") {
+    const fraction = mathNode("mfrac");
+    fraction.append(mathNode("mtext", descriptor.numerator), mathNode("mtext", descriptor.denominator));
+    math.appendChild(fraction);
+  } else if (descriptor.kind === "power") {
+    const power = mathNode("msup");
+    power.append(mathNode("mn", descriptor.base), mathNode("mn", descriptor.exponent));
+    math.appendChild(power);
+  } else if (descriptor.kind === "root") {
+    const root = mathNode("msqrt");
+    root.appendChild(mathNode("mn", descriptor.value));
+    math.appendChild(root);
+  } else if (descriptor.kind === "derivative") {
+    const fraction = mathNode("mfrac");
+    fraction.append(mathNode("mrow"), mathNode("mrow"));
+    fraction.firstChild.append(mathNode("mi", "d"), mathNode("mi", "y"));
+    fraction.lastChild.append(mathNode("mi", "d"), mathNode("mi", "x"));
+    math.append(fraction, mathNode("mspace"), mathNode("mtext", `y = ${descriptor.function}　x = ${descriptor.at}`));
+  } else if (descriptor.kind === "matrix-determinant") {
+    math.append(mathNode("mi", "det"), mathMatrix(descriptor.rows));
+  } else if (descriptor.kind === "matrix-product") {
+    if (descriptor.prefix) math.append(mathNode("mtext", descriptor.prefix), mathNode("mspace"));
+    math.append(mathMatrix(descriptor.left), mathNode("mo", "×"), mathMatrix(descriptor.right));
+  } else if (descriptor.kind === "system") {
+    const table = mathNode("mtable");
+    for (const line of descriptor.lines || []) {
+      const row = mathNode("mtr"); const cell = mathNode("mtd"); cell.appendChild(mathNode("mtext", line)); row.appendChild(cell); table.appendChild(row);
+    }
+    math.appendChild(table);
+  } else {
+    math.appendChild(mathNode("mtext", descriptor.value || question.prompt));
+  }
+  if (descriptor.suffix) math.append(mathNode("mspace"), mathNode("mtext", descriptor.suffix));
+  host.appendChild(math);
+  if (question.category) {
+    const category = document.createElement("small");
+    category.className = "quiz-category";
+    category.textContent = question.category;
+    host.prepend(category);
+  }
+}
+
 function savePendingQuiz() {
   if (pendingQuiz) localStorage.setItem(QUIZ_PENDING_KEY, JSON.stringify(pendingQuiz));
   else localStorage.removeItem(QUIZ_PENDING_KEY);
+}
+
+function quizQuestionLimitMs(question) {
+  return Math.max(10, Number(question?.timeLimitSeconds || 45)) * 1000;
+}
+
+function ensureQuizQuestionState(now = Date.now()) {
+  if (!pendingQuiz || pendingQuiz.answers.length >= 10) return null;
+  const index = pendingQuiz.answers.length;
+  if (!pendingQuiz.questionState || pendingQuiz.questionState.index !== index) {
+    pendingQuiz.questionState = {
+      index,
+      remainingMs: quizQuestionLimitMs(pendingQuiz.questions[index]),
+      lastTickAt: now,
+      hintUsed: false,
+      hintActiveUntil: 0,
+    };
+    savePendingQuiz();
+  }
+  return pendingQuiz.questionState;
+}
+
+function settleQuizClock(now = Date.now()) {
+  const state = ensureQuizQuestionState(now);
+  if (!state) return null;
+  if (state.hintActiveUntil > now) {
+    state.lastTickAt = now;
+    return state;
+  }
+  if (state.hintActiveUntil) {
+    state.lastTickAt = Math.max(Number(state.lastTickAt || 0), Number(state.hintActiveUntil));
+    state.hintActiveUntil = 0;
+  }
+  const elapsed = Math.max(0, now - Number(state.lastTickAt || now));
+  state.remainingMs = Math.max(0, Number(state.remainingMs || 0) - elapsed);
+  state.lastTickAt = now;
+  return state;
+}
+
+function stopQuizClock() {
+  clearInterval(quizClockTimer);
+  quizClockTimer = null;
+}
+
+function updateQuizClock() {
+  if (!pendingQuiz || pendingQuiz.answers.length >= 10 || !$("quizTimer")) return stopQuizClock();
+  const now = Date.now();
+  const previousState = ensureQuizQuestionState(now);
+  const hintWasActive = Number(previousState?.hintActiveUntil || 0) > 0;
+  const state = settleQuizClock(now);
+  const question = pendingQuiz.questions[pendingQuiz.answers.length];
+  const total = quizQuestionLimitMs(question);
+  const hintRemaining = Math.max(0, Number(state?.hintActiveUntil || 0) - now);
+  const remaining = Math.max(0, Number(state?.remainingMs || 0));
+  $("quizTimer").textContent = hintRemaining > 0 ? `ヒント ${Math.ceil(hintRemaining / 1000)}秒` : `残り ${Math.ceil(remaining / 1000)}秒`;
+  $("quizTimer").classList.toggle("urgent", hintRemaining === 0 && remaining <= 10_000);
+  const percent = Math.max(0, Math.min(100, remaining / total * 100));
+  $("quizTimeBar").style.width = `${percent}%`;
+  $("quizTimeBar").parentElement.setAttribute("aria-valuenow", String(Math.round(percent)));
+  if (hintWasActive && !hintRemaining) {
+    savePendingQuiz();
+    renderQuizHint(question, state);
+    for (const option of $("quizOptions").querySelectorAll("button")) option.disabled = quizBusy || remaining <= 0;
+  }
+  if (!remaining && !hintRemaining && !quizTimeoutQueued) {
+    quizTimeoutQueued = true;
+    setTimeout(() => {
+      quizTimeoutQueued = false;
+      if (pendingQuiz && settleQuizClock()?.remainingMs === 0) answerOnlineQuiz(pendingQuiz.timeoutAnswerId || QUIZ_TIMEOUT_ANSWER, { timedOut: true });
+    }, 0);
+  }
+}
+
+function startQuizClock() {
+  if (!quizClockTimer) quizClockTimer = setInterval(updateQuizClock, 200);
+  updateQuizClock();
+}
+
+function renderQuizHint(question, state) {
+  const visible = Number(state?.hintActiveUntil || 0) > Date.now();
+  show("quizHintText", visible);
+  $("quizHint").disabled = quizBusy || Boolean(state?.hintUsed);
+  $("quizHint").textContent = state?.hintUsed ? "ヒント使用済み" : "💡 ヒントを見る";
+  if (!visible) return $("quizHintText").replaceChildren();
+  const heading = document.createElement("strong");
+  heading.textContent = "公式メモ：使うものと使わないものが混ざっています";
+  const list = document.createElement("ul");
+  for (const hint of question?.hintOptions || ["式の関係を整理してみよう"]) {
+    const item = document.createElement("li"); item.textContent = hint; list.appendChild(item);
+  }
+  $("quizHintText").replaceChildren(heading, list);
+}
+
+function openQuizHint() {
+  if (!pendingQuiz || quizBusy) return;
+  const now = Date.now();
+  const state = settleQuizClock(now);
+  if (!state || state.hintUsed || state.remainingMs <= 0) return;
+  const question = pendingQuiz.questions[pendingQuiz.answers.length];
+  state.hintUsed = true;
+  state.hintActiveUntil = now + Math.max(2500, Number(question?.hintDurationMs || 3500));
+  state.lastTickAt = now;
+  savePendingQuiz();
+  renderQuiz();
 }
 
 function renderQuiz() {
@@ -621,6 +891,7 @@ function renderQuiz() {
   if (expired) {
     pendingQuiz = null;
     savePendingQuiz();
+    stopQuizClock();
     $('quizStatus').textContent = "前回のクイズは期限切れです。新しく開始してください。";
   }
   show("quizSetup", !pendingQuiz);
@@ -632,12 +903,13 @@ function renderQuiz() {
     const reward = lastQuizResult.reward || {};
     $("quizResult").textContent = `${lastQuizResult.correct}問正解！ Lv.${reward.ticketLevel}ガチャ券を${reward.draws}枚獲得（${reward.reason}）`;
   }
-  if (!pendingQuiz) return;
+  if (!pendingQuiz) { stopQuizClock(); return; }
   const index = pendingQuiz.answers.length;
   $("quizProgress").textContent = `${Math.min(index + 1, 10)} / 10`;
   $("quizLevelBadge").textContent = `Lv.${pendingQuiz.selectedLevel}`;
   $("quizOptions").replaceChildren();
   if (index >= 10) {
+    stopQuizClock();
     $("quizQuestion").textContent = "10問回答済みです。サーバーで採点します。";
     const retry = document.createElement("button");
     retry.className = "primary";
@@ -648,14 +920,18 @@ function renderQuiz() {
     return;
   }
   const question = pendingQuiz.questions[index];
-  $("quizQuestion").textContent = question.prompt;
-  for (const option of question.options || []) {
+  const questionState = settleQuizClock();
+  renderQuizQuestion(question);
+  renderQuizHint(question, questionState);
+  for (const [optionIndex, option] of (question.options || []).entries()) {
     const button = document.createElement("button");
     button.textContent = option.label;
-    button.disabled = quizBusy;
+    button.style.setProperty("--float-order", String(optionIndex));
+    button.disabled = quizBusy || Number(questionState?.hintActiveUntil || 0) > Date.now();
     button.onclick = () => answerOnlineQuiz(option.id);
     $("quizOptions").appendChild(button);
   }
+  startQuizClock();
 }
 
 async function startOnlineQuiz() {
@@ -674,6 +950,8 @@ async function startOnlineQuiz() {
       expiresAt: result.expiresAt,
       questions: result.questions,
       answers: [],
+      questionState: null,
+      timeoutAnswerId: typeof result.timeoutAnswerId === "string" ? result.timeoutAnswerId : QUIZ_TIMEOUT_ANSWER,
     };
     savePendingQuiz();
     $("quizStatus").textContent = "答えを選んでください。10問後にまとめてサーバー採点します。";
@@ -683,10 +961,15 @@ async function startOnlineQuiz() {
   } finally { quizBusy = false; renderQuiz(); }
 }
 
-function answerOnlineQuiz(optionId) {
+function answerOnlineQuiz(optionId, { timedOut = false } = {}) {
   if (quizBusy || !pendingQuiz || pendingQuiz.answers.length >= 10) return;
+  const questionState = settleQuizClock();
+  if (!timedOut && Number(questionState?.hintActiveUntil || 0) > Date.now()) return;
+  if (!timedOut && Number(questionState?.remainingMs || 0) <= 0) return;
   pendingQuiz.answers.push(String(optionId));
+  pendingQuiz.questionState = null;
   savePendingQuiz();
+  if (timedOut) $("quizStatus").textContent = "時間切れ。次の問題へ進みます。";
   if (pendingQuiz.answers.length === 10) finishOnlineQuiz();
   else renderQuiz();
 }
@@ -750,17 +1033,18 @@ function createStarterProfile() {
 
 function renderLoadout() {
   const value = profile();
+  const debugMode = $("debugUnlimitedMode")?.checked === true;
   const grid = $("loadoutGrid"); grid.replaceChildren();
   for (const category of ["color", "area", "disrupt"]) {
     const section = document.createElement("div"); section.className = "loadout-category";
     const title = document.createElement("h3"); title.textContent = CATEGORY_LABEL[category]; section.appendChild(title);
-    const available = SKILLS.filter(([id, , kind]) => kind === category && (value?.inventory?.[id] || 0) > 0);
+    const available = SKILLS.filter(([id, , kind]) => kind === category && (debugMode || (value?.inventory?.[id] || 0) > 0));
     for (const [index, [id, name]] of available.entries()) {
       const label = document.createElement("label"); label.className = "loadout-option";
       const input = document.createElement("input"); input.type = "checkbox"; input.name = `loadout-${category}`; input.value = id; input.checked = index < 2;
       input.onchange = () => enforceTwo(category, input); label.appendChild(input);
       const text = document.createTextNode(name); label.appendChild(text);
-      const count = document.createElement("span"); count.textContent = `×${value.inventory[id]}`; label.appendChild(count); section.appendChild(label);
+      const count = document.createElement("span"); count.textContent = debugMode ? "∞" : `×${value.inventory[id]}`; label.appendChild(count); section.appendChild(label);
     }
     if (!available.length) { const empty = document.createElement("p"); empty.className = "muted"; empty.textContent = "所持カードなし"; section.appendChild(empty); }
     grid.appendChild(section);
@@ -790,7 +1074,10 @@ async function refreshRoom(_reason, expectedRoomId = client.snapshot().roomId) {
       await client.initialize();
       const initializedRoom = await client.readRoom(expectedRoomId);
       if (client.snapshot().roomId === expectedRoomId) roomModel = initializedRoom;
-    } catch (error) { if (!String(error.message).includes("setup")) console.warn(error); }
+    } catch (error) {
+      if (error?.code === "DEBUG_MODE_MISMATCH") toast("デバッグ設定が相手と違います。2人とも同じ設定にして、もう一度6枚を確認してください。");
+      else if (!String(error.message).includes("setup")) console.warn(error);
+    }
     finally { initializeBusy = false; render(); }
   }
   scheduleCpuTurn();
@@ -849,7 +1136,10 @@ async function runCpuTurn() {
 function render() {
   const snapshot = client.snapshot();
   show("quizPanel", synced && Boolean(profile()));
+  renderQuiz();
   show("gachaPanel", synced && Boolean(profile()));
+  show("cardLibraryPanel", synced && Boolean(profile()));
+  renderCardLibrary();
   show("progressionPanel", synced && Boolean(profile()));
   show("cosmeticPanel", synced && Boolean(profile()));
   renderCosmetics();
@@ -862,10 +1152,17 @@ function render() {
   if (!snapshot.roomId) { renderTerminalResult(null); return; }
   const cpuRoom = roomModel?.room?.opponent_kind === "cpu";
   const accessMode = roomModel?.room?.access_mode || (snapshot.roomCode ? "private_code" : "public_queue");
+  const debugAllowed = accessMode === "private_code" && !cpuRoom;
+  const debugToggle = $("debugUnlimitedMode");
+  if (debugToggle) {
+    debugToggle.disabled = !debugAllowed;
+    if (!debugAllowed && debugToggle.checked) { debugToggle.checked = false; renderLoadout(); }
+  }
   $("roomIdentityLabel").textContent = accessMode === "public_queue" ? "対戦形式" : accessMode === "cpu" ? "対戦相手" : "合言葉";
   $("shownCode").textContent = accessMode === "public_queue" ? "野良対戦" : accessMode === "cpu" ? `CPU：${CPU_NAMES[roomModel?.room?.cpu_character_id] || playerName("B")}` : snapshot.roomCode || "復帰済";
   $("seatBadge").textContent = roomModel?.view?.seat ? `Player ${roomModel.view.seat}` : "席確認中";
-  $("roomStatus").textContent = ROOM_STATUS_LABEL[roomModel?.room?.status] || "読み込み中";
+  const debugMatch = roomModel?.room?.public_state?.debugUnlimitedSkills === true;
+  $("roomStatus").textContent = `${ROOM_STATUS_LABEL[roomModel?.room?.status] || "読み込み中"}${debugMatch ? "・デバッグ∞" : ""}`;
   const rematchPending = snapshot.rematchExpectedVersion === roomModel?.room?.version;
   $("requestRematch").textContent = rematchPending ? "同じ再戦申請を再送" : cpuRoom ? "同じCPUと再戦する" : "再戦を申し込む";
   $("requestRematch").disabled = rematchBusy || roomModel?.room?.status !== "finished";
@@ -912,7 +1209,7 @@ function renderSkills(state, privateState) {
     if (!(count > 0) || !SKILL_META[skill]) continue;
     const meta = SKILL_META[skill];
     const item = document.createElement("div"); item.className = "skill-entry";
-    const node = button(`${meta.name} ×${count}`, () => beginSkill(skill), "skill");
+    const node = button(`${meta.name} ${state.debugUnlimitedSkills ? "∞" : `×${count}`}`, () => beginSkill(skill), "skill");
     const timingOkay = meta.category === "color" ? state.phase === "COLOR" : ["CREATE_FIRST", "WORK"].includes(state.phase);
     node.disabled = actionBusy || !myTurn || !timingOkay;
     const info = button("ⓘ", () => openSkillInfo(skill), "skill-info-button");
@@ -1014,6 +1311,37 @@ function renderBoard(state) {
   }
 }
 
+function selectedContactColorCount(state, macros = selectedMacros) {
+  const macroWidth = Number(state?.playableBounds?.macroWidth || 0);
+  const microScale = Number(state?.playableBounds?.microScale || 0);
+  if (!macroWidth || !microScale || !macros.size) return 0;
+  const microWidth = macroWidth * microScale;
+  const selectedMicro = new Set();
+  for (const macro of macros) {
+    const macroCol = macro % macroWidth;
+    const macroRow = Math.floor(macro / macroWidth);
+    for (let dy = 0; dy < microScale; dy += 1) {
+      for (let dx = 0; dx < microScale; dx += 1) selectedMicro.add((macroRow * microScale + dy) * microWidth + macroCol * microScale + dx);
+    }
+  }
+  const coloredMicro = new Map();
+  for (const region of Object.values(state.regions || {})) {
+    if (!region?.color) continue;
+    for (const micro of region.micro || []) coloredMicro.set(Number(micro), region.color);
+  }
+  const colors = new Set();
+  for (const micro of selectedMicro) {
+    const x = micro % microWidth;
+    const neighbors = [micro - microWidth, micro + microWidth];
+    if (x > 0) neighbors.push(micro - 1);
+    if (x < microWidth - 1) neighbors.push(micro + 1);
+    for (const neighbor of neighbors) {
+      if (!selectedMicro.has(neighbor) && coloredMicro.has(neighbor)) colors.add(coloredMicro.get(neighbor));
+    }
+  }
+  return colors.size;
+}
+
 function renderBasicActions(state, privateState) {
   const seat = roomModel?.view?.seat;
   const myTurn = state.status === "ACTIVE" && state.active === seat;
@@ -1043,8 +1371,13 @@ function boardPointer(event) {
   const col = Math.max(0, Math.min(width - 1, Math.floor((event.clientX - rect.left) / rect.width * width)));
   const row = Math.max(0, Math.min(width - 1, Math.floor((event.clientY - rect.top) / rect.height * width)));
   const macro = row * width + col;
-  if (selectedMacros.has(macro)) selectedMacros.delete(macro);
-  else if (selectedMacros.size < state.requiredSize) selectedMacros.add(macro);
+  if (selectedMacros.has(macro)) {
+    selectedMacros.delete(macro);
+    clearContactReveal();
+  } else if (selectedMacros.size < state.requiredSize) {
+    selectedMacros.add(macro);
+    if (!skillGeometry && selectedMacros.size === state.requiredSize) showContactReveal(selectedContactColorCount(state));
+  }
   render();
 }
 
@@ -1059,9 +1392,6 @@ async function sendAction(type, payload = {}, retry = false) {
     const response = await client.submitAction(pendingAction);
     pendingAction = null; selectedMacros.clear(); $("actionStatus").textContent = "操作を保存しました。";
     await roomSync.refreshNow();
-    if (type === "CREATE_REGION" && !response.duplicate && roomModel?.room?.public_state?.status !== "FINISHED") {
-      showContactReveal(response.result?.contactColorCount);
-    }
   } catch (error) {
     $("actionStatus").textContent = "保存できませんでした。同じ操作IDで再送できます。"; toast(error.message || "操作に失敗しました。");
     await roomSync.refreshNow().catch(() => {});
@@ -1274,7 +1604,8 @@ async function joinRoom() { try { await client.joinRoom({ roomCode: $("roomCode"
 async function submitSetup() {
   const loadout = selectedLoadout(); if (!validLoadout(loadout)) return toast("各カテゴリから2枚ずつ選んでください。");
   $("submitSetup").disabled = true;
-  try { await client.submitSetup({ loadout }); await roomSync.refreshNow(); toast("6枚セットを確認しました。"); }
+  const debugMode = $("debugUnlimitedMode")?.checked === true;
+  try { await client.submitSetup({ loadout, debugMode }); await roomSync.refreshNow(); toast(debugMode ? "デバッグ用6枚セットを確認しました。相手もデバッグをONにしてください。" : "6枚セットを確認しました。"); }
   catch (error) { toast(error.message || "6枚セットを確認できませんでした。"); }
   finally { $("submitSetup").disabled = false; }
 }
@@ -1297,6 +1628,7 @@ $("profileSelect").onchange = () => { selectedProfileId = $("profileSelect").val
 $("createStarterProfile").onclick = createStarterProfile;
 $("syncProfile").onclick = syncSelectedProfile;
 $("quizStart").onclick = startOnlineQuiz;
+$("quizHint").onclick = openQuizHint;
 $("gachaLevel").onchange = () => { lastGachaDraws = []; renderGacha(); };
 $("gachaDrawOne").onclick = () => runGacha(1);
 $("gachaDrawAll").onclick = () => runGacha(null);
@@ -1320,6 +1652,7 @@ $("chooseCpuOpponent").onclick = openCpuRoster;
 $("keepWaitingForHuman").onclick = keepWaitingForHuman;
 $("closeCpuRoster").onclick = () => $("cpuRosterDialog").close();
 $("roomCode").oninput = () => { $("roomCode").value = $("roomCode").value.replace(/\s/g, "").toUpperCase().slice(0, 6); };
+$("debugUnlimitedMode").onchange = renderLoadout;
 $("submitSetup").onclick = submitSetup;
 $("board").addEventListener("pointerdown", boardPointer);
 $("clearSelection").onclick = () => { selectedMacros.clear(); render(); };
@@ -1344,7 +1677,12 @@ window.addEventListener("focus", () => { roomSync.invalidate(); scheduleCpuTurn(
 window.addEventListener("online", () => { roomSync.handleConnectivityChange(); scheduleMatchmakingStatus(250); scheduleCpuTurn(250); });
 window.addEventListener("offline", () => { roomSync.handleConnectivityChange(); stopMatchmakingWatch(); stopCpuTurnWatch(); });
 
+for (const button of document.querySelectorAll("[data-app-tab]")) button.onclick = () => activateAppTab(button.dataset.appTab);
+for (const button of document.querySelectorAll("[data-tab-jump]")) button.onclick = () => activateAppTab(button.dataset.tabJump);
+window.addEventListener("hashchange", () => activateAppTab(location.hash.slice(1), { updateHash: false }));
+
 loadProfiles();
+activateAppTab(activeAppTab);
 render();
 try {
   const session = await client.ensureSession();

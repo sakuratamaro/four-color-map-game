@@ -42,6 +42,8 @@ async function installMock(context, mode) {
     body: "export function createClient(){return globalThis.__standardOnlineMockSupabase}",
   }));
   await context.addInitScript(({ connectionKey: connection, saveKey: save, roomId: id, pendingId, mode: initialMode }) => {
+    const initialTab = ["gacha", "quiz"].includes(initialMode) ? "quiz" : initialMode === "cosmetic" ? "profile" : initialMode === "empty" ? "home" : "battle";
+    localStorage.setItem("fourColorMapGame.standard.online.v5.active-tab", initialTab);
     const inventory = Object.fromEntries([
       "colorRandomBorrow", "colorChoiceBorrow", "colorPrism", "colorRegionSplit", "colorPaletteChange",
       "areaMicroBloom", "areaDiePlus", "areaResize", "areaCornerBloom", "areaHalfShift", "areaTripleShift",
@@ -51,7 +53,7 @@ async function installMock(context, mode) {
     if (initialMode !== "empty") {
       localStorage.setItem(save, JSON.stringify({ profiles: { playerA: { displayName: "A", inventory } } }));
       localStorage.setItem("fourColorMapGame.standard.online.v5.profile", "playerA");
-      if (!["lobby", "cosmetic", "publicFind", "cpuWait"].includes(initialMode)) {
+      if (!["lobby", "cosmetic", "quiz", "publicFind", "cpuWait"].includes(initialMode)) {
         localStorage.setItem(connection, JSON.stringify({
           roomId: id, roomCode: "A1B2C3", profileRevision: 1, setupRevision: 3,
           rematchActionId: initialMode === "finished" ? pendingId : null,
@@ -115,6 +117,20 @@ async function installMock(context, mode) {
         if (request.body.operation === "profile") {
           runtime.profile = { revision: 1, display_name: request.body.displayName, profile_state: request.body.profileState };
           return { data: { revision: 1, displayName: request.body.displayName, profileState: request.body.profileState } };
+        }
+        if (request.body.operation === "quiz-start") {
+          const questions = Array.from({ length: 10 }, (_, index) => ({
+            number: index + 1,
+            templateId: "add",
+            category: "たし算",
+            prompt: `${index + 1} + 1 = ?`,
+            math: { kind: "expression", value: `${index + 1} + 1 = ?` },
+            hintOptions: ["たし算：同じ位どうしを足す", "円の面積：S = πr²", "2次の行列式：det A = ad − bc"],
+            hintDurationMs: 2500,
+            timeLimitSeconds: 10,
+            options: Array.from({ length: 6 }, (_, optionIndex) => ({ id: `q${index + 1}-${optionIndex + 1}`, label: String(index + optionIndex + 2) })),
+          }));
+          return { data: { sessionId: "66666666-6666-4666-8666-666666666666", duplicate: false, selectedLevel: request.body.selectedLevel, expiresAt: "2099-01-01T00:00:00.000Z", questions, timeoutAnswerId: "__timeout__" } };
         }
         if (request.body.operation === "gacha") {
           const prior = runtime.gachaReceipts[request.body.actionId];
@@ -240,8 +256,7 @@ async function withPage(mode, run) {
     await installMock(context, mode);
     const page = await context.newPage();
     await page.goto(`${url}/standard-online-v5/index.html`);
-    const readySelector = mode === "empty" ? "#profileCard:not(.hidden)" : ["lobby", "cosmetic", "publicFind", "cpuWait"].includes(mode) ? "#lobby:not(.hidden)" : "#room:not(.hidden)";
-    await page.locator(readySelector).waitFor();
+    await page.locator("#connectionBadge.good").waitFor();
     await run(page);
   } finally {
     await context.close();
@@ -349,6 +364,36 @@ test("actual Edge gacha persists one server draw and immediately hydrates invent
     assert.equal(evidence.profile.gachaTickets["1"], 1);
     assert.equal(evidence.profile.inventory.colorRandomBorrow, 3);
     assert.equal(await page.locator("#gachaResults .gacha-card").count(), 1);
+  });
+});
+
+test("actual Edge quiz freezes for the hint, resumes without room polling, and advances once", { timeout: 30000 }, async () => {
+  await withPage("quiz", async (page) => {
+    await page.getByRole("button", { name: "クイズ・ガチャ" }).click();
+    await page.locator("#quizPanel").waitFor({ state: "visible" });
+    await page.getByRole("button", { name: "10問チャレンジ開始" }).click();
+    await page.locator("#quizOptions button").first().waitFor();
+    assert.equal(await page.locator("#quizOptions button").count(), 6);
+    assert.equal(await page.locator("#quizQuestion math").count(), 1);
+
+    await page.getByRole("button", { name: "ヒントを見る" }).click();
+    await page.locator("#quizHintText").waitFor({ state: "visible" });
+    const frozenAt = await page.locator("#quizTimeBar").evaluate((node) => Number.parseFloat(node.style.width));
+    await page.waitForTimeout(900);
+    const stillFrozenAt = await page.locator("#quizTimeBar").evaluate((node) => Number.parseFloat(node.style.width));
+    assert.ok(Math.abs(stillFrozenAt - frozenAt) < 0.2, `hint timer moved from ${frozenAt} to ${stillFrozenAt}`);
+    assert.equal(await page.locator("#quizOptions button").first().isDisabled(), true);
+
+    await page.locator("#quizHintText").waitFor({ state: "hidden", timeout: 4500 });
+    assert.equal(await page.locator("#quizOptions button").first().isEnabled(), true);
+    await page.waitForTimeout(600);
+    const resumedAt = await page.locator("#quizTimeBar").evaluate((node) => Number.parseFloat(node.style.width));
+    assert.ok(resumedAt < stillFrozenAt - 2, `timer did not resume: ${stillFrozenAt} to ${resumedAt}`);
+
+    await page.locator("#quizOptions button").first().click();
+    await page.getByText("2 / 10", { exact: true }).waitFor();
+    const startCall = await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.find((entry) => entry.body?.operation === "quiz-start")?.body);
+    assert.equal(startCall.selectedLevel, 1);
   });
 });
 

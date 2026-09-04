@@ -6,6 +6,7 @@
   <title>Four Color Map Game v5.0 Standard Online</title>
   <link rel="stylesheet" href="../online-v5/style.css">
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="debug-mode.css">
   <link rel="stylesheet" href="progression.css">
 </head>
 <body>
@@ -16,19 +17,37 @@
       <a href="../standard-v5/index.html">ローカル Standard</a>
     </nav>
   </header>
+  <nav class="app-tabs" aria-label="メインメニュー">
+    <button type="button" data-app-tab="home" aria-selected="true"><span aria-hidden="true">⌂</span><strong>ホーム</strong></button>
+    <button type="button" data-app-tab="battle" aria-selected="false"><span aria-hidden="true">⚔</span><strong>対戦</strong></button>
+    <button type="button" data-app-tab="quiz" aria-selected="false"><span aria-hidden="true">✦</span><strong>クイズ・ガチャ</strong></button>
+    <button type="button" data-app-tab="cards" aria-selected="false"><span aria-hidden="true">▣</span><strong>カード</strong></button>
+    <button type="button" data-app-tab="profile" aria-selected="false"><span aria-hidden="true">●</span><strong>マイページ</strong></button>
+  </nav>
   <main>
-    <section class="card">
+    <section class="card connection-card" data-app-tab-panel="home">
       <div class="row between"><strong>接続状態</strong><span id="connectionBadge" class="badge warn">接続中</span></div>
       <p id="connectionMessage" class="muted">匿名セッションを準備しています。</p>
     </section>
 
-    <section class="card mode-callout" aria-label="一人で練習">
+    <section class="card home-hero" data-app-tab-panel="home">
+      <p class="home-kicker">YOUR NEXT MOVE</p>
+      <h2>今日は何をする？</h2>
+      <p class="muted">対戦、数字ラッシュ、カード編成をひとつずつ集中して進められます。</p>
+      <div class="home-actions">
+        <button type="button" class="primary" data-tab-jump="battle">対戦を始める</button>
+        <button type="button" data-tab-jump="quiz">クイズでガチャ券を獲得</button>
+        <button type="button" data-tab-jump="cards">カードを確認</button>
+      </div>
+    </section>
+
+    <section class="card mode-callout" aria-label="一人で練習" data-app-tab-panel="home battle">
       <div><strong>🤖 すぐ遊ぶ：CPU練習</strong><p class="muted small">通信なしの速攻ルール。やさしい・ふつう・つよいから選べます。</p></div>
       <a class="primary" href="../solo-v5/index.html">CPU対戦を始める</a>
     </section>
 
-    <section id="profileCard" class="card hidden">
-      <h2>1. ローカルプロフィールを同期</h2>
+    <section id="profileCard" class="card hidden" data-app-tab-panel="home quiz cards profile">
+      <h2>プレイヤープロフィール</h2>
       <label>プロフィール<select id="profileSelect"></select></label>
       <p id="profileSummary" class="muted"></p>
       <div id="starterCreator" class="join-box hidden">
@@ -39,7 +58,7 @@
       <p class="muted small">この端末のStandardセーブから選べます。初めての場合は、今夜の対戦用スターター6枚をこのオンライン画面だけに作成します。相手には名前と対戦中の公開情報だけが表示されます。</p>
     </section>
 
-    <section id="quizPanel" class="card quiz-panel hidden">
+    <section id="quizPanel" class="card quiz-panel hidden" data-app-tab-panel="quiz">
       <div class="row between wrap">
         <div><h2>ガチャ券クイズ</h2><p class="muted">10問に挑戦。問題と採点はサーバー管理なので、獲得券がそのままオンラインガチャに入ります。</p></div>
         <span class="quiz-prize">🎫 1・3・5・10枚</span>
@@ -54,15 +73,18 @@
         <button id="quizStart" class="primary">10問チャレンジ開始</button>
       </div>
       <div id="quizPlay" class="quiz-play hidden">
-        <div class="row between"><strong id="quizProgress">1 / 10</strong><span id="quizLevelBadge" class="badge"></span></div>
+        <div class="row between quiz-meta"><strong id="quizProgress">1 / 10</strong><span id="quizLevelBadge" class="badge"></span><strong id="quizTimer" class="quiz-timer" aria-live="polite">残り --秒</strong></div>
+        <div class="quiz-time" role="progressbar" aria-label="この問題の残り時間" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><div id="quizTimeBar"></div></div>
         <p id="quizQuestion" class="quiz-question"></p>
         <div id="quizOptions" class="quiz-options" role="group" aria-label="答えの選択肢"></div>
+        <div class="quiz-controls"><button id="quizHint" type="button">💡 ヒントを見る</button><span class="muted small">各問題で1回だけ使えます。表示中は残り時間が止まります。</span></div>
+        <p id="quizHintText" class="quiz-hint hidden" role="status"></p>
       </div>
       <p id="quizStatus" class="callout" aria-live="polite">難易度を選んで始めてください。</p>
       <div id="quizResult" class="quiz-result hidden" aria-live="polite"></div>
     </section>
 
-    <section id="gachaPanel" class="card gacha-panel hidden">
+    <section id="gachaPanel" class="card gacha-panel hidden" data-app-tab-panel="quiz">
       <div class="row between wrap">
         <div><h2>カードガチャ</h2><p class="muted">対戦を終えると二人ともLv.1券を1枚獲得します。</p></div>
         <strong id="gachaTickets">Lv.1 ×0 / Lv.2 ×0 / Lv.3 ×0 / Lv.4 ×0 / Lv.5 ×0</strong>
@@ -82,21 +104,12 @@
       <div id="gachaResults" class="gacha-results"></div>
     </section>
 
-    <section id="progressionPanel" class="card progression-panel hidden">
+    <section id="cardLibraryPanel" class="card card-library-panel hidden" data-app-tab-panel="cards">
       <div class="row between wrap">
-        <div><h2>戦績とトロフィー</h2><p class="muted">対戦終了時にサーバーへ保存された記録です。</p></div>
-        <strong id="profileCoins" class="coin-badge">🪙 0コイン</strong>
+        <div><p class="section-kicker">DECK WORKSHOP</p><h2>カードとロードアウト</h2><p class="muted">所持カードを確認し、対戦へ持ち込む6枚を考える場所です。</p></div>
+        <button type="button" class="primary" data-tab-jump="battle">対戦用6枚を選ぶ</button>
       </div>
-      <div id="profileStats" class="profile-stats" aria-label="対人戦成績"></div>
-      <h3>CPU対戦成績</h3>
-      <div id="cpuProfileStats" class="profile-stats" aria-label="CPU対戦成績"></div>
-      <div id="cpuCharacterRecords" class="cpu-character-records" aria-label="CPUキャラクター別成績"></div>
-      <h3>トロフィー</h3>
-      <div id="trophyList" class="trophy-list"></div>
-      <details class="history-details">
-        <summary>最近の対戦履歴</summary>
-        <ol id="matchHistory" class="match-history"></ol>
-      </details>
+      <div id="cardInventory" class="card-inventory" aria-label="所持カード一覧"></div>
       <div class="card-sale-box">
         <h3>余ったカードを売る</h3>
         <p class="muted small">各カードを必ず1枚残します。保護カードと、6枚セット確認後・対戦中のカードは売れません。</p>
@@ -112,7 +125,24 @@
       </div>
     </section>
 
-    <section id="cosmeticPanel" class="card cosmetic-panel hidden">
+    <section id="progressionPanel" class="card progression-panel hidden" data-app-tab-panel="profile">
+      <div class="row between wrap">
+        <div><h2>戦績とトロフィー</h2><p class="muted">対戦終了時にサーバーへ保存された記録です。</p></div>
+        <strong id="profileCoins" class="coin-badge">🪙 0コイン</strong>
+      </div>
+      <div id="profileStats" class="profile-stats" aria-label="対人戦成績"></div>
+      <h3>CPU対戦成績</h3>
+      <div id="cpuProfileStats" class="profile-stats" aria-label="CPU対戦成績"></div>
+      <div id="cpuCharacterRecords" class="cpu-character-records" aria-label="CPUキャラクター別成績"></div>
+      <h3>トロフィー</h3>
+      <div id="trophyList" class="trophy-list"></div>
+      <details class="history-details">
+        <summary>最近の対戦履歴</summary>
+        <ol id="matchHistory" class="match-history"></ol>
+      </details>
+    </section>
+
+    <section id="cosmeticPanel" class="card cosmetic-panel hidden" data-app-tab-panel="profile">
       <div class="row between wrap">
         <div><h2>見た目コレクション</h2><p class="muted">対戦能力には影響しません。購入・装備はサーバーへ一度だけ保存されます。</p></div>
         <strong id="cosmeticCoins" class="coin-badge">🪙 0コイン</strong>
@@ -132,8 +162,8 @@
       <p id="cosmeticStatus" class="callout" aria-live="polite">見た目一覧を読み込んでいます…</p>
     </section>
 
-    <section id="lobby" class="card hidden">
-      <h2>2. Standardロビー</h2>
+    <section id="lobby" class="card hidden" data-app-tab-panel="battle">
+      <h2>Standardロビー</h2>
       <div class="lobby-choice-grid">
         <section class="lobby-choice">
           <h3>友だちと遊ぶ</h3>
@@ -170,7 +200,7 @@
       </div>
     </section>
 
-    <section id="room" class="card hidden">
+    <section id="room" class="card hidden" data-app-tab-panel="battle">
       <div class="row between wrap">
         <div><span id="roomIdentityLabel" class="muted">合言葉</span><strong id="shownCode" class="room-code">------</strong></div>
         <div><span id="seatBadge" class="badge"></span><span id="roomStatus" class="badge warn"></span></div>
@@ -180,15 +210,19 @@
       <button id="leaveRoom" class="ghost">この端末でルーム表示を閉じる</button>
     </section>
 
-    <section id="setupCard" class="card hidden">
-      <h2>3. 正式6枚セット</h2>
+    <section id="setupCard" class="card hidden" data-app-tab-panel="battle">
+      <h2>対戦用6枚を確認</h2>
       <p class="muted">色・エリア・妨害から、所持カードを2枚ずつ選びます。</p>
+      <label class="debug-mode-option">
+        <input id="debugUnlimitedMode" type="checkbox">
+        <span><strong>デバッグ対戦：スキル使い放題</strong><small>合言葉対戦で2人ともONにすると、未所持カードも選択でき、何度使っても減りません（戦績・報酬なし）。</small></span>
+      </label>
       <div id="loadoutGrid" class="loadout-grid"></div>
       <button id="submitSetup" class="primary">この6枚をサーバーで確認</button>
       <p id="setupStatus" class="muted"></p>
     </section>
 
-    <section id="matchCard" class="card hidden">
+    <section id="matchCard" class="card hidden" data-app-tab-panel="battle">
       <h2>対戦同期</h2>
       <div class="row wrap"><span id="turnBadge" class="badge"></span><span>第 <b id="versionText">1</b> 手</span></div>
       <p id="phaseText" class="callout"></p>
@@ -196,7 +230,7 @@
         <div class="random-summary-heading"><span class="dice-mark" aria-hidden="true">🎲</span><div><strong id="randomSummaryTitle">今回のランダム結果</strong><small>サーバーが対戦ごとに抽選</small></div></div>
         <dl>
           <div><dt>渡すエリア</dt><dd id="rolledSizeValue">抽選中</dd></div>
-          <div><dt>自分の基本の持ち色</dt><dd id="basicPaletteValue">確認中</dd></div>
+          <div><dt>自分の基本の持ち色（全4色から抽選）</dt><dd id="basicPaletteValue">確認中</dd></div>
           <div><dt>自分のおまけ色</dt><dd id="bonusColorValue">確認中</dd></div>
         </dl>
       </section>

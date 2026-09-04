@@ -4,10 +4,10 @@ import "./standard-engine.bundle.js";
 type JsonObject = Record<string, unknown>;
 type Seat = "A" | "B";
 type StandardEngineApi = {
-  create(input: { matchId: string; loadouts: Record<Seat, JsonObject>; profiles: Record<Seat, JsonObject>; seed: number }): JsonObject;
-  apply(input: { state: JsonObject; rngSnapshot: JsonObject; actor: Seat; action: JsonObject; expectedVersion: number }): JsonObject;
+  create(input: { matchId: string; loadouts: Record<Seat, JsonObject>; profiles: Record<Seat, JsonObject>; seed: number; debugMode?: boolean }): JsonObject;
+  apply(input: { state: JsonObject; rngSnapshot: JsonObject; actor: Seat; action: JsonObject; expectedVersion: number; debugMode?: boolean }): JsonObject;
   applyCosmetic(input: { profile: JsonObject; cosmeticId: string }): { profile: JsonObject; quote: JsonObject };
-  applyProfiles(input: { profiles: Record<Seat, JsonObject>; beforeState: JsonObject; nextState: JsonObject; actor: Seat; action: JsonObject; finishedAt: string }): { profiles: Record<Seat, JsonObject>; changed: Record<Seat, boolean> };
+  applyProfiles(input: { profiles: Record<Seat, JsonObject>; beforeState: JsonObject; nextState: JsonObject; actor: Seat; action: JsonObject; finishedAt: string; debugMode?: boolean }): { profiles: Record<Seat, JsonObject>; changed: Record<Seat, boolean> };
   applyCpuProfiles(input: { profiles: Record<Seat, JsonObject>; beforeState: JsonObject; nextState: JsonObject; actor: Seat; action: JsonObject; finishedAt: string; characterId: string }): { profiles: Record<Seat, JsonObject>; changed: Record<Seat, boolean> };
   createStarterProfile(displayName: string): JsonObject;
   drawGacha(input: { profile: JsonObject; ticketLevel: number; count: number; seed: number }): { profile: JsonObject; draws: JsonObject[] };
@@ -20,8 +20,9 @@ type StandardEngineApi = {
   chooseCpuAction(input: { publicState: JsonObject; ownPrivateState: JsonObject; characterId: string; seed: number }): JsonObject;
   publicState(state: JsonObject): JsonObject;
   privateState(state: JsonObject, seat: Seat): JsonObject;
+  project(state: JsonObject, debugMode?: boolean): { publicState: JsonObject; privateA: JsonObject; privateB: JsonObject };
   validateProfile(profile: JsonObject): boolean;
-  validateSeatLoadout(input: { loadout: JsonObject; profile: JsonObject }): boolean;
+  validateSeatLoadout(input: { loadout: JsonObject; profile?: JsonObject }): boolean;
 };
 
 declare global {
@@ -31,6 +32,9 @@ declare global {
 }
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const DEBUG_SETUP_KEY = "__debugUnlimitedSkills";
+const QUIZ_TIMEOUT_ANSWER = "__timeout__";
+const QUIZ_ANSWER_PATTERN = /^q(?:[1-9]|10)-[1-6]$/;
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -109,6 +113,22 @@ async function fingerprint(value: unknown): Promise<string> {
   return [...new Uint8Array(await crypto.subtle.digest("SHA-256", bytes))].map((value) => value.toString(16).padStart(2, "0")).join("");
 }
 
+function storedLoadout(loadout: JsonObject, debugMode: boolean): JsonObject {
+  return debugMode ? { ...loadout, [DEBUG_SETUP_KEY]: true } : { ...loadout };
+}
+
+function playableLoadout(loadout: JsonObject): JsonObject {
+  const value = { ...loadout };
+  delete value[DEBUG_SETUP_KEY];
+  return value;
+}
+
+function debugModeForRoom(room: JsonObject): boolean | null {
+  const a = Boolean((room.setup_a as JsonObject | null)?.[DEBUG_SETUP_KEY] === true);
+  const b = Boolean((room.setup_b as JsonObject | null)?.[DEBUG_SETUP_KEY] === true);
+  return a === b ? a : null;
+}
+
 async function deterministicCpuIdentity(roomId: string, version: number, characterId: string, policyVersion: string): Promise<{ actionId: string; seed: number }> {
   const hex = await fingerprint({ roomId, version, characterId, policyVersion });
   const actionId = `${hex.slice(0, 8)}-${hex.slice(8, 12)}-5${hex.slice(13, 16)}-8${hex.slice(17, 20)}-${hex.slice(20, 32)}`;
@@ -144,6 +164,38 @@ function combination(total: number, selected: number): number {
   return Math.round(factorial(total) / (factorial(selected) * factorial(total - selected)));
 }
 
+type QuizGenerated = {
+  templateId: string;
+  category: string;
+  prompt: string;
+  answer: number;
+  hint: string;
+  timeLimitSeconds: number;
+  math?: JsonObject;
+};
+
+const QUIZ_FORMULA_DECOYS = Object.freeze([
+  "長方形の面積：S = たて × よこ",
+  "三角形の面積：S = 底辺 × 高さ ÷ 2",
+  "円の面積：S = πr²",
+  "直方体の体積：V = たて × よこ × 高さ",
+  "円柱の体積：V = πr²h",
+  "等差数列の和：Sₙ = n(a₁ + aₙ) ÷ 2",
+  "組合せ：ₙCᵣ = n! ÷ (r!(n−r)!)",
+  "微分：d(xⁿ)/dx = nxⁿ⁻¹",
+  "積分：∫xⁿdx = xⁿ⁺¹/(n+1) + C",
+  "2次の行列式：det A = ad − bc",
+]);
+
+function signedTerm(value: number): string {
+  return value >= 0 ? `+ ${value}` : `− ${Math.abs(value)}`;
+}
+
+function quizHintOptions(correctHint: string): string[] {
+  const decoys = shuffled(QUIZ_FORMULA_DECOYS.filter((formula) => formula !== correctHint)).slice(0, 2);
+  return shuffled([correctHint, ...decoys]);
+}
+
 function quizOptions(answer: number, questionIndex: number): { options: JsonObject[]; correctId: string } {
   const magnitude = Math.max(1, Math.round(Math.abs(answer) * 0.08));
   const values = new Set<number>([answer]);
@@ -158,45 +210,94 @@ function quizOptions(answer: number, questionIndex: number): { options: JsonObje
   return { options, correctId: options[mixed.indexOf(answer)].id as string };
 }
 
-function quizPrompt(level: number): { prompt: string; answer: number } {
-  const kind = secureInt(0, 3);
-  if (level === 1) {
-    if (kind === 0) { const a = secureInt(8, 80); const b = secureInt(3, 40); return { prompt: `${a} + ${b} = ?`, answer: a + b }; }
-    if (kind === 1) { const a = secureInt(30, 120); const b = secureInt(2, a - 1); return { prompt: `${a} − ${b} = ?`, answer: a - b }; }
-    if (kind === 2) { const a = secureInt(2, 12); const b = secureInt(2, 12); return { prompt: `${a} × ${b} = ?`, answer: a * b }; }
-    const divisor = secureInt(2, 12); const answer = secureInt(2, 15); return { prompt: `${divisor * answer} ÷ ${divisor} = ?`, answer };
-  }
-  if (level === 2) {
-    if (kind === 0) { const x = secureInt(-8, 16); const a = secureInt(2, 8); const b = secureInt(-12, 12); return { prompt: `${a}x ${b >= 0 ? `+ ${b}` : `− ${Math.abs(b)}`} = ${a * x + b}　x = ?`, answer: x }; }
-    if (kind === 1) { const base = secureInt(4, 40) * 10; const percent = [10, 20, 25, 50, 75][secureInt(0, 4)]; return { prompt: `${base} の ${percent}% は？`, answer: base * percent / 100 }; }
-    if (kind === 2) { const a = secureInt(2, 15); const b = secureInt(2, 12); const c = secureInt(2, 9); return { prompt: `${a} + ${b} × ${c} = ?`, answer: a + b * c }; }
-    const values = Array.from({ length: 4 }, () => secureInt(5, 30)); values[3] += (4 - values.reduce((sum, value) => sum + value, 0) % 4) % 4; return { prompt: `平均を求めよ：${values.join('、')}`, answer: values.reduce((sum, value) => sum + value, 0) / 4 };
-  }
-  if (level === 3) {
-    if (kind === 0) { const a = secureInt(2, 7); const power = secureInt(2, 4); return { prompt: `${a}^${power} = ?`, answer: a ** power }; }
-    if (kind === 1) { const root = secureInt(2, 24); return { prompt: `√${root * root} = ?`, answer: root }; }
-    if (kind === 2) { const value = secureInt(3, 7); return { prompt: `${value}! = ?`, answer: factorial(value) }; }
-    const end = secureInt(4, 10); return { prompt: `Σ(k=1→${end}) k = ?`, answer: end * (end + 1) / 2 };
-  }
-  if (level === 4) {
-    if (kind === 0) { const small = secureInt(1, 8); const large = secureInt(small + 1, 13); return { prompt: `x² − ${small + large}x + ${small * large} = 0　小さい解 x = ?`, answer: small }; }
-    if (kind === 1) { const total = secureInt(6, 11); const selected = secureInt(2, Math.min(4, total - 2)); return { prompt: `${total}C${selected} = ?`, answer: combination(total, selected) }; }
-    if (kind === 2) { const first = secureInt(1, 12); const difference = secureInt(2, 8); const position = secureInt(6, 12); return { prompt: `初項${first}、公差${difference}の等差数列　第${position}項は？`, answer: first + (position - 1) * difference }; }
-    const [a, b, c, d] = Array.from({ length: 4 }, () => secureInt(-6, 8)); return { prompt: `det [[${a}, ${b}], [${c}, ${d}]] = ?`, answer: a * d - b * c };
-  }
-  if (kind === 0) { const total = secureInt(7, 10); const count = secureInt(2, 4); return { prompt: `${total}! / ${total - count}! = ?`, answer: factorial(total) / factorial(total - count) }; }
-  if (kind === 1) { const end = secureInt(4, 8); const a = secureInt(1, 4); const b = secureInt(-4, 7); return { prompt: `Σ(k=1→${end}) (${a}k² ${b >= 0 ? `+ ${b}` : `− ${Math.abs(b)}`}) = ?`, answer: a * end * (end + 1) * (2 * end + 1) / 6 + b * end }; }
-  if (kind === 2) { const x = secureInt(-6, 9); const y = secureInt(-6, 9); const a = secureInt(2, 5); const b = secureInt(1, 4); const c = secureInt(1, 4); const d = secureInt(2, 5); return { prompt: `${a}x + ${b}y = ${a * x + b * y}、${c}x − ${d}y = ${c * x - d * y}　x = ?`, answer: x }; }
-  const [a, b, c, d] = Array.from({ length: 4 }, () => secureInt(-4, 6)); const [e, f, g, h] = Array.from({ length: 4 }, () => secureInt(-4, 6)); return { prompt: `A=[[${a},${b}],[${c},${d}]], B=[[${e},${f}],[${g},${h}]]　ABの1行1列は？`, answer: a * e + b * g };
+function quizPrompt(level: number, recentTemplateIds: string[] = []): QuizGenerated {
+  const q = (templateId: string, category: string, prompt: string, answer: number, hint: string, timeLimitSeconds: number, math?: JsonObject): QuizGenerated =>
+    ({ templateId, category, prompt, answer, hint, timeLimitSeconds, ...(math ? { math } : {}) });
+  let catalog: Array<() => QuizGenerated>;
+  if (level === 1) catalog = [
+    () => { const a = secureInt(8, 80); const b = secureInt(3, 40); return q("add", "たし算", `${a} + ${b} = ?`, a + b, "たし算：同じ位どうしを足す", 25, { kind: "expression", value: `${a} + ${b} = ?` }); },
+    () => { const a = secureInt(30, 120); const b = secureInt(2, a - 1); return q("subtract", "ひき算", `${a} − ${b} = ?`, a - b, "ひき算：同じ位をそろえて引く", 25, { kind: "expression", value: `${a} − ${b} = ?` }); },
+    () => { const a = secureInt(2, 12); const b = secureInt(2, 12); return q("multiply", "かけ算", `${a} × ${b} = ?`, a * b, "かけ算：a × b は a を b 回足した数", 25, { kind: "expression", value: `${a} × ${b} = ?` }); },
+    () => { const divisor = secureInt(2, 12); const answer = secureInt(2, 15); return q("divide", "わり算", `${divisor * answer} ÷ ${divisor} = ?`, answer, "わり算：答え × 割る数 = 割られる数", 25, { kind: "fraction", numerator: divisor * answer, denominator: divisor, suffix: "= ?" }); },
+    () => { const answer = secureInt(2, 30); const b = secureInt(2, 30); return q("missing", "穴埋め", `□ + ${b} = ${answer + b}　□ = ?`, answer, "a + b = c なら a = c − b", 30, { kind: "expression", value: `□ + ${b} = ${answer + b}　　□ = ?` }); },
+    () => { const width = secureInt(2, 12); const height = secureInt(2, 12); return q("rectangle-area", "面積", `たて${height}、よこ${width}の長方形の面積は？`, width * height, "長方形の面積：S = たて × よこ", 30, { kind: "geometry", label: "長方形", value: `たて ${height}　よこ ${width}　S = ?` }); },
+    () => { const width = secureInt(2, 12); const height = secureInt(2, 12); return q("rectangle-perimeter", "周の長さ", `たて${height}、よこ${width}の長方形の周の長さは？`, 2 * (width + height), "長方形の周：L = 2(たて + よこ)", 30, { kind: "geometry", label: "長方形", value: `たて ${height}　よこ ${width}　L = ?` }); },
+    () => { const side = secureInt(2, 9); return q("cube-volume", "体積", `一辺${side}の立方体の体積は？`, side ** 3, "立方体の体積：V = 一辺³", 35, { kind: "power", base: side, exponent: 3, suffix: "= V" }); },
+  ];
+  else if (level === 2) catalog = [
+    () => { const x = secureInt(-8, 16); const a = secureInt(2, 8); const b = secureInt(-12, 12); return q("linear", "一次方程式", `${a}x ${signedTerm(b)} = ${a * x + b}　x = ?`, x, "ax + b = c なら x = (c − b) ÷ a", 38, { kind: "expression", value: `${a}x ${signedTerm(b)} = ${a * x + b}　　x = ?` }); },
+    () => { const base = secureInt(4, 40) * 10; const percent = [10, 20, 25, 50, 75][secureInt(0, 4)]; return q("percent", "割合", `${base} の ${percent}% は？`, base * percent / 100, "割合：比べる量 = もとにする量 × 割合", 35, { kind: "expression", value: `${base} × ${percent}/100 = ?` }); },
+    () => { const a = secureInt(2, 15); const b = secureInt(2, 12); const c = secureInt(2, 9); return q("order", "計算順序", `${a} + ${b} × ${c} = ?`, a + b * c, "計算順序：掛け算・割り算を先に計算", 32, { kind: "expression", value: `${a} + ${b} × ${c} = ?` }); },
+    () => { const kg10 = secureInt(5, 75); return q("unit", "単位換算", `${kg10 / 10} kg は何 g？`, kg10 * 100, "1 kg = 1000 g", 35, { kind: "expression", value: `${kg10 / 10} kg = ? g` }); },
+    () => { const values = Array.from({ length: 4 }, () => secureInt(5, 30)); values[3] += (4 - values.reduce((sum, value) => sum + value, 0) % 4) % 4; return q("average", "平均", `平均を求めよ：${values.join("、")}`, values.reduce((sum, value) => sum + value, 0) / 4, "平均 = 合計 ÷ 個数", 40, { kind: "expression", value: `(${values.join(" + ")}) ÷ 4 = ?` }); },
+    () => { const base = secureInt(2, 12) * 2; const height = secureInt(2, 12); return q("triangle-area", "面積", `底辺${base}、高さ${height}の三角形の面積は？`, base * height / 2, "三角形の面積：S = 底辺 × 高さ ÷ 2", 38, { kind: "geometry", label: "三角形", value: `底辺 ${base}　高さ ${height}　S = ?` }); },
+    () => { const a = secureInt(2, 8); const b = secureInt(2, 8); const h = secureInt(2, 8); return q("cuboid-volume", "体積", `${a}×${b}の底面で高さ${h}の直方体の体積は？`, a * b * h, "直方体の体積：V = たて × よこ × 高さ", 40, { kind: "geometry", label: "直方体", value: `${a} × ${b} × ${h}　V = ?` }); },
+    () => { const unit = secureInt(2, 9); const left = secureInt(2, 7); const right = secureInt(2, 7); return q("ratio", "比", `${left}:${right}と同じ比で、左が${left * unit}なら右は？`, right * unit, "a:b = c:d なら ad = bc", 40, { kind: "expression", value: `${left} : ${right} = ${left * unit} : ?` }); },
+    () => { const turtles = secureInt(2, 8); const cranes = secureInt(3, 12); const total = turtles + cranes; const legs = turtles * 4 + cranes * 2; return q("crane-turtle", "鶴亀算", `鶴と亀が合わせて${total}匹、足は${legs}本。亀は何匹？`, turtles, "鶴亀算：全部を鶴と仮定し、足の差を1匹あたりの差で割る", 48, { kind: "story", value: `合計 ${total}匹　足 ${legs}本　亀 = ?匹` }); },
+    () => { const speed = secureInt(3, 12); const hours = secureInt(2, 8); return q("speed-distance", "速さ", `時速${speed}kmで${hours}時間進むと何km？`, speed * hours, "道のり = 速さ × 時間", 40, { kind: "story", value: `時速 ${speed} km × ${hours}時間 = ? km` }); },
+  ];
+  else if (level === 3) catalog = [
+    () => { const a = secureInt(2, 7); const power = secureInt(2, 4); return q("power", "累乗", `${a}の${power}乗は？`, a ** power, "累乗：aⁿ は a を n 回掛ける", 42, { kind: "power", base: a, exponent: power, suffix: "= ?" }); },
+    () => { const root = secureInt(2, 24); return q("root", "平方根", `√${root * root} = ?`, root, "平方根：√a は2乗して a になる正の数", 42, { kind: "root", value: root * root, suffix: "= ?" }); },
+    () => { const value = secureInt(3, 7); return q("factorial", "階乗", `${value}! = ?`, factorial(value), "階乗：n! = n × (n−1) × … × 1", 48, { kind: "expression", value: `${value}! = ?` }); },
+    () => { const end = secureInt(4, 10); return q("sigma", "数列の和", `k=1から${end}までの k の総和は？`, end * (end + 1) / 2, "自然数の和：1 + … + n = n(n+1) ÷ 2", 50, { kind: "sum", lower: "k = 1", upper: end, body: "k", suffix: "= ?" }); },
+    () => { const x = secureInt(2, 12); const a = secureInt(2, 6); const b = secureInt(1, 10); const c = secureInt(1, 8); return q("expression", "式の計算", `${a}(${x} + ${b}) − ${c} = ?`, a * (x + b) - c, "分配法則：a(b+c) = ab + ac", 45, { kind: "expression", value: `${a}(${x} + ${b}) − ${c} = ?` }); },
+    () => { const radius = secureInt(2, 10); return q("circle-area", "面積", `半径${radius}の円の面積は何π？（πの係数を答える）`, radius ** 2, "円の面積：S = πr²", 45, { kind: "geometry", label: "円", value: `r = ${radius}　S = ?π` }); },
+    () => { const a = secureInt(2, 7); const x = secureInt(1, 9); return q("derivative-monomial", "微分", `y=${a}x² のとき、x=${x}での dy/dx は？`, 2 * a * x, "微分：d(xⁿ)/dx = nxⁿ⁻¹", 52, { kind: "derivative", function: `${a}x²`, at: x, suffix: "= ?" }); },
+    () => { const end = secureInt(2, 10); return q("integral-linear", "積分", `0から${end}まで 2x を積分した値は？`, end ** 2, "積分：∫xⁿdx = xⁿ⁺¹/(n+1) + C", 55, { kind: "integral", lower: 0, upper: end, body: "2x", variable: "x", suffix: "= ?" }); },
+    () => { const a = secureInt(2, 6); const b = secureInt(2, 6); const hours = secureInt(2, 8); return q("work-rate", "仕事算", `Aは1時間に${a}枚、Bは1時間に${b}枚仕上げる。2人で${hours}時間に何枚？`, (a + b) * hours, "共同作業：1時間あたりの仕事量を足してから時間を掛ける", 52, { kind: "story", value: `(${a} + ${b})枚/時 × ${hours}時間 = ?枚` }); },
+    () => { const childAge = secureInt(6, 14); const gap = secureInt(18, 34); const years = secureInt(3, 12); return q("age-story", "年齢算", `子は${childAge}歳、親は子より${gap}歳上。${years}年後の親は何歳？`, childAge + gap + years, "年齢算：年齢差は何年たっても変わらない", 52, { kind: "story", value: `${childAge} + ${gap} + ${years} = ?歳` }); },
+  ];
+  else if (level === 4) catalog = [
+    () => { const small = secureInt(1, 8); const large = secureInt(small + 1, 13); return q("quadratic", "二次方程式", `x² − ${small + large}x + ${small * large} = 0　小さい解は？`, small, "x² − (α+β)x + αβ = (x−α)(x−β)", 58, { kind: "expression", value: `x² − ${small + large}x + ${small * large} = 0　　x = ?` }); },
+    () => { const total = secureInt(6, 11); const selected = secureInt(2, Math.min(4, total - 2)); return q("combination", "組合せ", `${total}個から${selected}個を選ぶ組合せは？`, combination(total, selected), "組合せ：ₙCᵣ = n! ÷ (r!(n−r)!)", 58, { kind: "combination", total, selected, suffix: "= ?" }); },
+    () => { const first = secureInt(1, 12); const difference = secureInt(2, 8); const position = secureInt(6, 12); return q("sequence", "等差数列", `初項${first}、公差${difference}の等差数列の第${position}項は？`, first + (position - 1) * difference, "等差数列：aₙ = a₁ + (n−1)d", 58, { kind: "expression", value: `a₁=${first}　d=${difference}　a${position}=?` }); },
+    () => { const [a, b, c, d] = Array.from({ length: 4 }, () => secureInt(-6, 8)); return q("determinant", "行列式", `[[${a},${b}],[${c},${d}]] の行列式は？`, a * d - b * c, "2次の行列式：det A = ad − bc", 58, { kind: "matrix-determinant", rows: [[a, b], [c, d]], suffix: "= ?" }); },
+    () => { const end = secureInt(4, 8); const a = secureInt(2, 5); const b = secureInt(-3, 6); return q("sigma-linear", "数列の和", `k=1から${end}まで ${a}k ${signedTerm(b)} の総和は？`, a * end * (end + 1) / 2 + b * end, "Σ(ak+b) = aΣk + bΣ1", 62, { kind: "sum", lower: "k = 1", upper: end, body: `${a}k ${signedTerm(b)}`, suffix: "= ?" }); },
+    () => { const top = secureInt(2, 10); const bottom = secureInt(top + 1, 15); const height = secureInt(2, 10) * 2; return q("trapezoid-area", "面積", `上底${top}、下底${bottom}、高さ${height}の台形の面積は？`, (top + bottom) * height / 2, "台形の面積：S = (上底 + 下底) × 高さ ÷ 2", 58, { kind: "geometry", label: "台形", value: `上底 ${top}　下底 ${bottom}　高さ ${height}　S = ?` }); },
+    () => { const radius = secureInt(2, 8); const height = secureInt(2, 10); return q("cylinder-volume", "体積", `半径${radius}、高さ${height}の円柱の体積は何π？`, radius ** 2 * height, "円柱の体積：V = πr²h", 60, { kind: "geometry", label: "円柱", value: `r=${radius}　h=${height}　V=?π` }); },
+    () => { const a = secureInt(1, 5); const b = secureInt(-6, 8); const x = secureInt(1, 8); return q("derivative-polynomial", "微分", `y=${a}x² ${signedTerm(b)}x のとき、x=${x}での dy/dx は？`, 2 * a * x + b, "微分：(ax²+bx)' = 2ax+b", 62, { kind: "derivative", function: `${a}x² ${signedTerm(b)}x`, at: x, suffix: "= ?" }); },
+    () => { const inflow = secureInt(2, 7); const workerRate = secureInt(inflow + 2, inflow + 8); const workers = secureInt(2, 5); const minutes = secureInt(3, 10); const initial = minutes * (workers * workerRate - inflow); return q("newton-flow", "ニュートン算", `行列は最初${initial}人。毎分${inflow}人増え、窓口${workers}か所が各毎分${workerRate}人を案内する。行列がなくなるまで何分？`, minutes, "ニュートン算：最初の量 ÷ (処理量 − 増加量) = 時間", 68, { kind: "story", value: `${initial} ÷ (${workers}×${workerRate} − ${inflow}) = ?分` }); },
+    () => { const slow = secureInt(3, 8); const fast = secureInt(slow + 2, slow + 8); const hours = secureInt(2, 6); const headStart = (fast - slow) * hours; return q("catch-up", "追いつき算", `時速${slow}kmの人が${headStart}km先にいる。時速${fast}kmで追うと何時間で追いつく？`, hours, "追いつく時間 = はじめの距離 ÷ 速さの差", 65, { kind: "story", value: `${headStart} ÷ (${fast} − ${slow}) = ?時間` }); },
+  ];
+  else catalog = [
+    () => { const [a, b, c, d] = Array.from({ length: 4 }, () => secureInt(-4, 6)); const [e, f, g, h] = Array.from({ length: 4 }, () => secureInt(-4, 6)); return q("matrix-multiply", "行列積", `A=[[${a},${b}],[${c},${d}]], B=[[${e},${f}],[${g},${h}]]　ABの1行1列は？`, a * e + b * g, "行列積：(AB)ᵢⱼ = Σ aᵢₖbₖⱼ", 72, { kind: "matrix-product", left: [[a, b], [c, d]], right: [[e, f], [g, h]], suffix: "AB の (1,1) = ?" }); },
+    () => { const end = secureInt(4, 8); const a = secureInt(1, 4); const b = secureInt(-4, 7); return q("sigma-square", "複合数列", `k=1から${end}まで ${a}k² ${signedTerm(b)} の総和は？`, a * end * (end + 1) * (2 * end + 1) / 6 + b * end, "二乗和：Σk² = n(n+1)(2n+1) ÷ 6", 75, { kind: "sum", lower: "k = 1", upper: end, body: `${a}k² ${signedTerm(b)}`, suffix: "= ?" }); },
+    () => { const total = secureInt(7, 10); const count = secureInt(2, 4); return q("factorial-ratio", "階乗比", `${total}! ÷ ${total - count}! = ?`, factorial(total) / factorial(total - count), "n!/(n−r)! = n(n−1)…(n−r+1)", 68, { kind: "fraction", numerator: `${total}!`, denominator: `${total - count}!`, suffix: "= ?" }); },
+    () => { const x = secureInt(-6, 9); const y = secureInt(-6, 9); const a = secureInt(2, 5); const b = secureInt(1, 4); const c = secureInt(1, 4); const d = secureInt(2, 5); return q("system", "連立方程式", `${a}x + ${b}y = ${a * x + b * y}、${c}x − ${d}y = ${c * x - d * y}　x = ?`, x, "連立方程式：係数をそろえて一方の文字を消去", 75, { kind: "system", lines: [`${a}x + ${b}y = ${a * x + b * y}`, `${c}x − ${d}y = ${c * x - d * y}`], suffix: "x = ?" }); },
+    () => { const [a, b, c, d] = Array.from({ length: 4 }, () => secureInt(-4, 6)); const [e, f, g, h] = Array.from({ length: 4 }, () => secureInt(-4, 6)); return q("determinant-product", "行列式", `det(A)det(B) を求めよ。A=[[${a},${b}],[${c},${d}]], B=[[${e},${f}],[${g},${h}]]`, (a * d - b * c) * (e * h - f * g), "det(AB) = det(A)det(B)", 78, { kind: "matrix-product", left: [[a, b], [c, d]], right: [[e, f], [g, h]], prefix: "det A × det B", suffix: "= ?" }); },
+    () => { const end = secureInt(2, 8); return q("integral-quadratic", "積分", `0から${end}まで 3x² を積分した値は？`, end ** 3, "積分：∫xⁿdx = xⁿ⁺¹/(n+1) + C", 78, { kind: "integral", lower: 0, upper: end, body: "3x²", variable: "x", suffix: "= ?" }); },
+    () => { const radius = secureInt(2, 8); const height = secureInt(2, 8) * 3; return q("cone-volume", "体積", `半径${radius}、高さ${height}の円すいの体積は何π？`, radius ** 2 * height / 3, "円すいの体積：V = πr²h ÷ 3", 75, { kind: "geometry", label: "円すい", value: `r=${radius}　h=${height}　V=?π` }); },
+    () => { const a = secureInt(1, 4); const b = secureInt(-5, 7); const x = secureInt(1, 6); return q("derivative-cubic", "微分", `y=${a}x³ ${signedTerm(b)}x のとき、x=${x}での dy/dx は？`, 3 * a * x ** 2 + b, "微分：(ax³+bx)' = 3ax²+b", 78, { kind: "derivative", function: `${a}x³ ${signedTerm(b)}x`, at: x, suffix: "= ?" }); },
+    () => { const inflow = secureInt(2, 8); const workerRate = secureInt(4, 9); const workers = secureInt(Math.floor(inflow / workerRate) + 2, Math.floor(inflow / workerRate) + 6); const minutes = secureInt(4, 10); const initial = minutes * (workers * workerRate - inflow); return q("newton-workers", "ニュートン算", `最初${initial}人の行列に毎分${inflow}人来る。各窓口は毎分${workerRate}人を案内し、${minutes}分で行列がなくなった。窓口はいくつ？`, workers, "ニュートン算：窓口数 = (最初の量 + 増加量×時間) ÷ (1窓口の処理量×時間)", 82, { kind: "story", value: `(${initial} + ${inflow}×${minutes}) ÷ (${workerRate}×${minutes}) = ?窓口` }); },
+    () => { const first = secureInt(3, 8); const second = secureInt(2, 7); const hours = secureInt(3, 8); return q("opposite-travel", "旅人算", `向かい合う2人が時速${first}kmと時速${second}kmで進み、${hours}時間後に出会う。最初の距離は？`, (first + second) * hours, "向かい合う速さ：距離 = (2人の速さの和) × 時間", 75, { kind: "story", value: `(${first} + ${second}) × ${hours} = ? km` }); },
+  ];
+  const generatedCatalog = catalog.map((generate) => generate());
+  const blocked = new Set(recentTemplateIds.slice(-2));
+  const candidates = generatedCatalog.filter((question) => !blocked.has(question.templateId));
+  const pool = candidates.length ? candidates : generatedCatalog;
+  return pool[secureInt(0, pool.length - 1)];
 }
 
 function createQuizChallenge(level: number): { questions: JsonObject[]; answerIds: string[] } {
   const questions: JsonObject[] = [];
   const answerIds: string[] = [];
+  const recentTemplateIds: string[] = [];
   for (let index = 0; index < 10; index += 1) {
-    const generated = quizPrompt(level);
+    const generated = quizPrompt(level, recentTemplateIds);
+    recentTemplateIds.push(generated.templateId);
     const choices = quizOptions(generated.answer, index);
-    questions.push({ number: index + 1, prompt: generated.prompt, options: choices.options });
+    questions.push({
+      number: index + 1,
+      templateId: generated.templateId,
+      category: generated.category,
+      prompt: generated.prompt,
+      math: generated.math || null,
+      hintOptions: quizHintOptions(generated.hint),
+      hintDurationMs: level >= 4 ? 5000 : 3500,
+      timeLimitSeconds: generated.timeLimitSeconds,
+      options: choices.options,
+    });
     answerIds.push(choices.correctId);
   }
   return { questions, answerIds };
@@ -579,6 +680,7 @@ Deno.serve(async (request: Request) => {
         selectedLevel: started?.selected_level,
         expiresAt: started?.expires_at,
         questions: started?.questions,
+        timeoutAnswerId: QUIZ_TIMEOUT_ANSWER,
       });
     }
 
@@ -589,7 +691,8 @@ Deno.serve(async (request: Request) => {
       if (typeof sessionId !== "string" || !UUID_PATTERN.test(sessionId)
           || typeof actionId !== "string" || !UUID_PATTERN.test(actionId)
           || !Array.isArray(answers) || answers.length !== 10
-          || answers.some((answer) => typeof answer !== "string" || answer.length > 32)) {
+          || answers.some((answer) => typeof answer !== "string"
+            || (answer !== QUIZ_TIMEOUT_ANSWER && !QUIZ_ANSWER_PATTERN.test(answer)))) {
         return json(400, { error: { code: "INVALID_QUIZ", message: "Ten quiz answers are required." } });
       }
       stage = "finish-quiz";
@@ -621,8 +724,9 @@ Deno.serve(async (request: Request) => {
       const setupActionId = body.setupActionId;
       const expectedSetupRevision = body.expectedSetupRevision;
       const loadout = body.loadout;
+      const debugMode = body.debugMode ?? false;
       if (typeof setupActionId !== "string" || !UUID_PATTERN.test(setupActionId)
-          || !Number.isSafeInteger(expectedSetupRevision) || !loadout || typeof loadout !== "object") {
+          || !Number.isSafeInteger(expectedSetupRevision) || !loadout || typeof loadout !== "object" || typeof debugMode !== "boolean") {
         return json(400, { error: { code: "INVALID_SETUP", message: "A setup ID, revision, and six-card loadout are required." } });
       }
       stage = "load-profile";
@@ -633,11 +737,16 @@ Deno.serve(async (request: Request) => {
       const profile = firstRow(profileData);
       if (!profile) throw { code: "P0002" };
       try {
-        globalThis.FourColorStandardServerEngine.validateSeatLoadout({ loadout: loadout as JsonObject, profile: profile.profile_state as JsonObject });
+        globalThis.FourColorStandardServerEngine.validateSeatLoadout(debugMode
+          ? { loadout: loadout as JsonObject }
+          : { loadout: loadout as JsonObject, profile: profile.profile_state as JsonObject });
       } catch {
-        return json(400, { error: { code: "INVALID_SETUP", message: "The loadout must contain two owned cards from each category." } });
+        return json(400, { error: { code: "INVALID_SETUP", message: debugMode
+          ? "Debug loadouts must contain two available cards from each category."
+          : "The loadout must contain two owned cards from each category." } });
       }
-      const loadoutFingerprint = await fingerprint({ roomId, actorId, profileRevision: profile.revision, loadout });
+      const committedLoadout = storedLoadout(loadout as JsonObject, debugMode);
+      const loadoutFingerprint = await fingerprint({ roomId, actorId, profileRevision: profile.revision, loadout, debugMode });
       const quoteExpiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
       stage = "commit-setup";
       const { data, error } = await service.rpc("fcg_standard_server_submit_loadout", {
@@ -647,11 +756,11 @@ Deno.serve(async (request: Request) => {
         p_profile_revision: profile.revision,
         p_quote_id: setupActionId,
         p_quote_expires_at: quoteExpiresAt,
-        p_loadout: loadout,
+        p_loadout: committedLoadout,
         p_loadout_fingerprint: loadoutFingerprint,
       });
       if (error) throw error;
-      return json(200, { setupRevision: firstRow(data) ?? data, profileRevision: profile.revision, quoteId: setupActionId, quoteExpiresAt });
+      return json(200, { setupRevision: firstRow(data) ?? data, profileRevision: profile.revision, quoteId: setupActionId, quoteExpiresAt, debugMode });
     }
 
     const load = async (): Promise<JsonObject> => {
@@ -708,24 +817,28 @@ Deno.serve(async (request: Request) => {
         if (!room.setup_a || !room.setup_b || !room.profile_a_state || !room.profile_b_state) {
           return json(409, { error: { code: "SETUP_REQUIRED", message: "Both players must submit a current loadout." } });
         }
+        const debugMode = debugModeForRoom(room);
+        if (debugMode === null) return json(409, { error: { code: "DEBUG_MODE_MISMATCH", message: "Both players must choose the same debug mode setting." } });
         stage = "create-match";
         const initialVersion = Number(room.room_version);
         if (!Number.isSafeInteger(initialVersion) || initialVersion < 0) throw new Error("INVALID_ROOM_VERSION");
         const created = globalThis.FourColorStandardServerEngine.create({
           matchId: `${roomId}:${initialVersion}`,
-          loadouts: { A: room.setup_a as JsonObject, B: room.setup_b as JsonObject },
+          loadouts: { A: playableLoadout(room.setup_a as JsonObject), B: playableLoadout(room.setup_b as JsonObject) },
           profiles: { A: room.profile_a_state as JsonObject, B: room.profile_b_state as JsonObject },
           seed: secureSeed(),
+          debugMode,
         });
         const initialState = { ...(created.state as JsonObject), version: initialVersion };
+        const initialProjection = globalThis.FourColorStandardServerEngine.project(initialState, debugMode);
         stage = "initialize-room";
         const { error } = await service.rpc("fcg_standard_server_initialize_room", {
           p_room_id: roomId,
           p_expected_version: room.room_version,
           p_authoritative_state: { state: initialState, rngSnapshot: created.rngSnapshot },
-          p_public_state: globalThis.FourColorStandardServerEngine.publicState(initialState),
-          p_private_a: globalThis.FourColorStandardServerEngine.privateState(initialState, "A"),
-          p_private_b: globalThis.FourColorStandardServerEngine.privateState(initialState, "B"),
+          p_public_state: initialProjection.publicState,
+          p_private_a: initialProjection.privateA,
+          p_private_b: initialProjection.privateB,
         });
         if (error) throw error;
         room = await load();
@@ -823,6 +936,7 @@ Deno.serve(async (request: Request) => {
 
     if (room.room_status !== "playing" || !room.authoritative_state) return json(409, { error: { code: "ROOM_NOT_PLAYING", message: "The match has not started." } });
     const authority = room.authoritative_state as JsonObject;
+    const debugMode = debugModeForRoom(room) === true;
     stage = "apply-action";
     const applied = globalThis.FourColorStandardServerEngine.apply({
       state: authority.state as JsonObject,
@@ -830,6 +944,7 @@ Deno.serve(async (request: Request) => {
       actor: seat,
       action,
       expectedVersion: action.expectedVersion as number,
+      debugMode,
     });
     if (applied.ok !== true) return json(400, { error: { code: applied.code || "RULE_REJECTED", message: "The action is not legal in the current state." } });
 
@@ -851,6 +966,7 @@ Deno.serve(async (request: Request) => {
       actor: seat,
       action,
       finishedAt,
+      debugMode,
     });
     const safeResult = { code: applied.code, contactColorCount: applied.contactColorCount, terminalReason: applied.terminalReason };
     stage = "commit-action";

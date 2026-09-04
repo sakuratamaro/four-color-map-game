@@ -280,10 +280,10 @@
       if (!UUID_PATTERN.test(String(roomId)) || !Number.isSafeInteger(expectedVersion) || expectedVersion < 0) throw new Error("INVALID_CPU_ACTION");
       return clone(await invoke("cpu-action", { roomId, expectedVersion }));
     }
-    async function submitSetup({ roomId = state.roomId, expectedSetupRevision = state.setupRevision, loadout, setupActionId = idFactory() }) {
+    async function submitSetup({ roomId = state.roomId, expectedSetupRevision = state.setupRevision, loadout, debugMode = false, setupActionId = idFactory() }) {
       await ensureSession();
-      if (!UUID_PATTERN.test(String(roomId)) || !UUID_PATTERN.test(String(setupActionId))) throw new Error("INVALID_SETUP_ID");
-      const result = await invoke("setup", { roomId, expectedSetupRevision, setupActionId, loadout: clone(loadout) });
+      if (!UUID_PATTERN.test(String(roomId)) || !UUID_PATTERN.test(String(setupActionId)) || typeof debugMode !== "boolean") throw new Error("INVALID_SETUP_ID");
+      const result = await invoke("setup", { roomId, expectedSetupRevision, setupActionId, loadout: clone(loadout), debugMode });
       state.roomId = roomId;
       state.setupRevision = Number(firstRow(result.setupRevision));
       state.profileRevision = Number(result.profileRevision);
