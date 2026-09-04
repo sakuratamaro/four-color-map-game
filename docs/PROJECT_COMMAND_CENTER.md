@@ -22,6 +22,7 @@
 | P0 | Standard公開候補の固定と再検証 | 司令塔 | IN_PROGRESS | clean候補で正式製品試験が全件合格 |
 | P0 | Pages反映と公開後preflight | 司令塔 | COMPLETED | remote `main=dc5452a`、candidate preflight合格。Actions run IDの補記だけ残る |
 | P0 | 合言葉・経済・野良・CPUのlive縦通し | 技術品質 | IN_PROGRESS | Edge 6/6、snapshot subgate合格。runbook A〜Dの完走証拠が必要 |
+| P0 | Supabase資源とRealtime負荷の追跡 | 運用 | IN_PROGRESS | 現況取得済み。24時間後にinfra alertと`realtime.list_changes`比率を再測定 |
 | P0 | 別々の二端末による最終受入 | チャッピー先生＋司令塔 | PENDING | 対人/CPUの完走、復帰、再戦、永続化を確認 |
 | P1 | 対戦を主役にする情報設計 | UX | CANDIDATE | ロビー主CTAがクイズ等に埋もれず初戦到達を短縮 |
 | P1 | プレイヤー向けno-color宣言の仕様整合 | UX＋ルール | CANDIDATE | 内部判定へ戻し、UIから余分な宣言責任を除去 |

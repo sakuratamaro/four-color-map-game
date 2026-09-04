@@ -14,7 +14,7 @@
 | 公開Pages候補 | VERIFIED | 2026-09-04 22:46 JST、HTTP 200、Standard Online title、野良、CPU、見た目をcandidate preflightで確認 | A〜Dの公開UI canary |
 | 公開前DB境界 | VERIFIED | 旧snapshotは匿名権限拒否。snapshot v2と野良募集は`PGRST202`で未存在 | migration後のdb-ready preflight |
 | migration 006–013静的検査 | VERIFIED | migration別security/transaction testsと読み取り専用44項目SQL | 実DBで全行`ok=true` |
-| Dashboard Advisor・使用量baseline | BLOCKED | 資源逼迫警告を本番Dashboardで確認。変更前の詳細数値は取得できないままDB/Edge更新済み | Security/Performance/API/DB/Edge/Realtimeの現時点スナップショットとcanary後比較 |
+| Dashboard Advisor・使用量baseline | BLOCKED | 変更前baselineは取得不能。22:55 JSTの現況はHealthyだがHealth Advisorにinfra alert 2件。Security指摘なし、Performance error/warning 0 | 24時間後に同じ指標とRealtime負荷を再採取 |
 | migration 006–013本番適用 | VERIFIED | 2026-09-04、8本を順番どおり個別実行。最終読み取り検査は44/44 true、失敗0 | 公開後canaryで実経路を確認 |
 | Edge Function更新 | VERIFIED | deployment 7、JWT検証ON。2026-09-04 22:46 JSTの`live-standard-edge-canary.mjs --confirm-live`は6/6合格 | 公開UI経由の完全canary |
 | GitHub main・Pages更新 | VERIFIED | 2026-09-04 22:46 JST、remote `main=dc5452a`、公開candidate preflight合格 | Actions run識別子の補記 |
@@ -34,6 +34,10 @@
 - `live-standard-edge-canary.mjs --confirm-live` は匿名認証、JWT欠落・改変拒否、profile、見た目catalog、CPU rosterの6/6合格。
 - `live-standard-room-snapshot-smoke.mjs --confirm-live` はA/B snapshot、部外者拒否、同revision profile省略に合格。full 1815 bytes、delta 991 bytes。
 - Playwrightを同梱ランタイムへ接続した再検証で、証拠台帳2/2、接触演出43/43、Standard Online実ブラウザ14/14が合格。全体連続実行で発生したreduced-motion 1件と後続browser timeoutは、対象ファイル単独で再現せず全件合格したため、実行環境負荷によるflakeとして分離した。
+- Dashboard現況はHealthy、CPU 1%、RAM 59%、disk 16%、disk IO 1%、peak connections 15/60。live接続画面では11/60、active query 0、idle in transaction 0、blocked query 0。
+- 過去24時間の表示はPostgREST 439 requests、Edge Functions 251 requests、API Gateway 0.46% errors、Realtime 5.3% warnings。API詳細は反映待ちでp50/p95とegressを取得できなかった。
+- Query Performanceでは`realtime.list_changes`が累積DB時間の78.3%、27,456 calls、mean 40 ms、max 3,837 ms。旧直接readの`fcg_room_members` 6,759 callsと`fcg_rooms` 5,639 callsは各0.3%で、candidate公開後に減少傾向を再確認する。
+- Security Advisorは表示上のissue 0。Performance Advisorはerrors 0、warnings 0、info 10。Health Advisorだけが`DatabaseStorageCapacityExhausted`と`HostOutOfDiskSpace`のinfra alert 2件を継続表示している。
 
 ## 公開前後メトリクス
 
@@ -42,7 +46,7 @@
 | 時点 | Database | Edge invocations | Realtime messages / peak | Egress | p50 | p95 | error rate |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | 変更前 | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING |
-| canary後 | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING |
+| canary後 | CPU 1% / RAM 59% / disk 16% / peak conns 15/60 | 251 requests | 5.3% warnings | PENDING | PENDING | PENDING | API 0.46% errors |
 
 ## 公開識別子
 
