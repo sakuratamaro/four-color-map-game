@@ -19,7 +19,7 @@
 
 | 優先度 | 作業 | 主担当 | 状態 | 完了条件 |
 | --- | --- | --- | --- | --- |
-| P0 | Standard公開候補の固定と再検証 | 司令塔 | IN_PROGRESS | UX統合候補は非browser製品試験501/501合格。共有環境復旧後にbrowser gateを再実行 |
+| P0 | Standard公開候補の固定と再検証 | 司令塔 | IN_PROGRESS | dirty回収を含む統合候補は非browser製品試験502/502合格。共有環境復旧後にbrowser gateを再実行 |
 | P0 | Pages反映と公開後preflight | 司令塔 | COMPLETED | remote `main=dc5452a`、Pages run `33814089903`成功、candidate preflight合格 |
 | P0 | 合言葉・経済・野良・CPUのlive縦通し | 技術品質 | IN_PROGRESS | Edge 6/6、runbook A 43/43合格。B〜D自動化済み。Cは準備時500後、Auth 429で停止 |
 | P0 | 同時profile作成のHTTP 500抑止 | Edge＋運用 | LOCAL_VERIFIED | 新規作成をload→commitの2 RPCへ削減。一時的なDB/PostgREST障害を503化し、秘密を含まないupstream codeを記録。live再検証待ち |

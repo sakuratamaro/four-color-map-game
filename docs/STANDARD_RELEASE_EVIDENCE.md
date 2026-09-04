@@ -13,7 +13,7 @@
 | 採否棚卸し | VERIFIED | `ONLINE_COMPLETION_INVENTORY.md`。旧Expo試作と現行Web Standardを分離済み | 公開後に状態列だけ更新 |
 | 製品コード・生成元 | VERIFIED | `standard/`、build scripts、生成済みEdge bundleが統合ブランチに存在 | 最終公開commitを記録 |
 | ローカル製品試験 | VERIFIED | 2026-09-04、専用runnerで665件合格、失敗0、769.2秒 | 公開後のcandidate preflightと実端末canary |
-| 次期UX候補のローカル検査 | VERIFIED | `codex/standard-release-command`。profile安定化と初回対戦導線を含む非browser製品試験501/501、重点125/125、Runbook A〜D静的16/16、browser harness静的2/2合格 | 共有browser環境復旧後に実browser gateを再実行 |
+| 次期UX候補のローカル検査 | VERIFIED | `codex/standard-release-command`。profile安定化、初回対戦導線、Quick Half Shift回収を含む非browser製品試験502/502、重点125/125、Runbook A〜D静的16/16、browser harness静的2/2合格 | 共有browser環境復旧後に実browser gateを再実行 |
 | 公開Pages候補 | VERIFIED | 2026-09-04 22:46 JST、HTTP 200、Standard Online title、野良、CPU、見た目をcandidate preflightで確認 | A〜Dの公開UI canary |
 | 公開前DB境界 | VERIFIED | 旧snapshotは匿名権限拒否。snapshot v2と野良募集は`PGRST202`で未存在 | migration後のdb-ready preflight |
 | migration 006–013静的検査 | VERIFIED | migration別security/transaction testsと読み取り専用44項目SQL | 実DBで全行`ok=true` |
