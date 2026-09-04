@@ -10,7 +10,13 @@ let chromium;
 try { ({ chromium } = require("playwright")); } catch { /* explicit actual-browser gate */ }
 
 const root = path.resolve(__dirname, "..");
-const browserPath = "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe";
+const BROWSER_PATHS = Object.freeze({
+  edge: "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
+  chrome: "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+});
+const browserName = process.env.STANDARD_BROWSER || "edge";
+if (!Object.hasOwn(BROWSER_PATHS, browserName)) throw new Error("STANDARD_BROWSER must be edge or chrome");
+const browserPath = BROWSER_PATHS[browserName];
 const connectionKey = "fourColorMapGame.standard.online.v5.connection";
 const saveKey = "fourColorMapGame.standard.v5.save";
 const remoteProfileKey = "fourColorMapGame.standard.online.v5.remote-profile";
@@ -248,7 +254,7 @@ async function installMock(context, mode) {
 
 async function withPage(mode, run) {
   assert.ok(chromium, "Playwright is required");
-  assert.ok(fs.existsSync(browserPath), "Microsoft Edge is required");
+  assert.ok(fs.existsSync(browserPath), `${browserName} browser is required`);
   let browser;
   let context;
   const { server, url } = await startServer();

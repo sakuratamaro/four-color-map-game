@@ -10,6 +10,16 @@ const start = source.indexOf("async function withPage(");
 const end = source.indexOf("\ntest(", start);
 const withPage = source.slice(start, end);
 
+test("browser selection allows only fixed Edge and Chrome executables", () => {
+  assert.match(source, /const BROWSER_PATHS = Object\.freeze\(\{/);
+  assert.match(source, /edge: "C:\\\\Program Files \(x86\)\\\\Microsoft\\\\Edge\\\\Application\\\\msedge\.exe"/);
+  assert.match(source, /chrome: "C:\\\\Program Files\\\\Google\\\\Chrome\\\\Application\\\\chrome\.exe"/);
+  assert.match(source, /const browserName = process\.env\.STANDARD_BROWSER \|\| "edge"/);
+  assert.match(source, /if \(!Object\.hasOwn\(BROWSER_PATHS, browserName\)\) throw new Error\("STANDARD_BROWSER must be edge or chrome"\)/);
+  assert.match(source, /const browserPath = BROWSER_PATHS\[browserName\]/);
+  assert.doesNotMatch(source, /STANDARD_BROWSER_PATH|executablePath:\s*process\.env/);
+});
+
 test("withPage owns server and browser startup inside one finite try/finally", () => {
   assert.ok(start >= 0 && end > start);
   assert.match(withPage, /const \{ server, url \} = await startServer\(\);\s*try \{/);
