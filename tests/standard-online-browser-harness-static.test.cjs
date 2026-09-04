@@ -39,7 +39,14 @@ test("withPage emits deterministic stages and bounds every setup and test-body a
   assert.match(withPage, /bounded\("page-ready", context\.newPage\(\), 5_000\)/);
   assert.match(withPage, /bounded\("navigation-ready", page\.goto\([\s\S]+?timeout: 10_000[\s\S]+?\), 10_000\)/);
   assert.match(withPage, /bounded\("badge-ready", page\.locator\("#connectionBadge\.good"\)\.waitFor\(\{ state: "attached", timeout: 10_000 \}\), 10_000\)/);
+  assert.match(withPage, /RESTORED_ROOM_MODES\.has\(mode\)[\s\S]+?bounded\("room-ready", page\.locator\("#room:not\(\.hidden\)"\)\.waitFor\(\{ timeout: 15_000 \}\), 15_000\)/);
   assert.match(withPage, /bounded\("test-body", run\(page\), bodyTimeout\)/);
+});
+
+test("timeout hierarchy preserves Playwright diagnostics and teardown room", () => {
+  assert.match(withPage, /\{ bodyTimeout = 35_000 \}/);
+  assert.equal((source.match(/\{ timeout: 75000 \}/g) || []).length, 15);
+  assert.match(source, /cpu action then returns control[\s\S]+?\{ timeout: 90000 \}/i);
 });
 
 test("withPage releases partial startup resources and every HTTP connection", () => {

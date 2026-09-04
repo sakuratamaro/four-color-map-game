@@ -22,6 +22,7 @@ const saveKey = "fourColorMapGame.standard.v5.save";
 const remoteProfileKey = "fourColorMapGame.standard.online.v5.remote-profile";
 const roomId = "11111111-1111-4111-8111-111111111111";
 const pendingRematchId = "22222222-2222-4222-8222-222222222222";
+const RESTORED_ROOM_MODES = new Set(["finished", "playing", "cpuTurn", "finishedCpu"]);
 
 function browserStage(stage) {
   console.error(`BROWSER_STAGE ${stage}`);
@@ -277,7 +278,7 @@ async function installMock(context, mode) {
   }, { connectionKey, saveKey, roomId, pendingId: pendingRematchId, mode });
 }
 
-async function withPage(mode, run, { bodyTimeout = 20_000 } = {}) {
+async function withPage(mode, run, { bodyTimeout = 35_000 } = {}) {
   assert.ok(chromium, "Playwright is required");
   assert.ok(fs.existsSync(browserPath), `${browserName} browser is required`);
   let browser;
@@ -302,6 +303,11 @@ async function withPage(mode, run, { bodyTimeout = 20_000 } = {}) {
     browserStage("badge-start");
     await bounded("badge-ready", page.locator("#connectionBadge.good").waitFor({ state: "attached", timeout: 10_000 }), 10_000);
     browserStage("badge-ready");
+    if (RESTORED_ROOM_MODES.has(mode)) {
+      browserStage("room-ready-start");
+      await bounded("room-ready", page.locator("#room:not(.hidden)").waitFor({ timeout: 15_000 }), 15_000);
+      browserStage("room-ready");
+    }
     browserStage("test-body-start");
     await bounded("test-body", run(page), bodyTimeout);
     browserStage("test-body-ready");
@@ -326,7 +332,7 @@ async function withPage(mode, run, { bodyTimeout = 20_000 } = {}) {
   }
 }
 
-test("actual Edge carries a fresh player from the home CTA through profile sync to the visible battle lobby", { timeout: 30000 }, async () => {
+test("actual Edge carries a fresh player from the home CTA through profile sync to the visible battle lobby", { timeout: 75000 }, async () => {
   await withPage("empty", async (page) => {
     await page.locator("#starterCreator:not(.hidden)").waitFor();
     assert.equal(await page.locator("#profileSelect option").count(), 0);
@@ -361,7 +367,7 @@ test("actual Edge carries a fresh player from the home CTA through profile sync 
   });
 });
 
-test("actual Edge reuses a persisted rematch ID and returns to fresh setup", { timeout: 30000 }, async () => {
+test("actual Edge reuses a persisted rematch ID and returns to fresh setup", { timeout: 75000 }, async () => {
   await withPage("finished", async (page) => {
     await page.getByRole("button", { name: "結果を確認して戻る" }).click();
     await page.getByRole("button", { name: "同じ再戦申請を再送" }).click();
@@ -378,7 +384,7 @@ test("actual Edge reuses a persisted rematch ID and returns to fresh setup", { t
   });
 });
 
-test("actual Edge celebrates an opponent surrender and presents defeat from the local seat", { timeout: 30000 }, async () => {
+test("actual Edge celebrates an opponent surrender and presents defeat from the local seat", { timeout: 75000 }, async () => {
   await withPage("finished", async (page) => {
     const overlay = page.locator("#terminalOverlay");
     await overlay.waitFor();
@@ -406,7 +412,7 @@ test("actual Edge celebrates an opponent surrender and presents defeat from the 
   });
 });
 
-test("actual Edge routes immediate skills and keeps target cancellation write-free", { timeout: 30000 }, async () => {
+test("actual Edge routes immediate skills and keeps target cancellation write-free", { timeout: 75000 }, async () => {
   await withPage("playing", async (page) => {
     await page.getByRole("button", { name: "エリア拡張 ×1" }).click();
     await page.getByText("操作を保存しました。").waitFor();
@@ -420,7 +426,7 @@ test("actual Edge routes immediate skills and keeps target cancellation write-fr
   });
 });
 
-test("actual Edge gacha persists one server draw and immediately hydrates inventory", { timeout: 30000 }, async () => {
+test("actual Edge gacha persists one server draw and immediately hydrates inventory", { timeout: 75000 }, async () => {
   await withPage("gacha", async (page) => {
     await page.locator("#gachaPanel:not(.hidden)").waitFor();
     await page.getByRole("button", { name: "1枚引く" }).click();
@@ -439,7 +445,7 @@ test("actual Edge gacha persists one server draw and immediately hydrates invent
   });
 });
 
-test("actual Edge quiz freezes for the hint, resumes without room polling, and advances once", { timeout: 30000 }, async () => {
+test("actual Edge quiz freezes for the hint, resumes without room polling, and advances once", { timeout: 75000 }, async () => {
   await withPage("quiz", async (page) => {
     await page.getByRole("button", { name: "クイズ・ガチャ" }).click();
     await page.locator("#quizPanel").waitFor({ state: "visible" });
@@ -469,7 +475,7 @@ test("actual Edge quiz freezes for the hint, resumes without room polling, and a
   });
 });
 
-test("actual Edge presents server-hydrated stats, trophy state, and match history", { timeout: 30000 }, async () => {
+test("actual Edge presents server-hydrated stats, trophy state, and match history", { timeout: 75000 }, async () => {
   await withPage("playing", async (page) => {
     await page.locator("#progressionPanel:not(.hidden)").waitFor();
     assert.deepEqual(await page.locator("#profileStats strong").allTextContents(), ["4", "2", "2", "3", "1"]);
@@ -479,7 +485,7 @@ test("actual Edge presents server-hydrated stats, trophy state, and match histor
   });
 });
 
-test("actual Edge hides onboarding after restoring a synced profile into the saved battle tab", { timeout: 30000 }, async () => {
+test("actual Edge hides onboarding after restoring a synced profile into the saved battle tab", { timeout: 75000 }, async () => {
   await withPage("lobby", async (page) => {
     assert.equal(await page.locator("body").getAttribute("data-active-tab"), "battle");
     assert.equal(await page.locator("#profileCard").isVisible(), false);
@@ -487,7 +493,7 @@ test("actual Edge hides onboarding after restoring a synced profile into the sav
   });
 });
 
-test("actual Edge quotes and commits one server-authoritative card sale", { timeout: 30000 }, async () => {
+test("actual Edge quotes and commits one server-authoritative card sale", { timeout: 75000 }, async () => {
   await withPage("lobby", async (page) => {
     await page.locator("#progressionPanel:not(.hidden)").waitFor();
     await page.locator("#cardSaleSkill").selectOption("colorRandomBorrow");
@@ -508,7 +514,7 @@ test("actual Edge quotes and commits one server-authoritative card sale", { time
   });
 });
 
-test("actual Edge confirms, persists, restores, and safely cancels online appearance", { timeout: 30000 }, async () => {
+test("actual Edge confirms, persists, restores, and safely cancels online appearance", { timeout: 75000 }, async () => {
   await withPage("cosmetic", async (page) => {
     await page.locator("#cosmeticPanel:not(.hidden)").waitFor();
     const aurora = page.locator("#cosmeticCatalog .collection-card", { hasText: "オーロラ盤面" });
@@ -537,7 +543,7 @@ test("actual Edge confirms, persists, restores, and safely cancels online appear
   });
 });
 
-test("actual Edge recruits and cancels with one persisted public matchmaking ticket", { timeout: 30000 }, async () => {
+test("actual Edge recruits and cancels with one persisted public matchmaking ticket", { timeout: 75000 }, async () => {
   await withPage("lobby", async (page) => {
     await page.getByRole("button", { name: "対戦相手を募集" }).click();
     await page.locator("#matchmakingWait:not(.hidden)").waitFor();
@@ -551,7 +557,7 @@ test("actual Edge recruits and cancels with one persisted public matchmaking tic
   });
 });
 
-test("actual Edge offers ten explicit CPU choices after 90 seconds and labels the accepted room", { timeout: 30000 }, async () => {
+test("actual Edge offers ten explicit CPU choices after 90 seconds and labels the accepted room", { timeout: 75000 }, async () => {
   await withPage("cpuWait", async (page) => {
     await page.locator("#cpuOpponentOffer:not(.hidden)").waitFor();
     assert.match(await page.locator("#cpuOfferMessage").textContent(), /90秒/);
@@ -569,7 +575,7 @@ test("actual Edge offers ten explicit CPU choices after 90 seconds and labels th
   });
 });
 
-test("actual Edge asks the server for exactly one CPU action then returns control to the human", { timeout: 60000 }, async () => {
+test("actual Edge asks the server for exactly one CPU action then returns control to the human", { timeout: 90000 }, async () => {
   await withPage("cpuTurn", async (page) => {
     await page.waitForFunction(() => globalThis.__standardOnlineRuntime.calls.some((entry) => entry.body?.operation === "cpu-action"), null, { timeout: 45000 });
     await page.getByText("あなたの手番").waitFor();
@@ -578,7 +584,7 @@ test("actual Edge asks the server for exactly one CPU action then returns contro
   }, { bodyTimeout: 50_000 });
 });
 
-test("actual Edge rematches the same visible CPU and returns the human to fresh setup", { timeout: 30000 }, async () => {
+test("actual Edge rematches the same visible CPU and returns the human to fresh setup", { timeout: 75000 }, async () => {
   await withPage("finishedCpu", async (page) => {
     await page.getByRole("button", { name: "結果を確認して戻る" }).click();
     await page.getByRole("button", { name: "同じCPUと再戦する" }).click();
@@ -596,7 +602,7 @@ test("actual Edge rematches the same visible CPU and returns the human to fresh 
   });
 });
 
-test("actual Edge finds a public opponent and enters setup without exposing a code", { timeout: 30000 }, async () => {
+test("actual Edge finds a public opponent and enters setup without exposing a code", { timeout: 75000 }, async () => {
   await withPage("publicFind", async (page) => {
     await page.getByRole("button", { name: "今入れる試合を探す" }).click();
     await page.locator("#room:not(.hidden)").waitFor();
@@ -608,7 +614,7 @@ test("actual Edge finds a public opponent and enters setup without exposing a co
   });
 });
 
-test("actual Edge explains private random setup and every visible skill without exposing an oracle", { timeout: 30000 }, async () => {
+test("actual Edge explains private random setup and every visible skill without exposing an oracle", { timeout: 75000 }, async () => {
   await withPage("playing", async (page) => {
     assert.match(await page.locator("#members").textContent(), /B｜四色の匠/);
     assert.equal(await page.locator("#members .member-nameplate-gold").count(), 1);

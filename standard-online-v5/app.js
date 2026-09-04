@@ -272,7 +272,10 @@ function renderRandomSummary(publicState, privateState) {
   const changedSize = publicState.requiredSize !== publicState.rolledSize;
   $("rolledSizeValue").textContent = `${publicState.rolledSize}マス${changedSize ? `（スキル効果で現在${publicState.requiredSize}マス）` : ""}`;
   $("basicPaletteValue").replaceChildren();
-  for (const color of privateState.basicPalette || []) appendColorValue($("basicPaletteValue"), color);
+  for (const [index, color] of (privateState.basicPalette || []).entries()) {
+    if (index) $("basicPaletteValue").append("・");
+    appendColorValue($("basicPaletteValue"), color);
+  }
   if (!(privateState.basicPalette || []).length) $("basicPaletteValue").textContent = "確認中";
   renderColorValue("bonusColorValue", privateState.bonusColor, `（残り${privateState.bonusUsesRemaining || 0}回）`);
 }

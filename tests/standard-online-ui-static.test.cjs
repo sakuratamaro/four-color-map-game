@@ -226,6 +226,10 @@ test("UI does not expose an adjacency or legal-color oracle", () => {
   assert.doesNotMatch(html + app, /legal colors?|legalColors|adjacent colors?|adjacentColors|使用可能な色[:：]/i);
 });
 
+test("private basic colors keep a readable text separator between visual swatches", () => {
+  assert.match(app, /for \(const \[index, color\] of \(privateState\.basicPalette \|\| \[\]\)\.entries\(\)\) \{\s*if \(index\) \$\("basicPaletteValue"\)\.append\("・"\);\s*appendColorValue\(\$\("basicPaletteValue"\), color\);\s*\}/);
+});
+
 test("basic board actions are intents derived from public and own-private projections", () => {
   assert.match(app, /roomModel\.room\.public_state/);
   assert.match(app, /roomModel\.view\?\.private_state/);
