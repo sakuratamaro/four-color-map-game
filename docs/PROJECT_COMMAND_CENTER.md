@@ -8,7 +8,7 @@
 
 ## 司令塔ルール
 
-- 統合基点は `origin/main` とし、現在の基点は `dc5452a`。
+- 統合基点は `origin/main` とし、現在の公開基点は `43c36ad`。
 - 現在の統合作業は `codex/standard-release-command` だけで行う。
 - 古いdirty worktreeからbuild、merge、deployしない。
 - `実装済み`、`ローカル検証済み`、`live検証済み`、`公開済み`を別状態として記録する。
@@ -19,8 +19,8 @@
 
 | 優先度 | 作業 | 主担当 | 状態 | 完了条件 |
 | --- | --- | --- | --- | --- |
-| P0 | Standard公開候補の固定と再検証 | 司令塔 | CANDIDATE_VERIFIED | `1673ff8`。dirty回収、status正規化、Realtime復旧を含む非browser製品試験522/522、GitHub Actions run `33920847775`でChrome/Edge各16/16合格 |
-| P0 | Pages反映と公開後preflight | 司令塔 | PENDING | 現公開は`main=dc5452a`／Pages run `33814089903`。最新候補`1673ff8`は未merge・未公開。二端末受入用URLへ反映後にpreflightを再実行 |
+| P0 | Standard公開候補の固定と再検証 | 司令塔 | CANDIDATE_VERIFIED | 製品`1673ff8`／公開commit`43c36ad`。非browser製品試験522/522、GitHub Actions run `33920847775`でChrome/Edge各16/16合格 |
+| P0 | Pages反映と公開後preflight | 司令塔 | PUBLIC_VERIFIED | `main=43c36ad`、Pages run `33921530679`成功。公開3資産HTTP 200、4 marker、candidate preflight `ok:true`。二端末受入は別ゲート |
 | P0 | 合言葉・経済・野良・CPUのlive縦通し | 技術品質 | COMPLETED | deployment 8でEdge 6/6、A 43/43、B 93/93、C 210/210、D 107/107合格 |
 | P0 | 同時profile作成のHTTP 500抑止 | Edge＋運用 | LIVE_VERIFIED | 新規作成をload→commitの2 RPCへ削減。一時障害を503化。C準備の16 profileが逐次で全件成功し、500/429なし |
 | P0 | デバッグ対戦のサーバー側隔離 | 技術品質 | LOCAL_VERIFIED | 合言葉・人間同士だけをservice-loaded roomから許可。API直叩きで野良/CPUへ混入不可 |
@@ -49,9 +49,9 @@
 
 | 区分 | 対象 | 方針 |
 | --- | --- | --- |
-| 正本 | `origin/main@dc5452a` | 公開候補の基点 |
+| 正本 | `origin/main@43c36ad` | 現在の公開commit |
 | 現在の統合床 | `codex/standard-release-command` | 司令塔が検証・修正・公開準備に使用 |
-| 統合済み次候補 | `codex/standard-release-command@1673ff8` | 5タブ、初回対戦導線、クイズ・演出、debug隔離、no-color自動終局、profile安定化、status正規化、Realtime/poll復旧を統合。実Chrome/Edge各16/16合格。次はPages反映と二端末受入 |
+| 公開済み現候補 | 製品`1673ff8`／公開`43c36ad` | 5タブ、初回対戦導線、クイズ・演出、debug隔離、no-color自動終局、profile安定化、status正規化、Realtime/poll復旧を統合。実Chrome/Edge各16/16と公開preflight合格。次は二端末受入 |
 | 保全済み | detached `a8fce7d` dirty床 | `codex/salvage-a8fce7d-20260904` / `9e4e8ee` に秘密情報なしでWIP保全済み。機能単位で比較 |
 | 凍結root | root `ac78282` | 正史worktreeを内包するため作業床は維持。dirty 40件は救出済みで、丸ごとmerge禁止。正本にない候補の採否は完了 |
 | GitHub保管 | `codex/archive-standard-release-1f823b2` | 正史の祖先でない孤立コミットをGitHubへ退避済み。作業床は削除 |
