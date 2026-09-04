@@ -8,7 +8,7 @@
 
 ## 司令塔ルール
 
-- 統合基点は `origin/main` とし、現在の公開基点は `dfbec10`。
+- 統合基点は `origin/main` とし、現在の公開製品基点は `dfbec10`（後続の台帳のみのcommitは製品基点を変えない）。
 - 現在の統合作業は `codex/standard-release-command` だけで行う。
 - 古いdirty worktreeからbuild、merge、deployしない。
 - `実装済み`、`ローカル検証済み`、`live検証済み`、`公開済み`を別状態として記録する。
@@ -51,8 +51,8 @@
 
 | 区分 | 対象 | 方針 |
 | --- | --- | --- |
-| 正本 | `origin/main@dfbec10` | 現在の公開commit |
-| 現在の統合床 | `codex/standard-release-command@dfbec10` | 公開正本と一致。次は物理二端末受入 |
+| 正本 | `origin/main` | 現在の公開製品基点は`dfbec10`。台帳のみの後続commitを許容 |
+| 現在の統合床 | `codex/standard-release-command` | `origin/main`を追跡。次は物理二端末受入 |
 | 公開済み現候補 | 製品`9d42784`／公開`dfbec10` | 5タブ、初回一操作化、全タブ接続status、クイズ・演出、debug隔離、no-color自動終局、profile安定化、status正規化、Realtime/poll復旧を統合。実Chrome/Edge各18/18と公開preflight合格。次は二端末受入 |
 | 保全済み | detached `a8fce7d` dirty床 | `codex/salvage-a8fce7d-20260904` / `9e4e8ee` に秘密情報なしでWIP保全済み。機能単位で比較 |
 | 凍結root | root `ac78282` | 正史worktreeを内包するため作業床は維持。dirty 40件は救出済みで、丸ごとmerge禁止。正本にない候補の採否は完了 |

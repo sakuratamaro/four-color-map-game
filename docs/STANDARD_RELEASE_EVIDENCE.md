@@ -16,13 +16,13 @@
 | 次期UX候補のローカル検査 | VERIFIED | `codex/standard-release-command@1673ff8`。profile安定化、初回対戦導線、Quick Half Shift、status正規化、Realtime/poll復旧を含む非browser製品試験91ファイル522/522。browser workflow/harness静的11/11合格 | Pages反映後のpreflightと二端末受入 |
 | 初回導線・接続表示の次期候補 | VERIFIED | `9d42784`。初回starter作成＋profile同期を一操作化し、全5タブで単一接続statusを常時表示。空名write 0、room外offline復帰、390px下部nav非干渉を契約化。静的39/39、非browser 89ファイル513/513、Windows Chrome/Edge各18/18合格 | 物理二端末受入 |
 | Windows実browser CI | VERIFIED | GitHub Actions run `33924037233`。Windows 2025のChrome/Edge各18/18、失敗0。読み取り専用権限・各15分上限 | 公開URLで同じ主要導線を二端末受入 |
-| 現行公開Pages | VERIFIED | `main=dfbec10`、Pages run `33924181589`成功。公開HTML/app/styleはHTTP 200、初回一操作・全タブstatus・同期guard・mobile offset markerを確認。candidate preflight `ok:true` | 別々の二端末で最終受入 |
+| 現行公開Pages | VERIFIED | 製品基点`dfbec10`、Pages run `33924181589`成功。後続の台帳のみのcommitは製品差分なし。公開HTML/app/styleはHTTP 200、初回一操作・全タブstatus・同期guard・mobile offset markerを確認。candidate preflight `ok:true` | 別々の二端末で最終受入 |
 | 公開前DB境界 | VERIFIED | 旧snapshotは匿名権限拒否。snapshot v2と野良募集は`PGRST202`で未存在 | migration後のdb-ready preflight |
 | migration 006–013静的検査 | VERIFIED | migration別security/transaction testsと読み取り専用44項目SQL | 実DBで全行`ok=true` |
 | Dashboard Advisor・使用量baseline | BLOCKED | 変更前baselineは取得不能。22:55 JSTの現況はHealthyだがHealth Advisorにinfra alert 2件。Security指摘なし、Performance error/warning 0 | 24時間後に同じ指標とRealtime負荷を再採取 |
 | migration 006–013本番適用＋status正規化 | VERIFIED | 8本に加え`202609050001`を個別実行。status関数の保護契約を全項目確認し、C canary 210/210合格 | 実ブラウザと二端末最終受入 |
 | Edge Function更新 | VERIFIED | deployment 8、JWT検証ON。2026-09-05の`live-standard-edge-canary.mjs --confirm-live`は6/6合格 | 公開UI経由の完全canary |
-| GitHub main・Pages更新 | VERIFIED | remote `main=dfbec10`へforceなしfast-forward。Pages run `33924181589`成功、公開markerとpreflight合格 | 二端末受入後に最終状態を記録 |
+| GitHub main・Pages更新 | VERIFIED | 公開製品基点を`dfbec10`へforceなしfast-forward。Pages run `33924181589`成功、公開markerとpreflight合格。後続main更新は台帳のみ | 二端末受入後に最終状態を記録 |
 | 合言葉対戦canary | VERIFIED | deployment 8で`live-standard-runbook-a-canary.mjs --confirm-live` 43/43合格 | 実ブラウザ再読込と二端末最終受入 |
 | 経済・進行・見た目canary | VERIFIED | deployment 8でRunbook B 93/93合格 | 実ブラウザで報酬演出と操作感を確認 |
 | 野良対戦canary | VERIFIED | status正規化後、C 210/210合格。16 profile、完走、同時finder、取消競合、10同時claim、再検索、秘密非公開を確認 | 実ブラウザで二端末最終受入 |
