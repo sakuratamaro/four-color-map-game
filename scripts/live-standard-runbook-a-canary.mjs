@@ -140,10 +140,8 @@ async function run() {
   ]);
 
   activeStage = "profiles";
-  const [profileAResult, profileBResult] = await Promise.all([
-    edge(playerA, { operation: "profile", expectedRevision: 0, displayName: CANARY_NAMES.A, profileState: {} }),
-    edge(playerB, { operation: "profile", expectedRevision: 0, displayName: CANARY_NAMES.B, profileState: {} }),
-  ]);
+  const profileAResult = await edge(playerA, { operation: "profile", expectedRevision: 0, displayName: CANARY_NAMES.A, profileState: {} });
+  const profileBResult = await edge(playerB, { operation: "profile", expectedRevision: 0, displayName: CANARY_NAMES.B, profileState: {} });
   check("profile A", profileAResult.ok && Number(profileAResult.data?.revision) === 1, profileAResult);
   check("profile B", profileBResult.ok && Number(profileBResult.data?.revision) === 1, profileBResult);
 
