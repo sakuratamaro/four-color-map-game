@@ -73,6 +73,15 @@
 - 同監査と独立導線レビューで、fresh playerが名前作成後に技術用語の「オンライン同期」をもう一度押す二段確定を最大の離脱点と判定した。初回だけ一操作でstarter保存とprofile同期まで進め、空名ではlocal/server write 0、同期はin-flight guardで1回、自動room/matchmaking/CPU開始0を維持した。静的39/39、実Edgeの初回導線と全タブ/offline/mobile重点2/2、非browser 89ファイル513/513が合格した。全製品runnerは変更外のlocal Standard接触演出browser群で共有hostの長時間timeoutが再発したため中断し、次の判定は専用Windows Chrome/Edge gateへ分離する。
 - Windows browser run `33924037233`でChrome/Edge各18/18が合格したため、`origin/main`を`43c36ad`から`dfbec10`へforceなしでfast-forwardした。Pages run `33924181589`はbuild/report/deploy全job成功。キャッシュ回避付き公開marker 5/5、candidate preflight `ok:true`、公開390px対戦画面で固定statusと下部navの非干渉を確認した。
 
+## 2026-09-05 07:45 JST 初手ガイド公開
+
+- 3タスクの独立監査を統合し、即時CPU導入よりも、6枚確定から最初の領域受渡しまでの迷いを減らす案内を優先した。DB、Edge、ゲームルール、合法手判定は変更していない。
+- `7eab2f1`で、準備操作を「確認」から「準備完了」へ統一し、対戦中は選択、受渡し、彩色、相手待ち、送信中、再送を同じ公開状態から案内するようにした。相手手番のphase表示、送信ボタン、盤面pointerも実際の操作条件と一致させた。
+- 非browser製品試験514/514、ローカルEdge 19/19、ローカルChrome 19/19が合格した。新規実browser検査は盤面1マス選択、STEP 1からSTEP 2への遷移、`CREATE_REGION` intent 1件を確認した。
+- Windows browser run `33926224196`のattempt 1はChrome 19/19、Edge 18/19。Edgeの最初のtestが`BROWSER_STAGE_TIMEOUT page-ready`で起動時だけ失敗し、残る18件と新規初手検査は合格した。コードを変更せず失敗jobを再実行したattempt 2でChrome/Edge各19/19となり、一過性のEdge起動遅延と判定した。
+- `origin/main`を`a84dd7a`から`7eab2f1`へforceなしでfast-forwardした。Pages run `33926672851`は成功し、公開HTML、app.js、style.cssの新marker 6/6、candidate preflight `ok:true`を確認した。
+- 公開実画面の390×844監査は横overflowなし。接続badge下端756px、下部nav上端764pxで8px空き、初手ガイドの520px以下用ruleが配信済みだった。物理二端末の作成・参加・完走・再読込・再戦は引き続き`NOT_RUN`である。
+
 ## 公開前後メトリクス
 
 値が取得できなかった項目を空欄のまま`VERIFIED`にしない。
@@ -88,12 +97,12 @@
 | --- | --- |
 | browser harness diagnostics commit | `6fc23a5` |
 | Windows browser CI commit | `d8dac1b` |
-| final browser-verified candidate | `9d42784` |
-| Windows browser CI run | `33924037233` / Chrome 18/18 / Edge 18/18 |
+| final browser-verified candidate | `7eab2f1` |
+| Windows browser CI run | `33926224196` attempt 2 / Chrome 19/19 / Edge 19/19 |
 | candidate code baseline | `0e02176`（Edge deployment 8 sourceは`c3cf372`） |
 | applied migrations | `202609030006`–`202609030013`, `202609050001` |
 | `standard-game-action` version | deployment 8 |
-| Pages Actions run | `33924181589` / Success / `dfbec10` |
+| Pages Actions run | `33926672851` / Success / `7eab2f1` |
 | public URL | `https://sakuratamaro.github.io/four-color-map-game/standard-online-v5/` |
 
 ## Canary結果
@@ -107,8 +116,8 @@
 | B クイズ・ガチャ・売却・精算・トロフィー・見た目 | PASS | 2026-09-05 | 自動live canary 93/93。exactly-once、復元、購入/装備を確認。fullPaint trophyはtransaction testで補完 |
 | C 野良・競合・完走 | PASS | 2026-09-05 03:13 JST | 自動live canary 210/210。16 profile、完走、2 finder、cancel/find、10 claim、再検索、秘密非公開を確認 |
 | D CPU同意・10人・代表3人・再戦 | PASS | 2026-09-05 | 自動live canary 107/107。実時間90/180秒、代表3人完走、復帰、統計、同じCPU再戦、対人検索競合を確認 |
-| Windows実browser主要導線 | PASS | 2026-09-05 | run `33924037233`。Chrome 18/18、Edge 18/18。初回一操作、全タブstatus/offline/mobile、復帰、再戦、投了、クイズ、ガチャ、売却、見た目、野良、CPUを確認 |
-| Pages公開後preflight | PASS | 2026-09-05 | `main=dfbec10`、Pages run `33924181589`、公開3資産HTTP 200、固有marker 5/5、DB保護境界を含むcandidate preflight合格 |
+| Windows実browser主要導線 | PASS | 2026-09-05 | run `33926224196` attempt 2。Chrome 19/19、Edge 19/19。初回一操作、初手選択と`CREATE_REGION`、全タブstatus/offline/mobile、復帰、再戦、投了、クイズ、ガチャ、売却、見た目、野良、CPUを確認 |
+| Pages公開後preflight | PASS | 2026-09-05 | `main=7eab2f1`、Pages run `33926672851`、公開3資産の新marker 6/6、DB保護境界を含むcandidate preflight合格 |
 | 二端末最終受入 | NOT_RUN | PENDING | PENDING |
 
 ## 残存リスク
@@ -116,7 +125,7 @@
 - Dashboardの詳細なAdvisor/使用量baselineは未取得。画面上では資源逼迫警告が継続しているため、公開範囲を広げる前後で使用量を追跡する。
 - profile作成安定化はCの逐次16件で500/429なしを確認した。高並列作成そのものはAuth上限を消費するため再試験せず、再発時はEdge/DBログと資源警告を関連調査する。
 - Cのstatus正規化は本番関数定義、既存ticket整合、live canary 210/210まで確認済み。今後もIPあたり30 anonymous sign-ins/時を守り、同じ認証窓で重いcanaryを再試行しない。
-- 製品候補`9d42784`は公開commit`dfbec10`としてPagesへ反映済み。自動browser/preflight合格と、未実施の物理二端末受入を混同しない。
+- 製品候補`7eab2f1`は同commitのままPagesへ反映済み。自動browser/preflight合格と、未実施の物理二端末受入を混同しない。
 - Edgeのper-isolate濫用抑止は分散レート制限ではない。公開後の計測で必要性が出た場合だけprovider側制限を検討する。
 - 10人CPUの合法性・決定性は自動検証済みだが、人間が感じる個性と楽しさは代表3人の実プレイ後も定性的判断として残る。
 - cleanup実削除や定期化は許可済みだが、exact IDと復元手段を確認するまで実行しない。課金設定変更は必要性と金額を特定してから扱う。
