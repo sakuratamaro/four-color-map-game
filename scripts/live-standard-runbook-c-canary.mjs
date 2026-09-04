@@ -312,12 +312,13 @@ async function run() {
 try {
   await run();
 } catch (error) {
+  const failedCheck = error instanceof CanaryFailure ? error.message : activeStage;
   const detail = error instanceof CanaryFailure
     ? error.detail
     : error?.name === "TimeoutError" || error?.name === "AbortError"
       ? "REQUEST_TIMEOUT"
       : "UNEXPECTED_FAILURE";
-  console.error(`FAIL  ${activeStage} (${detail})`);
+  console.error(`FAIL  ${activeStage}: ${failedCheck} (${detail})`);
   process.exitCode = 1;
 } finally {
   clearTimeout(hardTimeout);

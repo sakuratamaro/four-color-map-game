@@ -13,21 +13,21 @@
 | 採否棚卸し | VERIFIED | `ONLINE_COMPLETION_INVENTORY.md`。旧Expo試作と現行Web Standardを分離済み | 公開後に状態列だけ更新 |
 | 製品コード・生成元 | VERIFIED | `standard/`、build scripts、生成済みEdge bundleが統合ブランチに存在 | 最終公開commitを記録 |
 | ローカル製品試験 | VERIFIED | 2026-09-04、専用runnerで665件合格、失敗0、769.2秒 | 公開後のcandidate preflightと実端末canary |
-| 次期UX候補のローカル検査 | VERIFIED | `codex/standard-release-command`。profile安定化、初回対戦導線、Quick Half Shift回収を含む非browser製品試験502/502、重点125/125、Runbook A〜D静的16/16、browser harness静的2/2合格 | 共有browser環境復旧後に実browser gateを再実行 |
+| 次期UX候補のローカル検査 | VERIFIED | `codex/standard-release-command`。profile安定化、初回対戦導線、Quick Half Shift、status正規化を含む非browser製品試験505/505、重点125/125、browser harness静的2/2合格 | 共有browser環境復旧後に実browser gateを再実行 |
 | 公開Pages候補 | VERIFIED | 2026-09-04 22:46 JST、HTTP 200、Standard Online title、野良、CPU、見た目をcandidate preflightで確認 | A〜Dの公開UI canary |
 | 公開前DB境界 | VERIFIED | 旧snapshotは匿名権限拒否。snapshot v2と野良募集は`PGRST202`で未存在 | migration後のdb-ready preflight |
 | migration 006–013静的検査 | VERIFIED | migration別security/transaction testsと読み取り専用44項目SQL | 実DBで全行`ok=true` |
 | Dashboard Advisor・使用量baseline | BLOCKED | 変更前baselineは取得不能。22:55 JSTの現況はHealthyだがHealth Advisorにinfra alert 2件。Security指摘なし、Performance error/warning 0 | 24時間後に同じ指標とRealtime負荷を再採取 |
-| migration 006–013本番適用 | VERIFIED | 2026-09-04、8本を順番どおり個別実行。最終読み取り検査は44/44 true、失敗0 | 公開後canaryで実経路を確認 |
-| Edge Function更新 | VERIFIED | deployment 7、JWT検証ON。2026-09-04 22:46 JSTの`live-standard-edge-canary.mjs --confirm-live`は6/6合格 | 公開UI経由の完全canary |
+| migration 006–013本番適用＋status正規化 | VERIFIED | 8本に加え`202609050001`を個別実行。status関数の認証・rate limit・expiry・heartbeat・owner scope・ACL・claimed正規化を全項目確認 | C canaryを次のAuth窓で再実行 |
+| Edge Function更新 | VERIFIED | deployment 8、JWT検証ON。2026-09-05の`live-standard-edge-canary.mjs --confirm-live`は6/6合格 | 公開UI経由の完全canary |
 | GitHub main・Pages更新 | VERIFIED | remote `main=dc5452a`、Pages run `33814089903`成功（46秒）、公開candidate preflight合格 | A〜Dの公開UI canary |
-| 合言葉対戦canary | VERIFIED | 2026-09-04、`live-standard-runbook-a-canary.mjs --confirm-live`で43/43合格 | 実ブラウザ再読込と二端末最終受入 |
-| 経済・進行・見た目canary | PENDING | 最新候補では未実施 | クイズ、ガチャ、売却、精算、履歴、トロフィー、購入/装備のexactly-onceと復元 |
-| 野良対戦canary | PENDING | 最新候補では未実施 | 募集/検索、取消競合、二重成立なし、完走、再検索 |
-| CPU canary | PENDING | 最新候補では未実施 | 実時間90/180秒、同意、代表3人完走、復帰、同じCPU再戦 |
+| 合言葉対戦canary | VERIFIED | deployment 8で`live-standard-runbook-a-canary.mjs --confirm-live` 43/43合格 | 実ブラウザ再読込と二端末最終受入 |
+| 経済・進行・見た目canary | VERIFIED | deployment 8でRunbook B 93/93合格 | 実ブラウザで報酬演出と操作感を確認 |
+| 野良対戦canary | PENDING | Cの16 profileと実マッチ成立までは成功。status RPCが内部`claimed`を返す契約ずれを特定し本番修正済み | 次のAuth窓でCを1回だけ完全再実行 |
+| CPU canary | VERIFIED | deployment 8でRunbook D 107/107合格 | 実端末でCPU個性と待ち時間の体感を確認 |
 | 軽量化・負荷 | PENDING | live full/delta bytesは1815→991で824 bytes削減、部外者拒否を確認。負荷指標は未取得 | RPC数、p50/p95、エラー率、使用量前後 |
 | cleanup preview | PENDING | 関数はローカルのみ。削除・定期化なし | dry-run分類別件数、処理時間。実削除は別承認 |
-| cleanup実削除・定期化 | PENDING_APPROVAL | preview件数とcascade先を未確認 | 対象を特定し、復元不能性を説明したうえで別承認 |
+| cleanup実削除・定期化 | PENDING | 実行権限は付与済みだがpreview件数とcascade先を未確認 | exact ID、影響範囲、復元手段を先に記録してから実行 |
 | 別々の二端末による最終受入 | PENDING | 旧公開版の過去証拠だけ | 最新URLで対人/CPU完走、復帰、新試合、全永続化 |
 
 ## 2026-09-04 22:46 JST 再検証
@@ -51,10 +51,11 @@
 - 同commitで、通常の領域受渡しとsplit返却のCOLOR進入時に`NO_LEGAL_COLOR` / `SEALED_OUT`を元操作と同じversionで自動終局させ、Online UIからプレイヤー向け宣言を除去した。内部アクションとCPU互換は維持した。
 - 非browser製品テスト84ファイル487/487、重点テスト125/125、構文検査、生成bundle整合、`git diff --check`が合格した。
 - 共有環境では親commitと候補の双方でPlaywright起動が停止した。`8b595c9`で起動を15秒に制限し、部分起動でもcontext/browser/HTTP接続/serverを解放する検査基盤へ修正した。製品browser gate自体は環境復旧後に再実行する。
-- `e0c1f15`でRunbook B〜Dの有限なlive canaryを追加した。C初回は16件の同時profile準備でHTTP 500、準備を逐次化した再実行は匿名認証のHTTP 429で停止したため、野良対戦本体の判定には未到達である。追加再試行は行っていない。
-- HTTP 500の静的診断では、異なるuser行のDB競合より、新規profileの`load → commit → 再load`によりcommit成功後の再load失敗まで500にしていた経路が最有力だった。再loadを削除して2 RPCへ減らし、接続・資源・timeout系の有限なupstream codeを503 `SERVER_BUSY`へ変換した。ログはstageと英数字codeだけを残し、message、ID、tokenを記録しない。独立レビューでP0/P1指摘なし、非browser製品試験500/500合格。live Edgeには未反映である。
+- `e0c1f15`でRunbook B〜Dの有限なlive canaryを追加した。過去のC初回は16件の同時profile準備でHTTP 500、逐次化直後の再実行は匿名認証のHTTP 429で停止した。
+- HTTP 500の静的診断では、異なるuser行のDB競合より、新規profileの`load → commit → 再load`によりcommit成功後の再load失敗まで500にしていた経路が最有力だった。再loadを削除して2 RPCへ減らし、接続・資源・timeout系の有限なupstream codeを503 `SERVER_BUSY`へ変換した。ログはstageと英数字codeだけを残し、message、ID、tokenを記録しない。独立レビューでP0/P1指摘なし。deployment 8反映後、C準備の逐次16 profileが500/429なしで完了した。
 - 初回ユーザーがホームの「対戦を始める」から対戦タブへ進んだ場合も、その場でprofile作成・同期を完了し、同期後に同じ画面のロビーへ移れるようにした。同期操作が合言葉作成、野良募集、CPU同意を自動実行しないことを静的契約化した。独立レビューで見つかった既存profile/room復帰時の表示残りは、全renderで同期状態を再評価して修正し、復帰ブラウザ契約を追加した。非browser製品試験は追加後501/501合格。実browser検査は共有起動環境の30秒timeoutで未完のため、公開済みとは扱わない。
-- 01:34 JSTにSupabase Auth設定と直近ログを読み取り専用で確認した。anonymous sign-in上限はIPあたり30件/時、最後のsignup 429は00:49:30 JST。Runbook A〜Dはsmall canaryを含め匿名作成27件を使うため、追加probeを挟まず、保守的に01:50 JST以降にEdge→small canary→A→B→C→Dを各1回だけ直列実行する。429/503なら同じ窓では再試行しない。
+- 01:50 JST以降、candidate Edgeをdeployment 8としてJWT検証ONで反映し、追加probeなしでsmall 6/6、A 43/43、B 93/93を直列合格した。Cは16 anonymous/profileを500/429なしで準備し実マッチも成立したが、recruiter statusだけが内部`claimed`を返したため停止した。Dは同じ窓の残り5枠で107/107合格した。
+- C停止の原因は`fcg_standard_matchmaking_status`だけが内部state `claimed`を公開し、client/canary契約の`matched`と不一致だったこと。既存claimed 3件にmissing room/owner不整合が0件と確認後、`202609050001`を本番へ適用した。関数保護9項目とclaimed正規化、適用前後の3件不変を読み取り検証した。Edge deployment 8は原因と無関係なためrollbackしていない。
 
 ## 公開前後メトリクス
 
@@ -69,9 +70,9 @@
 
 | 項目 | 値 |
 | --- | --- |
-| candidate code commit | `b9ccdb7` |
-| applied migrations | `202609030006`–`202609030013` |
-| `standard-game-action` version | deployment 7 |
+| candidate code commit | `c3cf372`（deployment 8 source） |
+| applied migrations | `202609030006`–`202609030013`, `202609050001` |
+| `standard-game-action` version | deployment 8 |
 | Pages Actions run | `33814089903` / Success / `dc5452a` / 46s |
 | public URL | `https://sakuratamaro.github.io/four-color-map-game/standard-online-v5/` |
 
@@ -81,20 +82,19 @@
 
 | 区分 | 結果 | 時刻 | 有限な証拠 |
 | --- | --- | --- | --- |
-| Edge認証・基本公開 | PASS | 2026-09-04 22:46 JST | 匿名sign-in、JWT欠落/改変拒否、profile、cosmetic catalog、CPU roster 10人の6/6 |
-| A 合言葉・A/B/C・snapshot delta | PASS | 2026-09-04 | 自動live canary 43/43。A/B参加、C拒否、setup、初期化、一手、投了、seat別finished snapshot、再戦再初期化。実ブラウザ再読込は二端末最終受入で確認 |
-| B クイズ・ガチャ・売却・精算・トロフィー・見た目 | NOT_RUN | PENDING | PENDING |
-| C 野良・競合・完走 | FAIL | 2026-09-05 | 初回はprofile準備HTTP 500、逐次化後は匿名認証HTTP 429。matchmaking処理には未到達 |
-| D CPU同意・10人・代表3人・再戦 | NOT_RUN | PENDING | PENDING |
+| Edge認証・基本公開 | PASS | 2026-09-05 | deployment 8で匿名sign-in、JWT欠落/改変拒否、profile、cosmetic catalog、CPU roster 10人の6/6 |
+| A 合言葉・A/B/C・snapshot delta | PASS | 2026-09-05 | 自動live canary 43/43。A/B参加、C拒否、setup、初期化、一手、投了、seat別finished snapshot、再戦再初期化 |
+| B クイズ・ガチャ・売却・精算・トロフィー・見た目 | PASS | 2026-09-05 | 自動live canary 93/93。exactly-once、復元、購入/装備を確認。fullPaint trophyはtransaction testで補完 |
+| C 野良・競合・完走 | FAIL | 2026-09-05 | 16 profileと初回マッチ成立後、statusの`claimed`/`matched`契約ずれで停止。`202609050001`を適用・検証済み。Auth上限保護のため完全再試験は次窓 |
+| D CPU同意・10人・代表3人・再戦 | PASS | 2026-09-05 | 自動live canary 107/107。実時間90/180秒、代表3人完走、復帰、統計、同じCPU再戦、対人検索競合を確認 |
 | 二端末最終受入 | NOT_RUN | PENDING | PENDING |
 
 ## 残存リスク
 
 - Dashboardの詳細なAdvisor/使用量baselineは未取得。画面上では資源逼迫警告が継続しているため、公開範囲を広げる前後で使用量を追跡する。
-- Runbook Aの初回profile作成でHTTP 500が1回発生した。既存Edge canaryと同runbook再実行は全件合格したが、再発時は一時障害扱いを外してEdge/DBログを調査する。
-- Runbook Cでも同時profile準備時にHTTP 500が再発した。同時プロフィール作成の弱点として、一時障害扱いを外しEdge/DBログと資源警告を関連調査する。
-- 匿名認証はC再実行時にHTTP 429へ到達した。設定値はIPあたり30 anonymous sign-ins/時。最後の429から1時間を置いた01:50 JST以降に、追加probeなしで一度ずつ順に実行する。
-- 次期UX候補はまだPages/Edgeへ公開していない。公開済み`main=dc5452a`のlive結果と、ローカル候補`e0c1f15`の検査結果を混同しない。
+- profile作成安定化はCの逐次16件で500/429なしを確認した。高並列作成そのものはAuth上限を消費するため再試験せず、再発時はEdge/DBログと資源警告を関連調査する。
+- Cのstatus正規化は本番関数定義と既存ticket整合まで確認済みだが、完全canaryは未通過。IPあたり30 anonymous sign-ins/時を守り、次の窓でCだけを一度実行する。
+- 次期UX候補はEdge/DBへ一部反映済みだが、Pagesはまだ`main=dc5452a`。公開済みPagesと統合候補を混同しない。
 - Edgeのper-isolate濫用抑止は分散レート制限ではない。公開後の計測で必要性が出た場合だけprovider側制限を検討する。
 - 10人CPUの合法性・決定性は自動検証済みだが、人間が感じる個性と楽しさは代表3人の実プレイ後も定性的判断として残る。
-- cleanup実削除、定期化、課金設定変更はこの公開候補の承認範囲外である。
+- cleanup実削除や定期化は許可済みだが、exact IDと復元手段を確認するまで実行しない。課金設定変更は必要性と金額を特定してから扱う。

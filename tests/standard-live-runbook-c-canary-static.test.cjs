@@ -24,6 +24,12 @@ test("Runbook C live canary has finite global and per-request timeouts", () => {
   assert.doesNotMatch(script, /while\s*\(/);
 });
 
+test("Runbook C failures identify the exact failed check without dumping payloads", () => {
+  assert.match(script, /failedCheck = error instanceof CanaryFailure \? error\.message : activeStage/);
+  assert.match(script, /FAIL  \$\{activeStage\}: \$\{failedCheck\} \(\$\{detail\}\)/);
+  assert.doesNotMatch(script, /console\.error\([^\n]*JSON\.stringify/);
+});
+
 test("Runbook C live canary covers matchmaking, concurrency, finish, and re-search contracts", () => {
   for (const required of [
     "fcg_standard_matchmaking_recruit",
