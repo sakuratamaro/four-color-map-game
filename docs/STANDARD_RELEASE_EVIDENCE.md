@@ -60,6 +60,7 @@
 - `c40b2af`でbrowser harnessを固定Edge/Chrome allowlistへ拡張し静的3/3合格。bundled Playwrightは解決できたが、Chrome対象1件も30秒超過し、この共有hostの実browser gateは未合格。再試行・全16件・既存process killは行っておらず、新規残留processも0。
 - 03:13 JST、status正規化後のRunbook Cは210/210合格。16人のprofile、野良対戦完走、同時finderの一意成立、cancel/find競合、10同時claim、終了後の再検索、room code/hash非公開をliveで確認した。
 - Realtime smoke初回はmember eventを固定2秒で打ち切り失敗した。publicationが`fcg_rooms`だけでjoinがroomを更新することを読み取り確認し、35秒hard timeout内でmemberを最大8秒待って第三者を追加2秒監視する形へ修正。再実行は2/2合格し、専用canary room 2件だけをexact IDで削除、残存0件を確認した。
+- Git worktreeを29床から7床へ集約した。clean旧作業床22個はHEAD・branch・dirty=0を個別確認して`--force`なしで削除し、正史1床、救出済み1床、dirty保留5床だけを残した。正史の祖先でない`1f823b2`は`codex/archive-standard-release-1f823b2`としてGitHubへ保全した。
 
 ## 公開前後メトリクス
 
@@ -74,7 +75,7 @@
 
 | 項目 | 値 |
 | --- | --- |
-| candidate code commit | `a113abb`（Edge deployment 8 sourceは`c3cf372`） |
+| candidate code commit | `0e02176`（Edge deployment 8 sourceは`c3cf372`） |
 | applied migrations | `202609030006`–`202609030013`, `202609050001` |
 | `standard-game-action` version | deployment 8 |
 | Pages Actions run | `33814089903` / Success / `dc5452a` / 46s |

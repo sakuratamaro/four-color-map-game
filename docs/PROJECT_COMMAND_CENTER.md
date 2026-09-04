@@ -29,7 +29,7 @@
 | P1 | 対戦を主役にする情報設計 | UX | LOCAL_VERIFIED | 5タブ化し、ホームの主CTAから対戦タブ内の初回profile作成・同期・ロビーまでを一本化。公開後の実端末確認待ち |
 | P1 | プレイヤー向けno-color宣言の仕様整合 | UX＋ルール | LOCAL_VERIFIED | 通常受渡し/split返却とも同一action内で自動終局し、Online UIから宣言を除去 |
 | P1 | Standardを学んで即CPU戦へ入る導線 | ゲーム体験 | CANDIDATE | 3手ガイドまたは固定スターターCPU戦から本戦へ遷移 |
-| P1 | 未コミット／孤立作業の回収 | 構成管理 | IN_PROGRESS | Quick Half Shift固有差分は単独回収済み。残候補を機能単位で採否する |
+| P1 | 未コミット／孤立作業の回収 | 構成管理 | IN_PROGRESS | 29床を7床へ集約。正史1、救出済み1、dirty保留5だけを残し、残候補を機能単位で採否する |
 | P2 | GitHub Pages actionのNode.js警告解消 | 技術品質 | BACKLOG | 公開結果を変えず、Node.js 20廃止予定warningを消す |
 
 ## 旧作業床からの回収候補
@@ -50,12 +50,11 @@
 | --- | --- | --- |
 | 正本 | `origin/main@dc5452a` | 公開候補の基点 |
 | 現在の統合床 | `codex/standard-release-command` | 司令塔が検証・修正・公開準備に使用 |
-| 統合済み次候補 | `codex/standard-release-command` | 5タブ、初回対戦導線、クイズ・演出、debug隔離、no-color自動終局、profile安定化、status正規化、Realtime/poll復旧を統合。browser/C再検証後に公開判断 |
+| 統合済み次候補 | `codex/standard-release-command@0e02176` | 5タブ、初回対戦導線、クイズ・演出、debug隔離、no-color自動終局、profile安定化、status正規化、Realtime/poll復旧を統合。実browser再検証後に公開判断 |
 | 保全済み | detached `a8fce7d` dirty床 | `codex/salvage-a8fce7d-20260904` / `9e4e8ee` に秘密情報なしでWIP保全済み。機能単位で比較 |
-| 旧大型dirty | root `ac78282`、online rc4 dirty床 | 直接merge禁止。重複を除き、正本にない変更だけを比較 |
-| 見かけdirty | 改行コード差分だけの3床 | 意味差分なし。保全不要候補 |
-| clean detached | 祖先12床 | 到達可能性確認後のworktree整理候補 |
-| 要内容確認 | detached `1f823b2`、`6f309d0` | branchまたはtagで保全してから採否判断 |
+| dirty保留 | root `ac78282`、online rc4 `b98351c`、UI `6ac4a29`、phase2 `93a5578`、solo `9bfbaf8` | 直接merge・削除禁止。変更数は順に40、21、26、135、150。正本にない意味差分だけを比較 |
+| GitHub保管 | `codex/archive-standard-release-1f823b2` | 正史の祖先でない孤立コミットをGitHubへ退避済み。作業床は削除 |
+| 整理済み | clean旧作業床22個 | HEAD、branch、dirty=0を個別確認し、`--force`なしで作業床だけを削除。到達可能な履歴は維持 |
 
 ## 設計と実装の対応
 
