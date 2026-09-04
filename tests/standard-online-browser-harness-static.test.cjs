@@ -45,14 +45,14 @@ test("withPage emits deterministic stages and bounds every setup and test-body a
 
 test("timeout hierarchy preserves Playwright diagnostics and teardown room", () => {
   assert.match(withPage, /\{ bodyTimeout = 35_000 \}/);
-  assert.equal((source.match(/\{ timeout: 120000 \}/g) || []).length, 15);
-  assert.match(source, /cpu action then returns control[\s\S]+?\{ timeout: 140000 \}/i);
+  assert.equal((source.match(/\{ timeout: 130000 \}/g) || []).length, 15);
+  assert.match(source, /cpu action then returns control[\s\S]+?\{ timeout: 150000 \}/i);
   assert.match(source, /const RESTORED_ROOM_MODES = new Set\(\["finished", "playing", "cpuTurn", "finishedCpu"\]\);/);
 });
 
 test("withPage releases partial startup resources and every HTTP connection", () => {
   assert.match(withPage, /bounded\("context-close", context\.close\(\), 3_000\)/);
-  assert.match(withPage, /bounded\("browser-close", browser\.close\(\), 3_000\)/);
+  assert.match(withPage, /bounded\("browser-close", browser\.close\(\), 10_000\)/);
   assert.match(withPage, /bounded\("server-close", closeServer\(server\), 3_000\)/);
   assert.ok(withPage.indexOf("context.close") < withPage.indexOf("browser.close"));
   assert.ok(withPage.indexOf("browser.close") < withPage.indexOf("closeServer(server)"));
