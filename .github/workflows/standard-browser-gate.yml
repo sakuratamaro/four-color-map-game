@@ -1,0 +1,36 @@
+name: Standard browser gate
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: standard-browser-gate-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  browser:
+    name: Standard online browser (${{ matrix.STANDARD_BROWSER }})
+    runs-on: windows-2025
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        STANDARD_BROWSER: [chrome, edge]
+    env:
+      STANDARD_BROWSER: ${{ matrix.STANDARD_BROWSER }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "24"
+          package-manager-cache: false
+      - name: Install browser test dependency
+        run: npm install --no-save --no-package-lock --ignore-scripts playwright@1.62.1
+      - name: Run Standard online browser test serially
+        run: node --test --test-concurrency=1 tests/standard-online-browser.test.cjs
