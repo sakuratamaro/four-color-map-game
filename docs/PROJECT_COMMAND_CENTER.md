@@ -29,7 +29,7 @@
 | P1 | 対戦を主役にする情報設計 | UX | LOCAL_VERIFIED | 5タブ化し、ホームの主CTAから対戦タブ内の初回profile作成・同期・ロビーまでを一本化。公開後の実端末確認待ち |
 | P1 | プレイヤー向けno-color宣言の仕様整合 | UX＋ルール | LOCAL_VERIFIED | 通常受渡し/split返却とも同一action内で自動終局し、Online UIから宣言を除去 |
 | P1 | Standardを学んで即CPU戦へ入る導線 | ゲーム体験 | CANDIDATE | 3手ガイドまたは固定スターターCPU戦から本戦へ遷移 |
-| P1 | 未コミット／孤立作業の回収 | 構成管理 | IN_PROGRESS | 保全、比較、採用、破棄候補が全件分類済み |
+| P1 | 未コミット／孤立作業の回収 | 構成管理 | IN_PROGRESS | Quick Half Shift固有差分は単独回収済み。残候補を機能単位で採否する |
 | P2 | GitHub Pages actionのNode.js警告解消 | 技術品質 | BACKLOG | 公開結果を変えず、Node.js 20廃止予定warningを消す |
 
 ## 旧作業床からの回収候補
@@ -38,7 +38,7 @@
 
 | 優先度 | 候補 | 採否条件 |
 | --- | --- | --- |
-| P1 | Quick Half Shiftの非連結領域を決定的に分割 | 両ゲームエンジンで同じ結果になり、既存Standardルールを壊さない |
+| ADOPTED | Quick Half Shiftの非連結領域を決定的に分割 | `af8c789`で由来つき単独回収。Quick/Standard重点34/34、client/Edge mirror SHA-256一致 |
 | P1 | Quickロビーの期限切れ・Realtime・poll復旧 | 現行Standardにも同型障害が残る場合だけ移植 |
 | P1 | Quickのlive regression/release補助ツール | 現行runbookの不足を埋め、固定データを汚さない |
 | P2 | Quick EdgeのPT409/PGRST003変換 | JWT有効化とlive認証試験を同時に満たす場合だけ採用 |
