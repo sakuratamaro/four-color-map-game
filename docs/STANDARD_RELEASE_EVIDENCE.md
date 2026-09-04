@@ -13,7 +13,7 @@
 | 採否棚卸し | VERIFIED | `ONLINE_COMPLETION_INVENTORY.md`。旧Expo試作と現行Web Standardを分離済み | 公開後に状態列だけ更新 |
 | 製品コード・生成元 | VERIFIED | `standard/`、build scripts、生成済みEdge bundleが統合ブランチに存在 | 最終公開commitを記録 |
 | ローカル製品試験 | VERIFIED | 2026-09-04、専用runnerで665件合格、失敗0、769.2秒 | 公開後のcandidate preflightと実端末canary |
-| 次期UX候補のローカル検査 | VERIFIED | `codex/standard-release-command`。profile安定化、初回対戦導線、Quick Half Shift、status正規化を含む非browser製品試験505/505、重点125/125、browser harness静的2/2合格 | 共有browser環境復旧後に実browser gateを再実行 |
+| 次期UX候補のローカル検査 | VERIFIED | `codex/standard-release-command`。profile安定化、初回対戦導線、Quick Half Shift、status正規化、Realtime/poll復旧を含む非browser製品試験507/507。固定Edge/Chrome harness静的3/3合格 | 共有browser環境復旧後に実browser gateを再実行 |
 | 公開Pages候補 | VERIFIED | 2026-09-04 22:46 JST、HTTP 200、Standard Online title、野良、CPU、見た目をcandidate preflightで確認 | A〜Dの公開UI canary |
 | 公開前DB境界 | VERIFIED | 旧snapshotは匿名権限拒否。snapshot v2と野良募集は`PGRST202`で未存在 | migration後のdb-ready preflight |
 | migration 006–013静的検査 | VERIFIED | migration別security/transaction testsと読み取り専用44項目SQL | 実DBで全行`ok=true` |
@@ -25,7 +25,7 @@
 | 経済・進行・見た目canary | VERIFIED | deployment 8でRunbook B 93/93合格 | 実ブラウザで報酬演出と操作感を確認 |
 | 野良対戦canary | PENDING | Cの16 profileと実マッチ成立までは成功。status RPCが内部`claimed`を返す契約ずれを特定し本番修正済み | 次のAuth窓でCを1回だけ完全再実行 |
 | CPU canary | VERIFIED | deployment 8でRunbook D 107/107合格 | 実端末でCPU個性と待ち時間の体感を確認 |
-| 軽量化・負荷 | PENDING | live full/delta bytesは1815→991で824 bytes削減、部外者拒否を確認。負荷指標は未取得 | RPC数、p50/p95、エラー率、使用量前後 |
+| 軽量化・負荷 | LOCAL_VERIFIED | full/delta bytesは1815→991。Realtime購読を3表全eventからroom UPDATE 1本へ限定し、Quick pollを5/10秒＋hidden停止へ変更 | 公開後のRealtime smoke、RPC数、p50/p95、エラー率、使用量前後 |
 | cleanup preview | PENDING | 関数はローカルのみ。削除・定期化なし | dry-run分類別件数、処理時間。実削除は別承認 |
 | cleanup実削除・定期化 | PENDING | 実行権限は付与済みだがpreview件数とcascade先を未確認 | exact ID、影響範囲、復元手段を先に記録してから実行 |
 | 別々の二端末による最終受入 | PENDING | 旧公開版の過去証拠だけ | 最新URLで対人/CPU完走、復帰、新試合、全永続化 |
@@ -56,6 +56,8 @@
 - 初回ユーザーがホームの「対戦を始める」から対戦タブへ進んだ場合も、その場でprofile作成・同期を完了し、同期後に同じ画面のロビーへ移れるようにした。同期操作が合言葉作成、野良募集、CPU同意を自動実行しないことを静的契約化した。独立レビューで見つかった既存profile/room復帰時の表示残りは、全renderで同期状態を再評価して修正し、復帰ブラウザ契約を追加した。非browser製品試験は追加後501/501合格。実browser検査は共有起動環境の30秒timeoutで未完のため、公開済みとは扱わない。
 - 01:50 JST以降、candidate Edgeをdeployment 8としてJWT検証ONで反映し、追加probeなしでsmall 6/6、A 43/43、B 93/93を直列合格した。Cは16 anonymous/profileを500/429なしで準備し実マッチも成立したが、recruiter statusだけが内部`claimed`を返したため停止した。Dは同じ窓の残り5枠で107/107合格した。
 - C停止の原因は`fcg_standard_matchmaking_status`だけが内部state `claimed`を公開し、client/canary契約の`matched`と不一致だったこと。既存claimed 3件にmissing room/owner不整合が0件と確認後、`202609050001`を本番へ適用した。関数保護9項目とclaimed正規化、適用前後の3件不変を読み取り検証した。Edge deployment 8は原因と無関係なためrollbackしていない。
+- `a113abb`で、publicationから除外済みのmember/private view購読をやめ、Standard/Quickともroom UPDATE 1本だけにした。missing roomは保存接続を解除してロビーへ戻し、通信障害では保持する。Quickはhidden中poll停止、復帰即refresh、playing 5秒/待機10秒へ変更。重点52/52、独立監査75/75、非browser全体507/507合格。
+- `c40b2af`でbrowser harnessを固定Edge/Chrome allowlistへ拡張し静的3/3合格。bundled Playwrightは解決できたが、Chrome対象1件も30秒超過し、この共有hostの実browser gateは未合格。再試行・全16件・既存process killは行っておらず、新規残留processも0。
 
 ## 公開前後メトリクス
 
@@ -70,7 +72,7 @@
 
 | 項目 | 値 |
 | --- | --- |
-| candidate code commit | `c3cf372`（deployment 8 source） |
+| candidate code commit | `a113abb`（Edge deployment 8 sourceは`c3cf372`） |
 | applied migrations | `202609030006`–`202609030013`, `202609050001` |
 | `standard-game-action` version | deployment 8 |
 | Pages Actions run | `33814089903` / Success / `dc5452a` / 46s |

@@ -19,12 +19,12 @@
 
 | 優先度 | 作業 | 主担当 | 状態 | 完了条件 |
 | --- | --- | --- | --- | --- |
-| P0 | Standard公開候補の固定と再検証 | 司令塔 | IN_PROGRESS | dirty回収とstatus正規化を含む統合候補は非browser製品試験505/505合格。共有環境復旧後にbrowser gateを再実行 |
+| P0 | Standard公開候補の固定と再検証 | 司令塔 | IN_PROGRESS | dirty回収、status正規化、Realtime復旧を含む統合候補は非browser製品試験507/507合格。共有環境復旧後にbrowser gateを再実行 |
 | P0 | Pages反映と公開後preflight | 司令塔 | COMPLETED | remote `main=dc5452a`、Pages run `33814089903`成功、candidate preflight合格 |
 | P0 | 合言葉・経済・野良・CPUのlive縦通し | 技術品質 | IN_PROGRESS | deployment 8でEdge 6/6、A 43/43、B 93/93、D 107/107。Cで発見したstatus状態名ずれは本番DB修正済み。次のAuth窓でCだけ再実行 |
 | P0 | 同時profile作成のHTTP 500抑止 | Edge＋運用 | LIVE_VERIFIED | 新規作成をload→commitの2 RPCへ削減。一時障害を503化。C準備の16 profileが逐次で全件成功し、500/429なし |
 | P0 | デバッグ対戦のサーバー側隔離 | 技術品質 | LOCAL_VERIFIED | 合言葉・人間同士だけをservice-loaded roomから許可。API直叩きで野良/CPUへ混入不可 |
-| P0 | Supabase資源とRealtime負荷の追跡 | 運用 | IN_PROGRESS | 現況取得済み。24時間後にinfra alertと`realtime.list_changes`比率を再測定 |
+| P0 | Supabase資源とRealtime負荷の追跡 | 運用 | LOCAL_VERIFIED | client購読を公開room UPDATE 1本へ限定。Quick pollを2.5秒固定からplaying 5秒/待機10秒、hidden停止へ変更。公開後24時間で負荷を再測定 |
 | P0 | 別々の二端末による最終受入 | チャッピー先生＋司令塔 | PENDING | 対人/CPUの完走、復帰、再戦、永続化を確認 |
 | P1 | 対戦を主役にする情報設計 | UX | LOCAL_VERIFIED | 5タブ化し、ホームの主CTAから対戦タブ内の初回profile作成・同期・ロビーまでを一本化。公開後の実端末確認待ち |
 | P1 | プレイヤー向けno-color宣言の仕様整合 | UX＋ルール | LOCAL_VERIFIED | 通常受渡し/split返却とも同一action内で自動終局し、Online UIから宣言を除去 |
@@ -39,7 +39,7 @@
 | 優先度 | 候補 | 採否条件 |
 | --- | --- | --- |
 | ADOPTED | Quick Half Shiftの非連結領域を決定的に分割 | `af8c789`で由来つき単独回収。Quick/Standard重点34/34、client/Edge mirror SHA-256一致 |
-| P1 | Quickロビーの期限切れ・Realtime・poll復旧 | 現行Standardにも同型障害が残る場合だけ移植 |
+| ADOPTED | Quick/Standardロビーの期限切れ・Realtime・poll復旧 | `a113abb`で機能単位回収。missing roomはロビー帰還、通信障害では接続情報を保持し、非browser製品試験507/507合格 |
 | P1 | Quickのlive regression/release補助ツール | 現行runbookの不足を埋め、固定データを汚さない |
 | P2 | Quick EdgeのPT409/PGRST003変換 | JWT有効化とlive認証試験を同時に満たす場合だけ採用 |
 | HOLD | Quick待機クイズ・ローカルガチャ | Quickを製品導線として残す決定が出るまでStandard版を正本とする |
@@ -50,7 +50,7 @@
 | --- | --- | --- |
 | 正本 | `origin/main@dc5452a` | 公開候補の基点 |
 | 現在の統合床 | `codex/standard-release-command` | 司令塔が検証・修正・公開準備に使用 |
-| 統合済み次候補 | `codex/standard-release-command` | 5タブ、初回対戦導線、クイズ・演出、debug隔離、no-color自動終局、Runbook B〜D、profile作成安定化、matchmaking status正規化を統合。browser/C再検証後に公開判断 |
+| 統合済み次候補 | `codex/standard-release-command` | 5タブ、初回対戦導線、クイズ・演出、debug隔離、no-color自動終局、profile安定化、status正規化、Realtime/poll復旧を統合。browser/C再検証後に公開判断 |
 | 保全済み | detached `a8fce7d` dirty床 | `codex/salvage-a8fce7d-20260904` / `9e4e8ee` に秘密情報なしでWIP保全済み。機能単位で比較 |
 | 旧大型dirty | root `ac78282`、online rc4 dirty床 | 直接merge禁止。重複を除き、正本にない変更だけを比較 |
 | 見かけdirty | 改行コード差分だけの3床 | 意味差分なし。保全不要候補 |
