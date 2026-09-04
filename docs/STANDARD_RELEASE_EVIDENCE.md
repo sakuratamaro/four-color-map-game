@@ -13,15 +13,15 @@
 | 採否棚卸し | VERIFIED | `ONLINE_COMPLETION_INVENTORY.md`。旧Expo試作と現行Web Standardを分離済み | 公開後に状態列だけ更新 |
 | 製品コード・生成元 | VERIFIED | `standard/`、build scripts、生成済みEdge bundleが統合ブランチに存在 | 最終公開commitを記録 |
 | ローカル製品試験 | VERIFIED | 2026-09-04、専用runnerで665件合格、失敗0、769.2秒 | 公開後のcandidate preflightと実端末canary |
-| 次期UX候補のローカル検査 | VERIFIED | `codex/standard-release-command`。profile安定化、初回対戦導線、Quick Half Shift、status正規化、Realtime/poll復旧を含む非browser製品試験91ファイル520/520。固定Edge/Chrome harnessは段階ログ・有限timeoutを含む静的5/5合格 | Windows CIで実browser gateを再実行 |
-| Windows実browser CI | NOT_RUN | `d8dac1b`を基点にChrome/Edge並列、各15分上限、読み取り専用権限、Action commit SHA固定の候補branch/PRゲートを追加。静的契約5/5合格 | 候補branch pushで両jobを完走 |
-| 公開Pages候補 | VERIFIED | 2026-09-04 22:46 JST、HTTP 200、Standard Online title、野良、CPU、見た目をcandidate preflightで確認 | A〜Dの公開UI canary |
+| 次期UX候補のローカル検査 | VERIFIED | `codex/standard-release-command@1673ff8`。profile安定化、初回対戦導線、Quick Half Shift、status正規化、Realtime/poll復旧を含む非browser製品試験91ファイル522/522。browser workflow/harness静的11/11合格 | Pages反映後のpreflightと二端末受入 |
+| Windows実browser CI | VERIFIED | GitHub Actions run `33920847775`。Windows 2025のChrome 16/16（36.5秒）、Edge 16/16（41.8秒）、失敗0。読み取り専用権限・各15分上限 | 公開URLで同じ主要導線を二端末受入 |
+| 現行公開Pages baseline | VERIFIED | 2026-09-04 22:46 JST、HTTP 200、Standard Online title、野良、CPU、見た目をpreflightで確認。現在の`main=dc5452a` | 最新候補`1673ff8`反映後に再検証 |
 | 公開前DB境界 | VERIFIED | 旧snapshotは匿名権限拒否。snapshot v2と野良募集は`PGRST202`で未存在 | migration後のdb-ready preflight |
 | migration 006–013静的検査 | VERIFIED | migration別security/transaction testsと読み取り専用44項目SQL | 実DBで全行`ok=true` |
 | Dashboard Advisor・使用量baseline | BLOCKED | 変更前baselineは取得不能。22:55 JSTの現況はHealthyだがHealth Advisorにinfra alert 2件。Security指摘なし、Performance error/warning 0 | 24時間後に同じ指標とRealtime負荷を再採取 |
 | migration 006–013本番適用＋status正規化 | VERIFIED | 8本に加え`202609050001`を個別実行。status関数の保護契約を全項目確認し、C canary 210/210合格 | 実ブラウザと二端末最終受入 |
 | Edge Function更新 | VERIFIED | deployment 8、JWT検証ON。2026-09-05の`live-standard-edge-canary.mjs --confirm-live`は6/6合格 | 公開UI経由の完全canary |
-| GitHub main・Pages更新 | VERIFIED | remote `main=dc5452a`、Pages run `33814089903`成功（46秒）、公開candidate preflight合格 | A〜Dの公開UI canary |
+| GitHub main・Pages更新 | PENDING | remote `main=dc5452a`、Pages run `33814089903`成功（46秒）。最新候補`1673ff8`は未反映 | 候補をmainへ統合しPages成功・反映marker・preflightを確認 |
 | 合言葉対戦canary | VERIFIED | deployment 8で`live-standard-runbook-a-canary.mjs --confirm-live` 43/43合格 | 実ブラウザ再読込と二端末最終受入 |
 | 経済・進行・見た目canary | VERIFIED | deployment 8でRunbook B 93/93合格 | 実ブラウザで報酬演出と操作感を確認 |
 | 野良対戦canary | VERIFIED | status正規化後、C 210/210合格。16 profile、完走、同時finder、取消競合、10同時claim、再検索、秘密非公開を確認 | 実ブラウザで二端末最終受入 |
@@ -66,6 +66,7 @@
 - `1bddae0`でdirty床からQuickの入力乱数独立性、合法色なし宣言、`SEALED_OUT` / `BOARD_LOCK`到達性の回帰試験3件だけを選択回収し、Quick重点12/12合格。古いQuickの未検証JWT decodeは認証境界を後退させるため不採用とした。
 - 実Playwright依存15ファイルをコード上で分離した非browser全体はCI契約追加後91ファイル520/520、114.8秒で合格した。先行した広すぎる選択では実browser試験を誤って含め、長時間実行後に接触演出のtier 4などが40秒超でtimeoutしたため中断。接触演出単独でも同じ遅延を確認し、browser gateは合格へ変更していない。中断後に見つかった今回開始のChrome 1 processは停止操作前に自然終了し、既存processは変更していない。
 - `d8dac1b`を基点に、GitHub公式Windows 2025 runner上のChrome/Edgeだけを対象にした実browser gateを追加した。権限は`contents: read`のみ、checkout認証情報を非保持、Actionは公式release commit SHAへ固定、Playwright install scriptを無効化し、Supabase・secret・deploy・Pages処理を含めない。GitHub AppはPR作成を403で拒否したため、push triggerは`codex/standard-release-command`だけに限定し、`main`では起動しない。
+- GitHub Actions run `33920847775`（`1673ff8`）で、Chrome 16/16（36.5秒）とEdge 16/16（41.8秒）がともに合格した。先行runの失敗を、hidden connection badge、room hydration競合、結果overlayの同一ページ再描画消失、タブ導線、移動し続けるquiz click target、Edge終了猶予へ分解して修正した。最終版は結果overlayの同一ページ保持とreload後one-shot抑止も実browserで確認し、共有CSS・Supabase設定変更でも同gateが起動する。
 
 ## 公開前後メトリクス
 
@@ -82,7 +83,9 @@
 | --- | --- |
 | browser harness diagnostics commit | `6fc23a5` |
 | Windows browser CI commit | `d8dac1b` |
-| candidate code commit | `0e02176`（Edge deployment 8 sourceは`c3cf372`） |
+| final browser-verified candidate | `1673ff8` |
+| Windows browser CI run | `33920847775` / Chrome 16/16 / Edge 16/16 |
+| candidate code baseline | `0e02176`（Edge deployment 8 sourceは`c3cf372`） |
 | applied migrations | `202609030006`–`202609030013`, `202609050001` |
 | `standard-game-action` version | deployment 8 |
 | Pages Actions run | `33814089903` / Success / `dc5452a` / 46s |
@@ -99,6 +102,7 @@
 | B クイズ・ガチャ・売却・精算・トロフィー・見た目 | PASS | 2026-09-05 | 自動live canary 93/93。exactly-once、復元、購入/装備を確認。fullPaint trophyはtransaction testで補完 |
 | C 野良・競合・完走 | PASS | 2026-09-05 03:13 JST | 自動live canary 210/210。16 profile、完走、2 finder、cancel/find、10 claim、再検索、秘密非公開を確認 |
 | D CPU同意・10人・代表3人・再戦 | PASS | 2026-09-05 | 自動live canary 107/107。実時間90/180秒、代表3人完走、復帰、統計、同じCPU再戦、対人検索競合を確認 |
+| Windows実browser主要導線 | PASS | 2026-09-05 | run `33920847775`。Chrome 16/16、Edge 16/16。初回導線、復帰、再戦、投了、クイズ、ガチャ、売却、見た目、野良、CPUを確認 |
 | 二端末最終受入 | NOT_RUN | PENDING | PENDING |
 
 ## 残存リスク
@@ -106,7 +110,7 @@
 - Dashboardの詳細なAdvisor/使用量baselineは未取得。画面上では資源逼迫警告が継続しているため、公開範囲を広げる前後で使用量を追跡する。
 - profile作成安定化はCの逐次16件で500/429なしを確認した。高並列作成そのものはAuth上限を消費するため再試験せず、再発時はEdge/DBログと資源警告を関連調査する。
 - Cのstatus正規化は本番関数定義、既存ticket整合、live canary 210/210まで確認済み。今後もIPあたり30 anonymous sign-ins/時を守り、同じ認証窓で重いcanaryを再試行しない。
-- 次期UX候補はEdge/DBへ一部反映済みだが、Pagesはまだ`main=dc5452a`。公開済みPagesと統合候補を混同しない。
+- 次期UX候補`1673ff8`はEdge/DBへ一部反映済みだが、Pagesはまだ`main=dc5452a`。公開済みPagesとブラウザ検証済み候補を混同しない。
 - Edgeのper-isolate濫用抑止は分散レート制限ではない。公開後の計測で必要性が出た場合だけprovider側制限を検討する。
 - 10人CPUの合法性・決定性は自動検証済みだが、人間が感じる個性と楽しさは代表3人の実プレイ後も定性的判断として残る。
 - cleanup実削除や定期化は許可済みだが、exact IDと復元手段を確認するまで実行しない。課金設定変更は必要性と金額を特定してから扱う。
