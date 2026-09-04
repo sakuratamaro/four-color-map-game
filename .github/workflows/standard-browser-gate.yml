@@ -5,11 +5,15 @@ on:
     branches: [codex/standard-release-command]
     paths:
       - .github/workflows/standard-browser-gate.yml
+      - online/supabase-config.js
+      - online-v5/style.css
       - standard-online-v5/**
       - tests/standard-online-browser.test.cjs
   pull_request:
     paths:
       - .github/workflows/standard-browser-gate.yml
+      - online/supabase-config.js
+      - online-v5/style.css
       - standard-online-v5/**
       - tests/standard-online-browser.test.cjs
   workflow_dispatch:

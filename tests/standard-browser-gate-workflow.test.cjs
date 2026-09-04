@@ -17,6 +17,8 @@ test("Standard browser gate YAML text uses stable whitespace", () => {
 
 test("Standard browser gate is candidate-push, manual, or pull-request only and least-privileged", () => {
   assert.match(workflow, /^on:\r?\n  push:\r?\n    branches: \[codex\/standard-release-command\][\s\S]+?  pull_request:[\s\S]+?  workflow_dispatch:/m);
+  assert.equal((workflow.match(/      - online\/supabase-config\.js/g) || []).length, 2);
+  assert.equal((workflow.match(/      - online-v5\/style\.css/g) || []).length, 2);
   assert.equal((workflow.match(/      - standard-online-v5\/\*\*/g) || []).length, 2);
   assert.equal((workflow.match(/      - tests\/standard-online-browser\.test\.cjs/g) || []).length, 2);
   assert.doesNotMatch(workflow, /branches: \[(?:main|master)\]/);
@@ -42,5 +44,5 @@ test("Standard browser gate pins its tools and disables package-manager caching 
 test("Standard browser gate runs only the scoped browser file serially and has no release integration", () => {
   assert.match(workflow, /run: node --test --test-concurrency=1 tests\/standard-online-browser\.test\.cjs/);
   assert.equal((workflow.match(/^\s+run:/gm) || []).length, 2);
-  assert.doesNotMatch(workflow, /(?:supabase|deploy|github-pages|pages\/|upload-pages|npm test)/i);
+  assert.doesNotMatch(workflow, /^\s+(?:uses|run):.*(?:supabase|deploy|github-pages|pages\/|upload-pages|npm test)/im);
 });
