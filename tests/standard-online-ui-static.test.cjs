@@ -223,11 +223,14 @@ test("profile, room, setup, initialize, and reconnect flow only through the clie
 test("setup enforces two cards per category and makes unowned cards debug-only", () => {
   assert.match(app, /value\?\.inventory\?\.\[id\]/);
   assert.match(app, /debugMode \|\| \(value\?\.inventory\?\.\[id\] \|\| 0\) > 0/);
-  assert.match(app, /if \(checked\.length > 2\) changed\.checked = false/);
+  assert.match(app, /if \(checked\.length > 2\)[\s\S]+?changed\.checked = false/);
   assert.match(app, /every\(\(category\) => loadout\[category\]\.length === 2\)/);
+  assert.match(app, /renderLoadoutSelectionState\(`\$\{CATEGORY_LABEL\[category\]\}は2枚までです/);
+  assert.match(app, /\$\("submitSetup"\)\.disabled = setupBusy \|\| !validLoadout\(loadout\)/);
   assert.match(app, /client\.submitSetup\(\{ loadout, debugMode \}\)/);
   assert.match(html, /id="debugUnlimitedMode"/);
-  assert.match(html, /id="submitSetup"[^>]*>この6枚で準備完了<\/button>/);
+  assert.match(html, /id="loadoutSummary"[^>]+role="status"[^>]+aria-live="polite"/);
+  assert.match(html, /id="submitSetup"[^>]+aria-describedby="loadoutSummary setupStatus"[^>]+disabled/);
 });
 
 test("turn guide moves from selection to handoff without exposing a legality oracle", () => {

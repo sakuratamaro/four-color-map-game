@@ -98,6 +98,7 @@ let profileSyncBusy = false;
 let hydratedProfileRevision = -1;
 let roomModel = null;
 let initializeBusy = false;
+let setupBusy = false;
 let actionBusy = false;
 let rematchBusy = false;
 let gachaBusy = false;
@@ -241,6 +242,16 @@ function renderTerminalResult(state) {
   $("terminalTitle").textContent = won ? "勝利！" : "敗北";
   $("terminalMessage").textContent = won ? `${playerName(mySeat)} の勝利です！` : `${playerName(state.winner)} の勝利です`;
   $("terminalReasonText").textContent = terminalReasonText(state.terminalReason, state.winner);
+  const opponentKind = roomModel?.room?.opponent_kind;
+  const stats = opponentKind === "cpu" ? profile()?.cpuStats : profile()?.stats;
+  const resultCount = Number(stats?.[won ? "wins" : "losses"]);
+  const resultLabel = opponentKind === "cpu" ? "CPU戦" : "対人戦";
+  const settledMatch = profile()?.matchHistory?.find((entry) => entry?.matchId === state.matchId);
+  const resultWasSaved = settledMatch?.result === (won ? "WIN" : "LOSS")
+    && (opponentKind !== "cpu" || settledMatch.onlineOpponentKind === "cpu");
+  $("terminalProgressText").textContent = resultWasSaved && Number.isSafeInteger(resultCount) && resultCount >= 0
+    ? `戦績を保存しました：${resultLabel} ${won ? "勝利" : "敗北"} ${resultCount}`
+    : "戦績を同期しています。マイページで確認できます。";
   try { localStorage.setItem(TERMINAL_PRESENTED_KEY, eventKey); } catch { /* presentation still works when storage is unavailable */ }
   show("terminalOverlay", true);
   if (shownTerminalEventKey !== eventKey) {
@@ -1042,31 +1053,58 @@ async function createStarterProfile() {
 function renderLoadout() {
   const value = profile();
   const debugMode = $("debugUnlimitedMode")?.checked === true;
-  const grid = $("loadoutGrid"); grid.replaceChildren();
+  const grid = $("loadoutGrid");
+  const previous = Object.fromEntries(["color", "area", "disrupt"].map((category) => [category, new Set([...document.querySelectorAll(`input[name="loadout-${category}"]:checked`)].map((input) => input.value))]));
+  const hadSelection = grid.childElementCount > 0;
+  grid.replaceChildren();
   for (const category of ["color", "area", "disrupt"]) {
-    const section = document.createElement("div"); section.className = "loadout-category";
-    const title = document.createElement("h3"); title.textContent = CATEGORY_LABEL[category]; section.appendChild(title);
+    const section = document.createElement("fieldset"); section.className = "loadout-category";
+    const title = document.createElement("legend"); title.textContent = `${CATEGORY_LABEL[category]}（2枚）`; section.appendChild(title);
     const available = SKILLS.filter(([id, , kind]) => kind === category && (debugMode || (value?.inventory?.[id] || 0) > 0));
     for (const [index, [id, name]] of available.entries()) {
       const label = document.createElement("label"); label.className = "loadout-option";
-      const input = document.createElement("input"); input.type = "checkbox"; input.name = `loadout-${category}`; input.value = id; input.checked = index < 2;
-      input.onchange = () => enforceTwo(category, input); label.appendChild(input);
-      const text = document.createTextNode(name); label.appendChild(text);
-      const count = document.createElement("span"); count.textContent = debugMode ? "∞" : `×${value.inventory[id]}`; label.appendChild(count); section.appendChild(label);
+      const input = document.createElement("input"); input.type = "checkbox"; input.name = `loadout-${category}`; input.value = id; input.checked = hadSelection ? previous[category].has(id) : index < 2;
+      input.setAttribute("aria-label", `${name}を持ち込む`);
+      const copy = document.createElement("span"); copy.className = "loadout-option-copy";
+      const cardName = document.createElement("strong"); cardName.textContent = name;
+      const state = document.createElement("small"); state.className = "loadout-choice-state"; state.setAttribute("aria-hidden", "true");
+      copy.append(cardName, state);
+      const count = document.createElement("span"); count.className = "loadout-owned"; count.textContent = debugMode ? "所持 ∞" : `所持 ×${value.inventory[id]}`;
+      input.onchange = () => enforceTwo(category, input); label.append(input, copy, count); section.appendChild(label);
     }
     if (!available.length) { const empty = document.createElement("p"); empty.className = "muted"; empty.textContent = "所持カードなし"; section.appendChild(empty); }
     grid.appendChild(section);
   }
+  renderLoadoutSelectionState();
 }
 
 function enforceTwo(category, changed) {
   const checked = [...document.querySelectorAll(`input[name="loadout-${category}"]:checked`)];
-  if (checked.length > 2) changed.checked = false;
+  if (checked.length > 2) {
+    changed.checked = false;
+    return renderLoadoutSelectionState(`${CATEGORY_LABEL[category]}は2枚までです。入れ替えるカードを先に外してください。`);
+  }
+  renderLoadoutSelectionState();
 }
 function selectedLoadout() {
   return Object.fromEntries(["color", "area", "disrupt"].map((category) => [category, [...document.querySelectorAll(`input[name="loadout-${category}"]:checked`)].map((input) => input.value)]));
 }
 function validLoadout(loadout) { return ["color", "area", "disrupt"].every((category) => loadout[category].length === 2); }
+
+function renderLoadoutSelectionState(message = "") {
+  const loadout = selectedLoadout();
+  const counts = Object.fromEntries(Object.entries(loadout).map(([category, ids]) => [category, ids.length]));
+  const total = Object.values(counts).reduce((sum, count) => sum + count, 0);
+  const remaining = Math.max(0, 6 - total);
+  $("loadoutSummary").textContent = message || `選択 ${total}/6｜色 ${counts.color}/2｜エリア ${counts.area}/2｜妨害 ${counts.disrupt}/2${remaining ? `｜あと${remaining}枚` : "｜準備OK"}`;
+  $("loadoutSummary").classList.toggle("is-complete", validLoadout(loadout));
+  for (const input of document.querySelectorAll('#loadoutGrid input[type="checkbox"]')) {
+    const label = input.closest(".loadout-option");
+    label?.classList.toggle("is-selected", input.checked);
+    label?.querySelector(".loadout-choice-state")?.replaceChildren(document.createTextNode(input.checked ? "✓ 持ち込む" : "持ち込まない"));
+  }
+  $("submitSetup").disabled = setupBusy || !validLoadout(loadout);
+}
 
 async function refreshRoom(_reason, expectedRoomId = client.snapshot().roomId) {
   if (!expectedRoomId) { stopCpuTurnWatch(); return render(); }
@@ -1209,6 +1247,7 @@ function render() {
     ? "準備完了。相手を待っています。開始前なら6枚を変更できます。"
     : "選択済みの6枚でよければ、準備完了にしてください。";
   $("submitSetup").textContent = setupReady ? "変更した6枚で準備し直す" : "この6枚で準備完了";
+  renderLoadoutSelectionState();
   if (hasStandardPublicState(roomModel?.room?.public_state)) {
     const publicState = roomModel.room.public_state;
     const privateState = roomModel.view?.private_state || {};
@@ -1671,11 +1710,11 @@ async function createRoom() { try { await client.createRoom(displayName()); awai
 async function joinRoom() { try { await client.joinRoom({ roomCode: $("roomCode").value, displayName: displayName() }); await roomSync.start(client.snapshot().roomId); } catch (error) { toast(error.message); } }
 async function submitSetup() {
   const loadout = selectedLoadout(); if (!validLoadout(loadout)) return toast("各カテゴリから2枚ずつ選んでください。");
-  $("submitSetup").disabled = true;
+  setupBusy = true; renderLoadoutSelectionState();
   const debugMode = $("debugUnlimitedMode")?.checked === true;
   try { await client.submitSetup({ loadout, debugMode }); await roomSync.refreshNow(); toast(debugMode ? "デバッグ用6枚で準備完了しました。相手もデバッグをONにしてください。" : "この6枚で準備完了しました。"); }
   catch (error) { toast(error.message || "対戦準備を完了できませんでした。"); }
-  finally { $("submitSetup").disabled = false; }
+  finally { setupBusy = false; renderLoadoutSelectionState(); }
 }
 async function requestRematch() {
   if (rematchBusy || roomModel?.room?.status !== "finished") return;

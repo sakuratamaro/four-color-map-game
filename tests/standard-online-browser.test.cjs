@@ -22,7 +22,7 @@ const saveKey = "fourColorMapGame.standard.v5.save";
 const remoteProfileKey = "fourColorMapGame.standard.online.v5.remote-profile";
 const roomId = "11111111-1111-4111-8111-111111111111";
 const pendingRematchId = "22222222-2222-4222-8222-222222222222";
-const RESTORED_ROOM_MODES = new Set(["finished", "playing", "cpuTurn", "finishedCpu"]);
+const RESTORED_ROOM_MODES = new Set(["finished", "playing", "cpuTurn", "finishedCpu", "cpuWin"]);
 
 function browserStage(stage) {
   console.error(`BROWSER_STAGE ${stage}`);
@@ -111,15 +111,17 @@ async function installMock(context, mode) {
       trophies: { fullPaint: true, fullPaint3: false, noSkillFullPaint: true },
       trophyDates: { fullPaint: "2026-09-01T00:00:00.000Z", noSkillFullPaint: "2026-09-01T00:00:00.000Z" },
       stats: { wins: 4, losses: 2, currentWinStreak: 2, bestWinStreak: 3, fullPaints: 1 },
+      cpuStats: { wins: 0, losses: 0, currentWinStreak: 0, bestWinStreak: 0, fullPaints: 0 },
+      cpuCharacterStats: {},
       matchHistory: [{ matchId: "history-1", result: "WIN", terminalReason: "BOARD_LOCK", endedAt: "2026-09-01T00:00:00.000Z", fullPaint: true, skillsUsed: 0 }],
     };
-    if (initialMode === "cosmetic") {
+    if (["cosmetic", "cpuWin"].includes(initialMode)) {
       try { Object.assign(profileState, JSON.parse(localStorage.getItem("fourColorMapGame.standard.online.v5.remote-profile") || "null") || {}); } catch { /* fresh mock profile */ }
     }
     if (initialMode === "cpuTurn") active.active = "B";
     const runtime = {
       waitStartedAt: initialMode === "cpuWait" ? new Date(Date.now() - 91000).toISOString() : new Date().toISOString(),
-      room: { id, status: ["finished", "finishedCpu"].includes(initialMode) ? "finished" : initialMode === "publicFind" ? "ready" : "playing", version: 9, game_mode: "standard_v5", access_mode: ["cpuTurn", "finishedCpu"].includes(initialMode) ? "cpu" : initialMode === "publicFind" ? "public_queue" : "private_code", opponent_kind: ["cpuTurn", "finishedCpu"].includes(initialMode) ? "cpu" : "human", cpu_character_id: ["cpuTurn", "finishedCpu"].includes(initialMode) ? "yuzu" : null, public_state: ["finished", "finishedCpu"].includes(initialMode) ? finished : initialMode === "publicFind" ? null : active },
+      room: { id, status: ["finished", "finishedCpu"].includes(initialMode) ? "finished" : initialMode === "publicFind" ? "ready" : "playing", version: 9, game_mode: "standard_v5", access_mode: ["cpuTurn", "finishedCpu", "cpuWin"].includes(initialMode) ? "cpu" : initialMode === "publicFind" ? "public_queue" : "private_code", opponent_kind: ["cpuTurn", "finishedCpu", "cpuWin"].includes(initialMode) ? "cpu" : "human", cpu_character_id: ["cpuTurn", "finishedCpu", "cpuWin"].includes(initialMode) ? "yuzu" : null, public_state: ["finished", "finishedCpu"].includes(initialMode) ? finished : initialMode === "publicFind" ? null : active },
       view: initialMode === "publicFind" ? null : { seat: "A", version: 9, private_state: { hand: { areaDiePlus: 1, areaResize: 1 }, basicPalette: ["red", "blue"], bonusColor: "yellow", bonusUsesRemaining: 2, privateEffects: {} } },
       profile: initialMode === "empty" ? null : { revision: 1, display_name: "A", profile_state: profileState },
       gachaReceipts: {},
@@ -127,7 +129,7 @@ async function installMock(context, mode) {
       cosmeticReceipts: {},
       calls: [],
     };
-    runtime.members = [{ user_id: "33333333-3333-4333-8333-333333333333", seat: "A", display_name: "A", is_cpu: false, appearance: { nameplate: "nameplateDefault", title: "titleNone" } }, { user_id: "44444444-4444-4444-8444-444444444444", seat: "B", display_name: ["cpuTurn", "finishedCpu"].includes(initialMode) ? "うっかりユズ" : "B", is_cpu: ["cpuTurn", "finishedCpu"].includes(initialMode), appearance: { nameplate: "nameplateGold", title: "titleArtisan" } }];
+    runtime.members = [{ user_id: "33333333-3333-4333-8333-333333333333", seat: "A", display_name: "A", is_cpu: false, appearance: { nameplate: "nameplateDefault", title: "titleNone" } }, { user_id: "44444444-4444-4444-8444-444444444444", seat: "B", display_name: ["cpuTurn", "finishedCpu", "cpuWin"].includes(initialMode) ? "うっかりユズ" : "B", is_cpu: ["cpuTurn", "finishedCpu", "cpuWin"].includes(initialMode), appearance: { nameplate: "nameplateGold", title: "titleArtisan" } }];
     const cosmeticProjection = () => ({
       coins: runtime.profile.profile_state.coins,
       equipped: runtime.profile.profile_state.equipped,
@@ -230,6 +232,18 @@ async function installMock(context, mode) {
           runtime.view = null;
           return { data: { roomStatus: "ready", roomVersion: runtime.room.version, readyToSetup: true, duplicate: false } };
         }
+        if (request.body.operation === "action" && initialMode === "cpuWin") {
+          const next = JSON.parse(JSON.stringify(runtime.profile.profile_state));
+          next.cpuStats.wins += 1;
+          next.cpuStats.currentWinStreak += 1;
+          next.cpuStats.bestWinStreak = Math.max(next.cpuStats.bestWinStreak, next.cpuStats.currentWinStreak);
+          next.cpuCharacterStats.yuzu = { matches: 1, wins: 1, losses: 0, firstWinAt: "2026-09-05T00:00:00.000Z" };
+          next.matchHistory.unshift({ matchId: `${id}:9`, result: "WIN", terminalReason: "BOARD_LOCK", endedAt: "2026-09-05T00:00:00.000Z", fullPaint: true, skillsUsed: 0, onlineOpponentKind: "cpu", cpuCharacterId: "yuzu" });
+          runtime.profile = { ...runtime.profile, revision: runtime.profile.revision + 1, profile_state: next };
+          runtime.room = { ...runtime.room, status: "finished", version: runtime.room.version + 1, winner_seat: "A", public_state: { ...runtime.room.public_state, status: "FINISHED", phase: "GAME_OVER", version: runtime.room.version + 1, winner: "A", terminalReason: "BOARD_LOCK" } };
+          runtime.view = { ...runtime.view, version: runtime.room.version };
+          return { data: { duplicate: false, room: runtime.room } };
+        }
         return { data: { ok: true } };
       } },
       rpc: async (name, args) => {
@@ -278,7 +292,7 @@ async function installMock(context, mode) {
   }, { connectionKey, saveKey, roomId, pendingId: pendingRematchId, mode });
 }
 
-async function withPage(mode, run, { bodyTimeout = 35_000 } = {}) {
+async function withPage(mode, run, { bodyTimeout = 35_000, viewport = { width: 900, height: 800 } } = {}) {
   assert.ok(chromium, "Playwright is required");
   assert.ok(fs.existsSync(browserPath), `${browserName} browser is required`);
   let browser;
@@ -291,7 +305,7 @@ async function withPage(mode, run, { bodyTimeout = 35_000 } = {}) {
     browser = await bounded("browser-launch", chromium.launch({ executablePath: browserPath, headless: true, timeout: 15_000 }), 15_000);
     browserStage("browser-launch-ready");
     browserStage("context-start");
-    context = await bounded("context-ready", browser.newContext({ viewport: { width: 900, height: 800 } }), 5_000);
+    context = await bounded("context-ready", browser.newContext({ viewport }), 5_000);
     browserStage("context-ready");
     await bounded("mock-ready", installMock(context, mode), 5_000);
     browserStage("page-start");
@@ -643,6 +657,30 @@ test("actual Edge asks the server for exactly one CPU action then returns contro
   }, { bodyTimeout: 50_000 });
 });
 
+test("actual Edge hydrates a CPU win once, shows its counter, and keeps it after reload", { timeout: 150000 }, async () => {
+  await withPage("cpuWin", async (page) => {
+    await page.locator("#board").click({ position: { x: 50, y: 50 } });
+    await page.getByRole("button", { name: "このエリアを渡す" }).click();
+    await page.getByText("戦績を保存しました：CPU戦 勝利 1").waitFor();
+    const first = await page.evaluate(({ key }) => ({
+      profile: JSON.parse(localStorage.getItem(key)),
+      actionCalls: globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "action").length,
+    }), { key: remoteProfileKey });
+    assert.equal(first.profile.stats.wins, 4);
+    assert.equal(first.profile.cpuStats.wins, 1);
+    assert.equal(first.profile.cpuCharacterStats.yuzu.wins, 1);
+    assert.equal(first.profile.matchHistory.filter((entry) => entry.matchId === `${roomId}:9`).length, 1);
+    assert.equal(first.actionCalls, 1);
+    await page.getByRole("button", { name: "結果を確認して戻る" }).click();
+    await page.reload();
+    await page.locator("#room:not(.hidden)").waitFor();
+    const restored = await page.evaluate(({ key }) => JSON.parse(localStorage.getItem(key)), { key: remoteProfileKey });
+    assert.equal(restored.cpuStats.wins, 1);
+    assert.equal(restored.cpuCharacterStats.yuzu.matches, 1);
+    assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "action").length), 0);
+  }, { bodyTimeout: 50_000 });
+});
+
 test("actual Edge rematches the same visible CPU and returns the human to fresh setup", { timeout: 130000 }, async () => {
   await withPage("finishedCpu", async (page) => {
     await page.getByRole("button", { name: "結果を確認して戻る" }).click();
@@ -671,6 +709,41 @@ test("actual Edge finds a public opponent and enters setup without exposing a co
     const calls = await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.kind === "rpc").map((entry) => entry.name));
     assert.deepEqual(calls.slice(0, 2), ["fcg_standard_matchmaking_find", "fcg_standard_room_snapshot_v2"]);
   });
+});
+
+test("actual Edge makes the six-card setup explicit, constrained, and keyboard-safe on mobile", { timeout: 150000 }, async () => {
+  await withPage("publicFind", async (page) => {
+    await page.getByRole("button", { name: "今入れる試合を探す" }).click();
+    await page.locator("#setupCard:not(.hidden)").waitFor();
+    const summary = page.locator("#loadoutSummary");
+    await summary.getByText("選択 6/6｜色 2/2｜エリア 2/2｜妨害 2/2｜準備OK", { exact: true }).waitFor();
+    assert.equal(await page.locator(".loadout-option.is-selected").count(), 6);
+    assert.equal(await page.getByText("✓ 持ち込む", { exact: true }).count(), 6);
+    assert.equal(await page.locator("#submitSetup").isEnabled(), true);
+
+    const selectedColor = page.locator('input[name="loadout-color"]:checked').first();
+    const selectedColorId = await selectedColor.getAttribute("value");
+    await selectedColor.focus();
+    await page.keyboard.press("Space");
+    await summary.getByText(/選択 5\/6｜色 1\/2.*あと1枚/).waitFor();
+    assert.equal(await page.locator("#submitSetup").isDisabled(), true);
+    assert.equal(await page.locator(`input[name="loadout-color"][value="${selectedColorId}"]`).evaluate((node) => node === document.activeElement), true);
+
+    const replacement = page.locator('input[name="loadout-color"]:not(:checked)').first();
+    await replacement.focus();
+    await page.keyboard.press("Space");
+    await summary.getByText(/選択 6\/6｜色 2\/2.*準備OK/).waitFor();
+    assert.equal(await page.locator("#submitSetup").isEnabled(), true);
+
+    const third = page.locator('input[name="loadout-color"]:not(:checked)').first();
+    await third.focus();
+    await page.keyboard.press("Space");
+    await summary.getByText("色カードは2枚までです。入れ替えるカードを先に外してください。", { exact: true }).waitFor();
+    assert.equal(await third.isChecked(), false);
+    assert.equal(await third.evaluate((node) => node === document.activeElement), true);
+    const layout = await page.evaluate(() => ({ width: document.documentElement.clientWidth, scrollWidth: document.documentElement.scrollWidth }));
+    assert.ok(layout.scrollWidth <= layout.width + 1, JSON.stringify(layout));
+  }, { bodyTimeout: 50_000, viewport: { width: 390, height: 844 } });
 });
 
 test("actual Edge guides a player from board selection through one CREATE_REGION intent", { timeout: 130000 }, async () => {

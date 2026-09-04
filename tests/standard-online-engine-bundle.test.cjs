@@ -264,3 +264,24 @@ test("CPU settlement records only the human CPU history and never rewards the sy
   assert.equal(settled.profiles.A.gachaTickets["1"], 1);
   assert.deepEqual(settled.profiles.B, cpu.profile);
 });
+
+test("CPU settlement records a human win exactly once in aggregate and character stats", () => {
+  const api = loadApi();
+  const cpu = api.createCpuProfile("yuzu");
+  const human = profiles().A;
+  const created = api.create({ matchId: "cpu-human-win", loadouts: { A: loadouts.A, B: cpu.loadout }, profiles: { A: human, B: cpu.profile }, seed: 2027, firstSeat: "B" });
+  const applied = api.apply({ state: created.state, rngSnapshot: created.rngSnapshot, actor: "B", action: { id: "cpu-terminal", type: "SURRENDER", payload: {} }, expectedVersion: 0 });
+  const input = {
+    profiles: { A: human, B: cpu.profile }, beforeState: created.state, nextState: applied.state,
+    actor: "B", action: { type: "SURRENDER" }, finishedAt: "2026-09-05T00:00:00.000Z", characterId: "yuzu",
+  };
+  const settled = api.applyCpuProfiles(input);
+  assert.equal(applied.winnerSeat, "A");
+  assert.equal(settled.profiles.A.stats.wins, 0);
+  assert.equal(settled.profiles.A.cpuStats.wins, 1);
+  assert.equal(settled.profiles.A.cpuStats.losses, 0);
+  assert.equal(JSON.stringify(settled.profiles.A.cpuCharacterStats.yuzu), JSON.stringify({ matches: 1, wins: 1, losses: 0, firstWinAt: input.finishedAt }));
+  assert.equal(settled.profiles.A.matchHistory.filter((entry) => entry.matchId === "cpu-human-win").length, 1);
+  assert.equal(settled.profiles.A.gachaTickets["1"], 1);
+  assert.throws(() => api.applyCpuProfiles({ ...input, profiles: settled.profiles }), /MATCH_ALREADY_RECORDED/);
+});

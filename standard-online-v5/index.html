@@ -212,13 +212,14 @@
 
     <section id="setupCard" class="card hidden" data-app-tab-panel="battle">
       <h2>対戦で使う6枚</h2>
-      <p class="muted">色・エリア・妨害から2枚ずつ。選択済みの6枚でよければ、そのまま準備完了にできます。</p>
+      <p class="muted">色は塗り方、エリアは形や大きさ、妨害は相手への働きかけを担当します。3つの役割を使えるよう、各2枚・合計6枚を選びます。</p>
       <label class="debug-mode-option">
         <input id="debugUnlimitedMode" type="checkbox">
         <span><strong>デバッグ対戦：スキル使い放題</strong><small>合言葉対戦で2人ともONにすると、未所持カードも選択でき、何度使っても減りません（戦績・報酬なし）。</small></span>
       </label>
+      <div id="loadoutSummary" class="loadout-summary" role="status" aria-live="polite" aria-atomic="true">選択 0/6｜色 0/2｜エリア 0/2｜妨害 0/2</div>
       <div id="loadoutGrid" class="loadout-grid"></div>
-      <button id="submitSetup" class="primary">この6枚で準備完了</button>
+      <button id="submitSetup" class="primary" aria-describedby="loadoutSummary setupStatus" disabled>この6枚で準備完了</button>
       <p id="setupStatus" class="muted"></p>
     </section>
 
@@ -269,7 +270,7 @@
     </section>
   </main>
   <div id="terminalOverlay" class="terminal-overlay hidden" aria-live="assertive">
-    <section class="terminal-celebration" role="dialog" aria-modal="true" aria-labelledby="terminalTitle" aria-describedby="terminalMessage terminalReasonText">
+    <section class="terminal-celebration" role="dialog" aria-modal="true" aria-labelledby="terminalTitle" aria-describedby="terminalMessage terminalReasonText terminalProgressText">
       <div class="terminal-confetti" aria-hidden="true">
         <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
       </div>
@@ -278,6 +279,7 @@
       <h2 id="terminalTitle">勝利！</h2>
       <p id="terminalMessage" class="terminal-message"></p>
       <p id="terminalReasonText" class="terminal-reason"></p>
+      <p id="terminalProgressText" class="terminal-progress"></p>
       <button id="terminalClose" class="primary terminal-close">結果を確認して戻る</button>
     </section>
   </div>
