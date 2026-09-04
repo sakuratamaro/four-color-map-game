@@ -501,8 +501,8 @@ test("actual Edge hides onboarding after restoring a synced profile into the sav
 
 test("actual Edge quotes and commits one server-authoritative card sale", { timeout: 120000 }, async () => {
   await withPage("lobby", async (page) => {
-    await page.getByRole("button", { name: "マイページ" }).click();
-    await page.locator("#progressionPanel:not(.hidden)").waitFor();
+    await page.getByRole("button", { name: "カード" }).click();
+    await page.locator("#cardLibraryPanel:not(.hidden)").waitFor();
     await page.locator("#cardSaleSkill").selectOption("colorRandomBorrow");
     await page.locator("#cardSaleCount").fill("1");
     await page.getByRole("button", { name: "売却内容を確認" }).click();
