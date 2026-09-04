@@ -25,7 +25,7 @@
     <button type="button" data-app-tab="profile" aria-selected="false"><span aria-hidden="true">●</span><strong>マイページ</strong></button>
   </nav>
   <main>
-    <section class="card connection-card" data-app-tab-panel="home">
+    <section class="card connection-card" data-app-tab-panel="home battle quiz cards profile" role="status" aria-live="polite" aria-atomic="true">
       <div class="row between"><strong>接続状態</strong><span id="connectionBadge" class="badge warn">接続中</span></div>
       <p id="connectionMessage" class="muted">匿名セッションを準備しています。</p>
     </section>
@@ -52,10 +52,10 @@
       <p id="profileSummary" class="muted"></p>
       <div id="starterCreator" class="join-box hidden">
         <input id="starterName" maxlength="20" autocomplete="nickname" placeholder="あなたの名前（20文字まで）">
-        <button id="createStarterProfile">はじめて用プロフィールを作る</button>
+        <button id="createStarterProfile" class="primary">この名前で対戦準備へ</button>
       </div>
-      <button id="syncProfile" class="primary">このプロフィールをオンライン用に同期</button>
-      <p class="muted small">この端末のStandardセーブから選べます。初めての場合は、今夜の対戦用スターター6枚をこのオンライン画面だけに作成します。相手には名前と対戦中の公開情報だけが表示されます。</p>
+      <button id="syncProfile" class="primary">オンライン対戦の準備をする</button>
+      <p class="muted small">この端末のStandardセーブから選べます。初めての場合は、名前とスターター6枚をこのオンライン画面だけに保存して対戦準備まで進みます。相手には名前と対戦中の公開情報だけが表示されます。</p>
     </section>
 
     <section id="quizPanel" class="card quiz-panel hidden" data-app-tab-panel="quiz">

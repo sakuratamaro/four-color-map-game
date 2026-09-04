@@ -301,7 +301,7 @@ async function withPage(mode, run, { bodyTimeout = 35_000 } = {}) {
     await bounded("navigation-ready", page.goto(`${url}/standard-online-v5/index.html`, { timeout: 10_000 }), 10_000);
     browserStage("navigation-ready");
     browserStage("badge-start");
-    await bounded("badge-ready", page.locator("#connectionBadge.good").waitFor({ state: "attached", timeout: 10_000 }), 10_000);
+    await bounded("badge-ready", page.locator("#connectionBadge.good").waitFor({ state: "visible", timeout: 10_000 }), 10_000);
     browserStage("badge-ready");
     if (RESTORED_ROOM_MODES.has(mode)) {
       browserStage("room-ready-start");
@@ -343,7 +343,7 @@ test("actual Edge carries a fresh player from the home CTA through profile sync 
     assert.equal(await page.locator("#profileCard").isVisible(), true);
     assert.equal(await page.locator("#lobby").isVisible(), false);
     await page.locator("#starterName").fill("新規プレイヤー");
-    await page.getByRole("button", { name: "はじめて用プロフィールを作る" }).click();
+    await page.getByRole("button", { name: "この名前で対戦準備へ" }).click();
     assert.equal(await page.locator("#profileSelect option").count(), 1);
     assert.equal(await page.locator('#loadoutGrid input[type="checkbox"]:checked').count(), 6);
     const evidence = await page.evaluate(({ save, starter }) => {
@@ -353,10 +353,11 @@ test("actual Edge carries a fresh player from the home CTA through profile sync 
     assert.equal(evidence.localSave, null);
     assert.equal(evidence.name, "新規プレイヤー");
     assert.deepEqual(Object.values(evidence.inventory), [3, 3, 3, 3, 3, 3]);
-    await page.getByRole("button", { name: "このプロフィールをオンライン用に同期" }).click();
     await page.locator("#lobby").waitFor({ state: "visible" });
     assert.equal(await page.locator("#profileCard").isVisible(), false);
-    const profileCall = await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.find((entry) => entry.body?.operation === "profile")?.body);
+    const profileCalls = await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "profile").map((entry) => entry.body));
+    assert.equal(profileCalls.length, 1);
+    const profileCall = profileCalls[0];
     assert.equal(profileCall.expectedRevision, 0);
     assert.equal(profileCall.displayName, "新規プレイヤー");
     const automaticMatchCalls = await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => (
@@ -367,12 +368,63 @@ test("actual Edge carries a fresh player from the home CTA through profile sync 
   });
 });
 
+test("actual Edge keeps the first-time setup write-free when the name is empty", { timeout: 130000 }, async () => {
+  await withPage("empty", async (page) => {
+    await page.getByRole("button", { name: "対戦を始める" }).click();
+    await page.getByRole("button", { name: "この名前で対戦準備へ" }).click();
+    assert.equal(await page.evaluate(() => localStorage.getItem("fourColorMapGame.standard.online.v5.starter-profile")), null);
+    assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "profile").length), 0);
+    assert.equal(await page.locator("#lobby").isVisible(), false);
+    await page.getByText("名前を入力してください。").waitFor();
+  });
+});
+
+test("actual Edge keeps one connection status visible across tabs and reflects offline lobby state", { timeout: 130000 }, async () => {
+  await withPage("lobby", async (page) => {
+    const badgeNode = page.locator("#connectionBadge");
+    const messageNode = page.locator("#connectionMessage");
+    assert.equal(await badgeNode.count(), 1);
+    for (const [label, tab] of [["ホーム", "home"], ["対戦", "battle"], ["クイズ・ガチャ", "quiz"], ["カード", "cards"], ["マイページ", "profile"]]) {
+      await page.getByRole("button", { name: label, exact: true }).click();
+      await badgeNode.waitFor({ state: "visible" });
+      assert.equal(await page.locator("body").getAttribute("data-active-tab"), tab);
+      assert.equal(await badgeNode.count(), 1);
+      assert.equal(await messageNode.isVisible(), tab === "home");
+      assert.equal(await page.locator(".connection-card").evaluate((node) => getComputedStyle(node).position), tab === "home" ? "static" : "fixed");
+    }
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.getByRole("button", { name: "対戦", exact: true }).click();
+    const mobileLayout = await page.evaluate(() => {
+      const status = document.querySelector(".connection-card").getBoundingClientRect();
+      const navigation = document.querySelector(".app-tabs").getBoundingClientRect();
+      const hit = document.elementFromPoint(navigation.left + navigation.width / 2, navigation.top + navigation.height / 2);
+      return {
+        status: { top: status.top, right: status.right, bottom: status.bottom, left: status.left },
+        navigationTop: navigation.top,
+        hitInsideNavigation: Boolean(hit?.closest?.(".app-tabs")),
+      };
+    });
+    assert.ok(mobileLayout.status.top >= 0 && mobileLayout.status.left >= 0 && mobileLayout.status.right <= 390);
+    assert.ok(mobileLayout.status.bottom <= mobileLayout.navigationTop - 4);
+    assert.equal(mobileLayout.hitInsideNavigation, true);
+    const storedBefore = await page.evaluate(({ key }) => localStorage.getItem(key), { key: connectionKey });
+    await page.context().setOffline(true);
+    await page.evaluate(() => window.dispatchEvent(new Event("offline")));
+    await page.getByText("オフライン（復帰待ち）", { exact: true }).waitFor();
+    assert.equal(await badgeNode.isVisible(), true);
+    assert.equal(await page.evaluate(({ key }) => localStorage.getItem(key), { key: connectionKey }), storedBefore);
+    await page.context().setOffline(false);
+    await page.evaluate(() => window.dispatchEvent(new Event("online")));
+    await page.locator("#connectionBadge.good").waitFor({ state: "visible" });
+  });
+});
+
 test("actual Edge reuses a persisted rematch ID and returns to fresh setup", { timeout: 130000 }, async () => {
   await withPage("finished", async (page) => {
     const terminal = page.locator("#terminalOverlay");
     await terminal.waitFor();
     await page.reload();
-    await page.locator("#connectionBadge.good").waitFor({ state: "attached" });
+    await page.locator("#connectionBadge.good").waitFor({ state: "visible" });
     await page.locator("#room:not(.hidden)").waitFor();
     assert.equal(await terminal.isVisible(), false);
     await page.getByRole("button", { name: "同じ再戦申請を再送" }).click();

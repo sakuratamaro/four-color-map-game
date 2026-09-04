@@ -53,6 +53,32 @@ test("fresh players can finish profile setup inside the battle tab without autom
   assert.doesNotMatch(syncProfile, /(?:createRoom|joinRoom|recruitPublicOpponent|findPublicOpponent|acceptCpuCharacter)\s*\(/);
 });
 
+test("fresh players create their starter and prepare online play with one clear action", () => {
+  assert.match(html, /id="createStarterProfile"[^>]*>この名前で対戦準備へ<\/button>/);
+  assert.match(html, /id="syncProfile"[^>]*>オンライン対戦の準備をする<\/button>/);
+  const createStarter = app.slice(app.indexOf("async function createStarterProfile()"), app.indexOf("function renderLoadout()"));
+  assert.match(createStarter, /localStorage\.setItem\(STARTER_PROFILE_KEY/);
+  assert.match(createStarter, /if \(!connected\) return toast/);
+  assert.match(createStarter, /await syncSelectedProfile\(\)/);
+  assert.match(createStarter, /if \(synced\) toast\("対戦準備ができました。遊び方を選んでください。"\)/);
+  assert.doesNotMatch(createStarter, /(?:createRoom|joinRoom|recruitPublicOpponent|findPublicOpponent|acceptCpuCharacter)\s*\(/);
+  assert.match(app, /if \(!remoteProfile && starterProfile[^\n]+profiles\.push\(\[STARTER_PROFILE_ID, starterProfile\]\)/);
+  assert.match(app, /const value = profile\(\); if \(!value \|\| profileSyncBusy\) return;\s*profileSyncBusy = true;\s*renderProfile\(\);/);
+  assert.match(app, /finally \{ profileSyncBusy = false; renderProfile\(\); \}/);
+});
+
+test("connection status stays singular, live, and visible across every app tab", () => {
+  assert.match(html, /class="card connection-card"[^>]+data-app-tab-panel="home battle quiz cards profile"[^>]+role="status"[^>]+aria-live="polite"[^>]+aria-atomic="true"/);
+  assert.equal((html.match(/id="connectionBadge"/g) || []).length, 1);
+  assert.equal((html.match(/id="connectionMessage"/g) || []).length, 1);
+  assert.match(css, /body\[data-active-tab\]:not\(\[data-active-tab="home"\]\) \.connection-card\{position:fixed/);
+  assert.match(css, /pointer-events:none/);
+  assert.match(css, /bottom:calc\(88px \+ env\(safe-area-inset-bottom\)\)/);
+  assert.match(app, /function reflectBrowserConnectivity\(\) \{\s*if \(!navigator\.onLine\) badge\("オフライン（復帰待ち）", "warn"\);\s*else if \(!roomSync\.snapshot\(\)\.active && connected\) badge\("匿名ログイン済み", "good"\);\s*\}/);
+  assert.match(app, /addEventListener\("online", \(\) => \{ roomSync\.handleConnectivityChange\(\); reflectBrowserConnectivity\(\);/);
+  assert.match(app, /addEventListener\("offline", \(\) => \{ roomSync\.handleConnectivityChange\(\); reflectBrowserConnectivity\(\);/);
+});
+
 test("server-hydrated progression renders stats, three trophies, and recent history as text", () => {
   assert.match(app, /function renderProgression\(\)/);
   assert.match(app, /show\("progressionPanel", synced && Boolean\(profile\(\)\)\)/);

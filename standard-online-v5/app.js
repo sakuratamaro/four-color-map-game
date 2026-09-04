@@ -94,6 +94,7 @@ let availableProfiles = {};
 let selectedProfileId = null;
 let synced = false;
 let connected = false;
+let profileSyncBusy = false;
 let hydratedProfileRevision = -1;
 let roomModel = null;
 let initializeBusy = false;
@@ -316,7 +317,7 @@ function loadProfiles() {
   let remoteProfile = null;
   try { remoteProfile = JSON.parse(localStorage.getItem(REMOTE_PROFILE_KEY) || "null"); } catch { remoteProfile = null; }
   const profiles = Object.entries(localRoot?.profiles || {});
-  if (starterProfile && typeof starterProfile === "object" && !Array.isArray(starterProfile)) profiles.push([STARTER_PROFILE_ID, starterProfile]);
+  if (!remoteProfile && starterProfile && typeof starterProfile === "object" && !Array.isArray(starterProfile)) profiles.push([STARTER_PROFILE_ID, starterProfile]);
   if (remoteProfile && typeof remoteProfile === "object" && !Array.isArray(remoteProfile)) profiles.push([REMOTE_PROFILE_ID, remoteProfile]);
   availableProfiles = Object.fromEntries(profiles);
   $("profileSelect").replaceChildren();
@@ -348,7 +349,7 @@ function renderProfile() {
   const value = profile();
   renderProfileCardVisibility();
   show("starterCreator", !value);
-  $("syncProfile").disabled = !value || !connected;
+  $("syncProfile").disabled = !value || !connected || profileSyncBusy;
   $("profileSummary").textContent = value ? `${value.displayName} — 所持カード ${Object.values(value.inventory || {}).reduce((sum, count) => sum + count, 0)}枚` : "名前を入力して、はじめて用プロフィールを作成してください。";
   if (value) { renderLoadout(); renderGacha(); renderProgression(); renderCosmetics(); }
 }
@@ -1027,13 +1028,15 @@ async function runGacha(requestedCount = 1, retry = false) {
   } finally { gachaBusy = false; renderGacha(); render(); }
 }
 
-function createStarterProfile() {
+async function createStarterProfile() {
   const name = String($("starterName").value || "").trim().slice(0, 20);
   if (!name) return toast("名前を入力してください。");
   localStorage.setItem(STARTER_PROFILE_KEY, JSON.stringify(starterProfile(name)));
   localStorage.setItem(PROFILE_CHOICE_KEY, STARTER_PROFILE_ID);
   loadProfiles();
-  toast("はじめて用プロフィールを作成しました。続けてオンライン同期してください。");
+  if (!connected) return toast("名前とスターター6枚を保存しました。接続後にオンライン対戦の準備をしてください。");
+  await syncSelectedProfile();
+  if (synced) toast("対戦準備ができました。遊び方を選んでください。");
 }
 
 function renderLoadout() {
@@ -1114,6 +1117,11 @@ const roomSync = onlineSyncFactory.createStandardOnlineSync({
     else badge("再接続中（自動再試行）", "warn");
   },
 });
+
+function reflectBrowserConnectivity() {
+  if (!navigator.onLine) badge("オフライン（復帰待ち）", "warn");
+  else if (!roomSync.snapshot().active && connected) badge("匿名ログイン済み", "good");
+}
 
 function stopCpuTurnWatch() {
   clearTimeout(cpuActionTimer);
@@ -1417,8 +1425,9 @@ async function sendAction(type, payload = {}, retry = false) {
 }
 
 async function syncSelectedProfile() {
-  const value = profile(); if (!value) return;
-  $("syncProfile").disabled = true;
+  const value = profile(); if (!value || profileSyncBusy) return;
+  profileSyncBusy = true;
+  renderProfile();
   try {
     const remote = await client.readProfile();
     if (remote) hydrateProfileRow(remote);
@@ -1429,7 +1438,7 @@ async function syncSelectedProfile() {
     synced = true; badge("プロフィール同期済み", "good"); renderProfile(); render();
     await refreshOnlineCosmetics({ quiet: true });
   } catch (error) { toast(error.message || "同期に失敗しました。"); }
-  finally { $("syncProfile").disabled = false; }
+  finally { profileSyncBusy = false; renderProfile(); }
 }
 
 function matchmakingWaitSeconds() {
@@ -1691,8 +1700,8 @@ document.addEventListener("visibilitychange", () => {
   else { scheduleMatchmakingStatus(250); scheduleCpuTurn(250); }
 });
 window.addEventListener("focus", () => { roomSync.invalidate(); scheduleCpuTurn(250); });
-window.addEventListener("online", () => { roomSync.handleConnectivityChange(); scheduleMatchmakingStatus(250); scheduleCpuTurn(250); });
-window.addEventListener("offline", () => { roomSync.handleConnectivityChange(); stopMatchmakingWatch(); stopCpuTurnWatch(); });
+window.addEventListener("online", () => { roomSync.handleConnectivityChange(); reflectBrowserConnectivity(); scheduleMatchmakingStatus(250); scheduleCpuTurn(250); });
+window.addEventListener("offline", () => { roomSync.handleConnectivityChange(); reflectBrowserConnectivity(); stopMatchmakingWatch(); stopCpuTurnWatch(); });
 
 for (const button of document.querySelectorAll("[data-app-tab]")) button.onclick = () => activateAppTab(button.dataset.appTab);
 for (const button of document.querySelectorAll("[data-tab-jump]")) button.onclick = () => activateAppTab(button.dataset.tabJump);
@@ -1706,6 +1715,7 @@ try {
   connected = true;
   $("connectionMessage").textContent = `端末ユーザー ${session.user.id.slice(0, 8)}…`;
   badge("匿名ログイン済み", "good");
+  reflectBrowserConnectivity();
   const remote = await client.readProfile();
   if (remote) { hydrateProfileRow(remote); synced = true; }
   else loadProfiles();
@@ -1716,5 +1726,5 @@ try {
   if (synced && !cosmeticCatalogLoaded) await refreshOnlineCosmetics({ quiet: true });
   if (pendingQuiz?.answers?.length === 10) finishOnlineQuiz();
 } catch (error) {
-  badge("接続失敗", "bad"); $("connectionMessage").textContent = "Supabaseへ接続できません。匿名ログイン設定を確認してください。"; console.error(error);
+  badge("接続失敗", "bad"); reflectBrowserConnectivity(); $("connectionMessage").textContent = "Supabaseへ接続できません。匿名ログイン設定を確認してください。"; console.error(error);
 }
