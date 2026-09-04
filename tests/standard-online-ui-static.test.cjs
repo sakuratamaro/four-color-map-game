@@ -28,7 +28,7 @@ test("Standard online setup UI exposes the complete reconnect path", () => {
     "connectionBadge", "profileSelect", "starterCreator", "starterName", "createStarterProfile", "syncProfile", "createRoom", "roomCode", "joinRoom",
     "shownCode", "members", "loadoutGrid", "submitSetup", "setupStatus", "matchCard",
     "publicProjection", "privateProjection", "leaveRoom",
-    "board", "regionControls", "selectionCount", "submitRegion", "paletteControls", "skillControls", "skillTargetControls",
+    "turnGuide", "turnGuideStep", "turnGuideTitle", "turnGuideDetail", "board", "regionControls", "selectionCount", "submitRegion", "paletteControls", "skillControls", "skillTargetControls",
     "surrender", "retryAction", "actionStatus", "rematchControls", "rematchStatus", "requestRematch",
     "gachaPanel", "gachaTickets", "gachaLevel", "gachaDrawOne", "gachaDrawAll", "gachaRetry", "gachaStatus", "gachaResults",
     "progressionPanel", "profileCoins", "profileStats", "cpuProfileStats", "cpuCharacterRecords", "trophyList", "matchHistory",
@@ -227,6 +227,26 @@ test("setup enforces two cards per category and makes unowned cards debug-only",
   assert.match(app, /every\(\(category\) => loadout\[category\]\.length === 2\)/);
   assert.match(app, /client\.submitSetup\(\{ loadout, debugMode \}\)/);
   assert.match(html, /id="debugUnlimitedMode"/);
+  assert.match(html, /id="submitSetup"[^>]*>この6枚で準備完了<\/button>/);
+});
+
+test("turn guide moves from selection to handoff without exposing a legality oracle", () => {
+  assert.match(html, /id="turnGuide"[^>]+role="status"[^>]+aria-live="polite"[^>]+aria-atomic="true"/);
+  assert.match(app, /function renderTurnGuide\(state\)/);
+  assert.match(app, /if \(state\.status !== "ACTIVE" \|\| targetDraft\) return show\("turnGuide", false\)/);
+  assert.match(app, /盤面をタップ／クリックして、あと\$\{remaining\}マス選ぶ/);
+  assert.match(app, /選んだエリアは相手が塗ります。相手が困る形や接し方を考えてみましょう。/);
+  assert.match(app, /選べました。「このエリアを渡す」へ/);
+  assert.match(app, /受け取った灰色エリアを塗る/);
+  assert.match(app, /if \(actionBusy\) return present\("wait", "送信中"/);
+  assert.match(app, /if \(pendingAction\) return present\("ready", "再送"/);
+  assert.match(app, /function phaseLabelFor\(state, seat, cpuRoom\)/);
+  assert.match(app, /WORK: `\$\{actor\}が渡すエリアを選んでいます`/);
+  assert.match(app, /submitRegion"\)\.disabled = !canCreate \|\| actionBusy/);
+  assert.match(app, /roomModel\?\.room\?\.status !== "playing" \|\| state\.status !== "ACTIVE"/);
+  assert.match(app, /if \(\$\(id\)\.textContent !== value\) \$\(id\)\.textContent = value/);
+  assert.doesNotMatch(app, /turnGuide[^\n]+(?:legalColors|adjacentColors|使用可能な色)/);
+  assert.match(css, /\.turn-guide\{display:grid/);
 });
 
 test("a fresh device can create a six-card online-only starter without overwriting the Standard save", () => {

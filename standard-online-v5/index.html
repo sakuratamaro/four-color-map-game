@@ -211,14 +211,14 @@
     </section>
 
     <section id="setupCard" class="card hidden" data-app-tab-panel="battle">
-      <h2>対戦用6枚を確認</h2>
-      <p class="muted">色・エリア・妨害から、所持カードを2枚ずつ選びます。</p>
+      <h2>対戦で使う6枚</h2>
+      <p class="muted">色・エリア・妨害から2枚ずつ。選択済みの6枚でよければ、そのまま準備完了にできます。</p>
       <label class="debug-mode-option">
         <input id="debugUnlimitedMode" type="checkbox">
         <span><strong>デバッグ対戦：スキル使い放題</strong><small>合言葉対戦で2人ともONにすると、未所持カードも選択でき、何度使っても減りません（戦績・報酬なし）。</small></span>
       </label>
       <div id="loadoutGrid" class="loadout-grid"></div>
-      <button id="submitSetup" class="primary">この6枚をサーバーで確認</button>
+      <button id="submitSetup" class="primary">この6枚で準備完了</button>
       <p id="setupStatus" class="muted"></p>
     </section>
 
@@ -233,6 +233,10 @@
           <div><dt>自分の基本の持ち色（全4色から抽選）</dt><dd id="basicPaletteValue">確認中</dd></div>
           <div><dt>自分のおまけ色</dt><dd id="bonusColorValue">確認中</dd></div>
         </dl>
+      </section>
+      <section id="turnGuide" class="turn-guide hidden" role="status" aria-live="polite" aria-atomic="true">
+        <span id="turnGuideStep" class="turn-guide-step">NEXT</span>
+        <div><strong id="turnGuideTitle"></strong><p id="turnGuideDetail"></p></div>
       </section>
       <canvas id="board" width="720" height="720" aria-label="Standardオンライン盤面"></canvas>
       <div id="regionControls" class="controls hidden">

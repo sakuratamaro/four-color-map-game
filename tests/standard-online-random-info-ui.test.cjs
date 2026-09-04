@@ -16,7 +16,7 @@ test("game-facing labels replace internal version, phase, room, and setup revisi
   assert.match(app, /const PHASE_LABEL = \{/);
   assert.match(app, /const ROOM_STATUS_LABEL = \{/);
   assert.match(app, /publicState\.turn/);
-  assert.match(app, /あなたの6枚セットは確認済みです/);
+  assert.match(app, /あなたは準備完了です。相手の準備を待っています。/);
   assert.doesNotMatch(app, /setup revision/);
 });
 
@@ -47,4 +47,3 @@ test("skill information buttons are separate, readable, and cover all 19 Standar
   assert.match(app, /RANDOM_SKILLS\.has\(skill\)/);
   assert.doesNotMatch(app, /innerHTML/);
 });
-

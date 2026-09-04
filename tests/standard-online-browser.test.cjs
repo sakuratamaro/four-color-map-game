@@ -673,6 +673,25 @@ test("actual Edge finds a public opponent and enters setup without exposing a co
   });
 });
 
+test("actual Edge guides a player from board selection through one CREATE_REGION intent", { timeout: 130000 }, async () => {
+  await withPage("playing", async (page) => {
+    await page.locator("#turnGuide:not(.hidden)").waitFor();
+    assert.equal(await page.locator("#turnGuideStep").textContent(), "STEP 1");
+    assert.match(await page.locator("#turnGuideTitle").textContent(), /あと1マス選ぶ/);
+    assert.match(await page.locator("#turnGuideDetail").textContent(), /選んだエリアは相手が塗ります/);
+    await page.locator("#board").click({ position: { x: 50, y: 50 } });
+    assert.equal(await page.locator("#selectionCount").textContent(), "1 / 1マス");
+    assert.equal(await page.locator("#turnGuideStep").textContent(), "STEP 2");
+    assert.equal(await page.locator("#turnGuideTitle").textContent(), "選べました。「このエリアを渡す」へ");
+    await page.getByRole("button", { name: "このエリアを渡す" }).click();
+    await page.getByText("操作を保存しました。").waitFor();
+    const calls = await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "action").map((entry) => entry.body));
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0].action.type, "CREATE_REGION");
+    assert.equal(calls[0].action.payload.sourceMacros.length, 1);
+  });
+});
+
 test("actual Edge explains private random setup and every visible skill without exposing an oracle", { timeout: 130000 }, async () => {
   await withPage("playing", async (page) => {
     assert.match(await page.locator("#members").textContent(), /B｜四色の匠/);

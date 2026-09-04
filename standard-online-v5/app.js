@@ -1203,8 +1203,12 @@ function render() {
     if (member.is_cpu) node.append("（CPU）");
     return node;
   }));
-  $("waitingMessage").textContent = client.snapshot().setupRevision > 0 ? "あなたの6枚は確認済みです。相手の6枚を待っています。" : "6枚セットを確認してください。";
-  $("setupStatus").textContent = client.snapshot().setupRevision > 0 ? "あなたの6枚セットは確認済みです" : "まだ確認していません";
+  const setupReady = client.snapshot().setupRevision > 0;
+  $("waitingMessage").textContent = setupReady ? "あなたは準備完了です。相手の準備を待っています。" : "対戦で使う6枚を決めて、準備完了にしてください。";
+  $("setupStatus").textContent = setupReady
+    ? "準備完了。相手を待っています。開始前なら6枚を変更できます。"
+    : "選択済みの6枚でよければ、準備完了にしてください。";
+  $("submitSetup").textContent = setupReady ? "変更した6枚で準備し直す" : "この6枚で準備完了";
   if (hasStandardPublicState(roomModel?.room?.public_state)) {
     const publicState = roomModel.room.public_state;
     const privateState = roomModel.view?.private_state || {};
@@ -1212,7 +1216,7 @@ function render() {
     $("turnBadge").textContent = publicState.status === "FINISHED"
       ? `勝者 Player ${publicState.winner}`
       : publicState.active === roomModel?.view?.seat ? "あなたの手番" : cpuRoom && publicState.active === "B" ? "CPUの手番" : `Player ${publicState.active} の手番`;
-    $("phaseText").textContent = PHASE_LABEL[publicState.phase] || "対戦進行中";
+    $("phaseText").textContent = phaseLabelFor(publicState, roomModel?.view?.seat, cpuRoom);
     $("publicProjection").textContent = safeJson(publicState);
     $("privateProjection").textContent = safeJson(privateState);
     renderRandomSummary(publicState, privateState);
@@ -1370,13 +1374,50 @@ function selectedContactColorCount(state, macros = selectedMacros) {
   return colors.size;
 }
 
+function phaseLabelFor(state, seat, cpuRoom) {
+  if (state.status === "FINISHED" || state.phase === "GAME_OVER") return "対戦終了";
+  if (state.active === seat) return PHASE_LABEL[state.phase] || "あなたの手番です";
+  const actor = cpuRoom && state.active === "B" ? "CPU" : "相手";
+  return {
+    CREATE_FIRST: `${actor}が最初のエリアを選んでいます`,
+    WORK: `${actor}が渡すエリアを選んでいます`,
+    COLOR: `${actor}が受け取ったエリアを塗っています`,
+  }[state.phase] || `${actor}の手番です`;
+}
+
+function renderTurnGuide(state) {
+  const guide = $("turnGuide");
+  const seat = roomModel?.view?.seat;
+  const myTurn = state.status === "ACTIVE" && state.active === seat;
+  const setText = (id, value) => { if ($(id).textContent !== value) $(id).textContent = value; };
+  const present = (kind, step, title, detail) => {
+    guide.dataset.state = kind;
+    setText("turnGuideStep", step);
+    setText("turnGuideTitle", title);
+    setText("turnGuideDetail", detail);
+    show("turnGuide", true);
+  };
+  if (state.status !== "ACTIVE" || targetDraft) return show("turnGuide", false);
+  if (actionBusy) return present("wait", "送信中", "サーバーで操作を確認しています", "結果が返るまで、そのままお待ちください。");
+  if (pendingAction) return present("ready", "再送", "前の操作の結果を確認します", "下の「同じ操作を再送」で、同じ操作IDのまま安全に確認できます。");
+  if (!myTurn) return present("wait", "WAIT", "相手の手番です", "次に受け取るエリアを、どの色で塗るか考えながら待ちましょう。");
+  if (["CREATE_FIRST", "WORK"].includes(state.phase)) {
+    const remaining = Math.max(0, state.requiredSize - selectedMacros.size);
+    if (remaining > 0) return present("select", "STEP 1", `盤面をタップ／クリックして、あと${remaining}マス選ぶ`, "選んだエリアは相手が塗ります。相手が困る形や接し方を考えてみましょう。");
+    return present("ready", "STEP 2", "選べました。「このエリアを渡す」へ", "選んだマスは白い枠で表示されています。下のボタンで相手へ渡します。");
+  }
+  if (state.phase === "COLOR") return present("color", "STEP 2", "受け取った灰色エリアを塗る", "盤面の下にある持ち色から選びます。同じ色が辺で接しないように塗りましょう。");
+  show("turnGuide", false);
+}
+
 function renderBasicActions(state, privateState) {
   const seat = roomModel?.view?.seat;
   const myTurn = state.status === "ACTIVE" && state.active === seat;
   const canCreate = myTurn && !targetDraft && ["CREATE_FIRST", "WORK"].includes(state.phase);
+  renderTurnGuide(state);
   show("regionControls", canCreate);
   $("selectionCount").textContent = `${selectedMacros.size} / ${state.requiredSize}マス`;
-  $("submitRegion").disabled = actionBusy || selectedMacros.size !== state.requiredSize;
+  $("submitRegion").disabled = !canCreate || actionBusy || selectedMacros.size !== state.requiredSize;
   const palette = $("paletteControls"); palette.replaceChildren();
   if (myTurn && state.phase === "COLOR") {
     const colors = skillIntents.availableColorChoices(privateState);
@@ -1392,7 +1433,7 @@ function renderBasicActions(state, privateState) {
 function boardPointer(event) {
   const state = roomModel?.room?.public_state; const seat = roomModel?.view?.seat;
   const skillGeometry = targetDraft && ["source-macros", "region-split", "corner-bloom"].includes(targetDraft.kind);
-  if (!state || actionBusy || state.active !== seat || (!skillGeometry && !["CREATE_FIRST", "WORK"].includes(state.phase))) return;
+  if (!state || roomModel?.room?.status !== "playing" || state.status !== "ACTIVE" || actionBusy || state.active !== seat || (!skillGeometry && !["CREATE_FIRST", "WORK"].includes(state.phase))) return;
   const rect = event.currentTarget.getBoundingClientRect(); const width = state.playableBounds.macroWidth;
   const col = Math.max(0, Math.min(width - 1, Math.floor((event.clientX - rect.left) / rect.width * width)));
   const row = Math.max(0, Math.min(width - 1, Math.floor((event.clientY - rect.top) / rect.height * width)));
@@ -1632,8 +1673,8 @@ async function submitSetup() {
   const loadout = selectedLoadout(); if (!validLoadout(loadout)) return toast("各カテゴリから2枚ずつ選んでください。");
   $("submitSetup").disabled = true;
   const debugMode = $("debugUnlimitedMode")?.checked === true;
-  try { await client.submitSetup({ loadout, debugMode }); await roomSync.refreshNow(); toast(debugMode ? "デバッグ用6枚セットを確認しました。相手もデバッグをONにしてください。" : "6枚セットを確認しました。"); }
-  catch (error) { toast(error.message || "6枚セットを確認できませんでした。"); }
+  try { await client.submitSetup({ loadout, debugMode }); await roomSync.refreshNow(); toast(debugMode ? "デバッグ用6枚で準備完了しました。相手もデバッグをONにしてください。" : "この6枚で準備完了しました。"); }
+  catch (error) { toast(error.message || "対戦準備を完了できませんでした。"); }
   finally { $("submitSetup").disabled = false; }
 }
 async function requestRematch() {
