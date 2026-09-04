@@ -39,7 +39,9 @@ test("profile sync ignores caller progression and preserves the server-authorita
   assert.match(source, /p_user_id: actorId/);
   assert.match(source, /p_expected_revision: 0/);
   assert.match(source, /p_profile_state: committedState/);
-  assert.match(source, /profileState: current\?\.profile_state \|\| committedState/);
+  const profileBranch = source.slice(source.indexOf('if (operation === "profile")'), source.indexOf('if (operation === "gacha")'));
+  assert.match(profileBranch, /return json\(200, \{ revision: firstRow\(data\) \?\? data, profileState: committedState, displayName \}\)/);
+  assert.equal((profileBranch.match(/fcg_standard_server_load_profile/g) || []).length, 1);
 });
 
 test("gacha uses a server seed and commits through an idempotent receipt boundary", () => {
@@ -202,7 +204,7 @@ test("handler keeps credentials in managed environment and diagnostics finite", 
   assert.match(source, /requiredEnvironment\("SUPABASE_URL"\)/);
   assert.match(source, /requiredEnvironment\("SUPABASE_SERVICE_ROLE_KEY"\)/);
   assert.doesNotMatch(source, /sb_secret_[A-Za-z0-9._-]+/);
-  assert.match(source, /console\.error\("standard-game-action failed", safe\.code, "stage", stage\)/);
+  assert.match(source, /console\.error\("standard-game-action failed", safe\.code, "stage", stage, "upstream", safeUpstreamCode\(error\) \|\| "NONE"\)/);
   assert.doesNotMatch(source, /console\.(?:error|log)\([^\n]*(?:authorization|serviceRoleKey|request\.json|candidate\.message|error\.stack)/i);
 });
 
@@ -221,7 +223,11 @@ test("database conflicts map to finite public errors", () => {
   assert.match(source, /candidate\?\.code === "PT409"/);
   assert.match(source, /candidate\?\.code === "23505"/);
   assert.match(source, /candidate\?\.code === "42501"/);
-  assert.match(source, /candidate\?\.code === "PGRST003"/);
+  assert.match(source, /\^PGRST00\[0-3\]\$/);
+  assert.match(source, /\^08\[A-Z0-9\]\{3\}\$/);
+  for (const code of ["53100", "53200", "53300", "55P03", "57014", "57P03"]) assert.match(source, new RegExp(`"${code}"`));
+  assert.match(source, /function safeUpstreamCode/);
+  assert.match(source, /\^\(\?:PGRST\\d\{3\}\|\[A-Z0-9\]\{5\}\)\$/);
   assert.match(source, /code: "IDEMPOTENCY_KEY_REUSE"/);
   assert.match(source, /code: "SERVER_BUSY"/);
 });

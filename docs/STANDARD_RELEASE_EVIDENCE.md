@@ -13,7 +13,7 @@
 | 採否棚卸し | VERIFIED | `ONLINE_COMPLETION_INVENTORY.md`。旧Expo試作と現行Web Standardを分離済み | 公開後に状態列だけ更新 |
 | 製品コード・生成元 | VERIFIED | `standard/`、build scripts、生成済みEdge bundleが統合ブランチに存在 | 最終公開commitを記録 |
 | ローカル製品試験 | VERIFIED | 2026-09-04、専用runnerで665件合格、失敗0、769.2秒 | 公開後のcandidate preflightと実端末canary |
-| 次期UX候補のローカル検査 | VERIFIED | `codex/standard-release-command@e0c1f15`。非browser全84ファイル487/487、重点125/125、Runbook B〜D静的13/13、browser harness静的2/2合格 | 共有browser環境復旧後に実browser gateを再実行 |
+| 次期UX候補のローカル検査 | VERIFIED | `codex/standard-release-command`。profile安定化を含む非browser製品試験500/500、重点125/125、Runbook A〜D静的16/16、browser harness静的2/2合格 | 共有browser環境復旧後に実browser gateを再実行 |
 | 公開Pages候補 | VERIFIED | 2026-09-04 22:46 JST、HTTP 200、Standard Online title、野良、CPU、見た目をcandidate preflightで確認 | A〜Dの公開UI canary |
 | 公開前DB境界 | VERIFIED | 旧snapshotは匿名権限拒否。snapshot v2と野良募集は`PGRST202`で未存在 | migration後のdb-ready preflight |
 | migration 006–013静的検査 | VERIFIED | migration別security/transaction testsと読み取り専用44項目SQL | 実DBで全行`ok=true` |
@@ -52,6 +52,7 @@
 - 非browser製品テスト84ファイル487/487、重点テスト125/125、構文検査、生成bundle整合、`git diff --check`が合格した。
 - 共有環境では親commitと候補の双方でPlaywright起動が停止した。`8b595c9`で起動を15秒に制限し、部分起動でもcontext/browser/HTTP接続/serverを解放する検査基盤へ修正した。製品browser gate自体は環境復旧後に再実行する。
 - `e0c1f15`でRunbook B〜Dの有限なlive canaryを追加した。C初回は16件の同時profile準備でHTTP 500、準備を逐次化した再実行は匿名認証のHTTP 429で停止したため、野良対戦本体の判定には未到達である。追加再試行は行っていない。
+- HTTP 500の静的診断では、異なるuser行のDB競合より、新規profileの`load → commit → 再load`によりcommit成功後の再load失敗まで500にしていた経路が最有力だった。再loadを削除して2 RPCへ減らし、接続・資源・timeout系の有限なupstream codeを503 `SERVER_BUSY`へ変換した。ログはstageと英数字codeだけを残し、message、ID、tokenを記録しない。独立レビューでP0/P1指摘なし、非browser製品試験500/500合格。live Edgeには未反映である。
 
 ## 公開前後メトリクス
 

@@ -329,8 +329,17 @@ function publicError(error: unknown): { status: number; code: string; message: s
   if (candidate?.code === "23505") return { status: 409, code: "IDEMPOTENCY_KEY_REUSE", message: "Action ID was reused with different input." };
   if (candidate?.code === "42501") return { status: 403, code: "NOT_A_MEMBER", message: "You are not in this room." };
   if (candidate?.code === "P0002") return { status: 404, code: "ROOM_NOT_FOUND", message: "Room was not found." };
-  if (candidate?.code === "PGRST003") return { status: 503, code: "SERVER_BUSY", message: "The game server is busy; wait briefly and retry." };
+  const upstreamCode = safeUpstreamCode(error);
+  if (upstreamCode && (/^PGRST00[0-3]$/.test(upstreamCode) || /^08[A-Z0-9]{3}$/.test(upstreamCode)
+      || ["53100", "53200", "53300", "55P03", "57014", "57P03"].includes(upstreamCode))) {
+    return { status: 503, code: "SERVER_BUSY", message: "The game server is busy; wait briefly and retry." };
+  }
   return { status: 500, code: "SERVER_ERROR", message: "The game server could not complete the request." };
+}
+
+function safeUpstreamCode(error: unknown): string | null {
+  const code = String((error as { code?: string })?.code || "").toUpperCase();
+  return /^(?:PGRST\d{3}|[A-Z0-9]{5})$/.test(code) ? code : null;
 }
 
 Deno.serve(async (request: Request) => {
@@ -419,10 +428,7 @@ Deno.serve(async (request: Request) => {
         p_profile_state: committedState,
       });
       if (error) throw error;
-      const { data: currentData, error: currentError } = await service.rpc("fcg_standard_server_load_profile", { p_user_id: actorId });
-      if (currentError) throw currentError;
-      const current = firstRow(currentData);
-      return json(200, { revision: firstRow(data) ?? data, profileState: current?.profile_state || committedState, displayName });
+      return json(200, { revision: firstRow(data) ?? data, profileState: committedState, displayName });
     }
 
     if (operation === "gacha") {
@@ -1003,7 +1009,7 @@ Deno.serve(async (request: Request) => {
     return json(200, { duplicate: Boolean(receipt.duplicate), result: receipt.action_result || safeResult, room: roomProjection(room) });
   } catch (error) {
     const safe = publicError(error);
-    console.error("standard-game-action failed", safe.code, "stage", stage);
+    console.error("standard-game-action failed", safe.code, "stage", stage, "upstream", safeUpstreamCode(error) || "NONE");
     return json(safe.status, { error: { code: safe.code, message: safe.message } });
   }
 });
