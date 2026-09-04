@@ -26,7 +26,7 @@ test("missing room snapshots return to the lobby without discarding rooms on net
 test("Standard online setup UI exposes the complete reconnect path", () => {
   for (const id of [
     "connectionBadge", "profileSelect", "starterCreator", "starterName", "createStarterProfile", "syncProfile", "createRoom", "roomCode", "joinRoom",
-    "shownCode", "members", "loadoutGrid", "submitSetup", "setupStatus", "matchCard",
+    "shownCode", "members", "loadoutSummary", "loadoutGrid", "submitSetup", "setupStatus", "matchCard",
     "publicProjection", "privateProjection", "leaveRoom",
     "turnGuide", "turnGuideStep", "turnGuideTitle", "turnGuideDetail", "board", "regionControls", "selectionCount", "submitRegion", "paletteControls", "skillControls", "skillTargetControls",
     "surrender", "retryAction", "actionStatus", "rematchControls", "rematchStatus", "requestRematch",
@@ -36,11 +36,11 @@ test("Standard online setup UI exposes the complete reconnect path", () => {
     "cosmeticPanel", "cosmeticCoins", "collectionIdentity", "refreshCosmetics", "cosmeticCatalog", "cosmeticConfirmation", "cosmeticConfirmationText", "cosmeticCommit", "cosmeticCancel", "cosmeticRetry", "cosmeticStatus",
     "matchmakingPanel", "recruitOpponent", "findOpponent", "cancelMatchmaking", "matchmakingWait", "matchmakingElapsed", "matchmakingStatus", "roomIdentityLabel",
     "cpuOpponentOffer", "cpuOfferMessage", "chooseCpuOpponent", "keepWaitingForHuman", "cpuRosterDialog", "cpuRosterGrid", "cpuRosterStatus", "closeCpuRoster",
-    "terminalOverlay", "terminalIcon", "terminalEyebrow", "terminalTitle", "terminalMessage", "terminalReasonText", "terminalClose",
+    "terminalOverlay", "terminalIcon", "terminalEyebrow", "terminalTitle", "terminalMessage", "terminalReasonText", "terminalProgressText", "terminalClose",
   ]) assert.match(html, new RegExp(`id=["']${id}["']`));
   assert.match(html, /standard-online-client\.js/);
   assert.match(html, /standard-online-skill-intents\.js/);
-  assert.match(html, /type="module" src="app\.js"/);
+  assert.match(html, /type="module" src="app\.js(?:\?v=[0-9-]+)?"/);
 });
 
 test("fresh players can finish profile setup inside the battle tab without automatic matchmaking", () => {
