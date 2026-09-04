@@ -24,8 +24,10 @@ let selectedMacros = new Set();
 let targetMode = null;
 let channel = null;
 let pollTimer = null;
+let pollIntervalMs = null;
 let initializing = false;
 let actionBusy = false;
+let expiringRoom = false;
 
 function show(id, visible) { $(id).classList.toggle("hidden", !visible); }
 function badge(text, tone = "warn") { $("connectionBadge").textContent = text; $("connectionBadge").className = `badge ${tone}`; }
@@ -116,11 +118,15 @@ async function actionErrorMessage(error) {
 async function fetchRoom() {
   if (!roomId) return;
   const [roomResult, memberResult, viewResult] = await Promise.all([
-    supabase.from("fcg_rooms").select("id,status,version,public_state,winner_seat,expires_at").eq("id", roomId).single(),
+    supabase.from("fcg_rooms").select("id,status,version,public_state,winner_seat,expires_at").eq("id", roomId).maybeSingle(),
     supabase.from("fcg_room_members").select("user_id,seat,display_name,last_seen_at").eq("room_id", roomId).order("seat"),
     supabase.from("fcg_player_views").select("seat,version,private_state").eq("room_id", roomId).maybeSingle(),
   ]);
   if (roomResult.error) throw roomResult.error;
+  if (!roomResult.data) {
+    await handleExpiredRoom();
+    return;
+  }
   if (memberResult.error) throw memberResult.error;
   if (viewResult.error) throw viewResult.error;
   roomRow = roomResult.data;
@@ -129,6 +135,7 @@ async function fetchRoom() {
   publicState = roomRow.public_state && Object.keys(roomRow.public_state).length ? roomRow.public_state : null;
   privateState = viewResult.data?.private_state || null;
   render();
+  startPolling();
   if (roomRow.status === "ready" && !publicState) await initializeMatch();
 }
 
@@ -171,12 +178,24 @@ async function openRoom() {
 async function subscribe() {
   if (channel) await supabase.removeChannel(channel);
   channel = supabase.channel(`fcg-room-${roomId}`)
-    .on("postgres_changes", { event: "*", schema: "public", table: "fcg_rooms", filter: `id=eq.${roomId}` }, () => fetchRoom().catch(fail))
-    .on("postgres_changes", { event: "*", schema: "public", table: "fcg_room_members", filter: `room_id=eq.${roomId}` }, () => fetchRoom().catch(fail))
-    .on("postgres_changes", { event: "*", schema: "public", table: "fcg_player_views", filter: `room_id=eq.${roomId}` }, () => fetchRoom().catch(fail))
+    .on("postgres_changes", { event: "UPDATE", schema: "public", table: "fcg_rooms", filter: `id=eq.${roomId}` }, () => fetchRoom().catch(fail))
     .subscribe((status) => badge(status === "SUBSCRIBED" ? "リアルタイム" : "再接続中", status === "SUBSCRIBED" ? "good" : "warn"));
+  startPolling();
+}
+
+function stopPolling() {
   clearInterval(pollTimer);
-  pollTimer = setInterval(() => fetchRoom().catch(() => badge("再接続中", "warn")), 2500);
+  pollTimer = null;
+  pollIntervalMs = null;
+}
+
+function startPolling() {
+  if (!roomId || document.hidden) return;
+  const nextIntervalMs = roomRow?.status === "playing" ? 5000 : 10000;
+  if (pollTimer && pollIntervalMs === nextIntervalMs) return;
+  stopPolling();
+  pollIntervalMs = nextIntervalMs;
+  pollTimer = setInterval(() => fetchRoom().catch(() => badge("再接続中", "warn")), pollIntervalMs);
 }
 
 function render() {
@@ -299,7 +318,20 @@ function escapeHtml(value) { return String(value).replace(/[&<>"']/g, (char) => 
 
 async function leaveLocal() {
   roomId = roomCode = seat = null; roomRow = publicState = privateState = null; members = []; selectedMacros.clear(); targetMode = null;
-  clearSavedRoom(); clearInterval(pollTimer); if (channel) await supabase.removeChannel(channel); channel = null; render();
+  clearSavedRoom(); stopPolling(); if (channel) await supabase.removeChannel(channel); channel = null; render();
+}
+
+async function handleExpiredRoom() {
+  if (expiringRoom || !roomId) return;
+  expiringRoom = true;
+  try {
+    await leaveLocal();
+    badge("対戦終了", "warn");
+    $("connectionMessage").textContent = "対戦は終了または失効しました。ロビーから新しい対戦を始められます。";
+    toast("対戦は終了または失効しました。ロビーへ戻ります。");
+  } finally {
+    expiringRoom = false;
+  }
 }
 
 $("createRoom").onclick = createRoom;
@@ -310,6 +342,13 @@ $("clearSelection").onclick = () => { selectedMacros.clear(); render(); };
 $("submitRegion").onclick = () => sendAction("CREATE_REGION", { macros: [...selectedMacros].sort((a, b) => a - b) });
 $("surrender").onclick = () => sendAction("SURRENDER");
 $("board").addEventListener("pointerdown", boardClick);
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) return stopPolling();
+  if (!roomId) return;
+  fetchRoom().catch(() => badge("再接続中", "warn"));
+  startPolling();
+});
+window.addEventListener("pagehide", stopPolling);
 
 try {
   session = await ensureAnonymousSession();

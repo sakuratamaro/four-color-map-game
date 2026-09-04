@@ -345,9 +345,7 @@ test("room subscription is scoped to the room row and can be removed idempotentl
   let invalidations = 0;
   const stop = await client.subscribeToRoom({ roomId: ROOM_ID, onInvalidate: () => { invalidations += 1; } });
   assert.deepEqual(supabase.subscriptions[0].configs, [
-    { event: "*", schema: "public", table: "fcg_rooms", filter: `id=eq.${ROOM_ID}` },
-    { event: "*", schema: "public", table: "fcg_room_members", filter: `room_id=eq.${ROOM_ID}` },
-    { event: "*", schema: "public", table: "fcg_player_views", filter: `room_id=eq.${ROOM_ID}` },
+    { event: "UPDATE", schema: "public", table: "fcg_rooms", filter: `id=eq.${ROOM_ID}` },
   ]);
   supabase.subscriptions[0].invalidations[0]();
   assert.equal(invalidations, 1);

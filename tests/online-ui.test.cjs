@@ -22,9 +22,19 @@ test("online UI sends intended actions, not final state", () => {
 
 test("online UI supports realtime plus persisted reconnect polling", () => {
   assert.match(source, /postgres_changes/);
+  const subscribe = source.slice(source.indexOf("async function subscribe"), source.indexOf("function render"));
+  assert.match(subscribe, /table: "fcg_rooms"/);
+  assert.match(subscribe, /event: "UPDATE"/);
+  assert.doesNotMatch(subscribe, /fcg_room_members|fcg_player_views/);
   assert.match(source, /setInterval\(\(\) => fetchRoom/);
+  assert.match(source, /document\.addEventListener\("visibilitychange"/);
+  assert.match(source, /if \(!roomId \|\| document\.hidden\) return/);
+  assert.match(source, /window\.addEventListener\("pagehide", stopPolling\)/);
   assert.match(source, /localStorage\.setItem\(STORAGE_KEY/);
   assert.match(source, /localStorage\.getItem\(STORAGE_KEY/);
+  assert.match(source, /fcg_rooms"\)\.select\([^\n]+\)\.eq\("id", roomId\)\.maybeSingle\(\)/);
+  assert.match(source, /対戦は終了または失効しました/);
+  assert.match(source, /handleExpiredRoom\(\)/);
 });
 
 test("all quick-mode actions are wired", () => {

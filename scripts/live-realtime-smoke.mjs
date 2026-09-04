@@ -14,6 +14,28 @@ const hardTimeout = setTimeout(() => {
   console.error("Live Realtime smoke test exceeded its 35-second safety timeout.");
   process.exit(1);
 }, 35_000);
+hardTimeout.unref();
+const liveSockets = new Set();
+
+function trackSocket(socket) {
+  liveSockets.add(socket);
+  socket.addEventListener("close", () => liveSockets.delete(socket), { once: true });
+  return socket;
+}
+
+function closeLiveSockets() {
+  for (const socket of liveSockets) {
+    try { socket.close(); } catch { /* best-effort cleanup */ }
+  }
+  liveSockets.clear();
+}
+
+process.once("uncaughtException", (error) => {
+  closeLiveSockets();
+  clearTimeout(hardTimeout);
+  console.error(error);
+  process.exit(1);
+});
 
 async function request(path, { token, method = "GET", body, headers = {} } = {}) {
   const response = await fetch(`${url}${path}`, {
@@ -65,7 +87,7 @@ function waitFor(predicate, timeoutMs, message) {
 
 async function subscribe(session, roomId) {
   const socketUrl = `${url.replace(/^http/, "ws")}/realtime/v1/websocket?apikey=${encodeURIComponent(publishableKey)}&vsn=1.0.0`;
-  const socket = new WebSocket(socketUrl);
+  const socket = trackSocket(new WebSocket(socketUrl));
   const messages = [];
   socket.addEventListener("message", (event) => {
     try { messages.push(JSON.parse(event.data)); } catch { /* ignore */ }
@@ -77,13 +99,13 @@ async function subscribe(session, roomId) {
   );
   if (socket.readyState !== WebSocket.OPEN) throw new Error("Realtime websocket closed before joining.");
   socket.send(JSON.stringify({
-    topic: `realtime:public:fcg_room_members:room_id=eq.${roomId}`,
+    topic: `realtime:public:fcg_rooms:id=eq.${roomId}`,
     event: "phx_join",
     payload: {
       config: {
         broadcast: { self: false },
         presence: { key: "" },
-        postgres_changes: [{ event: "*", schema: "public", table: "fcg_room_members", filter: `room_id=eq.${roomId}` }],
+        postgres_changes: [{ event: "UPDATE", schema: "public", table: "fcg_rooms", filter: `id=eq.${roomId}` }],
       },
       access_token: session.token,
     },
@@ -98,12 +120,13 @@ async function subscribe(session, roomId) {
   return { socket, messages };
 }
 
-const [a, b, c] = await Promise.all([anonymousSession(), anonymousSession(), anonymousSession()]);
+const a = await anonymousSession();
+const b = await anonymousSession();
+const c = await anonymousSession();
 const created = await rpc("fcg_create_room", a.token, { p_display_name: "RealtimeA" });
 const room = firstRow(created.data);
 if (!created.ok || !room?.room_id || !room?.room_code) throw new Error(`Room creation failed (${created.status}).`);
-const joined = await rpc("fcg_join_room", b.token, { p_room_code: room.room_code, p_display_name: "RealtimeB" });
-if (!joined.ok) throw new Error(`Player B join failed (${joined.status}).`);
+console.log(`CLEANUP_ROOM ${room.room_id}`);
 
 const subscriptions = await Promise.allSettled([subscribe(a, room.room_id), subscribe(c, room.room_id)]);
 if (subscriptions.some((result) => result.status === "rejected")) {
@@ -113,8 +136,8 @@ if (subscriptions.some((result) => result.status === "rejected")) {
 const [member, outsider] = subscriptions.map((result) => result.value);
 
 await new Promise((resolve) => setTimeout(resolve, 250));
-const rejoined = await rpc("fcg_join_room", b.token, { p_room_code: room.room_code, p_display_name: "RealtimeB" });
-if (!rejoined.ok) throw new Error(`Player B reconnect update failed (${rejoined.status}).`);
+const joined = await rpc("fcg_join_room", b.token, { p_room_code: room.room_code, p_display_name: "RealtimeB" });
+if (!joined.ok || !firstRow(joined.data)?.room_id) throw new Error(`Player B join failed (${joined.status}).`);
 await new Promise((resolve) => setTimeout(resolve, 2_000));
 
 const isDatabaseChange = (message) => message.event === "postgres_changes" || message.event === "UPDATE";
@@ -122,10 +145,11 @@ const memberSawUpdate = member.messages.some(isDatabaseChange);
 const outsiderSawUpdate = outsider.messages.some(isDatabaseChange);
 member.socket.close();
 outsider.socket.close();
+closeLiveSockets();
 
 if (!memberSawUpdate) throw new Error("Member did not receive the authorized Realtime update.");
 if (outsiderSawUpdate) throw new Error("Third party received a Realtime update blocked by RLS.");
-console.log("PASS  member receives authorized Realtime update");
+console.log("PASS  member receives authorized room Realtime update");
 console.log("PASS  third party receives no Realtime update");
 console.log("SUMMARY 2/2 live Realtime checks passed");
 clearTimeout(hardTimeout);

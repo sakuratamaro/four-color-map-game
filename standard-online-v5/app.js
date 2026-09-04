@@ -1064,7 +1064,21 @@ function validLoadout(loadout) { return ["color", "area", "disrupt"].every((cate
 
 async function refreshRoom(_reason, expectedRoomId = client.snapshot().roomId) {
   if (!expectedRoomId) { stopCpuTurnWatch(); return render(); }
-  const nextRoomModel = await client.readRoom(expectedRoomId);
+  let nextRoomModel;
+  try {
+    nextRoomModel = await client.readRoom(expectedRoomId);
+  } catch (error) {
+    if (error?.code !== "P0002") throw error;
+    if (client.snapshot().roomId !== expectedRoomId) return null;
+    clearContactReveal();
+    stopCpuTurnWatch();
+    roomSync.stop();
+    client.clearRoom();
+    roomModel = null;
+    render();
+    toast("対戦は終了または失効しました。ロビーへ戻ります。");
+    return null;
+  }
   if (client.snapshot().roomId !== expectedRoomId) return null;
   if (roomModel?.room?.id === expectedRoomId && Number(nextRoomModel.room.version) < Number(roomModel.room.version)) return null;
   roomModel = nextRoomModel;

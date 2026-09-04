@@ -12,6 +12,17 @@ const app = fs.readFileSync(path.join(root, "standard-online-v5", "app.js"), "ut
 const css = fs.readFileSync(path.join(root, "standard-online-v5", "style.css"), "utf8");
 const progressionCss = fs.readFileSync(path.join(root, "standard-online-v5", "progression.css"), "utf8");
 
+test("missing room snapshots return to the lobby without discarding rooms on network errors", () => {
+  const refresh = app.slice(app.indexOf("async function refreshRoom"), app.indexOf("const roomSync"));
+  const terminalGate = refresh.indexOf('if (error?.code !== "P0002") throw error');
+  const clearRoom = refresh.indexOf("client.clearRoom()");
+  assert.ok(terminalGate >= 0);
+  assert.ok(clearRoom > terminalGate);
+  assert.match(refresh, /roomSync\.stop\(\)/);
+  assert.match(refresh, /roomModel = null/);
+  assert.match(refresh, /対戦は終了または失効しました/);
+});
+
 test("Standard online setup UI exposes the complete reconnect path", () => {
   for (const id of [
     "connectionBadge", "profileSelect", "starterCreator", "starterName", "createStarterProfile", "syncProfile", "createRoom", "roomCode", "joinRoom",

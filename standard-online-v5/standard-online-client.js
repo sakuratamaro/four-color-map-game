@@ -377,19 +377,13 @@
       if (!UUID_PATTERN.test(String(roomId))) throw new Error("INVALID_ROOM_ID");
       if (typeof onInvalidate !== "function" || typeof onStatus !== "function") throw new Error("INVALID_REALTIME_HANDLERS");
       if (typeof supabase.channel !== "function" || typeof supabase.removeChannel !== "function") throw new Error("REALTIME_UNAVAILABLE");
-      const changes = [
-        { table: "fcg_rooms", filter: `id=eq.${roomId}` },
-        { table: "fcg_room_members", filter: `room_id=eq.${roomId}` },
-        { table: "fcg_player_views", filter: `room_id=eq.${roomId}` },
-      ];
       let channel = supabase.channel(`standard-room-${roomId}`);
-      for (const change of changes) {
-        channel = channel.on("postgres_changes", {
-          event: "*",
-          schema: "public",
-          ...change,
-        }, onInvalidate);
-      }
+      channel = channel.on("postgres_changes", {
+        event: "UPDATE",
+        schema: "public",
+        table: "fcg_rooms",
+        filter: `id=eq.${roomId}`,
+      }, onInvalidate);
       channel = channel.subscribe(onStatus);
       let subscribed = true;
       return () => {
