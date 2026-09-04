@@ -138,9 +138,14 @@ const [member, outsider] = subscriptions.map((result) => result.value);
 await new Promise((resolve) => setTimeout(resolve, 250));
 const joined = await rpc("fcg_join_room", b.token, { p_room_code: room.room_code, p_display_name: "RealtimeB" });
 if (!joined.ok || !firstRow(joined.data)?.room_id) throw new Error(`Player B join failed (${joined.status}).`);
-await new Promise((resolve) => setTimeout(resolve, 2_000));
 
 const isDatabaseChange = (message) => message.event === "postgres_changes" || message.event === "UPDATE";
+await waitFor(
+  () => member.messages.some(isDatabaseChange),
+  8_000,
+  "Member did not receive the authorized Realtime update.",
+);
+await new Promise((resolve) => setTimeout(resolve, 2_000));
 const memberSawUpdate = member.messages.some(isDatabaseChange);
 const outsiderSawUpdate = outsider.messages.some(isDatabaseChange);
 member.socket.close();

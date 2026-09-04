@@ -14,5 +14,6 @@ test("live Realtime smoke is opt-in, bounded, and follows the public room-update
   assert.match(source, /CLEANUP_ROOM/);
   assert.match(source, /realtime:public:fcg_rooms:id=eq\.\$\{roomId\}/);
   assert.match(source, /postgres_changes: \[\{ event: "UPDATE", schema: "public", table: "fcg_rooms"/);
+  assert.match(source, /member\.messages\.some\(isDatabaseChange\)[\s\S]*8_000/);
   assert.doesNotMatch(source, /fcg_room_members|fcg_player_views/);
 });

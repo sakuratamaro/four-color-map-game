@@ -21,10 +21,10 @@
 | --- | --- | --- | --- | --- |
 | P0 | Standard公開候補の固定と再検証 | 司令塔 | IN_PROGRESS | dirty回収、status正規化、Realtime復旧を含む統合候補は非browser製品試験507/507合格。共有環境復旧後にbrowser gateを再実行 |
 | P0 | Pages反映と公開後preflight | 司令塔 | COMPLETED | remote `main=dc5452a`、Pages run `33814089903`成功、candidate preflight合格 |
-| P0 | 合言葉・経済・野良・CPUのlive縦通し | 技術品質 | IN_PROGRESS | deployment 8でEdge 6/6、A 43/43、B 93/93、D 107/107。Cで発見したstatus状態名ずれは本番DB修正済み。次のAuth窓でCだけ再実行 |
+| P0 | 合言葉・経済・野良・CPUのlive縦通し | 技術品質 | COMPLETED | deployment 8でEdge 6/6、A 43/43、B 93/93、C 210/210、D 107/107合格 |
 | P0 | 同時profile作成のHTTP 500抑止 | Edge＋運用 | LIVE_VERIFIED | 新規作成をload→commitの2 RPCへ削減。一時障害を503化。C準備の16 profileが逐次で全件成功し、500/429なし |
 | P0 | デバッグ対戦のサーバー側隔離 | 技術品質 | LOCAL_VERIFIED | 合言葉・人間同士だけをservice-loaded roomから許可。API直叩きで野良/CPUへ混入不可 |
-| P0 | Supabase資源とRealtime負荷の追跡 | 運用 | LOCAL_VERIFIED | client購読を公開room UPDATE 1本へ限定。Quick pollを2.5秒固定からplaying 5秒/待機10秒、hidden停止へ変更。公開後24時間で負荷を再測定 |
+| P0 | Supabase資源とRealtime負荷の追跡 | 運用 | CANDIDATE_VERIFIED | client購読を公開room UPDATE 1本へ限定。Quick pollをplaying 5秒/待機10秒、hidden停止へ変更。live Realtime 2/2合格。公開後24時間で負荷を再測定 |
 | P0 | 別々の二端末による最終受入 | チャッピー先生＋司令塔 | PENDING | 対人/CPUの完走、復帰、再戦、永続化を確認 |
 | P1 | 対戦を主役にする情報設計 | UX | LOCAL_VERIFIED | 5タブ化し、ホームの主CTAから対戦タブ内の初回profile作成・同期・ロビーまでを一本化。公開後の実端末確認待ち |
 | P1 | プレイヤー向けno-color宣言の仕様整合 | UX＋ルール | LOCAL_VERIFIED | 通常受渡し/split返却とも同一action内で自動終局し、Online UIから宣言を除去 |
