@@ -144,6 +144,7 @@ test("every finished match presents a local-seat victory or defeat overlay, incl
   assert.match(app, /state\.terminalReason === "SURRENDER" && won \? "相手が投了しました"/);
   assert.match(app, /SURRENDER: `\$\{loser\} が投了しました。`/);
   assert.match(app, /requestAnimationFrame\(\(\) => \$\("terminalClose"\)\.focus/);
+  assert.match(app, /alreadyPresented && shownTerminalEventKey !== eventKey/);
   assert.match(app, /dismissedTerminalEventKey = shownTerminalEventKey/);
   assert.doesNotMatch(app, /terminal(?:Title|Message|ReasonText)"\)\.innerHTML/);
   assert.match(html, /role="dialog" aria-modal="true"/);

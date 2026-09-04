@@ -369,7 +369,12 @@ test("actual Edge carries a fresh player from the home CTA through profile sync 
 
 test("actual Edge reuses a persisted rematch ID and returns to fresh setup", { timeout: 120000 }, async () => {
   await withPage("finished", async (page) => {
-    await page.getByRole("button", { name: "結果を確認して戻る" }).click();
+    const terminal = page.locator("#terminalOverlay");
+    await terminal.waitFor();
+    await page.reload();
+    await page.locator("#connectionBadge.good").waitFor({ state: "attached" });
+    await page.locator("#room:not(.hidden)").waitFor();
+    assert.equal(await terminal.isVisible(), false);
     await page.getByRole("button", { name: "同じ再戦申請を再送" }).click();
     await page.locator("#setupCard:not(.hidden)").waitFor();
     const evidence = await page.evaluate(({ key, expectedId }) => {
@@ -477,6 +482,7 @@ test("actual Edge quiz freezes for the hint, resumes without room polling, and a
 
 test("actual Edge presents server-hydrated stats, trophy state, and match history", { timeout: 120000 }, async () => {
   await withPage("playing", async (page) => {
+    await page.getByRole("button", { name: "マイページ" }).click();
     await page.locator("#progressionPanel:not(.hidden)").waitFor();
     assert.deepEqual(await page.locator("#profileStats strong").allTextContents(), ["4", "2", "2", "3", "1"]);
     assert.equal(await page.locator("#trophyList .unlocked").count(), 2);
@@ -495,6 +501,7 @@ test("actual Edge hides onboarding after restoring a synced profile into the sav
 
 test("actual Edge quotes and commits one server-authoritative card sale", { timeout: 120000 }, async () => {
   await withPage("lobby", async (page) => {
+    await page.getByRole("button", { name: "マイページ" }).click();
     await page.locator("#progressionPanel:not(.hidden)").waitFor();
     await page.locator("#cardSaleSkill").selectOption("colorRandomBorrow");
     await page.locator("#cardSaleCount").fill("1");

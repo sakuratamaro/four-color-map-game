@@ -27,10 +27,12 @@ test("hints mix one useful formula with decoys without identifying the useful on
   assert.match(app, /使うものと使わないものが混ざっています/);
 });
 
-test("question choices float gently with a reduced-motion fallback", () => {
-  assert.match(css, /@keyframes quiz-option-float/);
-  assert.match(css, /\.quiz-options button[^}]*animation:quiz-option-float/);
-  assert.match(css, /prefers-reduced-motion:reduce/);
+test("question choices glow without moving their click targets and honor reduced motion", () => {
+  assert.match(css, /\.quiz-options button\{animation:quiz-option-glow/);
+  const glow = css.match(/@keyframes quiz-option-glow\{[^}]+\}[^}]+\}/)?.[0] || "";
+  assert.match(glow, /box-shadow/);
+  assert.doesNotMatch(glow, /transform|translate|rotate/);
+  assert.match(css, /@media\(prefers-reduced-motion:reduce\)\{\.quiz-options button\{animation:none\}\}/);
 });
 
 test("question catalog includes formatted higher math, geometry, solids, and Japanese word problems", () => {

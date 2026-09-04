@@ -228,7 +228,7 @@ function renderTerminalResult(state) {
   const eventKey = `${state.matchId || roomModel?.room?.id || client.snapshot().roomId}:${roomModel?.room?.version}:${state.winner}:${state.terminalReason || "FINISHED"}`;
   let alreadyPresented = false;
   try { alreadyPresented = localStorage.getItem(TERMINAL_PRESENTED_KEY) === eventKey; } catch { alreadyPresented = false; }
-  if (alreadyPresented) return show("terminalOverlay", false);
+  if (alreadyPresented && shownTerminalEventKey !== eventKey) return show("terminalOverlay", false);
   if (dismissedTerminalEventKey === eventKey) return show("terminalOverlay", false);
   clearContactReveal();
   const mySeat = roomModel?.view?.seat;
