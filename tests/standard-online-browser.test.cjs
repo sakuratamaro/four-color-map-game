@@ -23,6 +23,31 @@ const remoteProfileKey = "fourColorMapGame.standard.online.v5.remote-profile";
 const roomId = "11111111-1111-4111-8111-111111111111";
 const pendingRematchId = "22222222-2222-4222-8222-222222222222";
 
+function browserStage(stage) {
+  console.error(`BROWSER_STAGE ${stage}`);
+}
+
+async function bounded(stage, promise, timeoutMs) {
+  let timer;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise((_, reject) => {
+        timer = setTimeout(() => reject(new Error(`BROWSER_STAGE_TIMEOUT ${stage}`)), timeoutMs);
+      }),
+    ]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+function closeServer(server) {
+  return new Promise((resolve, reject) => {
+    server.close((error) => error ? reject(error) : resolve());
+    server.closeAllConnections?.();
+  });
+}
+
 function startServer() {
   return new Promise((resolve, reject) => {
     const mime = { ".css": "text/css; charset=utf-8", ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8" };
@@ -252,33 +277,52 @@ async function installMock(context, mode) {
   }, { connectionKey, saveKey, roomId, pendingId: pendingRematchId, mode });
 }
 
-async function withPage(mode, run) {
+async function withPage(mode, run, { bodyTimeout = 20_000 } = {}) {
   assert.ok(chromium, "Playwright is required");
   assert.ok(fs.existsSync(browserPath), `${browserName} browser is required`);
   let browser;
   let context;
-  const { server, url } = await startServer();
+  browserStage("server-start");
+  const { server, url } = await bounded("server-ready", startServer(), 5_000);
+  browserStage("server-ready");
   try {
-    browser = await chromium.launch({ executablePath: browserPath, headless: true, timeout: 15_000 });
-    context = await browser.newContext({ viewport: { width: 900, height: 800 } });
-    await installMock(context, mode);
-    const page = await context.newPage();
-    await page.goto(`${url}/standard-online-v5/index.html`);
-    await page.locator("#connectionBadge.good").waitFor();
-    await run(page);
+    browserStage("browser-launch-start");
+    browser = await bounded("browser-launch", chromium.launch({ executablePath: browserPath, headless: true, timeout: 15_000 }), 15_000);
+    browserStage("browser-launch-ready");
+    browserStage("context-start");
+    context = await bounded("context-ready", browser.newContext({ viewport: { width: 900, height: 800 } }), 5_000);
+    browserStage("context-ready");
+    await bounded("mock-ready", installMock(context, mode), 5_000);
+    browserStage("page-start");
+    const page = await bounded("page-ready", context.newPage(), 5_000);
+    browserStage("page-ready");
+    browserStage("navigation-start");
+    await bounded("navigation-ready", page.goto(`${url}/standard-online-v5/index.html`, { timeout: 10_000 }), 10_000);
+    browserStage("navigation-ready");
+    browserStage("badge-start");
+    await bounded("badge-ready", page.locator("#connectionBadge.good").waitFor({ timeout: 10_000 }), 10_000);
+    browserStage("badge-ready");
+    browserStage("test-body-start");
+    await bounded("test-body", run(page), bodyTimeout);
+    browserStage("test-body-ready");
   } finally {
+    browserStage("teardown-start");
     try {
-      await context?.close();
+      browserStage("context-close-start");
+      if (context) await bounded("context-close", context.close(), 3_000);
+      browserStage("context-close-ready");
     } finally {
       try {
-        await browser?.close();
+        browserStage("browser-close-start");
+        if (browser) await bounded("browser-close", browser.close(), 3_000);
+        browserStage("browser-close-ready");
       } finally {
-        await new Promise((resolve) => {
-          server.close(resolve);
-          server.closeAllConnections?.();
-        });
+        browserStage("server-close-start");
+        await bounded("server-close", closeServer(server), 3_000);
+        browserStage("server-close-ready");
       }
     }
+    browserStage("teardown-ready");
   }
 }
 
@@ -531,7 +575,7 @@ test("actual Edge asks the server for exactly one CPU action then returns contro
     await page.getByText("あなたの手番").waitFor();
     const actions = await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "cpu-action").map((entry) => entry.body));
     assert.deepEqual(actions, [{ operation: "cpu-action", roomId, expectedVersion: 9 }]);
-  });
+  }, { bodyTimeout: 50_000 });
 });
 
 test("actual Edge rematches the same visible CPU and returns the human to fresh setup", { timeout: 30000 }, async () => {

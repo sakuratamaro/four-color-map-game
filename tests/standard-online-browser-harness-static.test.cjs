@@ -22,17 +22,34 @@ test("browser selection allows only fixed Edge and Chrome executables", () => {
 
 test("withPage owns server and browser startup inside one finite try/finally", () => {
   assert.ok(start >= 0 && end > start);
-  assert.match(withPage, /const \{ server, url \} = await startServer\(\);\s*try \{/);
-  assert.match(withPage, /try \{[\s\S]+browser = await chromium\.launch\(\{[^}]+timeout: 15_000[^}]+\}\)/);
+  assert.match(withPage, /const \{ server, url \} = await bounded\("server-ready", startServer\(\), 5_000\);\s*browserStage\("server-ready"\);\s*try \{/);
+  assert.match(withPage, /try \{[\s\S]+browser = await bounded\("browser-launch", chromium\.launch\(\{[^}]+timeout: 15_000[^}]+\}\), 15_000\)/);
   assert.ok(withPage.indexOf("chromium.launch") < withPage.indexOf("} finally {"));
 });
 
+test("withPage emits deterministic stages and bounds every setup and test-body await", () => {
+  for (const stage of [
+    "server-start", "server-ready", "browser-launch-start", "browser-launch-ready",
+    "context-start", "context-ready", "page-start", "page-ready",
+    "navigation-start", "navigation-ready", "badge-start", "badge-ready",
+    "test-body-start", "test-body-ready", "teardown-start", "teardown-ready",
+  ]) assert.match(withPage, new RegExp(`browserStage\\("${stage}"\\)`));
+  assert.match(withPage, /bounded\("context-ready", browser\.newContext\([\s\S]+?\), 5_000\)/);
+  assert.match(withPage, /bounded\("mock-ready", installMock\(context, mode\), 5_000\)/);
+  assert.match(withPage, /bounded\("page-ready", context\.newPage\(\), 5_000\)/);
+  assert.match(withPage, /bounded\("navigation-ready", page\.goto\([\s\S]+?timeout: 10_000[\s\S]+?\), 10_000\)/);
+  assert.match(withPage, /bounded\("badge-ready", page\.locator\("#connectionBadge\.good"\)\.waitFor\(\{ timeout: 10_000 \}\), 10_000\)/);
+  assert.match(withPage, /bounded\("test-body", run\(page\), bodyTimeout\)/);
+});
+
 test("withPage releases partial startup resources and every HTTP connection", () => {
-  assert.match(withPage, /await context\?\.close\(\)/);
-  assert.match(withPage, /await browser\?\.close\(\)/);
-  assert.match(withPage, /server\.close\(resolve\)/);
-  assert.match(withPage, /server\.closeAllConnections\?\.\(\)/);
-  assert.ok(withPage.indexOf("context?.close") < withPage.indexOf("browser?.close"));
-  assert.ok(withPage.indexOf("browser?.close") < withPage.indexOf("server.close(resolve)"));
-  assert.ok(withPage.indexOf("server.close(resolve)") < withPage.indexOf("server.closeAllConnections?.()"));
+  assert.match(withPage, /bounded\("context-close", context\.close\(\), 3_000\)/);
+  assert.match(withPage, /bounded\("browser-close", browser\.close\(\), 3_000\)/);
+  assert.match(withPage, /bounded\("server-close", closeServer\(server\), 3_000\)/);
+  assert.ok(withPage.indexOf("context.close") < withPage.indexOf("browser.close"));
+  assert.ok(withPage.indexOf("browser.close") < withPage.indexOf("closeServer(server)"));
+});
+
+test("the long CPU action keeps its existing wait inside a finite body bound", () => {
+  assert.match(source, /withPage\("cpuTurn",[\s\S]+?waitForFunction\([\s\S]+?timeout: 45000[\s\S]+?\}, \{ bodyTimeout: 50_000 \}\)/);
 });
