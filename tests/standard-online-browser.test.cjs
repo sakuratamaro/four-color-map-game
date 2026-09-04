@@ -276,11 +276,16 @@ async function withPage(mode, run) {
   }
 }
 
-test("actual Edge bootstraps a fresh browser without overwriting the local Standard save", { timeout: 30000 }, async () => {
+test("actual Edge carries a fresh player from the home CTA through profile sync to the visible battle lobby", { timeout: 30000 }, async () => {
   await withPage("empty", async (page) => {
     await page.locator("#starterCreator:not(.hidden)").waitFor();
     assert.equal(await page.locator("#profileSelect option").count(), 0);
     assert.equal(await page.locator("#syncProfile").isDisabled(), true);
+    await page.getByRole("button", { name: "対戦を始める" }).click();
+    await page.locator("#starterName").waitFor({ state: "visible" });
+    assert.equal(await page.locator("body").getAttribute("data-active-tab"), "battle");
+    assert.equal(await page.locator("#profileCard").isVisible(), true);
+    assert.equal(await page.locator("#lobby").isVisible(), false);
     await page.locator("#starterName").fill("新規プレイヤー");
     await page.getByRole("button", { name: "はじめて用プロフィールを作る" }).click();
     assert.equal(await page.locator("#profileSelect option").count(), 1);
@@ -293,10 +298,16 @@ test("actual Edge bootstraps a fresh browser without overwriting the local Stand
     assert.equal(evidence.name, "新規プレイヤー");
     assert.deepEqual(Object.values(evidence.inventory), [3, 3, 3, 3, 3, 3]);
     await page.getByRole("button", { name: "このプロフィールをオンライン用に同期" }).click();
-    await page.locator("#lobby:not(.hidden)").waitFor();
+    await page.locator("#lobby").waitFor({ state: "visible" });
+    assert.equal(await page.locator("#profileCard").isVisible(), false);
     const profileCall = await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.find((entry) => entry.body?.operation === "profile")?.body);
     assert.equal(profileCall.expectedRevision, 0);
     assert.equal(profileCall.displayName, "新規プレイヤー");
+    const automaticMatchCalls = await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => (
+      entry.body?.operation === "cpu-accept"
+      || ["fcg_standard_create_room", "fcg_standard_join_room", "fcg_standard_matchmaking_recruit", "fcg_standard_matchmaking_find"].includes(entry.name)
+    )));
+    assert.deepEqual(automaticMatchCalls, []);
   });
 });
 
@@ -415,6 +426,14 @@ test("actual Edge presents server-hydrated stats, trophy state, and match histor
     assert.equal(await page.locator("#trophyList .unlocked").count(), 2);
     assert.equal(await page.locator("#trophyList .locked").count(), 1);
     assert.match(await page.locator("#matchHistory .history-win").textContent(), /勝利.*完塗り.*スキル0回/);
+  });
+});
+
+test("actual Edge hides onboarding after restoring a synced profile into the saved battle tab", { timeout: 30000 }, async () => {
+  await withPage("lobby", async (page) => {
+    assert.equal(await page.locator("body").getAttribute("data-active-tab"), "battle");
+    assert.equal(await page.locator("#profileCard").isVisible(), false);
+    assert.equal(await page.locator("#lobby").isVisible(), true);
   });
 });
 

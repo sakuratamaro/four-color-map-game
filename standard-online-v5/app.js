@@ -143,6 +143,7 @@ function badge(text, tone = "warn") { $("connectionBadge").textContent = text; $
 function toast(message) { const node = $("toast"); node.textContent = message; node.classList.add("show"); clearTimeout(toast.timer); toast.timer = setTimeout(() => node.classList.remove("show"), 2400); }
 function profile() { return availableProfiles[selectedProfileId] || null; }
 function displayName() { return String(profile()?.displayName || "").trim().slice(0, 20); }
+function renderProfileCardVisibility() { show("profileCard", activeAppTab !== "battle" || !synced); }
 function safeJson(value) { return JSON.stringify(value, null, 2); }
 function actionSignature(type, payload) { return JSON.stringify({ type, payload }); }
 function hasStandardPublicState(value) {
@@ -164,6 +165,7 @@ function activateAppTab(requestedTab, { updateHash = true } = {}) {
     panel.classList.toggle("tab-panel-hidden", !active);
   }
   document.body.dataset.activeTab = tab;
+  renderProfileCardVisibility();
   if (tab === "battle") roomSync?.invalidate?.();
   window.scrollTo({ top: 0, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
 }
@@ -341,7 +343,7 @@ function hydrateProfileRow(row) {
 
 function renderProfile() {
   const value = profile();
-  show("profileCard", true);
+  renderProfileCardVisibility();
   show("starterCreator", !value);
   $("syncProfile").disabled = !value || !connected;
   $("profileSummary").textContent = value ? `${value.displayName} — 所持カード ${Object.values(value.inventory || {}).reduce((sum, count) => sum + count, 0)}枚` : "名前を入力して、はじめて用プロフィールを作成してください。";
@@ -1134,6 +1136,7 @@ async function runCpuTurn() {
 }
 
 function render() {
+  renderProfileCardVisibility();
   const snapshot = client.snapshot();
   show("quizPanel", synced && Boolean(profile()));
   renderQuiz();
@@ -1406,7 +1409,7 @@ async function syncSelectedProfile() {
       const created = await client.syncProfile({ displayName: displayName(), profileState: value });
       persistRemoteProfile(created.profileState || value, created.displayName || displayName(), Number(created.revision));
     }
-    synced = true; badge("プロフィール同期済み", "good"); render();
+    synced = true; badge("プロフィール同期済み", "good"); renderProfile(); render();
     await refreshOnlineCosmetics({ quiet: true });
   } catch (error) { toast(error.message || "同期に失敗しました。"); }
   finally { $("syncProfile").disabled = false; }

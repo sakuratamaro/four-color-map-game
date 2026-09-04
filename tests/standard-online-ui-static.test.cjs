@@ -32,6 +32,16 @@ test("Standard online setup UI exposes the complete reconnect path", () => {
   assert.match(html, /type="module" src="app\.js"/);
 });
 
+test("fresh players can finish profile setup inside the battle tab without automatic matchmaking", () => {
+  assert.match(html, /id="profileCard"[^>]+data-app-tab-panel="[^"]*\bbattle\b[^"]*"/);
+  assert.match(app, /function renderProfileCardVisibility\(\) \{ show\("profileCard", activeAppTab !== "battle" \|\| !synced\); \}/);
+  assert.match(app, /document\.body\.dataset\.activeTab = tab;\s*renderProfileCardVisibility\(\);/);
+  assert.match(app, /function render\(\) \{\s*renderProfileCardVisibility\(\);/);
+  assert.match(app, /synced = true; badge\("プロフィール同期済み", "good"\); renderProfile\(\); render\(\);/);
+  const syncProfile = app.slice(app.indexOf("async function syncSelectedProfile()"), app.indexOf("function matchmakingWaitSeconds()"));
+  assert.doesNotMatch(syncProfile, /(?:createRoom|joinRoom|recruitPublicOpponent|findPublicOpponent|acceptCpuCharacter)\s*\(/);
+});
+
 test("server-hydrated progression renders stats, three trophies, and recent history as text", () => {
   assert.match(app, /function renderProgression\(\)/);
   assert.match(app, /show\("progressionPanel", synced && Boolean\(profile\(\)\)\)/);
