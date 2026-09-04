@@ -300,7 +300,7 @@ async function withPage(mode, run, { bodyTimeout = 20_000 } = {}) {
     await bounded("navigation-ready", page.goto(`${url}/standard-online-v5/index.html`, { timeout: 10_000 }), 10_000);
     browserStage("navigation-ready");
     browserStage("badge-start");
-    await bounded("badge-ready", page.locator("#connectionBadge.good").waitFor({ timeout: 10_000 }), 10_000);
+    await bounded("badge-ready", page.locator("#connectionBadge.good").waitFor({ state: "attached", timeout: 10_000 }), 10_000);
     browserStage("badge-ready");
     browserStage("test-body-start");
     await bounded("test-body", run(page), bodyTimeout);
