@@ -15,9 +15,9 @@ test("Standard browser gate YAML text uses stable whitespace", () => {
   }
 });
 
-test("Standard browser gate is manual or pull-request only and least-privileged", () => {
-  assert.match(workflow, /^on:\r?\n  pull_request:\r?\n  workflow_dispatch:/m);
-  assert.doesNotMatch(workflow, /^  push:/m);
+test("Standard browser gate is candidate-push, manual, or pull-request only and least-privileged", () => {
+  assert.match(workflow, /^on:\r?\n  push:\r?\n    branches: \[codex\/standard-release-command\]\r?\n  pull_request:\r?\n  workflow_dispatch:/m);
+  assert.doesNotMatch(workflow, /branches: \[(?:main|master)\]/);
   assert.match(workflow, /^permissions:\r?\n  contents: read\r?$/m);
   assert.doesNotMatch(workflow, /(?:secrets\.|permissions:\s*write|contents:\s*write)/i);
   assert.match(workflow, /^concurrency:\r?\n  group: standard-browser-gate-\$\{\{ github\.workflow \}\}-\$\{\{ github\.ref \}\}\r?\n  cancel-in-progress: true$/m);

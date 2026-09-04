@@ -1,6 +1,8 @@
 name: Standard browser gate
 
 on:
+  push:
+    branches: [codex/standard-release-command]
   pull_request:
   workflow_dispatch:
 
