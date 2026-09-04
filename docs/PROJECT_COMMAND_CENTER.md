@@ -19,7 +19,7 @@
 
 | 優先度 | 作業 | 主担当 | 状態 | 完了条件 |
 | --- | --- | --- | --- | --- |
-| P0 | Standard公開候補の固定と再検証 | 司令塔 | IN_PROGRESS | dirty回収、status正規化、Realtime復旧を含む統合候補は非browser製品試験507/507合格。共有環境復旧後にbrowser gateを再実行 |
+| P0 | Standard公開候補の固定と再検証 | 司令塔 | IN_PROGRESS | dirty回収、status正規化、Realtime復旧を含む統合候補は非browser製品試験515/515合格。browser harnessは段階ログ・有限timeout静的5/5合格、実browser完走待ち |
 | P0 | Pages反映と公開後preflight | 司令塔 | COMPLETED | remote `main=dc5452a`、Pages run `33814089903`成功、candidate preflight合格 |
 | P0 | 合言葉・経済・野良・CPUのlive縦通し | 技術品質 | COMPLETED | deployment 8でEdge 6/6、A 43/43、B 93/93、C 210/210、D 107/107合格 |
 | P0 | 同時profile作成のHTTP 500抑止 | Edge＋運用 | LIVE_VERIFIED | 新規作成をload→commitの2 RPCへ削減。一時障害を503化。C準備の16 profileが逐次で全件成功し、500/429なし |
@@ -29,7 +29,7 @@
 | P1 | 対戦を主役にする情報設計 | UX | LOCAL_VERIFIED | 5タブ化し、ホームの主CTAから対戦タブ内の初回profile作成・同期・ロビーまでを一本化。公開後の実端末確認待ち |
 | P1 | プレイヤー向けno-color宣言の仕様整合 | UX＋ルール | LOCAL_VERIFIED | 通常受渡し/split返却とも同一action内で自動終局し、Online UIから宣言を除去 |
 | P1 | Standardを学んで即CPU戦へ入る導線 | ゲーム体験 | CANDIDATE | 3手ガイドまたは固定スターターCPU戦から本戦へ遷移 |
-| P1 | 未コミット／孤立作業の回収 | 構成管理 | IN_PROGRESS | 29床を7床へ集約。正史1、救出済み1、dirty保留5だけを残し、残候補を機能単位で採否する |
+| P1 | 未コミット／孤立作業の回収 | 構成管理 | COMPLETED | 29床を3床へ集約。丸ごと統合候補は0。Quick回帰試験だけを回収し、残るroot dirtyは救出済み・凍結管理 |
 | P2 | GitHub Pages actionのNode.js警告解消 | 技術品質 | BACKLOG | 公開結果を変えず、Node.js 20廃止予定warningを消す |
 
 ## 旧作業床からの回収候補
@@ -40,6 +40,7 @@
 | --- | --- | --- |
 | ADOPTED | Quick Half Shiftの非連結領域を決定的に分割 | `af8c789`で由来つき単独回収。Quick/Standard重点34/34、client/Edge mirror SHA-256一致 |
 | ADOPTED | Quick/Standardロビーの期限切れ・Realtime・poll復旧 | `a113abb`で機能単位回収。missing roomはロビー帰還、通信障害では接続情報を保持し、非browser製品試験507/507合格 |
+| ADOPTED | Quickの入力独立性・合法色なし・終局到達性 | `1bddae0`で製品コードを変えず回帰試験3件だけを回収。Quick重点12/12合格 |
 | P1 | Quickのlive regression/release補助ツール | 現行runbookの不足を埋め、固定データを汚さない |
 | P2 | Quick EdgeのPT409/PGRST003変換 | JWT有効化とlive認証試験を同時に満たす場合だけ採用 |
 | HOLD | Quick待機クイズ・ローカルガチャ | Quickを製品導線として残す決定が出るまでStandard版を正本とする |
@@ -52,9 +53,11 @@
 | 現在の統合床 | `codex/standard-release-command` | 司令塔が検証・修正・公開準備に使用 |
 | 統合済み次候補 | `codex/standard-release-command@0e02176` | 5タブ、初回対戦導線、クイズ・演出、debug隔離、no-color自動終局、profile安定化、status正規化、Realtime/poll復旧を統合。実browser再検証後に公開判断 |
 | 保全済み | detached `a8fce7d` dirty床 | `codex/salvage-a8fce7d-20260904` / `9e4e8ee` に秘密情報なしでWIP保全済み。機能単位で比較 |
-| dirty保留 | root `ac78282`、online rc4 `b98351c`、UI `6ac4a29`、phase2 `93a5578`、solo `9bfbaf8` | 直接merge・削除禁止。変更数は順に40、21、26、135、150。正本にない意味差分だけを比較 |
+| 凍結root | root `ac78282` | 正史worktreeを内包するため作業床は維持。dirty 40件は救出済みで、丸ごとmerge禁止。正本にない候補の採否は完了 |
 | GitHub保管 | `codex/archive-standard-release-1f823b2` | 正史の祖先でない孤立コミットをGitHubへ退避済み。作業床は削除 |
 | 整理済み | clean旧作業床22個 | HEAD、branch、dirty=0を個別確認し、`--force`なしで作業床だけを削除。到達可能な履歴は維持 |
+| 整理済み | UI `6ac4a29`、phase2 `93a5578`、solo `9bfbaf8` | 全tracked差分がCRLFだけ、staged/untracked/秘密候補0、salvageから到達可能と二重確認し、改行差分だけを破棄して作業床を削除 |
+| 整理済み | online rc4 `b98351c` | dirty全21ファイルがrootの同名ファイルとバイト単位で一致、staged 0、branch保全済みと二重確認し、重複作業床だけを削除 |
 
 ## 設計と実装の対応
 
