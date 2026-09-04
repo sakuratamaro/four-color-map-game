@@ -54,6 +54,7 @@
 - `e0c1f15`でRunbook B〜Dの有限なlive canaryを追加した。C初回は16件の同時profile準備でHTTP 500、準備を逐次化した再実行は匿名認証のHTTP 429で停止したため、野良対戦本体の判定には未到達である。追加再試行は行っていない。
 - HTTP 500の静的診断では、異なるuser行のDB競合より、新規profileの`load → commit → 再load`によりcommit成功後の再load失敗まで500にしていた経路が最有力だった。再loadを削除して2 RPCへ減らし、接続・資源・timeout系の有限なupstream codeを503 `SERVER_BUSY`へ変換した。ログはstageと英数字codeだけを残し、message、ID、tokenを記録しない。独立レビューでP0/P1指摘なし、非browser製品試験500/500合格。live Edgeには未反映である。
 - 初回ユーザーがホームの「対戦を始める」から対戦タブへ進んだ場合も、その場でprofile作成・同期を完了し、同期後に同じ画面のロビーへ移れるようにした。同期操作が合言葉作成、野良募集、CPU同意を自動実行しないことを静的契約化した。独立レビューで見つかった既存profile/room復帰時の表示残りは、全renderで同期状態を再評価して修正し、復帰ブラウザ契約を追加した。非browser製品試験は追加後501/501合格。実browser検査は共有起動環境の30秒timeoutで未完のため、公開済みとは扱わない。
+- 01:34 JSTにSupabase Auth設定と直近ログを読み取り専用で確認した。anonymous sign-in上限はIPあたり30件/時、最後のsignup 429は00:49:30 JST。Runbook A〜Dはsmall canaryを含め匿名作成27件を使うため、追加probeを挟まず、保守的に01:50 JST以降にEdge→small canary→A→B→C→Dを各1回だけ直列実行する。429/503なら同じ窓では再試行しない。
 
 ## 公開前後メトリクス
 
@@ -92,7 +93,7 @@
 - Dashboardの詳細なAdvisor/使用量baselineは未取得。画面上では資源逼迫警告が継続しているため、公開範囲を広げる前後で使用量を追跡する。
 - Runbook Aの初回profile作成でHTTP 500が1回発生した。既存Edge canaryと同runbook再実行は全件合格したが、再発時は一時障害扱いを外してEdge/DBログを調査する。
 - Runbook Cでも同時profile準備時にHTTP 500が再発した。同時プロフィール作成の弱点として、一時障害扱いを外しEdge/DBログと資源警告を関連調査する。
-- 匿名認証はC再実行時にHTTP 429へ到達した。制限回復前にB/Dを実行せず、回復後もCを含め一度ずつ順に実行する。
+- 匿名認証はC再実行時にHTTP 429へ到達した。設定値はIPあたり30 anonymous sign-ins/時。最後の429から1時間を置いた01:50 JST以降に、追加probeなしで一度ずつ順に実行する。
 - 次期UX候補はまだPages/Edgeへ公開していない。公開済み`main=dc5452a`のlive結果と、ローカル候補`e0c1f15`の検査結果を混同しない。
 - Edgeのper-isolate濫用抑止は分散レート制限ではない。公開後の計測で必要性が出た場合だけprovider側制限を検討する。
 - 10人CPUの合法性・決定性は自動検証済みだが、人間が感じる個性と楽しさは代表3人の実プレイ後も定性的判断として残る。
