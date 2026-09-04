@@ -15,8 +15,8 @@
 | ローカル製品試験 | VERIFIED | 2026-09-04、専用runnerで665件合格、失敗0、769.2秒 | 公開後のcandidate preflightと実端末canary |
 | 次期UX候補のローカル検査 | VERIFIED | `codex/standard-release-command@1673ff8`。profile安定化、初回対戦導線、Quick Half Shift、status正規化、Realtime/poll復旧を含む非browser製品試験91ファイル522/522。browser workflow/harness静的11/11合格 | Pages反映後のpreflightと二端末受入 |
 | 初回導線・接続表示の次期候補 | VERIFIED | `9d42784`。初回starter作成＋profile同期を一操作化し、全5タブで単一接続statusを常時表示。空名write 0、room外offline復帰、390px下部nav非干渉を契約化。静的39/39、非browser 89ファイル513/513、Windows Chrome/Edge各18/18合格 | 物理二端末受入 |
-| Windows実browser CI | VERIFIED | GitHub Actions run `33924037233`。Windows 2025のChrome/Edge各18/18、失敗0。読み取り専用権限・各15分上限 | 公開URLで同じ主要導線を二端末受入 |
-| 現行公開Pages | VERIFIED | 製品基点`dfbec10`、Pages run `33924181589`成功。後続の台帳のみのcommitは製品差分なし。公開HTML/app/styleはHTTP 200、初回一操作・全タブstatus・同期guard・mobile offset markerを確認。candidate preflight `ok:true` | 別々の二端末で最終受入 |
+| Windows実browser CI | VERIFIED | GitHub Actions run `33929432778`。Windows 2025のChrome/Edge各21/21、失敗0。CPU勝利戦績表示と390pxの6枚選択を含む | 公開URLで同じ主要導線を二端末受入 |
+| 現行公開Pages | VERIFIED | 製品基点`fda261d`、Pages run `33929435963`成功。公開HTML/appの新marker 7/7、candidate preflight `ok:true` | 別々の二端末で最終受入 |
 | 公開前DB境界 | VERIFIED | 旧snapshotは匿名権限拒否。snapshot v2と野良募集は`PGRST202`で未存在 | migration後のdb-ready preflight |
 | migration 006–013静的検査 | VERIFIED | migration別security/transaction testsと読み取り専用44項目SQL | 実DBで全行`ok=true` |
 | Dashboard Advisor・使用量baseline | BLOCKED | 変更前baselineは取得不能。22:55 JSTの現況はHealthyだがHealth Advisorにinfra alert 2件。Security指摘なし、Performance error/warning 0 | 24時間後に同じ指標とRealtime負荷を再採取 |
@@ -82,6 +82,15 @@
 - `origin/main`を`a84dd7a`から`7eab2f1`へforceなしでfast-forwardした。Pages run `33926672851`は成功し、公開HTML、app.js、style.cssの新marker 6/6、candidate preflight `ok:true`を確認した。
 - 公開実画面の390×844監査は横overflowなし。接続badge下端756px、下部nav上端764pxで8px空き、初手ガイドの520px以下用ruleが配信済みだった。物理二端末の作成・参加・完走・再読込・再戦は引き続き`NOT_RUN`である。
 
+## 2026-09-05 08:26 JST CPU勝利表示・6枚セット公開
+
+- 夫婦テストの「CPU戦に勝っても勝利数が増えないように見える」をP0として追跡した。保存先は対人用`stats.wins`ではなくCPU専用`cpuStats.wins`であり、Edge、transaction RPC、snapshot delta、cold loadに静的欠落は見つからなかった。既存Runbook Dは人間側の敗北だけを確認しており、人間側CPU勝利の統合検査が抜けていた。
+- `8c0d31f`で、人間のCPU勝利が`cpuStats.wins`とキャラ別winsへ一度だけ入り、対人winsを変えず、同一match再適用を拒むbundle回帰を追加した。オンラインbrowser mockではprofile revision更新後だけ勝利overlayへ`CPU戦 勝利 1`を表示し、local hydration、再読込後の1維持、action再送0を確認した。保存済みmatch historyが確認できない場合は楽観的に保存済みと表示せず「同期しています」とする。
+- 6枚セットをカード単位のnative checkboxを保ったカード型toggleへ変更した。各カードに`持ち込む／持ち込まない`、全体`n/6`、カテゴリ別`n/2`、不足枚数、準備OKを表示し、不完全時は確定不可。同カテゴリ3枚目は選択せず、先に1枚外す理由をlive regionへ通知する。
+- 390×844のkeyboard browser回帰で、6→5→6枚、確定buttonのdisabled/enabled、3枚目の拒否理由、focus維持、横overflowなしを確認した。ローカル重点51/51、Edge 21/21、Chrome 21/21が合格した。
+- `fda261d`でapp/style URLにrelease revisionを付け、古い資産cacheを回避した。Windows run `33929432778`はChrome/Edge各21/21、Pages run `33929435963`は成功。公開HTML/appは説明、summary、終局戦績、asset revision、選択state、上限理由のmarker 7/7を返し、candidate preflightも`ok:true`だった。
+- 公開DBを使う「人間がCPUへ勝利」のlive canaryは勝利を有限時間内に保証する既存手段がなく`NOT_RUN`。DB/Edge変更は行っていない。物理二端末のCPU勝利・再読込と、合言葉対戦完走・再戦は引き続き最終受入項目である。
+
 ## 公開前後メトリクス
 
 値が取得できなかった項目を空欄のまま`VERIFIED`にしない。
@@ -97,12 +106,12 @@
 | --- | --- |
 | browser harness diagnostics commit | `6fc23a5` |
 | Windows browser CI commit | `d8dac1b` |
-| final browser-verified candidate | `7eab2f1` |
-| Windows browser CI run | `33926224196` attempt 2 / Chrome 19/19 / Edge 19/19 |
+| final browser-verified candidate | `fda261d`（製品ロジック`8c0d31f`） |
+| Windows browser CI run | `33929432778` / Chrome 21/21 / Edge 21/21 |
 | candidate code baseline | `0e02176`（Edge deployment 8 sourceは`c3cf372`） |
 | applied migrations | `202609030006`–`202609030013`, `202609050001` |
 | `standard-game-action` version | deployment 8 |
-| Pages Actions run | `33926672851` / Success / `7eab2f1` |
+| Pages Actions run | `33929435963` / Success / `fda261d` |
 | public URL | `https://sakuratamaro.github.io/four-color-map-game/standard-online-v5/` |
 
 ## Canary結果
@@ -116,8 +125,8 @@
 | B クイズ・ガチャ・売却・精算・トロフィー・見た目 | PASS | 2026-09-05 | 自動live canary 93/93。exactly-once、復元、購入/装備を確認。fullPaint trophyはtransaction testで補完 |
 | C 野良・競合・完走 | PASS | 2026-09-05 03:13 JST | 自動live canary 210/210。16 profile、完走、2 finder、cancel/find、10 claim、再検索、秘密非公開を確認 |
 | D CPU同意・10人・代表3人・再戦 | PASS | 2026-09-05 | 自動live canary 107/107。実時間90/180秒、代表3人完走、復帰、統計、同じCPU再戦、対人検索競合を確認 |
-| Windows実browser主要導線 | PASS | 2026-09-05 | run `33926224196` attempt 2。Chrome 19/19、Edge 19/19。初回一操作、初手選択と`CREATE_REGION`、全タブstatus/offline/mobile、復帰、再戦、投了、クイズ、ガチャ、売却、見た目、野良、CPUを確認 |
-| Pages公開後preflight | PASS | 2026-09-05 | `main=7eab2f1`、Pages run `33926672851`、公開3資産の新marker 6/6、DB保護境界を含むcandidate preflight合格 |
+| Windows実browser主要導線 | PASS | 2026-09-05 | run `33929432778`。Chrome 21/21、Edge 21/21。CPU勝利戦績表示、390pxの6枚選択、初回一操作、初手、全タブstatus、復帰、再戦、クイズ、ガチャ、売却、見た目、野良、CPUを確認 |
+| Pages公開後preflight | PASS | 2026-09-05 | `main=fda261d`、Pages run `33929435963`、公開marker 7/7、DB保護境界を含むcandidate preflight合格 |
 | 二端末最終受入 | NOT_RUN | PENDING | PENDING |
 
 ## 残存リスク
