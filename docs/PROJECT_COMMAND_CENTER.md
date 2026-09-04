@@ -27,6 +27,8 @@
 | P0 | Supabase資源とRealtime負荷の追跡 | 運用 | CANDIDATE_VERIFIED | client購読を公開room UPDATE 1本へ限定。Quick pollをplaying 5秒/待機10秒、hidden停止へ変更。live Realtime 2/2合格。公開後24時間で負荷を再測定 |
 | P0 | 別々の二端末による最終受入 | チャッピー先生＋司令塔 | PENDING | 対人/CPUの完走、復帰、再戦、永続化を確認 |
 | P1 | 対戦を主役にする情報設計 | UX | LOCAL_VERIFIED | 5タブ化し、ホームの主CTAから対戦タブ内の初回profile作成・同期・ロビーまでを一本化。公開後の実端末確認待ち |
+| P1 | 初回オンライン準備を一操作に短縮 | UX | CANDIDATE_LOCAL_VERIFIED | `9d42784`。名前入力後の一操作でstarter保存とprofile同期を行い、自動入室はしない。空名write 0、同期二重送信防止、失敗時starter保持 |
+| P1 | 接続状態を対戦中も常時表示 | UX＋同期 | CANDIDATE_LOCAL_VERIFIED | `9d42784`。全5タブで単一statusを表示し、room外offlineも反映。390pxで下部nav非干渉、実Edge重点2/2 |
 | P1 | プレイヤー向けno-color宣言の仕様整合 | UX＋ルール | LOCAL_VERIFIED | 通常受渡し/split返却とも同一action内で自動終局し、Online UIから宣言を除去 |
 | P1 | Standardを学んで即CPU戦へ入る導線 | ゲーム体験 | CANDIDATE | 3手ガイドまたは固定スターターCPU戦から本戦へ遷移 |
 | P1 | 未コミット／孤立作業の回収 | 構成管理 | COMPLETED | 29床を3床へ集約。丸ごと統合候補は0。Quick回帰試験だけを回収し、残るroot dirtyは救出済み・凍結管理 |
@@ -50,7 +52,7 @@
 | 区分 | 対象 | 方針 |
 | --- | --- | --- |
 | 正本 | `origin/main@43c36ad` | 現在の公開commit |
-| 現在の統合床 | `codex/standard-release-command` | 司令塔が検証・修正・公開準備に使用 |
+| 現在の統合床 | `codex/standard-release-command@9d42784` | 初回一操作化と全タブ接続statusをローカル検証済み。Windows CIと公開判断待ち |
 | 公開済み現候補 | 製品`1673ff8`／公開`43c36ad` | 5タブ、初回対戦導線、クイズ・演出、debug隔離、no-color自動終局、profile安定化、status正規化、Realtime/poll復旧を統合。実Chrome/Edge各16/16と公開preflight合格。次は二端末受入 |
 | 保全済み | detached `a8fce7d` dirty床 | `codex/salvage-a8fce7d-20260904` / `9e4e8ee` に秘密情報なしでWIP保全済み。機能単位で比較 |
 | 凍結root | root `ac78282` | 正史worktreeを内包するため作業床は維持。dirty 40件は救出済みで、丸ごとmerge禁止。正本にない候補の採否は完了 |
