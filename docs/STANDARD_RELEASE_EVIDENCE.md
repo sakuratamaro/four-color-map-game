@@ -14,15 +14,15 @@
 | 製品コード・生成元 | VERIFIED | `standard/`、build scripts、生成済みEdge bundleが統合ブランチに存在 | 最終公開commitを記録 |
 | ローカル製品試験 | VERIFIED | 2026-09-04、専用runnerで665件合格、失敗0、769.2秒 | 公開後のcandidate preflightと実端末canary |
 | 次期UX候補のローカル検査 | VERIFIED | `codex/standard-release-command@1673ff8`。profile安定化、初回対戦導線、Quick Half Shift、status正規化、Realtime/poll復旧を含む非browser製品試験91ファイル522/522。browser workflow/harness静的11/11合格 | Pages反映後のpreflightと二端末受入 |
-| 初回導線・接続表示の次期候補 | VERIFIED | `9d42784`。初回starter作成＋profile同期を一操作化し、全5タブで単一接続statusを常時表示。空名write 0、room外offline復帰、390px下部nav非干渉を契約化。静的39/39、実Edge重点2/2、非browser 89ファイル513/513合格 | Windows Chrome/Edge全18件と公開判断 |
-| Windows実browser CI | VERIFIED | GitHub Actions run `33920847775`。Windows 2025のChrome 16/16（36.5秒）、Edge 16/16（41.8秒）、失敗0。読み取り専用権限・各15分上限 | 公開URLで同じ主要導線を二端末受入 |
-| 現行公開Pages | VERIFIED | `main=43c36ad`、Pages run `33921530679`成功。公開HTML/app/styleはHTTP 200、5タブ・結果画面保持・配色区切り・安定quiz発光markerを確認。candidate preflight `ok:true` | 別々の二端末で最終受入 |
+| 初回導線・接続表示の次期候補 | VERIFIED | `9d42784`。初回starter作成＋profile同期を一操作化し、全5タブで単一接続statusを常時表示。空名write 0、room外offline復帰、390px下部nav非干渉を契約化。静的39/39、非browser 89ファイル513/513、Windows Chrome/Edge各18/18合格 | 物理二端末受入 |
+| Windows実browser CI | VERIFIED | GitHub Actions run `33924037233`。Windows 2025のChrome/Edge各18/18、失敗0。読み取り専用権限・各15分上限 | 公開URLで同じ主要導線を二端末受入 |
+| 現行公開Pages | VERIFIED | `main=dfbec10`、Pages run `33924181589`成功。公開HTML/app/styleはHTTP 200、初回一操作・全タブstatus・同期guard・mobile offset markerを確認。candidate preflight `ok:true` | 別々の二端末で最終受入 |
 | 公開前DB境界 | VERIFIED | 旧snapshotは匿名権限拒否。snapshot v2と野良募集は`PGRST202`で未存在 | migration後のdb-ready preflight |
 | migration 006–013静的検査 | VERIFIED | migration別security/transaction testsと読み取り専用44項目SQL | 実DBで全行`ok=true` |
 | Dashboard Advisor・使用量baseline | BLOCKED | 変更前baselineは取得不能。22:55 JSTの現況はHealthyだがHealth Advisorにinfra alert 2件。Security指摘なし、Performance error/warning 0 | 24時間後に同じ指標とRealtime負荷を再採取 |
 | migration 006–013本番適用＋status正規化 | VERIFIED | 8本に加え`202609050001`を個別実行。status関数の保護契約を全項目確認し、C canary 210/210合格 | 実ブラウザと二端末最終受入 |
 | Edge Function更新 | VERIFIED | deployment 8、JWT検証ON。2026-09-05の`live-standard-edge-canary.mjs --confirm-live`は6/6合格 | 公開UI経由の完全canary |
-| GitHub main・Pages更新 | VERIFIED | remote `main=43c36ad`へforceなしfast-forward。Pages run `33921530679`成功、公開markerとpreflight合格 | 二端末受入後に最終状態を記録 |
+| GitHub main・Pages更新 | VERIFIED | remote `main=dfbec10`へforceなしfast-forward。Pages run `33924181589`成功、公開markerとpreflight合格 | 二端末受入後に最終状態を記録 |
 | 合言葉対戦canary | VERIFIED | deployment 8で`live-standard-runbook-a-canary.mjs --confirm-live` 43/43合格 | 実ブラウザ再読込と二端末最終受入 |
 | 経済・進行・見た目canary | VERIFIED | deployment 8でRunbook B 93/93合格 | 実ブラウザで報酬演出と操作感を確認 |
 | 野良対戦canary | VERIFIED | status正規化後、C 210/210合格。16 profile、完走、同時finder、取消競合、10同時claim、再検索、秘密非公開を確認 | 実ブラウザで二端末最終受入 |
@@ -71,6 +71,7 @@
 - `origin/main`を`dc5452a`から`43c36ad`へforceなしでfast-forwardし、Pages run `33921530679`が成功した。キャッシュ回避付き公開HTML/app/styleは全てHTTP 200で、5タブ、same-page結果保持、`赤・青`区切り、hitboxを動かさないquiz発光の固有markerを確認した。`live-standard-release-preflight.mjs --expect=candidate`も公開UI、snapshot v1/v2、野良募集の保護境界を含め`ok:true`だった。
 - 公開実画面の390px監査で、対戦タブ再読込後もsessionは成立している一方、接続statusがhome限定で不可視になることを再現した。`9d42784`で既存statusを複製せず全5タブ共通にし、home以外は下部navを避ける固定ピルへ縮小した。room未参加時のonline/offlineもstatusへ反映する。
 - 同監査と独立導線レビューで、fresh playerが名前作成後に技術用語の「オンライン同期」をもう一度押す二段確定を最大の離脱点と判定した。初回だけ一操作でstarter保存とprofile同期まで進め、空名ではlocal/server write 0、同期はin-flight guardで1回、自動room/matchmaking/CPU開始0を維持した。静的39/39、実Edgeの初回導線と全タブ/offline/mobile重点2/2、非browser 89ファイル513/513が合格した。全製品runnerは変更外のlocal Standard接触演出browser群で共有hostの長時間timeoutが再発したため中断し、次の判定は専用Windows Chrome/Edge gateへ分離する。
+- Windows browser run `33924037233`でChrome/Edge各18/18が合格したため、`origin/main`を`43c36ad`から`dfbec10`へforceなしでfast-forwardした。Pages run `33924181589`はbuild/report/deploy全job成功。キャッシュ回避付き公開marker 5/5、candidate preflight `ok:true`、公開390px対戦画面で固定statusと下部navの非干渉を確認した。
 
 ## 公開前後メトリクス
 
@@ -87,12 +88,12 @@
 | --- | --- |
 | browser harness diagnostics commit | `6fc23a5` |
 | Windows browser CI commit | `d8dac1b` |
-| final browser-verified candidate | `1673ff8` |
-| Windows browser CI run | `33920847775` / Chrome 16/16 / Edge 16/16 |
+| final browser-verified candidate | `9d42784` |
+| Windows browser CI run | `33924037233` / Chrome 18/18 / Edge 18/18 |
 | candidate code baseline | `0e02176`（Edge deployment 8 sourceは`c3cf372`） |
 | applied migrations | `202609030006`–`202609030013`, `202609050001` |
 | `standard-game-action` version | deployment 8 |
-| Pages Actions run | `33921530679` / Success / `43c36ad` |
+| Pages Actions run | `33924181589` / Success / `dfbec10` |
 | public URL | `https://sakuratamaro.github.io/four-color-map-game/standard-online-v5/` |
 
 ## Canary結果
@@ -106,8 +107,8 @@
 | B クイズ・ガチャ・売却・精算・トロフィー・見た目 | PASS | 2026-09-05 | 自動live canary 93/93。exactly-once、復元、購入/装備を確認。fullPaint trophyはtransaction testで補完 |
 | C 野良・競合・完走 | PASS | 2026-09-05 03:13 JST | 自動live canary 210/210。16 profile、完走、2 finder、cancel/find、10 claim、再検索、秘密非公開を確認 |
 | D CPU同意・10人・代表3人・再戦 | PASS | 2026-09-05 | 自動live canary 107/107。実時間90/180秒、代表3人完走、復帰、統計、同じCPU再戦、対人検索競合を確認 |
-| Windows実browser主要導線 | PASS | 2026-09-05 | run `33920847775`。Chrome 16/16、Edge 16/16。初回導線、復帰、再戦、投了、クイズ、ガチャ、売却、見た目、野良、CPUを確認 |
-| Pages公開後preflight | PASS | 2026-09-05 | `main=43c36ad`、Pages run `33921530679`、公開3資産HTTP 200、固有marker 4/4、DB保護境界を含むcandidate preflight合格 |
+| Windows実browser主要導線 | PASS | 2026-09-05 | run `33924037233`。Chrome 18/18、Edge 18/18。初回一操作、全タブstatus/offline/mobile、復帰、再戦、投了、クイズ、ガチャ、売却、見た目、野良、CPUを確認 |
+| Pages公開後preflight | PASS | 2026-09-05 | `main=dfbec10`、Pages run `33924181589`、公開3資産HTTP 200、固有marker 5/5、DB保護境界を含むcandidate preflight合格 |
 | 二端末最終受入 | NOT_RUN | PENDING | PENDING |
 
 ## 残存リスク
@@ -115,7 +116,7 @@
 - Dashboardの詳細なAdvisor/使用量baselineは未取得。画面上では資源逼迫警告が継続しているため、公開範囲を広げる前後で使用量を追跡する。
 - profile作成安定化はCの逐次16件で500/429なしを確認した。高並列作成そのものはAuth上限を消費するため再試験せず、再発時はEdge/DBログと資源警告を関連調査する。
 - Cのstatus正規化は本番関数定義、既存ticket整合、live canary 210/210まで確認済み。今後もIPあたり30 anonymous sign-ins/時を守り、同じ認証窓で重いcanaryを再試行しない。
-- 製品候補`1673ff8`は公開commit`43c36ad`としてPagesへ反映済み。自動browser/preflight合格と、未実施の物理二端末受入を混同しない。
+- 製品候補`9d42784`は公開commit`dfbec10`としてPagesへ反映済み。自動browser/preflight合格と、未実施の物理二端末受入を混同しない。
 - Edgeのper-isolate濫用抑止は分散レート制限ではない。公開後の計測で必要性が出た場合だけprovider側制限を検討する。
 - 10人CPUの合法性・決定性は自動検証済みだが、人間が感じる個性と楽しさは代表3人の実プレイ後も定性的判断として残る。
 - cleanup実削除や定期化は許可済みだが、exact IDと復元手段を確認するまで実行しない。課金設定変更は必要性と金額を特定してから扱う。
