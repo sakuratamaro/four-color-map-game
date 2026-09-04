@@ -31,6 +31,23 @@ test("quick game starts with distinct two-color palettes and three loaned skills
   assert.deepEqual(state.hands.A, { colorPrism: 1, areaHalfShift: 1, disruptChoiceOne: 1 });
 });
 
+test("palette, roll, and configured loadout inputs are independent", () => {
+  const paletteValues = [0.01, 0.2, 0.4, 0.6, 0.8];
+  const lowRoll = engine.createQuickGame({
+    paletteRandom: cycleRandom(paletteValues),
+    rollRandom: () => 0,
+    hands: { A: { colorPrism: 0, areaHalfShift: 0, disruptChoiceOne: 0 } },
+  });
+  const highRoll = engine.createQuickGame({
+    paletteRandom: cycleRandom(paletteValues),
+    rollRandom: () => 0.999,
+  });
+  assert.deepEqual(lowRoll.palettes, highRoll.palettes);
+  assert.notEqual(lowRoll.requiredSize, highRoll.requiredSize);
+  assert.deepEqual(lowRoll.hands.A, { colorPrism: 0, areaHalfShift: 0, disruptChoiceOne: 0 });
+  assert.deepEqual(highRoll.hands.A, { colorPrism: 1, areaHalfShift: 1, disruptChoiceOne: 1 });
+});
+
 test("create and color actions follow v4.9 turn ownership", () => {
   const random = cycleRandom();
   let state = engine.createQuickGame({ random });
@@ -94,6 +111,111 @@ test("Four Color Release allows a non-palette color but still loses on adjacency
 
   assert.equal(state.winner, "B");
   assert.equal(state.reason, "ILLEGAL_COLOR");
+});
+
+test("no-color declaration is accepted only when adjacency leaves no rule-safe palette color", () => {
+  const random = cycleRandom();
+  let state = engine.createQuickGame({ random });
+  const center = engine.internals.mIndex(3, 3);
+  const left = engine.internals.mIndex(2, 3);
+  const right = engine.internals.mIndex(4, 3);
+  const region = (id, macro, color, pending = false) => ({
+    id,
+    sourceMacros: [macro],
+    micro: engine.internals.microForMacro(macro),
+    color,
+    createdBy: "A",
+    controllers: [],
+    isPending: pending,
+  });
+  state.phase = "COLOR";
+  state.active = "A";
+  state.pending = "R3";
+  state.regions = {
+    R1: region("R1", left, state.palettes.A[0]),
+    R2: region("R2", right, state.palettes.A[1]),
+    R3: region("R3", center, null, true),
+  };
+  state.hands.A.colorPrism = 0;
+  const adjacent = new Set([state.regions.R1.color, state.regions.R2.color]);
+  const legal = state.palettes.A.filter((color) => state.seals.A[color] <= 0 && !adjacent.has(color));
+  assert.deepEqual(legal, []);
+  state = engine.applyAction(state, "A", action("no-colr1", 0, "DECLARE_NO_COLOR"), { random }).state;
+  assert.equal(state.winner, "B");
+  assert.equal(state.reason, "NO_LEGAL_COLOR");
+
+  let colorsRemain = engine.createQuickGame({ random: cycleRandom() });
+  colorsRemain.phase = "COLOR";
+  colorsRemain.active = "A";
+  colorsRemain.pending = "R1";
+  colorsRemain.regions = { R1: region("R1", center, null, true) };
+  assert.throws(
+    () => engine.applyAction(colorsRemain, "A", action("no-colr2", 0, "DECLARE_NO_COLOR"), { random }),
+    (error) => error.code === "COLORS_REMAIN",
+  );
+});
+
+test("terminal reason registry is exhaustive and crafted states reach sealed-out and board-lock", () => {
+  assert.deepEqual(Object.values(engine.TERMINAL_REASONS).sort(), [
+    "BOARD_LOCK",
+    "ILLEGAL_COLOR",
+    "NO_LEGAL_COLOR",
+    "SEALED_OUT",
+    "SURRENDER",
+  ]);
+
+  const random = cycleRandom();
+  let sealed = engine.createQuickGame({ random });
+  const center = engine.internals.mIndex(3, 3);
+  sealed.phase = "COLOR";
+  sealed.active = "A";
+  sealed.pending = "R1";
+  sealed.regions = {
+    R1: {
+      id: "R1",
+      sourceMacros: [center],
+      micro: engine.internals.microForMacro(center),
+      color: null,
+      createdBy: "B",
+      controllers: [],
+      isPending: true,
+    },
+  };
+  sealed.hands.A.colorPrism = 0;
+  for (const color of sealed.palettes.A) sealed.seals.A[color] = 1;
+  sealed = engine.applyAction(sealed, "A", action("sealed01", 0, "DECLARE_NO_COLOR"), { random }).state;
+  assert.equal(sealed.winner, "B");
+  assert.equal(sealed.reason, engine.TERMINAL_REASONS.SEALED_OUT);
+
+  let locked = engine.createQuickGame({ random: cycleRandom() });
+  const macros = [];
+  for (let row = locked.playableBounds.top; row <= locked.playableBounds.bottom; row += 1) {
+    for (let column = locked.playableBounds.left; column <= locked.playableBounds.right; column += 1) {
+      macros.push(engine.internals.mIndex(column, row));
+    }
+  }
+  locked.phase = "COLOR";
+  locked.active = "A";
+  locked.pending = "R1";
+  locked.regions = {
+    R1: {
+      id: "R1",
+      sourceMacros: macros,
+      micro: macros.flatMap((macro) => engine.internals.microForMacro(macro)),
+      color: null,
+      createdBy: "B",
+      controllers: [],
+      isPending: true,
+    },
+  };
+  locked = engine.applyAction(
+    locked,
+    "A",
+    action("boardl01", 0, "COLOR_REGION", { color: locked.palettes.A[0] }),
+    { random: cycleRandom() },
+  ).state;
+  assert.equal(locked.winner, "A");
+  assert.equal(locked.reason, engine.TERMINAL_REASONS.BOARD_LOCK);
 });
 
 test("Half Shift moves a populated band by half a macro and consumes exactly one card", () => {
