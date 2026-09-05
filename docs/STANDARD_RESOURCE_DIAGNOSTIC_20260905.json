@@ -1,0 +1,62 @@
+{
+  "capturedAt": "2026-09-05T07:42:33.337537+00:00",
+  "source": "supabase-sql-editor-read-only",
+  "query": "supabase/verification/standard_resource_diagnostic.sql",
+  "mutationPerformed": false,
+  "privacy": {
+    "rowIdentifiersCaptured": false,
+    "userIdentifiersCaptured": false,
+    "sqlTextCaptured": false,
+    "secretsCaptured": false
+  },
+  "database": {
+    "bytes": 15297683,
+    "largestRelation": {
+      "schema": "auth",
+      "relation": "users",
+      "totalBytes": 507904
+    },
+    "largestGameRelation": {
+      "schema": "public",
+      "relation": "fcg_standard_profiles",
+      "totalBytes": 327680
+    },
+    "maxEstimatedDeadTuples": 95
+  },
+  "connections": {
+    "total": 17,
+    "active": 2,
+    "idleInTransaction": 0,
+    "blocked": 0,
+    "realtimeApplicationConnections": 7
+  },
+  "realtime": {
+    "publicationTables": [
+      "public.fcg_rooms"
+    ],
+    "replicationSlots": 2,
+    "activeReplicationSlots": 2,
+    "inactiveReplicationSlots": 0,
+    "sumOfPerSlotLagBytes": 33553936,
+    "sumMayDoubleCountSharedWalSegments": true,
+    "retainedWalBytesMax": 16776968
+  },
+  "retentionCandidates": {
+    "roomsOlderThan24Hours": 11,
+    "searchingTicketsOlderThan7Days": 0,
+    "resolvedTicketsOlderThan7Days": 0,
+    "quizSessionsOlderThan7Days": 0,
+    "matchmakingFindReceiptsOlderThan30Days": 0,
+    "gachaReceiptsOlderThan30Days": 0,
+    "cardSaleReceiptsOlderThan30Days": 0,
+    "cosmeticReceiptsOlderThan30Days": 0,
+    "matchmakingLimitsOlderThan7Days": 0
+  },
+  "assessment": {
+    "gameTableGrowthExplainsHostDiskAlert": "NOT_SUPPORTED_BY_CURRENT_EVIDENCE",
+    "replicationSlotBacklogIsRunaway": "NOT_ESTABLISHED_SINGLE_SNAPSHOT",
+    "cleanupUrgencyForCapturedTargets": "LOW",
+    "billingOrComputeChangeAuthorizedByThisEvidence": false,
+    "nextAction": "Preserve the baseline, ship the client-only matchmaking handoff fix, then compare resource metrics after 24 hours."
+  }
+}
