@@ -63,9 +63,9 @@ const result = {
 };
 
 const phaseExpectations = {
-  baseline: { candidateUi: false, candidateDb: false },
-  "db-ready": { candidateUi: false, candidateDb: true },
-  candidate: { candidateUi: true, candidateDb: true },
+  baseline: { pregameAbandonUi: true, pregameAbandonDb: true, activeRoomUi: false, activeRoomDb: false },
+  "db-ready": { pregameAbandonUi: true, pregameAbandonDb: true, activeRoomUi: false, activeRoomDb: true },
+  candidate: { pregameAbandonUi: true, pregameAbandonDb: true, activeRoomUi: true, activeRoomDb: true },
 };
 
 if (expectedPhase) {
@@ -73,13 +73,13 @@ if (expectedPhase) {
   assert.equal(result.database.snapshotV1, "protected", "SNAPSHOT_V1_BASELINE_MISSING");
   assert.equal(result.database.snapshotV2, "protected", "SNAPSHOT_V2_BASELINE_MISSING");
   assert.equal(result.database.matchmaking, "protected", "MATCHMAKING_BASELINE_MISSING");
-  assert.equal(result.database.pregameAbandon, expected.candidateDb ? "protected" : "absent", "PREGAME_ABANDON_PHASE_MISMATCH");
-  assert.equal(result.database.activeRoom, expected.candidateDb ? "protected" : "absent", "ACTIVE_ROOM_RECOVERY_PHASE_MISMATCH");
+  assert.equal(result.database.pregameAbandon, expected.pregameAbandonDb ? "protected" : "absent", "PREGAME_ABANDON_PHASE_MISMATCH");
+  assert.equal(result.database.activeRoom, expected.activeRoomDb ? "protected" : "absent", "ACTIVE_ROOM_RECOVERY_PHASE_MISMATCH");
   for (const key of ["hasPublicMatchmaking", "hasCpuRoster", "hasCosmetics"]) {
     assert.equal(result.publicPage[key], true, `PUBLIC_BASELINE_UI_MISSING_${key}`);
   }
-  assert.equal(result.publicPage.hasPregameAbandon, expected.candidateUi, "PREGAME_ABANDON_UI_PHASE_MISMATCH");
-  assert.equal(result.publicPage.hasActiveRoomRecovery, expected.candidateUi, "ACTIVE_ROOM_RECOVERY_UI_PHASE_MISMATCH");
+  assert.equal(result.publicPage.hasPregameAbandon, expected.pregameAbandonUi, "PREGAME_ABANDON_UI_PHASE_MISMATCH");
+  assert.equal(result.publicPage.hasActiveRoomRecovery, expected.activeRoomUi, "ACTIVE_ROOM_RECOVERY_UI_PHASE_MISMATCH");
 }
 
 console.log(JSON.stringify(result));

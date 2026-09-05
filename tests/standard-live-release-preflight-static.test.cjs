@@ -21,6 +21,8 @@ test("release preflight is read-only, secret-free, finite, and stage-aware", () 
   assert.match(source, /fcg_standard_active_room/);
   assert.match(source, /hasPregameAbandon/);
   assert.match(source, /hasActiveRoomRecovery/);
+  assert.match(source, /baseline:\s*\{\s*pregameAbandonUi:\s*true,\s*pregameAbandonDb:\s*true,\s*activeRoomUi:\s*false,\s*activeRoomDb:\s*false\s*\}/);
+  assert.match(source, /"db-ready":\s*\{\s*pregameAbandonUi:\s*true,\s*pregameAbandonDb:\s*true,\s*activeRoomUi:\s*false,\s*activeRoomDb:\s*true\s*\}/);
   assert.match(source, /ACTIVE_ROOM_RECOVERY_PHASE_MISMATCH/);
   assert.match(source, /SNAPSHOT_V2_BASELINE_MISSING/);
   assert.match(source, /PUBLIC_BASELINE_UI_MISSING/);
