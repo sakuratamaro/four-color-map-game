@@ -504,6 +504,7 @@ test("board selection assist enlarges targets and supports connected keyboard se
   assert.match(css, /\.skin-board-aurora \.board-viewport\{outline:3px solid #22d3ee/);
   assert.match(css, /\.skin-board-aurora \.board-viewport #board,[^}]+\{outline:none;box-shadow:none\}/);
   assert.match(css, /\.board-viewport:has\(#board\.turn-arrival-beat\)\{animation:turn-arrival-board-frame/);
+  assert.match(css, /@media\(max-width:420px\)\{\.board-stage:has\(\.board-spotlight-legend\.hidden\)\{width:calc\(100% - 20px\)\}\}/);
   assert.doesNotMatch(assist, /sendAction|submitAction|availableColorChoices|legalColors|adjacentRegionIds|contactColor/);
   assert.match(app, /sendAction\("CREATE_REGION", \{ sourceMacros: \[\.\.\.selectedMacros\]\.sort/);
 });
