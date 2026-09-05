@@ -236,7 +236,9 @@ const staleJoin = await rpc(playerB, "fcg_standard_join_room", {
   p_room_code: waitingRoom.room_code,
   p_display_name: "AbandonCanary-B",
 });
-check("abandoned invite rejected", !staleJoin.ok, staleJoin);
+const staleJoinRow = firstRow(staleJoin.data);
+check("abandoned invite rejected", staleJoin.ok && staleJoinRow?.room_id === null
+  && staleJoinRow?.seat === "ERROR_JOIN_FAILED" && staleJoinRow?.game_mode === null, staleJoin);
 
 const readyRoom = await createRoom(playerA, "AbandonCanary-A", "ready-guest-abandon");
 await joinRoom(playerB, readyRoom.room_code, "AbandonCanary-B", readyRoom.tracker);

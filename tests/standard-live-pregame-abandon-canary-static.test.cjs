@@ -13,6 +13,7 @@ test("pregame-abandon canary is explicit, finite, public-client only, and cleans
   assert.match(source, /AbortSignal\.timeout\(20_000\)/);
   assert.match(source, /fcg_standard_abandon_room/);
   assert.match(source, /waiting room abandoned/);
+  assert.match(source, /ERROR_JOIN_FAILED/);
   assert.match(source, /guest can abandon ready room/);
   assert.match(source, /other member converges/);
   assert.match(source, /playing abandon rejected/);
