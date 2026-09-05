@@ -69,6 +69,8 @@ expected_functions(signature, audience) as (
     ('public.fcg_standard_server_accept_cpu(uuid,uuid,uuid,text,text,text,jsonb,jsonb,text)', 'service_role'),
     ('public.fcg_standard_server_start_cpu(uuid,uuid,uuid,text,text,text,jsonb,jsonb,text)', 'service_role'),
     ('public.fcg_standard_server_load_room_v2(uuid,uuid)', 'service_role'),
+    ('public.fcg_standard_server_load_room_v3(uuid,uuid)', 'service_role'),
+    ('public.fcg_standard_server_initialize_room(uuid,bigint,bigint,bigint,jsonb,jsonb,jsonb,jsonb)', 'service_role'),
     ('public.fcg_standard_server_request_cpu_rematch(uuid,uuid,bigint,uuid,text,text,text,jsonb,jsonb,text)', 'service_role'),
     ('public.fcg_standard_server_replay_cosmetic(uuid,uuid,text)', 'service_role'),
     ('public.fcg_standard_server_commit_cosmetic(uuid,bigint,uuid,text,jsonb,jsonb)', 'service_role'),

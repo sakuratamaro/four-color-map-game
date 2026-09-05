@@ -10,6 +10,7 @@ test("intent registry covers exactly the 19 canonical Standard cards", () => {
   assert.deepEqual(Object.keys(intents.TARGET_KIND).sort(), canonical);
   assert.equal(Object.keys(intents.TARGET_KIND).length, 19);
   assert.equal(Object.hasOwn(intents.TARGET_KIND, "legalRecolor"), false);
+  assert.deepEqual(intents.LAB_TARGET_KIND, { legalRecolor: "existing-region" });
 });
 
 test("six no-target cards produce finite immediate payloads", () => {
@@ -44,5 +45,6 @@ test("malformed target values fail before an action identity is allocated", () =
     ["areaResize", { mode: "grow", side: "left" }],
     ["areaHalfShift", { axis: "DIAGONAL", index: 1, direction: "plus" }],
   ]) assert.throws(() => intents.buildSkillPayload(skill, input), /INVALID_SKILL_TARGET/);
-  assert.throws(() => intents.buildSkillPayload("legalRecolor", { regionId: "R1" }), /UNKNOWN_STANDARD_SKILL/);
+  assert.deepEqual(intents.buildSkillPayload("legalRecolor", { regionId: "R1" }), { skill: "legalRecolor", regionId: "R1" });
+  assert.throws(() => intents.buildSkillPayload("legalRecolor", { regionId: "R0" }), /INVALID_SKILL_TARGET/);
 });

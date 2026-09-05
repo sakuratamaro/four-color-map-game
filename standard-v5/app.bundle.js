@@ -130,7 +130,7 @@ function validateLegalRecolorTarget(state, actor, regionId) {
   const region = state.regions?.[regionId];
   assertRule(region, "INVALID_TARGET", "Target region does not exist");
   assertRule(Boolean(region.color), "INVALID_TARGET", "Target must already be colored");
-  assertRule(state.pending !== regionId && !region.isPending, "INVALID_TARGET", "Pending region cannot be recolored");
+  assertRule(state.pending !== regionId && state.reserved !== regionId && !region.isPending, "INVALID_TARGET", "Pending or reserved region cannot be recolored");
   assertRule(!region.deleted && !region.delayed && !region.delayState, "INVALID_TARGET", "Deleted or delayed region cannot be recolored");
   return region;
 }
@@ -794,7 +794,7 @@ const STANDARD_SKILLS = Object.freeze({
     consumptionPolicy: "RESOLVED_CHOSEN_COLOR_AND_PRIVATE_RANDOM_SLOT_PERMANENT",
     handlerVersion: "disrupt-forced-palette-v1",
   }),
-  legalRecolor: skill("legalRecolor", "サーバー抽選による合法リカラー", "experimental", 3, "WORK", {
+  legalRecolor: skill("legalRecolor", "塗り直し・乱", "experimental", 3, "WORK", {
     targetSchema: { regionId: "region-id" },
     implemented: true,
     alphaUiEnabled: true,
@@ -2053,7 +2053,7 @@ function validateStandardState(state) {
     const commonKeys = ["actor", "eventId", "type", "version"];
     const typeKeys = trace.type === "CREATE_REGION"
       ? ["contactColorCount", "regionId", "sourceMacroCount"]
-      : trace.type === "COLOR_REGION" ? ["color", "regionId"] : trace.type === "USE_SKILL" ? [] : ["invalid"];
+      : trace.type === "COLOR_REGION" || trace.type === "LEGAL_RECOLOR" ? ["color", "regionId"] : trace.type === "USE_SKILL" ? [] : ["invalid"];
     const expectedKeys = [...commonKeys, ...typeKeys].sort();
     assertState(JSON.stringify(Object.keys(trace).sort()) === JSON.stringify(expectedKeys), "INVALID_PUBLIC_TRACE");
     assertState((trace.actor === "A" || trace.actor === "B")
@@ -2070,7 +2070,7 @@ function validateStandardState(state) {
         && Number.isInteger(trace.contactColorCount) && trace.contactColorCount >= 0 && trace.contactColorCount <= 4, "INVALID_PUBLIC_TRACE");
       if (trace.version === state.version) assertState(Boolean(region) && region.sourceMacros?.length === trace.sourceMacroCount
         && committedContactCount === trace.contactColorCount, "INVALID_PUBLIC_TRACE");
-    } else if (trace.type === "COLOR_REGION") {
+    } else if (trace.type === "COLOR_REGION" || trace.type === "LEGAL_RECOLOR") {
       assertState(typeof trace.regionId === "string" && trace.regionId.length > 0 && COLORS.includes(trace.color), "INVALID_PUBLIC_TRACE");
       if (trace.version === state.version) assertState(state.regions?.[trace.regionId]?.color === trace.color, "INVALID_PUBLIC_TRACE");
     }
@@ -2566,7 +2566,14 @@ function applyStandardAction({ state, actor, action, expectedVersion, rngStreams
       });
       if (result.ok) {
         const next = clone(result.state);
-        next.lastPublicTrace = {
+        next.lastPublicTrace = action.payload.skill === "legalRecolor" ? {
+          eventId: `${next.matchId}:${next.version}`,
+          version: next.version,
+          type: "LEGAL_RECOLOR",
+          actor,
+          regionId: action.payload.regionId,
+          color: result.color,
+        } : {
           eventId: `${next.matchId}:${next.version}`,
           version: next.version,
           type: "USE_SKILL",
@@ -6684,7 +6691,7 @@ function boot() {
         renderPrivate(own);
       });
     }
-    appendButton("合法リカラー（実験貸与）", phase !== "WORK" || !(own.hand.legalRecolor > 0) || targetMode === "legalRecolor", () => {
+    appendButton("塗り直し・乱（実験貸与）", phase !== "WORK" || !(own.hand.legalRecolor > 0) || targetMode === "legalRecolor", () => {
       targetMode = "legalRecolor";
       say("彩色済みエリアを1つ選んでください。");
       renderPrivate(own);

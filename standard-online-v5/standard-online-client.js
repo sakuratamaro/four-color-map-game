@@ -32,6 +32,12 @@
     INVALID_SETUP: "6枚セットを確認できませんでした。各カテゴリから2枚ずつ選び直してください。",
     DEBUG_MODE_NOT_ALLOWED: "デバッグ対戦は合言葉による人同士の対戦だけで使えます。CPU戦・野良対戦ではデバッグをOFFにしてください。",
     DEBUG_MODE_MISMATCH: "2人のデバッグ設定が一致していません。2人とも同じ設定にして、6枚を準備し直してください。",
+    LAB_MODE_NOT_ALLOWED: "塗り直しラボは合言葉による人同士の対戦だけで使えます。CPU戦・野良対戦ではラボをOFFにしてください。",
+    LAB_MODE_MISMATCH: "2人のラボ設定が一致していません。2人とも同じ設定にして、6枚を準備し直してください。",
+    EXPERIMENT_MODE_CONFLICT: "デバッグ対戦と塗り直しラボは同時に使えません。どちらか一方を選んでください。",
+    LAB_MODE_REQUIRED: "この実験カードは塗り直しラボでだけ使えます。対戦状態を読み直してください。",
+    NO_LEGAL_RECOLOR: "このエリアには変更できる色がありません。カード・手番は減っていません。別のエリアを選んでください。",
+    INTERFERENCE_CHAINED: "塗り直しは次の彩色が終わるまで続けて使えません。カード・手番は減っていません。",
     SETUP_REQUIRED: "2人分の6枚セットがそろっていません。準備完了後に相手をお待ちください。",
     ROOM_NOT_READY: "対戦開始の準備が整っていません。6枚セットと相手の状態を確認してください。",
     RATE_LIMITED: "短時間に操作が集中しました。少し待ってから同じ操作を再送してください。",
@@ -81,6 +87,33 @@
 
   function firstRow(data) { return Array.isArray(data) ? data[0] : data; }
   function clone(value) { return JSON.parse(JSON.stringify(value)); }
+  const SETUP_CATEGORIES = Object.freeze(["color", "area", "disrupt"]);
+  function normalizePendingSetup(value) {
+    if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+    const expectedKeys = ["debugMode", "expectedSetupRevision", "labMode", "loadout", "roomId", "setupActionId"];
+    if (JSON.stringify(Object.keys(value).sort()) !== JSON.stringify(expectedKeys)) return null;
+    if (!UUID_PATTERN.test(String(value.roomId)) || !UUID_PATTERN.test(String(value.setupActionId))
+        || !Number.isSafeInteger(value.expectedSetupRevision) || value.expectedSetupRevision < 0
+        || typeof value.debugMode !== "boolean" || typeof value.labMode !== "boolean" || value.debugMode && value.labMode
+        || !value.loadout || typeof value.loadout !== "object" || Array.isArray(value.loadout)
+        || JSON.stringify(Object.keys(value.loadout).sort()) !== JSON.stringify([...SETUP_CATEGORIES].sort())) return null;
+    const ids = [];
+    for (const category of SETUP_CATEGORIES) {
+      const entries = value.loadout[category];
+      if (!Array.isArray(entries) || entries.length !== 2
+          || entries.some((id) => typeof id !== "string" || !/^[A-Za-z][A-Za-z0-9]{0,63}$/.test(id))) return null;
+      ids.push(...entries);
+    }
+    if (new Set(ids).size !== ids.length) return null;
+    return clone({
+      roomId: value.roomId,
+      expectedSetupRevision: value.expectedSetupRevision,
+      setupActionId: value.setupActionId,
+      loadout: Object.fromEntries(SETUP_CATEGORIES.map((category) => [category, [...value.loadout[category]]])),
+      debugMode: value.debugMode,
+      labMode: value.labMode,
+    });
+  }
   function requiredText(value, code, max = 64) {
     const normalized = String(value || "").trim();
     if (!normalized || normalized.length > max) throw Object.assign(new Error(code), { code });
@@ -102,6 +135,9 @@
       roomCode: null,
       profileRevision: 0,
       setupRevision: 0,
+      committedDebugMode: false,
+      committedLabMode: false,
+      pendingSetup: null,
       rematchActionId: null,
       rematchExpectedVersion: null,
       abandonRoomId: null,
@@ -114,9 +150,22 @@
       cpuStartCharacterId: null,
       ...stored(storage),
     };
+    state.committedDebugMode = Number(state.setupRevision) > 0 && state.committedDebugMode === true;
+    state.committedLabMode = Number(state.setupRevision) > 0 && state.committedLabMode === true;
+    if (state.committedDebugMode && state.committedLabMode) {
+      state.committedDebugMode = false;
+      state.committedLabMode = false;
+    }
+    state.pendingSetup = normalizePendingSetup(state.pendingSetup);
+    if (state.pendingSetup?.roomId !== state.roomId) state.pendingSetup = null;
     let session = null;
 
     function persist() { storage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+    function clearCommittedSetupModes() {
+      state.committedDebugMode = false;
+      state.committedLabMode = false;
+    }
+    function clearPendingSetup() { state.pendingSetup = null; }
     async function ensureSession() {
       const existing = await supabase.auth.getSession();
       session = existing?.data?.session || null;
@@ -244,6 +293,8 @@
       state.roomId = row.room_id;
       state.roomCode = row.room_code;
       state.setupRevision = 0;
+      clearCommittedSetupModes();
+      clearPendingSetup();
       state.rematchActionId = null;
       state.rematchExpectedVersion = null;
       persist();
@@ -262,6 +313,8 @@
       state.roomId = row.room_id;
       state.roomCode = code;
       state.setupRevision = 0;
+      clearCommittedSetupModes();
+      clearPendingSetup();
       state.rematchActionId = null;
       state.rematchExpectedVersion = null;
       persist();
@@ -272,6 +325,8 @@
       state.roomId = row.room_id;
       state.roomCode = null;
       state.setupRevision = 0;
+      clearCommittedSetupModes();
+      clearPendingSetup();
       state.rematchActionId = null;
       state.rematchExpectedVersion = null;
       state.matchmakingTicketId = null;
@@ -328,6 +383,7 @@
         throw Object.assign(new Error("進行中の対戦が複数見つかりました。新しい対戦は作らず、しばらく待ってから再読み込みしてください。"), { code: "ACTIVE_ROOM_AMBIGUOUS" });
       }
       const row = rows[0];
+      const previousRoomId = state.roomId;
       const setupRevision = Number(row?.setup_revision);
       const roomVersion = Number(row?.room_version);
       if (!UUID_PATTERN.test(String(row?.room_id))
@@ -342,6 +398,8 @@
       state.roomId = row.room_id;
       state.roomCode = null;
       state.setupRevision = setupRevision;
+      if (previousRoomId !== row.room_id || setupRevision === 0) clearCommittedSetupModes();
+      if (previousRoomId !== row.room_id) clearPendingSetup();
       state.rematchActionId = null;
       state.rematchExpectedVersion = null;
       state.abandonRoomId = null;
@@ -401,6 +459,8 @@
       state.roomId = result.roomId;
       state.roomCode = null;
       state.setupRevision = 0;
+      clearCommittedSetupModes();
+      clearPendingSetup();
       state.rematchActionId = null;
       state.rematchExpectedVersion = null;
       state.matchmakingTicketId = null;
@@ -419,6 +479,8 @@
       state.roomId = result.roomId;
       state.roomCode = null;
       state.setupRevision = 0;
+      clearCommittedSetupModes();
+      clearPendingSetup();
       state.rematchActionId = null;
       state.rematchExpectedVersion = null;
       state.matchmakingTicketId = null;
@@ -434,15 +496,39 @@
       if (!UUID_PATTERN.test(String(roomId)) || !Number.isSafeInteger(expectedVersion) || expectedVersion < 0) throw new Error("INVALID_CPU_ACTION");
       return clone(await invoke("cpu-action", { roomId, expectedVersion }));
     }
-    async function submitSetup({ roomId = state.roomId, expectedSetupRevision = state.setupRevision, loadout, debugMode = false, setupActionId = idFactory() }) {
+    async function submitSetup({ roomId = state.roomId, expectedSetupRevision = state.setupRevision, loadout, debugMode = false, labMode = false, setupActionId = null }) {
       await ensureSession();
-      if (!UUID_PATTERN.test(String(roomId)) || !UUID_PATTERN.test(String(setupActionId)) || typeof debugMode !== "boolean") throw new Error("INVALID_SETUP_ID");
-      const result = await invoke("setup", { roomId, expectedSetupRevision, setupActionId, loadout: clone(loadout), debugMode });
-      state.roomId = roomId;
-      state.setupRevision = Number(firstRow(result.setupRevision));
-      state.profileRevision = Number(result.profileRevision);
+      const pending = normalizePendingSetup({
+        roomId,
+        expectedSetupRevision,
+        setupActionId: setupActionId || state.pendingSetup?.setupActionId || idFactory(),
+        loadout,
+        debugMode,
+        labMode,
+      });
+      if (!pending) throw Object.assign(new Error("INVALID_SETUP_ID"), { code: "INVALID_SETUP_ID", retryable: false });
+      if (state.pendingSetup && JSON.stringify(state.pendingSetup) !== JSON.stringify(pending)) {
+        throw Object.assign(new Error("SETUP_ALREADY_PENDING"), { code: "SETUP_ALREADY_PENDING", retryable: false });
+      }
+      state.pendingSetup = pending;
       persist();
-      return clone(result);
+      try {
+        const result = await invoke("setup", pending);
+        state.roomId = pending.roomId;
+        state.setupRevision = Number(firstRow(result.setupRevision));
+        state.profileRevision = Number(result.profileRevision);
+        state.committedDebugMode = pending.debugMode;
+        state.committedLabMode = pending.labMode;
+        clearPendingSetup();
+        persist();
+        return clone(result);
+      } catch (error) {
+        if (error?.retryable === false) {
+          clearPendingSetup();
+          persist();
+        }
+        throw error;
+      }
     }
     async function initialize(roomId = state.roomId) {
       await ensureSession();
@@ -508,6 +594,8 @@
       const row = firstRow(response.data);
       if (row?.ready_to_setup || row?.room_status === "ready") {
         state.setupRevision = 0;
+        clearCommittedSetupModes();
+        clearPendingSetup();
         state.rematchActionId = null;
         state.rematchExpectedVersion = null;
         persist();
@@ -526,6 +614,8 @@
       const result = await invoke("cpu-rematch", { roomId, expectedVersion, actionId: resolvedActionId });
       if (result?.readyToSetup || result?.roomStatus === "ready") {
         state.setupRevision = 0;
+        clearCommittedSetupModes();
+        clearPendingSetup();
         state.rematchActionId = null;
         state.rematchExpectedVersion = null;
         persist();
@@ -545,6 +635,8 @@
       if (snapshot.room.status === "ready" && Number.isSafeInteger(state.rematchExpectedVersion)
           && Number(snapshot.room.version) > state.rematchExpectedVersion) {
         state.setupRevision = 0;
+        clearCommittedSetupModes();
+        clearPendingSetup();
         state.rematchActionId = null;
         state.rematchExpectedVersion = null;
       }
@@ -592,6 +684,8 @@
       state.roomId = null;
       state.roomCode = null;
       state.setupRevision = 0;
+      clearCommittedSetupModes();
+      clearPendingSetup();
       state.rematchActionId = null;
       state.rematchExpectedVersion = null;
       state.abandonRoomId = null;
@@ -605,6 +699,8 @@
       state.roomCode = null;
       state.profileRevision = 0;
       state.setupRevision = 0;
+      clearCommittedSetupModes();
+      clearPendingSetup();
       state.rematchActionId = null;
       state.rematchExpectedVersion = null;
       state.abandonRoomId = null;

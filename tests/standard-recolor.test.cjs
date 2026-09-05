@@ -76,6 +76,7 @@ test("success consumes exactly once and passes unchanged WORK requirement", () =
   assert.equal(result.state.hands.A.legalRecolor, 0);
   assert.equal(result.state.skillsUsed.A, 1);
   assert.equal(result.state.version, 8);
+  assert.equal(result.state.turn, 4);
   assert.equal(result.state.active, "B");
   assert.equal(result.state.phase, "WORK");
   assert.equal(result.state.requiredSize, 3);
@@ -85,6 +86,15 @@ test("success consumes exactly once and passes unchanged WORK requirement", () =
   assert.equal(engine.sameColorAdjacentCount(result.state, "R12"), 0);
   assert.equal(base.hands.A.legalRecolor, 1);
   assert.equal(base.version, 7);
+});
+
+test("multiple legal colors have stable sorted RNG boundaries", () => {
+  const base = state();
+  for (const [draw, expected] of [[0, "blue"], [1 / 3, "yellow"], [2 / 3, "green"], [.999999, "green"]]) {
+    const result = engine.applyLegalRecolor(base, "A", "R12", { effectRandom: () => draw });
+    assert.equal(result.color, expected);
+    assert.deepEqual(result.candidates, ["blue", "yellow", "green"]);
+  }
 });
 
 test("same-color component merge keeps the smallest numeric region id independent of object order", () => {
@@ -122,6 +132,7 @@ test("rejected targets never mutate or consume effect RNG", () => {
     state({ active: "B" }),
     state({ regions: { R12: region("R12", 10, 10, null) } }),
     state({ pending: "R12", regions: { R12: region("R12", 10, 10, "red", { isPending: true }) } }),
+    state({ reserved: "R12" }),
     state({ regions: { R12: region("R12", 10, 10, "red", { delayed: true }) } }),
   ];
   for (const current of cases) {

@@ -41,7 +41,7 @@ function edgeDebugAllowed() {
 
 function edgeDebugAgreement() {
   const start = edgeSource.indexOf("function debugModeForRoom");
-  const end = edgeSource.indexOf("async function deterministicCpuIdentity", start);
+  const end = edgeSource.indexOf("function labModeForRoom", start);
   assert.ok(start >= 0 && end > start, "debug agreement helper must remain present");
   const runnable = edgeSource.slice(start, end)
     .replace("function debugModeForRoom(room: JsonObject): boolean | null", "function debugModeForRoom(room)")
@@ -77,7 +77,7 @@ test("the Edge room policy allows only private human debug setup", () => {
 
   const setup = edgeSource.slice(edgeSource.indexOf('if (operation === "setup")'), edgeSource.indexOf('stage = "load-room"'));
   assert.match(setup, /const setupRoom = await load\(\)/);
-  assert.match(edgeSource, /service\.rpc\("fcg_standard_server_load_room_v2", \{ p_room_id: roomId, p_actor_id: actorId \}\)/);
+  assert.match(edgeSource, /service\.rpc\("fcg_standard_server_load_room_v3", \{ p_room_id: roomId, p_actor_id: actorId \}\)/);
   assert.doesNotMatch(setup, /body\.(?:accessMode|access_mode|opponentKind|opponent_kind)/);
 });
 

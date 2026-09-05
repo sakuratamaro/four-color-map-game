@@ -40,6 +40,10 @@ const SKILLS = [
   ["disruptPaletteRandom", "持ち色汚染・乱", "disrupt"], ["disruptChoiceTwo", "追封", "disrupt"], ["disruptPaletteChoice", "持ち色汚染", "disrupt"],
   ["disruptChoiceThree", "長封", "disrupt"], ["disruptForcedPalette", "強制持ち替え", "disrupt"],
 ];
+const EXPERIMENTAL_SKILLS = Object.freeze({
+  legalRecolor: Object.freeze({ name: "塗り直し・乱", category: "experimental" }),
+});
+const LEGAL_RECOLOR_LAB_RULE_SET_ID = "STANDARD_V5_LEGAL_RECOLOR_LAB_V1";
 const CATEGORY_LABEL = { color: "色カード", area: "エリアカード", disrupt: "妨害カード" };
 const PHASE_LABEL = {
   CREATE_FIRST: "最初に渡すエリアを選んでください",
@@ -96,8 +100,9 @@ const SKILL_DESCRIPTION = Object.freeze({
   disruptPaletteChoice: "入れ替える色を選び、相手のどの持ち色枠に入るかはランダムで決まります。効果は彩色2回ぶんです。",
   disruptChoiceThree: "選んだ1色を、相手の次の彩色3回ぶん封じます。",
   disruptForcedPalette: "入れ替える色を選び、相手のランダムな持ち色枠を対戦終了まで変更します。",
+  legalRecolor: "彩色済みのエリアを1つ選び、現在色と隣接色を除いた色へランダムに塗り直します。変更後の色は確定するまで分かりません。ラボ対戦で1回だけ使えます。",
 });
-const RANDOM_SKILLS = new Set(["colorRandomBorrow", "areaMicroBloom", "disruptRandomOne", "disruptRandomTwo", "disruptPaletteRandom", "disruptPaletteChoice", "disruptForcedPalette"]);
+const RANDOM_SKILLS = new Set(["colorRandomBorrow", "areaMicroBloom", "disruptRandomOne", "disruptRandomTwo", "disruptPaletteRandom", "disruptPaletteChoice", "disruptForcedPalette", "legalRecolor"]);
 const RANDOM_REVEAL_PREFIX = "fourColorMapGame.standard.online.v5.random-reveal.";
 let localRoot = null;
 let availableProfiles = {};
@@ -118,6 +123,9 @@ let restoreAbandonDialogFocus = true;
 let pendingLifecycleLobbyFocus = false;
 let roomLifecycleAnnouncementToken = 0;
 let setupFailure = null;
+let setupModeDirty = false;
+let setupModeRoomId = client.snapshot().roomId;
+let setupModeRevision = Number(client.snapshot().setupRevision) || 0;
 let rematchBusy = false;
 let gachaBusy = false;
 let quizBusy = false;
@@ -185,6 +193,7 @@ function restoreCpuStartSaga() {
 let nextLoadoutDraft = restoreLoadoutDraft();
 let pendingCpuStartSaga = restoreCpuStartSaga();
 if (pendingCpuStartSaga) nextLoadoutDraft = pendingCpuStartSaga.canonicalLoadout;
+else if (client.snapshot().pendingSetup?.loadout) nextLoadoutDraft = normalizeLoadout(client.snapshot().pendingSetup.loadout, { requireComplete: true }) || nextLoadoutDraft;
 function restoreCpuRewardGachaResult() {
   try {
     const stored = JSON.parse(sessionStorage.getItem(CPU_REWARD_GACHA_RESULT_KEY) || "null");
@@ -249,7 +258,7 @@ const COLOR_HEX = { red: "#ef4444", blue: "#3b82f6", yellow: "#eab308", green: "
 const COLOR_JA = { red: "赤", blue: "青", yellow: "黄", green: "緑" };
 const APP_TABS = new Set(["home", "battle", "quiz", "cards", "profile"]);
 let activeAppTab = APP_TABS.has(location.hash.slice(1)) ? location.hash.slice(1) : localStorage.getItem(APP_TAB_KEY) || "home";
-const SKILL_META = Object.fromEntries(SKILLS.map(([id, name, category]) => [id, { name, category }]));
+const SKILL_META = Object.freeze({ ...Object.fromEntries(SKILLS.map(([id, name, category]) => [id, { name, category }])), ...EXPERIMENTAL_SKILLS });
 
 function show(id, value) { $(id).classList.toggle("hidden", !value); }
 function badge(text, tone = "warn") { $("connectionBadge").textContent = text; $("connectionBadge").className = `badge ${tone}`; }
@@ -258,6 +267,30 @@ function operationFeedback(id, message, tone = "") {
   const node = $(id);
   node.textContent = String(message || "").slice(0, 240);
   node.dataset.tone = tone;
+}
+function pendingSetupForCurrentRoom(snapshot = client.snapshot()) {
+  const pending = snapshot.pendingSetup;
+  return pending?.roomId === snapshot.roomId ? pending : null;
+}
+function syncSetupModeControls(snapshot = client.snapshot(), { force = false } = {}) {
+  const pending = pendingSetupForCurrentRoom(snapshot);
+  const revision = Number(snapshot.setupRevision) || 0;
+  const authoritativeContextChanged = setupModeRoomId !== snapshot.roomId || setupModeRevision !== revision;
+  if (!force && !authoritativeContextChanged && !pending && (setupModeDirty || revision === 0)) return;
+  setupModeRoomId = snapshot.roomId;
+  setupModeRevision = revision;
+  setupModeDirty = false;
+  const debugToggle = $("debugUnlimitedMode");
+  const labToggle = $("legalRecolorLabMode");
+  if (debugToggle) debugToggle.checked = pending ? pending.debugMode === true : revision > 0 && snapshot.committedDebugMode === true;
+  if (labToggle) labToggle.checked = pending ? pending.labMode === true : revision > 0 && snapshot.committedLabMode === true;
+}
+function updateSetupModeDirty() {
+  const snapshot = client.snapshot();
+  setupModeDirty = snapshot.setupRevision > 0 && (
+    ($("debugUnlimitedMode")?.checked === true) !== (snapshot.committedDebugMode === true)
+    || ($("legalRecolorLabMode")?.checked === true) !== (snapshot.committedLabMode === true)
+  );
 }
 function persistedAbandonExpectedVersion(roomId = client.snapshot().roomId) {
   const snapshot = client.snapshot();
@@ -321,6 +354,8 @@ function persistLoadoutDraft(value) {
   return normalized;
 }
 function editorLoadout() {
+  const pending = pendingSetupForCurrentRoom();
+  if (pending) return normalizeLoadout(pending.loadout, { requireComplete: true }) || normalizeLoadout(null);
   const result = normalizeLoadout(nextLoadoutDraft, { checkOwned: true });
   for (const category of LOADOUT_CATEGORIES) {
     for (const [skillId, , kind] of SKILLS) {
@@ -552,17 +587,36 @@ function publicActorLabel(seat) {
   return "相手";
 }
 
+function isLegalRecolorLab(state = roomModel?.room?.public_state) {
+  return state?.labRuleSetId === LEGAL_RECOLOR_LAB_RULE_SET_ID;
+}
+
+function eligibleRecolorRegions(state) {
+  return Object.values(state?.regions || {}).filter((region) => region?.color && region.id !== state.pending
+    && region.id !== state.reserved && !region.isPending && !region.deleted && !region.delayed && !region.delayState)
+    .sort((a, b) => Number.parseInt(a.id.slice(1), 10) - Number.parseInt(b.id.slice(1), 10));
+}
+
+function publicRegionLabel(state, regionId) {
+  const index = eligibleRecolorRegions(state).findIndex((region) => region.id === regionId);
+  return index >= 0 ? `エリア${index + 1}` : "選んだエリア";
+}
+
 function validPublicTrace(state) {
   const trace = state?.lastPublicTrace;
-  if (!trace || !["CREATE_REGION", "COLOR_REGION", "USE_SKILL"].includes(trace.type)
+  if (!trace || !["CREATE_REGION", "COLOR_REGION", "USE_SKILL", "LEGAL_RECOLOR"].includes(trace.type)
     || !["A", "B"].includes(trace.actor) || !Number.isSafeInteger(trace.version) || trace.version !== state.version
     || trace.eventId !== `${state.matchId}:${trace.version}`) return null;
+  const details = trace.type === "CREATE_REGION" ? ["contactColorCount", "regionId", "sourceMacroCount"]
+    : ["COLOR_REGION", "LEGAL_RECOLOR"].includes(trace.type) ? ["color", "regionId"] : [];
+  const expectedKeys = ["actor", "eventId", "type", "version", ...details].sort();
+  if (JSON.stringify(Object.keys(trace).sort()) !== JSON.stringify(expectedKeys)) return null;
   if (trace.type === "CREATE_REGION") {
     return typeof trace.regionId === "string"
       && Number.isSafeInteger(trace.sourceMacroCount) && trace.sourceMacroCount >= 1 && trace.sourceMacroCount <= 5
       && Number.isSafeInteger(trace.contactColorCount) && trace.contactColorCount >= 0 && trace.contactColorCount <= 4 ? trace : null;
   }
-  if (trace.type === "COLOR_REGION") return typeof trace.regionId === "string" && skillIntents.COLORS.includes(trace.color) ? trace : null;
+  if (["COLOR_REGION", "LEGAL_RECOLOR"].includes(trace.type)) return typeof trace.regionId === "string" && skillIntents.COLORS.includes(trace.color) ? trace : null;
   return trace;
 }
 
@@ -588,6 +642,10 @@ function renderTacticalTrace(state) {
     const color = COLOR_JA[trace.color] || trace.color;
     $("tacticalTraceAction").textContent = `${actor}が${color}で塗った`;
     $("tacticalTraceChange").textContent = `受け取ったエリアが${color}の領域になった`;
+  } else if (trace.type === "LEGAL_RECOLOR") {
+    const color = COLOR_JA[trace.color] || trace.color;
+    $("tacticalTraceAction").textContent = `${actor}が${publicRegionLabel(state, trace.regionId)}を${color}へ塗り直した`;
+    $("tacticalTraceChange").textContent = `抽選結果が確定し、エリア全体が${color}になった`;
   } else {
     $("tacticalTraceAction").textContent = `${actor}がスキルを使った`;
     $("tacticalTraceChange").textContent = "スキルの公開結果が盤面と対戦状態に反映された";
@@ -773,6 +831,7 @@ function renderTerminalResult(state) {
   $("terminalMessage").textContent = won ? `${playerName(mySeat)} の勝利です！` : `${playerName(state.winner)} の勝利です`;
   $("terminalReasonText").textContent = terminalReasonDetail(state, roomModel?.view?.private_state || {});
   const opponentKind = roomModel?.room?.opponent_kind;
+  const experimentalMatch = state.debugUnlimitedSkills === true || isLegalRecolorLab(state);
   const stats = opponentKind === "cpu" ? profile()?.cpuStats : profile()?.stats;
   const resultCount = Number(stats?.[won ? "wins" : "losses"]);
   const resultLabel = opponentKind === "cpu" ? "CPU戦" : "対人戦";
@@ -785,7 +844,7 @@ function renderTerminalResult(state) {
     && resultWasSaved
     && Number.isSafeInteger(resultCount)
     && resultCount >= 0;
-  const cpuRewardWasSaved = progressWasSaved && opponentKind === "cpu" && state.debugUnlimitedSkills !== true;
+  const cpuRewardWasSaved = progressWasSaved && opponentKind === "cpu" && !experimentalMatch;
   terminalCpuRewardGachaCandidate = cpuRewardWasSaved ? {
     source: "cpu-completion-reward",
     roomId: roomModel.room.id,
@@ -793,7 +852,9 @@ function renderTerminalResult(state) {
     matchId: state.matchId,
     ticketLevel: 1,
   } : null;
-  $("terminalProgressText").textContent = progressWasSaved
+  $("terminalProgressText").textContent = experimentalMatch
+    ? "実験対戦のため、戦績・報酬・在庫は変わりません。"
+    : progressWasSaved
     ? `戦績を保存しました：${resultLabel} ${won ? "勝利" : "敗北"} ${resultCount}${cpuRewardWasSaved ? "\n完了報酬：Lv.1ガチャ券 +1" : ""}`
     : "戦績を同期しています。マイページで確認できます。";
   show("terminalGoGacha", cpuRewardWasSaved);
@@ -2025,11 +2086,12 @@ function renderLoadoutSelectionState(message = "") {
   const remaining = Math.max(0, 6 - total);
   const ready = validLoadout(loadout);
   const snapshot = client.snapshot();
+  const pendingSetup = pendingSetupForCurrentRoom(snapshot);
   const cpuDraft = pendingCpuStartSaga || cpuEntryDraft;
   const roomlessWorkshop = !snapshot.roomId && loadoutWorkshopOpen && !cpuDraft;
   const cpuName = cpuDraft ? CPU_NAMES[cpuDraft.characterId] || "CPU" : "";
   const actionPending = setupBusy || cpuStartSagaBusy || abandonBusy || hasPendingAbandon(snapshot.roomId);
-  const inputFrozen = actionPending || Boolean(pendingCpuStartSaga);
+  const inputFrozen = actionPending || Boolean(pendingCpuStartSaga) || Boolean(pendingSetup);
   $("loadoutSummary").textContent = message || `選択 ${total}/6｜色 ${counts.color}/2｜エリア ${counts.area}/2｜妨害 ${counts.disrupt}/2${remaining ? `｜あと${remaining}枚` : "｜準備OK"}`;
   $("loadoutSummary").classList.toggle("is-complete", ready);
   $("setupTitle").textContent = cpuDraft ? `${cpuName}戦で使う6枚を確認` : roomlessWorkshop ? "次の対戦で使う6枚" : "対戦で使う6枚";
@@ -2042,7 +2104,8 @@ function renderLoadoutSelectionState(message = "") {
   if (cpuDraft) $("cpuStartReview").textContent = pendingCpuStartSaga
     ? `CPU「${cpuName}」とこの6枚で開始処理を再確認しています。選択内容は完了まで変更されません。`
     : `対戦相手：CPU「${cpuName}」。この画面ではまだ対戦は始まっていません。`;
-  $("setupCommitTitle").textContent = actionPending ? "開始結果を安全に確認しています…" : ready ? "6枚を選択済み・準備OK" : `あと${remaining}枚を選ぶと準備できます`;
+  $("setupCommitTitle").textContent = actionPending ? "開始結果を安全に確認しています…"
+    : pendingSetup ? "前回の準備結果を同じ処理IDで再確認できます" : ready ? "6枚を選択済み・準備OK" : `あと${remaining}枚を選ぶと準備できます`;
   $("setupCommitBar").classList.toggle("is-ready", ready);
   for (const input of document.querySelectorAll('#loadoutGrid input[type="checkbox"]')) {
     const label = input.closest(".loadout-option");
@@ -2052,11 +2115,15 @@ function renderLoadoutSelectionState(message = "") {
   }
   $("submitSetup").textContent = cpuDraft
     ? pendingCpuStartSaga ? "同じ開始処理を再確認" : `このCPU・6枚で対戦開始`
-    : roomlessWorkshop ? "この6枚を次戦候補に保存" : snapshot.setupRevision > 0 ? "変更した6枚で準備し直す" : "この6枚で準備完了";
+    : roomlessWorkshop ? "この6枚を次戦候補に保存" : pendingSetup ? "同じ準備処理を再確認" : snapshot.setupRevision > 0
+      ? setupModeDirty ? "変更した設定・6枚で準備し直す" : "変更した6枚で準備し直す"
+      : "この6枚で準備完了";
   $("submitSetup").disabled = actionPending || !ready;
   show("cancelCpuDraft", Boolean(cpuEntryDraft) && !pendingCpuStartSaga);
   const debugOption = $("debugUnlimitedMode")?.closest("label");
   if (debugOption) debugOption.classList.toggle("hidden", Boolean(cpuDraft) || roomlessWorkshop);
+  const labOption = $("legalRecolorLabMode")?.closest("label");
+  if (labOption) labOption.classList.toggle("hidden", Boolean(cpuDraft) || roomlessWorkshop);
 }
 
 async function refreshRoom(_reason, expectedRoomId = client.snapshot().roomId) {
@@ -2093,15 +2160,25 @@ async function refreshRoom(_reason, expectedRoomId = client.snapshot().roomId) {
   hydrateProfileRow(roomModel.profile);
   if ($("abandonRoomDialog").open && !["waiting", "ready"].includes(roomModel.room.status)) resolveAbandonStateConflict(roomModel.room.status);
   else render();
-  if (roomModel.room.status === "ready" && client.snapshot().setupRevision > 0 && !hasStandardPublicState(roomModel.room.public_state) && !initializeBusy && !hasPendingAbandon(expectedRoomId)) {
+  if (roomModel.room.status === "ready" && client.snapshot().setupRevision > 0 && !pendingSetupForCurrentRoom()
+      && !hasStandardPublicState(roomModel.room.public_state) && !initializeBusy && !hasPendingAbandon(expectedRoomId)) {
     initializeBusy = true;
     try {
       await client.initialize();
       const initializedRoom = await client.readRoom(expectedRoomId);
       if (client.snapshot().roomId === expectedRoomId) roomModel = initializedRoom;
     } catch (error) {
-      if (error?.code === "DEBUG_MODE_MISMATCH") toast("デバッグ設定が相手と違います。2人とも同じ設定にして、もう一度6枚を確認してください。");
-      else if (!String(error.message).includes("setup")) console.warn(error);
+      if (["DEBUG_MODE_MISMATCH", "LAB_MODE_MISMATCH", "EXPERIMENT_MODE_CONFLICT"].includes(error?.code)) {
+        const message = error.code === "DEBUG_MODE_MISMATCH"
+          ? "デバッグ設定が相手と違います。2人とも同じ設定にして、もう一度6枚を準備してください。"
+          : error.code === "LAB_MODE_MISMATCH"
+            ? "ラボ設定が相手と違います。2人ともラボを同じ設定にして、もう一度6枚を準備してください。"
+            : "デバッグ対戦とラボ対戦は同時に使えません。どちらか一方にそろえて、もう一度6枚を準備してください。";
+        setupFailure = { roomId: expectedRoomId, message };
+        operationFeedback("setupStatus", message, "error");
+        revealOperationFeedback("setupStatus");
+        toast(message);
+      } else if (!String(error.message).includes("setup")) console.warn(error);
     }
     finally { initializeBusy = false; render(); }
   }
@@ -2167,6 +2244,7 @@ function render() {
   renderProfileCardVisibility();
   renderMatchedRoomHandoff();
   const snapshot = client.snapshot();
+  syncSetupModeControls(snapshot);
   const cpuDraft = pendingCpuStartSaga || cpuEntryDraft;
   const matchmakingEntryActive = Boolean(snapshot.matchmakingTicketId || snapshot.matchmakingFindActionId);
   const authoritativeRoomLoaded = Boolean(snapshot.roomId && roomModel?.room?.id === snapshot.roomId);
@@ -2242,19 +2320,28 @@ function render() {
   const accessMode = roomModel?.room?.access_mode || (snapshot.roomCode ? "private_code" : "public_queue");
   const debugAllowed = accessMode === "private_code" && !cpuRoom;
   const debugToggle = $("debugUnlimitedMode");
+  const labToggle = $("legalRecolorLabMode");
+  const pendingSetup = pendingSetupForCurrentRoom(snapshot);
   if (debugToggle) {
-    debugToggle.disabled = !debugAllowed;
+    debugToggle.disabled = !debugAllowed || Boolean(pendingSetup);
     if (!debugAllowed && debugToggle.checked) { debugToggle.checked = false; renderLoadout(); }
+  }
+  if (labToggle) {
+    labToggle.disabled = !debugAllowed || Boolean(pendingSetup);
+    if (!debugAllowed && labToggle.checked) { labToggle.checked = false; renderLoadout(); }
   }
   $("roomIdentityLabel").textContent = accessMode === "public_queue" ? "対戦形式" : accessMode === "cpu" ? "対戦相手" : "合言葉";
   $("shownCode").textContent = accessMode === "public_queue" ? "野良対戦" : accessMode === "cpu" ? `CPU：${CPU_NAMES[roomModel?.room?.cpu_character_id] || playerName("B")}` : snapshot.roomCode || "復帰済";
   $("seatBadge").textContent = roomModel?.view?.seat ? `Player ${roomModel.view.seat}` : "席確認中";
   const debugMatch = roomModel?.room?.public_state?.debugUnlimitedSkills === true;
-  $("roomStatus").textContent = `${ROOM_STATUS_LABEL[roomModel?.room?.status] || "読み込み中"}${debugMatch ? "・デバッグ∞" : ""}`;
+  const labMatch = isLegalRecolorLab();
+  $("roomStatus").textContent = `${ROOM_STATUS_LABEL[roomModel?.room?.status] || "読み込み中"}${debugMatch ? "・デバッグ∞" : labMatch ? "・LAB（無報酬）" : ""}`;
   const roomAbandonable = ["waiting", "ready"].includes(roomModel?.room?.status);
   const pendingAbandon = roomAbandonable && hasPendingAbandon(snapshot.roomId);
   $("leaveRoom").textContent = roomFinished ? "結果を閉じてロビーへ" : "画面だけ閉じる";
-  $("leaveRoomDescription").textContent = roomFinished ? "対戦結果と戦績は保存されています。" : "ルーム・待機・対戦は継続します。";
+  $("leaveRoomDescription").textContent = roomFinished
+    ? labMatch || debugMatch ? "実験対戦のため、戦績・報酬・在庫は変わりません。" : "対戦結果と戦績は保存されています。"
+    : "ルーム・待機・対戦は継続します。";
   $("leaveRoom").disabled = abandonBusy;
   show("abandonRoom", roomAbandonable);
   show("abandonRoomHint", roomAbandonable);
@@ -2280,9 +2367,11 @@ function render() {
       : setupReady ? "あなたは準備完了です。相手の準備を待っています。" : "対戦で使う6枚を決めて、準備完了にしてください。";
   const currentSetupFailure = setupFailureMessage();
   operationFeedback("setupStatus", roomFinished ? "" : currentSetupFailure || (setupReady
-    ? "準備完了。相手を待っています。開始前なら6枚を変更できます。"
+    ? setupModeDirty
+      ? "ラボ／デバッグ設定の変更はまだサーバーへ反映されていません。下のボタンで準備し直してください。"
+      : "準備完了。相手を待っています。開始前なら6枚を変更できます。"
     : "選択済みの6枚でよければ、準備完了にしてください。"), currentSetupFailure ? "error" : "");
-  $("submitSetup").textContent = setupReady ? "変更した6枚で準備し直す" : "この6枚で準備完了";
+  $("submitSetup").textContent = setupReady ? setupModeDirty ? "変更した設定・6枚で準備し直す" : "変更した6枚で準備し直す" : "この6枚で準備完了";
   renderLoadoutSelectionState();
   if (hasStandardPublicState(roomModel?.room?.public_state)) {
     const publicState = roomModel.room.public_state;
@@ -2318,12 +2407,24 @@ function button(text, onClick, className = "") {
 function renderSkills(state, privateState) {
   const box = $("skillControls"); box.replaceChildren();
   const myTurn = state.status === "ACTIVE" && state.active === roomModel?.view?.seat;
+  if (targetDraft && (targetDraft.roomId !== roomModel?.room?.id || targetDraft.matchId !== state.matchId || targetDraft.version !== state.version)) {
+    targetDraft = null;
+    selectedMacros.clear();
+  }
   for (const [skill, count] of Object.entries(privateState.hand || {})) {
     if (!(count > 0) || !SKILL_META[skill]) continue;
     const meta = SKILL_META[skill];
+    if (skill === "legalRecolor") {
+      const label = document.createElement("strong");
+      label.className = "lab-skill-label";
+      label.textContent = "LAB貸与カード（この対戦で1回）";
+      box.appendChild(label);
+    }
     const item = document.createElement("div"); item.className = "skill-entry";
     const node = button(`${meta.name} ${state.debugUnlimitedSkills ? "∞" : `×${count}`}`, () => beginSkill(skill), "skill");
-    const timingOkay = meta.category === "color" ? state.phase === "COLOR" : ["CREATE_FIRST", "WORK"].includes(state.phase);
+    node.dataset.skill = skill;
+    const timingOkay = skill === "legalRecolor" ? state.phase === "WORK"
+      : meta.category === "color" ? state.phase === "COLOR" : ["CREATE_FIRST", "WORK"].includes(state.phase);
     node.disabled = actionBusy || !myTurn || !timingOkay;
     const info = button("ⓘ", () => openSkillInfo(skill), "skill-info-button");
     info.type = "button"; info.setAttribute("aria-label", `${meta.name}の説明`); info.title = `${meta.name}の説明`;
@@ -2336,20 +2437,41 @@ function beginSkill(skill) {
   if (skillIntents.isImmediate(skill)) {
     return sendAction("USE_SKILL", skillIntents.buildSkillPayload(skill));
   }
-  targetDraft = { skill, kind: skillIntents.TARGET_KIND[skill], input: {} };
+  const state = roomModel?.room?.public_state;
+  targetDraft = { skill, kind: skillIntents.targetKind(skill), input: {}, roomId: roomModel?.room?.id, matchId: state?.matchId, version: state?.version };
   selectedMacros.clear(); render();
+  $("skillTargetControls")?.querySelector("strong")?.focus({ preventScroll: true });
 }
 
 function targetChoice(label, key, value) {
   const selected = targetDraft?.input?.[key] === value;
-  const node = button(label, () => { targetDraft.input[key] = value; render(); }, selected ? "primary" : "ghost");
+  const node = button(label, () => {
+    targetDraft.input[key] = value;
+    render();
+    const choice = [...$("skillTargetControls").querySelectorAll("button[data-target-key]")]
+      .find((candidate) => candidate.dataset.targetKey === key && candidate.dataset.targetValue === String(value));
+    choice?.focus({ preventScroll: true });
+  }, selected ? "primary" : "ghost");
+  node.dataset.targetKey = key;
+  node.dataset.targetValue = String(value);
+  node.setAttribute("aria-pressed", String(selected));
   return node;
+}
+
+function cancelSkillTarget() {
+  const skill = targetDraft?.skill;
+  targetDraft = null;
+  selectedMacros.clear();
+  render();
+  const source = [...$("skillControls").querySelectorAll("button[data-skill]")]
+    .find((candidate) => candidate.dataset.skill === skill);
+  source?.focus({ preventScroll: true });
 }
 
 function renderSkillTarget(state) {
   const panel = $("skillTargetControls"); panel.replaceChildren(); show("skillTargetControls", Boolean(targetDraft));
   if (!targetDraft) return;
-  const title = document.createElement("strong"); title.textContent = `${SKILL_META[targetDraft.skill].name} — 対象を指定`; panel.appendChild(title);
+  const title = document.createElement("strong"); title.tabIndex = -1; title.textContent = `${SKILL_META[targetDraft.skill].name} — 対象を指定`; panel.appendChild(title);
   const controls = document.createElement("div"); controls.className = "controls";
   if (["color", "slot-color"].includes(targetDraft.kind)) {
     for (const color of skillIntents.COLORS) controls.appendChild(targetChoice(COLOR_JA[color], "color", color));
@@ -2357,6 +2479,20 @@ function renderSkillTarget(state) {
   if (targetDraft.kind === "slot-color") for (const slot of [0, 1, 2]) controls.appendChild(targetChoice(`持ち色${slot + 1}`, "slot", slot));
   if (targetDraft.kind === "region-split") {
     for (const id of Object.keys(state.regions || {})) controls.appendChild(targetChoice(id, "regionId", id));
+  }
+  if (targetDraft.kind === "existing-region") {
+    const regions = eligibleRecolorRegions(state);
+    for (const [index, region] of regions.entries()) {
+      controls.appendChild(targetChoice(`エリア${index + 1}・${COLOR_JA[region.color] || region.color}`, "regionId", region.id));
+    }
+    const note = document.createElement("span");
+    note.id = "legalRecolorTargetNote";
+    note.className = "selected-macro-note";
+    note.textContent = regions.length
+      ? "盤面または一覧から選択。変更後の色と成功可否は確定するまで分かりません。不成立でもカード・手番は減りません。"
+      : "現在選べる彩色済みエリアはありません。カード・手番は減りません。";
+    controls.appendChild(note);
+    for (const choice of controls.querySelectorAll("button")) choice.setAttribute("aria-describedby", note.id);
   }
   if (["source-macros", "region-split", "corner-bloom"].includes(targetDraft.kind)) {
     const note = document.createElement("span"); note.className = "selected-macro-note"; note.textContent = `盤面選択 ${selectedMacros.size}マス`; controls.appendChild(note);
@@ -2380,8 +2516,13 @@ function renderSkillTarget(state) {
   if (["source-macros", "region-split", "corner-bloom"].includes(targetDraft.kind)) {
     actions.appendChild(button("盤面選択を解除", () => { selectedMacros.clear(); render(); }, "ghost"));
   }
-  actions.appendChild(button("この対象で使う", submitSkillTarget, "primary"));
-  actions.appendChild(button("キャンセル", () => { targetDraft = null; selectedMacros.clear(); render(); }, "ghost")); panel.appendChild(actions);
+  const useTarget = button(targetDraft.kind === "existing-region" ? "このエリアをランダムに塗り直す" : "この対象で使う", submitSkillTarget, "primary");
+  if (targetDraft.kind === "existing-region") {
+    useTarget.disabled = !targetDraft.input.regionId;
+    useTarget.setAttribute("aria-describedby", "legalRecolorTargetNote");
+  }
+  actions.appendChild(useTarget);
+  actions.appendChild(button("キャンセル", cancelSkillTarget, "ghost")); panel.appendChild(actions);
 }
 
 function submitSkillTarget() {
@@ -2396,6 +2537,8 @@ function submitSkillTarget() {
 
 function renderBoard(state) {
   const canvas = $("board"); const ctx = canvas.getContext("2d");
+  canvas.setAttribute("aria-label", targetDraft?.kind === "existing-region"
+    ? "塗り直す彩色済みエリアを選択。番号と色名は下の対象一覧でも選べます。" : "四色地図の対戦盤面");
   const macroWidth = state.playableBounds.macroWidth; const microScale = state.playableBounds.microScale;
   const microWidth = macroWidth * microScale; const cell = canvas.width / microWidth;
   ctx.fillStyle = "#020617"; ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -2421,6 +2564,26 @@ function renderBoard(state) {
     const col = macro % macroWidth; const row = Math.floor(macro / macroWidth);
     ctx.fillRect(col * microScale * cell, row * microScale * cell, microScale * cell, microScale * cell);
     ctx.strokeRect(col * microScale * cell + 1, row * microScale * cell + 1, microScale * cell - 2, microScale * cell - 2);
+  }
+  if (targetDraft?.kind === "existing-region") {
+    for (const [index, region] of eligibleRecolorRegions(state).entries()) {
+      const selected = targetDraft.input.regionId === region.id;
+      ctx.strokeStyle = selected ? "#ffffff" : "#e2e8f0";
+      ctx.lineWidth = selected ? 3 : 1.5;
+      for (const micro of region.micro || []) {
+        const x = micro % microWidth; const y = Math.floor(micro / microWidth);
+        ctx.strokeRect(x * cell + 1, y * cell + 1, Math.max(1, cell - 2), Math.max(1, cell - 2));
+      }
+      const cells = region.micro || [];
+      if (!cells.length) continue;
+      const centerX = cells.reduce((sum, micro) => sum + (micro % microWidth) + .5, 0) / cells.length * cell;
+      const centerY = cells.reduce((sum, micro) => sum + Math.floor(micro / microWidth) + .5, 0) / cells.length * cell;
+      ctx.fillStyle = selected ? "#ffffff" : "#0f172a";
+      ctx.beginPath(); ctx.arc(centerX, centerY, 11, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = selected ? "#0f172a" : "#ffffff";
+      ctx.font = "bold 13px system-ui"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillText(String(index + 1), centerX, centerY + .5);
+    }
   }
 }
 
@@ -2512,8 +2675,20 @@ function renderBasicActions(state, privateState) {
 function boardPointer(event) {
   const state = roomModel?.room?.public_state; const seat = roomModel?.view?.seat;
   const skillGeometry = targetDraft && ["source-macros", "region-split", "corner-bloom"].includes(targetDraft.kind);
-  if (!state || roomModel?.room?.status !== "playing" || state.status !== "ACTIVE" || actionBusy || state.active !== seat || (!skillGeometry && !["CREATE_FIRST", "WORK"].includes(state.phase))) return;
+  const recolorTarget = targetDraft?.kind === "existing-region";
+  if (!state || roomModel?.room?.status !== "playing" || state.status !== "ACTIVE" || actionBusy || state.active !== seat
+    || (!recolorTarget && !skillGeometry && !["CREATE_FIRST", "WORK"].includes(state.phase))) return;
   const rect = event.currentTarget.getBoundingClientRect(); const width = state.playableBounds.macroWidth;
+  if (recolorTarget) {
+    const microWidth = width * state.playableBounds.microScale;
+    const microCol = Math.max(0, Math.min(microWidth - 1, Math.floor((event.clientX - rect.left) / rect.width * microWidth)));
+    const microRow = Math.max(0, Math.min(microWidth - 1, Math.floor((event.clientY - rect.top) / rect.height * microWidth)));
+    const micro = microRow * microWidth + microCol;
+    const region = eligibleRecolorRegions(state).find((entry) => entry.micro?.includes(micro));
+    if (region) targetDraft.input.regionId = region.id;
+    render();
+    return;
+  }
   const col = Math.max(0, Math.min(width - 1, Math.floor((event.clientX - rect.left) / rect.width * width)));
   const row = Math.max(0, Math.min(width - 1, Math.floor((event.clientY - rect.top) / rect.height * width)));
   const macro = row * width + col;
@@ -2535,6 +2710,7 @@ async function sendAction(type, payload = {}, retry = false) {
     return;
   }
   const signature = actionSignature(type, payload);
+  const isRecolorAction = type === "USE_SKILL" && payload?.skill === "legalRecolor";
   const roomId = roomModel.room.id;
   const matchId = state.matchId;
   if (retry && (!pendingAction || pendingAction.roomId !== roomId || pendingAction.matchId !== matchId || pendingAction.signature !== signature)) {
@@ -2552,6 +2728,12 @@ async function sendAction(type, payload = {}, retry = false) {
     const response = await client.submitAction(pendingAction);
     pendingAction = null; selectedMacros.clear(); operationFeedback("actionStatus", "操作を保存しました。", "success");
     await roomSync.refreshNow();
+    if (isRecolorAction) {
+      const trace = validPublicTrace(roomModel?.room?.public_state);
+      if (trace?.type === "LEGAL_RECOLOR" && trace.regionId === payload.regionId) {
+        operationFeedback("actionStatus", `${publicRegionLabel(roomModel.room.public_state, trace.regionId)}を${COLOR_JA[trace.color] || trace.color}へ塗り直しました。`, "success");
+      }
+    }
   } catch (error) {
     const safeMessage = error?.message || "操作を完了できませんでした。";
     if (error?.retryable === false) {
@@ -3086,16 +3268,30 @@ function saveLoadoutWorkshopDraft() {
 }
 
 async function submitSetup() {
-  const loadout = selectedLoadout(); if (!validLoadout(loadout)) return toast("各カテゴリから2枚ずつ選んでください。");
+  const pendingSetup = pendingSetupForCurrentRoom();
+  const loadout = pendingSetup?.loadout || selectedLoadout();
+  if (!validLoadout(loadout)) return toast("各カテゴリから2枚ずつ選んでください。");
   const startingRoomStatus = roomModel?.room?.status;
   const interactionRevision = userInteractionRevision;
-  setupBusy = true; setupFailure = null; operationFeedback("setupStatus", "6枚セットをサーバーで確認中…"); renderLoadoutSelectionState();
-  const debugMode = $("debugUnlimitedMode")?.checked === true;
+  setupBusy = true; setupFailure = null;
+  operationFeedback("setupStatus", pendingSetup ? "同じ準備処理IDで保存結果を再確認中…" : "6枚セットをサーバーで確認中…");
+  renderLoadoutSelectionState();
+  const debugMode = pendingSetup ? pendingSetup.debugMode : $("debugUnlimitedMode")?.checked === true;
+  const labMode = pendingSetup ? pendingSetup.labMode : $("legalRecolorLabMode")?.checked === true;
   try {
-    await client.submitSetup({ loadout, debugMode });
+    await client.submitSetup({
+      roomId: pendingSetup?.roomId,
+      expectedSetupRevision: pendingSetup?.expectedSetupRevision,
+      setupActionId: pendingSetup?.setupActionId,
+      loadout,
+      debugMode,
+      labMode,
+    });
+    setupModeDirty = false;
     await roomSync.refreshNow();
     setupFailure = null;
-    toast(debugMode ? "デバッグ用6枚で準備完了しました。相手もデバッグをONにしてください。" : "この6枚で準備完了しました。");
+    toast(debugMode ? "デバッグ用6枚で準備完了しました。相手もデバッグをONにしてください。"
+      : labMode ? "塗り直しラボで準備完了しました。相手もラボをONにしてください。" : "この6枚で準備完了しました。");
     if (startingRoomStatus === "ready" && roomModel?.room?.status === "playing") handoffFromSetupToMatch(interactionRevision);
   }
   catch (error) {
@@ -3105,7 +3301,7 @@ async function submitSetup() {
     revealOperationFeedback("setupStatus");
     toast(message);
   }
-  finally { setupBusy = false; renderLoadoutSelectionState(); }
+  finally { setupBusy = false; render(); }
 }
 
 function submitCurrentLoadoutContext() {
@@ -3352,7 +3548,18 @@ $("cpuRosterDialog").addEventListener("close", () => {
   trigger?.focus?.();
 });
 $("roomCode").oninput = () => { $("roomCode").value = $("roomCode").value.replace(/\s/g, "").toUpperCase().slice(0, 6); };
-$("debugUnlimitedMode").onchange = renderLoadout;
+$("debugUnlimitedMode").onchange = () => {
+  if ($("debugUnlimitedMode").checked) $("legalRecolorLabMode").checked = false;
+  updateSetupModeDirty();
+  renderLoadout();
+  render();
+};
+$("legalRecolorLabMode").onchange = () => {
+  if ($("legalRecolorLabMode").checked) $("debugUnlimitedMode").checked = false;
+  updateSetupModeDirty();
+  renderLoadout();
+  render();
+};
 $("submitSetup").onclick = submitCurrentLoadoutContext;
 $("cancelCpuDraft").onclick = cancelCpuDraft;
 $("board").addEventListener("pointerdown", boardPointer);
@@ -3413,6 +3620,7 @@ for (const button of document.querySelectorAll("[data-app-tab]")) button.onclick
 for (const button of document.querySelectorAll("[data-tab-jump]")) button.onclick = () => activateAppTab(button.dataset.tabJump);
 window.addEventListener("hashchange", () => activateAppTab(location.hash.slice(1), { updateHash: false }));
 
+syncSetupModeControls(client.snapshot(), { force: true });
 loadProfiles();
 activateAppTab(activeAppTab);
 render();

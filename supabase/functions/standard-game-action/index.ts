@@ -4,10 +4,10 @@ import "./standard-engine.bundle.js";
 type JsonObject = Record<string, unknown>;
 type Seat = "A" | "B";
 type StandardEngineApi = {
-  create(input: { matchId: string; loadouts: Record<Seat, JsonObject>; profiles: Record<Seat, JsonObject>; seed: number; debugMode?: boolean }): JsonObject;
-  apply(input: { state: JsonObject; rngSnapshot: JsonObject; actor: Seat; action: JsonObject; expectedVersion: number; debugMode?: boolean }): JsonObject;
+  create(input: { matchId: string; loadouts: Record<Seat, JsonObject>; profiles: Record<Seat, JsonObject>; seed: number; debugMode?: boolean; labMode?: boolean }): JsonObject;
+  apply(input: { state: JsonObject; rngSnapshot: JsonObject; actor: Seat; action: JsonObject; expectedVersion: number; debugMode?: boolean; labMode?: boolean }): JsonObject;
   applyCosmetic(input: { profile: JsonObject; cosmeticId: string }): { profile: JsonObject; quote: JsonObject };
-  applyProfiles(input: { profiles: Record<Seat, JsonObject>; beforeState: JsonObject; nextState: JsonObject; actor: Seat; action: JsonObject; finishedAt: string; debugMode?: boolean }): { profiles: Record<Seat, JsonObject>; changed: Record<Seat, boolean> };
+  applyProfiles(input: { profiles: Record<Seat, JsonObject>; beforeState: JsonObject; nextState: JsonObject; actor: Seat; action: JsonObject; finishedAt: string; debugMode?: boolean; labMode?: boolean }): { profiles: Record<Seat, JsonObject>; changed: Record<Seat, boolean> };
   applyCpuProfiles(input: { profiles: Record<Seat, JsonObject>; beforeState: JsonObject; nextState: JsonObject; actor: Seat; action: JsonObject; finishedAt: string; characterId: string }): { profiles: Record<Seat, JsonObject>; changed: Record<Seat, boolean> };
   createStarterProfile(displayName: string): JsonObject;
   drawGacha(input: { profile: JsonObject; ticketLevel: number; count: number; seed: number }): { profile: JsonObject; draws: JsonObject[] };
@@ -20,7 +20,7 @@ type StandardEngineApi = {
   chooseCpuAction(input: { publicState: JsonObject; ownPrivateState: JsonObject; characterId: string; policyVersion: string; seed: number }): JsonObject;
   publicState(state: JsonObject): JsonObject;
   privateState(state: JsonObject, seat: Seat): JsonObject;
-  project(state: JsonObject, debugMode?: boolean): { publicState: JsonObject; privateA: JsonObject; privateB: JsonObject };
+  project(state: JsonObject, debugMode?: boolean, labMode?: boolean): { publicState: JsonObject; privateA: JsonObject; privateB: JsonObject };
   validateProfile(profile: JsonObject): boolean;
   validateSeatLoadout(input: { loadout: JsonObject; profile?: JsonObject }): boolean;
 };
@@ -33,6 +33,7 @@ declare global {
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const DEBUG_SETUP_KEY = "__debugUnlimitedSkills";
+const LAB_SETUP_KEY = "__experimentalLegalRecolor";
 const QUIZ_TIMEOUT_ANSWER = "__timeout__";
 const QUIZ_ANSWER_PATTERN = /^q(?:[1-9]|10)-[1-6]$/;
 const corsHeaders = {
@@ -113,19 +114,26 @@ async function fingerprint(value: unknown): Promise<string> {
   return [...new Uint8Array(await crypto.subtle.digest("SHA-256", bytes))].map((value) => value.toString(16).padStart(2, "0")).join("");
 }
 
-function storedLoadout(loadout: JsonObject, debugMode: boolean): JsonObject {
-  return debugMode ? { ...loadout, [DEBUG_SETUP_KEY]: true } : { ...loadout };
+function storedLoadout(loadout: JsonObject, debugMode: boolean, labMode: boolean): JsonObject {
+  return { ...loadout, ...(debugMode ? { [DEBUG_SETUP_KEY]: true } : {}), ...(labMode ? { [LAB_SETUP_KEY]: true } : {}) };
 }
 
 function playableLoadout(loadout: JsonObject): JsonObject {
   const value = { ...loadout };
   delete value[DEBUG_SETUP_KEY];
+  delete value[LAB_SETUP_KEY];
   return value;
 }
 
 function debugModeForRoom(room: JsonObject): boolean | null {
   const a = Boolean((room.setup_a as JsonObject | null)?.[DEBUG_SETUP_KEY] === true);
   const b = Boolean((room.setup_b as JsonObject | null)?.[DEBUG_SETUP_KEY] === true);
+  return a === b ? a : null;
+}
+
+function labModeForRoom(room: JsonObject): boolean | null {
+  const a = Boolean((room.setup_a as JsonObject | null)?.[LAB_SETUP_KEY] === true);
+  const b = Boolean((room.setup_b as JsonObject | null)?.[LAB_SETUP_KEY] === true);
   return a === b ? a : null;
 }
 
@@ -850,7 +858,7 @@ Deno.serve(async (request: Request) => {
     }
 
     const load = async (): Promise<JsonObject> => {
-      const { data, error } = await service.rpc("fcg_standard_server_load_room_v2", { p_room_id: roomId, p_actor_id: actorId });
+      const { data, error } = await service.rpc("fcg_standard_server_load_room_v3", { p_room_id: roomId, p_actor_id: actorId });
       if (error) throw error;
       const row = firstRow(data);
       if (!row) throw { code: "P0002" };
@@ -862,15 +870,17 @@ Deno.serve(async (request: Request) => {
       const expectedSetupRevision = body.expectedSetupRevision;
       const loadout = body.loadout;
       const debugMode = body.debugMode ?? false;
+      const labMode = body.labMode ?? false;
       if (typeof setupActionId !== "string" || !UUID_PATTERN.test(setupActionId)
-          || !Number.isSafeInteger(expectedSetupRevision) || !loadout || typeof loadout !== "object" || typeof debugMode !== "boolean") {
+          || !Number.isSafeInteger(expectedSetupRevision) || !loadout || typeof loadout !== "object"
+          || typeof debugMode !== "boolean" || typeof labMode !== "boolean" || debugMode && labMode) {
         return json(400, { error: { code: "INVALID_SETUP", message: "A setup ID, revision, and six-card loadout are required." } });
       }
-      if (debugMode) {
-        stage = "authorize-debug-setup";
+      if (debugMode || labMode) {
+        stage = "authorize-experimental-setup";
         const setupRoom = await load();
         if (setupRoom.access_mode !== "private_code" || setupRoom.opponent_kind === "cpu") {
-          return json(403, { error: { code: "DEBUG_MODE_NOT_ALLOWED", message: "Debug mode is available only in private human matches." } });
+          return json(403, { error: { code: labMode ? "LAB_MODE_NOT_ALLOWED" : "DEBUG_MODE_NOT_ALLOWED", message: "Experimental modes are available only in private human matches." } });
         }
       }
       stage = "load-profile";
@@ -889,8 +899,11 @@ Deno.serve(async (request: Request) => {
           ? "Debug loadouts must contain two available cards from each category."
           : "The loadout must contain two owned cards from each category." } });
       }
-      const committedLoadout = storedLoadout(loadout as JsonObject, debugMode);
-      const loadoutFingerprint = await fingerprint({ roomId, actorId, profileRevision: profile.revision, loadout, debugMode });
+      const committedLoadout = storedLoadout(loadout as JsonObject, debugMode, labMode);
+      const loadoutFingerprint = await fingerprint({
+        roomId, actorId, profileRevision: profile.revision, loadout, debugMode,
+        ...(labMode ? { labMode: true } : {}),
+      });
       const quoteExpiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
       stage = "commit-setup";
       const { data, error } = await service.rpc("fcg_standard_server_submit_loadout", {
@@ -904,7 +917,7 @@ Deno.serve(async (request: Request) => {
         p_loadout_fingerprint: loadoutFingerprint,
       });
       if (error) throw error;
-      return json(200, { setupRevision: firstRow(data) ?? data, profileRevision: profile.revision, quoteId: setupActionId, quoteExpiresAt, debugMode });
+      return json(200, { setupRevision: firstRow(data) ?? data, profileRevision: profile.revision, quoteId: setupActionId, quoteExpiresAt, debugMode, labMode });
     }
 
     stage = "load-room";
@@ -955,22 +968,32 @@ Deno.serve(async (request: Request) => {
         }
         const debugMode = debugModeForRoom(room);
         if (debugMode === null) return json(409, { error: { code: "DEBUG_MODE_MISMATCH", message: "Both players must choose the same debug mode setting." } });
+        const labMode = labModeForRoom(room);
+        if (labMode === null) return json(409, { error: { code: "LAB_MODE_MISMATCH", message: "Both players must choose the same lab mode setting." } });
+        if (debugMode && labMode) return json(409, { error: { code: "EXPERIMENT_MODE_CONFLICT", message: "Debug and lab modes cannot be combined." } });
         stage = "create-match";
         const initialVersion = Number(room.room_version);
-        if (!Number.isSafeInteger(initialVersion) || initialVersion < 0) throw new Error("INVALID_ROOM_VERSION");
+        const setupARevision = Number(room.setup_a_revision);
+        const setupBRevision = Number(room.setup_b_revision);
+        if (!Number.isSafeInteger(initialVersion) || initialVersion < 0
+            || !Number.isSafeInteger(setupARevision) || setupARevision < 1
+            || !Number.isSafeInteger(setupBRevision) || setupBRevision < 1) throw new Error("INVALID_ROOM_VERSION");
         const created = globalThis.FourColorStandardServerEngine.create({
           matchId: `${roomId}:${initialVersion}`,
           loadouts: { A: playableLoadout(room.setup_a as JsonObject), B: playableLoadout(room.setup_b as JsonObject) },
           profiles: { A: room.profile_a_state as JsonObject, B: room.profile_b_state as JsonObject },
           seed: secureSeed(),
           debugMode,
+          labMode,
         });
         const initialState = { ...(created.state as JsonObject), version: initialVersion };
-        const initialProjection = globalThis.FourColorStandardServerEngine.project(initialState, debugMode);
+        const initialProjection = globalThis.FourColorStandardServerEngine.project(initialState, debugMode, labMode);
         stage = "initialize-room";
         const { error } = await service.rpc("fcg_standard_server_initialize_room", {
           p_room_id: roomId,
           p_expected_version: room.room_version,
+          p_setup_a_revision: setupARevision,
+          p_setup_b_revision: setupBRevision,
           p_authoritative_state: { state: initialState, rngSnapshot: created.rngSnapshot },
           p_public_state: initialProjection.publicState,
           p_private_a: initialProjection.privateA,
@@ -1073,7 +1096,13 @@ Deno.serve(async (request: Request) => {
 
     if (room.room_status !== "playing" || !room.authoritative_state) return json(409, { error: { code: "ROOM_NOT_PLAYING", message: "The match has not started." } });
     const authority = room.authoritative_state as JsonObject;
-    const debugMode = debugModeForRoom(room) === true;
+    const debugAgreement = debugModeForRoom(room);
+    const labAgreement = labModeForRoom(room);
+    if (debugAgreement === null || labAgreement === null || debugAgreement && labAgreement) {
+      return json(409, { error: { code: "EXPERIMENT_MODE_CONFLICT", message: "The saved experimental mode is inconsistent." } });
+    }
+    const debugMode = debugAgreement;
+    const labMode = labAgreement;
     stage = "apply-action";
     const applied = globalThis.FourColorStandardServerEngine.apply({
       state: authority.state as JsonObject,
@@ -1082,6 +1111,7 @@ Deno.serve(async (request: Request) => {
       action,
       expectedVersion: action.expectedVersion as number,
       debugMode,
+      labMode,
     });
     if (applied.ok !== true) return json(400, { error: { code: applied.code || "RULE_REJECTED", message: "The action is not legal in the current state." } });
 
@@ -1104,6 +1134,7 @@ Deno.serve(async (request: Request) => {
       action,
       finishedAt,
       debugMode,
+      labMode,
     });
     const safeResult = { code: applied.code, contactColorCount: applied.contactColorCount, terminalReason: applied.terminalReason };
     stage = "commit-action";

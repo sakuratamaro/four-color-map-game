@@ -27,6 +27,9 @@
     disruptChoiceThree: "color",
     disruptForcedPalette: "color",
   });
+  const LAB_TARGET_KIND = Object.freeze({ legalRecolor: "existing-region" });
+
+  function targetKind(skill) { return TARGET_KIND[skill] || LAB_TARGET_KIND[skill] || null; }
 
   function invalid() { throw Object.assign(new Error("INVALID_SKILL_TARGET"), { code: "INVALID_SKILL_TARGET" }); }
   function color(value) { if (!COLORS.includes(value)) invalid(); return value; }
@@ -46,7 +49,7 @@
   }
 
   function buildSkillPayload(skill, input = {}) {
-    const kind = TARGET_KIND[skill];
+    const kind = targetKind(skill);
     if (!kind) throw Object.assign(new Error("UNKNOWN_STANDARD_SKILL"), { code: "UNKNOWN_STANDARD_SKILL" });
     if (kind === "none") return Object.freeze({ skill });
     if (kind === "color") return Object.freeze({ skill, color: color(input.color) });
@@ -56,6 +59,7 @@
     }
     if (kind === "source-macros") return Object.freeze({ skill, sourceMacros: macros(input.sourceMacros) });
     if (kind === "region-split") return Object.freeze({ skill, regionId: regionId(input.regionId), sourceMacros: macros(input.sourceMacros) });
+    if (kind === "existing-region") return Object.freeze({ skill, regionId: regionId(input.regionId) });
     if (kind === "corner-bloom") return Object.freeze({ skill, sourceMacros: macros(input.sourceMacros), macro: integer(input.macro) });
     if (kind === "resize") {
       if (!["expand", "shrink"].includes(input.mode) || !["top", "right", "bottom", "left"].includes(input.side)) invalid();
@@ -68,5 +72,5 @@
     invalid();
   }
 
-  return Object.freeze({ COLORS, TARGET_KIND, availableColorChoices, buildSkillPayload, isImmediate: (skill) => TARGET_KIND[skill] === "none" });
+  return Object.freeze({ COLORS, LAB_TARGET_KIND, TARGET_KIND, availableColorChoices, buildSkillPayload, isImmediate: (skill) => targetKind(skill) === "none", targetKind });
 });

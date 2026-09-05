@@ -130,7 +130,7 @@ function validateLegalRecolorTarget(state, actor, regionId) {
   const region = state.regions?.[regionId];
   assertRule(region, "INVALID_TARGET", "Target region does not exist");
   assertRule(Boolean(region.color), "INVALID_TARGET", "Target must already be colored");
-  assertRule(state.pending !== regionId && !region.isPending, "INVALID_TARGET", "Pending region cannot be recolored");
+  assertRule(state.pending !== regionId && state.reserved !== regionId && !region.isPending, "INVALID_TARGET", "Pending or reserved region cannot be recolored");
   assertRule(!region.deleted && !region.delayed && !region.delayState, "INVALID_TARGET", "Deleted or delayed region cannot be recolored");
   return region;
 }
@@ -592,7 +592,7 @@ const STANDARD_SKILLS = Object.freeze({
     consumptionPolicy: "RESOLVED_CHOSEN_COLOR_AND_PRIVATE_RANDOM_SLOT_PERMANENT",
     handlerVersion: "disrupt-forced-palette-v1",
   }),
-  legalRecolor: skill("legalRecolor", "サーバー抽選による合法リカラー", "experimental", 3, "WORK", {
+  legalRecolor: skill("legalRecolor", "塗り直し・乱", "experimental", 3, "WORK", {
     targetSchema: { regionId: "region-id" },
     implemented: true,
     alphaUiEnabled: true,
@@ -2053,7 +2053,7 @@ function validateStandardState(state) {
     const commonKeys = ["actor", "eventId", "type", "version"];
     const typeKeys = trace.type === "CREATE_REGION"
       ? ["contactColorCount", "regionId", "sourceMacroCount"]
-      : trace.type === "COLOR_REGION" ? ["color", "regionId"] : trace.type === "USE_SKILL" ? [] : ["invalid"];
+      : trace.type === "COLOR_REGION" || trace.type === "LEGAL_RECOLOR" ? ["color", "regionId"] : trace.type === "USE_SKILL" ? [] : ["invalid"];
     const expectedKeys = [...commonKeys, ...typeKeys].sort();
     assertState(JSON.stringify(Object.keys(trace).sort()) === JSON.stringify(expectedKeys), "INVALID_PUBLIC_TRACE");
     assertState((trace.actor === "A" || trace.actor === "B")
@@ -2070,7 +2070,7 @@ function validateStandardState(state) {
         && Number.isInteger(trace.contactColorCount) && trace.contactColorCount >= 0 && trace.contactColorCount <= 4, "INVALID_PUBLIC_TRACE");
       if (trace.version === state.version) assertState(Boolean(region) && region.sourceMacros?.length === trace.sourceMacroCount
         && committedContactCount === trace.contactColorCount, "INVALID_PUBLIC_TRACE");
-    } else if (trace.type === "COLOR_REGION") {
+    } else if (trace.type === "COLOR_REGION" || trace.type === "LEGAL_RECOLOR") {
       assertState(typeof trace.regionId === "string" && trace.regionId.length > 0 && COLORS.includes(trace.color), "INVALID_PUBLIC_TRACE");
       if (trace.version === state.version) assertState(state.regions?.[trace.regionId]?.color === trace.color, "INVALID_PUBLIC_TRACE");
     }
@@ -2566,7 +2566,14 @@ function applyStandardAction({ state, actor, action, expectedVersion, rngStreams
       });
       if (result.ok) {
         const next = clone(result.state);
-        next.lastPublicTrace = {
+        next.lastPublicTrace = action.payload.skill === "legalRecolor" ? {
+          eventId: `${next.matchId}:${next.version}`,
+          version: next.version,
+          type: "LEGAL_RECOLOR",
+          actor,
+          regionId: action.payload.regionId,
+          color: result.color,
+        } : {
           eventId: `${next.matchId}:${next.version}`,
           version: next.version,
           type: "USE_SKILL",
@@ -3208,13 +3215,22 @@ function validateLoadouts(loadouts){
     validateSeatLoadout({loadout:loadouts[seat]});
   }
 }
-function projections(state,debugMode=false){
+const STANDARD_RULE_SET_ID="STANDARD_V5";
+const LEGAL_RECOLOR_LAB_RULE_SET_ID="STANDARD_V5_LEGAL_RECOLOR_LAB_V1";
+function assertRuleSetMode(state,labMode){
+  const ruleSetId=state?.ruleSetId;
+  if(labMode&&ruleSetId!==LEGAL_RECOLOR_LAB_RULE_SET_ID)throw new Error("LAB_RULE_SET_MISMATCH");
+  if(!labMode&&ruleSetId!==undefined&&ruleSetId!==STANDARD_RULE_SET_ID)throw new Error("LAB_RULE_SET_MISMATCH");
+}
+function projections(state,debugMode=false,labMode=false){
   const publicState=clone(match.projectStandardPublicState(state));
   if(debugMode)publicState.debugUnlimitedSkills=true;
+  if(labMode)publicState.labRuleSetId=LEGAL_RECOLOR_LAB_RULE_SET_ID;
   return {publicState,privateA:match.projectStandardPrivateState(state,"A"),privateB:match.projectStandardPrivateState(state,"B")};
 }
-function create({matchId,loadouts,profiles=null,seed,firstSeat=null,debugMode=false}){
+function create({matchId,loadouts,profiles=null,seed,firstSeat=null,debugMode=false,labMode=false}){
   if(typeof debugMode!=="boolean")throw new Error("INVALID_DEBUG_MODE");
+  if(typeof labMode!=="boolean"||debugMode&&labMode)throw new Error("INVALID_LAB_MODE");
   validateLoadouts(loadouts);
   if(profiles!==null&&!debugMode){
     for(const seat of ["A","B"]){
@@ -3223,9 +3239,16 @@ function create({matchId,loadouts,profiles=null,seed,firstSeat=null,debugMode=fa
   }
   if(!Number.isSafeInteger(seed)||seed<0||seed>0xffffffff)throw new Error("INVALID_SEED");
   const streams=engine.createRngDomains(seed,match.REQUIRED_RNG_STREAMS);
-  const state=match.createStandardMatch({matchId,loadouts,firstSeat},streams);
+  let state=match.createStandardMatch({matchId,loadouts,firstSeat},streams);
+  state=clone(state);
+  state.ruleSetId=labMode?LEGAL_RECOLOR_LAB_RULE_SET_ID:STANDARD_RULE_SET_ID;
+  if(labMode){
+    state.hands.A.legalRecolor=1;
+    state.hands.B.legalRecolor=1;
+    match.validateStandardState(state);
+  }
   const rngSnapshot=engine.snapshotRngDomains(streams,match.REQUIRED_RNG_STREAMS);
-  return {...projections(state,debugMode),state,rngSnapshot};
+  return {...projections(state,debugMode,labMode),state,rngSnapshot};
 }
 function gachaRarity(value,ticketLevel){
   let cumulative=0;
@@ -3278,11 +3301,14 @@ function applyCosmetic({profile,cosmeticId}){
   validateProfile(result.profile);
   return {profile:clone(result.profile),quote:clone(result.quote)};
 }
-function applyProfiles({profiles,beforeState,nextState,actor,action,finishedAt,debugMode=false}){
+function applyProfiles({profiles,beforeState,nextState,actor,action,finishedAt,debugMode=false,labMode=false}){
+  if(typeof debugMode!=="boolean"||typeof labMode!=="boolean"||debugMode&&labMode)throw new Error("INVALID_EXPERIMENT_MODE");
+  assertRuleSetMode(beforeState,labMode);
+  assertRuleSetMode(nextState,labMode);
   const next={A:clone(profiles?.A),B:clone(profiles?.B)};
   for(const seat of ["A","B"])validateProfile(next[seat]);
   const changed={A:false,B:false};
-  if(debugMode)return {profiles:next,changed};
+  if(debugMode||labMode)return {profiles:next,changed};
   if(action.type==="USE_SKILL"){
     const consumed=[];
     for(const id of new Set([...Object.keys(beforeState.hands[actor]),...Object.keys(nextState.hands[actor])])){
@@ -3342,9 +3368,12 @@ function applyCpuProfiles({profiles,beforeState,nextState,actor,action,finishedA
   }
   return {profiles:next,changed};
 }
-function apply({state,rngSnapshot,actor,action,expectedVersion,debugMode=false}){
+function apply({state,rngSnapshot,actor,action,expectedVersion,debugMode=false,labMode=false}){
   if(typeof debugMode!=="boolean")throw new Error("INVALID_DEBUG_MODE");
+  if(typeof labMode!=="boolean"||debugMode&&labMode)throw new Error("INVALID_LAB_MODE");
   match.validateStandardState(state);
+  assertRuleSetMode(state,labMode);
+  if(action?.type==="USE_SKILL"&&action?.payload?.skill==="legalRecolor"&&!labMode)return {ok:false,code:"LAB_MODE_REQUIRED"};
   const streams=engine.createRngDomainsFromSnapshot(rngSnapshot,match.REQUIRED_RNG_STREAMS);
   const applied=match.applyStandardAction({state,actor,action,expectedVersion,rngStreams:streams});
   if(!applied.ok)return {ok:false,code:applied.code};
@@ -3362,7 +3391,7 @@ function apply({state,rngSnapshot,actor,action,expectedVersion,debugMode=false})
     contactColorCount:action.type==="CREATE_REGION"?applied.contactColorCount:null,
     state:next,
     rngSnapshot:engine.snapshotRngDomains(streams,match.REQUIRED_RNG_STREAMS),
-    ...projections(next,debugMode),
+    ...projections(next,debugMode,labMode),
     finished:next.status==="FINISHED",
     winnerSeat:next.winner||null,
     terminalReason:next.terminalReason||null,

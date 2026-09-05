@@ -142,7 +142,7 @@ const STANDARD_SKILLS = Object.freeze({
     consumptionPolicy: "RESOLVED_CHOSEN_COLOR_AND_PRIVATE_RANDOM_SLOT_PERMANENT",
     handlerVersion: "disrupt-forced-palette-v1",
   }),
-  legalRecolor: skill("legalRecolor", "サーバー抽選による合法リカラー", "experimental", 3, "WORK", {
+  legalRecolor: skill("legalRecolor", "塗り直し・乱", "experimental", 3, "WORK", {
     targetSchema: { regionId: "region-id" },
     implemented: true,
     alphaUiEnabled: true,

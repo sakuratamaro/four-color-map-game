@@ -341,7 +341,7 @@ async function run390(browser) {
 
     const beforeCancelPayload = await persistedPayload(page);
     const beforeCancelMetrics = await metrics(page);
-    await page.getByRole("button", { name: "合法リカラー（実験貸与）" }).click();
+    await page.getByRole("button", { name: "塗り直し・乱（実験貸与）" }).click();
     const cancel = page.getByRole("button", { name: "対象選択をキャンセル" });
     await cancel.waitFor();
     await assertOverflowAndControls(page, { mobile: true });
@@ -350,7 +350,7 @@ async function run390(browser) {
     assert.equal(await persistedPayload(page), beforeCancelPayload);
     assert.deepEqual(await metrics(page), beforeCancelMetrics);
 
-    await page.getByRole("button", { name: "合法リカラー（実験貸与）" }).click();
+    await page.getByRole("button", { name: "塗り直し・乱（実験貸与）" }).click();
     await clickCellCenter(page, 13, true);
     await page.locator("#status").getByText(/Player B・WORK/).waitFor();
     await assertHandoverBlocksBackground(page);

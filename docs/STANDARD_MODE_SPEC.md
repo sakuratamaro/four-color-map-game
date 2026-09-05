@@ -144,10 +144,13 @@ Tempo after success:
 
 - active seat passes to the opponent;
 - phase stays `WORK`;
+- `turn` stays unchanged because it counts committed region handoffs, not WORK decisions;
 - `requiredSize` is unchanged;
 - no die reroll occurs;
 - the receiving seat must designate an ordinary region;
 - another existing-region interference card is blocked until the next transition into `COLOR`.
+
+Public Standard Online may expose this effect only through rule set `STANDARD_V5_LEGAL_RECOLOR_LAB_V1`: private-code human versus human, explicit matching setup consent, one virtual loan per seat outside the ordinary six-card loadout, and no profile, inventory, match-history, trophy, or reward mutation for the entire match. The lab is mutually exclusive with debug-unlimited mode and unavailable to public matchmaking and CPU rooms. The selected rule set is stored in authoritative state and rechecked against stored room setup markers on every action; a client action cannot opt itself into the lab. The committed public trace reveals only actor, target region, and resulting color after success. Candidate colors, probability, and success availability are never exposed before commit.
 
 ## Blanking boundary
 

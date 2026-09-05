@@ -925,7 +925,7 @@ function boot() {
         renderPrivate(own);
       });
     }
-    appendButton("合法リカラー（実験貸与）", phase !== "WORK" || !(own.hand.legalRecolor > 0) || targetMode === "legalRecolor", () => {
+    appendButton("塗り直し・乱（実験貸与）", phase !== "WORK" || !(own.hand.legalRecolor > 0) || targetMode === "legalRecolor", () => {
       targetMode = "legalRecolor";
       say("彩色済みエリアを1つ選んでください。");
       renderPrivate(own);

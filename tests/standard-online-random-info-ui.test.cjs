@@ -35,11 +35,17 @@ test("random setup reveal uses only public state and the current player's privat
   assert.match(css, /prefers-reduced-motion:reduce/);
 });
 
-test("skill information buttons are separate, readable, and cover all 19 Standard skills", () => {
+test("skill information buttons cover all 19 Standard skills plus one separate LAB loan", () => {
+  const catalogBlock = app.slice(app.indexOf("const SKILLS = ["), app.indexOf("const EXPERIMENTAL_SKILLS"));
+  const catalogIds = [...catalogBlock.matchAll(/\["([a-z][A-Za-z0-9]+)",/g)].map((match) => match[1]);
+  const experimentalBlock = app.slice(app.indexOf("const EXPERIMENTAL_SKILLS"), app.indexOf("const LEGAL_RECOLOR_LAB_RULE_SET_ID"));
+  const experimentalIds = [...experimentalBlock.matchAll(/^\s{2}([a-z][A-Za-z0-9]+):/gm)].map((match) => match[1]);
   const descriptionBlock = app.slice(app.indexOf("const SKILL_DESCRIPTION"), app.indexOf("const RANDOM_SKILLS"));
   const describedIds = [...descriptionBlock.matchAll(/^\s{2}([a-z][A-Za-z0-9]+):\s*"/gm)].map((match) => match[1]);
-  assert.equal(describedIds.length, 19);
-  assert.equal(new Set(describedIds).size, 19);
+  assert.equal(catalogIds.length, 19);
+  assert.equal(new Set(catalogIds).size, 19);
+  assert.deepEqual(experimentalIds, ["legalRecolor"]);
+  assert.deepEqual([...describedIds].sort(), [...catalogIds, ...experimentalIds].sort());
   assert.match(html, /id="skillInfoDialog"/);
   assert.match(html, /id="skillInfoBody"/);
   assert.match(app, /button\("ⓘ", \(\) => openSkillInfo\(skill\), "skill-info-button"\)/);

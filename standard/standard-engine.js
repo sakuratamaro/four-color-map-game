@@ -129,7 +129,7 @@ function validateLegalRecolorTarget(state, actor, regionId) {
   const region = state.regions?.[regionId];
   assertRule(region, "INVALID_TARGET", "Target region does not exist");
   assertRule(Boolean(region.color), "INVALID_TARGET", "Target must already be colored");
-  assertRule(state.pending !== regionId && !region.isPending, "INVALID_TARGET", "Pending region cannot be recolored");
+  assertRule(state.pending !== regionId && state.reserved !== regionId && !region.isPending, "INVALID_TARGET", "Pending or reserved region cannot be recolored");
   assertRule(!region.deleted && !region.delayed && !region.delayState, "INVALID_TARGET", "Deleted or delayed region cannot be recolored");
   return region;
 }

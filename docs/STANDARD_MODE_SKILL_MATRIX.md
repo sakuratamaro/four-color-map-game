@@ -52,7 +52,7 @@ Source: verified v4.9 `SKILLS`, `SKILL_POOL_BY_CATEGORY_RARITY`, `QUICK_LOANED_S
 | `disruptPaletteChoice` | 持ち色汚染 | disrupt | ★4 | true | true | false | true | true | true | false | WORK | true | true |
 | `disruptChoiceThree` | 長封 | disrupt | ★5 | true | true | false | true | true | true | false | WORK | true | false |
 | `disruptForcedPalette` | 強制持ち替え | disrupt | ★5 | true | true | false | true | true | true | false | WORK | true | true |
-| `legalRecolor` | サーバー抽選による合法リカラー | experimental | ★3 proposed | true | false | false | true | true | false | true | WORK | true | false |
+| `legalRecolor` | 塗り直し・乱 | experimental | ★3 proposed | true | false | false | true | true | false | true | WORK | true | false |
 
 `consumeOnSuccessOnly=true` means rule rejection, cancellation, and a declared no-candidate outcome do not consume. Some valid v4.9 random effects can still be tactically useless after resolution; those are successful activations and retain the verified v4.9 consumption rule.
 

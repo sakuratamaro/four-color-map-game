@@ -100,17 +100,17 @@ test("setup loads the authenticated profile and issues a server-bounded quote", 
   assert.match(source, /const profile = firstRow\(profileData\)/);
   assert.match(source, /FourColorStandardServerEngine\.validateSeatLoadout/);
   assert.match(source, /Date\.now\(\) \+ 5 \* 60 \* 1000/);
-  assert.match(source, /fingerprint\(\{ roomId, actorId, profileRevision: profile\.revision, loadout, debugMode \}\)/);
+  assert.match(source, /fingerprint\(\{\s*roomId, actorId, profileRevision: profile\.revision, loadout, debugMode,\s*\.\.\.\(labMode \? \{ labMode: true \} : \{\}\),\s*\}\)/);
   assert.match(source, /fcg_standard_server_submit_loadout/);
   assert.match(source, /p_actor_id: actorId/);
 });
 
 test("debug setup is authorized from the service-loaded room only", () => {
   const setup = source.slice(source.indexOf('if (operation === "setup")'), source.indexOf('stage = "load-room"'));
-  assert.match(source, /service\.rpc\("fcg_standard_server_load_room_v2",\s*\{\s*p_room_id: roomId,\s*p_actor_id: actorId\s*\}\)/);
-  assert.match(setup, /if \(debugMode\) \{[\s\S]+const setupRoom = await load\(\)/);
+  assert.match(source, /service\.rpc\("fcg_standard_server_load_room_v3",\s*\{\s*p_room_id: roomId,\s*p_actor_id: actorId\s*\}\)/);
+  assert.match(setup, /if \(debugMode \|\| labMode\) \{[\s\S]+const setupRoom = await load\(\)/);
   assert.match(setup, /setupRoom\.access_mode !== "private_code" \|\| setupRoom\.opponent_kind === "cpu"/);
-  assert.match(setup, /code: "DEBUG_MODE_NOT_ALLOWED"/);
+  assert.match(setup, /labMode \? "LAB_MODE_NOT_ALLOWED" : "DEBUG_MODE_NOT_ALLOWED"/);
   assert.doesNotMatch(setup, /body\.(?:accessMode|access_mode|opponentKind|opponent_kind)/);
 });
 
@@ -185,7 +185,7 @@ test("each rematch generation receives a distinct match id and versioned project
   assert.match(source, /matchId: `\$\{roomId\}:\$\{initialVersion\}`/);
   assert.match(source, /const initialState = \{ \.\.\.\(created\.state as JsonObject\), version: initialVersion \}/);
   assert.match(source, /p_authoritative_state: \{ state: initialState, rngSnapshot: created\.rngSnapshot \}/);
-  assert.match(source, /const initialProjection = globalThis\.FourColorStandardServerEngine\.project\(initialState, debugMode\)/);
+  assert.match(source, /const initialProjection = globalThis\.FourColorStandardServerEngine\.project\(initialState, debugMode, labMode\)/);
   assert.match(source, /p_public_state: initialProjection\.publicState/);
   assert.match(source, /p_private_a: initialProjection\.privateA/);
   assert.match(source, /p_private_b: initialProjection\.privateB/);

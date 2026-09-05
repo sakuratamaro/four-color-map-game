@@ -75,6 +75,6 @@ test("Edge handler marks debug setup, requires agreement, and disables profile p
   assert.match(edgeSource, /validateSeatLoadout\(debugMode[\s\S]+\? \{ loadout: loadout as JsonObject \}/);
   assert.match(edgeSource, /DEBUG_MODE_MISMATCH/);
   assert.match(edgeSource, /playableLoadout\(room\.setup_a as JsonObject\)/);
-  assert.match(edgeSource, /debugModeForRoom\(room\) === true/);
-  assert.match(edgeSource, /applyProfiles\(\{[\s\S]+debugMode,/);
+  assert.match(edgeSource, /const debugAgreement = debugModeForRoom\(room\)/);
+  assert.match(edgeSource, /applyProfiles\(\{[\s\S]+debugMode,[\s\S]+labMode,/);
 });

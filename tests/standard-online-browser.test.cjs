@@ -23,7 +23,7 @@ const saveKey = "fourColorMapGame.standard.v5.save";
 const remoteProfileKey = "fourColorMapGame.standard.online.v5.remote-profile";
 const roomId = "11111111-1111-4111-8111-111111111111";
 const pendingRematchId = "22222222-2222-4222-8222-222222222222";
-const RESTORED_ROOM_MODES = new Set(["finished", "playing", "handoffGuide", "cpuTurn", "cpuTurnNoColor", "finishedCpu", "finishedCpuSagaStart", "finishedHumanSagaBlocked", "finishedCpuWrongSagaBlocked", "activeCpuSagaBlocked", "cpuWin", "setupTransition", "setupTransitionCpuFirst", "actionRuleError", "setupDebugError", "handoffReload", "waitingAbandon", "readyGuestAbandon", "cpuReadyAbandon", "abandonLost", "abandonAdvancedReady", "activeBootPrivate", "activeBootPublic", "activeBootCpu", "cpuSagaStartServerActive"]);
+const RESTORED_ROOM_MODES = new Set(["finished", "playing", "labPlaying", "setupLabPersist", "setupLabLostResponse", "setupLabMismatch", "handoffGuide", "cpuTurn", "cpuTurnNoColor", "finishedCpu", "finishedCpuSagaStart", "finishedHumanSagaBlocked", "finishedCpuWrongSagaBlocked", "activeCpuSagaBlocked", "cpuWin", "setupTransition", "setupTransitionCpuFirst", "actionRuleError", "setupDebugError", "handoffReload", "waitingAbandon", "readyGuestAbandon", "cpuReadyAbandon", "abandonLost", "abandonAdvancedReady", "activeBootPrivate", "activeBootPublic", "activeBootCpu", "cpuSagaStartServerActive"]);
 
 function browserStage(stage) {
   console.error(`BROWSER_STAGE ${stage}`);
@@ -91,7 +91,7 @@ async function installMock(context, mode) {
     const initialTab = ["gacha", "quiz", "quizPolish", ...quizReloadModes].includes(initialMode) ? "quiz" : initialMode === "cosmetic" ? "profile" : initialMode === "empty" ? "home" : "battle";
     const setupTransition = ["setupTransition", "setupTransitionCpuFirst"].includes(initialMode);
     const setupPending = setupTransition || initialMode === "setupDebugError";
-    const pregameMode = ["waitingAbandon", "readyGuestAbandon", "cpuReadyAbandon", "abandonLost", "abandonAdvancedReady", "abandonedPassive"].includes(initialMode);
+    const pregameMode = ["setupLabPersist", "setupLabLostResponse", "setupLabMismatch", "waitingAbandon", "readyGuestAbandon", "cpuReadyAbandon", "abandonLost", "abandonAdvancedReady", "abandonedPassive"].includes(initialMode);
     const activeRecoveryModes = ["activeBootPrivate", "activeBootPublic", "activeBootCpu", "activeCreatePrivate", "activeCreatePublic", "activeCreateCpu"];
     const activeRecoveryMode = activeRecoveryModes.includes(initialMode);
     const activeRecoveryAccessMode = initialMode.endsWith("Public") ? "public_queue" : initialMode.endsWith("Cpu") ? "cpu" : "private_code";
@@ -150,9 +150,10 @@ async function installMock(context, mode) {
     if (initialMode !== "empty") {
       localStorage.setItem(save, JSON.stringify({ profiles: { playerA: { displayName: "A", inventory } } }));
       localStorage.setItem("fourColorMapGame.standard.online.v5.profile", "playerA");
-      if (!["lobby", "cosmetic", "quiz", "quizPolish", "publicFind", "cpuWait", "cpuRetry", "cpuSagaFindBlocked", "finishedCpuSagaStart", "finishedHumanSagaBlocked", "finishedCpuWrongSagaBlocked", "activeCpuSagaBlocked", "handoffActivity", "handoffStart", ...activeRecoveryModes, "cpuSagaStartServerActive"].includes(initialMode)) {
+      if (!["lobby", "cosmetic", "quiz", "quizPolish", "publicFind", "cpuWait", "cpuRetry", "cpuSagaFindBlocked", "finishedCpuSagaStart", "finishedHumanSagaBlocked", "finishedCpuWrongSagaBlocked", "activeCpuSagaBlocked", "handoffActivity", "handoffStart", ...activeRecoveryModes, "cpuSagaStartServerActive"].includes(initialMode)
+          && !(["setupLabPersist", "setupLabLostResponse"].includes(initialMode) && restoredConnection)) {
         localStorage.setItem(connection, JSON.stringify({
-          roomId: id, roomCode: "A1B2C3", profileRevision: 1, setupRevision: setupPending || pregameMode ? 0 : 3,
+          roomId: id, roomCode: "A1B2C3", profileRevision: 1, setupRevision: initialMode === "setupLabMismatch" ? 3 : setupPending || pregameMode ? 0 : 3,
           rematchActionId: initialMode === "finished" ? pendingId : null,
           rematchExpectedVersion: initialMode === "finished" ? 9 : null,
           ...(initialMode === "abandonLost" && restoredConnection ? {
@@ -238,6 +239,13 @@ async function installMock(context, mode) {
       active.pending = "R1";
       active.regions = { R1: { id: "R1", micro: [0], sourceMacros: [0], controllers: ["B"], color: null, isPending: true } };
     }
+    if (initialMode === "labPlaying") {
+      active.labRuleSetId = "STANDARD_V5_LEGAL_RECOLOR_LAB_V1";
+      active.regions = {
+        R1: { id: "R1", micro: [0, 1], sourceMacros: [0], controllers: ["B"], color: "red", isPending: false },
+        R2: { id: "R2", micro: [4, 5], sourceMacros: [4], controllers: ["A"], color: "blue", isPending: false },
+      };
+    }
     const noColorFinished = {
       ...active, status: "FINISHED", phase: "GAME_OVER", version: 10, winner: "B", terminalReason: "NO_LEGAL_COLOR", pending: "R2",
       publicEffects: { A: { seals: { yellow: 1, green: 1 } }, B: { seals: {} } },
@@ -246,11 +254,11 @@ async function installMock(context, mode) {
         R2: { id: "R2", micro: [1], sourceMacros: [1], controllers: ["B"], color: null, isPending: true },
       },
     };
-    const pregameStatus = initialMode === "waitingAbandon" ? "waiting" : initialMode === "abandonedPassive" ? "abandoned" : "ready";
+    const pregameStatus = ["setupLabPersist", "setupLabLostResponse", "waitingAbandon"].includes(initialMode) ? "waiting" : initialMode === "abandonedPassive" ? "abandoned" : "ready";
     const runtime = {
       waitStartedAt: initialMode === "cpuWait" ? new Date(Date.now() - 91000).toISOString() : new Date().toISOString(),
       room: { id, status: ["finished", "finishedCpu", "finishedCpuSagaStart", "finishedHumanSagaBlocked", "finishedCpuWrongSagaBlocked", "quizReloadPublicFinished"].includes(initialMode) || restoreCpuRewardResult || restoreNoColorResult ? "finished" : pregameMode ? pregameStatus : ["publicFind", "handoffActivity", "handoffStart", "handoffReload"].includes(initialMode) || setupPending ? "ready" : "playing", version: restoredRoomVersion, game_mode: "standard_v5", access_mode: cpuRoomMode ? "cpu" : ["publicFind", "handoffActivity", "handoffStart", "handoffReload", "quizReloadPublicFinished"].includes(initialMode) ? "public_queue" : "private_code", opponent_kind: cpuRoomMode ? "cpu" : "human", cpu_character_id: cpuRoomMode ? "yuzu" : null, public_state: restoreNoColorResult ? noColorFinished : ["finished", "finishedCpu", "finishedCpuSagaStart", "finishedHumanSagaBlocked", "finishedCpuWrongSagaBlocked", "quizReloadPublicFinished"].includes(initialMode) || restoreCpuRewardResult ? { ...finished, version: restoredRoomVersion } : pregameMode || ["publicFind", "handoffActivity", "handoffStart", "handoffReload"].includes(initialMode) || setupPending ? null : active },
-      view: pregameMode || ["publicFind", "handoffActivity", "handoffStart", "handoffReload"].includes(initialMode) || setupPending ? null : { seat: "A", version: restoredRoomVersion, private_state: { hand: { areaDiePlus: 1, areaResize: 1 }, basicPalette: initialMode === "cpuTurnNoColor" ? ["yellow", "green"] : ["red", "blue"], bonusColor: initialMode === "cpuTurnNoColor" ? "blue" : "yellow", bonusUsesRemaining: initialMode === "cpuTurnNoColor" ? 3 : 2, privateEffects: {} } },
+      view: pregameMode || ["publicFind", "handoffActivity", "handoffStart", "handoffReload"].includes(initialMode) || setupPending ? null : { seat: "A", version: restoredRoomVersion, private_state: { hand: initialMode === "labPlaying" ? { areaDiePlus: 1, legalRecolor: 1 } : { areaDiePlus: 1, areaResize: 1 }, basicPalette: initialMode === "cpuTurnNoColor" ? ["yellow", "green"] : ["red", "blue"], bonusColor: initialMode === "cpuTurnNoColor" ? "blue" : "yellow", bonusUsesRemaining: initialMode === "cpuTurnNoColor" ? 3 : 2, privateEffects: {} } },
       profile: initialMode === "empty" ? null : { revision: 1, display_name: "A", profile_state: profileState },
       gachaReceipts: {},
       cardSaleReceipts: {},
@@ -326,6 +334,18 @@ async function installMock(context, mode) {
         runtime.calls.push({ kind: "invoke", name, body: request.body });
         await globalThis.__standardOnlineRecordInvoke(request.body);
         if (request.body.operation === "setup" && initialMode === "setupDebugError") return functionError(403, "DEBUG_MODE_NOT_ALLOWED", "private access_mode row and service secret");
+        if (request.body.operation === "setup" && ["setupLabPersist", "setupLabLostResponse"].includes(initialMode)) {
+          const prior = runtime.setupReceipts[request.body.setupActionId];
+          if (prior) return { data: { ...prior, duplicate: true } };
+          const result = { setupRevision: (runtime.setupRevision = (runtime.setupRevision || 0) + 1), profileRevision: 1, quoteId: request.body.setupActionId, debugMode: request.body.debugMode, labMode: request.body.labMode };
+          runtime.setupReceipts[request.body.setupActionId] = result;
+          sessionStorage.setItem("mock-standard-setup-receipts", JSON.stringify(runtime.setupReceipts));
+          if (initialMode === "setupLabLostResponse" && sessionStorage.getItem("mock-standard-lab-setup-response-lost") !== id) {
+            sessionStorage.setItem("mock-standard-lab-setup-response-lost", id);
+            return { error: new Error("simulated lost lab setup response") };
+          }
+          return { data: result };
+        }
         if (request.body.operation === "setup" && setupTransition) return { data: { setupRevision: 1, profileRevision: 1 } };
         if (request.body.operation === "setup" && runtime.room.opponent_kind === "cpu") {
           const prior = runtime.setupReceipts[request.body.setupActionId];
@@ -345,6 +365,9 @@ async function installMock(context, mode) {
           runtime.room = { ...runtime.room, status: "playing", version: 10, public_state: started };
           runtime.view = { seat: "A", version: 10, private_state: { hand: { areaDiePlus: 1, areaResize: 1 }, basicPalette: ["red", "blue"], bonusColor: "yellow", bonusUsesRemaining: 2, privateEffects: {} } };
           return { data: { roomStatus: "playing", roomVersion: 10 } };
+        }
+        if (request.body.operation === "initialize" && initialMode === "setupLabMismatch") {
+          return functionError(409, "LAB_MODE_MISMATCH", "private mismatched setup markers");
         }
         if (request.body.operation === "initialize" && runtime.room.opponent_kind === "cpu" && runtime.room.status === "ready") {
           const started = { ...active, matchId: `${id}:10`, status: "ACTIVE", version: 10, turn: 1, active: "A", phase: "CREATE_FIRST" };
@@ -1560,6 +1583,132 @@ test("actual Edge routes immediate skills and keeps target cancellation write-fr
   });
 });
 
+test("actual browser exposes one keyboard-safe recolor lab loan without touching the 19-card library", { timeout: 130000 }, async () => {
+  await withPage("labPlaying", async (page) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.getByText("対戦中・LAB（無報酬）").waitFor();
+    await page.getByText("LAB貸与カード（この対戦で1回）").waitFor();
+    assert.equal(await page.locator("#cardInventory").getByText("塗り直し・乱", { exact: true }).count(), 0);
+
+    const skillButton = page.getByRole("button", { name: "塗り直し・乱 ×1" });
+    await skillButton.focus();
+    await page.keyboard.press("Enter");
+    await page.getByText("塗り直し・乱 — 対象を指定").waitFor();
+    assert.equal(await page.evaluate(() => document.activeElement?.textContent), "塗り直し・乱 — 対象を指定");
+    assert.match(await page.getByText(/不成立でもカード・手番は減りません/).textContent(), /成功可否は確定するまで分かりません/);
+    await page.keyboard.press("Tab");
+    assert.equal(await page.evaluate(() => document.activeElement?.textContent), "エリア1・赤");
+    await page.keyboard.press("Space");
+    assert.equal(await page.getByRole("button", { name: "エリア1・赤" }).getAttribute("aria-pressed"), "true");
+    assert.equal(await page.evaluate(() => document.activeElement?.textContent), "エリア1・赤");
+    assert.equal(await page.getByRole("button", { name: "このエリアをランダムに塗り直す" }).isEnabled(), true);
+    assert.match(await page.locator("#board").getAttribute("aria-label"), /番号と色名/);
+    await page.keyboard.press("Tab");
+    assert.equal(await page.evaluate(() => document.activeElement?.textContent), "エリア2・青");
+    await page.keyboard.press("Tab");
+    assert.equal(await page.evaluate(() => document.activeElement?.textContent), "このエリアをランダムに塗り直す");
+    await page.keyboard.press("Tab");
+    assert.equal(await page.evaluate(() => document.activeElement?.textContent), "キャンセル");
+    await page.keyboard.press("Enter");
+    await page.waitForFunction(() => document.activeElement?.dataset?.skill === "legalRecolor");
+    assert.equal(await page.evaluate(() => document.activeElement?.textContent), "塗り直し・乱 ×1");
+    assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "action").length), 0);
+
+    await page.keyboard.press("Enter");
+    await page.getByText("塗り直し・乱 — 対象を指定").waitFor();
+    await page.keyboard.press("Tab");
+    await page.keyboard.press("Tab");
+    assert.equal(await page.evaluate(() => document.activeElement?.textContent), "エリア2・青");
+    await page.keyboard.press("Enter");
+    assert.equal(await page.getByRole("button", { name: "エリア2・青" }).getAttribute("aria-pressed"), "true");
+    assert.equal(await page.evaluate(() => document.activeElement?.textContent), "エリア2・青");
+    await page.keyboard.press("Tab");
+    assert.equal(await page.evaluate(() => document.activeElement?.textContent), "このエリアをランダムに塗り直す");
+    await page.keyboard.press("Space");
+    const actions = await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "action").map((entry) => entry.body.action));
+    assert.equal(actions.length, 1);
+    assert.deepEqual(actions[0].payload, { skill: "legalRecolor", regionId: "R2" });
+    const layout = await page.evaluate(() => ({
+      overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+      targetHidden: document.querySelector("#skillTargetControls").classList.contains("hidden"),
+    }));
+    assert.equal(layout.overflow, false);
+    assert.equal(layout.targetHidden, true);
+  }, { viewport: { width: 390, height: 844 } });
+});
+
+test("actual Edge restores the committed lab setup and marks later toggle changes as uncommitted", { timeout: 130000 }, async () => {
+  await withPage("setupLabPersist", async (page) => {
+    const labToggle = page.locator("#legalRecolorLabMode");
+    await page.locator("#setupCard:not(.hidden)").waitFor();
+    assert.equal(await labToggle.isChecked(), false);
+    await labToggle.check();
+    await page.getByRole("button", { name: "この6枚で準備完了" }).click();
+    await page.getByText("準備完了。相手を待っています。開始前なら6枚を変更できます。", { exact: true }).waitFor();
+    assert.equal(await page.evaluate((key) => JSON.parse(localStorage.getItem(key)).committedLabMode, connectionKey), true);
+
+    await page.reload({ waitUntil: "load" });
+    await page.locator("#connectionBadge.good").waitFor();
+    await page.locator("#room:not(.hidden)").waitFor();
+    assert.equal(await labToggle.isChecked(), true);
+    await page.getByText("準備完了。相手を待っています。開始前なら6枚を変更できます。", { exact: true }).waitFor();
+
+    await labToggle.uncheck();
+    await page.getByText(/設定の変更はまだサーバーへ反映されていません/).waitFor();
+    assert.equal(await page.evaluate((key) => JSON.parse(localStorage.getItem(key)).committedLabMode, connectionKey), true);
+    await page.getByRole("button", { name: "変更した設定・6枚で準備し直す" }).click();
+    await page.getByText("準備完了。相手を待っています。開始前なら6枚を変更できます。", { exact: true }).waitFor();
+    assert.equal(await page.evaluate((key) => JSON.parse(localStorage.getItem(key)).committedLabMode, connectionKey), false);
+  });
+});
+
+test("actual Edge keeps a lost lab setup immutable across reload and retries the same setup ID", { timeout: 130000 }, async () => {
+  await withPage("setupLabLostResponse", async (page) => {
+    const labToggle = page.locator("#legalRecolorLabMode");
+    await page.locator("#setupCard:not(.hidden)").waitFor();
+    await labToggle.check();
+    await page.getByRole("button", { name: "この6枚で準備完了" }).click();
+    await page.getByRole("button", { name: "同じ準備処理を再確認" }).waitFor();
+    const pending = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)).pendingSetup, connectionKey);
+    assert.equal(pending.labMode, true);
+    assert.match(pending.setupActionId, /^[0-9a-f-]{36}$/i);
+    assert.equal(await labToggle.isDisabled(), true);
+    assert.equal(await page.locator('#loadoutGrid input[type="checkbox"]').first().isDisabled(), true);
+
+    await page.reload({ waitUntil: "load" });
+    await page.locator("#connectionBadge.good").waitFor();
+    await page.getByRole("button", { name: "同じ準備処理を再確認" }).waitFor();
+    assert.equal(await labToggle.isChecked(), true);
+    assert.equal(await labToggle.isDisabled(), true);
+    const beforeRetry = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)).pendingSetup, connectionKey);
+    assert.deepEqual(beforeRetry, pending);
+
+    await page.getByRole("button", { name: "同じ準備処理を再確認" }).click();
+    await page.getByText("準備完了。相手を待っています。開始前なら6枚を変更できます。", { exact: true }).waitFor();
+    const evidence = await page.evaluate(async (key) => ({
+      connection: JSON.parse(localStorage.getItem(key)),
+      lifetime: await globalThis.__standardOnlineLifetimeInvocations(),
+    }), connectionKey);
+    const setups = evidence.lifetime.filter((body) => body.operation === "setup");
+    assert.equal(setups.length, 2);
+    assert.deepEqual(new Set(setups.map((body) => body.setupActionId)), new Set([pending.setupActionId]));
+    assert.equal(evidence.connection.pendingSetup, null);
+    assert.equal(evidence.connection.committedLabMode, true);
+  });
+});
+
+test("actual Edge keeps a lab mismatch visible with the exact recovery instruction", { timeout: 130000 }, async () => {
+  await withPage("setupLabMismatch", async (page) => {
+    await page.locator("#setupCard:not(.hidden)").waitFor();
+    const message = "ラボ設定が相手と違います。2人ともラボを同じ設定にして、もう一度6枚を準備してください。";
+    await page.locator("#setupStatus").getByText(message, { exact: true }).waitFor();
+    assert.equal(await page.locator("#setupStatus").textContent(), message);
+    assert.equal(await page.locator("#setupStatus").getAttribute("data-tone"), "error");
+    assert.equal(await page.locator("#toast").textContent(), message);
+    assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.room.status), "ready");
+  });
+});
+
 test("actual Edge gacha persists one server draw and immediately hydrates inventory", { timeout: 130000 }, async () => {
   await withPage("gacha", async (page) => {
     await page.locator("#gachaPanel:not(.hidden)").waitFor();
@@ -2227,7 +2376,7 @@ test("CPU reward copy requires a saved CPU settlement", { timeout: 150000 }, asy
       runtime.room = { ...runtime.room, public_state: { ...runtime.room.public_state, debugUnlimitedSkills: true } };
       runtime.onInvalidate();
     });
-    await page.getByText("戦績を保存しました：CPU戦 勝利 1").waitFor();
+    await page.locator("#terminalProgressText").filter({ hasText: "実験対戦のため、戦績・報酬・在庫は変わりません。" }).waitFor();
     assert.doesNotMatch(await page.locator("#terminalProgressText").textContent(), /完了報酬/);
     assert.equal(await page.locator("#terminalGoGacha").isHidden(), true);
   });

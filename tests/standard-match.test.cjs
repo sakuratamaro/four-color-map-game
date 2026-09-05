@@ -389,11 +389,11 @@ test("legal recolor is dispatched through USE_SKILL and consumes only skill-effe
   assert.equal(result.state.version, 1);
   assert.equal(result.state.interferenceLock, true);
   assert.deepEqual(result.state.lastPublicTrace, {
-    eventId: `${state.matchId}:1`, version: 1, type: "USE_SKILL", actor: "A",
+    eventId: `${state.matchId}:1`, version: 1, type: "LEGAL_RECOLOR", actor: "A", regionId: "R1", color: "green",
   });
   assert.deepEqual(result.publicState.lastPublicTrace, result.state.lastPublicTrace);
   assert.equal(JSON.stringify(result.publicState.lastPublicTrace).includes("legalRecolor"), false);
-  assert.equal(JSON.stringify(result.publicState.lastPublicTrace).includes("R1"), false);
+  assert.equal(JSON.stringify(result.publicState.lastPublicTrace).includes("R1"), true);
   for (const [name, stream] of Object.entries(rng)) {
     assert.equal(stream.snapshot() === before[name], name !== "skill-effect", `${name} consumption`);
   }

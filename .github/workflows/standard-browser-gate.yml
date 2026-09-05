@@ -13,6 +13,8 @@ on:
       - scripts/standard-cpu-selfplay.cjs
       - supabase/functions/standard-game-action/**
       - supabase/migrations/**
+      - tests/standard-*.test.cjs
+      - tests/standard-browser-gate-workflow.test.cjs
       - tests/standard-cpu-browser.test.cjs
       - tests/standard-edge-handler.test.cjs
       - tests/standard-kurogane-lookahead.test.cjs
@@ -30,6 +32,8 @@ on:
       - scripts/standard-cpu-selfplay.cjs
       - supabase/functions/standard-game-action/**
       - supabase/migrations/**
+      - tests/standard-*.test.cjs
+      - tests/standard-browser-gate-workflow.test.cjs
       - tests/standard-cpu-browser.test.cjs
       - tests/standard-edge-handler.test.cjs
       - tests/standard-kurogane-lookahead.test.cjs
@@ -73,6 +77,21 @@ jobs:
           tests/standard-kurogane-policy-migration.test.cjs
           tests/standard-edge-handler.test.cjs
           tests/standard-online-engine-bundle.test.cjs
+          tests/standard-debug-unlimited.test.cjs
+          tests/standard-debug-room-access.test.cjs
+          tests/standard-browser-gate-workflow.test.cjs
+          tests/standard-legal-recolor-lab.test.cjs
+          tests/standard-setup-revision-guard.test.cjs
+          tests/standard-match.test.cjs
+          tests/standard-online-client.test.cjs
+          tests/standard-online-quiz-polish.test.cjs
+          tests/standard-online-random-info-ui.test.cjs
+          tests/standard-online-skill-intents.test.cjs
+          tests/standard-online-ui-static.test.cjs
+          tests/standard-recolor.test.cjs
           tests/standard-cpu-browser.test.cjs
+      - name: Run Standard local lifecycle browser test serially
+        if: matrix.STANDARD_BROWSER == 'edge'
+        run: node --test --test-concurrency=1 tests/standard-color-seal-browser-lifecycle.test.cjs
       - name: Run Standard online browser test serially
         run: node --test --test-concurrency=1 tests/standard-online-browser.test.cjs

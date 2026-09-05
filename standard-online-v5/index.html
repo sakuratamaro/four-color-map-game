@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <title>Four Color Map Game v5.0 Standard Online</title>
   <link rel="stylesheet" href="../online-v5/style.css">
-  <link rel="stylesheet" href="style.css?v=20260905-21">
+  <link rel="stylesheet" href="style.css?v=20260906-22">
   <link rel="stylesheet" href="debug-mode.css">
   <link rel="stylesheet" href="progression.css">
 </head>
@@ -259,6 +259,10 @@
         <input id="debugUnlimitedMode" type="checkbox">
         <span><strong>デバッグ対戦：スキル使い放題</strong><small>合言葉対戦で2人ともONにすると、未所持カードも選択でき、何度使っても減りません（戦績・報酬なし）。</small></span>
       </label>
+      <label class="debug-mode-option">
+        <input id="legalRecolorLabMode" type="checkbox">
+        <span><strong>ラボ対戦：塗り直し・乱</strong><small>合言葉対戦で2人ともONにすると、通常の6枚とは別に1枚ずつ貸与します。戦績・報酬・在庫は変わりません。</small></span>
+      </label>
       <div id="loadoutSummary" class="loadout-summary">選択 0/6｜色 0/2｜エリア 0/2｜妨害 0/2</div>
       <div id="loadoutGrid" class="loadout-grid"></div>
       <div id="setupCommitBar" class="setup-commit-bar">
@@ -393,9 +397,9 @@
     </form>
   </dialog>
   <div id="toast" role="status" aria-live="polite"></div>
-  <script src="standard-online-client.js?v=20260906-16"></script>
+  <script src="standard-online-client.js?v=20260906-17"></script>
   <script src="standard-online-sync.js"></script>
-  <script src="standard-online-skill-intents.js"></script>
-  <script type="module" src="app.js?v=20260906-22"></script>
+  <script src="standard-online-skill-intents.js?v=20260906-17"></script>
+  <script type="module" src="app.js?v=20260906-23"></script>
 </body>
 </html>

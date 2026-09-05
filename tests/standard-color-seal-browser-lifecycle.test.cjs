@@ -294,7 +294,7 @@ async function assertLegalRecolorKeyboardUse(browser, key) {
     const beforeCounters = { ...metrics };
     const beforeColor = beforeRoot.activeMatch.state.regions.R1.color;
     const beforeEffectRng = beforeRoot.activeMatch.rngSnapshot["skill-effect"];
-    await page.getByRole("button", { name: "合法リカラー（実験貸与）" }).click();
+    await page.getByRole("button", { name: "塗り直し・乱（実験貸与）" }).click();
     const target = page.locator('[aria-label="盤面"] button').nth(13);
     await target.focus();
     await page.keyboard.down(key);
@@ -488,6 +488,7 @@ async function installCornerBloomState(page, blocked = false) {
   state.rolledSize = 1;
   state.baseRequiredSize = 1;
   state.preparedOutgoing = null;
+  state.lastPublicTrace = null;
   state.hands.A.areaCornerBloom = 1;
   rootValue.activeMatch.cardSources.A.areaCornerBloom = "INVENTORY_BACKED";
   rootValue.profiles.playerA.inventory.areaCornerBloom = 1;
@@ -750,6 +751,7 @@ async function installPaletteRandomState(page, skillId = "disruptPaletteRandom")
   state.requiredSize = 1;
   state.rolledSize = 1;
   state.baseRequiredSize = 1;
+  state.lastPublicTrace = null;
   state.hands.A[skillId] = 1;
   rootValue.activeMatch.cardSources.A[skillId] = "INVENTORY_BACKED";
   rootValue.profiles.playerA.inventory[skillId] = 1;
@@ -1309,7 +1311,7 @@ test("color-seal native keyboard and normal-URL lifecycle gates", { skip: !chrom
         await reveal.click();
         await page.evaluate(() => {
           globalThis.__stalePrivateControl = [...document.querySelectorAll("#privatePanel button")]
-            .find((button) => button.textContent.includes("合法リカラー"));
+            .find((button) => button.textContent.includes("塗り直し・乱"));
         });
         const cells = page.locator('[aria-label="盤面"] button');
         await cells.nth(13).click();
@@ -1352,7 +1354,7 @@ test("color-seal native keyboard and normal-URL lifecycle gates", { skip: !chrom
         assert.equal(target.isPending, false);
         assert.ok(candidates.length > 0);
 
-        await page.getByRole("button", { name: "合法リカラー（実験貸与）" }).click();
+        await page.getByRole("button", { name: "塗り直し・乱（実験貸与）" }).click();
         assert.equal(await page.locator("#notice").textContent(), "彩色済みエリアを1つ選んでください。");
         assert.equal(await page.locator("[data-legal-recolor],[data-candidate-count],[data-probability]").count(), 0);
         const privateText = await page.locator("#privatePanel").textContent();
@@ -1401,7 +1403,7 @@ test("color-seal native keyboard and normal-URL lifecycle gates", { skip: !chrom
         await page.getByRole("button", { name: "自分の情報を表示" }).click();
         const rejectedBefore = await persistedSnapshot(page);
         const rejectedCounters = { ...metrics };
-        await page.getByRole("button", { name: "合法リカラー（実験貸与）" }).click();
+        await page.getByRole("button", { name: "塗り直し・乱（実験貸与）" }).click();
         await page.locator('[aria-label="盤面"] button').nth(13).click();
         await page.getByText("操作できません（INTERFERENCE_CHAINED）。", { exact: true }).waitFor();
         assert.deepEqual(await persistedSnapshot(page), rejectedBefore);
@@ -1443,7 +1445,7 @@ test("color-seal native keyboard and normal-URL lifecycle gates", { skip: !chrom
         const positiveSignature = await publicCellSignature(page, 37);
         assert.deepEqual(zeroSignature, positiveSignature, "candidate-zero target leaked through public cell presentation");
 
-        await page.getByRole("button", { name: "合法リカラー（実験貸与）" }).click();
+        await page.getByRole("button", { name: "塗り直し・乱（実験貸与）" }).click();
         assert.equal(await page.locator("#notice").textContent(), "彩色済みエリアを1つ選んでください。");
         assert.deepEqual(await publicCellSignature(page, 13), await publicCellSignature(page, 37));
         await page.locator('[aria-label="盤面"] button').nth(13).click();
@@ -1468,7 +1470,7 @@ test("color-seal native keyboard and normal-URL lifecycle gates", { skip: !chrom
         assert.equal(await page.locator("#privatePanel").innerHTML(), privateDomBefore);
         assert.equal(await page.locator("#handover").getAttribute("hidden"), "");
 
-        await page.getByRole("button", { name: "合法リカラー（実験貸与）" }).click();
+        await page.getByRole("button", { name: "塗り直し・乱（実験貸与）" }).click();
         assert.equal(await page.locator("#notice").textContent(), "彩色済みエリアを1つ選んでください。");
         await page.locator('[aria-label="盤面"] button').nth(16).click();
         await page.getByRole("button", { name: "選んだエリアを渡す" }).click();
@@ -1487,7 +1489,7 @@ test("color-seal native keyboard and normal-URL lifecycle gates", { skip: !chrom
         const rawBefore = await page.evaluate((key) => localStorage.getItem(key), saveKey);
         const privateDomBefore = await page.locator("#privatePanel").innerHTML();
         const countersBefore = { ...metrics };
-        await page.getByRole("button", { name: "合法リカラー（実験貸与）" }).click();
+        await page.getByRole("button", { name: "塗り直し・乱（実験貸与）" }).click();
         await page.evaluate(() => globalThis.__codexFailNextStandardWrite());
         await page.locator('[aria-label="盤面"] button').nth(13).click();
         await page.getByText("操作できません（PERSISTENCE_FAILED）。", { exact: true }).waitFor();
@@ -1509,7 +1511,7 @@ test("color-seal native keyboard and normal-URL lifecycle gates", { skip: !chrom
 
         await page.waitForTimeout(350);
         const retryBefore = { ...metrics };
-        await page.getByRole("button", { name: "合法リカラー（実験貸与）" }).click();
+        await page.getByRole("button", { name: "塗り直し・乱（実験貸与）" }).click();
         await page.locator('[aria-label="盤面"] button').nth(13).click();
         await assertHandoverIsPrivate(page);
         const retriedRoot = await persistedRoot(page);

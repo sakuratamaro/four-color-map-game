@@ -9,6 +9,11 @@ const { createStandardOnlineClient, normalizeFunctionError, normalizeRpcError, S
 const ROOM_ID = "11111111-1111-4111-8111-111111111111";
 const ACTION_ID = "22222222-2222-4222-8222-222222222222";
 const QUIZ_SESSION_ID = "44444444-4444-4444-8444-444444444444";
+const VALID_LOADOUT = Object.freeze({
+  color: Object.freeze(["colorRandomBorrow", "colorChoiceBorrow"]),
+  area: Object.freeze(["areaMicroBloom", "areaDiePlus"]),
+  disrupt: Object.freeze(["disruptRandomOne", "disruptChoiceOne"]),
+});
 
 function storageFixture(initial = null) {
   const values = new Map(initial ? [[STORAGE_KEY, JSON.stringify(initial)]] : []);
@@ -97,6 +102,8 @@ test("client restores only finite reconnect identities from its own storage key"
   const client = createStandardOnlineClient({ supabase: supabaseFixture(), storage, idFactory: () => ACTION_ID });
   assert.deepEqual(client.snapshot(), {
     roomId: ROOM_ID, roomCode: "A1B2C3", profileRevision: 4, setupRevision: 2,
+    committedDebugMode: false, committedLabMode: false,
+    pendingSetup: null,
     rematchActionId: null, rematchExpectedVersion: null,
     abandonRoomId: null, abandonActionId: null, abandonExpectedVersion: null,
     matchmakingTicketId: null, matchmakingStartedAt: null, matchmakingFindActionId: null,
@@ -110,7 +117,7 @@ test("profile, create, setup, initialize, and action use the Standard boundaries
   const client = createStandardOnlineClient({ supabase, storage, idFactory: () => ACTION_ID });
   await client.syncProfile({ displayName: "A", profileState: { inventory: {} } });
   await client.createRoom("A");
-  await client.submitSetup({ loadout: { color: [], area: [], disrupt: [] } });
+  await client.submitSetup({ loadout: VALID_LOADOUT });
   await client.initialize();
   await client.submitAction({ expectedVersion: 0, type: "SURRENDER" });
   assert.deepEqual(supabase.calls.map((call) => call.kind === "invoke" ? call.request.body.operation : call.name), [
@@ -383,11 +390,105 @@ test("client propagates a safe debug setup recovery without the raw response", a
     },
   });
   const client = createStandardOnlineClient({ supabase, storage: storageFixture({ roomId: ROOM_ID }), idFactory: () => ACTION_ID });
-  const error = await client.submitSetup({ loadout: { color: [], area: [], disrupt: [] }, debugMode: true }).catch((caught) => caught);
+  const error = await client.submitSetup({ loadout: VALID_LOADOUT, debugMode: true }).catch((caught) => caught);
   assert.equal(error.code, "DEBUG_MODE_NOT_ALLOWED");
   assert.equal(error.retryable, false);
   assert.match(error.message, /合言葉.*人同士.*OFF/);
   assert.doesNotMatch(error.message, /internal|access_mode|secret/i);
+});
+
+test("client persists and restores the committed lab choice until setup is reset", async () => {
+  const supabase = supabaseFixture();
+  const storage = storageFixture({ roomId: ROOM_ID });
+  const client = createStandardOnlineClient({ supabase, storage, idFactory: () => ACTION_ID });
+  await client.submitSetup({ loadout: VALID_LOADOUT, labMode: true });
+  assert.equal(supabase.calls[0].request.body.labMode, true);
+  assert.equal(supabase.calls[0].request.body.debugMode, false);
+  assert.deepEqual(
+    { debug: client.snapshot().committedDebugMode, lab: client.snapshot().committedLabMode },
+    { debug: false, lab: true },
+  );
+  const reloaded = createStandardOnlineClient({ supabase, storage, idFactory: () => ACTION_ID });
+  assert.deepEqual(
+    { revision: reloaded.snapshot().setupRevision, debug: reloaded.snapshot().committedDebugMode, lab: reloaded.snapshot().committedLabMode },
+    { revision: 1, debug: false, lab: true },
+  );
+  reloaded.clearRoom();
+  assert.deepEqual(
+    { revision: reloaded.snapshot().setupRevision, debug: reloaded.snapshot().committedDebugMode, lab: reloaded.snapshot().committedLabMode },
+    { revision: 0, debug: false, lab: false },
+  );
+});
+
+test("lost setup response restores and resends only the exact pending setup identity", async () => {
+  const supabase = supabaseFixture();
+  const storage = storageFixture({ roomId: ROOM_ID });
+  let attempts = 0;
+  supabase.functions.invoke = async (name, request) => {
+    supabase.calls.push({ kind: "invoke", name, request });
+    attempts += 1;
+    if (attempts === 1) throw new Error("connection lost after commit");
+    return { data: { setupRevision: 1, profileRevision: 1, quoteId: request.body.setupActionId } };
+  };
+  const client = createStandardOnlineClient({ supabase, storage, idFactory: () => ACTION_ID });
+  await assert.rejects(() => client.submitSetup({ loadout: VALID_LOADOUT, labMode: true }), /connection lost/);
+  const pending = client.snapshot().pendingSetup;
+  assert.deepEqual(pending, {
+    roomId: ROOM_ID,
+    expectedSetupRevision: 0,
+    setupActionId: ACTION_ID,
+    loadout: VALID_LOADOUT,
+    debugMode: false,
+    labMode: true,
+  });
+
+  const reloaded = createStandardOnlineClient({ supabase, storage, idFactory: () => "55555555-5555-4555-8555-555555555555" });
+  await assert.rejects(() => reloaded.submitSetup({ loadout: VALID_LOADOUT, labMode: false }), /SETUP_ALREADY_PENDING/);
+  assert.deepEqual(reloaded.snapshot().pendingSetup, pending);
+  await reloaded.submitSetup(pending);
+  const setupCalls = supabase.calls.filter((call) => call.kind === "invoke" && call.request.body.operation === "setup");
+  assert.equal(setupCalls.length, 2);
+  assert.deepEqual(
+    setupCalls.map((call) => ({ id: call.request.body.setupActionId, revision: call.request.body.expectedSetupRevision, lab: call.request.body.labMode })),
+    [{ id: ACTION_ID, revision: 0, lab: true }, { id: ACTION_ID, revision: 0, lab: true }],
+  );
+  assert.equal(reloaded.snapshot().pendingSetup, null);
+  assert.equal(reloaded.snapshot().committedLabMode, true);
+});
+
+test("malformed stored pending setup is discarded and a deterministic rejection clears a valid pending setup", async () => {
+  const malformed = storageFixture({
+    roomId: ROOM_ID,
+    pendingSetup: { roomId: ROOM_ID, setupActionId: ACTION_ID, expectedSetupRevision: 0, loadout: VALID_LOADOUT, debugMode: false, labMode: true, extra: "forged" },
+  });
+  const safeClient = createStandardOnlineClient({ supabase: supabaseFixture(), storage: malformed, idFactory: () => ACTION_ID });
+  assert.equal(safeClient.snapshot().pendingSetup, null);
+
+  const supabase = supabaseFixture();
+  supabase.functions.invoke = async () => ({ data: { error: { code: "INVALID_SETUP", message: "private detail" } } });
+  const client = createStandardOnlineClient({ supabase, storage: storageFixture({ roomId: ROOM_ID }), idFactory: () => ACTION_ID });
+  const error = await client.submitSetup({ loadout: VALID_LOADOUT }).catch((caught) => caught);
+  assert.equal(error.retryable, false);
+  assert.equal(client.snapshot().pendingSetup, null);
+});
+
+test("client exposes finite lab rule errors and rejects conflicting experiment choices", async () => {
+  const client = createStandardOnlineClient({ supabase: supabaseFixture(), storage: storageFixture({ roomId: ROOM_ID }), idFactory: () => ACTION_ID });
+
+  for (const [code, expected] of [
+    ["NO_LEGAL_RECOLOR", /カード・手番は減っていません/],
+    ["INTERFERENCE_CHAINED", /続けて使えません/],
+    ["LAB_MODE_MISMATCH", /2人のラボ設定/],
+    ["LAB_MODE_NOT_ALLOWED", /合言葉による人同士/],
+    ["LAB_MODE_REQUIRED", /塗り直しラボ/],
+  ]) {
+    const error = await normalizeFunctionError({ code, message: "private detail" });
+    assert.equal(error.code, code);
+    assert.equal(error.retryable, false);
+    assert.match(error.message, expected);
+    assert.doesNotMatch(error.message, /private detail/);
+  }
+  await assert.rejects(() => client.submitSetup({ loadout: {}, debugMode: true, labMode: true }), /INVALID_SETUP_ID/);
 });
 
 test("gacha retains the caller action identity and persists the committed profile revision", async () => {

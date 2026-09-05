@@ -215,7 +215,7 @@ test("PvP and CPU records are visibly separate and CPU rematch uses its dedicate
   assert.match(css, /\.terminal-progress\{[^}]*white-space:pre-line/);
   assert.match(app, /entry\.onlineOpponentKind === "cpu"/);
   assert.match(app, /roomModel\?\.room\?\.status === "finished"[\s\S]+?settledMatch\?\.matchId === state\.matchId[\s\S]+?Number\.isSafeInteger\(resultCount\)/);
-  assert.match(app, /const cpuRewardWasSaved = progressWasSaved && opponentKind === "cpu" && state\.debugUnlimitedSkills !== true/);
+  assert.match(app, /const cpuRewardWasSaved = progressWasSaved && opponentKind === "cpu" && !experimentalMatch/);
   assert.match(app, /show\("terminalGoGacha", cpuRewardWasSaved\)/);
   const terminalGachaHandler = app.slice(app.indexOf('$("terminalGoGacha").onclick'), app.indexOf('$("terminalClose").onclick'));
   assert.match(terminalGachaHandler, /dismissTerminalResult\(\);\s*goToGacha\(1\)/);
@@ -308,7 +308,8 @@ test("UI enumerates exactly the 19 canonical Standard cards by category", () => 
   assert.equal(ids.length, 19);
   assert.deepEqual([...ids].sort(), [...canonical].sort());
   assert.equal(new Set(ids).size, 19);
-  assert.doesNotMatch(app, /legalRecolor/);
+  assert.doesNotMatch(catalog, /legalRecolor/);
+  assert.match(app, /const EXPERIMENTAL_SKILLS = Object\.freeze\(\{[\s\S]+legalRecolor/);
 });
 
 test("profile, room, setup, initialize, and reconnect flow only through the client boundary", () => {
@@ -330,8 +331,9 @@ test("setup enforces two cards per category and makes unowned cards debug-only",
   assert.match(app, /every\(\(category\) => loadout\[category\]\.length === 2\)/);
   assert.match(app, /renderLoadoutSelectionState\(`\$\{CATEGORY_LABEL\[category\]\}は2枚までです/);
   assert.match(app, /\$\("submitSetup"\)\.disabled = actionPending \|\| !ready/);
-  assert.match(app, /client\.submitSetup\(\{ loadout, debugMode \}\)/);
+  assert.match(app, /client\.submitSetup\(\{\s*roomId: pendingSetup\?\.roomId,\s*expectedSetupRevision: pendingSetup\?\.expectedSetupRevision,\s*setupActionId: pendingSetup\?\.setupActionId,\s*loadout,\s*debugMode,\s*labMode,\s*\}\)/);
   assert.match(html, /id="debugUnlimitedMode"/);
+  assert.match(html, /id="legalRecolorLabMode"/);
   assert.doesNotMatch(html, /id="(?:cpuStartReview|loadoutSummary)"[^>]+aria-live=/);
   assert.match(html, /id="setupCommitBar"[^>]+setup-commit-bar/);
   assert.match(app, /6枚を選択済み・準備OK/);
@@ -447,7 +449,7 @@ test("a fresh device can create a six-card online-only starter without overwriti
   }
   assert.match(app, /localStorage\.setItem\(STARTER_PROFILE_KEY/);
   assert.doesNotMatch(app, /localStorage\.setItem\(SAVE_KEY/);
-  assert.match(app, /loadProfiles\(\);\s*activateAppTab\(activeAppTab\);\s*render\(\);\s*try \{/);
+  assert.match(app, /syncSetupModeControls\(client\.snapshot\(\), \{ force: true \}\);\s*loadProfiles\(\);\s*activateAppTab\(activeAppTab\);\s*render\(\);\s*try \{/);
   assert.match(app, /syncProfile"\)\.disabled = !value \|\| !connected/);
 });
 
@@ -514,7 +516,11 @@ test("all 19 skill target kinds route through the reviewed intent builder", () =
 });
 
 test("skill target cancel is write-free and clears only transient selection", () => {
-  assert.match(app, /"キャンセル", \(\) => \{ targetDraft = null; selectedMacros\.clear\(\); render\(\); \}/);
+  const cancelTarget = app.slice(app.indexOf("function cancelSkillTarget"), app.indexOf("function renderSkillTarget"));
+  assert.match(app, /"キャンセル", cancelSkillTarget/);
+  assert.match(cancelTarget, /targetDraft = null;[\s\S]+selectedMacros\.clear\(\);[\s\S]+render\(\);/);
+  assert.match(cancelTarget, /candidate\.dataset\.skill === skill[\s\S]+source\?\.focus/);
+  assert.doesNotMatch(cancelTarget, /sendAction|submitAction/);
   assert.match(app, /盤面選択を解除/);
   assert.doesNotMatch(app, /キャンセル[^\n]+submitAction/);
 });
