@@ -138,18 +138,27 @@
 | canary後 | CPU 1% / RAM 59% / disk 16% / peak conns 15/60 | 251 requests | 5.3% warnings | PENDING | PENDING | PENDING | API 0.46% errors |
 | `29c6958`公開直後 | CPU 2% / RAM 64% / disk 16% / connections 14/60 | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING |
 
+## 2026-09-05 15:34 JST 6枚セットアップ即時確定公開
+
+- `e0f4f98`で、スマホの6枚選択画面に既存の準備ボタンを固定表示した。スターター6枚は最初から選択済みであることと準備OKを同じ領域に表示し、無効な構成と送信中は従来どおり確定不可にした。二重の操作要素や新しいAPI経路は追加していない。
+- ローカルはUI静的31/31、390×844の6枚選択browser、提出→初手引き継ぎbrowserが合格した。準備APIは1回だけ、下部navとの非重複、横overflowなしを検査した。
+- 390×844の実画面で不要な内部scrollbarを除去し、公開URLの新規匿名profileから、うっかりユズ選択、固定CTA表示、準備送信、実対戦開始まで確認した。
+- `c0b4f77`で、すでに強化済みだったbrowser timeout、復帰対象モード、CPU契約ジョブへ静的テストの期待値を同期した。製品資産は変更していない。
+- `origin/main`と`codex/standard-release-command`を`c0b4f77`へforceなしでfast-forwardした。Pages run `33949936952`、Standard browser gate `33950043659`は成功し、同ゲートのChrome/Edge両jobが合格した。
+- 物理的に別々の二端末を使う対人/CPU完走、途中再読込、再戦、永続化と、公開後24時間の使用量比較は引き続き`NOT_RUN` / `PENDING`である。
+
 ## 公開識別子
 
 | 項目 | 値 |
 | --- | --- |
 | browser harness diagnostics commit | `6fc23a5` |
 | Windows browser CI commit | `d8dac1b` |
-| final browser-verified candidate | `a3425a4`（クロガネ公開情報lookahead v2） |
-| Windows browser CI run | `33947039777` / Chrome Success / Edge Success |
+| final browser-verified candidate | `e0f4f98`（6枚セットアップ即時確定。`c0b4f77`は検査専用） |
+| Windows browser CI run | `33950043659` / Chrome Success / Edge Success |
 | 初回candidate code baseline（履歴） | `0e02176`（Edge deployment 8 sourceは`c3cf372`） |
 | applied migrations | `202609030006`–`202609030013`, `202609050001`–`202609050005` |
 | `standard-game-action` version | クロガネv2対応deployment（2026-09-05 14:34 JST更新） |
-| Pages Actions run | `33947644765` / Success / `a3425a4` |
+| Pages Actions run | `33949936952` / Success / `c0b4f77`（製品資産`e0f4f98`） |
 | public URL | `https://sakuratamaro.github.io/four-color-map-game/standard-online-v5/` |
 
 ## Canary結果
@@ -174,6 +183,8 @@
 | クロガネv2 Pages・公開asset | PASS | 2026-09-05 | `main=a3425a4`、Pages run `33947644765`。公開URL HTTP 200、roster/bundleのSHA-256が候補と一致し、実ブラウザconsole warning/error 0 |
 | 公開UI即時CPU開始 | PASS | 2026-09-05 | ホーム主CTA→10人一覧→うっかりユズ→6枚準備→準備完了→CPU初手→人間第2手を実画面で確認 |
 | クロガネv2 live canary | PASS | 2026-09-05 | 新規匿名、v2 policy、同一開始action再送、公開情報だけによる合法CPU手2回、投了、同CPU再戦。独立canaryでも新規v2 room受理を確認 |
+| 6枚セットアップ即時確定 | PASS | 2026-09-05 | `e0f4f98`。390×844でCTAが初期表示内かつ下部navより上、6/6・各2枚だけ有効、準備送信1回。公開匿名profile→CPU選択→実対戦開始まで確認 |
+| 6枚CTA Windows browser gate | PASS | 2026-09-05 | run `33950043659`。Windows 2025のChrome/Edge両jobが成功 |
 | 二端末最終受入 | NOT_RUN | PENDING | PENDING |
 
 ## 残存リスク
@@ -181,7 +192,7 @@
 - Dashboardの詳細なAdvisor/使用量baselineは未取得。画面上では資源逼迫警告が継続しているため、公開範囲を広げる前後で使用量を追跡する。
 - profile作成安定化はCの逐次16件で500/429なしを確認した。高並列作成そのものはAuth上限を消費するため再試験せず、再発時はEdge/DBログと資源警告を関連調査する。
 - Cのstatus正規化は本番関数定義、既存ticket整合、live canary 210/210まで確認済み。今後もIPあたり30 anonymous sign-ins/時を守り、同じ認証窓で重いcanaryを再試行しない。
-- 現行製品`a3425a4`は同commitのままPagesへ反映済み。自動browser、公開asset、Edge/DB canary合格と、未実施の物理二端末受入を混同しない。
+- 現行製品`e0f4f98`はPagesへ反映済み。自動browser、公開実CPU開始、Edge/DB canary合格と、未実施の物理二端末受入を混同しない。
 - Edgeのper-isolate濫用抑止は分散レート制限ではない。公開後の計測で必要性が出た場合だけprovider側制限を検討する。
 - 10人CPUの合法性・決定性は自動検証済みだが、人間が感じる個性と楽しさは代表3人の実プレイ後も定性的判断として残る。
 - cleanup実削除や定期化は許可済みだが、exact IDと復元手段を確認するまで実行しない。課金設定変更は必要性と金額を特定してから扱う。
