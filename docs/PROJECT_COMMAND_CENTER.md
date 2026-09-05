@@ -8,7 +8,7 @@
 
 ## 司令塔ルール
 
-- 統合基点は `origin/main` とし、現在の公開基点は `958a4da`、active-room復帰の製品実装は `5acee05`（確定接触feedback、公開戦術trace、開始前取りやめ、active-room排他、room外6枚編成、明示CPU開始sagaを累積）。
+- 統合基点は `origin/main` とし、現在の公開基点は `3fb3ef8`、legal-recolor LABの製品実装は `ad53bb4`（active-room復帰、確定接触feedback、公開戦術trace、開始前取りやめ、active-room排他、room外6枚編成、明示CPU開始sagaを累積）。
 - 現在の統合作業は `codex/standard-release-command` だけで行う。
 - 古いdirty worktreeからbuild、merge、deployしない。
 - `実装済み`、`ローカル検証済み`、`live検証済み`、`公開済み`を別状態として記録する。
@@ -97,7 +97,7 @@
 | 合言葉不要マッチング＋CPUフォールバック | `origin/main@a3425a4`でPUBLIC_VERIFIED | 自動live canaryは完了。物理二端末で対人/CPUの完走、復帰、再戦を確認する |
 | クイズ・スキル・バランス | 即時採点、答え合わせ、持ち色変更説明、クロガネv2までPUBLIC_VERIFIED | 物理端末の操作感を確認し、公開後24時間指標と分離して記録する |
 | online MVP status／live regression | 現行公開識別子と有限な証拠を`STANDARD_RELEASE_EVIDENCE.md`へ集約 | 古い時系列ログは履歴として保持し、現行状態と混同しない |
-| 二端末P0 handoff | PENDING | `3e2b959`の対人/CPU完走、確定接触feedback、公開戦術trace、開始前取りやめ、終局理由、Quick継続、途中再読込、報酬→ガチャ→6枚再編成→再戦、永続化だけを残件として回収 |
+| 二端末P0 handoff | PENDING | `3fb3ef8`の対人/CPU/LAB完走、確定接触feedback、公開戦術trace、開始前取りやめ、終局理由、Quick継続、途中再読込、報酬→ガチャ→6枚再編成→再戦、永続化だけを残件として回収 |
 | active-room排他・room外6枚編成・開始前取りやめ | `426dc41`でPUBLIC_VERIFIED | 次便は競合時の既存room再同期・日本語文言を独立して改善する |
 | 新カード候補 | `legalRecolor`をLAB限定で条件付き採用 | IDは維持し表示名を「塗り直し・乱」、妨害★3/WORK、ガチャOFF・双方1回貸与で公開。二色市松は1地域1色モデルを壊すため別rulesetへ分離 |
 | nested Expo設計群 | 旧ローカル試作 | 現行Standard Onlineから凍結分離 |
