@@ -14,6 +14,7 @@ const STARTER_PROFILE_ID = "online-starter";
 const REMOTE_PROFILE_KEY = "fourColorMapGame.standard.online.v5.remote-profile";
 const REMOTE_PROFILE_ID = "online-server";
 const GACHA_PENDING_KEY = "fourColorMapGame.standard.online.v5.pending-gacha";
+const CPU_REWARD_GACHA_RESULT_KEY = "fourColorMapGame.standard.online.v5.cpu-reward-gacha-result";
 const QUIZ_PENDING_KEY = "fourColorMapGame.standard.online.v5.pending-quiz";
 const TERMINAL_PRESENTED_KEY = "fourColorMapGame.standard.online.v5.last-terminal-presentation";
 const APP_TAB_KEY = "fourColorMapGame.standard.online.v5.active-tab";
@@ -125,7 +126,39 @@ let cpuOfferDismissedStage = 0;
 let cpuOfferAnnouncedStage = 0;
 let cpuActionTimer = null;
 let cpuActionBusy = false;
-let lastGachaDraws = [];
+function restoreCpuRewardGachaResult() {
+  try {
+    const stored = JSON.parse(sessionStorage.getItem(CPU_REWARD_GACHA_RESULT_KEY) || "null");
+    const continuation = stored?.continuation;
+    const normalizedContinuation = continuation?.source === "cpu-completion-reward"
+      && typeof continuation.roomId === "string" && continuation.roomId.length <= 100
+      && Number.isSafeInteger(continuation.roomVersion) && continuation.roomVersion >= 0
+      && typeof continuation.matchId === "string" && continuation.matchId.length <= 100
+      && continuation.ticketLevel === 1
+      ? {
+          source: "cpu-completion-reward",
+          roomId: continuation.roomId,
+          roomVersion: continuation.roomVersion,
+          matchId: continuation.matchId,
+          ticketLevel: 1,
+        }
+      : null;
+    const draws = Array.isArray(stored?.draws) ? stored.draws.slice(0, 100).flatMap((draw) => {
+      const skill = SKILLS.find(([skillId, , category]) => skillId === draw?.skillId && category === draw?.category);
+      if (!skill || !Number.isSafeInteger(draw.ticketLevel) || draw.ticketLevel < 1 || draw.ticketLevel > 5
+        || !Number.isSafeInteger(draw.rarity) || draw.rarity < 1 || draw.rarity > 5) return [];
+      return [{ ticketLevel: draw.ticketLevel, rarity: draw.rarity, category: skill[2], skillId: skill[0], displayName: skill[1] }];
+    }) : [];
+    return { continuation: normalizedContinuation, draws };
+  } catch {
+    return { continuation: null, draws: [] };
+  }
+}
+const restoredCpuRewardGachaResult = restoreCpuRewardGachaResult();
+let lastGachaDraws = restoredCpuRewardGachaResult.draws;
+let terminalCpuRewardGachaCandidate = null;
+let armedCpuRewardGachaOrigin = null;
+let lastGachaContinuation = restoredCpuRewardGachaResult.continuation;
 let pendingGacha = (() => { try { return JSON.parse(localStorage.getItem(GACHA_PENDING_KEY) || "null"); } catch { return null; } })();
 let pendingQuiz = (() => { try { return JSON.parse(localStorage.getItem(QUIZ_PENDING_KEY) || "null"); } catch { return null; } })();
 let lastQuizResult = null;
@@ -428,6 +461,7 @@ function renderTerminalResult(state) {
   const overlay = $("terminalOverlay");
   if (state?.status !== "FINISHED" || !["A", "B"].includes(state.winner)) {
     show("terminalOverlay", false);
+    terminalCpuRewardGachaCandidate = null;
     shownTerminalEventKey = null;
     dismissedTerminalEventKey = null;
     return;
@@ -461,6 +495,13 @@ function renderTerminalResult(state) {
     && Number.isSafeInteger(resultCount)
     && resultCount >= 0;
   const cpuRewardWasSaved = progressWasSaved && opponentKind === "cpu" && state.debugUnlimitedSkills !== true;
+  terminalCpuRewardGachaCandidate = cpuRewardWasSaved ? {
+    source: "cpu-completion-reward",
+    roomId: roomModel.room.id,
+    roomVersion: Number(roomModel.room.version),
+    matchId: state.matchId,
+    ticketLevel: 1,
+  } : null;
   $("terminalProgressText").textContent = progressWasSaved
     ? `戦績を保存しました：${resultLabel} ${won ? "勝利" : "敗北"} ${resultCount}${cpuRewardWasSaved ? "\n完了報酬：Lv.1ガチャ券 +1" : ""}`
     : "戦績を同期しています。マイページで確認できます。";
@@ -876,17 +917,55 @@ function renderGacha() {
   const level = Number($("gachaLevel").value || 1);
   const available = Number(tickets[String(level)] || 0);
   $("gachaTickets").textContent = [1, 2, 3, 4, 5].map((item) => `Lv.${item} ×${tickets[String(item)] || 0}`).join(" / ");
-  $("gachaDrawOne").disabled = gachaBusy || hasMatchedRoomHandoff() || available < 1;
-  $("gachaDrawAll").disabled = gachaBusy || hasMatchedRoomHandoff() || available < 1;
+  $("gachaDrawOne").disabled = gachaBusy || Boolean(pendingGacha) || hasMatchedRoomHandoff() || available < 1;
+  $("gachaDrawAll").disabled = gachaBusy || Boolean(pendingGacha) || hasMatchedRoomHandoff() || available < 1;
   $("gachaRetry").classList.toggle("hidden", !pendingGacha);
+  $("gachaRetry").disabled = gachaBusy || hasMatchedRoomHandoff();
   $("gachaResults").replaceChildren();
   for (const draw of lastGachaDraws) {
-    const card = document.createElement("article"); card.className = `gacha-card r${draw.rarity}`;
+    const card = document.createElement("article"); card.className = `gacha-card r${draw.rarity}`; card.setAttribute("role", "listitem");
     const stars = document.createElement("div"); stars.className = "gacha-stars"; stars.textContent = "★".repeat(draw.rarity); card.appendChild(stars);
     const title = document.createElement("strong"); title.textContent = draw.displayName || SKILL_META[draw.skillId]?.name || draw.skillId; card.appendChild(title);
     const detail = document.createElement("small"); detail.textContent = `${CATEGORY_LABEL[draw.category] || draw.category} / Lv.${draw.ticketLevel}`; card.appendChild(detail);
+    const effect = document.createElement("small"); effect.className = "gacha-card-effect"; effect.textContent = SKILL_DESCRIPTION[draw.skillId] || "対戦で使えるカードです。"; card.appendChild(effect);
     $("gachaResults").appendChild(card);
   }
+  const hasResults = lastGachaDraws.length > 0;
+  show("gachaResultSummary", hasResults);
+  const announcedDraws = lastGachaDraws.slice(0, 3).map((draw) => `${draw.displayName || SKILL_META[draw.skillId]?.name || draw.skillId}、レアリティ星${draw.rarity}。${SKILL_DESCRIPTION[draw.skillId] || "対戦で使えるカードです。"}`);
+  const remainingDraws = Math.max(0, lastGachaDraws.length - announcedDraws.length);
+  $("gachaResultAnnouncement").textContent = hasResults
+    ? `${lastGachaDraws.length}枚獲得。${announcedDraws.join(" ")}${remainingDraws ? ` ほか${remainingDraws}枚は下の一覧で確認できます。` : ""}`
+    : "";
+  if (lastGachaContinuation && roomModel && !isCurrentCpuRewardGachaContinuation(lastGachaContinuation)) clearCpuRewardGachaResult();
+  const canContinueCpuReward = hasResults && !pendingGacha && !gachaBusy && isCurrentCpuRewardGachaContinuation(lastGachaContinuation);
+  show("gachaCpuRematch", canContinueCpuReward);
+  show("gachaCpuRematchNote", canContinueCpuReward);
+  $("gachaCpuRematch").disabled = rematchBusy;
+}
+
+function clearCpuRewardGachaResult({ clearDraws = false } = {}) {
+  lastGachaContinuation = null;
+  if (clearDraws) lastGachaDraws = [];
+  try { sessionStorage.removeItem(CPU_REWARD_GACHA_RESULT_KEY); } catch { /* in-memory result remains usable */ }
+}
+
+function persistCpuRewardGachaResult() {
+  if (!isCurrentCpuRewardGachaContinuation(lastGachaContinuation) || !lastGachaDraws.length) return clearCpuRewardGachaResult();
+  try { sessionStorage.setItem(CPU_REWARD_GACHA_RESULT_KEY, JSON.stringify({ continuation: lastGachaContinuation, draws: lastGachaDraws.slice(0, 100) })); } catch { /* in-memory result remains usable */ }
+}
+
+function isCurrentCpuRewardGachaContinuation(value) {
+  const state = roomModel?.room?.public_state;
+  return value?.source === "cpu-completion-reward"
+    && value.ticketLevel === 1
+    && value.roomId === roomModel?.room?.id
+    && value.roomVersion === Number(roomModel?.room?.version)
+    && value.matchId === state?.matchId
+    && roomModel?.room?.status === "finished"
+    && roomModel?.room?.opponent_kind === "cpu"
+    && state?.status === "FINISHED"
+    && state?.debugUnlimitedSkills !== true;
 }
 
 function renderCardLibrary() {
@@ -1516,17 +1595,29 @@ async function runGacha(requestedCount = 1, retry = false) {
   if (!retry) {
     const count = requestedCount === null ? Math.min(available, 100) : requestedCount;
     if (count < 1) return toast("このレベルのガチャ券がありません。");
-    pendingGacha = { actionId: crypto.randomUUID(), ticketLevel: level, count };
+    const continuation = armedCpuRewardGachaOrigin?.ticketLevel === level
+      && isCurrentCpuRewardGachaContinuation(armedCpuRewardGachaOrigin)
+      ? { ...armedCpuRewardGachaOrigin }
+      : null;
+    pendingGacha = { actionId: crypto.randomUUID(), ticketLevel: level, count, ...(continuation ? { continuation } : {}) };
+    armedCpuRewardGachaOrigin = null;
     localStorage.setItem(GACHA_PENDING_KEY, JSON.stringify(pendingGacha));
   }
   if (!pendingGacha) return;
   gachaBusy = true; $("gachaStatus").textContent = "サーバーで抽選中…"; renderGacha();
   try {
+    const completedContinuation = pendingGacha.continuation || null;
     const result = await client.drawGacha(pendingGacha);
     persistRemoteProfile(result.profileState, displayName(), Number(result.revision));
     lastGachaDraws = result.draws || [];
+    lastGachaContinuation = isCurrentCpuRewardGachaContinuation(completedContinuation) ? completedContinuation : null;
+    persistCpuRewardGachaResult();
     pendingGacha = null; localStorage.removeItem(GACHA_PENDING_KEY);
     $("gachaStatus").textContent = `${lastGachaDraws.length}枚を獲得しました。券消費とカード付与は一度だけ保存済みです。`;
+    requestAnimationFrame(() => {
+      $("gachaResultTitle").focus({ preventScroll: true });
+      $("gachaResultSummary").scrollIntoView({ block: "end", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+    });
   } catch (error) {
     const remote = await client.readProfile().catch(() => null);
     if (remote) hydrateProfileRow(remote);
@@ -1705,6 +1796,7 @@ function render() {
   show("quizPanel", synced && Boolean(profile()));
   renderQuiz();
   show("gachaPanel", synced && Boolean(profile()));
+  renderGacha();
   show("cardLibraryPanel", synced && Boolean(profile()));
   renderCardLibrary();
   show("progressionPanel", synced && Boolean(profile()));
@@ -2376,6 +2468,17 @@ async function requestRematch() {
   } finally { rematchBusy = false; render(); }
 }
 
+async function continueCpuRewardRematch() {
+  if (!isCurrentCpuRewardGachaContinuation(lastGachaContinuation) || rematchBusy) return;
+  const expectedRoomId = lastGachaContinuation.roomId;
+  await requestRematch();
+  if (client.snapshot().roomId !== expectedRoomId || roomModel?.room?.status !== "ready") return renderGacha();
+  clearCpuRewardGachaResult();
+  activateAppTab("battle");
+  render();
+  focusMatchedRoom();
+}
+
 function dismissTerminalResult() {
   dismissedTerminalEventKey = shownTerminalEventKey;
   show("terminalOverlay", false);
@@ -2387,7 +2490,7 @@ function goToGacha(ticketLevel = null) {
     $("gachaLevel").value = String(destinationLevel);
   }
   if (!pendingGacha && ticketLevel !== null) {
-    lastGachaDraws = [];
+    clearCpuRewardGachaResult({ clearDraws: true });
   }
   activateAppTab("quiz", { scrollTop: false });
   renderGacha();
@@ -2402,10 +2505,11 @@ $("syncProfile").onclick = syncSelectedProfile;
 $("quizStart").onclick = startOnlineQuiz;
 $("quizHint").onclick = openQuizHint;
 $("quizGoGacha").onclick = () => goToGacha();
-$("gachaLevel").onchange = () => { lastGachaDraws = []; renderGacha(); };
+$("gachaLevel").onchange = () => { armedCpuRewardGachaOrigin = null; clearCpuRewardGachaResult({ clearDraws: true }); renderGacha(); };
 $("gachaDrawOne").onclick = () => runGacha(1);
 $("gachaDrawAll").onclick = () => runGacha(null);
 $("gachaRetry").onclick = () => runGacha(1, true);
+$("gachaCpuRematch").onclick = continueCpuRewardRematch;
 $("returnToMatchedRoom").onclick = goToMatchedRoom;
 $("cardSaleSkill").onchange = () => { cardSaleQuote = null; $("cardSaleStatus").textContent = "枚数を選び、売却内容を確認してください。"; renderCardSale(); };
 $("cardSaleCount").oninput = () => { cardSaleQuote = null; $("cardSaleStatus").textContent = "売却内容をもう一度確認してください。"; renderCardSale(); };
@@ -2445,14 +2549,16 @@ $("requestRematch").onclick = requestRematch;
 $("chooseDifferentCpu").onclick = (event) => beginImmediateCpuEntry(event.currentTarget);
 $("closeSkillInfo").onclick = () => $("skillInfoDialog").close();
 $("terminalGoGacha").onclick = () => {
+  const origin = terminalCpuRewardGachaCandidate ? { ...terminalCpuRewardGachaCandidate } : null;
   dismissTerminalResult();
   goToGacha(1);
+  armedCpuRewardGachaOrigin = origin;
 };
 $("terminalClose").onclick = () => {
   dismissTerminalResult();
   $("requestRematch").focus({ preventScroll: false });
 };
-$("leaveRoom").onclick = () => { clearContactReveal(); stopCpuTurnWatch(); roomSync.stop(); client.clearRoom(); roomModel = null; setupFailure = null; pendingAction = null; matchedRoomHandoff = null; announcedMatchedRoomId = null; $("matchedRoomAnnouncement").textContent = ""; clearTimeout(matchedRoomHandoffTimer); matchedRoomHandoffTimer = null; operationFeedback("setupStatus", ""); operationFeedback("actionStatus", ""); render(); };
+$("leaveRoom").onclick = () => { clearContactReveal(); clearCpuRewardGachaResult(); stopCpuTurnWatch(); roomSync.stop(); client.clearRoom(); roomModel = null; setupFailure = null; pendingAction = null; matchedRoomHandoff = null; announcedMatchedRoomId = null; $("matchedRoomAnnouncement").textContent = ""; clearTimeout(matchedRoomHandoffTimer); matchedRoomHandoffTimer = null; operationFeedback("setupStatus", ""); operationFeedback("actionStatus", ""); render(); };
 document.addEventListener("visibilitychange", () => {
   roomSync.handleVisibilityChange();
   if (document.visibilityState === "hidden") { stopMatchmakingWatch(); stopCpuTurnWatch(); }

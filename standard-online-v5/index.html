@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <title>Four Color Map Game v5.0 Standard Online</title>
   <link rel="stylesheet" href="../online-v5/style.css">
-  <link rel="stylesheet" href="style.css?v=20260905-15">
+  <link rel="stylesheet" href="style.css?v=20260905-16">
   <link rel="stylesheet" href="debug-mode.css">
   <link rel="stylesheet" href="progression.css">
 </head>
@@ -118,7 +118,13 @@
         <button id="gachaRetry" class="ghost hidden">同じ抽選を再確認</button>
       </div>
       <p id="gachaStatus" class="muted" aria-live="polite">スターターはLv.1券を3枚持っています。</p>
-      <div id="gachaResults" class="gacha-results"></div>
+      <section id="gachaResultSummary" class="gacha-result-summary hidden">
+        <h3 id="gachaResultTitle" tabindex="-1">獲得カード</h3>
+        <p id="gachaResultAnnouncement" class="muted" role="status" aria-live="polite" aria-atomic="true"></p>
+        <button id="gachaCpuRematch" class="primary hidden" type="button">6枚を選び直して同じCPUと再戦</button>
+        <p id="gachaCpuRematchNote" class="muted small hidden">カードは自動で6枚には入りません。次の画面で、各カテゴリ2枚ずつを自分で選べます。</p>
+      </section>
+      <div id="gachaResults" class="gacha-results" role="list" aria-label="獲得カード一覧"></div>
     </section>
 
     <section id="cardLibraryPanel" class="card card-library-panel hidden" data-app-tab-panel="cards">
@@ -349,6 +355,6 @@
   <script src="standard-online-client.js?v=20260905-14"></script>
   <script src="standard-online-sync.js"></script>
   <script src="standard-online-skill-intents.js"></script>
-  <script type="module" src="app.js?v=20260905-15"></script>
+  <script type="module" src="app.js?v=20260905-16"></script>
 </body>
 </html>

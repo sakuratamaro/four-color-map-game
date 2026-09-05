@@ -64,7 +64,9 @@ test("gacha settles to a result or retriable state before automatic movement", (
   assert.match(gacha, /同じ抽選IDで安全に再試行できます/);
   assert.match(gacha, /finally \{ gachaBusy = false; renderGacha\(\); render\(\); flushMatchedRoomHandoff\(\); \}/);
   assert.match(app, /gachaBusy\) return "抽選結果、または同じ抽選IDで再送できる状態/);
-  assert.match(app, /gachaDrawOne"\)\.disabled = gachaBusy \|\| hasMatchedRoomHandoff\(\)/);
+  assert.match(app, /gachaDrawOne"\)\.disabled = gachaBusy \|\| Boolean\(pendingGacha\) \|\| hasMatchedRoomHandoff\(\)/);
+  assert.match(app, /gachaDrawAll"\)\.disabled = gachaBusy \|\| Boolean\(pendingGacha\) \|\| hasMatchedRoomHandoff\(\)/);
+  assert.match(app, /gachaRetry"\)\.disabled = gachaBusy \|\| hasMatchedRoomHandoff\(\)/);
 });
 
 test("restored public rooms recover while CPU and invitation paths stay separate", () => {

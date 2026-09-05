@@ -33,6 +33,7 @@ test("Standard online setup UI exposes the complete reconnect path", () => {
     "turnGuide", "turnGuideStep", "turnGuideTitle", "turnGuideDetail", "board", "regionControls", "selectionCount", "submitRegion", "paletteControls", "skillControls", "skillTargetControls",
     "surrender", "retryAction", "actionStatus", "rematchControls", "rematchStatus", "requestRematch",
     "gachaPanel", "gachaTitle", "gachaTickets", "gachaLevel", "gachaDrawOne", "gachaDrawAll", "gachaRetry", "gachaStatus", "gachaResults",
+    "gachaResultSummary", "gachaResultTitle", "gachaResultAnnouncement", "gachaCpuRematch", "gachaCpuRematchNote",
     "quizAnswerFeedback", "quizRewardSummary", "quizGoGacha", "quizReview", "quizReviewList",
     "progressionPanel", "profileCoins", "profileStats", "cpuProfileStats", "cpuCharacterRecords", "trophyList", "matchHistory",
     "cardSaleSkill", "cardSaleCount", "cardSaleQuote", "cardSaleCommit", "cardSaleRetry", "cardSaleReset", "cardSaleStatus",
@@ -172,7 +173,7 @@ test("PvP and CPU records are visibly separate and CPU rematch uses its dedicate
   assert.match(terminalGachaHandler, /dismissTerminalResult\(\);\s*goToGacha\(1\)/);
   assert.doesNotMatch(terminalGachaHandler, /runGacha|drawGacha|clearRoom|requestCpuRematch|beginImmediateCpuEntry/);
   assert.match(app, /\$\("gachaTitle"\)\.focus\(\{ preventScroll: true \}\)/);
-  assert.match(css, /\.gacha-panel h2:focus\{[^}]*outline:3px solid #fde047/);
+  assert.match(css, /\.gacha-panel h2:focus,\.gacha-result-summary h3:focus\{[^}]*outline:3px solid #fde047/);
   assert.match(css, /\.terminal-confetti\{[^}]*overflow:hidden/);
   assert.match(app, /client\.requestCpuRematch\(\{ expectedVersion: roomModel\.room\.version \}\)/);
   assert.match(app, /同じCPUと再戦する/);
@@ -201,13 +202,43 @@ test("every finished match presents a local-seat victory or defeat overlay, incl
 
 test("gacha persists its action identity before sending and hydrates the committed server profile", () => {
   assert.match(app, /const GACHA_PENDING_KEY = "fourColorMapGame\.standard\.online\.v5\.pending-gacha"/);
-  assert.match(app, /pendingGacha = \{ actionId: crypto\.randomUUID\(\), ticketLevel: level, count \}/);
+  assert.match(app, /pendingGacha = \{ actionId: crypto\.randomUUID\(\), ticketLevel: level, count, \.\.\.\(continuation \? \{ continuation \} : \{\}\) \}/);
   const persisted = app.indexOf("localStorage.setItem(GACHA_PENDING_KEY, JSON.stringify(pendingGacha))");
   const sent = app.indexOf("client.drawGacha(pendingGacha)");
   assert.ok(persisted >= 0 && sent > persisted);
   assert.match(app, /persistRemoteProfile\(result\.profileState, displayName\(\), Number\(result\.revision\)\)/);
   assert.match(app, /localStorage\.removeItem\(GACHA_PENDING_KEY\)/);
   assert.match(app, /runGacha\(1, true\)/);
+});
+
+test("CPU completion gacha offers one explicit loadout rematch without crossing progression boundaries", () => {
+  assert.match(html, /id="gachaResultTitle" tabindex="-1"/);
+  assert.doesNotMatch(html, /id="gachaResultTitle"[^>]+aria-describedby=/);
+  assert.match(html, /id="gachaResultAnnouncement"[^>]+role="status"[^>]+aria-live="polite"[^>]+aria-atomic="true"/);
+  assert.match(html, /id="gachaCpuRematch"[^>]+type="button"[^>]*>6枚を選び直して同じCPUと再戦<\/button>/);
+  assert.match(html, /カードは自動で6枚には入りません/);
+  assert.match(app, /source: "cpu-completion-reward"/);
+  assert.match(app, /value\.roomId === roomModel\?\.room\?\.id[\s\S]+value\.roomVersion === Number\(roomModel\?\.room\?\.version\)[\s\S]+value\.matchId === state\?\.matchId/);
+  assert.match(app, /roomModel\?\.room\?\.opponent_kind === "cpu"/);
+  assert.match(app, /state\?\.debugUnlimitedSkills !== true/);
+  assert.match(app, /lastGachaDraws\.slice\(0, 3\)\.map\(\(draw\) => `\$\{draw\.displayName[\s\S]+レアリティ星\$\{draw\.rarity\}[\s\S]+SKILL_DESCRIPTION\[draw\.skillId\]/);
+  assert.match(app, /\$\("gachaDrawOne"\)\.disabled = gachaBusy \|\| Boolean\(pendingGacha\)/);
+  assert.match(app, /\$\("gachaDrawAll"\)\.disabled = gachaBusy \|\| Boolean\(pendingGacha\)/);
+  assert.match(app, /const canContinueCpuReward = hasResults && !pendingGacha && !gachaBusy && isCurrentCpuRewardGachaContinuation/);
+  assert.match(app, /sessionStorage\.setItem\(CPU_REWARD_GACHA_RESULT_KEY/);
+  assert.match(app, /function restoreCpuRewardGachaResult\(\)/);
+  assert.match(app, /stored\.draws\.slice\(0, 100\)\.flatMap/);
+  assert.match(app, /draw\.rarity < 1 \|\| draw\.rarity > 5/);
+  assert.match(app, /\$\("gachaResultTitle"\)\.focus\(\{ preventScroll: true \}\)/);
+  assert.match(app, /\$\("gachaResultSummary"\)\.scrollIntoView/);
+  const continuation = app.slice(app.indexOf("async function continueCpuRewardRematch()"), app.indexOf("function dismissTerminalResult()"));
+  assert.match(continuation, /if \(!isCurrentCpuRewardGachaContinuation\(lastGachaContinuation\) \|\| rematchBusy\) return/);
+  assert.match(continuation, /await requestRematch\(\)/);
+  assert.match(continuation, /roomModel\?\.room\?\.status !== "ready"/);
+  assert.match(continuation, /activateAppTab\("battle"\)/);
+  assert.doesNotMatch(continuation, /drawGacha|submitSetup|beginImmediateCpuEntry|inventory\[[^\]]+\]\s*=|\.checked\s*=/);
+  assert.match(app, /\$\("gachaCpuRematch"\)\.onclick = continueCpuRewardRematch/);
+  assert.match(css, /\.gacha-result-summary\{[^}]*scroll-margin-block-end:104px/);
 });
 
 test("existing online progression is hydrated from the server rather than re-uploaded", () => {

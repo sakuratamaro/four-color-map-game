@@ -79,6 +79,10 @@ async function installMock(context, mode) {
     const initialTab = ["gacha", "quiz", "quizPolish", ...quizReloadModes].includes(initialMode) ? "quiz" : initialMode === "cosmetic" ? "profile" : initialMode === "empty" ? "home" : "battle";
     const setupTransition = ["setupTransition", "setupTransitionCpuFirst"].includes(initialMode);
     const setupPending = setupTransition || initialMode === "setupDebugError";
+    let restoredCpuRewardResult = null;
+    try { restoredCpuRewardResult = JSON.parse(sessionStorage.getItem("fourColorMapGame.standard.online.v5.cpu-reward-gacha-result") || "null"); } catch { restoredCpuRewardResult = null; }
+    const restoreCpuRewardResult = initialMode === "cpuWin" && restoredCpuRewardResult?.continuation?.roomId === id;
+    const restoredCpuRewardVersion = restoreCpuRewardResult ? Number(restoredCpuRewardResult.continuation.roomVersion) : 9;
     const cpuRoomMode = ["cpuTurn", "finishedCpu", "cpuWin", "setupTransition", "setupTransitionCpuFirst", "quizReloadCpu"].includes(initialMode);
     localStorage.setItem("fourColorMapGame.standard.online.v5.active-tab", initialTab);
     const inventory = Object.fromEntries([
@@ -154,7 +158,7 @@ async function installMock(context, mode) {
     }
     const runtime = {
       waitStartedAt: initialMode === "cpuWait" ? new Date(Date.now() - 91000).toISOString() : new Date().toISOString(),
-      room: { id, status: ["finished", "finishedCpu", "quizReloadPublicFinished"].includes(initialMode) ? "finished" : ["publicFind", "handoffActivity", "handoffStart", "handoffReload"].includes(initialMode) || setupPending ? "ready" : "playing", version: 9, game_mode: "standard_v5", access_mode: cpuRoomMode ? "cpu" : ["publicFind", "handoffActivity", "handoffStart", "handoffReload", "quizReloadPublicFinished"].includes(initialMode) ? "public_queue" : "private_code", opponent_kind: cpuRoomMode ? "cpu" : "human", cpu_character_id: cpuRoomMode ? "yuzu" : null, public_state: ["finished", "finishedCpu", "quizReloadPublicFinished"].includes(initialMode) ? finished : ["publicFind", "handoffActivity", "handoffStart", "handoffReload"].includes(initialMode) || setupPending ? null : active },
+      room: { id, status: ["finished", "finishedCpu", "quizReloadPublicFinished"].includes(initialMode) || restoreCpuRewardResult ? "finished" : ["publicFind", "handoffActivity", "handoffStart", "handoffReload"].includes(initialMode) || setupPending ? "ready" : "playing", version: restoredCpuRewardVersion, game_mode: "standard_v5", access_mode: cpuRoomMode ? "cpu" : ["publicFind", "handoffActivity", "handoffStart", "handoffReload", "quizReloadPublicFinished"].includes(initialMode) ? "public_queue" : "private_code", opponent_kind: cpuRoomMode ? "cpu" : "human", cpu_character_id: cpuRoomMode ? "yuzu" : null, public_state: ["finished", "finishedCpu", "quizReloadPublicFinished"].includes(initialMode) || restoreCpuRewardResult ? { ...finished, version: restoredCpuRewardVersion } : ["publicFind", "handoffActivity", "handoffStart", "handoffReload"].includes(initialMode) || setupPending ? null : active },
       view: ["publicFind", "handoffActivity", "handoffStart", "handoffReload"].includes(initialMode) || setupPending ? null : { seat: "A", version: 9, private_state: { hand: { areaDiePlus: 1, areaResize: 1 }, basicPalette: ["red", "blue"], bonusColor: "yellow", bonusUsesRemaining: 2, privateEffects: {} } },
       profile: initialMode === "empty" ? null : { revision: 1, display_name: "A", profile_state: profileState },
       gachaReceipts: {},
@@ -164,6 +168,7 @@ async function installMock(context, mode) {
       quizFinishReceipts: {},
       cpuStartReceipts: {},
       failNextColorAction: false,
+      failNextGacha: false,
       failNextQuizAnswer: false,
       calls: [],
     };
@@ -272,13 +277,19 @@ async function installMock(context, mode) {
         }
         if (request.body.operation === "gacha") {
           if (initialMode === "handoffActivity") await new Promise((resolve) => setTimeout(resolve, 800));
+          if (runtime.failNextGacha) {
+            runtime.failNextGacha = false;
+            return functionError(503, "SERVER_BUSY", "temporary gacha failure with private detail");
+          }
           const prior = runtime.gachaReceipts[request.body.actionId];
           if (prior) return { data: { ...prior, duplicate: true } };
           const next = JSON.parse(JSON.stringify(runtime.profile.profile_state));
+          const drawnSkillId = initialMode === "cpuWin" ? "colorPrism" : "colorRandomBorrow";
+          const drawnName = initialMode === "cpuWin" ? "四色解放" : "色拾い・乱";
           next.gachaTickets[String(request.body.ticketLevel)] -= request.body.count;
-          next.inventory.colorRandomBorrow = (next.inventory.colorRandomBorrow || 0) + request.body.count;
+          next.inventory[drawnSkillId] = (next.inventory[drawnSkillId] || 0) + request.body.count;
           runtime.profile = { ...runtime.profile, revision: runtime.profile.revision + 1, profile_state: next };
-          const result = { revision: runtime.profile.revision, duplicate: false, draws: Array.from({ length: request.body.count }, () => ({ ticketLevel: 1, rarity: 1, category: "color", skillId: "colorRandomBorrow", displayName: "色拾い・乱" })), profileState: next };
+          const result = { revision: runtime.profile.revision, duplicate: false, draws: Array.from({ length: request.body.count }, () => ({ ticketLevel: request.body.ticketLevel, rarity: 1, category: "color", skillId: drawnSkillId, displayName: drawnName })), profileState: next };
           runtime.gachaReceipts[request.body.actionId] = result;
           return { data: result };
         }
@@ -682,19 +693,37 @@ test("actual Edge routes immediate skills and keeps target cancellation write-fr
 test("actual Edge gacha persists one server draw and immediately hydrates inventory", { timeout: 130000 }, async () => {
   await withPage("gacha", async (page) => {
     await page.locator("#gachaPanel:not(.hidden)").waitFor();
+    await page.evaluate(() => { globalThis.__standardOnlineRuntime.failNextGacha = true; });
     await page.getByRole("button", { name: "1枚引く" }).click();
+    await page.getByText("抽選結果を確認できませんでした。同じ抽選IDで安全に再試行できます。").waitFor();
+    assert.equal(await page.locator("#gachaDrawOne").isDisabled(), true);
+    assert.equal(await page.locator("#gachaDrawAll").isDisabled(), true);
+    const failedActionId = await page.evaluate(() => JSON.parse(localStorage.getItem("fourColorMapGame.standard.online.v5.pending-gacha")).actionId);
+    await page.evaluate(() => {
+      document.querySelector("#gachaDrawOne").click();
+      document.querySelector("#gachaDrawAll").click();
+    });
+    assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "gacha").length), 1);
+    await page.reload();
+    await page.locator("#gachaPanel:not(.hidden):not(.tab-panel-hidden)").waitFor();
+    assert.equal(await page.locator("#gachaDrawOne").isDisabled(), true);
+    assert.equal(await page.locator("#gachaDrawAll").isDisabled(), true);
+    await page.getByRole("button", { name: "同じ抽選を再確認" }).click();
     await page.getByText("1枚を獲得しました。券消費とカード付与は一度だけ保存済みです。").waitFor();
     const evidence = await page.evaluate(({ key }) => {
-      const call = globalThis.__standardOnlineRuntime.calls.find((entry) => entry.body?.operation === "gacha");
-      return { call: call.body, profile: JSON.parse(localStorage.getItem(key)) };
+      const calls = globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "gacha").map((entry) => entry.body);
+      return { calls, profile: JSON.parse(localStorage.getItem(key)) };
     }, { key: remoteProfileKey });
-    assert.match(evidence.call.actionId, /^[0-9a-f-]{36}$/i);
-    assert.equal(evidence.call.expectedRevision, 1);
-    assert.equal(evidence.call.ticketLevel, 1);
-    assert.equal(evidence.call.count, 1);
+    assert.equal(evidence.calls.length, 1);
+    assert.match(evidence.calls[0].actionId, /^[0-9a-f-]{36}$/i);
+    assert.equal(evidence.calls[0].actionId, failedActionId);
+    assert.equal(evidence.calls[0].expectedRevision, 1);
+    assert.equal(evidence.calls[0].ticketLevel, 1);
+    assert.equal(evidence.calls[0].count, 1);
     assert.equal(evidence.profile.gachaTickets["1"], 1);
     assert.equal(evidence.profile.inventory.colorRandomBorrow, 3);
     assert.equal(await page.locator("#gachaResults .gacha-card").count(), 1);
+    assert.equal(await page.locator("#gachaCpuRematch").isHidden(), true);
   });
 });
 
@@ -1201,7 +1230,7 @@ test("actual Edge hydrates a CPU win once, routes its earned ticket deliberately
     assert.equal(first.actionCalls, 1);
     const rewardCta = page.getByRole("button", { name: "獲得したLv.1券でガチャへ" });
     await rewardCta.waitFor();
-    assert.equal(await page.locator("#terminalClose").evaluate((node) => node === document.activeElement), true);
+    await page.waitForFunction(() => document.activeElement?.id === "terminalClose");
     const terminalLayout = await page.evaluate(() => {
       const dialog = document.querySelector(".terminal-celebration").getBoundingClientRect();
       const reward = document.querySelector("#terminalGoGacha").getBoundingClientRect();
@@ -1240,12 +1269,56 @@ test("actual Edge hydrates a CPU win once, routes its earned ticket deliberately
       };
     }, { key: connectionKey });
     assert.deepEqual(routed, { activeTab: "quiz", level: "1", roomStatus: "finished", storedRoomId: roomId, gachaCalls: 0, drawVisible: true, overflow: false });
+    const selectedBeforeDraw = await page.locator('input[name="loadout-color"]:checked').evaluateAll((nodes) => nodes.map((node) => node.value));
+    assert.equal(selectedBeforeDraw.includes("colorPrism"), false);
     await page.getByRole("button", { name: "1枚引く" }).click();
     await page.getByText("1枚を獲得しました。券消費とカード付与は一度だけ保存済みです。").waitFor();
+    await page.waitForFunction(() => document.activeElement?.id === "gachaResultTitle");
     assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "gacha").length), 1);
+    assert.match(await page.locator("#gachaResultAnnouncement").textContent(), /1枚獲得。四色解放、レアリティ星1。.*4色を使える/);
+    assert.match(await page.locator("#gachaResults .gacha-card").textContent(), /四色解放.*4色を使える/s);
+    assert.equal(await page.locator("#gachaResults").getAttribute("role"), "list");
+    assert.equal(await page.locator("#gachaResults .gacha-card").getAttribute("role"), "listitem");
+    assert.equal(await page.locator('input[name="loadout-color"][value="colorPrism"]').isChecked(), false);
+    assert.deepEqual(await page.locator('input[name="loadout-color"]:checked').evaluateAll((nodes) => nodes.map((node) => node.value)), selectedBeforeDraw);
+    assert.equal(await page.locator('input[name="loadout-color"][value="colorPrism"]').locator("xpath=..").locator(".loadout-owned").textContent(), "所持 ×3");
+    await page.keyboard.press("Enter");
+    await page.keyboard.press("Space");
+    assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "cpu-rematch").length), 0);
+    const resultCta = page.getByRole("button", { name: "6枚を選び直して同じCPUと再戦" });
+    await resultCta.waitFor();
+    await page.waitForFunction(() => {
+      const cta = document.querySelector("#gachaCpuRematch").getBoundingClientRect();
+      const tabs = document.querySelector(".app-tabs").getBoundingClientRect();
+      return cta.top >= 0 && cta.bottom <= tabs.top;
+    });
+    assert.notEqual(await page.evaluate(() => sessionStorage.getItem("fourColorMapGame.standard.online.v5.cpu-reward-gacha-result")), null);
     await page.reload();
     await page.locator("#connectionBadge.good").waitFor();
     await page.locator("#gachaPanel:not(.hidden):not(.tab-panel-hidden)").waitFor();
+    await page.getByRole("button", { name: "6枚を選び直して同じCPUと再戦" }).waitFor();
+    assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "gacha").length), 0);
+    await page.evaluate(() => {
+      document.querySelector("#gachaCpuRematch").click();
+      document.querySelector("#gachaCpuRematch").click();
+    });
+    await page.locator("#setupCard:not(.hidden):not(.tab-panel-hidden)").waitFor();
+    await page.waitForFunction(() => document.activeElement?.id === "setupTitle");
+    const continuation = await page.evaluate(({ key }) => ({
+      activeTab: document.body.dataset.activeTab,
+      roomStatus: globalThis.__standardOnlineRuntime.room.status,
+      cpuRematches: globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "cpu-rematch").length,
+      gachaCalls: globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "gacha").length,
+      stored: JSON.parse(localStorage.getItem(key)),
+      continuationResult: sessionStorage.getItem("fourColorMapGame.standard.online.v5.cpu-reward-gacha-result"),
+    }), { key: connectionKey });
+    assert.equal(continuation.activeTab, "battle");
+    assert.equal(continuation.roomStatus, "ready");
+    assert.equal(continuation.cpuRematches, 1);
+    assert.equal(continuation.gachaCalls, 0);
+    assert.equal(continuation.stored.setupRevision, 0);
+    assert.equal(continuation.stored.rematchActionId, null);
+    assert.equal(continuation.continuationResult, null);
     const restored = await page.evaluate(({ key }) => JSON.parse(localStorage.getItem(key)), { key: remoteProfileKey });
     assert.equal(restored.cpuStats.wins, 1);
     assert.equal(restored.cpuCharacterStats.yuzu.matches, 1);
