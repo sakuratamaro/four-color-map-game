@@ -8,7 +8,7 @@
 
 ## 司令塔ルール
 
-- 統合基点は `origin/main` とし、現在の公開製品ロジック／公開commitは `a3425a4`。
+- 統合基点は `origin/main` とし、現在の公開ゲーム資産基点は `a3425a4`。後続の記録専用commitは製品ロジック更新と数えない。
 - 現在の統合作業は `codex/standard-release-command` だけで行う。
 - 古いdirty worktreeからbuild、merge、deployしない。
 - `実装済み`、`ローカル検証済み`、`live検証済み`、`公開済み`を別状態として記録する。
@@ -20,7 +20,7 @@
 | 優先度 | 作業 | 主担当 | 状態 | 完了条件 |
 | --- | --- | --- | --- | --- |
 | P0 | Standard公開候補の固定と再検証 | 司令塔 | PUBLIC_VERIFIED | `a3425a4`。非browser Standard 544/544、重点89/89、オンラインbrowser 31/31、CPU browser Chrome/Edge各1/1。Windows browser run `33947039777`はChrome/Edge成功 |
-| P0 | Pages反映と公開後preflight | 司令塔 | PUBLIC_VERIFIED | `main=a3425a4`、Pages run `33947644765`成功。公開URL HTTP 200、公開asset/bundleのSHA-256一致、実ブラウザconsole warning/error 0。直前の`29c6958` Pages run `33934125859`も履歴として維持 |
+| P0 | Pages反映と公開後preflight | 司令塔 | PUBLIC_VERIFIED | 公開ゲーム資産基点`a3425a4`、Pages run `33947644765`成功。公開URL HTTP 200、公開asset/bundleのSHA-256一致、実ブラウザconsole warning/error 0。後続の記録専用commitはゲーム資産を変更しない |
 | P0 | 合言葉・経済・野良・CPUのlive縦通し | 技術品質 | COMPLETED | deployment 8でEdge 6/6、A 43/43、B 93/93、C 210/210、D 107/107合格 |
 | P0 | 待ち時間なしのStandard CPU開始 | UX＋Edge＋DB | PUBLIC_VERIFIED | `cc96350`。migration `202609050002`、Edge deployment 9、基本6/6＋即時CPU 7/7、Windows run `33931963065`、Pages run `33932159043`合格。公開UIでCPU選択→6枚準備→CPU初手→人間第2手を確認 |
 | P0 | 同時profile作成のHTTP 500抑止 | Edge＋運用 | PUBLIC_VERIFIED | 新規作成をload→commitの2 RPCへ削減。一時障害を503化。C準備の16 profileが逐次で全件成功し、500/429なし |
@@ -62,9 +62,9 @@
 
 | 区分 | 対象 | 方針 |
 | --- | --- | --- |
-| 正本 | `origin/main` | 現在の公開製品基点は`a3425a4`。migration `202609050001`–`202609050005`、クロガネv2対応Edge、Pages run `33947644765`まで公開確認済み |
+| 正本 | `origin/main` | 公開ゲーム資産基点は`a3425a4`。migration `202609050001`–`202609050005`、クロガネv2対応Edge、Pages run `33947644765`まで公開確認済み。記録専用commitが後続する |
 | 現在の統合床 | `codex/standard-release-command` | `main`と同じ公開履歴へ同期。次は物理二端末受入と24時間負荷確認 |
-| 公開済み現候補 | 製品／公開`a3425a4` | `29c6958`までの初戦引き継ぎ・CPU次戦循環に加え、役割、封印、P0修正、クイズ即時採点、CPU報酬、持ち色変更説明、クロガネv2を含む。公開UI、DB、Edge、Pagesの自動／有限canary確認済み |
+| 公開済み現候補 | ゲーム資産`a3425a4` | `29c6958`までの初戦引き継ぎ・CPU次戦循環に加え、役割、封印、P0修正、クイズ即時採点、CPU報酬、持ち色変更説明、クロガネv2を含む。公開UI、DB、Edge、Pagesの自動／有限canary確認済み |
 | 保全済み | detached `a8fce7d` dirty床 | `codex/salvage-a8fce7d-20260904` / `9e4e8ee` に秘密情報なしでWIP保全済み。機能単位で比較 |
 | 凍結root | root `ac78282` | 正史worktreeを内包するため作業床は維持。dirty 40件は救出済みで、丸ごとmerge禁止。正本にない候補の採否は完了 |
 | GitHub保管 | `codex/archive-standard-release-1f823b2` | 正史の祖先でない孤立コミットをGitHubへ退避済み。作業床は削除 |

@@ -10,10 +10,12 @@
 | --- | --- | --- |
 | 正本worktree | `.codex-worktrees/standard-transport-lite-20260903` | VERIFIED |
 | 開発branch | `codex/standard-release-command` | VERIFIED |
-| GitHub `main` | `a3425a4d459214e5274e20497af21f35a312099d` | PUBLIC_VERIFIED |
+| 公開ゲーム資産基点 | `a3425a4d459214e5274e20497af21f35a312099d` | PUBLIC_VERIFIED |
 | 公開URL | `https://sakuratamaro.github.io/four-color-map-game/standard-online-v5/` | PUBLIC_VERIFIED |
 
 正本以外からは丸ごとmerge/cherry-pickしない。採用候補は正本を基点に、差分の意味、サーバー権威、公開データ境界、試験を再確認して作り直す。
+
+`origin/main`には証拠・runbookだけの記録専用commitが後続しうる。現在のゲーム資産を判断するときは、`main`の先端SHAではなく上表の公開ゲーム資産基点と公開assetの一致を使う。
 
 ## 2026-09-05 棚卸し
 

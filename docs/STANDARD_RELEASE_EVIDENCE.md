@@ -16,7 +16,7 @@
 | 次期UX候補のローカル検査 | VERIFIED | `codex/standard-release-command@1673ff8`。profile安定化、初回対戦導線、Quick Half Shift、status正規化、Realtime/poll復旧を含む非browser製品試験91ファイル522/522。browser workflow/harness静的11/11合格 | Pages反映後のpreflightと二端末受入 |
 | 初回導線・接続表示の次期候補 | VERIFIED | `9d42784`。初回starter作成＋profile同期を一操作化し、全5タブで単一接続statusを常時表示。空名write 0、room外offline復帰、390px下部nav非干渉を契約化。静的39/39、非browser 89ファイル513/513、Windows Chrome/Edge各18/18合格 | 物理二端末受入 |
 | Windows実browser CI | VERIFIED | GitHub Actions run `33947039777`。Chrome job `101254916881`、Edge job `101254916818`がともに成功 | 公開URLで同じ主要導線を二端末受入 |
-| 現行公開Pages | PUBLIC_VERIFIED | 製品／公開`a3425a4`、Pages run `33947644765`成功。公開URL HTTP 200、公開時刻とasset/bundle一致、実ブラウザconsole warning/error 0 | 別々の二端末で最終受入 |
+| 現行公開Pages | PUBLIC_VERIFIED | 公開ゲーム資産基点`a3425a4`、Pages run `33947644765`成功。公開URL HTTP 200、公開時刻とasset/bundle一致、実ブラウザconsole warning/error 0。後続の記録専用commitは資産不変 | 別々の二端末で最終受入 |
 | 初回公開前DB境界（履歴） | VERIFIED | 旧snapshotは匿名権限拒否。snapshot v2と野良募集が未存在だった初回baseline | 現行境界は適用migrationとlive canaryを参照 |
 | migration 006–013静的検査 | VERIFIED | migration別security/transaction testsと読み取り専用44項目SQL | 実DBで全行`ok=true` |
 | Dashboard Advisor・使用量baseline | BLOCKED | 変更前baselineは取得不能。22:55 JSTの現況はHealthyだがHealth Advisorにinfra alert 2件。Security指摘なし、Performance error/warning 0 | 24時間後に同じ指標とRealtime負荷を再採取 |
@@ -24,7 +24,7 @@
 | Edge Function更新 | PUBLIC_VERIFIED | migration `202609050005`適用後にクロガネv2対応Edgeを更新。新規匿名roomでv2受理、別canaryで合法CPU手・決着・再戦まで合格 | 物理端末でクロガネの手強さを体感確認 |
 | 即時Standard CPU開始 | PUBLIC_VERIFIED | migration `202609050002`とEdge deployment 9。製品`cc96350`、公開`a4c6490`、DB 47項目、Edge基本6/6、即時CPU 7/7、Windows run `33931963065`、Pages run `33932159043`合格。公開UIでCPU初手まで確認 | 物理端末で一試合完走・再読込・同じCPUとの再戦を確認 |
 | CPU完走後の次戦導線 | PUBLIC_VERIFIED | `29c6958`。同じCPUとの同room再戦を維持し、終了結果から別CPU選択へ進める。live即時CPU完走・再戦canary 25/25、Windows Chrome/Edge成功、Pages反映済み | 物理端末で別CPU選択と再戦を体感確認 |
-| GitHub main・Pages更新 | PUBLIC_VERIFIED | `main=a3425a4d459214e5274e20497af21f35a312099d`。Standard browser gate `33947039777`、Pages `33947644765`成功。公開asset/bundleは当該SHAとSHA-256一致 | 二端末受入後に最終状態を記録 |
+| GitHub main・Pages更新 | PUBLIC_VERIFIED | 公開ゲーム資産基点`a3425a4d459214e5274e20497af21f35a312099d`。Standard browser gate `33947039777`、Pages `33947644765`成功。公開asset/bundleは当該SHAとSHA-256一致 | 二端末受入後に最終状態を記録 |
 | 合言葉対戦canary | VERIFIED | deployment 8で`live-standard-runbook-a-canary.mjs --confirm-live` 43/43合格 | 実ブラウザ再読込と二端末最終受入 |
 | 経済・進行・見た目canary | VERIFIED | deployment 8でRunbook B 93/93合格 | 実ブラウザで報酬演出と操作感を確認 |
 | 野良対戦canary | VERIFIED | status正規化後、C 210/210合格。16 profile、完走、同時finder、取消競合、10同時claim、再検索、秘密非公開を確認 | 実ブラウザで二端末最終受入 |
