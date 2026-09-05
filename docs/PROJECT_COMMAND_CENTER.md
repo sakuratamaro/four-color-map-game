@@ -8,7 +8,7 @@
 
 ## 司令塔ルール
 
-- 統合基点は `origin/main` とし、現在の公開製品基点は `dfbec10`（後続の台帳のみのcommitは製品基点を変えない）。
+- 統合基点は `origin/main` とし、現在の公開製品基点は `f5aaf33`（即時CPU候補 `cc96350` はPages公開ゲート中）。
 - 現在の統合作業は `codex/standard-release-command` だけで行う。
 - 古いdirty worktreeからbuild、merge、deployしない。
 - `実装済み`、`ローカル検証済み`、`live検証済み`、`公開済み`を別状態として記録する。
@@ -22,6 +22,7 @@
 | P0 | Standard公開候補の固定と再検証 | 司令塔 | CANDIDATE_VERIFIED | 製品`9d42784`／公開commit`dfbec10`。非browser製品試験513/513、GitHub Actions run `33924037233`でChrome/Edge各18/18合格 |
 | P0 | Pages反映と公開後preflight | 司令塔 | PUBLIC_VERIFIED | `main=dfbec10`、Pages run `33924181589`成功。公開3資産HTTP 200、初回一操作・全タブstatus marker、candidate preflight `ok:true`。二端末受入は別ゲート |
 | P0 | 合言葉・経済・野良・CPUのlive縦通し | 技術品質 | COMPLETED | deployment 8でEdge 6/6、A 43/43、B 93/93、C 210/210、D 107/107合格 |
+| P0 | 待ち時間なしのStandard CPU開始 | UX＋Edge＋DB | CANDIDATE_VERIFIED | `cc96350`。migration `202609050002`、Edge deployment 9、基本6/6＋即時CPU 7/7、Windows run `33931963065`のChrome/Edge合格。Pages公開後の実画面確認待ち |
 | P0 | 同時profile作成のHTTP 500抑止 | Edge＋運用 | LIVE_VERIFIED | 新規作成をload→commitの2 RPCへ削減。一時障害を503化。C準備の16 profileが逐次で全件成功し、500/429なし |
 | P0 | デバッグ対戦のサーバー側隔離 | 技術品質 | LOCAL_VERIFIED | 合言葉・人間同士だけをservice-loaded roomから許可。API直叩きで野良/CPUへ混入不可 |
 | P0 | Supabase資源とRealtime負荷の追跡 | 運用 | CANDIDATE_VERIFIED | client購読を公開room UPDATE 1本へ限定。Quick pollをplaying 5秒/待機10秒、hidden停止へ変更。live Realtime 2/2合格。公開後24時間で負荷を再測定 |
@@ -30,7 +31,7 @@
 | P1 | 初回オンライン準備を一操作に短縮 | UX | PUBLIC_VERIFIED | `9d42784`。名前入力後の一操作でstarter保存とprofile同期を行い、自動入室はしない。空名write 0、同期二重送信防止、失敗時starter保持。公開CTA確認済み |
 | P1 | 接続状態を対戦中も常時表示 | UX＋同期 | PUBLIC_VERIFIED | `9d42784`。全5タブで単一statusを表示し、room外offlineも反映。公開390px画面で固定statusと下部navの8px間隔を確認 |
 | P1 | プレイヤー向けno-color宣言の仕様整合 | UX＋ルール | LOCAL_VERIFIED | 通常受渡し/split返却とも同一action内で自動終局し、Online UIから宣言を除去 |
-| P1 | Standardを学んで即CPU戦へ入る導線 | ゲーム体験 | CANDIDATE | 3手ガイドまたは固定スターターCPU戦から本戦へ遷移 |
+| P1 | Standardを学んで即CPU戦へ入る導線 | ゲーム体験 | CANDIDATE_VERIFIED | 初手ガイド公開済み。ホーム／ロビーから10人のStandard CPUを選んで待ち時間なく6枚準備へ入る候補はWindows Chrome/Edge合格 |
 | P1 | 未コミット／孤立作業の回収 | 構成管理 | COMPLETED | 29床を3床へ集約。丸ごと統合候補は0。Quick回帰試験だけを回収し、残るroot dirtyは救出済み・凍結管理 |
 | P2 | GitHub Pages actionのNode.js警告解消 | 技術品質 | BACKLOG | 公開結果を変えず、Node.js 20廃止予定warningを消す |
 
@@ -52,8 +53,8 @@
 | 区分 | 対象 | 方針 |
 | --- | --- | --- |
 | 正本 | `origin/main` | 現在の公開製品基点は`dfbec10`。台帳のみの後続commitを許容 |
-| 現在の統合床 | `codex/standard-release-command` | `origin/main`を追跡。次は物理二端末受入 |
-| 公開済み現候補 | 製品`9d42784`／公開`dfbec10` | 5タブ、初回一操作化、全タブ接続status、クイズ・演出、debug隔離、no-color自動終局、profile安定化、status正規化、Realtime/poll復旧を統合。実Chrome/Edge各18/18と公開preflight合格。次は二端末受入 |
+| 現在の統合床 | `codex/standard-release-command@cc96350` | Edge/DB liveとWindows browser gate合格。`main`へfast-forwardする |
+| 公開済み現候補 | 製品`8c0d31f`／公開`f5aaf33` | CPU勝利戦績表示、6枚準備、初手ガイドを含む。即時CPU導線はPages未反映 |
 | 保全済み | detached `a8fce7d` dirty床 | `codex/salvage-a8fce7d-20260904` / `9e4e8ee` に秘密情報なしでWIP保全済み。機能単位で比較 |
 | 凍結root | root `ac78282` | 正史worktreeを内包するため作業床は維持。dirty 40件は救出済みで、丸ごとmerge禁止。正本にない候補の採否は完了 |
 | GitHub保管 | `codex/archive-standard-release-1f823b2` | 正史の祖先でない孤立コミットをGitHubへ退避済み。作業床は削除 |

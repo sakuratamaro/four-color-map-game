@@ -22,6 +22,7 @@
 | Dashboard Advisor・使用量baseline | BLOCKED | 変更前baselineは取得不能。22:55 JSTの現況はHealthyだがHealth Advisorにinfra alert 2件。Security指摘なし、Performance error/warning 0 | 24時間後に同じ指標とRealtime負荷を再採取 |
 | migration 006–013本番適用＋status正規化 | VERIFIED | 8本に加え`202609050001`を個別実行。status関数の保護契約を全項目確認し、C canary 210/210合格 | 実ブラウザと二端末最終受入 |
 | Edge Function更新 | VERIFIED | deployment 8、JWT検証ON。2026-09-05の`live-standard-edge-canary.mjs --confirm-live`は6/6合格 | 公開UI経由の完全canary |
+| 即時Standard CPU開始 | CANDIDATE_VERIFIED | migration `202609050002`とEdge deployment 9。候補`cc96350`、DB 47項目、Edge基本6/6、即時CPU 7/7、Windows run `33931963065`のChrome/Edge合格 | Pages反映後、公開UIから6枚準備へ入ることを確認 |
 | GitHub main・Pages更新 | VERIFIED | 公開製品基点を`dfbec10`へforceなしfast-forward。Pages run `33924181589`成功、公開markerとpreflight合格。後続main更新は台帳のみ | 二端末受入後に最終状態を記録 |
 | 合言葉対戦canary | VERIFIED | deployment 8で`live-standard-runbook-a-canary.mjs --confirm-live` 43/43合格 | 実ブラウザ再読込と二端末最終受入 |
 | 経済・進行・見た目canary | VERIFIED | deployment 8でRunbook B 93/93合格 | 実ブラウザで報酬演出と操作感を確認 |
@@ -91,6 +92,14 @@
 - `fda261d`でapp/style URLにrelease revisionを付け、古い資産cacheを回避した。Windows run `33929432778`はChrome/Edge各21/21、Pages run `33929435963`は成功。公開HTML/appは説明、summary、終局戦績、asset revision、選択state、上限理由のmarker 7/7を返し、candidate preflightも`ok:true`だった。
 - 公開DBを使う「人間がCPUへ勝利」のlive canaryは勝利を有限時間内に保証する既存手段がなく`NOT_RUN`。DB/Edge変更は行っていない。物理二端末のCPU勝利・再読込と、合言葉対戦完走・再戦は引き続き最終受入項目である。
 
+## 2026-09-05 09:10 JST 即時Standard CPU候補
+
+- 最初の対戦までの待ち時間を最大の離脱点と判定し、ホームの主CTAとStandardロビーから10人のCPUを直接選べるようにした。通信なしのQuick練習は「別ルール」と明示し、既存の合言葉・野良・90秒CPU案内は維持した。
+- `202609050002_standard_immediate_cpu.sql`はprivate receipt、actor lock、検索ticketとの競合解決、active room復帰、server由来CPU profile/loadoutを一つのservice-only RPCに閉じた。DB候補検証47項目はすべてtrue。
+- Edge deployment 9へ`cpu-start`を追加した。公開APIで基本境界6/6に続き、作成・lost-response再送・入力変更拒否・snapshot上のCPU身元を7/7確認した。
+- ローカルは関連契約50/50、非browser製品試験523/523、実Chrome/Edge各23/23が合格した。全107ファイル連続実行は変更外の接触演出browser群で共有環境の時間切れが再発したため、公開判定は専用Windows browser gateへ分離した。
+- GitHub Actions run `33931963065`はWindows 2025上のChrome/Edge両ジョブが成功し、候補`cc96350`の独立browser gateを通過した。
+
 ## 公開前後メトリクス
 
 値が取得できなかった項目を空欄のまま`VERIFIED`にしない。
@@ -106,11 +115,11 @@
 | --- | --- |
 | browser harness diagnostics commit | `6fc23a5` |
 | Windows browser CI commit | `d8dac1b` |
-| final browser-verified candidate | `fda261d`（製品ロジック`8c0d31f`） |
-| Windows browser CI run | `33929432778` / Chrome 21/21 / Edge 21/21 |
+| final browser-verified candidate | `cc96350`（即時Standard CPU開始） |
+| Windows browser CI run | `33931963065` / Chrome Success / Edge Success |
 | candidate code baseline | `0e02176`（Edge deployment 8 sourceは`c3cf372`） |
-| applied migrations | `202609030006`–`202609030013`, `202609050001` |
-| `standard-game-action` version | deployment 8 |
+| applied migrations | `202609030006`–`202609030013`, `202609050001`, `202609050002` |
+| `standard-game-action` version | deployment 9（即時CPU開始） |
 | Pages Actions run | `33929435963` / Success / `fda261d` |
 | public URL | `https://sakuratamaro.github.io/four-color-map-game/standard-online-v5/` |
 
@@ -121,11 +130,13 @@
 | 区分 | 結果 | 時刻 | 有限な証拠 |
 | --- | --- | --- | --- |
 | Edge認証・基本公開 | PASS | 2026-09-05 | deployment 8で匿名sign-in、JWT欠落/改変拒否、profile、cosmetic catalog、CPU roster 10人の6/6 |
+| 即時Standard CPU開始 | PASS | 2026-09-05 | deployment 9。匿名profile、未知CPU拒否、部屋作成、同一action再送、入力変更拒否、snapshot上のCPU身元を7/7確認 |
 | A 合言葉・A/B/C・snapshot delta | PASS | 2026-09-05 | 自動live canary 43/43。A/B参加、C拒否、setup、初期化、一手、投了、seat別finished snapshot、再戦再初期化 |
 | B クイズ・ガチャ・売却・精算・トロフィー・見た目 | PASS | 2026-09-05 | 自動live canary 93/93。exactly-once、復元、購入/装備を確認。fullPaint trophyはtransaction testで補完 |
 | C 野良・競合・完走 | PASS | 2026-09-05 03:13 JST | 自動live canary 210/210。16 profile、完走、2 finder、cancel/find、10 claim、再検索、秘密非公開を確認 |
 | D CPU同意・10人・代表3人・再戦 | PASS | 2026-09-05 | 自動live canary 107/107。実時間90/180秒、代表3人完走、復帰、統計、同じCPU再戦、対人検索競合を確認 |
 | Windows実browser主要導線 | PASS | 2026-09-05 | run `33929432778`。Chrome 21/21、Edge 21/21。CPU勝利戦績表示、390pxの6枚選択、初回一操作、初手、全タブstatus、復帰、再戦、クイズ、ガチャ、売却、見た目、野良、CPUを確認 |
+| 即時CPU Windows browser gate | PASS | 2026-09-05 | run `33931963065`。Windows 2025のChrome/Edge両ジョブ成功。ホーム導線、390px選択、pending再送、既存90秒案内を確認 |
 | Pages公開後preflight | PASS | 2026-09-05 | `main=fda261d`、Pages run `33929435963`、公開marker 7/7、DB保護境界を含むcandidate preflight合格 |
 | 二端末最終受入 | NOT_RUN | PENDING | PENDING |
 
