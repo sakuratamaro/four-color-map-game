@@ -96,6 +96,20 @@ check(
   `status ${roster.status}/count ${characterIds.length}`,
 );
 
+const quiz = await request(endpoint, {
+  token,
+  body: { operation: "quiz-start", actionId: crypto.randomUUID(), selectedLevel: 1 },
+});
+const quizQuestions = Array.isArray(quiz.data?.questions) ? quiz.data.questions : [];
+check(
+  "quiz prompts expose playful metadata",
+  quiz.ok && quizQuestions.length === 10
+    && quizQuestions.every((question) => typeof question?.mission === "string" && question.mission.length > 0
+      && typeof question?.formatLabel === "string" && question.formatLabel.length > 0
+      && Number.isSafeInteger(question?.thinkingSteps) && question.thinkingSteps >= 1 && question.thinkingSteps <= 3),
+  `status ${quiz.status}/count ${quizQuestions.length}`,
+);
+
 for (const result of checks) console.log(`${result.pass ? "PASS" : "FAIL"}  ${result.name}`);
 console.log(`SUMMARY ${checks.filter(({ pass }) => pass).length}/${checks.length} Standard Edge checks passed`);
 clearTimeout(hardTimeout);
