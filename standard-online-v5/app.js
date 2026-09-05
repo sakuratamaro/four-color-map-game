@@ -403,7 +403,7 @@ function handoffFromSetupToMatch(expectedInteractionRevision) {
   setTimeout(() => alignPlayingViewport({ expectedInteractionRevision, focusHeading: true }), reducedMotion ? 0 : RANDOM_REVEAL_DURATION_MS);
 }
 
-function alignPlayingViewport({ expectedInteractionRevision = null, focusHeading = false, behavior = null } = {}) {
+function alignPlayingViewport({ expectedInteractionRevision = null, focusHeading = false, behavior = null, ensureMoveControlsVisible = false } = {}) {
   requestAnimationFrame(() => {
     const matchTitle = $("matchTitle");
     if (expectedInteractionRevision !== null && userInteractionRevision !== expectedInteractionRevision
@@ -414,6 +414,19 @@ function alignPlayingViewport({ expectedInteractionRevision = null, focusHeading
     if (focusHeading) matchTitle.focus({ preventScroll: true });
     const scrollBehavior = behavior || (matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth");
     $("matchCard").scrollIntoView({ block: "start", behavior: scrollBehavior });
+    if (!ensureMoveControlsVisible) return;
+    requestAnimationFrame(() => {
+      if (expectedInteractionRevision !== null && userInteractionRevision !== expectedInteractionRevision
+        || activeAppTab !== "battle" || document.visibilityState !== "visible") return;
+      const controls = $("regionControls");
+      const guide = $("turnGuide");
+      const connection = document.querySelector(".connection-card");
+      if (controls.classList.contains("hidden") || guide.classList.contains("hidden") || !connection) return;
+      const overlap = controls.getBoundingClientRect().bottom - connection.getBoundingClientRect().top;
+      const available = Math.max(0, Math.floor(guide.getBoundingClientRect().top));
+      const adjustment = Math.min(Math.max(0, Math.ceil(overlap + 8)), available);
+      if (adjustment > 0) scrollBy({ top: adjustment, behavior: scrollBehavior });
+    });
   });
 }
 
@@ -4123,7 +4136,7 @@ try {
     if (!recoveredAtBoot && synced && hasCpuEntryIntent()) await openCpuRoster("direct", $("startStandardCpuHome"));
   }
   render();
-  alignPlayingViewport({ expectedInteractionRevision: bootInteractionRevision, behavior: "auto" });
+  alignPlayingViewport({ expectedInteractionRevision: bootInteractionRevision, behavior: "auto", ensureMoveControlsVisible: true });
   if (synced && !cosmeticCatalogLoaded) await refreshOnlineCosmetics({ quiet: true });
   if (pendingQuiz?.pendingAnswer && pendingQuiz?.answerMode === "per-question-v1") submitPendingQuizAnswer();
   else if (pendingQuiz?.answers?.length === 10) finishOnlineQuiz();

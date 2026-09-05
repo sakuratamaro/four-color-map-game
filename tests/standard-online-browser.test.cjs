@@ -2598,10 +2598,14 @@ test("actual Edge hands one submitted setup to the visible first-move guide with
 
   await withPage("playing", async (page) => {
     assert.notEqual(await page.evaluate(() => document.activeElement?.id), "matchTitle");
+    await page.evaluate(() => { history.scrollRestoration = "manual"; scrollTo(0, 0); });
     await page.reload({ waitUntil: "load" });
     await page.locator("#connectionBadge.good").waitFor();
     await page.locator("#matchCard:not(.hidden)").waitFor();
-    await page.waitForFunction(() => document.querySelector("#regionControls").getBoundingClientRect().bottom <= document.querySelector(".connection-card").getBoundingClientRect().top);
+    await page.waitForFunction(() => document.querySelector("#regionControls").getBoundingClientRect().bottom <= document.querySelector(".connection-card").getBoundingClientRect().top).catch(async (error) => {
+      error.message += ` ${JSON.stringify(await firstMoveLayout(page))}`;
+      throw error;
+    });
     assertFirstMoveLayout(await firstMoveLayout(page));
     assert.notEqual(await page.evaluate(() => document.activeElement?.id), "matchTitle");
   }, { viewport: { width: 390, height: 844 } });

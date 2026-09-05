@@ -505,6 +505,10 @@ test("board selection assist enlarges targets and supports connected keyboard se
   assert.match(html, /緑の破線は次に辺でつなげて選べる位置の目印、紫と白の二重線は現在のキーボード位置/);
   assert.match(app, /if \(tab !== "battle"\) resetBoardSelectionAssist\(\)/);
   assert.match(assist, /toggle\.classList\.toggle\("hidden", !interactive\)/);
+  assert.match(app, /ensureMoveControlsVisible = false/);
+  assert.match(app, /const overlap = controls\.getBoundingClientRect\(\)\.bottom - connection\.getBoundingClientRect\(\)\.top/);
+  assert.match(app, /const adjustment = Math\.min\(Math\.max\(0, Math\.ceil\(overlap \+ 8\)\), available\)/);
+  assert.match(app, /behavior: "auto", ensureMoveControlsVisible: true/);
   assert.match(app, /緑の破線は辺でつなげて選べる位置の目印です。確定できるかはサーバーが判定します。/);
   assert.match(css, /\.skin-board-aurora \.board-viewport\{outline:3px solid #22d3ee/);
   assert.match(css, /\.skin-board-aurora \.board-viewport #board,[^}]+\{outline:none;box-shadow:none\}/);
