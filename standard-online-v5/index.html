@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <title>Four Color Map Game v5.0 Standard Online</title>
   <link rel="stylesheet" href="../online-v5/style.css">
-  <link rel="stylesheet" href="style.css?v=20260905-1">
+  <link rel="stylesheet" href="style.css?v=20260905-2">
   <link rel="stylesheet" href="debug-mode.css">
   <link rel="stylesheet" href="progression.css">
 </head>
@@ -13,7 +13,7 @@
   <header>
     <div><h1>Four Color Map Game</h1><p>v5.0 Standard Online — 正式6枚対戦</p></div>
     <nav class="header-links" aria-label="遊び方を選ぶ">
-      <a href="../solo-v5/index.html">CPUと練習</a>
+      <a href="../solo-v5/index.html">Quick CPU練習</a>
       <a href="../standard-v5/index.html">ローカル Standard</a>
     </nav>
   </header>
@@ -35,15 +35,16 @@
       <h2>今日は何をする？</h2>
       <p class="muted">対戦、数字ラッシュ、カード編成をひとつずつ集中して進められます。</p>
       <div class="home-actions">
-        <button type="button" class="primary" data-tab-jump="battle">対戦を始める</button>
+        <button id="startStandardCpuHome" type="button" class="primary">CPUとすぐStandard対戦</button>
+        <button type="button" data-tab-jump="battle">友だち・だれかと対戦</button>
         <button type="button" data-tab-jump="quiz">クイズでガチャ券を獲得</button>
         <button type="button" data-tab-jump="cards">カードを確認</button>
       </div>
     </section>
 
-    <section class="card mode-callout" aria-label="一人で練習" data-app-tab-panel="home battle">
-      <div><strong>🤖 すぐ遊ぶ：CPU練習</strong><p class="muted small">通信なしの速攻ルール。やさしい・ふつう・つよいから選べます。</p></div>
-      <a class="primary" href="../solo-v5/index.html">CPU対戦を始める</a>
+    <section class="card mode-callout" aria-label="Quick CPU練習" data-app-tab-panel="home">
+      <div><strong>🤖 短時間のQuick練習（別ルール）</strong><p class="muted small">通信なしの速攻ルール。正式6枚のStandard対戦とは別モードです。</p></div>
+      <a class="primary" href="../solo-v5/index.html" aria-label="Quick CPU対戦を始める（別ルール）">Quick練習を開く</a>
     </section>
 
     <section id="profileCard" class="card hidden" data-app-tab-panel="home battle quiz cards profile">
@@ -165,6 +166,11 @@
     <section id="lobby" class="card hidden" data-app-tab-panel="battle">
       <h2>Standardロビー</h2>
       <div class="lobby-choice-grid">
+        <section id="standardCpuChoice" class="lobby-choice standard-cpu-choice">
+          <h3>CPUと今すぐ遊ぶ <span class="standard-cpu-badge">Standard</span></h3>
+          <p class="muted small">正式6枚・Standardルール。待ち時間なし。CPU戦績とLv.1ガチャ券の対象です。</p>
+          <button id="startStandardCpuLobby" class="primary" type="button">10人からCPUを選ぶ</button>
+        </section>
         <section class="lobby-choice">
           <h3>友だちと遊ぶ</h3>
           <p class="muted small">合言葉を伝えて、決まった相手と対戦します。</p>
@@ -306,10 +312,10 @@
       <p id="skillInfoRandom" class="random-skill-note hidden">🎲 このスキルにはランダム抽選があります</p>
     </form>
   </dialog>
-  <dialog id="cpuRosterDialog" class="cpu-roster-dialog" aria-labelledby="cpuRosterTitle">
+  <dialog id="cpuRosterDialog" class="cpu-roster-dialog" aria-labelledby="cpuRosterTitle" aria-describedby="cpuRosterDescription">
     <form method="dialog">
-      <div class="row between wrap"><div><p class="dialog-kicker">CPU SELECT</p><h2 id="cpuRosterTitle">対戦するCPUを選ぶ</h2></div><button id="closeCpuRoster" class="ghost" type="button">人を待ち続ける</button></div>
-      <p class="muted">CPUであることを明示した対戦です。キャラクターごとに、得意・苦手・よく使うスキルが違います。</p>
+      <div id="cpuRosterHeader" class="row between wrap cpu-roster-header"><div><p class="dialog-kicker">CPU SELECT</p><h2 id="cpuRosterTitle" tabindex="-1">Standard CPU対戦 — 相手を選ぶ</h2></div><button id="closeCpuRoster" class="ghost" type="button">ロビーに戻る</button></div>
+      <p id="cpuRosterDescription" class="muted">正式6枚のStandardルールで対戦します。キャラクターごとに、得意・苦手・よく使うスキルが違います。</p>
       <div id="cpuRosterGrid" class="cpu-roster-grid"></div>
       <p id="cpuRosterStatus" class="callout" aria-live="polite">CPU一覧を読み込んでいます…</p>
     </form>
@@ -318,6 +324,6 @@
   <script src="standard-online-client.js"></script>
   <script src="standard-online-sync.js"></script>
   <script src="standard-online-skill-intents.js"></script>
-  <script type="module" src="app.js?v=20260905-1"></script>
+  <script type="module" src="app.js?v=20260905-2"></script>
 </body>
 </html>

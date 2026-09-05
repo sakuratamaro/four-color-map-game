@@ -17,6 +17,7 @@ const GACHA_PENDING_KEY = "fourColorMapGame.standard.online.v5.pending-gacha";
 const QUIZ_PENDING_KEY = "fourColorMapGame.standard.online.v5.pending-quiz";
 const TERMINAL_PRESENTED_KEY = "fourColorMapGame.standard.online.v5.last-terminal-presentation";
 const APP_TAB_KEY = "fourColorMapGame.standard.online.v5.active-tab";
+const CPU_ENTRY_INTENT_KEY = "fourColorMapGame.standard.online.v5.cpu-entry-intent";
 const QUIZ_TIMEOUT_ANSWER = "__timeout__";
 const MATHML_NS = "http://www.w3.org/1998/Math/MathML";
 const CARD_SALE_PENDING_KEY = "fourColorMapGame.standard.online.v5.pending-card-sale";
@@ -112,6 +113,8 @@ let matchmakingStatusTimer = null;
 let matchmakingDisplayTimer = null;
 let cpuRosterCache = null;
 let cpuAcceptBusy = false;
+let cpuRosterOrigin = "fallback";
+let cpuRosterTrigger = null;
 let cpuOfferTicketId = null;
 let cpuOfferDismissedStage = 0;
 let cpuOfferAnnouncedStage = 0;
@@ -145,6 +148,8 @@ function badge(text, tone = "warn") { $("connectionBadge").textContent = text; $
 function toast(message) { const node = $("toast"); node.textContent = message; node.classList.add("show"); clearTimeout(toast.timer); toast.timer = setTimeout(() => node.classList.remove("show"), 2400); }
 function profile() { return availableProfiles[selectedProfileId] || null; }
 function displayName() { return String(profile()?.displayName || "").trim().slice(0, 20); }
+function hasCpuEntryIntent() { return sessionStorage.getItem(CPU_ENTRY_INTENT_KEY) === "direct"; }
+function setCpuEntryIntent(active) { if (active) sessionStorage.setItem(CPU_ENTRY_INTENT_KEY, "direct"); else sessionStorage.removeItem(CPU_ENTRY_INTENT_KEY); }
 function renderProfileCardVisibility() { show("profileCard", activeAppTab !== "battle" || !synced); }
 function safeJson(value) { return JSON.stringify(value, null, 2); }
 function actionSignature(type, payload) { return JSON.stringify({ type, payload }); }
@@ -1517,6 +1522,7 @@ async function syncSelectedProfile() {
     }
     synced = true; badge("プロフィール同期済み", "good"); renderProfile(); render();
     await refreshOnlineCosmetics({ quiet: true });
+    if (hasCpuEntryIntent()) await openCpuRoster("direct", $("startStandardCpuHome"));
   } catch (error) { toast(error.message || "同期に失敗しました。"); }
   finally { profileSyncBusy = false; renderProfile(); }
 }
@@ -1595,8 +1601,13 @@ function renderMatchmaking() {
   if (!$("matchmakingPanel")) return;
   const snapshot = client.snapshot();
   const searching = Boolean(snapshot.matchmakingTicketId) && !snapshot.roomId;
-  $("recruitOpponent").disabled = matchmakingBusy || searching;
-  $("findOpponent").disabled = matchmakingBusy || searching;
+  const cpuStartPending = Boolean(snapshot.cpuStartActionId && snapshot.cpuStartCharacterId);
+  $("startStandardCpuLobby").disabled = matchmakingBusy || cpuAcceptBusy || searching;
+  $("startStandardCpuLobby").title = searching ? "募集を取り消すか、90秒後のCPU提案を選んでください。" : "";
+  $("createRoom").disabled = cpuStartPending;
+  $("joinRoom").disabled = cpuStartPending;
+  $("recruitOpponent").disabled = matchmakingBusy || searching || cpuStartPending;
+  $("findOpponent").disabled = matchmakingBusy || searching || cpuStartPending;
   show("cancelMatchmaking", searching);
   $("cancelMatchmaking").disabled = matchmakingBusy;
   show("matchmakingWait", searching);
@@ -1606,6 +1617,7 @@ function renderMatchmaking() {
 
 function renderCpuRoster(characters) {
   const grid = $("cpuRosterGrid"); grid.replaceChildren();
+  const pendingCharacter = cpuRosterOrigin === "direct" ? client.snapshot().cpuStartCharacterId : null;
   for (const character of characters) {
     const item = document.createElement("article"); item.className = "cpu-character-card";
     const title = document.createElement("h3"); title.textContent = character.name;
@@ -1614,22 +1626,40 @@ function renderCpuRoster(characters) {
     const weakness = document.createElement("p"); weakness.textContent = `苦手：${character.weakness}`;
     const favorites = document.createElement("p"); favorites.className = "muted small";
     favorites.textContent = `よく使う：${(character.favorites || []).map((id) => SKILL_META[id]?.name || id).join("・")}`;
-    const choose = button(`${character.name}と対戦`, () => acceptCpuCharacter(character), "primary");
-    choose.type = "button"; choose.disabled = cpuAcceptBusy;
+    const retrying = pendingCharacter === character.id;
+    const choose = button(retrying ? `${character.name}との開始を再確認` : `${character.name}と対戦`, () => acceptCpuCharacter(character), "primary");
+    choose.type = "button"; choose.disabled = cpuAcceptBusy || Boolean(pendingCharacter && !retrying);
     item.append(title, line, strength, weakness, favorites, choose); grid.appendChild(item);
   }
 }
 
-async function openCpuRoster() {
-  if (cpuAcceptBusy || !client.snapshot().matchmakingTicketId) return;
-  $("cpuRosterDialog").showModal();
+async function openCpuRoster(origin = "fallback", trigger = document.activeElement) {
+  const snapshot = client.snapshot();
+  if (cpuAcceptBusy) return;
+  if (origin === "fallback" && !snapshot.matchmakingTicketId) return;
+  if (origin === "direct" && (!synced || snapshot.roomId)) return;
+  if (origin === "direct" && snapshot.matchmakingTicketId) {
+    setCpuEntryIntent(false);
+    return toast("いまは人間の対戦相手を募集中です。募集を取り消すか、90秒後のCPU提案を選んでください。");
+  }
+  cpuRosterOrigin = origin;
+  cpuRosterTrigger = trigger instanceof HTMLElement ? trigger : null;
+  $("cpuRosterTitle").textContent = origin === "direct" ? "Standard CPU対戦 — 相手を選ぶ" : "待ち時間をCPU戦へ切り替える";
+  $("cpuRosterDescription").textContent = origin === "direct"
+    ? "正式6枚のStandardルールで対戦します。CPUを選ぶまで対戦は始まりません。"
+    : "人間の募集を終了し、選んだCPUと正式6枚のStandardルールで対戦します。";
+  $("closeCpuRoster").textContent = origin === "direct" ? "ロビーに戻る" : "人を待ち続ける";
+  if (!$("cpuRosterDialog").open) $("cpuRosterDialog").showModal();
+  requestAnimationFrame(() => $("cpuRosterTitle").focus());
   $("cpuRosterStatus").textContent = "CPU一覧を読み込んでいます…";
   try {
     const result = cpuRosterCache || await client.readCpuRoster();
     if (!Array.isArray(result?.characters) || result.characters.length !== 10) throw new Error("INVALID_CPU_ROSTER");
     cpuRosterCache = result;
     renderCpuRoster(result.characters);
-    $("cpuRosterStatus").textContent = "選択したCPUだけが対戦相手になります。人間として表示されることはありません。";
+    $("cpuRosterStatus").textContent = client.snapshot().cpuStartCharacterId
+      ? "前回選んだ同じCPUで、開始結果を安全に再確認できます。"
+      : "選択したCPUだけが対戦相手になります。人間として表示されることはありません。";
   } catch (error) {
     $("cpuRosterStatus").textContent = "CPU一覧を読み込めませんでした。閉じてからもう一度お試しください。";
     toast(error.message || "CPU一覧を読み込めませんでした。");
@@ -1637,22 +1667,64 @@ async function openCpuRoster() {
 }
 
 async function acceptCpuCharacter(character) {
-  if (cpuAcceptBusy || !client.snapshot().matchmakingTicketId) return;
+  if (cpuAcceptBusy || (cpuRosterOrigin === "fallback" && !client.snapshot().matchmakingTicketId)) return;
   cpuAcceptBusy = true; renderCpuRoster(cpuRosterCache?.characters || []);
   $("cpuRosterStatus").textContent = `${character.name}との対戦をサーバーで準備しています…`;
   try {
-    await client.acceptCpuOpponent({ characterId: character.id });
-    return await enterPublicMatch(`CPU「${character.name}」との対戦を始めます。6枚セットを選んでください。`);
+    const result = cpuRosterOrigin === "direct"
+      ? await client.startCpuOpponent({ characterId: character.id })
+      : await client.acceptCpuOpponent({ characterId: character.id });
+    setCpuEntryIntent(false);
+    const actualCpuName = CPU_NAMES[result.characterId] || character.name;
+    const message = result.opponentKind === "human"
+      ? "先に成立していた対人戦へ戻りました。6枚セットを選んでください。"
+      : `CPU「${actualCpuName}」との対戦を始めます。6枚セットを選んでください。`;
+    return await enterPublicMatch(message);
   } catch (error) {
-    const status = await client.readMatchmakingStatus().catch(() => null);
-    if (status?.matchmaking_status === "matched") return await enterPublicMatch("同時に人間の対戦相手が見つかりました。6枚セットを選んでください。");
-    $("cpuRosterStatus").textContent = "CPU対戦を開始できませんでした。募集状態を確認しながら安全に再試行できます。";
+    if (cpuRosterOrigin === "fallback") {
+      const status = await client.readMatchmakingStatus().catch(() => null);
+      if (status?.matchmaking_status === "matched") return await enterPublicMatch("同時に人間の対戦相手が見つかりました。6枚セットを選んでください。");
+    }
+    $("cpuRosterStatus").textContent = cpuRosterOrigin === "direct"
+      ? "開始結果を確認できませんでした。選んだ同じCPUで安全に再確認できます。"
+      : "CPU対戦を開始できませんでした。募集状態を確認しながら安全に再試行できます。";
     toast(error.message || "CPU対戦を開始できませんでした。");
   } finally {
     cpuAcceptBusy = false;
     if ($("cpuRosterDialog").open && cpuRosterCache) renderCpuRoster(cpuRosterCache.characters);
     render();
   }
+}
+
+async function beginImmediateCpuEntry(trigger = document.activeElement) {
+  setCpuEntryIntent(true);
+  activateAppTab("battle");
+  if (!connected) return toast("接続を準備しています。接続後にもう一度お試しください。");
+  if (!profile()) {
+    $("starterName").focus();
+    return toast("名前を決めると、10人のCPU選択へ進みます。CPUを選ぶまで対戦は始まりません。");
+  }
+  if (!synced) return syncSelectedProfile();
+  return openCpuRoster("direct", trigger);
+}
+
+async function resumePendingCpuStart() {
+  const snapshot = client.snapshot();
+  if (!snapshot.cpuStartActionId || !snapshot.cpuStartCharacterId || snapshot.roomId) return false;
+  cpuAcceptBusy = true;
+  try {
+    const result = await client.startCpuOpponent({ characterId: snapshot.cpuStartCharacterId });
+    setCpuEntryIntent(false);
+    const name = CPU_NAMES[result.characterId || snapshot.cpuStartCharacterId] || "CPU";
+    await enterPublicMatch(result.opponentKind === "human"
+      ? "先に成立していた対人戦へ戻りました。6枚セットを選んでください。"
+      : `CPU「${name}」との開始結果を確認しました。6枚セットを選んでください。`);
+    return true;
+  } catch (error) {
+    setCpuEntryIntent(true);
+    toast(error.message || "CPU対戦の開始結果を確認できませんでした。");
+    return false;
+  } finally { cpuAcceptBusy = false; render(); }
 }
 
 function keepWaitingForHuman() {
@@ -1755,9 +1827,17 @@ $("joinRoom").onclick = joinRoom;
 $("recruitOpponent").onclick = recruitPublicOpponent;
 $("findOpponent").onclick = findPublicOpponent;
 $("cancelMatchmaking").onclick = cancelPublicMatchmaking;
-$("chooseCpuOpponent").onclick = openCpuRoster;
+$("startStandardCpuHome").onclick = (event) => beginImmediateCpuEntry(event.currentTarget);
+$("startStandardCpuLobby").onclick = (event) => beginImmediateCpuEntry(event.currentTarget);
+$("chooseCpuOpponent").onclick = (event) => openCpuRoster("fallback", event.currentTarget);
 $("keepWaitingForHuman").onclick = keepWaitingForHuman;
 $("closeCpuRoster").onclick = () => $("cpuRosterDialog").close();
+$("cpuRosterDialog").addEventListener("close", () => {
+  if (cpuRosterOrigin === "direct") setCpuEntryIntent(false);
+  const trigger = cpuRosterTrigger;
+  cpuRosterTrigger = null;
+  trigger?.focus?.();
+});
 $("roomCode").oninput = () => { $("roomCode").value = $("roomCode").value.replace(/\s/g, "").toUpperCase().slice(0, 6); };
 $("debugUnlimitedMode").onchange = renderLoadout;
 $("submitSetup").onclick = submitSetup;
@@ -1800,8 +1880,10 @@ try {
   if (remote) { hydrateProfileRow(remote); synced = true; }
   else loadProfiles();
   if (client.snapshot().roomId) { synced = true; await roomSync.start(client.snapshot().roomId); }
+  else if (client.snapshot().cpuStartActionId && client.snapshot().cpuStartCharacterId) await resumePendingCpuStart();
   else if (client.snapshot().matchmakingFindActionId) await findPublicOpponent();
   else if (client.snapshot().matchmakingTicketId) scheduleMatchmakingStatus(250);
+  else if (synced && hasCpuEntryIntent()) await openCpuRoster("direct", $("startStandardCpuHome"));
   render();
   if (synced && !cosmeticCatalogLoaded) await refreshOnlineCosmetics({ quiet: true });
   if (pendingQuiz?.answers?.length === 10) finishOnlineQuiz();

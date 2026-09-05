@@ -47,7 +47,7 @@ const RATE_GROUP = Object.freeze({
   profile: ["economy", 60], gacha: ["economy", 60], "card-sale": ["economy", 60], "cosmetic-action": ["economy", 60],
   "quiz-start": ["economy", 60], "quiz-finish": ["economy", 60],
   setup: ["match", 240], initialize: ["match", 240], action: ["match", 240], "cpu-action": ["match", 240],
-  "cpu-accept": ["match", 240], "cpu-rematch": ["match", 240],
+  "cpu-start": ["match", 240], "cpu-accept": ["match", 240], "cpu-rematch": ["match", 240],
 } as const);
 const rateEntries = new Map<string, { windowStarted: number; count: number }>();
 
@@ -325,6 +325,7 @@ function publicError(error: unknown): { status: number; code: string; message: s
   if (candidate?.code === "PT409" || candidate?.code === "40001") return { status: 409, code: "STALE_VERSION", message: "Match changed; reload and retry." };
   if (candidate?.code === "55000" && detail.includes("CARD_SALE_MATCH_LOCKED")) return { status: 409, code: "CARD_SALE_MATCH_LOCKED", message: "Cards cannot be sold after a loadout is submitted or while a match is active." };
   if (candidate?.code === "55000" && detail.includes("CPU_CONSENT_TOO_EARLY")) return { status: 409, code: "CPU_CONSENT_TOO_EARLY", message: "CPU play becomes available after 90 seconds." };
+  if (candidate?.code === "55000" && detail.includes("CPU_START_")) return { status: 409, code: "CPU_START_CONFLICT", message: "Another Standard match was already selected." };
   if (candidate?.code === "55000" && detail.includes("MATCHMAKING_")) return { status: 409, code: "MATCHMAKING_RESOLVED", message: "Matchmaking was already resolved or expired." };
   if (candidate?.code === "23505") return { status: 409, code: "IDEMPOTENCY_KEY_REUSE", message: "Action ID was reused with different input." };
   if (candidate?.code === "42501") return { status: 403, code: "NOT_A_MEMBER", message: "You are not in this room." };
@@ -358,7 +359,7 @@ Deno.serve(async (request: Request) => {
     });
     const body = await request.json() as JsonObject;
     const operation = body.operation;
-    if (!["profile", "gacha", "card-sale-quote", "card-sale", "cosmetic-catalog", "cosmetic-quote", "cosmetic-action", "quiz-start", "quiz-finish", "cpu-roster", "cpu-accept", "cpu-rematch", "cpu-action", "setup", "initialize", "action"].includes(String(operation))) {
+    if (!["profile", "gacha", "card-sale-quote", "card-sale", "cosmetic-catalog", "cosmetic-quote", "cosmetic-action", "quiz-start", "quiz-finish", "cpu-roster", "cpu-start", "cpu-accept", "cpu-rematch", "cpu-action", "setup", "initialize", "action"].includes(String(operation))) {
       return json(400, { error: { code: "INVALID_REQUEST", message: "A valid operation is required." } });
     }
     if (rateLimited(actorId, String(operation))) {
@@ -367,6 +368,40 @@ Deno.serve(async (request: Request) => {
 
     if (operation === "cpu-roster") {
       return json(200, { rosterVersion: "standard-character-roster-v1", characters: globalThis.FourColorStandardServerEngine.getCpuRoster() });
+    }
+
+    if (operation === "cpu-start") {
+      const actionId = body.actionId;
+      const characterId = body.characterId;
+      if (typeof actionId !== "string" || !UUID_PATTERN.test(actionId) || typeof characterId !== "string" || characterId.length > 32 || body.confirmed !== true) {
+        return json(400, { error: { code: "INVALID_CPU_START", message: "A confirmed action and CPU character are required." } });
+      }
+      let cpu;
+      try { cpu = globalThis.FourColorStandardServerEngine.createCpuProfile(characterId); }
+      catch { return json(400, { error: { code: "UNKNOWN_CPU_CHARACTER", message: "That CPU character is not available." } }); }
+      stage = "start-cpu";
+      const { data, error } = await service.rpc("fcg_standard_server_start_cpu", {
+        p_user_id: actorId,
+        p_action_id: actionId,
+        p_cpu_user_id: crypto.randomUUID(),
+        p_character_id: characterId,
+        p_policy_version: cpu.policyVersion,
+        p_cpu_display_name: (cpu.profile as { displayName?: string }).displayName,
+        p_cpu_profile_state: cpu.profile,
+        p_cpu_loadout: cpu.loadout,
+        p_loadout_fingerprint: await fingerprint(cpu.loadout),
+      });
+      if (error) throw error;
+      const started = firstRow(data);
+      return json(200, {
+        matchmakingStatus: "matched",
+        startStatus: started?.recovered_existing === true ? "recovered_existing" : started?.duplicate === true ? "duplicate" : "created",
+        roomId: started?.room_id,
+        seat: started?.seat,
+        opponentKind: started?.opponent_kind,
+        characterId: started?.cpu_character_id,
+        duplicate: started?.duplicate === true,
+      });
     }
 
     if (operation === "cpu-accept") {

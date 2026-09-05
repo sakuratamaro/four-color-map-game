@@ -59,6 +59,7 @@ function supabaseFixture({ roomStatus = "ready", roomVersion = 10 } = {}) {
         if (request.body.operation === "quiz-start") return { data: { sessionId: QUIZ_SESSION_ID, duplicate: false, selectedLevel: 2, expiresAt: "2099-01-01T00:00:00Z", questions: Array.from({ length: 10 }, (_, index) => ({ prompt: `Q${index + 1}`, options: [{ id: `q${index + 1}-1`, label: "1" }] })) } };
         if (request.body.operation === "quiz-finish") return { data: { revision: 5, duplicate: false, correct: 10, wrong: 0, bestStreak: 10, reward: { ticketLevel: 2, draws: 10, reason: "全問正解" }, profileState: { gachaTickets: { "2": 10 }, inventory: {} } } };
         if (request.body.operation === "cpu-roster") return { data: { rosterVersion: "standard-character-roster-v1", characters: Array.from({ length: 10 }, (_, index) => ({ id: `cpu${index}`, name: `CPU ${index}` })) } };
+        if (request.body.operation === "cpu-start") return { data: { matchmakingStatus: "matched", startStatus: "created", roomId: ROOM_ID, seat: "A", opponentKind: "cpu", characterId: request.body.characterId, duplicate: false } };
         if (request.body.operation === "cpu-accept") return { data: { matchmakingStatus: "matched", roomId: ROOM_ID, seat: "A", characterId: request.body.characterId, duplicate: false } };
         if (request.body.operation === "cpu-action") return { data: { duplicate: false, room: { version: request.body.expectedVersion + 1 } } };
         if (request.body.operation === "cpu-rematch") return { data: { roomStatus: "ready", roomVersion: request.body.expectedVersion + 1, readyToSetup: true, duplicate: false } };
@@ -95,6 +96,7 @@ test("client restores only finite reconnect identities from its own storage key"
     roomId: ROOM_ID, roomCode: "A1B2C3", profileRevision: 4, setupRevision: 2,
     rematchActionId: null, rematchExpectedVersion: null,
     matchmakingTicketId: null, matchmakingStartedAt: null, matchmakingFindActionId: null,
+    cpuStartActionId: null, cpuStartCharacterId: null,
   });
 });
 
@@ -187,6 +189,35 @@ test("CPU roster, explicit acceptance, and one server CPU turn use finite client
   ]);
   assert.equal(Object.hasOwn(invokes[1], "profileState"), false);
   assert.equal(Object.hasOwn(invokes[2], "action"), false);
+});
+
+test("immediate CPU start persists one explicit identity before invoke and clears it only on success", async () => {
+  const supabase = supabaseFixture();
+  const originalInvoke = supabase.functions.invoke;
+  let failOnce = true;
+  const seen = [];
+  supabase.functions.invoke = async (name, request) => {
+    if (request.body.operation === "cpu-start") seen.push(request.body);
+    if (request.body.operation === "cpu-start" && failOnce) { failOnce = false; return { error: new Error("response lost") }; }
+    return originalInvoke(name, request);
+  };
+  const storage = storageFixture();
+  let allocations = 0;
+  const first = createStandardOnlineClient({ supabase, storage, idFactory: () => { allocations += 1; return ACTION_ID; } });
+  await assert.rejects(first.startCpuOpponent({ characterId: "yuzu" }), /response lost/);
+  assert.equal(first.snapshot().cpuStartActionId, ACTION_ID);
+  assert.equal(first.snapshot().cpuStartCharacterId, "yuzu");
+  const reloaded = createStandardOnlineClient({ supabase, storage, idFactory: () => { throw new Error("must reuse pending CPU start"); } });
+  await assert.rejects(reloaded.startCpuOpponent({ characterId: "ren" }), /CPU_START_ALREADY_PENDING/);
+  const result = await reloaded.startCpuOpponent({ characterId: "yuzu" });
+  assert.equal(result.roomId, ROOM_ID);
+  assert.equal(allocations, 1);
+  assert.equal(reloaded.snapshot().cpuStartActionId, null);
+  assert.equal(reloaded.snapshot().cpuStartCharacterId, null);
+  assert.deepEqual(seen, [
+    { operation: "cpu-start", actionId: ACTION_ID, characterId: "yuzu", confirmed: true },
+    { operation: "cpu-start", actionId: ACTION_ID, characterId: "yuzu", confirmed: true },
+  ]);
 });
 
 test("CPU rematch persists one retry identity and resets only after the server returns ready", async () => {

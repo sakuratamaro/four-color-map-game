@@ -36,6 +36,8 @@
       matchmakingTicketId: null,
       matchmakingStartedAt: null,
       matchmakingFindActionId: null,
+      cpuStartActionId: null,
+      cpuStartCharacterId: null,
       ...stored(storage),
     };
     let session = null;
@@ -192,6 +194,8 @@
       state.matchmakingTicketId = null;
       state.matchmakingStartedAt = null;
       state.matchmakingFindActionId = null;
+      state.cpuStartActionId = null;
+      state.cpuStartCharacterId = null;
       persist();
       return true;
     }
@@ -259,6 +263,31 @@
       await ensureSession();
       return clone(await invoke("cpu-roster"));
     }
+    async function startCpuOpponent({ actionId = state.cpuStartActionId || idFactory(), characterId }) {
+      await ensureSession();
+      const selectedCharacter = requiredText(characterId || state.cpuStartCharacterId, "INVALID_CPU_CHARACTER", 32);
+      if (!UUID_PATTERN.test(String(actionId))) throw new Error("INVALID_CPU_START");
+      if (state.cpuStartActionId && (state.cpuStartActionId !== actionId || state.cpuStartCharacterId !== selectedCharacter)) {
+        throw Object.assign(new Error("CPU_START_ALREADY_PENDING"), { code: "CPU_START_ALREADY_PENDING" });
+      }
+      state.cpuStartActionId = actionId;
+      state.cpuStartCharacterId = selectedCharacter;
+      persist();
+      const result = await invoke("cpu-start", { actionId, characterId: selectedCharacter, confirmed: true });
+      if (!UUID_PATTERN.test(String(result.roomId)) || result.matchmakingStatus !== "matched") throw new Error("INVALID_CPU_START_RESULT");
+      state.roomId = result.roomId;
+      state.roomCode = null;
+      state.setupRevision = 0;
+      state.rematchActionId = null;
+      state.rematchExpectedVersion = null;
+      state.matchmakingTicketId = null;
+      state.matchmakingStartedAt = null;
+      state.matchmakingFindActionId = null;
+      state.cpuStartActionId = null;
+      state.cpuStartCharacterId = null;
+      persist();
+      return clone(result);
+    }
     async function acceptCpuOpponent({ ticketId = state.matchmakingTicketId, characterId }) {
       await ensureSession();
       if (!UUID_PATTERN.test(String(ticketId)) || !requiredText(characterId, "INVALID_CPU_CHARACTER", 32)) throw new Error("INVALID_CPU_ACCEPT");
@@ -272,6 +301,8 @@
       state.matchmakingTicketId = null;
       state.matchmakingStartedAt = null;
       state.matchmakingFindActionId = null;
+      state.cpuStartActionId = null;
+      state.cpuStartCharacterId = null;
       persist();
       return clone(result);
     }
@@ -411,6 +442,8 @@
       state.matchmakingTicketId = null;
       state.matchmakingStartedAt = null;
       state.matchmakingFindActionId = null;
+      state.cpuStartActionId = null;
+      state.cpuStartCharacterId = null;
     }
 
     return Object.freeze({
@@ -438,6 +471,7 @@
       resetConnection,
       snapshot: () => Object.freeze(clone(state)),
       startQuiz,
+      startCpuOpponent,
       sellCards,
       submitAction,
       submitSetup,

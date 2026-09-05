@@ -85,7 +85,7 @@ async function installMock(context, mode) {
     if (initialMode !== "empty") {
       localStorage.setItem(save, JSON.stringify({ profiles: { playerA: { displayName: "A", inventory } } }));
       localStorage.setItem("fourColorMapGame.standard.online.v5.profile", "playerA");
-      if (!["lobby", "cosmetic", "quiz", "publicFind", "cpuWait"].includes(initialMode)) {
+      if (!["lobby", "cosmetic", "quiz", "publicFind", "cpuWait", "cpuRetry"].includes(initialMode)) {
         localStorage.setItem(connection, JSON.stringify({
           roomId: id, roomCode: "A1B2C3", profileRevision: 1, setupRevision: 3,
           rematchActionId: initialMode === "finished" ? pendingId : null,
@@ -95,6 +95,12 @@ async function installMock(context, mode) {
         localStorage.setItem(connection, JSON.stringify({
           roomId: null, roomCode: null, profileRevision: 1, setupRevision: 0,
           matchmakingTicketId: pendingId, matchmakingStartedAt: new Date(Date.now() - 91000).toISOString(), matchmakingFindActionId: null,
+        }));
+      } else if (initialMode === "cpuRetry") {
+        localStorage.setItem(connection, JSON.stringify({
+          roomId: null, roomCode: null, profileRevision: 1, setupRevision: 0,
+          matchmakingTicketId: null, matchmakingStartedAt: null, matchmakingFindActionId: null,
+          cpuStartActionId: pendingId, cpuStartCharacterId: "yuzu",
         }));
       }
     }
@@ -127,6 +133,7 @@ async function installMock(context, mode) {
       gachaReceipts: {},
       cardSaleReceipts: {},
       cosmeticReceipts: {},
+      cpuStartReceipts: {},
       calls: [],
     };
     runtime.members = [{ user_id: "33333333-3333-4333-8333-333333333333", seat: "A", display_name: "A", is_cpu: false, appearance: { nameplate: "nameplateDefault", title: "titleNone" } }, { user_id: "44444444-4444-4444-8444-444444444444", seat: "B", display_name: ["cpuTurn", "finishedCpu", "cpuWin"].includes(initialMode) ? "うっかりユズ" : "B", is_cpu: ["cpuTurn", "finishedCpu", "cpuWin"].includes(initialMode), appearance: { nameplate: "nameplateGold", title: "titleArtisan" } }];
@@ -216,6 +223,16 @@ async function installMock(context, mode) {
           ["yuzu", "うっかりユズ"], ["ren", "せっかちレン"], ["minato", "見習いミナト"], ["koharu", "読み違いコハル"], ["aoi", "慎重派アオイ"],
           ["kai", "勝負師カイ"], ["tsubasa", "仕掛け屋ツバサ"], ["shion", "観察役シオン"], ["rei", "カード博士レイ"], ["kurogane", "四色のクロガネ"],
         ].map(([cpuId, name]) => ({ id: cpuId, name, line: "よろしく！", strength: "得意な一手", weakness: "うっかり", favorites: ["colorRandomBorrow", "areaMicroBloom"] })) } };
+        if (request.body.operation === "cpu-start") {
+          const prior = runtime.cpuStartReceipts[request.body.actionId];
+          if (prior) return { data: { ...prior, duplicate: true, startStatus: "duplicate" } };
+          runtime.room = { ...runtime.room, status: "ready", access_mode: "cpu", opponent_kind: "cpu", cpu_character_id: request.body.characterId, public_state: null };
+          runtime.view = null;
+          runtime.members = [{ user_id: "33333333-3333-4333-8333-333333333333", seat: "A", display_name: "A", is_cpu: false }, { user_id: "55555555-5555-4555-8555-555555555555", seat: "B", display_name: "うっかりユズ", is_cpu: true }];
+          const result = { matchmakingStatus: "matched", startStatus: "created", roomId: id, seat: "A", opponentKind: "cpu", characterId: request.body.characterId, duplicate: false };
+          runtime.cpuStartReceipts[request.body.actionId] = result;
+          return { data: result };
+        }
         if (request.body.operation === "cpu-accept") {
           runtime.room = { ...runtime.room, status: "ready", access_mode: "cpu", opponent_kind: "cpu", cpu_character_id: request.body.characterId, public_state: null };
           runtime.view = null;
@@ -346,12 +363,12 @@ async function withPage(mode, run, { bodyTimeout = 35_000, viewport = { width: 9
   }
 }
 
-test("actual Edge carries a fresh player from the home CTA through profile sync to the visible battle lobby", { timeout: 130000 }, async () => {
+test("actual Edge carries a fresh player from the home CPU CTA through profile sync to ten explicit choices", { timeout: 130000 }, async () => {
   await withPage("empty", async (page) => {
     await page.locator("#starterCreator:not(.hidden)").waitFor();
     assert.equal(await page.locator("#profileSelect option").count(), 0);
     assert.equal(await page.locator("#syncProfile").isDisabled(), true);
-    await page.getByRole("button", { name: "対戦を始める" }).click();
+    await page.getByRole("button", { name: "CPUとすぐStandard対戦" }).click();
     await page.locator("#starterName").waitFor({ state: "visible" });
     assert.equal(await page.locator("body").getAttribute("data-active-tab"), "battle");
     assert.equal(await page.locator("#profileCard").isVisible(), true);
@@ -369,22 +386,68 @@ test("actual Edge carries a fresh player from the home CTA through profile sync 
     assert.deepEqual(Object.values(evidence.inventory), [3, 3, 3, 3, 3, 3]);
     await page.locator("#lobby").waitFor({ state: "visible" });
     assert.equal(await page.locator("#profileCard").isVisible(), false);
+    await page.locator("#cpuRosterDialog[open]").waitFor();
+    assert.equal(await page.locator("#cpuRosterGrid .cpu-character-card").count(), 10);
     const profileCalls = await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "profile").map((entry) => entry.body));
     assert.equal(profileCalls.length, 1);
     const profileCall = profileCalls[0];
     assert.equal(profileCall.expectedRevision, 0);
     assert.equal(profileCall.displayName, "新規プレイヤー");
     const automaticMatchCalls = await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => (
-      entry.body?.operation === "cpu-accept"
+      ["cpu-start", "cpu-accept"].includes(entry.body?.operation)
       || ["fcg_standard_create_room", "fcg_standard_join_room", "fcg_standard_matchmaking_recruit", "fcg_standard_matchmaking_find"].includes(entry.name)
     )));
     assert.deepEqual(automaticMatchCalls, []);
   });
 });
 
+test("actual Edge starts formal Standard CPU immediately without entering public matchmaking", { timeout: 130000 }, async () => {
+  await withPage("lobby", async (page) => {
+    const trigger = page.getByRole("button", { name: "10人からCPUを選ぶ" });
+    await trigger.click();
+    await page.locator("#cpuRosterDialog[open]").waitFor();
+    assert.equal(await page.locator("#cpuRosterTitle").textContent(), "Standard CPU対戦 — 相手を選ぶ");
+    assert.equal(await page.evaluate(() => document.activeElement?.id), "cpuRosterTitle");
+    assert.equal(await page.locator("#cpuRosterGrid .cpu-character-card").count(), 10);
+    await page.keyboard.press("Escape");
+    assert.equal(await page.evaluate(() => document.activeElement?.id), "startStandardCpuLobby");
+    await trigger.click();
+    await page.getByRole("button", { name: "うっかりユズと対戦" }).click();
+    await page.locator("#setupCard:not(.hidden)").waitFor();
+    assert.equal(await page.locator("#shownCode").textContent(), "CPU：うっかりユズ");
+    const evidence = await page.evaluate(({ key }) => ({
+      bodies: globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.kind === "invoke").map((entry) => entry.body),
+      publicCalls: globalThis.__standardOnlineRuntime.calls.filter((entry) => String(entry.name || "").includes("matchmaking")),
+      connection: JSON.parse(localStorage.getItem(key)),
+      overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+    }), { key: connectionKey });
+    assert.deepEqual(evidence.bodies.slice(-2).map((body) => body.operation), ["cpu-roster", "cpu-start"]);
+    assert.match(evidence.bodies.at(-1).actionId, /^[0-9a-f-]{36}$/i);
+    assert.deepEqual({ ...evidence.bodies.at(-1), actionId: "<uuid>" }, { operation: "cpu-start", actionId: "<uuid>", characterId: "yuzu", confirmed: true });
+    assert.deepEqual(evidence.publicCalls, []);
+    assert.equal(evidence.connection.cpuStartActionId, null);
+    assert.equal(evidence.connection.cpuStartCharacterId, null);
+    assert.equal(evidence.overflow, false);
+  }, { viewport: { width: 390, height: 844 } });
+});
+
+test("actual Edge resumes a lost immediate CPU response with the same stored action", { timeout: 130000 }, async () => {
+  await withPage("cpuRetry", async (page) => {
+    await page.locator("#setupCard:not(.hidden)").waitFor();
+    const evidence = await page.evaluate(({ key }) => ({
+      starts: globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "cpu-start").map((entry) => entry.body),
+      connection: JSON.parse(localStorage.getItem(key)),
+    }), { key: connectionKey });
+    assert.deepEqual(evidence.starts, [{ operation: "cpu-start", actionId: pendingRematchId, characterId: "yuzu", confirmed: true }]);
+    assert.equal(evidence.connection.roomId, roomId);
+    assert.equal(evidence.connection.cpuStartActionId, null);
+    assert.equal(evidence.connection.cpuStartCharacterId, null);
+  });
+});
+
 test("actual Edge keeps the first-time setup write-free when the name is empty", { timeout: 130000 }, async () => {
   await withPage("empty", async (page) => {
-    await page.getByRole("button", { name: "対戦を始める" }).click();
+    await page.getByRole("button", { name: "CPUとすぐStandard対戦" }).click();
     await page.getByRole("button", { name: "この名前で対戦準備へ" }).click();
     assert.equal(await page.evaluate(() => localStorage.getItem("fourColorMapGame.standard.online.v5.starter-profile")), null);
     assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "profile").length), 0);
@@ -634,7 +697,7 @@ test("actual Edge offers ten explicit CPU choices after 90 seconds and labels th
   await withPage("cpuWait", async (page) => {
     await page.locator("#cpuOpponentOffer:not(.hidden)").waitFor();
     assert.match(await page.locator("#cpuOfferMessage").textContent(), /90秒/);
-    await page.getByRole("button", { name: "CPUを選ぶ" }).click();
+    await page.getByRole("button", { name: "CPUを選ぶ", exact: true }).click();
     await page.locator("#cpuRosterDialog[open]").waitFor();
     assert.equal(await page.locator("#cpuRosterGrid .cpu-character-card").count(), 10);
     await page.getByRole("button", { name: "うっかりユズと対戦" }).click();

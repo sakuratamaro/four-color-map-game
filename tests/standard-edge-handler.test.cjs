@@ -134,6 +134,21 @@ test("CPU roster and consent derive identity, profile, and loadout only on the s
   assert.doesNotMatch(accept, /body\.(?:profile|profileState|loadout|policyVersion|cpuUserId)/);
 });
 
+test("immediate CPU start is explicit, idempotent, and server-derived", () => {
+  assert.match(source, /"cpu-start": \["match", 240\]/);
+  const branch = source.slice(source.indexOf('if (operation === "cpu-start")'), source.indexOf('if (operation === "cpu-accept")'));
+  assert.match(branch, /body\.confirmed !== true/);
+  assert.match(branch, /actionId[^\n]+UUID_PATTERN\.test\(actionId\)/);
+  assert.match(branch, /FourColorStandardServerEngine\.createCpuProfile\(characterId\)/);
+  assert.match(branch, /service\.rpc\("fcg_standard_server_start_cpu"/);
+  assert.match(branch, /p_user_id: actorId/);
+  assert.match(branch, /p_action_id: actionId/);
+  assert.match(branch, /p_cpu_user_id: crypto\.randomUUID\(\)/);
+  assert.match(branch, /p_cpu_profile_state: cpu\.profile/);
+  assert.match(branch, /p_cpu_loadout: cpu\.loadout/);
+  assert.doesNotMatch(branch, /body\.(?:userId|actorId|profile|profileState|loadout|policyVersion|cpuUserId|displayName)/);
+});
+
 test("one CPU action is deterministic, sees only public plus its own private view, and commits separately", () => {
   const branch = source.slice(source.indexOf('if (operation === "cpu-action")'), source.indexOf("const action = body.action as JsonObject"));
   assert.match(branch, /seat !== "A" \|\| room\.opponent_kind !== "cpu"/);

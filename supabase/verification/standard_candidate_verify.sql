@@ -1,4 +1,4 @@
--- Read-only verification after applying migrations 202609030006 through 202609030013.
+-- Read-only verification after applying migrations through 202609050002.
 -- Expected result: every row has ok = true. This statement performs no writes.
 
 with
@@ -9,6 +9,7 @@ expected_relations(schema_name, relation_name) as (
     ('fcg_private', 'standard_matchmaking_find_receipts'),
     ('fcg_private', 'standard_matchmaking_limits'),
     ('fcg_private', 'standard_cpu_profile_owners'),
+    ('fcg_private', 'standard_cpu_start_receipts'),
     ('fcg_private', 'standard_cosmetic_receipts')
 ),
 relation_state as (
@@ -55,6 +56,7 @@ expected_functions(signature, audience) as (
     ('public.fcg_standard_matchmaking_status(uuid)', 'authenticated'),
     ('public.fcg_standard_matchmaking_cancel(uuid)', 'authenticated'),
     ('public.fcg_standard_server_accept_cpu(uuid,uuid,uuid,text,text,text,jsonb,jsonb,text)', 'service_role'),
+    ('public.fcg_standard_server_start_cpu(uuid,uuid,uuid,text,text,text,jsonb,jsonb,text)', 'service_role'),
     ('public.fcg_standard_server_load_room_v2(uuid,uuid)', 'service_role'),
     ('public.fcg_standard_server_request_cpu_rematch(uuid,uuid,bigint,uuid,text,text,text,jsonb,jsonb,text)', 'service_role'),
     ('public.fcg_standard_server_replay_cosmetic(uuid,uuid,text)', 'service_role'),
@@ -118,7 +120,8 @@ expected_indexes(index_name) as (
     ('fcg_standard_gacha_receipt_cleanup_idx'),
     ('fcg_standard_card_sale_receipt_cleanup_idx'),
     ('fcg_standard_cosmetic_receipt_cleanup_idx'),
-    ('fcg_standard_matchmaking_limit_cleanup_idx')
+    ('fcg_standard_matchmaking_limit_cleanup_idx'),
+    ('fcg_standard_cpu_start_receipt_cleanup_idx')
 ),
 index_state as (
   select expected.index_name,
