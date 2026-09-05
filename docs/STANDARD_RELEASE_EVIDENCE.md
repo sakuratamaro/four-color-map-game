@@ -179,18 +179,28 @@
 - slot別lag合計は同一WAL区間を二重計上し得るため実ディスク量とみなさない。単発snapshotだけでslot追従も断定しない。ゲーム表肥大をStorage alertの主因とする証拠はなく、cleanup、課金、Compute/Disk変更、Advisor reset、DB/Edge更新は行っていない。T+24hで最大lagとDashboard指標を比較する。
 - 物理二端末の野良成立引継ぎ、完走、途中再読込、再戦は`NOT_RUN/PENDING`のままである。
 
+## 2026-09-05 18:50 JST CPU報酬ガチャから6枚再編成への循環公開
+
+- 3担当を実装、否定境界監査、公開baselineへ分け、保存済み通常CPU戦の報酬CTAから明示的にLv.1ガチャを引いた場合だけ、獲得カードの名前・レアリティ・効果と「6枚を選び直して同じCPUと再戦」を表示する導線を`dab28e5`で追加した。対人、未精算CPU、debug、独立ガチャには表示しない。
+- continuationはroom ID・version・match ID・finished CPU・FINISHED state・debug無効をすべて照合し、成功結果をsessionStorageから復元する際も継続情報とカード形状をallowlist正規化する。獲得カードは所持数だけ反映し、自動選択せず、既存のserver-authoritativeな`cpu-rematch`を一度だけ呼んで6枚選択へ戻す。
+- 未解決`pendingGacha`中は新しい1枚／全枚抽選を封鎖し、失敗やreload後も同じaction IDの再確認だけを許可した。結果見出しfocus、先頭3枚までの有限aria要約、全件list/listitem、390×844で固定下部navより上にCTAが収まることを回帰固定した。
+- 最終focused静的は90/90、P2仕上げ後のEdge重点3/3・Chrome重点2/2、直前全Edge 38/38。独立最終レビューはP0/P1/P2なし。正式root連続試験は変更外の接触演出browser群でtier 0–3後に既知の約32秒host timeoutが再発したため、候補判定は変更対象browserとクリーンなWindows gateへ分離した。
+- Standard browser gate `33958531045`はChrome/Edge両job成功。`origin/main`を`b4b4d69`から`dab28e5`へforceなしでfast-forwardし、Pages run `33958727024`も成功した。
+- 公開URLはasset v16、新しい結果・再戦DOM、匿名ログイン完了、console warning/error 0を確認した。通常の独立ガチャ画面では結果・再戦・再確認が非表示で、candidate preflightは`ok:true`。DB、migration、Edge Function、SQLは変更していない。
+- 物理的に別々の二端末による対人/CPU完走、途中再読込、報酬→ガチャ→6枚再編成→再戦の体感確認と、T0から24時間後の使用量比較は引き続き`NOT_RUN` / `PENDING`である。
+
 ## 公開識別子
 
 | 項目 | 値 |
 | --- | --- |
 | browser harness diagnostics commit | `6fc23a5` |
 | Windows browser CI commit | `d8dac1b` |
-| final browser-verified candidate | `1e856f9`（野良成立時の安全な対戦引継ぎ。直前報酬導線`193a0e6`を包含） |
-| Windows browser CI run | `33956185495` / Chrome Success / Edge Success |
+| final browser-verified candidate | `dab28e5`（CPU報酬ガチャから6枚再編成・同CPU再戦への循環。野良成立引継ぎ`1e856f9`を包含） |
+| Windows browser CI run | `33958531045` / Chrome Success / Edge Success |
 | 初回candidate code baseline（履歴） | `0e02176`（Edge deployment 8 sourceは`c3cf372`） |
 | applied migrations | `202609030006`–`202609030013`, `202609050001`–`202609050005` |
 | `standard-game-action` version | クロガネv2対応deployment（2026-09-05 14:34 JST更新） |
-| Pages Actions run | `33956373181` / Success / `1e856f9` |
+| Pages Actions run | `33958727024` / Success / `dab28e5` |
 | public URL | `https://sakuratamaro.github.io/four-color-map-game/standard-online-v5/` |
 
 ## Canary結果
@@ -221,6 +231,8 @@
 | CPU報酬→ガチャ Pages・公開asset | PASS | 2026-09-05 | `193a0e6`、Pages run `33951598229`。公開asset v14、CTA、保存済みCPU条件、無抽選遷移、紙吹雪clip、focus CSSを確認 |
 | 野良成立引継ぎ Windows browser gate | PASS | 2026-09-05 | run `33956185495`。Windows 2025のChrome/Edge両job成功。回答中・開始中・別タブ・ガチャ・reload分類・休止保持を含む38 browser test |
 | 野良成立引継ぎ Pages・公開asset | PASS | 2026-09-05 | `1e856f9`、Pages run `33956373181`。公開asset v15、安全引継ぎDOM/app/style marker、candidate preflight `ok:true` |
+| CPU報酬ガチャ→6枚再編成 Windows gate | PASS | 2026-09-05 | run `33958531045`。Windows 2025のChrome/Edge両job成功。pending同一ID、CPU報酬結果、reload、390×844、同CPU再戦、否定境界を検査 |
+| CPU報酬ガチャ→6枚再編成 Pages・公開asset | PASS | 2026-09-05 | `dab28e5`、Pages run `33958727024`。公開asset v16、新DOM、匿名接続、console warning/error 0、通常ガチャ否定境界、candidate preflight `ok:true` |
 | 二端末最終受入 | NOT_RUN | PENDING | PENDING |
 
 ## 残存リスク
@@ -228,7 +240,7 @@
 - Dashboard T0は17項目を取得したが、Database 24hグラフ等20項目はDashboard取得不能でPARTIAL。資源逼迫alert 2件と7日Compute/CPU peak 99%があるため、負荷由来を切り分けるまで新しい高負荷経路を追加しない。
 - profile作成安定化はCの逐次16件で500/429なしを確認した。高並列作成そのものはAuth上限を消費するため再試験せず、再発時はEdge/DBログと資源警告を関連調査する。
 - Cのstatus正規化は本番関数定義、既存ticket整合、live canary 210/210まで確認済み。今後もIPあたり30 anonymous sign-ins/時を守り、同じ認証窓で重いcanaryを再試行しない。
-- 現行製品`1e856f9`はPagesへ反映済み。自動browser、公開asset、Edge/DB保護境界の合格と、未実施の物理二端末受入を混同しない。
+- 現行製品`dab28e5`はPagesへ反映済み。自動browser、公開asset、Edge/DB保護境界の合格と、未実施の物理二端末受入を混同しない。
 - Edgeのper-isolate濫用抑止は分散レート制限ではない。公開後の計測で必要性が出た場合だけprovider側制限を検討する。
 - 10人CPUの合法性・決定性は自動検証済みだが、人間が感じる個性と楽しさは代表3人の実プレイ後も定性的判断として残る。
 - cleanup実削除や定期化は許可済みだが、exact IDと復元手段を確認するまで実行しない。課金設定変更は必要性と金額を特定してから扱う。
