@@ -427,6 +427,65 @@ function terminalReasonText(reason, winnerSeat) {
   }[reason] || "対戦結果が確定しました。";
 }
 
+function pendingContactPalette(state) {
+  const pending = state?.regions?.[state?.pending];
+  if (!pending || !Array.isArray(pending.micro)) return [];
+  const derivedWidth = Number(state?.playableBounds?.macroWidth) * Number(state?.playableBounds?.microScale);
+  const width = Number.isSafeInteger(state.microWidth) && state.microWidth > 0
+    ? state.microWidth : Number.isSafeInteger(derivedWidth) && derivedWidth > 0 ? derivedWidth : 48;
+  const owners = new Map();
+  for (const region of Object.values(state.regions || {})) {
+    for (const micro of region?.micro || []) owners.set(micro, region.id);
+  }
+  const contacts = new Set();
+  for (const micro of pending.micro) {
+    const col = micro % width;
+    const neighbors = [micro - width, micro + width];
+    if (col > 0) neighbors.push(micro - 1);
+    if (col < width - 1) neighbors.push(micro + 1);
+    for (const neighbor of neighbors) {
+      const regionId = owners.get(neighbor);
+      const color = regionId && regionId !== pending.id ? state.regions?.[regionId]?.color : null;
+      if (color) contacts.add(color);
+    }
+  }
+  return skillIntents.COLORS.filter((color) => contacts.has(color));
+}
+
+function colorList(colors) {
+  return colors.map((color) => COLOR_JA[color] || color).join("・") || "なし";
+}
+
+function terminalReasonDetail(state, privateState) {
+  const mySeat = roomModel?.view?.seat;
+  const loserSeat = state?.winner === "A" ? "B" : "A";
+  const base = terminalReasonText(state?.terminalReason, state?.winner);
+  if (mySeat !== loserSeat || !["NO_LEGAL_COLOR", "SEALED_OUT"].includes(state?.terminalReason)) return base;
+  const choices = skillIntents.availableColorChoices(privateState);
+  const sealed = choices.filter((color) => isColorSealed(state, mySeat, color));
+  if (state.terminalReason === "SEALED_OUT") {
+    if (!choices.length || sealed.length !== choices.length) return base;
+    return `${base}\n敗因の内訳：持ち色 ${colorList(choices)} がすべて封印され、使える色が0色でした。`;
+  }
+  const usable = choices.filter((color) => !isColorSealed(state, mySeat, color));
+  const contacts = pendingContactPalette(state);
+  if (!usable.length || !contacts.length || !usable.every((color) => contacts.includes(color))) return base;
+  const sealedText = sealed.length ? ` 封印中：${colorList(sealed)}。` : "";
+  return `${base}\n敗因の内訳：残っていた色 ${colorList(usable)} は、受け取った灰色エリアの隣接色 ${colorList(contacts)} と重なるため置けませんでした。${sealedText}`.trim();
+}
+
+function renderPersistentTerminalResult(state, privateState) {
+  const finished = state?.status === "FINISHED" && ["A", "B"].includes(state.winner);
+  show("terminalSummary", finished);
+  if (!finished) return;
+  const won = state.winner === roomModel?.view?.seat;
+  $("terminalSummary").classList.toggle("is-defeat", !won);
+  const title = won ? "勝利：決着理由" : "敗北：敗因";
+  const reason = terminalReasonDetail(state, privateState);
+  if ($("terminalOutcomeTitle").textContent !== title) $("terminalOutcomeTitle").textContent = title;
+  if ($("terminalOutcomeReason").textContent !== reason) $("terminalOutcomeReason").textContent = reason;
+}
+
 function clearContactReveal() {
   contactPresentationGeneration += 1;
   clearTimeout(contactRevealTimer);
@@ -480,7 +539,7 @@ function renderTerminalResult(state) {
   $("terminalEyebrow").textContent = state.terminalReason === "SURRENDER" && won ? "相手が投了しました" : "対戦結果";
   $("terminalTitle").textContent = won ? "勝利！" : "敗北";
   $("terminalMessage").textContent = won ? `${playerName(mySeat)} の勝利です！` : `${playerName(state.winner)} の勝利です`;
-  $("terminalReasonText").textContent = terminalReasonText(state.terminalReason, state.winner);
+  $("terminalReasonText").textContent = terminalReasonDetail(state, roomModel?.view?.private_state || {});
   const opponentKind = roomModel?.room?.opponent_kind;
   const stats = opponentKind === "cpu" ? profile()?.cpuStats : profile()?.stats;
   const resultCount = Number(stats?.[won ? "wins" : "losses"]);
@@ -1838,9 +1897,12 @@ function render() {
     return node;
   }));
   const setupReady = client.snapshot().setupRevision > 0;
-  $("waitingMessage").textContent = setupReady ? "あなたは準備完了です。相手の準備を待っています。" : "対戦で使う6枚を決めて、準備完了にしてください。";
+  const roomFinished = roomModel?.room?.status === "finished";
+  $("waitingMessage").textContent = roomFinished
+    ? "対戦は終了しました。下の勝敗理由と再戦メニューを確認してください。"
+    : setupReady ? "あなたは準備完了です。相手の準備を待っています。" : "対戦で使う6枚を決めて、準備完了にしてください。";
   const currentSetupFailure = setupFailureMessage();
-  operationFeedback("setupStatus", currentSetupFailure || (setupReady
+  operationFeedback("setupStatus", roomFinished ? "" : currentSetupFailure || (setupReady
     ? "準備完了。相手を待っています。開始前なら6枚を変更できます。"
     : "選択済みの6枚でよければ、準備完了にしてください。"), currentSetupFailure ? "error" : "");
   $("submitSetup").textContent = setupReady ? "変更した6枚で準備し直す" : "この6枚で準備完了";
@@ -1860,8 +1922,10 @@ function render() {
     renderBoard(publicState);
     renderBasicActions(publicState, privateState);
     renderSkills(publicState, privateState);
+    renderPersistentTerminalResult(publicState, privateState);
     renderTerminalResult(publicState);
   } else {
+    show("terminalSummary", false);
     renderTerminalResult(null);
   }
 }
@@ -2084,6 +2148,13 @@ function renderBasicActions(state, privateState) {
     }
   }
   $("surrender").disabled = actionBusy || !myTurn;
+  if (state.status === "FINISHED") {
+    stopCpuTurnWatch();
+    pendingAction = null;
+    targetDraft = null;
+    selectedMacros.clear();
+    operationFeedback("actionStatus", "");
+  }
   if (pendingAction && (pendingAction.roomId !== roomModel?.room?.id || pendingAction.matchId !== state.matchId)) pendingAction = null;
   show("retryAction", Boolean(pendingAction) && !actionBusy);
 }

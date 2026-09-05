@@ -45,9 +45,9 @@ test("withPage emits deterministic stages and bounds every setup and test-body a
 
 test("timeout hierarchy preserves Playwright diagnostics and teardown room", () => {
   assert.match(withPage, /\{ bodyTimeout = 35_000, viewport = \{ width: 900, height: 800 \} \}/);
-  assert.equal((source.match(/\{ timeout: 130000 \}/g) || []).length, 24);
+  assert.equal((source.match(/\{ timeout: 130000 \}/g) || []).length, 30);
   assert.match(source, /cpu action then returns control[\s\S]+?\{ timeout: 150000 \}/i);
-  assert.match(source, /const RESTORED_ROOM_MODES = new Set\(\["finished", "playing", "handoffGuide", "cpuTurn", "finishedCpu", "cpuWin", "setupTransition", "setupTransitionCpuFirst", "actionRuleError", "setupDebugError"\]\);/);
+  assert.match(source, /const RESTORED_ROOM_MODES = new Set\(\["finished", "playing", "handoffGuide", "cpuTurn", "cpuTurnNoColor", "finishedCpu", "cpuWin", "setupTransition", "setupTransitionCpuFirst", "actionRuleError", "setupDebugError", "handoffReload"\]\);/);
 });
 
 test("withPage releases partial startup resources and every HTTP connection", () => {

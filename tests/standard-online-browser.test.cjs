@@ -23,7 +23,7 @@ const saveKey = "fourColorMapGame.standard.v5.save";
 const remoteProfileKey = "fourColorMapGame.standard.online.v5.remote-profile";
 const roomId = "11111111-1111-4111-8111-111111111111";
 const pendingRematchId = "22222222-2222-4222-8222-222222222222";
-const RESTORED_ROOM_MODES = new Set(["finished", "playing", "handoffGuide", "cpuTurn", "finishedCpu", "cpuWin", "setupTransition", "setupTransitionCpuFirst", "actionRuleError", "setupDebugError", "handoffReload"]);
+const RESTORED_ROOM_MODES = new Set(["finished", "playing", "handoffGuide", "cpuTurn", "cpuTurnNoColor", "finishedCpu", "cpuWin", "setupTransition", "setupTransitionCpuFirst", "actionRuleError", "setupDebugError", "handoffReload"]);
 
 function browserStage(stage) {
   console.error(`BROWSER_STAGE ${stage}`);
@@ -69,6 +69,9 @@ function startServer() {
 }
 
 async function installMock(context, mode) {
+  let lifetimeCpuActionCalls = 0;
+  await context.exposeFunction("__standardOnlineCountCpuAction", () => { lifetimeCpuActionCalls += 1; });
+  await context.exposeFunction("__standardOnlineCpuActionCount", () => lifetimeCpuActionCalls);
   await context.route("https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm", (route) => route.fulfill({
     status: 200,
     contentType: "text/javascript; charset=utf-8",
@@ -82,8 +85,10 @@ async function installMock(context, mode) {
     let restoredCpuRewardResult = null;
     try { restoredCpuRewardResult = JSON.parse(sessionStorage.getItem("fourColorMapGame.standard.online.v5.cpu-reward-gacha-result") || "null"); } catch { restoredCpuRewardResult = null; }
     const restoreCpuRewardResult = initialMode === "cpuWin" && restoredCpuRewardResult?.continuation?.roomId === id;
+    const restoreNoColorResult = initialMode === "cpuTurnNoColor" && sessionStorage.getItem("fourColorMapGame.standard.online.v5.mock-no-color-finished") === id;
     const restoredCpuRewardVersion = restoreCpuRewardResult ? Number(restoredCpuRewardResult.continuation.roomVersion) : 9;
-    const cpuRoomMode = ["cpuTurn", "finishedCpu", "cpuWin", "setupTransition", "setupTransitionCpuFirst", "quizReloadCpu"].includes(initialMode);
+    const restoredRoomVersion = restoreNoColorResult ? 10 : restoredCpuRewardVersion;
+    const cpuRoomMode = ["cpuTurn", "cpuTurnNoColor", "finishedCpu", "cpuWin", "setupTransition", "setupTransitionCpuFirst", "quizReloadCpu"].includes(initialMode);
     localStorage.setItem("fourColorMapGame.standard.online.v5.active-tab", initialTab);
     const inventory = Object.fromEntries([
       "colorRandomBorrow", "colorChoiceBorrow", "colorPrism", "colorRegionSplit", "colorPaletteChange",
@@ -150,16 +155,27 @@ async function installMock(context, mode) {
     if (initialMode === "finished") {
       profileState.matchHistory.unshift({ matchId: `${id}:9`, result: "WIN", terminalReason: "SURRENDER", endedAt: "2026-09-05T00:00:00.000Z", fullPaint: false, skillsUsed: 0, onlineOpponentKind: "human" });
     }
-    if (initialMode === "cpuTurn") active.active = "B";
+    if (["cpuTurn", "cpuTurnNoColor"].includes(initialMode)) active.active = "B";
+    if (initialMode === "cpuTurnNoColor") {
+      active.regions = { R1: { id: "R1", micro: [0], sourceMacros: [0], controllers: ["B"], color: "blue", isPending: false } };
+    }
     if (initialMode === "actionRuleError") {
       active.phase = "COLOR";
       active.pending = "R1";
       active.regions = { R1: { id: "R1", micro: [0], sourceMacros: [0], controllers: ["B"], color: null, isPending: true } };
     }
+    const noColorFinished = {
+      ...active, status: "FINISHED", phase: "GAME_OVER", version: 10, winner: "B", terminalReason: "NO_LEGAL_COLOR", pending: "R2",
+      publicEffects: { A: { seals: { yellow: 1, green: 1 } }, B: { seals: {} } },
+      regions: {
+        R1: { id: "R1", micro: [0], sourceMacros: [0], controllers: ["B"], color: "blue", isPending: false },
+        R2: { id: "R2", micro: [1], sourceMacros: [1], controllers: ["B"], color: null, isPending: true },
+      },
+    };
     const runtime = {
       waitStartedAt: initialMode === "cpuWait" ? new Date(Date.now() - 91000).toISOString() : new Date().toISOString(),
-      room: { id, status: ["finished", "finishedCpu", "quizReloadPublicFinished"].includes(initialMode) || restoreCpuRewardResult ? "finished" : ["publicFind", "handoffActivity", "handoffStart", "handoffReload"].includes(initialMode) || setupPending ? "ready" : "playing", version: restoredCpuRewardVersion, game_mode: "standard_v5", access_mode: cpuRoomMode ? "cpu" : ["publicFind", "handoffActivity", "handoffStart", "handoffReload", "quizReloadPublicFinished"].includes(initialMode) ? "public_queue" : "private_code", opponent_kind: cpuRoomMode ? "cpu" : "human", cpu_character_id: cpuRoomMode ? "yuzu" : null, public_state: ["finished", "finishedCpu", "quizReloadPublicFinished"].includes(initialMode) || restoreCpuRewardResult ? { ...finished, version: restoredCpuRewardVersion } : ["publicFind", "handoffActivity", "handoffStart", "handoffReload"].includes(initialMode) || setupPending ? null : active },
-      view: ["publicFind", "handoffActivity", "handoffStart", "handoffReload"].includes(initialMode) || setupPending ? null : { seat: "A", version: 9, private_state: { hand: { areaDiePlus: 1, areaResize: 1 }, basicPalette: ["red", "blue"], bonusColor: "yellow", bonusUsesRemaining: 2, privateEffects: {} } },
+      room: { id, status: ["finished", "finishedCpu", "quizReloadPublicFinished"].includes(initialMode) || restoreCpuRewardResult || restoreNoColorResult ? "finished" : ["publicFind", "handoffActivity", "handoffStart", "handoffReload"].includes(initialMode) || setupPending ? "ready" : "playing", version: restoredRoomVersion, game_mode: "standard_v5", access_mode: cpuRoomMode ? "cpu" : ["publicFind", "handoffActivity", "handoffStart", "handoffReload", "quizReloadPublicFinished"].includes(initialMode) ? "public_queue" : "private_code", opponent_kind: cpuRoomMode ? "cpu" : "human", cpu_character_id: cpuRoomMode ? "yuzu" : null, public_state: restoreNoColorResult ? noColorFinished : ["finished", "finishedCpu", "quizReloadPublicFinished"].includes(initialMode) || restoreCpuRewardResult ? { ...finished, version: restoredRoomVersion } : ["publicFind", "handoffActivity", "handoffStart", "handoffReload"].includes(initialMode) || setupPending ? null : active },
+      view: ["publicFind", "handoffActivity", "handoffStart", "handoffReload"].includes(initialMode) || setupPending ? null : { seat: "A", version: restoredRoomVersion, private_state: { hand: { areaDiePlus: 1, areaResize: 1 }, basicPalette: initialMode === "cpuTurnNoColor" ? ["yellow", "green"] : ["red", "blue"], bonusColor: initialMode === "cpuTurnNoColor" ? "blue" : "yellow", bonusUsesRemaining: initialMode === "cpuTurnNoColor" ? 3 : 2, privateEffects: {} } },
       profile: initialMode === "empty" ? null : { revision: 1, display_name: "A", profile_state: profileState },
       gachaReceipts: {},
       cardSaleReceipts: {},
@@ -349,7 +365,28 @@ async function installMock(context, mode) {
           return { data: { matchmakingStatus: "matched", roomId: id, seat: "A", characterId: request.body.characterId, duplicate: false } };
         }
         if (request.body.operation === "cpu-action") {
+          await globalThis.__standardOnlineCountCpuAction();
           if (initialMode === "setupTransitionCpuFirst") return { error: new Error("CPU_NOT_ACTIVE") };
+          if (initialMode === "cpuTurnNoColor") {
+            sessionStorage.setItem("fourColorMapGame.standard.online.v5.mock-no-color-finished", id);
+            const next = JSON.parse(JSON.stringify(runtime.profile.profile_state));
+            next.cpuStats.losses += 1;
+            next.cpuStats.currentWinStreak = 0;
+            next.cpuCharacterStats.yuzu = { matches: 1, wins: 0, losses: 1, firstWinAt: null };
+            next.matchHistory.unshift({ matchId: `${id}:9`, result: "LOSS", terminalReason: "NO_LEGAL_COLOR", endedAt: "2026-09-05T01:00:00.000Z", fullPaint: false, skillsUsed: 0, onlineOpponentKind: "cpu", cpuCharacterId: "yuzu" });
+            runtime.profile = { ...runtime.profile, revision: runtime.profile.revision + 1, profile_state: next };
+            const nextVersion = runtime.room.version + 1;
+            runtime.room = { ...runtime.room, status: "finished", version: nextVersion, winner_seat: "B", public_state: {
+              ...runtime.room.public_state, status: "FINISHED", phase: "GAME_OVER", version: nextVersion, winner: "B", terminalReason: "NO_LEGAL_COLOR", pending: "R2",
+              publicEffects: { A: { seals: { yellow: 1, green: 1 } }, B: { seals: {} } },
+              regions: {
+                R1: { id: "R1", micro: [0], sourceMacros: [0], controllers: ["B"], color: "blue", isPending: false },
+                R2: { id: "R2", micro: [1], sourceMacros: [1], controllers: ["B"], color: null, isPending: true },
+              },
+            } };
+            runtime.view = { ...runtime.view, version: nextVersion };
+            return { data: { duplicate: false, room: runtime.room } };
+          }
           runtime.room = { ...runtime.room, version: runtime.room.version + 1, public_state: { ...runtime.room.public_state, version: runtime.room.version + 1, active: "A" } };
           runtime.view = { ...runtime.view, version: runtime.room.version };
           return { data: { duplicate: false, room: runtime.room } };
@@ -673,6 +710,59 @@ test("actual Edge celebrates an opponent surrender and presents defeat from the 
     assert.equal(await page.locator("#terminalMessage").textContent(), "B の勝利です");
     assert.equal(await page.locator("#terminalReasonText").textContent(), "A が投了しました。");
     assert.equal(await overlay.evaluate((node) => node.classList.contains("is-defeat")), true);
+  });
+});
+
+test("actual browser clears stale CPU/setup status and keeps the exact no-color defeat reason after dismissal and reload", { timeout: 130000 }, async () => {
+  await withPage("cpuTurnNoColor", async (page) => {
+    await page.locator("#terminalOverlay:not(.hidden)").waitFor();
+    const expectedDetail = "A は塗れる色がなくなりました。\n敗因の内訳：残っていた色 青 は、受け取った灰色エリアの隣接色 青 と重なるため置けませんでした。 封印中：黄・緑。";
+    assert.equal(await page.locator("#waitingMessage").textContent(), "対戦は終了しました。下の勝敗理由と再戦メニューを確認してください。");
+    assert.equal(await page.locator("#actionStatus").textContent(), "");
+    assert.equal(await page.locator("#retryAction").isVisible(), false);
+    assert.equal(await page.locator("#terminalOutcomeTitle").textContent(), "敗北：敗因");
+    assert.equal(await page.locator("#terminalOutcomeReason").textContent(), expectedDetail);
+    assert.equal(await page.locator("#terminalReasonText").textContent(), expectedDetail);
+    assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "cpu-action").length), 1);
+
+    await page.getByRole("button", { name: "再戦・対戦結果へ戻る" }).click();
+    assert.equal(await page.locator("#terminalOverlay").isVisible(), false);
+    assert.equal(await page.locator("#terminalSummary").isVisible(), true);
+    assert.equal(await page.locator("#terminalOutcomeReason").textContent(), expectedDetail);
+    await page.waitForTimeout(900);
+    assert.equal(await page.evaluate(() => globalThis.__standardOnlineCpuActionCount()), 1);
+
+    await page.reload();
+    await page.locator("#connectionBadge.good").waitFor({ state: "visible" });
+    await page.locator("#terminalSummary:not(.hidden)").waitFor();
+    await page.waitForTimeout(900);
+    assert.equal(await page.locator("#terminalOverlay").isVisible(), false);
+    assert.equal(await page.locator("#terminalOutcomeReason").textContent(), expectedDetail);
+    assert.equal(await page.locator("#waitingMessage").textContent(), "対戦は終了しました。下の勝敗理由と再戦メニューを確認してください。");
+    assert.equal(await page.locator("#actionStatus").textContent(), "");
+    assert.equal(await page.evaluate(() => globalThis.__standardOnlineCpuActionCount()), 1);
+  });
+
+  await withPage("playing", async (page) => {
+    assert.equal(await page.locator("#terminalSummary").isVisible(), false);
+    assert.equal(await page.locator("#terminalOutcomeReason").textContent(), "");
+    await page.evaluate(() => {
+      const runtime = globalThis.__standardOnlineRuntime;
+      runtime.room = { ...runtime.room, status: "finished", version: 10, winner_seat: "A", public_state: {
+        ...runtime.room.public_state, status: "FINISHED", phase: "GAME_OVER", version: 10, winner: "A", terminalReason: "NO_LEGAL_COLOR", pending: "R2",
+        publicEffects: { A: { seals: {} }, B: { seals: { blue: 1, yellow: 1 } } },
+        regions: {
+          R1: { id: "R1", micro: [0], sourceMacros: [0], controllers: ["A"], color: "green", isPending: false },
+          R2: { id: "R2", micro: [1], sourceMacros: [1], controllers: ["A"], color: null, isPending: true },
+        },
+      } };
+      runtime.view = { ...runtime.view, version: 10, private_state: { ...runtime.view.private_state, privateEffects: { secretSentinel: "OPPONENT-PRIVATE-SENTINEL" } } };
+      runtime.onInvalidate();
+    });
+    await page.locator("#terminalOverlay:not(.hidden)").waitFor();
+    assert.equal(await page.locator("#terminalOutcomeTitle").textContent(), "勝利：決着理由");
+    assert.equal(await page.locator("#terminalOutcomeReason").textContent(), "B は塗れる色がなくなりました。");
+    assert.equal((await page.locator("#terminalSummary").textContent()).includes("OPPONENT-PRIVATE-SENTINEL"), false);
   });
 });
 

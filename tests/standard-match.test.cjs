@@ -239,6 +239,45 @@ test("entering COLOR automatically resolves SEALED_OUT when no color is usable",
   assert.equal(result.state.pending, "R2");
 });
 
+test("turn-3 blue contact only defeats a yellow-green player when both alternatives are sealed", () => {
+  const microFor = (macro) => {
+    const col = macro % 12;
+    const row = Math.floor(macro / 12);
+    return Array.from({ length: 16 }, (_, index) => (row * 4 + Math.floor(index / 4)) * 48 + col * 4 + (index % 4));
+  };
+  const fixture = () => {
+    const state = create(4524);
+    state.active = "B";
+    state.turn = 3;
+    state.phase = "WORK";
+    state.requiredSize = 1;
+    state.rolledSize = 1;
+    state.baseRequiredSize = 1;
+    state.basicPalettes.A = ["yellow", "green"];
+    state.bonusColors.A = "blue";
+    state.bonusUsesRemaining.A = 3;
+    state.regions = {
+      R1: { id: "R1", micro: microFor(13), sourceMacros: [13], controllers: ["B"], color: "blue", isPending: false },
+    };
+    return state;
+  };
+  const legal = fixture();
+  const legalResult = match.applyStandardAction({ state: legal, actor: "B", action: { type: "CREATE_REGION", payload: { sourceMacros: [14] } }, expectedVersion: 0 });
+  assert.deepEqual([legalResult.state.status, legalResult.state.active, legalResult.state.phase], ["ACTIVE", "A", "COLOR"]);
+
+  const trapped = fixture();
+  trapped.publicEffects.A.seals = { yellow: 1, green: 1 };
+  const before = JSON.stringify(trapped);
+  const trappedResult = match.applyStandardAction({ state: trapped, actor: "B", action: { type: "CREATE_REGION", payload: { sourceMacros: [14] } }, expectedVersion: 0 });
+  assert.equal(JSON.stringify(trapped), before);
+  assert.deepEqual([trappedResult.state.status, trappedResult.state.winner, trappedResult.state.terminalReason], ["FINISHED", "B", "NO_LEGAL_COLOR"]);
+
+  const fullySealed = fixture();
+  fullySealed.publicEffects.A.seals = { yellow: 1, green: 1, blue: 1 };
+  const sealedResult = match.applyStandardAction({ state: fullySealed, actor: "B", action: { type: "CREATE_REGION", payload: { sourceMacros: [14] } }, expectedVersion: 0 });
+  assert.deepEqual([sealedResult.state.status, sealedResult.state.winner, sealedResult.state.terminalReason], ["FINISHED", "B", "SEALED_OUT"]);
+});
+
 test("no-color declaration is accepted only when every usable color is blocked", () => {
   const state = create(452);
   const usable = [...state.basicPalettes.A, state.bonusColors.A];
