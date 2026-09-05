@@ -1971,7 +1971,8 @@ test("actual Edge confirms, persists, restores, and safely cancels online appear
     await page.getByRole("button", { name: "この内容で保存" }).click();
     await page.getByText(/オーロラ盤面を一度だけ保存/).waitFor();
     assert.equal(await page.locator("body").evaluate((node) => node.classList.contains("skin-board-aurora")), true);
-    assert.match(await page.locator("#board").evaluate((node) => getComputedStyle(node).outlineColor), /rgb\(34, 211, 238\)/);
+    assert.match(await page.locator("#boardViewport").evaluate((node) => getComputedStyle(node).outlineColor), /rgb\(34, 211, 238\)/);
+    assert.equal(await page.locator("#board").evaluate((node) => getComputedStyle(node).outlineStyle), "none");
     const saved = await page.evaluate(({ key }) => JSON.parse(localStorage.getItem(key)), { key: remoteProfileKey });
     assert.equal(saved.coins, 400);
     assert.equal(saved.equipped.board, "boardAurora");
@@ -2629,6 +2630,164 @@ test("actual Edge guides a player from board selection through one CREATE_REGION
     assert.equal(calls[0].action.type, "CREATE_REGION");
     assert.equal(calls[0].action.payload.sourceMacros.length, 1);
   });
+});
+
+test("actual browser enlarges a 12-column board and completes connected selection by keyboard without pan misfires", { timeout: 130000 }, async () => {
+  await withPage("playing", async (page) => {
+    await page.evaluate(() => {
+      const runtime = globalThis.__standardOnlineRuntime;
+      runtime.room.public_state = {
+        ...runtime.room.public_state,
+        requiredSize: 2,
+        rolledSize: 2,
+        baseRequiredSize: 2,
+        active: "A",
+        phase: "CREATE_FIRST",
+        playableBounds: { macroWidth: 12, microScale: 1, minCol: 1, minRow: 1, maxCol: 10, maxRow: 10 },
+        regions: {},
+      };
+      runtime.onInvalidate?.({});
+    });
+    await page.waitForFunction(() => document.querySelector("#selectionCount")?.textContent === "0 / 2マス");
+    const before = await page.evaluate(() => ({
+      viewport: document.querySelector("#boardViewport").getBoundingClientRect().width,
+      board: document.querySelector("#board").getBoundingClientRect().width,
+      tabIndex: document.querySelector("#board").tabIndex,
+    }));
+    assert.equal(before.tabIndex, 0);
+    assert.ok(before.board / 12 < 44, JSON.stringify(before));
+
+    await page.getByRole("button", { name: "盤面を拡大" }).click();
+    await page.waitForFunction(() => document.querySelector("#boardViewport").classList.contains("is-zoomed"));
+    const zoomed = await page.evaluate(() => ({
+      viewport: document.querySelector("#boardViewport").getBoundingClientRect().width,
+      board: document.querySelector("#board").getBoundingClientRect().width,
+      clientWidth: document.querySelector("#boardViewport").clientWidth,
+      scrollWidth: document.querySelector("#boardViewport").scrollWidth,
+      pressed: document.querySelector("#toggleBoardZoom").getAttribute("aria-pressed"),
+      overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+    }));
+    assert.ok(Math.abs(zoomed.viewport - before.viewport) < 2, JSON.stringify({ before, zoomed }));
+    assert.ok(zoomed.board / 12 >= 44, JSON.stringify(zoomed));
+    assert.ok(zoomed.scrollWidth > zoomed.clientWidth * 1.8, JSON.stringify(zoomed));
+    assert.equal(zoomed.pressed, "true");
+    assert.equal(zoomed.overflow, false);
+
+    const board = page.locator("#board");
+    await board.focus();
+    assert.match(await board.getAttribute("aria-label"), /矢印キー.*Space.*Escape/);
+    await page.keyboard.press("Space");
+    assert.match(await page.locator("#turnGuideDetail").textContent(), /緑の破線.*サーバーが判定/);
+    const canvasBox = await board.boundingBox();
+    await page.mouse.move(canvasBox.x + 80, canvasBox.y + 80);
+    await page.mouse.down();
+    await page.mouse.move(canvasBox.x + 130, canvasBox.y + 130, { steps: 4 });
+    await page.mouse.up();
+    assert.equal(await page.locator("#selectionCount").textContent(), "1 / 2マス");
+    await page.keyboard.press("ArrowRight");
+    await page.keyboard.press("Space");
+    assert.equal(await page.locator("#selectionCount").textContent(), "2 / 2マス");
+    assert.equal(await page.getByRole("button", { name: "このエリアを渡す" }).isEnabled(), true);
+
+    await page.keyboard.press("Escape");
+    await page.keyboard.press("Space");
+    await page.keyboard.press("ArrowDown");
+    await page.keyboard.press("ArrowDown");
+    await page.keyboard.press("Space");
+    assert.equal(await page.locator("#selectionCount").textContent(), "1 / 2マス");
+    assert.match(await page.locator("#boardKeyboardStatus").textContent(), /辺でつながる隣のマス/);
+    await page.keyboard.press("ArrowUp");
+    await page.keyboard.press("Space");
+    assert.equal(await page.locator("#selectionCount").textContent(), "2 / 2マス");
+
+    await page.locator('[data-app-tab="quiz"]').click();
+    await page.locator('[data-app-tab="battle"]').click();
+    assert.equal(await page.locator("#boardViewport").evaluate((node) => node.classList.contains("is-zoomed")), false);
+    assert.equal(await page.locator("#toggleBoardZoom").getAttribute("aria-pressed"), "false");
+    assert.deepEqual(await page.locator("#boardViewport").evaluate((node) => ({ left: node.scrollLeft, top: node.scrollTop })), { left: 0, top: 0 });
+    await board.focus();
+    await page.keyboard.press("ArrowRight");
+    assert.match(await page.locator("#boardKeyboardStatus").textContent(), /上から1行目、左から3列目、空きあり、必要数は選択済み/);
+
+    await page.evaluate(() => document.body.classList.add("skin-board-aurora"));
+    const skin = await page.evaluate(() => ({
+      viewportOutline: getComputedStyle(document.querySelector("#boardViewport")).outlineStyle,
+      viewportShadow: getComputedStyle(document.querySelector("#boardViewport")).boxShadow,
+      boardOutline: getComputedStyle(document.querySelector("#board")).outlineStyle,
+    }));
+    assert.equal(skin.viewportOutline, "solid");
+    assert.notEqual(skin.viewportShadow, "none");
+    assert.equal(skin.boardOutline, "none");
+
+    await page.getByRole("button", { name: "このエリアを渡す" }).click();
+    await page.getByText("操作を保存しました。").waitFor();
+    const calls = await page.evaluate(() => globalThis.__standardOnlineRuntime.calls
+      .filter((entry) => entry.body?.operation === "action")
+      .map((entry) => entry.body.action));
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0].type, "CREATE_REGION");
+    assert.deepEqual(calls[0].payload.sourceMacros, [14, 26]);
+
+    const layout = await page.evaluate(() => ({
+      overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+      actionBottom: document.querySelector("#regionControls").getBoundingClientRect().bottom,
+      connectionTop: document.querySelector(".connection-card").getBoundingClientRect().top,
+    }));
+    assert.equal(layout.overflow, false);
+    assert.ok(layout.actionBottom <= layout.connectionTop, JSON.stringify(layout));
+  }, { viewport: { width: 390, height: 844 } });
+});
+
+test("actual browser clears transient board selection when the authoritative turn scope advances", { timeout: 130000 }, async () => {
+  await withPage("playing", async (page) => {
+    await page.evaluate(() => {
+      const runtime = globalThis.__standardOnlineRuntime;
+      runtime.room.public_state = {
+        ...runtime.room.public_state,
+        requiredSize: 2,
+        rolledSize: 2,
+        baseRequiredSize: 2,
+        playableBounds: { macroWidth: 12, microScale: 1, minCol: 1, minRow: 1, maxCol: 10, maxRow: 10 },
+        regions: {},
+      };
+      runtime.onInvalidate?.({});
+    });
+    await page.waitForFunction(() => document.querySelector("#selectionCount")?.textContent === "0 / 2マス");
+    const board = page.locator("#board");
+    await page.getByRole("button", { name: "盤面を拡大" }).click();
+    await board.focus();
+    await page.keyboard.press("Space");
+    assert.equal(await page.locator("#selectionCount").textContent(), "1 / 2マス");
+    assert.match(await page.locator("#turnGuideDetail").textContent(), /緑の破線.*サーバーが判定/);
+
+    await page.evaluate(() => {
+      const runtime = globalThis.__standardOnlineRuntime;
+      const version = runtime.room.public_state.version + 1;
+      runtime.room = { ...runtime.room, version, public_state: {
+        ...runtime.room.public_state, version, active: "B", phase: "COLOR",
+      } };
+      runtime.view = { ...runtime.view, version };
+      runtime.onInvalidate?.({});
+    });
+    await page.waitForFunction(() => document.querySelector("#board").tabIndex === -1);
+    assert.equal(await page.locator("#boardViewport").evaluate((node) => node.classList.contains("is-zoomed")), false);
+    assert.equal(await page.locator("#regionControls").isHidden(), true);
+
+    await page.evaluate(() => {
+      const runtime = globalThis.__standardOnlineRuntime;
+      const version = runtime.room.public_state.version + 1;
+      runtime.room = { ...runtime.room, version, public_state: {
+        ...runtime.room.public_state, version, active: "A", phase: "WORK", pending: null,
+      } };
+      runtime.view = { ...runtime.view, version };
+      runtime.onInvalidate?.({});
+    });
+    await page.waitForFunction(() => document.querySelector("#selectionCount")?.textContent === "0 / 2マス");
+    assert.equal(await page.getByRole("button", { name: "このエリアを渡す" }).isDisabled(), true);
+    assert.equal(await page.locator("#boardKeyboardStatus").textContent(), "");
+    assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls
+      .filter((entry) => entry.body?.operation === "action").length), 0);
+  }, { viewport: { width: 390, height: 844 } });
 });
 
 test("actual Edge keeps safe deterministic action and debug setup errors beside their controls at 390px", { timeout: 180000 }, async () => {

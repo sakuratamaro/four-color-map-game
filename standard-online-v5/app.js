@@ -262,6 +262,10 @@ let shownTerminalEventKey = null;
 let dismissedTerminalEventKey = null;
 let userInteractionRevision = 0;
 const selectedMacros = new Set();
+let boardZoomed = false;
+let boardKeyboardMacro = null;
+let boardInteractionScope = null;
+let boardPointerGesture = null;
 const COLOR_HEX = { red: "#ef4444", blue: "#3b82f6", yellow: "#eab308", green: "#22c55e" };
 const COLOR_JA = { red: "赤", blue: "青", yellow: "黄", green: "緑" };
 const APP_TABS = new Set(["home", "battle", "quiz", "cards", "profile"]);
@@ -427,6 +431,7 @@ function activateAppTab(requestedTab, { updateHash = true, scrollTop = true } = 
     && (!client.snapshot().roomId || roomModel);
   if (resumePausedQuiz) resumeQuizClockOnQuizTab();
   activeAppTab = tab;
+  if (tab !== "battle") resetBoardSelectionAssist();
   localStorage.setItem(APP_TAB_KEY, tab);
   if (updateHash && location.hash !== `#${tab}`) history.replaceState(null, "", `#${tab}`);
   for (const button of document.querySelectorAll("[data-app-tab]")) {
@@ -2633,6 +2638,241 @@ function submitSkillTarget() {
   } catch { toast("対象の指定が不足しています。"); }
 }
 
+function boardSelectionAvailable(state = roomModel?.room?.public_state) {
+  return Boolean(state && roomModel?.room?.status === "playing" && state.status === "ACTIVE" && !actionBusy && !targetDraft
+    && state.active === roomModel?.view?.seat && ["CREATE_FIRST", "WORK"].includes(state.phase));
+}
+
+function resetBoardSelectionAssist({ clearSelection = false } = {}) {
+  if (clearSelection) {
+    selectedMacros.clear();
+    announceBoardSelection("");
+  }
+  boardZoomed = false;
+  boardKeyboardMacro = null;
+  boardPointerGesture = null;
+  $("boardViewport")?.classList.remove("is-zoomed");
+  const toggle = $("toggleBoardZoom");
+  if (toggle) {
+    toggle.setAttribute("aria-pressed", "false");
+    toggle.textContent = "盤面を拡大";
+  }
+  const viewport = $("boardViewport");
+  if (viewport) { viewport.scrollLeft = 0; viewport.scrollTop = 0; }
+}
+
+function boardInteractionKey(state) {
+  return `${roomModel?.room?.id || ""}:${state?.matchId || ""}:${Number(state?.version)}:${state?.active || ""}:${state?.phase || ""}`;
+}
+
+function syncBoardSelectionAssist(state) {
+  const scope = boardInteractionKey(state);
+  if (scope !== boardInteractionScope) {
+    boardInteractionScope = scope;
+    resetBoardSelectionAssist({ clearSelection: true });
+  }
+  const interactive = boardSelectionAvailable(state);
+  if (!interactive && (boardZoomed || boardKeyboardMacro !== null)) resetBoardSelectionAssist();
+  const viewport = $("boardViewport");
+  const canvas = $("board");
+  const toggle = $("toggleBoardZoom");
+  viewport.classList.toggle("is-zoomed", interactive && boardZoomed);
+  canvas.tabIndex = interactive ? 0 : -1;
+  toggle.disabled = !interactive;
+  toggle.setAttribute("aria-pressed", String(interactive && boardZoomed));
+  toggle.textContent = interactive && boardZoomed ? "全体表示" : "盤面を拡大";
+  return interactive;
+}
+
+function playableMacro(state, macro) {
+  if (!Number.isSafeInteger(macro)) return false;
+  const bounds = state.playableBounds;
+  const col = macro % bounds.macroWidth;
+  const row = Math.floor(macro / bounds.macroWidth);
+  return col >= bounds.minCol && col <= bounds.maxCol && row >= bounds.minRow && row <= bounds.maxRow;
+}
+
+function adjacentMacros(macro, width) {
+  const col = macro % width;
+  const neighbors = [macro - width, macro + width];
+  if (col > 0) neighbors.push(macro - 1);
+  if (col < width - 1) neighbors.push(macro + 1);
+  return neighbors;
+}
+
+function connectedMacros(macros, width) {
+  const cells = new Set(macros);
+  if (cells.size < 2) return true;
+  const first = cells.values().next().value;
+  const seen = new Set([first]);
+  const queue = [first];
+  while (queue.length) {
+    for (const neighbor of adjacentMacros(queue.shift(), width)) {
+      if (cells.has(neighbor) && !seen.has(neighbor)) { seen.add(neighbor); queue.push(neighbor); }
+    }
+  }
+  return seen.size === cells.size;
+}
+
+function macroHasFreeMicro(state, macro) {
+  if (!playableMacro(state, macro)) return false;
+  const { macroWidth, microScale } = state.playableBounds;
+  const microWidth = macroWidth * microScale;
+  const macroCol = macro % macroWidth;
+  const macroRow = Math.floor(macro / macroWidth);
+  const occupied = new Set(Object.values(state.regions || {}).flatMap((region) => Array.isArray(region?.micro) ? region.micro : []));
+  for (let row = 0; row < microScale; row += 1) {
+    for (let col = 0; col < microScale; col += 1) {
+      const micro = ((macroRow * microScale) + row) * microWidth + (macroCol * microScale) + col;
+      if (!occupied.has(micro)) return true;
+    }
+  }
+  return false;
+}
+
+function connectedCandidateMacros(state) {
+  const result = new Set();
+  if (!selectedMacros.size || selectedMacros.size >= state.requiredSize) return result;
+  for (const macro of selectedMacros) {
+    for (const neighbor of adjacentMacros(macro, state.playableBounds.macroWidth)) {
+      if (!selectedMacros.has(neighbor) && macroHasFreeMicro(state, neighbor)) result.add(neighbor);
+    }
+  }
+  return result;
+}
+
+function boardMacroDescription(state, macro) {
+  const bounds = state.playableBounds;
+  const col = (macro % bounds.macroWidth) - bounds.minCol + 1;
+  const row = Math.floor(macro / bounds.macroWidth) - bounds.minRow + 1;
+  let availability = "使用済み";
+  if (selectedMacros.has(macro)) availability = "選択済み";
+  else if (macroHasFreeMicro(state, macro)) {
+    if (!selectedMacros.size) availability = "空きあり、選択開始位置";
+    else if (selectedMacros.size >= state.requiredSize) availability = "空きあり、必要数は選択済み";
+    else if (connectedCandidateMacros(state).has(macro)) availability = "次に辺でつなげて選べる候補";
+    else availability = "空きあり、現在の選択とは非接続";
+  }
+  return `上から${row}行目、左から${col}列目、${availability}。${selectedMacros.size}/${state.requiredSize}マス選択中`;
+}
+
+function announceBoardSelection(message) {
+  $("boardKeyboardStatus").textContent = message;
+}
+
+function ensureBoardKeyboardMacro(state) {
+  if (playableMacro(state, boardKeyboardMacro)) return boardKeyboardMacro;
+  const firstSelected = [...selectedMacros].find((macro) => playableMacro(state, macro));
+  const bounds = state.playableBounds;
+  boardKeyboardMacro = firstSelected ?? bounds.minRow * bounds.macroWidth + bounds.minCol;
+  return boardKeyboardMacro;
+}
+
+function scrollBoardMacroIntoView(state, macro) {
+  if (!boardZoomed) return;
+  requestAnimationFrame(() => {
+    const viewport = $("boardViewport");
+    const canvas = $("board");
+    const width = state.playableBounds.macroWidth;
+    const cell = canvas.getBoundingClientRect().width / width;
+    const left = (macro % width) * cell;
+    const top = Math.floor(macro / width) * cell;
+    const margin = Math.min(24, cell / 2);
+    if (left < viewport.scrollLeft + margin) viewport.scrollLeft = Math.max(0, left - margin);
+    else if (left + cell > viewport.scrollLeft + viewport.clientWidth - margin) viewport.scrollLeft = left + cell - viewport.clientWidth + margin;
+    if (top < viewport.scrollTop + margin) viewport.scrollTop = Math.max(0, top - margin);
+    else if (top + cell > viewport.scrollTop + viewport.clientHeight - margin) viewport.scrollTop = top + cell - viewport.clientHeight + margin;
+  });
+}
+
+function setBoardZoom(value) {
+  const state = roomModel?.room?.public_state;
+  if (!boardSelectionAvailable(state)) return;
+  boardZoomed = Boolean(value);
+  const macro = ensureBoardKeyboardMacro(state);
+  syncBoardSelectionAssist(state);
+  requestAnimationFrame(() => {
+    renderBoard(state);
+    if (boardZoomed) scrollBoardMacroIntoView(state, macro);
+    else { $("boardViewport").scrollLeft = 0; $("boardViewport").scrollTop = 0; }
+  });
+}
+
+function rejectBoardSelection(message) {
+  toast(message);
+  announceBoardSelection(message);
+}
+
+function toggleBoardMacro(state, macro) {
+  boardKeyboardMacro = macro;
+  const width = state.playableBounds.macroWidth;
+  if (!macroHasFreeMicro(state, macro) && !selectedMacros.has(macro)) {
+    rejectBoardSelection("空きのある盤面マスを選んでください。");
+    renderBoard(state);
+    return false;
+  }
+  if (selectedMacros.has(macro)) {
+    const next = new Set(selectedMacros); next.delete(macro);
+    if (!connectedMacros(next, width)) {
+      rejectBoardSelection("つながりを保つため、選択範囲の端から解除してください。");
+      renderBoard(state);
+      return false;
+    }
+    selectedMacros.delete(macro);
+    announceBoardSelection(`${boardMacroDescription(state, macro)}。解除しました。`);
+    render();
+    return true;
+  }
+  if (selectedMacros.size >= state.requiredSize) {
+    rejectBoardSelection(`必要な${state.requiredSize}マスは選択済みです。確定するか、選択を解除してください。`);
+    renderBoard(state);
+    return false;
+  }
+  if (selectedMacros.size && !adjacentMacros(macro, width).some((neighbor) => selectedMacros.has(neighbor))) {
+    rejectBoardSelection("白い枠と辺でつながる隣のマスを選んでください。");
+    renderBoard(state);
+    return false;
+  }
+  selectedMacros.add(macro);
+  announceBoardSelection(`${boardMacroDescription(state, macro)}。選択しました。`);
+  render();
+  return true;
+}
+
+function boardKeydown(event) {
+  const state = roomModel?.room?.public_state;
+  if (!boardSelectionAvailable(state)) return;
+  const bounds = state.playableBounds;
+  const width = bounds.macroWidth;
+  let macro = ensureBoardKeyboardMacro(state);
+  let col = macro % width;
+  let row = Math.floor(macro / width);
+  if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(event.key)) {
+    event.preventDefault();
+    if (event.key === "ArrowUp") row = Math.max(bounds.minRow, row - 1);
+    if (event.key === "ArrowDown") row = Math.min(bounds.maxRow, row + 1);
+    if (event.key === "ArrowLeft") col = Math.max(bounds.minCol, col - 1);
+    if (event.key === "ArrowRight") col = Math.min(bounds.maxCol, col + 1);
+    boardKeyboardMacro = row * width + col;
+    announceBoardSelection(boardMacroDescription(state, boardKeyboardMacro));
+    renderBoard(state);
+    scrollBoardMacroIntoView(state, boardKeyboardMacro);
+    return;
+  }
+  if ([" ", "Enter"].includes(event.key)) {
+    event.preventDefault();
+    toggleBoardMacro(state, macro);
+    scrollBoardMacroIntoView(state, macro);
+    return;
+  }
+  if (event.key === "Escape") {
+    event.preventDefault();
+    selectedMacros.clear();
+    announceBoardSelection("盤面の選択をすべて解除しました。");
+    render();
+  }
+}
+
 function strokeRegionBoundary(ctx, region, microWidth, cell, { color, cssWidth, cssDash }) {
   const cells = new Set((region?.micro || []).filter((micro) => Number.isSafeInteger(micro) && micro >= 0));
   if (!cells.size) return;
@@ -2666,10 +2906,34 @@ function strokeRegionBoundary(ctx, region, microWidth, cell, { color, cssWidth, 
   ctx.restore();
 }
 
+function strokeMacroFrame(ctx, macro, macroWidth, microScale, cell, { color, cssWidth, cssDash, cssInset = 3 }) {
+  const displayedWidth = ctx.canvas.getBoundingClientRect().width;
+  const cssScale = displayedWidth > 0 ? ctx.canvas.width / displayedWidth : 1;
+  const col = macro % macroWidth;
+  const row = Math.floor(macro / macroWidth);
+  const left = col * microScale * cell;
+  const top = row * microScale * cell;
+  const size = microScale * cell;
+  const inset = cssInset * cssScale;
+  ctx.save();
+  ctx.setLineDash(cssDash.map((part) => part * cssScale));
+  ctx.strokeStyle = "#020617";
+  ctx.lineWidth = (cssWidth + 4) * cssScale;
+  ctx.strokeRect(left + inset, top + inset, Math.max(1, size - (2 * inset)), Math.max(1, size - (2 * inset)));
+  ctx.strokeStyle = color;
+  ctx.lineWidth = cssWidth * cssScale;
+  ctx.strokeRect(left + inset, top + inset, Math.max(1, size - (2 * inset)), Math.max(1, size - (2 * inset)));
+  ctx.restore();
+}
+
 function renderBoard(state) {
   const canvas = $("board"); const ctx = canvas.getContext("2d");
+  const boardInteractive = syncBoardSelectionAssist(state);
   canvas.setAttribute("aria-label", targetDraft?.kind === "existing-region"
-    ? "塗り直す彩色済みエリアを選択。番号と色名は下の対象一覧でも選べます。" : "四色地図の対戦盤面");
+    ? "塗り直す彩色済みエリアを選択。番号と色名は下の対象一覧でも選べます。"
+    : boardInteractive
+      ? "四色地図の対戦盤面。矢印キーでマスを移動し、SpaceまたはEnterで選択、Escapeで全解除できます。"
+      : "四色地図の対戦盤面");
   const macroWidth = state.playableBounds.macroWidth; const microScale = state.playableBounds.microScale;
   const microWidth = macroWidth * microScale; const cell = canvas.width / microWidth;
   ctx.fillStyle = "#020617"; ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -2697,6 +2961,11 @@ function renderBoard(state) {
   if (spotlight.pendingRegionId) {
     strokeRegionBoundary(ctx, state.regions[spotlight.pendingRegionId], microWidth, cell, { color: "#22d3ee", cssWidth: 3.5, cssDash: [] });
   }
+  if (boardInteractive) {
+    for (const macro of connectedCandidateMacros(state)) {
+      strokeMacroFrame(ctx, macro, macroWidth, microScale, cell, { color: "#86efac", cssWidth: 2.5, cssDash: [5, 4] });
+    }
+  }
   ctx.fillStyle = "#ffffff38"; ctx.strokeStyle = "#f8fafc"; ctx.lineWidth = 3;
   for (const macro of selectedMacros) {
     const col = macro % macroWidth; const row = Math.floor(macro / macroWidth);
@@ -2723,6 +2992,11 @@ function renderBoard(state) {
       ctx.fillText(String(index + 1), centerX, centerY + .5);
     }
   }
+  if (boardInteractive && document.activeElement === canvas) {
+    const macro = ensureBoardKeyboardMacro(state);
+    strokeMacroFrame(ctx, macro, macroWidth, microScale, cell, { color: "#f0abfc", cssWidth: 4, cssDash: [] });
+    strokeMacroFrame(ctx, macro, macroWidth, microScale, cell, { color: "#fdf4ff", cssWidth: 1.5, cssDash: [], cssInset: 8 });
+  }
   renderBoardSpotlightLegend(spotlight);
 }
 
@@ -2745,6 +3019,9 @@ function renderTurnGuide(state) {
   const opponent = cpuRoom ? "CPU" : "相手";
   const makerIsMe = ["CREATE_FIRST", "WORK"].includes(state.phase) ? myTurn : state.phase === "COLOR" && !myTurn;
   const rolePath = makerIsMe ? `あなたが作る → ${opponent}が塗る` : `${opponent}が作る → あなたが塗る`;
+  const connectedHint = selectedMacros.size
+    ? "緑の破線は辺でつなげて選べる位置の目印です。確定できるかはサーバーが判定します。"
+    : "選んだエリアは相手が塗ります。相手が困る形や接し方を考えてみましょう。";
   const setText = (id, value) => { if ($(id).textContent !== value) $(id).textContent = value; };
   const present = (kind, step, title, detail) => {
     guide.dataset.state = kind;
@@ -2763,12 +3040,14 @@ function renderTurnGuide(state) {
   if (!myTurn && state.phase === "COLOR") return present("wait", rolePath, `${opponent}が受け取ったエリアを塗っています`, "あなたが作った灰色エリアの彩色を待っています。");
   if (state.phase === "CREATE_FIRST") {
     const remaining = Math.max(0, state.requiredSize - selectedMacros.size);
-    if (remaining > 0) return present("select", rolePath, `白い盤面をタップして、あと${remaining}マス選ぶ`, "選べたら「このエリアを渡す」を押します。選んだエリアは相手が塗ります。");
+    if (remaining > 0) return present("select", rolePath, `白い盤面をタップして、あと${remaining}マス選ぶ`, selectedMacros.size
+      ? connectedHint
+      : "選べたら「このエリアを渡す」を押します。選んだエリアは相手が塗ります。");
     return present("ready", rolePath, "選べました。「このエリアを渡す」へ", "選んだマスは白い枠で表示されています。下のボタンで相手へ渡します。");
   }
   if (state.phase === "WORK") {
     const remaining = Math.max(0, state.requiredSize - selectedMacros.size);
-    if (remaining > 0) return present("select", rolePath, `盤面をタップ／クリックして、あと${remaining}マス選ぶ`, "選んだエリアは相手が塗ります。相手が困る形や接し方を考えてみましょう。");
+    if (remaining > 0) return present("select", rolePath, `盤面をタップ／クリックして、あと${remaining}マス選ぶ`, connectedHint);
     return present("ready", rolePath, "選べました。「このエリアを渡す」へ", "選んだマスは白い枠で表示されています。下のボタンで相手へ渡します。");
   }
   if (state.phase === "COLOR") return present("color", rolePath, "受け取った灰色エリアを塗る", "盤面の下にある持ち色から選びます。同じ色が辺で接しないように塗りましょう。");
@@ -2831,12 +3110,32 @@ function boardPointer(event) {
   const col = Math.max(0, Math.min(width - 1, Math.floor((event.clientX - rect.left) / rect.width * width)));
   const row = Math.max(0, Math.min(width - 1, Math.floor((event.clientY - rect.top) / rect.height * width)));
   const macro = row * width + col;
-  if (selectedMacros.has(macro)) {
-    selectedMacros.delete(macro);
-  } else if (selectedMacros.size < state.requiredSize) {
-    selectedMacros.add(macro);
-  }
+  if (!skillGeometry) return toggleBoardMacro(state, macro);
+  if (selectedMacros.has(macro)) selectedMacros.delete(macro);
+  else if (selectedMacros.size < state.requiredSize) selectedMacros.add(macro);
   render();
+}
+
+function boardPointerDown(event) {
+  if (event.isPrimary === false || Number.isInteger(event.button) && event.button !== 0) return;
+  const viewport = $("boardViewport");
+  boardPointerGesture = {
+    pointerId: event.pointerId,
+    x: event.clientX,
+    y: event.clientY,
+    scrollLeft: viewport.scrollLeft,
+    scrollTop: viewport.scrollTop,
+  };
+}
+
+function boardPointerUp(event) {
+  const gesture = boardPointerGesture;
+  boardPointerGesture = null;
+  if (!gesture || gesture.pointerId !== event.pointerId) return;
+  const viewport = $("boardViewport");
+  const moved = Math.hypot(event.clientX - gesture.x, event.clientY - gesture.y);
+  const scrolled = Math.hypot(viewport.scrollLeft - gesture.scrollLeft, viewport.scrollTop - gesture.scrollTop);
+  if (moved <= 10 && scrolled <= 4) boardPointer(event);
 }
 
 async function sendAction(type, payload = {}, retry = false) {
@@ -3702,8 +4001,27 @@ $("legalRecolorLabMode").onchange = () => {
 };
 $("submitSetup").onclick = submitCurrentLoadoutContext;
 $("cancelCpuDraft").onclick = cancelCpuDraft;
-$("board").addEventListener("pointerdown", boardPointer);
-$("clearSelection").onclick = () => { selectedMacros.clear(); render(); };
+$("board").addEventListener("pointerdown", boardPointerDown);
+$("board").addEventListener("pointerup", boardPointerUp);
+$("board").addEventListener("pointercancel", () => { boardPointerGesture = null; });
+$("board").addEventListener("keydown", boardKeydown);
+$("board").addEventListener("focus", () => {
+  const state = roomModel?.room?.public_state;
+  if (!boardSelectionAvailable(state)) return;
+  const macro = ensureBoardKeyboardMacro(state);
+  announceBoardSelection(boardMacroDescription(state, macro));
+  renderBoard(state);
+});
+$("board").addEventListener("blur", () => {
+  const state = roomModel?.room?.public_state;
+  if (hasStandardPublicState(state)) renderBoard(state);
+});
+$("toggleBoardZoom").onclick = () => setBoardZoom(!boardZoomed);
+$("clearSelection").onclick = () => {
+  selectedMacros.clear();
+  announceBoardSelection("盤面の選択をすべて解除しました。");
+  render();
+};
 $("submitRegion").onclick = () => sendAction("CREATE_REGION", { sourceMacros: [...selectedMacros].sort((a, b) => a - b) });
 $("surrender").onclick = () => sendAction("SURRENDER");
 $("retryAction").onclick = () => pendingAction && sendAction(pendingAction.type, pendingAction.payload, true);

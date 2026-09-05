@@ -30,7 +30,7 @@ test("Standard online setup UI exposes the complete reconnect path", () => {
     "profileSelect", "starterCreator", "starterName", "createStarterProfile", "syncProfile", "createRoom", "roomCode", "joinRoom",
     "shownCode", "members", "editNextLoadout", "setupTitle", "setupDescription", "cpuStartReview", "loadoutSummary", "loadoutGrid", "setupCommitBar", "setupCommitTitle", "submitSetup", "cancelCpuDraft", "setupStatus", "matchCard",
     "publicProjection", "privateProjection", "leaveRoom", "leaveRoomDescription", "abandonRoom", "abandonRoomHint", "abandonRoomDialog", "abandonRoomTitle", "abandonRoomDescription", "abandonRoomStatus", "cancelAbandonRoom", "confirmAbandonRoom", "lobbyTitle",
-    "turnGuide", "turnGuideStep", "turnGuideTitle", "turnGuideDetail", "board", "boardSpotlightLegend", "lastMoveSpotlightLegend", "pendingSpotlightLegend", "regionControls", "selectionCount", "submitRegion", "paletteControls", "skillControls", "skillTargetControls",
+    "turnGuide", "turnGuideStep", "turnGuideTitle", "turnGuideDetail", "boardViewport", "board", "boardKeyboardHelp", "boardKeyboardStatus", "toggleBoardZoom", "boardSpotlightLegend", "lastMoveSpotlightLegend", "pendingSpotlightLegend", "regionControls", "selectionCount", "submitRegion", "paletteControls", "skillControls", "skillTargetControls",
     "surrender", "retryAction", "actionStatus", "rematchControls", "rematchStatus", "requestRematch",
     "gachaPanel", "gachaTitle", "gachaTickets", "gachaLevel", "gachaDrawOne", "gachaDrawAll", "gachaRetry", "gachaStatus", "gachaResults",
     "gachaResultSummary", "gachaResultTitle", "gachaResultAnnouncement", "gachaCpuRematch", "gachaCpuRematchNote",
@@ -471,6 +471,41 @@ test("board spotlight uses only allowlisted public targets and a local one-shot 
   assert.match(app, /turnArrivalBackgrounded = true;\s*clearTurnArrivalBeat\(\)/);
   assert.doesNotMatch(observer, /localStorage|sessionStorage|client\.|submitAction|Math\.random|crypto/);
   assert.match(css, /@media\(prefers-reduced-motion:reduce\)\{\.turn-guide\.turn-arrival-beat,#board\.turn-arrival-beat\{animation:none!important;transition:none!important\}\}/);
+});
+
+test("board selection assist enlarges targets and supports connected keyboard selection without becoming a legality oracle", () => {
+  assert.match(html, /id="boardViewport" class="board-viewport"/);
+  assert.match(html, /id="board"[^>]+tabindex="-1"[^>]+aria-describedby="boardKeyboardHelp boardKeyboardStatus"/);
+  assert.match(html, /id="boardKeyboardStatus"[^>]+role="status"[^>]+aria-live="polite"/);
+  assert.match(html, /id="toggleBoardZoom"[^>]+aria-pressed="false"[^>]*>盤面を拡大<\/button>/);
+  assert.match(css, /body\[data-active-tab="battle"\] \.board-viewport\.is-zoomed #board\{width:200%;max-width:none\}/);
+  assert.match(css, /\.board-viewport #board\{[^}]*touch-action:pan-x pan-y/);
+  assert.match(css, /\.board-viewport:focus-within\{outline:3px solid #f0abfc/);
+  assert.match(css, /#toggleBoardZoom\{min-width:64px;min-height:44px\}/);
+  const assist = app.slice(app.indexOf("function boardSelectionAvailable"), app.indexOf("function strokeRegionBoundary"));
+  assert.match(assist, /function connectedMacros\(macros, width\)/);
+  assert.match(assist, /function macroHasFreeMicro\(state, macro\)/);
+  assert.match(assist, /function connectedCandidateMacros\(state\)/);
+  assert.match(assist, /白い枠と辺でつながる隣のマスを選んでください/);
+  assert.match(assist, /次に辺でつなげて選べる候補/);
+  assert.match(assist, /空きあり、現在の選択とは非接続/);
+  assert.match(assist, /resetBoardSelectionAssist\(\{ clearSelection: true \}\)/);
+  assert.match(assist, /if \(clearSelection\) \{\s*selectedMacros\.clear\(\);\s*announceBoardSelection\(""\)/);
+  assert.match(assist, /\["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"\]/);
+  assert.match(assist, /\[" ", "Enter"\]\.includes\(event\.key\)/);
+  assert.match(assist, /event\.key === "Escape"/);
+  assert.match(app, /moved <= 10 && scrolled <= 4\) boardPointer\(event\)/);
+  assert.match(app, /strokeMacroFrame\(ctx, macro[\s\S]+color: "#f0abfc"/);
+  assert.match(app, /strokeMacroFrame\(ctx, macro[\s\S]+color: "#86efac"/);
+  assert.match(app, /color: "#fdf4ff", cssWidth: 1\.5, cssDash: \[\], cssInset: 8/);
+  assert.match(html, /緑の破線は次に辺でつなげて選べる位置の目印、紫と白の二重線は現在のキーボード位置/);
+  assert.match(app, /if \(tab !== "battle"\) resetBoardSelectionAssist\(\)/);
+  assert.match(app, /緑の破線は辺でつなげて選べる位置の目印です。確定できるかはサーバーが判定します。/);
+  assert.match(css, /\.skin-board-aurora \.board-viewport\{outline:3px solid #22d3ee/);
+  assert.match(css, /\.skin-board-aurora \.board-viewport #board,[^}]+\{outline:none;box-shadow:none\}/);
+  assert.match(css, /\.board-viewport:has\(#board\.turn-arrival-beat\)\{animation:turn-arrival-board-frame/);
+  assert.doesNotMatch(assist, /sendAction|submitAction|availableColorChoices|legalColors|adjacentRegionIds|contactColor/);
+  assert.match(app, /sendAction\("CREATE_REGION", \{ sourceMacros: \[\.\.\.selectedMacros\]\.sort/);
 });
 
 test("a fresh device can create a six-card online-only starter without overwriting the Standard save", () => {
