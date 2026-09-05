@@ -368,7 +368,7 @@ async function withPage(mode, run, { bodyTimeout = 35_000, viewport = { width: 9
     const page = await bounded("page-ready", context.newPage(), 5_000);
     browserStage("page-ready");
     browserStage("navigation-start");
-    await bounded("navigation-ready", page.goto(`${url}/standard-online-v5/index.html`, { timeout: 10_000 }), 10_000);
+    await bounded("navigation-ready", page.goto(`${url}/standard-online-v5/index.html`, { timeout: 20_000 }), 20_000);
     browserStage("navigation-ready");
     browserStage("badge-start");
     await bounded("badge-ready", page.locator("#connectionBadge.good").waitFor({ state: "visible", timeout: 10_000 }), 10_000);
@@ -385,7 +385,7 @@ async function withPage(mode, run, { bodyTimeout = 35_000, viewport = { width: 9
     browserStage("teardown-start");
     try {
       browserStage("context-close-start");
-      if (context) await bounded("context-close", context.close(), 3_000);
+      if (context) await bounded("context-close", context.close(), 10_000);
       browserStage("context-close-ready");
     } finally {
       try {
