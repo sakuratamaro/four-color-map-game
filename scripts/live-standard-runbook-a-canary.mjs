@@ -215,6 +215,17 @@ async function run() {
   check("regular opening action", openingResult.ok
     && openingResult.data?.room?.publicState?.phase === "COLOR"
     && openingResult.data?.room?.version === initializedA.data.room.version + 1, openingResult);
+  const openingTrace = openingResult.data.room.publicState.lastPublicTrace;
+  check("committed opening trace projected", openingTrace?.type === "CREATE_REGION"
+    && openingTrace.actor === initialPublicState.active
+    && openingTrace.version === openingResult.data.room.version
+    && typeof openingTrace.eventId === "string"
+    && openingTrace.eventId.length > 0
+    && Number.isSafeInteger(openingTrace.sourceMacroCount)
+    && openingTrace.sourceMacroCount === initialPublicState.requiredSize
+    && Number.isSafeInteger(openingTrace.contactColorCount)
+    && openingTrace.contactColorCount >= 0
+    && openingTrace.contactColorCount <= 3);
 
   activeStage = "surrender";
   const postOpeningState = openingResult.data.room.publicState;
