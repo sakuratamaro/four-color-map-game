@@ -1,11 +1,11 @@
 # Codex work status
 
 - Last update: 2026-09-06 JST
-- Stage: committed contact feedback and public tactical trace are public; physical two-device acceptance and T+24h observation remain pending
+- Stage: server-side active-room recovery is public; physical two-device acceptance and T+24h observation remain pending
 - Integration branch: `codex/standard-release-command`
-- Public product baseline: `3e2b959d6cc89ce4e7a76f0a773225bffd0116a8` (product commit `ecafdd1042b4b30211f0aa53bac8795063700bf9`); later `main` commits may contain evidence-only documentation
+- Public product baseline: `958a4da48769bcd145aca4db6b1b75f125f770d9` (active-room product commit `5acee05938a81bf5b0b9362c10ca32535c1e03ce`; later commits harden release evidence)
 - Public URL: `https://sakuratamaro.github.io/four-color-map-game/standard-online-v5/`
-- Supabase project: `qkcuhludisairpgzhryl`; `standard-game-action` deployment 15
+- Supabase project: `qkcuhludisairpgzhryl`; `standard-game-action` deployment 16
 
 ## Public in this release
 
@@ -19,7 +19,8 @@
 - Waiting/ready rooms now offer an explicit server-authoritative no-reward abandon action. It reuses the same room/version/action identity after a lost response, tells the other member what happened, and clears only the matching CPU setup saga. Playing rooms keep the exactly-once surrender path; finished rooms keep result/rematch.
 - A committed CREATE now reveals contact-color pressure as a short cumulative 2→3 sequence, while four-color contact remains a terminal result. Selection, polling, reload, replay, and duplicate snapshots do not retrigger it; reduced motion receives the final static tier and screen readers receive one final announcement.
 - The public state now carries a strictly allowlisted `lastPublicTrace`. The match screen keeps a compact “last move → board change → next decision” explanation for CREATE/COLOR/USE_SKILL without exposing hand, palette, skill identity, target, or pre-commit legality.
-- Public assets are `standard-online-v5` v21, client v15, and `solo-v5/save-codec.js?v=20260905-2`.
+- If a browser loses its local room identity while the authenticated actor still owns one live Standard room, the client now recovers that exact private-code, public-queue, or CPU room instead of showing a raw database conflict or creating another room. Recovery adopts only a strictly validated one-row projection, preserves pending CPU/matchmaking sagas, does not steal focus during background hydration, and never re-displays a lost private room code.
+- Public assets are app v22, client v16, style v21, and `solo-v5/save-codec.js?v=20260905-2`.
 
 ## Verification
 
@@ -41,12 +42,15 @@
 - Public candidate preflight returned `ok:true`; protected snapshot and matchmaking RPC boundaries remained intact.
 - Fresh public Standard and Quick pages returned HTTP 200, correct cache markers, and no captured browser warning/error. The existing Standard CPU room also survived a public-page reload.
 - The long aggregate product runner encountered the known shared-browser host timeout after unrelated contact-effect cases. The release decision therefore used the changed focused suites plus the clean Windows Chrome/Edge gate; no product assertion from this release bundle failed.
+- Active-room recovery passed the full local Edge browser suite 56/56 and the new recovery scenarios 3/3 in both Edge and Chrome. Windows gate `33976873376` passed at `ffdf8e5` (Edge job `101335024647`, Chrome job `101335024735`); the later two commits change release/canary scripts only and passed their local static checks.
+- Migration `202609060001_standard_active_room_recovery.sql` is applied. Candidate verification is 68/68 true, including stable SQL/security-definer/empty-search-path, authenticated-only ACL, exact eight-column result, caller/setup scoping, live/expiry filters, two-row ambiguity cap, and zero duplicate active actors.
+- `standard-game-action` deployment 16 passed the basic Edge canary 7/7. The strengthened immediate-CPU canary passed 10/10: the RPC returned only the caller's CPU room, a second CPU start recovered the same room, and the active-room count remained one.
+- Pages run `33977699993` succeeded at `958a4da`. Candidate preflight returned `ok:true`; public HTML/app/client returned app v22/client v16 and all private/public/CPU Japanese recovery markers. The public browser loaded the five-tab app with anonymous authentication.
 
 ## Next command priorities
 
 1. Acceptance/operations: complete a physical two-device match/reload/rematch loop and the T+24h Supabase resource comparison. These remain `PENDING`, not inferred from automation.
-2. P1: translate rare single-active-room conflicts into a dedicated Japanese recovery message and resynchronize the existing room.
-3. P1 experiment: formalize `legalRecolor` as “塗り直し・乱” behind a lab/loadout gate. Keep the proposed two-color checkerboard card out of Standard until it has a separate ruleset.
-4. P2: add first-hydration/reload coverage for the persistent tactical trace and explicit CPU/opponent display-name coverage; the public-only contract is already enforced.
+2. P1 experiment: formalize `legalRecolor` as “塗り直し・乱” behind a lab/loadout gate. Keep the proposed two-color checkerboard card out of Standard until it has a separate ruleset.
+3. P2: add first-hydration/reload coverage for the persistent tactical trace and explicit CPU/opponent display-name coverage; the public-only contract is already enforced.
 
-Release `3e2b959` keeps migrations through `202609050007`, updates only the `standard-game-action` engine bundle to deployment 15, and publishes Standard asset v21. No SQL, secret, billing, deletion, or cleanup schedule was changed.
+Release `958a4da` applies additive migration `202609060001`, updates `standard-game-action` index source to deployment 16, and publishes Standard app v22/client v16. No secret, billing, deletion, cleanup schedule, game rule, reward, inventory, or engine bundle was changed.

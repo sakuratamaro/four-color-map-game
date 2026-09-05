@@ -12,20 +12,21 @@
 | --- | --- | --- | --- |
 | 採否棚卸し | VERIFIED | `ONLINE_COMPLETION_INVENTORY.md`。旧Expo試作と現行Web Standardを分離済み | 公開後に状態列だけ更新 |
 | 製品コード・生成元 | VERIFIED | `standard/`、build scripts、生成済みEdge bundleが統合ブランチに存在 | 最終公開commitを記録 |
-| ローカル製品試験 | VERIFIED | `ecafdd1`。全non-browser、Standard Edge browser 52/52、focused Edge 2/2、Chrome 2/2、ローカルresponsive 4/4、接触静的25/25、静的＋Edge bundle 38/38が合格。3独立レビューはP0/P1なし | 物理二端末canary |
+| ローカル製品試験 | VERIFIED | active-room候補`ffdf8e5`。全Edge browser 56/56、新規復帰シナリオはEdge/Chrome各3/3、focused契約94/94、公開ゲート静的39/39が合格。DB/Edge、UX/browser、worktree/旧タスクの3独立レビューはP0/P1なし | 物理二端末canary |
 | 次期UX候補のローカル検査 | VERIFIED | `codex/standard-release-command@1673ff8`。profile安定化、初回対戦導線、Quick Half Shift、status正規化、Realtime/poll復旧を含む非browser製品試験91ファイル522/522。browser workflow/harness静的11/11合格 | Pages反映後のpreflightと二端末受入 |
 | 初回導線・接続表示の次期候補 | VERIFIED | `9d42784`。初回starter作成＋profile同期を一操作化し、全5タブで単一接続statusを常時表示。空名write 0、room外offline復帰、390px下部nav非干渉を契約化。静的39/39、非browser 89ファイル513/513、Windows Chrome/Edge各18/18合格 | 物理二端末受入 |
-| Windows実browser CI | VERIFIED | GitHub Actions run `33973264978`。製品`ecafdd1`のChrome job `101325424357`、Edge job `101325424224`がともに成功 | 公開URLで同じ主要導線を二端末受入 |
-| 現行公開Pages | PUBLIC_VERIFIED | 公開基点`3e2b959`、Pages run `33973971235`成功。公開URLでStandard asset v21、戦術trace marker、5タブ、匿名認証、console error 0を確認 | 別々の二端末で最終受入 |
+| Windows実browser CI | VERIFIED | GitHub Actions run `33976873376`。active-room製品候補`ffdf8e5`のChrome job `101335024735`、Edge job `101335024647`がともに成功 | 公開URLで同じ主要導線を二端末受入 |
+| 現行公開Pages | PUBLIC_VERIFIED | 公開基点`958a4da`、Pages run `33977699993`成功。公開URLでapp v22/client v16、復帰marker、5タブ、匿名認証を確認 | 別々の二端末で最終受入 |
 | 初回公開前DB境界（履歴） | VERIFIED | 旧snapshotは匿名権限拒否。snapshot v2と野良募集が未存在だった初回baseline | 現行境界は適用migrationとlive canaryを参照 |
 | migration 006–013静的検査 | VERIFIED | migration別security/transaction testsと読み取り専用44項目SQL | 実DBで全行`ok=true` |
 | Dashboard Advisor・使用量baseline | PENDING | 2026-09-05 16:23 JSTのT0を`STANDARD_OBSERVATION_T0_20260905.json`へPARTIAL記録。API/Edge/Realtime/Query/Advisor 17項目を観測、Databaseグラフ等20項目はDashboard取得不能でPENDING。Health alert 2件継続 | T+24hで同じ24時間filterを再採取し、Database欠落値とalert状態を再確認 |
-| migration 006–013＋後続001–007本番適用 | PUBLIC_VERIFIED | 15本を個別適用。現行の読み取り専用検証SQLは66項目すべてtrue。開始前取りやめlive canary 33/33、active/unknown/nonterminal残留0 | 物理二端末最終受入 |
-| Edge Function更新 | PUBLIC_VERIFIED | deployment 15へ`lastPublicTrace`対応engine bundleだけを更新。SQL変更なし。Runbook A 44/44で確定CREATE trace、部外者拒否、seat別private境界、再戦を確認し、基本Edge canaryも7/7 | 物理端末で対戦traceの体感を確認 |
+| migration 006–013＋後続001–007本番適用＋202609060001 | PUBLIC_VERIFIED | additive active-room RPCを適用。現行の読み取り専用検証SQLは68項目すべてtrue。stable SQL、security definer、empty search path、authenticated-only ACL、本人setup、最大2行、duplicate actor 0を確認 | 物理二端末最終受入 |
+| Edge Function更新 | PUBLIC_VERIFIED | deployment 16へ有限な`ACTIVE_ROOM_CONFLICT`変換を追加し、engine bundleは不変。基本Edge 7/7、active-room即時CPU 10/10で同一room復帰と2室目なしを確認 | 物理端末で復帰案内を体感確認 |
 | 即時Standard CPU開始 | PUBLIC_VERIFIED | migration `202609050002`とEdge deployment 9。製品`cc96350`、公開`a4c6490`、DB 47項目、Edge基本6/6、即時CPU 7/7、Windows run `33931963065`、Pages run `33932159043`合格。公開UIでCPU初手まで確認 | 物理端末で一試合完走・再読込・同じCPUとの再戦を確認 |
 | CPU完走後の次戦導線 | PUBLIC_VERIFIED | `29c6958`。同じCPUとの同room再戦を維持し、終了結果から別CPU選択へ進める。live即時CPU完走・再戦canary 25/25、Windows Chrome/Edge成功、Pages反映済み | 物理端末で別CPU選択と再戦を体感確認 |
 | CPU報酬からガチャへの直行 | PUBLIC_VERIFIED | `e36dfcc`＋`193a0e6`。保存済み通常CPU精算だけにCTAを出し、抽選せずLv.1ガチャへ移動。対人・未精算・debugを拒否し、390×844で券・抽選操作・focus・再読込を確認 | 物理端末でCPU一局からガチャまでの体感を確認 |
-| GitHub main・Pages更新 | PUBLIC_VERIFIED | 公開product baseline `3e2b959d6cc89ce4e7a76f0a773225bffd0116a8`。Standard browser gate `33973264978`、Pages `33973971235`成功。後続mainは証拠台帳だけを更新し、公開asset v21の必須markerは不変 | 二端末受入後に最終状態を記録 |
+| GitHub main・Pages更新 | PUBLIC_VERIFIED | 公開baseline `958a4da48769bcd145aca4db6b1b75f125f770d9`（製品`5acee05`）。Standard browser gate `33976873376`、Pages `33977699993`成功。公開app v22/client v16の必須markerを確認 | 二端末受入後に最終状態を記録 |
+| server-side active-room復帰 | PUBLIC_VERIFIED | private/public/CPUを有限8列で本人にだけ返し、厳格な1行だけ採用。raw sentinel/UUID非表示、background focus非奪取、CPU/matchmaking saga優先、復帰時の新room/setup送信0をbrowser回帰とlive 10/10で確認 | 物理端末でlocal identity喪失後の復帰を体感確認 |
 | 合言葉対戦canary | VERIFIED | deployment 15で`live-standard-runbook-a-canary.mjs --confirm-live` 44/44合格。確定CREATEの公開trace shapeも検査 | 実ブラウザ再読込と二端末最終受入 |
 | 確定接触feedback・戦術trace | PUBLIC_VERIFIED | `ecafdd1`。選択/poll/reload/replay/重複非発火、2→3累積、4色終局優先、reduced-motion、最終1回読み上げ、CREATE/COLOR/USE_SKILL allowlistを自動検査。Edge 15と公開v21で確認 | 二端末で読みやすさとテンポを体感確認 |
 | 経済・進行・見た目canary | VERIFIED | deployment 8でRunbook B 93/93合格 | 実ブラウザで報酬演出と操作感を確認 |
@@ -228,18 +229,28 @@
 - `origin/main`をforceなしで`3e2b959`へfast-forwardした。Pages run `33973971235`は成功。公開HTML/app/styleはHTTP 200、asset v21、戦術trace marker、四色終局文言を返し、candidate preflightは`ok:true`。公開ブラウザは5タブ、匿名認証、console error 0を確認した。
 - 自動検査と公開反映は完了したが、物理的に別々の二端末による対人/CPU完走、途中再読込、再戦と、T+24h資源比較は`NOT_RUN/PENDING`のままである。
 
+## 2026-09-06 01:24 JST server-side active-room復帰公開
+
+- 製品commit `5acee05`で、ローカルroom identityを失っても本人の生存Standard roomを読み直せる`fcg_standard_active_room()`を追加した。返却はroom ID、seat、status/version、access/opponent/CPU種別、本人setup revisionの有限8列だけで、authenticated本人・未失効active room・最大2行に制限する。0行、複数行、malformedは状態を変えずfail closedする。
+- client/UXは`STANDARD_ALREADY_IN_ROOM`等を有限な`ACTIVE_ROOM_CONFLICT`へ正規化し、private-code、public queue、CPUごとの日本語案内で同じroomへ戻る。private code、raw DB detail、相手private stateは表示しない。明示操作時だけ見出しへfocusし、boot/focus/storage起点では奪わない。CPU start、matchmaking ticket/findのlost-response sagaは汎用復帰より優先する。
+- ローカル全Edge browser 56/56、新規復帰シナリオEdge/Chrome各3/3、focused契約94/94が合格。Windows gate `33976873376`はEdge `101335024647`、Chrome `101335024735`が`ffdf8e5`で成功した。後続`8f49fff`と`958a4da`は公開検証器だけの変更で、静的3/3と実動canaryに合格した。
+- additive migration `202609060001_standard_active_room_recovery.sql`を本番へ適用し、candidate verification 68/68 true、duplicate active actor 0を確認した。`db-ready` preflightも`ok:true`。secret、billing、削除、cleanup、ゲームルール、報酬、engine bundleは変更していない。
+- `standard-game-action` indexをdeployment 16へ更新した。基本Edge canaryは7/7、強化した即時CPU canaryは10/10で、本人のCPU roomだけが1行返り、別actionのCPU開始が`recovered_existing`で同じroomを返し、active roomが1件のままであることを確認した。
+- `origin/main`をforceなしで`958a4da`へfast-forwardし、Pages run `33977699993`が成功した。公開candidate preflightは`ok:true`。公開HTML/app/clientはapp v22/client v16、RPC、有限エラー、private/public/CPUの復帰案内markerを返し、実ブラウザは5タブと匿名認証を表示した。
+- 物理的に別々の二端末による対人/CPU完走、途中再読込、再戦と、T+24h資源比較は引き続き`NOT_RUN/PENDING`であり、自動検証から推定しない。
+
 ## 公開識別子
 
 | 項目 | 値 |
 | --- | --- |
 | browser harness diagnostics commit | `6fc23a5` |
 | Windows browser CI commit | `d8dac1b` |
-| final browser-verified candidate | `3e2b959`（製品commit `ecafdd1`。確定接触feedbackと公開戦術trace、開始前取りやめ等を累積） |
-| Windows browser CI run | `33973264978` / Chrome `101325424357` Success / Edge `101325424224` Success |
+| final browser-verified candidate | `958a4da`（active-room製品commit `5acee05`、release gate `ffdf8e5`、検証器追補`8f49fff`・`958a4da`） |
+| Windows browser CI run | `33976873376` / Chrome `101335024735` Success / Edge `101335024647` Success |
 | 初回candidate code baseline（履歴） | `0e02176`（Edge deployment 8 sourceは`c3cf372`） |
-| applied migrations | `202609030006`–`202609030013`, `202609050001`–`202609050007` |
-| `standard-game-action` version | deployment 15（2026-09-06 00:06 JST頃、公開戦術trace対応engine bundle） |
-| Pages Actions run | `33973971235` / Success / `3e2b959` |
+| applied migrations | `202609030006`–`202609030013`, `202609050001`–`202609050007`, `202609060001` |
+| `standard-game-action` version | deployment 16（2026-09-06 01:19 JST頃、active-room競合の有限化。engine bundle不変） |
+| Pages Actions run | `33977699993` / Success / `958a4da` |
 | public URL | `https://sakuratamaro.github.io/four-color-map-game/standard-online-v5/` |
 
 ## Canary結果
@@ -283,6 +294,9 @@
 | 確定接触feedback・戦術trace Windows gate | PASS | 2026-09-06 | `ecafdd1`、run `33973264978`。Chrome `101325424357`、Edge `101325424224`が成功。確定event限定、累積tier、reduced-motion、terminal優先、390/980px、公開allowlistを検査 |
 | Edge deployment 15 tactical trace | PASS | 2026-09-06 | Runbook A 44/44。確定CREATEのtype/actor/version/eventId/sourceMacroCount/contactColorCountを本番projectionで確認し、部外者拒否・seat別private境界・再戦も合格。基本Edge 7/7 |
 | `3e2b959` Pages・公開asset | PASS | 2026-09-06 | Pages `33973971235`。Standard asset v21、HTML/app/style HTTP 200、戦術traceと四色終局marker、candidate preflight `ok:true`、公開5タブ・匿名認証・console error 0 |
+| active-room復帰 Windows gate | PASS | 2026-09-06 | `ffdf8e5`、run `33976873376`。Chrome `101335024735`、Edge `101335024647`が成功。private/public/CPU boot復帰、stale create競合、CPU saga優先、390px、focus境界を含む56 browser test |
+| active-room復帰 DB・Edge canary | PASS | 2026-09-06 | migration `202609060001`、candidate 68/68。deployment 16で基本Edge 7/7、即時CPU復帰10/10。同一room返却、2室目なし、active row 1を確認 |
+| `958a4da` Pages・公開asset | PASS | 2026-09-06 | Pages `33977699993`。app v22/client v16、candidate preflight `ok:true`、RPC・有限エラー・private/public/CPU案内marker、公開5タブ・匿名認証を確認 |
 | 二端末最終受入 | NOT_RUN | PENDING | PENDING |
 
 ## 残存リスク
@@ -290,7 +304,7 @@
 - Dashboard T0は17項目を取得したが、Database 24hグラフ等20項目はDashboard取得不能でPARTIAL。資源逼迫alert 2件と7日Compute/CPU peak 99%があるため、負荷由来を切り分けるまで新しい高負荷経路を追加しない。
 - profile作成安定化はCの逐次16件で500/429なしを確認した。高並列作成そのものはAuth上限を消費するため再試験せず、再発時はEdge/DBログと資源警告を関連調査する。
 - Cのstatus正規化は本番関数定義、既存ticket整合、live canary 210/210まで確認済み。今後もIPあたり30 anonymous sign-ins/時を守り、同じ認証窓で重いcanaryを再試行しない。
-- 現行公開`3e2b959`（製品`ecafdd1`）はPagesへ反映済み。自動browser、公開asset、Edge/DB保護境界の合格と、未実施の物理二端末受入を混同しない。
+- 現行公開`958a4da`（active-room製品`5acee05`）はPagesへ反映済み。自動browser、公開asset、Edge/DB保護境界、API実動復帰の合格と、未実施の物理二端末受入を混同しない。
 - Edgeのper-isolate濫用抑止は分散レート制限ではない。公開後の計測で必要性が出た場合だけprovider側制限を検討する。
 - 10人CPUの合法性・決定性は自動検証済みだが、人間が感じる個性と楽しさは代表3人の実プレイ後も定性的判断として残る。
 - cleanup実削除や定期化は許可済みだが、exact IDと復元手段を確認するまで実行しない。課金設定変更は必要性と金額を特定してから扱う。
