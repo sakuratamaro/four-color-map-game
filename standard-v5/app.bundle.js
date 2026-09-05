@@ -818,6 +818,7 @@ module.exports = { IMPLEMENTED_SKILL_IDS, STANDARD_SKILLS, V49_SKILL_IDS };
 "use strict";
 
 const { COLORS, StandardRuleError, mergeSameColorComponent } = require("./standard-engine.js");
+const { createRegionGeometryContext } = require("./standard-region-geometry.js");
 
 function clone(value) {
   return JSON.parse(JSON.stringify(value));
@@ -986,13 +987,14 @@ function macroMicroCells(macro, state) {
 function validOutgoingMacros(state, sourceMacros) {
   const bounds = state.playableBounds;
   if (sourceMacros.length !== state.requiredSize || !connected(sourceMacros, bounds.macroWidth)) return false;
-  const occupiedMacros = new Set(Object.values(state.regions).flatMap((region) => region.sourceMacros || []));
-  return sourceMacros.every((macro) => {
-    if (!Number.isInteger(macro) || macro < 0 || occupiedMacros.has(macro)) return false;
+  if (!sourceMacros.every((macro) => {
+    if (!Number.isInteger(macro) || macro < 0) return false;
     const col = macro % bounds.macroWidth;
     const row = Math.floor(macro / bounds.macroWidth);
     return col >= bounds.minCol && col <= bounds.maxCol && row >= bounds.minRow && row <= bounds.maxRow;
-  });
+  })) return false;
+  const candidate = createRegionGeometryContext(state).analyze(sourceMacros);
+  return candidate.everyMacroHasFree && candidate.connected;
 }
 
 function microCoordinateInPlayable(state, x, y) {
@@ -1024,7 +1026,7 @@ function microBloomCandidates(state, sourceMacros) {
   if (prepared && (prepared.actor !== state.active || JSON.stringify(prepared.sourceMacros) !== JSON.stringify(sourceMacros))) {
     return Object.freeze({ ok: false, code: "PREPARED_SELECTION_MISMATCH", candidates: [] });
   }
-  const base = new Set(prepared?.micro || sourceMacros.flatMap((macro) => macroMicroCells(macro, state)));
+  const base = new Set(prepared?.micro || createRegionGeometryContext(state).analyze(sourceMacros).micro);
   const owners = regionOwners(state);
   const scale = state.playableBounds.microScale;
   const width = state.microWidth;
@@ -1079,7 +1081,7 @@ function cornerBloomPlan(state, sourceMacros, macro) {
     return Object.freeze({ ok: false, code: "PREPARED_SELECTION_MISMATCH", plan: [], micro: [] });
   }
   if (!sourceMacros.includes(macro)) return Object.freeze({ ok: false, code: "INVALID_CORNER_BLOOM_TARGET", plan: [], micro: [] });
-  const shape = new Set(prepared?.micro || sourceMacros.flatMap((sourceMacro) => macroMicroCells(sourceMacro, state)));
+  const shape = new Set(prepared?.micro || createRegionGeometryContext(state).analyze(sourceMacros).micro);
   const owners = regionOwners(state);
   const scale = state.playableBounds.microScale;
   const width = state.microWidth;
@@ -1789,6 +1791,91 @@ function cancelStandardSkillSelection() {
 module.exports = { SKILL_RESULT, cancelStandardSkillSelection, dispatchStandardSkillAction };
 
 },
+"standard/standard-region-geometry.js":function(require,module,exports){
+"use strict";
+
+function connected(cellsInput, width) {
+  if (!cellsInput.length) return false;
+  const cells = new Set(cellsInput);
+  const seen = new Set([cellsInput[0]]);
+  const queue = [cellsInput[0]];
+  while (queue.length) {
+    const cell = queue.shift();
+    const x = cell % width;
+    const neighbors = [cell - width, cell + width];
+    if (x > 0) neighbors.push(cell - 1);
+    if (x < width - 1) neighbors.push(cell + 1);
+    for (const neighbor of neighbors) {
+      if (cells.has(neighbor) && !seen.has(neighbor)) {
+        seen.add(neighbor);
+        queue.push(neighbor);
+      }
+    }
+  }
+  return seen.size === cells.size;
+}
+
+function macroMicroCells(macro, bounds, microWidth) {
+  const col = macro % bounds.macroWidth;
+  const row = Math.floor(macro / bounds.macroWidth);
+  const result = [];
+  for (let dy = 0; dy < bounds.microScale; dy += 1) {
+    for (let dx = 0; dx < bounds.microScale; dx += 1) {
+      result.push((row * bounds.microScale + dy) * microWidth + col * bounds.microScale + dx);
+    }
+  }
+  return result;
+}
+
+function createRegionGeometryContext(state) {
+  const bounds = state.playableBounds;
+  const microWidth = state.microWidth || bounds.macroWidth * bounds.microScale;
+  const ownerByMicro = new Map();
+  for (const region of Object.values(state.regions || {})) {
+    for (const cell of region.micro || []) ownerByMicro.set(cell, region.id);
+  }
+
+  function analyze(sourceMacros) {
+    const micro = [];
+    let everyMacroHasFree = true;
+    for (const macro of sourceMacros) {
+      const free = macroMicroCells(macro, bounds, microWidth).filter((cell) => !ownerByMicro.has(cell));
+      if (!free.length) everyMacroHasFree = false;
+      micro.push(...free);
+    }
+    const shape = new Set(micro);
+    const adjacentIds = new Set();
+    for (const cell of micro) {
+      const x = cell % microWidth;
+      const neighbors = [cell - microWidth, cell + microWidth];
+      if (x > 0) neighbors.push(cell - 1);
+      if (x < microWidth - 1) neighbors.push(cell + 1);
+      for (const neighbor of neighbors) {
+        if (shape.has(neighbor)) continue;
+        const regionId = ownerByMicro.get(neighbor);
+        if (!regionId) continue;
+        adjacentIds.add(regionId);
+      }
+    }
+    const contactColors = [...new Set([...adjacentIds]
+      .map((id) => state.regions?.[id]?.color)
+      .filter(Boolean))].sort();
+    return Object.freeze({
+      micro: Object.freeze(micro),
+      everyMacroHasFree,
+      connected: connected(micro, microWidth),
+      touchesExisting: adjacentIds.size > 0,
+      adjacentRegionIds: Object.freeze([...adjacentIds].sort()),
+      contactColors: Object.freeze(contactColors),
+    });
+  }
+
+  return Object.freeze({ analyze });
+}
+
+module.exports = { createRegionGeometryContext };
+
+},
 "standard/standard-match.js":function(require,module,exports){
 "use strict";
 
@@ -1799,6 +1886,7 @@ const {
 } = require("./standard-engine.js");
 const { dispatchStandardSkillAction } = require("./standard-skill-dispatcher.js");
 const { applyCurseBacklashOnEnterColor, preparedOutgoingCandidates, tickPaletteDebuffsAfterColor, tickSealsAfterColor } = require("./standard-skill-handlers.js");
+const { createRegionGeometryContext } = require("./standard-region-geometry.js");
 
 const SCHEMA_VERSION = 1;
 const ENGINE_VERSION = "5.0.0-alpha.1";
@@ -1922,6 +2010,7 @@ function createStandardMatch(config = {}, rngStreams = {}) {
     skillsUsed: { A: 0, B: 0 },
     winner: null,
     terminalReason: null,
+    lastPublicTrace: null,
     publicLog: ["Standard match created."],
   };
   validateStandardState(state);
@@ -1959,6 +2048,33 @@ function validateStandardState(state) {
   assertState(Boolean(state.hands) && Boolean(state.loadouts), "INVALID_CARDS");
   assertState(typeof state.interferenceLock === "boolean", "INVALID_INTERFERENCE_LOCK");
   assertState(Array.isArray(state.publicLog), "INVALID_PUBLIC_LOG");
+  if (state.lastPublicTrace !== undefined && state.lastPublicTrace !== null) {
+    const trace = state.lastPublicTrace;
+    const commonKeys = ["actor", "eventId", "type", "version"];
+    const typeKeys = trace.type === "CREATE_REGION"
+      ? ["contactColorCount", "regionId", "sourceMacroCount"]
+      : trace.type === "COLOR_REGION" ? ["color", "regionId"] : trace.type === "USE_SKILL" ? [] : ["invalid"];
+    const expectedKeys = [...commonKeys, ...typeKeys].sort();
+    assertState(JSON.stringify(Object.keys(trace).sort()) === JSON.stringify(expectedKeys), "INVALID_PUBLIC_TRACE");
+    assertState((trace.actor === "A" || trace.actor === "B")
+      && Number.isInteger(trace.version) && trace.version >= 1 && trace.version <= state.version
+      && trace.eventId === `${state.matchId}:${trace.version}`, "INVALID_PUBLIC_TRACE");
+    if (trace.type === "CREATE_REGION") {
+      const region = state.regions?.[trace.regionId];
+      const committedContactCount = region ? new Set(adjacentRegionIds(state, trace.regionId)
+        .map((regionId) => state.regions[regionId])
+        .filter((entry) => entry && !entry.isPending && entry.color)
+        .map((entry) => entry.color)).size : -1;
+      assertState(typeof trace.regionId === "string" && trace.regionId.length > 0
+        && Number.isInteger(trace.sourceMacroCount) && trace.sourceMacroCount >= 1 && trace.sourceMacroCount <= 5
+        && Number.isInteger(trace.contactColorCount) && trace.contactColorCount >= 0 && trace.contactColorCount <= 4, "INVALID_PUBLIC_TRACE");
+      if (trace.version === state.version) assertState(Boolean(region) && region.sourceMacros?.length === trace.sourceMacroCount
+        && committedContactCount === trace.contactColorCount, "INVALID_PUBLIC_TRACE");
+    } else if (trace.type === "COLOR_REGION") {
+      assertState(typeof trace.regionId === "string" && trace.regionId.length > 0 && COLORS.includes(trace.color), "INVALID_PUBLIC_TRACE");
+      if (trace.version === state.version) assertState(state.regions?.[trace.regionId]?.color === trace.color, "INVALID_PUBLIC_TRACE");
+    }
+  }
   if (state.preparedOutgoing !== null && state.preparedOutgoing !== undefined) {
     const prepared = state.preparedOutgoing;
     assertState((prepared.actor === "A" || prepared.actor === "B") && Array.isArray(prepared.sourceMacros)
@@ -2034,10 +2150,10 @@ function validateStandardState(state) {
 
 function projectStandardPublicState(state) {
   validateStandardState(state);
-  const keys = ["schemaVersion", "engineVersion", "mode", "matchId", "status", "version", "turn", "active", "phase", "regions", "pending", "reserved", "preparedOutgoing", "playableBounds", "trophyTargetMacros", "requiredSize", "rolledSize", "baseRequiredSize", "publicEffects", "interferenceLock", "winner", "terminalReason", "publicLog"];
+  const keys = ["schemaVersion", "engineVersion", "mode", "matchId", "status", "version", "turn", "active", "phase", "regions", "pending", "reserved", "preparedOutgoing", "playableBounds", "trophyTargetMacros", "requiredSize", "rolledSize", "baseRequiredSize", "publicEffects", "interferenceLock", "winner", "terminalReason", "lastPublicTrace", "publicLog"];
   return Object.freeze(Object.fromEntries(keys.map((key) => [key, clone(key === "trophyTargetMacros"
     ? (state.trophyTargetMacros || playableMacroIndices(state.playableBounds))
-    : state[key])] )));
+    : key === "lastPublicTrace" ? (state.lastPublicTrace ?? null) : state[key])] )));
 }
 
 function projectStandardPrivateState(state, seat) {
@@ -2183,27 +2299,16 @@ function macroMicroCells(macro, bounds, microWidth) {
   return result;
 }
 
-function touchesExistingRegion(sourceMacros, regions, macroWidth) {
-  const occupied = new Set(Object.values(regions).flatMap((region) => region.sourceMacros || []));
-  return sourceMacros.some((macro) => {
-    const col = macro % macroWidth;
-    const neighbors = [macro - macroWidth, macro + macroWidth];
-    if (col > 0) neighbors.push(macro - 1);
-    if (col < macroWidth - 1) neighbors.push(macro + 1);
-    return neighbors.some((neighbor) => occupied.has(neighbor));
-  });
-}
-
 function hasLegalRegionOfSize(state, size) {
   if (!Number.isInteger(size) || size < 1) return false;
   const bounds = state.playableBounds;
   const width = bounds.macroWidth;
-  const occupied = new Set(Object.values(state.regions).flatMap((region) => region.sourceMacros || []));
+  const geometry = createRegionGeometryContext(state);
   const free = [];
   for (let row = bounds.minRow; row <= bounds.maxRow; row += 1) {
     for (let col = bounds.minCol; col <= bounds.maxCol; col += 1) {
       const macro = row * width + col;
-      if (!occupied.has(macro)) free.push(macro);
+      if (geometry.analyze([macro]).everyMacroHasFree) free.push(macro);
     }
   }
   if (free.length < size) return false;
@@ -2213,7 +2318,11 @@ function hasLegalRegionOfSize(state, size) {
     const signature = [...selected].sort((a, b) => a - b).join(",");
     if (seen.has(signature)) return false;
     seen.add(signature);
-    if (selected.size === size) return !occupied.size || touchesExistingRegion([...selected], state.regions, width);
+    if (selected.size === size) {
+      const candidate = geometry.analyze([...selected].sort((left, right) => left - right));
+      return candidate.everyMacroHasFree && candidate.connected
+        && (!Object.keys(state.regions).length || candidate.touchesExisting);
+    }
     for (const macro of frontier) {
       const nextSelected = new Set(selected).add(macro);
       const nextFrontier = new Set(frontier);
@@ -2263,13 +2372,13 @@ function createRegion(state, actor, payload = {}, rngStreams = {}) {
     return col >= bounds.minCol && col <= bounds.maxCol && row >= bounds.minRow && row <= bounds.maxRow;
   }), "OUTSIDE_PLAYABLE_BOUNDS");
   assertState(isConnected(sourceMacros, bounds.macroWidth), "REGION_NOT_CONNECTED");
-  const micro = prepared ? [...prepared.micro] : sourceMacros.flatMap((macro) => macroMicroCells(macro, bounds, state.microWidth));
+  const candidate = prepared ? null : createRegionGeometryContext(state).analyze(sourceMacros);
+  const micro = prepared ? [...prepared.micro] : [...candidate.micro];
+  if (!prepared) assertState(candidate.everyMacroHasFree, "REGION_OVERLAP");
   assertState(isConnected(micro, state.microWidth), "REGION_NOT_CONNECTED");
   if (Object.keys(state.regions).length) {
-    assertState(prepared ? geometryTouchesExisting(micro, state.regions, state.microWidth) : touchesExistingRegion(sourceMacros, state.regions, bounds.macroWidth), "REGION_NOT_ADJACENT");
+    assertState(prepared ? geometryTouchesExisting(micro, state.regions, state.microWidth) : candidate.touchesExisting, "REGION_NOT_ADJACENT");
   }
-  const occupied = new Set(Object.values(state.regions).flatMap((region) => region.micro || []));
-  if (!prepared) assertState(micro.every((cell) => !occupied.has(cell)), "REGION_OVERLAP");
   const idNumber = Math.max(0, ...Object.keys(state.regions).map(regionNumber)) + 1;
   const id = `R${idNumber}`;
   const next = clone(state);
@@ -2289,6 +2398,15 @@ function createRegion(state, actor, payload = {}, rngStreams = {}) {
     .map((regionId) => next.regions[regionId])
     .filter((region) => region && !region.isPending && region.color)
     .map((region) => region.color)).size;
+  next.lastPublicTrace = {
+    eventId: `${next.matchId}:${next.version}`,
+    version: next.version,
+    type: "CREATE_REGION",
+    actor,
+    regionId: id,
+    sourceMacroCount: sourceMacros.length,
+    contactColorCount,
+  };
   return { ok: true, code: "OK", state: next, regionId: id, contactColorCount };
 }
 
@@ -2362,6 +2480,14 @@ function colorRegion(state, actor, payload = {}, rngStreams = {}) {
     next.interferenceLock = false;
     applyCurseBacklashOnEnterColor(next, next.active, () => nextRandom(rngStreams, "skill-effect"));
     next.version += 1;
+    next.lastPublicTrace = {
+      eventId: `${next.matchId}:${next.version}`,
+      version: next.version,
+      type: "COLOR_REGION",
+      actor,
+      regionId: target.id,
+      color: target.color,
+    };
     next.publicLog.push(`Player ${actor} colored ${target.id}; split region ${returnedId} returned to Player ${next.active}.`);
     finishNoColorOnEntry(next, next.active);
     return { ok: true, code: "OK", state: next, returnedRegionId: returnedId };
@@ -2378,6 +2504,14 @@ function colorRegion(state, actor, payload = {}, rngStreams = {}) {
     next.terminalReason = "BOARD_LOCK";
   }
   next.version += 1;
+  next.lastPublicTrace = {
+    eventId: `${next.matchId}:${next.version}`,
+    version: next.version,
+    type: "COLOR_REGION",
+    actor,
+    regionId: target.id,
+    color: target.color,
+  };
   next.publicLog.push(`Player ${actor} colored ${target.id}.`);
   return { ok: true, code: "OK", state: next };
 }
@@ -2418,7 +2552,7 @@ function applyStandardAction({ state, actor, action, expectedVersion, rngStreams
     else if (action.type === "DECLARE_NO_COLOR") result = declareNoColor(state, actor);
     else if (action.type === "SURRENDER") result = surrender(state, actor);
     else {
-      return dispatchStandardSkillAction({
+      result = dispatchStandardSkillAction({
         state,
         actor,
         action,
@@ -2430,6 +2564,21 @@ function applyStandardAction({ state, actor, action, expectedVersion, rngStreams
         hasLegalRegionOfSize,
         bestLegalSize,
       });
+      if (result.ok) {
+        const next = clone(result.state);
+        next.lastPublicTrace = {
+          eventId: `${next.matchId}:${next.version}`,
+          version: next.version,
+          type: "USE_SKILL",
+          actor,
+        };
+        result = {
+          ...result,
+          state: next,
+          publicState: projectStandardPublicState(next),
+          privateState: projectStandardPrivateState(next, actor),
+        };
+      }
     }
     if (result.ok) {
       assertState(result.state.version === state.version + 1, "VERSION_INCREMENT_INVARIANT");

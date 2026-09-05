@@ -29,6 +29,7 @@ test("local alpha has a bundled offline entry point", () => {
   assert.doesNotMatch(html, /id="contactReveal"/);
   assert.doesNotMatch(`${html}\n${app}\n${bundle}`, /https?:\/\/|supabase|fetch\s*\(/i);
   assert.ok(bundle.length > app.length);
+  assert.match(bundle, /"standard\/standard-region-geometry\.js":function/);
 });
 
 test("formal Standard setup requires a complete owned two-per-category loadout before issuing start identities", () => {

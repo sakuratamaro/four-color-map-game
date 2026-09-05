@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <title>Four Color Map Game v5.0 Standard Online</title>
   <link rel="stylesheet" href="../online-v5/style.css">
-  <link rel="stylesheet" href="style.css?v=20260905-20">
+  <link rel="stylesheet" href="style.css?v=20260905-21">
   <link rel="stylesheet" href="debug-mode.css">
   <link rel="stylesheet" href="progression.css">
 </head>
@@ -290,6 +290,14 @@
         <div><strong id="turnGuideTitle"></strong><p id="turnGuideDetail"></p></div>
       </section>
       <canvas id="board" width="720" height="720" aria-label="Standardオンライン盤面"></canvas>
+      <section id="tacticalTrace" class="tactical-trace hidden" aria-labelledby="tacticalTraceTitle">
+        <div class="tactical-trace-heading"><span aria-hidden="true">↳</span><strong id="tacticalTraceTitle">直前の一手</strong></div>
+        <ol class="tactical-trace-flow">
+          <li><small>直前の手</small><span id="tacticalTraceAction"></span></li>
+          <li><small>盤面変化</small><span id="tacticalTraceChange"></span></li>
+          <li><small>次の判断</small><span id="tacticalTraceNext"></span></li>
+        </ol>
+      </section>
       <div id="regionControls" class="controls hidden">
         <span id="selectionCount"></span>
         <button id="clearSelection" class="ghost">選択解除</button>
@@ -319,7 +327,7 @@
           <div><h3>自分だけに見える対戦データ</h3><pre id="privateProjection"></pre></div>
         </div>
       </details>
-      <p class="muted small">基本操作はサーバーで判定されます。対戦中は、隣接色や合法色の答えを画面に表示しません。</p>
+      <p class="muted small">基本操作はサーバーで判定されます。エリアを確定する前は隣接色数や合法色の答えを表示せず、確定後の公開結果だけを振り返れます。</p>
     </section>
   </main>
   <div id="terminalOverlay" class="terminal-overlay hidden" aria-live="assertive">
@@ -347,12 +355,14 @@
       <p id="randomRevealDetail"></p>
     </div>
   </div>
-  <div id="contactReveal" class="contact-reveal hidden" role="status" aria-live="polite" aria-atomic="true">
+  <div id="contactReveal" class="contact-reveal hidden" aria-hidden="true">
     <div id="contactRevealCard" class="contact-reveal-card">
+      <div id="contactRevealSteps" class="contact-reveal-steps"></div>
       <p id="contactRevealTitle" class="contact-reveal-title"></p>
       <p id="contactRevealDetail" class="contact-reveal-detail"></p>
     </div>
   </div>
+  <p id="contactRevealAnnouncement" class="visually-hidden" role="status" aria-live="polite" aria-atomic="true"></p>
   <dialog id="skillInfoDialog" class="skill-info-dialog" aria-labelledby="skillInfoTitle">
     <form method="dialog">
       <div class="row between"><span class="info-mark" aria-hidden="true">ⓘ</span><button id="closeSkillInfo" class="ghost" type="button" aria-label="説明を閉じる">閉じる</button></div>
@@ -386,6 +396,6 @@
   <script src="standard-online-client.js?v=20260905-15"></script>
   <script src="standard-online-sync.js"></script>
   <script src="standard-online-skill-intents.js"></script>
-  <script type="module" src="app.js?v=20260905-20"></script>
+  <script type="module" src="app.js?v=20260905-21"></script>
 </body>
 </html>

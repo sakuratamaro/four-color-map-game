@@ -73,6 +73,10 @@ test("create and color use intent actions and increment version once each", () =
   assert.equal(created.state.turn, 2);
   assert.equal(created.state.regions.R1.micro.length, initial.requiredSize * 16);
   assert.equal(created.contactColorCount, 0);
+  assert.deepEqual(created.state.lastPublicTrace, {
+    eventId: `${initial.matchId}:1`, version: 1, type: "CREATE_REGION", actor: "A", regionId: "R1",
+    sourceMacroCount: initial.requiredSize, contactColorCount: 0,
+  });
   const color = created.state.basicPalettes.B[0];
   const rng = streams(145);
   const dieBefore = rng.die.snapshot();
@@ -83,6 +87,9 @@ test("create and color use intent actions and increment version once each", () =
   assert.equal(colored.state.active, "B");
   assert.equal(colored.state.requiredSize, colored.state.rolledSize);
   assert.equal(colored.state.baseRequiredSize, colored.state.rolledSize);
+  assert.deepEqual(colored.state.lastPublicTrace, {
+    eventId: `${initial.matchId}:2`, version: 2, type: "COLOR_REGION", actor: "B", regionId: "R1", color,
+  });
   assert.notEqual(rng.die.snapshot(), dieBefore);
 });
 
@@ -124,6 +131,9 @@ test("accepted region creation reports distinct public contact colors only after
   assert.equal(result.ok, true);
   assert.equal(result.contactColorCount, 2);
   assert.equal(Object.hasOwn(result.state, "contactColorCount"), false);
+  const publicState = match.projectStandardPublicState(result.state);
+  assert.equal(publicState.lastPublicTrace.contactColorCount, 2);
+  assert.equal(JSON.stringify(publicState).includes("basicPalettes"), false);
 });
 
 test("contact pressure tiers zero through four use fixed edge-contact oracles", () => {
@@ -328,15 +338,27 @@ test("illegal coloring loses without consuming the bonus charge", () => {
   const uses = base.bonusUsesRemaining.A;
   base.regions = {
     R1: { id: "R1", micro: [0], sourceMacros: [], controllers: ["B"], color, isPending: false },
-    R2: { id: "R2", micro: [1], sourceMacros: [], controllers: ["A"], color: null, isPending: true },
+    R2: { id: "R2", micro: [1], sourceMacros: [1], controllers: ["A"], color: null, isPending: true },
   };
   base.pending = "R2";
   base.phase = "COLOR";
-  const result = match.applyStandardAction({ state: base, actor: "A", action: { type: "COLOR_REGION", payload: { color } }, expectedVersion: 0 });
+  base.version = 1;
+  base.lastPublicTrace = { eventId: `${base.matchId}:1`, version: 1, type: "CREATE_REGION", actor: "B", regionId: "R2", sourceMacroCount: 1, contactColorCount: 1 };
+  const result = match.applyStandardAction({ state: base, actor: "A", action: { type: "COLOR_REGION", payload: { color } }, expectedVersion: 1 });
   assert.equal(result.ok, true);
   assert.equal(result.code, "ILLEGAL_COLOR");
   assert.equal(result.state.winner, "B");
   assert.equal(result.state.bonusUsesRemaining.A, uses);
+  assert.equal(result.state.lastPublicTrace.type, "CREATE_REGION");
+  assert.equal(JSON.stringify(result.state.lastPublicTrace).includes(color), false);
+});
+
+test("legacy states without public trace fields remain valid and project null traces", () => {
+  const legacy = create(461);
+  delete legacy.lastPublicTrace;
+  assert.equal(match.validateStandardState(legacy), true);
+  const projected = match.projectStandardPublicState(legacy);
+  assert.equal(projected.lastPublicTrace, null);
 });
 
 test("encode/decode preserves authoritative state and RNG snapshot", () => {
@@ -366,6 +388,12 @@ test("legal recolor is dispatched through USE_SKILL and consumes only skill-effe
   assert.equal(result.ok, true);
   assert.equal(result.state.version, 1);
   assert.equal(result.state.interferenceLock, true);
+  assert.deepEqual(result.state.lastPublicTrace, {
+    eventId: `${state.matchId}:1`, version: 1, type: "USE_SKILL", actor: "A",
+  });
+  assert.deepEqual(result.publicState.lastPublicTrace, result.state.lastPublicTrace);
+  assert.equal(JSON.stringify(result.publicState.lastPublicTrace).includes("legalRecolor"), false);
+  assert.equal(JSON.stringify(result.publicState.lastPublicTrace).includes("R1"), false);
   for (const [name, stream] of Object.entries(rng)) {
     assert.equal(stream.snapshot() === before[name], name !== "skill-effect", `${name} consumption`);
   }
@@ -392,6 +420,19 @@ test("validator rejects overlapping authoritative regions", () => {
     R2: { id: "R2", micro: [0], color: "blue", isPending: false },
   };
   assert.throws(() => match.validateStandardState(state), (error) => error.code === "INVALID_REGION_GEOMETRY");
+});
+
+test("validator rejects a forged current public trace while allowing a historical trace during skill validation", () => {
+  const forged = create(500);
+  forged.version = 1;
+  forged.lastPublicTrace = { eventId: `${forged.matchId}:1`, version: 1, type: "COLOR_REGION", actor: "A", regionId: "R999", color: "red" };
+  assert.throws(() => match.validateStandardState(forged), (error) => error.code === "INVALID_PUBLIC_TRACE");
+
+  const historical = create(5001);
+  historical.version = 2;
+  historical.regions = { R1: { id: "R1", micro: [48], sourceMacros: [], controllers: ["A"], color: "blue", isPending: false } };
+  historical.lastPublicTrace = { eventId: `${historical.matchId}:1`, version: 1, type: "COLOR_REGION", actor: "A", regionId: "R1", color: "red" };
+  assert.equal(match.validateStandardState(historical), true);
 });
 
 test("validator rejects colored, multiple, and mismatched pending regions", () => {

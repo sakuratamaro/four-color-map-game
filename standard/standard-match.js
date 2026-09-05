@@ -131,6 +131,7 @@ function createStandardMatch(config = {}, rngStreams = {}) {
     skillsUsed: { A: 0, B: 0 },
     winner: null,
     terminalReason: null,
+    lastPublicTrace: null,
     publicLog: ["Standard match created."],
   };
   validateStandardState(state);
@@ -168,6 +169,33 @@ function validateStandardState(state) {
   assertState(Boolean(state.hands) && Boolean(state.loadouts), "INVALID_CARDS");
   assertState(typeof state.interferenceLock === "boolean", "INVALID_INTERFERENCE_LOCK");
   assertState(Array.isArray(state.publicLog), "INVALID_PUBLIC_LOG");
+  if (state.lastPublicTrace !== undefined && state.lastPublicTrace !== null) {
+    const trace = state.lastPublicTrace;
+    const commonKeys = ["actor", "eventId", "type", "version"];
+    const typeKeys = trace.type === "CREATE_REGION"
+      ? ["contactColorCount", "regionId", "sourceMacroCount"]
+      : trace.type === "COLOR_REGION" ? ["color", "regionId"] : trace.type === "USE_SKILL" ? [] : ["invalid"];
+    const expectedKeys = [...commonKeys, ...typeKeys].sort();
+    assertState(JSON.stringify(Object.keys(trace).sort()) === JSON.stringify(expectedKeys), "INVALID_PUBLIC_TRACE");
+    assertState((trace.actor === "A" || trace.actor === "B")
+      && Number.isInteger(trace.version) && trace.version >= 1 && trace.version <= state.version
+      && trace.eventId === `${state.matchId}:${trace.version}`, "INVALID_PUBLIC_TRACE");
+    if (trace.type === "CREATE_REGION") {
+      const region = state.regions?.[trace.regionId];
+      const committedContactCount = region ? new Set(adjacentRegionIds(state, trace.regionId)
+        .map((regionId) => state.regions[regionId])
+        .filter((entry) => entry && !entry.isPending && entry.color)
+        .map((entry) => entry.color)).size : -1;
+      assertState(typeof trace.regionId === "string" && trace.regionId.length > 0
+        && Number.isInteger(trace.sourceMacroCount) && trace.sourceMacroCount >= 1 && trace.sourceMacroCount <= 5
+        && Number.isInteger(trace.contactColorCount) && trace.contactColorCount >= 0 && trace.contactColorCount <= 4, "INVALID_PUBLIC_TRACE");
+      if (trace.version === state.version) assertState(Boolean(region) && region.sourceMacros?.length === trace.sourceMacroCount
+        && committedContactCount === trace.contactColorCount, "INVALID_PUBLIC_TRACE");
+    } else if (trace.type === "COLOR_REGION") {
+      assertState(typeof trace.regionId === "string" && trace.regionId.length > 0 && COLORS.includes(trace.color), "INVALID_PUBLIC_TRACE");
+      if (trace.version === state.version) assertState(state.regions?.[trace.regionId]?.color === trace.color, "INVALID_PUBLIC_TRACE");
+    }
+  }
   if (state.preparedOutgoing !== null && state.preparedOutgoing !== undefined) {
     const prepared = state.preparedOutgoing;
     assertState((prepared.actor === "A" || prepared.actor === "B") && Array.isArray(prepared.sourceMacros)
@@ -243,10 +271,10 @@ function validateStandardState(state) {
 
 function projectStandardPublicState(state) {
   validateStandardState(state);
-  const keys = ["schemaVersion", "engineVersion", "mode", "matchId", "status", "version", "turn", "active", "phase", "regions", "pending", "reserved", "preparedOutgoing", "playableBounds", "trophyTargetMacros", "requiredSize", "rolledSize", "baseRequiredSize", "publicEffects", "interferenceLock", "winner", "terminalReason", "publicLog"];
+  const keys = ["schemaVersion", "engineVersion", "mode", "matchId", "status", "version", "turn", "active", "phase", "regions", "pending", "reserved", "preparedOutgoing", "playableBounds", "trophyTargetMacros", "requiredSize", "rolledSize", "baseRequiredSize", "publicEffects", "interferenceLock", "winner", "terminalReason", "lastPublicTrace", "publicLog"];
   return Object.freeze(Object.fromEntries(keys.map((key) => [key, clone(key === "trophyTargetMacros"
     ? (state.trophyTargetMacros || playableMacroIndices(state.playableBounds))
-    : state[key])] )));
+    : key === "lastPublicTrace" ? (state.lastPublicTrace ?? null) : state[key])] )));
 }
 
 function projectStandardPrivateState(state, seat) {
@@ -491,6 +519,15 @@ function createRegion(state, actor, payload = {}, rngStreams = {}) {
     .map((regionId) => next.regions[regionId])
     .filter((region) => region && !region.isPending && region.color)
     .map((region) => region.color)).size;
+  next.lastPublicTrace = {
+    eventId: `${next.matchId}:${next.version}`,
+    version: next.version,
+    type: "CREATE_REGION",
+    actor,
+    regionId: id,
+    sourceMacroCount: sourceMacros.length,
+    contactColorCount,
+  };
   return { ok: true, code: "OK", state: next, regionId: id, contactColorCount };
 }
 
@@ -564,6 +601,14 @@ function colorRegion(state, actor, payload = {}, rngStreams = {}) {
     next.interferenceLock = false;
     applyCurseBacklashOnEnterColor(next, next.active, () => nextRandom(rngStreams, "skill-effect"));
     next.version += 1;
+    next.lastPublicTrace = {
+      eventId: `${next.matchId}:${next.version}`,
+      version: next.version,
+      type: "COLOR_REGION",
+      actor,
+      regionId: target.id,
+      color: target.color,
+    };
     next.publicLog.push(`Player ${actor} colored ${target.id}; split region ${returnedId} returned to Player ${next.active}.`);
     finishNoColorOnEntry(next, next.active);
     return { ok: true, code: "OK", state: next, returnedRegionId: returnedId };
@@ -580,6 +625,14 @@ function colorRegion(state, actor, payload = {}, rngStreams = {}) {
     next.terminalReason = "BOARD_LOCK";
   }
   next.version += 1;
+  next.lastPublicTrace = {
+    eventId: `${next.matchId}:${next.version}`,
+    version: next.version,
+    type: "COLOR_REGION",
+    actor,
+    regionId: target.id,
+    color: target.color,
+  };
   next.publicLog.push(`Player ${actor} colored ${target.id}.`);
   return { ok: true, code: "OK", state: next };
 }
@@ -620,7 +673,7 @@ function applyStandardAction({ state, actor, action, expectedVersion, rngStreams
     else if (action.type === "DECLARE_NO_COLOR") result = declareNoColor(state, actor);
     else if (action.type === "SURRENDER") result = surrender(state, actor);
     else {
-      return dispatchStandardSkillAction({
+      result = dispatchStandardSkillAction({
         state,
         actor,
         action,
@@ -632,6 +685,21 @@ function applyStandardAction({ state, actor, action, expectedVersion, rngStreams
         hasLegalRegionOfSize,
         bestLegalSize,
       });
+      if (result.ok) {
+        const next = clone(result.state);
+        next.lastPublicTrace = {
+          eventId: `${next.matchId}:${next.version}`,
+          version: next.version,
+          type: "USE_SKILL",
+          actor,
+        };
+        result = {
+          ...result,
+          state: next,
+          publicState: projectStandardPublicState(next),
+          privateState: projectStandardPrivateState(next, actor),
+        };
+      }
     }
     if (result.ok) {
       assertState(result.state.version === state.version + 1, "VERSION_INCREMENT_INVARIANT");

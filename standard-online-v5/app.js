@@ -228,6 +228,8 @@ let targetDraft = null;
 let randomRevealTimer = null;
 let contactRevealTimer = null;
 let contactPresentationGeneration = 0;
+let observedTraceScope = null;
+let observedTraceEventId = null;
 let quizClockTimer = null;
 let quizMathResizeObserver = null;
 let quizTimeoutQueued = false;
@@ -543,6 +545,75 @@ function playerName(seat) {
   return roomModel?.members?.find((member) => member.seat === seat)?.display_name || `Player ${seat}`;
 }
 
+function publicActorLabel(seat) {
+  if (seat === roomModel?.view?.seat) return "あなた";
+  if (roomModel?.room?.opponent_kind === "cpu" && seat === "B") return CPU_NAMES[roomModel.room.cpu_character_id] || "CPU";
+  return "相手";
+}
+
+function validPublicTrace(state) {
+  const trace = state?.lastPublicTrace;
+  if (!trace || !["CREATE_REGION", "COLOR_REGION", "USE_SKILL"].includes(trace.type)
+    || !["A", "B"].includes(trace.actor) || !Number.isSafeInteger(trace.version) || trace.version !== state.version
+    || trace.eventId !== `${state.matchId}:${trace.version}`) return null;
+  if (trace.type === "CREATE_REGION") {
+    return typeof trace.regionId === "string"
+      && Number.isSafeInteger(trace.sourceMacroCount) && trace.sourceMacroCount >= 1 && trace.sourceMacroCount <= 5
+      && Number.isSafeInteger(trace.contactColorCount) && trace.contactColorCount >= 0 && trace.contactColorCount <= 4 ? trace : null;
+  }
+  if (trace.type === "COLOR_REGION") return typeof trace.regionId === "string" && skillIntents.COLORS.includes(trace.color) ? trace : null;
+  return trace;
+}
+
+function nextPublicJudgment(state) {
+  const actor = publicActorLabel(state.active);
+  if (state.phase === "COLOR") return `${actor}が、隣接色と違う持ち色を選ぶ`;
+  if (["CREATE_FIRST", "WORK"].includes(state.phase)) return `${actor}が、次に渡すエリアを作る`;
+  return "対戦結果を確認する";
+}
+
+function renderTacticalTrace(state) {
+  const trace = validPublicTrace(state);
+  const visible = state?.status === "ACTIVE" && Boolean(trace);
+  show("tacticalTrace", visible);
+  if (!visible) return;
+  const actor = publicActorLabel(trace.actor);
+  if (trace.type === "CREATE_REGION") {
+    $("tacticalTraceAction").textContent = `${actor}が${trace.sourceMacroCount}マスを渡した`;
+    $("tacticalTraceChange").textContent = trace.contactColorCount === 0
+      ? "受け取る灰色エリアは、色のついた領域と接していない"
+      : `受け取る灰色エリアは、${trace.contactColorCount}色に接している`;
+  } else if (trace.type === "COLOR_REGION") {
+    const color = COLOR_JA[trace.color] || trace.color;
+    $("tacticalTraceAction").textContent = `${actor}が${color}で塗った`;
+    $("tacticalTraceChange").textContent = `受け取ったエリアが${color}の領域になった`;
+  } else {
+    $("tacticalTraceAction").textContent = `${actor}がスキルを使った`;
+    $("tacticalTraceChange").textContent = "スキルの公開結果が盤面と対戦状態に反映された";
+  }
+  $("tacticalTraceNext").textContent = nextPublicJudgment(state);
+}
+
+function observeCommittedContact(state) {
+  if (!state || !roomModel?.room?.id) {
+    if (observedTraceScope !== null) clearContactReveal();
+    observedTraceScope = null;
+    observedTraceEventId = null;
+    return;
+  }
+  const scope = `${roomModel.room.id}:${state.matchId}`;
+  const trace = validPublicTrace(state);
+  if (scope !== observedTraceScope) {
+    clearContactReveal();
+    observedTraceScope = scope;
+    observedTraceEventId = trace?.eventId || null;
+    return;
+  }
+  if (!trace || trace.eventId === observedTraceEventId) return;
+  observedTraceEventId = trace.eventId;
+  if (state.status === "ACTIVE" && trace.type === "CREATE_REGION" && trace.contactColorCount >= 2) showContactReveal(trace.contactColorCount);
+}
+
 function terminalReasonText(reason, winnerSeat) {
   const loserSeat = winnerSeat === "A" ? "B" : "A";
   const winner = playerName(winnerSeat);
@@ -588,7 +659,10 @@ function colorList(colors) {
 function terminalReasonDetail(state, privateState) {
   const mySeat = roomModel?.view?.seat;
   const loserSeat = state?.winner === "A" ? "B" : "A";
-  const base = terminalReasonText(state?.terminalReason, state?.winner);
+  const terminalText = terminalReasonText(state?.terminalReason, state?.winner);
+  const contact = state?.lastPublicTrace;
+  const base = contact?.type === "CREATE_REGION" && contact.contactColorCount === 4
+    ? `四色包囲（2 → 3 → 4色接触）\n${terminalText}` : terminalText;
   if (mySeat !== loserSeat || !["NO_LEGAL_COLOR", "SEALED_OUT"].includes(state?.terminalReason)) return base;
   const choices = skillIntents.availableColorChoices(privateState);
   const sealed = choices.filter((color) => isColorSealed(state, mySeat, color));
@@ -615,34 +689,62 @@ function renderPersistentTerminalResult(state, privateState) {
   if ($("terminalOutcomeReason").textContent !== reason) $("terminalOutcomeReason").textContent = reason;
 }
 
-function clearContactReveal() {
+function clearContactReveal({ clearAnnouncement = true } = {}) {
   contactPresentationGeneration += 1;
   clearTimeout(contactRevealTimer);
   contactRevealTimer = null;
   show("contactReveal", false);
   $("contactRevealCard").className = "contact-reveal-card";
+  $("contactRevealSteps").replaceChildren();
   $("contactRevealTitle").textContent = "";
   $("contactRevealDetail").textContent = "";
+  if (clearAnnouncement) $("contactRevealAnnouncement").textContent = "";
 }
 
 function showContactReveal(contactColorCount) {
   const reveals = {
-    2: { title: "二色接触！", detail: "相手の選択肢へ圧力", tone: "contact-pressure-2" },
-    3: { title: "三色圧力!!", detail: "強いエリア工作", tone: "contact-pressure-3" },
+    2: { title: "二色接触！", detail: "2色に接する灰色エリア", tone: "contact-pressure-2" },
+    3: { title: "三色圧力!!", detail: "3色に接する強いエリア", tone: "contact-pressure-3" },
     4: { title: "四色包囲!!!", detail: "全色が一点へ集中", tone: "contact-pressure-4 epic" },
   };
-  const reveal = reveals[contactColorCount];
-  if (!reveal) return;
+  if (!reveals[contactColorCount]) return;
   const generation = ++contactPresentationGeneration;
   clearTimeout(contactRevealTimer);
-  $("contactRevealCard").className = `contact-reveal-card ${reveal.tone}`;
-  $("contactRevealTitle").textContent = reveal.title;
-  $("contactRevealDetail").textContent = reveal.detail;
-  show("contactReveal", true);
-  contactRevealTimer = setTimeout(() => {
+  $("contactRevealAnnouncement").textContent = "";
+  const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const stages = reducedMotion ? [contactColorCount] : Array.from({ length: contactColorCount - 1 }, (_, index) => index + 2);
+  const presentStage = (stageIndex) => {
     if (generation !== contactPresentationGeneration) return;
-    clearContactReveal();
-  }, 900);
+    const stage = stages[stageIndex];
+    const reveal = reveals[stage];
+    const steps = [];
+    for (let value = 2; value <= stage; value += 1) {
+      if (steps.length) { const arrow = document.createElement("span"); arrow.className = "contact-reveal-arrow"; arrow.textContent = "→"; steps.push(arrow); }
+      const badge = document.createElement("strong"); badge.className = `contact-reveal-step contact-step-${value}`; badge.textContent = String(value); steps.push(badge);
+    }
+    $("contactRevealSteps").replaceChildren(...steps);
+    $("contactRevealCard").className = `contact-reveal-card ${reveal.tone}`;
+    $("contactRevealTitle").textContent = reveal.title;
+    $("contactRevealDetail").textContent = reveal.detail;
+    show("contactReveal", true);
+    if (stageIndex < stages.length - 1) {
+      contactRevealTimer = setTimeout(() => presentStage(stageIndex + 1), 200);
+      return;
+    }
+    requestAnimationFrame(() => {
+      if (generation === contactPresentationGeneration) $("contactRevealAnnouncement").textContent = `${reveal.title} ${reveal.detail}`;
+    });
+    contactRevealTimer = setTimeout(() => {
+      if (generation !== contactPresentationGeneration) return;
+      contactRevealTimer = null;
+      show("contactReveal", false);
+      $("contactRevealCard").className = "contact-reveal-card";
+      $("contactRevealSteps").replaceChildren();
+      $("contactRevealTitle").textContent = "";
+      $("contactRevealDetail").textContent = "";
+    }, 700);
+  };
+  presentStage(0);
 }
 
 function renderTerminalResult(state) {
@@ -2109,6 +2211,8 @@ function render() {
   show("matchCard", !cpuDraftOwnsRoomlessEntry && ["playing", "finished"].includes(roomModel?.room?.status));
   show("rematchControls", !cpuDraftOwnsRoomlessEntry && roomModel?.room?.status === "finished");
   if (!snapshot.roomId) {
+    observeCommittedContact(null);
+    show("tacticalTrace", false);
     show("abandonRoom", false);
     show("abandonRoomHint", false);
     if (setupVisible) renderLoadoutSelectionState();
@@ -2116,6 +2220,8 @@ function render() {
     return;
   }
   if (roomStatePending) {
+    observeCommittedContact(null);
+    show("tacticalTrace", false);
     $("shownCode").textContent = "確認中";
     $("roomStatus").textContent = "対戦状態を確認中";
     $("members").replaceChildren();
@@ -2189,12 +2295,16 @@ function render() {
     $("privateProjection").textContent = safeJson(privateState);
     renderRandomSummary(publicState, privateState);
     revealRandomSetup(publicState, privateState);
+    observeCommittedContact(publicState);
+    renderTacticalTrace(publicState);
     renderBoard(publicState);
     renderBasicActions(publicState, privateState);
     renderSkills(publicState, privateState);
     renderPersistentTerminalResult(publicState, privateState);
     renderTerminalResult(publicState);
   } else {
+    observeCommittedContact(null);
+    show("tacticalTrace", false);
     show("terminalSummary", false);
     renderTerminalResult(null);
   }
@@ -2313,37 +2423,6 @@ function renderBoard(state) {
   }
 }
 
-function selectedContactColorCount(state, macros = selectedMacros) {
-  const macroWidth = Number(state?.playableBounds?.macroWidth || 0);
-  const microScale = Number(state?.playableBounds?.microScale || 0);
-  if (!macroWidth || !microScale || !macros.size) return 0;
-  const microWidth = macroWidth * microScale;
-  const selectedMicro = new Set();
-  for (const macro of macros) {
-    const macroCol = macro % macroWidth;
-    const macroRow = Math.floor(macro / macroWidth);
-    for (let dy = 0; dy < microScale; dy += 1) {
-      for (let dx = 0; dx < microScale; dx += 1) selectedMicro.add((macroRow * microScale + dy) * microWidth + macroCol * microScale + dx);
-    }
-  }
-  const coloredMicro = new Map();
-  for (const region of Object.values(state.regions || {})) {
-    if (!region?.color) continue;
-    for (const micro of region.micro || []) coloredMicro.set(Number(micro), region.color);
-  }
-  const colors = new Set();
-  for (const micro of selectedMicro) {
-    const x = micro % microWidth;
-    const neighbors = [micro - microWidth, micro + microWidth];
-    if (x > 0) neighbors.push(micro - 1);
-    if (x < microWidth - 1) neighbors.push(micro + 1);
-    for (const neighbor of neighbors) {
-      if (!selectedMicro.has(neighbor) && coloredMicro.has(neighbor)) colors.add(coloredMicro.get(neighbor));
-    }
-  }
-  return colors.size;
-}
-
 function phaseLabelFor(state, seat, cpuRoom) {
   if (state.status === "FINISHED" || state.phase === "GAME_OVER") return "対戦終了";
   if (state.active === seat) return PHASE_LABEL[state.phase] || "あなたの手番です";
@@ -2439,10 +2518,8 @@ function boardPointer(event) {
   const macro = row * width + col;
   if (selectedMacros.has(macro)) {
     selectedMacros.delete(macro);
-    clearContactReveal();
   } else if (selectedMacros.size < state.requiredSize) {
     selectedMacros.add(macro);
-    if (!skillGeometry && selectedMacros.size === state.requiredSize) showContactReveal(selectedContactColorCount(state));
   }
   render();
 }

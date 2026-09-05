@@ -10,6 +10,7 @@ const ids = [
   "standard/standard-skill-registry.js",
   "standard/standard-skill-handlers.js",
   "standard/standard-skill-dispatcher.js",
+  "standard/standard-region-geometry.js",
   "standard/standard-match.js",
   "standard/standard-save.js",
   "standard/standard-root-transaction.js",

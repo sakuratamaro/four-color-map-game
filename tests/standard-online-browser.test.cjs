@@ -2469,3 +2469,144 @@ test("actual Edge explains private random setup and every visible skill without 
     assert.equal(await page.locator("#skillInfoDialog").evaluate((node) => node.open), false);
   });
 });
+
+test("actual browser presents a committed contact cascade once and keeps a public tactical trace", { timeout: 120000 }, async () => {
+  await withPage("playing", async (page) => {
+    await page.evaluate(() => {
+      globalThis.__contactEvidence = { stages: [], announcements: [], startedAt: 0, hiddenAt: 0 };
+      const evidence = globalThis.__contactEvidence;
+      const reveal = document.querySelector("#contactReveal");
+      const title = document.querySelector("#contactRevealTitle");
+      const announcement = document.querySelector("#contactRevealAnnouncement");
+      let lastTitle = "";
+      const recordVisual = () => {
+        if (!reveal.classList.contains("hidden") && title.textContent && title.textContent !== lastTitle) {
+          if (!evidence.startedAt) evidence.startedAt = performance.now();
+          lastTitle = title.textContent;
+          evidence.stages.push({ title: title.textContent, at: performance.now() });
+        }
+        if (reveal.classList.contains("hidden") && evidence.startedAt) evidence.hiddenAt = performance.now();
+      };
+      new MutationObserver(recordVisual).observe(reveal, { subtree: true, childList: true, attributes: true, characterData: true });
+      new MutationObserver(() => {
+        if (announcement.textContent) evidence.announcements.push(announcement.textContent);
+      }).observe(announcement, { childList: true, characterData: true });
+    });
+    await page.evaluate(() => {
+      const runtime = globalThis.__standardOnlineRuntime;
+      const state = runtime.room.public_state;
+      const version = 10;
+      const matchId = state.matchId;
+      runtime.room = { ...runtime.room, version, public_state: {
+        ...state, version, turn: 4, active: "B", phase: "COLOR", pending: "R1",
+        regions: { R1: { id: "R1", micro: [5], sourceMacros: [5], controllers: ["A"], color: null, isPending: true } },
+        lastPublicTrace: { eventId: `${matchId}:${version}`, version, type: "CREATE_REGION", actor: "A", regionId: "R1", sourceMacroCount: 1, contactColorCount: 3 },
+      } };
+      runtime.onInvalidate?.({});
+    });
+    await page.locator("#contactRevealTitle").filter({ hasText: "三色圧力" }).waitFor({ timeout: 5000 });
+    assert.equal(await page.locator("#tacticalTrace").isVisible(), true);
+    assert.match(await page.locator("#tacticalTraceAction").textContent(), /あなたが1マスを渡した/);
+    assert.match(await page.locator("#tacticalTraceChange").textContent(), /3色に接している/);
+    assert.match(await page.locator("#tacticalTraceNext").textContent(), /相手が、隣接色と違う持ち色を選ぶ/);
+    const box = await page.locator("#contactRevealCard").boundingBox();
+    assert.ok(box && box.x >= 0 && box.y >= 0 && box.x + box.width <= 390 && box.y + box.height <= 844);
+    const contactIntercepted = await page.evaluate(() => {
+      const hit = document.elementFromPoint(innerWidth / 2, innerHeight / 2);
+      return document.querySelector("#contactReveal").contains(hit);
+    });
+    assert.equal(contactIntercepted, false);
+    await page.locator("#contactReveal").waitFor({ state: "hidden", timeout: 5000 });
+    const first = await page.evaluate(() => structuredClone(globalThis.__contactEvidence));
+    assert.deepEqual(first.stages.map((entry) => entry.title), ["二色接触！", "三色圧力!!"]);
+    assert.deepEqual(first.announcements, ["三色圧力!! 3色に接する強いエリア"]);
+    assert.ok(first.hiddenAt - first.startedAt < 1500, `cascade lasted ${first.hiddenAt - first.startedAt}ms`);
+    await page.evaluate(() => globalThis.__standardOnlineRuntime.onInvalidate?.({}));
+    await page.waitForTimeout(350);
+    assert.equal(await page.evaluate(() => globalThis.__contactEvidence.stages.length), 2);
+    assert.equal(await page.locator("#contactReveal").isHidden(), true);
+    await page.evaluate(() => {
+      const runtime = globalThis.__standardOnlineRuntime;
+      const version = 11;
+      const matchId = runtime.room.public_state.matchId;
+      runtime.room = { ...runtime.room, version, public_state: {
+        ...runtime.room.public_state, version, active: "B", phase: "WORK", pending: null,
+        regions: { R1: { ...runtime.room.public_state.regions.R1, color: "green", isPending: false } },
+        lastPublicTrace: { eventId: `${matchId}:${version}`, version, type: "COLOR_REGION", actor: "B", regionId: "R1", color: "green" },
+      } };
+      runtime.onInvalidate?.({});
+    });
+    await page.waitForFunction(() => document.querySelector("#tacticalTraceAction")?.textContent === "相手が緑で塗った");
+    assert.match(await page.locator("#tacticalTraceChange").textContent(), /受け取ったエリアが緑の領域になった/);
+    assert.equal(await page.evaluate(() => globalThis.__contactEvidence.stages.length), 2);
+    await page.evaluate(() => {
+      const runtime = globalThis.__standardOnlineRuntime;
+      const version = 12;
+      const matchId = runtime.room.public_state.matchId;
+      runtime.room = { ...runtime.room, version, public_state: {
+        ...runtime.room.public_state, version,
+        lastPublicTrace: { eventId: `${matchId}:${version}`, version, type: "USE_SKILL", actor: "B" },
+      } };
+      runtime.onInvalidate?.({});
+    });
+    await page.waitForFunction(() => document.querySelector("#tacticalTraceAction")?.textContent === "相手がスキルを使った");
+    assert.match(await page.locator("#tacticalTraceChange").textContent(), /公開結果が盤面と対戦状態に反映された/);
+    assert.equal(await page.evaluate(() => globalThis.__contactEvidence.stages.length), 2);
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+  }, { viewport: { width: 390, height: 844 } });
+});
+
+test("actual browser reduced motion skips intermediate contact stages and terminal UI wins", { timeout: 120000 }, async () => {
+  await withPage("playing", async (page) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.evaluate(() => {
+      globalThis.__reducedContactTitles = [];
+      const reveal = document.querySelector("#contactReveal");
+      const title = document.querySelector("#contactRevealTitle");
+      let prior = "";
+      new MutationObserver(() => {
+        if (!reveal.classList.contains("hidden") && title.textContent && title.textContent !== prior) {
+          prior = title.textContent;
+          globalThis.__reducedContactTitles.push(prior);
+        }
+      }).observe(reveal, { subtree: true, childList: true, attributes: true, characterData: true });
+      const runtime = globalThis.__standardOnlineRuntime;
+      const state = runtime.room.public_state;
+      const version = 10;
+      const matchId = state.matchId;
+      runtime.room = { ...runtime.room, version, public_state: {
+        ...state, version, active: "B", phase: "COLOR", pending: "R1",
+        regions: { R1: { id: "R1", micro: [5], sourceMacros: [5], controllers: ["A"], color: null, isPending: true } },
+        lastPublicTrace: { eventId: `${matchId}:${version}`, version, type: "CREATE_REGION", actor: "A", regionId: "R1", sourceMacroCount: 1, contactColorCount: 3 },
+      } };
+      runtime.onInvalidate?.({});
+    });
+    await page.locator("#contactRevealTitle").filter({ hasText: "三色圧力" }).waitFor({ timeout: 5000 });
+    const box = await page.locator("#contactRevealCard").boundingBox();
+    assert.ok(box && box.x >= 0 && box.y >= 0 && box.x + box.width <= 980 && box.y + box.height <= 844);
+    assert.equal(await page.locator("#contactRevealAnnouncement").textContent(), "三色圧力!! 3色に接する強いエリア");
+    await page.waitForTimeout(300);
+    assert.deepEqual(await page.evaluate(() => globalThis.__reducedContactTitles), ["三色圧力!!"]);
+    const motion = await page.locator("#contactRevealCard").evaluate((node) => {
+      const style = getComputedStyle(node);
+      return { animation: style.animationName, transition: style.transitionDuration };
+    });
+    assert.equal(motion.animation, "none");
+    assert.equal(motion.transition, "0s");
+    await page.evaluate(() => {
+      const runtime = globalThis.__standardOnlineRuntime;
+      const version = 11;
+      const matchId = runtime.room.public_state.matchId;
+      runtime.room = { ...runtime.room, status: "finished", version, winner_seat: "A", public_state: {
+        ...runtime.room.public_state, status: "FINISHED", phase: "GAME_OVER", version, winner: "A", terminalReason: "NO_LEGAL_COLOR",
+        lastPublicTrace: { eventId: `${matchId}:${version}`, version, type: "CREATE_REGION", actor: "A", regionId: "R2", sourceMacroCount: 1, contactColorCount: 4 },
+      } };
+      runtime.onInvalidate?.({});
+    });
+    await page.locator("#terminalOverlay").waitFor({ state: "visible", timeout: 5000 });
+    assert.match(await page.locator("#terminalReasonText").textContent(), /四色包囲（2 → 3 → 4色接触）/);
+    assert.equal(await page.locator("#contactReveal").isHidden(), true);
+    assert.equal(await page.locator("#tacticalTrace").isHidden(), true);
+    assert.equal(await page.locator("#contactRevealAnnouncement").textContent(), "");
+  }, { viewport: { width: 980, height: 844 } });
+});
