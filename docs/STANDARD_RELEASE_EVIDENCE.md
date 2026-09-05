@@ -22,7 +22,7 @@
 | Dashboard Advisor・使用量baseline | BLOCKED | 変更前baselineは取得不能。22:55 JSTの現況はHealthyだがHealth Advisorにinfra alert 2件。Security指摘なし、Performance error/warning 0 | 24時間後に同じ指標とRealtime負荷を再採取 |
 | migration 006–013本番適用＋status正規化 | VERIFIED | 8本に加え`202609050001`を個別実行。status関数の保護契約を全項目確認し、C canary 210/210合格 | 実ブラウザと二端末最終受入 |
 | Edge Function更新 | VERIFIED | deployment 8、JWT検証ON。2026-09-05の`live-standard-edge-canary.mjs --confirm-live`は6/6合格 | 公開UI経由の完全canary |
-| 即時Standard CPU開始 | CANDIDATE_VERIFIED | migration `202609050002`とEdge deployment 9。候補`cc96350`、DB 47項目、Edge基本6/6、即時CPU 7/7、Windows run `33931963065`のChrome/Edge合格 | Pages反映後、公開UIから6枚準備へ入ることを確認 |
+| 即時Standard CPU開始 | PUBLIC_VERIFIED | migration `202609050002`とEdge deployment 9。製品`cc96350`、公開`a4c6490`、DB 47項目、Edge基本6/6、即時CPU 7/7、Windows run `33931963065`、Pages run `33932159043`合格。公開UIでCPU初手まで確認 | 物理端末で一試合完走・再読込・同じCPUとの再戦を確認 |
 | GitHub main・Pages更新 | VERIFIED | 公開製品基点を`dfbec10`へforceなしfast-forward。Pages run `33924181589`成功、公開markerとpreflight合格。後続main更新は台帳のみ | 二端末受入後に最終状態を記録 |
 | 合言葉対戦canary | VERIFIED | deployment 8で`live-standard-runbook-a-canary.mjs --confirm-live` 43/43合格 | 実ブラウザ再読込と二端末最終受入 |
 | 経済・進行・見た目canary | VERIFIED | deployment 8でRunbook B 93/93合格 | 実ブラウザで報酬演出と操作感を確認 |
@@ -99,6 +99,8 @@
 - Edge deployment 9へ`cpu-start`を追加した。公開APIで基本境界6/6に続き、作成・lost-response再送・入力変更拒否・snapshot上のCPU身元を7/7確認した。
 - ローカルは関連契約50/50、非browser製品試験523/523、実Chrome/Edge各23/23が合格した。全107ファイル連続実行は変更外の接触演出browser群で共有環境の時間切れが再発したため、公開判定は専用Windows browser gateへ分離した。
 - GitHub Actions run `33931963065`はWindows 2025上のChrome/Edge両ジョブが成功し、候補`cc96350`の独立browser gateを通過した。
+- `origin/main`を`f5aaf33`から`a4c6490`へforceなしでfast-forwardし、Pages run `33932159043`は成功した。キャッシュ回避付き公開4資産はHTTP 200、新markerは全件一致し、candidate preflightも`ok:true`だった。
+- 公開実画面のホーム主CTAから10人のCPU一覧を開き、「うっかりユズ」を選択して6枚準備へ即時遷移した。準備完了後はCPUの初手がサーバーで確定し、人間の第2手で色選択が可能になるところまで確認した。
 
 ## 公開前後メトリクス
 
@@ -120,7 +122,7 @@
 | candidate code baseline | `0e02176`（Edge deployment 8 sourceは`c3cf372`） |
 | applied migrations | `202609030006`–`202609030013`, `202609050001`, `202609050002` |
 | `standard-game-action` version | deployment 9（即時CPU開始） |
-| Pages Actions run | `33929435963` / Success / `fda261d` |
+| Pages Actions run | `33932159043` / Success / `a4c6490`（製品`cc96350`） |
 | public URL | `https://sakuratamaro.github.io/four-color-map-game/standard-online-v5/` |
 
 ## Canary結果
@@ -129,7 +131,7 @@
 
 | 区分 | 結果 | 時刻 | 有限な証拠 |
 | --- | --- | --- | --- |
-| Edge認証・基本公開 | PASS | 2026-09-05 | deployment 8で匿名sign-in、JWT欠落/改変拒否、profile、cosmetic catalog、CPU roster 10人の6/6 |
+| Edge認証・基本公開 | PASS | 2026-09-05 | deployment 9で匿名sign-in、JWT欠落/改変拒否、profile、cosmetic catalog、CPU roster 10人の6/6 |
 | 即時Standard CPU開始 | PASS | 2026-09-05 | deployment 9。匿名profile、未知CPU拒否、部屋作成、同一action再送、入力変更拒否、snapshot上のCPU身元を7/7確認 |
 | A 合言葉・A/B/C・snapshot delta | PASS | 2026-09-05 | 自動live canary 43/43。A/B参加、C拒否、setup、初期化、一手、投了、seat別finished snapshot、再戦再初期化 |
 | B クイズ・ガチャ・売却・精算・トロフィー・見た目 | PASS | 2026-09-05 | 自動live canary 93/93。exactly-once、復元、購入/装備を確認。fullPaint trophyはtransaction testで補完 |
@@ -137,7 +139,8 @@
 | D CPU同意・10人・代表3人・再戦 | PASS | 2026-09-05 | 自動live canary 107/107。実時間90/180秒、代表3人完走、復帰、統計、同じCPU再戦、対人検索競合を確認 |
 | Windows実browser主要導線 | PASS | 2026-09-05 | run `33929432778`。Chrome 21/21、Edge 21/21。CPU勝利戦績表示、390pxの6枚選択、初回一操作、初手、全タブstatus、復帰、再戦、クイズ、ガチャ、売却、見た目、野良、CPUを確認 |
 | 即時CPU Windows browser gate | PASS | 2026-09-05 | run `33931963065`。Windows 2025のChrome/Edge両ジョブ成功。ホーム導線、390px選択、pending再送、既存90秒案内を確認 |
-| Pages公開後preflight | PASS | 2026-09-05 | `main=fda261d`、Pages run `33929435963`、公開marker 7/7、DB保護境界を含むcandidate preflight合格 |
+| Pages公開後preflight | PASS | 2026-09-05 | `main=a4c6490`、Pages run `33932159043`、公開4資産HTTP 200、新marker全件一致、DB保護境界を含むcandidate preflight合格 |
+| 公開UI即時CPU開始 | PASS | 2026-09-05 | ホーム主CTA→10人一覧→うっかりユズ→6枚準備→準備完了→CPU初手→人間第2手を実画面で確認 |
 | 二端末最終受入 | NOT_RUN | PENDING | PENDING |
 
 ## 残存リスク
