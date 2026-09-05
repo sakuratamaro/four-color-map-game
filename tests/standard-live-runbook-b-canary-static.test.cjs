@@ -29,6 +29,7 @@ test("Runbook B canary is explicit, bounded, and never uses privileged cleanup",
 test("Runbook B canary covers economy retries, cancellation, lock, settlement, and cold restore", () => {
   for (const contract of [
     'operation: "quiz-start"',
+    'operation: "quiz-answer"',
     'operation: "quiz-finish"',
     'operation: "gacha"',
     'operation: "card-sale-quote"',
@@ -52,6 +53,19 @@ test("Runbook B canary covers economy retries, cancellation, lock, settlement, a
 test("Runbook B uses only the opaque timeout answer and never derives a correct answer from public quiz facts", () => {
   assert.match(source, /forbiddenQuizKey\(started\.data\.questions\)/);
   assert.match(source, /Array\.from\(\{ length: 10 \}, \(\) => started\.data\.timeoutAnswerId\)/);
+  assert.match(source, /questionIndex < 10/);
+  assert.match(source, /answerId: started\.data\.timeoutAnswerId/);
+  assert.match(source, /question \$\{questionIndex \+ 1\} stays sealed before answer/);
+  assert.match(source, /started\.data\?\.answerMode === "per-question-v1"/);
+  assert.match(source, /7_000 - \(Date\.now\(\) - startedAt\)/);
+  assert.match(source, /answered\.data\?\.duplicate === false/);
+  assert.match(source, /replayedAnswer\.data\?\.duplicate === true/);
+  assert.match(source, /answered\.data\?\.answeredCount === questionIndex \+ 1/);
+  assert.match(source, /finished\.data\.answerReview\.length === 10/);
+  assert.match(source, /same\(replayedFinish\.data\?\.answerReview, finished\.data\?\.answerReview\)/);
+  assert.match(source, /useServerAnswers: round === 1/);
+  assert.match(source, /verifyLegacyBulk: round === 2/);
+  assert.match(source, /legacy bulk finish remains compatible/);
   assert.match(source, /finished\.data\?\.correct === 0/);
   assert.match(source, /finished\.data\?\.wrong === 10/);
   assert.match(source, /QUIZ_RESCUE_TICKET_LEVEL = 4/);

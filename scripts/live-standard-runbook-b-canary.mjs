@@ -136,7 +136,7 @@ function action(expectedVersion, type, payload = {}) {
   return { id: crypto.randomUUID(), expectedVersion, type, payload };
 }
 
-async function runQuizRound(player, current, round, verifyReplay) {
+async function runQuizRound(player, current, round, { verifyReplay = false, useServerAnswers = false, verifyLegacyBulk = false } = {}) {
   activeStage = `quiz ${round}`;
   const startActionId = crypto.randomUUID();
   const startedAt = Date.now();
@@ -156,7 +156,42 @@ async function runQuizRound(player, current, round, verifyReplay) {
     && started.data.questions.every((question) =>
       !question?.options?.some((option) => option?.id === started.data.timeoutAnswerId)));
   const answers = Array.from({ length: 10 }, () => started.data.timeoutAnswerId);
-  const remainingWait = Math.max(0, 5_200 - (Date.now() - startedAt));
+  const immediateFeedback = [];
+  if (useServerAnswers) {
+    check(`quiz ${round} supports server-backed answers`, started.data?.answerMode === "per-question-v1");
+    for (let questionIndex = 0; questionIndex < 10; questionIndex += 1) {
+      const question = started.data.questions[questionIndex];
+      check(`quiz ${round} question ${questionIndex + 1} stays sealed before answer`, !forbiddenQuizKey(question));
+      const answerBody = {
+        operation: "quiz-answer",
+        sessionId: started.data.sessionId,
+        actionId: crypto.randomUUID(),
+        questionIndex,
+        answerId: started.data.timeoutAnswerId,
+      };
+      const answered = await edge(player, answerBody);
+      check(`quiz ${round} question ${questionIndex + 1} returns immediate feedback`, answered.ok
+        && answered.data?.duplicate === false
+        && answered.data?.questionIndex === questionIndex
+        && answered.data?.answeredCount === questionIndex + 1
+        && answered.data?.isCorrect === false
+        && typeof answered.data?.correctOptionId === "string"
+        && question?.options?.some((option) => option?.id === answered.data.correctOptionId)
+        && typeof answered.data?.correctOptionLabel === "string" && answered.data.correctOptionLabel.length > 0
+        && typeof answered.data?.explanation === "string" && answered.data.explanation.length > 0, answered);
+      const replayedAnswer = await edge(player, answerBody);
+      check(`quiz ${round} question ${questionIndex + 1} answer replays`, replayedAnswer.ok
+        && replayedAnswer.data?.duplicate === true
+        && replayedAnswer.data?.questionIndex === answered.data.questionIndex
+        && replayedAnswer.data?.answeredCount === answered.data.answeredCount
+        && replayedAnswer.data?.isCorrect === answered.data.isCorrect
+        && replayedAnswer.data?.correctOptionId === answered.data.correctOptionId
+        && replayedAnswer.data?.correctOptionLabel === answered.data.correctOptionLabel
+        && replayedAnswer.data?.explanation === answered.data.explanation, replayedAnswer);
+      immediateFeedback.push(answered.data);
+    }
+  }
+  const remainingWait = Math.max(0, 7_000 - (Date.now() - startedAt));
   if (remainingWait > 0) await new Promise((resolve) => setTimeout(resolve, remainingWait));
 
   const finishBody = {
@@ -170,12 +205,29 @@ async function runQuizRound(player, current, round, verifyReplay) {
     && finished.data?.correct === 0 && finished.data?.wrong === 10 && finished.data?.bestStreak === 0
     && finished.data?.reward?.ticketLevel === QUIZ_RESCUE_TICKET_LEVEL
     && finished.data?.reward?.draws === 1, finished);
+  if (useServerAnswers) {
+    check(`quiz ${round} finish returns the complete answer review`, Array.isArray(finished.data?.answerReview)
+      && finished.data.answerReview.length === 10
+      && finished.data.answerReview.every((review, questionIndex) =>
+        review?.questionIndex === questionIndex
+        && same(review?.question, started.data.questions[questionIndex])
+        && review?.selectedOptionId === started.data.timeoutAnswerId
+        && review?.isCorrect === false
+        && review?.correctOptionId === immediateFeedback[questionIndex]?.correctOptionId
+        && review?.correctOptionLabel === immediateFeedback[questionIndex]?.correctOptionLabel
+        && review?.explanation === immediateFeedback[questionIndex]?.explanation), finished);
+  }
+  if (verifyLegacyBulk) {
+    check(`quiz ${round} legacy bulk finish remains compatible`, !useServerAnswers
+      && finished.ok && Array.isArray(finished.data?.answerReview) && finished.data.answerReview.length === 10, finished);
+  }
   if (verifyReplay) {
     const replayedFinish = await edge(player, finishBody);
     check(`quiz ${round} settlement replays`, replayedFinish.ok && replayedFinish.data?.duplicate === true
       && replayedFinish.data?.revision === finished.data?.revision
       && same(replayedFinish.data?.profileState, finished.data?.profileState)
-      && same(replayedFinish.data?.reward, finished.data?.reward), replayedFinish);
+      && same(replayedFinish.data?.reward, finished.data?.reward)
+      && same(replayedFinish.data?.answerReview, finished.data?.answerReview), replayedFinish);
   }
   const ticketKey = String(QUIZ_RESCUE_TICKET_LEVEL);
   const recordKey = String(QUIZ_LEVEL);
@@ -265,7 +317,11 @@ async function run() {
     && Number(profileA.profile.gachaTickets?.["1"]) === 3);
 
   for (let round = 1; round <= QUIZ_ROUNDS; round += 1) {
-    profileA = await runQuizRound(playerA, profileA, round, round === 1);
+    profileA = await runQuizRound(playerA, profileA, round, {
+      verifyReplay: round === 1,
+      useServerAnswers: round === 1,
+      verifyLegacyBulk: round === 2,
+    });
   }
 
   activeStage = "gacha";

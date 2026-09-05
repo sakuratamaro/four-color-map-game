@@ -1,8 +1,8 @@
 # Standard公開版 段階リリース手順
 
-更新日: 2026-09-03
+更新日: 2026-09-05
 
-状態: 実行前。公開DB、Edge Function、Pagesを変更する作業は利用者の明示承認後にだけ行う。この文書を作っただけでは本番は変わらない。
+状態: 現行運用。migration `202609030006`–`202609030013`と`202609050001`–`202609050005`、対応Edge、Pagesは適用済み。新しい変更もDB→Edge→Pagesの順序と有限なcanaryを守る。
 
 実行中の状態、数値、識別子、失敗は `docs/STANDARD_RELEASE_EVIDENCE.md` に追記する。根拠のない項目を`VERIFIED`や`PASS`へ変更しない。
 
@@ -35,16 +35,21 @@ SQL Editorでは内容を全置換し、次を1ファイルずつ順番に実行
 6. `202609030011_standard_member_appearance.sql`
 7. `202609030012_batched_cleanup.sql`
 8. `202609030013_standard_snapshot_profile_delta.sql`
+9. `202609050001_standard_matchmaking_status_contract.sql`
+10. `202609050002_standard_immediate_cpu.sql`
+11. `202609050003_standard_debug_room_access.sql`
+12. `202609050004_standard_quiz_answer_feedback.sql`
+13. `202609050005_standard_kurogane_lookahead.sql`
 
 各実行直後に、そのmigrationが追加する表、関数、列、ACLを `to_regclass`、`to_regprocedure`、`information_schema.columns`、`proacl` で確認する。`SECURITY DEFINER` 関数は空の `search_path`、ブラウザー用RPCは `authenticated` のみ、サーバー用RPCは `service_role` のみであることを確認してから次へ進む。
 
-8本すべての適用後、`supabase/verification/standard_candidate_verify.sql` をSQL Editorで実行する。これは読み取りだけを行い、非公開テーブル、追加列、重要関数、RLS/ACL、制約、トリガー、索引、appearance backfill不一致を一覧化する。全行の `ok` が `true` でなければEdge更新へ進まない。
+13本すべての適用後、`supabase/verification/standard_candidate_verify.sql` をSQL Editorで実行する。これは読み取りだけを行い、非公開テーブル、追加列、重要関数、RLS/ACL、制約、トリガー、索引、appearance backfill不一致、クイズ回答RPC、クロガネ旧/new policy境界を一覧化する。全行の `ok` が `true` でなければEdge更新へ進まない。
 
 `202609030012` の適用時にはcleanupを実行しない。定期実行も作らない。`202609030013` の既存プロフィールappearance backfill件数と所要時間を記録し、失敗または長時間ロックならEdge/Pagesへ進まない。
 
 ## EdgeとPagesの順序
 
-1. DB 8本の確認が終わってから `standard-game-action` を更新する。
+1. DB 13本の確認が終わってから `standard-game-action` を更新する。
 2. Pagesを更新する前に `node scripts/live-standard-release-preflight.mjs --expect=db-ready` を実行し、新RPCが権限保護付きで存在する一方、公開UIはまだ旧版であることを確認する。
 3. JWT検証が有効なこと、managed service-role secretの参照だけで値を表示していないことを確認する。
 4. Edgeへ、欠落JWT、改変JWT、正規JWT、プロフィール読取り、見た目catalog、CPU rosterの小さなcanaryを行う。
@@ -58,12 +63,18 @@ SQL Editorでは内容を全置換し、次を1ファイルずつ順番に実行
 ### A. 合言葉対戦
 
 - 二端末A/Bで作成、参加、6枚選択、初期化、通常手、スキル、終局、両者再読込、再戦を確認する。
+- CREATE/COLORの交代ごとに、両端末の役割表示が自分視点の「あなたが作る／あなたが塗る」へ正しく反転することを確認する。
+- 片側だけデバッグ対戦を選ぶとsetupエラーが操作直下に残り、両側で一致させた場合だけ開始できることを確認する。応答が不明なときは新しい操作を作らず同じactionを再送する。
+- 封印された色が彩色前から鍵付き・選択不可で、再読込後も維持され、封印されていない色は使用できることを確認する。
+- 持ち色変更の説明と実動作が「基本色2枠は無制限、おまけ色は残り回数を新しい色へ引き継ぐ」と一致することを一例確認する。
 - 第三者Cのsnapshotと直接table更新が拒否されることを確認する。
 - snapshot v2の同revision応答で `profile=null`、profile revision更新時だけ本文が返ることを確認する。
 
 ### B. 経済・進行・見た目
 
 - クイズ10問の報酬が一度だけ、ガチャの券消費/付与が一度だけ保存される。
+- 各問は回答確定前に正解を公開せず、`quiz-answer`直後に正誤と正解を表示し、同じ回答actionの再送は同じ結果を返す。二重回答は進行を増やさない。
+- 10問終了後の答え合わせに、問題、自分の回答、正解、解説が10件あり、再読込後も報酬が二重付与されないことを確認する。旧一括`quiz-finish`経路の互換性も有限canaryで残す。
 - カード売却の通常/要確認/取消/応答不明再送/対戦中ロックを確認する。
 - 見た目の有料購入/無料装備/取消/同一ID再送/別端末復元を確認する。
 - 相手に名札と称号だけが見え、相手のプロフィール本文、所持カード、非公開戦績が含まれないことを確認する。
@@ -81,6 +92,9 @@ SQL Editorでは内容を全置換し、次を1ファイルずつ順番に実行
 - 10人の一覧、得意、苦手、お気に入り、固定名が表示される。
 - 人間参加とCPU承諾を同時に行い、必ず一方だけが成立する。
 - 代表3人で開始、合法なCPU手、終局、CPU別戦績、再読込、同じCPUとの再戦を確認する。CPU表示は常時残す。
+- CPU戦の精算済み結果だけに「完了報酬：Lv.1ガチャ券 +1」が表示され、再読込後も券が保持されることを確認する。未精算CPU戦と対人戦へは表示しない。
+- 新規クロガネroomは`standard-character-roster-v1:kurogane-lookahead-v2`で最低2手の合法手を行う。旧v1 roomは進行を維持し、成功した再戦だけv2へ更新する。
+- deployをまたぐ開始action再送は、全入力が同一でpolicyだけが旧v1のfingerprintと一致する場合だけ回復し、characterやloadoutの変更は拒否する。
 
 ## 軽量化・負荷の合格条件
 

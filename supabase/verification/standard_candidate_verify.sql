@@ -1,4 +1,4 @@
--- Read-only verification after applying migrations through 202609050002.
+-- Read-only verification after applying migrations through 202609050005.
 -- Expected result: every row has ok = true. This statement performs no writes.
 
 with
@@ -36,7 +36,9 @@ expected_columns(schema_name, table_name, column_name) as (
     ('public', 'fcg_rooms', 'cpu_character_id'),
     ('public', 'fcg_rooms', 'cpu_policy_version'),
     ('public', 'fcg_rooms', 'cpu_user_id'),
-    ('public', 'fcg_standard_profiles', 'appearance')
+    ('public', 'fcg_standard_profiles', 'appearance'),
+    ('fcg_private', 'standard_quiz_sessions', 'answer_receipts'),
+    ('fcg_private', 'standard_quiz_sessions', 'explanations')
 ),
 column_state as (
   select expected.*,
@@ -64,7 +66,10 @@ expected_functions(signature, audience) as (
     ('public.fcg_server_cleanup_expired_batched(timestamptz,timestamptz,timestamptz,integer,boolean)', 'service_role'),
     ('public.fcg_server_cleanup_expired(timestamptz)', 'service_role'),
     ('public.fcg_standard_room_snapshot(uuid)', 'authenticated'),
-    ('public.fcg_standard_room_snapshot_v2(uuid,bigint)', 'authenticated')
+    ('public.fcg_standard_room_snapshot_v2(uuid,bigint)', 'authenticated'),
+    ('public.fcg_standard_server_start_quiz_v2(uuid,uuid,uuid,text,integer,jsonb,jsonb,jsonb,timestamptz)', 'service_role'),
+    ('public.fcg_standard_server_answer_quiz(uuid,uuid,uuid,integer,text)', 'service_role'),
+    ('public.fcg_standard_server_finish_quiz_v2(uuid,uuid,uuid,jsonb)', 'service_role')
 ),
 function_state as (
   select expected.*,
@@ -78,12 +83,28 @@ function_state as (
   from expected_functions expected
   left join pg_catalog.pg_proc procedure on procedure.oid = pg_catalog.to_regprocedure(expected.signature)
 ),
+expected_policy_helpers(signature) as (
+  values
+    ('fcg_private.fcg_standard_cpu_policy_is_supported(text,text)'),
+    ('fcg_private.fcg_standard_cpu_policy_is_current(text,text)')
+),
+policy_helper_state as (
+  select expected.signature,
+    procedure.oid,
+    coalesce(pg_catalog.has_function_privilege('anon', procedure.oid, 'EXECUTE'), false) as anon_execute,
+    coalesce(pg_catalog.has_function_privilege('authenticated', procedure.oid, 'EXECUTE'), false) as authenticated_execute,
+    coalesce(pg_get_functiondef(procedure.oid), '') as definition
+  from expected_policy_helpers expected
+  left join pg_catalog.pg_proc procedure on procedure.oid = pg_catalog.to_regprocedure(expected.signature)
+),
 expected_constraints(relation_name, constraint_name) as (
   values
     ('public.fcg_rooms', 'fcg_rooms_access_mode_check'),
     ('public.fcg_rooms', 'fcg_rooms_opponent_kind_check'),
     ('public.fcg_rooms', 'fcg_rooms_cpu_identity_check'),
-    ('public.fcg_standard_profiles', 'fcg_standard_profiles_safe_appearance_check')
+    ('public.fcg_standard_profiles', 'fcg_standard_profiles_safe_appearance_check'),
+    ('fcg_private.standard_quiz_sessions', 'standard_quiz_answer_receipts_shape'),
+    ('fcg_private.standard_quiz_sessions', 'standard_quiz_explanations_shape')
 ),
 constraint_state as (
   select expected.*,
@@ -167,6 +188,15 @@ checks(check_name, ok, detail) as (
       'empty_search_path', empty_search_path, 'anon_execute', anon_execute,
       'authenticated_execute', authenticated_execute, 'service_execute', service_execute)
   from function_state
+  union all
+  select 'private policy helper ' || signature,
+    oid is not null and not anon_execute and not authenticated_execute
+      and definition like '%standard-character-roster-v1:kurogane%'
+      and definition like '%standard-character-roster-v1:kurogane-lookahead-v2%',
+    jsonb_build_object('present', oid is not null, 'anon_execute', anon_execute,
+      'authenticated_execute', authenticated_execute, 'has_legacy_kurogane', definition like '%standard-character-roster-v1:kurogane%',
+      'has_current_kurogane', definition like '%standard-character-roster-v1:kurogane-lookahead-v2%')
+  from policy_helper_state
   union all
   select 'constraint ' || constraint_name,
     present and validated,

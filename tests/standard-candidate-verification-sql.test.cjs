@@ -18,10 +18,13 @@ test("candidate verification SQL is read-only and covers the current Standard re
     "standard_cpu_start_receipts",
     "standard_cosmetic_receipts",
   ]) assert.match(sql, new RegExp(`'${table}'`));
-  for (const column of ["access_mode", "opponent_kind", "cpu_character_id", "cpu_policy_version", "cpu_user_id", "appearance"]) {
+  for (const column of ["access_mode", "opponent_kind", "cpu_character_id", "cpu_policy_version", "cpu_user_id", "appearance", "answer_receipts", "explanations"]) {
     assert.match(sql, new RegExp(`'${column}'`));
   }
-  for (const boundary of ["card_sale", "matchmaking_recruit", "matchmaking_find", "accept_cpu", "start_cpu", "load_room_v2", "cpu_rematch", "cosmetic", "cleanup_expired_batched", "room_snapshot_v2"]) {
+  for (const boundary of ["card_sale", "matchmaking_recruit", "matchmaking_find", "accept_cpu", "start_cpu", "load_room_v2", "cpu_rematch", "cosmetic", "cleanup_expired_batched", "room_snapshot_v2", "start_quiz_v2", "answer_quiz", "finish_quiz_v2"]) {
+    assert.match(sql, new RegExp(boundary));
+  }
+  for (const boundary of ["fcg_standard_cpu_policy_is_supported", "fcg_standard_cpu_policy_is_current", "kurogane-lookahead-v2", "standard_quiz_answer_receipts_shape", "standard_quiz_explanations_shape"]) {
     assert.match(sql, new RegExp(boundary));
   }
 });

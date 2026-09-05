@@ -4,7 +4,7 @@
 
 この文書は「コードがある」と「公開環境で確認した」を混同しないための台帳である。`VERIFIED` は同じ行に再現可能な根拠がある場合だけ使用する。token、API key、user ID、個人情報は記録しない。
 
-状態は、根拠を確認済みの `VERIFIED`、外部条件待ちの `BLOCKED`、明示承認待ちの `PENDING_APPROVAL`、作業待ちの `PENDING`、未実施の `NOT_RUN` を区別して記録する。
+状態は、根拠を確認済みの `VERIFIED`、公開環境まで確認した `PUBLIC_VERIFIED`、外部条件待ちの `BLOCKED`、明示承認待ちの `PENDING_APPROVAL`、作業待ちの `PENDING`、未実施の `NOT_RUN` を区別して記録する。
 
 ## 現在のゲート
 
@@ -12,23 +12,23 @@
 | --- | --- | --- | --- |
 | 採否棚卸し | VERIFIED | `ONLINE_COMPLETION_INVENTORY.md`。旧Expo試作と現行Web Standardを分離済み | 公開後に状態列だけ更新 |
 | 製品コード・生成元 | VERIFIED | `standard/`、build scripts、生成済みEdge bundleが統合ブランチに存在 | 最終公開commitを記録 |
-| ローカル製品試験 | VERIFIED | 2026-09-04、専用runnerで665件合格、失敗0、769.2秒 | 公開後のcandidate preflightと実端末canary |
+| ローカル製品試験 | VERIFIED | クロガネv2候補で非browser Standard 544/544、重点89/89、オンラインbrowser 31/31、CPU browser Chrome/Edge各1/1 | 物理二端末canary |
 | 次期UX候補のローカル検査 | VERIFIED | `codex/standard-release-command@1673ff8`。profile安定化、初回対戦導線、Quick Half Shift、status正規化、Realtime/poll復旧を含む非browser製品試験91ファイル522/522。browser workflow/harness静的11/11合格 | Pages反映後のpreflightと二端末受入 |
 | 初回導線・接続表示の次期候補 | VERIFIED | `9d42784`。初回starter作成＋profile同期を一操作化し、全5タブで単一接続statusを常時表示。空名write 0、room外offline復帰、390px下部nav非干渉を契約化。静的39/39、非browser 89ファイル513/513、Windows Chrome/Edge各18/18合格 | 物理二端末受入 |
-| Windows実browser CI | VERIFIED | GitHub Actions run `33933769885`。Chrome成功。Edge attempt 1は全test body通過後のbrowser-closeだけtimeout、失敗jobのattempt 2で成功。ローカルChrome/Edge各25/25 | 公開URLで同じ主要導線を二端末受入 |
-| 現行公開Pages | VERIFIED | 製品／公開`29c6958`、Pages run `33934125859`成功。公開HTML/app/styleの新版marker全一致、candidate preflight `ok:true` | 別々の二端末で最終受入 |
-| 公開前DB境界 | VERIFIED | 旧snapshotは匿名権限拒否。snapshot v2と野良募集は`PGRST202`で未存在 | migration後のdb-ready preflight |
+| Windows実browser CI | VERIFIED | GitHub Actions run `33947039777`。Chrome job `101254916881`、Edge job `101254916818`がともに成功 | 公開URLで同じ主要導線を二端末受入 |
+| 現行公開Pages | PUBLIC_VERIFIED | 製品／公開`a3425a4`、Pages run `33947644765`成功。公開URL HTTP 200、公開時刻とasset/bundle一致、実ブラウザconsole warning/error 0 | 別々の二端末で最終受入 |
+| 初回公開前DB境界（履歴） | VERIFIED | 旧snapshotは匿名権限拒否。snapshot v2と野良募集が未存在だった初回baseline | 現行境界は適用migrationとlive canaryを参照 |
 | migration 006–013静的検査 | VERIFIED | migration別security/transaction testsと読み取り専用44項目SQL | 実DBで全行`ok=true` |
 | Dashboard Advisor・使用量baseline | BLOCKED | 変更前baselineは取得不能。22:55 JSTの現況はHealthyだがHealth Advisorにinfra alert 2件。Security指摘なし、Performance error/warning 0 | 24時間後に同じ指標とRealtime負荷を再採取 |
-| migration 006–013本番適用＋status正規化 | VERIFIED | 8本に加え`202609050001`を個別実行。status関数の保護契約を全項目確認し、C canary 210/210合格 | 実ブラウザと二端末最終受入 |
-| Edge Function更新 | VERIFIED | deployment 8、JWT検証ON。2026-09-05の`live-standard-edge-canary.mjs --confirm-live`は6/6合格 | 公開UI経由の完全canary |
+| migration 006–013＋後続001–005本番適用 | PUBLIC_VERIFIED | 13本を個別適用。現行の読み取り専用検証SQLは56項目すべてtrue。status C 210/210、クイズ新旧canary、クロガネv2 canary合格 | 物理二端末最終受入 |
+| Edge Function更新 | PUBLIC_VERIFIED | migration `202609050005`適用後にクロガネv2対応Edgeを更新。新規匿名roomでv2受理、別canaryで合法CPU手・決着・再戦まで合格 | 物理端末でクロガネの手強さを体感確認 |
 | 即時Standard CPU開始 | PUBLIC_VERIFIED | migration `202609050002`とEdge deployment 9。製品`cc96350`、公開`a4c6490`、DB 47項目、Edge基本6/6、即時CPU 7/7、Windows run `33931963065`、Pages run `33932159043`合格。公開UIでCPU初手まで確認 | 物理端末で一試合完走・再読込・同じCPUとの再戦を確認 |
 | CPU完走後の次戦導線 | PUBLIC_VERIFIED | `29c6958`。同じCPUとの同room再戦を維持し、終了結果から別CPU選択へ進める。live即時CPU完走・再戦canary 25/25、Windows Chrome/Edge成功、Pages反映済み | 物理端末で別CPU選択と再戦を体感確認 |
-| GitHub main・Pages更新 | VERIFIED | 公開製品基点を`29c6958`へforceなしfast-forward。Pages run `33934125859`成功、公開markerとpreflight合格。後続main更新は台帳のみ | 二端末受入後に最終状態を記録 |
+| GitHub main・Pages更新 | PUBLIC_VERIFIED | `main=a3425a4d459214e5274e20497af21f35a312099d`。Standard browser gate `33947039777`、Pages `33947644765`成功。公開asset/bundleは当該SHAとSHA-256一致 | 二端末受入後に最終状態を記録 |
 | 合言葉対戦canary | VERIFIED | deployment 8で`live-standard-runbook-a-canary.mjs --confirm-live` 43/43合格 | 実ブラウザ再読込と二端末最終受入 |
 | 経済・進行・見た目canary | VERIFIED | deployment 8でRunbook B 93/93合格 | 実ブラウザで報酬演出と操作感を確認 |
 | 野良対戦canary | VERIFIED | status正規化後、C 210/210合格。16 profile、完走、同時finder、取消競合、10同時claim、再検索、秘密非公開を確認 | 実ブラウザで二端末最終受入 |
-| CPU canary | VERIFIED | deployment 8でRunbook D 107/107合格 | 実端末でCPU個性と待ち時間の体感を確認 |
+| CPU canary | PUBLIC_VERIFIED | Runbook D 107/107に加え、クロガネv2新規room、同一action再送、公開情報だけの合法CPU手2回、投了、同CPU再戦を本番で合格 | 実端末でCPU個性と待ち時間の体感を確認 |
 | 軽量化・負荷 | VERIFIED | full/delta bytesは1815→991。Realtime購読をroom UPDATE 1本へ限定し、live smoke 2/2でmember受信と第三者0件を確認。Quick pollは5/10秒＋hidden停止 | 公開後のRPC数、p50/p95、エラー率、使用量前後 |
 | cleanup preview | PENDING | 関数はローカルのみ。削除・定期化なし | dry-run分類別件数、処理時間。実削除は別承認 |
 | cleanup実削除・定期化 | PENDING | 実行権限は付与済みだがpreview件数とcascade先を未確認 | exact ID、影響範囲、復元手段を先に記録してから実行 |
@@ -113,6 +113,21 @@
 - 公開実画面をcache-bust再読込し、既存の「公開確認」対うっかりユズ戦が維持されたまま、「Standard対戦スタート」、人間の第2手、接続同期、5タブが表示されることを確認した。検証用戦績を増やさないため公開画面上での投了は行っていない。
 - 公開直後のSupabase現況はCPU 2%、RAM 64%、disk 16%、connections 14/60。直前のCPU 2%、RAM 63%、disk 16%、connections 13/60から即時の異常増加は見られない。24時間比較は未実施。
 
+## 2026-09-05 14:40 JST 役割・クイズ・報酬・クロガネv2公開
+
+- `2d5e6bc`で対戦中の役割を「あなたが作る → CPUが塗る」と明示し、`604e932`で彩色前にも封印中の色を表示した。
+- `c9a2ad5`で部分領域とデバッグ対戦のP0を修正し、setup/action結果を操作直下へ保持して、応答不明時だけ同じactionを再送できるようにした。migration `202609050003`とEdgeを先行適用し、Runbook A 43/43、Windows browser run `33940381350`、Pages run `33940876572`を合格させた。`db45ebc`は製品変更ではなく、Edge CI終了猶予だけのtest-only修正である。
+- `d5590af`でクイズ問題表示を整え、Windows run `33941666286`とPages run `33942307414`が成功した。
+- `2f06504`で各問直後の正誤と全10問の答え合わせを追加した。migration `202609050004`とEdgeを先行適用し、新方式と旧一括方式の両canary、Windows run `33943348061`、Pages run `33943980517`、公開実ブラウザ10問完走を合格させた。390px横overflow 0、console warning/error 0、報酬券5→6を確認した。
+- `640ec98`でCPU戦の保存済み完了報酬を明示し、`colorPaletteChange`の基本色・おまけ色・残り回数の関係を説明した。再読込を含む券2→3、対人精算とCPU未精算の否定条件、ローカルChrome/Edgeを合格させ、Windows run `33944794035`とPages run `33944924097`が成功した。
+- `a3425a4`でクロガネだけを`standard-character-roster-v1:kurogane-lookahead-v2`へ更新した。相手へ渡す領域が生む公開上の選択肢を先読みし、ゼロ色封鎖を最優先にしつつ、自分の基本色と最後のおまけ色を考慮する。他9人と旧クロガネroomの固定再生は変更していない。
+- migration `202609050005`は旧policyを再生用に保持し、新規クロガネroomだけをv2にする。deployをまたぐ同一開始actionのlost-response再送は、全入力が同一でpolicyだけが旧v1のfingerprintと一致する場合に限定した。実DBの関数、権限、旧/new policy境界は全確認項目trueだった。
+- クロガネv2のローカル検証は非browser Standard 544/544、重点89/89、オンラインbrowser 31/31、CPU browser Chrome/Edge各1/1。生成bundleは再生成SHAと一致した。独立レビューで見つかった色選択の優先度幅とdeploy跨ぎ再送の二点を修正後、P0/P1なしとした。
+- Edge更新後の本番canaryは、新規匿名profile、クロガネv2 room、同一開始action再送、公開情報だけによる合法CPU手2回、人間投了、同じCPUとの再戦まで合格した。独立canaryもCPU roster 10人、v2 policy、profile、`cpu-start`新規room受理を合格した。
+- `standard_candidate_verify.sql`をmigration `202609050005`まで拡張し、本番SQL Editorで読み取り実行した。非公開表、列、RLS/ACL、関数、クイズ制約、クロガネ旧/new helperを含む56項目は失敗0、`all_ok=true`だった。
+- `origin/main`を`640ec98`から`a3425a4d459214e5274e20497af21f35a312099d`へforceなしでfast-forwardした。Standard browser gate `33947039777`はChrome/Edge成功、Pages `33947644765`はbuild/deploy/report成功。公開URLはHTTP 200、Last-Modifiedは2026-09-05 14:36 JST、公開rosterとEdge bundleは当該SHAの内容とSHA-256一致、実ブラウザconsole warning/error 0だった。
+- 自動検証はすべて公開合格だが、物理的に別々の二端末を使う対人/CPU完走、復帰、再戦と、24時間後の使用量比較は引き続き`NOT_RUN` / `PENDING`として分離する。
+
 ## 公開前後メトリクス
 
 値が取得できなかった項目を空欄のまま`VERIFIED`にしない。
@@ -129,12 +144,12 @@
 | --- | --- |
 | browser harness diagnostics commit | `6fc23a5` |
 | Windows browser CI commit | `d8dac1b` |
-| final browser-verified candidate | `29c6958`（初戦引き継ぎ・CPU次戦循環） |
-| Windows browser CI run | `33933769885` / Chrome Success / Edge attempt 2 Success |
-| candidate code baseline | `0e02176`（Edge deployment 8 sourceは`c3cf372`） |
-| applied migrations | `202609030006`–`202609030013`, `202609050001`, `202609050002` |
-| `standard-game-action` version | deployment 9（即時CPU開始） |
-| Pages Actions run | `33934125859` / Success / `29c6958` |
+| final browser-verified candidate | `a3425a4`（クロガネ公開情報lookahead v2） |
+| Windows browser CI run | `33947039777` / Chrome Success / Edge Success |
+| 初回candidate code baseline（履歴） | `0e02176`（Edge deployment 8 sourceは`c3cf372`） |
+| applied migrations | `202609030006`–`202609030013`, `202609050001`–`202609050005` |
+| `standard-game-action` version | クロガネv2対応deployment（2026-09-05 14:34 JST更新） |
+| Pages Actions run | `33947644765` / Success / `a3425a4` |
 | public URL | `https://sakuratamaro.github.io/four-color-map-game/standard-online-v5/` |
 
 ## Canary結果
@@ -153,9 +168,12 @@
 | Windows実browser主要導線 | PASS | 2026-09-05 | run `33929432778`。Chrome 21/21、Edge 21/21。CPU勝利戦績表示、390pxの6枚選択、初回一操作、初手、全タブstatus、復帰、再戦、クイズ、ガチャ、売却、見た目、野良、CPUを確認 |
 | 即時CPU Windows browser gate | PASS | 2026-09-05 | run `33931963065`。Windows 2025のChrome/Edge両ジョブ成功。ホーム導線、390px選択、pending再送、既存90秒案内を確認 |
 | 初戦引き継ぎ・CPU次戦 Windows gate | PASS | 2026-09-05 | run `33933769885`。Chrome成功。Edge attempt 1はbrowser-closeだけtimeout、失敗job再実行のattempt 2成功。ローカル両browser各25/25 |
+| クロガネv2 Windows gate | PASS | 2026-09-05 | run `33947039777`。Windows 2025のChrome job `101254916881`、Edge job `101254916818`がともに成功 |
 | Pages公開後preflight | PASS | 2026-09-05 | `main=a4c6490`、Pages run `33932159043`、公開4資産HTTP 200、新marker全件一致、DB保護境界を含むcandidate preflight合格 |
-| 最新Pages公開後preflight | PASS | 2026-09-05 | `main=29c6958`、Pages run `33934125859`、新版marker全一致、DB保護境界を含むcandidate preflight合格。公開実画面の既存CPU戦も維持 |
+| 初戦引き継ぎ Pages公開後preflight | PASS | 2026-09-05 | `main=29c6958`、Pages run `33934125859`、新版marker全一致、DB保護境界を含むcandidate preflight合格。公開実画面の既存CPU戦も維持 |
+| クロガネv2 Pages・公開asset | PASS | 2026-09-05 | `main=a3425a4`、Pages run `33947644765`。公開URL HTTP 200、roster/bundleのSHA-256が候補と一致し、実ブラウザconsole warning/error 0 |
 | 公開UI即時CPU開始 | PASS | 2026-09-05 | ホーム主CTA→10人一覧→うっかりユズ→6枚準備→準備完了→CPU初手→人間第2手を実画面で確認 |
+| クロガネv2 live canary | PASS | 2026-09-05 | 新規匿名、v2 policy、同一開始action再送、公開情報だけによる合法CPU手2回、投了、同CPU再戦。独立canaryでも新規v2 room受理を確認 |
 | 二端末最終受入 | NOT_RUN | PENDING | PENDING |
 
 ## 残存リスク
@@ -163,7 +181,7 @@
 - Dashboardの詳細なAdvisor/使用量baselineは未取得。画面上では資源逼迫警告が継続しているため、公開範囲を広げる前後で使用量を追跡する。
 - profile作成安定化はCの逐次16件で500/429なしを確認した。高並列作成そのものはAuth上限を消費するため再試験せず、再発時はEdge/DBログと資源警告を関連調査する。
 - Cのstatus正規化は本番関数定義、既存ticket整合、live canary 210/210まで確認済み。今後もIPあたり30 anonymous sign-ins/時を守り、同じ認証窓で重いcanaryを再試行しない。
-- 製品候補`7eab2f1`は同commitのままPagesへ反映済み。自動browser/preflight合格と、未実施の物理二端末受入を混同しない。
+- 現行製品`a3425a4`は同commitのままPagesへ反映済み。自動browser、公開asset、Edge/DB canary合格と、未実施の物理二端末受入を混同しない。
 - Edgeのper-isolate濫用抑止は分散レート制限ではない。公開後の計測で必要性が出た場合だけprovider側制限を検討する。
 - 10人CPUの合法性・決定性は自動検証済みだが、人間が感じる個性と楽しさは代表3人の実プレイ後も定性的判断として残る。
 - cleanup実削除や定期化は許可済みだが、exact IDと復元手段を確認するまで実行しない。課金設定変更は必要性と金額を特定してから扱う。
