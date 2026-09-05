@@ -20,6 +20,7 @@ const APP_TAB_KEY = "fourColorMapGame.standard.online.v5.active-tab";
 const CPU_ENTRY_INTENT_KEY = "fourColorMapGame.standard.online.v5.cpu-entry-intent";
 const QUIZ_TIMEOUT_ANSWER = "__timeout__";
 const MATHML_NS = "http://www.w3.org/1998/Math/MathML";
+const SVG_NS = "http://www.w3.org/2000/svg";
 const CARD_SALE_PENDING_KEY = "fourColorMapGame.standard.online.v5.pending-card-sale";
 const COSMETIC_PENDING_KEY = "fourColorMapGame.standard.online.v5.pending-cosmetic";
 const STARTER_INVENTORY = Object.freeze({
@@ -135,6 +136,7 @@ let randomRevealTimer = null;
 let contactRevealTimer = null;
 let contactPresentationGeneration = 0;
 let quizClockTimer = null;
+let quizMathResizeObserver = null;
 let quizTimeoutQueued = false;
 let shownTerminalEventKey = null;
 let dismissedTerminalEventKey = null;
@@ -772,28 +774,169 @@ function mathMatrix(rows) {
   return fenced;
 }
 
-function appendMathLimits(math, symbol, descriptor) {
+function mathLimit(symbol, lower, upper) {
   const limits = mathNode("munderover");
-  limits.append(mathNode("mo", symbol), mathNode("mtext", descriptor.lower), mathNode("mtext", descriptor.upper));
-  math.append(limits, mathNode("mspace"), mathNode("mtext", descriptor.body || ""));
+  limits.append(mathNode("mo", symbol), lower, upper);
+  return limits;
+}
+
+function quizCategoryNode(category) {
+  const node = document.createElement("small");
+  node.className = "quiz-category";
+  node.textContent = category;
+  return node;
+}
+
+function svgNode(tag, attributes = {}, text = null) {
+  const node = document.createElementNS(SVG_NS, tag);
+  for (const [name, value] of Object.entries(attributes)) node.setAttribute(name, String(value));
+  if (text !== null) node.textContent = String(text);
+  return node;
+}
+
+function svgGuide(svg, { x1, y1, x2, y2, label, labelX, labelY, anchor = "middle", dashed = false }) {
+  svg.appendChild(svgNode("line", { x1, y1, x2, y2, class: dashed ? "quiz-geometry-guide dashed" : "quiz-geometry-guide" }));
+  svg.appendChild(svgNode("text", { x: labelX, y: labelY, class: "quiz-geometry-label", "text-anchor": anchor }, label));
+}
+
+function renderQuizGeometry(question, descriptor) {
+  const shapes = new Set(["rectangle", "cube", "triangle", "cuboid", "circle", "trapezoid", "cylinder", "cone"]);
+  if (!shapes.has(descriptor.shape) || !descriptor.dimensions || typeof descriptor.dimensions !== "object") return null;
+  const dimensions = descriptor.dimensions;
+  const figure = document.createElement("figure");
+  figure.className = "quiz-geometry";
+  const prompt = document.createElement("figcaption");
+  prompt.className = "quiz-visible-prompt";
+  prompt.textContent = question?.prompt || "図の寸法から答えてください。";
+  const svg = svgNode("svg", { viewBox: "0 0 320 190", role: "img", "aria-label": question?.prompt || "寸法付きの図形" });
+  const shapeClass = "quiz-geometry-shape";
+  if (descriptor.shape === "rectangle") {
+    svg.appendChild(svgNode("rect", { x: 75, y: 32, width: 175, height: 110, rx: 3, class: shapeClass }));
+    svgGuide(svg, { x1: 75, y1: 158, x2: 250, y2: 158, label: `よこ ${dimensions.width}`, labelX: 162, labelY: 180 });
+    svgGuide(svg, { x1: 57, y1: 32, x2: 57, y2: 142, label: `たて ${dimensions.height}`, labelX: 49, labelY: 92, anchor: "end" });
+  } else if (descriptor.shape === "triangle") {
+    svg.appendChild(svgNode("polygon", { points: "48,145 272,145 166,28", class: shapeClass }));
+    svgGuide(svg, { x1: 48, y1: 162, x2: 272, y2: 162, label: `底辺 ${dimensions.base}`, labelX: 160, labelY: 183 });
+    svgGuide(svg, { x1: 166, y1: 28, x2: 166, y2: 145, label: `高さ ${dimensions.height}`, labelX: 177, labelY: 89, anchor: "start", dashed: true });
+  } else if (descriptor.shape === "trapezoid") {
+    svg.appendChild(svgNode("polygon", { points: "98,35 222,35 274,145 46,145", class: shapeClass }));
+    svgGuide(svg, { x1: 98, y1: 20, x2: 222, y2: 20, label: `上底 ${dimensions.top}`, labelX: 160, labelY: 14 });
+    svgGuide(svg, { x1: 46, y1: 163, x2: 274, y2: 163, label: `下底 ${dimensions.bottom}`, labelX: 160, labelY: 184 });
+    svgGuide(svg, { x1: 98, y1: 35, x2: 98, y2: 145, label: `高さ ${dimensions.height}`, labelX: 109, labelY: 93, anchor: "start", dashed: true });
+  } else if (descriptor.shape === "circle") {
+    svg.appendChild(svgNode("circle", { cx: 160, cy: 94, r: 62, class: shapeClass }));
+    svgGuide(svg, { x1: 160, y1: 94, x2: 222, y2: 94, label: `半径 ${dimensions.radius}`, labelX: 191, labelY: 86 });
+    svg.appendChild(svgNode("circle", { cx: 160, cy: 94, r: 3, class: "quiz-geometry-point" }));
+  } else if (descriptor.shape === "cube" || descriptor.shape === "cuboid") {
+    const frontWidth = descriptor.shape === "cube" ? 105 : 145;
+    const frontHeight = descriptor.shape === "cube" ? 105 : 88;
+    const x = descriptor.shape === "cube" ? 82 : 55;
+    const y = descriptor.shape === "cube" ? 58 : 72;
+    const offsetX = 58; const offsetY = -34;
+    svg.append(svgNode("rect", { x, y, width: frontWidth, height: frontHeight, class: shapeClass }), svgNode("rect", { x: x + offsetX, y: y + offsetY, width: frontWidth, height: frontHeight, class: shapeClass }));
+    for (const [x1, y1] of [[x, y], [x + frontWidth, y], [x, y + frontHeight], [x + frontWidth, y + frontHeight]]) {
+      svg.appendChild(svgNode("line", { x1, y1, x2: x1 + offsetX, y2: y1 + offsetY, class: shapeClass }));
+    }
+    if (descriptor.shape === "cube") {
+      svgGuide(svg, { x1: x, y1: 176, x2: x + frontWidth, y2: 176, label: `一辺 ${dimensions.side}`, labelX: x + frontWidth / 2, labelY: 188 });
+    } else {
+      svgGuide(svg, { x1: x, y1: 174, x2: x + frontWidth, y2: 174, label: `底面 ${dimensions.length}`, labelX: x + frontWidth / 2, labelY: 188 });
+      svgGuide(svg, { x1: x + frontWidth + 5, y1: y + frontHeight, x2: x + frontWidth + offsetX, y2: y + frontHeight + offsetY, label: `奥行 ${dimensions.width}`, labelX: 254, labelY: 137 });
+      svgGuide(svg, { x1: 39, y1: y, x2: 39, y2: y + frontHeight, label: `高さ ${dimensions.height}`, labelX: 31, labelY: y + frontHeight / 2, anchor: "end" });
+    }
+  } else if (descriptor.shape === "cylinder") {
+    svg.append(svgNode("ellipse", { cx: 160, cy: 42, rx: 68, ry: 21, class: shapeClass }), svgNode("line", { x1: 92, y1: 42, x2: 92, y2: 145, class: shapeClass }), svgNode("line", { x1: 228, y1: 42, x2: 228, y2: 145, class: shapeClass }), svgNode("ellipse", { cx: 160, cy: 145, rx: 68, ry: 21, class: shapeClass }));
+    svgGuide(svg, { x1: 160, y1: 42, x2: 228, y2: 42, label: `半径 ${dimensions.radius}`, labelX: 193, labelY: 34 });
+    svgGuide(svg, { x1: 72, y1: 42, x2: 72, y2: 145, label: `高さ ${dimensions.height}`, labelX: 64, labelY: 98, anchor: "end" });
+  } else if (descriptor.shape === "cone") {
+    svg.append(svgNode("ellipse", { cx: 160, cy: 145, rx: 73, ry: 22, class: shapeClass }), svgNode("line", { x1: 160, y1: 24, x2: 87, y2: 145, class: shapeClass }), svgNode("line", { x1: 160, y1: 24, x2: 233, y2: 145, class: shapeClass }));
+    svgGuide(svg, { x1: 160, y1: 145, x2: 233, y2: 145, label: `半径 ${dimensions.radius}`, labelX: 196, labelY: 137 });
+    svgGuide(svg, { x1: 160, y1: 24, x2: 160, y2: 145, label: `高さ ${dimensions.height}`, labelX: 149, labelY: 89, anchor: "end", dashed: true });
+  }
+  figure.append(prompt, svg);
+  return figure;
+}
+
+function scrollableQuizMath(math, label) {
+  const shell = document.createElement("div");
+  shell.className = "quiz-math-shell";
+  const viewport = document.createElement("div");
+  viewport.className = "quiz-math-scroll";
+  viewport.setAttribute("role", "region");
+  viewport.setAttribute("aria-label", `${label || "数式"}。横に長い場合は左右へスクロールできます。`);
+  viewport.appendChild(math);
+  const track = document.createElement("div");
+  track.className = "quiz-overflow-scrollbar";
+  track.hidden = true;
+  track.setAttribute("aria-hidden", "true");
+  const thumb = document.createElement("span");
+  track.appendChild(thumb);
+  const sync = () => {
+    const overflow = viewport.scrollWidth > viewport.clientWidth + 1;
+    shell.classList.toggle("is-overflowing", overflow);
+    track.hidden = !overflow;
+    viewport.tabIndex = overflow ? 0 : -1;
+    if (!overflow) return;
+    const ratio = viewport.clientWidth / viewport.scrollWidth;
+    const travel = 100 - ratio * 100;
+    const progress = viewport.scrollLeft / Math.max(1, viewport.scrollWidth - viewport.clientWidth);
+    thumb.style.width = `${ratio * 100}%`;
+    thumb.style.transform = `translateX(${progress * travel / ratio}%)`;
+  };
+  viewport.addEventListener("scroll", sync, { passive: true });
+  requestAnimationFrame(sync);
+  if (typeof ResizeObserver === "function") {
+    quizMathResizeObserver = new ResizeObserver(sync);
+    quizMathResizeObserver.observe(viewport);
+  }
+  shell.append(viewport, track);
+  return shell;
 }
 
 function renderQuizQuestion(question) {
   const host = $("quizQuestion");
+  quizMathResizeObserver?.disconnect();
+  quizMathResizeObserver = null;
   host.replaceChildren();
   const descriptor = question?.math;
   if (!descriptor || typeof descriptor !== "object") {
     host.textContent = question?.prompt || "問題を読み込んでいます。";
     return;
   }
+  if (descriptor.kind === "story") {
+    const prompt = document.createElement("span");
+    prompt.className = "quiz-visible-prompt";
+    prompt.textContent = question?.prompt || descriptor.value || "文章を読んで答えてください。";
+    host.append(prompt);
+    if (question.category) host.prepend(quizCategoryNode(question.category));
+    return;
+  }
+  if (descriptor.kind === "geometry" && descriptor.shape) {
+    const figure = renderQuizGeometry(question, descriptor);
+    if (figure) {
+      host.append(figure);
+      if (question.category) host.prepend(quizCategoryNode(question.category));
+      return;
+    }
+  }
   const math = mathNode("math");
   math.setAttribute("display", "block");
   math.setAttribute("aria-label", question.prompt || "数式問題");
   if (descriptor.kind === "sum") {
-    appendMathLimits(math, "∑", descriptor);
+    const lower = descriptor.index
+      ? (() => { const row = mathNode("mrow"); row.append(mathNode("mi", descriptor.index), mathNode("mo", "="), mathNode("mn", descriptor.lower)); return row; })()
+      : mathNode("mtext", descriptor.lower);
+    const body = mathNode("mrow");
+    if (descriptor.grouped) body.append(mathNode("mo", "("), mathNode("mtext", descriptor.body || ""), mathNode("mo", ")"));
+    else body.appendChild(mathNode("mtext", descriptor.body || ""));
+    math.append(mathLimit("∑", lower, mathNode("mn", descriptor.upper)), mathNode("mspace"), body);
   } else if (descriptor.kind === "integral") {
-    appendMathLimits(math, "∫", descriptor);
-    math.append(mathNode("mspace"), mathNode("mi", `d${descriptor.variable || "x"}`));
+    const limits = mathNode("msubsup");
+    limits.append(mathNode("mo", "∫"), mathNode("mn", descriptor.lower), mathNode("mn", descriptor.upper));
+    const differential = mathNode("mrow");
+    const d = mathNode("mi", "d"); d.setAttribute("mathvariant", "normal");
+    differential.append(d, mathNode("mi", descriptor.variable || "x"));
+    math.append(limits, mathNode("mspace"), mathNode("mtext", descriptor.body || ""), mathNode("mspace"), differential);
   } else if (descriptor.kind === "fraction") {
     const fraction = mathNode("mfrac");
     fraction.append(mathNode("mtext", descriptor.numerator), mathNode("mtext", descriptor.denominator));
@@ -811,7 +954,14 @@ function renderQuizQuestion(question) {
     fraction.append(mathNode("mrow"), mathNode("mrow"));
     fraction.firstChild.append(mathNode("mi", "d"), mathNode("mi", "y"));
     fraction.lastChild.append(mathNode("mi", "d"), mathNode("mi", "x"));
-    math.append(fraction, mathNode("mspace"), mathNode("mtext", `y = ${descriptor.function}　x = ${descriptor.at}`));
+    const evaluation = mathNode("msub");
+    const at = mathNode("mrow"); at.append(mathNode("mi", "x"), mathNode("mo", "="), mathNode("mn", descriptor.at));
+    evaluation.append(mathNode("mo", "|"), at);
+    math.append(mathNode("mtext", `y = ${descriptor.function}`), mathNode("mo", ","), mathNode("mspace"), fraction, evaluation);
+  } else if (descriptor.kind === "sequence") {
+    const first = mathNode("msub"); first.append(mathNode("mi", "a"), mathNode("mn", "1"));
+    const target = mathNode("msub"); target.append(mathNode("mi", "a"), mathNode("mn", descriptor.position));
+    math.append(first, mathNode("mo", "="), mathNode("mn", descriptor.first), mathNode("mo", ","), mathNode("mspace"), mathNode("mi", "d"), mathNode("mo", "="), mathNode("mn", descriptor.difference), mathNode("mo", ","), mathNode("mspace"), target);
   } else if (descriptor.kind === "matrix-determinant") {
     math.append(mathNode("mi", "det"), mathMatrix(descriptor.rows));
   } else if (descriptor.kind === "matrix-product") {
@@ -827,13 +977,8 @@ function renderQuizQuestion(question) {
     math.appendChild(mathNode("mtext", descriptor.value || question.prompt));
   }
   if (descriptor.suffix) math.append(mathNode("mspace"), mathNode("mtext", descriptor.suffix));
-  host.appendChild(math);
-  if (question.category) {
-    const category = document.createElement("small");
-    category.className = "quiz-category";
-    category.textContent = question.category;
-    host.prepend(category);
-  }
+  host.appendChild(scrollableQuizMath(math, question.prompt));
+  if (question.category) host.prepend(quizCategoryNode(question.category));
 }
 
 function savePendingQuiz() {

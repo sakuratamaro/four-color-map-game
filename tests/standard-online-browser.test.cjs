@@ -74,7 +74,7 @@ async function installMock(context, mode) {
     body: "export function createClient(){return globalThis.__standardOnlineMockSupabase}",
   }));
   await context.addInitScript(({ connectionKey: connection, saveKey: save, roomId: id, pendingId, mode: initialMode }) => {
-    const initialTab = ["gacha", "quiz"].includes(initialMode) ? "quiz" : initialMode === "cosmetic" ? "profile" : initialMode === "empty" ? "home" : "battle";
+    const initialTab = ["gacha", "quiz", "quizPolish"].includes(initialMode) ? "quiz" : initialMode === "cosmetic" ? "profile" : initialMode === "empty" ? "home" : "battle";
     const setupTransition = ["setupTransition", "setupTransitionCpuFirst"].includes(initialMode);
     const setupPending = setupTransition || initialMode === "setupDebugError";
     const cpuRoomMode = ["cpuTurn", "finishedCpu", "cpuWin", "setupTransition", "setupTransitionCpuFirst"].includes(initialMode);
@@ -88,7 +88,7 @@ async function installMock(context, mode) {
     if (initialMode !== "empty") {
       localStorage.setItem(save, JSON.stringify({ profiles: { playerA: { displayName: "A", inventory } } }));
       localStorage.setItem("fourColorMapGame.standard.online.v5.profile", "playerA");
-      if (!["lobby", "cosmetic", "quiz", "publicFind", "cpuWait", "cpuRetry"].includes(initialMode)) {
+      if (!["lobby", "cosmetic", "quiz", "quizPolish", "publicFind", "cpuWait", "cpuRetry"].includes(initialMode)) {
         localStorage.setItem(connection, JSON.stringify({
           roomId: id, roomCode: "A1B2C3", profileRevision: 1, setupRevision: setupPending ? 0 : 3,
           rematchActionId: initialMode === "finished" ? pendingId : null,
@@ -182,12 +182,24 @@ async function installMock(context, mode) {
           return { data: { revision: 1, displayName: request.body.displayName, profileState: request.body.profileState } };
         }
         if (request.body.operation === "quiz-start") {
-          const questions = Array.from({ length: 10 }, (_, index) => ({
+          const polishQuestions = [
+            { templateId: "speed-distance", category: "速さ", prompt: "時速12kmで8時間進むと何km？", math: { kind: "story" } },
+            { templateId: "trapezoid-area", category: "面積", prompt: "上底7、下底14、高さ12の台形の面積は？", math: { kind: "geometry", shape: "trapezoid", dimensions: { top: 7, bottom: 14, height: 12 } } },
+            { templateId: "derivative-polynomial", category: "微分", prompt: "y=4x² + 2x のとき、x=6での dy/dx は？", math: { kind: "derivative", function: "4x² + 2x", at: 6, suffix: "= ?" } },
+            { templateId: "integral-linear", category: "積分", prompt: "0から5まで 2x を積分した値は？", math: { kind: "integral", lower: 0, upper: 5, body: "2x", variable: "x", suffix: "= ?" } },
+            { templateId: "sequence", category: "等差数列", prompt: "初項4、公差2の等差数列の第12項は？", math: { kind: "sequence", first: 4, difference: 2, position: 12, suffix: "= ?" } },
+            { templateId: "sigma-linear", category: "数列の和", prompt: "k=1から8までの長い式の総和は？", math: { kind: "sum", index: "k", lower: 1, upper: 8, body: "123456789k² + 987654321k + 123456789", grouped: true, suffix: "= ?" } },
+            { templateId: "legacy-story", category: "文章題", prompt: "りんごが12個ずつ8箱あります。全部で何個？", math: { kind: "story", value: "12 × 8 = ?" } },
+            { templateId: "legacy-geometry", category: "面積", prompt: "たて5、よこ8の長方形の面積は？", math: { kind: "geometry", label: "長方形", value: "たて 5、よこ 8、S = ?" } },
+            { templateId: "legacy-sum", category: "数列の和", prompt: "k=1から5までの和は？", math: { kind: "sum", lower: "k = 1", upper: 5, body: "k", suffix: "= ?" } },
+            { templateId: "cone-volume", category: "体積", prompt: "半径3、高さ9の円すいの体積は何π？", math: { kind: "geometry", shape: "cone", dimensions: { radius: 3, height: 9 } } },
+          ];
+          const sourceQuestions = initialMode === "quizPolish" ? polishQuestions : Array.from({ length: 10 }, (_, index) => ({
+            templateId: "add", category: "たし算", prompt: `${index + 1} + 1 = ?`, math: { kind: "expression", value: `${index + 1} + 1 = ?` },
+          }));
+          const questions = sourceQuestions.map((question, index) => ({
             number: index + 1,
-            templateId: "add",
-            category: "たし算",
-            prompt: `${index + 1} + 1 = ?`,
-            math: { kind: "expression", value: `${index + 1} + 1 = ?` },
+            ...question,
             hintOptions: ["たし算：同じ位どうしを足す", "円の面積：S = πr²", "2次の行列式：det A = ad − bc"],
             hintDurationMs: 2500,
             timeLimitSeconds: 10,
@@ -647,6 +659,90 @@ test("actual Edge quiz freezes for the hint, resumes without room polling, and a
     const startCall = await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.find((entry) => entry.body?.operation === "quiz-start")?.body);
     assert.equal(startCall.selectedLevel, 1);
   });
+});
+
+test("actual Edge presents prompt-only stories, dimension diagrams, structured math, and overflow-only scrolling at 390px", { timeout: 150000 }, async () => {
+  await withPage("quizPolish", async (page) => {
+    await page.evaluate(() => {
+      const NativeResizeObserver = globalThis.ResizeObserver;
+      globalThis.__quizObserverStats = { created: 0, disconnected: 0 };
+      globalThis.ResizeObserver = class extends NativeResizeObserver {
+        constructor(callback) {
+          super(callback);
+          globalThis.__quizObserverStats.created += 1;
+        }
+        disconnect() {
+          globalThis.__quizObserverStats.disconnected += 1;
+          return super.disconnect();
+        }
+      };
+    });
+    await page.getByRole("button", { name: "10問チャレンジ開始" }).click();
+    await page.locator("#quizOptions button").first().waitFor();
+
+    const question = page.locator("#quizQuestion");
+    assert.equal(await question.locator("math").count(), 0);
+    assert.equal(await question.locator(".quiz-visible-prompt").textContent(), "時速12kmで8時間進むと何km？");
+    assert.doesNotMatch(await question.textContent(), /12\s*[×÷+]\s*8|=\s*\?/);
+
+    await page.locator("#quizOptions button").first().click();
+    await page.getByText("2 / 10", { exact: true }).waitFor();
+    const diagram = question.locator(".quiz-geometry svg");
+    assert.equal(await diagram.getAttribute("role"), "img");
+    assert.deepEqual(await diagram.locator("text").allTextContents(), ["上底 7", "下底 14", "高さ 12"]);
+    assert.doesNotMatch(await diagram.textContent(), /[=×÷?]|面積|S|V/);
+
+    await page.locator("#quizOptions button").first().click();
+    await page.getByText("3 / 10", { exact: true }).waitFor();
+    assert.equal(await question.locator("math mfrac").count(), 1);
+    assert.equal(await question.locator("math msub").count(), 1);
+    assert.match((await question.locator("math").textContent()).replace(/\s+/g, ""), /^y=4x²\+2x,dydx\|x=6=\?$/);
+
+    await page.locator("#quizOptions button").first().click();
+    await page.getByText("4 / 10", { exact: true }).waitFor();
+    assert.ok((await page.evaluate(() => globalThis.__quizObserverStats.disconnected)) >= 1);
+    assert.equal(await question.locator("math msubsup").count(), 1);
+    assert.match((await question.locator("math").textContent()).replace(/\s+/g, ""), /^∫052xdx=\?$/);
+
+    await page.locator("#quizOptions button").first().click();
+    await page.getByText("5 / 10", { exact: true }).waitFor();
+    assert.equal(await question.locator("math msub").count(), 2);
+    assert.equal(await question.locator("math msub").last().textContent(), "a12");
+    assert.equal(await question.locator(".quiz-overflow-scrollbar").isHidden(), true);
+
+    await page.locator("#quizOptions button").first().click();
+    await page.getByText("6 / 10", { exact: true }).waitFor();
+    const viewport = question.locator(".quiz-math-scroll");
+    const scrollbar = question.locator(".quiz-overflow-scrollbar");
+    await page.waitForFunction(() => !document.querySelector("#quizQuestion .quiz-overflow-scrollbar")?.hidden);
+    const before = await viewport.evaluate((node) => ({ clientWidth: node.clientWidth, scrollWidth: node.scrollWidth, scrollLeft: node.scrollLeft, tabIndex: node.tabIndex }));
+    assert.ok(before.scrollWidth > before.clientWidth, JSON.stringify(before));
+    assert.equal(before.scrollLeft, 0);
+    assert.equal(before.tabIndex, 0);
+    assert.equal(await scrollbar.isVisible(), true);
+    await viewport.evaluate((node) => { node.scrollLeft = node.scrollWidth; });
+    await page.waitForFunction(() => {
+      const node = document.querySelector("#quizQuestion .quiz-math-scroll");
+      return node && node.scrollLeft > 0;
+    });
+    assert.equal(await scrollbar.isVisible(), true);
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth), false);
+
+    await page.locator("#quizOptions button").first().click();
+    await page.getByText("7 / 10", { exact: true }).waitFor();
+    assert.equal(await question.locator("math").count(), 0);
+    assert.equal(await question.locator(".quiz-visible-prompt").textContent(), "りんごが12個ずつ8箱あります。全部で何個？");
+    assert.doesNotMatch(await question.textContent(), /12\s*×\s*8/);
+
+    await page.locator("#quizOptions button").first().click();
+    await page.getByText("8 / 10", { exact: true }).waitFor();
+    assert.match((await question.textContent()).replace(/\s+/g, " "), /面積.*たて 5、よこ 8、S = \?/);
+
+    await page.locator("#quizOptions button").first().click();
+    await page.getByText("9 / 10", { exact: true }).waitFor();
+    assert.equal(await question.locator("math munderover").count(), 1);
+    assert.match((await question.locator("math").textContent()).replace(/\s+/g, ""), /^∑k=15k=\?$/);
+  }, { bodyTimeout: 60_000, viewport: { width: 390, height: 844 } });
 });
 
 test("actual Edge presents server-hydrated stats, trophy state, and match history", { timeout: 130000 }, async () => {

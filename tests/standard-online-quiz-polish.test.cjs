@@ -45,6 +45,53 @@ test("question catalog includes formatted higher math, geometry, solids, and Jap
   assert.match(app, /MATHML_NS/);
 });
 
+test("word problems keep their calculation hidden until the explicit hint", () => {
+  const storyLines = edge.split("\n").filter((line) => /kind: "story"/.test(line));
+  assert.equal(storyLines.length, 8);
+  for (const line of storyLines) {
+    assert.doesNotMatch(line, /kind: "story",\s*value:/);
+  }
+  assert.match(app, /descriptor\.kind === "story"[\s\S]+prompt\.textContent = question\?\.prompt/);
+  assert.match(app, /function openQuizHint\(/);
+});
+
+test("area and volume questions use allowlisted dimension diagrams without formulas", () => {
+  assert.match(html, /<div id="quizQuestion" class="quiz-question"><\/div>/);
+  for (const shape of ["rectangle", "cube", "triangle", "cuboid", "circle", "trapezoid", "cylinder", "cone"]) {
+    assert.match(edge, new RegExp(`shape: "${shape}"`));
+    assert.match(app, new RegExp(`descriptor\\.shape === "${shape}"`));
+  }
+  const diagramLines = edge.split("\n").filter((line) => /kind: "geometry", shape:/.test(line));
+  assert.equal(diagramLines.length, 8);
+  for (const line of diagramLines) assert.doesNotMatch(line, /\bvalue:|\bsuffix:/);
+  assert.match(app, /document\.createElementNS\(SVG_NS/);
+  assert.doesNotMatch(app, /quiz-geometry[\s\S]{0,300}innerHTML/);
+});
+
+test("calculus, arbitrary sequence indices, and sigma bounds have structured rendering", () => {
+  assert.match(edge, /function inclusiveIntegerSum\(/);
+  assert.equal((edge.match(/inclusiveIntegerSum\(lower, end/g) || []).length, 3);
+  assert.equal((edge.match(/kind: "sum", index: "k", lower, upper: end/g) || []).length, 3);
+  assert.match(edge, /kind: "sequence", first, difference, position/);
+  assert.match(app, /descriptor\.kind === "integral"[\s\S]+mathNode\("msubsup"\)/);
+  assert.match(app, /descriptor\.kind === "derivative"[\s\S]+const evaluation = mathNode\("msub"\)/);
+  assert.match(app, /descriptor\.kind === "sequence"[\s\S]+mathNode\("mn", descriptor\.position\)/);
+  assert.match(app, /descriptor\.grouped[\s\S]+mathNode\("mo", "\("\)/);
+});
+
+test("only overflowing quiz math receives a persistent horizontal position bar", () => {
+  assert.match(app, /viewport\.scrollWidth > viewport\.clientWidth \+ 1/);
+  assert.match(app, /track\.hidden = !overflow/);
+  assert.match(app, /viewport\.tabIndex = overflow \? 0 : -1/);
+  assert.match(app, /quizMathResizeObserver = new ResizeObserver\(sync\)/);
+  assert.match(app, /quizMathResizeObserver\?\.disconnect\(\);\s*quizMathResizeObserver = null;\s*host\.replaceChildren\(\)/);
+  assert.match(css, /\.quiz-math-scroll\{[^}]*overflow-x:auto/);
+  assert.match(css, /\.quiz-question \.quiz-math-scroll math\{[^}]*white-space:nowrap/);
+  assert.match(css, /\.quiz-overflow-scrollbar\[hidden\]\{display:none\}/);
+  assert.match(html, /style\.css\?v=20260905-9/);
+  assert.match(html, /app\.js\?v=20260905-9/);
+});
+
 test("five-tab navigation separates the app into focused screens", () => {
   for (const tab of ["home", "battle", "quiz", "cards", "profile"]) assert.match(html, new RegExp(`data-app-tab="${tab}"`));
   assert.match(app, /function activateAppTab/);
