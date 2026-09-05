@@ -24,6 +24,7 @@ function loadQuizRuntime(secureInt) {
     .replace("function quizPrompt(level: number, recentTemplateIds: string[] = []): QuizGenerated", "function quizPrompt(level, recentTemplateIds = [])")
     .replace("const q = (templateId: string, category: string, prompt: string, answer: number, hint: string, timeLimitSeconds: number, math?: JsonObject): QuizGenerated =>", "const q = (templateId, category, prompt, answer, hint, timeLimitSeconds, math) =>")
     .replace("let catalog: Array<() => QuizGenerated>;", "let catalog;")
+    .replace("function quizExperienceMeta(level: number, question: QuizGenerated): JsonObject", "function quizExperienceMeta(level, question)")
     .replace("function createQuizChallenge(level: number): { questions: JsonObject[]; answerIds: string[]; explanations: string[] }", "function createQuizChallenge(level)")
     .replace("const questions: JsonObject[] = [];", "const questions = [];")
     .replace("const answerIds: string[] = [];", "const answerIds = [];")
@@ -111,5 +112,18 @@ test("ten-question challenge keeps server answers separate from public questions
     assert.equal(question.options.some((option) => "isCorrect" in option), false);
     assert.equal(typeof challenge.explanations[index], "string");
     assert.ok(challenge.explanations[index].length > 0);
+    assert.equal(typeof question.mission, "string");
+    assert.ok(question.mission.length > 0);
+    assert.equal(typeof question.formatLabel, "string");
+    assert.ok(question.formatLabel.length > 0);
+    assert.ok([1, 2, 3].includes(question.thinkingSteps));
   });
+});
+
+test("level five advertises deeper thinking without shortening its clock", () => {
+  const { createQuizChallenge } = loadQuizRuntime((minimum) => minimum);
+  const levelFour = JSON.parse(JSON.stringify(createQuizChallenge(4))).questions;
+  const levelFive = JSON.parse(JSON.stringify(createQuizChallenge(5))).questions;
+  assert.equal(levelFive.every((question) => question.thinkingSteps === 3), true);
+  assert.ok(Math.min(...levelFive.map((question) => question.timeLimitSeconds)) >= Math.min(...levelFour.map((question) => question.timeLimitSeconds)));
 });

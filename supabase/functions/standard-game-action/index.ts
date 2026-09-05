@@ -285,6 +285,38 @@ function quizPrompt(level: number, recentTemplateIds: string[] = []): QuizGenera
   return pool[secureInt(0, pool.length - 1)];
 }
 
+function quizExperienceMeta(level: number, question: QuizGenerated): JsonObject {
+  const kind = typeof question.math?.kind === "string" ? question.math.kind : "expression";
+  const formatLabel = kind === "story"
+    ? "文章を整理"
+    : kind === "geometry"
+      ? "図を読む"
+      : ["matrix-determinant", "matrix-product", "system"].includes(kind)
+        ? "式を組み立てる"
+        : "ひらめき計算";
+  let mission = "式を読み、「?」に入る数を求めよう";
+  if (kind === "story") mission = `条件を整理して、${question.category}の答えを求めよう`;
+  else if (kind === "geometry") mission = `図の寸法から${question.category}を求めよう`;
+  else if (kind === "derivative") mission = "微分して、指定された x での値を求めよう";
+  else if (kind === "integral") mission = "区間にそって積分し、その値を求めよう";
+  else if (kind === "sum") mission = "Σの範囲と項を読み、総和を求めよう";
+  else if (kind === "sequence") mission = "初項と公差から、指定された項を求めよう";
+  else if (kind === "matrix-determinant") mission = "行列の配置を読み、行列式を求めよう";
+  else if (kind === "matrix-product") mission = question.templateId === "determinant-product"
+    ? "2つの行列式を求め、その積を計算しよう"
+    : "行と列を組み合わせ、指定された成分を求めよう";
+  else if (kind === "system") mission = "一方の文字を消去して、x を求めよう";
+  else if (["linear", "quadratic"].includes(question.templateId)) mission = "式を整理して、x を求めよう";
+  else if (question.templateId === "missing") mission = "逆算して、□に入る数を求めよう";
+
+  const twoStepTemplates = new Set([
+    "average", "ratio", "crane-turtle", "work-rate", "age-story", "quadratic", "combination",
+    "sigma-linear", "trapezoid-area", "cylinder-volume", "derivative-polynomial", "newton-flow", "catch-up",
+  ]);
+  const thinkingSteps = level >= 5 ? 3 : twoStepTemplates.has(question.templateId) ? 2 : 1;
+  return { mission, formatLabel, thinkingSteps };
+}
+
 function createQuizChallenge(level: number): { questions: JsonObject[]; answerIds: string[]; explanations: string[] } {
   const questions: JsonObject[] = [];
   const answerIds: string[] = [];
@@ -294,11 +326,13 @@ function createQuizChallenge(level: number): { questions: JsonObject[]; answerId
     const generated = quizPrompt(level, recentTemplateIds);
     recentTemplateIds.push(generated.templateId);
     const choices = quizOptions(generated.answer, index);
+    const experience = quizExperienceMeta(level, generated);
     questions.push({
       number: index + 1,
       templateId: generated.templateId,
       category: generated.category,
       prompt: generated.prompt,
+      ...experience,
       math: generated.math || null,
       hintOptions: quizHintOptions(generated.hint),
       hintDurationMs: level >= 4 ? 5000 : 3500,

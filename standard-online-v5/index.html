@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <title>Four Color Map Game v5.0 Standard Online</title>
   <link rel="stylesheet" href="../online-v5/style.css">
-  <link rel="stylesheet" href="style.css?v=20260905-17">
+  <link rel="stylesheet" href="style.css?v=20260905-18">
   <link rel="stylesheet" href="debug-mode.css">
   <link rel="stylesheet" href="progression.css">
 </head>
@@ -82,9 +82,14 @@
         <button id="quizStart" class="primary">10問チャレンジ開始</button>
       </div>
       <div id="quizPlay" class="quiz-play hidden">
-        <div class="row between quiz-meta"><strong id="quizProgress">1 / 10</strong><span id="quizLevelBadge" class="badge"></span><strong id="quizTimer" class="quiz-timer" aria-live="polite">残り --秒</strong></div>
+        <div class="row between quiz-meta"><strong id="quizProgress">1 / 10</strong><span id="quizLevelBadge" class="badge"></span><strong id="quizStreak" class="quiz-streak hidden" data-tier="0"></strong><strong id="quizTimer" class="quiz-timer" aria-live="polite">残り --秒</strong></div>
         <p id="quizAnswerFeedback" class="quiz-answer-feedback hidden" role="status" aria-live="polite" aria-atomic="true"></p>
         <div class="quiz-time" role="progressbar" aria-label="この問題の残り時間" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><div id="quizTimeBar"></div></div>
+        <div class="quiz-experience" aria-label="この問題のミッション">
+          <span id="quizFormatLabel" class="quiz-format-label"></span>
+          <strong id="quizMission" class="quiz-mission"></strong>
+          <span id="quizThinkingSteps" class="quiz-thinking-steps"></span>
+        </div>
         <div id="quizQuestion" class="quiz-question"></div>
         <div id="quizOptions" class="quiz-options" role="group" aria-label="答えの選択肢"></div>
         <div class="quiz-controls"><button id="quizHint" type="button">💡 ヒントを見る</button><span class="muted small">各問題で1回だけ使えます。表示中は残り時間が止まります。</span></div>
@@ -359,6 +364,6 @@
   <script src="standard-online-client.js?v=20260905-14"></script>
   <script src="standard-online-sync.js"></script>
   <script src="standard-online-skill-intents.js"></script>
-  <script type="module" src="app.js?v=20260905-17"></script>
+  <script type="module" src="app.js?v=20260905-18"></script>
 </body>
 </html>

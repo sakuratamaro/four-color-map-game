@@ -1089,6 +1089,14 @@ function quizCategoryNode(category) {
   return node;
 }
 
+function renderQuizExperience(question) {
+  const steps = Math.max(1, Math.min(3, Number(question?.thinkingSteps || 1)));
+  $("quizFormatLabel").textContent = `🎯 ${String(question?.formatLabel || "ひらめき計算")}`;
+  $("quizMission").textContent = String(question?.mission || "問題を読み、答えを1つ選ぼう");
+  $("quizThinkingSteps").textContent = `考え方 ${steps}段階`;
+  $("quizThinkingSteps").dataset.steps = String(steps);
+}
+
 function svgNode(tag, attributes = {}, text = null) {
   const node = document.createElementNS(SVG_NS, tag);
   for (const [name, value] of Object.entries(attributes)) node.setAttribute(name, String(value));
@@ -1398,17 +1406,54 @@ function quizOptionLabel(question, optionId) {
   return String((question?.options || []).find((option) => option.id === optionId)?.label || optionId || "未回答");
 }
 
+function quizCorrectStreak(results = pendingQuiz?.answerResults || []) {
+  let streak = 0;
+  for (let index = results.length - 1; index >= 0; index -= 1) {
+    const result = results[index];
+    if (result?.isCorrect !== true || result?.timedOut) break;
+    streak += 1;
+  }
+  return streak;
+}
+
+function renderQuizStreak() {
+  const host = $("quizStreak");
+  const streak = quizCorrectStreak();
+  show("quizStreak", streak >= 2);
+  const tier = streak >= 6 ? 3 : streak >= 4 ? 2 : streak >= 2 ? 1 : 0;
+  host.dataset.tier = String(tier);
+  host.textContent = tier === 3
+    ? `🔥 神がかり！ ${streak}連続正解`
+    : tier === 2
+      ? `✨ 絶好調！ ${streak}連続正解`
+      : tier === 1
+        ? `いい流れ！ ${streak}連続正解`
+        : "";
+}
+
+function quizLearningLine(feedback) {
+  const explanation = String(feedback?.explanation || "").trim();
+  if (explanation) return explanation.slice(0, 180);
+  return feedback?.isCorrect ? "その考え方でOK。次の問題でも条件を先に整理しよう" : "正解の値から式を逆にたどってみよう";
+}
+
 function renderQuizAnswerFeedback() {
   const feedback = pendingQuiz?.answerResults?.at?.(-1) || null;
   const host = $("quizAnswerFeedback");
   show("quizAnswerFeedback", Boolean(feedback));
   host.classList.toggle("correct", feedback?.isCorrect === true);
   host.classList.toggle("incorrect", Boolean(feedback) && feedback?.isCorrect !== true);
-  if (!feedback) { host.textContent = ""; return; }
+  if (!feedback) { host.replaceChildren(); return; }
   const prefix = `前問 Q${Number(feedback.questionIndex) + 1}：`;
-  if (feedback.timedOut) host.textContent = `${prefix}× 時間切れ　正解：${feedback.correctOptionLabel}`;
-  else if (feedback.isCorrect) host.textContent = `${prefix}○ 正解！`;
-  else host.textContent = `${prefix}× 不正解　正解：${feedback.correctOptionLabel}`;
+  const result = document.createElement("span");
+  result.className = "quiz-feedback-result";
+  if (feedback.timedOut) result.textContent = `${prefix}× 時間切れ　正解：${feedback.correctOptionLabel}`;
+  else if (feedback.isCorrect) result.textContent = `${prefix}○ 正解！`;
+  else result.textContent = `${prefix}× おしい　正解：${feedback.correctOptionLabel}`;
+  const learning = document.createElement("span");
+  learning.className = "quiz-feedback-learning";
+  learning.textContent = `なるほど：${quizLearningLine(feedback)}`;
+  host.replaceChildren(result, learning);
 }
 
 function emphasizeQuizFeedback() {
@@ -1468,6 +1513,7 @@ function renderQuiz() {
   $("quizLevel").disabled = quizBusy;
   if (lastQuizResult) renderQuizResult();
   renderQuizAnswerFeedback();
+  renderQuizStreak();
   if (!pendingQuiz) { stopQuizClock(); return; }
   const lockedByMatch = quizLockedByMatchedRoom();
   if (lockedByMatch) $("quizStatus").textContent = quizRoomClassificationPending
@@ -1494,6 +1540,7 @@ function renderQuiz() {
     questionState.lastTickAt = Date.now();
     savePendingQuiz();
   }
+  renderQuizExperience(question);
   renderQuizQuestion(question);
   renderQuizHint(question, questionState);
   for (const [optionIndex, option] of (question.options || []).entries()) {

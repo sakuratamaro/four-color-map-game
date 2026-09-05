@@ -245,6 +245,13 @@ async function installMock(context, mode) {
           const questions = sourceQuestions.map((question, index) => ({
             number: index + 1,
             ...question,
+            mission: question.math?.kind === "story"
+              ? `条件を整理して、${question.category}の答えを求めよう`
+              : question.math?.kind === "geometry"
+                ? `図の寸法から${question.category}を求めよう`
+                : "式を読み、「?」に入る数を求めよう",
+            formatLabel: question.math?.kind === "story" ? "文章を整理" : question.math?.kind === "geometry" ? "図を読む" : "ひらめき計算",
+            thinkingSteps: initialMode === "quizPolish" ? 3 : 1,
             hintOptions: ["たし算：同じ位どうしを足す", "円の面積：S = πr²", "2次の行列式：det A = ad − bc"],
             hintDurationMs: 2500,
             timeLimitSeconds: initialMode === "handoffStart" ? 1 : 10,
@@ -825,6 +832,8 @@ test("actual Edge quiz freezes for the hint, resumes without room polling, and a
     await page.locator("#quizOptions button").first().waitFor();
     assert.equal(await page.locator("#quizOptions button").count(), 6);
     assert.equal(await page.locator("#quizQuestion math").count(), 1);
+    assert.equal(await page.locator("#quizMission").textContent(), "式を読み、「?」に入る数を求めよう");
+    assert.equal(await page.locator("#quizThinkingSteps").textContent(), "考え方 1段階");
 
     await page.getByRole("button", { name: "ヒントを見る" }).click();
     await page.locator("#quizHintText").waitFor({ state: "visible" });
@@ -862,7 +871,7 @@ test("per-question quiz feedback commits before advancing, retries the same answ
     await page.getByRole("button", { name: "同じ回答を再送" }).click();
     await page.getByText("2 / 10", { exact: true }).waitFor();
     const feedback = page.locator("#quizAnswerFeedback");
-    assert.equal(await feedback.textContent(), "前問 Q1：○ 正解！");
+    assert.equal(await feedback.textContent(), "前問 Q1：○ 正解！なるほど：1 + 1 = 2");
     assert.equal(await feedback.isVisible(), true);
     const answerCalls = await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "quiz-answer").map((entry) => entry.body));
     assert.equal(answerCalls.length, 2);
@@ -871,18 +880,22 @@ test("per-question quiz feedback commits before advancing, retries the same answ
     assert.equal(answerCalls[0].answerId, answerCalls[1].answerId);
     await page.waitForTimeout(700);
     assert.equal(await feedback.evaluate((node) => node.classList.contains("emphasize")), false);
-    assert.equal(await feedback.textContent(), "前問 Q1：○ 正解！");
+    assert.equal(await feedback.textContent(), "前問 Q1：○ 正解！なるほど：1 + 1 = 2");
 
     await page.locator("#quizOptions button").nth(1).click();
     await page.getByText("3 / 10", { exact: true }).waitFor();
-    assert.equal(await feedback.textContent(), "前問 Q2：× 不正解　正解：3");
+    assert.equal(await feedback.textContent(), "前問 Q2：× おしい　正解：3なるほど：2 + 1 = 3");
     await page.getByRole("button", { name: "カード" }).click();
     await page.getByRole("button", { name: "クイズ・ガチャ" }).click();
-    assert.equal(await feedback.textContent(), "前問 Q2：× 不正解　正解：3");
+    assert.equal(await feedback.textContent(), "前問 Q2：× おしい　正解：3なるほど：2 + 1 = 3");
 
     for (let questionNumber = 3; questionNumber <= 10; questionNumber += 1) {
       await page.locator("#quizOptions button").first().click();
       if (questionNumber < 10) await page.getByText(`${questionNumber + 1} / 10`, { exact: true }).waitFor();
+      if (questionNumber === 4) {
+        assert.equal(await page.locator("#quizStreak").textContent(), "いい流れ！ 2連続正解");
+        assert.equal(await page.locator("#quizStreak").getAttribute("data-tier"), "1");
+      }
     }
     await page.getByText("9問正解！ Lv.1ガチャ券を1枚獲得（参加報酬）", { exact: true }).waitFor();
     assert.equal(await page.getByRole("button", { name: "ガチャへ" }).isVisible(), true);
@@ -911,6 +924,11 @@ test("actual Edge presents prompt-only stories, dimension diagrams, structured m
     });
     await page.getByRole("button", { name: "10問チャレンジ開始" }).click();
     await page.locator("#quizOptions button").first().waitFor();
+
+    assert.equal(await page.locator("#quizMission").textContent(), "条件を整理して、速さの答えを求めよう");
+    assert.equal(await page.locator("#quizFormatLabel").textContent(), "🎯 文章を整理");
+    assert.equal(await page.locator("#quizThinkingSteps").textContent(), "考え方 3段階");
+    assert.equal(await page.locator("#quizMission").evaluate((node) => node.scrollWidth <= node.clientWidth), true);
 
     const question = page.locator("#quizQuestion");
     assert.equal(await question.locator("math").count(), 0);
