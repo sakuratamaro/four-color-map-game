@@ -1060,6 +1060,23 @@ test("actual Edge makes the six-card setup explicit, constrained, and keyboard-s
     assert.equal(await page.locator(".loadout-option.is-selected").count(), 6);
     assert.equal(await page.getByText("✓ 持ち込む", { exact: true }).count(), 6);
     assert.equal(await page.locator("#submitSetup").isEnabled(), true);
+    assert.equal(await page.locator("#setupCommitTitle").textContent(), "スターター6枚を選択済み・準備OK");
+    const initialCommitLayout = await page.evaluate(() => {
+      const bar = document.querySelector("#setupCommitBar").getBoundingClientRect();
+      const button = document.querySelector("#submitSetup").getBoundingClientRect();
+      const tabs = document.querySelector(".app-tabs").getBoundingClientRect();
+      return {
+        position: getComputedStyle(document.querySelector("#setupCommitBar")).position,
+        bar: { top: bar.top, right: bar.right, bottom: bar.bottom, left: bar.left },
+        button: { top: button.top, bottom: button.bottom },
+        tabsTop: tabs.top,
+        viewport: { width: innerWidth, height: innerHeight },
+      };
+    });
+    assert.equal(initialCommitLayout.position, "fixed");
+    assert.ok(initialCommitLayout.bar.top >= 0 && initialCommitLayout.bar.bottom <= initialCommitLayout.tabsTop, JSON.stringify(initialCommitLayout));
+    assert.ok(initialCommitLayout.button.top >= 0 && initialCommitLayout.button.bottom <= initialCommitLayout.tabsTop, JSON.stringify(initialCommitLayout));
+    assert.ok(initialCommitLayout.bar.left >= 0 && initialCommitLayout.bar.right <= initialCommitLayout.viewport.width, JSON.stringify(initialCommitLayout));
 
     const selectedColor = page.locator('input[name="loadout-color"]:checked').first();
     const selectedColorId = await selectedColor.getAttribute("value");
@@ -1100,6 +1117,7 @@ test("actual Edge hands one submitted setup to the visible first-move guide with
     await page.locator("#setupCard:not(.hidden)").waitFor();
     await page.getByRole("button", { name: "この6枚で準備完了" }).click();
     await page.waitForFunction(() => document.activeElement?.id === "matchTitle");
+    assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "setup").length), 1);
     assert.equal(await page.locator("#matchTitle").textContent(), "Standard対戦スタート");
     assert.equal(await page.locator("#turnGuideStep").textContent(), "あなたが作る → CPUが塗る");
     assert.match(await page.locator("#turnGuideTitle").textContent(), /白い盤面をタップして、あと1マス選ぶ/);

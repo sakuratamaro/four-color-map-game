@@ -27,7 +27,7 @@ test("missing room snapshots return to the lobby without discarding rooms on net
 test("Standard online setup UI exposes the complete reconnect path", () => {
   for (const id of [
     "connectionBadge", "profileSelect", "starterCreator", "starterName", "createStarterProfile", "syncProfile", "createRoom", "roomCode", "joinRoom",
-    "shownCode", "members", "loadoutSummary", "loadoutGrid", "submitSetup", "setupStatus", "matchCard",
+    "shownCode", "members", "loadoutSummary", "loadoutGrid", "setupCommitBar", "setupCommitTitle", "submitSetup", "setupStatus", "matchCard",
     "publicProjection", "privateProjection", "leaveRoom",
     "turnGuide", "turnGuideStep", "turnGuideTitle", "turnGuideDetail", "board", "regionControls", "selectionCount", "submitRegion", "paletteControls", "skillControls", "skillTargetControls",
     "surrender", "retryAction", "actionStatus", "rematchControls", "rematchStatus", "requestRematch",
@@ -237,11 +237,14 @@ test("setup enforces two cards per category and makes unowned cards debug-only",
   assert.match(app, /if \(checked\.length > 2\)[\s\S]+?changed\.checked = false/);
   assert.match(app, /every\(\(category\) => loadout\[category\]\.length === 2\)/);
   assert.match(app, /renderLoadoutSelectionState\(`\$\{CATEGORY_LABEL\[category\]\}は2枚までです/);
-  assert.match(app, /\$\("submitSetup"\)\.disabled = setupBusy \|\| !validLoadout\(loadout\)/);
+  assert.match(app, /\$\("submitSetup"\)\.disabled = setupBusy \|\| !ready/);
   assert.match(app, /client\.submitSetup\(\{ loadout, debugMode \}\)/);
   assert.match(html, /id="debugUnlimitedMode"/);
   assert.match(html, /id="loadoutSummary"[^>]+role="status"[^>]+aria-live="polite"/);
+  assert.match(html, /id="setupCommitBar"[^>]+setup-commit-bar/);
+  assert.match(app, /スターター6枚を選択済み・準備OK/);
   assert.match(html, /id="submitSetup"[^>]+aria-describedby="loadoutSummary setupStatus"[^>]+disabled/);
+  assert.match(css, /body\.setup-active\[data-active-tab="battle"\] \.setup-commit-bar\{position:fixed/);
 });
 
 test("server rule errors are safe, persistent, and never offered as an idempotent retry", () => {

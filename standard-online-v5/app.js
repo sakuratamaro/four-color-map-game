@@ -1417,14 +1417,17 @@ function renderLoadoutSelectionState(message = "") {
   const counts = Object.fromEntries(Object.entries(loadout).map(([category, ids]) => [category, ids.length]));
   const total = Object.values(counts).reduce((sum, count) => sum + count, 0);
   const remaining = Math.max(0, 6 - total);
+  const ready = validLoadout(loadout);
   $("loadoutSummary").textContent = message || `選択 ${total}/6｜色 ${counts.color}/2｜エリア ${counts.area}/2｜妨害 ${counts.disrupt}/2${remaining ? `｜あと${remaining}枚` : "｜準備OK"}`;
-  $("loadoutSummary").classList.toggle("is-complete", validLoadout(loadout));
+  $("loadoutSummary").classList.toggle("is-complete", ready);
+  $("setupCommitTitle").textContent = setupBusy ? "6枚を確認しています…" : ready ? "スターター6枚を選択済み・準備OK" : `あと${remaining}枚を選ぶと準備できます`;
+  $("setupCommitBar").classList.toggle("is-ready", ready);
   for (const input of document.querySelectorAll('#loadoutGrid input[type="checkbox"]')) {
     const label = input.closest(".loadout-option");
     label?.classList.toggle("is-selected", input.checked);
     label?.querySelector(".loadout-choice-state")?.replaceChildren(document.createTextNode(input.checked ? "✓ 持ち込む" : "持ち込まない"));
   }
-  $("submitSetup").disabled = setupBusy || !validLoadout(loadout);
+  $("submitSetup").disabled = setupBusy || !ready;
 }
 
 async function refreshRoom(_reason, expectedRoomId = client.snapshot().roomId) {
@@ -1533,7 +1536,9 @@ function render() {
   show("lobby", synced && !snapshot.roomId);
   renderMatchmaking();
   show("room", Boolean(snapshot.roomId));
-  show("setupCard", Boolean(snapshot.roomId) && Boolean(profile()) && !["playing", "finished"].includes(roomModel?.room?.status));
+  const setupVisible = Boolean(snapshot.roomId) && Boolean(profile()) && !["playing", "finished"].includes(roomModel?.room?.status);
+  show("setupCard", setupVisible);
+  document.body.classList.toggle("setup-active", setupVisible);
   show("matchCard", ["playing", "finished"].includes(roomModel?.room?.status));
   show("rematchControls", roomModel?.room?.status === "finished");
   if (!snapshot.roomId) { renderTerminalResult(null); return; }
