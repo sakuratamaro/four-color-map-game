@@ -53,15 +53,15 @@
 | P1 | 接触色の累積feedback | 演出＋アクセシビリティ | PUBLIC_VERIFIED | `ecafdd1`。確定CREATEだけで2色=[2]、3色=[2,3]を700/900msで表示し、4色は終局overlayへ一本化。reduced-motionは最終静止tier、読み上げ最終1回、選択/poll/reload/replay/重複では発火しない。Windows gate `33973264978`、Edge deployment 15、Pages `33973971235` |
 | P1 | 直前の手→盤面変化→次の判断 | ゲーム理解 | PUBLIC_VERIFIED | `ecafdd1`。CREATE/COLOR/USE_SKILLを公開allowlistだけで説明し、現phase/activeから次判断を導出。相手palette/hand、skill identity/target/payload、事前合法色oracleを非公開。Runbook A 44/44で本番projection確認 |
 | P1 | 端末側の部屋情報喪失から安全に復帰 | UX＋同期＋DB＋Edge | PUBLIC_VERIFIED | `5acee05`＋検証追補`958a4da`。本人の生存roomを有限8列・最大2行で読み、厳格な1行だけ採用。private/public/CPU別の日本語案内、raw DB情報非表示、background focus非奪取、CPU/matchmaking saga優先を固定。migration `202609060001`、DB 68/68、live 10/10、Edge deployment 16、Windows `33976873376`、Pages `33977699993`合格 |
-| P1 | 塗り直し・乱 LAB | ルール＋UX＋DB＋司令塔 | LOCAL_VERIFIED | 製品候補`ad53bb4`。合言葉human対戦で双方同意した時だけ、通常19枚・6枚構成とは別に1回貸与。debugと排他、CPU/野良/戦績/報酬/在庫へ非干渉。非browser公式110ファイル失敗0、CI unit相当191/191、Edge/Chrome全browser各60/60、レスポンシブ各4/4、lifecycle 76/76、3独立レビューP0/P1なし。公開順はmigration `202609060002`→Edge→live canary→Pagesで固定 |
+| P1 | 塗り直し・乱 LAB | ルール＋UX＋DB＋司令塔 | PUBLIC_VERIFIED | 製品`ad53bb4`、公開HEAD `3fb3ef8`。合言葉human対戦で双方同意した時だけ、通常19枚・6枚構成とは別に1回貸与。debugと排他、CPU/野良/戦績/報酬/在庫へ非干渉。DB 70/70、Edge deployment 17の基本7/7＋LAB 23/23、Windows `33984108011`、Pages `33984536803`、公開candidate preflight・匿名画面・console 0を確認 |
 | P1 | 未コミット／孤立作業の回収 | 構成管理 | COMPLETED | 29床を3床へ集約。丸ごと統合候補は0。Quick回帰試験だけを回収し、残るroot dirtyは救出済み・凍結管理 |
 | P2 | GitHub Pages actionのNode.js警告解消 | 技術品質 | BACKLOG | 公開結果を変えず、Node.js 20廃止予定warningを消す |
 
 2026-09-06のactive-room復帰公開判断では、3担当をDB/Edge契約、UX/browser、worktree/旧タスク監査に分け、全員P0/P1なしを確認した。ローカルEdge browser 56/56、Windows Chrome/Edge、DB 68/68、Edge本番7/7＋復帰10/10、Pages、公開HTTP/ブラウザの順で昇格した。additive SQLだけを追加し、secret/billing/deletion/cleanupは変更していない。
 
-同日の「塗り直し・乱」LAB候補でも、ルール/DB、UX/accessibility、repository/CIの3担当へ分担し、全員P0/P1なしを確認した。`ad53bb4`はローカル検証済みだが、DB・Edge・Pagesへはまだ未適用であり、公開済みとは扱わない。
+同日の「塗り直し・乱」LABでも、ルール/DB、UX/accessibility、repository/CIの3担当へ分担した。公開ゲートの弱いDB probe、UI marker、CI pathsを独立担当が公開前に発見し、実asset正方向テストまで補強した。最終P0/P1なし、`202609060002`→Edge deployment 17→live canary→Pagesの順で公開確認した。
 
-直前の公開履歴も維持する。`29c6958`は非browser 528/528、ローカルChrome/Edge各25/25、Windows run `33933769885`（Edgeは終了処理timeout後のattempt 2成功）、Pages run `33934125859`で公開確認した。即時CPU開始は`cc96350`、migration `202609050002`、Edge deployment 9、Windows run `33931963065`、Pages run `33932159043`で確認した。現在のDB適用済み追加migrationは、status正規化`202609050001`、即時CPU`202609050002`、デバッグroom境界`202609050003`、クイズ回答feedback`202609050004`、クロガネv2`202609050005`、単一active room境界`202609050006`、開始前取りやめ`202609050007`、active-room復帰`202609060001`である。
+直前の公開履歴も維持する。`29c6958`は非browser 528/528、ローカルChrome/Edge各25/25、Windows run `33933769885`（Edgeは終了処理timeout後のattempt 2成功）、Pages run `33934125859`で公開確認した。即時CPU開始は`cc96350`、migration `202609050002`、Edge deployment 9、Windows run `33931963065`、Pages run `33932159043`で確認した。現在のDB適用済み追加migrationは、status正規化`202609050001`、即時CPU`202609050002`、デバッグroom境界`202609050003`、クイズ回答feedback`202609050004`、クロガネv2`202609050005`、単一active room境界`202609050006`、開始前取りやめ`202609050007`、active-room復帰`202609060001`、setup revision guard `202609060002`である。
 
 ## 旧作業床からの回収候補
 
@@ -80,9 +80,9 @@
 
 | 区分 | 対象 | 方針 |
 | --- | --- | --- |
-| 正本 | `origin/main` | 公開基点は`958a4da`（active-room製品`5acee05`）。migration `202609050001`–`202609050007`＋`202609060001`、Edge deployment 16、Pages run `33977699993`まで公開確認済み |
+| 正本 | `origin/main` | 公開基点は`3fb3ef8`（legal-recolor LAB製品`ad53bb4`）。migration `202609050001`–`202609050007`＋`202609060001`–`202609060002`、Edge deployment 17、Pages run `33984536803`まで公開確認済み |
 | 現在の統合床 | `codex/standard-release-command` | `main`と同じ公開製品。証拠台帳追補をこの床で同期する |
-| 公開済み現候補 | `958a4da`（製品`5acee05`） | server-side active-room復帰を含む。公開app v22/client v16、Windows gate `33976873376`、Edge deployment 16、DB 68/68、復帰canary 10/10、Pages `33977699993`、candidate preflightを確認済み |
+| 公開済み現候補 | `3fb3ef8`（製品`ad53bb4`） | active-room復帰とisolated legal-recolor LABを含む。公開app v23/client+intents v17/style v22、Windows `33984108011`、Edge deployment 17、DB 70/70、LAB canary 23/23、Pages `33984536803`、candidate preflightを確認済み |
 | 保全済み | detached `a8fce7d` dirty床 | `codex/salvage-a8fce7d-20260904` / `9e4e8ee` に秘密情報なしでWIP保全済み。機能単位で比較 |
 | 凍結root | root `ac78282` | 正史worktreeを内包するため作業床は維持。再監査したdirty 39件のうち38件は既存commitと一致し、残る旧handoff文書も現正本で置換済み。丸ごとmerge禁止、回収残件なし |
 | GitHub保管 | `codex/archive-standard-release-1f823b2` | 正史の祖先でない孤立コミットをGitHubへ退避済み。作業床は削除 |
@@ -99,7 +99,7 @@
 | online MVP status／live regression | 現行公開識別子と有限な証拠を`STANDARD_RELEASE_EVIDENCE.md`へ集約 | 古い時系列ログは履歴として保持し、現行状態と混同しない |
 | 二端末P0 handoff | PENDING | `3e2b959`の対人/CPU完走、確定接触feedback、公開戦術trace、開始前取りやめ、終局理由、Quick継続、途中再読込、報酬→ガチャ→6枚再編成→再戦、永続化だけを残件として回収 |
 | active-room排他・room外6枚編成・開始前取りやめ | `426dc41`でPUBLIC_VERIFIED | 次便は競合時の既存room再同期・日本語文言を独立して改善する |
-| 新カード候補 | `legalRecolor`だけ条件付き採用候補 | IDは維持し表示名を「塗り直し・乱」、妨害★3/WORK、まずガチャOFFのlabで検証。二色市松は1地域1色モデルを壊すため別rulesetへ分離 |
+| 新カード候補 | `legalRecolor`をLAB限定で条件付き採用 | IDは維持し表示名を「塗り直し・乱」、妨害★3/WORK、ガチャOFF・双方1回貸与で公開。二色市松は1地域1色モデルを壊すため別rulesetへ分離 |
 | nested Expo設計群 | 旧ローカル試作 | 現行Standard Onlineから凍結分離 |
 
 ## 体験改善の判断軸

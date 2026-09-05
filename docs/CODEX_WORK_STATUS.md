@@ -1,11 +1,11 @@
 # Codex work status
 
 - Last update: 2026-09-06 JST
-- Stage: legal-recolor LAB candidate `ad53bb4` is local-verified and awaiting ordered DB/Edge/Pages release; physical two-device acceptance and T+24h observation remain pending
+- Stage: legal-recolor LAB release `3fb3ef8` is public-verified; physical two-device acceptance and T+24h observation remain pending
 - Integration branch: `codex/standard-release-command`
-- Public product baseline: `958a4da48769bcd145aca4db6b1b75f125f770d9` (active-room product commit `5acee05938a81bf5b0b9362c10ca32535c1e03ce`; later commits harden release evidence)
+- Public product baseline: `3fb3ef8c680f0b81ccc7b47b0a12d752de35e997` (legal-recolor LAB product commit `ad53bb4`; later commits harden release evidence and live gates)
 - Public URL: `https://sakuratamaro.github.io/four-color-map-game/standard-online-v5/`
-- Supabase project: `qkcuhludisairpgzhryl`; `standard-game-action` deployment 16
+- Supabase project: `qkcuhludisairpgzhryl`; `standard-game-action` deployment 17
 
 ## Public in this release
 
@@ -20,11 +20,14 @@
 - A committed CREATE now reveals contact-color pressure as a short cumulative 2→3 sequence, while four-color contact remains a terminal result. Selection, polling, reload, replay, and duplicate snapshots do not retrigger it; reduced motion receives the final static tier and screen readers receive one final announcement.
 - The public state now carries a strictly allowlisted `lastPublicTrace`. The match screen keeps a compact “last move → board change → next decision” explanation for CREATE/COLOR/USE_SKILL without exposing hand, palette, skill identity, target, or pre-commit legality.
 - If a browser loses its local room identity while the authenticated actor still owns one live Standard room, the client now recovers that exact private-code, public-queue, or CPU room instead of showing a raw database conflict or creating another room. Recovery adopts only a strictly validated one-row projection, preserves pending CPU/matchmaking sagas, does not steal focus during background hydration, and never re-displays a lost private room code.
-- Public assets are app v22, client v16, style v21, and `solo-v5/save-codec.js?v=20260905-2`.
+- Private-code human matches can now enable the symmetric “塗り直し・乱” LAB only when both players opt in. It loans one server-random legal recolor outside the ordinary six-card loadout, is mutually exclusive with debug, and changes no inventory, reward, history, trophy, CPU, or public-matchmaking behavior.
+- Public assets are app v23, client v17, skill-intents v17, style v22, and `solo-v5/save-codec.js?v=20260905-2`.
 
 ## Verification
 
-- Legal-recolor LAB candidate `ad53bb4`: official non-browser runner 110 files with zero failures; CI unit-equivalent 191/191; full local Edge 60/60 and Chrome 60/60; responsive Edge/Chrome 4/4 each; lifecycle 76/76; deterministic regeneration of both bundles; three independent reviews reported no P0/P1. This is `LOCAL_VERIFIED`, not yet public.
+- Legal-recolor LAB release: product `ad53bb4`, public gate HEAD `3fb3ef8`. Official non-browser runner 110 files with zero failures; local Edge/Chrome 60/60 each; responsive 4/4 each; lifecycle 76/76; final Windows gate `33984108011` passed Chrome `101354410490` and Edge `101354410705`; independent reviews reported no P0/P1.
+- Additive migration `202609060002_standard_setup_revision_guard.sql` is applied and candidate verification is 70/70 true. Edge deployment 17 passed the basic canary 7/7 and dedicated LAB canary 23/23, including mutual opt-in, symmetric loan, server-random recolor, minimal public trace, terminal cleanup, and unchanged profiles.
+- Pages run `33984536803` succeeded at `3fb3ef8`. Candidate preflight returned `ok:true`, including protected v3-load/eight-argument initialization probes and the complete LAB UI marker. The public browser loaded app v23/client and intents v17/style v22 with anonymous authentication and zero captured warning/error.
 - Local final Edge browser suite: 50/50 passed; the post-review CPU setup-saga race fixture passed separately. Changed static/client/SQL/runbook checks passed, and all four stale v19/006 expectations found by the aggregate non-browser run were updated and rechecked 23/23.
 - Candidate Windows browser gate `33969830340`: Chrome job `101316251520` and Edge job `101316251312` passed at product commit `5c072ae`.
 - Supabase migration `202609050007_standard_pregame_abandon.sql` is applied. Candidate verification was 66/66 true; live pregame-abandon canary was 33/33 with profiles unchanged and active/unknown/nonterminal residue all 0.
@@ -50,8 +53,7 @@
 
 ## Next command priorities
 
-1. Release `ad53bb4` in the only compatible order: additive migration `202609060002_standard_setup_revision_guard.sql`, Edge source and generated bundle together, live canary, then Pages. Never publish Pages first because an older Edge would ignore the LAB opt-in.
-2. Acceptance/operations: complete a physical two-device match/reload/rematch loop and the T+24h Supabase resource comparison. These remain `PENDING`, not inferred from automation.
-3. P2: add first-hydration/reload coverage for the persistent tactical trace and explicit CPU/opponent display-name coverage; the public-only contract is already enforced.
+1. Acceptance/operations: complete a physical two-device match/reload/rematch loop and the T+24h Supabase resource comparison. These remain `PENDING`, not inferred from automation.
+2. P2: add first-hydration/reload coverage for the persistent tactical trace and explicit CPU/opponent display-name coverage; the public-only contract is already enforced.
 
-Release `958a4da` applies additive migration `202609060001`, updates `standard-game-action` index source to deployment 16, and publishes Standard app v22/client v16. No secret, billing, deletion, cleanup schedule, game rule, reward, inventory, or engine bundle was changed.
+Release `3fb3ef8` adds the isolated legal-recolor LAB, applies additive migration `202609060002`, updates Edge source and generated bundle together to deployment 17, and publishes Standard app v23/client v17. No secret, billing, deletion, or cleanup schedule was changed.
