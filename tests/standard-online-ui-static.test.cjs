@@ -280,6 +280,23 @@ test("UI does not expose an adjacency or legal-color oracle", () => {
   assert.doesNotMatch(html + app, /legal colors?|legalColors|adjacent colors?|adjacentColors|使用可能な色[:：]/i);
 });
 
+test("public color seals disable only paint intents before an action identity is allocated", () => {
+  assert.match(app, /function isColorSealed\(state, seat, color\)/);
+  assert.match(app, /state\?\.publicEffects\?\.\[seat\]\?\.seals\?\.\[color\]/);
+  assert.match(app, /sealed \? `🔒 \$\{COLOR_JA\[color\] \|\| color\}（封印中）`/);
+  assert.match(app, /button\.disabled = actionBusy \|\| sealed/);
+  assert.match(app, /button\.className = `color-button\$\{sealed \? " is-sealed" : ""\}`/);
+  const sendAction = app.slice(app.indexOf("async function sendAction"), app.indexOf("async function syncSelectedProfile"));
+  assert.ok(sendAction.indexOf('type === "COLOR_REGION" && isColorSealed') < sendAction.indexOf("const signature = actionSignature"));
+  assert.ok(sendAction.indexOf('type === "COLOR_REGION" && isColorSealed') < sendAction.indexOf("crypto.randomUUID()"));
+  assert.ok(sendAction.indexOf('type === "COLOR_REGION" && isColorSealed') < sendAction.indexOf("client.submitAction"));
+  assert.match(sendAction, /return;[\s\S]+const signature = actionSignature/);
+  assert.match(app, /if \(\["color", "slot-color"\]\.includes\(targetDraft\.kind\)\) \{\s*for \(const color of skillIntents\.COLORS\)/);
+  const sealGuard = sendAction.slice(0, sendAction.indexOf("const signature = actionSignature"));
+  assert.doesNotMatch(sealGuard, /regions|adjacent|legal/i);
+  assert.match(css, /\.color-button\.is-sealed:disabled/);
+});
+
 test("private basic colors keep a readable text separator between visual swatches", () => {
   assert.match(app, /for \(const \[index, color\] of \(privateState\.basicPalette \|\| \[\]\)\.entries\(\)\) \{\s*if \(index\) \$\("basicPaletteValue"\)\.append\("・"\);\s*appendColorValue\(\$\("basicPaletteValue"\), color\);\s*\}/);
 });

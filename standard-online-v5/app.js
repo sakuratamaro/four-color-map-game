@@ -1489,6 +1489,12 @@ function renderTurnGuide(state) {
   show("turnGuide", false);
 }
 
+function isColorSealed(state, seat, color) {
+  return ["A", "B"].includes(seat)
+    && skillIntents.COLORS.includes(color)
+    && Number(state?.publicEffects?.[seat]?.seals?.[color] || 0) > 0;
+}
+
 function renderBasicActions(state, privateState) {
   const seat = roomModel?.view?.seat;
   const myTurn = state.status === "ACTIVE" && state.active === seat;
@@ -1501,8 +1507,10 @@ function renderBasicActions(state, privateState) {
   if (myTurn && state.phase === "COLOR") {
     const colors = skillIntents.availableColorChoices(privateState);
     for (const color of colors) {
-      const button = document.createElement("button"); button.className = "color-button"; button.dataset.color = color;
-      button.textContent = COLOR_JA[color] || color; button.disabled = actionBusy; button.onclick = () => sendAction("COLOR_REGION", { color }); palette.appendChild(button);
+      const sealed = isColorSealed(state, seat, color);
+      const button = document.createElement("button"); button.className = `color-button${sealed ? " is-sealed" : ""}`; button.dataset.color = color;
+      button.textContent = sealed ? `🔒 ${COLOR_JA[color] || color}（封印中）` : COLOR_JA[color] || color;
+      button.disabled = actionBusy || sealed; button.onclick = () => sendAction("COLOR_REGION", { color }); palette.appendChild(button);
     }
   }
   $("surrender").disabled = actionBusy || !myTurn;
@@ -1529,6 +1537,13 @@ function boardPointer(event) {
 
 async function sendAction(type, payload = {}, retry = false) {
   const state = roomModel?.room?.public_state; if (!state || actionBusy) return;
+  if (type === "COLOR_REGION" && isColorSealed(state, roomModel?.view?.seat, payload?.color)) {
+    const color = COLOR_JA[payload?.color] || "この色";
+    $("actionStatus").textContent = `🔒 ${color}は封印中です。別の色を選んでください。`;
+    toast(`${color}は封印中です。`);
+    render();
+    return;
+  }
   const signature = actionSignature(type, payload);
   if (!retry || !pendingAction || pendingAction.signature !== signature) {
     pendingAction = { id: crypto.randomUUID(), expectedVersion: roomModel.room.version, type, payload, signature };

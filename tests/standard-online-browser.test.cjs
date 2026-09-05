@@ -136,6 +136,7 @@ async function installMock(context, mode) {
       cardSaleReceipts: {},
       cosmeticReceipts: {},
       cpuStartReceipts: {},
+      failNextColorAction: false,
       calls: [],
     };
     runtime.members = [{ user_id: "33333333-3333-4333-8333-333333333333", seat: "A", display_name: "A", is_cpu: false, appearance: { nameplate: "nameplateDefault", title: "titleNone" } }, { user_id: "44444444-4444-4444-8444-444444444444", seat: "B", display_name: cpuRoomMode ? "うっかりユズ" : "B", is_cpu: cpuRoomMode, appearance: { nameplate: "nameplateGold", title: "titleArtisan" } }];
@@ -259,6 +260,10 @@ async function installMock(context, mode) {
           runtime.room = { ...runtime.room, status: "ready", version: runtime.room.version + 1, public_state: {} };
           runtime.view = null;
           return { data: { roomStatus: "ready", roomVersion: runtime.room.version, readyToSetup: true, duplicate: false } };
+        }
+        if (request.body.operation === "action" && request.body.action?.type === "COLOR_REGION" && runtime.failNextColorAction) {
+          runtime.failNextColorAction = false;
+          return { error: new Error("simulated color network failure") };
         }
         if (request.body.operation === "action" && initialMode === "handoffGuide" && request.body.action?.type === "CREATE_REGION") {
           const sourceMacros = request.body.action.payload.sourceMacros;
@@ -945,6 +950,98 @@ test("actual Edge guides a player from board selection through one CREATE_REGION
     assert.equal(calls[0].action.type, "CREATE_REGION");
     assert.equal(calls[0].action.payload.sourceMacros.length, 1);
   });
+});
+
+test("actual Edge presents public seals and blocks every stale paint path without changing skill targets", { timeout: 130000 }, async () => {
+  await withPage("playing", async (page) => {
+    await page.evaluate(() => {
+      const runtime = globalThis.__standardOnlineRuntime;
+      runtime.room = { ...runtime.room, public_state: {
+        ...runtime.room.public_state,
+        active: "A", phase: "COLOR", pending: "R1",
+        publicEffects: { A: { seals: {} }, B: { seals: {} } },
+        regions: { R1: { id: "R1", micro: [0], sourceMacros: [0], controllers: ["B"], color: null, isPending: true } },
+      } };
+      runtime.view = { ...runtime.view, private_state: {
+        ...runtime.view.private_state,
+        basicPalette: ["red", "blue"], bonusColor: "yellow", bonusUsesRemaining: 2,
+      } };
+      runtime.onInvalidate();
+    });
+    const red = page.locator('#paletteControls .color-button[data-color="red"]');
+    await red.waitFor();
+    assert.equal(await red.textContent(), "赤");
+    assert.equal(await red.isEnabled(), true);
+
+    await page.evaluate(() => { globalThis.__standardOnlineRuntime.failNextColorAction = true; });
+    await red.click();
+    await page.getByText("保存できませんでした。同じ操作IDで再送できます。").waitFor();
+    assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "action").length), 1);
+
+    await page.locator('#paletteControls .color-button[data-color="red"]').focus();
+    await page.evaluate(() => {
+      const runtime = globalThis.__standardOnlineRuntime;
+      globalThis.__staleRedButton = document.querySelector('#paletteControls .color-button[data-color="red"]');
+      const version = runtime.room.version + 1;
+      runtime.room = { ...runtime.room, version, public_state: {
+        ...runtime.room.public_state, version,
+        publicEffects: { ...runtime.room.public_state.publicEffects, A: { seals: { red: 1 } } },
+      } };
+      runtime.view = { ...runtime.view, version };
+      runtime.onInvalidate();
+    });
+    const sealedRed = page.locator('#paletteControls .color-button[data-color="red"]');
+    await page.waitForFunction(() => document.querySelector('#paletteControls .color-button[data-color="red"]')?.disabled === true);
+    assert.equal(await sealedRed.textContent(), "🔒 赤（封印中）");
+    assert.equal(await sealedRed.isDisabled(), true);
+    assert.equal(await sealedRed.evaluate((node) => node.classList.contains("is-sealed")), true);
+    assert.notEqual(await page.evaluate(() => document.activeElement?.dataset?.color), "red");
+
+    await sealedRed.evaluate((node) => node.click());
+    await page.keyboard.press("Enter");
+    await page.evaluate(() => globalThis.__staleRedButton.onclick());
+    await page.getByText("赤は封印中です。", { exact: true }).waitFor();
+    await page.getByRole("button", { name: "同じ操作を再送" }).click();
+    await page.getByText("🔒 赤は封印中です。別の色を選んでください。").waitFor();
+    assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "action").length), 1);
+
+    await page.evaluate(() => {
+      const runtime = globalThis.__standardOnlineRuntime;
+      const version = runtime.room.version + 1;
+      runtime.room = { ...runtime.room, version, opponent_kind: "cpu", access_mode: "cpu", public_state: {
+        ...runtime.room.public_state, version,
+        publicEffects: { ...runtime.room.public_state.publicEffects, A: { seals: { red: 0, blue: 1 } } },
+      } };
+      runtime.view = { ...runtime.view, version };
+      runtime.onInvalidate();
+    });
+    const cpuBlue = page.locator('#paletteControls .color-button[data-color="blue"]');
+    await page.waitForFunction(() => document.querySelector('#paletteControls .color-button[data-color="blue"]')?.disabled === true);
+    assert.equal(await cpuBlue.textContent(), "🔒 青（封印中）");
+    assert.equal(await page.locator('#paletteControls .color-button[data-color="red"]').isEnabled(), true);
+    await page.locator('#paletteControls .color-button[data-color="red"]').click();
+    await page.getByText("操作を保存しました。").waitFor();
+    assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "action").length), 2);
+
+    await page.evaluate(() => {
+      const runtime = globalThis.__standardOnlineRuntime;
+      const version = runtime.room.version + 1;
+      runtime.room = { ...runtime.room, version, opponent_kind: "human", access_mode: "private_code", public_state: {
+        ...runtime.room.public_state, version, active: "A", phase: "WORK", pending: null,
+        publicEffects: { ...runtime.room.public_state.publicEffects, A: { seals: { red: 1 } } },
+      } };
+      runtime.view = { ...runtime.view, version, private_state: {
+        ...runtime.view.private_state,
+        hand: { ...runtime.view.private_state.hand, disruptChoiceOne: 1 },
+      } };
+      runtime.onInvalidate();
+    });
+    await page.getByRole("button", { name: "色封じ ×1" }).click();
+    const targetRed = page.locator("#skillTargetControls button", { hasText: /^赤$/ });
+    await targetRed.waitFor();
+    assert.equal(await targetRed.isEnabled(), true);
+    assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "action").length), 2);
+  }, { viewport: { width: 390, height: 844 } });
 });
 
 test("actual Edge names the maker and painter across every handoff state", { timeout: 130000 }, async () => {
