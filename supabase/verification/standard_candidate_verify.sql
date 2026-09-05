@@ -1,4 +1,4 @@
--- Read-only verification after applying migrations through 202609060001.
+-- Read-only verification after applying migrations through 202609060002.
 -- Expected result: every row has ok = true. This statement performs no writes.
 
 with

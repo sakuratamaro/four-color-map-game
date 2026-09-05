@@ -58,14 +58,15 @@ const result = {
     hasCosmetics: /cosmetic-catalog|見た目/.test(app.text),
     hasPregameAbandon: /client\.abandonRoom|開始前の対戦を取りやめる/.test(app.text),
     hasActiveRoomRecovery: /client\.recoverActiveRoom|recoverServerActiveRoom/.test(app.text),
+    hasLegalRecolorLab: /experimentalLabToggle|塗り直し・乱/.test(app.text),
   },
   database: { snapshotV1, snapshotV2, matchmaking, pregameAbandon, activeRoom },
 };
 
 const phaseExpectations = {
-  baseline: { pregameAbandonUi: true, pregameAbandonDb: true, activeRoomUi: false, activeRoomDb: false },
-  "db-ready": { pregameAbandonUi: true, pregameAbandonDb: true, activeRoomUi: false, activeRoomDb: true },
-  candidate: { pregameAbandonUi: true, pregameAbandonDb: true, activeRoomUi: true, activeRoomDb: true },
+  baseline: { pregameAbandonUi: true, pregameAbandonDb: true, activeRoomUi: true, activeRoomDb: true, legalRecolorLabUi: false },
+  "db-ready": { pregameAbandonUi: true, pregameAbandonDb: true, activeRoomUi: true, activeRoomDb: true, legalRecolorLabUi: false },
+  candidate: { pregameAbandonUi: true, pregameAbandonDb: true, activeRoomUi: true, activeRoomDb: true, legalRecolorLabUi: true },
 };
 
 if (expectedPhase) {
@@ -80,6 +81,7 @@ if (expectedPhase) {
   }
   assert.equal(result.publicPage.hasPregameAbandon, expected.pregameAbandonUi, "PREGAME_ABANDON_UI_PHASE_MISMATCH");
   assert.equal(result.publicPage.hasActiveRoomRecovery, expected.activeRoomUi, "ACTIVE_ROOM_RECOVERY_UI_PHASE_MISMATCH");
+  assert.equal(result.publicPage.hasLegalRecolorLab, expected.legalRecolorLabUi, "LEGAL_RECOLOR_LAB_UI_PHASE_MISMATCH");
 }
 
 console.log(JSON.stringify(result));

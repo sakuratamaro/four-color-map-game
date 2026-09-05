@@ -21,9 +21,12 @@ test("release preflight is read-only, secret-free, finite, and stage-aware", () 
   assert.match(source, /fcg_standard_active_room/);
   assert.match(source, /hasPregameAbandon/);
   assert.match(source, /hasActiveRoomRecovery/);
-  assert.match(source, /baseline:\s*\{\s*pregameAbandonUi:\s*true,\s*pregameAbandonDb:\s*true,\s*activeRoomUi:\s*false,\s*activeRoomDb:\s*false\s*\}/);
-  assert.match(source, /"db-ready":\s*\{\s*pregameAbandonUi:\s*true,\s*pregameAbandonDb:\s*true,\s*activeRoomUi:\s*false,\s*activeRoomDb:\s*true\s*\}/);
+  assert.match(source, /hasLegalRecolorLab/);
+  assert.match(source, /baseline:\s*\{\s*pregameAbandonUi:\s*true,\s*pregameAbandonDb:\s*true,\s*activeRoomUi:\s*true,\s*activeRoomDb:\s*true,\s*legalRecolorLabUi:\s*false\s*\}/);
+  assert.match(source, /"db-ready":\s*\{\s*pregameAbandonUi:\s*true,\s*pregameAbandonDb:\s*true,\s*activeRoomUi:\s*true,\s*activeRoomDb:\s*true,\s*legalRecolorLabUi:\s*false\s*\}/);
+  assert.match(source, /candidate:\s*\{\s*pregameAbandonUi:\s*true,\s*pregameAbandonDb:\s*true,\s*activeRoomUi:\s*true,\s*activeRoomDb:\s*true,\s*legalRecolorLabUi:\s*true\s*\}/);
   assert.match(source, /ACTIVE_ROOM_RECOVERY_PHASE_MISMATCH/);
+  assert.match(source, /LEGAL_RECOLOR_LAB_UI_PHASE_MISMATCH/);
   assert.match(source, /SNAPSHOT_V2_BASELINE_MISSING/);
   assert.match(source, /PUBLIC_BASELINE_UI_MISSING/);
   assert.doesNotMatch(source, /console\.log\([^\n]*(?:publishableKey|authorization)/);
