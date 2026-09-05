@@ -41,8 +41,9 @@ test("Standard browser gate pins its tools and disables package-manager caching 
   assert.match(workflow, /run: npm install --no-save --no-package-lock --ignore-scripts playwright@1\.62\.1/);
 });
 
-test("Standard browser gate runs only the scoped browser file serially and has no release integration", () => {
+test("Standard browser gate runs CPU contracts and the scoped browser file serially without release integration", () => {
+  assert.match(workflow, /node --test --test-concurrency=1[\s\S]+?tests\/standard-kurogane-lookahead\.test\.cjs[\s\S]+?tests\/standard-cpu-browser\.test\.cjs/);
   assert.match(workflow, /run: node --test --test-concurrency=1 tests\/standard-online-browser\.test\.cjs/);
-  assert.equal((workflow.match(/^\s+run:/gm) || []).length, 2);
+  assert.equal((workflow.match(/^\s+run:/gm) || []).length, 3);
   assert.doesNotMatch(workflow, /^\s+(?:uses|run):.*(?:supabase|deploy|github-pages|pages\/|upload-pages|npm test)/im);
 });
