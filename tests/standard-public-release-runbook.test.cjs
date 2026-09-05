@@ -35,3 +35,14 @@ test("release gates cover human, CPU, persistence, privacy, load, and safe rollb
   assert.match(runbook, /その場で表や列をDROPしない/);
   assert.match(runbook, /Edge canary失敗時はPagesを公開せず/);
 });
+
+test("release runbook records honest T0 and T+24h observations without automating physical acceptance", () => {
+  assert.match(runbook, /capture-standard-release-observation\.mjs --label=T0/);
+  assert.match(runbook, /capture-standard-release-observation\.mjs --label=T\+24h/);
+  assert.match(runbook, /64 KiB/);
+  assert.match(runbook, /PENDING.*null/);
+  assert.match(runbook, /repository HEAD.*公開asset commit.*Pages commit\/run/);
+  assert.match(runbook, /executionState: NOT_RUN/);
+  assert.match(runbook, /gateState: PENDING/);
+  assert.match(runbook, /automated:false/);
+});

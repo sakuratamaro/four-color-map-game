@@ -23,6 +23,14 @@ migrationやコードの配置だけでは完了にしない。最新の公開UR
 
 Dashboardのbaselineを取得できない場合は理由を証拠台帳へ`BLOCKED`として残し、取得できるようになるまでmigration適用へ進まない。
 
+公開後の低負荷観測に使うT0も、Dashboardの「直近24時間」を秘密情報なしの入力JSONへ転記して次で取得する。入力は64 KiB以下、top-levelは`capturedAt`、`window`、`release`、`metrics`だけとし、token、service role key、Authorization、接続文字列、user/room/action ID、メールアドレスを含めない。スクリプト自身はsign-inも書込みもせず、既存の公開`candidate` preflightを呼び、正規化JSON 1件だけをstdoutへ出す。
+
+`node scripts/capture-standard-release-observation.mjs --label=T0 --input=standard-dashboard-t0.json > standard-observation-t0.json`
+
+入力の観測値は、たとえば`metrics["database.cpu_pct"] = { "state": "OBSERVED", "value": 0, "source": "dashboard.database" }`とする。固定metric名・単位・集計方法・許可sourceはスクリプト内のallowlistを正本とし、値を取れないmetricは入力から省略してよい。
+
+`release.repositoryHead`、`release.publicAssetCommit`、`release.pagesCommit`、`release.pagesRun`は別の識別子である。repository HEADを公開済みとみなさず、未取得の観測metricやEdge deploymentは`0`に置換せず`PENDING` / `null`のまま残す。観測値`0`は有効な`OBSERVED`として保持する。
+
 ## DB適用順序
 
 SQL Editorでは内容を全置換し、次を1ファイルずつ順番に実行する。複数migrationを一度に貼らない。
@@ -104,6 +112,12 @@ SQL Editorでは内容を全置換し、次を1ファイルずつ順番に実行
 - 正常な最速CPU進行と二端末操作がEdgeの濫用抑止に触れず、明示的な過剰canaryだけが429になる。
 - DB/Edgeのp50、p95、エラー率、Database/Edge/Realtime使用量を変更前後で記録し、悪化時は公開範囲を広げない。
 
+T+24hはT0の正規化JSONをbaselineとして必須指定し、同じ「直近24時間」Dashboard入力を比較する。
+
+`node scripts/capture-standard-release-observation.mjs --label=T+24h --input=standard-dashboard-t-plus-24.json --baseline=standard-observation-t0.json > standard-observation-t-plus-24.json`
+
+T0から24時間未満で実行した場合は`CAPTURE_INTERVAL_UNDER_24_HOURS` warningを残し、24時間観測を完了扱いにしない。固定allowlist外のmetric、未知top-level、秘密キー/秘密らしい値、64 KiB超の入力は拒否され、拒否時に公開preflightは起動しない。欠落metricと比較不能値は`PENDING` / `null`のままにする。この自動観測は物理二端末を操作できないため、出力の`physicalTwoDeviceAcceptance`は常に`executionState: NOT_RUN`、`gateState: PENDING`、`automated:false`であり、段階canary A–Dの人間確認をPASSへ変更しない。
+
 ## cleanupの承認ゲート
 
 初期候補は、room 24時間、ticket/quiz 7日、profile-scoped receipt 30日の保持とする。まず `p_dry_run=true`、`p_batch_size=100` で分類別件数だけ確認する。実削除は対象件数、cascade先、復元不能であることを別途説明して承認を得た後に1バッチだけ行い、処理時間と残数を再確認する。定期化はさらに別の承認とする。
@@ -122,4 +136,5 @@ SQL Editorでは内容を全置換し、次を1ファイルずつ順番に実行
 - A/B/Cの有限なpass/fail結果。token、service key、個人情報は残さない。
 - 対人/CPUの開始・終局version、再読込、再戦、新試合、進行/見た目revision。
 - snapshot完全/差分bytes、API呼出数、p50/p95、エラー率、使用量画面の変更前後。
+- T0/T+24hの正規化観測JSON。repository HEAD、公開asset commit、Pages commit/runを別々に記録し、未取得値と24時間未満warningを削除しない。
 - cleanupはpreview結果だけ。実削除を承認・実行した場合のみ件数と保持境界。
