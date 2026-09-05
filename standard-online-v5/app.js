@@ -2676,6 +2676,7 @@ function syncBoardSelectionAssist(state) {
   const viewport = $("boardViewport");
   const canvas = $("board");
   const toggle = $("toggleBoardZoom");
+  toggle.classList.toggle("hidden", !interactive);
   viewport.classList.toggle("is-zoomed", interactive && boardZoomed);
   canvas.tabIndex = interactive ? 0 : -1;
   toggle.disabled = !interactive;

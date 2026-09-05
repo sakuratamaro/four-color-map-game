@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <title>Four Color Map Game v5.0 Standard Online</title>
   <link rel="stylesheet" href="../online-v5/style.css">
-  <link rel="stylesheet" href="style.css?v=20260906-25">
+  <link rel="stylesheet" href="style.css?v=20260906-26">
   <link rel="stylesheet" href="debug-mode.css">
   <link rel="stylesheet" href="progression.css">
 </head>
@@ -281,9 +281,10 @@
         <strong id="terminalOutcomeTitle"></strong>
         <p id="terminalOutcomeReason"></p>
       </section>
-      <section id="turnGuide" class="turn-guide hidden" role="status" aria-live="polite" aria-atomic="true">
+      <section id="turnGuide" class="turn-guide hidden">
         <span id="turnGuideStep" class="turn-guide-step">NEXT</span>
-        <div><strong id="turnGuideTitle"></strong><p id="turnGuideDetail"></p></div>
+        <div role="status" aria-live="polite" aria-atomic="true"><strong id="turnGuideTitle"></strong><p id="turnGuideDetail"></p></div>
+        <button id="toggleBoardZoom" class="ghost board-zoom-toggle hidden" type="button" aria-pressed="false">盤面を拡大</button>
       </section>
       <div class="board-stage">
         <div id="boardViewport" class="board-viewport">
@@ -298,7 +299,6 @@
       </div>
       <div id="regionControls" class="controls hidden">
         <span id="selectionCount"></span>
-        <button id="toggleBoardZoom" class="ghost" type="button" aria-pressed="false">盤面を拡大</button>
         <button id="clearSelection" class="ghost">選択解除</button>
         <button id="submitRegion" class="primary">このエリアを渡す</button>
       </div>
@@ -411,6 +411,6 @@
   <script src="standard-online-client.js?v=20260906-17"></script>
   <script src="standard-online-sync.js"></script>
   <script src="standard-online-skill-intents.js?v=20260906-17"></script>
-  <script type="module" src="app.js?v=20260906-26"></script>
+  <script type="module" src="app.js?v=20260906-27"></script>
 </body>
 </html>

@@ -2515,22 +2515,34 @@ test("actual Edge hands one submitted setup to the visible first-move guide with
     };
     return {
       guide: rect("#turnGuide"),
+      step: rect("#turnGuideStep"),
+      statusText: rect("#turnGuide > div[role=status]"),
+      zoom: rect("#toggleBoardZoom"),
       board: rect("#board"),
       controls: rect("#regionControls"),
       connection: rect(".connection-card"),
       tabs: rect(".app-tabs"),
       overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
       actionOrder: Boolean(document.querySelector("#regionControls + #paletteControls + #actionStatus + #retryAction + .random-summary + #tacticalTrace")),
+      playableHit: document.elementFromPoint(
+        document.querySelector("#board").getBoundingClientRect().left + document.querySelector("#board").getBoundingClientRect().width * 10.5 / 12,
+        document.querySelector("#board").getBoundingClientRect().top + document.querySelector("#board").getBoundingClientRect().height * 1.5 / 12,
+      )?.id || "",
     };
   });
   const assertFirstMoveLayout = (layout) => {
     assert.ok(layout.guide.top >= 0, JSON.stringify(layout));
     assert.ok(layout.guide.bottom <= layout.board.top, JSON.stringify(layout));
+    assert.ok(layout.zoom.bottom <= layout.board.top, JSON.stringify(layout));
+    assert.ok(layout.zoom.width >= 44 && layout.zoom.height >= 44, JSON.stringify(layout));
+    assert.ok(layout.step.top < layout.zoom.bottom && layout.zoom.top < layout.step.bottom, JSON.stringify(layout));
+    assert.ok(Math.max(layout.step.bottom, layout.zoom.bottom) <= layout.statusText.top, JSON.stringify(layout));
     assert.ok(layout.board.bottom <= layout.controls.top, JSON.stringify(layout));
     assert.ok(layout.controls.bottom <= layout.connection.top, JSON.stringify(layout));
     assert.ok(layout.connection.bottom <= layout.tabs.top - 4, JSON.stringify(layout));
     assert.equal(layout.overflow, false);
     assert.equal(layout.actionOrder, true);
+    assert.equal(layout.playableHit, "board");
   };
 
   await withPage("setupTransition", async (page) => {
@@ -2771,6 +2783,7 @@ test("actual browser clears transient board selection when the authoritative tur
     });
     await page.waitForFunction(() => document.querySelector("#board").tabIndex === -1);
     assert.equal(await page.locator("#boardViewport").evaluate((node) => node.classList.contains("is-zoomed")), false);
+    assert.equal(await page.locator("#toggleBoardZoom").isHidden(), true);
     assert.equal(await page.locator("#regionControls").isHidden(), true);
 
     await page.evaluate(() => {

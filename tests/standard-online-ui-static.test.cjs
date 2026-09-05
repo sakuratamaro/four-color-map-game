@@ -422,7 +422,7 @@ test("server rule errors are safe, persistent, and never offered as an idempoten
 });
 
 test("turn guide moves from selection to handoff without exposing a legality oracle", () => {
-  assert.match(html, /id="turnGuide"[^>]+role="status"[^>]+aria-live="polite"[^>]+aria-atomic="true"/);
+  assert.match(html, /id="turnGuide"[^>]*>\s*<span[^>]+id="turnGuideStep"[\s\S]{0,180}<div role="status" aria-live="polite" aria-atomic="true"/);
   assert.match(app, /function renderTurnGuide\(state\)/);
   assert.match(app, /if \(state\.status !== "ACTIVE" \|\| targetDraft\) return show\("turnGuide", false\)/);
   assert.match(app, /盤面をタップ／クリックして、あと\$\{remaining\}マス選ぶ/);
@@ -478,10 +478,14 @@ test("board selection assist enlarges targets and supports connected keyboard se
   assert.match(html, /id="board"[^>]+tabindex="-1"[^>]+aria-describedby="boardKeyboardHelp boardKeyboardStatus"/);
   assert.match(html, /id="boardKeyboardStatus"[^>]+role="status"[^>]+aria-live="polite"/);
   assert.match(html, /id="toggleBoardZoom"[^>]+aria-pressed="false"[^>]*>盤面を拡大<\/button>/);
+  assert.match(html, /id="turnGuide"[\s\S]{0,450}<button id="toggleBoardZoom"/);
+  assert.doesNotMatch(html, /id="regionControls"[\s\S]{0,180}id="toggleBoardZoom"/);
   assert.match(css, /body\[data-active-tab="battle"\] \.board-viewport\.is-zoomed #board\{width:200%;max-width:none\}/);
   assert.match(css, /\.board-viewport #board\{[^}]*touch-action:pan-x pan-y/);
   assert.match(css, /\.board-viewport:focus-within\{outline:3px solid #f0abfc/);
-  assert.match(css, /#toggleBoardZoom\{min-width:64px;min-height:44px\}/);
+  assert.match(css, /\.board-zoom-toggle\{min-width:64px;min-height:44px/);
+  assert.doesNotMatch(css, /\.board-zoom-toggle\{[^}]*position:absolute/);
+  assert.match(css, /\.turn-guide-step\{grid-column:1;grid-row:1;[^}]*\}\.turn-guide>\.board-zoom-toggle\{grid-column:2;grid-row:1\}\.turn-guide>div\{grid-column:1\/-1;grid-row:2\}/);
   const assist = app.slice(app.indexOf("function boardSelectionAvailable"), app.indexOf("function strokeRegionBoundary"));
   assert.match(assist, /function connectedMacros\(macros, width\)/);
   assert.match(assist, /function macroHasFreeMicro\(state, macro\)/);
@@ -500,11 +504,12 @@ test("board selection assist enlarges targets and supports connected keyboard se
   assert.match(app, /color: "#fdf4ff", cssWidth: 1\.5, cssDash: \[\], cssInset: 8/);
   assert.match(html, /緑の破線は次に辺でつなげて選べる位置の目印、紫と白の二重線は現在のキーボード位置/);
   assert.match(app, /if \(tab !== "battle"\) resetBoardSelectionAssist\(\)/);
+  assert.match(assist, /toggle\.classList\.toggle\("hidden", !interactive\)/);
   assert.match(app, /緑の破線は辺でつなげて選べる位置の目印です。確定できるかはサーバーが判定します。/);
   assert.match(css, /\.skin-board-aurora \.board-viewport\{outline:3px solid #22d3ee/);
   assert.match(css, /\.skin-board-aurora \.board-viewport #board,[^}]+\{outline:none;box-shadow:none\}/);
   assert.match(css, /\.board-viewport:has\(#board\.turn-arrival-beat\)\{animation:turn-arrival-board-frame/);
-  assert.match(css, /@media\(max-width:420px\)\{body\[data-active-tab="battle"\]\{padding-bottom:132px\}\}/);
+  assert.doesNotMatch(css, /body\[data-active-tab="battle"\]\{padding-bottom:132px\}/);
   assert.doesNotMatch(assist, /sendAction|submitAction|availableColorChoices|legalColors|adjacentRegionIds|contactColor/);
   assert.match(app, /sendAction\("CREATE_REGION", \{ sourceMacros: \[\.\.\.selectedMacros\]\.sort/);
 });
