@@ -37,7 +37,7 @@ async function probeProtectedRpc(name, body) {
   throw new Error(`UNEXPECTED_RPC_PROBE_${name}_${response.status}_${String(data?.code || "UNKNOWN")}`);
 }
 
-const [page, app, snapshotV1, snapshotV2, matchmaking, pregameAbandon, activeRoom] = await Promise.all([
+const [page, app, snapshotV1, snapshotV2, matchmaking, pregameAbandon, activeRoom, setupLoadV3, initializeRoomV3] = await Promise.all([
   getText(publicUrl),
   getText(`${publicUrl}app.js`),
   probeProtectedRpc("fcg_standard_room_snapshot", { p_room_id: zeroUuid }),
@@ -45,6 +45,20 @@ const [page, app, snapshotV1, snapshotV2, matchmaking, pregameAbandon, activeRoo
   probeProtectedRpc("fcg_standard_matchmaking_recruit", { p_display_name: "preflight", p_ticket_id: zeroUuid }),
   probeProtectedRpc("fcg_standard_abandon_room", { p_room_id: zeroUuid, p_expected_version: 0, p_action_id: zeroUuid }),
   probeProtectedRpc("fcg_standard_active_room", {}),
+  probeProtectedRpc("fcg_standard_server_load_room_v3", {
+    p_room_id: zeroUuid,
+    p_actor_id: zeroUuid,
+  }),
+  probeProtectedRpc("fcg_standard_server_initialize_room", {
+    p_room_id: zeroUuid,
+    p_expected_version: 0,
+    p_setup_a_revision: 1,
+    p_setup_b_revision: 1,
+    p_authoritative_state: {},
+    p_public_state: {},
+    p_private_a: {},
+    p_private_b: {},
+  }),
 ]);
 
 const result = {
@@ -58,15 +72,17 @@ const result = {
     hasCosmetics: /cosmetic-catalog|見た目/.test(app.text),
     hasPregameAbandon: /client\.abandonRoom|開始前の対戦を取りやめる/.test(app.text),
     hasActiveRoomRecovery: /client\.recoverActiveRoom|recoverServerActiveRoom/.test(app.text),
-    hasLegalRecolorLab: /experimentalLabToggle|塗り直し・乱/.test(app.text),
+    hasLegalRecolorLab: app.text.includes('$("legalRecolorLabMode")')
+      && app.text.includes('const LEGAL_RECOLOR_LAB_RULE_SET_ID = "STANDARD_V5_LEGAL_RECOLOR_LAB_V1"')
+      && /operation:\s*"setup"[\s\S]{0,500}labMode/.test(app.text),
   },
-  database: { snapshotV1, snapshotV2, matchmaking, pregameAbandon, activeRoom },
+  database: { snapshotV1, snapshotV2, matchmaking, pregameAbandon, activeRoom, setupLoadV3, initializeRoomV3 },
 };
 
 const phaseExpectations = {
-  baseline: { pregameAbandonUi: true, pregameAbandonDb: true, activeRoomUi: true, activeRoomDb: true, legalRecolorLabUi: false },
-  "db-ready": { pregameAbandonUi: true, pregameAbandonDb: true, activeRoomUi: true, activeRoomDb: true, legalRecolorLabUi: false },
-  candidate: { pregameAbandonUi: true, pregameAbandonDb: true, activeRoomUi: true, activeRoomDb: true, legalRecolorLabUi: true },
+  baseline: { pregameAbandonUi: true, pregameAbandonDb: true, activeRoomUi: true, activeRoomDb: true, setupRevisionGuardDb: false, legalRecolorLabUi: false },
+  "db-ready": { pregameAbandonUi: true, pregameAbandonDb: true, activeRoomUi: true, activeRoomDb: true, setupRevisionGuardDb: true, legalRecolorLabUi: false },
+  candidate: { pregameAbandonUi: true, pregameAbandonDb: true, activeRoomUi: true, activeRoomDb: true, setupRevisionGuardDb: true, legalRecolorLabUi: true },
 };
 
 if (expectedPhase) {
@@ -76,6 +92,8 @@ if (expectedPhase) {
   assert.equal(result.database.matchmaking, "protected", "MATCHMAKING_BASELINE_MISSING");
   assert.equal(result.database.pregameAbandon, expected.pregameAbandonDb ? "protected" : "absent", "PREGAME_ABANDON_PHASE_MISMATCH");
   assert.equal(result.database.activeRoom, expected.activeRoomDb ? "protected" : "absent", "ACTIVE_ROOM_RECOVERY_PHASE_MISMATCH");
+  assert.equal(result.database.setupLoadV3, expected.setupRevisionGuardDb ? "protected" : "absent", "SETUP_LOAD_V3_PHASE_MISMATCH");
+  assert.equal(result.database.initializeRoomV3, expected.setupRevisionGuardDb ? "protected" : "absent", "INITIALIZE_ROOM_V3_PHASE_MISMATCH");
   for (const key of ["hasPublicMatchmaking", "hasCpuRoster", "hasCosmetics"]) {
     assert.equal(result.publicPage[key], true, `PUBLIC_BASELINE_UI_MISSING_${key}`);
   }

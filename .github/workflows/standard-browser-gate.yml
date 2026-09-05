@@ -11,8 +11,10 @@ on:
       - standard/**
       - scripts/build-standard-online-engine.mjs
       - scripts/standard-cpu-selfplay.cjs
+      - scripts/live-standard-*.mjs
       - supabase/functions/standard-game-action/**
       - supabase/migrations/**
+      - supabase/verification/**
       - tests/standard-*.test.cjs
       - tests/standard-browser-gate-workflow.test.cjs
       - tests/standard-cpu-browser.test.cjs
@@ -30,8 +32,10 @@ on:
       - standard/**
       - scripts/build-standard-online-engine.mjs
       - scripts/standard-cpu-selfplay.cjs
+      - scripts/live-standard-*.mjs
       - supabase/functions/standard-game-action/**
       - supabase/migrations/**
+      - supabase/verification/**
       - tests/standard-*.test.cjs
       - tests/standard-browser-gate-workflow.test.cjs
       - tests/standard-cpu-browser.test.cjs
@@ -82,6 +86,8 @@ jobs:
           tests/standard-browser-gate-workflow.test.cjs
           tests/standard-legal-recolor-lab.test.cjs
           tests/standard-live-legal-recolor-lab-canary-static.test.cjs
+          tests/standard-live-release-preflight-static.test.cjs
+          tests/standard-candidate-verification-sql.test.cjs
           tests/standard-setup-revision-guard.test.cjs
           tests/standard-match.test.cjs
           tests/standard-online-client.test.cjs
