@@ -8,7 +8,7 @@
 
 ## 司令塔ルール
 
-- 統合基点は `origin/main` とし、現在の公開ゲーム資産基点は `881bd17`（終局説明、Quick保存復旧、ロビー/ガチャ整理、クイズ体験改善）。直前のCPU報酬循環は`dab28e5`、資源診断commitは`ebe5f19`として分離する。
+- 統合基点は `origin/main` とし、現在の公開ゲーム資産基点は `03c5628`（active-room排他、room外6枚編成、明示CPU開始sagaを含む）。直前の終局・Quick・クイズ改善は`881bd17`として分離する。
 - 現在の統合作業は `codex/standard-release-command` だけで行う。
 - 古いdirty worktreeからbuild、merge、deployしない。
 - `実装済み`、`ローカル検証済み`、`live検証済み`、`公開済み`を別状態として記録する。
@@ -22,7 +22,7 @@
 | P0 | Standard/Quick修正束の公開 | 司令塔 | PUBLIC_VERIFIED | `881bd17`。focused非browser 123/123、Windows browser run `33961455909`のChrome/Edge、Pages `33961706817`が成功。公開asset v18、Quick save codec v20260905-2、candidate preflight、実ブラウザconsole 0を確認 |
 | P0 | 終局理由とfinished表示の整合 | ルール＋UX | PUBLIC_VERIFIED | `33bc870`。敗者本人にだけ公開盤面＋本人private状態から`NO_LEGAL_COLOR`/`SEALED_OUT`内訳を表示し、reload後も保持。finished後の待機・CPU思考・再送状態を停止。相手private漏えい否定browserを含め公開済み |
 | P0 | Quick Half Shift後の保存freeze | Quick＋保存 | PUBLIC_VERIFIED | `5b850c8`。12x12 worldへ移動した合法regionを保存可能にし、micro由来macro・四近傍連結を厳密検証、旧v1 saveを正規化。関連24/24、公開save codec markerと実画面console 0を確認 |
-| P0 | active roomと新規対戦導線の排他 | UX＋同期 | READY_FOR_IMPLEMENTATION | サーバー上のactive CPU roomを残してローカル表示だけ破棄する現挙動を監査確定。「画面だけ閉じる」は同期維持、readyは無精算abandon、playingはexactly-once投了、active中は新規CTAを復帰CTAへ置換する |
+| P0 | active roomと新規対戦導線の排他 | UX＋同期＋DB | PUBLIC_VERIFIED | `03c5628`。全入口guard、画面だけ閉じる＋同じroom復帰、member insert/updateとroom再活性化triggerを公開。migration `202609050006`、DB verify 61/61、Windows `33966896517`、Pages `33967367304`、公開CPU戦復帰を確認 |
 | P0 | 合言葉・経済・野良・CPUのlive縦通し | 技術品質 | COMPLETED | deployment 8でEdge 6/6、A 43/43、B 93/93、C 210/210、D 107/107合格 |
 | P0 | 待ち時間なしのStandard CPU開始 | UX＋Edge＋DB | PUBLIC_VERIFIED | `cc96350`。migration `202609050002`、Edge deployment 9、基本6/6＋即時CPU 7/7、Windows run `33931963065`、Pages run `33932159043`合格。公開UIでCPU選択→6枚準備→CPU初手→人間第2手を確認 |
 | P0 | 同時profile作成のHTTP 500抑止 | Edge＋運用 | PUBLIC_VERIFIED | 新規作成をload→commitの2 RPCへ削減。一時障害を503化。C準備の16 profileが逐次で全件成功し、500/429なし |
@@ -48,13 +48,14 @@
 | P1 | CPU報酬ガチャから6枚再編成・同CPU再戦への循環 | ゲーム体験＋進行 | PUBLIC_VERIFIED | `dab28e5`。保存済み通常CPU報酬起点の抽選成功後だけ結果・効果・再戦CTAを表示し、reload後も同一room/version/matchだけ復元。未解決抽選は新規drawを封鎖して同じIDだけ再確認し、獲得カードは自動選択せず6枚選択へ戻す。Windows run `33958531045`、Pages run `33958727024`成功 |
 | P1 | 中幅ロビーとガチャ結果の整理 | UX | PUBLIC_VERIFIED | `00d198f`。980px帯を2列＋野良全幅へreflowし、760px以下は1列。通常ガチャの重複大見出しを除き、CPU報酬は次戦CTAだけに整理。公開asset v18へ反映済み |
 | P1 | クイズの遊び心・学習feedback | クイズ＋Edge | PUBLIC_VERIFIED | `881bd17`。各問にmission、形式label、1–3段階の考え方を追加し、server確定結果で2/4/6 streakを表示。Edge deployment 14、live canary 7/7、公開asset v18 |
-| P1 | room作成前の6枚編成と明示CPU開始 | UX＋同期 | READY_FOR_IMPLEMENTATION | Cards CTAを実編成へ接続し、CPU選択はlocal-only、最終CTAだけがimmutableな`cpu-start`＋`setup` action IDを保存して再開可能なsagaを実行。`recovered_existing`時は新draftを送らない |
+| P1 | room作成前の6枚編成と明示CPU開始 | UX＋同期 | PUBLIC_VERIFIED | `03c5628`。Cardsのroom外6枚保存、CPU選択local-only、`stage/roomId/replaceRoomId`付きimmutable二段sagaを公開。start/setup応答喪失とstale別タブを46 browser testで固定 |
+| P1 | waiting/readyの正式な無報酬離脱 | Edge＋DB | BACKLOG | server-authoritativeで冪等なabandon/cancelを追加する。playingは既存SURRENDERだけを使い、ローカルclearで孤児roomを作らない |
 | P1 | 接触色の累積feedback | 演出＋アクセシビリティ | SPEC_READY | 2色=[2]、3色=[2,3]、4色=[2,3,4]を一回の確定CREATEごとに順次表示。合計1.5秒未満、reduced-motionは静止、読み上げは最終1回、poll/reload重複なし |
 | P1 | 直前の手→盤面変化→次の判断 | ゲーム理解 | AUDITED | 公開情報だけの短い戦術traceで、相手に渡した形と接触色の結果を次手の判断へつなぐ。相手palette/handや事前合法色oracleは出さない |
 | P1 | 未コミット／孤立作業の回収 | 構成管理 | COMPLETED | 29床を3床へ集約。丸ごと統合候補は0。Quick回帰試験だけを回収し、残るroot dirtyは救出済み・凍結管理 |
 | P2 | GitHub Pages actionのNode.js警告解消 | 技術品質 | BACKLOG | 公開結果を変えず、Node.js 20廃止予定warningを消す |
 
-直前の公開履歴も維持する。`29c6958`は非browser 528/528、ローカルChrome/Edge各25/25、Windows run `33933769885`（Edgeは終了処理timeout後のattempt 2成功）、Pages run `33934125859`で公開確認した。即時CPU開始は`cc96350`、migration `202609050002`、Edge deployment 9、Windows run `33931963065`、Pages run `33932159043`で確認した。現在のDB適用済み追加migrationは、status正規化`202609050001`、即時CPU`202609050002`、デバッグroom境界`202609050003`、クイズ回答feedback`202609050004`、クロガネv2`202609050005`である。
+直前の公開履歴も維持する。`29c6958`は非browser 528/528、ローカルChrome/Edge各25/25、Windows run `33933769885`（Edgeは終了処理timeout後のattempt 2成功）、Pages run `33934125859`で公開確認した。即時CPU開始は`cc96350`、migration `202609050002`、Edge deployment 9、Windows run `33931963065`、Pages run `33932159043`で確認した。現在のDB適用済み追加migrationは、status正規化`202609050001`、即時CPU`202609050002`、デバッグroom境界`202609050003`、クイズ回答feedback`202609050004`、クロガネv2`202609050005`、単一active room境界`202609050006`である。
 
 ## 旧作業床からの回収候補
 
@@ -73,9 +74,9 @@
 
 | 区分 | 対象 | 方針 |
 | --- | --- | --- |
-| 正本 | `origin/main` | 公開ゲーム資産基点は`881bd17`。migration `202609050001`–`202609050005`、Edge deployment 14、Pages run `33961706817`まで公開確認済み。今回SQL migrationなし |
-| 現在の統合床 | `codex/standard-release-command` | 製品履歴は`main`と一致し、司令塔台帳・live canary証拠を追補中。次の実装はactive-room排他とroom外6枚編成 |
-| 公開済み現候補 | ゲーム資産`881bd17` | 終局理由、Quick保存freeze修正、中幅ロビー/ガチャ整理、クイズmission/streakを包含。公開asset v18、Chrome/Edge gate、Pages、Edge 7/7、candidate preflightを確認済み |
+| 正本 | `origin/main` | 公開ゲーム資産基点は`03c5628`。migration `202609050001`–`202609050006`、Edge deployment 14、Pages run `33967367304`まで公開確認済み |
+| 現在の統合床 | `codex/standard-release-command` | 製品履歴は`main`と一致。公開証拠追補後の次便は正式abandonと競合文言 |
+| 公開済み現候補 | ゲーム資産`03c5628` | active-room排他、room外6枚編成、明示CPU二段saga、screen-only closeを包含。公開asset v19、Chrome/Edge gate、Pages、DB 61/61、candidate preflightを確認済み |
 | 保全済み | detached `a8fce7d` dirty床 | `codex/salvage-a8fce7d-20260904` / `9e4e8ee` に秘密情報なしでWIP保全済み。機能単位で比較 |
 | 凍結root | root `ac78282` | 正史worktreeを内包するため作業床は維持。再監査したdirty 39件のうち38件は既存commitと一致し、残る旧handoff文書も現正本で置換済み。丸ごとmerge禁止、回収残件なし |
 | GitHub保管 | `codex/archive-standard-release-1f823b2` | 正史の祖先でない孤立コミットをGitHubへ退避済み。作業床は削除 |
@@ -90,8 +91,8 @@
 | 合言葉不要マッチング＋CPUフォールバック | `origin/main@a3425a4`でPUBLIC_VERIFIED | 自動live canaryは完了。物理二端末で対人/CPUの完走、復帰、再戦を確認する |
 | クイズ・スキル・バランス | 即時採点、答え合わせ、持ち色変更説明、クロガネv2までPUBLIC_VERIFIED | 物理端末の操作感を確認し、公開後24時間指標と分離して記録する |
 | online MVP status／live regression | 現行公開識別子と有限な証拠を`STANDARD_RELEASE_EVIDENCE.md`へ集約 | 古い時系列ログは履歴として保持し、現行状態と混同しない |
-| 二端末P0 handoff | PENDING | `881bd17`の対人/CPU完走、終局理由、Quick継続、途中再読込、報酬→ガチャ→6枚再編成→再戦、永続化だけを残件として回収 |
-| active-room排他・room外6枚編成 | 監査済み、未実装 | 既存RPCのexactly-once契約を使う二段sagaを第一候補とし、DB変更は跨端末active-room probe/ready abandonが本当に必要な場合だけ分離する |
+| 二端末P0 handoff | PENDING | `03c5628`の対人/CPU完走、終局理由、Quick継続、途中再読込、報酬→ガチャ→6枚再編成→再戦、永続化だけを残件として回収 |
+| active-room排他・room外6枚編成 | `03c5628`でPUBLIC_VERIFIED | 次便はwaiting/readyの正式abandonと競合時の既存room再同期・日本語文言だけを分離する |
 | 新カード候補 | `legalRecolor`だけ条件付き採用候補 | IDは維持し表示名を「塗り直し・乱」、妨害★3/WORK、まずガチャOFFのlabで検証。二色市松は1地域1色モデルを壊すため別rulesetへ分離 |
 | nested Expo設計群 | 旧ローカル試作 | 現行Standard Onlineから凍結分離 |
 

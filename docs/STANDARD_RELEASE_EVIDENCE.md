@@ -16,16 +16,16 @@
 | 次期UX候補のローカル検査 | VERIFIED | `codex/standard-release-command@1673ff8`。profile安定化、初回対戦導線、Quick Half Shift、status正規化、Realtime/poll復旧を含む非browser製品試験91ファイル522/522。browser workflow/harness静的11/11合格 | Pages反映後のpreflightと二端末受入 |
 | 初回導線・接続表示の次期候補 | VERIFIED | `9d42784`。初回starter作成＋profile同期を一操作化し、全5タブで単一接続statusを常時表示。空名write 0、room外offline復帰、390px下部nav非干渉を契約化。静的39/39、非browser 89ファイル513/513、Windows Chrome/Edge各18/18合格 | 物理二端末受入 |
 | Windows実browser CI | VERIFIED | GitHub Actions run `33961455909`。`881bd17`のChrome job `101293934714`、Edge job `101293934877`がともに成功 | 公開URLで同じ主要導線を二端末受入 |
-| 現行公開Pages | PUBLIC_VERIFIED | 公開ゲーム資産基点`881bd17`、Pages run `33961706817`成功。公開URLでStandard asset v18、Quick save codec v20260905-2、終局/クイズmarker、console warning/error 0を確認 | 別々の二端末で最終受入 |
+| 現行公開Pages | PUBLIC_VERIFIED | 公開ゲーム資産基点`03c5628`、Pages run `33967367304`成功。公開URLでStandard asset v19、active-room/二段saga marker、既存CPU戦のreload・screen-only close/returnを確認 | 別々の二端末で最終受入 |
 | 初回公開前DB境界（履歴） | VERIFIED | 旧snapshotは匿名権限拒否。snapshot v2と野良募集が未存在だった初回baseline | 現行境界は適用migrationとlive canaryを参照 |
 | migration 006–013静的検査 | VERIFIED | migration別security/transaction testsと読み取り専用44項目SQL | 実DBで全行`ok=true` |
 | Dashboard Advisor・使用量baseline | PENDING | 2026-09-05 16:23 JSTのT0を`STANDARD_OBSERVATION_T0_20260905.json`へPARTIAL記録。API/Edge/Realtime/Query/Advisor 17項目を観測、Databaseグラフ等20項目はDashboard取得不能でPENDING。Health alert 2件継続 | T+24hで同じ24時間filterを再採取し、Database欠落値とalert状態を再確認 |
-| migration 006–013＋後続001–005本番適用 | PUBLIC_VERIFIED | 13本を個別適用。現行の読み取り専用検証SQLは56項目すべてtrue。status C 210/210、クイズ新旧canary、クロガネv2 canary合格 | 物理二端末最終受入 |
+| migration 006–013＋後続001–006本番適用 | PUBLIC_VERIFIED | 14本を個別適用。現行の読み取り専用検証SQLは61項目すべてtrue。単一active-room rollback canary残留0、status C 210/210、クイズ新旧canary、クロガネv2 canary合格 | 物理二端末最終受入 |
 | Edge Function更新 | PUBLIC_VERIFIED | deployment 14へクイズmission/format/thinkingStepsを追加。SQL変更なし。匿名認証、JWT拒否、profile、見た目、CPU roster、10問の新metaをlive canary 7/7で確認 | 物理端末でクイズとCPUの体感を確認 |
 | 即時Standard CPU開始 | PUBLIC_VERIFIED | migration `202609050002`とEdge deployment 9。製品`cc96350`、公開`a4c6490`、DB 47項目、Edge基本6/6、即時CPU 7/7、Windows run `33931963065`、Pages run `33932159043`合格。公開UIでCPU初手まで確認 | 物理端末で一試合完走・再読込・同じCPUとの再戦を確認 |
 | CPU完走後の次戦導線 | PUBLIC_VERIFIED | `29c6958`。同じCPUとの同room再戦を維持し、終了結果から別CPU選択へ進める。live即時CPU完走・再戦canary 25/25、Windows Chrome/Edge成功、Pages反映済み | 物理端末で別CPU選択と再戦を体感確認 |
 | CPU報酬からガチャへの直行 | PUBLIC_VERIFIED | `e36dfcc`＋`193a0e6`。保存済み通常CPU精算だけにCTAを出し、抽選せずLv.1ガチャへ移動。対人・未精算・debugを拒否し、390×844で券・抽選操作・focus・再読込を確認 | 物理端末でCPU一局からガチャまでの体感を確認 |
-| GitHub main・Pages更新 | PUBLIC_VERIFIED | `origin/main@881bd1721924d2f5ebe8f19905046d5783836cc9`。Standard browser gate `33961455909`、Pages `33961706817`成功。公開asset v18の必須marker一致 | 二端末受入後に最終状態を記録 |
+| GitHub main・Pages更新 | PUBLIC_VERIFIED | `origin/main@03c5628d9daf2dd516ca448ebe2b799835dfcfd7`。Standard browser gate `33966896517`、Pages `33967367304`成功。公開asset v19の必須marker一致 | 二端末受入後に最終状態を記録 |
 | 合言葉対戦canary | VERIFIED | deployment 8で`live-standard-runbook-a-canary.mjs --confirm-live` 43/43合格 | 実ブラウザ再読込と二端末最終受入 |
 | 経済・進行・見た目canary | VERIFIED | deployment 8でRunbook B 93/93合格 | 実ブラウザで報酬演出と操作感を確認 |
 | 野良対戦canary | VERIFIED | status正規化後、C 210/210合格。16 profile、完走、同時finder、取消競合、10同時claim、再検索、秘密非公開を確認 | 実ブラウザで二端末最終受入 |
@@ -200,18 +200,28 @@
 - 公開candidate preflightは`ok:true`。Standardはasset v18と終局/クイズmarker、Quickは`save-codec.js?v=20260905-2`を返した。Chromeの公開Standard/Quick実画面はwarning/error 0で、既存CPU roomのreload継続も確認した。
 - 次の最優先は、server上のactive roomを残してローカル表示だけ破棄できる導線の修正である。room外6枚editor、CPU選択local-only、明示開始のimmutable二段sagaまで監査済み。物理二端末受入とT+24h観測は`NOT_RUN/PENDING`のままである。
 
+## 2026-09-05 21:56 JST active-room排他・room外6枚編成・明示CPU開始公開
+
+- `03c5628`でCardsからroomを作らず6枚を保存できるようにし、CPU選択はlocal-only、最終確認だけが`cpu-start`と`setup`の不変IDを持つ二段sagaを実行するようにした。`stage`、確定`roomId`、終了済みCPU戦の`replaceRoomId`を保存し、start応答喪失はstart 2/setup 1、setup応答喪失はstart 1/setup 2で同じIDを再送する。
+- create/join/recruit/find/direct CPU/stale dialog/final commit/startup復旧を中央guardで保護した。active room、draft/saga、ticket、find pending、別のfinished roomが競合する場合は新規RPC 0で所有中状態へ戻る。active中の「画面だけ閉じる」はroomIdと同期を保持し、Homeの復帰CTAから同じ試合へ戻る。
+- migration `202609050006_standard_single_active_room.sql`を適用し、member insert/updateとroom再活性化の最終DB境界でactor単位のactive Standard roomを1件に制限した。対象room `FOR SHARE`、actor advisory lock、再活性化時のUUID順lockでinactive insertとの競合も直列化する。
+- 適用前preflightは重複actor 1件だった。10時間以上更新なし・1人waiting・setup/action/view/match stateすべて0の未使用private-code roomだけを厳密条件で`abandoned`へ変更し、既存CPU roomは保存した。削除はしていない。再preflightは0、適用後candidate verificationは61/61、rollback-only DB canaryは二重member/再活性化を拒否し残留0だった。
+- ローカルfull browser 46/46、関連非browser 80/80、Windows run `33966896517`のChrome `101308503116` / Edge `101308503120`が成功。`origin/main`をforceなしで`03c5628`へfast-forwardし、Pages run `33967367304`も成功した。
+- 公開HTML/app/styleはasset v19と新markerをHTTP 200で返し、candidate preflightは`ok:true`。Chromeで既存CPU戦が対戦中のまま復元され、screen-only close後にHome CTAから同じ第2手へ戻ることを確認した。Edge deploymentは14のままで変更していない。
+- 物理的に別々の二端末による対人完走・reload・再戦とT+24h資源比較は引き続き`NOT_RUN/PENDING`。waiting/readyの正式な無報酬abandonは次便でserver-authoritativeに追加する。
+
 ## 公開識別子
 
 | 項目 | 値 |
 | --- | --- |
 | browser harness diagnostics commit | `6fc23a5` |
 | Windows browser CI commit | `d8dac1b` |
-| final browser-verified candidate | `881bd17`（終局説明、Quick保存、ロビー/ガチャ整理、クイズ体験。`dab28e5`までの循環を包含） |
-| Windows browser CI run | `33961455909` / Chrome `101293934714` Success / Edge `101293934877` Success |
+| final browser-verified candidate | `03c5628`（active-room排他、room外6枚編成、明示CPU二段saga。`881bd17`までを包含） |
+| Windows browser CI run | `33966896517` / Chrome `101308503116` Success / Edge `101308503120` Success |
 | 初回candidate code baseline（履歴） | `0e02176`（Edge deployment 8 sourceは`c3cf372`） |
-| applied migrations | `202609030006`–`202609030013`, `202609050001`–`202609050005` |
+| applied migrations | `202609030006`–`202609030013`, `202609050001`–`202609050006` |
 | `standard-game-action` version | deployment 14（2026-09-05 20:00 JST頃、クイズ体験meta追加） |
-| Pages Actions run | `33961706817` / Success / `881bd17` |
+| Pages Actions run | `33967367304` / Success / `03c5628` |
 | public URL | `https://sakuratamaro.github.io/four-color-map-game/standard-online-v5/` |
 
 ## Canary結果
@@ -247,6 +257,9 @@
 | 終局・Quick保存・ロビー・クイズ Windows gate | PASS | 2026-09-05 | `881bd17`、run `33961455909`。Windows 2025のChrome/Edge両job成功。終局private境界/reload、Quick保存、980pxロビー、ガチャ、クイズhint/feedbackを包含 |
 | クイズ体験 Edge canary | PASS | 2026-09-05 | deployment 14。基本認証/公開境界に加え、新規匿名quizの10問すべてでmission、formatLabel、thinkingStepsを確認し7/7 |
 | `881bd17` Pages・公開asset | PASS | 2026-09-05 | Pages run `33961706817`。Standard asset v18、Quick save codec v20260905-2、candidate preflight `ok:true`、公開Chrome Standard/Quick warning/error 0 |
+| active-room排他・明示CPU開始 Windows gate | PASS | 2026-09-05 | `03c5628`、run `33966896517`。Chrome/Edge両job成功。全入口guard、応答喪失saga、finished置換、390/980pxを含む46 browser test |
+| migration 006・DB排他canary | PASS | 2026-09-05 | duplicate preflight 0、candidate verification 61/61。二重memberとinactive room再活性化を実DBで拒否し、rollback後residue 0 |
+| `03c5628` Pages・公開asset | PASS | 2026-09-05 | Pages `33967367304`。Standard asset v19、candidate preflight `ok:true`、既存CPU戦のreload・screen-only close・同じ試合への復帰を公開Chromeで確認 |
 | 二端末最終受入 | NOT_RUN | PENDING | PENDING |
 
 ## 残存リスク
@@ -254,7 +267,7 @@
 - Dashboard T0は17項目を取得したが、Database 24hグラフ等20項目はDashboard取得不能でPARTIAL。資源逼迫alert 2件と7日Compute/CPU peak 99%があるため、負荷由来を切り分けるまで新しい高負荷経路を追加しない。
 - profile作成安定化はCの逐次16件で500/429なしを確認した。高並列作成そのものはAuth上限を消費するため再試験せず、再発時はEdge/DBログと資源警告を関連調査する。
 - Cのstatus正規化は本番関数定義、既存ticket整合、live canary 210/210まで確認済み。今後もIPあたり30 anonymous sign-ins/時を守り、同じ認証窓で重いcanaryを再試行しない。
-- 現行製品`881bd17`はPagesへ反映済み。自動browser、公開asset、Edge/DB保護境界の合格と、未実施の物理二端末受入を混同しない。
+- 現行製品`03c5628`はPagesへ反映済み。自動browser、公開asset、Edge/DB保護境界の合格と、未実施の物理二端末受入を混同しない。
 - Edgeのper-isolate濫用抑止は分散レート制限ではない。公開後の計測で必要性が出た場合だけprovider側制限を検討する。
 - 10人CPUの合法性・決定性は自動検証済みだが、人間が感じる個性と楽しさは代表3人の実プレイ後も定性的判断として残る。
 - cleanup実削除や定期化は許可済みだが、exact IDと復元手段を確認するまで実行しない。課金設定変更は必要性と金額を特定してから扱う。
