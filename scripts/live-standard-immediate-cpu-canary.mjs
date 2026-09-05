@@ -114,6 +114,40 @@ check("room snapshot exposes selected CPU", snapshot.ok
   && cpuMember?.seat === "B"
   && cpuMember?.display_name === "うっかりユズ", snapshot);
 
+const activeRoom = await request("/rest/v1/rpc/fcg_standard_active_room", {
+  token,
+  body: {},
+});
+const activeRows = Array.isArray(activeRoom.data) ? activeRoom.data : [];
+check("active-room recovery returns only the caller's CPU room", activeRoom.ok
+  && activeRows.length === 1
+  && activeRows[0]?.room_id === first.data.roomId
+  && activeRows[0]?.seat === "A"
+  && ["waiting", "ready", "playing"].includes(activeRows[0]?.room_status)
+  && activeRows[0]?.access_mode === "cpu"
+  && activeRows[0]?.opponent_kind === "cpu"
+  && activeRows[0]?.cpu_character_id === "yuzu"
+  && Number(activeRows[0]?.setup_revision) === 0, activeRoom);
+
+const recovered = await request(endpoint, {
+  token,
+  body: { operation: "cpu-start", actionId: randomUUID(), characterId: "ren", confirmed: true },
+});
+check("second CPU start recovers the existing room", recovered.ok
+  && recovered.data?.roomId === first.data.roomId
+  && recovered.data?.startStatus === "recovered_existing"
+  && recovered.data?.characterId === "yuzu"
+  && recovered.data?.duplicate === false, recovered);
+
+const activeRoomAfterRecovery = await request("/rest/v1/rpc/fcg_standard_active_room", {
+  token,
+  body: {},
+});
+const activeRowsAfterRecovery = Array.isArray(activeRoomAfterRecovery.data) ? activeRoomAfterRecovery.data : [];
+check("recovery does not create a second active room", activeRoomAfterRecovery.ok
+  && activeRowsAfterRecovery.length === 1
+  && activeRowsAfterRecovery[0]?.room_id === first.data.roomId, activeRoomAfterRecovery);
+
 for (const name of checks) console.log(`PASS  ${name}`);
 console.log(`SUMMARY ${checks.length}/${checks.length} immediate-CPU checks passed`);
 clearTimeout(hardTimeout);
