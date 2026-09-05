@@ -56,7 +56,8 @@ function supabaseFixture({ roomStatus = "ready", roomVersion = 10 } = {}) {
         if (request.body.operation === "cosmetic-catalog") return { data: { revision: 3, cosmetics: { coins: 1000, equipped: { board: "boardDefault" }, items: [] } } };
         if (request.body.operation === "cosmetic-quote") return { data: { revision: 3, quote: { cosmeticId: request.body.cosmeticId, name: "オーロラ盤面", price: 600, coinsAfter: 400, purchaseRequired: true } } };
         if (request.body.operation === "cosmetic-action") return { data: { revision: 4, duplicate: false, quote: { cosmeticId: request.body.cosmeticId, price: 600 }, profileState: { coins: 400, equipped: { board: request.body.cosmeticId } }, cosmetics: { coins: 400, equipped: { board: request.body.cosmeticId }, items: [] } } };
-        if (request.body.operation === "quiz-start") return { data: { sessionId: QUIZ_SESSION_ID, duplicate: false, selectedLevel: 2, expiresAt: "2099-01-01T00:00:00Z", questions: Array.from({ length: 10 }, (_, index) => ({ prompt: `Q${index + 1}`, options: [{ id: `q${index + 1}-1`, label: "1" }] })) } };
+        if (request.body.operation === "quiz-start") return { data: { sessionId: QUIZ_SESSION_ID, duplicate: false, selectedLevel: 2, answerMode: "per-question-v1", expiresAt: "2099-01-01T00:00:00Z", questions: Array.from({ length: 10 }, (_, index) => ({ prompt: `Q${index + 1}`, options: [{ id: `q${index + 1}-1`, label: "1" }] })) } };
+        if (request.body.operation === "quiz-answer") return { data: { questionIndex: request.body.questionIndex, answeredCount: request.body.questionIndex + 1, duplicate: false, isCorrect: true, correctOptionId: request.body.answerId, correctOptionLabel: "1", explanation: "1 + 0 = 1" } };
         if (request.body.operation === "quiz-finish") return { data: { revision: 5, duplicate: false, correct: 10, wrong: 0, bestStreak: 10, reward: { ticketLevel: 2, draws: 10, reason: "全問正解" }, profileState: { gachaTickets: { "2": 10 }, inventory: {} } } };
         if (request.body.operation === "cpu-roster") return { data: { rosterVersion: "standard-character-roster-v1", characters: Array.from({ length: 10 }, (_, index) => ({ id: `cpu${index}`, name: `CPU ${index}` })) } };
         if (request.body.operation === "cpu-start") return { data: { matchmakingStatus: "matched", startStatus: "created", roomId: ROOM_ID, seat: "A", opponentKind: "cpu", characterId: request.body.characterId, duplicate: false } };
@@ -381,11 +382,16 @@ test("online quiz starts and finishes through server operations and persists the
   const started = await client.startQuiz({ actionId: ACTION_ID, selectedLevel: 2 });
   assert.equal(started.sessionId, QUIZ_SESSION_ID);
   const answers = Array.from({ length: 10 }, (_, index) => `q${index + 1}-1`);
+  const answered = await client.answerQuiz({ sessionId: QUIZ_SESSION_ID, actionId: ACTION_ID, questionIndex: 0, answerId: answers[0] });
+  assert.equal(answered.isCorrect, true);
   const finished = await client.finishQuiz({ sessionId: QUIZ_SESSION_ID, actionId: ACTION_ID, answers });
   assert.equal(finished.reward.draws, 10);
   assert.equal(client.snapshot().profileRevision, 5);
   assert.equal(JSON.parse(storage.values.get(STORAGE_KEY)).profileRevision, 5);
-  assert.deepEqual(supabase.calls.filter((call) => call.kind === "invoke").map((call) => call.request.body.operation), ["quiz-start", "quiz-finish"]);
+  assert.deepEqual(supabase.calls.filter((call) => call.kind === "invoke").map((call) => call.request.body.operation), ["quiz-start", "quiz-answer", "quiz-finish"]);
+  assert.deepEqual(supabase.calls.find((call) => call.request.body.operation === "quiz-answer").request.body, {
+    operation: "quiz-answer", sessionId: QUIZ_SESSION_ID, actionId: ACTION_ID, questionIndex: 0, answerId: "q1-1",
+  });
 });
 
 test("rematch persists its identity before the RPC and reuses it after reconnect", async () => {

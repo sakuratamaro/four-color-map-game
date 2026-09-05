@@ -138,6 +138,7 @@ let contactPresentationGeneration = 0;
 let quizClockTimer = null;
 let quizMathResizeObserver = null;
 let quizTimeoutQueued = false;
+let quizFeedbackGeneration = 0;
 let shownTerminalEventKey = null;
 let dismissedTerminalEventKey = null;
 let userInteractionRevision = 0;
@@ -1090,6 +1091,61 @@ function openQuizHint() {
   renderQuiz();
 }
 
+function quizOptionLabel(question, optionId) {
+  if (optionId === (pendingQuiz?.timeoutAnswerId || QUIZ_TIMEOUT_ANSWER)) return "時間切れ";
+  return String((question?.options || []).find((option) => option.id === optionId)?.label || optionId || "未回答");
+}
+
+function renderQuizAnswerFeedback() {
+  const feedback = pendingQuiz?.answerResults?.at?.(-1) || null;
+  const host = $("quizAnswerFeedback");
+  show("quizAnswerFeedback", Boolean(feedback));
+  host.classList.toggle("correct", feedback?.isCorrect === true);
+  host.classList.toggle("incorrect", Boolean(feedback) && feedback?.isCorrect !== true);
+  if (!feedback) { host.textContent = ""; return; }
+  const prefix = `前問 Q${Number(feedback.questionIndex) + 1}：`;
+  if (feedback.timedOut) host.textContent = `${prefix}× 時間切れ　正解：${feedback.correctOptionLabel}`;
+  else if (feedback.isCorrect) host.textContent = `${prefix}○ 正解！`;
+  else host.textContent = `${prefix}× 不正解　正解：${feedback.correctOptionLabel}`;
+}
+
+function emphasizeQuizFeedback() {
+  const host = $("quizAnswerFeedback");
+  const generation = ++quizFeedbackGeneration;
+  host.classList.remove("emphasize");
+  requestAnimationFrame(() => host.classList.add("emphasize"));
+  setTimeout(() => {
+    if (generation === quizFeedbackGeneration) host.classList.remove("emphasize");
+  }, 600);
+}
+
+function renderQuizResult() {
+  if (!lastQuizResult) return;
+  const reward = lastQuizResult.reward || {};
+  $("quizRewardSummary").textContent = `${lastQuizResult.correct}問正解！ Lv.${reward.ticketLevel}ガチャ券を${reward.draws}枚獲得（${reward.reason}）`;
+  const review = Array.isArray(lastQuizResult.answerReview) ? lastQuizResult.answerReview : [];
+  show("quizReview", review.length > 0);
+  const list = $("quizReviewList");
+  list.className = "quiz-review-list";
+  list.replaceChildren();
+  for (const item of review) {
+    const entry = document.createElement("li");
+    entry.className = `quiz-review-item ${item?.isCorrect ? "correct" : "incorrect"}`;
+    const question = document.createElement("p");
+    question.textContent = `Q${Number(item?.questionIndex) + 1}　${item?.question?.prompt || item?.prompt || "問題"}`;
+    const answer = document.createElement("p");
+    answer.textContent = `あなた：${item?.selectedOptionLabel || "時間切れ"}　／　正解：${item?.correctOptionLabel || "—"}　${item?.isCorrect ? "○" : "×"}`;
+    entry.append(question, answer);
+    if (item?.explanation) {
+      const explanation = document.createElement("p");
+      explanation.className = "quiz-review-explanation";
+      explanation.textContent = String(item.explanation);
+      entry.appendChild(explanation);
+    }
+    list.appendChild(entry);
+  }
+}
+
 function renderQuiz() {
   if (!$('quizPanel')) return;
   const validPending = pendingQuiz && typeof pendingQuiz.sessionId === "string"
@@ -1108,10 +1164,8 @@ function renderQuiz() {
   show("quizResult", Boolean(lastQuizResult));
   $("quizStart").disabled = quizBusy || !synced;
   $("quizLevel").disabled = quizBusy;
-  if (lastQuizResult) {
-    const reward = lastQuizResult.reward || {};
-    $("quizResult").textContent = `${lastQuizResult.correct}問正解！ Lv.${reward.ticketLevel}ガチャ券を${reward.draws}枚獲得（${reward.reason}）`;
-  }
+  if (lastQuizResult) renderQuizResult();
+  renderQuizAnswerFeedback();
   if (!pendingQuiz) { stopQuizClock(); return; }
   const index = pendingQuiz.answers.length;
   $("quizProgress").textContent = `${Math.min(index + 1, 10)} / 10`;
@@ -1136,11 +1190,19 @@ function renderQuiz() {
     const button = document.createElement("button");
     button.textContent = option.label;
     button.style.setProperty("--float-order", String(optionIndex));
-    button.disabled = quizBusy || Number(questionState?.hintActiveUntil || 0) > Date.now();
+    button.disabled = quizBusy || Boolean(pendingQuiz.pendingAnswer) || Number(questionState?.hintActiveUntil || 0) > Date.now();
     button.onclick = () => answerOnlineQuiz(option.id);
     $("quizOptions").appendChild(button);
   }
-  startQuizClock();
+  if (pendingQuiz.pendingAnswer) {
+    stopQuizClock();
+    const retry = document.createElement("button");
+    retry.className = "primary";
+    retry.textContent = quizBusy ? "回答を送信中…" : "同じ回答を再送";
+    retry.disabled = quizBusy;
+    retry.onclick = submitPendingQuizAnswer;
+    $("quizOptions").appendChild(retry);
+  } else startQuizClock();
 }
 
 async function startOnlineQuiz() {
@@ -1159,28 +1221,95 @@ async function startOnlineQuiz() {
       expiresAt: result.expiresAt,
       questions: result.questions,
       answers: [],
+      answerResults: [],
+      answerMode: result.answerMode === "per-question-v1" ? result.answerMode : "batch-v1",
+      pendingAnswer: null,
       questionState: null,
       timeoutAnswerId: typeof result.timeoutAnswerId === "string" ? result.timeoutAnswerId : QUIZ_TIMEOUT_ANSWER,
     };
     savePendingQuiz();
-    $("quizStatus").textContent = "答えを選んでください。10問後にまとめてサーバー採点します。";
+    $("quizStatus").textContent = pendingQuiz.answerMode === "per-question-v1"
+      ? "答えを選ぶと、その場で○×が分かります。"
+      : "答えを選んでください。10問後にまとめてサーバー採点します。";
   } catch (error) {
     $("quizStatus").textContent = "クイズを開始できませんでした。少し待って再試行してください。";
     toast(error.message || "クイズ開始に失敗しました。");
   } finally { quizBusy = false; renderQuiz(); }
 }
 
-function answerOnlineQuiz(optionId, { timedOut = false } = {}) {
+async function answerOnlineQuiz(optionId, { timedOut = false } = {}) {
   if (quizBusy || !pendingQuiz || pendingQuiz.answers.length >= 10) return;
   const questionState = settleQuizClock();
   if (!timedOut && Number(questionState?.hintActiveUntil || 0) > Date.now()) return;
   if (!timedOut && Number(questionState?.remainingMs || 0) <= 0) return;
+  if (pendingQuiz.answerMode === "per-question-v1") {
+    if (!pendingQuiz.pendingAnswer) {
+      pendingQuiz.pendingAnswer = {
+        actionId: crypto.randomUUID(),
+        questionIndex: pendingQuiz.answers.length,
+        answerId: String(optionId),
+        timedOut: Boolean(timedOut),
+      };
+      savePendingQuiz();
+    }
+    await submitPendingQuizAnswer();
+    return;
+  }
   pendingQuiz.answers.push(String(optionId));
   pendingQuiz.questionState = null;
   savePendingQuiz();
   if (timedOut) $("quizStatus").textContent = "時間切れ。次の問題へ進みます。";
   if (pendingQuiz.answers.length === 10) finishOnlineQuiz();
   else renderQuiz();
+}
+
+async function submitPendingQuizAnswer() {
+  if (quizBusy || !pendingQuiz?.pendingAnswer || pendingQuiz.answerMode !== "per-question-v1") return;
+  const pending = { ...pendingQuiz.pendingAnswer };
+  if (pending.questionIndex !== pendingQuiz.answers.length) return;
+  const question = pendingQuiz.questions[pending.questionIndex];
+  quizBusy = true;
+  stopQuizClock();
+  $("quizStatus").textContent = "回答をサーバーへ保存しています…";
+  renderQuiz();
+  let shouldFinish = false;
+  try {
+    const result = await client.answerQuiz({
+      sessionId: pendingQuiz.sessionId,
+      actionId: pending.actionId,
+      questionIndex: pending.questionIndex,
+      answerId: pending.answerId,
+    });
+    if (Number(result.questionIndex) !== pending.questionIndex || Number(result.answeredCount) !== pending.questionIndex + 1) {
+      throw new Error("QUIZ_ANSWER_SEQUENCE_MISMATCH");
+    }
+    const feedback = {
+      questionIndex: pending.questionIndex,
+      selectedOptionId: pending.answerId,
+      selectedOptionLabel: quizOptionLabel(question, pending.answerId),
+      correctOptionId: String(result.correctOptionId || ""),
+      correctOptionLabel: String(result.correctOptionLabel || "—"),
+      explanation: String(result.explanation || ""),
+      isCorrect: result.isCorrect === true,
+      timedOut: Boolean(pending.timedOut),
+    };
+    pendingQuiz.answers.push(pending.answerId);
+    if (!Array.isArray(pendingQuiz.answerResults)) pendingQuiz.answerResults = [];
+    pendingQuiz.answerResults.push(feedback);
+    pendingQuiz.pendingAnswer = null;
+    pendingQuiz.questionState = null;
+    savePendingQuiz();
+    $("quizStatus").textContent = result.duplicate ? "保存済みの回答を復元しました。" : "回答を保存しました。次の問題へ進みます。";
+    shouldFinish = pendingQuiz.answers.length === 10;
+  } catch (error) {
+    $("quizStatus").textContent = "回答を保存できませんでした。同じ回答で安全に再送できます。";
+    toast(error.message || "クイズ回答の送信に失敗しました。");
+  } finally {
+    quizBusy = false;
+    renderQuiz();
+    if (!pendingQuiz?.pendingAnswer) emphasizeQuizFeedback();
+  }
+  if (shouldFinish) await finishOnlineQuiz();
 }
 
 async function finishOnlineQuiz() {
@@ -2061,6 +2190,10 @@ $("createStarterProfile").onclick = createStarterProfile;
 $("syncProfile").onclick = syncSelectedProfile;
 $("quizStart").onclick = startOnlineQuiz;
 $("quizHint").onclick = openQuizHint;
+$("quizGoGacha").onclick = () => {
+  activateAppTab("quiz");
+  $("gachaPanel").scrollIntoView({ block: "start", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+};
 $("gachaLevel").onchange = () => { lastGachaDraws = []; renderGacha(); };
 $("gachaDrawOne").onclick = () => runGacha(1);
 $("gachaDrawAll").onclick = () => runGacha(null);
@@ -2140,7 +2273,8 @@ try {
   else if (synced && hasCpuEntryIntent()) await openCpuRoster("direct", $("startStandardCpuHome"));
   render();
   if (synced && !cosmeticCatalogLoaded) await refreshOnlineCosmetics({ quiet: true });
-  if (pendingQuiz?.answers?.length === 10) finishOnlineQuiz();
+  if (pendingQuiz?.pendingAnswer && pendingQuiz?.answerMode === "per-question-v1") submitPendingQuizAnswer();
+  else if (pendingQuiz?.answers?.length === 10) finishOnlineQuiz();
 } catch (error) {
   badge("接続失敗", "bad"); reflectBrowserConnectivity(); $("connectionMessage").textContent = "Supabaseへ接続できません。匿名ログイン設定を確認してください。"; console.error(error);
 }

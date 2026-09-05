@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <title>Four Color Map Game v5.0 Standard Online</title>
   <link rel="stylesheet" href="../online-v5/style.css">
-  <link rel="stylesheet" href="style.css?v=20260905-9">
+  <link rel="stylesheet" href="style.css?v=20260905-10">
   <link rel="stylesheet" href="debug-mode.css">
   <link rel="stylesheet" href="progression.css">
 </head>
@@ -75,6 +75,7 @@
       </div>
       <div id="quizPlay" class="quiz-play hidden">
         <div class="row between quiz-meta"><strong id="quizProgress">1 / 10</strong><span id="quizLevelBadge" class="badge"></span><strong id="quizTimer" class="quiz-timer" aria-live="polite">残り --秒</strong></div>
+        <p id="quizAnswerFeedback" class="quiz-answer-feedback hidden" role="status" aria-live="polite" aria-atomic="true"></p>
         <div class="quiz-time" role="progressbar" aria-label="この問題の残り時間" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><div id="quizTimeBar"></div></div>
         <div id="quizQuestion" class="quiz-question"></div>
         <div id="quizOptions" class="quiz-options" role="group" aria-label="答えの選択肢"></div>
@@ -82,7 +83,14 @@
         <p id="quizHintText" class="quiz-hint hidden" role="status"></p>
       </div>
       <p id="quizStatus" class="callout" aria-live="polite">難易度を選んで始めてください。</p>
-      <div id="quizResult" class="quiz-result hidden" aria-live="polite"></div>
+      <section id="quizResult" class="quiz-result hidden" aria-live="polite">
+        <p id="quizRewardSummary"></p>
+        <button id="quizGoGacha" class="primary" type="button">ガチャへ</button>
+        <details id="quizReview" class="quiz-review hidden">
+          <summary>今回の答え合わせ</summary>
+          <ol id="quizReviewList"></ol>
+        </details>
+      </section>
     </section>
 
     <section id="gachaPanel" class="card gacha-panel hidden" data-app-tab-panel="quiz">
@@ -324,9 +332,9 @@
     </form>
   </dialog>
   <div id="toast" role="status" aria-live="polite"></div>
-  <script src="standard-online-client.js?v=20260905-8"></script>
+  <script src="standard-online-client.js?v=20260905-10"></script>
   <script src="standard-online-sync.js"></script>
   <script src="standard-online-skill-intents.js"></script>
-  <script type="module" src="app.js?v=20260905-9"></script>
+  <script type="module" src="app.js?v=20260905-10"></script>
 </body>
 </html>

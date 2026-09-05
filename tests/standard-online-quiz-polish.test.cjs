@@ -88,8 +88,29 @@ test("only overflowing quiz math receives a persistent horizontal position bar",
   assert.match(css, /\.quiz-math-scroll\{[^}]*overflow-x:auto/);
   assert.match(css, /\.quiz-question \.quiz-math-scroll math\{[^}]*white-space:nowrap/);
   assert.match(css, /\.quiz-overflow-scrollbar\[hidden\]\{display:none\}/);
-  assert.match(html, /style\.css\?v=20260905-9/);
-  assert.match(html, /app\.js\?v=20260905-9/);
+  assert.match(html, /style\.css\?v=20260905-10/);
+  assert.match(html, /standard-online-client\.js\?v=20260905-10/);
+  assert.match(html, /app\.js\?v=20260905-10/);
+});
+
+test("per-question feedback is server-acknowledged, retryable, brief in motion, and followed by an optional review", () => {
+  for (const id of ["quizAnswerFeedback", "quizRewardSummary", "quizGoGacha", "quizReview", "quizReviewList"]) {
+    assert.match(html, new RegExp(`id="${id}"`));
+  }
+  assert.match(html, /id="quizAnswerFeedback"[^>]+role="status"[^>]+aria-live="polite"[^>]+aria-atomic="true"/);
+  assert.match(app, /answerMode === "per-question-v1"/);
+  assert.match(app, /pendingQuiz\.pendingAnswer = \{[\s\S]+actionId: crypto\.randomUUID\(\)/);
+  assert.match(app, /await client\.answerQuiz\(/);
+  assert.match(app, /pendingQuiz\.answers\.push\(pending\.answerId\)/);
+  assert.ok(app.indexOf("await client.answerQuiz(") < app.indexOf("pendingQuiz.answers.push(pending.answerId)"));
+  assert.match(app, /retry\.textContent = quizBusy \? "回答を送信中…" : "同じ回答を再送"/);
+  assert.match(app, /前問 Q\$\{Number\(feedback\.questionIndex\) \+ 1\}：/);
+  assert.match(app, /正解：\$\{feedback\.correctOptionLabel\}/);
+  assert.match(app, /setTimeout\([\s\S]{0,180}\}, 600\)/);
+  assert.match(css, /\.quiz-answer-feedback\.emphasize\{animation:quiz-feedback-pop \.6s ease-out\}/);
+  assert.match(css, /@media\(prefers-reduced-motion:reduce\)\{\.quiz-answer-feedback\.emphasize\{animation:none\}\}/);
+  assert.match(app, /Array\.isArray\(lastQuizResult\.answerReview\)/);
+  assert.doesNotMatch(app, /lastQuizResult[^\n]+localStorage\.setItem/);
 });
 
 test("five-tab navigation separates the app into focused screens", () => {

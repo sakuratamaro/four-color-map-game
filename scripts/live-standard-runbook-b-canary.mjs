@@ -9,9 +9,9 @@ if (!process.argv.includes("--confirm-live")) {
 }
 
 const hardTimeout = setTimeout(() => {
-  console.error("FAIL  Runbook B canary exceeded its 180-second safety timeout.");
+  console.error("FAIL  Runbook B canary exceeded its 240-second safety timeout.");
   process.exit(1);
-}, 180_000);
+}, 240_000);
 
 const configSource = fs.readFileSync(path.join(root, "online", "supabase-config.js"), "utf8");
 const url = configSource.match(/url:\s*"([^"]+)"/)?.[1];
@@ -32,6 +32,12 @@ const LOADOUT = Object.freeze({
 const SALE_LOCK_SKILL = "areaMicroBloom";
 const PAID_COSMETIC = "nameplateGold";
 const FREE_COSMETIC = "nameplateDefault";
+const QUIZ_LEVEL = 5;
+const QUIZ_RESCUE_TICKET_LEVEL = 4;
+const QUIZ_ROUNDS = 22;
+const EXPECTED_TOTAL_GACHA_DRAWS = 25;
+const MATCH_LOCK_RETAINED_COUNT = 2;
+const PAID_COSMETIC_PRICE = 350;
 
 const checks = [];
 let activeStage = "bootstrap";
@@ -71,27 +77,6 @@ function forbiddenQuizKey(value) {
   return Object.entries(value).some(([key, child]) =>
     ["answer", "answerid", "answerids", "correct", "correctid", "iscorrect"].includes(key.toLowerCase())
       || forbiddenQuizKey(child));
-}
-
-function numericParts(value) {
-  return String(value ?? "").match(/-?\d+(?:\.\d+)?/g)?.map(Number) || [];
-}
-
-function solveQuestion(question) {
-  const values = numericParts(question?.math?.value);
-  let answer;
-  if (question.templateId === "add") answer = values[0] + values[1];
-  else if (question.templateId === "subtract") answer = values[0] - values[1];
-  else if (question.templateId === "multiply") answer = values[0] * values[1];
-  else if (question.templateId === "divide") answer = Number(question.math?.numerator) / Number(question.math?.denominator);
-  else if (question.templateId === "missing") answer = values[1] - values[0];
-  else if (question.templateId === "rectangle-area") answer = values[0] * values[1];
-  else if (question.templateId === "rectangle-perimeter") answer = 2 * (values[0] + values[1]);
-  else if (question.templateId === "cube-volume") answer = Number(question.math?.base) ** Number(question.math?.exponent);
-  else throw new CanaryFailure("quiz public-math solver", "UNSUPPORTED_TEMPLATE");
-  const option = question.options?.find((candidate) => Number(candidate?.label) === answer);
-  if (!option || typeof option.id !== "string") throw new CanaryFailure("quiz public-math solver", "ANSWER_NOT_DERIVABLE");
-  return option.id;
 }
 
 async function request(pathname, { token, body, authorization } = {}) {
@@ -155,7 +140,7 @@ async function runQuizRound(player, current, round, verifyReplay) {
   activeStage = `quiz ${round}`;
   const startActionId = crypto.randomUUID();
   const startedAt = Date.now();
-  const startBody = { operation: "quiz-start", actionId: startActionId, selectedLevel: 1 };
+  const startBody = { operation: "quiz-start", actionId: startActionId, selectedLevel: QUIZ_LEVEL };
   const started = await edge(player, startBody);
   check(`quiz ${round} starts`, started.ok && started.data?.duplicate === false
     && UUID_PATTERN.test(String(started.data?.sessionId))
@@ -167,7 +152,10 @@ async function runQuizRound(player, current, round, verifyReplay) {
       && same(replayedStart.data?.questions, started.data.questions), replayedStart);
   }
   check(`quiz ${round} answer key stays private`, !forbiddenQuizKey(started.data.questions));
-  const answers = started.data.questions.map(solveQuestion);
+  check(`quiz ${round} exposes an opaque timeout answer`, typeof started.data?.timeoutAnswerId === "string"
+    && started.data.questions.every((question) =>
+      !question?.options?.some((option) => option?.id === started.data.timeoutAnswerId)));
+  const answers = Array.from({ length: 10 }, () => started.data.timeoutAnswerId);
   const remainingWait = Math.max(0, 5_200 - (Date.now() - startedAt));
   if (remainingWait > 0) await new Promise((resolve) => setTimeout(resolve, remainingWait));
 
@@ -179,8 +167,9 @@ async function runQuizRound(player, current, round, verifyReplay) {
   };
   const finished = await edge(player, finishBody);
   check(`quiz ${round} settles`, finished.ok && finished.data?.duplicate === false
-    && finished.data?.correct === 10 && finished.data?.wrong === 0
-    && finished.data?.reward?.ticketLevel === 1 && finished.data?.reward?.draws === 10, finished);
+    && finished.data?.correct === 0 && finished.data?.wrong === 10 && finished.data?.bestStreak === 0
+    && finished.data?.reward?.ticketLevel === QUIZ_RESCUE_TICKET_LEVEL
+    && finished.data?.reward?.draws === 1, finished);
   if (verifyReplay) {
     const replayedFinish = await edge(player, finishBody);
     check(`quiz ${round} settlement replays`, replayedFinish.ok && replayedFinish.data?.duplicate === true
@@ -188,12 +177,15 @@ async function runQuizRound(player, current, round, verifyReplay) {
       && same(replayedFinish.data?.profileState, finished.data?.profileState)
       && same(replayedFinish.data?.reward, finished.data?.reward), replayedFinish);
   }
-  const previousTickets = Number(current.profile.gachaTickets?.["1"] || 0);
-  const nextRecord = finished.data.profileState?.quizRecords?.["1"];
-  const previousAttempts = Number(current.profile.quizRecords?.["1"]?.attempts || 0);
+  const ticketKey = String(QUIZ_RESCUE_TICKET_LEVEL);
+  const recordKey = String(QUIZ_LEVEL);
+  const previousTickets = Number(current.profile.gachaTickets?.[ticketKey] || 0);
+  const nextRecord = finished.data.profileState?.quizRecords?.[recordKey];
+  const previousAttempts = Number(current.profile.quizRecords?.[recordKey]?.attempts || 0);
   check(`quiz ${round} reward applies once`, Number(finished.data.revision) === current.revision + 1
-    && Number(finished.data.profileState?.gachaTickets?.["1"] || 0) === previousTickets + 10
-    && Number(nextRecord?.attempts) === previousAttempts + 1);
+    && Number(finished.data.profileState?.gachaTickets?.[ticketKey] || 0) === previousTickets + 1
+    && Number(nextRecord?.attempts) === previousAttempts + 1
+    && Number(nextRecord?.lastCorrect) === 0 && Number(nextRecord?.lastWrong) === 10);
   return { revision: Number(finished.data.revision), profile: finished.data.profileState };
 }
 
@@ -272,23 +264,37 @@ async function run() {
   check("starter profiles", profileA.revision === 1 && profileB.revision === 1
     && Number(profileA.profile.gachaTickets?.["1"]) === 3);
 
-  for (let round = 1; round <= 3; round += 1) profileA = await runQuizRound(playerA, profileA, round, round === 1);
+  for (let round = 1; round <= QUIZ_ROUNDS; round += 1) {
+    profileA = await runQuizRound(playerA, profileA, round, round === 1);
+  }
 
   activeStage = "gacha";
-  const gachaCount = Number(profileA.profile.gachaTickets?.["1"] || 0);
-  const beforeGacha = profileA;
-  const gachaBody = { operation: "gacha", expectedRevision: profileA.revision, actionId: crypto.randomUUID(), ticketLevel: 1, count: gachaCount };
-  const gacha = await edge(playerA, gachaBody);
-  const replayedGacha = await edge(playerA, gachaBody);
-  check("gacha commits", gacha.ok && gacha.data?.duplicate === false && gacha.data?.draws?.length === gachaCount, gacha);
-  check("gacha replays", replayedGacha.ok && replayedGacha.data?.duplicate === true
-    && replayedGacha.data?.revision === gacha.data?.revision
-    && same(replayedGacha.data?.draws, gacha.data?.draws)
-    && same(replayedGacha.data?.profileState, gacha.data?.profileState), replayedGacha);
-  check("gacha ticket and inventory apply once", Number(gacha.data.revision) === beforeGacha.revision + 1
-    && Number(gacha.data.profileState?.gachaTickets?.["1"] || 0) === 0
-    && inventoryTotal(gacha.data.profileState) === inventoryTotal(beforeGacha.profile) + gachaCount);
-  profileA = { revision: Number(gacha.data.revision), profile: gacha.data.profileState };
+  const beforeAllGacha = profileA;
+  let totalGachaDraws = 0;
+  for (const ticketLevel of [1, QUIZ_RESCUE_TICKET_LEVEL]) {
+    const ticketKey = String(ticketLevel);
+    const gachaCount = Number(profileA.profile.gachaTickets?.[ticketKey] || 0);
+    check(`level ${ticketLevel} gacha has bounded tickets`, gachaCount > 0 && gachaCount <= 100);
+    const beforeGacha = profileA;
+    const gachaBody = {
+      operation: "gacha", expectedRevision: profileA.revision, actionId: crypto.randomUUID(), ticketLevel, count: gachaCount,
+    };
+    const gacha = await edge(playerA, gachaBody);
+    const replayedGacha = await edge(playerA, gachaBody);
+    check(`level ${ticketLevel} gacha commits`, gacha.ok && gacha.data?.duplicate === false
+      && gacha.data?.draws?.length === gachaCount, gacha);
+    check(`level ${ticketLevel} gacha replays`, replayedGacha.ok && replayedGacha.data?.duplicate === true
+      && replayedGacha.data?.revision === gacha.data?.revision
+      && same(replayedGacha.data?.draws, gacha.data?.draws)
+      && same(replayedGacha.data?.profileState, gacha.data?.profileState), replayedGacha);
+    check(`level ${ticketLevel} gacha applies once`, Number(gacha.data.revision) === beforeGacha.revision + 1
+      && Number(gacha.data.profileState?.gachaTickets?.[ticketKey] || 0) === 0
+      && inventoryTotal(gacha.data.profileState) === inventoryTotal(beforeGacha.profile) + gachaCount);
+    totalGachaDraws += gachaCount;
+    profileA = { revision: Number(gacha.data.revision), profile: gacha.data.profileState };
+  }
+  check("gacha resources meet the random-independent sale bound", totalGachaDraws === EXPECTED_TOTAL_GACHA_DRAWS
+    && inventoryTotal(profileA.profile) === inventoryTotal(beforeAllGacha.profile) + EXPECTED_TOTAL_GACHA_DRAWS);
 
   activeStage = "sale cancellation";
   const cancelQuote = await edge(playerA, {
@@ -304,32 +310,36 @@ async function run() {
   activeStage = "confirmed sales";
   let confirmationChecked = false;
   let salePasses = 0;
-  while (Number(profileA.profile.coins) < 350 && salePasses < 64) {
+  while (Number(profileA.profile.coins) < PAID_COSMETIC_PRICE && salePasses < 64) {
     const candidate = Object.entries(profileA.profile.inventory)
-      .find(([skillId, count]) => skillId !== SALE_LOCK_SKILL
-        && profileA.profile.protectedSkills?.[skillId] !== true && Number(count) > 1);
+      .find(([skillId, count]) => profileA.profile.protectedSkills?.[skillId] !== true
+        && Number(count) > (skillId === SALE_LOCK_SKILL ? MATCH_LOCK_RETAINED_COUNT : 1));
     check("sale inventory can fund paid cosmetic", Boolean(candidate));
     const [skillId, owned] = candidate;
     profileA = await commitSale(playerA, profileA, {
-      skillId, count: Number(owned) - 1, requireConfirmationCheck: !confirmationChecked,
+      skillId,
+      count: Number(owned) - (skillId === SALE_LOCK_SKILL ? MATCH_LOCK_RETAINED_COUNT : 1),
+      requireConfirmationCheck: !confirmationChecked,
       verifyReplay: !confirmationChecked,
     });
     confirmationChecked = true;
     salePasses += 1;
   }
   check("confirmation path covered", confirmationChecked);
-  check("sales reach the paid cosmetic threshold", Number(profileA.profile.coins) >= 350);
+  check("sales reach the paid cosmetic threshold", Number(profileA.profile.coins) >= PAID_COSMETIC_PRICE);
 
   activeStage = "cosmetic cancellation";
   const paidQuote = await edge(playerA, { operation: "cosmetic-quote", cosmeticId: PAID_COSMETIC });
   check("paid cosmetic quote", paidQuote.ok && paidQuote.data?.quote?.purchaseRequired === true
-    && Number(paidQuote.data?.quote?.price) === 350, paidQuote);
+    && Number(paidQuote.data?.quote?.price) === PAID_COSMETIC_PRICE, paidQuote);
   const afterCosmeticCancel = await readProfile(playerA, CANARY_NAMES.A);
   check("cosmetic cancellation changes nothing", afterCosmeticCancel.revision === profileA.revision
     && same(afterCosmeticCancel.profile, profileA.profile));
 
   activeStage = "paid cosmetic";
-  let cosmeticResult = await commitCosmetic(playerA, profileA, PAID_COSMETIC, { purchaseRequired: true, price: 350 });
+  let cosmeticResult = await commitCosmetic(playerA, profileA, PAID_COSMETIC, {
+    purchaseRequired: true, price: PAID_COSMETIC_PRICE,
+  });
   profileA = { revision: cosmeticResult.revision, profile: cosmeticResult.profile };
   check("paid cosmetic is owned once", profileA.profile.cosmeticsOwned.filter((id) => id === PAID_COSMETIC).length === 1);
 

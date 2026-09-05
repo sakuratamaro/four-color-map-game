@@ -186,6 +186,15 @@
       }
       return clone(await invoke("quiz-start", { actionId, selectedLevel }));
     }
+    async function answerQuiz({ sessionId, actionId = idFactory(), questionIndex, answerId }) {
+      await ensureSession();
+      if (!UUID_PATTERN.test(String(sessionId)) || !UUID_PATTERN.test(String(actionId))
+          || !Number.isSafeInteger(questionIndex) || questionIndex < 0 || questionIndex > 9
+          || typeof answerId !== "string" || answerId.length < 1 || answerId.length > 32) {
+        throw new Error("INVALID_QUIZ_REQUEST");
+      }
+      return clone(await invoke("quiz-answer", { sessionId, actionId, questionIndex, answerId }));
+    }
     async function finishQuiz({ sessionId, actionId = idFactory(), answers }) {
       await ensureSession();
       if (!UUID_PATTERN.test(String(sessionId)) || !UUID_PATTERN.test(String(actionId))
@@ -504,6 +513,7 @@
     return Object.freeze({
       acceptCpuOpponent,
       applyCosmetic,
+      answerQuiz,
       cancelMatchmaking,
       clearRoom,
       createRoom,

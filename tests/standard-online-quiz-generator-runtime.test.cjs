@@ -9,7 +9,7 @@ const edge = fs.readFileSync(path.join(root, "supabase/functions/standard-game-a
 
 function loadQuizRuntime(secureInt) {
   const start = edge.indexOf("function factorial(");
-  const end = edge.indexOf("function roomProjection(");
+  const end = edge.indexOf("function quizAnswerProjection(");
   assert.ok(start >= 0 && end > start, "quiz generator source region must remain extractable");
   const source = edge.slice(start, end)
     .replace(/type QuizGenerated = \{[\s\S]*?\n\};\n/, "")
@@ -24,9 +24,10 @@ function loadQuizRuntime(secureInt) {
     .replace("function quizPrompt(level: number, recentTemplateIds: string[] = []): QuizGenerated", "function quizPrompt(level, recentTemplateIds = [])")
     .replace("const q = (templateId: string, category: string, prompt: string, answer: number, hint: string, timeLimitSeconds: number, math?: JsonObject): QuizGenerated =>", "const q = (templateId, category, prompt, answer, hint, timeLimitSeconds, math) =>")
     .replace("let catalog: Array<() => QuizGenerated>;", "let catalog;")
-    .replace("function createQuizChallenge(level: number): { questions: JsonObject[]; answerIds: string[] }", "function createQuizChallenge(level)")
+    .replace("function createQuizChallenge(level: number): { questions: JsonObject[]; answerIds: string[]; explanations: string[] }", "function createQuizChallenge(level)")
     .replace("const questions: JsonObject[] = [];", "const questions = [];")
     .replace("const answerIds: string[] = [];", "const answerIds = [];")
+    .replace("const explanations: string[] = [];", "const explanations = [];")
     .replace("const recentTemplateIds: string[] = [];", "const recentTemplateIds = [];");
   const context = vm.createContext({
     secureInt,
@@ -101,11 +102,14 @@ test("ten-question challenge keeps server answers separate from public questions
   const challenge = JSON.parse(JSON.stringify(createQuizChallenge(3)));
   assert.equal(challenge.questions.length, 10);
   assert.equal(challenge.answerIds.length, 10);
+  assert.equal(challenge.explanations.length, 10);
   challenge.questions.forEach((question, index) => {
     assert.equal("answer" in question, false);
     assert.equal("correctId" in question, false);
     assert.equal(question.options.length, 6);
     assert.equal(question.options.some((option) => option.id === challenge.answerIds[index]), true);
     assert.equal(question.options.some((option) => "isCorrect" in option), false);
+    assert.equal(typeof challenge.explanations[index], "string");
+    assert.ok(challenge.explanations[index].length > 0);
   });
 });

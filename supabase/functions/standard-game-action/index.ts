@@ -45,7 +45,7 @@ const RATE_ENTRY_LIMIT = 4096;
 const RATE_GROUP = Object.freeze({
   "cosmetic-catalog": ["read", 120], "cosmetic-quote": ["read", 120], "card-sale-quote": ["read", 120], "cpu-roster": ["read", 120],
   profile: ["economy", 60], gacha: ["economy", 60], "card-sale": ["economy", 60], "cosmetic-action": ["economy", 60],
-  "quiz-start": ["economy", 60], "quiz-finish": ["economy", 60],
+  "quiz-start": ["economy", 60], "quiz-answer": ["economy", 60], "quiz-finish": ["economy", 60],
   setup: ["match", 240], initialize: ["match", 240], action: ["match", 240], "cpu-action": ["match", 240],
   "cpu-start": ["match", 240], "cpu-accept": ["match", 240], "cpu-rematch": ["match", 240],
 } as const);
@@ -285,9 +285,10 @@ function quizPrompt(level: number, recentTemplateIds: string[] = []): QuizGenera
   return pool[secureInt(0, pool.length - 1)];
 }
 
-function createQuizChallenge(level: number): { questions: JsonObject[]; answerIds: string[] } {
+function createQuizChallenge(level: number): { questions: JsonObject[]; answerIds: string[]; explanations: string[] } {
   const questions: JsonObject[] = [];
   const answerIds: string[] = [];
+  const explanations: string[] = [];
   const recentTemplateIds: string[] = [];
   for (let index = 0; index < 10; index += 1) {
     const generated = quizPrompt(level, recentTemplateIds);
@@ -305,8 +306,21 @@ function createQuizChallenge(level: number): { questions: JsonObject[]; answerId
       options: choices.options,
     });
     answerIds.push(choices.correctId);
+    explanations.push(generated.hint);
   }
-  return { questions, answerIds };
+  return { questions, answerIds, explanations };
+}
+
+function quizAnswerProjection(row: JsonObject): JsonObject {
+  return {
+    duplicate: row?.duplicate === true,
+    questionIndex: row?.question_index,
+    answeredCount: row?.answered_count,
+    isCorrect: row?.is_correct === true,
+    correctOptionId: row?.correct_option_id,
+    correctOptionLabel: row?.correct_option_label,
+    explanation: row?.explanation,
+  };
 }
 
 function roomProjection(row: JsonObject): JsonObject {
@@ -327,6 +341,11 @@ function publicError(error: unknown): { status: number; code: string; message: s
   if (detail.includes("QUIZ_EXPIRED")) return { status: 409, code: "QUIZ_EXPIRED", message: "Quiz expired; start a new challenge." };
   if (detail.includes("QUIZ_ALREADY_COMPLETED")) return { status: 409, code: "QUIZ_ALREADY_COMPLETED", message: "Quiz was already completed." };
   if (detail.includes("QUIZ_SESSION_NOT_FOUND")) return { status: 404, code: "QUIZ_SESSION_NOT_FOUND", message: "Quiz was not found." };
+  if (detail.includes("QUIZ_FEEDBACK_UNAVAILABLE")) return { status: 409, code: "QUIZ_FEEDBACK_UNAVAILABLE", message: "Immediate feedback is unavailable for this quiz." };
+  if (detail.includes("QUIZ_ANSWER_OUT_OF_ORDER")) return { status: 409, code: "QUIZ_ANSWER_OUT_OF_ORDER", message: "Answer the current quiz question first." };
+  if (detail.includes("QUIZ_QUESTION_ALREADY_ANSWERED")) return { status: 409, code: "QUIZ_QUESTION_ALREADY_ANSWERED", message: "This quiz question was already answered." };
+  if (detail.includes("QUIZ_ANSWER_CONFLICT")) return { status: 409, code: "QUIZ_ANSWER_CONFLICT", message: "The submitted quiz answers do not match the sealed answers." };
+  if (detail.includes("QUIZ_ACTION_ID_REUSED")) return { status: 409, code: "QUIZ_ACTION_ID_REUSED", message: "The quiz action ID was reused with different input." };
   if (detail.includes("INVALID_QUIZ")) return { status: 400, code: "INVALID_QUIZ", message: "Quiz input is invalid." };
   if (candidate?.code === "PT409" || candidate?.code === "40001") return { status: 409, code: "STALE_VERSION", message: "Match changed; reload and retry." };
   if (candidate?.code === "55000" && detail.includes("CARD_SALE_MATCH_LOCKED")) return { status: 409, code: "CARD_SALE_MATCH_LOCKED", message: "Cards cannot be sold after a loadout is submitted or while a match is active." };
@@ -365,7 +384,7 @@ Deno.serve(async (request: Request) => {
     });
     const body = await request.json() as JsonObject;
     const operation = body.operation;
-    if (!["profile", "gacha", "card-sale-quote", "card-sale", "cosmetic-catalog", "cosmetic-quote", "cosmetic-action", "quiz-start", "quiz-finish", "cpu-roster", "cpu-start", "cpu-accept", "cpu-rematch", "cpu-action", "setup", "initialize", "action"].includes(String(operation))) {
+    if (!["profile", "gacha", "card-sale-quote", "card-sale", "cosmetic-catalog", "cosmetic-quote", "cosmetic-action", "quiz-start", "quiz-answer", "quiz-finish", "cpu-roster", "cpu-start", "cpu-accept", "cpu-rematch", "cpu-action", "setup", "initialize", "action"].includes(String(operation))) {
       return json(400, { error: { code: "INVALID_REQUEST", message: "A valid operation is required." } });
     }
     if (rateLimited(actorId, String(operation))) {
@@ -709,7 +728,7 @@ Deno.serve(async (request: Request) => {
       const sessionId = crypto.randomUUID();
       const expiresAt = new Date(Date.now() + 20 * 60 * 1000).toISOString();
       stage = "start-quiz";
-      const { data, error } = await service.rpc("fcg_standard_server_start_quiz", {
+      const { data, error } = await service.rpc("fcg_standard_server_start_quiz_v2", {
         p_user_id: actorId,
         p_session_id: sessionId,
         p_start_action_id: actionId,
@@ -717,6 +736,7 @@ Deno.serve(async (request: Request) => {
         p_selected_level: selectedLevel,
         p_questions: challenge.questions,
         p_answer_ids: challenge.answerIds,
+        p_explanations: challenge.explanations,
         p_expires_at: expiresAt,
       });
       if (error) throw error;
@@ -728,7 +748,33 @@ Deno.serve(async (request: Request) => {
         expiresAt: started?.expires_at,
         questions: started?.questions,
         timeoutAnswerId: QUIZ_TIMEOUT_ANSWER,
+        answerMode: started?.feedback_ready === true ? "per-question-v1" : undefined,
       });
+    }
+
+    if (operation === "quiz-answer") {
+      const sessionId = body.sessionId;
+      const actionId = body.actionId;
+      const questionIndex = body.questionIndex;
+      const answerId = body.answerId;
+      if (typeof sessionId !== "string" || !UUID_PATTERN.test(sessionId)
+          || typeof actionId !== "string" || !UUID_PATTERN.test(actionId)
+          || !Number.isSafeInteger(questionIndex) || (questionIndex as number) < 0 || (questionIndex as number) > 9
+          || typeof answerId !== "string"
+          || (answerId !== QUIZ_TIMEOUT_ANSWER && !QUIZ_ANSWER_PATTERN.test(answerId))) {
+        return json(400, { error: { code: "INVALID_QUIZ", message: "A valid current quiz answer is required." } });
+      }
+      stage = "answer-quiz";
+      const { data, error } = await service.rpc("fcg_standard_server_answer_quiz", {
+        p_user_id: actorId,
+        p_session_id: sessionId,
+        p_answer_action_id: actionId,
+        p_question_index: questionIndex,
+        p_answer_id: answerId,
+      });
+      if (error) throw error;
+      const answered = firstRow(data);
+      return json(200, quizAnswerProjection(answered || {}));
     }
 
     if (operation === "quiz-finish") {
@@ -743,7 +789,7 @@ Deno.serve(async (request: Request) => {
         return json(400, { error: { code: "INVALID_QUIZ", message: "Ten quiz answers are required." } });
       }
       stage = "finish-quiz";
-      const { data, error } = await service.rpc("fcg_standard_server_finish_quiz", {
+      const { data, error } = await service.rpc("fcg_standard_server_finish_quiz_v2", {
         p_user_id: actorId,
         p_session_id: sessionId,
         p_finish_action_id: actionId,
@@ -759,6 +805,7 @@ Deno.serve(async (request: Request) => {
         bestStreak: finished?.best_streak,
         reward: finished?.reward,
         profileState: finished?.profile_state,
+        answerReview: finished?.answer_review,
       });
     }
 

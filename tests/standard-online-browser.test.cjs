@@ -141,8 +141,11 @@ async function installMock(context, mode) {
       gachaReceipts: {},
       cardSaleReceipts: {},
       cosmeticReceipts: {},
+      quizAnswerReceipts: {},
+      quizFinishReceipts: {},
       cpuStartReceipts: {},
       failNextColorAction: false,
+      failNextQuizAnswer: false,
       calls: [],
     };
     runtime.members = [{ user_id: "33333333-3333-4333-8333-333333333333", seat: "A", display_name: "A", is_cpu: false, appearance: { nameplate: "nameplateDefault", title: "titleNone" } }, { user_id: "44444444-4444-4444-8444-444444444444", seat: "B", display_name: cpuRoomMode ? "うっかりユズ" : "B", is_cpu: cpuRoomMode, appearance: { nameplate: "nameplateGold", title: "titleArtisan" } }];
@@ -205,7 +208,45 @@ async function installMock(context, mode) {
             timeLimitSeconds: 10,
             options: Array.from({ length: 6 }, (_, optionIndex) => ({ id: `q${index + 1}-${optionIndex + 1}`, label: String(index + optionIndex + 2) })),
           }));
-          return { data: { sessionId: "66666666-6666-4666-8666-666666666666", duplicate: false, selectedLevel: request.body.selectedLevel, expiresAt: "2099-01-01T00:00:00.000Z", questions, timeoutAnswerId: "__timeout__" } };
+          return { data: { sessionId: "66666666-6666-4666-8666-666666666666", duplicate: false, selectedLevel: request.body.selectedLevel, answerMode: "per-question-v1", expiresAt: "2099-01-01T00:00:00.000Z", questions, timeoutAnswerId: "__timeout__" } };
+        }
+        if (request.body.operation === "quiz-answer") {
+          if (runtime.failNextQuizAnswer) {
+            runtime.failNextQuizAnswer = false;
+            return functionError(503, "SERVER_BUSY", "temporary quiz answer failure with private detail");
+          }
+          const prior = runtime.quizAnswerReceipts[request.body.actionId];
+          if (prior) return { data: { ...prior, duplicate: true } };
+          const correctOptionId = `q${request.body.questionIndex + 1}-1`;
+          const result = {
+            questionIndex: request.body.questionIndex,
+            answeredCount: request.body.questionIndex + 1,
+            duplicate: false,
+            isCorrect: request.body.answerId === correctOptionId,
+            correctOptionId,
+            correctOptionLabel: String(request.body.questionIndex + 2),
+            explanation: `${request.body.questionIndex + 1} + 1 = ${request.body.questionIndex + 2}`,
+          };
+          runtime.quizAnswerReceipts[request.body.actionId] = result;
+          return { data: result };
+        }
+        if (request.body.operation === "quiz-finish") {
+          const prior = runtime.quizFinishReceipts[request.body.actionId];
+          if (prior) return { data: { ...prior, duplicate: true } };
+          const correct = request.body.answers.filter((answerId, index) => answerId === `q${index + 1}-1`).length;
+          const answerReview = request.body.answers.map((answerId, index) => ({
+            questionIndex: index,
+            question: { prompt: `${index + 1} + 1 = ?` },
+            selectedOptionId: answerId,
+            selectedOptionLabel: answerId === "__timeout__" ? "時間切れ" : String(index + Number(answerId.split("-")[1]) + 1),
+            correctOptionId: `q${index + 1}-1`,
+            correctOptionLabel: String(index + 2),
+            isCorrect: answerId === `q${index + 1}-1`,
+            explanation: `${index + 1} + 1 = ${index + 2}`,
+          }));
+          const result = { revision: runtime.profile.revision + 1, duplicate: false, correct, wrong: 10 - correct, bestStreak: correct, reward: { ticketLevel: 1, draws: 1, reason: "参加報酬" }, profileState: runtime.profile.profile_state, answerReview };
+          runtime.quizFinishReceipts[request.body.actionId] = result;
+          return { data: result };
         }
         if (request.body.operation === "gacha") {
           const prior = runtime.gachaReceipts[request.body.actionId];
@@ -658,6 +699,52 @@ test("actual Edge quiz freezes for the hint, resumes without room polling, and a
     await page.getByText("2 / 10", { exact: true }).waitFor();
     const startCall = await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.find((entry) => entry.body?.operation === "quiz-start")?.body);
     assert.equal(startCall.selectedLevel, 1);
+  });
+});
+
+test("per-question quiz feedback commits before advancing, retries the same answer, and keeps only brief motion", { timeout: 130000 }, async () => {
+  await withPage("quiz", async (page) => {
+    await page.getByRole("button", { name: "クイズ・ガチャ" }).click();
+    await page.getByRole("button", { name: "10問チャレンジ開始" }).click();
+    await page.locator("#quizOptions button").first().waitFor();
+    await page.evaluate(() => { globalThis.__standardOnlineRuntime.failNextQuizAnswer = true; });
+    await page.locator("#quizOptions button").first().click();
+    await page.getByText("回答を保存できませんでした。同じ回答で安全に再送できます。", { exact: true }).waitFor();
+    assert.equal(await page.locator("#quizProgress").textContent(), "1 / 10");
+    const pendingBeforeRetry = await page.evaluate(() => JSON.parse(localStorage.getItem("fourColorMapGame.standard.online.v5.pending-quiz"))?.pendingAnswer);
+    assert.match(pendingBeforeRetry.actionId, /^[0-9a-f-]{36}$/i);
+
+    await page.getByRole("button", { name: "同じ回答を再送" }).click();
+    await page.getByText("2 / 10", { exact: true }).waitFor();
+    const feedback = page.locator("#quizAnswerFeedback");
+    assert.equal(await feedback.textContent(), "前問 Q1：○ 正解！");
+    assert.equal(await feedback.isVisible(), true);
+    const answerCalls = await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "quiz-answer").map((entry) => entry.body));
+    assert.equal(answerCalls.length, 2);
+    assert.equal(answerCalls[0].actionId, pendingBeforeRetry.actionId);
+    assert.equal(answerCalls[1].actionId, pendingBeforeRetry.actionId);
+    assert.equal(answerCalls[0].answerId, answerCalls[1].answerId);
+    await page.waitForTimeout(700);
+    assert.equal(await feedback.evaluate((node) => node.classList.contains("emphasize")), false);
+    assert.equal(await feedback.textContent(), "前問 Q1：○ 正解！");
+
+    await page.locator("#quizOptions button").nth(1).click();
+    await page.getByText("3 / 10", { exact: true }).waitFor();
+    assert.equal(await feedback.textContent(), "前問 Q2：× 不正解　正解：3");
+    await page.getByRole("button", { name: "カード" }).click();
+    await page.getByRole("button", { name: "クイズ・ガチャ" }).click();
+    assert.equal(await feedback.textContent(), "前問 Q2：× 不正解　正解：3");
+
+    for (let questionNumber = 3; questionNumber <= 10; questionNumber += 1) {
+      await page.locator("#quizOptions button").first().click();
+      if (questionNumber < 10) await page.getByText(`${questionNumber + 1} / 10`, { exact: true }).waitFor();
+    }
+    await page.getByText("9問正解！ Lv.1ガチャ券を1枚獲得（参加報酬）", { exact: true }).waitFor();
+    assert.equal(await page.getByRole("button", { name: "ガチャへ" }).isVisible(), true);
+    await page.getByText("今回の答え合わせ", { exact: true }).click();
+    assert.equal(await page.locator("#quizReviewList .quiz-review-item").count(), 10);
+    assert.match(await page.locator("#quizReviewList .quiz-review-item").nth(1).textContent(), /あなた：4.*正解：3.*×/);
+    assert.equal(await page.evaluate(() => localStorage.getItem("fourColorMapGame.standard.online.v5.pending-quiz")), null);
   });
 });
 

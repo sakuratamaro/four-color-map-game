@@ -7,6 +7,7 @@ const test = require("node:test");
 
 const root = path.join(__dirname, "..");
 const migration = fs.readFileSync(path.join(root, "supabase", "migrations", "202609030004_standard_online_quiz.sql"), "utf8");
+const feedbackMigration = fs.readFileSync(path.join(root, "supabase", "migrations", "202609050004_standard_quiz_answer_feedback.sql"), "utf8");
 const edge = fs.readFileSync(path.join(root, "supabase", "functions", "standard-game-action", "index.ts"), "utf8");
 const html = fs.readFileSync(path.join(root, "standard-online-v5", "index.html"), "utf8");
 const app = fs.readFileSync(path.join(root, "standard-online-v5", "app.js"), "utf8");
@@ -30,10 +31,30 @@ test("Edge creates server quiz questions and returns no answer key", () => {
   assert.match(edge, /createQuizChallenge/);
   assert.match(edge, /operation === "quiz-start"/);
   assert.match(edge, /operation === "quiz-finish"/);
-  const startResponse = edge.slice(edge.indexOf('if (operation === "quiz-start")'), edge.indexOf('if (operation === "quiz-finish")'));
+  const startResponse = edge.slice(edge.indexOf('if (operation === "quiz-start")'), edge.indexOf('if (operation === "quiz-answer")'));
   assert.match(startResponse, /questions: started\?\.questions/);
   assert.match(startResponse, /timeoutAnswerId: QUIZ_TIMEOUT_ANSWER/);
+  assert.match(startResponse, /answerMode: started\?\.feedback_ready === true \? "per-question-v1" : undefined/);
+  assert.match(startResponse, /p_explanations: challenge\.explanations/);
   assert.doesNotMatch(startResponse, /answerIds:/);
+  assert.doesNotMatch(startResponse, /correctOptionId|correct_option_id/);
+});
+
+test("Edge reveals one sealed answer and requests the final review only through service RPCs", () => {
+  assert.match(edge, /"quiz-start", "quiz-answer", "quiz-finish"/);
+  const answer = edge.slice(edge.indexOf('if (operation === "quiz-answer")'), edge.indexOf('if (operation === "quiz-finish")'));
+  assert.match(answer, /fcg_standard_server_answer_quiz/);
+  assert.match(answer, /p_user_id: actorId/);
+  assert.match(answer, /p_answer_action_id: actionId/);
+  assert.match(answer, /p_question_index: questionIndex/);
+  assert.match(answer, /p_answer_id: answerId/);
+  assert.match(answer, /quizAnswerProjection\(answered \|\| \{\}\)/);
+  assert.doesNotMatch(answer, /answer_ids|questions:|explanations:/);
+
+  const finish = edge.slice(edge.indexOf('if (operation === "quiz-finish")'), edge.indexOf("const roomId = body.roomId"));
+  assert.match(finish, /fcg_standard_server_finish_quiz_v2/);
+  assert.match(finish, /answerReview: finished\?\.answer_review/);
+  assert.match(feedbackMigration, /correct_option_label text[\s\S]+explanation text/i);
 });
 
 test("online quiz timing and hint metadata cross the Edge boundary without exposing correctness", () => {
