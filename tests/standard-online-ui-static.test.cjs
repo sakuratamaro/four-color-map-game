@@ -170,6 +170,8 @@ test("PvP and CPU records are visibly separate and CPU rematch uses its dedicate
   assert.match(terminalGachaHandler, /dismissTerminalResult\(\);\s*goToGacha\(1\)/);
   assert.doesNotMatch(terminalGachaHandler, /runGacha|drawGacha|clearRoom|requestCpuRematch|beginImmediateCpuEntry/);
   assert.match(app, /\$\("gachaTitle"\)\.focus\(\{ preventScroll: true \}\)/);
+  assert.match(css, /\.gacha-panel h2:focus\{[^}]*outline:3px solid #fde047/);
+  assert.match(css, /\.terminal-confetti\{[^}]*overflow:hidden/);
   assert.match(app, /client\.requestCpuRematch\(\{ expectedVersion: roomModel\.room\.version \}\)/);
   assert.match(app, /同じCPUと再戦する/);
 });

@@ -973,11 +973,14 @@ test("actual Edge hydrates a CPU win once, routes its earned ticket deliberately
         dialog: { top: dialog.top, bottom: dialog.bottom },
         reward: { top: reward.top, bottom: reward.bottom },
         close: { top: close.top, bottom: close.bottom },
+        dialogClientHeight: document.querySelector(".terminal-celebration").clientHeight,
+        dialogScrollHeight: document.querySelector(".terminal-celebration").scrollHeight,
         viewportHeight: innerHeight,
       };
     });
     assert.ok(terminalLayout.dialog.top >= 0 && terminalLayout.dialog.bottom <= terminalLayout.viewportHeight, JSON.stringify(terminalLayout));
     assert.ok(terminalLayout.reward.top >= 0 && terminalLayout.close.bottom <= terminalLayout.viewportHeight, JSON.stringify(terminalLayout));
+    assert.ok(terminalLayout.dialogScrollHeight <= terminalLayout.dialogClientHeight + 1, JSON.stringify(terminalLayout));
     await rewardCta.click();
     await page.locator("#gachaPanel:not(.hidden)").waitFor();
     await page.waitForFunction(() => document.activeElement?.id === "gachaTitle");
