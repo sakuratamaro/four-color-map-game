@@ -102,6 +102,7 @@ let roomModel = null;
 let initializeBusy = false;
 let setupBusy = false;
 let actionBusy = false;
+let setupFailure = null;
 let rematchBusy = false;
 let gachaBusy = false;
 let quizBusy = false;
@@ -148,6 +149,26 @@ const SKILL_META = Object.fromEntries(SKILLS.map(([id, name, category]) => [id, 
 function show(id, value) { $(id).classList.toggle("hidden", !value); }
 function badge(text, tone = "warn") { $("connectionBadge").textContent = text; $("connectionBadge").className = `badge ${tone}`; }
 function toast(message) { const node = $("toast"); node.textContent = message; node.classList.add("show"); clearTimeout(toast.timer); toast.timer = setTimeout(() => node.classList.remove("show"), 2400); }
+function operationFeedback(id, message, tone = "") {
+  const node = $(id);
+  node.textContent = String(message || "").slice(0, 240);
+  node.dataset.tone = tone;
+}
+function revealOperationFeedback(id) {
+  requestAnimationFrame(() => {
+    const node = $(id);
+    if (!node?.textContent) return;
+    node.scrollIntoView({ block: "center", inline: "nearest" });
+  });
+}
+function setupFailureMessage() {
+  const roomId = client.snapshot().roomId;
+  if (!setupFailure || setupFailure.roomId !== roomId) {
+    setupFailure = null;
+    return "";
+  }
+  return setupFailure.message;
+}
 function profile() { return availableProfiles[selectedProfileId] || null; }
 function displayName() { return String(profile()?.displayName || "").trim().slice(0, 20); }
 function hasCpuEntryIntent() { return sessionStorage.getItem(CPU_ENTRY_INTENT_KEY) === "direct"; }
@@ -1270,9 +1291,10 @@ function render() {
   }));
   const setupReady = client.snapshot().setupRevision > 0;
   $("waitingMessage").textContent = setupReady ? "あなたは準備完了です。相手の準備を待っています。" : "対戦で使う6枚を決めて、準備完了にしてください。";
-  $("setupStatus").textContent = setupReady
+  const currentSetupFailure = setupFailureMessage();
+  operationFeedback("setupStatus", currentSetupFailure || (setupReady
     ? "準備完了。相手を待っています。開始前なら6枚を変更できます。"
-    : "選択済みの6枚でよければ、準備完了にしてください。";
+    : "選択済みの6枚でよければ、準備完了にしてください。"), currentSetupFailure ? "error" : "");
   $("submitSetup").textContent = setupReady ? "変更した6枚で準備し直す" : "この6枚で準備完了";
   renderLoadoutSelectionState();
   if (hasStandardPublicState(roomModel?.room?.public_state)) {
@@ -1514,6 +1536,7 @@ function renderBasicActions(state, privateState) {
     }
   }
   $("surrender").disabled = actionBusy || !myTurn;
+  if (pendingAction && (pendingAction.roomId !== roomModel?.room?.id || pendingAction.matchId !== state.matchId)) pendingAction = null;
   show("retryAction", Boolean(pendingAction) && !actionBusy);
 }
 
@@ -1545,16 +1568,33 @@ async function sendAction(type, payload = {}, retry = false) {
     return;
   }
   const signature = actionSignature(type, payload);
-  if (!retry || !pendingAction || pendingAction.signature !== signature) {
-    pendingAction = { id: crypto.randomUUID(), expectedVersion: roomModel.room.version, type, payload, signature };
+  const roomId = roomModel.room.id;
+  const matchId = state.matchId;
+  if (retry && (!pendingAction || pendingAction.roomId !== roomId || pendingAction.matchId !== matchId || pendingAction.signature !== signature)) {
+    pendingAction = null;
+    operationFeedback("actionStatus", "対戦が切り替わったため、前の操作は再送しません。最新の盤面で選び直してください。", "error");
+    revealOperationFeedback("actionStatus");
+    render();
+    return;
   }
-  actionBusy = true; $("actionStatus").textContent = "サーバーで確認中…"; render();
+  if (!retry) {
+    pendingAction = { roomId, matchId, id: crypto.randomUUID(), expectedVersion: roomModel.room.version, type, payload, signature };
+  }
+  actionBusy = true; operationFeedback("actionStatus", "サーバーで確認中…"); render();
   try {
     const response = await client.submitAction(pendingAction);
-    pendingAction = null; selectedMacros.clear(); $("actionStatus").textContent = "操作を保存しました。";
+    pendingAction = null; selectedMacros.clear(); operationFeedback("actionStatus", "操作を保存しました。", "success");
     await roomSync.refreshNow();
   } catch (error) {
-    $("actionStatus").textContent = "保存できませんでした。同じ操作IDで再送できます。"; toast(error.message || "操作に失敗しました。");
+    const safeMessage = error?.message || "操作を完了できませんでした。";
+    if (error?.retryable === false) {
+      pendingAction = null;
+      operationFeedback("actionStatus", `${safeMessage} 最新の盤面を確認し、操作を選び直してください。`, "error");
+    } else {
+      operationFeedback("actionStatus", `${safeMessage} 下の「同じ操作を再送」で結果を確認してください。`, "retry");
+    }
+    revealOperationFeedback("actionStatus");
+    toast(safeMessage);
     await roomSync.refreshNow().catch(() => {});
   } finally { actionBusy = false; render(); }
 }
@@ -1838,15 +1878,22 @@ async function submitSetup() {
   const loadout = selectedLoadout(); if (!validLoadout(loadout)) return toast("各カテゴリから2枚ずつ選んでください。");
   const startingRoomStatus = roomModel?.room?.status;
   const interactionRevision = userInteractionRevision;
-  setupBusy = true; renderLoadoutSelectionState();
+  setupBusy = true; setupFailure = null; operationFeedback("setupStatus", "6枚セットをサーバーで確認中…"); renderLoadoutSelectionState();
   const debugMode = $("debugUnlimitedMode")?.checked === true;
   try {
     await client.submitSetup({ loadout, debugMode });
     await roomSync.refreshNow();
+    setupFailure = null;
     toast(debugMode ? "デバッグ用6枚で準備完了しました。相手もデバッグをONにしてください。" : "この6枚で準備完了しました。");
     if (startingRoomStatus === "ready" && roomModel?.room?.status === "playing") handoffFromSetupToMatch(interactionRevision);
   }
-  catch (error) { toast(error.message || "対戦準備を完了できませんでした。"); }
+  catch (error) {
+    const message = error?.message || "対戦準備を完了できませんでした。接続を確認して、もう一度お試しください。";
+    setupFailure = { roomId: client.snapshot().roomId, message };
+    operationFeedback("setupStatus", message, "error");
+    revealOperationFeedback("setupStatus");
+    toast(message);
+  }
   finally { setupBusy = false; renderLoadoutSelectionState(); }
 }
 async function requestRematch() {
@@ -1915,7 +1962,7 @@ $("terminalClose").onclick = () => {
   show("terminalOverlay", false);
   $("requestRematch").focus({ preventScroll: false });
 };
-$("leaveRoom").onclick = () => { clearContactReveal(); stopCpuTurnWatch(); roomSync.stop(); client.clearRoom(); roomModel = null; render(); };
+$("leaveRoom").onclick = () => { clearContactReveal(); stopCpuTurnWatch(); roomSync.stop(); client.clearRoom(); roomModel = null; setupFailure = null; pendingAction = null; operationFeedback("setupStatus", ""); operationFeedback("actionStatus", ""); render(); };
 document.addEventListener("visibilitychange", () => {
   roomSync.handleVisibilityChange();
   if (document.visibilityState === "hidden") { stopMatchmakingWatch(); stopCpuTurnWatch(); }

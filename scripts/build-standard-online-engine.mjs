@@ -6,6 +6,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const output = path.join(root, "supabase", "functions", "standard-game-action", "standard-engine.bundle.js");
 const ids = [
   "standard/standard-engine.js",
+  "standard/standard-region-geometry.js",
   "standard/standard-cosmetics.js",
   "standard/standard-skill-registry.js",
   "standard/standard-profile.js",

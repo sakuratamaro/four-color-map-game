@@ -22,7 +22,7 @@ const saveKey = "fourColorMapGame.standard.v5.save";
 const remoteProfileKey = "fourColorMapGame.standard.online.v5.remote-profile";
 const roomId = "11111111-1111-4111-8111-111111111111";
 const pendingRematchId = "22222222-2222-4222-8222-222222222222";
-const RESTORED_ROOM_MODES = new Set(["finished", "playing", "handoffGuide", "cpuTurn", "finishedCpu", "cpuWin", "setupTransition", "setupTransitionCpuFirst"]);
+const RESTORED_ROOM_MODES = new Set(["finished", "playing", "handoffGuide", "cpuTurn", "finishedCpu", "cpuWin", "setupTransition", "setupTransitionCpuFirst", "actionRuleError", "setupDebugError"]);
 
 function browserStage(stage) {
   console.error(`BROWSER_STAGE ${stage}`);
@@ -76,6 +76,7 @@ async function installMock(context, mode) {
   await context.addInitScript(({ connectionKey: connection, saveKey: save, roomId: id, pendingId, mode: initialMode }) => {
     const initialTab = ["gacha", "quiz"].includes(initialMode) ? "quiz" : initialMode === "cosmetic" ? "profile" : initialMode === "empty" ? "home" : "battle";
     const setupTransition = ["setupTransition", "setupTransitionCpuFirst"].includes(initialMode);
+    const setupPending = setupTransition || initialMode === "setupDebugError";
     const cpuRoomMode = ["cpuTurn", "finishedCpu", "cpuWin", "setupTransition", "setupTransitionCpuFirst"].includes(initialMode);
     localStorage.setItem("fourColorMapGame.standard.online.v5.active-tab", initialTab);
     const inventory = Object.fromEntries([
@@ -89,7 +90,7 @@ async function installMock(context, mode) {
       localStorage.setItem("fourColorMapGame.standard.online.v5.profile", "playerA");
       if (!["lobby", "cosmetic", "quiz", "publicFind", "cpuWait", "cpuRetry"].includes(initialMode)) {
         localStorage.setItem(connection, JSON.stringify({
-          roomId: id, roomCode: "A1B2C3", profileRevision: 1, setupRevision: setupTransition ? 0 : 3,
+          roomId: id, roomCode: "A1B2C3", profileRevision: 1, setupRevision: setupPending ? 0 : 3,
           rematchActionId: initialMode === "finished" ? pendingId : null,
           rematchExpectedVersion: initialMode === "finished" ? 9 : null,
         }));
@@ -127,10 +128,15 @@ async function installMock(context, mode) {
       try { Object.assign(profileState, JSON.parse(localStorage.getItem("fourColorMapGame.standard.online.v5.remote-profile") || "null") || {}); } catch { /* fresh mock profile */ }
     }
     if (initialMode === "cpuTurn") active.active = "B";
+    if (initialMode === "actionRuleError") {
+      active.phase = "COLOR";
+      active.pending = "R1";
+      active.regions = { R1: { id: "R1", micro: [0], sourceMacros: [0], controllers: ["B"], color: null, isPending: true } };
+    }
     const runtime = {
       waitStartedAt: initialMode === "cpuWait" ? new Date(Date.now() - 91000).toISOString() : new Date().toISOString(),
-      room: { id, status: ["finished", "finishedCpu"].includes(initialMode) ? "finished" : initialMode === "publicFind" || setupTransition ? "ready" : "playing", version: 9, game_mode: "standard_v5", access_mode: cpuRoomMode ? "cpu" : initialMode === "publicFind" ? "public_queue" : "private_code", opponent_kind: cpuRoomMode ? "cpu" : "human", cpu_character_id: cpuRoomMode ? "yuzu" : null, public_state: ["finished", "finishedCpu"].includes(initialMode) ? finished : initialMode === "publicFind" || setupTransition ? null : active },
-      view: initialMode === "publicFind" || setupTransition ? null : { seat: "A", version: 9, private_state: { hand: { areaDiePlus: 1, areaResize: 1 }, basicPalette: ["red", "blue"], bonusColor: "yellow", bonusUsesRemaining: 2, privateEffects: {} } },
+      room: { id, status: ["finished", "finishedCpu"].includes(initialMode) ? "finished" : initialMode === "publicFind" || setupPending ? "ready" : "playing", version: 9, game_mode: "standard_v5", access_mode: cpuRoomMode ? "cpu" : initialMode === "publicFind" ? "public_queue" : "private_code", opponent_kind: cpuRoomMode ? "cpu" : "human", cpu_character_id: cpuRoomMode ? "yuzu" : null, public_state: ["finished", "finishedCpu"].includes(initialMode) ? finished : initialMode === "publicFind" || setupPending ? null : active },
+      view: initialMode === "publicFind" || setupPending ? null : { seat: "A", version: 9, private_state: { hand: { areaDiePlus: 1, areaResize: 1 }, basicPalette: ["red", "blue"], bonusColor: "yellow", bonusUsesRemaining: 2, privateEffects: {} } },
       profile: initialMode === "empty" ? null : { revision: 1, display_name: "A", profile_state: profileState },
       gachaReceipts: {},
       cardSaleReceipts: {},
@@ -149,6 +155,10 @@ async function installMock(context, mode) {
         { cosmeticId: "titleArtisan", name: "四色の匠", type: "title", price: 0, preview: "四色の匠", previewClass: "prism", trophyId: "noSkillFullPaint", trophyUnlocked: true, owned: true, equipped: runtime.profile.profile_state.equipped.title === "titleArtisan" },
       ],
     });
+    const functionError = (status, code, privateMessage) => ({ data: null, error: {
+      message: privateMessage,
+      context: { status, clone: () => ({ json: async () => ({ error: { code, message: privateMessage, stack: "private stack" } }) }) },
+    } });
     globalThis.__standardOnlineRuntime = runtime;
     const resultFor = (table) => table === "fcg_rooms" ? runtime.room
       : table === "fcg_room_members" ? runtime.members
@@ -158,6 +168,7 @@ async function installMock(context, mode) {
       auth: { getSession: async () => ({ data: { session: { user: { id: "33333333-3333-4333-8333-333333333333" } } } }), signInAnonymously: async () => { throw new Error("unexpected sign-in"); } },
       functions: { invoke: async (name, request) => {
         runtime.calls.push({ kind: "invoke", name, body: request.body });
+        if (request.body.operation === "setup" && initialMode === "setupDebugError") return functionError(403, "DEBUG_MODE_NOT_ALLOWED", "private access_mode row and service secret");
         if (request.body.operation === "setup" && setupTransition) return { data: { setupRevision: 1, profileRevision: 1 } };
         if (request.body.operation === "initialize" && setupTransition) {
           const cpuFirst = initialMode === "setupTransitionCpuFirst";
@@ -265,6 +276,7 @@ async function installMock(context, mode) {
           runtime.failNextColorAction = false;
           return { error: new Error("simulated color network failure") };
         }
+        if (request.body.operation === "action" && initialMode === "actionRuleError") return functionError(400, "ILLEGAL_COLOR", "private authoritative_state and service secret");
         if (request.body.operation === "action" && initialMode === "handoffGuide" && request.body.action?.type === "CREATE_REGION") {
           const sourceMacros = request.body.action.payload.sourceMacros;
           const nextVersion = runtime.room.version + 1;
@@ -952,6 +964,48 @@ test("actual Edge guides a player from board selection through one CREATE_REGION
   });
 });
 
+test("actual Edge keeps safe deterministic action and debug setup errors beside their controls at 390px", { timeout: 180000 }, async () => {
+  await withPage("actionRuleError", async (page) => {
+    const status = page.locator("#actionStatus");
+    await page.locator('#paletteControls .color-button[data-color="red"]').click();
+    await status.getByText(/隣り合う領域が同色.*操作を選び直してください/).waitFor();
+    assert.equal(await page.locator("#retryAction").isHidden(), true);
+    assert.doesNotMatch(await page.locator("body").textContent(), /authoritative_state|service secret|private stack/i);
+    await page.locator('#paletteControls .color-button[data-color="red"]').click();
+    await status.getByText(/隣り合う領域が同色.*操作を選び直してください/).waitFor();
+    const actionIds = await page.evaluate(() => globalThis.__standardOnlineRuntime.calls
+      .filter((entry) => entry.body?.operation === "action")
+      .map((entry) => entry.body.action.id));
+    assert.equal(actionIds.length, 2);
+    assert.notEqual(actionIds[0], actionIds[1]);
+    const actionLayout = await page.evaluate(() => ({
+      feedback: document.querySelector("#actionStatus").getBoundingClientRect(),
+      tabs: document.querySelector(".app-tabs").getBoundingClientRect(),
+      overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+    }));
+    assert.ok(actionLayout.feedback.bottom <= actionLayout.tabs.top, JSON.stringify(actionLayout));
+    assert.equal(actionLayout.overflow, false);
+  }, { viewport: { width: 390, height: 844 } });
+
+  await withPage("setupDebugError", async (page) => {
+    await page.locator("#setupCard:not(.hidden)").waitFor();
+    await page.locator("#debugUnlimitedMode").check();
+    await page.getByRole("button", { name: "この6枚で準備完了" }).click();
+    const status = page.locator("#setupStatus");
+    await status.getByText(/合言葉による人同士の対戦.*デバッグをOFF/).waitFor();
+    assert.doesNotMatch(await page.locator("body").textContent(), /access_mode|service secret|private stack/i);
+    await page.evaluate(() => globalThis.__standardOnlineRuntime.onInvalidate());
+    await status.getByText(/合言葉による人同士の対戦.*デバッグをOFF/).waitFor();
+    const setupLayout = await page.evaluate(() => ({
+      feedback: document.querySelector("#setupStatus").getBoundingClientRect(),
+      tabs: document.querySelector(".app-tabs").getBoundingClientRect(),
+      overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+    }));
+    assert.ok(setupLayout.feedback.bottom <= setupLayout.tabs.top, JSON.stringify(setupLayout));
+    assert.equal(setupLayout.overflow, false);
+  }, { viewport: { width: 390, height: 844 } });
+});
+
 test("actual Edge presents public seals and blocks every stale paint path without changing skill targets", { timeout: 130000 }, async () => {
   await withPage("playing", async (page) => {
     await page.evaluate(() => {
@@ -975,7 +1029,7 @@ test("actual Edge presents public seals and blocks every stale paint path withou
 
     await page.evaluate(() => { globalThis.__standardOnlineRuntime.failNextColorAction = true; });
     await red.click();
-    await page.getByText("保存できませんでした。同じ操作IDで再送できます。").waitFor();
+    await page.locator("#actionStatus").getByText(/サーバーの応答を確認できませんでした。.*同じ操作を再送/).waitFor();
     assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "action").length), 1);
 
     await page.locator('#paletteControls .color-button[data-color="red"]').focus();

@@ -7,6 +7,61 @@
 
   const STORAGE_KEY = "fourColorMapGame.standard.online.v5.connection";
   const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  const PUBLIC_FUNCTION_ERRORS = Object.freeze({
+    AUTH_REQUIRED: "匿名ログインが必要です。接続を確認して、もう一度お試しください。",
+    AUTH_INVALID: "ログイン情報を確認できませんでした。ページを再読み込みしてください。",
+    NOT_A_MEMBER: "この対戦への参加を確認できませんでした。ロビーへ戻って入り直してください。",
+    ROOM_NOT_FOUND: "対戦が終了または失効しました。ロビーから新しい対戦を始めてください。",
+    ROOM_NOT_PLAYING: "対戦はまだ開始されていません。最新の状態を確認してください。",
+    MATCH_FINISHED: "この対戦は終了しています。結果を確認してください。",
+    STALE_VERSION: "盤面が先に更新されました。最新の盤面で操作を選び直してください。",
+    VERSION_CONFLICT: "盤面が先に更新されました。最新の盤面で操作を選び直してください。",
+    NOT_YOUR_TURN: "いまはあなたの手番ではありません。相手の操作をお待ちください。",
+    WRONG_PHASE: "いまの手順ではその操作はできません。画面の案内に沿って選び直してください。",
+    WRONG_REGION_SIZE: "選ぶマス数が違います。表示された枚数どおりに選び直してください。",
+    REGION_NOT_CONNECTED: "選んだマスがつながっていません。辺でつながるように選び直してください。",
+    REGION_NOT_ADJACENT: "既存の領域に接していません。辺で接するように選び直してください。",
+    REGION_OVERLAP: "すでに使われているマスが含まれています。空いているマスを選び直してください。",
+    COLOR_UNAVAILABLE: "その色は現在使えません。別の持ち色を選んでください。",
+    ILLEGAL_COLOR: "その色では隣り合う領域が同色になります。別の色を選んでください。",
+    COLOR_AVAILABLE: "使える色があります。持ち色から選んでください。",
+    INVALID_ACTION: "操作内容を確認できませんでした。最新の盤面で選び直してください。",
+    UNKNOWN_ACTION: "その操作は利用できません。画面を再読み込みしてください。",
+    RULE_REJECTED: "その操作は現在のルールでは行えません。画面の案内から選び直してください。",
+    IDEMPOTENCY_KEY_REUSE: "操作内容が前回の送信と一致しません。最新の盤面で選び直してください。",
+    INVALID_SETUP: "6枚セットを確認できませんでした。各カテゴリから2枚ずつ選び直してください。",
+    DEBUG_MODE_NOT_ALLOWED: "デバッグ対戦は合言葉による人同士の対戦だけで使えます。CPU戦・野良対戦ではデバッグをOFFにしてください。",
+    DEBUG_MODE_MISMATCH: "2人のデバッグ設定が一致していません。2人とも同じ設定にして、6枚を準備し直してください。",
+    SETUP_REQUIRED: "2人分の6枚セットがそろっていません。準備完了後に相手をお待ちください。",
+    ROOM_NOT_READY: "対戦開始の準備が整っていません。6枚セットと相手の状態を確認してください。",
+    RATE_LIMITED: "短時間に操作が集中しました。少し待ってから同じ操作を再送してください。",
+    SERVER_BUSY: "ゲームサーバーが混み合っています。少し待ってから同じ操作を再送してください。",
+    SERVER_ERROR: "ゲームサーバーで操作を完了できませんでした。同じ操作を再送できます。",
+  });
+  const RETRYABLE_FUNCTION_ERROR_CODES = new Set(["RATE_LIMITED", "SERVER_BUSY", "SERVER_ERROR"]);
+
+  async function normalizeFunctionError(rawError) {
+    const context = rawError?.context;
+    const candidateStatus = Number(context?.status);
+    const httpStatus = Number.isInteger(candidateStatus) && candidateStatus >= 400 && candidateStatus <= 599 ? candidateStatus : 0;
+    let payload = rawError && typeof rawError === "object" && typeof rawError.code === "string" ? rawError : null;
+    try {
+      const readable = typeof context?.clone === "function" ? context.clone() : context;
+      if (typeof readable?.json === "function") payload = await readable.json();
+    } catch { /* an unreadable FunctionsHttpError body remains private */ }
+    const envelope = payload?.error && typeof payload.error === "object" ? payload.error : payload;
+    const rawCode = typeof envelope?.code === "string" && /^[A-Z][A-Z0-9_]{1,63}$/.test(envelope.code) ? envelope.code : "";
+    const knownCode = Object.hasOwn(PUBLIC_FUNCTION_ERRORS, rawCode);
+    const code = knownCode ? rawCode : httpStatus >= 400 && httpStatus < 500 ? "REQUEST_REJECTED" : "NETWORK_OR_UNKNOWN";
+    const message = PUBLIC_FUNCTION_ERRORS[code]
+      || (code === "REQUEST_REJECTED"
+        ? "その操作は受け付けられませんでした。最新の状態を確認して選び直してください。"
+        : "サーバーの応答を確認できませんでした。同じ操作を再送できます。");
+    const retryable = RETRYABLE_FUNCTION_ERROR_CODES.has(code)
+      || httpStatus === 408 || httpStatus === 429 || httpStatus >= 500
+      || (httpStatus === 0 && !knownCode);
+    return Object.assign(new Error(message), { code, httpStatus, retryable });
+  }
 
   function firstRow(data) { return Array.isArray(data) ? data[0] : data; }
   function clone(value) { return JSON.parse(JSON.stringify(value)); }
@@ -56,8 +111,8 @@
     }
     async function invoke(operation, body = {}) {
       const response = await supabase.functions.invoke("standard-game-action", { body: { operation, ...body } });
-      if (response.error) throw response.error;
-      if (response.data?.error) throw Object.assign(new Error(response.data.error.message), response.data.error);
+      if (response.error) throw await normalizeFunctionError(response.error);
+      if (response.data?.error) throw await normalizeFunctionError(response.data.error);
       return response.data;
     }
     async function syncProfile({ expectedRevision = state.profileRevision, displayName, profileState }) {
@@ -481,5 +536,5 @@
     });
   }
 
-  return Object.freeze({ STORAGE_KEY, createStandardOnlineClient });
+  return Object.freeze({ STORAGE_KEY, createStandardOnlineClient, normalizeFunctionError });
 });

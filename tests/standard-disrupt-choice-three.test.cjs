@@ -17,10 +17,14 @@ function use(state, rng, color = "red", actor = "A", expectedVersion = state.ver
   return match.applyStandardAction({ state, actor, action: { type: "USE_SKILL", payload: { skill: "disruptChoiceThree", color } }, expectedVersion, rngStreams: rng });
 }
 function prepareColor(state, id, micro) {
+  const scale = state.playableBounds.microScale;
+  const x = micro % state.microWidth;
+  const y = Math.floor(micro / state.microWidth);
+  const sourceMacro = Math.floor(y / scale) * state.playableBounds.macroWidth + Math.floor(x / scale);
   state.active = "B";
   state.phase = "COLOR";
   state.pending = id;
-  state.regions[id] = { id, micro: [micro], sourceMacros: [], controllers: ["A"], color: null, isPending: true };
+  state.regions[id] = { id, micro: [micro], sourceMacros: [sourceMacro], controllers: ["A"], color: null, isPending: true };
 }
 
 test("chosen long seal is public for three colorings, consumes once, and uses no RNG", () => {
@@ -49,7 +53,7 @@ test("the long seal decrements after each successful target coloring and expires
   const { state, rng } = fixture();
   let current = use(state, rng, "red").state;
   const legal = current.basicPalettes.B.find((color) => color !== "red") || current.bonusColors.B;
-  for (const [index, micro] of [49, 400, 800].entries()) {
+  for (const [index, micro] of [196, 400, 800].entries()) {
     prepareColor(current, `R${index + 1}`, micro);
     const colored = match.applyStandardAction({ state: current, actor: "B", action: { type: "COLOR_REGION", payload: { color: legal } }, expectedVersion: current.version, rngStreams: rng });
     assert.equal(colored.ok, true);

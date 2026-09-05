@@ -9,6 +9,7 @@ const { STANDARD_SKILLS } = require("../standard/standard-skill-registry.js");
 const root = path.join(__dirname, "..");
 const html = fs.readFileSync(path.join(root, "standard-online-v5", "index.html"), "utf8");
 const app = fs.readFileSync(path.join(root, "standard-online-v5", "app.js"), "utf8");
+const clientSource = fs.readFileSync(path.join(root, "standard-online-v5", "standard-online-client.js"), "utf8");
 const css = fs.readFileSync(path.join(root, "standard-online-v5", "style.css"), "utf8");
 const progressionCss = fs.readFileSync(path.join(root, "standard-online-v5", "progression.css"), "utf8");
 
@@ -233,6 +234,29 @@ test("setup enforces two cards per category and makes unowned cards debug-only",
   assert.match(html, /id="submitSetup"[^>]+aria-describedby="loadoutSummary setupStatus"[^>]+disabled/);
 });
 
+test("server rule errors are safe, persistent, and never offered as an idempotent retry", () => {
+  assert.match(clientSource, /context\?\.clone/);
+  assert.match(clientSource, /typeof readable\?\.json === "function"/);
+  assert.match(clientSource, /Object\.hasOwn\(PUBLIC_FUNCTION_ERRORS, rawCode\)/);
+  assert.match(clientSource, /RETRYABLE_FUNCTION_ERROR_CODES\.has\(code\)/);
+  assert.match(clientSource, /httpStatus === 0 && !knownCode/);
+  const action = app.slice(app.indexOf("async function sendAction"), app.indexOf("async function syncSelectedProfile"));
+  assert.match(action, /if \(error\?\.retryable === false\) \{\s*pendingAction = null/);
+  assert.match(action, /同じ操作を再送/);
+  assert.match(html, /id="setupStatus"[^>]+operation-feedback[^>]+aria-atomic="true"/);
+  assert.match(html, /id="actionStatus"[^>]+operation-feedback[^>]+aria-atomic="true"/);
+  assert.match(css, /\.operation-feedback\[data-tone="error"\]/);
+  assert.match(css, /scroll-margin-bottom:calc\(100px \+ env\(safe-area-inset-bottom\)\)/);
+  const reveal = app.slice(app.indexOf("function revealOperationFeedback"), app.indexOf("function setupFailureMessage"));
+  assert.match(reveal, /requestAnimationFrame\(\(\) => \{[^]*?scrollIntoView\(\{ block: "center", inline: "nearest" \}\)/);
+  assert.doesNotMatch(reveal, /\.focus\(/);
+  assert.match(app, /setupFailure = \{ roomId: client\.snapshot\(\)\.roomId, message \}/);
+  assert.match(app, /setupFailure\.roomId !== roomId/);
+  assert.match(action, /pendingAction\.roomId !== roomId \|\| pendingAction\.matchId !== matchId/);
+  assert.match(action, /pendingAction = \{ roomId, matchId, id: crypto\.randomUUID\(\)/);
+  assert.match(app, /client\.clearRoom\(\); roomModel = null; setupFailure = null; pendingAction = null/);
+});
+
 test("turn guide moves from selection to handoff without exposing a legality oracle", () => {
   assert.match(html, /id="turnGuide"[^>]+role="status"[^>]+aria-live="polite"[^>]+aria-atomic="true"/);
   assert.match(app, /function renderTurnGuide\(state\)/);
@@ -312,8 +336,8 @@ test("basic board actions are intents derived from public and own-private projec
 });
 
 test("failed actions retain the exact identity and retry only the same intent", () => {
-  assert.match(app, /pendingAction = \{ id: crypto\.randomUUID\(\), expectedVersion: roomModel\.room\.version, type, payload, signature \}/);
-  assert.match(app, /if \(!retry \|\| !pendingAction \|\| pendingAction\.signature !== signature\)/);
+  assert.match(app, /pendingAction = \{ roomId, matchId, id: crypto\.randomUUID\(\), expectedVersion: roomModel\.room\.version, type, payload, signature \}/);
+  assert.match(app, /if \(retry && \(!pendingAction \|\| pendingAction\.roomId !== roomId \|\| pendingAction\.matchId !== matchId \|\| pendingAction\.signature !== signature\)\)/);
   assert.match(app, /await client\.submitAction\(pendingAction\)/);
   assert.match(app, /sendAction\(pendingAction\.type, pendingAction\.payload, true\)/);
   assert.match(app, /pendingAction = null; selectedMacros\.clear\(\)/);

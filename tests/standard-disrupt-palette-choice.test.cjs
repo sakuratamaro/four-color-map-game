@@ -21,10 +21,14 @@ function use(state, rng, color = "red", actor = "A", expectedVersion = state.ver
 }
 
 function prepareColor(state, id, micro) {
+  const scale = state.playableBounds.microScale;
+  const x = micro % state.microWidth;
+  const y = Math.floor(micro / state.microWidth);
+  const sourceMacro = Math.floor(y / scale) * state.playableBounds.macroWidth + Math.floor(x / scale);
   state.active = "B";
   state.phase = "COLOR";
   state.pending = id;
-  state.regions[id] = { id, micro: [micro], sourceMacros: [], controllers: ["A"], color: null, isPending: true };
+  state.regions[id] = { id, micro: [micro], sourceMacros: [sourceMacro], controllers: ["A"], color: null, isPending: true };
 }
 
 test("chosen palette corruption draws one private slot and exposes only the chosen color publicly", () => {
@@ -49,7 +53,7 @@ test("the authoritative injected slot persists for one coloring and restores aft
   const corrupted = use(state, rng, "yellow").state;
   const effect = corrupted.privateEffects.B.paletteDebuffs[0];
   const playable = palette(corrupted, "B").find((color) => color !== corrupted.publicEffects.B.seals[color]);
-  prepareColor(corrupted, "R1", 49);
+  prepareColor(corrupted, "R1", 196);
   const first = match.applyStandardAction({ state: corrupted, actor: "B", action: { type: "COLOR_REGION", payload: { color: playable } }, expectedVersion: corrupted.version, rngStreams: rng });
   assert.equal(first.ok, true);
   assert.equal(first.state.privateEffects.B.paletteDebuffs[0].remaining, 1);

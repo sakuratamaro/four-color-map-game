@@ -4,7 +4,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const test = require("node:test");
-const { createStandardOnlineClient, STORAGE_KEY } = require("../standard-online-v5/standard-online-client.js");
+const { createStandardOnlineClient, normalizeFunctionError, STORAGE_KEY } = require("../standard-online-v5/standard-online-client.js");
 
 const ROOM_ID = "11111111-1111-4111-8111-111111111111";
 const ACTION_ID = "22222222-2222-4222-8222-222222222222";
@@ -204,7 +204,7 @@ test("immediate CPU start persists one explicit identity before invoke and clear
   const storage = storageFixture();
   let allocations = 0;
   const first = createStandardOnlineClient({ supabase, storage, idFactory: () => { allocations += 1; return ACTION_ID; } });
-  await assert.rejects(first.startCpuOpponent({ characterId: "yuzu" }), /response lost/);
+  await assert.rejects(first.startCpuOpponent({ characterId: "yuzu" }), /応答を確認できませんでした.*同じ操作を再送/);
   assert.equal(first.snapshot().cpuStartActionId, ACTION_ID);
   assert.equal(first.snapshot().cpuStartCharacterId, "yuzu");
   const reloaded = createStandardOnlineClient({ supabase, storage, idFactory: () => { throw new Error("must reuse pending CPU start"); } });
@@ -233,7 +233,7 @@ test("CPU rematch persists one retry identity and resets only after the server r
   const storage = storageFixture({ roomId: ROOM_ID, profileRevision: 2, setupRevision: 1 });
   let allocations = 0;
   const client = createStandardOnlineClient({ supabase, storage, idFactory: () => { allocations += 1; return ACTION_ID; } });
-  await assert.rejects(client.requestCpuRematch({ expectedVersion: 12 }), /response lost/);
+  await assert.rejects(client.requestCpuRematch({ expectedVersion: 12 }), /応答を確認できませんでした.*同じ操作を再送/);
   assert.equal(client.snapshot().rematchActionId, ACTION_ID);
   assert.equal(client.snapshot().setupRevision, 1);
   const result = await client.requestCpuRematch({ expectedVersion: 12 });
@@ -257,6 +257,74 @@ test("caller-supplied action identity is retained exactly for safe retry", async
   await client.submitAction({ id: ACTION_ID, expectedVersion: 7, type: "COLOR_REGION", payload: { color: "red" } });
   const body = supabase.calls[0].request.body;
   assert.deepEqual(body.action, { id: ACTION_ID, expectedVersion: 7, type: "COLOR_REGION", payload: { color: "red" } });
+});
+
+test("FunctionsHttpError exposes only allowlisted finite rule errors and retry classification", async () => {
+  const privateMessage = "raw database detail service_role secret";
+  const ruleError = await normalizeFunctionError({
+    message: privateMessage,
+    context: { status: 400, clone: () => ({ json: async () => ({ error: { code: "ILLEGAL_COLOR", message: privateMessage, stack: "private stack" } }) }) },
+  });
+  assert.equal(ruleError.code, "ILLEGAL_COLOR");
+  assert.equal(ruleError.httpStatus, 400);
+  assert.equal(ruleError.retryable, false);
+  assert.match(ruleError.message, /隣り合う領域が同色/);
+  assert.doesNotMatch(ruleError.message, /database|service_role|stack/i);
+
+  const serverError = await normalizeFunctionError({
+    context: { status: 503, clone: () => ({ json: async () => ({ error: { code: "SERVER_BUSY", message: privateMessage } }) }) },
+  });
+  assert.equal(serverError.code, "SERVER_BUSY");
+  assert.equal(serverError.retryable, true);
+
+  const unknownClientError = await normalizeFunctionError({
+    message: privateMessage,
+    context: { status: 403, clone: () => ({ json: async () => { throw new Error(privateMessage); } }) },
+  });
+  assert.equal(unknownClientError.code, "REQUEST_REJECTED");
+  assert.equal(unknownClientError.retryable, false);
+  assert.doesNotMatch(unknownClientError.message, /database|service_role/i);
+
+  for (const code of ["ILLEGAL_COLOR", "REGION_NOT_CONNECTED", "WRONG_PHASE"]) {
+    const wrappedRuleError = await normalizeFunctionError({ code, message: privateMessage });
+    assert.equal(wrappedRuleError.code, code);
+    assert.equal(wrappedRuleError.httpStatus, 0);
+    assert.equal(wrappedRuleError.retryable, false, code);
+  }
+  for (const code of ["RATE_LIMITED", "SERVER_BUSY", "SERVER_ERROR"]) {
+    const wrappedRetryableError = await normalizeFunctionError({ code, message: privateMessage });
+    assert.equal(wrappedRetryableError.retryable, true, code);
+  }
+  const unknownWrappedError = await normalizeFunctionError({ code: "UNREVIEWED_ERROR", message: privateMessage });
+  assert.equal(unknownWrappedError.code, "NETWORK_OR_UNKNOWN");
+  assert.equal(unknownWrappedError.retryable, true);
+});
+
+test("HTTP 200 error envelopes classify known rules as deterministic without a status", async () => {
+  const supabase = supabaseFixture();
+  supabase.functions.invoke = async () => ({ data: { error: { code: "REGION_NOT_CONNECTED", message: "private geometry detail" } } });
+  const client = createStandardOnlineClient({ supabase, storage: storageFixture({ roomId: ROOM_ID }), idFactory: () => ACTION_ID });
+  const error = await client.submitAction({ id: ACTION_ID, expectedVersion: 7, type: "CREATE_REGION", payload: { sourceMacros: [0, 2] } }).catch((caught) => caught);
+  assert.equal(error.code, "REGION_NOT_CONNECTED");
+  assert.equal(error.httpStatus, 0);
+  assert.equal(error.retryable, false);
+  assert.doesNotMatch(error.message, /private geometry detail/);
+});
+
+test("client propagates a safe debug setup recovery without the raw response", async () => {
+  const supabase = supabaseFixture();
+  supabase.functions.invoke = async () => ({
+    error: {
+      message: "FunctionsHttpError raw secret",
+      context: { status: 403, clone: () => ({ json: async () => ({ error: { code: "DEBUG_MODE_NOT_ALLOWED", message: "internal access_mode row" } }) }) },
+    },
+  });
+  const client = createStandardOnlineClient({ supabase, storage: storageFixture({ roomId: ROOM_ID }), idFactory: () => ACTION_ID });
+  const error = await client.submitSetup({ loadout: { color: [], area: [], disrupt: [] }, debugMode: true }).catch((caught) => caught);
+  assert.equal(error.code, "DEBUG_MODE_NOT_ALLOWED");
+  assert.equal(error.retryable, false);
+  assert.match(error.message, /合言葉.*人同士.*OFF/);
+  assert.doesNotMatch(error.message, /internal|access_mode|secret/i);
 });
 
 test("gacha retains the caller action identity and persists the committed profile revision", async () => {

@@ -2,6 +2,7 @@
 
 const { COLORS, adjacentRegionIds, legalRecolorCandidates } = require("./standard-engine.js");
 const { V49_SKILL_IDS } = require("./standard-skill-registry.js");
+const { createRegionGeometryContext } = require("./standard-region-geometry.js");
 const {
   cornerBloomPlan,
   microBloomCandidates,
@@ -66,36 +67,21 @@ function enumerateRegionActions(publicState, limit = 64, requiredSize = publicSt
   }
   const scale = bounds.microScale;
   const microWidth = bounds.macroWidth * scale;
-  const macrosFromRegion = (region) => [...new Set([
-    ...(region.sourceMacros || []),
-    ...(region.micro || []).map((cell) => Math.floor(Math.floor(cell / microWidth) / scale) * bounds.macroWidth + Math.floor((cell % microWidth) / scale)),
-  ])];
-  const occupied = new Set(Object.values(publicState.regions || {}).flatMap(macrosFromRegion));
-  const sourceOccupied = new Set(Object.values(publicState.regions || {}).flatMap((region) => region.sourceMacros || []));
-  const macroOwner = new Map();
-  for (const region of Object.values(publicState.regions || {})) {
-    for (const macro of region.sourceMacros || []) macroOwner.set(macro, region.id);
-  }
-  const free = playableMacros(bounds).filter((macro) => !occupied.has(macro));
+  const geometry = createRegionGeometryContext({ ...publicState, microWidth });
+  const free = playableMacros(bounds).filter((macro) => geometry.analyze([macro]).everyMacroHasFree);
   const freeSet = new Set(free);
-  const hasMap = occupied.size > 0;
-  const starts = hasMap && !allowDetached ? free.filter((macro) => neighbors(macro, width).some((next) => sourceOccupied.has(next))) : free;
+  const hasMap = Object.values(publicState.regions || {}).some((region) => (region.micro || []).length > 0);
+  const starts = hasMap && !allowDetached ? free.filter((macro) => geometry.analyze([macro]).touchesExisting) : free;
   const found = new Map();
 
   function visit(selected, frontier) {
     if (found.size >= limit) return;
     if (selected.size === needed) {
       const sourceMacros = [...selected].sort((a, b) => a - b);
-      const contacts = sourceMacros.reduce((sum, macro) => sum + neighbors(macro, width).filter((next) => sourceOccupied.has(next)).length, 0);
-      const colors = new Set();
-      for (const macro of sourceMacros) {
-        for (const next of neighbors(macro, width)) {
-          const regionId = macroOwner.get(next);
-          const color = regionId ? publicState.regions[regionId]?.color : null;
-          if (color) colors.add(color);
-        }
+      const candidate = geometry.analyze(sourceMacros);
+      if (candidate.everyMacroHasFree && candidate.connected && (!hasMap || allowDetached || candidate.touchesExisting)) {
+        found.set(sourceMacros.join(","), { type: "CREATE_REGION", payload: { sourceMacros }, metrics: { contacts: candidate.adjacentRegionIds.length, colorPressure: candidate.contactColors.length } });
       }
-      if (!hasMap || allowDetached || contacts > 0) found.set(sourceMacros.join(","), { type: "CREATE_REGION", payload: { sourceMacros }, metrics: { contacts, colorPressure: colors.size } });
       return;
     }
     for (const macro of [...frontier].sort((a, b) => a - b)) {
@@ -142,19 +128,26 @@ function planningState(publicState) {
   };
 }
 
-function connectedMacros(macros, width) {
-  if (!macros.length) return false;
-  const remaining = new Set(macros);
-  const queue = [macros[0]];
-  remaining.delete(macros[0]);
+function connectedCells(cells, width) {
+  if (!cells.length) return false;
+  const remaining = new Set(cells);
+  const queue = [cells[0]];
+  remaining.delete(cells[0]);
   while (queue.length) {
-    const macro = queue.shift();
-    for (const next of neighbors(macro, width)) if (remaining.delete(next)) queue.push(next);
+    const cell = queue.shift();
+    for (const next of neighbors(cell, width)) if (remaining.delete(next)) queue.push(next);
   }
   return remaining.size === 0;
 }
 
-function splitSelections(region, width) {
+function microToMacro(cell, bounds, microWidth) {
+  const x = cell % microWidth;
+  const y = Math.floor(cell / microWidth);
+  return Math.floor(y / bounds.microScale) * bounds.macroWidth + Math.floor(x / bounds.microScale);
+}
+
+function splitSelections(region, bounds, microWidth) {
+  const width = bounds.macroWidth;
   const macros = [...new Set(region.sourceMacros || [])].sort((a, b) => a - b);
   const results = [];
   const fullMask = (1 << macros.length) - 1;
@@ -162,7 +155,11 @@ function splitSelections(region, width) {
     if (!(mask & 1)) continue;
     const selected = macros.filter((_, index) => mask & (1 << index));
     const returned = macros.filter((_, index) => !(mask & (1 << index)));
-    if (connectedMacros(selected, width) && connectedMacros(returned, width)) results.push(selected);
+    const selectedSet = new Set(selected);
+    const selectedMicro = (region.micro || []).filter((cell) => selectedSet.has(microToMacro(cell, bounds, microWidth)));
+    const returnedMicro = (region.micro || []).filter((cell) => !selectedSet.has(microToMacro(cell, bounds, microWidth)));
+    if (connectedCells(selected, width) && connectedCells(returned, width)
+        && connectedCells(selectedMicro, microWidth) && connectedCells(returnedMicro, microWidth)) results.push(selected);
   }
   return results;
 }
@@ -188,7 +185,8 @@ function enumerateColorSkillActions(publicState, ownPrivateState) {
   if (availableHand(ownPrivateState, "colorRegionSplit")) {
     const region = publicState.regions?.[publicState.pending];
     if (region && !(region.controllers || []).includes(ownPrivateState.seat)) {
-      for (const sourceMacros of splitSelections(region, publicState.playableBounds.macroWidth)) {
+      const microWidth = publicState.playableBounds.macroWidth * publicState.playableBounds.microScale;
+      for (const sourceMacros of splitSelections(region, publicState.playableBounds, microWidth)) {
         actions.push(skillAction("colorRegionSplit", { regionId: region.id, sourceMacros }, { skillPriority: 30, splitSize: sourceMacros.length }));
       }
     }

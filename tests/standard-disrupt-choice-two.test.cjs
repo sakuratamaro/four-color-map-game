@@ -26,10 +26,14 @@ function use(state, rng, color = "red", actor = "A", expectedVersion = state.ver
 }
 
 function prepareColor(state, id, micro) {
+  const scale = state.playableBounds.microScale;
+  const x = micro % state.microWidth;
+  const y = Math.floor(micro / state.microWidth);
+  const sourceMacro = Math.floor(y / scale) * state.playableBounds.macroWidth + Math.floor(x / scale);
   state.active = "B";
   state.phase = "COLOR";
   state.pending = id;
-  state.regions[id] = { id, micro: [micro], sourceMacros: [], controllers: ["A"], color: null, isPending: true };
+  state.regions[id] = { id, micro: [micro], sourceMacros: [sourceMacro], controllers: ["A"], color: null, isPending: true };
 }
 
 test("chosen seal is public for two target colorings, consumes once, and uses no RNG", () => {
@@ -59,7 +63,7 @@ test("the seal ticks after each successful target coloring and expires after the
   const { state, rng } = fixture();
   const sealed = use(state, rng, "red").state;
   const legal = sealed.basicPalettes.B.find((color) => color !== "red") || sealed.bonusColors.B;
-  prepareColor(sealed, "R1", 49);
+  prepareColor(sealed, "R1", 196);
   const first = match.applyStandardAction({ state: sealed, actor: "B", action: { type: "COLOR_REGION", payload: { color: legal } }, expectedVersion: sealed.version, rngStreams: rng });
   assert.equal(first.ok, true);
   assert.equal(first.state.publicEffects.B.seals.red, 1);

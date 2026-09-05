@@ -7,6 +7,7 @@ const {
 } = require("./standard-engine.js");
 const { dispatchStandardSkillAction } = require("./standard-skill-dispatcher.js");
 const { applyCurseBacklashOnEnterColor, preparedOutgoingCandidates, tickPaletteDebuffsAfterColor, tickSealsAfterColor } = require("./standard-skill-handlers.js");
+const { createRegionGeometryContext } = require("./standard-region-geometry.js");
 
 const SCHEMA_VERSION = 1;
 const ENGINE_VERSION = "5.0.0-alpha.1";
@@ -391,27 +392,16 @@ function macroMicroCells(macro, bounds, microWidth) {
   return result;
 }
 
-function touchesExistingRegion(sourceMacros, regions, macroWidth) {
-  const occupied = new Set(Object.values(regions).flatMap((region) => region.sourceMacros || []));
-  return sourceMacros.some((macro) => {
-    const col = macro % macroWidth;
-    const neighbors = [macro - macroWidth, macro + macroWidth];
-    if (col > 0) neighbors.push(macro - 1);
-    if (col < macroWidth - 1) neighbors.push(macro + 1);
-    return neighbors.some((neighbor) => occupied.has(neighbor));
-  });
-}
-
 function hasLegalRegionOfSize(state, size) {
   if (!Number.isInteger(size) || size < 1) return false;
   const bounds = state.playableBounds;
   const width = bounds.macroWidth;
-  const occupied = new Set(Object.values(state.regions).flatMap((region) => region.sourceMacros || []));
+  const geometry = createRegionGeometryContext(state);
   const free = [];
   for (let row = bounds.minRow; row <= bounds.maxRow; row += 1) {
     for (let col = bounds.minCol; col <= bounds.maxCol; col += 1) {
       const macro = row * width + col;
-      if (!occupied.has(macro)) free.push(macro);
+      if (geometry.analyze([macro]).everyMacroHasFree) free.push(macro);
     }
   }
   if (free.length < size) return false;
@@ -421,7 +411,11 @@ function hasLegalRegionOfSize(state, size) {
     const signature = [...selected].sort((a, b) => a - b).join(",");
     if (seen.has(signature)) return false;
     seen.add(signature);
-    if (selected.size === size) return !occupied.size || touchesExistingRegion([...selected], state.regions, width);
+    if (selected.size === size) {
+      const candidate = geometry.analyze([...selected].sort((left, right) => left - right));
+      return candidate.everyMacroHasFree && candidate.connected
+        && (!Object.keys(state.regions).length || candidate.touchesExisting);
+    }
     for (const macro of frontier) {
       const nextSelected = new Set(selected).add(macro);
       const nextFrontier = new Set(frontier);
@@ -471,13 +465,13 @@ function createRegion(state, actor, payload = {}, rngStreams = {}) {
     return col >= bounds.minCol && col <= bounds.maxCol && row >= bounds.minRow && row <= bounds.maxRow;
   }), "OUTSIDE_PLAYABLE_BOUNDS");
   assertState(isConnected(sourceMacros, bounds.macroWidth), "REGION_NOT_CONNECTED");
-  const micro = prepared ? [...prepared.micro] : sourceMacros.flatMap((macro) => macroMicroCells(macro, bounds, state.microWidth));
+  const candidate = prepared ? null : createRegionGeometryContext(state).analyze(sourceMacros);
+  const micro = prepared ? [...prepared.micro] : [...candidate.micro];
+  if (!prepared) assertState(candidate.everyMacroHasFree, "REGION_OVERLAP");
   assertState(isConnected(micro, state.microWidth), "REGION_NOT_CONNECTED");
   if (Object.keys(state.regions).length) {
-    assertState(prepared ? geometryTouchesExisting(micro, state.regions, state.microWidth) : touchesExistingRegion(sourceMacros, state.regions, bounds.macroWidth), "REGION_NOT_ADJACENT");
+    assertState(prepared ? geometryTouchesExisting(micro, state.regions, state.microWidth) : candidate.touchesExisting, "REGION_NOT_ADJACENT");
   }
-  const occupied = new Set(Object.values(state.regions).flatMap((region) => region.micro || []));
-  if (!prepared) assertState(micro.every((cell) => !occupied.has(cell)), "REGION_OVERLAP");
   const idNumber = Math.max(0, ...Object.keys(state.regions).map(regionNumber)) + 1;
   const id = `R${idNumber}`;
   const next = clone(state);

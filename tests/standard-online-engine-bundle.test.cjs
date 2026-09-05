@@ -41,6 +41,7 @@ function profiles() {
 test("server bundle contains only authoritative Standard rule and profile modules", () => {
   for (const id of [
     "standard-engine.js",
+    "standard-region-geometry.js",
     "standard-skill-registry.js",
     "standard-skill-handlers.js",
     "standard-skill-dispatcher.js",

@@ -86,10 +86,10 @@ test("hard CPU prioritizes distinct public color pressure over equal contact cou
   current.rolledSize = 1;
   current.baseRequiredSize = 1;
   current.regions = {
-    R1: { id: "R1", micro: [0], sourceMacros: [13], controllers: ["A"], color: "red", isPending: false },
-    R2: { id: "R2", micro: [1], sourceMacros: [15], controllers: ["B"], color: "blue", isPending: false },
-    R3: { id: "R3", micro: [2], sourceMacros: [25], controllers: ["A"], color: "green", isPending: false },
-    R4: { id: "R4", micro: [3], sourceMacros: [27], controllers: ["B"], color: "green", isPending: false },
+    R1: { id: "R1", micro: macroMicroCells(13), sourceMacros: [13], controllers: ["A"], color: "red", isPending: false },
+    R2: { id: "R2", micro: macroMicroCells(15), sourceMacros: [15], controllers: ["B"], color: "blue", isPending: false },
+    R3: { id: "R3", micro: macroMicroCells(25), sourceMacros: [25], controllers: ["A"], color: "green", isPending: false },
+    R4: { id: "R4", micro: macroMicroCells(27), sourceMacros: [27], controllers: ["B"], color: "green", isPending: false },
   };
   const action = cpu.chooseCpuAction({ observation: observation(current, "hard"), random: () => 0, tieBreakRandom: () => 0 });
   assert.equal(action.type, "CREATE_REGION");

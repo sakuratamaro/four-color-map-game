@@ -1,6 +1,7 @@
 "use strict";
 
 const { COLORS, StandardRuleError, mergeSameColorComponent } = require("./standard-engine.js");
+const { createRegionGeometryContext } = require("./standard-region-geometry.js");
 
 function clone(value) {
   return JSON.parse(JSON.stringify(value));
@@ -169,13 +170,14 @@ function macroMicroCells(macro, state) {
 function validOutgoingMacros(state, sourceMacros) {
   const bounds = state.playableBounds;
   if (sourceMacros.length !== state.requiredSize || !connected(sourceMacros, bounds.macroWidth)) return false;
-  const occupiedMacros = new Set(Object.values(state.regions).flatMap((region) => region.sourceMacros || []));
-  return sourceMacros.every((macro) => {
-    if (!Number.isInteger(macro) || macro < 0 || occupiedMacros.has(macro)) return false;
+  if (!sourceMacros.every((macro) => {
+    if (!Number.isInteger(macro) || macro < 0) return false;
     const col = macro % bounds.macroWidth;
     const row = Math.floor(macro / bounds.macroWidth);
     return col >= bounds.minCol && col <= bounds.maxCol && row >= bounds.minRow && row <= bounds.maxRow;
-  });
+  })) return false;
+  const candidate = createRegionGeometryContext(state).analyze(sourceMacros);
+  return candidate.everyMacroHasFree && candidate.connected;
 }
 
 function microCoordinateInPlayable(state, x, y) {
@@ -207,7 +209,7 @@ function microBloomCandidates(state, sourceMacros) {
   if (prepared && (prepared.actor !== state.active || JSON.stringify(prepared.sourceMacros) !== JSON.stringify(sourceMacros))) {
     return Object.freeze({ ok: false, code: "PREPARED_SELECTION_MISMATCH", candidates: [] });
   }
-  const base = new Set(prepared?.micro || sourceMacros.flatMap((macro) => macroMicroCells(macro, state)));
+  const base = new Set(prepared?.micro || createRegionGeometryContext(state).analyze(sourceMacros).micro);
   const owners = regionOwners(state);
   const scale = state.playableBounds.microScale;
   const width = state.microWidth;
@@ -262,7 +264,7 @@ function cornerBloomPlan(state, sourceMacros, macro) {
     return Object.freeze({ ok: false, code: "PREPARED_SELECTION_MISMATCH", plan: [], micro: [] });
   }
   if (!sourceMacros.includes(macro)) return Object.freeze({ ok: false, code: "INVALID_CORNER_BLOOM_TARGET", plan: [], micro: [] });
-  const shape = new Set(prepared?.micro || sourceMacros.flatMap((sourceMacro) => macroMicroCells(sourceMacro, state)));
+  const shape = new Set(prepared?.micro || createRegionGeometryContext(state).analyze(sourceMacros).micro);
   const owners = regionOwners(state);
   const scale = state.playableBounds.microScale;
   const width = state.microWidth;

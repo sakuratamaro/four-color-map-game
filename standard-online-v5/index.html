@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <title>Four Color Map Game v5.0 Standard Online</title>
   <link rel="stylesheet" href="../online-v5/style.css">
-  <link rel="stylesheet" href="style.css?v=20260905-5">
+  <link rel="stylesheet" href="style.css?v=20260905-8">
   <link rel="stylesheet" href="debug-mode.css">
   <link rel="stylesheet" href="progression.css">
 </head>
@@ -226,7 +226,7 @@
       <div id="loadoutSummary" class="loadout-summary" role="status" aria-live="polite" aria-atomic="true">選択 0/6｜色 0/2｜エリア 0/2｜妨害 0/2</div>
       <div id="loadoutGrid" class="loadout-grid"></div>
       <button id="submitSetup" class="primary" aria-describedby="loadoutSummary setupStatus" disabled>この6枚で準備完了</button>
-      <p id="setupStatus" class="muted"></p>
+      <p id="setupStatus" class="muted operation-feedback" role="status" aria-live="polite" aria-atomic="true"></p>
     </section>
 
     <section id="matchCard" class="card hidden" data-app-tab-panel="battle">
@@ -259,7 +259,7 @@
         <button id="surrender" class="danger compact-danger">投了する</button>
         <button id="retryAction" class="primary hidden">同じ操作を再送</button>
       </div>
-      <p id="actionStatus" class="muted" aria-live="polite"></p>
+      <p id="actionStatus" class="muted operation-feedback" role="status" aria-live="polite" aria-atomic="true"></p>
       <div id="rematchControls" class="target-panel hidden">
         <strong>もう一度対戦</strong>
         <p id="rematchStatus" class="muted">両プレイヤーの申請後、6枚セットを選び直します。</p>
@@ -324,9 +324,9 @@
     </form>
   </dialog>
   <div id="toast" role="status" aria-live="polite"></div>
-  <script src="standard-online-client.js"></script>
+  <script src="standard-online-client.js?v=20260905-8"></script>
   <script src="standard-online-sync.js"></script>
   <script src="standard-online-skill-intents.js"></script>
-  <script type="module" src="app.js?v=20260905-6"></script>
+  <script type="module" src="app.js?v=20260905-8"></script>
 </body>
 </html>
