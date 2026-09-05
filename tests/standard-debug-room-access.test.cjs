@@ -58,8 +58,14 @@ test("load_room_v2 appends access_mode without weakening its service-only member
   assert.doesNotMatch(migration, /\bcascade\b/i);
   assert.match(migration, /create function public\.fcg_standard_server_load_room_v2\(p_room_id uuid, p_actor_id uuid\)/i);
 
-  const returns = migration.slice(migration.indexOf("returns table"), migration.indexOf(")\nlanguage sql"));
-  assert.match(returns, /cpu_user_id uuid,\s*access_mode text\s*$/i);
+  const extractReturns = (source) => {
+    const match = source.match(/returns table\s*\(([^]*?)\)\r?\nlanguage sql/i);
+    assert.ok(match, "the v2 return table must be located on LF and CRLF checkouts");
+    return match[1];
+  };
+  for (const source of [migration, migration.replace(/\r?\n/g, "\r\n")]) {
+    assert.match(extractReturns(source), /cpu_user_id uuid,\s*access_mode text\s*$/i);
+  }
   assert.match(migration, /room\.cpu_user_id,\s*room\.access_mode\s+from public\.fcg_rooms room/i);
   assert.match(migration, /join public\.fcg_room_members actor on actor\.room_id = room\.id and actor\.user_id = p_actor_id/i);
   assert.match(migration, /where room\.id = p_room_id and room\.game_mode = 'standard_v5'/i);
