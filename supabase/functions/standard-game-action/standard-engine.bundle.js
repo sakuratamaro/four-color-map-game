@@ -2678,6 +2678,43 @@ function enumerateColorActions(publicState, ownPrivateState) {
     : [{ type: "DECLARE_NO_COLOR", payload: {}, metrics: { blockedCount: blocked.size } }];
 }
 
+function contactColorsFromMicro(publicState, micro) {
+  const microWidth = publicState.playableBounds.macroWidth * publicState.playableBounds.microScale;
+  const shape = new Set(micro);
+  const ownerByMicro = new Map();
+  for (const region of Object.values(publicState.regions || {})) {
+    for (const cell of region.micro || []) ownerByMicro.set(cell, region.id);
+  }
+  const adjacentIds = new Set();
+  for (const cell of shape) {
+    const x = cell % microWidth;
+    const adjacent = [cell - microWidth, cell + microWidth];
+    if (x > 0) adjacent.push(cell - 1);
+    if (x < microWidth - 1) adjacent.push(cell + 1);
+    for (const neighbor of adjacent) {
+      if (shape.has(neighbor)) continue;
+      const regionId = ownerByMicro.get(neighbor);
+      if (regionId) adjacentIds.add(regionId);
+    }
+  }
+  const blocked = new Set([...adjacentIds].map((id) => publicState.regions?.[id]?.color).filter(Boolean));
+  return COLORS.filter((color) => blocked.has(color));
+}
+
+function immediateOpponentColorOptions(observation, action) {
+  if (action?.type !== "CREATE_REGION") return Object.freeze([]);
+  const { publicState, ownPrivateState } = observation;
+  const sourceMacros = action.payload?.sourceMacros;
+  if (!Array.isArray(sourceMacros)) throw new TypeError("INVALID_CPU_REGION_ACTION");
+  const contactColors = publicState.preparedOutgoing
+    ? contactColorsFromMicro(publicState, publicState.preparedOutgoing.micro || [])
+    : createRegionGeometryContext(publicState).analyze(sourceMacros).contactColors;
+  const blocked = new Set(contactColors);
+  const opponentSeat = ownPrivateState.seat === "A" ? "B" : "A";
+  const seals = publicState.publicEffects?.[opponentSeat]?.seals || {};
+  return Object.freeze(COLORS.filter((color) => !blocked.has(color) && !(seals[color] > 0)));
+}
+
 function skillAction(skill, payload = {}, metrics = {}) {
   return { type: "USE_SKILL", payload: { skill, ...payload }, metrics: { skillPriority: 1, ...metrics } };
 }
@@ -2876,6 +2913,7 @@ module.exports = {
   POLICY_VERSIONS,
   chooseCpuAction,
   enumerateCpuActions,
+  immediateOpponentColorOptions,
   makeObservation,
   V49_SKILL_IDS,
 };
@@ -2885,9 +2923,14 @@ module.exports = {
 "use strict";
 
 const cpu = require("./standard-cpu.js");
+const { COLORS } = require("./standard-engine.js");
 const { STANDARD_SKILLS } = require("./standard-skill-registry.js");
 
 const ROSTER_VERSION = "standard-character-roster-v1";
+const KUROGANE_LEGACY_POLICY_VERSION = `${ROSTER_VERSION}:kurogane`;
+const KUROGANE_POLICY_VERSION = `${ROSTER_VERSION}:kurogane-lookahead-v2`;
+const CREATE_COLOR_OPTION_STRIDE = 1000000;
+const GUARANTEED_TRAP_BONUS = 1000000000;
 const RANDOM_SKILLS = new Set(["colorRandomBorrow", "areaMicroBloom", "disruptRandomOne", "disruptRandomTwo", "disruptPaletteRandom", "disruptPaletteChoice", "disruptForcedPalette"]);
 
 const definitions = [
@@ -2912,7 +2955,7 @@ function splitLoadout(ids) {
 const CPU_CHARACTERS = Object.freeze(Object.fromEntries(definitions.map(([id, name, line, strength, weakness, favorites, ids, values]) => [id, Object.freeze({
   id, name, line, strength, weakness, favorites: Object.freeze([...favorites]), loadout: Object.freeze(splitLoadout(ids)),
   parameters: Object.freeze(Object.fromEntries(PARAMETER_NAMES.map((key, index) => [key, values[index]]))),
-  policyVersion: `${ROSTER_VERSION}:${id}`,
+  policyVersion: id === "kurogane" ? KUROGANE_POLICY_VERSION : `${ROSTER_VERSION}:${id}`,
 })])));
 
 function validateRoster() {
@@ -2952,14 +2995,45 @@ function actionScore(action, character) {
     + (action.metrics.candidates || action.metrics.movedCount || action.metrics.splitSize || 0) * p.skillTargetAccuracy;
 }
 
-function chooseCharacterAction({ publicState, ownPrivateState, characterId, random, tieBreakRandom = random }) {
+function kuroganeLookaheadScore(action, character, observation) {
+  let score = actionScore(action, character);
+  if (action.type === "CREATE_REGION") {
+    const possibleColors = cpu.immediateOpponentColorOptions(observation, action);
+    // CPU-generated CREATE metrics are board-bounded and remain far below this
+    // stride, so one fewer public color dominates every CREATE base-score gap.
+    score += (COLORS.length - possibleColors.length) * CREATE_COLOR_OPTION_STRIDE;
+    if (possibleColors.length === 0) score += GUARANTEED_TRAP_BONUS;
+  } else if (action.type === "COLOR_REGION") {
+    const color = action.payload?.color;
+    const own = observation.ownPrivateState;
+    if ((own.basicPalette || []).includes(color)) score += 18;
+    const temporary = (own.privateEffects?.temporaryColors || []).includes(color);
+    const consumesLastBonus = color === own.bonusColor
+      && own.bonusUsesRemaining === 1
+      && !(own.basicPalette || []).includes(color)
+      && !own.privateEffects?.prism
+      && !temporary;
+    if (consumesLastBonus) score -= 18;
+  }
+  return score;
+}
+
+function chooseCharacterAction({ publicState, ownPrivateState, characterId, policyVersion, random, tieBreakRandom = random }) {
   validateRoster();
   const character = CPU_CHARACTERS[characterId];
   if (!character) throw new TypeError("UNKNOWN_CPU_CHARACTER");
+  const selectedPolicyVersion = policyVersion || character.policyVersion;
+  const legacyKurogane = characterId === "kurogane" && selectedPolicyVersion === KUROGANE_LEGACY_POLICY_VERSION;
+  if (selectedPolicyVersion !== character.policyVersion && !legacyKurogane) throw new TypeError("UNKNOWN_CPU_POLICY_VERSION");
   const observation = cpu.makeObservation({ publicState, ownPrivateState, difficulty: "hard" });
   const actions = cpu.enumerateCpuActions(observation);
   if (!actions.length) return null;
-  const ranked = actions.map((action, index) => ({ action, index, score: actionScore(action, character) }))
+  const useLookahead = selectedPolicyVersion === KUROGANE_POLICY_VERSION;
+  const ranked = actions.map((action, index) => ({
+    action,
+    index,
+    score: useLookahead ? kuroganeLookaheadScore(action, character, observation) : actionScore(action, character),
+  }))
     .sort((a, b) => b.score - a.score || a.index - b.index);
   const noiseWindow = Math.min(ranked.length, 1 + Math.floor(character.parameters.legalChoiceNoise * Math.min(9, ranked.length - 1)));
   const value = random();
@@ -2974,7 +3048,15 @@ function chooseCharacterAction({ publicState, ownPrivateState, characterId, rand
 
 validateRoster();
 
-module.exports = { CPU_CHARACTERS, ROSTER_VERSION, chooseCharacterAction, publicRoster, validateRoster };
+module.exports = {
+  CPU_CHARACTERS,
+  KUROGANE_LEGACY_POLICY_VERSION,
+  KUROGANE_POLICY_VERSION,
+  ROSTER_VERSION,
+  chooseCharacterAction,
+  publicRoster,
+  validateRoster,
+};
 
 }};const cache={};function normalize(parts){const out=[];for(const part of parts){if(!part||part===".")continue;if(part==="..")out.pop();else out.push(part);}return out.join("/");}function load(id){if(cache[id])return cache[id].exports;if(!modules[id])throw new Error("Unknown module: "+id);const module={exports:{}};cache[id]=module;const base=id.split("/").slice(0,-1);const localRequire=(request)=>load(request.startsWith(".")?normalize([...base,...request.split("/")]):request);modules[id](localRequire,module,module.exports);return module.exports;}
 
@@ -3024,11 +3106,12 @@ function createCpuProfile(characterId){
   validateProfile(profile);
   return {profile,loadout:clone(character.loadout),policyVersion:character.policyVersion};
 }
-function chooseCpuAction({publicState,ownPrivateState,characterId,seed}){
+function chooseCpuAction({publicState,ownPrivateState,characterId,policyVersion,seed}){
   if(!Number.isSafeInteger(seed)||seed<0||seed>0xffffffff)throw new Error("INVALID_SEED");
+  if(typeof policyVersion!=="string"||!policyVersion)throw new Error("INVALID_CPU_POLICY_VERSION");
   const streams=engine.createRngDomains(seed,match.REQUIRED_RNG_STREAMS);
   return clone(cpuRoster.chooseCharacterAction({
-    publicState,ownPrivateState,characterId,
+    publicState,ownPrivateState,characterId,policyVersion,
     random:()=>streams["cpu-B"].next(),tieBreakRandom:()=>streams["cpu-tie-break"].next(),
   }));
 }

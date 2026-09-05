@@ -87,8 +87,8 @@ test("server bundle exposes ten safe CPU identities and deterministic legal deci
   assert.equal(Object.values(cpuProfile.loadout).flat().length, 6);
   assert.equal(cpuProfile.profile.displayName, "うっかりユズ");
   const created = api.create({ matchId: "cpu-server", loadouts: { A: loadouts.A, B: cpuProfile.loadout }, profiles: { A: profiles().A, B: cpuProfile.profile }, seed: 123, firstSeat: "B" });
-  const first = api.chooseCpuAction({ publicState: created.publicState, ownPrivateState: created.privateB, characterId: "yuzu", seed: 999 });
-  const second = api.chooseCpuAction({ publicState: created.publicState, ownPrivateState: created.privateB, characterId: "yuzu", seed: 999 });
+  const first = api.chooseCpuAction({ publicState: created.publicState, ownPrivateState: created.privateB, characterId: "yuzu", policyVersion: cpuProfile.policyVersion, seed: 999 });
+  const second = api.chooseCpuAction({ publicState: created.publicState, ownPrivateState: created.privateB, characterId: "yuzu", policyVersion: cpuProfile.policyVersion, seed: 999 });
   assert.deepEqual(first, second);
   const applied = api.apply({ state: created.state, rngSnapshot: created.rngSnapshot, actor: "B", action: { ...first, id: "cpu-action" }, expectedVersion: 0 });
   assert.equal(applied.ok, true);

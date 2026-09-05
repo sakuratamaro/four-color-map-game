@@ -8,6 +8,16 @@ on:
       - online/supabase-config.js
       - online-v5/style.css
       - standard-online-v5/**
+      - standard/**
+      - scripts/build-standard-online-engine.mjs
+      - scripts/standard-cpu-selfplay.cjs
+      - supabase/functions/standard-game-action/**
+      - supabase/migrations/**
+      - tests/standard-cpu-browser.test.cjs
+      - tests/standard-edge-handler.test.cjs
+      - tests/standard-kurogane-lookahead.test.cjs
+      - tests/standard-kurogane-policy-migration.test.cjs
+      - tests/standard-online-engine-bundle.test.cjs
       - tests/standard-online-browser.test.cjs
   pull_request:
     paths:
@@ -15,6 +25,16 @@ on:
       - online/supabase-config.js
       - online-v5/style.css
       - standard-online-v5/**
+      - standard/**
+      - scripts/build-standard-online-engine.mjs
+      - scripts/standard-cpu-selfplay.cjs
+      - supabase/functions/standard-game-action/**
+      - supabase/migrations/**
+      - tests/standard-cpu-browser.test.cjs
+      - tests/standard-edge-handler.test.cjs
+      - tests/standard-kurogane-lookahead.test.cjs
+      - tests/standard-kurogane-policy-migration.test.cjs
+      - tests/standard-online-engine-bundle.test.cjs
       - tests/standard-online-browser.test.cjs
   workflow_dispatch:
 
@@ -46,5 +66,13 @@ jobs:
           package-manager-cache: false
       - name: Install browser test dependency
         run: npm install --no-save --no-package-lock --ignore-scripts playwright@1.62.1
+      - name: Run Standard CPU policy contract tests
+        run: >-
+          node --test --test-concurrency=1
+          tests/standard-kurogane-lookahead.test.cjs
+          tests/standard-kurogane-policy-migration.test.cjs
+          tests/standard-edge-handler.test.cjs
+          tests/standard-online-engine-bundle.test.cjs
+          tests/standard-cpu-browser.test.cjs
       - name: Run Standard online browser test serially
         run: node --test --test-concurrency=1 tests/standard-online-browser.test.cjs

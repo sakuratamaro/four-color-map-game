@@ -65,11 +65,12 @@ function createCpuProfile(characterId){
   validateProfile(profile);
   return {profile,loadout:clone(character.loadout),policyVersion:character.policyVersion};
 }
-function chooseCpuAction({publicState,ownPrivateState,characterId,seed}){
+function chooseCpuAction({publicState,ownPrivateState,characterId,policyVersion,seed}){
   if(!Number.isSafeInteger(seed)||seed<0||seed>0xffffffff)throw new Error("INVALID_SEED");
+  if(typeof policyVersion!=="string"||!policyVersion)throw new Error("INVALID_CPU_POLICY_VERSION");
   const streams=engine.createRngDomains(seed,match.REQUIRED_RNG_STREAMS);
   return clone(cpuRoster.chooseCharacterAction({
-    publicState,ownPrivateState,characterId,
+    publicState,ownPrivateState,characterId,policyVersion,
     random:()=>streams["cpu-B"].next(),tieBreakRandom:()=>streams["cpu-tie-break"].next(),
   }));
 }

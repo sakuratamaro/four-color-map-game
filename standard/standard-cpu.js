@@ -117,6 +117,43 @@ function enumerateColorActions(publicState, ownPrivateState) {
     : [{ type: "DECLARE_NO_COLOR", payload: {}, metrics: { blockedCount: blocked.size } }];
 }
 
+function contactColorsFromMicro(publicState, micro) {
+  const microWidth = publicState.playableBounds.macroWidth * publicState.playableBounds.microScale;
+  const shape = new Set(micro);
+  const ownerByMicro = new Map();
+  for (const region of Object.values(publicState.regions || {})) {
+    for (const cell of region.micro || []) ownerByMicro.set(cell, region.id);
+  }
+  const adjacentIds = new Set();
+  for (const cell of shape) {
+    const x = cell % microWidth;
+    const adjacent = [cell - microWidth, cell + microWidth];
+    if (x > 0) adjacent.push(cell - 1);
+    if (x < microWidth - 1) adjacent.push(cell + 1);
+    for (const neighbor of adjacent) {
+      if (shape.has(neighbor)) continue;
+      const regionId = ownerByMicro.get(neighbor);
+      if (regionId) adjacentIds.add(regionId);
+    }
+  }
+  const blocked = new Set([...adjacentIds].map((id) => publicState.regions?.[id]?.color).filter(Boolean));
+  return COLORS.filter((color) => blocked.has(color));
+}
+
+function immediateOpponentColorOptions(observation, action) {
+  if (action?.type !== "CREATE_REGION") return Object.freeze([]);
+  const { publicState, ownPrivateState } = observation;
+  const sourceMacros = action.payload?.sourceMacros;
+  if (!Array.isArray(sourceMacros)) throw new TypeError("INVALID_CPU_REGION_ACTION");
+  const contactColors = publicState.preparedOutgoing
+    ? contactColorsFromMicro(publicState, publicState.preparedOutgoing.micro || [])
+    : createRegionGeometryContext(publicState).analyze(sourceMacros).contactColors;
+  const blocked = new Set(contactColors);
+  const opponentSeat = ownPrivateState.seat === "A" ? "B" : "A";
+  const seals = publicState.publicEffects?.[opponentSeat]?.seals || {};
+  return Object.freeze(COLORS.filter((color) => !blocked.has(color) && !(seals[color] > 0)));
+}
+
 function skillAction(skill, payload = {}, metrics = {}) {
   return { type: "USE_SKILL", payload: { skill, ...payload }, metrics: { skillPriority: 1, ...metrics } };
 }
@@ -315,6 +352,7 @@ module.exports = {
   POLICY_VERSIONS,
   chooseCpuAction,
   enumerateCpuActions,
+  immediateOpponentColorOptions,
   makeObservation,
   V49_SKILL_IDS,
 };

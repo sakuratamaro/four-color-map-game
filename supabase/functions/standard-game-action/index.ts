@@ -17,7 +17,7 @@ type StandardEngineApi = {
   getCpuRoster(): JsonObject[];
   getCosmetics(input: { profile: JsonObject }): JsonObject;
   createCpuProfile(characterId: string): { profile: JsonObject; loadout: JsonObject; policyVersion: string };
-  chooseCpuAction(input: { publicState: JsonObject; ownPrivateState: JsonObject; characterId: string; seed: number }): JsonObject;
+  chooseCpuAction(input: { publicState: JsonObject; ownPrivateState: JsonObject; characterId: string; policyVersion: string; seed: number }): JsonObject;
   publicState(state: JsonObject): JsonObject;
   privateState(state: JsonObject, seat: Seat): JsonObject;
   project(state: JsonObject, debugMode?: boolean): { publicState: JsonObject; privateA: JsonObject; privateB: JsonObject };
@@ -976,6 +976,7 @@ Deno.serve(async (request: Request) => {
         publicState: cpuRoom.action_public_state as JsonObject,
         ownPrivateState: cpuRoom.actor_private_state as JsonObject,
         characterId: room.cpu_character_id as string,
+        policyVersion: room.cpu_policy_version as string,
         seed: identity.seed,
       });
       if (!chosen || typeof chosen.type !== "string" || !chosen.payload || typeof chosen.payload !== "object") {

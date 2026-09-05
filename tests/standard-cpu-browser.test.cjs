@@ -8,9 +8,17 @@ const test = require("node:test");
 let chromium;
 try { ({ chromium } = require("playwright")); } catch { /* explicit actual-browser gate */ }
 
+const BROWSER_PATHS = Object.freeze({
+  edge: "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
+  chrome: "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+});
+const browserName = process.env.STANDARD_BROWSER || "edge";
+if (!Object.hasOwn(BROWSER_PATHS, browserName)) throw new Error("STANDARD_BROWSER must be edge or chrome");
+
 const root = path.join(__dirname, "..");
 const moduleIds = [
   "standard/standard-engine.js",
+  "standard/standard-region-geometry.js",
   "standard/standard-skill-registry.js",
   "standard/standard-skill-handlers.js",
   "standard/standard-skill-dispatcher.js",
@@ -22,7 +30,7 @@ const moduleIds = [
 function browserExecutable() {
   return [
     process.env.PLAYWRIGHT_BROWSER_EXECUTABLE,
-    "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
+    BROWSER_PATHS[browserName],
     chromium?.executablePath(),
   ].filter(Boolean).find((candidate) => fs.existsSync(candidate));
 }

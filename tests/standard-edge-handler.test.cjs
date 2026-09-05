@@ -155,7 +155,9 @@ test("one CPU action is deterministic, sees only public plus its own private vie
   assert.match(branch, /p_actor_id: room\.cpu_user_id/);
   assert.match(branch, /FourColorStandardServerEngine\.chooseCpuAction\(\{[\s\S]+publicState: cpuRoom\.action_public_state[\s\S]+ownPrivateState: cpuRoom\.actor_private_state/i);
   const choice = branch.slice(branch.indexOf("FourColorStandardServerEngine.chooseCpuAction"), branch.indexOf("const action: JsonObject"));
+  assert.match(choice, /policyVersion: room\.cpu_policy_version/);
   assert.doesNotMatch(choice, /private_a|privateA|profile_a_state/i);
+  assert.doesNotMatch(choice, /authoritative_state|rngSnapshot|private_b|profile_b_state/i);
   assert.match(branch, /deterministicCpuIdentity\(roomId, expectedVersion/);
   assert.match(branch, /FourColorStandardServerEngine\.applyCpuProfiles/);
   assert.match(branch, /service\.rpc\("fcg_standard_server_commit_action"/);
