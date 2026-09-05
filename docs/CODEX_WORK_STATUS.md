@@ -3,7 +3,7 @@
 - Last update: 2026-09-06 JST
 - Stage: committed contact feedback and public tactical trace are public; physical two-device acceptance and T+24h observation remain pending
 - Integration branch: `codex/standard-release-command`
-- Public baseline: `origin/main@3e2b959d6cc89ce4e7a76f0a773225bffd0116a8` (product commit `ecafdd1042b4b30211f0aa53bac8795063700bf9`)
+- Public product baseline: `3e2b959d6cc89ce4e7a76f0a773225bffd0116a8` (product commit `ecafdd1042b4b30211f0aa53bac8795063700bf9`); later `main` commits may contain evidence-only documentation
 - Public URL: `https://sakuratamaro.github.io/four-color-map-game/standard-online-v5/`
 - Supabase project: `qkcuhludisairpgzhryl`; `standard-game-action` deployment 15
 
