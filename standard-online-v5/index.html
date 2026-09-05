@@ -118,13 +118,13 @@
         <button id="gachaRetry" class="ghost hidden">同じ抽選を再確認</button>
       </div>
       <p id="gachaStatus" class="muted" aria-live="polite">スターターはLv.1券を3枚持っています。</p>
+      <p id="gachaResultAnnouncement" class="visually-hidden" role="status" aria-live="polite" aria-atomic="true"></p>
       <section id="gachaResultSummary" class="gacha-result-summary hidden">
-        <h3 id="gachaResultTitle" tabindex="-1">獲得カード</h3>
-        <p id="gachaResultAnnouncement" class="muted" role="status" aria-live="polite" aria-atomic="true"></p>
+        <h3 id="gachaResultTitle">次の対戦へ</h3>
         <button id="gachaCpuRematch" class="primary hidden" type="button">6枚を選び直して同じCPUと再戦</button>
         <p id="gachaCpuRematchNote" class="muted small hidden">カードは自動で6枚には入りません。次の画面で、各カテゴリ2枚ずつを自分で選べます。</p>
       </section>
-      <div id="gachaResults" class="gacha-results" role="list" aria-label="獲得カード一覧"></div>
+      <div id="gachaResults" class="gacha-results" role="list" aria-label="獲得カード一覧" tabindex="-1"></div>
     </section>
 
     <section id="cardLibraryPanel" class="card card-library-panel hidden" data-app-tab-panel="cards">

@@ -990,14 +990,14 @@ function renderGacha() {
     $("gachaResults").appendChild(card);
   }
   const hasResults = lastGachaDraws.length > 0;
-  show("gachaResultSummary", hasResults);
-  const announcedDraws = lastGachaDraws.slice(0, 3).map((draw) => `${draw.displayName || SKILL_META[draw.skillId]?.name || draw.skillId}、レアリティ星${draw.rarity}。${SKILL_DESCRIPTION[draw.skillId] || "対戦で使えるカードです。"}`);
-  const remainingDraws = Math.max(0, lastGachaDraws.length - announcedDraws.length);
+  const distinctCardCount = new Set(lastGachaDraws.map((draw) => draw.skillId)).size;
+  const highestRarity = hasResults ? Math.max(...lastGachaDraws.map((draw) => Number(draw.rarity) || 1)) : 0;
   $("gachaResultAnnouncement").textContent = hasResults
-    ? `${lastGachaDraws.length}枚獲得。${announcedDraws.join(" ")}${remainingDraws ? ` ほか${remainingDraws}枚は下の一覧で確認できます。` : ""}`
+    ? `${lastGachaDraws.length}枚獲得。${distinctCardCount}種類、最高レアリティ星${highestRarity}。詳しくは獲得カード一覧で確認できます。`
     : "";
   if (lastGachaContinuation && roomModel && !isCurrentCpuRewardGachaContinuation(lastGachaContinuation)) clearCpuRewardGachaResult();
   const canContinueCpuReward = hasResults && !pendingGacha && !gachaBusy && isCurrentCpuRewardGachaContinuation(lastGachaContinuation);
+  show("gachaResultSummary", canContinueCpuReward);
   show("gachaCpuRematch", canContinueCpuReward);
   show("gachaCpuRematchNote", canContinueCpuReward);
   $("gachaCpuRematch").disabled = rematchBusy;
@@ -1674,8 +1674,8 @@ async function runGacha(requestedCount = 1, retry = false) {
     pendingGacha = null; localStorage.removeItem(GACHA_PENDING_KEY);
     $("gachaStatus").textContent = `${lastGachaDraws.length}枚を獲得しました。券消費とカード付与は一度だけ保存済みです。`;
     requestAnimationFrame(() => {
-      $("gachaResultTitle").focus({ preventScroll: true });
-      $("gachaResultSummary").scrollIntoView({ block: "end", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+      $("gachaResults").focus({ preventScroll: true });
+      $("gachaResults").scrollIntoView({ block: "start", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
     });
   } catch (error) {
     const remote = await client.readProfile().catch(() => null);

@@ -1363,9 +1363,9 @@ test("actual Edge hydrates a CPU win once, routes its earned ticket deliberately
     assert.equal(selectedBeforeDraw.includes("colorPrism"), false);
     await page.getByRole("button", { name: "1枚引く" }).click();
     await page.getByText("1枚を獲得しました。券消費とカード付与は一度だけ保存済みです。").waitFor();
-    await page.waitForFunction(() => document.activeElement?.id === "gachaResultTitle");
+    await page.waitForFunction(() => document.activeElement?.id === "gachaResults");
     assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "gacha").length), 1);
-    assert.match(await page.locator("#gachaResultAnnouncement").textContent(), /1枚獲得。四色解放、レアリティ星1。.*4色を使える/);
+    assert.equal(await page.locator("#gachaResultAnnouncement").textContent(), "1枚獲得。1種類、最高レアリティ星1。詳しくは獲得カード一覧で確認できます。");
     assert.match(await page.locator("#gachaResults .gacha-card").textContent(), /四色解放.*4色を使える/s);
     assert.equal(await page.locator("#gachaResults").getAttribute("role"), "list");
     assert.equal(await page.locator("#gachaResults .gacha-card").getAttribute("role"), "listitem");

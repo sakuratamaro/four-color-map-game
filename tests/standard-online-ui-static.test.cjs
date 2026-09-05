@@ -132,6 +132,15 @@ test("public matchmaking stays code-free, recoverable, cancellable, and separate
   assert.match(progressionCss, /prefers-reduced-motion: reduce/);
 });
 
+test("Standard lobby reflows before desktop side panels crush its actions", () => {
+  assert.match(css, /@media\(max-width:1080px\) and \(min-width:761px\)\{/);
+  assert.match(css, /#lobby \.lobby-choice-grid\{grid-template-columns:repeat\(2,minmax\(0,1fr\)\)\}/);
+  assert.match(css, /#lobby \.public-matchmaking\{grid-column:1\/-1\}/);
+  assert.match(css, /#lobby \.lobby-grid\{grid-template-columns:1fr\}/);
+  assert.match(css, /#lobby \.lobby-choice button,#lobby \.lobby-choice input\{max-width:100%;overflow-wrap:anywhere\}/);
+  assert.match(css, /@media\(max-width:760px\)\{#lobby \.public-matchmaking\{grid-column:auto\}\}/);
+});
+
 test("CPU fallback is consent-only after 90 seconds, reoffers at 3 minutes, and names all ten choices", () => {
   assert.match(app, /const CPU_FIRST_OFFER_SECONDS = 90/);
   assert.match(app, /const CPU_SECOND_OFFER_SECONDS = 180/);
@@ -212,16 +221,17 @@ test("gacha persists its action identity before sending and hydrates the committ
 });
 
 test("CPU completion gacha offers one explicit loadout rematch without crossing progression boundaries", () => {
-  assert.match(html, /id="gachaResultTitle" tabindex="-1"/);
-  assert.doesNotMatch(html, /id="gachaResultTitle"[^>]+aria-describedby=/);
-  assert.match(html, /id="gachaResultAnnouncement"[^>]+role="status"[^>]+aria-live="polite"[^>]+aria-atomic="true"/);
+  assert.match(html, /id="gachaResultTitle"[^>]*>次の対戦へ<\/h3>/);
+  assert.match(html, /id="gachaResultAnnouncement"[^>]+visually-hidden[^>]+role="status"[^>]+aria-live="polite"[^>]+aria-atomic="true"/);
+  assert.match(html, /id="gachaResults"[^>]+role="list"[^>]+aria-label="獲得カード一覧"[^>]+tabindex="-1"/);
   assert.match(html, /id="gachaCpuRematch"[^>]+type="button"[^>]*>6枚を選び直して同じCPUと再戦<\/button>/);
   assert.match(html, /カードは自動で6枚には入りません/);
   assert.match(app, /source: "cpu-completion-reward"/);
   assert.match(app, /value\.roomId === roomModel\?\.room\?\.id[\s\S]+value\.roomVersion === Number\(roomModel\?\.room\?\.version\)[\s\S]+value\.matchId === state\?\.matchId/);
   assert.match(app, /roomModel\?\.room\?\.opponent_kind === "cpu"/);
   assert.match(app, /state\?\.debugUnlimitedSkills !== true/);
-  assert.match(app, /lastGachaDraws\.slice\(0, 3\)\.map\(\(draw\) => `\$\{draw\.displayName[\s\S]+レアリティ星\$\{draw\.rarity\}[\s\S]+SKILL_DESCRIPTION\[draw\.skillId\]/);
+  assert.match(app, /const distinctCardCount = new Set\(lastGachaDraws\.map\(\(draw\) => draw\.skillId\)\)\.size/);
+  assert.match(app, /最高レアリティ星\$\{highestRarity\}。詳しくは獲得カード一覧で確認できます/);
   assert.match(app, /\$\("gachaDrawOne"\)\.disabled = gachaBusy \|\| Boolean\(pendingGacha\)/);
   assert.match(app, /\$\("gachaDrawAll"\)\.disabled = gachaBusy \|\| Boolean\(pendingGacha\)/);
   assert.match(app, /const canContinueCpuReward = hasResults && !pendingGacha && !gachaBusy && isCurrentCpuRewardGachaContinuation/);
@@ -229,8 +239,9 @@ test("CPU completion gacha offers one explicit loadout rematch without crossing 
   assert.match(app, /function restoreCpuRewardGachaResult\(\)/);
   assert.match(app, /stored\.draws\.slice\(0, 100\)\.flatMap/);
   assert.match(app, /draw\.rarity < 1 \|\| draw\.rarity > 5/);
-  assert.match(app, /\$\("gachaResultTitle"\)\.focus\(\{ preventScroll: true \}\)/);
-  assert.match(app, /\$\("gachaResultSummary"\)\.scrollIntoView/);
+  assert.match(app, /\$\("gachaResults"\)\.focus\(\{ preventScroll: true \}\)/);
+  assert.match(app, /\$\("gachaResults"\)\.scrollIntoView/);
+  assert.match(app, /show\("gachaResultSummary", canContinueCpuReward\)/);
   const continuation = app.slice(app.indexOf("async function continueCpuRewardRematch()"), app.indexOf("function dismissTerminalResult()"));
   assert.match(continuation, /if \(!isCurrentCpuRewardGachaContinuation\(lastGachaContinuation\) \|\| rematchBusy\) return/);
   assert.match(continuation, /await requestRematch\(\)/);
