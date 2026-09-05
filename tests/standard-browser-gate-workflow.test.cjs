@@ -45,6 +45,7 @@ test("Standard browser gate pins its tools and disables package-manager caching 
 test("Standard browser gate runs CPU contracts and the scoped browser file serially without release integration", () => {
   assert.match(workflow, /node --test --test-concurrency=1[\s\S]+?tests\/standard-kurogane-lookahead\.test\.cjs[\s\S]+?tests\/standard-cpu-browser\.test\.cjs/);
   assert.match(workflow, /tests\/standard-browser-gate-workflow\.test\.cjs/);
+  assert.match(workflow, /tests\/standard-online-browser-harness-static\.test\.cjs/);
   assert.match(workflow, /if: matrix\.STANDARD_BROWSER == 'edge'[\s\S]+?run: node --test --test-concurrency=1 tests\/standard-color-seal-browser-lifecycle\.test\.cjs/);
   assert.match(workflow, /run: node --test --test-concurrency=1 tests\/standard-online-browser\.test\.cjs/);
   assert.equal((workflow.match(/^\s+run:/gm) || []).length, 4);

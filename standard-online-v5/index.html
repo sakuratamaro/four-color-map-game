@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <title>Four Color Map Game v5.0 Standard Online</title>
   <link rel="stylesheet" href="../online-v5/style.css">
-  <link rel="stylesheet" href="style.css?v=20260906-22">
+  <link rel="stylesheet" href="style.css?v=20260906-23">
   <link rel="stylesheet" href="debug-mode.css">
   <link rel="stylesheet" href="progression.css">
 </head>
@@ -281,14 +281,6 @@
         <strong id="terminalOutcomeTitle"></strong>
         <p id="terminalOutcomeReason"></p>
       </section>
-      <section class="random-summary" aria-labelledby="randomSummaryTitle">
-        <div class="random-summary-heading"><span class="dice-mark" aria-hidden="true">🎲</span><div><strong id="randomSummaryTitle">今回のランダム結果</strong><small>サーバーが対戦ごとに抽選</small></div></div>
-        <dl>
-          <div><dt>渡すエリア</dt><dd id="rolledSizeValue">抽選中</dd></div>
-          <div><dt>自分の基本の持ち色（全4色から抽選）</dt><dd id="basicPaletteValue">確認中</dd></div>
-          <div><dt>自分のおまけ色</dt><dd id="bonusColorValue">確認中</dd></div>
-        </dl>
-      </section>
       <section id="turnGuide" class="turn-guide hidden" role="status" aria-live="polite" aria-atomic="true">
         <span id="turnGuideStep" class="turn-guide-step">NEXT</span>
         <div><strong id="turnGuideTitle"></strong><p id="turnGuideDetail"></p></div>
@@ -307,6 +299,14 @@
         <button id="clearSelection" class="ghost">選択解除</button>
         <button id="submitRegion" class="primary">このエリアを渡す</button>
       </div>
+      <section class="random-summary" aria-labelledby="randomSummaryTitle">
+        <div class="random-summary-heading"><span class="dice-mark" aria-hidden="true">🎲</span><div><strong id="randomSummaryTitle">今回のランダム結果</strong><small>サーバーが対戦ごとに抽選</small></div></div>
+        <dl>
+          <div><dt>渡すエリア</dt><dd id="rolledSizeValue">抽選中</dd></div>
+          <div><dt>自分の基本の持ち色（全4色から抽選）</dt><dd id="basicPaletteValue">確認中</dd></div>
+          <div><dt>自分のおまけ色</dt><dd id="bonusColorValue">確認中</dd></div>
+        </dl>
+      </section>
       <div id="paletteControls" class="controls"></div>
       <h3>あなたの6枚</h3>
       <div id="skillControls" class="skills"></div>
@@ -400,6 +400,6 @@
   <script src="standard-online-client.js?v=20260906-17"></script>
   <script src="standard-online-sync.js"></script>
   <script src="standard-online-skill-intents.js?v=20260906-17"></script>
-  <script type="module" src="app.js?v=20260906-23"></script>
+  <script type="module" src="app.js?v=20260906-24"></script>
 </body>
 </html>

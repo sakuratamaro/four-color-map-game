@@ -2507,6 +2507,31 @@ test("actual Edge makes the six-card setup explicit, constrained, and keyboard-s
 });
 
 test("actual Edge hands one submitted setup to the visible first-move guide without stealing restored focus", { timeout: 240000 }, async () => {
+  const firstMoveLayout = async (page) => page.evaluate(() => {
+    const rect = (selector) => {
+      const value = document.querySelector(selector).getBoundingClientRect();
+      return { top: value.top, right: value.right, bottom: value.bottom, left: value.left, width: value.width, height: value.height };
+    };
+    return {
+      guide: rect("#turnGuide"),
+      board: rect("#board"),
+      controls: rect("#regionControls"),
+      connection: rect(".connection-card"),
+      tabs: rect(".app-tabs"),
+      overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+      actionOrder: Boolean(document.querySelector("#regionControls + .random-summary + #paletteControls")),
+    };
+  });
+  const assertFirstMoveLayout = (layout) => {
+    assert.ok(layout.guide.top >= 0, JSON.stringify(layout));
+    assert.ok(layout.guide.bottom <= layout.board.top, JSON.stringify(layout));
+    assert.ok(layout.board.bottom <= layout.controls.top, JSON.stringify(layout));
+    assert.ok(layout.controls.bottom <= layout.connection.top, JSON.stringify(layout));
+    assert.ok(layout.connection.bottom <= layout.tabs.top - 4, JSON.stringify(layout));
+    assert.equal(layout.overflow, false);
+    assert.equal(layout.actionOrder, true);
+  };
+
   await withPage("setupTransition", async (page) => {
     await page.emulateMedia({ reducedMotion: "no-preference" });
     await page.evaluate(() => {
@@ -2524,11 +2549,8 @@ test("actual Edge hands one submitted setup to the visible first-move guide with
     assert.equal(await page.locator("#matchTitle").textContent(), "Standard対戦スタート");
     assert.equal(await page.locator("#turnGuideStep").textContent(), "あなたが作る → CPUが塗る");
     assert.match(await page.locator("#turnGuideTitle").textContent(), /白い盤面をタップして、あと1マス選ぶ/);
-    await page.waitForFunction(() => {
-      const guide = document.querySelector("#turnGuide").getBoundingClientRect();
-      const tabs = document.querySelector(".app-tabs").getBoundingClientRect();
-      return guide.top >= 0 && guide.bottom <= tabs.top;
-    });
+    await page.waitForFunction(() => document.querySelector("#regionControls").getBoundingClientRect().bottom <= document.querySelector(".connection-card").getBoundingClientRect().top);
+    assertFirstMoveLayout(await firstMoveLayout(page));
     const handoff = await page.evaluate(() => globalThis.__handoffScrolls.at(-1));
     assert.deepEqual(handoff, { id: "matchCard", options: { block: "start", behavior: "smooth" } });
     await page.locator("#surrender").focus();
@@ -2552,6 +2574,11 @@ test("actual Edge hands one submitted setup to the visible first-move guide with
     assert.equal(await page.locator("#turnGuideStep").textContent(), "CPUが作る → あなたが塗る");
     assert.equal(await page.locator("#turnGuideTitle").textContent(), "CPUが最初のエリアを選んでいます");
     assert.match(await page.locator("#turnGuideDetail").textContent(), /次は、受け取った灰色エリア/);
+    const cpuFirstLayout = await firstMoveLayout(page);
+    assert.ok(cpuFirstLayout.guide.top >= 0 && cpuFirstLayout.board.bottom <= cpuFirstLayout.connection.top, JSON.stringify(cpuFirstLayout));
+    assert.ok(cpuFirstLayout.connection.bottom <= cpuFirstLayout.tabs.top - 4, JSON.stringify(cpuFirstLayout));
+    assert.equal(cpuFirstLayout.overflow, false);
+    assert.equal(cpuFirstLayout.actionOrder, true);
     const handoff = await page.evaluate(() => globalThis.__handoffScrolls.at(-1));
     assert.deepEqual(handoff, { id: "matchCard", options: { block: "start", behavior: "auto" } });
   }, { viewport: { width: 390, height: 844 } });
@@ -2561,9 +2588,28 @@ test("actual Edge hands one submitted setup to the visible first-move guide with
     await page.reload({ waitUntil: "load" });
     await page.locator("#connectionBadge.good").waitFor();
     await page.locator("#matchCard:not(.hidden)").waitFor();
-    await page.waitForTimeout(100);
+    await page.waitForFunction(() => document.querySelector("#regionControls").getBoundingClientRect().bottom <= document.querySelector(".connection-card").getBoundingClientRect().top);
+    assertFirstMoveLayout(await firstMoveLayout(page));
     assert.notEqual(await page.evaluate(() => document.activeElement?.id), "matchTitle");
-  });
+  }, { viewport: { width: 390, height: 844 } });
+
+  await withPage("setupTransition", async (page) => {
+    await page.emulateMedia({ reducedMotion: "no-preference" });
+    await page.evaluate(() => {
+      const original = Element.prototype.scrollIntoView;
+      globalThis.__handoffScrolls = [];
+      Element.prototype.scrollIntoView = function trackedScroll(options) {
+        globalThis.__handoffScrolls.push({ id: this.id, options });
+        return original.call(this, options);
+      };
+    });
+    await page.getByRole("button", { name: "この6枚で準備完了" }).click();
+    await page.locator("#matchCard:not(.hidden)").waitFor();
+    await page.mouse.wheel(0, 320);
+    await page.waitForTimeout(2900);
+    assert.equal(await page.evaluate(() => globalThis.__handoffScrolls.some((entry) => entry.id === "matchCard")), false);
+    assert.notEqual(await page.evaluate(() => document.activeElement?.id), "matchTitle");
+  }, { viewport: { width: 390, height: 844 } });
 });
 
 test("actual Edge guides a player from board selection through one CREATE_REGION intent", { timeout: 130000 }, async () => {

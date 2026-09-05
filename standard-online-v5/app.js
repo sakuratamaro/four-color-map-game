@@ -383,20 +383,26 @@ function hasStandardPublicState(value) {
 for (const eventName of ["pointerdown", "keydown", "click"]) {
   document.addEventListener(eventName, () => { userInteractionRevision += 1; }, true);
 }
+document.addEventListener("wheel", () => { userInteractionRevision += 1; }, { capture: true, passive: true });
 
 function handoffFromSetupToMatch(expectedInteractionRevision) {
   if (roomModel?.room?.status !== "playing" || !hasStandardPublicState(roomModel.room.public_state)) return;
   const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
-  setTimeout(() => {
+  setTimeout(() => alignPlayingViewport({ expectedInteractionRevision, focusHeading: true }), reducedMotion ? 0 : RANDOM_REVEAL_DURATION_MS);
+}
+
+function alignPlayingViewport({ expectedInteractionRevision = null, focusHeading = false, behavior = null } = {}) {
+  requestAnimationFrame(() => {
     const matchTitle = $("matchTitle");
-    if (userInteractionRevision !== expectedInteractionRevision
+    if (expectedInteractionRevision !== null && userInteractionRevision !== expectedInteractionRevision
       || activeAppTab !== "battle"
       || document.visibilityState !== "visible"
       || roomModel?.room?.status !== "playing"
       || matchTitle.closest(".hidden, .tab-panel-hidden")) return;
-    matchTitle.focus({ preventScroll: true });
-    $("matchCard").scrollIntoView({ block: "start", behavior: reducedMotion ? "auto" : "smooth" });
-  }, reducedMotion ? 0 : RANDOM_REVEAL_DURATION_MS);
+    if (focusHeading) matchTitle.focus({ preventScroll: true });
+    const scrollBehavior = behavior || (matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth");
+    $("matchCard").scrollIntoView({ block: "start", behavior: scrollBehavior });
+  });
 }
 
 function activateAppTab(requestedTab, { updateHash = true, scrollTop = true } = {}) {
@@ -505,15 +511,8 @@ function focusMatchedRoom() {
   });
 }
 
-function focusStartedCpuMatch() {
-  requestAnimationFrame(() => {
-    if (activeAppTab !== "battle" || roomModel?.room?.status !== "playing") return;
-    const target = $("matchTitle");
-    if (!target.closest(".hidden, .tab-panel-hidden")) {
-      target.focus({ preventScroll: true });
-      $("matchCard").scrollIntoView({ block: "start", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
-    }
-  });
+function focusStartedCpuMatch(expectedInteractionRevision) {
+  alignPlayingViewport({ expectedInteractionRevision, focusHeading: true });
 }
 
 function goToMatchedRoom() {
@@ -3074,7 +3073,7 @@ async function beginImmediateCpuEntry(trigger = document.activeElement, { replac
   return openCpuRoster("direct", trigger);
 }
 
-async function runPendingCpuStartSaga({ focusOnSuccess = false } = {}) {
+async function runPendingCpuStartSaga({ focusOnSuccess = false, expectedInteractionRevision = null } = {}) {
   if (cpuStartSagaBusy || !pendingCpuStartSaga) return false;
   if (guardNewMatchEntry({ allowCpuOwner: true, allowOwnedSagaRoom: true, replaceRoomId: pendingCpuStartSaga.replaceRoomId })) return false;
   let saga = pendingCpuStartSaga;
@@ -3120,7 +3119,7 @@ async function runPendingCpuStartSaga({ focusOnSuccess = false } = {}) {
     const actualName = CPU_NAMES[saga.characterId] || "CPU";
     await enterPublicMatch(`CPU「${actualName}」と確認した6枚で対戦を開始します。`);
     await roomSync.refreshNow();
-    if (focusOnSuccess) focusStartedCpuMatch();
+    if (focusOnSuccess) focusStartedCpuMatch(expectedInteractionRevision);
     toast("CPUと6枚を確認し、対戦を一度だけ開始しました。");
     return true;
   } catch (error) {
@@ -3138,9 +3137,10 @@ async function runPendingCpuStartSaga({ focusOnSuccess = false } = {}) {
 }
 
 async function commitCpuStartDraft() {
+  const interactionRevision = userInteractionRevision;
   const replaceRoomId = pendingCpuStartSaga?.replaceRoomId || cpuEntryDraft?.replaceRoomId || null;
   if (guardNewMatchEntry({ allowCpuOwner: true, replaceRoomId, allowOwnedSagaRoom: true })) return;
-  if (pendingCpuStartSaga) return runPendingCpuStartSaga({ focusOnSuccess: true });
+  if (pendingCpuStartSaga) return runPendingCpuStartSaga({ focusOnSuccess: true, expectedInteractionRevision: interactionRevision });
   if (!cpuEntryDraft || client.snapshot().roomId && roomModel?.room?.status !== "finished") return;
   const canonicalLoadout = normalizeLoadout(selectedLoadout(), { requireComplete: true, checkOwned: true });
   if (!canonicalLoadout) return toast("各カテゴリから所持カードを2枚ずつ選んでください。");
@@ -3158,7 +3158,7 @@ async function commitCpuStartDraft() {
   catch {
     return toast("開始内容をこの端末へ保存できないため、対戦はまだ始めていません。空き容量やブラウザー設定を確認してください。");
   }
-  return runPendingCpuStartSaga({ focusOnSuccess: true });
+  return runPendingCpuStartSaga({ focusOnSuccess: true, expectedInteractionRevision: interactionRevision });
 }
 
 async function resumePendingCpuStart() {
@@ -3620,6 +3620,7 @@ for (const button of document.querySelectorAll("[data-app-tab]")) button.onclick
 for (const button of document.querySelectorAll("[data-tab-jump]")) button.onclick = () => activateAppTab(button.dataset.tabJump);
 window.addEventListener("hashchange", () => activateAppTab(location.hash.slice(1), { updateHash: false }));
 
+const bootInteractionRevision = userInteractionRevision;
 syncSetupModeControls(client.snapshot(), { force: true });
 loadProfiles();
 activateAppTab(activeAppTab);
@@ -3658,6 +3659,7 @@ try {
     if (!recoveredAtBoot && synced && hasCpuEntryIntent()) await openCpuRoster("direct", $("startStandardCpuHome"));
   }
   render();
+  alignPlayingViewport({ expectedInteractionRevision: bootInteractionRevision, behavior: "auto" });
   if (synced && !cosmeticCatalogLoaded) await refreshOnlineCosmetics({ quiet: true });
   if (pendingQuiz?.pendingAnswer && pendingQuiz?.answerMode === "per-question-v1") submitPendingQuizAnswer();
   else if (pendingQuiz?.answers?.length === 10) finishOnlineQuiz();

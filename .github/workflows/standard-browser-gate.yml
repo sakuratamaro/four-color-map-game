@@ -84,6 +84,7 @@ jobs:
           tests/standard-debug-unlimited.test.cjs
           tests/standard-debug-room-access.test.cjs
           tests/standard-browser-gate-workflow.test.cjs
+          tests/standard-online-browser-harness-static.test.cjs
           tests/standard-legal-recolor-lab.test.cjs
           tests/standard-live-legal-recolor-lab-canary-static.test.cjs
           tests/standard-live-release-preflight-static.test.cjs

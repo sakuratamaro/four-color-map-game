@@ -45,9 +45,20 @@ test("withPage emits deterministic stages and bounds every setup and test-body a
 
 test("timeout hierarchy preserves Playwright diagnostics and teardown room", () => {
   assert.match(withPage, /\{ bodyTimeout = 35_000, viewport = \{ width: 900, height: 800 \} \}/);
-  assert.equal((source.match(/\{ timeout: 130000 \}/g) || []).length, 30);
+  const browserTests = source.split(/\r?\n/).filter((line) => line.startsWith("test("));
+  assert.ok(browserTests.length > 0);
+  for (const declaration of browserTests) {
+    const timeout = declaration.match(/, \{ timeout: (\d+) \}, async \(\) => \{/);
+    assert.ok(timeout, `browser test needs an explicit timeout: ${declaration}`);
+    assert.ok(Number(timeout[1]) >= 120_000, `browser test timeout leaves too little diagnostic and teardown room: ${declaration}`);
+  }
   assert.match(source, /cpu action then returns control[\s\S]+?\{ timeout: 150000 \}/i);
-  assert.match(source, /const RESTORED_ROOM_MODES = new Set\(\["finished", "playing", "handoffGuide", "cpuTurn", "cpuTurnNoColor", "finishedCpu", "cpuWin", "setupTransition", "setupTransitionCpuFirst", "actionRuleError", "setupDebugError", "handoffReload"\]\);/);
+  const restoredModesDeclaration = source.match(/const RESTORED_ROOM_MODES = new Set\((\[[^\r\n]+\])\);/);
+  assert.ok(restoredModesDeclaration);
+  const restoredModes = new Set(JSON.parse(restoredModesDeclaration[1]));
+  for (const mode of ["finished", "playing", "handoffGuide", "cpuTurn", "cpuTurnNoColor", "finishedCpu", "cpuWin", "setupTransition", "setupTransitionCpuFirst", "actionRuleError", "setupDebugError", "handoffReload"]) {
+    assert.ok(restoredModes.has(mode), `restored-room harness is missing ${mode}`);
+  }
 });
 
 test("withPage releases partial startup resources and every HTTP connection", () => {

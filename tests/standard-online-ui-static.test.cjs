@@ -359,6 +359,9 @@ test("roomless loadout review defers CPU creation and persists one immutable two
   assert.match(app, /client\.submitSetup\(\{[\s\S]+setupActionId: saga\.setupActionId[\s\S]+loadout: saga\.canonicalLoadout/);
   assert.match(app, /saga = \{ \.\.\.saga, stage: "setup", roomId: result\.roomId \}[\s\S]+persistCpuStartSaga\(saga\)[\s\S]+client\.submitSetup/);
   assert.match(app, /pendingCpuStartSaga[\s\S]+await runPendingCpuStartSaga\(\)/);
+  assert.match(app, /function focusStartedCpuMatch\(expectedInteractionRevision\) \{\s*alignPlayingViewport\(\{ expectedInteractionRevision, focusHeading: true \}\)/);
+  assert.match(app, /async function commitCpuStartDraft\(\) \{\s*const interactionRevision = userInteractionRevision;[\s\S]+runPendingCpuStartSaga\(\{ focusOnSuccess: true, expectedInteractionRevision: interactionRevision \}\)/);
+  assert.match(app, /addEventListener\("wheel",[\s\S]+\{ capture: true, passive: true \}/);
   assert.match(app, /const roomStatePending = Boolean\(snapshot\.roomId && !authoritativeRoomLoaded\)[\s\S]+!roomStatePending[\s\S]+対戦状態を確認しています。操作せず/);
 });
 
