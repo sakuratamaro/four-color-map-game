@@ -29,6 +29,8 @@ Dashboardのbaselineを取得できない場合は理由を証拠台帳へ`BLOCK
 
 現行公開候補の初回実測は`docs/STANDARD_DASHBOARD_T0_20260905.json`と正規化済み`docs/STANDARD_OBSERVATION_T0_20260905.json`に保存する。後者が`PARTIAL`の場合は、欠落値を推測で埋めず`pendingPaths`をT+24hでも再取得する。
 
+Storage/CPU警報の原因切り分けには`supabase/verification/standard_resource_diagnostic.sql`をSQL Editorへ完全置換して実行する。このSQLは単一の`WITH ... SELECT`だけで、行ID、ユーザーID、SQL本文、secretを返さず、publication、replication slot別WAL lag、relation size、dead tuple概算、接続集計、保持境界超過件数だけを返す。slot別lagの合計は同じWAL区間を重複計上し得るため実ディスク量とみなさず、最大値をT+24hの同条件snapshotと比較する。単発値だけでslot追従、CPU原因、Storage alert解消を断定しない。
+
 入力の観測値は、たとえば`metrics["database.cpu_pct"] = { "state": "OBSERVED", "value": 0, "source": "dashboard.database" }`とする。固定metric名・単位・集計方法・許可sourceはスクリプト内のallowlistを正本とし、値を取れないmetricは入力から省略してよい。Query Performanceは24時間filterではなく`pg_stat_statements`のreset以降の累積なので、`query.*`は専用の`pg_stat_statements_cumulative*`集計とwarningで区別する。AdvisorはSecurity/Performanceのerror・warning・suggestionを別metricにし、severityを合算しない。
 
 `release.repositoryHead`、`release.publicAssetCommit`、`release.pagesCommit`、`release.pagesRun`は別の識別子である。repository HEADを公開済みとみなさず、未取得の観測metricやEdge deploymentは`0`に置換せず`PENDING` / `null`のまま残す。観測値`0`は有効な`OBSERVED`として保持する。
@@ -92,6 +94,8 @@ SQL Editorでは内容を全置換し、次を1ファイルずつ順番に実行
 ### C. 野良対戦
 
 - Aが「対戦相手を募集」、Bが「今入れる試合を探す」で1室だけ成立し、画面にも応答にも合言葉が出ない。
+- Aが募集待機中にクイズ回答とガチャをそれぞれ開始し、成立時に同じ回答／抽選actionが一度だけ確定してからsetupへ移ることを確認する。正誤表示を飛ばさず、次問時計を開始せず、手動Battleタブで待機境界を迂回できないことも確認する。
+- 対戦中は途中クイズの残り時間が減らず、終了・退出・missing room後もQuizタブを明示的に開くまで裏で回答を送らない。合言葉、CPU、終了済みpublic、stale roomのreloadでは通常のクイズへ復帰する。
 - 取消と検索の競合、2人同時検索、10件同時確保で二重ticket/seat/roomがない。
 - 二端末で1試合を完走し、再読込と新しい野良対戦を確認する。
 

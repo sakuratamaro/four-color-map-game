@@ -167,18 +167,30 @@
 - 入力`STANDARD_DASHBOARD_T0_20260905.json`と正規化出力`STANDARD_OBSERVATION_T0_20260905.json`を保存した。公開preflightは`ok:true`、repository HEAD・公開asset・Pages commit/run・Edge deployment 13を分離し、物理二端末は`NOT_RUN/PENDING/automated:false`のままである。
 - 課金、Compute/Disk変更、Advisor reset、SQL、DB/Edge更新は行っていない。T+24hより先に、`realtime.list_changes`の累積負荷が現行Standard由来か既存/プラットフォーム由来かをread-onlyで切り分ける。
 
+## 2026-09-05 17:51 JST 野良成立の安全な対戦引継ぎ公開・資源診断
+
+- 3担当の監査を統合し、野良募集を待ちながらクイズまたはガチャを使った際、対戦成立を見落として相手を待たせる導線を次の最優先改善とした。
+- `1e856f9`で、権威的なroom同期後だけ成立を一度通知し、通常待機中はsetupへ自動移動する。クイズ回答・開始RPC・ガチャが進行中なら、同じaction IDの結果または安全な再送状態まで待つ。各問の正誤は650ms以上表示し、次問時計を開始しない。
+- クイズ時計の休止状態を通知表示から分離した。手動Battleタブによる待機境界の迂回を拒否し、対戦中、終了、退出、missing room中も残り時間を消費しない。実際にQuizタブを開いた時だけ再開する。active public roomだけを対象にし、合言葉、CPU、終了済みpublic、stale roomは通常復帰する。
+- 初回の独立レビューで、別タブpending quiz、手動Battle迂回、休止中render、退出・終了・missing、非public reloadの競合を順に検出した。全件を再現testへ固定した後、最終独立レビューは残存P0-P2なしで承認した。
+- ローカルはStandard online browser 38/38、静的・client・診断境界64/64が合格。正式製品連続試験は変更外の接触演出browser群が共有hostの30秒起動timeoutを再発し、単独再試行も同じhost症状だったため公開判定から分離した。変更対象の全browserは完走し、クリーンなWindows gate `33956185495`でChrome/Edgeとも成功した。
+- `origin/main`を`c4535a4`から`1e856f9`へforceなしでfast-forwardした。Pages run `33956373181`は成功。公開HTML/app/styleはasset v15と安全引継ぎmarkerを返し、candidate preflightは`ok:true`だった。
+- `ebe5f19`でread-only資源診断SQLと結果を保存した。DBは15,297,683 bytes、最大ゲームrelationは327,680 bytes、blocked connectionとidle-in-transactionは0、Realtime replication slotは2/2 active、slot別最大WAL lagは16,776,968 bytes。保持候補は24時間超room 11件、7日超ticket/quiz/limitと30日超receiptは0件だった。
+- slot別lag合計は同一WAL区間を二重計上し得るため実ディスク量とみなさない。単発snapshotだけでslot追従も断定しない。ゲーム表肥大をStorage alertの主因とする証拠はなく、cleanup、課金、Compute/Disk変更、Advisor reset、DB/Edge更新は行っていない。T+24hで最大lagとDashboard指標を比較する。
+- 物理二端末の野良成立引継ぎ、完走、途中再読込、再戦は`NOT_RUN/PENDING`のままである。
+
 ## 公開識別子
 
 | 項目 | 値 |
 | --- | --- |
 | browser harness diagnostics commit | `6fc23a5` |
 | Windows browser CI commit | `d8dac1b` |
-| final browser-verified candidate | `193a0e6`（CPU報酬→ガチャ本体`e36dfcc`＋表示追補） |
-| Windows browser CI run | `33951596007` / Chrome Success / Edge Success |
+| final browser-verified candidate | `1e856f9`（野良成立時の安全な対戦引継ぎ。直前報酬導線`193a0e6`を包含） |
+| Windows browser CI run | `33956185495` / Chrome Success / Edge Success |
 | 初回candidate code baseline（履歴） | `0e02176`（Edge deployment 8 sourceは`c3cf372`） |
 | applied migrations | `202609030006`–`202609030013`, `202609050001`–`202609050005` |
 | `standard-game-action` version | クロガネv2対応deployment（2026-09-05 14:34 JST更新） |
-| Pages Actions run | `33951598229` / Success / `193a0e6` |
+| Pages Actions run | `33956373181` / Success / `1e856f9` |
 | public URL | `https://sakuratamaro.github.io/four-color-map-game/standard-online-v5/` |
 
 ## Canary結果
@@ -207,6 +219,8 @@
 | 6枚CTA Windows browser gate | PASS | 2026-09-05 | run `33950043659`。Windows 2025のChrome/Edge両jobが成功 |
 | CPU報酬→ガチャ Windows browser gate | PASS | 2026-09-05 | run `33951596007`。Chrome/Edge両job成功。保存済みCPU精算、否定条件、390×844、無抽選遷移、再読込後の券消費を検査 |
 | CPU報酬→ガチャ Pages・公開asset | PASS | 2026-09-05 | `193a0e6`、Pages run `33951598229`。公開asset v14、CTA、保存済みCPU条件、無抽選遷移、紙吹雪clip、focus CSSを確認 |
+| 野良成立引継ぎ Windows browser gate | PASS | 2026-09-05 | run `33956185495`。Windows 2025のChrome/Edge両job成功。回答中・開始中・別タブ・ガチャ・reload分類・休止保持を含む38 browser test |
+| 野良成立引継ぎ Pages・公開asset | PASS | 2026-09-05 | `1e856f9`、Pages run `33956373181`。公開asset v15、安全引継ぎDOM/app/style marker、candidate preflight `ok:true` |
 | 二端末最終受入 | NOT_RUN | PENDING | PENDING |
 
 ## 残存リスク
@@ -214,7 +228,7 @@
 - Dashboard T0は17項目を取得したが、Database 24hグラフ等20項目はDashboard取得不能でPARTIAL。資源逼迫alert 2件と7日Compute/CPU peak 99%があるため、負荷由来を切り分けるまで新しい高負荷経路を追加しない。
 - profile作成安定化はCの逐次16件で500/429なしを確認した。高並列作成そのものはAuth上限を消費するため再試験せず、再発時はEdge/DBログと資源警告を関連調査する。
 - Cのstatus正規化は本番関数定義、既存ticket整合、live canary 210/210まで確認済み。今後もIPあたり30 anonymous sign-ins/時を守り、同じ認証窓で重いcanaryを再試行しない。
-- 現行製品`193a0e6`はPagesへ反映済み。自動browser、公開asset、Edge/DB保護境界の合格と、未実施の物理二端末受入を混同しない。
+- 現行製品`1e856f9`はPagesへ反映済み。自動browser、公開asset、Edge/DB保護境界の合格と、未実施の物理二端末受入を混同しない。
 - Edgeのper-isolate濫用抑止は分散レート制限ではない。公開後の計測で必要性が出た場合だけprovider側制限を検討する。
 - 10人CPUの合法性・決定性は自動検証済みだが、人間が感じる個性と楽しさは代表3人の実プレイ後も定性的判断として残る。
 - cleanup実削除や定期化は許可済みだが、exact IDと復元手段を確認するまで実行しない。課金設定変更は必要性と金額を特定してから扱う。

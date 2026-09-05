@@ -8,7 +8,7 @@
 
 ## 司令塔ルール
 
-- 統合基点は `origin/main` とし、現在の公開ゲーム資産基点は `193a0e6`（報酬導線本体`e36dfcc`＋表示追補）。後続の記録・検査専用commitは製品ロジック更新と数えない。
+- 統合基点は `origin/main` とし、現在の公開ゲーム資産基点は `1e856f9`（野良成立時の安全な対戦引継ぎ）。直前の報酬導線は`193a0e6`、資源診断commitは`ebe5f19`として分離する。
 - 現在の統合作業は `codex/standard-release-command` だけで行う。
 - 古いdirty worktreeからbuild、merge、deployしない。
 - `実装済み`、`ローカル検証済み`、`live検証済み`、`公開済み`を別状態として記録する。
@@ -19,8 +19,8 @@
 
 | 優先度 | 作業 | 主担当 | 状態 | 完了条件 |
 | --- | --- | --- | --- | --- |
-| P0 | Standard公開候補の固定と再検証 | 司令塔 | PUBLIC_VERIFIED | `193a0e6`。報酬導線の静的42/42、ローカル390×844 Edge重点1/1、独立レビューP0/P1なし。Windows browser run `33951596007`はChrome/Edge成功 |
-| P0 | Pages反映と公開後preflight | 司令塔 | PUBLIC_VERIFIED | 公開ゲーム資産基点`193a0e6`、Pages run `33951598229`成功。公開URLでasset v14、保存済みCPU報酬CTA、無抽選遷移、モーダルclip、focus CSSを確認 |
+| P0 | Standard公開候補の固定と再検証 | 司令塔 | PUBLIC_VERIFIED | `1e856f9`。ローカルStandard browser 38/38、静的・境界64/64、独立レビューP0-P2なし。Windows browser run `33956185495`はChrome/Edge成功 |
+| P0 | Pages反映と公開後preflight | 司令塔 | PUBLIC_VERIFIED | 公開ゲーム資産基点`1e856f9`、Pages run `33956373181`成功。公開URLでasset v15、安全引継ぎDOM/app/style marker、candidate preflight `ok:true`を確認 |
 | P0 | 合言葉・経済・野良・CPUのlive縦通し | 技術品質 | COMPLETED | deployment 8でEdge 6/6、A 43/43、B 93/93、C 210/210、D 107/107合格 |
 | P0 | 待ち時間なしのStandard CPU開始 | UX＋Edge＋DB | PUBLIC_VERIFIED | `cc96350`。migration `202609050002`、Edge deployment 9、基本6/6＋即時CPU 7/7、Windows run `33931963065`、Pages run `33932159043`合格。公開UIでCPU選択→6枚準備→CPU初手→人間第2手を確認 |
 | P0 | 同時profile作成のHTTP 500抑止 | Edge＋運用 | PUBLIC_VERIFIED | 新規作成をload→commitの2 RPCへ削減。一時障害を503化。C準備の16 profileが逐次で全件成功し、500/429なし |
@@ -31,7 +31,7 @@
 | P0 | CPU戦の完了報酬表示 | UX＋進行 | PUBLIC_VERIFIED | `640ec98`。保存済みCPU結果へ`Lv.1ガチャ券 +1`を明示し、再読込を含む券2→3、対人精算とCPU未精算の否定条件を確認。Windows run `33944794035`、Pages run `33944924097`成功 |
 | P0 | 持ち色変更の説明 | UX＋ルール | PUBLIC_VERIFIED | `640ec98`。基本色2枠は回数無制限、おまけ色枠は残り回数を変更後の色へ引き継ぐことを明示。Windows run `33944794035`、Pages run `33944924097`成功 |
 | P0 | クロガネ公開情報lookahead v2 | CPU＋Edge＋DB | PUBLIC_VERIFIED | `a3425a4`。migration `202609050005`、新規クロガネだけv2、旧roomは旧policy維持、再戦時v2更新。公開情報だけの合法手、再送、決着、同CPU再戦canary合格。Windows run `33947039777`、Pages run `33947644765`成功 |
-| P0 | Supabase資源とRealtime負荷の追跡 | 運用 | PENDING | T0を`STANDARD_OBSERVATION_T0_20260905.json`へPARTIAL記録。24hはData API 3,437、error 1.629328%、Edge 1,006、Realtime変更148。Query Performance累積は`realtime.list_changes` 68,723 calls／DB時間79%／mean 19ms／max 3,837ms。Database 24hグラフ20項目は取得不能のままPENDING、Healthはstorage/host disk alert 2件。T+24hで再採取し、先に負荷由来を切り分ける |
+| P0 | Supabase資源とRealtime負荷の追跡 | 運用 | OBSERVED_PARTIAL | T0に加え、`STANDARD_RESOURCE_DIAGNOSTIC_20260905.json`をread-only取得。DB 15,297,683 bytes、最大ゲームrelation 327,680 bytes、blocked/idle-in-transaction 0、Realtime slot 2/2 active、slot別最大WAL lag 16,776,968 bytes、期限切れ候補はroom 11件・他0件。ゲーム表肥大をdisk警報の主因とする証拠はなく、単発値だけでslot追従も断定しない。T+24hで時系列比較する |
 | P0 | 別々の二端末による最終受入 | チャッピー先生＋司令塔 | PENDING | 対人/CPUの完走、復帰、再戦、永続化を確認 |
 | P1 | 対戦を主役にする情報設計 | UX | PUBLIC_VERIFIED | 5タブ化し、ホームの主CTAから対戦タブ内の初回profile作成・同期・ロビーまでを一本化。公開URLの390px実画面で確認済み |
 | P1 | 初回オンライン準備を一操作に短縮 | UX | PUBLIC_VERIFIED | `9d42784`。名前入力後の一操作でstarter保存とprofile同期を行い、自動入室はしない。空名write 0、同期二重送信防止、失敗時starter保持。公開CTA確認済み |
@@ -42,6 +42,7 @@
 | P1 | 6枚セットアップの即時確定 | UX | PUBLIC_VERIFIED | `e0f4f98`。390×844の初期表示から、選択済みスターター6枚と準備OK、確定CTAを下部nav直上へ固定表示。無効構成ではdisabled、準備送信1回、公開CPU対戦開始まで確認。Windows run `33950043659`はChrome/Edge成功 |
 | P1 | CPU戦終了から次の一局への循環 | ゲーム体験 | PUBLIC_VERIFIED | `29c6958`。同じCPU再戦に加え、結果を残したまま別CPUを選んで即時新対戦へ進める。公開API完走・同CPU再戦canary 25/25 |
 | P1 | CPU報酬からガチャへの直行 | ゲーム体験 | PUBLIC_VERIFIED | `e36dfcc`＋表示追補`193a0e6`。保存済み通常CPU精算だけにCTAを出し、抽選せずLv.1ガチャへ移動して見出しへfocus。対人・未精算・debugは非表示。390×844、再読込、券消費の一度だけ保存を検査し、Windows run `33951596007`、Pages run `33951598229`成功 |
+| P1 | 野良成立時のクイズ・ガチャから対戦への安全な引継ぎ | ゲーム体験＋同期 | PUBLIC_VERIFIED | `1e856f9`。回答・抽選のexactly-once境界と650msの正誤表示を完了してからsetupへ移動。クイズ時計は対戦中に凍結し、明示的なQuiz再訪でだけ再開。手動Battle迂回、別タブ、reload、CPU、合言葉、終了済み・失効roomを回帰固定。Windows run `33956185495`、Pages run `33956373181`成功 |
 | P1 | 未コミット／孤立作業の回収 | 構成管理 | COMPLETED | 29床を3床へ集約。丸ごと統合候補は0。Quick回帰試験だけを回収し、残るroot dirtyは救出済み・凍結管理 |
 | P2 | GitHub Pages actionのNode.js警告解消 | 技術品質 | BACKLOG | 公開結果を変えず、Node.js 20廃止予定warningを消す |
 
@@ -64,11 +65,11 @@
 
 | 区分 | 対象 | 方針 |
 | --- | --- | --- |
-| 正本 | `origin/main` | 公開ゲーム資産基点は`193a0e6`。migration `202609050001`–`202609050005`、クロガネv2対応Edge、Pages run `33951598229`まで公開確認済み。今回DB/Edge変更なし |
-| 現在の統合床 | `codex/standard-release-command` | `main`と同じ公開履歴へ同期。次は物理二端末受入と24時間負荷確認 |
-| 公開済み現候補 | ゲーム資産`193a0e6` | 6枚準備CTAに加え、CPU精算報酬から安全にLv.1ガチャへ戻る循環を追加。公開asset、Chrome/Edge gate、Pagesを確認済み |
+| 正本 | `origin/main` | 公開ゲーム資産基点は`1e856f9`。migration `202609050001`–`202609050005`、クロガネv2対応Edge、Pages run `33956373181`まで公開確認済み。今回DB/Edge変更なし |
+| 現在の統合床 | `codex/standard-release-command` | `main`と同じ製品履歴へ同期。次は物理二端末受入とT+24h負荷確認 |
+| 公開済み現候補 | ゲーム資産`1e856f9` | CPU報酬→ガチャ循環に加え、野良成立をクイズ/ガチャ処理から安全にsetupへ渡す。公開asset、Chrome/Edge gate、Pages、candidate preflightを確認済み |
 | 保全済み | detached `a8fce7d` dirty床 | `codex/salvage-a8fce7d-20260904` / `9e4e8ee` に秘密情報なしでWIP保全済み。機能単位で比較 |
-| 凍結root | root `ac78282` | 正史worktreeを内包するため作業床は維持。dirty 40件は救出済みで、丸ごとmerge禁止。正本にない候補の採否は完了 |
+| 凍結root | root `ac78282` | 正史worktreeを内包するため作業床は維持。再監査したdirty 39件のうち38件は既存commitと一致し、残る旧handoff文書も現正本で置換済み。丸ごとmerge禁止、回収残件なし |
 | GitHub保管 | `codex/archive-standard-release-1f823b2` | 正史の祖先でない孤立コミットをGitHubへ退避済み。作業床は削除 |
 | 整理済み | clean旧作業床22個 | HEAD、branch、dirty=0を個別確認し、`--force`なしで作業床だけを削除。到達可能な履歴は維持 |
 | 整理済み | UI `6ac4a29`、phase2 `93a5578`、solo `9bfbaf8` | 全tracked差分がCRLFだけ、staged/untracked/秘密候補0、salvageから到達可能と二重確認し、改行差分だけを破棄して作業床を削除 |
@@ -81,7 +82,7 @@
 | 合言葉不要マッチング＋CPUフォールバック | `origin/main@a3425a4`でPUBLIC_VERIFIED | 自動live canaryは完了。物理二端末で対人/CPUの完走、復帰、再戦を確認する |
 | クイズ・スキル・バランス | 即時採点、答え合わせ、持ち色変更説明、クロガネv2までPUBLIC_VERIFIED | 物理端末の操作感を確認し、公開後24時間指標と分離して記録する |
 | online MVP status／live regression | 現行公開識別子と有限な証拠を`STANDARD_RELEASE_EVIDENCE.md`へ集約 | 古い時系列ログは履歴として保持し、現行状態と混同しない |
-| 二端末P0 handoff | PENDING | `193a0e6`の対人/CPU完走、途中再読込、再戦、報酬→ガチャ、永続化だけを残件として回収 |
+| 二端末P0 handoff | PENDING | `1e856f9`の対人/CPU完走、野良待機中のクイズ/ガチャ引継ぎ、途中再読込、再戦、報酬→ガチャ、永続化だけを残件として回収 |
 | nested Expo設計群 | 旧ローカル試作 | 現行Standard Onlineから凍結分離 |
 
 ## 体験改善の判断軸
