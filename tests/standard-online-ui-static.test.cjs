@@ -239,6 +239,10 @@ test("turn guide moves from selection to handoff without exposing a legality ora
   assert.match(app, /if \(state\.status !== "ACTIVE" \|\| targetDraft\) return show\("turnGuide", false\)/);
   assert.match(app, /盤面をタップ／クリックして、あと\$\{remaining\}マス選ぶ/);
   assert.match(app, /選んだエリアは相手が塗ります。相手が困る形や接し方を考えてみましょう。/);
+  assert.match(app, /makerIsMe \? `あなたが作る → \$\{opponent\}が塗る` : `\$\{opponent\}が作る → あなたが塗る`/);
+  assert.match(app, /\["CREATE_FIRST", "WORK"\]\.includes\(state\.phase\) \? myTurn : state\.phase === "COLOR" && !myTurn/);
+  assert.match(app, /\${opponent}があなたへ渡すエリアを作っています/);
+  assert.match(app, /あなたが作った灰色エリアの彩色を待っています/);
   assert.match(app, /選べました。「このエリアを渡す」へ/);
   assert.match(app, /受け取った灰色エリアを塗る/);
   assert.match(app, /if \(actionBusy\) return present\("wait", "送信中"/);

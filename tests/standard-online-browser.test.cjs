@@ -22,7 +22,7 @@ const saveKey = "fourColorMapGame.standard.v5.save";
 const remoteProfileKey = "fourColorMapGame.standard.online.v5.remote-profile";
 const roomId = "11111111-1111-4111-8111-111111111111";
 const pendingRematchId = "22222222-2222-4222-8222-222222222222";
-const RESTORED_ROOM_MODES = new Set(["finished", "playing", "cpuTurn", "finishedCpu", "cpuWin", "setupTransition", "setupTransitionCpuFirst"]);
+const RESTORED_ROOM_MODES = new Set(["finished", "playing", "handoffGuide", "cpuTurn", "finishedCpu", "cpuWin", "setupTransition", "setupTransitionCpuFirst"]);
 
 function browserStage(stage) {
   console.error(`BROWSER_STAGE ${stage}`);
@@ -260,6 +260,17 @@ async function installMock(context, mode) {
           runtime.view = null;
           return { data: { roomStatus: "ready", roomVersion: runtime.room.version, readyToSetup: true, duplicate: false } };
         }
+        if (request.body.operation === "action" && initialMode === "handoffGuide" && request.body.action?.type === "CREATE_REGION") {
+          const sourceMacros = request.body.action.payload.sourceMacros;
+          const nextVersion = runtime.room.version + 1;
+          runtime.room = { ...runtime.room, version: nextVersion, public_state: {
+            ...runtime.room.public_state, version: nextVersion, turn: runtime.room.public_state.turn + 1,
+            active: "B", phase: "COLOR", pending: "R1",
+            regions: { R1: { id: "R1", micro: [...sourceMacros], sourceMacros: [...sourceMacros], controllers: ["A"], color: null, isPending: true } },
+          } };
+          runtime.view = { ...runtime.view, version: nextVersion };
+          return { data: { duplicate: false, room: runtime.room } };
+        }
         if (request.body.operation === "action" && initialMode === "cpuWin") {
           const next = JSON.parse(JSON.stringify(runtime.profile.profile_state));
           next.cpuStats.wins += 1;
@@ -362,7 +373,7 @@ async function withPage(mode, run, { bodyTimeout = 35_000, viewport = { width: 9
     } finally {
       try {
         browserStage("browser-close-start");
-        if (browser) await bounded("browser-close", browser.close(), 10_000);
+        if (browser) await bounded("browser-close", browser.close(), 20_000);
         browserStage("browser-close-ready");
       } finally {
         browserStage("server-close-start");
@@ -873,7 +884,7 @@ test("actual Edge hands one submitted setup to the visible first-move guide with
     await page.getByRole("button", { name: "この6枚で準備完了" }).click();
     await page.waitForFunction(() => document.activeElement?.id === "matchTitle");
     assert.equal(await page.locator("#matchTitle").textContent(), "Standard対戦スタート");
-    assert.equal(await page.locator("#turnGuideStep").textContent(), "最初の一手");
+    assert.equal(await page.locator("#turnGuideStep").textContent(), "あなたが作る → CPUが塗る");
     assert.match(await page.locator("#turnGuideTitle").textContent(), /白い盤面をタップして、あと1マス選ぶ/);
     await page.waitForFunction(() => {
       const guide = document.querySelector("#turnGuide").getBoundingClientRect();
@@ -900,7 +911,7 @@ test("actual Edge hands one submitted setup to the visible first-move guide with
     });
     await page.getByRole("button", { name: "この6枚で準備完了" }).click();
     await page.waitForFunction(() => document.activeElement?.id === "matchTitle");
-    assert.equal(await page.locator("#turnGuideStep").textContent(), "CPUの手番");
+    assert.equal(await page.locator("#turnGuideStep").textContent(), "CPUが作る → あなたが塗る");
     assert.equal(await page.locator("#turnGuideTitle").textContent(), "CPUが最初のエリアを選んでいます");
     assert.match(await page.locator("#turnGuideDetail").textContent(), /次は、受け取った灰色エリア/);
     const handoff = await page.evaluate(() => globalThis.__handoffScrolls.at(-1));
@@ -920,12 +931,12 @@ test("actual Edge hands one submitted setup to the visible first-move guide with
 test("actual Edge guides a player from board selection through one CREATE_REGION intent", { timeout: 130000 }, async () => {
   await withPage("playing", async (page) => {
     await page.locator("#turnGuide:not(.hidden)").waitFor();
-    assert.equal(await page.locator("#turnGuideStep").textContent(), "STEP 1");
+    assert.equal(await page.locator("#turnGuideStep").textContent(), "あなたが作る → 相手が塗る");
     assert.match(await page.locator("#turnGuideTitle").textContent(), /あと1マス選ぶ/);
     assert.match(await page.locator("#turnGuideDetail").textContent(), /選んだエリアは相手が塗ります/);
     await page.locator("#board").click({ position: { x: 50, y: 50 } });
     assert.equal(await page.locator("#selectionCount").textContent(), "1 / 1マス");
-    assert.equal(await page.locator("#turnGuideStep").textContent(), "STEP 2");
+    assert.equal(await page.locator("#turnGuideStep").textContent(), "あなたが作る → 相手が塗る");
     assert.equal(await page.locator("#turnGuideTitle").textContent(), "選べました。「このエリアを渡す」へ");
     await page.getByRole("button", { name: "このエリアを渡す" }).click();
     await page.getByText("操作を保存しました。").waitFor();
@@ -934,6 +945,60 @@ test("actual Edge guides a player from board selection through one CREATE_REGION
     assert.equal(calls[0].action.type, "CREATE_REGION");
     assert.equal(calls[0].action.payload.sourceMacros.length, 1);
   });
+});
+
+test("actual Edge names the maker and painter across every handoff state", { timeout: 130000 }, async () => {
+  await withPage("handoffGuide", async (page) => {
+    const states = [
+      { active: "A", phase: "CREATE_FIRST", role: "あなたが作る → 相手が塗る", title: "白い盤面をタップして、あと1マス選ぶ" },
+      { active: "B", phase: "CREATE_FIRST", role: "相手が作る → あなたが塗る", title: "相手があなたへ渡すエリアを作っています" },
+      { active: "A", phase: "WORK", role: "あなたが作る → 相手が塗る", title: "盤面をタップ／クリックして、あと1マス選ぶ" },
+      { active: "B", phase: "WORK", role: "相手が作る → あなたが塗る", title: "相手があなたへ渡すエリアを作っています" },
+      { active: "A", phase: "COLOR", role: "相手が作る → あなたが塗る", title: "受け取った灰色エリアを塗る" },
+      { active: "B", phase: "COLOR", role: "あなたが作る → 相手が塗る", title: "相手が受け取ったエリアを塗っています" },
+    ];
+    for (const expected of states) {
+      await page.evaluate(({ active, phase }) => {
+        const runtime = globalThis.__standardOnlineRuntime;
+        const version = runtime.room.version + 1;
+        const coloring = phase === "COLOR";
+        runtime.room = { ...runtime.room, version, public_state: {
+          ...runtime.room.public_state, version, active, phase, pending: coloring ? "R1" : null,
+          regions: coloring ? { R1: { id: "R1", micro: [0], sourceMacros: [0], controllers: [active === "A" ? "B" : "A"], color: null, isPending: true } } : {},
+        } };
+        runtime.view = { ...runtime.view, version };
+        runtime.onInvalidate();
+      }, expected);
+      await page.waitForFunction(({ role, title }) => (
+        document.querySelector("#turnGuideStep")?.textContent === role
+        && document.querySelector("#turnGuideTitle")?.textContent === title
+      ), expected);
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth), false);
+    }
+
+    await page.evaluate(() => {
+      const runtime = globalThis.__standardOnlineRuntime;
+      const version = runtime.room.version + 1;
+      runtime.room = { ...runtime.room, version, public_state: {
+        ...runtime.room.public_state, version, active: "A", phase: "WORK", pending: null, regions: {},
+      } };
+      runtime.view = { ...runtime.view, version };
+      runtime.onInvalidate();
+    });
+    await page.getByText("盤面をタップ／クリックして、あと1マス選ぶ", { exact: true }).waitFor();
+    await page.locator("#board").click({ position: { x: 50, y: 50 } });
+    await page.getByRole("button", { name: "このエリアを渡す" }).click();
+    await page.getByText("操作を保存しました。").waitFor();
+    await page.waitForFunction(() => document.querySelector("#turnGuideTitle")?.textContent === "相手が受け取ったエリアを塗っています");
+    const afterCreate = await page.evaluate(() => ({
+      active: globalThis.__standardOnlineRuntime.room.public_state.active,
+      phase: globalThis.__standardOnlineRuntime.room.public_state.phase,
+      pending: globalThis.__standardOnlineRuntime.room.public_state.pending,
+      overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+    }));
+    assert.deepEqual(afterCreate, { active: "B", phase: "COLOR", pending: "R1", overflow: false });
+    assert.equal(await page.locator("#turnGuideStep").textContent(), "あなたが作る → 相手が塗る");
+  }, { viewport: { width: 390, height: 844 } });
 });
 
 test("actual Edge explains private random setup and every visible skill without exposing an oracle", { timeout: 130000 }, async () => {

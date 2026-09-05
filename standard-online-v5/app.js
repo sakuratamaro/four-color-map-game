@@ -1456,6 +1456,9 @@ function renderTurnGuide(state) {
   const seat = roomModel?.view?.seat;
   const cpuRoom = roomModel?.room?.opponent_kind === "cpu";
   const myTurn = state.status === "ACTIVE" && state.active === seat;
+  const opponent = cpuRoom ? "CPU" : "相手";
+  const makerIsMe = ["CREATE_FIRST", "WORK"].includes(state.phase) ? myTurn : state.phase === "COLOR" && !myTurn;
+  const rolePath = makerIsMe ? `あなたが作る → ${opponent}が塗る` : `${opponent}が作る → あなたが塗る`;
   const setText = (id, value) => { if ($(id).textContent !== value) $(id).textContent = value; };
   const present = (kind, step, title, detail) => {
     guide.dataset.state = kind;
@@ -1468,20 +1471,21 @@ function renderTurnGuide(state) {
   if (actionBusy) return present("wait", "送信中", "サーバーで操作を確認しています", "結果が返るまで、そのままお待ちください。");
   if (pendingAction) return present("ready", "再送", "前の操作の結果を確認します", "下の「同じ操作を再送」で、同じ操作IDのまま安全に確認できます。");
   if (!myTurn && cpuRoom && state.active === "B" && state.phase === "CREATE_FIRST") {
-    return present("wait", "CPUの手番", "CPUが最初のエリアを選んでいます", "次は、受け取った灰色エリアを盤面の下にある持ち色から塗ります。");
+    return present("wait", rolePath, "CPUが最初のエリアを選んでいます", "次は、受け取った灰色エリアを盤面の下にある持ち色から塗ります。");
   }
-  if (!myTurn) return present("wait", "WAIT", "相手の手番です", "次に受け取るエリアを、どの色で塗るか考えながら待ちましょう。");
+  if (!myTurn && ["CREATE_FIRST", "WORK"].includes(state.phase)) return present("wait", rolePath, `${opponent}があなたへ渡すエリアを作っています`, "次に受け取るエリアを、どの色で塗るか考えながら待ちましょう。");
+  if (!myTurn && state.phase === "COLOR") return present("wait", rolePath, `${opponent}が受け取ったエリアを塗っています`, "あなたが作った灰色エリアの彩色を待っています。");
   if (state.phase === "CREATE_FIRST") {
     const remaining = Math.max(0, state.requiredSize - selectedMacros.size);
-    if (remaining > 0) return present("select", "最初の一手", `白い盤面をタップして、あと${remaining}マス選ぶ`, "選べたら「このエリアを渡す」を押します。選んだエリアは相手が塗ります。");
-    return present("ready", "最初の一手", "選べました。「このエリアを渡す」へ", "選んだマスは白い枠で表示されています。下のボタンで相手へ渡します。");
+    if (remaining > 0) return present("select", rolePath, `白い盤面をタップして、あと${remaining}マス選ぶ`, "選べたら「このエリアを渡す」を押します。選んだエリアは相手が塗ります。");
+    return present("ready", rolePath, "選べました。「このエリアを渡す」へ", "選んだマスは白い枠で表示されています。下のボタンで相手へ渡します。");
   }
   if (state.phase === "WORK") {
     const remaining = Math.max(0, state.requiredSize - selectedMacros.size);
-    if (remaining > 0) return present("select", "STEP 1", `盤面をタップ／クリックして、あと${remaining}マス選ぶ`, "選んだエリアは相手が塗ります。相手が困る形や接し方を考えてみましょう。");
-    return present("ready", "STEP 2", "選べました。「このエリアを渡す」へ", "選んだマスは白い枠で表示されています。下のボタンで相手へ渡します。");
+    if (remaining > 0) return present("select", rolePath, `盤面をタップ／クリックして、あと${remaining}マス選ぶ`, "選んだエリアは相手が塗ります。相手が困る形や接し方を考えてみましょう。");
+    return present("ready", rolePath, "選べました。「このエリアを渡す」へ", "選んだマスは白い枠で表示されています。下のボタンで相手へ渡します。");
   }
-  if (state.phase === "COLOR") return present("color", "STEP 2", "受け取った灰色エリアを塗る", "盤面の下にある持ち色から選びます。同じ色が辺で接しないように塗りましょう。");
+  if (state.phase === "COLOR") return present("color", rolePath, "受け取った灰色エリアを塗る", "盤面の下にある持ち色から選びます。同じ色が辺で接しないように塗りましょう。");
   show("turnGuide", false);
 }
 
