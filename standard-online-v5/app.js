@@ -128,6 +128,7 @@ let cosmeticCatalogLoaded = false;
 let matchmakingBusy = false;
 let matchmakingStatusTimer = null;
 let matchmakingDisplayTimer = null;
+let activeRoomRecoveryPromise = null;
 let cpuRosterCache = null;
 let cpuAcceptBusy = false;
 let cpuRosterOrigin = "fallback";
@@ -2642,6 +2643,58 @@ async function enterPublicMatch(message = "対戦相手が見つかりました�
   queueMatchedRoomHandoff(message);
 }
 
+function activeRoomRecoveryMessage(recovered) {
+  if (recovered.access_mode === "private_code" && recovered.room_status === "waiting") {
+    return "続きの合言葉対戦が見つかりました。新しい対戦は作らず、その対戦へ戻ります。この端末では合言葉を再表示できません。";
+  }
+  if (recovered.opponent_kind === "cpu") {
+    return "続きのCPU戦が見つかりました。新しい対戦は作らず、その対戦へ戻ります。";
+  }
+  if (recovered.access_mode === "public_queue") {
+    return "成立済みの野良対戦が見つかりました。新しい対戦は作らず、その対戦へ戻ります。";
+  }
+  return "続きの対戦が見つかりました。新しい対戦は作らず、その対戦へ戻ります。";
+}
+
+async function recoverServerActiveRoom({ focusOnSuccess = false } = {}) {
+  if (client.snapshot().roomId) return false;
+  if (!activeRoomRecoveryPromise) {
+    activeRoomRecoveryPromise = (async () => {
+      const recovered = await client.recoverActiveRoom();
+      if (!recovered) return false;
+      persistCpuStartSaga(null);
+      cpuEntryDraft = null;
+      loadoutWorkshopOpen = false;
+      setupFailure = null;
+      setCpuEntryIntent(false);
+      const message = activeRoomRecoveryMessage(recovered);
+      if (focusOnSuccess) await enterPublicMatch(message);
+      else {
+        stopMatchmakingWatch();
+        stopCpuTurnWatch();
+        if ($("cpuRosterDialog").open) $("cpuRosterDialog").close();
+        await roomSync.start(recovered.room_id);
+        render();
+        queueMatchedRoomHandoff(message, { autoWhenIdle: false });
+      }
+      $("matchmakingStatus").textContent = message;
+      queueMatchedRoomHandoff(message, { autoWhenIdle: false });
+      return true;
+    })();
+  }
+  try {
+    const recovered = await activeRoomRecoveryPromise;
+    if (recovered && focusOnSuccess) {
+      activateAppTab("battle");
+      render();
+      focusMatchedRoom();
+    }
+    return recovered;
+  } finally {
+    activeRoomRecoveryPromise = null;
+  }
+}
+
 async function pollMatchmakingStatus() {
   if (matchmakingBusy || !client.snapshot().matchmakingTicketId) return scheduleMatchmakingStatus();
   matchmakingBusy = true;
@@ -2798,6 +2851,7 @@ async function acceptCpuCharacter(character) {
       : `CPU「${actualCpuName}」との対戦を始めます。6枚セットを選んでください。`;
     return await enterPublicMatch(message);
   } catch (error) {
+    if (await recoverServerActiveRoom({ focusOnSuccess: true }).catch(() => false)) return;
     if (cpuRosterOrigin === "fallback") {
       const status = await client.readMatchmakingStatus().catch(() => null);
       if (status?.matchmaking_status === "matched") return await enterPublicMatch("同時に人間の対戦相手が見つかりました。6枚セットを選んでください。");
@@ -2939,6 +2993,7 @@ async function resumePendingCpuStart() {
       : `CPU「${name}」との開始結果を確認しました。6枚セットを選んでください。`);
     return true;
   } catch (error) {
+    if (await recoverServerActiveRoom({ focusOnSuccess: false }).catch(() => false)) return true;
     setCpuEntryIntent(true);
     toast(error.message || "CPU対戦の開始結果を確認できませんでした。");
     return false;
@@ -2962,6 +3017,7 @@ async function recruitPublicOpponent() {
     $("matchmakingStatus").textContent = "対戦相手を探しています。待っている間もクイズやガチャで遊べます。";
     scheduleMatchmakingStatus();
   } catch (error) {
+    if (await recoverServerActiveRoom({ focusOnSuccess: true }).catch(() => false)) return;
     $("matchmakingStatus").textContent = "募集を開始できませんでした。同じ募集票で再試行できます。";
     scheduleMatchmakingStatus(1000);
     toast(error.message || "対戦相手を募集できませんでした。");
@@ -2976,6 +3032,7 @@ async function findPublicOpponent({ resumePending = false } = {}) {
     if (result?.matchmaking_status === "matched") return await enterPublicMatch();
     $("matchmakingStatus").textContent = "今すぐ入れる試合はありません。『対戦相手を募集』なら待機を始められます。";
   } catch (error) {
+    if (await recoverServerActiveRoom({ focusOnSuccess: true }).catch(() => false)) return;
     $("matchmakingStatus").textContent = "検索結果を確認できませんでした。同じ検索IDで再試行します。";
     toast(error.message || "今入れる試合を探せませんでした。");
   } finally { matchmakingBusy = false; render(); }
@@ -2998,11 +3055,13 @@ async function cancelPublicMatchmaking() {
 
 async function createRoom() {
   if (guardNewMatchEntry()) return;
-  try { await client.createRoom(displayName()); await roomSync.start(client.snapshot().roomId); } catch (error) { toast(error.message); }
+  try { await client.createRoom(displayName()); await roomSync.start(client.snapshot().roomId); }
+  catch (error) { if (!await recoverServerActiveRoom({ focusOnSuccess: true }).catch(() => false)) toast(error.message); }
 }
 async function joinRoom() {
   if (guardNewMatchEntry()) return;
-  try { await client.joinRoom({ roomCode: $("roomCode").value, displayName: displayName() }); await roomSync.start(client.snapshot().roomId); } catch (error) { toast(error.message); }
+  try { await client.joinRoom({ roomCode: $("roomCode").value, displayName: displayName() }); await roomSync.start(client.snapshot().roomId); }
+  catch (error) { if (!await recoverServerActiveRoom({ focusOnSuccess: true }).catch(() => false)) toast(error.message); }
 }
 function openLoadoutWorkshop() {
   if (client.snapshot().roomId) {
@@ -3333,7 +3392,21 @@ document.addEventListener("visibilitychange", () => {
     if (pendingLifecycleLobbyFocus) focusBattleLobby();
   }
 });
-window.addEventListener("focus", () => { roomSync.invalidate(); scheduleCpuTurn(250); });
+window.addEventListener("focus", () => {
+  roomSync.invalidate(); scheduleCpuTurn(250);
+  const snapshot = client.snapshot();
+  if (connected && !snapshot.roomId && !pendingCpuStartSaga && !snapshot.cpuStartActionId
+      && !snapshot.matchmakingFindActionId && !snapshot.matchmakingTicketId) {
+    void recoverServerActiveRoom().catch(() => false);
+  }
+});
+window.addEventListener("storage", (event) => {
+  const snapshot = client.snapshot();
+  if (event.key === globalThis.FourColorStandardOnlineClient.STORAGE_KEY && connected && !snapshot.roomId
+      && !pendingCpuStartSaga && !snapshot.cpuStartActionId && !snapshot.matchmakingFindActionId && !snapshot.matchmakingTicketId) {
+    void recoverServerActiveRoom().catch(() => false);
+  }
+});
 window.addEventListener("online", () => { roomSync.handleConnectivityChange(); reflectBrowserConnectivity(); scheduleMatchmakingStatus(250); scheduleCpuTurn(250); });
 window.addEventListener("offline", () => { roomSync.handleConnectivityChange(); reflectBrowserConnectivity(); stopMatchmakingWatch(); stopCpuTurnWatch(); });
 
@@ -3373,7 +3446,10 @@ try {
   else if (client.snapshot().cpuStartActionId && client.snapshot().cpuStartCharacterId) await resumePendingCpuStart();
   else if (client.snapshot().matchmakingFindActionId) await findPublicOpponent({ resumePending: true });
   else if (client.snapshot().matchmakingTicketId) scheduleMatchmakingStatus(250);
-  else if (synced && hasCpuEntryIntent()) await openCpuRoster("direct", $("startStandardCpuHome"));
+  else {
+    const recoveredAtBoot = await recoverServerActiveRoom().catch(() => false);
+    if (!recoveredAtBoot && synced && hasCpuEntryIntent()) await openCpuRoster("direct", $("startStandardCpuHome"));
+  }
   render();
   if (synced && !cosmeticCatalogLoaded) await refreshOnlineCosmetics({ quiet: true });
   if (pendingQuiz?.pendingAnswer && pendingQuiz?.answerMode === "per-question-v1") submitPendingQuizAnswer();

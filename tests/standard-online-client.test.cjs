@@ -4,7 +4,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const test = require("node:test");
-const { createStandardOnlineClient, normalizeFunctionError, STORAGE_KEY } = require("../standard-online-v5/standard-online-client.js");
+const { createStandardOnlineClient, normalizeFunctionError, normalizeRpcError, STORAGE_KEY } = require("../standard-online-v5/standard-online-client.js");
 
 const ROOM_ID = "11111111-1111-4111-8111-111111111111";
 const ACTION_ID = "22222222-2222-4222-8222-222222222222";
@@ -35,6 +35,7 @@ function supabaseFixture({ roomStatus = "ready", roomVersion = 10 } = {}) {
       if (name === "fcg_standard_matchmaking_status") return { data: [{ ticket_id: args.p_ticket_id, matchmaking_status: "searching", room_id: null, seat: null, wait_started_at: "2099-01-01T00:00:00Z" }] };
       if (name === "fcg_standard_matchmaking_cancel") return { data: [{ ticket_id: args.p_ticket_id, matchmaking_status: "cancelled", room_id: null, seat: null }] };
       if (name === "fcg_standard_matchmaking_find") return { data: [{ matchmaking_status: "matched", room_id: ROOM_ID, seat: "B", duplicate: false }] };
+      if (name === "fcg_standard_active_room") return { data: [] };
       if (name === "fcg_standard_room_snapshot_v2") return { data: {
         snapshot_schema_version: 2,
         snapshot_version: roomVersion,
@@ -164,11 +165,70 @@ test("a failed public find reuses the same persisted action ID on retry", async 
   };
   let allocations = 0;
   const client = createStandardOnlineClient({ supabase, storage: storageFixture(), idFactory: () => { allocations += 1; return ACTION_ID; } });
-  await assert.rejects(client.findOpponent({ displayName: "A" }), /response lost/);
+  await assert.rejects(client.findOpponent({ displayName: "A" }), /その操作は受け付けられませんでした/);
   assert.equal(client.snapshot().matchmakingFindActionId, ACTION_ID);
   await client.findOpponent({ displayName: "A" });
   assert.equal(allocations, 1);
   assert.equal(client.snapshot().roomId, ROOM_ID);
+});
+
+test("active-room recovery adopts exactly one safe room and clears stale entry identities only after success", async () => {
+  for (const accessMode of ["private_code", "public_queue", "cpu"]) {
+    const supabase = supabaseFixture();
+    const originalRpc = supabase.rpc;
+    supabase.rpc = async (name, args) => name === "fcg_standard_active_room"
+      ? { data: [{
+        room_id: ROOM_ID, seat: "A", room_status: "playing", room_version: 12,
+        access_mode: accessMode, opponent_kind: accessMode === "cpu" ? "cpu" : "human",
+        cpu_character_id: accessMode === "cpu" ? "yuzu" : null, setup_revision: 3,
+      }] }
+      : originalRpc(name, args);
+    const storage = storageFixture({
+      matchmakingTicketId: ACTION_ID,
+      matchmakingFindActionId: "55555555-5555-4555-8555-555555555555",
+      cpuStartActionId: "66666666-6666-4666-8666-666666666666",
+      cpuStartCharacterId: "yuzu",
+    });
+    const client = createStandardOnlineClient({ supabase, storage, idFactory: () => ACTION_ID });
+    const recovered = await client.recoverActiveRoom();
+    assert.equal(recovered.access_mode, accessMode);
+    assert.equal(client.snapshot().roomId, ROOM_ID);
+    assert.equal(client.snapshot().roomCode, null);
+    assert.equal(client.snapshot().setupRevision, 3);
+    assert.equal(client.snapshot().matchmakingTicketId, null);
+    assert.equal(client.snapshot().matchmakingFindActionId, null);
+    assert.equal(client.snapshot().cpuStartActionId, null);
+    assert.equal(client.snapshot().cpuStartCharacterId, null);
+  }
+});
+
+test("active-room recovery preserves pending identities for zero, malformed, and ambiguous results", async () => {
+  for (const data of [[], [{ room_id: "private-data" }], [
+    { room_id: ROOM_ID, seat: "A", room_status: "playing", room_version: 1, access_mode: "private_code", opponent_kind: "human", setup_revision: 0 },
+    { room_id: "77777777-7777-4777-8777-777777777777", seat: "B", room_status: "ready", room_version: 1, access_mode: "public_queue", opponent_kind: "human", setup_revision: 0 },
+  ]]) {
+    const supabase = supabaseFixture();
+    const originalRpc = supabase.rpc;
+    supabase.rpc = async (name, args) => name === "fcg_standard_active_room" ? { data } : originalRpc(name, args);
+    const client = createStandardOnlineClient({
+      supabase,
+      storage: storageFixture({ matchmakingFindActionId: ACTION_ID }),
+      idFactory: () => ACTION_ID,
+    });
+    if (data.length === 0) assert.equal(await client.recoverActiveRoom(), null);
+    else await assert.rejects(client.recoverActiveRoom(), /安全に確認できません|複数見つかりました/);
+    assert.equal(client.snapshot().roomId, null);
+    assert.equal(client.snapshot().matchmakingFindActionId, ACTION_ID);
+  }
+});
+
+test("direct RPC conflict errors expose only finite Japanese recovery codes", () => {
+  for (const sentinel of ["STANDARD_ALREADY_IN_ROOM", "MATCHMAKING_ALREADY_IN_ROOM"]) {
+    const normalized = normalizeRpcError({ code: "55000", message: `${sentinel}: actor 33333333 private detail` });
+    assert.equal(normalized.code, "ACTIVE_ROOM_CONFLICT");
+    assert.match(normalized.message, /進行中の対戦/);
+    assert.doesNotMatch(normalized.message, /STANDARD|MATCHMAKING|33333333|private/);
+  }
 });
 
 test("CPU roster, explicit acceptance, and one server CPU turn use finite client boundaries", async () => {

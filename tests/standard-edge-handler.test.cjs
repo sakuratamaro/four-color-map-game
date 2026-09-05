@@ -246,5 +246,6 @@ test("database conflicts map to finite public errors", () => {
   assert.match(source, /function safeUpstreamCode/);
   assert.match(source, /\^\(\?:PGRST\\d\{3\}\|\[A-Z0-9\]\{5\}\)\$/);
   assert.match(source, /code: "IDEMPOTENCY_KEY_REUSE"/);
+  assert.match(source, /detail\.includes\("STANDARD_ALREADY_IN_ROOM"\)[^\n]+code: "ACTIVE_ROOM_CONFLICT"/);
   assert.match(source, /code: "SERVER_BUSY"/);
 });

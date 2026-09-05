@@ -384,6 +384,7 @@ function publicError(error: unknown): { status: number; code: string; message: s
   if (candidate?.code === "PT409" || candidate?.code === "40001") return { status: 409, code: "STALE_VERSION", message: "Match changed; reload and retry." };
   if (candidate?.code === "55000" && detail.includes("CARD_SALE_MATCH_LOCKED")) return { status: 409, code: "CARD_SALE_MATCH_LOCKED", message: "Cards cannot be sold after a loadout is submitted or while a match is active." };
   if (candidate?.code === "55000" && detail.includes("CPU_CONSENT_TOO_EARLY")) return { status: 409, code: "CPU_CONSENT_TOO_EARLY", message: "CPU play becomes available after 90 seconds." };
+  if (candidate?.code === "55000" && detail.includes("STANDARD_ALREADY_IN_ROOM")) return { status: 409, code: "ACTIVE_ROOM_CONFLICT", message: "An active Standard match already exists." };
   if (candidate?.code === "55000" && detail.includes("CPU_START_")) return { status: 409, code: "CPU_START_CONFLICT", message: "Another Standard match was already selected." };
   if (candidate?.code === "55000" && detail.includes("MATCHMAKING_")) return { status: 409, code: "MATCHMAKING_RESOLVED", message: "Matchmaking was already resolved or expired." };
   if (candidate?.code === "23505") return { status: 409, code: "IDEMPOTENCY_KEY_REUSE", message: "Action ID was reused with different input." };

@@ -379,6 +379,20 @@ test("every new-match handler shares the central local exclusivity guard", () =>
   assert.match(html, /id="matchmakingStatus"[^>]+tabindex="-1"/);
 });
 
+test("server-only active rooms recover through one read-only path without consuming a pending CPU setup saga", () => {
+  assert.match(app, /async function recoverServerActiveRoom[\s\S]+client\.recoverActiveRoom\(\)[\s\S]+enterPublicMatch\(message\)/);
+  for (const handler of ["recruitPublicOpponent", "findPublicOpponent", "createRoom", "joinRoom"]) {
+    const start = app.indexOf(`async function ${handler}`);
+    assert.ok(start >= 0, `${handler} exists`);
+    assert.match(app.slice(start, start + 1800), /recoverServerActiveRoom/);
+  }
+  const saga = app.slice(app.indexOf("async function runPendingCpuStartSaga"), app.indexOf("async function commitCpuStartDraft"));
+  assert.doesNotMatch(saga, /recoverServerActiveRoom/);
+  assert.match(app, /else if \(pendingCpuStartSaga\) await runPendingCpuStartSaga\(\)[\s\S]+else \{\s*const recoveredAtBoot = await recoverServerActiveRoom/);
+  assert.match(app, /続きの合言葉対戦が見つかりました[\s\S]+この端末では合言葉を再表示できません/);
+  assert.match(app, /queueMatchedRoomHandoff\(message, \{ autoWhenIdle: false \}\)/);
+});
+
 test("server rule errors are safe, persistent, and never offered as an idempotent retry", () => {
   assert.match(clientSource, /context\?\.clone/);
   assert.match(clientSource, /typeof readable\?\.json === "function"/);

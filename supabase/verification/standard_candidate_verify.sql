@@ -1,4 +1,4 @@
--- Read-only verification after applying migrations through 202609050007.
+-- Read-only verification after applying migrations through 202609060001.
 -- Expected result: every row has ok = true. This statement performs no writes.
 
 with
@@ -64,6 +64,7 @@ expected_functions(signature, audience) as (
     ('public.fcg_standard_matchmaking_find(uuid,text)', 'authenticated'),
     ('public.fcg_standard_matchmaking_status(uuid)', 'authenticated'),
     ('public.fcg_standard_matchmaking_cancel(uuid)', 'authenticated'),
+    ('public.fcg_standard_active_room()', 'authenticated'),
     ('public.fcg_standard_abandon_room(uuid,bigint,uuid)', 'authenticated'),
     ('public.fcg_standard_server_accept_cpu(uuid,uuid,uuid,text,text,text,jsonb,jsonb,text)', 'service_role'),
     ('public.fcg_standard_server_start_cpu(uuid,uuid,uuid,text,text,text,jsonb,jsonb,text)', 'service_role'),
@@ -98,6 +99,16 @@ pregame_abandon_function_contract as (
     coalesce(pg_catalog.pg_get_function_result(procedure.oid), '') as result_definition
   from (values ('public.fcg_standard_abandon_room(uuid,bigint,uuid)')) expected(signature)
   left join pg_catalog.pg_proc procedure on procedure.oid = pg_catalog.to_regprocedure(expected.signature)
+),
+active_room_function_contract as (
+  select procedure.oid,
+    coalesce(procedure.provolatile, '') as volatility,
+    coalesce(language.lanname, '') as language_name,
+    coalesce(pg_catalog.pg_get_function_result(procedure.oid), '') as result_definition,
+    coalesce(pg_catalog.pg_get_functiondef(procedure.oid), '') as definition
+  from (values ('public.fcg_standard_active_room()')) expected(signature)
+  left join pg_catalog.pg_proc procedure on procedure.oid = pg_catalog.to_regprocedure(expected.signature)
+  left join pg_catalog.pg_language language on language.oid = procedure.prolang
 ),
 expected_policy_helpers(signature) as (
   values
@@ -268,6 +279,32 @@ checks(check_name, ok, detail) as (
       'TABLE(room_status text, room_version bigint, abandon_result text, duplicate boolean, server_time timestamp with time zone)',
     jsonb_build_object('present', oid is not null, 'result_definition', result_definition)
   from pregame_abandon_function_contract
+  union all
+  select 'function result public.fcg_standard_active_room()',
+    oid is not null
+      and volatility = 's'
+      and language_name = 'sql'
+      and result_definition =
+        'TABLE(room_id uuid, seat text, room_status text, room_version bigint, access_mode text, opponent_kind text, cpu_character_id text, setup_revision bigint)'
+      and lower(definition) like '%member.user_id = (select auth.uid())%'
+      and lower(definition) like '%room.game_mode = ''standard_v5''%'
+      and lower(definition) like '%room.status in (''waiting'', ''ready'', ''playing'')%'
+      and lower(definition) like '%room.expires_at > now()%'
+      and lower(definition) like '%own_setup.room_id = room.id%'
+      and lower(definition) like '%own_setup.user_id = member.user_id%'
+      and lower(definition) like '%coalesce(own_setup.setup_revision%'
+      and lower(definition) like '%limit 2%',
+    jsonb_build_object('present', oid is not null, 'volatility', volatility, 'language', language_name,
+      'result_definition', result_definition,
+      'caller_scoped', lower(definition) like '%member.user_id = (select auth.uid())%',
+      'standard_active_only', lower(definition) like '%room.game_mode = ''standard_v5''%'
+        and lower(definition) like '%room.status in (''waiting'', ''ready'', ''playing'')%'
+        and lower(definition) like '%room.expires_at > now()%',
+      'own_setup_only', lower(definition) like '%own_setup.room_id = room.id%'
+        and lower(definition) like '%own_setup.user_id = member.user_id%'
+        and lower(definition) like '%coalesce(own_setup.setup_revision%',
+      'two_row_cap', lower(definition) like '%limit 2%')
+  from active_room_function_contract
   union all
   select 'private policy helper ' || signature,
     oid is not null and not anon_execute and not authenticated_execute

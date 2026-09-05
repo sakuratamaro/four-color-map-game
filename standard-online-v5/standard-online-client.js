@@ -35,6 +35,9 @@
     SETUP_REQUIRED: "2人分の6枚セットがそろっていません。準備完了後に相手をお待ちください。",
     ROOM_NOT_READY: "対戦開始の準備が整っていません。6枚セットと相手の状態を確認してください。",
     RATE_LIMITED: "短時間に操作が集中しました。少し待ってから同じ操作を再送してください。",
+    ACTIVE_ROOM_CONFLICT: "進行中の対戦が見つかりました。新しい対戦は作らず、元の対戦を確認します。",
+    CPU_START_CONFLICT: "別の対戦が先に始まっています。新しいCPU戦は作らず、元の対戦を確認します。",
+    MATCHMAKING_RESOLVED: "募集状態が先に変わりました。成立済みの対戦がないか確認します。",
     SERVER_BUSY: "ゲームサーバーが混み合っています。少し待ってから同じ操作を再送してください。",
     SERVER_ERROR: "ゲームサーバーで操作を完了できませんでした。同じ操作を再送できます。",
   });
@@ -61,6 +64,19 @@
       || httpStatus === 408 || httpStatus === 429 || httpStatus >= 500
       || (httpStatus === 0 && !knownCode);
     return Object.assign(new Error(message), { code, httpStatus, retryable });
+  }
+
+  function normalizeRpcError(rawError) {
+    const upstreamCode = typeof rawError?.code === "string" ? rawError.code.toUpperCase() : "";
+    const privateDetail = [rawError?.message, rawError?.details, rawError?.hint].filter(Boolean).join(" ");
+    let code = "REQUEST_REJECTED";
+    if (upstreamCode === "55000" && /(?:STANDARD|MATCHMAKING)_ALREADY_IN_ROOM/.test(privateDetail)) code = "ACTIVE_ROOM_CONFLICT";
+    else if (upstreamCode === "55000" && privateDetail.includes("MATCHMAKING_")) code = "MATCHMAKING_RESOLVED";
+    else if (upstreamCode === "54000" && privateDetail.includes("MATCHMAKING_RATE_LIMIT")) code = "RATE_LIMITED";
+    else if (upstreamCode === "40001" && privateDetail.includes("STANDARD_ACTOR_BUSY")) code = "SERVER_BUSY";
+    const message = PUBLIC_FUNCTION_ERRORS[code]
+      || "その操作は受け付けられませんでした。最新の状態を確認して選び直してください。";
+    return Object.assign(new Error(message), { code, retryable: RETRYABLE_FUNCTION_ERROR_CODES.has(code) });
   }
 
   function firstRow(data) { return Array.isArray(data) ? data[0] : data; }
@@ -223,7 +239,7 @@
     async function createRoom(displayName) {
       await ensureSession();
       const response = await supabase.rpc("fcg_standard_create_room", { p_display_name: requiredText(displayName, "INVALID_DISPLAY_NAME", 20) });
-      if (response.error) throw response.error;
+      if (response.error) throw normalizeRpcError(response.error);
       const row = firstRow(response.data);
       state.roomId = row.room_id;
       state.roomCode = row.room_code;
@@ -238,7 +254,7 @@
       const code = requiredText(roomCode, "INVALID_ROOM_CODE", 6).replace(/\s/g, "").toUpperCase();
       if (!/^[0-9A-F]{6}$/.test(code)) throw Object.assign(new Error("INVALID_ROOM_CODE"), { code: "INVALID_ROOM_CODE" });
       const response = await supabase.rpc("fcg_standard_join_room", { p_room_code: code, p_display_name: requiredText(displayName, "INVALID_DISPLAY_NAME", 20) });
-      if (response.error) throw response.error;
+      if (response.error) throw normalizeRpcError(response.error);
       const row = firstRow(response.data);
       if (!row || !UUID_PATTERN.test(String(row.room_id)) || row.game_mode !== "standard_v5") {
         throw Object.assign(new Error("部屋が見つからないか、現在参加できません。"), { code: row?.seat === "ERROR_RATE_LIMIT" ? "RATE_LIMITED" : "JOIN_FAILED" });
@@ -275,7 +291,7 @@
         p_ticket_id: ticketId,
         p_display_name: requiredText(displayName, "INVALID_DISPLAY_NAME", 20),
       });
-      if (response.error) throw response.error;
+      if (response.error) throw normalizeRpcError(response.error);
       const row = firstRow(response.data);
       if (!enterMatchedRoom(row)) {
         state.matchmakingStartedAt = row?.wait_started_at || state.matchmakingStartedAt;
@@ -292,10 +308,50 @@
         p_action_id: actionId,
         p_display_name: requiredText(displayName, "INVALID_DISPLAY_NAME", 20),
       });
-      if (response.error) throw response.error;
+      if (response.error) throw normalizeRpcError(response.error);
       const row = firstRow(response.data);
       enterMatchedRoom(row);
       state.matchmakingFindActionId = null;
+      persist();
+      return clone(row);
+    }
+    async function recoverActiveRoom() {
+      await ensureSession();
+      const response = await supabase.rpc("fcg_standard_active_room");
+      if (response.error) throw normalizeRpcError(response.error);
+      const rows = response.data == null ? [] : response.data;
+      if (!Array.isArray(rows)) {
+        throw Object.assign(new Error("進行中の対戦を安全に確認できませんでした。もう一度お試しください。"), { code: "INVALID_ACTIVE_ROOM_RESULT" });
+      }
+      if (rows.length === 0) return null;
+      if (rows.length !== 1) {
+        throw Object.assign(new Error("進行中の対戦が複数見つかりました。新しい対戦は作らず、しばらく待ってから再読み込みしてください。"), { code: "ACTIVE_ROOM_AMBIGUOUS" });
+      }
+      const row = rows[0];
+      const setupRevision = Number(row?.setup_revision);
+      const roomVersion = Number(row?.room_version);
+      if (!UUID_PATTERN.test(String(row?.room_id))
+          || !["A", "B"].includes(row?.seat)
+          || !["waiting", "ready", "playing"].includes(row?.room_status)
+          || !Number.isSafeInteger(roomVersion) || roomVersion < 0
+          || !Number.isSafeInteger(setupRevision) || setupRevision < 0
+          || !["private_code", "public_queue", "cpu"].includes(row?.access_mode)
+          || !["human", "cpu"].includes(row?.opponent_kind)) {
+        throw Object.assign(new Error("進行中の対戦を安全に確認できませんでした。もう一度お試しください。"), { code: "INVALID_ACTIVE_ROOM_RESULT" });
+      }
+      state.roomId = row.room_id;
+      state.roomCode = null;
+      state.setupRevision = setupRevision;
+      state.rematchActionId = null;
+      state.rematchExpectedVersion = null;
+      state.abandonRoomId = null;
+      state.abandonActionId = null;
+      state.abandonExpectedVersion = null;
+      state.matchmakingTicketId = null;
+      state.matchmakingStartedAt = null;
+      state.matchmakingFindActionId = null;
+      state.cpuStartActionId = null;
+      state.cpuStartCharacterId = null;
       persist();
       return clone(row);
     }
@@ -580,6 +636,7 @@
       readCosmetics,
       readProfile,
       readRoom,
+      recoverActiveRoom,
       requestCpuRematch,
       requestRematch,
       quoteCardSale,
@@ -598,5 +655,5 @@
     });
   }
 
-  return Object.freeze({ STORAGE_KEY, createStandardOnlineClient, normalizeFunctionError });
+  return Object.freeze({ STORAGE_KEY, createStandardOnlineClient, normalizeFunctionError, normalizeRpcError });
 });

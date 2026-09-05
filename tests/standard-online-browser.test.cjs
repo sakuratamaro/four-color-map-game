@@ -23,7 +23,7 @@ const saveKey = "fourColorMapGame.standard.v5.save";
 const remoteProfileKey = "fourColorMapGame.standard.online.v5.remote-profile";
 const roomId = "11111111-1111-4111-8111-111111111111";
 const pendingRematchId = "22222222-2222-4222-8222-222222222222";
-const RESTORED_ROOM_MODES = new Set(["finished", "playing", "handoffGuide", "cpuTurn", "cpuTurnNoColor", "finishedCpu", "finishedCpuSagaStart", "finishedHumanSagaBlocked", "finishedCpuWrongSagaBlocked", "activeCpuSagaBlocked", "cpuWin", "setupTransition", "setupTransitionCpuFirst", "actionRuleError", "setupDebugError", "handoffReload", "waitingAbandon", "readyGuestAbandon", "cpuReadyAbandon", "abandonLost", "abandonAdvancedReady"]);
+const RESTORED_ROOM_MODES = new Set(["finished", "playing", "handoffGuide", "cpuTurn", "cpuTurnNoColor", "finishedCpu", "finishedCpuSagaStart", "finishedHumanSagaBlocked", "finishedCpuWrongSagaBlocked", "activeCpuSagaBlocked", "cpuWin", "setupTransition", "setupTransitionCpuFirst", "actionRuleError", "setupDebugError", "handoffReload", "waitingAbandon", "readyGuestAbandon", "cpuReadyAbandon", "abandonLost", "abandonAdvancedReady", "activeBootPrivate", "activeBootPublic", "activeBootCpu", "cpuSagaStartServerActive"]);
 
 function browserStage(stage) {
   console.error(`BROWSER_STAGE ${stage}`);
@@ -92,7 +92,11 @@ async function installMock(context, mode) {
     const setupTransition = ["setupTransition", "setupTransitionCpuFirst"].includes(initialMode);
     const setupPending = setupTransition || initialMode === "setupDebugError";
     const pregameMode = ["waitingAbandon", "readyGuestAbandon", "cpuReadyAbandon", "abandonLost", "abandonAdvancedReady", "abandonedPassive"].includes(initialMode);
-    if (["cpuSagaFindBlocked", "finishedCpuSagaStart", "activeCpuSagaBlocked", "finishedHumanSagaBlocked", "finishedCpuWrongSagaBlocked"].includes(initialMode)) {
+    const activeRecoveryModes = ["activeBootPrivate", "activeBootPublic", "activeBootCpu", "activeCreatePrivate", "activeCreatePublic", "activeCreateCpu"];
+    const activeRecoveryMode = activeRecoveryModes.includes(initialMode);
+    const activeRecoveryAccessMode = initialMode.endsWith("Public") ? "public_queue" : initialMode.endsWith("Cpu") ? "cpu" : "private_code";
+    const activeRecoveryAtBoot = initialMode.startsWith("activeBoot") || initialMode === "cpuSagaStartServerActive";
+    if (["cpuSagaFindBlocked", "finishedCpuSagaStart", "activeCpuSagaBlocked", "finishedHumanSagaBlocked", "finishedCpuWrongSagaBlocked", "cpuSagaStartServerActive"].includes(initialMode)) {
       localStorage.setItem("fourColorMapGame.standard.online.v5.cpu-start-saga", JSON.stringify({
         stage: "start",
         roomId: null,
@@ -133,7 +137,7 @@ async function installMock(context, mode) {
     const restoreNoColorResult = initialMode === "cpuTurnNoColor" && sessionStorage.getItem("fourColorMapGame.standard.online.v5.mock-no-color-finished") === id;
     const restoredCpuRewardVersion = restoreCpuRewardResult ? Number(restoredCpuRewardResult.continuation.roomVersion) : 9;
     const restoredRoomVersion = restoreNoColorResult ? 10 : restoredCpuRewardVersion;
-    const cpuRoomMode = ["cpuTurn", "cpuTurnNoColor", "finishedCpu", "finishedCpuSagaStart", "finishedCpuWrongSagaBlocked", "activeCpuSagaBlocked", "cpuWin", "setupTransition", "setupTransitionCpuFirst", "quizReloadCpu", "cpuReadyAbandon"].includes(initialMode);
+    const cpuRoomMode = ["cpuTurn", "cpuTurnNoColor", "finishedCpu", "finishedCpuSagaStart", "finishedCpuWrongSagaBlocked", "activeCpuSagaBlocked", "cpuWin", "setupTransition", "setupTransitionCpuFirst", "quizReloadCpu", "cpuReadyAbandon", "activeBootCpu", "activeCreateCpu", "cpuSagaStartServerActive"].includes(initialMode);
     let restoredConnection = null;
     try { restoredConnection = JSON.parse(localStorage.getItem(connection) || "null"); } catch { restoredConnection = null; }
     localStorage.setItem("fourColorMapGame.standard.online.v5.active-tab", initialTab);
@@ -146,7 +150,7 @@ async function installMock(context, mode) {
     if (initialMode !== "empty") {
       localStorage.setItem(save, JSON.stringify({ profiles: { playerA: { displayName: "A", inventory } } }));
       localStorage.setItem("fourColorMapGame.standard.online.v5.profile", "playerA");
-      if (!["lobby", "cosmetic", "quiz", "quizPolish", "publicFind", "cpuWait", "cpuRetry", "cpuSagaFindBlocked", "finishedCpuSagaStart", "finishedHumanSagaBlocked", "finishedCpuWrongSagaBlocked", "activeCpuSagaBlocked", "handoffActivity", "handoffStart"].includes(initialMode)) {
+      if (!["lobby", "cosmetic", "quiz", "quizPolish", "publicFind", "cpuWait", "cpuRetry", "cpuSagaFindBlocked", "finishedCpuSagaStart", "finishedHumanSagaBlocked", "finishedCpuWrongSagaBlocked", "activeCpuSagaBlocked", "handoffActivity", "handoffStart", ...activeRecoveryModes, "cpuSagaStartServerActive"].includes(initialMode)) {
         localStorage.setItem(connection, JSON.stringify({
           roomId: id, roomCode: "A1B2C3", profileRevision: 1, setupRevision: setupPending || pregameMode ? 0 : 3,
           rematchActionId: initialMode === "finished" ? pendingId : null,
@@ -172,6 +176,12 @@ async function installMock(context, mode) {
         localStorage.setItem(connection, JSON.stringify({
           roomId: null, roomCode: null, profileRevision: 1, setupRevision: 0,
           matchmakingTicketId: null, matchmakingStartedAt: null, matchmakingFindActionId: pendingId,
+          cpuStartActionId: null, cpuStartCharacterId: null,
+        }));
+      } else if (initialMode === "cpuSagaStartServerActive") {
+        localStorage.setItem(connection, JSON.stringify({
+          roomId: null, roomCode: null, profileRevision: 1, setupRevision: 0,
+          matchmakingTicketId: null, matchmakingStartedAt: null, matchmakingFindActionId: null,
           cpuStartActionId: null, cpuStartCharacterId: null,
         }));
       } else if (["finishedCpuSagaStart", "finishedHumanSagaBlocked", "finishedCpuWrongSagaBlocked", "activeCpuSagaBlocked"].includes(initialMode)) {
@@ -259,10 +269,34 @@ async function installMock(context, mode) {
       failNextAbandonResponse: initialMode === "abandonLost" && sessionStorage.getItem("mock-standard-abandon-response-lost") !== id,
       abandonRpcIds: JSON.parse(sessionStorage.getItem("mock-standard-abandon-rpc-ids") || "[]"),
       advancedReadyConflictSent: false,
+      activeRecoveryAvailable: activeRecoveryAtBoot,
+      activeRecoverySuccessfulReads: 0,
       calls: [],
     };
     runtime.missingRoom = initialMode === "quizReloadStale";
+    if (activeRecoveryMode || initialMode === "cpuSagaStartServerActive") {
+      const accessMode = initialMode === "cpuSagaStartServerActive" ? "cpu" : activeRecoveryAccessMode;
+      const roomStatus = initialMode === "cpuSagaStartServerActive" ? "ready"
+        : accessMode === "private_code" ? "waiting" : accessMode === "public_queue" ? "ready" : "playing";
+      runtime.room = {
+        ...runtime.room,
+        status: roomStatus,
+        access_mode: accessMode,
+        opponent_kind: accessMode === "cpu" ? "cpu" : "human",
+        cpu_character_id: accessMode === "cpu" ? "yuzu" : null,
+        public_state: roomStatus === "playing" ? active : null,
+      };
+      runtime.view = roomStatus === "playing"
+        ? { seat: "A", version: runtime.room.version, private_state: { hand: {}, basicPalette: ["red", "blue"], bonusColor: "yellow", bonusUsesRemaining: 2, privateEffects: {} } }
+        : null;
+    }
     runtime.members = [{ user_id: "33333333-3333-4333-8333-333333333333", seat: "A", display_name: "A", is_cpu: false, appearance: { nameplate: "nameplateDefault", title: "titleNone" } }, { user_id: "44444444-4444-4444-8444-444444444444", seat: "B", display_name: cpuRoomMode ? "うっかりユズ" : "B", is_cpu: cpuRoomMode, appearance: { nameplate: "nameplateGold", title: "titleArtisan" } }];
+    if (initialMode === "cpuSagaStartServerActive") {
+      runtime.cpuStartReceipts["77777777-7777-4777-8777-777777777777"] = {
+        matchmakingStatus: "matched", startStatus: "created", roomId: id, seat: "A",
+        opponentKind: "cpu", characterId: "yuzu", duplicate: false,
+      };
+    }
     if (restoredCpuStartSaga?.stage === "setup" && restoredCpuStartSaga.roomId === id) {
       runtime.room = { ...runtime.room, status: "ready", access_mode: "cpu", opponent_kind: "cpu", cpu_character_id: restoredCpuStartSaga.characterId, public_state: null };
       runtime.view = null;
@@ -552,6 +586,27 @@ async function installMock(context, mode) {
       } },
       rpc: async (name, args) => {
         runtime.calls.push({ kind: "rpc", name, args });
+        if (name === "fcg_standard_active_room") {
+          if (!runtime.activeRecoveryAvailable) return { data: [] };
+          runtime.activeRecoverySuccessfulReads += 1;
+          return { data: [{
+            room_id: id,
+            seat: "A",
+            room_status: runtime.room.status,
+            room_version: runtime.room.version,
+            access_mode: runtime.room.access_mode,
+            opponent_kind: runtime.room.opponent_kind,
+            cpu_character_id: runtime.room.cpu_character_id,
+            setup_revision: 0,
+          }] };
+        }
+        if (name === "fcg_standard_create_room" && initialMode.startsWith("activeCreate")) {
+          runtime.activeRecoveryAvailable = true;
+          return { error: Object.assign(new Error(`STANDARD_ALREADY_IN_ROOM private sentinel ${id}`), {
+            code: "55000",
+            details: `private actor 33333333-3333-4333-8333-333333333333 ${id}`,
+          }) };
+        }
         if (name === "fcg_standard_matchmaking_recruit") {
           runtime.ticketId = args.p_ticket_id;
           return { data: [{ ticket_id: args.p_ticket_id, matchmaking_status: "searching", room_id: null, seat: null, wait_started_at: runtime.waitStartedAt, server_time: new Date().toISOString() }] };
@@ -1216,6 +1271,124 @@ test("hidden new-match handlers allocate no action and make no RPC while another
     assert.equal(evidence.statusVisible, true);
     assert.equal(evidence.activeElement, "matchmakingStatus");
   });
+});
+
+test("server-only active rooms recover at boot with one safe Japanese handoff", { timeout: 180000 }, async () => {
+  const cases = [
+    {
+      mode: "activeBootPrivate",
+      message: "続きの合言葉対戦が見つかりました。新しい対戦は作らず、その対戦へ戻ります。この端末では合言葉を再表示できません。",
+      identity: "復帰済",
+    },
+    {
+      mode: "activeBootPublic",
+      message: "成立済みの野良対戦が見つかりました。新しい対戦は作らず、その対戦へ戻ります。",
+      identity: "野良対戦",
+    },
+    {
+      mode: "activeBootCpu",
+      message: "続きのCPU戦が見つかりました。新しい対戦は作らず、その対戦へ戻ります。",
+      identity: "CPU：うっかりユズ",
+    },
+  ];
+  for (const item of cases) {
+    await withPage(item.mode, async (page) => {
+      await page.waitForTimeout(250);
+      assert.equal(await page.locator("#matchedRoomAnnouncement").textContent(), item.message);
+      assert.equal(await page.locator("#shownCode").textContent(), item.identity);
+      const evidence = await page.evaluate((id) => ({
+        activeRoomReads: globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.name === "fcg_standard_active_room").length,
+        successfulReads: globalThis.__standardOnlineRuntime.activeRecoverySuccessfulReads,
+        createCalls: globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.name === "fcg_standard_create_room").length,
+        setupCalls: globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "setup").length,
+        openDialogs: document.querySelectorAll("dialog[open]").length,
+        activeElement: document.activeElement?.id,
+        forcedHeadingFocuses: globalThis.__standardOnlineFocusEvents.filter((entry) => ["setupTitle", "matchTitle"].includes(entry.id)).length,
+        overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+        leaked: document.body.innerText.includes(id)
+          || document.body.innerText.includes("STANDARD_ALREADY_IN_ROOM")
+          || document.body.innerText.includes("33333333-3333-4333-8333-333333333333")
+          || document.body.innerText.includes("private sentinel"),
+        announcementContract: document.getElementById("matchedRoomAnnouncement").getAttribute("role") === "status"
+          && document.getElementById("matchedRoomAnnouncement").getAttribute("aria-live") === "polite"
+          && document.getElementById("matchedRoomAnnouncement").getAttribute("aria-atomic") === "true",
+      }), roomId);
+      assert.deepEqual(evidence, {
+        activeRoomReads: 1,
+        successfulReads: 1,
+        createCalls: 0,
+        setupCalls: 0,
+        openDialogs: 0,
+        activeElement: "",
+        forcedHeadingFocuses: 0,
+        overflow: false,
+        leaked: false,
+        announcementContract: true,
+      }, item.mode);
+    }, { viewport: { width: 390, height: 844 } });
+  }
+});
+
+test("a stale create collision recovers the one private, public, or CPU room without leaking the RPC sentinel", { timeout: 180000 }, async () => {
+  const cases = [
+    { mode: "activeCreatePrivate", identity: "復帰済", focus: "setupTitle", copy: "続きの合言葉対戦" },
+    { mode: "activeCreatePublic", identity: "野良対戦", focus: "setupTitle", copy: "成立済みの野良対戦" },
+    { mode: "activeCreateCpu", identity: "CPU：うっかりユズ", focus: "matchTitle", copy: "続きのCPU戦" },
+  ];
+  for (const item of cases) {
+    await withPage(item.mode, async (page) => {
+      await page.locator("#lobby:not(.hidden)").waitFor();
+      await page.getByRole("button", { name: "合言葉ルームを作る" }).click();
+      await page.locator("#room:not(.hidden)").waitFor();
+      await page.waitForFunction((focus) => document.activeElement?.id === focus, item.focus);
+      await page.waitForFunction((copy) => document.querySelector("#matchedRoomAnnouncement")?.textContent.includes(copy), item.copy);
+      assert.equal(await page.locator("#shownCode").textContent(), item.identity);
+      assert.match(await page.locator("#matchedRoomAnnouncement").textContent(), new RegExp(item.copy));
+      const evidence = await page.evaluate((id) => ({
+        createCalls: globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.name === "fcg_standard_create_room").length,
+        activeRoomReads: globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.name === "fcg_standard_active_room").length,
+        successfulReads: globalThis.__standardOnlineRuntime.activeRecoverySuccessfulReads,
+        setupCalls: globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "setup").length,
+        roomId: JSON.parse(localStorage.getItem("fourColorMapGame.standard.online.v5.connection")).roomId,
+        openDialogs: document.querySelectorAll("dialog[open]").length,
+        overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+        leaked: document.body.innerText.includes("STANDARD_ALREADY_IN_ROOM")
+          || document.body.innerText.includes("private sentinel")
+          || document.body.innerText.includes("33333333-3333-4333-8333-333333333333")
+          || document.body.innerText.includes(id),
+      }), roomId);
+      assert.deepEqual(evidence, {
+        createCalls: 1,
+        activeRoomReads: 2,
+        successfulReads: 1,
+        setupCalls: 0,
+        roomId,
+        openDialogs: 0,
+        overflow: false,
+        leaked: false,
+      }, item.mode);
+    }, { viewport: { width: 390, height: 844 } });
+  }
+});
+
+test("boot prioritizes a lost CPU start saga over generic active-room recovery and submits the confirmed six cards", { timeout: 130000 }, async () => {
+  await withPage("cpuSagaStartServerActive", async (page) => {
+    await page.waitForTimeout(1200);
+    const evidence = await page.evaluate(() => ({
+      operations: globalThis.__standardOnlineRuntime.calls
+        .filter((entry) => ["cpu-start", "setup", "initialize"].includes(entry.body?.operation))
+        .map((entry) => entry.body),
+      activeRoomReads: globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.name === "fcg_standard_active_room").length,
+      saga: localStorage.getItem("fourColorMapGame.standard.online.v5.cpu-start-saga"),
+      matchVisible: Boolean(document.querySelector("#matchCard")?.offsetParent),
+    }));
+    assert.deepEqual(evidence.operations.map((body) => body.operation), ["cpu-start", "setup", "initialize"]);
+    assert.equal(evidence.operations[0].actionId, "77777777-7777-4777-8777-777777777777");
+    assert.equal(evidence.operations[1].setupActionId, "88888888-8888-4888-8888-888888888888");
+    assert.equal(evidence.activeRoomReads, 0);
+    assert.equal(evidence.saga, null);
+    assert.equal(evidence.matchVisible, true);
+  }, { viewport: { width: 390, height: 844 } });
 });
 
 test("actual Edge keeps the first-time setup write-free when the name is empty", { timeout: 130000 }, async () => {
@@ -2125,7 +2298,9 @@ test("actual Edge finds a public opponent and enters setup without exposing a co
     assert.equal(await page.locator("#roomIdentityLabel").textContent(), "対戦形式");
     assert.equal(await page.locator("#shownCode").textContent(), "野良対戦");
     assert.equal(await page.locator("#setupCard").evaluate((node) => node.classList.contains("hidden")), false);
-    const calls = await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.kind === "rpc").map((entry) => entry.name));
+    const calls = await page.evaluate(() => globalThis.__standardOnlineRuntime.calls
+      .filter((entry) => entry.kind === "rpc" && entry.name !== "fcg_standard_active_room")
+      .map((entry) => entry.name));
     assert.deepEqual(calls.slice(0, 2), ["fcg_standard_matchmaking_find", "fcg_standard_room_snapshot_v2"]);
   });
 });
