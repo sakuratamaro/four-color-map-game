@@ -52,6 +52,8 @@ const CPU_NAMES = Object.freeze({
 const CPU_FIRST_OFFER_SECONDS = 90;
 const CPU_SECOND_OFFER_SECONDS = 180;
 const RANDOM_REVEAL_DURATION_MS = 2600;
+const MATCHED_ROOM_FEEDBACK_MS = 650;
+const QUIZ_ROOM_CHECK_STATUS = "保存済みの対戦状態を確認しています。クイズの時計は確認完了まで止まります。";
 const TROPHY_META = Object.freeze({
   fullPaint: { icon: "🗺️", name: "完塗り達成", condition: "盤面をすべて塗り切って勝利" },
   fullPaint3: { icon: "🏆", name: "完塗り三冠", condition: "完塗り勝利を3回達成" },
@@ -139,6 +141,12 @@ let quizClockTimer = null;
 let quizMathResizeObserver = null;
 let quizTimeoutQueued = false;
 let quizFeedbackGeneration = 0;
+let quizFeedbackUntil = 0;
+let quizPausedForMatchedRoom = false;
+let quizRoomClassificationPending = Boolean(client.snapshot().roomId && pendingQuiz);
+let matchedRoomHandoff = null;
+let matchedRoomHandoffTimer = null;
+let announcedMatchedRoomId = null;
 let shownTerminalEventKey = null;
 let dismissedTerminalEventKey = null;
 let userInteractionRevision = 0;
@@ -204,6 +212,17 @@ function handoffFromSetupToMatch(expectedInteractionRevision) {
 
 function activateAppTab(requestedTab, { updateHash = true, scrollTop = true } = {}) {
   const tab = APP_TABS.has(requestedTab) ? requestedTab : "home";
+  if (requestedTab === "battle" && hasMatchedRoomHandoff() && matchedRoomHandoffBlockReason()) {
+    renderMatchedRoomHandoff();
+    requestAnimationFrame(() => {
+      $("matchedRoomHandoffTitle").focus({ preventScroll: true });
+      $("matchedRoomHandoff").scrollIntoView({ block: "nearest", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+    });
+    return;
+  }
+  const resumePausedQuiz = tab === "quiz" && quizPausedForMatchedRoom && !hasMatchedRoomHandoff()
+    && (!client.snapshot().roomId || roomModel);
+  if (resumePausedQuiz) resumeQuizClockOnQuizTab();
   activeAppTab = tab;
   localStorage.setItem(APP_TAB_KEY, tab);
   if (updateHash && location.hash !== `#${tab}`) history.replaceState(null, "", `#${tab}`);
@@ -218,8 +237,144 @@ function activateAppTab(requestedTab, { updateHash = true, scrollTop = true } = 
   }
   document.body.dataset.activeTab = tab;
   renderProfileCardVisibility();
+  if (tab === "battle" && hasMatchedRoomHandoff()) pauseQuizClockForMatchedRoom();
+  renderMatchedRoomHandoff();
+  if (resumePausedQuiz) renderQuiz();
   if (tab === "battle") roomSync?.invalidate?.();
   if (scrollTop) window.scrollTo({ top: 0, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+}
+
+function hasMatchedRoomHandoff() {
+  return Boolean(matchedRoomHandoff?.roomId && client.snapshot().roomId === matchedRoomHandoff.roomId);
+}
+
+function quizLockedByMatchedRoom() {
+  return Boolean(quizRoomClassificationPending || quizPausedForMatchedRoom
+    || (hasMatchedRoomHandoff() && matchedRoomHandoff.quizBoundaryReached));
+}
+
+function pauseQuizClockForMatchedRoom() {
+  if (pendingQuiz && pendingQuiz.answers.length < 10) {
+    const state = quizPausedForMatchedRoom ? ensureQuizQuestionState() : settleQuizClock();
+    quizPausedForMatchedRoom = true;
+    if (state) state.lastTickAt = Date.now();
+    savePendingQuiz();
+  }
+  stopQuizClock();
+}
+
+function resumeQuizClockOnQuizTab() {
+  quizPausedForMatchedRoom = false;
+  if (pendingQuiz?.questionState) {
+    pendingQuiz.questionState.lastTickAt = Date.now();
+    savePendingQuiz();
+  }
+}
+
+function resolveQuizRoomClassification({ activePublicRoom = false } = {}) {
+  quizRoomClassificationPending = false;
+  if (activePublicRoom) return;
+  if ($("quizStatus").textContent === QUIZ_ROOM_CHECK_STATUS) {
+    $("quizStatus").textContent = pendingQuiz?.answerMode === "per-question-v1"
+      ? "答えを選ぶと、その場で○×が分かります。"
+      : "答えを選んでください。10問後にまとめてサーバー採点します。";
+  }
+  if (activeAppTab === "quiz") resumeQuizClockOnQuizTab();
+}
+
+function matchedRoomHandoffBlockReason() {
+  if (!hasMatchedRoomHandoff()) return "";
+  if (gachaBusy) return "抽選結果、または同じ抽選IDで再送できる状態を確認してから対戦へ移ります。";
+  if (quizBusy) return "選んだ回答を同じ回答IDで確定してから対戦へ移ります。";
+  if (Date.now() < quizFeedbackUntil) return "前問の○×を短く表示してから対戦へ移ります。";
+  if (matchedRoomHandoff.waitForQuizBoundary && !matchedRoomHandoff.quizBoundaryReached) {
+    if (pendingQuiz?.pendingAnswer) return "選んだ回答を同じ回答IDで再送・確定してから対戦へ移ります。";
+    if (pendingQuiz && pendingQuiz.answers.length < 10) return "いまの問題に回答したところで対戦へ移ります。次の問題の時計は開始しません。";
+  }
+  return "";
+}
+
+function renderMatchedRoomHandoff() {
+  if (!$('matchedRoomHandoff')) return;
+  if (matchedRoomHandoff && client.snapshot().roomId !== matchedRoomHandoff.roomId) matchedRoomHandoff = null;
+  if (matchedRoomHandoff && roomModel?.room?.id === matchedRoomHandoff.roomId && roomModel.room.status === "finished") {
+    matchedRoomHandoff = null;
+  }
+  const visible = hasMatchedRoomHandoff() && activeAppTab !== "battle";
+  show("matchedRoomHandoff", visible);
+  $("connectionCard").classList.toggle("has-matched-room", visible);
+  if (!visible) return;
+  const blockReason = matchedRoomHandoffBlockReason();
+  $("matchedRoomHandoffDetail").textContent = blockReason || "成立済みの対戦があります。ボタンで安全に対戦画面へ戻れます。";
+  $("returnToMatchedRoom").disabled = Boolean(blockReason);
+}
+
+function focusMatchedRoom() {
+  requestAnimationFrame(() => {
+    const target = !$('setupCard').classList.contains("hidden") ? $("setupTitle") : $("matchTitle");
+    if (target && !target.closest(".hidden, .tab-panel-hidden")) target.focus({ preventScroll: true });
+  });
+}
+
+function goToMatchedRoom() {
+  if (!hasMatchedRoomHandoff() || matchedRoomHandoffBlockReason()) return renderMatchedRoomHandoff();
+  clearTimeout(matchedRoomHandoffTimer);
+  matchedRoomHandoffTimer = null;
+  pauseQuizClockForMatchedRoom();
+  matchedRoomHandoff.arrived = true;
+  activateAppTab("battle");
+  renderMatchedRoomHandoff();
+  focusMatchedRoom();
+}
+
+function flushMatchedRoomHandoff() {
+  if (!hasMatchedRoomHandoff() || !matchedRoomHandoff.autoWhenIdle) return renderMatchedRoomHandoff();
+  const blockReason = matchedRoomHandoffBlockReason();
+  renderMatchedRoomHandoff();
+  clearTimeout(matchedRoomHandoffTimer);
+  matchedRoomHandoffTimer = null;
+  if (!blockReason) return goToMatchedRoom();
+  const feedbackDelay = Math.max(0, quizFeedbackUntil - Date.now());
+  if (feedbackDelay > 0) matchedRoomHandoffTimer = setTimeout(flushMatchedRoomHandoff, feedbackDelay + 10);
+}
+
+function queueMatchedRoomHandoff(message, { autoWhenIdle = true } = {}) {
+  const authoritativeRoomId = client.snapshot().roomId;
+  if (!authoritativeRoomId) return false;
+  const quizInProgress = Boolean(pendingQuiz) && pendingQuiz.answers.length < 10;
+  const quizOperationInProgress = quizBusy;
+  const feedbackInProgress = Date.now() < quizFeedbackUntil;
+  if (matchedRoomHandoff?.roomId !== authoritativeRoomId) {
+    matchedRoomHandoff = {
+      roomId: authoritativeRoomId,
+      autoWhenIdle,
+      waitForQuizBoundary: quizInProgress || quizOperationInProgress,
+      quizBoundaryReached: (!quizInProgress && !quizOperationInProgress) || feedbackInProgress,
+      arrived: false,
+    };
+  } else {
+    matchedRoomHandoff.autoWhenIdle ||= autoWhenIdle;
+  }
+  const shouldAnnounce = announcedMatchedRoomId !== authoritativeRoomId;
+  if (shouldAnnounce) {
+    announcedMatchedRoomId = authoritativeRoomId;
+  }
+  $("matchedRoomHandoffTitle").textContent = message;
+  renderMatchedRoomHandoff();
+  if (shouldAnnounce) requestAnimationFrame(() => {
+    if (hasMatchedRoomHandoff() && announcedMatchedRoomId === authoritativeRoomId) $("matchedRoomAnnouncement").textContent = message;
+  });
+  requestAnimationFrame(flushMatchedRoomHandoff);
+  return true;
+}
+
+function markQuizBoundaryForMatchedRoom({ feedback = false } = {}) {
+  if (feedback) quizFeedbackUntil = Math.max(quizFeedbackUntil, Date.now() + MATCHED_ROOM_FEEDBACK_MS);
+  if (!hasMatchedRoomHandoff()) return;
+  matchedRoomHandoff.quizBoundaryReached = true;
+  pauseQuizClockForMatchedRoom();
+  renderMatchedRoomHandoff();
+  flushMatchedRoomHandoff();
 }
 
 function playerName(seat) {
@@ -721,8 +876,8 @@ function renderGacha() {
   const level = Number($("gachaLevel").value || 1);
   const available = Number(tickets[String(level)] || 0);
   $("gachaTickets").textContent = [1, 2, 3, 4, 5].map((item) => `Lv.${item} ×${tickets[String(item)] || 0}`).join(" / ");
-  $("gachaDrawOne").disabled = gachaBusy || available < 1;
-  $("gachaDrawAll").disabled = gachaBusy || available < 1;
+  $("gachaDrawOne").disabled = gachaBusy || hasMatchedRoomHandoff() || available < 1;
+  $("gachaDrawAll").disabled = gachaBusy || hasMatchedRoomHandoff() || available < 1;
   $("gachaRetry").classList.toggle("hidden", !pendingGacha);
   $("gachaResults").replaceChildren();
   for (const draw of lastGachaDraws) {
@@ -1038,7 +1193,7 @@ function stopQuizClock() {
 }
 
 function updateQuizClock() {
-  if (!pendingQuiz || pendingQuiz.answers.length >= 10 || !$("quizTimer")) return stopQuizClock();
+  if (quizLockedByMatchedRoom() || !pendingQuiz || pendingQuiz.answers.length >= 10 || !$("quizTimer")) return stopQuizClock();
   const now = Date.now();
   const previousState = ensureQuizQuestionState(now);
   const hintWasActive = Number(previousState?.hintActiveUntil || 0) > 0;
@@ -1067,6 +1222,7 @@ function updateQuizClock() {
 }
 
 function startQuizClock() {
+  if (quizLockedByMatchedRoom()) return stopQuizClock();
   if (!quizClockTimer) quizClockTimer = setInterval(updateQuizClock, 200);
   updateQuizClock();
 }
@@ -1074,7 +1230,7 @@ function startQuizClock() {
 function renderQuizHint(question, state) {
   const visible = Number(state?.hintActiveUntil || 0) > Date.now();
   show("quizHintText", visible);
-  $("quizHint").disabled = quizBusy || Boolean(state?.hintUsed);
+  $("quizHint").disabled = quizBusy || quizLockedByMatchedRoom() || Boolean(state?.hintUsed);
   $("quizHint").textContent = state?.hintUsed ? "ヒント使用済み" : "💡 ヒントを見る";
   if (!visible) return $("quizHintText").replaceChildren();
   const heading = document.createElement("strong");
@@ -1087,7 +1243,7 @@ function renderQuizHint(question, state) {
 }
 
 function openQuizHint() {
-  if (!pendingQuiz || quizBusy) return;
+  if (!pendingQuiz || quizBusy || quizLockedByMatchedRoom()) return;
   const now = Date.now();
   const state = settleQuizClock(now);
   if (!state || state.hintUsed || state.remainingMs <= 0) return;
@@ -1170,11 +1326,15 @@ function renderQuiz() {
   show("quizSetup", !pendingQuiz);
   show("quizPlay", Boolean(pendingQuiz));
   show("quizResult", Boolean(lastQuizResult));
-  $("quizStart").disabled = quizBusy || !synced;
+  $("quizStart").disabled = quizBusy || hasMatchedRoomHandoff() || !synced;
   $("quizLevel").disabled = quizBusy;
   if (lastQuizResult) renderQuizResult();
   renderQuizAnswerFeedback();
   if (!pendingQuiz) { stopQuizClock(); return; }
+  const lockedByMatch = quizLockedByMatchedRoom();
+  if (lockedByMatch) $("quizStatus").textContent = quizRoomClassificationPending
+    ? QUIZ_ROOM_CHECK_STATUS
+    : "対戦が成立したため、このクイズはここで一時停止しました。対戦終了後に同じ状態から再開できます。";
   const index = pendingQuiz.answers.length;
   $("quizProgress").textContent = `${Math.min(index + 1, 10)} / 10`;
   $("quizLevelBadge").textContent = `Lv.${pendingQuiz.selectedLevel}`;
@@ -1185,20 +1345,24 @@ function renderQuiz() {
     const retry = document.createElement("button");
     retry.className = "primary";
     retry.textContent = quizBusy ? "採点中…" : "採点を再試行";
-    retry.disabled = quizBusy;
+    retry.disabled = quizBusy || lockedByMatch;
     retry.onclick = finishOnlineQuiz;
     $("quizOptions").appendChild(retry);
     return;
   }
   const question = pendingQuiz.questions[index];
-  const questionState = settleQuizClock();
+  const questionState = lockedByMatch ? ensureQuizQuestionState() : settleQuizClock();
+  if (lockedByMatch && questionState) {
+    questionState.lastTickAt = Date.now();
+    savePendingQuiz();
+  }
   renderQuizQuestion(question);
   renderQuizHint(question, questionState);
   for (const [optionIndex, option] of (question.options || []).entries()) {
     const button = document.createElement("button");
     button.textContent = option.label;
     button.style.setProperty("--float-order", String(optionIndex));
-    button.disabled = quizBusy || Boolean(pendingQuiz.pendingAnswer) || Number(questionState?.hintActiveUntil || 0) > Date.now();
+    button.disabled = quizBusy || lockedByMatch || Boolean(pendingQuiz.pendingAnswer) || Number(questionState?.hintActiveUntil || 0) > Date.now();
     button.onclick = () => answerOnlineQuiz(option.id);
     $("quizOptions").appendChild(button);
   }
@@ -1207,10 +1371,11 @@ function renderQuiz() {
     const retry = document.createElement("button");
     retry.className = "primary";
     retry.textContent = quizBusy ? "回答を送信中…" : "同じ回答を再送";
-    retry.disabled = quizBusy;
+    retry.disabled = quizBusy || lockedByMatch;
     retry.onclick = submitPendingQuizAnswer;
     $("quizOptions").appendChild(retry);
-  } else startQuizClock();
+  } else if (lockedByMatch) stopQuizClock();
+  else startQuizClock();
 }
 
 async function startOnlineQuiz() {
@@ -1242,11 +1407,11 @@ async function startOnlineQuiz() {
   } catch (error) {
     $("quizStatus").textContent = "クイズを開始できませんでした。少し待って再試行してください。";
     toast(error.message || "クイズ開始に失敗しました。");
-  } finally { quizBusy = false; renderQuiz(); }
+  } finally { quizBusy = false; markQuizBoundaryForMatchedRoom(); renderQuiz(); flushMatchedRoomHandoff(); }
 }
 
 async function answerOnlineQuiz(optionId, { timedOut = false } = {}) {
-  if (quizBusy || !pendingQuiz || pendingQuiz.answers.length >= 10) return;
+  if (quizBusy || quizLockedByMatchedRoom() || !pendingQuiz || pendingQuiz.answers.length >= 10) return;
   const questionState = settleQuizClock();
   if (!timedOut && Number(questionState?.hintActiveUntil || 0) > Date.now()) return;
   if (!timedOut && Number(questionState?.remainingMs || 0) <= 0) return;
@@ -1266,6 +1431,7 @@ async function answerOnlineQuiz(optionId, { timedOut = false } = {}) {
   pendingQuiz.answers.push(String(optionId));
   pendingQuiz.questionState = null;
   savePendingQuiz();
+  markQuizBoundaryForMatchedRoom();
   if (timedOut) $("quizStatus").textContent = "時間切れ。次の問題へ進みます。";
   if (pendingQuiz.answers.length === 10) finishOnlineQuiz();
   else renderQuiz();
@@ -1307,6 +1473,7 @@ async function submitPendingQuizAnswer() {
     pendingQuiz.pendingAnswer = null;
     pendingQuiz.questionState = null;
     savePendingQuiz();
+    markQuizBoundaryForMatchedRoom({ feedback: true });
     $("quizStatus").textContent = result.duplicate ? "保存済みの回答を復元しました。" : "回答を保存しました。次の問題へ進みます。";
     shouldFinish = pendingQuiz.answers.length === 10;
   } catch (error) {
@@ -1339,7 +1506,7 @@ async function finishOnlineQuiz() {
   } catch (error) {
     $("quizStatus").textContent = "採点結果を保存できませんでした。同じ回答で安全に再試行できます。";
     toast(error.message || "クイズ採点に失敗しました。");
-  } finally { quizBusy = false; renderQuiz(); renderGacha(); render(); }
+  } finally { quizBusy = false; markQuizBoundaryForMatchedRoom(); renderQuiz(); renderGacha(); render(); flushMatchedRoomHandoff(); }
 }
 
 async function runGacha(requestedCount = 1, retry = false) {
@@ -1365,7 +1532,7 @@ async function runGacha(requestedCount = 1, retry = false) {
     if (remote) hydrateProfileRow(remote);
     $("gachaStatus").textContent = "抽選結果を確認できませんでした。同じ抽選IDで安全に再試行できます。";
     toast(error.message || "ガチャに失敗しました。");
-  } finally { gachaBusy = false; renderGacha(); render(); }
+  } finally { gachaBusy = false; renderGacha(); render(); flushMatchedRoomHandoff(); }
 }
 
 async function createStarterProfile() {
@@ -1451,6 +1618,7 @@ async function refreshRoom(_reason, expectedRoomId = client.snapshot().roomId) {
     roomSync.stop();
     client.clearRoom();
     roomModel = null;
+    resolveQuizRoomClassification();
     render();
     toast("対戦は終了または失効しました。ロビーへ戻ります。");
     return null;
@@ -1532,6 +1700,7 @@ async function runCpuTurn() {
 
 function render() {
   renderProfileCardVisibility();
+  renderMatchedRoomHandoff();
   const snapshot = client.snapshot();
   show("quizPanel", synced && Boolean(profile()));
   renderQuiz();
@@ -1947,12 +2116,20 @@ function scheduleMatchmakingStatus(delay = 15000) {
 }
 
 async function enterPublicMatch(message = "対戦相手が見つかりました。6枚セットを選んでください。") {
+  const authoritativeRoomId = client.snapshot().roomId;
+  if (!authoritativeRoomId) throw new Error("MATCHED_ROOM_NOT_CONFIRMED");
   stopMatchmakingWatch();
   stopCpuTurnWatch();
   if ($("cpuRosterDialog").open) $("cpuRosterDialog").close();
-  $("matchmakingStatus").textContent = message;
-  await roomSync.start(client.snapshot().roomId);
+  await roomSync.start(authoritativeRoomId);
   render();
+  if (client.snapshot().roomId !== authoritativeRoomId) return;
+  if (roomModel?.room?.opponent_kind === "cpu") {
+    $("matchmakingStatus").textContent = message;
+    activateAppTab("battle");
+    return;
+  }
+  queueMatchedRoomHandoff(message);
 }
 
 async function pollMatchmakingStatus() {
@@ -2229,6 +2406,7 @@ $("gachaLevel").onchange = () => { lastGachaDraws = []; renderGacha(); };
 $("gachaDrawOne").onclick = () => runGacha(1);
 $("gachaDrawAll").onclick = () => runGacha(null);
 $("gachaRetry").onclick = () => runGacha(1, true);
+$("returnToMatchedRoom").onclick = goToMatchedRoom;
 $("cardSaleSkill").onchange = () => { cardSaleQuote = null; $("cardSaleStatus").textContent = "枚数を選び、売却内容を確認してください。"; renderCardSale(); };
 $("cardSaleCount").oninput = () => { cardSaleQuote = null; $("cardSaleStatus").textContent = "売却内容をもう一度確認してください。"; renderCardSale(); };
 $("cardSaleQuote").onclick = quoteOnlineCardSale;
@@ -2274,7 +2452,7 @@ $("terminalClose").onclick = () => {
   dismissTerminalResult();
   $("requestRematch").focus({ preventScroll: false });
 };
-$("leaveRoom").onclick = () => { clearContactReveal(); stopCpuTurnWatch(); roomSync.stop(); client.clearRoom(); roomModel = null; setupFailure = null; pendingAction = null; operationFeedback("setupStatus", ""); operationFeedback("actionStatus", ""); render(); };
+$("leaveRoom").onclick = () => { clearContactReveal(); stopCpuTurnWatch(); roomSync.stop(); client.clearRoom(); roomModel = null; setupFailure = null; pendingAction = null; matchedRoomHandoff = null; announcedMatchedRoomId = null; $("matchedRoomAnnouncement").textContent = ""; clearTimeout(matchedRoomHandoffTimer); matchedRoomHandoffTimer = null; operationFeedback("setupStatus", ""); operationFeedback("actionStatus", ""); render(); };
 document.addEventListener("visibilitychange", () => {
   roomSync.handleVisibilityChange();
   if (document.visibilityState === "hidden") { stopMatchmakingWatch(); stopCpuTurnWatch(); }
@@ -2300,7 +2478,16 @@ try {
   const remote = await client.readProfile();
   if (remote) { hydrateProfileRow(remote); synced = true; }
   else loadProfiles();
-  if (client.snapshot().roomId) { synced = true; await roomSync.start(client.snapshot().roomId); }
+  if (client.snapshot().roomId) {
+    synced = true;
+    await roomSync.start(client.snapshot().roomId);
+    const activePublicRoom = roomModel?.room?.access_mode === "public_queue" && roomModel.room.status !== "finished";
+    resolveQuizRoomClassification({ activePublicRoom });
+    if (activePublicRoom) {
+      queueMatchedRoomHandoff("成立済みの野良対戦があります。");
+      if (pendingQuiz && !pendingQuiz.pendingAnswer) markQuizBoundaryForMatchedRoom();
+    }
+  }
   else if (client.snapshot().cpuStartActionId && client.snapshot().cpuStartCharacterId) await resumePendingCpuStart();
   else if (client.snapshot().matchmakingFindActionId) await findPublicOpponent();
   else if (client.snapshot().matchmakingTicketId) scheduleMatchmakingStatus(250);

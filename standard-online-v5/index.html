@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <title>Four Color Map Game v5.0 Standard Online</title>
   <link rel="stylesheet" href="../online-v5/style.css">
-  <link rel="stylesheet" href="style.css?v=20260905-14">
+  <link rel="stylesheet" href="style.css?v=20260905-15">
   <link rel="stylesheet" href="debug-mode.css">
   <link rel="stylesheet" href="progression.css">
 </head>
@@ -25,9 +25,17 @@
     <button type="button" data-app-tab="profile" aria-selected="false"><span aria-hidden="true">●</span><strong>マイページ</strong></button>
   </nav>
   <main>
-    <section class="card connection-card" data-app-tab-panel="home battle quiz cards profile" role="status" aria-live="polite" aria-atomic="true">
-      <div class="row between"><strong>接続状態</strong><span id="connectionBadge" class="badge warn">接続中</span></div>
-      <p id="connectionMessage" class="muted">匿名セッションを準備しています。</p>
+    <section id="connectionCard" class="card connection-card" data-app-tab-panel="home battle quiz cards profile">
+      <div id="connectionStatus" role="status" aria-live="polite" aria-atomic="true">
+        <div class="row between"><strong>接続状態</strong><span id="connectionBadge" class="badge warn">接続中</span></div>
+        <p id="connectionMessage" class="muted">匿名セッションを準備しています。</p>
+      </div>
+      <p id="matchedRoomAnnouncement" class="visually-hidden" role="status" aria-live="polite" aria-atomic="true"></p>
+      <div id="matchedRoomHandoff" class="matched-room-handoff hidden">
+        <p id="matchedRoomHandoffTitle" tabindex="-1"></p>
+        <p id="matchedRoomHandoffDetail" class="muted small" aria-live="off"></p>
+        <button id="returnToMatchedRoom" type="button" class="primary">成立した対戦へ戻る</button>
+      </div>
     </section>
 
     <section class="card home-hero" data-app-tab-panel="home">
@@ -225,7 +233,7 @@
     </section>
 
     <section id="setupCard" class="card hidden" data-app-tab-panel="battle">
-      <h2>対戦で使う6枚</h2>
+      <h2 id="setupTitle" tabindex="-1">対戦で使う6枚</h2>
       <p class="muted">色は塗り方、エリアは形や大きさ、妨害は相手への働きかけを担当します。3つの役割を使えるよう、各2枚・合計6枚を選びます。</p>
       <label class="debug-mode-option">
         <input id="debugUnlimitedMode" type="checkbox">
@@ -341,6 +349,6 @@
   <script src="standard-online-client.js?v=20260905-14"></script>
   <script src="standard-online-sync.js"></script>
   <script src="standard-online-skill-intents.js"></script>
-  <script type="module" src="app.js?v=20260905-14"></script>
+  <script type="module" src="app.js?v=20260905-15"></script>
 </body>
 </html>

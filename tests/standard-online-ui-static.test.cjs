@@ -26,8 +26,9 @@ test("missing room snapshots return to the lobby without discarding rooms on net
 
 test("Standard online setup UI exposes the complete reconnect path", () => {
   for (const id of [
-    "connectionBadge", "profileSelect", "starterCreator", "starterName", "createStarterProfile", "syncProfile", "createRoom", "roomCode", "joinRoom",
-    "shownCode", "members", "loadoutSummary", "loadoutGrid", "setupCommitBar", "setupCommitTitle", "submitSetup", "setupStatus", "matchCard",
+    "connectionCard", "connectionStatus", "connectionBadge", "connectionMessage", "matchedRoomHandoff", "matchedRoomAnnouncement", "matchedRoomHandoffTitle", "matchedRoomHandoffDetail", "returnToMatchedRoom",
+    "profileSelect", "starterCreator", "starterName", "createStarterProfile", "syncProfile", "createRoom", "roomCode", "joinRoom",
+    "shownCode", "members", "setupTitle", "loadoutSummary", "loadoutGrid", "setupCommitBar", "setupCommitTitle", "submitSetup", "setupStatus", "matchCard",
     "publicProjection", "privateProjection", "leaveRoom",
     "turnGuide", "turnGuideStep", "turnGuideTitle", "turnGuideDetail", "board", "regionControls", "selectionCount", "submitRegion", "paletteControls", "skillControls", "skillTargetControls",
     "surrender", "retryAction", "actionStatus", "rematchControls", "rematchStatus", "requestRematch",
@@ -70,7 +71,8 @@ test("fresh players create their starter and prepare online play with one clear 
 });
 
 test("connection status stays singular, live, and visible across every app tab", () => {
-  assert.match(html, /class="card connection-card"[^>]+data-app-tab-panel="home battle quiz cards profile"[^>]+role="status"[^>]+aria-live="polite"[^>]+aria-atomic="true"/);
+  assert.match(html, /class="card connection-card"[^>]+data-app-tab-panel="home battle quiz cards profile"/);
+  assert.match(html, /id="connectionStatus"[^>]+role="status"[^>]+aria-live="polite"[^>]+aria-atomic="true"/);
   assert.equal((html.match(/id="connectionBadge"/g) || []).length, 1);
   assert.equal((html.match(/id="connectionMessage"/g) || []).length, 1);
   assert.match(css, /body\[data-active-tab\]:not\(\[data-active-tab="home"\]\) \.connection-card\{position:fixed/);
