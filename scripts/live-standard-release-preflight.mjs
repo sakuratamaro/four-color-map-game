@@ -37,13 +37,14 @@ async function probeProtectedRpc(name, body) {
   throw new Error(`UNEXPECTED_RPC_PROBE_${name}_${response.status}_${String(data?.code || "UNKNOWN")}`);
 }
 
-const [page, app, snapshotV1, snapshotV2, matchmaking, pregameAbandon] = await Promise.all([
+const [page, app, snapshotV1, snapshotV2, matchmaking, pregameAbandon, activeRoom] = await Promise.all([
   getText(publicUrl),
   getText(`${publicUrl}app.js`),
   probeProtectedRpc("fcg_standard_room_snapshot", { p_room_id: zeroUuid }),
   probeProtectedRpc("fcg_standard_room_snapshot_v2", { p_room_id: zeroUuid, p_known_profile_revision: null }),
   probeProtectedRpc("fcg_standard_matchmaking_recruit", { p_display_name: "preflight", p_ticket_id: zeroUuid }),
   probeProtectedRpc("fcg_standard_abandon_room", { p_room_id: zeroUuid, p_expected_version: 0, p_action_id: zeroUuid }),
+  probeProtectedRpc("fcg_standard_active_room", {}),
 ]);
 
 const result = {
@@ -56,8 +57,9 @@ const result = {
     hasCpuRoster: /cpu-roster|CPU一覧/.test(app.text),
     hasCosmetics: /cosmetic-catalog|見た目/.test(app.text),
     hasPregameAbandon: /client\.abandonRoom|開始前の対戦を取りやめる/.test(app.text),
+    hasActiveRoomRecovery: /client\.recoverActiveRoom|recoverServerActiveRoom/.test(app.text),
   },
-  database: { snapshotV1, snapshotV2, matchmaking, pregameAbandon },
+  database: { snapshotV1, snapshotV2, matchmaking, pregameAbandon, activeRoom },
 };
 
 const phaseExpectations = {
@@ -72,10 +74,12 @@ if (expectedPhase) {
   assert.equal(result.database.snapshotV2, "protected", "SNAPSHOT_V2_BASELINE_MISSING");
   assert.equal(result.database.matchmaking, "protected", "MATCHMAKING_BASELINE_MISSING");
   assert.equal(result.database.pregameAbandon, expected.candidateDb ? "protected" : "absent", "PREGAME_ABANDON_PHASE_MISMATCH");
+  assert.equal(result.database.activeRoom, expected.candidateDb ? "protected" : "absent", "ACTIVE_ROOM_RECOVERY_PHASE_MISMATCH");
   for (const key of ["hasPublicMatchmaking", "hasCpuRoster", "hasCosmetics"]) {
     assert.equal(result.publicPage[key], true, `PUBLIC_BASELINE_UI_MISSING_${key}`);
   }
   assert.equal(result.publicPage.hasPregameAbandon, expected.candidateUi, "PREGAME_ABANDON_UI_PHASE_MISMATCH");
+  assert.equal(result.publicPage.hasActiveRoomRecovery, expected.candidateUi, "ACTIVE_ROOM_RECOVERY_UI_PHASE_MISMATCH");
 }
 
 console.log(JSON.stringify(result));

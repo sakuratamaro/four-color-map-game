@@ -2675,7 +2675,6 @@ async function recoverServerActiveRoom({ focusOnSuccess = false } = {}) {
         if ($("cpuRosterDialog").open) $("cpuRosterDialog").close();
         await roomSync.start(recovered.room_id);
         render();
-        queueMatchedRoomHandoff(message, { autoWhenIdle: false });
       }
       $("matchmakingStatus").textContent = message;
       queueMatchedRoomHandoff(message, { autoWhenIdle: false });
