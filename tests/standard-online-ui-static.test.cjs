@@ -460,7 +460,8 @@ test("board spotlight uses only allowlisted public targets and a local one-shot 
   assert.match(html, /水色実線：今回/);
   assert.match(css, /\.board-spotlight-legend\{[^}]*pointer-events:none/);
   assert.match(css, /\.board-stage\{[^}]*padding-bottom:34px/);
-  assert.match(css, /@media\(max-width:520px\)\{\.board-stage\{width:calc\(100% - 30px\)\}\}/);
+  assert.match(css, /\.board-stage:has\(\.board-spotlight-legend\.hidden\)\{padding-bottom:0\}/);
+  assert.match(css, /@media\(max-width:520px\)\{\.board-stage\{width:calc\(100% - 30px\)\}\.board-stage:has\(\.board-spotlight-legend\.hidden\)\{width:100%\}\}/);
   assert.match(app, /const cssScale = displayedWidth > 0 \? ctx\.canvas\.width \/ displayedWidth : 1/);
   assert.match(app, /if \(hasStandardPublicState\(publicState\)\) renderBoard\(publicState\)/);
   assert.match(observer, /previousStatus === "ACTIVE" && previousActive !== seat && active === seat/);
