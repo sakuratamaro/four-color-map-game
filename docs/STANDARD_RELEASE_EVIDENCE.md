@@ -12,7 +12,7 @@
 | --- | --- | --- | --- |
 | 採否棚卸し | VERIFIED | `ONLINE_COMPLETION_INVENTORY.md`。旧Expo試作と現行Web Standardを分離済み | 公開後に状態列だけ更新 |
 | 製品コード・生成元 | VERIFIED | `standard/`、build scripts、生成済みEdge bundleが統合ブランチに存在 | 最終公開commitを記録 |
-| ローカル製品試験 | VERIFIED | active-room候補`ffdf8e5`。全Edge browser 56/56、新規復帰シナリオはEdge/Chrome各3/3、focused契約94/94、公開ゲート静的39/39が合格。DB/Edge、UX/browser、worktree/旧タスクの3独立レビューはP0/P1なし | 物理二端末canary |
+| ローカル製品試験 | VERIFIED | legal-recolor LAB候補`ad53bb4`。公式非browser 110ファイル失敗0、CI unit相当191/191、全browserはEdge/Chrome各60/60、responsive各4/4、lifecycle 76/76、生成bundle 2種再生成一致。ルール/DB、UX、repository/CIの3独立レビューはP0/P1なし | migration→Edge→live canary→Pagesの順で公開検証 |
 | 次期UX候補のローカル検査 | VERIFIED | `codex/standard-release-command@1673ff8`。profile安定化、初回対戦導線、Quick Half Shift、status正規化、Realtime/poll復旧を含む非browser製品試験91ファイル522/522。browser workflow/harness静的11/11合格 | Pages反映後のpreflightと二端末受入 |
 | 初回導線・接続表示の次期候補 | VERIFIED | `9d42784`。初回starter作成＋profile同期を一操作化し、全5タブで単一接続statusを常時表示。空名write 0、room外offline復帰、390px下部nav非干渉を契約化。静的39/39、非browser 89ファイル513/513、Windows Chrome/Edge各18/18合格 | 物理二端末受入 |
 | Windows実browser CI | VERIFIED | GitHub Actions run `33976873376`。active-room製品候補`ffdf8e5`のChrome job `101335024735`、Edge job `101335024647`がともに成功 | 公開URLで同じ主要導線を二端末受入 |
@@ -27,6 +27,7 @@
 | CPU報酬からガチャへの直行 | PUBLIC_VERIFIED | `e36dfcc`＋`193a0e6`。保存済み通常CPU精算だけにCTAを出し、抽選せずLv.1ガチャへ移動。対人・未精算・debugを拒否し、390×844で券・抽選操作・focus・再読込を確認 | 物理端末でCPU一局からガチャまでの体感を確認 |
 | GitHub main・Pages更新 | PUBLIC_VERIFIED | 公開baseline `958a4da48769bcd145aca4db6b1b75f125f770d9`（製品`5acee05`）。Standard browser gate `33976873376`、Pages `33977699993`成功。公開app v22/client v16の必須markerを確認 | 二端末受入後に最終状態を記録 |
 | server-side active-room復帰 | PUBLIC_VERIFIED | private/public/CPUを有限8列で本人にだけ返し、厳格な1行だけ採用。raw sentinel/UUID非表示、background focus非奪取、CPU/matchmaking saga優先、復帰時の新room/setup送信0をbrowser回帰とlive 10/10で確認 | 物理端末でlocal identity喪失後の復帰を体感確認 |
+| 塗り直し・乱 LAB | VERIFIED | `ad53bb4`。private-code human双方同意、debug排他、固定ruleset、server-only乱数、1人1回貸与、通常19枚/6枚/CPU/野良/戦績/報酬/在庫非変更。応答喪失時は同一setupだけを再送し、setup revisionをDB lock後に再照合 | migration `202609060002`、Edge、live canary、Pages、二端末LAB一局 |
 | 合言葉対戦canary | VERIFIED | deployment 15で`live-standard-runbook-a-canary.mjs --confirm-live` 44/44合格。確定CREATEの公開trace shapeも検査 | 実ブラウザ再読込と二端末最終受入 |
 | 確定接触feedback・戦術trace | PUBLIC_VERIFIED | `ecafdd1`。選択/poll/reload/replay/重複非発火、2→3累積、4色終局優先、reduced-motion、最終1回読み上げ、CREATE/COLOR/USE_SKILL allowlistを自動検査。Edge 15と公開v21で確認 | 二端末で読みやすさとテンポを体感確認 |
 | 経済・進行・見た目canary | VERIFIED | deployment 8でRunbook B 93/93合格 | 実ブラウザで報酬演出と操作感を確認 |

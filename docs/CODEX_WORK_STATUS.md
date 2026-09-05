@@ -1,7 +1,7 @@
 # Codex work status
 
 - Last update: 2026-09-06 JST
-- Stage: server-side active-room recovery is public; physical two-device acceptance and T+24h observation remain pending
+- Stage: legal-recolor LAB candidate `ad53bb4` is local-verified and awaiting ordered DB/Edge/Pages release; physical two-device acceptance and T+24h observation remain pending
 - Integration branch: `codex/standard-release-command`
 - Public product baseline: `958a4da48769bcd145aca4db6b1b75f125f770d9` (active-room product commit `5acee05938a81bf5b0b9362c10ca32535c1e03ce`; later commits harden release evidence)
 - Public URL: `https://sakuratamaro.github.io/four-color-map-game/standard-online-v5/`
@@ -24,6 +24,7 @@
 
 ## Verification
 
+- Legal-recolor LAB candidate `ad53bb4`: official non-browser runner 110 files with zero failures; CI unit-equivalent 191/191; full local Edge 60/60 and Chrome 60/60; responsive Edge/Chrome 4/4 each; lifecycle 76/76; deterministic regeneration of both bundles; three independent reviews reported no P0/P1. This is `LOCAL_VERIFIED`, not yet public.
 - Local final Edge browser suite: 50/50 passed; the post-review CPU setup-saga race fixture passed separately. Changed static/client/SQL/runbook checks passed, and all four stale v19/006 expectations found by the aggregate non-browser run were updated and rechecked 23/23.
 - Candidate Windows browser gate `33969830340`: Chrome job `101316251520` and Edge job `101316251312` passed at product commit `5c072ae`.
 - Supabase migration `202609050007_standard_pregame_abandon.sql` is applied. Candidate verification was 66/66 true; live pregame-abandon canary was 33/33 with profiles unchanged and active/unknown/nonterminal residue all 0.
@@ -49,8 +50,8 @@
 
 ## Next command priorities
 
-1. Acceptance/operations: complete a physical two-device match/reload/rematch loop and the T+24h Supabase resource comparison. These remain `PENDING`, not inferred from automation.
-2. P1 experiment: formalize `legalRecolor` as “塗り直し・乱” behind a lab/loadout gate. Keep the proposed two-color checkerboard card out of Standard until it has a separate ruleset.
+1. Release `ad53bb4` in the only compatible order: additive migration `202609060002_standard_setup_revision_guard.sql`, Edge source and generated bundle together, live canary, then Pages. Never publish Pages first because an older Edge would ignore the LAB opt-in.
+2. Acceptance/operations: complete a physical two-device match/reload/rematch loop and the T+24h Supabase resource comparison. These remain `PENDING`, not inferred from automation.
 3. P2: add first-hydration/reload coverage for the persistent tactical trace and explicit CPU/opponent display-name coverage; the public-only contract is already enforced.
 
 Release `958a4da` applies additive migration `202609060001`, updates `standard-game-action` index source to deployment 16, and publishes Standard app v22/client v16. No secret, billing, deletion, cleanup schedule, game rule, reward, inventory, or engine bundle was changed.
