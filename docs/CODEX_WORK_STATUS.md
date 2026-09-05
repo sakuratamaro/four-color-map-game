@@ -1,11 +1,11 @@
 # Codex work status
 
-- Last update: 2026-09-05 JST
-- Stage: recoverable pregame abandon is public; physical two-device acceptance and T+24h observation remain pending
+- Last update: 2026-09-06 JST
+- Stage: committed contact feedback and public tactical trace are public; physical two-device acceptance and T+24h observation remain pending
 - Integration branch: `codex/standard-release-command`
-- Public baseline: `origin/main@426dc416e891d3c59c133bb76cc9cee8cdd135fd`
+- Public baseline: `origin/main@3e2b959d6cc89ce4e7a76f0a773225bffd0116a8` (product commit `ecafdd1042b4b30211f0aa53bac8795063700bf9`)
 - Public URL: `https://sakuratamaro.github.io/four-color-map-game/standard-online-v5/`
-- Supabase project: `qkcuhludisairpgzhryl`; `standard-game-action` deployment 14
+- Supabase project: `qkcuhludisairpgzhryl`; `standard-game-action` deployment 15
 
 ## Public in this release
 
@@ -17,7 +17,9 @@
 - The mid-width Standard lobby reflows without crushed columns, and gacha results no longer repeat the same acquisition summary.
 - Every quiz question now carries a short mission, format label, and one-to-three thinking-step hint; server-confirmed answers drive reload-safe streak feedback without changing rewards.
 - Waiting/ready rooms now offer an explicit server-authoritative no-reward abandon action. It reuses the same room/version/action identity after a lost response, tells the other member what happened, and clears only the matching CPU setup saga. Playing rooms keep the exactly-once surrender path; finished rooms keep result/rematch.
-- Public assets are `standard-online-v5` v20, client v15, and `solo-v5/save-codec.js?v=20260905-2`.
+- A committed CREATE now reveals contact-color pressure as a short cumulative 2→3 sequence, while four-color contact remains a terminal result. Selection, polling, reload, replay, and duplicate snapshots do not retrigger it; reduced motion receives the final static tier and screen readers receive one final announcement.
+- The public state now carries a strictly allowlisted `lastPublicTrace`. The match screen keeps a compact “last move → board change → next decision” explanation for CREATE/COLOR/USE_SKILL without exposing hand, palette, skill identity, target, or pre-commit legality.
+- Public assets are `standard-online-v5` v21, client v15, and `solo-v5/save-codec.js?v=20260905-2`.
 
 ## Verification
 
@@ -33,6 +35,9 @@
 - Candidate Windows browser gate `33961455909`: Chrome and Edge both passed at `881bd17`.
 - Pages run `33961706817`: build and deployment succeeded at `881bd17`.
 - Production Edge canary after deployment 14: 7/7 passed, including anonymous auth, missing/modified JWT rejection, profile, cosmetics, ten-character CPU roster, and ten quiz prompts with the new metadata.
+- Product commit `ecafdd1` passed Windows browser gate `33973264978`: Edge job `101325424224` and Chrome job `101325424357` both succeeded. Three independent final reviews reported no P0/P1 release blocker.
+- Deployment 15 live verification passed Runbook A 44/44, including the committed CREATE trace shape and private-field boundary; the basic Edge canary also passed 7/7.
+- Pages run `33973971235` succeeded at `3e2b959`. Public HTML/app/style returned HTTP 200 with v21 and tactical-trace markers, candidate preflight returned `ok:true`, and the public browser loaded the five-tab app with anonymous auth and zero captured console errors.
 - Public candidate preflight returned `ok:true`; protected snapshot and matchmaking RPC boundaries remained intact.
 - Fresh public Standard and Quick pages returned HTTP 200, correct cache markers, and no captured browser warning/error. The existing Standard CPU room also survived a public-page reload.
 - The long aggregate product runner encountered the known shared-browser host timeout after unrelated contact-effect cases. The release decision therefore used the changed focused suites plus the clean Windows Chrome/Edge gate; no product assertion from this release bundle failed.
@@ -40,8 +45,8 @@
 ## Next command priorities
 
 1. Acceptance/operations: complete a physical two-device match/reload/rematch loop and the T+24h Supabase resource comparison. These remain `PENDING`, not inferred from automation.
-2. P1: add cumulative contact-color feedback tiers and a public “last move -> board change -> next decision” tactical trace without revealing private information.
-3. P1: translate rare single-active-room conflicts into a dedicated Japanese recovery message and resynchronize the existing room.
-4. P1 experiment: formalize `legalRecolor` as “塗り直し・乱” behind a lab/loadout gate. Keep the proposed two-color checkerboard card out of Standard until it has a separate ruleset.
+2. P1: translate rare single-active-room conflicts into a dedicated Japanese recovery message and resynchronize the existing room.
+3. P1 experiment: formalize `legalRecolor` as “塗り直し・乱” behind a lab/loadout gate. Keep the proposed two-color checkerboard card out of Standard until it has a separate ruleset.
+4. P2: add first-hydration/reload coverage for the persistent tactical trace and explicit CPU/opponent display-name coverage; the public-only contract is already enforced.
 
-Release `426dc41` applied migration `202609050007`; Edge remains deployment 14. No Edge bundle, secret, billing, deletion, or cleanup schedule was changed.
+Release `3e2b959` keeps migrations through `202609050007`, updates only the `standard-game-action` engine bundle to deployment 15, and publishes Standard asset v21. No SQL, secret, billing, deletion, or cleanup schedule was changed.

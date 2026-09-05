@@ -1,6 +1,6 @@
 # 四色地図ゲーム 司令塔台帳
 
-更新日: 2026-09-05
+更新日: 2026-09-06
 
 目的: 四色地図ゲームを、迷わず始められ、駆け引きが伝わり、もう一局遊びたくなる体験へ磨き上げる。
 
@@ -8,7 +8,7 @@
 
 ## 司令塔ルール
 
-- 統合基点は `origin/main` とし、現在の公開ゲーム資産基点は `426dc41`（開始前取りやめ、active-room排他、room外6枚編成、明示CPU開始sagaを含む）。直前の終局・Quick・クイズ改善は`881bd17`として履歴を分離する。
+- 統合基点は `origin/main` とし、現在の公開基点は `3e2b959`、製品実装は `ecafdd1`（確定接触feedback、公開戦術trace、開始前取りやめ、active-room排他、room外6枚編成、明示CPU開始sagaを含む）。
 - 現在の統合作業は `codex/standard-release-command` だけで行う。
 - 古いdirty worktreeからbuild、merge、deployしない。
 - `実装済み`、`ローカル検証済み`、`live検証済み`、`公開済み`を別状態として記録する。
@@ -50,10 +50,12 @@
 | P1 | クイズの遊び心・学習feedback | クイズ＋Edge | PUBLIC_VERIFIED | `881bd17`。各問にmission、形式label、1–3段階の考え方を追加し、server確定結果で2/4/6 streakを表示。Edge deployment 14、live canary 7/7、公開asset v18 |
 | P1 | room作成前の6枚編成と明示CPU開始 | UX＋同期 | PUBLIC_VERIFIED | `03c5628`。Cardsのroom外6枚保存、CPU選択local-only、`stage/roomId/replaceRoomId`付きimmutable二段sagaを公開。start/setup応答喪失とstale別タブを46 browser testで固定 |
 | P1 | waiting/readyの正式な無報酬離脱 | UX＋DB | PUBLIC_VERIFIED | `426dc41`＋migration `202609050007`。同一actionを冪等再送し、waiting/readyだけを無報酬でabandonedにする。playingは既存SURRENDER、finishedは結果導線を維持。DB 66/66、live 33/33、Windows run `33969830340`、Pages `33970429997`、公開v20を確認 |
-| P1 | 接触色の累積feedback | 演出＋アクセシビリティ | SPEC_READY | 2色=[2]、3色=[2,3]、4色=[2,3,4]を一回の確定CREATEごとに順次表示。合計1.5秒未満、reduced-motionは静止、読み上げは最終1回、poll/reload重複なし |
-| P1 | 直前の手→盤面変化→次の判断 | ゲーム理解 | AUDITED | 公開情報だけの短い戦術traceで、相手に渡した形と接触色の結果を次手の判断へつなぐ。相手palette/handや事前合法色oracleは出さない |
+| P1 | 接触色の累積feedback | 演出＋アクセシビリティ | PUBLIC_VERIFIED | `ecafdd1`。確定CREATEだけで2色=[2]、3色=[2,3]を700/900msで表示し、4色は終局overlayへ一本化。reduced-motionは最終静止tier、読み上げ最終1回、選択/poll/reload/replay/重複では発火しない。Windows gate `33973264978`、Edge deployment 15、Pages `33973971235` |
+| P1 | 直前の手→盤面変化→次の判断 | ゲーム理解 | PUBLIC_VERIFIED | `ecafdd1`。CREATE/COLOR/USE_SKILLを公開allowlistだけで説明し、現phase/activeから次判断を導出。相手palette/hand、skill identity/target/payload、事前合法色oracleを非公開。Runbook A 44/44で本番projection確認 |
 | P1 | 未コミット／孤立作業の回収 | 構成管理 | COMPLETED | 29床を3床へ集約。丸ごと統合候補は0。Quick回帰試験だけを回収し、残るroot dirtyは救出済み・凍結管理 |
 | P2 | GitHub Pages actionのNode.js警告解消 | 技術品質 | BACKLOG | 公開結果を変えず、Node.js 20廃止予定warningを消す |
+
+2026-09-06の公開判断では、3担当の独立レビューを「体験理解」「次の摩擦」「worktree/公開境界」に分け、全員GO・P0/P1なしを確認した。ローカル全検査、Windows Chrome/Edge、Edge本番44/44＋7/7、Pages、公開HTTP/ブラウザの順で昇格し、SQL/secret/billing/cleanupは変更していない。
 
 直前の公開履歴も維持する。`29c6958`は非browser 528/528、ローカルChrome/Edge各25/25、Windows run `33933769885`（Edgeは終了処理timeout後のattempt 2成功）、Pages run `33934125859`で公開確認した。即時CPU開始は`cc96350`、migration `202609050002`、Edge deployment 9、Windows run `33931963065`、Pages run `33932159043`で確認した。現在のDB適用済み追加migrationは、status正規化`202609050001`、即時CPU`202609050002`、デバッグroom境界`202609050003`、クイズ回答feedback`202609050004`、クロガネv2`202609050005`、単一active room境界`202609050006`、開始前取りやめ`202609050007`である。
 
@@ -74,9 +76,9 @@
 
 | 区分 | 対象 | 方針 |
 | --- | --- | --- |
-| 正本 | `origin/main` | 公開ゲーム資産基点は`426dc41`。migration `202609050001`–`202609050007`、Edge deployment 14、Pages run `33970429997`まで公開確認済み |
-| 現在の統合床 | `codex/standard-release-command` | `main`と同じ公開製品。証拠台帳追補だけを次commitで同期する |
-| 公開済み現候補 | ゲーム資産`426dc41` | 正式な開始前取りやめ、active-room排他、room外6枚編成、明示CPU二段sagaを包含。公開asset v20/client v15、Windows gate、Pages、DB 66/66、candidate preflightを確認済み |
+| 正本 | `origin/main` | 公開基点は`3e2b959`（製品`ecafdd1`）。migration `202609050001`–`202609050007`、Edge deployment 15、Pages run `33973971235`まで公開確認済み |
+| 現在の統合床 | `codex/standard-release-command` | `main`と同じ公開製品。証拠台帳追補をこの床で同期する |
+| 公開済み現候補 | ゲーム資産`ecafdd1` | 確定接触feedbackと公開戦術traceを含む。公開asset v21、Windows gate `33973264978`、Edge deployment 15、Runbook A 44/44、Pages `33973971235`、candidate preflightを確認済み |
 | 保全済み | detached `a8fce7d` dirty床 | `codex/salvage-a8fce7d-20260904` / `9e4e8ee` に秘密情報なしでWIP保全済み。機能単位で比較 |
 | 凍結root | root `ac78282` | 正史worktreeを内包するため作業床は維持。再監査したdirty 39件のうち38件は既存commitと一致し、残る旧handoff文書も現正本で置換済み。丸ごとmerge禁止、回収残件なし |
 | GitHub保管 | `codex/archive-standard-release-1f823b2` | 正史の祖先でない孤立コミットをGitHubへ退避済み。作業床は削除 |
@@ -91,7 +93,7 @@
 | 合言葉不要マッチング＋CPUフォールバック | `origin/main@a3425a4`でPUBLIC_VERIFIED | 自動live canaryは完了。物理二端末で対人/CPUの完走、復帰、再戦を確認する |
 | クイズ・スキル・バランス | 即時採点、答え合わせ、持ち色変更説明、クロガネv2までPUBLIC_VERIFIED | 物理端末の操作感を確認し、公開後24時間指標と分離して記録する |
 | online MVP status／live regression | 現行公開識別子と有限な証拠を`STANDARD_RELEASE_EVIDENCE.md`へ集約 | 古い時系列ログは履歴として保持し、現行状態と混同しない |
-| 二端末P0 handoff | PENDING | `426dc41`の対人/CPU完走、開始前取りやめ、終局理由、Quick継続、途中再読込、報酬→ガチャ→6枚再編成→再戦、永続化だけを残件として回収 |
+| 二端末P0 handoff | PENDING | `3e2b959`の対人/CPU完走、確定接触feedback、公開戦術trace、開始前取りやめ、終局理由、Quick継続、途中再読込、報酬→ガチャ→6枚再編成→再戦、永続化だけを残件として回収 |
 | active-room排他・room外6枚編成・開始前取りやめ | `426dc41`でPUBLIC_VERIFIED | 次便は競合時の既存room再同期・日本語文言を独立して改善する |
 | 新カード候補 | `legalRecolor`だけ条件付き採用候補 | IDは維持し表示名を「塗り直し・乱」、妨害★3/WORK、まずガチャOFFのlabで検証。二色市松は1地域1色モデルを壊すため別rulesetへ分離 |
 | nested Expo設計群 | 旧ローカル試作 | 現行Standard Onlineから凍結分離 |
