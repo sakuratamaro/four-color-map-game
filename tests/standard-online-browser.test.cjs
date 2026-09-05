@@ -127,6 +127,9 @@ async function installMock(context, mode) {
     if (["cosmetic", "cpuWin"].includes(initialMode)) {
       try { Object.assign(profileState, JSON.parse(localStorage.getItem("fourColorMapGame.standard.online.v5.remote-profile") || "null") || {}); } catch { /* fresh mock profile */ }
     }
+    if (initialMode === "finished") {
+      profileState.matchHistory.unshift({ matchId: `${id}:9`, result: "WIN", terminalReason: "SURRENDER", endedAt: "2026-09-05T00:00:00.000Z", fullPaint: false, skillsUsed: 0, onlineOpponentKind: "human" });
+    }
     if (initialMode === "cpuTurn") active.active = "B";
     if (initialMode === "actionRuleError") {
       active.phase = "COLOR";
@@ -343,6 +346,7 @@ async function installMock(context, mode) {
         }
         if (request.body.operation === "action" && initialMode === "cpuWin") {
           const next = JSON.parse(JSON.stringify(runtime.profile.profile_state));
+          next.gachaTickets["1"] += 1;
           next.cpuStats.wins += 1;
           next.cpuStats.currentWinStreak += 1;
           next.cpuStats.bestWinStreak = Math.max(next.cpuStats.bestWinStreak, next.cpuStats.currentWinStreak);
@@ -947,7 +951,7 @@ test("actual Edge hydrates a CPU win once, shows its counter, and keeps it after
   await withPage("cpuWin", async (page) => {
     await page.locator("#board").click({ position: { x: 50, y: 50 } });
     await page.getByRole("button", { name: "このエリアを渡す" }).click();
-    await page.getByText("戦績を保存しました：CPU戦 勝利 1").waitFor();
+    await page.getByText("戦績を保存しました：CPU戦 勝利 1\n完了報酬：Lv.1ガチャ券 +1").waitFor();
     const first = await page.evaluate(({ key }) => ({
       profile: JSON.parse(localStorage.getItem(key)),
       actionCalls: globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "action").length,
@@ -955,6 +959,7 @@ test("actual Edge hydrates a CPU win once, shows its counter, and keeps it after
     assert.equal(first.profile.stats.wins, 4);
     assert.equal(first.profile.cpuStats.wins, 1);
     assert.equal(first.profile.cpuCharacterStats.yuzu.wins, 1);
+    assert.equal(first.profile.gachaTickets["1"], 3);
     assert.equal(first.profile.matchHistory.filter((entry) => entry.matchId === `${roomId}:9`).length, 1);
     assert.equal(first.actionCalls, 1);
     await page.getByRole("button", { name: "結果を確認して戻る" }).click();
@@ -963,8 +968,20 @@ test("actual Edge hydrates a CPU win once, shows its counter, and keeps it after
     const restored = await page.evaluate(({ key }) => JSON.parse(localStorage.getItem(key)), { key: remoteProfileKey });
     assert.equal(restored.cpuStats.wins, 1);
     assert.equal(restored.cpuCharacterStats.yuzu.matches, 1);
+    assert.equal(restored.gachaTickets["1"], 3);
     assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "action").length), 0);
   }, { bodyTimeout: 50_000 });
+});
+
+test("CPU reward copy requires a saved CPU settlement", { timeout: 150000 }, async () => {
+  await withPage("finished", async (page) => {
+    await page.getByText("戦績を保存しました：対人戦 勝利 4").waitFor();
+    assert.doesNotMatch(await page.locator("#terminalProgressText").textContent(), /完了報酬/);
+  });
+  await withPage("finishedCpu", async (page) => {
+    await page.getByText("戦績を同期しています。マイページで確認できます。").waitFor();
+    assert.doesNotMatch(await page.locator("#terminalProgressText").textContent(), /完了報酬/);
+  });
 });
 
 test("actual Edge rematches the same visible CPU and returns the human to fresh setup", { timeout: 130000 }, async () => {

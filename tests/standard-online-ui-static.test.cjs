@@ -159,9 +159,18 @@ test("PvP and CPU records are visibly separate and CPU rematch uses its dedicate
   assert.match(app, /value\.cpuCharacterStats \|\| \{\}/);
   assert.match(app, /対人戦 勝利/);
   assert.match(app, /CPU戦 勝利/);
+  assert.match(app, /完了報酬：Lv\.1ガチャ券 \+1/);
+  assert.match(app, /opponentKind === "cpu"/);
+  assert.match(css, /\.terminal-progress\{[^}]*white-space:pre-line/);
   assert.match(app, /entry\.onlineOpponentKind === "cpu"/);
   assert.match(app, /client\.requestCpuRematch\(\{ expectedVersion: roomModel\.room\.version \}\)/);
   assert.match(app, /同じCPUと再戦する/);
+});
+
+test("palette-change help explains permanent scope and bonus-use carryover", () => {
+  assert.match(app, /持ち色の3枠から1枠を、対戦終了まで好きな色に変えます/);
+  assert.match(app, /基本色2枠は回数無制限/);
+  assert.match(app, /おまけ色枠を変えても回数は増えず、今の残り回数を新しい色が引き継ぎます/);
 });
 
 test("every finished match presents a local-seat victory or defeat overlay, including surrender", () => {

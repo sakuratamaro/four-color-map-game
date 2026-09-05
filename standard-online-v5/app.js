@@ -74,7 +74,7 @@ const SKILL_DESCRIPTION = Object.freeze({
   colorChoiceBorrow: "盤面ですでに使われている色を1色選び、この彩色中だけ借ります。借りた色は色ボタンに追加されます。",
   colorPrism: "この彩色中だけ、赤・青・黄・緑の4色を使えるようにします。",
   colorRegionSplit: "いま塗る相手のエリアを、つながった2つのエリアに分けます。分けた片方を先に塗ります。",
-  colorPaletteChange: "自分の持ち色の枠を1つ選び、好きな色へ変更します。おまけ色の残り回数はその枠に残ります。",
+  colorPaletteChange: "持ち色の3枠から1枠を、対戦終了まで好きな色に変えます。基本色2枠は回数無制限。おまけ色枠を変えても回数は増えず、今の残り回数を新しい色が引き継ぎます。",
   areaMicroBloom: "これから渡すエリアの角をランダムに少しふくらませ、斜めのエリアと接触させます。",
   areaDiePlus: "この手番で相手に渡すエリアを1マス増やします。置ける場所がある時だけ使えます。",
   areaResize: "盤面の上下左右を1列ぶん拡大、または縮小します。すでに塗られた形はそのまま残ります。",
@@ -300,7 +300,7 @@ function renderTerminalResult(state) {
   const resultWasSaved = settledMatch?.result === (won ? "WIN" : "LOSS")
     && (opponentKind !== "cpu" || settledMatch.onlineOpponentKind === "cpu");
   $("terminalProgressText").textContent = resultWasSaved && Number.isSafeInteger(resultCount) && resultCount >= 0
-    ? `戦績を保存しました：${resultLabel} ${won ? "勝利" : "敗北"} ${resultCount}`
+    ? `戦績を保存しました：${resultLabel} ${won ? "勝利" : "敗北"} ${resultCount}${opponentKind === "cpu" ? "\n完了報酬：Lv.1ガチャ券 +1" : ""}`
     : "戦績を同期しています。マイページで確認できます。";
   try { localStorage.setItem(TERMINAL_PRESENTED_KEY, eventKey); } catch { /* presentation still works when storage is unavailable */ }
   show("terminalOverlay", true);
