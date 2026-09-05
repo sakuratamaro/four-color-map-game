@@ -1,14 +1,29 @@
 # Standard公開版 段階リリース手順
 
-更新日: 2026-09-05
+更新日: 2026-09-06
 
-状態: 現行運用。migration `202609030006`–`202609030013`と`202609050001`–`202609050007`、対応Edge、Pagesは適用済み。次の変更もDB→Edge（変更がある場合だけ）→Pagesの順序と有限なcanaryを守る。
+状態: 現行運用。migration `202609030006`–`202609030013`、`202609050001`–`202609050007`、`202609060001`–`202609060002`、Edge deployment 17、Pages product `3fb3ef8`は適用済み。mainには後続の証拠・運用文書commitも含まれるため、実行時にmain HEADとそれに対応する最新成功Pages runを再取得する。次の変更もDB→Edge（変更がある場合だけ）→Pagesの順序と有限なcanaryを守る。
 
 実行中の状態、数値、識別子、失敗は `docs/STANDARD_RELEASE_EVIDENCE.md` に追記する。根拠のない項目を`VERIFIED`や`PASS`へ変更しない。
 
 ## 完了の定義
 
 migrationやコードの配置だけでは完了にしない。最新の公開URLと別々の二端末で、合言葉対戦と野良対戦を最後まで行い、再読込、再戦、新しい試合を確認する。さらに実時間90秒待機後に明示同意したCPU戦を完走し、報酬、ガチャ、カード、対人/CPU別戦績、トロフィー、見た目が再読込後も保持されること、private情報が漏れないこと、軽量化の呼出数とbytesを実測して初めて公開完了とする。
+
+現行版では、これにprivate-code human双方同意のLAB一局を加える。通常6枚とは別の「塗り直し・乱」が各1回だけ貸与され、片側再読込後も使用回数が増殖せず、LAB前後で戦績・券・在庫・履歴が変わらないことを物理二端末で確認する。自動canary 23/23はAPI契約の証拠であり、物理端末の操作感を代替しない。
+
+## 現行版の物理二端末10分実行カード
+
+PC＋スマートフォンまたはPC 2台を使い、同一ブラウザーの2タブでは代用しない。合言葉やuser IDは証拠へ残さない。
+
+1. 両端末で通常URLを強制再読込し、オンライン表示と5タブを確認する。別名profileを用意し、対人/CPU戦績、Lv.1券、所持カード数を開始前に記録する。
+2. 通常の合言葉対戦をLAB/debug OFFで開始する。色2・エリア2・妨害2の6枚を双方が確定し、A/Bそれぞれの作成・彩色で「あなたが作る／あなたが塗る」が反転することを確認する。
+3. 手番途中に片側だけ再読込し、同じroom・盤面・手番へ戻り、actionが二重反映されないことを確認する。投了後は両端末の勝敗一致、双方の再戦同意、6枚再選択、次局開始を確認する。
+4. 即時CPUを1人選び、1往復後に再読込して同じCPU・盤面へ戻る。終局後のCPU戦績、Lv.1券、ガチャ1枚、所持数、同CPU再戦の6枚再選択を確認する。公開matchmakingの90秒/180秒CPU提案は別の実時間項目として省略しない。
+5. 新しい合言葉roomで双方LAB ON・debug OFFにし、各1回の貸与を確認する。通常手の後に塗り直し、片側再読込、投了まで行い、使用回数が復活せず、LAB分の戦績・券・在庫・履歴が増えないことを確認する。
+6. 両端末を再度強制再読込し、通常対人/CPUの戦績・券・ガチャ獲得カードだけが永続化され、相手の所持カード本文や非公開戦績が見えないことを確認する。
+
+別roomへの移動、A/Bの手番・勝敗不一致、盤面消失、action/報酬の二重反映、LABの複数回使用やprogression混入、private情報表示は一件でも即FAILとする。端末A/B、各開始・終了時刻、対人/CPU/LABの開始・終局、途中再読込、再戦、前後の件数だけを記録する。
 
 ## 変更前の読取り確認
 
@@ -17,7 +32,7 @@ migrationやコードの配置だけでは完了にしない。最新の公開UR
 3. Git作業ツリーがcleanで、公開候補commitが記録済みであることを確認する。
 4. 現行Pages commit、現行 `standard-game-action` version、適用済み関数を記録する。
 5. Security Advisor、Performance Advisor、API/Database/Edge使用量の変更前snapshotを保存する。
-6. `node scripts/live-standard-release-preflight.mjs --expect=baseline` で公開UIが旧版、`fcg_standard_room_snapshot(uuid)` が権限保護付きで存在し、snapshot v2と野良募集RPCが未適用であることを秘密鍵なし・書込みなしで確認する。さらにSQL Editorの `to_regclass` / `to_regprocedure` で新規表とservice-only関数も確認する。
+6. 現行本番は`node scripts/live-standard-release-preflight.mjs --expect=candidate`で、LAB UI、v3 room load、8引数initializeを含む公開済み境界を確認する。`--expect=baseline`は初回段階公開の履歴用で、`202609060002`適用後の本番には実行しない。次のDB/UI変更では、その変更専用の現行・DB-ready・candidate期待値をpreflightと静的テストへ先に追加する。
 
 確認結果が想定と違う場合は適用を止め、現物に合わせて手順を更新する。
 
@@ -54,23 +69,26 @@ SQL Editorでは内容を全置換し、次を1ファイルずつ順番に実行
 13. `202609050005_standard_kurogane_lookahead.sql`
 14. `202609050006_standard_single_active_room.sql`
 15. `202609050007_standard_pregame_abandon.sql`
+16. `202609060001_standard_active_room_recovery.sql`
+17. `202609060002_standard_setup_revision_guard.sql`
 
 各実行直後に、そのmigrationが追加する表、関数、列、ACLを `to_regclass`、`to_regprocedure`、`information_schema.columns`、`proacl` で確認する。`SECURITY DEFINER` 関数は空の `search_path`、ブラウザー用RPCは `authenticated` のみ、サーバー用RPCは `service_role` のみであることを確認してから次へ進む。
 
 `202609050006` の適用直前に、`standard_candidate_verify.sql` の `duplicate_active_actor_state` と同じ読み取りクエリを実行し、同一actorが所属する有効なStandard roomの重複件数が0であることを必須preflightとして記録する。0でなければ `202609050006` を適用せず、既存roomを自動削除・終了せずに個別調査する。
 
-15本すべての適用後、`supabase/verification/standard_candidate_verify.sql` をSQL Editorで実行する。これは読み取りだけを行い、非公開テーブル、追加列、重要関数、RLS/ACL、制約、トリガー、索引、appearance backfill不一致、クイズ回答RPC、クロガネ旧/new policy境界、開始前取りやめRPC、同一actorの有効Standard room重複件数を一覧化する。`single active Standard room per actor preflight` の `duplicate_actor_count` は引き続き必ず0でなければならない。既存重複は自動削除せず、0でない場合はEdge/Pages適用を止めて個別調査する。全行の `ok` が `true` でなければPages更新へ進まない。
+17本すべての適用後、`supabase/verification/standard_candidate_verify.sql` をSQL Editorで実行する。現行SQLは70行を返し、読み取りだけで非公開テーブル、追加列、重要関数、RLS/ACL、制約、トリガー、索引、appearance backfill、クイズ回答、クロガネpolicy、開始前取りやめ、active-room復帰、v3 room load、8引数initialize、同一actorの有効Standard room重複を検査する。`single active Standard room per actor preflight` の `duplicate_actor_count` は引き続き必ず0でなければならない。既存重複は自動削除せず、0でない場合はEdge/Pages適用を止めて個別調査する。全70行の `ok` が `true` でなければEdge/Pages更新へ進まない。
 
 `202609030012` の適用時にはcleanupを実行しない。定期実行も作らない。`202609030013` の既存プロフィールappearance backfill件数と所要時間を記録し、失敗または長時間ロックならEdge/Pagesへ進まない。
 
 ## EdgeとPagesの順序
 
-1. DB 15本の確認を終える。`202609050007`の開始前取りやめはブラウザーから認証付きRPCを直接呼ぶため、`standard-game-action`の更新は行わずdeployment 14を維持する。
-2. Pagesを更新する前に `node scripts/live-standard-release-preflight.mjs --expect=db-ready` を実行し、新RPCが権限保護付きで存在する一方、公開UIはまだ旧版であることを確認する。
+1. DB 17本とcandidate verification 70/70を確認する。
+2. Pagesを更新する前に `node scripts/live-standard-release-preflight.mjs --expect=db-ready` を実行する。v3 room loadと8引数initializeが`protected`、公開LAB UIが未反映ならfalseであることを確認する。
 3. JWT検証が有効なこと、managed service-role secretの参照だけで値を表示していないことを確認する。
-4. `node scripts/live-standard-pregame-abandon-canary.mjs --confirm-live`を実行し、waiting/readyの冪等な無報酬取りやめ、playing拒否、profile不変、終了roomと匿名profileの残留条件を確認する。
-5. Edgeが正常なまま、StandardオンラインPagesを公開する。
-6. Pagesの公開commitとbuild成功を確認し、`node scripts/live-standard-release-preflight.mjs --expect=candidate` とキャッシュをまたぐ通常URLの新しいブラウザーで確認する。
+4. Edge変更がある場合は`index.ts`と生成済み`standard-engine.bundle.js`を同じdeploymentへ反映し、双方を候補とバイト同値確認する。片方だけを更新しない。
+5. `node scripts/live-standard-edge-canary.mjs --confirm-live`と、LAB変更時は`node scripts/live-standard-legal-recolor-lab-canary.mjs --confirm-live`を実行する。後者はterminal cleanupと両profile不変まで合格させる。必要な機能専用canaryだけを追加し、同じ認証窓で重い全canaryを無目的に再実行しない。
+6. Edgeが正常なまま、StandardオンラインPagesを公開する。
+7. Pagesの公開commitとrun成功を確認し、`node scripts/live-standard-release-preflight.mjs --expect=candidate` とキャッシュをまたぐ通常URLの新しいブラウザーで確認する。公開asset version、匿名接続、console warning/errorも記録する。
 
 新クライアントは `fcg_standard_room_snapshot_v2(uuid,bigint)` を必須とするため、PagesをDBより先に公開しない。
 
@@ -124,11 +142,15 @@ SQL Editorでは内容を全置換し、次を1ファイルずつ順番に実行
 - 正常な最速CPU進行と二端末操作がEdgeの濫用抑止に触れず、明示的な過剰canaryだけが429になる。
 - DB/Edgeのp50、p95、エラー率、Database/Edge/Realtime使用量を変更前後で記録し、悪化時は公開範囲を広げない。
 
-T+24hはT0の正規化JSONをbaselineとして必須指定し、同じ「直近24時間」Dashboard入力を比較する。
+T+24hはT0の正規化JSONをbaselineとして必須指定し、同じ「直近24時間」Dashboard入力を比較する。T0は`2026-09-05 16:23 JST`なので、T+24観測は`2026-09-06 16:23 JST`以降にだけ完了扱いできる。
 
-`node scripts/capture-standard-release-observation.mjs --label=T+24h --input=standard-dashboard-t-plus-24.json --baseline=standard-observation-t0.json > standard-observation-t-plus-24.json`
+`node scripts/capture-standard-release-observation.mjs --label=T+24h --input=docs/STANDARD_DASHBOARD_T_PLUS_24_20260906.json --baseline=docs/STANDARD_OBSERVATION_T0_20260905.json > docs/STANDARD_OBSERVATION_T_PLUS_24_20260906.json`
 
-T0から24時間未満で実行した場合は`CAPTURE_INTERVAL_UNDER_24_HOURS` warningを残し、24時間観測を完了扱いにしない。固定allowlist外のmetric、未知top-level、秘密キー/秘密らしい値、64 KiB超の入力は拒否され、拒否時に公開preflightは起動しない。欠落metricと比較不能値は`PENDING` / `null`のままにする。この自動観測は物理二端末を操作できないため、出力の`physicalTwoDeviceAcceptance`は常に`executionState: NOT_RUN`、`gateState: PENDING`、`automated:false`であり、段階canary A–Dの人間確認をPASSへ変更しない。
+入力のreleaseは`publicAssetCommit=3fb3ef8`、`edgeDeployment=17`、`migrationTail=202609060002`を記録する。`pagesCommit`と`pagesRun`はT+24実行時点のmain HEADと、それに対応する最新成功Pages runを別々に再取得し、古い組を流用しない。Dashboardの全画面を同じ`Last 24 hours`にし、実表示のwindow from/toを転記する。固定37 metricすべてを再取得し、取れない値は推測せず省略して`PENDING`にする。Query Performanceは累積値であり24時間区間値と呼ばない。`calls`がT0より小さい場合は改善ではなくreset/statement identity変化として比較無効にする。
+
+同じ時点で`supabase/verification/standard_resource_diagnostic.sql`をread-onlyで再実行し、DB bytes、publication集合、slot数/active/max WAL lag、接続、relation/dead tuple、保持候補をT0と比較する。relationは順位ではなくschema+relationで対応付け、slot別lag合計を実ディスク量とみなさない。新規health alert、Advisor error、blocked/idle-in-transaction、inactive slot、publication変化、429/5xx、接続上限接近、明確なp95/error/使用量悪化は`HOLD/INVESTIGATE`。既存alertや単発増加だけなら`WATCH`とし、cleanup・課金・Compute/Disk変更へ直結させない。
+
+T0から24時間未満で実行した場合は`CAPTURE_INTERVAL_UNDER_24_HOURS` warningを残し、24時間観測を完了扱いにしない。windowが24時間から1分超ずれた場合も無効とする。固定allowlist外のmetric、未知top-level、秘密キー/秘密らしい値、64 KiB超の入力は拒否され、拒否時に公開preflightは起動しない。欠落metricと比較不能値は`PENDING` / `null`のままにする。この自動観測は物理二端末を操作できないため、出力の`physicalTwoDeviceAcceptance`は常に`executionState: NOT_RUN`、`gateState: PENDING`、`automated:false`であり、段階canary A–Dの人間確認をPASSへ変更しない。
 
 ## cleanupの承認ゲート
 
