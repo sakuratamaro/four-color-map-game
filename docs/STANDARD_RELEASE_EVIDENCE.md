@@ -15,15 +15,16 @@
 | ローカル製品試験 | VERIFIED | 2026-09-04、専用runnerで665件合格、失敗0、769.2秒 | 公開後のcandidate preflightと実端末canary |
 | 次期UX候補のローカル検査 | VERIFIED | `codex/standard-release-command@1673ff8`。profile安定化、初回対戦導線、Quick Half Shift、status正規化、Realtime/poll復旧を含む非browser製品試験91ファイル522/522。browser workflow/harness静的11/11合格 | Pages反映後のpreflightと二端末受入 |
 | 初回導線・接続表示の次期候補 | VERIFIED | `9d42784`。初回starter作成＋profile同期を一操作化し、全5タブで単一接続statusを常時表示。空名write 0、room外offline復帰、390px下部nav非干渉を契約化。静的39/39、非browser 89ファイル513/513、Windows Chrome/Edge各18/18合格 | 物理二端末受入 |
-| Windows実browser CI | VERIFIED | GitHub Actions run `33929432778`。Windows 2025のChrome/Edge各21/21、失敗0。CPU勝利戦績表示と390pxの6枚選択を含む | 公開URLで同じ主要導線を二端末受入 |
-| 現行公開Pages | VERIFIED | 製品基点`fda261d`、Pages run `33929435963`成功。公開HTML/appの新marker 7/7、candidate preflight `ok:true` | 別々の二端末で最終受入 |
+| Windows実browser CI | VERIFIED | GitHub Actions run `33933769885`。Chrome成功。Edge attempt 1は全test body通過後のbrowser-closeだけtimeout、失敗jobのattempt 2で成功。ローカルChrome/Edge各25/25 | 公開URLで同じ主要導線を二端末受入 |
+| 現行公開Pages | VERIFIED | 製品／公開`29c6958`、Pages run `33934125859`成功。公開HTML/app/styleの新版marker全一致、candidate preflight `ok:true` | 別々の二端末で最終受入 |
 | 公開前DB境界 | VERIFIED | 旧snapshotは匿名権限拒否。snapshot v2と野良募集は`PGRST202`で未存在 | migration後のdb-ready preflight |
 | migration 006–013静的検査 | VERIFIED | migration別security/transaction testsと読み取り専用44項目SQL | 実DBで全行`ok=true` |
 | Dashboard Advisor・使用量baseline | BLOCKED | 変更前baselineは取得不能。22:55 JSTの現況はHealthyだがHealth Advisorにinfra alert 2件。Security指摘なし、Performance error/warning 0 | 24時間後に同じ指標とRealtime負荷を再採取 |
 | migration 006–013本番適用＋status正規化 | VERIFIED | 8本に加え`202609050001`を個別実行。status関数の保護契約を全項目確認し、C canary 210/210合格 | 実ブラウザと二端末最終受入 |
 | Edge Function更新 | VERIFIED | deployment 8、JWT検証ON。2026-09-05の`live-standard-edge-canary.mjs --confirm-live`は6/6合格 | 公開UI経由の完全canary |
 | 即時Standard CPU開始 | PUBLIC_VERIFIED | migration `202609050002`とEdge deployment 9。製品`cc96350`、公開`a4c6490`、DB 47項目、Edge基本6/6、即時CPU 7/7、Windows run `33931963065`、Pages run `33932159043`合格。公開UIでCPU初手まで確認 | 物理端末で一試合完走・再読込・同じCPUとの再戦を確認 |
-| GitHub main・Pages更新 | VERIFIED | 公開製品基点を`dfbec10`へforceなしfast-forward。Pages run `33924181589`成功、公開markerとpreflight合格。後続main更新は台帳のみ | 二端末受入後に最終状態を記録 |
+| CPU完走後の次戦導線 | PUBLIC_VERIFIED | `29c6958`。同じCPUとの同room再戦を維持し、終了結果から別CPU選択へ進める。live即時CPU完走・再戦canary 25/25、Windows Chrome/Edge成功、Pages反映済み | 物理端末で別CPU選択と再戦を体感確認 |
+| GitHub main・Pages更新 | VERIFIED | 公開製品基点を`29c6958`へforceなしfast-forward。Pages run `33934125859`成功、公開markerとpreflight合格。後続main更新は台帳のみ | 二端末受入後に最終状態を記録 |
 | 合言葉対戦canary | VERIFIED | deployment 8で`live-standard-runbook-a-canary.mjs --confirm-live` 43/43合格 | 実ブラウザ再読込と二端末最終受入 |
 | 経済・進行・見た目canary | VERIFIED | deployment 8でRunbook B 93/93合格 | 実ブラウザで報酬演出と操作感を確認 |
 | 野良対戦canary | VERIFIED | status正規化後、C 210/210合格。16 profile、完走、同時finder、取消競合、10同時claim、再検索、秘密非公開を確認 | 実ブラウザで二端末最終受入 |
@@ -102,6 +103,16 @@
 - `origin/main`を`f5aaf33`から`a4c6490`へforceなしでfast-forwardし、Pages run `33932159043`は成功した。キャッシュ回避付き公開4資産はHTTP 200、新markerは全件一致し、candidate preflightも`ok:true`だった。
 - 公開実画面のホーム主CTAから10人のCPU一覧を開き、「うっかりユズ」を選択して6枚準備へ即時遷移した。準備完了後はCPUの初手がサーバーで確定し、人間の第2手で色選択が可能になるところまで確認した。
 
+## 2026-09-05 09:49 JST 初戦引き継ぎ・CPU次戦循環公開
+
+- 3担当の監査を統合し、`29c6958`で二つの離脱点を改善した。6枚提出後は、その操作自身が`ready`から`playing`への遷移を観測した場合だけ、ランダム結果の表示後に「Standard対戦スタート」へ一度移動する。reload、poll、background更新はfocusを奪わない。
+- CPU戦の終了結果に「別のCPUを選んで新しく対戦」を追加した。選択成功まで旧結果を保持し、取消時は結果へ戻る。新規開始は既存のserver-authoritativeな`cpu-start`だけを使い、合言葉、野良、90秒CPUフォールバック、同じCPUとの再戦を変更していない。
+- 新しいlive canaryは匿名1ユーザー、120秒hard timeoutで、即時CPU開始、6枚setup、初期化、CPU合法手、人間投了、敗北精算、履歴、同じCPUとの同room再戦、新match再初期化、private snapshotを25/25、5.84秒で確認した。
+- 非browser全体528/528、ローカル実Chrome/Edge各25/25が合格した。Windows run `33933769885`のattempt 1はChrome成功、Edgeは全test body通過後の`browser-close`だけが10秒timeout。コードを変えず失敗jobを再実行し、attempt 2でEdge成功を確認した。
+- `origin/main`を`8a71d1f`から`29c6958`へforceなしでfast-forwardした。Pages run `33934125859`はbuild/deployとも成功。公開HTML/app/styleの新版markerは全一致し、candidate preflightは`ok:true`だった。
+- 公開実画面をcache-bust再読込し、既存の「公開確認」対うっかりユズ戦が維持されたまま、「Standard対戦スタート」、人間の第2手、接続同期、5タブが表示されることを確認した。検証用戦績を増やさないため公開画面上での投了は行っていない。
+- 公開直後のSupabase現況はCPU 2%、RAM 64%、disk 16%、connections 14/60。直前のCPU 2%、RAM 63%、disk 16%、connections 13/60から即時の異常増加は見られない。24時間比較は未実施。
+
 ## 公開前後メトリクス
 
 値が取得できなかった項目を空欄のまま`VERIFIED`にしない。
@@ -110,6 +121,7 @@
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | 変更前 | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING |
 | canary後 | CPU 1% / RAM 59% / disk 16% / peak conns 15/60 | 251 requests | 5.3% warnings | PENDING | PENDING | PENDING | API 0.46% errors |
+| `29c6958`公開直後 | CPU 2% / RAM 64% / disk 16% / connections 14/60 | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING |
 
 ## 公開識別子
 
@@ -117,12 +129,12 @@
 | --- | --- |
 | browser harness diagnostics commit | `6fc23a5` |
 | Windows browser CI commit | `d8dac1b` |
-| final browser-verified candidate | `cc96350`（即時Standard CPU開始） |
-| Windows browser CI run | `33931963065` / Chrome Success / Edge Success |
+| final browser-verified candidate | `29c6958`（初戦引き継ぎ・CPU次戦循環） |
+| Windows browser CI run | `33933769885` / Chrome Success / Edge attempt 2 Success |
 | candidate code baseline | `0e02176`（Edge deployment 8 sourceは`c3cf372`） |
 | applied migrations | `202609030006`–`202609030013`, `202609050001`, `202609050002` |
 | `standard-game-action` version | deployment 9（即時CPU開始） |
-| Pages Actions run | `33932159043` / Success / `a4c6490`（製品`cc96350`） |
+| Pages Actions run | `33934125859` / Success / `29c6958` |
 | public URL | `https://sakuratamaro.github.io/four-color-map-game/standard-online-v5/` |
 
 ## Canary結果
@@ -133,13 +145,16 @@
 | --- | --- | --- | --- |
 | Edge認証・基本公開 | PASS | 2026-09-05 | deployment 9で匿名sign-in、JWT欠落/改変拒否、profile、cosmetic catalog、CPU roster 10人の6/6 |
 | 即時Standard CPU開始 | PASS | 2026-09-05 | deployment 9。匿名profile、未知CPU拒否、部屋作成、同一action再送、入力変更拒否、snapshot上のCPU身元を7/7確認 |
+| 即時CPU完走・同CPU再戦 | PASS | 2026-09-05 | live canary 25/25、5.84秒。setup、初期化、CPU合法手、投了、精算、履歴、同room再戦、新match再初期化、private snapshotを確認 |
 | A 合言葉・A/B/C・snapshot delta | PASS | 2026-09-05 | 自動live canary 43/43。A/B参加、C拒否、setup、初期化、一手、投了、seat別finished snapshot、再戦再初期化 |
 | B クイズ・ガチャ・売却・精算・トロフィー・見た目 | PASS | 2026-09-05 | 自動live canary 93/93。exactly-once、復元、購入/装備を確認。fullPaint trophyはtransaction testで補完 |
 | C 野良・競合・完走 | PASS | 2026-09-05 03:13 JST | 自動live canary 210/210。16 profile、完走、2 finder、cancel/find、10 claim、再検索、秘密非公開を確認 |
 | D CPU同意・10人・代表3人・再戦 | PASS | 2026-09-05 | 自動live canary 107/107。実時間90/180秒、代表3人完走、復帰、統計、同じCPU再戦、対人検索競合を確認 |
 | Windows実browser主要導線 | PASS | 2026-09-05 | run `33929432778`。Chrome 21/21、Edge 21/21。CPU勝利戦績表示、390pxの6枚選択、初回一操作、初手、全タブstatus、復帰、再戦、クイズ、ガチャ、売却、見た目、野良、CPUを確認 |
 | 即時CPU Windows browser gate | PASS | 2026-09-05 | run `33931963065`。Windows 2025のChrome/Edge両ジョブ成功。ホーム導線、390px選択、pending再送、既存90秒案内を確認 |
+| 初戦引き継ぎ・CPU次戦 Windows gate | PASS | 2026-09-05 | run `33933769885`。Chrome成功。Edge attempt 1はbrowser-closeだけtimeout、失敗job再実行のattempt 2成功。ローカル両browser各25/25 |
 | Pages公開後preflight | PASS | 2026-09-05 | `main=a4c6490`、Pages run `33932159043`、公開4資産HTTP 200、新marker全件一致、DB保護境界を含むcandidate preflight合格 |
+| 最新Pages公開後preflight | PASS | 2026-09-05 | `main=29c6958`、Pages run `33934125859`、新版marker全一致、DB保護境界を含むcandidate preflight合格。公開実画面の既存CPU戦も維持 |
 | 公開UI即時CPU開始 | PASS | 2026-09-05 | ホーム主CTA→10人一覧→うっかりユズ→6枚準備→準備完了→CPU初手→人間第2手を実画面で確認 |
 | 二端末最終受入 | NOT_RUN | PENDING | PENDING |
 
