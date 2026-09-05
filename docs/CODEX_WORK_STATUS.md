@@ -1,9 +1,9 @@
 # Codex work status
 
 - Last update: 2026-09-05 JST
-- Stage: Standard active-room exclusivity and recoverable CPU-start UX are public; physical two-device acceptance remains pending
+- Stage: recoverable pregame abandon is public; physical two-device acceptance and T+24h observation remain pending
 - Integration branch: `codex/standard-release-command`
-- Public baseline: `origin/main@03c5628d9daf2dd516ca448ebe2b799835dfcfd7`
+- Public baseline: `origin/main@426dc416e891d3c59c133bb76cc9cee8cdd135fd`
 - Public URL: `https://sakuratamaro.github.io/four-color-map-game/standard-online-v5/`
 - Supabase project: `qkcuhludisairpgzhryl`; `standard-game-action` deployment 14
 
@@ -16,11 +16,15 @@
 - Quick CPU persistence now accepts legal Half Shift regions in the 12x12 world, strictly derives source macros from connected micro cells, and canonicalizes compatible legacy v1 saves. This removes the public `invalid region macros` freeze path.
 - The mid-width Standard lobby reflows without crushed columns, and gacha results no longer repeat the same acquisition summary.
 - Every quiz question now carries a short mission, format label, and one-to-three thinking-step hint; server-confirmed answers drive reload-safe streak feedback without changing rewards.
-- Public assets are `standard-online-v5` v19 and `solo-v5/save-codec.js?v=20260905-2`.
+- Waiting/ready rooms now offer an explicit server-authoritative no-reward abandon action. It reuses the same room/version/action identity after a lost response, tells the other member what happened, and clears only the matching CPU setup saga. Playing rooms keep the exactly-once surrender path; finished rooms keep result/rematch.
+- Public assets are `standard-online-v5` v20, client v15, and `solo-v5/save-codec.js?v=20260905-2`.
 
 ## Verification
 
-- Local final browser suite: 46/46 passed. Changed static/client/SQL/runbook checks: 80/80 passed after the v19 cache marker update.
+- Local final Edge browser suite: 50/50 passed; the post-review CPU setup-saga race fixture passed separately. Changed static/client/SQL/runbook checks passed, and all four stale v19/006 expectations found by the aggregate non-browser run were updated and rechecked 23/23.
+- Candidate Windows browser gate `33969830340`: Chrome job `101316251520` and Edge job `101316251312` passed at product commit `5c072ae`.
+- Supabase migration `202609050007_standard_pregame_abandon.sql` is applied. Candidate verification was 66/66 true; live pregame-abandon canary was 33/33 with profiles unchanged and active/unknown/nonterminal residue all 0.
+- Pages run `33970429997` succeeded at `426dc41`. Public v20/client-v15 markers and candidate preflight `ok:true` were verified. A preserved playing CPU room showed screen-only close plus “敗北として投了する” and no pregame-abandon action.
 - Candidate Windows browser gate `33966896517`: Chrome job `101308503116` and Edge job `101308503120` passed at `03c5628`.
 - Supabase migration `202609050006_standard_single_active_room.sql` is applied. After one unused ten-hour-old private waiting room with zero setup/action/view state was conditionally marked `abandoned` (no deletion; the existing CPU room was preserved), duplicate-active preflight was 0 and candidate verification was 61/61.
 - The rollback-only database canary rejected a second active membership and an inactive-room reactivation, then reported residue 0.
@@ -36,9 +40,8 @@
 ## Next command priorities
 
 1. Acceptance/operations: complete a physical two-device match/reload/rematch loop and the T+24h Supabase resource comparison. These remain `PENDING`, not inferred from automation.
-2. Release gate: publish the locally verified `202609050007` idempotent no-reward abandon/cancel for waiting/ready rooms; playing remains the existing exactly-once surrender path. DB, live canary, Pages, and public URL are not yet verified.
-3. P1: add cumulative contact-color feedback tiers and a public “last move -> board change -> next decision” tactical trace without revealing private information.
-4. P1: translate rare single-active-room conflicts into a dedicated Japanese recovery message and resynchronize the existing room.
-5. P1 experiment: formalize `legalRecolor` as “塗り直し・乱” behind a lab/loadout gate. Keep the proposed two-color checkerboard card out of Standard until it has a separate ruleset.
+2. P1: add cumulative contact-color feedback tiers and a public “last move -> board change -> next decision” tactical trace without revealing private information.
+3. P1: translate rare single-active-room conflicts into a dedicated Japanese recovery message and resynchronize the existing room.
+4. P1 experiment: formalize `legalRecolor` as “塗り直し・乱” behind a lab/loadout gate. Keep the proposed two-color checkerboard card out of Standard until it has a separate ruleset.
 
-Release `03c5628` applied migration `202609050006`. No Edge bundle, secret, billing, deletion, or cleanup schedule was changed.
+Release `426dc41` applied migration `202609050007`; Edge remains deployment 14. No Edge bundle, secret, billing, deletion, or cleanup schedule was changed.

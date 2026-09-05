@@ -2,7 +2,7 @@
 
 更新日: 2026-09-05
 
-状態: 現行運用。migration `202609030006`–`202609030013`と`202609050001`–`202609050006`、対応Edge、Pagesは適用済み。`202609050007_standard_pregame_abandon.sql`は次期候補であり、DB→Pagesの順序と有限なcanaryを守る。
+状態: 現行運用。migration `202609030006`–`202609030013`と`202609050001`–`202609050007`、対応Edge、Pagesは適用済み。次の変更もDB→Edge（変更がある場合だけ）→Pagesの順序と有限なcanaryを守る。
 
 実行中の状態、数値、識別子、失敗は `docs/STANDARD_RELEASE_EVIDENCE.md` に追記する。根拠のない項目を`VERIFIED`や`PASS`へ変更しない。
 
