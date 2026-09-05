@@ -50,6 +50,7 @@ const CPU_NAMES = Object.freeze({
 });
 const CPU_FIRST_OFFER_SECONDS = 90;
 const CPU_SECOND_OFFER_SECONDS = 180;
+const RANDOM_REVEAL_DURATION_MS = 2600;
 const TROPHY_META = Object.freeze({
   fullPaint: { icon: "🗺️", name: "完塗り達成", condition: "盤面をすべて塗り切って勝利" },
   fullPaint3: { icon: "🏆", name: "完塗り三冠", condition: "完塗り勝利を3回達成" },
@@ -136,6 +137,7 @@ let quizClockTimer = null;
 let quizTimeoutQueued = false;
 let shownTerminalEventKey = null;
 let dismissedTerminalEventKey = null;
+let userInteractionRevision = 0;
 const selectedMacros = new Set();
 const COLOR_HEX = { red: "#ef4444", blue: "#3b82f6", yellow: "#eab308", green: "#22c55e" };
 const COLOR_JA = { red: "赤", blue: "青", yellow: "黄", green: "緑" };
@@ -155,6 +157,25 @@ function safeJson(value) { return JSON.stringify(value, null, 2); }
 function actionSignature(type, payload) { return JSON.stringify({ type, payload }); }
 function hasStandardPublicState(value) {
   return Boolean(value && typeof value === "object" && value.playableBounds && Number.isSafeInteger(value.version));
+}
+
+for (const eventName of ["pointerdown", "keydown", "click"]) {
+  document.addEventListener(eventName, () => { userInteractionRevision += 1; }, true);
+}
+
+function handoffFromSetupToMatch(expectedInteractionRevision) {
+  if (roomModel?.room?.status !== "playing" || !hasStandardPublicState(roomModel.room.public_state)) return;
+  const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  setTimeout(() => {
+    const matchTitle = $("matchTitle");
+    if (userInteractionRevision !== expectedInteractionRevision
+      || activeAppTab !== "battle"
+      || document.visibilityState !== "visible"
+      || roomModel?.room?.status !== "playing"
+      || matchTitle.closest(".hidden, .tab-panel-hidden")) return;
+    matchTitle.focus({ preventScroll: true });
+    $("matchCard").scrollIntoView({ block: "start", behavior: reducedMotion ? "auto" : "smooth" });
+  }, reducedMotion ? 0 : RANDOM_REVEAL_DURATION_MS);
 }
 
 function activateAppTab(requestedTab, { updateHash = true } = {}) {
@@ -313,7 +334,7 @@ function revealRandomSetup(publicState, privateState) {
   detail.append("。すべてサーバーのランダム抽選です。");
   show("randomReveal", true);
   clearTimeout(randomRevealTimer);
-  randomRevealTimer = setTimeout(() => show("randomReveal", false), 2600);
+  randomRevealTimer = setTimeout(() => show("randomReveal", false), RANDOM_REVEAL_DURATION_MS);
 }
 
 function openSkillInfo(skill) {
@@ -1222,6 +1243,7 @@ function render() {
   show("rematchControls", roomModel?.room?.status === "finished");
   if (!snapshot.roomId) { renderTerminalResult(null); return; }
   const cpuRoom = roomModel?.room?.opponent_kind === "cpu";
+  show("chooseDifferentCpu", cpuRoom && roomModel?.room?.status === "finished");
   const accessMode = roomModel?.room?.access_mode || (snapshot.roomCode ? "private_code" : "public_queue");
   const debugAllowed = accessMode === "private_code" && !cpuRoom;
   const debugToggle = $("debugUnlimitedMode");
@@ -1432,6 +1454,7 @@ function phaseLabelFor(state, seat, cpuRoom) {
 function renderTurnGuide(state) {
   const guide = $("turnGuide");
   const seat = roomModel?.view?.seat;
+  const cpuRoom = roomModel?.room?.opponent_kind === "cpu";
   const myTurn = state.status === "ACTIVE" && state.active === seat;
   const setText = (id, value) => { if ($(id).textContent !== value) $(id).textContent = value; };
   const present = (kind, step, title, detail) => {
@@ -1444,8 +1467,16 @@ function renderTurnGuide(state) {
   if (state.status !== "ACTIVE" || targetDraft) return show("turnGuide", false);
   if (actionBusy) return present("wait", "送信中", "サーバーで操作を確認しています", "結果が返るまで、そのままお待ちください。");
   if (pendingAction) return present("ready", "再送", "前の操作の結果を確認します", "下の「同じ操作を再送」で、同じ操作IDのまま安全に確認できます。");
+  if (!myTurn && cpuRoom && state.active === "B" && state.phase === "CREATE_FIRST") {
+    return present("wait", "CPUの手番", "CPUが最初のエリアを選んでいます", "次は、受け取った灰色エリアを盤面の下にある持ち色から塗ります。");
+  }
   if (!myTurn) return present("wait", "WAIT", "相手の手番です", "次に受け取るエリアを、どの色で塗るか考えながら待ちましょう。");
-  if (["CREATE_FIRST", "WORK"].includes(state.phase)) {
+  if (state.phase === "CREATE_FIRST") {
+    const remaining = Math.max(0, state.requiredSize - selectedMacros.size);
+    if (remaining > 0) return present("select", "最初の一手", `白い盤面をタップして、あと${remaining}マス選ぶ`, "選べたら「このエリアを渡す」を押します。選んだエリアは相手が塗ります。");
+    return present("ready", "最初の一手", "選べました。「このエリアを渡す」へ", "選んだマスは白い枠で表示されています。下のボタンで相手へ渡します。");
+  }
+  if (state.phase === "WORK") {
     const remaining = Math.max(0, state.requiredSize - selectedMacros.size);
     if (remaining > 0) return present("select", "STEP 1", `盤面をタップ／クリックして、あと${remaining}マス選ぶ`, "選んだエリアは相手が塗ります。相手が困る形や接し方を考えてみましょう。");
     return present("ready", "STEP 2", "選べました。「このエリアを渡す」へ", "選んだマスは白い枠で表示されています。下のボタンで相手へ渡します。");
@@ -1635,9 +1666,13 @@ function renderCpuRoster(characters) {
 
 async function openCpuRoster(origin = "fallback", trigger = document.activeElement) {
   const snapshot = client.snapshot();
+  const replacingFinishedCpu = snapshot.roomId
+    && roomModel?.room?.id === snapshot.roomId
+    && roomModel?.room?.status === "finished"
+    && roomModel?.room?.opponent_kind === "cpu";
   if (cpuAcceptBusy) return;
   if (origin === "fallback" && !snapshot.matchmakingTicketId) return;
-  if (origin === "direct" && (!synced || snapshot.roomId)) return;
+  if (origin === "direct" && (!synced || (snapshot.roomId && !replacingFinishedCpu))) return;
   if (origin === "direct" && snapshot.matchmakingTicketId) {
     setCpuEntryIntent(false);
     return toast("いまは人間の対戦相手を募集中です。募集を取り消すか、90秒後のCPU提案を選んでください。");
@@ -1648,7 +1683,7 @@ async function openCpuRoster(origin = "fallback", trigger = document.activeEleme
   $("cpuRosterDescription").textContent = origin === "direct"
     ? "正式6枚のStandardルールで対戦します。CPUを選ぶまで対戦は始まりません。"
     : "人間の募集を終了し、選んだCPUと正式6枚のStandardルールで対戦します。";
-  $("closeCpuRoster").textContent = origin === "direct" ? "ロビーに戻る" : "人を待ち続ける";
+  $("closeCpuRoster").textContent = replacingFinishedCpu ? "対戦結果に戻る" : origin === "direct" ? "ロビーに戻る" : "人を待ち続ける";
   if (!$("cpuRosterDialog").open) $("cpuRosterDialog").showModal();
   requestAnimationFrame(() => $("cpuRosterTitle").focus());
   $("cpuRosterStatus").textContent = "CPU一覧を読み込んでいます…";
@@ -1782,9 +1817,16 @@ async function createRoom() { try { await client.createRoom(displayName()); awai
 async function joinRoom() { try { await client.joinRoom({ roomCode: $("roomCode").value, displayName: displayName() }); await roomSync.start(client.snapshot().roomId); } catch (error) { toast(error.message); } }
 async function submitSetup() {
   const loadout = selectedLoadout(); if (!validLoadout(loadout)) return toast("各カテゴリから2枚ずつ選んでください。");
+  const startingRoomStatus = roomModel?.room?.status;
+  const interactionRevision = userInteractionRevision;
   setupBusy = true; renderLoadoutSelectionState();
   const debugMode = $("debugUnlimitedMode")?.checked === true;
-  try { await client.submitSetup({ loadout, debugMode }); await roomSync.refreshNow(); toast(debugMode ? "デバッグ用6枚で準備完了しました。相手もデバッグをONにしてください。" : "この6枚で準備完了しました。"); }
+  try {
+    await client.submitSetup({ loadout, debugMode });
+    await roomSync.refreshNow();
+    toast(debugMode ? "デバッグ用6枚で準備完了しました。相手もデバッグをONにしてください。" : "この6枚で準備完了しました。");
+    if (startingRoomStatus === "ready" && roomModel?.room?.status === "playing") handoffFromSetupToMatch(interactionRevision);
+  }
   catch (error) { toast(error.message || "対戦準備を完了できませんでした。"); }
   finally { setupBusy = false; renderLoadoutSelectionState(); }
 }
@@ -1847,6 +1889,7 @@ $("submitRegion").onclick = () => sendAction("CREATE_REGION", { sourceMacros: [.
 $("surrender").onclick = () => sendAction("SURRENDER");
 $("retryAction").onclick = () => pendingAction && sendAction(pendingAction.type, pendingAction.payload, true);
 $("requestRematch").onclick = requestRematch;
+$("chooseDifferentCpu").onclick = (event) => beginImmediateCpuEntry(event.currentTarget);
 $("closeSkillInfo").onclick = () => $("skillInfoDialog").close();
 $("terminalClose").onclick = () => {
   dismissedTerminalEventKey = shownTerminalEventKey;

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <title>Four Color Map Game v5.0 Standard Online</title>
   <link rel="stylesheet" href="../online-v5/style.css">
-  <link rel="stylesheet" href="style.css?v=20260905-2">
+  <link rel="stylesheet" href="style.css?v=20260905-4">
   <link rel="stylesheet" href="debug-mode.css">
   <link rel="stylesheet" href="progression.css">
 </head>
@@ -230,7 +230,7 @@
     </section>
 
     <section id="matchCard" class="card hidden" data-app-tab-panel="battle">
-      <h2>対戦同期</h2>
+      <h2 id="matchTitle" tabindex="-1">Standard対戦スタート</h2>
       <div class="row wrap"><span id="turnBadge" class="badge"></span><span>第 <b id="versionText">1</b> 手</span></div>
       <p id="phaseText" class="callout"></p>
       <section class="random-summary" aria-labelledby="randomSummaryTitle">
@@ -263,7 +263,10 @@
       <div id="rematchControls" class="target-panel hidden">
         <strong>もう一度対戦</strong>
         <p id="rematchStatus" class="muted">両プレイヤーの申請後、6枚セットを選び直します。</p>
-        <button id="requestRematch" class="primary">再戦を申し込む</button>
+        <div class="controls">
+          <button id="requestRematch" class="primary">再戦を申し込む</button>
+          <button id="chooseDifferentCpu" class="ghost hidden" type="button">別のCPUを選んで新しく対戦</button>
+        </div>
       </div>
       <details class="sync-details">
         <summary>上級者向け：同期データを表示</summary>
@@ -324,6 +327,6 @@
   <script src="standard-online-client.js"></script>
   <script src="standard-online-sync.js"></script>
   <script src="standard-online-skill-intents.js"></script>
-  <script type="module" src="app.js?v=20260905-2"></script>
+  <script type="module" src="app.js?v=20260905-4"></script>
 </body>
 </html>

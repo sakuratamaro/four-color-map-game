@@ -22,7 +22,7 @@ const saveKey = "fourColorMapGame.standard.v5.save";
 const remoteProfileKey = "fourColorMapGame.standard.online.v5.remote-profile";
 const roomId = "11111111-1111-4111-8111-111111111111";
 const pendingRematchId = "22222222-2222-4222-8222-222222222222";
-const RESTORED_ROOM_MODES = new Set(["finished", "playing", "cpuTurn", "finishedCpu", "cpuWin"]);
+const RESTORED_ROOM_MODES = new Set(["finished", "playing", "cpuTurn", "finishedCpu", "cpuWin", "setupTransition", "setupTransitionCpuFirst"]);
 
 function browserStage(stage) {
   console.error(`BROWSER_STAGE ${stage}`);
@@ -75,6 +75,8 @@ async function installMock(context, mode) {
   }));
   await context.addInitScript(({ connectionKey: connection, saveKey: save, roomId: id, pendingId, mode: initialMode }) => {
     const initialTab = ["gacha", "quiz"].includes(initialMode) ? "quiz" : initialMode === "cosmetic" ? "profile" : initialMode === "empty" ? "home" : "battle";
+    const setupTransition = ["setupTransition", "setupTransitionCpuFirst"].includes(initialMode);
+    const cpuRoomMode = ["cpuTurn", "finishedCpu", "cpuWin", "setupTransition", "setupTransitionCpuFirst"].includes(initialMode);
     localStorage.setItem("fourColorMapGame.standard.online.v5.active-tab", initialTab);
     const inventory = Object.fromEntries([
       "colorRandomBorrow", "colorChoiceBorrow", "colorPrism", "colorRegionSplit", "colorPaletteChange",
@@ -87,7 +89,7 @@ async function installMock(context, mode) {
       localStorage.setItem("fourColorMapGame.standard.online.v5.profile", "playerA");
       if (!["lobby", "cosmetic", "quiz", "publicFind", "cpuWait", "cpuRetry"].includes(initialMode)) {
         localStorage.setItem(connection, JSON.stringify({
-          roomId: id, roomCode: "A1B2C3", profileRevision: 1, setupRevision: 3,
+          roomId: id, roomCode: "A1B2C3", profileRevision: 1, setupRevision: setupTransition ? 0 : 3,
           rematchActionId: initialMode === "finished" ? pendingId : null,
           rematchExpectedVersion: initialMode === "finished" ? 9 : null,
         }));
@@ -127,8 +129,8 @@ async function installMock(context, mode) {
     if (initialMode === "cpuTurn") active.active = "B";
     const runtime = {
       waitStartedAt: initialMode === "cpuWait" ? new Date(Date.now() - 91000).toISOString() : new Date().toISOString(),
-      room: { id, status: ["finished", "finishedCpu"].includes(initialMode) ? "finished" : initialMode === "publicFind" ? "ready" : "playing", version: 9, game_mode: "standard_v5", access_mode: ["cpuTurn", "finishedCpu", "cpuWin"].includes(initialMode) ? "cpu" : initialMode === "publicFind" ? "public_queue" : "private_code", opponent_kind: ["cpuTurn", "finishedCpu", "cpuWin"].includes(initialMode) ? "cpu" : "human", cpu_character_id: ["cpuTurn", "finishedCpu", "cpuWin"].includes(initialMode) ? "yuzu" : null, public_state: ["finished", "finishedCpu"].includes(initialMode) ? finished : initialMode === "publicFind" ? null : active },
-      view: initialMode === "publicFind" ? null : { seat: "A", version: 9, private_state: { hand: { areaDiePlus: 1, areaResize: 1 }, basicPalette: ["red", "blue"], bonusColor: "yellow", bonusUsesRemaining: 2, privateEffects: {} } },
+      room: { id, status: ["finished", "finishedCpu"].includes(initialMode) ? "finished" : initialMode === "publicFind" || setupTransition ? "ready" : "playing", version: 9, game_mode: "standard_v5", access_mode: cpuRoomMode ? "cpu" : initialMode === "publicFind" ? "public_queue" : "private_code", opponent_kind: cpuRoomMode ? "cpu" : "human", cpu_character_id: cpuRoomMode ? "yuzu" : null, public_state: ["finished", "finishedCpu"].includes(initialMode) ? finished : initialMode === "publicFind" || setupTransition ? null : active },
+      view: initialMode === "publicFind" || setupTransition ? null : { seat: "A", version: 9, private_state: { hand: { areaDiePlus: 1, areaResize: 1 }, basicPalette: ["red", "blue"], bonusColor: "yellow", bonusUsesRemaining: 2, privateEffects: {} } },
       profile: initialMode === "empty" ? null : { revision: 1, display_name: "A", profile_state: profileState },
       gachaReceipts: {},
       cardSaleReceipts: {},
@@ -136,7 +138,7 @@ async function installMock(context, mode) {
       cpuStartReceipts: {},
       calls: [],
     };
-    runtime.members = [{ user_id: "33333333-3333-4333-8333-333333333333", seat: "A", display_name: "A", is_cpu: false, appearance: { nameplate: "nameplateDefault", title: "titleNone" } }, { user_id: "44444444-4444-4444-8444-444444444444", seat: "B", display_name: ["cpuTurn", "finishedCpu", "cpuWin"].includes(initialMode) ? "うっかりユズ" : "B", is_cpu: ["cpuTurn", "finishedCpu", "cpuWin"].includes(initialMode), appearance: { nameplate: "nameplateGold", title: "titleArtisan" } }];
+    runtime.members = [{ user_id: "33333333-3333-4333-8333-333333333333", seat: "A", display_name: "A", is_cpu: false, appearance: { nameplate: "nameplateDefault", title: "titleNone" } }, { user_id: "44444444-4444-4444-8444-444444444444", seat: "B", display_name: cpuRoomMode ? "うっかりユズ" : "B", is_cpu: cpuRoomMode, appearance: { nameplate: "nameplateGold", title: "titleArtisan" } }];
     const cosmeticProjection = () => ({
       coins: runtime.profile.profile_state.coins,
       equipped: runtime.profile.profile_state.equipped,
@@ -155,6 +157,14 @@ async function installMock(context, mode) {
       auth: { getSession: async () => ({ data: { session: { user: { id: "33333333-3333-4333-8333-333333333333" } } } }), signInAnonymously: async () => { throw new Error("unexpected sign-in"); } },
       functions: { invoke: async (name, request) => {
         runtime.calls.push({ kind: "invoke", name, body: request.body });
+        if (request.body.operation === "setup" && setupTransition) return { data: { setupRevision: 1, profileRevision: 1 } };
+        if (request.body.operation === "initialize" && setupTransition) {
+          const cpuFirst = initialMode === "setupTransitionCpuFirst";
+          const started = { ...active, matchId: `${id}:10`, status: "ACTIVE", version: 10, turn: 1, active: cpuFirst ? "B" : "A", phase: "CREATE_FIRST" };
+          runtime.room = { ...runtime.room, status: "playing", version: 10, public_state: started };
+          runtime.view = { seat: "A", version: 10, private_state: { hand: { areaDiePlus: 1, areaResize: 1 }, basicPalette: ["red", "blue"], bonusColor: "yellow", bonusUsesRemaining: 2, privateEffects: {} } };
+          return { data: { roomStatus: "playing", roomVersion: 10 } };
+        }
         if (request.body.operation === "profile") {
           runtime.profile = { revision: 1, display_name: request.body.displayName, profile_state: request.body.profileState };
           return { data: { revision: 1, displayName: request.body.displayName, profileState: request.body.profileState } };
@@ -240,6 +250,7 @@ async function installMock(context, mode) {
           return { data: { matchmakingStatus: "matched", roomId: id, seat: "A", characterId: request.body.characterId, duplicate: false } };
         }
         if (request.body.operation === "cpu-action") {
+          if (initialMode === "setupTransitionCpuFirst") return { error: new Error("CPU_NOT_ACTIVE") };
           runtime.room = { ...runtime.room, version: runtime.room.version + 1, public_state: { ...runtime.room.public_state, version: runtime.room.version + 1, active: "A" } };
           runtime.view = { ...runtime.view, version: runtime.room.version };
           return { data: { duplicate: false, room: runtime.room } };
@@ -530,6 +541,7 @@ test("actual Edge celebrates an opponent surrender and presents defeat from the 
     assert.equal(await page.locator("#terminalClose").evaluate((node) => node === document.activeElement), true);
 
     await page.getByRole("button", { name: "結果を確認して戻る" }).click();
+    assert.equal(await page.locator("#chooseDifferentCpu").isVisible(), false);
     await page.evaluate(() => {
       const runtime = globalThis.__standardOnlineRuntime;
       runtime.room = {
@@ -762,6 +774,43 @@ test("actual Edge rematches the same visible CPU and returns the human to fresh 
   });
 });
 
+test("actual Edge keeps a finished CPU room until another CPU is chosen", { timeout: 130000 }, async () => {
+  await withPage("finishedCpu", async (page) => {
+    await page.getByRole("button", { name: "結果を確認して戻る" }).click();
+    const chooseAnother = page.getByRole("button", { name: "別のCPUを選んで新しく対戦" });
+    await chooseAnother.click();
+    await page.locator("#cpuRosterDialog[open]").waitFor();
+    assert.equal(await page.locator("#closeCpuRoster").textContent(), "対戦結果に戻る");
+    const roomBeforeCancel = await page.evaluate(({ key }) => JSON.parse(localStorage.getItem(key))?.roomId, { key: connectionKey });
+    assert.equal(roomBeforeCancel, "11111111-1111-4111-8111-111111111111");
+
+    await page.keyboard.press("Escape");
+    await page.locator("#cpuRosterDialog").waitFor({ state: "hidden" });
+    assert.equal(await page.evaluate(() => document.activeElement?.id), "chooseDifferentCpu");
+    assert.equal(await page.locator("#room").isVisible(), true);
+    assert.equal(await page.evaluate(({ key }) => JSON.parse(localStorage.getItem(key))?.roomId, { key: connectionKey }), roomBeforeCancel);
+
+    await chooseAnother.click();
+    await page.getByRole("button", { name: "せっかちレンと対戦" }).click();
+    await page.locator("#setupCard:not(.hidden)").waitFor();
+    assert.equal(await page.locator("#shownCode").textContent(), "CPU：せっかちレン");
+    const evidence = await page.evaluate(() => ({
+      cpuStarts: globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "cpu-start").map((entry) => entry.body),
+      cpuAccepts: globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "cpu-accept").length,
+      cpuRematches: globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "cpu-rematch").length,
+      matchmaking: globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.name?.startsWith("fcg_standard_matchmaking_")).length,
+      overflows: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+    }));
+    assert.equal(evidence.cpuStarts.length, 1);
+    assert.equal(evidence.cpuStarts[0].characterId, "ren");
+    assert.equal(evidence.cpuStarts[0].confirmed, true);
+    assert.equal(evidence.cpuAccepts, 0);
+    assert.equal(evidence.cpuRematches, 0);
+    assert.equal(evidence.matchmaking, 0);
+    assert.equal(evidence.overflows, false);
+  }, { viewport: { width: 390, height: 844 } });
+});
+
 test("actual Edge finds a public opponent and enters setup without exposing a code", { timeout: 130000 }, async () => {
   await withPage("publicFind", async (page) => {
     await page.getByRole("button", { name: "今入れる試合を探す" }).click();
@@ -807,6 +856,65 @@ test("actual Edge makes the six-card setup explicit, constrained, and keyboard-s
     const layout = await page.evaluate(() => ({ width: document.documentElement.clientWidth, scrollWidth: document.documentElement.scrollWidth }));
     assert.ok(layout.scrollWidth <= layout.width + 1, JSON.stringify(layout));
   }, { bodyTimeout: 50_000, viewport: { width: 390, height: 844 } });
+});
+
+test("actual Edge hands one submitted setup to the visible first-move guide without stealing restored focus", { timeout: 240000 }, async () => {
+  await withPage("setupTransition", async (page) => {
+    await page.emulateMedia({ reducedMotion: "no-preference" });
+    await page.evaluate(() => {
+      const original = Element.prototype.scrollIntoView;
+      globalThis.__handoffScrolls = [];
+      Element.prototype.scrollIntoView = function trackedScroll(options) {
+        globalThis.__handoffScrolls.push({ id: this.id, options });
+        return original.call(this, options);
+      };
+    });
+    await page.locator("#setupCard:not(.hidden)").waitFor();
+    await page.getByRole("button", { name: "この6枚で準備完了" }).click();
+    await page.waitForFunction(() => document.activeElement?.id === "matchTitle");
+    assert.equal(await page.locator("#matchTitle").textContent(), "Standard対戦スタート");
+    assert.equal(await page.locator("#turnGuideStep").textContent(), "最初の一手");
+    assert.match(await page.locator("#turnGuideTitle").textContent(), /白い盤面をタップして、あと1マス選ぶ/);
+    await page.waitForFunction(() => {
+      const guide = document.querySelector("#turnGuide").getBoundingClientRect();
+      const tabs = document.querySelector(".app-tabs").getBoundingClientRect();
+      return guide.top >= 0 && guide.bottom <= tabs.top;
+    });
+    const handoff = await page.evaluate(() => globalThis.__handoffScrolls.at(-1));
+    assert.deepEqual(handoff, { id: "matchCard", options: { block: "start", behavior: "smooth" } });
+    await page.locator("#surrender").focus();
+    await page.evaluate(() => globalThis.__standardOnlineRuntime.onInvalidate?.());
+    await page.waitForTimeout(300);
+    assert.equal(await page.evaluate(() => document.activeElement?.id), "surrender");
+  }, { bodyTimeout: 50_000, viewport: { width: 390, height: 844 } });
+
+  await withPage("setupTransitionCpuFirst", async (page) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.evaluate(() => {
+      const original = Element.prototype.scrollIntoView;
+      globalThis.__handoffScrolls = [];
+      Element.prototype.scrollIntoView = function trackedScroll(options) {
+        globalThis.__handoffScrolls.push({ id: this.id, options });
+        return original.call(this, options);
+      };
+    });
+    await page.getByRole("button", { name: "この6枚で準備完了" }).click();
+    await page.waitForFunction(() => document.activeElement?.id === "matchTitle");
+    assert.equal(await page.locator("#turnGuideStep").textContent(), "CPUの手番");
+    assert.equal(await page.locator("#turnGuideTitle").textContent(), "CPUが最初のエリアを選んでいます");
+    assert.match(await page.locator("#turnGuideDetail").textContent(), /次は、受け取った灰色エリア/);
+    const handoff = await page.evaluate(() => globalThis.__handoffScrolls.at(-1));
+    assert.deepEqual(handoff, { id: "matchCard", options: { block: "start", behavior: "auto" } });
+  }, { viewport: { width: 390, height: 844 } });
+
+  await withPage("playing", async (page) => {
+    assert.notEqual(await page.evaluate(() => document.activeElement?.id), "matchTitle");
+    await page.reload({ waitUntil: "load" });
+    await page.locator("#connectionBadge.good").waitFor();
+    await page.locator("#matchCard:not(.hidden)").waitFor();
+    await page.waitForTimeout(100);
+    assert.notEqual(await page.evaluate(() => document.activeElement?.id), "matchTitle");
+  });
 });
 
 test("actual Edge guides a player from board selection through one CREATE_REGION intent", { timeout: 130000 }, async () => {
