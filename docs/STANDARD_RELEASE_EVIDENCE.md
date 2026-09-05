@@ -19,7 +19,7 @@
 | 現行公開Pages | PUBLIC_VERIFIED | 公開ゲーム資産基点`193a0e6`、Pages run `33951598229`成功。公開URLでasset v14、報酬CTA、無抽選遷移、モーダルclip、focus CSSを確認 | 別々の二端末で最終受入 |
 | 初回公開前DB境界（履歴） | VERIFIED | 旧snapshotは匿名権限拒否。snapshot v2と野良募集が未存在だった初回baseline | 現行境界は適用migrationとlive canaryを参照 |
 | migration 006–013静的検査 | VERIFIED | migration別security/transaction testsと読み取り専用44項目SQL | 実DBで全行`ok=true` |
-| Dashboard Advisor・使用量baseline | BLOCKED | 変更前baselineは取得不能。22:55 JSTの現況はHealthyだがHealth Advisorにinfra alert 2件。Security指摘なし、Performance error/warning 0 | 24時間後に同じ指標とRealtime負荷を再採取 |
+| Dashboard Advisor・使用量baseline | PENDING | 2026-09-05 16:23 JSTのT0を`STANDARD_OBSERVATION_T0_20260905.json`へPARTIAL記録。API/Edge/Realtime/Query/Advisor 17項目を観測、Databaseグラフ等20項目はDashboard取得不能でPENDING。Health alert 2件継続 | T+24hで同じ24時間filterを再採取し、Database欠落値とalert状態を再確認 |
 | migration 006–013＋後続001–005本番適用 | PUBLIC_VERIFIED | 13本を個別適用。現行の読み取り専用検証SQLは56項目すべてtrue。status C 210/210、クイズ新旧canary、クロガネv2 canary合格 | 物理二端末最終受入 |
 | Edge Function更新 | PUBLIC_VERIFIED | migration `202609050005`適用後にクロガネv2対応Edgeを更新。新規匿名roomでv2受理、別canaryで合法CPU手・決着・再戦まで合格 | 物理端末でクロガネの手強さを体感確認 |
 | 即時Standard CPU開始 | PUBLIC_VERIFIED | migration `202609050002`とEdge deployment 9。製品`cc96350`、公開`a4c6490`、DB 47項目、Edge基本6/6、即時CPU 7/7、Windows run `33931963065`、Pages run `33932159043`合格。公開UIでCPU初手まで確認 | 物理端末で一試合完走・再読込・同じCPUとの再戦を確認 |
@@ -138,6 +138,7 @@
 | 変更前 | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING |
 | canary後 | CPU 1% / RAM 59% / disk 16% / peak conns 15/60 | 251 requests | 5.3% warnings | PENDING | PENDING | PENDING | API 0.46% errors |
 | `29c6958`公開直後 | CPU 2% / RAM 64% / disk 16% / connections 14/60 | PENDING | PENDING | PENDING | PENDING | PENDING | PENDING |
+| `193a0e6` T0 16:23 JST | 24hグラフ取得不能。current CPU 2% / RAM 66% / disk 17% / connections 16/60、7日cardはCompute/CPU peak 99% | 1,006 | Postgres changes 148 / peak PENDING | PENDING | PENDING | PENDING | Data API 56 / 3,437 = 1.629328% |
 
 ## 2026-09-05 15:34 JST 6枚セットアップ即時確定公開
 
@@ -156,6 +157,15 @@
 - 独立レビューで紙吹雪がモーダルの不要な内部scrollを生むP2を発見し、`193a0e6`でclipした。実測は`clientHeight=504 / scrollHeight=504`、両操作はviewport内。静的42/42、ローカルEdge重点1/1、独立レビューP0/P1なし。
 - Standard browser gate `33951596007`はChrome/Edge成功、Pages run `33951598229`も成功。公開URLでasset v14、報酬CTA、保存済みCPU条件、無抽選遷移、紙吹雪clip、focus CSSを確認し、candidate preflightも`ok:true`だった。DB、migration、Edge Functionは変更していない。
 - 物理的に別々の二端末による対人/CPU完走、途中再読込、再戦、報酬からガチャまでの体感確認と、T0/T+24時間の使用量比較は引き続き`NOT_RUN` / `PENDING`である。
+
+## 2026-09-05 16:23 JST 公開後T0観測
+
+- Supabase Dashboardをread-onlyで確認し、すべて「Last 24 hours」へ合わせたData API 3,437 requests、Response Errors 56件（1.629328%）、Edge Function 1,006 invocations、Realtime Postgres Changes 148 eventsを記録した。
+- Query Performanceは24時間filterではなく`pg_stat_statements`のreset以降の累積であるため別集計にした。`realtime.list_changes`は68,723 calls、DB総時間79%、mean 19ms、max 3,837ms。旧直接read形の`fcg_room_members`は6,759 calls、`fcg_rooms`は5,639 callsで、T+24hは累積差分として比較する。
+- Security Advisorはerrors 0、warnings 19、suggestions 15。Performance Advisorはerrors 0、warnings 0、suggestions 11。Health Advisorは`DatabaseStorageCapacityExhausted`と`HostOutOfDiskSpace`の2件を「currently firing」と表示した。
+- Infrastructure currentはCPU 2%、disk 17%、RAM 66%、connections 16/60。7日cardはCompute/CPU peak 99%、memory 64%、disk IO 1%。Databaseの24時間CPU、IO、connections、diskグラフはDashboard自身が取得不能を返したため、推測せず20 metricを`PENDING/null`にした。
+- 入力`STANDARD_DASHBOARD_T0_20260905.json`と正規化出力`STANDARD_OBSERVATION_T0_20260905.json`を保存した。公開preflightは`ok:true`、repository HEAD・公開asset・Pages commit/run・Edge deployment 13を分離し、物理二端末は`NOT_RUN/PENDING/automated:false`のままである。
+- 課金、Compute/Disk変更、Advisor reset、SQL、DB/Edge更新は行っていない。T+24hより先に、`realtime.list_changes`の累積負荷が現行Standard由来か既存/プラットフォーム由来かをread-onlyで切り分ける。
 
 ## 公開識別子
 
@@ -201,7 +211,7 @@
 
 ## 残存リスク
 
-- Dashboardの詳細なAdvisor/使用量baselineは未取得。画面上では資源逼迫警告が継続しているため、公開範囲を広げる前後で使用量を追跡する。
+- Dashboard T0は17項目を取得したが、Database 24hグラフ等20項目はDashboard取得不能でPARTIAL。資源逼迫alert 2件と7日Compute/CPU peak 99%があるため、負荷由来を切り分けるまで新しい高負荷経路を追加しない。
 - profile作成安定化はCの逐次16件で500/429なしを確認した。高並列作成そのものはAuth上限を消費するため再試験せず、再発時はEdge/DBログと資源警告を関連調査する。
 - Cのstatus正規化は本番関数定義、既存ticket整合、live canary 210/210まで確認済み。今後もIPあたり30 anonymous sign-ins/時を守り、同じ認証窓で重いcanaryを再試行しない。
 - 現行製品`193a0e6`はPagesへ反映済み。自動browser、公開asset、Edge/DB保護境界の合格と、未実施の物理二端末受入を混同しない。

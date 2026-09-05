@@ -1,0 +1,309 @@
+{
+  "schemaVersion": "standard-release-observation-v1",
+  "label": "T0",
+  "capturedAt": "2026-09-05T07:23:00.000Z",
+  "timezone": "Asia/Tokyo",
+  "window": {
+    "preset": "last-24-hours",
+    "from": "2026-09-04T07:22:00.000Z",
+    "to": "2026-09-05T07:22:00.000Z"
+  },
+  "release": {
+    "repositoryHead": "6143052f41387bf88c1ef40c3fc3b18967d97948",
+    "publicAssetCommit": "193a0e6014762e57d1b50274343ca43ab1e1703f",
+    "pagesCommit": "6143052f41387bf88c1ef40c3fc3b18967d97948",
+    "pagesRun": "33951955527",
+    "edgeDeployment": {
+      "state": "OBSERVED",
+      "value": 13,
+      "unit": "deployment_version",
+      "aggregation": "window_end",
+      "source": "dashboard.edge"
+    },
+    "migrationTail": "202609050005"
+  },
+  "publicPreflight": {
+    "state": "OBSERVED",
+    "ok": true,
+    "expectedPhase": "candidate"
+  },
+  "metrics": {
+    "database.cpu_pct": {
+      "state": "PENDING",
+      "value": null,
+      "unit": "percent",
+      "reason": "not_provided"
+    },
+    "database.ram_pct": {
+      "state": "PENDING",
+      "value": null,
+      "unit": "percent",
+      "reason": "not_provided"
+    },
+    "database.disk_pct": {
+      "state": "PENDING",
+      "value": null,
+      "unit": "percent",
+      "reason": "not_provided"
+    },
+    "database.disk_io_pct": {
+      "state": "PENDING",
+      "value": null,
+      "unit": "percent",
+      "reason": "not_provided"
+    },
+    "database.connections_current": {
+      "state": "PENDING",
+      "value": null,
+      "unit": "count",
+      "reason": "not_provided"
+    },
+    "database.connections_peak": {
+      "state": "PENDING",
+      "value": null,
+      "unit": "count",
+      "reason": "not_provided"
+    },
+    "database.active_queries": {
+      "state": "PENDING",
+      "value": null,
+      "unit": "count",
+      "reason": "not_provided"
+    },
+    "database.idle_in_transaction": {
+      "state": "PENDING",
+      "value": null,
+      "unit": "count",
+      "reason": "not_provided"
+    },
+    "database.blocked_queries": {
+      "state": "PENDING",
+      "value": null,
+      "unit": "count",
+      "reason": "not_provided"
+    },
+    "api.postgrest_requests": {
+      "state": "OBSERVED",
+      "value": 3437,
+      "unit": "count",
+      "aggregation": "window_total",
+      "source": "dashboard.api"
+    },
+    "api.gateway_error_pct": {
+      "state": "OBSERVED",
+      "value": 1.629328,
+      "unit": "percent",
+      "aggregation": "window_rate",
+      "source": "dashboard.api"
+    },
+    "api.http_429": {
+      "state": "PENDING",
+      "value": null,
+      "unit": "count",
+      "reason": "not_provided"
+    },
+    "api.http_5xx": {
+      "state": "PENDING",
+      "value": null,
+      "unit": "count",
+      "reason": "not_provided"
+    },
+    "api.p50_ms": {
+      "state": "PENDING",
+      "value": null,
+      "unit": "milliseconds",
+      "reason": "not_provided"
+    },
+    "api.p95_ms": {
+      "state": "PENDING",
+      "value": null,
+      "unit": "milliseconds",
+      "reason": "not_provided"
+    },
+    "edge.invocations": {
+      "state": "OBSERVED",
+      "value": 1006,
+      "unit": "count",
+      "aggregation": "window_total",
+      "source": "dashboard.edge"
+    },
+    "edge.http_429": {
+      "state": "PENDING",
+      "value": null,
+      "unit": "count",
+      "reason": "not_provided"
+    },
+    "edge.http_5xx": {
+      "state": "PENDING",
+      "value": null,
+      "unit": "count",
+      "reason": "not_provided"
+    },
+    "edge.p50_ms": {
+      "state": "PENDING",
+      "value": null,
+      "unit": "milliseconds",
+      "reason": "not_provided"
+    },
+    "edge.p95_ms": {
+      "state": "PENDING",
+      "value": null,
+      "unit": "milliseconds",
+      "reason": "not_provided"
+    },
+    "egress.bytes": {
+      "state": "PENDING",
+      "value": null,
+      "unit": "bytes",
+      "reason": "not_provided"
+    },
+    "realtime.messages": {
+      "state": "OBSERVED",
+      "value": 148,
+      "unit": "count",
+      "aggregation": "window_total",
+      "source": "dashboard.realtime"
+    },
+    "realtime.warning_pct": {
+      "state": "PENDING",
+      "value": null,
+      "unit": "percent",
+      "reason": "not_provided"
+    },
+    "realtime.connections_peak": {
+      "state": "PENDING",
+      "value": null,
+      "unit": "count",
+      "reason": "not_provided"
+    },
+    "query.realtime_list_changes.calls": {
+      "state": "OBSERVED",
+      "value": 68723,
+      "unit": "count",
+      "aggregation": "pg_stat_statements_cumulative",
+      "source": "dashboard.query-performance"
+    },
+    "query.realtime_list_changes.total_time_pct": {
+      "state": "OBSERVED",
+      "value": 79,
+      "unit": "percent",
+      "aggregation": "pg_stat_statements_cumulative_share",
+      "source": "dashboard.query-performance"
+    },
+    "query.realtime_list_changes.mean_ms": {
+      "state": "OBSERVED",
+      "value": 19,
+      "unit": "milliseconds",
+      "aggregation": "pg_stat_statements_cumulative_mean",
+      "source": "dashboard.query-performance"
+    },
+    "query.realtime_list_changes.max_ms": {
+      "state": "OBSERVED",
+      "value": 3837,
+      "unit": "milliseconds",
+      "aggregation": "pg_stat_statements_cumulative_max",
+      "source": "dashboard.query-performance"
+    },
+    "query.fcg_room_members.calls": {
+      "state": "OBSERVED",
+      "value": 6759,
+      "unit": "count",
+      "aggregation": "pg_stat_statements_cumulative",
+      "source": "dashboard.query-performance"
+    },
+    "query.fcg_rooms.calls": {
+      "state": "OBSERVED",
+      "value": 5639,
+      "unit": "count",
+      "aggregation": "pg_stat_statements_cumulative",
+      "source": "dashboard.query-performance"
+    },
+    "advisor.security_errors": {
+      "state": "OBSERVED",
+      "value": 0,
+      "unit": "count",
+      "aggregation": "window_end",
+      "source": "dashboard.advisor"
+    },
+    "advisor.security_warnings": {
+      "state": "OBSERVED",
+      "value": 19,
+      "unit": "count",
+      "aggregation": "window_end",
+      "source": "dashboard.advisor"
+    },
+    "advisor.security_suggestions": {
+      "state": "OBSERVED",
+      "value": 15,
+      "unit": "count",
+      "aggregation": "window_end",
+      "source": "dashboard.advisor"
+    },
+    "advisor.performance_errors": {
+      "state": "OBSERVED",
+      "value": 0,
+      "unit": "count",
+      "aggregation": "window_end",
+      "source": "dashboard.advisor"
+    },
+    "advisor.performance_warnings": {
+      "state": "OBSERVED",
+      "value": 0,
+      "unit": "count",
+      "aggregation": "window_end",
+      "source": "dashboard.advisor"
+    },
+    "advisor.performance_suggestions": {
+      "state": "OBSERVED",
+      "value": 11,
+      "unit": "count",
+      "aggregation": "window_end",
+      "source": "dashboard.advisor"
+    },
+    "advisor.health_alerts": {
+      "state": "OBSERVED",
+      "value": [
+        "DatabaseStorageCapacityExhausted",
+        "HostOutOfDiskSpace"
+      ],
+      "unit": "alert_names",
+      "aggregation": "window_end",
+      "source": "dashboard.advisor"
+    }
+  },
+  "comparison": null,
+  "warnings": [
+    "QUERY_METRICS_ARE_PG_STAT_STATEMENTS_CUMULATIVE"
+  ],
+  "observationCompleteness": {
+    "state": "PARTIAL",
+    "pendingPaths": [
+      "metrics.database.cpu_pct",
+      "metrics.database.ram_pct",
+      "metrics.database.disk_pct",
+      "metrics.database.disk_io_pct",
+      "metrics.database.connections_current",
+      "metrics.database.connections_peak",
+      "metrics.database.active_queries",
+      "metrics.database.idle_in_transaction",
+      "metrics.database.blocked_queries",
+      "metrics.api.http_429",
+      "metrics.api.http_5xx",
+      "metrics.api.p50_ms",
+      "metrics.api.p95_ms",
+      "metrics.edge.http_429",
+      "metrics.edge.http_5xx",
+      "metrics.edge.p50_ms",
+      "metrics.edge.p95_ms",
+      "metrics.egress.bytes",
+      "metrics.realtime.warning_pct",
+      "metrics.realtime.connections_peak"
+    ]
+  },
+  "physicalTwoDeviceAcceptance": {
+    "gateState": "PENDING",
+    "executionState": "NOT_RUN",
+    "automated": false,
+    "reasonCode": "REQUIRES_TWO_PHYSICAL_DEVICES"
+  }
+}

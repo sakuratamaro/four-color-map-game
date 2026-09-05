@@ -31,7 +31,7 @@
 | P0 | CPU戦の完了報酬表示 | UX＋進行 | PUBLIC_VERIFIED | `640ec98`。保存済みCPU結果へ`Lv.1ガチャ券 +1`を明示し、再読込を含む券2→3、対人精算とCPU未精算の否定条件を確認。Windows run `33944794035`、Pages run `33944924097`成功 |
 | P0 | 持ち色変更の説明 | UX＋ルール | PUBLIC_VERIFIED | `640ec98`。基本色2枠は回数無制限、おまけ色枠は残り回数を変更後の色へ引き継ぐことを明示。Windows run `33944794035`、Pages run `33944924097`成功 |
 | P0 | クロガネ公開情報lookahead v2 | CPU＋Edge＋DB | PUBLIC_VERIFIED | `a3425a4`。migration `202609050005`、新規クロガネだけv2、旧roomは旧policy維持、再戦時v2更新。公開情報だけの合法手、再送、決着、同CPU再戦canary合格。Windows run `33947039777`、Pages run `33947644765`成功 |
-| P0 | Supabase資源とRealtime負荷の追跡 | 運用 | PENDING | client購読を公開room UPDATE 1本へ限定。直前公開ではCPU 2%、RAM 64%、disk 16%、connections 14/60。`a3425a4`公開後24時間で同条件の指標を再測定 |
+| P0 | Supabase資源とRealtime負荷の追跡 | 運用 | PENDING | T0を`STANDARD_OBSERVATION_T0_20260905.json`へPARTIAL記録。24hはData API 3,437、error 1.629328%、Edge 1,006、Realtime変更148。Query Performance累積は`realtime.list_changes` 68,723 calls／DB時間79%／mean 19ms／max 3,837ms。Database 24hグラフ20項目は取得不能のままPENDING、Healthはstorage/host disk alert 2件。T+24hで再採取し、先に負荷由来を切り分ける |
 | P0 | 別々の二端末による最終受入 | チャッピー先生＋司令塔 | PENDING | 対人/CPUの完走、復帰、再戦、永続化を確認 |
 | P1 | 対戦を主役にする情報設計 | UX | PUBLIC_VERIFIED | 5タブ化し、ホームの主CTAから対戦タブ内の初回profile作成・同期・ロビーまでを一本化。公開URLの390px実画面で確認済み |
 | P1 | 初回オンライン準備を一操作に短縮 | UX | PUBLIC_VERIFIED | `9d42784`。名前入力後の一操作でstarter保存とprofile同期を行い、自動入室はしない。空名write 0、同期二重送信防止、失敗時starter保持。公開CTA確認済み |

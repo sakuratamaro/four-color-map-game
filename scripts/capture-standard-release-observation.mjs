@@ -43,15 +43,18 @@ const METRIC_SPECS = Object.freeze({
   "realtime.messages": { unit: "count", aggregation: "window_total", kind: "number" },
   "realtime.warning_pct": { unit: "percent", aggregation: "window_rate", kind: "percent" },
   "realtime.connections_peak": { unit: "count", aggregation: "window_peak", kind: "number" },
-  "query.realtime_list_changes.calls": { unit: "count", aggregation: "window_total", kind: "number" },
-  "query.realtime_list_changes.total_time_pct": { unit: "percent", aggregation: "window_share", kind: "percent" },
-  "query.realtime_list_changes.mean_ms": { unit: "milliseconds", aggregation: "mean", kind: "number" },
-  "query.realtime_list_changes.max_ms": { unit: "milliseconds", aggregation: "window_max", kind: "number" },
-  "query.fcg_room_members.calls": { unit: "count", aggregation: "window_total", kind: "number" },
-  "query.fcg_rooms.calls": { unit: "count", aggregation: "window_total", kind: "number" },
-  "advisor.security_issues": { unit: "count", aggregation: "window_end", kind: "number" },
+  "query.realtime_list_changes.calls": { unit: "count", aggregation: "pg_stat_statements_cumulative", kind: "number" },
+  "query.realtime_list_changes.total_time_pct": { unit: "percent", aggregation: "pg_stat_statements_cumulative_share", kind: "percent" },
+  "query.realtime_list_changes.mean_ms": { unit: "milliseconds", aggregation: "pg_stat_statements_cumulative_mean", kind: "number" },
+  "query.realtime_list_changes.max_ms": { unit: "milliseconds", aggregation: "pg_stat_statements_cumulative_max", kind: "number" },
+  "query.fcg_room_members.calls": { unit: "count", aggregation: "pg_stat_statements_cumulative", kind: "number" },
+  "query.fcg_rooms.calls": { unit: "count", aggregation: "pg_stat_statements_cumulative", kind: "number" },
+  "advisor.security_errors": { unit: "count", aggregation: "window_end", kind: "number" },
+  "advisor.security_warnings": { unit: "count", aggregation: "window_end", kind: "number" },
+  "advisor.security_suggestions": { unit: "count", aggregation: "window_end", kind: "number" },
   "advisor.performance_errors": { unit: "count", aggregation: "window_end", kind: "number" },
   "advisor.performance_warnings": { unit: "count", aggregation: "window_end", kind: "number" },
+  "advisor.performance_suggestions": { unit: "count", aggregation: "window_end", kind: "number" },
   "advisor.health_alerts": { unit: "alert_names", aggregation: "window_end", kind: "strings" },
 });
 
@@ -396,6 +399,9 @@ export function buildObservation(argv, dependencies = {}) {
   const warnings = [];
   const windowHours = (Date.parse(input.window.to) - Date.parse(input.window.from)) / 3_600_000;
   if (Math.abs(windowHours - 24) > 1 / 60) warnings.push("OBSERVATION_WINDOW_NOT_24_HOURS");
+  if (Object.entries(input.metrics).some(([name, metric]) => name.startsWith("query.") && metric.state === "OBSERVED")) {
+    warnings.push("QUERY_METRICS_ARE_PG_STAT_STATEMENTS_CUMULATIVE");
+  }
 
   let comparison = null;
   if (baseline) {

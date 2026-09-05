@@ -27,7 +27,9 @@ Dashboardのbaselineを取得できない場合は理由を証拠台帳へ`BLOCK
 
 `node scripts/capture-standard-release-observation.mjs --label=T0 --input=standard-dashboard-t0.json > standard-observation-t0.json`
 
-入力の観測値は、たとえば`metrics["database.cpu_pct"] = { "state": "OBSERVED", "value": 0, "source": "dashboard.database" }`とする。固定metric名・単位・集計方法・許可sourceはスクリプト内のallowlistを正本とし、値を取れないmetricは入力から省略してよい。
+現行公開候補の初回実測は`docs/STANDARD_DASHBOARD_T0_20260905.json`と正規化済み`docs/STANDARD_OBSERVATION_T0_20260905.json`に保存する。後者が`PARTIAL`の場合は、欠落値を推測で埋めず`pendingPaths`をT+24hでも再取得する。
+
+入力の観測値は、たとえば`metrics["database.cpu_pct"] = { "state": "OBSERVED", "value": 0, "source": "dashboard.database" }`とする。固定metric名・単位・集計方法・許可sourceはスクリプト内のallowlistを正本とし、値を取れないmetricは入力から省略してよい。Query Performanceは24時間filterではなく`pg_stat_statements`のreset以降の累積なので、`query.*`は専用の`pg_stat_statements_cumulative*`集計とwarningで区別する。AdvisorはSecurity/Performanceのerror・warning・suggestionを別metricにし、severityを合算しない。
 
 `release.repositoryHead`、`release.publicAssetCommit`、`release.pagesCommit`、`release.pagesRun`は別の識別子である。repository HEADを公開済みとみなさず、未取得の観測metricやEdge deploymentは`0`に置換せず`PENDING` / `null`のまま残す。観測値`0`は有効な`OBSERVED`として保持する。
 

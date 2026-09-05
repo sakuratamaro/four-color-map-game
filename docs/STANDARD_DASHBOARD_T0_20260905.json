@@ -1,0 +1,109 @@
+{
+  "capturedAt": "2026-09-05T07:23:00.000Z",
+  "window": {
+    "preset": "last-24-hours",
+    "from": "2026-09-04T07:22:00.000Z",
+    "to": "2026-09-05T07:22:00.000Z"
+  },
+  "release": {
+    "publicAssetCommit": "193a0e6014762e57d1b50274343ca43ab1e1703f",
+    "pagesCommit": "6143052f41387bf88c1ef40c3fc3b18967d97948",
+    "pagesRun": "33951955527",
+    "edgeDeployment": {
+      "state": "OBSERVED",
+      "value": 13,
+      "source": "dashboard.edge"
+    },
+    "migrationTail": "202609050005"
+  },
+  "metrics": {
+    "api.postgrest_requests": {
+      "state": "OBSERVED",
+      "value": 3437,
+      "source": "dashboard.api"
+    },
+    "api.gateway_error_pct": {
+      "state": "OBSERVED",
+      "value": 1.629328,
+      "source": "dashboard.api"
+    },
+    "edge.invocations": {
+      "state": "OBSERVED",
+      "value": 1006,
+      "source": "dashboard.edge"
+    },
+    "realtime.messages": {
+      "state": "OBSERVED",
+      "value": 148,
+      "source": "dashboard.realtime"
+    },
+    "query.realtime_list_changes.calls": {
+      "state": "OBSERVED",
+      "value": 68723,
+      "source": "dashboard.query-performance"
+    },
+    "query.realtime_list_changes.total_time_pct": {
+      "state": "OBSERVED",
+      "value": 79,
+      "source": "dashboard.query-performance"
+    },
+    "query.realtime_list_changes.mean_ms": {
+      "state": "OBSERVED",
+      "value": 19,
+      "source": "dashboard.query-performance"
+    },
+    "query.realtime_list_changes.max_ms": {
+      "state": "OBSERVED",
+      "value": 3837,
+      "source": "dashboard.query-performance"
+    },
+    "query.fcg_room_members.calls": {
+      "state": "OBSERVED",
+      "value": 6759,
+      "source": "dashboard.query-performance"
+    },
+    "query.fcg_rooms.calls": {
+      "state": "OBSERVED",
+      "value": 5639,
+      "source": "dashboard.query-performance"
+    },
+    "advisor.security_errors": {
+      "state": "OBSERVED",
+      "value": 0,
+      "source": "dashboard.advisor"
+    },
+    "advisor.security_warnings": {
+      "state": "OBSERVED",
+      "value": 19,
+      "source": "dashboard.advisor"
+    },
+    "advisor.security_suggestions": {
+      "state": "OBSERVED",
+      "value": 15,
+      "source": "dashboard.advisor"
+    },
+    "advisor.performance_errors": {
+      "state": "OBSERVED",
+      "value": 0,
+      "source": "dashboard.advisor"
+    },
+    "advisor.performance_warnings": {
+      "state": "OBSERVED",
+      "value": 0,
+      "source": "dashboard.advisor"
+    },
+    "advisor.performance_suggestions": {
+      "state": "OBSERVED",
+      "value": 11,
+      "source": "dashboard.advisor"
+    },
+    "advisor.health_alerts": {
+      "state": "OBSERVED",
+      "value": [
+        "DatabaseStorageCapacityExhausted",
+        "HostOutOfDiskSpace"
+      ],
+      "source": "dashboard.advisor"
+    }
+  }
+}

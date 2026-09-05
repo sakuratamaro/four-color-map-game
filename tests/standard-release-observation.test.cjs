@@ -90,6 +90,25 @@ test("T0 preserves observed zero, fills missing metrics as PENDING, and separate
   });
 });
 
+test("query-performance values stay explicitly cumulative and advisor severities stay separate", async () => {
+  const { buildObservation } = await modulePromise;
+  withJsonFiles(validInput({
+    metrics: {
+      "query.realtime_list_changes.calls": { state: "OBSERVED", value: 68723, source: "dashboard.query-performance" },
+      "advisor.security_errors": { state: "OBSERVED", value: 0, source: "dashboard.advisor" },
+      "advisor.security_warnings": { state: "OBSERVED", value: 19, source: "dashboard.advisor" },
+      "advisor.security_suggestions": { state: "OBSERVED", value: 15, source: "dashboard.advisor" },
+    },
+  }), ({ inputPath }) => {
+    const output = buildObservation(["--label=T0", `--input=${inputPath}`], dependencies());
+    assert.equal(output.metrics["query.realtime_list_changes.calls"].aggregation, "pg_stat_statements_cumulative");
+    assert.ok(output.warnings.includes("QUERY_METRICS_ARE_PG_STAT_STATEMENTS_CUMULATIVE"));
+    assert.equal(output.metrics["advisor.security_errors"].value, 0);
+    assert.equal(output.metrics["advisor.security_warnings"].value, 19);
+    assert.equal(output.metrics["advisor.security_suggestions"].value, 15);
+  });
+});
+
 test("default repository identity is read from the current checkout and still differs from public release inputs", async () => {
   const { buildObservation } = await modulePromise;
   withJsonFiles(validInput(), ({ inputPath }) => {
