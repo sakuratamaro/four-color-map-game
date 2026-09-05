@@ -30,7 +30,7 @@ test("Standard online setup UI exposes the complete reconnect path", () => {
     "profileSelect", "starterCreator", "starterName", "createStarterProfile", "syncProfile", "createRoom", "roomCode", "joinRoom",
     "shownCode", "members", "editNextLoadout", "setupTitle", "setupDescription", "cpuStartReview", "loadoutSummary", "loadoutGrid", "setupCommitBar", "setupCommitTitle", "submitSetup", "cancelCpuDraft", "setupStatus", "matchCard",
     "publicProjection", "privateProjection", "leaveRoom", "leaveRoomDescription", "abandonRoom", "abandonRoomHint", "abandonRoomDialog", "abandonRoomTitle", "abandonRoomDescription", "abandonRoomStatus", "cancelAbandonRoom", "confirmAbandonRoom", "lobbyTitle",
-    "turnGuide", "turnGuideStep", "turnGuideTitle", "turnGuideDetail", "board", "regionControls", "selectionCount", "submitRegion", "paletteControls", "skillControls", "skillTargetControls",
+    "turnGuide", "turnGuideStep", "turnGuideTitle", "turnGuideDetail", "board", "boardSpotlightLegend", "lastMoveSpotlightLegend", "pendingSpotlightLegend", "regionControls", "selectionCount", "submitRegion", "paletteControls", "skillControls", "skillTargetControls",
     "surrender", "retryAction", "actionStatus", "rematchControls", "rematchStatus", "requestRematch",
     "gachaPanel", "gachaTitle", "gachaTickets", "gachaLevel", "gachaDrawOne", "gachaDrawAll", "gachaRetry", "gachaStatus", "gachaResults",
     "gachaResultSummary", "gachaResultTitle", "gachaResultAnnouncement", "gachaCpuRematch", "gachaCpuRematchNote",
@@ -442,6 +442,34 @@ test("turn guide moves from selection to handoff without exposing a legality ora
   assert.match(app, /if \(\$\(id\)\.textContent !== value\) \$\(id\)\.textContent = value/);
   assert.doesNotMatch(app, /turnGuide[^\n]+(?:legalColors|adjacentColors|使用可能な色)/);
   assert.match(css, /\.turn-guide\{display:grid/);
+});
+
+test("board spotlight uses only allowlisted public targets and a local one-shot turn beat", () => {
+  const spotlight = app.slice(app.indexOf("function boardSpotlightModel"), app.indexOf("function observeCommittedContact"));
+  const observer = app.slice(app.indexOf("function clearTurnArrivalBeat"), app.indexOf("function observeCommittedContact"));
+  assert.match(spotlight, /const trace = validPublicTrace\(state\)/);
+  assert.match(spotlight, /\["CREATE_REGION", "COLOR_REGION", "LEGAL_RECOLOR"\]\.includes\(trace\.type\)/);
+  assert.match(spotlight, /Object\.hasOwn\(state\.regions, regionId\)/);
+  assert.match(spotlight, /state\?\.status === "ACTIVE" && state\?\.phase === "COLOR"[\s\S]+state\?\.pending/);
+  assert.doesNotMatch(spotlight, /privateState|private_state|availableColorChoices|adjacent|legalColors|payload/);
+  assert.match(app, /strokeRegionBoundary\(ctx, state\.regions\[spotlight\.lastMoveRegionId\][\s\S]+cssDash: \[8, 5\]/);
+  assert.match(app, /strokeRegionBoundary\(ctx, state\.regions\[spotlight\.pendingRegionId\][\s\S]+cssWidth: 3\.5, cssDash: \[\]/);
+  assert.match(app, /ctx\.strokeStyle = "#020617";[\s\S]+ctx\.lineWidth = width \+ \(4 \* cssScale\);[\s\S]+ctx\.strokeStyle = color/);
+  assert.ok(app.indexOf("const spotlight = boardSpotlightModel(state)", app.indexOf("function renderBoard(state)")) < app.indexOf("for (const macro of selectedMacros)", app.indexOf("function renderBoard(state)")));
+  assert.match(html, /金破線：直前/);
+  assert.match(html, /水色実線：今回/);
+  assert.match(css, /\.board-spotlight-legend\{[^}]*pointer-events:none/);
+  assert.match(css, /\.board-stage\{[^}]*padding-bottom:34px/);
+  assert.match(css, /@media\(max-width:520px\)\{\.board-stage\{width:calc\(100% - 30px\)\}\}/);
+  assert.match(app, /const cssScale = displayedWidth > 0 \? ctx\.canvas\.width \/ displayedWidth : 1/);
+  assert.match(app, /if \(hasStandardPublicState\(publicState\)\) renderBoard\(publicState\)/);
+  assert.match(observer, /previousStatus === "ACTIVE" && previousActive !== seat && active === seat/);
+  assert.match(observer, /if \(version === observedTurnVersion\) return/);
+  assert.match(app, /async function refreshRoom[\s\S]+if \(turnArrivalBackgrounded && document\.visibilityState === "visible"\) turnArrivalBackgrounded = false/);
+  assert.match(observer, /competingPresentation[\s\S]+contactReveal[\s\S]+randomReveal/);
+  assert.match(app, /turnArrivalBackgrounded = true;\s*clearTurnArrivalBeat\(\)/);
+  assert.doesNotMatch(observer, /localStorage|sessionStorage|client\.|submitAction|Math\.random|crypto/);
+  assert.match(css, /@media\(prefers-reduced-motion:reduce\)\{\.turn-guide\.turn-arrival-beat,#board\.turn-arrival-beat\{animation:none!important;transition:none!important\}\}/);
 });
 
 test("a fresh device can create a six-card online-only starter without overwriting the Standard save", () => {

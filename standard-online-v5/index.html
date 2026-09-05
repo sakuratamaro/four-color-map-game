@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <title>Four Color Map Game v5.0 Standard Online</title>
   <link rel="stylesheet" href="../online-v5/style.css">
-  <link rel="stylesheet" href="style.css?v=20260906-23">
+  <link rel="stylesheet" href="style.css?v=20260906-24">
   <link rel="stylesheet" href="debug-mode.css">
   <link rel="stylesheet" href="progression.css">
 </head>
@@ -285,20 +285,21 @@
         <span id="turnGuideStep" class="turn-guide-step">NEXT</span>
         <div><strong id="turnGuideTitle"></strong><p id="turnGuideDetail"></p></div>
       </section>
-      <canvas id="board" width="720" height="720" aria-label="Standardオンライン盤面"></canvas>
-      <section id="tacticalTrace" class="tactical-trace hidden" aria-labelledby="tacticalTraceTitle">
-        <div class="tactical-trace-heading"><span aria-hidden="true">↳</span><strong id="tacticalTraceTitle">直前の一手</strong></div>
-        <ol class="tactical-trace-flow">
-          <li><small>直前の手</small><span id="tacticalTraceAction"></span></li>
-          <li><small>盤面変化</small><span id="tacticalTraceChange"></span></li>
-          <li><small>次の判断</small><span id="tacticalTraceNext"></span></li>
-        </ol>
-      </section>
+      <div class="board-stage">
+        <canvas id="board" width="720" height="720" aria-label="Standardオンライン盤面"></canvas>
+        <div id="boardSpotlightLegend" class="board-spotlight-legend hidden" aria-label="金色の破線は直前に確定した一手、水色の実線はいま塗るエリアを示します">
+          <span id="lastMoveSpotlightLegend"><i class="board-spotlight-line is-last" aria-hidden="true"></i>金破線：直前</span>
+          <span id="pendingSpotlightLegend"><i class="board-spotlight-line is-pending" aria-hidden="true"></i>水色実線：今回</span>
+        </div>
+      </div>
       <div id="regionControls" class="controls hidden">
         <span id="selectionCount"></span>
         <button id="clearSelection" class="ghost">選択解除</button>
         <button id="submitRegion" class="primary">このエリアを渡す</button>
       </div>
+      <div id="paletteControls" class="controls"></div>
+      <p id="actionStatus" class="muted operation-feedback" role="status" aria-live="polite" aria-atomic="true"></p>
+      <button id="retryAction" class="primary hidden">同じ操作を再送</button>
       <section class="random-summary" aria-labelledby="randomSummaryTitle">
         <div class="random-summary-heading"><span class="dice-mark" aria-hidden="true">🎲</span><div><strong id="randomSummaryTitle">今回のランダム結果</strong><small>サーバーが対戦ごとに抽選</small></div></div>
         <dl>
@@ -307,15 +308,20 @@
           <div><dt>自分のおまけ色</dt><dd id="bonusColorValue">確認中</dd></div>
         </dl>
       </section>
-      <div id="paletteControls" class="controls"></div>
+      <section id="tacticalTrace" class="tactical-trace hidden" aria-labelledby="tacticalTraceTitle">
+        <div class="tactical-trace-heading"><span aria-hidden="true">↳</span><strong id="tacticalTraceTitle">直前の一手</strong></div>
+        <ol class="tactical-trace-flow">
+          <li><small>直前の手</small><span id="tacticalTraceAction"></span></li>
+          <li><small>盤面変化</small><span id="tacticalTraceChange"></span></li>
+          <li><small>次の判断</small><span id="tacticalTraceNext"></span></li>
+        </ol>
+      </section>
       <h3>あなたの6枚</h3>
       <div id="skillControls" class="skills"></div>
       <div id="skillTargetControls" class="target-panel hidden"></div>
       <div class="controls">
         <button id="surrender" class="danger compact-danger">敗北として投了する</button>
-        <button id="retryAction" class="primary hidden">同じ操作を再送</button>
       </div>
-      <p id="actionStatus" class="muted operation-feedback" role="status" aria-live="polite" aria-atomic="true"></p>
       <div id="rematchControls" class="target-panel hidden">
         <strong>もう一度対戦</strong>
         <p id="rematchStatus" class="muted">両プレイヤーの申請後、6枚セットを選び直します。</p>
@@ -400,6 +406,6 @@
   <script src="standard-online-client.js?v=20260906-17"></script>
   <script src="standard-online-sync.js"></script>
   <script src="standard-online-skill-intents.js?v=20260906-17"></script>
-  <script type="module" src="app.js?v=20260906-24"></script>
+  <script type="module" src="app.js?v=20260906-25"></script>
 </body>
 </html>

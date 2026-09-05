@@ -62,6 +62,7 @@ const CPU_FIRST_OFFER_SECONDS = 90;
 const CPU_SECOND_OFFER_SECONDS = 180;
 const RANDOM_REVEAL_DURATION_MS = 2600;
 const MATCHED_ROOM_FEEDBACK_MS = 650;
+const TURN_ARRIVAL_BEAT_MS = 900;
 const QUIZ_ROOM_CHECK_STATUS = "保存済みの対戦状態を確認しています。クイズの時計は確認完了まで止まります。";
 const TROPHY_META = Object.freeze({
   fullPaint: { icon: "🗺️", name: "完塗り達成", condition: "盤面をすべて塗り切って勝利" },
@@ -240,6 +241,13 @@ let contactRevealTimer = null;
 let contactPresentationGeneration = 0;
 let observedTraceScope = null;
 let observedTraceEventId = null;
+let observedTurnScope = null;
+let observedTurnVersion = null;
+let observedTurnActive = null;
+let observedTurnStatus = null;
+let turnArrivalBeatTimer = null;
+let turnArrivalBeatGeneration = 0;
+let turnArrivalBackgrounded = document.visibilityState !== "visible";
 let quizClockTimer = null;
 let quizMathResizeObserver = null;
 let quizTimeoutQueued = false;
@@ -435,7 +443,11 @@ function activateAppTab(requestedTab, { updateHash = true, scrollTop = true } = 
   if (tab === "battle" && hasMatchedRoomHandoff()) pauseQuizClockForMatchedRoom();
   renderMatchedRoomHandoff();
   if (resumePausedQuiz) renderQuiz();
-  if (tab === "battle") roomSync?.invalidate?.();
+  if (tab === "battle") {
+    const publicState = roomModel?.room?.public_state;
+    if (hasStandardPublicState(publicState)) renderBoard(publicState);
+    roomSync?.invalidate?.();
+  }
   if (scrollTop) window.scrollTo({ top: 0, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
 }
 
@@ -650,6 +662,85 @@ function renderTacticalTrace(state) {
     $("tacticalTraceChange").textContent = "スキルの公開結果が盤面と対戦状態に反映された";
   }
   $("tacticalTraceNext").textContent = nextPublicJudgment(state);
+}
+
+function boardSpotlightModel(state) {
+  const trace = validPublicTrace(state);
+  const hasRegion = (regionId) => typeof regionId === "string" && state?.regions && Object.hasOwn(state.regions, regionId);
+  const lastMoveRegionId = trace && ["CREATE_REGION", "COLOR_REGION", "LEGAL_RECOLOR"].includes(trace.type)
+    && hasRegion(trace.regionId) ? trace.regionId : null;
+  const pendingRegionId = state?.status === "ACTIVE" && state?.phase === "COLOR" && typeof state?.pending === "string"
+    && hasRegion(state.pending) ? state.pending : null;
+  return { lastMoveRegionId, pendingRegionId };
+}
+
+function renderBoardSpotlightLegend({ lastMoveRegionId = null, pendingRegionId = null } = {}) {
+  show("boardSpotlightLegend", Boolean(lastMoveRegionId || pendingRegionId));
+  show("lastMoveSpotlightLegend", Boolean(lastMoveRegionId));
+  show("pendingSpotlightLegend", Boolean(pendingRegionId));
+}
+
+function clearTurnArrivalBeat() {
+  turnArrivalBeatGeneration += 1;
+  clearTimeout(turnArrivalBeatTimer);
+  turnArrivalBeatTimer = null;
+  $("board")?.classList.remove("turn-arrival-beat");
+  $("turnGuide")?.classList.remove("turn-arrival-beat");
+}
+
+function startTurnArrivalBeat() {
+  clearTurnArrivalBeat();
+  const generation = turnArrivalBeatGeneration;
+  $("board").classList.add("turn-arrival-beat");
+  $("turnGuide").classList.add("turn-arrival-beat");
+  turnArrivalBeatTimer = setTimeout(() => {
+    if (generation !== turnArrivalBeatGeneration) return;
+    turnArrivalBeatTimer = null;
+    $("board").classList.remove("turn-arrival-beat");
+    $("turnGuide").classList.remove("turn-arrival-beat");
+  }, TURN_ARRIVAL_BEAT_MS);
+}
+
+function observeTurnArrival(state) {
+  const roomId = roomModel?.room?.id;
+  const seat = roomModel?.view?.seat;
+  const matchId = typeof state?.matchId === "string" ? state.matchId : null;
+  const version = Number(state?.version);
+  const active = state?.active;
+  const status = state?.status;
+  if (!roomId || !matchId || !["A", "B"].includes(seat) || !["A", "B"].includes(active) || !Number.isSafeInteger(version)) {
+    observedTurnScope = null;
+    observedTurnVersion = null;
+    observedTurnActive = null;
+    observedTurnStatus = null;
+    clearTurnArrivalBeat();
+    return;
+  }
+  const scope = `${roomId}:${matchId}`;
+  if (scope !== observedTurnScope) {
+    observedTurnScope = scope;
+    observedTurnVersion = version;
+    observedTurnActive = active;
+    observedTurnStatus = status;
+    turnArrivalBackgrounded = document.visibilityState !== "visible";
+    clearTurnArrivalBeat();
+    return;
+  }
+  if (version < observedTurnVersion) return;
+  const backgrounded = turnArrivalBackgrounded || document.visibilityState !== "visible";
+  if (version === observedTurnVersion) return;
+  if (document.visibilityState === "visible") turnArrivalBackgrounded = false;
+  const previousActive = observedTurnActive;
+  const previousStatus = observedTurnStatus;
+  observedTurnVersion = version;
+  observedTurnActive = active;
+  observedTurnStatus = status;
+  clearTurnArrivalBeat();
+  if (status !== "ACTIVE") {
+    return;
+  }
+  const competingPresentation = !$("contactReveal")?.classList.contains("hidden") || !$("randomReveal")?.classList.contains("hidden");
+  if (!backgrounded && !competingPresentation && previousStatus === "ACTIVE" && previousActive !== seat && active === seat) startTurnArrivalBeat();
 }
 
 function observeCommittedContact(state) {
@@ -2159,6 +2250,7 @@ async function refreshRoom(_reason, expectedRoomId = client.snapshot().roomId) {
   hydrateProfileRow(roomModel.profile);
   if ($("abandonRoomDialog").open && !["waiting", "ready"].includes(roomModel.room.status)) resolveAbandonStateConflict(roomModel.room.status);
   else render();
+  if (turnArrivalBackgrounded && document.visibilityState === "visible") turnArrivalBackgrounded = false;
   if (roomModel.room.status === "ready" && client.snapshot().setupRevision > 0 && !pendingSetupForCurrentRoom()
       && !hasStandardPublicState(roomModel.room.public_state) && !initializeBusy && !hasPendingAbandon(expectedRoomId)) {
     initializeBusy = true;
@@ -2290,6 +2382,8 @@ function render() {
   show("rematchControls", !cpuDraftOwnsRoomlessEntry && roomModel?.room?.status === "finished");
   if (!snapshot.roomId) {
     observeCommittedContact(null);
+    observeTurnArrival(null);
+    renderBoardSpotlightLegend();
     show("tacticalTrace", false);
     show("abandonRoom", false);
     show("abandonRoomHint", false);
@@ -2299,6 +2393,8 @@ function render() {
   }
   if (roomStatePending) {
     observeCommittedContact(null);
+    observeTurnArrival(null);
+    renderBoardSpotlightLegend();
     show("tacticalTrace", false);
     $("shownCode").textContent = "確認中";
     $("roomStatus").textContent = "対戦状態を確認中";
@@ -2385,6 +2481,7 @@ function render() {
     renderRandomSummary(publicState, privateState);
     revealRandomSetup(publicState, privateState);
     observeCommittedContact(publicState);
+    observeTurnArrival(publicState);
     renderTacticalTrace(publicState);
     renderBoard(publicState);
     renderBasicActions(publicState, privateState);
@@ -2393,6 +2490,8 @@ function render() {
     renderTerminalResult(publicState);
   } else {
     observeCommittedContact(null);
+    observeTurnArrival(null);
+    renderBoardSpotlightLegend();
     show("tacticalTrace", false);
     show("terminalSummary", false);
     renderTerminalResult(null);
@@ -2534,6 +2633,39 @@ function submitSkillTarget() {
   } catch { toast("対象の指定が不足しています。"); }
 }
 
+function strokeRegionBoundary(ctx, region, microWidth, cell, { color, cssWidth, cssDash }) {
+  const cells = new Set((region?.micro || []).filter((micro) => Number.isSafeInteger(micro) && micro >= 0));
+  if (!cells.size) return;
+  const displayedWidth = ctx.canvas.getBoundingClientRect().width;
+  const cssScale = displayedWidth > 0 ? ctx.canvas.width / displayedWidth : 1;
+  const width = cssWidth * cssScale;
+  const dash = cssDash.map((part) => part * cssScale);
+  ctx.save();
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  ctx.setLineDash(dash);
+  ctx.beginPath();
+  for (const micro of cells) {
+    const col = micro % microWidth;
+    const row = Math.floor(micro / microWidth);
+    const left = col * cell;
+    const top = row * cell;
+    const right = left + cell;
+    const bottom = top + cell;
+    if (!cells.has(micro - microWidth)) { ctx.moveTo(left, top); ctx.lineTo(right, top); }
+    if (col === microWidth - 1 || !cells.has(micro + 1)) { ctx.moveTo(right, top); ctx.lineTo(right, bottom); }
+    if (!cells.has(micro + microWidth)) { ctx.moveTo(right, bottom); ctx.lineTo(left, bottom); }
+    if (col === 0 || !cells.has(micro - 1)) { ctx.moveTo(left, bottom); ctx.lineTo(left, top); }
+  }
+  ctx.strokeStyle = "#020617";
+  ctx.lineWidth = width + (4 * cssScale);
+  ctx.stroke();
+  ctx.strokeStyle = color;
+  ctx.lineWidth = width;
+  ctx.stroke();
+  ctx.restore();
+}
+
 function renderBoard(state) {
   const canvas = $("board"); const ctx = canvas.getContext("2d");
   canvas.setAttribute("aria-label", targetDraft?.kind === "existing-region"
@@ -2557,6 +2689,13 @@ function renderBoard(state) {
     const offset = index * microScale * cell;
     ctx.beginPath(); ctx.moveTo(offset, 0); ctx.lineTo(offset, canvas.height); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(0, offset); ctx.lineTo(canvas.width, offset); ctx.stroke();
+  }
+  const spotlight = boardSpotlightModel(state);
+  if (spotlight.lastMoveRegionId) {
+    strokeRegionBoundary(ctx, state.regions[spotlight.lastMoveRegionId], microWidth, cell, { color: "#facc15", cssWidth: 4.5, cssDash: [8, 5] });
+  }
+  if (spotlight.pendingRegionId) {
+    strokeRegionBoundary(ctx, state.regions[spotlight.pendingRegionId], microWidth, cell, { color: "#22d3ee", cssWidth: 3.5, cssDash: [] });
   }
   ctx.fillStyle = "#ffffff38"; ctx.strokeStyle = "#f8fafc"; ctx.lineWidth = 3;
   for (const macro of selectedMacros) {
@@ -2584,6 +2723,7 @@ function renderBoard(state) {
       ctx.fillText(String(index + 1), centerX, centerY + .5);
     }
   }
+  renderBoardSpotlightLegend(spotlight);
 }
 
 function phaseLabelFor(state, seat, cpuRoom) {
@@ -3591,7 +3731,12 @@ $("abandonRoomDialog").addEventListener("close", () => {
 });
 document.addEventListener("visibilitychange", () => {
   roomSync.handleVisibilityChange();
-  if (document.visibilityState === "hidden") { stopMatchmakingWatch(); stopCpuTurnWatch(); }
+  if (document.visibilityState === "hidden") {
+    turnArrivalBackgrounded = true;
+    clearTurnArrivalBeat();
+    stopMatchmakingWatch();
+    stopCpuTurnWatch();
+  }
   else {
     scheduleMatchmakingStatus(250);
     scheduleCpuTurn(250);

@@ -2519,7 +2519,7 @@ test("actual Edge hands one submitted setup to the visible first-move guide with
       connection: rect(".connection-card"),
       tabs: rect(".app-tabs"),
       overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
-      actionOrder: Boolean(document.querySelector("#regionControls + .random-summary + #paletteControls")),
+      actionOrder: Boolean(document.querySelector("#regionControls + #paletteControls + #actionStatus + #retryAction + .random-summary + #tacticalTrace")),
     };
   });
   const assertFirstMoveLayout = (layout) => {
@@ -2924,6 +2924,260 @@ test("actual browser presents a committed contact cascade once and keeps a publi
     assert.equal(await page.evaluate(() => globalThis.__contactEvidence.stages.length), 2);
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
   }, { viewport: { width: 390, height: 844 } });
+});
+
+test("actual browser spotlights only exact public regions and keeps both same-region cues distinct", { timeout: 120000 }, async () => {
+  await withPage("playing", async (page) => {
+    await page.evaluate(() => {
+      const originalStroke = CanvasRenderingContext2D.prototype.stroke;
+      globalThis.__spotlightStrokes = [];
+      CanvasRenderingContext2D.prototype.stroke = function recordedStroke(...args) {
+        globalThis.__spotlightStrokes.push({ color: String(this.strokeStyle), width: this.lineWidth, dash: [...this.getLineDash()] });
+        return originalStroke.apply(this, args);
+      };
+    });
+    const update = async ({ version, active = "A", phase = "WORK", pending = null, regions, trace, finished = false }) => {
+      await page.evaluate(({ version: nextVersion, active: nextActive, phase: nextPhase, pending: nextPending, regions: nextRegions, trace: nextTrace, finished: terminal }) => {
+        const runtime = globalThis.__standardOnlineRuntime;
+        const matchId = runtime.room.public_state.matchId;
+        globalThis.__spotlightStrokes = [];
+        runtime.room = {
+          ...runtime.room,
+          status: terminal ? "finished" : "playing",
+          version: nextVersion,
+          winner_seat: terminal ? "A" : null,
+          public_state: {
+            ...runtime.room.public_state,
+            version: nextVersion,
+            turn: nextVersion,
+            active: nextActive,
+            phase: terminal ? "GAME_OVER" : nextPhase,
+            pending: nextPending,
+            regions: nextRegions,
+            status: terminal ? "FINISHED" : "ACTIVE",
+            winner: terminal ? "A" : null,
+            terminalReason: terminal ? "BOARD_LOCK" : null,
+            lastPublicTrace: nextTrace ? { eventId: `${matchId}:${nextVersion}`, version: nextVersion, ...nextTrace } : null,
+          },
+        };
+        runtime.onInvalidate?.({});
+      }, { version, active, phase, pending, regions, trace, finished });
+      await page.waitForFunction((expected) => document.querySelector("#versionText")?.textContent === String(expected), version);
+    };
+    const region1 = { R1: { id: "R1", micro: [5, 6], sourceMacros: [5], controllers: ["A"], color: null, isPending: true } };
+    await update({
+      version: 10,
+      phase: "COLOR",
+      pending: "R1",
+      regions: region1,
+      trace: { type: "CREATE_REGION", actor: "A", regionId: "R1", sourceMacroCount: 1, contactColorCount: 2 },
+    });
+    assert.equal(await page.locator("#lastMoveSpotlightLegend").isVisible(), true);
+    assert.equal(await page.locator("#pendingSpotlightLegend").isVisible(), true);
+    assert.match(await page.locator("#lastMoveSpotlightLegend").textContent(), /破線/);
+    assert.match(await page.locator("#pendingSpotlightLegend").textContent(), /実線/);
+    const sameRegion = await page.evaluate(() => ({
+      strokes: globalThis.__spotlightStrokes.filter((entry) => ["#facc15", "#22d3ee"].includes(entry.color)),
+      pointerEvents: getComputedStyle(document.querySelector("#boardSpotlightLegend")).pointerEvents,
+      overflow: document.documentElement.scrollWidth > innerWidth,
+      canvasWidth: document.querySelector("#board").getBoundingClientRect().width,
+      paletteBottom: document.querySelector("#paletteControls button")?.getBoundingClientRect().bottom,
+      connectionTop: document.querySelector("#connectionCard").getBoundingClientRect().top,
+      navTop: document.querySelector(".app-tabs").getBoundingClientRect().top,
+      boardBottom: document.querySelector("#board").getBoundingClientRect().bottom,
+      legendTop: document.querySelector("#boardSpotlightLegend").getBoundingClientRect().top,
+    }));
+    assert.deepEqual(sameRegion.strokes.map((entry) => entry.color), ["#facc15", "#22d3ee"]);
+    assert.equal(sameRegion.strokes[0].dash.length, 2);
+    assert.deepEqual(sameRegion.strokes[1].dash, []);
+    assert.ok(sameRegion.strokes.every((entry) => entry.width * sameRegion.canvasWidth / 720 >= 3));
+    assert.equal(sameRegion.pointerEvents, "none");
+    assert.equal(sameRegion.overflow, false);
+    assert.ok(sameRegion.legendTop >= sameRegion.boardBottom);
+    assert.ok(sameRegion.paletteBottom <= sameRegion.connectionTop);
+    assert.ok(sameRegion.paletteBottom <= sameRegion.navTop);
+
+    await update({
+      version: 11,
+      regions: { R1: { ...region1.R1, color: "green", isPending: false } },
+      trace: { type: "COLOR_REGION", actor: "B", regionId: "R1", color: "green" },
+    });
+    assert.equal(await page.locator("#lastMoveSpotlightLegend").isVisible(), true);
+    assert.equal(await page.locator("#pendingSpotlightLegend").isHidden(), true);
+    assert.deepEqual(await page.evaluate(() => globalThis.__spotlightStrokes.filter((entry) => ["#facc15", "#22d3ee"].includes(entry.color)).map((entry) => entry.color)), ["#facc15"]);
+
+    await update({
+      version: 12,
+      regions: { R1: { ...region1.R1, color: "blue", isPending: false } },
+      trace: { type: "LEGAL_RECOLOR", actor: "B", regionId: "R1", color: "blue" },
+    });
+    assert.equal(await page.locator("#lastMoveSpotlightLegend").isVisible(), true);
+    assert.match(await page.locator("#tacticalTraceAction").textContent(), /塗り直した/);
+
+    await update({
+      version: 13,
+      regions: { R1: { ...region1.R1, color: "blue", isPending: false } },
+      trace: { type: "USE_SKILL", actor: "B" },
+    });
+    assert.equal(await page.locator("#boardSpotlightLegend").isHidden(), true);
+    assert.deepEqual(await page.evaluate(() => globalThis.__spotlightStrokes.filter((entry) => ["#facc15", "#22d3ee"].includes(entry.color))), []);
+
+    const region2 = { ...region1, R2: { id: "R2", micro: [9], sourceMacros: [9], controllers: ["A"], color: null, isPending: true } };
+    await update({
+      version: 14,
+      phase: "COLOR",
+      pending: "R2",
+      regions: region2,
+      trace: { type: "USE_SKILL", actor: "B", regionId: "R1" },
+    });
+    assert.equal(await page.locator("#lastMoveSpotlightLegend").isHidden(), true);
+    assert.equal(await page.locator("#pendingSpotlightLegend").isVisible(), true);
+    assert.deepEqual(await page.evaluate(() => globalThis.__spotlightStrokes.filter((entry) => ["#facc15", "#22d3ee"].includes(entry.color)).map((entry) => entry.color)), ["#22d3ee"]);
+
+    await update({
+      version: 15,
+      phase: "WORK",
+      pending: "R2",
+      regions: region2,
+      trace: null,
+    });
+    assert.equal(await page.locator("#boardSpotlightLegend").isHidden(), true);
+    assert.deepEqual(await page.evaluate(() => globalThis.__spotlightStrokes.filter((entry) => ["#facc15", "#22d3ee"].includes(entry.color))), []);
+
+    await page.locator('[data-app-tab="quiz"]').click();
+    await update({
+      version: 16,
+      regions: { R1: { ...region1.R1, color: "red", isPending: false } },
+      trace: { type: "COLOR_REGION", actor: "B", regionId: "R1", color: "red" },
+    });
+    assert.ok(await page.evaluate(() => Math.max(...globalThis.__spotlightStrokes.map((entry) => entry.width))) < 20);
+    await page.locator('[data-app-tab="battle"]').click();
+    await page.waitForFunction(() => document.querySelector("#board").getBoundingClientRect().width > 0);
+    assert.equal(await page.locator("#lastMoveSpotlightLegend").isVisible(), true);
+
+    await update({
+      version: 17,
+      regions: { R1: { ...region1.R1, color: "red", isPending: false } },
+      trace: { type: "COLOR_REGION", actor: "B", regionId: "R1", color: "red" },
+      finished: true,
+    });
+    await page.locator("#terminalOverlay").waitFor({ state: "visible" });
+    assert.equal(await page.locator("#lastMoveSpotlightLegend").isVisible(), true);
+    assert.equal(await page.locator("#pendingSpotlightLegend").isHidden(), true);
+    assert.equal(await page.locator("#board").evaluate((node) => node.classList.contains("turn-arrival-beat")), false);
+    await page.locator("#terminalClose").click();
+    assert.equal(await page.locator("#lastMoveSpotlightLegend").isVisible(), true);
+  }, { viewport: { width: 390, height: 844 } });
+});
+
+test("actual browser plays one finite turn-arrival beat without hydration reload replay or background replay", { timeout: 120000 }, async () => {
+  await withPage("playing", async (page) => {
+    await page.evaluate(() => {
+      globalThis.__turnBeatStarts = 0;
+      let prior = document.querySelector("#board").classList.contains("turn-arrival-beat");
+      new MutationObserver(() => {
+        const next = document.querySelector("#board").classList.contains("turn-arrival-beat");
+        if (next && !prior) globalThis.__turnBeatStarts += 1;
+        prior = next;
+      }).observe(document.querySelector("#board"), { attributes: true, attributeFilter: ["class"] });
+    });
+    await page.waitForTimeout(150);
+    assert.equal(await page.evaluate(() => globalThis.__turnBeatStarts), 0);
+
+    await page.locator("#randomReveal").waitFor({ state: "hidden", timeout: 5000 });
+
+    const advance = async (version, active, { cpu = false, contact = false } = {}) => {
+      await page.evaluate(({ nextVersion, nextActive, cpuRoom, withContact }) => {
+        const runtime = globalThis.__standardOnlineRuntime;
+        const matchId = runtime.room.public_state.matchId;
+        runtime.room = {
+          ...runtime.room,
+          status: "playing",
+          version: nextVersion,
+          opponent_kind: cpuRoom ? "cpu" : "human",
+          access_mode: cpuRoom ? "cpu" : "private_code",
+          cpu_character_id: cpuRoom ? "yuzu" : null,
+          public_state: {
+            ...runtime.room.public_state,
+            version: nextVersion,
+            turn: nextVersion,
+            status: "ACTIVE",
+            active: nextActive,
+            phase: "WORK",
+            pending: null,
+            lastPublicTrace: withContact ? {
+              eventId: `${matchId}:${nextVersion}`,
+              version: nextVersion,
+              type: "CREATE_REGION",
+              actor: "B",
+              regionId: "R-contact",
+              sourceMacroCount: 1,
+              contactColorCount: 2,
+            } : null,
+          },
+        };
+        runtime.onInvalidate?.({});
+      }, { nextVersion: version, nextActive: active, cpuRoom: cpu, withContact: contact });
+      await page.waitForFunction((expected) => document.querySelector("#versionText")?.textContent === String(expected), version);
+    };
+
+    await advance(10, "B");
+    assert.equal(await page.evaluate(() => globalThis.__turnBeatStarts), 0);
+    await advance(11, "A");
+    await page.waitForFunction(() => globalThis.__turnBeatStarts === 1 && document.querySelector("#board").classList.contains("turn-arrival-beat"));
+    assert.equal(await page.locator("#turnGuide").evaluate((node) => node.classList.contains("turn-arrival-beat")), true);
+    await page.evaluate(() => {
+      globalThis.__standardOnlineRuntime.onInvalidate?.({});
+      globalThis.__standardOnlineRuntime.onInvalidate?.({});
+    });
+    await page.waitForTimeout(150);
+    assert.equal(await page.evaluate(() => globalThis.__turnBeatStarts), 1);
+    await page.waitForFunction(() => !document.querySelector("#board").classList.contains("turn-arrival-beat"), null, { timeout: 2000 });
+
+    await advance(12, "B", { cpu: true });
+    await advance(13, "A", { cpu: true });
+    await page.waitForFunction(() => globalThis.__turnBeatStarts === 2);
+    await page.waitForFunction(() => !document.querySelector("#board").classList.contains("turn-arrival-beat"), null, { timeout: 2000 });
+
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await advance(14, "B");
+    await advance(15, "A");
+    await page.waitForFunction(() => globalThis.__turnBeatStarts === 3);
+    const reducedMotion = await page.evaluate(() => ({
+      board: getComputedStyle(document.querySelector("#board")).animationName,
+      guide: getComputedStyle(document.querySelector("#turnGuide")).animationName,
+    }));
+    assert.deepEqual(reducedMotion, { board: "none", guide: "none" });
+    await page.waitForFunction(() => !document.querySelector("#board").classList.contains("turn-arrival-beat"), null, { timeout: 2000 });
+
+    await advance(16, "B");
+    await page.evaluate(() => {
+      globalThis.__spotlightVisibility = "hidden";
+      Object.defineProperty(document, "visibilityState", { configurable: true, get: () => globalThis.__spotlightVisibility });
+      document.dispatchEvent(new Event("visibilitychange"));
+      globalThis.__spotlightVisibility = "visible";
+      document.dispatchEvent(new Event("visibilitychange"));
+      globalThis.__standardOnlineRuntime.onInvalidate?.({});
+    });
+    await page.waitForTimeout(500);
+    assert.equal(await page.evaluate(() => globalThis.__turnBeatStarts), 3);
+    await advance(17, "A");
+    await page.waitForFunction(() => globalThis.__turnBeatStarts === 4);
+    await page.waitForFunction(() => !document.querySelector("#board").classList.contains("turn-arrival-beat"), null, { timeout: 2000 });
+
+    await advance(18, "B");
+    await advance(19, "A", { contact: true });
+    await page.waitForTimeout(150);
+    assert.equal(await page.locator("#contactReveal").isVisible(), true);
+    assert.equal(await page.evaluate(() => globalThis.__turnBeatStarts), 4);
+    assert.equal(await page.locator("#board").evaluate((node) => node.classList.contains("turn-arrival-beat")), false);
+
+    await page.reload({ waitUntil: "load" });
+    await page.locator("#connectionBadge.good").waitFor({ state: "visible" });
+    await page.locator("#room:not(.hidden)").waitFor({ state: "visible" });
+    await page.waitForTimeout(200);
+    assert.equal(await page.locator("#board").evaluate((node) => node.classList.contains("turn-arrival-beat")), false);
+  }, { viewport: { width: 390, height: 844 }, bodyTimeout: 45_000 });
 });
 
 test("actual browser reduced motion skips intermediate contact stages and terminal UI wins", { timeout: 120000 }, async () => {
