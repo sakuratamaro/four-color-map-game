@@ -11,12 +11,12 @@
 | ゲート | 状態 | 現在の根拠 | 次の証拠 |
 | --- | --- | --- | --- |
 | 採否棚卸し | VERIFIED | `ONLINE_COMPLETION_INVENTORY.md`。旧Expo試作と現行Web Standardを分離済み | 公開後に状態列だけ更新 |
-| 製品コード・生成元 | VERIFIED | `standard/`、build scripts、生成済みEdge bundleが公開HEAD `3fb3ef8`に存在 | 次回変更時に再生成一致を確認 |
+| 製品コード・生成元 | VERIFIED | `standard/`、build scripts、生成済みEdge bundleが公開HEAD `2a1d2ef`に存在。今回の盤面導線はPages-onlyでbundle非変更 | 次回engine/Edge変更時に再生成一致を確認 |
 | ローカル製品試験 | VERIFIED | legal-recolor LAB製品`ad53bb4`。公式非browser 110ファイル失敗0、全browserはEdge/Chrome各60/60、responsive各4/4、lifecycle 76/76、生成bundle 2種再生成一致。ルール/DB、UX、repository/CIの3独立レビューは最終P0/P1なし | 物理二端末でLAB一局を体感確認 |
 | 次期UX候補のローカル検査 | VERIFIED | `codex/standard-release-command@1673ff8`。profile安定化、初回対戦導線、Quick Half Shift、status正規化、Realtime/poll復旧を含む非browser製品試験91ファイル522/522。browser workflow/harness静的11/11合格 | Pages反映後のpreflightと二端末受入 |
 | 初回導線・接続表示の次期候補 | VERIFIED | `9d42784`。初回starter作成＋profile同期を一操作化し、全5タブで単一接続statusを常時表示。空名write 0、room外offline復帰、390px下部nav非干渉を契約化。静的39/39、非browser 89ファイル513/513、Windows Chrome/Edge各18/18合格 | 物理二端末受入 |
-| Windows実browser CI | VERIFIED | GitHub Actions run `33984108011`。公開候補`3fb3ef8`のChrome job `101354410490`、Edge job `101354410705`がともに成功 | 公開URLで同じ主要導線を二端末受入 |
-| 現行公開Pages | PUBLIC_VERIFIED | 公開基点`3fb3ef8`、Pages run `33984536803`成功。公開URLでapp v23/client+intents v17/style v22、LAB marker、5タブ、匿名認証、console 0を確認 | 別々の二端末で最終受入 |
+| Windows実browser CI | VERIFIED | GitHub Actions run `33987952352`。公開候補`2a1d2ef`のChrome成功、Edgeは初回の既存CPU復帰`badge-ready` timeout後に同一commitのfailed-job再実行成功。ローカル同ケース3連続成功 | 公開URLで同じ主要導線を二端末受入 |
+| 現行公開Pages | PUBLIC_VERIFIED | 公開基点`2a1d2ef`、Pages run `33988962006`成功。公開URLでapp v24/client+intents v17/style v23、LAB markerとcandidate DB保護境界を確認 | 別々の二端末で最終受入 |
 | 初回公開前DB境界（履歴） | VERIFIED | 旧snapshotは匿名権限拒否。snapshot v2と野良募集が未存在だった初回baseline | 現行境界は適用migrationとlive canaryを参照 |
 | migration 006–013静的検査 | VERIFIED | migration別security/transaction testsと読み取り専用44項目SQL | 実DBで全行`ok=true` |
 | Dashboard Advisor・使用量baseline | PENDING | 2026-09-05 16:23 JSTのT0を`STANDARD_OBSERVATION_T0_20260905.json`へPARTIAL記録。API/Edge/Realtime/Query/Advisor 17項目を観測、Databaseグラフ等20項目はDashboard取得不能でPENDING。Health alert 2件継続 | T+24hで同じ24時間filterを再採取し、Database欠落値とalert状態を再確認 |
@@ -25,7 +25,7 @@
 | 即時Standard CPU開始 | PUBLIC_VERIFIED | migration `202609050002`とEdge deployment 9。製品`cc96350`、公開`a4c6490`、DB 47項目、Edge基本6/6、即時CPU 7/7、Windows run `33931963065`、Pages run `33932159043`合格。公開UIでCPU初手まで確認 | 物理端末で一試合完走・再読込・同じCPUとの再戦を確認 |
 | CPU完走後の次戦導線 | PUBLIC_VERIFIED | `29c6958`。同じCPUとの同room再戦を維持し、終了結果から別CPU選択へ進める。live即時CPU完走・再戦canary 25/25、Windows Chrome/Edge成功、Pages反映済み | 物理端末で別CPU選択と再戦を体感確認 |
 | CPU報酬からガチャへの直行 | PUBLIC_VERIFIED | `e36dfcc`＋`193a0e6`。保存済み通常CPU精算だけにCTAを出し、抽選せずLv.1ガチャへ移動。対人・未精算・debugを拒否し、390×844で券・抽選操作・focus・再読込を確認 | 物理端末でCPU一局からガチャまでの体感を確認 |
-| GitHub main・Pages更新 | PUBLIC_VERIFIED | 公開baseline `3fb3ef8c680f0b81ccc7b47b0a12d752de35e997`（製品`ad53bb4`）。Standard browser gate `33984108011`、Pages `33984536803`成功。公開app v23/client+intents v17/style v22を確認 | 二端末受入後に最終状態を記録 |
+| GitHub main・Pages更新 | PUBLIC_VERIFIED | 公開baseline `2a1d2efa7791e3e6f9bce1863bdc563b314426a9`（LAB公開`3fb3ef8`を含む）。Standard browser gate `33987952352`、Pages `33988962006`成功。公開app v24/client+intents v17/style v23を確認 | 二端末受入後に最終状態を記録 |
 | server-side active-room復帰 | PUBLIC_VERIFIED | private/public/CPUを有限8列で本人にだけ返し、厳格な1行だけ採用。raw sentinel/UUID非表示、background focus非奪取、CPU/matchmaking saga優先、復帰時の新room/setup送信0をbrowser回帰とlive 10/10で確認 | 物理端末でlocal identity喪失後の復帰を体感確認 |
 | 塗り直し・乱 LAB | PUBLIC_VERIFIED | `ad53bb4` / 公開`3fb3ef8`。private-code human双方同意、debug排他、固定ruleset、server-only乱数、1人1回貸与、通常19枚/6枚/CPU/野良/戦績/報酬/在庫非変更。DB 70/70、Edge 23/23、Windows/Pages/公開preflight合格 | 二端末LAB一局 |
 | 合言葉対戦canary | VERIFIED | deployment 15で`live-standard-runbook-a-canary.mjs --confirm-live` 44/44合格。確定CREATEの公開trace shapeも検査 | 実ブラウザ再読込と二端末最終受入 |
@@ -249,18 +249,28 @@
 - `origin/main`を`bae2182`から`3fb3ef8`へforceなしでfast-forwardし、Pages run `33984536803`が47秒で成功。公開candidate preflightは`ok:true`。公開assetはapp v23/client+intents v17/style v22、匿名ログインと5タブを表示し、captured console warning/errorは0。
 - 物理的に別々の二端末による対人/CPU完走、途中再読込、再戦と、T+24h資源比較は引き続き`NOT_RUN/PENDING`。Supabase dashboardには既存resource warningがあり、課金・Compute/Disk・cleanupは変更していない。
 
+## 2026-09-06 05時台 JST 390px盤面ファースト公開
+
+- 製品commit `2a1d2ef`で、対戦開始時の情報順を手番ガイド→盤面→主操作→ランダム結果へ変更し、420px以下だけ密度を調整した。390×844実測で明示開始はガイド202–317px、盤面325–653px、操作661–706px、接続712–756px、下部nav 764–836px。reloadはガイド146–261px、盤面269–597px、操作605–650pxで、横overflowはない。
+- 明示開始は`matchTitle`へfocusして一度整列し、boot/reloadはfocusを奪わず一度だけ整列する。pointer/keyboard/clickに加えてpassive wheelを操作revisionへ含め、待機中に利用者が動かした後の強制scrollを抑止する。poll/background/ready/finished、reduced-motionを独立回帰した。
+- 独立監査は、途中案で色操作feedbackが固定nav下へ落ちる配置とwheel境界欠落をP1として検出した。ランダム結果を確定操作直後・palette直前へ置き直し、action errorは511–598px、setup errorは658–745pxへ収めた。最終P0/P1なし。
+- ローカルはStandard Online browser 60/60、responsive 4/4、関連staticと重点開始/reload/wheel/errorが成功した。正式browser harnessの古い30件固定を全top-level browser testの明示timeout意味検証へ置換し、CI unit列へ収載した。
+- Windows gate `33987952352`はChromeがattempt 1で成功。Edge attempt 1は変更外のCPU復帰fixtureで`badge-ready`が15秒を超え59/60となったが、同fixtureをローカルEdgeで3回連続成功後、同一commitのfailed-job attempt 2が6分32秒で成功した。製品assertの再現失敗はない。
+- `origin/main`をforceなしで`2a1d2ef`へfast-forwardし、Pages run `33988962006`が46秒で成功。公開HTMLはapp v24/client+intents v17/style v23と新DOM順をHTTP 200で返し、candidate preflightはLAB UI、active-room、v3-load、8引数initializeの保護境界を含め`ok:true`。
+- DB migration、Edge deployment 17、RPC、ルール、報酬、在庫、戦績、秘密情報、課金、削除、cleanupは変更していない。物理二端末受入とT+24資源比較は`PENDING`のまま、自動検証から推定しない。
+
 ## 公開識別子
 
 | 項目 | 値 |
 | --- | --- |
 | browser harness diagnostics commit | `6fc23a5` |
-| Windows browser CI commit | `3fb3ef8` |
-| final browser-verified candidate | `3fb3ef8`（legal-recolor LAB製品commit `ad53bb4`、release/canary/gate追補を累積） |
-| Windows browser CI run | `33984108011` / Chrome `101354410490` Success / Edge `101354410705` Success |
+| Windows browser CI commit | `2a1d2ef` |
+| final browser-verified candidate | `2a1d2ef`（legal-recolor LAB公開`3fb3ef8`へ390px盤面導線とbrowser harness修復を累積） |
+| Windows browser CI run | `33987952352` / Chrome attempt 1 Success / Edge attempt 1 `badge-ready` timeout, failed-job attempt 2 Success |
 | 初回candidate code baseline（履歴） | `0e02176`（Edge deployment 8 sourceは`c3cf372`） |
 | applied migrations | `202609030006`–`202609030013`, `202609050001`–`202609050007`, `202609060001`–`202609060002` |
 | `standard-game-action` version | deployment 17（2026-09-06 03時台JST、legal-recolor LABとsetup revision guard。source+engine bundle同時更新） |
-| Pages Actions run | `33984536803` / Success / `3fb3ef8` |
+| Pages Actions run | `33988962006` / Success / `2a1d2ef` |
 | public URL | `https://sakuratamaro.github.io/four-color-map-game/standard-online-v5/` |
 
 ## Canary結果
@@ -310,6 +320,8 @@
 | legal-recolor LAB DB・Edge canary | PASS | 2026-09-06 | migration `202609060002`、candidate 70/70。deployment 17で基本7/7＋LAB 23/23。双方同意、server-random recolor、minimal trace、terminal cleanup、profile不変を確認 |
 | legal-recolor LAB Windows gate | PASS | 2026-09-06 | `3fb3ef8`、run `33984108011`。Chrome `101354410490`、Edge `101354410705`が成功。強化したpreflight/verification staticもCI収載 |
 | `3fb3ef8` Pages・公開asset | PASS | 2026-09-06 | Pages `33984536803`。app v23/client+intents v17/style v22、candidate preflight `ok:true`、新DB保護probe、LAB複合marker、公開匿名画面、console warning/error 0 |
+| 390px盤面導線 Windows gate | PASS | 2026-09-06 | `2a1d2ef`、run `33987952352`。Chrome attempt 1成功。Edge attempt 1の既存badge待機timeout後、failed-job attempt 2成功。同ケースはローカルEdge3連続成功 |
+| `2a1d2ef` Pages・公開asset | PASS | 2026-09-06 | Pages `33988962006`。app v24/client+intents v17/style v23、新DOM順をHTTP 200で確認。LAB/active-room/v3-load/8引数initializeを含むcandidate preflight `ok:true` |
 | 二端末最終受入 | NOT_RUN | PENDING | PENDING |
 
 ## 残存リスク
@@ -317,7 +329,7 @@
 - Dashboard T0は17項目を取得したが、Database 24hグラフ等20項目はDashboard取得不能でPARTIAL。資源逼迫alert 2件と7日Compute/CPU peak 99%があるため、負荷由来を切り分けるまで新しい高負荷経路を追加しない。
 - profile作成安定化はCの逐次16件で500/429なしを確認した。高並列作成そのものはAuth上限を消費するため再試験せず、再発時はEdge/DBログと資源警告を関連調査する。
 - Cのstatus正規化は本番関数定義、既存ticket整合、live canary 210/210まで確認済み。今後もIPあたり30 anonymous sign-ins/時を守り、同じ認証窓で重いcanaryを再試行しない。
-- 現行公開`3fb3ef8`（LAB製品`ad53bb4`）はPagesへ反映済み。自動browser、公開asset、Edge/DB保護境界、LAB API実動の合格と、未実施の物理二端末受入を混同しない。
+- 現行公開`2a1d2ef`（LAB公開`3fb3ef8`を含む）はPagesへ反映済み。自動browser、公開asset、Edge/DB保護境界、LAB API実動の合格と、未実施の物理二端末受入を混同しない。
 - Edgeのper-isolate濫用抑止は分散レート制限ではない。公開後の計測で必要性が出た場合だけprovider側制限を検討する。
 - 10人CPUの合法性・決定性は自動検証済みだが、人間が感じる個性と楽しさは代表3人の実プレイ後も定性的判断として残る。
 - cleanup実削除や定期化は許可済みだが、exact IDと復元手段を確認するまで実行しない。課金設定変更は必要性と金額を特定してから扱う。
