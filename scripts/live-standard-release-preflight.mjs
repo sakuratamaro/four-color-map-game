@@ -74,7 +74,7 @@ const result = {
     hasActiveRoomRecovery: /client\.recoverActiveRoom|recoverServerActiveRoom/.test(app.text),
     hasLegalRecolorLab: app.text.includes('$("legalRecolorLabMode")')
       && app.text.includes('const LEGAL_RECOLOR_LAB_RULE_SET_ID = "STANDARD_V5_LEGAL_RECOLOR_LAB_V1"')
-      && /operation:\s*"setup"[\s\S]{0,500}labMode/.test(app.text),
+      && /client\.submitSetup\([\s\S]{0,500}labMode/.test(app.text),
   },
   database: { snapshotV1, snapshotV2, matchmaking, pregameAbandon, activeRoom, setupLoadV3, initializeRoomV3 },
 };

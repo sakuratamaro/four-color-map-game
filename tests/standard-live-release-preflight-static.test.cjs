@@ -6,6 +6,7 @@ const path = require("node:path");
 const test = require("node:test");
 
 const source = fs.readFileSync(path.join(__dirname, "..", "scripts", "live-standard-release-preflight.mjs"), "utf8");
+const candidateApp = fs.readFileSync(path.join(__dirname, "..", "standard-online-v5", "app.js"), "utf8");
 
 test("release preflight is read-only, secret-free, finite, and stage-aware", () => {
   assert.match(source, /publishableKey/);
@@ -34,7 +35,15 @@ test("release preflight is read-only, secret-free, finite, and stage-aware", () 
   assert.match(source, /INITIALIZE_ROOM_V3_PHASE_MISMATCH/);
   assert.match(source, /\$\(\"legalRecolorLabMode\"\)/);
   assert.match(source, /STANDARD_V5_LEGAL_RECOLOR_LAB_V1/);
+  assert.match(source, /client\\\.submitSetup/);
   assert.match(source, /SNAPSHOT_V2_BASELINE_MISSING/);
   assert.match(source, /PUBLIC_BASELINE_UI_MISSING/);
   assert.doesNotMatch(source, /console\.log\([^\n]*(?:publishableKey|authorization)/);
+});
+
+test("candidate app satisfies the complete legal-recolor LAB release marker", () => {
+  const detected = candidateApp.includes('$("legalRecolorLabMode")')
+    && candidateApp.includes('const LEGAL_RECOLOR_LAB_RULE_SET_ID = "STANDARD_V5_LEGAL_RECOLOR_LAB_V1"')
+    && /client\.submitSetup\([\s\S]{0,500}labMode/.test(candidateApp);
+  assert.equal(detected, true);
 });
