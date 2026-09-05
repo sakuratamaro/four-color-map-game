@@ -28,7 +28,7 @@ test("Standard online setup UI exposes the complete reconnect path", () => {
   for (const id of [
     "connectionCard", "connectionStatus", "connectionBadge", "connectionMessage", "matchedRoomHandoff", "matchedRoomAnnouncement", "matchedRoomHandoffTitle", "matchedRoomHandoffDetail", "returnToMatchedRoom",
     "profileSelect", "starterCreator", "starterName", "createStarterProfile", "syncProfile", "createRoom", "roomCode", "joinRoom",
-    "shownCode", "members", "setupTitle", "loadoutSummary", "loadoutGrid", "setupCommitBar", "setupCommitTitle", "submitSetup", "setupStatus", "matchCard",
+    "shownCode", "members", "editNextLoadout", "setupTitle", "setupDescription", "cpuStartReview", "loadoutSummary", "loadoutGrid", "setupCommitBar", "setupCommitTitle", "submitSetup", "cancelCpuDraft", "setupStatus", "matchCard",
     "publicProjection", "privateProjection", "leaveRoom",
     "turnGuide", "turnGuideStep", "turnGuideTitle", "turnGuideDetail", "board", "regionControls", "selectionCount", "submitRegion", "paletteControls", "skillControls", "skillTargetControls",
     "surrender", "retryAction", "actionStatus", "rematchControls", "rematchStatus", "requestRematch",
@@ -162,7 +162,8 @@ test("CPU turns are server-chosen one action at a time and stop while hidden or 
   assert.match(app, /cpuActionTimer = setTimeout\(runCpuTurn, delay\)/);
   assert.match(app, /document\.visibilityState === "hidden"/);
   assert.match(app, /!navigator\.onLine/);
-  assert.match(app, /stopCpuTurnWatch\(\); roomSync\.stop\(\); client\.clearRoom\(\)/);
+  assert.match(app, /function closeDisplayedRoom\(\)[\s\S]+roomModel\?\.room\?\.status !== "finished"[\s\S]+activateAppTab\("home"\)/);
+  assert.match(app, /function closeDisplayedRoom\(\)[\s\S]+stopCpuTurnWatch\(\);[\s\S]+roomSync\.stop\(\);[\s\S]+client\.clearRoom\(\)/);
   assert.doesNotMatch(app, /takeCpuTurn\([^)]*(?:type|payload|action|privateState|publicState)/);
 });
 
@@ -290,14 +291,54 @@ test("setup enforces two cards per category and makes unowned cards debug-only",
   assert.match(app, /if \(checked\.length > 2\)[\s\S]+?changed\.checked = false/);
   assert.match(app, /every\(\(category\) => loadout\[category\]\.length === 2\)/);
   assert.match(app, /renderLoadoutSelectionState\(`\$\{CATEGORY_LABEL\[category\]\}は2枚までです/);
-  assert.match(app, /\$\("submitSetup"\)\.disabled = setupBusy \|\| !ready/);
+  assert.match(app, /\$\("submitSetup"\)\.disabled = actionPending \|\| !ready/);
   assert.match(app, /client\.submitSetup\(\{ loadout, debugMode \}\)/);
   assert.match(html, /id="debugUnlimitedMode"/);
-  assert.match(html, /id="loadoutSummary"[^>]+role="status"[^>]+aria-live="polite"/);
+  assert.doesNotMatch(html, /id="(?:cpuStartReview|loadoutSummary)"[^>]+aria-live=/);
   assert.match(html, /id="setupCommitBar"[^>]+setup-commit-bar/);
-  assert.match(app, /スターター6枚を選択済み・準備OK/);
-  assert.match(html, /id="submitSetup"[^>]+aria-describedby="loadoutSummary setupStatus"[^>]+disabled/);
-  assert.match(css, /body\.setup-active\[data-active-tab="battle"\] \.setup-commit-bar\{position:fixed/);
+  assert.match(app, /6枚を選択済み・準備OK/);
+  assert.match(html, /id="submitSetup"[^>]+aria-describedby="cpuStartReview loadoutSummary setupStatus"[^>]+disabled/);
+  assert.match(css, /body\.setup-active:is\(\[data-active-tab="battle"\],\[data-active-tab="cards"\]\) \.setup-commit-bar\{position:fixed/);
+  assert.match(css, /body\.setup-active:is\(\[data-active-tab="battle"\],\[data-active-tab="cards"\]\) #setupCard\{padding-bottom:190px\}/);
+  assert.match(css, /body\.setup-active:is\(\[data-active-tab="battle"\],\[data-active-tab="cards"\]\) \.connection-card\{bottom:calc\(222px/);
+});
+
+test("roomless loadout review defers CPU creation and persists one immutable two-step start", () => {
+  assert.match(html, /id="editNextLoadout"/);
+  assert.doesNotMatch(html, /id="editNextLoadout"[^>]+data-tab-jump/);
+  assert.match(html, /id="setupCard"[^>]+data-app-tab-panel="battle cards"/);
+  const directChoice = app.slice(app.indexOf("async function acceptCpuCharacter"), app.indexOf("async function beginImmediateCpuEntry"));
+  assert.match(directChoice, /cpuEntryDraft = \{ characterId: character\.id, replaceRoomId: cpuRosterReplaceRoomId \}/);
+  assert.doesNotMatch(directChoice.slice(0, directChoice.indexOf("cpuAcceptBusy = true")), /startCpuOpponent|acceptCpuOpponent/);
+  assert.match(app, /CPU_START_SAGA_KEY/);
+  assert.match(app, /stage: "start"[\s\S]+roomId: null[\s\S]+replaceRoomId: cpuEntryDraft\.replaceRoomId \|\| null[\s\S]+cpuStartActionId: crypto\.randomUUID\(\)[\s\S]+setupActionId: crypto\.randomUUID\(\)[\s\S]+canonicalLoadout/);
+  assert.match(app, /replaceRoomId === false[\s\S]+stage === "setup" && !roomId[\s\S]+stage === "start" && value\.roomId != null/);
+  assert.match(app, /persistCpuStartSaga\(saga\)[\s\S]+runPendingCpuStartSaga\(\)/);
+  assert.match(app, /result\.startStatus === "recovered_existing"[\s\S]+persistCpuStartSaga\(null\)[\s\S]+新しい6枚は送信していません/);
+  assert.match(app, /!\["created", "duplicate"\]\.includes\(result\.startStatus\)[\s\S]+INVALID_CPU_START_STATUS/);
+  assert.match(app, /client\.submitSetup\(\{[\s\S]+setupActionId: saga\.setupActionId[\s\S]+loadout: saga\.canonicalLoadout/);
+  assert.match(app, /saga = \{ \.\.\.saga, stage: "setup", roomId: result\.roomId \}[\s\S]+persistCpuStartSaga\(saga\)[\s\S]+client\.submitSetup/);
+  assert.match(app, /pendingCpuStartSaga[\s\S]+await runPendingCpuStartSaga\(\)/);
+  assert.match(app, /const roomStatePending = Boolean\(snapshot\.roomId && !authoritativeRoomLoaded\)[\s\S]+!roomStatePending[\s\S]+対戦状態を確認しています。操作せず/);
+});
+
+test("every new-match handler shares the central local exclusivity guard", () => {
+  assert.match(app, /function newMatchEntryBlock\([\s\S]+snapshot\.roomId[\s\S]+pendingCpuStartSaga \|\| cpuEntryDraft[\s\S]+snapshot\.matchmakingTicketId[\s\S]+snapshot\.matchmakingFindActionId/);
+  assert.match(app, /async function recruitPublicOpponent\(\) \{\s*if \(guardNewMatchEntry\(\)/);
+  assert.match(app, /async function findPublicOpponent\([^)]*\) \{\s*if \(guardNewMatchEntry/);
+  assert.match(app, /async function createRoom\(\) \{\s*if \(guardNewMatchEntry\(\)\) return/);
+  assert.match(app, /async function joinRoom\(\) \{\s*if \(guardNewMatchEntry\(\)\) return/);
+  assert.match(app, /\$\("createRoom"\)\.disabled = newMatchBlocked[\s\S]+\$\("joinRoom"\)\.disabled = newMatchBlocked/);
+  const directChoice = app.slice(app.indexOf("async function acceptCpuCharacter"), app.indexOf("async function beginImmediateCpuEntry"));
+  assert.match(directChoice, /cpuRosterOrigin === "direct"[\s\S]+guardNewMatchEntry\(\{ replaceRoomId: cpuRosterReplaceRoomId \}\)[\s\S]+cpuEntryDraft =/);
+  const sagaRunner = app.slice(app.indexOf("async function runPendingCpuStartSaga"), app.indexOf("async function commitCpuStartDraft"));
+  assert.match(sagaRunner, /guardNewMatchEntry\(\{ allowCpuOwner: true, allowOwnedSagaRoom: true, replaceRoomId: pendingCpuStartSaga\.replaceRoomId \}\)[\s\S]+client\.startCpuOpponent/);
+  const sagaCommit = app.slice(app.indexOf("async function commitCpuStartDraft"), app.indexOf("async function resumePendingCpuStart"));
+  assert.match(sagaCommit, /const replaceRoomId = pendingCpuStartSaga\?\.replaceRoomId \|\| cpuEntryDraft\?\.replaceRoomId \|\| null[\s\S]+guardNewMatchEntry\(\{ allowCpuOwner: true, replaceRoomId, allowOwnedSagaRoom: true \}\)[\s\S]+if \(pendingCpuStartSaga\)/);
+  const guard = app.slice(app.indexOf("function guardNewMatchEntry"), app.indexOf("function renderCpuRoster"));
+  assert.match(guard, /cpuRosterDialog"\)\.open[\s\S]+cpuRosterDialog"\)\.close\(\)[\s\S]+activateAppTab\("battle"\)/);
+  assert.match(guard, /matchmakingStatus"\)\.focus/);
+  assert.match(html, /id="matchmakingStatus"[^>]+tabindex="-1"/);
 });
 
 test("server rule errors are safe, persistent, and never offered as an idempotent retry", () => {
@@ -320,7 +361,7 @@ test("server rule errors are safe, persistent, and never offered as an idempoten
   assert.match(app, /setupFailure\.roomId !== roomId/);
   assert.match(action, /pendingAction\.roomId !== roomId \|\| pendingAction\.matchId !== matchId/);
   assert.match(action, /pendingAction = \{ roomId, matchId, id: crypto\.randomUUID\(\)/);
-  assert.match(app, /client\.clearRoom\(\); roomModel = null; setupFailure = null; pendingAction = null/);
+  assert.match(app, /client\.clearRoom\(\);\s*roomModel = null;\s*setupFailure = null;\s*pendingAction = null/);
 });
 
 test("turn guide moves from selection to handoff without exposing a legality oracle", () => {
@@ -427,7 +468,7 @@ test("skill target cancel is write-free and clears only transient selection", ()
 });
 
 test("finished rooms expose a reconnect-safe rematch request", () => {
-  assert.match(app, /show\("rematchControls", roomModel\?\.room\?\.status === "finished"\)/);
+  assert.match(app, /show\("rematchControls", !cpuDraftOwnsRoomlessEntry && roomModel\?\.room\?\.status === "finished"\)/);
   assert.match(app, /client\.requestRematch\(\{ expectedVersion: roomModel\.room\.version \}\)/);
   assert.match(app, /rematchPending \? "同じ再戦申請を再送"/);
   assert.match(app, /await roomSync\.refreshNow\(\)/);

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <title>Four Color Map Game v5.0 Standard Online</title>
   <link rel="stylesheet" href="../online-v5/style.css">
-  <link rel="stylesheet" href="style.css?v=20260905-18">
+  <link rel="stylesheet" href="style.css?v=20260905-19">
   <link rel="stylesheet" href="debug-mode.css">
   <link rel="stylesheet" href="progression.css">
 </head>
@@ -135,7 +135,7 @@
     <section id="cardLibraryPanel" class="card card-library-panel hidden" data-app-tab-panel="cards">
       <div class="row between wrap">
         <div><p class="section-kicker">DECK WORKSHOP</p><h2>カードとロードアウト</h2><p class="muted">所持カードを確認し、対戦へ持ち込む6枚を考える場所です。</p></div>
-        <button type="button" class="primary" data-tab-jump="battle">対戦用6枚を選ぶ</button>
+        <button id="editNextLoadout" type="button" class="primary">次の対戦用6枚を編集</button>
       </div>
       <div id="cardInventory" class="card-inventory" aria-label="所持カード一覧"></div>
       <div class="card-sale-box">
@@ -228,7 +228,7 @@
               <button id="keepWaitingForHuman" class="ghost">このまま人を待つ</button>
             </div>
           </div>
-          <p id="matchmakingStatus" class="callout" aria-live="polite">募集するか、今待っている人を探してください。</p>
+          <p id="matchmakingStatus" class="callout" aria-live="polite" tabindex="-1">募集するか、今待っている人を探してください。</p>
         </section>
       </div>
     </section>
@@ -243,18 +243,20 @@
       <button id="leaveRoom" class="ghost">この端末でルーム表示を閉じる</button>
     </section>
 
-    <section id="setupCard" class="card hidden" data-app-tab-panel="battle">
+    <section id="setupCard" class="card hidden" data-app-tab-panel="battle cards">
       <h2 id="setupTitle" tabindex="-1">対戦で使う6枚</h2>
-      <p class="muted">色は塗り方、エリアは形や大きさ、妨害は相手への働きかけを担当します。3つの役割を使えるよう、各2枚・合計6枚を選びます。</p>
+      <p id="setupDescription" class="muted">色は塗り方、エリアは形や大きさ、妨害は相手への働きかけを担当します。3つの役割を使えるよう、各2枚・合計6枚を選びます。</p>
+      <p id="cpuStartReview" class="callout hidden"></p>
       <label class="debug-mode-option">
         <input id="debugUnlimitedMode" type="checkbox">
         <span><strong>デバッグ対戦：スキル使い放題</strong><small>合言葉対戦で2人ともONにすると、未所持カードも選択でき、何度使っても減りません（戦績・報酬なし）。</small></span>
       </label>
-      <div id="loadoutSummary" class="loadout-summary" role="status" aria-live="polite" aria-atomic="true">選択 0/6｜色 0/2｜エリア 0/2｜妨害 0/2</div>
+      <div id="loadoutSummary" class="loadout-summary">選択 0/6｜色 0/2｜エリア 0/2｜妨害 0/2</div>
       <div id="loadoutGrid" class="loadout-grid"></div>
       <div id="setupCommitBar" class="setup-commit-bar">
         <strong id="setupCommitTitle">6枚を選ぶと準備できます</strong>
-        <button id="submitSetup" class="primary" aria-describedby="loadoutSummary setupStatus" disabled>この6枚で準備完了</button>
+        <button id="submitSetup" class="primary" aria-describedby="cpuStartReview loadoutSummary setupStatus" disabled>この6枚で準備完了</button>
+        <button id="cancelCpuDraft" class="ghost hidden" type="button">CPUを選び直す</button>
         <p id="setupStatus" class="muted operation-feedback" role="status" aria-live="polite" aria-atomic="true"></p>
       </div>
     </section>
@@ -364,6 +366,6 @@
   <script src="standard-online-client.js?v=20260905-14"></script>
   <script src="standard-online-sync.js"></script>
   <script src="standard-online-skill-intents.js"></script>
-  <script type="module" src="app.js?v=20260905-18"></script>
+  <script type="module" src="app.js?v=20260905-19"></script>
 </body>
 </html>

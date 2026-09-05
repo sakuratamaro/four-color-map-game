@@ -15,16 +15,18 @@ test("release runbook fixes migration-before-Edge-before-Pages order", () => {
     assert.ok(position > previous, marker);
     previous = position;
   }
-  for (let sequence = 1; sequence <= 5; sequence += 1) {
+  for (let sequence = 1; sequence <= 6; sequence += 1) {
     const marker = `20260905${String(sequence).padStart(4, "0")}`;
     const position = runbook.indexOf(marker, previous + 1);
     assert.ok(position > previous, marker);
     previous = position;
   }
-  const edge = runbook.indexOf("DB 13本の確認が終わってから");
+  const edge = runbook.indexOf("DB 14本の確認が終わってから");
   const pages = runbook.indexOf("StandardオンラインPagesを公開");
   assert.ok(edge > previous && pages > edge);
   assert.match(runbook, /PagesをDBより先に公開しない/);
+  assert.match(runbook, /202609050006.*適用直前[\s\S]+duplicate_active_actor_state[\s\S]+重複件数が0/);
+  assert.match(runbook, /0でなければ `202609050006` を適用せず/);
 });
 
 test("release gates cover human, CPU, persistence, privacy, load, and safe rollback", () => {

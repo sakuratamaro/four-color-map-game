@@ -23,7 +23,7 @@ const saveKey = "fourColorMapGame.standard.v5.save";
 const remoteProfileKey = "fourColorMapGame.standard.online.v5.remote-profile";
 const roomId = "11111111-1111-4111-8111-111111111111";
 const pendingRematchId = "22222222-2222-4222-8222-222222222222";
-const RESTORED_ROOM_MODES = new Set(["finished", "playing", "handoffGuide", "cpuTurn", "cpuTurnNoColor", "finishedCpu", "cpuWin", "setupTransition", "setupTransitionCpuFirst", "actionRuleError", "setupDebugError", "handoffReload"]);
+const RESTORED_ROOM_MODES = new Set(["finished", "playing", "handoffGuide", "cpuTurn", "cpuTurnNoColor", "finishedCpu", "finishedCpuSagaStart", "finishedHumanSagaBlocked", "finishedCpuWrongSagaBlocked", "activeCpuSagaBlocked", "cpuWin", "setupTransition", "setupTransitionCpuFirst", "actionRuleError", "setupDebugError", "handoffReload"]);
 
 function browserStage(stage) {
   console.error(`BROWSER_STAGE ${stage}`);
@@ -70,25 +70,53 @@ function startServer() {
 
 async function installMock(context, mode) {
   let lifetimeCpuActionCalls = 0;
+  const lifetimeInvocations = [];
   await context.exposeFunction("__standardOnlineCountCpuAction", () => { lifetimeCpuActionCalls += 1; });
   await context.exposeFunction("__standardOnlineCpuActionCount", () => lifetimeCpuActionCalls);
+  await context.exposeFunction("__standardOnlineRecordInvoke", (body) => { lifetimeInvocations.push(structuredClone(body)); });
+  await context.exposeFunction("__standardOnlineLifetimeInvocations", () => structuredClone(lifetimeInvocations));
   await context.route("https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm", (route) => route.fulfill({
     status: 200,
     contentType: "text/javascript; charset=utf-8",
     body: "export function createClient(){return globalThis.__standardOnlineMockSupabase}",
   }));
   await context.addInitScript(({ connectionKey: connection, saveKey: save, roomId: id, pendingId, mode: initialMode }) => {
+    globalThis.__standardOnlineFocusEvents = [];
+    const originalFocus = HTMLElement.prototype.focus;
+    HTMLElement.prototype.focus = function trackedFocus(...args) {
+      globalThis.__standardOnlineFocusEvents.push({ id: this.id || "", stack: new Error().stack || "" });
+      return originalFocus.apply(this, args);
+    };
     const quizReloadModes = ["handoffReload", "quizReloadPrivate", "quizReloadCpu", "quizReloadPublicFinished", "quizReloadStale"];
     const initialTab = ["gacha", "quiz", "quizPolish", ...quizReloadModes].includes(initialMode) ? "quiz" : initialMode === "cosmetic" ? "profile" : initialMode === "empty" ? "home" : "battle";
     const setupTransition = ["setupTransition", "setupTransitionCpuFirst"].includes(initialMode);
     const setupPending = setupTransition || initialMode === "setupDebugError";
+    if (["cpuSagaFindBlocked", "finishedCpuSagaStart", "activeCpuSagaBlocked", "finishedHumanSagaBlocked", "finishedCpuWrongSagaBlocked"].includes(initialMode)) {
+      localStorage.setItem("fourColorMapGame.standard.online.v5.cpu-start-saga", JSON.stringify({
+        stage: "start",
+        roomId: null,
+        replaceRoomId: ["finishedCpuSagaStart", "finishedHumanSagaBlocked"].includes(initialMode)
+          ? id
+          : initialMode === "finishedCpuWrongSagaBlocked" ? "99999999-9999-4999-8999-999999999999" : null,
+        cpuStartActionId: "77777777-7777-4777-8777-777777777777",
+        setupActionId: "88888888-8888-4888-8888-888888888888",
+        characterId: "yuzu",
+        canonicalLoadout: {
+          color: ["colorRandomBorrow", "colorChoiceBorrow"],
+          area: ["areaDiePlus", "areaResize"],
+          disrupt: ["disruptRandomOne", "disruptChoiceOne"],
+        },
+      }));
+    }
     let restoredCpuRewardResult = null;
     try { restoredCpuRewardResult = JSON.parse(sessionStorage.getItem("fourColorMapGame.standard.online.v5.cpu-reward-gacha-result") || "null"); } catch { restoredCpuRewardResult = null; }
+    let restoredCpuStartSaga = null;
+    try { restoredCpuStartSaga = JSON.parse(localStorage.getItem("fourColorMapGame.standard.online.v5.cpu-start-saga") || "null"); } catch { restoredCpuStartSaga = null; }
     const restoreCpuRewardResult = initialMode === "cpuWin" && restoredCpuRewardResult?.continuation?.roomId === id;
     const restoreNoColorResult = initialMode === "cpuTurnNoColor" && sessionStorage.getItem("fourColorMapGame.standard.online.v5.mock-no-color-finished") === id;
     const restoredCpuRewardVersion = restoreCpuRewardResult ? Number(restoredCpuRewardResult.continuation.roomVersion) : 9;
     const restoredRoomVersion = restoreNoColorResult ? 10 : restoredCpuRewardVersion;
-    const cpuRoomMode = ["cpuTurn", "cpuTurnNoColor", "finishedCpu", "cpuWin", "setupTransition", "setupTransitionCpuFirst", "quizReloadCpu"].includes(initialMode);
+    const cpuRoomMode = ["cpuTurn", "cpuTurnNoColor", "finishedCpu", "finishedCpuSagaStart", "finishedCpuWrongSagaBlocked", "activeCpuSagaBlocked", "cpuWin", "setupTransition", "setupTransitionCpuFirst", "quizReloadCpu"].includes(initialMode);
     localStorage.setItem("fourColorMapGame.standard.online.v5.active-tab", initialTab);
     const inventory = Object.fromEntries([
       "colorRandomBorrow", "colorChoiceBorrow", "colorPrism", "colorRegionSplit", "colorPaletteChange",
@@ -99,7 +127,7 @@ async function installMock(context, mode) {
     if (initialMode !== "empty") {
       localStorage.setItem(save, JSON.stringify({ profiles: { playerA: { displayName: "A", inventory } } }));
       localStorage.setItem("fourColorMapGame.standard.online.v5.profile", "playerA");
-      if (!["lobby", "cosmetic", "quiz", "quizPolish", "publicFind", "cpuWait", "cpuRetry", "handoffActivity", "handoffStart"].includes(initialMode)) {
+      if (!["lobby", "cosmetic", "quiz", "quizPolish", "publicFind", "cpuWait", "cpuRetry", "cpuSagaFindBlocked", "finishedCpuSagaStart", "finishedHumanSagaBlocked", "finishedCpuWrongSagaBlocked", "activeCpuSagaBlocked", "handoffActivity", "handoffStart"].includes(initialMode)) {
         localStorage.setItem(connection, JSON.stringify({
           roomId: id, roomCode: "A1B2C3", profileRevision: 1, setupRevision: setupPending ? 0 : 3,
           rematchActionId: initialMode === "finished" ? pendingId : null,
@@ -115,6 +143,18 @@ async function installMock(context, mode) {
           roomId: null, roomCode: null, profileRevision: 1, setupRevision: 0,
           matchmakingTicketId: null, matchmakingStartedAt: null, matchmakingFindActionId: null,
           cpuStartActionId: pendingId, cpuStartCharacterId: "yuzu",
+        }));
+      } else if (initialMode === "cpuSagaFindBlocked") {
+        localStorage.setItem(connection, JSON.stringify({
+          roomId: null, roomCode: null, profileRevision: 1, setupRevision: 0,
+          matchmakingTicketId: null, matchmakingStartedAt: null, matchmakingFindActionId: pendingId,
+          cpuStartActionId: null, cpuStartCharacterId: null,
+        }));
+      } else if (["finishedCpuSagaStart", "finishedHumanSagaBlocked", "finishedCpuWrongSagaBlocked", "activeCpuSagaBlocked"].includes(initialMode)) {
+        localStorage.setItem(connection, JSON.stringify({
+          roomId: id, roomCode: null, profileRevision: 1, setupRevision: 0,
+          matchmakingTicketId: null, matchmakingStartedAt: null, matchmakingFindActionId: null,
+          cpuStartActionId: null, cpuStartCharacterId: null,
         }));
       }
     }
@@ -174,7 +214,7 @@ async function installMock(context, mode) {
     };
     const runtime = {
       waitStartedAt: initialMode === "cpuWait" ? new Date(Date.now() - 91000).toISOString() : new Date().toISOString(),
-      room: { id, status: ["finished", "finishedCpu", "quizReloadPublicFinished"].includes(initialMode) || restoreCpuRewardResult || restoreNoColorResult ? "finished" : ["publicFind", "handoffActivity", "handoffStart", "handoffReload"].includes(initialMode) || setupPending ? "ready" : "playing", version: restoredRoomVersion, game_mode: "standard_v5", access_mode: cpuRoomMode ? "cpu" : ["publicFind", "handoffActivity", "handoffStart", "handoffReload", "quizReloadPublicFinished"].includes(initialMode) ? "public_queue" : "private_code", opponent_kind: cpuRoomMode ? "cpu" : "human", cpu_character_id: cpuRoomMode ? "yuzu" : null, public_state: restoreNoColorResult ? noColorFinished : ["finished", "finishedCpu", "quizReloadPublicFinished"].includes(initialMode) || restoreCpuRewardResult ? { ...finished, version: restoredRoomVersion } : ["publicFind", "handoffActivity", "handoffStart", "handoffReload"].includes(initialMode) || setupPending ? null : active },
+      room: { id, status: ["finished", "finishedCpu", "finishedCpuSagaStart", "finishedHumanSagaBlocked", "finishedCpuWrongSagaBlocked", "quizReloadPublicFinished"].includes(initialMode) || restoreCpuRewardResult || restoreNoColorResult ? "finished" : ["publicFind", "handoffActivity", "handoffStart", "handoffReload"].includes(initialMode) || setupPending ? "ready" : "playing", version: restoredRoomVersion, game_mode: "standard_v5", access_mode: cpuRoomMode ? "cpu" : ["publicFind", "handoffActivity", "handoffStart", "handoffReload", "quizReloadPublicFinished"].includes(initialMode) ? "public_queue" : "private_code", opponent_kind: cpuRoomMode ? "cpu" : "human", cpu_character_id: cpuRoomMode ? "yuzu" : null, public_state: restoreNoColorResult ? noColorFinished : ["finished", "finishedCpu", "finishedCpuSagaStart", "finishedHumanSagaBlocked", "finishedCpuWrongSagaBlocked", "quizReloadPublicFinished"].includes(initialMode) || restoreCpuRewardResult ? { ...finished, version: restoredRoomVersion } : ["publicFind", "handoffActivity", "handoffStart", "handoffReload"].includes(initialMode) || setupPending ? null : active },
       view: ["publicFind", "handoffActivity", "handoffStart", "handoffReload"].includes(initialMode) || setupPending ? null : { seat: "A", version: restoredRoomVersion, private_state: { hand: { areaDiePlus: 1, areaResize: 1 }, basicPalette: initialMode === "cpuTurnNoColor" ? ["yellow", "green"] : ["red", "blue"], bonusColor: initialMode === "cpuTurnNoColor" ? "blue" : "yellow", bonusUsesRemaining: initialMode === "cpuTurnNoColor" ? 3 : 2, privateEffects: {} } },
       profile: initialMode === "empty" ? null : { revision: 1, display_name: "A", profile_state: profileState },
       gachaReceipts: {},
@@ -182,7 +222,12 @@ async function installMock(context, mode) {
       cosmeticReceipts: {},
       quizAnswerReceipts: {},
       quizFinishReceipts: {},
-      cpuStartReceipts: {},
+      cpuStartReceipts: JSON.parse(sessionStorage.getItem("mock-standard-cpu-start-receipts") || "{}"),
+      setupReceipts: JSON.parse(sessionStorage.getItem("mock-standard-setup-receipts") || "{}"),
+      recoverExistingCpuStart: false,
+      failNextCpuStartResponse: false,
+      failNextSetupResponse: false,
+      failNextFindResponse: false,
       failNextColorAction: false,
       failNextGacha: false,
       failNextQuizAnswer: false,
@@ -190,6 +235,11 @@ async function installMock(context, mode) {
     };
     runtime.missingRoom = initialMode === "quizReloadStale";
     runtime.members = [{ user_id: "33333333-3333-4333-8333-333333333333", seat: "A", display_name: "A", is_cpu: false, appearance: { nameplate: "nameplateDefault", title: "titleNone" } }, { user_id: "44444444-4444-4444-8444-444444444444", seat: "B", display_name: cpuRoomMode ? "うっかりユズ" : "B", is_cpu: cpuRoomMode, appearance: { nameplate: "nameplateGold", title: "titleArtisan" } }];
+    if (restoredCpuStartSaga?.stage === "setup" && restoredCpuStartSaga.roomId === id) {
+      runtime.room = { ...runtime.room, status: "ready", access_mode: "cpu", opponent_kind: "cpu", cpu_character_id: restoredCpuStartSaga.characterId, public_state: null };
+      runtime.view = null;
+      runtime.members = [{ user_id: "33333333-3333-4333-8333-333333333333", seat: "A", display_name: "A", is_cpu: false }, { user_id: "55555555-5555-4555-8555-555555555555", seat: "B", display_name: "うっかりユズ", is_cpu: true }];
+    }
     const cosmeticProjection = () => ({
       coins: runtime.profile.profile_state.coins,
       equipped: runtime.profile.profile_state.equipped,
@@ -212,13 +262,32 @@ async function installMock(context, mode) {
       auth: { getSession: async () => ({ data: { session: { user: { id: "33333333-3333-4333-8333-333333333333" } } } }), signInAnonymously: async () => { throw new Error("unexpected sign-in"); } },
       functions: { invoke: async (name, request) => {
         runtime.calls.push({ kind: "invoke", name, body: request.body });
+        await globalThis.__standardOnlineRecordInvoke(request.body);
         if (request.body.operation === "setup" && initialMode === "setupDebugError") return functionError(403, "DEBUG_MODE_NOT_ALLOWED", "private access_mode row and service secret");
         if (request.body.operation === "setup" && setupTransition) return { data: { setupRevision: 1, profileRevision: 1 } };
+        if (request.body.operation === "setup" && runtime.room.opponent_kind === "cpu") {
+          const prior = runtime.setupReceipts[request.body.setupActionId];
+          if (prior) return { data: { ...prior, duplicate: true } };
+          const result = { setupRevision: 1, profileRevision: runtime.profile.revision, quoteId: request.body.setupActionId };
+          runtime.setupReceipts[request.body.setupActionId] = result;
+          sessionStorage.setItem("mock-standard-setup-receipts", JSON.stringify(runtime.setupReceipts));
+          if (runtime.failNextSetupResponse) {
+            runtime.failNextSetupResponse = false;
+            return { error: new Error("simulated lost setup response") };
+          }
+          return { data: result };
+        }
         if (request.body.operation === "initialize" && setupTransition) {
           const cpuFirst = initialMode === "setupTransitionCpuFirst";
           const started = { ...active, matchId: `${id}:10`, status: "ACTIVE", version: 10, turn: 1, active: cpuFirst ? "B" : "A", phase: "CREATE_FIRST" };
           runtime.room = { ...runtime.room, status: "playing", version: 10, public_state: started };
           runtime.view = { seat: "A", version: 10, private_state: { hand: { areaDiePlus: 1, areaResize: 1 }, basicPalette: ["red", "blue"], bonusColor: "yellow", bonusUsesRemaining: 2, privateEffects: {} } };
+          return { data: { roomStatus: "playing", roomVersion: 10 } };
+        }
+        if (request.body.operation === "initialize" && runtime.room.opponent_kind === "cpu" && runtime.room.status === "ready") {
+          const started = { ...active, matchId: `${id}:10`, status: "ACTIVE", version: 10, turn: 1, active: "A", phase: "CREATE_FIRST" };
+          runtime.room = { ...runtime.room, status: "playing", version: 10, public_state: started };
+          runtime.view = { seat: "A", version: 10, private_state: { hand: {}, basicPalette: ["red", "blue"], bonusColor: "yellow", bonusUsesRemaining: 2, privateEffects: {} } };
           return { data: { roomStatus: "playing", roomVersion: 10 } };
         }
         if (request.body.operation === "profile") {
@@ -357,12 +426,31 @@ async function installMock(context, mode) {
         ].map(([cpuId, name]) => ({ id: cpuId, name, line: "よろしく！", strength: "得意な一手", weakness: "うっかり", favorites: ["colorRandomBorrow", "areaMicroBloom"] })) } };
         if (request.body.operation === "cpu-start") {
           const prior = runtime.cpuStartReceipts[request.body.actionId];
-          if (prior) return { data: { ...prior, duplicate: true, startStatus: "duplicate" } };
+          if (prior) {
+            runtime.room = { ...runtime.room, status: "ready", access_mode: "cpu", opponent_kind: "cpu", cpu_character_id: prior.characterId, public_state: null };
+            runtime.view = null;
+            runtime.members = [{ user_id: "33333333-3333-4333-8333-333333333333", seat: "A", display_name: "A", is_cpu: false }, { user_id: "55555555-5555-4555-8555-555555555555", seat: "B", display_name: "うっかりユズ", is_cpu: true }];
+            return { data: { ...prior, duplicate: true, startStatus: "duplicate" } };
+          }
+          if (runtime.recoverExistingCpuStart) {
+            runtime.room = { ...runtime.room, status: "playing", access_mode: "cpu", opponent_kind: "cpu", cpu_character_id: "yuzu", public_state: active };
+            runtime.view = { seat: "A", version: runtime.room.version, private_state: { hand: {}, basicPalette: ["red", "blue"], bonusColor: "yellow", bonusUsesRemaining: 2, privateEffects: {} } };
+            runtime.members = [{ user_id: "33333333-3333-4333-8333-333333333333", seat: "A", display_name: "A", is_cpu: false }, { user_id: "55555555-5555-4555-8555-555555555555", seat: "B", display_name: "うっかりユズ", is_cpu: true }];
+            const recovered = { matchmakingStatus: "matched", startStatus: "recovered_existing", roomId: id, seat: "A", opponentKind: "cpu", characterId: "yuzu", duplicate: false };
+            runtime.cpuStartReceipts[request.body.actionId] = recovered;
+            sessionStorage.setItem("mock-standard-cpu-start-receipts", JSON.stringify(runtime.cpuStartReceipts));
+            return { data: recovered };
+          }
           runtime.room = { ...runtime.room, status: "ready", access_mode: "cpu", opponent_kind: "cpu", cpu_character_id: request.body.characterId, public_state: null };
           runtime.view = null;
           runtime.members = [{ user_id: "33333333-3333-4333-8333-333333333333", seat: "A", display_name: "A", is_cpu: false }, { user_id: "55555555-5555-4555-8555-555555555555", seat: "B", display_name: "うっかりユズ", is_cpu: true }];
           const result = { matchmakingStatus: "matched", startStatus: "created", roomId: id, seat: "A", opponentKind: "cpu", characterId: request.body.characterId, duplicate: false };
           runtime.cpuStartReceipts[request.body.actionId] = result;
+          sessionStorage.setItem("mock-standard-cpu-start-receipts", JSON.stringify(runtime.cpuStartReceipts));
+          if (runtime.failNextCpuStartResponse) {
+            runtime.failNextCpuStartResponse = false;
+            return { error: new Error("simulated lost CPU start response") };
+          }
           return { data: result };
         }
         if (request.body.operation === "cpu-accept") {
@@ -442,7 +530,13 @@ async function installMock(context, mode) {
         }
         if (name === "fcg_standard_matchmaking_status") return { data: [{ ticket_id: args.p_ticket_id, matchmaking_status: runtime.matchNow ? "matched" : "searching", room_id: runtime.matchNow ? id : null, seat: runtime.matchNow ? "A" : null, wait_started_at: runtime.waitStartedAt, server_time: new Date().toISOString() }] };
         if (name === "fcg_standard_matchmaking_cancel") return { data: [{ ticket_id: args.p_ticket_id, matchmaking_status: "cancelled", room_id: null, seat: null, server_time: new Date().toISOString() }] };
-        if (name === "fcg_standard_matchmaking_find") return { data: [{ matchmaking_status: initialMode === "publicFind" ? "matched" : "none_available", room_id: initialMode === "publicFind" ? id : null, seat: initialMode === "publicFind" ? "B" : null, server_time: new Date().toISOString(), duplicate: false }] };
+        if (name === "fcg_standard_matchmaking_find") {
+          if (runtime.failNextFindResponse) {
+            runtime.failNextFindResponse = false;
+            return { error: new Error("simulated lost find response") };
+          }
+          return { data: [{ matchmaking_status: initialMode === "publicFind" ? "matched" : "none_available", room_id: initialMode === "publicFind" ? id : null, seat: initialMode === "publicFind" ? "B" : null, server_time: new Date().toISOString(), duplicate: false }] };
+        }
         if (name === "fcg_standard_room_snapshot_v2" && runtime.missingRoom) return { data: null, error: Object.assign(new Error("room removed"), { code: "P0002" }) };
         if (name === "fcg_standard_room_snapshot_v2") return { data: [{
           snapshot_schema_version: 2,
@@ -474,7 +568,8 @@ async function installMock(context, mode) {
       },
       removeChannel: async () => ({ error: null }),
       from: (table) => ({ select: () => {
-        const chain = { eq: () => chain, order: async () => ({ data: resultFor(table) }), single: async () => ({ data: resultFor(table) }), maybeSingle: async () => ({ data: resultFor(table) }) };
+        const read = async () => ({ data: resultFor(table) });
+        const chain = { eq: () => chain, order: read, single: read, maybeSingle: read };
         return chain;
       } }),
     };
@@ -573,7 +668,7 @@ test("actual Edge carries a fresh player from the home CPU CTA through profile s
   });
 });
 
-test("actual Edge starts formal Standard CPU immediately without entering public matchmaking", { timeout: 130000 }, async () => {
+test("actual Edge reviews six cards before starting Standard CPU exactly once", { timeout: 130000 }, async () => {
   await withPage("lobby", async (page) => {
     const trigger = page.getByRole("button", { name: "10人からCPUを選ぶ" });
     await trigger.click();
@@ -584,22 +679,32 @@ test("actual Edge starts formal Standard CPU immediately without entering public
     await page.keyboard.press("Escape");
     assert.equal(await page.evaluate(() => document.activeElement?.id), "startStandardCpuLobby");
     await trigger.click();
-    await page.getByRole("button", { name: "うっかりユズと対戦" }).click();
+    await page.getByRole("button", { name: "うっかりユズを選んで6枚を確認" }).click();
     await page.locator("#setupCard:not(.hidden)").waitFor();
+    assert.equal(await page.evaluate(() => document.activeElement?.id), "setupTitle");
+    assert.equal(await page.locator("#cpuStartReview").textContent(), "対戦相手：CPU「うっかりユズ」。この画面ではまだ対戦は始まっていません。");
+    assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => ["cpu-start", "setup"].includes(entry.body?.operation)).length), 0);
+    await page.getByRole("button", { name: "このCPU・6枚で対戦開始" }).dblclick();
+    await page.locator("#matchCard:not(.hidden)").waitFor();
     assert.equal(await page.locator("#shownCode").textContent(), "CPU：うっかりユズ");
-    assert.equal(await page.locator("#matchmakingStatus").textContent(), "CPU「うっかりユズ」との対戦を始めます。6枚セットを選んでください。");
-    const evidence = await page.evaluate(({ key }) => ({
+    assert.equal(await page.locator("#waitingMessage").textContent(), "CPUとの対戦中です。盤面と手番案内を確認してください。");
+    const evidence = await page.evaluate(({ key, sagaKey }) => ({
       bodies: globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.kind === "invoke").map((entry) => entry.body),
       publicCalls: globalThis.__standardOnlineRuntime.calls.filter((entry) => String(entry.name || "").includes("matchmaking")),
       connection: JSON.parse(localStorage.getItem(key)),
+      saga: localStorage.getItem(sagaKey),
       overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
-    }), { key: connectionKey });
-    assert.deepEqual(evidence.bodies.slice(-2).map((body) => body.operation), ["cpu-roster", "cpu-start"]);
-    assert.match(evidence.bodies.at(-1).actionId, /^[0-9a-f-]{36}$/i);
-    assert.deepEqual({ ...evidence.bodies.at(-1), actionId: "<uuid>" }, { operation: "cpu-start", actionId: "<uuid>", characterId: "yuzu", confirmed: true });
+    }), { key: connectionKey, sagaKey: "fourColorMapGame.standard.online.v5.cpu-start-saga" });
+    assert.deepEqual(evidence.bodies.filter((body) => ["cpu-start", "setup", "initialize"].includes(body.operation)).map((body) => body.operation), ["cpu-start", "setup", "initialize"]);
+    const cpuStart = evidence.bodies.find((body) => body.operation === "cpu-start");
+    assert.match(cpuStart.actionId, /^[0-9a-f-]{36}$/i);
+    assert.deepEqual({ ...cpuStart, actionId: "<uuid>" }, { operation: "cpu-start", actionId: "<uuid>", characterId: "yuzu", confirmed: true });
+    assert.match(evidence.bodies.find((body) => body.operation === "setup").setupActionId, /^[0-9a-f-]{36}$/i);
     assert.deepEqual(evidence.publicCalls, []);
     assert.equal(evidence.connection.cpuStartActionId, null);
     assert.equal(evidence.connection.cpuStartCharacterId, null);
+    assert.equal(evidence.connection.setupRevision, 1);
+    assert.equal(evidence.saga, null);
     assert.equal(evidence.overflow, false);
   }, { viewport: { width: 390, height: 844 } });
 });
@@ -615,6 +720,257 @@ test("actual Edge resumes a lost immediate CPU response with the same stored act
     assert.equal(evidence.connection.roomId, roomId);
     assert.equal(evidence.connection.cpuStartActionId, null);
     assert.equal(evidence.connection.cpuStartCharacterId, null);
+  });
+});
+
+test("actual Edge resumes the immutable CPU setup saga after a lost setup response", { timeout: 130000 }, async () => {
+  await withPage("lobby", async (page) => {
+    await page.getByRole("button", { name: "10人からCPUを選ぶ" }).click();
+    await page.getByRole("button", { name: "うっかりユズを選んで6枚を確認" }).click();
+    await page.evaluate(() => { globalThis.__standardOnlineRuntime.failNextSetupResponse = true; });
+    await page.getByRole("button", { name: "このCPU・6枚で対戦開始" }).click();
+    await page.getByRole("button", { name: "同じ開始処理を再確認" }).waitFor();
+    const pending = await page.evaluate(() => JSON.parse(localStorage.getItem("fourColorMapGame.standard.online.v5.cpu-start-saga")));
+    assert.match(pending.cpuStartActionId, /^[0-9a-f-]{36}$/i);
+    assert.match(pending.setupActionId, /^[0-9a-f-]{36}$/i);
+    assert.equal(pending.stage, "setup");
+    assert.equal(pending.roomId, roomId);
+
+    await page.reload({ waitUntil: "load" });
+    await page.locator("#connectionBadge.good").waitFor();
+    await page.locator("#matchCard:not(.hidden)").waitFor();
+    const evidence = await page.evaluate(async () => ({
+      starts: globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "cpu-start").map((entry) => entry.body),
+      setups: globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "setup").map((entry) => entry.body),
+      lifetime: await globalThis.__standardOnlineLifetimeInvocations(),
+      saga: localStorage.getItem("fourColorMapGame.standard.online.v5.cpu-start-saga"),
+      activeElement: document.activeElement?.id,
+      focusEvents: globalThis.__standardOnlineFocusEvents,
+    }));
+    assert.equal(evidence.starts.length, 0);
+    assert.equal(evidence.setups.length, 1);
+    assert.equal(evidence.setups[0].setupActionId, pending.setupActionId);
+    const lifetimeStarts = evidence.lifetime.filter((body) => body.operation === "cpu-start");
+    const lifetimeSetups = evidence.lifetime.filter((body) => body.operation === "setup");
+    assert.equal(lifetimeStarts.length, 1);
+    assert.equal(lifetimeStarts[0].actionId, pending.cpuStartActionId);
+    assert.equal(lifetimeSetups.length, 2);
+    assert.deepEqual(new Set(lifetimeSetups.map((body) => body.setupActionId)), new Set([pending.setupActionId]));
+    assert.equal(evidence.saga, null);
+    assert.deepEqual(evidence.focusEvents.filter((entry) => entry.id === "matchTitle"), []);
+  });
+});
+
+test("actual Edge retries only the same CPU start after its response is lost", { timeout: 130000 }, async () => {
+  await withPage("lobby", async (page) => {
+    await page.getByRole("button", { name: "10人からCPUを選ぶ" }).click();
+    await page.getByRole("button", { name: "うっかりユズを選んで6枚を確認" }).click();
+    await page.evaluate(() => { globalThis.__standardOnlineRuntime.failNextCpuStartResponse = true; });
+    await page.getByRole("button", { name: "このCPU・6枚で対戦開始" }).click();
+    await page.getByRole("button", { name: "同じ開始処理を再確認" }).waitFor();
+    const pending = await page.evaluate(() => JSON.parse(localStorage.getItem("fourColorMapGame.standard.online.v5.cpu-start-saga")));
+    assert.equal(pending.stage, "start");
+    assert.equal(pending.roomId, null);
+
+    await page.reload({ waitUntil: "load" });
+    await page.locator("#connectionBadge.good").waitFor();
+    await page.locator("#matchCard:not(.hidden)").waitFor();
+    const lifetime = await page.evaluate(() => globalThis.__standardOnlineLifetimeInvocations());
+    const starts = lifetime.filter((body) => body.operation === "cpu-start");
+    const setups = lifetime.filter((body) => body.operation === "setup");
+    assert.equal(starts.length, 2);
+    assert.deepEqual(new Set(starts.map((body) => body.actionId)), new Set([pending.cpuStartActionId]));
+    assert.equal(setups.length, 1);
+    assert.equal(setups[0].setupActionId, pending.setupActionId);
+  });
+});
+
+test("restored CPU start replaces only its old finished room and never a different active room", { timeout: 130000 }, async () => {
+  await withPage("finishedCpuSagaStart", async (page) => {
+    await page.locator("#matchCard:not(.hidden)").waitFor();
+    const evidence = await page.evaluate(() => ({
+      starts: globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "cpu-start"),
+      setups: globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "setup"),
+      saga: localStorage.getItem("fourColorMapGame.standard.online.v5.cpu-start-saga"),
+    }));
+    assert.equal(evidence.starts.length, 1);
+    assert.equal(evidence.setups.length, 1);
+    assert.equal(evidence.starts[0].body.actionId, "77777777-7777-4777-8777-777777777777");
+    assert.equal(evidence.setups[0].body.setupActionId, "88888888-8888-4888-8888-888888888888");
+    assert.equal(evidence.saga, null);
+  });
+  for (const mode of ["activeCpuSagaBlocked", "finishedHumanSagaBlocked", "finishedCpuWrongSagaBlocked"]) {
+    await withPage(mode, async (page) => {
+      await page.waitForFunction(() => document.querySelector("#matchCard") && !document.querySelector("#matchCard").classList.contains("hidden"));
+      await page.waitForFunction(() => document.activeElement?.id === "matchTitle");
+      const evidence = await page.evaluate(() => ({
+        cpuWrites: globalThis.__standardOnlineRuntime.calls.filter((entry) => ["cpu-start", "setup"].includes(entry.body?.operation)),
+        saga: JSON.parse(localStorage.getItem("fourColorMapGame.standard.online.v5.cpu-start-saga")),
+        setupHidden: document.getElementById("setupCard").classList.contains("hidden"),
+        activeElement: document.activeElement?.id,
+      }));
+      assert.equal(evidence.cpuWrites.length, 0, mode);
+      assert.equal(evidence.saga.stage, "start", mode);
+      assert.equal(evidence.setupHidden, true, mode);
+      assert.equal(evidence.activeElement, "matchTitle", mode);
+    });
+  }
+});
+
+test("actual Edge recovers an existing room without submitting the new CPU draft", { timeout: 130000 }, async () => {
+  await withPage("lobby", async (page) => {
+    await page.getByRole("button", { name: "10人からCPUを選ぶ" }).click();
+    await page.getByRole("button", { name: "せっかちレンを選んで6枚を確認" }).click();
+    await page.evaluate(() => { globalThis.__standardOnlineRuntime.recoverExistingCpuStart = true; });
+    await page.getByRole("button", { name: "このCPU・6枚で対戦開始" }).click();
+    await page.locator("#matchCard:not(.hidden)").waitFor();
+    const evidence = await page.evaluate(() => ({
+      starts: globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "cpu-start").length,
+      setups: globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "setup").length,
+      saga: localStorage.getItem("fourColorMapGame.standard.online.v5.cpu-start-saga"),
+      activeElement: document.activeElement?.id,
+    }));
+    assert.equal(evidence.starts, 1);
+    assert.equal(evidence.setups, 0);
+    assert.equal(evidence.saga, null);
+    assert.equal(evidence.activeElement, "matchTitle");
+    assert.equal(await page.locator("#shownCode").textContent(), "CPU：うっかりユズ");
+  });
+});
+
+test("actual Edge edits the roomless next loadout with a reachable mobile commit bar", { timeout: 130000 }, async () => {
+  await withPage("lobby", async (page) => {
+    await page.getByRole("button", { name: "カード", exact: true }).click();
+    await page.getByRole("button", { name: "次の対戦用6枚を編集" }).click();
+    await page.locator("#setupCard:not(.hidden)").waitFor();
+    assert.equal(await page.locator('#loadoutGrid input[type="checkbox"]:checked').count(), 6);
+    const geometry = await page.evaluate(() => {
+      const commit = document.querySelector("#setupCommitBar").getBoundingClientRect();
+      const connection = document.querySelector("#connectionCard").getBoundingClientRect();
+      return { commitBottom: commit.bottom, commitTop: commit.top, connectionBottom: connection.bottom, viewport: innerHeight };
+    });
+    assert.ok(geometry.commitBottom <= geometry.viewport - 80);
+    assert.ok(geometry.connectionBottom <= geometry.commitTop);
+    assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => ["cpu-start", "setup"].includes(entry.body?.operation)).length), 0);
+    await page.getByRole("button", { name: "この6枚を次戦候補に保存" }).click();
+    assert.equal(await page.locator("#setupStatus").textContent(), "この端末の次戦候補として6枚を保存しました。対戦やルームはまだ始まっていません。");
+  }, { viewport: { width: 390, height: 844 } });
+});
+
+test("actual Edge closes only the active-room screen and returns through the exclusive CTA", { timeout: 130000 }, async () => {
+  await withPage("cpuTurn", async (page) => {
+    await page.getByRole("button", { name: "画面だけ閉じる（対戦は継続）" }).click();
+    assert.equal(await page.locator("body").getAttribute("data-active-tab"), "home");
+    assert.equal(await page.getByRole("button", { name: "進行中の対戦へ戻る" }).isVisible(), true);
+    assert.equal(await page.evaluate(() => document.activeElement?.id), "startStandardCpuHome");
+    assert.equal(await page.evaluate(({ key }) => JSON.parse(localStorage.getItem(key)).roomId, { key: connectionKey }), roomId);
+    await page.getByRole("button", { name: "進行中の対戦へ戻る" }).click();
+    assert.equal(await page.locator("body").getAttribute("data-active-tab"), "battle");
+    assert.equal(await page.locator("#room").isVisible(), true);
+    assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "cpu-start").length), 0);
+  });
+});
+
+test("hidden new-match handlers allocate no action and make no RPC while another entry owns the actor", { timeout: 240000 }, async () => {
+  const entryIds = ["createRoom", "joinRoom", "recruitOpponent", "findOpponent"];
+  const entryNames = ["fcg_standard_create_room", "fcg_standard_join_room", "fcg_standard_matchmaking_recruit", "fcg_standard_matchmaking_find"];
+  await withPage("cpuTurn", async (page) => {
+    await page.evaluate(async (ids) => { for (const id of ids) await document.getElementById(id).onclick(); }, entryIds);
+    const evidence = await page.evaluate((names) => ({
+      calls: globalThis.__standardOnlineRuntime.calls.filter((entry) => names.includes(entry.name)),
+      connection: JSON.parse(localStorage.getItem("fourColorMapGame.standard.online.v5.connection")),
+    }), entryNames);
+    assert.equal(evidence.calls.length, 0);
+    assert.equal(evidence.connection.roomId, roomId);
+  });
+  await withPage("lobby", async (page) => {
+    await page.getByRole("button", { name: "10人からCPUを選ぶ" }).click();
+    await page.getByRole("button", { name: "うっかりユズを選んで6枚を確認" }).click();
+    await page.evaluate(async (ids) => { for (const id of ids) await document.getElementById(id).onclick(); }, entryIds);
+    const evidence = await page.evaluate((names) => ({
+      rpcCalls: globalThis.__standardOnlineRuntime.calls.filter((entry) => names.includes(entry.name)),
+      cpuStarts: globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "cpu-start"),
+    }), entryNames);
+    assert.equal(evidence.rpcCalls.length, 0);
+    assert.equal(evidence.cpuStarts.length, 0);
+  });
+  await withPage("cpuWait", async (page) => {
+    assert.equal(await page.locator("#createRoom").isDisabled(), true);
+    assert.equal(await page.locator("#joinRoom").isDisabled(), true);
+    await page.evaluate(async (ids) => { for (const id of ids) await document.getElementById(id).onclick(); }, entryIds);
+    const calls = await page.evaluate((names) => globalThis.__standardOnlineRuntime.calls.filter((entry) => names.includes(entry.name)), entryNames);
+    assert.equal(calls.length, 0);
+  });
+  await withPage("lobby", async (page) => {
+    await page.evaluate(() => { globalThis.__standardOnlineRuntime.failNextFindResponse = true; });
+    await page.getByRole("button", { name: "今入れる試合を探す" }).click();
+    await page.getByText("検索結果を確認できませんでした。同じ検索IDで再試行します。").waitFor();
+    await page.evaluate(async () => {
+      for (const id of ["startStandardCpuHome", "startStandardCpuLobby"]) {
+        const node = document.getElementById(id);
+        await node.onclick({ currentTarget: node });
+      }
+    });
+    const evidence = await page.evaluate(() => ({
+      findCalls: globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.name === "fcg_standard_matchmaking_find").length,
+      cpuCalls: globalThis.__standardOnlineRuntime.calls.filter((entry) => ["cpu-roster", "cpu-start", "setup"].includes(entry.body?.operation)).length,
+      pendingFind: JSON.parse(localStorage.getItem("fourColorMapGame.standard.online.v5.connection")).matchmakingFindActionId,
+    }));
+    assert.equal(evidence.findCalls, 1);
+    assert.equal(evidence.cpuCalls, 0);
+    assert.match(evidence.pendingFind, /^[0-9a-f-]{36}$/i);
+  });
+  for (const kind of ["ticket", "find"]) {
+    await withPage("lobby", async (page) => {
+      await page.getByRole("button", { name: "10人からCPUを選ぶ" }).click();
+      if (kind === "ticket") {
+        await page.evaluate(() => document.getElementById("recruitOpponent").onclick());
+      } else {
+        await page.evaluate(() => {
+          globalThis.__standardOnlineRuntime.failNextFindResponse = true;
+          return document.getElementById("findOpponent").onclick();
+        });
+      }
+      await page.locator("#cpuRosterGrid button").first().evaluate((node) => node.onclick());
+      await page.waitForFunction(() => document.activeElement?.id === "matchmakingStatus");
+      const evidence = await page.evaluate(() => ({
+        cpuWrites: globalThis.__standardOnlineRuntime.calls.filter((entry) => ["cpu-start", "setup"].includes(entry.body?.operation)),
+        connection: JSON.parse(localStorage.getItem("fourColorMapGame.standard.online.v5.connection")),
+        saga: localStorage.getItem("fourColorMapGame.standard.online.v5.cpu-start-saga"),
+        dialogOpen: document.getElementById("cpuRosterDialog").open,
+        activeTab: document.body.dataset.activeTab,
+        statusVisible: Boolean(document.getElementById("matchmakingStatus").offsetParent),
+        activeElement: document.activeElement?.id,
+      }));
+      assert.equal(evidence.cpuWrites.length, 0);
+      assert.equal(evidence.saga, null);
+      assert.equal(Boolean(evidence.connection.matchmakingTicketId), kind === "ticket");
+      assert.equal(Boolean(evidence.connection.matchmakingFindActionId), kind === "find");
+      assert.equal(evidence.dialogOpen, false);
+      assert.equal(evidence.activeTab, "battle");
+      assert.equal(evidence.statusVisible, true);
+      assert.equal(evidence.activeElement, "matchmakingStatus");
+    });
+  }
+  await withPage("cpuSagaFindBlocked", async (page) => {
+    await page.waitForFunction(() => document.activeElement?.id === "matchmakingStatus");
+    await page.evaluate(() => document.getElementById("submitSetup").onclick());
+    const evidence = await page.evaluate(() => ({
+      cpuWrites: globalThis.__standardOnlineRuntime.calls.filter((entry) => ["cpu-start", "setup"].includes(entry.body?.operation)),
+      connection: JSON.parse(localStorage.getItem("fourColorMapGame.standard.online.v5.connection")),
+      saga: JSON.parse(localStorage.getItem("fourColorMapGame.standard.online.v5.cpu-start-saga")),
+      setupHidden: document.getElementById("setupCard").classList.contains("hidden"),
+      activeTab: document.body.dataset.activeTab,
+      statusVisible: Boolean(document.getElementById("matchmakingStatus").offsetParent),
+      activeElement: document.activeElement?.id,
+    }));
+    assert.equal(evidence.cpuWrites.length, 0);
+    assert.match(evidence.connection.matchmakingFindActionId, /^[0-9a-f-]{36}$/i);
+    assert.equal(evidence.saga.stage, "start");
+    assert.equal(evidence.setupHidden, true);
+    assert.equal(evidence.activeTab, "battle");
+    assert.equal(evidence.statusVisible, true);
+    assert.equal(evidence.activeElement, "matchmakingStatus");
   });
 });
 
@@ -1207,6 +1563,7 @@ test("actual Edge waits for one gacha result before handing a waiting player to 
 test("actual Edge safely restores a retained public room from another tab", { timeout: 130000 }, async () => {
   await withPage("handoffReload", async (page) => {
     await page.locator("body[data-active-tab='battle']").waitFor();
+    await page.waitForFunction(() => document.querySelector("#matchedRoomAnnouncement")?.textContent === "成立済みの野良対戦があります。");
     assert.equal(await page.locator("#matchedRoomAnnouncement").textContent(), "成立済みの野良対戦があります。");
     assert.equal(await page.locator("#setupCard").evaluate((node) => node.classList.contains("hidden")), false);
     assert.equal(await page.locator("#matchedRoomHandoff").isVisible(), false);
@@ -1252,8 +1609,8 @@ test("actual Edge resumes a retained quiz after private, CPU, finished-public, a
   }
 });
 
-test("actual Edge preserves paused quiz time across finish, leave, and missing-room cleanup until quiz is opened", { timeout: 240000 }, async () => {
-  for (const cleanup of ["finished", "leave", "missing"]) {
+test("actual Edge preserves paused quiz time across finish and missing-room cleanup until quiz is opened", { timeout: 240000 }, async () => {
+  for (const cleanup of ["finished", "missing"]) {
     await withPage("handoffStart", async (page) => {
       await page.getByRole("button", { name: "対戦相手を募集" }).click();
       await page.getByRole("button", { name: "クイズ・ガチャ", exact: true }).click();
@@ -1270,9 +1627,6 @@ test("actual Edge preserves paused quiz time across finish, leave, and missing-r
           globalThis.__standardOnlineRuntime.onInvalidate?.({});
         });
         await page.locator("#roomStatus").getByText("対戦終了", { exact: true }).waitFor();
-      } else if (cleanup === "leave") {
-        await page.getByRole("button", { name: "この端末でルーム表示を閉じる" }).click();
-        await page.locator("#lobby:not(.hidden)").waitFor();
       } else {
         await page.evaluate(() => {
           globalThis.__standardOnlineRuntime.missingRoom = true;
@@ -1497,8 +1851,11 @@ test("actual Edge keeps a finished CPU room until another CPU is chosen", { time
     assert.equal(await page.evaluate(({ key }) => JSON.parse(localStorage.getItem(key))?.roomId, { key: connectionKey }), roomBeforeCancel);
 
     await chooseAnother.click();
-    await page.getByRole("button", { name: "せっかちレンと対戦" }).click();
+    await page.getByRole("button", { name: "せっかちレンを選んで6枚を確認" }).click();
     await page.locator("#setupCard:not(.hidden)").waitFor();
+    assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "cpu-start").length), 0);
+    await page.getByRole("button", { name: "このCPU・6枚で対戦開始" }).click();
+    await page.locator("#matchCard:not(.hidden)").waitFor();
     assert.equal(await page.locator("#shownCode").textContent(), "CPU：せっかちレン");
     const evidence = await page.evaluate(() => ({
       cpuStarts: globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "cpu-start").map((entry) => entry.body),
@@ -1538,7 +1895,7 @@ test("actual Edge makes the six-card setup explicit, constrained, and keyboard-s
     assert.equal(await page.locator(".loadout-option.is-selected").count(), 6);
     assert.equal(await page.getByText("✓ 持ち込む", { exact: true }).count(), 6);
     assert.equal(await page.locator("#submitSetup").isEnabled(), true);
-    assert.equal(await page.locator("#setupCommitTitle").textContent(), "スターター6枚を選択済み・準備OK");
+    assert.equal(await page.locator("#setupCommitTitle").textContent(), "6枚を選択済み・準備OK");
     const initialCommitLayout = await page.evaluate(() => {
       const bar = document.querySelector("#setupCommitBar").getBoundingClientRect();
       const button = document.querySelector("#submitSetup").getBoundingClientRect();

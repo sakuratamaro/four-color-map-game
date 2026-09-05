@@ -52,16 +52,19 @@ SQL Editorでは内容を全置換し、次を1ファイルずつ順番に実行
 11. `202609050003_standard_debug_room_access.sql`
 12. `202609050004_standard_quiz_answer_feedback.sql`
 13. `202609050005_standard_kurogane_lookahead.sql`
+14. `202609050006_standard_single_active_room.sql`
 
 各実行直後に、そのmigrationが追加する表、関数、列、ACLを `to_regclass`、`to_regprocedure`、`information_schema.columns`、`proacl` で確認する。`SECURITY DEFINER` 関数は空の `search_path`、ブラウザー用RPCは `authenticated` のみ、サーバー用RPCは `service_role` のみであることを確認してから次へ進む。
 
-13本すべての適用後、`supabase/verification/standard_candidate_verify.sql` をSQL Editorで実行する。これは読み取りだけを行い、非公開テーブル、追加列、重要関数、RLS/ACL、制約、トリガー、索引、appearance backfill不一致、クイズ回答RPC、クロガネ旧/new policy境界を一覧化する。全行の `ok` が `true` でなければEdge更新へ進まない。
+`202609050006` の適用直前に、`standard_candidate_verify.sql` の `duplicate_active_actor_state` と同じ読み取りクエリを実行し、同一actorが所属する有効なStandard roomの重複件数が0であることを必須preflightとして記録する。0でなければ `202609050006` を適用せず、既存roomを自動削除・終了せずに個別調査する。
+
+14本すべての適用後、`supabase/verification/standard_candidate_verify.sql` をSQL Editorで実行する。これは読み取りだけを行い、非公開テーブル、追加列、重要関数、RLS/ACL、制約、トリガー、索引、appearance backfill不一致、クイズ回答RPC、クロガネ旧/new policy境界、同一actorの有効Standard room重複件数を一覧化する。`single active Standard room per actor preflight` の `duplicate_actor_count` は引き続き必ず0でなければならない。既存重複は自動削除せず、0でない場合はEdge/Pages適用を止めて個別調査する。全行の `ok` が `true` でなければEdge更新へ進まない。
 
 `202609030012` の適用時にはcleanupを実行しない。定期実行も作らない。`202609030013` の既存プロフィールappearance backfill件数と所要時間を記録し、失敗または長時間ロックならEdge/Pagesへ進まない。
 
 ## EdgeとPagesの順序
 
-1. DB 13本の確認が終わってから `standard-game-action` を更新する。
+1. DB 14本の確認が終わってから `standard-game-action` を更新する。
 2. Pagesを更新する前に `node scripts/live-standard-release-preflight.mjs --expect=db-ready` を実行し、新RPCが権限保護付きで存在する一方、公開UIはまだ旧版であることを確認する。
 3. JWT検証が有効なこと、managed service-role secretの参照だけで値を表示していないことを確認する。
 4. Edgeへ、欠落JWT、改変JWT、正規JWT、プロフィール読取り、見た目catalog、CPU rosterの小さなcanaryを行う。

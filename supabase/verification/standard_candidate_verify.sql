@@ -1,4 +1,4 @@
--- Read-only verification after applying migrations through 202609050005.
+-- Read-only verification after applying migrations through 202609050006.
 -- Expected result: every row has ok = true. This statement performs no writes.
 
 with
@@ -69,7 +69,9 @@ expected_functions(signature, audience) as (
     ('public.fcg_standard_room_snapshot_v2(uuid,bigint)', 'authenticated'),
     ('public.fcg_standard_server_start_quiz_v2(uuid,uuid,uuid,text,integer,jsonb,jsonb,jsonb,timestamptz)', 'service_role'),
     ('public.fcg_standard_server_answer_quiz(uuid,uuid,uuid,integer,text)', 'service_role'),
-    ('public.fcg_standard_server_finish_quiz_v2(uuid,uuid,uuid,jsonb)', 'service_role')
+    ('public.fcg_standard_server_finish_quiz_v2(uuid,uuid,uuid,jsonb)', 'service_role'),
+    ('fcg_private.fcg_standard_guard_member_active_room()', 'private'),
+    ('fcg_private.fcg_standard_guard_room_reactivation()', 'private')
 ),
 function_state as (
   select expected.*,
@@ -118,7 +120,9 @@ constraint_state as (
 expected_triggers(relation_name, trigger_name) as (
   values
     ('fcg_private.standard_cpu_profile_owners', 'fcg_delete_standard_cpu_profile_after_room'),
-    ('public.fcg_standard_profiles', 'fcg_standard_profile_appearance_sync')
+    ('public.fcg_standard_profiles', 'fcg_standard_profile_appearance_sync'),
+    ('public.fcg_room_members', 'fcg_standard_member_single_active_room'),
+    ('public.fcg_rooms', 'fcg_standard_room_reactivation_single_active')
 ),
 trigger_state as (
   select expected.*,
@@ -170,6 +174,19 @@ appearance_state as (
       then profile.profile_state #>> '{equipped,title}' else 'titleNone' end
   )
 ),
+duplicate_active_actor_state as (
+  select count(*)::bigint as duplicate_actor_count
+  from (
+    select member.user_id
+    from public.fcg_room_members member
+    join public.fcg_rooms room on room.id = member.room_id
+    where room.game_mode = 'standard_v5'
+      and room.status in ('waiting', 'ready', 'playing')
+      and room.expires_at > now()
+    group by member.user_id
+    having count(*) > 1
+  ) duplicates
+),
 checks(check_name, ok, detail) as (
   select 'private relation ' || schema_name || '.' || relation_name,
     oid is not null and rls_enabled and not anon_access and not authenticated_access,
@@ -183,7 +200,11 @@ checks(check_name, ok, detail) as (
   union all
   select 'function ' || signature,
     oid is not null and security_definer and empty_search_path and not anon_execute
-      and case audience when 'authenticated' then authenticated_execute else service_execute and not authenticated_execute end,
+      and case audience
+        when 'authenticated' then authenticated_execute
+        when 'service_role' then service_execute and not authenticated_execute
+        else not authenticated_execute and not service_execute
+      end,
     jsonb_build_object('present', oid is not null, 'audience', audience, 'security_definer', security_definer,
       'empty_search_path', empty_search_path, 'anon_execute', anon_execute,
       'authenticated_execute', authenticated_execute, 'service_execute', service_execute)
@@ -217,6 +238,11 @@ checks(check_name, ok, detail) as (
     drift_count = 0,
     jsonb_build_object('drift_count', drift_count)
   from appearance_state
+  union all
+  select 'single active Standard room per actor preflight',
+    duplicate_actor_count = 0,
+    jsonb_build_object('duplicate_actor_count', duplicate_actor_count)
+  from duplicate_active_actor_state
 )
 select check_name, ok, detail
 from checks

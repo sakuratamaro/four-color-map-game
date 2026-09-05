@@ -19,6 +19,8 @@ const QUIZ_PENDING_KEY = "fourColorMapGame.standard.online.v5.pending-quiz";
 const TERMINAL_PRESENTED_KEY = "fourColorMapGame.standard.online.v5.last-terminal-presentation";
 const APP_TAB_KEY = "fourColorMapGame.standard.online.v5.active-tab";
 const CPU_ENTRY_INTENT_KEY = "fourColorMapGame.standard.online.v5.cpu-entry-intent";
+const LOADOUT_DRAFT_KEY = "fourColorMapGame.standard.online.v5.loadout-draft";
+const CPU_START_SAGA_KEY = "fourColorMapGame.standard.online.v5.cpu-start-saga";
 const QUIZ_TIMEOUT_ANSWER = "__timeout__";
 const MATHML_NS = "http://www.w3.org/1998/Math/MathML";
 const SVG_NS = "http://www.w3.org/2000/svg";
@@ -50,6 +52,8 @@ const CPU_NAMES = Object.freeze({
   yuzu: "うっかりユズ", ren: "せっかちレン", minato: "見習いミナト", koharu: "読み違いコハル", aoi: "慎重派アオイ",
   kai: "勝負師カイ", tsubasa: "仕掛け屋ツバサ", shion: "観察役シオン", rei: "カード博士レイ", kurogane: "四色のクロガネ",
 });
+const LOADOUT_CATEGORIES = Object.freeze(["color", "area", "disrupt"]);
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const CPU_FIRST_OFFER_SECONDS = 90;
 const CPU_SECOND_OFFER_SECONDS = 180;
 const RANDOM_REVEAL_DURATION_MS = 2600;
@@ -121,11 +125,58 @@ let cpuRosterCache = null;
 let cpuAcceptBusy = false;
 let cpuRosterOrigin = "fallback";
 let cpuRosterTrigger = null;
+let cpuRosterReplaceRoomId = null;
 let cpuOfferTicketId = null;
 let cpuOfferDismissedStage = 0;
 let cpuOfferAnnouncedStage = 0;
 let cpuActionTimer = null;
 let cpuActionBusy = false;
+let loadoutWorkshopOpen = false;
+let cpuEntryDraft = null;
+let cpuStartSagaBusy = false;
+
+function normalizeLoadout(value, { requireComplete = false, checkOwned = false } = {}) {
+  const result = Object.fromEntries(LOADOUT_CATEGORIES.map((category) => [category, []]));
+  if (!value || typeof value !== "object" || Array.isArray(value)) return requireComplete ? null : result;
+  const currentProfile = profile();
+  for (const category of LOADOUT_CATEGORIES) {
+    if (!Array.isArray(value[category])) return requireComplete ? null : result;
+    const seen = new Set();
+    for (const skillId of value[category]) {
+      const skill = SKILLS.find(([id, , kind]) => id === skillId && kind === category);
+      if (!skill || seen.has(skillId) || (checkOwned && Number(currentProfile?.inventory?.[skillId] || 0) < 1)) continue;
+      seen.add(skillId);
+      result[category].push(skillId);
+    }
+    result[category].sort((left, right) => SKILLS.findIndex(([id]) => id === left) - SKILLS.findIndex(([id]) => id === right));
+    if (requireComplete && result[category].length !== 2) return null;
+    result[category] = result[category].slice(0, 2);
+  }
+  return result;
+}
+
+function restoreLoadoutDraft() {
+  try { return normalizeLoadout(JSON.parse(localStorage.getItem(LOADOUT_DRAFT_KEY) || "null")); }
+  catch { return normalizeLoadout(null); }
+}
+
+function restoreCpuStartSaga() {
+  try {
+    const value = JSON.parse(localStorage.getItem(CPU_START_SAGA_KEY) || "null");
+    const loadout = normalizeLoadout(value?.canonicalLoadout, { requireComplete: true });
+    const stage = value?.stage;
+    const roomId = stage === "setup" && UUID_PATTERN.test(String(value?.roomId)) ? value.roomId : null;
+    const replaceRoomId = value?.replaceRoomId == null ? null : UUID_PATTERN.test(String(value.replaceRoomId)) ? value.replaceRoomId : false;
+    if (!value || !UUID_PATTERN.test(String(value.cpuStartActionId)) || !UUID_PATTERN.test(String(value.setupActionId))
+      || !Object.hasOwn(CPU_NAMES, value.characterId) || !loadout || !["start", "setup"].includes(stage)
+      || replaceRoomId === false || (stage === "setup" && !roomId) || (stage === "start" && value.roomId != null)) return null;
+    return { stage, roomId, replaceRoomId, cpuStartActionId: value.cpuStartActionId, setupActionId: value.setupActionId, characterId: value.characterId, canonicalLoadout: loadout };
+  } catch { return null; }
+}
+
+let nextLoadoutDraft = restoreLoadoutDraft();
+let pendingCpuStartSaga = restoreCpuStartSaga();
+if (pendingCpuStartSaga) nextLoadoutDraft = pendingCpuStartSaga.canonicalLoadout;
 function restoreCpuRewardGachaResult() {
   try {
     const stored = JSON.parse(sessionStorage.getItem(CPU_REWARD_GACHA_RESULT_KEY) || "null");
@@ -215,6 +266,28 @@ function setupFailureMessage() {
 }
 function profile() { return availableProfiles[selectedProfileId] || null; }
 function displayName() { return String(profile()?.displayName || "").trim().slice(0, 20); }
+function persistLoadoutDraft(value) {
+  const normalized = normalizeLoadout(value, { checkOwned: true });
+  nextLoadoutDraft = normalized;
+  try { localStorage.setItem(LOADOUT_DRAFT_KEY, JSON.stringify(normalized)); } catch { /* in-memory draft remains usable */ }
+  return normalized;
+}
+function editorLoadout() {
+  const result = normalizeLoadout(nextLoadoutDraft, { checkOwned: true });
+  for (const category of LOADOUT_CATEGORIES) {
+    for (const [skillId, , kind] of SKILLS) {
+      if (kind === category && Number(profile()?.inventory?.[skillId] || 0) > 0 && !result[category].includes(skillId) && result[category].length < 2) {
+        result[category].push(skillId);
+      }
+    }
+  }
+  return result;
+}
+function persistCpuStartSaga(value) {
+  if (value) localStorage.setItem(CPU_START_SAGA_KEY, JSON.stringify(value));
+  else localStorage.removeItem(CPU_START_SAGA_KEY);
+  pendingCpuStartSaga = value;
+}
 function hasCpuEntryIntent() { return sessionStorage.getItem(CPU_ENTRY_INTENT_KEY) === "direct"; }
 function setCpuEntryIntent(active) { if (active) sessionStorage.setItem(CPU_ENTRY_INTENT_KEY, "direct"); else sessionStorage.removeItem(CPU_ENTRY_INTENT_KEY); }
 function renderProfileCardVisibility() { show("profileCard", activeAppTab !== "battle" || !synced); }
@@ -346,6 +419,17 @@ function focusMatchedRoom() {
   requestAnimationFrame(() => {
     const target = !$('setupCard').classList.contains("hidden") ? $("setupTitle") : $("matchTitle");
     if (target && !target.closest(".hidden, .tab-panel-hidden")) target.focus({ preventScroll: true });
+  });
+}
+
+function focusStartedCpuMatch() {
+  requestAnimationFrame(() => {
+    if (activeAppTab !== "battle" || roomModel?.room?.status !== "playing") return;
+    const target = $("matchTitle");
+    if (!target.closest(".hidden, .tab-panel-hidden")) {
+      target.focus({ preventScroll: true });
+      $("matchCard").scrollIntoView({ block: "start", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+    }
   });
 }
 
@@ -1749,6 +1833,7 @@ function renderLoadout() {
   const grid = $("loadoutGrid");
   const previous = Object.fromEntries(["color", "area", "disrupt"].map((category) => [category, new Set([...document.querySelectorAll(`input[name="loadout-${category}"]:checked`)].map((input) => input.value))]));
   const hadSelection = grid.childElementCount > 0;
+  const initial = hadSelection ? previous : Object.fromEntries(Object.entries(editorLoadout()).map(([category, ids]) => [category, new Set(ids)]));
   grid.replaceChildren();
   for (const category of ["color", "area", "disrupt"]) {
     const section = document.createElement("fieldset"); section.className = "loadout-category";
@@ -1756,7 +1841,7 @@ function renderLoadout() {
     const available = SKILLS.filter(([id, , kind]) => kind === category && (debugMode || (value?.inventory?.[id] || 0) > 0));
     for (const [index, [id, name]] of available.entries()) {
       const label = document.createElement("label"); label.className = "loadout-option";
-      const input = document.createElement("input"); input.type = "checkbox"; input.name = `loadout-${category}`; input.value = id; input.checked = hadSelection ? previous[category].has(id) : index < 2;
+      const input = document.createElement("input"); input.type = "checkbox"; input.name = `loadout-${category}`; input.value = id; input.checked = initial[category].has(id);
       input.setAttribute("aria-label", `${name}を持ち込む`);
       const copy = document.createElement("span"); copy.className = "loadout-option-copy";
       const cardName = document.createElement("strong"); cardName.textContent = name;
@@ -1777,6 +1862,7 @@ function enforceTwo(category, changed) {
     changed.checked = false;
     return renderLoadoutSelectionState(`${CATEGORY_LABEL[category]}は2枚までです。入れ替えるカードを先に外してください。`);
   }
+  persistLoadoutDraft(selectedLoadout());
   renderLoadoutSelectionState();
 }
 function selectedLoadout() {
@@ -1790,16 +1876,39 @@ function renderLoadoutSelectionState(message = "") {
   const total = Object.values(counts).reduce((sum, count) => sum + count, 0);
   const remaining = Math.max(0, 6 - total);
   const ready = validLoadout(loadout);
+  const snapshot = client.snapshot();
+  const cpuDraft = pendingCpuStartSaga || cpuEntryDraft;
+  const roomlessWorkshop = !snapshot.roomId && loadoutWorkshopOpen && !cpuDraft;
+  const cpuName = cpuDraft ? CPU_NAMES[cpuDraft.characterId] || "CPU" : "";
+  const actionPending = setupBusy || cpuStartSagaBusy;
+  const inputFrozen = actionPending || Boolean(pendingCpuStartSaga);
   $("loadoutSummary").textContent = message || `選択 ${total}/6｜色 ${counts.color}/2｜エリア ${counts.area}/2｜妨害 ${counts.disrupt}/2${remaining ? `｜あと${remaining}枚` : "｜準備OK"}`;
   $("loadoutSummary").classList.toggle("is-complete", ready);
-  $("setupCommitTitle").textContent = setupBusy ? "6枚を確認しています…" : ready ? "スターター6枚を選択済み・準備OK" : `あと${remaining}枚を選ぶと準備できます`;
+  $("setupTitle").textContent = cpuDraft ? `${cpuName}戦で使う6枚を確認` : roomlessWorkshop ? "次の対戦で使う6枚" : "対戦で使う6枚";
+  $("setupDescription").textContent = roomlessWorkshop
+    ? "ここで選んだ6枚を、この端末の次の対戦候補として保存します。まだ対戦やルームは始まりません。"
+    : cpuDraft
+      ? "各カテゴリ2枚・合計6枚を確認し、最後のボタンを押した時だけCPU対戦を作成します。"
+      : "色は塗り方、エリアは形や大きさ、妨害は相手への働きかけを担当します。3つの役割を使えるよう、各2枚・合計6枚を選びます。";
+  show("cpuStartReview", Boolean(cpuDraft));
+  if (cpuDraft) $("cpuStartReview").textContent = pendingCpuStartSaga
+    ? `CPU「${cpuName}」とこの6枚で開始処理を再確認しています。選択内容は完了まで変更されません。`
+    : `対戦相手：CPU「${cpuName}」。この画面ではまだ対戦は始まっていません。`;
+  $("setupCommitTitle").textContent = actionPending ? "開始結果を安全に確認しています…" : ready ? "6枚を選択済み・準備OK" : `あと${remaining}枚を選ぶと準備できます`;
   $("setupCommitBar").classList.toggle("is-ready", ready);
   for (const input of document.querySelectorAll('#loadoutGrid input[type="checkbox"]')) {
     const label = input.closest(".loadout-option");
     label?.classList.toggle("is-selected", input.checked);
     label?.querySelector(".loadout-choice-state")?.replaceChildren(document.createTextNode(input.checked ? "✓ 持ち込む" : "持ち込まない"));
+    input.disabled = inputFrozen;
   }
-  $("submitSetup").disabled = setupBusy || !ready;
+  $("submitSetup").textContent = cpuDraft
+    ? pendingCpuStartSaga ? "同じ開始処理を再確認" : `このCPU・6枚で対戦開始`
+    : roomlessWorkshop ? "この6枚を次戦候補に保存" : snapshot.setupRevision > 0 ? "変更した6枚で準備し直す" : "この6枚で準備完了";
+  $("submitSetup").disabled = actionPending || !ready;
+  show("cancelCpuDraft", Boolean(cpuEntryDraft) && !pendingCpuStartSaga);
+  const debugOption = $("debugUnlimitedMode")?.closest("label");
+  if (debugOption) debugOption.classList.toggle("hidden", Boolean(cpuDraft) || roomlessWorkshop);
 }
 
 async function refreshRoom(_reason, expectedRoomId = client.snapshot().roomId) {
@@ -1899,6 +2008,31 @@ function render() {
   renderProfileCardVisibility();
   renderMatchedRoomHandoff();
   const snapshot = client.snapshot();
+  const cpuDraft = pendingCpuStartSaga || cpuEntryDraft;
+  const matchmakingEntryActive = Boolean(snapshot.matchmakingTicketId || snapshot.matchmakingFindActionId);
+  const authoritativeRoomLoaded = Boolean(snapshot.roomId && roomModel?.room?.id === snapshot.roomId);
+  const roomStatePending = Boolean(snapshot.roomId && !authoritativeRoomLoaded);
+  const roomFinished = roomModel?.room?.status === "finished";
+  const replacesShownFinishedCpu = Boolean(roomFinished && roomModel?.room?.opponent_kind === "cpu" && (
+    (pendingCpuStartSaga?.stage === "start" && pendingCpuStartSaga.replaceRoomId === snapshot.roomId)
+    || cpuEntryDraft?.replaceRoomId === snapshot.roomId
+  ));
+  const cpuDraftOwnsRoomlessEntry = Boolean(cpuDraft && !matchmakingEntryActive && (
+    !snapshot.roomId
+    || (pendingCpuStartSaga?.stage === "setup" && pendingCpuStartSaga.roomId === snapshot.roomId)
+    || replacesShownFinishedCpu
+  ));
+  const activeRoom = Boolean(snapshot.roomId && !roomFinished);
+  $("startStandardCpuHome").textContent = cpuDraftOwnsRoomlessEntry
+    ? "CPU戦の開始確認へ戻る"
+    : !snapshot.roomId
+    ? "CPUとすぐStandard対戦"
+    : roomFinished ? "対戦結果を見る" : "進行中の対戦へ戻る";
+  $("editNextLoadout").textContent = cpuDraftOwnsRoomlessEntry
+    ? "CPU戦の開始確認へ戻る"
+    : activeRoom ? "進行中の対戦へ戻る" : roomFinished ? "対戦結果を見る" : "次の対戦用6枚を編集";
+  document.querySelector('.home-actions [data-tab-jump="battle"]')?.classList.toggle("hidden", cpuDraftOwnsRoomlessEntry);
+  document.querySelector(".mode-callout")?.classList.toggle("hidden", cpuDraftOwnsRoomlessEntry);
   show("quizPanel", synced && Boolean(profile()));
   renderQuiz();
   show("gachaPanel", synced && Boolean(profile()));
@@ -1908,15 +2042,31 @@ function render() {
   show("progressionPanel", synced && Boolean(profile()));
   show("cosmeticPanel", synced && Boolean(profile()));
   renderCosmetics();
-  show("lobby", synced && !snapshot.roomId);
+  show("lobby", synced && !snapshot.roomId && !cpuDraftOwnsRoomlessEntry);
   renderMatchmaking();
   show("room", Boolean(snapshot.roomId));
-  const setupVisible = Boolean(snapshot.roomId) && Boolean(profile()) && !["playing", "finished"].includes(roomModel?.room?.status);
+  const setupVisible = Boolean(profile()) && !roomStatePending && ((Boolean(snapshot.roomId) && !["playing", "finished"].includes(roomModel?.room?.status))
+    || cpuDraftOwnsRoomlessEntry || (!snapshot.roomId && loadoutWorkshopOpen && !matchmakingEntryActive));
   show("setupCard", setupVisible);
   document.body.classList.toggle("setup-active", setupVisible);
-  show("matchCard", ["playing", "finished"].includes(roomModel?.room?.status));
-  show("rematchControls", roomModel?.room?.status === "finished");
-  if (!snapshot.roomId) { renderTerminalResult(null); return; }
+  show("matchCard", !cpuDraftOwnsRoomlessEntry && ["playing", "finished"].includes(roomModel?.room?.status));
+  show("rematchControls", !cpuDraftOwnsRoomlessEntry && roomModel?.room?.status === "finished");
+  if (!snapshot.roomId) {
+    if (setupVisible) renderLoadoutSelectionState();
+    renderTerminalResult(null);
+    return;
+  }
+  if (roomStatePending) {
+    $("shownCode").textContent = "確認中";
+    $("roomStatus").textContent = "対戦状態を確認中";
+    $("members").replaceChildren();
+    $("waitingMessage").textContent = "対戦状態を確認しています。操作せず、そのままお待ちください。";
+    $("leaveRoom").textContent = "画面だけ閉じる（対戦は継続）";
+    $("requestRematch").disabled = true;
+    operationFeedback("setupStatus", "");
+    renderTerminalResult(null);
+    return;
+  }
   const cpuRoom = roomModel?.room?.opponent_kind === "cpu";
   show("chooseDifferentCpu", cpuRoom && roomModel?.room?.status === "finished");
   const accessMode = roomModel?.room?.access_mode || (snapshot.roomCode ? "private_code" : "public_queue");
@@ -1931,6 +2081,7 @@ function render() {
   $("seatBadge").textContent = roomModel?.view?.seat ? `Player ${roomModel.view.seat}` : "席確認中";
   const debugMatch = roomModel?.room?.public_state?.debugUnlimitedSkills === true;
   $("roomStatus").textContent = `${ROOM_STATUS_LABEL[roomModel?.room?.status] || "読み込み中"}${debugMatch ? "・デバッグ∞" : ""}`;
+  $("leaveRoom").textContent = roomModel?.room?.status === "finished" ? "結果を閉じてロビーへ" : "画面だけ閉じる（対戦は継続）";
   const rematchPending = snapshot.rematchExpectedVersion === roomModel?.room?.version;
   $("requestRematch").textContent = rematchPending ? "同じ再戦申請を再送" : cpuRoom ? "同じCPUと再戦する" : "再戦を申し込む";
   $("requestRematch").disabled = rematchBusy || roomModel?.room?.status !== "finished";
@@ -1944,10 +2095,11 @@ function render() {
     return node;
   }));
   const setupReady = client.snapshot().setupRevision > 0;
-  const roomFinished = roomModel?.room?.status === "finished";
   $("waitingMessage").textContent = roomFinished
     ? "対戦は終了しました。下の勝敗理由と再戦メニューを確認してください。"
-    : setupReady ? "あなたは準備完了です。相手の準備を待っています。" : "対戦で使う6枚を決めて、準備完了にしてください。";
+    : roomModel?.room?.status === "playing"
+      ? cpuRoom ? "CPUとの対戦中です。盤面と手番案内を確認してください。" : "対戦中です。盤面と手番案内を確認してください。"
+      : setupReady ? "あなたは準備完了です。相手の準備を待っています。" : "対戦で使う6枚を決めて、準備完了にしてください。";
   const currentSetupFailure = setupFailureMessage();
   operationFeedback("setupStatus", roomFinished ? "" : currentSetupFailure || (setupReady
     ? "準備完了。相手を待っています。開始前なら6枚を変更できます。"
@@ -2365,13 +2517,14 @@ function renderMatchmaking() {
   if (!$("matchmakingPanel")) return;
   const snapshot = client.snapshot();
   const searching = Boolean(snapshot.matchmakingTicketId) && !snapshot.roomId;
-  const cpuStartPending = Boolean(snapshot.cpuStartActionId && snapshot.cpuStartCharacterId);
-  $("startStandardCpuLobby").disabled = matchmakingBusy || cpuAcceptBusy || searching;
+  const cpuStartPending = Boolean(snapshot.cpuStartActionId && snapshot.cpuStartCharacterId) || Boolean(cpuEntryDraft || pendingCpuStartSaga);
+  const newMatchBlocked = Boolean(snapshot.roomId || searching || snapshot.matchmakingFindActionId || cpuStartPending);
+  $("startStandardCpuLobby").disabled = matchmakingBusy || cpuAcceptBusy || searching || Boolean(snapshot.matchmakingFindActionId);
   $("startStandardCpuLobby").title = searching ? "募集を取り消すか、90秒後のCPU提案を選んでください。" : "";
-  $("createRoom").disabled = cpuStartPending;
-  $("joinRoom").disabled = cpuStartPending;
-  $("recruitOpponent").disabled = matchmakingBusy || searching || cpuStartPending;
-  $("findOpponent").disabled = matchmakingBusy || searching || cpuStartPending;
+  $("createRoom").disabled = newMatchBlocked;
+  $("joinRoom").disabled = newMatchBlocked;
+  $("recruitOpponent").disabled = matchmakingBusy || newMatchBlocked;
+  $("findOpponent").disabled = matchmakingBusy || newMatchBlocked;
   show("cancelMatchmaking", searching);
   $("cancelMatchmaking").disabled = matchmakingBusy;
   show("matchmakingWait", searching);
@@ -2379,9 +2532,44 @@ function renderMatchmaking() {
   else show("cpuOpponentOffer", false);
 }
 
+function newMatchEntryBlock({ allowFindResume = false, allowCpuOwner = false, replaceRoomId = null, allowOwnedSagaRoom = false } = {}) {
+  const snapshot = client.snapshot();
+  if (replaceRoomId && replaceRoomId !== snapshot.roomId) return { kind: "cpu" };
+  const ownsSagaRoom = allowOwnedSagaRoom && pendingCpuStartSaga?.stage === "setup" && pendingCpuStartSaga.roomId === snapshot.roomId;
+  const replaceableFinishedRoom = UUID_PATTERN.test(String(replaceRoomId)) && replaceRoomId === snapshot.roomId
+    && roomModel?.room?.id === snapshot.roomId
+    && roomModel.room.status === "finished" && roomModel.room.opponent_kind === "cpu";
+  if (snapshot.roomId && !ownsSagaRoom && !replaceableFinishedRoom) return { kind: "room" };
+  if (!allowCpuOwner && (pendingCpuStartSaga || cpuEntryDraft || (snapshot.cpuStartActionId && snapshot.cpuStartCharacterId))) return { kind: "cpu" };
+  if (snapshot.matchmakingTicketId) return { kind: "ticket" };
+  if (snapshot.matchmakingFindActionId && !allowFindResume) return { kind: "find" };
+  return null;
+}
+
+function guardNewMatchEntry(options = {}) {
+  const block = newMatchEntryBlock(options);
+  if (!block) return false;
+  if ($("cpuRosterDialog").open) $("cpuRosterDialog").close();
+  activateAppTab("battle");
+  render();
+  if (block.kind === "room" || block.kind === "cpu") {
+    focusMatchedRoom();
+    toast(block.kind === "room" ? "新しい対戦は作らず、保存済みの対戦へ戻りました。" : "新しい対戦は作らず、CPU戦の開始確認へ戻りました。");
+  } else if (block.kind === "ticket") {
+    operationFeedback("matchmakingStatus", "対戦相手を募集中です。新しい対戦を始めるには、先に募集を取り消してください。");
+    revealOperationFeedback("matchmakingStatus");
+    requestAnimationFrame(() => $("matchmakingStatus").focus({ preventScroll: true }));
+  } else {
+    operationFeedback("matchmakingStatus", "直前の検索結果を同じ検索IDで確認中です。新しい検索は開始しません。");
+    revealOperationFeedback("matchmakingStatus");
+    requestAnimationFrame(() => $("matchmakingStatus").focus({ preventScroll: true }));
+  }
+  return true;
+}
+
 function renderCpuRoster(characters) {
   const grid = $("cpuRosterGrid"); grid.replaceChildren();
-  const pendingCharacter = cpuRosterOrigin === "direct" ? client.snapshot().cpuStartCharacterId : null;
+  const pendingCharacter = cpuRosterOrigin === "direct" ? pendingCpuStartSaga?.characterId || client.snapshot().cpuStartCharacterId : null;
   for (const character of characters) {
     const item = document.createElement("article"); item.className = "cpu-character-card";
     const title = document.createElement("h3"); title.textContent = character.name;
@@ -2391,7 +2579,7 @@ function renderCpuRoster(characters) {
     const favorites = document.createElement("p"); favorites.className = "muted small";
     favorites.textContent = `よく使う：${(character.favorites || []).map((id) => SKILL_META[id]?.name || id).join("・")}`;
     const retrying = pendingCharacter === character.id;
-    const choose = button(retrying ? `${character.name}との開始を再確認` : `${character.name}と対戦`, () => acceptCpuCharacter(character), "primary");
+    const choose = button(retrying ? `${character.name}との開始を再確認` : cpuRosterOrigin === "direct" ? `${character.name}を選んで6枚を確認` : `${character.name}と対戦`, () => acceptCpuCharacter(character), "primary");
     choose.type = "button"; choose.disabled = cpuAcceptBusy || Boolean(pendingCharacter && !retrying);
     item.append(title, line, strength, weakness, favorites, choose); grid.appendChild(item);
   }
@@ -2412,6 +2600,7 @@ async function openCpuRoster(origin = "fallback", trigger = document.activeEleme
   }
   cpuRosterOrigin = origin;
   cpuRosterTrigger = trigger instanceof HTMLElement ? trigger : null;
+  cpuRosterReplaceRoomId = replacingFinishedCpu ? snapshot.roomId : null;
   $("cpuRosterTitle").textContent = origin === "direct" ? "Standard CPU対戦 — 相手を選ぶ" : "待ち時間をCPU戦へ切り替える";
   $("cpuRosterDescription").textContent = origin === "direct"
     ? "正式6枚のStandardルールで対戦します。CPUを選ぶまで対戦は始まりません。"
@@ -2425,9 +2614,11 @@ async function openCpuRoster(origin = "fallback", trigger = document.activeEleme
     if (!Array.isArray(result?.characters) || result.characters.length !== 10) throw new Error("INVALID_CPU_ROSTER");
     cpuRosterCache = result;
     renderCpuRoster(result.characters);
-    $("cpuRosterStatus").textContent = client.snapshot().cpuStartCharacterId
+    $("cpuRosterStatus").textContent = pendingCpuStartSaga || client.snapshot().cpuStartCharacterId
       ? "前回選んだ同じCPUで、開始結果を安全に再確認できます。"
-      : "選択したCPUだけが対戦相手になります。人間として表示されることはありません。";
+      : origin === "direct"
+        ? "CPUを選んだ後に6枚を確認します。この画面の選択だけでは対戦は始まりません。"
+        : "選択したCPUだけが対戦相手になります。人間として表示されることはありません。";
   } catch (error) {
     $("cpuRosterStatus").textContent = "CPU一覧を読み込めませんでした。閉じてからもう一度お試しください。";
     toast(error.message || "CPU一覧を読み込めませんでした。");
@@ -2436,12 +2627,22 @@ async function openCpuRoster(origin = "fallback", trigger = document.activeEleme
 
 async function acceptCpuCharacter(character) {
   if (cpuAcceptBusy || (cpuRosterOrigin === "fallback" && !client.snapshot().matchmakingTicketId)) return;
+  if (cpuRosterOrigin === "direct") {
+    if (guardNewMatchEntry({ replaceRoomId: cpuRosterReplaceRoomId })) return;
+    cpuEntryDraft = { characterId: character.id, replaceRoomId: cpuRosterReplaceRoomId };
+    loadoutWorkshopOpen = false;
+    setCpuEntryIntent(false);
+    if ($("cpuRosterDialog").open) $("cpuRosterDialog").close();
+    activateAppTab("battle");
+    renderLoadout();
+    render();
+    requestAnimationFrame(() => { $("setupTitle").focus({ preventScroll: true }); $("setupCard").scrollIntoView({ block: "start" }); });
+    return;
+  }
   cpuAcceptBusy = true; renderCpuRoster(cpuRosterCache?.characters || []);
   $("cpuRosterStatus").textContent = `${character.name}との対戦をサーバーで準備しています…`;
   try {
-    const result = cpuRosterOrigin === "direct"
-      ? await client.startCpuOpponent({ characterId: character.id })
-      : await client.acceptCpuOpponent({ characterId: character.id });
+    const result = await client.acceptCpuOpponent({ characterId: character.id });
     setCpuEntryIntent(false);
     const actualCpuName = CPU_NAMES[result.characterId] || character.name;
     const message = result.opponentKind === "human"
@@ -2453,9 +2654,7 @@ async function acceptCpuCharacter(character) {
       const status = await client.readMatchmakingStatus().catch(() => null);
       if (status?.matchmaking_status === "matched") return await enterPublicMatch("同時に人間の対戦相手が見つかりました。6枚セットを選んでください。");
     }
-    $("cpuRosterStatus").textContent = cpuRosterOrigin === "direct"
-      ? "開始結果を確認できませんでした。選んだ同じCPUで安全に再確認できます。"
-      : "CPU対戦を開始できませんでした。募集状態を確認しながら安全に再試行できます。";
+    $("cpuRosterStatus").textContent = "CPU対戦を開始できませんでした。募集状態を確認しながら安全に再試行できます。";
     toast(error.message || "CPU対戦を開始できませんでした。");
   } finally {
     cpuAcceptBusy = false;
@@ -2464,9 +2663,25 @@ async function acceptCpuCharacter(character) {
   }
 }
 
-async function beginImmediateCpuEntry(trigger = document.activeElement) {
+async function beginImmediateCpuEntry(trigger = document.activeElement, { replaceFinished = false } = {}) {
+  if (pendingCpuStartSaga || cpuEntryDraft) {
+    activateAppTab("battle");
+    render();
+    focusMatchedRoom();
+    return;
+  }
+  const entryBlock = newMatchEntryBlock();
+  if (entryBlock?.kind === "ticket" || entryBlock?.kind === "find") {
+    guardNewMatchEntry();
+    return;
+  }
   setCpuEntryIntent(true);
   activateAppTab("battle");
+  if (client.snapshot().roomId && (!replaceFinished || roomModel?.room?.status !== "finished")) {
+    setCpuEntryIntent(false);
+    focusMatchedRoom();
+    return toast(roomModel?.room?.status === "finished" ? "対戦結果へ戻りました。" : "進行中の対戦へ戻りました。");
+  }
   if (!connected) return toast("接続を準備しています。接続後にもう一度お試しください。");
   if (!profile()) {
     $("starterName").focus();
@@ -2474,6 +2689,93 @@ async function beginImmediateCpuEntry(trigger = document.activeElement) {
   }
   if (!synced) return syncSelectedProfile();
   return openCpuRoster("direct", trigger);
+}
+
+async function runPendingCpuStartSaga({ focusOnSuccess = false } = {}) {
+  if (cpuStartSagaBusy || !pendingCpuStartSaga) return false;
+  if (guardNewMatchEntry({ allowCpuOwner: true, allowOwnedSagaRoom: true, replaceRoomId: pendingCpuStartSaga.replaceRoomId })) return false;
+  let saga = pendingCpuStartSaga;
+  cpuStartSagaBusy = true;
+  operationFeedback("setupStatus", saga.stage === "setup"
+    ? "作成済みCPU戦へ、同じ6枚確認IDだけを再送しています…"
+    : "CPU対戦の開始結果を同じ処理IDで確認しています…");
+  renderLoadoutSelectionState();
+  try {
+    if (saga.stage === "start") {
+      const result = await client.startCpuOpponent({ actionId: saga.cpuStartActionId, characterId: saga.characterId });
+      if (result.startStatus === "recovered_existing") {
+        persistCpuStartSaga(null);
+        cpuEntryDraft = null;
+        loadoutWorkshopOpen = false;
+        setCpuEntryIntent(false);
+        const actualName = CPU_NAMES[result.characterId] || "対戦相手";
+        await enterPublicMatch(result.opponentKind === "cpu"
+          ? `新しい対戦は作らず、進行中のCPU「${actualName}」戦へ戻りました。`
+          : "新しいCPU戦は作らず、先に成立していた対人戦へ戻りました。");
+        if (focusOnSuccess) focusMatchedRoom();
+        toast("進行中の対戦を復元しました。新しい6枚は送信していません。");
+        return true;
+      }
+      if (!["created", "duplicate"].includes(result.startStatus)) throw new Error("INVALID_CPU_START_STATUS");
+      saga = { ...saga, stage: "setup", roomId: result.roomId };
+      persistCpuStartSaga(saga);
+    }
+    await roomSync.start(saga.roomId);
+    await client.submitSetup({
+      roomId: saga.roomId,
+      expectedSetupRevision: 0,
+      setupActionId: saga.setupActionId,
+      loadout: saga.canonicalLoadout,
+      debugMode: false,
+    });
+    nextLoadoutDraft = saga.canonicalLoadout;
+    try { localStorage.setItem(LOADOUT_DRAFT_KEY, JSON.stringify(nextLoadoutDraft)); } catch { /* confirmed setup remains authoritative */ }
+    persistCpuStartSaga(null);
+    cpuEntryDraft = null;
+    loadoutWorkshopOpen = false;
+    setCpuEntryIntent(false);
+    const actualName = CPU_NAMES[saga.characterId] || "CPU";
+    await enterPublicMatch(`CPU「${actualName}」と確認した6枚で対戦を開始します。`);
+    await roomSync.refreshNow();
+    if (focusOnSuccess) focusStartedCpuMatch();
+    toast("CPUと6枚を確認し、対戦を一度だけ開始しました。");
+    return true;
+  } catch (error) {
+    const message = error?.message || "CPU対戦の開始結果を確認できませんでした。同じ開始処理を再送できます。";
+    const roomId = client.snapshot().roomId;
+    if (roomId) setupFailure = { roomId, message };
+    operationFeedback("setupStatus", message, "error");
+    revealOperationFeedback("setupStatus");
+    toast(message);
+    return false;
+  } finally {
+    cpuStartSagaBusy = false;
+    render();
+  }
+}
+
+async function commitCpuStartDraft() {
+  const replaceRoomId = pendingCpuStartSaga?.replaceRoomId || cpuEntryDraft?.replaceRoomId || null;
+  if (guardNewMatchEntry({ allowCpuOwner: true, replaceRoomId, allowOwnedSagaRoom: true })) return;
+  if (pendingCpuStartSaga) return runPendingCpuStartSaga({ focusOnSuccess: true });
+  if (!cpuEntryDraft || client.snapshot().roomId && roomModel?.room?.status !== "finished") return;
+  const canonicalLoadout = normalizeLoadout(selectedLoadout(), { requireComplete: true, checkOwned: true });
+  if (!canonicalLoadout) return toast("各カテゴリから所持カードを2枚ずつ選んでください。");
+  persistLoadoutDraft(canonicalLoadout);
+  const saga = {
+    stage: "start",
+    roomId: null,
+    replaceRoomId: cpuEntryDraft.replaceRoomId || null,
+    cpuStartActionId: crypto.randomUUID(),
+    setupActionId: crypto.randomUUID(),
+    characterId: cpuEntryDraft.characterId,
+    canonicalLoadout,
+  };
+  try { persistCpuStartSaga(saga); }
+  catch {
+    return toast("開始内容をこの端末へ保存できないため、対戦はまだ始めていません。空き容量やブラウザー設定を確認してください。");
+  }
+  return runPendingCpuStartSaga({ focusOnSuccess: true });
 }
 
 async function resumePendingCpuStart() {
@@ -2504,7 +2806,7 @@ function keepWaitingForHuman() {
 }
 
 async function recruitPublicOpponent() {
-  if (matchmakingBusy || !profile()) return;
+  if (guardNewMatchEntry() || matchmakingBusy || !profile()) return;
   matchmakingBusy = true; $("matchmakingStatus").textContent = "募集をサーバーへ登録しています…"; renderMatchmaking();
   try {
     const result = await client.recruitOpponent({ displayName: displayName() });
@@ -2518,8 +2820,8 @@ async function recruitPublicOpponent() {
   } finally { matchmakingBusy = false; render(); }
 }
 
-async function findPublicOpponent() {
-  if (matchmakingBusy || !profile()) return;
+async function findPublicOpponent({ resumePending = false } = {}) {
+  if (guardNewMatchEntry({ allowFindResume: resumePending }) || matchmakingBusy || !profile()) return;
   matchmakingBusy = true; $("matchmakingStatus").textContent = "今入れる試合を探しています…"; renderMatchmaking();
   try {
     const result = await client.findOpponent({ displayName: displayName() });
@@ -2546,8 +2848,37 @@ async function cancelPublicMatchmaking() {
   } finally { matchmakingBusy = false; render(); }
 }
 
-async function createRoom() { try { await client.createRoom(displayName()); await roomSync.start(client.snapshot().roomId); } catch (error) { toast(error.message); } }
-async function joinRoom() { try { await client.joinRoom({ roomCode: $("roomCode").value, displayName: displayName() }); await roomSync.start(client.snapshot().roomId); } catch (error) { toast(error.message); } }
+async function createRoom() {
+  if (guardNewMatchEntry()) return;
+  try { await client.createRoom(displayName()); await roomSync.start(client.snapshot().roomId); } catch (error) { toast(error.message); }
+}
+async function joinRoom() {
+  if (guardNewMatchEntry()) return;
+  try { await client.joinRoom({ roomCode: $("roomCode").value, displayName: displayName() }); await roomSync.start(client.snapshot().roomId); } catch (error) { toast(error.message); }
+}
+function openLoadoutWorkshop() {
+  if (client.snapshot().roomId) {
+    activateAppTab("battle");
+    focusMatchedRoom();
+    return toast(roomModel?.room?.status === "finished" ? "対戦結果へ戻りました。結果を閉じると次戦用6枚を編集できます。" : "進行中の対戦へ戻りました。");
+  }
+  cpuEntryDraft = null;
+  loadoutWorkshopOpen = true;
+  activateAppTab("cards", { scrollTop: false });
+  renderLoadout();
+  render();
+  requestAnimationFrame(() => { $("setupTitle").focus({ preventScroll: true }); $("setupCard").scrollIntoView({ block: "start" }); });
+}
+
+function saveLoadoutWorkshopDraft() {
+  const loadout = normalizeLoadout(selectedLoadout(), { requireComplete: true, checkOwned: true });
+  if (!loadout) return toast("各カテゴリから所持カードを2枚ずつ選んでください。");
+  persistLoadoutDraft(loadout);
+  operationFeedback("setupStatus", "この端末の次戦候補として6枚を保存しました。対戦やルームはまだ始まっていません。");
+  toast("次の対戦用6枚を保存しました。");
+  renderLoadoutSelectionState();
+}
+
 async function submitSetup() {
   const loadout = selectedLoadout(); if (!validLoadout(loadout)) return toast("各カテゴリから2枚ずつ選んでください。");
   const startingRoomStatus = roomModel?.room?.status;
@@ -2569,6 +2900,45 @@ async function submitSetup() {
     toast(message);
   }
   finally { setupBusy = false; renderLoadoutSelectionState(); }
+}
+
+function submitCurrentLoadoutContext() {
+  if (pendingCpuStartSaga || cpuEntryDraft) return commitCpuStartDraft();
+  if (!client.snapshot().roomId && loadoutWorkshopOpen) return saveLoadoutWorkshopDraft();
+  return submitSetup();
+}
+
+function cancelCpuDraft() {
+  if (pendingCpuStartSaga || cpuStartSagaBusy) return;
+  cpuEntryDraft = null;
+  render();
+  openCpuRoster("direct", $("startStandardCpuLobby"));
+}
+
+function closeDisplayedRoom() {
+  if (!client.snapshot().roomId) return;
+  if (roomModel?.room?.status !== "finished") {
+    activateAppTab("home");
+    render();
+    $("startStandardCpuHome").focus({ preventScroll: true });
+    return toast("対戦は継続しています。『進行中の対戦へ戻る』から再開できます。");
+  }
+  clearContactReveal();
+  clearCpuRewardGachaResult();
+  stopCpuTurnWatch();
+  roomSync.stop();
+  client.clearRoom();
+  roomModel = null;
+  setupFailure = null;
+  pendingAction = null;
+  matchedRoomHandoff = null;
+  announcedMatchedRoomId = null;
+  $("matchedRoomAnnouncement").textContent = "";
+  clearTimeout(matchedRoomHandoffTimer);
+  matchedRoomHandoffTimer = null;
+  operationFeedback("setupStatus", "");
+  operationFeedback("actionStatus", "");
+  render();
 }
 async function requestRematch() {
   if (rematchBusy || roomModel?.room?.status !== "finished") return;
@@ -2635,6 +3005,7 @@ $("cardSaleQuote").onclick = quoteOnlineCardSale;
 $("cardSaleCommit").onclick = () => commitOnlineCardSale(false);
 $("cardSaleRetry").onclick = () => commitOnlineCardSale(true);
 $("cardSaleReset").onclick = clearCardSaleDraft;
+$("editNextLoadout").onclick = openLoadoutWorkshop;
 $("refreshCosmetics").onclick = () => refreshOnlineCosmetics();
 $("cosmeticCommit").onclick = commitOnlineCosmetic;
 $("cosmeticRetry").onclick = commitOnlineCosmetic;
@@ -2657,14 +3028,15 @@ $("cpuRosterDialog").addEventListener("close", () => {
 });
 $("roomCode").oninput = () => { $("roomCode").value = $("roomCode").value.replace(/\s/g, "").toUpperCase().slice(0, 6); };
 $("debugUnlimitedMode").onchange = renderLoadout;
-$("submitSetup").onclick = submitSetup;
+$("submitSetup").onclick = submitCurrentLoadoutContext;
+$("cancelCpuDraft").onclick = cancelCpuDraft;
 $("board").addEventListener("pointerdown", boardPointer);
 $("clearSelection").onclick = () => { selectedMacros.clear(); render(); };
 $("submitRegion").onclick = () => sendAction("CREATE_REGION", { sourceMacros: [...selectedMacros].sort((a, b) => a - b) });
 $("surrender").onclick = () => sendAction("SURRENDER");
 $("retryAction").onclick = () => pendingAction && sendAction(pendingAction.type, pendingAction.payload, true);
 $("requestRematch").onclick = requestRematch;
-$("chooseDifferentCpu").onclick = (event) => beginImmediateCpuEntry(event.currentTarget);
+$("chooseDifferentCpu").onclick = (event) => beginImmediateCpuEntry(event.currentTarget, { replaceFinished: true });
 $("closeSkillInfo").onclick = () => $("skillInfoDialog").close();
 $("terminalGoGacha").onclick = () => {
   const origin = terminalCpuRewardGachaCandidate ? { ...terminalCpuRewardGachaCandidate } : null;
@@ -2676,7 +3048,7 @@ $("terminalClose").onclick = () => {
   dismissTerminalResult();
   $("requestRematch").focus({ preventScroll: false });
 };
-$("leaveRoom").onclick = () => { clearContactReveal(); clearCpuRewardGachaResult(); stopCpuTurnWatch(); roomSync.stop(); client.clearRoom(); roomModel = null; setupFailure = null; pendingAction = null; matchedRoomHandoff = null; announcedMatchedRoomId = null; $("matchedRoomAnnouncement").textContent = ""; clearTimeout(matchedRoomHandoffTimer); matchedRoomHandoffTimer = null; operationFeedback("setupStatus", ""); operationFeedback("actionStatus", ""); render(); };
+$("leaveRoom").onclick = closeDisplayedRoom;
 document.addEventListener("visibilitychange", () => {
   roomSync.handleVisibilityChange();
   if (document.visibilityState === "hidden") { stopMatchmakingWatch(); stopCpuTurnWatch(); }
@@ -2711,9 +3083,16 @@ try {
       queueMatchedRoomHandoff("成立済みの野良対戦があります。");
       if (pendingQuiz && !pendingQuiz.pendingAnswer) markQuizBoundaryForMatchedRoom();
     }
+    if (pendingCpuStartSaga) {
+      if (client.snapshot().setupRevision > 0 && ["ready", "playing"].includes(roomModel?.room?.status)) {
+        persistCpuStartSaga(null);
+        cpuEntryDraft = null;
+      } else await runPendingCpuStartSaga();
+    }
   }
+  else if (pendingCpuStartSaga) await runPendingCpuStartSaga();
   else if (client.snapshot().cpuStartActionId && client.snapshot().cpuStartCharacterId) await resumePendingCpuStart();
-  else if (client.snapshot().matchmakingFindActionId) await findPublicOpponent();
+  else if (client.snapshot().matchmakingFindActionId) await findPublicOpponent({ resumePending: true });
   else if (client.snapshot().matchmakingTicketId) scheduleMatchmakingStatus(250);
   else if (synced && hasCpuEntryIntent()) await openCpuRoster("direct", $("startStandardCpuHome"));
   render();

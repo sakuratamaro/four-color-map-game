@@ -27,6 +27,11 @@ test("candidate verification SQL is read-only and covers the current Standard re
   for (const boundary of ["fcg_standard_cpu_policy_is_supported", "fcg_standard_cpu_policy_is_current", "kurogane-lookahead-v2", "standard_quiz_answer_receipts_shape", "standard_quiz_explanations_shape"]) {
     assert.match(sql, new RegExp(boundary));
   }
+  for (const boundary of ["fcg_standard_guard_member_active_room", "fcg_standard_guard_room_reactivation", "fcg_standard_member_single_active_room", "fcg_standard_room_reactivation_single_active"]) {
+    assert.match(sql, new RegExp(boundary));
+  }
+  assert.match(sql, /single active Standard room per actor preflight/);
+  assert.match(sql, /duplicate_actor_count = 0/);
 });
 
 test("candidate verification checks ACL, RLS, definer search paths, DB objects, and appearance drift", () => {
