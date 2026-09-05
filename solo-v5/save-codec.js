@@ -34,10 +34,56 @@
       && values.every((value) => Number.isInteger(value) && value >= minimum && value < maximum)
       && new Set(values).size === values.length;
   }
+  function macroOfMicro(micro) {
+    const x = micro % 48;
+    const y = Math.floor(micro / 48);
+    return Math.floor(y / 4) * 12 + Math.floor(x / 4);
+  }
+  function sameIntegerSet(left, right) {
+    return left.length === right.length && left.every((value) => right.includes(value));
+  }
   function macroInBounds(macro, bounds) {
     const x = macro % 12;
     const y = Math.floor(macro / 12);
     return x >= bounds.left && x <= bounds.right && y >= bounds.top && y <= bounds.bottom;
+  }
+  function connectedMicro(values) {
+    const cells = new Set(values);
+    const first = cells.values().next().value;
+    const visited = new Set([first]);
+    const queue = [first];
+    while (queue.length) {
+      const micro = queue.shift();
+      const x = micro % 48;
+      const y = Math.floor(micro / 48);
+      const neighbors = [];
+      if (x > 0) neighbors.push(micro - 1);
+      if (x < 47) neighbors.push(micro + 1);
+      if (y > 0) neighbors.push(micro - 48);
+      if (y < 47) neighbors.push(micro + 48);
+      for (const neighbor of neighbors) {
+        if (cells.has(neighbor) && !visited.has(neighbor)) {
+          visited.add(neighbor);
+          queue.push(neighbor);
+        }
+      }
+    }
+    return visited.size === cells.size;
+  }
+
+  function canonicalizeV1State(state) {
+    if (!plain(state) || state.schemaVersion !== 1 || !plain(state.regions)) return state;
+    const bounds = state.playableBounds;
+    if (!exactKeys(bounds, ["left", "top", "right", "bottom"])) return state;
+    for (const region of Object.values(state.regions)) {
+      if (!plain(region)
+        || !uniqueIntegers(region.sourceMacros, 0, MAX_MACRO)
+        || !region.sourceMacros.every((macro) => macroInBounds(macro, bounds))
+        || !uniqueIntegers(region.micro, 0, MAX_MICRO)) continue;
+      const geometryMacros = [...new Set(region.micro.map(macroOfMicro))];
+      if (!sameIntegerSet(region.sourceMacros, geometryMacros)) region.sourceMacros = geometryMacros;
+    }
+    return state;
   }
 
   function validateState(state, engine) {
@@ -63,8 +109,9 @@
     for (const [key, region] of Object.entries(state.regions)) {
       if (!plain(region) || typeof region.id !== "string" || !region.id || key !== region.id || regionIds.has(region.id)) fail("duplicate or invalid region");
       regionIds.add(region.id);
-      if (!uniqueIntegers(region.sourceMacros, 0, MAX_MACRO) || !region.sourceMacros.every((macro) => macroInBounds(macro, bounds))) fail("invalid region macros");
-      if (!uniqueIntegers(region.micro, 0, MAX_MICRO)) fail("invalid region geometry");
+      if (!uniqueIntegers(region.micro, 0, MAX_MICRO) || !connectedMicro(region.micro)) fail("invalid region geometry");
+      const geometryMacros = [...new Set(region.micro.map(macroOfMicro))];
+      if (!uniqueIntegers(region.sourceMacros, 0, MAX_MACRO) || !sameIntegerSet(region.sourceMacros, geometryMacros)) fail("invalid region macros");
       for (const micro of region.micro) {
         if (occupiedMicro.has(micro)) fail("duplicate micro cell");
         occupiedMicro.add(micro);
@@ -133,9 +180,10 @@
     if (!plain(record) || record.schemaVersion !== SAVE_SCHEMA_VERSION || record.engineVersion !== ENGINE_VERSION) fail("unsupported save version");
     if (!seat(record.humanSeat) || record.cpuSeat !== (record.humanSeat === "A" ? "B" : "A") || !cpu.LEVELS.includes(record.difficulty)) fail("invalid save configuration");
     if (record.policyVersion !== cpu.POLICY_VERSIONS[record.difficulty]) fail("unsupported CPU policy");
-    validateState(record.state, engine);
+    const state = canonicalizeV1State(record.state);
+    validateState(state, engine);
     const rngStates = validateRng(record.rngSnapshot);
-    return { ...record, rngStates };
+    return { ...record, state, rngStates };
   }
 
   function encode(record) { return JSON.stringify(record); }
