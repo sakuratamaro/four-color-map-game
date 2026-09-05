@@ -19,16 +19,16 @@ test("release evidence ledger keeps local, public, approval, and blocked states 
 test("current public identity is internally consistent while T+24 keeps its release baseline", () => {
   const currentGates = evidence.match(/## 現在のゲート[\s\S]+?## 2026-09-04/)?.[0] || "";
   const publicIdentity = evidence.match(/## 公開識別子[\s\S]+?## Canary結果/)?.[0] || "";
-  const currentRelease = evidence.match(/## 2026-09-06 05時台 JST 390px盤面ファースト公開[\s\S]+?## 公開識別子/)?.[0] || "";
+  const currentRelease = evidence.match(/## 2026-09-06 06時台 JST 最新手スポットライト公開[\s\S]+?## 公開識別子/)?.[0] || "";
   for (const section of [currentGates, publicIdentity, currentRelease]) {
-    assert.match(section, /2a1d2ef/);
-    assert.match(section, /33987952352/);
-    assert.match(section, /33988962006/);
+    assert.match(section, /afc89af/);
+    assert.match(section, /33992923690/);
+    assert.match(section, /33993298423/);
   }
-  assert.match(currentGates, /app v24\/client\+intents v17\/style v23/);
-  assert.match(publicIdentity, /Edge attempt 1 `badge-ready` timeout, failed-job attempt 2 Success/);
-  assert.match(currentRelease, /DB migration、Edge deployment 17、RPC、ルール、報酬、在庫、戦績、秘密情報、課金、削除、cleanupは変更していない/);
-  assert.match(currentRelease, /物理二端末受入とT\+24資源比較は`PENDING`/);
+  assert.match(currentGates, /app v25\/client\+intents v17\/style v24/);
+  assert.match(publicIdentity, /初回`33992219065`は両browser 61\/62で初手viewport timeout/);
+  assert.match(currentRelease, /DB migration、Edge deployment 17、RPC、ゲームルール、報酬、在庫、戦績、秘密情報、課金、削除、cleanupは変更していない/);
+  assert.match(currentRelease, /物理二端末受入とT\+24資源比較は`NOT_RUN\/PENDING`/);
   assert.match(runbook, /publicAssetCommit=3fb3ef8/);
   assert.match(runbook, /physicalTwoDeviceAcceptance.*executionState: NOT_RUN.*gateState: PENDING.*automated:false/);
 });

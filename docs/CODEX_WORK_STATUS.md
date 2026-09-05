@@ -1,9 +1,9 @@
 # Codex work status
 
 - Last update: 2026-09-06 JST
-- Stage: 390px board-first release `2a1d2ef` is public-verified; physical two-device acceptance and T+24h observation remain pending
+- Stage: latest-move spotlight release `afc89af` is public-verified; physical two-device acceptance and T+24h observation remain pending
 - Integration branch: `codex/standard-release-command`
-- Public product baseline: `2a1d2efa7791e3e6f9bce1863bdc563b314426a9` (includes legal-recolor LAB public gate `3fb3ef8` and the board-first mobile presentation)
+- Public product baseline: `afc89afdaad7272171a4be88156d58376f3180a1` (includes legal-recolor LAB public gate `3fb3ef8`, board-first mobile presentation `2a1d2ef`, and the latest-move spotlight)
 - Public URL: `https://sakuratamaro.github.io/four-color-map-game/standard-online-v5/`
 - Supabase project: `qkcuhludisairpgzhryl`; `standard-game-action` deployment 17
 
@@ -22,7 +22,8 @@
 - If a browser loses its local room identity while the authenticated actor still owns one live Standard room, the client now recovers that exact private-code, public-queue, or CPU room instead of showing a raw database conflict or creating another room. Recovery adopts only a strictly validated one-row projection, preserves pending CPU/matchmaking sagas, does not steal focus during background hydration, and never re-displays a lost private room code.
 - Private-code human matches can now enable the symmetric “塗り直し・乱” LAB only when both players opt in. It loans one server-random legal recolor outside the ordinary six-card loadout, is mutually exclusive with debug, and changes no inventory, reward, history, trophy, CPU, or public-matchmaking behavior.
 - At 390x844, an explicit match start and a reload now align the turn guide, board, and primary action above the persistent connection strip and bottom navigation. Explicit starts focus the match heading; passive boot/reload does not, and wheel/trackpad input cancels delayed alignment.
-- Public assets are app v24, client v17, skill-intents v17, style v23, and `solo-v5/save-codec.js?v=20260905-2`.
+- The board now marks the last committed public region with a gold dashed outline and the current pending region with a cyan solid outline. A finite turn-arrival beat runs only for a fresh foreground opponent-to-self handoff, never on hydration, reload, duplicate polling, background replay, contact/random presentation, or reduced-motion animation. At 390x844 the visible action remains above connection/navigation, and the compact legend stays outside the playable canvas.
+- Public assets are app v25, client v17, skill-intents v17, style v24, and `solo-v5/save-codec.js?v=20260905-2`.
 
 ## Verification
 
@@ -30,6 +31,7 @@
 - Additive migration `202609060002_standard_setup_revision_guard.sql` is applied and candidate verification is 70/70 true. Edge deployment 17 passed the basic canary 7/7 and dedicated LAB canary 23/23, including mutual opt-in, symmetric loan, server-random recolor, minimal public trace, terminal cleanup, and unchanged profiles.
 - Pages run `33984536803` succeeded at `3fb3ef8`. Candidate preflight returned `ok:true`, including protected v3-load/eight-argument initialization probes and the complete LAB UI marker. The public browser loaded app v23/client and intents v17/style v22 with anonymous authentication and zero captured warning/error.
 - Board-first release `2a1d2ef`: local Standard Online browser 60/60, responsive 4/4, focused 390px start/reload/wheel/error cases, and static release contracts passed. Independent final review reported no P0/P1. Windows gate `33987952352` passed Chrome on attempt 1 and Edge on failed-job attempt 2 after one unrelated `badge-ready` timeout; the same CPU recovery case passed three consecutive local Edge reruns. Pages `33988962006` succeeded, public app v24/style v23 returned HTTP 200, and candidate preflight remained `ok:true`.
+- Latest-move spotlight release `afc89af`: local Standard Online browser 62/62, responsive 4/4, static 50/50, focused Chrome/Edge reload and spotlight checks, and two independent final reviews passed with no P0/P1. Initial Windows run `33992219065` reached 61/62 in both browsers and exposed a first-move viewport margin; `afc89af` fixed it, and run `33992923690` passed Chrome and Edge. Pages `33993298423` succeeded, public app v25/style v24 returned HTTP 200 with both line legends, and candidate preflight remained `ok:true`.
 - Local final Edge browser suite: 50/50 passed; the post-review CPU setup-saga race fixture passed separately. Changed static/client/SQL/runbook checks passed, and all four stale v19/006 expectations found by the aggregate non-browser run were updated and rechecked 23/23.
 - Candidate Windows browser gate `33969830340`: Chrome job `101316251520` and Edge job `101316251312` passed at product commit `5c072ae`.
 - Supabase migration `202609050007_standard_pregame_abandon.sql` is applied. Candidate verification was 66/66 true; live pregame-abandon canary was 33/33 with profiles unchanged and active/unknown/nonterminal residue all 0.
@@ -58,4 +60,4 @@
 1. Acceptance/operations: complete a physical two-device match/reload/rematch loop and the T+24h Supabase resource comparison. These remain `PENDING`, not inferred from automation.
 2. P2: add first-hydration/reload coverage for the persistent tactical trace and explicit CPU/opponent display-name coverage; the public-only contract is already enforced.
 
-Release `2a1d2ef` keeps the isolated legal-recolor LAB and deployment 17 boundaries, brings the first playable board/action into the 390px viewport, and repairs the stale formal browser-harness gate without changing DB, Edge, rules, rewards, inventory, secrets, billing, deletion, or cleanup schedules.
+Release `afc89af` keeps the isolated legal-recolor LAB and deployment 17 boundaries, preserves the board-first 390px viewport, and makes the last committed move, current paint target, and fresh turn arrival readable without changing DB, Edge, rules, rewards, inventory, secrets, billing, deletion, or cleanup schedules.
