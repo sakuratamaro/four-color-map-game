@@ -625,7 +625,7 @@ test("actual Edge celebrates an opponent surrender and presents defeat from the 
     assert.equal(await overlay.evaluate((node) => node.classList.contains("is-victory")), true);
     assert.equal(await page.locator("#terminalClose").evaluate((node) => node === document.activeElement), true);
 
-    await page.getByRole("button", { name: "結果を確認して戻る" }).click();
+    await page.getByRole("button", { name: "再戦・対戦結果へ戻る" }).click();
     assert.equal(await page.locator("#chooseDifferentCpu").isVisible(), false);
     await page.evaluate(() => {
       const runtime = globalThis.__standardOnlineRuntime;
@@ -947,7 +947,7 @@ test("actual Edge asks the server for exactly one CPU action then returns contro
   }, { bodyTimeout: 50_000 });
 });
 
-test("actual Edge hydrates a CPU win once, shows its counter, and keeps it after reload", { timeout: 150000 }, async () => {
+test("actual Edge hydrates a CPU win once, routes its earned ticket deliberately, and keeps progression after reload", { timeout: 150000 }, async () => {
   await withPage("cpuWin", async (page) => {
     await page.locator("#board").click({ position: { x: 50, y: 50 } });
     await page.getByRole("button", { name: "このエリアを渡す" }).click();
@@ -962,31 +962,88 @@ test("actual Edge hydrates a CPU win once, shows its counter, and keeps it after
     assert.equal(first.profile.gachaTickets["1"], 3);
     assert.equal(first.profile.matchHistory.filter((entry) => entry.matchId === `${roomId}:9`).length, 1);
     assert.equal(first.actionCalls, 1);
-    await page.getByRole("button", { name: "結果を確認して戻る" }).click();
+    const rewardCta = page.getByRole("button", { name: "獲得したLv.1券でガチャへ" });
+    await rewardCta.waitFor();
+    assert.equal(await page.locator("#terminalClose").evaluate((node) => node === document.activeElement), true);
+    const terminalLayout = await page.evaluate(() => {
+      const dialog = document.querySelector(".terminal-celebration").getBoundingClientRect();
+      const reward = document.querySelector("#terminalGoGacha").getBoundingClientRect();
+      const close = document.querySelector("#terminalClose").getBoundingClientRect();
+      return {
+        dialog: { top: dialog.top, bottom: dialog.bottom },
+        reward: { top: reward.top, bottom: reward.bottom },
+        close: { top: close.top, bottom: close.bottom },
+        viewportHeight: innerHeight,
+      };
+    });
+    assert.ok(terminalLayout.dialog.top >= 0 && terminalLayout.dialog.bottom <= terminalLayout.viewportHeight, JSON.stringify(terminalLayout));
+    assert.ok(terminalLayout.reward.top >= 0 && terminalLayout.close.bottom <= terminalLayout.viewportHeight, JSON.stringify(terminalLayout));
+    await rewardCta.click();
+    await page.locator("#gachaPanel:not(.hidden)").waitFor();
+    await page.waitForFunction(() => document.activeElement?.id === "gachaTitle");
+    await page.waitForFunction(() => {
+      const draw = document.querySelector("#gachaDrawOne").getBoundingClientRect();
+      const tabs = document.querySelector(".app-tabs").getBoundingClientRect();
+      return draw.top >= 0 && draw.bottom <= tabs.top;
+    });
+    const routed = await page.evaluate(({ key }) => {
+      const draw = document.querySelector("#gachaDrawOne").getBoundingClientRect();
+      const tabs = document.querySelector(".app-tabs").getBoundingClientRect();
+      return {
+        activeTab: document.body.dataset.activeTab,
+        level: document.querySelector("#gachaLevel").value,
+        roomStatus: globalThis.__standardOnlineRuntime.room.status,
+        storedRoomId: JSON.parse(localStorage.getItem(key)).roomId,
+        gachaCalls: globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "gacha").length,
+        drawVisible: draw.top >= 0 && draw.bottom <= tabs.top,
+        overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+      };
+    }, { key: connectionKey });
+    assert.deepEqual(routed, { activeTab: "quiz", level: "1", roomStatus: "finished", storedRoomId: roomId, gachaCalls: 0, drawVisible: true, overflow: false });
+    await page.getByRole("button", { name: "1枚引く" }).click();
+    await page.getByText("1枚を獲得しました。券消費とカード付与は一度だけ保存済みです。").waitFor();
+    assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "gacha").length), 1);
     await page.reload();
-    await page.locator("#room:not(.hidden)").waitFor();
+    await page.locator("#connectionBadge.good").waitFor();
+    await page.locator("#gachaPanel:not(.hidden):not(.tab-panel-hidden)").waitFor();
     const restored = await page.evaluate(({ key }) => JSON.parse(localStorage.getItem(key)), { key: remoteProfileKey });
     assert.equal(restored.cpuStats.wins, 1);
     assert.equal(restored.cpuCharacterStats.yuzu.matches, 1);
-    assert.equal(restored.gachaTickets["1"], 3);
+    assert.equal(restored.gachaTickets["1"], 2);
     assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "action").length), 0);
-  }, { bodyTimeout: 50_000 });
+  }, { bodyTimeout: 65_000, viewport: { width: 390, height: 844 } });
 });
 
 test("CPU reward copy requires a saved CPU settlement", { timeout: 150000 }, async () => {
   await withPage("finished", async (page) => {
     await page.getByText("戦績を保存しました：対人戦 勝利 4").waitFor();
     assert.doesNotMatch(await page.locator("#terminalProgressText").textContent(), /完了報酬/);
+    assert.equal(await page.locator("#terminalGoGacha").isHidden(), true);
   });
   await withPage("finishedCpu", async (page) => {
     await page.getByText("戦績を同期しています。マイページで確認できます。").waitFor();
     assert.doesNotMatch(await page.locator("#terminalProgressText").textContent(), /完了報酬/);
+    assert.equal(await page.locator("#terminalGoGacha").isHidden(), true);
+    await page.evaluate(() => {
+      const runtime = globalThis.__standardOnlineRuntime;
+      const matchId = runtime.room.public_state.matchId;
+      runtime.profile = { ...runtime.profile, revision: runtime.profile.revision + 1, profile_state: {
+        ...runtime.profile.profile_state,
+        cpuStats: { ...runtime.profile.profile_state.cpuStats, wins: 1 },
+        matchHistory: [{ matchId, result: "WIN", onlineOpponentKind: "cpu", terminalReason: "SURRENDER" }, ...runtime.profile.profile_state.matchHistory],
+      } };
+      runtime.room = { ...runtime.room, public_state: { ...runtime.room.public_state, debugUnlimitedSkills: true } };
+      runtime.onInvalidate();
+    });
+    await page.getByText("戦績を保存しました：CPU戦 勝利 1").waitFor();
+    assert.doesNotMatch(await page.locator("#terminalProgressText").textContent(), /完了報酬/);
+    assert.equal(await page.locator("#terminalGoGacha").isHidden(), true);
   });
 });
 
 test("actual Edge rematches the same visible CPU and returns the human to fresh setup", { timeout: 130000 }, async () => {
   await withPage("finishedCpu", async (page) => {
-    await page.getByRole("button", { name: "結果を確認して戻る" }).click();
+    await page.getByRole("button", { name: "再戦・対戦結果へ戻る" }).click();
     await page.getByRole("button", { name: "同じCPUと再戦する" }).click();
     await page.locator("#setupCard:not(.hidden)").waitFor();
     assert.equal(await page.locator("#shownCode").textContent(), "CPU：うっかりユズ");
@@ -1004,7 +1061,7 @@ test("actual Edge rematches the same visible CPU and returns the human to fresh 
 
 test("actual Edge keeps a finished CPU room until another CPU is chosen", { timeout: 130000 }, async () => {
   await withPage("finishedCpu", async (page) => {
-    await page.getByRole("button", { name: "結果を確認して戻る" }).click();
+    await page.getByRole("button", { name: "再戦・対戦結果へ戻る" }).click();
     const chooseAnother = page.getByRole("button", { name: "別のCPUを選んで新しく対戦" });
     await chooseAnother.click();
     await page.locator("#cpuRosterDialog[open]").waitFor();

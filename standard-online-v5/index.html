@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <title>Four Color Map Game v5.0 Standard Online</title>
   <link rel="stylesheet" href="../online-v5/style.css">
-  <link rel="stylesheet" href="style.css?v=20260905-12">
+  <link rel="stylesheet" href="style.css?v=20260905-13">
   <link rel="stylesheet" href="debug-mode.css">
   <link rel="stylesheet" href="progression.css">
 </head>
@@ -95,7 +95,7 @@
 
     <section id="gachaPanel" class="card gacha-panel hidden" data-app-tab-panel="quiz">
       <div class="row between wrap">
-        <div><h2>カードガチャ</h2><p class="muted">対戦を終えると二人ともLv.1券を1枚獲得します。</p></div>
+        <div><h2 id="gachaTitle" tabindex="-1">カードガチャ</h2><p class="muted">対戦を終えると二人ともLv.1券を1枚獲得します。</p></div>
         <strong id="gachaTickets">Lv.1 ×0 / Lv.2 ×0 / Lv.3 ×0 / Lv.4 ×0 / Lv.5 ×0</strong>
       </div>
       <div class="gacha-setup">
@@ -300,7 +300,10 @@
       <p id="terminalMessage" class="terminal-message"></p>
       <p id="terminalReasonText" class="terminal-reason"></p>
       <p id="terminalProgressText" class="terminal-progress"></p>
-      <button id="terminalClose" class="primary terminal-close">結果を確認して戻る</button>
+      <div class="terminal-actions">
+        <button id="terminalGoGacha" class="primary hidden" type="button">獲得したLv.1券でガチャへ</button>
+        <button id="terminalClose" class="ghost terminal-close" type="button">再戦・対戦結果へ戻る</button>
+      </div>
     </section>
   </div>
   <div id="randomReveal" class="random-reveal hidden" role="status" aria-live="polite">
@@ -335,9 +338,9 @@
     </form>
   </dialog>
   <div id="toast" role="status" aria-live="polite"></div>
-  <script src="standard-online-client.js?v=20260905-12"></script>
+  <script src="standard-online-client.js?v=20260905-13"></script>
   <script src="standard-online-sync.js"></script>
   <script src="standard-online-skill-intents.js"></script>
-  <script type="module" src="app.js?v=20260905-12"></script>
+  <script type="module" src="app.js?v=20260905-13"></script>
 </body>
 </html>

@@ -202,7 +202,7 @@ function handoffFromSetupToMatch(expectedInteractionRevision) {
   }, reducedMotion ? 0 : RANDOM_REVEAL_DURATION_MS);
 }
 
-function activateAppTab(requestedTab, { updateHash = true } = {}) {
+function activateAppTab(requestedTab, { updateHash = true, scrollTop = true } = {}) {
   const tab = APP_TABS.has(requestedTab) ? requestedTab : "home";
   activeAppTab = tab;
   localStorage.setItem(APP_TAB_KEY, tab);
@@ -219,7 +219,7 @@ function activateAppTab(requestedTab, { updateHash = true } = {}) {
   document.body.dataset.activeTab = tab;
   renderProfileCardVisibility();
   if (tab === "battle") roomSync?.invalidate?.();
-  window.scrollTo({ top: 0, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+  if (scrollTop) window.scrollTo({ top: 0, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
 }
 
 function playerName(seat) {
@@ -299,9 +299,17 @@ function renderTerminalResult(state) {
   const settledMatch = profile()?.matchHistory?.find((entry) => entry?.matchId === state.matchId);
   const resultWasSaved = settledMatch?.result === (won ? "WIN" : "LOSS")
     && (opponentKind !== "cpu" || settledMatch.onlineOpponentKind === "cpu");
-  $("terminalProgressText").textContent = resultWasSaved && Number.isSafeInteger(resultCount) && resultCount >= 0
-    ? `戦績を保存しました：${resultLabel} ${won ? "勝利" : "敗北"} ${resultCount}${opponentKind === "cpu" ? "\n完了報酬：Lv.1ガチャ券 +1" : ""}`
+  const progressWasSaved = roomModel?.room?.status === "finished"
+    && ["A", "B"].includes(mySeat)
+    && settledMatch?.matchId === state.matchId
+    && resultWasSaved
+    && Number.isSafeInteger(resultCount)
+    && resultCount >= 0;
+  const cpuRewardWasSaved = progressWasSaved && opponentKind === "cpu" && state.debugUnlimitedSkills !== true;
+  $("terminalProgressText").textContent = progressWasSaved
+    ? `戦績を保存しました：${resultLabel} ${won ? "勝利" : "敗北"} ${resultCount}${cpuRewardWasSaved ? "\n完了報酬：Lv.1ガチャ券 +1" : ""}`
     : "戦績を同期しています。マイページで確認できます。";
+  show("terminalGoGacha", cpuRewardWasSaved);
   try { localStorage.setItem(TERMINAL_PRESENTED_KEY, eventKey); } catch { /* presentation still works when storage is unavailable */ }
   show("terminalOverlay", true);
   if (shownTerminalEventKey !== eventKey) {
@@ -2190,15 +2198,33 @@ async function requestRematch() {
     await roomSync.refreshNow().catch(() => {});
   } finally { rematchBusy = false; render(); }
 }
+
+function dismissTerminalResult() {
+  dismissedTerminalEventKey = shownTerminalEventKey;
+  show("terminalOverlay", false);
+}
+
+function goToGacha(ticketLevel = null) {
+  const destinationLevel = pendingGacha?.ticketLevel ?? ticketLevel;
+  if (destinationLevel !== null) {
+    $("gachaLevel").value = String(destinationLevel);
+  }
+  if (!pendingGacha && ticketLevel !== null) {
+    lastGachaDraws = [];
+  }
+  activateAppTab("quiz", { scrollTop: false });
+  renderGacha();
+  requestAnimationFrame(() => {
+    $("gachaPanel").scrollIntoView({ block: "start", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+    $("gachaTitle").focus({ preventScroll: true });
+  });
+}
 $("profileSelect").onchange = () => { selectedProfileId = $("profileSelect").value; synced = false; renderProfile(); render(); };
 $("createStarterProfile").onclick = createStarterProfile;
 $("syncProfile").onclick = syncSelectedProfile;
 $("quizStart").onclick = startOnlineQuiz;
 $("quizHint").onclick = openQuizHint;
-$("quizGoGacha").onclick = () => {
-  activateAppTab("quiz");
-  $("gachaPanel").scrollIntoView({ block: "start", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
-};
+$("quizGoGacha").onclick = () => goToGacha();
 $("gachaLevel").onchange = () => { lastGachaDraws = []; renderGacha(); };
 $("gachaDrawOne").onclick = () => runGacha(1);
 $("gachaDrawAll").onclick = () => runGacha(null);
@@ -2240,9 +2266,12 @@ $("retryAction").onclick = () => pendingAction && sendAction(pendingAction.type,
 $("requestRematch").onclick = requestRematch;
 $("chooseDifferentCpu").onclick = (event) => beginImmediateCpuEntry(event.currentTarget);
 $("closeSkillInfo").onclick = () => $("skillInfoDialog").close();
+$("terminalGoGacha").onclick = () => {
+  dismissTerminalResult();
+  goToGacha(1);
+};
 $("terminalClose").onclick = () => {
-  dismissedTerminalEventKey = shownTerminalEventKey;
-  show("terminalOverlay", false);
+  dismissTerminalResult();
   $("requestRematch").focus({ preventScroll: false });
 };
 $("leaveRoom").onclick = () => { clearContactReveal(); stopCpuTurnWatch(); roomSync.stop(); client.clearRoom(); roomModel = null; setupFailure = null; pendingAction = null; operationFeedback("setupStatus", ""); operationFeedback("actionStatus", ""); render(); };
