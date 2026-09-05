@@ -23,7 +23,7 @@ const saveKey = "fourColorMapGame.standard.v5.save";
 const remoteProfileKey = "fourColorMapGame.standard.online.v5.remote-profile";
 const roomId = "11111111-1111-4111-8111-111111111111";
 const pendingRematchId = "22222222-2222-4222-8222-222222222222";
-const RESTORED_ROOM_MODES = new Set(["finished", "playing", "handoffGuide", "cpuTurn", "cpuTurnNoColor", "finishedCpu", "finishedCpuSagaStart", "finishedHumanSagaBlocked", "finishedCpuWrongSagaBlocked", "activeCpuSagaBlocked", "cpuWin", "setupTransition", "setupTransitionCpuFirst", "actionRuleError", "setupDebugError", "handoffReload"]);
+const RESTORED_ROOM_MODES = new Set(["finished", "playing", "handoffGuide", "cpuTurn", "cpuTurnNoColor", "finishedCpu", "finishedCpuSagaStart", "finishedHumanSagaBlocked", "finishedCpuWrongSagaBlocked", "activeCpuSagaBlocked", "cpuWin", "setupTransition", "setupTransitionCpuFirst", "actionRuleError", "setupDebugError", "handoffReload", "waitingAbandon", "readyGuestAbandon", "cpuReadyAbandon", "abandonLost", "abandonAdvancedReady"]);
 
 function browserStage(stage) {
   console.error(`BROWSER_STAGE ${stage}`);
@@ -91,6 +91,7 @@ async function installMock(context, mode) {
     const initialTab = ["gacha", "quiz", "quizPolish", ...quizReloadModes].includes(initialMode) ? "quiz" : initialMode === "cosmetic" ? "profile" : initialMode === "empty" ? "home" : "battle";
     const setupTransition = ["setupTransition", "setupTransitionCpuFirst"].includes(initialMode);
     const setupPending = setupTransition || initialMode === "setupDebugError";
+    const pregameMode = ["waitingAbandon", "readyGuestAbandon", "cpuReadyAbandon", "abandonLost", "abandonAdvancedReady", "abandonedPassive"].includes(initialMode);
     if (["cpuSagaFindBlocked", "finishedCpuSagaStart", "activeCpuSagaBlocked", "finishedHumanSagaBlocked", "finishedCpuWrongSagaBlocked"].includes(initialMode)) {
       localStorage.setItem("fourColorMapGame.standard.online.v5.cpu-start-saga", JSON.stringify({
         stage: "start",
@@ -108,6 +109,22 @@ async function installMock(context, mode) {
         },
       }));
     }
+    if (initialMode === "cpuReadyAbandon" && sessionStorage.getItem("mock-standard-cpu-ready-saga-seeded") !== id) {
+      localStorage.setItem("fourColorMapGame.standard.online.v5.cpu-start-saga", JSON.stringify({
+        stage: "setup",
+        roomId: id,
+        replaceRoomId: null,
+        cpuStartActionId: "77777777-7777-4777-8777-777777777777",
+        setupActionId: "88888888-8888-4888-8888-888888888888",
+        characterId: "yuzu",
+        canonicalLoadout: {
+          color: ["colorRandomBorrow", "colorChoiceBorrow"],
+          area: ["areaDiePlus", "areaResize"],
+          disrupt: ["disruptRandomOne", "disruptChoiceOne"],
+        },
+      }));
+      sessionStorage.setItem("mock-standard-cpu-ready-saga-seeded", id);
+    }
     let restoredCpuRewardResult = null;
     try { restoredCpuRewardResult = JSON.parse(sessionStorage.getItem("fourColorMapGame.standard.online.v5.cpu-reward-gacha-result") || "null"); } catch { restoredCpuRewardResult = null; }
     let restoredCpuStartSaga = null;
@@ -116,7 +133,9 @@ async function installMock(context, mode) {
     const restoreNoColorResult = initialMode === "cpuTurnNoColor" && sessionStorage.getItem("fourColorMapGame.standard.online.v5.mock-no-color-finished") === id;
     const restoredCpuRewardVersion = restoreCpuRewardResult ? Number(restoredCpuRewardResult.continuation.roomVersion) : 9;
     const restoredRoomVersion = restoreNoColorResult ? 10 : restoredCpuRewardVersion;
-    const cpuRoomMode = ["cpuTurn", "cpuTurnNoColor", "finishedCpu", "finishedCpuSagaStart", "finishedCpuWrongSagaBlocked", "activeCpuSagaBlocked", "cpuWin", "setupTransition", "setupTransitionCpuFirst", "quizReloadCpu"].includes(initialMode);
+    const cpuRoomMode = ["cpuTurn", "cpuTurnNoColor", "finishedCpu", "finishedCpuSagaStart", "finishedCpuWrongSagaBlocked", "activeCpuSagaBlocked", "cpuWin", "setupTransition", "setupTransitionCpuFirst", "quizReloadCpu", "cpuReadyAbandon"].includes(initialMode);
+    let restoredConnection = null;
+    try { restoredConnection = JSON.parse(localStorage.getItem(connection) || "null"); } catch { restoredConnection = null; }
     localStorage.setItem("fourColorMapGame.standard.online.v5.active-tab", initialTab);
     const inventory = Object.fromEntries([
       "colorRandomBorrow", "colorChoiceBorrow", "colorPrism", "colorRegionSplit", "colorPaletteChange",
@@ -129,9 +148,14 @@ async function installMock(context, mode) {
       localStorage.setItem("fourColorMapGame.standard.online.v5.profile", "playerA");
       if (!["lobby", "cosmetic", "quiz", "quizPolish", "publicFind", "cpuWait", "cpuRetry", "cpuSagaFindBlocked", "finishedCpuSagaStart", "finishedHumanSagaBlocked", "finishedCpuWrongSagaBlocked", "activeCpuSagaBlocked", "handoffActivity", "handoffStart"].includes(initialMode)) {
         localStorage.setItem(connection, JSON.stringify({
-          roomId: id, roomCode: "A1B2C3", profileRevision: 1, setupRevision: setupPending ? 0 : 3,
+          roomId: id, roomCode: "A1B2C3", profileRevision: 1, setupRevision: setupPending || pregameMode ? 0 : 3,
           rematchActionId: initialMode === "finished" ? pendingId : null,
           rematchExpectedVersion: initialMode === "finished" ? 9 : null,
+          ...(initialMode === "abandonLost" && restoredConnection ? {
+            abandonRoomId: restoredConnection.abandonRoomId,
+            abandonActionId: restoredConnection.abandonActionId,
+            abandonExpectedVersion: restoredConnection.abandonExpectedVersion,
+          } : {}),
         }));
       } else if (initialMode === "cpuWait") {
         localStorage.setItem(connection, JSON.stringify({
@@ -212,10 +236,11 @@ async function installMock(context, mode) {
         R2: { id: "R2", micro: [1], sourceMacros: [1], controllers: ["B"], color: null, isPending: true },
       },
     };
+    const pregameStatus = initialMode === "waitingAbandon" ? "waiting" : initialMode === "abandonedPassive" ? "abandoned" : "ready";
     const runtime = {
       waitStartedAt: initialMode === "cpuWait" ? new Date(Date.now() - 91000).toISOString() : new Date().toISOString(),
-      room: { id, status: ["finished", "finishedCpu", "finishedCpuSagaStart", "finishedHumanSagaBlocked", "finishedCpuWrongSagaBlocked", "quizReloadPublicFinished"].includes(initialMode) || restoreCpuRewardResult || restoreNoColorResult ? "finished" : ["publicFind", "handoffActivity", "handoffStart", "handoffReload"].includes(initialMode) || setupPending ? "ready" : "playing", version: restoredRoomVersion, game_mode: "standard_v5", access_mode: cpuRoomMode ? "cpu" : ["publicFind", "handoffActivity", "handoffStart", "handoffReload", "quizReloadPublicFinished"].includes(initialMode) ? "public_queue" : "private_code", opponent_kind: cpuRoomMode ? "cpu" : "human", cpu_character_id: cpuRoomMode ? "yuzu" : null, public_state: restoreNoColorResult ? noColorFinished : ["finished", "finishedCpu", "finishedCpuSagaStart", "finishedHumanSagaBlocked", "finishedCpuWrongSagaBlocked", "quizReloadPublicFinished"].includes(initialMode) || restoreCpuRewardResult ? { ...finished, version: restoredRoomVersion } : ["publicFind", "handoffActivity", "handoffStart", "handoffReload"].includes(initialMode) || setupPending ? null : active },
-      view: ["publicFind", "handoffActivity", "handoffStart", "handoffReload"].includes(initialMode) || setupPending ? null : { seat: "A", version: restoredRoomVersion, private_state: { hand: { areaDiePlus: 1, areaResize: 1 }, basicPalette: initialMode === "cpuTurnNoColor" ? ["yellow", "green"] : ["red", "blue"], bonusColor: initialMode === "cpuTurnNoColor" ? "blue" : "yellow", bonusUsesRemaining: initialMode === "cpuTurnNoColor" ? 3 : 2, privateEffects: {} } },
+      room: { id, status: ["finished", "finishedCpu", "finishedCpuSagaStart", "finishedHumanSagaBlocked", "finishedCpuWrongSagaBlocked", "quizReloadPublicFinished"].includes(initialMode) || restoreCpuRewardResult || restoreNoColorResult ? "finished" : pregameMode ? pregameStatus : ["publicFind", "handoffActivity", "handoffStart", "handoffReload"].includes(initialMode) || setupPending ? "ready" : "playing", version: restoredRoomVersion, game_mode: "standard_v5", access_mode: cpuRoomMode ? "cpu" : ["publicFind", "handoffActivity", "handoffStart", "handoffReload", "quizReloadPublicFinished"].includes(initialMode) ? "public_queue" : "private_code", opponent_kind: cpuRoomMode ? "cpu" : "human", cpu_character_id: cpuRoomMode ? "yuzu" : null, public_state: restoreNoColorResult ? noColorFinished : ["finished", "finishedCpu", "finishedCpuSagaStart", "finishedHumanSagaBlocked", "finishedCpuWrongSagaBlocked", "quizReloadPublicFinished"].includes(initialMode) || restoreCpuRewardResult ? { ...finished, version: restoredRoomVersion } : pregameMode || ["publicFind", "handoffActivity", "handoffStart", "handoffReload"].includes(initialMode) || setupPending ? null : active },
+      view: pregameMode || ["publicFind", "handoffActivity", "handoffStart", "handoffReload"].includes(initialMode) || setupPending ? null : { seat: "A", version: restoredRoomVersion, private_state: { hand: { areaDiePlus: 1, areaResize: 1 }, basicPalette: initialMode === "cpuTurnNoColor" ? ["yellow", "green"] : ["red", "blue"], bonusColor: initialMode === "cpuTurnNoColor" ? "blue" : "yellow", bonusUsesRemaining: initialMode === "cpuTurnNoColor" ? 3 : 2, privateEffects: {} } },
       profile: initialMode === "empty" ? null : { revision: 1, display_name: "A", profile_state: profileState },
       gachaReceipts: {},
       cardSaleReceipts: {},
@@ -226,11 +251,14 @@ async function installMock(context, mode) {
       setupReceipts: JSON.parse(sessionStorage.getItem("mock-standard-setup-receipts") || "{}"),
       recoverExistingCpuStart: false,
       failNextCpuStartResponse: false,
-      failNextSetupResponse: false,
+      failNextSetupResponse: initialMode === "cpuReadyAbandon",
       failNextFindResponse: false,
       failNextColorAction: false,
       failNextGacha: false,
       failNextQuizAnswer: false,
+      failNextAbandonResponse: initialMode === "abandonLost" && sessionStorage.getItem("mock-standard-abandon-response-lost") !== id,
+      abandonRpcIds: JSON.parse(sessionStorage.getItem("mock-standard-abandon-rpc-ids") || "[]"),
+      advancedReadyConflictSent: false,
       calls: [],
     };
     runtime.missingRoom = initialMode === "quizReloadStale";
@@ -259,7 +287,7 @@ async function installMock(context, mode) {
         : table === "fcg_player_views" ? runtime.view
           : runtime.profile;
     globalThis.__standardOnlineMockSupabase = {
-      auth: { getSession: async () => ({ data: { session: { user: { id: "33333333-3333-4333-8333-333333333333" } } } }), signInAnonymously: async () => { throw new Error("unexpected sign-in"); } },
+      auth: { getSession: async () => ({ data: { session: { user: { id: initialMode === "readyGuestAbandon" ? "44444444-4444-4444-8444-444444444444" : "33333333-3333-4333-8333-333333333333" } } } }), signInAnonymously: async () => { throw new Error("unexpected sign-in"); } },
       functions: { invoke: async (name, request) => {
         runtime.calls.push({ kind: "invoke", name, body: request.body });
         await globalThis.__standardOnlineRecordInvoke(request.body);
@@ -548,6 +576,24 @@ async function installMock(context, mode) {
           view: runtime.view,
           profile: Number(args.p_known_profile_revision) === Number(runtime.profile.revision) ? null : runtime.profile,
         }] };
+        if (name === "fcg_standard_abandon_room") {
+          runtime.abandonRpcIds.push(args.p_action_id);
+          sessionStorage.setItem("mock-standard-abandon-rpc-ids", JSON.stringify(runtime.abandonRpcIds));
+          if (initialMode === "abandonAdvancedReady" && !runtime.advancedReadyConflictSent) {
+            runtime.advancedReadyConflictSent = true;
+            runtime.room = { ...runtime.room, version: runtime.room.version + 1 };
+            return { error: Object.assign(new Error("stale room version"), { code: "PT409" }) };
+          }
+          if (runtime.failNextAbandonResponse) {
+            runtime.failNextAbandonResponse = false;
+            sessionStorage.setItem("mock-standard-abandon-response-lost", id);
+            return { error: new Error("simulated lost abandon response") };
+          }
+          if (!["waiting", "ready", "abandoned"].includes(runtime.room.status)) return { error: new Error("room is not pregame") };
+          const alreadyAbandoned = runtime.room.status === "abandoned";
+          if (!alreadyAbandoned) runtime.room = { ...runtime.room, status: "abandoned", version: runtime.room.version + 1, winner_seat: null, public_state: null };
+          return { data: [{ room_status: "abandoned", room_version: runtime.room.version, abandon_result: alreadyAbandoned ? "already_abandoned" : "applied", duplicate: false, server_time: new Date().toISOString() }] };
+        }
         if (name !== "fcg_standard_request_rematch") return { error: new Error(`unexpected rpc ${name}`) };
         runtime.room = { ...runtime.room, status: "ready", version: 10, public_state: null };
         runtime.view = null;
@@ -859,7 +905,7 @@ test("actual Edge edits the roomless next loadout with a reachable mobile commit
 
 test("actual Edge closes only the active-room screen and returns through the exclusive CTA", { timeout: 130000 }, async () => {
   await withPage("cpuTurn", async (page) => {
-    await page.getByRole("button", { name: "画面だけ閉じる（対戦は継続）" }).click();
+    await page.getByRole("button", { name: "画面だけ閉じる" }).click();
     assert.equal(await page.locator("body").getAttribute("data-active-tab"), "home");
     assert.equal(await page.getByRole("button", { name: "進行中の対戦へ戻る" }).isVisible(), true);
     assert.equal(await page.evaluate(() => document.activeElement?.id), "startStandardCpuHome");
@@ -869,6 +915,204 @@ test("actual Edge closes only the active-room screen and returns through the exc
     assert.equal(await page.locator("#room").isVisible(), true);
     assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "cpu-start").length), 0);
   });
+});
+
+test("actual Edge lets a ready guest abandon without rewards and keeps confirmation accessible at 390px", { timeout: 130000 }, async () => {
+  await withPage("readyGuestAbandon", async (page) => {
+    assert.equal(await page.locator("#abandonRoom").isVisible(), true);
+    assert.equal(await page.locator("#leaveRoomDescription").textContent(), "ルーム・待機・対戦は継続します。");
+    const beforeProfile = await page.evaluate(() => JSON.stringify(globalThis.__standardOnlineRuntime.profile.profile_state));
+    const layout = await page.evaluate(() => {
+      const safe = document.querySelector("#leaveRoom").getBoundingClientRect();
+      const destructive = document.querySelector("#abandonRoom").getBoundingClientRect();
+      return { safe, destructive, overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth };
+    });
+    assert.ok(layout.safe.height >= 44 && layout.destructive.height >= 44, JSON.stringify(layout));
+    assert.ok(layout.destructive.top >= layout.safe.bottom, JSON.stringify(layout));
+    assert.equal(layout.overflow, false);
+
+    await page.locator("#abandonRoom").click();
+    await page.locator("#abandonRoomDialog[open]").waitFor();
+    assert.equal(await page.evaluate(() => document.activeElement?.id), "abandonRoomTitle");
+    await page.keyboard.press("Escape");
+    assert.equal(await page.evaluate(() => document.activeElement?.id), "abandonRoom");
+    await page.locator("#abandonRoom").click();
+    await page.locator("#cancelAbandonRoom").click();
+    assert.equal(await page.evaluate(() => document.activeElement?.id), "abandonRoom");
+
+    await page.locator("#abandonRoom").click();
+    await page.locator("#confirmAbandonRoom").click();
+    await page.locator("#lobby:not(.hidden)").waitFor();
+    await page.waitForFunction(() => document.activeElement?.id === "lobbyTitle");
+    await page.waitForFunction(() => document.querySelector("#roomLifecycleAnnouncement")?.textContent.includes("戦績・報酬はありません"));
+    const after = await page.evaluate(({ key }) => ({
+      profile: JSON.stringify(globalThis.__standardOnlineRuntime.profile.profile_state),
+      connection: JSON.parse(localStorage.getItem(key)),
+      abandonCalls: globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.name === "fcg_standard_abandon_room"),
+      actionCalls: globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "action"),
+      announcement: document.querySelector("#roomLifecycleAnnouncement").textContent,
+    }), { key: connectionKey });
+    assert.equal(after.profile, beforeProfile);
+    assert.equal(after.connection.roomId, null);
+    assert.equal(after.abandonCalls.length, 1);
+    assert.equal(after.actionCalls.length, 0);
+    assert.equal(after.announcement, "開始前の対戦を取りやめました。戦績・報酬はありません。");
+  }, { viewport: { width: 390, height: 844 } });
+});
+
+test("actual Edge keeps one waiting abandon request ID across a lost response and reload", { timeout: 180000 }, async () => {
+  await withPage("abandonLost", async (page) => {
+    await page.locator("#abandonRoom").click();
+    await page.locator("#confirmAbandonRoom").click();
+    await page.getByText("サーバーの応答を確認できませんでした。同じ取りやめ処理を再確認してください。", { exact: true }).waitFor();
+    const first = await page.evaluate(({ key }) => ({
+      connection: JSON.parse(localStorage.getItem(key)),
+      ids: JSON.parse(sessionStorage.getItem("mock-standard-abandon-rpc-ids")),
+    }), { key: connectionKey });
+    assert.match(first.connection.abandonActionId, /^[0-9a-f-]{36}$/i);
+    assert.equal(first.connection.abandonRoomId, roomId);
+    assert.equal(first.ids.length, 1);
+
+    await page.reload({ waitUntil: "load" });
+    await page.locator("#connectionBadge.good").waitFor();
+    await page.getByRole("button", { name: "取りやめ結果を再確認" }).click();
+    assert.equal(await page.evaluate(() => document.activeElement?.id), "abandonRoomTitle");
+    await page.getByRole("button", { name: "同じ取りやめ処理を再確認" }).click();
+    await page.locator("#lobby:not(.hidden)").waitFor();
+    const second = await page.evaluate(({ key }) => ({
+      connection: JSON.parse(localStorage.getItem(key)),
+      ids: JSON.parse(sessionStorage.getItem("mock-standard-abandon-rpc-ids")),
+    }), { key: connectionKey });
+    assert.equal(second.ids.length, 2);
+    assert.deepEqual(new Set(second.ids), new Set([first.connection.abandonActionId]));
+    assert.equal(second.connection.roomId, null);
+    assert.equal(second.connection.abandonActionId, null);
+  }, { viewport: { width: 390, height: 844 }, bodyTimeout: 70_000 });
+});
+
+test("actual Edge retires a stale abandon ID when ready advances and reconfirms with the new version", { timeout: 130000 }, async () => {
+  await withPage("abandonAdvancedReady", async (page) => {
+    await page.locator("#abandonRoom").click();
+    await page.locator("#confirmAbandonRoom").click();
+    await page.getByText("対戦準備が更新されたため、前の処理は再送しません。現在の状態を確認し、取りやめる場合はもう一度確定してください。", { exact: true }).waitFor();
+    const afterConflict = await page.evaluate(({ key }) => ({
+      connection: JSON.parse(localStorage.getItem(key)),
+      ids: [...globalThis.__standardOnlineRuntime.abandonRpcIds],
+      roomVersion: globalThis.__standardOnlineRuntime.room.version,
+    }), { key: connectionKey });
+    assert.equal(afterConflict.ids.length, 1);
+    assert.equal(afterConflict.connection.abandonActionId, null);
+    assert.equal(afterConflict.roomVersion, 10);
+    await page.getByRole("button", { name: "更新後の状態で無報酬のまま取りやめる" }).click();
+    await page.locator("#lobby:not(.hidden)").waitFor();
+    const final = await page.evaluate(() => ({
+      ids: [...globalThis.__standardOnlineRuntime.abandonRpcIds],
+      abandonCalls: globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.name === "fcg_standard_abandon_room").map((entry) => entry.args.p_expected_version),
+      actionCalls: globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "action").length,
+    }));
+    assert.equal(final.ids.length, 2);
+    assert.notEqual(final.ids[0], final.ids[1]);
+    assert.deepEqual(final.abandonCalls, [9, 10]);
+    assert.equal(final.actionCalls, 0);
+  }, { viewport: { width: 390, height: 844 } });
+});
+
+test("actual Edge resolves opponent abandon and ready-to-playing races without surrendering", { timeout: 200000 }, async () => {
+  await withPage("abandonedPassive", async (page) => {
+    await page.locator("#lobby:not(.hidden)").waitFor();
+    await page.waitForFunction(() => document.querySelector("#roomLifecycleAnnouncement")?.textContent === "相手が開始前の対戦を取りやめました。戦績・報酬はありません。");
+    const evidence = await page.evaluate(({ key }) => ({
+      connection: JSON.parse(localStorage.getItem(key)),
+      abandonCalls: globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.name === "fcg_standard_abandon_room").length,
+      actionCalls: globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "action").length,
+      focus: document.activeElement?.id,
+    }), { key: connectionKey });
+    assert.equal(evidence.connection.roomId, null);
+    assert.equal(evidence.abandonCalls, 0);
+    assert.equal(evidence.actionCalls, 0);
+    assert.equal(evidence.focus, "lobbyTitle");
+  });
+
+  await withPage("readyGuestAbandon", async (page) => {
+    await page.locator("#abandonRoom").click();
+    await page.evaluate(() => {
+      const runtime = globalThis.__standardOnlineRuntime;
+      runtime.room = { ...runtime.room, status: "playing", version: runtime.room.version + 1, public_state: {
+        matchId: `${runtime.room.id}:race`, status: "ACTIVE", version: runtime.room.version + 1, turn: 1, active: "A", phase: "CREATE_FIRST", winner: null,
+        requiredSize: 1, rolledSize: 1, baseRequiredSize: 1, playableBounds: { macroWidth: 4, microScale: 1, minCol: 0, minRow: 0, maxCol: 3, maxRow: 3 }, regions: {},
+      } };
+      runtime.view = { seat: "B", version: runtime.room.version, private_state: { hand: {}, basicPalette: ["red", "blue"], bonusColor: "yellow", bonusUsesRemaining: 2, privateEffects: {} } };
+      runtime.onInvalidate();
+    });
+    await page.locator("#abandonRoomDialog").waitFor({ state: "hidden" });
+    await page.locator("#matchCard:not(.hidden)").waitFor();
+    assert.equal(await page.locator("#abandonRoom").isHidden(), true);
+    assert.equal(await page.getByRole("button", { name: "敗北として投了する" }).isVisible(), true);
+    const calls = await page.evaluate(() => ({
+      abandon: globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.name === "fcg_standard_abandon_room").length,
+      surrender: globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "action" && entry.body?.action?.type === "SURRENDER").length,
+    }));
+    assert.deepEqual(calls, { abandon: 0, surrender: 0 });
+  });
+});
+
+test("actual Edge keeps finished close unchanged, CPU ready idle, and 980px actions separated", { timeout: 200000 }, async () => {
+  await withPage("finished", async (page) => {
+    await page.locator("#terminalClose").click();
+    assert.equal(await page.locator("#abandonRoom").isHidden(), true);
+    assert.equal(await page.locator("#leaveRoom").textContent(), "結果を閉じてロビーへ");
+    await page.locator("#abandonRoom").evaluate((button) => button.click());
+    assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.name === "fcg_standard_abandon_room").length), 0);
+  });
+
+  await withPage("cpuReadyAbandon", async (page) => {
+    assert.equal(await page.locator("#abandonRoom").isVisible(), true);
+    const beforeProfile = await page.evaluate(() => JSON.stringify(globalThis.__standardOnlineRuntime.profile.profile_state));
+    await page.waitForFunction(async () => (await globalThis.__standardOnlineLifetimeInvocations())
+      .filter((entry) => entry.operation === "setup").length === 1);
+    const callsBeforeAbandon = await page.evaluate(async () => (await globalThis.__standardOnlineLifetimeInvocations())
+      .filter((entry) => ["cpu-start", "setup", "cpu-action"].includes(entry.operation)));
+    assert.deepEqual(callsBeforeAbandon.map((entry) => entry.operation), ["setup"]);
+    await new Promise((resolve) => setTimeout(resolve, 900));
+    assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "cpu-action").length), 0);
+    await page.locator("#abandonRoom").click();
+    await page.locator("#confirmAbandonRoom").click();
+    await page.locator("#lobby:not(.hidden)").waitFor();
+    await page.waitForFunction(() => document.activeElement?.id === "lobbyTitle");
+    const cpuExit = await page.evaluate(({ key }) => ({
+      profile: JSON.stringify(globalThis.__standardOnlineRuntime.profile.profile_state),
+      connection: JSON.parse(localStorage.getItem(key)),
+      abandon: globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.name === "fcg_standard_abandon_room").length,
+      cpuAction: globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "cpu-action").length,
+      focus: document.activeElement?.id,
+    }), { key: connectionKey });
+    assert.equal(cpuExit.profile, beforeProfile);
+    assert.equal(cpuExit.connection.roomId, null);
+    assert.equal(cpuExit.abandon, 1);
+    assert.equal(cpuExit.cpuAction, 0);
+    assert.equal(cpuExit.focus, "lobbyTitle");
+    assert.equal(await page.evaluate(() => localStorage.getItem("fourColorMapGame.standard.online.v5.cpu-start-saga")), null);
+    await page.reload({ waitUntil: "load" });
+    await page.locator("#connectionBadge.good").waitFor();
+    await new Promise((resolve) => setTimeout(resolve, 900));
+    const callsAfterReload = await page.evaluate(async () => (await globalThis.__standardOnlineLifetimeInvocations())
+      .filter((entry) => ["cpu-start", "setup", "cpu-action"].includes(entry.operation)));
+    assert.deepEqual(callsAfterReload, callsBeforeAbandon);
+    assert.equal(await page.evaluate(() => localStorage.getItem("fourColorMapGame.standard.online.v5.cpu-start-saga")), null);
+  }, { viewport: { width: 390, height: 844 } });
+
+  await withPage("waitingAbandon", async (page) => {
+    const layout = await page.evaluate(() => {
+      const safe = document.querySelector("#leaveRoom").getBoundingClientRect();
+      const destructive = document.querySelector("#abandonRoom").getBoundingClientRect();
+      return { safe, destructive, overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth };
+    });
+    assert.ok(Math.abs(layout.safe.top - layout.destructive.top) <= 2, JSON.stringify(layout));
+    assert.equal(layout.overflow, false);
+    await page.locator("#abandonRoom").click();
+    const bounds = await page.locator("#abandonRoomDialog").boundingBox();
+    assert.ok(bounds.x >= 0 && bounds.y >= 0 && bounds.x + bounds.width <= 980 && bounds.y + bounds.height <= 800, JSON.stringify(bounds));
+  }, { viewport: { width: 980, height: 800 } });
 });
 
 test("hidden new-match handlers allocate no action and make no RPC while another entry owns the actor", { timeout: 240000 }, async () => {

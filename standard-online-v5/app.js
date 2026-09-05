@@ -47,7 +47,7 @@ const PHASE_LABEL = {
   COLOR: "受け取ったエリアを塗ってください",
   GAME_OVER: "対戦終了",
 };
-const ROOM_STATUS_LABEL = { waiting: "相手を待っています", ready: "6枚セット選択中", playing: "対戦中", finished: "対戦終了" };
+const ROOM_STATUS_LABEL = { waiting: "相手を待っています", ready: "6枚セット選択中", playing: "対戦中", finished: "対戦終了", abandoned: "開始前に取りやめ済み" };
 const CPU_NAMES = Object.freeze({
   yuzu: "うっかりユズ", ren: "せっかちレン", minato: "見習いミナト", koharu: "読み違いコハル", aoi: "慎重派アオイ",
   kai: "勝負師カイ", tsubasa: "仕掛け屋ツバサ", shion: "観察役シオン", rei: "カード博士レイ", kurogane: "四色のクロガネ",
@@ -110,6 +110,13 @@ let roomModel = null;
 let initializeBusy = false;
 let setupBusy = false;
 let actionBusy = false;
+let abandonBusy = false;
+let abandonRetryRoomId = null;
+let abandonRetryExpectedVersion = null;
+let abandonDialogTrigger = null;
+let restoreAbandonDialogFocus = true;
+let pendingLifecycleLobbyFocus = false;
+let roomLifecycleAnnouncementToken = 0;
 let setupFailure = null;
 let rematchBusy = false;
 let gachaBusy = false;
@@ -248,6 +255,44 @@ function operationFeedback(id, message, tone = "") {
   const node = $(id);
   node.textContent = String(message || "").slice(0, 240);
   node.dataset.tone = tone;
+}
+function persistedAbandonExpectedVersion(roomId = client.snapshot().roomId) {
+  const snapshot = client.snapshot();
+  const version = Number(snapshot.abandonExpectedVersion);
+  return snapshot.roomId === roomId && snapshot.abandonRoomId === roomId && UUID_PATTERN.test(String(snapshot.abandonActionId))
+    && Number.isSafeInteger(version) && version >= 0 ? version : null;
+}
+function abandonExpectedVersion(roomId = client.snapshot().roomId) {
+  const persisted = persistedAbandonExpectedVersion(roomId);
+  if (persisted !== null) return persisted;
+  return abandonRetryRoomId === roomId && Number.isSafeInteger(abandonRetryExpectedVersion) ? abandonRetryExpectedVersion : null;
+}
+function hasPendingAbandon(roomId = client.snapshot().roomId) {
+  return abandonBusy || abandonExpectedVersion(roomId) !== null;
+}
+function announceRoomLifecycle(message) {
+  const node = $("roomLifecycleAnnouncement");
+  const token = ++roomLifecycleAnnouncementToken;
+  node.textContent = "";
+  show("roomLifecycleAnnouncement", true);
+  requestAnimationFrame(() => {
+    if (token === roomLifecycleAnnouncementToken) node.textContent = message;
+  });
+}
+function clearRoomLifecycleAnnouncement() {
+  roomLifecycleAnnouncementToken += 1;
+  $("roomLifecycleAnnouncement").textContent = "";
+  show("roomLifecycleAnnouncement", false);
+}
+function focusBattleLobby() {
+  pendingLifecycleLobbyFocus = document.visibilityState !== "visible";
+  if (pendingLifecycleLobbyFocus) return;
+  requestAnimationFrame(() => {
+    if (activeAppTab === "battle" && !client.snapshot().roomId && !$("lobby").classList.contains("hidden")) {
+      $("lobbyTitle").focus({ preventScroll: true });
+      $("lobby").scrollIntoView({ block: "start", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+    }
+  });
 }
 function revealOperationFeedback(id) {
   requestAnimationFrame(() => {
@@ -1880,7 +1925,7 @@ function renderLoadoutSelectionState(message = "") {
   const cpuDraft = pendingCpuStartSaga || cpuEntryDraft;
   const roomlessWorkshop = !snapshot.roomId && loadoutWorkshopOpen && !cpuDraft;
   const cpuName = cpuDraft ? CPU_NAMES[cpuDraft.characterId] || "CPU" : "";
-  const actionPending = setupBusy || cpuStartSagaBusy;
+  const actionPending = setupBusy || cpuStartSagaBusy || abandonBusy || hasPendingAbandon(snapshot.roomId);
   const inputFrozen = actionPending || Boolean(pendingCpuStartSaga);
   $("loadoutSummary").textContent = message || `選択 ${total}/6｜色 ${counts.color}/2｜エリア ${counts.area}/2｜妨害 ${counts.disrupt}/2${remaining ? `｜あと${remaining}枚` : "｜準備OK"}`;
   $("loadoutSummary").classList.toggle("is-complete", ready);
@@ -1930,11 +1975,22 @@ async function refreshRoom(_reason, expectedRoomId = client.snapshot().roomId) {
     return null;
   }
   if (client.snapshot().roomId !== expectedRoomId) return null;
+  if (nextRoomModel?.room?.status === "abandoned") {
+    const initiatedHere = hasPendingAbandon(expectedRoomId) || $("abandonRoomDialog")?.open;
+    completeAbandonedRoom({
+      focusLobby: initiatedHere || activeAppTab === "battle",
+      message: initiatedHere
+        ? "開始前の対戦を取りやめました。戦績・報酬はありません。"
+        : "相手が開始前の対戦を取りやめました。戦績・報酬はありません。",
+    });
+    return nextRoomModel;
+  }
   if (roomModel?.room?.id === expectedRoomId && Number(nextRoomModel.room.version) < Number(roomModel.room.version)) return null;
   roomModel = nextRoomModel;
   hydrateProfileRow(roomModel.profile);
-  render();
-  if (roomModel.room.status === "ready" && client.snapshot().setupRevision > 0 && !hasStandardPublicState(roomModel.room.public_state) && !initializeBusy) {
+  if ($("abandonRoomDialog").open && !["waiting", "ready"].includes(roomModel.room.status)) resolveAbandonStateConflict(roomModel.room.status);
+  else render();
+  if (roomModel.room.status === "ready" && client.snapshot().setupRevision > 0 && !hasStandardPublicState(roomModel.room.public_state) && !initializeBusy && !hasPendingAbandon(expectedRoomId)) {
     initializeBusy = true;
     try {
       await client.initialize();
@@ -2023,6 +2079,7 @@ function render() {
     || replacesShownFinishedCpu
   ));
   const activeRoom = Boolean(snapshot.roomId && !roomFinished);
+  if (snapshot.roomId && roomModel?.room?.status !== "abandoned") clearRoomLifecycleAnnouncement();
   $("startStandardCpuHome").textContent = cpuDraftOwnsRoomlessEntry
     ? "CPU戦の開始確認へ戻る"
     : !snapshot.roomId
@@ -2052,6 +2109,8 @@ function render() {
   show("matchCard", !cpuDraftOwnsRoomlessEntry && ["playing", "finished"].includes(roomModel?.room?.status));
   show("rematchControls", !cpuDraftOwnsRoomlessEntry && roomModel?.room?.status === "finished");
   if (!snapshot.roomId) {
+    show("abandonRoom", false);
+    show("abandonRoomHint", false);
     if (setupVisible) renderLoadoutSelectionState();
     renderTerminalResult(null);
     return;
@@ -2061,7 +2120,11 @@ function render() {
     $("roomStatus").textContent = "対戦状態を確認中";
     $("members").replaceChildren();
     $("waitingMessage").textContent = "対戦状態を確認しています。操作せず、そのままお待ちください。";
-    $("leaveRoom").textContent = "画面だけ閉じる（対戦は継続）";
+    $("leaveRoom").textContent = "画面だけ閉じる";
+    $("leaveRoomDescription").textContent = "対戦状態の確認は継続します。";
+    $("leaveRoom").disabled = abandonBusy;
+    show("abandonRoom", false);
+    show("abandonRoomHint", false);
     $("requestRematch").disabled = true;
     operationFeedback("setupStatus", "");
     renderTerminalResult(null);
@@ -2081,7 +2144,15 @@ function render() {
   $("seatBadge").textContent = roomModel?.view?.seat ? `Player ${roomModel.view.seat}` : "席確認中";
   const debugMatch = roomModel?.room?.public_state?.debugUnlimitedSkills === true;
   $("roomStatus").textContent = `${ROOM_STATUS_LABEL[roomModel?.room?.status] || "読み込み中"}${debugMatch ? "・デバッグ∞" : ""}`;
-  $("leaveRoom").textContent = roomModel?.room?.status === "finished" ? "結果を閉じてロビーへ" : "画面だけ閉じる（対戦は継続）";
+  const roomAbandonable = ["waiting", "ready"].includes(roomModel?.room?.status);
+  const pendingAbandon = roomAbandonable && hasPendingAbandon(snapshot.roomId);
+  $("leaveRoom").textContent = roomFinished ? "結果を閉じてロビーへ" : "画面だけ閉じる";
+  $("leaveRoomDescription").textContent = roomFinished ? "対戦結果と戦績は保存されています。" : "ルーム・待機・対戦は継続します。";
+  $("leaveRoom").disabled = abandonBusy;
+  show("abandonRoom", roomAbandonable);
+  show("abandonRoomHint", roomAbandonable);
+  $("abandonRoom").textContent = pendingAbandon ? "取りやめ結果を再確認" : "開始前の対戦を取りやめる";
+  $("abandonRoom").disabled = abandonBusy;
   const rematchPending = snapshot.rematchExpectedVersion === roomModel?.room?.version;
   $("requestRematch").textContent = rematchPending ? "同じ再戦申請を再送" : cpuRoom ? "同じCPUと再戦する" : "再戦を申し込む";
   $("requestRematch").disabled = rematchBusy || roomModel?.room?.status !== "finished";
@@ -2915,6 +2986,124 @@ function cancelCpuDraft() {
   openCpuRoster("direct", $("startStandardCpuLobby"));
 }
 
+function completeAbandonedRoom({ message, focusLobby = false }) {
+  const abandonedRoomId = client.snapshot().roomId;
+  const ownsPendingCpuSetup = pendingCpuStartSaga?.stage === "setup"
+    && pendingCpuStartSaga.roomId === abandonedRoomId;
+  restoreAbandonDialogFocus = false;
+  if ($("abandonRoomDialog").open) $("abandonRoomDialog").close();
+  abandonDialogTrigger = null;
+  abandonBusy = false;
+  abandonRetryRoomId = null;
+  abandonRetryExpectedVersion = null;
+  clearContactReveal();
+  stopCpuTurnWatch();
+  roomSync.stop();
+  client.clearRoom();
+  roomModel = null;
+  setupFailure = null;
+  pendingAction = null;
+  matchedRoomHandoff = null;
+  announcedMatchedRoomId = null;
+  $("matchedRoomAnnouncement").textContent = "";
+  clearTimeout(matchedRoomHandoffTimer);
+  matchedRoomHandoffTimer = null;
+  if (ownsPendingCpuSetup) {
+    persistCpuStartSaga(null);
+    cpuEntryDraft = null;
+    loadoutWorkshopOpen = false;
+    setCpuEntryIntent(false);
+  }
+  operationFeedback("setupStatus", "");
+  operationFeedback("actionStatus", "");
+  operationFeedback("abandonRoomStatus", "");
+  resolveQuizRoomClassification();
+  if (focusLobby) activateAppTab("battle");
+  render();
+  announceRoomLifecycle(message);
+  if (focusLobby || activeAppTab === "battle") focusBattleLobby();
+}
+
+function openRoomAbandonDialog(trigger = document.activeElement) {
+  const snapshot = client.snapshot();
+  if (!snapshot.roomId || roomModel?.room?.id !== snapshot.roomId || !["waiting", "ready"].includes(roomModel?.room?.status) || abandonBusy) return;
+  abandonDialogTrigger = trigger instanceof HTMLElement ? trigger : $("abandonRoom");
+  restoreAbandonDialogFocus = true;
+  const retrying = abandonExpectedVersion(snapshot.roomId) !== null;
+  $("confirmAbandonRoom").textContent = retrying ? "同じ取りやめ処理を再確認" : "無報酬で対戦を取りやめる";
+  operationFeedback("abandonRoomStatus", retrying
+    ? "前回の応答を確認できませんでした。同じ処理を再送して結果を確認できます。"
+    : "");
+  if (!$("abandonRoomDialog").open) $("abandonRoomDialog").showModal();
+  requestAnimationFrame(() => $("abandonRoomTitle").focus({ preventScroll: true }));
+}
+
+function resolveAbandonStateConflict(status) {
+  abandonBusy = false;
+  abandonRetryRoomId = null;
+  abandonRetryExpectedVersion = null;
+  restoreAbandonDialogFocus = false;
+  if ($("abandonRoomDialog").open) $("abandonRoomDialog").close();
+  abandonDialogTrigger = null;
+  render();
+  if (status === "playing") {
+    announceRoomLifecycle("対戦が開始したため、開始前の取りやめは行いませんでした。投了する場合は対戦画面の操作を使ってください。");
+    if (document.visibilityState === "visible" && activeAppTab === "battle") requestAnimationFrame(() => $("matchTitle").focus({ preventScroll: true }));
+  } else if (status === "finished") {
+    announceRoomLifecycle("対戦はすでに終了しているため、開始前の取りやめは行いませんでした。結果を確認してください。");
+  }
+}
+
+async function confirmRoomAbandon() {
+  const snapshot = client.snapshot();
+  const roomId = snapshot.roomId;
+  const status = roomModel?.room?.id === roomId ? roomModel.room.status : null;
+  if (abandonBusy || !roomId) return;
+  if (!["waiting", "ready"].includes(status)) return resolveAbandonStateConflict(status);
+  const expectedVersion = abandonExpectedVersion(roomId) ?? Number(roomModel.room.version);
+  if (!Number.isSafeInteger(expectedVersion) || expectedVersion < 0 || typeof client.abandonRoom !== "function") {
+    return operationFeedback("abandonRoomStatus", "取りやめ処理を準備できませんでした。ページを再読み込みしてください。", "error");
+  }
+  abandonRetryRoomId = roomId;
+  abandonRetryExpectedVersion = expectedVersion;
+  abandonBusy = true;
+  operationFeedback("abandonRoomStatus", "開始前の対戦をサーバーで取りやめています…");
+  renderLoadoutSelectionState();
+  render();
+  try {
+    const result = await client.abandonRoom({ expectedVersion });
+    if (client.snapshot().roomId !== roomId) return;
+    if (result?.room_status !== "abandoned") {
+      await roomSync.refreshNow();
+      if (!client.snapshot().roomId) return;
+      if (!["waiting", "ready"].includes(roomModel?.room?.status)) return resolveAbandonStateConflict(roomModel?.room?.status);
+      throw new Error("ABANDON_RESULT_NOT_CONFIRMED");
+    }
+    completeAbandonedRoom({ message: "開始前の対戦を取りやめました。戦績・報酬はありません。", focusLobby: true });
+  } catch {
+    await roomSync.refreshNow().catch(() => {});
+    if (client.snapshot().roomId !== roomId) return;
+    if (!["waiting", "ready"].includes(roomModel?.room?.status)) return resolveAbandonStateConflict(roomModel?.room?.status);
+    const authoritativeVersion = Number(roomModel?.room?.version);
+    if (persistedAbandonExpectedVersion(roomId) === null && Number.isSafeInteger(authoritativeVersion) && authoritativeVersion !== expectedVersion) {
+      abandonBusy = false;
+      abandonRetryRoomId = null;
+      abandonRetryExpectedVersion = null;
+      $("confirmAbandonRoom").textContent = "更新後の状態で無報酬のまま取りやめる";
+      operationFeedback("abandonRoomStatus", "対戦準備が更新されたため、前の処理は再送しません。現在の状態を確認し、取りやめる場合はもう一度確定してください。", "error");
+      revealOperationFeedback("abandonRoomStatus");
+      return;
+    }
+    abandonBusy = false;
+    $("confirmAbandonRoom").textContent = "同じ取りやめ処理を再確認";
+    operationFeedback("abandonRoomStatus", "サーバーの応答を確認できませんでした。同じ取りやめ処理を再確認してください。", "retry");
+    revealOperationFeedback("abandonRoomStatus");
+  } finally {
+    abandonBusy = false;
+    if (client.snapshot().roomId === roomId) render();
+  }
+}
+
 function closeDisplayedRoom() {
   if (!client.snapshot().roomId) return;
   if (roomModel?.room?.status !== "finished") {
@@ -2939,6 +3128,7 @@ function closeDisplayedRoom() {
   operationFeedback("setupStatus", "");
   operationFeedback("actionStatus", "");
   render();
+  focusBattleLobby();
 }
 async function requestRematch() {
   if (rematchBusy || roomModel?.room?.status !== "finished") return;
@@ -3049,10 +3239,22 @@ $("terminalClose").onclick = () => {
   $("requestRematch").focus({ preventScroll: false });
 };
 $("leaveRoom").onclick = closeDisplayedRoom;
+$("abandonRoom").onclick = (event) => openRoomAbandonDialog(event.currentTarget);
+$("confirmAbandonRoom").onclick = confirmRoomAbandon;
+$("abandonRoomDialog").addEventListener("close", () => {
+  const trigger = abandonDialogTrigger;
+  abandonDialogTrigger = null;
+  if (restoreAbandonDialogFocus && trigger?.isConnected && !trigger.classList.contains("hidden") && !trigger.disabled) trigger.focus({ preventScroll: true });
+  restoreAbandonDialogFocus = true;
+});
 document.addEventListener("visibilitychange", () => {
   roomSync.handleVisibilityChange();
   if (document.visibilityState === "hidden") { stopMatchmakingWatch(); stopCpuTurnWatch(); }
-  else { scheduleMatchmakingStatus(250); scheduleCpuTurn(250); }
+  else {
+    scheduleMatchmakingStatus(250);
+    scheduleCpuTurn(250);
+    if (pendingLifecycleLobbyFocus) focusBattleLobby();
+  }
 });
 window.addEventListener("focus", () => { roomSync.invalidate(); scheduleCpuTurn(250); });
 window.addEventListener("online", () => { roomSync.handleConnectivityChange(); reflectBrowserConnectivity(); scheduleMatchmakingStatus(250); scheduleCpuTurn(250); });

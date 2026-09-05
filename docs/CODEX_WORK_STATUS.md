@@ -36,7 +36,7 @@
 ## Next command priorities
 
 1. Acceptance/operations: complete a physical two-device match/reload/rematch loop and the T+24h Supabase resource comparison. These remain `PENDING`, not inferred from automation.
-2. P1: add an idempotent server-authoritative no-reward abandon/cancel for waiting/ready rooms; playing remains the existing exactly-once surrender path.
+2. Release gate: publish the locally verified `202609050007` idempotent no-reward abandon/cancel for waiting/ready rooms; playing remains the existing exactly-once surrender path. DB, live canary, Pages, and public URL are not yet verified.
 3. P1: add cumulative contact-color feedback tiers and a public “last move -> board change -> next decision” tactical trace without revealing private information.
 4. P1: translate rare single-active-room conflicts into a dedicated Japanese recovery message and resynchronize the existing room.
 5. P1 experiment: formalize `legalRecolor` as “塗り直し・乱” behind a lab/loadout gate. Keep the proposed two-color checkerboard card out of Standard until it has a separate ruleset.

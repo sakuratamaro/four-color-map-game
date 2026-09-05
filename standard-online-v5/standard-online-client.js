@@ -88,6 +88,9 @@
       setupRevision: 0,
       rematchActionId: null,
       rematchExpectedVersion: null,
+      abandonRoomId: null,
+      abandonActionId: null,
+      abandonExpectedVersion: null,
       matchmakingTicketId: null,
       matchmakingStartedAt: null,
       matchmakingFindActionId: null,
@@ -396,6 +399,41 @@
       if (!Number.isSafeInteger(expectedVersion) || !requiredText(type, "INVALID_ACTION_TYPE")) throw new Error("INVALID_ACTION");
       return clone(await invoke("action", { roomId, action: { id, expectedVersion, type, payload: clone(payload) } }));
     }
+    async function abandonRoom({ roomId = state.roomId, expectedVersion, actionId = null }) {
+      await ensureSession();
+      if (!UUID_PATTERN.test(String(roomId)) || !Number.isSafeInteger(expectedVersion) || expectedVersion < 0) {
+        throw new Error("INVALID_ABANDON_REQUEST");
+      }
+      const pending = UUID_PATTERN.test(String(state.abandonRoomId))
+        && UUID_PATTERN.test(String(state.abandonActionId))
+        && Number.isSafeInteger(state.abandonExpectedVersion);
+      if (pending && (state.abandonRoomId !== roomId || state.abandonExpectedVersion !== expectedVersion
+          || actionId && state.abandonActionId !== actionId)) {
+        throw Object.assign(new Error("ABANDON_ALREADY_PENDING"), { code: "ABANDON_ALREADY_PENDING" });
+      }
+      const resolvedActionId = actionId || (pending ? state.abandonActionId : idFactory());
+      if (!UUID_PATTERN.test(String(resolvedActionId))) throw new Error("INVALID_ABANDON_ID");
+      state.abandonRoomId = roomId;
+      state.abandonActionId = resolvedActionId;
+      state.abandonExpectedVersion = expectedVersion;
+      persist();
+      const response = await supabase.rpc("fcg_standard_abandon_room", {
+        p_room_id: roomId,
+        p_expected_version: expectedVersion,
+        p_action_id: resolvedActionId,
+      });
+      if (response.error) throw response.error;
+      const row = firstRow(response.data);
+      if (!row || row.room_status !== "abandoned" || !Number.isSafeInteger(Number(row.room_version))
+          || !["applied", "already_abandoned"].includes(row.abandon_result)) {
+        throw new Error("INVALID_ABANDON_RESULT");
+      }
+      state.abandonRoomId = null;
+      state.abandonActionId = null;
+      state.abandonExpectedVersion = null;
+      persist();
+      return clone(row);
+    }
     async function requestRematch({ roomId = state.roomId, expectedVersion, actionId = null }) {
       await ensureSession();
       if (!UUID_PATTERN.test(String(roomId)) || !Number.isSafeInteger(expectedVersion) || expectedVersion < 0) throw new Error("INVALID_REMATCH_REQUEST");
@@ -454,6 +492,13 @@
         state.rematchActionId = null;
         state.rematchExpectedVersion = null;
       }
+      if (state.abandonRoomId === roomId && snapshot.room.status !== "abandoned"
+          && (!['waiting', 'ready'].includes(snapshot.room.status)
+            || Number(snapshot.room.version) !== state.abandonExpectedVersion)) {
+        state.abandonRoomId = null;
+        state.abandonActionId = null;
+        state.abandonExpectedVersion = null;
+      }
       state.profileRevision = Number(snapshot.profile_revision);
       state.roomId = roomId;
       persist();
@@ -493,6 +538,9 @@
       state.setupRevision = 0;
       state.rematchActionId = null;
       state.rematchExpectedVersion = null;
+      state.abandonRoomId = null;
+      state.abandonActionId = null;
+      state.abandonExpectedVersion = null;
       persist();
     }
     function resetConnection() {
@@ -503,6 +551,9 @@
       state.setupRevision = 0;
       state.rematchActionId = null;
       state.rematchExpectedVersion = null;
+      state.abandonRoomId = null;
+      state.abandonActionId = null;
+      state.abandonExpectedVersion = null;
       state.matchmakingTicketId = null;
       state.matchmakingStartedAt = null;
       state.matchmakingFindActionId = null;
@@ -512,6 +563,7 @@
 
     return Object.freeze({
       acceptCpuOpponent,
+      abandonRoom,
       applyCosmetic,
       answerQuiz,
       cancelMatchmaking,

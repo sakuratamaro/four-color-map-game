@@ -1,4 +1,4 @@
--- Read-only verification after applying migrations through 202609050006.
+-- Read-only verification after applying migrations through 202609050007.
 -- Expected result: every row has ok = true. This statement performs no writes.
 
 with
@@ -10,6 +10,7 @@ expected_relations(schema_name, relation_name) as (
     ('fcg_private', 'standard_matchmaking_limits'),
     ('fcg_private', 'standard_cpu_profile_owners'),
     ('fcg_private', 'standard_cpu_start_receipts'),
+    ('fcg_private', 'standard_pregame_abandon_receipts'),
     ('fcg_private', 'standard_cosmetic_receipts')
 ),
 relation_state as (
@@ -19,11 +20,17 @@ relation_state as (
     coalesce(pg_catalog.has_table_privilege('anon', relation.oid, 'SELECT'), false)
       or coalesce(pg_catalog.has_table_privilege('anon', relation.oid, 'INSERT'), false)
       or coalesce(pg_catalog.has_table_privilege('anon', relation.oid, 'UPDATE'), false)
-      or coalesce(pg_catalog.has_table_privilege('anon', relation.oid, 'DELETE'), false) as anon_access,
+      or coalesce(pg_catalog.has_table_privilege('anon', relation.oid, 'DELETE'), false)
+      or coalesce(pg_catalog.has_table_privilege('anon', relation.oid, 'TRUNCATE'), false)
+      or coalesce(pg_catalog.has_table_privilege('anon', relation.oid, 'REFERENCES'), false)
+      or coalesce(pg_catalog.has_table_privilege('anon', relation.oid, 'TRIGGER'), false) as anon_access,
     coalesce(pg_catalog.has_table_privilege('authenticated', relation.oid, 'SELECT'), false)
       or coalesce(pg_catalog.has_table_privilege('authenticated', relation.oid, 'INSERT'), false)
       or coalesce(pg_catalog.has_table_privilege('authenticated', relation.oid, 'UPDATE'), false)
-      or coalesce(pg_catalog.has_table_privilege('authenticated', relation.oid, 'DELETE'), false) as authenticated_access
+      or coalesce(pg_catalog.has_table_privilege('authenticated', relation.oid, 'DELETE'), false)
+      or coalesce(pg_catalog.has_table_privilege('authenticated', relation.oid, 'TRUNCATE'), false)
+      or coalesce(pg_catalog.has_table_privilege('authenticated', relation.oid, 'REFERENCES'), false)
+      or coalesce(pg_catalog.has_table_privilege('authenticated', relation.oid, 'TRIGGER'), false) as authenticated_access
   from expected_relations expected
   left join pg_catalog.pg_namespace namespace on namespace.nspname = expected.schema_name
   left join pg_catalog.pg_class relation
@@ -57,6 +64,7 @@ expected_functions(signature, audience) as (
     ('public.fcg_standard_matchmaking_find(uuid,text)', 'authenticated'),
     ('public.fcg_standard_matchmaking_status(uuid)', 'authenticated'),
     ('public.fcg_standard_matchmaking_cancel(uuid)', 'authenticated'),
+    ('public.fcg_standard_abandon_room(uuid,bigint,uuid)', 'authenticated'),
     ('public.fcg_standard_server_accept_cpu(uuid,uuid,uuid,text,text,text,jsonb,jsonb,text)', 'service_role'),
     ('public.fcg_standard_server_start_cpu(uuid,uuid,uuid,text,text,text,jsonb,jsonb,text)', 'service_role'),
     ('public.fcg_standard_server_load_room_v2(uuid,uuid)', 'service_role'),
@@ -83,6 +91,12 @@ function_state as (
     coalesce(pg_catalog.has_function_privilege('authenticated', procedure.oid, 'EXECUTE'), false) as authenticated_execute,
     coalesce(pg_catalog.has_function_privilege('service_role', procedure.oid, 'EXECUTE'), false) as service_execute
   from expected_functions expected
+  left join pg_catalog.pg_proc procedure on procedure.oid = pg_catalog.to_regprocedure(expected.signature)
+),
+pregame_abandon_function_contract as (
+  select procedure.oid,
+    coalesce(pg_catalog.pg_get_function_result(procedure.oid), '') as result_definition
+  from (values ('public.fcg_standard_abandon_room(uuid,bigint,uuid)')) expected(signature)
   left join pg_catalog.pg_proc procedure on procedure.oid = pg_catalog.to_regprocedure(expected.signature)
 ),
 expected_policy_helpers(signature) as (
@@ -117,6 +131,43 @@ constraint_state as (
     on constraint_row.conrelid = pg_catalog.to_regclass(expected.relation_name)
     and constraint_row.conname = expected.constraint_name
 ),
+pregame_abandon_constraint_state as (
+  select
+    exists (
+      select 1 from pg_catalog.pg_constraint constraint_row
+      where constraint_row.conrelid = pg_catalog.to_regclass('fcg_private.standard_pregame_abandon_receipts')
+        and constraint_row.conname = 'standard_pregame_abandon_receipts_pkey'
+        and constraint_row.contype = 'p'
+        and constraint_row.convalidated
+        and pg_catalog.pg_get_constraintdef(constraint_row.oid) = 'PRIMARY KEY (room_id, action_id)'
+    ) as primary_key_ok,
+    exists (
+      select 1 from pg_catalog.pg_constraint constraint_row
+      where constraint_row.conrelid = pg_catalog.to_regclass('fcg_private.standard_pregame_abandon_receipts')
+        and constraint_row.conname = 'standard_pregame_abandon_receipts_room_id_fkey'
+        and constraint_row.contype = 'f'
+        and constraint_row.convalidated
+        and constraint_row.confrelid = pg_catalog.to_regclass('public.fcg_rooms')
+        and constraint_row.confdeltype = 'c'
+    ) as room_fk_cascade_ok,
+    exists (
+      select 1 from pg_catalog.pg_constraint constraint_row
+      where constraint_row.conrelid = pg_catalog.to_regclass('fcg_private.standard_pregame_abandon_receipts')
+        and constraint_row.conname = 'standard_pregame_abandon_receipts_expected_version_check'
+        and constraint_row.contype = 'c'
+        and constraint_row.convalidated
+        and pg_catalog.pg_get_constraintdef(constraint_row.oid) like '%expected_version >= 0%'
+    ) as expected_version_check_ok,
+    exists (
+      select 1 from pg_catalog.pg_constraint constraint_row
+      where constraint_row.conrelid = pg_catalog.to_regclass('fcg_private.standard_pregame_abandon_receipts')
+        and constraint_row.conname = 'standard_pregame_abandon_receipts_request_fingerprint_check'
+        and constraint_row.contype = 'c'
+        and constraint_row.convalidated
+        and pg_catalog.pg_get_constraintdef(constraint_row.oid) like '%request_fingerprint%'
+        and pg_catalog.pg_get_constraintdef(constraint_row.oid) like '%^[0-9a-f]{64}$%'
+    ) as request_fingerprint_check_ok
+),
 expected_triggers(relation_name, trigger_name) as (
   values
     ('fcg_private.standard_cpu_profile_owners', 'fcg_delete_standard_cpu_profile_after_room'),
@@ -134,27 +185,29 @@ trigger_state as (
     and trigger_row.tgname = expected.trigger_name
     and not trigger_row.tgisinternal
 ),
-expected_indexes(index_name) as (
+expected_indexes(schema_name, table_name, index_name) as (
   values
-    ('fcg_standard_matchmaking_one_search_per_user'),
-    ('fcg_standard_matchmaking_oldest_search'),
-    ('fcg_standard_matchmaking_resolved_cleanup_idx'),
-    ('fcg_standard_matchmaking_expiry_cleanup_idx'),
-    ('fcg_standard_matchmaking_find_cleanup_idx'),
-    ('fcg_standard_quiz_cleanup_idx'),
-    ('fcg_standard_gacha_receipt_cleanup_idx'),
-    ('fcg_standard_card_sale_receipt_cleanup_idx'),
-    ('fcg_standard_cosmetic_receipt_cleanup_idx'),
-    ('fcg_standard_matchmaking_limit_cleanup_idx'),
-    ('fcg_standard_cpu_start_receipt_cleanup_idx')
+    ('fcg_private', 'standard_matchmaking_tickets', 'fcg_standard_matchmaking_one_search_per_user'),
+    ('fcg_private', 'standard_matchmaking_tickets', 'fcg_standard_matchmaking_oldest_search'),
+    ('fcg_private', 'standard_matchmaking_tickets', 'fcg_standard_matchmaking_resolved_cleanup_idx'),
+    ('fcg_private', 'standard_matchmaking_tickets', 'fcg_standard_matchmaking_expiry_cleanup_idx'),
+    ('fcg_private', 'standard_matchmaking_find_receipts', 'fcg_standard_matchmaking_find_cleanup_idx'),
+    ('fcg_private', 'standard_quiz_sessions', 'fcg_standard_quiz_cleanup_idx'),
+    ('fcg_private', 'standard_gacha_receipts', 'fcg_standard_gacha_receipt_cleanup_idx'),
+    ('fcg_private', 'standard_card_sale_receipts', 'fcg_standard_card_sale_receipt_cleanup_idx'),
+    ('fcg_private', 'standard_cosmetic_receipts', 'fcg_standard_cosmetic_receipt_cleanup_idx'),
+    ('fcg_private', 'standard_matchmaking_limits', 'fcg_standard_matchmaking_limit_cleanup_idx'),
+    ('fcg_private', 'standard_cpu_start_receipts', 'fcg_standard_cpu_start_receipt_cleanup_idx'),
+    ('fcg_private', 'standard_pregame_abandon_receipts', 'fcg_standard_pregame_abandon_receipts_actor_idx')
 ),
 index_state as (
-  select expected.index_name,
+  select expected.*,
     index_row.indexrelid is not null as present,
     coalesce(index_row.indisvalid and index_row.indisready, false) as usable
   from expected_indexes expected
-  left join pg_catalog.pg_class index_class on index_class.relname = expected.index_name and index_class.relkind = 'i'
-  left join pg_catalog.pg_index index_row on index_row.indexrelid = index_class.oid
+  left join pg_catalog.pg_index index_row
+    on index_row.indexrelid = pg_catalog.to_regclass(expected.schema_name || '.' || expected.index_name)
+    and index_row.indrelid = pg_catalog.to_regclass(expected.schema_name || '.' || expected.table_name)
 ),
 appearance_state as (
   select count(*)::bigint as drift_count
@@ -210,6 +263,12 @@ checks(check_name, ok, detail) as (
       'authenticated_execute', authenticated_execute, 'service_execute', service_execute)
   from function_state
   union all
+  select 'function result public.fcg_standard_abandon_room(uuid,bigint,uuid)',
+    oid is not null and result_definition =
+      'TABLE(room_status text, room_version bigint, abandon_result text, duplicate boolean, server_time timestamp with time zone)',
+    jsonb_build_object('present', oid is not null, 'result_definition', result_definition)
+  from pregame_abandon_function_contract
+  union all
   select 'private policy helper ' || signature,
     oid is not null and not anon_execute and not authenticated_execute
       and definition like '%standard-character-roster-v1:kurogane%'
@@ -224,6 +283,12 @@ checks(check_name, ok, detail) as (
     jsonb_build_object('relation', relation_name, 'present', present, 'validated', validated)
   from constraint_state
   union all
+  select 'private relation fcg_private.standard_pregame_abandon_receipts constraints',
+    primary_key_ok and room_fk_cascade_ok and expected_version_check_ok and request_fingerprint_check_ok,
+    jsonb_build_object('primary_key', primary_key_ok, 'room_fk_cascade', room_fk_cascade_ok,
+      'expected_version_check', expected_version_check_ok, 'request_fingerprint_check', request_fingerprint_check_ok)
+  from pregame_abandon_constraint_state
+  union all
   select 'trigger ' || trigger_name,
     present and enabled,
     jsonb_build_object('relation', relation_name, 'present', present, 'enabled', enabled)
@@ -231,7 +296,7 @@ checks(check_name, ok, detail) as (
   union all
   select 'index ' || index_name,
     present and usable,
-    jsonb_build_object('present', present, 'usable', usable)
+    jsonb_build_object('schema', schema_name, 'table', table_name, 'present', present, 'usable', usable)
   from index_state
   union all
   select 'appearance backfill consistency',

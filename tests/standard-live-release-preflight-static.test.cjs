@@ -17,5 +17,9 @@ test("release preflight is read-only, secret-free, finite, and stage-aware", () 
   for (const phase of ["baseline", "db-ready", "candidate"]) assert.match(source, new RegExp(`"${phase}"`));
   assert.match(source, /fcg_standard_room_snapshot_v2/);
   assert.match(source, /fcg_standard_matchmaking_recruit/);
+  assert.match(source, /fcg_standard_abandon_room/);
+  assert.match(source, /hasPregameAbandon/);
+  assert.match(source, /SNAPSHOT_V2_BASELINE_MISSING/);
+  assert.match(source, /PUBLIC_BASELINE_UI_MISSING/);
   assert.doesNotMatch(source, /console\.log\([^\n]*(?:publishableKey|authorization)/);
 });

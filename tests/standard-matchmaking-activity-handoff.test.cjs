@@ -78,8 +78,8 @@ test("restored public rooms recover while CPU and invitation paths stay separate
   assert.match(app, /if \(pendingQuiz && !pendingQuiz\.pendingAnswer\) markQuizBoundaryForMatchedRoom\(\)/);
   assert.match(app, /roomModel\?\.room\?\.opponent_kind === "cpu"/);
   assert.match(app, /activateAppTab\("battle"\)/);
-  assert.match(app, /async function createRoom\(\)[^\n]+client\.createRoom/);
-  assert.match(app, /async function joinRoom\(\)[^\n]+client\.joinRoom/);
+  assert.match(body("createRoom", "joinRoom"), /client\.createRoom/);
+  assert.match(body("joinRoom", "submitSetup"), /client\.joinRoom/);
   assert.doesNotMatch(body("createRoom", "submitSetup"), /queueMatchedRoomHandoff/);
 });
 

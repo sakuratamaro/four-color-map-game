@@ -49,7 +49,7 @@
 | P1 | 中幅ロビーとガチャ結果の整理 | UX | PUBLIC_VERIFIED | `00d198f`。980px帯を2列＋野良全幅へreflowし、760px以下は1列。通常ガチャの重複大見出しを除き、CPU報酬は次戦CTAだけに整理。公開asset v18へ反映済み |
 | P1 | クイズの遊び心・学習feedback | クイズ＋Edge | PUBLIC_VERIFIED | `881bd17`。各問にmission、形式label、1–3段階の考え方を追加し、server確定結果で2/4/6 streakを表示。Edge deployment 14、live canary 7/7、公開asset v18 |
 | P1 | room作成前の6枚編成と明示CPU開始 | UX＋同期 | PUBLIC_VERIFIED | `03c5628`。Cardsのroom外6枚保存、CPU選択local-only、`stage/roomId/replaceRoomId`付きimmutable二段sagaを公開。start/setup応答喪失とstale別タブを46 browser testで固定 |
-| P1 | waiting/readyの正式な無報酬離脱 | Edge＋DB | BACKLOG | server-authoritativeで冪等なabandon/cancelを追加する。playingは既存SURRENDERだけを使い、ローカルclearで孤児roomを作らない |
+| P1 | waiting/readyの正式な無報酬離脱 | UX＋DB | VERIFIED | `202609050007`候補。認証付きserver-authoritative RPCで同一actionを冪等再送し、waiting/readyだけを無報酬でabandonedにする。playingは既存SURRENDER、finishedは結果導線を維持。ローカルEdge 50/50まで確認し、candidate CI・DB・Pages公開は未実施 |
 | P1 | 接触色の累積feedback | 演出＋アクセシビリティ | SPEC_READY | 2色=[2]、3色=[2,3]、4色=[2,3,4]を一回の確定CREATEごとに順次表示。合計1.5秒未満、reduced-motionは静止、読み上げは最終1回、poll/reload重複なし |
 | P1 | 直前の手→盤面変化→次の判断 | ゲーム理解 | AUDITED | 公開情報だけの短い戦術traceで、相手に渡した形と接触色の結果を次手の判断へつなぐ。相手palette/handや事前合法色oracleは出さない |
 | P1 | 未コミット／孤立作業の回収 | 構成管理 | COMPLETED | 29床を3床へ集約。丸ごと統合候補は0。Quick回帰試験だけを回収し、残るroot dirtyは救出済み・凍結管理 |
@@ -75,7 +75,7 @@
 | 区分 | 対象 | 方針 |
 | --- | --- | --- |
 | 正本 | `origin/main` | 公開ゲーム資産基点は`03c5628`。migration `202609050001`–`202609050006`、Edge deployment 14、Pages run `33967367304`まで公開確認済み |
-| 現在の統合床 | `codex/standard-release-command` | 製品履歴は`main`と一致。公開証拠追補後の次便は正式abandonと競合文言 |
+| 現在の統合床 | `codex/standard-release-command` | `202609050007`と開始前取りやめUIを候補検証中。candidate CI、DB canary、Pages公開後にのみPUBLIC_VERIFIEDへ上げる |
 | 公開済み現候補 | ゲーム資産`03c5628` | active-room排他、room外6枚編成、明示CPU二段saga、screen-only closeを包含。公開asset v19、Chrome/Edge gate、Pages、DB 61/61、candidate preflightを確認済み |
 | 保全済み | detached `a8fce7d` dirty床 | `codex/salvage-a8fce7d-20260904` / `9e4e8ee` に秘密情報なしでWIP保全済み。機能単位で比較 |
 | 凍結root | root `ac78282` | 正史worktreeを内包するため作業床は維持。再監査したdirty 39件のうち38件は既存commitと一致し、残る旧handoff文書も現正本で置換済み。丸ごとmerge禁止、回収残件なし |

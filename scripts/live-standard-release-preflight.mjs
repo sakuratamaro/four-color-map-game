@@ -37,12 +37,13 @@ async function probeProtectedRpc(name, body) {
   throw new Error(`UNEXPECTED_RPC_PROBE_${name}_${response.status}_${String(data?.code || "UNKNOWN")}`);
 }
 
-const [page, app, snapshotV1, snapshotV2, matchmaking] = await Promise.all([
+const [page, app, snapshotV1, snapshotV2, matchmaking, pregameAbandon] = await Promise.all([
   getText(publicUrl),
   getText(`${publicUrl}app.js`),
   probeProtectedRpc("fcg_standard_room_snapshot", { p_room_id: zeroUuid }),
   probeProtectedRpc("fcg_standard_room_snapshot_v2", { p_room_id: zeroUuid, p_known_profile_revision: null }),
   probeProtectedRpc("fcg_standard_matchmaking_recruit", { p_display_name: "preflight", p_ticket_id: zeroUuid }),
+  probeProtectedRpc("fcg_standard_abandon_room", { p_room_id: zeroUuid, p_expected_version: 0, p_action_id: zeroUuid }),
 ]);
 
 const result = {
@@ -54,8 +55,9 @@ const result = {
     hasPublicMatchmaking: /recruitOpponent|対戦相手を募集/.test(app.text),
     hasCpuRoster: /cpu-roster|CPU一覧/.test(app.text),
     hasCosmetics: /cosmetic-catalog|見た目/.test(app.text),
+    hasPregameAbandon: /client\.abandonRoom|開始前の対戦を取りやめる/.test(app.text),
   },
-  database: { snapshotV1, snapshotV2, matchmaking },
+  database: { snapshotV1, snapshotV2, matchmaking, pregameAbandon },
 };
 
 const phaseExpectations = {
@@ -67,11 +69,13 @@ const phaseExpectations = {
 if (expectedPhase) {
   const expected = phaseExpectations[expectedPhase];
   assert.equal(result.database.snapshotV1, "protected", "SNAPSHOT_V1_BASELINE_MISSING");
-  assert.equal(result.database.snapshotV2, expected.candidateDb ? "protected" : "absent", "SNAPSHOT_V2_PHASE_MISMATCH");
-  assert.equal(result.database.matchmaking, expected.candidateDb ? "protected" : "absent", "MATCHMAKING_PHASE_MISMATCH");
+  assert.equal(result.database.snapshotV2, "protected", "SNAPSHOT_V2_BASELINE_MISSING");
+  assert.equal(result.database.matchmaking, "protected", "MATCHMAKING_BASELINE_MISSING");
+  assert.equal(result.database.pregameAbandon, expected.candidateDb ? "protected" : "absent", "PREGAME_ABANDON_PHASE_MISMATCH");
   for (const key of ["hasPublicMatchmaking", "hasCpuRoster", "hasCosmetics"]) {
-    assert.equal(result.publicPage[key], expected.candidateUi, `PUBLIC_UI_PHASE_MISMATCH_${key}`);
+    assert.equal(result.publicPage[key], true, `PUBLIC_BASELINE_UI_MISSING_${key}`);
   }
+  assert.equal(result.publicPage.hasPregameAbandon, expected.candidateUi, "PREGAME_ABANDON_UI_PHASE_MISMATCH");
 }
 
 console.log(JSON.stringify(result));

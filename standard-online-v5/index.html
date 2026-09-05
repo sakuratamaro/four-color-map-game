@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <title>Four Color Map Game v5.0 Standard Online</title>
   <link rel="stylesheet" href="../online-v5/style.css">
-  <link rel="stylesheet" href="style.css?v=20260905-19">
+  <link rel="stylesheet" href="style.css?v=20260905-20">
   <link rel="stylesheet" href="debug-mode.css">
   <link rel="stylesheet" href="progression.css">
 </head>
@@ -191,7 +191,8 @@
     </section>
 
     <section id="lobby" class="card hidden" data-app-tab-panel="battle">
-      <h2>Standardロビー</h2>
+      <h2 id="lobbyTitle" tabindex="-1">Standardロビー</h2>
+      <p id="roomLifecycleAnnouncement" class="callout room-lifecycle-announcement hidden" role="status" aria-live="polite" aria-atomic="true"></p>
       <div class="lobby-choice-grid">
         <section id="standardCpuChoice" class="lobby-choice standard-cpu-choice">
           <h3>CPUと今すぐ遊ぶ <span class="standard-cpu-badge">Standard</span></h3>
@@ -240,7 +241,14 @@
       </div>
       <div id="members" class="members"></div>
       <p id="waitingMessage" class="callout">相手と6枚セットを待っています。</p>
-      <button id="leaveRoom" class="ghost">この端末でルーム表示を閉じる</button>
+      <div class="room-lifecycle-actions">
+        <div>
+          <button id="leaveRoom" type="button" class="ghost">画面だけ閉じる</button>
+          <p id="leaveRoomDescription" class="muted small">ルーム・待機は継続します。</p>
+        </div>
+        <button id="abandonRoom" type="button" class="danger room-abandon-button hidden" aria-describedby="abandonRoomHint">開始前の対戦を取りやめる</button>
+      </div>
+      <p id="abandonRoomHint" class="muted small hidden">参加者全員の開始前対戦を終了します。戦績・報酬はありません。</p>
     </section>
 
     <section id="setupCard" class="card hidden" data-app-tab-panel="battle cards">
@@ -292,7 +300,7 @@
       <div id="skillControls" class="skills"></div>
       <div id="skillTargetControls" class="target-panel hidden"></div>
       <div class="controls">
-        <button id="surrender" class="danger compact-danger">投了する</button>
+        <button id="surrender" class="danger compact-danger">敗北として投了する</button>
         <button id="retryAction" class="primary hidden">同じ操作を再送</button>
       </div>
       <p id="actionStatus" class="muted operation-feedback" role="status" aria-live="polite" aria-atomic="true"></p>
@@ -354,6 +362,18 @@
       <p id="skillInfoRandom" class="random-skill-note hidden">🎲 このスキルにはランダム抽選があります</p>
     </form>
   </dialog>
+  <dialog id="abandonRoomDialog" class="room-abandon-dialog" aria-labelledby="abandonRoomTitle" aria-describedby="abandonRoomDescription">
+    <form method="dialog">
+      <p class="dialog-kicker">BEFORE MATCH</p>
+      <h2 id="abandonRoomTitle" tabindex="-1">対戦開始前に取りやめますか？</h2>
+      <p id="abandonRoomDescription">参加者全員の開始前対戦を終了します。戦績・報酬は発生せず、送信済みの6枚や所持カードも消費されません。この操作は元に戻せません。</p>
+      <p id="abandonRoomStatus" class="operation-feedback" role="status" aria-live="polite" aria-atomic="true"></p>
+      <div class="room-abandon-dialog-actions">
+        <button id="cancelAbandonRoom" type="submit" value="cancel" class="ghost">戻る（対戦を続ける）</button>
+        <button id="confirmAbandonRoom" type="button" class="danger">無報酬で対戦を取りやめる</button>
+      </div>
+    </form>
+  </dialog>
   <dialog id="cpuRosterDialog" class="cpu-roster-dialog" aria-labelledby="cpuRosterTitle" aria-describedby="cpuRosterDescription">
     <form method="dialog">
       <div id="cpuRosterHeader" class="row between wrap cpu-roster-header"><div><p class="dialog-kicker">CPU SELECT</p><h2 id="cpuRosterTitle" tabindex="-1">Standard CPU対戦 — 相手を選ぶ</h2></div><button id="closeCpuRoster" class="ghost" type="button">ロビーに戻る</button></div>
@@ -363,9 +383,9 @@
     </form>
   </dialog>
   <div id="toast" role="status" aria-live="polite"></div>
-  <script src="standard-online-client.js?v=20260905-14"></script>
+  <script src="standard-online-client.js?v=20260905-15"></script>
   <script src="standard-online-sync.js"></script>
   <script src="standard-online-skill-intents.js"></script>
-  <script type="module" src="app.js?v=20260905-19"></script>
+  <script type="module" src="app.js?v=20260905-20"></script>
 </body>
 </html>

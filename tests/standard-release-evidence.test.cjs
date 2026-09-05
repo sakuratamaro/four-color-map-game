@@ -9,7 +9,7 @@ const evidence = fs.readFileSync(path.join(__dirname, "..", "docs", "STANDARD_RE
 
 test("release evidence ledger keeps local, public, approval, and blocked states distinct", () => {
   for (const state of ["VERIFIED", "PUBLIC_VERIFIED", "BLOCKED", "PENDING_APPROVAL", "PENDING", "NOT_RUN"]) assert.match(evidence, new RegExp(state));
-  for (const gate of ["採否棚卸し", "ローカル製品試験", "Dashboard Advisor", "migration 006–013＋後続001–005本番適用", "Edge Function更新", "GitHub main・Pages更新", "別々の二端末による最終受入"]) {
+  for (const gate of ["採否棚卸し", "ローカル製品試験", "Dashboard Advisor", "migration 006–013＋後続001–006本番適用", "Edge Function更新", "GitHub main・Pages更新", "別々の二端末による最終受入"]) {
     assert.match(evidence, new RegExp(gate));
   }
   assert.match(evidence, /token、API key、user ID、個人情報は記録しない/);

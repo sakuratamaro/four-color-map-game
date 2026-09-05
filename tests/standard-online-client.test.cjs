@@ -30,6 +30,7 @@ function supabaseFixture({ roomStatus = "ready", roomVersion = 10 } = {}) {
       if (name === "fcg_standard_create_room") return { data: [{ room_id: ROOM_ID, room_code: "A1B2C3", seat: "A", game_mode: "standard_v5" }] };
       if (name === "fcg_standard_join_room") return { data: [{ room_id: ROOM_ID, seat: "B", game_mode: "standard_v5" }] };
       if (name === "fcg_standard_request_rematch") return { data: [{ room_status: "finished", room_version: args.p_expected_version, ready_to_setup: false, duplicate: false }] };
+      if (name === "fcg_standard_abandon_room") return { data: [{ room_status: "abandoned", room_version: args.p_expected_version + 1, abandon_result: "applied", duplicate: false, server_time: "2099-01-01T00:00:00Z" }] };
       if (name === "fcg_standard_matchmaking_recruit") return { data: [{ ticket_id: args.p_ticket_id, matchmaking_status: "searching", room_id: null, seat: null, wait_started_at: "2099-01-01T00:00:00Z" }] };
       if (name === "fcg_standard_matchmaking_status") return { data: [{ ticket_id: args.p_ticket_id, matchmaking_status: "searching", room_id: null, seat: null, wait_started_at: "2099-01-01T00:00:00Z" }] };
       if (name === "fcg_standard_matchmaking_cancel") return { data: [{ ticket_id: args.p_ticket_id, matchmaking_status: "cancelled", room_id: null, seat: null }] };
@@ -96,6 +97,7 @@ test("client restores only finite reconnect identities from its own storage key"
   assert.deepEqual(client.snapshot(), {
     roomId: ROOM_ID, roomCode: "A1B2C3", profileRevision: 4, setupRevision: 2,
     rematchActionId: null, rematchExpectedVersion: null,
+    abandonRoomId: null, abandonActionId: null, abandonExpectedVersion: null,
     matchmakingTicketId: null, matchmakingStartedAt: null, matchmakingFindActionId: null,
     cpuStartActionId: null, cpuStartCharacterId: null,
   });
@@ -408,6 +410,121 @@ test("rematch persists its identity before the RPC and reuses it after reconnect
   assert.equal(calls.length, 2);
   assert.equal(calls[0].args.p_action_id, ACTION_ID);
   assert.equal(calls[1].args.p_action_id, ACTION_ID);
+});
+
+test("abandon persists room, version, and identity before RPC and reuses all three after a lost response", async () => {
+  const supabase = supabaseFixture();
+  const storage = storageFixture({ roomId: ROOM_ID, setupRevision: 2 });
+  const originalRpc = supabase.rpc;
+  let loseFirstResponse = true;
+  supabase.rpc = async (name, args) => {
+    const result = await originalRpc(name, args);
+    if (name === "fcg_standard_abandon_room" && loseFirstResponse) {
+      loseFirstResponse = false;
+      throw new Error("response lost after commit");
+    }
+    return result;
+  };
+
+  const first = createStandardOnlineClient({ supabase, storage, idFactory: () => ACTION_ID });
+  await assert.rejects(first.abandonRoom({ expectedVersion: 9 }), /response lost after commit/);
+  assert.equal(first.snapshot().roomId, ROOM_ID);
+  assert.deepEqual({
+    roomId: first.snapshot().abandonRoomId,
+    actionId: first.snapshot().abandonActionId,
+    expectedVersion: first.snapshot().abandonExpectedVersion,
+  }, { roomId: ROOM_ID, actionId: ACTION_ID, expectedVersion: 9 });
+
+  const second = createStandardOnlineClient({ supabase, storage, idFactory: () => { throw new Error("must reuse pending abandon"); } });
+  const result = await second.abandonRoom({ expectedVersion: 9 });
+  const calls = supabase.calls.filter((call) => call.name === "fcg_standard_abandon_room");
+  assert.equal(calls.length, 2);
+  assert.deepEqual(calls.map((call) => call.args), [
+    { p_room_id: ROOM_ID, p_expected_version: 9, p_action_id: ACTION_ID },
+    { p_room_id: ROOM_ID, p_expected_version: 9, p_action_id: ACTION_ID },
+  ]);
+  assert.equal(result.room_status, "abandoned");
+  assert.equal(second.snapshot().roomId, ROOM_ID);
+  assert.equal(second.snapshot().abandonRoomId, null);
+  assert.equal(second.snapshot().abandonActionId, null);
+  assert.equal(second.snapshot().abandonExpectedVersion, null);
+});
+
+test("abandon never overwrites a different pending request and keeps pending state until an authoritative success", async () => {
+  const storage = storageFixture({
+    roomId: ROOM_ID,
+    abandonRoomId: ROOM_ID,
+    abandonActionId: ACTION_ID,
+    abandonExpectedVersion: 9,
+  });
+  const supabase = supabaseFixture();
+  const client = createStandardOnlineClient({ supabase, storage, idFactory: () => { throw new Error("must not allocate"); } });
+  await assert.rejects(client.abandonRoom({ expectedVersion: 10 }), (error) => error.code === "ABANDON_ALREADY_PENDING");
+  assert.equal(supabase.calls.length, 0);
+  assert.equal(client.snapshot().abandonActionId, ACTION_ID);
+
+  const originalRpc = supabase.rpc;
+  supabase.rpc = async (name, args) => name === "fcg_standard_abandon_room"
+    ? { data: [{ room_status: "playing", room_version: 10, abandon_result: "match_started", duplicate: false }] }
+    : originalRpc(name, args);
+  await assert.rejects(client.abandonRoom({ expectedVersion: 9 }), /INVALID_ABANDON_RESULT/);
+  assert.equal(client.snapshot().roomId, ROOM_ID);
+  assert.equal(client.snapshot().abandonActionId, ACTION_ID);
+});
+
+test("explicit local room clear and connection reset discard only no-longer-retryable abandon identity", () => {
+  const initial = { roomId: ROOM_ID, roomCode: "A1B2C3", abandonRoomId: ROOM_ID, abandonActionId: ACTION_ID, abandonExpectedVersion: 9 };
+  const storage = storageFixture(initial);
+  const client = createStandardOnlineClient({ supabase: supabaseFixture(), storage, idFactory: () => ACTION_ID });
+  client.clearRoom();
+  assert.equal(client.snapshot().roomId, null);
+  assert.equal(client.snapshot().abandonRoomId, null);
+  assert.equal(client.snapshot().abandonActionId, null);
+  assert.equal(client.snapshot().abandonExpectedVersion, null);
+
+  const second = createStandardOnlineClient({ supabase: supabaseFixture(), storage: storageFixture(initial), idFactory: () => ACTION_ID });
+  second.resetConnection();
+  assert.equal(second.snapshot().roomId, null);
+  assert.equal(second.snapshot().abandonRoomId, null);
+  assert.equal(second.snapshot().abandonActionId, null);
+  assert.equal(second.snapshot().abandonExpectedVersion, null);
+});
+
+test("an authoritative playing or advanced pregame snapshot retires a losing abandon retry without auto-surrender", async () => {
+  for (const fixture of [
+    { roomStatus: "playing", roomVersion: 10 },
+    { roomStatus: "ready", roomVersion: 11 },
+  ]) {
+    const storage = storageFixture({
+      roomId: ROOM_ID,
+      abandonRoomId: ROOM_ID,
+      abandonActionId: ACTION_ID,
+      abandonExpectedVersion: 10,
+    });
+    const supabase = supabaseFixture(fixture);
+    const client = createStandardOnlineClient({ supabase, storage, idFactory: () => { throw new Error("must not allocate"); } });
+    await client.readRoom();
+    assert.equal(client.snapshot().abandonRoomId, null);
+    assert.equal(client.snapshot().abandonActionId, null);
+    assert.equal(client.snapshot().abandonExpectedVersion, null);
+    assert.equal(supabase.calls.some((call) => call.kind === "invoke" && call.request.body.operation === "action"), false);
+  }
+});
+
+test("an abandoned snapshot retains pending identity until the app classifies and clears the local room", async () => {
+  const storage = storageFixture({
+    roomId: ROOM_ID,
+    abandonRoomId: ROOM_ID,
+    abandonActionId: ACTION_ID,
+    abandonExpectedVersion: 10,
+  });
+  const client = createStandardOnlineClient({
+    supabase: supabaseFixture({ roomStatus: "abandoned", roomVersion: 11 }), storage, idFactory: () => ACTION_ID,
+  });
+  await client.readRoom();
+  assert.equal(client.snapshot().abandonRoomId, ROOM_ID);
+  assert.equal(client.snapshot().abandonActionId, ACTION_ID);
+  assert.equal(client.snapshot().abandonExpectedVersion, 10);
 });
 
 test("polling a reset room clears the completed rematch and stale setup revision", async () => {

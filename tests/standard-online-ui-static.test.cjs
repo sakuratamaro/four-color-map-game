@@ -26,10 +26,10 @@ test("missing room snapshots return to the lobby without discarding rooms on net
 
 test("Standard online setup UI exposes the complete reconnect path", () => {
   for (const id of [
-    "connectionCard", "connectionStatus", "connectionBadge", "connectionMessage", "matchedRoomHandoff", "matchedRoomAnnouncement", "matchedRoomHandoffTitle", "matchedRoomHandoffDetail", "returnToMatchedRoom",
+    "connectionCard", "connectionStatus", "connectionBadge", "connectionMessage", "matchedRoomHandoff", "matchedRoomAnnouncement", "roomLifecycleAnnouncement", "matchedRoomHandoffTitle", "matchedRoomHandoffDetail", "returnToMatchedRoom",
     "profileSelect", "starterCreator", "starterName", "createStarterProfile", "syncProfile", "createRoom", "roomCode", "joinRoom",
     "shownCode", "members", "editNextLoadout", "setupTitle", "setupDescription", "cpuStartReview", "loadoutSummary", "loadoutGrid", "setupCommitBar", "setupCommitTitle", "submitSetup", "cancelCpuDraft", "setupStatus", "matchCard",
-    "publicProjection", "privateProjection", "leaveRoom",
+    "publicProjection", "privateProjection", "leaveRoom", "leaveRoomDescription", "abandonRoom", "abandonRoomHint", "abandonRoomDialog", "abandonRoomTitle", "abandonRoomDescription", "abandonRoomStatus", "cancelAbandonRoom", "confirmAbandonRoom", "lobbyTitle",
     "turnGuide", "turnGuideStep", "turnGuideTitle", "turnGuideDetail", "board", "regionControls", "selectionCount", "submitRegion", "paletteControls", "skillControls", "skillTargetControls",
     "surrender", "retryAction", "actionStatus", "rematchControls", "rematchStatus", "requestRematch",
     "gachaPanel", "gachaTitle", "gachaTickets", "gachaLevel", "gachaDrawOne", "gachaDrawAll", "gachaRetry", "gachaStatus", "gachaResults",
@@ -165,6 +165,44 @@ test("CPU turns are server-chosen one action at a time and stop while hidden or 
   assert.match(app, /function closeDisplayedRoom\(\)[\s\S]+roomModel\?\.room\?\.status !== "finished"[\s\S]+activateAppTab\("home"\)/);
   assert.match(app, /function closeDisplayedRoom\(\)[\s\S]+stopCpuTurnWatch\(\);[\s\S]+roomSync\.stop\(\);[\s\S]+client\.clearRoom\(\)/);
   assert.doesNotMatch(app, /takeCpuTurn\([^)]*(?:type|payload|action|privateState|publicState)/);
+});
+
+test("pregame abandon is distinct from screen-only close, surrender, and finished-result close", () => {
+  assert.match(html, /id="leaveRoom"[^>]*>画面だけ閉じる</);
+  assert.match(html, /id="leaveRoomDescription"[^>]*>ルーム・待機は継続します。/);
+  assert.match(html, /id="abandonRoom"[^>]+aria-describedby="abandonRoomHint"[^>]*>開始前の対戦を取りやめる</);
+  assert.match(html, /id="surrender"[^>]*>敗北として投了する</);
+  assert.match(app, /\["waiting", "ready"\]\.includes\(roomModel\?\.room\?\.status\)/);
+  assert.match(app, /\$\("leaveRoom"\)\.textContent = roomFinished \? "結果を閉じてロビーへ" : "画面だけ閉じる"/);
+  assert.match(app, /\$\("abandonRoom"\)\.onclick = \(event\) => openRoomAbandonDialog/);
+  assert.match(app, /\$\("surrender"\)\.onclick = \(\) => sendAction\("SURRENDER"\)/);
+  const abandon = app.slice(app.indexOf("async function confirmRoomAbandon"), app.indexOf("function closeDisplayedRoom"));
+  assert.match(abandon, /client\.abandonRoom\(\{ expectedVersion \}\)/);
+  assert.doesNotMatch(abandon, /sendAction|SURRENDER|requestRematch|drawGacha|clearCpuRewardGachaResult/);
+});
+
+test("pregame abandon confirmation is safe-first, retryable, responsive, and singly announced", () => {
+  const dialog = html.slice(html.indexOf('id="abandonRoomDialog"'), html.indexOf('id="cpuRosterDialog"'));
+  assert.match(dialog, /aria-labelledby="abandonRoomTitle"[^>]+aria-describedby="abandonRoomDescription"/);
+  assert.ok(dialog.indexOf('id="cancelAbandonRoom"') < dialog.indexOf('id="confirmAbandonRoom"'));
+  assert.match(dialog, /戻る（対戦を続ける）/);
+  assert.match(dialog, /無報酬で対戦を取りやめる/);
+  assert.match(dialog, /戦績・報酬は発生せず[^<]+6枚や所持カードも消費されません[^<]+元に戻せません/);
+  assert.match(html, /id="roomLifecycleAnnouncement"[^>]+room-lifecycle-announcement[^>]+role="status"[^>]+aria-live="polite"[^>]+aria-atomic="true"/);
+  assert.doesNotMatch(html, /id="roomLifecycleAnnouncement"[^>]+visually-hidden/);
+  assert.match(html, /id="abandonRoomStatus"[^>]+role="status"[^>]+aria-live="polite"[^>]+aria-atomic="true"/);
+  assert.doesNotMatch(dialog, /id="(?:abandonRoomDescription|abandonRoomHint)"[^>]+aria-live/);
+  const abandon = app.slice(app.indexOf("function completeAbandonedRoom"), app.indexOf("function closeDisplayedRoom"));
+  assert.match(abandon, /同じ取りやめ処理を再確認/);
+  assert.match(abandon, /roomSync\.stop\(\)[\s\S]+client\.clearRoom\(\)[\s\S]+activateAppTab\("battle"\)/);
+  assert.match(abandon, /\$\("abandonRoomTitle"\)\.focus/);
+  assert.match(app, /abandonRoomDialog"\)\.addEventListener\("close"[\s\S]+trigger\.focus/);
+  assert.match(app, /pendingLifecycleLobbyFocus[\s\S]+document\.visibilityState !== "visible"/);
+  assert.doesNotMatch(abandon, /toast\(/);
+  assert.match(css, /\.room-lifecycle-actions button\{min-height:44px\}/);
+  assert.match(css, /\.room-abandon-dialog-actions button\{min-height:48px/);
+  assert.match(css, /@media\(max-width:620px\)\{\.room-lifecycle-actions,\.room-abandon-dialog-actions\{grid-template-columns:1fr\}/);
+  assert.match(css, /@media\(prefers-reduced-motion:reduce\)\{\.room-abandon-dialog/);
 });
 
 test("PvP and CPU records are visibly separate and CPU rematch uses its dedicated boundary", () => {

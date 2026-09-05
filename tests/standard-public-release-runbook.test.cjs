@@ -15,13 +15,13 @@ test("release runbook fixes migration-before-Edge-before-Pages order", () => {
     assert.ok(position > previous, marker);
     previous = position;
   }
-  for (let sequence = 1; sequence <= 6; sequence += 1) {
+  for (let sequence = 1; sequence <= 7; sequence += 1) {
     const marker = `20260905${String(sequence).padStart(4, "0")}`;
     const position = runbook.indexOf(marker, previous + 1);
     assert.ok(position > previous, marker);
     previous = position;
   }
-  const edge = runbook.indexOf("DB 14本の確認が終わってから");
+  const edge = runbook.indexOf("DB 15本の確認を終える");
   const pages = runbook.indexOf("StandardオンラインPagesを公開");
   assert.ok(edge > previous && pages > edge);
   assert.match(runbook, /PagesをDBより先に公開しない/);
