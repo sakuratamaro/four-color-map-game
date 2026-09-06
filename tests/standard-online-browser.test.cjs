@@ -1932,6 +1932,7 @@ test("actual browser selects an alpha.4 colored corner bloom by region then macr
     await target.getByRole("button", { name: "盤面で色のついたエリアを選ぶ" }).click();
     assert.equal(await board.evaluate((node) => node === document.activeElement), true);
     await page.keyboard.press("Enter");
+    await page.waitForFunction(() => document.activeElement?.dataset.cornerBloomRegion === "R1");
     assert.equal(await page.evaluate(() => document.activeElement?.dataset.cornerBloomRegion), "R1");
     assert.match(await target.locator(".skill-target-feedback").textContent(), /複数/);
 
