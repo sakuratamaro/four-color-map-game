@@ -1,7 +1,7 @@
 "use strict";
 
 const { COLORS, StandardRuleError, applyLegalRecolor } = require("./standard-engine.js");
-const { STANDARD_SKILLS } = require("./standard-skill-registry.js");
+const { COLORED_CORNER_BLOOM_ENGINE_VERSION, STANDARD_SKILLS } = require("./standard-skill-registry.js");
 const { applyAreaCornerBloom, applyAreaDiePlus, applyAreaHalfShift, applyAreaMicroBloom, applyAreaResize, applyAreaTripleShift, applyColorBonusRefill, applyColorChoiceBorrow, applyColorPaletteChange, applyColorRandomBorrow, applyColorPrism, applyColorRegionSplit, applyDisruptChoiceOne, applyDisruptChoiceThree, applyDisruptChoiceTwo, applyDisruptForcedPalette, applyDisruptPaletteChoice, applyDisruptPaletteRandom, applyDisruptRandomOne, applyDisruptRandomTwo } = require("./standard-skill-handlers.js");
 
 const SKILL_RESULT = Object.freeze({ REJECTED: "REJECTED", CANCELLED: "CANCELLED", RESOLVED: "RESOLVED" });
@@ -18,7 +18,7 @@ function nextRandom(rngStreams, name, counter) {
   return value;
 }
 
-function validateTargetSchema(definition, payload) {
+function validateTargetSchema(definition, payload, state) {
   if (!definition.targetSchema) return true;
   if (!payload || typeof payload !== "object" || Array.isArray(payload)) return false;
   if (definition.id === "legalRecolor") return typeof payload.regionId === "string" && payload.regionId.length > 0;
@@ -28,7 +28,14 @@ function validateTargetSchema(definition, payload) {
   if (definition.id === "colorRegionSplit") return typeof payload.regionId === "string" && payload.regionId.length > 0
     && Array.isArray(payload.sourceMacros) && payload.sourceMacros.every(Number.isInteger);
   if (definition.id === "areaMicroBloom") return Array.isArray(payload.sourceMacros) && payload.sourceMacros.every(Number.isInteger);
-  if (definition.id === "areaCornerBloom") return Array.isArray(payload.sourceMacros) && payload.sourceMacros.every(Number.isInteger) && Number.isInteger(payload.macro);
+  if (definition.id === "areaCornerBloom") {
+    const outgoing = Array.isArray(payload.sourceMacros) && payload.sourceMacros.every(Number.isInteger)
+      && !Object.hasOwn(payload, "regionId") && Number.isInteger(payload.macro);
+    const coloredRegion = state.engineVersion === COLORED_CORNER_BLOOM_ENGINE_VERSION
+      && typeof payload.regionId === "string" && payload.regionId.length > 0
+      && !Object.hasOwn(payload, "sourceMacros") && Number.isInteger(payload.macro);
+    return outgoing || coloredRegion;
+  }
   if (definition.id === "areaResize") return ["expand", "shrink"].includes(payload.mode) && ["top", "bottom", "left", "right"].includes(payload.side);
   if (["disruptChoiceOne", "disruptChoiceTwo", "disruptChoiceThree", "disruptPaletteChoice", "disruptForcedPalette"].includes(definition.id)) return typeof payload.color === "string";
   if (definition.id === "areaHalfShift") return typeof payload.axis === "string" && Number.isInteger(payload.index) && typeof payload.direction === "string";
@@ -97,7 +104,7 @@ function dispatchStandardSkillAction({ state, actor, action, expectedVersion, rn
   if (!timingMatches) return rejected("WRONG_PHASE", state);
   if ((state.hands?.[actor]?.[definition.id] || 0) <= 0) return rejected("SKILL_UNAVAILABLE", state);
   if (definition.experimental && state.interferenceLock) return rejected("INTERFERENCE_CHAINED", state);
-  if (!validateTargetSchema(definition, action.payload)) return rejected("INVALID_TARGET_SCHEMA", state);
+  if (!validateTargetSchema(definition, action.payload, state)) return rejected("INVALID_TARGET_SCHEMA", state);
   if (categoryLimitEnabled && state.skillCategoryWindow.categories.includes(definition.usageCategory)) {
     return rejected("SKILL_CATEGORY_ALREADY_USED_IN_WINDOW", state);
   }

@@ -8,6 +8,7 @@ const test = require("node:test");
 const source = fs.readFileSync(path.join(__dirname, "..", "scripts", "live-standard-release-preflight.mjs"), "utf8");
 const candidateApp = fs.readFileSync(path.join(__dirname, "..", "standard-online-v5", "app.js"), "utf8");
 const candidateHtml = fs.readFileSync(path.join(__dirname, "..", "standard-online-v5", "index.html"), "utf8");
+const candidateIntents = fs.readFileSync(path.join(__dirname, "..", "standard-online-v5", "standard-online-skill-intents.js"), "utf8");
 
 test("release preflight is read-only, secret-free, finite, and stage-aware", () => {
   assert.match(source, /publishableKey/);
@@ -30,10 +31,11 @@ test("release preflight is read-only, secret-free, finite, and stage-aware", () 
   assert.match(source, /hasLegalRecolorLab/);
   assert.match(source, /hasWaitingOpponentNotice/);
   assert.match(source, /hasAlpha3SkillCategoryWindow/);
+  assert.match(source, /hasAlpha4ColoredCornerBloom/);
   assert.match(source, /hasCandidateAssetGeneration/);
   assert.match(source, /baseline:\s*\{[^}]*matchmakingAvailabilityDb:\s*false[^}]*waitingOpponentUi:\s*false\s*\}/);
   assert.match(source, /"db-ready":\s*\{[^}]*matchmakingAvailabilityDb:\s*true[^}]*waitingOpponentUi:\s*false\s*\}/);
-  assert.match(source, /candidate:\s*\{[^}]*matchmakingAvailabilityDb:\s*true[^}]*waitingOpponentUi:\s*true[^}]*alpha3SkillCategoryUi:\s*true[^}]*candidateAssetGenerationUi:\s*true\s*\}/);
+  assert.match(source, /candidate:\s*\{[^}]*matchmakingAvailabilityDb:\s*true[^}]*waitingOpponentUi:\s*true[^}]*alpha3SkillCategoryUi:\s*true[^}]*alpha4ColoredCornerBloomUi:\s*true[^}]*candidateAssetGenerationUi:\s*true\s*\}/);
   assert.match(source, /ACTIVE_ROOM_RECOVERY_PHASE_MISMATCH/);
   assert.match(source, /LEGAL_RECOLOR_LAB_UI_PHASE_MISMATCH/);
   assert.match(source, /SETUP_LOAD_V3_PHASE_MISMATCH/);
@@ -41,9 +43,10 @@ test("release preflight is read-only, secret-free, finite, and stage-aware", () 
   assert.match(source, /MATCHMAKING_AVAILABILITY_PHASE_MISMATCH/);
   assert.match(source, /WAITING_OPPONENT_UI_PHASE_MISMATCH/);
   assert.match(source, /ALPHA3_SKILL_CATEGORY_UI_PHASE_MISMATCH/);
+  assert.match(source, /ALPHA4_COLORED_CORNER_BLOOM_UI_PHASE_MISMATCH/);
   assert.match(source, /CANDIDATE_ASSET_GENERATION_UI_PHASE_MISMATCH/);
-  assert.match(source, /app\.js\?v=20260907-40/);
-  assert.match(source, /standard-online-skill-intents\.js\?v=20260907-18/);
+  assert.match(source, /app\.js\?v=20260907-41/);
+  assert.match(source, /standard-online-skill-intents\.js\?v=20260907-19/);
   assert.match(source, /skillCategoryWindow/);
   assert.match(source, /SKILL_CATEGORY_ALREADY_USED_IN_WINDOW/);
   assert.match(source, /colorBonusRefill/);
@@ -69,10 +72,15 @@ test("candidate app satisfies the waiting-opponent release marker", () => {
   assert.equal(detected, true);
 });
 
-test("candidate page and app satisfy the alpha.3 cache generation marker", () => {
-  assert.equal(candidateHtml.includes("app.js?v=20260907-40"), true);
-  assert.equal(candidateHtml.includes("standard-online-skill-intents.js?v=20260907-18"), true);
+test("candidate page and app satisfy the alpha.4 cache generation marker", () => {
+  assert.equal(candidateHtml.includes("app.js?v=20260907-41"), true);
+  assert.equal(candidateHtml.includes("standard-online-skill-intents.js?v=20260907-19"), true);
   assert.equal(candidateApp.includes("skillCategoryWindow"), true);
   assert.equal(candidateApp.includes("SKILL_CATEGORY_ALREADY_USED_IN_WINDOW"), true);
   assert.equal(candidateApp.includes("colorBonusRefill"), true);
+  assert.equal(candidateApp.includes('state?.engineVersion === "5.0.0-alpha.4"'), true);
+  assert.equal(candidateApp.includes('["outgoing", "colored"]'), true);
+  assert.equal(candidateApp.includes("candidate.dataset.cornerBloomRegion"), true);
+  assert.equal(candidateIntents.includes('const colored = Object.hasOwn(input, "regionId")'), true);
+  assert.equal(candidateIntents.includes('Object.freeze({ skill, regionId: regionId(input.regionId), macro: integer(input.macro) })'), true);
 });

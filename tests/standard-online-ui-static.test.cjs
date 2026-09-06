@@ -66,8 +66,9 @@ test("online alpha.3 UI understands category windows and the experimental bonus-
 });
 
 test("CPU commentary is public-event-only, bounded, non-blocking, and terminal-persistent", () => {
-  assert.match(html, /style\.css\?v=20260906-38/);
-  assert.match(html, /app\.js\?v=20260907-40/);
+  assert.match(html, /style\.css\?v=20260907-39/);
+  assert.match(html, /standard-online-skill-intents\.js\?v=20260907-19/);
+  assert.match(html, /app\.js\?v=20260907-41/);
   assert.match(app, /cpuCommentary\?\.VERSION !== "standard-cpu-commentary-v2"/);
   assert.ok(html.indexOf("cpu-commentary.js") < html.indexOf('type="module" src="app.js'));
   assert.match(html, /id="cpuCommentaryStage"[^>]+aria-hidden="true"/);
@@ -682,9 +683,30 @@ test("corner bloom uses a board-first two-stage target flow without raw macro in
   assert.doesNotMatch(target, /input\.type = "number"[\s\S]+角の基準マス/);
   assert.match(app, /targetDraft\?\.kind === "corner-bloom"\) return selectCornerBloomMacro\(state, macro\)/);
   assert.match(app, /selectedMacros\.has\(targetDraft\.input\.macro\)/);
-  assert.match(css, /\.corner-bloom-board-focus,\.corner-bloom-targets button\{min-height:44px\}/);
+  assert.match(css, /\.corner-bloom-mode-controls button,[^}]*\.corner-bloom-targets button\{min-height:44px;overflow-wrap:anywhere\}/);
   assert.match(app, /targetDraft\?\.kind !== "corner-bloom" \|\| selectedMacros\.size < state\.requiredSize/);
   assert.match(css, /\.skill-target-feedback\[data-tone="error"\]/);
+});
+
+test("alpha.4 corner bloom adds a public region-to-macro flow without a client oracle", () => {
+  const eligibility = app.slice(app.indexOf("function supportsColoredCornerBloom"), app.indexOf("function publicRegionLabel"));
+  const target = app.slice(app.indexOf("function beginSkill"), app.indexOf("function boardSelectionAvailable"));
+  const board = app.slice(app.indexOf("function boardMacroDescription"), app.indexOf("async function sendAction"));
+  assert.match(eligibility, /state\?\.engineVersion === "5\.0\.0-alpha\.4"/);
+  assert.match(target, /\[\["outgoing", "これから渡すエリア"\], \["colored", "色のついたエリア"\]\]/);
+  assert.match(eligibility, /for \(const micro of region\?\.micro \|\| \[\]\)/);
+  assert.match(target, /data-corner-bloom-region/);
+  assert.match(target, /dataset\.cornerBloomMacro/);
+  assert.match(target, /delete input\.mode/);
+  assert.match(target, /targetDraft\.kind === "corner-bloom" && cornerMode === "outgoing"[\s\S]+delete input\.regionId;[\s\S]+input\.sourceMacros/);
+  assert.doesNotMatch(eligibility, /controllers|privateState|candidateCount|cornerBloomPlan/);
+  assert.doesNotMatch(target, /candidateCount|cornerBloomPlan/);
+  assert.match(board, /coloredCornerBloomRegionsAtMacro\(state, macro\)/);
+  assert.match(board, /entry\.micro\?\.includes\(micro\)/);
+  assert.match(board, /複数の彩色済みエリア[\s\S]+data-corner-bloom-region/);
+  assert.match(board, /Number\.isSafeInteger\(targetDraft\.input\.macro\)[\s\S]+delete targetDraft\.input\.regionId/);
+  assert.doesNotMatch(target, /createElement\("select"\)|input\.type = "number"/);
+  assert.match(css, /@media\(max-width:390px\)\{\.corner-bloom-mode-controls button,[^}]*min-height:48px/);
 });
 
 test("half shift and triple shift select their bands on the board without raw position controls", () => {

@@ -33,6 +33,7 @@ test("palette, geometry, resize, and shift payloads are normalized without legal
   assert.deepEqual(intents.buildSkillPayload("colorRegionSplit", { regionId: "R12", sourceMacros: [15, 13] }), { skill: "colorRegionSplit", regionId: "R12", sourceMacros: [13, 15] });
   assert.deepEqual(intents.buildSkillPayload("areaMicroBloom", { sourceMacros: [26, 25] }), { skill: "areaMicroBloom", sourceMacros: [25, 26] });
   assert.deepEqual(intents.buildSkillPayload("areaCornerBloom", { sourceMacros: [26], macro: 26 }), { skill: "areaCornerBloom", sourceMacros: [26], macro: 26 });
+  assert.deepEqual(intents.buildSkillPayload("areaCornerBloom", { mode: "colored", regionId: "R12", macro: 26 }), { skill: "areaCornerBloom", regionId: "R12", macro: 26 });
   assert.deepEqual(intents.buildSkillPayload("areaResize", { mode: "expand", side: "left" }), { skill: "areaResize", mode: "expand", side: "left" });
   assert.deepEqual(intents.buildSkillPayload("areaHalfShift", { axis: "COLUMN", index: 1, direction: "plus" }), { skill: "areaHalfShift", axis: "COLUMN", index: 1, direction: "plus" });
   assert.deepEqual(intents.buildSkillPayload("areaTripleShift", { axis: "ROW", index: 2, direction: "minus" }), { skill: "areaTripleShift", axis: "ROW", index: 2, direction: "minus" });
@@ -44,6 +45,9 @@ test("malformed target values fail before an action identity is allocated", () =
     ["colorRegionSplit", { regionId: "R0", sourceMacros: [13] }],
     ["areaMicroBloom", { sourceMacros: [13, 13] }],
     ["areaCornerBloom", { sourceMacros: [], macro: 13 }],
+    ["areaCornerBloom", { sourceMacros: [13], regionId: "R1", macro: 13 }],
+    ["areaCornerBloom", { macro: 13 }],
+    ["areaCornerBloom", { regionId: "R0", macro: 13 }],
     ["areaResize", { mode: "grow", side: "left" }],
     ["areaHalfShift", { axis: "DIAGONAL", index: 1, direction: "plus" }],
   ]) assert.throws(() => intents.buildSkillPayload(skill, input), /INVALID_SKILL_TARGET/);

@@ -35,11 +35,11 @@ test("standard match creation is deterministic and validates the authoritative c
   );
 });
 
-test("new-match engine selection is allowlisted and only alpha.3 creates a category window", () => {
+test("new-match engine selection keeps category windows in alpha.3 and alpha.4", () => {
   for (const [index, engineVersion] of match.SUPPORTED_ENGINE_VERSIONS.entries()) {
     const state = match.createStandardMatch({ matchId: `compat-create-${index}`, firstSeat: "A", engineVersion }, streams(420 + index));
     assert.equal(state.engineVersion, engineVersion);
-    assert.equal(Object.hasOwn(state, "skillCategoryWindow"), engineVersion === match.ENGINE_VERSION);
+    assert.equal(Object.hasOwn(state, "skillCategoryWindow"), [match.CATEGORY_WINDOW_ENGINE_VERSION, match.ENGINE_VERSION].includes(engineVersion));
     assert.equal(match.validateStandardState(state), true);
   }
   assert.throws(

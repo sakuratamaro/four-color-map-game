@@ -709,6 +709,7 @@ async function runRepeatedCreateGesture(browser, baseUrl, fixtureRoot, gesture, 
     const beforeAudit = audit(await rootValue(page));
     const commit = page.getByRole("button", { name: "選んだエリアを渡す" });
     if (gesture === "pointer") {
+      await commit.scrollIntoViewIfNeeded();
       const box = await commit.boundingBox();
       assert.ok(box, `${gesture} ${iteration}: commit geometry`);
       await page.mouse.click(box.x + (box.width / 2), box.y + (box.height / 2), { clickCount: 2, delay: 0 });
@@ -745,6 +746,7 @@ async function runRepeatedCreateGesture(browser, baseUrl, fixtureRoot, gesture, 
 
 async function activateCreate(page, gesture, commit) {
   if (gesture === "pointer") {
+    await commit.scrollIntoViewIfNeeded();
     const box = await commit.boundingBox();
     assert.ok(box, "CREATE control geometry");
     await page.mouse.click(box.x + (box.width / 2), box.y + (box.height / 2));

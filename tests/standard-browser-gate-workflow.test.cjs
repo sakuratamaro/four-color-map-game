@@ -62,7 +62,7 @@ test("Standard browser gate runs CPU contracts and the scoped browser file seria
   assert.match(workflow, /tests\/standard-basic-feedback\.test\.cjs/);
   assert.match(workflow, /tests\/standard-online-basic-feedback-static\.test\.cjs/);
   assert.match(workflow, /tests\/standard-online-contact-feedback\.test\.cjs/);
-  for (const file of ["standard-cpu.test.cjs", "standard-cpu-roster.test.cjs", "standard-no-color-rescue.test.cjs", "standard-color-region-split.test.cjs", "standard-local-ui-static.test.cjs", "standard-live-color-response-canary-static.test.cjs", "standard-decision-reconciliation.test.cjs"]) {
+  for (const file of ["standard-cpu.test.cjs", "standard-cpu-colored-corner-bloom.test.cjs", "standard-cpu-roster.test.cjs", "standard-no-color-rescue.test.cjs", "standard-color-region-split.test.cjs", "standard-area-colored-corner-bloom.test.cjs", "standard-local-ui-static.test.cjs", "standard-live-color-response-canary-static.test.cjs", "standard-decision-reconciliation.test.cjs"]) {
     assert.match(workflow, new RegExp(`tests/${file.replaceAll(".", "\\.")}`));
   }
   assert.match(workflow, /if: matrix\.STANDARD_BROWSER == 'edge'[\s\S]+?tests\/standard-color-seal-browser-lifecycle\.test\.cjs[\s\S]+?tests\/standard-no-color-browser-terminal\.test\.cjs/);

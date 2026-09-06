@@ -119,6 +119,7 @@ jobs:
           tests/standard-online-contact-feedback.test.cjs
           tests/standard-cpu-commentary.test.cjs
           tests/standard-cpu.test.cjs
+          tests/standard-cpu-colored-corner-bloom.test.cjs
           tests/standard-cpu-selfplay.test.cjs
           tests/standard-cpu-roster.test.cjs
           tests/standard-match.test.cjs
@@ -128,6 +129,7 @@ jobs:
           tests/standard-local-session.test.cjs
           tests/standard-skill-dispatcher.test.cjs
           tests/standard-area-corner-bloom.test.cjs
+          tests/standard-area-colored-corner-bloom.test.cjs
           tests/standard-area-die-plus.test.cjs
           tests/standard-area-half-shift-invariants.test.cjs
           tests/standard-area-resize.test.cjs

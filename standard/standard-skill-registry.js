@@ -1,6 +1,7 @@
 "use strict";
 
 const SKILL_USAGE_CATEGORIES = Object.freeze(["color", "area", "disrupt"]);
+const COLORED_CORNER_BLOOM_ENGINE_VERSION = "5.0.0-alpha.4";
 
 function skill(id, displayName, category, rarity, timing, options = {}) {
   const implemented = Boolean(options.implemented);
@@ -90,10 +91,13 @@ const STANDARD_SKILLS = Object.freeze({
     handlerVersion: "area-resize-v1",
   }),
   areaCornerBloom: skill("areaCornerBloom", "角膨張", "area", 4, "WORK", {
-    targetSchema: { sourceMacros: "macro-index-array", macro: "macro-index" },
+    targetSchema: {
+      outgoing: { sourceMacros: "macro-index-array", macro: "macro-index" },
+      coloredRegionAlpha4: { regionId: "region-id", macro: "macro-index" },
+    },
     implemented: true,
     consumptionPolicy: "RESOLVED_ONLY_AVAILABLE_CORNER_EXPANSION",
-    handlerVersion: "area-corner-bloom-v1",
+    handlerVersion: "area-corner-bloom-v2",
   }),
   areaHalfShift: skill("areaHalfShift", "半マスシフト", "area", 4, "WORK", { targetSchema: { axis: "row-or-column", index: "integer", direction: "minus-or-plus" }, implemented: true, handlerVersion: "area-half-shift-v1" }),
   areaTripleShift: skill("areaTripleShift", "三層断層", "area", 5, "WORK", {
@@ -175,4 +179,4 @@ const STANDARD_SKILLS = Object.freeze({
 const V49_SKILL_IDS = Object.freeze(Object.values(STANDARD_SKILLS).filter((entry) => entry.v49Catalogued).map((entry) => entry.id));
 const IMPLEMENTED_SKILL_IDS = Object.freeze(Object.values(STANDARD_SKILLS).filter((entry) => entry.implemented).map((entry) => entry.id));
 
-module.exports = { IMPLEMENTED_SKILL_IDS, SKILL_USAGE_CATEGORIES, STANDARD_SKILLS, V49_SKILL_IDS };
+module.exports = { COLORED_CORNER_BLOOM_ENGINE_VERSION, IMPLEMENTED_SKILL_IDS, SKILL_USAGE_CATEGORIES, STANDARD_SKILLS, V49_SKILL_IDS };

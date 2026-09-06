@@ -27,7 +27,7 @@ test("live COLOR-response canary is explicit, finite, public-key only, and alway
 });
 
 test("live COLOR-response canary covers the new engine, authoritative rejection, CPU progress, and public privacy", () => {
-  assert.match(source, /EXPECTED_ENGINE_VERSION = "5\.0\.0-alpha\.3"/);
+  assert.match(source, /EXPECTED_ENGINE_VERSION = "5\.0\.0-alpha\.4"/);
   assert.match(source, /operation: "cpu-start"/);
   assert.match(source, /operation: "initialize"/);
   assert.match(source, /operation: "cpu-action"/);
@@ -38,7 +38,7 @@ test("live COLOR-response canary covers the new engine, authoritative rejection,
   assert.match(source, /JSON\.stringify\(room\.privateState\) === beforePrivate/);
   assert.match(source, /CPU action advances exactly once/);
   assert.match(source, /maxConsecutiveCpuSteps <= MAX_CONSECUTIVE_CPU_STEPS/);
-  assert.match(source, /exposes alpha\.3 category window/);
+  assert.match(source, /exposes alpha\.4 category window/);
   assert.match(source, /categoryWindow\?\.actor === publicState\.active/);
   assert.match(source, /skill: "disruptRandomOne"/);
   assert.match(source, /skill: "disruptChoiceOne", color: "red"/);

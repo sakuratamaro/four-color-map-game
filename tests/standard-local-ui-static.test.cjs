@@ -23,7 +23,7 @@ const contactPressureBrowserGate = fs.readFileSync(path.join(root, "tests", "sta
 const bundleBuilder = fs.readFileSync(path.join(root, "scripts", "build-standard-v5-bundle.mjs"), "utf8");
 
 test("local alpha has a bundled offline entry point", () => {
-  assert.match(html, /app\.bundle\.js\?v=20260907-4/);
+  assert.match(html, /app\.bundle\.js\?v=20260907-5/);
   for (const id of ["profileA", "profileB", "firstPlayer", "startMatch", "handover", "privatePanel", "resultPanel"]) {
     assert.match(html, new RegExp(`id="${id}"`));
   }
@@ -35,9 +35,10 @@ test("local alpha has a bundled offline entry point", () => {
   assert.match(bundle, /"standard\/standard-cpu\.js":function/);
 });
 
-test("local alpha.3 cache marker publishes the rebuilt category-window bundle", () => {
-  assert.match(html, /app\.bundle\.js\?v=20260907-4/);
+test("local alpha.4 cache marker publishes the rebuilt colored corner-bloom bundle", () => {
+  assert.match(html, /app\.bundle\.js\?v=20260907-5/);
   assert.match(bundle, /SKILL_CATEGORY_ALREADY_USED_IN_WINDOW/);
+  assert.match(bundle, /COLORED_CORNER_BLOOM_ENGINE_VERSION/);
   assert.match(bundle, /colorBonusRefill/);
 });
 

@@ -7,6 +7,19 @@ const test = require("node:test");
 
 const runbook = fs.readFileSync(path.join(__dirname, "..", "docs", "STANDARD_PUBLIC_RELEASE_RUNBOOK.md"), "utf8");
 
+test("current alpha.4 release lane deploys the compatible Edge before Pages and preserves active rooms", () => {
+  const releaseSection = runbook.slice(runbook.indexOf("### alpha.4彩色済みエリア角膨張便"), runbook.indexOf("### alpha.3カテゴリ制限便"));
+  const edge = releaseSection.indexOf("alpha.4対応Edge");
+  const canary = releaseSection.indexOf("live canary", edge);
+  const pages = releaseSection.indexOf("Pages app v41/intents v19/local bundle v5", canary);
+  assert.ok(edge >= 0 && canary > edge && pages > canary);
+  for (const phrase of [
+    "origin/main@63972b6", "5.0.0-alpha.3", "active alpha.4 room", "index.ts", "standard-engine.bundle.js",
+    "DB、migration、RPC、secret、cleanup scheduleは変更しない", "通常loadoutに角膨張がないlive run", "actual browser",
+    "active alpha.4 roomが0になる前にalpha.4非対応Edgeへ単純復帰しない", "Pagesだけをv40/v18/local v4へ戻し",
+  ]) assert.match(releaseSection, new RegExp(phrase.replaceAll(".", "\\.")));
+});
+
 test("current alpha.3 release lane is Pages-first and preserves active rooms through a compatible rollback", () => {
   const releaseSection = runbook.slice(runbook.indexOf("### alpha.3カテゴリ制限便"), runbook.indexOf("### 完了履歴: 合法色なし宣言廃止便"));
   const pages = releaseSection.indexOf("Pages app v40/intents v18/local bundle v4");

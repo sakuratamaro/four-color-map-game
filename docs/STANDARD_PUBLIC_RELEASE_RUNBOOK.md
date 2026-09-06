@@ -32,7 +32,7 @@ PC＋スマートフォンまたはPC 2台を使い、同一ブラウザーの2�
 3. Git作業ツリーがcleanで、公開候補commitが記録済みであることを確認する。
 4. 現行Pages commit、現行 `standard-game-action` version、適用済み関数を記録する。
 5. Security Advisor、Performance Advisor、API/Database/Edge使用量の変更前snapshotを保存する。
-6. 現行alpha.3便はDB変更なしで完了。migration tail `202609060003`、Edge deployment 23、公開product `df56432`を基準にし、次の候補CI後と各公開段階で`node scripts/live-standard-release-preflight.mjs --expect=candidate`を使う。過去便の`baseline`／`db-ready`は再利用せず、公開assetとEdge versionを別々に記録する。
+6. 現行alpha.3便はDB変更なしで完了。migration tail `202609060003`、Edge deployment 23、公開product `df56432`を基準にする。alpha.4のEdge先行段階では旧Pagesが正常なためpreflightをphase指定なしで実行し、`--expect=candidate`はPages公開後だけ使う。過去便の`baseline`／`db-ready`は再利用せず、公開assetとEdge versionを別々に記録する。
 
 確認結果が想定と違う場合は適用を止め、現物に合わせて手順を更新する。
 
@@ -82,6 +82,18 @@ SQL Editorでは内容を全置換し、次を1ファイルずつ順番に実行
 `202609030012` の適用時にはcleanupを実行しない。定期実行も作らない。`202609030013` の既存プロフィールappearance backfill件数と所要時間を記録し、失敗または長時間ロックならEdge/Pagesへ進まない。
 
 ## EdgeとPagesの順序
+
+### alpha.4彩色済みエリア角膨張便
+
+候補中。この便は新payloadを旧Edgeが拒否する一方、新Edgeは旧UIのoutgoing payloadを継続できるため、`alpha.4対応Edge → live canary → Pages app v41/intents v19/local bundle v5`の順にする。DB、migration、RPC、secret、cleanup scheduleは変更しない。
+
+1. `origin/main@63972b6`起点の専用clean worktreeで両bundleを2回生成し、2回目のSHAが不変、正式全製品試験、Windows Chrome/Edge CI、対象実browserのskip 0を確認する。
+2. alpha.4対応bundleを保持したまま新規対局だけを`5.0.0-alpha.3`へ戻す互換rollback branchを作成・GitHub保全する。既存alpha.4 stateの読込み・継続と、alpha.3新規stateが彩色済みpayloadをwrite-free拒否することを確認する。
+3. deployment直前にmain/Pages HEAD、Edge deployment、migration tail、active alpha.4 room数、資源警告をread-onlyで再取得する。診断不能時は推測cleanup・課金・Compute変更をせず、Edge公開を保留する。
+4. `index.ts`と生成済み`standard-engine.bundle.js`を同一deploymentへ反映し、候補と同値確認する。基本canary、COLOR canary、CPU有限進行、公開preflightを実行する。通常loadoutに角膨張がないlive runは彩色済み用途の直接実測とみなさず、生成bundleとactual browserの証拠を分けて記録する。
+5. Edgeが旧outgoing UIを継続できることを確認してからmainをforceなしでfast-forwardし、Pagesを公開する。asset marker、HTTP 200、390px、pointer/keyboard/Escape、console warning/error 0を確認する。
+
+Edge公開後に失敗した場合は、alpha.4対応bundleを残した互換rollbackで新規alpha.4作成だけを止める。active alpha.4 roomが0になる前にalpha.4非対応Edgeへ単純復帰しない。Pages公開前なら旧Pagesは新Edgeと互換のため維持できる。Pages公開後のUI障害ではalpha.4対応Edgeを保持したままPagesだけをv40/v18/local v4へ戻し、既存alpha.4 roomを継続可能にする。
 
 ### alpha.3カテゴリ制限便
 

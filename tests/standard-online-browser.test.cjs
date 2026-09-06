@@ -1728,6 +1728,7 @@ test("actual browser completes corner bloom from the board without a raw macro n
   await withPage("playing", async (page) => {
     await page.evaluate(() => {
       const runtime = globalThis.__standardOnlineRuntime;
+      runtime.room.public_state = { ...runtime.room.public_state, engineVersion: "5.0.0-alpha.3" };
       runtime.view = { ...runtime.view, private_state: {
         ...runtime.view.private_state,
         hand: { ...runtime.view.private_state.hand, areaCornerBloom: 1 },
@@ -1890,6 +1891,79 @@ test("actual browser completes a two-cell corner bloom by keyboard with connecte
     assert.equal(action.payload.skill, "areaCornerBloom");
     assert.deepEqual(action.payload.sourceMacros, [0, 1]);
     assert.equal(action.payload.macro, 1);
+  }, { viewport: { width: 390, height: 844 } });
+});
+
+test("actual browser selects an alpha.4 colored corner bloom by region then macro without an oracle", { timeout: 130000 }, async () => {
+  await withPage("playing", async (page) => {
+    await page.evaluate(() => {
+      const runtime = globalThis.__standardOnlineRuntime;
+      runtime.room.public_state = {
+        ...runtime.room.public_state,
+        engineVersion: "5.0.0-alpha.4",
+        playableBounds: { macroWidth: 4, microScale: 2, minCol: 0, minRow: 0, maxCol: 3, maxRow: 3 },
+        regions: {
+          R1: { id: "R1", micro: [0], sourceMacros: [3], controllers: ["B"], color: "red", isPending: false },
+          R2: { id: "R2", micro: [1], sourceMacros: [2], controllers: ["A"], color: "blue", isPending: false },
+        },
+        pending: null,
+        reserved: null,
+      };
+      runtime.view = { ...runtime.view, private_state: {
+        ...runtime.view.private_state,
+        hand: { ...runtime.view.private_state.hand, areaCornerBloom: 1 },
+      } };
+      runtime.onInvalidate?.({});
+    });
+
+    const skill = page.getByRole("button", { name: "角膨張 ×1" });
+    await skill.focus();
+    await page.keyboard.press("Enter");
+    const target = page.locator("#skillTargetControls");
+    await target.getByRole("button", { name: "色のついたエリア" }).waitFor();
+    assert.equal(await target.locator('input[type="number"], select').count(), 0);
+    assert.equal(await target.getByRole("button", { name: "これから渡すエリア" }).getAttribute("aria-pressed"), "false");
+    const coloredMode = target.getByRole("button", { name: "色のついたエリア" });
+    assert.ok((await coloredMode.boundingBox()).height >= 48);
+    await coloredMode.click();
+    await target.getByText(/確定時に判定|色のついたエリアを選ん/).first().waitFor();
+
+    const board = page.locator("#board");
+    await target.getByRole("button", { name: "盤面で色のついたエリアを選ぶ" }).click();
+    assert.equal(await board.evaluate((node) => node === document.activeElement), true);
+    await page.keyboard.press("Enter");
+    assert.equal(await page.evaluate(() => document.activeElement?.dataset.cornerBloomRegion), "R1");
+    assert.match(await target.locator(".skill-target-feedback").textContent(), /複数/);
+
+    await page.keyboard.press("Enter");
+    await target.getByText(/エリア1を選びました/).waitFor();
+    const macroChoice = target.getByRole("button", { name: "上から1行・左から1列" });
+    await macroChoice.focus();
+    await page.keyboard.press("Space");
+    assert.equal(await board.evaluate((node) => node === document.activeElement), true);
+    assert.equal(await target.getByRole("button", { name: "この対象で使う" }).isEnabled(), true);
+    await page.keyboard.press("Escape");
+    assert.match(await target.locator(".skill-target-feedback").textContent(), /基準マスを解除/);
+    await page.keyboard.press("Escape");
+    assert.match(await target.locator(".skill-target-feedback").textContent(), /彩色済みエリアを解除/);
+    await target.getByRole("button", { name: "キャンセル" }).click();
+    assert.equal(await skill.evaluate((node) => node === document.activeElement), true);
+    assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "action").length), 0);
+
+    await skill.click();
+    await target.getByRole("button", { name: "色のついたエリア" }).click();
+    const box = await board.boundingBox();
+    await board.click({ position: { x: box.width / 16, y: box.height / 16 } });
+    await target.getByText(/エリア1を選びました/).waitFor();
+    await board.click({ position: { x: box.width / 8, y: box.height / 8 } });
+    await target.locator(".skill-target-feedback").getByText(/広がる角があるかは確定時に判定/).waitFor();
+    await target.getByRole("button", { name: "この対象で使う" }).click();
+    await page.getByText("操作を保存しました。").waitFor();
+    const actions = await page.evaluate(() => globalThis.__standardOnlineRuntime.calls
+      .filter((entry) => entry.body?.operation === "action").map((entry) => entry.body.action));
+    assert.equal(actions.length, 1);
+    assert.deepEqual(actions[0].payload, { skill: "areaCornerBloom", regionId: "R1", macro: 0 });
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth), false);
   }, { viewport: { width: 390, height: 844 } });
 });
 

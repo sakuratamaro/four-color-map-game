@@ -451,6 +451,7 @@ module.exports = {
 "use strict";
 
 const SKILL_USAGE_CATEGORIES = Object.freeze(["color", "area", "disrupt"]);
+const COLORED_CORNER_BLOOM_ENGINE_VERSION = "5.0.0-alpha.4";
 
 function skill(id, displayName, category, rarity, timing, options = {}) {
   const implemented = Boolean(options.implemented);
@@ -540,10 +541,13 @@ const STANDARD_SKILLS = Object.freeze({
     handlerVersion: "area-resize-v1",
   }),
   areaCornerBloom: skill("areaCornerBloom", "角膨張", "area", 4, "WORK", {
-    targetSchema: { sourceMacros: "macro-index-array", macro: "macro-index" },
+    targetSchema: {
+      outgoing: { sourceMacros: "macro-index-array", macro: "macro-index" },
+      coloredRegionAlpha4: { regionId: "region-id", macro: "macro-index" },
+    },
     implemented: true,
     consumptionPolicy: "RESOLVED_ONLY_AVAILABLE_CORNER_EXPANSION",
-    handlerVersion: "area-corner-bloom-v1",
+    handlerVersion: "area-corner-bloom-v2",
   }),
   areaHalfShift: skill("areaHalfShift", "半マスシフト", "area", 4, "WORK", { targetSchema: { axis: "row-or-column", index: "integer", direction: "minus-or-plus" }, implemented: true, handlerVersion: "area-half-shift-v1" }),
   areaTripleShift: skill("areaTripleShift", "三層断層", "area", 5, "WORK", {
@@ -625,7 +629,7 @@ const STANDARD_SKILLS = Object.freeze({
 const V49_SKILL_IDS = Object.freeze(Object.values(STANDARD_SKILLS).filter((entry) => entry.v49Catalogued).map((entry) => entry.id));
 const IMPLEMENTED_SKILL_IDS = Object.freeze(Object.values(STANDARD_SKILLS).filter((entry) => entry.implemented).map((entry) => entry.id));
 
-module.exports = { IMPLEMENTED_SKILL_IDS, SKILL_USAGE_CATEGORIES, STANDARD_SKILLS, V49_SKILL_IDS };
+module.exports = { COLORED_CORNER_BLOOM_ENGINE_VERSION, IMPLEMENTED_SKILL_IDS, SKILL_USAGE_CATEGORIES, STANDARD_SKILLS, V49_SKILL_IDS };
 
 },
 "standard/standard-profile.js":function(require,module,exports){
@@ -920,6 +924,7 @@ module.exports = {
 
 const { COLORS, StandardRuleError, mergeSameColorComponent } = require("./standard-engine.js");
 const { createRegionGeometryContext } = require("./standard-region-geometry.js");
+const { COLORED_CORNER_BLOOM_ENGINE_VERSION } = require("./standard-skill-registry.js");
 
 function clone(value) {
   return JSON.parse(JSON.stringify(value));
@@ -1242,6 +1247,127 @@ function cornerBloomPlan(state, sourceMacros, macro) {
   });
 }
 
+function coloredCornerBloomPlan(state, regionId, macro) {
+  if (state.engineVersion !== COLORED_CORNER_BLOOM_ENGINE_VERSION) {
+    return Object.freeze({ ok: false, code: "COLORED_CORNER_BLOOM_NOT_SUPPORTED", plan: [], micro: [] });
+  }
+  const region = state.regions?.[regionId];
+  if (!region || !region.color || regionId === state.pending || regionId === state.reserved
+    || region.isPending || region.isReserved || region.deleted || region.delayed || region.delayState
+    || !connected(region.micro || [], state.microWidth)) {
+    return Object.freeze({ ok: false, code: "INVALID_COLORED_CORNER_BLOOM_TARGET", plan: [], micro: [] });
+  }
+  if (!Number.isInteger(macro) || !(region.micro || []).some((cell) => microToMacro(cell, state) === macro)) {
+    return Object.freeze({ ok: false, code: "INVALID_COLORED_CORNER_BLOOM_MACRO", plan: [], micro: [] });
+  }
+  const macroCol = macro % state.playableBounds.macroWidth;
+  const macroRow = Math.floor(macro / state.playableBounds.macroWidth);
+  const bounds = state.playableBounds;
+  if (macroCol < bounds.minCol || macroCol > bounds.maxCol || macroRow < bounds.minRow || macroRow > bounds.maxRow) {
+    return Object.freeze({ ok: false, code: "INVALID_COLORED_CORNER_BLOOM_MACRO", plan: [], micro: [] });
+  }
+
+  const shape = new Set(region.micro);
+  const owners = regionOwners(state);
+  const scale = bounds.microScale;
+  const width = state.microWidth;
+  const x0 = macroCol * scale;
+  const y0 = macroRow * scale;
+  const corners = [
+    [[-1, 0], [0, -1], [-1, -1]],
+    [[scale, 0], [scale - 1, -1], [scale, -1]],
+    [[-1, scale - 1], [0, scale], [-1, scale]],
+    [[scale, scale - 1], [scale - 1, scale], [scale, scale]],
+  ];
+  const planned = new Set();
+  for (const corner of corners) {
+    const cornerPlan = new Set();
+    for (let pass = 0; pass < 3; pass += 1) {
+      for (const [dx, dy] of corner) {
+        const x = x0 + dx;
+        const y = y0 + dy;
+        if (!microCoordinateInPlayable(state, x, y)) continue;
+        const cell = y * width + x;
+        if (shape.has(cell) || planned.has(cell) || cornerPlan.has(cell)) continue;
+        const owner = owners.get(cell);
+        if (owner && !state.regions[owner]?.color) continue;
+        const cellX = cell % width;
+        const neighbors = [cell - width, cell + width];
+        if (cellX > 0) neighbors.push(cell - 1);
+        if (cellX < width - 1) neighbors.push(cell + 1);
+        if (neighbors.some((neighbor) => shape.has(neighbor) || planned.has(neighbor) || cornerPlan.has(neighbor))) cornerPlan.add(cell);
+      }
+    }
+    for (const cell of cornerPlan) planned.add(cell);
+  }
+  return Object.freeze({
+    ok: true,
+    plan: Object.freeze([...planned].sort((a, b) => a - b)),
+    micro: Object.freeze([...new Set([...shape, ...planned])].sort((a, b) => a - b)),
+  });
+}
+
+function transferColoredCornerIntrusions(state, targetRegionId, cells) {
+  const owners = regionOwners(state);
+  const donors = new Set();
+  let transferredCount = 0;
+  let emptyAddedCount = 0;
+  for (const cell of cells) {
+    const donorId = owners.get(cell);
+    if (!donorId) {
+      emptyAddedCount += 1;
+      continue;
+    }
+    if (donorId === targetRegionId) continue;
+    if (!state.regions[donorId]?.color) {
+      throw new StandardRuleError("COLORED_CORNER_BLOOM_OVERLAP_UNCOLORED", "Colored corner bloom cannot intrude into an uncolored region");
+    }
+    state.regions[donorId].micro = state.regions[donorId].micro.filter((candidate) => candidate !== cell);
+    donors.add(donorId);
+    transferredCount += 1;
+  }
+
+  let nextNumber = nextRegionNumber(state);
+  let splitCount = 0;
+  let removedCount = 0;
+  const affectedRegionIds = [];
+  for (const donorId of [...donors].sort((left, right) => Number(left.slice(1)) - Number(right.slice(1)))) {
+    const donor = state.regions[donorId];
+    if (!donor.micro.length) {
+      delete state.regions[donorId];
+      removedCount += 1;
+      continue;
+    }
+    const parts = connectedComponents(donor.micro, state.microWidth);
+    donor.micro = parts[0];
+    donor.sourceMacros = sourceMacrosFromMicro(parts[0], state);
+    affectedRegionIds.push(donorId);
+    for (const part of parts.slice(1)) {
+      const id = `R${nextNumber}`;
+      nextNumber += 1;
+      state.regions[id] = {
+        ...donor,
+        id,
+        micro: part,
+        sourceMacros: sourceMacrosFromMicro(part, state),
+        controllers: [...(donor.controllers || [])],
+        isPending: false,
+        isReserved: false,
+      };
+      affectedRegionIds.push(id);
+      splitCount += 1;
+    }
+  }
+  return Object.freeze({
+    donorCount: donors.size,
+    transferredCount,
+    emptyAddedCount,
+    splitCount,
+    removedCount,
+    affectedRegionIds: Object.freeze(affectedRegionIds),
+  });
+}
+
 function preparedOutgoingCandidates(state, sourceMacros, skills) {
   let shapes = [null];
   for (const skill of skills) {
@@ -1285,6 +1411,30 @@ function applyAreaMicroBloom({ state, actor, payload, random }) {
 }
 
 function applyAreaCornerBloom({ state, actor, payload }) {
+  if (typeof payload.regionId === "string") {
+    const planned = coloredCornerBloomPlan(state, payload.regionId, payload.macro);
+    if (!planned.ok) return Object.freeze({ ok: false, code: planned.code, state });
+    if (!planned.plan.length) return Object.freeze({ ok: false, code: "NO_COLORED_CORNER_BLOOM_CANDIDATE", state });
+    let intrusion;
+    let merge;
+    const result = resolved(state, actor, "areaCornerBloom", (next) => {
+      intrusion = transferColoredCornerIntrusions(next, payload.regionId, planned.plan);
+      const target = next.regions[payload.regionId];
+      target.micro = [...planned.micro];
+      target.sourceMacros = sourceMacrosFromMicro(target.micro, next);
+      merge = mergeSameColorComponent(next, payload.regionId);
+      next.publicLog.push(`T${next.turn} Player ${actor} expanded the current colored region at macro ${payload.macro}, adding ${planned.plan.length} microcells.`);
+    });
+    return Object.freeze({
+      ...result,
+      regionId: payload.regionId,
+      keptRegionId: merge.keptId,
+      macro: payload.macro,
+      addedCount: planned.plan.length,
+      intrusion,
+      merge,
+    });
+  }
   const sourceMacros = [...new Set(payload.sourceMacros)].sort((a, b) => a - b);
   if (sourceMacros.length !== payload.sourceMacros.length) return Object.freeze({ ok: false, code: "INVALID_OUTGOING_SELECTION", state });
   const planned = cornerBloomPlan(state, sourceMacros, payload.macro);
@@ -1778,6 +1928,7 @@ module.exports = {
   applyDisruptPaletteRandom,
   microBloomCandidates,
   cornerBloomPlan,
+  coloredCornerBloomPlan,
   preparedOutgoingCandidates,
   planHalfShift,
   planTripleShift,
@@ -1790,7 +1941,7 @@ module.exports = {
 "use strict";
 
 const { COLORS, StandardRuleError, applyLegalRecolor } = require("./standard-engine.js");
-const { STANDARD_SKILLS } = require("./standard-skill-registry.js");
+const { COLORED_CORNER_BLOOM_ENGINE_VERSION, STANDARD_SKILLS } = require("./standard-skill-registry.js");
 const { applyAreaCornerBloom, applyAreaDiePlus, applyAreaHalfShift, applyAreaMicroBloom, applyAreaResize, applyAreaTripleShift, applyColorBonusRefill, applyColorChoiceBorrow, applyColorPaletteChange, applyColorRandomBorrow, applyColorPrism, applyColorRegionSplit, applyDisruptChoiceOne, applyDisruptChoiceThree, applyDisruptChoiceTwo, applyDisruptForcedPalette, applyDisruptPaletteChoice, applyDisruptPaletteRandom, applyDisruptRandomOne, applyDisruptRandomTwo } = require("./standard-skill-handlers.js");
 
 const SKILL_RESULT = Object.freeze({ REJECTED: "REJECTED", CANCELLED: "CANCELLED", RESOLVED: "RESOLVED" });
@@ -1807,7 +1958,7 @@ function nextRandom(rngStreams, name, counter) {
   return value;
 }
 
-function validateTargetSchema(definition, payload) {
+function validateTargetSchema(definition, payload, state) {
   if (!definition.targetSchema) return true;
   if (!payload || typeof payload !== "object" || Array.isArray(payload)) return false;
   if (definition.id === "legalRecolor") return typeof payload.regionId === "string" && payload.regionId.length > 0;
@@ -1817,7 +1968,14 @@ function validateTargetSchema(definition, payload) {
   if (definition.id === "colorRegionSplit") return typeof payload.regionId === "string" && payload.regionId.length > 0
     && Array.isArray(payload.sourceMacros) && payload.sourceMacros.every(Number.isInteger);
   if (definition.id === "areaMicroBloom") return Array.isArray(payload.sourceMacros) && payload.sourceMacros.every(Number.isInteger);
-  if (definition.id === "areaCornerBloom") return Array.isArray(payload.sourceMacros) && payload.sourceMacros.every(Number.isInteger) && Number.isInteger(payload.macro);
+  if (definition.id === "areaCornerBloom") {
+    const outgoing = Array.isArray(payload.sourceMacros) && payload.sourceMacros.every(Number.isInteger)
+      && !Object.hasOwn(payload, "regionId") && Number.isInteger(payload.macro);
+    const coloredRegion = state.engineVersion === COLORED_CORNER_BLOOM_ENGINE_VERSION
+      && typeof payload.regionId === "string" && payload.regionId.length > 0
+      && !Object.hasOwn(payload, "sourceMacros") && Number.isInteger(payload.macro);
+    return outgoing || coloredRegion;
+  }
   if (definition.id === "areaResize") return ["expand", "shrink"].includes(payload.mode) && ["top", "bottom", "left", "right"].includes(payload.side);
   if (["disruptChoiceOne", "disruptChoiceTwo", "disruptChoiceThree", "disruptPaletteChoice", "disruptForcedPalette"].includes(definition.id)) return typeof payload.color === "string";
   if (definition.id === "areaHalfShift") return typeof payload.axis === "string" && Number.isInteger(payload.index) && typeof payload.direction === "string";
@@ -1886,7 +2044,7 @@ function dispatchStandardSkillAction({ state, actor, action, expectedVersion, rn
   if (!timingMatches) return rejected("WRONG_PHASE", state);
   if ((state.hands?.[actor]?.[definition.id] || 0) <= 0) return rejected("SKILL_UNAVAILABLE", state);
   if (definition.experimental && state.interferenceLock) return rejected("INTERFERENCE_CHAINED", state);
-  if (!validateTargetSchema(definition, action.payload)) return rejected("INVALID_TARGET_SCHEMA", state);
+  if (!validateTargetSchema(definition, action.payload, state)) return rejected("INVALID_TARGET_SCHEMA", state);
   if (categoryLimitEnabled && state.skillCategoryWindow.categories.includes(definition.usageCategory)) {
     return rejected("SKILL_CATEGORY_ALREADY_USED_IN_WINDOW", state);
   }
@@ -1942,13 +2100,14 @@ const {
 const { dispatchStandardSkillAction } = require("./standard-skill-dispatcher.js");
 const { applyCurseBacklashOnEnterColor, preparedOutgoingCandidates, tickPaletteDebuffsAfterColor, tickSealsAfterColor } = require("./standard-skill-handlers.js");
 const { createRegionGeometryContext } = require("./standard-region-geometry.js");
-const { SKILL_USAGE_CATEGORIES } = require("./standard-skill-registry.js");
+const { COLORED_CORNER_BLOOM_ENGINE_VERSION, SKILL_USAGE_CATEGORIES } = require("./standard-skill-registry.js");
 
 const SCHEMA_VERSION = 1;
 const LEGACY_ENGINE_VERSION = "5.0.0-alpha.1";
 const PREVIOUS_ENGINE_VERSION = "5.0.0-alpha.2";
-const ENGINE_VERSION = "5.0.0-alpha.3";
-const SUPPORTED_ENGINE_VERSIONS = Object.freeze([LEGACY_ENGINE_VERSION, PREVIOUS_ENGINE_VERSION, ENGINE_VERSION]);
+const CATEGORY_WINDOW_ENGINE_VERSION = "5.0.0-alpha.3";
+const ENGINE_VERSION = COLORED_CORNER_BLOOM_ENGINE_VERSION;
+const SUPPORTED_ENGINE_VERSIONS = Object.freeze([LEGACY_ENGINE_VERSION, PREVIOUS_ENGINE_VERSION, CATEGORY_WINDOW_ENGINE_VERSION, ENGINE_VERSION]);
 const SAVE_KEY = "fourColorMapGame.standard.v5.save";
 const PHASES = Object.freeze(["CREATE_FIRST", "COLOR", "WORK", "GAME_OVER"]);
 const ACTIONS = Object.freeze(["CREATE_REGION", "COLOR_REGION", "USE_SKILL", "DECLARE_NO_COLOR", "SURRENDER"]);
@@ -1977,6 +2136,10 @@ function other(seat) {
 
 function assertState(condition, code) {
   if (!condition) throw new StandardRuleError(code, code);
+}
+
+function usesSkillCategoryWindow(engineVersion) {
+  return engineVersion === CATEGORY_WINDOW_ENGINE_VERSION || engineVersion === ENGINE_VERSION;
 }
 
 function nextRandom(rngStreams, name) {
@@ -2069,7 +2232,7 @@ function createStandardMatch(config = {}, rngStreams = {}) {
     privateEffects: clone(config.privateEffects || { A: {}, B: {} }),
     interferenceLock: false,
     skillsUsed: { A: 0, B: 0 },
-    ...(engineVersion === ENGINE_VERSION ? { skillCategoryWindow: { actor: active, categories: [] } } : {}),
+    ...(usesSkillCategoryWindow(engineVersion) ? { skillCategoryWindow: { actor: active, categories: [] } } : {}),
     winner: null,
     terminalReason: null,
     lastPublicTrace: null,
@@ -2109,7 +2272,7 @@ function validateStandardState(state) {
   assertState(Boolean(state.regions) && typeof state.regions === "object", "INVALID_REGIONS");
   assertState(Boolean(state.hands) && Boolean(state.loadouts), "INVALID_CARDS");
   assertState(typeof state.interferenceLock === "boolean", "INVALID_INTERFERENCE_LOCK");
-  if (state.engineVersion === ENGINE_VERSION) {
+  if (usesSkillCategoryWindow(state.engineVersion)) {
     const window = state.skillCategoryWindow;
     assertState(Boolean(window) && typeof window === "object" && !Array.isArray(window), "INVALID_SKILL_CATEGORY_WINDOW");
     assertState(Object.keys(window).sort().join("|") === "actor|categories", "INVALID_SKILL_CATEGORY_WINDOW");
@@ -2223,7 +2386,7 @@ function validateStandardState(state) {
 function projectStandardPublicState(state) {
   validateStandardState(state);
   const keys = ["schemaVersion", "engineVersion", "mode", "matchId", "status", "version", "turn", "active", "phase", "regions", "pending", "reserved", "preparedOutgoing", "playableBounds", "trophyTargetMacros", "requiredSize", "rolledSize", "baseRequiredSize", "publicEffects", "interferenceLock", "winner", "terminalReason", "lastPublicTrace", "publicLog"];
-  if (state.engineVersion === ENGINE_VERSION) keys.push("skillCategoryWindow");
+  if (usesSkillCategoryWindow(state.engineVersion)) keys.push("skillCategoryWindow");
   return Object.freeze(Object.fromEntries(keys.map((key) => [key, clone(key === "trophyTargetMacros"
     ? (state.trophyTargetMacros || playableMacroIndices(state.playableBounds))
     : key === "lastPublicTrace" ? (state.lastPublicTrace ?? null) : state[key])] )));
@@ -2637,7 +2800,7 @@ function applyStandardAction({ state, actor, action, expectedVersion, rngStreams
         projectPrivate: projectStandardPrivateState,
         hasLegalRegionOfSize,
         bestLegalSize,
-        enforceUsageCategory: state.engineVersion === ENGINE_VERSION,
+        enforceUsageCategory: usesSkillCategoryWindow(state.engineVersion),
       });
       if (result.ok) {
         const next = clone(result.state);
@@ -2663,7 +2826,7 @@ function applyStandardAction({ state, actor, action, expectedVersion, rngStreams
       }
     }
     if (result.ok) {
-      if (result.state.engineVersion === ENGINE_VERSION && result.state.active !== state.active) {
+      if (usesSkillCategoryWindow(result.state.engineVersion) && result.state.active !== state.active) {
         const next = clone(result.state);
         next.skillCategoryWindow = { actor: next.active, categories: [] };
         result = {
@@ -2698,6 +2861,7 @@ function decodeStandardMatch(payload) {
 module.exports = {
   ACTIONS,
   BONUS_USE_POOL,
+  CATEGORY_WINDOW_ENGINE_VERSION,
   DIE_POOL,
   ENGINE_VERSION,
   LEGACY_ENGINE_VERSION,
@@ -2725,10 +2889,11 @@ module.exports = {
 "use strict";
 
 const { COLORS, adjacentRegionIds, legalRecolorCandidates } = require("./standard-engine.js");
-const { STANDARD_SKILLS, V49_SKILL_IDS } = require("./standard-skill-registry.js");
+const { COLORED_CORNER_BLOOM_ENGINE_VERSION, STANDARD_SKILLS, V49_SKILL_IDS } = require("./standard-skill-registry.js");
 const { createRegionGeometryContext } = require("./standard-region-geometry.js");
 const {
   cornerBloomPlan,
+  coloredCornerBloomPlan,
   microBloomCandidates,
   planHalfShift,
   planTripleShift,
@@ -3045,6 +3210,19 @@ function enumerateWorkSkillActions(publicState, ownPrivateState) {
       for (const macro of sourceMacros) {
         const planned = cornerBloomPlan(state, sourceMacros, macro);
         if (planned.plan.length && preparedTouchesColoredRegion(state, planned.micro)) actions.push(skillAction("areaCornerBloom", { sourceMacros, macro }, { skillPriority: 20 }));
+      }
+    }
+    if (publicState.engineVersion === COLORED_CORNER_BLOOM_ENGINE_VERSION) {
+      const eligibleRegions = Object.values(publicState.regions || {})
+        .filter((region) => region?.color && region.id !== publicState.pending && region.id !== publicState.reserved
+          && !region.isPending && !region.isReserved && !region.deleted && !region.delayed && !region.delayState)
+        .sort((left, right) => left.id < right.id ? -1 : left.id > right.id ? 1 : 0);
+      for (const region of eligibleRegions) {
+        const macros = [...new Set((region.micro || []).map((cell) => microToMacro(cell, publicState.playableBounds, state.microWidth)))].sort((left, right) => left - right);
+        for (const macro of macros) {
+          const planned = coloredCornerBloomPlan(state, region.id, macro);
+          if (planned.ok && planned.plan.length) actions.push(skillAction("areaCornerBloom", { regionId: region.id, macro }, { skillPriority: 20, addedCount: planned.plan.length }));
+        }
       }
     }
   }

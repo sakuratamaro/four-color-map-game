@@ -79,26 +79,30 @@ test("bonus color refill adds two uses up to four and a full meter rejects atomi
   assert.deepEqual([rejected.ok, rejected.code, JSON.stringify(fullState)], [false, "BONUS_USES_ALREADY_FULL", before]);
 });
 
-test("alpha.3 limits each usage category to once per same-seat control window", () => {
-  const state = workState(1189);
-  state.phase = "COLOR";
-  state.pending = "R1";
-  state.regions.R1.color = null;
-  state.regions.R1.isPending = true;
-  state.hands.A.colorPrism = 1;
-  state.hands.A.colorBonusRefill = 1;
-  state.bonusUsesRemaining.A = 1;
-  const prism = dispatch(state, { type: "USE_SKILL", payload: { skill: "colorPrism" } });
-  assert.deepEqual(prism.state.skillCategoryWindow, { actor: "A", categories: ["color"] });
-  const snapshot = JSON.stringify(prism.state);
-  const blocked = dispatch(prism.state, { type: "USE_SKILL", payload: { skill: "colorBonusRefill" } });
-  assert.deepEqual([blocked.ok, blocked.code, JSON.stringify(blocked.state)], [false, "SKILL_CATEGORY_ALREADY_USED_IN_WINDOW", snapshot]);
+test("alpha.3 and alpha.4 limit each usage category to once per same-seat control window", () => {
+  for (const [index, engineVersion] of [match.CATEGORY_WINDOW_ENGINE_VERSION, match.ENGINE_VERSION].entries()) {
+    const state = workState(1189 + index);
+    state.engineVersion = engineVersion;
+    state.phase = "COLOR";
+    state.pending = "R1";
+    state.regions.R1.color = null;
+    state.regions.R1.isPending = true;
+    state.hands.A.colorPrism = 1;
+    state.hands.A.colorBonusRefill = 1;
+    state.bonusUsesRemaining.A = 1;
+    const prism = dispatch(state, { type: "USE_SKILL", payload: { skill: "colorPrism" } });
+    assert.deepEqual(prism.state.skillCategoryWindow, { actor: "A", categories: ["color"] }, engineVersion);
+    const snapshot = JSON.stringify(prism.state);
+    const blocked = dispatch(prism.state, { type: "USE_SKILL", payload: { skill: "colorBonusRefill" } });
+    assert.deepEqual([blocked.ok, blocked.code, JSON.stringify(blocked.state)], [false, "SKILL_CATEGORY_ALREADY_USED_IN_WINDOW", snapshot], engineVersion);
 
-  const work = workState(1190);
-  work.skillCategoryWindow.categories = ["area"];
-  work.hands.A.disruptChoiceOne = 1;
-  const distinct = dispatch(work, { type: "USE_SKILL", payload: { skill: "disruptChoiceOne", color: "red" } });
-  assert.deepEqual(distinct.state.skillCategoryWindow, { actor: "A", categories: ["area", "disrupt"] });
+    const work = workState(1191 + index);
+    work.engineVersion = engineVersion;
+    work.skillCategoryWindow.categories = ["area"];
+    work.hands.A.disruptChoiceOne = 1;
+    const distinct = dispatch(work, { type: "USE_SKILL", payload: { skill: "disruptChoiceOne", color: "red" } });
+    assert.deepEqual(distinct.state.skillCategoryWindow, { actor: "A", categories: ["area", "disrupt"] }, engineVersion);
+  }
 });
 
 test("accepted palette-injection miss advances RNG, version, and category without consuming its card", () => {

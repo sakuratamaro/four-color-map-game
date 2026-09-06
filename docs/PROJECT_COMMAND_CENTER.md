@@ -8,7 +8,7 @@
 
 ## 司令塔ルール
 
-- 統合基点は `origin/main` とし、alpha.3製品と起動修正は`549e716`、公開favicon追補は`df56432`。盤面主導Shift選択、基本feedback、共通COLOR応答窓、CPU実況、legal-recolor LAB、同カテゴリ連打制限まで累積している。
+- 統合基点は `origin/main@63972b6` とし、公開製品は`df56432`。盤面主導Shift選択、基本feedback、共通COLOR応答窓、CPU実況、legal-recolor LAB、同カテゴリ連打制限まで累積している。alpha.4候補は専用clean worktreeでのみ統合する。
 - release候補はdirtyな司令塔床から直接出さず、`origin/main`起点のclean release worktreeへ採用commitだけを積み、candidate CIのtree一致を確認してfast-forwardする。
 - 古いdirty worktreeからbuild、merge、deployしない。
 - `実装済み`、`ローカル検証済み`、`live検証済み`、`公開済み`を別状態として記録する。
@@ -36,7 +36,8 @@
 | P0 | Supabase資源とRealtime負荷の追跡 | 運用 | WATCH_PARTIAL | T+24h固定窓ではCPU 2%、RAM 62%、disk 17%、disk IO 1%、接続peak 20/60、blocked/idle-in-transaction 0、Realtime slot 2/2 active。2026-09-07のEdge 23更新時にDashboardが複数resource逼迫を警告した一方、公開canary 243件とpreflightは全成功。原因・継続時間を同条件のread-only診断で再取得するまでWATCHとし、推測cleanup・課金・Compute変更はしない |
 | P0 | 別々の二端末による最終受入 | チャッピー先生＋司令塔 | PENDING | 対人/CPUの完走、復帰、再戦、永続化を確認 |
 | P1 | alpha.3同カテゴリ連打制限 | ルール＋CPU＋Edge＋UX＋独立監査 | PUBLIC_VERIFIED | source `d627cd5`、統合`d3cb130`、起動修正`549e716`。Windows `34048695008`、Pages `34049734628`、Edge 23、公開canary 7/7＋COLOR追補263/263＋23/23＋108/108、preflight合格。同カテゴリ2枚目のreject、version/public/private/残カード不変、cleanupを本番実測。物理二端末だけPENDING |
-| P1 | 作業床・未コミット物の整理 | 司令塔 | INVENTORIED | `WORKTREE_HYGIENE_INVENTORY.md`に保護・保留・収録済み候補を分離。alpha.3公開安定を確認したため、次は各床の到達可能性・dirty状態を非破壊再確認してから整理 |
+| P1 | alpha.4彩色済みエリア角膨張 | ルール＋CPU＋Edge＋UX＋司令塔 | IMPLEMENTING | `origin/main@63972b6`起点のclean候補床へ統合済み。旧outgoing payloadとalpha.1/2/3継続、彩色済み領域の移譲・分割・同色merge、controller非依存、公開情報だけのCPU、pointer/keyboard/Escapeを検証中。DB・migration・RPC・secret変更なし。Edge先行→canary→Pagesの順序とalpha.4互換rollbackを必須とする |
+| P1 | 作業床・未コミット物の整理 | 司令塔 | MANAGED | 17床を個別監査し、clean重複10床を非破壊削除、branchは維持。rootの旧alpha.1試作は丸ごと統合禁止、回収候補なし。現在は保全対象7床とalpha.4専用clean候補床を分離管理 |
 | P1 | 対戦を主役にする情報設計 | UX | PUBLIC_VERIFIED | 5タブ化し、ホームの主CTAから対戦タブ内の初回profile作成・同期・ロビーまでを一本化。公開URLの390px実画面で確認済み |
 | P1 | 初回オンライン準備を一操作に短縮 | UX | PUBLIC_VERIFIED | `9d42784`。名前入力後の一操作でstarter保存とprofile同期を行い、自動入室はしない。空名write 0、同期二重送信防止、失敗時starter保持。公開CTA確認済み |
 | P1 | 接続状態を対戦中も常時表示 | UX＋同期 | PUBLIC_VERIFIED | `9d42784`。全5タブで単一statusを表示し、room外offlineも反映。公開390px画面で固定statusと下部navの8px間隔を確認 |
@@ -66,7 +67,7 @@
 | P1 | 救済スキルを塞がない共通COLOR応答窓 | ルール＋CPU＋UX＋Edge＋司令塔 | PUBLIC_VERIFIED | `9b7d8f4`。新規engine `5.0.0-alpha.2`は通常彩色／COLOR救済スキル／`DECLARE_NO_COLOR`／投了を同じ応答窓へ集約し、旧alpha.1 roomは従来挙動を維持。宣言はserver authorityで合法色0を検証し、救済カード有無を公開stateへ漏らさない。ローカル962/962、Windows `34022065339`、Pages `34022540907`、Edge deployment 21の基本7/7＋専用164/164、公開390px・console 0を確認。SQL/RPC変更なし |
 | P0 | 合法色0による自動敗北の完全廃止 | ルール＋CPU＋UX＋Edge＋司令塔 | PUBLIC_VERIFIED | `d06f34d`。alpha.2の人間は救済確認後に既存投了だけを選び、CPUは有効な救済を検討後、打開不能なら`SURRENDER`する。`DECLARE_NO_COLOR`はalpha.2でwrite-free退役、alpha.1互換を維持。Windows `34034746623`、Pages `34035229549`、Edge deployment 22、基本7/7＋専用113/113＋candidate preflight合格。SQL/RPC変更なし |
 | P1 | Shift対象指定と説明の摩擦解消 | UX＋ルール＋司令塔 | PUBLIC_VERIFIED | 製品`ad49a41`、main `4b2ea3d`、公開HEAD `ddfb0a7`。行・列→盤面tap/keyboard、自然語方向、Half全帯、Triple外周拒否、黄中央＋紫隣接、取消無送信、zero-based payloadを維持。Windows `34041850645`、Pages `34043472457`、公開v39/v38、390px overflow 0、console 0、preflight合格 |
-| P1 | 持ち色汚染no-opの消費仕様 | ルール＋Edge＋UX | SPEC_READY | 指定色以外の上書き可能枠がなければ変化なし・カード非消費とし、その旨だけ表示する。相手palette自体は表示せず、同一発動で別色へ選び直す連続探索は禁止。server判定、再送、inventory exactly-onceを受入条件とする |
+| P1 | 持ち色汚染no-opの消費仕様 | ルール＋Edge＋UX | PUBLIC_VERIFIED | alpha.3で変化なし・カード非消費、発動終了、別色再選択不可を実装済み。相手paletteを表示せず、server判定、同一ID再送、inventory exactly-once、accepted no-op表示をWindows・生成bundle・公開COLOR canaryで確認 |
 | P1 | Lv5クイズ実質難化 | クイズ＋Edge＋司令塔 | PUBLIC_VERIFIED | `d06f34d`。全10テンプレートをLv4と明確に異なる多段推論へ更新し、52–62秒、server-authoritative採点・再送・既存報酬を維持。Windows `34034746623`、Pages `34035229549`、Edge deployment 22とlive preflight合格 |
 | P1 | CPU敗北表情・理由別台詞 | 演出＋UX＋素材 | IMPLEMENTING | `d06f34d`で公開理由別の10人固有敗北台詞を先行公開。敗北表情画像は第三者素材台帳・credit・fallback・10人存在検査を満たす独立P1便として継続する |
 | P1 | 基本効果音・スマホ振動 | 演出＋アクセシビリティ | PUBLIC_VERIFIED | `4e71ebc`＋競合修正`9be6b90`、公開`767805b`。初期OFFの独立設定、trusted gesture、可視中・event ID重複排除、Web Locksによる同時タブ一意presenter、OFF即停止、保存、reduced-motion独立。Windows `34039704692`はChrome/Edge各2/2・skip 0、Pages `34040260269`、公開v37/feedback v2/app v38と設定再読込、candidate preflightを確認。Edge/DB変更なし |
@@ -86,8 +87,8 @@
 | ID | 原文要旨 | 決定 | 受入条件 | 依存関係 | 担当 | 対象release | 状態 | 実装commit | main統合 | Pages | live実機 | 決定元タスク | DEFERRED-SUPERSEDED理由 | ユーザー承認 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | UDL-20260906-001 | Shiftを角膨張と同じ盤面操作へ | 行・列・中央帯を盤面tap/keyboard、方向だけ自然操作 | 390px/PC、focus、取消、再送、no-oracle、zero-based payload維持 | UDL-014、Half/Triple現行rules | UX＋ルール＋司令塔 | Shift board UX | PUBLIC_VERIFIED | `ad49a41`（旧`24caae8`は不採用） | `4b2ea3d` | `34043472457` | Windows `34041850645`、公開asset SHA一致、390px overflow 0、console 0、preflight合格 | `01a0762c` | select方式をSUPERSEDED、ユーザー要望不一致 | YES |
-| UDL-20260906-002 | 角膨張を未彩色と既塗の2用途へ | 公開済み未彩色用途とは別に既塗用途を復元 | 現在盤面の既塗領域選択、既存用途非回帰、server判定 | UDL-014、UDL-015 | ルール＋UX | Post-Shift rules | DECIDED | — | NO | NO | NOT_RUN | `01a0762c` | — | YES |
-| UDL-20260906-003 | 持ち色汚染の空振りは非消費 | 変化なし・カード非消費、1発動終了、別色再選択不可 | 相手palette非表示、server判定、同一ID再送、inventory exactly-once | 現行disrupt handler、Edge canary | ルール＋Edge＋UX | Pollution no-op P1 | SPEC_READY | — | NO | NO | NOT_RUN | `01a0762c` | 旧DESIGN_DEFERREDをSUPERSEDED、漏えい許容度のユーザー決定 | YES |
+| UDL-20260906-002 | 角膨張を未彩色と既塗の2用途へ | 公開済み未彩色用途とは別に既塗用途を復元 | 現在盤面の既塗領域選択、既存用途非回帰、server判定 | UDL-014、UDL-015 | ルール＋CPU＋Edge＋UX | alpha.4 | IMPLEMENTING | — | NO | NO | NOT_RUN | `01a0762c` | — | YES |
+| UDL-20260906-003 | 持ち色汚染の空振りは非消費 | 変化なし・カード非消費、1発動終了、別色再選択不可 | 相手palette非表示、server判定、同一ID再送、inventory exactly-once | 現行disrupt handler、Edge canary | ルール＋Edge＋UX | alpha.3 | PUBLIC_VERIFIED | `d627cd5` | YES | YES | `COLOR 263/263` | `01a0762c` | 旧DESIGN_DEFERREDをSUPERSEDED、漏えい許容度のユーザー決定 | YES |
 | UDL-20260906-004 | CPUイラスト素材を採用 | 実使用分だけcrop/WebP、原本/未使用素材はrepo外 | NOTICE、README除外、素材台帳、credit、fallback、10人存在検査 | 素材実体、公式規約URL | 素材＋UX＋司令塔 | CPU art P1 | SPEC_READY | — | NO | NO | NOT_RUN | `01a07462`,`01a0762c` | — | YES |
 | UDL-20260906-005 | 作者へお礼連絡 | 公開後TODO、礼儀上の任意連絡 | ユーザー確認なしに送信しない。広告/有料化時は確認優先度を上げる | UDL-004公開後 | 司令塔＋チャッピー先生 | Post-public | DECIDED | — | NO | NO | NOT_RUN | `01a0762c` | — | YES |
 | UDL-20260906-006 | 合法色0だけで自動敗北させない | 人間は救済後に投了、CPUは救済検討後にSURRENDER | alpha.2 DECLARE退役、alpha.1互換、privacy、戦績/報酬/再送exactly-once | engine/client/Edge bundle | ルール＋CPU＋UX＋Edge | No-auto-loss P0 | PUBLIC_VERIFIED | `d06f34d` | `df9f01b` | `34035229549` | Edge 22、7/7＋113/113＋preflight | `01a07628`,`01a0762c` | — | YES |

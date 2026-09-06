@@ -106,7 +106,7 @@ const SKILL_DESCRIPTION = Object.freeze({
   areaMicroBloom: "これから渡すエリアの角をランダムに少しふくらませ、斜めのエリアと接触させます。",
   areaDiePlus: "この手番で相手に渡すエリアを1マス増やします。置ける場所がある時だけ使えます。",
   areaResize: "盤面の上下左右を1列ぶん拡大、または縮小します。すでに塗られた形はそのまま残ります。",
-  areaCornerBloom: "選んだ基準マスの使える角をすべて少しふくらませます。",
+  areaCornerBloom: "これから渡すエリア、または盤面の彩色済みエリアの角をふくらませます。広がる角がない場合はカードも手番も減りません。",
   areaHalfShift: "盤面で選んだ行または列を、半マスぶんずらします。エリアの形がちぎれて別々になることがあり、同じ色のエリアが接すると1つにくっつきます。",
   areaTripleShift: "盤面で選んだ中央の行または列と、その両隣を段差状にずらします。中央は1マス、両隣は半マス動きます。エリアの形がちぎれる動きは成立せず、同じ色のエリアが接すると1つにくっつきます。",
   disruptRandomOne: "相手の色をランダムに1色選び、次の彩色1回だけ封じます。空振りになる場合もあります。",
@@ -679,6 +679,30 @@ function eligibleRecolorRegions(state) {
   return Object.values(state?.regions || {}).filter((region) => region?.color && region.id !== state.pending
     && region.id !== state.reserved && !region.isPending && !region.deleted && !region.delayed && !region.delayState)
     .sort((a, b) => Number.parseInt(a.id.slice(1), 10) - Number.parseInt(b.id.slice(1), 10));
+}
+
+function supportsColoredCornerBloom(state) {
+  return state?.engineVersion === "5.0.0-alpha.4";
+}
+
+function coloredCornerBloomActive(state) {
+  return targetDraft?.kind === "corner-bloom" && supportsColoredCornerBloom(state) && targetDraft.input.mode === "colored";
+}
+
+function regionMacroIndices(state, region) {
+  const { macroWidth, microScale } = state.playableBounds;
+  const microWidth = macroWidth * microScale;
+  const result = new Set();
+  for (const micro of region?.micro || []) {
+    const microCol = micro % microWidth;
+    const microRow = Math.floor(micro / microWidth);
+    result.add(Math.floor(microRow / microScale) * macroWidth + Math.floor(microCol / microScale));
+  }
+  return [...result].filter((macro) => playableMacro(state, macro)).sort((a, b) => a - b);
+}
+
+function coloredCornerBloomRegionsAtMacro(state, macro) {
+  return eligibleRecolorRegions(state).filter((region) => regionMacroIndices(state, region).includes(macro));
 }
 
 function publicRegionLabel(state, regionId) {
@@ -2897,7 +2921,8 @@ function beginSkill(skill) {
   targetDraft = { skill, kind, input: {}, feedback: "", roomId: roomModel?.room?.id, matchId: state?.matchId, version: state?.version };
   if (kind === "band-shift") targetDraft.input.axis = "ROW";
   if (kind !== "corner-bloom") selectedMacros.clear();
-  if (kind === "corner-bloom" && selectedMacros.size === 1 && state?.requiredSize === 1) {
+  if (kind === "corner-bloom" && !supportsColoredCornerBloom(state)) targetDraft.input.mode = "outgoing";
+  if (kind === "corner-bloom" && targetDraft.input.mode === "outgoing" && selectedMacros.size === 1 && state?.requiredSize === 1) {
     targetDraft.input.macro = [...selectedMacros][0];
   }
   render();
@@ -2930,9 +2955,29 @@ function cancelSkillTarget() {
   source?.focus({ preventScroll: true });
 }
 
+function setCornerBloomMode(state, mode) {
+  if (targetDraft?.kind !== "corner-bloom" || !["outgoing", "colored"].includes(mode)) return;
+  targetDraft.input.mode = mode;
+  delete targetDraft.input.regionId;
+  targetDraft.input.macro = mode === "outgoing" && selectedMacros.size === 1 && state.requiredSize === 1
+    ? [...selectedMacros][0]
+    : undefined;
+  setSkillTargetFeedback(mode === "colored"
+    ? "まず盤面の色のついたエリアを選んでください。"
+    : cornerBloomSelectionMessage(state));
+  render();
+  const choice = [...$("skillTargetControls").querySelectorAll("button[data-corner-bloom-mode]")]
+    .find((candidate) => candidate.dataset.cornerBloomMode === mode);
+  choice?.focus({ preventScroll: true });
+}
+
 function cornerBloomTargetReady(state) {
-  return targetDraft?.kind === "corner-bloom"
-    && selectedMacros.size === state.requiredSize
+  if (targetDraft?.kind !== "corner-bloom") return false;
+  if (coloredCornerBloomActive(state)) {
+    const region = eligibleRecolorRegions(state).find((candidate) => candidate.id === targetDraft.input.regionId);
+    return Boolean(region && regionMacroIndices(state, region).includes(targetDraft.input.macro));
+  }
+  return targetDraft.input.mode === "outgoing" && selectedMacros.size === state.requiredSize
     && selectedMacros.has(targetDraft.input.macro);
 }
 
@@ -2993,6 +3038,20 @@ function selectBandShiftMacro(state, macro) {
 }
 
 function cornerBloomSelectionMessage(state) {
+  if (supportsColoredCornerBloom(state) && !targetDraft.input.mode) {
+    return "これから渡すエリアと、盤面の色のついたエリアのどちらに使うか選んでください。";
+  }
+  if (coloredCornerBloomActive(state)) {
+    const region = eligibleRecolorRegions(state).find((candidate) => candidate.id === targetDraft.input.regionId);
+    if (!region && !eligibleRecolorRegions(state).length) {
+      return "現在選べる彩色済みエリアはありません。カードも手番も減りません。";
+    }
+    if (!region) return "まず、盤面の色のついたエリアを選んでください。";
+    if (!regionMacroIndices(state, region).includes(targetDraft.input.macro)) {
+      return `次に、${publicRegionLabel(state, region.id)}の現在の形に含まれる基準マスを選んでください。`;
+    }
+    return "彩色済みエリアと基準マスを選びました。広がる角があるかは確定時に判定します。";
+  }
   if (selectedMacros.size < state.requiredSize) {
     return `まず、相手に渡すエリアを盤面であと${state.requiredSize - selectedMacros.size}マス選んでください。`;
   }
@@ -3013,6 +3072,27 @@ function setSkillTargetFeedback(message, tone = "") {
   if (!targetDraft) return;
   targetDraft.feedback = message;
   targetDraft.feedbackTone = tone;
+}
+
+function selectColoredCornerBloomRegion(state, regionId, { focus = "board" } = {}) {
+  if (!coloredCornerBloomActive(state)) return false;
+  const region = eligibleRecolorRegions(state).find((candidate) => candidate.id === regionId);
+  if (!region) return false;
+  targetDraft.input.regionId = region.id;
+  targetDraft.input.macro = undefined;
+  const macros = regionMacroIndices(state, region);
+  if (macros.length) boardKeyboardMacro = macros[0];
+  setSkillTargetFeedback(`${publicRegionLabel(state, region.id)}を選びました。次にその現在の形に含まれる基準マスを選んでください。`, "success");
+  announceBoardSelection(`${publicRegionLabel(state, region.id)}を対象に選びました。`);
+  render();
+  requestAnimationFrame(() => {
+    const node = focus === "list"
+      ? [...$("skillTargetControls").querySelectorAll("button[data-corner-bloom-region]")]
+        .find((candidate) => candidate.dataset.cornerBloomRegion === region.id)
+      : $("board");
+    node?.focus({ preventScroll: true });
+  });
+  return true;
 }
 
 function renderSkillTarget(state) {
@@ -3041,7 +3121,8 @@ function renderSkillTarget(state) {
     controls.appendChild(note);
     for (const choice of controls.querySelectorAll("button")) choice.setAttribute("aria-describedby", note.id);
   }
-  if (["source-macros", "region-split", "corner-bloom"].includes(targetDraft.kind)) {
+  if (["source-macros", "region-split"].includes(targetDraft.kind)
+      || targetDraft.kind === "corner-bloom" && targetDraft.input.mode === "outgoing") {
     const note = document.createElement("span"); note.className = "selected-macro-note";
     note.textContent = targetDraft.kind === "corner-bloom"
       ? `渡すエリア ${selectedMacros.size}/${state.requiredSize}マス`
@@ -3049,31 +3130,72 @@ function renderSkillTarget(state) {
     controls.appendChild(note);
   }
   if (targetDraft.kind === "corner-bloom") {
+    if (supportsColoredCornerBloom(state)) {
+      const modes = document.createElement("div");
+      modes.className = "controls corner-bloom-mode-controls";
+      modes.setAttribute("aria-label", "角膨張の使い方");
+      for (const [mode, label] of [["outgoing", "これから渡すエリア"], ["colored", "色のついたエリア"]]) {
+        const selected = targetDraft.input.mode === mode;
+        const choice = button(label, () => setCornerBloomMode(state, mode), selected ? "primary" : "ghost");
+        choice.dataset.cornerBloomMode = mode;
+        choice.setAttribute("aria-pressed", String(selected));
+        modes.appendChild(choice);
+      }
+      controls.appendChild(modes);
+    }
     const guide = document.createElement("p");
     guide.id = "cornerBloomTargetGuide";
     guide.className = "skill-target-guide";
     guide.textContent = cornerBloomSelectionMessage(state);
     controls.appendChild(guide);
-    const focusBoard = button(
-      selectedMacros.size < state.requiredSize ? "盤面で渡すエリアを選ぶ" : "盤面で基準マスを選ぶ",
-      () => {
-        const board = $("board");
-        board.focus({ preventScroll: true });
-        board.scrollIntoView({ block: "center", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
-      },
-      "ghost",
-    );
-    focusBoard.classList.add("corner-bloom-board-focus");
-    focusBoard.setAttribute("aria-describedby", guide.id);
-    controls.appendChild(focusBoard);
-    if (selectedMacros.size === state.requiredSize) {
+    if (coloredCornerBloomActive(state)) {
+      const regions = eligibleRecolorRegions(state);
+      const targets = document.createElement("div");
+      targets.className = "controls corner-bloom-region-targets";
+      targets.setAttribute("aria-label", "角を広げる彩色済みエリア");
+      for (const [index, region] of regions.entries()) {
+        const selected = targetDraft.input.regionId === region.id;
+        const choice = button(`エリア${index + 1}・${COLOR_JA[region.color] || region.color}`, () => selectColoredCornerBloomRegion(state, region.id, { focus: "list" }), selected ? "primary" : "ghost");
+        choice.dataset.cornerBloomRegion = region.id;
+        choice.setAttribute("aria-pressed", String(selected));
+        choice.setAttribute("aria-describedby", guide.id);
+        targets.appendChild(choice);
+      }
+      controls.appendChild(targets);
+    }
+    if (targetDraft.input.mode) {
+      const focusBoard = button(
+        coloredCornerBloomActive(state)
+          ? targetDraft.input.regionId ? "盤面で基準マスを選ぶ" : "盤面で色のついたエリアを選ぶ"
+          : selectedMacros.size < state.requiredSize ? "盤面で渡すエリアを選ぶ" : "盤面で基準マスを選ぶ",
+        () => {
+          const board = $("board");
+          board.focus({ preventScroll: true });
+          board.scrollIntoView({ block: "center", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+        },
+        "ghost",
+      );
+      focusBoard.classList.add("corner-bloom-board-focus");
+      focusBoard.setAttribute("aria-describedby", guide.id);
+      controls.appendChild(focusBoard);
+    }
+    const coloredRegion = coloredCornerBloomActive(state)
+      ? eligibleRecolorRegions(state).find((region) => region.id === targetDraft.input.regionId)
+      : null;
+    const targetMacros = coloredRegion ? regionMacroIndices(state, coloredRegion)
+      : targetDraft.input.mode === "outgoing" && selectedMacros.size === state.requiredSize
+        ? [...selectedMacros].sort((a, b) => a - b)
+        : [];
+    if (targetMacros.length) {
       const targets = document.createElement("div");
       targets.className = "controls corner-bloom-targets";
       targets.setAttribute("aria-label", "角を広げる基準マス");
-      for (const macro of [...selectedMacros].sort((a, b) => a - b)) {
+      for (const macro of targetMacros) {
         const selected = targetDraft.input.macro === macro;
         const choice = button(boardMacroCoordinateLabel(state, macro), () => selectCornerBloomMacro(state, macro), selected ? "primary" : "ghost");
+        choice.dataset.cornerBloomMacro = String(macro);
         choice.setAttribute("aria-pressed", String(selected));
+        choice.setAttribute("aria-describedby", guide.id);
         targets.appendChild(choice);
       }
       controls.appendChild(targets);
@@ -3134,14 +3256,20 @@ function renderSkillTarget(state) {
   feedback.textContent = targetDraft.feedback || "";
   panel.appendChild(feedback);
   const actions = document.createElement("div"); actions.className = "controls";
-  if (["source-macros", "region-split", "corner-bloom"].includes(targetDraft.kind)) {
-    const clearLabel = targetDraft.kind === "corner-bloom" ? "渡すエリアを選び直す" : "盤面選択を解除";
+  if (["source-macros", "region-split"].includes(targetDraft.kind)
+      || targetDraft.kind === "corner-bloom" && targetDraft.input.mode) {
+    const clearLabel = targetDraft.kind === "corner-bloom"
+      ? coloredCornerBloomActive(state) ? "彩色済みエリアを選び直す" : "渡すエリアを選び直す"
+      : "盤面選択を解除";
     actions.appendChild(button(clearLabel, () => {
-      selectedMacros.clear();
       if (targetDraft?.kind === "corner-bloom") {
+        if (coloredCornerBloomActive(state)) delete targetDraft.input.regionId;
+        else selectedMacros.clear();
         targetDraft.input.macro = undefined;
-        setSkillTargetFeedback("盤面で渡すエリアを選び直してください。");
-      }
+        setSkillTargetFeedback(coloredCornerBloomActive(state)
+          ? "盤面で色のついたエリアを選び直してください。"
+          : "盤面で渡すエリアを選び直してください。");
+      } else selectedMacros.clear();
       render();
     }, "ghost"));
   }
@@ -3165,7 +3293,13 @@ function renderSkillTarget(state) {
 function submitSkillTarget() {
   if (!targetDraft) return;
   const input = { ...targetDraft.input };
-  if (["source-macros", "region-split", "corner-bloom"].includes(targetDraft.kind)) input.sourceMacros = [...selectedMacros];
+  const cornerMode = input.mode;
+  delete input.mode;
+  if (["source-macros", "region-split"].includes(targetDraft.kind)) input.sourceMacros = [...selectedMacros];
+  if (targetDraft.kind === "corner-bloom" && cornerMode === "outgoing") {
+    delete input.regionId;
+    input.sourceMacros = [...selectedMacros];
+  }
   try {
     const payload = skillIntents.buildSkillPayload(targetDraft.skill, input);
     targetDraft = null; selectedMacros.clear(); sendAction("USE_SKILL", payload);
@@ -3176,7 +3310,8 @@ function submitSkillTarget() {
 }
 
 function boardSelectionAvailable(state = roomModel?.room?.public_state) {
-  const geometrySelection = !targetDraft || ["corner-bloom", "band-shift"].includes(targetDraft.kind);
+  const cornerModeReady = targetDraft?.kind !== "corner-bloom" || !supportsColoredCornerBloom(state) || Boolean(targetDraft.input.mode);
+  const geometrySelection = !targetDraft || ["corner-bloom", "band-shift"].includes(targetDraft.kind) && cornerModeReady;
   return Boolean(state && roomModel?.room?.status === "playing" && state.status === "ACTIVE" && !actionBusy && geometrySelection
     && state.active === roomModel?.view?.seat && ["CREATE_FIRST", "WORK"].includes(state.phase));
 }
@@ -3284,6 +3419,15 @@ function boardMacroDescription(state, macro) {
   const bounds = state.playableBounds;
   const col = (macro % bounds.macroWidth) - bounds.minCol + 1;
   const row = Math.floor(macro / bounds.macroWidth) - bounds.minRow + 1;
+  if (coloredCornerBloomActive(state)) {
+    const region = eligibleRecolorRegions(state).find((candidate) => candidate.id === targetDraft.input.regionId);
+    if (!region) {
+      const count = coloredCornerBloomRegionsAtMacro(state, macro).length;
+      return `上から${row}行目、左から${col}列目。${count ? `彩色済みエリア${count}個があります` : "選べる彩色済みエリアはありません"}`;
+    }
+    const available = regionMacroIndices(state, region).includes(macro);
+    return `上から${row}行目、左から${col}列目。${available ? `${publicRegionLabel(state, region.id)}の基準マスに選べます` : "選んだエリアの現在の形には含まれません"}`;
+  }
   if (targetDraft?.kind === "band-shift") {
     const index = targetDraft.input.axis === "ROW" ? Math.floor(macro / bounds.macroWidth) : macro % bounds.macroWidth;
     const invalidTriple = targetDraft.skill === "areaTripleShift"
@@ -3315,6 +3459,43 @@ function ensureBoardKeyboardMacro(state) {
 
 function selectCornerBloomMacro(state, macro) {
   boardKeyboardMacro = macro;
+  if (coloredCornerBloomActive(state)) {
+    const selectedRegion = eligibleRecolorRegions(state).find((candidate) => candidate.id === targetDraft.input.regionId);
+    if (!selectedRegion) {
+      const regions = coloredCornerBloomRegionsAtMacro(state, macro);
+      if (regions.length === 1) return selectColoredCornerBloomRegion(state, regions[0].id);
+      if (regions.length > 1) {
+        const message = "このマスには複数の彩色済みエリアがあります。対象一覧から1つ選んでください。";
+        setSkillTargetFeedback(message);
+        announceBoardSelection(message);
+        render();
+        requestAnimationFrame(() => {
+          const ids = new Set(regions.map((region) => region.id));
+          [...$("skillTargetControls").querySelectorAll("button[data-corner-bloom-region]")]
+            .find((candidate) => ids.has(candidate.dataset.cornerBloomRegion))?.focus({ preventScroll: true });
+        });
+        return false;
+      }
+      const message = "このマスには選べる彩色済みエリアがありません。";
+      setSkillTargetFeedback(message, "error");
+      announceBoardSelection(message);
+      render();
+      return false;
+    }
+    if (!regionMacroIndices(state, selectedRegion).includes(macro)) {
+      const message = "基準マスは、選んだ彩色済みエリアの現在の形から選んでください。";
+      setSkillTargetFeedback(message, "error");
+      announceBoardSelection(message);
+      render();
+      return false;
+    }
+    targetDraft.input.macro = macro;
+    setSkillTargetFeedback("基準マスを選びました。広がる角があるかは確定時に判定し、不成立でもカードと手番は減りません。", "success");
+    announceBoardSelection(`${boardMacroDescription(state, macro)}。角膨張の基準マスに選びました。`);
+    render();
+    requestAnimationFrame(() => $("board")?.focus({ preventScroll: true }));
+    return true;
+  }
   if (selectedMacros.size < state.requiredSize) {
     const changed = toggleBoardMacro(state, macro, { selectCornerTarget: false });
     if (changed && selectedMacros.size === state.requiredSize) {
@@ -3438,6 +3619,20 @@ function boardKeydown(event) {
   }
   if (event.key === "Escape") {
     event.preventDefault();
+    if (coloredCornerBloomActive(state)) {
+      if (Number.isSafeInteger(targetDraft.input.macro)) {
+        targetDraft.input.macro = undefined;
+        setSkillTargetFeedback("基準マスを解除しました。選んだ彩色済みエリアから選び直してください。");
+        announceBoardSelection("基準マスを解除しました。");
+      } else if (targetDraft.input.regionId) {
+        delete targetDraft.input.regionId;
+        setSkillTargetFeedback("彩色済みエリアを解除しました。選び直してください。");
+        announceBoardSelection("彩色済みエリアの選択を解除しました。");
+      } else announceBoardSelection("まだ解除できる対象はありません。");
+      render();
+      requestAnimationFrame(() => $("board")?.focus({ preventScroll: true }));
+      return;
+    }
     if (targetDraft?.kind === "band-shift") {
       targetDraft.input.index = undefined;
       targetDraft.input.direction = undefined;
@@ -3477,6 +3672,10 @@ function renderBoard(state) {
   const boardInteractive = syncBoardSelectionAssist(state);
   canvas.setAttribute("aria-label", targetDraft?.kind === "existing-region"
     ? "塗り直す彩色済みエリアを選択。番号と色名は下の対象一覧でも選べます。"
+    : coloredCornerBloomActive(state)
+      ? targetDraft.input.regionId
+        ? "角膨張の基準マスを選択。矢印キーで移動し、SpaceまたはEnterで決定、Escapeで現在の対象を解除できます。"
+        : "角膨張で広げる彩色済みエリアを選択。矢印キーで移動し、SpaceまたはEnterで決定、Escapeで現在の対象を解除できます。"
     : targetDraft?.kind === "band-shift"
       ? `${targetDraft.input.axis === "ROW" ? "動かす横の行" : "動かす縦の列"}を選択。矢印キーで移動し、SpaceまたはEnterで対象を決め、Escapeで対象を解除できます。`
     : boardInteractive
@@ -3502,13 +3701,14 @@ function renderBoard(state) {
     ctx.beginPath(); ctx.moveTo(offset, 0); ctx.lineTo(offset, canvas.height); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(0, offset); ctx.lineTo(canvas.width, offset); ctx.stroke();
   }
-  if (boardInteractive && (targetDraft?.kind !== "corner-bloom" || selectedMacros.size < state.requiredSize)) {
+  if (boardInteractive && !coloredCornerBloomActive(state)
+      && (targetDraft?.kind !== "corner-bloom" || selectedMacros.size < state.requiredSize)) {
     for (const macro of connectedCandidateMacros(state)) {
       strokeMacroFrame(ctx, macro, macroWidth, microScale, cell, { color: "#86efac", cssWidth: 2.5, cssDash: [5, 4] });
     }
   }
   ctx.fillStyle = "#ffffff38"; ctx.strokeStyle = "#f8fafc"; ctx.lineWidth = 3;
-  for (const macro of selectedMacros) {
+  for (const macro of coloredCornerBloomActive(state) ? [] : selectedMacros) {
     const col = macro % macroWidth; const row = Math.floor(macro / macroWidth);
     ctx.fillRect(col * microScale * cell, row * microScale * cell, microScale * cell, microScale * cell);
     ctx.strokeRect(col * microScale * cell + 1, row * microScale * cell + 1, microScale * cell - 2, microScale * cell - 2);
@@ -3544,11 +3744,12 @@ function renderBoard(state) {
       }
     }
   }
-  if (targetDraft?.kind === "corner-bloom" && selectedMacros.has(targetDraft.input.macro)) {
+  if (targetDraft?.kind === "corner-bloom"
+      && (coloredCornerBloomActive(state) ? Number.isSafeInteger(targetDraft.input.macro) : selectedMacros.has(targetDraft.input.macro))) {
     strokeMacroFrame(ctx, targetDraft.input.macro, macroWidth, microScale, cell, { color: "#f0abfc", cssWidth: 4, cssDash: [] });
     strokeMacroFrame(ctx, targetDraft.input.macro, macroWidth, microScale, cell, { color: "#fdf4ff", cssWidth: 1.5, cssDash: [], cssInset: 8 });
   }
-  if (targetDraft?.kind === "existing-region") {
+  if (targetDraft?.kind === "existing-region" || coloredCornerBloomActive(state)) {
     for (const [index, region] of eligibleRecolorRegions(state).entries()) {
       const selected = targetDraft.input.regionId === region.id;
       ctx.strokeStyle = selected ? "#ffffff" : "#e2e8f0";
@@ -3697,16 +3898,25 @@ function boardPointer(event) {
   const skillGeometry = targetDraft && ["source-macros", "region-split", "corner-bloom", "band-shift"].includes(targetDraft.kind);
   const recolorTarget = targetDraft?.kind === "existing-region";
   if (!state || roomModel?.room?.status !== "playing" || state.status !== "ACTIVE" || actionBusy || state.active !== seat
+    || targetDraft?.kind === "corner-bloom" && supportsColoredCornerBloom(state) && !targetDraft.input.mode
     || (!recolorTarget && !skillGeometry && !["CREATE_FIRST", "WORK"].includes(state.phase))) return;
   const rect = event.currentTarget.getBoundingClientRect(); const width = state.playableBounds.macroWidth;
-  if (recolorTarget) {
+  if (recolorTarget || coloredCornerBloomActive(state) && !targetDraft.input.regionId) {
     const microWidth = width * state.playableBounds.microScale;
     const microCol = Math.max(0, Math.min(microWidth - 1, Math.floor((event.clientX - rect.left) / rect.width * microWidth)));
     const microRow = Math.max(0, Math.min(microWidth - 1, Math.floor((event.clientY - rect.top) / rect.height * microWidth)));
     const micro = microRow * microWidth + microCol;
     const region = eligibleRecolorRegions(state).find((entry) => entry.micro?.includes(micro));
-    if (region) targetDraft.input.regionId = region.id;
-    render();
+    if (coloredCornerBloomActive(state)) {
+      if (region) selectColoredCornerBloomRegion(state, region.id);
+      else {
+        setSkillTargetFeedback("ここには選べる彩色済みエリアがありません。", "error");
+        render();
+      }
+    } else {
+      if (region) targetDraft.input.regionId = region.id;
+      render();
+    }
     return;
   }
   const col = Math.max(0, Math.min(width - 1, Math.floor((event.clientX - rect.left) / rect.width * width)));

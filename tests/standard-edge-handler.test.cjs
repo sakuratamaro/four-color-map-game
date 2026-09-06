@@ -25,10 +25,11 @@ test("only the generated authoritative bundle creates and applies state", () => 
   assert.doesNotMatch(source, /body\.(?:state|publicState|privateState)/);
 });
 
-test("new online matches use an internal compatibility-switchable engine version", () => {
-  assert.match(source, /const NEW_STANDARD_MATCH_ENGINE_VERSION = "5\.0\.0-alpha\.3"/);
+test("new online matches use the internal alpha.4 compatibility switch", () => {
+  assert.match(source, /const NEW_STANDARD_MATCH_ENGINE_VERSION = "5\.0\.0-alpha\.4"/);
   assert.match(source, /FourColorStandardServerEngine\.create\(\{[\s\S]*engineVersion: NEW_STANDARD_MATCH_ENGINE_VERSION/);
   assert.doesNotMatch(source, /engineVersion:\s*body\./);
+  assert.doesNotMatch(source, /NEW_STANDARD_MATCH_ENGINE_VERSION\s*=\s*body\./);
 });
 
 test("profile sync ignores caller progression and preserves the server-authoritative state", () => {

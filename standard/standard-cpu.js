@@ -1,10 +1,11 @@
 "use strict";
 
 const { COLORS, adjacentRegionIds, legalRecolorCandidates } = require("./standard-engine.js");
-const { STANDARD_SKILLS, V49_SKILL_IDS } = require("./standard-skill-registry.js");
+const { COLORED_CORNER_BLOOM_ENGINE_VERSION, STANDARD_SKILLS, V49_SKILL_IDS } = require("./standard-skill-registry.js");
 const { createRegionGeometryContext } = require("./standard-region-geometry.js");
 const {
   cornerBloomPlan,
+  coloredCornerBloomPlan,
   microBloomCandidates,
   planHalfShift,
   planTripleShift,
@@ -321,6 +322,19 @@ function enumerateWorkSkillActions(publicState, ownPrivateState) {
       for (const macro of sourceMacros) {
         const planned = cornerBloomPlan(state, sourceMacros, macro);
         if (planned.plan.length && preparedTouchesColoredRegion(state, planned.micro)) actions.push(skillAction("areaCornerBloom", { sourceMacros, macro }, { skillPriority: 20 }));
+      }
+    }
+    if (publicState.engineVersion === COLORED_CORNER_BLOOM_ENGINE_VERSION) {
+      const eligibleRegions = Object.values(publicState.regions || {})
+        .filter((region) => region?.color && region.id !== publicState.pending && region.id !== publicState.reserved
+          && !region.isPending && !region.isReserved && !region.deleted && !region.delayed && !region.delayState)
+        .sort((left, right) => left.id < right.id ? -1 : left.id > right.id ? 1 : 0);
+      for (const region of eligibleRegions) {
+        const macros = [...new Set((region.micro || []).map((cell) => microToMacro(cell, publicState.playableBounds, state.microWidth)))].sort((left, right) => left - right);
+        for (const macro of macros) {
+          const planned = coloredCornerBloomPlan(state, region.id, macro);
+          if (planned.ok && planned.plan.length) actions.push(skillAction("areaCornerBloom", { regionId: region.id, macro }, { skillPriority: 20, addedCount: planned.plan.length }));
+        }
       }
     }
   }

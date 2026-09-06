@@ -2,6 +2,7 @@
 
 const { COLORS, StandardRuleError, mergeSameColorComponent } = require("./standard-engine.js");
 const { createRegionGeometryContext } = require("./standard-region-geometry.js");
+const { COLORED_CORNER_BLOOM_ENGINE_VERSION } = require("./standard-skill-registry.js");
 
 function clone(value) {
   return JSON.parse(JSON.stringify(value));
@@ -324,6 +325,127 @@ function cornerBloomPlan(state, sourceMacros, macro) {
   });
 }
 
+function coloredCornerBloomPlan(state, regionId, macro) {
+  if (state.engineVersion !== COLORED_CORNER_BLOOM_ENGINE_VERSION) {
+    return Object.freeze({ ok: false, code: "COLORED_CORNER_BLOOM_NOT_SUPPORTED", plan: [], micro: [] });
+  }
+  const region = state.regions?.[regionId];
+  if (!region || !region.color || regionId === state.pending || regionId === state.reserved
+    || region.isPending || region.isReserved || region.deleted || region.delayed || region.delayState
+    || !connected(region.micro || [], state.microWidth)) {
+    return Object.freeze({ ok: false, code: "INVALID_COLORED_CORNER_BLOOM_TARGET", plan: [], micro: [] });
+  }
+  if (!Number.isInteger(macro) || !(region.micro || []).some((cell) => microToMacro(cell, state) === macro)) {
+    return Object.freeze({ ok: false, code: "INVALID_COLORED_CORNER_BLOOM_MACRO", plan: [], micro: [] });
+  }
+  const macroCol = macro % state.playableBounds.macroWidth;
+  const macroRow = Math.floor(macro / state.playableBounds.macroWidth);
+  const bounds = state.playableBounds;
+  if (macroCol < bounds.minCol || macroCol > bounds.maxCol || macroRow < bounds.minRow || macroRow > bounds.maxRow) {
+    return Object.freeze({ ok: false, code: "INVALID_COLORED_CORNER_BLOOM_MACRO", plan: [], micro: [] });
+  }
+
+  const shape = new Set(region.micro);
+  const owners = regionOwners(state);
+  const scale = bounds.microScale;
+  const width = state.microWidth;
+  const x0 = macroCol * scale;
+  const y0 = macroRow * scale;
+  const corners = [
+    [[-1, 0], [0, -1], [-1, -1]],
+    [[scale, 0], [scale - 1, -1], [scale, -1]],
+    [[-1, scale - 1], [0, scale], [-1, scale]],
+    [[scale, scale - 1], [scale - 1, scale], [scale, scale]],
+  ];
+  const planned = new Set();
+  for (const corner of corners) {
+    const cornerPlan = new Set();
+    for (let pass = 0; pass < 3; pass += 1) {
+      for (const [dx, dy] of corner) {
+        const x = x0 + dx;
+        const y = y0 + dy;
+        if (!microCoordinateInPlayable(state, x, y)) continue;
+        const cell = y * width + x;
+        if (shape.has(cell) || planned.has(cell) || cornerPlan.has(cell)) continue;
+        const owner = owners.get(cell);
+        if (owner && !state.regions[owner]?.color) continue;
+        const cellX = cell % width;
+        const neighbors = [cell - width, cell + width];
+        if (cellX > 0) neighbors.push(cell - 1);
+        if (cellX < width - 1) neighbors.push(cell + 1);
+        if (neighbors.some((neighbor) => shape.has(neighbor) || planned.has(neighbor) || cornerPlan.has(neighbor))) cornerPlan.add(cell);
+      }
+    }
+    for (const cell of cornerPlan) planned.add(cell);
+  }
+  return Object.freeze({
+    ok: true,
+    plan: Object.freeze([...planned].sort((a, b) => a - b)),
+    micro: Object.freeze([...new Set([...shape, ...planned])].sort((a, b) => a - b)),
+  });
+}
+
+function transferColoredCornerIntrusions(state, targetRegionId, cells) {
+  const owners = regionOwners(state);
+  const donors = new Set();
+  let transferredCount = 0;
+  let emptyAddedCount = 0;
+  for (const cell of cells) {
+    const donorId = owners.get(cell);
+    if (!donorId) {
+      emptyAddedCount += 1;
+      continue;
+    }
+    if (donorId === targetRegionId) continue;
+    if (!state.regions[donorId]?.color) {
+      throw new StandardRuleError("COLORED_CORNER_BLOOM_OVERLAP_UNCOLORED", "Colored corner bloom cannot intrude into an uncolored region");
+    }
+    state.regions[donorId].micro = state.regions[donorId].micro.filter((candidate) => candidate !== cell);
+    donors.add(donorId);
+    transferredCount += 1;
+  }
+
+  let nextNumber = nextRegionNumber(state);
+  let splitCount = 0;
+  let removedCount = 0;
+  const affectedRegionIds = [];
+  for (const donorId of [...donors].sort((left, right) => Number(left.slice(1)) - Number(right.slice(1)))) {
+    const donor = state.regions[donorId];
+    if (!donor.micro.length) {
+      delete state.regions[donorId];
+      removedCount += 1;
+      continue;
+    }
+    const parts = connectedComponents(donor.micro, state.microWidth);
+    donor.micro = parts[0];
+    donor.sourceMacros = sourceMacrosFromMicro(parts[0], state);
+    affectedRegionIds.push(donorId);
+    for (const part of parts.slice(1)) {
+      const id = `R${nextNumber}`;
+      nextNumber += 1;
+      state.regions[id] = {
+        ...donor,
+        id,
+        micro: part,
+        sourceMacros: sourceMacrosFromMicro(part, state),
+        controllers: [...(donor.controllers || [])],
+        isPending: false,
+        isReserved: false,
+      };
+      affectedRegionIds.push(id);
+      splitCount += 1;
+    }
+  }
+  return Object.freeze({
+    donorCount: donors.size,
+    transferredCount,
+    emptyAddedCount,
+    splitCount,
+    removedCount,
+    affectedRegionIds: Object.freeze(affectedRegionIds),
+  });
+}
+
 function preparedOutgoingCandidates(state, sourceMacros, skills) {
   let shapes = [null];
   for (const skill of skills) {
@@ -367,6 +489,30 @@ function applyAreaMicroBloom({ state, actor, payload, random }) {
 }
 
 function applyAreaCornerBloom({ state, actor, payload }) {
+  if (typeof payload.regionId === "string") {
+    const planned = coloredCornerBloomPlan(state, payload.regionId, payload.macro);
+    if (!planned.ok) return Object.freeze({ ok: false, code: planned.code, state });
+    if (!planned.plan.length) return Object.freeze({ ok: false, code: "NO_COLORED_CORNER_BLOOM_CANDIDATE", state });
+    let intrusion;
+    let merge;
+    const result = resolved(state, actor, "areaCornerBloom", (next) => {
+      intrusion = transferColoredCornerIntrusions(next, payload.regionId, planned.plan);
+      const target = next.regions[payload.regionId];
+      target.micro = [...planned.micro];
+      target.sourceMacros = sourceMacrosFromMicro(target.micro, next);
+      merge = mergeSameColorComponent(next, payload.regionId);
+      next.publicLog.push(`T${next.turn} Player ${actor} expanded the current colored region at macro ${payload.macro}, adding ${planned.plan.length} microcells.`);
+    });
+    return Object.freeze({
+      ...result,
+      regionId: payload.regionId,
+      keptRegionId: merge.keptId,
+      macro: payload.macro,
+      addedCount: planned.plan.length,
+      intrusion,
+      merge,
+    });
+  }
   const sourceMacros = [...new Set(payload.sourceMacros)].sort((a, b) => a - b);
   if (sourceMacros.length !== payload.sourceMacros.length) return Object.freeze({ ok: false, code: "INVALID_OUTGOING_SELECTION", state });
   const planned = cornerBloomPlan(state, sourceMacros, payload.macro);
@@ -860,6 +1006,7 @@ module.exports = {
   applyDisruptPaletteRandom,
   microBloomCandidates,
   cornerBloomPlan,
+  coloredCornerBloomPlan,
   preparedOutgoingCandidates,
   planHalfShift,
   planTripleShift,

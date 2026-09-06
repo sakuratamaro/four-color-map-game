@@ -61,7 +61,14 @@
     if (kind === "source-macros") return Object.freeze({ skill, sourceMacros: macros(input.sourceMacros) });
     if (kind === "region-split") return Object.freeze({ skill, regionId: regionId(input.regionId), sourceMacros: macros(input.sourceMacros) });
     if (kind === "existing-region") return Object.freeze({ skill, regionId: regionId(input.regionId) });
-    if (kind === "corner-bloom") return Object.freeze({ skill, sourceMacros: macros(input.sourceMacros), macro: integer(input.macro) });
+    if (kind === "corner-bloom") {
+      const outgoing = Object.hasOwn(input, "sourceMacros");
+      const colored = Object.hasOwn(input, "regionId");
+      if (outgoing === colored) invalid();
+      return outgoing
+        ? Object.freeze({ skill, sourceMacros: macros(input.sourceMacros), macro: integer(input.macro) })
+        : Object.freeze({ skill, regionId: regionId(input.regionId), macro: integer(input.macro) });
+    }
     if (kind === "resize") {
       if (!["expand", "shrink"].includes(input.mode) || !["top", "right", "bottom", "left"].includes(input.side)) invalid();
       return Object.freeze({ skill, mode: input.mode, side: input.side });
