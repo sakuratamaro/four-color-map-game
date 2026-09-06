@@ -50,6 +50,7 @@ test("corrupted palette is authoritative for one coloring and then restores exac
   const effect = corrupted.privateEffects.B.paletteDebuffs[0];
   const usesBefore = corrupted.bonusUsesRemaining.B;
   corrupted.active = "B";
+  corrupted.skillCategoryWindow = { actor: "B", categories: [] };
   corrupted.phase = "COLOR";
   corrupted.regions.R1 = { id: "R1", micro: [49], sourceMacros: [], controllers: ["A"], color: null, isPending: true };
   corrupted.pending = "R1";
@@ -65,6 +66,7 @@ test("a permanent palette change on the corrupted slot cancels restoration", () 
   const corrupted = use(state, rng).state;
   const effect = corrupted.privateEffects.B.paletteDebuffs[0];
   corrupted.active = "B";
+  corrupted.skillCategoryWindow = { actor: "B", categories: [] };
   corrupted.phase = "COLOR";
   corrupted.hands.B.colorPaletteChange = 1;
   const replacement = engine.COLORS.find((color) => color !== effect.injectedColor);

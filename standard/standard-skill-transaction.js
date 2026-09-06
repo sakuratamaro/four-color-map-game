@@ -34,7 +34,8 @@ function dispatchStandardSkillTransaction({ root, actor, action, rngStreams, sto
   const state = root.activeMatch?.state;
   if (!state) return Object.freeze({ ok: false, status: SKILL_RESULT.REJECTED, code: "NO_ACTIVE_MATCH", root, rngStreams, saved: false });
   const fingerprint = actionFingerprint(actor, action);
-  const receipt = root.receipts.matchConsumption[`${state.matchId}:${action.id}`];
+  const key = `${state.matchId}:${action.id}`;
+  const receipt = root.receipts.matchConsumption[key] || root.receipts.matchAction[key];
   if (receipt) {
     if (receipt.actionFingerprint !== fingerprint) return Object.freeze({ ok: false, status: SKILL_RESULT.REJECTED, code: "ACTION_ID_COLLISION", root, rngStreams, saved: false });
     return Object.freeze({
@@ -63,7 +64,7 @@ function dispatchStandardSkillTransaction({ root, actor, action, rngStreams, sto
   if (!result.ok) return Object.freeze({ ...result, root, rngStreams, saved: false });
 
   const rngSnapshot = snapshotRngStreams(workingRng);
-  const nextRoot = save.commitAcceptedCardAction({
+  let nextRoot = save.commitAcceptedCardAction({
     root,
     beforeState: state,
     result,
@@ -72,6 +73,21 @@ function dispatchStandardSkillTransaction({ root, actor, action, rngStreams, sto
     actionFingerprint: fingerprint,
     rngSnapshot,
   });
+  if (result.cardConsumed === false) {
+    nextRoot = JSON.parse(JSON.stringify(nextRoot));
+    nextRoot.receipts.matchAction[key] = {
+      scope: "matchAction",
+      matchId: state.matchId,
+      actionId: action.id,
+      actorSeat: actor,
+      actionFingerprint: fingerprint,
+      resultCode: result.code,
+      matchVersion: result.state.version,
+      rootRevision: nextRoot.rootRevision,
+    };
+    save.validateStandardSave(nextRoot);
+    nextRoot = Object.freeze(nextRoot);
+  }
   save.persistStandardSave(storage, nextRoot);
   return Object.freeze({ ...result, root: nextRoot, rngStreams: workingRng, saved: true });
 }

@@ -23,7 +23,7 @@ const saveKey = "fourColorMapGame.standard.v5.save";
 const remoteProfileKey = "fourColorMapGame.standard.online.v5.remote-profile";
 const roomId = "11111111-1111-4111-8111-111111111111";
 const pendingRematchId = "22222222-2222-4222-8222-222222222222";
-const RESTORED_ROOM_MODES = new Set(["finished", "playing", "colorResponse", "labPlaying", "setupLabPersist", "setupLabLostResponse", "setupLabMismatch", "handoffGuide", "cpuTurn", "cpuTurnNoColor", "cpuCommentary", "finishedCpu", "finishedCpuSagaStart", "finishedHumanSagaBlocked", "finishedCpuWrongSagaBlocked", "activeCpuSagaBlocked", "cpuWin", "setupTransition", "setupTransitionCpuFirst", "actionRuleError", "setupDebugError", "handoffReload", "waitingAbandon", "readyGuestAbandon", "cpuReadyAbandon", "abandonLost", "abandonAdvancedReady", "activeBootPrivate", "activeBootPublic", "activeBootCpu", "cpuSagaStartServerActive"]);
+const RESTORED_ROOM_MODES = new Set(["finished", "playing", "colorResponse", "labPlaying", "alpha3CategoryWindow", "setupLabPersist", "setupLabLostResponse", "setupLabMismatch", "handoffGuide", "cpuTurn", "cpuTurnNoColor", "cpuCommentary", "finishedCpu", "finishedCpuSagaStart", "finishedHumanSagaBlocked", "finishedCpuWrongSagaBlocked", "activeCpuSagaBlocked", "cpuWin", "setupTransition", "setupTransitionCpuFirst", "actionRuleError", "setupDebugError", "handoffReload", "waitingAbandon", "readyGuestAbandon", "cpuReadyAbandon", "abandonLost", "abandonAdvancedReady", "activeBootPrivate", "activeBootPublic", "activeBootCpu", "cpuSagaStartServerActive"]);
 
 function browserStage(stage) {
   console.error(`BROWSER_STAGE ${stage}`);
@@ -230,7 +230,13 @@ async function installMock(context, mode) {
     if (initialMode === "finished") {
       profileState.matchHistory.unshift({ matchId: `${id}:9`, result: "WIN", terminalReason: "SURRENDER", endedAt: "2026-09-05T00:00:00.000Z", fullPaint: false, skillsUsed: 0, onlineOpponentKind: "human" });
     }
-    if (["cpuTurn", "cpuTurnNoColor"].includes(initialMode)) active.active = "B";
+    if (["cpuTurn", "cpuTurnNoColor"].includes(initialMode)) {
+      active.active = "B";
+      active.skillCategoryWindow = { actor: "B", categories: [] };
+    }
+    if (initialMode === "alpha3CategoryWindow") {
+      active.skillCategoryWindow = { actor: "A", categories: ["color"] };
+    }
     if (initialMode === "cpuTurnNoColor") {
       active.regions = { R1: { id: "R1", micro: [0], sourceMacros: [0], controllers: ["B"], color: "blue", isPending: false } };
     }
@@ -263,7 +269,7 @@ async function installMock(context, mode) {
     const runtime = {
       waitStartedAt: initialMode === "cpuWait" ? new Date(Date.now() - 91000).toISOString() : new Date().toISOString(),
       room: { id, status: ["finished", "finishedCpu", "finishedCpuSagaStart", "finishedHumanSagaBlocked", "finishedCpuWrongSagaBlocked", "quizReloadPublicFinished"].includes(initialMode) || restoreCpuRewardResult || restoreNoColorResult ? "finished" : pregameMode ? pregameStatus : ["publicFind", "handoffActivity", "handoffStart", "handoffReload"].includes(initialMode) || setupPending ? "ready" : "playing", version: restoredRoomVersion, game_mode: "standard_v5", access_mode: cpuRoomMode ? "cpu" : ["publicFind", "handoffActivity", "handoffStart", "handoffReload", "quizReloadPublicFinished"].includes(initialMode) ? "public_queue" : "private_code", opponent_kind: cpuRoomMode ? "cpu" : "human", cpu_character_id: cpuRoomMode ? "yuzu" : null, public_state: restoreNoColorResult ? noColorFinished : ["finished", "finishedCpu", "finishedCpuSagaStart", "finishedHumanSagaBlocked", "finishedCpuWrongSagaBlocked", "quizReloadPublicFinished"].includes(initialMode) || restoreCpuRewardResult ? { ...finished, version: restoredRoomVersion } : pregameMode || ["publicFind", "handoffActivity", "handoffStart", "handoffReload"].includes(initialMode) || setupPending ? null : active },
-      view: pregameMode || ["publicFind", "handoffActivity", "handoffStart", "handoffReload"].includes(initialMode) || setupPending ? null : { seat: "A", version: restoredRoomVersion, private_state: { hand: initialMode === "labPlaying" ? { areaDiePlus: 1, legalRecolor: 1 } : initialMode === "colorResponse" ? { colorPrism: 1, areaDiePlus: 1 } : { areaDiePlus: 1, areaResize: 1 }, basicPalette: initialMode === "cpuTurnNoColor" ? ["yellow", "green"] : ["red", "blue"], bonusColor: initialMode === "cpuTurnNoColor" ? "blue" : "yellow", bonusUsesRemaining: initialMode === "cpuTurnNoColor" ? 3 : 2, privateEffects: {} } },
+      view: pregameMode || ["publicFind", "handoffActivity", "handoffStart", "handoffReload"].includes(initialMode) || setupPending ? null : { seat: "A", version: restoredRoomVersion, private_state: { hand: initialMode === "labPlaying" ? { areaDiePlus: 1, legalRecolor: 1 } : initialMode === "colorResponse" ? { colorPrism: 1, areaDiePlus: 1 } : initialMode === "alpha3CategoryWindow" ? { colorBonusRefill: 1, legalRecolor: 1, areaResize: 1, disruptChoiceOne: 1 } : { areaDiePlus: 1, areaResize: 1 }, basicPalette: initialMode === "cpuTurnNoColor" ? ["yellow", "green"] : ["red", "blue"], bonusColor: initialMode === "cpuTurnNoColor" ? "blue" : "yellow", bonusUsesRemaining: initialMode === "cpuTurnNoColor" ? 3 : 2, privateEffects: {} } },
       profile: initialMode === "empty" ? null : { revision: 1, display_name: "A", profile_state: profileState },
       gachaReceipts: {},
       cardSaleReceipts: {},
@@ -629,6 +635,15 @@ async function installMock(context, mode) {
           } };
           runtime.view = { ...runtime.view, version: nextVersion };
           return { data: { duplicate: false, room: runtime.room } };
+        }
+        if (request.body.operation === "action" && initialMode === "alpha3CategoryWindow" && request.body.action?.type === "USE_SKILL") {
+          const nextVersion = runtime.room.version + 1;
+          runtime.room = { ...runtime.room, version: nextVersion, public_state: {
+            ...runtime.room.public_state, version: nextVersion,
+            skillCategoryWindow: { actor: "A", categories: ["color", "disrupt"] },
+          } };
+          runtime.view = { ...runtime.view, version: nextVersion };
+          return { data: { duplicate: false, result: { code: "SKILL_ACCEPTED_NO_OP", noOp: true }, room: runtime.room } };
         }
         if (request.body.operation === "action" && initialMode === "actionRuleError") return functionError(400, "ILLEGAL_COLOR", "private authoritative_state and service secret");
         if (request.body.operation === "action" && initialMode === "handoffGuide" && request.body.action?.type === "CREATE_REGION") {
@@ -1639,6 +1654,61 @@ test("actual Edge routes immediate skills and keeps target cancellation write-fr
     assert.deepEqual(calls[0].action.payload, { skill: "areaDiePlus" });
     assert.equal(await page.locator("#skillTargetControls").evaluate((node) => node.classList.contains("hidden")), true);
   });
+});
+
+test("actual browser exposes the alpha.3 category window, refill loan, and accepted no-op at 390px", { timeout: 130000 }, async () => {
+  await withPage("alpha3CategoryWindow", async (page) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.getByText("この手番で使用済み：色カード（同じ種類は次の手番まで使えません）", { exact: true }).waitFor();
+
+    const refill = page.getByRole("button", { name: "おまけ色補充 ×1" });
+    const recolor = page.getByRole("button", { name: "塗り直し・乱 ×1" });
+    const area = page.getByRole("button", { name: "拡大縮小 ×1" });
+    const disrupt = page.getByRole("button", { name: "色封じ ×1" });
+    await refill.waitFor();
+    assert.equal(await page.locator("#cardInventory").getByText("おまけ色補充", { exact: true }).count(), 0);
+    assert.equal(await refill.isDisabled(), true);
+    assert.equal(await refill.getAttribute("title"), "この手番では同じ種類のスキルはもう使えません");
+    assert.equal(await recolor.isDisabled(), true);
+    assert.equal(await recolor.getAttribute("title"), "この手番では同じ種類のスキルはもう使えません");
+    assert.equal(await area.isEnabled(), true);
+    assert.equal(await disrupt.isEnabled(), true);
+
+    const refillInfo = page.getByRole("button", { name: "おまけ色補充の説明" });
+    await refillInfo.focus();
+    await page.keyboard.press("Enter");
+    await page.getByRole("dialog").getByText("おまけ色補充", { exact: true }).waitFor();
+    assert.equal(await page.locator("#skillInfoBody").textContent(), "現在のおまけ色の残り回数を2回増やします（上限4回）。残り4回では使えません。");
+    await page.keyboard.press("Escape");
+
+    await disrupt.focus();
+    await page.keyboard.press("Enter");
+    await page.getByText("色封じ — 対象を指定", { exact: true }).waitFor();
+    assert.equal(await page.evaluate(() => document.activeElement?.textContent), "色封じ — 対象を指定");
+    await page.keyboard.press("Tab");
+    assert.equal(await page.evaluate(() => document.activeElement?.textContent), "赤");
+    await page.keyboard.press("Space");
+    assert.equal(await page.getByRole("button", { name: "赤", exact: true }).getAttribute("aria-pressed"), "true");
+    for (let index = 0; index < 4; index += 1) await page.keyboard.press("Tab");
+    assert.equal(await page.evaluate(() => document.activeElement?.textContent), "この対象で使う");
+    await page.keyboard.press("Space");
+
+    await page.getByText("効果は空振りでした。カードは減りませんが、この手番の妨害カード使用枠は使いました。", { exact: true }).waitFor();
+    await page.getByText("この手番で使用済み：色カード・妨害カード（同じ種類は次の手番まで使えません）", { exact: true }).waitFor();
+    assert.equal(await disrupt.isDisabled(), true);
+    assert.equal(await area.isEnabled(), true);
+    const result = await page.evaluate(() => ({
+      actions: globalThis.__standardOnlineRuntime.calls
+        .filter((entry) => entry.body?.operation === "action")
+        .map((entry) => entry.body.action),
+      overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+      targetHidden: document.querySelector("#skillTargetControls").classList.contains("hidden"),
+    }));
+    assert.equal(result.actions.length, 1);
+    assert.deepEqual(result.actions[0].payload, { skill: "disruptChoiceOne", color: "red" });
+    assert.equal(result.overflow, false);
+    assert.equal(result.targetHidden, true);
+  }, { viewport: { width: 390, height: 844 } });
 });
 
 test("actual browser completes corner bloom from the board without a raw macro number", { timeout: 130000 }, async () => {

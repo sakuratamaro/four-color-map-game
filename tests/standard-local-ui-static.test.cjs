@@ -22,7 +22,7 @@ const responsiveBrowserGate = fs.readFileSync(path.join(root, "tests", "standard
 const contactPressureBrowserGate = fs.readFileSync(path.join(root, "tests", "standard-contact-pressure-browser.test.cjs"), "utf8");
 
 test("local alpha has a bundled offline entry point", () => {
-  assert.match(html, /app\.bundle\.js\?v=20260906-3/);
+  assert.match(html, /app\.bundle\.js\?v=20260907-4/);
   for (const id of ["profileA", "profileB", "firstPlayer", "startMatch", "handover", "privatePanel", "resultPanel"]) {
     assert.match(html, new RegExp(`id="${id}"`));
   }
@@ -31,6 +31,12 @@ test("local alpha has a bundled offline entry point", () => {
   assert.doesNotMatch(`${html}\n${app}\n${bundle}`, /https?:\/\/|supabase|fetch\s*\(/i);
   assert.ok(bundle.length > app.length);
   assert.match(bundle, /"standard\/standard-region-geometry\.js":function/);
+});
+
+test("local alpha.3 cache marker publishes the rebuilt category-window bundle", () => {
+  assert.match(html, /app\.bundle\.js\?v=20260907-4/);
+  assert.match(bundle, /SKILL_CATEGORY_ALREADY_USED_IN_WINDOW/);
+  assert.match(bundle, /colorBonusRefill/);
 });
 
 test("local shift targets are selected on the board with keyboard support and natural directions", () => {

@@ -10,6 +10,10 @@ const publishableKey = configSource.match(/publishableKey:\s*"([^"]+)"/)?.[1];
 const publicUrl = "https://sakuratamaro.github.io/four-color-map-game/standard-online-v5/";
 const expectedPhase = process.argv.find((argument) => argument.startsWith("--expect="))?.slice("--expect=".length) || null;
 const zeroUuid = "00000000-0000-0000-0000-000000000000";
+const candidateAssetMarkers = Object.freeze({
+  app: "app.js?v=20260907-40",
+  intents: "standard-online-skill-intents.js?v=20260907-18",
+});
 
 assert.ok(supabaseUrl && publishableKey, "PUBLIC_SUPABASE_CONFIG_REQUIRED");
 assert.ok(expectedPhase === null || ["baseline", "db-ready", "candidate"].includes(expectedPhase), "INVALID_EXPECTED_PHASE");
@@ -79,6 +83,11 @@ const result = {
     hasWaitingOpponentNotice: page.text.includes('id="waitingOpponentNotice"')
       && app.text.includes("scheduleMatchmakingAvailability")
       && app.text.includes('activateAppTab("battle")'),
+    hasAlpha3SkillCategoryWindow: app.text.includes("skillCategoryWindow")
+      && app.text.includes("SKILL_CATEGORY_ALREADY_USED_IN_WINDOW")
+      && app.text.includes("colorBonusRefill"),
+    hasCandidateAssetGeneration: page.text.includes(candidateAssetMarkers.app)
+      && page.text.includes(candidateAssetMarkers.intents),
   },
   database: { snapshotV1, snapshotV2, matchmaking, matchmakingAvailability, pregameAbandon, activeRoom, setupLoadV3, initializeRoomV3 },
 };
@@ -86,7 +95,7 @@ const result = {
 const phaseExpectations = {
   baseline: { pregameAbandonUi: true, pregameAbandonDb: true, activeRoomUi: true, activeRoomDb: true, setupRevisionGuardDb: true, legalRecolorLabUi: true, matchmakingAvailabilityDb: false, waitingOpponentUi: false },
   "db-ready": { pregameAbandonUi: true, pregameAbandonDb: true, activeRoomUi: true, activeRoomDb: true, setupRevisionGuardDb: true, legalRecolorLabUi: true, matchmakingAvailabilityDb: true, waitingOpponentUi: false },
-  candidate: { pregameAbandonUi: true, pregameAbandonDb: true, activeRoomUi: true, activeRoomDb: true, setupRevisionGuardDb: true, legalRecolorLabUi: true, matchmakingAvailabilityDb: true, waitingOpponentUi: true },
+  candidate: { pregameAbandonUi: true, pregameAbandonDb: true, activeRoomUi: true, activeRoomDb: true, setupRevisionGuardDb: true, legalRecolorLabUi: true, matchmakingAvailabilityDb: true, waitingOpponentUi: true, alpha3SkillCategoryUi: true, candidateAssetGenerationUi: true },
 };
 
 if (expectedPhase) {
@@ -106,6 +115,10 @@ if (expectedPhase) {
   assert.equal(result.publicPage.hasActiveRoomRecovery, expected.activeRoomUi, "ACTIVE_ROOM_RECOVERY_UI_PHASE_MISMATCH");
   assert.equal(result.publicPage.hasLegalRecolorLab, expected.legalRecolorLabUi, "LEGAL_RECOLOR_LAB_UI_PHASE_MISMATCH");
   assert.equal(result.publicPage.hasWaitingOpponentNotice, expected.waitingOpponentUi, "WAITING_OPPONENT_UI_PHASE_MISMATCH");
+  if (expectedPhase === "candidate") {
+    assert.equal(result.publicPage.hasAlpha3SkillCategoryWindow, expected.alpha3SkillCategoryUi, "ALPHA3_SKILL_CATEGORY_UI_PHASE_MISMATCH");
+    assert.equal(result.publicPage.hasCandidateAssetGeneration, expected.candidateAssetGenerationUi, "CANDIDATE_ASSET_GENERATION_UI_PHASE_MISMATCH");
+  }
 }
 
 console.log(JSON.stringify(result));

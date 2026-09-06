@@ -26,6 +26,7 @@ function prepareColor(state, id, micro) {
   const y = Math.floor(micro / state.microWidth);
   const sourceMacro = Math.floor(y / scale) * state.playableBounds.macroWidth + Math.floor(x / scale);
   state.active = "B";
+  state.skillCategoryWindow = { actor: "B", categories: [] };
   state.phase = "COLOR";
   state.pending = id;
   state.regions[id] = { id, micro: [micro], sourceMacros: [sourceMacro], controllers: ["A"], color: null, isPending: true };
@@ -70,6 +71,7 @@ test("a permanent palette change on the corrupted slot cancels later restoration
   const corrupted = use(state, rng, "yellow").state;
   const effect = corrupted.privateEffects.B.paletteDebuffs[0];
   corrupted.active = "B";
+  corrupted.skillCategoryWindow = { actor: "B", categories: [] };
   corrupted.phase = "COLOR";
   corrupted.hands.B.colorPaletteChange = 1;
   corrupted.pending = "R1";

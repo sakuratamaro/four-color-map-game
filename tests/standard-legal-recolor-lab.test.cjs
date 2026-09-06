@@ -89,6 +89,13 @@ test("one lab recolor resolves publicly, passes WORK without advancing turn, and
     action: { type: "COLOR_REGION", payload: { color: paint } }, labMode: true,
   });
   assert.equal(colored.ok, true);
+  const categoryUsed = JSON.parse(JSON.stringify(colored.state));
+  categoryUsed.skillCategoryWindow.categories = ["color"];
+  const blocked = engine.apply({
+    state: categoryUsed, rngSnapshot: colored.rngSnapshot, actor: "B", expectedVersion: 2,
+    action: { type: "USE_SKILL", payload: { skill: "legalRecolor", regionId: "R1" } }, labMode: true,
+  });
+  assert.deepEqual({ ok: blocked.ok, code: blocked.code }, { ok: false, code: "SKILL_CATEGORY_ALREADY_USED_IN_WINDOW" });
   const turnBefore = colored.state.turn;
   const recolored = engine.apply({
     state: colored.state, rngSnapshot: colored.rngSnapshot, actor: "B", expectedVersion: 2,

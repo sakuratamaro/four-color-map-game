@@ -11,6 +11,8 @@ test("intent registry covers exactly the 19 canonical Standard cards", () => {
   assert.equal(Object.keys(intents.TARGET_KIND).length, 19);
   assert.equal(Object.hasOwn(intents.TARGET_KIND, "legalRecolor"), false);
   assert.deepEqual(intents.LAB_TARGET_KIND, { legalRecolor: "existing-region" });
+  assert.deepEqual(intents.EXPERIMENTAL_TARGET_KIND, { colorBonusRefill: "none" });
+  assert.deepEqual(intents.buildSkillPayload("colorBonusRefill"), { skill: "colorBonusRefill" });
 });
 
 test("six no-target cards produce finite immediate payloads", () => {

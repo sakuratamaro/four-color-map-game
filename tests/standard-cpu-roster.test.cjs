@@ -95,5 +95,6 @@ test("character CPU rescue behavior is partitioned by the match engine version",
   assert.equal(choose(current).type, "SURRENDER", "alpha.2 CPU voluntarily surrenders only after no rescue remains");
   const legacy = JSON.parse(JSON.stringify(current));
   legacy.engineVersion = match.LEGACY_ENGINE_VERSION;
+  delete legacy.skillCategoryWindow;
   assert.equal(choose(legacy).type, "DECLARE_NO_COLOR", "alpha.1 replay retains the old deterministic decision");
 });

@@ -31,6 +31,28 @@ test("CPU observation is a frozen defensive public plus own-private copy", () =>
   assert.equal(Object.hasOwn(seen.publicState, "hands"), false);
 });
 
+test("hard CPU charge policy boosts only equipped shape transforms and grants two equipped refills", () => {
+  const current = state(2);
+  current.hands.B = { areaCornerBloom: 1, areaHalfShift: 1, areaTripleShift: 1, areaResize: 1, colorBonusRefill: 1 };
+  cpu.applyHardCpuSkillCharges(current, "B");
+  assert.deepEqual(current.hands.B, {
+    areaCornerBloom: 100,
+    areaHalfShift: 100,
+    areaTripleShift: 100,
+    areaResize: 1,
+    colorBonusRefill: 2,
+  });
+});
+
+test("CPU action enumeration cannot bypass an already-used category", () => {
+  const current = state(3);
+  current.phase = "WORK";
+  current.hands.A = { disruptChoiceOne: 1, areaHalfShift: 1 };
+  current.skillCategoryWindow.categories = ["disrupt"];
+  const actions = cpu.enumerateCpuActions(observation(current, "hard"));
+  assert.equal(actions.some((action) => action.type === "USE_SKILL" && action.payload.skill === "disruptChoiceOne"), false);
+});
+
 test("all strengths choose an accepted opening intent without authoritative access", () => {
   for (const [index, difficulty] of cpu.LEVELS.entries()) {
     const current = state(10 + index);

@@ -21,7 +21,15 @@ function resolved(currentState, actor, skill, mutate, details = {}) {
   const state = clone(currentState);
   mutate(state);
   consume(state, actor, skill);
-  return Object.freeze({ ok: true, code: "OK", state, ...details });
+  return Object.freeze({ ok: true, code: "OK", state, cardConsumed: true, ...details });
+}
+
+function resolvedWithoutCard(currentState, actor, mutate, details = {}) {
+  const state = clone(currentState);
+  mutate(state);
+  state.skillsUsed[actor] = (state.skillsUsed[actor] || 0) + 1;
+  state.version += 1;
+  return Object.freeze({ ok: true, code: "OK", state, cardConsumed: false, ...details });
 }
 
 function applyColorPrism({ state, actor }) {
@@ -30,6 +38,16 @@ function applyColorPrism({ state, actor }) {
     next.privateEffects[actor].prism = true;
     next.publicLog.push(`T${next.turn} Player ${actor} enabled all four colors for this coloring.`);
   });
+}
+
+function applyColorBonusRefill({ state, actor }) {
+  const current = state.bonusUsesRemaining[actor];
+  if (current >= 4) return Object.freeze({ ok: false, code: "BONUS_USES_ALREADY_FULL", state });
+  const addedUses = Math.min(2, 4 - current);
+  return resolved(state, actor, "colorBonusRefill", (next) => {
+    next.bonusUsesRemaining[actor] = current + addedUses;
+    next.publicLog.push(`T${next.turn} Player ${actor} refilled their private bonus color uses.`);
+  }, { addedUses });
 }
 
 function usedBoardColors(state) {
@@ -729,6 +747,11 @@ function applyDisruptPaletteChoice({ state, actor, payload, random }) {
   const target = other(actor);
   const palette = [state.basicPalettes[target][0], state.basicPalettes[target][1], state.bonusColors[target]];
   const differing = palette.map((current, slot) => current !== color ? slot : -1).filter((slot) => slot >= 0);
+  if (!differing.length && state.skillCategoryWindow) {
+    return resolvedWithoutCard(state, actor, (next) => {
+      next.publicLog.push(`T${next.turn} Player ${actor}'s chosen palette injection resolved without changing a private palette.`);
+    }, { color, target, noOp: true });
+  }
   const slots = differing.length ? differing : [0, 1, 2];
   const slot = slots[Math.floor(slotDraw * slots.length)];
   return resolved(state, actor, "disruptPaletteChoice", (next) => {
@@ -820,6 +843,7 @@ module.exports = {
   applyAreaMicroBloom,
   applyAreaResize,
   applyAreaTripleShift,
+  applyColorBonusRefill,
   applyColorChoiceBorrow,
   applyColorPaletteChange,
   applyColorRandomBorrow,

@@ -24,6 +24,7 @@ const engine = load("standard/standard-engine.js");
 const match = load("standard/standard-match.js");
 const profileModel = load("standard/standard-profile.js");
 const cosmetics = load("standard/standard-cosmetics.js");
+const cpu = load("standard/standard-cpu.js");
 const cpuRoster = load("standard/standard-cpu-roster.js");
 const registry = load("standard/standard-skill-registry.js").STANDARD_SKILLS;
 const categories = ["color", "area", "disrupt"];
@@ -113,9 +114,10 @@ function projections(state,debugMode=false,labMode=false){
   if(labMode)publicState.labRuleSetId=LEGAL_RECOLOR_LAB_RULE_SET_ID;
   return {publicState,privateA:match.projectStandardPrivateState(state,"A"),privateB:match.projectStandardPrivateState(state,"B")};
 }
-function create({matchId,loadouts,profiles=null,seed,firstSeat=null,debugMode=false,labMode=false}){
+function create({matchId,loadouts,profiles=null,seed,firstSeat=null,debugMode=false,labMode=false,cpuSeat=null,engineVersion=match.ENGINE_VERSION}){
   if(typeof debugMode!=="boolean")throw new Error("INVALID_DEBUG_MODE");
   if(typeof labMode!=="boolean"||debugMode&&labMode)throw new Error("INVALID_LAB_MODE");
+  if(cpuSeat!==null&&!['A','B'].includes(cpuSeat))throw new Error("INVALID_CPU_SEAT");
   validateLoadouts(loadouts);
   if(profiles!==null&&!debugMode){
     for(const seat of ["A","B"]){
@@ -124,8 +126,9 @@ function create({matchId,loadouts,profiles=null,seed,firstSeat=null,debugMode=fa
   }
   if(!Number.isSafeInteger(seed)||seed<0||seed>0xffffffff)throw new Error("INVALID_SEED");
   const streams=engine.createRngDomains(seed,match.REQUIRED_RNG_STREAMS);
-  let state=match.createStandardMatch({matchId,loadouts,firstSeat},streams);
+  let state=match.createStandardMatch({matchId,loadouts,firstSeat,engineVersion},streams);
   state=clone(state);
+  if(cpuSeat!==null)cpu.applyHardCpuSkillCharges(state,cpuSeat);
   state.ruleSetId=labMode?LEGAL_RECOLOR_LAB_RULE_SET_ID:STANDARD_RULE_SET_ID;
   if(labMode){
     state.hands.A.legalRecolor=1;
@@ -186,7 +189,7 @@ function applyCosmetic({profile,cosmeticId}){
   validateProfile(result.profile);
   return {profile:clone(result.profile),quote:clone(result.quote)};
 }
-function applyProfiles({profiles,beforeState,nextState,actor,action,finishedAt,debugMode=false,labMode=false}){
+function applyProfiles({profiles,beforeState,nextState,actor,action,finishedAt,debugMode=false,labMode=false,cardConsumed=true}){
   if(typeof debugMode!=="boolean"||typeof labMode!=="boolean"||debugMode&&labMode)throw new Error("INVALID_EXPERIMENT_MODE");
   assertRuleSetMode(beforeState,labMode);
   assertRuleSetMode(nextState,labMode);
@@ -200,12 +203,16 @@ function applyProfiles({profiles,beforeState,nextState,actor,action,finishedAt,d
       const difference=(beforeState.hands[actor][id]||0)-(nextState.hands[actor][id]||0);
       if(difference!==0)consumed.push({id,difference});
     }
-    if(consumed.length!==1||consumed[0].difference!==1)throw new Error("CARD_NOT_CONSUMED_ONCE");
-    const id=consumed[0].id;
-    if(!Number.isSafeInteger(next[actor].inventory[id])||next[actor].inventory[id]<1)throw new Error("INVENTORY_EMPTY");
-    next[actor].inventory[id]-=1;
-    validateProfile(next[actor]);
-    changed[actor]=true;
+    if(cardConsumed===false){
+      if(consumed.length!==0)throw new Error("CARD_CHANGED_ON_ACCEPTED_NO_OP");
+    }else{
+      if(consumed.length!==1||consumed[0].difference!==1)throw new Error("CARD_NOT_CONSUMED_ONCE");
+      const id=consumed[0].id;
+      if(!Number.isSafeInteger(next[actor].inventory[id])||next[actor].inventory[id]<1)throw new Error("INVENTORY_EMPTY");
+      next[actor].inventory[id]-=1;
+      validateProfile(next[actor]);
+      changed[actor]=true;
+    }
   }
   if(nextState.status==="FINISHED"){
     if(typeof finishedAt!=="string"||!Number.isFinite(Date.parse(finishedAt)))throw new Error("INVALID_FINISHED_AT");
@@ -222,7 +229,7 @@ function applyProfiles({profiles,beforeState,nextState,actor,action,finishedAt,d
   }
   return {profiles:next,changed};
 }
-function applyCpuProfiles({profiles,beforeState,nextState,actor,action,finishedAt,characterId}){
+function applyCpuProfiles({profiles,beforeState,nextState,actor,action,finishedAt,characterId,cardConsumed=true}){
   const next={A:clone(profiles?.A),B:clone(profiles?.B)};
   for(const seat of ["A","B"])validateProfile(next[seat]);
   if(!cpuRoster.CPU_CHARACTERS[characterId])throw new Error("UNKNOWN_CPU_CHARACTER");
@@ -233,12 +240,18 @@ function applyCpuProfiles({profiles,beforeState,nextState,actor,action,finishedA
       const difference=(beforeState.hands[actor][id]||0)-(nextState.hands[actor][id]||0);
       if(difference!==0)consumed.push({id,difference});
     }
-    if(consumed.length!==1||consumed[0].difference!==1)throw new Error("CARD_NOT_CONSUMED_ONCE");
-    const id=consumed[0].id;
-    if(!Number.isSafeInteger(next[actor].inventory[id])||next[actor].inventory[id]<1)throw new Error("INVENTORY_EMPTY");
-    next[actor].inventory[id]-=1;
-    validateProfile(next[actor]);
-    changed[actor]=true;
+    if(cardConsumed===false){
+      if(consumed.length!==0)throw new Error("CARD_CHANGED_ON_ACCEPTED_NO_OP");
+    }else{
+      if(consumed.length!==1||consumed[0].difference!==1)throw new Error("CARD_NOT_CONSUMED_ONCE");
+      const id=consumed[0].id;
+      if(actor!=="B"){
+        if(!Number.isSafeInteger(next[actor].inventory[id])||next[actor].inventory[id]<1)throw new Error("INVENTORY_EMPTY");
+        next[actor].inventory[id]-=1;
+        validateProfile(next[actor]);
+        changed[actor]=true;
+      }
+    }
   }
   if(nextState.status==="FINISHED"){
     if(typeof finishedAt!=="string"||!Number.isFinite(Date.parse(finishedAt)))throw new Error("INVALID_FINISHED_AT");
@@ -263,7 +276,7 @@ function apply({state,rngSnapshot,actor,action,expectedVersion,debugMode=false,l
   const applied=match.applyStandardAction({state,actor,action,expectedVersion,rngStreams:streams});
   if(!applied.ok)return {ok:false,code:applied.code};
   let next=applied.state;
-  if(debugMode&&action.type==="USE_SKILL"){
+  if(debugMode&&action.type==="USE_SKILL"&&applied.cardConsumed!==false){
     const skill=action.payload?.skill;
     if(typeof skill!=="string")throw new Error("INVALID_DEBUG_SKILL");
     next=clone(next);
@@ -273,6 +286,8 @@ function apply({state,rngSnapshot,actor,action,expectedVersion,debugMode=false,l
   return {
     ok:true,
     code:applied.code,
+    cardConsumed:applied.cardConsumed!==false,
+    noOp:applied.noOp===true,
     contactColorCount:action.type==="CREATE_REGION"?applied.contactColorCount:null,
     state:next,
     rngSnapshot:engine.snapshotRngDomains(streams,match.REQUIRED_RNG_STREAMS),

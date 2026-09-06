@@ -10,7 +10,7 @@ const start = require("../standard/standard-match-start.js");
 const transaction = require("../standard/standard-match-transaction.js");
 
 function loadout() {
-  return { color: ["colorPrism"], area: ["areaHalfShift"], disrupt: ["disruptChoiceOne"], experimental: ["legalRecolor"] };
+  return { color: ["colorPrism", "colorBonusRefill"], area: ["areaHalfShift"], disrupt: ["disruptChoiceOne"], experimental: ["legalRecolor"] };
 }
 
 function sha(value) {

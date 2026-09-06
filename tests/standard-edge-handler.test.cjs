@@ -25,6 +25,12 @@ test("only the generated authoritative bundle creates and applies state", () => 
   assert.doesNotMatch(source, /body\.(?:state|publicState|privateState)/);
 });
 
+test("new online matches use an internal compatibility-switchable engine version", () => {
+  assert.match(source, /const NEW_STANDARD_MATCH_ENGINE_VERSION = "5\.0\.0-alpha\.3"/);
+  assert.match(source, /FourColorStandardServerEngine\.create\(\{[\s\S]*engineVersion: NEW_STANDARD_MATCH_ENGINE_VERSION/);
+  assert.doesNotMatch(source, /engineVersion:\s*body\./);
+});
+
 test("profile sync ignores caller progression and preserves the server-authoritative state", () => {
   assert.match(source, /operation === "profile"/);
   const load = source.indexOf('service.rpc("fcg_standard_server_load_profile"');
@@ -214,7 +220,7 @@ test("one Standard commit carries match, projections, profile effects, and settl
     "p_finished",
     "p_winner_seat",
   ]) assert.match(source, new RegExp(`${field}:`));
-  assert.match(source, /safeResult = \{ code: applied\.code, contactColorCount: applied\.contactColorCount, terminalReason: applied\.terminalReason \}/);
+  assert.match(source, /safeResult = \{ code: applied\.code, contactColorCount: applied\.contactColorCount, terminalReason: applied\.terminalReason, cardConsumed: applied\.cardConsumed, noOp: applied\.noOp \}/);
 });
 
 test("handler keeps credentials in managed environment and diagnostics finite", () => {

@@ -21,6 +21,8 @@ function microForMacro(macro) {
 function fixture(hands = { areaCornerBloom: 1 }) {
   const rng = streams();
   const state = match.createStandardMatch({ matchId: "corner-bloom", firstSeat: "A", hands: { A: hands, B: {} } }, rng);
+  state.engineVersion = match.PREVIOUS_ENGINE_VERSION;
+  delete state.skillCategoryWindow;
   state.phase = "WORK";
   state.requiredSize = 1;
   state.rolledSize = 1;

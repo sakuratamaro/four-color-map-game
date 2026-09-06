@@ -9,6 +9,7 @@ const { STANDARD_SKILLS } = require("../standard/standard-skill-registry.js");
 const root = path.join(__dirname, "..");
 const html = fs.readFileSync(path.join(root, "standard-online-v5", "index.html"), "utf8");
 const app = fs.readFileSync(path.join(root, "standard-online-v5", "app.js"), "utf8");
+const skillIntents = fs.readFileSync(path.join(root, "standard-online-v5", "standard-online-skill-intents.js"), "utf8");
 const clientSource = fs.readFileSync(path.join(root, "standard-online-v5", "standard-online-client.js"), "utf8");
 const css = fs.readFileSync(path.join(root, "standard-online-v5", "style.css"), "utf8");
 const progressionCss = fs.readFileSync(path.join(root, "standard-online-v5", "progression.css"), "utf8");
@@ -48,9 +49,18 @@ test("Standard online setup UI exposes the complete reconnect path", () => {
   assert.match(html, /type="module" src="app\.js(?:\?v=[0-9-]+)?"/);
 });
 
+test("online alpha.3 UI understands category windows and the experimental bonus-refill loan", () => {
+  assert.match(app, /colorBonusRefill: Object\.freeze\(\{ name: "おまけ色補充"/);
+  assert.match(app, /state\.skillCategoryWindow\?\.categories/);
+  assert.match(app, /SKILL_CATEGORY_ALREADY_USED_IN_WINDOW/);
+  assert.match(app, /カードは減りませんが、この手番の妨害カード使用枠は使いました/);
+  assert.match(app, /targetDraft = null/);
+  assert.match(skillIntents, /EXPERIMENTAL_TARGET_KIND = Object\.freeze\(\{ colorBonusRefill: "none" \}\)/);
+});
+
 test("CPU commentary is public-event-only, bounded, non-blocking, and terminal-persistent", () => {
   assert.match(html, /style\.css\?v=20260906-38/);
-  assert.match(html, /app\.js\?v=20260906-39/);
+  assert.match(html, /app\.js\?v=20260907-40/);
   assert.match(app, /cpuCommentary\?\.VERSION !== "standard-cpu-commentary-v2"/);
   assert.ok(html.indexOf("cpu-commentary.js") < html.indexOf('type="module" src="app.js'));
   assert.match(html, /id="cpuCommentaryStage"[^>]+aria-hidden="true"/);

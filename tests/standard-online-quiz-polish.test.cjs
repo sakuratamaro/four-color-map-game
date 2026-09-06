@@ -175,7 +175,7 @@ test("only overflowing quiz math receives a persistent horizontal position bar",
   assert.match(css, /\.quiz-overflow-scrollbar\[hidden\]\{display:none\}/);
   assert.match(html, /style\.css\?v=20260906-38/);
   assert.match(html, /standard-online-client\.js\?v=20260906-19/);
-  assert.match(html, /app\.js\?v=20260906-39/);
+  assert.match(html, /app\.js\?v=20260907-40/);
 });
 
 test("per-question feedback is server-acknowledged, retryable, brief in motion, and followed by an optional review", () => {

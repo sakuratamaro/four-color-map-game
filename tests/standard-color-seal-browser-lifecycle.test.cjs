@@ -327,6 +327,7 @@ async function installBorrowColorState(page, skillId) {
   const rootValue = await persistedRoot(page);
   const state = rootValue.activeMatch.state;
   state.active = "B";
+  state.skillCategoryWindow = { actor: "B", categories: [] };
   state.phase = "COLOR";
   state.turn += 1;
   state.regions.R2 = {

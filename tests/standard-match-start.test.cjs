@@ -15,7 +15,7 @@ function rngSnapshot(seed = 7101) {
 
 function alphaLoadout() {
   return {
-    color: ["colorPrism"],
+    color: ["colorPrism", "colorBonusRefill"],
     area: ["areaHalfShift"],
     disrupt: ["disruptChoiceOne"],
     experimental: ["legalRecolor"],
@@ -60,6 +60,7 @@ test("quote is RNG-neutral and derives profile identity, reservations, loans, an
   assert.equal(quote.participants.A.displayNameSnapshot, "Alice");
   assert.deepEqual(quote.reservations, { playerA: { colorPrism: 1, areaHalfShift: 1, disruptChoiceOne: 1 } });
   assert.equal(quote.sources.A.legalRecolor, "EXPERIMENTAL_LOAN");
+  assert.equal(quote.sources.A.colorBonusRefill, "EXPERIMENTAL_LOAN");
   assert.equal(quote.sources.B.colorPrism, "CPU_VIRTUAL");
   assert.equal(quote.sources.B.legalRecolor, "EXPERIMENTAL_LOAN");
 });
@@ -73,6 +74,7 @@ test("start creates match, hand, reservations, receipt, and RNG snapshot in one 
   assert.equal(result.root.activeMatch.ruleSetId, start.RULE_SET_IDS.ALPHA_SLICE);
   assert.equal(result.root.activeMatch.participants.A.displayNameSnapshot, "Alice");
   assert.equal(result.root.activeMatch.state.hands.A.legalRecolor, 1);
+  assert.equal(result.root.activeMatch.state.hands.A.colorBonusRefill, 1);
   assert.equal(result.root.activeMatch.state.hands.B.colorPrism, 1);
   assert.deepEqual(result.root.reservations, { playerA: { colorPrism: 1, areaHalfShift: 1, disruptChoiceOne: 1 } });
   assert.equal(result.root.receipts.matchStart.byMatchId["match-alpha-1"].operationId, "start-op-1");
@@ -81,6 +83,21 @@ test("start creates match, hand, reservations, receipt, and RNG snapshot in one 
   assert.deepEqual(save.decodeStandardSave(writes[0][1]), result.root);
   assert.notDeepEqual(result.root.rngSnapshot, root.rngSnapshot);
   assert.equal(root.activeMatch, null);
+});
+
+test("hard CPU receives large board-transform charges and two bonus-refill charges at match start", () => {
+  const root = fixture();
+  const result = start.startStandardMatch(args(root, {
+    participants: {
+      A: { type: "PROFILE", profileId: "playerA" },
+      B: { type: "CPU", difficulty: "hard", policyVersion: "standard-cpu-v1" },
+    },
+  }));
+  assert.equal(result.status, "STARTED");
+  assert.equal(result.root.activeMatch.state.hands.B.areaHalfShift, 100);
+  assert.equal(result.root.activeMatch.state.hands.B.colorBonusRefill, 2);
+  assert.equal(result.root.activeMatch.state.hands.A.areaHalfShift, 1);
+  assert.equal(result.root.activeMatch.state.hands.A.colorBonusRefill, 1);
 });
 
 test("PvP start fixes two distinct profile snapshots and reserves each inventory-backed hand", () => {

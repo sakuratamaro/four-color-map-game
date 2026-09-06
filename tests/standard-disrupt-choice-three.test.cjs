@@ -22,6 +22,7 @@ function prepareColor(state, id, micro) {
   const y = Math.floor(micro / state.microWidth);
   const sourceMacro = Math.floor(y / scale) * state.playableBounds.macroWidth + Math.floor(x / scale);
   state.active = "B";
+  state.skillCategoryWindow = { actor: "B", categories: [] };
   state.phase = "COLOR";
   state.pending = id;
   state.regions[id] = { id, micro: [micro], sourceMacros: [sourceMacro], controllers: ["A"], color: null, isPending: true };

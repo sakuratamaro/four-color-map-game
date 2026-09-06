@@ -28,8 +28,9 @@
     disruptForcedPalette: "color",
   });
   const LAB_TARGET_KIND = Object.freeze({ legalRecolor: "existing-region" });
+  const EXPERIMENTAL_TARGET_KIND = Object.freeze({ colorBonusRefill: "none" });
 
-  function targetKind(skill) { return TARGET_KIND[skill] || LAB_TARGET_KIND[skill] || null; }
+  function targetKind(skill) { return TARGET_KIND[skill] || LAB_TARGET_KIND[skill] || EXPERIMENTAL_TARGET_KIND[skill] || null; }
 
   function invalid() { throw Object.assign(new Error("INVALID_SKILL_TARGET"), { code: "INVALID_SKILL_TARGET" }); }
   function color(value) { if (!COLORS.includes(value)) invalid(); return value; }
@@ -72,5 +73,5 @@
     invalid();
   }
 
-  return Object.freeze({ COLORS, LAB_TARGET_KIND, TARGET_KIND, availableColorChoices, buildSkillPayload, isImmediate: (skill) => targetKind(skill) === "none", targetKind });
+  return Object.freeze({ COLORS, EXPERIMENTAL_TARGET_KIND, LAB_TARGET_KIND, TARGET_KIND, availableColorChoices, buildSkillPayload, isImmediate: (skill) => targetKind(skill) === "none", targetKind });
 });

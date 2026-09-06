@@ -2,7 +2,7 @@
 
 const { COLORS, StandardRuleError, applyLegalRecolor } = require("./standard-engine.js");
 const { STANDARD_SKILLS } = require("./standard-skill-registry.js");
-const { applyAreaCornerBloom, applyAreaDiePlus, applyAreaHalfShift, applyAreaMicroBloom, applyAreaResize, applyAreaTripleShift, applyColorChoiceBorrow, applyColorPaletteChange, applyColorRandomBorrow, applyColorPrism, applyColorRegionSplit, applyDisruptChoiceOne, applyDisruptChoiceThree, applyDisruptChoiceTwo, applyDisruptForcedPalette, applyDisruptPaletteChoice, applyDisruptPaletteRandom, applyDisruptRandomOne, applyDisruptRandomTwo } = require("./standard-skill-handlers.js");
+const { applyAreaCornerBloom, applyAreaDiePlus, applyAreaHalfShift, applyAreaMicroBloom, applyAreaResize, applyAreaTripleShift, applyColorBonusRefill, applyColorChoiceBorrow, applyColorPaletteChange, applyColorRandomBorrow, applyColorPrism, applyColorRegionSplit, applyDisruptChoiceOne, applyDisruptChoiceThree, applyDisruptChoiceTwo, applyDisruptForcedPalette, applyDisruptPaletteChoice, applyDisruptPaletteRandom, applyDisruptRandomOne, applyDisruptRandomTwo } = require("./standard-skill-handlers.js");
 
 const SKILL_RESULT = Object.freeze({ REJECTED: "REJECTED", CANCELLED: "CANCELLED", RESOLVED: "RESOLVED" });
 
@@ -44,6 +44,7 @@ const HANDLERS = Object.freeze({
   colorPaletteChange: applyColorPaletteChange,
   colorRegionSplit: applyColorRegionSplit,
   colorPrism: applyColorPrism,
+  colorBonusRefill: applyColorBonusRefill,
   areaMicroBloom({ state, actor, payload, rngStreams, draws }) {
     return applyAreaMicroBloom({ state, actor, payload, random: () => nextRandom(rngStreams, "skill-effect", draws) });
   },
@@ -77,8 +78,11 @@ const HANDLERS = Object.freeze({
   },
 });
 
-function dispatchStandardSkillAction({ state, actor, action, expectedVersion, rngStreams = {}, validateState, projectPublic, projectPrivate, hasLegalRegionOfSize, bestLegalSize }) {
+function dispatchStandardSkillAction({ state, actor, action, expectedVersion, rngStreams = {}, validateState, projectPublic, projectPrivate, hasLegalRegionOfSize, bestLegalSize, enforceUsageCategory }) {
   validateState(state);
+  const categoryLimitEnabled = enforceUsageCategory === undefined
+    ? Boolean(state.skillCategoryWindow)
+    : enforceUsageCategory;
   if (!action || action.type !== "USE_SKILL" || !action.payload || typeof action.payload.skill !== "string") return rejected("INVALID_SKILL_ACTION", state);
   if (actor !== "A" && actor !== "B") return rejected("NOT_A_PLAYER", state);
   if (expectedVersion !== state.version) return rejected("VERSION_CONFLICT", state);
@@ -94,6 +98,9 @@ function dispatchStandardSkillAction({ state, actor, action, expectedVersion, rn
   if ((state.hands?.[actor]?.[definition.id] || 0) <= 0) return rejected("SKILL_UNAVAILABLE", state);
   if (definition.experimental && state.interferenceLock) return rejected("INTERFERENCE_CHAINED", state);
   if (!validateTargetSchema(definition, action.payload)) return rejected("INVALID_TARGET_SCHEMA", state);
+  if (categoryLimitEnabled && state.skillCategoryWindow.categories.includes(definition.usageCategory)) {
+    return rejected("SKILL_CATEGORY_ALREADY_USED_IN_WINDOW", state);
+  }
 
   const draws = { count: 0 };
   try {
@@ -104,15 +111,23 @@ function dispatchStandardSkillAction({ state, actor, action, expectedVersion, rn
     }
     if (applied.state.version !== state.version + 1) throw new Error("VERSION_INCREMENT_INVARIANT");
     if (typeof definition.expectedRngDraws === "number" && draws.count !== definition.expectedRngDraws) throw new Error("RNG_DRAW_COUNT_INVARIANT");
-    validateState(applied.state);
+    let resolvedState = applied.state;
+    if (categoryLimitEnabled) {
+      resolvedState = JSON.parse(JSON.stringify(applied.state));
+      resolvedState.skillCategoryWindow = resolvedState.active === actor
+        ? { actor, categories: [...new Set([...state.skillCategoryWindow.categories, definition.usageCategory])] }
+        : { actor: resolvedState.active, categories: [] };
+    }
+    validateState(resolvedState);
     return Object.freeze({
       ...applied,
+      state: resolvedState,
       ok: true,
       status: SKILL_RESULT.RESOLVED,
       definition,
       rngDraws: draws.count,
-      publicState: projectPublic(applied.state),
-      privateState: projectPrivate(applied.state, actor),
+      publicState: projectPublic(resolvedState),
+      privateState: projectPrivate(resolvedState, actor),
     });
   } catch (error) {
     if (error instanceof StandardRuleError) return rejected(error.code, state);

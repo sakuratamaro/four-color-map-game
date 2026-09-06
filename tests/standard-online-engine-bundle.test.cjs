@@ -54,7 +54,7 @@ test("server bundle contains only authoritative Standard rule and profile module
 
 test("bundle exposes a deterministic server-only Standard engine", () => {
   const api = loadApi();
-  assert.equal(api.ENGINE_VERSION, "5.0.0-alpha.2");
+  assert.equal(api.ENGINE_VERSION, "5.0.0-alpha.3");
   assert.equal(typeof api.create, "function");
   assert.equal(typeof api.apply, "function");
   assert.equal(typeof api.applyProfiles, "function");
@@ -76,6 +76,32 @@ test("bundle exposes a deterministic server-only Standard engine", () => {
   assert.equal(first.state.version, 0);
   assert.equal(first.state.active, "A");
   assert.equal(Object.keys(first.rngSnapshot).length, api.REQUIRED_RNG_STREAMS.length);
+});
+
+test("server engine can create allowlisted compatibility states without weakening alpha.3 loads", () => {
+  const api = loadApi();
+  const legacy = api.create({ matchId: "online-alpha2-create", loadouts, seed: 0x12345679, firstSeat: "A", engineVersion: "5.0.0-alpha.2" });
+  assert.equal(legacy.state.engineVersion, "5.0.0-alpha.2");
+  assert.equal(Object.hasOwn(legacy.state, "skillCategoryWindow"), false);
+  legacy.state.phase = "COLOR";
+  legacy.state.pending = "R1";
+  legacy.state.regions = {
+    R1: { id: "R1", micro: [49], sourceMacros: [], controllers: ["B"], color: null, isPending: true },
+    R2: { id: "R2", micro: [48], sourceMacros: [], controllers: ["A"], color: "red", isPending: false },
+  };
+  const prism = api.apply({ state: legacy.state, rngSnapshot: legacy.rngSnapshot, actor: "A", action: { id: "alpha2-color-1", type: "USE_SKILL", payload: { skill: "colorPrism" } }, expectedVersion: 0 });
+  assert.equal(prism.ok, true);
+  const borrowed = api.apply({ state: prism.state, rngSnapshot: prism.rngSnapshot, actor: "A", action: { id: "alpha2-color-2", type: "USE_SKILL", payload: { skill: "colorChoiceBorrow", color: "red" } }, expectedVersion: 1 });
+  assert.equal(borrowed.ok, true);
+  assert.equal(Object.hasOwn(borrowed.state, "skillCategoryWindow"), false);
+  assert.throws(
+    () => api.create({ matchId: "online-bad-version", loadouts, seed: 0x12345679, firstSeat: "A", engineVersion: "5.0.0-alpha.999" }),
+    /INVALID_ENGINE_VERSION/,
+  );
+  const current = api.create({ matchId: "online-alpha3-load", loadouts, seed: 0x12345680, firstSeat: "A" });
+  assert.equal(current.state.engineVersion, "5.0.0-alpha.3");
+  assert.equal(JSON.stringify(current.state.skillCategoryWindow), JSON.stringify({ actor: "A", categories: [] }));
+  assert.equal(api.project(current.state).publicState.engineVersion, "5.0.0-alpha.3");
 });
 
 test("server bundle exposes ten safe CPU identities and deterministic legal decisions", () => {
@@ -179,6 +205,42 @@ test("the bundle validates, applies, snapshots, and projects one authoritative a
   assert.equal(Object.hasOwn(applied, "candidates"), false);
 });
 
+test("alpha.3 accepted palette miss advances authority but online progression consumes no card", () => {
+  const api = loadApi();
+  const missLoadout = JSON.parse(JSON.stringify(loadouts));
+  missLoadout.A.disrupt = ["disruptPaletteChoice", "disruptChoiceOne"];
+  const missProfiles = Object.fromEntries(["A", "B"].map((seat) => [seat, save.createProfile({
+    name: `Player ${seat}`,
+    inventory: Object.fromEntries(Object.values(missLoadout[seat]).flat().map((id) => [id, 2])),
+  })]));
+  const created = api.create({ matchId: "online-accepted-miss", loadouts: missLoadout, profiles: missProfiles, seed: 100, firstSeat: "A" });
+  const state = created.state;
+  state.phase = "WORK";
+  state.basicPalettes.B = ["red", "red"];
+  state.bonusColors.B = "red";
+  const applied = api.apply({
+    state,
+    rngSnapshot: created.rngSnapshot,
+    actor: "A",
+    expectedVersion: 0,
+    action: { type: "USE_SKILL", payload: { skill: "disruptPaletteChoice", color: "red" } },
+  });
+  assert.deepEqual([applied.ok, applied.noOp, applied.cardConsumed, applied.state.version], [true, true, false, 1]);
+  assert.equal(applied.state.hands.A.disruptPaletteChoice, 1);
+  assert.deepEqual(JSON.parse(JSON.stringify(applied.state.skillCategoryWindow)), { actor: "A", categories: ["disrupt"] });
+  const progression = api.applyProfiles({
+    profiles: missProfiles,
+    beforeState: state,
+    nextState: applied.state,
+    actor: "A",
+    action: { type: "USE_SKILL", payload: { skill: "disruptPaletteChoice", color: "red" } },
+    finishedAt: "2026-09-07T00:00:00.000Z",
+    cardConsumed: applied.cardConsumed,
+  });
+  assert.deepEqual(JSON.parse(JSON.stringify(progression.changed)), { A: false, B: false });
+  assert.deepEqual(JSON.parse(JSON.stringify(progression.profiles.A)), missProfiles.A);
+});
+
 test("generated server bundle keeps a blocked response active until explicit surrender", () => {
   const api = loadApi();
   const created = api.create({ matchId: "online-no-color", loadouts, seed: 101, firstSeat: "A" });
@@ -229,6 +291,7 @@ test("generated server bundle keeps a blocked response active until explicit sur
 
   const legacyState = JSON.parse(JSON.stringify(state));
   legacyState.engineVersion = "5.0.0-alpha.1";
+  delete legacyState.skillCategoryWindow;
   const legacy = api.apply({
     state: legacyState,
     rngSnapshot: created.rngSnapshot,

@@ -51,7 +51,8 @@ const SKILLS = [
   ["disruptChoiceThree", "長封", "disrupt"], ["disruptForcedPalette", "強制持ち替え", "disrupt"],
 ];
 const EXPERIMENTAL_SKILLS = Object.freeze({
-  legalRecolor: Object.freeze({ name: "塗り直し・乱", category: "experimental" }),
+  colorBonusRefill: Object.freeze({ name: "おまけ色補充", category: "color", usageCategory: "color" }),
+  legalRecolor: Object.freeze({ name: "塗り直し・乱", category: "experimental", usageCategory: "color" }),
 });
 const LEGAL_RECOLOR_LAB_RULE_SET_ID = "STANDARD_V5_LEGAL_RECOLOR_LAB_V1";
 const CATEGORY_LABEL = { color: "色カード", area: "エリアカード", disrupt: "妨害カード" };
@@ -99,6 +100,7 @@ const SKILL_DESCRIPTION = Object.freeze({
   colorRandomBorrow: "盤面ですでに使われている色から、1色をランダムでこの彩色中だけ借ります。抽選された色は自分だけに表示されます。",
   colorChoiceBorrow: "盤面ですでに使われている色を1色選び、この彩色中だけ借ります。借りた色は色ボタンに追加されます。",
   colorPrism: "この彩色中だけ、赤・青・黄・緑の4色を使えるようにします。",
+  colorBonusRefill: "現在のおまけ色の残り回数を2回増やします（上限4回）。残り4回では使えません。",
   colorRegionSplit: "いま塗る相手のエリアを、つながった2つのエリアに分けます。分けた片方を先に塗ります。",
   colorPaletteChange: "持ち色の3枠から1枠を、対戦終了まで好きな色に変えます。基本色2枠は回数無制限。おまけ色枠を変えても回数は増えず、今の残り回数を新しい色が引き継ぎます。",
   areaMicroBloom: "これから渡すエリアの角をランダムに少しふくらませ、斜めのエリアと接触させます。",
@@ -296,7 +298,7 @@ const COLOR_HEX = { red: "#ef4444", blue: "#3b82f6", yellow: "#eab308", green: "
 const COLOR_JA = { red: "赤", blue: "青", yellow: "黄", green: "緑" };
 const APP_TABS = new Set(["home", "battle", "quiz", "cards", "profile"]);
 let activeAppTab = APP_TABS.has(location.hash.slice(1)) ? location.hash.slice(1) : localStorage.getItem(APP_TAB_KEY) || "home";
-const SKILL_META = Object.freeze({ ...Object.fromEntries(SKILLS.map(([id, name, category]) => [id, { name, category }])), ...EXPERIMENTAL_SKILLS });
+const SKILL_META = Object.freeze({ ...Object.fromEntries(SKILLS.map(([id, name, category]) => [id, { name, category, usageCategory: category }])), ...EXPERIMENTAL_SKILLS });
 
 function validCpuCommentaryPresentationEntry(value) {
   return value && typeof value === "object" && !Array.isArray(value)
@@ -2850,6 +2852,13 @@ function button(text, onClick, className = "") {
 function renderSkills(state, privateState) {
   const box = $("skillControls"); box.replaceChildren();
   const myTurn = state.status === "ACTIVE" && state.active === roomModel?.view?.seat;
+  const usedCategories = new Set(state.skillCategoryWindow?.categories || []);
+  if (usedCategories.size) {
+    const note = document.createElement("p");
+    note.className = "small";
+    note.textContent = `この手番で使用済み：${[...usedCategories].map((category) => CATEGORY_LABEL[category] || category).join("・")}（同じ種類は次の手番まで使えません）`;
+    box.appendChild(note);
+  }
   if (targetDraft && (targetDraft.roomId !== roomModel?.room?.id || targetDraft.matchId !== state.matchId || targetDraft.version !== state.version)) {
     targetDraft = null;
     selectedMacros.clear();
@@ -2868,7 +2877,10 @@ function renderSkills(state, privateState) {
     node.dataset.skill = skill;
     const timingOkay = skill === "legalRecolor" ? state.phase === "WORK"
       : meta.category === "color" ? state.phase === "COLOR" : ["CREATE_FIRST", "WORK"].includes(state.phase);
-    node.disabled = actionBusy || !myTurn || !timingOkay;
+    const categoryUsed = usedCategories.has(meta.usageCategory || meta.category);
+    const refillFull = skill === "colorBonusRefill" && (privateState.bonusUsesRemaining || 0) >= 4;
+    node.disabled = actionBusy || !myTurn || !timingOkay || categoryUsed || refillFull;
+    if (categoryUsed) node.title = "この手番では同じ種類のスキルはもう使えません";
     const info = button("ⓘ", () => openSkillInfo(skill), "skill-info-button");
     info.type = "button"; info.setAttribute("aria-label", `${meta.name}の説明`); info.title = `${meta.name}の説明`;
     item.append(node, info); box.appendChild(item);
@@ -3756,7 +3768,10 @@ async function sendAction(type, payload = {}, retry = false) {
   actionBusy = true; operationFeedback("actionStatus", "サーバーで確認中…"); render();
   try {
     const response = await client.submitAction(pendingAction);
-    pendingAction = null; selectedMacros.clear(); operationFeedback("actionStatus", "操作を保存しました。", "success");
+    pendingAction = null; selectedMacros.clear(); targetDraft = null;
+    operationFeedback("actionStatus", response?.result?.noOp === true
+      ? "効果は空振りでした。カードは減りませんが、この手番の妨害カード使用枠は使いました。"
+      : "操作を保存しました。", "success");
     await roomSync.refreshNow();
     if (isRecolorAction) {
       const trace = validPublicTrace(roomModel?.room?.public_state);
@@ -3781,6 +3796,12 @@ async function sendAction(type, payload = {}, retry = false) {
         ? "「塗れる色なし」だけで敗北する申告は廃止されました。色操作カードを確認し、自分で決めた場合は投了してください。手番・カードは減っていません。"
         : "申告は成立しませんでした。使える色があります。持ち色か色操作カードを選んでください。手番・カードは減っていません。", "error");
       requestAnimationFrame(() => $("colorResponseHeading")?.focus({ preventScroll: true }));
+    }
+    if (error?.code === "SKILL_CATEGORY_ALREADY_USED_IN_WINDOW") {
+      pendingAction = null;
+      targetDraft = null;
+      selectedMacros.clear();
+      operationFeedback("actionStatus", "この手番では同じ種類のスキルはもう使えません。次の手番で選び直してください。手番・カードは減っていません。", "error");
     }
   } finally { actionBusy = false; render(); }
 }

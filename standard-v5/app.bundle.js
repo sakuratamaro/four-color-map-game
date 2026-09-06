@@ -652,13 +652,18 @@ module.exports = {
 "standard/standard-skill-registry.js":function(require,module,exports){
 "use strict";
 
+const SKILL_USAGE_CATEGORIES = Object.freeze(["color", "area", "disrupt"]);
+
 function skill(id, displayName, category, rarity, timing, options = {}) {
   const implemented = Boolean(options.implemented);
   const v49Catalogued = options.v49Catalogued !== false;
+  const usageCategory = options.usageCategory || category;
+  if (!SKILL_USAGE_CATEGORIES.includes(usageCategory)) throw new TypeError("INVALID_SKILL_USAGE_CATEGORY");
   return Object.freeze({
     id,
     displayName,
     category,
+    usageCategory,
     rarity,
     timing,
     targetSchema: options.targetSchema ?? null,
@@ -694,6 +699,16 @@ const STANDARD_SKILLS = Object.freeze({
     handlerVersion: "color-choice-borrow-v1",
   }),
   colorPrism: skill("colorPrism", "四色解放", "color", 3, "COLOR", { implemented: true, handlerVersion: "color-prism-v1" }),
+  colorBonusRefill: skill("colorBonusRefill", "おまけ色補充", "color", 2, "COLOR", {
+    implemented: true,
+    alphaUiEnabled: true,
+    gachaEnabled: false,
+    experimental: true,
+    privateInformationEffect: true,
+    consumptionPolicy: "RESOLVED_ONLY_BELOW_BONUS_CAP",
+    handlerVersion: "color-bonus-refill-v1",
+    v49Catalogued: false,
+  }),
   colorRegionSplit: skill("colorRegionSplit", "エリア二分", "color", 4, "COLOR", {
     targetSchema: { regionId: "region-id", sourceMacros: "macro-index-array" },
     implemented: true,
@@ -795,6 +810,7 @@ const STANDARD_SKILLS = Object.freeze({
     handlerVersion: "disrupt-forced-palette-v1",
   }),
   legalRecolor: skill("legalRecolor", "塗り直し・乱", "experimental", 3, "WORK", {
+    usageCategory: "color",
     targetSchema: { regionId: "region-id" },
     implemented: true,
     alphaUiEnabled: true,
@@ -811,7 +827,7 @@ const STANDARD_SKILLS = Object.freeze({
 const V49_SKILL_IDS = Object.freeze(Object.values(STANDARD_SKILLS).filter((entry) => entry.v49Catalogued).map((entry) => entry.id));
 const IMPLEMENTED_SKILL_IDS = Object.freeze(Object.values(STANDARD_SKILLS).filter((entry) => entry.implemented).map((entry) => entry.id));
 
-module.exports = { IMPLEMENTED_SKILL_IDS, STANDARD_SKILLS, V49_SKILL_IDS };
+module.exports = { IMPLEMENTED_SKILL_IDS, SKILL_USAGE_CATEGORIES, STANDARD_SKILLS, V49_SKILL_IDS };
 
 },
 "standard/standard-skill-handlers.js":function(require,module,exports){
@@ -838,7 +854,15 @@ function resolved(currentState, actor, skill, mutate, details = {}) {
   const state = clone(currentState);
   mutate(state);
   consume(state, actor, skill);
-  return Object.freeze({ ok: true, code: "OK", state, ...details });
+  return Object.freeze({ ok: true, code: "OK", state, cardConsumed: true, ...details });
+}
+
+function resolvedWithoutCard(currentState, actor, mutate, details = {}) {
+  const state = clone(currentState);
+  mutate(state);
+  state.skillsUsed[actor] = (state.skillsUsed[actor] || 0) + 1;
+  state.version += 1;
+  return Object.freeze({ ok: true, code: "OK", state, cardConsumed: false, ...details });
 }
 
 function applyColorPrism({ state, actor }) {
@@ -847,6 +871,16 @@ function applyColorPrism({ state, actor }) {
     next.privateEffects[actor].prism = true;
     next.publicLog.push(`T${next.turn} Player ${actor} enabled all four colors for this coloring.`);
   });
+}
+
+function applyColorBonusRefill({ state, actor }) {
+  const current = state.bonusUsesRemaining[actor];
+  if (current >= 4) return Object.freeze({ ok: false, code: "BONUS_USES_ALREADY_FULL", state });
+  const addedUses = Math.min(2, 4 - current);
+  return resolved(state, actor, "colorBonusRefill", (next) => {
+    next.bonusUsesRemaining[actor] = current + addedUses;
+    next.publicLog.push(`T${next.turn} Player ${actor} refilled their private bonus color uses.`);
+  }, { addedUses });
 }
 
 function usedBoardColors(state) {
@@ -1546,6 +1580,11 @@ function applyDisruptPaletteChoice({ state, actor, payload, random }) {
   const target = other(actor);
   const palette = [state.basicPalettes[target][0], state.basicPalettes[target][1], state.bonusColors[target]];
   const differing = palette.map((current, slot) => current !== color ? slot : -1).filter((slot) => slot >= 0);
+  if (!differing.length && state.skillCategoryWindow) {
+    return resolvedWithoutCard(state, actor, (next) => {
+      next.publicLog.push(`T${next.turn} Player ${actor}'s chosen palette injection resolved without changing a private palette.`);
+    }, { color, target, noOp: true });
+  }
   const slots = differing.length ? differing : [0, 1, 2];
   const slot = slots[Math.floor(slotDraw * slots.length)];
   return resolved(state, actor, "disruptPaletteChoice", (next) => {
@@ -1637,6 +1676,7 @@ module.exports = {
   applyAreaMicroBloom,
   applyAreaResize,
   applyAreaTripleShift,
+  applyColorBonusRefill,
   applyColorChoiceBorrow,
   applyColorPaletteChange,
   applyColorRandomBorrow,
@@ -1666,7 +1706,7 @@ module.exports = {
 
 const { COLORS, StandardRuleError, applyLegalRecolor } = require("./standard-engine.js");
 const { STANDARD_SKILLS } = require("./standard-skill-registry.js");
-const { applyAreaCornerBloom, applyAreaDiePlus, applyAreaHalfShift, applyAreaMicroBloom, applyAreaResize, applyAreaTripleShift, applyColorChoiceBorrow, applyColorPaletteChange, applyColorRandomBorrow, applyColorPrism, applyColorRegionSplit, applyDisruptChoiceOne, applyDisruptChoiceThree, applyDisruptChoiceTwo, applyDisruptForcedPalette, applyDisruptPaletteChoice, applyDisruptPaletteRandom, applyDisruptRandomOne, applyDisruptRandomTwo } = require("./standard-skill-handlers.js");
+const { applyAreaCornerBloom, applyAreaDiePlus, applyAreaHalfShift, applyAreaMicroBloom, applyAreaResize, applyAreaTripleShift, applyColorBonusRefill, applyColorChoiceBorrow, applyColorPaletteChange, applyColorRandomBorrow, applyColorPrism, applyColorRegionSplit, applyDisruptChoiceOne, applyDisruptChoiceThree, applyDisruptChoiceTwo, applyDisruptForcedPalette, applyDisruptPaletteChoice, applyDisruptPaletteRandom, applyDisruptRandomOne, applyDisruptRandomTwo } = require("./standard-skill-handlers.js");
 
 const SKILL_RESULT = Object.freeze({ REJECTED: "REJECTED", CANCELLED: "CANCELLED", RESOLVED: "RESOLVED" });
 
@@ -1708,6 +1748,7 @@ const HANDLERS = Object.freeze({
   colorPaletteChange: applyColorPaletteChange,
   colorRegionSplit: applyColorRegionSplit,
   colorPrism: applyColorPrism,
+  colorBonusRefill: applyColorBonusRefill,
   areaMicroBloom({ state, actor, payload, rngStreams, draws }) {
     return applyAreaMicroBloom({ state, actor, payload, random: () => nextRandom(rngStreams, "skill-effect", draws) });
   },
@@ -1741,8 +1782,11 @@ const HANDLERS = Object.freeze({
   },
 });
 
-function dispatchStandardSkillAction({ state, actor, action, expectedVersion, rngStreams = {}, validateState, projectPublic, projectPrivate, hasLegalRegionOfSize, bestLegalSize }) {
+function dispatchStandardSkillAction({ state, actor, action, expectedVersion, rngStreams = {}, validateState, projectPublic, projectPrivate, hasLegalRegionOfSize, bestLegalSize, enforceUsageCategory }) {
   validateState(state);
+  const categoryLimitEnabled = enforceUsageCategory === undefined
+    ? Boolean(state.skillCategoryWindow)
+    : enforceUsageCategory;
   if (!action || action.type !== "USE_SKILL" || !action.payload || typeof action.payload.skill !== "string") return rejected("INVALID_SKILL_ACTION", state);
   if (actor !== "A" && actor !== "B") return rejected("NOT_A_PLAYER", state);
   if (expectedVersion !== state.version) return rejected("VERSION_CONFLICT", state);
@@ -1758,6 +1802,9 @@ function dispatchStandardSkillAction({ state, actor, action, expectedVersion, rn
   if ((state.hands?.[actor]?.[definition.id] || 0) <= 0) return rejected("SKILL_UNAVAILABLE", state);
   if (definition.experimental && state.interferenceLock) return rejected("INTERFERENCE_CHAINED", state);
   if (!validateTargetSchema(definition, action.payload)) return rejected("INVALID_TARGET_SCHEMA", state);
+  if (categoryLimitEnabled && state.skillCategoryWindow.categories.includes(definition.usageCategory)) {
+    return rejected("SKILL_CATEGORY_ALREADY_USED_IN_WINDOW", state);
+  }
 
   const draws = { count: 0 };
   try {
@@ -1768,15 +1815,23 @@ function dispatchStandardSkillAction({ state, actor, action, expectedVersion, rn
     }
     if (applied.state.version !== state.version + 1) throw new Error("VERSION_INCREMENT_INVARIANT");
     if (typeof definition.expectedRngDraws === "number" && draws.count !== definition.expectedRngDraws) throw new Error("RNG_DRAW_COUNT_INVARIANT");
-    validateState(applied.state);
+    let resolvedState = applied.state;
+    if (categoryLimitEnabled) {
+      resolvedState = JSON.parse(JSON.stringify(applied.state));
+      resolvedState.skillCategoryWindow = resolvedState.active === actor
+        ? { actor, categories: [...new Set([...state.skillCategoryWindow.categories, definition.usageCategory])] }
+        : { actor: resolvedState.active, categories: [] };
+    }
+    validateState(resolvedState);
     return Object.freeze({
       ...applied,
+      state: resolvedState,
       ok: true,
       status: SKILL_RESULT.RESOLVED,
       definition,
       rngDraws: draws.count,
-      publicState: projectPublic(applied.state),
-      privateState: projectPrivate(applied.state, actor),
+      publicState: projectPublic(resolvedState),
+      privateState: projectPrivate(resolvedState, actor),
     });
   } catch (error) {
     if (error instanceof StandardRuleError) return rejected(error.code, state);
@@ -1887,11 +1942,13 @@ const {
 const { dispatchStandardSkillAction } = require("./standard-skill-dispatcher.js");
 const { applyCurseBacklashOnEnterColor, preparedOutgoingCandidates, tickPaletteDebuffsAfterColor, tickSealsAfterColor } = require("./standard-skill-handlers.js");
 const { createRegionGeometryContext } = require("./standard-region-geometry.js");
+const { SKILL_USAGE_CATEGORIES } = require("./standard-skill-registry.js");
 
 const SCHEMA_VERSION = 1;
 const LEGACY_ENGINE_VERSION = "5.0.0-alpha.1";
-const ENGINE_VERSION = "5.0.0-alpha.2";
-const SUPPORTED_ENGINE_VERSIONS = Object.freeze([LEGACY_ENGINE_VERSION, ENGINE_VERSION]);
+const PREVIOUS_ENGINE_VERSION = "5.0.0-alpha.2";
+const ENGINE_VERSION = "5.0.0-alpha.3";
+const SUPPORTED_ENGINE_VERSIONS = Object.freeze([LEGACY_ENGINE_VERSION, PREVIOUS_ENGINE_VERSION, ENGINE_VERSION]);
 const SAVE_KEY = "fourColorMapGame.standard.v5.save";
 const PHASES = Object.freeze(["CREATE_FIRST", "COLOR", "WORK", "GAME_OVER"]);
 const ACTIONS = Object.freeze(["CREATE_REGION", "COLOR_REGION", "USE_SKILL", "DECLARE_NO_COLOR", "SURRENDER"]);
@@ -1968,6 +2025,8 @@ function playableMacroIndices(bounds) {
 
 function createStandardMatch(config = {}, rngStreams = {}) {
   assertState(typeof config.matchId === "string" && config.matchId.length > 0, "MATCH_ID_REQUIRED");
+  const engineVersion = config.engineVersion === undefined ? ENGINE_VERSION : config.engineVersion;
+  assertState(SUPPORTED_ENGINE_VERSIONS.includes(engineVersion), "INVALID_ENGINE_VERSION");
   const A = initialSeatSecrets(rngStreams);
   let B = initialSeatSecrets(rngStreams);
   for (let retries = 0; paletteSignature(B) === paletteSignature(A) && retries < 15; retries += 1) {
@@ -1983,7 +2042,7 @@ function createStandardMatch(config = {}, rngStreams = {}) {
   const playableBounds = clone(config.playableBounds || { minCol: 1, maxCol: 10, minRow: 1, maxRow: 10, macroWidth: 12, microScale: 4 });
   const state = {
     schemaVersion: SCHEMA_VERSION,
-    engineVersion: ENGINE_VERSION,
+    engineVersion,
     mode: "standard",
     matchId: config.matchId,
     status: "ACTIVE",
@@ -2010,6 +2069,7 @@ function createStandardMatch(config = {}, rngStreams = {}) {
     privateEffects: clone(config.privateEffects || { A: {}, B: {} }),
     interferenceLock: false,
     skillsUsed: { A: 0, B: 0 },
+    ...(engineVersion === ENGINE_VERSION ? { skillCategoryWindow: { actor: active, categories: [] } } : {}),
     winner: null,
     terminalReason: null,
     lastPublicTrace: null,
@@ -2049,6 +2109,16 @@ function validateStandardState(state) {
   assertState(Boolean(state.regions) && typeof state.regions === "object", "INVALID_REGIONS");
   assertState(Boolean(state.hands) && Boolean(state.loadouts), "INVALID_CARDS");
   assertState(typeof state.interferenceLock === "boolean", "INVALID_INTERFERENCE_LOCK");
+  if (state.engineVersion === ENGINE_VERSION) {
+    const window = state.skillCategoryWindow;
+    assertState(Boolean(window) && typeof window === "object" && !Array.isArray(window), "INVALID_SKILL_CATEGORY_WINDOW");
+    assertState(Object.keys(window).sort().join("|") === "actor|categories", "INVALID_SKILL_CATEGORY_WINDOW");
+    assertState(window.actor === state.active && Array.isArray(window.categories), "INVALID_SKILL_CATEGORY_WINDOW");
+    assertState(window.categories.length === new Set(window.categories).size
+      && window.categories.every((category) => SKILL_USAGE_CATEGORIES.includes(category)), "INVALID_SKILL_CATEGORY_WINDOW");
+  } else {
+    assertState(state.skillCategoryWindow === undefined, "LEGACY_SKILL_CATEGORY_WINDOW");
+  }
   assertState(Array.isArray(state.publicLog), "INVALID_PUBLIC_LOG");
   if (state.lastPublicTrace !== undefined && state.lastPublicTrace !== null) {
     const trace = state.lastPublicTrace;
@@ -2153,6 +2223,7 @@ function validateStandardState(state) {
 function projectStandardPublicState(state) {
   validateStandardState(state);
   const keys = ["schemaVersion", "engineVersion", "mode", "matchId", "status", "version", "turn", "active", "phase", "regions", "pending", "reserved", "preparedOutgoing", "playableBounds", "trophyTargetMacros", "requiredSize", "rolledSize", "baseRequiredSize", "publicEffects", "interferenceLock", "winner", "terminalReason", "lastPublicTrace", "publicLog"];
+  if (state.engineVersion === ENGINE_VERSION) keys.push("skillCategoryWindow");
   return Object.freeze(Object.fromEntries(keys.map((key) => [key, clone(key === "trophyTargetMacros"
     ? (state.trophyTargetMacros || playableMacroIndices(state.playableBounds))
     : key === "lastPublicTrace" ? (state.lastPublicTrace ?? null) : state[key])] )));
@@ -2566,6 +2637,7 @@ function applyStandardAction({ state, actor, action, expectedVersion, rngStreams
         projectPrivate: projectStandardPrivateState,
         hasLegalRegionOfSize,
         bestLegalSize,
+        enforceUsageCategory: state.engineVersion === ENGINE_VERSION,
       });
       if (result.ok) {
         const next = clone(result.state);
@@ -2591,6 +2663,16 @@ function applyStandardAction({ state, actor, action, expectedVersion, rngStreams
       }
     }
     if (result.ok) {
+      if (result.state.engineVersion === ENGINE_VERSION && result.state.active !== state.active) {
+        const next = clone(result.state);
+        next.skillCategoryWindow = { actor: next.active, categories: [] };
+        result = {
+          ...result,
+          state: next,
+          ...(result.publicState ? { publicState: projectStandardPublicState(next) } : {}),
+          ...(result.privateState ? { privateState: projectStandardPrivateState(next, actor) } : {}),
+        };
+      }
       assertState(result.state.version === state.version + 1, "VERSION_INCREMENT_INVARIANT");
       validateStandardState(result.state);
     }
@@ -2619,6 +2701,7 @@ module.exports = {
   DIE_POOL,
   ENGINE_VERSION,
   LEGACY_ENGINE_VERSION,
+  PREVIOUS_ENGINE_VERSION,
   ENGINE_TERMINAL_REASONS,
   FINISHED_STATE_TERMINAL_REASONS,
   PHASES,
@@ -3059,12 +3142,14 @@ function commitAcceptedCardAction({ root, beforeState, result, actor, actionId, 
     const difference = (beforeHand[skill] || 0) - (afterHand[skill] || 0);
     if (difference !== 0) changes.push({ skill, difference });
   }
-  assertSave(changes.length === 1 && changes[0].difference === 1, "CARD_NOT_CONSUMED_ONCE");
+  const cardConsumed = result.cardConsumed !== false;
+  if (cardConsumed) assertSave(changes.length === 1 && changes[0].difference === 1, "CARD_NOT_CONSUMED_ONCE");
+  else assertSave(changes.length === 0, "CARD_CHANGED_ON_ACCEPTED_NO_OP");
 
-  const { skill } = changes[0];
+  const skill = cardConsumed ? changes[0].skill : result.definition?.id;
   assertSave(ID_PATTERN.test(skill), "INVALID_LEDGER_SKILL");
   const key = ledgerKey(beforeState.matchId, actionId);
-  const existing = root.receipts.matchConsumption[key];
+  const existing = cardConsumed ? root.receipts.matchConsumption[key] : null;
   if (existing) {
     const expectedProfile = root.activeMatch?.participants?.[actor]?.profileId;
     assertSave(existing.matchId === beforeState.matchId && existing.actionId === actionId && existing.profileId === expectedProfile && existing.skill === skill && existing.version === result.state.version && (!actionFingerprint || existing.actionFingerprint === actionFingerprint), "ACTION_ID_COLLISION");
@@ -3077,22 +3162,24 @@ function commitAcceptedCardAction({ root, beforeState, result, actor, actionId, 
   const participant = root.activeMatch.participants[actor];
   const source = root.activeMatch.cardSources?.[actor]?.[skill] || "INVENTORY_BACKED";
   const profileId = participant?.type === "PROFILE" ? participant.profileId : null;
-  if (source === "INVENTORY_BACKED") {
+  if (cardConsumed && source === "INVENTORY_BACKED") {
     assertSave(participant?.type === "PROFILE", "CPU_CARD_NOT_OWNED");
     assertSave((root.profiles[profileId].inventory[skill] || 0) > 0, "INVENTORY_EMPTY");
   }
   const next = clone(root);
-  if (source === "INVENTORY_BACKED") next.profiles[profileId].inventory[skill] -= 1;
-  if (source === "INVENTORY_BACKED" && Object.hasOwn(next.reservations, profileId)) {
+  if (cardConsumed && source === "INVENTORY_BACKED") next.profiles[profileId].inventory[skill] -= 1;
+  if (cardConsumed && source === "INVENTORY_BACKED" && Object.hasOwn(next.reservations, profileId)) {
     const reserved = next.reservations[profileId][skill] || 0;
     assertSave(reserved >= 1, "RESERVATION_CONSUMPTION_MISMATCH");
     next.reservations[profileId][skill] = reserved - 1;
   }
   next.activeMatch = { ...clone(root.activeMatch), state: clone(result.state), rngSnapshot: clone(rngSnapshot || {}) };
   next.rootRevision += 1;
-  next.receipts.matchConsumption[key] = { matchId: beforeState.matchId, actionId, profileId, skill, version: result.state.version };
-  if (root.activeMatch.cardSources) next.receipts.matchConsumption[key].source = source;
-  if (actionFingerprint) next.receipts.matchConsumption[key].actionFingerprint = actionFingerprint;
+  if (cardConsumed) {
+    next.receipts.matchConsumption[key] = { matchId: beforeState.matchId, actionId, profileId, skill, version: result.state.version };
+    if (root.activeMatch.cardSources) next.receipts.matchConsumption[key].source = source;
+    if (actionFingerprint) next.receipts.matchConsumption[key].actionFingerprint = actionFingerprint;
+  }
   validateStandardSave(next);
   return Object.freeze(next);
 }
@@ -3636,10 +3723,11 @@ const match = require("./standard-match.js");
 const save = require("./standard-save.js");
 const { STANDARD_SKILLS } = require("./standard-skill-registry.js");
 const { stableHash } = require("./standard-root-transaction.js");
+const cpu = require("./standard-cpu.js");
 
-const INITIAL_CONFIG_VERSION = "standard-match-init-v1";
+const INITIAL_CONFIG_VERSION = "standard-match-init-v2-alpha3-category-charges";
 const RULE_SET_IDS = Object.freeze({ STANDARD: "STANDARD_V5", ALPHA_SLICE: "STANDARD_V5_ALPHA_SLICE" });
-const ALPHA_SLICE_SKILLS = Object.freeze(["colorPrism", "areaHalfShift", "disruptChoiceOne", "legalRecolor"]);
+const ALPHA_SLICE_SKILLS = Object.freeze(["colorPrism", "colorBonusRefill", "areaHalfShift", "disruptChoiceOne", "legalRecolor"]);
 const ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/;
 
 function clone(value) {
@@ -3731,7 +3819,7 @@ function reservationPlan(root, participants, loadouts) {
   for (const seat of ["A", "B"]) {
     const participant = participants[seat];
     for (const skillId of flatSkills(loadouts[seat])) {
-      const loan = skillId === "legalRecolor";
+      const loan = skillId === "legalRecolor" || skillId === "colorBonusRefill";
       const source = loan ? "EXPERIMENTAL_LOAN" : (participant.type === "CPU" ? "CPU_VIRTUAL" : "INVENTORY_BACKED");
       sources[seat][skillId] = source;
       if (source !== "INVENTORY_BACKED") continue;
@@ -3819,6 +3907,10 @@ function startStandardMatch(args) {
     if (typeof startedAt !== "string" || !Number.isFinite(Date.parse(startedAt))) throw Object.assign(new Error("INVALID_CLOCK"), { code: "INVALID_CLOCK" });
     const streams = engine.createRngDomainsFromSnapshot(draft.rngSnapshot, match.REQUIRED_RNG_STREAMS);
     const state = match.createStandardMatch({ matchId, firstSeat, loadouts: quote.loadouts }, streams);
+    for (const seat of ["A", "B"]) {
+      if (quote.participants[seat].type === "CPU" && quote.participants[seat].difficulty === "hard") cpu.applyHardCpuSkillCharges(state, seat);
+    }
+    match.validateStandardState(state);
     draft.rngSnapshot = clone(engine.snapshotRngDomains(streams, match.REQUIRED_RNG_STREAMS));
     draft.reservations = clone(quote.reservations);
     draft.activeMatch = {
@@ -4011,6 +4103,8 @@ function dispatchStandardMatchAction({
       matchVersion: result.state.version,
       receipt: Object.freeze(clone(receipt)),
       publicState: match.projectStandardPublicState(result.state),
+      cardConsumed: result.cardConsumed !== false,
+      noOp: result.noOp === true,
       contactColorCount: action.type === "CREATE_REGION" ? result.contactColorCount : null,
       appliedNow: true,
       replayedReceipt: false,
@@ -4042,7 +4136,7 @@ const { STANDARD_SKILLS, V49_SKILL_IDS } = require("./standard-skill-registry.js
 const ALPHA_INVENTORY_SKILLS = Object.freeze(["colorPrism", "areaHalfShift", "disruptChoiceOne"]);
 const STANDARD_INVENTORY_SKILLS = Object.freeze(V49_SKILL_IDS.filter((skillId) => STANDARD_SKILLS[skillId].standardUiEnabled));
 const ALPHA_LOADOUT = Object.freeze({
-  color: Object.freeze(["colorPrism"]),
+  color: Object.freeze(["colorPrism", "colorBonusRefill"]),
   area: Object.freeze(["areaHalfShift"]),
   disrupt: Object.freeze(["disruptChoiceOne"]),
   experimental: Object.freeze(["legalRecolor"]),
@@ -4137,7 +4231,13 @@ function setupProjection(root, ruleSetId = matchStart.RULE_SET_IDS.ALPHA_SLICE) 
     ruleLabel: standard ? "標準・熟考モード" : "標準α・機能検証用",
     profiles: Object.freeze(profiles),
   };
-  if (!standard) projection.experimentalLoan = Object.freeze({ skillId: "legalRecolor", count: 1, inventoryBacked: false, reserved: 0 });
+  if (!standard) {
+    projection.experimentalLoan = Object.freeze({ skillId: "legalRecolor", count: 1, inventoryBacked: false, reserved: 0 });
+    projection.experimentalLoans = Object.freeze([
+      Object.freeze({ skillId: "colorBonusRefill", count: 1, inventoryBacked: false, reserved: 0 }),
+      projection.experimentalLoan,
+    ]);
+  }
   return Object.freeze(projection);
 }
 
@@ -6381,6 +6481,8 @@ function boot() {
     if (!result.ok) {
       say(result.code === "NO_LEGAL_RECOLOR"
         ? "変更先がありません。カードは消費されませんでした。"
+        : result.code === "SKILL_CATEGORY_ALREADY_USED_IN_WINDOW"
+          ? "この手番では同じ種類のスキルはもう使えません。手番・カードは減っていません。"
         : result.code === "COLOR_AVAILABLE"
           ? "申告は成立しませんでした。使える色があります。持ち色か色操作カードを選んでください。手番・カードは減っていません。"
           : `操作できません（${result.code}）。`);
@@ -6436,7 +6538,11 @@ function boot() {
       try {
         const result = await session.dispatchAction({ actorSeat, type, payload });
         say(result.ok
-          ? "操作を保存しました。"
+          ? result.noOp && result.cardConsumed === false
+            ? "効果は空振りでした。カードは減りませんが、この手番の妨害カード使用枠は使いました。"
+            : "操作を保存しました。"
+          : result.code === "SKILL_CATEGORY_ALREADY_USED_IN_WINDOW"
+            ? "この手番では同じ種類のスキルはもう使えません。手番・カードは減っていません。"
           : result.code === "COLOR_AVAILABLE"
             ? "申告は成立しませんでした。使える色があります。持ち色か色操作カードを選んでください。手番・カードは減っていません。"
             : `操作できません（${result.code}）。`);
@@ -6612,6 +6718,16 @@ function boot() {
     privatePanel.appendChild(palette);
     const publicState = session.getPublicProjection();
     const phase = publicState.phase;
+    const usedSkillCategories = new Set(publicState.skillCategoryWindow?.categories || []);
+    const colorSkillUsed = usedSkillCategories.has("color");
+    const areaSkillUsed = usedSkillCategories.has("area");
+    const disruptSkillUsed = usedSkillCategories.has("disrupt");
+    if (usedSkillCategories.size) {
+      const used = document.createElement("p");
+      used.className = "skill-category-status";
+      used.textContent = `この操作権区間で使用済み：${[...usedSkillCategories].map((category) => ({ color: "色操作", area: "エリア操作", disrupt: "妨害" })[category]).join("・")}`;
+      privatePanel.appendChild(used);
+    }
     if (phase === "COLOR" && targetMode === null) {
       const guidance = document.createElement("section");
       guidance.className = "no-color-response";
@@ -6623,8 +6739,8 @@ function boot() {
       privatePanel.appendChild(guidance);
     }
     const usedBoardColors = [...new Set(Object.values(publicState.regions).map((region) => region.color).filter((color) => Object.hasOwn(COLOR_NAMES, color)))];
-    if (own.hand.colorRandomBorrow > 0) appendButton("色拾い・乱", targetMode !== null || phase !== "COLOR", () => dispatch("USE_SKILL", { skill: "colorRandomBorrow" }));
-    if (own.hand.colorChoiceBorrow > 0) appendButton("色借り", targetMode !== null || phase !== "COLOR" || usedBoardColors.length === 0, () => {
+    if (own.hand.colorRandomBorrow > 0) appendButton("色拾い・乱", colorSkillUsed || targetMode !== null || phase !== "COLOR", () => dispatch("USE_SKILL", { skill: "colorRandomBorrow" }));
+    if (own.hand.colorChoiceBorrow > 0) appendButton("色借り", colorSkillUsed || targetMode !== null || phase !== "COLOR" || usedBoardColors.length === 0, () => {
       targetMode = "colorChoiceBorrow";
       say("盤面ですでに使用されている色から1色選んでください。");
       renderPrivate(own);
@@ -6643,7 +6759,7 @@ function boot() {
         renderPrivate(own);
       });
     }
-    if (own.hand.colorPaletteChange > 0) appendButton("持ち色変更", targetMode !== null || phase !== "COLOR", () => {
+    if (own.hand.colorPaletteChange > 0) appendButton("持ち色変更", colorSkillUsed || targetMode !== null || phase !== "COLOR", () => {
       targetMode = { kind: "colorPaletteChange", slot: null };
       say("変更する持ち色枠を選んでください。おまけ色の残り回数は枠に残ります。");
       renderPrivate(own);
@@ -6678,7 +6794,7 @@ function boot() {
     }
     if (own.hand.colorRegionSplit > 0) {
       const pendingRegion = publicState.regions[publicState.pending];
-      appendButton("エリア二分", targetMode !== null || phase !== "COLOR" || !pendingRegion || (pendingRegion.sourceMacros || []).length < 2, () => {
+      appendButton("エリア二分", colorSkillUsed || targetMode !== null || phase !== "COLOR" || !pendingRegion || (pendingRegion.sourceMacros || []).length < 2, () => {
         selected.clear();
         targetMode = { kind: "colorRegionSplit" };
         say("受取エリア上で、先に自分が彩色する側を選んでください。両側とも連結が必要です。");
@@ -6704,16 +6820,19 @@ function boot() {
         renderPrivate(own);
       });
     }
-    appendButton("四色解放", targetMode !== null || phase !== "COLOR" || !(own.hand.colorPrism > 0), () => dispatch("USE_SKILL", { skill: "colorPrism" }));
+    appendButton("四色解放", colorSkillUsed || targetMode !== null || phase !== "COLOR" || !(own.hand.colorPrism > 0), () => dispatch("USE_SKILL", { skill: "colorPrism" }));
+    if (own.hand.colorBonusRefill > 0) appendButton("おまけ色補充（残数＋2／上限4）", colorSkillUsed || targetMode !== null || phase !== "COLOR" || own.bonusUsesRemaining >= 4, () => {
+      dispatch("USE_SKILL", { skill: "colorBonusRefill" });
+    });
     if (own.hand.areaMicroBloom > 0) {
       const sourceMacros = publicState.preparedOutgoing?.sourceMacros || [...selected].sort((a, b) => a - b);
-      appendButton("ひとふくらみ", targetMode !== null || !["CREATE_FIRST", "WORK"].includes(phase) || sourceMacros.length !== publicState.requiredSize, () => {
+      appendButton("ひとふくらみ", areaSkillUsed || targetMode !== null || !["CREATE_FIRST", "WORK"].includes(phase) || sourceMacros.length !== publicState.requiredSize, () => {
         dispatch("USE_SKILL", { skill: "areaMicroBloom", sourceMacros });
       });
     }
     if (own.hand.areaCornerBloom > 0) {
       const sourceMacros = publicState.preparedOutgoing?.sourceMacros || [...selected].sort((a, b) => a - b);
-      appendButton("角膨張", targetMode !== null || !["CREATE_FIRST", "WORK"].includes(phase) || sourceMacros.length !== publicState.requiredSize, () => {
+      appendButton("角膨張", areaSkillUsed || targetMode !== null || !["CREATE_FIRST", "WORK"].includes(phase) || sourceMacros.length !== publicState.requiredSize, () => {
         targetMode = { kind: "areaCornerBloom", sourceMacros: [...sourceMacros] };
         say("選択エリア内で、四隅を膨張させる1マスを選んでください。");
         renderPublic(publicState);
@@ -6728,12 +6847,12 @@ function boot() {
       renderPrivate(own);
     });
     if (own.hand.areaDiePlus > 0) {
-      appendButton("エリア拡張", targetMode !== null || !["CREATE_FIRST", "WORK"].includes(phase) || Boolean(publicState.preparedOutgoing), () => {
+      appendButton("エリア拡張", areaSkillUsed || targetMode !== null || !["CREATE_FIRST", "WORK"].includes(phase) || Boolean(publicState.preparedOutgoing), () => {
         dispatch("USE_SKILL", { skill: "areaDiePlus" });
       });
     }
     if (own.hand.areaResize > 0 && targetMode?.kind !== "areaResize") {
-      appendButton("拡大縮小", targetMode !== null || !["CREATE_FIRST", "WORK"].includes(phase) || Boolean(publicState.preparedOutgoing), () => {
+      appendButton("拡大縮小", areaSkillUsed || targetMode !== null || !["CREATE_FIRST", "WORK"].includes(phase) || Boolean(publicState.preparedOutgoing), () => {
         targetMode = { kind: "areaResize", mode: null };
         say("盤面を拡大するか縮小するか選んでください。");
         renderPrivate(own);
@@ -6764,7 +6883,7 @@ function boot() {
         renderPrivate(own);
       });
     }
-    appendButton("塗り直し・乱（実験貸与）", phase !== "WORK" || !(own.hand.legalRecolor > 0) || targetMode === "legalRecolor", () => {
+    appendButton("塗り直し・乱（実験貸与）", colorSkillUsed || phase !== "WORK" || !(own.hand.legalRecolor > 0) || targetMode === "legalRecolor", () => {
       targetMode = "legalRecolor";
       say("彩色済みエリアを1つ選んでください。");
       renderPrivate(own);
@@ -6778,40 +6897,40 @@ function boot() {
       const label = document.createElement("p");
       label.textContent = "色封じ（全4色から選択）";
       privatePanel.appendChild(label);
-      for (const color of Object.keys(COLOR_NAMES)) appendButton(COLOR_NAMES[color], phase !== "WORK", () => dispatch("USE_SKILL", { skill: "disruptChoiceOne", color }));
+      for (const color of Object.keys(COLOR_NAMES)) appendButton(COLOR_NAMES[color], disruptSkillUsed || phase !== "WORK", () => dispatch("USE_SKILL", { skill: "disruptChoiceOne", color }));
     }
     if (own.hand.disruptChoiceTwo > 0) {
       const label = document.createElement("p");
       label.textContent = "追封（全4色から選択・2彩色）";
       privatePanel.appendChild(label);
-      for (const color of Object.keys(COLOR_NAMES)) appendButton(`追封：${COLOR_NAMES[color]}`, phase !== "WORK", () => dispatch("USE_SKILL", { skill: "disruptChoiceTwo", color }));
+      for (const color of Object.keys(COLOR_NAMES)) appendButton(`追封：${COLOR_NAMES[color]}`, disruptSkillUsed || phase !== "WORK", () => dispatch("USE_SKILL", { skill: "disruptChoiceTwo", color }));
     }
     if (own.hand.disruptChoiceThree > 0) {
       const label = document.createElement("p");
       label.textContent = "長封（全4色から選択・3彩色）";
       privatePanel.appendChild(label);
-      for (const color of Object.keys(COLOR_NAMES)) appendButton(`長封：${COLOR_NAMES[color]}`, phase !== "WORK", () => dispatch("USE_SKILL", { skill: "disruptChoiceThree", color }));
+      for (const color of Object.keys(COLOR_NAMES)) appendButton(`長封：${COLOR_NAMES[color]}`, disruptSkillUsed || phase !== "WORK", () => dispatch("USE_SKILL", { skill: "disruptChoiceThree", color }));
     }
-    if (own.hand.disruptRandomOne > 0) appendButton("色封じ・乱", targetMode !== null || phase !== "WORK", () => {
+    if (own.hand.disruptRandomOne > 0) appendButton("色封じ・乱", disruptSkillUsed || targetMode !== null || phase !== "WORK", () => {
       dispatch("USE_SKILL", { skill: "disruptRandomOne" });
     });
-    if (own.hand.disruptRandomTwo > 0) appendButton("二重封じ・乱", targetMode !== null || phase !== "WORK", () => {
+    if (own.hand.disruptRandomTwo > 0) appendButton("二重封じ・乱", disruptSkillUsed || targetMode !== null || phase !== "WORK", () => {
       dispatch("USE_SKILL", { skill: "disruptRandomTwo" });
     });
-    if (own.hand.disruptPaletteRandom > 0) appendButton("持ち色汚染・乱", targetMode !== null || phase !== "WORK", () => {
+    if (own.hand.disruptPaletteRandom > 0) appendButton("持ち色汚染・乱", disruptSkillUsed || targetMode !== null || phase !== "WORK", () => {
       dispatch("USE_SKILL", { skill: "disruptPaletteRandom" });
     });
     if (own.hand.disruptPaletteChoice > 0) {
       const label = document.createElement("p");
       label.textContent = "持ち色汚染（注入色を選択・2彩色）";
       privatePanel.appendChild(label);
-      for (const color of Object.keys(COLOR_NAMES)) appendButton(`汚染：${COLOR_NAMES[color]}`, phase !== "WORK", () => dispatch("USE_SKILL", { skill: "disruptPaletteChoice", color }));
+      for (const color of Object.keys(COLOR_NAMES)) appendButton(`汚染：${COLOR_NAMES[color]}`, disruptSkillUsed || phase !== "WORK", () => dispatch("USE_SKILL", { skill: "disruptPaletteChoice", color }));
     }
     if (own.hand.disruptForcedPalette > 0) {
       const label = document.createElement("p");
       label.textContent = "強制持ち替え（恒久注入色を選択）";
       privatePanel.appendChild(label);
-      for (const color of Object.keys(COLOR_NAMES)) appendButton(`強制：${COLOR_NAMES[color]}`, phase !== "WORK", () => dispatch("USE_SKILL", { skill: "disruptForcedPalette", color }));
+      for (const color of Object.keys(COLOR_NAMES)) appendButton(`強制：${COLOR_NAMES[color]}`, disruptSkillUsed || phase !== "WORK", () => dispatch("USE_SKILL", { skill: "disruptForcedPalette", color }));
     }
     if ((own.privateEffects?.paletteDebuffs || []).length) {
       const notice = document.createElement("p");
@@ -6932,11 +7051,11 @@ function boot() {
     }
 
     if (own.hand.areaHalfShift > 0 && targetMode?.kind !== "bandShift") {
-      const start = appendButton("半マスシフト", targetMode !== null || phase !== "WORK", () => beginBandShift("areaHalfShift"));
+      const start = appendButton("半マスシフト", areaSkillUsed || targetMode !== null || phase !== "WORK", () => beginBandShift("areaHalfShift"));
       start.dataset.skillStart = "areaHalfShift";
     }
     if (own.hand.areaTripleShift > 0 && targetMode?.kind !== "bandShift") {
-      const start = appendButton("三層断層", targetMode !== null || phase !== "WORK" || Boolean(publicState.preparedOutgoing), () => beginBandShift("areaTripleShift"));
+      const start = appendButton("三層断層", areaSkillUsed || targetMode !== null || phase !== "WORK" || Boolean(publicState.preparedOutgoing), () => beginBandShift("areaTripleShift"));
       start.dataset.skillStart = "areaTripleShift";
     }
     appendBandShiftControls();
@@ -7074,7 +7193,7 @@ function boot() {
     const details = projection.profiles.map((profile) => standard
       ? `${profile.displayName}: 使用可能 ${Object.values(profile.cards).filter((count) => count.available > 0).length}/19枚`
       : `${profile.displayName}: ${Object.entries(profile.cards).map(([id, count]) => `${id} ${count.available}/${count.owned}`).join("・")}`).join(" / ");
-    setupDetails.textContent = projection.code === "NO_LOCAL_SAVE" ? "標準モードのローカルプロフィールがありません。テストでは起動前fixtureを使用します。" : `${projection.ruleLabel} / ${details}${standard ? "" : " / legalRecolorは実験貸与"}`;
+    setupDetails.textContent = projection.code === "NO_LOCAL_SAVE" ? "標準モードのローカルプロフィールがありません。テストでは起動前fixtureを使用します。" : `${projection.ruleLabel} / ${details}${standard ? "" : " / おまけ色補充・legalRecolorは実験貸与"}`;
     startMatch.textContent = standard ? "熟考モード対戦を開始" : "標準α対戦を開始";
     renderLoadoutBuilder(projection);
     pendingStart = null;

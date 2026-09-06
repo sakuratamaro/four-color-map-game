@@ -16,6 +16,7 @@ function playGame({ seed, firstSeat = "A", levelA = "normal", levelB = "normal",
     loadouts,
   }, rng);
   const levels = { A: levelA, B: levelB };
+  for (const seat of ["A", "B"]) if (levels[seat] === "hard") cpu.applyHardCpuSkillCharges(state, seat);
   let acceptedActions = 0;
   let rejectedActions = 0;
   let rejectedCode = null;

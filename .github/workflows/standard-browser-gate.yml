@@ -114,8 +114,26 @@ jobs:
           tests/standard-online-contact-feedback.test.cjs
           tests/standard-cpu-commentary.test.cjs
           tests/standard-cpu.test.cjs
+          tests/standard-cpu-selfplay.test.cjs
           tests/standard-cpu-roster.test.cjs
           tests/standard-match.test.cjs
+          tests/standard-match-start.test.cjs
+          tests/standard-match-transaction.test.cjs
+          tests/standard-save.test.cjs
+          tests/standard-local-session.test.cjs
+          tests/standard-skill-dispatcher.test.cjs
+          tests/standard-area-corner-bloom.test.cjs
+          tests/standard-area-die-plus.test.cjs
+          tests/standard-area-half-shift-invariants.test.cjs
+          tests/standard-area-resize.test.cjs
+          tests/standard-area-triple-shift.test.cjs
+          tests/standard-disrupt-choice-one-invariants.test.cjs
+          tests/standard-disrupt-choice-two.test.cjs
+          tests/standard-disrupt-choice-three.test.cjs
+          tests/standard-disrupt-palette-choice.test.cjs
+          tests/standard-disrupt-palette-random.test.cjs
+          tests/standard-disrupt-random-one.test.cjs
+          tests/standard-disrupt-random-two.test.cjs
           tests/standard-no-color-rescue.test.cjs
           tests/standard-color-region-split.test.cjs
           tests/standard-local-ui-static.test.cjs

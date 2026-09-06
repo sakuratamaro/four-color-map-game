@@ -9,7 +9,7 @@ const start = require("../standard/standard-match-start.js");
 const transaction = require("../standard/standard-match-transaction.js");
 
 function alphaLoadout() {
-  return { color: ["colorPrism"], area: ["areaHalfShift"], disrupt: ["disruptChoiceOne"], experimental: ["legalRecolor"] };
+  return { color: ["colorPrism", "colorBonusRefill"], area: ["areaHalfShift"], disrupt: ["disruptChoiceOne"], experimental: ["legalRecolor"] };
 }
 
 function rootFixture() {
@@ -37,6 +37,42 @@ function rootFixture() {
     clock: { now: () => "2026-08-30T05:00:00.000Z" },
     storageAdapter: { setItem() {} },
   }).root;
+}
+
+function acceptedMissRootFixture() {
+  const rng = engine.createRngDomains(8811, match.REQUIRED_RNG_STREAMS);
+  const rngSnapshot = engine.snapshotRngDomains(rng, match.REQUIRED_RNG_STREAMS);
+  const loadout = {
+    color: ["colorPrism", "colorChoiceBorrow"],
+    area: ["areaHalfShift", "areaResize"],
+    disrupt: ["disruptPaletteChoice", "disruptChoiceOne"],
+  };
+  const inventory = Object.fromEntries(Object.values(loadout).flat().map((skill) => [skill, 1]));
+  const root = save.createStandardSave({
+    profiles: {
+      playerA: save.createProfile({ name: "Alice", inventory }),
+      playerB: save.createProfile({ name: "Bob", inventory }),
+    },
+    rngSnapshot,
+  });
+  const started = start.startStandardMatch({
+    root,
+    expectedRootRevision: 0,
+    operationId: "accepted-miss-start",
+    matchId: "accepted-miss-match",
+    ruleSetId: start.RULE_SET_IDS.STANDARD,
+    participants: { A: { type: "PROFILE", profileId: "playerA" }, B: { type: "PROFILE", profileId: "playerB" } },
+    loadouts: { A: loadout, B: loadout },
+    firstSeat: "A",
+    clock: { now: () => "2026-08-30T05:10:00.000Z" },
+    storageAdapter: { setItem() {} },
+  });
+  const next = JSON.parse(JSON.stringify(started.root));
+  next.activeMatch.state.phase = "WORK";
+  next.activeMatch.state.basicPalettes.B = ["red", "red"];
+  next.activeMatch.state.bonusColors.B = "red";
+  save.validateStandardSave(next);
+  return next;
 }
 
 function createAction(root, overrides = {}) {
@@ -263,4 +299,36 @@ test("experimental loan consumes only match hand while persisting the accepted a
   assert.equal(replay.saved, false);
   assert.equal(Object.keys(replay.root.receipts.matchConsumption).length, 1);
   assert.deepEqual(replay.root.receipts.matchConsumption["match-action-gate:loan-recolor-1"], receipt);
+});
+
+test("accepted palette miss persists and replays once without consuming hand, inventory, reservation, or consumption receipt", () => {
+  const root = acceptedMissRootFixture();
+  const state = root.activeMatch.state;
+  const action = { id: "palette-accepted-miss", type: "USE_SKILL", payload: { skill: "disruptPaletteChoice", color: "red" } };
+  const input = {
+    root,
+    expectedRootRevision: root.rootRevision,
+    expectedMatchVersion: state.version,
+    matchId: state.matchId,
+    actorSeat: "A",
+    action,
+    storageAdapter: { setItem() {} },
+  };
+  const result = transaction.dispatchStandardMatchAction(input);
+  assert.equal(result.ok, true);
+  assert.equal(result.root.activeMatch.state.hands.A.disruptPaletteChoice, 1);
+  assert.equal(result.root.profiles.playerA.inventory.disruptPaletteChoice, 1);
+  assert.equal(result.root.reservations.playerA.disruptPaletteChoice, 1);
+  assert.equal(Object.hasOwn(result.root.receipts.matchConsumption, "accepted-miss-match:palette-accepted-miss"), false);
+  assert.equal(result.root.receipts.matchAction["accepted-miss-match:palette-accepted-miss"].resultCode, "OK");
+  assert.deepEqual(result.root.activeMatch.state.skillCategoryWindow, { actor: "A", categories: ["disrupt"] });
+  const replay = transaction.dispatchStandardMatchAction({ ...input, root: result.root, storageAdapter: { setItem() { throw new Error("replay must not write"); } } });
+  assert.equal(replay.code, "IDEMPOTENT_REPLAY");
+  assert.equal(replay.root, result.root);
+
+  const failedRoot = acceptedMissRootFixture();
+  const before = JSON.stringify(failedRoot);
+  const failed = transaction.dispatchStandardMatchAction({ ...input, root: failedRoot, expectedRootRevision: failedRoot.rootRevision, storageAdapter: { setItem() { throw new Error("quota"); } } });
+  assert.equal(failed.code, "PERSISTENCE_FAILED");
+  assert.equal(JSON.stringify(failedRoot), before);
 });

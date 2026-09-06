@@ -5,10 +5,11 @@ const match = require("./standard-match.js");
 const save = require("./standard-save.js");
 const { STANDARD_SKILLS } = require("./standard-skill-registry.js");
 const { stableHash } = require("./standard-root-transaction.js");
+const cpu = require("./standard-cpu.js");
 
-const INITIAL_CONFIG_VERSION = "standard-match-init-v1";
+const INITIAL_CONFIG_VERSION = "standard-match-init-v2-alpha3-category-charges";
 const RULE_SET_IDS = Object.freeze({ STANDARD: "STANDARD_V5", ALPHA_SLICE: "STANDARD_V5_ALPHA_SLICE" });
-const ALPHA_SLICE_SKILLS = Object.freeze(["colorPrism", "areaHalfShift", "disruptChoiceOne", "legalRecolor"]);
+const ALPHA_SLICE_SKILLS = Object.freeze(["colorPrism", "colorBonusRefill", "areaHalfShift", "disruptChoiceOne", "legalRecolor"]);
 const ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/;
 
 function clone(value) {
@@ -100,7 +101,7 @@ function reservationPlan(root, participants, loadouts) {
   for (const seat of ["A", "B"]) {
     const participant = participants[seat];
     for (const skillId of flatSkills(loadouts[seat])) {
-      const loan = skillId === "legalRecolor";
+      const loan = skillId === "legalRecolor" || skillId === "colorBonusRefill";
       const source = loan ? "EXPERIMENTAL_LOAN" : (participant.type === "CPU" ? "CPU_VIRTUAL" : "INVENTORY_BACKED");
       sources[seat][skillId] = source;
       if (source !== "INVENTORY_BACKED") continue;
@@ -188,6 +189,10 @@ function startStandardMatch(args) {
     if (typeof startedAt !== "string" || !Number.isFinite(Date.parse(startedAt))) throw Object.assign(new Error("INVALID_CLOCK"), { code: "INVALID_CLOCK" });
     const streams = engine.createRngDomainsFromSnapshot(draft.rngSnapshot, match.REQUIRED_RNG_STREAMS);
     const state = match.createStandardMatch({ matchId, firstSeat, loadouts: quote.loadouts }, streams);
+    for (const seat of ["A", "B"]) {
+      if (quote.participants[seat].type === "CPU" && quote.participants[seat].difficulty === "hard") cpu.applyHardCpuSkillCharges(state, seat);
+    }
+    match.validateStandardState(state);
     draft.rngSnapshot = clone(engine.snapshotRngDomains(streams, match.REQUIRED_RNG_STREAMS));
     draft.reservations = clone(quote.reservations);
     draft.activeMatch = {

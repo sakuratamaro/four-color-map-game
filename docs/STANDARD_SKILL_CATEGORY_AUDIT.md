@@ -2,9 +2,9 @@
 
 Status: design baseline for `UDL-20260906-012` / `UDL-20260906-013`
 
-Read-only audit base: `origin/main@6c5f2c8`
+Read-only audit base: `origin/main@6c5f2c8`; implementation reconstruction base: `ad49a41`
 
-Scope: standard v4.9 catalog 19 cards, plus the experimental-alpha / online-LAB `legalRecolor` compatibility boundary
+Scope: standard v4.9 catalog 19 cards, plus the experimental-alpha `colorBonusRefill` loan and experimental-alpha / online-LAB `legalRecolor` compatibility boundaries
 
 ## 1. Decision summary
 
@@ -96,13 +96,14 @@ Category use follows the action result, not whether the effect was strategically
 | Persistence failure | unused in authoritative state | unchanged in authoritative state | discard the candidate state/RNG/marker; retry reevaluates the action |
 | Idempotent replay of an accepted action | already used by the original commit | no second consumption | replay receipt is returned before reapplying rules |
 
-This separation is required by UDL-003: the no-op does not reveal the opponent's private palette through card disappearance, but it still ends the disrupt opportunity and prevents selecting a different color in the same window. Implementing the category rule must not preserve the baseline handler's unconditional `resolved()` card consumption for that branch.
+This separation is required by UDL-003 for alpha.3: the no-op does not reveal the opponent's private palette through card disappearance, but it still ends the disrupt opportunity and prevents selecting a different color in the same window. Alpha.1 and alpha.2 retain their accepted-and-consumed behavior. Implementing the category rule must not preserve the baseline handler's unconditional `resolved()` card consumption for the alpha.3 branch.
 
 ## 5. Compatibility and subsystem impact
 
 ### Engine and persistence
 
 - Create new matches as `5.0.0-alpha.3` with `skillCategoryWindow` required by validation.
+- Allow the internal match factory to select only an allowlisted supported engine version. The online Edge handler supplies its own `NEW_STANDARD_MATCH_ENGINE_VERSION` constant; request bodies cannot select it. This makes an alpha.2 new-match rollback artifact possible without dropping alpha.3 state-reading support.
 - Continue validating and dispatching `alpha.1` and `alpha.2` with their old stacking behavior and no window field. Retrofitting an in-progress match is unsafe because earlier uses in its current control window cannot be reconstructed reliably.
 - Put the category gate before RNG and the handler. Mark only an `ok: true` handler result. If the resolved skill transfers `active`, initialize an empty window for the new active seat; otherwise append the resolved category.
 - Include the window in the authoritative JSON and public projection. A database schema migration is not expected because the authority is JSON, but source and generated server bundle must deploy together.
@@ -132,14 +133,14 @@ This separation is required by UDL-003: the no-op does not reveal the opponent's
 
 ## 6. Bonus-color expansion backlog
 
-This section maps the latest user direction to `UDL-20260906-011` without promoting it into the current 19-card implementation.
+This section maps the latest user direction to `UDL-20260906-011` without promoting it into the current 19-card catalog or gacha pool. Alpha.3 includes it only as an experimental loan where that ruleset explicitly supplies it.
 
 | Label | Candidate | Catalog / usage | Recommendation |
 |---|---|---|---|
-| User decision | おまけ色補充: add 2 current bonus-color uses, cap 4 | color / color | retain as the sole current adoption candidate; it must obey the same color opportunity |
+| User decision | おまけ色補充: add 2 current bonus-color uses, cap 4 | color / color | adopt as an experimental alpha loan; it obeys the same color opportunity, remains `v49Catalogued:false`, and is absent from gacha |
 | User concern | Other bonus-color-related proposals | color / color if revisited | keep on hold because their power may be excessive; require rules/privacy/UX/category-gate review before promotion |
 
-The refill card is not part of the audited v4.9 set and does not change the 19-card or gacha pools until a separate UDL-011 implementation decision is made.
+The refill card is not part of the audited v4.9 set and does not change the 19-card or gacha pools. A separate UDL-011 decision is still required before normal inventory/catalog promotion.
 
 ## 7. Risks
 
@@ -178,5 +179,6 @@ The refill card is not part of the audited v4.9 set and does not change the 19-c
 ### C. Client and online artifacts
 
 - Run `scripts/build-standard-v5-bundle.mjs` and `scripts/build-standard-online-engine.mjs`, verify both generated bundles have no stale diff after a clean rebuild, run source/client/server parity checks, and deploy A-C together. No database migration is required for the JSON state field.
+- Candidate preflight must identify both the alpha.3 category UI contract and the exact candidate cache markers; older public assets must not satisfy `--expect=candidate` merely because earlier release markers remain present.
 
 UI disabling and explanatory copy may follow after A-C because server safety is already established, but should land before public rollout for clarity.

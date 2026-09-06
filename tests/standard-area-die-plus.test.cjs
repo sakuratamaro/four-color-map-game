@@ -22,6 +22,8 @@ function microForMacro(macro) {
 function fixture({ requiredSize = 1, hands = { A: { areaDiePlus: 1 }, B: {} } } = {}) {
   const rng = streams();
   const state = match.createStandardMatch({ matchId: "area-die-plus", firstSeat: "A", hands }, rng);
+  state.engineVersion = match.PREVIOUS_ENGINE_VERSION;
+  delete state.skillCategoryWindow;
   state.phase = "WORK";
   state.active = "A";
   state.requiredSize = requiredSize;

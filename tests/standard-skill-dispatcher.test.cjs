@@ -44,16 +44,116 @@ function dispatch(state, action, rngStreams = streams(1300)) {
   });
 }
 
-test("registry fixes 19 v4.9 cards plus one separately identified experimental card", () => {
+test("registry fixes 19 v4.9 cards plus two separately identified experimental cards", () => {
   assert.equal(V49_SKILL_IDS.length, 19);
-  assert.equal(Object.keys(STANDARD_SKILLS).length, 20);
-  const required = ["id", "displayName", "category", "rarity", "timing", "targetSchema", "implemented", "alphaUiEnabled", "standardUiEnabled", "gachaEnabled", "experimental", "privateInformationEffect", "rngStream", "expectedRngDraws", "consumptionPolicy", "handlerVersion"];
+  assert.equal(Object.keys(STANDARD_SKILLS).length, 21);
+  const required = ["id", "displayName", "category", "usageCategory", "rarity", "timing", "targetSchema", "implemented", "alphaUiEnabled", "standardUiEnabled", "gachaEnabled", "experimental", "privateInformationEffect", "rngStream", "expectedRngDraws", "consumptionPolicy", "handlerVersion"];
   for (const definition of Object.values(STANDARD_SKILLS)) for (const key of required) assert.equal(Object.hasOwn(definition, key), true, `${definition.id}.${key}`);
   for (const id of V49_SKILL_IDS) assert.equal(STANDARD_SKILLS[id].standardUiEnabled, true, `${id}.standardUiEnabled`);
   assert.equal(STANDARD_SKILLS.legalRecolor.implemented, true);
   assert.equal(STANDARD_SKILLS.legalRecolor.standardUiEnabled, false);
   assert.equal(STANDARD_SKILLS.legalRecolor.gachaEnabled, false);
   assert.equal(STANDARD_SKILLS.legalRecolor.experimental, true);
+  assert.equal(STANDARD_SKILLS.colorBonusRefill.usageCategory, "color");
+  assert.equal(STANDARD_SKILLS.colorBonusRefill.gachaEnabled, false);
+});
+
+test("bonus color refill adds two uses up to four and a full meter rejects atomically", () => {
+  const state = workState(1188);
+  state.phase = "COLOR";
+  state.pending = "R1";
+  state.regions.R1.color = null;
+  state.regions.R1.isPending = true;
+  state.hands.A.colorBonusRefill = 3;
+  state.bonusUsesRemaining.A = 1;
+  const first = dispatch(state, { type: "USE_SKILL", payload: { skill: "colorBonusRefill" } });
+  assert.deepEqual([first.ok, first.state.bonusUsesRemaining.A, first.state.hands.A.colorBonusRefill, first.cardConsumed], [true, 3, 2, true]);
+  const secondState = JSON.parse(JSON.stringify(first.state));
+  secondState.skillCategoryWindow.categories = [];
+  const second = dispatch(secondState, { type: "USE_SKILL", payload: { skill: "colorBonusRefill" } });
+  assert.equal(second.state.bonusUsesRemaining.A, 4);
+  const fullState = JSON.parse(JSON.stringify(second.state));
+  fullState.skillCategoryWindow.categories = [];
+  const before = JSON.stringify(fullState);
+  const rejected = dispatch(fullState, { type: "USE_SKILL", payload: { skill: "colorBonusRefill" } });
+  assert.deepEqual([rejected.ok, rejected.code, JSON.stringify(fullState)], [false, "BONUS_USES_ALREADY_FULL", before]);
+});
+
+test("alpha.3 limits each usage category to once per same-seat control window", () => {
+  const state = workState(1189);
+  state.phase = "COLOR";
+  state.pending = "R1";
+  state.regions.R1.color = null;
+  state.regions.R1.isPending = true;
+  state.hands.A.colorPrism = 1;
+  state.hands.A.colorBonusRefill = 1;
+  state.bonusUsesRemaining.A = 1;
+  const prism = dispatch(state, { type: "USE_SKILL", payload: { skill: "colorPrism" } });
+  assert.deepEqual(prism.state.skillCategoryWindow, { actor: "A", categories: ["color"] });
+  const snapshot = JSON.stringify(prism.state);
+  const blocked = dispatch(prism.state, { type: "USE_SKILL", payload: { skill: "colorBonusRefill" } });
+  assert.deepEqual([blocked.ok, blocked.code, JSON.stringify(blocked.state)], [false, "SKILL_CATEGORY_ALREADY_USED_IN_WINDOW", snapshot]);
+
+  const work = workState(1190);
+  work.skillCategoryWindow.categories = ["area"];
+  work.hands.A.disruptChoiceOne = 1;
+  const distinct = dispatch(work, { type: "USE_SKILL", payload: { skill: "disruptChoiceOne", color: "red" } });
+  assert.deepEqual(distinct.state.skillCategoryWindow, { actor: "A", categories: ["area", "disrupt"] });
+});
+
+test("accepted palette-injection miss advances RNG, version, and category without consuming its card", () => {
+  const state = workState(1191);
+  state.hands.A.disruptPaletteChoice = 1;
+  state.hands.A.disruptChoiceOne = 1;
+  state.basicPalettes.B = ["red", "red"];
+  state.bonusColors.B = "red";
+  const privateBefore = JSON.stringify(state.privateEffects.B);
+  const rng = streams(1291);
+  const rngBefore = snapshotRngStreams(rng);
+  const result = dispatch(state, { type: "USE_SKILL", payload: { skill: "disruptPaletteChoice", color: "red" } }, rng);
+  assert.deepEqual([result.ok, result.noOp, result.cardConsumed, result.rngDraws], [true, true, false, 1]);
+  assert.deepEqual([result.state.version, result.state.skillsUsed.A, result.state.hands.A.disruptPaletteChoice], [state.version + 1, state.skillsUsed.A + 1, 1]);
+  assert.deepEqual(result.state.skillCategoryWindow, { actor: "A", categories: ["disrupt"] });
+  assert.equal(JSON.stringify(result.state.privateEffects.B), privateBefore);
+  assert.notDeepEqual(snapshotRngStreams(rng), rngBefore);
+  const afterMissRng = snapshotRngStreams(rng);
+  const blocked = dispatch(result.state, { type: "USE_SKILL", payload: { skill: "disruptChoiceOne", color: "blue" } }, rng);
+  assert.equal(blocked.code, "SKILL_CATEGORY_ALREADY_USED_IN_WINDOW");
+  assert.deepEqual(snapshotRngStreams(rng), afterMissRng);
+});
+
+test("alpha.1 and alpha.2 retain the accepted all-same palette injection with card consumption", () => {
+  for (const [index, engineVersion] of [match.LEGACY_ENGINE_VERSION, match.PREVIOUS_ENGINE_VERSION].entries()) {
+    const state = workState(1170 + index);
+    state.engineVersion = engineVersion;
+    delete state.skillCategoryWindow;
+    state.hands.A.disruptPaletteChoice = 1;
+    state.basicPalettes.B = ["green", "green"];
+    state.bonusColors.B = "green";
+    const result = dispatch(state, { type: "USE_SKILL", payload: { skill: "disruptPaletteChoice", color: "green" } }, streams(1270 + index));
+    assert.deepEqual([result.ok, result.cardConsumed, result.state.hands.A.disruptPaletteChoice, result.rngDraws], [true, true, 0, 1], engineVersion);
+    assert.equal(result.state.engineVersion, engineVersion);
+    assert.equal(result.state.skillCategoryWindow, undefined);
+  }
+});
+
+test("alpha.1 and alpha.2 can resolve two color-category cards in one continuous control window", () => {
+  for (const [index, engineVersion] of [match.LEGACY_ENGINE_VERSION, match.PREVIOUS_ENGINE_VERSION].entries()) {
+    const state = workState(1175 + index);
+    state.engineVersion = engineVersion;
+    delete state.skillCategoryWindow;
+    state.phase = "COLOR";
+    state.pending = "R1";
+    state.regions.R1.color = null;
+    state.regions.R1.isPending = true;
+    state.hands.A.colorPrism = 1;
+    state.hands.A.colorBonusRefill = 1;
+    state.bonusUsesRemaining.A = 1;
+    const prism = dispatch(state, { type: "USE_SKILL", payload: { skill: "colorPrism" } }, streams(1275 + index));
+    assert.equal(prism.ok, true, engineVersion);
+    const refill = dispatch(prism.state, { type: "USE_SKILL", payload: { skill: "colorBonusRefill" } }, streams(1285 + index));
+    assert.deepEqual([refill.ok, refill.state.bonusUsesRemaining.A, refill.state.skillCategoryWindow], [true, 3, undefined], engineVersion);
+  }
 });
 
 test("dispatcher distinguishes rejected, cancelled, and resolved without exposing authoritative state", () => {
@@ -77,7 +177,7 @@ test("dispatcher distinguishes rejected, cancelled, and resolved without exposin
 });
 
 test("representative v4.9 handlers are registered behind the common dispatcher", () => {
-  for (const id of ["colorRandomBorrow", "colorChoiceBorrow", "colorPaletteChange", "colorRegionSplit", "colorPrism", "areaMicroBloom", "areaDiePlus", "areaResize", "areaCornerBloom", "areaHalfShift", "areaTripleShift", "disruptRandomOne", "disruptChoiceOne", "disruptRandomTwo", "disruptPaletteRandom", "disruptChoiceTwo", "disruptPaletteChoice", "disruptChoiceThree", "disruptForcedPalette", "legalRecolor"]) {
+  for (const id of ["colorRandomBorrow", "colorChoiceBorrow", "colorPaletteChange", "colorRegionSplit", "colorPrism", "colorBonusRefill", "areaMicroBloom", "areaDiePlus", "areaResize", "areaCornerBloom", "areaHalfShift", "areaTripleShift", "disruptRandomOne", "disruptChoiceOne", "disruptRandomTwo", "disruptPaletteRandom", "disruptChoiceTwo", "disruptPaletteChoice", "disruptChoiceThree", "disruptForcedPalette", "legalRecolor"]) {
     assert.equal(STANDARD_SKILLS[id].implemented, true, id);
     assert.equal(typeof STANDARD_SKILLS[id].handlerVersion, "string", id);
   }
@@ -303,7 +403,7 @@ test("random color borrow rejects wrong phase, wrong seat, and an unavailable ca
   const wrongPhase = dispatch(base, action, rngStreams);
   assert.equal(wrongPhase.code, "WRONG_PHASE");
   const wrongSeat = dispatchStandardSkillAction({
-    state: { ...base, phase: "COLOR", active: "B" }, actor: "A", action, expectedVersion: base.version, rngStreams,
+    state: { ...base, phase: "COLOR", active: "B", skillCategoryWindow: { actor: "B", categories: [] } }, actor: "A", action, expectedVersion: base.version, rngStreams,
     validateState: match.validateStandardState, projectPublic: match.projectStandardPublicState, projectPrivate: match.projectStandardPrivateState,
   });
   assert.equal(wrongSeat.code, "NOT_YOUR_TURN");

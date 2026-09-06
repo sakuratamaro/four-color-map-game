@@ -21,6 +21,8 @@ function macroMicroCells(macro) {
 function fixture() {
   const rng = streams();
   const state = match.createStandardMatch({ matchId: "triple-shift", firstSeat: "A", hands: { A: { areaTripleShift: 1 }, B: {} } }, rng);
+  state.engineVersion = match.PREVIOUS_ENGINE_VERSION;
+  delete state.skillCategoryWindow;
   state.phase = "WORK";
   state.regions = {
     R1: { id: "R1", micro: [13, 25, 37].flatMap(macroMicroCells), sourceMacros: [13, 25, 37], controllers: ["A"], color: "red", isPending: false },

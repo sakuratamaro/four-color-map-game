@@ -61,6 +61,10 @@ test("setup projection exposes only profile availability and the explicit experi
   assert.equal(setup.profiles[0].cards.colorPrism.reservedCount, 0);
   assert.equal(setup.profiles[0].cards.colorPrism.availableCount, 1);
   assert.deepEqual(setup.experimentalLoan, { skillId: "legalRecolor", count: 1, inventoryBacked: false, reserved: 0 });
+  assert.deepEqual(setup.experimentalLoans, [
+    { skillId: "colorBonusRefill", count: 1, inventoryBacked: false, reserved: 0 },
+    { skillId: "legalRecolor", count: 1, inventoryBacked: false, reserved: 0 },
+  ]);
   assert.equal(JSON.stringify(setup).includes("basicPalettes"), false);
   assert.equal(JSON.stringify(setup).includes("rngSnapshot"), false);
 });

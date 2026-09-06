@@ -4,11 +4,11 @@ import "./standard-engine.bundle.js";
 type JsonObject = Record<string, unknown>;
 type Seat = "A" | "B";
 type StandardEngineApi = {
-  create(input: { matchId: string; loadouts: Record<Seat, JsonObject>; profiles: Record<Seat, JsonObject>; seed: number; debugMode?: boolean; labMode?: boolean }): JsonObject;
+  create(input: { matchId: string; loadouts: Record<Seat, JsonObject>; profiles: Record<Seat, JsonObject>; seed: number; debugMode?: boolean; labMode?: boolean; cpuSeat?: Seat | null; engineVersion?: string }): JsonObject;
   apply(input: { state: JsonObject; rngSnapshot: JsonObject; actor: Seat; action: JsonObject; expectedVersion: number; debugMode?: boolean; labMode?: boolean }): JsonObject;
   applyCosmetic(input: { profile: JsonObject; cosmeticId: string }): { profile: JsonObject; quote: JsonObject };
-  applyProfiles(input: { profiles: Record<Seat, JsonObject>; beforeState: JsonObject; nextState: JsonObject; actor: Seat; action: JsonObject; finishedAt: string; debugMode?: boolean; labMode?: boolean }): { profiles: Record<Seat, JsonObject>; changed: Record<Seat, boolean> };
-  applyCpuProfiles(input: { profiles: Record<Seat, JsonObject>; beforeState: JsonObject; nextState: JsonObject; actor: Seat; action: JsonObject; finishedAt: string; characterId: string }): { profiles: Record<Seat, JsonObject>; changed: Record<Seat, boolean> };
+  applyProfiles(input: { profiles: Record<Seat, JsonObject>; beforeState: JsonObject; nextState: JsonObject; actor: Seat; action: JsonObject; finishedAt: string; debugMode?: boolean; labMode?: boolean; cardConsumed?: boolean }): { profiles: Record<Seat, JsonObject>; changed: Record<Seat, boolean> };
+  applyCpuProfiles(input: { profiles: Record<Seat, JsonObject>; beforeState: JsonObject; nextState: JsonObject; actor: Seat; action: JsonObject; finishedAt: string; characterId: string; cardConsumed?: boolean }): { profiles: Record<Seat, JsonObject>; changed: Record<Seat, boolean> };
   createStarterProfile(displayName: string): JsonObject;
   drawGacha(input: { profile: JsonObject; ticketLevel: number; count: number; seed: number }): { profile: JsonObject; draws: JsonObject[] };
   quoteCardSale(input: { profile: JsonObject; skillId: string; count: number }): JsonObject;
@@ -24,6 +24,7 @@ type StandardEngineApi = {
   validateProfile(profile: JsonObject): boolean;
   validateSeatLoadout(input: { loadout: JsonObject; profile?: JsonObject }): boolean;
 };
+const NEW_STANDARD_MATCH_ENGINE_VERSION = "5.0.0-alpha.3";
 
 declare global {
   // Generated from the reviewed Standard engine and profile modules.
@@ -990,6 +991,8 @@ Deno.serve(async (request: Request) => {
           seed: secureSeed(),
           debugMode,
           labMode,
+          cpuSeat: room.opponent_kind === "cpu" ? "B" : null,
+          engineVersion: NEW_STANDARD_MATCH_ENGINE_VERSION,
         });
         const initialState = { ...(created.state as JsonObject), version: initialVersion };
         const initialProjection = globalThis.FourColorStandardServerEngine.project(initialState, debugMode, labMode);
@@ -1063,8 +1066,9 @@ Deno.serve(async (request: Request) => {
         profiles: { A: cpuRoom.profile_a_state as JsonObject, B: cpuRoom.profile_b_state as JsonObject },
         beforeState: state, nextState: applied.state as JsonObject, actor: "B", action,
         finishedAt: new Date().toISOString(), characterId: room.cpu_character_id as string,
+        cardConsumed: applied.cardConsumed,
       });
-      const safeResult = { code: applied.code, contactColorCount: applied.contactColorCount, terminalReason: applied.terminalReason };
+      const safeResult = { code: applied.code, contactColorCount: applied.contactColorCount, terminalReason: applied.terminalReason, cardConsumed: applied.cardConsumed, noOp: applied.noOp };
       stage = "commit-cpu-action";
       const { data: committed, error: commitError } = await service.rpc("fcg_standard_server_commit_action", {
         p_room_id: roomId, p_actor_id: room.cpu_user_id, p_action_id: identity.actionId,
@@ -1130,6 +1134,7 @@ Deno.serve(async (request: Request) => {
         action,
         finishedAt,
         characterId: room.cpu_character_id as string,
+        cardConsumed: applied.cardConsumed,
       })
       : globalThis.FourColorStandardServerEngine.applyProfiles({
       profiles: { A: room.profile_a_state as JsonObject, B: room.profile_b_state as JsonObject },
@@ -1140,8 +1145,9 @@ Deno.serve(async (request: Request) => {
       finishedAt,
       debugMode,
       labMode,
+      cardConsumed: applied.cardConsumed,
     });
-    const safeResult = { code: applied.code, contactColorCount: applied.contactColorCount, terminalReason: applied.terminalReason };
+    const safeResult = { code: applied.code, contactColorCount: applied.contactColorCount, terminalReason: applied.terminalReason, cardConsumed: applied.cardConsumed, noOp: applied.noOp };
     stage = "commit-action";
     const { data: committed, error: commitError } = await service.rpc("fcg_standard_server_commit_action", {
       p_room_id: roomId,

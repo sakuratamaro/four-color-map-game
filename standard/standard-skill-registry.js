@@ -1,12 +1,17 @@
 "use strict";
 
+const SKILL_USAGE_CATEGORIES = Object.freeze(["color", "area", "disrupt"]);
+
 function skill(id, displayName, category, rarity, timing, options = {}) {
   const implemented = Boolean(options.implemented);
   const v49Catalogued = options.v49Catalogued !== false;
+  const usageCategory = options.usageCategory || category;
+  if (!SKILL_USAGE_CATEGORIES.includes(usageCategory)) throw new TypeError("INVALID_SKILL_USAGE_CATEGORY");
   return Object.freeze({
     id,
     displayName,
     category,
+    usageCategory,
     rarity,
     timing,
     targetSchema: options.targetSchema ?? null,
@@ -42,6 +47,16 @@ const STANDARD_SKILLS = Object.freeze({
     handlerVersion: "color-choice-borrow-v1",
   }),
   colorPrism: skill("colorPrism", "四色解放", "color", 3, "COLOR", { implemented: true, handlerVersion: "color-prism-v1" }),
+  colorBonusRefill: skill("colorBonusRefill", "おまけ色補充", "color", 2, "COLOR", {
+    implemented: true,
+    alphaUiEnabled: true,
+    gachaEnabled: false,
+    experimental: true,
+    privateInformationEffect: true,
+    consumptionPolicy: "RESOLVED_ONLY_BELOW_BONUS_CAP",
+    handlerVersion: "color-bonus-refill-v1",
+    v49Catalogued: false,
+  }),
   colorRegionSplit: skill("colorRegionSplit", "エリア二分", "color", 4, "COLOR", {
     targetSchema: { regionId: "region-id", sourceMacros: "macro-index-array" },
     implemented: true,
@@ -143,6 +158,7 @@ const STANDARD_SKILLS = Object.freeze({
     handlerVersion: "disrupt-forced-palette-v1",
   }),
   legalRecolor: skill("legalRecolor", "塗り直し・乱", "experimental", 3, "WORK", {
+    usageCategory: "color",
     targetSchema: { regionId: "region-id" },
     implemented: true,
     alphaUiEnabled: true,
@@ -159,4 +175,4 @@ const STANDARD_SKILLS = Object.freeze({
 const V49_SKILL_IDS = Object.freeze(Object.values(STANDARD_SKILLS).filter((entry) => entry.v49Catalogued).map((entry) => entry.id));
 const IMPLEMENTED_SKILL_IDS = Object.freeze(Object.values(STANDARD_SKILLS).filter((entry) => entry.implemented).map((entry) => entry.id));
 
-module.exports = { IMPLEMENTED_SKILL_IDS, STANDARD_SKILLS, V49_SKILL_IDS };
+module.exports = { IMPLEMENTED_SKILL_IDS, SKILL_USAGE_CATEGORIES, STANDARD_SKILLS, V49_SKILL_IDS };

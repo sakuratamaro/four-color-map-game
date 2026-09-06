@@ -610,6 +610,8 @@ function boot() {
     if (!result.ok) {
       say(result.code === "NO_LEGAL_RECOLOR"
         ? "変更先がありません。カードは消費されませんでした。"
+        : result.code === "SKILL_CATEGORY_ALREADY_USED_IN_WINDOW"
+          ? "この手番では同じ種類のスキルはもう使えません。手番・カードは減っていません。"
         : result.code === "COLOR_AVAILABLE"
           ? "申告は成立しませんでした。使える色があります。持ち色か色操作カードを選んでください。手番・カードは減っていません。"
           : `操作できません（${result.code}）。`);
@@ -665,7 +667,11 @@ function boot() {
       try {
         const result = await session.dispatchAction({ actorSeat, type, payload });
         say(result.ok
-          ? "操作を保存しました。"
+          ? result.noOp && result.cardConsumed === false
+            ? "効果は空振りでした。カードは減りませんが、この手番の妨害カード使用枠は使いました。"
+            : "操作を保存しました。"
+          : result.code === "SKILL_CATEGORY_ALREADY_USED_IN_WINDOW"
+            ? "この手番では同じ種類のスキルはもう使えません。手番・カードは減っていません。"
           : result.code === "COLOR_AVAILABLE"
             ? "申告は成立しませんでした。使える色があります。持ち色か色操作カードを選んでください。手番・カードは減っていません。"
             : `操作できません（${result.code}）。`);
@@ -841,6 +847,16 @@ function boot() {
     privatePanel.appendChild(palette);
     const publicState = session.getPublicProjection();
     const phase = publicState.phase;
+    const usedSkillCategories = new Set(publicState.skillCategoryWindow?.categories || []);
+    const colorSkillUsed = usedSkillCategories.has("color");
+    const areaSkillUsed = usedSkillCategories.has("area");
+    const disruptSkillUsed = usedSkillCategories.has("disrupt");
+    if (usedSkillCategories.size) {
+      const used = document.createElement("p");
+      used.className = "skill-category-status";
+      used.textContent = `この操作権区間で使用済み：${[...usedSkillCategories].map((category) => ({ color: "色操作", area: "エリア操作", disrupt: "妨害" })[category]).join("・")}`;
+      privatePanel.appendChild(used);
+    }
     if (phase === "COLOR" && targetMode === null) {
       const guidance = document.createElement("section");
       guidance.className = "no-color-response";
@@ -852,8 +868,8 @@ function boot() {
       privatePanel.appendChild(guidance);
     }
     const usedBoardColors = [...new Set(Object.values(publicState.regions).map((region) => region.color).filter((color) => Object.hasOwn(COLOR_NAMES, color)))];
-    if (own.hand.colorRandomBorrow > 0) appendButton("色拾い・乱", targetMode !== null || phase !== "COLOR", () => dispatch("USE_SKILL", { skill: "colorRandomBorrow" }));
-    if (own.hand.colorChoiceBorrow > 0) appendButton("色借り", targetMode !== null || phase !== "COLOR" || usedBoardColors.length === 0, () => {
+    if (own.hand.colorRandomBorrow > 0) appendButton("色拾い・乱", colorSkillUsed || targetMode !== null || phase !== "COLOR", () => dispatch("USE_SKILL", { skill: "colorRandomBorrow" }));
+    if (own.hand.colorChoiceBorrow > 0) appendButton("色借り", colorSkillUsed || targetMode !== null || phase !== "COLOR" || usedBoardColors.length === 0, () => {
       targetMode = "colorChoiceBorrow";
       say("盤面ですでに使用されている色から1色選んでください。");
       renderPrivate(own);
@@ -872,7 +888,7 @@ function boot() {
         renderPrivate(own);
       });
     }
-    if (own.hand.colorPaletteChange > 0) appendButton("持ち色変更", targetMode !== null || phase !== "COLOR", () => {
+    if (own.hand.colorPaletteChange > 0) appendButton("持ち色変更", colorSkillUsed || targetMode !== null || phase !== "COLOR", () => {
       targetMode = { kind: "colorPaletteChange", slot: null };
       say("変更する持ち色枠を選んでください。おまけ色の残り回数は枠に残ります。");
       renderPrivate(own);
@@ -907,7 +923,7 @@ function boot() {
     }
     if (own.hand.colorRegionSplit > 0) {
       const pendingRegion = publicState.regions[publicState.pending];
-      appendButton("エリア二分", targetMode !== null || phase !== "COLOR" || !pendingRegion || (pendingRegion.sourceMacros || []).length < 2, () => {
+      appendButton("エリア二分", colorSkillUsed || targetMode !== null || phase !== "COLOR" || !pendingRegion || (pendingRegion.sourceMacros || []).length < 2, () => {
         selected.clear();
         targetMode = { kind: "colorRegionSplit" };
         say("受取エリア上で、先に自分が彩色する側を選んでください。両側とも連結が必要です。");
@@ -933,16 +949,19 @@ function boot() {
         renderPrivate(own);
       });
     }
-    appendButton("四色解放", targetMode !== null || phase !== "COLOR" || !(own.hand.colorPrism > 0), () => dispatch("USE_SKILL", { skill: "colorPrism" }));
+    appendButton("四色解放", colorSkillUsed || targetMode !== null || phase !== "COLOR" || !(own.hand.colorPrism > 0), () => dispatch("USE_SKILL", { skill: "colorPrism" }));
+    if (own.hand.colorBonusRefill > 0) appendButton("おまけ色補充（残数＋2／上限4）", colorSkillUsed || targetMode !== null || phase !== "COLOR" || own.bonusUsesRemaining >= 4, () => {
+      dispatch("USE_SKILL", { skill: "colorBonusRefill" });
+    });
     if (own.hand.areaMicroBloom > 0) {
       const sourceMacros = publicState.preparedOutgoing?.sourceMacros || [...selected].sort((a, b) => a - b);
-      appendButton("ひとふくらみ", targetMode !== null || !["CREATE_FIRST", "WORK"].includes(phase) || sourceMacros.length !== publicState.requiredSize, () => {
+      appendButton("ひとふくらみ", areaSkillUsed || targetMode !== null || !["CREATE_FIRST", "WORK"].includes(phase) || sourceMacros.length !== publicState.requiredSize, () => {
         dispatch("USE_SKILL", { skill: "areaMicroBloom", sourceMacros });
       });
     }
     if (own.hand.areaCornerBloom > 0) {
       const sourceMacros = publicState.preparedOutgoing?.sourceMacros || [...selected].sort((a, b) => a - b);
-      appendButton("角膨張", targetMode !== null || !["CREATE_FIRST", "WORK"].includes(phase) || sourceMacros.length !== publicState.requiredSize, () => {
+      appendButton("角膨張", areaSkillUsed || targetMode !== null || !["CREATE_FIRST", "WORK"].includes(phase) || sourceMacros.length !== publicState.requiredSize, () => {
         targetMode = { kind: "areaCornerBloom", sourceMacros: [...sourceMacros] };
         say("選択エリア内で、四隅を膨張させる1マスを選んでください。");
         renderPublic(publicState);
@@ -957,12 +976,12 @@ function boot() {
       renderPrivate(own);
     });
     if (own.hand.areaDiePlus > 0) {
-      appendButton("エリア拡張", targetMode !== null || !["CREATE_FIRST", "WORK"].includes(phase) || Boolean(publicState.preparedOutgoing), () => {
+      appendButton("エリア拡張", areaSkillUsed || targetMode !== null || !["CREATE_FIRST", "WORK"].includes(phase) || Boolean(publicState.preparedOutgoing), () => {
         dispatch("USE_SKILL", { skill: "areaDiePlus" });
       });
     }
     if (own.hand.areaResize > 0 && targetMode?.kind !== "areaResize") {
-      appendButton("拡大縮小", targetMode !== null || !["CREATE_FIRST", "WORK"].includes(phase) || Boolean(publicState.preparedOutgoing), () => {
+      appendButton("拡大縮小", areaSkillUsed || targetMode !== null || !["CREATE_FIRST", "WORK"].includes(phase) || Boolean(publicState.preparedOutgoing), () => {
         targetMode = { kind: "areaResize", mode: null };
         say("盤面を拡大するか縮小するか選んでください。");
         renderPrivate(own);
@@ -993,7 +1012,7 @@ function boot() {
         renderPrivate(own);
       });
     }
-    appendButton("塗り直し・乱（実験貸与）", phase !== "WORK" || !(own.hand.legalRecolor > 0) || targetMode === "legalRecolor", () => {
+    appendButton("塗り直し・乱（実験貸与）", colorSkillUsed || phase !== "WORK" || !(own.hand.legalRecolor > 0) || targetMode === "legalRecolor", () => {
       targetMode = "legalRecolor";
       say("彩色済みエリアを1つ選んでください。");
       renderPrivate(own);
@@ -1007,40 +1026,40 @@ function boot() {
       const label = document.createElement("p");
       label.textContent = "色封じ（全4色から選択）";
       privatePanel.appendChild(label);
-      for (const color of Object.keys(COLOR_NAMES)) appendButton(COLOR_NAMES[color], phase !== "WORK", () => dispatch("USE_SKILL", { skill: "disruptChoiceOne", color }));
+      for (const color of Object.keys(COLOR_NAMES)) appendButton(COLOR_NAMES[color], disruptSkillUsed || phase !== "WORK", () => dispatch("USE_SKILL", { skill: "disruptChoiceOne", color }));
     }
     if (own.hand.disruptChoiceTwo > 0) {
       const label = document.createElement("p");
       label.textContent = "追封（全4色から選択・2彩色）";
       privatePanel.appendChild(label);
-      for (const color of Object.keys(COLOR_NAMES)) appendButton(`追封：${COLOR_NAMES[color]}`, phase !== "WORK", () => dispatch("USE_SKILL", { skill: "disruptChoiceTwo", color }));
+      for (const color of Object.keys(COLOR_NAMES)) appendButton(`追封：${COLOR_NAMES[color]}`, disruptSkillUsed || phase !== "WORK", () => dispatch("USE_SKILL", { skill: "disruptChoiceTwo", color }));
     }
     if (own.hand.disruptChoiceThree > 0) {
       const label = document.createElement("p");
       label.textContent = "長封（全4色から選択・3彩色）";
       privatePanel.appendChild(label);
-      for (const color of Object.keys(COLOR_NAMES)) appendButton(`長封：${COLOR_NAMES[color]}`, phase !== "WORK", () => dispatch("USE_SKILL", { skill: "disruptChoiceThree", color }));
+      for (const color of Object.keys(COLOR_NAMES)) appendButton(`長封：${COLOR_NAMES[color]}`, disruptSkillUsed || phase !== "WORK", () => dispatch("USE_SKILL", { skill: "disruptChoiceThree", color }));
     }
-    if (own.hand.disruptRandomOne > 0) appendButton("色封じ・乱", targetMode !== null || phase !== "WORK", () => {
+    if (own.hand.disruptRandomOne > 0) appendButton("色封じ・乱", disruptSkillUsed || targetMode !== null || phase !== "WORK", () => {
       dispatch("USE_SKILL", { skill: "disruptRandomOne" });
     });
-    if (own.hand.disruptRandomTwo > 0) appendButton("二重封じ・乱", targetMode !== null || phase !== "WORK", () => {
+    if (own.hand.disruptRandomTwo > 0) appendButton("二重封じ・乱", disruptSkillUsed || targetMode !== null || phase !== "WORK", () => {
       dispatch("USE_SKILL", { skill: "disruptRandomTwo" });
     });
-    if (own.hand.disruptPaletteRandom > 0) appendButton("持ち色汚染・乱", targetMode !== null || phase !== "WORK", () => {
+    if (own.hand.disruptPaletteRandom > 0) appendButton("持ち色汚染・乱", disruptSkillUsed || targetMode !== null || phase !== "WORK", () => {
       dispatch("USE_SKILL", { skill: "disruptPaletteRandom" });
     });
     if (own.hand.disruptPaletteChoice > 0) {
       const label = document.createElement("p");
       label.textContent = "持ち色汚染（注入色を選択・2彩色）";
       privatePanel.appendChild(label);
-      for (const color of Object.keys(COLOR_NAMES)) appendButton(`汚染：${COLOR_NAMES[color]}`, phase !== "WORK", () => dispatch("USE_SKILL", { skill: "disruptPaletteChoice", color }));
+      for (const color of Object.keys(COLOR_NAMES)) appendButton(`汚染：${COLOR_NAMES[color]}`, disruptSkillUsed || phase !== "WORK", () => dispatch("USE_SKILL", { skill: "disruptPaletteChoice", color }));
     }
     if (own.hand.disruptForcedPalette > 0) {
       const label = document.createElement("p");
       label.textContent = "強制持ち替え（恒久注入色を選択）";
       privatePanel.appendChild(label);
-      for (const color of Object.keys(COLOR_NAMES)) appendButton(`強制：${COLOR_NAMES[color]}`, phase !== "WORK", () => dispatch("USE_SKILL", { skill: "disruptForcedPalette", color }));
+      for (const color of Object.keys(COLOR_NAMES)) appendButton(`強制：${COLOR_NAMES[color]}`, disruptSkillUsed || phase !== "WORK", () => dispatch("USE_SKILL", { skill: "disruptForcedPalette", color }));
     }
     if ((own.privateEffects?.paletteDebuffs || []).length) {
       const notice = document.createElement("p");
@@ -1161,11 +1180,11 @@ function boot() {
     }
 
     if (own.hand.areaHalfShift > 0 && targetMode?.kind !== "bandShift") {
-      const start = appendButton("半マスシフト", targetMode !== null || phase !== "WORK", () => beginBandShift("areaHalfShift"));
+      const start = appendButton("半マスシフト", areaSkillUsed || targetMode !== null || phase !== "WORK", () => beginBandShift("areaHalfShift"));
       start.dataset.skillStart = "areaHalfShift";
     }
     if (own.hand.areaTripleShift > 0 && targetMode?.kind !== "bandShift") {
-      const start = appendButton("三層断層", targetMode !== null || phase !== "WORK" || Boolean(publicState.preparedOutgoing), () => beginBandShift("areaTripleShift"));
+      const start = appendButton("三層断層", areaSkillUsed || targetMode !== null || phase !== "WORK" || Boolean(publicState.preparedOutgoing), () => beginBandShift("areaTripleShift"));
       start.dataset.skillStart = "areaTripleShift";
     }
     appendBandShiftControls();
@@ -1303,7 +1322,7 @@ function boot() {
     const details = projection.profiles.map((profile) => standard
       ? `${profile.displayName}: 使用可能 ${Object.values(profile.cards).filter((count) => count.available > 0).length}/19枚`
       : `${profile.displayName}: ${Object.entries(profile.cards).map(([id, count]) => `${id} ${count.available}/${count.owned}`).join("・")}`).join(" / ");
-    setupDetails.textContent = projection.code === "NO_LOCAL_SAVE" ? "標準モードのローカルプロフィールがありません。テストでは起動前fixtureを使用します。" : `${projection.ruleLabel} / ${details}${standard ? "" : " / legalRecolorは実験貸与"}`;
+    setupDetails.textContent = projection.code === "NO_LOCAL_SAVE" ? "標準モードのローカルプロフィールがありません。テストでは起動前fixtureを使用します。" : `${projection.ruleLabel} / ${details}${standard ? "" : " / おまけ色補充・legalRecolorは実験貸与"}`;
     startMatch.textContent = standard ? "熟考モード対戦を開始" : "標準α対戦を開始";
     renderLoadoutBuilder(projection);
     pendingStart = null;

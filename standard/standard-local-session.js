@@ -15,7 +15,7 @@ const { STANDARD_SKILLS, V49_SKILL_IDS } = require("./standard-skill-registry.js
 const ALPHA_INVENTORY_SKILLS = Object.freeze(["colorPrism", "areaHalfShift", "disruptChoiceOne"]);
 const STANDARD_INVENTORY_SKILLS = Object.freeze(V49_SKILL_IDS.filter((skillId) => STANDARD_SKILLS[skillId].standardUiEnabled));
 const ALPHA_LOADOUT = Object.freeze({
-  color: Object.freeze(["colorPrism"]),
+  color: Object.freeze(["colorPrism", "colorBonusRefill"]),
   area: Object.freeze(["areaHalfShift"]),
   disrupt: Object.freeze(["disruptChoiceOne"]),
   experimental: Object.freeze(["legalRecolor"]),
@@ -110,7 +110,13 @@ function setupProjection(root, ruleSetId = matchStart.RULE_SET_IDS.ALPHA_SLICE) 
     ruleLabel: standard ? "標準・熟考モード" : "標準α・機能検証用",
     profiles: Object.freeze(profiles),
   };
-  if (!standard) projection.experimentalLoan = Object.freeze({ skillId: "legalRecolor", count: 1, inventoryBacked: false, reserved: 0 });
+  if (!standard) {
+    projection.experimentalLoan = Object.freeze({ skillId: "legalRecolor", count: 1, inventoryBacked: false, reserved: 0 });
+    projection.experimentalLoans = Object.freeze([
+      Object.freeze({ skillId: "colorBonusRefill", count: 1, inventoryBacked: false, reserved: 0 }),
+      projection.experimentalLoan,
+    ]);
+  }
   return Object.freeze(projection);
 }
 

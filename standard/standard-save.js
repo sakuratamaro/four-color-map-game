@@ -418,12 +418,14 @@ function commitAcceptedCardAction({ root, beforeState, result, actor, actionId, 
     const difference = (beforeHand[skill] || 0) - (afterHand[skill] || 0);
     if (difference !== 0) changes.push({ skill, difference });
   }
-  assertSave(changes.length === 1 && changes[0].difference === 1, "CARD_NOT_CONSUMED_ONCE");
+  const cardConsumed = result.cardConsumed !== false;
+  if (cardConsumed) assertSave(changes.length === 1 && changes[0].difference === 1, "CARD_NOT_CONSUMED_ONCE");
+  else assertSave(changes.length === 0, "CARD_CHANGED_ON_ACCEPTED_NO_OP");
 
-  const { skill } = changes[0];
+  const skill = cardConsumed ? changes[0].skill : result.definition?.id;
   assertSave(ID_PATTERN.test(skill), "INVALID_LEDGER_SKILL");
   const key = ledgerKey(beforeState.matchId, actionId);
-  const existing = root.receipts.matchConsumption[key];
+  const existing = cardConsumed ? root.receipts.matchConsumption[key] : null;
   if (existing) {
     const expectedProfile = root.activeMatch?.participants?.[actor]?.profileId;
     assertSave(existing.matchId === beforeState.matchId && existing.actionId === actionId && existing.profileId === expectedProfile && existing.skill === skill && existing.version === result.state.version && (!actionFingerprint || existing.actionFingerprint === actionFingerprint), "ACTION_ID_COLLISION");
@@ -436,22 +438,24 @@ function commitAcceptedCardAction({ root, beforeState, result, actor, actionId, 
   const participant = root.activeMatch.participants[actor];
   const source = root.activeMatch.cardSources?.[actor]?.[skill] || "INVENTORY_BACKED";
   const profileId = participant?.type === "PROFILE" ? participant.profileId : null;
-  if (source === "INVENTORY_BACKED") {
+  if (cardConsumed && source === "INVENTORY_BACKED") {
     assertSave(participant?.type === "PROFILE", "CPU_CARD_NOT_OWNED");
     assertSave((root.profiles[profileId].inventory[skill] || 0) > 0, "INVENTORY_EMPTY");
   }
   const next = clone(root);
-  if (source === "INVENTORY_BACKED") next.profiles[profileId].inventory[skill] -= 1;
-  if (source === "INVENTORY_BACKED" && Object.hasOwn(next.reservations, profileId)) {
+  if (cardConsumed && source === "INVENTORY_BACKED") next.profiles[profileId].inventory[skill] -= 1;
+  if (cardConsumed && source === "INVENTORY_BACKED" && Object.hasOwn(next.reservations, profileId)) {
     const reserved = next.reservations[profileId][skill] || 0;
     assertSave(reserved >= 1, "RESERVATION_CONSUMPTION_MISMATCH");
     next.reservations[profileId][skill] = reserved - 1;
   }
   next.activeMatch = { ...clone(root.activeMatch), state: clone(result.state), rngSnapshot: clone(rngSnapshot || {}) };
   next.rootRevision += 1;
-  next.receipts.matchConsumption[key] = { matchId: beforeState.matchId, actionId, profileId, skill, version: result.state.version };
-  if (root.activeMatch.cardSources) next.receipts.matchConsumption[key].source = source;
-  if (actionFingerprint) next.receipts.matchConsumption[key].actionFingerprint = actionFingerprint;
+  if (cardConsumed) {
+    next.receipts.matchConsumption[key] = { matchId: beforeState.matchId, actionId, profileId, skill, version: result.state.version };
+    if (root.activeMatch.cardSources) next.receipts.matchConsumption[key].source = source;
+    if (actionFingerprint) next.receipts.matchConsumption[key].actionFingerprint = actionFingerprint;
+  }
   validateStandardSave(next);
   return Object.freeze(next);
 }

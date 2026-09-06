@@ -35,6 +35,19 @@ test("standard match creation is deterministic and validates the authoritative c
   );
 });
 
+test("new-match engine selection is allowlisted and only alpha.3 creates a category window", () => {
+  for (const [index, engineVersion] of match.SUPPORTED_ENGINE_VERSIONS.entries()) {
+    const state = match.createStandardMatch({ matchId: `compat-create-${index}`, firstSeat: "A", engineVersion }, streams(420 + index));
+    assert.equal(state.engineVersion, engineVersion);
+    assert.equal(Object.hasOwn(state, "skillCategoryWindow"), engineVersion === match.ENGINE_VERSION);
+    assert.equal(match.validateStandardState(state), true);
+  }
+  assert.throws(
+    () => match.createStandardMatch({ matchId: "unsupported-create", engineVersion: "5.0.0-alpha.999" }, streams(429)),
+    /INVALID_ENGINE_VERSION/,
+  );
+});
+
 test("public and private projections enforce the secret boundary", () => {
   const state = create(43);
   state.privateEffects.B.secretToken = "OPPONENT-ONLY-TOKEN";
@@ -91,6 +104,64 @@ test("create and color use intent actions and increment version once each", () =
     eventId: `${initial.matchId}:2`, version: 2, type: "COLOR_REGION", actor: "B", regionId: "R1", color,
   });
   assert.notEqual(rng.die.snapshot(), dieBefore);
+});
+
+test("active-seat handoff resets the alpha.3 usage-category window", () => {
+  const state = create(45191);
+  state.skillCategoryWindow.categories = ["area", "disrupt"];
+  const sourceMacros = Array.from({ length: state.requiredSize }, (_, index) => 13 + index);
+  const created = match.applyStandardAction({
+    state,
+    actor: "A",
+    action: { type: "CREATE_REGION", payload: { sourceMacros } },
+    expectedVersion: state.version,
+  });
+  assert.equal(created.ok, true);
+  assert.equal(created.state.active, "B");
+  assert.deepEqual(created.state.skillCategoryWindow, { actor: "B", categories: [] });
+});
+
+test("color-category use survives COLOR_REGION and rejects legalRecolor in the same control window", () => {
+  const state = create(45192);
+  const macroMicro = (macro) => {
+    const top = Math.floor(macro / 12) * 4;
+    const left = (macro % 12) * 4;
+    return Array.from({ length: 16 }, (_, index) => (top + Math.floor(index / 4)) * 48 + left + (index % 4));
+  };
+  state.phase = "COLOR";
+  state.pending = "R1";
+  state.regions = {
+    R1: { id: "R1", micro: macroMicro(14), sourceMacros: [14], controllers: ["B"], color: null, isPending: true },
+    R2: { id: "R2", micro: macroMicro(13), sourceMacros: [13], controllers: ["A"], color: "blue", isPending: false },
+  };
+  state.hands.A.colorPrism = 1;
+  const prism = match.applyStandardAction({ state, actor: "A", action: { type: "USE_SKILL", payload: { skill: "colorPrism" } }, expectedVersion: state.version, rngStreams: streams(55192) });
+  assert.equal(prism.ok, true);
+  const colored = match.applyStandardAction({ state: prism.state, actor: "A", action: { type: "COLOR_REGION", payload: { color: "red" } }, expectedVersion: prism.state.version, rngStreams: streams(55193) });
+  assert.equal(colored.ok, true);
+  assert.deepEqual(colored.state.skillCategoryWindow, { actor: "A", categories: ["color"] });
+  const before = JSON.stringify(colored.state);
+  const rejected = match.applyStandardAction({ state: colored.state, actor: "A", action: { type: "USE_SKILL", payload: { skill: "legalRecolor", regionId: "R2" } }, expectedVersion: colored.state.version, rngStreams: streams(55194) });
+  assert.deepEqual([rejected.ok, rejected.code, JSON.stringify(rejected.state)], [false, "SKILL_CATEGORY_ALREADY_USED_IN_WINDOW", before]);
+});
+
+test("legalRecolor hands off without incrementing numeric turn and opens the next seat category window", () => {
+  const state = create(45193);
+  state.phase = "WORK";
+  state.regions = {
+    R1: { id: "R1", micro: [48], sourceMacros: [], controllers: ["A"], color: "red", isPending: false },
+    R2: { id: "R2", micro: [49], sourceMacros: [], controllers: ["B"], color: "blue", isPending: false },
+  };
+  state.skillCategoryWindow.categories = ["area"];
+  state.hands.B.disruptChoiceOne = 1;
+  const initialTurn = state.turn;
+  const recolored = match.applyStandardAction({ state, actor: "A", action: { type: "USE_SKILL", payload: { skill: "legalRecolor", regionId: "R1" } }, expectedVersion: state.version, rngStreams: streams(55195) });
+  assert.deepEqual([recolored.ok, recolored.state.active, recolored.state.turn], [true, "B", initialTurn]);
+  assert.deepEqual(recolored.state.skillCategoryWindow, { actor: "B", categories: [] });
+  const disrupted = match.applyStandardAction({ state: recolored.state, actor: "B", action: { type: "USE_SKILL", payload: { skill: "disruptChoiceOne", color: "green" } }, expectedVersion: recolored.state.version, rngStreams: streams(55196) });
+  assert.equal(disrupted.ok, true);
+  assert.equal(disrupted.state.turn, initialTurn);
+  assert.deepEqual(disrupted.state.skillCategoryWindow, { actor: "B", categories: ["disrupt"] });
 });
 
 test("later regions must touch the existing map by an edge", () => {
@@ -262,6 +333,7 @@ test("entering fully sealed COLOR stays active until the player explicitly surre
 test("alpha.1 matches retain automatic no-color resolution for in-progress compatibility", () => {
   const state = create(45230);
   state.engineVersion = match.LEGACY_ENGINE_VERSION;
+  delete state.skillCategoryWindow;
   state.phase = "WORK";
   state.requiredSize = state.rolledSize = state.baseRequiredSize = 1;
   state.publicEffects.B.seals = Object.fromEntries(COLORS.map((color) => [color, 1]));
@@ -282,6 +354,7 @@ test("turn-3 blue contact only defeats a yellow-green player when both alternati
   const fixture = () => {
     const state = create(4524);
     state.active = "B";
+    state.skillCategoryWindow = { actor: "B", categories: [] };
     state.turn = 3;
     state.phase = "WORK";
     state.requiredSize = 1;
@@ -319,6 +392,7 @@ test("turn-3 blue contact only defeats a yellow-green player when both alternati
 test("legacy no-color declaration remains accepted only when every usable color is blocked", () => {
   const state = create(452);
   state.engineVersion = match.LEGACY_ENGINE_VERSION;
+  delete state.skillCategoryWindow;
   const usable = [...state.basicPalettes.A, state.bonusColors.A];
   state.phase = "COLOR";
   state.pending = "R4";

@@ -65,6 +65,20 @@ test("accepted card consumption updates match, inventory, and ledger once", () =
   assert.equal(save.commitAcceptedCardAction({ root: committed, beforeState: state, result, actor: "A", actionId: "action-1", rngSnapshot: {} }), committed);
 });
 
+test("accepted no-op persists match progress without inventory, reservation, or consumption ledger changes", () => {
+  const { root, state } = fixture();
+  const nextState = JSON.parse(JSON.stringify(state));
+  nextState.version += 1;
+  nextState.skillsUsed.A += 1;
+  const result = { ok: true, cardConsumed: false, definition: { id: "legalRecolor" }, state: nextState };
+  const committed = save.commitAcceptedCardAction({ root, beforeState: state, result, actor: "A", actionId: "accepted-miss", rngSnapshot: { effect: 10 } });
+  assert.equal(committed.activeMatch.state.version, state.version + 1);
+  assert.equal(committed.rootRevision, root.rootRevision + 1);
+  assert.equal(committed.profiles.playerA.inventory.legalRecolor, 2);
+  assert.equal(committed.reservations.playerA.legalRecolor, 1);
+  assert.deepEqual(committed.receipts.matchConsumption, {});
+});
+
 test("rejected, non-consuming, mismatched, and empty-inventory card commits fail closed", () => {
   const { root, state } = fixture();
   assert.throws(() => save.commitAcceptedCardAction({ root, beforeState: state, result: { ok: false, state }, actor: "A", actionId: "bad", rngSnapshot: {} }), /ACTION_NOT_ACCEPTED/);

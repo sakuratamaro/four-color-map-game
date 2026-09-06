@@ -74,6 +74,7 @@ test("the one-turn seal expires only after the target completes a coloring", () 
   const sealed = use(state, rng).state;
   const color = Object.keys(sealed.publicEffects.B.seals).find((candidate) => sealed.publicEffects.B.seals[candidate] === 1);
   sealed.active = "B";
+  sealed.skillCategoryWindow = { actor: "B", categories: [] };
   sealed.phase = "COLOR";
   sealed.regions.R1 = { id: "R1", micro: [49], sourceMacros: [], controllers: ["A"], color: null, isPending: true };
   sealed.pending = "R1";

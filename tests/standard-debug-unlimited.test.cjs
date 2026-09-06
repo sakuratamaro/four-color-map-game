@@ -49,6 +49,15 @@ test("debug duel accepts unowned cards, replenishes used skills, and changes no 
   assert.equal(applied.ok, true);
   assert.equal(applied.privateA.hand.areaDiePlus, 1);
   assert.equal(applied.publicState.debugUnlimitedSkills, true);
+  const blocked = api.apply({
+    state: applied.state,
+    rngSnapshot: applied.rngSnapshot,
+    actor: "A",
+    expectedVersion: 1,
+    action: { id: "debug-skill-2", type: "USE_SKILL", payload: { skill: "areaDiePlus" } },
+    debugMode: true,
+  });
+  assert.deepEqual([blocked.ok, blocked.code, blocked.state], [false, "SKILL_CATEGORY_ALREADY_USED_IN_WINDOW", undefined]);
 
   const progression = api.applyProfiles({
     profiles: emptyProfiles,
@@ -77,4 +86,5 @@ test("Edge handler marks debug setup, requires agreement, and disables profile p
   assert.match(edgeSource, /playableLoadout\(room\.setup_a as JsonObject\)/);
   assert.match(edgeSource, /const debugAgreement = debugModeForRoom\(room\)/);
   assert.match(edgeSource, /applyProfiles\(\{[\s\S]+debugMode,[\s\S]+labMode,/);
+  assert.match(bundle, /SKILL_CATEGORY_ALREADY_USED_IN_WINDOW/);
 });

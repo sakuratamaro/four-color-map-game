@@ -64,6 +64,7 @@ test("both one-turn seals expire together after the target colors", () => {
   const result = use(state, rng);
   const sealed = result.state;
   sealed.active = "B";
+  sealed.skillCategoryWindow = { actor: "B", categories: [] };
   sealed.phase = "COLOR";
   sealed.regions.R1 = { id: "R1", micro: [49], sourceMacros: [], controllers: ["A"], color: null, isPending: true };
   sealed.pending = "R1";

@@ -28,7 +28,7 @@ const EXPECTED_POST_MICRO = Object.freeze([
 ]);
 
 function alphaLoadout() {
-  return { color: ["colorPrism"], area: ["areaHalfShift"], disrupt: ["disruptChoiceOne"], experimental: ["legalRecolor"] };
+  return { color: ["colorPrism", "colorBonusRefill"], area: ["areaHalfShift"], disrupt: ["disruptChoiceOne"], experimental: ["legalRecolor"] };
 }
 
 function sha(value) {

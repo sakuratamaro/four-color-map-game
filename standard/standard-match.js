@@ -8,11 +8,13 @@ const {
 const { dispatchStandardSkillAction } = require("./standard-skill-dispatcher.js");
 const { applyCurseBacklashOnEnterColor, preparedOutgoingCandidates, tickPaletteDebuffsAfterColor, tickSealsAfterColor } = require("./standard-skill-handlers.js");
 const { createRegionGeometryContext } = require("./standard-region-geometry.js");
+const { SKILL_USAGE_CATEGORIES } = require("./standard-skill-registry.js");
 
 const SCHEMA_VERSION = 1;
 const LEGACY_ENGINE_VERSION = "5.0.0-alpha.1";
-const ENGINE_VERSION = "5.0.0-alpha.2";
-const SUPPORTED_ENGINE_VERSIONS = Object.freeze([LEGACY_ENGINE_VERSION, ENGINE_VERSION]);
+const PREVIOUS_ENGINE_VERSION = "5.0.0-alpha.2";
+const ENGINE_VERSION = "5.0.0-alpha.3";
+const SUPPORTED_ENGINE_VERSIONS = Object.freeze([LEGACY_ENGINE_VERSION, PREVIOUS_ENGINE_VERSION, ENGINE_VERSION]);
 const SAVE_KEY = "fourColorMapGame.standard.v5.save";
 const PHASES = Object.freeze(["CREATE_FIRST", "COLOR", "WORK", "GAME_OVER"]);
 const ACTIONS = Object.freeze(["CREATE_REGION", "COLOR_REGION", "USE_SKILL", "DECLARE_NO_COLOR", "SURRENDER"]);
@@ -89,6 +91,8 @@ function playableMacroIndices(bounds) {
 
 function createStandardMatch(config = {}, rngStreams = {}) {
   assertState(typeof config.matchId === "string" && config.matchId.length > 0, "MATCH_ID_REQUIRED");
+  const engineVersion = config.engineVersion === undefined ? ENGINE_VERSION : config.engineVersion;
+  assertState(SUPPORTED_ENGINE_VERSIONS.includes(engineVersion), "INVALID_ENGINE_VERSION");
   const A = initialSeatSecrets(rngStreams);
   let B = initialSeatSecrets(rngStreams);
   for (let retries = 0; paletteSignature(B) === paletteSignature(A) && retries < 15; retries += 1) {
@@ -104,7 +108,7 @@ function createStandardMatch(config = {}, rngStreams = {}) {
   const playableBounds = clone(config.playableBounds || { minCol: 1, maxCol: 10, minRow: 1, maxRow: 10, macroWidth: 12, microScale: 4 });
   const state = {
     schemaVersion: SCHEMA_VERSION,
-    engineVersion: ENGINE_VERSION,
+    engineVersion,
     mode: "standard",
     matchId: config.matchId,
     status: "ACTIVE",
@@ -131,6 +135,7 @@ function createStandardMatch(config = {}, rngStreams = {}) {
     privateEffects: clone(config.privateEffects || { A: {}, B: {} }),
     interferenceLock: false,
     skillsUsed: { A: 0, B: 0 },
+    ...(engineVersion === ENGINE_VERSION ? { skillCategoryWindow: { actor: active, categories: [] } } : {}),
     winner: null,
     terminalReason: null,
     lastPublicTrace: null,
@@ -170,6 +175,16 @@ function validateStandardState(state) {
   assertState(Boolean(state.regions) && typeof state.regions === "object", "INVALID_REGIONS");
   assertState(Boolean(state.hands) && Boolean(state.loadouts), "INVALID_CARDS");
   assertState(typeof state.interferenceLock === "boolean", "INVALID_INTERFERENCE_LOCK");
+  if (state.engineVersion === ENGINE_VERSION) {
+    const window = state.skillCategoryWindow;
+    assertState(Boolean(window) && typeof window === "object" && !Array.isArray(window), "INVALID_SKILL_CATEGORY_WINDOW");
+    assertState(Object.keys(window).sort().join("|") === "actor|categories", "INVALID_SKILL_CATEGORY_WINDOW");
+    assertState(window.actor === state.active && Array.isArray(window.categories), "INVALID_SKILL_CATEGORY_WINDOW");
+    assertState(window.categories.length === new Set(window.categories).size
+      && window.categories.every((category) => SKILL_USAGE_CATEGORIES.includes(category)), "INVALID_SKILL_CATEGORY_WINDOW");
+  } else {
+    assertState(state.skillCategoryWindow === undefined, "LEGACY_SKILL_CATEGORY_WINDOW");
+  }
   assertState(Array.isArray(state.publicLog), "INVALID_PUBLIC_LOG");
   if (state.lastPublicTrace !== undefined && state.lastPublicTrace !== null) {
     const trace = state.lastPublicTrace;
@@ -274,6 +289,7 @@ function validateStandardState(state) {
 function projectStandardPublicState(state) {
   validateStandardState(state);
   const keys = ["schemaVersion", "engineVersion", "mode", "matchId", "status", "version", "turn", "active", "phase", "regions", "pending", "reserved", "preparedOutgoing", "playableBounds", "trophyTargetMacros", "requiredSize", "rolledSize", "baseRequiredSize", "publicEffects", "interferenceLock", "winner", "terminalReason", "lastPublicTrace", "publicLog"];
+  if (state.engineVersion === ENGINE_VERSION) keys.push("skillCategoryWindow");
   return Object.freeze(Object.fromEntries(keys.map((key) => [key, clone(key === "trophyTargetMacros"
     ? (state.trophyTargetMacros || playableMacroIndices(state.playableBounds))
     : key === "lastPublicTrace" ? (state.lastPublicTrace ?? null) : state[key])] )));
@@ -687,6 +703,7 @@ function applyStandardAction({ state, actor, action, expectedVersion, rngStreams
         projectPrivate: projectStandardPrivateState,
         hasLegalRegionOfSize,
         bestLegalSize,
+        enforceUsageCategory: state.engineVersion === ENGINE_VERSION,
       });
       if (result.ok) {
         const next = clone(result.state);
@@ -712,6 +729,16 @@ function applyStandardAction({ state, actor, action, expectedVersion, rngStreams
       }
     }
     if (result.ok) {
+      if (result.state.engineVersion === ENGINE_VERSION && result.state.active !== state.active) {
+        const next = clone(result.state);
+        next.skillCategoryWindow = { actor: next.active, categories: [] };
+        result = {
+          ...result,
+          state: next,
+          ...(result.publicState ? { publicState: projectStandardPublicState(next) } : {}),
+          ...(result.privateState ? { privateState: projectStandardPrivateState(next, actor) } : {}),
+        };
+      }
       assertState(result.state.version === state.version + 1, "VERSION_INCREMENT_INVARIANT");
       validateStandardState(result.state);
     }
@@ -740,6 +767,7 @@ module.exports = {
   DIE_POOL,
   ENGINE_VERSION,
   LEGACY_ENGINE_VERSION,
+  PREVIOUS_ENGINE_VERSION,
   ENGINE_TERMINAL_REASONS,
   FINISHED_STATE_TERMINAL_REASONS,
   PHASES,

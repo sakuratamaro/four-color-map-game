@@ -29,15 +29,24 @@ test("release preflight is read-only, secret-free, finite, and stage-aware", () 
   assert.match(source, /hasActiveRoomRecovery/);
   assert.match(source, /hasLegalRecolorLab/);
   assert.match(source, /hasWaitingOpponentNotice/);
+  assert.match(source, /hasAlpha3SkillCategoryWindow/);
+  assert.match(source, /hasCandidateAssetGeneration/);
   assert.match(source, /baseline:\s*\{[^}]*matchmakingAvailabilityDb:\s*false[^}]*waitingOpponentUi:\s*false\s*\}/);
   assert.match(source, /"db-ready":\s*\{[^}]*matchmakingAvailabilityDb:\s*true[^}]*waitingOpponentUi:\s*false\s*\}/);
-  assert.match(source, /candidate:\s*\{[^}]*matchmakingAvailabilityDb:\s*true[^}]*waitingOpponentUi:\s*true\s*\}/);
+  assert.match(source, /candidate:\s*\{[^}]*matchmakingAvailabilityDb:\s*true[^}]*waitingOpponentUi:\s*true[^}]*alpha3SkillCategoryUi:\s*true[^}]*candidateAssetGenerationUi:\s*true\s*\}/);
   assert.match(source, /ACTIVE_ROOM_RECOVERY_PHASE_MISMATCH/);
   assert.match(source, /LEGAL_RECOLOR_LAB_UI_PHASE_MISMATCH/);
   assert.match(source, /SETUP_LOAD_V3_PHASE_MISMATCH/);
   assert.match(source, /INITIALIZE_ROOM_V3_PHASE_MISMATCH/);
   assert.match(source, /MATCHMAKING_AVAILABILITY_PHASE_MISMATCH/);
   assert.match(source, /WAITING_OPPONENT_UI_PHASE_MISMATCH/);
+  assert.match(source, /ALPHA3_SKILL_CATEGORY_UI_PHASE_MISMATCH/);
+  assert.match(source, /CANDIDATE_ASSET_GENERATION_UI_PHASE_MISMATCH/);
+  assert.match(source, /app\.js\?v=20260907-40/);
+  assert.match(source, /standard-online-skill-intents\.js\?v=20260907-18/);
+  assert.match(source, /skillCategoryWindow/);
+  assert.match(source, /SKILL_CATEGORY_ALREADY_USED_IN_WINDOW/);
+  assert.match(source, /colorBonusRefill/);
   assert.match(source, /\$\(\"legalRecolorLabMode\"\)/);
   assert.match(source, /STANDARD_V5_LEGAL_RECOLOR_LAB_V1/);
   assert.match(source, /client\\\.submitSetup/);
@@ -58,4 +67,12 @@ test("candidate app satisfies the waiting-opponent release marker", () => {
     && candidateApp.includes("scheduleMatchmakingAvailability")
     && candidateApp.includes('activateAppTab("battle")');
   assert.equal(detected, true);
+});
+
+test("candidate page and app satisfy the alpha.3 cache generation marker", () => {
+  assert.equal(candidateHtml.includes("app.js?v=20260907-40"), true);
+  assert.equal(candidateHtml.includes("standard-online-skill-intents.js?v=20260907-18"), true);
+  assert.equal(candidateApp.includes("skillCategoryWindow"), true);
+  assert.equal(candidateApp.includes("SKILL_CATEGORY_ALREADY_USED_IN_WINDOW"), true);
+  assert.equal(candidateApp.includes("colorBonusRefill"), true);
 });

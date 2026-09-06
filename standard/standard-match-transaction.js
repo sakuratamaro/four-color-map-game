@@ -142,6 +142,8 @@ function dispatchStandardMatchAction({
       matchVersion: result.state.version,
       receipt: Object.freeze(clone(receipt)),
       publicState: match.projectStandardPublicState(result.state),
+      cardConsumed: result.cardConsumed !== false,
+      noOp: result.noOp === true,
       contactColorCount: action.type === "CREATE_REGION" ? result.contactColorCount : null,
       appliedNow: true,
       replayedReceipt: false,

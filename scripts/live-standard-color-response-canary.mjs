@@ -10,7 +10,7 @@ if (!process.argv.includes("--confirm-live")) {
   process.exit(2);
 }
 
-const EXPECTED_ENGINE_VERSION = "5.0.0-alpha.2";
+const EXPECTED_ENGINE_VERSION = "5.0.0-alpha.3";
 const MAX_DRIVER_STEPS = 24;
 const MAX_CONSECUTIVE_CPU_STEPS = 8;
 const REQUEST_TIMEOUT_MS = 20_000;
@@ -109,6 +109,10 @@ function assertPublicPrivacy(label, publicState) {
   for (const key of PUBLIC_PRIVACY_FORBIDDEN_KEYS) {
     check(`${label} hides ${key}`, !serialized.includes(`"${key}"`));
   }
+  const categoryWindow = publicState.skillCategoryWindow;
+  check(`${label} exposes alpha.3 category window`, categoryWindow?.actor === publicState.active && Array.isArray(categoryWindow.categories));
+  check(`${label} category window is finite`, categoryWindow.categories.length === new Set(categoryWindow.categories).size
+    && categoryWindow.categories.every((category) => ["color", "area", "disrupt"].includes(category)));
 }
 
 function chooseHumanAction(room) {
@@ -224,9 +228,9 @@ async function run() {
   });
   check("human setup", setup.ok && Number(setup.data?.setupRevision) === 1, setup);
 
-  activeStage = "initialize alpha.2 room";
+  activeStage = "initialize alpha.3 room";
   let room = await refreshRoom(session, roomId);
-  check("new room uses alpha.2", room.status === "playing"
+  check("new room uses alpha.3", room.status === "playing"
     && room.publicState?.engineVersion === EXPECTED_ENGINE_VERSION, { status: 200, data: room });
   assertPublicPrivacy("initial", room.publicState);
 
@@ -265,7 +269,7 @@ async function run() {
         roomId,
         action: action(beforeVersion, "DECLARE_NO_COLOR", {}, declarationId),
       });
-      check("alpha.2 no-color declaration is retired", !rejected.ok
+      check("alpha.3 no-color declaration is retired", !rejected.ok
         && rejected.status === 400
         && rejected.data?.error?.code === "NO_COLOR_DECLARATION_RETIRED", rejected);
       room = await refreshRoom(session, roomId);

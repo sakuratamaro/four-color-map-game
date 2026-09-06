@@ -450,13 +450,18 @@ module.exports = {
 "standard/standard-skill-registry.js":function(require,module,exports){
 "use strict";
 
+const SKILL_USAGE_CATEGORIES = Object.freeze(["color", "area", "disrupt"]);
+
 function skill(id, displayName, category, rarity, timing, options = {}) {
   const implemented = Boolean(options.implemented);
   const v49Catalogued = options.v49Catalogued !== false;
+  const usageCategory = options.usageCategory || category;
+  if (!SKILL_USAGE_CATEGORIES.includes(usageCategory)) throw new TypeError("INVALID_SKILL_USAGE_CATEGORY");
   return Object.freeze({
     id,
     displayName,
     category,
+    usageCategory,
     rarity,
     timing,
     targetSchema: options.targetSchema ?? null,
@@ -492,6 +497,16 @@ const STANDARD_SKILLS = Object.freeze({
     handlerVersion: "color-choice-borrow-v1",
   }),
   colorPrism: skill("colorPrism", "四色解放", "color", 3, "COLOR", { implemented: true, handlerVersion: "color-prism-v1" }),
+  colorBonusRefill: skill("colorBonusRefill", "おまけ色補充", "color", 2, "COLOR", {
+    implemented: true,
+    alphaUiEnabled: true,
+    gachaEnabled: false,
+    experimental: true,
+    privateInformationEffect: true,
+    consumptionPolicy: "RESOLVED_ONLY_BELOW_BONUS_CAP",
+    handlerVersion: "color-bonus-refill-v1",
+    v49Catalogued: false,
+  }),
   colorRegionSplit: skill("colorRegionSplit", "エリア二分", "color", 4, "COLOR", {
     targetSchema: { regionId: "region-id", sourceMacros: "macro-index-array" },
     implemented: true,
@@ -593,6 +608,7 @@ const STANDARD_SKILLS = Object.freeze({
     handlerVersion: "disrupt-forced-palette-v1",
   }),
   legalRecolor: skill("legalRecolor", "塗り直し・乱", "experimental", 3, "WORK", {
+    usageCategory: "color",
     targetSchema: { regionId: "region-id" },
     implemented: true,
     alphaUiEnabled: true,
@@ -609,7 +625,7 @@ const STANDARD_SKILLS = Object.freeze({
 const V49_SKILL_IDS = Object.freeze(Object.values(STANDARD_SKILLS).filter((entry) => entry.v49Catalogued).map((entry) => entry.id));
 const IMPLEMENTED_SKILL_IDS = Object.freeze(Object.values(STANDARD_SKILLS).filter((entry) => entry.implemented).map((entry) => entry.id));
 
-module.exports = { IMPLEMENTED_SKILL_IDS, STANDARD_SKILLS, V49_SKILL_IDS };
+module.exports = { IMPLEMENTED_SKILL_IDS, SKILL_USAGE_CATEGORIES, STANDARD_SKILLS, V49_SKILL_IDS };
 
 },
 "standard/standard-profile.js":function(require,module,exports){
@@ -923,7 +939,15 @@ function resolved(currentState, actor, skill, mutate, details = {}) {
   const state = clone(currentState);
   mutate(state);
   consume(state, actor, skill);
-  return Object.freeze({ ok: true, code: "OK", state, ...details });
+  return Object.freeze({ ok: true, code: "OK", state, cardConsumed: true, ...details });
+}
+
+function resolvedWithoutCard(currentState, actor, mutate, details = {}) {
+  const state = clone(currentState);
+  mutate(state);
+  state.skillsUsed[actor] = (state.skillsUsed[actor] || 0) + 1;
+  state.version += 1;
+  return Object.freeze({ ok: true, code: "OK", state, cardConsumed: false, ...details });
 }
 
 function applyColorPrism({ state, actor }) {
@@ -932,6 +956,16 @@ function applyColorPrism({ state, actor }) {
     next.privateEffects[actor].prism = true;
     next.publicLog.push(`T${next.turn} Player ${actor} enabled all four colors for this coloring.`);
   });
+}
+
+function applyColorBonusRefill({ state, actor }) {
+  const current = state.bonusUsesRemaining[actor];
+  if (current >= 4) return Object.freeze({ ok: false, code: "BONUS_USES_ALREADY_FULL", state });
+  const addedUses = Math.min(2, 4 - current);
+  return resolved(state, actor, "colorBonusRefill", (next) => {
+    next.bonusUsesRemaining[actor] = current + addedUses;
+    next.publicLog.push(`T${next.turn} Player ${actor} refilled their private bonus color uses.`);
+  }, { addedUses });
 }
 
 function usedBoardColors(state) {
@@ -1631,6 +1665,11 @@ function applyDisruptPaletteChoice({ state, actor, payload, random }) {
   const target = other(actor);
   const palette = [state.basicPalettes[target][0], state.basicPalettes[target][1], state.bonusColors[target]];
   const differing = palette.map((current, slot) => current !== color ? slot : -1).filter((slot) => slot >= 0);
+  if (!differing.length && state.skillCategoryWindow) {
+    return resolvedWithoutCard(state, actor, (next) => {
+      next.publicLog.push(`T${next.turn} Player ${actor}'s chosen palette injection resolved without changing a private palette.`);
+    }, { color, target, noOp: true });
+  }
   const slots = differing.length ? differing : [0, 1, 2];
   const slot = slots[Math.floor(slotDraw * slots.length)];
   return resolved(state, actor, "disruptPaletteChoice", (next) => {
@@ -1722,6 +1761,7 @@ module.exports = {
   applyAreaMicroBloom,
   applyAreaResize,
   applyAreaTripleShift,
+  applyColorBonusRefill,
   applyColorChoiceBorrow,
   applyColorPaletteChange,
   applyColorRandomBorrow,
@@ -1751,7 +1791,7 @@ module.exports = {
 
 const { COLORS, StandardRuleError, applyLegalRecolor } = require("./standard-engine.js");
 const { STANDARD_SKILLS } = require("./standard-skill-registry.js");
-const { applyAreaCornerBloom, applyAreaDiePlus, applyAreaHalfShift, applyAreaMicroBloom, applyAreaResize, applyAreaTripleShift, applyColorChoiceBorrow, applyColorPaletteChange, applyColorRandomBorrow, applyColorPrism, applyColorRegionSplit, applyDisruptChoiceOne, applyDisruptChoiceThree, applyDisruptChoiceTwo, applyDisruptForcedPalette, applyDisruptPaletteChoice, applyDisruptPaletteRandom, applyDisruptRandomOne, applyDisruptRandomTwo } = require("./standard-skill-handlers.js");
+const { applyAreaCornerBloom, applyAreaDiePlus, applyAreaHalfShift, applyAreaMicroBloom, applyAreaResize, applyAreaTripleShift, applyColorBonusRefill, applyColorChoiceBorrow, applyColorPaletteChange, applyColorRandomBorrow, applyColorPrism, applyColorRegionSplit, applyDisruptChoiceOne, applyDisruptChoiceThree, applyDisruptChoiceTwo, applyDisruptForcedPalette, applyDisruptPaletteChoice, applyDisruptPaletteRandom, applyDisruptRandomOne, applyDisruptRandomTwo } = require("./standard-skill-handlers.js");
 
 const SKILL_RESULT = Object.freeze({ REJECTED: "REJECTED", CANCELLED: "CANCELLED", RESOLVED: "RESOLVED" });
 
@@ -1793,6 +1833,7 @@ const HANDLERS = Object.freeze({
   colorPaletteChange: applyColorPaletteChange,
   colorRegionSplit: applyColorRegionSplit,
   colorPrism: applyColorPrism,
+  colorBonusRefill: applyColorBonusRefill,
   areaMicroBloom({ state, actor, payload, rngStreams, draws }) {
     return applyAreaMicroBloom({ state, actor, payload, random: () => nextRandom(rngStreams, "skill-effect", draws) });
   },
@@ -1826,8 +1867,11 @@ const HANDLERS = Object.freeze({
   },
 });
 
-function dispatchStandardSkillAction({ state, actor, action, expectedVersion, rngStreams = {}, validateState, projectPublic, projectPrivate, hasLegalRegionOfSize, bestLegalSize }) {
+function dispatchStandardSkillAction({ state, actor, action, expectedVersion, rngStreams = {}, validateState, projectPublic, projectPrivate, hasLegalRegionOfSize, bestLegalSize, enforceUsageCategory }) {
   validateState(state);
+  const categoryLimitEnabled = enforceUsageCategory === undefined
+    ? Boolean(state.skillCategoryWindow)
+    : enforceUsageCategory;
   if (!action || action.type !== "USE_SKILL" || !action.payload || typeof action.payload.skill !== "string") return rejected("INVALID_SKILL_ACTION", state);
   if (actor !== "A" && actor !== "B") return rejected("NOT_A_PLAYER", state);
   if (expectedVersion !== state.version) return rejected("VERSION_CONFLICT", state);
@@ -1843,6 +1887,9 @@ function dispatchStandardSkillAction({ state, actor, action, expectedVersion, rn
   if ((state.hands?.[actor]?.[definition.id] || 0) <= 0) return rejected("SKILL_UNAVAILABLE", state);
   if (definition.experimental && state.interferenceLock) return rejected("INTERFERENCE_CHAINED", state);
   if (!validateTargetSchema(definition, action.payload)) return rejected("INVALID_TARGET_SCHEMA", state);
+  if (categoryLimitEnabled && state.skillCategoryWindow.categories.includes(definition.usageCategory)) {
+    return rejected("SKILL_CATEGORY_ALREADY_USED_IN_WINDOW", state);
+  }
 
   const draws = { count: 0 };
   try {
@@ -1853,15 +1900,23 @@ function dispatchStandardSkillAction({ state, actor, action, expectedVersion, rn
     }
     if (applied.state.version !== state.version + 1) throw new Error("VERSION_INCREMENT_INVARIANT");
     if (typeof definition.expectedRngDraws === "number" && draws.count !== definition.expectedRngDraws) throw new Error("RNG_DRAW_COUNT_INVARIANT");
-    validateState(applied.state);
+    let resolvedState = applied.state;
+    if (categoryLimitEnabled) {
+      resolvedState = JSON.parse(JSON.stringify(applied.state));
+      resolvedState.skillCategoryWindow = resolvedState.active === actor
+        ? { actor, categories: [...new Set([...state.skillCategoryWindow.categories, definition.usageCategory])] }
+        : { actor: resolvedState.active, categories: [] };
+    }
+    validateState(resolvedState);
     return Object.freeze({
       ...applied,
+      state: resolvedState,
       ok: true,
       status: SKILL_RESULT.RESOLVED,
       definition,
       rngDraws: draws.count,
-      publicState: projectPublic(applied.state),
-      privateState: projectPrivate(applied.state, actor),
+      publicState: projectPublic(resolvedState),
+      privateState: projectPrivate(resolvedState, actor),
     });
   } catch (error) {
     if (error instanceof StandardRuleError) return rejected(error.code, state);
@@ -1887,11 +1942,13 @@ const {
 const { dispatchStandardSkillAction } = require("./standard-skill-dispatcher.js");
 const { applyCurseBacklashOnEnterColor, preparedOutgoingCandidates, tickPaletteDebuffsAfterColor, tickSealsAfterColor } = require("./standard-skill-handlers.js");
 const { createRegionGeometryContext } = require("./standard-region-geometry.js");
+const { SKILL_USAGE_CATEGORIES } = require("./standard-skill-registry.js");
 
 const SCHEMA_VERSION = 1;
 const LEGACY_ENGINE_VERSION = "5.0.0-alpha.1";
-const ENGINE_VERSION = "5.0.0-alpha.2";
-const SUPPORTED_ENGINE_VERSIONS = Object.freeze([LEGACY_ENGINE_VERSION, ENGINE_VERSION]);
+const PREVIOUS_ENGINE_VERSION = "5.0.0-alpha.2";
+const ENGINE_VERSION = "5.0.0-alpha.3";
+const SUPPORTED_ENGINE_VERSIONS = Object.freeze([LEGACY_ENGINE_VERSION, PREVIOUS_ENGINE_VERSION, ENGINE_VERSION]);
 const SAVE_KEY = "fourColorMapGame.standard.v5.save";
 const PHASES = Object.freeze(["CREATE_FIRST", "COLOR", "WORK", "GAME_OVER"]);
 const ACTIONS = Object.freeze(["CREATE_REGION", "COLOR_REGION", "USE_SKILL", "DECLARE_NO_COLOR", "SURRENDER"]);
@@ -1968,6 +2025,8 @@ function playableMacroIndices(bounds) {
 
 function createStandardMatch(config = {}, rngStreams = {}) {
   assertState(typeof config.matchId === "string" && config.matchId.length > 0, "MATCH_ID_REQUIRED");
+  const engineVersion = config.engineVersion === undefined ? ENGINE_VERSION : config.engineVersion;
+  assertState(SUPPORTED_ENGINE_VERSIONS.includes(engineVersion), "INVALID_ENGINE_VERSION");
   const A = initialSeatSecrets(rngStreams);
   let B = initialSeatSecrets(rngStreams);
   for (let retries = 0; paletteSignature(B) === paletteSignature(A) && retries < 15; retries += 1) {
@@ -1983,7 +2042,7 @@ function createStandardMatch(config = {}, rngStreams = {}) {
   const playableBounds = clone(config.playableBounds || { minCol: 1, maxCol: 10, minRow: 1, maxRow: 10, macroWidth: 12, microScale: 4 });
   const state = {
     schemaVersion: SCHEMA_VERSION,
-    engineVersion: ENGINE_VERSION,
+    engineVersion,
     mode: "standard",
     matchId: config.matchId,
     status: "ACTIVE",
@@ -2010,6 +2069,7 @@ function createStandardMatch(config = {}, rngStreams = {}) {
     privateEffects: clone(config.privateEffects || { A: {}, B: {} }),
     interferenceLock: false,
     skillsUsed: { A: 0, B: 0 },
+    ...(engineVersion === ENGINE_VERSION ? { skillCategoryWindow: { actor: active, categories: [] } } : {}),
     winner: null,
     terminalReason: null,
     lastPublicTrace: null,
@@ -2049,6 +2109,16 @@ function validateStandardState(state) {
   assertState(Boolean(state.regions) && typeof state.regions === "object", "INVALID_REGIONS");
   assertState(Boolean(state.hands) && Boolean(state.loadouts), "INVALID_CARDS");
   assertState(typeof state.interferenceLock === "boolean", "INVALID_INTERFERENCE_LOCK");
+  if (state.engineVersion === ENGINE_VERSION) {
+    const window = state.skillCategoryWindow;
+    assertState(Boolean(window) && typeof window === "object" && !Array.isArray(window), "INVALID_SKILL_CATEGORY_WINDOW");
+    assertState(Object.keys(window).sort().join("|") === "actor|categories", "INVALID_SKILL_CATEGORY_WINDOW");
+    assertState(window.actor === state.active && Array.isArray(window.categories), "INVALID_SKILL_CATEGORY_WINDOW");
+    assertState(window.categories.length === new Set(window.categories).size
+      && window.categories.every((category) => SKILL_USAGE_CATEGORIES.includes(category)), "INVALID_SKILL_CATEGORY_WINDOW");
+  } else {
+    assertState(state.skillCategoryWindow === undefined, "LEGACY_SKILL_CATEGORY_WINDOW");
+  }
   assertState(Array.isArray(state.publicLog), "INVALID_PUBLIC_LOG");
   if (state.lastPublicTrace !== undefined && state.lastPublicTrace !== null) {
     const trace = state.lastPublicTrace;
@@ -2153,6 +2223,7 @@ function validateStandardState(state) {
 function projectStandardPublicState(state) {
   validateStandardState(state);
   const keys = ["schemaVersion", "engineVersion", "mode", "matchId", "status", "version", "turn", "active", "phase", "regions", "pending", "reserved", "preparedOutgoing", "playableBounds", "trophyTargetMacros", "requiredSize", "rolledSize", "baseRequiredSize", "publicEffects", "interferenceLock", "winner", "terminalReason", "lastPublicTrace", "publicLog"];
+  if (state.engineVersion === ENGINE_VERSION) keys.push("skillCategoryWindow");
   return Object.freeze(Object.fromEntries(keys.map((key) => [key, clone(key === "trophyTargetMacros"
     ? (state.trophyTargetMacros || playableMacroIndices(state.playableBounds))
     : key === "lastPublicTrace" ? (state.lastPublicTrace ?? null) : state[key])] )));
@@ -2566,6 +2637,7 @@ function applyStandardAction({ state, actor, action, expectedVersion, rngStreams
         projectPrivate: projectStandardPrivateState,
         hasLegalRegionOfSize,
         bestLegalSize,
+        enforceUsageCategory: state.engineVersion === ENGINE_VERSION,
       });
       if (result.ok) {
         const next = clone(result.state);
@@ -2591,6 +2663,16 @@ function applyStandardAction({ state, actor, action, expectedVersion, rngStreams
       }
     }
     if (result.ok) {
+      if (result.state.engineVersion === ENGINE_VERSION && result.state.active !== state.active) {
+        const next = clone(result.state);
+        next.skillCategoryWindow = { actor: next.active, categories: [] };
+        result = {
+          ...result,
+          state: next,
+          ...(result.publicState ? { publicState: projectStandardPublicState(next) } : {}),
+          ...(result.privateState ? { privateState: projectStandardPrivateState(next, actor) } : {}),
+        };
+      }
       assertState(result.state.version === state.version + 1, "VERSION_INCREMENT_INVARIANT");
       validateStandardState(result.state);
     }
@@ -2619,6 +2701,7 @@ module.exports = {
   DIE_POOL,
   ENGINE_VERSION,
   LEGACY_ENGINE_VERSION,
+  PREVIOUS_ENGINE_VERSION,
   ENGINE_TERMINAL_REASONS,
   FINISHED_STATE_TERMINAL_REASONS,
   PHASES,
@@ -2642,7 +2725,7 @@ module.exports = {
 "use strict";
 
 const { COLORS, adjacentRegionIds, legalRecolorCandidates } = require("./standard-engine.js");
-const { V49_SKILL_IDS } = require("./standard-skill-registry.js");
+const { STANDARD_SKILLS, V49_SKILL_IDS } = require("./standard-skill-registry.js");
 const { createRegionGeometryContext } = require("./standard-region-geometry.js");
 const {
   cornerBloomPlan,
@@ -2652,6 +2735,9 @@ const {
 } = require("./standard-skill-handlers.js");
 
 const LEVELS = Object.freeze(["easy", "normal", "hard"]);
+const HARD_CPU_REPEATABLE_AREA_SKILLS = Object.freeze(["areaCornerBloom", "areaHalfShift", "areaTripleShift"]);
+const HARD_CPU_REPEATABLE_SKILL_CHARGE = 100;
+const HARD_CPU_FINITE_SKILL_CHARGES = Object.freeze({ colorBonusRefill: 2 });
 const POLICY_VERSIONS = Object.freeze({
   easy: "standard-easy-v1-random-safe",
   normal: "standard-normal-v1-contact-safe",
@@ -2660,6 +2746,17 @@ const POLICY_VERSIONS = Object.freeze({
 
 function clone(value) {
   return JSON.parse(JSON.stringify(value));
+}
+
+function applyHardCpuSkillCharges(state, seat) {
+  if (!state?.hands?.[seat] || !["A", "B"].includes(seat)) throw new TypeError("INVALID_CPU_SEAT");
+  for (const skill of HARD_CPU_REPEATABLE_AREA_SKILLS) {
+    if ((state.hands[seat][skill] || 0) > 0) state.hands[seat][skill] = HARD_CPU_REPEATABLE_SKILL_CHARGE;
+  }
+  for (const [skill, count] of Object.entries(HARD_CPU_FINITE_SKILL_CHARGES)) {
+    if ((state.hands[seat][skill] || 0) > 0) state.hands[seat][skill] = count;
+  }
+  return state;
 }
 
 function deepFreeze(value) {
@@ -2853,6 +2950,15 @@ function availableHand(ownPrivateState, skill) {
   return (ownPrivateState.hand?.[skill] || 0) > 0;
 }
 
+function usageCategoryAvailable(publicState, skill) {
+  const categories = publicState.skillCategoryWindow?.categories;
+  return !Array.isArray(categories) || !categories.includes(STANDARD_SKILLS[skill].usageCategory);
+}
+
+function filterUsedSkillCategories(actions, publicState) {
+  return actions.filter((action) => action.type !== "USE_SKILL" || usageCategoryAvailable(publicState, action.payload.skill));
+}
+
 function colorSkillCanRescue(action, publicState, ownPrivateState, boardColors) {
   const blocked = new Set(adjacentRegionIds(publicState, publicState.pending).map((id) => publicState.regions[id]?.color).filter(Boolean));
   const seals = publicState.publicEffects?.[ownPrivateState.seat]?.seals || {};
@@ -2861,6 +2967,7 @@ function colorSkillCanRescue(action, publicState, ownPrivateState, boardColors) 
   if (skill === "colorRandomBorrow") return boardColors.some(safe);
   if (skill === "colorChoiceBorrow") return safe(action.payload.color);
   if (skill === "colorPrism") return COLORS.some(safe);
+  if (skill === "colorBonusRefill") return ownPrivateState.bonusUsesRemaining === 0 && safe(ownPrivateState.bonusColor);
   if (skill === "colorPaletteChange") return (action.payload.slot < 2 || ownPrivateState.bonusUsesRemaining > 0) && safe(action.payload.color);
   if (skill === "colorRegionSplit") {
     const region = publicState.regions?.[action.payload.regionId];
@@ -2874,7 +2981,7 @@ function colorSkillCanRescue(action, publicState, ownPrivateState, boardColors) 
   return false;
 }
 
-function enumerateColorSkillActions(publicState, ownPrivateState, annotateRescue = false) {
+function enumerateColorSkillActions(publicState, ownPrivateState, annotateRescue = false, difficulty = "normal") {
   const actions = [];
   const boardColors = [...new Set(Object.values(publicState.regions || {}).map((region) => region.color).filter(Boolean))];
   if (availableHand(ownPrivateState, "colorRandomBorrow") && boardColors.length) actions.push(skillAction("colorRandomBorrow", {}, { skillPriority: 18 }));
@@ -2882,6 +2989,9 @@ function enumerateColorSkillActions(publicState, ownPrivateState, annotateRescue
     for (const color of boardColors) actions.push(skillAction("colorChoiceBorrow", { color }, { skillPriority: 20 }));
   }
   if (availableHand(ownPrivateState, "colorPrism")) actions.push(skillAction("colorPrism", {}, { skillPriority: 24 }));
+  if (difficulty === "hard" && availableHand(ownPrivateState, "colorBonusRefill") && ownPrivateState.bonusUsesRemaining < 4) {
+    actions.push(skillAction("colorBonusRefill", {}, { skillPriority: 26, bonusUsesBefore: ownPrivateState.bonusUsesRemaining }));
+  }
   if (availableHand(ownPrivateState, "colorPaletteChange")) {
     const palette = [...ownPrivateState.basicPalette, ownPrivateState.bonusColor];
     for (let slot = 0; slot < palette.length; slot += 1) {
@@ -2900,7 +3010,7 @@ function enumerateColorSkillActions(publicState, ownPrivateState, annotateRescue
   if (annotateRescue) for (const action of actions) {
     action.metrics.rescue = colorSkillCanRescue(action, publicState, ownPrivateState, boardColors) ? 1 : 0;
   }
-  return actions;
+  return filterUsedSkillCategories(actions, publicState);
 }
 
 function enumerateShiftActions(publicState, ownPrivateState, skill, planner) {
@@ -2912,11 +3022,11 @@ function enumerateShiftActions(publicState, ownPrivateState, skill, planner) {
       for (const direction of ["minus", "plus"]) {
         const payload = { axis, index, direction };
         const plan = planner(state, payload);
-        if (plan.ok) actions.push(skillAction(skill, payload, { skillPriority: 14 + Math.min(6, plan.movedCount || 0), movedCount: plan.movedCount || 0 }));
+        if (plan.ok) actions.push(skillAction(skill, payload, { skillPriority: 12 + Math.min(6, plan.movedCount || 0), movedCount: plan.movedCount || 0 }));
       }
     }
   }
-  return actions;
+  return filterUsedSkillCategories(actions, publicState);
 }
 
 function enumerateWorkSkillActions(publicState, ownPrivateState) {
@@ -2968,7 +3078,7 @@ function enumerateWorkSkillActions(publicState, ownPrivateState) {
       if (candidates > 0) actions.push(skillAction("legalRecolor", { regionId: region.id }, { skillPriority: 15, candidates, degree: adjacentRegionIds(publicState, region.id).length }));
     }
   }
-  return actions;
+  return filterUsedSkillCategories(actions, publicState);
 }
 
 function preparedTouchesColoredRegion(state, micro) {
@@ -2990,13 +3100,14 @@ function enumerateCpuActions(observation) {
   let actions = [];
   if (publicState.phase === "COLOR") {
     const colorActions = enumerateColorActions(publicState, ownPrivateState);
-    const skillActions = enumerateColorSkillActions(publicState, ownPrivateState, true);
+    const skillActions = enumerateColorSkillActions(publicState, ownPrivateState, true, observation.difficulty);
     const rescueActions = skillActions.filter((action) => action.metrics.rescue > 0);
+    const guaranteedRescueActions = rescueActions.filter((action) => action.payload.skill !== "colorRandomBorrow");
     const blockedCount = new Set(adjacentRegionIds(publicState, publicState.pending).map((id) => publicState.regions[id]?.color).filter(Boolean)).size;
     actions = colorActions.length
       ? [...colorActions, ...skillActions]
       : rescueActions.length
-        ? rescueActions
+        ? (observation.difficulty === "easy" || !guaranteedRescueActions.length ? rescueActions : guaranteedRescueActions)
         : [{ type: "SURRENDER", payload: {}, metrics: { blockedCount, noLegalColor: true } }];
   }
   else if (publicState.phase === "CREATE_FIRST" || publicState.phase === "WORK") actions = [...enumerateRegionActions(publicState), ...enumerateWorkSkillActions(publicState, ownPrivateState)];
@@ -3023,12 +3134,22 @@ function chooseIndex(length, random) {
 function chooseCpuAction({ observation, random, tieBreakRandom = random }) {
   const actions = enumerateCpuActions(observation);
   if (!actions.length) return null;
-  if (observation.difficulty === "easy" || observation.publicState.phase === "COLOR") return actions[chooseIndex(actions.length, random)];
+  if (observation.publicState.phase === "COLOR") {
+    const refill = actions.find((action) => action.type === "USE_SKILL" && action.payload.skill === "colorBonusRefill");
+    if (observation.difficulty === "hard" && refill && refill.metrics.bonusUsesBefore <= 2) return refill;
+    return actions[chooseIndex(actions.length, random)];
+  }
+  if (observation.difficulty === "easy") return actions[chooseIndex(actions.length, random)];
+  const shiftAlternationBonus = (action) => {
+    if (action.payload?.skill === "areaHalfShift") return observation.publicState.turn % 3 === 0 ? 41 : 0;
+    if (action.payload?.skill === "areaTripleShift") return observation.publicState.turn % 3 === 1 ? 41 : 0;
+    return 0;
+  };
   const scored = actions.map((action) => ({
     action,
     score: action.type === "USE_SKILL"
       ? (observation.difficulty === "hard"
-        ? (action.metrics.skillPriority || 0) * 10 + (action.metrics.degree || 0) * 2 + (action.metrics.candidates || 0)
+        ? (action.metrics.skillPriority || 0) * 10 + (action.metrics.degree || 0) * 2 + (action.metrics.candidates || 0) + shiftAlternationBonus(action)
         : (action.metrics.skillPriority || 0))
       : action.type === "CREATE_REGION"
         ? (observation.difficulty === "hard" ? action.metrics.colorPressure * 100 + action.metrics.contacts : action.metrics.contacts * 2)
@@ -3040,6 +3161,9 @@ function chooseCpuAction({ observation, random, tieBreakRandom = random }) {
 }
 
 module.exports = {
+  HARD_CPU_FINITE_SKILL_CHARGES,
+  HARD_CPU_REPEATABLE_AREA_SKILLS,
+  HARD_CPU_REPEATABLE_SKILL_CHARGE,
   LEVELS,
   POLICY_VERSIONS,
   chooseCpuAction,
@@ -3048,6 +3172,7 @@ module.exports = {
   immediateOpponentColorOptions,
   makeObservation,
   V49_SKILL_IDS,
+  applyHardCpuSkillCharges,
 };
 
 },
@@ -3198,6 +3323,7 @@ const engine = load("standard/standard-engine.js");
 const match = load("standard/standard-match.js");
 const profileModel = load("standard/standard-profile.js");
 const cosmetics = load("standard/standard-cosmetics.js");
+const cpu = load("standard/standard-cpu.js");
 const cpuRoster = load("standard/standard-cpu-roster.js");
 const registry = load("standard/standard-skill-registry.js").STANDARD_SKILLS;
 const categories = ["color", "area", "disrupt"];
@@ -3287,9 +3413,10 @@ function projections(state,debugMode=false,labMode=false){
   if(labMode)publicState.labRuleSetId=LEGAL_RECOLOR_LAB_RULE_SET_ID;
   return {publicState,privateA:match.projectStandardPrivateState(state,"A"),privateB:match.projectStandardPrivateState(state,"B")};
 }
-function create({matchId,loadouts,profiles=null,seed,firstSeat=null,debugMode=false,labMode=false}){
+function create({matchId,loadouts,profiles=null,seed,firstSeat=null,debugMode=false,labMode=false,cpuSeat=null,engineVersion=match.ENGINE_VERSION}){
   if(typeof debugMode!=="boolean")throw new Error("INVALID_DEBUG_MODE");
   if(typeof labMode!=="boolean"||debugMode&&labMode)throw new Error("INVALID_LAB_MODE");
+  if(cpuSeat!==null&&!['A','B'].includes(cpuSeat))throw new Error("INVALID_CPU_SEAT");
   validateLoadouts(loadouts);
   if(profiles!==null&&!debugMode){
     for(const seat of ["A","B"]){
@@ -3298,8 +3425,9 @@ function create({matchId,loadouts,profiles=null,seed,firstSeat=null,debugMode=fa
   }
   if(!Number.isSafeInteger(seed)||seed<0||seed>0xffffffff)throw new Error("INVALID_SEED");
   const streams=engine.createRngDomains(seed,match.REQUIRED_RNG_STREAMS);
-  let state=match.createStandardMatch({matchId,loadouts,firstSeat},streams);
+  let state=match.createStandardMatch({matchId,loadouts,firstSeat,engineVersion},streams);
   state=clone(state);
+  if(cpuSeat!==null)cpu.applyHardCpuSkillCharges(state,cpuSeat);
   state.ruleSetId=labMode?LEGAL_RECOLOR_LAB_RULE_SET_ID:STANDARD_RULE_SET_ID;
   if(labMode){
     state.hands.A.legalRecolor=1;
@@ -3360,7 +3488,7 @@ function applyCosmetic({profile,cosmeticId}){
   validateProfile(result.profile);
   return {profile:clone(result.profile),quote:clone(result.quote)};
 }
-function applyProfiles({profiles,beforeState,nextState,actor,action,finishedAt,debugMode=false,labMode=false}){
+function applyProfiles({profiles,beforeState,nextState,actor,action,finishedAt,debugMode=false,labMode=false,cardConsumed=true}){
   if(typeof debugMode!=="boolean"||typeof labMode!=="boolean"||debugMode&&labMode)throw new Error("INVALID_EXPERIMENT_MODE");
   assertRuleSetMode(beforeState,labMode);
   assertRuleSetMode(nextState,labMode);
@@ -3374,12 +3502,16 @@ function applyProfiles({profiles,beforeState,nextState,actor,action,finishedAt,d
       const difference=(beforeState.hands[actor][id]||0)-(nextState.hands[actor][id]||0);
       if(difference!==0)consumed.push({id,difference});
     }
-    if(consumed.length!==1||consumed[0].difference!==1)throw new Error("CARD_NOT_CONSUMED_ONCE");
-    const id=consumed[0].id;
-    if(!Number.isSafeInteger(next[actor].inventory[id])||next[actor].inventory[id]<1)throw new Error("INVENTORY_EMPTY");
-    next[actor].inventory[id]-=1;
-    validateProfile(next[actor]);
-    changed[actor]=true;
+    if(cardConsumed===false){
+      if(consumed.length!==0)throw new Error("CARD_CHANGED_ON_ACCEPTED_NO_OP");
+    }else{
+      if(consumed.length!==1||consumed[0].difference!==1)throw new Error("CARD_NOT_CONSUMED_ONCE");
+      const id=consumed[0].id;
+      if(!Number.isSafeInteger(next[actor].inventory[id])||next[actor].inventory[id]<1)throw new Error("INVENTORY_EMPTY");
+      next[actor].inventory[id]-=1;
+      validateProfile(next[actor]);
+      changed[actor]=true;
+    }
   }
   if(nextState.status==="FINISHED"){
     if(typeof finishedAt!=="string"||!Number.isFinite(Date.parse(finishedAt)))throw new Error("INVALID_FINISHED_AT");
@@ -3396,7 +3528,7 @@ function applyProfiles({profiles,beforeState,nextState,actor,action,finishedAt,d
   }
   return {profiles:next,changed};
 }
-function applyCpuProfiles({profiles,beforeState,nextState,actor,action,finishedAt,characterId}){
+function applyCpuProfiles({profiles,beforeState,nextState,actor,action,finishedAt,characterId,cardConsumed=true}){
   const next={A:clone(profiles?.A),B:clone(profiles?.B)};
   for(const seat of ["A","B"])validateProfile(next[seat]);
   if(!cpuRoster.CPU_CHARACTERS[characterId])throw new Error("UNKNOWN_CPU_CHARACTER");
@@ -3407,12 +3539,18 @@ function applyCpuProfiles({profiles,beforeState,nextState,actor,action,finishedA
       const difference=(beforeState.hands[actor][id]||0)-(nextState.hands[actor][id]||0);
       if(difference!==0)consumed.push({id,difference});
     }
-    if(consumed.length!==1||consumed[0].difference!==1)throw new Error("CARD_NOT_CONSUMED_ONCE");
-    const id=consumed[0].id;
-    if(!Number.isSafeInteger(next[actor].inventory[id])||next[actor].inventory[id]<1)throw new Error("INVENTORY_EMPTY");
-    next[actor].inventory[id]-=1;
-    validateProfile(next[actor]);
-    changed[actor]=true;
+    if(cardConsumed===false){
+      if(consumed.length!==0)throw new Error("CARD_CHANGED_ON_ACCEPTED_NO_OP");
+    }else{
+      if(consumed.length!==1||consumed[0].difference!==1)throw new Error("CARD_NOT_CONSUMED_ONCE");
+      const id=consumed[0].id;
+      if(actor!=="B"){
+        if(!Number.isSafeInteger(next[actor].inventory[id])||next[actor].inventory[id]<1)throw new Error("INVENTORY_EMPTY");
+        next[actor].inventory[id]-=1;
+        validateProfile(next[actor]);
+        changed[actor]=true;
+      }
+    }
   }
   if(nextState.status==="FINISHED"){
     if(typeof finishedAt!=="string"||!Number.isFinite(Date.parse(finishedAt)))throw new Error("INVALID_FINISHED_AT");
@@ -3437,7 +3575,7 @@ function apply({state,rngSnapshot,actor,action,expectedVersion,debugMode=false,l
   const applied=match.applyStandardAction({state,actor,action,expectedVersion,rngStreams:streams});
   if(!applied.ok)return {ok:false,code:applied.code};
   let next=applied.state;
-  if(debugMode&&action.type==="USE_SKILL"){
+  if(debugMode&&action.type==="USE_SKILL"&&applied.cardConsumed!==false){
     const skill=action.payload?.skill;
     if(typeof skill!=="string")throw new Error("INVALID_DEBUG_SKILL");
     next=clone(next);
@@ -3447,6 +3585,8 @@ function apply({state,rngSnapshot,actor,action,expectedVersion,debugMode=false,l
   return {
     ok:true,
     code:applied.code,
+    cardConsumed:applied.cardConsumed!==false,
+    noOp:applied.noOp===true,
     contactColorCount:action.type==="CREATE_REGION"?applied.contactColorCount:null,
     state:next,
     rngSnapshot:engine.snapshotRngDomains(streams,match.REQUIRED_RNG_STREAMS),

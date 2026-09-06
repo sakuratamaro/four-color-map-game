@@ -248,6 +248,7 @@ test("an alpha.1 split return preserves the legacy automatic no-color terminal",
   const source = fixture();
   const legacy = split(source.state, [13], source.rng).state;
   legacy.engineVersion = match.LEGACY_ENGINE_VERSION;
+  delete legacy.skillCategoryWindow;
   const usable = [...legacy.basicPalettes.B, legacy.bonusColors.B];
   for (const [index, macro] of [2, 3, 26].entries()) {
     const id = `R${index + 4}`;
@@ -272,6 +273,7 @@ test("legacy split halves preserve SEALED_OUT and NO_LEGAL_COLOR declaration sem
   const noColorSource = fixture();
   const noColor = split(noColorSource.state, [13], noColorSource.rng).state;
   noColor.engineVersion = match.LEGACY_ENGINE_VERSION;
+  delete noColor.skillCategoryWindow;
   const onlyColor = noColor.basicPalettes.A[0];
   noColor.publicEffects.A.seals = Object.fromEntries(engine.COLORS.filter((color) => color !== onlyColor).map((color) => [color, 1]));
   noColor.regions.R4 = {
@@ -303,6 +305,7 @@ test("legacy split halves preserve SEALED_OUT and NO_LEGAL_COLOR declaration sem
     rngStreams: sealedSource.rng,
   }).state;
   returned.engineVersion = match.LEGACY_ENGINE_VERSION;
+  delete returned.skillCategoryWindow;
   returned.publicEffects.B.seals = Object.fromEntries(engine.COLORS.map((color) => [color, 1]));
   const sealedOut = match.applyStandardAction({
     state: returned,
