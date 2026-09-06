@@ -584,6 +584,9 @@ async function assertTripleShiftUse(browser, gesture) {
     const before = await persistedSnapshot(page);
     const beforeRoot = await persistedRoot(page);
     const counters = { ...metrics };
+    await page.getByRole("button", { name: "三層断層", exact: true }).click();
+    await page.locator('[aria-label="盤面"] button').nth(26).click();
+    await page.getByRole("button", { name: "右へ →", exact: true }).click();
     const control = page.getByRole("button", { name: "三層断層を確定", exact: true });
     if (gesture === "pointer") await control.evaluate((button) => { button.click(); button.click(); });
     else {
@@ -1733,15 +1736,18 @@ test("color-seal native keyboard and normal-URL lifecycle gates", { skip: !chrom
       try {
         await bootToAWork(page);
         await installTripleShiftState(page);
-        await page.getByLabel("中央帯").fill("0");
+        await page.getByRole("button", { name: "三層断層", exact: true }).click();
         const invalidBefore = await persistedSnapshot(page);
+        const invalidIds = metrics.generatedIds;
         const invalidWrites = metrics.saveWrites;
-        await page.getByRole("button", { name: "三層断層を確定", exact: true }).click();
-        await page.getByText("操作できません（INVALID_SHIFT_BAND）。", { exact: true }).waitFor();
+        await page.locator('[aria-label="盤面"] button').nth(13).click();
+        await page.getByText("三層断層は両隣も動かすため、外周ではなく内側の行・列を選んでください。", { exact: true }).waitFor();
         assert.deepEqual(await persistedSnapshot(page), invalidBefore);
         assert.equal(metrics.saveWrites, invalidWrites);
+        assert.equal(metrics.generatedIds, invalidIds);
 
-        await page.getByLabel("中央帯").fill("2");
+        await page.locator('[aria-label="盤面"] button').nth(26).click();
+        await page.getByRole("button", { name: "右へ →", exact: true }).click();
         const before = await persistedSnapshot(page);
         const rawBefore = await page.evaluate((key) => localStorage.getItem(key), saveKey);
         const counters = { ...metrics };

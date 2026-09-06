@@ -373,11 +373,12 @@ async function run768(browser) {
     await page.getByLabel("🎲 Xマス演出").uncheck();
     await page.getByLabel("初期持ち色演出").uncheck();
     await bootToBWork(page);
+    await page.getByRole("button", { name: "半マスシフト", exact: true }).click();
     const shiftApply = page.getByRole("button", { name: "半マスシフトを確定" });
-    const shiftIndex = page.getByLabel("基準位置");
     const beforeRejectPayload = await persistedPayload(page);
     const beforeRejectMetrics = await metrics(page);
-    await shiftIndex.fill("10");
+    await clickCellCenter(page, 121);
+    await page.getByRole("button", { name: "右へ →", exact: true }).click();
     await shiftApply.click();
     await page.getByText(/EMPTY_SHIFT_BAND/).waitFor();
     assert.equal(await persistedPayload(page), beforeRejectPayload);
@@ -389,7 +390,7 @@ async function run768(browser) {
     assert.equal(afterRejectMetrics.resultRenders, beforeRejectMetrics.resultRenders);
     assert.equal(afterRejectMetrics.generatedIds, beforeRejectMetrics.generatedIds + 1);
     await page.waitForTimeout(325);
-    await shiftIndex.fill("1");
+    await clickCellCenter(page, 13);
     const oldApply = await shiftApply.elementHandle();
     assert.ok(oldApply);
     await shiftApply.click();

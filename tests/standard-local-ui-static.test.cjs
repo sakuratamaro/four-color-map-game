@@ -8,6 +8,7 @@ const test = require("node:test");
 const root = path.join(__dirname, "..");
 const html = fs.readFileSync(path.join(root, "standard-v5", "index.html"), "utf8");
 const app = fs.readFileSync(path.join(root, "standard-v5", "app.js"), "utf8");
+const css = fs.readFileSync(path.join(root, "standard-v5", "style.css"), "utf8");
 const staticTerminal = fs.readFileSync(path.join(root, "standard-v5", "static-terminal-result.js"), "utf8");
 const bundle = fs.readFileSync(path.join(root, "standard-v5", "app.bundle.js"), "utf8");
 const browserFixture = fs.readFileSync(path.join(root, "tests", "fixtures", "standard-v5-browser-bootstrap.html"), "utf8");
@@ -21,7 +22,7 @@ const responsiveBrowserGate = fs.readFileSync(path.join(root, "tests", "standard
 const contactPressureBrowserGate = fs.readFileSync(path.join(root, "tests", "standard-contact-pressure-browser.test.cjs"), "utf8");
 
 test("local alpha has a bundled offline entry point", () => {
-  assert.match(html, /app\.bundle\.js\?v=20260906-2/);
+  assert.match(html, /app\.bundle\.js\?v=20260906-3/);
   for (const id of ["profileA", "profileB", "firstPlayer", "startMatch", "handover", "privatePanel", "resultPanel"]) {
     assert.match(html, new RegExp(`id="${id}"`));
   }
@@ -30,6 +31,24 @@ test("local alpha has a bundled offline entry point", () => {
   assert.doesNotMatch(`${html}\n${app}\n${bundle}`, /https?:\/\/|supabase|fetch\s*\(/i);
   assert.ok(bundle.length > app.length);
   assert.match(bundle, /"standard\/standard-region-geometry\.js":function/);
+});
+
+test("local shift targets are selected on the board with keyboard support and natural directions", () => {
+  const boardFlow = app.slice(app.indexOf("function renderPublic"), app.indexOf("function appendButton"));
+  const controls = app.slice(app.indexOf("function focusFirstPlayableCell"), app.indexOf("function showHandover"));
+  assert.match(boardFlow, /targetMode\?\.kind === "bandShift"/);
+  assert.match(boardFlow, /targetMode\.axis === "ROW" \? row : col/);
+  assert.match(boardFlow, /\["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"\]/);
+  assert.match(boardFlow, /event\.key === "Escape"/);
+  assert.match(controls, /\[\["ROW", "横の行を選ぶ"\], \["COLUMN", "縦の列を選ぶ"\]\]/);
+  assert.match(controls, /\[\["minus", "← 左へ"\], \["plus", "右へ →"\]\]/);
+  assert.match(controls, /\[\["minus", "↑ 上へ"\], \["plus", "下へ ↓"\]\]/);
+  assert.match(controls, /skill: mode\.skill, axis: mode\.axis, index: mode\.index, direction: mode\.direction/);
+  assert.doesNotMatch(controls, /createElement\("select"\)|type = "number"|正方向|逆方向/);
+  assert.match(css, /\.cell\.shift-target\{[^}]*#fde047/);
+  assert.match(css, /\.cell\.shift-adjacent\{[^}]*#d8b4fe/);
+  assert.match(css, /@media\(max-width:390px\)\{\.shift-controls button\{[^}]*min-height:48px/);
+  assert.match(bundle, /function appendBandShiftControls/);
 });
 
 test("formal Standard setup requires a complete owned two-per-category loadout before issuing start identities", () => {

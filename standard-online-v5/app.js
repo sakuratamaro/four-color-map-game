@@ -105,8 +105,8 @@ const SKILL_DESCRIPTION = Object.freeze({
   areaDiePlus: "この手番で相手に渡すエリアを1マス増やします。置ける場所がある時だけ使えます。",
   areaResize: "盤面の上下左右を1列ぶん拡大、または縮小します。すでに塗られた形はそのまま残ります。",
   areaCornerBloom: "選んだ基準マスの使える角をすべて少しふくらませます。",
-  areaHalfShift: "指定した行または列を、半マスぶんずらします。エリアが分かれる場合があります。",
-  areaTripleShift: "指定した行または列と、その両隣を段差状にずらします。中央は1マス、両隣は半マス動きます。",
+  areaHalfShift: "盤面で選んだ行または列を、半マスぶんずらします。エリアの形がちぎれて別々になることがあり、同じ色のエリアが接すると1つにくっつきます。",
+  areaTripleShift: "盤面で選んだ中央の行または列と、その両隣を段差状にずらします。中央は1マス、両隣は半マス動きます。エリアの形がちぎれる動きは成立せず、同じ色のエリアが接すると1つにくっつきます。",
   disruptRandomOne: "相手の色をランダムに1色選び、次の彩色1回だけ封じます。空振りになる場合もあります。",
   disruptChoiceOne: "選んだ1色を相手の次の彩色1回だけ封じます。使用後、自分にもランダムな色封じが1回返ってきます。",
   disruptRandomTwo: "相手の色をランダムに異なる2色選び、次の彩色1回だけ封じます。",
@@ -2883,6 +2883,7 @@ function beginSkill(skill) {
   const state = roomModel?.room?.public_state;
   const kind = skillIntents.targetKind(skill);
   targetDraft = { skill, kind, input: {}, feedback: "", roomId: roomModel?.room?.id, matchId: state?.matchId, version: state?.version };
+  if (kind === "band-shift") targetDraft.input.axis = "ROW";
   if (kind !== "corner-bloom") selectedMacros.clear();
   if (kind === "corner-bloom" && selectedMacros.size === 1 && state?.requiredSize === 1) {
     targetDraft.input.macro = [...selectedMacros][0];
@@ -2921,6 +2922,62 @@ function cornerBloomTargetReady(state) {
   return targetDraft?.kind === "corner-bloom"
     && selectedMacros.size === state.requiredSize
     && selectedMacros.has(targetDraft.input.macro);
+}
+
+function bandShiftAxisBounds(state, axis = targetDraft?.input?.axis) {
+  const bounds = state.playableBounds;
+  return axis === "ROW"
+    ? { min: bounds.minRow, max: bounds.maxRow }
+    : { min: bounds.minCol, max: bounds.maxCol };
+}
+
+function bandShiftTargetReady(state) {
+  if (targetDraft?.kind !== "band-shift" || !["ROW", "COLUMN"].includes(targetDraft.input.axis)
+      || !["minus", "plus"].includes(targetDraft.input.direction)) return false;
+  const index = targetDraft.input.index;
+  const { min, max } = bandShiftAxisBounds(state);
+  return Number.isSafeInteger(index) && (targetDraft.skill === "areaTripleShift"
+    ? index > min && index < max
+    : index >= min && index <= max);
+}
+
+function bandShiftPositionLabel(state, axis, index) {
+  if (!Number.isSafeInteger(index)) return "まだ盤面で選んでいません";
+  const { min } = bandShiftAxisBounds(state, axis);
+  return axis === "ROW" ? `上から${index - min + 1}行目` : `左から${index - min + 1}列目`;
+}
+
+function setBandShiftAxis(state, axis) {
+  if (targetDraft?.kind !== "band-shift") return;
+  targetDraft.input.axis = axis;
+  targetDraft.input.index = undefined;
+  targetDraft.input.direction = undefined;
+  setSkillTargetFeedback(`${axis === "ROW" ? "横の行" : "縦の列"}を盤面で選んでください。`);
+  render();
+  const choice = [...$("skillTargetControls").querySelectorAll("button[data-shift-axis]")]
+    .find((candidate) => candidate.dataset.shiftAxis === axis);
+  choice?.focus({ preventScroll: true });
+}
+
+function selectBandShiftMacro(state, macro) {
+  if (targetDraft?.kind !== "band-shift" || !playableMacro(state, macro)) return false;
+  const width = state.playableBounds.macroWidth;
+  const index = targetDraft.input.axis === "ROW" ? Math.floor(macro / width) : macro % width;
+  const { min, max } = bandShiftAxisBounds(state);
+  boardKeyboardMacro = macro;
+  if (targetDraft.skill === "areaTripleShift" && (index <= min || index >= max)) {
+    const message = "三層断層は両隣も動かすため、外周ではなく内側の行・列を選んでください。";
+    setSkillTargetFeedback(message, "error");
+    announceBoardSelection(message);
+    render();
+    return false;
+  }
+  targetDraft.input.index = index;
+  const label = bandShiftPositionLabel(state, targetDraft.input.axis, index);
+  setSkillTargetFeedback(`${label}を選びました。盤面の帯を確認して、動かす方向を選んでください。`, "success");
+  announceBoardSelection(`${label}を対象に選びました。`);
+  render();
+  return true;
 }
 
 function cornerBloomSelectionMessage(state) {
@@ -3015,10 +3072,46 @@ function renderSkillTarget(state) {
     for (const [side, label] of [["top", "上"], ["right", "右"], ["bottom", "下"], ["left", "左"]]) controls.appendChild(targetChoice(label, "side", side));
   }
   if (targetDraft.kind === "band-shift") {
-    for (const axis of ["ROW", "COLUMN"]) controls.appendChild(targetChoice(axis === "ROW" ? "行" : "列", "axis", axis));
-    const input = document.createElement("input"); input.type = "number"; input.min = "0"; input.max = String(state.playableBounds.macroWidth - 1); input.placeholder = "番号";
-    input.value = targetDraft.input.index ?? ""; input.oninput = () => { targetDraft.input.index = Number(input.value); }; controls.appendChild(input);
-    for (const direction of ["minus", "plus"]) controls.appendChild(targetChoice(direction === "minus" ? "負方向" : "正方向", "direction", direction));
+    const guide = document.createElement("p");
+    guide.id = "bandShiftTargetGuide";
+    guide.className = "skill-target-guide";
+    guide.textContent = targetDraft.skill === "areaTripleShift"
+      ? "横の行か縦の列を選び、盤面で三層の中央をタップしてください。外周は中央にできません。"
+      : "横の行か縦の列を選び、盤面で動かす帯をタップしてください。";
+    controls.appendChild(guide);
+    const axes = document.createElement("div");
+    axes.className = "controls shift-axis-controls";
+    axes.setAttribute("aria-label", "盤面で選ぶ帯の向き");
+    for (const [axis, label] of [["ROW", "横の行を選ぶ"], ["COLUMN", "縦の列を選ぶ"]]) {
+      const selected = targetDraft.input.axis === axis;
+      const choice = button(label, () => setBandShiftAxis(state, axis), selected ? "primary" : "ghost");
+      choice.dataset.shiftAxis = axis;
+      choice.setAttribute("aria-pressed", String(selected));
+      axes.appendChild(choice);
+    }
+    controls.appendChild(axes);
+    const selection = document.createElement("p");
+    selection.className = "shift-band-selection";
+    selection.textContent = `対象：${bandShiftPositionLabel(state, targetDraft.input.axis, targetDraft.input.index)}`;
+    controls.appendChild(selection);
+    const focusBoard = button("盤面で対象を選ぶ", () => {
+      const board = $("board");
+      board.focus({ preventScroll: true });
+      board.scrollIntoView({ block: "center", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+    }, "ghost");
+    focusBoard.classList.add("shift-board-focus");
+    focusBoard.setAttribute("aria-describedby", guide.id);
+    controls.appendChild(focusBoard);
+    if (Number.isSafeInteger(targetDraft.input.index)) {
+      const directions = document.createElement("div");
+      directions.className = "controls shift-direction-controls";
+      directions.setAttribute("aria-label", "動かす方向");
+      const labels = targetDraft.input.axis === "ROW"
+        ? [["minus", "← 左へ"], ["plus", "右へ →"]]
+        : [["minus", "↑ 上へ"], ["plus", "下へ ↓"]];
+      for (const [direction, label] of labels) directions.appendChild(targetChoice(label, "direction", direction));
+      controls.appendChild(directions);
+    }
   }
   panel.appendChild(controls);
   const feedback = document.createElement("p");
@@ -3049,6 +3142,10 @@ function renderSkillTarget(state) {
     useTarget.disabled = !cornerBloomTargetReady(state);
     useTarget.setAttribute("aria-describedby", "cornerBloomTargetGuide");
   }
+  if (targetDraft.kind === "band-shift") {
+    useTarget.disabled = !bandShiftTargetReady(state);
+    useTarget.setAttribute("aria-describedby", "bandShiftTargetGuide");
+  }
   actions.appendChild(useTarget);
   actions.appendChild(button("キャンセル", cancelSkillTarget, "ghost")); panel.appendChild(actions);
 }
@@ -3067,7 +3164,7 @@ function submitSkillTarget() {
 }
 
 function boardSelectionAvailable(state = roomModel?.room?.public_state) {
-  const geometrySelection = !targetDraft || targetDraft.kind === "corner-bloom";
+  const geometrySelection = !targetDraft || ["corner-bloom", "band-shift"].includes(targetDraft.kind);
   return Boolean(state && roomModel?.room?.status === "playing" && state.status === "ACTIVE" && !actionBusy && geometrySelection
     && state.active === roomModel?.view?.seat && ["CREATE_FIRST", "WORK"].includes(state.phase));
 }
@@ -3175,6 +3272,12 @@ function boardMacroDescription(state, macro) {
   const bounds = state.playableBounds;
   const col = (macro % bounds.macroWidth) - bounds.minCol + 1;
   const row = Math.floor(macro / bounds.macroWidth) - bounds.minRow + 1;
+  if (targetDraft?.kind === "band-shift") {
+    const index = targetDraft.input.axis === "ROW" ? Math.floor(macro / bounds.macroWidth) : macro % bounds.macroWidth;
+    const invalidTriple = targetDraft.skill === "areaTripleShift"
+      && (index <= bandShiftAxisBounds(state).min || index >= bandShiftAxisBounds(state).max);
+    return `上から${row}行目、左から${col}列目。${targetDraft.input.axis === "ROW" ? "この行" : "この列"}${invalidTriple ? "は三層の外周なので選べません" : "を対象に選べます"}`;
+  }
   let availability = "使用済み";
   if (selectedMacros.has(macro)) availability = "選択済み";
   else if (macroHasFreeMicro(state, macro)) {
@@ -3316,12 +3419,21 @@ function boardKeydown(event) {
   }
   if ([" ", "Enter"].includes(event.key)) {
     event.preventDefault();
-    toggleBoardMacro(state, macro);
+    if (targetDraft?.kind === "band-shift") selectBandShiftMacro(state, macro);
+    else toggleBoardMacro(state, macro);
     scrollBoardMacroIntoView(state, macro);
     return;
   }
   if (event.key === "Escape") {
     event.preventDefault();
+    if (targetDraft?.kind === "band-shift") {
+      targetDraft.input.index = undefined;
+      targetDraft.input.direction = undefined;
+      setSkillTargetFeedback("盤面の対象を解除しました。選び直してください。");
+      announceBoardSelection("盤面の対象を解除しました。");
+      render();
+      return;
+    }
     selectedMacros.clear();
     announceBoardSelection("盤面の選択をすべて解除しました。");
     render();
@@ -3353,6 +3465,8 @@ function renderBoard(state) {
   const boardInteractive = syncBoardSelectionAssist(state);
   canvas.setAttribute("aria-label", targetDraft?.kind === "existing-region"
     ? "塗り直す彩色済みエリアを選択。番号と色名は下の対象一覧でも選べます。"
+    : targetDraft?.kind === "band-shift"
+      ? `${targetDraft.input.axis === "ROW" ? "動かす横の行" : "動かす縦の列"}を選択。矢印キーで移動し、SpaceまたはEnterで対象を決め、Escapeで対象を解除できます。`
     : boardInteractive
       ? "四色地図の対戦盤面。矢印キーでマスを移動し、SpaceまたはEnterで選択、Escapeで全解除できます。"
       : "四色地図の対戦盤面");
@@ -3386,6 +3500,37 @@ function renderBoard(state) {
     const col = macro % macroWidth; const row = Math.floor(macro / macroWidth);
     ctx.fillRect(col * microScale * cell, row * microScale * cell, microScale * cell, microScale * cell);
     ctx.strokeRect(col * microScale * cell + 1, row * microScale * cell + 1, microScale * cell - 2, microScale * cell - 2);
+  }
+  if (targetDraft?.kind === "band-shift" && Number.isSafeInteger(targetDraft.input.index)) {
+    const axis = targetDraft.input.axis;
+    const selectedIndex = targetDraft.input.index;
+    const triple = targetDraft.skill === "areaTripleShift";
+    const first = triple ? selectedIndex - 1 : selectedIndex;
+    const last = triple ? selectedIndex + 1 : selectedIndex;
+    for (let index = first; index <= last; index += 1) {
+      const center = index === selectedIndex;
+      if (axis === "ROW") {
+        const top = index * microScale * cell;
+        const left = bounds.minCol * microScale * cell;
+        const width = (bounds.maxCol - bounds.minCol + 1) * microScale * cell;
+        ctx.fillStyle = center ? "#facc1538" : "#c084fc24";
+        ctx.fillRect(left, top, width, microScale * cell);
+      } else {
+        const top = bounds.minRow * microScale * cell;
+        const left = index * microScale * cell;
+        const height = (bounds.maxRow - bounds.minRow + 1) * microScale * cell;
+        ctx.fillStyle = center ? "#facc1538" : "#c084fc24";
+        ctx.fillRect(left, top, microScale * cell, height);
+      }
+      for (let cross = axis === "ROW" ? bounds.minCol : bounds.minRow; cross <= (axis === "ROW" ? bounds.maxCol : bounds.maxRow); cross += 1) {
+        const macro = axis === "ROW" ? index * macroWidth + cross : cross * macroWidth + index;
+        strokeMacroFrame(ctx, macro, macroWidth, microScale, cell, {
+          color: center ? "#fde047" : "#d8b4fe",
+          cssWidth: center ? 3.5 : 2,
+          cssDash: center ? [] : [5, 4],
+        });
+      }
+    }
   }
   if (targetDraft?.kind === "corner-bloom" && selectedMacros.has(targetDraft.input.macro)) {
     strokeMacroFrame(ctx, targetDraft.input.macro, macroWidth, microScale, cell, { color: "#f0abfc", cssWidth: 4, cssDash: [] });
@@ -3537,7 +3682,7 @@ function renderBasicActions(state, privateState) {
 
 function boardPointer(event) {
   const state = roomModel?.room?.public_state; const seat = roomModel?.view?.seat;
-  const skillGeometry = targetDraft && ["source-macros", "region-split", "corner-bloom"].includes(targetDraft.kind);
+  const skillGeometry = targetDraft && ["source-macros", "region-split", "corner-bloom", "band-shift"].includes(targetDraft.kind);
   const recolorTarget = targetDraft?.kind === "existing-region";
   if (!state || roomModel?.room?.status !== "playing" || state.status !== "ACTIVE" || actionBusy || state.active !== seat
     || (!recolorTarget && !skillGeometry && !["CREATE_FIRST", "WORK"].includes(state.phase))) return;
@@ -3556,6 +3701,7 @@ function boardPointer(event) {
   const row = Math.max(0, Math.min(width - 1, Math.floor((event.clientY - rect.top) / rect.height * width)));
   const macro = row * width + col;
   if (!skillGeometry) return toggleBoardMacro(state, macro);
+  if (targetDraft?.kind === "band-shift") return selectBandShiftMacro(state, macro);
   if (targetDraft?.kind === "corner-bloom") return selectCornerBloomMacro(state, macro);
   if (selectedMacros.has(macro)) selectedMacros.delete(macro);
   else if (selectedMacros.size < state.requiredSize) selectedMacros.add(macro);

@@ -49,8 +49,8 @@ test("Standard online setup UI exposes the complete reconnect path", () => {
 });
 
 test("CPU commentary is public-event-only, bounded, non-blocking, and terminal-persistent", () => {
-  assert.match(html, /style\.css\?v=20260906-37/);
-  assert.match(html, /app\.js\?v=20260906-38/);
+  assert.match(html, /style\.css\?v=20260906-38/);
+  assert.match(html, /app\.js\?v=20260906-39/);
   assert.match(app, /cpuCommentary\?\.VERSION !== "standard-cpu-commentary-v2"/);
   assert.ok(html.indexOf("cpu-commentary.js") < html.indexOf('type="module" src="app.js'));
   assert.match(html, /id="cpuCommentaryStage"[^>]+aria-hidden="true"/);
@@ -668,6 +668,24 @@ test("corner bloom uses a board-first two-stage target flow without raw macro in
   assert.match(css, /\.corner-bloom-board-focus,\.corner-bloom-targets button\{min-height:44px\}/);
   assert.match(app, /targetDraft\?\.kind !== "corner-bloom" \|\| selectedMacros\.size < state\.requiredSize/);
   assert.match(css, /\.skill-target-feedback\[data-tone="error"\]/);
+});
+
+test("half shift and triple shift select their bands on the board without raw position controls", () => {
+  const target = app.slice(app.indexOf("function bandShiftAxisBounds"), app.indexOf("function submitSkillTarget"));
+  const board = app.slice(app.indexOf("function boardMacroDescription"), app.indexOf("async function sendAction"));
+  assert.match(target, /\[\["ROW", "横の行を選ぶ"\], \["COLUMN", "縦の列を選ぶ"\]\]/);
+  assert.match(target, /盤面で三層の中央をタップ/);
+  assert.match(target, /function selectBandShiftMacro\(state, macro\)/);
+  assert.match(target, /targetDraft\.input\.axis === "ROW" \? Math\.floor\(macro \/ width\) : macro % width/);
+  assert.match(target, /index > min && index < max/);
+  assert.match(target, /\[\["minus", "← 左へ"\], \["plus", "右へ →"\]\]/);
+  assert.match(target, /\[\["minus", "↑ 上へ"\], \["plus", "下へ ↓"\]\]/);
+  assert.match(target, /useTarget\.disabled = !bandShiftTargetReady\(state\)/);
+  assert.doesNotMatch(target, /input\.type = "number"|createElement\("select"\)|正方向|負方向/);
+  assert.match(board, /targetDraft\?\.kind === "band-shift"\) selectBandShiftMacro\(state, macro\)/);
+  assert.match(board, /color: center \? "#fde047" : "#d8b4fe"/);
+  assert.match(app, /\["corner-bloom", "band-shift"\]\.includes\(targetDraft\.kind\)/);
+  assert.match(css, /@media\(max-width:390px\)\{\.shift-axis-controls button,[^}]*min-height:48px/);
 });
 
 test("skill target cancel is write-free and clears only transient selection", () => {

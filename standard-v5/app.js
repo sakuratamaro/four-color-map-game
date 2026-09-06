@@ -705,8 +705,16 @@ function boot() {
       const inside = col >= bounds.minCol && col <= bounds.maxCol && row >= bounds.minRow && row <= bounds.maxRow;
       if (!inside) cell.classList.add("outside");
       const cornerTargets = targetMode?.kind === "areaCornerBloom" ? new Set(targetMode.sourceMacros) : null;
-      if (!inside || publicState.status === "FINISHED" || (cornerTargets ? !cornerTargets.has(macro) : Boolean(publicState.preparedOutgoing))) cell.disabled = true;
+      const bandShiftTarget = targetMode?.kind === "bandShift";
+      if (bandShiftTarget) cell.dataset.macro = String(macro);
+      if (!inside || publicState.status === "FINISHED" || (!bandShiftTarget && (cornerTargets ? !cornerTargets.has(macro) : Boolean(publicState.preparedOutgoing)))) cell.disabled = true;
       if (selected.has(macro) || preparedMacros.has(macro)) cell.classList.add("selected");
+      if (bandShiftTarget && Number.isSafeInteger(targetMode.index)) {
+        const band = targetMode.axis === "ROW" ? row : col;
+        if (band === targetMode.index) cell.classList.add("shift-target");
+        else if (targetMode.skill === "areaTripleShift" && Math.abs(band - targetMode.index) === 1) cell.classList.add("shift-adjacent");
+      }
+      if (bandShiftTarget) cell.setAttribute("aria-label", `上から${row - bounds.minRow + 1}行目、左から${col - bounds.minCol + 1}列目。${targetMode.axis === "ROW" ? "この行" : "この列"}を対象に選ぶ`);
       cell.onclick = () => {
         if (!cell.isConnected) return;
         if (!revealedSeat) return;
@@ -715,6 +723,25 @@ function boot() {
           const sourceMacros = [...targetMode.sourceMacros];
           targetMode = null;
           dispatch("USE_SKILL", { skill: "areaCornerBloom", sourceMacros, macro });
+          return;
+        }
+        if (targetMode?.kind === "bandShift") {
+          const index = targetMode.axis === "ROW" ? row : col;
+          const min = targetMode.axis === "ROW" ? bounds.minRow : bounds.minCol;
+          const max = targetMode.axis === "ROW" ? bounds.maxRow : bounds.maxCol;
+          if (targetMode.skill === "areaTripleShift" && (index <= min || index >= max)) {
+            say("三層断層は両隣も動かすため、外周ではなく内側の行・列を選んでください。");
+            return;
+          }
+          targetMode.index = index;
+          const label = targetMode.axis === "ROW" ? `上から${index - min + 1}行目` : `左から${index - min + 1}列目`;
+          say(`${label}を対象に選びました。盤面の帯を確認して、動かす方向を選んでください。`);
+          renderPublic(publicState);
+          const privateResult = session.revealPrivate(revealedSeat);
+          if (privateResult.ok) {
+            renderPrivate(privateResult.privateState);
+            requestAnimationFrame(() => privatePanel.querySelector('.shift-controls button[data-direction="minus"]')?.focus({ preventScroll: true }));
+          }
           return;
         }
         if (publicState.preparedOutgoing) return;
@@ -740,9 +767,29 @@ function boot() {
         const privateResult = session.revealPrivate(revealedSeat);
         if (privateResult.ok) renderPrivate(privateResult.privateState);
       };
+      cell.addEventListener("keydown", (event) => {
+        if (targetMode?.kind !== "bandShift") return;
+        if (event.key === "Escape") {
+          event.preventDefault();
+          targetMode.index = null;
+          targetMode.direction = null;
+          say("盤面の対象を解除しました。選び直してください。");
+          renderPublic(publicState);
+          const privateResult = session.revealPrivate(revealedSeat);
+          if (privateResult.ok) renderPrivate(privateResult.privateState);
+          return;
+        }
+        if (!["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(event.key)) return;
+        event.preventDefault();
+        const nextRow = event.key === "ArrowUp" ? Math.max(bounds.minRow, row - 1)
+          : event.key === "ArrowDown" ? Math.min(bounds.maxRow, row + 1) : row;
+        const nextCol = event.key === "ArrowLeft" ? Math.max(bounds.minCol, col - 1)
+          : event.key === "ArrowRight" ? Math.min(bounds.maxCol, col + 1) : col;
+        board.querySelector(`[data-macro="${nextRow * 12 + nextCol}"]`)?.focus({ preventScroll: true });
+      });
       board.appendChild(cell);
     }
-    commitRegion.disabled = !revealedSeat || targetMode?.kind === "colorRegionSplit" || targetMode?.kind === "areaResize" || targetMode?.kind === "areaCornerBloom" || !["CREATE_FIRST", "WORK"].includes(publicState.phase);
+    commitRegion.disabled = !revealedSeat || targetMode?.kind === "colorRegionSplit" || targetMode?.kind === "areaResize" || targetMode?.kind === "areaCornerBloom" || targetMode?.kind === "bandShift" || !["CREATE_FIRST", "WORK"].includes(publicState.phase);
     surrender.disabled = !revealedSeat || publicState.status === "FINISHED";
   }
 
@@ -759,6 +806,7 @@ function boot() {
       onClick();
     };
     privatePanel.appendChild(button);
+    return button;
   }
 
   function renderPrivate(own) {
@@ -999,42 +1047,128 @@ function boot() {
       notice.textContent = `持ち色汚染中：残り${Math.max(...own.privateEffects.paletteDebuffs.map((effect) => effect.remaining))}彩色`;
       privatePanel.appendChild(notice);
     }
-    if (own.hand.areaHalfShift > 0) {
+    function focusFirstPlayableCell() {
+      requestAnimationFrame(() => board.querySelector(".cell:not(.outside):not(:disabled)")?.focus({ preventScroll: true }));
+    }
+
+    function beginBandShift(skill) {
+      targetMode = { kind: "bandShift", skill, axis: "ROW", index: null, direction: null };
+      say(skill === "areaTripleShift"
+        ? "横の行か縦の列を選び、盤面で三層の中央を選んでください。外周は中央にできません。"
+        : "横の行か縦の列を選び、盤面で動かす帯を選んでください。");
+      renderPublic(publicState);
+      renderPrivate(own);
+      focusFirstPlayableCell();
+    }
+
+    function appendBandShiftControls() {
+      if (targetMode?.kind !== "bandShift") return;
+      const mode = targetMode;
+      const guide = document.createElement("p");
+      guide.id = "bandShiftGuide";
+      guide.className = "shift-guide";
+      guide.textContent = mode.skill === "areaTripleShift"
+        ? "盤面で選んだ帯を中央にして三層を動かします。中央は1マス、両隣は半マス動きます。ちぎれる動きは成立しません。"
+        : "盤面で選んだ帯を半マス動かします。エリアがちぎれて別々になることがあります。";
       const controls = document.createElement("div");
-      const axis = document.createElement("select");
-      for (const value of ["COLUMN", "ROW"]) { const option = document.createElement("option"); option.value = value; option.textContent = value === "COLUMN" ? "縦帯" : "横帯"; axis.appendChild(option); }
-      const index = document.createElement("input");
-      index.type = "number"; index.min = "0"; index.max = "47"; index.value = "1"; index.setAttribute("aria-label", "基準位置");
-      const direction = document.createElement("select");
-      for (const value of ["plus", "minus"]) { const option = document.createElement("option"); option.value = value; option.textContent = value === "plus" ? "正方向" : "逆方向"; direction.appendChild(option); }
+      controls.className = "shift-controls";
+      controls.setAttribute("role", "group");
+      controls.setAttribute("aria-labelledby", guide.id);
+      for (const [axis, label] of [["ROW", "横の行を選ぶ"], ["COLUMN", "縦の列を選ぶ"]]) {
+        const choice = document.createElement("button");
+        choice.type = "button";
+        choice.textContent = label;
+        choice.className = mode.axis === axis ? "selected-choice" : "";
+        choice.setAttribute("aria-pressed", String(mode.axis === axis));
+        suppressRepeatedActivation(choice);
+        choice.onclick = () => {
+          if (controlGeneration !== interactionGeneration || !choice.isConnected) return;
+          targetMode.axis = axis;
+          targetMode.index = null;
+          targetMode.direction = null;
+          say(`${axis === "ROW" ? "横の行" : "縦の列"}を盤面で選んでください。`);
+          renderPublic(publicState);
+          renderPrivate(own);
+          focusFirstPlayableCell();
+        };
+        controls.appendChild(choice);
+      }
+      const bounds = publicState.playableBounds;
+      const min = mode.axis === "ROW" ? bounds.minRow : bounds.minCol;
+      const selection = document.createElement("strong");
+      selection.className = "shift-selection";
+      selection.textContent = Number.isSafeInteger(mode.index)
+        ? `対象：${mode.axis === "ROW" ? `上から${mode.index - min + 1}行目` : `左から${mode.index - min + 1}列目`}`
+        : "対象：まだ盤面で選んでいません";
+      controls.appendChild(selection);
+      const focusBoard = document.createElement("button");
+      focusBoard.type = "button";
+      focusBoard.textContent = "盤面で対象を選ぶ";
+      suppressRepeatedActivation(focusBoard);
+      focusBoard.onclick = () => {
+        if (controlGeneration !== interactionGeneration || !focusBoard.isConnected) return;
+        focusFirstPlayableCell();
+      };
+      controls.appendChild(focusBoard);
+      if (Number.isSafeInteger(mode.index)) {
+        const directions = mode.axis === "ROW"
+          ? [["minus", "← 左へ"], ["plus", "右へ →"]]
+          : [["minus", "↑ 上へ"], ["plus", "下へ ↓"]];
+        for (const [direction, label] of directions) {
+          const choice = document.createElement("button");
+          choice.type = "button";
+          choice.textContent = label;
+          choice.className = mode.direction === direction ? "selected-choice" : "";
+          choice.setAttribute("aria-pressed", String(mode.direction === direction));
+          suppressRepeatedActivation(choice);
+          choice.onclick = () => {
+            if (controlGeneration !== interactionGeneration || !choice.isConnected) return;
+            targetMode.direction = direction;
+            renderPrivate(own);
+            privatePanel.querySelector(`.shift-controls button[data-direction="${direction}"]`)?.focus({ preventScroll: true });
+          };
+          choice.dataset.direction = direction;
+          controls.appendChild(choice);
+        }
+      }
       const apply = document.createElement("button");
-      apply.type = "button"; apply.textContent = "半マスシフトを確定"; apply.disabled = phase !== "WORK";
+      apply.type = "button";
+      apply.textContent = `${mode.skill === "areaTripleShift" ? "三層断層" : "半マスシフト"}を確定`;
+      apply.className = "shift-apply";
+      apply.disabled = !Number.isSafeInteger(mode.index) || !["minus", "plus"].includes(mode.direction);
       suppressRepeatedActivation(apply);
       apply.onclick = () => {
         if (controlGeneration !== interactionGeneration || !apply.isConnected) return;
-        dispatch("USE_SKILL", { skill: "areaHalfShift", axis: axis.value, index: Number(index.value), direction: direction.value });
+        dispatch("USE_SKILL", { skill: mode.skill, axis: mode.axis, index: mode.index, direction: mode.direction });
       };
-      controls.append(axis, index, direction, apply);
-      privatePanel.appendChild(controls);
-    }
-    if (own.hand.areaTripleShift > 0) {
-      const controls = document.createElement("div");
-      const axis = document.createElement("select");
-      for (const value of ["COLUMN", "ROW"]) { const option = document.createElement("option"); option.value = value; option.textContent = value === "COLUMN" ? "縦の三層" : "横の三層"; axis.appendChild(option); }
-      const index = document.createElement("input");
-      index.type = "number"; index.min = "1"; index.max = "10"; index.value = "2"; index.setAttribute("aria-label", "中央帯");
-      const direction = document.createElement("select");
-      for (const value of ["plus", "minus"]) { const option = document.createElement("option"); option.value = value; option.textContent = value === "plus" ? "正方向" : "逆方向"; direction.appendChild(option); }
-      const apply = document.createElement("button");
-      apply.type = "button"; apply.textContent = "三層断層を確定"; apply.disabled = phase !== "WORK" || Boolean(publicState.preparedOutgoing);
-      suppressRepeatedActivation(apply);
-      apply.onclick = () => {
-        if (controlGeneration !== interactionGeneration || !apply.isConnected) return;
-        dispatch("USE_SKILL", { skill: "areaTripleShift", axis: axis.value, index: Number(index.value), direction: direction.value });
+      controls.appendChild(apply);
+      const cancel = document.createElement("button");
+      cancel.type = "button";
+      cancel.textContent = "対象選択をキャンセル";
+      suppressRepeatedActivation(cancel);
+      cancel.onclick = () => {
+        if (controlGeneration !== interactionGeneration || !cancel.isConnected) return;
+        const skill = mode.skill;
+        targetMode = null;
+        session.cancelPendingActionRetry();
+        say("シフトの対象選択を解除しました。");
+        renderPublic(publicState);
+        renderPrivate(own);
+        privatePanel.querySelector(`[data-skill-start="${skill}"]`)?.focus({ preventScroll: true });
       };
-      controls.append(axis, index, direction, apply);
-      privatePanel.appendChild(controls);
+      controls.appendChild(cancel);
+      privatePanel.append(guide, controls);
     }
+
+    if (own.hand.areaHalfShift > 0 && targetMode?.kind !== "bandShift") {
+      const start = appendButton("半マスシフト", targetMode !== null || phase !== "WORK", () => beginBandShift("areaHalfShift"));
+      start.dataset.skillStart = "areaHalfShift";
+    }
+    if (own.hand.areaTripleShift > 0 && targetMode?.kind !== "bandShift") {
+      const start = appendButton("三層断層", targetMode !== null || phase !== "WORK" || Boolean(publicState.preparedOutgoing), () => beginBandShift("areaTripleShift"));
+      start.dataset.skillStart = "areaTripleShift";
+    }
+    appendBandShiftControls();
   }
 
   function showHandover(projection) {

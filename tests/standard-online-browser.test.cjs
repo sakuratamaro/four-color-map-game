@@ -1678,6 +1678,79 @@ test("actual browser completes corner bloom from the board without a raw macro n
   }, { viewport: { width: 390, height: 844 } });
 });
 
+test("actual browser selects Half Shift and Triple Shift bands on the board at 390px", { timeout: 130000 }, async () => {
+  await withPage("playing", async (page) => {
+    await page.evaluate(() => {
+      const originalStrokeRect = CanvasRenderingContext2D.prototype.strokeRect;
+      globalThis.__shiftFrames = [];
+      CanvasRenderingContext2D.prototype.strokeRect = function recordedStrokeRect(...args) {
+        if (["#fde047", "#d8b4fe"].includes(String(this.strokeStyle))) globalThis.__shiftFrames.push(String(this.strokeStyle));
+        return originalStrokeRect.apply(this, args);
+      };
+      const runtime = globalThis.__standardOnlineRuntime;
+      runtime.room.public_state = {
+        ...runtime.room.public_state,
+        playableBounds: { macroWidth: 12, microScale: 1, minCol: 1, minRow: 1, maxCol: 10, maxRow: 10 },
+      };
+      runtime.view = { ...runtime.view, private_state: {
+        ...runtime.view.private_state,
+        hand: { ...runtime.view.private_state.hand, areaHalfShift: 1, areaTripleShift: 1 },
+      } };
+      runtime.onInvalidate?.({});
+    });
+
+    await page.getByRole("button", { name: "半マスシフト ×1" }).click();
+    const target = page.locator("#skillTargetControls");
+    assert.equal(await target.locator('input[type="number"], select').count(), 0);
+    assert.equal(await target.getByRole("button", { name: "横の行を選ぶ" }).getAttribute("aria-pressed"), "true");
+    await target.getByRole("button", { name: "キャンセル" }).click();
+    assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls
+      .filter((entry) => entry.body?.operation === "action").length), 0);
+    assert.equal(await page.getByRole("button", { name: "半マスシフト ×1" }).evaluate((node) => node === document.activeElement), true);
+    await page.getByRole("button", { name: "半マスシフト ×1" }).click();
+    const board = page.locator("#board");
+    const box = await board.boundingBox();
+    await board.click({ position: { x: box.width * 0.45, y: box.height * (4.5 / 12) } });
+    await target.getByText("対象：上から4行目").waitFor();
+    assert.ok((await page.evaluate(() => globalThis.__shiftFrames.filter((color) => color === "#fde047").length)) >= 1);
+    const right = target.getByRole("button", { name: "右へ →" });
+    assert.ok((await right.boundingBox()).height >= 48);
+    await right.click();
+    await target.getByRole("button", { name: "この対象で使う" }).click();
+    await page.getByText("操作を保存しました。").waitFor();
+
+    await page.getByRole("button", { name: "三層断層 ×1" }).click();
+    await target.getByRole("button", { name: "縦の列を選ぶ" }).click();
+    await target.getByRole("button", { name: "盤面で対象を選ぶ" }).click();
+    assert.match(await board.getAttribute("aria-label"), /動かす縦の列.*矢印キー.*Space.*Escape/);
+    for (let step = 0; step < 12; step += 1) await page.keyboard.press("ArrowLeft");
+    await page.keyboard.press("Enter");
+    assert.match(await target.locator(".skill-target-feedback").textContent(), /外周ではなく内側/);
+    assert.equal(await target.getByRole("button", { name: "この対象で使う" }).isDisabled(), true);
+    await page.keyboard.press("ArrowRight");
+    await page.keyboard.press("ArrowRight");
+    await page.keyboard.press("Enter");
+    await target.getByText("対象：左から3列目").waitFor();
+    const frames = await page.evaluate(() => [...globalThis.__shiftFrames]);
+    assert.ok(frames.includes("#fde047"));
+    assert.ok(frames.includes("#d8b4fe"));
+    await target.getByRole("button", { name: "下へ ↓" }).focus();
+    await page.keyboard.press("Enter");
+    await target.getByRole("button", { name: "この対象で使う" }).click();
+    await page.waitForFunction(() => globalThis.__standardOnlineRuntime.calls
+      .filter((entry) => entry.body?.operation === "action").length === 2);
+
+    const actions = await page.evaluate(() => globalThis.__standardOnlineRuntime.calls
+      .filter((entry) => entry.body?.operation === "action")
+      .map((entry) => entry.body.action));
+    assert.deepEqual(actions.map((action) => action.payload), [
+      { skill: "areaHalfShift", axis: "ROW", index: 4, direction: "plus" },
+      { skill: "areaTripleShift", axis: "COLUMN", index: 3, direction: "plus" },
+    ]);
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth), false);
+  }, { viewport: { width: 390, height: 844 } });
+});
+
 test("actual browser completes a two-cell corner bloom by keyboard with connected candidates", { timeout: 130000 }, async () => {
   await withPage("playing", async (page) => {
     await page.evaluate(() => {
