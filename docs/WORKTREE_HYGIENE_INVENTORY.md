@@ -19,6 +19,7 @@
 | 対象 | 状態 | 司令塔判断 |
 | --- | --- | --- |
 | `four-color-alpha3-category-refill-cpu-shapes-20260907` | source `d627cd5`、clean | 最優先保護。候補59 pathは最新main統合`d3cb130`とblob 59/59同値。公開・rollback保全完了まで保持 |
+| `standard-alpha3-compat-rollback-20260907@3f4548d` | clean、GitHub保全済み | alpha.3対応bundleのまま新規作成だけalpha.2へ戻す緊急用。通常mainへmergeせず、Edge障害時だけrunbook順でdeploy |
 | `cpu-portraits-p1-20260906@be779d1` | clean、main未収録 | ライセンスNO-GOで凍結。画像を公開repoへ入れない |
 | `.codex/worktrees/7843` / `salvage-a8fce7d@9e4e8ee` | clean | 旧Quick hardening等の履歴保全。保存checkout整理が終わるまで保持 |
 | 保存checkoutのdirty差分 | tracked 38、実ファイルuntracked 24、worktree管理dir 1 | 一括commit・一括破棄禁止。下記の機能束ごとに所有先を固定 |

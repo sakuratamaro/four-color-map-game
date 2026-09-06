@@ -54,7 +54,7 @@
 - `colorBonusRefill`は+2・上限4だが、通常19枚catalog、6枚loadout、gachaには追加せず、実験貸与または既存fixed CPU loadoutで実際にhandへ入った場合だけ使う。Hard CPUの補充charge 2とshape skill charge 100もhandにあるskillだけへ適用し、category制限を迂回しない。
 - `b01c43e`起点のclean release床へ`d3cb130`として適用した。候補59 pathはsourceとblob 59/59同値。Local bundle SHA-256は`968C4C1FBBD7566CDEE17CD0D3F6CDCE186FF6661D069656EB5D1A89F47A3C12`、Edge bundleは`D6810705473E8761D24BA4871F1A45D407B636B4A88596DD8951536D018897E5`で、二巡再生成後も差分なし。
 - source側の非Playwrightは751/751、カテゴリ専用390px actual browserはChrome/Edge各1/1・skip 0。独立監査はfocused 232/232、Edge全browser 77/77、bundle source包含Local 26/26・Edge 10/10を確認し、P0/P1なし。Chrome全browser、正式製品試験、Windows CI、Pages/Edge/liveはまだ実行中または`NOT_RUN`であり、公開済みとは扱わない。
-- Edgeの新規engine versionはrequest body由来でなく内部定数からだけ指定する。公開前に同じalpha.3対応bundleを保持して新規作成だけalpha.2へ戻す互換rollback commitを保全し、active alpha.3 roomが0になる前に旧deployment 22へ単純復帰しない。SQL、migration、RPC、secret変更はない。
+- Edgeの新規engine versionはrequest body由来でなく内部定数からだけ指定する。同じalpha.3対応bundleを保持して新規作成だけalpha.2へ戻す互換rollbackを`codex/standard-alpha3-compat-rollback-20260907@3f4548d`としてGitHubへ保全した。Edge handler、alpha.2作成、alpha.3継続、bundle無差分は63/63・skip 0。active alpha.3 roomが0になる前に旧deployment 22へ単純復帰しない。SQL、migration、RPC、secret変更はない。
 
 ## 2026-09-06 基本効果音・スマホ振動公開
 

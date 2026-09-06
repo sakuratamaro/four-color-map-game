@@ -15,7 +15,7 @@ test("current alpha.3 release lane is Pages-first and preserves active rooms thr
   const canary = releaseSection.indexOf("専用canary", alpha3Edge);
   assert.ok(pages >= 0 && edge22 > pages && alpha3Edge > edge22 && canary > alpha3Edge);
   for (const phrase of [
-    "b01c43e", "4b2ea3d", "migration tail `202609060003`", "NEW_STANDARD_MATCH_ENGINE_VERSION",
+    "b01c43e", "4b2ea3d", "3f4548d", "codex/standard-alpha3-compat-rollback-20260907", "migration tail `202609060003`", "NEW_STANDARD_MATCH_ENGINE_VERSION",
     "5.0.0-alpha.2", "5.0.0-alpha.3", "request bodyから変更できない", "activeなalpha.3 room数",
     "app v40", "skill intents v18", "local bundle v4", "test-only状態注入は追加しない",
     "all-three no-op", "NOT_RUN", "active alpha.3 roomが0になる前にEdge deployment 22へ単純復帰しない",

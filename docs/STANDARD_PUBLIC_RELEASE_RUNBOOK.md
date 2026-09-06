@@ -88,7 +88,7 @@ SQL Editorでは内容を全置換し、次を1ファイルずつ順番に実行
 この便は `Pages app v40/intents v18/local bundle v4 → Edge deployment 22上の互換smoke → alpha.3対応Edge → 専用canary` の順にする。新Pagesは`skillCategoryWindow`欠落を旧対局として扱うためalpha.1/2 Edgeと互換である。新Edgeを先にして旧cacheのUIへalpha.3対局を渡す時間を作らない。
 
 1. `b01c43e`起点のclean release床へ候補だけを適用し、両builderを2回実行して2回目差分ゼロ、全非browser製品試験、Windows Chrome/Edge CI、対象実browser testのskip 0を確認する。SQL、migration、secret、CPU肖像が差分へ混ざっていないことも確認する。
-2. alpha.3対応bundleを保持したまま新規対局だけをalpha.2へ戻せる互換rollbackを事前作成する。候補の`NEW_STANDARD_MATCH_ENGINE_VERSION`だけを`5.0.0-alpha.2`へ変えた別branch/commitとし、request bodyから変更できないこと、alpha.2新規stateにwindowがないこと、既存alpha.3 stateを読んで継続できることを試験する。rollback commitをGitHubへ保全するまでEdgeを公開しない。
+2. alpha.3対応bundleを保持したまま新規対局だけをalpha.2へ戻せる互換rollbackを事前作成する。保全済みbranchは`codex/standard-alpha3-compat-rollback-20260907`、commitは`3f4548d`。候補の`NEW_STANDARD_MATCH_ENGINE_VERSION`だけを`5.0.0-alpha.2`へ変え、request bodyから変更できないこと、alpha.2新規stateにwindowがないこと、既存alpha.3 stateを読んで継続できることを63/63・skip 0で確認済み。deploy直前にmain候補との親子関係と2ファイル差分を再確認する。
 3. deploy直前にmain/Pages `b01c43e`、product `4b2ea3d`、Edge deployment 22、migration tail `202609060003`を現物で再確認する。activeなalpha.3 room数をread-onlyで記録し、room IDやuser IDは証拠へ残さない。
 4. mainを候補へforceなしでfast-forwardしPagesを先行公開する。公開HTMLでonline app v40、skill intents v18、local bundle v4、HTTP 200、候補SHA、390px横overflowなし、keyboard操作、console warning/error 0を確認する。
 5. Edge deployment 22のまま新Pagesで通常対局をsmokeし、旧alpha.2 roomでカテゴリ表示が誤って出ず、通常操作が継続できることを確認する。
