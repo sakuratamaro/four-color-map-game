@@ -2355,11 +2355,19 @@ test("waiting-opponent arrival does not move or announce over a focused timed-qu
 
 test("waiting-opponent notice stays informational during CPU play and clears 390px navigation", { timeout: 130000 }, async () => {
   await withPage("cpuWin", async (page) => {
-    await page.locator("#board").focus();
-    const before = await page.locator("#board").evaluate((node) => {
-      const rect = node.getBoundingClientRect();
-      const hit = document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2);
-      return { left: rect.left, top: rect.top, width: rect.width, height: rect.height, focused: document.activeElement === node, hit: hit === node || node.contains(hit) };
+    await page.locator("#matchTitle").focus();
+    const before = await page.evaluate(() => {
+      const title = document.querySelector("#matchTitle");
+      const board = document.querySelector("#board");
+      const titleRect = title.getBoundingClientRect();
+      const boardRect = board.getBoundingClientRect();
+      const hit = document.elementFromPoint(boardRect.left + boardRect.width / 2, boardRect.top + boardRect.height / 2);
+      return {
+        title: { left: titleRect.left, top: titleRect.top, width: titleRect.width, height: titleRect.height },
+        board: { left: boardRect.left, top: boardRect.top, width: boardRect.width, height: boardRect.height },
+        focused: document.activeElement === title,
+        hit: hit === board || board.contains(hit),
+      };
     });
     await page.evaluate(() => {
       globalThis.__standardOnlineRuntime.matchmakingAvailabilityDelayMs = 700;
@@ -2369,33 +2377,44 @@ test("waiting-opponent notice stays informational during CPU play and clears 390
     await page.locator("#waitingOpponentNotice:not(.hidden)").waitFor();
     assert.equal(await page.getByRole("button", { name: "対戦タブを見る" }).isHidden(), true);
     assert.equal(await page.locator("body").getAttribute("data-active-tab"), "battle");
-    const evidence = await page.locator("#board").evaluate((node) => {
-      const board = node.getBoundingClientRect();
+    const evidence = await page.evaluate(() => {
+      const title = document.querySelector("#matchTitle");
+      const boardNode = document.querySelector("#board");
+      const titleRect = title.getBoundingClientRect();
+      const board = boardNode.getBoundingClientRect();
       const notice = document.querySelector("#waitingOpponentNotice").getBoundingClientRect();
       const tabs = document.querySelector(".app-tabs").getBoundingClientRect();
       const connection = document.querySelector("#connectionBadge").getBoundingClientRect();
       const hit = document.elementFromPoint(board.left + board.width / 2, board.top + board.height / 2);
       const intersects = (a, b) => !(a.right <= b.left || a.left >= b.right || a.bottom <= b.top || a.top >= b.bottom);
       return {
+        title: { left: titleRect.left, top: titleRect.top, width: titleRect.width, height: titleRect.height },
         board: { left: board.left, top: board.top, width: board.width, height: board.height },
-        focused: document.activeElement === node,
-        hit: hit === node || node.contains(hit),
+        focused: document.activeElement === title,
+        titleOutlineWidth: getComputedStyle(title).outlineWidth,
+        hit: hit === boardNode || boardNode.contains(hit),
         live: document.querySelector("#waitingOpponentAnnouncement").textContent,
         noticeTabsIntersect: intersects(notice, tabs),
         noticeConnectionIntersect: intersects(notice, connection),
+        noticeTitleIntersect: intersects(notice, titleRect),
         noticeBoardIntersect: intersects(notice, board),
         overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
         entryWrites: globalThis.__standardOnlineRuntime.calls.filter((entry) => ["fcg_standard_matchmaking_find", "fcg_standard_matchmaking_recruit"].includes(entry.name)).length,
       };
     });
-    for (const key of ["left", "top", "width", "height"]) assert.ok(Math.abs(evidence.board[key] - before[key]) < 0.5, `${key}: ${before[key]} -> ${evidence.board[key]}`);
+    for (const key of ["left", "top", "width", "height"]) {
+      assert.ok(Math.abs(evidence.title[key] - before.title[key]) < 0.5, `title ${key}: ${before.title[key]} -> ${evidence.title[key]}`);
+      assert.ok(Math.abs(evidence.board[key] - before.board[key]) < 0.5, `board ${key}: ${before.board[key]} -> ${evidence.board[key]}`);
+    }
     assert.equal(before.focused, true);
     assert.equal(before.hit, true);
     assert.equal(evidence.focused, true);
+    assert.equal(evidence.titleOutlineWidth, "3px");
     assert.equal(evidence.hit, true);
     assert.equal(evidence.live, "");
     assert.equal(evidence.noticeTabsIntersect, false);
     assert.equal(evidence.noticeConnectionIntersect, false);
+    assert.equal(evidence.noticeTitleIntersect, false);
     assert.equal(evidence.noticeBoardIntersect, false);
     assert.equal(evidence.overflow, false);
     assert.equal(evidence.entryWrites, 0);
