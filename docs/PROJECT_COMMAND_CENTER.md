@@ -8,7 +8,7 @@
 
 ## 司令塔ルール
 
-- 統合基点は `origin/main` とし、現在の公開基点は `72040b8`。legal-recolor LAB公開`3fb3ef8`、390px盤面導線`2a1d2ef`、最新手スポットライト`afc89af`に、盤面選択アシストを累積している。
+- 統合基点は `origin/main` とし、現在の公開基点は `a4b9917`。legal-recolor LAB公開`3fb3ef8`、390px盤面導線`2a1d2ef`、最新手スポットライト`afc89af`、盤面選択アシスト`72040b8`に、クイズ明確化を累積している。
 - 現在の統合作業は `codex/standard-release-command` だけで行う。
 - 古いdirty worktreeからbuild、merge、deployしない。
 - `実装済み`、`ローカル検証済み`、`live検証済み`、`公開済み`を別状態として記録する。
@@ -57,7 +57,7 @@
 | P1 | 390px対戦開始時に盤面と操作を表示 | UX＋技術品質＋司令塔 | PUBLIC_VERIFIED | `2a1d2ef`。手番ガイド→盤面→確定操作を390×844の初期viewportへ収め、接続表示・下部navと非交差。明示開始だけ見出しfocus、reload/bootはfocusなし、wheel/trackpad操作後の強制scrollを抑止。ローカルonline browser 60/60、responsive 4/4、独立再監査P0/P1なし。Windows `33987952352`はChrome成功、Edge初回の既存badge待機timeout後に同一commitのfailed-job再実行成功。Pages `33988962006`、公開app v24/style v23、candidate preflight合格 |
 | P1 | 最新手スポットライト＋手番到着beat | UX＋公開情報＋司令塔 | PUBLIC_VERIFIED | `afc89af`。厳格な公開traceのregionだけを金破線、ACTIVE/COLORのpendingだけを水色実線で暗色halo付き表示。白い操作枠を最上位に維持し、初期hydrate/reload/poll/background/contact/random/reduced-motionではbeatを再演しない。390×844で盤外凡例、主操作と固定UIの非交差を確認。ローカルbrowser 62/62、responsive 4/4、独立監査P0/P1なし、Windows `33992923690`、Pages `33993298423`、公開app v25/style v24、candidate preflight合格 |
 | P1 | 盤面選択アシスト | UX＋ルール＋技術品質＋司令塔 | PUBLIC_VERIFIED | `72040b8`。任意200% zoom、44px以上のmacro、drag panとtap分離、矢印・Space/Enter/Escape、edge-connected候補を提供し、合法手oracleにはしない。390×844でzoom・手番操作・固定接続表示を非交差化。失敗run `33996927953`–`33999028771`を保持して製品／harnessを修正し、Windows `33999760232`はChrome/Edge各64件成功、Pages `34000125784`、公開app v28/style v26。独立3監査GO、DB/Edge変更なし |
-| P1 | クイズ曖昧問題と進捗表示 | クイズ＋UX＋Edge | NEXT | 二次方程式を「小さい方の解」と明記。正解数はserver確定値、券は「見込み・未確定」として閾値まで表示し、完了・報酬判定はserver authoritativeのままにする |
+| P1 | クイズ曖昧問題と進捗表示 | クイズ＋UX＋Edge＋司令塔 | PUBLIC_VERIFIED | `a4b9917`。二次方程式を「小さい方の解」と明記し、ACK済み回答だけを「採点済み履歴」へ算入。券は「見込み・未確定」、救済は「3ミス時」、到達不能も明示し、完了・報酬判定はserver authoritativeのまま。ローカルunit 212/212・Edge browser 65/65、Windows `34003307900`、Edge deployment 20の基本7/7＋Runbook B 234/234、Pages `34004028751`、公開10問完走を確認 |
 | P1 | 持ち色汚染no-opの消費仕様 | ルール＋Edge＋UX | SPEC_NEXT | no-op時はカードを消費しないがaction・手番・機会は使用する案を有限仕様へ固定し、「変化なし・カードは戻った」だけを公開表示。engine/Edge変更前に再送・private境界を定義する |
 | P1 | Shift説明と将来overlay skillの位相 | ルール＋UX | DESIGN_NEXT | 「ちぎれたり、くっついたり」を説明へ追加。merge後はcanonical numeric-min ID/controller unionを維持し、将来の差し色追加も現在の可視region/canonical ID＋盤面属性だけをrules入力にする |
 | HOLD | 匿名＋任意Google identity link | 認証＋DB＋司令塔 | PHASE0_ONLY | 現在はSDK/RLS/Realtime/redirect/CSP/idempotency/token/log/admin境界のread-only監査だけ。provider有効化、callback、SDK、DB変更は別の公開便に分離する |
@@ -73,6 +73,8 @@
 最新手スポットライトは、実装、公開情報境界、390px UXを既存3タスクへ再分担した。独立監査は二重読み上げ、背景復帰再演、線幅、描画順、接触演出競合、非表示tabのcanvas倍率、凡例による盤面遮蔽を公開前に検出した。初回Windows run `33992219065`のChrome/Edge双方61/62で見つかった初手余白も製品側で修正し、`afc89af`のrun `33992923690`で両browser成功後にmain・Pages・公開preflightへ昇格した。
 
 盤面選択アシストは、repository/release、rules/privacy、390px UXを3つの既存タスクへ再分担した。監査で、盤面overlayボタンがmacroを遮る案と、mobile gridでzoomが3段目へ落ちる案を公開前に棄却した。Windows runs `33996927953`、`33997445395`、`33998002235`、`33999028771`の失敗を省略せず、初手clearanceとbrowser依存のscroll restorationを製品・試験双方で修正した。`72040b8`のrun `33999760232`でChrome/Edge各64件成功後、main、Pages `34000125784`、公開DOM/assetへ昇格した。3担当の最終判定は全てGO、P0/P1なし。
+
+クイズ明確化は、rules/privacy、UX/accessibility、repository/releaseを同じ3タスクへ再分担した。ACK前の回答を進捗へ混ぜないこと、報酬見込みを確定値と誤認させないこと、390pxで全状態を同じ高さに保つことを独立監査した。初回run `34003126498`はWindows CRLFでgenerator runtime抽出が失敗し、LF/CRLF回帰を追加した`a4b9917`のrun `34003307900`でChrome/Edgeとも成功。Edgeエディタの追記操作でdeployment 19がboot errorになった履歴も残し、正しい単一内容をdeployment 20へ修復して基本7/7とRunbook B 234/234を完走後、Pages `34004028751`と公開10問完走まで昇格した。3担当の最終判定は全てGO、P0/P1なし。
 
 直前の公開履歴も維持する。`29c6958`は非browser 528/528、ローカルChrome/Edge各25/25、Windows run `33933769885`（Edgeは終了処理timeout後のattempt 2成功）、Pages run `33934125859`で公開確認した。即時CPU開始は`cc96350`、migration `202609050002`、Edge deployment 9、Windows run `33931963065`、Pages run `33932159043`で確認した。現在のDB適用済み追加migrationは、status正規化`202609050001`、即時CPU`202609050002`、デバッグroom境界`202609050003`、クイズ回答feedback`202609050004`、クロガネv2`202609050005`、単一active room境界`202609050006`、開始前取りやめ`202609050007`、active-room復帰`202609060001`、setup revision guard `202609060002`である。
 
@@ -93,9 +95,9 @@
 
 | 区分 | 対象 | 方針 |
 | --- | --- | --- |
-| 正本 | `origin/main` | 公開基点は`72040b8`（legal-recolor LAB公開`3fb3ef8`、390px盤面導線`2a1d2ef`、最新手スポットライト`afc89af`、盤面選択アシストを累積）。migration `202609050001`–`202609050007`＋`202609060001`–`202609060002`、Edge deployment 17、Pages run `34000125784`まで公開確認済み |
+| 正本 | `origin/main` | 公開基点は`a4b9917`（legal-recolor LAB公開`3fb3ef8`、390px盤面導線`2a1d2ef`、最新手スポットライト`afc89af`、盤面選択アシスト`72040b8`、クイズ明確化を累積）。migration `202609050001`–`202609050007`＋`202609060001`–`202609060002`、Edge deployment 20、Pages run `34004028751`まで公開確認済み |
 | 現在の統合床 | `codex/standard-release-command` | `main`と同じ公開製品。証拠台帳追補をこの床で同期する |
-| 公開済み現候補 | `72040b8`（`afc89af`、`2a1d2ef`、LAB公開`3fb3ef8`を含む） | active-room復帰、isolated legal-recolor LAB、390px盤面導線、最新手スポットライト、盤面選択アシストを含む。公開app v28/client+intents v17/style v26、Windows `33999760232`、Edge deployment 17、DB 70/70、LAB canary 23/23、Pages `34000125784`、公開DOM/assetを確認済み |
+| 公開済み現候補 | `a4b9917`（`72040b8`、`afc89af`、`2a1d2ef`、LAB公開`3fb3ef8`を含む） | active-room復帰、isolated legal-recolor LAB、390px盤面導線、最新手スポットライト、盤面選択アシスト、クイズ明確化を含む。公開app v29/client+intents v17/style v27、Windows `34003307900`、Edge deployment 20、基本7/7＋Runbook B 234/234、Pages `34004028751`、公開DOM/10問完走を確認済み |
 | 保全済み | detached `a8fce7d` dirty床 | `codex/salvage-a8fce7d-20260904` / `9e4e8ee` に秘密情報なしでWIP保全済み。機能単位で比較 |
 | 凍結root | root `ac78282` | 正史worktreeを内包するため作業床は維持。再監査したdirty 39件のうち38件は既存commitと一致し、残る旧handoff文書も現正本で置換済み。丸ごとmerge禁止、回収残件なし |
 | GitHub保管 | `codex/archive-standard-release-1f823b2` | 正史の祖先でない孤立コミットをGitHubへ退避済み。作業床は削除 |
@@ -108,9 +110,9 @@
 | 文書／構想 | 判定 | 次の扱い |
 | --- | --- | --- |
 | 合言葉不要マッチング＋CPUフォールバック | `origin/main@a3425a4`でPUBLIC_VERIFIED | 自動live canaryは完了。物理二端末で対人/CPUの完走、復帰、再戦を確認する |
-| クイズ・スキル・バランス | 即時採点、答え合わせ、持ち色変更説明、クロガネv2までPUBLIC_VERIFIED | 物理端末の操作感を確認し、公開後24時間指標と分離して記録する |
+| クイズ・スキル・バランス | 即時採点、答え合わせ、曖昧問題とACK済み進捗、持ち色変更説明、クロガネv2までPUBLIC_VERIFIED | 物理端末の操作感を確認し、公開後24時間指標と分離して記録する |
 | online MVP status／live regression | 現行公開識別子と有限な証拠を`STANDARD_RELEASE_EVIDENCE.md`へ集約 | 古い時系列ログは履歴として保持し、現行状態と混同しない |
-| 二端末P0 handoff | PENDING | `72040b8`の対人/CPU/LAB完走、390px盤面導線、盤面選択アシスト、最新手スポットライト、確定接触feedback、公開戦術trace、開始前取りやめ、終局理由、Quick継続、途中再読込、報酬→ガチャ→6枚再編成→再戦、永続化だけを残件として回収 |
+| 二端末P0 handoff | PENDING | `a4b9917`の対人/CPU/LAB完走、390px盤面導線、盤面選択アシスト、クイズ進捗、最新手スポットライト、確定接触feedback、公開戦術trace、開始前取りやめ、終局理由、Quick継続、途中再読込、報酬→ガチャ→6枚再編成→再戦、永続化だけを残件として回収 |
 | active-room排他・room外6枚編成・開始前取りやめ | `426dc41`でPUBLIC_VERIFIED | 次便は競合時の既存room再同期・日本語文言を独立して改善する |
 | 新カード候補 | `legalRecolor`をLAB限定で条件付き採用 | IDは維持し表示名を「塗り直し・乱」、妨害★3/WORK、ガチャOFF・双方1回貸与で公開。二色市松は1地域1色モデルを壊すため別rulesetへ分離 |
 | Google identity link | 匿名＋任意linkはPhase 0の暫定候補、採否未決定 | 既存匿名導線を維持したread-only監査だけを行う。採用時のrollback候補は新規link入口/UIを閉じてPagesを戻し、既にlink済みの利用者を解除しない |

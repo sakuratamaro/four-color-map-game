@@ -19,15 +19,19 @@ test("release evidence ledger keeps local, public, approval, and blocked states 
 test("current public identity is internally consistent while T+24 keeps its release baseline", () => {
   const currentGates = evidence.match(/## 現在のゲート[\s\S]+?## 2026-09-04/)?.[0] || "";
   const publicIdentity = evidence.match(/## 公開識別子[\s\S]+?## Canary結果/)?.[0] || "";
-  const currentRelease = evidence.match(/## 2026-09-06 08時台 JST 盤面選択アシスト公開[\s\S]+?## 公開識別子/)?.[0] || "";
+  const currentRelease = evidence.match(/## 2026-09-06 10時台 JST クイズ明確化・進捗表示公開[\s\S]+?## 公開識別子/)?.[0] || "";
   for (const section of [currentGates, publicIdentity, currentRelease]) {
-    assert.match(section, /72040b8/);
-    assert.match(section, /33999760232/);
-    assert.match(section, /34000125784/);
+    assert.match(section, /a4b9917/);
+    assert.match(section, /34003307900/);
+    assert.match(section, /34004028751/);
   }
-  assert.match(currentGates, /app v28\/client\+intents v17\/style v26/);
-  assert.match(publicIdentity, /先行4 runsの失敗を保持して修正/);
-  assert.match(currentRelease, /DB migration、Edge deployment 17、RPC、ゲームルール、報酬、在庫、保存形式は変更していない/);
+  assert.match(currentGates, /app v29\/client\+intents v17\/style v27/);
+  assert.match(publicIdentity, /Chrome job `101405916579` Success \/ Edge job `101405916474` Success/);
+  assert.match(publicIdentity, /先行run `34003126498`のCRLF失敗を保持して修正/);
+  assert.match(currentRelease, /deployment 19が.*worker boot error/);
+  assert.match(currentRelease, /deployment 20へ修復/);
+  assert.match(currentRelease, /基本Edge canary 7\/7とRunbook B 234\/234/);
+  assert.match(currentRelease, /DB migration、RPC、engine bundle生成結果、ゲームルール、報酬tier、在庫、秘密情報、課金、削除、cleanup scheduleは変更していない/);
   assert.match(currentRelease, /物理二端末受入とT\+24資源比較は`NOT_RUN\/PENDING`/);
   assert.match(runbook, /publicAssetCommit=3fb3ef8/);
   assert.match(runbook, /physicalTwoDeviceAcceptance.*executionState: NOT_RUN.*gateState: PENDING.*automated:false/);
