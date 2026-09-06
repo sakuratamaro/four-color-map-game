@@ -11,22 +11,22 @@
 | ゲート | 状態 | 現在の根拠 | 次の証拠 |
 | --- | --- | --- | --- |
 | 採否棚卸し | VERIFIED | `ONLINE_COMPLETION_INVENTORY.md`。旧Expo試作と現行Web Standardを分離済み | 公開後に状態列だけ更新 |
-| 製品コード・生成元 | PUBLIC_VERIFIED | 公開製品commit `9b7d8f4`。engine `5.0.0-alpha.2`、旧alpha.1互換、CPU policy、online/local UI、生成済みlocal/Edge bundle、Windows workflow、専用live canaryを同一候補で公開。再ビルド後のSHAは不変 | 次回engine変更時に再生成一致を確認 |
-| ローカル製品試験 | VERIFIED | `9b7d8f4`。全131 test file、962/962合格、fail/cancel/skip 0、`git diff --check`成功。UX、rules/privacy、repository/releaseの独立レビューは全てGO、P0/P1なし | 物理端末で応答窓と救済判断の体感確認 |
+| 製品コード・生成元 | PUBLIC_VERIFIED | 公開製品commit `df9f01b`（製品実装`d06f34d`）。alpha.2の`DECLARE_NO_COLOR`を退役し、人間は救済確認後の投了、CPUは救済後にSURRENDER。Lv5全10テンプレートを多段推論化し、生成済みlocal/Edge bundleを同一候補で公開。再ビルド後のSHAは不変 | 次回engine変更時に再生成一致を確認 |
+| ローカル製品試験 | VERIFIED | `d06f34d`。非browser 694/694、browser 268件を完走し、focused 198/198、terminal 3/3、online core 2/2、governance 12/12、`git diff --check`成功。rules/privacy、UX/accessibility、repository/releaseの独立レビューは最終GO、P0/P1なし | 物理端末で救済判断とLv5の体感確認 |
 | Shift select候補 | SUPERSEDED | `24caae8`→`d9b6fe9`→`1557ff1`。失敗run `34026276754` / `34027199050`で旧fixtureとretry payloadを修正し、run `34027488186`はChrome/Edge成功。ただしユーザー決定は盤面tap指定のためmain/Pagesへ昇格せず、`8944572`で製品差分をrevert | UDL-20260906-001として盤面操作UXを再設計 |
 | 次期UX候補のローカル検査 | VERIFIED | `codex/standard-release-command@1673ff8`。profile安定化、初回対戦導線、Quick Half Shift、status正規化、Realtime/poll復旧を含む非browser製品試験91ファイル522/522。browser workflow/harness静的11/11合格 | Pages反映後のpreflightと二端末受入 |
 | 初回導線・接続表示の次期候補 | VERIFIED | `9d42784`。初回starter作成＋profile同期を一操作化し、全5タブで単一接続statusを常時表示。空名write 0、room外offline復帰、390px下部nav非干渉を契約化。静的39/39、非browser 89ファイル513/513、Windows Chrome/Edge各18/18合格 | 物理二端末受入 |
-| Windows実browser CI | VERIFIED | GitHub Actions run `34022065339`。`9b7d8f4`のChrome job `101456337426`とEdge job `101456337486`が成功。生成bundle、CPU契約、online browser、Edgeの追加lifecycleが成功 | 公開URLで同じ主要導線を二端末受入 |
-| 現行公開Pages | PUBLIC_VERIFIED | 公開製品基点`9b7d8f4`、Pages run `34022540907`のbuild/report/deploy成功。公開URLでapp/style v35、client v18、skill-intents v17、CPU commentary v1、COLOR応答DOM、console warning/error 0を確認 | 別々の二端末で最終受入 |
+| Windows実browser CI | VERIFIED | GitHub Actions run `34034746623`。candidateと公開tree `b1f0d662de364ea888c1a5100c94cb96e9a0e351`が一致し、Chrome job `101490663937`とEdge job `101490663830`が成功。生成bundle、CPU契約、online browser、Edge lifecycleが成功 | 公開URLで同じ主要導線を二端末受入 |
+| 現行公開Pages | PUBLIC_VERIFIED | 公開製品基点`df9f01b`、Pages run `34035229549`成功。公開URLでapp/style v36、client v19、skill-intents v17、CPU commentary v2、宣言ボタンなし、投了導線、横overflow 0、console warning/error 0を確認 | 別々の二端末で最終受入 |
 | 初回公開前DB境界（履歴） | VERIFIED | 旧snapshotは匿名権限拒否。snapshot v2と野良募集が未存在だった初回baseline | 現行境界は適用migrationとlive canaryを参照 |
 | migration 006–013静的検査 | VERIFIED | migration別security/transaction testsと読み取り専用44項目SQL | 実DBで全行`ok=true` |
 | Dashboard Advisor・使用量baseline | WATCH_PARTIAL | T0と2026-09-06のT+24hを正規化JSONへ保存。T+24hは15/37 metricを観測し、公開preflight成功、CPU 2%、RAM 62%、disk 17%、disk IO 1%、接続peak 20/60、Security errors 0。API/Edge等22 metricはDashboard取得不能でPENDING。read-only診断はblocked/idle 0、slot 2/2 active、publication不変 | 欠落panelは次の定期観測で再取得し、推測値・0置換はしない |
 | migration 006–013＋後続001–007＋202609060001–003本番適用 | PUBLIC_VERIFIED | additive availability RPCまで適用。現行の読み取り専用検証SQLは72/72すべてtrue。availabilityはauthenticatedのみ、匿名preflightではprotected | 物理二端末最終受入 |
-| Edge Function更新 | PUBLIC_VERIFIED | deployment 21へ`index.ts`と生成済みbundleを同時反映。反映前に両ファイルをDashboardから読み戻し、LF正規化後SHAが候補と一致。基本7/7、専用COLOR 164/164、candidate preflight `ok:true`。deployment 20とPages v35の後方互換実戦も成功 | 物理端末で救済判断の操作感を確認 |
+| Edge Function更新 | PUBLIC_VERIFIED | deployment 22へ`index.ts`と生成済みbundleを同時反映。Dashboard貼付後に両ファイルをclipboardで読み戻し、LF正規化後に候補と完全一致。基本7/7、専用COLOR応答113/113、candidate preflight `ok:true`。alpha.2宣言退役のwrite-free、CPU有限進行、private key非露出を本番確認 | 物理端末で救済判断の操作感を確認 |
 | 即時Standard CPU開始 | PUBLIC_VERIFIED | migration `202609050002`とEdge deployment 9。製品`cc96350`、公開`a4c6490`、DB 47項目、Edge基本6/6、即時CPU 7/7、Windows run `33931963065`、Pages run `33932159043`合格。公開UIでCPU初手まで確認 | 物理端末で一試合完走・再読込・同じCPUとの再戦を確認 |
 | CPU完走後の次戦導線 | PUBLIC_VERIFIED | `29c6958`。同じCPUとの同room再戦を維持し、終了結果から別CPU選択へ進める。live即時CPU完走・再戦canary 25/25、Windows Chrome/Edge成功、Pages反映済み | 物理端末で別CPU選択と再戦を体感確認 |
 | CPU報酬からガチャへの直行 | PUBLIC_VERIFIED | `e36dfcc`＋`193a0e6`。保存済み通常CPU精算だけにCTAを出し、抽選せずLv.1ガチャへ移動。対人・未精算・debugを拒否し、390×844で券・抽選操作・focus・再読込を確認 | 物理端末でCPU一局からガチャまでの体感を確認 |
-| GitHub main・Pages更新 | PUBLIC_VERIFIED | 公開製品commit `9b7d8f45a456e2121ccc522687c491f4836672e5`。`origin/main`を`98098d5`からforceなしでfast-forward。Standard browser gate `34022065339`、Pages `34022540907`成功。公開asset v35/v18/v17/v1/v35とcandidate preflightを確認 | 二端末受入後に最終状態を記録 |
+| GitHub main・Pages更新 | PUBLIC_VERIFIED | 公開製品commit `df9f01b`。`origin/main`を`3d07766`からforceなしでfast-forward。Standard browser gate `34034746623`、Pages `34035229549`成功。公開asset v36/v19/v17/v2/v36とcandidate preflightを確認 | 二端末受入後に最終状態を記録 |
 | server-side active-room復帰 | PUBLIC_VERIFIED | private/public/CPUを有限8列で本人にだけ返し、厳格な1行だけ採用。raw sentinel/UUID非表示、background focus非奪取、CPU/matchmaking saga優先、復帰時の新room/setup送信0をbrowser回帰とlive 10/10で確認 | 物理端末でlocal identity喪失後の復帰を体感確認 |
 | 塗り直し・乱 LAB | PUBLIC_VERIFIED | `ad53bb4` / 公開`3fb3ef8`。private-code human双方同意、debug排他、固定ruleset、server-only乱数、1人1回貸与、通常19枚/6枚/CPU/野良/戦績/報酬/在庫非変更。DB 70/70、Edge 23/23、Windows/Pages/公開preflight合格 | 二端末LAB一局 |
 | 合言葉対戦canary | VERIFIED | deployment 15で`live-standard-runbook-a-canary.mjs --confirm-live` 44/44合格。確定CREATEの公開trace shapeも検査 | 実ブラウザ再読込と二端末最終受入 |
@@ -38,6 +38,14 @@
 | cleanup preview | PENDING | 関数はローカルのみ。削除・定期化なし | dry-run分類別件数、処理時間。実削除は別承認 |
 | cleanup実削除・定期化 | PENDING | 実行権限は付与済みだがpreview件数とcascade先を未確認 | exact ID、影響範囲、復元手段を先に記録してから実行 |
 | 別々の二端末による最終受入 | PENDING | 旧公開版の過去証拠だけ | 最新URLで対人/CPU完走、復帰、新試合、全永続化 |
+
+## 2026-09-06 自動敗北廃止・Lv5難化公開
+
+- `d06f34d`（公開HEAD `df9f01b`）で、alpha.2の`DECLARE_NO_COLOR`を`NO_COLOR_DECLARATION_RETIRED`としてwrite-free退役した。人間は救済を確認してから明示投了、CPUは有効な救済を先に使い、打開不能時だけ既存`SURRENDER`を送る。旧alpha.1 room/replayは従来契約を維持する。
+- Lv5は全10テンプレートを52–62秒の多段推論へ更新し、server-authoritative prompt/採点、再送、報酬を維持した。CPU10人の公開理由別敗北台詞も先行公開し、画像は素材台帳とfallbackを備えた独立P1便へ分離した。
+- clean releaseのtreeはcandidate CI `34034746623`と一致し、Chrome/Edge両jobが成功。Pages `34035229549`でapp/style v36、client v19、skill-intents v17、CPU commentary v2を公開し、宣言ボタンなし、投了導線、390px横overflow 0、console 0を確認した。
+- Dashboardで候補2ファイルを貼付後にclipboardで読み戻し完全一致を確認してEdge deployment 22へ反映した。基本7/7、専用COLOR応答113/113、candidate preflight `ok:true`。宣言退役write-free、CPU 1手進行と有限性、全段階private key非露出、canary room終了を本番確認した。
+- migration tailは`202609060003`のまま。SQL、RPC、secret、JWT設定、報酬、在庫、cleanup scheduleは変更していない。物理二端末受入だけを`PENDING`で維持する。
 
 ## 2026-09-06 共通COLOR応答窓公開
 

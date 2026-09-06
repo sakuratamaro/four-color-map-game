@@ -8,8 +8,8 @@
 
 ## 司令塔ルール
 
-- 統合基点は `origin/main` とし、現在の公開製品基点は `9b7d8f4`。共通COLOR応答窓を、角膨張の盤面主導・待機相手通知・CPU実況・legal-recolor LAB・390px盤面導線・盤面選択アシスト・クイズ明確化へ累積している。
-- 現在の統合作業は `codex/standard-release-command` だけで行う。
+- 統合基点は `origin/main` とし、現在の公開製品基点は `df9f01b`。合法色0だけによる自動敗北の廃止とLv5クイズ難化を、共通COLOR応答窓・盤面主導UX・CPU実況・legal-recolor LABへ累積している。
+- release候補はdirtyな司令塔床から直接出さず、`origin/main`起点のclean release worktreeへ採用commitだけを積み、candidate CIのtree一致を確認してfast-forwardする。
 - 古いdirty worktreeからbuild、merge、deployしない。
 - `実装済み`、`ローカル検証済み`、`live検証済み`、`公開済み`を別状態として記録する。
 - 変更は製品テスト、live preflight、canary、公開後確認の順に昇格させる。
@@ -62,11 +62,11 @@
 | P1 | CPU実況とクイズ固定hitbox | ゲーム体験＋UX＋ルール | PUBLIC_VERIFIED | 10人のCPUへ公開eventだけの個性文を付け、対戦タブ外・reload・background再演とprivate情報参照を禁止。クイズはボタン矩形を固定し内側labelだけを漂わせる。Chrome/Edge各71件、390pxで固定通知・盤面・下部nav非交差、公開console 0を確認 |
 | P1 | 角膨張の盤面主導・keyboard完走・エラー可視化 | UX＋ルール＋技術品質＋司令塔 | PUBLIC_VERIFIED | `75791fb`。数値入力を廃止し、渡すエリア→基準マスの2段階を盤面で選ぶ。44px盤面focus導線、pointer、Tab/Enter/Space、2マス接続候補、白/紫の現在状態を固定。長文toastは上部通知の下へ退避し、setup/成立済みconnection/navと遷移中も非交差。Windows `34017288334`のChrome/Edge各73件、Pages `34017695831`、公開app/style v34、candidate preflight、console 0を確認。DB/Edge変更なし |
 | P1 | 救済スキルを塞がない共通COLOR応答窓 | ルール＋CPU＋UX＋Edge＋司令塔 | PUBLIC_VERIFIED | `9b7d8f4`。新規engine `5.0.0-alpha.2`は通常彩色／COLOR救済スキル／`DECLARE_NO_COLOR`／投了を同じ応答窓へ集約し、旧alpha.1 roomは従来挙動を維持。宣言はserver authorityで合法色0を検証し、救済カード有無を公開stateへ漏らさない。ローカル962/962、Windows `34022065339`、Pages `34022540907`、Edge deployment 21の基本7/7＋専用164/164、公開390px・console 0を確認。SQL/RPC変更なし |
-| P0 | 合法色0による自動敗北の完全廃止 | ルール＋CPU＋UX＋Edge＋司令塔 | IMPLEMENTING | alpha.2の人間は救済確認後に既存投了だけを選び、CPUは有効な救済を検討後、打開不能なら`SURRENDER`する。`DECLARE_NO_COLOR`はalpha.2で退役し、alpha.1と旧terminal表示は互換維持。private情報、戦績、報酬、再送はserver-authoritativeかつexactly-once |
+| P0 | 合法色0による自動敗北の完全廃止 | ルール＋CPU＋UX＋Edge＋司令塔 | PUBLIC_VERIFIED | `d06f34d`。alpha.2の人間は救済確認後に既存投了だけを選び、CPUは有効な救済を検討後、打開不能なら`SURRENDER`する。`DECLARE_NO_COLOR`はalpha.2でwrite-free退役、alpha.1互換を維持。Windows `34034746623`、Pages `34035229549`、Edge deployment 22、基本7/7＋専用113/113＋candidate preflight合格。SQL/RPC変更なし |
 | P1 | Shift対象指定と説明の摩擦解消 | UX＋ルール＋司令塔 | DECIDED_REDESIGN | 行・列・中央帯は角膨張と同じく盤面tap/keyboardで選び、方向だけ自然な盤面対応操作にする。select候補`24caae8`は要望不一致のため`8944572`でrevertし、main/Pagesへ昇格しない。Half分割、Triple切断reject、同色融合の正確な説明は次実装へ継承 |
 | P1 | 持ち色汚染no-opの消費仕様 | ルール＋Edge＋UX | SPEC_READY | 指定色以外の上書き可能枠がなければ変化なし・カード非消費とし、その旨だけ表示する。相手palette自体は表示せず、同一発動で別色へ選び直す連続探索は禁止。server判定、再送、inventory exactly-onceを受入条件とする |
-| P1 | Lv5クイズ実質難化 | クイズ＋Edge＋司令塔 | IMPLEMENTING | Lv4との差が明確な多段推論へ更新し、server-authoritative prompt、採点、再送、既存報酬を維持する。P0勝敗便と同じEdge候補内で独立契約・canaryを通す |
-| P1 | CPU敗北表情・理由別台詞 | 演出＋UX＋素材 | DECIDED | 接色塗敗北、救済不能後の投了、通常ミスなど公開理由だけで台詞を分ける。既存CPU固有台詞を再利用し、画像は第三者素材台帳・credit・fallback完備後に追加する |
+| P1 | Lv5クイズ実質難化 | クイズ＋Edge＋司令塔 | PUBLIC_VERIFIED | `d06f34d`。全10テンプレートをLv4と明確に異なる多段推論へ更新し、52–62秒、server-authoritative採点・再送・既存報酬を維持。Windows `34034746623`、Pages `34035229549`、Edge deployment 22とlive preflight合格 |
+| P1 | CPU敗北表情・理由別台詞 | 演出＋UX＋素材 | IMPLEMENTING | `d06f34d`で公開理由別の10人固有敗北台詞を先行公開。敗北表情画像は第三者素材台帳・credit・fallback・10人存在検査を満たす独立P1便として継続する |
 | P1 | 基本効果音・スマホ振動 | 演出＋アクセシビリティ | DECIDED | 初回gesture後だけ音を有効化し、振動は対応端末のみ、可視中・event ID重複排除・ON/OFF保存・reduced-motionとは独立した設定を持つ |
 | P2 | 既塗エリアへの差し色追加／重ね塗り | ルール＋UX | DECIDED | ★5候補。現在盤面の一続きの既塗エリアを盤面選択し、所有者でなく現在形状を判定対象とする。Shift分断・同色合流後の再構成結果へ作用する |
 | P2 | 既塗エリアの角膨張 | ルール＋UX | DECIDED | 公開済みの未彩色preparedOutgoing用途とは別に、既塗エリアへ作用する同一カード案を独立設計・検証する |
@@ -87,18 +87,18 @@
 | UDL-20260906-003 | 持ち色汚染の空振りは非消費 | 変化なし・カード非消費、1発動終了、別色再選択不可 | 相手palette非表示、server判定、同一ID再送、inventory exactly-once | 現行disrupt handler、Edge canary | ルール＋Edge＋UX | Pollution no-op P1 | SPEC_READY | — | NO | NO | NOT_RUN | `01a0762c` | 旧DESIGN_DEFERREDをSUPERSEDED、漏えい許容度のユーザー決定 | YES |
 | UDL-20260906-004 | CPUイラスト素材を採用 | 実使用分だけcrop/WebP、原本/未使用素材はrepo外 | NOTICE、README除外、素材台帳、credit、fallback、10人存在検査 | 素材実体、公式規約URL | 素材＋UX＋司令塔 | CPU art P1 | SPEC_READY | — | NO | NO | NOT_RUN | `01a07462`,`01a0762c` | — | YES |
 | UDL-20260906-005 | 作者へお礼連絡 | 公開後TODO、礼儀上の任意連絡 | ユーザー確認なしに送信しない。広告/有料化時は確認優先度を上げる | UDL-004公開後 | 司令塔＋チャッピー先生 | Post-public | DECIDED | — | NO | NO | NOT_RUN | `01a0762c` | — | YES |
-| UDL-20260906-006 | 合法色0だけで自動敗北させない | 人間は救済後に投了、CPUは救済検討後にSURRENDER | alpha.2 DECLARE退役、alpha.1互換、privacy、戦績/報酬/再送exactly-once | engine/client/Edge bundle | ルール＋CPU＋UX＋Edge | No-auto-loss P0 | LOCAL_VERIFIED | `9950191` | NO | NO | NOT_RUN | `01a07628`,`01a0762c` | — | YES |
-| UDL-20260906-007 | CPU敗北理由別の表情と台詞 | 公開理由別台詞、敗北表情、既存固有台詞を重複させない | reload再演なし、private情報なし、画像fallback | UDL-004、UDL-006、既存`a5f84e8/8124d05` | 演出＋UX | Text with P0, art P1 | IMPLEMENTING | `9950191`（台詞のみ。画像はP1） | NO | NO | NOT_RUN | `01a07628` | — | YES |
+| UDL-20260906-006 | 合法色0だけで自動敗北させない | 人間は救済後に投了、CPUは救済検討後にSURRENDER | alpha.2 DECLARE退役、alpha.1互換、privacy、戦績/報酬/再送exactly-once | engine/client/Edge bundle | ルール＋CPU＋UX＋Edge | No-auto-loss P0 | PUBLIC_VERIFIED | `d06f34d` | `df9f01b` | `34035229549` | Edge 22、7/7＋113/113＋preflight | `01a07628`,`01a0762c` | — | YES |
+| UDL-20260906-007 | CPU敗北理由別の表情と台詞 | 公開理由別台詞、敗北表情、既存固有台詞を重複させない | reload再演なし、private情報なし、画像fallback | UDL-004、UDL-006、既存`a5f84e8/8124d05` | 演出＋UX | Text with P0, art P1 | IMPLEMENTING | `d06f34d`（台詞のみ公開。画像はP1） | `df9f01b`（台詞のみ） | `34035229549`（台詞のみ） | 台詞契約のみlive | `01a07628` | — | YES |
 | UDL-20260906-008 | 基本エフェクトへ効果音・振動 | opt-in可能な音、対応端末だけ振動 | gesture unlock、event ID dedupe、hidden抑止、設定保存 | 公開event model | 演出＋a11y | Feedback effects P1 | DECIDED | — | NO | NO | NOT_RUN | `01a07628` | — | YES |
-| UDL-20260906-009 | Lv5クイズを早急に難化 | Lv4との差が明確な多段推論へ | server-authoritative、採点/再送/報酬非回帰、canary | Edge quiz runtime | クイズ＋Edge | No-auto-loss plus quiz | LOCAL_VERIFIED | `9950191` | NO | NO | NOT_RUN | `01a07628` | — | YES |
+| UDL-20260906-009 | Lv5クイズを早急に難化 | Lv4との差が明確な多段推論へ | server-authoritative、採点/再送/報酬非回帰、canary | Edge quiz runtime | クイズ＋Edge | No-auto-loss plus quiz | PUBLIC_VERIFIED | `d06f34d` | `df9f01b` | `34035229549` | Edge 22、preflight合格 | `01a07628` | — | YES |
 | UDL-20260906-010 | 既塗エリアへ差し色/重ね塗り | ★5候補、現在の一続き領域を盤面選択 | 分断/合流後の現在形状、所有者非判定、履歴のみ行為者 | UDL-013〜015 | ゲームデザイン＋ルール＋UX | Overlay rules | DECIDED | — | NO | NO | NOT_RUN | `01a0762c` | — | YES |
 | UDL-20260906-011 | スキル種類を増やす | 独立backlogで継続企画 | 各候補がrules/privacy/UX/category gateを通過 | UDL-012〜014 | ゲームデザイン | Skills backlog | DECIDED | — | NO | NO | NOT_RUN | `01a0762c` | — | YES |
 | UDL-20260906-012 | 同カテゴリ連打を防ぐ | 同一ターン内は同一カテゴリ1枚まで | 通常/CPU/debug/LAB/retry共通のserver-authoritative制約 | UDL-013完了後 | ルール＋CPU＋Edge | Category limit | DECIDED | — | NO | NO | NOT_RUN | `01a0762c` | — | YES |
 | UDL-20260906-013 | 全19枚のカテゴリを再監査 | 効果、phase、combo基準でcolor/area/disrupt/experimentalを再評価 | UI、CPU、6枚構成、ガチャ確率への影響を明記 | 現行registry/handlers | ルール担当 | Before category limit | IMPLEMENTING | — | NO | NO | NOT_RUN | `01a0762c` | — | YES |
 | UDL-20260906-014 | 盤面操作スキルは盤面で選ぶ | セル/領域/帯/辺は盤面選択、formは補助/debugのみ | pointer/keyboard/mobile/focus/no-oracle共通基準 | board assist | UX＋a11y | All board skills | DECIDED | — | NO | NO | NOT_RUN | `01a0762c` | — | YES |
 | UDL-20260906-015 | 所有者をrules判定に使わない | 行為者は履歴のみ、現在形状で再構成、同色は操作者非依存で合流 | engine/spec/testで不変条件を固定 | region canonicalization | ルール担当 | All rules | DECIDED | — | NO | NO | NOT_RUN | `01a0762c` | — | YES |
-| UDL-20260906-016 | 五月雨式依頼を一元管理 | 安定IDと公開段階を1行で追跡 | 指定15列、状態遷移、決定元、公開証拠を保持 | PROJECT_COMMAND_CENTER | 司令塔 | Governance now | LOCAL_VERIFIED | `1b6294e` | NO | NO | NOT_RUN | `01a0762c` | — | YES |
-| UDL-20260906-017 | 各release前に決定照合 | INBOX、台帳漏れ、未merge、未Pages、古いfinal、矛盾を検査 | 自動schema検査＋手動照合欄、CI契約 | UDL-016 | 構成管理＋司令塔 | Governance now | LOCAL_VERIFIED | `1b6294e` | NO | NO | NOT_RUN | `01a0762c` | — | YES |
+| UDL-20260906-016 | 五月雨式依頼を一元管理 | 安定IDと公開段階を1行で追跡 | 指定15列、状態遷移、決定元、公開証拠を保持 | PROJECT_COMMAND_CENTER | 司令塔 | Governance now | PUBLIC_VERIFIED | `581a0d9` | `df9f01b` | `34035229549` | 公開台帳をrelease照合 | `01a0762c` | — | YES |
+| UDL-20260906-017 | 各release前に決定照合 | INBOX、台帳漏れ、未merge、未Pages、古いfinal、矛盾を検査 | 自動schema検査＋手動照合欄、CI契約 | UDL-016 | 構成管理＋司令塔 | Governance now | PUBLIC_VERIFIED | `fd7c6ec` | `df9f01b` | `34035229549` | checker 17/17 PASS | `01a0762c` | — | YES |
 
 ### Decision reconciliation gate
 
