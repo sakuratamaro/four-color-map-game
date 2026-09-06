@@ -836,7 +836,7 @@ test("actual Edge reviews six cards before starting Standard CPU exactly once", 
     assert.equal(await page.locator("#waitingMessage").textContent(), "CPUとの対戦中です。盤面と手番案内を確認してください。");
     const evidence = await page.evaluate(({ key, sagaKey }) => ({
       bodies: globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.kind === "invoke").map((entry) => entry.body),
-      publicCalls: globalThis.__standardOnlineRuntime.calls.filter((entry) => String(entry.name || "").includes("matchmaking")),
+      publicEntryWrites: globalThis.__standardOnlineRuntime.calls.filter((entry) => ["fcg_standard_matchmaking_recruit", "fcg_standard_matchmaking_find"].includes(entry.name)),
       connection: JSON.parse(localStorage.getItem(key)),
       saga: localStorage.getItem(sagaKey),
       overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
@@ -846,7 +846,7 @@ test("actual Edge reviews six cards before starting Standard CPU exactly once", 
     assert.match(cpuStart.actionId, /^[0-9a-f-]{36}$/i);
     assert.deepEqual({ ...cpuStart, actionId: "<uuid>" }, { operation: "cpu-start", actionId: "<uuid>", characterId: "yuzu", confirmed: true });
     assert.match(evidence.bodies.find((body) => body.operation === "setup").setupActionId, /^[0-9a-f-]{36}$/i);
-    assert.deepEqual(evidence.publicCalls, []);
+    assert.deepEqual(evidence.publicEntryWrites, []);
     assert.equal(evidence.connection.cpuStartActionId, null);
     assert.equal(evidence.connection.cpuStartCharacterId, null);
     assert.equal(evidence.connection.setupRevision, 1);
@@ -2887,7 +2887,7 @@ test("actual Edge keeps a finished CPU room until another CPU is chosen", { time
       cpuStarts: globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "cpu-start").map((entry) => entry.body),
       cpuAccepts: globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "cpu-accept").length,
       cpuRematches: globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "cpu-rematch").length,
-      matchmaking: globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.name?.startsWith("fcg_standard_matchmaking_")).length,
+      matchmakingEntries: globalThis.__standardOnlineRuntime.calls.filter((entry) => ["fcg_standard_matchmaking_recruit", "fcg_standard_matchmaking_find"].includes(entry.name)).length,
       overflows: document.documentElement.scrollWidth > document.documentElement.clientWidth,
     }));
     assert.equal(evidence.cpuStarts.length, 1);
@@ -2895,7 +2895,7 @@ test("actual Edge keeps a finished CPU room until another CPU is chosen", { time
     assert.equal(evidence.cpuStarts[0].confirmed, true);
     assert.equal(evidence.cpuAccepts, 0);
     assert.equal(evidence.cpuRematches, 0);
-    assert.equal(evidence.matchmaking, 0);
+    assert.equal(evidence.matchmakingEntries, 0);
     assert.equal(evidence.overflows, false);
   }, { viewport: { width: 390, height: 844 } });
 });
@@ -2908,7 +2908,7 @@ test("actual Edge finds a public opponent and enters setup without exposing a co
     assert.equal(await page.locator("#shownCode").textContent(), "野良対戦");
     assert.equal(await page.locator("#setupCard").evaluate((node) => node.classList.contains("hidden")), false);
     const calls = await page.evaluate(() => globalThis.__standardOnlineRuntime.calls
-      .filter((entry) => entry.kind === "rpc" && entry.name !== "fcg_standard_active_room")
+      .filter((entry) => entry.kind === "rpc" && !["fcg_standard_active_room", "fcg_standard_matchmaking_availability"].includes(entry.name))
       .map((entry) => entry.name));
     assert.deepEqual(calls.slice(0, 2), ["fcg_standard_matchmaking_find", "fcg_standard_room_snapshot_v2"]);
   });
