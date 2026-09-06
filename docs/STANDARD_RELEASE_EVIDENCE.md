@@ -11,21 +11,21 @@
 | ゲート | 状態 | 現在の根拠 | 次の証拠 |
 | --- | --- | --- | --- |
 | 採否棚卸し | VERIFIED | `ONLINE_COMPLETION_INVENTORY.md`。旧Expo試作と現行Web Standardを分離済み | 公開後に状態列だけ更新 |
-| 製品コード・生成元 | VERIFIED | `standard/`、build scripts、生成済みEdge bundleが公開HEAD `a4b9917`に存在。今回のクイズ明確化はEdge sourceとPages UIを更新し、engine bundleの生成結果は不変 | 次回engine変更時に再生成一致を確認 |
-| ローカル製品試験 | VERIFIED | クイズ明確化`a4b9917`。targeted 27/27、CPU/static unit 212/212、Edge browser 65/65、最終quadratic scroll Chrome/Edge各1/1。ルール/公開情報、UX、repository/releaseの独立レビューは全てGO、P0/P1なし | 物理端末でクイズの読みやすさとテンポを体感確認 |
+| 製品コード・生成元 | VERIFIED | `standard/`、build scripts、生成済みEdge bundleが公開製品commit `1eecb0a`に存在。今回のavailability、固定quiz hitbox、CPU実況はDB/Pagesのみで、Edge bundleは変更なし | 次回engine変更時に再生成一致を確認 |
+| ローカル製品試験 | VERIFIED | `1eecb0a`。CI同一unit 233/233、変更箇所のChrome/Edge browser各4/4、最終390px回帰各1/1。ルール/公開情報、UX、repository/releaseの独立レビューは全てGO、P0/P1なし | 物理端末で通知・実況・クイズの体感確認 |
 | 次期UX候補のローカル検査 | VERIFIED | `codex/standard-release-command@1673ff8`。profile安定化、初回対戦導線、Quick Half Shift、status正規化、Realtime/poll復旧を含む非browser製品試験91ファイル522/522。browser workflow/harness静的11/11合格 | Pages反映後のpreflightと二端末受入 |
 | 初回導線・接続表示の次期候補 | VERIFIED | `9d42784`。初回starter作成＋profile同期を一操作化し、全5タブで単一接続statusを常時表示。空名write 0、room外offline復帰、390px下部nav非干渉を契約化。静的39/39、非browser 89ファイル513/513、Windows Chrome/Edge各18/18合格 | 物理二端末受入 |
-| Windows実browser CI | VERIFIED | GitHub Actions run `34003307900`。公開候補`a4b9917`のChrome job `101405916579`とEdge job `101405916474`が成功。先行run `34003126498`のCRLF runtime抽出失敗をLF/CRLF回帰で修正後に再昇格 | 公開URLで同じ主要導線を二端末受入 |
-| 現行公開Pages | PUBLIC_VERIFIED | 公開基点`a4b9917`、Pages run `34004028751`成功。公開URLでapp v29/client+intents v17/style v27、採点済み履歴、未確定見込み、救済理由、十問完了を確認 | 別々の二端末で最終受入 |
+| Windows実browser CI | VERIFIED | GitHub Actions run `34013907089`。公開候補`1eecb0a`のChrome job `101434303395`とEdge job `101434303579`が成功。両browserでonline 71件、Edgeは追加lifecycleも成功 | 公開URLで同じ主要導線を二端末受入 |
+| 現行公開Pages | PUBLIC_VERIFIED | 公開基点`1eecb0a`、Pages run `34014339235`成功。公開URLでapp v32/client v18/skill-intents v17/CPU commentary v1/style v31、待機通知markerを確認 | 別々の二端末で最終受入 |
 | 初回公開前DB境界（履歴） | VERIFIED | 旧snapshotは匿名権限拒否。snapshot v2と野良募集が未存在だった初回baseline | 現行境界は適用migrationとlive canaryを参照 |
 | migration 006–013静的検査 | VERIFIED | migration別security/transaction testsと読み取り専用44項目SQL | 実DBで全行`ok=true` |
 | Dashboard Advisor・使用量baseline | PENDING | 2026-09-05 16:23 JSTのT0を`STANDARD_OBSERVATION_T0_20260905.json`へPARTIAL記録。API/Edge/Realtime/Query/Advisor 17項目を観測、Databaseグラフ等20項目はDashboard取得不能でPENDING。Health alert 2件継続 | T+24hで同じ24時間filterを再採取し、Database欠落値とalert状態を再確認 |
-| migration 006–013＋後続001–007＋202609060001–002本番適用 | PUBLIC_VERIFIED | additive setup revision guardまで適用。現行の読み取り専用検証SQLは70項目すべてtrue。v3 loadと8引数initializeはservice-roleのみで、公開preflightも保護状態を確認 | 物理二端末最終受入 |
+| migration 006–013＋後続001–007＋202609060001–003本番適用 | PUBLIC_VERIFIED | additive availability RPCまで適用。現行の読み取り専用検証SQLは72/72すべてtrue。availabilityはauthenticatedのみ、匿名preflightではprotected | 物理二端末最終受入 |
 | Edge Function更新 | PUBLIC_VERIFIED | deployment 20へクイズ問題文を反映。Dashboard editorの追記でdeployment 19がboot errorになった事実を保持し、正規単一内容を20へ修復。基本7/7、Runbook B 234/234で即時採点・再送・完全レビュー・報酬一回性を確認 | 物理端末でクイズの操作感を確認 |
 | 即時Standard CPU開始 | PUBLIC_VERIFIED | migration `202609050002`とEdge deployment 9。製品`cc96350`、公開`a4c6490`、DB 47項目、Edge基本6/6、即時CPU 7/7、Windows run `33931963065`、Pages run `33932159043`合格。公開UIでCPU初手まで確認 | 物理端末で一試合完走・再読込・同じCPUとの再戦を確認 |
 | CPU完走後の次戦導線 | PUBLIC_VERIFIED | `29c6958`。同じCPUとの同room再戦を維持し、終了結果から別CPU選択へ進める。live即時CPU完走・再戦canary 25/25、Windows Chrome/Edge成功、Pages反映済み | 物理端末で別CPU選択と再戦を体感確認 |
 | CPU報酬からガチャへの直行 | PUBLIC_VERIFIED | `e36dfcc`＋`193a0e6`。保存済み通常CPU精算だけにCTAを出し、抽選せずLv.1ガチャへ移動。対人・未精算・debugを拒否し、390×844で券・抽選操作・focus・再読込を確認 | 物理端末でCPU一局からガチャまでの体感を確認 |
-| GitHub main・Pages更新 | PUBLIC_VERIFIED | 公開baseline `a4b991783d553b8f7a401a88e54b7f219dbc2f38`（盤面選択`72040b8`、スポットライト`afc89af`、盤面導線`2a1d2ef`、LAB公開`3fb3ef8`を含む）。Standard browser gate `34003307900`、Pages `34004028751`成功。公開app v29/client+intents v17/style v27を確認 | 二端末受入後に最終状態を記録 |
+| GitHub main・Pages更新 | PUBLIC_VERIFIED | 公開製品commit `1eecb0a36874717c7bbb4068d17e11e980c0e41f`。Standard browser gate `34013907089`、Pages `34014339235`成功。公開asset v32/v18/v17/v1/v31とcandidate preflightを確認 | 二端末受入後に最終状態を記録 |
 | server-side active-room復帰 | PUBLIC_VERIFIED | private/public/CPUを有限8列で本人にだけ返し、厳格な1行だけ採用。raw sentinel/UUID非表示、background focus非奪取、CPU/matchmaking saga優先、復帰時の新room/setup送信0をbrowser回帰とlive 10/10で確認 | 物理端末でlocal identity喪失後の復帰を体感確認 |
 | 塗り直し・乱 LAB | PUBLIC_VERIFIED | `ad53bb4` / 公開`3fb3ef8`。private-code human双方同意、debug排他、固定ruleset、server-only乱数、1人1回貸与、通常19枚/6枚/CPU/野良/戦績/報酬/在庫非変更。DB 70/70、Edge 23/23、Windows/Pages/公開preflight合格 | 二端末LAB一局 |
 | 合言葉対戦canary | VERIFIED | deployment 15で`live-standard-runbook-a-canary.mjs --confirm-live` 44/44合格。確定CREATEの公開trace shapeも検査 | 実ブラウザ再読込と二端末最終受入 |
@@ -37,6 +37,14 @@
 | cleanup preview | PENDING | 関数はローカルのみ。削除・定期化なし | dry-run分類別件数、処理時間。実削除は別承認 |
 | cleanup実削除・定期化 | PENDING | 実行権限は付与済みだがpreview件数とcascade先を未確認 | exact ID、影響範囲、復元手段を先に記録してから実行 |
 | 別々の二端末による最終受入 | PENDING | 旧公開版の過去証拠だけ | 最新URLで対人/CPU完走、復帰、新試合、全永続化 |
+
+## 2026-09-06 待機相手通知・CPU実況・クイズhitbox公開
+
+- `1eecb0a`で、相手が待っている事実だけを知らせる認証済みavailability RPC、30秒pollと最大300秒backoff、固定quiz hitbox、10人の公開情報限定CPU実況を統合した。本人の募集、対人room、hidden/offline、対戦タブ外の実況再演を除外している。
+- Windows run `34013907089`はChrome job `101434303395`、Edge job `101434303579`とも成功。online browserは各71件、CI同一unitは233/233。先行run `34011228302`–`34012625370`で見つかったhover、短画面のscroll余地、接続待機上限、既focus時の暗黙scroll差を製品・試験境界へ分けて修正した。
+- migration `202609060003_standard_matchmaking_availability.sql`をEdge変更なしで適用。直後の`--expect=db-ready`は`ok:true`。初回72行検証は、内部JOINの`room.id`を返却列と誤認する検証SQLの偽陽性1件で停止し、返却型へ限定した検査へ修正後は`total_checks=72`、`passed_checks=72`、`all_ok=true`。RPC本体の再変更はない。
+- `origin/main`を`d730fa8`から`1eecb0a`へforceなしでfast-forwardし、Pages run `34014339235`が成功。`--expect=candidate`は`ok:true`、公開HTMLはapp v32/client v18/skill-intents v17/CPU commentary v1/style v31を配信している。
+- 公開390×844ではbattle下端余白168px、接続表示と下部navの間隔16px、横overflowなし、console warning/error 0。別々の二端末による対人/CPU完走とT+24h観測は実施しておらず、引き続き`PENDING`である。
 
 ## 2026-09-04 22:46 JST 再検証
 
