@@ -1,7 +1,7 @@
 # Codex work status
 
 - Last update: 2026-09-06 JST
-- Stage: Shared COLOR response-window release `9b7d8f4` is public-verified; T+24h observation is `WATCH_PARTIAL`; physical two-device acceptance remains pending
+- Stage: select-based Shift candidate was stopped before main and reverted after user decision reconciliation; no-auto-loss P0 and Lv5 difficulty are implementing in an isolated worktree; shared COLOR response-window release `9b7d8f4` remains public-verified
 - Integration branch: `codex/standard-release-command`
 - Public product baseline: `9b7d8f45a456e2121ccc522687c491f4836672e5` (includes the shared COLOR response window, legal-recolor LAB, board-first mobile presentation, board selection assist, quiz clarity, waiting-opponent notice, CPU commentary, and Corner Bloom targeting; the historical gold/cyan region outlines are removed)
 - Public URL: `https://sakuratamaro.github.io/four-color-map-game/standard-online-v5/`
@@ -31,6 +31,7 @@
 
 ## Verification
 
+- Superseded Shift select candidate: `24caae8` first exposed an obsolete local lifecycle locator in failed run `34026276754`; `d9b6fe9` then exposed a changed retry payload in failed run `34027199050`; `1557ff1` passed Chrome job `101470949640` and Edge job `101470949500` in run `34027488186`. Despite the green gate, the candidate was not promoted because the user requires board-based targeting. Revert `8944572` restores the public product tree before the next release.
 - Shared COLOR response-window release `9b7d8f4`: the complete local product runner passed 962/962 across 131 files with no failures, cancellations, or skips; regenerated local and Edge bundles were byte-stable. Rules/privacy, UX/accessibility, and repository/release reviewers all reported GO with no P0/P1. Windows run `34022065339` passed Chrome job `101456337426` and Edge job `101456337486`; Pages `34022540907` passed build/report/deploy. The public v35 UI on Edge deployment 20 rejected a legal-color declaration without changing public/private/profile state, returned focus to the response heading, then accepted a normal color as version 6→7. Deployment 21 passed the basic Edge canary 7/7, the dedicated COLOR-response canary 164/164, and candidate preflight `ok:true`; public 390px reload retained v35 and zero captured warning/error. Migration tail `202609060003`, SQL/RPC, secrets, JWT settings, rewards, inventory, and cleanup schedules were unchanged.
 - T+24h observation: fixed 24-hour Dashboard window, 15/37 metrics observed and 22 retained as PENDING because panels returned no data. Public preflight stayed `ok:true`; CPU 2%, RAM 62%, disk 17%, disk IO 1%, peak connections 20/60, Security errors 0. Read-only SQL found active 2, blocked/idle-in-transaction 0, Realtime slots 2/2 active, publication unchanged, max WAL lag 56 bytes, and 14 expired-room candidates with every other retention class at 0. Verdict is `WATCH_PARTIAL`, not HOLD; no cleanup, billing, compute, DB, Edge, Advisor reset, or migration change was made.
 - Legal-recolor LAB release: product `ad53bb4`, public gate HEAD `3fb3ef8`. Official non-browser runner 110 files with zero failures; local Edge/Chrome 60/60 each; responsive 4/4 each; lifecycle 76/76; final Windows gate `33984108011` passed Chrome `101354410490` and Edge `101354410705`; independent reviews reported no P0/P1.
@@ -66,9 +67,11 @@
 
 ## Next command priorities
 
-1. P1 Shift targeting: replace raw zero-based number inputs with one-based row/column selects and natural direction labels in Online and Local, preserve the existing zero-based payload, and explain split/same-color merge. This is the next implementation candidate.
-2. Acceptance/operations: complete the physical two-device match/reload/rematch loop. T+24h is recorded as `WATCH_PARTIAL`; the physical gate alone remains `PENDING` and is never inferred from automation.
-3. P1 pollution rule: do not ship a simple reject/refund. Any later no-op refund needs a private server ledger, in-match nondisclosure, exactly-once terminal refund, and expiry cleanup as one design.
-4. HOLD Google identity and future overlay rules: keep both out of the next release; Google remains read-only Phase 0 and overlay topology remains a separate design backlog.
+1. P0 no-auto-loss: retire alpha.2 `DECLARE_NO_COLOR`; human players review rescue options then explicitly surrender, while CPUs use an effective rescue or submit `SURRENDER`. Preserve alpha.1/history compatibility and exactly-once settlement.
+2. P1 Lv5 quiz difficulty: ship a materially harder server-authoritative catalog with independent contracts and canary in the same Edge candidate only if the P0 gate stays separable.
+3. Governance: finish the User Decision Ledger and reconciliation checker before the next release push. The select-based Shift commits `24caae8`/`d9b6fe9`/`1557ff1` were never promoted and are reverted on the command branch.
+4. P1 Shift targeting: redesign row/column/central-band selection on the board itself; retain natural directions and the corrected Half/Triple explanation, but do not restore the select UI as the final experience.
+5. P1 pollution rule: implement server-authoritative no-op non-consumption with one activation ending immediately, no alternate-color probing, exact retry identity, and no direct palette disclosure.
+6. Acceptance/operations: physical two-device match/reload/rematch remains `PENDING`; T+24h stays `WATCH_PARTIAL`.
 
 Release `a4b9917` keeps the isolated legal-recolor LAB and board-selection boundaries, clarifies quadratic intent and server-confirmed quiz progress, and preserves server-authoritative completion and reward settlement. Deployment 20 changes Edge source only; DB, rules, reward tiers, inventory, secrets, billing, deletion, and cleanup schedules are unchanged.

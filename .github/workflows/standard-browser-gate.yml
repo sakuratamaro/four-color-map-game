@@ -8,11 +8,13 @@ on:
       - online/supabase-config.js
       - online-v5/style.css
       - docs/STANDARD_PUBLIC_RELEASE_RUNBOOK.md
+      - docs/PROJECT_COMMAND_CENTER.md
       - standard-online-v5/**
       - standard-v5/**
       - standard/**
       - scripts/build-standard-online-engine.mjs
       - scripts/build-standard-v5-bundle.mjs
+      - scripts/check-standard-decision-reconciliation.mjs
       - scripts/standard-cpu-selfplay.cjs
       - scripts/live-standard-*.mjs
       - supabase/functions/standard-game-action/**
@@ -32,11 +34,13 @@ on:
       - online/supabase-config.js
       - online-v5/style.css
       - docs/STANDARD_PUBLIC_RELEASE_RUNBOOK.md
+      - docs/PROJECT_COMMAND_CENTER.md
       - standard-online-v5/**
       - standard-v5/**
       - standard/**
       - scripts/build-standard-online-engine.mjs
       - scripts/build-standard-v5-bundle.mjs
+      - scripts/check-standard-decision-reconciliation.mjs
       - scripts/standard-cpu-selfplay.cjs
       - scripts/live-standard-*.mjs
       - supabase/functions/standard-game-action/**
@@ -94,6 +98,7 @@ jobs:
           tests/standard-online-engine-bundle.test.cjs
           tests/standard-debug-unlimited.test.cjs
           tests/standard-debug-room-access.test.cjs
+          tests/standard-decision-reconciliation.test.cjs
           tests/standard-browser-gate-workflow.test.cjs
           tests/standard-online-browser-harness-static.test.cjs
           tests/standard-legal-recolor-lab.test.cjs

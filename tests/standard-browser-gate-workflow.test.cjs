@@ -22,6 +22,8 @@ test("Standard browser gate is candidate-push, manual, or pull-request only and 
   assert.equal((workflow.match(/      - standard-online-v5\/\*\*/g) || []).length, 2);
   assert.equal((workflow.match(/      - standard-v5\/\*\*/g) || []).length, 2);
   assert.equal((workflow.match(/      - scripts\/build-standard-v5-bundle\.mjs/g) || []).length, 2);
+  assert.equal((workflow.match(/      - scripts\/check-standard-decision-reconciliation\.mjs/g) || []).length, 2);
+  assert.equal((workflow.match(/      - docs\/PROJECT_COMMAND_CENTER\.md/g) || []).length, 2);
   assert.equal((workflow.match(/      - docs\/STANDARD_PUBLIC_RELEASE_RUNBOOK\.md/g) || []).length, 2);
   assert.equal((workflow.match(/      - tests\/standard-online-browser\.test\.cjs/g) || []).length, 2);
   assert.equal((workflow.match(/      - tests\/standard-browser-gate-workflow\.test\.cjs/g) || []).length, 2);
@@ -54,7 +56,7 @@ test("Standard browser gate runs CPU contracts and the scoped browser file seria
   assert.match(workflow, /tests\/standard-online-quiz-generator-runtime\.test\.cjs/);
   assert.match(workflow, /tests\/standard-matchmaking-availability-migration\.test\.cjs/);
   assert.match(workflow, /tests\/standard-cpu-commentary\.test\.cjs/);
-  for (const file of ["standard-cpu.test.cjs", "standard-cpu-roster.test.cjs", "standard-no-color-rescue.test.cjs", "standard-color-region-split.test.cjs", "standard-local-ui-static.test.cjs", "standard-live-color-response-canary-static.test.cjs"]) {
+  for (const file of ["standard-cpu.test.cjs", "standard-cpu-roster.test.cjs", "standard-no-color-rescue.test.cjs", "standard-color-region-split.test.cjs", "standard-local-ui-static.test.cjs", "standard-live-color-response-canary-static.test.cjs", "standard-decision-reconciliation.test.cjs"]) {
     assert.match(workflow, new RegExp(`tests/${file.replaceAll(".", "\\.")}`));
   }
   assert.match(workflow, /if: matrix\.STANDARD_BROWSER == 'edge'[\s\S]+?tests\/standard-color-seal-browser-lifecycle\.test\.cjs[\s\S]+?tests\/standard-no-color-browser-terminal\.test\.cjs/);

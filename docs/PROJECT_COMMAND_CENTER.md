@@ -62,18 +62,66 @@
 | P1 | CPU実況とクイズ固定hitbox | ゲーム体験＋UX＋ルール | PUBLIC_VERIFIED | 10人のCPUへ公開eventだけの個性文を付け、対戦タブ外・reload・background再演とprivate情報参照を禁止。クイズはボタン矩形を固定し内側labelだけを漂わせる。Chrome/Edge各71件、390pxで固定通知・盤面・下部nav非交差、公開console 0を確認 |
 | P1 | 角膨張の盤面主導・keyboard完走・エラー可視化 | UX＋ルール＋技術品質＋司令塔 | PUBLIC_VERIFIED | `75791fb`。数値入力を廃止し、渡すエリア→基準マスの2段階を盤面で選ぶ。44px盤面focus導線、pointer、Tab/Enter/Space、2マス接続候補、白/紫の現在状態を固定。長文toastは上部通知の下へ退避し、setup/成立済みconnection/navと遷移中も非交差。Windows `34017288334`のChrome/Edge各73件、Pages `34017695831`、公開app/style v34、candidate preflight、console 0を確認。DB/Edge変更なし |
 | P1 | 救済スキルを塞がない共通COLOR応答窓 | ルール＋CPU＋UX＋Edge＋司令塔 | PUBLIC_VERIFIED | `9b7d8f4`。新規engine `5.0.0-alpha.2`は通常彩色／COLOR救済スキル／`DECLARE_NO_COLOR`／投了を同じ応答窓へ集約し、旧alpha.1 roomは従来挙動を維持。宣言はserver authorityで合法色0を検証し、救済カード有無を公開stateへ漏らさない。ローカル962/962、Windows `34022065339`、Pages `34022540907`、Edge deployment 21の基本7/7＋専用164/164、公開390px・console 0を確認。SQL/RPC変更なし |
-| P1 | Shift対象指定と説明の摩擦解消 | UX＋ルール＋司令塔 | SPEC_READY_NEXT | Onlineの0始まり自由数値と「負/正方向」、Localの0–47入力を廃止し、1始まりの「上からN行／左からN列」selectと「左/右・上/下」へ置換する。内部payloadは0始まりの既存形を維持し、Half/Tripleへ「形がちぎれ、同色が接するとくっつく」を追記。DB/Edge/engineは変更しない |
-| P1 | 持ち色汚染no-opの消費仕様 | ルール＋Edge＋UX | DESIGN_DEFERRED | 単純reject・即返却・成否表示は相手の非公開paletteを色ごとに探れるためNO-GO。将来扱うなら対戦内機会は消費、成否は対戦中非公開、終局時だけ永続inventoryをexactly-once返却するserver-only ledgerと期限切れcleanupを一体設計する |
-| P2 | 将来overlay skillの位相 | ルール＋UX | DESIGN_BACKLOG | merge後はcanonical numeric-min ID/controller unionを維持し、将来の差し色追加も現在の可視region/canonical ID＋盤面属性だけをrules入力にする。現行プレイヤー価値がないためShift既存UIの後へ分離 |
+| P0 | 合法色0による自動敗北の完全廃止 | ルール＋CPU＋UX＋Edge＋司令塔 | IMPLEMENTING | alpha.2の人間は救済確認後に既存投了だけを選び、CPUは有効な救済を検討後、打開不能なら`SURRENDER`する。`DECLARE_NO_COLOR`はalpha.2で退役し、alpha.1と旧terminal表示は互換維持。private情報、戦績、報酬、再送はserver-authoritativeかつexactly-once |
+| P1 | Shift対象指定と説明の摩擦解消 | UX＋ルール＋司令塔 | DECIDED_REDESIGN | 行・列・中央帯は角膨張と同じく盤面tap/keyboardで選び、方向だけ自然な盤面対応操作にする。select候補`24caae8`は要望不一致のため`8944572`でrevertし、main/Pagesへ昇格しない。Half分割、Triple切断reject、同色融合の正確な説明は次実装へ継承 |
+| P1 | 持ち色汚染no-opの消費仕様 | ルール＋Edge＋UX | SPEC_READY | 指定色以外の上書き可能枠がなければ変化なし・カード非消費とし、その旨だけ表示する。相手palette自体は表示せず、同一発動で別色へ選び直す連続探索は禁止。server判定、再送、inventory exactly-onceを受入条件とする |
+| P1 | Lv5クイズ実質難化 | クイズ＋Edge＋司令塔 | IMPLEMENTING | Lv4との差が明確な多段推論へ更新し、server-authoritative prompt、採点、再送、既存報酬を維持する。P0勝敗便と同じEdge候補内で独立契約・canaryを通す |
+| P1 | CPU敗北表情・理由別台詞 | 演出＋UX＋素材 | DECIDED | 接色塗敗北、救済不能後の投了、通常ミスなど公開理由だけで台詞を分ける。既存CPU固有台詞を再利用し、画像は第三者素材台帳・credit・fallback完備後に追加する |
+| P1 | 基本効果音・スマホ振動 | 演出＋アクセシビリティ | DECIDED | 初回gesture後だけ音を有効化し、振動は対応端末のみ、可視中・event ID重複排除・ON/OFF保存・reduced-motionとは独立した設定を持つ |
+| P2 | 既塗エリアへの差し色追加／重ね塗り | ルール＋UX | DECIDED | ★5候補。現在盤面の一続きの既塗エリアを盤面選択し、所有者でなく現在形状を判定対象とする。Shift分断・同色合流後の再構成結果へ作用する |
+| P2 | 既塗エリアの角膨張 | ルール＋UX | DECIDED | 公開済みの未彩色preparedOutgoing用途とは別に、既塗エリアへ作用する同一カード案を独立設計・検証する |
+| P1 | 同一ターン同一カテゴリ1枚制約 | ルール＋CPU＋UX＋Edge | DECIDED | 同一ターンのcolor/area/disruptは各1枚まで。通常対戦、CPU、debug/LAB、再送へ同じserver-authoritative制約を適用し、先に全19枚のカテゴリ再監査を完了する |
+| P2 | スキル種類拡張 | ゲームデザイン＋ルール | DECIDED | 新スキル候補を独立backlogで管理し、カテゴリ再監査・1枚制約・盤面操作UX原則を通過したものだけ実装候補へ昇格する |
 | HOLD | 匿名＋任意Google identity link | 認証＋DB＋司令塔 | PHASE0_ONLY | 現在はSDK/RLS/Realtime/redirect/CSP/idempotency/token/log/admin境界のread-only監査だけ。provider有効化、callback、SDK、DB変更は別の公開便に分離する |
 | P1 | 未コミット／孤立作業の回収 | 構成管理 | COMPLETED | 29床を3床へ集約。丸ごと統合候補は0。Quick回帰試験だけを回収し、残るroot dirtyは救出済み・凍結管理 |
 | P2 | GitHub Pages actionのNode.js警告解消 | 技術品質 | BACKLOG | 公開結果を変えず、Node.js 20廃止予定warningを消す |
+
+## User Decision Ledger
+
+状態は `INBOX → DECIDED → SPEC_READY → IMPLEMENTING → LOCAL_VERIFIED → MERGED → PUBLIC_VERIFIED → PHYSICAL_ACCEPTED` の順で昇格する。`DEFERRED` / `SUPERSEDED` へ移す場合は、理由とユーザー承認を必須にする。レビューはriskを追記できるが、ユーザー決定を無断で逆転させない。
+
+| ID | 原文要旨 | 決定 | 受入条件 | 依存関係 | 担当 | 対象release | 状態 | 実装commit | main統合 | Pages | live実機 | 決定元タスク | DEFERRED-SUPERSEDED理由 | ユーザー承認 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| UDL-20260906-001 | Shiftを角膨張と同じ盤面操作へ | 行・列・中央帯を盤面tap/keyboard、方向だけ自然操作 | 390px/PC、focus、取消、再送、no-oracle、zero-based payload維持 | UDL-014、Half/Triple現行rules | UX＋ルール＋司令塔 | Shift board UX | DECIDED | `24caae8`は不採用、`8944572`でrevert | NO | NO | NOT_RUN | `01a0762c` | select方式をSUPERSEDED、ユーザー要望不一致 | YES |
+| UDL-20260906-002 | 角膨張を未彩色と既塗の2用途へ | 公開済み未彩色用途とは別に既塗用途を復元 | 現在盤面の既塗領域選択、既存用途非回帰、server判定 | UDL-014、UDL-015 | ルール＋UX | Post-Shift rules | DECIDED | — | NO | NO | NOT_RUN | `01a0762c` | — | YES |
+| UDL-20260906-003 | 持ち色汚染の空振りは非消費 | 変化なし・カード非消費、1発動終了、別色再選択不可 | 相手palette非表示、server判定、同一ID再送、inventory exactly-once | 現行disrupt handler、Edge canary | ルール＋Edge＋UX | Pollution no-op P1 | SPEC_READY | — | NO | NO | NOT_RUN | `01a0762c` | 旧DESIGN_DEFERREDをSUPERSEDED、漏えい許容度のユーザー決定 | YES |
+| UDL-20260906-004 | CPUイラスト素材を採用 | 実使用分だけcrop/WebP、原本/未使用素材はrepo外 | NOTICE、README除外、素材台帳、credit、fallback、10人存在検査 | 素材実体、公式規約URL | 素材＋UX＋司令塔 | CPU art P1 | SPEC_READY | — | NO | NO | NOT_RUN | `01a07462`,`01a0762c` | — | YES |
+| UDL-20260906-005 | 作者へお礼連絡 | 公開後TODO、礼儀上の任意連絡 | ユーザー確認なしに送信しない。広告/有料化時は確認優先度を上げる | UDL-004公開後 | 司令塔＋チャッピー先生 | Post-public | DECIDED | — | NO | NO | NOT_RUN | `01a0762c` | — | YES |
+| UDL-20260906-006 | 合法色0だけで自動敗北させない | 人間は救済後に投了、CPUは救済検討後にSURRENDER | alpha.2 DECLARE退役、alpha.1互換、privacy、戦績/報酬/再送exactly-once | engine/client/Edge bundle | ルール＋CPU＋UX＋Edge | No-auto-loss P0 | IMPLEMENTING | — | NO | NO | NOT_RUN | `01a07628`,`01a0762c` | — | YES |
+| UDL-20260906-007 | CPU敗北理由別の表情と台詞 | 公開理由別台詞、敗北表情、既存固有台詞を重複させない | reload再演なし、private情報なし、画像fallback | UDL-004、UDL-006、既存`a5f84e8/8124d05` | 演出＋UX | Text with P0, art P1 | DECIDED | — | NO | NO | NOT_RUN | `01a07628` | — | YES |
+| UDL-20260906-008 | 基本エフェクトへ効果音・振動 | opt-in可能な音、対応端末だけ振動 | gesture unlock、event ID dedupe、hidden抑止、設定保存 | 公開event model | 演出＋a11y | Feedback effects P1 | DECIDED | — | NO | NO | NOT_RUN | `01a07628` | — | YES |
+| UDL-20260906-009 | Lv5クイズを早急に難化 | Lv4との差が明確な多段推論へ | server-authoritative、採点/再送/報酬非回帰、canary | Edge quiz runtime | クイズ＋Edge | No-auto-loss plus quiz | IMPLEMENTING | — | NO | NO | NOT_RUN | `01a07628` | — | YES |
+| UDL-20260906-010 | 既塗エリアへ差し色/重ね塗り | ★5候補、現在の一続き領域を盤面選択 | 分断/合流後の現在形状、所有者非判定、履歴のみ行為者 | UDL-013〜015 | ゲームデザイン＋ルール＋UX | Overlay rules | DECIDED | — | NO | NO | NOT_RUN | `01a0762c` | — | YES |
+| UDL-20260906-011 | スキル種類を増やす | 独立backlogで継続企画 | 各候補がrules/privacy/UX/category gateを通過 | UDL-012〜014 | ゲームデザイン | Skills backlog | DECIDED | — | NO | NO | NOT_RUN | `01a0762c` | — | YES |
+| UDL-20260906-012 | 同カテゴリ連打を防ぐ | 同一ターン内は同一カテゴリ1枚まで | 通常/CPU/debug/LAB/retry共通のserver-authoritative制約 | UDL-013完了後 | ルール＋CPU＋Edge | Category limit | DECIDED | — | NO | NO | NOT_RUN | `01a0762c` | — | YES |
+| UDL-20260906-013 | 全19枚のカテゴリを再監査 | 効果、phase、combo基準でcolor/area/disrupt/experimentalを再評価 | UI、CPU、6枚構成、ガチャ確率への影響を明記 | 現行registry/handlers | ルール担当 | Before category limit | IMPLEMENTING | — | NO | NO | NOT_RUN | `01a0762c` | — | YES |
+| UDL-20260906-014 | 盤面操作スキルは盤面で選ぶ | セル/領域/帯/辺は盤面選択、formは補助/debugのみ | pointer/keyboard/mobile/focus/no-oracle共通基準 | board assist | UX＋a11y | All board skills | DECIDED | — | NO | NO | NOT_RUN | `01a0762c` | — | YES |
+| UDL-20260906-015 | 所有者をrules判定に使わない | 行為者は履歴のみ、現在形状で再構成、同色は操作者非依存で合流 | engine/spec/testで不変条件を固定 | region canonicalization | ルール担当 | All rules | DECIDED | — | NO | NO | NOT_RUN | `01a0762c` | — | YES |
+| UDL-20260906-016 | 五月雨式依頼を一元管理 | 安定IDと公開段階を1行で追跡 | 指定15列、状態遷移、決定元、公開証拠を保持 | PROJECT_COMMAND_CENTER | 司令塔 | Governance now | IMPLEMENTING | — | NO | NO | NOT_RUN | `01a0762c` | — | YES |
+| UDL-20260906-017 | 各release前に決定照合 | INBOX、台帳漏れ、未merge、未Pages、古いfinal、矛盾を検査 | 自動schema検査＋手動照合欄、CI契約 | UDL-016 | 構成管理＋司令塔 | Governance now | IMPLEMENTING | — | NO | NO | NOT_RUN | `01a0762c` | — | YES |
+
+### Decision reconciliation gate
+
+各release候補をpushする前に、次を照合する。
+
+1. 全`INBOX`を分類し、未処理なら公開を止める。
+2. `DECIDED`以上のユーザー決定が台帳にない状態を許さない。
+3. `LOCAL_VERIFIED`なのにmain未統合、`MERGED`なのにPages未公開の行を列挙する。
+4. 個別タスクの古いfinalと決定元タスクを突合する。
+5. 同一対象の相反決定は、後発の明示的ユーザー決定を記録して解消する。
+6. `DEFERRED` / `SUPERSEDED`は理由とユーザー承認がなければ無効とする。
+
+### 決定を変えないrisk追記
+
+- `UDL-20260906-003`: no-op通知から指定色が相手の3枠を占める可能性を推測でき、カードが残るため次ターン以降に再試行できる。これはユーザーがゲーム体験上許容したriskとして保持する。no-opも発動済みactionとしてversionと将来のdisruptカテゴリ機会を1回進め、カード・inventory・相手paletteは変えず、同一action replayは再適用しない。
+- `UDL-20260906-012`: 現行は同カテゴリ連続使用と`ひとふくらみ + 角膨張`のstackを許している。新制約はそのcombo価値を変えるため、新engine versionだけで有効化し、reject/cancel/persistence failureは枠を使わず、accepted miss/no-opは枠を使う。LAB experimentalのquota categoryは`UDL-20260906-013`で決める。
+- `UDL-20260906-015`: 現行`エリア二分`にはcontroller由来の対象制約がある。所有者非判定を全カードへ適用するユーザー決定との衝突は隠さず、既存互換と新engine境界を仕様化してから実装する。
 
 2026-09-06のactive-room復帰公開判断では、3担当をDB/Edge契約、UX/browser、worktree/旧タスク監査に分け、全員P0/P1なしを確認した。ローカルEdge browser 56/56、Windows Chrome/Edge、DB 68/68、Edge本番7/7＋復帰10/10、Pages、公開HTTP/ブラウザの順で昇格した。additive SQLだけを追加し、secret/billing/deletion/cleanupは変更していない。
 
 同日の「塗り直し・乱」LABでも、ルール/DB、UX/accessibility、repository/CIの3担当へ分担した。公開ゲートの弱いDB probe、UI marker、CI pathsを独立担当が公開前に発見し、実asset正方向テストまで補強した。最終P0/P1なし、`202609060002`→Edge deployment 17→live canary→Pagesの順で公開確認した。
 
-T+24h観測後の次便は、UX担当が発見した公開中Shift対象指定の技術語摩擦を最優先とする。ルール担当は持ち色汚染の単純返却がprivate情報オラクルになることを確認したため別設計へ退避し、repository担当は固定37 metric、公開識別子、HOLD/WATCH境界を観測ファイルへ固定した。
+T+24h観測後は一度select式Shift候補を作ったが、ユーザーの盤面tap決定と不一致だったためmainへ上げずrevertした。持ち色汚染は、限定的推測を許容してno-op時に非消費・再選択不可とするユーザー決定へ訂正した。repository担当が固定37 metric、公開識別子、HOLD/WATCH境界を観測ファイルへ固定した事実は維持する。
 
 同日の390px盤面導線は、UX実測、ルール/公平性、repository/release gateへ分担した。開始時の盤面外れを直す過程で、色操作feedbackを再び画面外へ押し出す配置とwheel操作後の強制scrollを独立監査が公開前に発見し修正した。さらに正式browser harnessの古い件数固定を意味検証へ置換してCI unit列へ追加した。最終P0/P1なし、Windows Chrome/EdgeとPages、公開asset/candidate preflightの順で昇格した。
 

@@ -13,6 +13,7 @@
 | 採否棚卸し | VERIFIED | `ONLINE_COMPLETION_INVENTORY.md`。旧Expo試作と現行Web Standardを分離済み | 公開後に状態列だけ更新 |
 | 製品コード・生成元 | PUBLIC_VERIFIED | 公開製品commit `9b7d8f4`。engine `5.0.0-alpha.2`、旧alpha.1互換、CPU policy、online/local UI、生成済みlocal/Edge bundle、Windows workflow、専用live canaryを同一候補で公開。再ビルド後のSHAは不変 | 次回engine変更時に再生成一致を確認 |
 | ローカル製品試験 | VERIFIED | `9b7d8f4`。全131 test file、962/962合格、fail/cancel/skip 0、`git diff --check`成功。UX、rules/privacy、repository/releaseの独立レビューは全てGO、P0/P1なし | 物理端末で応答窓と救済判断の体感確認 |
+| Shift select候補 | SUPERSEDED | `24caae8`→`d9b6fe9`→`1557ff1`。失敗run `34026276754` / `34027199050`で旧fixtureとretry payloadを修正し、run `34027488186`はChrome/Edge成功。ただしユーザー決定は盤面tap指定のためmain/Pagesへ昇格せず、`8944572`で製品差分をrevert | UDL-20260906-001として盤面操作UXを再設計 |
 | 次期UX候補のローカル検査 | VERIFIED | `codex/standard-release-command@1673ff8`。profile安定化、初回対戦導線、Quick Half Shift、status正規化、Realtime/poll復旧を含む非browser製品試験91ファイル522/522。browser workflow/harness静的11/11合格 | Pages反映後のpreflightと二端末受入 |
 | 初回導線・接続表示の次期候補 | VERIFIED | `9d42784`。初回starter作成＋profile同期を一操作化し、全5タブで単一接続statusを常時表示。空名write 0、room外offline復帰、390px下部nav非干渉を契約化。静的39/39、非browser 89ファイル513/513、Windows Chrome/Edge各18/18合格 | 物理二端末受入 |
 | Windows実browser CI | VERIFIED | GitHub Actions run `34022065339`。`9b7d8f4`のChrome job `101456337426`とEdge job `101456337486`が成功。生成bundle、CPU契約、online browser、Edgeの追加lifecycleが成功 | 公開URLで同じ主要導線を二端末受入 |
