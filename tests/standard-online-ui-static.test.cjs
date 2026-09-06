@@ -66,9 +66,10 @@ test("CPU commentary is public-event-only, bounded, non-blocking, and terminal-p
   assert.doesNotMatch(app.slice(app.indexOf("function chooseCpuCommentary"), app.indexOf("function clearCpuCommentaryBubble")), /private_state|privateState/);
   assert.match(app, /document\.visibilityState !== "visible"/);
   assert.match(app, /clearContactReveal\(\);[\s\S]+show\("randomReveal", false\)/);
-  assert.match(css, /\.cpu-commentary-stage\{[^}]*min-height:76px/);
+  assert.match(css, /\.cpu-commentary-stage\{[^}]*position:fixed[^}]*pointer-events:none/);
+  assert.match(css, /body:has\(#cpuCommentaryBubble:not\(\.is-silent\)\) #waitingOpponentNotice\{visibility:hidden\}/);
   assert.match(css, /\.cpu-commentary-bubble\{[^}]*pointer-events:none/);
-  assert.match(css, /@media\(max-width:390px\)\{\.cpu-commentary-stage/);
+  assert.match(css, /@media\(max-width:390px\)\{\.cpu-commentary-stage\{[^}]*height:48px\}\.cpu-commentary-bubble/);
   assert.match(css, /@media\(prefers-reduced-motion:reduce\)\{\.cpu-commentary-bubble\{[^}]*transition:none!important[^}]*transform:none!important/);
 });
 
@@ -97,7 +98,8 @@ test("waiting-opponent notice is global, privacy-finite, and non-interrupting", 
   assert.match(css, /pointer-events:none/);
   assert.match(css, /\.waiting-opponent-notice button\{[^}]*min-height:44px[^}]*pointer-events:auto/);
   assert.match(css, /white-space:nowrap/);
-  assert.match(css, /@media\(max-width:700px\)\{\.waiting-opponent-notice\{top:8px;right:8px;bottom:auto;left:auto;width:calc\(100% - 16px\)\}\.waiting-opponent-notice button\{display:none\}\}/);
+  assert.match(css, /@media\(max-width:700px\)\{\.waiting-opponent-notice\{top:calc\(4px \+ env\(safe-area-inset-top\)\);right:8px;bottom:auto;left:auto;width:calc\(100% - 16px\);height:44px;min-height:44px;box-sizing:border-box/);
+  assert.match(css, /@media\(max-width:700px\)\{#matchCard\{scroll-margin-block-start:80px\}\}/);
 });
 
 test("fresh players can finish profile setup inside the battle tab without automatic matchmaking", () => {

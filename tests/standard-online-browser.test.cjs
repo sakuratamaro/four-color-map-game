@@ -2402,6 +2402,7 @@ test("waiting-opponent notice stays informational during CPU play and clears 390
       const connection = document.querySelector("#connectionBadge").getBoundingClientRect();
       const hit = document.elementFromPoint(board.left + board.width / 2, board.top + board.height / 2);
       const intersects = (a, b) => !(a.right <= b.left || a.left >= b.right || a.bottom <= b.top || a.top >= b.bottom);
+      const titleOutline = { top: titleRect.top - 9, right: titleRect.right + 9, bottom: titleRect.bottom + 9, left: titleRect.left - 9 };
       return {
         title: { left: titleRect.left, top: titleRect.top, width: titleRect.width, height: titleRect.height },
         board: { left: board.left, top: board.top, width: board.width, height: board.height },
@@ -2412,7 +2413,11 @@ test("waiting-opponent notice stays informational during CPU play and clears 390
         noticeTabsIntersect: intersects(notice, tabs),
         noticeConnectionIntersect: intersects(notice, connection),
         noticeTitleIntersect: intersects(notice, titleRect),
+        noticeTitleOutlineIntersect: intersects(notice, titleOutline),
+        noticeRect: { top: notice.top, right: notice.right, bottom: notice.bottom, left: notice.left },
+        titleOutlineRect: titleOutline,
         noticeBoardIntersect: intersects(notice, board),
+        noticeHeight: notice.height,
         overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
         entryWrites: globalThis.__standardOnlineRuntime.calls.filter((entry) => ["fcg_standard_matchmaking_find", "fcg_standard_matchmaking_recruit"].includes(entry.name)).length,
       };
@@ -2430,7 +2435,9 @@ test("waiting-opponent notice stays informational during CPU play and clears 390
     assert.equal(evidence.noticeTabsIntersect, false);
     assert.equal(evidence.noticeConnectionIntersect, false);
     assert.equal(evidence.noticeTitleIntersect, false);
+    assert.equal(evidence.noticeTitleOutlineIntersect, false, JSON.stringify({ notice: evidence.noticeRect, titleOutline: evidence.titleOutlineRect }));
     assert.equal(evidence.noticeBoardIntersect, false);
+    assert.equal(evidence.noticeHeight, 44);
     assert.equal(evidence.overflow, false);
     assert.equal(evidence.entryWrites, 0);
   }, { viewport: { width: 390, height: 844 } });
@@ -3910,6 +3917,11 @@ test("actual browser presents CPU commentary once from public events and keeps t
     await page.locator("#matchCard:not(.hidden)").waitFor();
     assert.equal(await page.locator("#cpuCommentaryStage").isVisible(), true);
     assert.equal(await page.locator("#cpuCommentaryBubble").evaluate((node) => node.classList.contains("is-silent")), true);
+    await page.locator("#toggleBoardZoom").focus();
+    const baselineLayout = await page.evaluate(() => Object.fromEntries(["phaseText", "turnGuide", "toggleBoardZoom", "board", "regionControls"].map((id) => {
+      const rect = document.getElementById(id).getBoundingClientRect();
+      return [id, [rect.top, rect.right, rect.bottom, rect.left]];
+    })));
 
     await page.evaluate(() => {
       globalThis.__cpuCommentaryAnnouncements = [];
@@ -3931,17 +3943,29 @@ test("actual browser presents CPU commentary once from public events and keeps t
     await page.waitForFunction(() => globalThis.__cpuCommentaryAnnouncements.length === 1, null, { timeout: 5000 });
     const activeLayout = await page.evaluate(() => {
       const bubble = document.querySelector("#cpuCommentaryBubble").getBoundingClientRect();
+      const guide = document.querySelector("#turnGuide").getBoundingClientRect();
       const board = document.querySelector("#board").getBoundingClientRect();
+      const tabs = document.querySelector(".app-tabs").getBoundingClientRect();
+      const zoom = document.querySelector("#toggleBoardZoom").getBoundingClientRect();
+      const zoomHit = document.elementFromPoint(zoom.left + zoom.width / 2, zoom.top + zoom.height / 2);
       const motion = getComputedStyle(document.querySelector("#cpuCommentaryBubble"));
       return {
-        withinViewport: bubble.left >= 0 && bubble.right <= innerWidth,
-        beforeBoard: bubble.bottom <= board.top,
+        withinViewport: bubble.left >= 0 && bubble.right <= innerWidth && bubble.top >= 0 && bubble.bottom <= innerHeight,
+        leavesGuideAndZoomVisible: bubble.bottom <= guide.top && Boolean(zoomHit?.closest?.("#toggleBoardZoom")),
+        boardClearsNavigation: board.bottom <= tabs.top,
+        stableHitboxes: Object.fromEntries(["phaseText", "turnGuide", "toggleBoardZoom", "board", "regionControls"].map((id) => {
+          const rect = document.getElementById(id).getBoundingClientRect();
+          return [id, [rect.top, rect.right, rect.bottom, rect.left]];
+        })),
         overflow: document.documentElement.scrollWidth > innerWidth,
+        stagePosition: getComputedStyle(document.querySelector("#cpuCommentaryStage")).position,
+        stagePointerEvents: getComputedStyle(document.querySelector("#cpuCommentaryStage")).pointerEvents,
+        focusedControl: document.activeElement?.id,
         transitionDuration: motion.transitionDuration,
         transform: motion.transform,
       };
     });
-    assert.deepEqual(activeLayout, { withinViewport: true, beforeBoard: true, overflow: false, transitionDuration: "0s", transform: "none" });
+    assert.deepEqual(activeLayout, { withinViewport: true, leavesGuideAndZoomVisible: true, boardClearsNavigation: true, stableHitboxes: baselineLayout, overflow: false, stagePosition: "fixed", stagePointerEvents: "none", focusedControl: "toggleBoardZoom", transitionDuration: "0s", transform: "none" });
 
     await page.evaluate(() => globalThis.__standardOnlineRuntime.onInvalidate?.({}));
     await page.waitForTimeout(250);
@@ -3985,6 +4009,9 @@ test("actual browser presents CPU commentary once from public events and keeps t
     await page.waitForFunction(() => globalThis.__cpuCommentaryAnnouncements.length === 1, null, { timeout: 5000 });
 
     await page.evaluate(() => {
+      globalThis.__cpuTerminalCommentaryMutations = 0;
+      new MutationObserver(() => { globalThis.__cpuTerminalCommentaryMutations += 1; })
+        .observe(document.querySelector("#cpuTerminalCommentaryOverlay"), { childList: true, characterData: true, subtree: true });
       const runtime = globalThis.__standardOnlineRuntime;
       const state = runtime.room.public_state;
       const version = 15;
@@ -4017,6 +4044,13 @@ test("actual browser presents CPU commentary once from public events and keeps t
     assert.equal(await page.locator("#cpuCommentaryBubble").evaluate((node) => node.classList.contains("is-silent")), true);
     assert.equal(await page.locator("#contactReveal").isHidden(), true);
     assert.equal(await page.locator("#randomReveal").isHidden(), true);
+    const terminalMutationCount = await page.evaluate(() => globalThis.__cpuTerminalCommentaryMutations);
+    await page.evaluate(() => {
+      globalThis.__standardOnlineRuntime.onInvalidate?.({});
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+    await page.waitForTimeout(250);
+    assert.equal(await page.evaluate(() => globalThis.__cpuTerminalCommentaryMutations), terminalMutationCount);
     await page.locator("#terminalClose").click();
     assert.equal(await page.locator("#cpuTerminalCommentarySummary").isVisible(), true);
 
@@ -4034,7 +4068,8 @@ test("actual browser presents CPU commentary once from public events and keeps t
       runtime.members = runtime.members.map((member) => ({ ...member, is_cpu: false }));
       runtime.onInvalidate?.({});
     });
-    await page.waitForFunction(() => document.querySelector("#cpuCommentaryStage").classList.contains("hidden"));
+    await page.waitForFunction(() => document.querySelector("#cpuCommentaryStage").classList.contains("hidden")
+      && document.querySelector("#cpuTerminalCommentarySummary").classList.contains("hidden"));
     assert.equal(await page.locator("#cpuTerminalCommentarySummary").isHidden(), true);
   }, { viewport: { width: 390, height: 844 }, bodyTimeout: 50_000 });
 });

@@ -882,7 +882,7 @@ function clearCpuCommentaryBubble({ clearAnnouncement = true } = {}) {
 
 function clearCpuTerminalCommentary() {
   for (const id of ["cpuTerminalCommentarySummary", "cpuTerminalCommentaryOverlay"]) {
-    $(id).textContent = "";
+    if ($(id).textContent) $(id).textContent = "";
     show(id, false);
   }
 }
@@ -890,7 +890,7 @@ function clearCpuTerminalCommentary() {
 function renderCpuTerminalCommentary(item, context) {
   const text = item?.priority === "terminal" ? `${context.name}「${item.text}」` : "";
   for (const id of ["cpuTerminalCommentarySummary", "cpuTerminalCommentaryOverlay"]) {
-    $(id).textContent = text;
+    if ($(id).textContent !== text) $(id).textContent = text;
     show(id, Boolean(text));
   }
 }
@@ -940,7 +940,7 @@ function observeCpuCommentary(state) {
   }
   const scope = `${roomModel.room.id}:${state.matchId}`;
   const sourceEventId = cpuCommentarySourceEventId(state, context);
-  show("cpuCommentaryStage", true);
+  show("cpuCommentaryStage", state.status === "ACTIVE");
   $("cpuCommentaryName").textContent = context.name;
   if (state.status === "FINISHED") renderCpuTerminalCommentary(chooseCpuCommentary(context, { respectHistory: false }), context);
   else clearCpuTerminalCommentary();

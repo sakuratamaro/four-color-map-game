@@ -249,12 +249,6 @@
         <div><span id="roomIdentityLabel" class="muted">合言葉</span><strong id="shownCode" class="room-code">------</strong></div>
         <div><span id="seatBadge" class="badge"></span><span id="roomStatus" class="badge warn"></span></div>
       </div>
-      <div id="cpuCommentaryStage" class="cpu-commentary-stage hidden" aria-hidden="true">
-        <aside id="cpuCommentaryBubble" class="cpu-commentary-bubble is-silent">
-          <span class="cpu-commentary-mark" aria-hidden="true">CPU</span>
-          <div><strong id="cpuCommentaryName"></strong><p id="cpuCommentaryText"></p></div>
-        </aside>
-      </div>
       <div id="members" class="members"></div>
       <p id="waitingMessage" class="callout">相手と6枚セットを待っています。</p>
       <div class="room-lifecycle-actions">
@@ -293,6 +287,12 @@
       <h2 id="matchTitle" tabindex="-1">Standard対戦スタート</h2>
       <div class="row wrap"><span id="turnBadge" class="badge"></span><span>第 <b id="versionText">1</b> 手</span></div>
       <p id="phaseText" class="callout"></p>
+      <div id="cpuCommentaryStage" class="cpu-commentary-stage hidden" aria-hidden="true">
+        <aside id="cpuCommentaryBubble" class="cpu-commentary-bubble is-silent">
+          <span class="cpu-commentary-mark" aria-hidden="true">CPU</span>
+          <div><strong id="cpuCommentaryName"></strong><p id="cpuCommentaryText"></p></div>
+        </aside>
+      </div>
       <section id="terminalSummary" class="terminal-summary hidden" aria-labelledby="terminalOutcomeTitle">
         <strong id="terminalOutcomeTitle"></strong>
         <p id="terminalOutcomeReason"></p>

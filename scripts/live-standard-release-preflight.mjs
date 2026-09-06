@@ -37,12 +37,13 @@ async function probeProtectedRpc(name, body) {
   throw new Error(`UNEXPECTED_RPC_PROBE_${name}_${response.status}_${String(data?.code || "UNKNOWN")}`);
 }
 
-const [page, app, snapshotV1, snapshotV2, matchmaking, pregameAbandon, activeRoom, setupLoadV3, initializeRoomV3] = await Promise.all([
+const [page, app, snapshotV1, snapshotV2, matchmaking, matchmakingAvailability, pregameAbandon, activeRoom, setupLoadV3, initializeRoomV3] = await Promise.all([
   getText(publicUrl),
   getText(`${publicUrl}app.js`),
   probeProtectedRpc("fcg_standard_room_snapshot", { p_room_id: zeroUuid }),
   probeProtectedRpc("fcg_standard_room_snapshot_v2", { p_room_id: zeroUuid, p_known_profile_revision: null }),
   probeProtectedRpc("fcg_standard_matchmaking_recruit", { p_display_name: "preflight", p_ticket_id: zeroUuid }),
+  probeProtectedRpc("fcg_standard_matchmaking_availability", {}),
   probeProtectedRpc("fcg_standard_abandon_room", { p_room_id: zeroUuid, p_expected_version: 0, p_action_id: zeroUuid }),
   probeProtectedRpc("fcg_standard_active_room", {}),
   probeProtectedRpc("fcg_standard_server_load_room_v3", {
@@ -75,14 +76,17 @@ const result = {
     hasLegalRecolorLab: app.text.includes('$("legalRecolorLabMode")')
       && app.text.includes('const LEGAL_RECOLOR_LAB_RULE_SET_ID = "STANDARD_V5_LEGAL_RECOLOR_LAB_V1"')
       && /client\.submitSetup\([\s\S]{0,500}labMode/.test(app.text),
+    hasWaitingOpponentNotice: page.text.includes('id="waitingOpponentNotice"')
+      && app.text.includes("scheduleMatchmakingAvailability")
+      && app.text.includes('activateAppTab("battle")'),
   },
-  database: { snapshotV1, snapshotV2, matchmaking, pregameAbandon, activeRoom, setupLoadV3, initializeRoomV3 },
+  database: { snapshotV1, snapshotV2, matchmaking, matchmakingAvailability, pregameAbandon, activeRoom, setupLoadV3, initializeRoomV3 },
 };
 
 const phaseExpectations = {
-  baseline: { pregameAbandonUi: true, pregameAbandonDb: true, activeRoomUi: true, activeRoomDb: true, setupRevisionGuardDb: false, legalRecolorLabUi: false },
-  "db-ready": { pregameAbandonUi: true, pregameAbandonDb: true, activeRoomUi: true, activeRoomDb: true, setupRevisionGuardDb: true, legalRecolorLabUi: false },
-  candidate: { pregameAbandonUi: true, pregameAbandonDb: true, activeRoomUi: true, activeRoomDb: true, setupRevisionGuardDb: true, legalRecolorLabUi: true },
+  baseline: { pregameAbandonUi: true, pregameAbandonDb: true, activeRoomUi: true, activeRoomDb: true, setupRevisionGuardDb: true, legalRecolorLabUi: true, matchmakingAvailabilityDb: false, waitingOpponentUi: false },
+  "db-ready": { pregameAbandonUi: true, pregameAbandonDb: true, activeRoomUi: true, activeRoomDb: true, setupRevisionGuardDb: true, legalRecolorLabUi: true, matchmakingAvailabilityDb: true, waitingOpponentUi: false },
+  candidate: { pregameAbandonUi: true, pregameAbandonDb: true, activeRoomUi: true, activeRoomDb: true, setupRevisionGuardDb: true, legalRecolorLabUi: true, matchmakingAvailabilityDb: true, waitingOpponentUi: true },
 };
 
 if (expectedPhase) {
@@ -90,6 +94,7 @@ if (expectedPhase) {
   assert.equal(result.database.snapshotV1, "protected", "SNAPSHOT_V1_BASELINE_MISSING");
   assert.equal(result.database.snapshotV2, "protected", "SNAPSHOT_V2_BASELINE_MISSING");
   assert.equal(result.database.matchmaking, "protected", "MATCHMAKING_BASELINE_MISSING");
+  assert.equal(result.database.matchmakingAvailability, expected.matchmakingAvailabilityDb ? "protected" : "absent", "MATCHMAKING_AVAILABILITY_PHASE_MISMATCH");
   assert.equal(result.database.pregameAbandon, expected.pregameAbandonDb ? "protected" : "absent", "PREGAME_ABANDON_PHASE_MISMATCH");
   assert.equal(result.database.activeRoom, expected.activeRoomDb ? "protected" : "absent", "ACTIVE_ROOM_RECOVERY_PHASE_MISMATCH");
   assert.equal(result.database.setupLoadV3, expected.setupRevisionGuardDb ? "protected" : "absent", "SETUP_LOAD_V3_PHASE_MISMATCH");
@@ -100,6 +105,7 @@ if (expectedPhase) {
   assert.equal(result.publicPage.hasPregameAbandon, expected.pregameAbandonUi, "PREGAME_ABANDON_UI_PHASE_MISMATCH");
   assert.equal(result.publicPage.hasActiveRoomRecovery, expected.activeRoomUi, "ACTIVE_ROOM_RECOVERY_UI_PHASE_MISMATCH");
   assert.equal(result.publicPage.hasLegalRecolorLab, expected.legalRecolorLabUi, "LEGAL_RECOLOR_LAB_UI_PHASE_MISMATCH");
+  assert.equal(result.publicPage.hasWaitingOpponentNotice, expected.waitingOpponentUi, "WAITING_OPPONENT_UI_PHASE_MISMATCH");
 }
 
 console.log(JSON.stringify(result));
