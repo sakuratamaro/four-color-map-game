@@ -26,7 +26,7 @@ test("only the generated authoritative bundle creates and applies state", () => 
 });
 
 test("new online matches use an internal compatibility-switchable engine version", () => {
-  assert.match(source, /const NEW_STANDARD_MATCH_ENGINE_VERSION = "5\.0\.0-alpha\.3"/);
+  assert.match(source, /const NEW_STANDARD_MATCH_ENGINE_VERSION = "5\.0\.0-alpha\.2"/);
   assert.match(source, /FourColorStandardServerEngine\.create\(\{[\s\S]*engineVersion: NEW_STANDARD_MATCH_ENGINE_VERSION/);
   assert.doesNotMatch(source, /engineVersion:\s*body\./);
 });
