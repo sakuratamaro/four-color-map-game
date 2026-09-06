@@ -26,6 +26,10 @@ test("matchmaking availability exposes one privacy-preserving boolean snapshot",
   assert.doesNotMatch(sql, /returns table \([^)]*(?:ticket_id|room_id|display_name|user_id|wait_started_at|waiting_count)/i);
 });
 
+test("matchmaking availability has a bounded live-search index", () => {
+  assert.match(sql, /create index if not exists fcg_standard_matchmaking_expiry_cleanup_idx\s+on fcg_private\.standard_matchmaking_tickets \(expires_at, ticket_id\)\s+where state = 'searching'/i);
+});
+
 test("matchmaking availability is authenticated-only with a pinned definer boundary", () => {
   assert.match(sql, /create or replace function public\.fcg_standard_matchmaking_availability\(\)/i);
   assert.match(sql, /language plpgsql\s+stable\s+security definer\s+set search_path = ''/i);

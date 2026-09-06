@@ -89,6 +89,7 @@ jobs:
           tests/standard-live-legal-recolor-lab-canary-static.test.cjs
           tests/standard-live-release-preflight-static.test.cjs
           tests/standard-candidate-verification-sql.test.cjs
+          tests/standard-matchmaking-availability-migration.test.cjs
           tests/standard-setup-revision-guard.test.cjs
           tests/standard-match.test.cjs
           tests/standard-online-client.test.cjs

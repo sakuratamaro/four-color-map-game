@@ -1,6 +1,12 @@
 -- Privacy-preserving availability signal for the global matchmaking notice.
 -- The caller learns only whether at least one joinable foreign ticket exists.
 
+-- Reassert the existing cleanup index because it also bounds this RPC's hot path.
+-- Reusing the same name and shape avoids a redundant second searching-ticket index.
+create index if not exists fcg_standard_matchmaking_expiry_cleanup_idx
+  on fcg_private.standard_matchmaking_tickets (expires_at, ticket_id)
+  where state = 'searching';
+
 create or replace function public.fcg_standard_matchmaking_availability()
 returns table (
   has_waiting_opponent boolean,
