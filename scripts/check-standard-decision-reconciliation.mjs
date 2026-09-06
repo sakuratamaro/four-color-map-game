@@ -12,7 +12,7 @@ export const LEDGER_STATES = Object.freeze([
 
 const ACTIVE_STATES = LEDGER_STATES.slice(0, 8);
 const REQUIRED_FROM_DECIDED = Object.freeze(["受入条件", "担当", "対象release", "決定元タスク"]);
-const EMPTY_MARKERS = new Set(["", "-", "—", "n/a", "na", "none", "null", "pending", "tbd", "未定", "未入力", "なし", "not_run"]);
+const EMPTY_MARKERS = new Set(["", "-", "—", "n/a", "na", "no", "none", "null", "pending", "tbd", "未定", "未入力", "なし", "not_run"]);
 
 function normalizeCell(value) {
   return String(value ?? "").replace(/<br\s*\/?\s*>/gi, " ").replace(/^`+|`+$/g, "").trim();
@@ -118,12 +118,14 @@ export function auditDecisionLedger(markdown) {
     else if (seenIds.has(id)) errors.push(`line ${row.lineNumber}: duplicate stable ID ${id} (first seen on line ${seenIds.get(id)})`);
     else seenIds.set(id, row.lineNumber);
 
+    if (!hasEvidence(values.原文要旨)) errors.push(`line ${row.lineNumber} (${id || "missing ID"}): 原文要旨 is required`);
     if (!LEDGER_STATES.includes(state)) {
       errors.push(`line ${row.lineNumber} (${id || "missing ID"}): unknown state ${state || "(empty)"}`);
       continue;
     }
     const rank = ACTIVE_STATES.indexOf(state);
     if (rank >= ACTIVE_STATES.indexOf("DECIDED")) {
+      if (!hasEvidence(values.決定)) errors.push(`line ${row.lineNumber} (${id}): 決定 is required from DECIDED onward`);
       for (const column of REQUIRED_FROM_DECIDED) {
         if (!hasEvidence(values[column])) errors.push(`line ${row.lineNumber} (${id}): ${column} is required from DECIDED onward`);
       }
@@ -131,11 +133,17 @@ export function auditDecisionLedger(markdown) {
     if (rank >= ACTIVE_STATES.indexOf("LOCAL_VERIFIED") && !hasEvidence(values.実装commit)) {
       errors.push(`line ${row.lineNumber} (${id}): LOCAL_VERIFIED or later requires 実装commit evidence`);
     }
+    if (state === "LOCAL_VERIFIED" && !hasEvidence(values.main統合)) {
+      addManual(manualReconciliation, row, "LOCAL_TO_MAIN", "local verification is complete but main integration is still missing");
+    }
     if (rank >= ACTIVE_STATES.indexOf("MERGED") && !hasEvidence(values.main統合)) {
       errors.push(`line ${row.lineNumber} (${id}): MERGED or later requires main統合 evidence`);
     }
     if (rank >= ACTIVE_STATES.indexOf("PUBLIC_VERIFIED") && !hasEvidence(values.Pages)) {
       errors.push(`line ${row.lineNumber} (${id}): PUBLIC_VERIFIED or later requires Pages evidence`);
+    }
+    if (state === "MERGED" && !hasEvidence(values.Pages)) {
+      addManual(manualReconciliation, row, "MERGED_TO_PAGES", "main integration is complete but Pages evidence is still missing");
     }
     if (state === "PHYSICAL_ACCEPTED" && !hasEvidence(values.live実機)) {
       errors.push(`line ${row.lineNumber} (${id}): PHYSICAL_ACCEPTED requires live実機 evidence`);
@@ -145,7 +153,10 @@ export function auditDecisionLedger(markdown) {
       if (!hasEvidence(values.ユーザー承認)) errors.push(`line ${row.lineNumber} (${id}): ${state} requires user approval evidence`);
     }
 
-    if (state === "INBOX") addManual(manualReconciliation, row, "INBOX", "user decision and disposition must be reconciled manually");
+    if (state === "INBOX") {
+      errors.push(`line ${row.lineNumber} (${id}): INBOX must be reconciled before release`);
+      addManual(manualReconciliation, row, "INBOX", "user decision and disposition must be reconciled manually");
+    }
     if (/\b(?:final|archived?|closed)\b|旧(?:task|タスク)|古い(?:task|タスク)|アーカイブ/i.test(values.決定元タスク ?? "")) {
       addManual(manualReconciliation, row, "STALE_TASK_FINAL", "source task final may be stale; compare it with the latest user decision");
     }
@@ -164,7 +175,10 @@ export function auditDecisionLedger(markdown) {
   for (const rows of activeBySummary.values()) {
     const decisions = new Set(rows.map((row) => normalizedComparison(row.values.決定)).filter(Boolean));
     if (decisions.size > 1) {
-      for (const row of rows) addManual(manualReconciliation, row, "CONFLICTING_DECISION", `same request summary has ${decisions.size} active decisions`);
+      for (const row of rows) {
+        errors.push(`line ${row.lineNumber} (${row.values.ID}): conflicting active decision for the same request summary`);
+        addManual(manualReconciliation, row, "CONFLICTING_DECISION", `same request summary has ${decisions.size} active decisions`);
+      }
     }
   }
   const uniqueManual = [...new Map(manualReconciliation.map((item) => [`${item.lineNumber}:${item.kind}`, item])).values()];

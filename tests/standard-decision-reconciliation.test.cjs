@@ -57,6 +57,8 @@ test("decision ledger enforces implementation, main, Pages, and physical evidenc
   ]));
   assert.equal(result.ok, false);
   for (const expected of ["UDL-011.*実装commit", "UDL-012.*main統合", "UDL-013.*Pages", "UDL-014.*live実機"]) assert.match(result.errors.join("\n"), new RegExp(expected));
+  assert.ok(result.manualReconciliation.some(({ id, kind }) => id === "UDL-011" && kind === "LOCAL_TO_MAIN"));
+  assert.ok(result.manualReconciliation.some(({ id, kind }) => id === "UDL-012" && kind === "MERGED_TO_PAGES"));
 });
 
 test("DEFERRED and SUPERSEDED require a reason and explicit user approval", async () => {
@@ -79,7 +81,9 @@ test("INBOX, conflicting active decisions, and stale task finals enter manual re
     entry({ ID: "UDL-032", 状態: "DECIDED", 決定: "案A", 決定元タスク: "old task FINAL" }),
     entry({ ID: "UDL-033", 状態: "SPEC_READY", 決定: "案B" }),
   ]));
-  assert.equal(result.ok, true, JSON.stringify(result.errors));
+  assert.equal(result.ok, false);
+  assert.match(result.errors.join("\n"), /UDL-031.*INBOX must be reconciled/);
+  assert.equal((result.errors.join("\n").match(/conflicting active decision/g) || []).length, 2);
   const kinds = result.manualReconciliation.map(({ kind }) => kind);
   assert.ok(kinds.includes("INBOX"));
   assert.ok(kinds.includes("STALE_TASK_FINAL"));
