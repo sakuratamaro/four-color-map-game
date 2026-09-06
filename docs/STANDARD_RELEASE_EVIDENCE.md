@@ -65,6 +65,7 @@
 ## 2026-09-07 alpha.4 Edge先行公開
 
 - 製品`90e718b`、証拠追補`98428f8`、最終focus待機修正`f51118d`をclean release床へ統合した。Windows最終run `34060194268`はEdge job `101559227353`、Chrome job `101559227427`が成功。先行run `34059442721`のEdgeだけが`requestAnimationFrame`前にfocusを読む試験競合で失敗し、製品の複数候補非推測契約を変えず、対象focusを明示的に待つ回帰へ修正した。
+- Edge公開証跡だけを追補したrun `34061794436`はChrome成功、Edge 79/80で、同じ試験のmacro確定後だけが盤面focusの`requestAnimationFrame`前に即時判定された。製品コードは不変のまま、続くEscapeも正しい`boardKeydown`へ送るため盤面focus成立を待つ契約を追加した。修正後focusedは実Edge 3/3、Chrome 2/2、全teardown成功。失敗runは削除せず最終gateと分離する。
 - 配備直前のread-only診断はDB 16,682,131 bytes、接続18/60、active 2、blocked/idle-in-transaction 0、replication slot 2/2 active、最大retained WAL 16,774,904 bytes。Dashboard 24hはCPU 2%、RAM 63%、disk 17%、disk IO 1%、接続peak 20/60、DB 30.5MB、WAL 128MB。既存2件のresource alertは`WATCH_RESOURCE_ALERT`とし、新規悪化や実枯渇を示す指標がないためHOLDにはしなかった。
 - `standard_candidate_verify.sql`は72/72 true。`supabase_migrations.schema_migrations`の記録末尾は`202609020006`だったが、後続RPC・trigger・権限を含む実DB契約は全件存在し、本便でSQL、migration、RPC、secret、JWT設定、cleanupを変更していない。履歴表と手動適用実体のずれは運用上の追跡事項として残す。
 - Dashboard editorで`index.ts`を全選択・消去して候補1,182行へ置換し、生成済み`standard-engine.bundle.js`も同様に3,803行へ置換した。配備前後に両ファイルの`5.0.0-alpha.4`が各1/1、配備後に変更印消失を確認し、同一操作でEdge deployment 24へ反映した。配備後にDashboardからZIPを読み戻し、SHA-256はindex `526f8d653859f529c5d062aab3e2669b1ba7ad2c7011ca0643beabeaaa71941b`、bundle `4ae11f822d5450e0876ed4c4c205a2912eaeea4fd99042b47a1839d1b36e2841`で候補と完全一致した。
