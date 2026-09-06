@@ -442,7 +442,7 @@ document.addEventListener("wheel", () => { userInteractionRevision += 1; }, { ca
 function handoffFromSetupToMatch(expectedInteractionRevision) {
   if (roomModel?.room?.status !== "playing" || !hasStandardPublicState(roomModel.room.public_state)) return;
   const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
-  setTimeout(() => alignPlayingViewport({ expectedInteractionRevision, focusHeading: true }), reducedMotion ? 0 : RANDOM_REVEAL_DURATION_MS);
+  setTimeout(() => alignPlayingViewport({ expectedInteractionRevision, focusHeading: true, ensureMoveControlsVisible: true }), reducedMotion ? 0 : RANDOM_REVEAL_DURATION_MS);
 }
 
 function alignPlayingViewport({ expectedInteractionRevision = null, focusHeading = false, behavior = null, ensureMoveControlsVisible = false } = {}) {
@@ -486,6 +486,7 @@ function activateAppTab(requestedTab, { updateHash = true, scrollTop = true } = 
     && (!client.snapshot().roomId || roomModel);
   if (resumePausedQuiz) resumeQuizClockOnQuizTab();
   activeAppTab = tab;
+  if (tab !== "battle") clearCpuCommentaryBubble();
   if (tab !== "battle") resetBoardSelectionAssist();
   localStorage.setItem(APP_TAB_KEY, tab);
   if (updateHash && location.hash !== `#${tab}`) history.replaceState(null, "", `#${tab}`);
@@ -896,10 +897,11 @@ function renderCpuTerminalCommentary(item, context) {
 }
 
 function announceCpuCommentary(item, context) {
-  if (!item?.announce) return;
+  if (!item?.announce || activeAppTab !== "battle") return;
   const announce = () => {
     if (observedCpuCommentaryScope !== `${roomModel?.room?.id}:${item.matchId}`
-      || observedCpuCommentarySourceEventId !== item.sourceEventId || document.visibilityState !== "visible") return;
+      || observedCpuCommentarySourceEventId !== item.sourceEventId || document.visibilityState !== "visible"
+      || activeAppTab !== "battle") return;
     $("cpuCommentaryAnnouncement").textContent = `${context.name}。${item.text}`;
   };
   clearTimeout(cpuCommentaryAnnouncementTimer);
@@ -909,6 +911,7 @@ function announceCpuCommentary(item, context) {
 }
 
 function presentCpuCommentary(item, context) {
+  if (activeAppTab !== "battle" || document.visibilityState !== "visible") return;
   rememberCpuCommentary(item);
   if (item.priority === "terminal") {
     clearCpuCommentaryBubble();
@@ -940,7 +943,7 @@ function observeCpuCommentary(state) {
   }
   const scope = `${roomModel.room.id}:${state.matchId}`;
   const sourceEventId = cpuCommentarySourceEventId(state, context);
-  show("cpuCommentaryStage", state.status === "ACTIVE");
+  show("cpuCommentaryStage", state.status === "ACTIVE" && activeAppTab === "battle");
   $("cpuCommentaryName").textContent = context.name;
   if (state.status === "FINISHED") renderCpuTerminalCommentary(chooseCpuCommentary(context, { respectHistory: false }), context);
   else clearCpuTerminalCommentary();
@@ -953,6 +956,10 @@ function observeCpuCommentary(state) {
   if (!sourceEventId || sourceEventId === observedCpuCommentarySourceEventId) return;
   if (document.visibilityState !== "visible") return;
   observedCpuCommentarySourceEventId = sourceEventId;
+  if (activeAppTab !== "battle") {
+    clearCpuCommentaryBubble();
+    return;
+  }
   const item = chooseCpuCommentary(context);
   if (item) presentCpuCommentary(item, context);
 }
@@ -2216,6 +2223,7 @@ function renderQuiz() {
   const index = pendingQuiz.answers.length;
   $("quizProgress").textContent = `${Math.min(index + 1, 10)} / 10`;
   $("quizLevelBadge").textContent = `Lv.${pendingQuiz.selectedLevel}`;
+  const focusedQuizOptionIndex = [...$("quizOptions").querySelectorAll("button")].indexOf(document.activeElement);
   $("quizOptions").replaceChildren();
   if (index >= 10) {
     stopQuizClock();
@@ -2259,6 +2267,8 @@ function renderQuiz() {
     $("quizOptions").appendChild(retry);
   } else if (lockedByMatch) stopQuizClock();
   else startQuizClock();
+  const restoredQuizOption = $("quizOptions").querySelectorAll("button")[focusedQuizOptionIndex];
+  if (focusedQuizOptionIndex >= 0 && restoredQuizOption && !restoredQuizOption.disabled) restoredQuizOption.focus({ preventScroll: true });
   syncQuizOptionMotion(questionState);
 }
 

@@ -3985,6 +3985,42 @@ test("actual browser presents CPU commentary once from public events and keeps t
       }).observe(node, { childList: true, characterData: true, subtree: true });
     });
 
+    await page.locator('[data-app-tab="quiz"]').click();
+    await page.locator("#quizStart").click();
+    const quizOption = page.locator("#quizOptions button").first();
+    await quizOption.waitFor({ state: "visible" });
+    await quizOption.focus();
+    const quizOptionBox = await quizOption.boundingBox();
+    await page.evaluate(() => {
+      document.querySelector("#waitingOpponentNotice").classList.remove("hidden");
+      const runtime = globalThis.__standardOnlineRuntime;
+      const state = runtime.room.public_state;
+      const version = 12;
+      runtime.room = { ...runtime.room, version, public_state: {
+        ...state, version, turn: version, active: "B", phase: "WORK",
+        lastPublicTrace: { eventId: `${state.matchId}:${version}`, version, type: "USE_SKILL", actor: "A" },
+      } };
+      runtime.view = { ...runtime.view, version };
+      runtime.onInvalidate?.({});
+      document.querySelector("#waitingOpponentNotice").classList.remove("hidden");
+    });
+    await page.waitForTimeout(250);
+    assert.equal(await page.locator("#cpuCommentaryStage").isHidden(), true);
+    assert.equal(await page.locator("#cpuCommentaryBubble").evaluate((node) => node.classList.contains("is-silent")), true);
+    assert.equal(await page.locator("#cpuCommentaryAnnouncement").textContent(), "");
+    assert.equal(await page.evaluate(() => globalThis.__cpuCommentaryAnnouncements.length), 0);
+    assert.equal(await page.locator("#waitingOpponentNotice").evaluate((node) => {
+      node.classList.remove("hidden");
+      return getComputedStyle(node).visibility;
+    }), "visible");
+    assert.equal(await quizOption.evaluate((node) => document.activeElement === node), true);
+    assert.deepEqual(await quizOption.boundingBox(), quizOptionBox);
+    await page.locator('[data-app-tab="battle"]').click();
+    await page.waitForTimeout(250);
+    assert.equal(await page.locator("#cpuCommentaryBubble").evaluate((node) => node.classList.contains("is-silent")), true);
+    assert.equal(await page.locator("#cpuCommentaryAnnouncement").textContent(), "");
+    assert.equal(await page.evaluate(() => globalThis.__cpuCommentaryAnnouncements.length), 0);
+
     await page.evaluate(() => {
       globalThis.__cpuCommentaryVisibility = "hidden";
       Object.defineProperty(document, "visibilityState", { configurable: true, get: () => globalThis.__cpuCommentaryVisibility });

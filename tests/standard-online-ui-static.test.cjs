@@ -49,8 +49,8 @@ test("Standard online setup UI exposes the complete reconnect path", () => {
 });
 
 test("CPU commentary is public-event-only, bounded, non-blocking, and terminal-persistent", () => {
-  assert.match(html, /style\.css\?v=20260906-29/);
-  assert.match(html, /app\.js\?v=20260906-31/);
+  assert.match(html, /style\.css\?v=20260906-30/);
+  assert.match(html, /app\.js\?v=20260906-32/);
   assert.ok(html.indexOf("cpu-commentary.js") < html.indexOf('type="module" src="app.js'));
   assert.match(html, /id="cpuCommentaryStage"[^>]+aria-hidden="true"/);
   assert.match(html, /id="cpuCommentaryAnnouncement"[^>]+role="status"[^>]+aria-live="polite"[^>]+aria-atomic="true"/);
@@ -67,7 +67,10 @@ test("CPU commentary is public-event-only, bounded, non-blocking, and terminal-p
   assert.match(app, /document\.visibilityState !== "visible"/);
   assert.match(app, /clearContactReveal\(\);[\s\S]+show\("randomReveal", false\)/);
   assert.match(css, /\.cpu-commentary-stage\{[^}]*position:fixed[^}]*pointer-events:none/);
-  assert.match(css, /body:has\(#cpuCommentaryBubble:not\(\.is-silent\)\) #waitingOpponentNotice\{visibility:hidden\}/);
+  assert.match(app, /if \(tab !== "battle"\) clearCpuCommentaryBubble\(\)/);
+  assert.match(app, /activeAppTab !== "battle"/);
+  assert.match(app, /focusedQuizOptionIndex[\s\S]+restoredQuizOption\.focus\(\{ preventScroll: true \}\)/);
+  assert.match(css, /body\[data-active-tab="battle"\]:has\(#cpuCommentaryBubble:not\(\.is-silent\)\) #waitingOpponentNotice\{visibility:hidden\}/);
   assert.match(css, /\.cpu-commentary-bubble\{[^}]*pointer-events:none/);
   assert.match(css, /@media\(max-width:390px\)\{\.cpu-commentary-stage\{[^}]*height:48px\}\.cpu-commentary-bubble/);
   assert.match(css, /@media\(prefers-reduced-motion:reduce\)\{\.cpu-commentary-bubble\{[^}]*transition:none!important[^}]*transform:none!important/);
@@ -99,7 +102,7 @@ test("waiting-opponent notice is global, privacy-finite, and non-interrupting", 
   assert.match(css, /\.waiting-opponent-notice button\{[^}]*min-height:44px[^}]*pointer-events:auto/);
   assert.match(css, /white-space:nowrap/);
   assert.match(css, /@media\(max-width:700px\)\{\.waiting-opponent-notice\{top:calc\(4px \+ env\(safe-area-inset-top\)\);right:8px;bottom:auto;left:auto;width:calc\(100% - 16px\);height:44px;min-height:44px;box-sizing:border-box/);
-  assert.match(css, /@media\(max-width:700px\)\{#matchCard\{scroll-margin-block-start:80px\}\}/);
+  assert.match(css, /@media\(max-width:700px\)\{#matchCard\{scroll-margin-block-start:calc\(80px \+ env\(safe-area-inset-top\)\)\}\}/);
 });
 
 test("fresh players can finish profile setup inside the battle tab without automatic matchmaking", () => {
