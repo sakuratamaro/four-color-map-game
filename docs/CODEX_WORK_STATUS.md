@@ -1,14 +1,15 @@
 # Codex work status
 
 - Last update: 2026-09-06 JST
-- Stage: Corner Bloom targeting release `75791fb` is public-verified; the shared COLOR response-window rule fix is next; physical two-device acceptance and T+24h observation remain pending
+- Stage: Shared COLOR response-window release `9b7d8f4` is public-verified; physical two-device acceptance and T+24h observation remain pending
 - Integration branch: `codex/standard-release-command`
-- Public product baseline: `75791fb1eac3128198b3b69c57152792a1329945` (includes legal-recolor LAB, board-first mobile presentation, board selection assist, quiz clarity, waiting-opponent notice, CPU commentary, and Corner Bloom targeting; the historical gold/cyan region outlines are removed)
+- Public product baseline: `9b7d8f45a456e2121ccc522687c491f4836672e5` (includes the shared COLOR response window, legal-recolor LAB, board-first mobile presentation, board selection assist, quiz clarity, waiting-opponent notice, CPU commentary, and Corner Bloom targeting; the historical gold/cyan region outlines are removed)
 - Public URL: `https://sakuratamaro.github.io/four-color-map-game/standard-online-v5/`
-- Supabase project: `qkcuhludisairpgzhryl`; `standard-game-action` deployment 20
+- Supabase project: `qkcuhludisairpgzhryl`; `standard-game-action` deployment 21
 
 ## Public in this release
 
+- New `5.0.0-alpha.2` matches no longer auto-lose on entry to COLOR when ordinary palette colors are blocked. The same response window offers normal coloring, COLOR rescue skills, an explicit server-authoritative no-color declaration, and surrender; existing alpha.1 matches and replays keep their prior behavior. CPU players use effective rescue options before declaring, while public projections never reveal rescue ownership or private palette state.
 - Cards now opens a room-independent six-card editor. Direct CPU selection stays local until the final confirmation, then a persisted two-stage start/setup saga reuses the same action IDs across reloads and lost responses.
 - Every new-match entry returns to an owned room, matchmaking search, or CPU draft instead of allocating another match. The database now enforces one active Standard room per actor across inserts and room reactivation.
 - Closing an active room is screen-only navigation: room identity and synchronization remain live, and the Home CTA returns to the same match. Finished rooms still use the existing result/rematch flow.
@@ -26,10 +27,11 @@
 - The board selection assist provides an optional 200% zoom with at least 44px macro targets, drag-to-pan/tap separation, keyboard arrows plus Space/Enter/Escape, and connected-candidate cues. The cues are explicitly not a legality oracle. At 390x844 the zoom, turn controls, board, and fixed connection strip do not intersect; reload alignment is restored without stealing focus.
 - Quadratic questions now ask for the smaller root explicitly. Quiz progress counts only server-confirmed answers, labels ticket progress as provisional, names the three-miss rescue, and says when a higher tier is no longer reachable; the server remains authoritative for completion and reward settlement.
 - Corner Bloom no longer asks for a raw macro number. It uses a board-first area→base flow, exposes a 44px keyboard route back to the canvas, keeps connected cues during multi-cell selection, and submits the unchanged finite payload. Long mobile errors move below the top notices instead of intersecting setup/matched connection UI or bottom navigation.
-- Public assets are app v34, client v18, skill-intents v17, CPU commentary v1, style v34, and `solo-v5/save-codec.js?v=20260905-2`.
+- Public assets are app v35, client v18, skill-intents v17, CPU commentary v1, style v35, and `solo-v5/save-codec.js?v=20260905-2`.
 
 ## Verification
 
+- Shared COLOR response-window release `9b7d8f4`: the complete local product runner passed 962/962 across 131 files with no failures, cancellations, or skips; regenerated local and Edge bundles were byte-stable. Rules/privacy, UX/accessibility, and repository/release reviewers all reported GO with no P0/P1. Windows run `34022065339` passed Chrome job `101456337426` and Edge job `101456337486`; Pages `34022540907` passed build/report/deploy. The public v35 UI on Edge deployment 20 rejected a legal-color declaration without changing public/private/profile state, returned focus to the response heading, then accepted a normal color as version 6→7. Deployment 21 passed the basic Edge canary 7/7, the dedicated COLOR-response canary 164/164, and candidate preflight `ok:true`; public 390px reload retained v35 and zero captured warning/error. Migration tail `202609060003`, SQL/RPC, secrets, JWT settings, rewards, inventory, and cleanup schedules were unchanged.
 - Legal-recolor LAB release: product `ad53bb4`, public gate HEAD `3fb3ef8`. Official non-browser runner 110 files with zero failures; local Edge/Chrome 60/60 each; responsive 4/4 each; lifecycle 76/76; final Windows gate `33984108011` passed Chrome `101354410490` and Edge `101354410705`; independent reviews reported no P0/P1.
 - Additive migration `202609060002_standard_setup_revision_guard.sql` is applied and candidate verification is 70/70 true. Edge deployment 17 passed the basic canary 7/7 and dedicated LAB canary 23/23, including mutual opt-in, symmetric loan, server-random recolor, minimal public trace, terminal cleanup, and unchanged profiles.
 - Pages run `33984536803` succeeded at `3fb3ef8`. Candidate preflight returned `ok:true`, including protected v3-load/eight-argument initialization probes and the complete LAB UI marker. The public browser loaded app v23/client and intents v17/style v22 with anonymous authentication and zero captured warning/error.

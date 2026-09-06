@@ -8,7 +8,7 @@
 
 ## 司令塔ルール
 
-- 統合基点は `origin/main` とし、現在の公開製品基点は `75791fb`。角膨張の盤面主導・keyboard完走、固定UIと交差しないエラー表示、履歴outline撤去を、待機相手通知・CPU実況・legal-recolor LAB・390px盤面導線・盤面選択アシスト・クイズ明確化へ累積している。
+- 統合基点は `origin/main` とし、現在の公開製品基点は `9b7d8f4`。共通COLOR応答窓を、角膨張の盤面主導・待機相手通知・CPU実況・legal-recolor LAB・390px盤面導線・盤面選択アシスト・クイズ明確化へ累積している。
 - 現在の統合作業は `codex/standard-release-command` だけで行う。
 - 古いdirty worktreeからbuild、merge、deployしない。
 - `実装済み`、`ローカル検証済み`、`live検証済み`、`公開済み`を別状態として記録する。
@@ -61,7 +61,7 @@
 | P1 | 待機相手の匿名通知 | UX＋DB＋司令塔 | PUBLIC_VERIFIED | `1eecb0a`＋migration `202609060003`。認証済み利用者へ相手待ちの有無だけを返し、本人・活動中roomを除外。30秒poll、最大300秒backoff、hidden/offline/自身の募集・対人中を停止。DB 72/72、Windows `34013907089`、Pages `34014339235`、公開390pxを確認 |
 | P1 | CPU実況とクイズ固定hitbox | ゲーム体験＋UX＋ルール | PUBLIC_VERIFIED | 10人のCPUへ公開eventだけの個性文を付け、対戦タブ外・reload・background再演とprivate情報参照を禁止。クイズはボタン矩形を固定し内側labelだけを漂わせる。Chrome/Edge各71件、390pxで固定通知・盤面・下部nav非交差、公開console 0を確認 |
 | P1 | 角膨張の盤面主導・keyboard完走・エラー可視化 | UX＋ルール＋技術品質＋司令塔 | PUBLIC_VERIFIED | `75791fb`。数値入力を廃止し、渡すエリア→基準マスの2段階を盤面で選ぶ。44px盤面focus導線、pointer、Tab/Enter/Space、2マス接続候補、白/紫の現在状態を固定。長文toastは上部通知の下へ退避し、setup/成立済みconnection/navと遷移中も非交差。Windows `34017288334`のChrome/Edge各73件、Pages `34017695831`、公開app/style v34、candidate preflight、console 0を確認。DB/Edge変更なし |
-| P1 | 救済スキルを塞がない共通COLOR応答窓 | ルール＋CPU＋UX＋Edge＋司令塔 | RULE_FIX_NEXT | COLOR進入時の自動終局を廃止し、全員に通常彩色／COLOR救済スキル／`DECLARE_NO_COLOR`／投了の同一窓を開く。宣言はserver authorityで合法色0を検証し、救済カード有無を公開stateへ漏らさない。engine version・CPU policy・UI・生成bundle・Edgeを一便で変更し、SQL/RPCは不要 |
+| P1 | 救済スキルを塞がない共通COLOR応答窓 | ルール＋CPU＋UX＋Edge＋司令塔 | PUBLIC_VERIFIED | `9b7d8f4`。新規engine `5.0.0-alpha.2`は通常彩色／COLOR救済スキル／`DECLARE_NO_COLOR`／投了を同じ応答窓へ集約し、旧alpha.1 roomは従来挙動を維持。宣言はserver authorityで合法色0を検証し、救済カード有無を公開stateへ漏らさない。ローカル962/962、Windows `34022065339`、Pages `34022540907`、Edge deployment 21の基本7/7＋専用164/164、公開390px・console 0を確認。SQL/RPC変更なし |
 | P1 | 持ち色汚染no-opの消費仕様 | ルール＋Edge＋UX | SPEC_NEXT | no-op時はカードを消費しないがaction・手番・機会は使用する案を有限仕様へ固定し、「変化なし・カードは戻った」だけを公開表示。engine/Edge変更前に再送・private境界を定義する |
 | P1 | Shift説明と将来overlay skillの位相 | ルール＋UX | DESIGN_NEXT | 「ちぎれたり、くっついたり」を説明へ追加。merge後はcanonical numeric-min ID/controller unionを維持し、将来の差し色追加も現在の可視region/canonical ID＋盤面属性だけをrules入力にする |
 | HOLD | 匿名＋任意Google identity link | 認証＋DB＋司令塔 | PHASE0_ONLY | 現在はSDK/RLS/Realtime/redirect/CSP/idempotency/token/log/admin境界のread-only監査だけ。provider有効化、callback、SDK、DB変更は別の公開便に分離する |
@@ -84,6 +84,8 @@
 
 角膨張便は、repository/release、rules/privacy、UX/accessibilityを3つの既存タスクへ再分担した。初回run `34016075931`はasset version契約、次の`34016221487`は390pxの3行toastと接続表示の7px交差を検出し修正した。`69cd67d`のrun `34016798886`は成功したが、独立UX監査がsetup/成立済みconnection、複数マス候補、keyboardの盤面復帰というP1を追加発見したため昇格せず、`75791fb`へ修正した。最終run `34017288334`、Pages `34017695831`、公開HTTP/preflight/Chrome consoleまで成功。長いaggregate runnerの既存contact-pressure tier4 handover待ちは`standard-v5`側の別件として失敗を保持し、このUI便の全成功とは記録しない。
 
+共通COLOR応答窓は、rules/privacy、UX/accessibility、repository/releaseの3担当へ再分担した。初回監査のP1三件とrelease canary境界二件を公開前に修正し、全担当GO、P0/P1なし。`9b7d8f4`はローカル全962/962とWindows run `34022065339`のChrome job `101456337426`／Edge job `101456337486`を通過した。`origin/main`を`98098d5`からforceなしでfast-forwardし、Pages `34022540907`のbuild/report/deploy成功後、公開v35とEdge 20の実CPU戦で誤申告の公開・private・profile不変、focus復帰、通常彩色のversion 6→7を確認した。続いて候補2ファイルを読み戻しSHA一致後にEdge deployment 21へ一度だけ反映し、基本7/7、専用COLOR 164/164、candidate preflight `ok:true`、公開390pxのconsole 0まで確認した。migration tailは`202609060003`のままで、SQL/RPC/secret/JWT設定を変更していない。
+
 ## 旧作業床からの回収候補
 
 古いブランチは丸ごと統合せず、次の意味差分だけを正本と比較する。
@@ -101,9 +103,9 @@
 
 | 区分 | 対象 | 方針 |
 | --- | --- | --- |
-| 正本 | `origin/main` | 公開製品基点は`75791fb`。migration `202609050001`–`202609050007`＋`202609060001`–`202609060003`、Edge deployment 20据え置き、Windows run `34017288334`、Pages run `34017695831`まで公開確認済み |
-| 現在の統合床 | `codex/standard-release-command` | 公開製品commit `75791fb`を含み、証拠台帳追補をこの床で同期する |
-| 公開済み現候補 | `75791fb` | 角膨張の盤面2段階target、2マスkeyboard完走、connected cue、固定UIと交差しない長文toast、履歴outline撤去を追加。公開app/style v34、client v18、skill-intents v17、CPU commentary v1。Chrome/Edge各73件、Pages、candidate preflight、公開HTTP/Chrome console 0を確認済み。DB 72/72とEdge deployment 20は変更なし |
+| 正本 | `origin/main` | 公開製品基点は`9b7d8f4`。migration `202609050001`–`202609050007`＋`202609060001`–`202609060003`、Edge deployment 21、Windows run `34022065339`、Pages run `34022540907`まで公開確認済み |
+| 現在の統合床 | `codex/standard-release-command` | 公開製品commit `9b7d8f4`を含み、証拠台帳追補をこの床で同期する |
+| 公開済み現候補 | `9b7d8f4` | 共通COLOR応答窓、新規alpha.2と旧alpha.1互換、server-authoritative申告、CPU救済、390px/focus/privacyを追加。公開app/style v35、client v18、skill-intents v17、CPU commentary v1。ローカル962/962、Windows Chrome/Edge、Pages、基本7/7、専用164/164、candidate preflight、公開console 0を確認済み。DB 72/72とmigration tailは変更なし |
 | 保全済み | detached `a8fce7d` dirty床 | `codex/salvage-a8fce7d-20260904` / `9e4e8ee` に秘密情報なしでWIP保全済み。機能単位で比較 |
 | 凍結root | root `ac78282` | 正史worktreeを内包するため作業床は維持。再監査したdirty 39件のうち38件は既存commitと一致し、残る旧handoff文書も現正本で置換済み。丸ごとmerge禁止、回収残件なし |
 | GitHub保管 | `codex/archive-standard-release-1f823b2` | 正史の祖先でない孤立コミットをGitHubへ退避済み。作業床は削除 |
