@@ -36,8 +36,8 @@
 | P0 | Supabase資源とRealtime負荷の追跡 | 運用 | WATCH_PARTIAL | T+24h固定窓ではCPU 2%、RAM 62%、disk 17%、disk IO 1%、接続peak 20/60、blocked/idle-in-transaction 0、Realtime slot 2/2 active。2026-09-07のEdge 23更新時にDashboardが複数resource逼迫を警告した一方、公開canary 243件とpreflightは全成功。原因・継続時間を同条件のread-only診断で再取得するまでWATCHとし、推測cleanup・課金・Compute変更はしない |
 | P0 | 別々の二端末による最終受入 | チャッピー先生＋司令塔 | PENDING | 対人/CPUの完走、復帰、再戦、永続化を確認 |
 | P1 | alpha.3同カテゴリ連打制限 | ルール＋CPU＋Edge＋UX＋独立監査 | PUBLIC_VERIFIED | source `d627cd5`、統合`d3cb130`、起動修正`549e716`。Windows `34048695008`、Pages `34049734628`、Edge 23、公開canary 7/7＋COLOR追補263/263＋23/23＋108/108、preflight合格。同カテゴリ2枚目のreject、version/public/private/残カード不変、cleanupを本番実測。物理二端末だけPENDING |
-| P1 | alpha.4彩色済みエリア角膨張 | ルール＋CPU＋Edge＋UX＋司令塔 | IMPLEMENTING | `origin/main@63972b6`起点のclean候補床へ統合済み。旧outgoing payloadとalpha.1/2/3継続、彩色済み領域の移譲・分割・同色merge、controller非依存、公開情報だけのCPU、pointer/keyboard/Escapeを検証中。DB・migration・RPC・secret変更なし。Edge先行→canary→Pagesの順序とalpha.4互換rollbackを必須とする |
-| P1 | 作業床・未コミット物の整理 | 司令塔 | MANAGED | 17床を個別監査し、clean重複10床を非破壊削除、branchは維持。rootの旧alpha.1試作は丸ごと統合禁止、回収候補なし。現在は保全対象7床とalpha.4専用clean候補床を分離管理 |
+| P1 | alpha.4彩色済みエリア角膨張 | ルール＋CPU＋Edge＋UX＋司令塔 | LOCAL_VERIFIED | 候補`90e718b`。旧outgoing payloadとalpha.1/2/3継続、彩色済み領域の移譲・分割・削除・外周clip・同色merge、controller非依存、公開情報だけのCPU、pointer/keyboard/Escapeを検証。生成bundle同一、focused 208/208＋追補50/50、Edge contact 43/43、独立3監査P0/P1なし。互換rollback`c33bb40`は77/77でGitHub保全。Windows `34058941292`はChrome/Edgeとも成功。DB・migration・RPC・secret変更なし |
+| P1 | 作業床・未コミット物の整理 | 司令塔 | MANAGED | 17床を個別監査し、clean重複10床を非破壊削除、branchは維持。rootの旧alpha.1試作は丸ごと統合禁止、回収候補なし。現在は保全対象7床、alpha.4候補床、互換rollback床を分離管理 |
 | P1 | 対戦を主役にする情報設計 | UX | PUBLIC_VERIFIED | 5タブ化し、ホームの主CTAから対戦タブ内の初回profile作成・同期・ロビーまでを一本化。公開URLの390px実画面で確認済み |
 | P1 | 初回オンライン準備を一操作に短縮 | UX | PUBLIC_VERIFIED | `9d42784`。名前入力後の一操作でstarter保存とprofile同期を行い、自動入室はしない。空名write 0、同期二重送信防止、失敗時starter保持。公開CTA確認済み |
 | P1 | 接続状態を対戦中も常時表示 | UX＋同期 | PUBLIC_VERIFIED | `9d42784`。全5タブで単一statusを表示し、room外offlineも反映。公開390px画面で固定statusと下部navの8px間隔を確認 |
@@ -87,7 +87,7 @@
 | ID | 原文要旨 | 決定 | 受入条件 | 依存関係 | 担当 | 対象release | 状態 | 実装commit | main統合 | Pages | live実機 | 決定元タスク | DEFERRED-SUPERSEDED理由 | ユーザー承認 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | UDL-20260906-001 | Shiftを角膨張と同じ盤面操作へ | 行・列・中央帯を盤面tap/keyboard、方向だけ自然操作 | 390px/PC、focus、取消、再送、no-oracle、zero-based payload維持 | UDL-014、Half/Triple現行rules | UX＋ルール＋司令塔 | Shift board UX | PUBLIC_VERIFIED | `ad49a41`（旧`24caae8`は不採用） | `4b2ea3d` | `34043472457` | Windows `34041850645`、公開asset SHA一致、390px overflow 0、console 0、preflight合格 | `01a0762c` | select方式をSUPERSEDED、ユーザー要望不一致 | YES |
-| UDL-20260906-002 | 角膨張を未彩色と既塗の2用途へ | 公開済み未彩色用途とは別に既塗用途を復元 | 現在盤面の既塗領域選択、既存用途非回帰、server判定 | UDL-014、UDL-015 | ルール＋CPU＋Edge＋UX | alpha.4 | IMPLEMENTING | — | NO | NO | NOT_RUN | `01a0762c` | — | YES |
+| UDL-20260906-002 | 角膨張を未彩色と既塗の2用途へ | 公開済み未彩色用途とは別に既塗用途を復元 | 現在盤面の既塗領域選択、既存用途非回帰、server判定 | UDL-014、UDL-015 | ルール＋CPU＋Edge＋UX | alpha.4 | LOCAL_VERIFIED | `90e718b` | NO | NO | NOT_RUN | `01a0762c` | — | YES |
 | UDL-20260906-003 | 持ち色汚染の空振りは非消費 | 変化なし・カード非消費、1発動終了、別色再選択不可 | 相手palette非表示、server判定、同一ID再送、inventory exactly-once | 現行disrupt handler、Edge canary | ルール＋Edge＋UX | alpha.3 | PUBLIC_VERIFIED | `d627cd5` | YES | YES | `COLOR 263/263` | `01a0762c` | 旧DESIGN_DEFERREDをSUPERSEDED、漏えい許容度のユーザー決定 | YES |
 | UDL-20260906-004 | CPUイラスト素材を採用 | 実使用分だけcrop/WebP、原本/未使用素材はrepo外 | NOTICE、README除外、素材台帳、credit、fallback、10人存在検査 | 素材実体、公式規約URL | 素材＋UX＋司令塔 | CPU art P1 | SPEC_READY | — | NO | NO | NOT_RUN | `01a07462`,`01a0762c` | — | YES |
 | UDL-20260906-005 | 作者へお礼連絡 | 公開後TODO、礼儀上の任意連絡 | ユーザー確認なしに送信しない。広告/有料化時は確認優先度を上げる | UDL-004公開後 | 司令塔＋チャッピー先生 | Post-public | DECIDED | — | NO | NO | NOT_RUN | `01a0762c` | — | YES |
