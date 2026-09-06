@@ -1,6 +1,6 @@
 # Standard公開候補 証拠台帳
 
-更新日: 2026-09-06
+更新日: 2026-09-07
 
 この文書は「コードがある」と「公開環境で確認した」を混同しないための台帳である。`VERIFIED` は同じ行に再現可能な根拠がある場合だけ使用する。token、API key、user ID、個人情報は記録しない。
 
@@ -11,14 +11,14 @@
 | ゲート | 状態 | 現在の根拠 | 次の証拠 |
 | --- | --- | --- | --- |
 | 採否棚卸し | VERIFIED | `ONLINE_COMPLETION_INVENTORY.md`。旧Expo試作と現行Web Standardを分離済み | 公開後に状態列だけ更新 |
-| 製品コード・生成元 | PUBLIC_VERIFIED | 公開HEAD `767805b`（engine製品実装`d06f34d`＋frontend音/振動`4e71ebc`/`9be6b90`）。alpha.2の自動敗北廃止とLv5多段推論を維持し、Pages限定で初期OFFの効果音・振動を追加。local/Edge bundleは不変 | 次回engine変更時に再生成一致を確認 |
+| 製品コード・生成元 | PUBLIC_VERIFIED | 公開HEAD `ddfb0a7`（Shift製品`ad49a41`、main統合`4b2ea3d`）。alpha.2の自動敗北廃止、Lv5多段推論、初期OFFの音・振動を維持し、Pages限定でShift盤面選択を追加。engine/Edge bundleは不変 | 次回engine変更時に再生成一致を確認 |
 | ローカル製品試験 | VERIFIED | 音便focused unit/static/workflow/bundle 96/96・skip 0、独立再監査P0/P1なし。Web Locks 2ページ競合はローカルEdge/Chrome各2/2、同一ID一意出力・異ID保持・3ページ目duplicateを確認 | 物理端末で音量・振動感と救済判断、Lv5の体感確認 |
 | Shift select候補 | SUPERSEDED | `24caae8`→`d9b6fe9`→`1557ff1`。失敗run `34026276754` / `34027199050`で旧fixtureとretry payloadを修正し、run `34027488186`はChrome/Edge成功。ただしユーザー決定は盤面tap指定のためmain/Pagesへ昇格せず、`8944572`で製品差分をrevert | UDL-20260906-001として盤面操作UXを再設計 |
-| Shift盤面選択 | VERIFIED | 製品`ad49a41`、main `4b2ea3d`。select/数値入力を廃止し、行・列を選んで盤面tap/keyboard、自然語方向、取消無送信、再送identity、no-oracleを維持。Windows gate `34041850645`はChrome/Edge成功、独立focusedは各3/3・skip 0 | Pages起動・公開asset照合後にPUBLIC_VERIFIEDへ昇格 |
+| Shift盤面選択 | PUBLIC_VERIFIED | 製品`ad49a41`、main `4b2ea3d`、公開HEAD `ddfb0a7`。select/数値入力を廃止し、行・列→盤面tap/keyboard、自然語方向、取消無送信、再送identity、no-oracleを維持。Windows `34041850645`はChrome/Edge成功、独立各3/3・skip 0。Pages `34043472457`成功、公開asset SHA一致、390px overflow 0、console 0、preflight `ok:true` | 物理端末でShift操作感を最終受入 |
 | 次期UX候補のローカル検査 | VERIFIED | `codex/standard-release-command@1673ff8`。profile安定化、初回対戦導線、Quick Half Shift、status正規化、Realtime/poll復旧を含む非browser製品試験91ファイル522/522。browser workflow/harness静的11/11合格 | Pages反映後のpreflightと二端末受入 |
 | 初回導線・接続表示の次期候補 | VERIFIED | `9d42784`。初回starter作成＋profile同期を一操作化し、全5タブで単一接続statusを常時表示。空名write 0、room外offline復帰、390px下部nav非干渉を契約化。静的39/39、非browser 89ファイル513/513、Windows Chrome/Edge各18/18合格 | 物理二端末受入 |
 | Windows実browser CI | VERIFIED | GitHub Actions run `34039704692`。クリーン候補と司令塔CIのtreeが一致し、Chrome job `101504106864`とEdge job `101504106747`が成功。新feedback試験は各2/2・skip 0。生成bundle、CPU契約、online browser、Edge lifecycleも成功 | 公開URLで同じ主要導線を二端末受入 |
-| 現行公開Pages | PUBLIC_VERIFIED | 公開HEAD `767805b`、Pages run `34040260269`成功。公開URLでstyle v37、feedback v2、app v38、client v19、skill-intents v17、CPU commentary v2。初期OFF、ON保存・再読込、OFF復帰、asset HTTP 200、candidate preflight `ok:true`を確認 | 別々の二端末で音量・振動感を含む最終受入 |
+| 現行公開Pages | PUBLIC_VERIFIED | 公開HEAD `ddfb0a7`、Pages run `34043472457`成功。公開URLでstyle v38、feedback v2、app v39、local bundle v3、client v19、skill-intents v17、CPU commentary v2。全主要asset HTTP 200・監査SHA一致、390px overflow 0、console 0、candidate preflight `ok:true` | 別々の二端末でShift操作感と音量・振動感を最終受入 |
 | 初回公開前DB境界（履歴） | VERIFIED | 旧snapshotは匿名権限拒否。snapshot v2と野良募集が未存在だった初回baseline | 現行境界は適用migrationとlive canaryを参照 |
 | migration 006–013静的検査 | VERIFIED | migration別security/transaction testsと読み取り専用44項目SQL | 実DBで全行`ok=true` |
 | Dashboard Advisor・使用量baseline | WATCH_PARTIAL | T0と2026-09-06のT+24hを正規化JSONへ保存。T+24hは15/37 metricを観測し、公開preflight成功、CPU 2%、RAM 62%、disk 17%、disk IO 1%、接続peak 20/60、Security errors 0。API/Edge等22 metricはDashboard取得不能でPENDING。read-only診断はblocked/idle 0、slot 2/2 active、publication不変 | 欠落panelは次の定期観測で再取得し、推測値・0置換はしない |
@@ -27,7 +27,7 @@
 | 即時Standard CPU開始 | PUBLIC_VERIFIED | migration `202609050002`とEdge deployment 9。製品`cc96350`、公開`a4c6490`、DB 47項目、Edge基本6/6、即時CPU 7/7、Windows run `33931963065`、Pages run `33932159043`合格。公開UIでCPU初手まで確認 | 物理端末で一試合完走・再読込・同じCPUとの再戦を確認 |
 | CPU完走後の次戦導線 | PUBLIC_VERIFIED | `29c6958`。同じCPUとの同room再戦を維持し、終了結果から別CPU選択へ進める。live即時CPU完走・再戦canary 25/25、Windows Chrome/Edge成功、Pages反映済み | 物理端末で別CPU選択と再戦を体感確認 |
 | CPU報酬からガチャへの直行 | PUBLIC_VERIFIED | `e36dfcc`＋`193a0e6`。保存済み通常CPU精算だけにCTAを出し、抽選せずLv.1ガチャへ移動。対人・未精算・debugを拒否し、390×844で券・抽選操作・focus・再読込を確認 | 物理端末でCPU一局からガチャまでの体感を確認 |
-| GitHub main・Pages更新 | PUBLIC_VERIFIED | 公開HEAD `767805b`。`origin/main`を`97c36b3`からforceなしでfast-forward。Standard browser gate `34039704692`、Pages `34040260269`成功。公開asset v37/feedback v2/app v38とcandidate preflightを確認 | 二端末受入後に物理音量・振動感を記録 |
+| GitHub main・Pages更新 | PUBLIC_VERIFIED | 製品main `4b2ea3d`、公開HEAD `ddfb0a7`。forceなしでfast-forwardし、Standard browser gate `34041850645`、Pages `34043472457`成功。公開asset v38/feedback v2/app v39/local bundle v3とcandidate preflightを確認 | 二端末受入後にShift操作感と物理音量・振動感を記録 |
 | server-side active-room復帰 | PUBLIC_VERIFIED | private/public/CPUを有限8列で本人にだけ返し、厳格な1行だけ採用。raw sentinel/UUID非表示、background focus非奪取、CPU/matchmaking saga優先、復帰時の新room/setup送信0をbrowser回帰とlive 10/10で確認 | 物理端末でlocal identity喪失後の復帰を体感確認 |
 | 塗り直し・乱 LAB | PUBLIC_VERIFIED | `ad53bb4` / 公開`3fb3ef8`。private-code human双方同意、debug排他、固定ruleset、server-only乱数、1人1回貸与、通常19枚/6枚/CPU/野良/戦績/報酬/在庫非変更。DB 70/70、Edge 23/23、Windows/Pages/公開preflight合格 | 二端末LAB一局 |
 | 合言葉対戦canary | VERIFIED | deployment 15で`live-standard-runbook-a-canary.mjs --confirm-live` 44/44合格。確定CREATEの公開trace shapeも検査 | 実ブラウザ再読込と二端末最終受入 |
@@ -39,6 +39,13 @@
 | cleanup preview | PENDING | 関数はローカルのみ。削除・定期化なし | dry-run分類別件数、処理時間。実削除は別承認 |
 | cleanup実削除・定期化 | PENDING | 実行権限は付与済みだがpreview件数とcascade先を未確認 | exact ID、影響範囲、復元手段を先に記録してから実行 |
 | 別々の二端末による最終受入 | PENDING | 旧公開版の過去証拠だけ | 最新URLで対人/CPU完走、復帰、新試合、全永続化 |
+
+## 2026-09-07 Shift盤面選択公開
+
+- `ad49a41`（main `4b2ea3d`、公開HEAD `ddfb0a7`）で、Half Shift／Triple Shiftの数値入力・selectを廃止し、行・列を選んで盤面の対象帯をtapまたはkeyboardで決め、方向だけを左／右・上／下から選ぶ操作へ統一した。
+- Halfは全playable帯、Tripleは外周を理由付きで拒否する。中央を黄色実線、隣接帯を紫破線で示し、取消はwrite-free、確定前は無送信、保存失敗時は同じzero-based payloadとaction IDだけを再送する。
+- clean releaseとCI候補は同一tree。ローカルfocused 115/115・skip 0、独立Chrome/Edge各3/3・skip 0、Windows run `34041850645`の両jobとEdge local lifecycleが成功した。
+- Pages run `34043472457`でstyle v38、feedback v2、app v39、local bundle v3を公開した。全主要assetはHTTP 200かつ監査SHA-256一致、390pxのhorizontal overflow 0、console error 0、candidate preflight `ok:true`を確認した。frontend/Pages限定で、Edge deployment 22、SQL、migration、RPC、engine bundleは変更していない。
 
 ## 2026-09-06 基本効果音・スマホ振動公開
 
