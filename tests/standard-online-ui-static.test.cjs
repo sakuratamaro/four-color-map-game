@@ -10,6 +10,13 @@ const root = path.join(__dirname, "..");
 const html = fs.readFileSync(path.join(root, "standard-online-v5", "index.html"), "utf8");
 const app = fs.readFileSync(path.join(root, "standard-online-v5", "app.js"), "utf8");
 const skillIntents = fs.readFileSync(path.join(root, "standard-online-v5", "standard-online-skill-intents.js"), "utf8");
+
+test("Standard Online declares its own four-color favicon", () => {
+  assert.match(html, /<link rel="icon" href="data:image\/svg\+xml,/);
+  for (const color of ["%23ef476f", "%23ffd166", "%2306d6a0", "%231182e8"]) {
+    assert.equal(html.includes(color), true);
+  }
+});
 const clientSource = fs.readFileSync(path.join(root, "standard-online-v5", "standard-online-client.js"), "utf8");
 const css = fs.readFileSync(path.join(root, "standard-online-v5", "style.css"), "utf8");
 const progressionCss = fs.readFileSync(path.join(root, "standard-online-v5", "progression.css"), "utf8");
