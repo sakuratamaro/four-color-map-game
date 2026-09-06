@@ -1941,6 +1941,7 @@ test("actual browser selects an alpha.4 colored corner bloom by region then macr
     const macroChoice = target.getByRole("button", { name: "上から1行・左から1列" });
     await macroChoice.focus();
     await page.keyboard.press("Space");
+    await page.waitForFunction(() => document.activeElement?.id === "board");
     assert.equal(await board.evaluate((node) => node === document.activeElement), true);
     assert.equal(await target.getByRole("button", { name: "この対象で使う" }).isEnabled(), true);
     await page.keyboard.press("Escape");
