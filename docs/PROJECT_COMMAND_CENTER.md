@@ -113,7 +113,7 @@
 | 二端末P0 handoff | PENDING | `72040b8`の対人/CPU/LAB完走、390px盤面導線、盤面選択アシスト、最新手スポットライト、確定接触feedback、公開戦術trace、開始前取りやめ、終局理由、Quick継続、途中再読込、報酬→ガチャ→6枚再編成→再戦、永続化だけを残件として回収 |
 | active-room排他・room外6枚編成・開始前取りやめ | `426dc41`でPUBLIC_VERIFIED | 次便は競合時の既存room再同期・日本語文言を独立して改善する |
 | 新カード候補 | `legalRecolor`をLAB限定で条件付き採用 | IDは維持し表示名を「塗り直し・乱」、妨害★3/WORK、ガチャOFF・双方1回貸与で公開。二色市松は1地域1色モデルを壊すため別rulesetへ分離 |
-| Google identity link | 匿名＋任意linkを最終方向、現時点はPhase 0 | 既存匿名導線を維持したread-only監査だけを行う。rollbackは新規link入口/UIを閉じてPagesを戻し、既にlink済みの利用者を解除しない |
+| Google identity link | 匿名＋任意linkはPhase 0の暫定候補、採否未決定 | 既存匿名導線を維持したread-only監査だけを行う。採用時のrollback候補は新規link入口/UIを閉じてPagesを戻し、既にlink済みの利用者を解除しない |
 | nested Expo設計群 | 旧ローカル試作 | 現行Standard Onlineから凍結分離 |
 
 ## 体験改善の判断軸

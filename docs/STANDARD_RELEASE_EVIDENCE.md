@@ -345,7 +345,7 @@
 | `afc89af` Pages・公開asset | PASS | 2026-09-06 | Pages `33993298423`。app v25/client+intents v17/style v24、金破線・水色実線・board-stage markerをHTTP 200で確認。LAB/active-room/v3-load/8引数initializeを含むcandidate preflight `ok:true` |
 | 盤面選択アシスト Windows gate | PASS | 2026-09-06 | `72040b8`、run `33999760232`。Windows 2025のChrome/Edge各64件成功。200% zoom、44px macro、pointer/keyboard、candidate cue、390px非交差、reload整列を検査。先行4 runsの失敗履歴を保持 |
 | `72040b8` Pages・公開asset | PASS | 2026-09-06 | Pages `34000125784`。app v28/client+intents v17/style v26、turn-guide内zoom、status role分離、正しいtitleを公開DOMで確認 |
-| 公開匿名CPU有限受入 | PASS | 2026-09-06 | 明示CPU同意前の非開始、10人、うっかりユズとの6枚setup・完走・reload・投了報酬・同CPU再戦、PvP/CPU戦績分離、ガチャ券とカードの再読込永続化、private palette非漏えいを確認 |
+| 公開匿名CPU有限受入 | PASS | 2026-09-06 | 明示CPU同意前の非開始、10人、うっかりユズとの6枚setup・合法CPU手・途中reload・投了終局・精算報酬・同CPU再戦、PvP/CPU戦績分離、ガチャ券とカードの再読込永続化、private palette非漏えいを確認 |
 | 二端末最終受入 | NOT_RUN | PENDING | PENDING |
 
 ## 残存リスク
