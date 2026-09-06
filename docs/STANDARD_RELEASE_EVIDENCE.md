@@ -12,7 +12,7 @@
 | --- | --- | --- | --- |
 | 採否棚卸し | VERIFIED | `ONLINE_COMPLETION_INVENTORY.md`。旧Expo試作と現行Web Standardを分離済み | 公開後に状態列だけ更新 |
 | 製品コード・生成元 | PUBLIC_VERIFIED | 公開HEAD `ddfb0a7`（Shift製品`ad49a41`、main統合`4b2ea3d`）。alpha.2の自動敗北廃止、Lv5多段推論、初期OFFの音・振動を維持し、Pages限定でShift盤面選択を追加。engine/Edge bundleは不変 | 次回engine変更時に再生成一致を確認 |
-| alpha.3カテゴリ制限候補 | INTEGRATED_CANDIDATE | source `d627cd5`（親`ad49a41`）をmain `b01c43e`起点へ`d3cb130`として適用し、候補59 pathのblobが59/59同値。非Playwright 751/751、カテゴリ390px実browser Chrome/Edge各1/1、独立focused 232/232、Edge全77/77。Local/Edge bundle二巡再生成は候補SHA一致 | Chrome全browser、正式製品試験、Windows CI、互換rollback保全、Pages/Edge/live確認 |
+| alpha.3カテゴリ制限候補 | LOCAL_VERIFIED | source `d627cd5`（親`ad49a41`）をmain `b01c43e`起点へ`d3cb130`として適用し、候補59 pathのblobが59/59同値。非Playwright 751/751、独立focused 232/232、Chrome/Edge全browser各77/77・skip 0。Local/Edge bundle二巡再生成は候補SHA一致。互換rollback `3f4548d`はGitHub保全済み | 正式製品試験、Windows CI、Pages/Edge/live確認 |
 | ローカル製品試験 | VERIFIED | 音便focused unit/static/workflow/bundle 96/96・skip 0、独立再監査P0/P1なし。Web Locks 2ページ競合はローカルEdge/Chrome各2/2、同一ID一意出力・異ID保持・3ページ目duplicateを確認 | 物理端末で音量・振動感と救済判断、Lv5の体感確認 |
 | Shift select候補 | SUPERSEDED | `24caae8`→`d9b6fe9`→`1557ff1`。失敗run `34026276754` / `34027199050`で旧fixtureとretry payloadを修正し、run `34027488186`はChrome/Edge成功。ただしユーザー決定は盤面tap指定のためmain/Pagesへ昇格せず、`8944572`で製品差分をrevert | UDL-20260906-001として盤面操作UXを再設計 |
 | Shift盤面選択 | PUBLIC_VERIFIED | 製品`ad49a41`、main `4b2ea3d`、公開HEAD `ddfb0a7`。select/数値入力を廃止し、行・列→盤面tap/keyboard、自然語方向、取消無送信、再送identity、no-oracleを維持。Windows `34041850645`はChrome/Edge成功、独立各3/3・skip 0。Pages `34043472457`成功、公開asset SHA一致、390px overflow 0、console 0、preflight `ok:true` | 物理端末でShift操作感を最終受入 |
@@ -53,7 +53,7 @@
 - source `d627cd5`は同一seatの連続action-control windowで同じusage categoryを1回に制限する。accepted miss/no-opはカードとinventoryを減らさずcategory枠だけを使い、reject、cancel、persistence failureはstate、RNG、receipt、枠を変えない。alpha.1/2はwindowなし・同カテゴリ連続可を維持する。
 - `colorBonusRefill`は+2・上限4だが、通常19枚catalog、6枚loadout、gachaには追加せず、実験貸与または既存fixed CPU loadoutで実際にhandへ入った場合だけ使う。Hard CPUの補充charge 2とshape skill charge 100もhandにあるskillだけへ適用し、category制限を迂回しない。
 - `b01c43e`起点のclean release床へ`d3cb130`として適用した。候補59 pathはsourceとblob 59/59同値。Local bundle SHA-256は`968C4C1FBBD7566CDEE17CD0D3F6CDCE186FF6661D069656EB5D1A89F47A3C12`、Edge bundleは`D6810705473E8761D24BA4871F1A45D407B636B4A88596DD8951536D018897E5`で、二巡再生成後も差分なし。
-- source側の非Playwrightは751/751、カテゴリ専用390px actual browserはChrome/Edge各1/1・skip 0。独立監査はfocused 232/232、Edge全browser 77/77、bundle source包含Local 26/26・Edge 10/10を確認し、P0/P1なし。Chrome全browser、正式製品試験、Windows CI、Pages/Edge/liveはまだ実行中または`NOT_RUN`であり、公開済みとは扱わない。
+- source側の非Playwrightは751/751。独立監査はfocused 232/232、Chrome/Edge全browser各77/77・skip 0、カテゴリ専用390pxケース両browser合格、bundle source包含Local 26/26・Edge 10/10、メモリ内再生成byte一致を確認し、P0/P1なし。P2はlive環境でのカテゴリ使用→同カテゴリrejectが未実施である点だけ。正式製品試験、Windows CI、Pages/Edge/liveはまだ実行中または`NOT_RUN`であり、公開済みとは扱わない。
 - Edgeの新規engine versionはrequest body由来でなく内部定数からだけ指定する。同じalpha.3対応bundleを保持して新規作成だけalpha.2へ戻す互換rollbackを`codex/standard-alpha3-compat-rollback-20260907@3f4548d`としてGitHubへ保全した。Edge handler、alpha.2作成、alpha.3継続、bundle無差分は63/63・skip 0。active alpha.3 roomが0になる前に旧deployment 22へ単純復帰しない。SQL、migration、RPC、secret変更はない。
 
 ## 2026-09-06 基本効果音・スマホ振動公開
