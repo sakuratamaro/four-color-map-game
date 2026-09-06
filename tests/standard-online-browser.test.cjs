@@ -1800,6 +1800,92 @@ test("actual Edge quiz freezes for the hint, resumes without room polling, and a
   });
 });
 
+test(`${browserName} keeps quiz hitboxes fixed while their labels drift at 390px`, { timeout: 130000 }, async () => {
+  await withPage("quiz", async (page) => {
+    await page.getByRole("button", { name: "クイズ・ガチャ" }).click();
+    await page.getByRole("button", { name: "10問チャレンジ開始" }).click();
+    const options = page.locator("#quizOptions button");
+    await options.first().waitFor();
+    await options.first().evaluate((button) => button.scrollIntoView({ block: "center" }));
+
+    const snapshot = () => page.evaluate(() => ({
+      order: [...document.querySelectorAll("#quizOptions button")].map((button) => button.textContent),
+      overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+      buttons: [...document.querySelectorAll("#quizOptions button")].map((button) => {
+        const label = button.querySelector(".quiz-option-float");
+        const box = button.getBoundingClientRect();
+        const visual = label.getBoundingClientRect();
+        return {
+          box: { x: box.x, y: box.y, width: box.width, height: box.height },
+          visual: { left: visual.left, right: visual.right, top: visual.top, bottom: visual.bottom },
+          animationName: getComputedStyle(label).animationName,
+          centerTargetIsButton: document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2) === button,
+        };
+      }),
+    }));
+
+    const before = await snapshot();
+    await page.waitForTimeout(450);
+    const after = await snapshot();
+    assert.deepEqual(after.order, before.order);
+    assert.equal(after.overflow, false);
+    assert.ok(after.buttons.every(({ box }) => box.height >= 52), JSON.stringify(after));
+    assert.ok(after.buttons.every(({ animationName }) => animationName === "quiz-option-drift"), JSON.stringify(after));
+    assert.ok(after.buttons.every(({ centerTargetIsButton }) => centerTargetIsButton), JSON.stringify(after));
+    for (let index = 0; index < before.buttons.length; index += 1) {
+      assert.deepEqual(after.buttons[index].box, before.buttons[index].box);
+      const { box, visual } = after.buttons[index];
+      assert.ok(visual.left >= box.x && visual.right <= box.x + box.width, JSON.stringify(after.buttons[index]));
+      assert.ok(visual.top >= box.y && visual.bottom <= box.y + box.height, JSON.stringify(after.buttons[index]));
+      for (let other = index + 1; other < after.buttons.length; other += 1) {
+        const a = box; const b = after.buttons[other].box;
+        assert.ok(a.x + a.width <= b.x || b.x + b.width <= a.x || a.y + a.height <= b.y || b.y + b.height <= a.y);
+      }
+    }
+
+    await options.first().focus();
+    await page.keyboard.press("Tab");
+    await page.keyboard.press("Shift+Tab");
+    const focused = await options.first().evaluate((button) => ({
+      outline: getComputedStyle(button).outlineStyle,
+      outlineOffset: getComputedStyle(button).outlineOffset,
+      motion: getComputedStyle(button.querySelector(".quiz-option-float")).animationName,
+    }));
+    assert.equal(focused.outline, "solid");
+    assert.equal(focused.outlineOffset, "-4px");
+    assert.equal(focused.motion, "none");
+
+    await page.getByRole("button", { name: "ヒントを見る" }).click();
+    assert.ok(await options.evaluateAll((buttons) => buttons.every((button) => getComputedStyle(button.querySelector(".quiz-option-float")).animationName === "none")));
+    await page.locator("#quizHintText").waitFor({ state: "hidden", timeout: 4500 });
+    assert.ok(await options.evaluateAll((buttons) => buttons.every((button) => getComputedStyle(button.querySelector(".quiz-option-float")).animationName === "quiz-option-drift")));
+
+    await page.evaluate(() => { globalThis.__standardOnlineRuntime.failNextQuizAnswer = true; });
+    await options.first().click();
+    await page.getByRole("button", { name: "同じ回答を再送" }).waitFor();
+    const labels = page.locator("#quizOptions .quiz-option-float");
+    assert.equal(await labels.count(), 6);
+    assert.ok(await labels.evaluateAll((nodes) => nodes.every((node) => getComputedStyle(node).animationName === "none")));
+    await page.getByRole("button", { name: "同じ回答を再送" }).click();
+    await page.getByText("2 / 10", { exact: true }).waitFor();
+    assert.ok(await page.locator("#quizOptions .quiz-option-float").evaluateAll((nodes) => nodes.every((node) => getComputedStyle(node).animationName === "none")));
+    await page.waitForTimeout(700);
+    await page.mouse.move(0, 0);
+    assert.ok(await page.locator("#quizOptions .quiz-option-float").evaluateAll((nodes) => nodes.every((node) => getComputedStyle(node).animationName === "quiz-option-drift")));
+    await page.reload({ waitUntil: "load" });
+    await page.locator("#connectionBadge.good").waitFor();
+    await page.locator("#quizOptions .quiz-option-float").first().waitFor();
+    await page.mouse.move(0, 0);
+    assert.ok(await page.locator("#quizOptions .quiz-option-float").evaluateAll((nodes) => nodes.every((node) => getComputedStyle(node).animationName === "quiz-option-drift")));
+
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    assert.ok(await page.locator("#quizOptions button").evaluateAll((buttons) => buttons.every((button) => {
+      const style = getComputedStyle(button.querySelector(".quiz-option-float"));
+      return style.animationName === "none" && style.transform === "none";
+    })));
+  }, { viewport: { width: 390, height: 844 } });
+});
+
 test("per-question quiz feedback commits before advancing, retries the same answer, and keeps only brief motion", { timeout: 130000 }, async () => {
   await withPage("quiz", async (page) => {
     await page.getByRole("button", { name: "クイズ・ガチャ" }).click();

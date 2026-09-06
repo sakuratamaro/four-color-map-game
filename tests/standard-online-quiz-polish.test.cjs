@@ -47,12 +47,29 @@ test("hints mix one useful formula with decoys without identifying the useful on
   assert.match(app, /使うものと使わないものが混ざっています/);
 });
 
-test("question choices glow without moving their click targets and honor reduced motion", () => {
-  assert.match(css, /\.quiz-options button\{animation:quiz-option-glow/);
+test("question choices drift inside fixed glowing click targets and honor reduced motion", () => {
+  assert.match(css, /body\[data-active-tab="quiz"\] \.quiz-options:not\(\.motion-paused\) button:not\(:disabled\)\{animation:quiz-option-glow/);
   const glow = css.match(/@keyframes quiz-option-glow\{[^}]+\}[^}]+\}/)?.[0] || "";
   assert.match(glow, /box-shadow/);
   assert.doesNotMatch(glow, /transform|translate|rotate/);
-  assert.match(css, /@media\(prefers-reduced-motion:reduce\)\{\.quiz-options button\{animation:none\}\}/);
+  const drift = css.match(/@keyframes quiz-option-drift\{[^}]+\}[^}]+\}/)?.[0] || "";
+  assert.match(drift, /translate3d\(-2px,-2px,0\)/);
+  assert.match(drift, /translate3d\(2px,3px,0\)/);
+  assert.match(css, /\.quiz-options button\{min-height:52px;overflow:hidden/);
+  assert.match(css, /\.quiz-option-float\{display:block;pointer-events:none/);
+  assert.match(css, /\.quiz-options button:is\(:hover,:focus-visible,:active\) \.quiz-option-float\{animation:none!important;transform:none!important\}/);
+  assert.match(css, /@media\(prefers-reduced-motion:reduce\)\{\.quiz-options button,\.quiz-option-float\{animation:none!important;transform:none!important/);
+  const render = app.slice(app.indexOf("function renderQuiz()"), app.indexOf("async function startOnlineQuiz()"));
+  assert.match(render, /label\.className = "quiz-option-float"/);
+  assert.match(render, /label\.textContent = option\.label/);
+  assert.match(render, /button\.appendChild\(label\)/);
+  assert.match(render, /button\.style\.setProperty\("--float-order", String\(optionIndex\)\)/);
+  assert.doesNotMatch(render, /Math\.random|requestAnimationFrame|setInterval/);
+  assert.match(app, /document\.visibilityState !== "visible"/);
+  assert.match(app, /activeAppTab !== "quiz"/);
+  assert.match(app, /Boolean\(pendingQuiz\.pendingAnswer\)/);
+  assert.match(app, /Number\(state\?\.hintActiveUntil \|\| 0\) > Date\.now\(\)/);
+  assert.match(app, /const motionResumeDelay = Math\.max\(0, quizFeedbackUntil - Date\.now\(\)\) \+ 10/);
 });
 
 test("question catalog includes formatted higher math, geometry, solids, and Japanese word problems", () => {

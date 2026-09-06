@@ -1788,6 +1788,7 @@ function updateQuizClock() {
     renderQuizHint(question, state);
     for (const option of $("quizOptions").querySelectorAll("button")) option.disabled = quizBusy || remaining <= 0;
   }
+  syncQuizOptionMotion(state);
   if (!remaining && !hintRemaining && !quizTimeoutQueued) {
     quizTimeoutQueued = true;
     setTimeout(() => {
@@ -1963,8 +1964,14 @@ function emphasizeQuizFeedback() {
   host.classList.remove("emphasize");
   requestAnimationFrame(() => host.classList.add("emphasize"));
   setTimeout(() => {
-    if (generation === quizFeedbackGeneration) host.classList.remove("emphasize");
+    if (generation === quizFeedbackGeneration) {
+      host.classList.remove("emphasize");
+    }
   }, 600);
+  const motionResumeDelay = Math.max(0, quizFeedbackUntil - Date.now()) + 10;
+  setTimeout(() => {
+    if (generation === quizFeedbackGeneration) syncQuizOptionMotion();
+  }, motionResumeDelay);
 }
 
 function renderQuizResult() {
@@ -1994,6 +2001,22 @@ function renderQuizResult() {
   }
 }
 
+function quizOptionMotionPaused(state = pendingQuiz?.questionState) {
+  return document.visibilityState !== "visible"
+    || activeAppTab !== "quiz"
+    || quizBusy
+    || quizLockedByMatchedRoom()
+    || !pendingQuiz
+    || pendingQuiz.answers.length >= 10
+    || Boolean(pendingQuiz.pendingAnswer)
+    || Date.now() < quizFeedbackUntil
+    || Number(state?.hintActiveUntil || 0) > Date.now();
+}
+
+function syncQuizOptionMotion(state = pendingQuiz?.questionState) {
+  $("quizOptions")?.classList.toggle("motion-paused", quizOptionMotionPaused(state));
+}
+
 function renderQuiz() {
   renderWaitingOpponentNotice();
   if (!$('quizPanel')) return;
@@ -2017,7 +2040,7 @@ function renderQuiz() {
   renderQuizAnswerFeedback();
   renderQuizStreak();
   renderQuizOutlook();
-  if (!pendingQuiz) { stopQuizClock(); return; }
+  if (!pendingQuiz) { stopQuizClock(); syncQuizOptionMotion(); return; }
   const lockedByMatch = quizLockedByMatchedRoom();
   if (lockedByMatch) $("quizStatus").textContent = quizRoomClassificationPending
     ? QUIZ_ROOM_CHECK_STATUS
@@ -2028,6 +2051,7 @@ function renderQuiz() {
   $("quizOptions").replaceChildren();
   if (index >= 10) {
     stopQuizClock();
+    syncQuizOptionMotion();
     $("quizQuestion").textContent = "10問回答済みです。サーバーで採点します。";
     const retry = document.createElement("button");
     retry.className = "primary";
@@ -2048,8 +2072,11 @@ function renderQuiz() {
   renderQuizHint(question, questionState);
   for (const [optionIndex, option] of (question.options || []).entries()) {
     const button = document.createElement("button");
-    button.textContent = option.label;
     button.style.setProperty("--float-order", String(optionIndex));
+    const label = document.createElement("span");
+    label.className = "quiz-option-float";
+    label.textContent = option.label;
+    button.appendChild(label);
     button.disabled = quizBusy || lockedByMatch || Boolean(pendingQuiz.pendingAnswer) || Number(questionState?.hintActiveUntil || 0) > Date.now();
     button.onclick = () => answerOnlineQuiz(option.id);
     $("quizOptions").appendChild(button);
@@ -2064,6 +2091,7 @@ function renderQuiz() {
     $("quizOptions").appendChild(retry);
   } else if (lockedByMatch) stopQuizClock();
   else startQuizClock();
+  syncQuizOptionMotion(questionState);
 }
 
 async function startOnlineQuiz() {
@@ -4276,6 +4304,7 @@ $("abandonRoomDialog").addEventListener("close", () => {
 });
 document.addEventListener("visibilitychange", () => {
   roomSync.handleVisibilityChange();
+  syncQuizOptionMotion();
   if (document.visibilityState === "hidden") {
     turnArrivalBackgrounded = true;
     clearTurnArrivalBeat();
