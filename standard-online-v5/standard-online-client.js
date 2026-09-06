@@ -370,6 +370,24 @@
       persist();
       return clone(row);
     }
+    async function readMatchmakingAvailability() {
+      await ensureSession();
+      const response = await supabase.rpc("fcg_standard_matchmaking_availability");
+      if (response.error) throw normalizeRpcError(response.error);
+      const rows = response.data == null ? [] : response.data;
+      if (!Array.isArray(rows) || rows.length !== 1) {
+        throw Object.assign(new Error("募集状況を安全に確認できませんでした。"), { code: "INVALID_MATCHMAKING_AVAILABILITY" });
+      }
+      const row = rows[0];
+      if (typeof row?.has_waiting_opponent !== "boolean"
+          || typeof row?.observed_at !== "string" || !Number.isFinite(Date.parse(row.observed_at))) {
+        throw Object.assign(new Error("募集状況を安全に確認できませんでした。"), { code: "INVALID_MATCHMAKING_AVAILABILITY" });
+      }
+      return Object.freeze({
+        hasWaitingOpponent: row.has_waiting_opponent,
+        observedAt: row.observed_at,
+      });
+    }
     async function recoverActiveRoom() {
       await ensureSession();
       const response = await supabase.rpc("fcg_standard_active_room");
@@ -728,6 +746,7 @@
       initialize,
       joinRoom,
       readMatchmakingStatus,
+      readMatchmakingAvailability,
       readCpuRoster,
       readCosmetics,
       readProfile,

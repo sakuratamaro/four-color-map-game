@@ -40,6 +40,7 @@ function supabaseFixture({ roomStatus = "ready", roomVersion = 10 } = {}) {
       if (name === "fcg_standard_matchmaking_status") return { data: [{ ticket_id: args.p_ticket_id, matchmaking_status: "searching", room_id: null, seat: null, wait_started_at: "2099-01-01T00:00:00Z" }] };
       if (name === "fcg_standard_matchmaking_cancel") return { data: [{ ticket_id: args.p_ticket_id, matchmaking_status: "cancelled", room_id: null, seat: null }] };
       if (name === "fcg_standard_matchmaking_find") return { data: [{ matchmaking_status: "matched", room_id: ROOM_ID, seat: "B", duplicate: false }] };
+      if (name === "fcg_standard_matchmaking_availability") return { data: [{ has_waiting_opponent: true, observed_at: "2099-01-01T00:00:00Z" }] };
       if (name === "fcg_standard_active_room") return { data: [] };
       if (name === "fcg_standard_room_snapshot_v2") return { data: {
         snapshot_schema_version: 2,
@@ -157,6 +158,46 @@ test("public matchmaking persists recruit and find identities and hands matched 
   assert.deepEqual(supabase.calls.filter((call) => call.kind === "rpc").map((call) => call.name), [
     "fcg_standard_matchmaking_recruit", "fcg_standard_matchmaking_status", "fcg_standard_matchmaking_cancel", "fcg_standard_matchmaking_find",
   ]);
+});
+
+test("matchmaking availability normalizes exactly one boolean snapshot without exposing raw fields", async () => {
+  const supabase = supabaseFixture();
+  const originalRpc = supabase.rpc;
+  supabase.rpc = async (name, args) => {
+    const response = await originalRpc(name, args);
+    if (name === "fcg_standard_matchmaking_availability") {
+      response.data[0].display_name = "private-name";
+      response.data[0].room_id = ROOM_ID;
+    }
+    return response;
+  };
+  const client = createStandardOnlineClient({ supabase, storage: storageFixture(), idFactory: () => ACTION_ID });
+  assert.deepEqual(await client.readMatchmakingAvailability(), {
+    hasWaitingOpponent: true,
+    observedAt: "2099-01-01T00:00:00Z",
+  });
+  assert.deepEqual(supabase.calls.filter((call) => call.kind === "rpc").map((call) => [call.name, call.args]), [
+    ["fcg_standard_matchmaking_availability", undefined],
+  ]);
+});
+
+test("matchmaking availability rejects missing, duplicate, or malformed snapshots", async () => {
+  for (const data of [
+    [],
+    [
+      { has_waiting_opponent: true, observed_at: "2099-01-01T00:00:00Z" },
+      { has_waiting_opponent: false, observed_at: "2099-01-01T00:00:01Z" },
+    ],
+    [{ has_waiting_opponent: 1, observed_at: "not-a-date" }],
+  ]) {
+    const supabase = supabaseFixture();
+    supabase.rpc = async (name) => {
+      assert.equal(name, "fcg_standard_matchmaking_availability");
+      return { data };
+    };
+    const client = createStandardOnlineClient({ supabase, storage: storageFixture(), idFactory: () => ACTION_ID });
+    await assert.rejects(client.readMatchmakingAvailability(), { code: "INVALID_MATCHMAKING_AVAILABILITY" });
+  }
 });
 
 test("a failed public find reuses the same persisted action ID on retry", async () => {
