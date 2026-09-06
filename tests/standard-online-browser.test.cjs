@@ -1620,6 +1620,43 @@ test("actual Edge routes immediate skills and keeps target cancellation write-fr
   });
 });
 
+test("actual browser completes corner bloom from the board without a raw macro number", { timeout: 130000 }, async () => {
+  await withPage("playing", async (page) => {
+    await page.evaluate(() => {
+      const runtime = globalThis.__standardOnlineRuntime;
+      runtime.view = { ...runtime.view, private_state: {
+        ...runtime.view.private_state,
+        hand: { ...runtime.view.private_state.hand, areaCornerBloom: 1 },
+      } };
+      runtime.onInvalidate?.({});
+    });
+    const skill = page.getByRole("button", { name: "角膨張 ×1" });
+    await skill.click();
+    const target = page.locator("#skillTargetControls");
+    await target.getByText(/盤面であと1マス選んで/).waitFor();
+    assert.equal(await target.locator('input[type="number"]').count(), 0);
+    assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "action").length), 0);
+
+    await page.locator("#board").click({ position: { x: 50, y: 50 } });
+    const coordinate = target.getByRole("button", { name: /上から1行・左から1列/ });
+    await coordinate.waitFor();
+    const coordinateBox = await coordinate.boundingBox();
+    assert.ok(coordinateBox.height >= 44, JSON.stringify(coordinateBox));
+    assert.equal(await coordinate.getAttribute("aria-pressed"), "true");
+    assert.match(await target.getByText(/基準マスを選択しました/).first().textContent(), /基準マスを選択しました/);
+    const useTarget = target.getByRole("button", { name: "この対象で使う" });
+    assert.equal(await useTarget.isEnabled(), true);
+    await useTarget.click();
+    await page.getByText("操作を保存しました。").waitFor();
+    const actions = await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "action").map((entry) => entry.body.action));
+    assert.equal(actions.length, 1);
+    assert.equal(actions[0].type, "USE_SKILL");
+    assert.equal(actions[0].payload.skill, "areaCornerBloom");
+    assert.deepEqual(actions[0].payload.sourceMacros, [actions[0].payload.macro]);
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth), false);
+  }, { viewport: { width: 390, height: 844 } });
+});
+
 test("actual browser exposes one keyboard-safe recolor lab loan without touching the 19-card library", { timeout: 130000 }, async () => {
   await withPage("labPlaying", async (page) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
@@ -3317,6 +3354,15 @@ test("actual Edge keeps safe deterministic action and debug setup errors beside 
     const status = page.locator("#actionStatus");
     await page.locator('#paletteControls .color-button[data-color="red"]').click();
     await status.getByText(/隣り合う領域が同色.*操作を選び直してください/).waitFor();
+    await page.locator("#toast.show").waitFor();
+    const toastLayout = await page.evaluate(() => ({
+      toast: document.querySelector("#toast").getBoundingClientRect(),
+      tabs: document.querySelector(".app-tabs").getBoundingClientRect(),
+      connection: document.querySelector(".connection-card").getBoundingClientRect(),
+      z: Number(getComputedStyle(document.querySelector("#toast")).zIndex),
+    }));
+    assert.ok(toastLayout.toast.bottom <= Math.min(toastLayout.tabs.top, toastLayout.connection.top), JSON.stringify(toastLayout));
+    assert.ok(toastLayout.z > 60, JSON.stringify(toastLayout));
     assert.equal(await page.locator("#retryAction").isHidden(), true);
     assert.doesNotMatch(await page.locator("body").textContent(), /authoritative_state|service secret|private stack/i);
     await page.locator('#paletteControls .color-button[data-color="red"]').click();
@@ -3607,7 +3653,7 @@ test("actual browser presents a committed contact cascade once and keeps a publi
   }, { viewport: { width: 390, height: 844 } });
 });
 
-test("actual browser spotlights only exact public regions and keeps both same-region cues distinct", { timeout: 120000 }, async () => {
+test("actual browser never draws removed current or previous region history outlines", { timeout: 120000 }, async () => {
   await withPage("playing", async (page) => {
     await page.evaluate(() => {
       const originalStroke = CanvasRenderingContext2D.prototype.stroke;
@@ -3645,6 +3691,8 @@ test("actual browser spotlights only exact public regions and keeps both same-re
       }, { version, active, phase, pending, regions, trace, finished });
       await page.waitForFunction((expected) => document.querySelector("#versionText")?.textContent === String(expected), version);
     };
+    const historyStrokes = () => page.evaluate(() => globalThis.__spotlightStrokes.filter((entry) => ["#facc15", "#22d3ee"].includes(entry.color)));
+    assert.equal(await page.locator("#boardSpotlightLegend").count(), 0);
     const region1 = { R1: { id: "R1", micro: [5, 6], sourceMacros: [5], controllers: ["A"], color: null, isPending: true } };
     await update({
       version: 10,
@@ -3653,28 +3701,16 @@ test("actual browser spotlights only exact public regions and keeps both same-re
       regions: region1,
       trace: { type: "CREATE_REGION", actor: "A", regionId: "R1", sourceMacroCount: 1, contactColorCount: 2 },
     });
-    assert.equal(await page.locator("#lastMoveSpotlightLegend").isVisible(), true);
-    assert.equal(await page.locator("#pendingSpotlightLegend").isVisible(), true);
-    assert.match(await page.locator("#lastMoveSpotlightLegend").textContent(), /破線/);
-    assert.match(await page.locator("#pendingSpotlightLegend").textContent(), /実線/);
+    assert.deepEqual(await historyStrokes(), []);
     const sameRegion = await page.evaluate(() => ({
-      strokes: globalThis.__spotlightStrokes.filter((entry) => ["#facc15", "#22d3ee"].includes(entry.color)),
-      pointerEvents: getComputedStyle(document.querySelector("#boardSpotlightLegend")).pointerEvents,
       overflow: document.documentElement.scrollWidth > innerWidth,
       canvasWidth: document.querySelector("#board").getBoundingClientRect().width,
       paletteBottom: document.querySelector("#paletteControls button")?.getBoundingClientRect().bottom,
       connectionTop: document.querySelector("#connectionCard").getBoundingClientRect().top,
       navTop: document.querySelector(".app-tabs").getBoundingClientRect().top,
-      boardBottom: document.querySelector("#board").getBoundingClientRect().bottom,
-      legendTop: document.querySelector("#boardSpotlightLegend").getBoundingClientRect().top,
     }));
-    assert.deepEqual(sameRegion.strokes.map((entry) => entry.color), ["#facc15", "#22d3ee"]);
-    assert.equal(sameRegion.strokes[0].dash.length, 2);
-    assert.deepEqual(sameRegion.strokes[1].dash, []);
-    assert.ok(sameRegion.strokes.every((entry) => entry.width * sameRegion.canvasWidth / 720 >= 3));
-    assert.equal(sameRegion.pointerEvents, "none");
     assert.equal(sameRegion.overflow, false);
-    assert.ok(sameRegion.legendTop >= sameRegion.boardBottom);
+    assert.ok(sameRegion.canvasWidth > 300, JSON.stringify(sameRegion));
     assert.ok(sameRegion.paletteBottom <= sameRegion.connectionTop);
     assert.ok(sameRegion.paletteBottom <= sameRegion.navTop);
 
@@ -3683,16 +3719,14 @@ test("actual browser spotlights only exact public regions and keeps both same-re
       regions: { R1: { ...region1.R1, color: "green", isPending: false } },
       trace: { type: "COLOR_REGION", actor: "B", regionId: "R1", color: "green" },
     });
-    assert.equal(await page.locator("#lastMoveSpotlightLegend").isVisible(), true);
-    assert.equal(await page.locator("#pendingSpotlightLegend").isHidden(), true);
-    assert.deepEqual(await page.evaluate(() => globalThis.__spotlightStrokes.filter((entry) => ["#facc15", "#22d3ee"].includes(entry.color)).map((entry) => entry.color)), ["#facc15"]);
+    assert.deepEqual(await historyStrokes(), []);
 
     await update({
       version: 12,
       regions: { R1: { ...region1.R1, color: "blue", isPending: false } },
       trace: { type: "LEGAL_RECOLOR", actor: "B", regionId: "R1", color: "blue" },
     });
-    assert.equal(await page.locator("#lastMoveSpotlightLegend").isVisible(), true);
+    assert.deepEqual(await historyStrokes(), []);
     assert.match(await page.locator("#tacticalTraceAction").textContent(), /塗り直した/);
 
     await update({
@@ -3700,8 +3734,7 @@ test("actual browser spotlights only exact public regions and keeps both same-re
       regions: { R1: { ...region1.R1, color: "blue", isPending: false } },
       trace: { type: "USE_SKILL", actor: "B" },
     });
-    assert.equal(await page.locator("#boardSpotlightLegend").isHidden(), true);
-    assert.deepEqual(await page.evaluate(() => globalThis.__spotlightStrokes.filter((entry) => ["#facc15", "#22d3ee"].includes(entry.color))), []);
+    assert.deepEqual(await historyStrokes(), []);
 
     const region2 = { ...region1, R2: { id: "R2", micro: [9], sourceMacros: [9], controllers: ["A"], color: null, isPending: true } };
     await update({
@@ -3711,9 +3744,7 @@ test("actual browser spotlights only exact public regions and keeps both same-re
       regions: region2,
       trace: { type: "USE_SKILL", actor: "B", regionId: "R1" },
     });
-    assert.equal(await page.locator("#lastMoveSpotlightLegend").isHidden(), true);
-    assert.equal(await page.locator("#pendingSpotlightLegend").isVisible(), true);
-    assert.deepEqual(await page.evaluate(() => globalThis.__spotlightStrokes.filter((entry) => ["#facc15", "#22d3ee"].includes(entry.color)).map((entry) => entry.color)), ["#22d3ee"]);
+    assert.deepEqual(await historyStrokes(), []);
 
     await update({
       version: 15,
@@ -3722,8 +3753,7 @@ test("actual browser spotlights only exact public regions and keeps both same-re
       regions: region2,
       trace: null,
     });
-    assert.equal(await page.locator("#boardSpotlightLegend").isHidden(), true);
-    assert.deepEqual(await page.evaluate(() => globalThis.__spotlightStrokes.filter((entry) => ["#facc15", "#22d3ee"].includes(entry.color))), []);
+    assert.deepEqual(await historyStrokes(), []);
 
     await page.locator('[data-app-tab="quiz"]').click();
     await update({
@@ -3731,10 +3761,10 @@ test("actual browser spotlights only exact public regions and keeps both same-re
       regions: { R1: { ...region1.R1, color: "red", isPending: false } },
       trace: { type: "COLOR_REGION", actor: "B", regionId: "R1", color: "red" },
     });
-    assert.ok(await page.evaluate(() => Math.max(...globalThis.__spotlightStrokes.map((entry) => entry.width))) < 20);
+    assert.deepEqual(await historyStrokes(), []);
     await page.locator('[data-app-tab="battle"]').click();
     await page.waitForFunction(() => document.querySelector("#board").getBoundingClientRect().width > 0);
-    assert.equal(await page.locator("#lastMoveSpotlightLegend").isVisible(), true);
+    assert.deepEqual(await historyStrokes(), []);
 
     await update({
       version: 17,
@@ -3743,11 +3773,10 @@ test("actual browser spotlights only exact public regions and keeps both same-re
       finished: true,
     });
     await page.locator("#terminalOverlay").waitFor({ state: "visible" });
-    assert.equal(await page.locator("#lastMoveSpotlightLegend").isVisible(), true);
-    assert.equal(await page.locator("#pendingSpotlightLegend").isHidden(), true);
+    assert.deepEqual(await historyStrokes(), []);
     assert.equal(await page.locator("#board").evaluate((node) => node.classList.contains("turn-arrival-beat")), false);
     await page.locator("#terminalClose").click();
-    assert.equal(await page.locator("#lastMoveSpotlightLegend").isVisible(), true);
+    assert.deepEqual(await historyStrokes(), []);
   }, { viewport: { width: 390, height: 844 } });
 });
 

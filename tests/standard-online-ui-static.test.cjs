@@ -30,7 +30,7 @@ test("Standard online setup UI exposes the complete reconnect path", () => {
     "profileSelect", "starterCreator", "starterName", "createStarterProfile", "syncProfile", "createRoom", "roomCode", "joinRoom",
     "shownCode", "cpuCommentaryStage", "cpuCommentaryBubble", "cpuCommentaryName", "cpuCommentaryText", "cpuCommentaryAnnouncement", "members", "editNextLoadout", "setupTitle", "setupDescription", "cpuStartReview", "loadoutSummary", "loadoutGrid", "setupCommitBar", "setupCommitTitle", "submitSetup", "cancelCpuDraft", "setupStatus", "matchCard",
     "publicProjection", "privateProjection", "leaveRoom", "leaveRoomDescription", "abandonRoom", "abandonRoomHint", "abandonRoomDialog", "abandonRoomTitle", "abandonRoomDescription", "abandonRoomStatus", "cancelAbandonRoom", "confirmAbandonRoom", "lobbyTitle",
-    "turnGuide", "turnGuideStep", "turnGuideTitle", "turnGuideDetail", "boardViewport", "board", "boardKeyboardHelp", "boardKeyboardStatus", "toggleBoardZoom", "boardSpotlightLegend", "lastMoveSpotlightLegend", "pendingSpotlightLegend", "regionControls", "selectionCount", "submitRegion", "paletteControls", "skillControls", "skillTargetControls",
+    "turnGuide", "turnGuideStep", "turnGuideTitle", "turnGuideDetail", "boardViewport", "board", "boardKeyboardHelp", "boardKeyboardStatus", "toggleBoardZoom", "regionControls", "selectionCount", "submitRegion", "paletteControls", "skillControls", "skillTargetControls",
     "surrender", "retryAction", "actionStatus", "rematchControls", "rematchStatus", "requestRematch",
     "gachaPanel", "gachaTitle", "gachaTickets", "gachaLevel", "gachaDrawOne", "gachaDrawAll", "gachaRetry", "gachaStatus", "gachaResults",
     "gachaResultSummary", "gachaResultTitle", "gachaResultAnnouncement", "gachaCpuRematch", "gachaCpuRematchNote",
@@ -49,8 +49,8 @@ test("Standard online setup UI exposes the complete reconnect path", () => {
 });
 
 test("CPU commentary is public-event-only, bounded, non-blocking, and terminal-persistent", () => {
-  assert.match(html, /style\.css\?v=20260906-31/);
-  assert.match(html, /app\.js\?v=20260906-32/);
+  assert.match(html, /style\.css\?v=20260906-32/);
+  assert.match(html, /app\.js\?v=20260906-33/);
   assert.ok(html.indexOf("cpu-commentary.js") < html.indexOf('type="module" src="app.js'));
   assert.match(html, /id="cpuCommentaryStage"[^>]+aria-hidden="true"/);
   assert.match(html, /id="cpuCommentaryAnnouncement"[^>]+role="status"[^>]+aria-live="polite"[^>]+aria-atomic="true"/);
@@ -470,6 +470,7 @@ test("server rule errors are safe, persistent, and never offered as an idempoten
   assert.match(html, /id="actionStatus"[^>]+operation-feedback[^>]+aria-atomic="true"/);
   assert.match(css, /\.operation-feedback\[data-tone="error"\]/);
   assert.match(css, /scroll-margin-bottom:calc\(100px \+ env\(safe-area-inset-bottom\)\)/);
+  assert.match(css, /@media\(max-width:700px\)\{#toast\{bottom:calc\(104px \+ env\(safe-area-inset-bottom\)\);z-index:70\}/);
   const reveal = app.slice(app.indexOf("function revealOperationFeedback"), app.indexOf("function setupFailureMessage"));
   assert.match(reveal, /requestAnimationFrame\(\(\) => \{[^]*?scrollIntoView\(\{ block: "center", inline: "nearest" \}\)/);
   assert.doesNotMatch(reveal, /\.focus\(/);
@@ -503,24 +504,15 @@ test("turn guide moves from selection to handoff without exposing a legality ora
   assert.match(css, /\.turn-guide\{display:grid/);
 });
 
-test("board spotlight uses only allowlisted public targets and a local one-shot turn beat", () => {
-  const spotlight = app.slice(app.indexOf("function boardSpotlightModel"), app.indexOf("function observeCommittedContact"));
+test("board omits historical region spotlights while keeping current selection and a local one-shot turn beat", () => {
   const observer = app.slice(app.indexOf("function clearTurnArrivalBeat"), app.indexOf("function observeCommittedContact"));
-  assert.match(spotlight, /const trace = validPublicTrace\(state\)/);
-  assert.match(spotlight, /\["CREATE_REGION", "COLOR_REGION", "LEGAL_RECOLOR"\]\.includes\(trace\.type\)/);
-  assert.match(spotlight, /Object\.hasOwn\(state\.regions, regionId\)/);
-  assert.match(spotlight, /state\?\.status === "ACTIVE" && state\?\.phase === "COLOR"[\s\S]+state\?\.pending/);
-  assert.doesNotMatch(spotlight, /privateState|private_state|availableColorChoices|adjacent|legalColors|payload/);
-  assert.match(app, /strokeRegionBoundary\(ctx, state\.regions\[spotlight\.lastMoveRegionId\][\s\S]+cssDash: \[8, 5\]/);
-  assert.match(app, /strokeRegionBoundary\(ctx, state\.regions\[spotlight\.pendingRegionId\][\s\S]+cssWidth: 3\.5, cssDash: \[\]/);
-  assert.match(app, /ctx\.strokeStyle = "#020617";[\s\S]+ctx\.lineWidth = width \+ \(4 \* cssScale\);[\s\S]+ctx\.strokeStyle = color/);
-  assert.ok(app.indexOf("const spotlight = boardSpotlightModel(state)", app.indexOf("function renderBoard(state)")) < app.indexOf("for (const macro of selectedMacros)", app.indexOf("function renderBoard(state)")));
-  assert.match(html, /金破線：直前/);
-  assert.match(html, /水色実線：今回/);
-  assert.match(css, /\.board-spotlight-legend\{[^}]*pointer-events:none/);
-  assert.match(css, /\.board-stage\{[^}]*padding-bottom:34px/);
-  assert.match(css, /\.board-stage:has\(\.board-spotlight-legend\.hidden\)\{padding-bottom:0\}/);
-  assert.match(css, /@media\(max-width:520px\)\{\.board-stage\{width:calc\(100% - 30px\)\}\.board-stage:has\(\.board-spotlight-legend\.hidden\)\{width:100%\}\}/);
+  assert.doesNotMatch(app, /boardSpotlightModel|renderBoardSpotlightLegend|strokeRegionBoundary/);
+  assert.doesNotMatch(app, /#facc15[^\n]+cssDash: \[8, 5\]|#22d3ee[^\n]+cssWidth: 3\.5/);
+  assert.doesNotMatch(html, /boardSpotlightLegend|lastMoveSpotlightLegend|pendingSpotlightLegend|金破線：直前|水色実線：今回/);
+  assert.doesNotMatch(css, /board-spotlight-legend|board-spotlight-line|padding-bottom:34px/);
+  assert.match(app, /for \(const macro of selectedMacros\)[\s\S]+ctx\.strokeRect/);
+  assert.match(app, /connectedCandidateMacros\(state\)[\s\S]+color: "#86efac"/);
+  assert.match(app, /targetDraft\?\.kind === "corner-bloom"[\s\S]+color: "#f0abfc"[\s\S]+color: "#fdf4ff"/);
   assert.match(app, /const cssScale = displayedWidth > 0 \? ctx\.canvas\.width \/ displayedWidth : 1/);
   assert.match(app, /if \(hasStandardPublicState\(publicState\)\) renderBoard\(publicState\)/);
   assert.match(observer, /previousStatus === "ACTIVE" && previousActive !== seat && active === seat/);
@@ -545,7 +537,7 @@ test("board selection assist enlarges targets and supports connected keyboard se
   assert.match(css, /\.board-zoom-toggle\{min-width:64px;min-height:44px/);
   assert.doesNotMatch(css, /\.board-zoom-toggle\{[^}]*position:absolute/);
   assert.match(css, /\.turn-guide-step\{grid-column:1;grid-row:1;[^}]*\}\.turn-guide>\.board-zoom-toggle\{grid-column:2;grid-row:1\}\.turn-guide>div\{grid-column:1\/-1;grid-row:2\}/);
-  const assist = app.slice(app.indexOf("function boardSelectionAvailable"), app.indexOf("function strokeRegionBoundary"));
+  const assist = app.slice(app.indexOf("function boardSelectionAvailable"), app.indexOf("function strokeMacroFrame"));
   assert.match(assist, /function connectedMacros\(macros, width\)/);
   assert.match(assist, /function macroHasFreeMicro\(state, macro\)/);
   assert.match(assist, /function connectedCandidateMacros\(state\)/);
@@ -651,10 +643,25 @@ test("all 19 skill target kinds route through the reviewed intent builder", () =
   assert.match(app, /sendAction\("USE_SKILL", payload\)/);
 });
 
+test("corner bloom uses a board-first two-stage target flow without raw macro input", () => {
+  const target = app.slice(app.indexOf("function cornerBloomTargetReady"), app.indexOf("function boardSelectionAvailable"));
+  assert.match(target, /相手に渡すエリアを盤面であと\$\{state\.requiredSize - selectedMacros\.size\}マス/);
+  assert.match(target, /白い枠で選んだエリアの中から基準にする1マスをタップ/);
+  assert.match(target, /boardMacroCoordinateLabel\(state, macro\)/);
+  assert.match(target, /aria-label", "角を広げる基準マス"/);
+  assert.match(target, /useTarget\.disabled = !cornerBloomTargetReady\(state\)/);
+  assert.match(target, /skill-target-feedback/);
+  assert.doesNotMatch(target, /input\.type = "number"[\s\S]+角の基準マス/);
+  assert.match(app, /targetDraft\?\.kind === "corner-bloom"\) return selectCornerBloomMacro\(state, macro\)/);
+  assert.match(app, /selectedMacros\.has\(targetDraft\.input\.macro\)/);
+  assert.match(css, /\.corner-bloom-targets button\{min-height:44px\}/);
+  assert.match(css, /\.skill-target-feedback\[data-tone="error"\]/);
+});
+
 test("skill target cancel is write-free and clears only transient selection", () => {
   const cancelTarget = app.slice(app.indexOf("function cancelSkillTarget"), app.indexOf("function renderSkillTarget"));
   assert.match(app, /"キャンセル", cancelSkillTarget/);
-  assert.match(cancelTarget, /targetDraft = null;[\s\S]+selectedMacros\.clear\(\);[\s\S]+render\(\);/);
+  assert.match(cancelTarget, /preserveBoardSelection = targetDraft\?\.kind === "corner-bloom"[\s\S]+if \(!preserveBoardSelection\) selectedMacros\.clear\(\);[\s\S]+render\(\);/);
   assert.match(cancelTarget, /candidate\.dataset\.skill === skill[\s\S]+source\?\.focus/);
   assert.doesNotMatch(cancelTarget, /sendAction|submitAction/);
   assert.match(app, /盤面選択を解除/);

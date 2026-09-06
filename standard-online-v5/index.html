@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <title>Four Color Map Game v5.0 Standard Online</title>
   <link rel="stylesheet" href="../online-v5/style.css">
-  <link rel="stylesheet" href="style.css?v=20260906-31">
+  <link rel="stylesheet" href="style.css?v=20260906-32">
   <link rel="stylesheet" href="debug-mode.css">
   <link rel="stylesheet" href="progression.css">
 </head>
@@ -309,10 +309,6 @@
         </div>
         <p id="boardKeyboardHelp" class="visually-hidden">盤面にフォーカスしたら、矢印キーでマスを移動し、SpaceまたはEnterで選択・解除できます。緑の破線は次に辺でつなげて選べる位置の目印、紫と白の二重線は現在のキーボード位置です。Escapeで選択をすべて解除します。</p>
         <p id="boardKeyboardStatus" class="visually-hidden" role="status" aria-live="polite" aria-atomic="true"></p>
-        <div id="boardSpotlightLegend" class="board-spotlight-legend hidden" aria-label="金色の破線は直前に確定した一手、水色の実線はいま塗るエリアを示します">
-          <span id="lastMoveSpotlightLegend"><i class="board-spotlight-line is-last" aria-hidden="true"></i>金破線：直前</span>
-          <span id="pendingSpotlightLegend"><i class="board-spotlight-line is-pending" aria-hidden="true"></i>水色実線：今回</span>
-        </div>
       </div>
       <div id="regionControls" class="controls hidden">
         <span id="selectionCount"></span>
@@ -431,6 +427,6 @@
   <script src="standard-online-sync.js"></script>
   <script src="standard-online-skill-intents.js?v=20260906-17"></script>
   <script src="cpu-commentary.js?v=20260906-1"></script>
-  <script type="module" src="app.js?v=20260906-32"></script>
+  <script type="module" src="app.js?v=20260906-33"></script>
 </body>
 </html>
