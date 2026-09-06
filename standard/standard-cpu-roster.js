@@ -104,7 +104,9 @@ function chooseCharacterAction({ publicState, ownPrivateState, characterId, poli
   const legacyKurogane = characterId === "kurogane" && selectedPolicyVersion === KUROGANE_LEGACY_POLICY_VERSION;
   if (selectedPolicyVersion !== character.policyVersion && !legacyKurogane) throw new TypeError("UNKNOWN_CPU_POLICY_VERSION");
   const observation = cpu.makeObservation({ publicState, ownPrivateState, difficulty: "hard" });
-  const actions = cpu.enumerateCpuActions(observation);
+  const actions = publicState.engineVersion === "5.0.0-alpha.1"
+    ? cpu.enumerateCpuActionsLegacy(observation)
+    : cpu.enumerateCpuActions(observation);
   if (!actions.length) return null;
   const useLookahead = selectedPolicyVersion === KUROGANE_POLICY_VERSION;
   const ranked = actions.map((action, index) => ({

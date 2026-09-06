@@ -81,9 +81,9 @@ async function installHarness(context, metrics) {
   }, saveKey);
 }
 
-async function newMeasuredPage(browser) {
+async function newMeasuredPage(browser, options = {}) {
   const metrics = { saveWrites: 0 };
-  const context = await browser.newContext();
+  const context = await browser.newContext(options);
   await installHarness(context, metrics);
   const page = await context.newPage();
   return { context, page, metrics };
@@ -187,6 +187,7 @@ async function installNoLegalColorState(page, { leaveLegalColor = false, keepPri
     rootValue.profiles.playerA.inventory.colorPrism = 0;
     rootValue.reservations.playerA.colorPrism = 0;
   }
+  state.lastPublicTrace = null;
   standardMatch.validateStandardState(state);
   standardSave.validateStandardSave(rootValue);
   await page.evaluate(({ key, payload }) => localStorage.setItem(key, payload), { key: saveKey, payload: JSON.stringify(rootValue) });
@@ -284,6 +285,46 @@ test("NO_LEGAL_COLOR browser session transaction gates", { skip: !chromium || !i
         assert.equal(await persistedPayload(page), wrongBeforePayload);
         assert.deepEqual(audit(await persistedRoot(page)), wrongBefore);
         assert.equal(metrics.saveWrites, writesBeforeWrong);
+      } finally {
+        await context.close();
+      }
+    });
+
+    await t.test("the real 390px response control declares, rejects safely, and never becomes a client oracle", async () => {
+      const { context, page, metrics } = await newMeasuredPage(browser, { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+      try {
+        await bootToAColor(page);
+        await installNoLegalColorState(page);
+        assert.equal(await page.getByRole("button", { name: "サーバーに「塗れる色なし」と申告" }).count(), 0, "private declaration is absent before handover reveal");
+        await page.getByRole("button", { name: "自分の情報を表示" }).click();
+        const summary = page.getByText("塗れる色が見つからないとき", { exact: true });
+        await summary.click();
+        const declare = page.getByRole("button", { name: "サーバーに「塗れる色なし」と申告" });
+        assert.equal(await declare.getAttribute("aria-describedby"), "noColorExplanation");
+        assert.match(await page.locator("#noColorExplanation").textContent(), /確認が通ると、あなたの敗北/);
+        const [summaryBox, declareBox] = await Promise.all([summary.boundingBox(), declare.boundingBox()]);
+        assert.ok(summaryBox && summaryBox.height >= 44);
+        assert.ok(declareBox && declareBox.height >= 48);
+        assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+        const writesBefore = metrics.saveWrites;
+        await declare.click();
+        await page.locator("#terminalWinner").getByText("Bob の勝利").waitFor();
+        const settled = audit(await persistedRoot(page));
+        assert.deepEqual([settled.status, settled.phase, settled.winner, settled.terminalReason, settled.settled], ["FINISHED", "GAME_OVER", "B", "NO_LEGAL_COLOR", true]);
+        assert.equal(metrics.saveWrites, writesBefore + 2, "one action write plus one settlement write");
+
+        await bootToAColor(page);
+        await installNoLegalColorState(page, { leaveLegalColor: true });
+        await page.getByRole("button", { name: "自分の情報を表示" }).click();
+        const wrongBefore = await persistedPayload(page);
+        const writesBeforeWrong = metrics.saveWrites;
+        await page.getByText("塗れる色が見つからないとき", { exact: true }).click();
+        await page.getByRole("button", { name: "サーバーに「塗れる色なし」と申告" }).click();
+        await page.getByText(/申告は成立しませんでした。使える色があります。/).waitFor();
+        assert.equal(await persistedPayload(page), wrongBefore);
+        assert.equal(metrics.saveWrites, writesBeforeWrong);
+        assert.equal(await page.locator(".no-color-response").evaluate((details) => details.open), false);
+        assert.equal(await page.evaluate(() => document.activeElement?.classList.contains("private-title")), true);
       } finally {
         await context.close();
       }

@@ -608,7 +608,11 @@ function boot() {
 
   function handleResolved(result, actorSeat, terminalSessionContext) {
     if (!result.ok) {
-      say(result.code === "NO_LEGAL_RECOLOR" ? "変更先がありません。カードは消費されませんでした。" : `操作できません（${result.code}）。`);
+      say(result.code === "NO_LEGAL_RECOLOR"
+        ? "変更先がありません。カードは消費されませんでした。"
+        : result.code === "COLOR_AVAILABLE"
+          ? "申告は成立しませんでした。使える色があります。持ち色か色操作カードを選んでください。手番・カードは減っていません。"
+          : `操作できません（${result.code}）。`);
       const privateResult = session.revealPrivate(actorSeat);
       if (privateResult.ok) renderPrivate(privateResult.privateState);
       return;
@@ -660,8 +664,13 @@ function boot() {
       }
       try {
         const result = await session.dispatchAction({ actorSeat, type, payload });
-        say(result.ok ? "操作を保存しました。" : `操作できません（${result.code}）。`);
+        say(result.ok
+          ? "操作を保存しました。"
+          : result.code === "COLOR_AVAILABLE"
+            ? "申告は成立しませんでした。使える色があります。持ち色か色操作カードを選んでください。手番・カードは減っていません。"
+            : `操作できません（${result.code}）。`);
         handleResolved(result, actorSeat, terminalSessionContext);
+        if (!result.ok && result.code === "COLOR_AVAILABLE") requestAnimationFrame(() => document.querySelector(".private-title")?.focus({ preventScroll: true }));
         return result;
       } finally {
         if (activeControl?.isConnected) {
@@ -758,6 +767,7 @@ function boot() {
     clearPrivateDom(privatePanel);
     const heading = document.createElement("h2");
     heading.className = "private-title";
+    heading.tabIndex = -1;
     heading.textContent = `Player ${own.seat} の情報`;
     privatePanel.appendChild(heading);
     const palette = document.createElement("div");
@@ -783,6 +793,27 @@ function boot() {
     privatePanel.appendChild(palette);
     const publicState = session.getPublicProjection();
     const phase = publicState.phase;
+    if (phase === "COLOR" && targetMode === null) {
+      const details = document.createElement("details");
+      details.className = "no-color-response";
+      const summary = document.createElement("summary");
+      summary.textContent = "塗れる色が見つからないとき";
+      const explanation = document.createElement("p");
+      explanation.id = "noColorExplanation";
+      explanation.textContent = "色操作カードで打開できる場合があります。カードを使うなら先に下の一覧へ。サーバーの確認が通ると、あなたの敗北で対戦が終了します。";
+      const declare = document.createElement("button");
+      declare.type = "button";
+      declare.className = "danger declare-no-color";
+      declare.textContent = "サーバーに「塗れる色なし」と申告";
+      declare.setAttribute("aria-describedby", explanation.id);
+      suppressRepeatedActivation(declare);
+      declare.onclick = () => {
+        if (controlGeneration !== interactionGeneration || !declare.isConnected) return;
+        dispatch("DECLARE_NO_COLOR", {});
+      };
+      details.append(summary, explanation, declare);
+      privatePanel.appendChild(details);
+    }
     const usedBoardColors = [...new Set(Object.values(publicState.regions).map((region) => region.color).filter((color) => Object.hasOwn(COLOR_NAMES, color)))];
     if (own.hand.colorRandomBorrow > 0) appendButton("色拾い・乱", targetMode !== null || phase !== "COLOR", () => dispatch("USE_SKILL", { skill: "colorRandomBorrow" }));
     if (own.hand.colorChoiceBorrow > 0) appendButton("色借り", targetMode !== null || phase !== "COLOR" || usedBoardColors.length === 0, () => {

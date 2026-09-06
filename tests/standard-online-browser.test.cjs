@@ -23,7 +23,7 @@ const saveKey = "fourColorMapGame.standard.v5.save";
 const remoteProfileKey = "fourColorMapGame.standard.online.v5.remote-profile";
 const roomId = "11111111-1111-4111-8111-111111111111";
 const pendingRematchId = "22222222-2222-4222-8222-222222222222";
-const RESTORED_ROOM_MODES = new Set(["finished", "playing", "labPlaying", "setupLabPersist", "setupLabLostResponse", "setupLabMismatch", "handoffGuide", "cpuTurn", "cpuTurnNoColor", "cpuCommentary", "finishedCpu", "finishedCpuSagaStart", "finishedHumanSagaBlocked", "finishedCpuWrongSagaBlocked", "activeCpuSagaBlocked", "cpuWin", "setupTransition", "setupTransitionCpuFirst", "actionRuleError", "setupDebugError", "handoffReload", "waitingAbandon", "readyGuestAbandon", "cpuReadyAbandon", "abandonLost", "abandonAdvancedReady", "activeBootPrivate", "activeBootPublic", "activeBootCpu", "cpuSagaStartServerActive"]);
+const RESTORED_ROOM_MODES = new Set(["finished", "playing", "colorResponse", "labPlaying", "setupLabPersist", "setupLabLostResponse", "setupLabMismatch", "handoffGuide", "cpuTurn", "cpuTurnNoColor", "cpuCommentary", "finishedCpu", "finishedCpuSagaStart", "finishedHumanSagaBlocked", "finishedCpuWrongSagaBlocked", "activeCpuSagaBlocked", "cpuWin", "setupTransition", "setupTransitionCpuFirst", "actionRuleError", "setupDebugError", "handoffReload", "waitingAbandon", "readyGuestAbandon", "cpuReadyAbandon", "abandonLost", "abandonAdvancedReady", "activeBootPrivate", "activeBootPublic", "activeBootCpu", "cpuSagaStartServerActive"]);
 
 function browserStage(stage) {
   console.error(`BROWSER_STAGE ${stage}`);
@@ -239,6 +239,11 @@ async function installMock(context, mode) {
       active.pending = "R1";
       active.regions = { R1: { id: "R1", micro: [0], sourceMacros: [0], controllers: ["B"], color: null, isPending: true } };
     }
+    if (initialMode === "colorResponse") {
+      active.phase = "COLOR";
+      active.pending = "R1";
+      active.regions = { R1: { id: "R1", micro: [0], sourceMacros: [0], controllers: ["B"], color: null, isPending: true } };
+    }
     if (initialMode === "labPlaying") {
       active.labRuleSetId = "STANDARD_V5_LEGAL_RECOLOR_LAB_V1";
       active.regions = {
@@ -258,7 +263,7 @@ async function installMock(context, mode) {
     const runtime = {
       waitStartedAt: initialMode === "cpuWait" ? new Date(Date.now() - 91000).toISOString() : new Date().toISOString(),
       room: { id, status: ["finished", "finishedCpu", "finishedCpuSagaStart", "finishedHumanSagaBlocked", "finishedCpuWrongSagaBlocked", "quizReloadPublicFinished"].includes(initialMode) || restoreCpuRewardResult || restoreNoColorResult ? "finished" : pregameMode ? pregameStatus : ["publicFind", "handoffActivity", "handoffStart", "handoffReload"].includes(initialMode) || setupPending ? "ready" : "playing", version: restoredRoomVersion, game_mode: "standard_v5", access_mode: cpuRoomMode ? "cpu" : ["publicFind", "handoffActivity", "handoffStart", "handoffReload", "quizReloadPublicFinished"].includes(initialMode) ? "public_queue" : "private_code", opponent_kind: cpuRoomMode ? "cpu" : "human", cpu_character_id: cpuRoomMode ? "yuzu" : null, public_state: restoreNoColorResult ? noColorFinished : ["finished", "finishedCpu", "finishedCpuSagaStart", "finishedHumanSagaBlocked", "finishedCpuWrongSagaBlocked", "quizReloadPublicFinished"].includes(initialMode) || restoreCpuRewardResult ? { ...finished, version: restoredRoomVersion } : pregameMode || ["publicFind", "handoffActivity", "handoffStart", "handoffReload"].includes(initialMode) || setupPending ? null : active },
-      view: pregameMode || ["publicFind", "handoffActivity", "handoffStart", "handoffReload"].includes(initialMode) || setupPending ? null : { seat: "A", version: restoredRoomVersion, private_state: { hand: initialMode === "labPlaying" ? { areaDiePlus: 1, legalRecolor: 1 } : { areaDiePlus: 1, areaResize: 1 }, basicPalette: initialMode === "cpuTurnNoColor" ? ["yellow", "green"] : ["red", "blue"], bonusColor: initialMode === "cpuTurnNoColor" ? "blue" : "yellow", bonusUsesRemaining: initialMode === "cpuTurnNoColor" ? 3 : 2, privateEffects: {} } },
+      view: pregameMode || ["publicFind", "handoffActivity", "handoffStart", "handoffReload"].includes(initialMode) || setupPending ? null : { seat: "A", version: restoredRoomVersion, private_state: { hand: initialMode === "labPlaying" ? { areaDiePlus: 1, legalRecolor: 1 } : initialMode === "colorResponse" ? { colorPrism: 1, areaDiePlus: 1 } : { areaDiePlus: 1, areaResize: 1 }, basicPalette: initialMode === "cpuTurnNoColor" ? ["yellow", "green"] : ["red", "blue"], bonusColor: initialMode === "cpuTurnNoColor" ? "blue" : "yellow", bonusUsesRemaining: initialMode === "cpuTurnNoColor" ? 3 : 2, privateEffects: {} } },
       profile: initialMode === "empty" ? null : { revision: 1, display_name: "A", profile_state: profileState },
       gachaReceipts: {},
       cardSaleReceipts: {},
@@ -279,6 +284,7 @@ async function installMock(context, mode) {
       failNextColorAction: false,
       failNextGacha: false,
       failNextQuizAnswer: false,
+      declareNoColorAllowed: false,
       failNextAbandonResponse: initialMode === "abandonLost" && sessionStorage.getItem("mock-standard-abandon-response-lost") !== id,
       abandonRpcIds: JSON.parse(sessionStorage.getItem("mock-standard-abandon-rpc-ids") || "[]"),
       advancedReadyConflictSent: false,
@@ -608,6 +614,16 @@ async function installMock(context, mode) {
         if (request.body.operation === "action" && request.body.action?.type === "COLOR_REGION" && runtime.failNextColorAction) {
           runtime.failNextColorAction = false;
           return { error: new Error("simulated color network failure") };
+        }
+        if (request.body.operation === "action" && initialMode === "colorResponse" && request.body.action?.type === "DECLARE_NO_COLOR") {
+          if (!runtime.declareNoColorAllowed) return functionError(400, "COLOR_AVAILABLE", "private authoritative_state and service secret");
+          const nextVersion = runtime.room.version + 1;
+          runtime.room = { ...runtime.room, status: "finished", version: nextVersion, winner_seat: "B", public_state: {
+            ...runtime.room.public_state, status: "FINISHED", phase: "GAME_OVER", version: nextVersion,
+            winner: "B", terminalReason: "NO_LEGAL_COLOR",
+          } };
+          runtime.view = { ...runtime.view, version: nextVersion };
+          return { data: { duplicate: false, room: runtime.room } };
         }
         if (request.body.operation === "action" && initialMode === "actionRuleError") return functionError(400, "ILLEGAL_COLOR", "private authoritative_state and service secret");
         if (request.body.operation === "action" && initialMode === "handoffGuide" && request.body.action?.type === "CREATE_REGION") {
@@ -3124,7 +3140,7 @@ test("actual Edge hands one submitted setup to the visible first-move guide with
       connection: rect(".connection-card"),
       tabs: rect(".app-tabs"),
       overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
-      actionOrder: Boolean(document.querySelector("#regionControls + #paletteControls + #actionStatus + #retryAction + .random-summary + #tacticalTrace")),
+      actionOrder: Boolean(document.querySelector("#regionControls + #colorResponse + #actionStatus + #retryAction + .random-summary + #tacticalTrace")),
       playableHit: document.elementFromPoint(
         document.querySelector("#board").getBoundingClientRect().left + document.querySelector("#board").getBoundingClientRect().width * 10.5 / 12,
         document.querySelector("#board").getBoundingClientRect().top + document.querySelector("#board").getBoundingClientRect().height * 1.5 / 12,
@@ -3787,6 +3803,7 @@ test("actual browser never draws removed current or previous region history outl
       regions: region1,
       trace: { type: "CREATE_REGION", actor: "A", regionId: "R1", sourceMacroCount: 1, contactColorCount: 2 },
     });
+    await page.waitForFunction(() => document.querySelector("#colorResponse")?.getBoundingClientRect().bottom <= document.querySelector("#connectionCard")?.getBoundingClientRect().top);
     assert.deepEqual(await historyStrokes(), []);
     const sameRegion = await page.evaluate(() => ({
       overflow: document.documentElement.scrollWidth > innerWidth,
@@ -3797,7 +3814,7 @@ test("actual browser never draws removed current or previous region history outl
     }));
     assert.equal(sameRegion.overflow, false);
     assert.ok(sameRegion.canvasWidth > 300, JSON.stringify(sameRegion));
-    assert.ok(sameRegion.paletteBottom <= sameRegion.connectionTop);
+    assert.ok(sameRegion.paletteBottom <= sameRegion.connectionTop, JSON.stringify(sameRegion));
     assert.ok(sameRegion.paletteBottom <= sameRegion.navTop);
 
     await update({
@@ -3863,6 +3880,85 @@ test("actual browser never draws removed current or previous region history outl
     assert.equal(await page.locator("#board").evaluate((node) => node.classList.contains("turn-arrival-beat")), false);
     await page.locator("#terminalClose").click();
     assert.deepEqual(await historyStrokes(), []);
+  }, { viewport: { width: 390, height: 844 } });
+});
+
+test("actual browser keeps the COLOR response safe, reachable, private, and authoritative at 390px", { timeout: 120000 }, async () => {
+  await withPage("colorResponse", async (page) => {
+    const response = page.locator("#colorResponse");
+    await response.waitFor({ state: "visible" });
+    assert.equal(await page.locator("#noColorResponse").evaluate((node) => node.open), false);
+
+    await page.evaluate(() => {
+      const runtime = globalThis.__standardOnlineRuntime;
+      runtime.view = { ...runtime.view, seat: "B", private_state: { ...runtime.view.private_state, hand: {} } };
+      runtime.onInvalidate?.({});
+    });
+    await response.waitFor({ state: "hidden" });
+    assert.equal(await page.locator("#declareNoColor").count(), 1);
+    assert.equal(await page.getByRole("button", { name: "サーバーに「塗れる色なし」と申告" }).count(), 0);
+    await page.evaluate(() => {
+      const runtime = globalThis.__standardOnlineRuntime;
+      runtime.view = { ...runtime.view, seat: "A", private_state: { ...runtime.view.private_state, hand: { colorPrism: 1, areaDiePlus: 1 } } };
+      runtime.onInvalidate?.({});
+    });
+    await response.waitFor({ state: "visible" });
+
+    const summary = page.getByText("塗れる色が見つからないとき", { exact: true });
+    await summary.focus();
+    await page.keyboard.press("Enter");
+    const declare = page.getByRole("button", { name: "サーバーに「塗れる色なし」と申告" });
+    await declare.waitFor({ state: "visible" });
+    await page.waitForFunction(() => {
+      const bottom = document.querySelector("#declareNoColor")?.getBoundingClientRect().bottom ?? innerHeight;
+      const obstructionTop = Math.min(
+        document.querySelector("#connectionCard")?.getBoundingClientRect().top ?? innerHeight,
+        document.querySelector(".app-tabs")?.getBoundingClientRect().top ?? innerHeight,
+      );
+      return bottom <= obstructionTop - 8;
+    });
+    assert.equal(await declare.getAttribute("aria-describedby"), "noColorExplanation");
+    assert.match(await page.locator("#noColorExplanation").textContent(), /確認が通ると、あなたの敗北/);
+    const [showSkillsBox, declareBox] = await Promise.all([
+      page.getByRole("button", { name: "色操作カードを見る" }).boundingBox(),
+      declare.boundingBox(),
+    ]);
+    assert.ok(showSkillsBox && showSkillsBox.height >= 48, JSON.stringify(showSkillsBox));
+    assert.ok(declareBox && declareBox.height >= 48, JSON.stringify(declareBox));
+
+    await page.getByRole("button", { name: "色操作カードを見る" }).focus();
+    await page.keyboard.press("Enter");
+    await page.waitForFunction(() => document.activeElement?.dataset?.skill === "colorPrism");
+    assert.equal(await page.evaluate(() => document.activeElement?.textContent), "四色解放 ×1");
+
+    await page.reload({ waitUntil: "load" });
+    await page.locator("#colorResponse:not(.hidden)").waitFor();
+    assert.equal(await page.locator("#noColorResponse").evaluate((node) => node.open), false);
+    await page.getByText("塗れる色が見つからないとき", { exact: true }).focus();
+    await page.keyboard.press("Enter");
+    await page.getByRole("button", { name: "サーバーに「塗れる色なし」と申告" }).focus();
+    await page.keyboard.press("Space");
+    await page.getByText(/申告は成立しませんでした。使える色があります。/).waitFor();
+    assert.equal(await page.locator("#noColorResponse").evaluate((node) => node.open), false);
+    assert.equal(await page.evaluate(() => document.activeElement?.id), "colorResponseHeading");
+    const rejected = await page.evaluate(() => ({
+      version: globalThis.__standardOnlineRuntime.room.version,
+      calls: globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "action" && entry.body?.action?.type === "DECLARE_NO_COLOR").length,
+    }));
+    assert.deepEqual(rejected, { version: 9, calls: 1 });
+
+    await page.evaluate(() => { globalThis.__standardOnlineRuntime.declareNoColorAllowed = true; });
+    await page.getByText("塗れる色が見つからないとき", { exact: true }).click();
+    await page.getByRole("button", { name: "サーバーに「塗れる色なし」と申告" }).click();
+    await page.locator("#terminalOverlay").waitFor({ state: "visible" });
+    assert.match(await page.locator("#terminalReasonText").textContent(), /塗れる色がなくなりました/);
+    const accepted = await page.evaluate(() => ({
+      version: globalThis.__standardOnlineRuntime.room.version,
+      reason: globalThis.__standardOnlineRuntime.room.public_state.terminalReason,
+      calls: globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "action" && entry.body?.action?.type === "DECLARE_NO_COLOR").length,
+    }));
+    assert.deepEqual(accepted, { version: 10, reason: "NO_LEGAL_COLOR", calls: 2 });
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
   }, { viewport: { width: 390, height: 844 } });
 });
 

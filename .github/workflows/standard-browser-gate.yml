@@ -9,8 +9,10 @@ on:
       - online-v5/style.css
       - docs/STANDARD_PUBLIC_RELEASE_RUNBOOK.md
       - standard-online-v5/**
+      - standard-v5/**
       - standard/**
       - scripts/build-standard-online-engine.mjs
+      - scripts/build-standard-v5-bundle.mjs
       - scripts/standard-cpu-selfplay.cjs
       - scripts/live-standard-*.mjs
       - supabase/functions/standard-game-action/**
@@ -31,8 +33,10 @@ on:
       - online-v5/style.css
       - docs/STANDARD_PUBLIC_RELEASE_RUNBOOK.md
       - standard-online-v5/**
+      - standard-v5/**
       - standard/**
       - scripts/build-standard-online-engine.mjs
+      - scripts/build-standard-v5-bundle.mjs
       - scripts/standard-cpu-selfplay.cjs
       - scripts/live-standard-*.mjs
       - supabase/functions/standard-game-action/**
@@ -76,6 +80,11 @@ jobs:
           package-manager-cache: false
       - name: Install browser test dependency
         run: npm install --no-save --no-package-lock --ignore-scripts playwright@1.62.1
+      - name: Verify generated Standard bundles
+        run: |
+          node scripts/build-standard-v5-bundle.mjs
+          node scripts/build-standard-online-engine.mjs
+          git diff --exit-code -- standard-v5/app.bundle.js supabase/functions/standard-game-action/standard-engine.bundle.js
       - name: Run Standard CPU policy contract tests
         run: >-
           node --test --test-concurrency=1
@@ -89,13 +98,19 @@ jobs:
           tests/standard-online-browser-harness-static.test.cjs
           tests/standard-legal-recolor-lab.test.cjs
           tests/standard-live-legal-recolor-lab-canary-static.test.cjs
+          tests/standard-live-color-response-canary-static.test.cjs
           tests/standard-live-release-preflight-static.test.cjs
           tests/standard-candidate-verification-sql.test.cjs
           tests/standard-matchmaking-availability-migration.test.cjs
           tests/standard-public-release-runbook.test.cjs
           tests/standard-setup-revision-guard.test.cjs
           tests/standard-cpu-commentary.test.cjs
+          tests/standard-cpu.test.cjs
+          tests/standard-cpu-roster.test.cjs
           tests/standard-match.test.cjs
+          tests/standard-no-color-rescue.test.cjs
+          tests/standard-color-region-split.test.cjs
+          tests/standard-local-ui-static.test.cjs
           tests/standard-online-client.test.cjs
           tests/standard-online-quiz-generator-runtime.test.cjs
           tests/standard-online-quiz-polish.test.cjs
@@ -104,8 +119,11 @@ jobs:
           tests/standard-online-ui-static.test.cjs
           tests/standard-recolor.test.cjs
           tests/standard-cpu-browser.test.cjs
-      - name: Run Standard local lifecycle browser test serially
+      - name: Run Standard local lifecycle browser tests serially
         if: matrix.STANDARD_BROWSER == 'edge'
-        run: node --test --test-concurrency=1 tests/standard-color-seal-browser-lifecycle.test.cjs
+        run: >-
+          node --test --test-concurrency=1
+          tests/standard-color-seal-browser-lifecycle.test.cjs
+          tests/standard-no-color-browser-terminal.test.cjs
       - name: Run Standard online browser test serially
         run: node --test --test-concurrency=1 tests/standard-online-browser.test.cjs

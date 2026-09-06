@@ -1889,7 +1889,9 @@ const { applyCurseBacklashOnEnterColor, preparedOutgoingCandidates, tickPaletteD
 const { createRegionGeometryContext } = require("./standard-region-geometry.js");
 
 const SCHEMA_VERSION = 1;
-const ENGINE_VERSION = "5.0.0-alpha.1";
+const LEGACY_ENGINE_VERSION = "5.0.0-alpha.1";
+const ENGINE_VERSION = "5.0.0-alpha.2";
+const SUPPORTED_ENGINE_VERSIONS = Object.freeze([LEGACY_ENGINE_VERSION, ENGINE_VERSION]);
 const SAVE_KEY = "fourColorMapGame.standard.v5.save";
 const PHASES = Object.freeze(["CREATE_FIRST", "COLOR", "WORK", "GAME_OVER"]);
 const ACTIONS = Object.freeze(["CREATE_REGION", "COLOR_REGION", "USE_SKILL", "DECLARE_NO_COLOR", "SURRENDER"]);
@@ -2020,7 +2022,7 @@ function createStandardMatch(config = {}, rngStreams = {}) {
 function validateStandardState(state) {
   assertState(state && typeof state === "object", "INVALID_STATE");
   assertState(state.schemaVersion === SCHEMA_VERSION, "INVALID_SCHEMA_VERSION");
-  assertState(state.engineVersion === ENGINE_VERSION, "INVALID_ENGINE_VERSION");
+  assertState(SUPPORTED_ENGINE_VERSIONS.includes(state.engineVersion), "INVALID_ENGINE_VERSION");
   assertState(state.mode === "standard", "WRONG_MODE");
   assertState(typeof state.matchId === "string" && state.matchId.length > 0, "INVALID_MATCH_ID");
   assertState(Number.isInteger(state.version) && state.version >= 0, "INVALID_VERSION");
@@ -2393,7 +2395,7 @@ function createRegion(state, actor, payload = {}, rngStreams = {}) {
   next.version += 1;
   next.publicLog.push(`T${next.turn - 1} Player ${actor} created ${id}${intrusion.donorCount ? ` with ${intrusion.donorCount} colored-region intrusion${intrusion.splitCount ? ` and ${intrusion.splitCount} donor split` : ""}${intrusion.removedCount ? ` and ${intrusion.removedCount} donor removal` : ""}` : ""}; Player ${next.active} must color it.`);
   applyCurseBacklashOnEnterColor(next, next.active, () => nextRandom(rngStreams, "skill-effect"));
-  finishNoColorOnEntry(next, next.active);
+  if (next.engineVersion === LEGACY_ENGINE_VERSION) finishNoColorOnEntry(next, next.active);
   const contactColorCount = new Set(adjacentRegionIds(next, id)
     .map((regionId) => next.regions[regionId])
     .filter((region) => region && !region.isPending && region.color)
@@ -2489,7 +2491,7 @@ function colorRegion(state, actor, payload = {}, rngStreams = {}) {
       color: target.color,
     };
     next.publicLog.push(`Player ${actor} colored ${target.id}; split region ${returnedId} returned to Player ${next.active}.`);
-    finishNoColorOnEntry(next, next.active);
+    if (next.engineVersion === LEGACY_ENGINE_VERSION) finishNoColorOnEntry(next, next.active);
     return { ok: true, code: "OK", state: next, returnedRegionId: returnedId };
   }
   next.pending = null;
@@ -2615,12 +2617,14 @@ module.exports = {
   BONUS_USE_POOL,
   DIE_POOL,
   ENGINE_VERSION,
+  LEGACY_ENGINE_VERSION,
   ENGINE_TERMINAL_REASONS,
   FINISHED_STATE_TERMINAL_REASONS,
   PHASES,
   REQUIRED_RNG_STREAMS,
   SAVE_KEY,
   SCHEMA_VERSION,
+  SUPPORTED_ENGINE_VERSIONS,
   TERMINAL_REASONS,
   applyStandardAction,
   createStandardMatch,
@@ -2737,9 +2741,10 @@ function enumerateRegionActions(publicState, limit = 64, requiredSize = publicSt
   return [...found.values()];
 }
 
-function availableColors(publicState, ownPrivateState) {
+function availableColors(publicState, ownPrivateState, includeTemporary = true) {
   const colors = [...ownPrivateState.basicPalette];
   if (ownPrivateState.bonusUsesRemaining > 0) colors.push(ownPrivateState.bonusColor);
+  if (includeTemporary) colors.push(...(ownPrivateState.privateEffects?.temporaryColors || []));
   if (ownPrivateState.privateEffects?.prism) colors.push("red", "blue", "yellow", "green");
   const seals = publicState.publicEffects?.[ownPrivateState.seat]?.seals || {};
   return [...new Set(colors)].filter((color) => !(seals[color] > 0));
@@ -2748,6 +2753,12 @@ function availableColors(publicState, ownPrivateState) {
 function enumerateColorActions(publicState, ownPrivateState) {
   const blocked = new Set(adjacentRegionIds(publicState, publicState.pending).map((id) => publicState.regions[id]?.color).filter(Boolean));
   const safe = availableColors(publicState, ownPrivateState).filter((color) => !blocked.has(color));
+  return safe.map((color) => ({ type: "COLOR_REGION", payload: { color }, metrics: { blockedCount: blocked.size } }));
+}
+
+function enumerateLegacyColorActions(publicState, ownPrivateState) {
+  const blocked = new Set(adjacentRegionIds(publicState, publicState.pending).map((id) => publicState.regions[id]?.color).filter(Boolean));
+  const safe = availableColors(publicState, ownPrivateState, false).filter((color) => !blocked.has(color));
   return safe.length
     ? safe.map((color) => ({ type: "COLOR_REGION", payload: { color }, metrics: { blockedCount: blocked.size } }))
     : [{ type: "DECLARE_NO_COLOR", payload: {}, metrics: { blockedCount: blocked.size } }];
@@ -2841,7 +2852,28 @@ function availableHand(ownPrivateState, skill) {
   return (ownPrivateState.hand?.[skill] || 0) > 0;
 }
 
-function enumerateColorSkillActions(publicState, ownPrivateState) {
+function colorSkillCanRescue(action, publicState, ownPrivateState, boardColors) {
+  const blocked = new Set(adjacentRegionIds(publicState, publicState.pending).map((id) => publicState.regions[id]?.color).filter(Boolean));
+  const seals = publicState.publicEffects?.[ownPrivateState.seat]?.seals || {};
+  const safe = (color) => COLORS.includes(color) && !(seals[color] > 0) && !blocked.has(color);
+  const skill = action.payload?.skill;
+  if (skill === "colorRandomBorrow") return boardColors.some(safe);
+  if (skill === "colorChoiceBorrow") return safe(action.payload.color);
+  if (skill === "colorPrism") return COLORS.some(safe);
+  if (skill === "colorPaletteChange") return (action.payload.slot < 2 || ownPrivateState.bonusUsesRemaining > 0) && safe(action.payload.color);
+  if (skill === "colorRegionSplit") {
+    const region = publicState.regions?.[action.payload.regionId];
+    if (!region) return false;
+    const microWidth = publicState.playableBounds.macroWidth * publicState.playableBounds.microScale;
+    const selected = new Set(action.payload.sourceMacros || []);
+    const selectedMicro = (region.micro || []).filter((cell) => selected.has(microToMacro(cell, publicState.playableBounds, microWidth)));
+    const splitBlocked = new Set(contactColorsFromMicro(publicState, selectedMicro));
+    return availableColors(publicState, ownPrivateState).some((color) => !splitBlocked.has(color));
+  }
+  return false;
+}
+
+function enumerateColorSkillActions(publicState, ownPrivateState, annotateRescue = false) {
   const actions = [];
   const boardColors = [...new Set(Object.values(publicState.regions || {}).map((region) => region.color).filter(Boolean))];
   if (availableHand(ownPrivateState, "colorRandomBorrow") && boardColors.length) actions.push(skillAction("colorRandomBorrow", {}, { skillPriority: 18 }));
@@ -2863,6 +2895,9 @@ function enumerateColorSkillActions(publicState, ownPrivateState) {
         actions.push(skillAction("colorRegionSplit", { regionId: region.id, sourceMacros }, { skillPriority: 30, splitSize: sourceMacros.length }));
       }
     }
+  }
+  if (annotateRescue) for (const action of actions) {
+    action.metrics.rescue = colorSkillCanRescue(action, publicState, ownPrivateState, boardColors) ? 1 : 0;
   }
   return actions;
 }
@@ -2952,7 +2987,28 @@ function enumerateCpuActions(observation) {
   const { publicState, ownPrivateState } = observation;
   if (publicState.status === "FINISHED" || publicState.active !== ownPrivateState.seat) return Object.freeze([]);
   let actions = [];
-  if (publicState.phase === "COLOR") actions = [...enumerateColorActions(publicState, ownPrivateState), ...enumerateColorSkillActions(publicState, ownPrivateState)];
+  if (publicState.phase === "COLOR") {
+    const colorActions = enumerateColorActions(publicState, ownPrivateState);
+    const skillActions = enumerateColorSkillActions(publicState, ownPrivateState, true);
+    const rescueActions = skillActions.filter((action) => action.metrics.rescue > 0);
+    actions = colorActions.length
+      ? [...colorActions, ...skillActions]
+      : rescueActions.length
+        ? rescueActions
+        : skillActions.length
+          ? skillActions
+        : [{ type: "DECLARE_NO_COLOR", payload: {}, metrics: { blockedCount: new Set(adjacentRegionIds(publicState, publicState.pending).map((id) => publicState.regions[id]?.color).filter(Boolean)).size } }];
+  }
+  else if (publicState.phase === "CREATE_FIRST" || publicState.phase === "WORK") actions = [...enumerateRegionActions(publicState), ...enumerateWorkSkillActions(publicState, ownPrivateState)];
+  if (!actions.length) actions = [{ type: "SURRENDER", payload: {}, metrics: { fallback: true } }];
+  return deepFreeze(actions);
+}
+
+function enumerateCpuActionsLegacy(observation) {
+  const { publicState, ownPrivateState } = observation;
+  if (publicState.status === "FINISHED" || publicState.active !== ownPrivateState.seat) return Object.freeze([]);
+  let actions = [];
+  if (publicState.phase === "COLOR") actions = [...enumerateLegacyColorActions(publicState, ownPrivateState), ...enumerateColorSkillActions(publicState, ownPrivateState)];
   else if (publicState.phase === "CREATE_FIRST" || publicState.phase === "WORK") actions = [...enumerateRegionActions(publicState), ...enumerateWorkSkillActions(publicState, ownPrivateState)];
   if (!actions.length) actions = [{ type: "SURRENDER", payload: {}, metrics: { fallback: true } }];
   return deepFreeze(actions);
@@ -2988,6 +3044,7 @@ module.exports = {
   POLICY_VERSIONS,
   chooseCpuAction,
   enumerateCpuActions,
+  enumerateCpuActionsLegacy,
   immediateOpponentColorOptions,
   makeObservation,
   V49_SKILL_IDS,
@@ -3101,7 +3158,9 @@ function chooseCharacterAction({ publicState, ownPrivateState, characterId, poli
   const legacyKurogane = characterId === "kurogane" && selectedPolicyVersion === KUROGANE_LEGACY_POLICY_VERSION;
   if (selectedPolicyVersion !== character.policyVersion && !legacyKurogane) throw new TypeError("UNKNOWN_CPU_POLICY_VERSION");
   const observation = cpu.makeObservation({ publicState, ownPrivateState, difficulty: "hard" });
-  const actions = cpu.enumerateCpuActions(observation);
+  const actions = publicState.engineVersion === "5.0.0-alpha.1"
+    ? cpu.enumerateCpuActionsLegacy(observation)
+    : cpu.enumerateCpuActions(observation);
   if (!actions.length) return null;
   const useLookahead = selectedPolicyVersion === KUROGANE_POLICY_VERSION;
   const ranked = actions.map((action, index) => ({

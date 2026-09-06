@@ -137,13 +137,16 @@ test("illegal-color terminal instrumentation remains test-owned", () => {
   assert.doesNotMatch(`${html}\n${app}\n${bundle}`, /__codexFailNextSettlementWrite|forced-settlement-write-failure/);
 });
 
-test("no-color session hook remains test-owned and the product UI has no declaration oracle", () => {
+test("no-color session hook remains test-owned while the product exposes a server-authoritative declaration", () => {
   assert.match(noColorBrowserGate, /globalThis\.__codexStandardSession = session/);
   assert.match(noColorBrowserGate, /context\.route/);
   assert.match(noColorBrowserGate, /DECLARE_NO_COLOR/);
   assert.doesNotMatch(`${html}\n${app}\n${bundle}`, /__codexStandardSession/);
-  assert.doesNotMatch(app, /dispatch\("DECLARE_NO_COLOR"/);
-  assert.match(bundle, /function finishNoColorOnEntry/);
+  assert.match(app, /phase === "COLOR" && targetMode === null/);
+  assert.match(app, /dispatch\("DECLARE_NO_COLOR", \{\}\)/);
+  assert.match(app, /サーバーに「塗れる色なし」と申告/);
+  assert.match(app, /explanation\.id = "noColorExplanation"[\s\S]+aria-describedby", explanation\.id/);
+  assert.match(bundle, /LEGACY_ENGINE_VERSION/);
 });
 
 test("settlement delay and metrics adapters remain test-owned", () => {

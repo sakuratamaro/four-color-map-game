@@ -1,0 +1,44 @@
+"use strict";
+
+const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const path = require("node:path");
+const test = require("node:test");
+
+const source = fs.readFileSync(path.join(__dirname, "..", "scripts", "live-standard-color-response-canary.mjs"), "utf8");
+
+test("live COLOR-response canary is explicit, finite, public-key only, and always closes its room", () => {
+  const guard = source.indexOf('process.argv.includes("--confirm-live")');
+  const signup = source.indexOf('request("/auth/v1/signup"');
+  assert.ok(guard >= 0 && signup > guard);
+  assert.match(source, /180_000/);
+  assert.match(source, /AbortSignal\.timeout\(REQUEST_TIMEOUT_MS\)/);
+  assert.match(source, /AbortSignal\.any\(\[AbortSignal\.timeout\(REQUEST_TIMEOUT_MS\), hardAbortController\.signal\]\)/);
+  assert.match(source, /finishCpuRoom[\s\S]+\{ cleanup: true \}/);
+  assert.doesNotMatch(source, /hardTimeout[\s\S]{0,220}process\.exit/);
+  assert.match(source, /REQUEST_TIMEOUT_MS = 20_000/);
+  assert.match(source, /MAX_DRIVER_STEPS = 24/);
+  assert.match(source, /MAX_CONSECUTIVE_CPU_STEPS = 8/);
+  assert.match(source, /finally \{[\s\S]+finishCpuRoom[\s\S]+clearTimeout\(hardTimeout\)/);
+  assert.match(source, /fcg_standard_abandon_room/);
+  assert.match(source, /"SURRENDER"/);
+  assert.doesNotMatch(source, /service[_ -]?role|SUPABASE_SERVICE_ROLE|sb_secret_/i);
+  assert.doesNotMatch(source, /console\.(?:log|error)\([^\n]*(?:publishableKey|authorization|access_token)/);
+});
+
+test("live COLOR-response canary covers the new engine, authoritative rejection, CPU progress, and public privacy", () => {
+  assert.match(source, /EXPECTED_ENGINE_VERSION = "5\.0\.0-alpha\.2"/);
+  assert.match(source, /operation: "cpu-start"/);
+  assert.match(source, /operation: "initialize"/);
+  assert.match(source, /operation: "cpu-action"/);
+  assert.match(source, /"DECLARE_NO_COLOR"/);
+  assert.match(source, /error\?\.code === "COLOR_AVAILABLE"/);
+  assert.match(source, /rejected declaration is write-free/);
+  assert.match(source, /JSON\.stringify\(room\.publicState\) === beforePublic/);
+  assert.match(source, /JSON\.stringify\(room\.privateState\) === beforePrivate/);
+  assert.match(source, /CPU action advances exactly once/);
+  assert.match(source, /maxConsecutiveCpuSteps <= MAX_CONSECUTIVE_CPU_STEPS/);
+  for (const key of ["hand", "loadout", "basicPalette", "bonusColor", "bonusUsesRemaining", "privateEffects", "hands", "basicPalettes", "bonusColors", "authoritative_state", "profile_a_state", "profile_b_state", "setup_a", "setup_b"]) {
+    assert.match(source, new RegExp(`"${key}"`));
+  }
+});

@@ -101,9 +101,10 @@ function enumerateRegionActions(publicState, limit = 64, requiredSize = publicSt
   return [...found.values()];
 }
 
-function availableColors(publicState, ownPrivateState) {
+function availableColors(publicState, ownPrivateState, includeTemporary = true) {
   const colors = [...ownPrivateState.basicPalette];
   if (ownPrivateState.bonusUsesRemaining > 0) colors.push(ownPrivateState.bonusColor);
+  if (includeTemporary) colors.push(...(ownPrivateState.privateEffects?.temporaryColors || []));
   if (ownPrivateState.privateEffects?.prism) colors.push("red", "blue", "yellow", "green");
   const seals = publicState.publicEffects?.[ownPrivateState.seat]?.seals || {};
   return [...new Set(colors)].filter((color) => !(seals[color] > 0));
@@ -112,6 +113,12 @@ function availableColors(publicState, ownPrivateState) {
 function enumerateColorActions(publicState, ownPrivateState) {
   const blocked = new Set(adjacentRegionIds(publicState, publicState.pending).map((id) => publicState.regions[id]?.color).filter(Boolean));
   const safe = availableColors(publicState, ownPrivateState).filter((color) => !blocked.has(color));
+  return safe.map((color) => ({ type: "COLOR_REGION", payload: { color }, metrics: { blockedCount: blocked.size } }));
+}
+
+function enumerateLegacyColorActions(publicState, ownPrivateState) {
+  const blocked = new Set(adjacentRegionIds(publicState, publicState.pending).map((id) => publicState.regions[id]?.color).filter(Boolean));
+  const safe = availableColors(publicState, ownPrivateState, false).filter((color) => !blocked.has(color));
   return safe.length
     ? safe.map((color) => ({ type: "COLOR_REGION", payload: { color }, metrics: { blockedCount: blocked.size } }))
     : [{ type: "DECLARE_NO_COLOR", payload: {}, metrics: { blockedCount: blocked.size } }];
@@ -205,7 +212,28 @@ function availableHand(ownPrivateState, skill) {
   return (ownPrivateState.hand?.[skill] || 0) > 0;
 }
 
-function enumerateColorSkillActions(publicState, ownPrivateState) {
+function colorSkillCanRescue(action, publicState, ownPrivateState, boardColors) {
+  const blocked = new Set(adjacentRegionIds(publicState, publicState.pending).map((id) => publicState.regions[id]?.color).filter(Boolean));
+  const seals = publicState.publicEffects?.[ownPrivateState.seat]?.seals || {};
+  const safe = (color) => COLORS.includes(color) && !(seals[color] > 0) && !blocked.has(color);
+  const skill = action.payload?.skill;
+  if (skill === "colorRandomBorrow") return boardColors.some(safe);
+  if (skill === "colorChoiceBorrow") return safe(action.payload.color);
+  if (skill === "colorPrism") return COLORS.some(safe);
+  if (skill === "colorPaletteChange") return (action.payload.slot < 2 || ownPrivateState.bonusUsesRemaining > 0) && safe(action.payload.color);
+  if (skill === "colorRegionSplit") {
+    const region = publicState.regions?.[action.payload.regionId];
+    if (!region) return false;
+    const microWidth = publicState.playableBounds.macroWidth * publicState.playableBounds.microScale;
+    const selected = new Set(action.payload.sourceMacros || []);
+    const selectedMicro = (region.micro || []).filter((cell) => selected.has(microToMacro(cell, publicState.playableBounds, microWidth)));
+    const splitBlocked = new Set(contactColorsFromMicro(publicState, selectedMicro));
+    return availableColors(publicState, ownPrivateState).some((color) => !splitBlocked.has(color));
+  }
+  return false;
+}
+
+function enumerateColorSkillActions(publicState, ownPrivateState, annotateRescue = false) {
   const actions = [];
   const boardColors = [...new Set(Object.values(publicState.regions || {}).map((region) => region.color).filter(Boolean))];
   if (availableHand(ownPrivateState, "colorRandomBorrow") && boardColors.length) actions.push(skillAction("colorRandomBorrow", {}, { skillPriority: 18 }));
@@ -227,6 +255,9 @@ function enumerateColorSkillActions(publicState, ownPrivateState) {
         actions.push(skillAction("colorRegionSplit", { regionId: region.id, sourceMacros }, { skillPriority: 30, splitSize: sourceMacros.length }));
       }
     }
+  }
+  if (annotateRescue) for (const action of actions) {
+    action.metrics.rescue = colorSkillCanRescue(action, publicState, ownPrivateState, boardColors) ? 1 : 0;
   }
   return actions;
 }
@@ -316,7 +347,28 @@ function enumerateCpuActions(observation) {
   const { publicState, ownPrivateState } = observation;
   if (publicState.status === "FINISHED" || publicState.active !== ownPrivateState.seat) return Object.freeze([]);
   let actions = [];
-  if (publicState.phase === "COLOR") actions = [...enumerateColorActions(publicState, ownPrivateState), ...enumerateColorSkillActions(publicState, ownPrivateState)];
+  if (publicState.phase === "COLOR") {
+    const colorActions = enumerateColorActions(publicState, ownPrivateState);
+    const skillActions = enumerateColorSkillActions(publicState, ownPrivateState, true);
+    const rescueActions = skillActions.filter((action) => action.metrics.rescue > 0);
+    actions = colorActions.length
+      ? [...colorActions, ...skillActions]
+      : rescueActions.length
+        ? rescueActions
+        : skillActions.length
+          ? skillActions
+        : [{ type: "DECLARE_NO_COLOR", payload: {}, metrics: { blockedCount: new Set(adjacentRegionIds(publicState, publicState.pending).map((id) => publicState.regions[id]?.color).filter(Boolean)).size } }];
+  }
+  else if (publicState.phase === "CREATE_FIRST" || publicState.phase === "WORK") actions = [...enumerateRegionActions(publicState), ...enumerateWorkSkillActions(publicState, ownPrivateState)];
+  if (!actions.length) actions = [{ type: "SURRENDER", payload: {}, metrics: { fallback: true } }];
+  return deepFreeze(actions);
+}
+
+function enumerateCpuActionsLegacy(observation) {
+  const { publicState, ownPrivateState } = observation;
+  if (publicState.status === "FINISHED" || publicState.active !== ownPrivateState.seat) return Object.freeze([]);
+  let actions = [];
+  if (publicState.phase === "COLOR") actions = [...enumerateLegacyColorActions(publicState, ownPrivateState), ...enumerateColorSkillActions(publicState, ownPrivateState)];
   else if (publicState.phase === "CREATE_FIRST" || publicState.phase === "WORK") actions = [...enumerateRegionActions(publicState), ...enumerateWorkSkillActions(publicState, ownPrivateState)];
   if (!actions.length) actions = [{ type: "SURRENDER", payload: {}, metrics: { fallback: true } }];
   return deepFreeze(actions);
@@ -352,6 +404,7 @@ module.exports = {
   POLICY_VERSIONS,
   chooseCpuAction,
   enumerateCpuActions,
+  enumerateCpuActionsLegacy,
   immediateOpponentColorOptions,
   makeObservation,
   V49_SKILL_IDS,

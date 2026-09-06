@@ -10,29 +10,31 @@ const runbook = fs.readFileSync(path.join(__dirname, "..", "docs", "STANDARD_PUB
 
 test("release evidence ledger keeps local, public, approval, and blocked states distinct", () => {
   for (const state of ["VERIFIED", "PUBLIC_VERIFIED", "BLOCKED", "PENDING_APPROVAL", "PENDING", "NOT_RUN"]) assert.match(evidence, new RegExp(state));
-  for (const gate of ["採否棚卸し", "ローカル製品試験", "Dashboard Advisor", "migration 006–013", "202609060001–002本番適用", "Edge Function更新", "GitHub main・Pages更新", "390px盤面", "別々の二端末による最終受入"]) {
+  for (const gate of ["採否棚卸し", "ローカル製品試験", "Dashboard Advisor", "migration 006–013", "202609060001–003本番適用", "Edge Function更新", "GitHub main・Pages更新", "390px盤面", "別々の二端末による最終受入"]) {
     assert.match(evidence, new RegExp(gate));
   }
   assert.match(evidence, /token、API key、user ID、個人情報は記録しない/);
 });
 
-test("current public identity is internally consistent while T+24 keeps its release baseline", () => {
+test("current public identity is internally consistent while historical and T+24 baselines remain explicit", () => {
   const currentGates = evidence.match(/## 現在のゲート[\s\S]+?## 2026-09-04/)?.[0] || "";
   const publicIdentity = evidence.match(/## 公開識別子[\s\S]+?## Canary結果/)?.[0] || "";
-  const currentRelease = evidence.match(/## 2026-09-06 10時台 JST クイズ明確化・進捗表示公開[\s\S]+?## 公開識別子/)?.[0] || "";
-  for (const section of [currentGates, publicIdentity, currentRelease]) {
-    assert.match(section, /a4b9917/);
-    assert.match(section, /34003307900/);
-    assert.match(section, /34004028751/);
+  const historicalQuizRelease = evidence.match(/## 2026-09-06 10時台 JST クイズ明確化・進捗表示公開[\s\S]+?## 公開識別子/)?.[0] || "";
+  for (const section of [currentGates, publicIdentity]) {
+    assert.match(section, /75791fb/);
+    assert.match(section, /34017288334/);
+    assert.match(section, /34017695831/);
   }
-  assert.match(currentGates, /app v29\/client\+intents v17\/style v27/);
-  assert.match(publicIdentity, /Chrome job `101405916579` Success \/ Edge job `101405916474` Success/);
-  assert.match(publicIdentity, /先行run `34003126498`のCRLF失敗を保持して修正/);
-  assert.match(currentRelease, /deployment 19が.*worker boot error/);
-  assert.match(currentRelease, /deployment 20へ修復/);
-  assert.match(currentRelease, /基本Edge canary 7\/7とRunbook B 234\/234/);
-  assert.match(currentRelease, /DB migration、RPC、engine bundle生成結果、ゲームルール、報酬tier、在庫、秘密情報、課金、削除、cleanup scheduleは変更していない/);
-  assert.match(currentRelease, /物理二端末受入とT\+24資源比較は`NOT_RUN\/PENDING`/);
+  assert.match(currentGates, /app\/style v34/);
+  assert.match(publicIdentity, /Chrome job `101443203494` Success \/ Edge job `101443203230` Success/);
+  assert.match(historicalQuizRelease, /a4b9917/);
+  assert.match(historicalQuizRelease, /34003307900/);
+  assert.match(historicalQuizRelease, /34004028751/);
+  assert.match(historicalQuizRelease, /deployment 19が.*worker boot error/);
+  assert.match(historicalQuizRelease, /deployment 20へ修復/);
+  assert.match(historicalQuizRelease, /基本Edge canary 7\/7とRunbook B 234\/234/);
+  assert.match(historicalQuizRelease, /DB migration、RPC、engine bundle生成結果、ゲームルール、報酬tier、在庫、秘密情報、課金、削除、cleanup scheduleは変更していない/);
+  assert.match(historicalQuizRelease, /物理二端末受入とT\+24資源比較は`NOT_RUN\/PENDING`/);
   assert.match(runbook, /publicAssetCommit=3fb3ef8/);
   assert.match(runbook, /physicalTwoDeviceAcceptance.*executionState: NOT_RUN.*gateState: PENDING.*automated:false/);
 });

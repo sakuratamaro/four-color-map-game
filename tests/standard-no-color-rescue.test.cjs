@@ -33,3 +33,40 @@ test("a blocked palette with colorPrism in hand remains active until the player 
   );
   assert.equal(state.hands.A.colorPrism, 1);
 });
+
+test("a real CREATE opens a response window where prism can rescue the receiver before coloring", () => {
+  const rng = createRngDomains(453, match.REQUIRED_RNG_STREAMS);
+  const state = match.createStandardMatch({
+    matchId: "create-prism-rescue",
+    firstSeat: "A",
+    loadouts: { A: {}, B: { color: ["colorPrism"] } },
+  }, rng);
+  const microFor = (macro) => {
+    const col = macro % 12;
+    const row = Math.floor(macro / 12);
+    return Array.from({ length: 16 }, (_, index) => (row * 4 + Math.floor(index / 4)) * 48 + col * 4 + (index % 4));
+  };
+  const usable = [...state.basicPalettes.B, state.bonusColors.B];
+  state.phase = "WORK";
+  state.requiredSize = state.rolledSize = state.baseRequiredSize = 1;
+  state.regions = {
+    R1: { id: "R1", micro: microFor(13), sourceMacros: [13], controllers: ["A"], color: usable[0], isPending: false },
+    R2: { id: "R2", micro: microFor(15), sourceMacros: [15], controllers: ["A"], color: usable[1], isPending: false },
+    R3: { id: "R3", micro: [3 * 48 + 8], sourceMacros: [], controllers: ["A"], color: usable[2], isPending: false },
+  };
+
+  const created = match.applyStandardAction({ state, actor: "A", action: { type: "CREATE_REGION", payload: { sourceMacros: [14] } }, expectedVersion: 0, rngStreams: rng });
+  assert.deepEqual([created.state.status, created.state.active, created.state.phase, created.state.version], ["ACTIVE", "B", "COLOR", 1]);
+
+  const rescued = match.applyStandardAction({ state: created.state, actor: "B", action: { type: "USE_SKILL", payload: { skill: "colorPrism" } }, expectedVersion: 1, rngStreams: rng });
+  assert.equal(rescued.ok, true);
+  assert.deepEqual([rescued.state.status, rescued.state.phase, rescued.state.version, rescued.state.hands.B.colorPrism], ["ACTIVE", "COLOR", 2, 0]);
+  const rescueColor = ["red", "blue", "yellow", "green"].find((color) => !usable.includes(color));
+  const colored = match.applyStandardAction({ state: rescued.state, actor: "B", action: { type: "COLOR_REGION", payload: { color: rescueColor } }, expectedVersion: 2, rngStreams: rng });
+  assert.equal(colored.ok, true);
+  assert.deepEqual([colored.state.status, colored.state.phase, colored.state.version], ["ACTIVE", "WORK", 3]);
+
+  const voluntary = match.applyStandardAction({ state: created.state, actor: "B", action: { type: "DECLARE_NO_COLOR" }, expectedVersion: 1 });
+  assert.equal(voluntary.ok, true, "rescue cards remain optional for a human declaration");
+  assert.deepEqual([voluntary.state.status, voluntary.state.winner, voluntary.state.terminalReason], ["FINISHED", "A", "NO_LEGAL_COLOR"]);
+});

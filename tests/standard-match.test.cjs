@@ -205,7 +205,7 @@ test("contact pressure counts edges only and ignores corner, pending, uncolored,
   assert.equal(Object.hasOwn(rejected, "contactColorCount"), false);
 });
 
-test("entering COLOR automatically resolves NO_LEGAL_COLOR in the creating action", () => {
+test("entering COLOR opens a response window before NO_LEGAL_COLOR is declared", () => {
   const state = create(4522);
   const microFor = (macro) => {
     const col = macro % 12;
@@ -226,13 +226,16 @@ test("entering COLOR automatically resolves NO_LEGAL_COLOR in the creating actio
   const result = match.applyStandardAction({ state, actor: "A", action: { type: "CREATE_REGION", payload: { sourceMacros: [14] } }, expectedVersion: 0 });
   assert.equal(result.ok, true);
   assert.equal(JSON.stringify(state), before);
-  assert.deepEqual([result.state.status, result.state.phase, result.state.winner, result.state.terminalReason], ["FINISHED", "GAME_OVER", "A", "NO_LEGAL_COLOR"]);
+  assert.deepEqual([result.state.status, result.state.active, result.state.phase, result.state.winner, result.state.terminalReason], ["ACTIVE", "B", "COLOR", null, null]);
   assert.equal(result.state.version, 1);
   assert.equal(result.state.pending, "R4");
   assert.equal(result.contactColorCount, 3);
+  const declared = match.applyStandardAction({ state: result.state, actor: "B", action: { type: "DECLARE_NO_COLOR" }, expectedVersion: 1 });
+  assert.equal(declared.ok, true);
+  assert.deepEqual([declared.state.status, declared.state.phase, declared.state.winner, declared.state.terminalReason, declared.state.version], ["FINISHED", "GAME_OVER", "A", "NO_LEGAL_COLOR", 2]);
 });
 
-test("entering COLOR automatically resolves SEALED_OUT when no color is usable", () => {
+test("entering COLOR opens a response window before SEALED_OUT is declared", () => {
   const state = create(4523);
   state.phase = "WORK";
   state.requiredSize = 1;
@@ -244,9 +247,26 @@ test("entering COLOR automatically resolves SEALED_OUT when no color is usable",
   };
   const result = match.applyStandardAction({ state, actor: "A", action: { type: "CREATE_REGION", payload: { sourceMacros: [14] } }, expectedVersion: 0 });
   assert.equal(result.ok, true);
-  assert.deepEqual([result.state.status, result.state.phase, result.state.winner, result.state.terminalReason], ["FINISHED", "GAME_OVER", "A", "SEALED_OUT"]);
+  assert.deepEqual([result.state.status, result.state.active, result.state.phase, result.state.winner, result.state.terminalReason], ["ACTIVE", "B", "COLOR", null, null]);
   assert.equal(result.state.version, 1);
   assert.equal(result.state.pending, "R2");
+  const declared = match.applyStandardAction({ state: result.state, actor: "B", action: { type: "DECLARE_NO_COLOR" }, expectedVersion: 1 });
+  assert.equal(declared.ok, true);
+  assert.deepEqual([declared.state.status, declared.state.phase, declared.state.winner, declared.state.terminalReason, declared.state.version], ["FINISHED", "GAME_OVER", "A", "SEALED_OUT", 2]);
+});
+
+test("alpha.1 matches retain automatic no-color resolution for in-progress compatibility", () => {
+  const state = create(45230);
+  state.engineVersion = match.LEGACY_ENGINE_VERSION;
+  state.phase = "WORK";
+  state.requiredSize = state.rolledSize = state.baseRequiredSize = 1;
+  state.publicEffects.B.seals = Object.fromEntries(COLORS.map((color) => [color, 1]));
+  state.regions = {
+    R1: { id: "R1", micro: Array.from({ length: 16 }, (_, index) => 196 + Math.floor(index / 4) * 48 + (index % 4)), sourceMacros: [13], controllers: ["A"], color: "red", isPending: false },
+  };
+  const result = match.applyStandardAction({ state, actor: "A", action: { type: "CREATE_REGION", payload: { sourceMacros: [14] } }, expectedVersion: 0 });
+  assert.equal(result.ok, true);
+  assert.deepEqual([result.state.status, result.state.phase, result.state.winner, result.state.terminalReason], ["FINISHED", "GAME_OVER", "A", "SEALED_OUT"]);
 });
 
 test("turn-3 blue contact only defeats a yellow-green player when both alternatives are sealed", () => {
@@ -280,12 +300,16 @@ test("turn-3 blue contact only defeats a yellow-green player when both alternati
   const before = JSON.stringify(trapped);
   const trappedResult = match.applyStandardAction({ state: trapped, actor: "B", action: { type: "CREATE_REGION", payload: { sourceMacros: [14] } }, expectedVersion: 0 });
   assert.equal(JSON.stringify(trapped), before);
-  assert.deepEqual([trappedResult.state.status, trappedResult.state.winner, trappedResult.state.terminalReason], ["FINISHED", "B", "NO_LEGAL_COLOR"]);
+  assert.deepEqual([trappedResult.state.status, trappedResult.state.active, trappedResult.state.phase], ["ACTIVE", "A", "COLOR"]);
+  const trappedDeclared = match.applyStandardAction({ state: trappedResult.state, actor: "A", action: { type: "DECLARE_NO_COLOR" }, expectedVersion: 1 });
+  assert.deepEqual([trappedDeclared.state.status, trappedDeclared.state.winner, trappedDeclared.state.terminalReason], ["FINISHED", "B", "NO_LEGAL_COLOR"]);
 
   const fullySealed = fixture();
   fullySealed.publicEffects.A.seals = { yellow: 1, green: 1, blue: 1 };
   const sealedResult = match.applyStandardAction({ state: fullySealed, actor: "B", action: { type: "CREATE_REGION", payload: { sourceMacros: [14] } }, expectedVersion: 0 });
-  assert.deepEqual([sealedResult.state.status, sealedResult.state.winner, sealedResult.state.terminalReason], ["FINISHED", "B", "SEALED_OUT"]);
+  assert.deepEqual([sealedResult.state.status, sealedResult.state.active, sealedResult.state.phase], ["ACTIVE", "A", "COLOR"]);
+  const sealedDeclared = match.applyStandardAction({ state: sealedResult.state, actor: "A", action: { type: "DECLARE_NO_COLOR" }, expectedVersion: 1 });
+  assert.deepEqual([sealedDeclared.state.status, sealedDeclared.state.winner, sealedDeclared.state.terminalReason], ["FINISHED", "B", "SEALED_OUT"]);
 });
 
 test("no-color declaration is accepted only when every usable color is blocked", () => {

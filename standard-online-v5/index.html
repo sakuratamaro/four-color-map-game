@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <title>Four Color Map Game v5.0 Standard Online</title>
   <link rel="stylesheet" href="../online-v5/style.css">
-  <link rel="stylesheet" href="style.css?v=20260906-34">
+  <link rel="stylesheet" href="style.css?v=20260906-35">
   <link rel="stylesheet" href="debug-mode.css">
   <link rel="stylesheet" href="progression.css">
 </head>
@@ -315,7 +315,17 @@
         <button id="clearSelection" class="ghost">選択解除</button>
         <button id="submitRegion" class="primary">このエリアを渡す</button>
       </div>
-      <div id="paletteControls" class="controls"></div>
+      <section id="colorResponse" class="color-response hidden" aria-labelledby="colorResponseHeading">
+        <h3 id="colorResponseHeading" tabindex="-1">この灰色エリアへの応答</h3>
+        <div id="paletteControls" class="controls"></div>
+        <p class="muted small">持ち色で塗れないときも、色操作カードで打開できる場合があります。</p>
+        <details id="noColorResponse" class="no-color-response">
+          <summary>塗れる色が見つからないとき</summary>
+          <p id="noColorExplanation">色操作カードで打開できる場合があります。サーバーの確認が通ると、あなたの敗北で対戦が終了します。</p>
+          <button id="showColorSkills" class="ghost" type="button">色操作カードを見る</button>
+          <button id="declareNoColor" class="danger" type="button" aria-describedby="noColorExplanation">サーバーに「塗れる色なし」と申告</button>
+        </details>
+      </section>
       <p id="actionStatus" class="muted operation-feedback" role="status" aria-live="polite" aria-atomic="true"></p>
       <button id="retryAction" class="primary hidden">同じ操作を再送</button>
       <section class="random-summary" aria-labelledby="randomSummaryTitle">
@@ -427,6 +437,6 @@
   <script src="standard-online-sync.js"></script>
   <script src="standard-online-skill-intents.js?v=20260906-17"></script>
   <script src="cpu-commentary.js?v=20260906-1"></script>
-  <script type="module" src="app.js?v=20260906-34"></script>
+  <script type="module" src="app.js?v=20260906-35"></script>
 </body>
 </html>

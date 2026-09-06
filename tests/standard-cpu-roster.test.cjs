@@ -69,3 +69,29 @@ test("changing the opponent private state cannot alter a character decision", ()
   });
   assert.deepEqual(choose(current), choose(changed));
 });
+
+test("character CPU rescue behavior is partitioned by the match engine version", () => {
+  const character = roster.CPU_CHARACTERS.yuzu;
+  const current = match.createStandardMatch({ matchId: "rescue-policy", firstSeat: "A", loadouts: { A: character.loadout, B: character.loadout } }, streams(88));
+  const usable = [...current.basicPalettes.A, current.bonusColors.A];
+  current.phase = "COLOR";
+  current.pending = "R4";
+  current.regions = {
+    R1: { id: "R1", micro: [48], sourceMacros: [], controllers: ["B"], color: usable[0], isPending: false },
+    R2: { id: "R2", micro: [50], sourceMacros: [], controllers: ["B"], color: usable[1], isPending: false },
+    R3: { id: "R3", micro: [1], sourceMacros: [], controllers: ["B"], color: usable[2], isPending: false },
+    R4: { id: "R4", micro: [49], sourceMacros: [], controllers: ["B"], color: null, isPending: true },
+  };
+  const choose = (candidate) => roster.chooseCharacterAction({
+    publicState: match.projectStandardPublicState(candidate),
+    ownPrivateState: match.projectStandardPrivateState(candidate, "A"),
+    characterId: character.id,
+    policyVersion: character.policyVersion,
+    random: () => 0,
+    tieBreakRandom: () => 0,
+  });
+  assert.equal(choose(current).type, "USE_SKILL", "alpha.2 CPU tries a private rescue card first");
+  const legacy = JSON.parse(JSON.stringify(current));
+  legacy.engineVersion = match.LEGACY_ENGINE_VERSION;
+  assert.equal(choose(legacy).type, "DECLARE_NO_COLOR", "alpha.1 replay retains the old deterministic decision");
+});

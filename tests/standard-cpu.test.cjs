@@ -169,3 +169,33 @@ test("one CPU-generated candidate for each canonical skill is accepted by the au
     assert.equal(result.state.hands.A[skill], 0, skill);
   }
 });
+
+test("blocked CPU uses a color rescue before declaring and recognizes temporary borrowed colors", () => {
+  const current = state(240);
+  const usable = [...current.basicPalettes.A, current.bonusColors.A];
+  current.phase = "COLOR";
+  current.pending = "R4";
+  current.hands.A = { colorPrism: 1 };
+  current.regions = {
+    R1: { id: "R1", micro: [48], sourceMacros: [], controllers: ["B"], color: usable[0], isPending: false },
+    R2: { id: "R2", micro: [50], sourceMacros: [], controllers: ["B"], color: usable[1], isPending: false },
+    R3: { id: "R3", micro: [1], sourceMacros: [], controllers: ["B"], color: usable[2], isPending: false },
+    R4: { id: "R4", micro: [49], sourceMacros: [], controllers: ["B"], color: null, isPending: true },
+  };
+  const rescueActions = cpu.enumerateCpuActions(observation(current, "hard"));
+  assert.ok(rescueActions.length > 0);
+  assert.ok(rescueActions.every((action) => action.type === "USE_SKILL"));
+  assert.equal(rescueActions.some((action) => action.type === "DECLARE_NO_COLOR"), false);
+  assert.equal(cpu.chooseCpuAction({ observation: observation(current, "hard"), random: () => 0, tieBreakRandom: () => 0 }).payload.skill, "colorPrism");
+
+  const borrowed = JSON.parse(JSON.stringify(current));
+  borrowed.hands.A = {};
+  borrowed.privateEffects.A.temporaryColors = [["red", "blue", "yellow", "green"].find((color) => !usable.includes(color))];
+  const borrowedActions = cpu.enumerateCpuActions(observation(borrowed, "hard"));
+  assert.deepEqual(borrowedActions.map((action) => action.type), ["COLOR_REGION"]);
+  assert.equal(borrowedActions[0].payload.color, borrowed.privateEffects.A.temporaryColors[0]);
+
+  const exhausted = JSON.parse(JSON.stringify(current));
+  exhausted.hands.A = {};
+  assert.deepEqual(cpu.enumerateCpuActions(observation(exhausted, "hard")), [{ type: "DECLARE_NO_COLOR", payload: {}, metrics: { blockedCount: 3 } }]);
+});

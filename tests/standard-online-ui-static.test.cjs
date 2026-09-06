@@ -49,8 +49,8 @@ test("Standard online setup UI exposes the complete reconnect path", () => {
 });
 
 test("CPU commentary is public-event-only, bounded, non-blocking, and terminal-persistent", () => {
-  assert.match(html, /style\.css\?v=20260906-34/);
-  assert.match(html, /app\.js\?v=20260906-34/);
+  assert.match(html, /style\.css\?v=20260906-35/);
+  assert.match(html, /app\.js\?v=20260906-35/);
   assert.ok(html.indexOf("cpu-commentary.js") < html.indexOf('type="module" src="app.js'));
   assert.match(html, /id="cpuCommentaryStage"[^>]+aria-hidden="true"/);
   assert.match(html, /id="cpuCommentaryAnnouncement"[^>]+role="status"[^>]+aria-live="polite"[^>]+aria-atomic="true"/);
@@ -614,13 +614,21 @@ test("private basic colors keep a readable text separator between visual swatche
   assert.match(app, /for \(const \[index, color\] of \(privateState\.basicPalette \|\| \[\]\)\.entries\(\)\) \{\s*if \(index\) \$\("basicPaletteValue"\)\.append\("・"\);\s*appendColorValue\(\$\("basicPaletteValue"\), color\);\s*\}/);
 });
 
-test("basic board actions are intents derived from public and own-private projections", () => {
+test("basic board actions and the no-color declaration are projection-bounded intents", () => {
   assert.match(app, /roomModel\.room\.public_state/);
   assert.match(app, /roomModel\.view\?\.private_state/);
   assert.match(app, /sendAction\("CREATE_REGION", \{ sourceMacros:/);
   assert.match(app, /sendAction\("COLOR_REGION", \{ color \}\)/);
   assert.match(app, /sendAction\("SURRENDER"\)/);
-  assert.doesNotMatch(html + app, /declareNoColor|使用可能色なしを宣言|sendAction\("DECLARE_NO_COLOR"\)/);
+  assert.match(html, /id="colorResponse"[\s\S]+id="declareNoColor"[\s\S]+サーバーに「塗れる色なし」と申告/);
+  assert.match(html, /id="noColorExplanation"[\s\S]+id="showColorSkills"[\s\S]+色操作カードを見る[\s\S]+id="declareNoColor"[^>]+aria-describedby="noColorExplanation"/);
+  assert.match(app, /canRespondToColor = myTurn && state\.phase === "COLOR" && !targetDraft/);
+  assert.match(app, /noColorResponse[\s\S]+addEventListener\("toggle"[\s\S]+alignColorResponseAboveBattleChrome/);
+  assert.match(app, /showColorSkills[\s\S]+button\[data-skill\]:not\(:disabled\)[\s\S]+category === "color"[\s\S]+scrollIntoView/);
+  assert.match(app, /if \(!initialHydrationPending\) requestAnimationFrame/);
+  assert.match(app, /持ち色を再確認し、それでも塗れなければ申告か投了/);
+  assert.match(app, /sendAction\("DECLARE_NO_COLOR", \{\}\)/);
+  assert.match(app, /error\?\.code === "COLOR_AVAILABLE"[\s\S]+手番・カードは減っていません/);
   assert.doesNotMatch(app, /client\.submitAction\([^)]*(?:state|publicState|privateState)/);
 });
 

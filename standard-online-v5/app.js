@@ -282,6 +282,8 @@ let boardZoomed = false;
 let boardKeyboardMacro = null;
 let boardInteractionScope = null;
 let boardPointerGesture = null;
+let observedColorResponseScope = null;
+let initialHydrationPending = true;
 const COLOR_HEX = { red: "#ef4444", blue: "#3b82f6", yellow: "#eab308", green: "#22c55e" };
 const COLOR_JA = { red: "赤", blue: "青", yellow: "黄", green: "緑" };
 const APP_TABS = new Set(["home", "battle", "quiz", "cards", "profile"]);
@@ -3446,6 +3448,20 @@ function isColorSealed(state, seat, color) {
     && Number(state?.publicEffects?.[seat]?.seals?.[color] || 0) > 0;
 }
 
+function alignColorResponseAboveBattleChrome() {
+  const response = $("colorResponse");
+  if (!response || response.classList.contains("hidden") || activeAppTab !== "battle" || document.visibilityState !== "visible") return;
+  response.scrollIntoView({ block: "nearest", behavior: "auto" });
+  const responseRect = response.getBoundingClientRect();
+  const obstructionTop = Math.min(
+    $("connectionCard")?.getBoundingClientRect().top ?? innerHeight,
+    document.querySelector(".app-tabs")?.getBoundingClientRect().top ?? innerHeight,
+  );
+  if (responseRect.bottom > obstructionTop - 8) {
+    scrollBy({ top: responseRect.bottom - obstructionTop + 8, behavior: "auto" });
+  }
+}
+
 function renderBasicActions(state, privateState) {
   const seat = roomModel?.view?.seat;
   const myTurn = state.status === "ACTIVE" && state.active === seat;
@@ -3455,7 +3471,19 @@ function renderBasicActions(state, privateState) {
   $("selectionCount").textContent = `${selectedMacros.size} / ${state.requiredSize}マス`;
   $("submitRegion").disabled = !canCreate || actionBusy || selectedMacros.size !== state.requiredSize;
   const palette = $("paletteControls"); palette.replaceChildren();
-  if (myTurn && state.phase === "COLOR") {
+  const canRespondToColor = myTurn && state.phase === "COLOR" && !targetDraft;
+  show("colorResponse", canRespondToColor);
+  const colorResponseScope = canRespondToColor ? `${state.matchId}:${state.version}:${seat}:${state.pending}` : null;
+  if (!canRespondToColor) {
+    observedColorResponseScope = null;
+    $("noColorResponse").open = false;
+  } else if (colorResponseScope !== observedColorResponseScope) {
+    observedColorResponseScope = colorResponseScope;
+    if (!initialHydrationPending) requestAnimationFrame(() => {
+      if (observedColorResponseScope === colorResponseScope) alignColorResponseAboveBattleChrome();
+    });
+  }
+  if (canRespondToColor) {
     const colors = skillIntents.availableColorChoices(privateState);
     for (const color of colors) {
       const sealed = isColorSealed(state, seat, color);
@@ -3464,6 +3492,7 @@ function renderBasicActions(state, privateState) {
       button.disabled = actionBusy || sealed; button.onclick = () => sendAction("COLOR_REGION", { color }); palette.appendChild(button);
     }
   }
+  $("declareNoColor").disabled = actionBusy || !canRespondToColor;
   $("surrender").disabled = actionBusy || !myTurn;
   if (state.status === "FINISHED") {
     stopCpuTurnWatch();
@@ -3570,6 +3599,11 @@ async function sendAction(type, payload = {}, retry = false) {
     revealOperationFeedback("actionStatus");
     toast(safeMessage);
     await roomSync.refreshNow().catch(() => {});
+    if (type === "DECLARE_NO_COLOR" && error?.code === "COLOR_AVAILABLE") {
+      $("noColorResponse").open = false;
+      operationFeedback("actionStatus", "申告は成立しませんでした。使える色があります。持ち色か色操作カードを選んでください。手番・カードは減っていません。", "error");
+      requestAnimationFrame(() => $("colorResponseHeading")?.focus({ preventScroll: true }));
+    }
   } finally { actionBusy = false; render(); }
 }
 
@@ -4519,6 +4553,21 @@ $("clearSelection").onclick = () => {
   render();
 };
 $("submitRegion").onclick = () => sendAction("CREATE_REGION", { sourceMacros: [...selectedMacros].sort((a, b) => a - b) });
+$("noColorResponse").addEventListener("toggle", () => {
+  if ($("noColorResponse").open) requestAnimationFrame(alignColorResponseAboveBattleChrome);
+});
+$("showColorSkills").onclick = () => {
+  const target = [...$("skillControls").querySelectorAll("button[data-skill]:not(:disabled)")]
+    .find((candidate) => SKILL_META[candidate.dataset.skill]?.category === "color");
+  if (!target) {
+    operationFeedback("actionStatus", "今使える色操作カードは手札にありません。持ち色を再確認し、それでも塗れなければ申告か投了を選んでください。", "error");
+    revealOperationFeedback("actionStatus");
+    return;
+  }
+  target.focus({ preventScroll: true });
+  target.scrollIntoView({ block: "center", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+};
+$("declareNoColor").onclick = () => sendAction("DECLARE_NO_COLOR", {});
 $("surrender").onclick = () => sendAction("SURRENDER");
 $("retryAction").onclick = () => pendingAction && sendAction(pendingAction.type, pendingAction.payload, true);
 $("requestRematch").onclick = requestRematch;
@@ -4633,6 +4682,7 @@ try {
     const recoveredAtBoot = await recoverServerActiveRoom().catch(() => false);
     if (!recoveredAtBoot && synced && hasCpuEntryIntent()) await openCpuRoster("direct", $("startStandardCpuHome"));
   }
+  initialHydrationPending = false;
   render();
   alignPlayingViewport({ expectedInteractionRevision: bootInteractionRevision, behavior: "auto", ensureMoveControlsVisible: true });
   if (synced && !cosmeticCatalogLoaded) await refreshOnlineCosmetics({ quiet: true });

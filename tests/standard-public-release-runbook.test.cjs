@@ -7,7 +7,7 @@ const test = require("node:test");
 
 const runbook = fs.readFileSync(path.join(__dirname, "..", "docs", "STANDARD_PUBLIC_RELEASE_RUNBOOK.md"), "utf8");
 
-test("release runbook fixes migration-before-Edge-before-Pages order", () => {
+test("release runbook fixes migration history and the COLOR response Pages-first exception", () => {
   const migrationSection = runbook.slice(runbook.indexOf("## DB適用順序"), runbook.indexOf("## EdgeとPagesの順序"));
   const releaseSection = runbook.slice(runbook.indexOf("## EdgeとPagesの順序"), runbook.indexOf("## 段階canary"));
   let previous = -1;
@@ -32,9 +32,16 @@ test("release runbook fixes migration-before-Edge-before-Pages order", () => {
   const database = releaseSection.indexOf("DB 18本とcandidate verification 72/72を確認する");
   const pages = releaseSection.indexOf("StandardオンラインPagesを公開");
   assert.ok(database >= 0 && pages > database);
+  const pagesV35 = releaseSection.indexOf("Pages v35");
+  const edge21 = releaseSection.indexOf("Edge deployment 21", pagesV35);
+  const colorCanary = releaseSection.indexOf("専用COLOR canary", edge21);
+  assert.ok(pagesV35 >= 0 && edge21 > pagesV35 && colorCanary > edge21);
+  for (const phrase of ["5.0.0-alpha.1", "5.0.0-alpha.2", "--expect=candidate", "index.ts", "standard-engine.bundle.js", "Edgeをdeployment 20へ先に戻す"]) {
+    assert.match(releaseSection, new RegExp(phrase.replaceAll(".", "\\.")));
+  }
   assert.match(runbook, /PagesをDBより先に公開しない/);
-  assert.match(runbook, /--expect=baseline`で、旧公開境界がすべて有効、availability RPCは`absent`、待機相手UIは未公開/);
-  assert.match(runbook, /SQL適用後・Pages前は`--expect=db-ready`、Pages後は`--expect=candidate`/);
+  assert.match(runbook, /今便はDB変更なし/);
+  assert.match(runbook, /migration tail `202609060003`/);
   assert.match(runbook, /202609060003`適用後にPagesを戻す場合も、旧クライアントから未使用のavailability関数と索引は保持/);
   assert.match(runbook, /202609050006.*適用直前[\s\S]+duplicate_active_actor_state[\s\S]+重複件数が0/);
   assert.match(runbook, /0でなければ `202609050006` を適用せず/);
@@ -46,7 +53,7 @@ test("release gates cover human, CPU, persistence, privacy, load, and safe rollb
   }
   assert.match(runbook, /p_dry_run=true/);
   assert.match(runbook, /その場で表や列をDROPしない/);
-  assert.match(runbook, /Edge canary失敗時はPagesを公開せず/);
+  assert.match(runbook, /Edge canary失敗時はEdgeをdeployment 20へ先に戻し/);
   assert.match(runbook, /live-standard-legal-recolor-lab-canary\.mjs --confirm-live/);
   assert.match(runbook, /index\.ts.*standard-engine\.bundle\.js.*同じdeployment/);
 });

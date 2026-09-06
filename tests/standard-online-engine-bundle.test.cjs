@@ -54,7 +54,7 @@ test("server bundle contains only authoritative Standard rule and profile module
 
 test("bundle exposes a deterministic server-only Standard engine", () => {
   const api = loadApi();
-  assert.equal(api.ENGINE_VERSION, "5.0.0-alpha.1");
+  assert.equal(api.ENGINE_VERSION, "5.0.0-alpha.2");
   assert.equal(typeof api.create, "function");
   assert.equal(typeof api.apply, "function");
   assert.equal(typeof api.applyProfiles, "function");
@@ -86,6 +86,7 @@ test("server bundle exposes ten safe CPU identities and deterministic legal deci
   const cpuProfile = api.createCpuProfile("yuzu");
   assert.equal(Object.values(cpuProfile.loadout).flat().length, 6);
   assert.equal(cpuProfile.profile.displayName, "うっかりユズ");
+  assert.equal(cpuProfile.policyVersion, "standard-character-roster-v1:yuzu", "engine upgrade does not change persisted CPU identity");
   const created = api.create({ matchId: "cpu-server", loadouts: { A: loadouts.A, B: cpuProfile.loadout }, profiles: { A: profiles().A, B: cpuProfile.profile }, seed: 123, firstSeat: "B" });
   const first = api.chooseCpuAction({ publicState: created.publicState, ownPrivateState: created.privateB, characterId: "yuzu", policyVersion: cpuProfile.policyVersion, seed: 999 });
   const second = api.chooseCpuAction({ publicState: created.publicState, ownPrivateState: created.privateB, characterId: "yuzu", policyVersion: cpuProfile.policyVersion, seed: 999 });
@@ -178,7 +179,7 @@ test("the bundle validates, applies, snapshots, and projects one authoritative a
   assert.equal(Object.hasOwn(applied, "candidates"), false);
 });
 
-test("generated server bundle auto-resolves a blocked receiving seat in the creating action", () => {
+test("generated server bundle opens a blocked response window and resolves only after declaration", () => {
   const api = loadApi();
   const created = api.create({ matchId: "online-no-color", loadouts, seed: 101, firstSeat: "A" });
   const state = created.state;
@@ -205,8 +206,31 @@ test("generated server bundle auto-resolves a blocked receiving seat in the crea
     action: { type: "CREATE_REGION", payload: { sourceMacros: [14] } },
   });
   assert.equal(applied.ok, true);
-  assert.equal(applied.finished, true);
-  assert.deepEqual([applied.winnerSeat, applied.terminalReason, applied.state.version], ["A", "NO_LEGAL_COLOR", 1]);
+  assert.equal(applied.finished, false);
+  assert.deepEqual([applied.state.status, applied.state.active, applied.state.phase, applied.winnerSeat, applied.terminalReason, applied.state.version], ["ACTIVE", "B", "COLOR", null, null, 1]);
+  const declared = api.apply({
+    state: applied.state,
+    rngSnapshot: applied.rngSnapshot,
+    actor: "B",
+    expectedVersion: 1,
+    action: { type: "DECLARE_NO_COLOR", payload: {} },
+  });
+  assert.equal(declared.ok, true);
+  assert.equal(declared.finished, true);
+  assert.deepEqual([declared.winnerSeat, declared.terminalReason, declared.state.version], ["A", "NO_LEGAL_COLOR", 2]);
+
+  const legacyState = JSON.parse(JSON.stringify(state));
+  legacyState.engineVersion = "5.0.0-alpha.1";
+  const legacy = api.apply({
+    state: legacyState,
+    rngSnapshot: created.rngSnapshot,
+    actor: "A",
+    expectedVersion: 0,
+    action: { type: "CREATE_REGION", payload: { sourceMacros: [14] } },
+  });
+  assert.equal(legacy.ok, true);
+  assert.equal(legacy.finished, true);
+  assert.deepEqual([legacy.winnerSeat, legacy.terminalReason, legacy.state.version], ["A", "NO_LEGAL_COLOR", 1]);
 });
 
 test("invalid or duplicated six-card loadouts fail before match creation", () => {

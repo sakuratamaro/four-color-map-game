@@ -10,7 +10,9 @@ const { applyCurseBacklashOnEnterColor, preparedOutgoingCandidates, tickPaletteD
 const { createRegionGeometryContext } = require("./standard-region-geometry.js");
 
 const SCHEMA_VERSION = 1;
-const ENGINE_VERSION = "5.0.0-alpha.1";
+const LEGACY_ENGINE_VERSION = "5.0.0-alpha.1";
+const ENGINE_VERSION = "5.0.0-alpha.2";
+const SUPPORTED_ENGINE_VERSIONS = Object.freeze([LEGACY_ENGINE_VERSION, ENGINE_VERSION]);
 const SAVE_KEY = "fourColorMapGame.standard.v5.save";
 const PHASES = Object.freeze(["CREATE_FIRST", "COLOR", "WORK", "GAME_OVER"]);
 const ACTIONS = Object.freeze(["CREATE_REGION", "COLOR_REGION", "USE_SKILL", "DECLARE_NO_COLOR", "SURRENDER"]);
@@ -141,7 +143,7 @@ function createStandardMatch(config = {}, rngStreams = {}) {
 function validateStandardState(state) {
   assertState(state && typeof state === "object", "INVALID_STATE");
   assertState(state.schemaVersion === SCHEMA_VERSION, "INVALID_SCHEMA_VERSION");
-  assertState(state.engineVersion === ENGINE_VERSION, "INVALID_ENGINE_VERSION");
+  assertState(SUPPORTED_ENGINE_VERSIONS.includes(state.engineVersion), "INVALID_ENGINE_VERSION");
   assertState(state.mode === "standard", "WRONG_MODE");
   assertState(typeof state.matchId === "string" && state.matchId.length > 0, "INVALID_MATCH_ID");
   assertState(Number.isInteger(state.version) && state.version >= 0, "INVALID_VERSION");
@@ -514,7 +516,7 @@ function createRegion(state, actor, payload = {}, rngStreams = {}) {
   next.version += 1;
   next.publicLog.push(`T${next.turn - 1} Player ${actor} created ${id}${intrusion.donorCount ? ` with ${intrusion.donorCount} colored-region intrusion${intrusion.splitCount ? ` and ${intrusion.splitCount} donor split` : ""}${intrusion.removedCount ? ` and ${intrusion.removedCount} donor removal` : ""}` : ""}; Player ${next.active} must color it.`);
   applyCurseBacklashOnEnterColor(next, next.active, () => nextRandom(rngStreams, "skill-effect"));
-  finishNoColorOnEntry(next, next.active);
+  if (next.engineVersion === LEGACY_ENGINE_VERSION) finishNoColorOnEntry(next, next.active);
   const contactColorCount = new Set(adjacentRegionIds(next, id)
     .map((regionId) => next.regions[regionId])
     .filter((region) => region && !region.isPending && region.color)
@@ -610,7 +612,7 @@ function colorRegion(state, actor, payload = {}, rngStreams = {}) {
       color: target.color,
     };
     next.publicLog.push(`Player ${actor} colored ${target.id}; split region ${returnedId} returned to Player ${next.active}.`);
-    finishNoColorOnEntry(next, next.active);
+    if (next.engineVersion === LEGACY_ENGINE_VERSION) finishNoColorOnEntry(next, next.active);
     return { ok: true, code: "OK", state: next, returnedRegionId: returnedId };
   }
   next.pending = null;
@@ -736,12 +738,14 @@ module.exports = {
   BONUS_USE_POOL,
   DIE_POOL,
   ENGINE_VERSION,
+  LEGACY_ENGINE_VERSION,
   ENGINE_TERMINAL_REASONS,
   FINISHED_STATE_TERMINAL_REASONS,
   PHASES,
   REQUIRED_RNG_STREAMS,
   SAVE_KEY,
   SCHEMA_VERSION,
+  SUPPORTED_ENGINE_VERSIONS,
   TERMINAL_REASONS,
   applyStandardAction,
   createStandardMatch,

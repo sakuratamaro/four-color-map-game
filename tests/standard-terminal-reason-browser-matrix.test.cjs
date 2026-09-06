@@ -218,6 +218,7 @@ async function installReasonState(page, reason) {
     state.hands.A.colorPrism = 0;
     rootValue.profiles.playerA.inventory.colorPrism = 0;
     rootValue.reservations.playerA.colorPrism = 0;
+    state.lastPublicTrace = null;
   } else if (reason === "SEALED_OUT") {
     state.publicEffects.A.seals = { red: 1, blue: 1, yellow: 1, green: 1 };
     state.hands.A.colorPrism = 0;
