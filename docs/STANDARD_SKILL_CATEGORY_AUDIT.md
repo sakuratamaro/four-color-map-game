@@ -116,7 +116,7 @@ This separation is required by UDL-003: the no-op does not reveal the opponent's
 ### Debug and LAB
 
 - Debug currently replenishes a successfully used card. It must not clear the category window. The UI meaning of infinity is therefore unlimited stock, not unlimited same-window activations.
-- Online LAB uses the same server-authoritative gate. `legalRecolor` stays experimental and online-LAB-only but consumes the color opportunity. Local alpha sessions and CPU observations with an explicitly injected hand must obey the same usage-category rule without weakening their separate availability gates.
+- Online LAB uses the same server-authoritative gate. `legalRecolor` stays experimental and online-LAB-only but consumes the color opportunity. New alpha.3 local sessions and CPU observations with an explicitly injected hand must obey the same usage-category rule without weakening their separate availability gates.
 
 ### Retry and replay
 
@@ -173,7 +173,7 @@ The refill card is not part of the audited v4.9 set and does not change the 19-c
 ### B. CPU and focused tests
 
 - Filter CPU enumeration and adjust normal/hard rescue ordering.
-- Cover every registry mapping plus: same-category second-card reject, different-category acceptance, `COLOR` skill -> color -> `legalRecolor` reject, same numeric turn after active handoff, accepted miss/no-op, the UDL-003 retained-card/used-category branch, reject, cancel, persistence failure, replay, debug replenishment, online LAB, local alpha, CPU injected-hand, and legacy matches.
+- Cover every registry mapping plus: same-category second-card reject, different-category acceptance, `COLOR` skill -> color -> `legalRecolor` reject, same numeric turn after active handoff, accepted miss/no-op, the UDL-003 retained-card/used-category branch, reject, cancel, persistence failure, replay, debug replenishment, online LAB, new alpha.3 local sessions, CPU injected-hand, and legacy matches.
 
 ### C. Client and online artifacts
 
