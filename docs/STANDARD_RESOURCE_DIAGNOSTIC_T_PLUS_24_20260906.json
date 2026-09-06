@@ -1,0 +1,340 @@
+{
+  "captured_at": "2026-09-06T09:12:08.823128+00:00",
+  "connections": {
+    "total": 24,
+    "active": 2,
+    "blocked": 0,
+    "idle_in_transaction": 0,
+    "realtime_application_connections": 7
+  },
+  "dead_tuples": [
+    {
+      "schema": "public",
+      "relation": "fcg_standard_profiles",
+      "last_autovacuum": null,
+      "last_autoanalyze": "2026-09-06T02:50:30.489064+00:00",
+      "estimated_dead_tuples": 78,
+      "estimated_live_tuples": 175
+    },
+    {
+      "schema": "fcg_private",
+      "relation": "standard_room_setups",
+      "last_autovacuum": null,
+      "last_autoanalyze": "2026-09-05T07:25:04.65557+00:00",
+      "estimated_dead_tuples": 57,
+      "estimated_live_tuples": 99
+    },
+    {
+      "schema": "auth",
+      "relation": "users",
+      "last_autovacuum": "2026-09-05T13:57:13.381899+00:00",
+      "last_autoanalyze": "2026-09-06T01:26:28.477719+00:00",
+      "estimated_dead_tuples": 54,
+      "estimated_live_tuples": 330
+    },
+    {
+      "schema": "fcg_private",
+      "relation": "standard_matchmaking_tickets",
+      "last_autovacuum": null,
+      "last_autoanalyze": "2026-09-05T02:17:57.675605+00:00",
+      "estimated_dead_tuples": 52,
+      "estimated_live_tuples": 19
+    },
+    {
+      "schema": "public",
+      "relation": "fcg_room_members",
+      "last_autovacuum": "2026-08-28T18:17:20.755439+00:00",
+      "last_autoanalyze": "2026-09-06T02:58:30.625669+00:00",
+      "estimated_dead_tuples": 50,
+      "estimated_live_tuples": 134
+    },
+    {
+      "schema": "fcg_private",
+      "relation": "standard_quiz_sessions",
+      "last_autovacuum": "2026-09-06T01:26:28.491753+00:00",
+      "last_autoanalyze": "2026-09-06T08:52:38.644071+00:00",
+      "estimated_dead_tuples": 43,
+      "estimated_live_tuples": 75
+    },
+    {
+      "schema": "fcg_private",
+      "relation": "authoritative_matches",
+      "last_autovacuum": "2026-09-06T02:49:30.427604+00:00",
+      "last_autoanalyze": "2026-09-06T06:17:34.872173+00:00",
+      "estimated_dead_tuples": 40,
+      "estimated_live_tuples": 47
+    },
+    {
+      "schema": "public",
+      "relation": "fcg_player_views",
+      "last_autovacuum": "2026-09-06T02:40:30.222676+00:00",
+      "last_autoanalyze": "2026-09-06T08:52:38.66438+00:00",
+      "estimated_dead_tuples": 29,
+      "estimated_live_tuples": 94
+    },
+    {
+      "schema": "auth",
+      "relation": "sessions",
+      "last_autovacuum": null,
+      "last_autoanalyze": "2026-09-06T03:12:30.936006+00:00",
+      "estimated_dead_tuples": 26,
+      "estimated_live_tuples": 330
+    },
+    {
+      "schema": "public",
+      "relation": "fcg_rooms",
+      "last_autovacuum": "2026-09-06T06:21:34.88214+00:00",
+      "last_autoanalyze": "2026-09-06T06:18:34.817182+00:00",
+      "estimated_dead_tuples": 22,
+      "estimated_live_tuples": 69
+    },
+    {
+      "schema": "fcg_private",
+      "relation": "standard_matchmaking_limits",
+      "last_autovacuum": "2026-09-05T23:22:25.968804+00:00",
+      "last_autoanalyze": "2026-09-05T06:26:03.299537+00:00",
+      "estimated_dead_tuples": 20,
+      "estimated_live_tuples": 41
+    },
+    {
+      "schema": "fcg_private",
+      "relation": "standard_rematch_votes",
+      "last_autovacuum": null,
+      "last_autoanalyze": null,
+      "estimated_dead_tuples": 20,
+      "estimated_live_tuples": 1
+    },
+    {
+      "schema": "auth",
+      "relation": "mfa_amr_claims",
+      "last_autovacuum": null,
+      "last_autoanalyze": "2026-09-05T03:15:58.926196+00:00",
+      "estimated_dead_tuples": 18,
+      "estimated_live_tuples": 330
+    },
+    {
+      "schema": "fcg_private",
+      "relation": "join_attempt_limits",
+      "last_autovacuum": "2026-08-28T18:08:20.51733+00:00",
+      "last_autoanalyze": "2026-09-04T13:46:43.683334+00:00",
+      "estimated_dead_tuples": 16,
+      "estimated_live_tuples": 80
+    },
+    {
+      "schema": "fcg_private",
+      "relation": "standard_action_receipts",
+      "last_autovacuum": null,
+      "last_autoanalyze": "2026-09-06T06:15:34.785556+00:00",
+      "estimated_dead_tuples": 8,
+      "estimated_live_tuples": 554
+    },
+    {
+      "schema": "fcg_private",
+      "relation": "action_receipts",
+      "last_autovacuum": "2026-08-28T19:28:22.22728+00:00",
+      "last_autoanalyze": "2026-08-28T18:17:20.750841+00:00",
+      "estimated_dead_tuples": 5,
+      "estimated_live_tuples": 2
+    },
+    {
+      "schema": "auth",
+      "relation": "refresh_tokens",
+      "last_autovacuum": "2026-09-06T07:14:36.468028+00:00",
+      "last_autoanalyze": "2026-09-06T01:31:28.602547+00:00",
+      "estimated_dead_tuples": 2,
+      "estimated_live_tuples": 446
+    },
+    {
+      "schema": "fcg_private",
+      "relation": "standard_rematch_receipts",
+      "last_autovacuum": null,
+      "last_autoanalyze": null,
+      "estimated_dead_tuples": 1,
+      "estimated_live_tuples": 27
+    },
+    {
+      "schema": "auth",
+      "relation": "audit_log_entries",
+      "last_autovacuum": null,
+      "last_autoanalyze": null,
+      "estimated_dead_tuples": 0,
+      "estimated_live_tuples": 0
+    },
+    {
+      "schema": "auth",
+      "relation": "custom_oauth_providers",
+      "last_autovacuum": null,
+      "last_autoanalyze": null,
+      "estimated_dead_tuples": 0,
+      "estimated_live_tuples": 0
+    }
+  ],
+  "publication": [
+    {
+      "table": "fcg_rooms",
+      "schema": "public"
+    }
+  ],
+  "database_bytes": 16403603,
+  "largest_relations": [
+    {
+      "schema": "auth",
+      "relation": "users",
+      "index_bytes": 221184,
+      "table_bytes": 253952,
+      "total_bytes": 516096
+    },
+    {
+      "schema": "public",
+      "relation": "fcg_standard_profiles",
+      "index_bytes": 16384,
+      "table_bytes": 401408,
+      "total_bytes": 507904
+    },
+    {
+      "schema": "fcg_private",
+      "relation": "standard_quiz_sessions",
+      "index_bytes": 65536,
+      "table_bytes": 139264,
+      "total_bytes": 483328
+    },
+    {
+      "schema": "fcg_private",
+      "relation": "authoritative_matches",
+      "index_bytes": 16384,
+      "table_bytes": 73728,
+      "total_bytes": 434176
+    },
+    {
+      "schema": "public",
+      "relation": "fcg_rooms",
+      "index_bytes": 65536,
+      "table_bytes": 90112,
+      "total_bytes": 401408
+    },
+    {
+      "schema": "auth",
+      "relation": "refresh_tokens",
+      "index_bytes": 245760,
+      "table_bytes": 90112,
+      "total_bytes": 376832
+    },
+    {
+      "schema": "fcg_private",
+      "relation": "standard_action_receipts",
+      "index_bytes": 106496,
+      "table_bytes": 212992,
+      "total_bytes": 352256
+    },
+    {
+      "schema": "auth",
+      "relation": "sessions",
+      "index_bytes": 155648,
+      "table_bytes": 40960,
+      "total_bytes": 229376
+    },
+    {
+      "schema": "public",
+      "relation": "fcg_player_views",
+      "index_bytes": 49152,
+      "table_bytes": 114688,
+      "total_bytes": 204800
+    },
+    {
+      "schema": "auth",
+      "relation": "mfa_amr_claims",
+      "index_bytes": 81920,
+      "table_bytes": 40960,
+      "total_bytes": 155648
+    },
+    {
+      "schema": "fcg_private",
+      "relation": "standard_room_setups",
+      "index_bytes": 49152,
+      "table_bytes": 57344,
+      "total_bytes": 139264
+    },
+    {
+      "schema": "fcg_private",
+      "relation": "standard_gacha_receipts",
+      "index_bytes": 32768,
+      "table_bytes": 49152,
+      "total_bytes": 114688
+    },
+    {
+      "schema": "public",
+      "relation": "fcg_room_members",
+      "index_bytes": 49152,
+      "table_bytes": 16384,
+      "total_bytes": 106496
+    },
+    {
+      "schema": "fcg_private",
+      "relation": "standard_matchmaking_tickets",
+      "index_bytes": 81920,
+      "table_bytes": 8192,
+      "total_bytes": 98304
+    },
+    {
+      "schema": "auth",
+      "relation": "one_time_tokens",
+      "index_bytes": 81920,
+      "table_bytes": 0,
+      "total_bytes": 90112
+    },
+    {
+      "schema": "fcg_private",
+      "relation": "standard_matchmaking_limits",
+      "index_bytes": 32768,
+      "table_bytes": 8192,
+      "total_bytes": 73728
+    },
+    {
+      "schema": "fcg_private",
+      "relation": "action_receipts",
+      "index_bytes": 32768,
+      "table_bytes": 8192,
+      "total_bytes": 65536
+    },
+    {
+      "schema": "auth",
+      "relation": "custom_oauth_providers",
+      "index_bytes": 49152,
+      "table_bytes": 0,
+      "total_bytes": 57344
+    },
+    {
+      "schema": "auth",
+      "relation": "mfa_factors",
+      "index_bytes": 49152,
+      "table_bytes": 0,
+      "total_bytes": 57344
+    },
+    {
+      "schema": "fcg_private",
+      "relation": "join_attempt_limits",
+      "index_bytes": 16384,
+      "table_bytes": 8192,
+      "total_bytes": 57344
+    }
+  ],
+  "replication_slots": {
+    "total_slots": 2,
+    "active_slots": 2,
+    "inactive_slots": 0,
+    "retained_wal_bytes_max": 56,
+    "slots_with_restart_lsn": 2,
+    "sum_of_per_slot_lag_bytes": 112
+  },
+  "retention_candidates": {
+    "rooms_older_than_24h": 14,
+    "quiz_sessions_older_than_7d": 0,
+    "gacha_receipts_older_than_30d": 0,
+    "resolved_tickets_older_than_7d": 0,
+    "searching_tickets_older_than_7d": 0,
+    "cosmetic_receipts_older_than_30d": 0,
+    "matchmaking_limits_older_than_7d": 0,
+    "card_sale_receipts_older_than_30d": 0,
+    "matchmaking_find_receipts_older_than_30d": 0
+  }
+}

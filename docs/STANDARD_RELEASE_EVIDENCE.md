@@ -19,7 +19,7 @@
 | 現行公開Pages | PUBLIC_VERIFIED | 公開製品基点`9b7d8f4`、Pages run `34022540907`のbuild/report/deploy成功。公開URLでapp/style v35、client v18、skill-intents v17、CPU commentary v1、COLOR応答DOM、console warning/error 0を確認 | 別々の二端末で最終受入 |
 | 初回公開前DB境界（履歴） | VERIFIED | 旧snapshotは匿名権限拒否。snapshot v2と野良募集が未存在だった初回baseline | 現行境界は適用migrationとlive canaryを参照 |
 | migration 006–013静的検査 | VERIFIED | migration別security/transaction testsと読み取り専用44項目SQL | 実DBで全行`ok=true` |
-| Dashboard Advisor・使用量baseline | PENDING | 2026-09-05 16:23 JSTのT0を`STANDARD_OBSERVATION_T0_20260905.json`へPARTIAL記録。API/Edge/Realtime/Query/Advisor 17項目を観測、Databaseグラフ等20項目はDashboard取得不能でPENDING。Health alert 2件継続 | T+24hで同じ24時間filterを再採取し、Database欠落値とalert状態を再確認 |
+| Dashboard Advisor・使用量baseline | WATCH_PARTIAL | T0と2026-09-06のT+24hを正規化JSONへ保存。T+24hは15/37 metricを観測し、公開preflight成功、CPU 2%、RAM 62%、disk 17%、disk IO 1%、接続peak 20/60、Security errors 0。API/Edge等22 metricはDashboard取得不能でPENDING。read-only診断はblocked/idle 0、slot 2/2 active、publication不変 | 欠落panelは次の定期観測で再取得し、推測値・0置換はしない |
 | migration 006–013＋後続001–007＋202609060001–003本番適用 | PUBLIC_VERIFIED | additive availability RPCまで適用。現行の読み取り専用検証SQLは72/72すべてtrue。availabilityはauthenticatedのみ、匿名preflightではprotected | 物理二端末最終受入 |
 | Edge Function更新 | PUBLIC_VERIFIED | deployment 21へ`index.ts`と生成済みbundleを同時反映。反映前に両ファイルをDashboardから読み戻し、LF正規化後SHAが候補と一致。基本7/7、専用COLOR 164/164、candidate preflight `ok:true`。deployment 20とPages v35の後方互換実戦も成功 | 物理端末で救済判断の操作感を確認 |
 | 即時Standard CPU開始 | PUBLIC_VERIFIED | migration `202609050002`とEdge deployment 9。製品`cc96350`、公開`a4c6490`、DB 47項目、Edge基本6/6、即時CPU 7/7、Windows run `33931963065`、Pages run `33932159043`合格。公開UIでCPU初手まで確認 | 物理端末で一試合完走・再読込・同じCPUとの再戦を確認 |
@@ -45,7 +45,7 @@
 - Windows run `34022065339`はChrome job `101456337426`とEdge job `101456337486`が成功。`origin/main`を`98098d5`から`9b7d8f4`へforceなしでfast-forwardし、Pages run `34022540907`のbuild `101457627136`、report `101457693170`、deploy `101457693195`が成功した。公開HTML/app/styleはHTTP 200、app/style v35、COLOR応答DOM、390×844、console warning/error 0を確認した。
 - Pages先行中のEdge deployment 20実CPU戦では、alpha.1/version 6で合法色ありの誤申告を`COLOR_AVAILABLE`として拒否し、公開projection・本人private projection・profileが完全不変、details閉鎖、応答見出しfocus、続く通常彩色が`COLOR_REGION`／version 7／WORKとして成功した。検証roomはversion 8のSURRENDERで終了した。
 - Dashboardでは候補`index.ts` 1,171行/SHA-256 `908d84258bec279df5166c60d41d40bd0717ac423e1e574de63b378cc4383d10`とbundle 3,484行/SHA-256 `056236fed7cf9b197c5fc9fc53bc0b3f70b47a6689046f311a8c68cf69af50b1`を貼付後に読み戻し完全一致確認し、単一操作でdeployment 21へ反映した。基本Edge 7/7、専用COLOR 164/164、candidate preflight `ok:true`。新規alpha.2、誤申告write-free、CPU有限進行、全段階のprivate key非露出、canary room終了を確認した。
-- migration tailは`202609060003`のまま。SQL、RPC、secret、JWT設定、報酬、在庫、cleanup scheduleは変更していない。物理二端末受入とT+24観測は`PENDING`を維持する。
+- migration tailは`202609060003`のまま。SQL、RPC、secret、JWT設定、報酬、在庫、cleanup scheduleは変更していない。T+24観測は後述の`WATCH_PARTIAL`まで完了し、物理二端末受入だけを`PENDING`で維持する。
 
 ## 2026-09-06 角膨張・エラー可視化・盤面outline整理公開
 
@@ -195,6 +195,14 @@
 - Infrastructure currentはCPU 2%、disk 17%、RAM 66%、connections 16/60。7日cardはCompute/CPU peak 99%、memory 64%、disk IO 1%。Databaseの24時間CPU、IO、connections、diskグラフはDashboard自身が取得不能を返したため、推測せず20 metricを`PENDING/null`にした。
 - 入力`STANDARD_DASHBOARD_T0_20260905.json`と正規化出力`STANDARD_OBSERVATION_T0_20260905.json`を保存した。公開preflightは`ok:true`、repository HEAD・公開asset・Pages commit/run・Edge deployment 13を分離し、物理二端末は`NOT_RUN/PENDING/automated:false`のままである。
 - 課金、Compute/Disk変更、Advisor reset、SQL、DB/Edge更新は行っていない。T+24hより先に、`realtime.list_changes`の累積負荷が現行Standard由来か既存/プラットフォーム由来かをread-onlyで切り分ける。
+
+## 2026-09-06 18:12 JST 公開後T+24h観測
+
+- 2026-09-05 18:03:05–09-06 18:03:05 JSTの同一24時間窓でDashboardを確認し、`STANDARD_DASHBOARD_T_PLUS_24_20260906.json`と`STANDARD_OBSERVATION_T_PLUS_24_20260906.json`へ保存した。releaseは公開asset/Pages commit `9b7d8f4`、Pages run `34022540907`、Edge deployment 21、migration tail `202609060003`をrepository HEAD `d5c77ac`と分離した。公開candidate preflightは`ok:true`。
+- 観測できたのは37 metric中15件。overviewはCPU 2%、RAM 62%、disk 17%、disk IO 1%、接続peak 20/60、Realtime Postgres Changes 428、Security Advisor errors 0・warnings 22・suggestions 16。Data API、API Gateway、Edge Functions、Performance/Health Advisorの一部はDashboardが値を返さず、22件を`PENDING/null`のまま保存した。
+- Query Performanceは累積値として、`realtime.list_changes` 165,607 calls、81.9%、mean 11ms、max 6,379ms。T0差はcalls +96,884、share +2.9 point、mean -8ms、max +2,542msだが、24時間区間性能とは呼ばない。旧直接read形の`fcg_room_members` 6,759 calls、`fcg_rooms` 5,639 callsはT0から増加0。
+- 同時点のread-only資源診断はDB 16,403,603 bytes（T0比+1,105,920 bytes）、最大ゲームrelation `public.fcg_standard_profiles` 507,904 bytes、接続total 24・active 2・blocked 0・idle-in-transaction 0・Realtime 7。publicationは`public.fcg_rooms`のみ、slotは2/2 active、inactive 0、最大WAL lag 56 bytes。最大dead tupleは78、保持候補は24時間超room 14件（+3）、その他8分類0。
+- 公開preflight成功、Advisor error 0、blocked/idle 0、inactive slot 0、publication変化なしのためHOLD条件はない。一方で資源警告banner継続、`realtime.list_changes`累積負荷、Dashboard欠落22件を残すため判定は`WATCH_PARTIAL`。cleanup、課金、Compute/Disk、Advisor reset、DB/Edge設定は変更していない。物理二端末受入は`NOT_RUN/PENDING/automated:false`を維持する。
 
 ## 2026-09-05 17:51 JST 野良成立の安全な対戦引継ぎ公開・資源診断
 

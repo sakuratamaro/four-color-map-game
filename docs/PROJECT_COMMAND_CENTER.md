@@ -33,7 +33,7 @@
 | P0 | CPU戦の完了報酬表示 | UX＋進行 | PUBLIC_VERIFIED | `640ec98`。保存済みCPU結果へ`Lv.1ガチャ券 +1`を明示し、再読込を含む券2→3、対人精算とCPU未精算の否定条件を確認。Windows run `33944794035`、Pages run `33944924097`成功 |
 | P0 | 持ち色変更の説明 | UX＋ルール | PUBLIC_VERIFIED | `640ec98`。基本色2枠は回数無制限、おまけ色枠は残り回数を変更後の色へ引き継ぐことを明示。Windows run `33944794035`、Pages run `33944924097`成功 |
 | P0 | クロガネ公開情報lookahead v2 | CPU＋Edge＋DB | PUBLIC_VERIFIED | `a3425a4`。migration `202609050005`、新規クロガネだけv2、旧roomは旧policy維持、再戦時v2更新。公開情報だけの合法手、再送、決着、同CPU再戦canary合格。Windows run `33947039777`、Pages run `33947644765`成功 |
-| P0 | Supabase資源とRealtime負荷の追跡 | 運用 | OBSERVED_PARTIAL | T0に加え、`STANDARD_RESOURCE_DIAGNOSTIC_20260905.json`をread-only取得。DB 15,297,683 bytes、最大ゲームrelation 327,680 bytes、blocked/idle-in-transaction 0、Realtime slot 2/2 active、slot別最大WAL lag 16,776,968 bytes、期限切れ候補はroom 11件・他0件。ゲーム表肥大をdisk警報の主因とする証拠はなく、単発値だけでslot追従も断定しない。T+24hで時系列比較する |
+| P0 | Supabase資源とRealtime負荷の追跡 | 運用 | WATCH_PARTIAL | T+24hを固定24時間窓で取得。公開preflight `ok:true`、CPU 2%、RAM 62%、disk 17%、disk IO 1%、接続peak 20/60。read-only診断はDB 16,403,603 bytes、active 2、blocked/idle-in-transaction 0、Realtime slot 2/2 active、publication不変、最大WAL lag 56 bytes、期限切れ候補room 14件・他0件。API/Edge/Performance/Healthの一部panelは取得不能のため22 metricをPENDINGのまま保持し、削除・課金・Compute変更は行わない |
 | P0 | 別々の二端末による最終受入 | チャッピー先生＋司令塔 | PENDING | 対人/CPUの完走、復帰、再戦、永続化を確認 |
 | P1 | 対戦を主役にする情報設計 | UX | PUBLIC_VERIFIED | 5タブ化し、ホームの主CTAから対戦タブ内の初回profile作成・同期・ロビーまでを一本化。公開URLの390px実画面で確認済み |
 | P1 | 初回オンライン準備を一操作に短縮 | UX | PUBLIC_VERIFIED | `9d42784`。名前入力後の一操作でstarter保存とprofile同期を行い、自動入室はしない。空名write 0、同期二重送信防止、失敗時starter保持。公開CTA確認済み |
@@ -62,8 +62,9 @@
 | P1 | CPU実況とクイズ固定hitbox | ゲーム体験＋UX＋ルール | PUBLIC_VERIFIED | 10人のCPUへ公開eventだけの個性文を付け、対戦タブ外・reload・background再演とprivate情報参照を禁止。クイズはボタン矩形を固定し内側labelだけを漂わせる。Chrome/Edge各71件、390pxで固定通知・盤面・下部nav非交差、公開console 0を確認 |
 | P1 | 角膨張の盤面主導・keyboard完走・エラー可視化 | UX＋ルール＋技術品質＋司令塔 | PUBLIC_VERIFIED | `75791fb`。数値入力を廃止し、渡すエリア→基準マスの2段階を盤面で選ぶ。44px盤面focus導線、pointer、Tab/Enter/Space、2マス接続候補、白/紫の現在状態を固定。長文toastは上部通知の下へ退避し、setup/成立済みconnection/navと遷移中も非交差。Windows `34017288334`のChrome/Edge各73件、Pages `34017695831`、公開app/style v34、candidate preflight、console 0を確認。DB/Edge変更なし |
 | P1 | 救済スキルを塞がない共通COLOR応答窓 | ルール＋CPU＋UX＋Edge＋司令塔 | PUBLIC_VERIFIED | `9b7d8f4`。新規engine `5.0.0-alpha.2`は通常彩色／COLOR救済スキル／`DECLARE_NO_COLOR`／投了を同じ応答窓へ集約し、旧alpha.1 roomは従来挙動を維持。宣言はserver authorityで合法色0を検証し、救済カード有無を公開stateへ漏らさない。ローカル962/962、Windows `34022065339`、Pages `34022540907`、Edge deployment 21の基本7/7＋専用164/164、公開390px・console 0を確認。SQL/RPC変更なし |
-| P1 | 持ち色汚染no-opの消費仕様 | ルール＋Edge＋UX | SPEC_NEXT | no-op時はカードを消費しないがaction・手番・機会は使用する案を有限仕様へ固定し、「変化なし・カードは戻った」だけを公開表示。engine/Edge変更前に再送・private境界を定義する |
-| P1 | Shift説明と将来overlay skillの位相 | ルール＋UX | DESIGN_NEXT | 「ちぎれたり、くっついたり」を説明へ追加。merge後はcanonical numeric-min ID/controller unionを維持し、将来の差し色追加も現在の可視region/canonical ID＋盤面属性だけをrules入力にする |
+| P1 | Shift対象指定と説明の摩擦解消 | UX＋ルール＋司令塔 | SPEC_READY_NEXT | Onlineの0始まり自由数値と「負/正方向」、Localの0–47入力を廃止し、1始まりの「上からN行／左からN列」selectと「左/右・上/下」へ置換する。内部payloadは0始まりの既存形を維持し、Half/Tripleへ「形がちぎれ、同色が接するとくっつく」を追記。DB/Edge/engineは変更しない |
+| P1 | 持ち色汚染no-opの消費仕様 | ルール＋Edge＋UX | DESIGN_DEFERRED | 単純reject・即返却・成否表示は相手の非公開paletteを色ごとに探れるためNO-GO。将来扱うなら対戦内機会は消費、成否は対戦中非公開、終局時だけ永続inventoryをexactly-once返却するserver-only ledgerと期限切れcleanupを一体設計する |
+| P2 | 将来overlay skillの位相 | ルール＋UX | DESIGN_BACKLOG | merge後はcanonical numeric-min ID/controller unionを維持し、将来の差し色追加も現在の可視region/canonical ID＋盤面属性だけをrules入力にする。現行プレイヤー価値がないためShift既存UIの後へ分離 |
 | HOLD | 匿名＋任意Google identity link | 認証＋DB＋司令塔 | PHASE0_ONLY | 現在はSDK/RLS/Realtime/redirect/CSP/idempotency/token/log/admin境界のread-only監査だけ。provider有効化、callback、SDK、DB変更は別の公開便に分離する |
 | P1 | 未コミット／孤立作業の回収 | 構成管理 | COMPLETED | 29床を3床へ集約。丸ごと統合候補は0。Quick回帰試験だけを回収し、残るroot dirtyは救出済み・凍結管理 |
 | P2 | GitHub Pages actionのNode.js警告解消 | 技術品質 | BACKLOG | 公開結果を変えず、Node.js 20廃止予定warningを消す |
@@ -71,6 +72,8 @@
 2026-09-06のactive-room復帰公開判断では、3担当をDB/Edge契約、UX/browser、worktree/旧タスク監査に分け、全員P0/P1なしを確認した。ローカルEdge browser 56/56、Windows Chrome/Edge、DB 68/68、Edge本番7/7＋復帰10/10、Pages、公開HTTP/ブラウザの順で昇格した。additive SQLだけを追加し、secret/billing/deletion/cleanupは変更していない。
 
 同日の「塗り直し・乱」LABでも、ルール/DB、UX/accessibility、repository/CIの3担当へ分担した。公開ゲートの弱いDB probe、UI marker、CI pathsを独立担当が公開前に発見し、実asset正方向テストまで補強した。最終P0/P1なし、`202609060002`→Edge deployment 17→live canary→Pagesの順で公開確認した。
+
+T+24h観測後の次便は、UX担当が発見した公開中Shift対象指定の技術語摩擦を最優先とする。ルール担当は持ち色汚染の単純返却がprivate情報オラクルになることを確認したため別設計へ退避し、repository担当は固定37 metric、公開識別子、HOLD/WATCH境界を観測ファイルへ固定した。
 
 同日の390px盤面導線は、UX実測、ルール/公平性、repository/release gateへ分担した。開始時の盤面外れを直す過程で、色操作feedbackを再び画面外へ押し出す配置とwheel操作後の強制scrollを独立監査が公開前に発見し修正した。さらに正式browser harnessの古い件数固定を意味検証へ置換してCI unit列へ追加した。最終P0/P1なし、Windows Chrome/EdgeとPages、公開asset/candidate preflightの順で昇格した。
 

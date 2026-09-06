@@ -1,7 +1,7 @@
 # Codex work status
 
 - Last update: 2026-09-06 JST
-- Stage: Shared COLOR response-window release `9b7d8f4` is public-verified; physical two-device acceptance and T+24h observation remain pending
+- Stage: Shared COLOR response-window release `9b7d8f4` is public-verified; T+24h observation is `WATCH_PARTIAL`; physical two-device acceptance remains pending
 - Integration branch: `codex/standard-release-command`
 - Public product baseline: `9b7d8f45a456e2121ccc522687c491f4836672e5` (includes the shared COLOR response window, legal-recolor LAB, board-first mobile presentation, board selection assist, quiz clarity, waiting-opponent notice, CPU commentary, and Corner Bloom targeting; the historical gold/cyan region outlines are removed)
 - Public URL: `https://sakuratamaro.github.io/four-color-map-game/standard-online-v5/`
@@ -32,6 +32,7 @@
 ## Verification
 
 - Shared COLOR response-window release `9b7d8f4`: the complete local product runner passed 962/962 across 131 files with no failures, cancellations, or skips; regenerated local and Edge bundles were byte-stable. Rules/privacy, UX/accessibility, and repository/release reviewers all reported GO with no P0/P1. Windows run `34022065339` passed Chrome job `101456337426` and Edge job `101456337486`; Pages `34022540907` passed build/report/deploy. The public v35 UI on Edge deployment 20 rejected a legal-color declaration without changing public/private/profile state, returned focus to the response heading, then accepted a normal color as version 6→7. Deployment 21 passed the basic Edge canary 7/7, the dedicated COLOR-response canary 164/164, and candidate preflight `ok:true`; public 390px reload retained v35 and zero captured warning/error. Migration tail `202609060003`, SQL/RPC, secrets, JWT settings, rewards, inventory, and cleanup schedules were unchanged.
+- T+24h observation: fixed 24-hour Dashboard window, 15/37 metrics observed and 22 retained as PENDING because panels returned no data. Public preflight stayed `ok:true`; CPU 2%, RAM 62%, disk 17%, disk IO 1%, peak connections 20/60, Security errors 0. Read-only SQL found active 2, blocked/idle-in-transaction 0, Realtime slots 2/2 active, publication unchanged, max WAL lag 56 bytes, and 14 expired-room candidates with every other retention class at 0. Verdict is `WATCH_PARTIAL`, not HOLD; no cleanup, billing, compute, DB, Edge, Advisor reset, or migration change was made.
 - Legal-recolor LAB release: product `ad53bb4`, public gate HEAD `3fb3ef8`. Official non-browser runner 110 files with zero failures; local Edge/Chrome 60/60 each; responsive 4/4 each; lifecycle 76/76; final Windows gate `33984108011` passed Chrome `101354410490` and Edge `101354410705`; independent reviews reported no P0/P1.
 - Additive migration `202609060002_standard_setup_revision_guard.sql` is applied and candidate verification is 70/70 true. Edge deployment 17 passed the basic canary 7/7 and dedicated LAB canary 23/23, including mutual opt-in, symmetric loan, server-random recolor, minimal public trace, terminal cleanup, and unchanged profiles.
 - Pages run `33984536803` succeeded at `3fb3ef8`. Candidate preflight returned `ok:true`, including protected v3-load/eight-argument initialization probes and the complete LAB UI marker. The public browser loaded app v23/client and intents v17/style v22 with anonymous authentication and zero captured warning/error.
@@ -65,9 +66,9 @@
 
 ## Next command priorities
 
-1. Acceptance/operations: complete a physical two-device match/reload/rematch loop and the T+24h Supabase resource comparison. These remain `PENDING`, not inferred from automation.
-2. P1 pollution rule: specify “no card consumption, but the action/turn/opportunity is used” for a no-op before changing the engine, Edge deployment, or persistence contract.
-3. P1 Shift/new-card explanation: explain that regions may split or merge, then define future overlay-skill topology only from the visible current region/canonical ID and board attributes, never ownership metadata.
-4. HOLD Google identity: perform a read-only Phase 0 auth/RLS/redirect/SDK audit only. Do not enable providers, callbacks, CSP, SDK, or DB changes yet.
+1. P1 Shift targeting: replace raw zero-based number inputs with one-based row/column selects and natural direction labels in Online and Local, preserve the existing zero-based payload, and explain split/same-color merge. This is the next implementation candidate.
+2. Acceptance/operations: complete the physical two-device match/reload/rematch loop. T+24h is recorded as `WATCH_PARTIAL`; the physical gate alone remains `PENDING` and is never inferred from automation.
+3. P1 pollution rule: do not ship a simple reject/refund. Any later no-op refund needs a private server ledger, in-match nondisclosure, exactly-once terminal refund, and expiry cleanup as one design.
+4. HOLD Google identity and future overlay rules: keep both out of the next release; Google remains read-only Phase 0 and overlay topology remains a separate design backlog.
 
 Release `a4b9917` keeps the isolated legal-recolor LAB and board-selection boundaries, clarifies quadratic intent and server-confirmed quiz progress, and preserves server-authoritative completion and reward settlement. Deployment 20 changes Edge source only; DB, rules, reward tiers, inventory, secrets, billing, deletion, and cleanup schedules are unchanged.

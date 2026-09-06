@@ -1,0 +1,96 @@
+{
+  "capturedAt": "2026-09-06T09:12:08.823Z",
+  "window": {
+    "preset": "last-24-hours",
+    "from": "2026-09-05T09:03:05.376Z",
+    "to": "2026-09-06T09:03:05.376Z"
+  },
+  "release": {
+    "publicAssetCommit": "9b7d8f45a456e2121ccc522687c491f4836672e5",
+    "pagesCommit": "9b7d8f45a456e2121ccc522687c491f4836672e5",
+    "pagesRun": "34022540907",
+    "edgeDeployment": {
+      "state": "OBSERVED",
+      "value": 21,
+      "source": "dashboard.edge"
+    },
+    "migrationTail": "202609060003"
+  },
+  "metrics": {
+    "database.cpu_pct": {
+      "state": "OBSERVED",
+      "value": 2,
+      "source": "dashboard.database"
+    },
+    "database.ram_pct": {
+      "state": "OBSERVED",
+      "value": 62,
+      "source": "dashboard.database"
+    },
+    "database.disk_pct": {
+      "state": "OBSERVED",
+      "value": 17,
+      "source": "dashboard.database"
+    },
+    "database.disk_io_pct": {
+      "state": "OBSERVED",
+      "value": 1,
+      "source": "dashboard.database"
+    },
+    "database.connections_peak": {
+      "state": "OBSERVED",
+      "value": 20,
+      "source": "dashboard.database"
+    },
+    "realtime.messages": {
+      "state": "OBSERVED",
+      "value": 428,
+      "source": "dashboard.realtime"
+    },
+    "query.realtime_list_changes.calls": {
+      "state": "OBSERVED",
+      "value": 165607,
+      "source": "dashboard.query-performance"
+    },
+    "query.realtime_list_changes.total_time_pct": {
+      "state": "OBSERVED",
+      "value": 81.9,
+      "source": "dashboard.query-performance"
+    },
+    "query.realtime_list_changes.mean_ms": {
+      "state": "OBSERVED",
+      "value": 11,
+      "source": "dashboard.query-performance"
+    },
+    "query.realtime_list_changes.max_ms": {
+      "state": "OBSERVED",
+      "value": 6379,
+      "source": "dashboard.query-performance"
+    },
+    "query.fcg_room_members.calls": {
+      "state": "OBSERVED",
+      "value": 6759,
+      "source": "dashboard.query-performance"
+    },
+    "query.fcg_rooms.calls": {
+      "state": "OBSERVED",
+      "value": 5639,
+      "source": "dashboard.query-performance"
+    },
+    "advisor.security_errors": {
+      "state": "OBSERVED",
+      "value": 0,
+      "source": "dashboard.advisor"
+    },
+    "advisor.security_warnings": {
+      "state": "OBSERVED",
+      "value": 22,
+      "source": "dashboard.advisor"
+    },
+    "advisor.security_suggestions": {
+      "state": "OBSERVED",
+      "value": 16,
+      "source": "dashboard.advisor"
+    }
+  }
+}

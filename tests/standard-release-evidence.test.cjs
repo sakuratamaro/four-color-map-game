@@ -35,7 +35,9 @@ test("current public identity is internally consistent while historical and T+24
   assert.match(historicalQuizRelease, /基本Edge canary 7\/7とRunbook B 234\/234/);
   assert.match(historicalQuizRelease, /DB migration、RPC、engine bundle生成結果、ゲームルール、報酬tier、在庫、秘密情報、課金、削除、cleanup scheduleは変更していない/);
   assert.match(historicalQuizRelease, /物理二端末受入とT\+24資源比較は`NOT_RUN\/PENDING`/);
-  assert.match(runbook, /publicAssetCommit=3fb3ef8/);
+  assert.match(runbook, /publicAssetCommit=9b7d8f4/);
+  assert.match(evidence, /T\+24h観測.*WATCH_PARTIAL/s);
+  assert.match(evidence, /STANDARD_OBSERVATION_T_PLUS_24_20260906\.json/);
   assert.match(runbook, /physicalTwoDeviceAcceptance.*executionState: NOT_RUN.*gateState: PENDING.*automated:false/);
 });
 

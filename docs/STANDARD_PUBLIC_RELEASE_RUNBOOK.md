@@ -162,7 +162,7 @@ T+24hはT0の正規化JSONをbaselineとして必須指定し、同じ「直近2
 
 `node scripts/capture-standard-release-observation.mjs --label=T+24h --input=docs/STANDARD_DASHBOARD_T_PLUS_24_20260906.json --baseline=docs/STANDARD_OBSERVATION_T0_20260905.json > docs/STANDARD_OBSERVATION_T_PLUS_24_20260906.json`
 
-入力のreleaseは`publicAssetCommit=3fb3ef8`、`edgeDeployment=17`、`migrationTail=202609060002`を記録する。`pagesCommit`と`pagesRun`はT+24実行時点のmain HEADと、それに対応する最新成功Pages runを別々に再取得し、古い組を流用しない。Dashboardの全画面を同じ`Last 24 hours`にし、実表示のwindow from/toを転記する。固定37 metricすべてを再取得し、取れない値は推測せず省略して`PENDING`にする。Query Performanceは累積値であり24時間区間値と呼ばない。`calls`がT0より小さい場合は改善ではなくreset/statement identity変化として比較無効にする。
+2026-09-06のT+24入力は`publicAssetCommit=9b7d8f4`、`pagesCommit=9b7d8f4`、`pagesRun=34022540907`、`edgeDeployment=21`、`migrationTail=202609060003`として実測済み。repository HEAD `d5c77ac`とは分離して記録する。次回観測でも公開asset、Pages commit/run、Edge、migration tailをその時点で別々に再取得し、古い組を流用しない。Dashboardの全画面を同じ`Last 24 hours`にし、実表示のwindow from/toを転記する。固定37 metricすべてを再取得し、取れない値は推測せず省略して`PENDING`にする。Query Performanceは累積値であり24時間区間値と呼ばない。`calls`がT0より小さい場合は改善ではなくreset/statement identity変化として比較無効にする。
 
 同じ時点で`supabase/verification/standard_resource_diagnostic.sql`をread-onlyで再実行し、DB bytes、publication集合、slot数/active/max WAL lag、接続、relation/dead tuple、保持候補をT0と比較する。relationは順位ではなくschema+relationで対応付け、slot別lag合計を実ディスク量とみなさない。新規health alert、Advisor error、blocked/idle-in-transaction、inactive slot、publication変化、429/5xx、接続上限接近、明確なp95/error/使用量悪化は`HOLD/INVESTIGATE`。既存alertや単発増加だけなら`WATCH`とし、cleanup・課金・Compute/Disk変更へ直結させない。
 

@@ -69,8 +69,10 @@ test("release runbook records honest T0 and T+24h observations without automatin
   assert.match(runbook, /automated:false/);
   assert.match(runbook, /2026-09-06 16:23 JST`以降/);
   assert.match(runbook, /STANDARD_OBSERVATION_T0_20260905\.json/);
-  assert.match(runbook, /publicAssetCommit=3fb3ef8/);
-  assert.match(runbook, /pagesCommit.*pagesRun.*T\+24実行時点のmain HEAD/);
+  assert.match(runbook, /publicAssetCommit=9b7d8f4/);
+  assert.match(runbook, /pagesCommit=9b7d8f4/);
+  assert.match(runbook, /pagesRun=34022540907/);
+  assert.match(runbook, /repository HEAD `d5c77ac`とは分離/);
   assert.match(runbook, /古い組を流用しない/);
   assert.match(runbook, /固定37 metric/);
   assert.match(runbook, /HOLD\/INVESTIGATE/);
