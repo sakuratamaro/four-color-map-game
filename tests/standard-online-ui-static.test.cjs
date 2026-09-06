@@ -49,7 +49,7 @@ test("Standard online setup UI exposes the complete reconnect path", () => {
 });
 
 test("CPU commentary is public-event-only, bounded, non-blocking, and terminal-persistent", () => {
-  assert.match(html, /style\.css\?v=20260906-32/);
+  assert.match(html, /style\.css\?v=20260906-33/);
   assert.match(html, /app\.js\?v=20260906-33/);
   assert.ok(html.indexOf("cpu-commentary.js") < html.indexOf('type="module" src="app.js'));
   assert.match(html, /id="cpuCommentaryStage"[^>]+aria-hidden="true"/);
