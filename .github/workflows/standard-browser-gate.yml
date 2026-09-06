@@ -91,6 +91,7 @@ jobs:
           tests/standard-candidate-verification-sql.test.cjs
           tests/standard-matchmaking-availability-migration.test.cjs
           tests/standard-setup-revision-guard.test.cjs
+          tests/standard-cpu-commentary.test.cjs
           tests/standard-match.test.cjs
           tests/standard-online-client.test.cjs
           tests/standard-online-quiz-generator-runtime.test.cjs

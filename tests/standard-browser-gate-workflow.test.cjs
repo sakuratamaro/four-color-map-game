@@ -48,6 +48,7 @@ test("Standard browser gate runs CPU contracts and the scoped browser file seria
   assert.match(workflow, /tests\/standard-online-browser-harness-static\.test\.cjs/);
   assert.match(workflow, /tests\/standard-online-quiz-generator-runtime\.test\.cjs/);
   assert.match(workflow, /tests\/standard-matchmaking-availability-migration\.test\.cjs/);
+  assert.match(workflow, /tests\/standard-cpu-commentary\.test\.cjs/);
   assert.match(workflow, /if: matrix\.STANDARD_BROWSER == 'edge'[\s\S]+?run: node --test --test-concurrency=1 tests\/standard-color-seal-browser-lifecycle\.test\.cjs/);
   assert.match(workflow, /run: node --test --test-concurrency=1 tests\/standard-online-browser\.test\.cjs/);
   assert.equal((workflow.match(/^\s+run:/gm) || []).length, 4);
