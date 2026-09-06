@@ -5,6 +5,7 @@ const fs = require("node:fs");
 const http = require("node:http");
 const path = require("node:path");
 const test = require("node:test");
+const { closeOwnedBrowserServer } = require("./helpers/browser-server-cleanup.cjs");
 
 let chromium;
 try { ({ chromium } = require("playwright")); } catch { /* explicit actual-browser gate */ }
@@ -776,15 +777,21 @@ async function installMock(context, mode) {
 async function withPage(mode, run, { bodyTimeout = 35_000, viewport = { width: 900, height: 800 } } = {}) {
   assert.ok(chromium, "Playwright is required");
   assert.ok(fs.existsSync(browserPath), `${browserName} browser is required`);
+  let browserServer;
   let browser;
   let context;
+  let primaryError = null;
+  let teardownError = null;
   browserStage("server-start");
   const { server, url } = await bounded("server-ready", startServer(), 5_000);
   browserStage("server-ready");
   try {
     browserStage("browser-launch-start");
-    browser = await bounded("browser-launch", chromium.launch({ executablePath: browserPath, headless: true, timeout: 15_000 }), 15_000);
+    browserServer = await bounded("browser-launch", chromium.launchServer({ executablePath: browserPath, headless: true, timeout: 15_000 }), 15_000);
     browserStage("browser-launch-ready");
+    browserStage("browser-connect-start");
+    browser = await bounded("browser-connect", chromium.connect(browserServer.wsEndpoint()), 5_000);
+    browserStage("browser-connect-ready");
     browserStage("context-start");
     context = await bounded("context-ready", browser.newContext({ viewport }), 5_000);
     browserStage("context-ready");
@@ -806,7 +813,10 @@ async function withPage(mode, run, { bodyTimeout = 35_000, viewport = { width: 9
     browserStage("test-body-start");
     await bounded("test-body", run(page), bodyTimeout);
     browserStage("test-body-ready");
-  } finally {
+  } catch (error) {
+    primaryError = error;
+  }
+  try {
     browserStage("teardown-start");
     try {
       browserStage("context-close-start");
@@ -814,9 +824,7 @@ async function withPage(mode, run, { bodyTimeout = 35_000, viewport = { width: 9
       browserStage("context-close-ready");
     } finally {
       try {
-        browserStage("browser-close-start");
-        if (browser) await bounded("browser-close", browser.close(), 20_000);
-        browserStage("browser-close-ready");
+        await closeOwnedBrowserServer({ browserServer, bounded, stage: browserStage });
       } finally {
         browserStage("server-close-start");
         await bounded("server-close", closeServer(server), 3_000);
@@ -824,7 +832,12 @@ async function withPage(mode, run, { bodyTimeout = 35_000, viewport = { width: 9
       }
     }
     browserStage("teardown-ready");
+  } catch (error) {
+    teardownError = error;
   }
+  if (primaryError && teardownError) throw new AggregateError([primaryError, teardownError], "BROWSER_TEST_AND_CLEANUP_FAILED");
+  if (primaryError) throw primaryError;
+  if (teardownError) throw teardownError;
 }
 
 test("actual Edge carries a fresh player from the home CPU CTA through profile sync to ten explicit choices", { timeout: 130000 }, async () => {

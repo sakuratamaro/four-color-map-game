@@ -85,7 +85,7 @@ SQL Editorでは内容を全置換し、次を1ファイルずつ順番に実行
 
 ### alpha.3カテゴリ制限便
 
-完了済み。この便は `Pages app v40/intents v18/local bundle v4 → Edge deployment 22上の互換smoke → alpha.3対応Edge deployment 23 → 専用canary` の順で完了した。新Pagesは`skillCategoryWindow`欠落を旧対局として扱うためalpha.1/2 Edgeと互換であり、旧cacheのUIへalpha.3対局を先行して渡さなかった。Windows `34048695008`、Pages `34049734628`、基本7/7、COLOR 105/105、LAB 23/23、CPU 108/108、Runbook A 44/44、更新前後active alpha.3 room 0、候補preflight `ok:true`を確認した。favicon追補`df56432`はゲーム挙動を変えず、browser gate `34050740206`とPages `34051979716`で公開し、390px EdgeのHTTP error・console warning/error 0を確認した。
+完了済み。この便は `Pages app v40/intents v18/local bundle v4 → Edge deployment 22上の互換smoke → alpha.3対応Edge deployment 23 → 専用canary` の順で完了した。新Pagesは`skillCategoryWindow`欠落を旧対局として扱うためalpha.1/2 Edgeと互換であり、旧cacheのUIへalpha.3対局を先行して渡さなかった。Windows `34048695008`、Pages `34049734628`、基本7/7、COLOR追補263/263、LAB 23/23、CPU 108/108、Runbook A 44/44、更新前後active alpha.3 room 0、候補preflight `ok:true`を確認した。追補canaryはtest-only注入なしで同カテゴリ2枚目のrejectとwrite-freeを直接実測した。favicon追補`df56432`はゲーム挙動を変えず、browser gate `34050740206`とPages `34051979716`で公開し、390px EdgeのHTTP error・console warning/error 0を確認した。
 
 1. `b01c43e`起点のclean release床へ候補だけを適用し、両builderを2回実行して2回目差分ゼロ、全非browser製品試験、Windows Chrome/Edge CI、対象実browser testのskip 0を確認する。SQL、migration、secret、CPU肖像が差分へ混ざっていないことも確認する。
 2. alpha.3対応bundleを保持したまま新規対局だけをalpha.2へ戻せる互換rollbackを事前作成する。保全済みbranchは`codex/standard-alpha3-compat-rollback-20260907`、commitは`3f4548d`。候補の`NEW_STANDARD_MATCH_ENGINE_VERSION`だけを`5.0.0-alpha.2`へ変え、request bodyから変更できないこと、alpha.2新規stateにwindowがないこと、既存alpha.3 stateを読んで継続できることを63/63・skip 0で確認済み。deploy直前にmain候補との親子関係と2ファイル差分を再確認する。

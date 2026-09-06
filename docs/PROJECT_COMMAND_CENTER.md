@@ -35,7 +35,7 @@
 | P0 | クロガネ公開情報lookahead v2 | CPU＋Edge＋DB | PUBLIC_VERIFIED | `a3425a4`。migration `202609050005`、新規クロガネだけv2、旧roomは旧policy維持、再戦時v2更新。公開情報だけの合法手、再送、決着、同CPU再戦canary合格。Windows run `33947039777`、Pages run `33947644765`成功 |
 | P0 | Supabase資源とRealtime負荷の追跡 | 運用 | WATCH_PARTIAL | T+24h固定窓ではCPU 2%、RAM 62%、disk 17%、disk IO 1%、接続peak 20/60、blocked/idle-in-transaction 0、Realtime slot 2/2 active。2026-09-07のEdge 23更新時にDashboardが複数resource逼迫を警告した一方、公開canary 243件とpreflightは全成功。原因・継続時間を同条件のread-only診断で再取得するまでWATCHとし、推測cleanup・課金・Compute変更はしない |
 | P0 | 別々の二端末による最終受入 | チャッピー先生＋司令塔 | PENDING | 対人/CPUの完走、復帰、再戦、永続化を確認 |
-| P1 | alpha.3同カテゴリ連打制限 | ルール＋CPU＋Edge＋UX＋独立監査 | PUBLIC_VERIFIED | source `d627cd5`、統合`d3cb130`、起動修正`549e716`。Windows `34048695008`、Pages `34049734628`、Edge 23、公開canary 7/7＋105/105＋23/23＋108/108、preflight合格。alpha.1/2互換とrollback `3f4548d`を保持。物理二端末とlive同カテゴリrejectの追加実測は未完 |
+| P1 | alpha.3同カテゴリ連打制限 | ルール＋CPU＋Edge＋UX＋独立監査 | PUBLIC_VERIFIED | source `d627cd5`、統合`d3cb130`、起動修正`549e716`。Windows `34048695008`、Pages `34049734628`、Edge 23、公開canary 7/7＋COLOR追補263/263＋23/23＋108/108、preflight合格。同カテゴリ2枚目のreject、version/public/private/残カード不変、cleanupを本番実測。物理二端末だけPENDING |
 | P1 | 作業床・未コミット物の整理 | 司令塔 | INVENTORIED | `WORKTREE_HYGIENE_INVENTORY.md`に保護・保留・収録済み候補を分離。alpha.3公開安定を確認したため、次は各床の到達可能性・dirty状態を非破壊再確認してから整理 |
 | P1 | 対戦を主役にする情報設計 | UX | PUBLIC_VERIFIED | 5タブ化し、ホームの主CTAから対戦タブ内の初回profile作成・同期・ロビーまでを一本化。公開URLの390px実画面で確認済み |
 | P1 | 初回オンライン準備を一操作に短縮 | UX | PUBLIC_VERIFIED | `9d42784`。名前入力後の一操作でstarter保存とprofile同期を行い、自動入室はしない。空名write 0、同期二重送信防止、失敗時starter保持。公開CTA確認済み |
@@ -77,6 +77,7 @@
 | HOLD | 匿名＋任意Google identity link | 認証＋DB＋司令塔 | PHASE0_ONLY | 現在はSDK/RLS/Realtime/redirect/CSP/idempotency/token/log/admin境界のread-only監査だけ。provider有効化、callback、SDK、DB変更は別の公開便に分離する |
 | P1 | 未コミット／孤立作業の回収 | 構成管理 | COMPLETED | 29床を3床へ集約。丸ごと統合候補は0。Quick回帰試験だけを回収し、残るroot dirtyは救出済み・凍結管理 |
 | P2 | GitHub Pages actionのNode.js警告解消 | 技術品質 | BACKLOG | 公開結果を変えず、Node.js 20廃止予定warningを消す |
+| P1 | Edge browser gate終了処理の安定化 | 技術品質＋CI | LOCAL_VERIFIED | `browser.close()`猶予延長だけで再発したため、公式BrowserServerを所有し、正常close timeoutだけkillへ切替、kill失敗は基盤FAILにする。helper unit 4/4、従来失敗2ケースの実Edge 2/2。次はWindows Chrome/Edge全79件 |
 
 ## User Decision Ledger
 
@@ -95,7 +96,7 @@
 | UDL-20260906-009 | Lv5クイズを早急に難化 | Lv4との差が明確な多段推論へ | server-authoritative、採点/再送/報酬非回帰、canary | Edge quiz runtime | クイズ＋Edge | No-auto-loss plus quiz | PUBLIC_VERIFIED | `d06f34d` | `df9f01b` | `34035229549` | Edge 22、preflight合格 | `01a07628` | — | YES |
 | UDL-20260906-010 | 既塗エリアへ差し色/重ね塗り | ★5候補、現在の一続き領域を盤面選択 | 分断/合流後の現在形状、所有者非判定、履歴のみ行為者 | UDL-013〜015 | ゲームデザイン＋ルール＋UX | Overlay rules | DECIDED | — | NO | NO | NOT_RUN | `01a0762c` | — | YES |
 | UDL-20260906-011 | スキル種類を増やす | 独立backlogで継続企画 | 各候補がrules/privacy/UX/category gateを通過 | UDL-012〜014 | ゲームデザイン | Skills backlog | DECIDED | — | NO | NO | NOT_RUN | `01a0762c` | — | YES |
-| UDL-20260906-012 | 同カテゴリ連打を防ぐ | 同一seatの連続action-control window内は同一usage category 1枚まで | 通常/CPU/debug/LAB/retry共通のserver-authoritative制約。accepted miss/no-opは枠消費、reject/cancel/persistence failureは非消費 | UDL-013完了後 | ルール＋CPU＋Edge＋UX | Category limit | PUBLIC_VERIFIED | `d627cd5`＋起動修正`549e716` | `549e716` | `34049734628`＋favicon追補`34051979716` | Edge 23、7/7＋105/105＋23/23＋108/108、preflight合格。同カテゴリreject直接liveと物理二端末はNOT_RUN | `01a0762c`,`01a07642` | — | YES |
+| UDL-20260906-012 | 同カテゴリ連打を防ぐ | 同一seatの連続action-control window内は同一usage category 1枚まで | 通常/CPU/debug/LAB/retry共通のserver-authoritative制約。accepted miss/no-opは枠消費、reject/cancel/persistence failureは非消費 | UDL-013完了後 | ルール＋CPU＋Edge＋UX | Category limit | PUBLIC_VERIFIED | `d627cd5`＋起動修正`549e716` | `549e716` | `34049734628`＋favicon追補`34051979716` | Edge 23、COLOR追補263/263で同カテゴリrejectとwrite-freeを直接実測。物理二端末はNOT_RUN | `01a0762c`,`01a07642` | — | YES |
 | UDL-20260906-013 | 全19枚のカテゴリを再監査 | 効果、phase、combo基準でcolor/area/disrupt/experimentalを再評価 | UI、CPU、6枚構成、ガチャ確率への影響を明記 | 現行registry/handlers | ルール担当 | Before category limit | PUBLIC_VERIFIED | `0ea555f`＋`ed9db64` | `97c36b3` | `34038317932` | 設計文書のみ公開、製品挙動変更なし | `01a0762c` | — | YES |
 | UDL-20260906-014 | 盤面操作スキルは盤面で選ぶ | セル/領域/帯/辺は盤面選択、formは補助/debugのみ | pointer/keyboard/mobile/focus/no-oracle共通基準 | board assist | UX＋a11y | All board skills | DECIDED | — | NO | NO | NOT_RUN | `01a0762c` | — | YES |
 | UDL-20260906-015 | 所有者をrules判定に使わない | 行為者は履歴のみ、現在形状で再構成、同色は操作者非依存で合流 | engine/spec/testで不変条件を固定 | region canonicalization | ルール担当 | All rules | DECIDED | — | NO | NO | NOT_RUN | `01a0762c` | — | YES |
@@ -158,7 +159,7 @@ T+24h観測後は一度select式Shift候補を作ったが、ユーザーの盤�
 | --- | --- | --- |
 | 正本 | `origin/main` | 公開製品floorは`df56432`。migration `202609050001`–`202609050007`＋`202609060001`–`202609060003`、Edge deployment 23、Windows `34048695008`＋favicon gate `34050740206`、Pages `34051979716`まで公開確認 |
 | 現在の統合床 | `codex/standard-release-command` | alpha.3製品`549e716`とfavicon追補`df56432`を含み、Windows browser gateと証拠同期に使用 |
-| 公開済み現候補 | `df56432` | alpha.3カテゴリ制限、accepted no-op、補充+2/上限4、Hard CPU有限charge、旧alpha.1/2互換。公開app v40、skill-intents v18、local bundle v4。Windows Chrome/Edge、Pages、Edge 23、公開canary 243件、390px keyboard/overflow、asset SHA、preflight、console 0を確認。DB 72/72とmigration tailは変更なし |
+| 公開済み現候補 | `df56432` | alpha.3カテゴリ制限、accepted no-op、補充+2/上限4、Hard CPU有限charge、旧alpha.1/2互換。公開app v40、skill-intents v18、local bundle v4。Windows Chrome/Edge、Pages、Edge 23、COLOR追補263/263を含む公開canary、390px keyboard/overflow、asset SHA、preflight、console 0を確認。DB 72/72とmigration tailは変更なし |
 | 保全済み | detached `a8fce7d` dirty床 | `codex/salvage-a8fce7d-20260904` / `9e4e8ee` に秘密情報なしでWIP保全済み。機能単位で比較 |
 | 凍結root | root `ac78282` | 正史worktreeを内包するため作業床は維持。再監査したdirty 39件のうち38件は既存commitと一致し、残る旧handoff文書も現正本で置換済み。丸ごとmerge禁止、回収残件なし |
 | GitHub保管 | `codex/archive-standard-release-1f823b2` | 正史の祖先でない孤立コミットをGitHubへ退避済み。作業床は削除 |

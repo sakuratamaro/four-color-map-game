@@ -28,6 +28,8 @@ on:
       - tests/standard-kurogane-policy-migration.test.cjs
       - tests/standard-online-engine-bundle.test.cjs
       - tests/standard-online-browser.test.cjs
+      - tests/browser-server-cleanup.test.cjs
+      - tests/helpers/browser-server-cleanup.cjs
   pull_request:
     paths:
       - .github/workflows/standard-browser-gate.yml
@@ -54,6 +56,8 @@ on:
       - tests/standard-kurogane-policy-migration.test.cjs
       - tests/standard-online-engine-bundle.test.cjs
       - tests/standard-online-browser.test.cjs
+      - tests/browser-server-cleanup.test.cjs
+      - tests/helpers/browser-server-cleanup.cjs
   workflow_dispatch:
 
 permissions:
@@ -101,6 +105,7 @@ jobs:
           tests/standard-decision-reconciliation.test.cjs
           tests/standard-browser-gate-workflow.test.cjs
           tests/standard-online-browser-harness-static.test.cjs
+          tests/browser-server-cleanup.test.cjs
           tests/standard-legal-recolor-lab.test.cjs
           tests/standard-live-legal-recolor-lab-canary-static.test.cjs
           tests/standard-live-color-response-canary-static.test.cjs

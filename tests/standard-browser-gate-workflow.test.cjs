@@ -25,6 +25,8 @@ test("Standard browser gate is candidate-push, manual, or pull-request only and 
   assert.equal((workflow.match(/      - scripts\/check-standard-decision-reconciliation\.mjs/g) || []).length, 2);
   assert.equal((workflow.match(/      - docs\/PROJECT_COMMAND_CENTER\.md/g) || []).length, 2);
   assert.equal((workflow.match(/      - docs\/STANDARD_PUBLIC_RELEASE_RUNBOOK\.md/g) || []).length, 2);
+  assert.equal((workflow.match(/      - tests\/browser-server-cleanup\.test\.cjs/g) || []).length, 2);
+  assert.equal((workflow.match(/      - tests\/helpers\/browser-server-cleanup\.cjs/g) || []).length, 2);
   assert.equal((workflow.match(/      - tests\/standard-online-browser\.test\.cjs/g) || []).length, 2);
   assert.equal((workflow.match(/      - tests\/standard-browser-gate-workflow\.test\.cjs/g) || []).length, 2);
   assert.match(workflow, /tests\/standard-public-release-runbook\.test\.cjs/);
@@ -53,6 +55,7 @@ test("Standard browser gate runs CPU contracts and the scoped browser file seria
   assert.match(workflow, /node --test --test-concurrency=1[\s\S]+?tests\/standard-kurogane-lookahead\.test\.cjs[\s\S]+?tests\/standard-cpu-browser\.test\.cjs/);
   assert.match(workflow, /tests\/standard-browser-gate-workflow\.test\.cjs/);
   assert.match(workflow, /tests\/standard-online-browser-harness-static\.test\.cjs/);
+  assert.match(workflow, /tests\/browser-server-cleanup\.test\.cjs/);
   assert.match(workflow, /tests\/standard-online-quiz-generator-runtime\.test\.cjs/);
   assert.match(workflow, /tests\/standard-matchmaking-availability-migration\.test\.cjs/);
   assert.match(workflow, /tests\/standard-cpu-commentary\.test\.cjs/);

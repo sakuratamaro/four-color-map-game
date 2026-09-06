@@ -40,6 +40,16 @@ test("live COLOR-response canary covers the new engine, authoritative rejection,
   assert.match(source, /maxConsecutiveCpuSteps <= MAX_CONSECUTIVE_CPU_STEPS/);
   assert.match(source, /exposes alpha\.3 category window/);
   assert.match(source, /categoryWindow\?\.actor === publicState\.active/);
+  assert.match(source, /skill: "disruptRandomOne"/);
+  assert.match(source, /skill: "disruptChoiceOne", color: "red"/);
+  assert.match(source, /category probe starts in an unused A WORK window/);
+  assert.match(source, /cardConsumed === true/);
+  assert.match(source, /error\?\.code === "SKILL_CATEGORY_ALREADY_USED_IN_WINDOW"/);
+  assert.match(source, /same-category rejection is write-free/);
+  assert.match(source, /room\.version === beforeRejectedVersion/);
+  assert.match(source, /JSON\.stringify\(room\.publicState\) === beforeRejectedPublic/);
+  assert.match(source, /JSON\.stringify\(room\.privateState\) === beforeRejectedPrivate/);
+  assert.match(source, /rejected skill remains available/);
   for (const key of ["hand", "loadout", "basicPalette", "bonusColor", "bonusUsesRemaining", "privateEffects", "hands", "basicPalettes", "bonusColors", "authoritative_state", "profile_a_state", "profile_b_state", "setup_a", "setup_b"]) {
     assert.match(source, new RegExp(`"${key}"`));
   }

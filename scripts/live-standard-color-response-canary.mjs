@@ -235,11 +235,12 @@ async function run() {
   assertPublicPrivacy("initial", room.publicState);
 
   let retiredDeclarationChecked = false;
+  let categoryRejectChecked = false;
   let cpuSteps = 0;
   let consecutiveCpuSteps = 0;
   let maxConsecutiveCpuSteps = 0;
 
-  for (let step = 0; step < MAX_DRIVER_STEPS && !(retiredDeclarationChecked && cpuSteps > 0 && room.publicState?.active === "A"); step += 1) {
+  for (let step = 0; step < MAX_DRIVER_STEPS && !(retiredDeclarationChecked && categoryRejectChecked && cpuSteps > 0 && room.publicState?.active === "A"); step += 1) {
     activeStage = `driver step ${step + 1}`;
     assertPublicPrivacy(`step ${step + 1}`, room.publicState);
     if (room.publicState?.status === "FINISHED") break;
@@ -259,6 +260,51 @@ async function run() {
 
     consecutiveCpuSteps = 0;
     if (room.publicState?.active !== "A") throw new CanaryFailure("driver active seat", "INVALID_ACTIVE_SEAT");
+    if (!categoryRejectChecked && room.publicState.phase === "WORK") {
+      const beforeRandom = Number(room.privateState?.hand?.disruptRandomOne);
+      const beforeChoice = Number(room.privateState?.hand?.disruptChoiceOne);
+      check("category probe starts in an unused A WORK window", room.publicState.active === "A"
+        && room.publicState.skillCategoryWindow?.actor === "A"
+        && room.publicState.skillCategoryWindow.categories?.length === 0);
+      check("category canary has two same-category skills", beforeRandom > 0 && beforeChoice > 0);
+
+      const accepted = await edge(session, {
+        operation: "action",
+        roomId,
+        action: action(room.version, "USE_SKILL", { skill: "disruptRandomOne" }),
+      });
+      check("first disrupt skill is accepted", accepted.ok
+        && accepted.data?.result?.cardConsumed === true
+        && Number(accepted.data?.room?.version) === room.version + 1
+        && Number(accepted.data?.room?.privateState?.hand?.disruptRandomOne) === beforeRandom - 1
+        && Number(accepted.data?.room?.privateState?.hand?.disruptChoiceOne) === beforeChoice, accepted);
+      room = accepted.data.room;
+      assertPublicPrivacy("after accepted disrupt", room.publicState);
+      check("accepted disrupt consumes the category window", room.publicState?.active === "A"
+        && room.publicState?.phase === "WORK"
+        && room.publicState?.skillCategoryWindow?.actor === "A"
+        && room.publicState.skillCategoryWindow.categories?.length === 1
+        && room.publicState.skillCategoryWindow.categories[0] === "disrupt");
+
+      const beforeRejectedVersion = room.version;
+      const beforeRejectedPublic = JSON.stringify(room.publicState);
+      const beforeRejectedPrivate = JSON.stringify(room.privateState);
+      const rejected = await edge(session, {
+        operation: "action",
+        roomId,
+        action: action(beforeRejectedVersion, "USE_SKILL", { skill: "disruptChoiceOne", color: "red" }),
+      });
+      check("second same-category skill is rejected", !rejected.ok
+        && rejected.status === 400
+        && rejected.data?.error?.code === "SKILL_CATEGORY_ALREADY_USED_IN_WINDOW", rejected);
+      room = await refreshRoom(session, roomId);
+      assertPublicPrivacy("after rejected disrupt", room.publicState);
+      check("same-category rejection is write-free", room.version === beforeRejectedVersion
+        && JSON.stringify(room.publicState) === beforeRejectedPublic
+        && JSON.stringify(room.privateState) === beforeRejectedPrivate);
+      check("rejected skill remains available", Number(room.privateState?.hand?.disruptChoiceOne) === beforeChoice);
+      categoryRejectChecked = true;
+    }
     if (room.publicState.phase === "COLOR" && !retiredDeclarationChecked) {
       const beforeVersion = room.version;
       const beforePublic = JSON.stringify(room.publicState);
@@ -291,6 +337,7 @@ async function run() {
   }
 
   check("retired declaration path reached", retiredDeclarationChecked);
+  check("same-category rejection path reached", categoryRejectChecked);
   check("bounded CPU path reached", cpuSteps > 0 && maxConsecutiveCpuSteps <= MAX_CONSECUTIVE_CPU_STEPS);
   assertPublicPrivacy("final playing", room.publicState);
 
