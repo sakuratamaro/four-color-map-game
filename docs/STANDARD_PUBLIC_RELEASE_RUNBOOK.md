@@ -1,8 +1,8 @@
 # Standard公開版 段階リリース手順
 
-更新日: 2026-09-06
+更新日: 2026-09-07
 
-状態: 現行運用。migration `202609030006`–`202609030013`、`202609050001`–`202609050007`、`202609060001`–`202609060003`、Edge deployment 21、Pages product `9b7d8f4`（online app/style v35）は適用済み。次候補は、alpha.2の合法色なし宣言を廃止し、人間・CPUとも救済後は明示的な`SURRENDER`だけで敗北するPages v36＋次Edge deploymentである。旧対局 `5.0.0-alpha.1`の互換は維持する。mainには後続の証拠・運用文書commitも含まれるため、実行時にmain HEADとそれに対応する最新成功Pages runを再取得する。今便は旧UIと新engineの非対称を避けるため、下記のPages先行例外を守る。
+状態: 現行運用。migration `202609030006`–`202609030013`、`202609050001`–`202609050007`、`202609060001`–`202609060003`、Edge deployment 22、Pages product `4b2ea3d`、証拠・保全台帳を含むmain/Pages `b01c43e`（online app v39、style v38、skill intents v17、local bundle v3）は適用済み。次候補は、同一seatの連続action-control windowで同じusage categoryを1回に制限する`5.0.0-alpha.3`、実験貸与のおまけ色補充、Hard CPUの有限な追加charge、online app v40、skill intents v18、local bundle v4、次Edge deploymentである。旧対局 `5.0.0-alpha.1`/`5.0.0-alpha.2`の互換は維持する。今便はDB変更なしで、下記のalpha.3 Pages先行・互換rollback手順を守る。実行直前にはmain HEAD、Pages run、Edge deployment、migration tailを現物から再取得する。
 
 実行中の状態、数値、識別子、失敗は `docs/STANDARD_RELEASE_EVIDENCE.md` に追記する。根拠のない項目を`VERIFIED`や`PASS`へ変更しない。
 
@@ -32,7 +32,7 @@ PC＋スマートフォンまたはPC 2台を使い、同一ブラウザーの2�
 3. Git作業ツリーがcleanで、公開候補commitが記録済みであることを確認する。
 4. 現行Pages commit、現行 `standard-game-action` version、適用済み関数を記録する。
 5. Security Advisor、Performance Advisor、API/Database/Edge使用量の変更前snapshotを保存する。
-6. 今便はDB変更なし。migration tail `202609060003`、Edge deployment 21、公開product `9b7d8f4`の現況を確認し、候補CI後と各公開段階で`node scripts/live-standard-release-preflight.mjs --expect=candidate`を使う。過去便の`baseline`／`db-ready`は再利用せず、公開assetとEdge versionを別々に記録する。
+6. 今便はDB変更なし。migration tail `202609060003`、Edge deployment 22、公開product `4b2ea3d`、main/Pages `b01c43e`の現況を確認し、候補CI後と各公開段階で`node scripts/live-standard-release-preflight.mjs --expect=candidate`を使う。過去便の`baseline`／`db-ready`は再利用せず、公開assetとEdge versionを別々に記録する。
 
 確認結果が想定と違う場合は適用を止め、現物に合わせて手順を更新する。
 
@@ -83,7 +83,22 @@ SQL Editorでは内容を全置換し、次を1ファイルずつ順番に実行
 
 ## EdgeとPagesの順序
 
-### 合法色なし宣言廃止便のPages先行例外
+### alpha.3カテゴリ制限便
+
+この便は `Pages app v40/intents v18/local bundle v4 → Edge deployment 22上の互換smoke → alpha.3対応Edge → 専用canary` の順にする。新Pagesは`skillCategoryWindow`欠落を旧対局として扱うためalpha.1/2 Edgeと互換である。新Edgeを先にして旧cacheのUIへalpha.3対局を渡す時間を作らない。
+
+1. `b01c43e`起点のclean release床へ候補だけを適用し、両builderを2回実行して2回目差分ゼロ、全非browser製品試験、Windows Chrome/Edge CI、対象実browser testのskip 0を確認する。SQL、migration、secret、CPU肖像が差分へ混ざっていないことも確認する。
+2. alpha.3対応bundleを保持したまま新規対局だけをalpha.2へ戻せる互換rollbackを事前作成する。候補の`NEW_STANDARD_MATCH_ENGINE_VERSION`だけを`5.0.0-alpha.2`へ変えた別branch/commitとし、request bodyから変更できないこと、alpha.2新規stateにwindowがないこと、既存alpha.3 stateを読んで継続できることを試験する。rollback commitをGitHubへ保全するまでEdgeを公開しない。
+3. deploy直前にmain/Pages `b01c43e`、product `4b2ea3d`、Edge deployment 22、migration tail `202609060003`を現物で再確認する。activeなalpha.3 room数をread-onlyで記録し、room IDやuser IDは証拠へ残さない。
+4. mainを候補へforceなしでfast-forwardしPagesを先行公開する。公開HTMLでonline app v40、skill intents v18、local bundle v4、HTTP 200、候補SHA、390px横overflowなし、keyboard操作、console warning/error 0を確認する。
+5. Edge deployment 22のまま新Pagesで通常対局をsmokeし、旧alpha.2 roomでカテゴリ表示が誤って出ず、通常操作が継続できることを確認する。
+6. `index.ts`と再生成済み`standard-engine.bundle.js`を追記せず全置換し、同じEdge deploymentへ同時反映する。反映後は両ファイルを読み戻して候補とバイト同値確認する。SQL、migration、secret、cleanupは変更しない。
+7. 基本Edge canary、更新済み`live-standard-color-response-canary.mjs --confirm-live`、LAB canary、CPU有限進行を実行する。新roomの`5.0.0-alpha.3`、公開windowのactor/category有限性、private非漏えい、alpha.1/2継続、category rejectのwrite-free、別category許可、handoff reset、replay非二重消費を自動試験とlive実測に分けて記録する。公開APIへtest-only状態注入は追加しない。有限保証できないall-three no-opのlive実測は`NOT_RUN`とし、server bundleの決定的試験とactual browser mockを根拠にする。
+8. Edge公開後のactive alpha.3 room数と公開preflightを再取得する。カテゴリ使用済み表示、同category button無効化、別category利用可、accepted no-op案内とcard/profile/inventory不変、Localの補充+2・上限4、通常19枚/6枚/gachaへの補充カード非混入を確認する。物理二端末は自動結果からPASS推定しない。
+
+Pages先行段階の失敗はPagesを`b01c43e`相当へ戻し、Edge deployment 22は変更しない。Edge公開後の失敗は、まず事前保全した互換rollbackをdeployして新規alpha.3作成を停止し、既存alpha.3 roomを読めることを確認する。その後Pagesを`b01c43e`相当へ戻す。active alpha.3 roomが0になる前にEdge deployment 22へ単純復帰しない。DB rollback、DROP、migration逆適用は行わない。
+
+### 完了履歴: 合法色なし宣言廃止便のPages先行例外
 
 この便は `Pages v36 → Edge deployment 22（実際の次成功versionを記録）→ 専用COLOR canary` の順にする。Pages v36は`DECLARE_NO_COLOR`を送らず、救済カード導線と明示的な`SURRENDER`だけを使うため、現行Edge deployment 21とも互換である。反対に新Edgeを先にすると、キャッシュに残るPages v35が旧宣言を送り、`NO_COLOR_DECLARATION_RETIRED`を扱えない非対称が生じる。
 
@@ -176,6 +191,7 @@ T0から24時間未満で実行した場合は`CAPTURE_INTERVAL_UNDER_24_HOURS` 
 
 - DBは追加的migrationのため、その場で表や列をDROPしない。
 - `202609060003`適用後にPagesを戻す場合も、旧クライアントから未使用のavailability関数と索引は保持し、緊急時にDROPしない。Edgeはこの便で変更しない。
+- alpha.3便のEdge失敗時は事前保全した互換rollbackを先にdeployし、新規alpha.3作成を停止する。既存alpha.3 roomを読めることとactive件数を確認し、0になる前にEdge deployment 22へ単純復帰しない。
 - 合法色なし宣言廃止便のEdge canary失敗時はEdgeをdeployment 21へ先に戻し、互換性のあるPages v36は残す。Pagesもv35へ戻す場合はEdge 21復旧後に行う。
 - Pages canary失敗時は既知の公開commitへ戻し、追加DBは未使用のまま残す。
 - 二重精算、private漏えい、相手の誤表示、ルーム二重成立が1件でもあれば野良/CPU導線を公開しない。

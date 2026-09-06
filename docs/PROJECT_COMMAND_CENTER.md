@@ -35,7 +35,7 @@
 | P0 | クロガネ公開情報lookahead v2 | CPU＋Edge＋DB | PUBLIC_VERIFIED | `a3425a4`。migration `202609050005`、新規クロガネだけv2、旧roomは旧policy維持、再戦時v2更新。公開情報だけの合法手、再送、決着、同CPU再戦canary合格。Windows run `33947039777`、Pages run `33947644765`成功 |
 | P0 | Supabase資源とRealtime負荷の追跡 | 運用 | WATCH_PARTIAL | T+24hを固定24時間窓で取得。公開preflight `ok:true`、CPU 2%、RAM 62%、disk 17%、disk IO 1%、接続peak 20/60。read-only診断はDB 16,403,603 bytes、active 2、blocked/idle-in-transaction 0、Realtime slot 2/2 active、publication不変、最大WAL lag 56 bytes、期限切れ候補room 14件・他0件。API/Edge/Performance/Healthの一部panelは取得不能のため22 metricをPENDINGのまま保持し、削除・課金・Compute変更は行わない |
 | P0 | 別々の二端末による最終受入 | チャッピー先生＋司令塔 | PENDING | 対人/CPUの完走、復帰、再戦、永続化を確認 |
-| P1 | alpha.3同カテゴリ連打制限 | ルール＋CPU＋Edge＋UX＋独立監査 | IMPLEMENTING | alpha.1/2互換、同一行動窓1カテゴリ1回、accepted miss/no-op、retry、CPU/debug/LAB、client/Edge mirror、公開CIを全て合格 |
+| P1 | alpha.3同カテゴリ連打制限 | ルール＋CPU＋Edge＋UX＋独立監査 | INTEGRATED_CANDIDATE | source `d627cd5`を最新main起点へ59/59 blob同値で統合した`d3cb130`。alpha.1/2互換、同一行動窓1カテゴリ1回、accepted miss/no-op、retry、CPU/debug/LAB、client/Edge mirror、互換rollback、公開CIを全て合格後に昇格 |
 | P1 | 作業床・未コミット物の整理 | 司令塔 | INVENTORIED | `WORKTREE_HYGIENE_INVENTORY.md`に保護・保留・収録済み候補を分離。alpha.3安定後に非破壊確認を再実施してから整理 |
 | P1 | 対戦を主役にする情報設計 | UX | PUBLIC_VERIFIED | 5タブ化し、ホームの主CTAから対戦タブ内の初回profile作成・同期・ロビーまでを一本化。公開URLの390px実画面で確認済み |
 | P1 | 初回オンライン準備を一操作に短縮 | UX | PUBLIC_VERIFIED | `9d42784`。名前入力後の一操作でstarter保存とprofile同期を行い、自動入室はしない。空名write 0、同期二重送信防止、失敗時starter保持。公開CTA確認済み |
@@ -95,7 +95,7 @@
 | UDL-20260906-009 | Lv5クイズを早急に難化 | Lv4との差が明確な多段推論へ | server-authoritative、採点/再送/報酬非回帰、canary | Edge quiz runtime | クイズ＋Edge | No-auto-loss plus quiz | PUBLIC_VERIFIED | `d06f34d` | `df9f01b` | `34035229549` | Edge 22、preflight合格 | `01a07628` | — | YES |
 | UDL-20260906-010 | 既塗エリアへ差し色/重ね塗り | ★5候補、現在の一続き領域を盤面選択 | 分断/合流後の現在形状、所有者非判定、履歴のみ行為者 | UDL-013〜015 | ゲームデザイン＋ルール＋UX | Overlay rules | DECIDED | — | NO | NO | NOT_RUN | `01a0762c` | — | YES |
 | UDL-20260906-011 | スキル種類を増やす | 独立backlogで継続企画 | 各候補がrules/privacy/UX/category gateを通過 | UDL-012〜014 | ゲームデザイン | Skills backlog | DECIDED | — | NO | NO | NOT_RUN | `01a0762c` | — | YES |
-| UDL-20260906-012 | 同カテゴリ連打を防ぐ | 同一ターン内は同一カテゴリ1枚まで | 通常/CPU/debug/LAB/retry共通のserver-authoritative制約 | UDL-013完了後 | ルール＋CPU＋Edge | Category limit | DECIDED | — | NO | NO | NOT_RUN | `01a0762c` | — | YES |
+| UDL-20260906-012 | 同カテゴリ連打を防ぐ | 同一seatの連続action-control window内は同一usage category 1枚まで | 通常/CPU/debug/LAB/retry共通のserver-authoritative制約。accepted miss/no-opは枠消費、reject/cancel/persistence failureは非消費 | UDL-013完了後 | ルール＋CPU＋Edge＋UX | Category limit | LOCAL_VERIFIED | `d627cd5` | clean candidate `d3cb130`、`origin/main`は`b01c43e` | NO | NOT_RUN | `01a0762c`,`01a07642` | Windows CI、Edge/Pages、live公開境界 | YES |
 | UDL-20260906-013 | 全19枚のカテゴリを再監査 | 効果、phase、combo基準でcolor/area/disrupt/experimentalを再評価 | UI、CPU、6枚構成、ガチャ確率への影響を明記 | 現行registry/handlers | ルール担当 | Before category limit | PUBLIC_VERIFIED | `0ea555f`＋`ed9db64` | `97c36b3` | `34038317932` | 設計文書のみ公開、製品挙動変更なし | `01a0762c` | — | YES |
 | UDL-20260906-014 | 盤面操作スキルは盤面で選ぶ | セル/領域/帯/辺は盤面選択、formは補助/debugのみ | pointer/keyboard/mobile/focus/no-oracle共通基準 | board assist | UX＋a11y | All board skills | DECIDED | — | NO | NO | NOT_RUN | `01a0762c` | — | YES |
 | UDL-20260906-015 | 所有者をrules判定に使わない | 行為者は履歴のみ、現在形状で再構成、同色は操作者非依存で合流 | engine/spec/testで不変条件を固定 | region canonicalization | ルール担当 | All rules | DECIDED | — | NO | NO | NOT_RUN | `01a0762c` | — | YES |

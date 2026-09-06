@@ -8,8 +8,8 @@
 
 | 項目 | 現在値 | 扱い |
 | --- | --- | --- |
-| 正史 | `origin/main@948bbac` | 比較、候補作成、公開判断の唯一の基点 |
-| clean release床 | `.codex-worktrees/standard-release-clean-20260906` | 正史とtree一致。統合・証拠更新用に保護 |
+| 正史 | `origin/main@b01c43e` | 比較、候補作成、公開判断の唯一の基点 |
+| clean release床 | `.codex-worktrees/standard-release-clean-20260906` | `b01c43e`起点へalpha.3を`d3cb130`として統合。公開前検証・証拠更新用に保護 |
 | CI投入床 | `codex/standard-release-command` | Windows Chrome/Edge gate専用として保持 |
 | ローカル`main` | `2b9997b` | 正史より189コミット遅れ。比較基点にせず、安全な整理窓でのみfast-forward |
 | 保存checkout | `codex/standard-v5-alpha1@ac78282` | 63 status項目の混在床。その場でmerge/rebase/build/deployしない |
@@ -18,7 +18,7 @@
 
 | 対象 | 状態 | 司令塔判断 |
 | --- | --- | --- |
-| `four-color-alpha3-category-refill-cpu-shapes-20260907` | `ad49a415`起点、alpha.3実装中 | 最優先保護。カテゴリ制限、実験貸与補充、CPU判断、client/Edge mirrorを一候補として監査後に統合 |
+| `four-color-alpha3-category-refill-cpu-shapes-20260907` | source `d627cd5`、clean | 最優先保護。候補59 pathは最新main統合`d3cb130`とblob 59/59同値。公開・rollback保全完了まで保持 |
 | `cpu-portraits-p1-20260906@be779d1` | clean、main未収録 | ライセンスNO-GOで凍結。画像を公開repoへ入れない |
 | `.codex/worktrees/7843` / `salvage-a8fce7d@9e4e8ee` | clean | 旧Quick hardening等の履歴保全。保存checkout整理が終わるまで保持 |
 | 保存checkoutのdirty差分 | tracked 38、実ファイルuntracked 24、worktree管理dir 1 | 一括commit・一括破棄禁止。下記の機能束ごとに所有先を固定 |

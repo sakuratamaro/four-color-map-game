@@ -7,6 +7,21 @@ const test = require("node:test");
 
 const runbook = fs.readFileSync(path.join(__dirname, "..", "docs", "STANDARD_PUBLIC_RELEASE_RUNBOOK.md"), "utf8");
 
+test("current alpha.3 release lane is Pages-first and preserves active rooms through a compatible rollback", () => {
+  const releaseSection = runbook.slice(runbook.indexOf("### alpha.3カテゴリ制限便"), runbook.indexOf("### 完了履歴: 合法色なし宣言廃止便"));
+  const pages = releaseSection.indexOf("Pages app v40/intents v18/local bundle v4");
+  const edge22 = releaseSection.indexOf("Edge deployment 22上の互換smoke", pages);
+  const alpha3Edge = releaseSection.indexOf("alpha.3対応Edge", edge22);
+  const canary = releaseSection.indexOf("専用canary", alpha3Edge);
+  assert.ok(pages >= 0 && edge22 > pages && alpha3Edge > edge22 && canary > alpha3Edge);
+  for (const phrase of [
+    "b01c43e", "4b2ea3d", "migration tail `202609060003`", "NEW_STANDARD_MATCH_ENGINE_VERSION",
+    "5.0.0-alpha.2", "5.0.0-alpha.3", "request bodyから変更できない", "activeなalpha.3 room数",
+    "app v40", "skill intents v18", "local bundle v4", "test-only状態注入は追加しない",
+    "all-three no-op", "NOT_RUN", "active alpha.3 roomが0になる前にEdge deployment 22へ単純復帰しない",
+  ]) assert.match(releaseSection, new RegExp(phrase.replaceAll(".", "\\.")));
+});
+
 test("release runbook fixes migration history and the retired-declaration Pages-first exception", () => {
   const migrationSection = runbook.slice(runbook.indexOf("## DB適用順序"), runbook.indexOf("## EdgeとPagesの順序"));
   const releaseSection = runbook.slice(runbook.indexOf("## EdgeとPagesの順序"), runbook.indexOf("## 段階canary"));
