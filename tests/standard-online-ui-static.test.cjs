@@ -49,8 +49,8 @@ test("Standard online setup UI exposes the complete reconnect path", () => {
 });
 
 test("CPU commentary is public-event-only, bounded, non-blocking, and terminal-persistent", () => {
-  assert.match(html, /style\.css\?v=20260906-33/);
-  assert.match(html, /app\.js\?v=20260906-33/);
+  assert.match(html, /style\.css\?v=20260906-34/);
+  assert.match(html, /app\.js\?v=20260906-34/);
   assert.ok(html.indexOf("cpu-commentary.js") < html.indexOf('type="module" src="app.js'));
   assert.match(html, /id="cpuCommentaryStage"[^>]+aria-hidden="true"/);
   assert.match(html, /id="cpuCommentaryAnnouncement"[^>]+role="status"[^>]+aria-live="polite"[^>]+aria-atomic="true"/);
@@ -470,7 +470,7 @@ test("server rule errors are safe, persistent, and never offered as an idempoten
   assert.match(html, /id="actionStatus"[^>]+operation-feedback[^>]+aria-atomic="true"/);
   assert.match(css, /\.operation-feedback\[data-tone="error"\]/);
   assert.match(css, /scroll-margin-bottom:calc\(100px \+ env\(safe-area-inset-bottom\)\)/);
-  assert.match(css, /@media\(max-width:700px\)\{#toast\{bottom:calc\(104px \+ env\(safe-area-inset-bottom\)\);z-index:70\}/);
+  assert.match(css, /@media\(max-width:700px\)\{#toast\{bottom:calc\(104px \+ env\(safe-area-inset-bottom\)\);z-index:70\}body\[data-active-tab\]:not\(\[data-active-tab="home"\]\) #toast\{top:calc\(64px \+ env\(safe-area-inset-top\)\);bottom:auto\}\}/);
   const reveal = app.slice(app.indexOf("function revealOperationFeedback"), app.indexOf("function setupFailureMessage"));
   assert.match(reveal, /requestAnimationFrame\(\(\) => \{[^]*?scrollIntoView\(\{ block: "center", inline: "nearest" \}\)/);
   assert.doesNotMatch(reveal, /\.focus\(/);
@@ -646,6 +646,7 @@ test("all 19 skill target kinds route through the reviewed intent builder", () =
 test("corner bloom uses a board-first two-stage target flow without raw macro input", () => {
   const target = app.slice(app.indexOf("function cornerBloomTargetReady"), app.indexOf("function boardSelectionAvailable"));
   assert.match(target, /相手に渡すエリアを盤面であと\$\{state\.requiredSize - selectedMacros\.size\}マス/);
+  assert.match(target, /盤面で渡すエリアを選ぶ[\s\S]+board\.focus\(\{ preventScroll: true \}\)[\s\S]+board\.scrollIntoView/);
   assert.match(target, /白い枠で選んだエリアの中から基準にする1マスをタップ/);
   assert.match(target, /boardMacroCoordinateLabel\(state, macro\)/);
   assert.match(target, /aria-label", "角を広げる基準マス"/);
@@ -654,7 +655,8 @@ test("corner bloom uses a board-first two-stage target flow without raw macro in
   assert.doesNotMatch(target, /input\.type = "number"[\s\S]+角の基準マス/);
   assert.match(app, /targetDraft\?\.kind === "corner-bloom"\) return selectCornerBloomMacro\(state, macro\)/);
   assert.match(app, /selectedMacros\.has\(targetDraft\.input\.macro\)/);
-  assert.match(css, /\.corner-bloom-targets button\{min-height:44px\}/);
+  assert.match(css, /\.corner-bloom-board-focus,\.corner-bloom-targets button\{min-height:44px\}/);
+  assert.match(app, /targetDraft\?\.kind !== "corner-bloom" \|\| selectedMacros\.size < state\.requiredSize/);
   assert.match(css, /\.skill-target-feedback\[data-tone="error"\]/);
 });
 

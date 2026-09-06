@@ -2953,6 +2953,18 @@ function renderSkillTarget(state) {
     guide.className = "skill-target-guide";
     guide.textContent = cornerBloomSelectionMessage(state);
     controls.appendChild(guide);
+    const focusBoard = button(
+      selectedMacros.size < state.requiredSize ? "盤面で渡すエリアを選ぶ" : "盤面で基準マスを選ぶ",
+      () => {
+        const board = $("board");
+        board.focus({ preventScroll: true });
+        board.scrollIntoView({ block: "center", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+      },
+      "ghost",
+    );
+    focusBoard.classList.add("corner-bloom-board-focus");
+    focusBoard.setAttribute("aria-describedby", guide.id);
+    controls.appendChild(focusBoard);
     if (selectedMacros.size === state.requiredSize) {
       const targets = document.createElement("div");
       targets.className = "controls corner-bloom-targets";
@@ -3332,7 +3344,7 @@ function renderBoard(state) {
     ctx.beginPath(); ctx.moveTo(offset, 0); ctx.lineTo(offset, canvas.height); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(0, offset); ctx.lineTo(canvas.width, offset); ctx.stroke();
   }
-  if (boardInteractive && targetDraft?.kind !== "corner-bloom") {
+  if (boardInteractive && (targetDraft?.kind !== "corner-bloom" || selectedMacros.size < state.requiredSize)) {
     for (const macro of connectedCandidateMacros(state)) {
       strokeMacroFrame(ctx, macro, macroWidth, microScale, cell, { color: "#86efac", cssWidth: 2.5, cssDash: [5, 4] });
     }

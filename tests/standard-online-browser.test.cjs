@@ -1657,6 +1657,65 @@ test("actual browser completes corner bloom from the board without a raw macro n
   }, { viewport: { width: 390, height: 844 } });
 });
 
+test("actual browser completes a two-cell corner bloom by keyboard with connected candidates", { timeout: 130000 }, async () => {
+  await withPage("playing", async (page) => {
+    await page.evaluate(() => {
+      const originalStrokeRect = CanvasRenderingContext2D.prototype.strokeRect;
+      globalThis.__cornerCandidateFrames = [];
+      CanvasRenderingContext2D.prototype.strokeRect = function recordedStrokeRect(...args) {
+        if (String(this.strokeStyle) === "#86efac") globalThis.__cornerCandidateFrames.push([...args]);
+        return originalStrokeRect.apply(this, args);
+      };
+      const runtime = globalThis.__standardOnlineRuntime;
+      runtime.room.public_state = {
+        ...runtime.room.public_state,
+        requiredSize: 2,
+        rolledSize: 2,
+        baseRequiredSize: 2,
+        regions: {},
+      };
+      runtime.view = { ...runtime.view, private_state: {
+        ...runtime.view.private_state,
+        hand: { ...runtime.view.private_state.hand, areaCornerBloom: 1 },
+      } };
+      runtime.onInvalidate?.({});
+    });
+    const skill = page.getByRole("button", { name: "角膨張 ×1" });
+    await skill.focus();
+    await page.keyboard.press("Enter");
+    await page.getByText("角膨張 — 対象を指定").waitFor();
+    assert.equal(await page.evaluate(() => document.activeElement?.textContent), "角膨張 — 対象を指定");
+    await page.keyboard.press("Tab");
+    assert.equal(await page.evaluate(() => document.activeElement?.textContent), "盤面で渡すエリアを選ぶ");
+    await page.keyboard.press("Enter");
+    assert.equal(await page.evaluate(() => document.activeElement?.id), "board");
+
+    await page.evaluate(() => { globalThis.__cornerCandidateFrames = []; });
+    await page.keyboard.press("Space");
+    await page.getByText("渡すエリア 1/2マス").waitFor();
+    assert.ok(await page.evaluate(() => globalThis.__cornerCandidateFrames.length > 0));
+    assert.match(await page.locator("#boardKeyboardStatus").textContent(), /1\/2マス選択中/);
+    await page.keyboard.press("ArrowRight");
+    await page.keyboard.press("Space");
+    await page.getByText("渡すエリア 2/2マス").waitFor();
+    const useTarget = page.getByRole("button", { name: "この対象で使う" });
+    assert.equal(await useTarget.isEnabled(), false);
+    await page.keyboard.press("Space");
+    const baseChoice = page.getByRole("button", { name: "上から1行・左から2列" });
+    await baseChoice.waitFor();
+    assert.equal(await baseChoice.getAttribute("aria-pressed"), "true");
+    assert.equal(await useTarget.isEnabled(), true);
+    await useTarget.click();
+    await page.getByText("操作を保存しました。").waitFor();
+    const action = await page.evaluate(() => globalThis.__standardOnlineRuntime.calls
+      .filter((entry) => entry.body?.operation === "action").at(-1)?.body.action);
+    assert.equal(action.type, "USE_SKILL");
+    assert.equal(action.payload.skill, "areaCornerBloom");
+    assert.deepEqual(action.payload.sourceMacros, [0, 1]);
+    assert.equal(action.payload.macro, 1);
+  }, { viewport: { width: 390, height: 844 } });
+});
+
 test("actual browser exposes one keyboard-safe recolor lab loan without touching the 19-card library", { timeout: 130000 }, async () => {
   await withPage("labPlaying", async (page) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
@@ -3363,6 +3422,33 @@ test("actual Edge keeps safe deterministic action and debug setup errors beside 
     }));
     assert.ok(toastLayout.toast.bottom <= Math.min(toastLayout.tabs.top, toastLayout.connection.top), JSON.stringify(toastLayout));
     assert.ok(toastLayout.z > 60, JSON.stringify(toastLayout));
+    await page.locator("#toast").evaluate((node) => node.classList.remove("show"));
+    await page.waitForTimeout(250);
+    await page.evaluate(() => {
+      document.body.classList.add("setup-active");
+      const connection = document.querySelector(".connection-card");
+      connection.classList.add("has-matched-room");
+      const handoff = document.querySelector("#matchedRoomHandoff");
+      handoff?.classList.remove("hidden");
+      const detail = document.querySelector("#matchedRoomHandoffDetail");
+      if (detail) detail.textContent = "成立した対戦を安全に開きます。準備内容を確認してから続けてください。";
+      const toast = document.querySelector("#toast");
+      toast.textContent = "操作を確定できませんでした。表示された理由を確認し、盤面またはカードを選び直してからもう一度お試しください。";
+      toast.getBoundingClientRect();
+      toast.classList.add("show");
+    });
+    const crowdedToastLayout = async () => page.evaluate(() => ({
+      toast: document.querySelector("#toast").getBoundingClientRect(),
+      tabs: document.querySelector(".app-tabs").getBoundingClientRect(),
+      connection: document.querySelector(".connection-card").getBoundingClientRect(),
+    }));
+    const transitioningToast = await crowdedToastLayout();
+    assert.ok(transitioningToast.toast.top >= 56, JSON.stringify(transitioningToast));
+    assert.ok(transitioningToast.toast.bottom <= Math.min(transitioningToast.tabs.top, transitioningToast.connection.top), JSON.stringify(transitioningToast));
+    await page.waitForTimeout(250);
+    const settledToast = await crowdedToastLayout();
+    assert.ok(settledToast.toast.top >= 56, JSON.stringify(settledToast));
+    assert.ok(settledToast.toast.bottom <= Math.min(settledToast.tabs.top, settledToast.connection.top), JSON.stringify(settledToast));
     assert.equal(await page.locator("#retryAction").isHidden(), true);
     assert.doesNotMatch(await page.locator("body").textContent(), /authoritative_state|service secret|private stack/i);
     await page.locator('#paletteControls .color-button[data-color="red"]').click();
