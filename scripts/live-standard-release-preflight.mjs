@@ -11,9 +11,10 @@ const publicUrl = "https://sakuratamaro.github.io/four-color-map-game/standard-o
 const expectedPhase = process.argv.find((argument) => argument.startsWith("--expect="))?.slice("--expect=".length) || null;
 const zeroUuid = "00000000-0000-0000-0000-000000000000";
 const candidateAssetMarkers = Object.freeze({
-  app: "app.js?v=20260907-42",
-  style: "style.css?v=20260907-40",
+  app: "app.js?v=20260907-43",
+  style: "style.css?v=20260907-41",
   intents: "standard-online-skill-intents.js?v=20260907-19",
+  portraits: "cpu-portraits.js?v=20260907-1",
 });
 
 assert.ok(supabaseUrl && publishableKey, "PUBLIC_SUPABASE_CONFIG_REQUIRED");
@@ -21,6 +22,13 @@ assert.ok(expectedPhase === null || ["baseline", "db-ready", "candidate"].includ
 
 async function getText(url) {
   const response = await fetch(url, { signal: AbortSignal.timeout(20_000) });
+  assert.equal(response.ok, true, `PUBLIC_FETCH_FAILED_${response.status}`);
+  return { status: response.status, text: await response.text() };
+}
+
+async function getOptionalText(url) {
+  const response = await fetch(url, { signal: AbortSignal.timeout(20_000) });
+  if (response.status === 404) return { status: response.status, text: "" };
   assert.equal(response.ok, true, `PUBLIC_FETCH_FAILED_${response.status}`);
   return { status: response.status, text: await response.text() };
 }
@@ -42,10 +50,12 @@ async function probeProtectedRpc(name, body) {
   throw new Error(`UNEXPECTED_RPC_PROBE_${name}_${response.status}_${String(data?.code || "UNKNOWN")}`);
 }
 
-const [page, app, intents, snapshotV1, snapshotV2, matchmaking, matchmakingAvailability, pregameAbandon, activeRoom, setupLoadV3, initializeRoomV3] = await Promise.all([
+const [page, app, intents, portraits, portraitManifest, snapshotV1, snapshotV2, matchmaking, matchmakingAvailability, pregameAbandon, activeRoom, setupLoadV3, initializeRoomV3] = await Promise.all([
   getText(publicUrl),
   getText(`${publicUrl}app.js`),
   getText(`${publicUrl}standard-online-skill-intents.js`),
+  getOptionalText(`${publicUrl}cpu-portraits.js`),
+  getOptionalText(`${publicUrl}assets/cpu-portraits/manifest.json`),
   probeProtectedRpc("fcg_standard_room_snapshot", { p_room_id: zeroUuid }),
   probeProtectedRpc("fcg_standard_room_snapshot_v2", { p_room_id: zeroUuid, p_known_profile_revision: null }),
   probeProtectedRpc("fcg_standard_matchmaking_recruit", { p_display_name: "preflight", p_ticket_id: zeroUuid }),
@@ -67,6 +77,16 @@ const [page, app, intents, snapshotV1, snapshotV2, matchmaking, matchmakingAvail
     p_private_b: {},
   }),
 ]);
+
+const portraitManifestData = portraitManifest.status === 200 ? JSON.parse(portraitManifest.text) : { characters: [] };
+const portraitFiles = [...new Set((portraitManifestData.characters || []).flatMap((character) => [
+  character?.variants?.normal,
+  ...Object.values(character?.variants?.loss || {}),
+].filter(Boolean).map((variant) => `${character.id}-${variant}.webp`)))].sort();
+const portraitAssetStatuses = await Promise.all(portraitFiles.map(async (file) => {
+  const response = await fetch(`${publicUrl}assets/cpu-portraits/${file}`, { signal: AbortSignal.timeout(20_000) });
+  return response.status;
+}));
 
 const result = {
   ok: true,
@@ -94,9 +114,15 @@ const result = {
       && app.text.includes('sendAction("USE_SKILL", payload)')
       && intents.text.includes('const colored = Object.hasOwn(input, "regionId")')
       && intents.text.includes('Object.freeze({ skill, regionId: regionId(input.regionId), macro: integer(input.macro) })'),
+    hasCpuPortraits: page.text.includes(candidateAssetMarkers.portraits)
+      && portraits.text.includes('const VERSION = "standard-cpu-portraits-v1"')
+      && portraitManifestData.characters?.length === 10
+      && portraitFiles.length === 49
+      && portraitAssetStatuses.every((status) => status === 200),
     hasCandidateAssetGeneration: page.text.includes(candidateAssetMarkers.app)
       && page.text.includes(candidateAssetMarkers.style)
-      && page.text.includes(candidateAssetMarkers.intents),
+      && page.text.includes(candidateAssetMarkers.intents)
+      && page.text.includes(candidateAssetMarkers.portraits),
   },
   database: { snapshotV1, snapshotV2, matchmaking, matchmakingAvailability, pregameAbandon, activeRoom, setupLoadV3, initializeRoomV3 },
 };
@@ -104,7 +130,7 @@ const result = {
 const phaseExpectations = {
   baseline: { pregameAbandonUi: true, pregameAbandonDb: true, activeRoomUi: true, activeRoomDb: true, setupRevisionGuardDb: true, legalRecolorLabUi: true, matchmakingAvailabilityDb: false, waitingOpponentUi: false },
   "db-ready": { pregameAbandonUi: true, pregameAbandonDb: true, activeRoomUi: true, activeRoomDb: true, setupRevisionGuardDb: true, legalRecolorLabUi: true, matchmakingAvailabilityDb: true, waitingOpponentUi: false },
-  candidate: { pregameAbandonUi: true, pregameAbandonDb: true, activeRoomUi: true, activeRoomDb: true, setupRevisionGuardDb: true, legalRecolorLabUi: true, matchmakingAvailabilityDb: true, waitingOpponentUi: true, alpha3SkillCategoryUi: true, alpha4ColoredCornerBloomUi: true, candidateAssetGenerationUi: true },
+  candidate: { pregameAbandonUi: true, pregameAbandonDb: true, activeRoomUi: true, activeRoomDb: true, setupRevisionGuardDb: true, legalRecolorLabUi: true, matchmakingAvailabilityDb: true, waitingOpponentUi: true, alpha3SkillCategoryUi: true, alpha4ColoredCornerBloomUi: true, cpuPortraitsUi: true, candidateAssetGenerationUi: true },
 };
 
 if (expectedPhase) {
@@ -127,6 +153,7 @@ if (expectedPhase) {
   if (expectedPhase === "candidate") {
     assert.equal(result.publicPage.hasAlpha3SkillCategoryWindow, expected.alpha3SkillCategoryUi, "ALPHA3_SKILL_CATEGORY_UI_PHASE_MISMATCH");
     assert.equal(result.publicPage.hasAlpha4ColoredCornerBloom, expected.alpha4ColoredCornerBloomUi, "ALPHA4_COLORED_CORNER_BLOOM_UI_PHASE_MISMATCH");
+    assert.equal(result.publicPage.hasCpuPortraits, expected.cpuPortraitsUi, "CPU_PORTRAITS_UI_PHASE_MISMATCH");
     assert.equal(result.publicPage.hasCandidateAssetGeneration, expected.candidateAssetGenerationUi, "CANDIDATE_ASSET_GENERATION_UI_PHASE_MISMATCH");
   }
 }

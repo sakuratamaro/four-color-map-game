@@ -11,6 +11,7 @@ const mime = {
   ".html": "text/html; charset=utf-8",
   ".js": "text/javascript; charset=utf-8",
   ".json": "application/json; charset=utf-8",
+  ".webp": "image/webp",
 };
 
 const server = http.createServer((request, response) => {

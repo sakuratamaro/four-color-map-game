@@ -118,6 +118,7 @@ jobs:
           tests/standard-online-basic-feedback-static.test.cjs
           tests/standard-online-contact-feedback.test.cjs
           tests/standard-cpu-commentary.test.cjs
+          tests/standard-cpu-portraits.test.cjs
           tests/standard-cpu.test.cjs
           tests/standard-cpu-colored-corner-bloom.test.cjs
           tests/standard-cpu-selfplay.test.cjs

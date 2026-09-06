@@ -6,7 +6,7 @@
   <title>Four Color Map Game v5.0 Standard Online</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='30' height='30' x='1' y='1' rx='8' fill='%23ef476f'/%3E%3Crect width='30' height='30' x='33' y='1' rx='8' fill='%23ffd166'/%3E%3Crect width='30' height='30' x='1' y='33' rx='8' fill='%2306d6a0'/%3E%3Crect width='30' height='30' x='33' y='33' rx='8' fill='%231182e8'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="../online-v5/style.css">
-  <link rel="stylesheet" href="style.css?v=20260907-40">
+  <link rel="stylesheet" href="style.css?v=20260907-41">
   <link rel="stylesheet" href="debug-mode.css">
   <link rel="stylesheet" href="progression.css">
 </head>
@@ -310,14 +310,23 @@
       <p id="phaseText" class="callout"></p>
       <div id="cpuCommentaryStage" class="cpu-commentary-stage hidden" aria-hidden="true">
         <aside id="cpuCommentaryBubble" class="cpu-commentary-bubble is-silent">
-          <span class="cpu-commentary-mark" aria-hidden="true">CPU</span>
+          <span class="cpu-portrait-frame cpu-commentary-portrait" aria-hidden="true">
+            <img id="cpuCommentaryPortrait" alt="" width="256" height="256" decoding="async" hidden>
+            <span id="cpuCommentaryPortraitFallback" class="cpu-portrait-fallback">CPU</span>
+          </span>
           <div><strong id="cpuCommentaryName"></strong><p id="cpuCommentaryText"></p></div>
         </aside>
       </div>
       <section id="terminalSummary" class="terminal-summary hidden" aria-labelledby="terminalOutcomeTitle">
         <strong id="terminalOutcomeTitle"></strong>
         <p id="terminalOutcomeReason"></p>
-        <p id="cpuTerminalCommentarySummary" class="cpu-terminal-commentary hidden"></p>
+        <div id="cpuTerminalCommentarySummaryCard" class="cpu-terminal-commentary-card hidden">
+          <span class="cpu-portrait-frame cpu-terminal-portrait" aria-hidden="true">
+            <img id="cpuTerminalPortraitSummary" alt="" width="256" height="256" decoding="async" hidden>
+            <span id="cpuTerminalPortraitSummaryFallback" class="cpu-portrait-fallback">CPU</span>
+          </span>
+          <p id="cpuTerminalCommentarySummary" class="cpu-terminal-commentary"></p>
+        </div>
       </section>
       <section id="turnGuide" class="turn-guide hidden">
         <span id="turnGuideStep" class="turn-guide-step">NEXT</span>
@@ -389,6 +398,12 @@
       </details>
       <p class="muted small">基本操作はサーバーで判定されます。エリアを確定する前は隣接色数や合法色の答えを表示せず、確定後の公開結果だけを振り返れます。</p>
     </section>
+    <footer class="asset-credit-footer" data-app-tab-panel="home profile">
+      <details>
+        <summary>画像素材クレジット</summary>
+        <p>CPU立ち絵：<a href="https://wataokiba.net/" target="_blank" rel="noopener noreferrer">わたおきば</a>（作者：わたおび）／顔と上半身へのトリミング・縮小・WebP変換を行っています。</p>
+      </details>
+    </footer>
   </main>
   <div id="terminalOverlay" class="terminal-overlay hidden" aria-live="assertive">
     <section class="terminal-celebration" role="dialog" aria-modal="true" aria-labelledby="terminalTitle" aria-describedby="terminalMessage terminalReasonText cpuTerminalCommentaryOverlay terminalProgressText">
@@ -400,7 +415,13 @@
       <h2 id="terminalTitle">勝利！</h2>
       <p id="terminalMessage" class="terminal-message"></p>
       <p id="terminalReasonText" class="terminal-reason"></p>
-      <p id="cpuTerminalCommentaryOverlay" class="cpu-terminal-commentary hidden"></p>
+      <div id="cpuTerminalCommentaryOverlayCard" class="cpu-terminal-commentary-card hidden">
+        <span class="cpu-portrait-frame cpu-terminal-portrait" aria-hidden="true">
+          <img id="cpuTerminalPortraitOverlay" alt="" width="256" height="256" decoding="async" hidden>
+          <span id="cpuTerminalPortraitOverlayFallback" class="cpu-portrait-fallback">CPU</span>
+        </span>
+        <p id="cpuTerminalCommentaryOverlay" class="cpu-terminal-commentary"></p>
+      </div>
       <p id="terminalProgressText" class="terminal-progress"></p>
       <div class="terminal-actions">
         <button id="terminalGoGacha" class="primary hidden" type="button">獲得したLv.1券でガチャへ</button>
@@ -458,8 +479,9 @@
   <script src="standard-online-client.js?v=20260906-19"></script>
   <script src="standard-online-sync.js"></script>
   <script src="standard-online-skill-intents.js?v=20260907-19"></script>
+  <script src="cpu-portraits.js?v=20260907-1"></script>
   <script src="cpu-commentary.js?v=20260906-2"></script>
   <script src="basic-feedback.js?v=20260906-2"></script>
-  <script type="module" src="app.js?v=20260907-42"></script>
+  <script type="module" src="app.js?v=20260907-43"></script>
 </body>
 </html>

@@ -1,0 +1,107 @@
+{
+  "schemaVersion": 1,
+  "provider": {
+    "siteName": "立ち絵素材 わたおきば",
+    "author": "わたおび",
+    "siteUrl": "https://wataokiba.net/",
+    "termsUrl": "https://wataokiba.net/%E5%88%A9%E7%94%A8%E8%A6%8F%E7%B4%84/",
+    "qaUrl": "https://wataokiba.net/qa/",
+    "termsCheckedAt": "2026-09-06",
+    "copyrightRetainedByAuthor": true,
+    "standaloneRedistributionProhibited": true
+  },
+  "processing": "Each included WebP is cropped to the face and upper body from one author-provided PNG expression, resized to 256x256, and WebP-encoded. Source ZIPs, full-size PNGs, unused expressions, and editable source files are not included.",
+  "repositoryLicenseExclusion": "The WebP files listed here are third-party artwork and are excluded from any license grant for the repository source code.",
+  "characters": [
+    {
+      "id": "yuzu",
+      "displayName": "うっかりユズ",
+      "genderPresentation": "female",
+      "sourceTitle": "女性04（赤マフラー）",
+      "sourcePageUrl": "https://wataokiba.net/2018/02/15/7093679/",
+      "sourceBaseUrl": "https://wataokiba.net/wp-content/uploads/2019/05/josei_04",
+      "variants": { "normal": "g", "loss": { "ILLEGAL_COLOR": "b", "BOARD_LOCK": "d", "SURRENDER": "e", "SEALED_OUT": "f", "NO_LEGAL_COLOR": "d" } }
+    },
+    {
+      "id": "ren",
+      "displayName": "せっかちレン",
+      "genderPresentation": "male",
+      "sourceTitle": "男性05（学ラン）",
+      "sourcePageUrl": "https://wataokiba.net/2018/03/03/7236542/",
+      "sourceBaseUrl": "https://wataokiba.net/wp-content/uploads/2019/05/dansei_05",
+      "variants": { "normal": "c", "loss": { "ILLEGAL_COLOR": "b", "BOARD_LOCK": "a", "SURRENDER": "f", "SEALED_OUT": "d", "NO_LEGAL_COLOR": "d" } }
+    },
+    {
+      "id": "minato",
+      "displayName": "見習いミナト",
+      "genderPresentation": "male",
+      "sourceTitle": "男性01（学生）",
+      "sourcePageUrl": "https://wataokiba.net/2018/02/07/7001884/",
+      "sourceBaseUrl": "https://wataokiba.net/wp-content/uploads/2019/05/dansei_01",
+      "variants": { "normal": "a", "loss": { "ILLEGAL_COLOR": "f", "BOARD_LOCK": "c", "SURRENDER": "e", "SEALED_OUT": "e", "NO_LEGAL_COLOR": "c" } }
+    },
+    {
+      "id": "koharu",
+      "displayName": "読み違いコハル",
+      "genderPresentation": "female",
+      "sourceTitle": "女性03（白ワンピース）",
+      "sourcePageUrl": "https://wataokiba.net/2018/02/11/7026278/",
+      "sourceBaseUrl": "https://wataokiba.net/wp-content/uploads/2019/05/josei_03",
+      "variants": { "normal": "a", "loss": { "ILLEGAL_COLOR": "d", "BOARD_LOCK": "c", "SURRENDER": "e", "SEALED_OUT": "f", "NO_LEGAL_COLOR": "c" } }
+    },
+    {
+      "id": "aoi",
+      "displayName": "慎重派アオイ",
+      "genderPresentation": "female",
+      "sourceTitle": "女性08（エルフ）",
+      "sourcePageUrl": "https://wataokiba.net/2018/05/19/9331637/",
+      "sourceBaseUrl": "https://wataokiba.net/wp-content/uploads/2019/05/josei_08",
+      "variants": { "normal": "a", "loss": { "ILLEGAL_COLOR": "d", "BOARD_LOCK": "e", "SURRENDER": "f", "SEALED_OUT": "c", "NO_LEGAL_COLOR": "e" } }
+    },
+    {
+      "id": "kai",
+      "displayName": "勝負師カイ",
+      "genderPresentation": "male",
+      "sourceTitle": "男性08（吸血鬼・マントなし）",
+      "sourcePageUrl": "https://wataokiba.net/2018/10/09/dansei08/",
+      "sourceBaseUrl": "https://wataokiba.net/wp-content/uploads/2019/05/dansei_08",
+      "variants": { "normal": "a", "loss": { "ILLEGAL_COLOR": "g", "BOARD_LOCK": "h", "SURRENDER": "d", "SEALED_OUT": "f", "NO_LEGAL_COLOR": "h" } }
+    },
+    {
+      "id": "tsubasa",
+      "displayName": "仕掛け屋ツバサ",
+      "genderPresentation": "female",
+      "sourceTitle": "女性19（人間ver.）",
+      "sourcePageUrl": "https://wataokiba.net/2021/03/18/josei19/",
+      "sourceBaseUrl": "https://wataokiba.net/wp-content/uploads/2021/03/josei_19_02",
+      "variants": { "normal": "a", "loss": { "ILLEGAL_COLOR": "e", "BOARD_LOCK": "c", "SURRENDER": "f", "SEALED_OUT": "d", "NO_LEGAL_COLOR": "c" } }
+    },
+    {
+      "id": "shion",
+      "displayName": "観察役シオン",
+      "genderPresentation": "female",
+      "sourceTitle": "女性17（雪女）",
+      "sourcePageUrl": "https://wataokiba.net/2020/12/04/josei17/",
+      "sourceBaseUrl": "https://wataokiba.net/wp-content/uploads/2020/12/josei_17",
+      "variants": { "normal": "a", "loss": { "ILLEGAL_COLOR": "e", "BOARD_LOCK": "c", "SURRENDER": "h", "SEALED_OUT": "f", "NO_LEGAL_COLOR": "c" } }
+    },
+    {
+      "id": "rei",
+      "displayName": "カード博士レイ",
+      "genderPresentation": "male",
+      "sourceTitle": "男性15（ループタイ）",
+      "sourcePageUrl": "https://wataokiba.net/2020/12/07/dansei15/",
+      "sourceBaseUrl": "https://wataokiba.net/wp-content/uploads/2020/12/dansei_15",
+      "variants": { "normal": "a", "loss": { "ILLEGAL_COLOR": "c", "BOARD_LOCK": "f", "SURRENDER": "h", "SEALED_OUT": "e", "NO_LEGAL_COLOR": "f" } }
+    },
+    {
+      "id": "kurogane",
+      "displayName": "四色のクロガネ",
+      "genderPresentation": "male",
+      "sourceTitle": "男性04（和風）",
+      "sourcePageUrl": "https://wataokiba.net/2018/02/17/7148522/",
+      "sourceBaseUrl": "https://wataokiba.net/wp-content/uploads/2019/05/dansei_04",
+      "variants": { "normal": "a", "loss": { "ILLEGAL_COLOR": "f", "BOARD_LOCK": "c", "SURRENDER": "g", "SEALED_OUT": "d", "NO_LEGAL_COLOR": "c" } }
+    }
+  ]
+}

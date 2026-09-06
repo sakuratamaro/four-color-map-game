@@ -15,6 +15,10 @@ Turn-based four-color map strategy game with hidden palettes, tactical skills, m
 - ローカル2人対戦: https://sakuratamaro.github.io/four-color-map-game/
 - オンライン速攻MVP: https://sakuratamaro.github.io/four-color-map-game/online-v5/
 
+### Third-party CPU portraits
+
+Standard OnlineのCPU立ち絵には、わたおび氏の[立ち絵素材 わたおきば](https://wataokiba.net/)を使用しています。顔と上半身へのトリミング・縮小・WebP変換を行い、元ZIP・原寸PNG・未使用差分は収録していません。画像の著作権は作者に帰属し、リポジトリのソースコードに対するライセンス許諾の対象外です。利用条件と個別の出典は [NOTICE.md](NOTICE.md) および `standard-online-v5/assets/cpu-portraits/manifest.json` を参照してください。
+
 オンライン版は、別々のブラウザまたは端末から同じページを開き、一方が表示した6文字の合言葉をもう一方が入力して遊びます。匿名ログインなのでメールアドレス登録は不要です。ブラウザへ含める設定はProject URLとPublishable keyだけで、ゲーム状態の確定はSupabase Edge Functionが行います。
 
 現在のオンライン公開版は速攻モードMVPです。v4.9本編を作り直したものではなく、v4.9のルールと幾何エンジンを基点に、オンライン同期の主要経路を先に完成させた版です。セットアップと検証状況は `docs/SUPABASE_SETUP.md` と `docs/TEST_CHECKLIST.md` を参照してください。

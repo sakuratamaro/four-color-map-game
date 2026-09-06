@@ -48,7 +48,7 @@ test("Standard online setup UI exposes the complete reconnect path", () => {
     "cosmeticPanel", "cosmeticCoins", "collectionIdentity", "refreshCosmetics", "cosmeticCatalog", "cosmeticConfirmation", "cosmeticConfirmationText", "cosmeticCommit", "cosmeticCancel", "cosmeticRetry", "cosmeticStatus",
     "matchmakingPanel", "recruitOpponent", "findOpponent", "cancelMatchmaking", "matchmakingWait", "matchmakingElapsed", "matchmakingStatus", "roomIdentityLabel",
     "cpuOpponentOffer", "cpuOfferMessage", "chooseCpuOpponent", "keepWaitingForHuman", "cpuRosterDialog", "cpuRosterGrid", "cpuRosterStatus", "closeCpuRoster",
-    "terminalOverlay", "terminalIcon", "terminalEyebrow", "terminalTitle", "terminalMessage", "terminalReasonText", "cpuTerminalCommentarySummary", "cpuTerminalCommentaryOverlay", "terminalProgressText", "terminalGoGacha", "terminalClose",
+    "terminalOverlay", "terminalIcon", "terminalEyebrow", "terminalTitle", "terminalMessage", "terminalReasonText", "cpuTerminalCommentarySummary", "cpuTerminalCommentaryOverlay", "cpuTerminalPortraitSummary", "cpuTerminalPortraitOverlay", "terminalProgressText", "terminalGoGacha", "terminalClose",
   ]) assert.match(html, new RegExp(`id=["']${id}["']`));
   assert.match(html, /standard-online-client\.js/);
   assert.match(html, /standard-online-skill-intents\.js/);
@@ -66,9 +66,9 @@ test("online alpha.3 UI understands category windows and the experimental bonus-
 });
 
 test("CPU commentary is public-event-only, bounded, non-blocking, and terminal-persistent", () => {
-  assert.match(html, /style\.css\?v=20260907-40/);
+  assert.match(html, /style\.css\?v=20260907-41/);
   assert.match(html, /standard-online-skill-intents\.js\?v=20260907-19/);
-  assert.match(html, /app\.js\?v=20260907-42/);
+  assert.match(html, /app\.js\?v=20260907-43/);
   assert.match(app, /cpuCommentary\?\.VERSION !== "standard-cpu-commentary-v2"/);
   assert.ok(html.indexOf("cpu-commentary.js") < html.indexOf('type="module" src="app.js'));
   assert.match(html, /id="cpuCommentaryStage"[^>]+aria-hidden="true"/);
