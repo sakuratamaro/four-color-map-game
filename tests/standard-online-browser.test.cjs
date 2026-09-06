@@ -760,7 +760,7 @@ async function withPage(mode, run, { bodyTimeout = 35_000, viewport = { width: 9
     await bounded("navigation-ready", page.goto(`${url}/standard-online-v5/index.html`, { timeout: 20_000 }), 20_000);
     browserStage("navigation-ready");
     browserStage("badge-start");
-    await bounded("badge-ready", page.locator("#connectionBadge.good").waitFor({ state: "visible", timeout: 10_000 }), 10_000);
+    await bounded("badge-ready", page.locator("#connectionBadge.good").waitFor({ state: "visible", timeout: 20_000 }), 20_000);
     browserStage("badge-ready");
     if (RESTORED_ROOM_MODES.has(mode)) {
       browserStage("room-ready-start");

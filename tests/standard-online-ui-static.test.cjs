@@ -49,7 +49,7 @@ test("Standard online setup UI exposes the complete reconnect path", () => {
 });
 
 test("CPU commentary is public-event-only, bounded, non-blocking, and terminal-persistent", () => {
-  assert.match(html, /style\.css\?v=20260906-30/);
+  assert.match(html, /style\.css\?v=20260906-31/);
   assert.match(html, /app\.js\?v=20260906-32/);
   assert.ok(html.indexOf("cpu-commentary.js") < html.indexOf('type="module" src="app.js'));
   assert.match(html, /id="cpuCommentaryStage"[^>]+aria-hidden="true"/);
@@ -103,6 +103,7 @@ test("waiting-opponent notice is global, privacy-finite, and non-interrupting", 
   assert.match(css, /white-space:nowrap/);
   assert.match(css, /@media\(max-width:700px\)\{\.waiting-opponent-notice\{top:calc\(4px \+ env\(safe-area-inset-top\)\);right:8px;bottom:auto;left:auto;width:calc\(100% - 16px\);height:44px;min-height:44px;box-sizing:border-box/);
   assert.match(css, /@media\(max-width:700px\)\{#matchCard\{scroll-margin-block-start:calc\(80px \+ env\(safe-area-inset-top\)\)\}\}/);
+  assert.match(css, /@media\(max-width:700px\)\{body\[data-active-tab="battle"\]\{padding-bottom:calc\(168px \+ env\(safe-area-inset-bottom\)\)\}\}/);
 });
 
 test("fresh players can finish profile setup inside the battle tab without automatic matchmaking", () => {
