@@ -7,12 +7,12 @@ const vm = require("node:vm");
 const root = path.resolve(__dirname, "..");
 const edge = fs.readFileSync(path.join(root, "supabase/functions/standard-game-action/index.ts"), "utf8");
 
-function loadQuizRuntime(secureInt) {
-  const start = edge.indexOf("function factorial(");
-  const end = edge.indexOf("function quizAnswerProjection(");
+function loadQuizRuntime(secureInt, sourceText = edge) {
+  const start = sourceText.indexOf("function factorial(");
+  const end = sourceText.indexOf("function quizAnswerProjection(");
   assert.ok(start >= 0 && end > start, "quiz generator source region must remain extractable");
-  const source = edge.slice(start, end)
-    .replace(/type QuizGenerated = \{[\s\S]*?\n\};\n/, "")
+  const source = sourceText.slice(start, end)
+    .replace(/type QuizGenerated = \{[\s\S]*?\r?\n\};\r?\n/, "")
     .replace("function factorial(value: number): number", "function factorial(value)")
     .replace("function combination(total: number, selected: number): number", "function combination(total, selected)")
     .replace("function inclusiveIntegerSum(lower: number, upper: number, term: (index: number) => number): number", "function inclusiveIntegerSum(lower, upper, term)")
@@ -43,6 +43,14 @@ function selectedPrompt(level, selection) {
   const runtime = loadQuizRuntime((minimum, maximum) => minimum === 0 && maximum === catalogLastIndex ? selection : minimum);
   return JSON.parse(JSON.stringify(runtime.quizPrompt(level)));
 }
+
+test("quiz runtime extraction accepts LF and CRLF checkouts", () => {
+  for (const sourceText of [edge.replace(/\r\n/g, "\n"), edge.replace(/\r?\n/g, "\r\n")]) {
+    const runtime = loadQuizRuntime((minimum) => minimum, sourceText);
+    assert.equal(typeof runtime.quizPrompt, "function");
+    assert.equal(typeof runtime.createQuizChallenge, "function");
+  }
+});
 
 test("all eight story generators expose only the story descriptor before an answer", () => {
   for (const level of [2, 3, 4, 5]) {
