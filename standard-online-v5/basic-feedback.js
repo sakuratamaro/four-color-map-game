@@ -8,6 +8,7 @@
   const VERSION = "standard-basic-feedback-v1";
   const STORAGE_KEY = "fourColorMapGame.standard.online.v5.basic-feedback-settings-v1";
   const EVENT_HISTORY_KEY = "fourColorMapGame.standard.online.v5.basic-feedback-events-v1";
+  const EVENT_HISTORY_LOCK = "fourColorMapGame.standard.online.v5.basic-feedback-events-v1.lock";
   const EVENT_HISTORY_LIMIT = 64;
   const EVENT_ID_PATTERN = /^[A-Za-z0-9._:-]{1,300}$/;
   const CUES = Object.freeze(["turn", "contact-2", "contact-3", "contact-4", "victory", "defeat"]);
@@ -45,6 +46,9 @@
     let destroyed = false;
     let controls = null;
     let gestureTarget = null;
+    let audioAttempt = 0;
+    let outputRevision = 0;
+    const activeOscillators = new Set();
 
     function readJson(key) {
       try { return JSON.parse(safeStorage?.getItem?.(key) || "null"); }
@@ -54,6 +58,21 @@
     function writeJson(key, value) {
       try { safeStorage?.setItem?.(key, JSON.stringify(value)); return true; }
       catch { return false; }
+    }
+
+    function observeOptionalPromise(value, onFulfilled, onRejected) {
+      try {
+        if (!value || typeof value.then !== "function") {
+          try { onFulfilled?.(); } catch { /* presentation callback */ }
+          return;
+        }
+        Promise.resolve(value).then(
+          () => { try { onFulfilled?.(); } catch { /* presentation callback */ } },
+          () => { try { onRejected?.(); } catch { /* presentation callback */ } },
+        ).catch(() => {});
+      } catch {
+        try { onRejected?.(); } catch { /* presentation callback */ }
+      }
     }
 
     function readSettings() {
@@ -75,16 +94,20 @@
       return typeof safeNavigator?.vibrate === "function";
     }
 
+    function coordinationSupported() {
+      return typeof safeNavigator?.locks?.request === "function";
+    }
+
     function audioSupported() {
       return typeof (safeGlobal?.AudioContext || safeGlobal?.webkitAudioContext) === "function";
     }
 
     function statusText() {
       const soundState = !settings.sound ? "効果音 OFF"
-        : !audioSupported() ? "効果音 ON（このブラウザーは非対応）"
+        : !audioSupported() || !coordinationSupported() ? "効果音 ON（このブラウザーは非対応）"
         : audioUnlocked ? "効果音 ON" : "効果音 ON（次の操作で有効）";
       const vibrationState = !settings.vibration ? "振動 OFF"
-        : vibrationSupported() ? "振動 ON" : "振動 ON（この端末は非対応）";
+        : vibrationSupported() && coordinationSupported() ? "振動 ON" : "振動 ON（この端末は非対応）";
       return `${soundState}｜${vibrationState}`;
     }
 
@@ -95,13 +118,45 @@
       controls.status.textContent = statusText();
     }
 
+    function stopActiveSound() {
+      for (const oscillator of activeOscillators) {
+        try { oscillator.stop(0); } catch { /* already stopped or unavailable */ }
+        try { oscillator.disconnect?.(); } catch { /* optional presentation API */ }
+      }
+      activeOscillators.clear();
+    }
+
+    function stopVibration() {
+      if (!vibrationSupported()) return;
+      try { safeNavigator.vibrate(0); } catch { /* optional presentation API */ }
+    }
+
+    function suspendSoundContext() {
+      const context = audioContext;
+      if (!context || typeof context.suspend !== "function") return;
+      try {
+        observeOptionalPromise(context.suspend(), () => {
+          if (!destroyed && settings.sound && context === audioContext && context.state === "suspended") {
+            audioUnlocked = false;
+            installGestureUnlock(safeDocument);
+            renderControls();
+          }
+        });
+      } catch { /* optional presentation API */ }
+    }
+
     function setSettings(next) {
+      const previous = settings;
       settings = normalizedSettings({ schemaVersion: 1, sound: next?.sound === true, vibration: next?.vibration === true });
+      outputRevision += 1;
       writeJson(STORAGE_KEY, settings);
       if (!settings.sound) {
+        audioAttempt += 1;
         audioUnlocked = false;
-        try { audioContext?.suspend?.(); } catch { /* optional presentation API */ }
-      }
+        stopActiveSound();
+        suspendSoundContext();
+      } else if (!audioUnlocked) installGestureUnlock(safeDocument);
+      if (previous.vibration && !settings.vibration) stopVibration();
       renderControls();
       return settings;
     }
@@ -113,15 +168,24 @@
     }
 
     function unlockFromGesture(event) {
-      if (destroyed || !settings.sound || event?.isTrusted !== true || !audioSupported()) return false;
+      if (destroyed || !settings.sound || event?.isTrusted !== true || !audioSupported() || !coordinationSupported()) return false;
+      const attempt = ++audioAttempt;
       try {
         const AudioContextClass = safeGlobal.AudioContext || safeGlobal.webkitAudioContext;
         if (!audioContext || audioContext.state === "closed") audioContext = new AudioContextClass();
         if (audioContext.state === "suspended" && typeof audioContext.resume === "function") {
+          const context = audioContext;
           const resumed = audioContext.resume();
-          if (resumed && typeof resumed.then === "function") resumed.then(() => {
+          observeOptionalPromise(resumed, () => {
+            if (destroyed || !settings.sound || context !== audioContext || attempt !== audioAttempt) return;
             if (finishAudioUnlock()) removeGestureListeners();
-          }).catch(() => { audioUnlocked = false; renderControls(); });
+            else installGestureUnlock(safeDocument);
+          }, () => {
+            if (destroyed || !settings.sound || context !== audioContext || attempt !== audioAttempt) return;
+            audioUnlocked = false;
+            installGestureUnlock(safeDocument);
+            renderControls();
+          });
         }
         finishAudioUnlock();
         if (audioUnlocked) removeGestureListeners();
@@ -158,10 +222,23 @@
 
     function remember(eventId) {
       refreshHistory();
-      if (eventHistory.includes(eventId)) return false;
+      if (eventHistory.includes(eventId)) return Object.freeze({ claimed: false, duplicate: true });
       eventHistory = [...eventHistory, eventId].slice(-EVENT_HISTORY_LIMIT);
-      writeJson(EVENT_HISTORY_KEY, { schemaVersion: 1, eventIds: eventHistory });
-      return true;
+      return Object.freeze({
+        claimed: writeJson(EVENT_HISTORY_KEY, { schemaVersion: 1, eventIds: eventHistory }),
+        duplicate: false,
+      });
+    }
+
+    async function claimEvent(eventId) {
+      const requestLock = safeNavigator?.locks?.request;
+      if (typeof requestLock === "function") {
+        try {
+          return await requestLock.call(safeNavigator.locks, EVENT_HISTORY_LOCK, { mode: "exclusive" }, () => remember(eventId));
+        } catch { /* unsupported, denied, or interrupted lock service: consume without output */ }
+      }
+      const local = remember(eventId);
+      return Object.freeze({ claimed: false, duplicate: local.duplicate });
     }
 
     function presentationAllowed() {
@@ -177,6 +254,15 @@
         for (const [frequency, offset, duration, volume] of CUE_SPECS[cue].notes) {
           const oscillator = audioContext.createOscillator();
           const gain = audioContext.createGain();
+          activeOscillators.add(oscillator);
+          const forgetOscillator = () => {
+            activeOscillators.delete(oscillator);
+            try { oscillator.disconnect?.(); } catch { /* optional presentation API */ }
+          };
+          try {
+            if (typeof oscillator.addEventListener === "function") oscillator.addEventListener("ended", forgetOscillator, { once: true });
+            else oscillator.onended = forgetOscillator;
+          } catch { /* optional presentation API */ }
           oscillator.type = "sine";
           oscillator.frequency.setValueAtTime(frequency, startAt + offset);
           gain.gain.setValueAtTime(0.0001, startAt + offset);
@@ -197,11 +283,27 @@
       catch { return false; }
     }
 
-    function notify({ eventId, cue } = {}) {
-      if (destroyed || !validEventId(eventId) || !CUE_SET.has(cue)) return Object.freeze({ accepted: false, duplicate: false, sound: false, vibration: false });
-      if (!remember(eventId)) return Object.freeze({ accepted: false, duplicate: true, sound: false, vibration: false });
-      if (!presentationAllowed()) return Object.freeze({ accepted: true, duplicate: false, sound: false, vibration: false });
-      return Object.freeze({ accepted: true, duplicate: false, sound: playSound(cue), vibration: vibrate(cue) });
+    async function notify({ eventId, cue } = {}) {
+      const rejected = Object.freeze({ accepted: false, duplicate: false, sound: false, vibration: false });
+      try {
+        if (destroyed || !validEventId(eventId) || !CUE_SET.has(cue)) return rejected;
+        const dispatchRevision = outputRevision;
+        const dispatchAllowed = presentationAllowed();
+        const dispatchSound = settings.sound && audioUnlocked;
+        const dispatchVibration = settings.vibration;
+        const claim = await claimEvent(eventId);
+        if (claim.duplicate) return Object.freeze({ accepted: false, duplicate: true, sound: false, vibration: false });
+        if (!claim.claimed) return Object.freeze({ accepted: true, duplicate: false, sound: false, vibration: false });
+        if (destroyed || dispatchRevision !== outputRevision || !dispatchAllowed || !presentationAllowed()) {
+          return Object.freeze({ accepted: true, duplicate: false, sound: false, vibration: false });
+        }
+        return Object.freeze({
+          accepted: true,
+          duplicate: false,
+          sound: dispatchSound ? playSound(cue) : false,
+          vibration: dispatchVibration ? vibrate(cue) : false,
+        });
+      } catch { return rejected; }
     }
 
     function bindControls({ soundInput, vibrationInput, status } = {}) {
@@ -220,10 +322,14 @@
 
     function reloadSettings() {
       settings = readSettings();
+      outputRevision += 1;
       if (!settings.sound) {
+        audioAttempt += 1;
         audioUnlocked = false;
-        try { audioContext?.suspend?.(); } catch { /* optional presentation API */ }
+        stopActiveSound();
+        suspendSoundContext();
       } else if (!audioUnlocked) installGestureUnlock(safeDocument);
+      if (!settings.vibration) stopVibration();
       renderControls();
       return settings;
     }
@@ -240,13 +346,16 @@
 
     function destroy() {
       destroyed = true;
+      audioAttempt += 1;
       removeGestureListeners();
       if (controls) {
         controls.soundInput.removeEventListener("change", controls.soundChange);
         controls.vibrationInput.removeEventListener("change", controls.vibrationChange);
         controls = null;
       }
-      try { audioContext?.close?.(); } catch { /* optional presentation API */ }
+      stopActiveSound();
+      stopVibration();
+      try { observeOptionalPromise(audioContext?.close?.()); } catch { /* optional presentation API */ }
       audioContext = null;
       audioUnlocked = false;
     }
@@ -254,5 +363,5 @@
     return Object.freeze({ VERSION, bindControls, destroy, handleStorageEvent, installGestureUnlock, notify, reloadSettings, setSettings, snapshot, unlockFromGesture });
   }
 
-  return Object.freeze({ VERSION, STORAGE_KEY, EVENT_HISTORY_KEY, EVENT_HISTORY_LIMIT, CUES, createBasicFeedbackController, normalizedSettings, validEventId });
+  return Object.freeze({ VERSION, STORAGE_KEY, EVENT_HISTORY_KEY, EVENT_HISTORY_LOCK, EVENT_HISTORY_LIMIT, CUES, createBasicFeedbackController, normalizedSettings, validEventId });
 });

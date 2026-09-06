@@ -25,8 +25,8 @@ test("online feedback settings are explicit, separate, persistent, and keyboard-
 });
 
 test("feedback script is cache-busted before the matching app generation", () => {
-  const controllerScript = html.indexOf('<script src="basic-feedback.js?v=20260906-1"></script>');
-  const appScript = html.indexOf('<script type="module" src="app.js?v=20260906-37"></script>');
+  const controllerScript = html.indexOf('<script src="basic-feedback.js?v=20260906-2"></script>');
+  const appScript = html.indexOf('<script type="module" src="app.js?v=20260906-38"></script>');
   assert.ok(controllerScript >= 0 && appScript > controllerScript);
   assert.match(html, /style\.css\?v=20260906-37/);
   assert.doesNotMatch(html, /app\.js\?v=20260906-36|style\.css\?v=20260906-36/);
@@ -40,10 +40,11 @@ test("only new public presentation events request sound or vibration", () => {
   const terminal = app.slice(app.indexOf("function renderTerminalResult"), app.indexOf("function colorName"));
   assert.match(contactObserver, /trace\.eventId === observedTraceEventId/);
   assert.match(contactObserver, /showContactReveal\(trace\.contactColorCount, trace\.eventId\)/);
-  assert.match(contactReveal, /basicFeedback\.notify\(\{ eventId, cue: `contact-\$\{contactColorCount\}` \}\)/);
+  assert.match(contactReveal, /notifyBasicFeedback\(\{ eventId, cue: `contact-\$\{contactColorCount\}` \}\)/);
   assert.match(turnObserver, /previousActive !== seat && active === seat/);
   assert.match(turnObserver, /startTurnArrivalBeat\(`\$\{matchId\}:\$\{version\}:turn:\$\{seat\}`\)/);
-  assert.match(terminal, /shownTerminalEventKey !== eventKey[\s\S]+basicFeedback\.notify\(\{[\s\S]+state\.matchId[\s\S]+state\.version[\s\S]+state\.winner[\s\S]+state\.terminalReason/);
+  assert.match(terminal, /shownTerminalEventKey !== eventKey[\s\S]+notifyBasicFeedback\(\{[\s\S]+state\.matchId[\s\S]+state\.version[\s\S]+state\.winner[\s\S]+state\.terminalReason/);
+  assert.match(app, /Promise\.resolve\(basicFeedback\.notify\(payload\)\)\.catch\(\(\) => \{\}\)/);
   assert.doesNotMatch(feedback, /\b(?:private_state|privateState|ownPrivate|palette|hand|loadout)\b/);
 });
 
@@ -52,7 +53,14 @@ test("gesture, hidden, offline, replay, API-failure, and reduced-motion boundari
   assert.match(app, /basicFeedback\.handleStorageEvent\(event\)/);
   assert.match(feedback, /event\?\.isTrusted !== true/);
   assert.match(feedback, /safeDocument\?\.hidden !== true[\s\S]+visibilityState !== "hidden"[\s\S]+safeNavigator\?\.onLine !== false/);
-  assert.ok(feedback.indexOf("if (!remember(eventId))") < feedback.indexOf("if (!presentationAllowed())"));
+  assert.match(feedback, /const claim = await claimEvent\(eventId\)/);
+  const claimIndex = feedback.indexOf("const claim = await claimEvent(eventId)");
+  const outputGateIndex = feedback.indexOf("if (destroyed || dispatchRevision !== outputRevision");
+  assert.ok(claimIndex >= 0 && outputGateIndex > claimIndex);
+  assert.match(feedback, /safeNavigator\?\.locks\?\.request/);
+  assert.match(feedback, /requestLock\.call\(safeNavigator\.locks, EVENT_HISTORY_LOCK, \{ mode: "exclusive" \}/);
+  assert.match(feedback, /oscillator\.stop\(0\)/);
+  assert.match(feedback, /safeNavigator\.vibrate\(0\)/);
   assert.match(feedback, /catch \{ return false; \}/);
   assert.match(feedback, /EVENT_HISTORY_LIMIT = 64/);
   assert.doesNotMatch(feedback, /matchMedia|prefers-reduced-motion|fetch\(|XMLHttpRequest|Audio\(/);

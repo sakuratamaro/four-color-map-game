@@ -14,8 +14,8 @@ function memoryStorage(seed = {}) {
   };
 }
 
-function audioHarness({ fail = false } = {}) {
-  const calls = { contexts: 0, oscillators: 0, starts: 0, stops: 0, resumes: 0, suspends: 0 };
+function audioHarness({ fail = false, resumeRejects = 0, rejectLifecycle = false } = {}) {
+  const calls = { contexts: 0, oscillators: 0, starts: 0, stops: 0, resumes: 0, suspends: 0, closes: 0 };
   class AudioContext {
     constructor() {
       if (fail) throw new Error("AUDIO_DISABLED");
@@ -40,22 +40,43 @@ function audioHarness({ fail = false } = {}) {
         connect() {},
       };
     }
-    resume() { calls.resumes += 1; this.state = "running"; return Promise.resolve(); }
-    suspend() { calls.suspends += 1; this.state = "suspended"; return Promise.resolve(); }
-    close() { this.state = "closed"; return Promise.resolve(); }
+    resume() {
+      calls.resumes += 1;
+      if (calls.resumes <= resumeRejects) return Promise.reject(new Error("RESUME_REJECTED"));
+      this.state = "running";
+      return Promise.resolve();
+    }
+    suspend() {
+      calls.suspends += 1;
+      this.state = "suspended";
+      return rejectLifecycle ? Promise.reject(new Error("SUSPEND_REJECTED")) : Promise.resolve();
+    }
+    close() {
+      calls.closes += 1;
+      this.state = "closed";
+      return rejectLifecycle ? Promise.reject(new Error("CLOSE_REJECTED")) : Promise.resolve();
+    }
   }
   return { globalRef: { AudioContext }, calls };
 }
 
-function environment({ storage = memoryStorage(), hidden = false, online = true, audioFail = false, vibrationFail = false } = {}) {
-  const audio = audioHarness({ fail: audioFail });
+function environment({ storage = memoryStorage(), hidden = false, online = true, audioFail = false, vibrationFail = false, resumeRejects = 0, rejectLifecycle = false } = {}) {
+  const audio = audioHarness({ fail: audioFail, resumeRejects, rejectLifecycle });
   const patterns = [];
+  let lockTail = Promise.resolve();
   const documentRef = { hidden, visibilityState: hidden ? "hidden" : "visible" };
   const navigatorRef = {
     onLine: online,
+    locks: {
+      request(_name, _options, callback) {
+        const result = lockTail.then(() => callback());
+        lockTail = result.catch(() => {});
+        return result;
+      },
+    },
     vibrate(pattern) {
       if (vibrationFail) throw new Error("VIBRATION_DISABLED");
-      patterns.push([...pattern]);
+      patterns.push(Array.isArray(pattern) ? [...pattern] : pattern);
       return true;
     },
   };
@@ -91,7 +112,7 @@ test("feedback settings are explicit opt-in, versioned, strict, and persistent",
     { schemaVersion: 1, sound: false, vibration: false });
 });
 
-test("sound is created only by a trusted gesture and every cue is synthesized in code", () => {
+test("sound is created only by a trusted gesture and every cue is synthesized in code", async () => {
   const env = environment();
   const controller = feedback.createBasicFeedbackController(env);
   controller.setSettings({ sound: true, vibration: true });
@@ -101,44 +122,44 @@ test("sound is created only by a trusted gesture and every cue is synthesized in
 
   assert.equal(controller.unlockFromGesture({ isTrusted: true }), true);
   assert.equal(env.calls.contexts, 1);
-  const result = controller.notify({ eventId: "match-1:4", cue: "contact-3" });
+  const result = await controller.notify({ eventId: "match-1:4", cue: "contact-3" });
   assert.deepEqual(result, { accepted: true, duplicate: false, sound: true, vibration: true });
   assert.equal(env.calls.oscillators, 3);
   assert.equal(env.calls.starts, 3);
   assert.equal(env.calls.stops, 3);
   assert.deepEqual(env.patterns, [[45, 25, 45, 25, 65]]);
 
-  assert.deepEqual(controller.notify({ eventId: "match-1:4", cue: "victory" }),
+  assert.deepEqual(await controller.notify({ eventId: "match-1:4", cue: "victory" }),
     { accepted: false, duplicate: true, sound: false, vibration: false });
   assert.equal(env.calls.oscillators, 3);
   assert.equal(env.patterns.length, 1);
 });
 
-test("hidden, offline, reload, and cross-controller replay are remembered before output", () => {
+test("hidden, offline, reload, and cross-controller replay are remembered before output", async () => {
   const storage = memoryStorage();
   const env = environment({ storage, hidden: true });
   const controller = feedback.createBasicFeedbackController(env);
   controller.setSettings({ sound: true, vibration: true });
   controller.unlockFromGesture({ isTrusted: true });
-  assert.deepEqual(controller.notify({ eventId: "match-2:8", cue: "turn" }),
+  assert.deepEqual(await controller.notify({ eventId: "match-2:8", cue: "turn" }),
     { accepted: true, duplicate: false, sound: false, vibration: false });
   env.documentRef.hidden = false;
   env.documentRef.visibilityState = "visible";
-  assert.equal(controller.notify({ eventId: "match-2:8", cue: "turn" }).duplicate, true);
+  assert.equal((await controller.notify({ eventId: "match-2:8", cue: "turn" })).duplicate, true);
 
   env.navigatorRef.onLine = false;
-  assert.deepEqual(controller.notify({ eventId: "match-2:9", cue: "victory" }),
+  assert.deepEqual(await controller.notify({ eventId: "match-2:9", cue: "victory" }),
     { accepted: true, duplicate: false, sound: false, vibration: false });
   env.navigatorRef.onLine = true;
-  assert.equal(controller.notify({ eventId: "match-2:9", cue: "victory" }).duplicate, true);
+  assert.equal((await controller.notify({ eventId: "match-2:9", cue: "victory" })).duplicate, true);
   assert.equal(env.calls.oscillators, 0);
   assert.equal(env.patterns.length, 0);
 
   const afterReload = feedback.createBasicFeedbackController(environment({ storage }));
   afterReload.setSettings({ sound: true, vibration: true });
   afterReload.unlockFromGesture({ isTrusted: true });
-  assert.equal(afterReload.notify({ eventId: "match-2:8", cue: "turn" }).duplicate, true);
-  assert.equal(afterReload.notify({ eventId: "match-2:9", cue: "victory" }).duplicate, true);
+  assert.equal((await afterReload.notify({ eventId: "match-2:8", cue: "turn" })).duplicate, true);
+  assert.equal((await afterReload.notify({ eventId: "match-2:9", cue: "victory" })).duplicate, true);
 });
 
 test("a cross-tab sound OFF to ON change reinstalls the next trusted gesture unlock", () => {
@@ -165,15 +186,192 @@ test("a cross-tab sound OFF to ON change reinstalls the next trusted gesture unl
   assert.equal(target.listenerCount(), 0);
 });
 
-test("unsupported and failing presentation APIs never escape into gameplay", () => {
+test("a rejected resume keeps gesture recovery armed and the next trusted gesture succeeds", async () => {
+  const target = gestureTarget();
+  const env = environment({ resumeRejects: 1 });
+  env.documentRef = { ...env.documentRef, ...target };
+  const controller = feedback.createBasicFeedbackController(env);
+  controller.setSettings({ sound: true, vibration: false });
+  target.dispatch("pointerdown", { isTrusted: true });
+  assert.equal(controller.snapshot().audioUnlocked, true);
+
+  controller.setSettings({ sound: false, vibration: false });
+  controller.setSettings({ sound: true, vibration: false });
+  target.dispatch("keydown", { isTrusted: true });
+  await Promise.resolve();
+  await Promise.resolve();
+  assert.equal(controller.snapshot().audioUnlocked, false);
+  assert.equal(target.listenerCount(), 3);
+
+  target.dispatch("keydown", { isTrusted: true });
+  await Promise.resolve();
+  assert.equal(controller.snapshot().audioUnlocked, true);
+  assert.equal(target.listenerCount(), 0);
+  assert.equal(env.calls.resumes, 2);
+});
+
+test("turning outputs OFF immediately cancels scheduled sound and active vibration", async () => {
+  const env = environment();
+  const controller = feedback.createBasicFeedbackController(env);
+  controller.setSettings({ sound: true, vibration: true });
+  controller.unlockFromGesture({ isTrusted: true });
+  assert.equal((await controller.notify({ eventId: "match-stop:1", cue: "victory" })).accepted, true);
+  const scheduledStops = env.calls.stops;
+  assert.ok(scheduledStops > 0);
+  controller.setSettings({ sound: false, vibration: false });
+  assert.equal(env.calls.stops, scheduledStops * 2);
+  assert.equal(env.patterns.at(-1), 0);
+});
+
+test("lock serialization elects one presenter and retains simultaneous distinct events", async () => {
+  const storage = memoryStorage();
+  let lockTail = Promise.resolve();
+  const locks = {
+    request(_name, _options, callback) {
+      const result = lockTail.then(() => callback());
+      lockTail = result.catch(() => {});
+      return result;
+    },
+  };
+  const first = environment({ storage });
+  const second = environment({ storage });
+  first.navigatorRef.locks = locks;
+  second.navigatorRef.locks = locks;
+  const a = feedback.createBasicFeedbackController(first);
+  const b = feedback.createBasicFeedbackController(second);
+
+  const same = await Promise.all([
+    a.notify({ eventId: "match-lock:same", cue: "turn" }),
+    b.notify({ eventId: "match-lock:same", cue: "turn" }),
+  ]);
+  assert.equal(same.filter((result) => result.accepted).length, 1);
+  assert.equal(same.filter((result) => result.duplicate).length, 1);
+
+  const distinct = await Promise.all([
+    a.notify({ eventId: "match-lock:a", cue: "turn" }),
+    b.notify({ eventId: "match-lock:b", cue: "turn" }),
+  ]);
+  assert.ok(distinct.every((result) => result.accepted));
+  const fresh = feedback.createBasicFeedbackController(environment({ storage }));
+  assert.equal((await fresh.notify({ eventId: "match-lock:a", cue: "turn" })).duplicate, true);
+  assert.equal((await fresh.notify({ eventId: "match-lock:b", cue: "turn" })).duplicate, true);
+});
+
+test("missing coordination and failed storage safely consume without output", async () => {
+  const noLock = environment();
+  delete noLock.navigatorRef.locks;
+  const unsupported = feedback.createBasicFeedbackController(noLock);
+  unsupported.setSettings({ sound: true, vibration: true });
+  assert.equal(unsupported.unlockFromGesture({ isTrusted: true }), false);
+  assert.deepEqual(await unsupported.notify({ eventId: "match-no-lock:1", cue: "victory" }),
+    { accepted: true, duplicate: false, sound: false, vibration: false });
+  assert.equal((await unsupported.notify({ eventId: "match-no-lock:1", cue: "victory" })).duplicate, true);
+  assert.equal(noLock.calls.contexts, 0);
+  assert.deepEqual(noLock.patterns, []);
+
+  const brokenStorage = memoryStorage();
+  brokenStorage.setItem = () => { throw new Error("STORAGE_DISABLED"); };
+  const failed = environment({ storage: brokenStorage });
+  const failedController = feedback.createBasicFeedbackController(failed);
+  failedController.setSettings({ sound: true, vibration: true });
+  failedController.unlockFromGesture({ isTrusted: true });
+  assert.deepEqual(await failedController.notify({ eventId: "match-storage-fail:1", cue: "turn" }),
+    { accepted: true, duplicate: false, sound: false, vibration: false });
+  assert.equal((await failedController.notify({ eventId: "match-storage-fail:1", cue: "turn" })).duplicate, true);
+  assert.equal(failed.calls.oscillators, 0);
+  assert.deepEqual(failed.patterns, []);
+});
+
+test("a lock-delayed event cannot refire after settings are enabled", async () => {
+  let releaseLock;
+  let held = true;
+  const env = environment();
+  env.navigatorRef.locks = {
+    request(_name, _options, callback) {
+      if (!held) return callback();
+      return new Promise((resolve) => {
+        releaseLock = () => { held = false; resolve(callback()); };
+      });
+    },
+  };
+  const controller = feedback.createBasicFeedbackController(env);
+  const pending = controller.notify({ eventId: "match-delayed:1", cue: "victory" });
+  controller.setSettings({ sound: true, vibration: true });
+  controller.unlockFromGesture({ isTrusted: true });
+  releaseLock();
+  assert.deepEqual(await pending, { accepted: true, duplicate: false, sound: false, vibration: false });
+  assert.equal(env.calls.oscillators, 0);
+  assert.deepEqual(env.patterns, []);
+  assert.equal((await controller.notify({ eventId: "match-delayed:1", cue: "victory" })).duplicate, true);
+});
+
+test("a late OFF suspend cannot leave a newer ON state falsely unlocked", async () => {
+  let settleSuspend;
+  let resumeCalls = 0;
+  class RacingAudioContext {
+    constructor() { this.currentTime = 0; this.destination = {}; this.state = "running"; }
+    suspend() {
+      return new Promise((resolve) => {
+        settleSuspend = () => { this.state = "suspended"; resolve(); };
+      });
+    }
+    resume() { resumeCalls += 1; this.state = "running"; return Promise.resolve(); }
+    close() { this.state = "closed"; return Promise.resolve(); }
+  }
+  const target = gestureTarget();
+  const env = environment();
+  env.globalRef = { AudioContext: RacingAudioContext };
+  env.documentRef = { ...env.documentRef, ...target };
+  const controller = feedback.createBasicFeedbackController(env);
+  controller.setSettings({ sound: true, vibration: false });
+  target.dispatch("pointerdown", { isTrusted: true });
+  assert.equal(controller.snapshot().audioUnlocked, true);
+  controller.setSettings({ sound: false, vibration: false });
+  controller.setSettings({ sound: true, vibration: false });
+  target.dispatch("keydown", { isTrusted: true });
+  assert.equal(controller.snapshot().audioUnlocked, true);
+
+  settleSuspend();
+  await Promise.resolve();
+  await Promise.resolve();
+  assert.equal(controller.snapshot().audioUnlocked, false);
+  assert.equal(target.listenerCount(), 3);
+  target.dispatch("keydown", { isTrusted: true });
+  await Promise.resolve();
+  assert.equal(controller.snapshot().audioUnlocked, true);
+  assert.equal(target.listenerCount(), 0);
+  assert.equal(resumeCalls, 1);
+});
+
+test("rejected suspend, resume, and close promises never become unhandled rejections", async () => {
+  const unhandled = [];
+  const listener = (reason) => unhandled.push(reason);
+  process.on("unhandledRejection", listener);
+  try {
+    const env = environment({ resumeRejects: 1, rejectLifecycle: true });
+    const controller = feedback.createBasicFeedbackController(env);
+    controller.setSettings({ sound: true, vibration: false });
+    controller.unlockFromGesture({ isTrusted: true });
+    controller.setSettings({ sound: false, vibration: false });
+    controller.setSettings({ sound: true, vibration: false });
+    controller.unlockFromGesture({ isTrusted: true });
+    controller.destroy();
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.deepEqual(unhandled, []);
+  } finally {
+    process.removeListener("unhandledRejection", listener);
+  }
+});
+
+test("unsupported and failing presentation APIs never escape into gameplay", async () => {
   const storage = memoryStorage();
   const failing = environment({ storage, audioFail: true, vibrationFail: true });
   const controller = feedback.createBasicFeedbackController(failing);
   controller.setSettings({ sound: true, vibration: true });
   assert.doesNotThrow(() => controller.unlockFromGesture({ isTrusted: true }));
   assert.equal(controller.snapshot().audioUnlocked, false);
-  assert.doesNotThrow(() => controller.notify({ eventId: "match-3:2:terminal:A:SURRENDER", cue: "defeat" }));
-  assert.deepEqual(controller.notify({ eventId: "match-3:2:terminal:A:SURRENDER", cue: "defeat" }),
+  await assert.doesNotReject(() => controller.notify({ eventId: "match-3:2:terminal:A:SURRENDER", cue: "defeat" }));
+  assert.deepEqual(await controller.notify({ eventId: "match-3:2:terminal:A:SURRENDER", cue: "defeat" }),
     { accepted: false, duplicate: true, sound: false, vibration: false });
 
   const unsupported = feedback.createBasicFeedbackController({
@@ -184,18 +382,18 @@ test("unsupported and failing presentation APIs never escape into gameplay", () 
   });
   unsupported.setSettings({ sound: true, vibration: true });
   assert.equal(unsupported.unlockFromGesture({ isTrusted: true }), false);
-  assert.deepEqual(unsupported.notify({ eventId: "match-4:1", cue: "contact-2" }),
+  assert.deepEqual(await unsupported.notify({ eventId: "match-4:1", cue: "contact-2" }),
     { accepted: true, duplicate: false, sound: false, vibration: false });
 });
 
-test("event identities and retained history are finite and fail closed", () => {
+test("event identities and retained history are finite and fail closed", async () => {
   const env = environment();
   const controller = feedback.createBasicFeedbackController(env);
   controller.setSettings({ sound: false, vibration: false });
   for (const [eventId, cue] of [
     ["", "turn"], ["contains space", "turn"], ["a".repeat(301), "turn"], ["match-5:1", "unknown"],
-  ]) assert.deepEqual(controller.notify({ eventId, cue }), { accepted: false, duplicate: false, sound: false, vibration: false });
-  for (let index = 0; index < 70; index += 1) controller.notify({ eventId: `match-5:${index}`, cue: "turn" });
+  ]) assert.deepEqual(await controller.notify({ eventId, cue }), { accepted: false, duplicate: false, sound: false, vibration: false });
+  for (let index = 0; index < 70; index += 1) await controller.notify({ eventId: `match-5:${index}`, cue: "turn" });
   const snapshot = controller.snapshot();
   assert.equal(snapshot.eventIds.length, feedback.EVENT_HISTORY_LIMIT);
   assert.equal(snapshot.eventIds[0], "match-5:6");

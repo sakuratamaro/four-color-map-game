@@ -21,7 +21,7 @@ const productHtml = fs.readFileSync(path.join(root, "standard-online-v5", "index
 const scriptStart = productHtml.indexOf('  <script src="standard-online-client.js');
 assert.ok(scriptStart > 0);
 const fixtureHtml = `${productHtml.slice(0, scriptStart)}
-  <script src="basic-feedback.js?v=20260906-1"></script>
+  <script src="basic-feedback.js?v=20260906-2"></script>
   <script>
     globalThis.__feedbackController = globalThis.FourColorStandardBasicFeedback.createBasicFeedbackController({
       storage: localStorage, documentRef: document, navigatorRef: navigator, globalRef: globalThis,
@@ -97,7 +97,7 @@ async function installPresentationFakes(context) {
     globalThis.AudioContext = FakeAudioContext;
     Object.defineProperty(navigator, "vibrate", {
       configurable: true,
-      value(pattern) { globalThis.__feedbackVibrations.push([...pattern]); return true; },
+      value(pattern) { globalThis.__feedbackVibrations.push(Array.isArray(pattern) ? [...pattern] : pattern); return true; },
     });
   });
 }
@@ -190,6 +190,85 @@ test("390px keyboard settings and public event feedback stay opt-in, finite, and
     });
     assert.deepEqual(failedAudio, { accepted: true, duplicate: false, sound: false, vibration: true });
     assert.equal(await page.locator("#feedbackSettingsTitle").textContent(), "効果音と振動");
+  } finally {
+    await context?.close().catch(() => {});
+    await browser?.close().catch(() => {});
+    await closeServer(server);
+  }
+});
+
+test("two pages atomically elect one presenter and retain simultaneous distinct event ids", { skip: !chromium || !fs.existsSync(browserPath), timeout: 120000 }, async () => {
+  const { server, url } = await startServer();
+  let browser;
+  let context;
+  try {
+    browser = await chromium.launch({ executablePath: browserPath, headless: true, timeout: 15000 });
+    context = await browser.newContext({ viewport: { width: 390, height: 844 } });
+    await installPresentationFakes(context);
+    const firstPage = await context.newPage();
+    const secondPage = await context.newPage();
+    await Promise.all([
+      firstPage.goto(url, { waitUntil: "load", timeout: 20000 }),
+      secondPage.goto(url, { waitUntil: "load", timeout: 20000 }),
+    ]);
+    await Promise.all([
+      firstPage.waitForFunction(() => Boolean(globalThis.__feedbackController)),
+      secondPage.waitForFunction(() => Boolean(globalThis.__feedbackController)),
+    ]);
+    assert.equal(await firstPage.evaluate(() => typeof navigator.locks?.request), "function");
+    assert.equal(await secondPage.evaluate(() => typeof navigator.locks?.request), "function");
+
+    for (const page of [firstPage, secondPage]) {
+      await page.evaluate(() => globalThis.__feedbackController.setSettings({ sound: true, vibration: true }));
+      await page.locator("#feedbackSettingsTitle").click();
+      await page.waitForFunction(() => globalThis.__feedbackController.snapshot().audioUnlocked === true);
+    }
+
+    async function armAtCommonBarrier(page, eventId, releaseAt) {
+      await page.evaluate(({ eventId: id, release }) => {
+        globalThis.__pendingFeedbackAtBarrier = (async () => {
+          await new Promise((resolve) => setTimeout(resolve, Math.max(0, release - Date.now())));
+          return globalThis.__feedbackController.notify({ eventId: id, cue: "turn" });
+        })();
+        return true;
+      }, { eventId, release: releaseAt });
+    }
+
+    const sameRelease = Date.now() + 750;
+    await Promise.all([
+      armAtCommonBarrier(firstPage, "match-browser-lock:same", sameRelease),
+      armAtCommonBarrier(secondPage, "match-browser-lock:same", sameRelease),
+    ]);
+    const sameResults = await Promise.all([
+      firstPage.evaluate(() => globalThis.__pendingFeedbackAtBarrier),
+      secondPage.evaluate(() => globalThis.__pendingFeedbackAtBarrier),
+    ]);
+    assert.equal(sameResults.filter((result) => result.accepted).length, 1, JSON.stringify(sameResults));
+    assert.equal(sameResults.filter((result) => result.duplicate).length, 1, JSON.stringify(sameResults));
+    assert.equal(await firstPage.evaluate(() => globalThis.__feedbackAudio.notes.length), sameResults[0].accepted ? 1 : 0);
+    assert.equal(await secondPage.evaluate(() => globalThis.__feedbackAudio.notes.length), sameResults[1].accepted ? 1 : 0);
+    assert.equal((await firstPage.evaluate(() => globalThis.__feedbackVibrations.length))
+      + (await secondPage.evaluate(() => globalThis.__feedbackVibrations.length)), 1);
+
+    const distinctRelease = Date.now() + 750;
+    await Promise.all([
+      armAtCommonBarrier(firstPage, "match-browser-lock:distinct-a", distinctRelease),
+      armAtCommonBarrier(secondPage, "match-browser-lock:distinct-b", distinctRelease),
+    ]);
+    const distinctResults = await Promise.all([
+      firstPage.evaluate(() => globalThis.__pendingFeedbackAtBarrier),
+      secondPage.evaluate(() => globalThis.__pendingFeedbackAtBarrier),
+    ]);
+    assert.ok(distinctResults.every((result) => result.accepted && !result.duplicate), JSON.stringify(distinctResults));
+
+    const freshPage = await context.newPage();
+    await freshPage.goto(url, { waitUntil: "load", timeout: 20000 });
+    await freshPage.waitForFunction(() => Boolean(globalThis.__feedbackController));
+    const replay = await freshPage.evaluate(async () => [
+      await globalThis.__feedbackController.notify({ eventId: "match-browser-lock:distinct-a", cue: "turn" }),
+      await globalThis.__feedbackController.notify({ eventId: "match-browser-lock:distinct-b", cue: "turn" }),
+    ]);
+    assert.ok(replay.every((result) => result.duplicate && !result.accepted), JSON.stringify(replay));
   } finally {
     await context?.close().catch(() => {});
     await browser?.close().catch(() => {});

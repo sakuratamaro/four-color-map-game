@@ -12,6 +12,10 @@ const $ = (id) => document.getElementById(id);
 const basicFeedback = basicFeedbackFactory?.VERSION === "standard-basic-feedback-v1"
   ? basicFeedbackFactory.createBasicFeedbackController({ storage: localStorage, documentRef: document, navigatorRef: navigator, globalRef: globalThis })
   : Object.freeze({ bindControls: () => false, handleStorageEvent: () => {}, installGestureUnlock: () => false, notify: () => ({ accepted: false }) });
+function notifyBasicFeedback(payload) {
+  try { Promise.resolve(basicFeedback.notify(payload)).catch(() => {}); }
+  catch { /* optional presentation must never affect game logic */ }
+}
 const SAVE_KEY = "fourColorMapGame.standard.v5.save";
 const PROFILE_CHOICE_KEY = "fourColorMapGame.standard.online.v5.profile";
 const STARTER_PROFILE_KEY = "fourColorMapGame.standard.online.v5.starter-profile";
@@ -741,7 +745,7 @@ function clearTurnArrivalBeat() {
 
 function startTurnArrivalBeat(eventId) {
   clearTurnArrivalBeat();
-  basicFeedback.notify({ eventId, cue: "turn" });
+  notifyBasicFeedback({ eventId, cue: "turn" });
   const generation = turnArrivalBeatGeneration;
   $("board").classList.add("turn-arrival-beat");
   $("turnGuide").classList.add("turn-arrival-beat");
@@ -1051,7 +1055,7 @@ function showContactReveal(contactColorCount, eventId) {
     4: { title: "四色包囲!!!", detail: "全色が一点へ集中", tone: "contact-pressure-4 epic" },
   };
   if (!reveals[contactColorCount]) return;
-  basicFeedback.notify({ eventId, cue: `contact-${contactColorCount}` });
+  notifyBasicFeedback({ eventId, cue: `contact-${contactColorCount}` });
   const generation = ++contactPresentationGeneration;
   clearTimeout(contactRevealTimer);
   $("contactRevealAnnouncement").textContent = "";
@@ -1147,7 +1151,7 @@ function renderTerminalResult(state) {
   show("terminalOverlay", true);
   if (shownTerminalEventKey !== eventKey) {
     shownTerminalEventKey = eventKey;
-    basicFeedback.notify({
+    notifyBasicFeedback({
       eventId: `${state.matchId}:${state.version}:terminal:${state.winner}:${state.terminalReason || "FINISHED"}`,
       cue: won ? "victory" : "defeat",
     });
