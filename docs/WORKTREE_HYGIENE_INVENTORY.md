@@ -8,8 +8,8 @@
 
 | 項目 | 現在値 | 扱い |
 | --- | --- | --- |
-| 正史 | `origin/main@b01c43e` | 比較、候補作成、公開判断の唯一の基点 |
-| clean release床 | `.codex-worktrees/standard-release-clean-20260906` | `b01c43e`起点へalpha.3を`d3cb130`として統合。公開前検証・証拠更新用に保護 |
+| 正史 | `origin/main`（公開製品floor `df56432`） | 比較、候補作成、公開判断の唯一の基点。証拠追補commitは製品floorと分離して読む |
+| clean release床 | `.codex-worktrees/standard-release-clean-20260906` | alpha.3統合`d3cb130`、起動修正`549e716`、favicon`df56432`を含む。公開後証拠更新用に保護 |
 | CI投入床 | `codex/standard-release-command` | Windows Chrome/Edge gate専用として保持 |
 | ローカル`main` | `2b9997b` | 正史より189コミット遅れ。比較基点にせず、安全な整理窓でのみfast-forward |
 | 保存checkout | `codex/standard-v5-alpha1@ac78282` | 63 status項目の混在床。その場でmerge/rebase/build/deployしない |
@@ -18,7 +18,7 @@
 
 | 対象 | 状態 | 司令塔判断 |
 | --- | --- | --- |
-| `four-color-alpha3-category-refill-cpu-shapes-20260907` | source `d627cd5`、clean | 最優先保護。候補59 pathは最新main統合`d3cb130`とblob 59/59同値。公開・rollback保全完了まで保持 |
+| `four-color-alpha3-category-refill-cpu-shapes-20260907` | source `d627cd5`、clean | 公開元として保護。候補59 pathはmain統合`d3cb130`とblob 59/59同値。alpha.3の公開後観測と物理受入まで保持 |
 | `standard-alpha3-compat-rollback-20260907@3f4548d` | clean、GitHub保全済み | alpha.3対応bundleのまま新規作成だけalpha.2へ戻す緊急用。通常mainへmergeせず、Edge障害時だけrunbook順でdeploy |
 | `cpu-portraits-p1-20260906@be779d1` | clean、main未収録 | ライセンスNO-GOで凍結。画像を公開repoへ入れない |
 | `.codex/worktrees/7843` / `salvage-a8fce7d@9e4e8ee` | clean | 旧Quick hardening等の履歴保全。保存checkout整理が終わるまで保持 |
@@ -42,7 +42,7 @@
 
 ## 収録済み・作業床削除候補
 
-次は現時点の候補であり、削除実行リストではない。alpha.3公開候補が安定した後、各床で`clean`、HEAD、branch到達可能性、main収録を再確認する。
+次は現時点の候補であり、削除実行リストではない。alpha.3は公開canaryまで安定したため、各床で`clean`、HEAD、branch到達可能性、main収録を再確認してから作業床だけを整理する。
 
 - `four-color-skill-category-audit-20260906`
 - `basic-feedback`
@@ -59,8 +59,8 @@
 
 ## 安全な整理順序
 
-1. alpha.3候補をcommitし、互換、privacy、再送、CPUバランス、client/Edge bundleを独立監査する。
-2. 合格候補だけを最新`origin/main`起点のclean release床へ統合し、CI・Edge・Pages・公開確認を完了する。
+1. alpha.3候補のcommit、互換、privacy、再送、CPUバランス、client/Edge bundle独立監査は完了済み。
+2. clean release床への統合、CI、Pages、Edge 23、公開canaryは完了済み。
 3. 保存checkoutの旧alpha.3 prototypeとの差を再確認する。
 4. 上記の収録済みworktreeごとに、非破壊確認結果を提示してから作業床だけを整理する。
 5. ローカル`main`を`origin/main`へfast-forwardする。
