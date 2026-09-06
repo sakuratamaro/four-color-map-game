@@ -4,12 +4,32 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const test = require("node:test");
+const vm = require("node:vm");
 
 const root = path.join(__dirname, "..", "standard-online-v5");
 const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
 const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
 const css = fs.readFileSync(path.join(root, "style.css"), "utf8");
 const edge = fs.readFileSync(path.join(__dirname, "..", "supabase", "functions", "standard-game-action", "index.ts"), "utf8");
+
+function loadProgressRuntime() {
+  const start = app.indexOf("function quizConfirmedProgress(");
+  const end = app.indexOf("function renderQuizOutlook(");
+  assert.ok(start >= 0 && end > start, "quiz progress helpers must remain extractable");
+  const context = vm.createContext({});
+  new vm.Script(`${app.slice(start, end)}\nglobalThis.runtime = { quizConfirmedProgress, quizRewardEstimate, quizNextRewardTarget, quizProgressCopy };`).runInContext(context);
+  return context.runtime;
+}
+
+function acknowledgedQuiz(pattern, selectedLevel = 4) {
+  const answers = [...pattern].map((_, index) => `answer-${index}`);
+  return {
+    answerMode: "per-question-v1",
+    selectedLevel,
+    answers,
+    answerResults: [...pattern].map((value, index) => ({ questionIndex: index, selectedOptionId: answers[index], isCorrect: value === "C" })),
+  };
+}
 
 test("online quiz shows a persisted per-question timer and pauses it for one short hint", () => {
   for (const id of ["quizTimer", "quizTimeBar", "quizHint", "quizHintText"]) assert.match(html, new RegExp(`id="${id}"`));
@@ -43,6 +63,45 @@ test("question catalog includes formatted higher math, geometry, solids, and Jap
   ]) assert.match(edge, new RegExp(`"${template}"`));
   for (const kind of ["sum", "integral", "derivative", "matrix-determinant"]) assert.match(app, new RegExp(`descriptor\\.kind === "${kind}"`));
   assert.match(app, /MATHML_NS/);
+});
+
+test("quadratic exposes the smaller-root instruction in source and legacy-compatible rendering", () => {
+  assert.match(edge, /"quadratic"[^\n]+小さい方の解 x = \?[^\n]+value: `[^`]+小さい方の解 x = \?`/);
+  assert.match(edge, /question\.templateId === "quadratic"\) mission = "式を整理して、小さい方の解を求めよう"/);
+  assert.match(app, /function quizVisibleMathCopy\(question, descriptor\)/);
+  assert.match(app, /question\?\.templateId !== "quadratic"/);
+  assert.match(app, /suffix: "小さい方の解 x = \?"/);
+  assert.doesNotMatch(app, /quizVisibleMathCopy[\s\S]{0,900}(?:correctOption|answerId|isCorrect)/);
+});
+
+test("quiz outlook uses only contiguous server-acknowledged answers and mirrors every reward tier as unconfirmed", () => {
+  const runtime = loadProgressRuntime();
+  assert.deepEqual({ ...runtime.quizConfirmedProgress(acknowledgedQuiz("CCWC")) }, { answered: 4, correct: 3, wrong: 1, streak: 1, bestStreak: 2 });
+  assert.equal(runtime.quizConfirmedProgress({ ...acknowledgedQuiz("CC"), answerResults: acknowledgedQuiz("C").answerResults }), null);
+  assert.equal(runtime.quizConfirmedProgress({ ...acknowledgedQuiz("CC"), pendingAnswer: { answerId: "unconfirmed" }, answers: [], answerResults: [] }).answered, 0);
+  assert.equal(runtime.quizConfirmedProgress({ answerMode: "batch-v1", answers: [], answerResults: [] }), null);
+
+  const cases = [
+    ["CCCCCCCCCC", 5, { draws: 10, ticketLevel: 5, reason: "全問正解" }],
+    ["CCCCCW", 4, { draws: 5, ticketLevel: 4, reason: "5連続正解" }],
+    ["CCWCCWCCC", 3, { draws: 3, ticketLevel: 3, reason: "累計7正解" }],
+    ["WWW", 4, { draws: 1, ticketLevel: 3, reason: "3ミス時の救済" }],
+    ["WWW", 1, { draws: 1, ticketLevel: 1, reason: "3ミス時の救済" }],
+  ];
+  for (const [pattern, level, expected] of cases) {
+    const quiz = acknowledgedQuiz(pattern, level);
+    assert.deepEqual({ ...runtime.quizRewardEstimate(runtime.quizConfirmedProgress(quiz), level) }, expected, pattern);
+    const copy = runtime.quizProgressCopy(quiz);
+    assert.match(copy.summary, /採点済み履歴/);
+    assert.match(copy.summary, /見込み/);
+    assert.match(copy.summary, /未確定/);
+    assert.doesNotMatch(`${copy.summary}${copy.target}`, /獲得|付与済み|保存済み/);
+  }
+  assert.match(runtime.quizProgressCopy(acknowledgedQuiz("", 4)).target, /5連続まであと5/);
+  assert.match(runtime.quizProgressCopy(acknowledgedQuiz("CCCCC", 4)).target, /全問正解まであと5/);
+  assert.match(runtime.quizProgressCopy(acknowledgedQuiz("WWWWWWWWW", 4)).target, /残り問題では上位条件に届きません/);
+  assert.match(runtime.quizProgressCopy(acknowledgedQuiz("WWW", 4)).summary, /Lv\.3券1枚（未確定・3ミス時の救済）/);
+  assert.match(runtime.quizProgressCopy({ answerMode: "batch-v1", answers: [], answerResults: [] }).summary, /採点後/);
 });
 
 test("word problems keep their calculation hidden until the explicit hint", () => {
@@ -88,16 +147,21 @@ test("only overflowing quiz math receives a persistent horizontal position bar",
   assert.match(css, /\.quiz-math-scroll\{[^}]*overflow-x:auto/);
   assert.match(css, /\.quiz-question \.quiz-math-scroll math\{[^}]*white-space:nowrap/);
   assert.match(css, /\.quiz-overflow-scrollbar\[hidden\]\{display:none\}/);
-  assert.match(html, /style\.css\?v=20260906-26/);
+  assert.match(html, /style\.css\?v=20260906-27/);
   assert.match(html, /standard-online-client\.js\?v=20260906-17/);
-  assert.match(html, /app\.js\?v=20260906-28/);
+  assert.match(html, /app\.js\?v=20260906-29/);
 });
 
 test("per-question feedback is server-acknowledged, retryable, brief in motion, and followed by an optional review", () => {
-  for (const id of ["quizAnswerFeedback", "quizRewardSummary", "quizGoGacha", "quizReview", "quizReviewList"]) {
+  for (const id of ["quizAnswerFeedback", "quizOutlook", "quizConfirmedProgress", "quizRewardPreview", "quizRewardTarget", "quizRewardSummary", "quizGoGacha", "quizReview", "quizReviewList"]) {
     assert.match(html, new RegExp(`id="${id}"`));
   }
   assert.match(html, /id="quizAnswerFeedback"[^>]+role="status"[^>]+aria-live="polite"[^>]+aria-atomic="true"/);
+  assert.match(html, /id="quizOutlook"[^>]+role="group"[^>]+aria-live="off"/);
+  assert.doesNotMatch(html, /id="quiz(?:ConfirmedProgress|RewardPreview|RewardTarget)"[^>]+aria-live=/);
+  assert.match(css, /\.quiz-outlook\{[^}]*height:96px[^}]*min-height:96px[^}]*overflow-wrap:anywhere/);
+  assert.match(css, /@media\(max-width:420px\)\{\.quiz-outlook\{height:112px;min-height:112px/);
+  assert.match(css, /@media\(max-width:260px\)\{\.quiz-outlook\{height:auto\}\}/);
   assert.match(app, /answerMode === "per-question-v1"/);
   assert.match(app, /pendingQuiz\.pendingAnswer = \{[\s\S]+actionId: crypto\.randomUUID\(\)/);
   assert.match(app, /await client\.answerQuiz\(/);

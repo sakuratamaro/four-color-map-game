@@ -1498,6 +1498,23 @@ function renderQuizExperience(question) {
   $("quizThinkingSteps").dataset.steps = String(steps);
 }
 
+function quizVisibleMathCopy(question, descriptor) {
+  const prompt = String(question?.prompt || "数式問題");
+  const value = String(descriptor?.value || prompt);
+  const suffix = String(descriptor?.suffix || "");
+  if (question?.templateId !== "quadratic") return { value, suffix, ariaLabel: prompt };
+  const equation = value
+    .split(/小さい(?:方の)?解/u)[0]
+    .replace(/[　\s]*x\s*=\s*\?\s*$/u, "")
+    .trim();
+  const ariaLabel = prompt.includes("小さい方の解")
+    ? prompt
+    : prompt.includes("小さい解")
+      ? prompt.replace("小さい解", "小さい方の解")
+      : `${prompt}　小さい方の解 x = ?`;
+  return { value: equation || value, suffix: "小さい方の解 x = ?", ariaLabel };
+}
+
 function svgNode(tag, attributes = {}, text = null) {
   const node = document.createElementNS(SVG_NS, tag);
   for (const [name, value] of Object.entries(attributes)) node.setAttribute(name, String(value));
@@ -1632,7 +1649,8 @@ function renderQuizQuestion(question) {
   }
   const math = mathNode("math");
   math.setAttribute("display", "block");
-  math.setAttribute("aria-label", question.prompt || "数式問題");
+  const visibleMath = quizVisibleMathCopy(question, descriptor);
+  math.setAttribute("aria-label", visibleMath.ariaLabel);
   if (descriptor.kind === "sum") {
     const lower = descriptor.index
       ? (() => { const row = mathNode("mrow"); row.append(mathNode("mi", descriptor.index), mathNode("mo", "="), mathNode("mn", descriptor.lower)); return row; })()
@@ -1685,10 +1703,10 @@ function renderQuizQuestion(question) {
     }
     math.appendChild(table);
   } else {
-    math.appendChild(mathNode("mtext", descriptor.value || question.prompt));
+    math.appendChild(mathNode("mtext", visibleMath.value));
   }
-  if (descriptor.suffix) math.append(mathNode("mspace"), mathNode("mtext", descriptor.suffix));
-  host.appendChild(scrollableQuizMath(math, question.prompt));
+  if (visibleMath.suffix) math.append(mathNode("mspace"), mathNode("mtext", visibleMath.suffix));
+  host.appendChild(scrollableQuizMath(math, visibleMath.ariaLabel));
   if (question.category) host.prepend(quizCategoryNode(question.category));
 }
 
@@ -1817,9 +1835,80 @@ function quizCorrectStreak(results = pendingQuiz?.answerResults || []) {
   return streak;
 }
 
+function quizConfirmedProgress(quiz) {
+  if (!quiz || quiz.answerMode !== "per-question-v1") return null;
+  const answers = Array.isArray(quiz.answers) ? quiz.answers : [];
+  const results = Array.isArray(quiz.answerResults) ? quiz.answerResults : [];
+  if (answers.length !== results.length || answers.length > 10) return null;
+  let correct = 0;
+  let streak = 0;
+  let bestStreak = 0;
+  for (let index = 0; index < results.length; index += 1) {
+    const result = results[index];
+    if (!result || Number(result.questionIndex) !== index || typeof result.isCorrect !== "boolean"
+        || String(result.selectedOptionId || "") !== String(answers[index] || "")) return null;
+    if (result.isCorrect) {
+      correct += 1;
+      streak += 1;
+      bestStreak = Math.max(bestStreak, streak);
+    } else streak = 0;
+  }
+  return { answered: results.length, correct, wrong: results.length - correct, streak, bestStreak };
+}
+
+function quizRewardEstimate(progress, selectedLevel) {
+  const level = Math.max(1, Math.min(5, Number(selectedLevel) || 1));
+  if (progress.correct === 10) return { draws: 10, ticketLevel: level, reason: "全問正解" };
+  if (progress.bestStreak >= 5) return { draws: 5, ticketLevel: level, reason: "5連続正解" };
+  if (progress.correct >= 7) return { draws: 3, ticketLevel: level, reason: "累計7正解" };
+  if (progress.wrong >= 3) return { draws: 1, ticketLevel: Math.max(1, level - 1), reason: "3ミス時の救済" };
+  return { draws: 1, ticketLevel: level, reason: "参加報酬" };
+}
+
+function quizNextRewardTarget(progress, estimate) {
+  if (progress.answered >= 10) return "10問回答済み｜最終結果はサーバーが確定・保存";
+  const remaining = 10 - progress.answered;
+  const candidates = [];
+  const add = (needed, draws, label) => {
+    if (draws > estimate.draws && needed > 0 && needed <= remaining) candidates.push({ needed, draws, label });
+  };
+  if (progress.wrong === 0) add(10 - progress.correct, 10, `全問正解まであと${10 - progress.correct}`);
+  if (progress.bestStreak < 5) add(5 - progress.streak, 5, `5連続まであと${5 - progress.streak}`);
+  if (progress.correct < 7) add(7 - progress.correct, 3, `累計7正解まであと${7 - progress.correct}`);
+  candidates.sort((left, right) => left.needed - right.needed || right.draws - left.draws);
+  const next = candidates[0];
+  return next
+    ? `次：${next.label}（${next.draws}枚）｜10問後にサーバーが確定・保存`
+    : "残り問題では上位条件に届きません｜10問後にサーバーが確定・保存";
+}
+
+function quizProgressCopy(quiz) {
+  const progress = quizConfirmedProgress(quiz);
+  if (!progress) return {
+    summary: "正答数・見込みは採点後に表示",
+    target: "10問後にサーバーが確定・保存",
+    progress: null,
+  };
+  const estimate = quizRewardEstimate(progress, quiz.selectedLevel);
+  const rescueNote = estimate.reason === "3ミス時の救済" ? `・${estimate.reason}` : "";
+  return {
+    summary: `採点済み履歴 ${progress.correct}/${progress.answered}正解｜見込み Lv.${estimate.ticketLevel}券${estimate.draws}枚（未確定${rescueNote}）`,
+    target: quizNextRewardTarget(progress, estimate),
+    progress,
+  };
+}
+
+function renderQuizOutlook() {
+  const copy = quizProgressCopy(pendingQuiz);
+  const [confirmed, preview = ""] = copy.summary.split("｜");
+  $("quizConfirmedProgress").textContent = confirmed;
+  $("quizRewardPreview").textContent = preview;
+  $("quizRewardTarget").textContent = copy.target;
+}
+
 function renderQuizStreak() {
   const host = $("quizStreak");
-  const streak = quizCorrectStreak();
+  const streak = quizConfirmedProgress(pendingQuiz)?.streak || 0;
   show("quizStreak", streak >= 2);
   const tier = streak >= 6 ? 3 : streak >= 4 ? 2 : streak >= 2 ? 1 : 0;
   host.dataset.tier = String(tier);
@@ -1915,6 +2004,7 @@ function renderQuiz() {
   if (lastQuizResult) renderQuizResult();
   renderQuizAnswerFeedback();
   renderQuizStreak();
+  renderQuizOutlook();
   if (!pendingQuiz) { stopQuizClock(); return; }
   const lockedByMatch = quizLockedByMatchedRoom();
   if (lockedByMatch) $("quizStatus").textContent = quizRoomClassificationPending

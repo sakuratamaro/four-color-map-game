@@ -263,7 +263,7 @@ function quizPrompt(level: number, recentTemplateIds: string[] = []): QuizGenera
     () => { const childAge = secureInt(6, 14); const gap = secureInt(18, 34); const years = secureInt(3, 12); return q("age-story", "年齢算", `子は${childAge}歳、親は子より${gap}歳上。${years}年後の親は何歳？`, childAge + gap + years, "年齢算：年齢差は何年たっても変わらない", 52, { kind: "story" }); },
   ];
   else if (level === 4) catalog = [
-    () => { const small = secureInt(1, 8); const large = secureInt(small + 1, 13); return q("quadratic", "二次方程式", `x² − ${small + large}x + ${small * large} = 0　小さい解は？`, small, "x² − (α+β)x + αβ = (x−α)(x−β)", 58, { kind: "expression", value: `x² − ${small + large}x + ${small * large} = 0　　x = ?` }); },
+    () => { const small = secureInt(1, 8); const large = secureInt(small + 1, 13); return q("quadratic", "二次方程式", `x² − ${small + large}x + ${small * large} = 0　小さい方の解 x = ?`, small, "x² − (α+β)x + αβ = (x−α)(x−β)", 58, { kind: "expression", value: `x² − ${small + large}x + ${small * large} = 0　　小さい方の解 x = ?` }); },
     () => { const total = secureInt(6, 11); const selected = secureInt(2, Math.min(4, total - 2)); return q("combination", "組合せ", `${total}個から${selected}個を選ぶ組合せは？`, combination(total, selected), "組合せ：ₙCᵣ = n! ÷ (r!(n−r)!)", 58, { kind: "combination", total, selected, suffix: "= ?" }); },
     () => { const first = secureInt(1, 12); const difference = secureInt(2, 8); const position = secureInt(6, 12); return q("sequence", "等差数列", `初項${first}、公差${difference}の等差数列の第${position}項は？`, first + (position - 1) * difference, "等差数列：aₙ = a₁ + (n−1)d", 58, { kind: "sequence", first, difference, position, suffix: "= ?" }); },
     () => { const [a, b, c, d] = Array.from({ length: 4 }, () => secureInt(-6, 8)); return q("determinant", "行列式", `[[${a},${b}],[${c},${d}]] の行列式は？`, a * d - b * c, "2次の行列式：det A = ad − bc", 58, { kind: "matrix-determinant", rows: [[a, b], [c, d]], suffix: "= ?" }); },
@@ -314,7 +314,8 @@ function quizExperienceMeta(level: number, question: QuizGenerated): JsonObject 
     ? "2つの行列式を求め、その積を計算しよう"
     : "行と列を組み合わせ、指定された成分を求めよう";
   else if (kind === "system") mission = "一方の文字を消去して、x を求めよう";
-  else if (["linear", "quadratic"].includes(question.templateId)) mission = "式を整理して、x を求めよう";
+  else if (question.templateId === "quadratic") mission = "式を整理して、小さい方の解を求めよう";
+  else if (question.templateId === "linear") mission = "式を整理して、x を求めよう";
   else if (question.templateId === "missing") mission = "逆算して、□に入る数を求めよう";
 
   const twoStepTemplates = new Set([

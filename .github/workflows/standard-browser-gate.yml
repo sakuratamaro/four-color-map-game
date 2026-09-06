@@ -92,6 +92,7 @@ jobs:
           tests/standard-setup-revision-guard.test.cjs
           tests/standard-match.test.cjs
           tests/standard-online-client.test.cjs
+          tests/standard-online-quiz-generator-runtime.test.cjs
           tests/standard-online-quiz-polish.test.cjs
           tests/standard-online-random-info-ui.test.cjs
           tests/standard-online-skill-intents.test.cjs

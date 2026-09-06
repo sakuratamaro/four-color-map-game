@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <title>Four Color Map Game v5.0 Standard Online</title>
   <link rel="stylesheet" href="../online-v5/style.css">
-  <link rel="stylesheet" href="style.css?v=20260906-26">
+  <link rel="stylesheet" href="style.css?v=20260906-27">
   <link rel="stylesheet" href="debug-mode.css">
   <link rel="stylesheet" href="progression.css">
 </head>
@@ -83,6 +83,10 @@
       </div>
       <div id="quizPlay" class="quiz-play hidden">
         <div class="row between quiz-meta"><strong id="quizProgress">1 / 10</strong><span id="quizLevelBadge" class="badge"></span><strong id="quizStreak" class="quiz-streak hidden" data-tier="0"></strong><strong id="quizTimer" class="quiz-timer" aria-live="polite">残り --秒</strong></div>
+        <div id="quizOutlook" class="quiz-outlook" role="group" aria-label="回答と報酬の途中経過" aria-live="off">
+          <div class="quiz-outlook-row"><strong id="quizConfirmedProgress">採点済み履歴 0/0正解</strong><span id="quizRewardPreview">見込み Lv.1券1枚（未確定）</span></div>
+          <p id="quizRewardTarget">次：5連続まであと5（5枚）｜10問後にサーバーが確定・保存</p>
+        </div>
         <p id="quizAnswerFeedback" class="quiz-answer-feedback hidden" role="status" aria-live="polite" aria-atomic="true"></p>
         <div class="quiz-time" role="progressbar" aria-label="この問題の残り時間" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><div id="quizTimeBar"></div></div>
         <div class="quiz-experience" aria-label="この問題のミッション">
@@ -411,6 +415,6 @@
   <script src="standard-online-client.js?v=20260906-17"></script>
   <script src="standard-online-sync.js"></script>
   <script src="standard-online-skill-intents.js?v=20260906-17"></script>
-  <script type="module" src="app.js?v=20260906-28"></script>
+  <script type="module" src="app.js?v=20260906-29"></script>
 </body>
 </html>

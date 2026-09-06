@@ -393,19 +393,25 @@ async function installMock(context, mode) {
             { templateId: "legacy-sum", category: "数列の和", prompt: "k=1から5までの和は？", math: { kind: "sum", lower: "k = 1", upper: 5, body: "k", suffix: "= ?" } },
             { templateId: "cone-volume", category: "体積", prompt: "半径3、高さ9の円すいの体積は何π？", math: { kind: "geometry", shape: "cone", dimensions: { radius: 3, height: 9 } } },
           ];
-          const sourceQuestions = initialMode === "quizPolish" ? polishQuestions : Array.from({ length: 10 }, (_, index) => ({
+          const quadraticQuestions = [
+            { templateId: "quadratic", category: "二次方程式", prompt: "x² − 5x + 6 = 0　小さい解は？", math: { kind: "expression", value: "x² − 5x + 6 = 0　　x = ?" } },
+            ...Array.from({ length: 9 }, (_, index) => ({ templateId: "add", category: "たし算", prompt: `${index + 2} + 1 = ?`, math: { kind: "expression", value: `${index + 2} + 1 = ?` } })),
+          ];
+          const sourceQuestions = initialMode === "quizPolish" ? polishQuestions : initialMode === "quizQuadratic" ? quadraticQuestions : Array.from({ length: 10 }, (_, index) => ({
             templateId: "add", category: "たし算", prompt: `${index + 1} + 1 = ?`, math: { kind: "expression", value: `${index + 1} + 1 = ?` },
           }));
           const questions = sourceQuestions.map((question, index) => ({
             number: index + 1,
             ...question,
-            mission: question.math?.kind === "story"
-              ? `条件を整理して、${question.category}の答えを求めよう`
-              : question.math?.kind === "geometry"
-                ? `図の寸法から${question.category}を求めよう`
-                : "式を読み、「?」に入る数を求めよう",
+            mission: question.templateId === "quadratic"
+              ? "式を整理して、小さい方の解を求めよう"
+              : question.math?.kind === "story"
+                ? `条件を整理して、${question.category}の答えを求めよう`
+                : question.math?.kind === "geometry"
+                  ? `図の寸法から${question.category}を求めよう`
+                  : "式を読み、「?」に入る数を求めよう",
             formatLabel: question.math?.kind === "story" ? "文章を整理" : question.math?.kind === "geometry" ? "図を読む" : "ひらめき計算",
-            thinkingSteps: initialMode === "quizPolish" ? 3 : 1,
+            thinkingSteps: initialMode === "quizPolish" ? 3 : question.templateId === "quadratic" ? 2 : 1,
             hintOptions: ["たし算：同じ位どうしを足す", "円の面積：S = πr²", "2次の行列式：det A = ad − bc"],
             hintDurationMs: 2500,
             timeLimitSeconds: initialMode === "handoffStart" ? 1 : 10,
@@ -1826,6 +1832,71 @@ test("per-question quiz feedback commits before advancing, retries the same answ
     assert.match(await page.locator("#quizReviewList .quiz-review-item").nth(1).textContent(), /あなた：4.*正解：3.*×/);
     assert.equal(await page.evaluate(() => localStorage.getItem("fourColorMapGame.standard.online.v5.pending-quiz")), null);
   });
+});
+
+test("quadratic names the smaller root visibly and restored progress counts only acknowledged answers", { timeout: 130000 }, async () => {
+  await withPage("quizQuadratic", async (page) => {
+    await page.getByRole("button", { name: "クイズ・ガチャ" }).click();
+    await page.locator("#quizLevel").selectOption("4");
+    await page.getByRole("button", { name: "10問チャレンジ開始" }).click();
+    await page.locator("#quizOptions button").first().waitFor();
+    const math = page.locator("#quizQuestion math");
+    assert.match((await math.textContent()).replace(/\s+/g, ""), /x²−5x\+6=0小さい方の解x=\?/);
+    assert.match(await math.getAttribute("aria-label"), /小さい方の解/);
+    assert.match(await page.locator("#quizQuestion .quiz-math-scroll").getAttribute("aria-label"), /小さい方の解/);
+    assert.equal(await page.locator("#quizMission").textContent(), "式を整理して、小さい方の解を求めよう");
+    assert.deepEqual((await page.locator("#quizOptions button").allTextContents()).slice(0, 2), ["2", "3"]);
+    assert.match(await page.locator("#quizConfirmedProgress").textContent(), /0\/0正解/);
+    assert.match(await page.locator("#quizRewardPreview").textContent(), /見込み.*未確定/);
+    assert.doesNotMatch(await page.locator("#quizOutlook").textContent(), /獲得/);
+    const readOutlookLayout = () => page.locator("#quizOutlook").evaluate((node) => ({
+      height: node.getBoundingClientRect().height,
+      clientHeight: node.clientHeight,
+      scrollHeight: node.scrollHeight,
+      childBottom: Math.max(...[...node.children].map((child) => child.getBoundingClientRect().bottom)),
+      bottom: node.getBoundingClientRect().bottom,
+    }));
+    const outlookLayouts = [await readOutlookLayout()];
+
+    await page.evaluate(() => { globalThis.__standardOnlineRuntime.failNextQuizAnswer = true; });
+    await page.locator("#quizOptions button").nth(1).click();
+    await page.getByText("回答を保存できませんでした。同じ回答で安全に再送できます。", { exact: true }).waitFor();
+    assert.match(await page.locator("#quizConfirmedProgress").textContent(), /0\/0正解/);
+    await page.getByRole("button", { name: "同じ回答を再送" }).click();
+    await page.getByText(/前問 Q1：× おしい　正解：2/).waitFor();
+    assert.match(await page.locator("#quizConfirmedProgress").textContent(), /0\/1正解/);
+    outlookLayouts.push(await readOutlookLayout());
+
+    await page.reload();
+    await page.getByRole("button", { name: "クイズ・ガチャ" }).click();
+    await page.locator("#quizOptions button").first().waitFor();
+    assert.match(await page.locator("#quizConfirmedProgress").textContent(), /0\/1正解/);
+    assert.match(await page.locator("#quizRewardTarget").textContent(), /10問後にサーバーが確定・保存/);
+    outlookLayouts.push(await readOutlookLayout());
+    for (let answered = 2; answered <= 9; answered += 1) {
+      await page.locator("#quizOptions button").nth(1).click();
+      await page.getByText(`${answered + 1} / 10`, { exact: true }).waitFor();
+      outlookLayouts.push(await readOutlookLayout());
+      if (answered === 3) assert.match(await page.locator("#quizRewardPreview").textContent(), /Lv\.3券1枚.*3ミス時の救済/);
+      if (answered === 9) assert.match(await page.locator("#quizRewardTarget").textContent(), /残り問題では上位条件に届きません/);
+    }
+    const layout = await page.evaluate(() => {
+      const outlook = document.querySelector("#quizOutlook").getBoundingClientRect();
+      const options = document.querySelector("#quizOptions").getBoundingClientRect();
+      const hint = document.querySelector("#quizHint").getBoundingClientRect();
+      return { outlook: { top: outlook.top, bottom: outlook.bottom, height: outlook.height }, options: { top: options.top }, hint: { height: hint.height }, overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth };
+    });
+    const outlookHeights = outlookLayouts.map(({ height }) => height);
+    assert.ok(Math.max(...outlookHeights) - Math.min(...outlookHeights) <= 1, JSON.stringify(outlookLayouts));
+    for (const outlookLayout of outlookLayouts) {
+      assert.ok(outlookLayout.scrollHeight <= outlookLayout.clientHeight + 1, JSON.stringify(outlookLayout));
+      assert.ok(outlookLayout.childBottom <= outlookLayout.bottom + 1, JSON.stringify(outlookLayout));
+    }
+    assert.ok(layout.outlook.height >= 112, JSON.stringify(layout));
+    assert.ok(layout.options.top >= layout.outlook.bottom, JSON.stringify(layout));
+    assert.ok(layout.hint.height >= 44, JSON.stringify(layout));
+    assert.equal(layout.overflow, false, JSON.stringify(layout));
+  }, { viewport: { width: 390, height: 844 } });
 });
 
 test("actual Edge presents prompt-only stories, dimension diagrams, structured math, and overflow-only scrolling at 390px", { timeout: 150000 }, async () => {

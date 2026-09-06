@@ -34,7 +34,7 @@ function loadQuizRuntime(secureInt) {
     secureInt,
     shuffled: (values) => [...values],
   });
-  new vm.Script(`${source}\nglobalThis.__quizRuntime = { quizPrompt, createQuizChallenge };`, { filename: "standard-game-action.quiz-runtime.js" }).runInContext(context);
+  new vm.Script(`${source}\nglobalThis.__quizRuntime = { quizPrompt, quizExperienceMeta, createQuizChallenge };`, { filename: "standard-game-action.quiz-runtime.js" }).runInContext(context);
   return context.__quizRuntime;
 }
 
@@ -96,6 +96,16 @@ test("three sigma generators and the sequence generator recompute to their answe
   const { first, difference, position } = sequence.math;
   assert.equal(sequence.answer, first + (position - 1) * difference);
   assert.equal(sequence.math.kind, "sequence");
+});
+
+test("quadratic asks visibly and semantically for the smaller root", () => {
+  const runtime = loadQuizRuntime((minimum, maximum) => minimum === 0 && maximum === 9 ? 0 : minimum);
+  const question = JSON.parse(JSON.stringify(runtime.quizPrompt(4)));
+  assert.equal(question.templateId, "quadratic");
+  assert.equal(question.answer, 1);
+  assert.match(question.prompt, /小さい方の解 x = \?/);
+  assert.match(question.math.value, /小さい方の解 x = \?/);
+  assert.equal(runtime.quizExperienceMeta(4, question).mission, "式を整理して、小さい方の解を求めよう");
 });
 
 test("ten-question challenge keeps server answers separate from public questions", () => {
