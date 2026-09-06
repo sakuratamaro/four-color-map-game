@@ -18,7 +18,7 @@
 | Shift盤面選択 | PUBLIC_VERIFIED | 製品`ad49a41`、main `4b2ea3d`、公開HEAD `ddfb0a7`。select/数値入力を廃止し、行・列→盤面tap/keyboard、自然語方向、取消無送信、再送identity、no-oracleを維持。Windows `34041850645`はChrome/Edge成功、独立各3/3・skip 0。Pages `34043472457`成功、公開asset SHA一致、390px overflow 0、console 0、preflight `ok:true` | 物理端末でShift操作感を最終受入 |
 | 次期UX候補のローカル検査 | VERIFIED | `codex/standard-release-command@1673ff8`。profile安定化、初回対戦導線、Quick Half Shift、status正規化、Realtime/poll復旧を含む非browser製品試験91ファイル522/522。browser workflow/harness静的11/11合格 | Pages反映後のpreflightと二端末受入 |
 | 初回導線・接続表示の次期候補 | VERIFIED | `9d42784`。初回starter作成＋profile同期を一操作化し、全5タブで単一接続statusを常時表示。空名write 0、room外offline復帰、390px下部nav非干渉を契約化。静的39/39、非browser 89ファイル513/513、Windows Chrome/Edge各18/18合格 | 物理二端末受入 |
-| Windows実browser CI | VERIFIED | alpha.3候補`549e716`のrun `34048695008`はChrome成功、Edgeの既存feedback複数タブ競合が初回のみ失敗し、同一commitの再実行`101529617681`が成功。favicon追補`df56432`のrun `34050740206`はChrome `101533776131`成功。Edge初回は製品assertion後のbrowser-close timeout 2件だけで77/79、再実行`101535815013`が79/79成功 | 公開URLで同じ主要導線を二端末受入 |
+| Windows実browser CI | VERIFIED | alpha.3候補`549e716`のrun `34048695008`はChrome成功、Edgeの既存feedback複数タブ競合が初回のみ失敗し、同一commitの再実行`101529617681`が成功。favicon追補後の終了処理はBrowserServer所有へ強化。追随漏れの静的契約だけが停止させたrun `34053352498`を保持し、修正`23f56af`のrun `34053724009`はChrome `101541739097`／Edge `101541739242`、各79/79・skip 0、CPU契約457/457、helper 4/4で成功 | 公開URLで同じ主要導線を二端末受入 |
 | 現行公開Pages | PUBLIC_VERIFIED | 公開HEAD `df56432`、Pages run `34051979716`成功。公開URLでapp v40、skill-intents v18、local bundle v4を含む全主要assetがHTTP 200・監査SHA一致。390px Edgeはoverflow 0、keyboard Enterで対戦tab選択。四色faviconで付随404を解消しconsole warning/error 0、candidate preflight `ok:true` | 別々の二端末でカテゴリ制限、Shift、音量・振動感を最終受入 |
 | 初回公開前DB境界（履歴） | VERIFIED | 旧snapshotは匿名権限拒否。snapshot v2と野良募集が未存在だった初回baseline | 現行境界は適用migrationとlive canaryを参照 |
 | migration 006–013静的検査 | VERIFIED | migration別security/transaction testsと読み取り専用44項目SQL | 実DBで全行`ok=true` |
@@ -59,6 +59,7 @@
 - `549e716`をforceなしでmainへfast-forwardし、Pages run `34049734628`を成功させてからEdge deployment 23へ2ファイルを同時反映した。配備ZIPのindexはLF正規化後、bundleはバイト単位で候補と一致。基本7/7、COLOR 105/105、LAB 23/23、実時間90秒/180秒を含むCPU 108/108、Runbook A 44/44、公開preflight `ok:true`、更新前後のactive alpha.3 room 0を確認した。
 - 公開後追補では通常CPU roomと通常6枚setupだけを使い、test-only状態注入なしで`disruptRandomOne`をaccepted→同じA WORK窓で`disruptChoiceOne`を送った。Edge 23は`SKILL_CATEGORY_ALREADY_USED_IN_WINDOW`で拒否し、再initialize後もversion、public/private projection、残る選択カードが完全不変だった。privacy allowlist、旧宣言退役、有限CPU進行、投了cleanupを含め263/263合格し、識別子は記録していない。
 - 公開390px Edgeは横overflow 0、Enterで対戦tabへ移動、主要asset HTTP 200・SHA一致。ブラウザが要求するsite faviconだけが404だったため、四色の埋め込みSVGを`df56432`で追加し、静的50/50とWindows browser gate `34050740206`を通してPages `34051979716`へ反映した。初回Edgeは製品assertion後のbrowser-close timeout 2件だけで77/79、同一commit再実行`101535815013`は79/79成功。公開再確認はfavicon有効、HTTP 4xx/5xx 0、console warning/error 0。ゲーム・DB・Edge挙動は変更していない。
+- 終了処理timeoutの再発防止は`ab3b83a`で公式BrowserServerを所有し、正常closeの20秒timeoutだけ公式`kill()`へ退避、kill失敗は基盤FAIL、製品assertion失敗との同時発生はAggregateErrorで両方保持する。helper unitは4分岐を固定した。初回run `34053352498`は旧`chromium.launch()`／直接`browser.close()`を要求する静的契約2件だけが両jobを停止したため、`23f56af`で`launchServer`／`connect`／helper委譲へ追随。run `34053724009`はChrome/EdgeともCPU契約457/457、実browser 79/79・skip 0、helper 4/4で成功した。今回は通常closeで完走し、timeout→kill fallback発火は0だった。
 
 ## 2026-09-06 基本効果音・スマホ振動公開
 

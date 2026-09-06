@@ -77,7 +77,7 @@
 | HOLD | 匿名＋任意Google identity link | 認証＋DB＋司令塔 | PHASE0_ONLY | 現在はSDK/RLS/Realtime/redirect/CSP/idempotency/token/log/admin境界のread-only監査だけ。provider有効化、callback、SDK、DB変更は別の公開便に分離する |
 | P1 | 未コミット／孤立作業の回収 | 構成管理 | COMPLETED | 29床を3床へ集約。丸ごと統合候補は0。Quick回帰試験だけを回収し、残るroot dirtyは救出済み・凍結管理 |
 | P2 | GitHub Pages actionのNode.js警告解消 | 技術品質 | BACKLOG | 公開結果を変えず、Node.js 20廃止予定warningを消す |
-| P1 | Edge browser gate終了処理の安定化 | 技術品質＋CI | LOCAL_VERIFIED | `browser.close()`猶予延長だけで再発したため、公式BrowserServerを所有し、正常close timeoutだけkillへ切替、kill失敗は基盤FAILにする。helper unit 4/4、従来失敗2ケースの実Edge 2/2。次はWindows Chrome/Edge全79件 |
+| P1 | Edge browser gate終了処理の安定化 | 技術品質＋CI | MERGED | 実装`ab3b83a`＋静的契約修正`23f56af`。公式BrowserServerを所有し、正常close timeoutだけkillへ切替、kill失敗は基盤FAILにする。Windows run `34053724009`はChrome `101541739097`／Edge `101541739242`成功、両browser 79/79・skip 0、CPU契約457/457、helper 4/4。今回は通常closeで完走しfallback発火0 |
 
 ## User Decision Ledger
 

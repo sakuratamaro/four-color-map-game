@@ -9,7 +9,7 @@
 | 項目 | 現在値 | 扱い |
 | --- | --- | --- |
 | 正史 | `origin/main`（公開製品floor `df56432`） | 比較、候補作成、公開判断の唯一の基点。証拠追補commitは製品floorと分離して読む |
-| clean release床 | `.codex-worktrees/standard-release-clean-20260906` | alpha.3統合`d3cb130`、起動修正`549e716`、favicon`df56432`、検証強化`ab3b83a`を含む。公開後証拠更新用に保護 |
+| clean release床 | `.codex-worktrees/standard-release-clean-20260906` | alpha.3統合`d3cb130`、起動修正`549e716`、favicon`df56432`、検証強化`ab3b83a`＋`23f56af`を含む。公開後証拠更新用に保護 |
 | CI投入床 | `codex/standard-release-command` | Windows Chrome/Edge gate専用として保持 |
 | ローカル`main` | `2b9997b` | 正史より197コミット遅れ。比較基点にせず、安全な整理窓でのみfast-forward |
 | 保存checkout | `codex/standard-v5-alpha1@ac78282` | 63 status項目の混在床。その場でmerge/rebase/build/deployしない |
