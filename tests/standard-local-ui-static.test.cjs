@@ -20,6 +20,7 @@ const noColorBrowserGate = fs.readFileSync(path.join(root, "tests", "standard-no
 const settlementInflightBrowserGate = fs.readFileSync(path.join(root, "tests", "standard-settlement-inflight-browser.test.cjs"), "utf8");
 const responsiveBrowserGate = fs.readFileSync(path.join(root, "tests", "standard-responsive-browser.test.cjs"), "utf8");
 const contactPressureBrowserGate = fs.readFileSync(path.join(root, "tests", "standard-contact-pressure-browser.test.cjs"), "utf8");
+const bundleBuilder = fs.readFileSync(path.join(root, "scripts", "build-standard-v5-bundle.mjs"), "utf8");
 
 test("local alpha has a bundled offline entry point", () => {
   assert.match(html, /app\.bundle\.js\?v=20260907-4/);
@@ -31,12 +32,33 @@ test("local alpha has a bundled offline entry point", () => {
   assert.doesNotMatch(`${html}\n${app}\n${bundle}`, /https?:\/\/|supabase|fetch\s*\(/i);
   assert.ok(bundle.length > app.length);
   assert.match(bundle, /"standard\/standard-region-geometry\.js":function/);
+  assert.match(bundle, /"standard\/standard-cpu\.js":function/);
 });
 
 test("local alpha.3 cache marker publishes the rebuilt category-window bundle", () => {
   assert.match(html, /app\.bundle\.js\?v=20260907-4/);
   assert.match(bundle, /SKILL_CATEGORY_ALREADY_USED_IN_WINDOW/);
   assert.match(bundle, /colorBonusRefill/);
+});
+
+test("local bundle builder includes every relative JavaScript dependency", () => {
+  const moduleIds = [...bundleBuilder.matchAll(/^\s+"([^"]+\.js)",$/gm)].map((match) => match[1]);
+  const included = new Set(moduleIds);
+  for (const id of moduleIds) {
+    const source = fs.readFileSync(path.join(root, id), "utf8");
+    for (const match of source.matchAll(/require\("(\.[^"]+\.js)"\)/g)) {
+      const dependency = path.posix.normalize(path.posix.join(path.posix.dirname(id), match[1]));
+      assert.ok(included.has(dependency), `${id} requires missing bundle module ${dependency}`);
+    }
+  }
+});
+
+test("local lifecycle browser gates honor the requested Chrome or Edge executable", () => {
+  for (const gate of [colorSealBrowserGate, noColorBrowserGate]) {
+    assert.match(gate, /const BROWSER_PATHS = Object\.freeze\(\{[\s\S]+edge:[\s\S]+chrome:/);
+    assert.match(gate, /const browserName = process\.env\.STANDARD_BROWSER \|\| "edge"/);
+    assert.match(gate, /BROWSER_PATHS\[browserName\][\s\S]+chromium\?\.executablePath\(\)/);
+  }
 });
 
 test("local shift targets are selected on the board with keyboard support and natural directions", () => {

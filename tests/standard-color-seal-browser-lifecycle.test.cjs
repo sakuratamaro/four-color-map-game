@@ -23,13 +23,18 @@ const baseUrl = `http://127.0.0.1:${port}`;
 const saveKey = "fourColorMapGame.standard.v5.save";
 const colorNames = Object.freeze({ red: "赤", blue: "青", yellow: "黄", green: "緑" });
 const secretSignatures = ["curseBacklash", "temporaryColors", "basicPalette", "bonusColor", "bonusUsesRemaining", "privateEffects", "hands"];
+const BROWSER_PATHS = Object.freeze({
+  edge: "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
+  chrome: "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+});
+const browserName = process.env.STANDARD_BROWSER || "edge";
+if (!Object.hasOwn(BROWSER_PATHS, browserName)) throw new Error("STANDARD_BROWSER must be edge or chrome");
 
 function installedBrowserExecutable() {
   const candidates = [
     process.env.PLAYWRIGHT_BROWSER_EXECUTABLE,
+    BROWSER_PATHS[browserName],
     chromium?.executablePath(),
-    "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
-    "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
   ].filter(Boolean);
   return candidates.find((candidate) => fs.existsSync(candidate));
 }

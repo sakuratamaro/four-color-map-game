@@ -11,6 +11,7 @@ const ids = [
   "standard/standard-skill-handlers.js",
   "standard/standard-skill-dispatcher.js",
   "standard/standard-region-geometry.js",
+  "standard/standard-cpu.js",
   "standard/standard-match.js",
   "standard/standard-save.js",
   "standard/standard-root-transaction.js",

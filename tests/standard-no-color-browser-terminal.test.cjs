@@ -23,14 +23,19 @@ const instrumentedBundle = productBundle.replace(sessionNeedle, `${sessionNeedle
 const port = 48806;
 const baseUrl = `http://127.0.0.1:${port}`;
 const saveKey = "fourColorMapGame.standard.v5.save";
+const BROWSER_PATHS = Object.freeze({
+  edge: "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
+  chrome: "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+});
+const browserName = process.env.STANDARD_BROWSER || "edge";
+if (!Object.hasOwn(BROWSER_PATHS, browserName)) throw new Error("STANDARD_BROWSER must be edge or chrome");
 
 assert.notEqual(instrumentedBundle, productBundle, "test harness session hook must be injected only into the served test response");
 
 function installedBrowserExecutable() {
   return [
     process.env.PLAYWRIGHT_BROWSER_EXECUTABLE,
-    "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
-    "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
+    BROWSER_PATHS[browserName],
     chromium?.executablePath(),
   ].filter(Boolean).find((candidate) => fs.existsSync(candidate));
 }

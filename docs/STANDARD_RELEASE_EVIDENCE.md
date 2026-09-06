@@ -52,8 +52,9 @@
 
 - source `d627cd5`は同一seatの連続action-control windowで同じusage categoryを1回に制限する。accepted miss/no-opはカードとinventoryを減らさずcategory枠だけを使い、reject、cancel、persistence failureはstate、RNG、receipt、枠を変えない。alpha.1/2はwindowなし・同カテゴリ連続可を維持する。
 - `colorBonusRefill`は+2・上限4だが、通常19枚catalog、6枚loadout、gachaには追加せず、実験貸与または既存fixed CPU loadoutで実際にhandへ入った場合だけ使う。Hard CPUの補充charge 2とshape skill charge 100もhandにあるskillだけへ適用し、category制限を迂回しない。
-- `b01c43e`起点のclean release床へ`d3cb130`として適用した。候補59 pathはsourceとblob 59/59同値。Local bundle SHA-256は`968C4C1FBBD7566CDEE17CD0D3F6CDCE186FF6661D069656EB5D1A89F47A3C12`、Edge bundleは`D6810705473E8761D24BA4871F1A45D407B636B4A88596DD8951536D018897E5`で、二巡再生成後も差分なし。
+- `b01c43e`起点のclean release床へ`d3cb130`として適用した。候補59 pathはsourceとblob 59/59同値。起動修正後のLocal bundle SHA-256は`697AA71D8962323025B0D6179D455684C444EB56876711376DED3B497FBB1B74`、Edge bundleは`D6810705473E8761D24BA4871F1A45D407B636B4A88596DD8951536D018897E5`で、二巡再生成後も差分なし。
 - source側の非Playwrightは751/751。独立監査はfocused 232/232、Chrome/Edge全browser各77/77・skip 0、カテゴリ専用390pxケース両browser合格、bundle source包含Local 26/26・Edge 10/10、メモリ内再生成byte一致を確認し、P0/P1なし。P2はlive環境でのカテゴリ使用→同カテゴリrejectが未実施である点だけ。正式製品試験、Windows CI、Pages/Edge/liveはまだ実行中または`NOT_RUN`であり、公開済みとは扱わない。
+- 初回Windows候補run `34047107560`はChrome job成功、Edge jobはlocal lifecycle 27件が開始後表示待ちで失敗し15分上限で中止した。原因は`standard-match-start.js`が追加した`standard-cpu.js`をLocal bundle builderへ収載しておらず、ブラウザ起動時に`Unknown module: standard/standard-cpu.js`で停止したこと。builderへ唯一不足していた依存を追加し、全相対JS依存の閉包検査を固定した。あわせてlocal lifecycle 2本が`STANDARD_BROWSER=edge`でもChromeを優先し得た配線を固定allowlistへ修正した。修正後の実Edge local lifecycleは79/79・skip 0、静的契約は33/33・skip 0。失敗runは証拠として保持し、次runのChrome/Edge両job成功まで公開へ進めない。
 - Edgeの新規engine versionはrequest body由来でなく内部定数からだけ指定する。同じalpha.3対応bundleを保持して新規作成だけalpha.2へ戻す互換rollbackを`codex/standard-alpha3-compat-rollback-20260907@3f4548d`としてGitHubへ保全した。Edge handler、alpha.2作成、alpha.3継続、bundle無差分は63/63・skip 0。active alpha.3 roomが0になる前に旧deployment 22へ単純復帰しない。SQL、migration、RPC、secret変更はない。
 
 ## 2026-09-06 基本効果音・スマホ振動公開

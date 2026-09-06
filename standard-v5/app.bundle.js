@@ -1931,6 +1931,461 @@ function createRegionGeometryContext(state) {
 module.exports = { createRegionGeometryContext };
 
 },
+"standard/standard-cpu.js":function(require,module,exports){
+"use strict";
+
+const { COLORS, adjacentRegionIds, legalRecolorCandidates } = require("./standard-engine.js");
+const { STANDARD_SKILLS, V49_SKILL_IDS } = require("./standard-skill-registry.js");
+const { createRegionGeometryContext } = require("./standard-region-geometry.js");
+const {
+  cornerBloomPlan,
+  microBloomCandidates,
+  planHalfShift,
+  planTripleShift,
+} = require("./standard-skill-handlers.js");
+
+const LEVELS = Object.freeze(["easy", "normal", "hard"]);
+const HARD_CPU_REPEATABLE_AREA_SKILLS = Object.freeze(["areaCornerBloom", "areaHalfShift", "areaTripleShift"]);
+const HARD_CPU_REPEATABLE_SKILL_CHARGE = 100;
+const HARD_CPU_FINITE_SKILL_CHARGES = Object.freeze({ colorBonusRefill: 2 });
+const POLICY_VERSIONS = Object.freeze({
+  easy: "standard-easy-v1-random-safe",
+  normal: "standard-normal-v1-contact-safe",
+  hard: "standard-hard-v2-color-pressure-safe",
+});
+
+function clone(value) {
+  return JSON.parse(JSON.stringify(value));
+}
+
+function applyHardCpuSkillCharges(state, seat) {
+  if (!state?.hands?.[seat] || !["A", "B"].includes(seat)) throw new TypeError("INVALID_CPU_SEAT");
+  for (const skill of HARD_CPU_REPEATABLE_AREA_SKILLS) {
+    if ((state.hands[seat][skill] || 0) > 0) state.hands[seat][skill] = HARD_CPU_REPEATABLE_SKILL_CHARGE;
+  }
+  for (const [skill, count] of Object.entries(HARD_CPU_FINITE_SKILL_CHARGES)) {
+    if ((state.hands[seat][skill] || 0) > 0) state.hands[seat][skill] = count;
+  }
+  return state;
+}
+
+function deepFreeze(value) {
+  if (!value || typeof value !== "object" || Object.isFrozen(value)) return value;
+  for (const entry of Object.values(value)) deepFreeze(entry);
+  return Object.freeze(value);
+}
+
+function makeObservation({ publicState, ownPrivateState, difficulty = "normal" }) {
+  if (!LEVELS.includes(difficulty)) throw new TypeError("INVALID_CPU_DIFFICULTY");
+  if (!publicState || !ownPrivateState || publicState.active !== ownPrivateState.seat) throw new TypeError("INVALID_CPU_OBSERVATION");
+  return deepFreeze({
+    difficulty,
+    policyVersion: POLICY_VERSIONS[difficulty],
+    publicState: clone(publicState),
+    ownPrivateState: clone(ownPrivateState),
+  });
+}
+
+function neighbors(macro, width) {
+  const col = macro % width;
+  const result = [macro - width, macro + width];
+  if (col > 0) result.push(macro - 1);
+  if (col < width - 1) result.push(macro + 1);
+  return result;
+}
+
+function playableMacros(bounds) {
+  const result = [];
+  for (let row = bounds.minRow; row <= bounds.maxRow; row += 1) {
+    for (let col = bounds.minCol; col <= bounds.maxCol; col += 1) result.push(row * bounds.macroWidth + col);
+  }
+  return result;
+}
+
+function enumerateRegionActions(publicState, limit = 64, requiredSize = publicState.requiredSize, allowDetached = false) {
+  const bounds = publicState.playableBounds;
+  const width = bounds.macroWidth;
+  const needed = requiredSize;
+  if (!Number.isInteger(needed) || needed < 1) return [];
+  if (publicState.preparedOutgoing) {
+    const sourceMacros = [...publicState.preparedOutgoing.sourceMacros];
+    return sourceMacros.length === needed
+      ? [{ type: "CREATE_REGION", payload: { sourceMacros }, metrics: { contacts: 0, colorPressure: 0, prepared: true } }]
+      : [];
+  }
+  const scale = bounds.microScale;
+  const microWidth = bounds.macroWidth * scale;
+  const geometry = createRegionGeometryContext({ ...publicState, microWidth });
+  const free = playableMacros(bounds).filter((macro) => geometry.analyze([macro]).everyMacroHasFree);
+  const freeSet = new Set(free);
+  const hasMap = Object.values(publicState.regions || {}).some((region) => (region.micro || []).length > 0);
+  const starts = hasMap && !allowDetached ? free.filter((macro) => geometry.analyze([macro]).touchesExisting) : free;
+  const found = new Map();
+
+  function visit(selected, frontier) {
+    if (found.size >= limit) return;
+    if (selected.size === needed) {
+      const sourceMacros = [...selected].sort((a, b) => a - b);
+      const candidate = geometry.analyze(sourceMacros);
+      if (candidate.everyMacroHasFree && candidate.connected && (!hasMap || allowDetached || candidate.touchesExisting)) {
+        found.set(sourceMacros.join(","), { type: "CREATE_REGION", payload: { sourceMacros }, metrics: { contacts: candidate.adjacentRegionIds.length, colorPressure: candidate.contactColors.length } });
+      }
+      return;
+    }
+    for (const macro of [...frontier].sort((a, b) => a - b)) {
+      const nextSelected = new Set(selected).add(macro);
+      const nextFrontier = new Set(frontier);
+      nextFrontier.delete(macro);
+      for (const next of neighbors(macro, width)) if (freeSet.has(next) && !nextSelected.has(next)) nextFrontier.add(next);
+      visit(nextSelected, nextFrontier);
+      if (found.size >= limit) return;
+    }
+  }
+
+  for (const start of starts) {
+    visit(new Set([start]), new Set(neighbors(start, width).filter((macro) => freeSet.has(macro))));
+    if (found.size >= limit) break;
+  }
+  return [...found.values()];
+}
+
+function availableColors(publicState, ownPrivateState, includeTemporary = true) {
+  const colors = [...ownPrivateState.basicPalette];
+  if (ownPrivateState.bonusUsesRemaining > 0) colors.push(ownPrivateState.bonusColor);
+  if (includeTemporary) colors.push(...(ownPrivateState.privateEffects?.temporaryColors || []));
+  if (ownPrivateState.privateEffects?.prism) colors.push("red", "blue", "yellow", "green");
+  const seals = publicState.publicEffects?.[ownPrivateState.seat]?.seals || {};
+  return [...new Set(colors)].filter((color) => !(seals[color] > 0));
+}
+
+function enumerateColorActions(publicState, ownPrivateState) {
+  const blocked = new Set(adjacentRegionIds(publicState, publicState.pending).map((id) => publicState.regions[id]?.color).filter(Boolean));
+  const safe = availableColors(publicState, ownPrivateState).filter((color) => !blocked.has(color));
+  return safe.map((color) => ({ type: "COLOR_REGION", payload: { color }, metrics: { blockedCount: blocked.size } }));
+}
+
+function enumerateLegacyColorActions(publicState, ownPrivateState) {
+  const blocked = new Set(adjacentRegionIds(publicState, publicState.pending).map((id) => publicState.regions[id]?.color).filter(Boolean));
+  const safe = availableColors(publicState, ownPrivateState, false).filter((color) => !blocked.has(color));
+  return safe.length
+    ? safe.map((color) => ({ type: "COLOR_REGION", payload: { color }, metrics: { blockedCount: blocked.size } }))
+    : [{ type: "DECLARE_NO_COLOR", payload: {}, metrics: { blockedCount: blocked.size } }];
+}
+
+function contactColorsFromMicro(publicState, micro) {
+  const microWidth = publicState.playableBounds.macroWidth * publicState.playableBounds.microScale;
+  const shape = new Set(micro);
+  const ownerByMicro = new Map();
+  for (const region of Object.values(publicState.regions || {})) {
+    for (const cell of region.micro || []) ownerByMicro.set(cell, region.id);
+  }
+  const adjacentIds = new Set();
+  for (const cell of shape) {
+    const x = cell % microWidth;
+    const adjacent = [cell - microWidth, cell + microWidth];
+    if (x > 0) adjacent.push(cell - 1);
+    if (x < microWidth - 1) adjacent.push(cell + 1);
+    for (const neighbor of adjacent) {
+      if (shape.has(neighbor)) continue;
+      const regionId = ownerByMicro.get(neighbor);
+      if (regionId) adjacentIds.add(regionId);
+    }
+  }
+  const blocked = new Set([...adjacentIds].map((id) => publicState.regions?.[id]?.color).filter(Boolean));
+  return COLORS.filter((color) => blocked.has(color));
+}
+
+function immediateOpponentColorOptions(observation, action) {
+  if (action?.type !== "CREATE_REGION") return Object.freeze([]);
+  const { publicState, ownPrivateState } = observation;
+  const sourceMacros = action.payload?.sourceMacros;
+  if (!Array.isArray(sourceMacros)) throw new TypeError("INVALID_CPU_REGION_ACTION");
+  const contactColors = publicState.preparedOutgoing
+    ? contactColorsFromMicro(publicState, publicState.preparedOutgoing.micro || [])
+    : createRegionGeometryContext(publicState).analyze(sourceMacros).contactColors;
+  const blocked = new Set(contactColors);
+  const opponentSeat = ownPrivateState.seat === "A" ? "B" : "A";
+  const seals = publicState.publicEffects?.[opponentSeat]?.seals || {};
+  return Object.freeze(COLORS.filter((color) => !blocked.has(color) && !(seals[color] > 0)));
+}
+
+function skillAction(skill, payload = {}, metrics = {}) {
+  return { type: "USE_SKILL", payload: { skill, ...payload }, metrics: { skillPriority: 1, ...metrics } };
+}
+
+function planningState(publicState) {
+  return {
+    ...publicState,
+    microWidth: publicState.playableBounds.macroWidth * publicState.playableBounds.microScale,
+  };
+}
+
+function connectedCells(cells, width) {
+  if (!cells.length) return false;
+  const remaining = new Set(cells);
+  const queue = [cells[0]];
+  remaining.delete(cells[0]);
+  while (queue.length) {
+    const cell = queue.shift();
+    for (const next of neighbors(cell, width)) if (remaining.delete(next)) queue.push(next);
+  }
+  return remaining.size === 0;
+}
+
+function microToMacro(cell, bounds, microWidth) {
+  const x = cell % microWidth;
+  const y = Math.floor(cell / microWidth);
+  return Math.floor(y / bounds.microScale) * bounds.macroWidth + Math.floor(x / bounds.microScale);
+}
+
+function splitSelections(region, bounds, microWidth) {
+  const width = bounds.macroWidth;
+  const macros = [...new Set(region.sourceMacros || [])].sort((a, b) => a - b);
+  const results = [];
+  const fullMask = (1 << macros.length) - 1;
+  for (let mask = 1; mask < fullMask; mask += 1) {
+    if (!(mask & 1)) continue;
+    const selected = macros.filter((_, index) => mask & (1 << index));
+    const returned = macros.filter((_, index) => !(mask & (1 << index)));
+    const selectedSet = new Set(selected);
+    const selectedMicro = (region.micro || []).filter((cell) => selectedSet.has(microToMacro(cell, bounds, microWidth)));
+    const returnedMicro = (region.micro || []).filter((cell) => !selectedSet.has(microToMacro(cell, bounds, microWidth)));
+    if (connectedCells(selected, width) && connectedCells(returned, width)
+        && connectedCells(selectedMicro, microWidth) && connectedCells(returnedMicro, microWidth)) results.push(selected);
+  }
+  return results;
+}
+
+function availableHand(ownPrivateState, skill) {
+  return (ownPrivateState.hand?.[skill] || 0) > 0;
+}
+
+function usageCategoryAvailable(publicState, skill) {
+  const categories = publicState.skillCategoryWindow?.categories;
+  return !Array.isArray(categories) || !categories.includes(STANDARD_SKILLS[skill].usageCategory);
+}
+
+function filterUsedSkillCategories(actions, publicState) {
+  return actions.filter((action) => action.type !== "USE_SKILL" || usageCategoryAvailable(publicState, action.payload.skill));
+}
+
+function colorSkillCanRescue(action, publicState, ownPrivateState, boardColors) {
+  const blocked = new Set(adjacentRegionIds(publicState, publicState.pending).map((id) => publicState.regions[id]?.color).filter(Boolean));
+  const seals = publicState.publicEffects?.[ownPrivateState.seat]?.seals || {};
+  const safe = (color) => COLORS.includes(color) && !(seals[color] > 0) && !blocked.has(color);
+  const skill = action.payload?.skill;
+  if (skill === "colorRandomBorrow") return boardColors.some(safe);
+  if (skill === "colorChoiceBorrow") return safe(action.payload.color);
+  if (skill === "colorPrism") return COLORS.some(safe);
+  if (skill === "colorBonusRefill") return ownPrivateState.bonusUsesRemaining === 0 && safe(ownPrivateState.bonusColor);
+  if (skill === "colorPaletteChange") return (action.payload.slot < 2 || ownPrivateState.bonusUsesRemaining > 0) && safe(action.payload.color);
+  if (skill === "colorRegionSplit") {
+    const region = publicState.regions?.[action.payload.regionId];
+    if (!region) return false;
+    const microWidth = publicState.playableBounds.macroWidth * publicState.playableBounds.microScale;
+    const selected = new Set(action.payload.sourceMacros || []);
+    const selectedMicro = (region.micro || []).filter((cell) => selected.has(microToMacro(cell, publicState.playableBounds, microWidth)));
+    const splitBlocked = new Set(contactColorsFromMicro(publicState, selectedMicro));
+    return availableColors(publicState, ownPrivateState).some((color) => !splitBlocked.has(color));
+  }
+  return false;
+}
+
+function enumerateColorSkillActions(publicState, ownPrivateState, annotateRescue = false, difficulty = "normal") {
+  const actions = [];
+  const boardColors = [...new Set(Object.values(publicState.regions || {}).map((region) => region.color).filter(Boolean))];
+  if (availableHand(ownPrivateState, "colorRandomBorrow") && boardColors.length) actions.push(skillAction("colorRandomBorrow", {}, { skillPriority: 18 }));
+  if (availableHand(ownPrivateState, "colorChoiceBorrow")) {
+    for (const color of boardColors) actions.push(skillAction("colorChoiceBorrow", { color }, { skillPriority: 20 }));
+  }
+  if (availableHand(ownPrivateState, "colorPrism")) actions.push(skillAction("colorPrism", {}, { skillPriority: 24 }));
+  if (difficulty === "hard" && availableHand(ownPrivateState, "colorBonusRefill") && ownPrivateState.bonusUsesRemaining < 4) {
+    actions.push(skillAction("colorBonusRefill", {}, { skillPriority: 26, bonusUsesBefore: ownPrivateState.bonusUsesRemaining }));
+  }
+  if (availableHand(ownPrivateState, "colorPaletteChange")) {
+    const palette = [...ownPrivateState.basicPalette, ownPrivateState.bonusColor];
+    for (let slot = 0; slot < palette.length; slot += 1) {
+      for (const color of COLORS) if (color !== palette[slot]) actions.push(skillAction("colorPaletteChange", { slot, color }, { skillPriority: 12 }));
+    }
+  }
+  if (availableHand(ownPrivateState, "colorRegionSplit")) {
+    const region = publicState.regions?.[publicState.pending];
+    if (region && !(region.controllers || []).includes(ownPrivateState.seat)) {
+      const microWidth = publicState.playableBounds.macroWidth * publicState.playableBounds.microScale;
+      for (const sourceMacros of splitSelections(region, publicState.playableBounds, microWidth)) {
+        actions.push(skillAction("colorRegionSplit", { regionId: region.id, sourceMacros }, { skillPriority: 30, splitSize: sourceMacros.length }));
+      }
+    }
+  }
+  if (annotateRescue) for (const action of actions) {
+    action.metrics.rescue = colorSkillCanRescue(action, publicState, ownPrivateState, boardColors) ? 1 : 0;
+  }
+  return filterUsedSkillCategories(actions, publicState);
+}
+
+function enumerateShiftActions(publicState, ownPrivateState, skill, planner) {
+  if (!availableHand(ownPrivateState, skill) || publicState.preparedOutgoing) return [];
+  const state = planningState(publicState);
+  const actions = [];
+  for (const axis of ["ROW", "COLUMN"]) {
+    for (let index = 0; index < publicState.playableBounds.macroWidth; index += 1) {
+      for (const direction of ["minus", "plus"]) {
+        const payload = { axis, index, direction };
+        const plan = planner(state, payload);
+        if (plan.ok) actions.push(skillAction(skill, payload, { skillPriority: 12 + Math.min(6, plan.movedCount || 0), movedCount: plan.movedCount || 0 }));
+      }
+    }
+  }
+  return filterUsedSkillCategories(actions, publicState);
+}
+
+function enumerateWorkSkillActions(publicState, ownPrivateState) {
+  const actions = [];
+  const state = planningState(publicState);
+  const outgoing = enumerateRegionActions(publicState, 96, publicState.requiredSize, true);
+  if (availableHand(ownPrivateState, "areaMicroBloom")) {
+    for (const action of outgoing) {
+      const sourceMacros = action.payload.sourceMacros;
+      if (microBloomCandidates(state, sourceMacros).candidates.length) actions.push(skillAction("areaMicroBloom", { sourceMacros }, { skillPriority: 22 }));
+    }
+  }
+  if (availableHand(ownPrivateState, "areaCornerBloom")) {
+    for (const action of outgoing) {
+      const sourceMacros = action.payload.sourceMacros;
+      for (const macro of sourceMacros) {
+        const planned = cornerBloomPlan(state, sourceMacros, macro);
+        if (planned.plan.length && preparedTouchesColoredRegion(state, planned.micro)) actions.push(skillAction("areaCornerBloom", { sourceMacros, macro }, { skillPriority: 20 }));
+      }
+    }
+  }
+  if (availableHand(ownPrivateState, "areaDiePlus") && !publicState.preparedOutgoing && publicState.requiredSize < 5
+      && enumerateRegionActions(publicState, 1, publicState.requiredSize + 1).length) {
+    actions.push(skillAction("areaDiePlus", {}, { skillPriority: 16 }));
+  }
+  if (availableHand(ownPrivateState, "areaResize") && !publicState.preparedOutgoing) {
+    const bounds = publicState.playableBounds;
+    const width = bounds.maxCol - bounds.minCol + 1;
+    const height = bounds.maxRow - bounds.minRow + 1;
+    for (const side of ["top", "bottom", "left", "right"]) {
+      const canExpand = side === "left" ? bounds.minCol > 0 : side === "right" ? bounds.maxCol < bounds.macroWidth - 1 : side === "top" ? bounds.minRow > 0 : bounds.maxRow < bounds.macroWidth - 1;
+      const canShrink = ["left", "right"].includes(side) ? width > 6 : height > 6;
+      if (canExpand) actions.push(skillAction("areaResize", { mode: "expand", side }, { skillPriority: 10 }));
+      if (canShrink) actions.push(skillAction("areaResize", { mode: "shrink", side }, { skillPriority: 8 }));
+    }
+  }
+  actions.push(...enumerateShiftActions(publicState, ownPrivateState, "areaHalfShift", planHalfShift));
+  actions.push(...enumerateShiftActions(publicState, ownPrivateState, "areaTripleShift", planTripleShift));
+
+  for (const skill of ["disruptRandomOne", "disruptRandomTwo", "disruptPaletteRandom"]) {
+    if (availableHand(ownPrivateState, skill)) actions.push(skillAction(skill, {}, { skillPriority: 17 }));
+  }
+  for (const skill of ["disruptChoiceOne", "disruptChoiceTwo", "disruptChoiceThree", "disruptPaletteChoice", "disruptForcedPalette"]) {
+    if (availableHand(ownPrivateState, skill)) for (const color of COLORS) actions.push(skillAction(skill, { color }, { skillPriority: 19 }));
+  }
+  if (availableHand(ownPrivateState, "legalRecolor") && !publicState.interferenceLock) {
+    for (const region of Object.values(publicState.regions || {}).filter((entry) => entry.color && !entry.isPending)) {
+      const candidates = legalRecolorCandidates(publicState, region.id).length;
+      if (candidates > 0) actions.push(skillAction("legalRecolor", { regionId: region.id }, { skillPriority: 15, candidates, degree: adjacentRegionIds(publicState, region.id).length }));
+    }
+  }
+  return filterUsedSkillCategories(actions, publicState);
+}
+
+function preparedTouchesColoredRegion(state, micro) {
+  const shape = new Set(micro);
+  const colored = new Set(Object.values(state.regions || {}).filter((region) => region.color).flatMap((region) => region.micro || []));
+  for (const cell of shape) {
+    const x = cell % state.microWidth;
+    const adjacent = [cell - state.microWidth, cell + state.microWidth];
+    if (x > 0) adjacent.push(cell - 1);
+    if (x < state.microWidth - 1) adjacent.push(cell + 1);
+    if (adjacent.some((neighbor) => !shape.has(neighbor) && colored.has(neighbor))) return true;
+  }
+  return false;
+}
+
+function enumerateCpuActions(observation) {
+  const { publicState, ownPrivateState } = observation;
+  if (publicState.status === "FINISHED" || publicState.active !== ownPrivateState.seat) return Object.freeze([]);
+  let actions = [];
+  if (publicState.phase === "COLOR") {
+    const colorActions = enumerateColorActions(publicState, ownPrivateState);
+    const skillActions = enumerateColorSkillActions(publicState, ownPrivateState, true, observation.difficulty);
+    const rescueActions = skillActions.filter((action) => action.metrics.rescue > 0);
+    const guaranteedRescueActions = rescueActions.filter((action) => action.payload.skill !== "colorRandomBorrow");
+    const blockedCount = new Set(adjacentRegionIds(publicState, publicState.pending).map((id) => publicState.regions[id]?.color).filter(Boolean)).size;
+    actions = colorActions.length
+      ? [...colorActions, ...skillActions]
+      : rescueActions.length
+        ? (observation.difficulty === "easy" || !guaranteedRescueActions.length ? rescueActions : guaranteedRescueActions)
+        : [{ type: "SURRENDER", payload: {}, metrics: { blockedCount, noLegalColor: true } }];
+  }
+  else if (publicState.phase === "CREATE_FIRST" || publicState.phase === "WORK") actions = [...enumerateRegionActions(publicState), ...enumerateWorkSkillActions(publicState, ownPrivateState)];
+  if (!actions.length) actions = [{ type: "SURRENDER", payload: {}, metrics: { fallback: true } }];
+  return deepFreeze(actions);
+}
+
+function enumerateCpuActionsLegacy(observation) {
+  const { publicState, ownPrivateState } = observation;
+  if (publicState.status === "FINISHED" || publicState.active !== ownPrivateState.seat) return Object.freeze([]);
+  let actions = [];
+  if (publicState.phase === "COLOR") actions = [...enumerateLegacyColorActions(publicState, ownPrivateState), ...enumerateColorSkillActions(publicState, ownPrivateState)];
+  else if (publicState.phase === "CREATE_FIRST" || publicState.phase === "WORK") actions = [...enumerateRegionActions(publicState), ...enumerateWorkSkillActions(publicState, ownPrivateState)];
+  if (!actions.length) actions = [{ type: "SURRENDER", payload: {}, metrics: { fallback: true } }];
+  return deepFreeze(actions);
+}
+
+function chooseIndex(length, random) {
+  const value = random();
+  if (!Number.isFinite(value) || value < 0 || value >= 1) throw new TypeError("INVALID_CPU_RANDOM");
+  return Math.min(length - 1, Math.floor(value * length));
+}
+
+function chooseCpuAction({ observation, random, tieBreakRandom = random }) {
+  const actions = enumerateCpuActions(observation);
+  if (!actions.length) return null;
+  if (observation.publicState.phase === "COLOR") {
+    const refill = actions.find((action) => action.type === "USE_SKILL" && action.payload.skill === "colorBonusRefill");
+    if (observation.difficulty === "hard" && refill && refill.metrics.bonusUsesBefore <= 2) return refill;
+    return actions[chooseIndex(actions.length, random)];
+  }
+  if (observation.difficulty === "easy") return actions[chooseIndex(actions.length, random)];
+  const shiftAlternationBonus = (action) => {
+    if (action.payload?.skill === "areaHalfShift") return observation.publicState.turn % 3 === 0 ? 41 : 0;
+    if (action.payload?.skill === "areaTripleShift") return observation.publicState.turn % 3 === 1 ? 41 : 0;
+    return 0;
+  };
+  const scored = actions.map((action) => ({
+    action,
+    score: action.type === "USE_SKILL"
+      ? (observation.difficulty === "hard"
+        ? (action.metrics.skillPriority || 0) * 10 + (action.metrics.degree || 0) * 2 + (action.metrics.candidates || 0) + shiftAlternationBonus(action)
+        : (action.metrics.skillPriority || 0))
+      : action.type === "CREATE_REGION"
+        ? (observation.difficulty === "hard" ? action.metrics.colorPressure * 100 + action.metrics.contacts : action.metrics.contacts * 2)
+        : -1000,
+  }));
+  const best = Math.max(...scored.map((entry) => entry.score));
+  const finalists = scored.filter((entry) => entry.score === best).map((entry) => entry.action);
+  return finalists[chooseIndex(finalists.length, tieBreakRandom)];
+}
+
+module.exports = {
+  HARD_CPU_FINITE_SKILL_CHARGES,
+  HARD_CPU_REPEATABLE_AREA_SKILLS,
+  HARD_CPU_REPEATABLE_SKILL_CHARGE,
+  LEVELS,
+  POLICY_VERSIONS,
+  chooseCpuAction,
+  enumerateCpuActions,
+  enumerateCpuActionsLegacy,
+  immediateOpponentColorOptions,
+  makeObservation,
+  V49_SKILL_IDS,
+  applyHardCpuSkillCharges,
+};
+
+},
 "standard/standard-match.js":function(require,module,exports){
 "use strict";
 
