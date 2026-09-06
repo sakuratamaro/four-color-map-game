@@ -9,9 +9,9 @@
 | 項目 | 現在値 | 扱い |
 | --- | --- | --- |
 | 正史 | `origin/main`（公開製品floor `df56432`） | 比較、候補作成、公開判断の唯一の基点。証拠追補commitは製品floorと分離して読む |
-| clean release床 | `.codex-worktrees/standard-release-clean-20260906` | alpha.3統合`d3cb130`、起動修正`549e716`、favicon`df56432`を含む。公開後証拠更新用に保護 |
+| clean release床 | `.codex-worktrees/standard-release-clean-20260906` | alpha.3統合`d3cb130`、起動修正`549e716`、favicon`df56432`、検証強化`ab3b83a`を含む。公開後証拠更新用に保護 |
 | CI投入床 | `codex/standard-release-command` | Windows Chrome/Edge gate専用として保持 |
-| ローカル`main` | `2b9997b` | 正史より189コミット遅れ。比較基点にせず、安全な整理窓でのみfast-forward |
+| ローカル`main` | `2b9997b` | 正史より197コミット遅れ。比較基点にせず、安全な整理窓でのみfast-forward |
 | 保存checkout | `codex/standard-v5-alpha1@ac78282` | 63 status項目の混在床。その場でmerge/rebase/build/deployしない |
 
 ## 保護対象
@@ -40,9 +40,9 @@
 
 したがって現行手順へ統合せず、保存checkoutの最終整理までは履歴として保持する。削除前に「現行runbookへ未収録の受入条件がないこと」だけを再確認する。
 
-## 収録済み・作業床削除候補
+## 収録済み作業床の整理実績
 
-次は現時点の候補であり、削除実行リストではない。alpha.3は公開canaryまで安定したため、各床で`clean`、HEAD、branch到達可能性、main収録を再確認してから作業床だけを整理する。
+2026-09-07、登録17床を再監査し、次の10床がすべて`clean`で、正史側へ機能収録済みであることを確認した。作業床だけを`git worktree remove`（forceなし）で整理し、対応するローカルbranchとcommitは削除せず保持した。
 
 - `four-color-skill-category-audit-20260906`
 - `basic-feedback`
@@ -55,14 +55,14 @@
 - `standard-quiz-fun`
 - `waiting-opponent-notice`
 
-`standard-release-clean`は正本として、`standard-release-command`はCI投入路として削除候補から除外する。
+整理後の登録は7床で、`git worktree prune --dry-run --verbose`に候補はない。保存checkout、salvage、alpha.3 source、CPU肖像、互換rollback、clean release、CI投入床は保護を継続する。
 
 ## 安全な整理順序
 
 1. alpha.3候補のcommit、互換、privacy、再送、CPUバランス、client/Edge bundle独立監査は完了済み。
 2. clean release床への統合、CI、Pages、Edge 23、公開canaryは完了済み。
 3. 保存checkoutの旧alpha.3 prototypeとの差を再確認する。
-4. 上記の収録済みworktreeごとに、非破壊確認結果を提示してから作業床だけを整理する。
+4. 収録済み10 worktreeの非破壊確認と作業床だけの整理は完了済み。branchは保持している。
 5. ローカル`main`を`origin/main`へfast-forwardする。
 6. 最後に、ローカルのみの歴史branchをGitHubへ保全するか削除するかを別判断する。
 

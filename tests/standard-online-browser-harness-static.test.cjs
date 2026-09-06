@@ -20,19 +20,23 @@ test("browser selection allows only fixed Edge and Chrome executables", () => {
   assert.doesNotMatch(source, /STANDARD_BROWSER_PATH|executablePath:\s*process\.env/);
 });
 
-test("withPage owns server and browser startup inside one finite try/finally", () => {
+test("withPage owns server and BrowserServer startup inside one finite lifecycle", () => {
   assert.ok(start >= 0 && end > start);
   assert.match(withPage, /const \{ server, url \} = await bounded\("server-ready", startServer\(\), 5_000\);\s*browserStage\("server-ready"\);\s*try \{/);
-  assert.match(withPage, /try \{[\s\S]+browser = await bounded\("browser-launch", chromium\.launch\(\{[^}]+timeout: 15_000[^}]+\}\), 15_000\)/);
-  assert.ok(withPage.indexOf("chromium.launch") < withPage.indexOf("} finally {"));
+  assert.match(withPage, /browserServer = await bounded\("browser-launch", chromium\.launchServer\(\{[^}]+timeout: 15_000[^}]+\}\), 15_000\)/);
+  assert.match(withPage, /browser = await bounded\("browser-connect", chromium\.connect\(browserServer\.wsEndpoint\(\)\), 5_000\)/);
+  assert.ok(withPage.indexOf("chromium.launchServer") < withPage.indexOf("browser.newContext"));
+  assert.ok(withPage.indexOf("chromium.connect") < withPage.indexOf("browser.newContext"));
 });
 
 test("withPage emits deterministic stages and bounds every setup and test-body await", () => {
   for (const stage of [
     "server-start", "server-ready", "browser-launch-start", "browser-launch-ready",
+    "browser-connect-start", "browser-connect-ready",
     "context-start", "context-ready", "page-start", "page-ready",
     "navigation-start", "navigation-ready", "badge-start", "badge-ready",
-    "test-body-start", "test-body-ready", "teardown-start", "teardown-ready",
+    "test-body-start", "test-body-ready", "teardown-start", "context-close-start",
+    "context-close-ready", "server-close-start", "server-close-ready", "teardown-ready",
   ]) assert.match(withPage, new RegExp(`browserStage\\("${stage}"\\)`));
   assert.match(withPage, /bounded\("context-ready", browser\.newContext\([\s\S]+?\), 5_000\)/);
   assert.match(withPage, /bounded\("mock-ready", installMock\(context, mode\), 5_000\)/);
@@ -63,10 +67,11 @@ test("timeout hierarchy preserves Playwright diagnostics and teardown room", () 
 
 test("withPage releases partial startup resources and every HTTP connection", () => {
   assert.match(withPage, /bounded\("context-close", context\.close\(\), 10_000\)/);
-  assert.match(withPage, /bounded\("browser-close", browser\.close\(\), 20_000\)/);
+  assert.match(source, /const \{ closeOwnedBrowserServer \} = require\("\.\/helpers\/browser-server-cleanup\.cjs"\)/);
+  assert.match(withPage, /await closeOwnedBrowserServer\(\{ browserServer, bounded, stage: browserStage \}\)/);
   assert.match(withPage, /bounded\("server-close", closeServer\(server\), 3_000\)/);
-  assert.ok(withPage.indexOf("context.close") < withPage.indexOf("browser.close"));
-  assert.ok(withPage.indexOf("browser.close") < withPage.indexOf("closeServer(server)"));
+  assert.ok(withPage.indexOf("context.close") < withPage.indexOf("closeOwnedBrowserServer"));
+  assert.ok(withPage.indexOf("closeOwnedBrowserServer") < withPage.indexOf("closeServer(server)"));
 });
 
 test("the long CPU action keeps its existing wait inside a finite body bound", () => {
