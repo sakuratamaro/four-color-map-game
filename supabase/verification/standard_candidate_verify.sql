@@ -1,4 +1,4 @@
--- Read-only verification after applying migrations through 202609060002.
+-- Read-only verification after applying migrations through 202609060003.
 -- Expected result: every row has ok = true. This statement performs no writes.
 
 with
@@ -64,6 +64,7 @@ expected_functions(signature, audience) as (
     ('public.fcg_standard_matchmaking_find(uuid,text)', 'authenticated'),
     ('public.fcg_standard_matchmaking_status(uuid)', 'authenticated'),
     ('public.fcg_standard_matchmaking_cancel(uuid)', 'authenticated'),
+    ('public.fcg_standard_matchmaking_availability()', 'authenticated'),
     ('public.fcg_standard_active_room()', 'authenticated'),
     ('public.fcg_standard_abandon_room(uuid,bigint,uuid)', 'authenticated'),
     ('public.fcg_standard_server_accept_cpu(uuid,uuid,uuid,text,text,text,jsonb,jsonb,text)', 'service_role'),
@@ -109,6 +110,16 @@ active_room_function_contract as (
     coalesce(pg_catalog.pg_get_function_result(procedure.oid), '') as result_definition,
     coalesce(pg_catalog.pg_get_functiondef(procedure.oid), '') as definition
   from (values ('public.fcg_standard_active_room()')) expected(signature)
+  left join pg_catalog.pg_proc procedure on procedure.oid = pg_catalog.to_regprocedure(expected.signature)
+  left join pg_catalog.pg_language language on language.oid = procedure.prolang
+),
+matchmaking_availability_function_contract as (
+  select procedure.oid,
+    coalesce(procedure.provolatile, '') as volatility,
+    coalesce(language.lanname, '') as language_name,
+    coalesce(pg_catalog.pg_get_function_result(procedure.oid), '') as result_definition,
+    lower(coalesce(pg_catalog.pg_get_functiondef(procedure.oid), '')) as definition
+  from (values ('public.fcg_standard_matchmaking_availability()')) expected(signature)
   left join pg_catalog.pg_proc procedure on procedure.oid = pg_catalog.to_regprocedure(expected.signature)
   left join pg_catalog.pg_language language on language.oid = procedure.prolang
 ),
@@ -307,6 +318,38 @@ checks(check_name, ok, detail) as (
         and lower(definition) like '%coalesce(own_setup.setup_revision%',
       'two_row_cap', lower(definition) like '%limit 2%')
   from active_room_function_contract
+  union all
+  select 'function result public.fcg_standard_matchmaking_availability()',
+    oid is not null
+      and volatility = 's'
+      and language_name = 'plpgsql'
+      and result_definition =
+        'TABLE(has_waiting_opponent boolean, observed_at timestamp with time zone)'
+      and definition like '%ticket.state = ''searching''%'
+      and definition like '%ticket.expires_at > pg_catalog.statement_timestamp()%'
+      and definition like '%ticket.user_id <> v_user_id%'
+      and definition like '%member.user_id = ticket.user_id%'
+      and definition like '%room.game_mode = ''standard_v5''%'
+      and definition like '%room.status in (''waiting'', ''ready'', ''playing'')%'
+      and definition like '%return query%select%exists (%'
+      and definition not like '%waiting_count%'
+      and definition not like '%display_name%'
+      and definition not like '%return query%ticket_id%'
+      and definition not like '%return query%room_id%',
+    jsonb_build_object('present', oid is not null, 'volatility', volatility, 'language', language_name,
+      'result_definition', result_definition,
+      'foreign_live_search_only', definition like '%ticket.state = ''searching''%'
+        and definition like '%ticket.expires_at > pg_catalog.statement_timestamp()%'
+        and definition like '%ticket.user_id <> v_user_id%',
+      'active_room_excluded', definition like '%member.user_id = ticket.user_id%'
+        and definition like '%room.game_mode = ''standard_v5''%'
+        and definition like '%room.status in (''waiting'', ''ready'', ''playing'')%',
+      'boolean_only', definition like '%return query%select%exists (%'
+        and definition not like '%waiting_count%'
+        and definition not like '%display_name%'
+        and definition not like '%return query%ticket_id%'
+        and definition not like '%return query%room_id%')
+  from matchmaking_availability_function_contract
   union all
   select 'private policy helper ' || signature,
     oid is not null and not anon_execute and not authenticated_execute
