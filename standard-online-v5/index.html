@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <title>Four Color Map Game v5.0 Standard Online</title>
   <link rel="stylesheet" href="../online-v5/style.css">
-  <link rel="stylesheet" href="style.css?v=20260906-36">
+  <link rel="stylesheet" href="style.css?v=20260906-37">
   <link rel="stylesheet" href="debug-mode.css">
   <link rel="stylesheet" href="progression.css">
 </head>
@@ -54,6 +54,25 @@
         <button type="button" data-tab-jump="quiz">クイズでガチャ券を獲得</button>
         <button type="button" data-tab-jump="cards">カードを確認</button>
       </div>
+    </section>
+
+    <section id="feedbackSettings" class="card feedback-settings" aria-labelledby="feedbackSettingsTitle" data-app-tab-panel="home profile">
+      <div>
+        <p class="section-kicker">FEEDBACK</p>
+        <h2 id="feedbackSettingsTitle">効果音と振動</h2>
+        <p class="muted small">どちらも初期状態はOFFです。効果音はONにしたあとの操作で有効になり、端末が対応していない機能は何も起こさず対戦を続けます。</p>
+      </div>
+      <div class="feedback-settings-controls" role="group" aria-label="効果音と振動の設定">
+        <label class="feedback-toggle">
+          <input id="soundEffectsEnabled" type="checkbox">
+          <span><strong>効果音</strong><small>確定接触・手番・勝敗</small></span>
+        </label>
+        <label class="feedback-toggle">
+          <input id="vibrationEnabled" type="checkbox">
+          <span><strong>スマホ振動</strong><small>対応端末だけで作動</small></span>
+        </label>
+      </div>
+      <p id="feedbackSettingsStatus" class="muted small" role="status" aria-live="polite" aria-atomic="true">効果音 OFF｜振動 OFF</p>
     </section>
 
     <section class="card mode-callout" aria-label="Quick CPU練習" data-app-tab-panel="home">
@@ -439,6 +458,7 @@
   <script src="standard-online-sync.js"></script>
   <script src="standard-online-skill-intents.js?v=20260906-17"></script>
   <script src="cpu-commentary.js?v=20260906-2"></script>
-  <script type="module" src="app.js?v=20260906-36"></script>
+  <script src="basic-feedback.js?v=20260906-1"></script>
+  <script type="module" src="app.js?v=20260906-37"></script>
 </body>
 </html>

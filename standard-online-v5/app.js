@@ -7,7 +7,11 @@ const client = globalThis.FourColorStandardOnlineClient.createStandardOnlineClie
 const onlineSyncFactory = globalThis.FourColorStandardOnlineSync;
 const skillIntents = globalThis.FourColorStandardOnlineSkillIntents;
 const cpuCommentary = globalThis.FourColorStandardCpuCommentary;
+const basicFeedbackFactory = globalThis.FourColorStandardBasicFeedback;
 const $ = (id) => document.getElementById(id);
+const basicFeedback = basicFeedbackFactory?.VERSION === "standard-basic-feedback-v1"
+  ? basicFeedbackFactory.createBasicFeedbackController({ storage: localStorage, documentRef: document, navigatorRef: navigator, globalRef: globalThis })
+  : Object.freeze({ bindControls: () => false, handleStorageEvent: () => {}, installGestureUnlock: () => false, notify: () => ({ accepted: false }) });
 const SAVE_KEY = "fourColorMapGame.standard.v5.save";
 const PROFILE_CHOICE_KEY = "fourColorMapGame.standard.online.v5.profile";
 const STARTER_PROFILE_KEY = "fourColorMapGame.standard.online.v5.starter-profile";
@@ -735,8 +739,9 @@ function clearTurnArrivalBeat() {
   $("turnGuide")?.classList.remove("turn-arrival-beat");
 }
 
-function startTurnArrivalBeat() {
+function startTurnArrivalBeat(eventId) {
   clearTurnArrivalBeat();
+  basicFeedback.notify({ eventId, cue: "turn" });
   const generation = turnArrivalBeatGeneration;
   $("board").classList.add("turn-arrival-beat");
   $("turnGuide").classList.add("turn-arrival-beat");
@@ -787,7 +792,9 @@ function observeTurnArrival(state) {
     return;
   }
   const competingPresentation = !$("contactReveal")?.classList.contains("hidden") || !$("randomReveal")?.classList.contains("hidden");
-  if (!backgrounded && !competingPresentation && previousStatus === "ACTIVE" && previousActive !== seat && active === seat) startTurnArrivalBeat();
+  if (!backgrounded && !competingPresentation && previousStatus === "ACTIVE" && previousActive !== seat && active === seat) {
+    startTurnArrivalBeat(`${matchId}:${version}:turn:${seat}`);
+  }
 }
 
 function observeCommittedContact(state) {
@@ -807,7 +814,7 @@ function observeCommittedContact(state) {
   }
   if (!trace || trace.eventId === observedTraceEventId) return;
   observedTraceEventId = trace.eventId;
-  if (state.status === "ACTIVE" && trace.type === "CREATE_REGION" && trace.contactColorCount >= 2) showContactReveal(trace.contactColorCount);
+  if (state.status === "ACTIVE" && trace.type === "CREATE_REGION" && trace.contactColorCount >= 2) showContactReveal(trace.contactColorCount, trace.eventId);
 }
 
 function cpuCommentaryContext(state) {
@@ -1037,13 +1044,14 @@ function clearContactReveal({ clearAnnouncement = true } = {}) {
   if (clearAnnouncement) $("contactRevealAnnouncement").textContent = "";
 }
 
-function showContactReveal(contactColorCount) {
+function showContactReveal(contactColorCount, eventId) {
   const reveals = {
     2: { title: "二色接触！", detail: "2色に接する灰色エリア", tone: "contact-pressure-2" },
     3: { title: "三色圧力!!", detail: "3色に接する強いエリア", tone: "contact-pressure-3" },
     4: { title: "四色包囲!!!", detail: "全色が一点へ集中", tone: "contact-pressure-4 epic" },
   };
   if (!reveals[contactColorCount]) return;
+  basicFeedback.notify({ eventId, cue: `contact-${contactColorCount}` });
   const generation = ++contactPresentationGeneration;
   clearTimeout(contactRevealTimer);
   $("contactRevealAnnouncement").textContent = "";
@@ -1139,6 +1147,10 @@ function renderTerminalResult(state) {
   show("terminalOverlay", true);
   if (shownTerminalEventKey !== eventKey) {
     shownTerminalEventKey = eventKey;
+    basicFeedback.notify({
+      eventId: `${state.matchId}:${state.version}:terminal:${state.winner}:${state.terminalReason || "FINISHED"}`,
+      cue: won ? "victory" : "defeat",
+    });
     requestAnimationFrame(() => $("terminalClose").focus({ preventScroll: true }));
   }
 }
@@ -4633,6 +4645,7 @@ window.addEventListener("focus", () => {
   }
 });
 window.addEventListener("storage", (event) => {
+  basicFeedback.handleStorageEvent(event);
   const snapshot = client.snapshot();
   if (event.key === globalThis.FourColorStandardOnlineClient.STORAGE_KEY && connected && !snapshot.roomId
       && !pendingCpuStartSaga && !snapshot.cpuStartActionId && !snapshot.matchmakingFindActionId && !snapshot.matchmakingTicketId) {
@@ -4657,6 +4670,8 @@ $("openWaitingOpponent").onclick = () => {
 window.addEventListener("hashchange", () => activateAppTab(location.hash.slice(1), { updateHash: false }));
 
 const bootInteractionRevision = userInteractionRevision;
+basicFeedback.bindControls({ soundInput: $("soundEffectsEnabled"), vibrationInput: $("vibrationEnabled"), status: $("feedbackSettingsStatus") });
+basicFeedback.installGestureUnlock(document);
 syncSetupModeControls(client.snapshot(), { force: true });
 loadProfiles();
 activateAppTab(activeAppTab);

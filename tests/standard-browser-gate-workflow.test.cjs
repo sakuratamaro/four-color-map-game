@@ -56,11 +56,14 @@ test("Standard browser gate runs CPU contracts and the scoped browser file seria
   assert.match(workflow, /tests\/standard-online-quiz-generator-runtime\.test\.cjs/);
   assert.match(workflow, /tests\/standard-matchmaking-availability-migration\.test\.cjs/);
   assert.match(workflow, /tests\/standard-cpu-commentary\.test\.cjs/);
+  assert.match(workflow, /tests\/standard-basic-feedback\.test\.cjs/);
+  assert.match(workflow, /tests\/standard-online-basic-feedback-static\.test\.cjs/);
+  assert.match(workflow, /tests\/standard-online-contact-feedback\.test\.cjs/);
   for (const file of ["standard-cpu.test.cjs", "standard-cpu-roster.test.cjs", "standard-no-color-rescue.test.cjs", "standard-color-region-split.test.cjs", "standard-local-ui-static.test.cjs", "standard-live-color-response-canary-static.test.cjs", "standard-decision-reconciliation.test.cjs"]) {
     assert.match(workflow, new RegExp(`tests/${file.replaceAll(".", "\\.")}`));
   }
   assert.match(workflow, /if: matrix\.STANDARD_BROWSER == 'edge'[\s\S]+?tests\/standard-color-seal-browser-lifecycle\.test\.cjs[\s\S]+?tests\/standard-no-color-browser-terminal\.test\.cjs/);
-  assert.match(workflow, /run: node --test --test-concurrency=1 tests\/standard-online-browser\.test\.cjs/);
+  assert.match(workflow, /node --test --test-concurrency=1[\s\S]+?tests\/standard-basic-feedback-browser\.test\.cjs[\s\S]+?tests\/standard-online-browser\.test\.cjs/);
   assert.equal((workflow.match(/^\s+run:/gm) || []).length, 5);
   assert.doesNotMatch(workflow, /^\s+(?:uses|run):.*(?:supabase|deploy|github-pages|pages\/|upload-pages|npm test)/im);
 });

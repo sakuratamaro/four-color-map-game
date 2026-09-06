@@ -22,7 +22,7 @@ test("online Standard presents cumulative two, three, and four-color contact tie
 test("contact feedback observes only new committed public contact events", () => {
   assert.match(app, /function observeCommittedContact\(state\)/);
   assert.match(app, /trace\.eventId === observedTraceEventId/);
-  assert.match(app, /trace\.type === "CREATE_REGION" && trace\.contactColorCount >= 2\) showContactReveal\(trace\.contactColorCount\)/);
+  assert.match(app, /trace\.type === "CREATE_REGION" && trace\.contactColorCount >= 2\) showContactReveal\(trace\.contactColorCount, trace\.eventId\)/);
   assert.match(app, /observeCommittedContact\(publicState\)/);
   assert.doesNotMatch(app, /function selectedContactColorCount/);
   assert.doesNotMatch(app, /showContactReveal\(selectedContactColorCount/);

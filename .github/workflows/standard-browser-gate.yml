@@ -109,6 +109,9 @@ jobs:
           tests/standard-matchmaking-availability-migration.test.cjs
           tests/standard-public-release-runbook.test.cjs
           tests/standard-setup-revision-guard.test.cjs
+          tests/standard-basic-feedback.test.cjs
+          tests/standard-online-basic-feedback-static.test.cjs
+          tests/standard-online-contact-feedback.test.cjs
           tests/standard-cpu-commentary.test.cjs
           tests/standard-cpu.test.cjs
           tests/standard-cpu-roster.test.cjs
@@ -131,4 +134,7 @@ jobs:
           tests/standard-color-seal-browser-lifecycle.test.cjs
           tests/standard-no-color-browser-terminal.test.cjs
       - name: Run Standard online browser test serially
-        run: node --test --test-concurrency=1 tests/standard-online-browser.test.cjs
+        run: >-
+          node --test --test-concurrency=1
+          tests/standard-basic-feedback-browser.test.cjs
+          tests/standard-online-browser.test.cjs
