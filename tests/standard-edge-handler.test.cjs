@@ -7,6 +7,7 @@ const test = require("node:test");
 
 const root = path.join(__dirname, "..");
 const source = fs.readFileSync(path.join(root, "supabase", "functions", "standard-game-action", "index.ts"), "utf8");
+const bundle = fs.readFileSync(path.join(root, "supabase", "functions", "standard-game-action", "standard-engine.bundle.js"), "utf8");
 const config = fs.readFileSync(path.join(root, "supabase", "config.toml"), "utf8");
 
 test("Standard Edge handler requires a gateway-verified JWT and ignores caller identity", () => {
@@ -25,11 +26,13 @@ test("only the generated authoritative bundle creates and applies state", () => 
   assert.doesNotMatch(source, /body\.(?:state|publicState|privateState)/);
 });
 
-test("new online matches use the internal alpha.4 compatibility switch", () => {
-  assert.match(source, /const NEW_STANDARD_MATCH_ENGINE_VERSION = "5\.0\.0-alpha\.4"/);
+test("compatibility rollback creates alpha.3 while retaining the alpha.4-capable server bundle", () => {
+  assert.match(source, /const NEW_STANDARD_MATCH_ENGINE_VERSION = "5\.0\.0-alpha\.3"/);
   assert.match(source, /FourColorStandardServerEngine\.create\(\{[\s\S]*engineVersion: NEW_STANDARD_MATCH_ENGINE_VERSION/);
   assert.doesNotMatch(source, /engineVersion:\s*body\./);
   assert.doesNotMatch(source, /NEW_STANDARD_MATCH_ENGINE_VERSION\s*=\s*body\./);
+  assert.match(bundle, /COLORED_CORNER_BLOOM_ENGINE_VERSION/);
+  assert.match(bundle, /5\.0\.0-alpha\.4/);
 });
 
 test("profile sync ignores caller progression and preserves the server-authoritative state", () => {
