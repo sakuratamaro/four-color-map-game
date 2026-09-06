@@ -42,7 +42,7 @@ test("all strengths choose an accepted opening intent without authoritative acce
   }
 });
 
-test("CPU color choices use only rule-safe colors and declare when all are blocked", () => {
+test("CPU color choices use only rule-safe colors and surrender when all are blocked", () => {
   const current = state(20);
   const macros = Array.from({ length: current.requiredSize }, (_, index) => 13 + index);
   const created = match.applyStandardAction({ state: current, actor: "A", action: { type: "CREATE_REGION", payload: { sourceMacros: macros } }, expectedVersion: 0 });
@@ -65,7 +65,7 @@ test("CPU color choices use only rule-safe colors and declare when all are block
     R3: { id: "R3", micro: [1], sourceMacros: [], controllers: ["B"], color: usable[2], isPending: false },
     R4: { id: "R4", micro: [49], sourceMacros: [], controllers: ["B"], color: null, isPending: true },
   };
-  assert.deepEqual(cpu.enumerateCpuActions(observation(blocked)), [{ type: "DECLARE_NO_COLOR", payload: {}, metrics: { blockedCount: 3 } }]);
+  assert.deepEqual(cpu.enumerateCpuActions(observation(blocked)), [{ type: "SURRENDER", payload: {}, metrics: { blockedCount: 3, noLegalColor: true } }]);
 });
 
 test("opponent secret changes cannot influence any CPU difficulty", () => {
@@ -170,7 +170,7 @@ test("one CPU-generated candidate for each canonical skill is accepted by the au
   }
 });
 
-test("blocked CPU uses a color rescue before declaring and recognizes temporary borrowed colors", () => {
+test("blocked CPU uses a color rescue before surrendering and recognizes temporary borrowed colors", () => {
   const current = state(240);
   const usable = [...current.basicPalettes.A, current.bonusColors.A];
   current.phase = "COLOR";
@@ -185,7 +185,7 @@ test("blocked CPU uses a color rescue before declaring and recognizes temporary 
   const rescueActions = cpu.enumerateCpuActions(observation(current, "hard"));
   assert.ok(rescueActions.length > 0);
   assert.ok(rescueActions.every((action) => action.type === "USE_SKILL"));
-  assert.equal(rescueActions.some((action) => action.type === "DECLARE_NO_COLOR"), false);
+  assert.equal(rescueActions.some((action) => ["DECLARE_NO_COLOR", "SURRENDER"].includes(action.type)), false);
   assert.equal(cpu.chooseCpuAction({ observation: observation(current, "hard"), random: () => 0, tieBreakRandom: () => 0 }).payload.skill, "colorPrism");
 
   const borrowed = JSON.parse(JSON.stringify(current));
@@ -197,5 +197,5 @@ test("blocked CPU uses a color rescue before declaring and recognizes temporary 
 
   const exhausted = JSON.parse(JSON.stringify(current));
   exhausted.hands.A = {};
-  assert.deepEqual(cpu.enumerateCpuActions(observation(exhausted, "hard")), [{ type: "DECLARE_NO_COLOR", payload: {}, metrics: { blockedCount: 3 } }]);
+  assert.deepEqual(cpu.enumerateCpuActions(observation(exhausted, "hard")), [{ type: "SURRENDER", payload: {}, metrics: { blockedCount: 3, noLegalColor: true } }]);
 });

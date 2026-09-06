@@ -40,6 +40,16 @@ Difficulty changes parameter size and reasoning steps, not just obscure notation
 - Hint use is logged for balancing, but the first release should not punish the player's reward. The timer behavior will be validated in human playtests before a penalty is considered.
 - The same generator should offer multiple surface forms so the quiz rewards understanding rather than memorizing one template.
 
+### Level 5 difficulty contract
+
+Level 5 is a ten-template multi-step catalog, not a larger-number version of Levels 1–4. Its server-authoritative templates are matrix trace after multiplication, a bounded quadratic sigma, committee selection with ordered roles, a three-variable linear system, a 3×3 determinant, a definite polynomial integral, cylinder-minus-cone volume, a product-rule derivative, paired group selection, and an iterated recurrence.
+
+- Every Level 5 answer is computed and retained server-side; the public question never contains the answer or answer ID.
+- Each problem requires at least two meaningful operations or one genuinely structured derivation. One-formula substitution templates are not Level 5 material.
+- The Level 5 timer is 52–62 seconds. Added time is not a substitute for difficulty, and the bound is regression-tested.
+- Hints expose a formula or first transformation only. They may not substitute all generated values or reveal the final arithmetic.
+- Deterministic runtime tests recompute all ten answer types independently and verify answer separation, template coverage, line structure for systems/matrices, and multi-step wording.
+
 ## Existing-region color skills
 
 All random choices and legality checks must run in the server-authoritative engine during online play. A recolor may never create same-color edge adjacency unless the effect explicitly merges those regions as part of one validated transaction.

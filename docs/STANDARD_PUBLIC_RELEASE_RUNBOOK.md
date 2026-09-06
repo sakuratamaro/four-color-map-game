@@ -2,7 +2,7 @@
 
 更新日: 2026-09-06
 
-状態: 現行運用。migration `202609030006`–`202609030013`、`202609050001`–`202609050007`、`202609060001`–`202609060003`、Edge deployment 20、Pages product `75791fb`は適用済み。次候補は、詰みでも救済カードを選べる共通COLOR応答窓（新規engine `5.0.0-alpha.2`、旧対局 `5.0.0-alpha.1`互換、online app/style v35）である。mainには後続の証拠・運用文書commitも含まれるため、実行時にmain HEADとそれに対応する最新成功Pages runを再取得する。今便は旧UIと新engineの非対称を避けるため、下記のPages先行例外を守る。
+状態: 現行運用。migration `202609030006`–`202609030013`、`202609050001`–`202609050007`、`202609060001`–`202609060003`、Edge deployment 21、Pages product `9b7d8f4`（online app/style v35）は適用済み。次候補は、alpha.2の合法色なし宣言を廃止し、人間・CPUとも救済後は明示的な`SURRENDER`だけで敗北するPages v36＋次Edge deploymentである。旧対局 `5.0.0-alpha.1`の互換は維持する。mainには後続の証拠・運用文書commitも含まれるため、実行時にmain HEADとそれに対応する最新成功Pages runを再取得する。今便は旧UIと新engineの非対称を避けるため、下記のPages先行例外を守る。
 
 実行中の状態、数値、識別子、失敗は `docs/STANDARD_RELEASE_EVIDENCE.md` に追記する。根拠のない項目を`VERIFIED`や`PASS`へ変更しない。
 
@@ -32,7 +32,7 @@ PC＋スマートフォンまたはPC 2台を使い、同一ブラウザーの2�
 3. Git作業ツリーがcleanで、公開候補commitが記録済みであることを確認する。
 4. 現行Pages commit、現行 `standard-game-action` version、適用済み関数を記録する。
 5. Security Advisor、Performance Advisor、API/Database/Edge使用量の変更前snapshotを保存する。
-6. 今便はDB変更なし。migration tail `202609060003`、Edge deployment 20、公開product `75791fb`の現況を確認し、候補CI後と各公開段階で`node scripts/live-standard-release-preflight.mjs --expect=candidate`を使う。過去便の`baseline`／`db-ready`は再利用せず、公開assetとEdge versionを別々に記録する。
+6. 今便はDB変更なし。migration tail `202609060003`、Edge deployment 21、公開product `9b7d8f4`の現況を確認し、候補CI後と各公開段階で`node scripts/live-standard-release-preflight.mjs --expect=candidate`を使う。過去便の`baseline`／`db-ready`は再利用せず、公開assetとEdge versionを別々に記録する。
 
 確認結果が想定と違う場合は適用を止め、現物に合わせて手順を更新する。
 
@@ -83,18 +83,18 @@ SQL Editorでは内容を全置換し、次を1ファイルずつ順番に実行
 
 ## EdgeとPagesの順序
 
-### 共通COLOR応答窓便のPages先行例外
+### 合法色なし宣言廃止便のPages先行例外
 
-この便だけは `Pages v35 → Edge deployment 21 → 専用COLOR canary` の順にする。旧Pagesには`DECLARE_NO_COLOR`の入口がないため、Edge alpha.2を先にすると、新規対局が合法色0のCOLOR応答窓で停止し得る。一方、Pages v35の申告UIは旧alpha.1 Edgeでもサーバー判定され、合法色があれば`COLOR_AVAILABLE`で不変拒否されるため後方互換である。
+この便は `Pages v36 → Edge deployment 22（実際の次成功versionを記録）→ 専用COLOR canary` の順にする。Pages v36は`DECLARE_NO_COLOR`を送らず、救済カード導線と明示的な`SURRENDER`だけを使うため、現行Edge deployment 21とも互換である。反対に新Edgeを先にすると、キャッシュに残るPages v35が旧宣言を送り、`NO_COLOR_DECLARATION_RETIRED`を扱えない非対称が生じる。
 
 1. 公開候補commitで両builderを実行し生成物差分がゼロ、全製品試験、Windows Chrome/Edge CIが成功していることを確認する。
-2. mainをfast-forwardし、online app/style v35をPagesへ先行公開する。公開commit/run、HTTP 200、asset version、console warning/errorを記録する。
-3. Edge deployment 20のまま実対局でCOLOR応答UIを開く。誤申告が`COLOR_AVAILABLE`となり、version、profile、handが不変で、続く通常彩色が成功することを確認する。
-4. `index.ts`と再生成済み`standard-engine.bundle.js`を追記せず全置換し、同じEdge deploymentへ同時反映する。次の成功versionは21を期待するが、失敗saveが番号を消費した場合は実際の成功versionと失敗履歴を記録する。
-5. 基本Edge canaryに加えて`node scripts/live-standard-color-response-canary.mjs --confirm-live`を実行する。このlive canaryでは、新roomが`5.0.0-alpha.2`、合法色がある誤申告のwrite-free拒否、CPUが有限手で進むこと、public snapshotに`hand`、`loadout`、palette、救済所持情報がないこと、canary roomの終了を確認する。旧`5.0.0-alpha.1`の継続、救済カード後の彩色、正申告と同一action再送はengine/unit/browser gateで別に確認し、live canaryの実測結果として過大記録しない。
+2. mainをfast-forwardし、online app/style v36とCPU commentary v2をPagesへ先行公開する。公開commit/run、HTTP 200、asset version、console warning/errorを記録する。
+3. Edge deployment 21のまま実対局でCOLOR応答UIを開く。宣言ボタンがなく、救済カード導線と明示的な投了が動作し、version、profile、handが一度だけ更新されることを確認する。
+4. `index.ts`と再生成済み`standard-engine.bundle.js`を追記せず全置換し、同じEdge deploymentへ同時反映する。次の成功versionは22を期待するが、失敗saveが番号を消費した場合は実際の成功versionと失敗履歴を記録する。
+5. 基本Edge canaryに加えて`node scripts/live-standard-color-response-canary.mjs --confirm-live`を実行する。このlive canaryでは、新roomが`5.0.0-alpha.2`、旧宣言が`NO_COLOR_DECLARATION_RETIRED`でwrite-free拒否されること、CPUが有限手で進むこと、public snapshotに`hand`、`loadout`、palette、救済所持情報がないこと、canary roomの終了を確認する。旧`5.0.0-alpha.1`の継続、救済カード後の彩色、blocked COLORからの明示的`SURRENDER`と同一action再送はengine/unit/browser gateで別に確認し、live canaryの実測結果として過大記録しない。
 6. `node scripts/live-standard-release-preflight.mjs --expect=candidate`と通常URLの新しいブラウザーで最終確認する。
 
-失敗時はEdgeをdeployment 20へ先に戻す。Pages v35はalpha.1互換なので残せる。Pagesも戻す場合は、必ずEdge復旧後に行う。
+失敗時はEdgeをdeployment 21へ先に戻す。Pages v36はdeployment 21と互換なので残せる。Pagesもv35へ戻す場合は、必ずEdge 21復旧後に行う。
 
 ### 通常のDB・Edge・Pages変更
 
@@ -176,7 +176,7 @@ T0から24時間未満で実行した場合は`CAPTURE_INTERVAL_UNDER_24_HOURS` 
 
 - DBは追加的migrationのため、その場で表や列をDROPしない。
 - `202609060003`適用後にPagesを戻す場合も、旧クライアントから未使用のavailability関数と索引は保持し、緊急時にDROPしない。Edgeはこの便で変更しない。
-- 共通COLOR応答窓便のEdge canary失敗時はEdgeをdeployment 20へ先に戻し、alpha.1互換のPages v35は残す。Pagesも戻す場合はEdge復旧後に行う。
+- 合法色なし宣言廃止便のEdge canary失敗時はEdgeをdeployment 21へ先に戻し、互換性のあるPages v36は残す。Pagesもv35へ戻す場合はEdge 21復旧後に行う。
 - Pages canary失敗時は既知の公開commitへ戻し、追加DBは未使用のまま残す。
 - 二重精算、private漏えい、相手の誤表示、ルーム二重成立が1件でもあれば野良/CPU導線を公開しない。
 - 復旧後も、失敗内容、影響範囲、確認済みデータ、未確認事項を記録する。

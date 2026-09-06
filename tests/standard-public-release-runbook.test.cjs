@@ -7,7 +7,7 @@ const test = require("node:test");
 
 const runbook = fs.readFileSync(path.join(__dirname, "..", "docs", "STANDARD_PUBLIC_RELEASE_RUNBOOK.md"), "utf8");
 
-test("release runbook fixes migration history and the COLOR response Pages-first exception", () => {
+test("release runbook fixes migration history and the retired-declaration Pages-first exception", () => {
   const migrationSection = runbook.slice(runbook.indexOf("## DB適用順序"), runbook.indexOf("## EdgeとPagesの順序"));
   const releaseSection = runbook.slice(runbook.indexOf("## EdgeとPagesの順序"), runbook.indexOf("## 段階canary"));
   let previous = -1;
@@ -32,11 +32,11 @@ test("release runbook fixes migration history and the COLOR response Pages-first
   const database = releaseSection.indexOf("DB 18本とcandidate verification 72/72を確認する");
   const pages = releaseSection.indexOf("StandardオンラインPagesを公開");
   assert.ok(database >= 0 && pages > database);
-  const pagesV35 = releaseSection.indexOf("Pages v35");
-  const edge21 = releaseSection.indexOf("Edge deployment 21", pagesV35);
-  const colorCanary = releaseSection.indexOf("専用COLOR canary", edge21);
-  assert.ok(pagesV35 >= 0 && edge21 > pagesV35 && colorCanary > edge21);
-  for (const phrase of ["5.0.0-alpha.1", "5.0.0-alpha.2", "--expect=candidate", "index.ts", "standard-engine.bundle.js", "Edgeをdeployment 20へ先に戻す"]) {
+  const pagesV36 = releaseSection.indexOf("Pages v36");
+  const edge22 = releaseSection.indexOf("Edge deployment 22", pagesV36);
+  const colorCanary = releaseSection.indexOf("専用COLOR canary", edge22);
+  assert.ok(pagesV36 >= 0 && edge22 > pagesV36 && colorCanary > edge22);
+  for (const phrase of ["5.0.0-alpha.1", "5.0.0-alpha.2", "NO_COLOR_DECLARATION_RETIRED", "--expect=candidate", "index.ts", "standard-engine.bundle.js", "Edgeをdeployment 21へ先に戻す"]) {
     assert.match(releaseSection, new RegExp(phrase.replaceAll(".", "\\.")));
   }
   assert.match(runbook, /PagesをDBより先に公開しない/);
@@ -53,7 +53,7 @@ test("release gates cover human, CPU, persistence, privacy, load, and safe rollb
   }
   assert.match(runbook, /p_dry_run=true/);
   assert.match(runbook, /その場で表や列をDROPしない/);
-  assert.match(runbook, /Edge canary失敗時はEdgeをdeployment 20へ先に戻し/);
+  assert.match(runbook, /Edge canary失敗時はEdgeをdeployment 21へ先に戻し/);
   assert.match(runbook, /live-standard-legal-recolor-lab-canary\.mjs --confirm-live/);
   assert.match(runbook, /index\.ts.*standard-engine\.bundle\.js.*同じdeployment/);
 });

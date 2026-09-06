@@ -31,6 +31,7 @@ const ids = [
   "standard-v5/terminal-reveal.js",
   "standard-v5/app.js",
 ];
-const modules = ids.map((id) => `${JSON.stringify(id)}:function(require,module,exports){\n${fs.readFileSync(path.join(root, id), "utf8")}\n}`).join(",\n");
+const readModule = (id) => fs.readFileSync(path.join(root, id), "utf8").replace(/\r\n?/g, "\n");
+const modules = ids.map((id) => `${JSON.stringify(id)}:function(require,module,exports){\n${readModule(id)}\n}`).join(",\n");
 const runtime = `"use strict";(()=>{const modules={${modules}};const cache={};function normalize(parts){const out=[];for(const part of parts){if(!part||part===".")continue;if(part==="..")out.pop();else out.push(part);}return out.join("/");}function load(id){if(cache[id])return cache[id].exports;if(!modules[id])throw new Error("Unknown module: "+id);const module={exports:{}};cache[id]=module;const base=id.split("/").slice(0,-1);const localRequire=(request)=>{const resolved=request.startsWith(".")?normalize([...base,...request.split("/")]):request;return load(resolved);};modules[id](localRequire,module,module.exports);return module.exports;}load("standard-v5/app.js").boot();})();\n`;
 fs.writeFileSync(path.join(root, "standard-v5", "app.bundle.js"), runtime, "utf8");

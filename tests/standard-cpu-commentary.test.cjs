@@ -54,10 +54,29 @@ test("CPU commentary roster stays aligned with all ten playable CPU characters",
   assert.equal(Object.isFrozen(commentary.CPU_VOICES), true);
   for (const id of commentary.CPU_CHARACTER_IDS) {
     const voice = commentary.CPU_VOICES[id];
-    for (const key of ["ambient", "skill", "pressure", "threatened", "opponentSkill", "win", "loss"]) {
+    for (const key of ["ambient", "skill", "pressure", "threatened", "opponentSkill", "win", "loss", "noColorLoss"]) {
       assert.ok(voice[key]?.length, `${id}.${key}`);
     }
   }
+});
+
+test("CPU no-color surrender keeps SURRENDER as the result and explains its public COLOR context", () => {
+  const state = finishedState({ winner: "A", terminalReason: "SURRENDER", contactColorCount: 3, version: 12 });
+  state.lastPublicTrace.version = 11;
+  state.lastPublicTrace.eventId = `${state.matchId}:11`;
+  const kurogane = commentary.chooseCpuCommentary({ characterId: "kurogane", publicState: state });
+  assert.equal(kurogane.reason, "SURRENDER");
+  assert.match(kurogane.text, /まさか合法色がない……だと……！？/);
+  assert.match(kurogane.text, /自分で投了/);
+
+  const yuzu = commentary.chooseCpuCommentary({ characterId: "yuzu", publicState: state });
+  assert.match(yuzu.text, /ミスったー！！/);
+
+  const ordinary = commentary.chooseCpuCommentary({
+    characterId: "kurogane",
+    publicState: finishedState({ winner: "A", terminalReason: "SURRENDER", contactColorCount: null, version: 12 }),
+  });
+  assert.doesNotMatch(ordinary.text, /合法色/);
 });
 
 test("notable confirmed actions select character-specific lines without gameplay RNG", () => {

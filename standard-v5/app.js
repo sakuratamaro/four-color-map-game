@@ -794,25 +794,14 @@ function boot() {
     const publicState = session.getPublicProjection();
     const phase = publicState.phase;
     if (phase === "COLOR" && targetMode === null) {
-      const details = document.createElement("details");
-      details.className = "no-color-response";
-      const summary = document.createElement("summary");
+      const guidance = document.createElement("section");
+      guidance.className = "no-color-response";
+      const summary = document.createElement("strong");
       summary.textContent = "塗れる色が見つからないとき";
       const explanation = document.createElement("p");
-      explanation.id = "noColorExplanation";
-      explanation.textContent = "色操作カードで打開できる場合があります。カードを使うなら先に下の一覧へ。サーバーの確認が通ると、あなたの敗北で対戦が終了します。";
-      const declare = document.createElement("button");
-      declare.type = "button";
-      declare.className = "danger declare-no-color";
-      declare.textContent = "サーバーに「塗れる色なし」と申告";
-      declare.setAttribute("aria-describedby", explanation.id);
-      suppressRepeatedActivation(declare);
-      declare.onclick = () => {
-        if (controlGeneration !== interactionGeneration || !declare.isConnected) return;
-        dispatch("DECLARE_NO_COLOR", {});
-      };
-      details.append(summary, explanation, declare);
-      privatePanel.appendChild(details);
+      explanation.textContent = "まず色操作カードで打開できるか確認してください。打開できない場合も自動では敗北しません。自分で決めたときに下の「投了」を押してください。";
+      guidance.append(summary, explanation);
+      privatePanel.appendChild(guidance);
     }
     const usedBoardColors = [...new Set(Object.values(publicState.regions).map((region) => region.color).filter((color) => Object.hasOwn(COLOR_NAMES, color)))];
     if (own.hand.colorRandomBorrow > 0) appendButton("色拾い・乱", targetMode !== null || phase !== "COLOR", () => dispatch("USE_SKILL", { skill: "colorRandomBorrow" }));

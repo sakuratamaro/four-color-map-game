@@ -66,7 +66,9 @@ test("a real CREATE opens a response window where prism can rescue the receiver 
   assert.equal(colored.ok, true);
   assert.deepEqual([colored.state.status, colored.state.phase, colored.state.version], ["ACTIVE", "WORK", 3]);
 
-  const voluntary = match.applyStandardAction({ state: created.state, actor: "B", action: { type: "DECLARE_NO_COLOR" }, expectedVersion: 1 });
-  assert.equal(voluntary.ok, true, "rescue cards remain optional for a human declaration");
-  assert.deepEqual([voluntary.state.status, voluntary.state.winner, voluntary.state.terminalReason], ["FINISHED", "A", "NO_LEGAL_COLOR"]);
+  const retired = match.applyStandardAction({ state: created.state, actor: "B", action: { type: "DECLARE_NO_COLOR" }, expectedVersion: 1 });
+  assert.deepEqual([retired.ok, retired.code, retired.state], [false, "NO_COLOR_DECLARATION_RETIRED", created.state]);
+  const voluntary = match.applyStandardAction({ state: created.state, actor: "B", action: { type: "SURRENDER" }, expectedVersion: 1 });
+  assert.equal(voluntary.ok, true, "the blocked player decides whether to surrender after considering rescue cards");
+  assert.deepEqual([voluntary.state.status, voluntary.state.winner, voluntary.state.terminalReason], ["FINISHED", "A", "SURRENDER"]);
 });

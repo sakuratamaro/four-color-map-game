@@ -812,7 +812,7 @@ function observeCommittedContact(state) {
 
 function cpuCommentaryContext(state) {
   const characterId = roomModel?.room?.cpu_character_id;
-  if (roomModel?.room?.opponent_kind !== "cpu" || !state || cpuCommentary?.VERSION !== "standard-cpu-commentary-v1"
+  if (roomModel?.room?.opponent_kind !== "cpu" || !state || cpuCommentary?.VERSION !== "standard-cpu-commentary-v2"
     || !cpuCommentary.CPU_CHARACTER_IDS.includes(characterId)) return null;
   return { characterId, cpuSeat: "B", name: CPU_NAMES[characterId], publicState: state };
 }
@@ -1866,8 +1866,12 @@ function renderQuizQuestion(question) {
   } else if (descriptor.kind === "matrix-determinant") {
     math.append(mathNode("mi", "det"), mathMatrix(descriptor.rows));
   } else if (descriptor.kind === "matrix-product") {
-    if (descriptor.prefix) math.append(mathNode("mtext", descriptor.prefix), mathNode("mspace"));
-    math.append(mathMatrix(descriptor.left), mathNode("mo", "×"), mathMatrix(descriptor.right));
+    if (descriptor.prefix === "tr") {
+      math.append(mathNode("mi", "tr"), mathNode("mo", "("), mathMatrix(descriptor.left), mathNode("mo", "×"), mathMatrix(descriptor.right), mathNode("mo", ")"));
+    } else {
+      if (descriptor.prefix) math.append(mathNode("mtext", descriptor.prefix), mathNode("mspace"));
+      math.append(mathMatrix(descriptor.left), mathNode("mo", "×"), mathMatrix(descriptor.right));
+    }
   } else if (descriptor.kind === "system") {
     const table = mathNode("mtable");
     for (const line of descriptor.lines || []) {
@@ -1939,8 +1943,18 @@ function updateQuizClock() {
   const total = quizQuestionLimitMs(question);
   const hintRemaining = Math.max(0, Number(state?.hintActiveUntil || 0) - now);
   const remaining = Math.max(0, Number(state?.remainingMs || 0));
-  $("quizTimer").textContent = hintRemaining > 0 ? `ヒント ${Math.ceil(hintRemaining / 1000)}秒` : `残り ${Math.ceil(remaining / 1000)}秒`;
+  const remainingSeconds = Math.ceil(remaining / 1000);
+  $("quizTimer").textContent = hintRemaining > 0 ? `ヒント ${Math.ceil(hintRemaining / 1000)}秒` : `残り ${remainingSeconds}秒`;
   $("quizTimer").classList.toggle("urgent", hintRemaining === 0 && remaining <= 10_000);
+  const discreteAnnouncement = hintRemaining > 0 ? null : remaining <= 0 ? "時間切れです" : remainingSeconds === 10 ? "残り10秒です" : null;
+  if (discreteAnnouncement) {
+    const announcement = $("quizTimerAnnouncement");
+    const announceKey = `${pendingQuiz.sessionId || "quiz"}:${pendingQuiz.answers.length}:${remainingSeconds}`;
+    if (announcement.dataset.announceKey !== announceKey) {
+      announcement.dataset.announceKey = announceKey;
+      announcement.textContent = discreteAnnouncement;
+    }
+  }
   const percent = Math.max(0, Math.min(100, remaining / total * 100));
   $("quizTimeBar").style.width = `${percent}%`;
   $("quizTimeBar").parentElement.setAttribute("aria-valuenow", String(Math.round(percent)));
@@ -3476,7 +3490,6 @@ function renderBasicActions(state, privateState) {
   const colorResponseScope = canRespondToColor ? `${state.matchId}:${state.version}:${seat}:${state.pending}` : null;
   if (!canRespondToColor) {
     observedColorResponseScope = null;
-    $("noColorResponse").open = false;
   } else if (colorResponseScope !== observedColorResponseScope) {
     observedColorResponseScope = colorResponseScope;
     if (!initialHydrationPending) requestAnimationFrame(() => {
@@ -3492,7 +3505,8 @@ function renderBasicActions(state, privateState) {
       button.disabled = actionBusy || sealed; button.onclick = () => sendAction("COLOR_REGION", { color }); palette.appendChild(button);
     }
   }
-  $("declareNoColor").disabled = actionBusy || !canRespondToColor;
+  $("showColorSkills").disabled = actionBusy || !canRespondToColor;
+  $("colorSurrender").disabled = actionBusy || !canRespondToColor;
   $("surrender").disabled = actionBusy || !myTurn;
   if (state.status === "FINISHED") {
     stopCpuTurnWatch();
@@ -3599,9 +3613,11 @@ async function sendAction(type, payload = {}, retry = false) {
     revealOperationFeedback("actionStatus");
     toast(safeMessage);
     await roomSync.refreshNow().catch(() => {});
-    if (type === "DECLARE_NO_COLOR" && error?.code === "COLOR_AVAILABLE") {
-      $("noColorResponse").open = false;
-      operationFeedback("actionStatus", "申告は成立しませんでした。使える色があります。持ち色か色操作カードを選んでください。手番・カードは減っていません。", "error");
+    if (type === "DECLARE_NO_COLOR" && ["COLOR_AVAILABLE", "NO_COLOR_DECLARATION_RETIRED"].includes(error?.code)) {
+      pendingAction = null;
+      operationFeedback("actionStatus", error.code === "NO_COLOR_DECLARATION_RETIRED"
+        ? "「塗れる色なし」だけで敗北する申告は廃止されました。色操作カードを確認し、自分で決めた場合は投了してください。手番・カードは減っていません。"
+        : "申告は成立しませんでした。使える色があります。持ち色か色操作カードを選んでください。手番・カードは減っていません。", "error");
       requestAnimationFrame(() => $("colorResponseHeading")?.focus({ preventScroll: true }));
     }
   } finally { actionBusy = false; render(); }
@@ -4553,21 +4569,18 @@ $("clearSelection").onclick = () => {
   render();
 };
 $("submitRegion").onclick = () => sendAction("CREATE_REGION", { sourceMacros: [...selectedMacros].sort((a, b) => a - b) });
-$("noColorResponse").addEventListener("toggle", () => {
-  if ($("noColorResponse").open) requestAnimationFrame(alignColorResponseAboveBattleChrome);
-});
 $("showColorSkills").onclick = () => {
   const target = [...$("skillControls").querySelectorAll("button[data-skill]:not(:disabled)")]
     .find((candidate) => SKILL_META[candidate.dataset.skill]?.category === "color");
   if (!target) {
-    operationFeedback("actionStatus", "今使える色操作カードは手札にありません。持ち色を再確認し、それでも塗れなければ申告か投了を選んでください。", "error");
+    operationFeedback("actionStatus", "今使える色操作カードは手札にありません。持ち色を再確認し、それでも塗れなければ自分で投了してください。", "error");
     revealOperationFeedback("actionStatus");
     return;
   }
   target.focus({ preventScroll: true });
   target.scrollIntoView({ block: "center", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
 };
-$("declareNoColor").onclick = () => sendAction("DECLARE_NO_COLOR", {});
+$("colorSurrender").onclick = () => sendAction("SURRENDER");
 $("surrender").onclick = () => sendAction("SURRENDER");
 $("retryAction").onclick = () => pendingAction && sendAction(pendingAction.type, pendingAction.payload, true);
 $("requestRematch").onclick = requestRematch;

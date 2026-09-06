@@ -65,7 +65,7 @@ function startServer() {
 }
 
 async function installHarness(context, metrics) {
-  await context.route(`**/standard-v5/app.bundle.js`, (route) => route.fulfill({
+  await context.route(`**/standard-v5/app.bundle.js*`, (route) => route.fulfill({
     status: 200,
     contentType: "application/javascript; charset=utf-8",
     body: instrumentedBundle,
@@ -197,22 +197,22 @@ async function installNoLegalColorState(page, { leaveLegalColor = false, keepPri
   return colors;
 }
 
-async function sessionDispatch(page, actionId) {
-  return page.evaluate((id) => globalThis.__codexStandardSession.dispatchAction({
+async function sessionDispatch(page, actionId, type = "SURRENDER") {
+  return page.evaluate(({ id, type }) => globalThis.__codexStandardSession.dispatchAction({
     actorSeat: "A",
-    type: "DECLARE_NO_COLOR",
+    type,
     payload: {},
     actionId: id,
-  }), actionId);
+  }), { id: actionId, type });
 }
 
-test("NO_LEGAL_COLOR browser session transaction gates", { skip: !chromium || !installedBrowserExecutable() }, async (t) => {
+test("blocked COLOR voluntary-surrender browser transaction gates", { skip: !chromium || !installedBrowserExecutable() }, async (t) => {
   const server = await startServer();
   let browser;
   try {
     browser = await chromium.launch({ headless: true, executablePath: installedBrowserExecutable() });
 
-    await t.test("correct declaration settles and reloads; wrong declaration is byte-stable", async () => {
+    await t.test("voluntary surrender settles and reloads; retired declaration is byte-stable", async () => {
       const { context, page, metrics } = await newMeasuredPage(browser);
       try {
         await bootToAColor(page);
@@ -225,7 +225,7 @@ test("NO_LEGAL_COLOR browser session transaction gates", { skip: !chromium || !i
         assert.equal(colors.every((color) => Object.values(beforeRoot.activeMatch.state.regions)
           .some((region) => region.id !== beforeRoot.activeMatch.state.pending && region.color === color)), true);
 
-        const action = await sessionDispatch(page, "declare-no-color-correct");
+        const action = await sessionDispatch(page, "blocked-color-surrender");
         assert.deepEqual({ ok: action.ok, status: action.status, code: action.code, saved: action.saved, finished: action.finished }, {
           ok: true, status: "RESOLVED", code: "OK", saved: true, finished: true,
         });
@@ -234,7 +234,7 @@ test("NO_LEGAL_COLOR browser session transaction gates", { skip: !chromium || !i
         const afterAction = audit(actionRoot);
         assert.equal(afterAction.rootRevision, before.rootRevision + 1);
         assert.equal(afterAction.matchVersion, before.matchVersion + 1);
-        assert.deepEqual([afterAction.status, afterAction.phase, afterAction.winner, afterAction.terminalReason], ["FINISHED", "GAME_OVER", "B", "NO_LEGAL_COLOR"]);
+        assert.deepEqual([afterAction.status, afterAction.phase, afterAction.winner, afterAction.terminalReason], ["FINISHED", "GAME_OVER", "B", "SURRENDER"]);
         assert.equal(afterAction.geometryHash, before.geometryHash);
         assert.equal(afterAction.rngHash, before.rngHash);
         assert.equal(afterAction.cardsHash, before.cardsHash);
@@ -248,7 +248,7 @@ test("NO_LEGAL_COLOR browser session transaction gates", { skip: !chromium || !i
         assert.deepEqual({ ok: settlement.ok, status: settlement.status, code: settlement.code, stage: settlement.projection.stage }, {
           ok: true, status: "SETTLED", code: "SETTLED", stage: "RESULT",
         });
-        assert.deepEqual([settlement.projection.winnerSeat, settlement.projection.terminalReason], ["B", "NO_LEGAL_COLOR"]);
+        assert.deepEqual([settlement.projection.winnerSeat, settlement.projection.terminalReason], ["B", "SURRENDER"]);
         const settledRoot = await persistedRoot(page);
         const settled = audit(settledRoot);
         assert.equal(settled.rootRevision, before.rootRevision + 2);
@@ -267,9 +267,9 @@ test("NO_LEGAL_COLOR browser session transaction gates", { skip: !chromium || !i
         const countersBeforeReload = { ...metrics };
         await page.reload({ waitUntil: "load" });
         await page.locator("#terminalWinner").getByText("Bob の勝利").waitFor();
-        assert.equal(await page.locator("#terminalHeadline").getByText("詰み！").count(), 1);
-        assert.equal(await page.locator("#terminalReason").getByText("Alice は塗れる色がありません。").count(), 1);
-        assert.equal(await page.getByText("NO_LEGAL_COLOR", { exact: true }).count(), 0);
+        assert.equal(await page.locator("#terminalHeadline").getByText("Bob の勝利").count(), 1);
+        assert.equal(await page.locator("#terminalReason").getByText("Alice が投了しました。").count(), 1);
+        assert.equal(await page.getByText("SURRENDER", { exact: true }).count(), 0);
         assert.equal(await persistedPayload(page), settledPayload);
         assert.deepEqual(metrics, countersBeforeReload);
 
@@ -278,9 +278,9 @@ test("NO_LEGAL_COLOR browser session transaction gates", { skip: !chromium || !i
         const wrongBeforePayload = await persistedPayload(page);
         const wrongBefore = audit(JSON.parse(wrongBeforePayload));
         const writesBeforeWrong = metrics.saveWrites;
-        const wrong = await sessionDispatch(page, "declare-no-color-wrong");
+        const wrong = await sessionDispatch(page, "retired-no-color-declaration", "DECLARE_NO_COLOR");
         assert.deepEqual({ ok: wrong.ok, status: wrong.status, code: wrong.code, saved: wrong.saved }, {
-          ok: false, status: "REJECTED", code: "COLOR_AVAILABLE", saved: false,
+          ok: false, status: "REJECTED", code: "NO_COLOR_DECLARATION_RETIRED", saved: false,
         });
         assert.equal(await persistedPayload(page), wrongBeforePayload);
         assert.deepEqual(audit(await persistedRoot(page)), wrongBefore);
@@ -290,7 +290,7 @@ test("NO_LEGAL_COLOR browser session transaction gates", { skip: !chromium || !i
       }
     });
 
-    await t.test("the real 390px response control declares, rejects safely, and never becomes a client oracle", async () => {
+    await t.test("the real 390px response offers rescue guidance and voluntary surrender without a legality oracle", async () => {
       const { context, page, metrics } = await newMeasuredPage(browser, { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
       try {
         await bootToAColor(page);
@@ -298,33 +298,29 @@ test("NO_LEGAL_COLOR browser session transaction gates", { skip: !chromium || !i
         assert.equal(await page.getByRole("button", { name: "サーバーに「塗れる色なし」と申告" }).count(), 0, "private declaration is absent before handover reveal");
         await page.getByRole("button", { name: "自分の情報を表示" }).click();
         const summary = page.getByText("塗れる色が見つからないとき", { exact: true });
-        await summary.click();
-        const declare = page.getByRole("button", { name: "サーバーに「塗れる色なし」と申告" });
-        assert.equal(await declare.getAttribute("aria-describedby"), "noColorExplanation");
-        assert.match(await page.locator("#noColorExplanation").textContent(), /確認が通ると、あなたの敗北/);
-        const [summaryBox, declareBox] = await Promise.all([summary.boundingBox(), declare.boundingBox()]);
-        assert.ok(summaryBox && summaryBox.height >= 44);
-        assert.ok(declareBox && declareBox.height >= 48);
+        await summary.waitFor();
+        assert.match(await page.locator(".no-color-response").textContent(), /自動では敗北しません.*自分で決めたとき.*投了/s);
+        assert.equal(await page.getByRole("button", { name: "サーバーに「塗れる色なし」と申告" }).count(), 0);
+        const surrender = page.getByRole("button", { name: "投了", exact: true });
+        const surrenderBox = await surrender.boundingBox();
+        assert.ok(surrenderBox && surrenderBox.height >= 44);
         assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
         const writesBefore = metrics.saveWrites;
-        await declare.click();
+        await surrender.click();
         await page.locator("#terminalWinner").getByText("Bob の勝利").waitFor();
         const settled = audit(await persistedRoot(page));
-        assert.deepEqual([settled.status, settled.phase, settled.winner, settled.terminalReason, settled.settled], ["FINISHED", "GAME_OVER", "B", "NO_LEGAL_COLOR", true]);
+        assert.deepEqual([settled.status, settled.phase, settled.winner, settled.terminalReason, settled.settled], ["FINISHED", "GAME_OVER", "B", "SURRENDER", true]);
         assert.equal(metrics.saveWrites, writesBefore + 2, "one action write plus one settlement write");
 
         await bootToAColor(page);
         await installNoLegalColorState(page, { leaveLegalColor: true });
         await page.getByRole("button", { name: "自分の情報を表示" }).click();
-        const wrongBefore = await persistedPayload(page);
+        const legalBefore = await persistedPayload(page);
         const writesBeforeWrong = metrics.saveWrites;
-        await page.getByText("塗れる色が見つからないとき", { exact: true }).click();
-        await page.getByRole("button", { name: "サーバーに「塗れる色なし」と申告" }).click();
-        await page.getByText(/申告は成立しませんでした。使える色があります。/).waitFor();
-        assert.equal(await persistedPayload(page), wrongBefore);
+        assert.equal(await page.getByRole("button", { name: "サーバーに「塗れる色なし」と申告" }).count(), 0);
+        assert.match(await page.locator(".no-color-response").textContent(), /自動では敗北しません/);
+        assert.equal(await persistedPayload(page), legalBefore);
         assert.equal(metrics.saveWrites, writesBeforeWrong);
-        assert.equal(await page.locator(".no-color-response").evaluate((details) => details.open), false);
-        assert.equal(await page.evaluate(() => document.activeElement?.classList.contains("private-title")), true);
       } finally {
         await context.close();
       }

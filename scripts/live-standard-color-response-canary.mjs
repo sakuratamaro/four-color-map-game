@@ -230,12 +230,12 @@ async function run() {
     && room.publicState?.engineVersion === EXPECTED_ENGINE_VERSION, { status: 200, data: room });
   assertPublicPrivacy("initial", room.publicState);
 
-  let wrongDeclarationChecked = false;
+  let retiredDeclarationChecked = false;
   let cpuSteps = 0;
   let consecutiveCpuSteps = 0;
   let maxConsecutiveCpuSteps = 0;
 
-  for (let step = 0; step < MAX_DRIVER_STEPS && !(wrongDeclarationChecked && cpuSteps > 0 && room.publicState?.active === "A"); step += 1) {
+  for (let step = 0; step < MAX_DRIVER_STEPS && !(retiredDeclarationChecked && cpuSteps > 0 && room.publicState?.active === "A"); step += 1) {
     activeStage = `driver step ${step + 1}`;
     assertPublicPrivacy(`step ${step + 1}`, room.publicState);
     if (room.publicState?.status === "FINISHED") break;
@@ -255,7 +255,7 @@ async function run() {
 
     consecutiveCpuSteps = 0;
     if (room.publicState?.active !== "A") throw new CanaryFailure("driver active seat", "INVALID_ACTIVE_SEAT");
-    if (room.publicState.phase === "COLOR" && !wrongDeclarationChecked) {
+    if (room.publicState.phase === "COLOR" && !retiredDeclarationChecked) {
       const beforeVersion = room.version;
       const beforePublic = JSON.stringify(room.publicState);
       const beforePrivate = JSON.stringify(room.privateState);
@@ -265,14 +265,14 @@ async function run() {
         roomId,
         action: action(beforeVersion, "DECLARE_NO_COLOR", {}, declarationId),
       });
-      check("available-color declaration rejected", !rejected.ok
+      check("alpha.2 no-color declaration is retired", !rejected.ok
         && rejected.status === 400
-        && rejected.data?.error?.code === "COLOR_AVAILABLE", rejected);
+        && rejected.data?.error?.code === "NO_COLOR_DECLARATION_RETIRED", rejected);
       room = await refreshRoom(session, roomId);
-      check("rejected declaration is write-free", room.version === beforeVersion
+      check("retired declaration is write-free", room.version === beforeVersion
         && JSON.stringify(room.publicState) === beforePublic
         && JSON.stringify(room.privateState) === beforePrivate);
-      wrongDeclarationChecked = true;
+      retiredDeclarationChecked = true;
     }
 
     const selected = chooseHumanAction(room);
@@ -286,7 +286,7 @@ async function run() {
     room = humanResult.data.room;
   }
 
-  check("COLOR_AVAILABLE path reached", wrongDeclarationChecked);
+  check("retired declaration path reached", retiredDeclarationChecked);
   check("bounded CPU path reached", cpuSteps > 0 && maxConsecutiveCpuSteps <= MAX_CONSECUTIVE_CPU_STEPS);
   assertPublicPrivacy("final playing", room.publicState);
 

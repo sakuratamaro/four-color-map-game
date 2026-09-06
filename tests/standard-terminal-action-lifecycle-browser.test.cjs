@@ -59,7 +59,7 @@ function startServer() {
 }
 
 async function installHarness(context) {
-  await context.route("**/standard-v5/app.bundle.js", (route) => route.fulfill({ status: 200, contentType: "application/javascript; charset=utf-8", body: instrumentedBundle }));
+  await context.route("**/standard-v5/app.bundle.js*", (route) => route.fulfill({ status: 200, contentType: "application/javascript; charset=utf-8", body: instrumentedBundle }));
   await context.addInitScript(({ key }) => {
     globalThis.__terminalMetrics = { actionAdapterCalls: 0, terminalWriteAttempts: 0, successfulTerminalWrites: 0, settlementCalls: 0, settlementWriteAttempts: 0, successfulSettlementWrites: 0, revealCalls: 0, contactRevealCalls: 0, generatedIds: 0 };
     globalThis.__terminalContactTimerCallbacks = [];

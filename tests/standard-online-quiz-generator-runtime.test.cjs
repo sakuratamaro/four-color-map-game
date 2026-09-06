@@ -52,19 +52,17 @@ test("quiz runtime extraction accepts LF and CRLF checkouts", () => {
   }
 });
 
-test("all eight story generators expose only the story descriptor before an answer", () => {
-  for (const level of [2, 3, 4, 5]) {
-    for (const selection of [8, 9]) {
-      const question = selectedPrompt(level, selection);
-      assert.deepEqual(question.math, { kind: "story" }, `${level}:${selection}:${question.templateId}`);
-      assert.ok(question.prompt.length > 0);
-      assert.equal(typeof question.answer, "number");
-    }
+test("story generators expose only the story descriptor before an answer", () => {
+  for (const [level, selection] of [[2, 8], [2, 9], [3, 8], [3, 9], [4, 8], [4, 9], [5, 6], [5, 8], [5, 9]]) {
+    const question = selectedPrompt(level, selection);
+    assert.deepEqual(question.math, { kind: "story" }, `${level}:${selection}:${question.templateId}`);
+    assert.ok(question.prompt.length > 0);
+    assert.equal(typeof question.answer, "number");
   }
 });
 
 test("all eight structured geometry generators keep dimensions and answers consistent", () => {
-  const cases = [[1, 5], [1, 7], [2, 5], [2, 6], [3, 5], [4, 5], [4, 6], [5, 6]];
+  const cases = [[1, 5], [1, 7], [2, 5], [2, 6], [3, 5], [4, 5], [4, 6]];
   const areaOrVolume = {
     rectangle: ({ width, height }) => width * height,
     cube: ({ side }) => side ** 3,
@@ -73,7 +71,6 @@ test("all eight structured geometry generators keep dimensions and answers consi
     circle: ({ radius }) => radius ** 2,
     trapezoid: ({ top, bottom, height }) => (top + bottom) * height / 2,
     cylinder: ({ radius, height }) => radius ** 2 * height,
-    cone: ({ radius, height }) => radius ** 2 * height / 3,
   };
   const seen = new Set();
   for (const [level, selection] of cases) {
@@ -90,14 +87,15 @@ test("three sigma generators and the sequence generator recompute to their answe
   const termFor = {
     sigma: (k) => k,
     "sigma-linear": (k) => 2 * k - 3,
-    "sigma-square": (k) => k ** 2 - 4,
+    "sigma-quadratic": (k, question) => question.math.coefficients.quadratic * k ** 2
+      + question.math.coefficients.linear * k + question.math.coefficients.constant,
   };
   for (const question of sigmas) {
     const { lower, upper } = question.math;
     let expected = 0;
-    for (let k = lower; k <= upper; k += 1) expected += termFor[question.templateId](k);
+    for (let k = lower; k <= upper; k += 1) expected += termFor[question.templateId](k, question);
     assert.equal(question.answer, expected, question.templateId);
-    assert.deepEqual([lower, upper], [1, 4]);
+    if (question.templateId !== "sigma-quadratic") assert.deepEqual([lower, upper], [1, 4]);
   }
 
   const sequence = selectedPrompt(4, 2);
@@ -118,30 +116,42 @@ test("quadratic asks visibly and semantically for the smaller root", () => {
 
 test("ten-question challenge keeps server answers separate from public questions", () => {
   const { createQuizChallenge } = loadQuizRuntime((minimum) => minimum);
-  const challenge = JSON.parse(JSON.stringify(createQuizChallenge(3)));
-  assert.equal(challenge.questions.length, 10);
-  assert.equal(challenge.answerIds.length, 10);
-  assert.equal(challenge.explanations.length, 10);
-  challenge.questions.forEach((question, index) => {
-    assert.equal("answer" in question, false);
-    assert.equal("correctId" in question, false);
-    assert.equal(question.options.length, 6);
-    assert.equal(question.options.some((option) => option.id === challenge.answerIds[index]), true);
-    assert.equal(question.options.some((option) => "isCorrect" in option), false);
-    assert.equal(typeof challenge.explanations[index], "string");
-    assert.ok(challenge.explanations[index].length > 0);
-    assert.equal(typeof question.mission, "string");
-    assert.ok(question.mission.length > 0);
-    assert.equal(typeof question.formatLabel, "string");
-    assert.ok(question.formatLabel.length > 0);
-    assert.ok([1, 2, 3].includes(question.thinkingSteps));
-  });
+  for (const level of [3, 5]) {
+    const challenge = JSON.parse(JSON.stringify(createQuizChallenge(level)));
+    assert.equal(challenge.questions.length, 10);
+    assert.equal(challenge.answerIds.length, 10);
+    assert.equal(challenge.explanations.length, 10);
+    challenge.questions.forEach((question, index) => {
+      assert.equal("answer" in question, false);
+      assert.equal("correctId" in question, false);
+      assert.equal(question.options.length, 6);
+      assert.equal(question.options.some((option) => option.id === challenge.answerIds[index]), true);
+      assert.equal(question.options.some((option) => "isCorrect" in option), false);
+      assert.equal(typeof challenge.explanations[index], "string");
+      assert.ok(challenge.explanations[index].length > 0);
+      assert.equal(typeof question.mission, "string");
+      assert.ok(question.mission.length > 0);
+      assert.equal(typeof question.formatLabel, "string");
+      assert.ok(question.formatLabel.length > 0);
+      assert.ok([1, 2, 3].includes(question.thinkingSteps));
+    });
+  }
 });
 
-test("level five advertises deeper thinking without shortening its clock", () => {
-  const { createQuizChallenge } = loadQuizRuntime((minimum) => minimum);
-  const levelFour = JSON.parse(JSON.stringify(createQuizChallenge(4))).questions;
-  const levelFive = JSON.parse(JSON.stringify(createQuizChallenge(5))).questions;
-  assert.equal(levelFive.every((question) => question.thinkingSteps === 3), true);
-  assert.ok(Math.min(...levelFive.map((question) => question.timeLimitSeconds)) >= Math.min(...levelFour.map((question) => question.timeLimitSeconds)));
+test("level five requires multi-step work instead of one-formula substitutions", () => {
+  const questions = Array.from({ length: 10 }, (_, selection) => selectedPrompt(5, selection));
+  assert.deepEqual(questions.map((question) => question.templateId), [
+    "matrix-trace", "sigma-quadratic", "committee-roles", "system-three", "determinant-three",
+    "integral-polynomial", "cylinder-minus-cone", "derivative-product", "paired-selection", "recurrence",
+  ]);
+  assert.deepEqual(questions.map((question) => question.answer), [196, 98, 1512, -15, 4, 28, 54, 80, 100, -123]);
+  assert.equal(questions.every((question) => question.timeLimitSeconds >= 52 && question.timeLimitSeconds <= 62), true);
+  assert.equal(questions[3].math.lines.length, 3);
+  assert.equal(questions[4].math.rows.length, 3);
+  assert.equal(questions[4].math.rows.every((row) => row.length === 3), true);
+  assert.match(questions[2].prompt, /委員長と副委員長/);
+  assert.match(questions[7].hint, /積の微分/);
+  const runtime = loadQuizRuntime((minimum) => minimum);
+  assert.equal(runtime.quizExperienceMeta(5, questions[0]).mission, "行列積の対角成分を求め、tr(AB)を計算しよう");
+  assert.equal(runtime.quizExperienceMeta(5, questions[3]).mission, "3つの式から x+y+z を求めよう");
 });

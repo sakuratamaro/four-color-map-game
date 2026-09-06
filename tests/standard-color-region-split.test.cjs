@@ -210,14 +210,14 @@ test("returning a split half opens the same blocked and sealed COLOR response wi
   assert.equal(blockedResult.state.pending, "R3");
   assert.equal(blockedResult.state.reserved, null);
   assert.equal(blockedSource.rng.die.snapshot(), blockedDie, "split response window does not roll the next die");
-  const blockedDeclared = match.applyStandardAction({
+  const blockedSurrendered = match.applyStandardAction({
     state: blockedResult.state,
     actor: "B",
-    action: { type: "DECLARE_NO_COLOR" },
+    action: { type: "SURRENDER" },
     expectedVersion: blockedResult.state.version,
   });
-  assert.equal(blockedDeclared.ok, true);
-  assert.deepEqual([blockedDeclared.state.status, blockedDeclared.state.phase, blockedDeclared.state.winner, blockedDeclared.state.terminalReason], ["FINISHED", "GAME_OVER", "A", "NO_LEGAL_COLOR"]);
+  assert.equal(blockedSurrendered.ok, true);
+  assert.deepEqual([blockedSurrendered.state.status, blockedSurrendered.state.phase, blockedSurrendered.state.winner, blockedSurrendered.state.terminalReason], ["FINISHED", "GAME_OVER", "A", "SURRENDER"]);
 
   const sealedSource = fixture();
   const sealed = split(sealedSource.state, [13], sealedSource.rng).state;
@@ -234,14 +234,14 @@ test("returning a split half opens the same blocked and sealed COLOR response wi
   assert.equal(sealedResult.state.version, sealed.version + 1);
   assert.equal(sealedResult.state.pending, "R3");
   assert.equal(sealedResult.state.reserved, null);
-  const sealedDeclared = match.applyStandardAction({
+  const sealedSurrendered = match.applyStandardAction({
     state: sealedResult.state,
     actor: "B",
-    action: { type: "DECLARE_NO_COLOR" },
+    action: { type: "SURRENDER" },
     expectedVersion: sealedResult.state.version,
   });
-  assert.equal(sealedDeclared.ok, true);
-  assert.deepEqual([sealedDeclared.state.status, sealedDeclared.state.phase, sealedDeclared.state.winner, sealedDeclared.state.terminalReason], ["FINISHED", "GAME_OVER", "A", "SEALED_OUT"]);
+  assert.equal(sealedSurrendered.ok, true);
+  assert.deepEqual([sealedSurrendered.state.status, sealedSurrendered.state.phase, sealedSurrendered.state.winner, sealedSurrendered.state.terminalReason], ["FINISHED", "GAME_OVER", "A", "SURRENDER"]);
 });
 
 test("an alpha.1 split return preserves the legacy automatic no-color terminal", () => {
@@ -268,9 +268,10 @@ test("an alpha.1 split return preserves the legacy automatic no-color terminal",
   );
 });
 
-test("split halves preserve SEALED_OUT and NO_LEGAL_COLOR declaration semantics", () => {
+test("legacy split halves preserve SEALED_OUT and NO_LEGAL_COLOR declaration semantics", () => {
   const noColorSource = fixture();
   const noColor = split(noColorSource.state, [13], noColorSource.rng).state;
+  noColor.engineVersion = match.LEGACY_ENGINE_VERSION;
   const onlyColor = noColor.basicPalettes.A[0];
   noColor.publicEffects.A.seals = Object.fromEntries(engine.COLORS.filter((color) => color !== onlyColor).map((color) => [color, 1]));
   noColor.regions.R4 = {
@@ -301,6 +302,7 @@ test("split halves preserve SEALED_OUT and NO_LEGAL_COLOR declaration semantics"
     expectedVersion: sealedSplit.version,
     rngStreams: sealedSource.rng,
   }).state;
+  returned.engineVersion = match.LEGACY_ENGINE_VERSION;
   returned.publicEffects.B.seals = Object.fromEntries(engine.COLORS.map((color) => [color, 1]));
   const sealedOut = match.applyStandardAction({
     state: returned,

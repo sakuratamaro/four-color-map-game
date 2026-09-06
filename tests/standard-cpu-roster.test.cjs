@@ -71,7 +71,7 @@ test("changing the opponent private state cannot alter a character decision", ()
 });
 
 test("character CPU rescue behavior is partitioned by the match engine version", () => {
-  const character = roster.CPU_CHARACTERS.yuzu;
+  const character = roster.CPU_CHARACTERS.ren;
   const current = match.createStandardMatch({ matchId: "rescue-policy", firstSeat: "A", loadouts: { A: character.loadout, B: character.loadout } }, streams(88));
   const usable = [...current.basicPalettes.A, current.bonusColors.A];
   current.phase = "COLOR";
@@ -91,6 +91,8 @@ test("character CPU rescue behavior is partitioned by the match engine version",
     tieBreakRandom: () => 0,
   });
   assert.equal(choose(current).type, "USE_SKILL", "alpha.2 CPU tries a private rescue card first");
+  current.hands.A = {};
+  assert.equal(choose(current).type, "SURRENDER", "alpha.2 CPU voluntarily surrenders only after no rescue remains");
   const legacy = JSON.parse(JSON.stringify(current));
   legacy.engineVersion = match.LEGACY_ENGINE_VERSION;
   assert.equal(choose(legacy).type, "DECLARE_NO_COLOR", "alpha.1 replay retains the old deterministic decision");

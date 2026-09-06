@@ -32,8 +32,8 @@ test("live COLOR-response canary covers the new engine, authoritative rejection,
   assert.match(source, /operation: "initialize"/);
   assert.match(source, /operation: "cpu-action"/);
   assert.match(source, /"DECLARE_NO_COLOR"/);
-  assert.match(source, /error\?\.code === "COLOR_AVAILABLE"/);
-  assert.match(source, /rejected declaration is write-free/);
+  assert.match(source, /error\?\.code === "NO_COLOR_DECLARATION_RETIRED"/);
+  assert.match(source, /retired declaration is write-free/);
   assert.match(source, /JSON\.stringify\(room\.publicState\) === beforePublic/);
   assert.match(source, /JSON\.stringify\(room\.privateState\) === beforePrivate/);
   assert.match(source, /CPU action advances exactly once/);

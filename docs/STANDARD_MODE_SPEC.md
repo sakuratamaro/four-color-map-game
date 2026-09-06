@@ -53,7 +53,18 @@ encodeStandardMatch(state, rngSnapshot)
 decodeStandardMatch(payload)
 ```
 
-Only `CREATE_FIRST`, `COLOR`, `WORK`, and `GAME_OVER` are engine phases. `HANDOVER`, `MODAL`, `TARGET_SELECT`, `QUIZ`, `GACHA`, and `CPU_THINKING` are UI/session states. Quiz, gacha, and loadout editing are outside a match. Minimum engine action intents are `CREATE_REGION`, `COLOR_REGION`, `USE_SKILL`, `DECLARE_NO_COLOR`, and `SURRENDER`; `DECLARE_NO_COLOR` is internal/CPU validation only, while the player-facing control is simply `投了`. Accepted actions increase version by exactly one; rejected actions change no state, version, RNG, card, active seat, or phase.
+Only `CREATE_FIRST`, `COLOR`, `WORK`, and `GAME_OVER` are engine phases. `HANDOVER`, `MODAL`, `TARGET_SELECT`, `QUIZ`, `GACHA`, and `CPU_THINKING` are UI/session states. Quiz, gacha, and loadout editing are outside a match. Current alpha.2 action intents are `CREATE_REGION`, `COLOR_REGION`, `USE_SKILL`, and `SURRENDER`. `DECLARE_NO_COLOR` exists only to decode and finish already-started alpha.1 matches; alpha.2 rejects it atomically with `NO_COLOR_DECLARATION_RETIRED`. Accepted actions increase version by exactly one; rejected actions change no state, version, RNG, card, active seat, or phase.
+
+### No-legal-color response contract
+
+- Entering `COLOR` without a currently usable legal color never ends an alpha.2 match automatically.
+- The pending region, active seat, version, cards, and RNG stay intact until the player sends an accepted action.
+- A human may use an eligible color rescue card or explicitly press `投了`. The UI must not expose a no-color declaration or an adjacency/legal-color oracle.
+- A CPU tries an eligible color rescue action first. If none exists, it sends the same authoritative `SURRENDER` action used by a human; the terminal reason remains `SURRENDER`.
+- Illegal `COLOR_REGION` remains the adjacent-same-color loss path. Board completion remains the ordinary board-lock win path.
+- Public CPU commentary may explain that its surrender followed an unresolved public `COLOR` response, but it must not inspect or reveal either player's private palette, hand, or hidden effects.
+- Current commentary infers that a CPU-loss `SURRENDER` with a still-pending public COLOR region followed failed rescue. If CPU policy later gains any other voluntary COLOR-phase surrender, add an explicit public terminal subtype before reusing that line; `pending` alone would then be ambiguous.
+- Old alpha.1 matches retain their frozen declaration semantics so an in-progress legacy match can complete without migration ambiguity.
 
 The authoritative match state explicitly owns `schemaVersion`, `engineVersion`, `mode`, `matchId`, `status`, `version`, `turn`, `active`, `phase`, `regions`, `pending`, `playableBounds`, `requiredSize`, `rolledSize`, `baseRequiredSize`, `basicPalettes`, `bonusColors`, `bonusUsesRemaining`, `hands`, `loadouts`, `publicEffects`, `privateEffects`, `interferenceLock`, `winner`, `terminalReason`, and `publicLog`.
 
@@ -245,8 +256,8 @@ The terminal-reason vocabulary has one canonical source: `standard/standard-matc
 | `ILLEGAL_COLOR` | `colorRegion`: submitted color equals an adjacent region color | An accepted color submission violates the four-color contact rule | Other seat | Yes, by the ordinary action transaction | Yes | Always false | None | Color button | `standard-illegal-color-browser-terminal.test.cjs` | `接色違反です` |
 | `BOARD_LOCK` | `colorRegion`: after a legal color, `bestLegalSize` returns 0 | The accepted color leaves no legal next region size | Acting seat | Yes, by the ordinary action transaction | Yes | True only when every playable macro is occupied and every region is colored/non-pending | Winner may unlock `fullPaint`, `fullPaint3`, and/or `noSkillFullPaint` after settlement | Color button | `standard-match.test.cjs`; `standard-root-transaction.test.cjs` | `盤面が完成しました` when `mapCompleteWin=true`; otherwise `これ以上エリアを作れません` |
 | `SURRENDER` | `surrender` | Active player selects `投了` | Other seat | Yes, by the ordinary action transaction | Yes | Always false | None | `投了` button | `standard-settlement-inflight-browser.test.cjs`; `standard-local-two-player.test.cjs` | `{loserName} が投了しました` |
-| `SEALED_OUT` | `declareNoColor`: `availableColors` is empty | During COLOR, the active seat has no usable palette color | Other seat | Yes, by the ordinary action transaction | Yes | Always false | None | No player-facing control; internal/CPU validation only | Engine path covered by `standard-match.test.cjs`; product browser route remains open | `{loserName} は使える色がありません` |
-| `NO_LEGAL_COLOR` | `declareNoColor`: usable colors exist but every one is blocked by adjacent colors | During COLOR, the active seat has no legal color for the pending region | Other seat | Yes, by the ordinary action transaction | Yes | Always false | None | No player-facing control; internal/CPU validation only | `standard-no-color-browser-terminal.test.cjs` | `{loserName} は塗れる色がありません` |
+| `SEALED_OUT` | Legacy alpha.1 `declareNoColor`: `availableColors` is empty | In an alpha.1 COLOR response, the active seat has no usable palette color | Other seat | Yes, by the ordinary action transaction | Yes | Always false | None | Legacy compatibility only; alpha.2 uses rescue or `SURRENDER` | Legacy engine plus historical presentation coverage | `{loserName} は使える色がありません` |
+| `NO_LEGAL_COLOR` | Legacy alpha.1 `declareNoColor`: usable colors exist but every one is blocked by adjacent colors | In an alpha.1 COLOR response, the active seat has no legal color for the pending region | Other seat | Yes, by the ordinary action transaction | Yes | Always false | None | Legacy compatibility only; alpha.2 uses rescue or `SURRENDER` | Legacy engine plus historical presentation coverage | `{loserName} は塗れる色がありません` |
 
 Player names in terminal copy come only from immutable match-start `displayNameSnapshot` values. Seat IDs are the fail-closed fallback when a valid public snapshot is absent. Current UI strings that expose raw reason IDs are transitional and are not the accepted public presentation.
 

@@ -5,7 +5,7 @@
 })(typeof globalThis !== "undefined" ? globalThis : this, function standardCpuCommentaryFactory() {
   "use strict";
 
-  const VERSION = "standard-cpu-commentary-v1";
+  const VERSION = "standard-cpu-commentary-v2";
   const MIN_ACTIVE_VERSION_GAP = 4;
   const ACTIVE_TRACE_TYPES = Object.freeze(["CREATE_REGION", "COLOR_REGION", "USE_SKILL", "LEGAL_RECOLOR"]);
   const TERMINAL_REASONS = Object.freeze(["ILLEGAL_COLOR", "BOARD_LOCK", "SURRENDER", "SEALED_OUT", "NO_LEGAL_COLOR"]);
@@ -19,6 +19,7 @@
       opponentSkill: "そのカード、ここで使うんですね！",
       win: "えへへ、うまくいきました！",
       loss: "あっ、そこで決まっちゃいましたか……！",
+      noColorLoss: "ミスったー！！ 塗れる色が見つかりません！",
     },
     ren: {
       ambient: ["考えるより先に、盤面を取る！", "次だ次、止まってる暇はない！"],
@@ -28,6 +29,7 @@
       opponentSkill: "ここで切るのか。やるな！",
       win: "よし、俺の勝ちだ！",
       loss: "しまった……！ 今回は俺の負けだ。",
+      noColorLoss: "くそっ、塗れる色がない！ ここは俺の投了だ！",
     },
     minato: {
       ambient: ["この形、教本で見た気がします！", "一手ずつ覚えていきます！"],
@@ -37,6 +39,7 @@
       opponentSkill: "その使い方、勉強になります！",
       win: "この勝ち筋、覚えておきます！",
       loss: "うう、まだ修行不足です……。",
+      noColorLoss: "塗れる色がありません……参りました！",
     },
     koharu: {
       ambient: ["次の色は……たぶん、これ！", "読み筋はばっちりです。たぶん！"],
@@ -46,6 +49,7 @@
       opponentSkill: "そのカードは……読んでませんでした！",
       win: "読みは当たってました！ たぶん！",
       loss: "これは一本取られました……見事です。",
+      noColorLoss: "えっ、合法色がゼロ！？ 読み違えました！",
     },
     aoi: {
       ambient: ["一手ずつ、確かめましょう。", "急がなくても、道は見えてきます。"],
@@ -55,6 +59,7 @@
       opponentSkill: "その一枚も、盤面に織り込みましょう。",
       win: "一手ずつ確かめた甲斐がありました。",
       loss: "その一手までは読めませんでした。",
+      noColorLoss: "打開できる色がありません。ここで投了します。",
     },
     kai: {
       ambient: ["勝負は流れだ。乗っていこうぜ！", "安全牌だけじゃ、地図は取れないぜ。"],
@@ -64,6 +69,7 @@
       opponentSkill: "いい度胸だ、その勝負買った！",
       win: "この勝負、もらったぜ！",
       loss: "今回は俺の負けだ。次は当てるぜ！",
+      noColorLoss: "合法色なしとは大外れだ！ 今回は投了するぜ！",
     },
     tsubasa: {
       ambient: ["地図は動かしてこそ面白い！", "この形、もうひとひねりできそうだ。"],
@@ -73,6 +79,7 @@
       opponentSkill: "へえ、盤面をそう動かすんだ！",
       win: "よし、決まった！ いい勝負だった！",
       loss: "やられた！ 面白い形だったよ。",
+      noColorLoss: "仕掛けに夢中で色がない！ 参った、投了だ！",
     },
     shion: {
       ambient: ["その手、覚えておきます。", "公開された手には、必ず跡が残ります。"],
@@ -82,6 +89,7 @@
       opponentSkill: "そのタイミング……覚えておきます。",
       win: "公開された手を追った結果です。",
       loss: "見事です。今回は私の負けですね。",
+      noColorLoss: "確認しました。合法色はゼロです。投了します。",
     },
     rei: {
       ambient: ["組み合わせには、すべて理由があります。", "カードは使う順番までが戦略ですよ。"],
@@ -91,6 +99,7 @@
       opponentSkill: "そのカード運用、興味深いですね。",
       win: "この勝ち筋にも、きちんと理由があります。",
       loss: "なるほど……研究し直します。",
+      noColorLoss: "どの組み合わせでも救えませんね。投了します。",
     },
     kurogane: {
       ambient: ["盤面も色も、すべて読んでみせよう。", "勝ち筋は、もう地図に描かれている。"],
@@ -100,6 +109,7 @@
       opponentSkill: "その一手、盤面の景色を変えたな。",
       win: "俺の四色美技に酔いな！",
       loss: "見事だ……完敗だ。",
+      noColorLoss: "まさか合法色がない……だと……！？ 俺の投了だ。",
     },
   };
 
@@ -145,9 +155,10 @@
     return trace;
   }
 
-  function terminalReasonHint({ reason, cpuWon, trace }) {
+  function terminalReasonHint({ reason, cpuWon, trace, groundedNoColorSurrender }) {
     const ours = cpuWon ? "あなた" : "こちら";
-    if (reason === "SURRENDER") return cpuWon ? "あなたの投了で決着しました。" : "こちらの投了で決着しました。";
+    if (reason === "SURRENDER") return cpuWon ? "あなたの投了で決着しました。"
+      : groundedNoColorSurrender ? "こちらは塗れる色を打開できず、自分で投了しました。" : "こちらの投了で決着しました。";
     if (reason === "BOARD_LOCK") return cpuWon ? "これ以上エリアを作れない盤面にして決着しました。" : "これ以上エリアを作れない盤面にされ、決着しました。";
     if (reason === "ILLEGAL_COLOR") return `${ours}の接色禁止違反が勝敗を決めました。`;
     if (reason === "SEALED_OUT") return `色封じで${ours}の使える色が0色になりました。`;
@@ -163,12 +174,26 @@
     return "公開された盤面で決着しました。";
   }
 
+  function previousCreateTrace(publicState) {
+    const trace = publicState?.lastPublicTrace;
+    if (!trace || trace.type !== "CREATE_REGION"
+      || !hasExactKeys(trace, ["actor", "contactColorCount", "eventId", "regionId", "sourceMacroCount", "type", "version"])
+      || !Number.isSafeInteger(publicState?.version) || trace.version !== publicState.version - 1
+      || trace.eventId !== `${publicState.matchId}:${trace.version}` || trace.regionId !== publicState.pending
+      || trace.actor !== publicState.winner || typeof trace.regionId !== "string" || trace.regionId.length === 0
+      || !Number.isSafeInteger(trace.sourceMacroCount) || trace.sourceMacroCount < 1 || trace.sourceMacroCount > 5
+      || !Number.isSafeInteger(trace.contactColorCount) || trace.contactColorCount < 0 || trace.contactColorCount > 4) return null;
+    return trace;
+  }
+
   function terminalEvent(publicState, cpuSeat) {
     if (publicState?.status !== "FINISHED" || !["A", "B"].includes(publicState.winner)
       || !TERMINAL_REASONS.includes(publicState.terminalReason) || typeof publicState.matchId !== "string" || publicState.matchId.length === 0
       || !Number.isSafeInteger(publicState.version) || publicState.version < 1) return null;
-    const candidateTrace = validPublicTrace(publicState);
-    const trace = publicState.terminalReason === "NO_LEGAL_COLOR"
+    const candidateTrace = validPublicTrace(publicState) || previousCreateTrace(publicState);
+    const groundedNoColorSurrender = publicState.terminalReason === "SURRENDER" && publicState.winner !== cpuSeat
+      && typeof publicState.pending === "string" && publicState.pending.length > 0;
+    const trace = (publicState.terminalReason === "NO_LEGAL_COLOR" || groundedNoColorSurrender)
       && candidateTrace?.type === "CREATE_REGION"
       && candidateTrace.actor === publicState.winner
       && publicState.pending === candidateTrace.regionId ? candidateTrace : null;
@@ -180,6 +205,7 @@
       reason: publicState.terminalReason,
       cpuWon,
       trace,
+      groundedNoColorSurrender,
     });
   }
 
@@ -223,7 +249,8 @@
     if (terminal) {
       const groundedKuroganeLoss = characterId === "kurogane" && !event.cpuWon
         && event.reason === "NO_LEGAL_COLOR" && event.trace;
-      const lead = groundedKuroganeLoss ? "なんと見事なエリア選択……完敗だ。" : event.cpuWon ? voice.win : voice.loss;
+      const lead = event.groundedNoColorSurrender ? voice.noColorLoss
+        : groundedKuroganeLoss ? "なんと見事なエリア選択……完敗だ。" : event.cpuWon ? voice.win : voice.loss;
       text = `${lead} ${terminalReasonHint(event)}`;
     } else if (event.kind === "opponent-skill") text = voice.opponentSkill;
     else if (event.kind === "ambient") text = voice.ambient[hashText(`${event.sourceEventId}:${characterId}`) % voice.ambient.length];

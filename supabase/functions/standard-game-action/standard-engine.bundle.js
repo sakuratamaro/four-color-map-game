@@ -2533,6 +2533,7 @@ function surrender(state, actor) {
 }
 
 function declareNoColor(state, actor) {
+  assertState(state.engineVersion === LEGACY_ENGINE_VERSION, "NO_COLOR_DECLARATION_RETIRED");
   assertState(state.active === actor, "NOT_YOUR_TURN");
   assertState(state.phase === "COLOR", "WRONG_PHASE");
   assertState(Boolean(noColorTerminalReason(state, actor)), "COLOR_AVAILABLE");
@@ -2991,13 +2992,12 @@ function enumerateCpuActions(observation) {
     const colorActions = enumerateColorActions(publicState, ownPrivateState);
     const skillActions = enumerateColorSkillActions(publicState, ownPrivateState, true);
     const rescueActions = skillActions.filter((action) => action.metrics.rescue > 0);
+    const blockedCount = new Set(adjacentRegionIds(publicState, publicState.pending).map((id) => publicState.regions[id]?.color).filter(Boolean)).size;
     actions = colorActions.length
       ? [...colorActions, ...skillActions]
       : rescueActions.length
         ? rescueActions
-        : skillActions.length
-          ? skillActions
-        : [{ type: "DECLARE_NO_COLOR", payload: {}, metrics: { blockedCount: new Set(adjacentRegionIds(publicState, publicState.pending).map((id) => publicState.regions[id]?.color).filter(Boolean)).size } }];
+        : [{ type: "SURRENDER", payload: {}, metrics: { blockedCount, noLegalColor: true } }];
   }
   else if (publicState.phase === "CREATE_FIRST" || publicState.phase === "WORK") actions = [...enumerateRegionActions(publicState), ...enumerateWorkSkillActions(publicState, ownPrivateState)];
   if (!actions.length) actions = [{ type: "SURRENDER", payload: {}, metrics: { fallback: true } }];

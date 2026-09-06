@@ -17,7 +17,8 @@ const ids = [
   "standard/standard-cpu-roster.js",
 ];
 
-const modules = ids.map((id) => `${JSON.stringify(id)}:function(require,module,exports){\n${fs.readFileSync(path.join(root, id), "utf8")}\n}`).join(",\n");
+const readModule = (id) => fs.readFileSync(path.join(root, id), "utf8").replace(/\r\n?/g, "\n");
+const modules = ids.map((id) => `${JSON.stringify(id)}:function(require,module,exports){\n${readModule(id)}\n}`).join(",\n");
 const entry = String.raw`
 const engine = load("standard/standard-engine.js");
 const match = load("standard/standard-match.js");

@@ -32,12 +32,16 @@ function acknowledgedQuiz(pattern, selectedLevel = 4) {
 }
 
 test("online quiz shows a persisted per-question timer and pauses it for one short hint", () => {
-  for (const id of ["quizTimer", "quizTimeBar", "quizHint", "quizHintText"]) assert.match(html, new RegExp(`id="${id}"`));
+  for (const id of ["quizTimer", "quizTimerAnnouncement", "quizTimeBar", "quizHint", "quizHintText"]) assert.match(html, new RegExp(`id="${id}"`));
+  assert.match(html, /id="quizTimer"[^>]+aria-live="off"/);
+  assert.match(html, /id="quizTimerAnnouncement"[^>]+role="status"[^>]+aria-live="polite"[^>]+aria-atomic="true"/);
   assert.match(app, /function settleQuizClock/);
   assert.match(app, /hintActiveUntil > now/);
   assert.match(app, /state\.hintUsed = true/);
   assert.match(app, /hintDurationMs \|\| 3500/);
   assert.match(app, /QUIZ_TIMEOUT_ANSWER/);
+  assert.match(app, /remainingSeconds === 10 \? "残り10秒です"/);
+  assert.match(app, /announcement\.dataset\.announceKey !== announceKey/);
 });
 
 test("hints mix one useful formula with decoys without identifying the useful one", () => {
@@ -74,9 +78,11 @@ test("question choices drift inside fixed glowing click targets and honor reduce
 
 test("question catalog includes formatted higher math, geometry, solids, and Japanese word problems", () => {
   for (const template of [
-    "sigma", "derivative-monomial", "integral-linear", "integral-quadratic",
-    "rectangle-area", "triangle-area", "cylinder-volume", "cone-volume",
-    "crane-turtle", "work-rate", "newton-flow", "newton-workers", "catch-up",
+    "sigma", "derivative-monomial", "integral-linear", "integral-polynomial",
+    "rectangle-area", "triangle-area", "cylinder-volume", "cylinder-minus-cone",
+    "crane-turtle", "work-rate", "newton-flow", "catch-up", "matrix-trace",
+    "sigma-quadratic", "system-three", "determinant-three", "derivative-product",
+    "committee-roles", "paired-selection", "recurrence",
   ]) assert.match(edge, new RegExp(`"${template}"`));
   for (const kind of ["sum", "integral", "derivative", "matrix-determinant"]) assert.match(app, new RegExp(`descriptor\\.kind === "${kind}"`));
   assert.match(app, /MATHML_NS/);
@@ -123,7 +129,7 @@ test("quiz outlook uses only contiguous server-acknowledged answers and mirrors 
 
 test("word problems keep their calculation hidden until the explicit hint", () => {
   const storyLines = edge.split("\n").filter((line) => /kind: "story"/.test(line));
-  assert.equal(storyLines.length, 8);
+  assert.equal(storyLines.length, 9);
   for (const line of storyLines) {
     assert.doesNotMatch(line, /kind: "story",\s*value:/);
   }
@@ -133,12 +139,15 @@ test("word problems keep their calculation hidden until the explicit hint", () =
 
 test("area and volume questions use allowlisted dimension diagrams without formulas", () => {
   assert.match(html, /<div id="quizQuestion" class="quiz-question"><\/div>/);
-  for (const shape of ["rectangle", "cube", "triangle", "cuboid", "circle", "trapezoid", "cylinder", "cone"]) {
+  for (const shape of ["rectangle", "cube", "triangle", "cuboid", "circle", "trapezoid", "cylinder"]) {
     assert.match(edge, new RegExp(`shape: "${shape}"`));
     assert.match(app, new RegExp(`descriptor\\.shape === "${shape}"`));
   }
+  assert.doesNotMatch(edge, /shape: "cone"/);
+  assert.match(edge, /"cylinder-minus-cone"/);
+  assert.match(app, /descriptor\.shape === "cone"/, "legacy finished questions remain renderable");
   const diagramLines = edge.split("\n").filter((line) => /kind: "geometry", shape:/.test(line));
-  assert.equal(diagramLines.length, 8);
+  assert.equal(diagramLines.length, 7);
   for (const line of diagramLines) assert.doesNotMatch(line, /\bvalue:|\bsuffix:/);
   assert.match(app, /document\.createElementNS\(SVG_NS/);
   assert.doesNotMatch(app, /quiz-geometry[\s\S]{0,300}innerHTML/);
@@ -164,9 +173,9 @@ test("only overflowing quiz math receives a persistent horizontal position bar",
   assert.match(css, /\.quiz-math-scroll\{[^}]*overflow-x:auto/);
   assert.match(css, /\.quiz-question \.quiz-math-scroll math\{[^}]*white-space:nowrap/);
   assert.match(css, /\.quiz-overflow-scrollbar\[hidden\]\{display:none\}/);
-  assert.match(html, /style\.css\?v=20260906-35/);
-  assert.match(html, /standard-online-client\.js\?v=20260906-18/);
-  assert.match(html, /app\.js\?v=20260906-35/);
+  assert.match(html, /style\.css\?v=20260906-36/);
+  assert.match(html, /standard-online-client\.js\?v=20260906-19/);
+  assert.match(html, /app\.js\?v=20260906-36/);
 });
 
 test("per-question feedback is server-acknowledged, retryable, brief in motion, and followed by an optional review", () => {

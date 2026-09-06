@@ -67,7 +67,7 @@ function startServer() {
 }
 
 async function installHarness(context) {
-  await context.route("**/standard-v5/app.bundle.js", (route) => route.fulfill({
+  await context.route("**/standard-v5/app.bundle.js*", (route) => route.fulfill({
     status: 200,
     contentType: "application/javascript; charset=utf-8",
     body: instrumentedBundle,
@@ -210,20 +210,6 @@ async function installReasonState(page, reason) {
       R2: { id: "R2", micro: macroMicroCells(last), sourceMacros: [last], controllers: ["B"], color: null, isPending: true },
     };
     state.pending = "R2";
-  } else if (reason === "NO_LEGAL_COLOR") {
-    const colors = [...state.basicPalettes.A, state.bonusColors.A];
-    state.regions.R1.color = colors[0];
-    state.regions.R3 = regionForMacro("R3", 25, colors[1]);
-    state.regions.R4 = regionForMacro("R4", 27, colors[2]);
-    state.hands.A.colorPrism = 0;
-    rootValue.profiles.playerA.inventory.colorPrism = 0;
-    rootValue.reservations.playerA.colorPrism = 0;
-    state.lastPublicTrace = null;
-  } else if (reason === "SEALED_OUT") {
-    state.publicEffects.A.seals = { red: 1, blue: 1, yellow: 1, green: 1 };
-    state.hands.A.colorPrism = 0;
-    rootValue.profiles.playerA.inventory.colorPrism = 0;
-    rootValue.reservations.playerA.colorPrism = 0;
   }
   standardMatch.validateStandardState(state);
   standardSave.validateStandardSave(rootValue);
@@ -233,24 +219,6 @@ async function installReasonState(page, reason) {
   await page.getByText(/Turn 3・Player A・COLOR/).waitFor();
   await page.getByRole("button", { name: "自分の情報を表示" }).click();
   return { color };
-}
-
-async function addDeclarationControl(page) {
-  return page.evaluate(() => {
-    const button = document.createElement("button");
-    button.type = "button";
-    button.id = "terminalMatrixDeclare";
-    button.textContent = "塗れる色なしを宣言（テスト入力）";
-    button.onclick = () => globalThis.__terminalMatrixDispatch("DECLARE_NO_COLOR");
-    button.onkeydown = (event) => {
-      if (event.repeat && (event.key === "Enter" || event.key === " ")) {
-        event.preventDefault();
-        event.stopPropagation();
-      }
-    };
-    document.querySelector("#privatePanel").appendChild(button);
-    return true;
-  });
 }
 
 async function activate(control, page, gesture) {
@@ -270,9 +238,6 @@ async function triggerReason(page, reason, gesture, color) {
   else if (reason === "ILLEGAL_COLOR" || reason === "BOARD_LOCK") {
     const colorName = { red: "赤", blue: "青", yellow: "黄", green: "緑" }[color];
     control = page.getByRole("button", { name: colorName, exact: true }).first();
-  } else {
-    await addDeclarationControl(page);
-    control = page.locator("#terminalMatrixDeclare");
   }
   await activate(control, page, gesture);
 }
@@ -293,14 +258,12 @@ const cases = Object.freeze([
   { reason: "ILLEGAL_COLOR", winner: "B", gesture: "pointer", headline: "接色違反！", reasonText: "Alice が接色禁止に違反しました。" },
   { reason: "BOARD_LOCK", winner: "A", gesture: "Enter", headline: "完塗り勝利！", reasonText: "盤面をすべて塗り切りました。" },
   { reason: "SURRENDER", winner: "B", gesture: " ", headline: "Bob の勝利", reasonText: "Alice が投了しました。" },
-  { reason: "SEALED_OUT", winner: "B", gesture: "pointer", headline: "色封じによる詰み！", reasonText: "Alice は使える色がありません。" },
-  { reason: "NO_LEGAL_COLOR", winner: "B", gesture: "Enter", headline: "詰み！", reasonText: "Alice は塗れる色がありません。" },
 ]);
 const reasonFilter = process.env.STANDARD_TERMINAL_REASON || "";
 const selectedCases = reasonFilter ? cases.filter((entry) => entry.reason === reasonFilter) : cases;
 if (reasonFilter && selectedCases.length !== 1) throw new Error(`UNKNOWN_STANDARD_TERMINAL_REASON_FILTER:${reasonFilter}`);
 
-test("all five terminal reasons persist, present, settle, lock input, and reload exactly once", { skip: !chromium || !browserExecutable() }, async (t) => {
+test("supported terminal reasons persist, present, settle, lock input, and reload exactly once", { skip: !chromium || !browserExecutable() }, async (t) => {
   const { server, baseUrl } = await startServer();
   t.after(() => server.close());
   const terminalActionIds = new Set();
@@ -344,7 +307,7 @@ test("all five terminal reasons persist, present, settle, lock input, and reload
         const loser = entry.winner === "A" ? "B" : "A";
         assert.equal(afterCounts[`losses${loser}`], beforeCounts[`losses${loser}`] + 1);
         assert.equal(afterMetrics.actionCalls, beforeMetrics.actionCalls + 1);
-        assert.deepEqual(afterMetrics.actionTypes.slice(beforeMetrics.actionTypes.length), [entry.reason === "SURRENDER" ? "SURRENDER" : entry.reason === "ILLEGAL_COLOR" || entry.reason === "BOARD_LOCK" ? "COLOR_REGION" : "DECLARE_NO_COLOR"]);
+        assert.deepEqual(afterMetrics.actionTypes.slice(beforeMetrics.actionTypes.length), [entry.reason === "SURRENDER" ? "SURRENDER" : "COLOR_REGION"]);
         assert.equal(afterMetrics.totalSaveWrites, beforeMetrics.totalSaveWrites + 2);
         assert.equal(afterMetrics.terminalWrites, beforeMetrics.terminalWrites + 1);
         assert.equal(afterMetrics.settlementWrites, beforeMetrics.settlementWrites + 1);

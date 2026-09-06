@@ -654,6 +654,7 @@ function surrender(state, actor) {
 }
 
 function declareNoColor(state, actor) {
+  assertState(state.engineVersion === LEGACY_ENGINE_VERSION, "NO_COLOR_DECLARATION_RETIRED");
   assertState(state.active === actor, "NOT_YOUR_TURN");
   assertState(state.phase === "COLOR", "WRONG_PHASE");
   assertState(Boolean(noColorTerminalReason(state, actor)), "COLOR_AVAILABLE");

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <title>Four Color Map Game v5.0 Standard Online</title>
   <link rel="stylesheet" href="../online-v5/style.css">
-  <link rel="stylesheet" href="style.css?v=20260906-35">
+  <link rel="stylesheet" href="style.css?v=20260906-36">
   <link rel="stylesheet" href="debug-mode.css">
   <link rel="stylesheet" href="progression.css">
 </head>
@@ -88,7 +88,8 @@
         <button id="quizStart" class="primary">10問チャレンジ開始</button>
       </div>
       <div id="quizPlay" class="quiz-play hidden">
-        <div class="row between quiz-meta"><strong id="quizProgress">1 / 10</strong><span id="quizLevelBadge" class="badge"></span><strong id="quizStreak" class="quiz-streak hidden" data-tier="0"></strong><strong id="quizTimer" class="quiz-timer" aria-live="polite">残り --秒</strong></div>
+        <div class="row between quiz-meta"><strong id="quizProgress">1 / 10</strong><span id="quizLevelBadge" class="badge"></span><strong id="quizStreak" class="quiz-streak hidden" data-tier="0"></strong><strong id="quizTimer" class="quiz-timer" aria-live="off">残り --秒</strong></div>
+        <span id="quizTimerAnnouncement" class="visually-hidden" role="status" aria-live="polite" aria-atomic="true"></span>
         <div id="quizOutlook" class="quiz-outlook" role="group" aria-label="回答と報酬の途中経過" aria-live="off">
           <div class="quiz-outlook-row"><strong id="quizConfirmedProgress">採点済み履歴 0/0正解</strong><span id="quizRewardPreview">見込み Lv.1券1枚（未確定）</span></div>
           <p id="quizRewardTarget">次：5連続まであと5（5枚）｜10問後にサーバーが確定・保存</p>
@@ -318,13 +319,14 @@
       <section id="colorResponse" class="color-response hidden" aria-labelledby="colorResponseHeading">
         <h3 id="colorResponseHeading" tabindex="-1">この灰色エリアへの応答</h3>
         <div id="paletteControls" class="controls"></div>
-        <p class="muted small">持ち色で塗れないときも、色操作カードで打開できる場合があります。</p>
-        <details id="noColorResponse" class="no-color-response">
-          <summary>塗れる色が見つからないとき</summary>
-          <p id="noColorExplanation">色操作カードで打開できる場合があります。サーバーの確認が通ると、あなたの敗北で対戦が終了します。</p>
-          <button id="showColorSkills" class="ghost" type="button">色操作カードを見る</button>
-          <button id="declareNoColor" class="danger" type="button" aria-describedby="noColorExplanation">サーバーに「塗れる色なし」と申告</button>
-        </details>
+        <div id="colorRescueGuide" class="no-color-response">
+          <strong>塗れる色が見つからないとき</strong>
+          <p id="colorRescueExplanation">まず色操作カードで打開できるか確認してください。打開できない場合も自動では敗北せず、自分で投了するまで手番が続きます。</p>
+          <div class="controls">
+            <button id="showColorSkills" class="ghost" type="button">色操作カードを見る</button>
+            <button id="colorSurrender" class="danger" type="button" aria-describedby="colorRescueExplanation">敗北として投了する</button>
+          </div>
+        </div>
       </section>
       <p id="actionStatus" class="muted operation-feedback" role="status" aria-live="polite" aria-atomic="true"></p>
       <button id="retryAction" class="primary hidden">同じ操作を再送</button>
@@ -433,10 +435,10 @@
     </form>
   </dialog>
   <div id="toast" role="status" aria-live="polite"></div>
-  <script src="standard-online-client.js?v=20260906-18"></script>
+  <script src="standard-online-client.js?v=20260906-19"></script>
   <script src="standard-online-sync.js"></script>
   <script src="standard-online-skill-intents.js?v=20260906-17"></script>
-  <script src="cpu-commentary.js?v=20260906-1"></script>
-  <script type="module" src="app.js?v=20260906-35"></script>
+  <script src="cpu-commentary.js?v=20260906-2"></script>
+  <script type="module" src="app.js?v=20260906-36"></script>
 </body>
 </html>

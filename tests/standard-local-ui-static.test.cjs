@@ -21,7 +21,7 @@ const responsiveBrowserGate = fs.readFileSync(path.join(root, "tests", "standard
 const contactPressureBrowserGate = fs.readFileSync(path.join(root, "tests", "standard-contact-pressure-browser.test.cjs"), "utf8");
 
 test("local alpha has a bundled offline entry point", () => {
-  assert.match(html, /app\.bundle\.js/);
+  assert.match(html, /app\.bundle\.js\?v=20260906-2/);
   for (const id of ["profileA", "profileB", "firstPlayer", "startMatch", "handover", "privatePanel", "resultPanel"]) {
     assert.match(html, new RegExp(`id="${id}"`));
   }
@@ -137,15 +137,16 @@ test("illegal-color terminal instrumentation remains test-owned", () => {
   assert.doesNotMatch(`${html}\n${app}\n${bundle}`, /__codexFailNextSettlementWrite|forced-settlement-write-failure/);
 });
 
-test("no-color session hook remains test-owned while the product exposes a server-authoritative declaration", () => {
+test("no-color session hook remains test-owned while the product exposes only voluntary surrender", () => {
   assert.match(noColorBrowserGate, /globalThis\.__codexStandardSession = session/);
   assert.match(noColorBrowserGate, /context\.route/);
-  assert.match(noColorBrowserGate, /DECLARE_NO_COLOR/);
   assert.doesNotMatch(`${html}\n${app}\n${bundle}`, /__codexStandardSession/);
   assert.match(app, /phase === "COLOR" && targetMode === null/);
-  assert.match(app, /dispatch\("DECLARE_NO_COLOR", \{\}\)/);
-  assert.match(app, /サーバーに「塗れる色なし」と申告/);
-  assert.match(app, /explanation\.id = "noColorExplanation"[\s\S]+aria-describedby", explanation\.id/);
+  assert.match(app, /打開できない場合も自動では敗北しません/);
+  assert.match(app, /下の「投了」を押してください/);
+  assert.doesNotMatch(app, /右の「投了」/);
+  assert.doesNotMatch(app, /dispatch\("DECLARE_NO_COLOR", \{\}\)|サーバーに「塗れる色なし」と申告/);
+  assert.match(app, /surrender\.onclick = \(\) => dispatch\("SURRENDER"\)/);
   assert.match(bundle, /LEGACY_ENGINE_VERSION/);
 });
 

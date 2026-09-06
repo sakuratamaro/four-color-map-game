@@ -205,7 +205,7 @@ test("contact pressure counts edges only and ignores corner, pending, uncolored,
   assert.equal(Object.hasOwn(rejected, "contactColorCount"), false);
 });
 
-test("entering COLOR opens a response window before NO_LEGAL_COLOR is declared", () => {
+test("entering blocked COLOR stays active until the player explicitly surrenders", () => {
   const state = create(4522);
   const microFor = (macro) => {
     const col = macro % 12;
@@ -230,12 +230,14 @@ test("entering COLOR opens a response window before NO_LEGAL_COLOR is declared",
   assert.equal(result.state.version, 1);
   assert.equal(result.state.pending, "R4");
   assert.equal(result.contactColorCount, 3);
-  const declared = match.applyStandardAction({ state: result.state, actor: "B", action: { type: "DECLARE_NO_COLOR" }, expectedVersion: 1 });
-  assert.equal(declared.ok, true);
-  assert.deepEqual([declared.state.status, declared.state.phase, declared.state.winner, declared.state.terminalReason, declared.state.version], ["FINISHED", "GAME_OVER", "A", "NO_LEGAL_COLOR", 2]);
+  const retired = match.applyStandardAction({ state: result.state, actor: "B", action: { type: "DECLARE_NO_COLOR" }, expectedVersion: 1 });
+  assert.deepEqual([retired.ok, retired.code, retired.state.version], [false, "NO_COLOR_DECLARATION_RETIRED", 1]);
+  const surrendered = match.applyStandardAction({ state: result.state, actor: "B", action: { type: "SURRENDER" }, expectedVersion: 1 });
+  assert.equal(surrendered.ok, true);
+  assert.deepEqual([surrendered.state.status, surrendered.state.phase, surrendered.state.winner, surrendered.state.terminalReason, surrendered.state.version], ["FINISHED", "GAME_OVER", "A", "SURRENDER", 2]);
 });
 
-test("entering COLOR opens a response window before SEALED_OUT is declared", () => {
+test("entering fully sealed COLOR stays active until the player explicitly surrenders", () => {
   const state = create(4523);
   state.phase = "WORK";
   state.requiredSize = 1;
@@ -250,9 +252,11 @@ test("entering COLOR opens a response window before SEALED_OUT is declared", () 
   assert.deepEqual([result.state.status, result.state.active, result.state.phase, result.state.winner, result.state.terminalReason], ["ACTIVE", "B", "COLOR", null, null]);
   assert.equal(result.state.version, 1);
   assert.equal(result.state.pending, "R2");
-  const declared = match.applyStandardAction({ state: result.state, actor: "B", action: { type: "DECLARE_NO_COLOR" }, expectedVersion: 1 });
-  assert.equal(declared.ok, true);
-  assert.deepEqual([declared.state.status, declared.state.phase, declared.state.winner, declared.state.terminalReason, declared.state.version], ["FINISHED", "GAME_OVER", "A", "SEALED_OUT", 2]);
+  const retired = match.applyStandardAction({ state: result.state, actor: "B", action: { type: "DECLARE_NO_COLOR" }, expectedVersion: 1 });
+  assert.deepEqual([retired.ok, retired.code, retired.state.version], [false, "NO_COLOR_DECLARATION_RETIRED", 1]);
+  const surrendered = match.applyStandardAction({ state: result.state, actor: "B", action: { type: "SURRENDER" }, expectedVersion: 1 });
+  assert.equal(surrendered.ok, true);
+  assert.deepEqual([surrendered.state.status, surrendered.state.phase, surrendered.state.winner, surrendered.state.terminalReason, surrendered.state.version], ["FINISHED", "GAME_OVER", "A", "SURRENDER", 2]);
 });
 
 test("alpha.1 matches retain automatic no-color resolution for in-progress compatibility", () => {
@@ -301,19 +305,20 @@ test("turn-3 blue contact only defeats a yellow-green player when both alternati
   const trappedResult = match.applyStandardAction({ state: trapped, actor: "B", action: { type: "CREATE_REGION", payload: { sourceMacros: [14] } }, expectedVersion: 0 });
   assert.equal(JSON.stringify(trapped), before);
   assert.deepEqual([trappedResult.state.status, trappedResult.state.active, trappedResult.state.phase], ["ACTIVE", "A", "COLOR"]);
-  const trappedDeclared = match.applyStandardAction({ state: trappedResult.state, actor: "A", action: { type: "DECLARE_NO_COLOR" }, expectedVersion: 1 });
-  assert.deepEqual([trappedDeclared.state.status, trappedDeclared.state.winner, trappedDeclared.state.terminalReason], ["FINISHED", "B", "NO_LEGAL_COLOR"]);
+  const trappedSurrendered = match.applyStandardAction({ state: trappedResult.state, actor: "A", action: { type: "SURRENDER" }, expectedVersion: 1 });
+  assert.deepEqual([trappedSurrendered.state.status, trappedSurrendered.state.winner, trappedSurrendered.state.terminalReason], ["FINISHED", "B", "SURRENDER"]);
 
   const fullySealed = fixture();
   fullySealed.publicEffects.A.seals = { yellow: 1, green: 1, blue: 1 };
   const sealedResult = match.applyStandardAction({ state: fullySealed, actor: "B", action: { type: "CREATE_REGION", payload: { sourceMacros: [14] } }, expectedVersion: 0 });
   assert.deepEqual([sealedResult.state.status, sealedResult.state.active, sealedResult.state.phase], ["ACTIVE", "A", "COLOR"]);
-  const sealedDeclared = match.applyStandardAction({ state: sealedResult.state, actor: "A", action: { type: "DECLARE_NO_COLOR" }, expectedVersion: 1 });
-  assert.deepEqual([sealedDeclared.state.status, sealedDeclared.state.winner, sealedDeclared.state.terminalReason], ["FINISHED", "B", "SEALED_OUT"]);
+  const sealedSurrendered = match.applyStandardAction({ state: sealedResult.state, actor: "A", action: { type: "SURRENDER" }, expectedVersion: 1 });
+  assert.deepEqual([sealedSurrendered.state.status, sealedSurrendered.state.winner, sealedSurrendered.state.terminalReason], ["FINISHED", "B", "SURRENDER"]);
 });
 
-test("no-color declaration is accepted only when every usable color is blocked", () => {
+test("legacy no-color declaration remains accepted only when every usable color is blocked", () => {
   const state = create(452);
+  state.engineVersion = match.LEGACY_ENGINE_VERSION;
   const usable = [...state.basicPalettes.A, state.bonusColors.A];
   state.phase = "COLOR";
   state.pending = "R4";

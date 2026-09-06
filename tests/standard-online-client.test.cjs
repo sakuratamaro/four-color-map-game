@@ -396,12 +396,14 @@ test("FunctionsHttpError exposes only allowlisted finite rule errors and retry c
   assert.equal(unknownClientError.retryable, false);
   assert.doesNotMatch(unknownClientError.message, /database|service_role/i);
 
-  for (const code of ["ILLEGAL_COLOR", "REGION_NOT_CONNECTED", "WRONG_PHASE"]) {
+  for (const code of ["ILLEGAL_COLOR", "REGION_NOT_CONNECTED", "WRONG_PHASE", "NO_COLOR_DECLARATION_RETIRED"]) {
     const wrappedRuleError = await normalizeFunctionError({ code, message: privateMessage });
     assert.equal(wrappedRuleError.code, code);
     assert.equal(wrappedRuleError.httpStatus, 0);
     assert.equal(wrappedRuleError.retryable, false, code);
   }
+  const retiredDeclaration = await normalizeFunctionError({ code: "NO_COLOR_DECLARATION_RETIRED", message: privateMessage });
+  assert.match(retiredDeclaration.message, /申告は廃止されました.*投了/);
   for (const code of ["RATE_LIMITED", "SERVER_BUSY", "SERVER_ERROR"]) {
     const wrappedRetryableError = await normalizeFunctionError({ code, message: privateMessage });
     assert.equal(wrappedRetryableError.retryable, true, code);

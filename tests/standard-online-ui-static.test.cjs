@@ -44,13 +44,14 @@ test("Standard online setup UI exposes the complete reconnect path", () => {
   ]) assert.match(html, new RegExp(`id=["']${id}["']`));
   assert.match(html, /standard-online-client\.js/);
   assert.match(html, /standard-online-skill-intents\.js/);
-  assert.match(html, /cpu-commentary\.js\?v=20260906-1/);
+  assert.match(html, /cpu-commentary\.js\?v=20260906-2/);
   assert.match(html, /type="module" src="app\.js(?:\?v=[0-9-]+)?"/);
 });
 
 test("CPU commentary is public-event-only, bounded, non-blocking, and terminal-persistent", () => {
-  assert.match(html, /style\.css\?v=20260906-35/);
-  assert.match(html, /app\.js\?v=20260906-35/);
+  assert.match(html, /style\.css\?v=20260906-36/);
+  assert.match(html, /app\.js\?v=20260906-36/);
+  assert.match(app, /cpuCommentary\?\.VERSION !== "standard-cpu-commentary-v2"/);
   assert.ok(html.indexOf("cpu-commentary.js") < html.indexOf('type="module" src="app.js'));
   assert.match(html, /id="cpuCommentaryStage"[^>]+aria-hidden="true"/);
   assert.match(html, /id="cpuCommentaryAnnouncement"[^>]+role="status"[^>]+aria-live="polite"[^>]+aria-atomic="true"/);
@@ -461,6 +462,7 @@ test("server rule errors are safe, persistent, and never offered as an idempoten
   assert.match(clientSource, /context\?\.clone/);
   assert.match(clientSource, /typeof readable\?\.json === "function"/);
   assert.match(clientSource, /Object\.hasOwn\(PUBLIC_FUNCTION_ERRORS, rawCode\)/);
+  assert.match(clientSource, /NO_COLOR_DECLARATION_RETIRED: "「塗れる色なし」の申告は廃止されました/);
   assert.match(clientSource, /RETRYABLE_FUNCTION_ERROR_CODES\.has\(code\)/);
   assert.match(clientSource, /httpStatus === 0 && !knownCode/);
   const action = app.slice(app.indexOf("async function sendAction"), app.indexOf("async function syncSelectedProfile"));
@@ -614,21 +616,21 @@ test("private basic colors keep a readable text separator between visual swatche
   assert.match(app, /for \(const \[index, color\] of \(privateState\.basicPalette \|\| \[\]\)\.entries\(\)\) \{\s*if \(index\) \$\("basicPaletteValue"\)\.append\("・"\);\s*appendColorValue\(\$\("basicPaletteValue"\), color\);\s*\}/);
 });
 
-test("basic board actions and the no-color declaration are projection-bounded intents", () => {
+test("basic board actions keep blocked COLOR voluntary and projection-bounded", () => {
   assert.match(app, /roomModel\.room\.public_state/);
   assert.match(app, /roomModel\.view\?\.private_state/);
   assert.match(app, /sendAction\("CREATE_REGION", \{ sourceMacros:/);
   assert.match(app, /sendAction\("COLOR_REGION", \{ color \}\)/);
   assert.match(app, /sendAction\("SURRENDER"\)/);
-  assert.match(html, /id="colorResponse"[\s\S]+id="declareNoColor"[\s\S]+サーバーに「塗れる色なし」と申告/);
-  assert.match(html, /id="noColorExplanation"[\s\S]+id="showColorSkills"[\s\S]+色操作カードを見る[\s\S]+id="declareNoColor"[^>]+aria-describedby="noColorExplanation"/);
+  assert.match(html, /id="colorResponse"[\s\S]+id="colorRescueGuide"[\s\S]+自動では敗北せず[\s\S]+id="showColorSkills"[\s\S]+id="colorSurrender"[^>]+aria-describedby="colorRescueExplanation"/);
+  assert.doesNotMatch(html, /id="declareNoColor"|サーバーに「塗れる色なし」と申告/);
   assert.match(app, /canRespondToColor = myTurn && state\.phase === "COLOR" && !targetDraft/);
-  assert.match(app, /noColorResponse[\s\S]+addEventListener\("toggle"[\s\S]+alignColorResponseAboveBattleChrome/);
   assert.match(app, /showColorSkills[\s\S]+button\[data-skill\]:not\(:disabled\)[\s\S]+category === "color"[\s\S]+scrollIntoView/);
   assert.match(app, /if \(!initialHydrationPending\) requestAnimationFrame/);
-  assert.match(app, /持ち色を再確認し、それでも塗れなければ申告か投了/);
-  assert.match(app, /sendAction\("DECLARE_NO_COLOR", \{\}\)/);
-  assert.match(app, /error\?\.code === "COLOR_AVAILABLE"[\s\S]+手番・カードは減っていません/);
+  assert.match(app, /持ち色を再確認し、それでも塗れなければ自分で投了/);
+  assert.match(app, /colorSurrender[\s\S]+sendAction\("SURRENDER"\)/);
+  assert.doesNotMatch(app, /onclick = \(\) => sendAction\("DECLARE_NO_COLOR"/);
+  assert.match(app, /NO_COLOR_DECLARATION_RETIRED[\s\S]+申告は廃止されました[\s\S]+手番・カードは減っていません/);
   assert.doesNotMatch(app, /client\.submitAction\([^)]*(?:state|publicState|privateState)/);
 });
 

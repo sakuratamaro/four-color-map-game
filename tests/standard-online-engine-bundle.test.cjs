@@ -179,7 +179,7 @@ test("the bundle validates, applies, snapshots, and projects one authoritative a
   assert.equal(Object.hasOwn(applied, "candidates"), false);
 });
 
-test("generated server bundle opens a blocked response window and resolves only after declaration", () => {
+test("generated server bundle keeps a blocked response active until explicit surrender", () => {
   const api = loadApi();
   const created = api.create({ matchId: "online-no-color", loadouts, seed: 101, firstSeat: "A" });
   const state = created.state;
@@ -208,16 +208,24 @@ test("generated server bundle opens a blocked response window and resolves only 
   assert.equal(applied.ok, true);
   assert.equal(applied.finished, false);
   assert.deepEqual([applied.state.status, applied.state.active, applied.state.phase, applied.winnerSeat, applied.terminalReason, applied.state.version], ["ACTIVE", "B", "COLOR", null, null, 1]);
-  const declared = api.apply({
+  const retired = api.apply({
     state: applied.state,
     rngSnapshot: applied.rngSnapshot,
     actor: "B",
     expectedVersion: 1,
     action: { type: "DECLARE_NO_COLOR", payload: {} },
   });
-  assert.equal(declared.ok, true);
-  assert.equal(declared.finished, true);
-  assert.deepEqual([declared.winnerSeat, declared.terminalReason, declared.state.version], ["A", "NO_LEGAL_COLOR", 2]);
+  assert.deepEqual([retired.ok, retired.code], [false, "NO_COLOR_DECLARATION_RETIRED"]);
+  const surrendered = api.apply({
+    state: applied.state,
+    rngSnapshot: applied.rngSnapshot,
+    actor: "B",
+    expectedVersion: 1,
+    action: { type: "SURRENDER", payload: {} },
+  });
+  assert.equal(surrendered.ok, true);
+  assert.equal(surrendered.finished, true);
+  assert.deepEqual([surrendered.winnerSeat, surrendered.terminalReason, surrendered.state.version], ["A", "SURRENDER", 2]);
 
   const legacyState = JSON.parse(JSON.stringify(state));
   legacyState.engineVersion = "5.0.0-alpha.1";

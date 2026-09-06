@@ -69,7 +69,7 @@ function startServer() {
 }
 
 async function installHarness(context) {
-  await context.route("**/standard-v5/app.bundle.js", (route) => route.fulfill({
+  await context.route("**/standard-v5/app.bundle.js*", (route) => route.fulfill({
     status: 200,
     contentType: "application/javascript; charset=utf-8",
     body: instrumentedBundle,

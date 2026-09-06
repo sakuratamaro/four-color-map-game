@@ -284,7 +284,6 @@ async function installMock(context, mode) {
       failNextColorAction: false,
       failNextGacha: false,
       failNextQuizAnswer: false,
-      declareNoColorAllowed: false,
       failNextAbandonResponse: initialMode === "abandonLost" && sessionStorage.getItem("mock-standard-abandon-response-lost") !== id,
       abandonRpcIds: JSON.parse(sessionStorage.getItem("mock-standard-abandon-rpc-ids") || "[]"),
       advancedReadyConflictSent: false,
@@ -426,21 +425,28 @@ async function installMock(context, mode) {
             { templateId: "quadratic", category: "二次方程式", prompt: "x² − 5x + 6 = 0　小さい解は？", math: { kind: "expression", value: "x² − 5x + 6 = 0　　x = ?" } },
             ...Array.from({ length: 9 }, (_, index) => ({ templateId: "add", category: "たし算", prompt: `${index + 2} + 1 = ?`, math: { kind: "expression", value: `${index + 2} + 1 = ?` } })),
           ];
-          const sourceQuestions = initialMode === "quizPolish" ? polishQuestions : initialMode === "quizQuadratic" ? quadraticQuestions : Array.from({ length: 10 }, (_, index) => ({
+          const levelFiveQuestions = [
+            { templateId: "matrix-trace", category: "行列積とトレース", prompt: "A=[[2,3],[4,5]], B=[[6,7],[8,9]]　tr(AB) は？", mission: "行列積の対角成分を求め、tr(AB)を計算しよう", math: { kind: "matrix-product", left: [[2, 3], [4, 5]], right: [[6, 7], [8, 9]], prefix: "tr", suffix: "= ?" } },
+            { templateId: "system-three", category: "三元連立方程式", prompt: "x+y=5、2y+z=8、x−z=1 のとき x+y+z は？", mission: "3つの式から x+y+z を求めよう", math: { kind: "system", lines: ["x + y = 5", "2y + z = 8", "x − z = 1"], suffix: "x + y + z = ?" } },
+            ...Array.from({ length: 8 }, (_, index) => ({ templateId: "add", category: "たし算", prompt: `${index + 2} + 1 = ?`, math: { kind: "expression", value: `${index + 2} + 1 = ?` } })),
+          ];
+          const sourceQuestions = initialMode === "quizPolish" ? polishQuestions
+            : initialMode === "quizQuadratic" ? quadraticQuestions
+              : initialMode === "quizLevel5" ? levelFiveQuestions : Array.from({ length: 10 }, (_, index) => ({
             templateId: "add", category: "たし算", prompt: `${index + 1} + 1 = ?`, math: { kind: "expression", value: `${index + 1} + 1 = ?` },
           }));
           const questions = sourceQuestions.map((question, index) => ({
             number: index + 1,
             ...question,
-            mission: question.templateId === "quadratic"
+            mission: question.mission || (question.templateId === "quadratic"
               ? "式を整理して、小さい方の解を求めよう"
               : question.math?.kind === "story"
                 ? `条件を整理して、${question.category}の答えを求めよう`
                 : question.math?.kind === "geometry"
                   ? `図の寸法から${question.category}を求めよう`
-                  : "式を読み、「?」に入る数を求めよう",
+                  : "式を読み、「?」に入る数を求めよう"),
             formatLabel: question.math?.kind === "story" ? "文章を整理" : question.math?.kind === "geometry" ? "図を読む" : "ひらめき計算",
-            thinkingSteps: initialMode === "quizPolish" ? 3 : question.templateId === "quadratic" ? 2 : 1,
+            thinkingSteps: ["quizPolish", "quizLevel5"].includes(initialMode) ? 3 : question.templateId === "quadratic" ? 2 : 1,
             hintOptions: ["たし算：同じ位どうしを足す", "円の面積：S = πr²", "2次の行列式：det A = ad − bc"],
             hintDurationMs: 2500,
             timeLimitSeconds: initialMode === "handoffStart" ? 1 : 10,
@@ -615,12 +621,11 @@ async function installMock(context, mode) {
           runtime.failNextColorAction = false;
           return { error: new Error("simulated color network failure") };
         }
-        if (request.body.operation === "action" && initialMode === "colorResponse" && request.body.action?.type === "DECLARE_NO_COLOR") {
-          if (!runtime.declareNoColorAllowed) return functionError(400, "COLOR_AVAILABLE", "private authoritative_state and service secret");
+        if (request.body.operation === "action" && initialMode === "colorResponse" && request.body.action?.type === "SURRENDER") {
           const nextVersion = runtime.room.version + 1;
           runtime.room = { ...runtime.room, status: "finished", version: nextVersion, winner_seat: "B", public_state: {
             ...runtime.room.public_state, status: "FINISHED", phase: "GAME_OVER", version: nextVersion,
-            winner: "B", terminalReason: "NO_LEGAL_COLOR",
+            winner: "B", terminalReason: "SURRENDER",
           } };
           runtime.view = { ...runtime.view, version: nextVersion };
           return { data: { duplicate: false, room: runtime.room } };
@@ -2128,6 +2133,38 @@ test("quadratic names the smaller root visibly and restored progress counts only
     assert.ok(layout.options.top >= layout.outlook.bottom, JSON.stringify(layout));
     assert.ok(layout.hint.height >= 44, JSON.stringify(layout));
     assert.equal(layout.overflow, false, JSON.stringify(layout));
+  }, { viewport: { width: 390, height: 844 } });
+});
+
+test("Level 5 matrix trace and three-variable mission stay exact and visible at 390px", { timeout: 130000 }, async () => {
+  await withPage("quizLevel5", async (page) => {
+    await page.getByRole("button", { name: "クイズ・ガチャ" }).click();
+    await page.locator("#quizLevel").selectOption("5");
+    await page.getByRole("button", { name: "10問チャレンジ開始" }).click();
+    await page.locator("#quizOptions button").first().waitFor();
+
+    const question = page.locator("#quizQuestion");
+    const math = question.locator("math");
+    assert.equal(await math.locator("mi").first().textContent(), "tr");
+    assert.deepEqual(await math.locator("mo").allTextContents(), ["(", "×", ")"]);
+    assert.equal(await math.locator("mfenced").count(), 2);
+    assert.match(await math.getAttribute("aria-label"), /tr\(AB\)/);
+    assert.equal(await page.locator("#quizMission").textContent(), "行列積の対角成分を求め、tr(AB)を計算しよう");
+    assert.equal(await question.locator(".quiz-overflow-scrollbar").isHidden(), true);
+    assert.equal(await page.locator("#quizTimer").getAttribute("aria-live"), "off");
+    await page.waitForFunction(() => document.querySelector("#quizTimerAnnouncement")?.textContent === "残り10秒です");
+
+    await page.locator("#quizOptions button").first().click();
+    await page.getByText("2 / 10", { exact: true }).waitFor();
+    assert.equal(await page.locator("#quizMission").textContent(), "3つの式から x+y+z を求めよう");
+    assert.equal(await question.locator("math mtable mtr").count(), 3);
+    assert.match((await question.locator("math").textContent()).replace(/\s+/g, ""), /x\+y=5.*2y\+z=8.*x−z=1.*x\+y\+z=\?/);
+    const layout = await page.evaluate(() => ({
+      pageOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+      questionVisible: document.querySelector("#quizQuestion math")?.getBoundingClientRect().height > 0,
+      missionFits: document.querySelector("#quizMission").scrollWidth <= document.querySelector("#quizMission").clientWidth,
+    }));
+    assert.deepEqual(layout, { pageOverflow: false, questionVisible: true, missionFits: true });
   }, { viewport: { width: 390, height: 844 } });
 });
 
@@ -3883,11 +3920,12 @@ test("actual browser never draws removed current or previous region history outl
   }, { viewport: { width: 390, height: 844 } });
 });
 
-test("actual browser keeps the COLOR response safe, reachable, private, and authoritative at 390px", { timeout: 120000 }, async () => {
+test("actual browser keeps blocked COLOR active until voluntary surrender at 390px", { timeout: 120000 }, async () => {
   await withPage("colorResponse", async (page) => {
     const response = page.locator("#colorResponse");
     await response.waitFor({ state: "visible" });
-    assert.equal(await page.locator("#noColorResponse").evaluate((node) => node.open), false);
+    assert.equal(await page.locator("#declareNoColor").count(), 0);
+    assert.match(await page.locator("#colorRescueGuide").textContent(), /自動では敗北せず.*自分で投了/s);
 
     await page.evaluate(() => {
       const runtime = globalThis.__standardOnlineRuntime;
@@ -3895,8 +3933,7 @@ test("actual browser keeps the COLOR response safe, reachable, private, and auth
       runtime.onInvalidate?.({});
     });
     await response.waitFor({ state: "hidden" });
-    assert.equal(await page.locator("#declareNoColor").count(), 1);
-    assert.equal(await page.getByRole("button", { name: "サーバーに「塗れる色なし」と申告" }).count(), 0);
+    assert.equal(await page.locator("#colorSurrender").isHidden(), true);
     await page.evaluate(() => {
       const runtime = globalThis.__standardOnlineRuntime;
       runtime.view = { ...runtime.view, seat: "A", private_state: { ...runtime.view.private_state, hand: { colorPrism: 1, areaDiePlus: 1 } } };
@@ -3904,27 +3941,22 @@ test("actual browser keeps the COLOR response safe, reachable, private, and auth
     });
     await response.waitFor({ state: "visible" });
 
-    const summary = page.getByText("塗れる色が見つからないとき", { exact: true });
-    await summary.focus();
-    await page.keyboard.press("Enter");
-    const declare = page.getByRole("button", { name: "サーバーに「塗れる色なし」と申告" });
-    await declare.waitFor({ state: "visible" });
     await page.waitForFunction(() => {
-      const bottom = document.querySelector("#declareNoColor")?.getBoundingClientRect().bottom ?? innerHeight;
+      const bottom = document.querySelector("#colorSurrender")?.getBoundingClientRect().bottom ?? innerHeight;
       const obstructionTop = Math.min(
         document.querySelector("#connectionCard")?.getBoundingClientRect().top ?? innerHeight,
         document.querySelector(".app-tabs")?.getBoundingClientRect().top ?? innerHeight,
       );
       return bottom <= obstructionTop - 8;
     });
-    assert.equal(await declare.getAttribute("aria-describedby"), "noColorExplanation");
-    assert.match(await page.locator("#noColorExplanation").textContent(), /確認が通ると、あなたの敗北/);
-    const [showSkillsBox, declareBox] = await Promise.all([
+    assert.equal(await page.locator("#colorSurrender").getAttribute("aria-describedby"), "colorRescueExplanation");
+    assert.match(await page.locator("#colorRescueExplanation").textContent(), /打開できない場合も自動では敗北せず/);
+    const [showSkillsBox, surrenderBox] = await Promise.all([
       page.getByRole("button", { name: "色操作カードを見る" }).boundingBox(),
-      declare.boundingBox(),
+      page.locator("#colorSurrender").boundingBox(),
     ]);
     assert.ok(showSkillsBox && showSkillsBox.height >= 48, JSON.stringify(showSkillsBox));
-    assert.ok(declareBox && declareBox.height >= 48, JSON.stringify(declareBox));
+    assert.ok(surrenderBox && surrenderBox.height >= 48, JSON.stringify(surrenderBox));
 
     await page.getByRole("button", { name: "色操作カードを見る" }).focus();
     await page.keyboard.press("Enter");
@@ -3933,31 +3965,17 @@ test("actual browser keeps the COLOR response safe, reachable, private, and auth
 
     await page.reload({ waitUntil: "load" });
     await page.locator("#colorResponse:not(.hidden)").waitFor();
-    assert.equal(await page.locator("#noColorResponse").evaluate((node) => node.open), false);
-    await page.getByText("塗れる色が見つからないとき", { exact: true }).focus();
-    await page.keyboard.press("Enter");
-    await page.getByRole("button", { name: "サーバーに「塗れる色なし」と申告" }).focus();
-    await page.keyboard.press("Space");
-    await page.getByText(/申告は成立しませんでした。使える色があります。/).waitFor();
-    assert.equal(await page.locator("#noColorResponse").evaluate((node) => node.open), false);
-    assert.equal(await page.evaluate(() => document.activeElement?.id), "colorResponseHeading");
-    const rejected = await page.evaluate(() => ({
-      version: globalThis.__standardOnlineRuntime.room.version,
-      calls: globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "action" && entry.body?.action?.type === "DECLARE_NO_COLOR").length,
-    }));
-    assert.deepEqual(rejected, { version: 9, calls: 1 });
-
-    await page.evaluate(() => { globalThis.__standardOnlineRuntime.declareNoColorAllowed = true; });
-    await page.getByText("塗れる色が見つからないとき", { exact: true }).click();
-    await page.getByRole("button", { name: "サーバーに「塗れる色なし」と申告" }).click();
+    assert.equal(await page.locator("#declareNoColor").count(), 0);
+    await page.locator("#colorSurrender").click();
     await page.locator("#terminalOverlay").waitFor({ state: "visible" });
-    assert.match(await page.locator("#terminalReasonText").textContent(), /塗れる色がなくなりました/);
+    assert.equal(await page.locator("#terminalReasonText").textContent(), "A が投了しました。");
     const accepted = await page.evaluate(() => ({
       version: globalThis.__standardOnlineRuntime.room.version,
       reason: globalThis.__standardOnlineRuntime.room.public_state.terminalReason,
-      calls: globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "action" && entry.body?.action?.type === "DECLARE_NO_COLOR").length,
+      surrenderCalls: globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "action" && entry.body?.action?.type === "SURRENDER").length,
+      declarationCalls: globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "action" && entry.body?.action?.type === "DECLARE_NO_COLOR").length,
     }));
-    assert.deepEqual(accepted, { version: 10, reason: "NO_LEGAL_COLOR", calls: 2 });
+    assert.deepEqual(accepted, { version: 10, reason: "SURRENDER", surrenderCalls: 1, declarationCalls: 0 });
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
   }, { viewport: { width: 390, height: 844 } });
 });
