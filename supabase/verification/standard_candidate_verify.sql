@@ -332,10 +332,10 @@ checks(check_name, ok, detail) as (
       and definition like '%room.game_mode = ''standard_v5''%'
       and definition like '%room.status in (''waiting'', ''ready'', ''playing'')%'
       and definition like '%return query%select%exists (%'
-      and definition not like '%waiting_count%'
-      and definition not like '%display_name%'
-      and definition not like '%return query%ticket_id%'
-      and definition not like '%return query%room_id%',
+      and result_definition not like '%waiting_count%'
+      and result_definition not like '%display_name%'
+      and result_definition not like '%ticket_id%'
+      and result_definition not like '%room_id%',
     jsonb_build_object('present', oid is not null, 'volatility', volatility, 'language', language_name,
       'result_definition', result_definition,
       'foreign_live_search_only', definition like '%ticket.state = ''searching''%'
@@ -345,10 +345,10 @@ checks(check_name, ok, detail) as (
         and definition like '%room.game_mode = ''standard_v5''%'
         and definition like '%room.status in (''waiting'', ''ready'', ''playing'')%',
       'boolean_only', definition like '%return query%select%exists (%'
-        and definition not like '%waiting_count%'
-        and definition not like '%display_name%'
-        and definition not like '%return query%ticket_id%'
-        and definition not like '%return query%room_id%')
+        and result_definition not like '%waiting_count%'
+        and result_definition not like '%display_name%'
+        and result_definition not like '%ticket_id%'
+        and result_definition not like '%room_id%')
   from matchmaking_availability_function_contract
   union all
   select 'private policy helper ' || signature,

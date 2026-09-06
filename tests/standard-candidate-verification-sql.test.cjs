@@ -50,8 +50,17 @@ test("candidate verification SQL is read-only and covers the current Standard re
   assert.match(sql, /TABLE\(room_id uuid, seat text, room_status text, room_version bigint, access_mode text, opponent_kind text, cpu_character_id text, setup_revision bigint\)/);
   assert.match(sql, /TABLE\(has_waiting_opponent boolean, observed_at timestamp with time zone\)/);
   assert.match(sql, /ticket\.user_id <> v_user_id/);
-  assert.match(sql, /definition not like '%waiting_count%'/);
-  assert.match(sql, /definition not like '%display_name%'/);
+  const availabilityCheck = sql.slice(
+    sql.indexOf("select 'function result public.fcg_standard_matchmaking_availability()'"),
+    sql.indexOf("from matchmaking_availability_function_contract"),
+  );
+  assert.doesNotMatch(availabilityCheck, /\band\s+definition\s+not\s+like\b/i);
+  for (const column of ["waiting_count", "display_name", "ticket_id", "room_id"]) {
+    assert.equal(
+      availabilityCheck.match(new RegExp(`result_definition not like '%${column}%'`, "g"))?.length,
+      2,
+    );
+  }
   assert.match(sql, /lower\(definition\) like '%member\.user_id = \(select auth\.uid\(\)\)%'/);
   assert.match(sql, /volatility = 's'/);
   assert.match(sql, /language_name = 'sql'/);
