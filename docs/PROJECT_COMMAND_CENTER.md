@@ -8,7 +8,7 @@
 
 ## 司令塔ルール
 
-- 統合基点は `origin/main` とし、現在の公開基点は `1eecb0a`。待機相手の匿名通知、固定クイズhitbox、公開情報だけのCPU実況、既存のlegal-recolor LAB・390px盤面導線・最新手スポットライト・盤面選択アシスト・クイズ明確化を累積している。
+- 統合基点は `origin/main` とし、現在の公開製品基点は `75791fb`。角膨張の盤面主導・keyboard完走、固定UIと交差しないエラー表示、履歴outline撤去を、待機相手通知・CPU実況・legal-recolor LAB・390px盤面導線・盤面選択アシスト・クイズ明確化へ累積している。
 - 現在の統合作業は `codex/standard-release-command` だけで行う。
 - 古いdirty worktreeからbuild、merge、deployしない。
 - `実装済み`、`ローカル検証済み`、`live検証済み`、`公開済み`を別状態として記録する。
@@ -38,7 +38,7 @@
 | P1 | 対戦を主役にする情報設計 | UX | PUBLIC_VERIFIED | 5タブ化し、ホームの主CTAから対戦タブ内の初回profile作成・同期・ロビーまでを一本化。公開URLの390px実画面で確認済み |
 | P1 | 初回オンライン準備を一操作に短縮 | UX | PUBLIC_VERIFIED | `9d42784`。名前入力後の一操作でstarter保存とprofile同期を行い、自動入室はしない。空名write 0、同期二重送信防止、失敗時starter保持。公開CTA確認済み |
 | P1 | 接続状態を対戦中も常時表示 | UX＋同期 | PUBLIC_VERIFIED | `9d42784`。全5タブで単一statusを表示し、room外offlineも反映。公開390px画面で固定statusと下部navの8px間隔を確認 |
-| P1 | プレイヤー向けno-color宣言の仕様整合 | UX＋ルール | PUBLIC_VERIFIED | 通常受渡し/split返却とも同一action内で自動終局し、Online UIから宣言を除去。公開候補`a3425a4`へ累積反映済み |
+| P1 | プレイヤー向けno-color自動終局（履歴） | UX＋ルール | SUPERSEDED_BY_RULE_REVIEW | 同一action内の自動終局という既存契約は公開済みだが、正当なCOLOR救済スキルより先に終局する設計欠陥を独立監査で確認。現状確認の証拠は保持し、下記の共通COLOR応答窓で置換する |
 | P1 | Standardを学んで即CPU戦へ入る導線 | ゲーム体験 | PUBLIC_VERIFIED | 初手ガイドに加え、ホーム／ロビーから10人のStandard CPUを選んで待ち時間なく6枚準備へ入る公開導線を実画面確認済み |
 | P1 | 6枚提出から初手案内への引き継ぎ | UX | PUBLIC_VERIFIED | `29c6958`。提出操作自身がready→playingを観測した時だけ、ランダム結果後に対戦見出しへ移動。reload、poll、backgroundではfocusを奪わない |
 | P1 | 6枚セットアップの即時確定 | UX | PUBLIC_VERIFIED | `e0f4f98`。390×844の初期表示から、選択済みスターター6枚と準備OK、確定CTAを下部nav直上へ固定表示。無効構成ではdisabled、準備送信1回、公開CPU対戦開始まで確認。Windows run `33950043659`はChrome/Edge成功 |
@@ -55,11 +55,13 @@
 | P1 | 端末側の部屋情報喪失から安全に復帰 | UX＋同期＋DB＋Edge | PUBLIC_VERIFIED | `5acee05`＋検証追補`958a4da`。本人の生存roomを有限8列・最大2行で読み、厳格な1行だけ採用。private/public/CPU別の日本語案内、raw DB情報非表示、background focus非奪取、CPU/matchmaking saga優先を固定。migration `202609060001`、DB 68/68、live 10/10、Edge deployment 16、Windows `33976873376`、Pages `33977699993`合格 |
 | P1 | 塗り直し・乱 LAB | ルール＋UX＋DB＋司令塔 | PUBLIC_VERIFIED | 製品`ad53bb4`、公開HEAD `3fb3ef8`。合言葉human対戦で双方同意した時だけ、通常19枚・6枚構成とは別に1回貸与。debugと排他、CPU/野良/戦績/報酬/在庫へ非干渉。DB 70/70、Edge deployment 17の基本7/7＋LAB 23/23、Windows `33984108011`、Pages `33984536803`、公開candidate preflight・匿名画面・console 0を確認 |
 | P1 | 390px対戦開始時に盤面と操作を表示 | UX＋技術品質＋司令塔 | PUBLIC_VERIFIED | `2a1d2ef`。手番ガイド→盤面→確定操作を390×844の初期viewportへ収め、接続表示・下部navと非交差。明示開始だけ見出しfocus、reload/bootはfocusなし、wheel/trackpad操作後の強制scrollを抑止。ローカルonline browser 60/60、responsive 4/4、独立再監査P0/P1なし。Windows `33987952352`はChrome成功、Edge初回の既存badge待機timeout後に同一commitのfailed-job再実行成功。Pages `33988962006`、公開app v24/style v23、candidate preflight合格 |
-| P1 | 最新手スポットライト＋手番到着beat | UX＋公開情報＋司令塔 | PUBLIC_VERIFIED | `afc89af`。厳格な公開traceのregionだけを金破線、ACTIVE/COLORのpendingだけを水色実線で暗色halo付き表示。白い操作枠を最上位に維持し、初期hydrate/reload/poll/background/contact/random/reduced-motionではbeatを再演しない。390×844で盤外凡例、主操作と固定UIの非交差を確認。ローカルbrowser 62/62、responsive 4/4、独立監査P0/P1なし、Windows `33992923690`、Pages `33993298423`、公開app v25/style v24、candidate preflight合格 |
+| P1 | 最新手スポットライト＋手番到着beat | UX＋公開情報＋司令塔 | PUBLIC_VISUAL_SUPERSEDED | `afc89af`で金破線・水色実線を公開した履歴証拠は保持。プレイ中の視覚ノイズを減らすため`75791fb`で履歴outlineと凡例を撤去した。白い現在選択、緑の接続候補、紫の角膨張基準、有限な手番到着beatは維持 |
 | P1 | 盤面選択アシスト | UX＋ルール＋技術品質＋司令塔 | PUBLIC_VERIFIED | `72040b8`。任意200% zoom、44px以上のmacro、drag panとtap分離、矢印・Space/Enter/Escape、edge-connected候補を提供し、合法手oracleにはしない。390×844でzoom・手番操作・固定接続表示を非交差化。失敗run `33996927953`–`33999028771`を保持して製品／harnessを修正し、Windows `33999760232`はChrome/Edge各64件成功、Pages `34000125784`、公開app v28/style v26。独立3監査GO、DB/Edge変更なし |
 | P1 | クイズ曖昧問題と進捗表示 | クイズ＋UX＋Edge＋司令塔 | PUBLIC_VERIFIED | `a4b9917`。二次方程式を「小さい方の解」と明記し、ACK済み回答だけを「採点済み履歴」へ算入。券は「見込み・未確定」、救済は「3ミス時」、到達不能も明示し、完了・報酬判定はserver authoritativeのまま。ローカルunit 212/212・Edge browser 65/65、Windows `34003307900`、Edge deployment 20の基本7/7＋Runbook B 234/234、Pages `34004028751`、公開10問完走を確認 |
 | P1 | 待機相手の匿名通知 | UX＋DB＋司令塔 | PUBLIC_VERIFIED | `1eecb0a`＋migration `202609060003`。認証済み利用者へ相手待ちの有無だけを返し、本人・活動中roomを除外。30秒poll、最大300秒backoff、hidden/offline/自身の募集・対人中を停止。DB 72/72、Windows `34013907089`、Pages `34014339235`、公開390pxを確認 |
 | P1 | CPU実況とクイズ固定hitbox | ゲーム体験＋UX＋ルール | PUBLIC_VERIFIED | 10人のCPUへ公開eventだけの個性文を付け、対戦タブ外・reload・background再演とprivate情報参照を禁止。クイズはボタン矩形を固定し内側labelだけを漂わせる。Chrome/Edge各71件、390pxで固定通知・盤面・下部nav非交差、公開console 0を確認 |
+| P1 | 角膨張の盤面主導・keyboard完走・エラー可視化 | UX＋ルール＋技術品質＋司令塔 | PUBLIC_VERIFIED | `75791fb`。数値入力を廃止し、渡すエリア→基準マスの2段階を盤面で選ぶ。44px盤面focus導線、pointer、Tab/Enter/Space、2マス接続候補、白/紫の現在状態を固定。長文toastは上部通知の下へ退避し、setup/成立済みconnection/navと遷移中も非交差。Windows `34017288334`のChrome/Edge各73件、Pages `34017695831`、公開app/style v34、candidate preflight、console 0を確認。DB/Edge変更なし |
+| P1 | 救済スキルを塞がない共通COLOR応答窓 | ルール＋CPU＋UX＋Edge＋司令塔 | RULE_FIX_NEXT | COLOR進入時の自動終局を廃止し、全員に通常彩色／COLOR救済スキル／`DECLARE_NO_COLOR`／投了の同一窓を開く。宣言はserver authorityで合法色0を検証し、救済カード有無を公開stateへ漏らさない。engine version・CPU policy・UI・生成bundle・Edgeを一便で変更し、SQL/RPCは不要 |
 | P1 | 持ち色汚染no-opの消費仕様 | ルール＋Edge＋UX | SPEC_NEXT | no-op時はカードを消費しないがaction・手番・機会は使用する案を有限仕様へ固定し、「変化なし・カードは戻った」だけを公開表示。engine/Edge変更前に再送・private境界を定義する |
 | P1 | Shift説明と将来overlay skillの位相 | ルール＋UX | DESIGN_NEXT | 「ちぎれたり、くっついたり」を説明へ追加。merge後はcanonical numeric-min ID/controller unionを維持し、将来の差し色追加も現在の可視region/canonical ID＋盤面属性だけをrules入力にする |
 | HOLD | 匿名＋任意Google identity link | 認証＋DB＋司令塔 | PHASE0_ONLY | 現在はSDK/RLS/Realtime/redirect/CSP/idempotency/token/log/admin境界のread-only監査だけ。provider有効化、callback、SDK、DB変更は別の公開便に分離する |
@@ -80,6 +82,8 @@
 
 直前の公開履歴も維持する。`29c6958`は非browser 528/528、ローカルChrome/Edge各25/25、Windows run `33933769885`（Edgeは終了処理timeout後のattempt 2成功）、Pages run `33934125859`で公開確認した。即時CPU開始は`cc96350`、migration `202609050002`、Edge deployment 9、Windows run `33931963065`、Pages run `33932159043`で確認した。現在のDB適用済み追加migrationは、status正規化`202609050001`、即時CPU`202609050002`、デバッグroom境界`202609050003`、クイズ回答feedback`202609050004`、クロガネv2`202609050005`、単一active room境界`202609050006`、開始前取りやめ`202609050007`、active-room復帰`202609060001`、setup revision guard `202609060002`、待機相手の匿名availability `202609060003`である。
 
+角膨張便は、repository/release、rules/privacy、UX/accessibilityを3つの既存タスクへ再分担した。初回run `34016075931`はasset version契約、次の`34016221487`は390pxの3行toastと接続表示の7px交差を検出し修正した。`69cd67d`のrun `34016798886`は成功したが、独立UX監査がsetup/成立済みconnection、複数マス候補、keyboardの盤面復帰というP1を追加発見したため昇格せず、`75791fb`へ修正した。最終run `34017288334`、Pages `34017695831`、公開HTTP/preflight/Chrome consoleまで成功。長いaggregate runnerの既存contact-pressure tier4 handover待ちは`standard-v5`側の別件として失敗を保持し、このUI便の全成功とは記録しない。
+
 ## 旧作業床からの回収候補
 
 古いブランチは丸ごと統合せず、次の意味差分だけを正本と比較する。
@@ -97,9 +101,9 @@
 
 | 区分 | 対象 | 方針 |
 | --- | --- | --- |
-| 正本 | `origin/main` | 公開基点は`1eecb0a`。migration `202609050001`–`202609050007`＋`202609060001`–`202609060003`、Edge deployment 20据え置き、Windows run `34013907089`、Pages run `34014339235`まで公開確認済み |
-| 現在の統合床 | `codex/standard-release-command` | `main`の公開製品commit `1eecb0a`と同じ。証拠台帳追補をこの床で同期する |
-| 公開済み現候補 | `1eecb0a` | 待機相手通知、固定クイズhitbox、公開情報限定CPU実況を追加。公開app v32、client v18、skill-intents v17、CPU commentary v1、style v31。DB 72/72、Chrome/Edge各71件、Pages、candidate preflight、公開390pxとconsole 0を確認済み |
+| 正本 | `origin/main` | 公開製品基点は`75791fb`。migration `202609050001`–`202609050007`＋`202609060001`–`202609060003`、Edge deployment 20据え置き、Windows run `34017288334`、Pages run `34017695831`まで公開確認済み |
+| 現在の統合床 | `codex/standard-release-command` | 公開製品commit `75791fb`を含み、証拠台帳追補をこの床で同期する |
+| 公開済み現候補 | `75791fb` | 角膨張の盤面2段階target、2マスkeyboard完走、connected cue、固定UIと交差しない長文toast、履歴outline撤去を追加。公開app/style v34、client v18、skill-intents v17、CPU commentary v1。Chrome/Edge各73件、Pages、candidate preflight、公開HTTP/Chrome console 0を確認済み。DB 72/72とEdge deployment 20は変更なし |
 | 保全済み | detached `a8fce7d` dirty床 | `codex/salvage-a8fce7d-20260904` / `9e4e8ee` に秘密情報なしでWIP保全済み。機能単位で比較 |
 | 凍結root | root `ac78282` | 正史worktreeを内包するため作業床は維持。再監査したdirty 39件のうち38件は既存commitと一致し、残る旧handoff文書も現正本で置換済み。丸ごとmerge禁止、回収残件なし |
 | GitHub保管 | `codex/archive-standard-release-1f823b2` | 正史の祖先でない孤立コミットをGitHubへ退避済み。作業床は削除 |
@@ -114,7 +118,7 @@
 | 合言葉不要マッチング＋CPUフォールバック | `origin/main@a3425a4`でPUBLIC_VERIFIED | 自動live canaryは完了。物理二端末で対人/CPUの完走、復帰、再戦を確認する |
 | クイズ・スキル・バランス | 即時採点、答え合わせ、曖昧問題とACK済み進捗、持ち色変更説明、クロガネv2までPUBLIC_VERIFIED | 物理端末の操作感を確認し、公開後24時間指標と分離して記録する |
 | online MVP status／live regression | 現行公開識別子と有限な証拠を`STANDARD_RELEASE_EVIDENCE.md`へ集約 | 古い時系列ログは履歴として保持し、現行状態と混同しない |
-| 二端末P0 handoff | PENDING | `a4b9917`の対人/CPU/LAB完走、390px盤面導線、盤面選択アシスト、クイズ進捗、最新手スポットライト、確定接触feedback、公開戦術trace、開始前取りやめ、終局理由、Quick継続、途中再読込、報酬→ガチャ→6枚再編成→再戦、永続化だけを残件として回収 |
+| 二端末P0 handoff | PENDING | `75791fb`の対人/CPU/LAB完走、390px盤面導線、盤面選択アシスト、角膨張2段階、履歴outline撤去後の現在選択、クイズ進捗、確定接触feedback、公開戦術trace、開始前取りやめ、終局理由、Quick継続、途中再読込、報酬→ガチャ→6枚再編成→再戦、永続化だけを残件として回収 |
 | active-room排他・room外6枚編成・開始前取りやめ | `426dc41`でPUBLIC_VERIFIED | 次便は競合時の既存room再同期・日本語文言を独立して改善する |
 | 新カード候補 | `legalRecolor`をLAB限定で条件付き採用 | IDは維持し表示名を「塗り直し・乱」、妨害★3/WORK、ガチャOFF・双方1回貸与で公開。二色市松は1地域1色モデルを壊すため別rulesetへ分離 |
 | Google identity link | 匿名＋任意linkはPhase 0の暫定候補、採否未決定 | 既存匿名導線を維持したread-only監査だけを行う。採用時のrollback候補は新規link入口/UIを閉じてPagesを戻し、既にlink済みの利用者を解除しない |
