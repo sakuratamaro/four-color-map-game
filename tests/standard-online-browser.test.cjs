@@ -2373,7 +2373,8 @@ test("waiting-opponent arrival does not move or announce over a focused timed-qu
 
 test("waiting-opponent notice stays informational during CPU play and clears 390px navigation", { timeout: 130000 }, async () => {
   await withPage("cpuWin", async (page) => {
-    await page.locator("#matchTitle").focus();
+    await page.locator("#matchTitle").evaluate((node) => node.focus({ preventScroll: true }));
+    await page.locator("#matchCard").evaluate((node) => node.scrollIntoView({ block: "start", behavior: "auto" }));
     await page.waitForFunction(() => document.querySelector("#matchTitle").getBoundingClientRect().top - 9 >= 48);
     const before = await page.evaluate(() => {
       const title = document.querySelector("#matchTitle");
