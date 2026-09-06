@@ -23,7 +23,7 @@ const saveKey = "fourColorMapGame.standard.v5.save";
 const remoteProfileKey = "fourColorMapGame.standard.online.v5.remote-profile";
 const roomId = "11111111-1111-4111-8111-111111111111";
 const pendingRematchId = "22222222-2222-4222-8222-222222222222";
-const RESTORED_ROOM_MODES = new Set(["finished", "playing", "labPlaying", "setupLabPersist", "setupLabLostResponse", "setupLabMismatch", "handoffGuide", "cpuTurn", "cpuTurnNoColor", "finishedCpu", "finishedCpuSagaStart", "finishedHumanSagaBlocked", "finishedCpuWrongSagaBlocked", "activeCpuSagaBlocked", "cpuWin", "setupTransition", "setupTransitionCpuFirst", "actionRuleError", "setupDebugError", "handoffReload", "waitingAbandon", "readyGuestAbandon", "cpuReadyAbandon", "abandonLost", "abandonAdvancedReady", "activeBootPrivate", "activeBootPublic", "activeBootCpu", "cpuSagaStartServerActive"]);
+const RESTORED_ROOM_MODES = new Set(["finished", "playing", "labPlaying", "setupLabPersist", "setupLabLostResponse", "setupLabMismatch", "handoffGuide", "cpuTurn", "cpuTurnNoColor", "cpuCommentary", "finishedCpu", "finishedCpuSagaStart", "finishedHumanSagaBlocked", "finishedCpuWrongSagaBlocked", "activeCpuSagaBlocked", "cpuWin", "setupTransition", "setupTransitionCpuFirst", "actionRuleError", "setupDebugError", "handoffReload", "waitingAbandon", "readyGuestAbandon", "cpuReadyAbandon", "abandonLost", "abandonAdvancedReady", "activeBootPrivate", "activeBootPublic", "activeBootCpu", "cpuSagaStartServerActive"]);
 
 function browserStage(stage) {
   console.error(`BROWSER_STAGE ${stage}`);
@@ -137,7 +137,7 @@ async function installMock(context, mode) {
     const restoreNoColorResult = initialMode === "cpuTurnNoColor" && sessionStorage.getItem("fourColorMapGame.standard.online.v5.mock-no-color-finished") === id;
     const restoredCpuRewardVersion = restoreCpuRewardResult ? Number(restoredCpuRewardResult.continuation.roomVersion) : 9;
     const restoredRoomVersion = restoreNoColorResult ? 10 : restoredCpuRewardVersion;
-    const cpuRoomMode = ["cpuTurn", "cpuTurnNoColor", "finishedCpu", "finishedCpuSagaStart", "finishedCpuWrongSagaBlocked", "activeCpuSagaBlocked", "cpuWin", "setupTransition", "setupTransitionCpuFirst", "quizReloadCpu", "cpuReadyAbandon", "activeBootCpu", "activeCreateCpu", "cpuSagaStartServerActive"].includes(initialMode);
+    const cpuRoomMode = ["cpuTurn", "cpuTurnNoColor", "cpuCommentary", "finishedCpu", "finishedCpuSagaStart", "finishedCpuWrongSagaBlocked", "activeCpuSagaBlocked", "cpuWin", "setupTransition", "setupTransitionCpuFirst", "quizReloadCpu", "cpuReadyAbandon", "activeBootCpu", "activeCreateCpu", "cpuSagaStartServerActive"].includes(initialMode);
     let restoredConnection = null;
     try { restoredConnection = JSON.parse(localStorage.getItem(connection) || "null"); } catch { restoredConnection = null; }
     localStorage.setItem("fourColorMapGame.standard.online.v5.active-tab", initialTab);
@@ -286,6 +286,21 @@ async function installMock(context, mode) {
       activeRecoverySuccessfulReads: 0,
       calls: [],
     };
+    if (initialMode === "cpuCommentary") {
+      try {
+        const restoredCommentaryState = JSON.parse(sessionStorage.getItem("mock-standard-cpu-commentary-state") || "null");
+        if (restoredCommentaryState?.matchId === active.matchId && Number.isSafeInteger(restoredCommentaryState.version)) {
+          runtime.room = {
+            ...runtime.room,
+            status: restoredCommentaryState.status === "FINISHED" ? "finished" : "playing",
+            version: restoredCommentaryState.version,
+            winner_seat: restoredCommentaryState.winner || null,
+            public_state: restoredCommentaryState,
+          };
+          runtime.view = { ...runtime.view, version: restoredCommentaryState.version };
+        }
+      } catch { /* start from the initial public projection */ }
+    }
     runtime.missingRoom = initialMode === "quizReloadStale";
     if (activeRecoveryMode || initialMode === "cpuSagaStartServerActive") {
       const accessMode = initialMode === "cpuSagaStartServerActive" ? "cpu" : activeRecoveryAccessMode;
@@ -3887,4 +3902,139 @@ test("actual browser reduced motion skips intermediate contact stages and termin
     assert.equal(await page.locator("#tacticalTrace").isHidden(), true);
     assert.equal(await page.locator("#contactRevealAnnouncement").textContent(), "");
   }, { viewport: { width: 980, height: 844 } });
+});
+
+test("actual browser presents CPU commentary once from public events and keeps terminal reasons visible", { timeout: 120000 }, async () => {
+  await withPage("cpuCommentary", async (page) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.locator("#matchCard:not(.hidden)").waitFor();
+    assert.equal(await page.locator("#cpuCommentaryStage").isVisible(), true);
+    assert.equal(await page.locator("#cpuCommentaryBubble").evaluate((node) => node.classList.contains("is-silent")), true);
+
+    await page.evaluate(() => {
+      globalThis.__cpuCommentaryAnnouncements = [];
+      const node = document.querySelector("#cpuCommentaryAnnouncement");
+      new MutationObserver(() => {
+        if (node.textContent) globalThis.__cpuCommentaryAnnouncements.push(node.textContent);
+      }).observe(node, { childList: true, characterData: true, subtree: true });
+      const runtime = globalThis.__standardOnlineRuntime;
+      const state = runtime.room.public_state;
+      const version = 10;
+      runtime.room = { ...runtime.room, version, public_state: {
+        ...state, version, turn: version, active: "A", phase: "WORK",
+        lastPublicTrace: { eventId: `${state.matchId}:${version}`, version, type: "USE_SKILL", actor: "B" },
+      } };
+      runtime.view = { ...runtime.view, version };
+      runtime.onInvalidate?.({});
+    });
+    await page.locator("#cpuCommentaryText").filter({ hasText: "カードにおまかせ" }).waitFor({ timeout: 5000 });
+    await page.waitForFunction(() => globalThis.__cpuCommentaryAnnouncements.length === 1, null, { timeout: 5000 });
+    const activeLayout = await page.evaluate(() => {
+      const bubble = document.querySelector("#cpuCommentaryBubble").getBoundingClientRect();
+      const board = document.querySelector("#board").getBoundingClientRect();
+      const motion = getComputedStyle(document.querySelector("#cpuCommentaryBubble"));
+      return {
+        withinViewport: bubble.left >= 0 && bubble.right <= innerWidth,
+        beforeBoard: bubble.bottom <= board.top,
+        overflow: document.documentElement.scrollWidth > innerWidth,
+        transitionDuration: motion.transitionDuration,
+        transform: motion.transform,
+      };
+    });
+    assert.deepEqual(activeLayout, { withinViewport: true, beforeBoard: true, overflow: false, transitionDuration: "0s", transform: "none" });
+
+    await page.evaluate(() => globalThis.__standardOnlineRuntime.onInvalidate?.({}));
+    await page.waitForTimeout(250);
+    assert.equal(await page.evaluate(() => globalThis.__cpuCommentaryAnnouncements.length), 1);
+    await page.evaluate(() => sessionStorage.setItem("mock-standard-cpu-commentary-state", JSON.stringify(globalThis.__standardOnlineRuntime.room.public_state)));
+    await page.reload({ waitUntil: "load" });
+    await page.locator("#connectionBadge.good").waitFor({ state: "visible" });
+    await page.locator("#room:not(.hidden)").waitFor({ state: "visible" });
+    await page.waitForTimeout(250);
+    assert.equal(await page.locator("#cpuCommentaryBubble").evaluate((node) => node.classList.contains("is-silent")), true);
+    assert.equal(await page.locator("#cpuCommentaryAnnouncement").textContent(), "");
+    await page.evaluate(() => {
+      globalThis.__cpuCommentaryAnnouncements = [];
+      const node = document.querySelector("#cpuCommentaryAnnouncement");
+      new MutationObserver(() => {
+        if (node.textContent) globalThis.__cpuCommentaryAnnouncements.push(node.textContent);
+      }).observe(node, { childList: true, characterData: true, subtree: true });
+    });
+
+    await page.evaluate(() => {
+      globalThis.__cpuCommentaryVisibility = "hidden";
+      Object.defineProperty(document, "visibilityState", { configurable: true, get: () => globalThis.__cpuCommentaryVisibility });
+      document.dispatchEvent(new Event("visibilitychange"));
+      const runtime = globalThis.__standardOnlineRuntime;
+      const state = runtime.room.public_state;
+      const version = 14;
+      runtime.room = { ...runtime.room, version, public_state: {
+        ...state, version, turn: version, active: "B", phase: "WORK",
+        lastPublicTrace: { eventId: `${state.matchId}:${version}`, version, type: "USE_SKILL", actor: "A" },
+      } };
+      runtime.view = { ...runtime.view, version };
+      runtime.onInvalidate?.({});
+    });
+    await page.waitForTimeout(250);
+    assert.equal(await page.locator("#cpuCommentaryBubble").evaluate((node) => node.classList.contains("is-silent")), true);
+    await page.evaluate(() => {
+      globalThis.__cpuCommentaryVisibility = "visible";
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+    await page.locator("#cpuCommentaryText").filter({ hasText: "そのカード" }).waitFor({ timeout: 5000 });
+    await page.waitForFunction(() => globalThis.__cpuCommentaryAnnouncements.length === 1, null, { timeout: 5000 });
+
+    await page.evaluate(() => {
+      const runtime = globalThis.__standardOnlineRuntime;
+      const state = runtime.room.public_state;
+      const version = 15;
+      const pending = "R2";
+      const terminal = {
+        ...state,
+        status: "FINISHED",
+        phase: "GAME_OVER",
+        version,
+        turn: version,
+        active: "A",
+        winner: "B",
+        terminalReason: "NO_LEGAL_COLOR",
+        pending,
+        regions: { R2: { id: pending, micro: [5], sourceMacros: [5], controllers: ["B"], color: null, isPending: true } },
+        lastPublicTrace: { eventId: `${state.matchId}:${version}`, version, type: "CREATE_REGION", actor: "B", regionId: pending, sourceMacroCount: 1, contactColorCount: 4 },
+      };
+      runtime.room = { ...runtime.room, status: "finished", version, winner_seat: "B", public_state: terminal };
+      runtime.view = { ...runtime.view, version };
+      sessionStorage.setItem("mock-standard-cpu-commentary-state", JSON.stringify(terminal));
+      runtime.onInvalidate?.({});
+    });
+    await page.locator("#terminalOverlay").waitFor({ state: "visible", timeout: 5000 });
+    assert.match(await page.locator("#cpuTerminalCommentaryOverlay").textContent(), /うっかりユズ.*四色に接するエリア.*塗れる色をなくしました/);
+    const describedText = await page.locator(".terminal-celebration").evaluate((node) => node.getAttribute("aria-describedby").split(/\s+/).map((id) => document.getElementById(id)?.textContent || "").join(" "));
+    assert.match(describedText, /うっかりユズ.*四色に接するエリア.*塗れる色をなくしました/);
+    await page.waitForTimeout(250);
+    assert.equal(await page.evaluate(() => globalThis.__cpuCommentaryAnnouncements.length), 1);
+    assert.equal(await page.locator("#cpuTerminalCommentarySummary").isVisible(), true);
+    assert.equal(await page.locator("#cpuCommentaryBubble").evaluate((node) => node.classList.contains("is-silent")), true);
+    assert.equal(await page.locator("#contactReveal").isHidden(), true);
+    assert.equal(await page.locator("#randomReveal").isHidden(), true);
+    await page.locator("#terminalClose").click();
+    assert.equal(await page.locator("#cpuTerminalCommentarySummary").isVisible(), true);
+
+    await page.reload({ waitUntil: "load" });
+    await page.locator("#connectionBadge.good").waitFor({ state: "visible" });
+    await page.locator("#terminalSummary:not(.hidden)").waitFor({ state: "visible" });
+    await page.waitForTimeout(250);
+    assert.match(await page.locator("#cpuTerminalCommentarySummary").textContent(), /塗れる色をなくしました/);
+    assert.equal(await page.locator("#terminalOverlay").isHidden(), true);
+    assert.equal(await page.locator("#cpuCommentaryAnnouncement").textContent(), "");
+
+    await page.evaluate(() => {
+      const runtime = globalThis.__standardOnlineRuntime;
+      runtime.room = { ...runtime.room, access_mode: "private_code", opponent_kind: "human", cpu_character_id: null };
+      runtime.members = runtime.members.map((member) => ({ ...member, is_cpu: false }));
+      runtime.onInvalidate?.({});
+    });
+    await page.waitForFunction(() => document.querySelector("#cpuCommentaryStage").classList.contains("hidden"));
+    assert.equal(await page.locator("#cpuTerminalCommentarySummary").isHidden(), true);
+  }, { viewport: { width: 390, height: 844 }, bodyTimeout: 50_000 });
 });

@@ -6,6 +6,7 @@ const supabase = createClient(cfg.url, cfg.publishableKey, { auth: { persistSess
 const client = globalThis.FourColorStandardOnlineClient.createStandardOnlineClient({ supabase, storage: localStorage, idFactory: () => crypto.randomUUID() });
 const onlineSyncFactory = globalThis.FourColorStandardOnlineSync;
 const skillIntents = globalThis.FourColorStandardOnlineSkillIntents;
+const cpuCommentary = globalThis.FourColorStandardCpuCommentary;
 const $ = (id) => document.getElementById(id);
 const SAVE_KEY = "fourColorMapGame.standard.v5.save";
 const PROFILE_CHOICE_KEY = "fourColorMapGame.standard.online.v5.profile";
@@ -21,6 +22,7 @@ const APP_TAB_KEY = "fourColorMapGame.standard.online.v5.active-tab";
 const CPU_ENTRY_INTENT_KEY = "fourColorMapGame.standard.online.v5.cpu-entry-intent";
 const LOADOUT_DRAFT_KEY = "fourColorMapGame.standard.online.v5.loadout-draft";
 const CPU_START_SAGA_KEY = "fourColorMapGame.standard.online.v5.cpu-start-saga";
+const CPU_COMMENTARY_PRESENTATION_KEY = "fourColorMapGame.standard.online.v5.cpu-commentary-presentation-v1";
 const QUIZ_TIMEOUT_ANSWER = "__timeout__";
 const MATHML_NS = "http://www.w3.org/1998/Math/MathML";
 const SVG_NS = "http://www.w3.org/2000/svg";
@@ -63,6 +65,8 @@ const CPU_SECOND_OFFER_SECONDS = 180;
 const MATCHMAKING_AVAILABILITY_POLL_MS = 30000;
 const MATCHMAKING_AVAILABILITY_MAX_BACKOFF_MS = 300000;
 const RANDOM_REVEAL_DURATION_MS = 2600;
+const CPU_COMMENTARY_DURATION_MS = 4400;
+const CPU_COMMENTARY_PRESENTATION_LIMIT = 32;
 const MATCHED_ROOM_FEEDBACK_MS = 650;
 const TURN_ARRIVAL_BEAT_MS = 900;
 const QUIZ_ROOM_CHECK_STATUS = "保存済みの対戦状態を確認しています。クイズの時計は確認完了まで止まります。";
@@ -247,6 +251,10 @@ let targetDraft = null;
 let randomRevealTimer = null;
 let contactRevealTimer = null;
 let contactPresentationGeneration = 0;
+let cpuCommentaryTimer = null;
+let cpuCommentaryAnnouncementTimer = null;
+let observedCpuCommentaryScope = null;
+let observedCpuCommentarySourceEventId = null;
 let observedTraceScope = null;
 let observedTraceEventId = null;
 let observedTurnScope = null;
@@ -279,6 +287,32 @@ const COLOR_JA = { red: "赤", blue: "青", yellow: "黄", green: "緑" };
 const APP_TABS = new Set(["home", "battle", "quiz", "cards", "profile"]);
 let activeAppTab = APP_TABS.has(location.hash.slice(1)) ? location.hash.slice(1) : localStorage.getItem(APP_TAB_KEY) || "home";
 const SKILL_META = Object.freeze({ ...Object.fromEntries(SKILLS.map(([id, name, category]) => [id, { name, category }])), ...EXPERIMENTAL_SKILLS });
+
+function validCpuCommentaryPresentationEntry(value) {
+  return value && typeof value === "object" && !Array.isArray(value)
+    && typeof value.eventId === "string" && value.eventId.length > 0 && value.eventId.length <= 300
+    && typeof value.matchId === "string" && value.matchId.length > 0 && value.matchId.length <= 100
+    && Number.isSafeInteger(value.version) && value.version >= 1
+    ? { eventId: value.eventId, matchId: value.matchId, version: value.version } : null;
+}
+
+function restoreCpuCommentaryPresentation() {
+  try {
+    const stored = JSON.parse(sessionStorage.getItem(CPU_COMMENTARY_PRESENTATION_KEY) || "null");
+    if (!stored || stored.schemaVersion !== 1 || !Array.isArray(stored.presented)) return { presented: [], lastPresented: null };
+    const presented = [];
+    const seen = new Set();
+    for (const candidate of stored.presented.slice(-CPU_COMMENTARY_PRESENTATION_LIMIT)) {
+      const entry = validCpuCommentaryPresentationEntry(candidate);
+      if (entry && !seen.has(entry.eventId)) { seen.add(entry.eventId); presented.push(entry); }
+    }
+    return { presented, lastPresented: validCpuCommentaryPresentationEntry(stored.lastPresented) };
+  } catch {
+    return { presented: [], lastPresented: null };
+  }
+}
+
+let cpuCommentaryPresentation = restoreCpuCommentaryPresentation();
 
 function show(id, value) { $(id).classList.toggle("hidden", !value); }
 function badge(text, tone = "warn") { $("connectionBadge").textContent = text; $("connectionBadge").className = `badge ${tone}`; }
@@ -787,6 +821,140 @@ function observeCommittedContact(state) {
   if (!trace || trace.eventId === observedTraceEventId) return;
   observedTraceEventId = trace.eventId;
   if (state.status === "ACTIVE" && trace.type === "CREATE_REGION" && trace.contactColorCount >= 2) showContactReveal(trace.contactColorCount);
+}
+
+function cpuCommentaryContext(state) {
+  const characterId = roomModel?.room?.cpu_character_id;
+  if (roomModel?.room?.opponent_kind !== "cpu" || !state || cpuCommentary?.VERSION !== "standard-cpu-commentary-v1"
+    || !cpuCommentary.CPU_CHARACTER_IDS.includes(characterId)) return null;
+  return { characterId, cpuSeat: "B", name: CPU_NAMES[characterId], publicState: state };
+}
+
+function cpuCommentarySourceEventId(state, context) {
+  if (state.status === "FINISHED" && ["A", "B"].includes(state.winner) && typeof state.terminalReason === "string") {
+    return `${state.matchId}:${state.version}:terminal:${state.winner}:${state.terminalReason}`;
+  }
+  return cpuCommentary.validPublicTrace(state)?.eventId || null;
+}
+
+function saveCpuCommentaryPresentation() {
+  try {
+    sessionStorage.setItem(CPU_COMMENTARY_PRESENTATION_KEY, JSON.stringify({
+      schemaVersion: 1,
+      presented: cpuCommentaryPresentation.presented.slice(-CPU_COMMENTARY_PRESENTATION_LIMIT),
+      lastPresented: cpuCommentaryPresentation.lastPresented,
+    }));
+  } catch { /* dialogue remains presentation-only when session storage is unavailable */ }
+}
+
+function rememberCpuCommentary(item) {
+  const entry = validCpuCommentaryPresentationEntry(item);
+  if (!entry) return;
+  cpuCommentaryPresentation.presented = [
+    ...cpuCommentaryPresentation.presented.filter((candidate) => candidate.eventId !== entry.eventId),
+    entry,
+  ].slice(-CPU_COMMENTARY_PRESENTATION_LIMIT);
+  cpuCommentaryPresentation.lastPresented = entry;
+  saveCpuCommentaryPresentation();
+}
+
+function chooseCpuCommentary(context, { respectHistory = true } = {}) {
+  return cpuCommentary.chooseCpuCommentary({
+    characterId: context.characterId,
+    cpuSeat: context.cpuSeat,
+    publicState: context.publicState,
+    presentedEventIds: respectHistory ? cpuCommentaryPresentation.presented.map((entry) => entry.eventId) : [],
+    lastPresented: respectHistory ? cpuCommentaryPresentation.lastPresented : null,
+    visible: true,
+  });
+}
+
+function clearCpuCommentaryBubble({ clearAnnouncement = true } = {}) {
+  clearTimeout(cpuCommentaryTimer);
+  clearTimeout(cpuCommentaryAnnouncementTimer);
+  cpuCommentaryTimer = null;
+  cpuCommentaryAnnouncementTimer = null;
+  $("cpuCommentaryBubble").classList.add("is-silent");
+  $("cpuCommentaryBubble").removeAttribute("data-priority");
+  $("cpuCommentaryText").textContent = "";
+  if (clearAnnouncement) $("cpuCommentaryAnnouncement").textContent = "";
+}
+
+function clearCpuTerminalCommentary() {
+  for (const id of ["cpuTerminalCommentarySummary", "cpuTerminalCommentaryOverlay"]) {
+    $(id).textContent = "";
+    show(id, false);
+  }
+}
+
+function renderCpuTerminalCommentary(item, context) {
+  const text = item?.priority === "terminal" ? `${context.name}「${item.text}」` : "";
+  for (const id of ["cpuTerminalCommentarySummary", "cpuTerminalCommentaryOverlay"]) {
+    $(id).textContent = text;
+    show(id, Boolean(text));
+  }
+}
+
+function announceCpuCommentary(item, context) {
+  if (!item?.announce) return;
+  const announce = () => {
+    if (observedCpuCommentaryScope !== `${roomModel?.room?.id}:${item.matchId}`
+      || observedCpuCommentarySourceEventId !== item.sourceEventId || document.visibilityState !== "visible") return;
+    $("cpuCommentaryAnnouncement").textContent = `${context.name}。${item.text}`;
+  };
+  clearTimeout(cpuCommentaryAnnouncementTimer);
+  const presentationCompeting = !$("contactReveal").classList.contains("hidden") || !$("randomReveal").classList.contains("hidden");
+  cpuCommentaryAnnouncementTimer = presentationCompeting ? setTimeout(announce, 950) : null;
+  if (!presentationCompeting) requestAnimationFrame(announce);
+}
+
+function presentCpuCommentary(item, context) {
+  rememberCpuCommentary(item);
+  if (item.priority === "terminal") {
+    clearCpuCommentaryBubble();
+    clearContactReveal();
+    clearTimeout(randomRevealTimer);
+    randomRevealTimer = null;
+    show("randomReveal", false);
+    renderCpuTerminalCommentary(item, context);
+    return;
+  }
+  clearCpuTerminalCommentary();
+  clearCpuCommentaryBubble();
+  $("cpuCommentaryText").textContent = item.text;
+  $("cpuCommentaryBubble").dataset.priority = item.priority;
+  $("cpuCommentaryBubble").classList.remove("is-silent");
+  announceCpuCommentary(item, context);
+  cpuCommentaryTimer = setTimeout(() => clearCpuCommentaryBubble({ clearAnnouncement: false }), CPU_COMMENTARY_DURATION_MS);
+}
+
+function observeCpuCommentary(state) {
+  const context = cpuCommentaryContext(state);
+  if (!context) {
+    observedCpuCommentaryScope = null;
+    observedCpuCommentarySourceEventId = null;
+    show("cpuCommentaryStage", false);
+    clearCpuCommentaryBubble();
+    clearCpuTerminalCommentary();
+    return;
+  }
+  const scope = `${roomModel.room.id}:${state.matchId}`;
+  const sourceEventId = cpuCommentarySourceEventId(state, context);
+  show("cpuCommentaryStage", true);
+  $("cpuCommentaryName").textContent = context.name;
+  if (state.status === "FINISHED") renderCpuTerminalCommentary(chooseCpuCommentary(context, { respectHistory: false }), context);
+  else clearCpuTerminalCommentary();
+  if (scope !== observedCpuCommentaryScope) {
+    clearCpuCommentaryBubble();
+    observedCpuCommentaryScope = scope;
+    observedCpuCommentarySourceEventId = sourceEventId;
+    return;
+  }
+  if (!sourceEventId || sourceEventId === observedCpuCommentarySourceEventId) return;
+  if (document.visibilityState !== "visible") return;
+  observedCpuCommentarySourceEventId = sourceEventId;
+  const item = chooseCpuCommentary(context);
+  if (item) presentCpuCommentary(item, context);
 }
 
 function terminalReasonText(reason, winnerSeat) {
@@ -2533,6 +2701,7 @@ function render() {
   if (!snapshot.roomId) {
     observeCommittedContact(null);
     observeTurnArrival(null);
+    observeCpuCommentary(null);
     renderBoardSpotlightLegend();
     show("tacticalTrace", false);
     show("abandonRoom", false);
@@ -2544,6 +2713,7 @@ function render() {
   if (roomStatePending) {
     observeCommittedContact(null);
     observeTurnArrival(null);
+    observeCpuCommentary(null);
     renderBoardSpotlightLegend();
     show("tacticalTrace", false);
     $("shownCode").textContent = "確認中";
@@ -2632,6 +2802,7 @@ function render() {
     revealRandomSetup(publicState, privateState);
     observeCommittedContact(publicState);
     observeTurnArrival(publicState);
+    observeCpuCommentary(publicState);
     renderTacticalTrace(publicState);
     renderBoard(publicState);
     renderBasicActions(publicState, privateState);
@@ -2641,6 +2812,7 @@ function render() {
   } else {
     observeCommittedContact(null);
     observeTurnArrival(null);
+    observeCpuCommentary(null);
     renderBoardSpotlightLegend();
     show("tacticalTrace", false);
     show("terminalSummary", false);
@@ -4316,6 +4488,8 @@ document.addEventListener("visibilitychange", () => {
     scheduleMatchmakingStatus(250);
     scheduleMatchmakingAvailability(250);
     scheduleCpuTurn(250);
+    const publicState = roomModel?.room?.public_state;
+    if (hasStandardPublicState(publicState)) observeCpuCommentary(publicState);
     if (pendingLifecycleLobbyFocus) focusBattleLobby();
   }
 });

@@ -28,7 +28,7 @@ test("Standard online setup UI exposes the complete reconnect path", () => {
   for (const id of [
     "connectionCard", "connectionStatus", "connectionBadge", "connectionMessage", "matchedRoomHandoff", "matchedRoomAnnouncement", "roomLifecycleAnnouncement", "matchedRoomHandoffTitle", "matchedRoomHandoffDetail", "returnToMatchedRoom", "waitingOpponentNotice", "waitingOpponentAnnouncement", "openWaitingOpponent",
     "profileSelect", "starterCreator", "starterName", "createStarterProfile", "syncProfile", "createRoom", "roomCode", "joinRoom",
-    "shownCode", "members", "editNextLoadout", "setupTitle", "setupDescription", "cpuStartReview", "loadoutSummary", "loadoutGrid", "setupCommitBar", "setupCommitTitle", "submitSetup", "cancelCpuDraft", "setupStatus", "matchCard",
+    "shownCode", "cpuCommentaryStage", "cpuCommentaryBubble", "cpuCommentaryName", "cpuCommentaryText", "cpuCommentaryAnnouncement", "members", "editNextLoadout", "setupTitle", "setupDescription", "cpuStartReview", "loadoutSummary", "loadoutGrid", "setupCommitBar", "setupCommitTitle", "submitSetup", "cancelCpuDraft", "setupStatus", "matchCard",
     "publicProjection", "privateProjection", "leaveRoom", "leaveRoomDescription", "abandonRoom", "abandonRoomHint", "abandonRoomDialog", "abandonRoomTitle", "abandonRoomDescription", "abandonRoomStatus", "cancelAbandonRoom", "confirmAbandonRoom", "lobbyTitle",
     "turnGuide", "turnGuideStep", "turnGuideTitle", "turnGuideDetail", "boardViewport", "board", "boardKeyboardHelp", "boardKeyboardStatus", "toggleBoardZoom", "boardSpotlightLegend", "lastMoveSpotlightLegend", "pendingSpotlightLegend", "regionControls", "selectionCount", "submitRegion", "paletteControls", "skillControls", "skillTargetControls",
     "surrender", "retryAction", "actionStatus", "rematchControls", "rematchStatus", "requestRematch",
@@ -40,11 +40,36 @@ test("Standard online setup UI exposes the complete reconnect path", () => {
     "cosmeticPanel", "cosmeticCoins", "collectionIdentity", "refreshCosmetics", "cosmeticCatalog", "cosmeticConfirmation", "cosmeticConfirmationText", "cosmeticCommit", "cosmeticCancel", "cosmeticRetry", "cosmeticStatus",
     "matchmakingPanel", "recruitOpponent", "findOpponent", "cancelMatchmaking", "matchmakingWait", "matchmakingElapsed", "matchmakingStatus", "roomIdentityLabel",
     "cpuOpponentOffer", "cpuOfferMessage", "chooseCpuOpponent", "keepWaitingForHuman", "cpuRosterDialog", "cpuRosterGrid", "cpuRosterStatus", "closeCpuRoster",
-    "terminalOverlay", "terminalIcon", "terminalEyebrow", "terminalTitle", "terminalMessage", "terminalReasonText", "terminalProgressText", "terminalGoGacha", "terminalClose",
+    "terminalOverlay", "terminalIcon", "terminalEyebrow", "terminalTitle", "terminalMessage", "terminalReasonText", "cpuTerminalCommentarySummary", "cpuTerminalCommentaryOverlay", "terminalProgressText", "terminalGoGacha", "terminalClose",
   ]) assert.match(html, new RegExp(`id=["']${id}["']`));
   assert.match(html, /standard-online-client\.js/);
   assert.match(html, /standard-online-skill-intents\.js/);
+  assert.match(html, /cpu-commentary\.js\?v=20260906-1/);
   assert.match(html, /type="module" src="app\.js(?:\?v=[0-9-]+)?"/);
+});
+
+test("CPU commentary is public-event-only, bounded, non-blocking, and terminal-persistent", () => {
+  assert.match(html, /style\.css\?v=20260906-29/);
+  assert.match(html, /app\.js\?v=20260906-31/);
+  assert.ok(html.indexOf("cpu-commentary.js") < html.indexOf('type="module" src="app.js'));
+  assert.match(html, /id="cpuCommentaryStage"[^>]+aria-hidden="true"/);
+  assert.match(html, /id="cpuCommentaryAnnouncement"[^>]+role="status"[^>]+aria-live="polite"[^>]+aria-atomic="true"/);
+  assert.match(html, /aria-describedby="terminalMessage terminalReasonText cpuTerminalCommentaryOverlay terminalProgressText"/);
+  assert.doesNotMatch(html, /id="cpuTerminalCommentaryOverlay"[^>]+aria-hidden/);
+  const terminalPresentation = app.slice(app.indexOf("if (item.priority === \"terminal\")"), app.indexOf("clearCpuTerminalCommentary();", app.indexOf("if (item.priority === \"terminal\")")));
+  assert.doesNotMatch(terminalPresentation, /announceCpuCommentary/);
+  assert.match(app, /const cpuCommentary = globalThis\.FourColorStandardCpuCommentary/);
+  assert.match(app, /CPU_COMMENTARY_PRESENTATION_LIMIT = 32/);
+  assert.match(app, /sessionStorage\.setItem\(CPU_COMMENTARY_PRESENTATION_KEY/);
+  assert.match(app, /presented: cpuCommentaryPresentation\.presented\.slice\(-CPU_COMMENTARY_PRESENTATION_LIMIT\)/);
+  assert.match(app, /characterId: context\.characterId,[\s\S]+cpuSeat: context\.cpuSeat,[\s\S]+publicState: context\.publicState/);
+  assert.doesNotMatch(app.slice(app.indexOf("function chooseCpuCommentary"), app.indexOf("function clearCpuCommentaryBubble")), /private_state|privateState/);
+  assert.match(app, /document\.visibilityState !== "visible"/);
+  assert.match(app, /clearContactReveal\(\);[\s\S]+show\("randomReveal", false\)/);
+  assert.match(css, /\.cpu-commentary-stage\{[^}]*min-height:76px/);
+  assert.match(css, /\.cpu-commentary-bubble\{[^}]*pointer-events:none/);
+  assert.match(css, /@media\(max-width:390px\)\{\.cpu-commentary-stage/);
+  assert.match(css, /@media\(prefers-reduced-motion:reduce\)\{\.cpu-commentary-bubble\{[^}]*transition:none!important[^}]*transform:none!important/);
 });
 
 test("waiting-opponent notice is global, privacy-finite, and non-interrupting", () => {
