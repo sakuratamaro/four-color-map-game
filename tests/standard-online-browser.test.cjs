@@ -1821,6 +1821,9 @@ test(`${browserName} keeps quiz hitboxes fixed while their labels drift at 390px
     await page.getByRole("button", { name: "10問チャレンジ開始" }).click();
     const options = page.locator("#quizOptions button");
     await options.first().waitFor();
+    await page.mouse.move(1, 1);
+    await page.waitForFunction(() => [...document.querySelectorAll("#quizOptions .quiz-option-float")]
+      .every((label) => getComputedStyle(label).animationName === "quiz-option-drift"));
     await options.first().evaluate((button) => button.scrollIntoView({ block: "center" }));
 
     const snapshot = () => page.evaluate(() => ({
@@ -2371,6 +2374,7 @@ test("waiting-opponent arrival does not move or announce over a focused timed-qu
 test("waiting-opponent notice stays informational during CPU play and clears 390px navigation", { timeout: 130000 }, async () => {
   await withPage("cpuWin", async (page) => {
     await page.locator("#matchTitle").focus();
+    await page.waitForFunction(() => document.querySelector("#matchTitle").getBoundingClientRect().top - 9 >= 48);
     const before = await page.evaluate(() => {
       const title = document.querySelector("#matchTitle");
       const board = document.querySelector("#board");
