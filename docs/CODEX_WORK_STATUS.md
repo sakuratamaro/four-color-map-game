@@ -1,9 +1,9 @@
 # Codex work status
 
 - Last update: 2026-09-06 JST
-- Stage: latest-move spotlight release `afc89af` is public-verified; physical two-device acceptance and T+24h observation remain pending
+- Stage: board selection assist release `72040b8` is public-verified; physical two-device acceptance and T+24h observation remain pending
 - Integration branch: `codex/standard-release-command`
-- Public product baseline: `afc89afdaad7272171a4be88156d58376f3180a1` (includes legal-recolor LAB public gate `3fb3ef8`, board-first mobile presentation `2a1d2ef`, and the latest-move spotlight)
+- Public product baseline: `72040b8e76fdb7be0139abd46840c415855149e0` (includes legal-recolor LAB public gate `3fb3ef8`, board-first mobile presentation `2a1d2ef`, latest-move spotlight `afc89af`, and the board selection assist)
 - Public URL: `https://sakuratamaro.github.io/four-color-map-game/standard-online-v5/`
 - Supabase project: `qkcuhludisairpgzhryl`; `standard-game-action` deployment 17
 
@@ -23,7 +23,8 @@
 - Private-code human matches can now enable the symmetric “塗り直し・乱” LAB only when both players opt in. It loans one server-random legal recolor outside the ordinary six-card loadout, is mutually exclusive with debug, and changes no inventory, reward, history, trophy, CPU, or public-matchmaking behavior.
 - At 390x844, an explicit match start and a reload now align the turn guide, board, and primary action above the persistent connection strip and bottom navigation. Explicit starts focus the match heading; passive boot/reload does not, and wheel/trackpad input cancels delayed alignment.
 - The board now marks the last committed public region with a gold dashed outline and the current pending region with a cyan solid outline. A finite turn-arrival beat runs only for a fresh foreground opponent-to-self handoff, never on hydration, reload, duplicate polling, background replay, contact/random presentation, or reduced-motion animation. At 390x844 the visible action remains above connection/navigation, and the compact legend stays outside the playable canvas.
-- Public assets are app v25, client v17, skill-intents v17, style v24, and `solo-v5/save-codec.js?v=20260905-2`.
+- The board selection assist provides an optional 200% zoom with at least 44px macro targets, drag-to-pan/tap separation, keyboard arrows plus Space/Enter/Escape, and connected-candidate cues. The cues are explicitly not a legality oracle. At 390x844 the zoom, turn controls, board, and fixed connection strip do not intersect; reload alignment is restored without stealing focus.
+- Public assets are app v28, client v17, skill-intents v17, style v26, and `solo-v5/save-codec.js?v=20260905-2`.
 
 ## Verification
 
@@ -32,6 +33,7 @@
 - Pages run `33984536803` succeeded at `3fb3ef8`. Candidate preflight returned `ok:true`, including protected v3-load/eight-argument initialization probes and the complete LAB UI marker. The public browser loaded app v23/client and intents v17/style v22 with anonymous authentication and zero captured warning/error.
 - Board-first release `2a1d2ef`: local Standard Online browser 60/60, responsive 4/4, focused 390px start/reload/wheel/error cases, and static release contracts passed. Independent final review reported no P0/P1. Windows gate `33987952352` passed Chrome on attempt 1 and Edge on failed-job attempt 2 after one unrelated `badge-ready` timeout; the same CPU recovery case passed three consecutive local Edge reruns. Pages `33988962006` succeeded, public app v24/style v23 returned HTTP 200, and candidate preflight remained `ok:true`.
 - Latest-move spotlight release `afc89af`: local Standard Online browser 62/62, responsive 4/4, static 50/50, focused Chrome/Edge reload and spotlight checks, and two independent final reviews passed with no P0/P1. Initial Windows run `33992219065` reached 61/62 in both browsers and exposed a first-move viewport margin; `afc89af` fixed it, and run `33992923690` passed Chrome and Edge. Pages `33993298423` succeeded, public app v25/style v24 returned HTTP 200 with both line legends, and candidate preflight remained `ok:true`.
+- Board selection assist release `72040b8`: the five-commit sequence `645df6e`→`3380ddb`→`7156578`→`e1e78f6`→`72040b8` preserved every failed gate. Runs `33996927953`, `33997445395`, `33998002235`, and `33999028771` exposed first-move clearance and browser-restored scroll problems; the product and deterministic harness were corrected, then Windows run `33999760232` passed all 64 Chrome and Edge cases. Official non-browser tests passed 204/204, static+quiz passed 51/51, and UX, rules/privacy, and repository/release reviewers all reported GO with no P0/P1. Pages `34000125784` succeeded; public app v28/style v26 and the turn-guide zoom placement were verified. The public anonymous CPU finite acceptance also covered explicit consent, a full match, reload, surrender/reward, rematch, quiz-independent gacha/inventory persistence, and no private palette leak. No DB, Edge, RPC, rules, rewards, inventory, or storage contract changed.
 - Local final Edge browser suite: 50/50 passed; the post-review CPU setup-saga race fixture passed separately. Changed static/client/SQL/runbook checks passed, and all four stale v19/006 expectations found by the aggregate non-browser run were updated and rechecked 23/23.
 - Candidate Windows browser gate `33969830340`: Chrome job `101316251520` and Edge job `101316251312` passed at product commit `5c072ae`.
 - Supabase migration `202609050007_standard_pregame_abandon.sql` is applied. Candidate verification was 66/66 true; live pregame-abandon canary was 33/33 with profiles unchanged and active/unknown/nonterminal residue all 0.
@@ -58,6 +60,9 @@
 ## Next command priorities
 
 1. Acceptance/operations: complete a physical two-device match/reload/rematch loop and the T+24h Supabase resource comparison. These remain `PENDING`, not inferred from automation.
-2. P2: add first-hydration/reload coverage for the persistent tactical trace and explicit CPU/opponent display-name coverage; the public-only contract is already enforced.
+2. P1 quiz clarity: change the ambiguous quadratic prompt to “小さい方の解”, then add server-confirmed progress plus explicitly provisional ticket progress without weakening server-authoritative completion.
+3. P1 pollution rule: specify “no card consumption, but the action/turn/opportunity is used” for a no-op before changing the engine, Edge deployment, or persistence contract.
+4. P1 Shift/new-card explanation: explain that regions may split or merge, then define future overlay-skill topology only from the visible current region/canonical ID and board attributes, never ownership metadata.
+5. HOLD Google identity: perform a read-only Phase 0 auth/RLS/redirect/SDK audit only. Do not enable providers, callbacks, CSP, SDK, or DB changes yet.
 
-Release `afc89af` keeps the isolated legal-recolor LAB and deployment 17 boundaries, preserves the board-first 390px viewport, and makes the last committed move, current paint target, and fresh turn arrival readable without changing DB, Edge, rules, rewards, inventory, secrets, billing, deletion, or cleanup schedules.
+Release `72040b8` keeps the isolated legal-recolor LAB and deployment 17 boundaries, preserves the board-first 390px viewport and latest-move spotlight, and makes connected board selection precise by pointer, keyboard, and optional zoom without changing DB, Edge, rules, rewards, inventory, secrets, billing, deletion, or cleanup schedules.
