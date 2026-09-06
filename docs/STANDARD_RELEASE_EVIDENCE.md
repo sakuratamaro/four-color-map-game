@@ -14,6 +14,7 @@
 | 製品コード・生成元 | PUBLIC_VERIFIED | 公開HEAD `767805b`（engine製品実装`d06f34d`＋frontend音/振動`4e71ebc`/`9be6b90`）。alpha.2の自動敗北廃止とLv5多段推論を維持し、Pages限定で初期OFFの効果音・振動を追加。local/Edge bundleは不変 | 次回engine変更時に再生成一致を確認 |
 | ローカル製品試験 | VERIFIED | 音便focused unit/static/workflow/bundle 96/96・skip 0、独立再監査P0/P1なし。Web Locks 2ページ競合はローカルEdge/Chrome各2/2、同一ID一意出力・異ID保持・3ページ目duplicateを確認 | 物理端末で音量・振動感と救済判断、Lv5の体感確認 |
 | Shift select候補 | SUPERSEDED | `24caae8`→`d9b6fe9`→`1557ff1`。失敗run `34026276754` / `34027199050`で旧fixtureとretry payloadを修正し、run `34027488186`はChrome/Edge成功。ただしユーザー決定は盤面tap指定のためmain/Pagesへ昇格せず、`8944572`で製品差分をrevert | UDL-20260906-001として盤面操作UXを再設計 |
+| Shift盤面選択 | VERIFIED | 製品`ad49a41`、main `4b2ea3d`。select/数値入力を廃止し、行・列を選んで盤面tap/keyboard、自然語方向、取消無送信、再送identity、no-oracleを維持。Windows gate `34041850645`はChrome/Edge成功、独立focusedは各3/3・skip 0 | Pages起動・公開asset照合後にPUBLIC_VERIFIEDへ昇格 |
 | 次期UX候補のローカル検査 | VERIFIED | `codex/standard-release-command@1673ff8`。profile安定化、初回対戦導線、Quick Half Shift、status正規化、Realtime/poll復旧を含む非browser製品試験91ファイル522/522。browser workflow/harness静的11/11合格 | Pages反映後のpreflightと二端末受入 |
 | 初回導線・接続表示の次期候補 | VERIFIED | `9d42784`。初回starter作成＋profile同期を一操作化し、全5タブで単一接続statusを常時表示。空名write 0、room外offline復帰、390px下部nav非干渉を契約化。静的39/39、非browser 89ファイル513/513、Windows Chrome/Edge各18/18合格 | 物理二端末受入 |
 | Windows実browser CI | VERIFIED | GitHub Actions run `34039704692`。クリーン候補と司令塔CIのtreeが一致し、Chrome job `101504106864`とEdge job `101504106747`が成功。新feedback試験は各2/2・skip 0。生成bundle、CPU契約、online browser、Edge lifecycleも成功 | 公開URLで同じ主要導線を二端末受入 |
