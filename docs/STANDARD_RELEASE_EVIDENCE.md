@@ -11,13 +11,13 @@
 | ゲート | 状態 | 現在の根拠 | 次の証拠 |
 | --- | --- | --- | --- |
 | 採否棚卸し | VERIFIED | `ONLINE_COMPLETION_INVENTORY.md`。旧Expo試作と現行Web Standardを分離済み | 公開後に状態列だけ更新 |
-| 製品コード・生成元 | PUBLIC_VERIFIED | 公開製品commit `df9f01b`（製品実装`d06f34d`）。alpha.2の`DECLARE_NO_COLOR`を退役し、人間は救済確認後の投了、CPUは救済後にSURRENDER。Lv5全10テンプレートを多段推論化し、生成済みlocal/Edge bundleを同一候補で公開。再ビルド後のSHAは不変 | 次回engine変更時に再生成一致を確認 |
-| ローカル製品試験 | VERIFIED | `d06f34d`。非browser 694/694、browser 268件を完走し、focused 198/198、terminal 3/3、online core 2/2、governance 12/12、`git diff --check`成功。rules/privacy、UX/accessibility、repository/releaseの独立レビューは最終GO、P0/P1なし | 物理端末で救済判断とLv5の体感確認 |
+| 製品コード・生成元 | PUBLIC_VERIFIED | 公開HEAD `767805b`（engine製品実装`d06f34d`＋frontend音/振動`4e71ebc`/`9be6b90`）。alpha.2の自動敗北廃止とLv5多段推論を維持し、Pages限定で初期OFFの効果音・振動を追加。local/Edge bundleは不変 | 次回engine変更時に再生成一致を確認 |
+| ローカル製品試験 | VERIFIED | 音便focused unit/static/workflow/bundle 96/96・skip 0、独立再監査P0/P1なし。Web Locks 2ページ競合はローカルEdge/Chrome各2/2、同一ID一意出力・異ID保持・3ページ目duplicateを確認 | 物理端末で音量・振動感と救済判断、Lv5の体感確認 |
 | Shift select候補 | SUPERSEDED | `24caae8`→`d9b6fe9`→`1557ff1`。失敗run `34026276754` / `34027199050`で旧fixtureとretry payloadを修正し、run `34027488186`はChrome/Edge成功。ただしユーザー決定は盤面tap指定のためmain/Pagesへ昇格せず、`8944572`で製品差分をrevert | UDL-20260906-001として盤面操作UXを再設計 |
 | 次期UX候補のローカル検査 | VERIFIED | `codex/standard-release-command@1673ff8`。profile安定化、初回対戦導線、Quick Half Shift、status正規化、Realtime/poll復旧を含む非browser製品試験91ファイル522/522。browser workflow/harness静的11/11合格 | Pages反映後のpreflightと二端末受入 |
 | 初回導線・接続表示の次期候補 | VERIFIED | `9d42784`。初回starter作成＋profile同期を一操作化し、全5タブで単一接続statusを常時表示。空名write 0、room外offline復帰、390px下部nav非干渉を契約化。静的39/39、非browser 89ファイル513/513、Windows Chrome/Edge各18/18合格 | 物理二端末受入 |
-| Windows実browser CI | VERIFIED | GitHub Actions run `34034746623`。candidateと公開tree `b1f0d662de364ea888c1a5100c94cb96e9a0e351`が一致し、Chrome job `101490663937`とEdge job `101490663830`が成功。生成bundle、CPU契約、online browser、Edge lifecycleが成功 | 公開URLで同じ主要導線を二端末受入 |
-| 現行公開Pages | PUBLIC_VERIFIED | 公開製品基点`df9f01b`、Pages run `34035229549`成功。公開URLでapp/style v36、client v19、skill-intents v17、CPU commentary v2、宣言ボタンなし、投了導線、横overflow 0、console warning/error 0を確認 | 別々の二端末で最終受入 |
+| Windows実browser CI | VERIFIED | GitHub Actions run `34039704692`。クリーン候補と司令塔CIのtreeが一致し、Chrome job `101504106864`とEdge job `101504106747`が成功。新feedback試験は各2/2・skip 0。生成bundle、CPU契約、online browser、Edge lifecycleも成功 | 公開URLで同じ主要導線を二端末受入 |
+| 現行公開Pages | PUBLIC_VERIFIED | 公開HEAD `767805b`、Pages run `34040260269`成功。公開URLでstyle v37、feedback v2、app v38、client v19、skill-intents v17、CPU commentary v2。初期OFF、ON保存・再読込、OFF復帰、asset HTTP 200、candidate preflight `ok:true`を確認 | 別々の二端末で音量・振動感を含む最終受入 |
 | 初回公開前DB境界（履歴） | VERIFIED | 旧snapshotは匿名権限拒否。snapshot v2と野良募集が未存在だった初回baseline | 現行境界は適用migrationとlive canaryを参照 |
 | migration 006–013静的検査 | VERIFIED | migration別security/transaction testsと読み取り専用44項目SQL | 実DBで全行`ok=true` |
 | Dashboard Advisor・使用量baseline | WATCH_PARTIAL | T0と2026-09-06のT+24hを正規化JSONへ保存。T+24hは15/37 metricを観測し、公開preflight成功、CPU 2%、RAM 62%、disk 17%、disk IO 1%、接続peak 20/60、Security errors 0。API/Edge等22 metricはDashboard取得不能でPENDING。read-only診断はblocked/idle 0、slot 2/2 active、publication不変 | 欠落panelは次の定期観測で再取得し、推測値・0置換はしない |
@@ -26,7 +26,7 @@
 | 即時Standard CPU開始 | PUBLIC_VERIFIED | migration `202609050002`とEdge deployment 9。製品`cc96350`、公開`a4c6490`、DB 47項目、Edge基本6/6、即時CPU 7/7、Windows run `33931963065`、Pages run `33932159043`合格。公開UIでCPU初手まで確認 | 物理端末で一試合完走・再読込・同じCPUとの再戦を確認 |
 | CPU完走後の次戦導線 | PUBLIC_VERIFIED | `29c6958`。同じCPUとの同room再戦を維持し、終了結果から別CPU選択へ進める。live即時CPU完走・再戦canary 25/25、Windows Chrome/Edge成功、Pages反映済み | 物理端末で別CPU選択と再戦を体感確認 |
 | CPU報酬からガチャへの直行 | PUBLIC_VERIFIED | `e36dfcc`＋`193a0e6`。保存済み通常CPU精算だけにCTAを出し、抽選せずLv.1ガチャへ移動。対人・未精算・debugを拒否し、390×844で券・抽選操作・focus・再読込を確認 | 物理端末でCPU一局からガチャまでの体感を確認 |
-| GitHub main・Pages更新 | PUBLIC_VERIFIED | 公開製品commit `df9f01b`。`origin/main`を`3d07766`からforceなしでfast-forward。Standard browser gate `34034746623`、Pages `34035229549`成功。公開asset v36/v19/v17/v2/v36とcandidate preflightを確認 | 二端末受入後に最終状態を記録 |
+| GitHub main・Pages更新 | PUBLIC_VERIFIED | 公開HEAD `767805b`。`origin/main`を`97c36b3`からforceなしでfast-forward。Standard browser gate `34039704692`、Pages `34040260269`成功。公開asset v37/feedback v2/app v38とcandidate preflightを確認 | 二端末受入後に物理音量・振動感を記録 |
 | server-side active-room復帰 | PUBLIC_VERIFIED | private/public/CPUを有限8列で本人にだけ返し、厳格な1行だけ採用。raw sentinel/UUID非表示、background focus非奪取、CPU/matchmaking saga優先、復帰時の新room/setup送信0をbrowser回帰とlive 10/10で確認 | 物理端末でlocal identity喪失後の復帰を体感確認 |
 | 塗り直し・乱 LAB | PUBLIC_VERIFIED | `ad53bb4` / 公開`3fb3ef8`。private-code human双方同意、debug排他、固定ruleset、server-only乱数、1人1回貸与、通常19枚/6枚/CPU/野良/戦績/報酬/在庫非変更。DB 70/70、Edge 23/23、Windows/Pages/公開preflight合格 | 二端末LAB一局 |
 | 合言葉対戦canary | VERIFIED | deployment 15で`live-standard-runbook-a-canary.mjs --confirm-live` 44/44合格。確定CREATEの公開trace shapeも検査 | 実ブラウザ再読込と二端末最終受入 |
@@ -38,6 +38,13 @@
 | cleanup preview | PENDING | 関数はローカルのみ。削除・定期化なし | dry-run分類別件数、処理時間。実削除は別承認 |
 | cleanup実削除・定期化 | PENDING | 実行権限は付与済みだがpreview件数とcascade先を未確認 | exact ID、影響範囲、復元手段を先に記録してから実行 |
 | 別々の二端末による最終受入 | PENDING | 旧公開版の過去証拠だけ | 最新URLで対人/CPU完走、復帰、新試合、全永続化 |
+
+## 2026-09-06 基本効果音・スマホ振動公開
+
+- `4e71ebc`＋`9be6b90`（公開HEAD `767805b`）で、確定接触2–4色、手番到来、勝敗へ短い合成音と対応端末の振動を追加した。音・振動は別々の明示設定で初期OFF、trusted gesture後だけ音声を解禁し、reduced-motionとは独立する。
+- 初回独立監査でlocalStorage read-merge-writeの同時タブ競合を20/20再現して公開を止め、Web Locksのorigin-wide exclusive claimへ修正した。同一IDは代表1タブだけ、異IDはlost updateなし。ロック/保存失敗時は重複を許さず演出を抑止し、OFF時は予約音停止と`vibrate(0)`を行う。
+- focused 96/96・skip 0、Windows run `34039704692`のChrome job `101504106864`とEdge job `101504106747`が成功し、新feedback試験は各2/2・skip 0。Pages `34040260269`でstyle v37、feedback v2、app v38を公開し、初期OFF、ON保存・再読込、OFF復帰、asset HTTP 200、candidate preflight `ok:true`を確認した。
+- frontend/Pages限定便であり、Edge deployment 22、migration tail `202609060003`、SQL、RPC、engine bundle、報酬、在庫は変更していない。物理スマホの音量・振動感は`PENDING`で、自動検証から推定しない。
 
 ## 2026-09-06 自動敗北廃止・Lv5難化公開
 
