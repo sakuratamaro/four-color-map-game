@@ -30,12 +30,15 @@
 
 この便の新用途UIはStandard Onlineを対象とする。Localはalpha.4 engineと旧outgoing導線の互換を保つが、新用途の操作導線はこの公開便へ含めず、別の受入対象とする。
 
-- 角膨張開始後に「これから渡すエリア」と「色のついたエリア」の用途を明示的に選ぶ。
-- 従来用途は現在の盤面選択、白枠、紫の基準macro、取消、pointer/keyboard動作を維持する。
-- 新用途は盤面上の彩色済みregionを選び、次にその現在形状に含まれる基準macroを選ぶ。raw region ID、macro番号、数値input、select要素はプレイヤーへ見せない。
-- pointerに加え、Tabでregion候補と基準macro候補へ移動し、Enter/Spaceで選択、Escapeで現在の対象を解除できる。
+- 角膨張カードをタップしたら、用途切替、候補一覧、別の確定ボタンを挟まず、盤面の対象microcellを1回タップして即発動する。
+- alpha.4では、押した公開microcellが対象可能な彩色済みregionに属すれば新payloadを送る。同じmacroに複数regionがあっても、押したcellそのものから`regionId`を一意に決める。
+- 押したcellが空きで、所属macroが現在の`preparedOutgoing.sourceMacros`（actor一致）または必要数そろった盤面選択に含まれる場合は、旧outgoing payloadを送る。彩色済みcellを優先するため、同じmacro内でも意図を推測しない。
+- pending、reserved、deleted、delayed等の対象外region、重複占有、選択外の空きcellはclientで通信0件とし、その場の案内へ理由とcard・手番非消費を表示する。角候補の有無は先読みせずserverへ委ねる。
+- alpha.1/2/3 roomは彩色済みregionを対象にせず、選択済みoutgoingへの旧payloadだけを即発動で送る。
+- keyboardでは全versionの角膨張中にmicrocell単位で矢印移動し、Enter/Spaceでpointerと同じ判定を即実行する。alpha.1/2/3では彩色済みcellを通信0で拒否し、空きoutgoing cellだけを送る。Escapeまたは取消でcard targetだけを解除し、既存のoutgoing盤面選択は保つ。
+- raw region ID、macro番号、数値input、select要素はプレイヤーへ見せない。
 - 合法候補の完全oracleや相手hand/palette/controller情報は表示しない。不成立時はcard非消費と伝える。
-- 390×844で盤面、対象案内、確定、接続表示、下部navが重ならず、横overflowを発生させない。
+- 390×844で盤面、対象案内、取消、接続表示、下部navが重ならず、横overflowを発生させない。
 
 ## 受入ゲート
 
@@ -46,4 +49,4 @@
 - CPUは公開stateだけから有限候補を列挙し、Hard補充でも同一windowのarea制限を迂回しない。
 - public projectionへ相手private情報を追加しない。
 - Local/Edge bundleを決定的に再生成し、生成元包含とbyte一致を確認する。Localは旧outgoing導線でalpha.4 engineを安全に使えることを確認し、新用途UIの合格を過大記録しない。
-- Chrome/Edgeのpointer、keyboard、390px、公開preflightを通す。Edge配備前にalpha.3 active room互換とrollback手順を確認する。
+- Chrome/Edgeのpointer、microcell keyboard、通信0、double activation防止、retry同一性、390px、公開preflightを通す。Edge配備前にalpha.3 active room互換とrollback手順を確認する。

@@ -11,7 +11,8 @@ const publicUrl = "https://sakuratamaro.github.io/four-color-map-game/standard-o
 const expectedPhase = process.argv.find((argument) => argument.startsWith("--expect="))?.slice("--expect=".length) || null;
 const zeroUuid = "00000000-0000-0000-0000-000000000000";
 const candidateAssetMarkers = Object.freeze({
-  app: "app.js?v=20260907-41",
+  app: "app.js?v=20260907-42",
+  style: "style.css?v=20260907-40",
   intents: "standard-online-skill-intents.js?v=20260907-19",
 });
 
@@ -88,11 +89,13 @@ const result = {
       && app.text.includes("SKILL_CATEGORY_ALREADY_USED_IN_WINDOW")
       && app.text.includes("colorBonusRefill"),
     hasAlpha4ColoredCornerBloom: app.text.includes('state?.engineVersion === "5.0.0-alpha.4"')
-      && app.text.includes('["outgoing", "colored"]')
-      && app.text.includes("candidate.dataset.cornerBloomRegion")
+      && app.text.includes("function activateCornerBloomCell(state, micro)")
+      && app.text.includes("regionAtMicro(state, micro, { eligibleOnly: true })")
+      && app.text.includes('sendAction("USE_SKILL", payload)')
       && intents.text.includes('const colored = Object.hasOwn(input, "regionId")')
       && intents.text.includes('Object.freeze({ skill, regionId: regionId(input.regionId), macro: integer(input.macro) })'),
     hasCandidateAssetGeneration: page.text.includes(candidateAssetMarkers.app)
+      && page.text.includes(candidateAssetMarkers.style)
       && page.text.includes(candidateAssetMarkers.intents),
   },
   database: { snapshotV1, snapshotV2, matchmaking, matchmakingAvailability, pregameAbandon, activeRoom, setupLoadV3, initializeRoomV3 },

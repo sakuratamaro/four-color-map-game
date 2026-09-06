@@ -6,7 +6,7 @@
   <title>Four Color Map Game v5.0 Standard Online</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='30' height='30' x='1' y='1' rx='8' fill='%23ef476f'/%3E%3Crect width='30' height='30' x='33' y='1' rx='8' fill='%23ffd166'/%3E%3Crect width='30' height='30' x='1' y='33' rx='8' fill='%2306d6a0'/%3E%3Crect width='30' height='30' x='33' y='33' rx='8' fill='%231182e8'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="../online-v5/style.css">
-  <link rel="stylesheet" href="style.css?v=20260907-39">
+  <link rel="stylesheet" href="style.css?v=20260907-40">
   <link rel="stylesheet" href="debug-mode.css">
   <link rel="stylesheet" href="progression.css">
 </head>
@@ -328,7 +328,7 @@
         <div id="boardViewport" class="board-viewport">
           <canvas id="board" width="720" height="720" tabindex="-1" aria-label="Standardオンライン盤面" aria-describedby="boardKeyboardHelp boardKeyboardStatus"></canvas>
         </div>
-        <p id="boardKeyboardHelp" class="visually-hidden">盤面にフォーカスしたら、矢印キーでマスを移動し、SpaceまたはEnterで選択・解除できます。角膨張では彩色済みエリア、基準マスの順に選びます。緑の破線は次に辺でつなげて選べる位置の目印、紫と白の二重線は現在のキーボード位置です。Escapeで現在の対象を解除します。</p>
+        <p id="boardKeyboardHelp" class="visually-hidden">盤面にフォーカスしたら、矢印キーでマスを移動し、SpaceまたはEnterで選択・解除できます。角膨張ではカードを選んだあと、矢印キーで細分セルを移動し、SpaceまたはEnterでそのセルへ即発動します。緑の破線は次に辺でつなげて選べる位置の目印、紫と白の二重線は現在のキーボード位置です。Escapeで角膨張をキャンセルします。</p>
         <p id="boardKeyboardStatus" class="visually-hidden" role="status" aria-live="polite" aria-atomic="true"></p>
       </div>
       <div id="regionControls" class="controls hidden">
@@ -460,6 +460,6 @@
   <script src="standard-online-skill-intents.js?v=20260907-19"></script>
   <script src="cpu-commentary.js?v=20260906-2"></script>
   <script src="basic-feedback.js?v=20260906-2"></script>
-  <script type="module" src="app.js?v=20260907-41"></script>
+  <script type="module" src="app.js?v=20260907-42"></script>
 </body>
 </html>
