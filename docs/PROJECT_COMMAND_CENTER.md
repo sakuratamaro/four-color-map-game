@@ -1,14 +1,14 @@
 # 四色地図ゲーム 司令塔台帳
 
-更新日: 2026-09-06
+更新日: 2026-09-07
 
 目的: 四色地図ゲームを、迷わず始められ、駆け引きが伝わり、もう一局遊びたくなる体験へ磨き上げる。
 
-この台帳は、設計・実装・未コミット作業・公開済み状態を混同しないための入口である。公開可否の有限な証拠は `STANDARD_RELEASE_EVIDENCE.md`、具体的な公開順序は `STANDARD_PUBLIC_RELEASE_RUNBOOK.md` を正本とする。
+この台帳は、設計・実装・未コミット作業・公開済み状態を混同しないための入口である。公開可否の有限な証拠は `STANDARD_RELEASE_EVIDENCE.md`、具体的な公開順序は `STANDARD_PUBLIC_RELEASE_RUNBOOK.md`、作業床と未コミット物の保全判断は `WORKTREE_HYGIENE_INVENTORY.md` を正本とする。
 
 ## 司令塔ルール
 
-- 統合基点は `origin/main` とし、現在の公開製品基点は `df9f01b`。合法色0だけによる自動敗北の廃止とLv5クイズ難化を、共通COLOR応答窓・盤面主導UX・CPU実況・legal-recolor LABへ累積している。
+- 統合基点は `origin/main` とし、現在の正史は `948bbac`、公開製品commitは`4b2ea3d`、最終証拠追補は`948bbac`。盤面主導Shift選択、基本feedback、共通COLOR応答窓、CPU実況、legal-recolor LABまで累積している。
 - release候補はdirtyな司令塔床から直接出さず、`origin/main`起点のclean release worktreeへ採用commitだけを積み、candidate CIのtree一致を確認してfast-forwardする。
 - 古いdirty worktreeからbuild、merge、deployしない。
 - `実装済み`、`ローカル検証済み`、`live検証済み`、`公開済み`を別状態として記録する。
@@ -35,6 +35,8 @@
 | P0 | クロガネ公開情報lookahead v2 | CPU＋Edge＋DB | PUBLIC_VERIFIED | `a3425a4`。migration `202609050005`、新規クロガネだけv2、旧roomは旧policy維持、再戦時v2更新。公開情報だけの合法手、再送、決着、同CPU再戦canary合格。Windows run `33947039777`、Pages run `33947644765`成功 |
 | P0 | Supabase資源とRealtime負荷の追跡 | 運用 | WATCH_PARTIAL | T+24hを固定24時間窓で取得。公開preflight `ok:true`、CPU 2%、RAM 62%、disk 17%、disk IO 1%、接続peak 20/60。read-only診断はDB 16,403,603 bytes、active 2、blocked/idle-in-transaction 0、Realtime slot 2/2 active、publication不変、最大WAL lag 56 bytes、期限切れ候補room 14件・他0件。API/Edge/Performance/Healthの一部panelは取得不能のため22 metricをPENDINGのまま保持し、削除・課金・Compute変更は行わない |
 | P0 | 別々の二端末による最終受入 | チャッピー先生＋司令塔 | PENDING | 対人/CPUの完走、復帰、再戦、永続化を確認 |
+| P1 | alpha.3同カテゴリ連打制限 | ルール＋CPU＋Edge＋UX＋独立監査 | IMPLEMENTING | alpha.1/2互換、同一行動窓1カテゴリ1回、accepted miss/no-op、retry、CPU/debug/LAB、client/Edge mirror、公開CIを全て合格 |
+| P1 | 作業床・未コミット物の整理 | 司令塔 | INVENTORIED | `WORKTREE_HYGIENE_INVENTORY.md`に保護・保留・収録済み候補を分離。alpha.3安定後に非破壊確認を再実施してから整理 |
 | P1 | 対戦を主役にする情報設計 | UX | PUBLIC_VERIFIED | 5タブ化し、ホームの主CTAから対戦タブ内の初回profile作成・同期・ロビーまでを一本化。公開URLの390px実画面で確認済み |
 | P1 | 初回オンライン準備を一操作に短縮 | UX | PUBLIC_VERIFIED | `9d42784`。名前入力後の一操作でstarter保存とprofile同期を行い、自動入室はしない。空名write 0、同期二重送信防止、失敗時starter保持。公開CTA確認済み |
 | P1 | 接続状態を対戦中も常時表示 | UX＋同期 | PUBLIC_VERIFIED | `9d42784`。全5タブで単一statusを表示し、room外offlineも反映。公開390px画面で固定statusと下部navの8px間隔を確認 |
