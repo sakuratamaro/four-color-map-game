@@ -271,6 +271,11 @@ async function installMock(context, mode) {
       failNextCpuStartResponse: false,
       failNextSetupResponse: initialMode === "cpuReadyAbandon",
       failNextFindResponse: false,
+      failNextMatchmakingAvailability: false,
+      matchmakingAvailable: false,
+      matchmakingAvailabilityDelayMs: 0,
+      delayedOperation: null,
+      operationDelayMs: 0,
       failNextColorAction: false,
       failNextGacha: false,
       failNextQuizAnswer: false,
@@ -333,6 +338,9 @@ async function installMock(context, mode) {
       functions: { invoke: async (name, request) => {
         runtime.calls.push({ kind: "invoke", name, body: request.body });
         await globalThis.__standardOnlineRecordInvoke(request.body);
+        if (runtime.delayedOperation === request.body.operation && runtime.operationDelayMs > 0) {
+          await new Promise((resolve) => setTimeout(resolve, runtime.operationDelayMs));
+        }
         if (request.body.operation === "setup" && initialMode === "setupDebugError") return functionError(403, "DEBUG_MODE_NOT_ALLOWED", "private access_mode row and service secret");
         if (request.body.operation === "setup" && ["setupLabPersist", "setupLabLostResponse"].includes(initialMode)) {
           const prior = runtime.setupReceipts[request.body.setupActionId];
@@ -615,6 +623,14 @@ async function installMock(context, mode) {
       } },
       rpc: async (name, args) => {
         runtime.calls.push({ kind: "rpc", name, args });
+        if (name === "fcg_standard_matchmaking_availability") {
+          if (runtime.matchmakingAvailabilityDelayMs > 0) await new Promise((resolve) => setTimeout(resolve, runtime.matchmakingAvailabilityDelayMs));
+          if (runtime.failNextMatchmakingAvailability) {
+            runtime.failNextMatchmakingAvailability = false;
+            return { error: new Error("simulated availability failure") };
+          }
+          return { data: [{ has_waiting_opponent: runtime.matchmakingAvailable, observed_at: new Date().toISOString() }] };
+        }
         if (name === "fcg_standard_active_room") {
           if (!runtime.activeRecoveryAvailable) return { data: [] };
           runtime.activeRecoverySuccessfulReads += 1;
@@ -2071,6 +2087,292 @@ test("actual Edge recruits and cancels with one persisted public matchmaking tic
     const afterCancel = await page.evaluate(({ key }) => JSON.parse(localStorage.getItem(key)), { key: connectionKey });
     assert.equal(afterCancel.matchmakingTicketId, null);
   });
+});
+
+test("waiting-opponent notice follows availability without repeated announcements or stale offline display", { timeout: 180000 }, async () => {
+  await withPage("lobby", async (page) => {
+    await page.evaluate(() => {
+      const runtime = globalThis.__standardOnlineRuntime;
+      runtime.availabilityAnnouncements = [];
+      new MutationObserver(() => {
+        const text = document.querySelector("#waitingOpponentAnnouncement").textContent;
+        if (text) runtime.availabilityAnnouncements.push(text);
+      }).observe(document.querySelector("#waitingOpponentAnnouncement"), { childList: true, characterData: true, subtree: true });
+      runtime.matchmakingAvailable = true;
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+    await page.locator("#waitingOpponentNotice:not(.hidden)").waitFor();
+    for (const tab of ["ホーム", "対戦", "クイズ・ガチャ", "カード", "マイページ"]) {
+      await page.getByRole("button", { name: tab, exact: true }).click();
+      assert.equal(await page.locator("#waitingOpponentNotice").isVisible(), true, tab);
+      const overlap = await page.evaluate(() => {
+        const notice = document.querySelector("#waitingOpponentNotice").getBoundingClientRect();
+        const tabs = document.querySelector(".app-tabs").getBoundingClientRect();
+        const visible = (node) => {
+          const style = getComputedStyle(node);
+          const rect = node.getBoundingClientRect();
+          return style.display !== "none" && style.visibility !== "hidden" && rect.width > 0 && rect.height > 0;
+        };
+        const major = [...document.querySelectorAll("main h2, main h3, main button")]
+          .find((node) => !node.closest("#waitingOpponentNotice") && !node.closest("#connectionCard") && visible(node));
+        const intersects = (a, b) => !(a.right <= b.left || a.left >= b.right || a.bottom <= b.top || a.top >= b.bottom);
+        return { tabs: intersects(notice, tabs), major: major ? intersects(notice, major.getBoundingClientRect()) : null, majorText: major?.textContent?.trim() || "" };
+      });
+      assert.equal(overlap.tabs, false, `${tab} tabs ${JSON.stringify(overlap)}`);
+      assert.equal(overlap.major, false, `${tab} major ${JSON.stringify(overlap)}`);
+    }
+    await page.getByRole("button", { name: "対戦タブを見る" }).click();
+    await page.waitForFunction(() => document.body.dataset.activeTab === "battle" && document.activeElement?.id === "matchmakingStatus");
+    const focusEvidence = await page.evaluate(() => {
+      const target = document.querySelector("#matchmakingStatus");
+      const rect = target.getBoundingClientRect();
+      const style = getComputedStyle(target);
+      return {
+        top: rect.top,
+        bottom: rect.bottom,
+        viewportHeight: innerHeight,
+        outlineStyle: style.outlineStyle,
+        outlineWidth: style.outlineWidth,
+      };
+    });
+    assert.ok(focusEvidence.top >= 0 && focusEvidence.bottom <= focusEvidence.viewportHeight, JSON.stringify(focusEvidence));
+    assert.equal(focusEvidence.outlineStyle, "solid");
+    assert.equal(focusEvidence.outlineWidth, "3px");
+
+    const firstCalls = await page.evaluate(() => globalThis.__standardOnlineRuntime.calls
+      .filter((entry) => entry.name === "fcg_standard_matchmaking_availability").length);
+    await page.evaluate(() => {
+      document.dispatchEvent(new Event("visibilitychange"));
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+    await page.waitForFunction((before) => globalThis.__standardOnlineRuntime.calls
+      .filter((entry) => entry.name === "fcg_standard_matchmaking_availability").length > before, firstCalls);
+    assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.availabilityAnnouncements.length), 1);
+
+    await page.getByRole("button", { name: "対戦", exact: true }).click();
+    await page.getByRole("button", { name: "対戦相手を募集" }).click();
+    assert.equal(await page.locator("#waitingOpponentNotice").isHidden(), true);
+    const ownTicketCalls = await page.evaluate(() => globalThis.__standardOnlineRuntime.calls
+      .filter((entry) => entry.name === "fcg_standard_matchmaking_availability").length);
+    await page.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
+    await new Promise((resolve) => setTimeout(resolve, 600));
+    assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls
+      .filter((entry) => entry.name === "fcg_standard_matchmaking_availability").length), ownTicketCalls);
+    await page.getByRole("button", { name: "募集を取り消す" }).click();
+    await page.locator("#waitingOpponentNotice:not(.hidden)").waitFor();
+
+    await page.evaluate(() => {
+      globalThis.__standardOnlineRuntime.matchmakingAvailable = false;
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+    await page.locator("#waitingOpponentNotice").waitFor({ state: "hidden" });
+    await page.evaluate(() => {
+      const runtime = globalThis.__standardOnlineRuntime;
+      runtime.matchmakingAvailable = true;
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+    await page.locator("#waitingOpponentNotice:not(.hidden)").waitFor();
+    assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.availabilityAnnouncements.length), 2);
+
+    await page.evaluate(() => {
+      globalThis.__standardOnlineRuntime.failNextMatchmakingAvailability = true;
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+    await page.locator("#waitingOpponentNotice").waitFor({ state: "hidden" });
+
+    await page.evaluate(() => {
+      Object.defineProperty(navigator, "onLine", { configurable: true, get: () => true });
+      window.dispatchEvent(new Event("online"));
+    });
+    await page.locator("#waitingOpponentNotice:not(.hidden)").waitFor();
+    await page.evaluate(() => {
+      Object.defineProperty(navigator, "onLine", { configurable: true, get: () => false });
+      window.dispatchEvent(new Event("offline"));
+    });
+    await page.locator("#waitingOpponentNotice").waitFor({ state: "hidden" });
+    const offlineCalls = await page.evaluate(() => globalThis.__standardOnlineRuntime.calls
+      .filter((entry) => entry.name === "fcg_standard_matchmaking_availability").length);
+    await new Promise((resolve) => setTimeout(resolve, 600));
+    assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls
+      .filter((entry) => entry.name === "fcg_standard_matchmaking_availability").length), offlineCalls);
+
+    await page.evaluate(() => {
+      Object.defineProperty(navigator, "onLine", { configurable: true, get: () => true });
+      window.dispatchEvent(new Event("online"));
+    });
+    await page.locator("#waitingOpponentNotice:not(.hidden)").waitFor();
+    await page.evaluate(() => {
+      Object.defineProperty(document, "visibilityState", { configurable: true, get: () => "hidden" });
+      Object.defineProperty(document, "hidden", { configurable: true, get: () => true });
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+    await page.locator("#waitingOpponentNotice").waitFor({ state: "hidden" });
+    const hiddenCalls = await page.evaluate(() => globalThis.__standardOnlineRuntime.calls
+      .filter((entry) => entry.name === "fcg_standard_matchmaking_availability").length);
+    await new Promise((resolve) => setTimeout(resolve, 600));
+    assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls
+      .filter((entry) => entry.name === "fcg_standard_matchmaking_availability").length), hiddenCalls);
+    await page.evaluate(() => {
+      Object.defineProperty(document, "visibilityState", { configurable: true, get: () => "visible" });
+      Object.defineProperty(document, "hidden", { configurable: true, get: () => false });
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+    await page.locator("#waitingOpponentNotice:not(.hidden)").waitFor();
+  });
+});
+
+test("waiting-opponent arrival does not move or announce over a focused timed-quiz choice", { timeout: 130000 }, async () => {
+  await withPage("lobby", async (page) => {
+    await page.getByRole("button", { name: "クイズ・ガチャ", exact: true }).click();
+    await page.getByRole("button", { name: "10問チャレンジ開始" }).click();
+    const option = page.locator("#quizOptions button").first();
+    await option.waitFor();
+    await option.focus();
+    const before = await option.evaluate((node) => {
+      const rect = node.getBoundingClientRect();
+      const hit = document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2);
+      return { left: rect.left, top: rect.top, width: rect.width, height: rect.height, focused: document.activeElement === node, hit: hit === node || node.contains(hit) };
+    });
+    await page.evaluate(() => {
+      const runtime = globalThis.__standardOnlineRuntime;
+      runtime.matchmakingAvailabilityDelayMs = 700;
+      runtime.matchmakingAvailable = true;
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+    await page.locator("#waitingOpponentNotice:not(.hidden)").waitFor();
+    const after = await option.evaluate((node) => {
+      const rect = node.getBoundingClientRect();
+      const hit = document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2);
+      const notice = document.querySelector("#waitingOpponentNotice").getBoundingClientRect();
+      const tabs = document.querySelector(".app-tabs").getBoundingClientRect();
+      return {
+        left: rect.left, top: rect.top, width: rect.width, height: rect.height,
+        focused: document.activeElement === node,
+        hit: hit === node || node.contains(hit),
+        live: document.querySelector("#waitingOpponentAnnouncement").textContent,
+        ctaHidden: document.querySelector("#openWaitingOpponent").classList.contains("hidden"),
+        noticeTabsIntersect: !(notice.right <= tabs.left || notice.left >= tabs.right || notice.bottom <= tabs.top || notice.top >= tabs.bottom),
+        noticeOptionIntersect: !(notice.right <= rect.left || notice.left >= rect.right || notice.bottom <= rect.top || notice.top >= rect.bottom),
+      };
+    });
+    for (const key of ["left", "top", "width", "height"]) assert.ok(Math.abs(after[key] - before[key]) < 0.5, `${key}: ${before[key]} -> ${after[key]}`);
+    assert.equal(before.focused, true);
+    assert.equal(before.hit, true);
+    assert.equal(after.focused, true);
+    assert.equal(after.hit, true);
+    assert.equal(after.live, "");
+    assert.equal(after.ctaHidden, true);
+    assert.equal(after.noticeTabsIntersect, false);
+    assert.equal(after.noticeOptionIntersect, false);
+  });
+});
+
+test("waiting-opponent notice stays informational during CPU play and clears 390px navigation", { timeout: 130000 }, async () => {
+  await withPage("cpuWin", async (page) => {
+    await page.locator("#board").focus();
+    const before = await page.locator("#board").evaluate((node) => {
+      const rect = node.getBoundingClientRect();
+      const hit = document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2);
+      return { left: rect.left, top: rect.top, width: rect.width, height: rect.height, focused: document.activeElement === node, hit: hit === node || node.contains(hit) };
+    });
+    await page.evaluate(() => {
+      globalThis.__standardOnlineRuntime.matchmakingAvailabilityDelayMs = 700;
+      globalThis.__standardOnlineRuntime.matchmakingAvailable = true;
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+    await page.locator("#waitingOpponentNotice:not(.hidden)").waitFor();
+    assert.equal(await page.getByRole("button", { name: "対戦タブを見る" }).isHidden(), true);
+    assert.equal(await page.locator("body").getAttribute("data-active-tab"), "battle");
+    const evidence = await page.locator("#board").evaluate((node) => {
+      const board = node.getBoundingClientRect();
+      const notice = document.querySelector("#waitingOpponentNotice").getBoundingClientRect();
+      const tabs = document.querySelector(".app-tabs").getBoundingClientRect();
+      const connection = document.querySelector("#connectionBadge").getBoundingClientRect();
+      const hit = document.elementFromPoint(board.left + board.width / 2, board.top + board.height / 2);
+      const intersects = (a, b) => !(a.right <= b.left || a.left >= b.right || a.bottom <= b.top || a.top >= b.bottom);
+      return {
+        board: { left: board.left, top: board.top, width: board.width, height: board.height },
+        focused: document.activeElement === node,
+        hit: hit === node || node.contains(hit),
+        live: document.querySelector("#waitingOpponentAnnouncement").textContent,
+        noticeTabsIntersect: intersects(notice, tabs),
+        noticeConnectionIntersect: intersects(notice, connection),
+        noticeBoardIntersect: intersects(notice, board),
+        overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+        entryWrites: globalThis.__standardOnlineRuntime.calls.filter((entry) => ["fcg_standard_matchmaking_find", "fcg_standard_matchmaking_recruit"].includes(entry.name)).length,
+      };
+    });
+    for (const key of ["left", "top", "width", "height"]) assert.ok(Math.abs(evidence.board[key] - before[key]) < 0.5, `${key}: ${before[key]} -> ${evidence.board[key]}`);
+    assert.equal(before.focused, true);
+    assert.equal(before.hit, true);
+    assert.equal(evidence.focused, true);
+    assert.equal(evidence.hit, true);
+    assert.equal(evidence.live, "");
+    assert.equal(evidence.noticeTabsIntersect, false);
+    assert.equal(evidence.noticeConnectionIntersect, false);
+    assert.equal(evidence.noticeBoardIntersect, false);
+    assert.equal(evidence.overflow, false);
+    assert.equal(evidence.entryWrites, 0);
+  }, { viewport: { width: 390, height: 844 } });
+
+  await withPage("playing", async (page) => {
+    await page.evaluate(() => {
+      globalThis.__standardOnlineRuntime.matchmakingAvailable = true;
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+    await new Promise((resolve) => setTimeout(resolve, 600));
+    assert.equal(await page.locator("#waitingOpponentNotice").isHidden(), true);
+    assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls
+      .filter((entry) => entry.name === "fcg_standard_matchmaking_availability").length), 0);
+  });
+});
+
+test("waiting-opponent notice does not interrupt quiz answers or gacha draws", { timeout: 180000 }, async () => {
+  for (const scenario of [
+    { mode: "lobby", operation: "quiz-answer", start: async (page) => {
+      await page.getByRole("button", { name: "クイズ・ガチャ", exact: true }).click();
+      await page.getByRole("button", { name: "10問チャレンジ開始" }).click();
+      await page.locator("#quizOptions button").first().click();
+    } },
+    { mode: "lobby", operation: "gacha", start: async (page) => {
+      await page.getByRole("button", { name: "クイズ・ガチャ", exact: true }).click();
+      await page.locator("#gachaDrawOne").click();
+    } },
+  ]) {
+    await withPage(scenario.mode, async (page) => {
+      await page.evaluate((operation) => {
+        const runtime = globalThis.__standardOnlineRuntime;
+        runtime.delayedOperation = operation;
+        runtime.operationDelayMs = 3000;
+      }, scenario.operation);
+      await scenario.start(page);
+      await page.waitForFunction((operation) => globalThis.__standardOnlineRuntime.calls
+        .some((entry) => entry.body?.operation === operation), scenario.operation);
+      await page.evaluate(() => {
+        const runtime = globalThis.__standardOnlineRuntime;
+        runtime.matchmakingAvailabilityDelayMs = 600;
+        runtime.matchmakingAvailable = true;
+        document.dispatchEvent(new Event("visibilitychange"));
+      });
+      await page.locator("#waitingOpponentNotice:not(.hidden)").waitFor();
+      assert.equal(await page.locator("#waitingOpponentNotice").isVisible(), true);
+      assert.equal(await page.getByRole("button", { name: "対戦タブを見る" }).isHidden(), true);
+      assert.equal(await page.locator("#waitingOpponentAnnouncement").textContent(), "");
+      assert.equal(await page.locator("body").getAttribute("data-active-tab"), "quiz");
+      assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls
+        .filter((entry) => entry.name === "fcg_standard_matchmaking_find").length), 0);
+      await page.waitForFunction((operation) => {
+        if (operation === "quiz-answer") return document.querySelector("#quizAnswerFeedback").textContent.length > 0;
+        return document.querySelectorAll("#gachaResults .gacha-card").length > 0;
+      }, scenario.operation);
+      assert.equal(await page.locator("body").getAttribute("data-active-tab"), "quiz");
+      if (scenario.operation === "gacha") {
+        await page.waitForFunction(() => document.querySelector("#waitingOpponentAnnouncement").textContent.length > 0);
+      } else {
+        assert.equal(await page.locator("#waitingOpponentAnnouncement").textContent(), "");
+      }
+    });
+  }
 });
 
 test("actual Edge finishes one quiz answer and its feedback before handing a waiting player to setup", { timeout: 130000 }, async () => {

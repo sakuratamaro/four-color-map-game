@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <title>Four Color Map Game v5.0 Standard Online</title>
   <link rel="stylesheet" href="../online-v5/style.css">
-  <link rel="stylesheet" href="style.css?v=20260906-27">
+  <link rel="stylesheet" href="style.css?v=20260906-28">
   <link rel="stylesheet" href="debug-mode.css">
   <link rel="stylesheet" href="progression.css">
 </head>
@@ -25,6 +25,12 @@
     <button type="button" data-app-tab="profile" aria-selected="false"><span aria-hidden="true">●</span><strong>マイページ</strong></button>
   </nav>
   <main>
+    <section id="waitingOpponentNotice" class="waiting-opponent-notice hidden" aria-label="野良対戦の募集状況">
+      <span class="waiting-opponent-mark" aria-hidden="true">⚔</span>
+      <strong>対戦相手を募集中のプレイヤーがいます</strong>
+      <button id="openWaitingOpponent" class="ghost" type="button">対戦タブを見る</button>
+    </section>
+    <p id="waitingOpponentAnnouncement" class="visually-hidden" role="status" aria-live="polite" aria-atomic="true"></p>
     <section id="connectionCard" class="card connection-card" data-app-tab-panel="home battle quiz cards profile">
       <div id="connectionStatus" role="status" aria-live="polite" aria-atomic="true">
         <div class="row between"><strong>接続状態</strong><span id="connectionBadge" class="badge warn">接続中</span></div>
@@ -412,9 +418,9 @@
     </form>
   </dialog>
   <div id="toast" role="status" aria-live="polite"></div>
-  <script src="standard-online-client.js?v=20260906-17"></script>
+  <script src="standard-online-client.js?v=20260906-18"></script>
   <script src="standard-online-sync.js"></script>
   <script src="standard-online-skill-intents.js?v=20260906-17"></script>
-  <script type="module" src="app.js?v=20260906-29"></script>
+  <script type="module" src="app.js?v=20260906-30"></script>
 </body>
 </html>

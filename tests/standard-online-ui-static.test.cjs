@@ -26,7 +26,7 @@ test("missing room snapshots return to the lobby without discarding rooms on net
 
 test("Standard online setup UI exposes the complete reconnect path", () => {
   for (const id of [
-    "connectionCard", "connectionStatus", "connectionBadge", "connectionMessage", "matchedRoomHandoff", "matchedRoomAnnouncement", "roomLifecycleAnnouncement", "matchedRoomHandoffTitle", "matchedRoomHandoffDetail", "returnToMatchedRoom",
+    "connectionCard", "connectionStatus", "connectionBadge", "connectionMessage", "matchedRoomHandoff", "matchedRoomAnnouncement", "roomLifecycleAnnouncement", "matchedRoomHandoffTitle", "matchedRoomHandoffDetail", "returnToMatchedRoom", "waitingOpponentNotice", "waitingOpponentAnnouncement", "openWaitingOpponent",
     "profileSelect", "starterCreator", "starterName", "createStarterProfile", "syncProfile", "createRoom", "roomCode", "joinRoom",
     "shownCode", "members", "editNextLoadout", "setupTitle", "setupDescription", "cpuStartReview", "loadoutSummary", "loadoutGrid", "setupCommitBar", "setupCommitTitle", "submitSetup", "cancelCpuDraft", "setupStatus", "matchCard",
     "publicProjection", "privateProjection", "leaveRoom", "leaveRoomDescription", "abandonRoom", "abandonRoomHint", "abandonRoomDialog", "abandonRoomTitle", "abandonRoomDescription", "abandonRoomStatus", "cancelAbandonRoom", "confirmAbandonRoom", "lobbyTitle",
@@ -45,6 +45,34 @@ test("Standard online setup UI exposes the complete reconnect path", () => {
   assert.match(html, /standard-online-client\.js/);
   assert.match(html, /standard-online-skill-intents\.js/);
   assert.match(html, /type="module" src="app\.js(?:\?v=[0-9-]+)?"/);
+});
+
+test("waiting-opponent notice is global, privacy-finite, and non-interrupting", () => {
+  assert.match(html, /id="waitingOpponentNotice"[^>]+class="waiting-opponent-notice hidden"/);
+  assert.match(html, /対戦相手を募集中のプレイヤーがいます/);
+  assert.match(html, /id="waitingOpponentAnnouncement"[^>]+class="visually-hidden"[^>]+role="status"[^>]+aria-live="polite"[^>]+aria-atomic="true"/);
+  assert.doesNotMatch(html, /id="waitingOpponentNotice"[^>]+aria-live/);
+  assert.match(clientSource, /fcg_standard_matchmaking_availability/);
+  assert.match(clientSource, /return Object\.freeze\(\{\s*hasWaitingOpponent: row\.has_waiting_opponent,\s*observedAt: row\.observed_at/);
+  assert.match(app, /const MATCHMAKING_AVAILABILITY_POLL_MS = 30000/);
+  assert.match(app, /const MATCHMAKING_AVAILABILITY_MAX_BACKOFF_MS = 300000/);
+  assert.match(app, /function renderWaitingOpponentNotice\(\)/);
+  assert.match(app, /loadedRoom\?\.opponent_kind === "cpu"/);
+  assert.match(app, /!snapshot\.matchmakingTicketId && !snapshot\.matchmakingFindActionId/);
+  assert.match(app, /function matchmakingAvailabilityPollAllowed\(\)[\s\S]+snapshot\.matchmakingTicketId \|\| snapshot\.matchmakingFindActionId[\s\S]+roomModel\?\.room\?\.id === snapshot\.roomId && roomModel\.room\.opponent_kind === "cpu"/);
+  assert.match(app, /gachaBusy \|\| pendingGacha \|\| quizBusy \|\| quizInProgress \|\| pendingQuiz\?\.pendingAnswer/);
+  assert.match(app, /document\.visibilityState === "hidden" \|\| !navigator\.onLine/);
+  assert.match(app, /stopMatchmakingAvailabilityWatch\(\{ hide: true \}\)/);
+  assert.match(app, /matchmakingAvailabilityFailures \+= 1[\s\S]+setWaitingOpponentAvailability\(false, \{ authoritative: false \}\)/);
+  assert.match(app, /MATCHMAKING_AVAILABILITY_POLL_MS \* \(2 \*\* matchmakingAvailabilityFailures\)/);
+  assert.match(app, /loadedRoom\?\.opponent_kind === "cpu"[\s\S]+quizInProgress[\s\S]+quizFeedbackUntil[\s\S]+quizHintActive/);
+  assert.match(app, /activateAppTab\("battle"\)[\s\S]+matchmakingStatus/);
+  assert.doesNotMatch(app, /waitingOpponent[\s\S]{0,120}(?:findPublicOpponent|recruitPublicOpponent)\(/);
+  assert.match(css, /\.waiting-opponent-notice\{position:fixed/);
+  assert.match(css, /pointer-events:none/);
+  assert.match(css, /\.waiting-opponent-notice button\{[^}]*min-height:44px[^}]*pointer-events:auto/);
+  assert.match(css, /white-space:nowrap/);
+  assert.match(css, /@media\(max-width:700px\)\{\.waiting-opponent-notice\{top:8px;right:8px;bottom:auto;left:auto;width:calc\(100% - 16px\)\}\.waiting-opponent-notice button\{display:none\}\}/);
 });
 
 test("fresh players can finish profile setup inside the battle tab without automatic matchmaking", () => {

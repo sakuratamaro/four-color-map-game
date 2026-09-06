@@ -60,6 +60,8 @@ const LOADOUT_CATEGORIES = Object.freeze(["color", "area", "disrupt"]);
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const CPU_FIRST_OFFER_SECONDS = 90;
 const CPU_SECOND_OFFER_SECONDS = 180;
+const MATCHMAKING_AVAILABILITY_POLL_MS = 30000;
+const MATCHMAKING_AVAILABILITY_MAX_BACKOFF_MS = 300000;
 const RANDOM_REVEAL_DURATION_MS = 2600;
 const MATCHED_ROOM_FEEDBACK_MS = 650;
 const TURN_ARRIVAL_BEAT_MS = 900;
@@ -137,6 +139,12 @@ let cosmeticCatalogLoaded = false;
 let matchmakingBusy = false;
 let matchmakingStatusTimer = null;
 let matchmakingDisplayTimer = null;
+let matchmakingAvailabilityTimer = null;
+let matchmakingAvailabilityBusy = false;
+let matchmakingAvailabilityGeneration = 0;
+let matchmakingAvailabilityFailures = 0;
+let hasWaitingOpponent = false;
+let waitingOpponentAnnounced = false;
 let activeRoomRecoveryPromise = null;
 let cpuRosterCache = null;
 let cpuAcceptBusy = false;
@@ -1171,6 +1179,7 @@ function cosmeticIdentity(name, equipped) {
 }
 
 function renderCosmetics() {
+  renderWaitingOpponentNotice();
   if (!$("cosmeticPanel")) return;
   const value = profile();
   const projection = cosmeticProjection;
@@ -1272,6 +1281,7 @@ function cancelOnlineCosmetic() {
 }
 
 function renderCardSale() {
+  renderWaitingOpponentNotice();
   const value = profile();
   if (!value || !$("cardSaleSkill")) return;
   const select = $("cardSaleSkill");
@@ -1371,6 +1381,7 @@ function starterProfile(displayName) {
 }
 
 function renderGacha() {
+  renderWaitingOpponentNotice();
   const value = profile();
   if (!value || !$("gachaPanel")) return;
   const tickets = value.gachaTickets || {};
@@ -1984,6 +1995,7 @@ function renderQuizResult() {
 }
 
 function renderQuiz() {
+  renderWaitingOpponentNotice();
   if (!$('quizPanel')) return;
   const validPending = pendingQuiz && typeof pendingQuiz.sessionId === "string"
     && Array.isArray(pendingQuiz.questions) && pendingQuiz.questions.length === 10
@@ -2442,6 +2454,8 @@ async function runCpuTurn() {
 function render() {
   renderProfileCardVisibility();
   renderMatchedRoomHandoff();
+  renderWaitingOpponentNotice();
+  ensureMatchmakingAvailabilityWatch();
   const snapshot = client.snapshot();
   syncSetupModeControls(snapshot);
   const cpuDraft = pendingCpuStartSaga || cpuEntryDraft;
@@ -3313,6 +3327,115 @@ function matchmakingWaitSeconds() {
   return Number.isFinite(startedAt) ? Math.max(0, Math.floor((Date.now() - startedAt) / 1000)) : 0;
 }
 
+function waitingOpponentCtaBlocked() {
+  const quizInProgress = Boolean(pendingQuiz && pendingQuiz.answers?.length < 10);
+  const quizHintActive = Number(pendingQuiz?.questionState?.hintActiveUntil || 0) > Date.now();
+  return Boolean(
+    initializeBusy || setupBusy || actionBusy || abandonBusy || rematchBusy
+    || matchmakingBusy || cpuAcceptBusy || cpuStartSagaBusy || cpuEntryDraft || pendingCpuStartSaga
+    || gachaBusy || pendingGacha || quizBusy || quizInProgress || pendingQuiz?.pendingAnswer
+    || Date.now() < quizFeedbackUntil || quizHintActive
+    || cardSaleBusy || pendingCardSale || cosmeticBusy || pendingCosmeticAction
+  );
+}
+
+function waitingOpponentAnnouncementBlocked() {
+  const snapshot = client.snapshot();
+  const loadedRoom = snapshot.roomId && roomModel?.room?.id === snapshot.roomId ? roomModel.room : null;
+  const quizInProgress = Boolean(pendingQuiz && pendingQuiz.answers?.length < 10);
+  const quizHintActive = Number(pendingQuiz?.questionState?.hintActiveUntil || 0) > Date.now();
+  return Boolean(
+    waitingOpponentCtaBlocked() || loadedRoom?.opponent_kind === "cpu"
+    || quizInProgress || Date.now() < quizFeedbackUntil || quizHintActive
+  );
+}
+
+function renderWaitingOpponentNotice() {
+  if (!$("waitingOpponentNotice")) return;
+  const snapshot = client.snapshot();
+  const loadedRoom = snapshot.roomId && roomModel?.room?.id === snapshot.roomId ? roomModel.room : null;
+  const roomAllowsNotice = !snapshot.roomId || loadedRoom?.opponent_kind === "cpu";
+  const visible = Boolean(
+    hasWaitingOpponent && connected && navigator.onLine && roomAllowsNotice
+    && !snapshot.matchmakingTicketId && !snapshot.matchmakingFindActionId
+  );
+  show("waitingOpponentNotice", visible);
+  show("openWaitingOpponent", visible && !snapshot.roomId && !waitingOpponentCtaBlocked());
+  if (visible && !waitingOpponentAnnounced && !waitingOpponentAnnouncementBlocked()) {
+    waitingOpponentAnnounced = true;
+    $("waitingOpponentAnnouncement").textContent = "対戦相手を募集中のプレイヤーがいます。";
+  }
+}
+
+function setWaitingOpponentAvailability(available, { authoritative = true } = {}) {
+  const next = Boolean(available);
+  hasWaitingOpponent = next;
+  if (!next) {
+    $("waitingOpponentAnnouncement").textContent = "";
+    if (authoritative) waitingOpponentAnnounced = false;
+  }
+  renderWaitingOpponentNotice();
+}
+
+function matchmakingAvailabilityPollAllowed() {
+  if (!connected || document.visibilityState === "hidden" || !navigator.onLine) return false;
+  const snapshot = client.snapshot();
+  if (snapshot.matchmakingTicketId || snapshot.matchmakingFindActionId) return false;
+  if (!snapshot.roomId) return true;
+  return roomModel?.room?.id === snapshot.roomId && roomModel.room.opponent_kind === "cpu";
+}
+
+function stopMatchmakingAvailabilityWatch({ hide = false } = {}) {
+  clearTimeout(matchmakingAvailabilityTimer);
+  matchmakingAvailabilityTimer = null;
+  matchmakingAvailabilityGeneration += 1;
+  if (hide) setWaitingOpponentAvailability(false, { authoritative: false });
+}
+
+function scheduleMatchmakingAvailability(delay = MATCHMAKING_AVAILABILITY_POLL_MS) {
+  clearTimeout(matchmakingAvailabilityTimer);
+  matchmakingAvailabilityTimer = null;
+  if (!matchmakingAvailabilityPollAllowed()) return stopMatchmakingAvailabilityWatch({ hide: true });
+  matchmakingAvailabilityTimer = setTimeout(pollMatchmakingAvailability, delay);
+}
+
+function ensureMatchmakingAvailabilityWatch() {
+  if (!matchmakingAvailabilityPollAllowed()) return stopMatchmakingAvailabilityWatch({ hide: true });
+  if (!matchmakingAvailabilityTimer && !matchmakingAvailabilityBusy) scheduleMatchmakingAvailability(250);
+}
+
+function matchmakingAvailabilityRetryDelay() {
+  return Math.min(
+    MATCHMAKING_AVAILABILITY_MAX_BACKOFF_MS,
+    MATCHMAKING_AVAILABILITY_POLL_MS * (2 ** matchmakingAvailabilityFailures),
+  );
+}
+
+async function pollMatchmakingAvailability() {
+  clearTimeout(matchmakingAvailabilityTimer);
+  matchmakingAvailabilityTimer = null;
+  if (matchmakingAvailabilityBusy || !matchmakingAvailabilityPollAllowed()) {
+    return scheduleMatchmakingAvailability();
+  }
+  matchmakingAvailabilityBusy = true;
+  const generation = matchmakingAvailabilityGeneration;
+  try {
+    const result = await client.readMatchmakingAvailability();
+    if (generation === matchmakingAvailabilityGeneration && matchmakingAvailabilityPollAllowed()) {
+      matchmakingAvailabilityFailures = 0;
+      setWaitingOpponentAvailability(result.hasWaitingOpponent);
+    }
+  } catch {
+    if (generation === matchmakingAvailabilityGeneration) {
+      matchmakingAvailabilityFailures += 1;
+      setWaitingOpponentAvailability(false, { authoritative: false });
+    }
+  } finally {
+    matchmakingAvailabilityBusy = false;
+    scheduleMatchmakingAvailability(generation === matchmakingAvailabilityGeneration ? matchmakingAvailabilityRetryDelay() : 250);
+  }
+}
+
 function updateMatchmakingElapsed() {
   const snapshot = client.snapshot();
   const seconds = matchmakingWaitSeconds();
@@ -4157,16 +4280,18 @@ document.addEventListener("visibilitychange", () => {
     turnArrivalBackgrounded = true;
     clearTurnArrivalBeat();
     stopMatchmakingWatch();
+    stopMatchmakingAvailabilityWatch({ hide: true });
     stopCpuTurnWatch();
   }
   else {
     scheduleMatchmakingStatus(250);
+    scheduleMatchmakingAvailability(250);
     scheduleCpuTurn(250);
     if (pendingLifecycleLobbyFocus) focusBattleLobby();
   }
 });
 window.addEventListener("focus", () => {
-  roomSync.invalidate(); scheduleCpuTurn(250);
+  roomSync.invalidate(); scheduleCpuTurn(250); scheduleMatchmakingAvailability(250);
   const snapshot = client.snapshot();
   if (connected && !snapshot.roomId && !pendingCpuStartSaga && !snapshot.cpuStartActionId
       && !snapshot.matchmakingFindActionId && !snapshot.matchmakingTicketId) {
@@ -4180,11 +4305,21 @@ window.addEventListener("storage", (event) => {
     void recoverServerActiveRoom().catch(() => false);
   }
 });
-window.addEventListener("online", () => { roomSync.handleConnectivityChange(); reflectBrowserConnectivity(); scheduleMatchmakingStatus(250); scheduleCpuTurn(250); });
-window.addEventListener("offline", () => { roomSync.handleConnectivityChange(); reflectBrowserConnectivity(); stopMatchmakingWatch(); stopCpuTurnWatch(); });
+window.addEventListener("online", () => { roomSync.handleConnectivityChange(); reflectBrowserConnectivity(); scheduleMatchmakingStatus(250); scheduleMatchmakingAvailability(250); scheduleCpuTurn(250); });
+window.addEventListener("offline", () => { roomSync.handleConnectivityChange(); reflectBrowserConnectivity(); stopMatchmakingWatch(); stopMatchmakingAvailabilityWatch({ hide: true }); stopCpuTurnWatch(); });
 
 for (const button of document.querySelectorAll("[data-app-tab]")) button.onclick = () => activateAppTab(button.dataset.appTab);
 for (const button of document.querySelectorAll("[data-tab-jump]")) button.onclick = () => activateAppTab(button.dataset.tabJump);
+$("openWaitingOpponent").onclick = () => {
+  if ($("openWaitingOpponent").disabled || $("openWaitingOpponent").classList.contains("hidden")) return;
+  activateAppTab("battle");
+  render();
+  requestAnimationFrame(() => {
+    const target = $("matchmakingStatus");
+    target.focus({ preventScroll: true });
+    target.scrollIntoView({ block: "center", behavior: "auto" });
+  });
+};
 window.addEventListener("hashchange", () => activateAppTab(location.hash.slice(1), { updateHash: false }));
 
 const bootInteractionRevision = userInteractionRevision;
@@ -4195,6 +4330,7 @@ render();
 try {
   const session = await client.ensureSession();
   connected = true;
+  scheduleMatchmakingAvailability(250);
   $("connectionMessage").textContent = `端末ユーザー ${session.user.id.slice(0, 8)}…`;
   badge("匿名ログイン済み", "good");
   reflectBrowserConnectivity();
