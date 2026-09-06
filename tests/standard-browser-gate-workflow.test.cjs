@@ -20,8 +20,10 @@ test("Standard browser gate is candidate-push, manual, or pull-request only and 
   assert.equal((workflow.match(/      - online\/supabase-config\.js/g) || []).length, 2);
   assert.equal((workflow.match(/      - online-v5\/style\.css/g) || []).length, 2);
   assert.equal((workflow.match(/      - standard-online-v5\/\*\*/g) || []).length, 2);
+  assert.equal((workflow.match(/      - docs\/STANDARD_PUBLIC_RELEASE_RUNBOOK\.md/g) || []).length, 2);
   assert.equal((workflow.match(/      - tests\/standard-online-browser\.test\.cjs/g) || []).length, 2);
   assert.equal((workflow.match(/      - tests\/standard-browser-gate-workflow\.test\.cjs/g) || []).length, 2);
+  assert.match(workflow, /tests\/standard-public-release-runbook\.test\.cjs/);
   assert.doesNotMatch(workflow, /branches: \[(?:main|master)\]/);
   assert.match(workflow, /^permissions:\r?\n  contents: read\r?$/m);
   assert.doesNotMatch(workflow, /(?:secrets\.|permissions:\s*write|contents:\s*write)/i);

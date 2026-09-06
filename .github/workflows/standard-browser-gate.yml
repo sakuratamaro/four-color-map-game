@@ -7,6 +7,7 @@ on:
       - .github/workflows/standard-browser-gate.yml
       - online/supabase-config.js
       - online-v5/style.css
+      - docs/STANDARD_PUBLIC_RELEASE_RUNBOOK.md
       - standard-online-v5/**
       - standard/**
       - scripts/build-standard-online-engine.mjs
@@ -28,6 +29,7 @@ on:
       - .github/workflows/standard-browser-gate.yml
       - online/supabase-config.js
       - online-v5/style.css
+      - docs/STANDARD_PUBLIC_RELEASE_RUNBOOK.md
       - standard-online-v5/**
       - standard/**
       - scripts/build-standard-online-engine.mjs
@@ -90,6 +92,7 @@ jobs:
           tests/standard-live-release-preflight-static.test.cjs
           tests/standard-candidate-verification-sql.test.cjs
           tests/standard-matchmaking-availability-migration.test.cjs
+          tests/standard-public-release-runbook.test.cjs
           tests/standard-setup-revision-guard.test.cjs
           tests/standard-cpu-commentary.test.cjs
           tests/standard-match.test.cjs

@@ -8,32 +8,34 @@ const test = require("node:test");
 const runbook = fs.readFileSync(path.join(__dirname, "..", "docs", "STANDARD_PUBLIC_RELEASE_RUNBOOK.md"), "utf8");
 
 test("release runbook fixes migration-before-Edge-before-Pages order", () => {
+  const migrationSection = runbook.slice(runbook.indexOf("## DB適用順序"), runbook.indexOf("## EdgeとPagesの順序"));
+  const releaseSection = runbook.slice(runbook.indexOf("## EdgeとPagesの順序"), runbook.indexOf("## 段階canary"));
   let previous = -1;
   for (let sequence = 6; sequence <= 13; sequence += 1) {
     const marker = `20260903${String(sequence).padStart(4, "0")}`;
-    const position = runbook.indexOf(marker, previous + 1);
+    const position = migrationSection.indexOf(marker, previous + 1);
     assert.ok(position > previous, marker);
     previous = position;
   }
   for (let sequence = 1; sequence <= 7; sequence += 1) {
     const marker = `20260905${String(sequence).padStart(4, "0")}`;
-    const position = runbook.indexOf(marker, previous + 1);
+    const position = migrationSection.indexOf(marker, previous + 1);
     assert.ok(position > previous, marker);
     previous = position;
   }
-  for (let sequence = 1; sequence <= 2; sequence += 1) {
+  for (let sequence = 1; sequence <= 3; sequence += 1) {
     const marker = `20260906${String(sequence).padStart(4, "0")}`;
-    const position = runbook.indexOf(marker, previous + 1);
+    const position = migrationSection.indexOf(marker, previous + 1);
     assert.ok(position > previous, marker);
     previous = position;
   }
-  const edge = runbook.indexOf("DB 17本とcandidate verification 70/70を確認する");
-  const pages = runbook.indexOf("StandardオンラインPagesを公開");
-  assert.ok(edge > previous && pages > edge);
+  const database = releaseSection.indexOf("DB 18本とcandidate verification 72/72を確認する");
+  const pages = releaseSection.indexOf("StandardオンラインPagesを公開");
+  assert.ok(database >= 0 && pages > database);
   assert.match(runbook, /PagesをDBより先に公開しない/);
-  assert.match(runbook, /現行本番は`node scripts\/live-standard-release-preflight\.mjs --expect=candidate`/);
-  assert.match(runbook, /--expect=baseline`は初回段階公開の履歴用/);
-  assert.match(runbook, /202609060002`適用後の本番には実行しない/);
+  assert.match(runbook, /--expect=baseline`で、旧公開境界がすべて有効、availability RPCは`absent`、待機相手UIは未公開/);
+  assert.match(runbook, /SQL適用後・Pages前は`--expect=db-ready`、Pages後は`--expect=candidate`/);
+  assert.match(runbook, /202609060003`適用後にPagesを戻す場合も、旧クライアントから未使用のavailability関数と索引は保持/);
   assert.match(runbook, /202609050006.*適用直前[\s\S]+duplicate_active_actor_state[\s\S]+重複件数が0/);
   assert.match(runbook, /0でなければ `202609050006` を適用せず/);
 });
