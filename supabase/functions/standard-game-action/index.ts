@@ -226,8 +226,9 @@ function quizOptions(answer: number, questionIndex: number): { options: JsonObje
 }
 
 function quizPrompt(level: number, recentTemplateIds: string[] = []): QuizGenerated {
+  const levelTimeLimitSeconds = level === 5 ? 120 : null;
   const q = (templateId: string, category: string, prompt: string, answer: number, hint: string, timeLimitSeconds: number, math?: JsonObject): QuizGenerated =>
-    ({ templateId, category, prompt, answer, hint, timeLimitSeconds, ...(math ? { math } : {}) });
+    ({ templateId, category, prompt, answer, hint, timeLimitSeconds: levelTimeLimitSeconds ?? timeLimitSeconds, ...(math ? { math } : {}) });
   let catalog: Array<() => QuizGenerated>;
   if (level === 1) catalog = [
     () => { const a = secureInt(8, 80); const b = secureInt(3, 40); return q("add", "たし算", `${a} + ${b} = ?`, a + b, "たし算：同じ位どうしを足す", 25, { kind: "expression", value: `${a} + ${b} = ?` }); },
@@ -236,7 +237,7 @@ function quizPrompt(level: number, recentTemplateIds: string[] = []): QuizGenera
     () => { const divisor = secureInt(2, 12); const answer = secureInt(2, 15); return q("divide", "わり算", `${divisor * answer} ÷ ${divisor} = ?`, answer, "わり算：答え × 割る数 = 割られる数", 25, { kind: "fraction", numerator: divisor * answer, denominator: divisor, suffix: "= ?" }); },
     () => { const answer = secureInt(2, 30); const b = secureInt(2, 30); return q("missing", "穴埋め", `□ + ${b} = ${answer + b}　□ = ?`, answer, "a + b = c なら a = c − b", 30, { kind: "expression", value: `□ + ${b} = ${answer + b}　　□ = ?` }); },
     () => { const width = secureInt(2, 12); const height = secureInt(2, 12); return q("rectangle-area", "面積", `たて${height}、よこ${width}の長方形の面積は？`, width * height, "長方形の面積：S = たて × よこ", 30, { kind: "geometry", shape: "rectangle", dimensions: { width, height } }); },
-    () => { const width = secureInt(2, 12); const height = secureInt(2, 12); return q("rectangle-perimeter", "周の長さ", `たて${height}、よこ${width}の長方形の周の長さは？`, 2 * (width + height), "長方形の周：L = 2(たて + よこ)", 30, { kind: "geometry", label: "長方形", value: `たて ${height}　よこ ${width}　L = ?` }); },
+    () => { const width = secureInt(2, 12); const height = secureInt(2, 12); return q("rectangle-perimeter", "周の長さ", `たて${height}、よこ${width}の長方形の周の長さは？`, 2 * (width + height), "長方形の周：L = 2(たて + よこ)", 30, { kind: "geometry", shape: "rectangle", dimensions: { width, height }, measure: "perimeter" }); },
     () => { const side = secureInt(2, 9); return q("cube-volume", "体積", `一辺${side}の立方体の体積は？`, side ** 3, "立方体の体積：V = 一辺³", 35, { kind: "geometry", shape: "cube", dimensions: { side } }); },
   ];
   else if (level === 2) catalog = [
@@ -252,28 +253,28 @@ function quizPrompt(level: number, recentTemplateIds: string[] = []): QuizGenera
     () => { const speed = secureInt(3, 12); const hours = secureInt(2, 8); return q("speed-distance", "速さ", `時速${speed}kmで${hours}時間進むと何km？`, speed * hours, "道のり = 速さ × 時間", 40, { kind: "story" }); },
   ];
   else if (level === 3) catalog = [
-    () => { const a = secureInt(2, 7); const power = secureInt(2, 4); return q("power", "累乗", `${a}の${power}乗は？`, a ** power, "累乗：aⁿ は a を n 回掛ける", 42, { kind: "power", base: a, exponent: power, suffix: "= ?" }); },
-    () => { const root = secureInt(2, 24); return q("root", "平方根", `√${root * root} = ?`, root, "平方根：√a は2乗して a になる正の数", 42, { kind: "root", value: root * root, suffix: "= ?" }); },
-    () => { const value = secureInt(3, 7); return q("factorial", "階乗", `${value}! = ?`, factorial(value), "階乗：n! = n × (n−1) × … × 1", 48, { kind: "expression", value: `${value}! = ?` }); },
-    () => { const lower = 1; const end = secureInt(4, 10); return q("sigma", "数列の和", `k=${lower}から${end}までの k の総和は？`, inclusiveIntegerSum(lower, end, (k) => k), "自然数の和：1 + … + n = n(n+1) ÷ 2", 50, { kind: "sum", index: "k", lower, upper: end, body: "k", grouped: false, suffix: "= ?" }); },
-    () => { const x = secureInt(2, 12); const a = secureInt(2, 6); const b = secureInt(1, 10); const c = secureInt(1, 8); return q("expression", "式の計算", `${a}(${x} + ${b}) − ${c} = ?`, a * (x + b) - c, "分配法則：a(b+c) = ab + ac", 45, { kind: "expression", value: `${a}(${x} + ${b}) − ${c} = ?` }); },
-    () => { const radius = secureInt(2, 10); return q("circle-area", "面積", `半径${radius}の円の面積は何π？（πの係数を答える）`, radius ** 2, "円の面積：S = πr²", 45, { kind: "geometry", shape: "circle", dimensions: { radius } }); },
-    () => { const a = secureInt(2, 7); const x = secureInt(1, 9); return q("derivative-monomial", "微分", `y=${a}x² のとき、x=${x}での dy/dx は？`, 2 * a * x, "微分：d(xⁿ)/dx = nxⁿ⁻¹", 52, { kind: "derivative", function: `${a}x²`, at: x, suffix: "= ?" }); },
-    () => { const end = secureInt(2, 10); return q("integral-linear", "積分", `0から${end}まで 2x を積分した値は？`, end ** 2, "積分：∫xⁿdx = xⁿ⁺¹/(n+1) + C", 55, { kind: "integral", lower: 0, upper: end, body: "2x", variable: "x", suffix: "= ?" }); },
-    () => { const a = secureInt(2, 6); const b = secureInt(2, 6); const hours = secureInt(2, 8); return q("work-rate", "仕事算", `Aは1時間に${a}枚、Bは1時間に${b}枚仕上げる。2人で${hours}時間に何枚？`, (a + b) * hours, "共同作業：1時間あたりの仕事量を足してから時間を掛ける", 52, { kind: "story" }); },
-    () => { const childAge = secureInt(6, 14); const gap = secureInt(18, 34); const years = secureInt(3, 12); return q("age-story", "年齢算", `子は${childAge}歳、親は子より${gap}歳上。${years}年後の親は何歳？`, childAge + gap + years, "年齢算：年齢差は何年たっても変わらない", 52, { kind: "story" }); },
+    () => { const a = secureInt(2, 5); const power = secureInt(3, 4); const b = secureInt(2, 6); return q("power", "累乗と差", `${a}の${power}乗から${b}の2乗を引くと？`, a ** power - b ** 2, "それぞれの累乗を先に計算し、最後に差を取る", 42, { kind: "expression", value: `${a}^${power} − ${b}² = ?` }); },
+    () => { const left = secureInt(4, 18); const right = secureInt(3, 15); return q("root", "平方根の和", `√${left * left} + √${right * right} = ?`, left + right, "2つの平方根を別々に求めてから足す", 42, { kind: "expression", value: `√${left * left} + √${right * right} = ?` }); },
+    () => { const value = secureInt(5, 8); return q("factorial", "階乗の比", `${value}! ÷ ${value - 2}! = ?`, value * (value - 1), "階乗を展開し、共通する部分を約分する", 48, { kind: "expression", value: `${value}! ÷ ${value - 2}! = ?` }); },
+    () => { const lower = secureInt(2, 4); const end = secureInt(lower + 3, lower + 7); return q("sigma", "数列の和", `k=${lower}から${end}までの 2k−1 の総和は？`, inclusiveIntegerSum(lower, end, (k) => 2 * k - 1), "Σ(2k−1)=2Σk−Σ1。下端にも注意する", 50, { kind: "sum", index: "k", lower, upper: end, body: "2k − 1", grouped: true, coefficients: { quadratic: 0, linear: 2, constant: -1 }, suffix: "= ?" }); },
+    () => { const x = secureInt(2, 9); const a = secureInt(2, 6); const b = secureInt(1, 8); const c = secureInt(2, 5); const d = secureInt(1, 6); return q("expression", "式の計算", `${a}(${x} + ${b}) − ${c}(${x} − ${d}) = ?`, a * (x + b) - c * (x - d), "2つの括弧をそれぞれ展開し、符号に注意してまとめる", 45, { kind: "expression", value: `${a}(${x} + ${b}) − ${c}(${x} − ${d}) = ?` }); },
+    () => { const radius = secureInt(5, 12); const innerRadius = secureInt(2, radius - 2); return q("circle-area", "円環の面積", `外側の半径${radius}、内側の半径${innerRadius}の円環の面積は何π？（πの係数を答える）`, radius ** 2 - innerRadius ** 2, "外側の円 πR² から内側の円 πr² を引く", 45, { kind: "geometry", shape: "circle", dimensions: { radius, innerRadius } }); },
+    () => { const a = secureInt(2, 6); const b = secureInt(-8, 8); const x = secureInt(1, 8); return q("derivative-monomial", "微分", `y=${a}x² ${signedTerm(b)}x のとき、x=${x}での dy/dx は？`, 2 * a * x + b, "各項を微分して 2ax+b を作り、最後にxを代入する", 52, { kind: "derivative", function: `${a}x² ${signedTerm(b)}x`, at: x, suffix: "= ?" }); },
+    () => { const lower = secureInt(1, 4); const upper = secureInt(lower + 2, lower + 6); const b = secureInt(-5, 7); return q("integral-linear", "積分", `${lower}から${upper}まで 2x ${signedTerm(b)} を積分した値は？`, upper ** 2 + b * upper - (lower ** 2 + b * lower), "項別に積分し、上端の値から下端の値を引く", 55, { kind: "integral", lower, upper, body: `2x ${signedTerm(b)}`, variable: "x", suffix: "= ?" }); },
+    () => { const a = secureInt(2, 6); const b = secureInt(2, 6); const soloHours = secureInt(1, 4); const togetherHours = secureInt(2, 6); return q("work-rate", "仕事算", `Aは1時間に${a}枚、Bは1時間に${b}枚仕上げる。Aだけで${soloHours}時間、その後2人で${togetherHours}時間働くと合計何枚？`, a * soloHours + (a + b) * togetherHours, "Aだけの分と、2人で共同作業した分を別々に求めて足す", 52, { kind: "story" }); },
+    () => { const childAge = secureInt(6, 14); const gap = secureInt(18, 34); const years = secureInt(3, 12); return q("age-story", "年齢算", `子は${childAge}歳、親は子より${gap}歳上。${years}年後の2人の年齢の合計は？`, 2 * childAge + gap + 2 * years, "今の親の年齢を求め、2人それぞれに経過年数を足して合計する", 52, { kind: "story" }); },
   ];
   else if (level === 4) catalog = [
-    () => { const small = secureInt(1, 8); const large = secureInt(small + 1, 13); return q("quadratic", "二次方程式", `x² − ${small + large}x + ${small * large} = 0　小さい方の解 x = ?`, small, "x² − (α+β)x + αβ = (x−α)(x−β)", 58, { kind: "expression", value: `x² − ${small + large}x + ${small * large} = 0　　小さい方の解 x = ?` }); },
-    () => { const total = secureInt(6, 11); const selected = secureInt(2, Math.min(4, total - 2)); return q("combination", "組合せ", `${total}個から${selected}個を選ぶ組合せは？`, combination(total, selected), "組合せ：ₙCᵣ = n! ÷ (r!(n−r)!)", 58, { kind: "combination", total, selected, suffix: "= ?" }); },
-    () => { const first = secureInt(1, 12); const difference = secureInt(2, 8); const position = secureInt(6, 12); return q("sequence", "等差数列", `初項${first}、公差${difference}の等差数列の第${position}項は？`, first + (position - 1) * difference, "等差数列：aₙ = a₁ + (n−1)d", 58, { kind: "sequence", first, difference, position, suffix: "= ?" }); },
-    () => { const [a, b, c, d] = Array.from({ length: 4 }, () => secureInt(-6, 8)); return q("determinant", "行列式", `[[${a},${b}],[${c},${d}]] の行列式は？`, a * d - b * c, "2次の行列式：det A = ad − bc", 58, { kind: "matrix-determinant", rows: [[a, b], [c, d]], suffix: "= ?" }); },
-    () => { const lower = 1; const end = secureInt(4, 8); const a = secureInt(2, 5); const b = secureInt(-3, 6); return q("sigma-linear", "数列の和", `k=${lower}から${end}まで ${a}k ${signedTerm(b)} の総和は？`, inclusiveIntegerSum(lower, end, (k) => a * k + b), "Σ(ak+b) = aΣk + bΣ1", 62, { kind: "sum", index: "k", lower, upper: end, body: `${a}k ${signedTerm(b)}`, grouped: true, suffix: "= ?" }); },
-    () => { const top = secureInt(2, 10); const bottom = secureInt(top + 1, 15); const height = secureInt(2, 10) * 2; return q("trapezoid-area", "面積", `上底${top}、下底${bottom}、高さ${height}の台形の面積は？`, (top + bottom) * height / 2, "台形の面積：S = (上底 + 下底) × 高さ ÷ 2", 58, { kind: "geometry", shape: "trapezoid", dimensions: { top, bottom, height } }); },
-    () => { const radius = secureInt(2, 8); const height = secureInt(2, 10); return q("cylinder-volume", "体積", `半径${radius}、高さ${height}の円柱の体積は何π？`, radius ** 2 * height, "円柱の体積：V = πr²h", 60, { kind: "geometry", shape: "cylinder", dimensions: { radius, height } }); },
-    () => { const a = secureInt(1, 5); const b = secureInt(-6, 8); const x = secureInt(1, 8); return q("derivative-polynomial", "微分", `y=${a}x² ${signedTerm(b)}x のとき、x=${x}での dy/dx は？`, 2 * a * x + b, "微分：(ax²+bx)' = 2ax+b", 62, { kind: "derivative", function: `${a}x² ${signedTerm(b)}x`, at: x, suffix: "= ?" }); },
-    () => { const inflow = secureInt(2, 7); const workerRate = secureInt(inflow + 2, inflow + 8); const workers = secureInt(2, 5); const minutes = secureInt(3, 10); const initial = minutes * (workers * workerRate - inflow); return q("newton-flow", "ニュートン算", `行列は最初${initial}人。毎分${inflow}人増え、窓口${workers}か所が各毎分${workerRate}人を案内する。行列がなくなるまで何分？`, minutes, "ニュートン算：最初の量 ÷ (処理量 − 増加量) = 時間", 68, { kind: "story" }); },
-    () => { const slow = secureInt(3, 8); const fast = secureInt(slow + 2, slow + 8); const hours = secureInt(2, 6); const headStart = (fast - slow) * hours; return q("catch-up", "追いつき算", `時速${slow}kmの人が${headStart}km先にいる。時速${fast}kmで追うと何時間で追いつく？`, hours, "追いつく時間 = はじめの距離 ÷ 速さの差", 65, { kind: "story" }); },
+    () => { const small = secureInt(1, 8); const large = secureInt(small + 1, 13); const scale = secureInt(2, 5); return q("quadratic", "二次方程式", `${scale}x² − ${scale * (small + large)}x + ${scale * small * large} = 0　小さい方の解 x = ?`, small, "まず式全体の共通因数を外し、因数分解して2解を比べる", 58, { kind: "expression", value: `${scale}x² − ${scale * (small + large)}x + ${scale * small * large} = 0　　小さい方の解 x = ?` }); },
+    () => { const total = secureInt(8, 13); const selected = secureInt(3, Math.min(5, total - 2)); return q("combination", "条件つき組合せ", `${total}人から${selected}人を選ぶ。指定された2人のうち、ちょうど1人を含む選び方は何通り？`, 2 * combination(total - 2, selected - 1), "指定された1人を2通りから選び、残りを他の人から組み合わせる", 58, { kind: "combination", total: total - 2, selected: selected - 1, prefix: "2 ×", suffix: "= ?" }); },
+    () => { const first = secureInt(1, 12); const difference = secureInt(2, 8); const position = secureInt(6, 12); return q("sequence", "等差数列の和", `初項${first}、公差${difference}の等差数列で、初項から第${position}項までの和は？`, position * (2 * first + (position - 1) * difference) / 2, "第n項を求めてから、Sₙ=n(a₁+aₙ)÷2を使う", 58, { kind: "sum", index: "n", lower: 1, upper: position, body: `${first} + (n − 1) × ${difference}`, grouped: true, sequence: { first, difference, position }, suffix: "= ?" }); },
+    () => { const left = Array.from({ length: 4 }, () => secureInt(-6, 8)); const right = Array.from({ length: 4 }, () => secureInt(-6, 8)); const leftDet = left[0] * left[3] - left[1] * left[2]; const rightDet = right[0] * right[3] - right[1] * right[2]; return q("determinant", "行列式の積", `A=[[${left[0]},${left[1]}],[${left[2]},${left[3]}]], B=[[${right[0]},${right[1]}],[${right[2]},${right[3]}]]　det(A)det(B) は？`, leftDet * rightDet, "AとBの行列式を別々に ad−bc で求め、最後に掛ける", 58, { kind: "determinant-product", left: [[left[0], left[1]], [left[2], left[3]]], right: [[right[0], right[1]], [right[2], right[3]]], suffix: "= ?" }); },
+    () => { const lower = 1; const end = secureInt(4, 8); const a = secureInt(1, 3); const b = secureInt(-3, 6); return q("sigma-linear", "二次式の和", `k=${lower}から${end}まで ${a}k² ${signedTerm(b)}k の総和は？`, inclusiveIntegerSum(lower, end, (k) => a * k ** 2 + b * k), "Σ(ak²+bk)=aΣk²+bΣkとして2つの和を組み合わせる", 62, { kind: "sum", index: "k", lower, upper: end, body: `${a}k² ${signedTerm(b)}k`, grouped: true, coefficients: { quadratic: a, linear: b, constant: 0 }, suffix: "= ?" }); },
+    () => { const top = secureInt(4, 10); const bottom = secureInt(top + 2, 15); const height = secureInt(2, 5) * 2; const cutoutBase = secureInt(1, Math.max(1, Math.floor(top / 2))) * 2; const cutoutHeight = secureInt(1, height - 1); return q("trapezoid-area", "切り抜き図形の面積", `上底${top}、下底${bottom}、高さ${height}の台形から、底辺${cutoutBase}、高さ${cutoutHeight}の三角形を切り抜く。残る面積は？`, (top + bottom) * height / 2 - cutoutBase * cutoutHeight / 2, "台形の面積を求め、切り抜く三角形の面積を引く", 58, { kind: "geometry", shape: "trapezoid", dimensions: { top, bottom, height, cutoutBase, cutoutHeight } }); },
+    () => { const radius = secureInt(4, 9); const innerRadius = secureInt(2, radius - 1); const height = secureInt(2, 10); return q("cylinder-volume", "中空円柱の体積", `外側の半径${radius}、内側の半径${innerRadius}、高さ${height}の中空円柱の体積は何π？`, (radius ** 2 - innerRadius ** 2) * height, "外側の円柱 πR²h から内側の円柱 πr²h を引く", 60, { kind: "geometry", shape: "cylinder", dimensions: { radius, innerRadius, height } }); },
+    () => { const a = secureInt(1, 4); const b = secureInt(-5, 6); const c = secureInt(-7, 8); const x = secureInt(-3, 5); return q("derivative-polynomial", "三次式の微分", `y=${a}x³ ${signedTerm(b)}x² ${signedTerm(c)}x のとき、x=${x}での dy/dx は？`, 3 * a * x ** 2 + 2 * b * x + c, "各項を微分して 3ax²+2bx+c を作り、最後にxを代入する", 62, { kind: "derivative", function: `${a}x³ ${signedTerm(b)}x² ${signedTerm(c)}x`, at: x, suffix: "= ?" }); },
+    () => { const inflow = secureInt(2, 6); const workerRate = secureInt(inflow + 3, inflow + 8); const firstWorkers = secureInt(1, 2); const addedWorkers = secureInt(1, 2); const firstMinutes = secureInt(2, 5); const secondMinutes = secureInt(3, 7); const secondWorkers = firstWorkers + addedWorkers; const initial = firstMinutes * (firstWorkers * workerRate - inflow) + secondMinutes * (secondWorkers * workerRate - inflow); return q("newton-flow", "ニュートン算", `行列は最初${initial}人。毎分${inflow}人増え、窓口1か所は毎分${workerRate}人を案内する。最初は${firstWorkers}か所で${firstMinutes}分、その後${addedWorkers}か所増やすと、開始から何分で行列がなくなる？`, firstMinutes + secondMinutes, "前半と増設後で1分あたりの減少数を分け、残り人数から後半時間を求める", 68, { kind: "story" }); },
+    () => { const slow = secureInt(3, 6); const fast = secureInt(slow + 3, slow + 6); const delay = secureInt(1, 2); const hours = secureInt(5, 8); const headStart = (fast - slow) * hours - slow * delay; return q("catch-up", "追いつき算", `時速${slow}kmの人が${headStart}km先を進んでいる。${delay}時間後に時速${fast}kmで追い始めると、追い始めてから何時間で追いつく？`, hours, "追い始めるまでに広がる距離を足し、その距離を速さの差で割る", 65, { kind: "story" }); },
   ];
   else catalog = [
     () => { const [a, b, c, d] = Array.from({ length: 4 }, () => secureInt(-7, 9)); const [e, f, g, h] = Array.from({ length: 4 }, () => secureInt(-7, 9)); return q("matrix-trace", "行列積とトレース", `A=[[${a},${b}],[${c},${d}]], B=[[${e},${f}],[${g},${h}]]　tr(AB) は？`, a * e + b * g + c * f + d * h, "対角成分を両方計算：tr(AB)=(ae+bg)+(cf+dh)", 58, { kind: "matrix-product", left: [[a, b], [c, d]], right: [[e, f], [g, h]], prefix: "tr", suffix: "= ?" }); },
@@ -300,7 +301,7 @@ function quizExperienceMeta(level: number, question: QuizGenerated): JsonObject 
     ? "文章を整理"
     : kind === "geometry"
       ? "図を読む"
-      : ["matrix-determinant", "matrix-product", "system"].includes(kind)
+      : ["matrix-determinant", "determinant-product", "matrix-product", "system"].includes(kind)
         ? "式を組み立てる"
         : "ひらめき計算";
   let mission = "式を読み、「?」に入る数を求めよう";
@@ -311,6 +312,7 @@ function quizExperienceMeta(level: number, question: QuizGenerated): JsonObject 
   else if (kind === "sum") mission = "Σの範囲と項を読み、総和を求めよう";
   else if (kind === "sequence") mission = "初項と公差から、指定された項を求めよう";
   else if (kind === "matrix-determinant") mission = "行列の配置を読み、行列式を求めよう";
+  else if (kind === "determinant-product") mission = "2つの行列式を求め、その積を計算しよう";
   else if (kind === "matrix-product") mission = question.templateId === "determinant-product"
     ? "2つの行列式を求め、その積を計算しよう"
     : question.templateId === "matrix-trace"
@@ -324,8 +326,10 @@ function quizExperienceMeta(level: number, question: QuizGenerated): JsonObject 
   else if (question.templateId === "missing") mission = "逆算して、□に入る数を求めよう";
 
   const twoStepTemplates = new Set([
-    "average", "ratio", "crane-turtle", "work-rate", "age-story", "quadratic", "combination",
-    "sigma-linear", "trapezoid-area", "cylinder-volume", "derivative-polynomial", "newton-flow", "catch-up",
+    "average", "ratio", "crane-turtle", "power", "root", "factorial", "sigma", "expression", "circle-area",
+    "derivative-monomial", "integral-linear", "work-rate", "age-story", "quadratic", "combination",
+    "sequence", "determinant", "sigma-linear", "trapezoid-area", "cylinder-volume",
+    "derivative-polynomial", "newton-flow", "catch-up",
   ]);
   const thinkingSteps = level >= 5 ? 3 : twoStepTemplates.has(question.templateId) ? 2 : 1;
   return { mission, formatLabel, thinkingSteps };

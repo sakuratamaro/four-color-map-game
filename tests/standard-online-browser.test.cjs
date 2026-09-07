@@ -420,15 +420,15 @@ async function installMock(context, mode) {
           if (initialMode === "handoffStart") await new Promise((resolve) => setTimeout(resolve, 800));
           const polishQuestions = [
             { templateId: "speed-distance", category: "速さ", prompt: "時速12kmで8時間進むと何km？", math: { kind: "story" } },
-            { templateId: "trapezoid-area", category: "面積", prompt: "上底7、下底14、高さ12の台形の面積は？", math: { kind: "geometry", shape: "trapezoid", dimensions: { top: 7, bottom: 14, height: 12 } } },
+            { templateId: "trapezoid-area", category: "切り抜き図形の面積", prompt: "上底7、下底14、高さ12の台形から、底辺4、高さ3の三角形を切り抜く。残る面積は？", math: { kind: "geometry", shape: "trapezoid", dimensions: { top: 7, bottom: 14, height: 12, cutoutBase: 4, cutoutHeight: 3 } } },
             { templateId: "derivative-polynomial", category: "微分", prompt: "y=4x² + 2x のとき、x=6での dy/dx は？", math: { kind: "derivative", function: "4x² + 2x", at: 6, suffix: "= ?" } },
             { templateId: "integral-linear", category: "積分", prompt: "0から5まで 2x を積分した値は？", math: { kind: "integral", lower: 0, upper: 5, body: "2x", variable: "x", suffix: "= ?" } },
             { templateId: "sequence", category: "等差数列", prompt: "初項4、公差2の等差数列の第12項は？", math: { kind: "sequence", first: 4, difference: 2, position: 12, suffix: "= ?" } },
             { templateId: "sigma-linear", category: "数列の和", prompt: "k=1から8までの長い式の総和は？", math: { kind: "sum", index: "k", lower: 1, upper: 8, body: "123456789k² + 987654321k + 123456789", grouped: true, suffix: "= ?" } },
             { templateId: "legacy-story", category: "文章題", prompt: "りんごが12個ずつ8箱あります。全部で何個？", math: { kind: "story", value: "12 × 8 = ?" } },
-            { templateId: "legacy-geometry", category: "面積", prompt: "たて5、よこ8の長方形の面積は？", math: { kind: "geometry", label: "長方形", value: "たて 5、よこ 8、S = ?" } },
+            { templateId: "rectangle-perimeter", category: "周の長さ", prompt: "たて5、よこ8の長方形の周の長さは？", math: { kind: "geometry", shape: "rectangle", dimensions: { width: 8, height: 5 }, measure: "perimeter" } },
             { templateId: "legacy-sum", category: "数列の和", prompt: "k=1から5までの和は？", math: { kind: "sum", lower: "k = 1", upper: 5, body: "k", suffix: "= ?" } },
-            { templateId: "cone-volume", category: "体積", prompt: "半径3、高さ9の円すいの体積は何π？", math: { kind: "geometry", shape: "cone", dimensions: { radius: 3, height: 9 } } },
+            { templateId: "cylinder-volume", category: "中空円柱の体積", prompt: "外側の半径5、内側の半径2、高さ6の中空円柱の体積は何π？", math: { kind: "geometry", shape: "cylinder", dimensions: { radius: 5, innerRadius: 2, height: 6 } } },
           ];
           const quadraticQuestions = [
             { templateId: "quadratic", category: "二次方程式", prompt: "x² − 5x + 6 = 0　小さい解は？", math: { kind: "expression", value: "x² − 5x + 6 = 0　　x = ?" } },
@@ -2632,7 +2632,8 @@ test("actual Edge presents prompt-only stories, dimension diagrams, structured m
     await page.getByText("2 / 10", { exact: true }).waitFor();
     const diagram = question.locator(".quiz-geometry svg");
     assert.equal(await diagram.getAttribute("role"), "img");
-    assert.deepEqual(await diagram.locator("text").allTextContents(), ["上底 7", "下底 14", "高さ 12"]);
+    assert.deepEqual(await diagram.locator("text").allTextContents(), ["上底 7", "下底 14", "高さ 12", "切抜底辺 4", "切抜高さ 3"]);
+    assert.equal(await diagram.locator(".quiz-geometry-cutout").count(), 1);
     assert.doesNotMatch(await diagram.textContent(), /[=×÷?]|面積|S|V/);
 
     await page.locator("#quizOptions button").first().click();
@@ -2679,12 +2680,19 @@ test("actual Edge presents prompt-only stories, dimension diagrams, structured m
 
     await page.locator("#quizOptions button").first().click();
     await page.getByText("8 / 10", { exact: true }).waitFor();
-    assert.match((await question.textContent()).replace(/\s+/g, " "), /面積.*たて 5、よこ 8、S = \?/);
+    assert.equal(await question.locator(".quiz-visible-prompt").textContent(), "たて5、よこ8の長方形の周の長さは？");
+    assert.deepEqual(await question.locator(".quiz-geometry svg text").allTextContents(), ["よこ 8", "たて 5"]);
 
     await page.locator("#quizOptions button").first().click();
     await page.getByText("9 / 10", { exact: true }).waitFor();
     assert.equal(await question.locator("math munderover").count(), 1);
     assert.match((await question.locator("math").textContent()).replace(/\s+/g, ""), /^∑k=15k=\?$/);
+
+    await page.locator("#quizOptions button").first().click();
+    await page.getByText("10 / 10", { exact: true }).waitFor();
+    assert.equal(await question.locator(".quiz-visible-prompt").textContent(), "外側の半径5、内側の半径2、高さ6の中空円柱の体積は何π？");
+    assert.equal(await question.locator(".quiz-geometry svg ellipse").count(), 4);
+    assert.deepEqual(await question.locator(".quiz-geometry svg text").allTextContents(), ["半径 5", "内半径 2", "高さ 6"]);
   }, { bodyTimeout: 60_000, viewport: { width: 390, height: 844 } });
 });
 

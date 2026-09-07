@@ -1748,9 +1748,19 @@ function renderQuizGeometry(question, descriptor) {
     svgGuide(svg, { x1: 98, y1: 20, x2: 222, y2: 20, label: `上底 ${dimensions.top}`, labelX: 160, labelY: 14 });
     svgGuide(svg, { x1: 46, y1: 163, x2: 274, y2: 163, label: `下底 ${dimensions.bottom}`, labelX: 160, labelY: 184 });
     svgGuide(svg, { x1: 98, y1: 35, x2: 98, y2: 145, label: `高さ ${dimensions.height}`, labelX: 109, labelY: 93, anchor: "start", dashed: true });
+    if (Number.isFinite(Number(dimensions.cutoutBase)) && Number.isFinite(Number(dimensions.cutoutHeight))) {
+      svg.appendChild(svgNode("polygon", { points: "125,145 195,145 160,88", class: "quiz-geometry-cutout" }));
+      svgGuide(svg, { x1: 125, y1: 132, x2: 195, y2: 132, label: `切抜底辺 ${dimensions.cutoutBase}`, labelX: 160, labelY: 126 });
+      svgGuide(svg, { x1: 160, y1: 88, x2: 160, y2: 145, label: `切抜高さ ${dimensions.cutoutHeight}`, labelX: 170, labelY: 112, anchor: "start", dashed: true });
+    }
   } else if (descriptor.shape === "circle") {
     svg.appendChild(svgNode("circle", { cx: 160, cy: 94, r: 62, class: shapeClass }));
     svgGuide(svg, { x1: 160, y1: 94, x2: 222, y2: 94, label: `半径 ${dimensions.radius}`, labelX: 191, labelY: 86 });
+    if (Number.isFinite(Number(dimensions.innerRadius))) {
+      const innerVisualRadius = Math.max(16, Math.round(62 * Number(dimensions.innerRadius) / Math.max(1, Number(dimensions.radius))));
+      svg.appendChild(svgNode("circle", { cx: 160, cy: 94, r: innerVisualRadius, class: "quiz-geometry-cutout" }));
+      svgGuide(svg, { x1: 160, y1: 94, x2: 160 + innerVisualRadius, y2: 94, label: `内半径 ${dimensions.innerRadius}`, labelX: 160 + innerVisualRadius / 2, labelY: 112 });
+    }
     svg.appendChild(svgNode("circle", { cx: 160, cy: 94, r: 3, class: "quiz-geometry-point" }));
   } else if (descriptor.shape === "cube" || descriptor.shape === "cuboid") {
     const frontWidth = descriptor.shape === "cube" ? 105 : 145;
@@ -1772,6 +1782,12 @@ function renderQuizGeometry(question, descriptor) {
   } else if (descriptor.shape === "cylinder") {
     svg.append(svgNode("ellipse", { cx: 160, cy: 42, rx: 68, ry: 21, class: shapeClass }), svgNode("line", { x1: 92, y1: 42, x2: 92, y2: 145, class: shapeClass }), svgNode("line", { x1: 228, y1: 42, x2: 228, y2: 145, class: shapeClass }), svgNode("ellipse", { cx: 160, cy: 145, rx: 68, ry: 21, class: shapeClass }));
     svgGuide(svg, { x1: 160, y1: 42, x2: 228, y2: 42, label: `半径 ${dimensions.radius}`, labelX: 193, labelY: 34 });
+    if (Number.isFinite(Number(dimensions.innerRadius))) {
+      const innerVisualRadius = Math.max(18, Math.round(68 * Number(dimensions.innerRadius) / Math.max(1, Number(dimensions.radius))));
+      const innerVisualHeight = Math.max(7, Math.round(innerVisualRadius * 21 / 68));
+      svg.append(svgNode("ellipse", { cx: 160, cy: 42, rx: innerVisualRadius, ry: innerVisualHeight, class: "quiz-geometry-cutout" }), svgNode("ellipse", { cx: 160, cy: 145, rx: innerVisualRadius, ry: innerVisualHeight, class: "quiz-geometry-cutout" }));
+      svgGuide(svg, { x1: 160, y1: 42, x2: 160 + innerVisualRadius, y2: 42, label: `内半径 ${dimensions.innerRadius}`, labelX: 160 + innerVisualRadius / 2, labelY: 58 });
+    }
     svgGuide(svg, { x1: 72, y1: 42, x2: 72, y2: 145, label: `高さ ${dimensions.height}`, labelX: 64, labelY: 98, anchor: "end" });
   } else if (descriptor.shape === "cone") {
     svg.append(svgNode("ellipse", { cx: 160, cy: 145, rx: 73, ry: 22, class: shapeClass }), svgNode("line", { x1: 160, y1: 24, x2: 87, y2: 145, class: shapeClass }), svgNode("line", { x1: 160, y1: 24, x2: 233, y2: 145, class: shapeClass }));
@@ -1890,6 +1906,12 @@ function renderQuizQuestion(question) {
     math.append(first, mathNode("mo", "="), mathNode("mn", descriptor.first), mathNode("mo", ","), mathNode("mspace"), mathNode("mi", "d"), mathNode("mo", "="), mathNode("mn", descriptor.difference), mathNode("mo", ","), mathNode("mspace"), target);
   } else if (descriptor.kind === "matrix-determinant") {
     math.append(mathNode("mi", "det"), mathMatrix(descriptor.rows));
+  } else if (descriptor.kind === "determinant-product") {
+    math.append(
+      mathNode("mi", "det"), mathNode("mo", "("), mathMatrix(descriptor.left), mathNode("mo", ")"),
+      mathNode("mo", "×"),
+      mathNode("mi", "det"), mathNode("mo", "("), mathMatrix(descriptor.right), mathNode("mo", ")"),
+    );
   } else if (descriptor.kind === "matrix-product") {
     if (descriptor.prefix === "tr") {
       math.append(mathNode("mi", "tr"), mathNode("mo", "("), mathMatrix(descriptor.left), mathNode("mo", "×"), mathMatrix(descriptor.right), mathNode("mo", ")"));
