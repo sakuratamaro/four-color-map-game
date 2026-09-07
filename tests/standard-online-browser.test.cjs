@@ -2368,6 +2368,25 @@ test("actual Edge keeps a lab mismatch visible with the exact recovery instructi
   });
 });
 
+test("actual browser shows the approved odds and rarity floor for each selected ticket level", { timeout: 120000 }, async () => {
+  await withPage("gacha", async (page) => {
+    await page.locator("#gachaPanel:not(.hidden):not(.tab-panel-hidden)").waitFor();
+    const odds = page.locator("#gachaOdds");
+    assert.equal(await odds.textContent(), "Lv.1 排出率：★1 65% / ★2 29% / ★3 5% / ★4 0.9% / ★5 0.1%　★4・★5も排出されます（合計1%）。");
+    await page.locator("#gachaLevel").selectOption("4");
+    assert.equal(await odds.textContent(), "Lv.4 排出率：★1 0% / ★2 35% / ★3 35% / ★4 24% / ★5 6%　★2以上確定。");
+    await page.locator("#gachaLevel").selectOption("5");
+    assert.equal(await odds.textContent(), "Lv.5 排出率：★1 0% / ★2 0% / ★3 40% / ★4 40% / ★5 20%　★3以上確定。");
+    assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "gacha").length), 0);
+    const layout = await odds.evaluate((node) => {
+      const box = node.getBoundingClientRect();
+      return { left: box.left, right: box.right, viewport: innerWidth, overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth };
+    });
+    assert.ok(layout.left >= 0 && layout.right <= layout.viewport, JSON.stringify(layout));
+    assert.equal(layout.overflow, false);
+  }, { viewport: { width: 390, height: 844 } });
+});
+
 test("actual Edge gacha persists one server draw and immediately hydrates inventory", { timeout: 130000 }, async () => {
   await withPage("gacha", async (page) => {
     await page.locator("#gachaPanel:not(.hidden)").waitFor();

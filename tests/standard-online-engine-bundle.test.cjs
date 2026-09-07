@@ -60,6 +60,7 @@ test("bundle exposes a deterministic server-only Standard engine", () => {
   assert.equal(typeof api.applyProfiles, "function");
   assert.equal(typeof api.applyCpuProfiles, "function");
   assert.equal(typeof api.drawGacha, "function");
+  assert.equal(JSON.stringify(api.GACHA_ODDS), JSON.stringify(require("../standard/standard-gacha-transaction.js").GACHA_ODDS));
   assert.equal(typeof api.quoteCardSale, "function");
   assert.equal(typeof api.sellCards, "function");
   assert.equal(typeof api.getCosmetics, "function");
@@ -242,19 +243,26 @@ test("server cosmetics derive price and equip state without changing gameplay ca
   assert.equal(before.coins, 1000);
 });
 
-test("one gacha draw deterministically consumes one ticket and adds exactly one card", () => {
+test("one gacha draw deterministically consumes one ticket, preserves inventory, and adds exactly one card", () => {
   const api = loadApi();
-  const before = save.createProfile({ name: "Gacha", inventory: {}, gachaTickets: { "1": 2 } });
+  const before = save.createProfile({
+    name: "Gacha",
+    inventory: { colorPrism: 2, areaMicroBloom: 3 },
+    gachaTickets: { "1": 2 },
+  });
+  const beforeSnapshot = JSON.parse(JSON.stringify(before));
   const first = api.drawGacha({ profile: before, ticketLevel: 1, count: 1, seed: 0x12345678 });
   const second = api.drawGacha({ profile: before, ticketLevel: 1, count: 1, seed: 0x12345678 });
   assert.deepEqual(first, second);
-  assert.equal(before.gachaTickets["1"], 2);
+  assert.deepEqual(before, beforeSnapshot);
   assert.equal(first.profile.gachaTickets["1"], 1);
   assert.equal(first.draws.length, 1);
   const gained = Object.entries(first.profile.inventory).filter(([id, count]) => count - (before.inventory[id] || 0) === 1);
   assert.equal(gained.length, 1);
   assert.equal(gained[0][0], first.draws[0].skillId);
-  assert.equal(Object.values(first.profile.inventory).reduce((sum, count) => sum + count, 0), 1);
+  assert.equal(first.profile.inventory.colorPrism >= 2, true);
+  assert.equal(first.profile.inventory.areaMicroBloom >= 3, true);
+  assert.equal(Object.values(first.profile.inventory).reduce((sum, count) => sum + count, 0), 6);
 });
 
 test("server creation verifies both inventories against the submitted loadouts", () => {

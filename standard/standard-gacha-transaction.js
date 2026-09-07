@@ -10,11 +10,11 @@ const ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/;
 const GACHA_DRAW_LIMIT = 100;
 const CATEGORIES = Object.freeze(["color", "area", "disrupt"]);
 const GACHA_ODDS = Object.freeze({
-  1: Object.freeze({ 1: 55, 2: 30, 3: 12, 4: 2.8, 5: 0.2 }),
+  1: Object.freeze({ 1: 65, 2: 29, 3: 5, 4: 0.9, 5: 0.1 }),
   2: Object.freeze({ 1: 40, 2: 35, 3: 19, 4: 5.5, 5: 0.5 }),
   3: Object.freeze({ 1: 25, 2: 35, 3: 28, 4: 10, 5: 2 }),
-  4: Object.freeze({ 1: 10, 2: 25, 3: 35, 4: 24, 5: 6 }),
-  5: Object.freeze({ 1: 2, 2: 8, 3: 30, 4: 40, 5: 20 }),
+  4: Object.freeze({ 1: 0, 2: 35, 3: 35, 4: 24, 5: 6 }),
+  5: Object.freeze({ 1: 0, 2: 0, 3: 40, 4: 40, 5: 20 }),
 });
 
 function clone(value) { return JSON.parse(JSON.stringify(value)); }
