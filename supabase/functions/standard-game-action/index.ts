@@ -24,7 +24,7 @@ type StandardEngineApi = {
   validateProfile(profile: JsonObject): boolean;
   validateSeatLoadout(input: { loadout: JsonObject; profile?: JsonObject }): boolean;
 };
-const NEW_STANDARD_MATCH_ENGINE_VERSION = "5.0.0-alpha.4";
+const NEW_STANDARD_MATCH_ENGINE_VERSION = "5.0.0-alpha.3";
 
 declare global {
   // Generated from the reviewed Standard engine and profile modules.
