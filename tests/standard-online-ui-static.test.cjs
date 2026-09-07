@@ -40,7 +40,7 @@ test("Standard online setup UI exposes the complete reconnect path", () => {
     "publicProjection", "privateProjection", "leaveRoom", "leaveRoomDescription", "abandonRoom", "abandonRoomHint", "abandonRoomDialog", "abandonRoomTitle", "abandonRoomDescription", "abandonRoomStatus", "cancelAbandonRoom", "confirmAbandonRoom", "lobbyTitle",
     "turnGuide", "turnGuideStep", "turnGuideTitle", "turnGuideDetail", "boardViewport", "board", "boardKeyboardHelp", "boardKeyboardStatus", "toggleBoardZoom", "regionControls", "selectionCount", "submitRegion", "paletteControls", "skillControls", "skillTargetControls",
     "surrender", "retryAction", "actionStatus", "rematchControls", "rematchStatus", "requestRematch",
-    "gachaPanel", "gachaTitle", "gachaTickets", "gachaLevel", "gachaDrawOne", "gachaDrawAll", "gachaRetry", "gachaStatus", "gachaResults",
+    "gachaPanel", "gachaTitle", "gachaTickets", "gachaLevel", "gachaOdds", "gachaDrawOne", "gachaDrawAll", "gachaRetry", "gachaStatus", "gachaResults",
     "gachaResultSummary", "gachaResultTitle", "gachaResultAnnouncement", "gachaCpuRematch", "gachaCpuRematchNote",
     "quizAnswerFeedback", "quizRewardSummary", "quizGoGacha", "quizReview", "quizReviewList",
     "progressionPanel", "profileCoins", "profileStats", "cpuProfileStats", "cpuCharacterRecords", "trophyList", "matchHistory",
@@ -56,6 +56,17 @@ test("Standard online setup UI exposes the complete reconnect path", () => {
   assert.match(html, /type="module" src="app\.js(?:\?v=[0-9-]+)?"/);
 });
 
+test("gacha UI discloses the selected ticket odds and its guaranteed rarity floor", () => {
+  assert.match(app, /1: Object\.freeze\(\{ 1: 65, 2: 29, 3: 5, 4: 0\.9, 5: 0\.1 \}\)/);
+  assert.match(app, /2: Object\.freeze\(\{ 1: 40, 2: 35, 3: 19, 4: 5\.5, 5: 0\.5 \}\)/);
+  assert.match(app, /3: Object\.freeze\(\{ 1: 25, 2: 35, 3: 28, 4: 10, 5: 2 \}\)/);
+  assert.match(app, /4: Object\.freeze\(\{ 1: 0, 2: 35, 3: 35, 4: 24, 5: 6 \}\)/);
+  assert.match(app, /5: Object\.freeze\(\{ 1: 0, 2: 0, 3: 40, 4: 40, 5: 20 \}\)/);
+  assert.match(app, /★4・★5も排出されます（合計1%）/);
+  assert.match(app, /`★\$\{rarityFloor\}以上確定。`/);
+  assert.match(css, /\.gacha-odds\{/);
+});
+
 test("online alpha.3 UI understands category windows and the experimental bonus-refill loan", () => {
   assert.match(app, /Object\.entries\(STANDARD_SKILL_REGISTRY\.skills\)\.map/);
   assert.match(app, /state\.skillCategoryWindow\?\.categories/);
@@ -66,9 +77,9 @@ test("online alpha.3 UI understands category windows and the experimental bonus-
 });
 
 test("CPU commentary is public-event-only, bounded, non-blocking, and terminal-persistent", () => {
-  assert.match(html, /style\.css\?v=20260908-2/);
+  assert.match(html, /style\.css\?v=20260908-3/);
   assert.match(html, /standard-online-skill-intents\.js\?v=20260907-20/);
-  assert.match(html, /app\.js\?v=20260908-2/);
+  assert.match(html, /app\.js\?v=20260908-3/);
   assert.match(app, /cpuCommentary\?\.VERSION !== "standard-cpu-commentary-v2"/);
   assert.ok(html.indexOf("cpu-commentary.js") < html.indexOf('type="module" src="app.js'));
   assert.match(html, /id="cpuCommentaryStage"[^>]+aria-hidden="true"/);
@@ -381,7 +392,7 @@ test("existing online progression is hydrated from the server rather than re-upl
 
 test("UI derives its canonical and experimental card metadata from the generated registry", () => {
   assert.equal(Object.values(STANDARD_SKILLS).filter((skill) => skill.v49Catalogued).length, 19);
-  assert.match(html, /standard-skill-registry\.generated\.js\?v=20260907-1[\s\S]+app\.js\?v=20260908-2/);
+  assert.match(html, /standard-skill-registry\.generated\.js\?v=20260907-1[\s\S]+app\.js\?v=20260908-3/);
   assert.match(app, /const STANDARD_SKILL_REGISTRY = globalThis\.FourColorStandardSkillRegistry/);
   assert.match(app, /STANDARD_SKILL_REGISTRY\.v49SkillIds\.map/);
   assert.match(app, /Object\.entries\(STANDARD_SKILL_REGISTRY\.skills\)/);

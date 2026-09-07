@@ -3510,13 +3510,7 @@ const starterInventory = {
   areaMicroBloom:3,areaDiePlus:3,
   disruptRandomOne:3,disruptChoiceOne:3,
 };
-const gachaOdds = {
-  1:{1:55,2:30,3:12,4:2.8,5:0.2},
-  2:{1:40,2:35,3:19,4:5.5,5:0.5},
-  3:{1:25,2:35,3:28,4:10,5:2},
-  4:{1:10,2:25,3:35,4:24,5:6},
-  5:{1:2,2:8,3:30,4:40,5:20},
-};
+const gachaOdds = {"1":{"1":65,"2":29,"3":5,"4":0.9,"5":0.1},"2":{"1":40,"2":35,"3":19,"4":5.5,"5":0.5},"3":{"1":25,"2":35,"3":28,"4":10,"5":2},"4":{"1":0,"2":35,"3":35,"4":24,"5":6},"5":{"1":0,"2":0,"3":40,"4":40,"5":20}};
 function clone(value){return JSON.parse(JSON.stringify(value));}
 function validateGachaTickets(profile){
   if(!profile.gachaTickets||typeof profile.gachaTickets!=="object"||Array.isArray(profile.gachaTickets))throw new Error("INVALID_GACHA_TICKETS");
@@ -3776,6 +3770,7 @@ function apply({state,rngSnapshot,actor,action,expectedVersion,debugMode=false,l
 }
 globalThis.FourColorStandardServerEngine=Object.freeze({
   ENGINE_VERSION:match.ENGINE_VERSION,
+  GACHA_ODDS:gachaOdds,
   REQUIRED_RNG_STREAMS:match.REQUIRED_RNG_STREAMS,
   StandardRuleError:engine.StandardRuleError,
   apply,
