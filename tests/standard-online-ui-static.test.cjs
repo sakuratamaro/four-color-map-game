@@ -68,7 +68,7 @@ test("online alpha.3 UI understands category windows and the experimental bonus-
 test("CPU commentary is public-event-only, bounded, non-blocking, and terminal-persistent", () => {
   assert.match(html, /style\.css\?v=20260907-41/);
   assert.match(html, /standard-online-skill-intents\.js\?v=20260907-20/);
-  assert.match(html, /app\.js\?v=20260907-43/);
+  assert.match(html, /app\.js\?v=20260907-44/);
   assert.match(app, /cpuCommentary\?\.VERSION !== "standard-cpu-commentary-v2"/);
   assert.ok(html.indexOf("cpu-commentary.js") < html.indexOf('type="module" src="app.js'));
   assert.match(html, /id="cpuCommentaryStage"[^>]+aria-hidden="true"/);

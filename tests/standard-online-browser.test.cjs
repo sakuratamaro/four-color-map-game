@@ -635,8 +635,9 @@ async function installMock(context, mode) {
           return { error: new Error("simulated corner bloom network failure") };
         }
         if (request.body.operation === "action" && request.body.action?.payload?.skill === "areaCornerBloom" && runtime.rejectNextCornerBloomAction) {
+          const code = typeof runtime.rejectNextCornerBloomAction === "string" ? runtime.rejectNextCornerBloomAction : "RULE_REJECTED";
           runtime.rejectNextCornerBloomAction = false;
-          return functionError(400, "RULE_REJECTED", "private corner bloom rule detail and service secret");
+          return functionError(400, code, "private corner bloom rule detail and service secret");
         }
         if (request.body.operation === "action" && initialMode === "colorResponse" && request.body.action?.type === "SURRENDER") {
           const nextVersion = runtime.room.version + 1;
@@ -1924,6 +1925,12 @@ test("actual browser activates a two-cell legacy corner bloom from the keyboard 
 test("actual browser sends alpha.4 corner bloom from one pointer cell, ignores outside cells, and retries one identity", { timeout: 130000 }, async () => {
   await withPage("playing", async (page) => {
     await page.evaluate(() => {
+      const originalStrokeRect = CanvasRenderingContext2D.prototype.strokeRect;
+      globalThis.__cornerTargetFrames = [];
+      CanvasRenderingContext2D.prototype.strokeRect = function recordedCornerTargetFrame(...args) {
+        if (String(this.strokeStyle) === "#f0abfc") globalThis.__cornerTargetFrames.push([...args]);
+        return originalStrokeRect.apply(this, args);
+      };
       const runtime = globalThis.__standardOnlineRuntime;
       runtime.room.public_state = {
         ...runtime.room.public_state,
@@ -1950,6 +1957,7 @@ test("actual browser sends alpha.4 corner bloom from one pointer cell, ignores o
     await skill.click();
     await target.getByText(/色のついたセル.*すぐ発動/).waitFor();
     await page.waitForFunction(() => document.activeElement?.id === "board");
+    assert.ok(await page.evaluate(() => globalThis.__cornerTargetFrames.length > 0));
     assert.equal(await target.locator('[data-corner-bloom-mode], [data-corner-bloom-region], [data-corner-bloom-macro], .corner-bloom-targets').count(), 0);
     assert.equal(await target.getByRole("button", { name: "この対象で使う" }).count(), 0);
     const box = await board.boundingBox();
@@ -2014,7 +2022,7 @@ test("actual browser keeps alpha.4 corner bloom targeting after a non-retryable 
         ...runtime.view.private_state,
         hand: { ...runtime.view.private_state.hand, areaCornerBloom: 1 },
       } };
-      runtime.rejectNextCornerBloomAction = true;
+      runtime.rejectNextCornerBloomAction = "NO_COLORED_CORNER_BLOOM_CANDIDATE";
       runtime.onInvalidate?.({});
     });
 
@@ -2027,7 +2035,7 @@ test("actual browser keeps alpha.4 corner bloom targeting after a non-retryable 
     assert.ok(Math.min(box.width, box.height) / 48 >= 44, JSON.stringify(box));
     await board.click({ position: { x: box.width / 96, y: box.height / 96 } });
     await target.locator('.skill-target-feedback[data-tone="error"]')
-      .getByText(/カードと手番は減っていません。別のセルを選べます/).waitFor();
+      .getByText(/広げられる角.*カード・手番は減っていません.*別のセルを選べます/).waitFor();
     assert.equal(await target.isVisible(), true);
     assert.equal(await page.locator("#retryAction").isHidden(), true);
     await page.waitForFunction(() => document.activeElement?.id === "board");
@@ -2148,13 +2156,13 @@ test("actual browser uses an alpha.4 micro-cell keyboard cursor for immediate co
     await page.keyboard.press("Enter");
     await page.waitForFunction(() => document.activeElement?.id === "board");
     assert.match(await page.locator("#board").getAttribute("aria-label"), /セル.*矢印キー.*Space.*Enter.*Escape/);
-    await page.keyboard.press("ArrowRight");
+    assert.match(await page.locator("#boardKeyboardStatus").textContent(), /赤の彩色済みエリア/);
     await page.keyboard.press("Enter");
     await page.getByText("操作を保存しました。").waitFor();
     const actions = await page.evaluate(() => globalThis.__standardOnlineRuntime.calls
       .filter((entry) => entry.body?.operation === "action").map((entry) => entry.body.action));
     assert.equal(actions.length, 1);
-    assert.deepEqual(actions[0].payload, { skill: "areaCornerBloom", regionId: "R2", macro: 0 });
+    assert.deepEqual(actions[0].payload, { skill: "areaCornerBloom", regionId: "R1", macro: 0 });
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth), false);
   }, { viewport: { width: 390, height: 844 } });
 });

@@ -3003,10 +3003,10 @@ function selectBandShiftMacro(state, macro) {
 
 function cornerBloomSelectionMessage(state) {
   if (supportsColoredCornerBloom(state)) {
-    return "色のついたセル、または白い枠で選択済みの渡すエリア内の空きセルをタップすると、すぐ発動します。広がる角がない場合もカードと手番は減りません。";
+    return "紫の枠が対象セルです。色のついたセル、または白い枠で選択済みの渡すエリア内の空きセルをタップすると、すぐ発動します。広がる角がない場合もカードと手番は減らず、別の紫枠を選び直せます。";
   }
   return currentOutgoingMacros(state).length === state.requiredSize
-    ? "白い枠で選択済みの渡すエリア内の空きセルをタップすると、すぐ発動します。"
+    ? "紫の枠が対象セルです。白い枠で選択済みの渡すエリア内の空きセルをタップすると、すぐ発動します。"
     : `先に相手へ渡すエリアを${state.requiredSize}マス選び、その後で角膨張カードをタップしてください。`;
 }
 
@@ -3307,10 +3307,40 @@ function playableMicro(state, micro) {
     && row >= minRow * microScale && row < (maxRow + 1) * microScale;
 }
 
+function cornerBloomSelectableMicros(state) {
+  if (!state || !cornerBloomCellTargetActive()) return [];
+  const selectable = new Set();
+  if (supportsColoredCornerBloom(state)) {
+    for (const region of eligibleRecolorRegions(state)) {
+      for (const micro of region.micro || []) if (playableMicro(state, micro)) selectable.add(micro);
+    }
+  }
+  const { macroWidth, microScale } = state.playableBounds;
+  const microWidth = macroWidth * microScale;
+  const occupied = new Set(Object.values(state.regions || {}).flatMap((region) => Array.isArray(region?.micro) ? region.micro : []));
+  for (const macro of currentOutgoingMacros(state)) {
+    const macroCol = macro % macroWidth;
+    const macroRow = Math.floor(macro / macroWidth);
+    for (let y = 0; y < microScale; y += 1) {
+      for (let x = 0; x < microScale; x += 1) {
+        const micro = (macroRow * microScale + y) * microWidth + macroCol * microScale + x;
+        if (playableMicro(state, micro) && !occupied.has(micro)) selectable.add(micro);
+      }
+    }
+  }
+  return [...selectable].sort((a, b) => a - b);
+}
+
 function ensureBoardKeyboardMicro(state) {
-  if (playableMicro(state, boardKeyboardMicro)) return boardKeyboardMicro;
+  const cornerTargets = cornerBloomCellTargetActive() ? cornerBloomSelectableMicros(state) : [];
+  if (playableMicro(state, boardKeyboardMicro) && (!cornerTargets.length || cornerTargets.includes(boardKeyboardMicro))) return boardKeyboardMicro;
   const { macroWidth, microScale, minCol, minRow } = state.playableBounds;
   const microWidth = macroWidth * microScale;
+  if (cornerTargets.length) {
+    boardKeyboardMicro = cornerTargets[0];
+    boardKeyboardMacro = macroForMicro(state, boardKeyboardMicro);
+    return boardKeyboardMicro;
+  }
   const selected = visibleOutgoingMacros(state).find((macro) => playableMacro(state, macro));
   if (Number.isSafeInteger(selected)) {
     const macroCol = selected % macroWidth;
@@ -3604,6 +3634,24 @@ function strokeMacroFrame(ctx, macro, macroWidth, microScale, cell, { color, css
   ctx.restore();
 }
 
+function strokeMicroTargetFrame(ctx, micro, microWidth, cell) {
+  const displayedWidth = ctx.canvas.getBoundingClientRect().width;
+  const cssScale = displayedWidth > 0 ? ctx.canvas.width / displayedWidth : 1;
+  const x = micro % microWidth;
+  const y = Math.floor(micro / microWidth);
+  const inset = 3 * cssScale;
+  const size = Math.max(1, cell - (2 * inset));
+  ctx.save();
+  ctx.setLineDash([5 * cssScale, 3 * cssScale]);
+  ctx.strokeStyle = "#020617";
+  ctx.lineWidth = 5 * cssScale;
+  ctx.strokeRect(x * cell + inset, y * cell + inset, size, size);
+  ctx.strokeStyle = "#f0abfc";
+  ctx.lineWidth = 2.5 * cssScale;
+  ctx.strokeRect(x * cell + inset, y * cell + inset, size, size);
+  ctx.restore();
+}
+
 function renderBoard(state) {
   const canvas = $("board"); const ctx = canvas.getContext("2d");
   const boardInteractive = syncBoardSelectionAssist(state);
@@ -3646,6 +3694,9 @@ function renderBoard(state) {
     const col = macro % macroWidth; const row = Math.floor(macro / macroWidth);
     ctx.fillRect(col * microScale * cell, row * microScale * cell, microScale * cell, microScale * cell);
     ctx.strokeRect(col * microScale * cell + 1, row * microScale * cell + 1, microScale * cell - 2, microScale * cell - 2);
+  }
+  if (cornerBloomCellTargetActive()) {
+    for (const micro of cornerBloomSelectableMicros(state)) strokeMicroTargetFrame(ctx, micro, microWidth, cell);
   }
   if (targetDraft?.kind === "band-shift" && Number.isSafeInteger(targetDraft.input.index)) {
     const axis = targetDraft.input.axis;
