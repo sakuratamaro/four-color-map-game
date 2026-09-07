@@ -2334,6 +2334,8 @@ function stopQuizOptionPhysics({ clear = false } = {}) {
   if (!clear) return;
   clearTimeout(motion.touchResumeTimer);
   motion.touchResumeTimer = null;
+  motion.listenerController?.abort();
+  motion.listenerController = null;
   motion.resizeObserver?.disconnect();
   motion.arena.classList.remove("is-physics", "motion-running", "motion-paused", "has-quiz-retry");
   delete motion.arena.dataset.motionState;
@@ -2394,12 +2396,15 @@ function initializeQuizOptionPhysics(buttons, { reserveRetry = false } = {}) {
     lastFrame: 0,
     resizeObserver: null,
     touchResumeTimer: null,
+    listenerController: new AbortController(),
   };
   quizOptionPhysics = motion;
   const pause = () => syncQuizOptionMotion();
-  arena.addEventListener("pointerenter", (event) => { if (event.pointerType !== "touch") motion.interaction.pointerInside = true; pause(); });
-  arena.addEventListener("pointerleave", (event) => { if (event.pointerType !== "touch") motion.interaction.pointerInside = false; motion.interaction.pointerDown = false; pause(); });
-  arena.addEventListener("pointerdown", (event) => { motion.interaction.pointerDown = true; if (event.pointerType === "touch") motion.interaction.touchActive = true; pause(); });
+  const listenerOptions = { signal: motion.listenerController.signal };
+  const passiveListenerOptions = { passive: true, signal: motion.listenerController.signal };
+  arena.addEventListener("pointerenter", (event) => { if (event.pointerType !== "touch") motion.interaction.pointerInside = true; pause(); }, listenerOptions);
+  arena.addEventListener("pointerleave", (event) => { if (event.pointerType !== "touch") motion.interaction.pointerInside = false; motion.interaction.pointerDown = false; pause(); }, listenerOptions);
+  arena.addEventListener("pointerdown", (event) => { motion.interaction.pointerDown = true; if (event.pointerType === "touch") motion.interaction.touchActive = true; pause(); }, listenerOptions);
   const releasePointer = (event) => {
     motion.interaction.pointerDown = false;
     if (event.pointerType === "touch") {
@@ -2408,16 +2413,16 @@ function initializeQuizOptionPhysics(buttons, { reserveRetry = false } = {}) {
     }
     pause();
   };
-  arena.addEventListener("pointerup", releasePointer);
-  arena.addEventListener("pointercancel", releasePointer);
-  arena.addEventListener("touchstart", () => { motion.interaction.touchActive = true; pause(); }, { passive: true });
+  arena.addEventListener("pointerup", releasePointer, listenerOptions);
+  arena.addEventListener("pointercancel", releasePointer, listenerOptions);
+  arena.addEventListener("touchstart", () => { motion.interaction.touchActive = true; pause(); }, passiveListenerOptions);
   const releaseTouch = () => {
     clearTimeout(motion.touchResumeTimer);
     motion.touchResumeTimer = setTimeout(() => { if (quizOptionPhysics === motion) { motion.interaction.touchActive = false; syncQuizOptionMotion(); } }, 450);
   };
-  arena.addEventListener("touchend", releaseTouch, { passive: true });
-  arena.addEventListener("touchcancel", releaseTouch, { passive: true });
-  arena.addEventListener("focusin", () => { motion.interaction.focusInside = true; pause(); });
+  arena.addEventListener("touchend", releaseTouch, passiveListenerOptions);
+  arena.addEventListener("touchcancel", releaseTouch, passiveListenerOptions);
+  arena.addEventListener("focusin", () => { motion.interaction.focusInside = true; pause(); }, listenerOptions);
   arena.addEventListener("focusout", () => {
     queueMicrotask(() => {
       if (quizOptionPhysics === motion) {
@@ -2425,7 +2430,7 @@ function initializeQuizOptionPhysics(buttons, { reserveRetry = false } = {}) {
         syncQuizOptionMotion();
       }
     });
-  });
+  }, listenerOptions);
   if (typeof ResizeObserver === "function") {
     motion.resizeObserver = new ResizeObserver(() => {
       if (quizOptionPhysics !== motion) return;

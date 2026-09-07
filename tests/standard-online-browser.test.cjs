@@ -88,6 +88,26 @@ async function installMock(context, mode) {
   }));
   await context.addInitScript(({ connectionKey: connection, saveKey: save, roomId: id, pendingId, mode: initialMode }) => {
     globalThis.__standardOnlineFocusEvents = [];
+    if (initialMode === "quizPhysics") {
+      const trackedQuizMotionEvents = new Set(["pointerenter", "pointerleave", "pointerdown", "pointerup", "pointercancel", "touchstart", "touchend", "touchcancel", "focusin", "focusout"]);
+      const originalAddEventListener = EventTarget.prototype.addEventListener;
+      globalThis.__quizMotionListenerAudit = { active: {}, added: {}, fired: {} };
+      EventTarget.prototype.addEventListener = function trackQuizMotionListeners(type, listener, options) {
+        if (this instanceof Element && this.id === "quizOptions" && trackedQuizMotionEvents.has(type)) {
+          const audit = globalThis.__quizMotionListenerAudit;
+          audit.active[type] = (audit.active[type] || 0) + 1;
+          audit.added[type] = (audit.added[type] || 0) + 1;
+          const originalListener = listener;
+          listener = function trackedQuizMotionListener(event) {
+            audit.fired[type] = (audit.fired[type] || 0) + 1;
+            return originalListener.call(this, event);
+          };
+          const signal = options && typeof options === "object" ? options.signal : null;
+          if (signal) originalAddEventListener.call(signal, "abort", () => { audit.active[type] -= 1; }, { once: true });
+        }
+        return originalAddEventListener.call(this, type, listener, options);
+      };
+    }
     const originalFocus = HTMLElement.prototype.focus;
     HTMLElement.prototype.focus = function trackedFocus(...args) {
       globalThis.__standardOnlineFocusEvents.push({ id: this.id || "", stack: new Error().stack || "" });
@@ -2377,6 +2397,21 @@ test(`${browserName} moves whole quiz buttons in one collision arena and pauses 
     await options.first().waitFor();
     assert.equal(await options.count(), 6);
     assert.equal(await arena.locator(".quiz-option-float").count(), 0);
+    const motionEventTypes = ["pointerenter", "pointerleave", "pointerdown", "pointerup", "pointercancel", "touchstart", "touchend", "touchcancel", "focusin", "focusout"];
+    const assertOneListenerGeneration = async (minimumAdded) => {
+      const audit = await page.evaluate((types) => {
+        const current = globalThis.__quizMotionListenerAudit;
+        return Object.fromEntries(types.map((type) => [type, {
+          active: current.active[type] || 0,
+          added: current.added[type] || 0,
+        }]));
+      }, motionEventTypes);
+      const added = audit[motionEventTypes[0]].added;
+      assert.ok(added >= minimumAdded, JSON.stringify(audit));
+      assert.deepEqual(audit, Object.fromEntries(motionEventTypes.map((type) => [type, { active: 1, added }])));
+      return added;
+    };
+    const initialListenerGeneration = await assertOneListenerGeneration(1);
     await arena.evaluate((node) => node.scrollIntoView({ block: "center", behavior: "auto" }));
     await page.mouse.move(1, 1);
     await page.waitForFunction(() => document.querySelector("#quizOptions")?.dataset.motionState === "running");
@@ -2480,10 +2515,27 @@ test(`${browserName} moves whole quiz buttons in one collision arena and pauses 
     assert.equal(firstAnswerState.progress, "2 / 10", JSON.stringify(firstAnswerState));
     let answerCalls = await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "quiz-answer"));
     assert.equal(answerCalls.length, 1);
+    const secondQuestionListenerGeneration = await assertOneListenerGeneration(initialListenerGeneration + 1);
     await page.locator("#quizOptions button[data-quiz-option]").first().evaluate((button) => { button.click(); button.click(); });
     await page.getByText("3 / 10", { exact: true }).waitFor();
     answerCalls = await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "quiz-answer"));
     assert.equal(answerCalls.length, 2);
+    await assertOneListenerGeneration(secondQuestionListenerGeneration + 1);
+    const firedDeltas = await arena.evaluate(async (node, types) => {
+      const audit = globalThis.__quizMotionListenerAudit;
+      const before = Object.fromEntries(types.map((type) => [type, audit.fired[type] || 0]));
+      for (const type of types) {
+        const event = type.startsWith("pointer")
+          ? new PointerEvent(type, { bubbles: true, pointerType: "mouse" })
+          : type.startsWith("focus")
+            ? new FocusEvent(type, { bubbles: true })
+            : new Event(type, { bubbles: true });
+        node.dispatchEvent(event);
+      }
+      await new Promise((resolve) => queueMicrotask(resolve));
+      return Object.fromEntries(types.map((type) => [type, (audit.fired[type] || 0) - before[type]]));
+    }, motionEventTypes);
+    assert.deepEqual(firedDeltas, Object.fromEntries(motionEventTypes.map((type) => [type, 1])));
   }, { viewport: { width: 390, height: 844 }, bodyTimeout: 75_000 });
 });
 
