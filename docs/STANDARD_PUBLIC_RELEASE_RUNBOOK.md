@@ -81,6 +81,80 @@ SQL Editorでは内容を全置換し、次を1ファイルずつ順番に実行
 
 `202609030012` の適用時にはcleanupを実行しない。定期実行も作らない。`202609030013` の既存プロフィールappearance backfill件数と所要時間を記録し、失敗または長時間ロックならEdge/Pagesへ進まない。
 
+## Edge deployment同一性証明ゲート
+
+Pagesの `supabase/functions/standard-game-action/standard-engine.bundle.js` はrepository artifactの公開copyであり、Supabase Edgeで実際に稼働中のsourceを読み戻した証拠ではない。Pages側のodds markerが合格しても、それだけを「live Edge確認」「deployment同値」と記録しない。Edgeの公開判定は、次の3層が同じrelease attemptで揃った場合だけ`VERIFIED`にする。
+
+1. Supabase control plane: `functions list`で対象project ref、function `id`、`version`、`status=ACTIVE`、`verify_jwt=true`を取得する。`id + version`をdeployment識別子とする。利用中のCLI JSONが`ezbr_sha256`も返す場合だけplatform bundle識別子として記録し、返さない場合は`NOT_EXPOSED_BY_CLI`のままにして架空値を補わない。いずれの場合もplatform bundle hashをsource fileのSHAと同じ値だとはみなさない。
+2. 保存済みsource: deploy後に新しい一時directoryへ`functions download standard-game-action --use-api`し、候補clean HEADの`index.ts`と`standard-engine.bundle.js`を含む全file setと各SHA-256を比較する。生成済みbundleは全byte一致を必須にする。CLI downloadが`index.ts`のCRLFだけをLFへ正規化した場合に限り、raw SHA/bytesを両方記録したうえでUTF-8 LF正規化比較を許す。内容差、bundleの改行差、追加fileは拒否する。deploy前に取得したdownload、Dashboard editor表示、Pages copyを使い回さない。
+3. live挙動: 同じdeploymentに対して基本Edge canaryと、その便で変更した機能の最小専用canaryを実行する。source一致だけでboot・JWT・依存先・実応答の正常性を推定せず、canary成功だけで保存済みsource一致を推定しない。
+
+CLIは公式の`functions list/download/deploy --project-ref ... --use-api`経路を使う。`--debug`を付けず、access token、Authorization header、service role、接続文字列をterminal logや証拠へ出さない。CLIが未導入、未認証、または`projects list`で対象refを一意に確認できない場合は`BLOCKED`であり、Dashboardの目視値やPages copyで代替しない。read-only preflightは次の順にする。
+
+```powershell
+Get-Command supabase
+supabase --version
+supabase --output json projects list
+supabase --output json functions list --project-ref qkcuhludisairpgzhryl
+```
+
+rawのprojects/functions JSONはcommitや共有をせず、一時directory内だけに置く。証拠として共有するのは、後述のverifierが出すallowlist済みJSONだけにする。deploy直前には現行`id + version + ezbr_sha256`と、別のbaseline一時directoryへdownloadした2 source SHAを記録する。
+
+deployは候補のclean worktree rootからfunction名を明示して1件だけ行う。function名を省略した一括deploy、`--no-verify-jwt`、`--debug`、Dashboard editorへの追記は使わない。次はリリース時にだけ実行する本番mutationであり、通常のread-only監査では実行しない。
+
+```powershell
+$projectRef = "qkcuhludisairpgzhryl"
+$candidateCommit = git rev-parse HEAD
+$proofRoot = Join-Path ([IO.Path]::GetTempPath()) ("fcg-standard-edge-proof-" + [Guid]::NewGuid().ToString("N"))
+New-Item -ItemType Directory -Path (Join-Path $proofRoot "supabase") -Force
+Copy-Item -LiteralPath "supabase/config.toml" -Destination (Join-Path $proofRoot "supabase/config.toml")
+supabase --workdir . functions deploy standard-game-action --project-ref $projectRef --use-api 2>&1 | Tee-Object -FilePath (Join-Path $proofRoot "deploy.log")
+supabase --output json projects list | Out-File -LiteralPath (Join-Path $proofRoot "projects.json") -Encoding utf8
+supabase --output json --workdir $proofRoot functions list --project-ref $projectRef | Out-File -LiteralPath (Join-Path $proofRoot "functions.json") -Encoding utf8
+supabase --workdir $proofRoot functions download standard-game-action --project-ref $projectRef --use-api 2>&1 | Tee-Object -FilePath (Join-Path $proofRoot "download.log")
+```
+
+post-deployの`functions.json`とDashboardのversion表示を照合し、実際の新versionを`<deployment-version>`へ入れる。まずsourceだけを検証すると、成功しても状態は意図的に`SOURCE_VERIFIED_CANARY_PENDING`となる。
+
+```powershell
+node scripts/verify-standard-edge-deployment-proof.mjs --stage=source --candidate-commit $candidateCommit --project-ref $projectRef --expect-version <deployment-version> --projects-json (Join-Path $proofRoot "projects.json") --functions-json (Join-Path $proofRoot "functions.json") --downloaded-function-dir (Join-Path $proofRoot "supabase/functions/standard-game-action") --download-log (Join-Path $proofRoot "download.log")
+```
+
+次に、同じversionがACTIVEのまま基本canaryを実行する。変更機能に専用canaryがある場合は別logへ追加し、verifierへ`--canary-log`を複数渡す。canaryは明示的にlive dataを作るため、実行承認、有限timeout、terminal cleanupを従来どおり必須にする。
+
+```powershell
+node scripts/live-standard-edge-canary.mjs --confirm-live 2>&1 | Tee-Object -FilePath (Join-Path $proofRoot "basic-canary.log")
+node scripts/verify-standard-edge-deployment-proof.mjs --stage=release --candidate-commit $candidateCommit --project-ref $projectRef --expect-version <deployment-version> --projects-json (Join-Path $proofRoot "projects.json") --functions-json (Join-Path $proofRoot "functions.json") --downloaded-function-dir (Join-Path $proofRoot "supabase/functions/standard-game-action") --download-log (Join-Path $proofRoot "download.log") --deploy-log (Join-Path $proofRoot "deploy.log") --canary-log (Join-Path $proofRoot "basic-canary.log")
+```
+
+verifierは候補worktreeがcleanで指定commitと一致すること、認証済みproject ref、ACTIVE deployment metadata、JWT設定、downloadされた全sourceの一致、deploy logとcanary logに秘密値やFAILがないことを検査する。証拠fileは15分以内で、`deploy log → projects → functions metadata → download readback → canary`のmtime順でなければ拒否する。これにより前便のJSON、download directory、canary logの使い回しを防ぐ。標準出力はsource本文やtokenを含まない正規化JSON 1件だけである。`gateState=VERIFIED`、意図した`id + version`、各fileの比較方式とcandidate/download SHA、全canaryの`checks=total`を保存してからPages段階へ進む。
+
+### CLI未認証時のsigned-in Dashboard ZIP fallback
+
+CLIが未導入または未認証でも、既にサインイン済みの正しいSupabase Dashboardから`standard-game-action`の`Download as ZIP`を取得できる場合は、source readbackだけを安全に代替できる。ただしDashboard ZIPにはcontrol planeの`id`、`version`、`ezbr_sha256`が含まれないため、それらを推測しない。この経路の成功状態は`VERIFIED_WITH_DASHBOARD_SOURCE_READBACK`であり、CLI metadataを含む`VERIFIED`とは区別する。後からCLIが使える場合は同じdeploymentを`functions list`で再取得して完全な識別子を追補する。
+
+1. deploy前にCode画面のproject refとfunction名、2 files、JWT verification有効を目視し、`Download as ZIP`を新しいbaseline一時directoryへ展開する。展開完了直後にfunction名と取得完了時刻だけの`baseline-download.log`を作る。
+2. Dashboard editorでは`index.ts`と`standard-engine.bundle.js`を全置換して同時saveし、成功表示直後に時刻だけのsecret-free deploy logを作る。追記貼付、片fileだけのsaveはしない。
+3. 更新表示、2 files、JWT verificationを再確認してsecret-free `dashboard.json`へ転記し、同じ画面から別の新しいpost-deploy ZIPをdownload・展開する。展開完了直後にfunction名と取得完了時刻だけの`post-download.log`を作る。deploy前ZIPや以前のZIPをrenameして使い回さない。
+4. `--metadata-mode=dashboard`でbaseline/post ZIPを比較し、候補source一致を確認する。`index.ts`のCRLF/LFだけは両raw SHAを残して正規化比較できるが、生成bundleは必ずbyte exactとする。
+5. 同じfunctionへlive canaryを実行して最終proofを作る。baseline ZIP、deploy log、dashboard metadata、post ZIP、canaryはすべて15分以内かつこの順でなければ失敗する。
+
+`dashboard.json`は次のallowlistだけにし、project名、user情報、token、URL query、Authorization、secretを含めない。`updatedLabel`は画面に表示された相対時刻またはtimestampをそのまま記録する。
+
+```json
+{"projectRef":"qkcuhludisairpgzhryl","function":"standard-game-action","fileCount":2,"verifyJwt":true,"updatedLabel":"updated moments ago"}
+```
+
+```powershell
+node scripts/verify-standard-edge-deployment-proof.mjs --metadata-mode=dashboard --stage=source --candidate-commit $candidateCommit --project-ref $projectRef --baseline-function-dir (Join-Path $proofRoot "baseline/standard-game-action") --baseline-download-log (Join-Path $proofRoot "baseline-download.log") --downloaded-function-dir (Join-Path $proofRoot "post/standard-game-action") --download-log (Join-Path $proofRoot "post-download.log") --dashboard-json (Join-Path $proofRoot "dashboard.json") --deploy-log (Join-Path $proofRoot "deploy.log")
+node scripts/live-standard-edge-canary.mjs --confirm-live 2>&1 | Tee-Object -FilePath (Join-Path $proofRoot "basic-canary.log")
+node scripts/verify-standard-edge-deployment-proof.mjs --metadata-mode=dashboard --stage=release --candidate-commit $candidateCommit --project-ref $projectRef --baseline-function-dir (Join-Path $proofRoot "baseline/standard-game-action") --baseline-download-log (Join-Path $proofRoot "baseline-download.log") --downloaded-function-dir (Join-Path $proofRoot "post/standard-game-action") --download-log (Join-Path $proofRoot "post-download.log") --dashboard-json (Join-Path $proofRoot "dashboard.json") --deploy-log (Join-Path $proofRoot "deploy.log") --canary-log (Join-Path $proofRoot "basic-canary.log")
+```
+
+Dashboard fallbackでも、Pages copy、editorの行数、更新ラベル、canaryのどれか単独をsource同一性の証明にしない。proofにはbaseline/post各file SHA、変化したfile名、候補/post比較方式、canary log SHA、`CONTROL_PLANE_ID_NOT_OBSERVED`を残す。version/idが必要な監査ではこの制約を`PENDING`として保持する。
+
+rollbackも「旧version番号へ戻った」という目視だけでは完了しない。事前保全した互換rollback commitのclean worktreeから同じCLI deployを行い、新しい`id + version + ezbr_sha256`、fresh downloadとrollback候補のbyte/SHA一致、基本canary、既存version room継続、active room件数を新しいproofとして残す。alpha.4 active roomが0になる前にalpha.4非対応sourceへ戻さない。失敗deployment、失敗canary、切替前後のversionも削除せず証拠台帳へ残す。
+
 ## EdgeとPagesの順序
 
 ### alpha.4彩色済みエリア角膨張便
@@ -90,7 +164,7 @@ SQL Editorでは内容を全置換し、次を1ファイルずつ順番に実行
 1. `origin/main@63972b6`起点の専用clean worktreeで両bundleを2回生成し、2回目のSHAが不変、正式全製品試験、Windows Chrome/Edge CI、対象実browserのskip 0を確認する。
 2. alpha.4対応bundleを保持したまま新規対局だけを`5.0.0-alpha.3`へ戻す互換rollback branchを作成・GitHub保全する。既存alpha.4 stateの読込み・継続と、alpha.3新規stateが彩色済みpayloadをwrite-free拒否することを確認する。
 3. deployment直前にmain/Pages HEAD、Edge deployment、migration tail、active alpha.4 room数、資源警告をread-onlyで再取得する。診断不能時は推測cleanup・課金・Compute変更をせず、Edge公開を保留する。
-4. `index.ts`と生成済み`standard-engine.bundle.js`を同一deploymentへ反映し、候補と同値確認する。基本canary、COLOR canary、CPU有限進行、公開preflightを実行する。通常loadoutに角膨張がないlive runは彩色済み用途の直接実測とみなさず、生成bundleとactual browserの証拠を分けて記録する。
+4. `index.ts`と生成済み`standard-engine.bundle.js`を同一deploymentへ反映し、上記Edge deployment同一性証明ゲートでfresh downloadとのbyte/SHA一致と`id + version + ezbr_sha256`を確定する。基本canary、COLOR canary、CPU有限進行、公開preflightを実行する。通常loadoutに角膨張がないlive runは彩色済み用途の直接実測とみなさず、保存済みsource、live canary、actual browserの証拠を分けて記録する。
 5. Edgeが旧outgoing UIを継続できることを確認してからmainをforceなしでfast-forwardし、Pagesを公開する。asset marker、HTTP 200、390px、pointer/keyboard/Escape、console warning/error 0を確認する。
 
 Edge公開後に失敗した場合は、alpha.4対応bundleを残した互換rollbackで新規alpha.4作成だけを止める。active alpha.4 roomが0になる前にalpha.4非対応Edgeへ単純復帰しない。Pages公開前なら旧Pagesは新Edgeと互換のため維持できる。Pages公開後のUI障害ではalpha.4対応Edgeを保持したままPagesだけをv40/v18/local v4へ戻し、既存alpha.4 roomを継続可能にする。
