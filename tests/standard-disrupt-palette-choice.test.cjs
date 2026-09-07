@@ -32,7 +32,7 @@ function prepareColor(state, id, micro) {
   state.regions[id] = { id, micro: [micro], sourceMacros: [sourceMacro], controllers: ["A"], color: null, isPending: true };
 }
 
-test("chosen palette corruption draws one private slot and exposes only the chosen color publicly", () => {
+test("chosen palette corruption draws one private slot and exposes its details only to the target", () => {
   const { state, rng } = fixture();
   const before = rng["skill-effect"].snapshot();
   const result = use(state, rng, "yellow");
@@ -45,8 +45,15 @@ test("chosen palette corruption draws one private slot and exposes only the chos
   assert.equal(effect.remaining, 2);
   assert.equal(palette(result.state, "B")[effect.slot], "yellow");
   assert.equal(JSON.stringify(result.publicState).includes("paletteDebuffs"), false);
+  assert.equal(JSON.stringify(result.publicState).includes("paletteImpactEvent"), false);
+  assert.equal(result.state.publicLog.at(-1), `T${result.state.turn} Player A used a skill; its private result is hidden.`);
   assert.equal(JSON.stringify(result.privateState).includes("paletteDebuffs"), false);
-  assert.deepEqual(match.projectStandardPrivateState(result.state, "B").privateEffects.paletteDebuffs, [effect]);
+  const targetPrivate = match.projectStandardPrivateState(result.state, "B");
+  assert.deepEqual(targetPrivate.privateEffects.paletteDebuffs, [effect]);
+  assert.deepEqual(targetPrivate.privateEffects.paletteImpactEvent, {
+    eventId: `${result.state.matchId}:${result.state.version}:palette-impact:B`, version: result.state.version,
+    kind: "chosen", slot: effect.slot, previousColor: effect.previousColor, injectedColor: "yellow", remaining: 2,
+  });
 });
 
 test("the authoritative injected slot persists for one coloring and restores after the second", () => {

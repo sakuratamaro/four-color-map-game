@@ -334,6 +334,28 @@ test("public and per-seat projections preserve the private boundary", () => {
   assert.equal(JSON.stringify(created.privateB).includes(JSON.stringify(created.state.basicPalettes.A)), false);
 });
 
+test("generated server bundle emits palette-impact identity only in the affected seat projection", () => {
+  const api = loadApi();
+  const impactLoadout = JSON.parse(JSON.stringify(loadouts));
+  impactLoadout.A.disrupt = ["disruptPaletteRandom", "disruptChoiceOne"];
+  const created = api.create({ matchId: "online-private-palette-impact", loadouts: impactLoadout, seed: 19, firstSeat: "A" });
+  created.state.phase = "WORK";
+  const applied = api.apply({
+    state: created.state,
+    rngSnapshot: created.rngSnapshot,
+    actor: "A",
+    expectedVersion: 0,
+    action: { type: "USE_SKILL", payload: { skill: "disruptPaletteRandom" } },
+  });
+  assert.equal(applied.ok, true);
+  const event = applied.privateB.privateEffects.paletteImpactEvent;
+  assert.equal(event.eventId, `${applied.state.matchId}:${applied.state.version}:palette-impact:B`);
+  assert.equal(event.kind, "random");
+  assert.equal(JSON.stringify(applied.publicState).includes("paletteImpactEvent"), false);
+  assert.equal(JSON.stringify(applied.privateA).includes("paletteImpactEvent"), false);
+  assert.equal(applied.state.publicLog.at(-1), `T${applied.state.turn} Player A used a skill; its private result is hidden.`);
+});
+
 test("the bundle validates, applies, snapshots, and projects one authoritative action", () => {
   const api = loadApi();
   const created = api.create({ matchId: "online-match-3", loadouts, seed: 99, firstSeat: "A" });

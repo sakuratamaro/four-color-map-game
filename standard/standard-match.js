@@ -285,6 +285,17 @@ function validateStandardState(state) {
         && COLORS.includes(effect.previousColor) && COLORS.includes(effect.injectedColor)
         && Number.isInteger(effect.remaining) && effect.remaining >= 1 && effect.remaining <= 2
         && (effect.slot < 2 ? state.basicPalettes[seat][effect.slot] : state.bonusColors[seat]) === effect.injectedColor)), "INVALID_PALETTE_DEBUFFS");
+    const paletteImpact = state.privateEffects?.[seat]?.paletteImpactEvent;
+    assertState(paletteImpact === undefined || (paletteImpact && typeof paletteImpact === "object" && !Array.isArray(paletteImpact)
+      && Number.isSafeInteger(paletteImpact.version) && paletteImpact.version >= 1 && paletteImpact.version <= state.version
+      && paletteImpact.eventId === `${state.matchId}:${paletteImpact.version}:palette-impact:${seat}`
+      && ["random", "chosen", "forced"].includes(paletteImpact.kind)
+      && Number.isInteger(paletteImpact.slot) && paletteImpact.slot >= 0 && paletteImpact.slot <= 2
+      && COLORS.includes(paletteImpact.previousColor) && COLORS.includes(paletteImpact.injectedColor)
+      && paletteImpact.previousColor !== paletteImpact.injectedColor
+      && Number.isInteger(paletteImpact.remaining) && paletteImpact.remaining >= 0 && paletteImpact.remaining <= 2
+      && (paletteImpact.kind === "random" ? paletteImpact.remaining === 1
+        : paletteImpact.kind === "chosen" ? paletteImpact.remaining === 2 : paletteImpact.remaining === 0)), "INVALID_PALETTE_IMPACT_EVENT");
   }
   if (state.status === "FINISHED") assertState(state.phase === "GAME_OVER" && ["A", "B"].includes(state.winner) && FINISHED_STATE_TERMINAL_REASONS.includes(state.terminalReason), "INVALID_TERMINAL_STATE");
   if (state.phase === "GAME_OVER") assertState(state.status === "FINISHED", "INVALID_TERMINAL_STATE");

@@ -39,6 +39,7 @@ const CPU_ENTRY_INTENT_KEY = "fourColorMapGame.standard.online.v5.cpu-entry-inte
 const LOADOUT_DRAFT_KEY = "fourColorMapGame.standard.online.v5.loadout-draft";
 const CPU_START_SAGA_KEY = "fourColorMapGame.standard.online.v5.cpu-start-saga";
 const CPU_COMMENTARY_PRESENTATION_KEY = "fourColorMapGame.standard.online.v5.cpu-commentary-presentation-v1";
+const PALETTE_IMPACT_PRESENTATION_KEY = "fourColorMapGame.standard.online.v5.palette-impact-presentation-v1";
 const QUIZ_TIMEOUT_ANSWER = "__timeout__";
 const MATHML_NS = "http://www.w3.org/1998/Math/MathML";
 const SVG_NS = "http://www.w3.org/2000/svg";
@@ -77,6 +78,7 @@ const MATCHMAKING_AVAILABILITY_MAX_BACKOFF_MS = 300000;
 const RANDOM_REVEAL_DURATION_MS = 2600;
 const CPU_COMMENTARY_DURATION_MS = 4400;
 const CPU_COMMENTARY_PRESENTATION_LIMIT = 32;
+const PALETTE_IMPACT_PRESENTATION_LIMIT = 32;
 const MATCHED_ROOM_FEEDBACK_MS = 650;
 const TURN_ARRIVAL_BEAT_MS = 900;
 const QUIZ_ROOM_CHECK_STATUS = "保存済みの対戦状態を確認しています。クイズの時計は確認完了まで止まります。";
@@ -266,6 +268,8 @@ let cpuCommentaryTimer = null;
 let cpuCommentaryAnnouncementTimer = null;
 let observedCpuCommentaryScope = null;
 let observedCpuCommentarySourceEventId = null;
+let observedPaletteImpactScope = null;
+let presentedPaletteImpactEventId = null;
 let contactSelectionScope = null;
 let presentedContactSelectionKey = null;
 let observedTurnScope = null;
@@ -337,6 +341,17 @@ function restoreCpuCommentaryPresentation() {
 
 let cpuCommentaryPresentation = restoreCpuCommentaryPresentation();
 
+function restorePaletteImpactPresentation() {
+  try {
+    const stored = JSON.parse(localStorage.getItem(PALETTE_IMPACT_PRESENTATION_KEY) || "null");
+    if (!stored || stored.schemaVersion !== 1 || !Array.isArray(stored.presented)) return [];
+    return [...new Set(stored.presented.filter((eventId) => typeof eventId === "string" && eventId.length > 0 && eventId.length <= 300))]
+      .slice(-PALETTE_IMPACT_PRESENTATION_LIMIT);
+  } catch { return []; }
+}
+
+let presentedPaletteImpactEvents = restorePaletteImpactPresentation();
+
 function show(id, value) { $(id).classList.toggle("hidden", !value); }
 function badge(text, tone = "warn") { $("connectionBadge").textContent = text; $("connectionBadge").className = `badge ${tone}`; }
 function toast(message) { const node = $("toast"); node.textContent = message; node.classList.add("show"); clearTimeout(toast.timer); toast.timer = setTimeout(() => node.classList.remove("show"), 2400); }
@@ -344,6 +359,62 @@ function operationFeedback(id, message, tone = "") {
   const node = $(id);
   node.textContent = String(message || "").slice(0, 240);
   node.dataset.tone = tone;
+}
+
+function validPaletteImpactEvent(state, privateState) {
+  const seat = roomModel?.view?.seat;
+  const event = privateState?.privateEffects?.paletteImpactEvent;
+  if (!state || !["A", "B"].includes(seat) || !event || typeof event !== "object" || Array.isArray(event)
+    || !Number.isSafeInteger(event.version) || event.version < 1 || event.version > state.version
+    || event.eventId !== `${state.matchId}:${event.version}:palette-impact:${seat}`
+    || !["random", "chosen", "forced"].includes(event.kind)
+    || !Number.isInteger(event.slot) || event.slot < 0 || event.slot > 2
+    || !Object.hasOwn(COLOR_JA, event.previousColor) || !Object.hasOwn(COLOR_JA, event.injectedColor)
+    || event.previousColor === event.injectedColor || !Number.isInteger(event.remaining)
+    || (event.kind === "random" && event.remaining !== 1)
+    || (event.kind === "chosen" && event.remaining !== 2)
+    || (event.kind === "forced" && event.remaining !== 0)) return null;
+  return event;
+}
+
+function hidePaletteImpactNotice() {
+  presentedPaletteImpactEventId = null;
+  show("paletteImpactNotice", false);
+  $("paletteImpactTitle").textContent = "";
+  $("paletteImpactDetail").textContent = "";
+}
+
+function rememberPaletteImpact(eventId) {
+  presentedPaletteImpactEvents = [...presentedPaletteImpactEvents.filter((candidate) => candidate !== eventId), eventId]
+    .slice(-PALETTE_IMPACT_PRESENTATION_LIMIT);
+  try {
+    localStorage.setItem(PALETTE_IMPACT_PRESENTATION_KEY, JSON.stringify({ schemaVersion: 1, presented: presentedPaletteImpactEvents }));
+  } catch { /* in-memory dedupe remains active when storage is unavailable */ }
+}
+
+function observePaletteImpact(state, privateState) {
+  const roomId = roomModel?.room?.id;
+  const matchId = typeof state?.matchId === "string" ? state.matchId : null;
+  const seat = roomModel?.view?.seat;
+  if (!roomId || !matchId || !["A", "B"].includes(seat)) {
+    observedPaletteImpactScope = null;
+    hidePaletteImpactNotice();
+    return;
+  }
+  const scope = `${roomId}:${matchId}:${seat}`;
+  if (scope !== observedPaletteImpactScope) {
+    observedPaletteImpactScope = scope;
+    hidePaletteImpactNotice();
+  }
+  const event = validPaletteImpactEvent(state, privateState);
+  if (!event || event.eventId === presentedPaletteImpactEventId || presentedPaletteImpactEvents.includes(event.eventId)
+    || document.visibilityState !== "visible" || activeAppTab !== "battle") return;
+  rememberPaletteImpact(event.eventId);
+  presentedPaletteImpactEventId = event.eventId;
+  const slot = event.slot < 2 ? `基本色${event.slot + 1}` : "おまけ色";
+  $("paletteImpactTitle").textContent = event.kind === "forced" ? "強制持ち替えを受けました" : "持ち色汚染を受けました";
+  $("paletteImpactDetail").textContent = `${slot}が${COLOR_JA[event.previousColor]}から${COLOR_JA[event.injectedColor]}へ変わりました。${event.kind === "forced" ? "この変更は対戦終了まで続きます。" : `次の${event.remaining}回の彩色後に元へ戻ります。`}`;
+  show("paletteImpactNotice", true);
 }
 function pendingSetupForCurrentRoom(snapshot = client.snapshot()) {
   const pending = snapshot.pendingSetup;
@@ -3013,6 +3084,7 @@ function render() {
     syncContactSelectionScope(null);
     observeTurnArrival(null);
     observeCpuCommentary(null);
+    observePaletteImpact(null, null);
     show("tacticalTrace", false);
     show("abandonRoom", false);
     show("abandonRoomHint", false);
@@ -3024,6 +3096,7 @@ function render() {
     syncContactSelectionScope(null);
     observeTurnArrival(null);
     observeCpuCommentary(null);
+    observePaletteImpact(null, null);
     show("tacticalTrace", false);
     $("shownCode").textContent = "確認中";
     $("roomStatus").textContent = "対戦状態を確認中";
@@ -3112,6 +3185,7 @@ function render() {
     syncContactSelectionScope(publicState);
     observeTurnArrival(publicState);
     observeCpuCommentary(publicState);
+    observePaletteImpact(publicState, privateState);
     renderTacticalTrace(publicState);
     renderBoard(publicState);
     renderBasicActions(publicState, privateState);
@@ -3122,6 +3196,7 @@ function render() {
     syncContactSelectionScope(null);
     observeTurnArrival(null);
     observeCpuCommentary(null);
+    observePaletteImpact(null, null);
     show("tacticalTrace", false);
     show("terminalSummary", false);
     renderTerminalResult(null);
@@ -5379,6 +5454,7 @@ document.addEventListener("visibilitychange", () => {
     scheduleCpuTurn(250);
     const publicState = roomModel?.room?.public_state;
     if (hasStandardPublicState(publicState)) observeCpuCommentary(publicState);
+    if (hasStandardPublicState(publicState)) observePaletteImpact(publicState, roomModel?.view?.private_state || {});
     if (pendingLifecycleLobbyFocus) focusBattleLobby();
   }
 });
@@ -5400,6 +5476,7 @@ quizReducedMotion.addEventListener?.("change", () => syncQuizOptionMotion());
 quizHoverMotion.addEventListener?.("change", () => syncQuizOptionMotion());
 window.addEventListener("storage", (event) => {
   basicFeedback.handleStorageEvent(event);
+  if (event.key === PALETTE_IMPACT_PRESENTATION_KEY) presentedPaletteImpactEvents = restorePaletteImpactPresentation();
   const snapshot = client.snapshot();
   if (event.key === globalThis.FourColorStandardOnlineClient.STORAGE_KEY && connected && !snapshot.roomId
       && !pendingCpuStartSaga && !snapshot.cpuStartActionId && !snapshot.matchmakingFindActionId && !snapshot.matchmakingTicketId) {
@@ -5410,6 +5487,10 @@ window.addEventListener("online", () => { roomSync.handleConnectivityChange(); r
 window.addEventListener("offline", () => { roomSync.handleConnectivityChange(); reflectBrowserConnectivity(); stopMatchmakingWatch(); stopMatchmakingAvailabilityWatch({ hide: true }); stopCpuTurnWatch(); });
 
 for (const button of document.querySelectorAll("[data-app-tab]")) button.onclick = () => activateAppTab(button.dataset.appTab);
+$(`dismissPaletteImpact`).onclick = () => {
+  hidePaletteImpactNotice();
+  $("matchTitle").focus({ preventScroll: true });
+};
 for (const button of document.querySelectorAll("[data-tab-jump]")) button.onclick = () => activateAppTab(button.dataset.tabJump);
 $("openWaitingOpponent").onclick = () => {
   if ($("openWaitingOpponent").disabled || $("openWaitingOpponent").classList.contains("hidden")) return;

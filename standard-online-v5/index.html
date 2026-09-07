@@ -6,7 +6,7 @@
   <title>Four Color Map Game v5.0 Standard Online</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='30' height='30' x='1' y='1' rx='8' fill='%23ef476f'/%3E%3Crect width='30' height='30' x='33' y='1' rx='8' fill='%23ffd166'/%3E%3Crect width='30' height='30' x='1' y='33' rx='8' fill='%2306d6a0'/%3E%3Crect width='30' height='30' x='33' y='33' rx='8' fill='%231182e8'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="../online-v5/style.css">
-  <link rel="stylesheet" href="style.css?v=20260908-4">
+  <link rel="stylesheet" href="style.css?v=20260908-5">
   <link rel="stylesheet" href="debug-mode.css">
   <link rel="stylesheet" href="progression.css">
 </head>
@@ -310,6 +310,11 @@
       <h2 id="matchTitle" tabindex="-1">Standard対戦スタート</h2>
       <div class="row wrap"><span id="turnBadge" class="badge"></span><span>第 <b id="versionText">1</b> 手</span></div>
       <p id="phaseText" class="callout"></p>
+      <section id="paletteImpactNotice" class="palette-impact-notice hidden" role="status" aria-live="polite" aria-atomic="true" aria-labelledby="paletteImpactTitle">
+        <div class="palette-impact-mark" aria-hidden="true">!</div>
+        <div><strong id="paletteImpactTitle"></strong><p id="paletteImpactDetail"></p></div>
+        <button id="dismissPaletteImpact" class="ghost" type="button">確認しました</button>
+      </section>
       <div id="cpuCommentaryStage" class="cpu-commentary-stage hidden" aria-hidden="true">
         <aside id="cpuCommentaryBubble" class="cpu-commentary-bubble is-silent">
           <span id="cpuCommentaryPortraitFrame" class="cpu-portrait-frame cpu-commentary-portrait" aria-hidden="true">
@@ -479,6 +484,6 @@
   <script src="cpu-portraits.js?v=20260908-1"></script>
   <script src="cpu-commentary.js?v=20260906-2"></script>
   <script src="basic-feedback.js?v=20260906-2"></script>
-  <script type="module" src="app.js?v=20260908-3"></script>
+  <script type="module" src="app.js?v=20260908-4"></script>
 </body>
 </html>

@@ -4795,6 +4795,137 @@ test("actual browser plays one finite turn-arrival beat without hydration reload
   }, { viewport: { width: 390, height: 844 }, bodyTimeout: 45_000 });
 });
 
+test("actual browser presents current-seat palette impacts once across poll, background, and reload at 390px", { timeout: 120000 }, async () => {
+  await withPage("playing", async (page) => {
+    const notice = page.locator("#paletteImpactNotice");
+    const presentationKey = "fourColorMapGame.standard.online.v5.palette-impact-presentation-v1";
+    await notice.waitFor({ state: "hidden" });
+    assert.equal(await notice.getAttribute("role"), "status");
+    assert.equal(await notice.getAttribute("aria-live"), "polite");
+    await page.evaluate(() => {
+      globalThis.__paletteImpactPresentations = 0;
+      let visible = !document.querySelector("#paletteImpactNotice").classList.contains("hidden");
+      new MutationObserver(() => {
+        const next = !document.querySelector("#paletteImpactNotice").classList.contains("hidden");
+        if (next && !visible) globalThis.__paletteImpactPresentations += 1;
+        visible = next;
+      }).observe(document.querySelector("#paletteImpactNotice"), { attributes: true, attributeFilter: ["class"] });
+    });
+
+    const impact = async (version, kind, slot, previousColor, injectedColor, remaining, { cpu = false, waitForRefresh = true } = {}) => {
+      await page.evaluate(({ nextVersion, nextKind, nextSlot, before, after, nextRemaining, cpuRoom }) => {
+        const runtime = globalThis.__standardOnlineRuntime;
+        const matchId = runtime.room.public_state.matchId;
+        runtime.room = { ...runtime.room, version: nextVersion, opponent_kind: cpuRoom ? "cpu" : "human",
+          access_mode: cpuRoom ? "cpu" : "private_code", cpu_character_id: cpuRoom ? "yuzu" : null,
+          public_state: { ...runtime.room.public_state, version: nextVersion, turn: nextVersion,
+            lastPublicTrace: { eventId: `${matchId}:${nextVersion}`, version: nextVersion, type: "USE_SKILL", actor: "B" } } };
+        runtime.view = { ...runtime.view, seat: "A", version: nextVersion, private_state: { ...runtime.view.private_state,
+          privateEffects: { paletteImpactEvent: { eventId: `${matchId}:${nextVersion}:palette-impact:A`, version: nextVersion,
+            kind: nextKind, slot: nextSlot, previousColor: before, injectedColor: after, remaining: nextRemaining } } } };
+        runtime.onInvalidate?.({});
+      }, { nextVersion: version, nextKind: kind, nextSlot: slot, before: previousColor, after: injectedColor, nextRemaining: remaining, cpuRoom: cpu });
+      if (waitForRefresh) await page.waitForFunction((expected) => document.querySelector("#versionText")?.textContent === String(expected), version);
+    };
+
+    await impact(10, "random", 0, "red", "green", 1);
+    await notice.waitFor({ state: "visible" });
+    assert.equal(await page.locator("#paletteImpactTitle").textContent(), "持ち色汚染を受けました");
+    assert.equal(await page.locator("#paletteImpactDetail").textContent(), "基本色1が赤から緑へ変わりました。次の1回の彩色後に元へ戻ります。");
+    assert.equal(await page.locator("#publicProjection").textContent().then((text) => /paletteImpact|previousColor|injectedColor/.test(text)), false);
+    await page.evaluate(() => { globalThis.__standardOnlineRuntime.onInvalidate?.({}); globalThis.__standardOnlineRuntime.onInvalidate?.({}); });
+    await page.waitForTimeout(150);
+    assert.equal(await page.evaluate(() => globalThis.__paletteImpactPresentations), 1);
+    await page.locator("#dismissPaletteImpact").focus();
+    await page.keyboard.press("Enter");
+    await notice.waitFor({ state: "hidden" });
+    assert.equal(await page.evaluate(() => document.activeElement?.id), "matchTitle");
+
+    await page.reload({ waitUntil: "load" });
+    await page.locator("#connectionBadge.good").waitFor({ state: "visible" });
+    await impact(10, "random", 0, "red", "green", 1);
+    await page.waitForTimeout(150);
+    assert.equal(await notice.isHidden(), true, "reload must not replay an already presented event");
+
+    await page.evaluate(() => {
+      const runtime = globalThis.__standardOnlineRuntime;
+      runtime.room = { ...runtime.room, version: 11, public_state: { ...runtime.room.public_state, version: 11, turn: 11 } };
+      runtime.view = { ...runtime.view, version: 11, private_state: { ...runtime.view.private_state,
+        basicPalette: ["blue", "green"], privateEffects: {} } };
+      runtime.onInvalidate?.({});
+    });
+    await page.waitForFunction(() => document.querySelector("#versionText")?.textContent === "11");
+    assert.equal(await notice.isHidden(), true, "an ordinary palette update must not look like an opponent impact");
+
+    await page.evaluate(() => {
+      globalThis.__paletteImpactPresentations = 0;
+      let visible = !document.querySelector("#paletteImpactNotice").classList.contains("hidden");
+      new MutationObserver(() => {
+        const next = !document.querySelector("#paletteImpactNotice").classList.contains("hidden");
+        if (next && !visible) globalThis.__paletteImpactPresentations += 1;
+        visible = next;
+      }).observe(document.querySelector("#paletteImpactNotice"), { attributes: true, attributeFilter: ["class"] });
+      globalThis.__paletteImpactVisibility = "hidden";
+      Object.defineProperty(document, "visibilityState", { configurable: true, get: () => globalThis.__paletteImpactVisibility });
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+    await impact(12, "chosen", 2, "yellow", "blue", 2, { waitForRefresh: false });
+    assert.equal(await notice.isHidden(), true, "a background poll must defer the private presentation");
+    assert.equal(await page.evaluate((key) => JSON.parse(localStorage.getItem(key)).presented.some((id) => id.endsWith(":12:palette-impact:A")), presentationKey), false);
+    await page.evaluate(() => {
+      globalThis.__paletteImpactVisibility = "visible";
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+    await notice.waitFor({ state: "visible" });
+    assert.equal(await page.locator("#paletteImpactDetail").textContent(), "おまけ色が黄から青へ変わりました。次の2回の彩色後に元へ戻ります。");
+    await page.locator("#dismissPaletteImpact").click();
+
+    await impact(13, "forced", 1, "blue", "red", 0, { cpu: true });
+    await notice.waitFor({ state: "visible" });
+    assert.equal(await page.locator("#paletteImpactTitle").textContent(), "強制持ち替えを受けました");
+    assert.match(await page.locator("#paletteImpactDetail").textContent(), /基本色2が青から赤へ.*対戦終了まで/);
+    await page.evaluate(() => globalThis.__standardOnlineRuntime.onInvalidate?.({}));
+    await page.waitForTimeout(150);
+    assert.equal(await page.evaluate(() => globalThis.__paletteImpactPresentations), 2);
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    assert.equal(await notice.evaluate((node) => getComputedStyle(node).animationName), "none");
+    const layout = await notice.evaluate((node) => {
+      const box = node.getBoundingClientRect();
+      return { left: box.left, right: box.right, viewport: innerWidth, overflow: document.documentElement.scrollWidth > innerWidth };
+    });
+    assert.ok(layout.left >= 0 && layout.right <= layout.viewport && !layout.overflow, JSON.stringify(layout));
+
+    await page.evaluate(() => {
+      const runtime = globalThis.__standardOnlineRuntime;
+      runtime.view = { ...runtime.view, seat: "B", private_state: { ...runtime.view.private_state, privateEffects: {} } };
+      runtime.onInvalidate?.({});
+    });
+    await notice.waitFor({ state: "hidden" });
+  }, { viewport: { width: 390, height: 844 }, bodyTimeout: 45_000 });
+});
+
+test("actual browser keeps the private palette-impact notice inside a desktop viewport", { timeout: 120000 }, async () => {
+  await withPage("playing", async (page) => {
+    await page.evaluate(() => {
+      const runtime = globalThis.__standardOnlineRuntime;
+      const matchId = runtime.room.public_state.matchId;
+      runtime.room = { ...runtime.room, version: 10, public_state: { ...runtime.room.public_state, version: 10, turn: 10,
+        lastPublicTrace: { eventId: `${matchId}:10`, version: 10, type: "USE_SKILL", actor: "B" } } };
+      runtime.view = { ...runtime.view, version: 10, private_state: { ...runtime.view.private_state,
+        privateEffects: { paletteImpactEvent: { eventId: `${matchId}:10:palette-impact:A`, version: 10,
+          kind: "forced", slot: 2, previousColor: "yellow", injectedColor: "green", remaining: 0 } } } };
+      runtime.onInvalidate?.({});
+    });
+    const notice = page.locator("#paletteImpactNotice");
+    await notice.waitFor({ state: "visible" });
+    const layout = await notice.evaluate((node) => {
+      const box = node.getBoundingClientRect();
+      return { left: box.left, right: box.right, viewport: innerWidth, overflow: document.documentElement.scrollWidth > innerWidth };
+    });
+    assert.ok(layout.left >= 0 && layout.right <= layout.viewport && !layout.overflow, JSON.stringify(layout));
+  }, { viewport: { width: 1280, height: 900 } });
+});
+
 test("actual browser reduced motion skips intermediate local-selection contact stages and terminal UI wins", { timeout: 120000 }, async () => {
   await withPage("playing", async (page) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
