@@ -159,7 +159,7 @@ rollbackも「旧version番号へ戻った」という目視だけでは完了�
 
 ### alpha.4彩色済みエリア角膨張便
 
-候補中。この便は新payloadを旧Edgeが拒否する一方、新Edgeは旧UIのoutgoing payloadを継続できるため、`alpha.4対応Edge → live canary → Pages app v41/intents v19/local bundle v5`の順にする。DB、migration、RPC、secret、cleanup scheduleは変更しない。
+候補中。この便は新payloadを旧Edgeが拒否する一方、新Edgeは旧UIのoutgoing payloadを継続できるため、`alpha.4対応Edge → live canary → Pages`の順にする。Pages候補assetはonline app `app.js?v=20260908-8`、style `style.css?v=20260908-5`、intents `standard-online-skill-intents.js?v=20260907-20`、client `standard-online-client.js?v=20260907-21`、portrait `cpu-portraits.js?v=20260908-1`、Local bundle `app.bundle.js?v=20260908-2-87f722259e50`である。DB、migration、RPC、secret、cleanup scheduleは変更しない。
 
 1. `origin/main@63972b6`起点の専用clean worktreeで両bundleを2回生成し、2回目のSHAが不変、正式全製品試験、Windows Chrome/Edge CI、対象実browserのskip 0を確認する。
 2. alpha.4対応bundleを保持したまま新規対局だけを`5.0.0-alpha.3`へ戻す互換rollback branchを作成・GitHub保全する。既存alpha.4 stateの読込み・継続と、alpha.3新規stateが彩色済みpayloadをwrite-free拒否することを確認する。
@@ -167,7 +167,7 @@ rollbackも「旧version番号へ戻った」という目視だけでは完了�
 4. `index.ts`と生成済み`standard-engine.bundle.js`を同一deploymentへ反映し、上記Edge deployment同一性証明ゲートでfresh downloadとのbyte/SHA一致と`id + version + ezbr_sha256`を確定する。基本canary、COLOR canary、CPU有限進行、公開preflightを実行する。通常loadoutに角膨張がないlive runは彩色済み用途の直接実測とみなさず、保存済みsource、live canary、actual browserの証拠を分けて記録する。
 5. Edgeが旧outgoing UIを継続できることを確認してからmainをforceなしでfast-forwardし、Pagesを公開する。asset marker、HTTP 200、390px、pointer/keyboard/Escape、console warning/error 0を確認する。
 
-Edge公開後に失敗した場合は、alpha.4対応bundleを残した互換rollbackで新規alpha.4作成だけを止める。active alpha.4 roomが0になる前にalpha.4非対応Edgeへ単純復帰しない。Pages公開前なら旧Pagesは新Edgeと互換のため維持できる。Pages公開後のUI障害ではalpha.4対応Edgeを保持したままPagesだけをv40/v18/local v4へ戻し、既存alpha.4 roomを継続可能にする。
+Edge公開後に失敗した場合は、alpha.4対応bundleを残した互換rollbackで新規alpha.4作成だけを止める。active alpha.4 roomが0になる前にalpha.4非対応Edgeへ単純復帰しない。Pages公開前なら旧Pagesは新Edgeと互換のため維持できる。Pages公開後のUI障害ではalpha.4対応Edgeを保持したままPagesだけをdeployment直前に記録したPages baselineへ戻し、既存alpha.4 roomを継続可能にする。
 
 ### alpha.3カテゴリ制限便
 

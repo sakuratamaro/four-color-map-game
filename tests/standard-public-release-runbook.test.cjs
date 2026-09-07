@@ -6,17 +6,34 @@ const path = require("node:path");
 const test = require("node:test");
 
 const runbook = fs.readFileSync(path.join(__dirname, "..", "docs", "STANDARD_PUBLIC_RELEASE_RUNBOOK.md"), "utf8");
+const onlineIndex = fs.readFileSync(path.join(__dirname, "..", "standard-online-v5", "index.html"), "utf8");
+const localIndex = fs.readFileSync(path.join(__dirname, "..", "standard-v5", "index.html"), "utf8");
+
+function assetReference(source, pattern, label) {
+  const reference = source.match(pattern)?.[1];
+  assert.ok(reference, `${label} asset reference missing from its authoritative index`);
+  return reference;
+}
 
 test("current alpha.4 release lane deploys the compatible Edge before Pages and preserves active rooms", () => {
   const releaseSection = runbook.slice(runbook.indexOf("### alpha.4彩色済みエリア角膨張便"), runbook.indexOf("### alpha.3カテゴリ制限便"));
   const edge = releaseSection.indexOf("alpha.4対応Edge");
   const canary = releaseSection.indexOf("live canary", edge);
-  const pages = releaseSection.indexOf("Pages app v41/intents v19/local bundle v5", canary);
+  const pages = releaseSection.indexOf("Pages候補asset", canary);
   assert.ok(edge >= 0 && canary > edge && pages > canary);
+  const candidateAssets = [
+    assetReference(onlineIndex, /src="(app\.js\?v=[^"]+)"/, "online app"),
+    assetReference(onlineIndex, /href="(style\.css\?v=[^"]+)"/, "online style"),
+    assetReference(onlineIndex, /src="(standard-online-skill-intents\.js\?v=[^"]+)"/, "online skill intents"),
+    assetReference(onlineIndex, /src="(standard-online-client\.js\?v=[^"]+)"/, "online client"),
+    assetReference(onlineIndex, /src="(cpu-portraits\.js\?v=[^"]+)"/, "CPU portraits"),
+    assetReference(localIndex, /src="(app\.bundle\.js\?v=[^"]+)"/, "local bundle"),
+  ];
+  for (const asset of candidateAssets) assert.match(releaseSection, new RegExp(asset.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
   for (const phrase of [
     "origin/main@63972b6", "5.0.0-alpha.3", "active alpha.4 room", "index.ts", "standard-engine.bundle.js",
     "DB、migration、RPC、secret、cleanup scheduleは変更しない", "通常loadoutに角膨張がないlive run", "actual browser",
-    "active alpha.4 roomが0になる前にalpha.4非対応Edgeへ単純復帰しない", "Pagesだけをv40/v18/local v4へ戻し",
+    "active alpha.4 roomが0になる前にalpha.4非対応Edgeへ単純復帰しない", "Pagesだけをdeployment直前に記録したPages baselineへ戻し",
   ]) assert.match(releaseSection, new RegExp(phrase.replaceAll(".", "\\.")));
 });
 
