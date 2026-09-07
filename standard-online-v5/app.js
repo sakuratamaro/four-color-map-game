@@ -4320,7 +4320,9 @@ function renderTurnGuide(state) {
   }
   if (state.phase === "WORK") {
     const remaining = Math.max(0, state.requiredSize - outgoingMacros.length);
-    if (remaining > 0) return present("select", rolePath, `盤面をタップ／クリックして、あと${remaining}マス選ぶ`, outgoingMacros.length ? connectedHint : startHint);
+    if (remaining > 0) return present("select", rolePath, `盤面をタップ／クリックして、あと${remaining}マス選ぶ`, outgoingMacros.length
+      ? connectedHint
+      : `${startHint} 選んだエリアは相手が塗ります。相手が困る形や接し方を考えてみましょう。`);
     return present("ready", rolePath, "選べました。「このエリアを渡す」へ", "選んだマスは白い枠で表示されています。下のボタンで相手へ渡します。");
   }
   if (state.phase === "COLOR") return present("color", rolePath, "受け取った灰色エリアを塗る", "盤面の下にある持ち色から選びます。同じ色が辺で接しないように塗りましょう。");
