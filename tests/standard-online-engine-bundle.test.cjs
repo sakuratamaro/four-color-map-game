@@ -60,6 +60,7 @@ test("bundle exposes a deterministic server-only Standard engine", () => {
   assert.equal(typeof api.applyProfiles, "function");
   assert.equal(typeof api.applyCpuProfiles, "function");
   assert.equal(typeof api.drawGacha, "function");
+  assert.equal(JSON.stringify(api.GACHA_ODDS), JSON.stringify(require("../standard/standard-gacha-transaction.js").GACHA_ODDS));
   assert.equal(typeof api.quoteCardSale, "function");
   assert.equal(typeof api.sellCards, "function");
   assert.equal(typeof api.getCosmetics, "function");

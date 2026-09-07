@@ -1,8 +1,11 @@
 import fs from "node:fs";
+import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const require = createRequire(import.meta.url);
+const { GACHA_ODDS } = require(path.join(root, "standard", "standard-gacha-transaction.js"));
 const output = path.join(root, "supabase", "functions", "standard-game-action", "standard-engine.bundle.js");
 const ids = [
   "standard/standard-engine.js",
@@ -33,13 +36,7 @@ const starterInventory = {
   areaMicroBloom:3,areaDiePlus:3,
   disruptRandomOne:3,disruptChoiceOne:3,
 };
-const gachaOdds = {
-  1:{1:55,2:30,3:12,4:2.8,5:0.2},
-  2:{1:40,2:35,3:19,4:5.5,5:0.5},
-  3:{1:25,2:35,3:28,4:10,5:2},
-  4:{1:10,2:25,3:35,4:24,5:6},
-  5:{1:2,2:8,3:30,4:40,5:20},
-};
+const gachaOdds = ${JSON.stringify(GACHA_ODDS)};
 function clone(value){return JSON.parse(JSON.stringify(value));}
 function validateGachaTickets(profile){
   if(!profile.gachaTickets||typeof profile.gachaTickets!=="object"||Array.isArray(profile.gachaTickets))throw new Error("INVALID_GACHA_TICKETS");
@@ -299,6 +296,7 @@ function apply({state,rngSnapshot,actor,action,expectedVersion,debugMode=false,l
 }
 globalThis.FourColorStandardServerEngine=Object.freeze({
   ENGINE_VERSION:match.ENGINE_VERSION,
+  GACHA_ODDS:gachaOdds,
   REQUIRED_RNG_STREAMS:match.REQUIRED_RNG_STREAMS,
   StandardRuleError:engine.StandardRuleError,
   apply,

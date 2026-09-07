@@ -38,12 +38,32 @@ test("ordinary gacha pool accounts for exactly the 19 canonical cards by categor
   assert.ok(pooled.every((id) => STANDARD_SKILLS[id].gachaEnabled && !STANDARD_SKILLS[id].experimental));
 });
 
-test("rarity boundaries exactly implement every v4.9 ticket-level distribution", () => {
+test("ticket levels use the motivational rarity floors and visible long-shot chances", () => {
+  assert.deepEqual(JSON.parse(JSON.stringify(gacha.GACHA_ODDS)), {
+    1: { 1: 65, 2: 29, 3: 5, 4: 0.9, 5: 0.1 },
+    2: { 1: 40, 2: 35, 3: 19, 4: 5.5, 5: 0.5 },
+    3: { 1: 25, 2: 35, 3: 28, 4: 10, 5: 2 },
+    4: { 1: 0, 2: 35, 3: 35, 4: 24, 5: 6 },
+    5: { 1: 0, 2: 0, 3: 40, 4: 40, 5: 20 },
+  });
+  assert.equal(gacha.GACHA_ODDS[1][4] + gacha.GACHA_ODDS[1][5], 1);
+  assert.equal(gacha.GACHA_ODDS[1][5] > 0, true);
+  assert.equal(gacha.GACHA_ODDS[4][1], 0);
+  assert.equal(gacha.GACHA_ODDS[5][1] + gacha.GACHA_ODDS[5][2], 0);
+  const expectedRarity = [1, 2, 3, 4, 5].map((level) => (
+    [1, 2, 3, 4, 5].reduce((sum, rarity) => sum + (rarity * gacha.GACHA_ODDS[level][rarity]), 0) / 100
+  ));
+  assert.deepEqual(expectedRarity, [1.421, 1.915, 2.29, 3.01, 3.8]);
+  assert.equal(expectedRarity.every((value, index) => index === 0 || value > expectedRarity[index - 1]), true);
+});
+
+test("rarity boundaries exactly implement every ticket-level distribution, including zero-weight rarities", () => {
   for (let level = 1; level <= 5; level += 1) {
     let cumulative = 0;
     for (let rarity = 1; rarity <= 5; rarity += 1) {
       const start = cumulative;
       cumulative += gacha.GACHA_ODDS[level][rarity] / 100;
+      if (cumulative === start) continue;
       assert.equal(gacha.rarityFrom(start + Math.min(1e-9, (cumulative - start) / 2), level), rarity);
       assert.equal(gacha.rarityFrom(cumulative - 1e-12, level), rarity);
     }

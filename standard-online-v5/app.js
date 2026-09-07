@@ -24,6 +24,13 @@ const REMOTE_PROFILE_KEY = "fourColorMapGame.standard.online.v5.remote-profile";
 const REMOTE_PROFILE_ID = "online-server";
 const GACHA_PENDING_KEY = "fourColorMapGame.standard.online.v5.pending-gacha";
 const CPU_REWARD_GACHA_RESULT_KEY = "fourColorMapGame.standard.online.v5.cpu-reward-gacha-result";
+const GACHA_ODDS = Object.freeze({
+  1: Object.freeze({ 1: 65, 2: 29, 3: 5, 4: 0.9, 5: 0.1 }),
+  2: Object.freeze({ 1: 40, 2: 35, 3: 19, 4: 5.5, 5: 0.5 }),
+  3: Object.freeze({ 1: 25, 2: 35, 3: 28, 4: 10, 5: 2 }),
+  4: Object.freeze({ 1: 0, 2: 35, 3: 35, 4: 24, 5: 6 }),
+  5: Object.freeze({ 1: 0, 2: 0, 3: 40, 4: 40, 5: 20 }),
+});
 const QUIZ_PENDING_KEY = "fourColorMapGame.standard.online.v5.pending-quiz";
 const TERMINAL_PRESENTED_KEY = "fourColorMapGame.standard.online.v5.last-terminal-presentation";
 const APP_TAB_KEY = "fourColorMapGame.standard.online.v5.active-tab";
@@ -1574,6 +1581,12 @@ function renderGacha() {
   const level = Number($("gachaLevel").value || 1);
   const available = Number(tickets[String(level)] || 0);
   $("gachaTickets").textContent = [1, 2, 3, 4, 5].map((item) => `Lv.${item} ×${tickets[String(item)] || 0}`).join(" / ");
+  const odds = GACHA_ODDS[level];
+  const rarityFloor = [1, 2, 3, 4, 5].find((rarity) => odds[rarity] > 0);
+  const guarantee = level === 1
+    ? "★4・★5も排出されます（合計1%）。"
+    : `★${rarityFloor}以上確定。`;
+  $("gachaOdds").textContent = `Lv.${level} 排出率：${[1, 2, 3, 4, 5].map((rarity) => `★${rarity} ${odds[rarity]}%`).join(" / ")}　${guarantee}`;
   $("gachaDrawOne").disabled = gachaBusy || Boolean(pendingGacha) || hasMatchedRoomHandoff() || available < 1;
   $("gachaDrawAll").disabled = gachaBusy || Boolean(pendingGacha) || hasMatchedRoomHandoff() || available < 1;
   $("gachaRetry").classList.toggle("hidden", !pendingGacha);
