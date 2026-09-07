@@ -40,13 +40,14 @@ test("release preflight is read-only, secret-free, finite, and stage-aware", () 
   assert.match(source, /hasRegistryRarityUi/);
   assert.match(source, /hasCpuPortraits/);
   assert.match(source, /hasWholeButtonQuizPhysics/);
+  assert.match(source, /hasBoardFirstCandidateGuidance/);
   assert.match(source, /hasApprovedGachaOddsUi/);
   assert.match(source, /hasApprovedEdgeGachaOdds/);
   assert.match(source, /hasDeferredCurseLocalBundle/);
   assert.match(source, /hasCandidateAssetGeneration/);
   assert.match(source, /baseline:\s*\{[^}]*matchmakingAvailabilityDb:\s*false[^}]*waitingOpponentUi:\s*false\s*\}/);
   assert.match(source, /"db-ready":\s*\{[^}]*matchmakingAvailabilityDb:\s*true[^}]*waitingOpponentUi:\s*false\s*\}/);
-  assert.match(source, /candidate:\s*\{[^}]*matchmakingAvailabilityDb:\s*true[^}]*waitingOpponentUi:\s*true[^}]*alpha3SkillCategoryUi:\s*true[^}]*alpha4ColoredCornerBloomUi:\s*true[^}]*registryRarityUi:\s*true[^}]*cpuPortraitsUi:\s*true[^}]*wholeButtonQuizPhysicsUi:\s*true[^}]*approvedGachaOddsUi:\s*true[^}]*approvedEdgeGachaOdds:\s*true[^}]*deferredCurseLocalBundle:\s*true[^}]*candidateAssetGenerationUi:\s*true\s*\}/);
+  assert.match(source, /candidate:\s*\{[^}]*matchmakingAvailabilityDb:\s*true[^}]*waitingOpponentUi:\s*true[^}]*alpha3SkillCategoryUi:\s*true[^}]*alpha4ColoredCornerBloomUi:\s*true[^}]*registryRarityUi:\s*true[^}]*cpuPortraitsUi:\s*true[^}]*wholeButtonQuizPhysicsUi:\s*true[^}]*boardFirstCandidateGuidanceUi:\s*true[^}]*approvedGachaOddsUi:\s*true[^}]*approvedEdgeGachaOdds:\s*true[^}]*deferredCurseLocalBundle:\s*true[^}]*candidateAssetGenerationUi:\s*true\s*\}/);
   assert.match(source, /ACTIVE_ROOM_RECOVERY_PHASE_MISMATCH/);
   assert.match(source, /LEGAL_RECOLOR_LAB_UI_PHASE_MISMATCH/);
   assert.match(source, /SETUP_LOAD_V3_PHASE_MISMATCH/);
@@ -58,12 +59,13 @@ test("release preflight is read-only, secret-free, finite, and stage-aware", () 
   assert.match(source, /REGISTRY_RARITY_UI_PHASE_MISMATCH/);
   assert.match(source, /CPU_PORTRAITS_UI_PHASE_MISMATCH/);
   assert.match(source, /WHOLE_BUTTON_QUIZ_PHYSICS_UI_PHASE_MISMATCH/);
+  assert.match(source, /BOARD_FIRST_CANDIDATE_GUIDANCE_UI_PHASE_MISMATCH/);
   assert.match(source, /APPROVED_GACHA_ODDS_UI_PHASE_MISMATCH/);
   assert.match(source, /APPROVED_GACHA_ODDS_EDGE_BUNDLE_MISMATCH/);
   assert.match(source, /DEFERRED_CURSE_LOCAL_BUNDLE_MISMATCH/);
   assert.match(source, /app\.text\.includes\('★\$\{meta\.rarity\}'\)/);
   assert.match(source, /CANDIDATE_ASSET_GENERATION_UI_PHASE_MISMATCH/);
-  assert.match(source, /app\.js\?v=20260908-5/);
+  assert.match(source, /app\.js\?v=20260908-6/);
   assert.match(source, /style\.css\?v=20260908-5/);
   assert.match(source, /standard-online-skill-intents\.js\?v=20260907-20/);
   assert.match(source, /standard-skill-registry\.generated\.js\?v=20260907-1/);
@@ -106,6 +108,14 @@ test("candidate preflight accepts only whole-button AABB physics with abortable 
   assert.equal(hasWholeButtonQuizPhysics(candidateHtml.replace('id="quizOptions"', 'id="legacyQuizOptions"'), candidateApp), false);
 });
 
+test("candidate preflight rejects missing first-candidate guidance or stale connected guidance", async () => {
+  const { hasBoardFirstCandidateGuidance } = await contractsPromise;
+  assert.equal(hasBoardFirstCandidateGuidance(candidateHtml, candidateApp), true);
+  assert.equal(hasBoardFirstCandidateGuidance(candidateHtml.replace("最初のおすすめ選択候補", "選択開始位置"), candidateApp), false);
+  assert.equal(hasBoardFirstCandidateGuidance(candidateHtml, candidateApp.replace("function firstGuidedMacro(state)", "function oldGuidedMacro(state)")), false);
+  assert.equal(hasBoardFirstCandidateGuidance(candidateHtml, candidateApp.replace('color: "#86efac", cssWidth: 2.5, cssDash: [5, 4]', 'color: "#38bdf8", cssWidth: 3, cssDash: [3, 3]')), false);
+});
+
 test("candidate preflight rejects missing or stale Lv.1-5 gacha UI odds", async () => {
   const { hasApprovedGachaOddsUi } = await contractsPromise;
   assert.equal(hasApprovedGachaOddsUi(candidateHtml, candidateApp), true);
@@ -143,7 +153,7 @@ test("candidate app satisfies the waiting-opponent release marker", () => {
 });
 
 test("candidate page and app satisfy the alpha.4 cache generation marker", () => {
-  assert.equal(candidateHtml.includes("app.js?v=20260908-5"), true);
+  assert.equal(candidateHtml.includes("app.js?v=20260908-6"), true);
   assert.equal(candidateHtml.includes("style.css?v=20260908-5"), true);
   assert.equal(candidateHtml.includes("standard-online-skill-intents.js?v=20260907-20"), true);
   assert.equal(candidateHtml.includes("standard-skill-registry.generated.js?v=20260907-1"), true);
