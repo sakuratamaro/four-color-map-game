@@ -8,7 +8,7 @@
 
 ## 司令塔ルール
 
-- 統合基点と公開製品は `origin/main@26a4161`。盤面主導Shift選択、基本feedback、共通COLOR応答窓、CPU実況、legal-recolor LAB、同カテゴリ連打制限、alpha.4 direct-cell角膨張まで累積している。次の変更も専用clean worktreeでのみ統合する。
+- 統合基点と公開製品は `origin/main@e941d11`。盤面主導Shift選択、基本feedback、共通COLOR応答窓、CPU実況、legal-recolor LAB、同カテゴリ連打制限、alpha.4 direct-cell角膨張、おまけ色残数・封印残数の実ボタン表示まで累積している。次の変更も専用clean worktreeでのみ統合する。
 - release候補はdirtyな司令塔床から直接出さず、`origin/main`起点のclean release worktreeへ採用commitだけを積み、candidate CIのtree一致を確認してfast-forwardする。
 - 古いdirty worktreeからbuild、merge、deployしない。
 - `実装済み`、`ローカル検証済み`、`live検証済み`、`公開済み`を別状態として記録する。
@@ -104,8 +104,8 @@
 | UDL-20260906-016 | 五月雨式依頼を一元管理 | 安定IDと公開段階を1行で追跡 | 指定15列、状態遷移、決定元、公開証拠を保持 | PROJECT_COMMAND_CENTER | 司令塔 | Governance now | PUBLIC_VERIFIED | `581a0d9` | `df9f01b` | `34035229549` | 公開台帳をrelease照合 | `01a0762c` | — | YES |
 | UDL-20260906-017 | 各release前に決定照合 | INBOX、台帳漏れ、未merge、未Pages、古いfinal、矛盾を検査 | 自動schema検査＋手動照合欄、CI契約 | UDL-016 | 構成管理＋司令塔 | Governance now | PUBLIC_VERIFIED | `fd7c6ec` | `df9f01b` | `34035229549` | checker 17/17 PASS | `01a0762c` | — | YES |
 | UDL-20260907-018 | 接触演出を本人の選択時だけへ | commit後の全員向け演出を廃止し、本人のlocal draft選択中だけ2→3段階を表示 | required-size/submit/poll/reload/opponent replay非依存、private ID非記録、reduced-motion | public board geometry、basic feedback | UX＋a11y | P0 public UX recovery | IMPLEMENTING | — | NO | NO | NOT_RUN | `01a06c79` handoff | 旧commit後契約をSUPERSEDED | YES |
-| UDL-20260907-019 | おまけ色残数を色ボタン内へ | おまけ色を含む実ボタンへ`残りN回`を常時表示 | 基本色重複、残0、一時色、prism、入替、補充を網羅 | current-seat private projection | UX＋privacy | P0 public UX recovery | LOCAL_VERIFIED | `2f75e40` | NO | NO | ローカル非browser 477/477、lifecycle Edge 79/79、online Edge/Chrome各83/83 | `01a06c79` handoff | — | YES |
-| UDL-20260907-020 | 封印色を消さず鍵表示 | 所有中の封印色をdisabledで残し公開される残り封印回数を表示 | 残0おまけ色を含む、相手private palette非表示 | public effects＋current-seat private projection | UX＋privacy | P0 public UX recovery | LOCAL_VERIFIED | `2f75e40` | NO | NO | ローカル非browser 477/477、lifecycle Edge 79/79、online Edge/Chrome各83/83 | `01a06c79` handoff | — | YES |
+| UDL-20260907-019 | おまけ色残数を色ボタン内へ | おまけ色を含む実ボタンへ`残りN回`を常時表示 | 基本色重複、残0、一時色、prism、入替、補充を網羅 | current-seat private projection | UX＋privacy | P0 public UX recovery | PUBLIC_VERIFIED | `2f75e40` | `e941d11` | `34114644417` | ローカル非browser 477/477、lifecycle Edge 79/79、online Edge/Chrome各83/83。公開app43/style41/intents20、candidate preflight、390px overflow 0、console 0 | `01a06c79` handoff | — | YES |
+| UDL-20260907-020 | 封印色を消さず鍵表示 | 所有中の封印色をdisabledで残し公開される残り封印回数を表示 | 残0おまけ色を含む、相手private palette非表示 | public effects＋current-seat private projection | UX＋privacy | P0 public UX recovery | PUBLIC_VERIFIED | `2f75e40` | `e941d11` | `34114644417` | ローカル非browser 477/477、lifecycle Edge 79/79、online Edge/Chrome各83/83。公開app43/style41/intents20、candidate preflight、390px overflow 0、console 0 | `01a06c79` handoff | — | YES |
 | UDL-20260907-021 | クイズのボタン自体を衝突移動 | 大枠内で大きいbutton全体を壁反射・相互衝突させる | hover/focus/touch即停止、feedback中停止、DOM順keyboard、hidden/handoff/hint/pending/reduced-motion停止、resize再配置 | server quiz exactly-once boundary | クイズ＋UX＋a11y | P0 public UX recovery | IMPLEMENTING | — | NO | NO | NOT_RUN | `01a06c79` handoff | fixed hitbox＋label driftをSUPERSEDED | YES |
 | UDL-20260907-022 | スキル使用UIへ正本レアリティ | 6枚一覧と対象指定へregistryの星数を表示 | inventory数から推測せず、private漏えいなし、生成物とsource parity | `standard-skill-registry.js` | UX＋registry | P0 public UX recovery | IMPLEMENTING | — | NO | NO | NOT_RUN | `01a06c79` handoff | — | YES |
 | UDL-20260907-023 | 中幅ロビー崩れを復旧 | CPU／友だち／野良cardを安全にreflow | 390px・報告中幅・wide、44px controls、overflow/clip/text overlap 0 | lobby CSS | UX＋responsive | P0 public UX recovery | IMPLEMENTING | — | NO | NO | NOT_RUN | `01a06c79` handoff | 旧PUBLIC_VERIFIEDを実画面不合格で再開 | YES |

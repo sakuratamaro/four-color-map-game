@@ -9,8 +9,8 @@
 | 要求 | 出典区分 | 現状 | 再現・原因 | 担当・worktree | 次の証拠 |
 | --- | --- | --- | --- | --- | --- |
 | 接触演出を本人のセル選択時だけへ | ユーザー確定・旧契約を上書き | IMPLEMENTING | `observeCommittedContact` がactor/seatを見ず新しい公開`CREATE_REGION` traceを全端末で演出する。local draft observerがない | UX/a11y・本worktree | 2→3の段階追加、相手/poll/reload無発火をChrome/Edgeで確認 |
-| 色ボタン内のおまけ色残数 | ユーザー確定 | LOCAL_VERIFIED (`2f75e40`) | 所有中の全色を正規化する`colorChoiceDetails`を追加し、実ボタンへ`おまけ色 残りN回`を表示。基本色重複時は残0でも使用可能 | UX/privacy・本worktree | 非browser 477/477、lifecycle Edge 79/79、online Edge/Chrome各83/83。次はmain/Pages/live確認 |
-| 封印色の鍵と残期間 | ユーザー確定 | LOCAL_VERIFIED (`2f75e40`) | 残0おまけ色も消さずdisabledで保持し、鍵と公開封印残数を同じボタンへ表示。相手private paletteは参照しない | UX/privacy・本worktree | 同上。次はmain/Pages/live確認 |
+| 色ボタン内のおまけ色残数 | ユーザー確定 | PUBLIC_VERIFIED (`2f75e40`) | 所有中の全色を正規化する`colorChoiceDetails`を追加し、実ボタンへ`おまけ色 残りN回`を表示。基本色重複時は残0でも使用可能 | UX/privacy・本worktree | main `e941d11`、Pages `34114644417`、公開app43/style41/intents20、candidate preflight、390px overflow 0、console 0 |
+| 封印色の鍵と残期間 | ユーザー確定 | PUBLIC_VERIFIED (`2f75e40`) | 残0おまけ色も消さずdisabledで保持し、鍵と公開封印残数を同じボタンへ表示。相手private paletteは参照しない | UX/privacy・本worktree | 同上 |
 | クイズbutton全体の衝突移動 | ユーザー確定・fixed hitboxを上書き | IMPLEMENTING | grid上のbuttonは固定で、子`span.quiz-option-float`だけ2–3px drift。衝突計算がない | Quiz/UX/a11y・本worktree | whole-button座標変化、bounds、非重複、衝突、停止条件、resize、exactly-once |
 | 6枚/対象指定へregistryレアリティ | ユーザー確定 | IMPLEMENTING | clientの`SKILL_META`は名前/categoryの複製でrarityを持たず、registry artifactも読んでいない | UX/registry・本worktree | source registryから生成、21件parity、表示browser test |
 | 中幅ロビーreflow | ユーザー確定・旧live判定を再開 | IMPLEMENTING | 高優先度の`#lobby ... auto-fit minmax(280px)`が1180px content内へ3cardを詰め、旧1080px breakpointより上でfriend/public controlsが潰れる | responsive・本worktree | 390/報告中幅/wideでoverflow・clip・overlap 0、controls 44px以上 |
