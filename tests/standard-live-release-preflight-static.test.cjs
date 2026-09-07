@@ -4,17 +4,20 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const test = require("node:test");
+const { pathToFileURL } = require("node:url");
 
 const source = fs.readFileSync(path.join(__dirname, "..", "scripts", "live-standard-release-preflight.mjs"), "utf8");
 const candidateApp = fs.readFileSync(path.join(__dirname, "..", "standard-online-v5", "app.js"), "utf8");
 const candidateHtml = fs.readFileSync(path.join(__dirname, "..", "standard-online-v5", "index.html"), "utf8");
 const candidateIntents = fs.readFileSync(path.join(__dirname, "..", "standard-online-v5", "standard-online-skill-intents.js"), "utf8");
+const candidateEdgeBundle = fs.readFileSync(path.join(__dirname, "..", "supabase", "functions", "standard-game-action", "standard-engine.bundle.js"), "utf8");
+const contractsPromise = import(pathToFileURL(path.join(__dirname, "..", "scripts", "standard-release-preflight-contracts.mjs")).href);
 
 test("release preflight is read-only, secret-free, finite, and stage-aware", () => {
   assert.match(source, /publishableKey/);
   assert.doesNotMatch(source, /serviceRole|service_role|SUPABASE_SERVICE_ROLE_KEY/);
   assert.doesNotMatch(source, /auth\/v1\/(?:signup|admin)|anonymous\(\)/);
-  assert.doesNotMatch(source, /create_room|join_room|cpu-accept|quiz-start|gacha|cosmetic-action/);
+  assert.doesNotMatch(source, /operation:\s*"(?:create_room|join_room|cpu-accept|quiz-start|gacha|cosmetic-action)"/);
   assert.match(source, /00000000-0000-0000-0000-000000000000/);
   assert.match(source, /AbortSignal\.timeout\(20_000\)/);
   for (const phase of ["baseline", "db-ready", "candidate"]) assert.match(source, new RegExp(`"${phase}"`));
@@ -34,10 +37,13 @@ test("release preflight is read-only, secret-free, finite, and stage-aware", () 
   assert.match(source, /hasAlpha4ColoredCornerBloom/);
   assert.match(source, /hasRegistryRarityUi/);
   assert.match(source, /hasCpuPortraits/);
+  assert.match(source, /hasWholeButtonQuizPhysics/);
+  assert.match(source, /hasApprovedGachaOddsUi/);
+  assert.match(source, /hasApprovedEdgeGachaOdds/);
   assert.match(source, /hasCandidateAssetGeneration/);
   assert.match(source, /baseline:\s*\{[^}]*matchmakingAvailabilityDb:\s*false[^}]*waitingOpponentUi:\s*false\s*\}/);
   assert.match(source, /"db-ready":\s*\{[^}]*matchmakingAvailabilityDb:\s*true[^}]*waitingOpponentUi:\s*false\s*\}/);
-  assert.match(source, /candidate:\s*\{[^}]*matchmakingAvailabilityDb:\s*true[^}]*waitingOpponentUi:\s*true[^}]*alpha3SkillCategoryUi:\s*true[^}]*alpha4ColoredCornerBloomUi:\s*true[^}]*registryRarityUi:\s*true[^}]*cpuPortraitsUi:\s*true[^}]*candidateAssetGenerationUi:\s*true\s*\}/);
+  assert.match(source, /candidate:\s*\{[^}]*matchmakingAvailabilityDb:\s*true[^}]*waitingOpponentUi:\s*true[^}]*alpha3SkillCategoryUi:\s*true[^}]*alpha4ColoredCornerBloomUi:\s*true[^}]*registryRarityUi:\s*true[^}]*cpuPortraitsUi:\s*true[^}]*wholeButtonQuizPhysicsUi:\s*true[^}]*approvedGachaOddsUi:\s*true[^}]*approvedEdgeGachaOdds:\s*true[^}]*candidateAssetGenerationUi:\s*true\s*\}/);
   assert.match(source, /ACTIVE_ROOM_RECOVERY_PHASE_MISMATCH/);
   assert.match(source, /LEGAL_RECOLOR_LAB_UI_PHASE_MISMATCH/);
   assert.match(source, /SETUP_LOAD_V3_PHASE_MISMATCH/);
@@ -48,6 +54,9 @@ test("release preflight is read-only, secret-free, finite, and stage-aware", () 
   assert.match(source, /ALPHA4_COLORED_CORNER_BLOOM_UI_PHASE_MISMATCH/);
   assert.match(source, /REGISTRY_RARITY_UI_PHASE_MISMATCH/);
   assert.match(source, /CPU_PORTRAITS_UI_PHASE_MISMATCH/);
+  assert.match(source, /WHOLE_BUTTON_QUIZ_PHYSICS_UI_PHASE_MISMATCH/);
+  assert.match(source, /APPROVED_GACHA_ODDS_UI_PHASE_MISMATCH/);
+  assert.match(source, /APPROVED_GACHA_ODDS_EDGE_BUNDLE_MISMATCH/);
   assert.match(source, /app\.text\.includes\('★\$\{meta\.rarity\}'\)/);
   assert.match(source, /CANDIDATE_ASSET_GENERATION_UI_PHASE_MISMATCH/);
   assert.match(source, /app\.js\?v=20260908-3/);
@@ -56,6 +65,8 @@ test("release preflight is read-only, secret-free, finite, and stage-aware", () 
   assert.match(source, /standard-skill-registry\.generated\.js\?v=20260907-1/);
   assert.match(source, /cpu-portraits\.js\?v=20260908-1/);
   assert.match(source, /getOptionalBytes\(`\$\{publicUrl\}assets\/cpu-portraits\/cpu-portrait-atlas\.png`\)/);
+  assert.match(source, /getOptionalText\(publicEdgeBundleUrl\)/);
+  assert.match(source, /standard-engine\.bundle\.js/);
   assert.match(source, /portraitAtlas\.bytes\.length > 500_000/);
   assert.match(source, /portraitAtlasDimensions\?\.width === 1448/);
   assert.match(source, /portraitAtlasDimensions\?\.height === 1086/);
@@ -68,6 +79,39 @@ test("release preflight is read-only, secret-free, finite, and stage-aware", () 
   assert.match(source, /SNAPSHOT_V2_BASELINE_MISSING/);
   assert.match(source, /PUBLIC_BASELINE_UI_MISSING/);
   assert.doesNotMatch(source, /console\.log\([^\n]*(?:publishableKey|authorization)/);
+});
+
+test("candidate preflight accepts only whole-button AABB physics with abortable listener cleanup", async () => {
+  const { hasWholeButtonQuizPhysics } = await contractsPromise;
+  assert.equal(hasWholeButtonQuizPhysics(candidateHtml, candidateApp), true);
+  for (const oldApp of [
+    candidateApp.replace("function advanceQuizOptionPhysics(items, arenaWidth, arenaHeight, dt)", "function advanceLegacyQuizMotion(items, arenaWidth, arenaHeight, dt)"),
+    candidateApp.replace("if (overlapX <= 0 || overlapY <= 0) continue;", "if (overlapX <= 0) continue;"),
+    candidateApp.replace("motion.listenerController?.abort();", "motion.listenerController = null;"),
+  ]) assert.equal(hasWholeButtonQuizPhysics(candidateHtml, oldApp), false);
+  assert.equal(hasWholeButtonQuizPhysics(candidateHtml.replace('id="quizOptions"', 'id="legacyQuizOptions"'), candidateApp), false);
+});
+
+test("candidate preflight rejects missing or stale Lv.1-5 gacha UI odds", async () => {
+  const { hasApprovedGachaOddsUi } = await contractsPromise;
+  assert.equal(hasApprovedGachaOddsUi(candidateHtml, candidateApp), true);
+  const oldOddsApp = candidateApp.replace(
+    "1: Object.freeze({ 1: 65, 2: 29, 3: 5, 4: 0.9, 5: 0.1 })",
+    "1: Object.freeze({ 1: 64, 2: 30, 3: 5, 4: 0.9, 5: 0.1 })",
+  );
+  assert.equal(hasApprovedGachaOddsUi(candidateHtml, oldOddsApp), false);
+  assert.equal(hasApprovedGachaOddsUi(candidateHtml.replace('id="gachaOdds"', 'id="legacyGachaOdds"'), candidateApp), false);
+  assert.equal(hasApprovedGachaOddsUi(candidateHtml.replace("★1 65%", "★1 64%"), candidateApp), false);
+});
+
+test("candidate preflight rejects an old public Edge bundle odds table", async () => {
+  const { APPROVED_GACHA_ODDS, hasApprovedEdgeGachaOdds } = await contractsPromise;
+  assert.equal(hasApprovedEdgeGachaOdds(candidateEdgeBundle), true);
+  const oldMarker = APPROVED_GACHA_ODDS.edgeMarker.replace('"5":0.1', '"5":0.2');
+  const oldBundle = candidateEdgeBundle.replace(APPROVED_GACHA_ODDS.edgeMarker, oldMarker);
+  assert.notEqual(oldBundle, candidateEdgeBundle);
+  assert.equal(hasApprovedEdgeGachaOdds(oldBundle), false);
+  assert.equal(hasApprovedEdgeGachaOdds("const gachaOdds = {}; GACHA_ODDS:gachaOdds"), false);
 });
 
 test("candidate app satisfies the complete legal-recolor LAB release marker", () => {
