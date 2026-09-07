@@ -33,10 +33,11 @@ test("release preflight is read-only, secret-free, finite, and stage-aware", () 
   assert.match(source, /hasAlpha3SkillCategoryWindow/);
   assert.match(source, /hasAlpha4ColoredCornerBloom/);
   assert.match(source, /hasRegistryRarityUi/);
+  assert.match(source, /hasCpuPortraits/);
   assert.match(source, /hasCandidateAssetGeneration/);
   assert.match(source, /baseline:\s*\{[^}]*matchmakingAvailabilityDb:\s*false[^}]*waitingOpponentUi:\s*false\s*\}/);
   assert.match(source, /"db-ready":\s*\{[^}]*matchmakingAvailabilityDb:\s*true[^}]*waitingOpponentUi:\s*false\s*\}/);
-  assert.match(source, /candidate:\s*\{[^}]*matchmakingAvailabilityDb:\s*true[^}]*waitingOpponentUi:\s*true[^}]*alpha3SkillCategoryUi:\s*true[^}]*alpha4ColoredCornerBloomUi:\s*true[^}]*registryRarityUi:\s*true[^}]*candidateAssetGenerationUi:\s*true\s*\}/);
+  assert.match(source, /candidate:\s*\{[^}]*matchmakingAvailabilityDb:\s*true[^}]*waitingOpponentUi:\s*true[^}]*alpha3SkillCategoryUi:\s*true[^}]*alpha4ColoredCornerBloomUi:\s*true[^}]*registryRarityUi:\s*true[^}]*cpuPortraitsUi:\s*true[^}]*candidateAssetGenerationUi:\s*true\s*\}/);
   assert.match(source, /ACTIVE_ROOM_RECOVERY_PHASE_MISMATCH/);
   assert.match(source, /LEGAL_RECOLOR_LAB_UI_PHASE_MISMATCH/);
   assert.match(source, /SETUP_LOAD_V3_PHASE_MISMATCH/);
@@ -46,12 +47,18 @@ test("release preflight is read-only, secret-free, finite, and stage-aware", () 
   assert.match(source, /ALPHA3_SKILL_CATEGORY_UI_PHASE_MISMATCH/);
   assert.match(source, /ALPHA4_COLORED_CORNER_BLOOM_UI_PHASE_MISMATCH/);
   assert.match(source, /REGISTRY_RARITY_UI_PHASE_MISMATCH/);
+  assert.match(source, /CPU_PORTRAITS_UI_PHASE_MISMATCH/);
   assert.match(source, /app\.text\.includes\('★\$\{meta\.rarity\}'\)/);
   assert.match(source, /CANDIDATE_ASSET_GENERATION_UI_PHASE_MISMATCH/);
-  assert.match(source, /app\.js\?v=20260907-47/);
-  assert.match(source, /style\.css\?v=20260907-42/);
+  assert.match(source, /app\.js\?v=20260908-1/);
+  assert.match(source, /style\.css\?v=20260908-1/);
   assert.match(source, /standard-online-skill-intents\.js\?v=20260907-20/);
   assert.match(source, /standard-skill-registry\.generated\.js\?v=20260907-1/);
+  assert.match(source, /cpu-portraits\.js\?v=20260908-1/);
+  assert.match(source, /getOptionalBytes\(`\$\{publicUrl\}assets\/cpu-portraits\/cpu-portrait-atlas\.png`\)/);
+  assert.match(source, /portraitAtlas\.bytes\.length > 500_000/);
+  assert.match(source, /portraitAtlasDimensions\?\.width === 1448/);
+  assert.match(source, /portraitAtlasDimensions\?\.height === 1086/);
   assert.match(source, /skillCategoryWindow/);
   assert.match(source, /SKILL_CATEGORY_ALREADY_USED_IN_WINDOW/);
   assert.match(source, /colorBonusRefill/);
@@ -78,10 +85,11 @@ test("candidate app satisfies the waiting-opponent release marker", () => {
 });
 
 test("candidate page and app satisfy the alpha.4 cache generation marker", () => {
-  assert.equal(candidateHtml.includes("app.js?v=20260907-47"), true);
-  assert.equal(candidateHtml.includes("style.css?v=20260907-42"), true);
+  assert.equal(candidateHtml.includes("app.js?v=20260908-1"), true);
+  assert.equal(candidateHtml.includes("style.css?v=20260908-1"), true);
   assert.equal(candidateHtml.includes("standard-online-skill-intents.js?v=20260907-20"), true);
   assert.equal(candidateHtml.includes("standard-skill-registry.generated.js?v=20260907-1"), true);
+  assert.equal(candidateHtml.includes("cpu-portraits.js?v=20260908-1"), true);
   assert.equal(candidateApp.includes("skillCategoryWindow"), true);
   assert.equal(candidateApp.includes("SKILL_CATEGORY_ALREADY_USED_IN_WINDOW"), true);
   assert.equal(candidateApp.includes("colorBonusRefill"), true);

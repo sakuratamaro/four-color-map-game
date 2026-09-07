@@ -4770,22 +4770,31 @@ test("actual browser presents CPU commentary once from public events and keeps t
         phase: "GAME_OVER",
         version,
         turn: version,
-        active: "A",
-        winner: "B",
+        active: "B",
+        winner: "A",
         terminalReason: "NO_LEGAL_COLOR",
         pending,
-        regions: { R2: { id: pending, micro: [5], sourceMacros: [5], controllers: ["B"], color: null, isPending: true } },
-        lastPublicTrace: { eventId: `${state.matchId}:${version}`, version, type: "CREATE_REGION", actor: "B", regionId: pending, sourceMacroCount: 1, contactColorCount: 4 },
+        regions: { R2: { id: pending, micro: [5], sourceMacros: [5], controllers: ["A"], color: null, isPending: true } },
+        lastPublicTrace: { eventId: `${state.matchId}:${version}`, version, type: "CREATE_REGION", actor: "A", regionId: pending, sourceMacroCount: 1, contactColorCount: 4 },
       };
-      runtime.room = { ...runtime.room, status: "finished", version, winner_seat: "B", public_state: terminal };
+      runtime.room = { ...runtime.room, status: "finished", version, winner_seat: "A", public_state: terminal };
       runtime.view = { ...runtime.view, version };
       sessionStorage.setItem("mock-standard-cpu-commentary-state", JSON.stringify(terminal));
       runtime.onInvalidate?.({});
     });
     await page.locator("#terminalOverlay").waitFor({ state: "visible", timeout: 5000 });
-    assert.match(await page.locator("#cpuTerminalCommentaryOverlay").textContent(), /うっかりユズ.*四色に接するエリア.*塗れる色をなくしました/);
+    assert.match(await page.locator("#cpuTerminalCommentaryOverlay").textContent(), /うっかりユズ.*四色に接するエリア.*こちらの塗れる色がなくなりました/);
+    await page.waitForFunction(() => globalThis.FourColorStandardCpuPortraits?.getAtlasState() === "ready"
+      && document.querySelector("#cpuTerminalPortraitOverlay")?.hidden === false);
+    assert.deepEqual(await page.locator("#cpuTerminalPortraitOverlayFrame").evaluate((frame) => ({
+      mode: frame.dataset.portraitMode,
+      reason: frame.dataset.portraitReason,
+      position: getComputedStyle(frame.querySelector(".cpu-portrait-art")).backgroundPosition,
+    })), { mode: "loss", reason: "NO_LEGAL_COLOR", position: "0% 0%" });
+    assert.equal(await page.locator("#cpuTerminalPortraitOverlayFallback").isHidden(), true);
+    assert.equal(await page.evaluate(() => Math.max(0, document.documentElement.scrollWidth - document.documentElement.clientWidth)), 0);
     const describedText = await page.locator(".terminal-celebration").evaluate((node) => node.getAttribute("aria-describedby").split(/\s+/).map((id) => document.getElementById(id)?.textContent || "").join(" "));
-    assert.match(describedText, /うっかりユズ.*四色に接するエリア.*塗れる色をなくしました/);
+    assert.match(describedText, /うっかりユズ.*四色に接するエリア.*こちらの塗れる色がなくなりました/);
     await page.waitForTimeout(250);
     assert.equal(await page.evaluate(() => globalThis.__cpuCommentaryAnnouncements.length), 1);
     assert.equal(await page.locator("#cpuTerminalCommentarySummary").isVisible(), true);
@@ -4806,9 +4815,61 @@ test("actual browser presents CPU commentary once from public events and keeps t
     await page.locator("#connectionBadge.good").waitFor({ state: "visible" });
     await page.locator("#terminalSummary:not(.hidden)").waitFor({ state: "visible" });
     await page.waitForTimeout(250);
-    assert.match(await page.locator("#cpuTerminalCommentarySummary").textContent(), /塗れる色をなくしました/);
+    assert.match(await page.locator("#cpuTerminalCommentarySummary").textContent(), /塗れる色がなくなりました/);
     assert.equal(await page.locator("#terminalOverlay").isHidden(), true);
     assert.equal(await page.locator("#cpuCommentaryAnnouncement").textContent(), "");
+
+    await page.evaluate(() => {
+      const runtime = globalThis.__standardOnlineRuntime;
+      const state = runtime.room.public_state;
+      const version = state.version + 1;
+      const { labRuleSetId: _labRuleSetId, ...officialState } = state;
+      const terminal = {
+        ...officialState,
+        version,
+        turn: version,
+        active: "A",
+        winner: "B",
+        terminalReason: "SURRENDER",
+        pending: null,
+        lastPublicTrace: null,
+      };
+      runtime.room = { ...runtime.room, status: "finished", version, winner_seat: "B", public_state: terminal };
+      runtime.view = { ...runtime.view, version };
+      runtime.onInvalidate?.({});
+    });
+    await page.waitForFunction(() => document.querySelector("#cpuTerminalCommentarySummary")?.textContent.includes("あなたの投了")
+      && document.querySelector("#cpuTerminalPortraitSummary")?.hidden === false);
+    assert.deepEqual(await page.locator("#cpuTerminalPortraitSummaryFrame").evaluate((frame) => ({
+      mode: frame.dataset.portraitMode,
+      reason: frame.dataset.portraitReason || null,
+    })), { mode: "normal", reason: null });
+    assert.equal(await page.locator("#cpuTerminalPortraitSummaryFallback").isHidden(), true);
+
+    await page.evaluate(() => {
+      const runtime = globalThis.__standardOnlineRuntime;
+      const state = runtime.room.public_state;
+      const version = state.version + 1;
+      const terminal = {
+        ...state,
+        labRuleSetId: "STANDARD_V5_LEGAL_RECOLOR_LAB_V1",
+        version,
+        turn: version,
+        active: "B",
+        winner: "A",
+        terminalReason: "SURRENDER",
+        pending: null,
+        lastPublicTrace: null,
+      };
+      runtime.room = { ...runtime.room, status: "finished", version, winner_seat: "A", public_state: terminal };
+      runtime.view = { ...runtime.view, version };
+      runtime.onInvalidate?.({});
+    });
+    await page.waitForFunction(() => document.querySelector("#cpuTerminalCommentarySummary")?.textContent.includes("こちらの投了"));
+    assert.deepEqual(await page.locator("#cpuTerminalPortraitSummaryFrame").evaluate((frame) => ({
+      mode: frame.dataset.portraitMode,
+      reason: frame.dataset.portraitReason || null,
+    })), { mode: "normal", reason: null });
 
     await page.evaluate(() => {
       const runtime = globalThis.__standardOnlineRuntime;
@@ -4817,7 +4878,28 @@ test("actual browser presents CPU commentary once from public events and keeps t
       runtime.onInvalidate?.({});
     });
     await page.waitForFunction(() => document.querySelector("#cpuCommentaryStage").classList.contains("hidden")
-      && document.querySelector("#cpuTerminalCommentarySummary").classList.contains("hidden"));
+      && document.querySelector("#cpuTerminalCommentarySummaryCard").classList.contains("hidden"));
     assert.equal(await page.locator("#cpuTerminalCommentarySummary").isHidden(), true);
   }, { viewport: { width: 390, height: 844 }, bodyTimeout: 50_000 });
+
+  await withPage("cpuCommentary", async (page) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.locator("#matchCard:not(.hidden)").waitFor();
+    await page.waitForFunction(() => globalThis.FourColorStandardCpuPortraits?.getAtlasState() === "ready"
+      && document.querySelector("#cpuCommentaryPortrait")?.hidden === false);
+    assert.deepEqual(await page.locator("#cpuCommentaryPortraitFrame").evaluate((frame) => {
+      const rect = frame.getBoundingClientRect();
+      const art = frame.querySelector(".cpu-portrait-art");
+      return {
+        ariaHidden: frame.getAttribute("aria-hidden"),
+        height: Math.round(rect.height),
+        mode: frame.dataset.portraitMode,
+        position: getComputedStyle(art).backgroundPosition,
+        transition: getComputedStyle(art).transitionDuration,
+        width: Math.round(rect.width),
+      };
+    }), { ariaHidden: "true", height: 34, mode: "normal", position: "0% 0%", transition: "0s", width: 34 });
+    assert.equal(await page.locator("#cpuCommentaryPortraitFallback").isHidden(), true);
+    assert.equal(await page.evaluate(() => Math.max(0, document.documentElement.scrollWidth - document.documentElement.clientWidth)), 0);
+  }, { viewport: { width: 1280, height: 900 }, bodyTimeout: 20_000 });
 });

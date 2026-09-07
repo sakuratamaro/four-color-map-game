@@ -11,10 +11,11 @@ const publicUrl = "https://sakuratamaro.github.io/four-color-map-game/standard-o
 const expectedPhase = process.argv.find((argument) => argument.startsWith("--expect="))?.slice("--expect=".length) || null;
 const zeroUuid = "00000000-0000-0000-0000-000000000000";
 const candidateAssetMarkers = Object.freeze({
-  app: "app.js?v=20260907-47",
-  style: "style.css?v=20260907-42",
+  app: "app.js?v=20260908-1",
+  style: "style.css?v=20260908-1",
   intents: "standard-online-skill-intents.js?v=20260907-20",
   registry: "standard-skill-registry.generated.js?v=20260907-1",
+  portraits: "cpu-portraits.js?v=20260908-1",
 });
 
 assert.ok(supabaseUrl && publishableKey, "PUBLIC_SUPABASE_CONFIG_REQUIRED");
@@ -24,6 +25,26 @@ async function getText(url) {
   const response = await fetch(url, { signal: AbortSignal.timeout(20_000) });
   assert.equal(response.ok, true, `PUBLIC_FETCH_FAILED_${response.status}`);
   return { status: response.status, text: await response.text() };
+}
+
+async function getOptionalText(url) {
+  const response = await fetch(url, { signal: AbortSignal.timeout(20_000) });
+  if (response.status === 404) return { status: response.status, text: "" };
+  assert.equal(response.ok, true, `PUBLIC_FETCH_FAILED_${response.status}`);
+  return { status: response.status, text: await response.text() };
+}
+
+async function getOptionalBytes(url) {
+  const response = await fetch(url, { signal: AbortSignal.timeout(20_000) });
+  if (response.status === 404) return { status: response.status, bytes: new Uint8Array() };
+  assert.equal(response.ok, true, `PUBLIC_FETCH_FAILED_${response.status}`);
+  return { status: response.status, bytes: new Uint8Array(await response.arrayBuffer()) };
+}
+
+function pngDimensions(bytes) {
+  if (bytes.length < 24 || String.fromCharCode(...bytes.slice(1, 4)) !== "PNG") return null;
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  return { width: view.getUint32(16), height: view.getUint32(20) };
 }
 
 async function probeProtectedRpc(name, body) {
@@ -43,11 +64,13 @@ async function probeProtectedRpc(name, body) {
   throw new Error(`UNEXPECTED_RPC_PROBE_${name}_${response.status}_${String(data?.code || "UNKNOWN")}`);
 }
 
-const [page, app, intents, registry, snapshotV1, snapshotV2, matchmaking, matchmakingAvailability, pregameAbandon, activeRoom, setupLoadV3, initializeRoomV3] = await Promise.all([
+const [page, app, intents, registry, portraits, portraitAtlas, snapshotV1, snapshotV2, matchmaking, matchmakingAvailability, pregameAbandon, activeRoom, setupLoadV3, initializeRoomV3] = await Promise.all([
   getText(publicUrl),
   getText(`${publicUrl}app.js`),
   getText(`${publicUrl}standard-online-skill-intents.js`),
   getText(`${publicUrl}standard-skill-registry.generated.js`),
+  getOptionalText(`${publicUrl}cpu-portraits.js`),
+  getOptionalBytes(`${publicUrl}assets/cpu-portraits/cpu-portrait-atlas.png`),
   probeProtectedRpc("fcg_standard_room_snapshot", { p_room_id: zeroUuid }),
   probeProtectedRpc("fcg_standard_room_snapshot_v2", { p_room_id: zeroUuid, p_known_profile_revision: null }),
   probeProtectedRpc("fcg_standard_matchmaking_recruit", { p_display_name: "preflight", p_ticket_id: zeroUuid }),
@@ -69,6 +92,8 @@ const [page, app, intents, registry, snapshotV1, snapshotV2, matchmaking, matchm
     p_private_b: {},
   }),
 ]);
+
+const portraitAtlasDimensions = pngDimensions(portraitAtlas.bytes);
 
 const result = {
   ok: true,
@@ -101,10 +126,18 @@ const result = {
       && app.text.includes('STANDARD_SKILL_REGISTRY.skills')
       && app.text.includes('★${meta.rarity}')
       && app.text.includes('rarity.textContent = `★${targetMeta.rarity}`'),
+    hasCpuPortraits: page.text.includes(candidateAssetMarkers.portraits)
+      && portraits.text.includes('const VERSION = "standard-cpu-portraits-v2"')
+      && portraits.text.includes('cell: 10, column: 1, row: 2')
+      && portraitAtlas.status === 200
+      && portraitAtlas.bytes.length > 500_000
+      && portraitAtlasDimensions?.width === 1448
+      && portraitAtlasDimensions?.height === 1086,
     hasCandidateAssetGeneration: page.text.includes(candidateAssetMarkers.app)
       && page.text.includes(candidateAssetMarkers.style)
       && page.text.includes(candidateAssetMarkers.intents)
-      && page.text.includes(candidateAssetMarkers.registry),
+      && page.text.includes(candidateAssetMarkers.registry)
+      && page.text.includes(candidateAssetMarkers.portraits),
   },
   database: { snapshotV1, snapshotV2, matchmaking, matchmakingAvailability, pregameAbandon, activeRoom, setupLoadV3, initializeRoomV3 },
 };
@@ -112,7 +145,7 @@ const result = {
 const phaseExpectations = {
   baseline: { pregameAbandonUi: true, pregameAbandonDb: true, activeRoomUi: true, activeRoomDb: true, setupRevisionGuardDb: true, legalRecolorLabUi: true, matchmakingAvailabilityDb: false, waitingOpponentUi: false },
   "db-ready": { pregameAbandonUi: true, pregameAbandonDb: true, activeRoomUi: true, activeRoomDb: true, setupRevisionGuardDb: true, legalRecolorLabUi: true, matchmakingAvailabilityDb: true, waitingOpponentUi: false },
-  candidate: { pregameAbandonUi: true, pregameAbandonDb: true, activeRoomUi: true, activeRoomDb: true, setupRevisionGuardDb: true, legalRecolorLabUi: true, matchmakingAvailabilityDb: true, waitingOpponentUi: true, alpha3SkillCategoryUi: true, alpha4ColoredCornerBloomUi: true, registryRarityUi: true, candidateAssetGenerationUi: true },
+  candidate: { pregameAbandonUi: true, pregameAbandonDb: true, activeRoomUi: true, activeRoomDb: true, setupRevisionGuardDb: true, legalRecolorLabUi: true, matchmakingAvailabilityDb: true, waitingOpponentUi: true, alpha3SkillCategoryUi: true, alpha4ColoredCornerBloomUi: true, registryRarityUi: true, cpuPortraitsUi: true, candidateAssetGenerationUi: true },
 };
 
 if (expectedPhase) {
@@ -136,6 +169,7 @@ if (expectedPhase) {
     assert.equal(result.publicPage.hasAlpha3SkillCategoryWindow, expected.alpha3SkillCategoryUi, "ALPHA3_SKILL_CATEGORY_UI_PHASE_MISMATCH");
     assert.equal(result.publicPage.hasAlpha4ColoredCornerBloom, expected.alpha4ColoredCornerBloomUi, "ALPHA4_COLORED_CORNER_BLOOM_UI_PHASE_MISMATCH");
     assert.equal(result.publicPage.hasRegistryRarityUi, expected.registryRarityUi, "REGISTRY_RARITY_UI_PHASE_MISMATCH");
+    assert.equal(result.publicPage.hasCpuPortraits, expected.cpuPortraitsUi, "CPU_PORTRAITS_UI_PHASE_MISMATCH");
     assert.equal(result.publicPage.hasCandidateAssetGeneration, expected.candidateAssetGenerationUi, "CANDIDATE_ASSET_GENERATION_UI_PHASE_MISMATCH");
   }
 }
