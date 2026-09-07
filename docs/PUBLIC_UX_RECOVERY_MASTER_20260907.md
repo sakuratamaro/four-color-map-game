@@ -8,13 +8,13 @@
 
 | 要求 | 出典区分 | 現状 | 再現・原因 | 担当・worktree | 次の証拠 |
 | --- | --- | --- | --- | --- | --- |
-| 接触演出を本人のセル選択時だけへ | ユーザー確定・旧契約を上書き | IMPLEMENTING | `observeCommittedContact` がactor/seatを見ず新しい公開`CREATE_REGION` traceを全端末で演出する。local draft observerがない | UX/a11y・本worktree | 2→3の段階追加、相手/poll/reload無発火をChrome/Edgeで確認 |
+| 接触演出を本人のセル選択時だけへ | ユーザー確定・旧契約を上書き | PUBLIC_VERIFIED (`844f563`) | required-sizeを満たした本人のlocal選択でだけ接触色数を計算し、公開traceの受信・CPU・poll・reloadでは演出しない | UX/a11y・本worktree | Windows `34137623118`、Pages `34139833503`、公開CPU戦でCPUの2色traceは0、人間の3マス完成選択は「二色接触！」1回、完全reload後0 |
 | 色ボタン内のおまけ色残数 | ユーザー確定 | PUBLIC_VERIFIED (`2f75e40`) | 所有中の全色を正規化する`colorChoiceDetails`を追加し、実ボタンへ`おまけ色 残りN回`を表示。基本色重複時は残0でも使用可能 | UX/privacy・本worktree | main `e941d11`、Pages `34114644417`、公開app43/style41/intents20、candidate preflight、390px overflow 0、console 0 |
 | 封印色の鍵と残期間 | ユーザー確定 | PUBLIC_VERIFIED (`2f75e40`) | 残0おまけ色も消さずdisabledで保持し、鍵と公開封印残数を同じボタンへ表示。相手private paletteは参照しない | UX/privacy・本worktree | 同上 |
 | クイズbutton全体の衝突移動 | ユーザー確定・fixed hitboxを上書き | IMPLEMENTING | grid上のbuttonは固定で、子`span.quiz-option-float`だけ2–3px drift。衝突計算がない | Quiz/UX/a11y・本worktree | whole-button座標変化、bounds、非重複、衝突、停止条件、resize、exactly-once |
 | 6枚/対象指定へregistryレアリティ | ユーザー確定 | PUBLIC_VERIFIED (`26c4bd2`) | `standard-skill-registry.js`から21件の公開metadataを決定的生成し、6枚一覧と対象パネルが同じrarityを読む。手書きrarityとinventory推測を撤去 | UX/registry・本worktree | main `72acb8c`、Pages `34123125700`、479/479＋79/79＋Edge/Chrome各83/83、公開app45/registry v1、preflight合格 |
 | 中幅ロビーreflow | ユーザー確定・旧live判定を再開 | IMPLEMENTING | 高優先度の`#lobby ... auto-fit minmax(280px)`が1180px content内へ3cardを詰め、旧1080px breakpointより上でfriend/public controlsが潰れる | responsive・本worktree | 390/報告中幅/wideでoverflow・clip・overlap 0、controls 44px以上 |
-| ひとふくらみ合法使用と失敗案内 | ユーザー確定 | IMPLEMENTING | engine/bundleの合法fixtureは成功するが、online `beginSkill`が既選択を消して再選択を強いる。候補0/不正選択のcodeはclient allowlist外で一般エラーになり、再選択可能性が伝わらない | Rule/UX/Edge・本worktree | UI payload→source engine→generated bundle成功、違法時state/card/RNG/write不変と日本語案内 |
+| ひとふくらみ合法使用と失敗案内 | ユーザー確定 | PUBLIC_VERIFIED (`844f563`) | `source-macros`対象指定で盤面選択を保持し、候補0/不正選択を安全な日本語へ対応。authoritative engineと生成bundleを一致させた | Rule/UX/Edge・本worktree | 129/129、実Edge/Chrome各3/3、Windows `34137623118`、Pages `34139833503`、公開CPU戦で合法送信・カード消費・preparedOutgoingを確認。無効候補はカード・手番非消費 |
 
 ## 最新優先切片
 

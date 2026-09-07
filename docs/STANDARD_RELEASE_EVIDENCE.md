@@ -1,6 +1,6 @@
 # Standard公開候補 証拠台帳
 
-更新日: 2026-09-07
+更新日: 2026-09-08
 
 この文書は「コードがある」と「公開環境で確認した」を混同しないための台帳である。`VERIFIED` は同じ行に再現可能な根拠がある場合だけ使用する。token、API key、user ID、個人情報は記録しない。
 
@@ -381,18 +381,26 @@
 - live quiz canaryは匿名profile 1件でLv1–5を各10問開始し、全50問の正解非漏えい、レベル別時間、Lv3/4全問`thinkingSteps >= 2`、Lv5全問120秒・3段階を確認して各sessionを終了した。実生成例はLv3が`7! ÷ 5!`、二つの括弧式、11年後の親子年齢合計、Lv4が三角形切り抜き台形、`det(A)det(B)`、三次式の微分だった。最初の即時終了試行は5秒未満を拒否する既存`QUIZ_TOO_FAST`でHTTP 409となり、5.2秒待機後の正規終了へ修正した。
 - `origin/main`をforceなしで`a0eeca7`へfast-forwardし、Pages run `34133326144`が成功。公開HTMLはapp47/style42 markerを返し、`--expect=candidate` preflightはHTTP 200、全UI marker、保護RPCを含め`ok:true`、公開Chromeのconsole warning/errorは0だった。DB、migration、RPC、secret、報酬tier、在庫、戦績、cleanup scheduleは変更していない。物理二端末受入は`NOT_RUN/PENDING`のままである。
 
+## 2026-09-08 ひとふくらみ・本人選択時接触演出の公開復旧
+
+- 製品commit `bf3cb90`を最新mainへ再構成した`844f563`で、`areaMicroBloom`の`source-macros`盤面対象指定、合法なauthoritative送信、候補なし／不正対象の安全な日本語エラーを復旧した。接触演出はrequired-sizeを完成した本人のlocal選択だけに限定し、相手・CPU・公開trace・poll・reloadでは再生しない。
+- focused非browserは129/129、実Edge/Chrome各3/3、source engineと生成bundleのdiff 0。Windows run `34137623118`はChrome成功、Edge初回だけ既存feedback競合と角膨張focusのflake 2件を保持し、各ケースのEdge 3連続再試験とfailed job `101796202440`の再実行で最終成功した。一時CI allowlist commit `5f69abe`はmainへ統合していない。
+- `origin/main`をforceなしで`844f563`へfast-forwardし、Pages run `34139833503`が成功。公開HTMLはapp48/client21/style42、candidate preflightは`ok:true`。DB、migration、RPC、Edge Function、SQLは変更していない。
+- 公開CPU戦で人間UIから「ひとふくらみ」→盤面2マス→「この対象で使う」を送信し、hand 0、preparedOutgoing、`T3 Player A used micro bloom ...`の公開logを確認した。無効候補はカード・手番非消費の日本語案内となった。CPUが作った2色接触traceでは演出0、人間がmacro 66→54→53の3マスを完成すると「二色接触！」が1回だけ表示され、完全reload後は表示・読み上げとも0だった。
+
 ## 公開識別子
 
 | 項目 | 値 |
 | --- | --- |
-| browser harness diagnostics commit | `a0eeca7` |
-| Windows browser CI commit | `a0eeca7`（製品treeはgate head `c531e3f`と一致。一時CI trigger/test commitはmainへ非統合） |
-| final browser-verified candidate | `a0eeca7`（Lv3/4複数段化、Lv5全問120秒、行列式積・図形構造表示を既存公開機能へ累積） |
-| Windows browser CI run | `34130696248` / Chrome job `101769837494` Success / Edge job `101769837137` Success（先行のCI自己契約失敗run `34130002367`を保持） |
+| browser harness diagnostics commit | `844f563` |
+| Windows browser CI commit | `844f563`（製品treeはgate head `5f69abe`と一致。一時CI trigger/test commitはmainへ非統合） |
+| final browser-verified candidate | `844f563`（Lv3/4複数段化・Lv5全問120秒へ、ひとふくらみ復旧と本人選択時だけの接触演出を累積） |
+| Windows browser CI run | `34137623118` / Chrome Success / Edge rerun job `101796202440` Success（初回Edgeの既存flake 2件を保持） |
+| 角膨張・エラー表示の累積baseline（履歴） | `75791fb` / Windows `34017288334` / Chrome job `101443203494` Success / Edge job `101443203230` Success / Pages `34017695831` |
 | 初回candidate code baseline（履歴） | `0e02176`（Edge deployment 8 sourceは`c3cf372`） |
 | applied migrations | `202609030006`–`202609030013`, `202609050001`–`202609050007`, `202609060001`–`202609060003` |
 | `standard-game-action` version | deployment 25（2026-09-07 23時台JST、Lv3/4強化・Lv5全問120秒。配備後2ファイルSHA-256一致） |
-| Pages Actions run | `34133326144` / Success / `a0eeca7` |
+| Pages Actions run | `34139833503` / Success / `844f563` |
 | public URL | `https://sakuratamaro.github.io/four-color-map-game/standard-online-v5/` |
 
 ## Canary結果
@@ -454,6 +462,7 @@
 | `a4b9917` Pages・公開asset | PASS | 2026-09-06 | Pages `34004028751`。app v29/client+intents v17/style v27。公開実ブラウザでACK済み履歴、未確定見込み、3ミス救済、十問後の確定保存を確認 |
 | Lv3/4強化・Lv5延長 Edge canary | PASS | 2026-09-07 | deployment 25。Lv1–5各10問、正解非漏えい、Lv1/2既存時間、Lv3/4全問2段階以上、Lv5全問120秒・3段階を実測し、配備後2ファイルの候補SHA-256一致を確認 |
 | `a0eeca7` Pages・公開asset | PASS | 2026-09-07 | Pages `34133326144`。公開app47/style42、candidate preflight `ok:true`、Chrome console warning/error 0。Windows `34130696248`はChrome/Edge成功 |
+| `844f563` ひとふくらみ・本人選択時接触演出 | PASS | 2026-09-08 | Windows `34137623118`、Pages `34139833503`、公開app48/client21/style42、candidate preflight `ok:true`。公開CPU戦でひとふくらみ送信成功、本人「二色接触！」1回、CPU・完全reload 0 |
 | 角膨張・エラー表示 Windows gate | PASS | 2026-09-06 | `75791fb`、run `34017288334`。Chrome `101443203494`、Edge `101443203230`が各73件成功。2マスkeyboard、connected cue、setup/成立済みconnectionと3行toastの遷移中/後非交差を検査 |
 | `75791fb` Pages・公開asset | PASS | 2026-09-06 | Pages `34017695831`。app/style v34、client v18、intents v17、CPU commentary v1、HTML/app/style HTTP 200、新marker、履歴凡例不在、candidate preflight `ok:true`、公開Chrome warning/error 0。DB/Edge変更なし |
 | 二端末最終受入 | NOT_RUN | PENDING | PENDING |
@@ -463,7 +472,7 @@
 - Dashboard T0は17項目を取得したが、Database 24hグラフ等20項目はDashboard取得不能でPARTIAL。資源逼迫alert 2件と7日Compute/CPU peak 99%があるため、負荷由来を切り分けるまで新しい高負荷経路を追加しない。
 - profile作成安定化はCの逐次16件で500/429なしを確認した。高並列作成そのものはAuth上限を消費するため再試験せず、再発時はEdge/DBログと資源警告を関連調査する。
 - Cのstatus正規化は本番関数定義、既存ticket整合、live canary 210/210まで確認済み。今後もIPあたり30 anonymous sign-ins/時を守り、同じ認証窓で重いcanaryを再試行しない。
-- 現行公開製品`a0eeca7`（Lv3/4強化、Lv5全問120秒、registryレアリティ、盤面選択、LAB公開、待機通知を含み、`afc89af`の金/水色履歴outlineは撤去）はPagesへ反映済み。自動browser、公開asset、公開匿名CPU・クイズ有限受入、Edge/DB保護境界、LAB API実動の合格と、未実施の物理二端末受入を混同しない。
+- 現行公開製品`844f563`（Lv3/4強化、Lv5全問120秒、ひとふくらみ復旧、本人選択時だけの接触演出、registryレアリティ、盤面選択、LAB公開、待機通知を含み、`afc89af`の金/水色履歴outlineは撤去）はPagesへ反映済み。自動browser、公開asset、公開匿名CPU・クイズ有限受入、Edge/DB保護境界、LAB API実動の合格と、未実施の物理二端末受入を混同しない。
 - deployment 19はDashboard editorの追記によるworker boot errorで、正規単一内容のdeployment 20へ修復済み。20の基本7/7とRunbook B 234/234後に公開した。失敗履歴は消さず、今後のDashboard編集は全選択・消去後の行数照合を必須とする。
 - Edgeのper-isolate濫用抑止は分散レート制限ではない。公開後の計測で必要性が出た場合だけprovider側制限を検討する。
 - 10人CPUの合法性・決定性は自動検証済みだが、人間が感じる個性と楽しさは代表3人の実プレイ後も定性的判断として残る。
