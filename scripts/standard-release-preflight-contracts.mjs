@@ -35,6 +35,23 @@ export function hasWholeButtonQuizPhysics(pageText, appText) {
   ]);
 }
 
+export function hasBoardFirstCandidateGuidance(pageText, appText) {
+  return includesAll(pageText, [
+    'aria-describedby="boardKeyboardHelp boardKeyboardStatus"',
+    "0マス選択時の水色の破線は最初のおすすめ選択候補で、自動選択ではありません。",
+    "1マス以上選択した後の緑の破線は次に辺でつなげて選べる候補",
+  ]) && includesAll(appText, [
+    "function outgoingSelectionCanComplete(state, selectedInput)",
+    "function firstGuidedMacro(state)",
+    "if (!boardSelectionAvailable(state) || !outgoingSelectionGuidanceActive() || selectedMacros.size) return null;",
+    'canvas.dataset.selectionGuidance = guidanceMode;',
+    'color: "#38bdf8", cssWidth: 3, cssDash: [3, 3]',
+    'color: "#86efac", cssWidth: 2.5, cssDash: [5, 4]',
+    'firstSelected ?? firstGuidedMacro(state)',
+    "水色の破線は最初のおすすめ選択候補です。自動選択ではないので、盤面を見て選んでください。",
+  ]);
+}
+
 export function hasApprovedGachaOddsUi(pageText, appText) {
   return includesAll(pageText, [
     'id="gachaOdds"',

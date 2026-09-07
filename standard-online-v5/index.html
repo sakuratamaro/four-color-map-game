@@ -339,7 +339,7 @@
         <div id="boardViewport" class="board-viewport">
           <canvas id="board" width="720" height="720" tabindex="-1" aria-label="Standardオンライン盤面" aria-describedby="boardKeyboardHelp boardKeyboardStatus"></canvas>
         </div>
-        <p id="boardKeyboardHelp" class="visually-hidden">盤面にフォーカスしたら、矢印キーでマスを移動し、SpaceまたはEnterで選択・解除できます。角膨張ではカードを選んだあと、矢印キーで細分セルを移動し、SpaceまたはEnterでそのセルへ即発動します。緑の破線は次に辺でつなげて選べる位置の目印、紫と白の二重線は現在のキーボード位置です。Escapeで角膨張をキャンセルします。</p>
+        <p id="boardKeyboardHelp" class="visually-hidden">盤面にフォーカスしたら、矢印キーでマスを移動し、SpaceまたはEnterで選択・解除できます。0マス選択時の水色の破線は最初のおすすめ選択候補で、自動選択ではありません。1マス以上選択した後の緑の破線は次に辺でつなげて選べる候補、紫と白の二重線は現在のキーボード位置です。角膨張ではカードを選んだあと、矢印キーで細分セルを移動し、SpaceまたはEnterでそのセルへ即発動します。Escapeで角膨張をキャンセルします。</p>
         <p id="boardKeyboardStatus" class="visually-hidden" role="status" aria-live="polite" aria-atomic="true"></p>
       </div>
       <div id="regionControls" class="controls hidden">
@@ -479,6 +479,6 @@
   <script src="cpu-portraits.js?v=20260908-1"></script>
   <script src="cpu-commentary.js?v=20260906-2"></script>
   <script src="basic-feedback.js?v=20260906-2"></script>
-  <script type="module" src="app.js?v=20260908-3"></script>
+  <script type="module" src="app.js?v=20260908-4"></script>
 </body>
 </html>
