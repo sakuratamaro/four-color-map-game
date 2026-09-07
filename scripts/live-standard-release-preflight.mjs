@@ -12,7 +12,7 @@ const expectedPhase = process.argv.find((argument) => argument.startsWith("--exp
 const zeroUuid = "00000000-0000-0000-0000-000000000000";
 const candidateAssetMarkers = Object.freeze({
   app: "app.js?v=20260907-48",
-  style: "style.css?v=20260907-42",
+  style: "style.css?v=20260908-43",
   intents: "standard-online-skill-intents.js?v=20260907-20",
   registry: "standard-skill-registry.generated.js?v=20260907-1",
 });

@@ -889,6 +889,57 @@ test("actual Edge carries a fresh player from the home CPU CTA through profile s
   });
 });
 
+test(`${browserName} keeps every Standard lobby path usable at 1280px and 390px`, { timeout: 130000 }, async () => {
+  await withPage("lobby", async (page) => {
+    await page.locator("#lobby:not(.hidden)").waitFor();
+    const readLayout = () => page.evaluate(() => {
+      const plainRect = (node) => {
+        const { left, right, top, bottom, width, height } = node.getBoundingClientRect();
+        return { left, right, top, bottom, width, height };
+      };
+      const grid = document.querySelector("#lobby .lobby-choice-grid");
+      const cpu = document.querySelector("#standardCpuChoice");
+      const friend = document.querySelector("#createRoom").closest(".lobby-choice");
+      const publicMatch = document.querySelector("#matchmakingPanel");
+      const create = document.querySelector("#createRoom");
+      const join = document.querySelector("#createRoom + .join-box");
+      const controls = [...document.querySelectorAll("#lobby button, #lobby input")]
+        .filter((node) => node.getClientRects().length > 0)
+        .map((node) => ({ id: node.id, rect: plainRect(node) }));
+      return {
+        columns: getComputedStyle(grid).gridTemplateColumns.trim().split(/\s+/).filter(Boolean).length,
+        grid: plainRect(grid), cpu: plainRect(cpu), friend: plainRect(friend), publicMatch: plainRect(publicMatch),
+        create: plainRect(create), join: plainRect(join), controls,
+        viewportWidth: document.documentElement.clientWidth,
+        overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+      };
+    });
+
+    const desktop = await readLayout();
+    assert.equal(desktop.columns, 2, JSON.stringify(desktop));
+    assert.ok(Math.abs(desktop.cpu.top - desktop.friend.top) <= 2, JSON.stringify(desktop));
+    assert.ok(desktop.publicMatch.top >= Math.max(desktop.cpu.bottom, desktop.friend.bottom), JSON.stringify(desktop));
+    assert.ok(Math.abs(desktop.publicMatch.left - desktop.grid.left) <= 2, JSON.stringify(desktop));
+    assert.ok(Math.abs(desktop.publicMatch.right - desktop.grid.right) <= 2, JSON.stringify(desktop));
+    assert.ok(desktop.join.top >= desktop.create.bottom, JSON.stringify(desktop));
+    assert.equal(desktop.overflow, false);
+    for (const { id, rect } of desktop.controls) {
+      assert.ok(rect.left >= desktop.grid.left && rect.right <= desktop.grid.right, `${id}: ${JSON.stringify(desktop)}`);
+    }
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+    const mobile = await readLayout();
+    assert.equal(mobile.columns, 1, JSON.stringify(mobile));
+    assert.ok(mobile.friend.top >= mobile.cpu.bottom, JSON.stringify(mobile));
+    assert.ok(mobile.publicMatch.top >= mobile.friend.bottom, JSON.stringify(mobile));
+    assert.equal(mobile.overflow, false);
+    for (const { id, rect } of mobile.controls) {
+      assert.ok(rect.left >= 0 && rect.right <= mobile.viewportWidth, `${id}: ${JSON.stringify(mobile)}`);
+    }
+  }, { viewport: { width: 1280, height: 900 } });
+});
+
 test("actual Edge reviews six cards before starting Standard CPU exactly once", { timeout: 130000 }, async () => {
   await withPage("lobby", async (page) => {
     const trigger = page.getByRole("button", { name: "10人からCPUを選ぶ" });
