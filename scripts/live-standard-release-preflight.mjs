@@ -19,6 +19,7 @@ const candidateAssetMarkers = Object.freeze({
   intents: "standard-online-skill-intents.js?v=20260907-20",
   registry: "standard-skill-registry.generated.js?v=20260907-1",
   portraits: "cpu-portraits.js?v=20260908-1",
+  feedback: "basic-feedback.js?v=20260908-1",
 });
 
 assert.ok(supabaseUrl && publishableKey, "PUBLIC_SUPABASE_CONFIG_REQUIRED");
@@ -148,7 +149,8 @@ const result = {
       && page.text.includes(candidateAssetMarkers.style)
       && page.text.includes(candidateAssetMarkers.intents)
       && page.text.includes(candidateAssetMarkers.registry)
-      && page.text.includes(candidateAssetMarkers.portraits),
+      && page.text.includes(candidateAssetMarkers.portraits)
+      && page.text.includes(candidateAssetMarkers.feedback),
   },
   database: { snapshotV1, snapshotV2, matchmaking, matchmakingAvailability, pregameAbandon, activeRoom, setupLoadV3, initializeRoomV3 },
 };

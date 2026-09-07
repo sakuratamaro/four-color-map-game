@@ -257,6 +257,55 @@ test("lock serialization elects one presenter and retains simultaneous distinct 
   assert.equal((await fresh.notify({ eventId: "match-lock:b", cue: "turn" })).duplicate, true);
 });
 
+test("storage event payload converges stale cross-page histories without write-back ping-pong", () => {
+  const key = feedback.EVENT_HISTORY_KEY;
+  const encode = (eventIds) => JSON.stringify({ schemaVersion: 1, eventIds });
+  const storage = memoryStorage({ [key]: encode(["match-storage-event:local"]) });
+  const controller = feedback.createBasicFeedbackController(environment({ storage }));
+  let writeBacks = 0;
+  const setItem = storage.setItem.bind(storage);
+  storage.setItem = (storageKey, value) => {
+    if (storageKey === key) writeBacks += 1;
+    setItem(storageKey, value);
+  };
+
+  storage.values.set(key, encode(["match-storage-event:current"]));
+  controller.handleStorageEvent({
+    key,
+    newValue: encode(["match-storage-event:incoming"]),
+  });
+  const converged = JSON.parse(storage.getItem(key));
+  assert.deepEqual(new Set(converged.eventIds), new Set([
+    "match-storage-event:local",
+    "match-storage-event:incoming",
+    "match-storage-event:current",
+  ]));
+  assert.equal(converged.eventIds.length, 3);
+  assert.equal(writeBacks, 1);
+
+  controller.handleStorageEvent({ key, newValue: encode([...converged.eventIds].reverse()) });
+  assert.equal(writeBacks, 1);
+});
+
+test("storage event convergence keeps schema v1 bounded and ignores malformed payloads", () => {
+  const key = feedback.EVENT_HISTORY_KEY;
+  const encode = (eventIds) => JSON.stringify({ schemaVersion: 1, eventIds });
+  const localIds = Array.from({ length: feedback.EVENT_HISTORY_LIMIT }, (_, index) => `match-storage-limit:${index}`);
+  const storage = memoryStorage({ [key]: encode(localIds) });
+  const controller = feedback.createBasicFeedbackController(environment({ storage }));
+  storage.values.set(key, encode(["match-storage-limit:current"]));
+  controller.handleStorageEvent({ key, newValue: encode(["match-storage-limit:incoming"]) });
+  const converged = JSON.parse(storage.getItem(key));
+  assert.equal(converged.schemaVersion, 1);
+  assert.equal(converged.eventIds.length, feedback.EVENT_HISTORY_LIMIT);
+  assert.ok(converged.eventIds.includes("match-storage-limit:incoming"));
+  assert.ok(converged.eventIds.includes("match-storage-limit:current"));
+
+  const beforeMalformed = storage.getItem(key);
+  controller.handleStorageEvent({ key, newValue: "{malformed" });
+  assert.equal(storage.getItem(key), beforeMalformed);
+});
+
 test("missing coordination and failed storage safely consume without output", async () => {
   const noLock = environment();
   delete noLock.navigatorRef.locks;

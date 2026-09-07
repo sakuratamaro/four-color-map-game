@@ -21,7 +21,7 @@ const productHtml = fs.readFileSync(path.join(root, "standard-online-v5", "index
 const scriptStart = productHtml.indexOf('  <script src="standard-online-client.js');
 assert.ok(scriptStart > 0);
 const fixtureHtml = `${productHtml.slice(0, scriptStart)}
-  <script src="basic-feedback.js?v=20260906-2"></script>
+  <script src="basic-feedback.js?v=20260908-1"></script>
   <script>
     globalThis.__feedbackController = globalThis.FourColorStandardBasicFeedback.createBasicFeedbackController({
       storage: localStorage, documentRef: document, navigatorRef: navigator, globalRef: globalThis,
@@ -32,6 +32,7 @@ const fixtureHtml = `${productHtml.slice(0, scriptStart)}
       status: document.querySelector("#feedbackSettingsStatus"),
     });
     globalThis.__feedbackController.installGestureUnlock(document);
+    addEventListener("storage", (event) => globalThis.__feedbackController.handleStorageEvent(event));
   </script>
 </body>
 </html>`;
@@ -260,6 +261,12 @@ test("two pages atomically elect one presenter and retain simultaneous distinct 
       secondPage.evaluate(() => globalThis.__pendingFeedbackAtBarrier),
     ]);
     assert.ok(distinctResults.every((result) => result.accepted && !result.duplicate), JSON.stringify(distinctResults));
+
+    const expectedDistinctIds = ["match-browser-lock:distinct-a", "match-browser-lock:distinct-b"];
+    await Promise.all([firstPage, secondPage].map((currentPage) => currentPage.waitForFunction(({ key, eventIds }) => {
+      const persisted = JSON.parse(localStorage.getItem(key) || "null");
+      return persisted?.schemaVersion === 1 && eventIds.every((eventId) => persisted.eventIds?.includes(eventId));
+    }, { key: "fourColorMapGame.standard.online.v5.basic-feedback-events-v1", eventIds: expectedDistinctIds })));
 
     const freshPage = await context.newPage();
     await freshPage.goto(url, { waitUntil: "load", timeout: 20000 });
