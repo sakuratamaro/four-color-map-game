@@ -4926,6 +4926,37 @@ test("actual browser keeps the private palette-impact notice inside a desktop vi
   }, { viewport: { width: 1280, height: 900 } });
 });
 
+test("actual browser presents a deferred palette impact when returning to battle offline", { timeout: 120000 }, async () => {
+  await withPage("playing", async (page) => {
+    const notice = page.locator("#paletteImpactNotice");
+    await page.locator('[data-app-tab="cards"]').click();
+    await page.evaluate(() => {
+      const runtime = globalThis.__standardOnlineRuntime;
+      const matchId = runtime.room.public_state.matchId;
+      runtime.room = { ...runtime.room, version: 20, public_state: { ...runtime.room.public_state, version: 20, turn: 20,
+        lastPublicTrace: { eventId: `${matchId}:20`, version: 20, type: "USE_SKILL", actor: "B" } } };
+      runtime.view = { ...runtime.view, seat: "A", version: 20, private_state: { ...runtime.view.private_state,
+        privateEffects: { paletteImpactEvent: { eventId: `${matchId}:20:palette-impact:A`, version: 20,
+          kind: "forced", slot: 0, previousColor: "red", injectedColor: "blue", remaining: 0 } } } };
+      runtime.onInvalidate?.({});
+    });
+    await page.waitForFunction(() => document.querySelector("#versionText")?.textContent === "20");
+    assert.equal(await notice.isHidden(), true, "a non-battle tab must defer the private presentation");
+    await page.evaluate(() => {
+      Object.defineProperty(Navigator.prototype, "onLine", { configurable: true, get: () => false });
+      window.dispatchEvent(new Event("offline"));
+    });
+    await page.locator('[data-app-tab="battle"]').click();
+    await notice.waitFor({ state: "visible" });
+    assert.equal(await page.locator("#paletteImpactDetail").textContent(), "基本色1が赤から青へ変わりました。この変更は対戦終了まで続きます。");
+    await page.locator("#dismissPaletteImpact").click();
+    await page.locator('[data-app-tab="cards"]').click();
+    await page.locator('[data-app-tab="battle"]').click();
+    await page.waitForTimeout(150);
+    assert.equal(await notice.isHidden(), true, "re-entering battle must not replay the same private event");
+  }, { viewport: { width: 390, height: 844 }, bodyTimeout: 45_000 });
+});
+
 test("actual browser reduced motion skips intermediate local-selection contact stages and terminal UI wins", { timeout: 120000 }, async () => {
   await withPage("playing", async (page) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
