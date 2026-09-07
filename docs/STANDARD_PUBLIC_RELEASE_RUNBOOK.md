@@ -89,7 +89,7 @@ Pagesの `supabase/functions/standard-game-action/standard-engine.bundle.js` は
 2. 保存済みsource: deploy後に新しい一時directoryへ`functions download standard-game-action --use-api`し、候補clean HEADの`index.ts`と`standard-engine.bundle.js`を含む全file setと各SHA-256を比較する。生成済みbundleは全byte一致を必須にする。CLI downloadが`index.ts`のCRLFだけをLFへ正規化した場合に限り、raw SHA/bytesを両方記録したうえでUTF-8 LF正規化比較を許す。内容差、bundleの改行差、追加fileは拒否する。deploy前に取得したdownload、Dashboard editor表示、Pages copyを使い回さない。
 3. live挙動: 同じdeploymentに対して基本Edge canaryと、その便で変更した機能の最小専用canaryを実行する。source一致だけでboot・JWT・依存先・実応答の正常性を推定せず、canary成功だけで保存済みsource一致を推定しない。
 
-CLIは公式の`functions list/download/deploy --project-ref ... --use-api`経路を使う。`--debug`を付けず、access token、Authorization header、service role、接続文字列をterminal logや証拠へ出さない。CLIが未導入、未認証、または`projects list`で対象refを一意に確認できない場合は`BLOCKED`であり、Dashboardの目視値やPages copyで代替しない。read-only preflightは次の順にする。
+CLIは公式の`functions list/download/deploy --project-ref ... --use-api`経路を使う。`--debug`を付けず、access token、Authorization header、service role、接続文字列をterminal logや証拠へ出さない。CLIが未導入、未認証、または`projects list`で対象refを一意に確認できない場合、control planeの`id + version`確認は`BLOCKED`であり、Dashboardの目視値やPages copy単独では代替しない。例外は後段のbaseline/post ZIP、freshness順序、live canaryをすべて満たすsigned-in Dashboard fallbackだけで、その場合もcontrol planeの`id + version`は`PENDING`のまま残す。read-only preflightは次の順にする。
 
 ```powershell
 Get-Command supabase
