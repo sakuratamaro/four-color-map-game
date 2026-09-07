@@ -601,7 +601,10 @@ function activateAppTab(requestedTab, { updateHash = true, scrollTop = true } = 
   requestAnimationFrame(() => syncQuizOptionMotion());
   if (tab === "battle") {
     const publicState = roomModel?.room?.public_state;
-    if (hasStandardPublicState(publicState)) renderBoard(publicState);
+    if (hasStandardPublicState(publicState)) {
+      renderBoard(publicState);
+      observePaletteImpact(publicState, roomModel?.view?.private_state || {});
+    }
     roomSync?.invalidate?.();
   }
   if (scrollTop) window.scrollTo({ top: 0, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });

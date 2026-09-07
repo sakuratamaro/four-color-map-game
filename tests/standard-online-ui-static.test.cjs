@@ -79,7 +79,7 @@ test("online alpha.3 UI understands category windows and the experimental bonus-
 test("CPU commentary is public-event-only, bounded, non-blocking, and terminal-persistent", () => {
   assert.match(html, /style\.css\?v=20260908-5/);
   assert.match(html, /standard-online-skill-intents\.js\?v=20260907-20/);
-  assert.match(html, /app\.js\?v=20260908-4/);
+  assert.match(html, /app\.js\?v=20260908-5/);
   assert.match(app, /cpuCommentary\?\.VERSION !== "standard-cpu-commentary-v2"/);
   assert.ok(html.indexOf("cpu-commentary.js") < html.indexOf('type="module" src="app.js'));
   assert.match(html, /id="cpuCommentaryStage"[^>]+aria-hidden="true"/);
@@ -394,7 +394,7 @@ test("existing online progression is hydrated from the server rather than re-upl
 
 test("UI derives its canonical and experimental card metadata from the generated registry", () => {
   assert.equal(Object.values(STANDARD_SKILLS).filter((skill) => skill.v49Catalogued).length, 19);
-  assert.match(html, /standard-skill-registry\.generated\.js\?v=20260907-1[\s\S]+app\.js\?v=20260908-4/);
+  assert.match(html, /standard-skill-registry\.generated\.js\?v=20260907-1[\s\S]+app\.js\?v=20260908-5/);
   assert.match(app, /const STANDARD_SKILL_REGISTRY = globalThis\.FourColorStandardSkillRegistry/);
   assert.match(app, /STANDARD_SKILL_REGISTRY\.v49SkillIds\.map/);
   assert.match(app, /Object\.entries\(STANDARD_SKILL_REGISTRY\.skills\)/);
@@ -548,7 +548,7 @@ test("board omits historical region spotlights while keeping current selection a
   assert.match(app, /connectedCandidateMacros\(state\)[\s\S]+color: "#86efac"/);
   assert.match(app, /targetDraft\?\.kind === "corner-bloom"[\s\S]+color: "#f0abfc"[\s\S]+color: "#fdf4ff"/);
   assert.match(app, /const cssScale = displayedWidth > 0 \? ctx\.canvas\.width \/ displayedWidth : 1/);
-  assert.match(app, /if \(hasStandardPublicState\(publicState\)\) renderBoard\(publicState\)/);
+  assert.match(app, /if \(hasStandardPublicState\(publicState\)\) \{\s*renderBoard\(publicState\);\s*observePaletteImpact\(publicState, roomModel\?\.view\?\.private_state \|\| \{\}\);\s*\}/);
   assert.match(observer, /previousStatus === "ACTIVE" && previousActive !== seat && active === seat/);
   assert.match(observer, /if \(version === observedTurnVersion\) return/);
   assert.match(app, /async function refreshRoom[\s\S]+if \(turnArrivalBackgrounded && document\.visibilityState === "visible"\) turnArrivalBackgrounded = false/);
