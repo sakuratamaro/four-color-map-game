@@ -3261,12 +3261,15 @@ function beginSkill(skill) {
   if (kind === "corner-bloom") boardZoomed = true;
   render();
   if (kind === "corner-bloom") {
+    const scheduledTarget = targetDraft;
+    const scheduledKind = kind;
     requestAnimationFrame(() => {
+      if (targetDraft !== scheduledTarget || targetDraft?.kind !== scheduledKind) return;
       const board = $("board");
       board?.focus({ preventScroll: true });
       board?.scrollIntoView({ block: "center", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
       const micro = ensureBoardKeyboardMicro(state);
-      scrollBoardMacroIntoView(state, macroForMicro(state, micro));
+      scrollBoardMacroIntoView(state, macroForMicro(state, micro), scheduledTarget, scheduledKind);
     });
   } else $("skillTargetControls")?.querySelector("strong")?.focus({ preventScroll: true });
 }
@@ -3882,10 +3885,15 @@ function boardMicroDescription(state, micro) {
 }
 
 function rejectCornerBloomCell(message) {
+  const scheduledTarget = targetDraft;
+  const scheduledKind = targetDraft?.kind;
   setSkillTargetFeedback(`${message} カードと手番は減りません。`, "error");
   announceBoardSelection(message);
   render();
-  requestAnimationFrame(() => $("board")?.focus({ preventScroll: true }));
+  requestAnimationFrame(() => {
+    if (targetDraft !== scheduledTarget || targetDraft?.kind !== scheduledKind || scheduledKind !== "corner-bloom") return;
+    $("board")?.focus({ preventScroll: true });
+  });
   return false;
 }
 
@@ -3944,9 +3952,10 @@ function selectCornerBloomMacro(state, macro) {
   }
 }
 
-function scrollBoardMacroIntoView(state, macro) {
+function scrollBoardMacroIntoView(state, macro, scheduledTarget = null, scheduledKind = null) {
   if (!boardZoomed) return;
   requestAnimationFrame(() => {
+    if (scheduledTarget && (targetDraft !== scheduledTarget || targetDraft?.kind !== scheduledKind)) return;
     const viewport = $("boardViewport");
     const canvas = $("board");
     const width = state.playableBounds.macroWidth;

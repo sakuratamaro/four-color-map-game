@@ -2129,6 +2129,77 @@ test("actual browser sends alpha.4 corner bloom from one pointer cell, ignores o
   }, { viewport: { width: 390, height: 844 } });
 });
 
+test("actual browser never lets stale corner-bloom frames steal focus after immediate Escape", { timeout: 180000 }, async () => {
+  await withPage("playing", async (page) => {
+    await page.evaluate(() => {
+      const runtime = globalThis.__standardOnlineRuntime;
+      runtime.room.public_state = {
+        ...runtime.room.public_state,
+        engineVersion: "5.0.0-alpha.4",
+        playableBounds: { macroWidth: 12, microScale: 4, minCol: 0, minRow: 0, maxCol: 11, maxRow: 11 },
+        regions: { R1: { id: "R1", micro: [0], sourceMacros: [0], controllers: ["B"], color: "red", isPending: false } },
+        pending: null,
+        reserved: null,
+      };
+      runtime.view = { ...runtime.view, private_state: {
+        ...runtime.view.private_state,
+        hand: { ...runtime.view.private_state.hand, areaCornerBloom: 1, areaResize: 1 },
+      } };
+      runtime.onInvalidate?.({});
+
+      const nativeRequestAnimationFrame = globalThis.requestAnimationFrame.bind(globalThis);
+      let heldFrames = [];
+      let nextFrameId = 10000;
+      globalThis.__holdCornerFrames = () => {
+        globalThis.requestAnimationFrame = (callback) => {
+          heldFrames.push(callback);
+          nextFrameId += 1;
+          return nextFrameId;
+        };
+      };
+      globalThis.__flushCornerFrames = () => {
+        let count = 0;
+        while (heldFrames.length && count < 100) {
+          const batch = heldFrames;
+          heldFrames = [];
+          for (const callback of batch) callback(performance.now());
+          count += batch.length;
+        }
+        return count;
+      };
+      globalThis.__restoreCornerFrames = () => { globalThis.requestAnimationFrame = nativeRequestAnimationFrame; };
+      globalThis.__holdCornerFrames();
+    });
+
+    const skill = page.locator('#skillControls button[data-skill="areaCornerBloom"]');
+    const target = page.locator("#skillTargetControls");
+    const board = page.locator("#board");
+    for (let iteration = 0; iteration < 24; iteration += 1) {
+      await skill.click();
+      await target.getByText(/色のついたセル.*すぐ発動/).waitFor();
+      const box = await board.boundingBox();
+      await board.click({ position: { x: box.width * (2.5 / 48), y: box.height * (.5 / 48) }, force: true });
+      await target.locator('.skill-target-feedback[data-tone="error"]').getByText(/色のついたセルか.*選んでください/).waitFor();
+      await board.evaluate((node) => node.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })));
+      await target.waitFor({ state: "hidden" });
+      assert.equal(await skill.evaluate((node) => node === document.activeElement), true, `cancel focus before frame ${iteration}`);
+      const flushed = await page.evaluate(() => globalThis.__flushCornerFrames());
+      assert.ok(flushed >= 2, `expected begin and reject frames at iteration ${iteration}, got ${flushed}`);
+      assert.equal(await skill.evaluate((node) => node === document.activeElement), true, `stale frame stole focus at iteration ${iteration}`);
+      assert.notEqual(await page.evaluate(() => document.activeElement?.id), "board");
+    }
+    await page.evaluate(() => globalThis.__restoreCornerFrames());
+
+    const resize = page.locator('#skillControls button[data-skill="areaResize"]');
+    await resize.click();
+    await target.getByText("拡大縮小 — 対象を指定", { exact: true }).waitFor();
+    await target.getByRole("button", { name: "キャンセル", exact: true }).click();
+    assert.equal(await resize.evaluate((node) => node === document.activeElement), true);
+    assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls
+      .filter((entry) => entry.body?.operation === "action").length), 0);
+  }, { viewport: { width: 390, height: 844 } });
+});
+
 test("actual browser keeps alpha.4 corner bloom targeting after a non-retryable server rejection", { timeout: 130000 }, async () => {
   await withPage("playing", async (page) => {
     await page.evaluate(() => {

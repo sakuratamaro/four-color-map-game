@@ -79,7 +79,7 @@ test("online alpha.3 UI understands category windows and the experimental bonus-
 test("CPU commentary is public-event-only, bounded, non-blocking, and terminal-persistent", () => {
   assert.match(html, /style\.css\?v=20260908-5/);
   assert.match(html, /standard-online-skill-intents\.js\?v=20260907-20/);
-  assert.match(html, /app\.js\?v=20260908-7/);
+  assert.match(html, /app\.js\?v=20260908-8/);
   assert.match(app, /cpuCommentary\?\.VERSION !== "standard-cpu-commentary-v2"/);
   assert.ok(html.indexOf("cpu-commentary.js") < html.indexOf('type="module" src="app.js'));
   assert.match(html, /id="cpuCommentaryStage"[^>]+aria-hidden="true"/);
@@ -394,7 +394,7 @@ test("existing online progression is hydrated from the server rather than re-upl
 
 test("UI derives its canonical and experimental card metadata from the generated registry", () => {
   assert.equal(Object.values(STANDARD_SKILLS).filter((skill) => skill.v49Catalogued).length, 19);
-  assert.match(html, /standard-skill-registry\.generated\.js\?v=20260907-1[\s\S]+app\.js\?v=20260908-7/);
+  assert.match(html, /standard-skill-registry\.generated\.js\?v=20260907-1[\s\S]+app\.js\?v=20260908-8/);
   assert.match(app, /const STANDARD_SKILL_REGISTRY = globalThis\.FourColorStandardSkillRegistry/);
   assert.match(app, /STANDARD_SKILL_REGISTRY\.v49SkillIds\.map/);
   assert.match(app, /Object\.entries\(STANDARD_SKILL_REGISTRY\.skills\)/);
@@ -711,6 +711,7 @@ test("corner bloom is card then board cell then immediate action without a choos
   const resolver = app.slice(app.indexOf("function regionsAtMicro"), app.indexOf("function scrollBoardMacroIntoView"));
   const renderTarget = app.slice(app.indexOf("function renderSkillTarget"), app.indexOf("function submitSkillTarget"));
   assert.match(target, /kind === "corner-bloom"[\s\S]+board\?\.focus\(\{ preventScroll: true \}\)[\s\S]+board\?\.scrollIntoView/);
+  assert.match(target, /const scheduledTarget = targetDraft;[\s\S]+const scheduledKind = kind;[\s\S]+requestAnimationFrame\(\(\) => \{[\s\S]+targetDraft !== scheduledTarget \|\| targetDraft\?\.kind !== scheduledKind[\s\S]+board\?\.focus/);
   assert.match(app, /色のついたセル[\s\S]+すぐ発動/);
   assert.match(resolver, /function activateCornerBloomCell\(state, micro\)/);
   assert.match(resolver, /skillIntents\.buildSkillPayload\(targetDraft\.skill, input\)/);
@@ -738,6 +739,7 @@ test("alpha.4 corner bloom resolves one public micro cell without a client legal
   assert.match(resolver, /if \(colored\) input = \{ regionId: colored\.id, macro \}/);
   assert.match(resolver, /else if \(outgoingMacros\.includes\(macro\)\) \{[\s\S]+input = \{ sourceMacros: outgoingMacros, macro \}/);
   assert.match(resolver, /return rejectCornerBloomCell[\s\S]+skillIntents\.buildSkillPayload\(targetDraft\.skill, input\)/);
+  assert.match(resolver, /function rejectCornerBloomCell[\s\S]+const scheduledTarget = targetDraft;[\s\S]+const scheduledKind = targetDraft\?\.kind;[\s\S]+requestAnimationFrame\(\(\) => \{[\s\S]+targetDraft !== scheduledTarget \|\| targetDraft\?\.kind !== scheduledKind \|\| scheduledKind !== "corner-bloom"[\s\S]+\$\("board"\)\?\.focus/);
   assert.match(resolver, /if \(pendingAction\)[\s\S]+同じ操作を再送[\s\S]+return false/);
   assert.match(app, /boardSelectionAvailable[\s\S]+!actionBusy && !pendingAction/);
   assert.match(app, /const preserveCornerTarget = cornerBloomCellTargetActive\(\);[\s\S]+!interactive && !preserveCornerTarget[\s\S]+resetBoardSelectionAssist\(\)/);
@@ -749,6 +751,7 @@ test("alpha.4 corner bloom resolves one public micro cell without a client legal
   assert.match(board, /event\.key === "Escape"[\s\S]+cancelSkillTarget\(\)/);
   assert.match(board, /entry\.micro\?\.includes\(micro\)/);
   assert.doesNotMatch(resolver, /createElement\("select"\)|input\.type = "number"/);
+  assert.match(app, /function scrollBoardMacroIntoView\(state, macro, scheduledTarget = null, scheduledKind = null\)[\s\S]+if \(scheduledTarget && \(targetDraft !== scheduledTarget \|\| targetDraft\?\.kind !== scheduledKind\)\) return/);
 });
 
 test("half shift and triple shift select their bands on the board without raw position controls", () => {
