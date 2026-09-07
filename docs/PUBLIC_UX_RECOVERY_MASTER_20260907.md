@@ -31,7 +31,7 @@
 | 盤面を主役にし、pink/frame/persistent説明/巨大結果/重複投了を削減 | ユーザー確定 | 実装候補・既反映分あり | UX backlog・未割当 | 現行public差分監査と390/wide視覚確認 |
 | 0選択時は最初のlegal candidate、以後connected guidance | ユーザー確定 | 実装候補・既反映分あり | board UX backlog・未割当 | no-oracle境界を保つbrowser test |
 | 強制持ち替え/汚染をaffected playerへ即時通知 | ユーザー確定 | 未着手監査 | feedback backlog・未割当 | current-seat private event、opponent leak 0 |
-| Lv5延長、Lv3/4を実質難化 | ユーザー確定 | 未着手監査 | Quiz/Edge backlog・未割当 | 現行template/time監査後、具体値を別決定 |
+| Lv5延長、Lv3/4を実質難化 | ユーザー確定 | PUBLIC_VERIFIED (`a0eeca7`) | Lv3/4各10テンプレートを複数段計算へ強化し、図形・行列式積を構造表示。Lv5全10問を初期実装値120秒へ延長し、Lv1/2時間は不変 | Edge deployment 25、Windows `34130696248`、Pages `34133326144`、live Lv1–5各10問、公開app47/style42、candidate preflight合格。120秒はユーザー指定値ではなく初期実装値 |
 | memo/mini calculator | 提案のみ | HOLD・未承認 | 未割当 | ユーザー承認 |
 | curse backlashをskill timingで消さず次の彩色まで保持 | ユーザー確定 | 未着手監査 | Rule/Edge backlog・未割当 | opponent turnをまたぐstate machine test |
 | seal cardのrarity/acquisition difficulty引上げと既存所持保全 | ユーザー確定 | 未着手監査 | Balance/registry/migration backlog・未割当 | exact mapping決定、既存inventory migration証拠 |

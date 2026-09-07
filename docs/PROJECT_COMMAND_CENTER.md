@@ -8,7 +8,7 @@
 
 ## 司令塔ルール
 
-- 公開製品コードは `26c4bd2`、確認済みmainは `72acb8c`。盤面主導Shift選択、基本feedback、共通COLOR応答窓、CPU実況、legal-recolor LAB、同カテゴリ連打制限、alpha.4 direct-cell角膨張、おまけ色残数・封印残数の実ボタン表示、registry正本レア度まで累積している。次の変更も専用clean worktreeでのみ統合する。
+- 公開製品コードと確認済みmainは `a0eeca7`。盤面主導Shift選択、基本feedback、共通COLOR応答窓、CPU実況、legal-recolor LAB、同カテゴリ連打制限、alpha.4 direct-cell角膨張、おまけ色残数・封印残数の実ボタン表示、registry正本レア度、Lv3/4強化とLv5解答時間延長まで累積している。次の変更も専用clean worktreeでのみ統合する。
 - release候補はdirtyな司令塔床から直接出さず、`origin/main`起点のclean release worktreeへ採用commitだけを積み、candidate CIのtree一致を確認してfast-forwardする。
 - 古いdirty worktreeからbuild、merge、deployしない。
 - `実装済み`、`ローカル検証済み`、`live検証済み`、`公開済み`を別状態として記録する。
@@ -68,7 +68,7 @@
 | P0 | 合法色0による自動敗北の完全廃止 | ルール＋CPU＋UX＋Edge＋司令塔 | PUBLIC_VERIFIED | `d06f34d`。alpha.2の人間は救済確認後に既存投了だけを選び、CPUは有効な救済を検討後、打開不能なら`SURRENDER`する。`DECLARE_NO_COLOR`はalpha.2でwrite-free退役、alpha.1互換を維持。Windows `34034746623`、Pages `34035229549`、Edge deployment 22、基本7/7＋専用113/113＋candidate preflight合格。SQL/RPC変更なし |
 | P1 | Shift対象指定と説明の摩擦解消 | UX＋ルール＋司令塔 | PUBLIC_VERIFIED | 製品`ad49a41`、main `4b2ea3d`、公開HEAD `ddfb0a7`。行・列→盤面tap/keyboard、自然語方向、Half全帯、Triple外周拒否、黄中央＋紫隣接、取消無送信、zero-based payloadを維持。Windows `34041850645`、Pages `34043472457`、公開v39/v38、390px overflow 0、console 0、preflight合格 |
 | P1 | 持ち色汚染no-opの消費仕様 | ルール＋Edge＋UX | PUBLIC_VERIFIED | alpha.3で変化なし・カード非消費、発動終了、別色再選択不可を実装済み。相手paletteを表示せず、server判定、同一ID再送、inventory exactly-once、accepted no-op表示をWindows・生成bundle・公開COLOR canaryで確認 |
-| P1 | Lv5クイズ実質難化 | クイズ＋Edge＋司令塔 | PUBLIC_VERIFIED | `d06f34d`。全10テンプレートをLv4と明確に異なる多段推論へ更新し、52–62秒、server-authoritative採点・再送・既存報酬を維持。Windows `34034746623`、Pages `34035229549`、Edge deployment 22とlive preflight合格 |
+| P1 | Lv3/4強化＋Lv5解答時間延長 | クイズ＋Edge＋司令塔 | PUBLIC_VERIFIED | `a0eeca7`。Lv3/4各10テンプレートを複数段計算へ強化し、Lv5全問を初期実装値120秒へ延長。Lv1/2時間、server-authoritative採点・再送・報酬を維持。Windows `34130696248`はChrome/Edge成功、Edge deployment 25、live Lv1–5各10問、Pages `34133326144`、公開app47/style42、candidate preflight合格。120秒はユーザー指定値ではない |
 | P1 | CPU敗北表情・理由別台詞 | 演出＋UX＋素材 | IMPLEMENTING | `d06f34d`で公開理由別の10人固有敗北台詞を先行公開。敗北表情画像は第三者素材台帳・credit・fallback・10人存在検査を満たす独立P1便として継続する |
 | P1 | 基本効果音・スマホ振動 | 演出＋アクセシビリティ | PUBLIC_VERIFIED | `4e71ebc`＋競合修正`9be6b90`、公開`767805b`。初期OFFの独立設定、trusted gesture、可視中・event ID重複排除、Web Locksによる同時タブ一意presenter、OFF即停止、保存、reduced-motion独立。Windows `34039704692`はChrome/Edge各2/2・skip 0、Pages `34040260269`、公開v37/feedback v2/app v38と設定再読込、candidate preflightを確認。Edge/DB変更なし |
 | P2 | 既塗エリアへの差し色追加／重ね塗り | ルール＋UX | DECIDED | ★5候補。現在盤面の一続きの既塗エリアを盤面選択し、所有者でなく現在形状を判定対象とする。Shift分断・同色合流後の再構成結果へ作用する |
@@ -111,6 +111,7 @@
 | UDL-20260907-023 | 中幅ロビー崩れを復旧 | CPU／友だち／野良cardを安全にreflow | 390px・報告中幅・wide、44px controls、overflow/clip/text overlap 0 | lobby CSS | UX＋responsive | P0 public UX recovery | IMPLEMENTING | — | NO | NO | NOT_RUN | `01a06c79` handoff | 旧PUBLIC_VERIFIEDを実画面不合格で再開 | YES |
 | UDL-20260907-024 | ひとふくらみUI/authoritative経路復旧 | 合法対象は成功、違法対象はwrite-free・カード非消費・日本語案内 | payload、partial macro、bounds、phase、card、alpha.4 interaction、source/bundle parity | skill intents＋engine/Edge | ルール＋UX＋Edge | P0 public UX recovery | IMPLEMENTING | — | NO | NO | NOT_RUN | `01a06c79` handoff | — | YES |
 | UDL-20260907-025 | ★4角膨張を実盤面で迷わず使える状態へ | server判定を維持しつつ送信対象セルを紫枠で示し、keyboard初期位置を最初の対象へ置く | 旧room互換、成功可否oracleなし、原因別日本語、reject時カード・手番不変、同一ID再送 | alpha.4 direct-cell、public geometry | UX＋a11y＋privacy | Corner bloom recovery | PUBLIC_VERIFIED | `c5369b0` | `1c6ad47` | `34118055876` | 非browser 477/477、lifecycle Edge 79/79、online Edge/Chrome各83/83。公開app44/client20、candidate preflight、overflow 0、console 0 | `01a06c79` handoff＋current priority | ★1ひとふくらみとは別要求 | YES |
+| UDL-20260907-026 | Lv3/4を実質難化しLv5の解答時間を延長 | Lv3/4は単純代入で終わらない複数段へ更新し、Lv5は全問120秒の初期値で運用開始 | Lv1/2時間不変、10問秘匿、構造図、server採点、再送、報酬非回帰、実生成例 | Edge quiz runtime、online renderer | クイズ＋Edge＋司令塔 | Quiz difficulty recovery | PUBLIC_VERIFIED | `af1d899`（公開再構成`a0eeca7`） | `a0eeca7` | `34133326144` | Edge 25、Lv1–5各10問のsealed/timer契約、Lv3/4全問thinkingSteps 2以上、Lv5全問120秒・3段階を実測 | `01a06c79` handoff | 120秒はユーザー指定値ではなく初期実装値 | YES |
 
 ### Decision reconciliation gate
 
