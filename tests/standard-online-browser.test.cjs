@@ -1680,6 +1680,55 @@ test("actual Edge routes immediate skills and keeps target cancellation write-fr
   });
 });
 
+test("actual browser selects and submits one usable Micro Bloom target from the board", { timeout: 130000 }, async () => {
+  await withPage("playing", async (page) => {
+    await page.evaluate(() => {
+      const runtime = globalThis.__standardOnlineRuntime;
+      const macro = 13;
+      const macroRow = Math.floor(macro / 12);
+      const macroCol = macro % 12;
+      const micro = Array.from({ length: 16 }, (_, index) => (macroRow * 4 + Math.floor(index / 4)) * 48 + macroCol * 4 + (index % 4));
+      runtime.room.public_state = {
+        ...runtime.room.public_state,
+        engineVersion: "5.0.0-alpha.4",
+        playableBounds: { macroWidth: 12, microScale: 4, minCol: 0, minRow: 0, maxCol: 11, maxRow: 11 },
+        microWidth: 48,
+        requiredSize: 1,
+        regions: { R1: { id: "R1", micro, sourceMacros: [13], controllers: ["B"], color: "red", isPending: false } },
+        skillCategoryWindow: { actor: "A", categories: [] },
+      };
+      runtime.view = { ...runtime.view, private_state: {
+        ...runtime.view.private_state,
+        hand: { ...runtime.view.private_state.hand, areaMicroBloom: 1 },
+      } };
+      runtime.onInvalidate?.({});
+    });
+
+    await page.getByRole("button", { name: /ひとふくらみ ×1（★1）/ }).click();
+    const target = page.locator("#skillTargetControls");
+    const submit = target.getByRole("button", { name: "この対象で使う" });
+    assert.equal(await submit.isDisabled(), true);
+    const board = page.locator("#board");
+    const box = await board.boundingBox();
+    await board.click({ position: { x: box.width * (2.5 / 12), y: box.height * (2.5 / 12) } });
+    await target.getByText("盤面選択 1マス", { exact: true }).waitFor();
+    assert.equal(await submit.isEnabled(), true);
+    await submit.click();
+    await page.getByText("操作を保存しました。", { exact: true }).waitFor();
+    const actions = await page.evaluate(() => globalThis.__standardOnlineRuntime.calls
+      .filter((entry) => entry.body?.operation === "action")
+      .map((entry) => entry.body.action));
+    assert.equal(actions.length, 1);
+    assert.deepEqual(actions[0], {
+      id: actions[0].id,
+      expectedVersion: 9,
+      type: "USE_SKILL",
+      payload: { skill: "areaMicroBloom", sourceMacros: [26] },
+    });
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth), false);
+  }, { viewport: { width: 390, height: 844 } });
+});
+
 test("actual browser exposes the alpha.3 category window, refill loan, and accepted no-op at 390px", { timeout: 130000 }, async () => {
   await withPage("alpha3CategoryWindow", async (page) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
@@ -4184,7 +4233,7 @@ test("actual Edge explains private random setup and every visible skill without 
   });
 });
 
-test("actual browser presents a committed contact cascade once and keeps a public tactical trace", { timeout: 120000 }, async () => {
+test("actual browser presents contact only for the local completed selection and keeps public traces presentation-free", { timeout: 120000 }, async () => {
   await withPage("playing", async (page) => {
     await page.evaluate(() => {
       globalThis.__contactEvidence = { stages: [], announcements: [], startedAt: 0, hiddenAt: 0 };
@@ -4209,20 +4258,26 @@ test("actual browser presents a committed contact cascade once and keeps a publi
     await page.evaluate(() => {
       const runtime = globalThis.__standardOnlineRuntime;
       const state = runtime.room.public_state;
-      const version = 10;
-      const matchId = state.matchId;
-      runtime.room = { ...runtime.room, version, public_state: {
-        ...state, version, turn: 4, active: "B", phase: "COLOR", pending: "R1",
-        regions: { R1: { id: "R1", micro: [5], sourceMacros: [5], controllers: ["A"], color: null, isPending: true } },
-        lastPublicTrace: { eventId: `${matchId}:${version}`, version, type: "CREATE_REGION", actor: "A", regionId: "R1", sourceMacroCount: 1, contactColorCount: 3 },
+      runtime.room = { ...runtime.room, version: 10, public_state: {
+        ...state, version: 10, turn: 10, requiredSize: 1, active: "A", phase: "WORK", pending: null,
+        regions: {
+          R1: { id: "R1", micro: [1], sourceMacros: [1], controllers: ["B"], color: "red", isPending: false },
+          R2: { id: "R2", micro: [4], sourceMacros: [4], controllers: ["B"], color: "blue", isPending: false },
+          R3: { id: "R3", micro: [6], sourceMacros: [6], controllers: ["B"], color: "yellow", isPending: false },
+        },
+        lastPublicTrace: null,
       } };
       runtime.onInvalidate?.({});
     });
+    await page.waitForFunction(() => document.querySelector("#versionText")?.textContent === "10");
+    const board = page.locator("#board");
+    await board.focus();
+    await page.keyboard.press("ArrowRight");
+    await page.keyboard.press("ArrowDown");
+    await page.keyboard.press("Enter");
     await page.locator("#contactRevealTitle").filter({ hasText: "三色圧力" }).waitFor({ timeout: 5000 });
-    assert.equal(await page.locator("#tacticalTrace").isVisible(), true);
-    assert.match(await page.locator("#tacticalTraceAction").textContent(), /あなたが1マスを渡した/);
-    assert.match(await page.locator("#tacticalTraceChange").textContent(), /3色に接している/);
-    assert.match(await page.locator("#tacticalTraceNext").textContent(), /相手が、隣接色と違う持ち色を選ぶ/);
+    assert.equal(await page.locator("#tacticalTrace").isHidden(), true);
+    assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "action").length), 0);
     const box = await page.locator("#contactRevealCard").boundingBox();
     assert.ok(box && box.x >= 0 && box.y >= 0 && box.x + box.width <= 390 && box.y + box.height <= 844);
     const contactIntercepted = await page.evaluate(() => {
@@ -4235,18 +4290,32 @@ test("actual browser presents a committed contact cascade once and keeps a publi
     assert.deepEqual(first.stages.map((entry) => entry.title), ["二色接触！", "三色圧力!!"]);
     assert.deepEqual(first.announcements, ["三色圧力!! 3色に接する強いエリア"]);
     assert.ok(first.hiddenAt - first.startedAt < 1500, `cascade lasted ${first.hiddenAt - first.startedAt}ms`);
+    await page.evaluate(() => {
+      const runtime = globalThis.__standardOnlineRuntime;
+      const version = 11;
+      const matchId = runtime.room.public_state.matchId;
+      runtime.room = { ...runtime.room, version, public_state: {
+        ...runtime.room.public_state, version, turn: 4, active: "B", phase: "COLOR", pending: "R4",
+        regions: { ...runtime.room.public_state.regions, R4: { id: "R4", micro: [5], sourceMacros: [5], controllers: ["A"], color: null, isPending: true } },
+        lastPublicTrace: { eventId: `${matchId}:${version}`, version, type: "CREATE_REGION", actor: "A", regionId: "R4", sourceMacroCount: 1, contactColorCount: 3 },
+      } };
+      runtime.onInvalidate?.({});
+    });
+    await page.waitForFunction(() => document.querySelector("#tacticalTraceAction")?.textContent === "あなたが1マスを渡した");
+    assert.match(await page.locator("#tacticalTraceChange").textContent(), /3色に接している/);
+    assert.match(await page.locator("#tacticalTraceNext").textContent(), /相手が、隣接色と違う持ち色を選ぶ/);
     await page.evaluate(() => globalThis.__standardOnlineRuntime.onInvalidate?.({}));
     await page.waitForTimeout(350);
     assert.equal(await page.evaluate(() => globalThis.__contactEvidence.stages.length), 2);
     assert.equal(await page.locator("#contactReveal").isHidden(), true);
     await page.evaluate(() => {
       const runtime = globalThis.__standardOnlineRuntime;
-      const version = 11;
+      const version = 12;
       const matchId = runtime.room.public_state.matchId;
       runtime.room = { ...runtime.room, version, public_state: {
-        ...runtime.room.public_state, version, active: "B", phase: "WORK", pending: null,
-        regions: { R1: { ...runtime.room.public_state.regions.R1, color: "green", isPending: false } },
-        lastPublicTrace: { eventId: `${matchId}:${version}`, version, type: "COLOR_REGION", actor: "B", regionId: "R1", color: "green" },
+        ...runtime.room.public_state, version, active: "A", phase: "WORK", pending: null,
+        regions: { ...runtime.room.public_state.regions, R4: { ...runtime.room.public_state.regions.R4, color: "green", isPending: false } },
+        lastPublicTrace: { eventId: `${matchId}:${version}`, version, type: "COLOR_REGION", actor: "B", regionId: "R4", color: "green" },
       } };
       runtime.onInvalidate?.({});
     });
@@ -4255,16 +4324,17 @@ test("actual browser presents a committed contact cascade once and keeps a publi
     assert.equal(await page.evaluate(() => globalThis.__contactEvidence.stages.length), 2);
     await page.evaluate(() => {
       const runtime = globalThis.__standardOnlineRuntime;
-      const version = 12;
+      const version = 13;
       const matchId = runtime.room.public_state.matchId;
       runtime.room = { ...runtime.room, version, public_state: {
-        ...runtime.room.public_state, version,
-        lastPublicTrace: { eventId: `${matchId}:${version}`, version, type: "USE_SKILL", actor: "B" },
+        ...runtime.room.public_state, version, active: "A", phase: "WORK", pending: null,
+        lastPublicTrace: { eventId: `${matchId}:${version}`, version, type: "CREATE_REGION", actor: "B", regionId: "R5", sourceMacroCount: 1, contactColorCount: 4 },
       } };
       runtime.onInvalidate?.({});
     });
-    await page.waitForFunction(() => document.querySelector("#tacticalTraceAction")?.textContent === "相手がスキルを使った");
-    assert.match(await page.locator("#tacticalTraceChange").textContent(), /公開結果が盤面と対戦状態に反映された/);
+    await page.waitForFunction(() => document.querySelector("#tacticalTraceAction")?.textContent === "相手が1マスを渡した");
+    assert.match(await page.locator("#tacticalTraceChange").textContent(), /4色に接している/);
+    await page.waitForTimeout(350);
     assert.equal(await page.evaluate(() => globalThis.__contactEvidence.stages.length), 2);
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
   }, { viewport: { width: 390, height: 844 } });
@@ -4556,9 +4626,9 @@ test("actual browser plays one finite turn-arrival beat without hydration reload
     await advance(18, "B");
     await advance(19, "A", { contact: true });
     await page.waitForTimeout(150);
-    assert.equal(await page.locator("#contactReveal").isVisible(), true);
-    assert.equal(await page.evaluate(() => globalThis.__turnBeatStarts), 4);
-    assert.equal(await page.locator("#board").evaluate((node) => node.classList.contains("turn-arrival-beat")), false);
+    assert.equal(await page.locator("#contactReveal").isHidden(), true);
+    assert.equal(await page.evaluate(() => globalThis.__turnBeatStarts), 5);
+    assert.equal(await page.locator("#board").evaluate((node) => node.classList.contains("turn-arrival-beat")), true);
 
     await page.reload({ waitUntil: "load" });
     await page.locator("#connectionBadge.good").waitFor({ state: "visible" });
@@ -4568,7 +4638,7 @@ test("actual browser plays one finite turn-arrival beat without hydration reload
   }, { viewport: { width: 390, height: 844 }, bodyTimeout: 45_000 });
 });
 
-test("actual browser reduced motion skips intermediate contact stages and terminal UI wins", { timeout: 120000 }, async () => {
+test("actual browser reduced motion skips intermediate local-selection contact stages and terminal UI wins", { timeout: 120000 }, async () => {
   await withPage("playing", async (page) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.evaluate(() => {
@@ -4584,18 +4654,24 @@ test("actual browser reduced motion skips intermediate contact stages and termin
       }).observe(reveal, { subtree: true, childList: true, attributes: true, characterData: true });
       const runtime = globalThis.__standardOnlineRuntime;
       const state = runtime.room.public_state;
-      const version = 10;
-      const matchId = state.matchId;
-      runtime.room = { ...runtime.room, version, public_state: {
-        ...state, version, active: "B", phase: "COLOR", pending: "R1",
-        regions: { R1: { id: "R1", micro: [5], sourceMacros: [5], controllers: ["A"], color: null, isPending: true } },
-        lastPublicTrace: { eventId: `${matchId}:${version}`, version, type: "CREATE_REGION", actor: "A", regionId: "R1", sourceMacroCount: 1, contactColorCount: 3 },
+      runtime.room = { ...runtime.room, version: 10, public_state: {
+        ...state, version: 10, turn: 10, active: "A", phase: "WORK", pending: null, requiredSize: 1,
+        regions: {
+          R1: { id: "R1", micro: [1], sourceMacros: [1], controllers: ["B"], color: "red", isPending: false },
+          R2: { id: "R2", micro: [4], sourceMacros: [4], controllers: ["B"], color: "blue", isPending: false },
+          R3: { id: "R3", micro: [6], sourceMacros: [6], controllers: ["B"], color: "yellow", isPending: false },
+        },
+        lastPublicTrace: null,
       } };
       runtime.onInvalidate?.({});
     });
-    await page.locator("#contactRevealTitle").filter({ hasText: "三色圧力" }).waitFor({ timeout: 5000 });
-    const box = await page.locator("#contactRevealCard").boundingBox();
-    assert.ok(box && box.x >= 0 && box.y >= 0 && box.x + box.width <= 980 && box.y + box.height <= 844);
+    await page.waitForFunction(() => document.querySelector("#versionText")?.textContent === "10");
+    const board = page.locator("#board");
+    await board.focus();
+    await page.keyboard.press("ArrowRight");
+    await page.keyboard.press("ArrowDown");
+    await page.keyboard.press("Enter");
+    await page.waitForFunction(() => globalThis.__reducedContactTitles.includes("三色圧力!!"), null, { timeout: 5000 });
     assert.equal(await page.locator("#contactRevealAnnouncement").textContent(), "三色圧力!! 3色に接する強いエリア");
     await page.waitForTimeout(300);
     assert.deepEqual(await page.evaluate(() => globalThis.__reducedContactTitles), ["三色圧力!!"]);

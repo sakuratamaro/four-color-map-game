@@ -68,7 +68,7 @@ test("online alpha.3 UI understands category windows and the experimental bonus-
 test("CPU commentary is public-event-only, bounded, non-blocking, and terminal-persistent", () => {
   assert.match(html, /style\.css\?v=20260907-42/);
   assert.match(html, /standard-online-skill-intents\.js\?v=20260907-20/);
-  assert.match(html, /app\.js\?v=20260907-47/);
+  assert.match(html, /app\.js\?v=20260907-48/);
   assert.match(app, /cpuCommentary\?\.VERSION !== "standard-cpu-commentary-v2"/);
   assert.ok(html.indexOf("cpu-commentary.js") < html.indexOf('type="module" src="app.js'));
   assert.match(html, /id="cpuCommentaryStage"[^>]+aria-hidden="true"/);
@@ -381,7 +381,7 @@ test("existing online progression is hydrated from the server rather than re-upl
 
 test("UI derives its canonical and experimental card metadata from the generated registry", () => {
   assert.equal(Object.values(STANDARD_SKILLS).filter((skill) => skill.v49Catalogued).length, 19);
-  assert.match(html, /standard-skill-registry\.generated\.js\?v=20260907-1[\s\S]+app\.js\?v=20260907-47/);
+  assert.match(html, /standard-skill-registry\.generated\.js\?v=20260907-1[\s\S]+app\.js\?v=20260907-48/);
   assert.match(app, /const STANDARD_SKILL_REGISTRY = globalThis\.FourColorStandardSkillRegistry/);
   assert.match(app, /STANDARD_SKILL_REGISTRY\.v49SkillIds\.map/);
   assert.match(app, /Object\.entries\(STANDARD_SKILL_REGISTRY\.skills\)/);
@@ -526,7 +526,7 @@ test("turn guide moves from selection to handoff without exposing a legality ora
 });
 
 test("board omits historical region spotlights while keeping current selection and a local one-shot turn beat", () => {
-  const observer = app.slice(app.indexOf("function clearTurnArrivalBeat"), app.indexOf("function observeCommittedContact"));
+  const observer = app.slice(app.indexOf("function clearTurnArrivalBeat"), app.indexOf("function syncContactSelectionScope"));
   assert.doesNotMatch(app, /boardSpotlightModel|renderBoardSpotlightLegend|strokeRegionBoundary/);
   assert.doesNotMatch(app, /#facc15[^\n]+cssDash: \[8, 5\]|#22d3ee[^\n]+cssWidth: 3\.5/);
   assert.doesNotMatch(html, /boardSpotlightLegend|lastMoveSpotlightLegend|pendingSpotlightLegend|金破線：直前|水色実線：今回/);
@@ -741,14 +741,14 @@ test("half shift and triple shift select their bands on the board without raw po
   assert.doesNotMatch(target, /input\.type = "number"|createElement\("select"\)|正方向|負方向/);
   assert.match(board, /targetDraft\?\.kind === "band-shift"\) selectBandShiftMacro\(state, macro\)/);
   assert.match(board, /color: center \? "#fde047" : "#d8b4fe"/);
-  assert.match(app, /\["corner-bloom", "band-shift"\]\.includes\(targetDraft\.kind\)/);
+  assert.match(app, /\["source-macros", "corner-bloom", "band-shift"\]\.includes\(targetDraft\.kind\)/);
   assert.match(css, /@media\(max-width:390px\)\{\.shift-axis-controls button,[^}]*min-height:48px/);
 });
 
 test("skill target cancel is write-free and clears only transient selection", () => {
   const cancelTarget = app.slice(app.indexOf("function cancelSkillTarget"), app.indexOf("function renderSkillTarget"));
   assert.match(app, /"キャンセル", cancelSkillTarget/);
-  assert.match(cancelTarget, /preserveBoardSelection = targetDraft\?\.kind === "corner-bloom"[\s\S]+if \(!preserveBoardSelection\) selectedMacros\.clear\(\);[\s\S]+render\(\);/);
+  assert.match(cancelTarget, /preserveBoardSelection = \["corner-bloom", "source-macros"\]\.includes\(targetDraft\?\.kind\)[\s\S]+if \(!preserveBoardSelection\) selectedMacros\.clear\(\);[\s\S]+render\(\);/);
   assert.match(cancelTarget, /candidate\.dataset\.skill === skill[\s\S]+source\?\.focus/);
   assert.doesNotMatch(cancelTarget, /sendAction|submitAction/);
   assert.match(app, /盤面選択を解除/);

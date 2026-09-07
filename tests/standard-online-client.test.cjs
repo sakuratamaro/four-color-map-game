@@ -410,12 +410,14 @@ test("FunctionsHttpError exposes only allowlisted finite rule errors and retry c
     ["INVALID_COLORED_CORNER_BLOOM_TARGET", /紫の枠内.*選び直/],
     ["INVALID_COLORED_CORNER_BLOOM_MACRO", /位置が一致しません.*紫の枠内/],
     ["NO_COLORED_CORNER_BLOOM_CANDIDATE", /広げられる角.*カード・手番は減っていません/],
+    ["INVALID_OUTGOING_SELECTION", /渡すエリアの選択.*カード・手番は減っていません/],
+    ["NO_MICRO_BLOOM_CANDIDATE", /ひとふくらみ.*接続できる角.*カード・手番は減っていません/],
   ]) {
-    const cornerError = await normalizeFunctionError({ code, message: privateMessage });
-    assert.equal(cornerError.code, code);
-    assert.equal(cornerError.retryable, false);
-    assert.match(cornerError.message, expected);
-    assert.doesNotMatch(cornerError.message, /database|service_role|private/i);
+    const targetedError = await normalizeFunctionError({ code, message: privateMessage });
+    assert.equal(targetedError.code, code);
+    assert.equal(targetedError.retryable, false);
+    assert.match(targetedError.message, expected);
+    assert.doesNotMatch(targetedError.message, /database|service_role|private/i);
   }
   for (const code of ["RATE_LIMITED", "SERVER_BUSY", "SERVER_ERROR"]) {
     const wrappedRetryableError = await normalizeFunctionError({ code, message: privateMessage });
