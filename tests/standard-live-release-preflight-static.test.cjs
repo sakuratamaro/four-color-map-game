@@ -11,6 +11,8 @@ const candidateApp = fs.readFileSync(path.join(__dirname, "..", "standard-online
 const candidateHtml = fs.readFileSync(path.join(__dirname, "..", "standard-online-v5", "index.html"), "utf8");
 const candidateIntents = fs.readFileSync(path.join(__dirname, "..", "standard-online-v5", "standard-online-skill-intents.js"), "utf8");
 const candidateEdgeBundle = fs.readFileSync(path.join(__dirname, "..", "supabase", "functions", "standard-game-action", "standard-engine.bundle.js"), "utf8");
+const candidateLocalHtml = fs.readFileSync(path.join(__dirname, "..", "standard-v5", "index.html"), "utf8");
+const candidateLocalBundle = fs.readFileSync(path.join(__dirname, "..", "standard-v5", "app.bundle.js"), "utf8");
 const contractsPromise = import(pathToFileURL(path.join(__dirname, "..", "scripts", "standard-release-preflight-contracts.mjs")).href);
 
 test("release preflight is read-only, secret-free, finite, and stage-aware", () => {
@@ -40,10 +42,11 @@ test("release preflight is read-only, secret-free, finite, and stage-aware", () 
   assert.match(source, /hasWholeButtonQuizPhysics/);
   assert.match(source, /hasApprovedGachaOddsUi/);
   assert.match(source, /hasApprovedEdgeGachaOdds/);
+  assert.match(source, /hasDeferredCurseLocalBundle/);
   assert.match(source, /hasCandidateAssetGeneration/);
   assert.match(source, /baseline:\s*\{[^}]*matchmakingAvailabilityDb:\s*false[^}]*waitingOpponentUi:\s*false\s*\}/);
   assert.match(source, /"db-ready":\s*\{[^}]*matchmakingAvailabilityDb:\s*true[^}]*waitingOpponentUi:\s*false\s*\}/);
-  assert.match(source, /candidate:\s*\{[^}]*matchmakingAvailabilityDb:\s*true[^}]*waitingOpponentUi:\s*true[^}]*alpha3SkillCategoryUi:\s*true[^}]*alpha4ColoredCornerBloomUi:\s*true[^}]*registryRarityUi:\s*true[^}]*cpuPortraitsUi:\s*true[^}]*wholeButtonQuizPhysicsUi:\s*true[^}]*approvedGachaOddsUi:\s*true[^}]*approvedEdgeGachaOdds:\s*true[^}]*candidateAssetGenerationUi:\s*true\s*\}/);
+  assert.match(source, /candidate:\s*\{[^}]*matchmakingAvailabilityDb:\s*true[^}]*waitingOpponentUi:\s*true[^}]*alpha3SkillCategoryUi:\s*true[^}]*alpha4ColoredCornerBloomUi:\s*true[^}]*registryRarityUi:\s*true[^}]*cpuPortraitsUi:\s*true[^}]*wholeButtonQuizPhysicsUi:\s*true[^}]*approvedGachaOddsUi:\s*true[^}]*approvedEdgeGachaOdds:\s*true[^}]*deferredCurseLocalBundle:\s*true[^}]*candidateAssetGenerationUi:\s*true\s*\}/);
   assert.match(source, /ACTIVE_ROOM_RECOVERY_PHASE_MISMATCH/);
   assert.match(source, /LEGAL_RECOLOR_LAB_UI_PHASE_MISMATCH/);
   assert.match(source, /SETUP_LOAD_V3_PHASE_MISMATCH/);
@@ -57,6 +60,7 @@ test("release preflight is read-only, secret-free, finite, and stage-aware", () 
   assert.match(source, /WHOLE_BUTTON_QUIZ_PHYSICS_UI_PHASE_MISMATCH/);
   assert.match(source, /APPROVED_GACHA_ODDS_UI_PHASE_MISMATCH/);
   assert.match(source, /APPROVED_GACHA_ODDS_EDGE_BUNDLE_MISMATCH/);
+  assert.match(source, /DEFERRED_CURSE_LOCAL_BUNDLE_MISMATCH/);
   assert.match(source, /app\.text\.includes\('★\$\{meta\.rarity\}'\)/);
   assert.match(source, /CANDIDATE_ASSET_GENERATION_UI_PHASE_MISMATCH/);
   assert.match(source, /app\.js\?v=20260908-3/);
@@ -79,6 +83,16 @@ test("release preflight is read-only, secret-free, finite, and stage-aware", () 
   assert.match(source, /SNAPSHOT_V2_BASELINE_MISSING/);
   assert.match(source, /PUBLIC_BASELINE_UI_MISSING/);
   assert.doesNotMatch(source, /console\.log\([^\n]*(?:publishableKey|authorization)/);
+});
+
+test("candidate preflight rejects a stale local Standard bundle marker or missing deferred curse code", async () => {
+  const { LOCAL_STANDARD_BUNDLE_MARKER, LOCAL_STANDARD_BUNDLE_SHA256, hasDeferredCurseLocalBundle } = await contractsPromise;
+  assert.equal(LOCAL_STANDARD_BUNDLE_MARKER, "app.bundle.js?v=20260908-1-8f874130fbcd");
+  assert.equal(LOCAL_STANDARD_BUNDLE_SHA256, "8f874130fbcd899f0a4d26159c94efb46a08bd726572e783fa377879db58cca9");
+  assert.equal(hasDeferredCurseLocalBundle(candidateLocalHtml, candidateLocalBundle), true);
+  assert.equal(hasDeferredCurseLocalBundle(candidateLocalHtml.replace(LOCAL_STANDARD_BUNDLE_MARKER, "app.bundle.js?v=20260907-5"), candidateLocalBundle), false);
+  assert.equal(hasDeferredCurseLocalBundle(candidateLocalHtml, candidateLocalBundle.replace("consumeDeferredCurseBacklashAfterColor(next, actor);", "void next;")), false);
+  assert.equal(hasDeferredCurseLocalBundle(candidateLocalHtml, `${candidateLocalBundle}\n`), false);
 });
 
 test("candidate preflight accepts only whole-button AABB physics with abortable listener cleanup", async () => {
