@@ -16,6 +16,12 @@
 | 中幅ロビーreflow | ユーザー確定・旧live判定を再開 | IMPLEMENTING | 高優先度の`#lobby ... auto-fit minmax(280px)`が1180px content内へ3cardを詰め、旧1080px breakpointより上でfriend/public controlsが潰れる | responsive・本worktree | 390/報告中幅/wideでoverflow・clip・overlap 0、controls 44px以上 |
 | ひとふくらみ合法使用と失敗案内 | ユーザー確定 | IMPLEMENTING | engine/bundleの合法fixtureは成功するが、online `beginSkill`が既選択を消して再選択を強いる。候補0/不正選択のcodeはclient allowlist外で一般エラーになり、再選択可能性が伝わらない | Rule/UX/Edge・本worktree | UI payload→source engine→generated bundle成功、違法時state/card/RNG/write不変と日本語案内 |
 
+## 最新優先切片
+
+| 要求 | 出典区分 | 現状 | 実装 | 担当・worktree | 次の証拠 |
+| --- | --- | --- | --- | --- | --- |
+| ★4 角膨張を実盤面で使える状態へ | ユーザー確定・★1ひとふくらみとは別 | LOCAL_VERIFIED (`c5369b0`) | public geometry由来の送信対象を紫枠表示し、keyboard初期位置を最初の対象へ移動。成功可否はserverだけが判定し、候補0・旧room・位置不一致を原因別日本語で再選択可能にした | UX/a11y/privacy・本worktree | 非browser 477/477、lifecycle Edge 79/79、online Edge/Chrome各83/83。次はmain/Pages/live確認 |
+
 ## 別管理マスターバックログ
 
 | 要求 | 出典区分 | 現状 | 担当・worktree | 次の証拠 |
