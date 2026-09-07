@@ -79,8 +79,7 @@
       return normalizedSettings(readJson(STORAGE_KEY));
     }
 
-    function readHistory() {
-      const stored = readJson(EVENT_HISTORY_KEY);
+    function normalizeHistory(stored) {
       if (stored?.schemaVersion !== 1 || !Array.isArray(stored.eventIds)) return [];
       const result = [];
       const seen = new Set();
@@ -88,6 +87,26 @@
         if (validEventId(eventId) && !seen.has(eventId)) { seen.add(eventId); result.push(eventId); }
       }
       return result;
+    }
+
+    function historyFromJson(value) {
+      try { return normalizeHistory(JSON.parse(value || "null")); }
+      catch { return []; }
+    }
+
+    function readHistory() {
+      return normalizeHistory(readJson(EVENT_HISTORY_KEY));
+    }
+
+    function mergeHistories(...histories) {
+      const merged = [];
+      const seen = new Set();
+      for (const history of histories) {
+        for (const eventId of history || []) {
+          if (validEventId(eventId) && !seen.has(eventId)) { seen.add(eventId); merged.push(eventId); }
+        }
+      }
+      return merged.slice(-EVENT_HISTORY_LIMIT);
     }
 
     function vibrationSupported() {
@@ -217,7 +236,7 @@
 
     function refreshHistory() {
       const persisted = readHistory();
-      eventHistory = [...new Set([...eventHistory, ...persisted])].slice(-EVENT_HISTORY_LIMIT);
+      eventHistory = mergeHistories(eventHistory, persisted);
     }
 
     function remember(eventId) {
@@ -336,7 +355,15 @@
 
     function handleStorageEvent(event) {
       if (event?.key === STORAGE_KEY) reloadSettings();
-      else if (event?.key === EVENT_HISTORY_KEY) refreshHistory();
+      else if (event?.key === EVENT_HISTORY_KEY) {
+        const incoming = historyFromJson(event.newValue);
+        const persisted = readHistory();
+        eventHistory = mergeHistories(eventHistory, persisted, incoming);
+        const persistedIds = new Set(persisted);
+        if (eventHistory.some((eventId) => !persistedIds.has(eventId))) {
+          writeJson(EVENT_HISTORY_KEY, { schemaVersion: 1, eventIds: eventHistory });
+        }
+      }
     }
 
     function snapshot() {
