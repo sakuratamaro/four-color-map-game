@@ -1787,7 +1787,7 @@ test("actual browser selects and submits one usable Micro Bloom target from the 
     const board = page.locator("#board");
     const box = await board.boundingBox();
     await board.click({ position: { x: box.width * (2.5 / 12), y: box.height * (2.5 / 12) } });
-    await target.getByText("盤面選択 1マス", { exact: true }).waitFor();
+    await target.getByText(/^盤面選択 1マス。/).waitFor();
     assert.equal(await submit.isEnabled(), true);
     await submit.click();
     await page.getByText("操作を保存しました。", { exact: true }).waitFor();
@@ -3964,6 +3964,7 @@ test("actual browser enlarges a 12-column board and completes connected selectio
       runtime.onInvalidate?.({});
     });
     await page.waitForFunction(() => document.querySelector("#selectionCount")?.textContent === "0 / 2マス");
+    assert.match(await page.locator("#turnGuideDetail").textContent(), /水色の破線.*選んだエリアは相手が塗ります/);
     const before = await page.evaluate(() => ({
       viewport: document.querySelector("#boardViewport").getBoundingClientRect().width,
       board: document.querySelector("#board").getBoundingClientRect().width,
@@ -4082,7 +4083,7 @@ test("actual browser guides one public legal start then switches fully to connec
     assert.equal(await board.getAttribute("aria-describedby"), "boardKeyboardHelp boardKeyboardStatus");
     assert.match(await board.getAttribute("aria-label"), /水色の破線は最初のおすすめ選択候補/);
     assert.match(await page.locator("#boardKeyboardHelp").textContent(), /自動選択ではありません/);
-    assert.match(await page.locator("#turnGuideDetail").textContent(), /水色の破線.*自動選択ではない/);
+    assert.match(await page.locator("#turnGuideDetail").textContent(), /水色の破線.*自動選択ではない.*選んだエリアは相手が塗ります/);
     assert.equal(await board.evaluate((node) => getComputedStyle(node).animationName), "none");
 
     await board.focus();
