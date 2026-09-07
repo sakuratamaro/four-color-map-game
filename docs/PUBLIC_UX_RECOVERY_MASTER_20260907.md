@@ -11,7 +11,7 @@
 | 接触演出を本人のセル選択時だけへ | ユーザー確定・旧契約を上書き | PUBLIC_VERIFIED (`844f563`) | required-sizeを満たした本人のlocal選択でだけ接触色数を計算し、公開traceの受信・CPU・poll・reloadでは演出しない | UX/a11y・本worktree | Windows `34137623118`、Pages `34139833503`、公開CPU戦でCPUの2色traceは0、人間の3マス完成選択は「二色接触！」1回、完全reload後0 |
 | 色ボタン内のおまけ色残数 | ユーザー確定 | PUBLIC_VERIFIED (`2f75e40`) | 所有中の全色を正規化する`colorChoiceDetails`を追加し、実ボタンへ`おまけ色 残りN回`を表示。基本色重複時は残0でも使用可能 | UX/privacy・本worktree | main `e941d11`、Pages `34114644417`、公開app43/style41/intents20、candidate preflight、390px overflow 0、console 0 |
 | 封印色の鍵と残期間 | ユーザー確定 | PUBLIC_VERIFIED (`2f75e40`) | 残0おまけ色も消さずdisabledで保持し、鍵と公開封印残数を同じボタンへ表示。相手private paletteは参照しない | UX/privacy・本worktree | 同上 |
-| クイズbutton全体の衝突移動 | ユーザー確定・fixed hitboxを上書き | IMPLEMENTING | grid上のbuttonは固定で、子`span.quiz-option-float`だけ2–3px drift。衝突計算がない | Quiz/UX/a11y・本worktree | whole-button座標変化、bounds、非重複、衝突、停止条件、resize、exactly-once |
+| クイズbutton全体の衝突移動 | ユーザー確定・fixed hitboxを上書き | PUBLIC_VERIFIED (`345c472`) | 6個のbutton全体を1つのarenaで壁反射・相互衝突させ、hover/focus/touch/hint/feedback/hidden/reduced-motionで停止。質問更新ごとにlistenerを破棄してexactly-onceを維持 | Quiz/UX/a11y・本worktree | Windows `34166855484`、Pages `34167465748`、公開app/style `20260908-2`。公開desktopで各9.1–12.0px移動、bounds内、重なり0、hover/focus中2.2秒座標不変、回答1回、console 0。390px/reduced-motionは正式実browserで確認 |
 | 6枚/対象指定へregistryレアリティ | ユーザー確定 | PUBLIC_VERIFIED (`26c4bd2`) | `standard-skill-registry.js`から21件の公開metadataを決定的生成し、6枚一覧と対象パネルが同じrarityを読む。手書きrarityとinventory推測を撤去 | UX/registry・本worktree | main `72acb8c`、Pages `34123125700`、479/479＋79/79＋Edge/Chrome各83/83、公開app45/registry v1、preflight合格 |
 | 中幅ロビーreflow | ユーザー確定・旧live判定を再開 | IMPLEMENTING | 高優先度の`#lobby ... auto-fit minmax(280px)`が1180px content内へ3cardを詰め、旧1080px breakpointより上でfriend/public controlsが潰れる | responsive・本worktree | 390/報告中幅/wideでoverflow・clip・overlap 0、controls 44px以上 |
 | ひとふくらみ合法使用と失敗案内 | ユーザー確定 | PUBLIC_VERIFIED (`844f563`) | `source-macros`対象指定で盤面選択を保持し、候補0/不正選択を安全な日本語へ対応。authoritative engineと生成bundleを一致させた | Rule/UX/Edge・本worktree | 129/129、実Edge/Chrome各3/3、Windows `34137623118`、Pages `34139833503`、公開CPU戦で合法送信・カード消費・preparedOutgoingを確認。無効候補はカード・手番非消費 |
@@ -36,8 +36,8 @@
 | curse backlashをskill timingで消さず次の彩色まで保持 | ユーザー確定 | 未着手監査 | Rule/Edge backlog・未割当 | opponent turnをまたぐstate machine test |
 | seal cardのrarity/acquisition difficulty引上げと既存所持保全 | ユーザー確定 | 未着手監査 | Balance/registry/migration backlog・未割当 | exact mapping決定、既存inventory migration証拠 |
 | 弱い★2 seal cardの具体案 | 提案のみ | HOLD・未承認 | Game design backlog・未割当 | mechanics/nameのユーザー承認 |
-| CPU敗北時の固有落胆＋大きい全身絵、毎勝利1回、PvPなし、画像失敗非阻害 | ユーザー確定 | 実装候補・HOLD解除 | `codex/standard-cpu-portraits-p1-20260907` | `a9a1fc0`とdocs `5e1ad55`を監査し、IndexedDBを除外して採用 |
-| 使用256×256 WebPだけ、NOTICE/manifest/credit維持、追加連絡不要 | ユーザー確定・author contact旧TODOを上書き | 実装候補・portrait release待ち | portrait worktree | asset/credit/license manifest監査 |
+| CPU敗北時の固有落胆＋大きい全身絵、毎勝利1回、PvPなし、画像失敗非阻害 | ユーザー確定 | PUBLIC_VERIFIED (`21b58c6`) | original atlas・本worktree | 10人を1枚のRGBA 4×3 atlasへ収録。通常実況と公開敗北理由別表示、reload再演なし、fallback、PvP非表示をWindows `34142743062`とPages `34165800064`で確認 |
+| 使用256×256 WebPだけ、NOTICE/manifest/credit維持、追加連絡不要 | 旧第三者素材案 | SUPERSEDED・HOLD | portrait候補群 | original atlas `21b58c6`をユーザー承認で公開。第三者素材commit `a9a1fc0` / `66cfdcd` / `7a57e927` / `115b102`、credit/連絡作業、WebP cropはmainへ入れない |
 | portrait gallery/encyclopedia | 提案のみ | HOLD・未承認 | 未割当 | ユーザー承認 |
 | 外部promotion/ad/broad SEO | 提案のみ | HOLD・未承認 | 未割当 | ユーザー承認 |
 | IndexedDB feedback rewrite | 既存候補・未完 | HOLD | `codex/standard-cpu-portraits-p1-20260907` | docs/release review、portraitから分離 |
