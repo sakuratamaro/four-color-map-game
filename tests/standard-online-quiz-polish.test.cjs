@@ -147,9 +147,13 @@ test("area and volume questions use allowlisted dimension diagrams without formu
   assert.match(edge, /"cylinder-minus-cone"/);
   assert.match(app, /descriptor\.shape === "cone"/, "legacy finished questions remain renderable");
   const diagramLines = edge.split("\n").filter((line) => /kind: "geometry", shape:/.test(line));
-  assert.equal(diagramLines.length, 7);
+  assert.equal(diagramLines.length, 8);
   for (const line of diagramLines) assert.doesNotMatch(line, /\bvalue:|\bsuffix:/);
   assert.match(app, /document\.createElementNS\(SVG_NS/);
+  assert.match(app, /class: "quiz-geometry-cutout"/);
+  assert.match(app, /dimensions\.innerRadius/);
+  assert.match(app, /dimensions\.cutoutBase/);
+  assert.match(css, /\.quiz-geometry-cutout\{[^}]*stroke-dasharray/);
   assert.doesNotMatch(app, /quiz-geometry[\s\S]{0,300}innerHTML/);
 });
 
@@ -157,10 +161,10 @@ test("calculus, arbitrary sequence indices, and sigma bounds have structured ren
   assert.match(edge, /function inclusiveIntegerSum\(/);
   assert.equal((edge.match(/inclusiveIntegerSum\(lower, end/g) || []).length, 3);
   assert.equal((edge.match(/kind: "sum", index: "k", lower, upper: end/g) || []).length, 3);
-  assert.match(edge, /kind: "sequence", first, difference, position/);
+  assert.match(edge, /kind: "sum", index: "n", lower: 1, upper: position,.*sequence: \{ first, difference, position \}/);
   assert.match(app, /descriptor\.kind === "integral"[\s\S]+mathNode\("msubsup"\)/);
   assert.match(app, /descriptor\.kind === "derivative"[\s\S]+const evaluation = mathNode\("msub"\)/);
-  assert.match(app, /descriptor\.kind === "sequence"[\s\S]+mathNode\("mn", descriptor\.position\)/);
+  assert.match(app, /descriptor\.kind === "determinant-product"[\s\S]+mathNode\("mi", "det"\)[\s\S]+mathMatrix\(descriptor\.right\)/);
   assert.match(app, /descriptor\.grouped[\s\S]+mathNode\("mo", "\("\)/);
 });
 
@@ -173,9 +177,9 @@ test("only overflowing quiz math receives a persistent horizontal position bar",
   assert.match(css, /\.quiz-math-scroll\{[^}]*overflow-x:auto/);
   assert.match(css, /\.quiz-question \.quiz-math-scroll math\{[^}]*white-space:nowrap/);
   assert.match(css, /\.quiz-overflow-scrollbar\[hidden\]\{display:none\}/);
-  assert.match(html, /style\.css\?v=20260907-41/);
+  assert.match(html, /style\.css\?v=20260907-42/);
   assert.match(html, /standard-online-client\.js\?v=20260907-20/);
-  assert.match(html, /app\.js\?v=20260907-45/);
+  assert.match(html, /app\.js\?v=20260907-47/);
 });
 
 test("per-question feedback is server-acknowledged, retryable, brief in motion, and followed by an optional review", () => {

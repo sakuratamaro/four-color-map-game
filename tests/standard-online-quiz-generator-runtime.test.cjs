@@ -62,46 +62,98 @@ test("story generators expose only the story descriptor before an answer", () =>
 });
 
 test("all eight structured geometry generators keep dimensions and answers consistent", () => {
-  const cases = [[1, 5], [1, 7], [2, 5], [2, 6], [3, 5], [4, 5], [4, 6]];
+  const cases = [[1, 5], [1, 6], [1, 7], [2, 5], [2, 6], [3, 5], [4, 5], [4, 6]];
   const areaOrVolume = {
     rectangle: ({ width, height }) => width * height,
     cube: ({ side }) => side ** 3,
     triangle: ({ base, height }) => base * height / 2,
     cuboid: ({ length, width, height }) => length * width * height,
-    circle: ({ radius }) => radius ** 2,
-    trapezoid: ({ top, bottom, height }) => (top + bottom) * height / 2,
-    cylinder: ({ radius, height }) => radius ** 2 * height,
+    circle: ({ radius, innerRadius = 0 }) => radius ** 2 - innerRadius ** 2,
+    trapezoid: ({ top, bottom, height, cutoutBase = 0, cutoutHeight = 0 }) => (top + bottom) * height / 2 - cutoutBase * cutoutHeight / 2,
+    cylinder: ({ radius, innerRadius = 0, height }) => (radius ** 2 - innerRadius ** 2) * height,
   };
   const seen = new Set();
   for (const [level, selection] of cases) {
     const question = selectedPrompt(level, selection);
     const { shape, dimensions } = question.math;
-    assert.equal(question.answer, areaOrVolume[shape](dimensions), `${question.templateId}:${JSON.stringify(dimensions)}`);
+    const expected = question.templateId === "rectangle-perimeter"
+      ? 2 * (dimensions.width + dimensions.height)
+      : areaOrVolume[shape](dimensions);
+    assert.equal(question.answer, expected, `${question.templateId}:${JSON.stringify(dimensions)}`);
     seen.add(shape);
   }
   assert.deepEqual([...seen].sort(), Object.keys(areaOrVolume).sort());
+  const perimeter = selectedPrompt(1, 6);
+  assert.equal(perimeter.math.measure, "perimeter");
+  assert.match(perimeter.prompt, /長方形の周の長さ/);
 });
 
-test("three sigma generators and the sequence generator recompute to their answer", () => {
+test("strengthened sigma and sequence generators recompute to their answer", () => {
   const sigmas = [selectedPrompt(3, 3), selectedPrompt(4, 4), selectedPrompt(5, 1)];
-  const termFor = {
-    sigma: (k) => k,
-    "sigma-linear": (k) => 2 * k - 3,
-    "sigma-quadratic": (k, question) => question.math.coefficients.quadratic * k ** 2
-      + question.math.coefficients.linear * k + question.math.coefficients.constant,
-  };
   for (const question of sigmas) {
-    const { lower, upper } = question.math;
+    const { lower, upper, coefficients } = question.math;
     let expected = 0;
-    for (let k = lower; k <= upper; k += 1) expected += termFor[question.templateId](k, question);
+    for (let k = lower; k <= upper; k += 1) {
+      expected += coefficients.quadratic * k ** 2 + coefficients.linear * k + coefficients.constant;
+    }
     assert.equal(question.answer, expected, question.templateId);
-    if (question.templateId !== "sigma-quadratic") assert.deepEqual([lower, upper], [1, 4]);
   }
 
   const sequence = selectedPrompt(4, 2);
-  const { first, difference, position } = sequence.math;
-  assert.equal(sequence.answer, first + (position - 1) * difference);
-  assert.equal(sequence.math.kind, "sequence");
+  const { first, difference, position } = sequence.math.sequence;
+  assert.equal(sequence.answer, position * (2 * first + (position - 1) * difference) / 2);
+  assert.equal(sequence.math.kind, "sum");
+  assert.equal(sequence.category, "等差数列の和");
+});
+
+test("levels three and four are structurally multi-step and level five receives more solving time", () => {
+  const levelThree = Array.from({ length: 10 }, (_, selection) => selectedPrompt(3, selection));
+  const levelFour = Array.from({ length: 10 }, (_, selection) => selectedPrompt(4, selection));
+  const runtime = loadQuizRuntime((minimum) => minimum);
+  assert.equal(levelThree.filter((question) => runtime.quizExperienceMeta(3, question).thinkingSteps >= 2).length, 10);
+  assert.equal(levelFour.filter((question) => runtime.quizExperienceMeta(4, question).thinkingSteps >= 2).length, 10);
+  assert.match(levelThree[0].prompt, /から.+2乗を引く/);
+  assert.match(levelThree[5].prompt, /円環/);
+  assert.ok(levelThree[5].math.dimensions.innerRadius < levelThree[5].math.dimensions.radius);
+  assert.match(levelThree[7].prompt, /から.+まで/);
+  assert.match(levelFour[1].prompt, /ちょうど1人/);
+  assert.match(levelFour[5].prompt, /三角形を切り抜く/);
+  assert.match(levelFour[6].prompt, /中空円柱/);
+  assert.match(levelFour[8].prompt, /その後.+か所増やす/);
+  assert.match(levelFour[9].prompt, /時間後に/);
+  assert.deepEqual(
+    Array.from({ length: 10 }, (_, selection) => selectedPrompt(5, selection).timeLimitSeconds),
+    Array(10).fill(120),
+  );
+});
+
+test("level-five extension leaves level-one and level-two timing unchanged", () => {
+  assert.deepEqual(
+    Array.from({ length: 8 }, (_, selection) => selectedPrompt(1, selection).timeLimitSeconds),
+    [25, 25, 25, 25, 30, 30, 30, 35],
+  );
+  assert.deepEqual(
+    Array.from({ length: 10 }, (_, selection) => selectedPrompt(2, selection).timeLimitSeconds),
+    [38, 35, 32, 35, 40, 38, 40, 40, 48, 40],
+  );
+});
+
+test("every strengthened level-three and level-four template has a recomputable seeded result", () => {
+  const levelThree = Array.from({ length: 10 }, (_, selection) => selectedPrompt(3, selection));
+  const levelFour = Array.from({ length: 10 }, (_, selection) => selectedPrompt(4, selection));
+  assert.deepEqual(levelThree.map((question) => question.templateId), [
+    "power", "root", "factorial", "sigma", "expression", "circle-area",
+    "derivative-monomial", "integral-linear", "work-rate", "age-story",
+  ]);
+  assert.deepEqual(levelThree.map((question) => question.answer), [4, 7, 20, 24, 4, 21, -4, -2, 10, 36]);
+  assert.deepEqual(levelFour.map((question) => question.templateId), [
+    "quadratic", "combination", "sequence", "determinant", "sigma-linear",
+    "trapezoid-area", "cylinder-volume", "derivative-polynomial", "newton-flow", "catch-up",
+  ]);
+  assert.deepEqual(levelFour.map((question) => question.answer), [1, 30, 36, 0, 0, 19, 24, 50, 5, 5]);
+  assert.deepEqual(levelThree[5].math.dimensions, { radius: 5, innerRadius: 2 });
+  assert.deepEqual(levelFour[5].math.dimensions, { top: 4, bottom: 6, height: 4, cutoutBase: 2, cutoutHeight: 1 });
+  assert.deepEqual(levelFour[6].math.dimensions, { radius: 4, innerRadius: 2, height: 2 });
 });
 
 test("quadratic asks visibly and semantically for the smaller root", () => {
@@ -145,7 +197,7 @@ test("level five requires multi-step work instead of one-formula substitutions",
     "integral-polynomial", "cylinder-minus-cone", "derivative-product", "paired-selection", "recurrence",
   ]);
   assert.deepEqual(questions.map((question) => question.answer), [196, 98, 1512, -15, 4, 28, 54, 80, 100, -123]);
-  assert.equal(questions.every((question) => question.timeLimitSeconds >= 52 && question.timeLimitSeconds <= 62), true);
+  assert.equal(questions.every((question) => question.timeLimitSeconds === 120), true);
   assert.equal(questions[3].math.lines.length, 3);
   assert.equal(questions[4].math.rows.length, 3);
   assert.equal(questions[4].math.rows.every((row) => row.length === 3), true);
