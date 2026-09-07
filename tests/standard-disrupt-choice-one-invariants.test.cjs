@@ -278,6 +278,7 @@ test("disruptChoiceOne stale and persistence failures are byte-stable, and zero-
   const created = dispatch(zero, "B", "disrupt-zero-candidate", "CREATE_REGION", { sourceMacros: [26] });
   assert.equal(created.ok, true);
   assert.deepEqual(created.root.activeMatch.rngSnapshot, rngBefore);
-  assert.equal(created.root.activeMatch.state.privateEffects.A.curseBacklash, undefined);
+  assert.equal(created.root.activeMatch.state.privateEffects.A.curseBacklash, 1);
   assert.deepEqual(created.root.activeMatch.state.publicEffects.A.seals, { red: 1, blue: 1, yellow: 1, green: 1 });
+  assert.equal(created.root.activeMatch.state.publicLog.some((line) => line.includes("resolved empty")), false);
 });

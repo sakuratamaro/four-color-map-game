@@ -194,6 +194,56 @@ test("generated server bundle executes Micro Bloom and commits its prepared outg
   assert.equal(committed.contactColorCount, 1);
 });
 
+test("generated server bundle defers zero-candidate curse backlash until rescued legal coloring", () => {
+  const api = loadApi();
+  const curseLoadouts = JSON.parse(JSON.stringify(loadouts));
+  curseLoadouts.B.color = ["colorPrism", "colorRandomBorrow"];
+  const created = api.create({ matchId: "online-deferred-curse", loadouts: curseLoadouts, seed: 0x12345684, firstSeat: "A" });
+  const state = created.state;
+  state.requiredSize = 1;
+  state.rolledSize = 1;
+  state.baseRequiredSize = 1;
+  state.privateEffects.B.curseBacklash = 1;
+  const palette = [...new Set([...state.basicPalettes.B, state.bonusColors.B])];
+  state.publicEffects.B.seals = Object.fromEntries(palette.map((color) => [color, 1]));
+  const skillEffectBefore = created.rngSnapshot["skill-effect"];
+
+  const entered = api.apply({
+    state,
+    rngSnapshot: created.rngSnapshot,
+    actor: "A",
+    expectedVersion: 0,
+    action: { id: "online-deferred-curse-create", type: "CREATE_REGION", payload: { sourceMacros: [13] } },
+  });
+  assert.equal(entered.ok, true);
+  assert.equal(entered.privateB.privateEffects.curseBacklash, 1);
+  assert.equal(entered.rngSnapshot["skill-effect"], skillEffectBefore);
+
+  const rescued = api.apply({
+    state: entered.state,
+    rngSnapshot: entered.rngSnapshot,
+    actor: "B",
+    expectedVersion: 1,
+    action: { id: "online-deferred-curse-rescue", type: "USE_SKILL", payload: { skill: "colorPrism" } },
+  });
+  assert.equal(rescued.ok, true);
+  assert.equal(rescued.privateB.privateEffects.curseBacklash, 1);
+  const rescueColor = ["red", "blue", "yellow", "green"].find((color) => !palette.includes(color));
+  assert.ok(rescueColor);
+
+  const colored = api.apply({
+    state: rescued.state,
+    rngSnapshot: rescued.rngSnapshot,
+    actor: "B",
+    expectedVersion: 2,
+    action: { id: "online-deferred-curse-color", type: "COLOR_REGION", payload: { color: rescueColor } },
+  });
+  assert.equal(colored.ok, true);
+  assert.equal(colored.state.regions.R1.color, rescueColor);
+  assert.equal(colored.privateB.privateEffects.curseBacklash, undefined);
+  assert.equal(colored.rngSnapshot["skill-effect"], skillEffectBefore);
+});
+
 test("server bundle exposes ten safe CPU identities and deterministic legal decisions", () => {
   const api = loadApi();
   const roster = api.getCpuRoster();
