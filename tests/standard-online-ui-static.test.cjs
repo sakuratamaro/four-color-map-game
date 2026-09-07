@@ -77,7 +77,7 @@ test("online alpha.3 UI understands category windows and the experimental bonus-
 });
 
 test("CPU commentary is public-event-only, bounded, non-blocking, and terminal-persistent", () => {
-  assert.match(html, /style\.css\?v=20260908-3/);
+  assert.match(html, /style\.css\?v=20260908-4/);
   assert.match(html, /standard-online-skill-intents\.js\?v=20260907-20/);
   assert.match(html, /app\.js\?v=20260908-3/);
   assert.match(app, /cpuCommentary\?\.VERSION !== "standard-cpu-commentary-v2"/);
@@ -221,12 +221,14 @@ test("public matchmaking stays code-free, recoverable, cancellable, and separate
   assert.match(progressionCss, /prefers-reduced-motion: reduce/);
 });
 
-test("Standard lobby reflows before desktop side panels crush its actions", () => {
-  assert.match(css, /@media\(max-width:1080px\) and \(min-width:761px\)\{/);
+test("Standard lobby keeps two useful desktop columns and one mobile column", () => {
+  assert.doesNotMatch(css, /#lobby \.lobby-choice-grid\{grid-template-columns:repeat\(auto-fit/);
   assert.match(css, /#lobby \.lobby-choice-grid\{grid-template-columns:repeat\(2,minmax\(0,1fr\)\)\}/);
   assert.match(css, /#lobby \.public-matchmaking\{grid-column:1\/-1\}/);
   assert.match(css, /#lobby \.lobby-grid\{grid-template-columns:1fr\}/);
+  assert.match(css, /#lobby \.lobby-grid>button\{width:100%\}/);
   assert.match(css, /#lobby \.lobby-choice button,#lobby \.lobby-choice input\{max-width:100%;overflow-wrap:anywhere\}/);
+  assert.match(css, /@media\(max-width:760px\)\{#lobby \.lobby-choice-grid\{grid-template-columns:1fr\}/);
   assert.match(css, /@media\(max-width:760px\)\{#lobby \.public-matchmaking\{grid-column:auto\}\}/);
 });
 
