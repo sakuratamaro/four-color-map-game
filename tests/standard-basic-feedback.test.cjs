@@ -57,7 +57,7 @@ function audioHarness({ fail = false, resumeRejects = 0, rejectLifecycle = false
       return rejectLifecycle ? Promise.reject(new Error("CLOSE_REJECTED")) : Promise.resolve();
     }
   }
-  return { globalRef: { AudioContext }, calls };
+  return { globalRef: { AudioContext, setTimeout }, calls };
 }
 
 function environment({ storage = memoryStorage(), hidden = false, online = true, audioFail = false, vibrationFail = false, resumeRejects = 0, rejectLifecycle = false } = {}) {
@@ -255,6 +255,100 @@ test("lock serialization elects one presenter and retains simultaneous distinct 
   const fresh = feedback.createBasicFeedbackController(environment({ storage }));
   assert.equal((await fresh.notify({ eventId: "match-lock:a", cue: "turn" })).duplicate, true);
   assert.equal((await fresh.notify({ eventId: "match-lock:b", cue: "turn" })).duplicate, true);
+});
+
+test("lock holder yields one task so a stale renderer sees the previous claim before remembering", async () => {
+  const persisted = new Map();
+  const views = [new Map(), new Map()];
+  const storageFor = (index) => ({
+    getItem(key) { return views[index].has(key) ? views[index].get(key) : null; },
+    setItem(key, value) {
+      const text = String(value);
+      views[index].set(key, text);
+      persisted.set(key, text);
+    },
+    removeItem(key) {
+      views[index].delete(key);
+      persisted.delete(key);
+    },
+  });
+  const timerFor = (index) => (callback) => setImmediate(() => {
+    views[index] = new Map(persisted);
+    callback();
+  });
+  let lockTail = Promise.resolve();
+  const locks = {
+    request(_name, _options, callback) {
+      const result = lockTail.then(() => callback());
+      lockTail = result.catch(() => {});
+      return result;
+    },
+  };
+  const environments = [0, 1].map((index) => {
+    const env = environment({ storage: storageFor(index) });
+    env.navigatorRef.locks = locks;
+    env.globalRef = { ...env.globalRef, setTimeout: timerFor(index) };
+    return env;
+  });
+  const controllers = environments.map((env) => feedback.createBasicFeedbackController(env));
+
+  const same = await Promise.all(controllers.map((controller) => controller.notify({
+    eventId: "match-delayed-visibility:same",
+    cue: "turn",
+  })));
+  assert.equal(same.filter((result) => result.accepted).length, 1);
+  assert.equal(same.filter((result) => result.duplicate).length, 1);
+
+  const distinct = await Promise.all([
+    controllers[0].notify({ eventId: "match-delayed-visibility:a", cue: "turn" }),
+    controllers[1].notify({ eventId: "match-delayed-visibility:b", cue: "turn" }),
+  ]);
+  assert.ok(distinct.every((result) => result.accepted && !result.duplicate));
+
+  const freshStorage = memoryStorage(Object.fromEntries(persisted));
+  const fresh = feedback.createBasicFeedbackController(environment({ storage: freshStorage }));
+  assert.equal((await fresh.notify({ eventId: "match-delayed-visibility:a", cue: "turn" })).duplicate, true);
+  assert.equal((await fresh.notify({ eventId: "match-delayed-visibility:b", cue: "turn" })).duplicate, true);
+});
+
+test("missing or throwing safe task timer consumes a coordinated claim without hanging or presenting", async () => {
+  for (const [suffix, timer] of [["missing", undefined], ["throw", () => { throw new Error("TIMER_DISABLED"); }]]) {
+    const env = environment();
+    env.globalRef = { AudioContext: env.globalRef.AudioContext, ...(timer ? { setTimeout: timer } : {}) };
+    const controller = feedback.createBasicFeedbackController(env);
+    controller.setSettings({ sound: true, vibration: true });
+    controller.unlockFromGesture({ isTrusted: true });
+    const eventId = `match-no-timer:${suffix}`;
+    assert.deepEqual(await controller.notify({ eventId, cue: "turn" }),
+      { accepted: true, duplicate: false, sound: false, vibration: false });
+    assert.equal((await controller.notify({ eventId, cue: "turn" })).duplicate, true);
+    assert.equal(env.calls.oscillators, 0);
+    assert.deepEqual(env.patterns, []);
+  }
+});
+
+test("destroy during the lock task yield consumes identity without late output", async () => {
+  let releaseTimer;
+  const env = environment();
+  env.globalRef = {
+    ...env.globalRef,
+    setTimeout(callback) { releaseTimer = callback; },
+  };
+  const controller = feedback.createBasicFeedbackController(env);
+  controller.setSettings({ sound: true, vibration: true });
+  controller.unlockFromGesture({ isTrusted: true });
+  const pending = controller.notify({ eventId: "match-destroyed-yield:1", cue: "victory" });
+  await Promise.resolve();
+  await Promise.resolve();
+  assert.equal(typeof releaseTimer, "function");
+  controller.destroy();
+  releaseTimer();
+  assert.deepEqual(await pending, { accepted: true, duplicate: false, sound: false, vibration: false });
+  assert.equal((await controller.notify({ eventId: "match-destroyed-yield:1", cue: "victory" })).accepted, false);
+  const fresh = feedback.createBasicFeedbackController(environment({ storage: env.storage }));
+  assert.equal((await fresh.notify({ eventId: "match-destroyed-yield:1", cue: "victory" })).duplicate, true);
+  assert.equal(env.calls.oscillators, 0);
+  assert.equal(env.patterns.at(-1), 0);
 });
 
 test("storage event payload converges stale cross-page histories without write-back ping-pong", () => {

@@ -21,7 +21,7 @@ const productHtml = fs.readFileSync(path.join(root, "standard-online-v5", "index
 const scriptStart = productHtml.indexOf('  <script src="standard-online-client.js');
 assert.ok(scriptStart > 0);
 const fixtureHtml = `${productHtml.slice(0, scriptStart)}
-  <script src="basic-feedback.js?v=20260908-1"></script>
+  <script src="basic-feedback.js?v=20260908-2"></script>
   <script>
     globalThis.__feedbackController = globalThis.FourColorStandardBasicFeedback.createBasicFeedbackController({
       storage: localStorage, documentRef: document, navigatorRef: navigator, globalRef: globalThis,
