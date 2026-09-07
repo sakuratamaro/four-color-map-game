@@ -6,7 +6,7 @@ const {
   adjacentRegionIds,
 } = require("./standard-engine.js");
 const { dispatchStandardSkillAction } = require("./standard-skill-dispatcher.js");
-const { applyCurseBacklashOnEnterColor, preparedOutgoingCandidates, tickPaletteDebuffsAfterColor, tickSealsAfterColor } = require("./standard-skill-handlers.js");
+const { applyCurseBacklashOnEnterColor, consumeDeferredCurseBacklashAfterColor, preparedOutgoingCandidates, tickPaletteDebuffsAfterColor, tickSealsAfterColor } = require("./standard-skill-handlers.js");
 const { createRegionGeometryContext } = require("./standard-region-geometry.js");
 const { COLORED_CORNER_BLOOM_ENGINE_VERSION, SKILL_USAGE_CATEGORIES } = require("./standard-skill-registry.js");
 
@@ -609,6 +609,7 @@ function colorRegion(state, actor, payload = {}, rngStreams = {}) {
   if (!prism && !temporary && !hasUnlimitedBasicSlot && color === next.bonusColors[actor]) next.bonusUsesRemaining[actor] -= 1;
   if (prism) delete next.privateEffects[actor].prism;
   if (next.privateEffects[actor]?.temporaryColors) delete next.privateEffects[actor].temporaryColors;
+  consumeDeferredCurseBacklashAfterColor(next, actor);
   tickSealsAfterColor(next, actor);
   tickPaletteDebuffsAfterColor(next, actor);
   if (next.reserved) {

@@ -944,22 +944,32 @@ function paletteBeforeSeals(state, actor) {
 function applyCurseBacklashOnEnterColor(state, actor, random) {
   const count = Math.max(0, Number(state.privateEffects[actor]?.curseBacklash) || 0);
   if (!count) return state;
-  state.publicEffects[actor] = state.publicEffects[actor] || { seals: {} };
-  state.publicEffects[actor].seals = state.publicEffects[actor].seals || {};
   const sealed = [];
+  let remaining = count;
   for (let index = 0; index < count; index += 1) {
-    const candidates = paletteBeforeSeals(state, actor).filter((color) => !(state.publicEffects[actor].seals[color] > 0));
+    const seals = state.publicEffects[actor]?.seals || {};
+    const candidates = paletteBeforeSeals(state, actor).filter((color) => !(seals[color] > 0));
     if (!candidates.length) break;
     const draw = Number(random());
     if (!Number.isFinite(draw) || draw < 0 || draw >= 1) throw new StandardRuleError("RNG_REQUIRED_SKILL_EFFECT", "Named RNG stream is required");
     const color = candidates[Math.floor(draw * candidates.length)];
+    state.publicEffects[actor] = state.publicEffects[actor] || { seals: {} };
+    state.publicEffects[actor].seals = state.publicEffects[actor].seals || {};
     state.publicEffects[actor].seals[color] = Math.max(state.publicEffects[actor].seals[color] || 0, 1);
     sealed.push(color);
+    remaining -= 1;
   }
+  if (remaining > 0) state.privateEffects[actor].curseBacklash = remaining;
+  else delete state.privateEffects[actor].curseBacklash;
+  if (sealed.length) state.publicLog.push(`Curse backlash sealed ${sealed.join(",")} for Player ${actor} for this coloring.`);
+  return state;
+}
+
+function consumeDeferredCurseBacklashAfterColor(state, actor) {
+  const count = Math.max(0, Number(state.privateEffects[actor]?.curseBacklash) || 0);
+  if (!count) return state;
   delete state.privateEffects[actor].curseBacklash;
-  state.publicLog.push(sealed.length
-    ? `Curse backlash sealed ${sealed.join(",")} for Player ${actor} for this coloring.`
-    : `Curse backlash resolved empty for Player ${actor}.`);
+  state.publicLog.push(`Curse backlash resolved after Player ${actor} completed coloring.`);
   return state;
 }
 
@@ -996,6 +1006,7 @@ module.exports = {
   applyColorPrism,
   applyColorRegionSplit,
   applyCurseBacklashOnEnterColor,
+  consumeDeferredCurseBacklashAfterColor,
   applyDisruptChoiceOne,
   applyDisruptChoiceThree,
   applyDisruptChoiceTwo,
