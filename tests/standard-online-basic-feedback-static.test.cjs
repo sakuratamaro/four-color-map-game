@@ -25,7 +25,7 @@ test("online feedback settings are explicit, separate, persistent, and keyboard-
 });
 
 test("feedback script is cache-busted before the matching app generation", () => {
-  const controllerScript = html.indexOf('<script src="basic-feedback.js?v=20260908-1"></script>');
+  const controllerScript = html.indexOf('<script src="basic-feedback.js?v=20260908-2"></script>');
   const appScript = html.indexOf('<script type="module" src="app.js?v=20260908-7"></script>');
   assert.ok(controllerScript >= 0 && appScript > controllerScript);
   assert.match(html, /style\.css\?v=20260908-5/);
@@ -60,6 +60,7 @@ test("gesture, hidden, offline, replay, API-failure, and reduced-motion boundari
   assert.ok(claimIndex >= 0 && outputGateIndex > claimIndex);
   assert.match(feedback, /safeNavigator\?\.locks\?\.request/);
   assert.match(feedback, /requestLock\.call\(safeNavigator\.locks, EVENT_HISTORY_LOCK, \{ mode: "exclusive" \}/);
+  assert.match(feedback, /storageTurnAvailable = await waitForStorageTurn\(\)/);
   assert.match(feedback, /historyFromJson\(event\.newValue\)/);
   assert.match(feedback, /eventHistory\.some\(\(eventId\) => !persistedIds\.has\(eventId\)\)/);
   assert.match(feedback, /oscillator\.stop\(0\)/);
