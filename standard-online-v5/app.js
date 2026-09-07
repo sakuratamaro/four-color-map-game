@@ -269,6 +269,10 @@ let turnArrivalBeatGeneration = 0;
 let turnArrivalBackgrounded = document.visibilityState !== "visible";
 let quizClockTimer = null;
 let quizMathResizeObserver = null;
+let quizOptionPhysics = null;
+let quizWindowBlurred = false;
+const quizReducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
+const quizHoverMotion = matchMedia("(hover: hover)");
 let quizTimeoutQueued = false;
 let quizFeedbackGeneration = 0;
 let quizFeedbackUntil = 0;
@@ -515,6 +519,7 @@ function activateAppTab(requestedTab, { updateHash = true, scrollTop = true } = 
   if (tab === "battle" && hasMatchedRoomHandoff()) pauseQuizClockForMatchedRoom();
   renderMatchedRoomHandoff();
   if (resumePausedQuiz) renderQuiz();
+  requestAnimationFrame(() => syncQuizOptionMotion());
   if (tab === "battle") {
     const publicState = roomModel?.room?.public_state;
     if (hasStandardPublicState(publicState)) renderBoard(publicState);
@@ -2223,8 +2228,86 @@ function renderQuizResult() {
   }
 }
 
+function advanceQuizOptionPhysics(items, arenaWidth, arenaHeight, dt) {
+  for (const item of items) {
+    item.x += item.vx * dt;
+    item.y += item.vy * dt;
+    if (item.x <= 0) { item.x = 0; item.vx = Math.abs(item.vx); }
+    else if (item.x + item.width >= arenaWidth) { item.x = Math.max(0, arenaWidth - item.width); item.vx = -Math.abs(item.vx); }
+    if (item.y <= 0) { item.y = 0; item.vy = Math.abs(item.vy); }
+    else if (item.y + item.height >= arenaHeight) { item.y = Math.max(0, arenaHeight - item.height); item.vy = -Math.abs(item.vy); }
+  }
+  for (let leftIndex = 0; leftIndex < items.length; leftIndex += 1) {
+    for (let rightIndex = leftIndex + 1; rightIndex < items.length; rightIndex += 1) {
+      const left = items[leftIndex]; const right = items[rightIndex];
+      const overlapX = Math.min(left.x + left.width, right.x + right.width) - Math.max(left.x, right.x);
+      const overlapY = Math.min(left.y + left.height, right.y + right.height) - Math.max(left.y, right.y);
+      if (overlapX <= 0 || overlapY <= 0) continue;
+      if (overlapX < overlapY) {
+        const leftBeforeRight = left.x + left.width / 2 <= right.x + right.width / 2;
+        const correction = overlapX / 2 + 0.05;
+        left.x += leftBeforeRight ? -correction : correction;
+        right.x += leftBeforeRight ? correction : -correction;
+        const approaching = leftBeforeRight ? left.vx > right.vx : right.vx > left.vx;
+        if (approaching) [left.vx, right.vx] = [right.vx, left.vx];
+      } else {
+        const leftAboveRight = left.y + left.height / 2 <= right.y + right.height / 2;
+        const correction = overlapY / 2 + 0.05;
+        left.y += leftAboveRight ? -correction : correction;
+        right.y += leftAboveRight ? correction : -correction;
+        const approaching = leftAboveRight ? left.vy > right.vy : right.vy > left.vy;
+        if (approaching) [left.vy, right.vy] = [right.vy, left.vy];
+      }
+      left.x = Math.max(0, Math.min(arenaWidth - left.width, left.x));
+      right.x = Math.max(0, Math.min(arenaWidth - right.width, right.x));
+      left.y = Math.max(0, Math.min(arenaHeight - left.height, left.y));
+      right.y = Math.max(0, Math.min(arenaHeight - right.height, right.y));
+    }
+  }
+  return items;
+}
+
+function applyQuizOptionPhysicsPositions(motion = quizOptionPhysics) {
+  if (!motion) return;
+  for (const item of motion.items) item.element.style.transform = `translate3d(${item.x.toFixed(2)}px,${item.y.toFixed(2)}px,0)`;
+}
+
+function layoutQuizOptionPhysics(motion = quizOptionPhysics) {
+  if (!motion?.arena?.isConnected || !motion.items.length) return false;
+  const arenaWidth = motion.arena.clientWidth;
+  const arenaHeight = motion.arena.clientHeight;
+  if (arenaWidth < 1 || arenaHeight < 1) return false;
+  const columns = arenaWidth < 286 ? 2 : 3;
+  const rows = Math.ceil(motion.items.length / columns);
+  const sidePadding = arenaWidth < 360 ? 8 : 12;
+  const minimumColumnGap = arenaWidth < 360 ? 7 : 10;
+  const reservedBottom = motion.arena.classList.contains("has-quiz-retry") ? 68 : 0;
+  const availableHeight = Math.max(1, arenaHeight - reservedBottom);
+  const buttonWidth = Math.max(82, Math.min(156, Math.floor((arenaWidth - sidePadding * 2 - minimumColumnGap * (columns - 1)) / columns)));
+  const buttonHeight = arenaWidth < 520 ? 56 : 60;
+  const columnGap = columns > 1 ? Math.max(minimumColumnGap, (arenaWidth - sidePadding * 2 - columns * buttonWidth) / (columns - 1)) : 0;
+  const rowGap = rows > 1 ? Math.max(8, (availableHeight - sidePadding * 2 - rows * buttonHeight) / (rows - 1)) : 0;
+  motion.items.forEach((item, index) => {
+    const column = index % columns; const row = Math.floor(index / columns);
+    item.width = buttonWidth; item.height = buttonHeight;
+    item.x = sidePadding + column * (buttonWidth + columnGap);
+    item.y = sidePadding + row * (buttonHeight + rowGap);
+    item.element.style.width = `${buttonWidth}px`;
+    item.element.style.height = `${buttonHeight}px`;
+  });
+  motion.arenaWidth = arenaWidth;
+  motion.arenaHeight = arenaHeight;
+  motion.playHeight = availableHeight;
+  applyQuizOptionPhysicsPositions(motion);
+  return true;
+}
+
 function quizOptionMotionPaused(state = pendingQuiz?.questionState) {
+  const interaction = quizOptionPhysics?.interaction;
+  const arena = quizOptionPhysics?.arena;
   return document.visibilityState !== "visible"
+    || quizWindowBlurred
+    || quizReducedMotion.matches
     || activeAppTab !== "quiz"
     || quizBusy
     || quizLockedByMatchedRoom()
@@ -2232,11 +2315,130 @@ function quizOptionMotionPaused(state = pendingQuiz?.questionState) {
     || pendingQuiz.answers.length >= 10
     || Boolean(pendingQuiz.pendingAnswer)
     || Date.now() < quizFeedbackUntil
-    || Number(state?.hintActiveUntil || 0) > Date.now();
+    || Number(state?.hintActiveUntil || 0) > Date.now()
+    || Number(state?.remainingMs || 0) <= 0
+    || Boolean(quizHoverMotion.matches && arena?.matches(":hover"))
+    || Boolean(arena?.contains(document.activeElement))
+    || Boolean(interaction?.pointerInside)
+    || Boolean(interaction?.pointerDown)
+    || Boolean(interaction?.touchActive)
+    || Boolean(interaction?.focusInside);
+}
+
+function stopQuizOptionPhysics({ clear = false } = {}) {
+  const motion = quizOptionPhysics;
+  if (!motion) return;
+  if (motion.raf) cancelAnimationFrame(motion.raf);
+  motion.raf = 0;
+  motion.lastFrame = 0;
+  if (!clear) return;
+  clearTimeout(motion.touchResumeTimer);
+  motion.touchResumeTimer = null;
+  motion.resizeObserver?.disconnect();
+  motion.arena.classList.remove("is-physics", "motion-running", "motion-paused", "has-quiz-retry");
+  delete motion.arena.dataset.motionState;
+  quizOptionPhysics = null;
+}
+
+function animateQuizOptionPhysics(now) {
+  const motion = quizOptionPhysics;
+  if (!motion || quizOptionMotionPaused()) return stopQuizOptionPhysics();
+  if (motion.arena.clientWidth !== motion.arenaWidth || motion.arena.clientHeight !== motion.arenaHeight) layoutQuizOptionPhysics(motion);
+  const dt = motion.lastFrame ? Math.min(0.04, Math.max(0, (now - motion.lastFrame) / 1000)) : 0;
+  motion.lastFrame = now;
+  if (dt > 0) {
+    advanceQuizOptionPhysics(motion.items, motion.arenaWidth, motion.playHeight, dt);
+    applyQuizOptionPhysicsPositions(motion);
+  }
+  motion.raf = requestAnimationFrame(animateQuizOptionPhysics);
 }
 
 function syncQuizOptionMotion(state = pendingQuiz?.questionState) {
-  $("quizOptions")?.classList.toggle("motion-paused", quizOptionMotionPaused(state));
+  const motion = quizOptionPhysics;
+  const arena = $("quizOptions");
+  if (!motion || motion.arena !== arena || !motion.arena.isConnected) {
+    arena?.classList.toggle("motion-paused", quizOptionMotionPaused(state));
+    return;
+  }
+  if (motion.arena.clientWidth !== motion.arenaWidth || motion.arena.clientHeight !== motion.arenaHeight) layoutQuizOptionPhysics(motion);
+  const paused = quizOptionMotionPaused(state);
+  motion.arena.classList.toggle("motion-paused", paused);
+  motion.arena.classList.toggle("motion-running", !paused);
+  motion.arena.dataset.motionState = paused ? "paused" : "running";
+  if (paused) return stopQuizOptionPhysics();
+  if (!motion.raf && motion.arenaWidth > 0) {
+    motion.lastFrame = performance.now();
+    motion.raf = requestAnimationFrame(animateQuizOptionPhysics);
+  }
+}
+
+function initializeQuizOptionPhysics(buttons, { reserveRetry = false } = {}) {
+  stopQuizOptionPhysics({ clear: true });
+  const arena = $("quizOptions");
+  if (!arena || !buttons.length) return;
+  arena.classList.add("is-physics");
+  arena.classList.toggle("has-quiz-retry", reserveRetry);
+  const velocityAngles = [0.42, 2.58, -0.72, -2.66, 1.18, -1.92];
+  const motion = {
+    arena,
+    arenaWidth: 0,
+    arenaHeight: 0,
+    playHeight: 0,
+    items: buttons.map((element, index) => {
+      const speed = 19 + index % 3 * 3;
+      const angle = velocityAngles[index % velocityAngles.length];
+      return { element, x: 0, y: 0, width: 0, height: 0, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed };
+    }),
+    interaction: { pointerInside: false, pointerDown: false, touchActive: false, focusInside: false },
+    raf: 0,
+    lastFrame: 0,
+    resizeObserver: null,
+    touchResumeTimer: null,
+  };
+  quizOptionPhysics = motion;
+  const pause = () => syncQuizOptionMotion();
+  arena.addEventListener("pointerenter", (event) => { if (event.pointerType !== "touch") motion.interaction.pointerInside = true; pause(); });
+  arena.addEventListener("pointerleave", (event) => { if (event.pointerType !== "touch") motion.interaction.pointerInside = false; motion.interaction.pointerDown = false; pause(); });
+  arena.addEventListener("pointerdown", (event) => { motion.interaction.pointerDown = true; if (event.pointerType === "touch") motion.interaction.touchActive = true; pause(); });
+  const releasePointer = (event) => {
+    motion.interaction.pointerDown = false;
+    if (event.pointerType === "touch") {
+      clearTimeout(motion.touchResumeTimer);
+      motion.touchResumeTimer = setTimeout(() => { if (quizOptionPhysics === motion) { motion.interaction.touchActive = false; syncQuizOptionMotion(); } }, 450);
+    }
+    pause();
+  };
+  arena.addEventListener("pointerup", releasePointer);
+  arena.addEventListener("pointercancel", releasePointer);
+  arena.addEventListener("touchstart", () => { motion.interaction.touchActive = true; pause(); }, { passive: true });
+  const releaseTouch = () => {
+    clearTimeout(motion.touchResumeTimer);
+    motion.touchResumeTimer = setTimeout(() => { if (quizOptionPhysics === motion) { motion.interaction.touchActive = false; syncQuizOptionMotion(); } }, 450);
+  };
+  arena.addEventListener("touchend", releaseTouch, { passive: true });
+  arena.addEventListener("touchcancel", releaseTouch, { passive: true });
+  arena.addEventListener("focusin", () => { motion.interaction.focusInside = true; pause(); });
+  arena.addEventListener("focusout", () => {
+    queueMicrotask(() => {
+      if (quizOptionPhysics === motion) {
+        motion.interaction.focusInside = arena.contains(document.activeElement);
+        syncQuizOptionMotion();
+      }
+    });
+  });
+  if (typeof ResizeObserver === "function") {
+    motion.resizeObserver = new ResizeObserver(() => {
+      if (quizOptionPhysics !== motion) return;
+      layoutQuizOptionPhysics(motion);
+      syncQuizOptionMotion();
+    });
+    motion.resizeObserver.observe(arena);
+  }
+  requestAnimationFrame(() => {
+    if (quizOptionPhysics !== motion) return;
+    layoutQuizOptionPhysics(motion);
+    syncQuizOptionMotion();
+  });
 }
 
 function renderQuiz() {
@@ -2262,7 +2464,7 @@ function renderQuiz() {
   renderQuizAnswerFeedback();
   renderQuizStreak();
   renderQuizOutlook();
-  if (!pendingQuiz) { stopQuizClock(); syncQuizOptionMotion(); return; }
+  if (!pendingQuiz) { stopQuizClock(); stopQuizOptionPhysics({ clear: true }); syncQuizOptionMotion(); return; }
   const lockedByMatch = quizLockedByMatchedRoom();
   if (lockedByMatch) $("quizStatus").textContent = quizRoomClassificationPending
     ? QUIZ_ROOM_CHECK_STATUS
@@ -2271,6 +2473,7 @@ function renderQuiz() {
   $("quizProgress").textContent = `${Math.min(index + 1, 10)} / 10`;
   $("quizLevelBadge").textContent = `Lv.${pendingQuiz.selectedLevel}`;
   const focusedQuizOptionIndex = [...$("quizOptions").querySelectorAll("button")].indexOf(document.activeElement);
+  stopQuizOptionPhysics({ clear: true });
   $("quizOptions").replaceChildren();
   if (index >= 10) {
     stopQuizClock();
@@ -2293,27 +2496,27 @@ function renderQuiz() {
   renderQuizExperience(question);
   renderQuizQuestion(question);
   renderQuizHint(question, questionState);
-  for (const [optionIndex, option] of (question.options || []).entries()) {
+  const optionButtons = [];
+  for (const option of (question.options || [])) {
     const button = document.createElement("button");
-    button.style.setProperty("--float-order", String(optionIndex));
-    const label = document.createElement("span");
-    label.className = "quiz-option-float";
-    label.textContent = option.label;
-    button.appendChild(label);
+    button.dataset.quizOption = option.id;
+    button.textContent = option.label;
     button.disabled = quizBusy || lockedByMatch || Boolean(pendingQuiz.pendingAnswer) || Number(questionState?.hintActiveUntil || 0) > Date.now();
     button.onclick = () => answerOnlineQuiz(option.id);
     $("quizOptions").appendChild(button);
+    optionButtons.push(button);
   }
   if (pendingQuiz.pendingAnswer) {
     stopQuizClock();
     const retry = document.createElement("button");
-    retry.className = "primary";
+    retry.className = "primary quiz-answer-retry";
     retry.textContent = quizBusy ? "回答を送信中…" : "同じ回答を再送";
     retry.disabled = quizBusy || lockedByMatch;
     retry.onclick = submitPendingQuizAnswer;
     $("quizOptions").appendChild(retry);
   } else if (lockedByMatch) stopQuizClock();
   else startQuizClock();
+  initializeQuizOptionPhysics(optionButtons, { reserveRetry: Boolean(pendingQuiz.pendingAnswer) });
   const restoredQuizOption = $("quizOptions").querySelectorAll("button")[focusedQuizOptionIndex];
   if (focusedQuizOptionIndex >= 0 && restoredQuizOption && !restoredQuizOption.disabled) restoredQuizOption.focus({ preventScroll: true });
   syncQuizOptionMotion(questionState);
@@ -5071,6 +5274,8 @@ document.addEventListener("visibilitychange", () => {
   }
 });
 window.addEventListener("focus", () => {
+  quizWindowBlurred = false;
+  syncQuizOptionMotion();
   roomSync.invalidate(); scheduleCpuTurn(250); scheduleMatchmakingAvailability(250);
   const snapshot = client.snapshot();
   if (connected && !snapshot.roomId && !pendingCpuStartSaga && !snapshot.cpuStartActionId
@@ -5078,6 +5283,12 @@ window.addEventListener("focus", () => {
     void recoverServerActiveRoom().catch(() => false);
   }
 });
+window.addEventListener("blur", () => {
+  quizWindowBlurred = true;
+  syncQuizOptionMotion();
+});
+quizReducedMotion.addEventListener?.("change", () => syncQuizOptionMotion());
+quizHoverMotion.addEventListener?.("change", () => syncQuizOptionMotion());
 window.addEventListener("storage", (event) => {
   basicFeedback.handleStorageEvent(event);
   const snapshot = client.snapshot();
