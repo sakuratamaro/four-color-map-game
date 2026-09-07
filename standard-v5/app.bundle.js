@@ -935,6 +935,21 @@ function clearPaletteDebuffAtSlot(state, actor, slot) {
   if (!state.privateEffects[actor].paletteDebuffs.length) delete state.privateEffects[actor].paletteDebuffs;
 }
 
+function recordPaletteImpact(state, target, { kind, slot, previousColor, injectedColor, remaining }) {
+  if (previousColor === injectedColor) return;
+  state.privateEffects[target] = state.privateEffects[target] || {};
+  const version = state.version + 1;
+  state.privateEffects[target].paletteImpactEvent = {
+    eventId: `${state.matchId}:${version}:palette-impact:${target}`,
+    version,
+    kind,
+    slot,
+    previousColor,
+    injectedColor,
+    remaining,
+  };
+}
+
 function applyColorPaletteChange({ state, actor, payload }) {
   if (!Number.isInteger(payload.slot) || payload.slot < 0 || payload.slot > 2 || !COLORS.includes(payload.color)) {
     return Object.freeze({ ok: false, code: "INVALID_TARGET_SCHEMA", state });
@@ -1710,13 +1725,15 @@ function applyDisruptPaletteRandom({ state, actor, random }) {
   const slot = slots[Math.floor(slotDraw * slots.length)];
   return resolved(state, actor, "disruptPaletteRandom", (next) => {
     next.privateEffects[target] = next.privateEffects[target] || {};
+    const displayedColor = paletteColorAt(next, target, slot);
     const existing = (next.privateEffects[target].paletteDebuffs || []).filter((effect) => effect.slot === slot).sort((left, right) => right.remaining - left.remaining);
     for (const effect of existing) if (paletteColorAt(next, target, slot) === effect.injectedColor) setPaletteColorAt(next, target, slot, effect.previousColor);
     clearPaletteDebuffAtSlot(next, target, slot);
     const previousColor = paletteColorAt(next, target, slot);
     setPaletteColorAt(next, target, slot, color);
     next.privateEffects[target].paletteDebuffs = [{ slot, previousColor, injectedColor: color, remaining: 1 }, ...(next.privateEffects[target].paletteDebuffs || [])];
-    next.publicLog.push(`T${next.turn} Player ${actor} randomly injected ${color} into one private palette slot of Player ${target} for the next coloring.`);
+    recordPaletteImpact(next, target, { kind: "random", slot, previousColor: displayedColor, injectedColor: color, remaining: 1 });
+    next.publicLog.push(`T${next.turn} Player ${actor} used a skill; its private result is hidden.`);
   }, { color, target });
 }
 
@@ -1732,20 +1749,22 @@ function applyDisruptPaletteChoice({ state, actor, payload, random }) {
   const differing = palette.map((current, slot) => current !== color ? slot : -1).filter((slot) => slot >= 0);
   if (!differing.length && state.skillCategoryWindow) {
     return resolvedWithoutCard(state, actor, (next) => {
-      next.publicLog.push(`T${next.turn} Player ${actor}'s chosen palette injection resolved without changing a private palette.`);
+      next.publicLog.push(`T${next.turn} Player ${actor} used a skill; its private result is hidden.`);
     }, { color, target, noOp: true });
   }
   const slots = differing.length ? differing : [0, 1, 2];
   const slot = slots[Math.floor(slotDraw * slots.length)];
   return resolved(state, actor, "disruptPaletteChoice", (next) => {
     next.privateEffects[target] = next.privateEffects[target] || {};
+    const displayedColor = paletteColorAt(next, target, slot);
     const existing = (next.privateEffects[target].paletteDebuffs || []).filter((effect) => effect.slot === slot).sort((left, right) => right.remaining - left.remaining);
     for (const effect of existing) if (paletteColorAt(next, target, slot) === effect.injectedColor) setPaletteColorAt(next, target, slot, effect.previousColor);
     clearPaletteDebuffAtSlot(next, target, slot);
     const previousColor = paletteColorAt(next, target, slot);
     setPaletteColorAt(next, target, slot, color);
     next.privateEffects[target].paletteDebuffs = [{ slot, previousColor, injectedColor: color, remaining: 2 }, ...(next.privateEffects[target].paletteDebuffs || [])];
-    next.publicLog.push(`T${next.turn} Player ${actor} injected chosen ${color} into one private palette slot of Player ${target} for the next two colorings.`);
+    recordPaletteImpact(next, target, { kind: "chosen", slot, previousColor: displayedColor, injectedColor: color, remaining: 2 });
+    next.publicLog.push(`T${next.turn} Player ${actor} used a skill; its private result is hidden.`);
   }, { color, target });
 }
 
@@ -1763,11 +1782,13 @@ function applyDisruptForcedPalette({ state, actor, payload, random }) {
   const slot = slots[Math.floor(slotDraw * slots.length)];
   return resolved(state, actor, "disruptForcedPalette", (next) => {
     next.privateEffects[target] = next.privateEffects[target] || {};
+    const displayedColor = paletteColorAt(next, target, slot);
     const existing = (next.privateEffects[target].paletteDebuffs || []).filter((effect) => effect.slot === slot).sort((left, right) => right.remaining - left.remaining);
     for (const effect of existing) if (paletteColorAt(next, target, slot) === effect.injectedColor) setPaletteColorAt(next, target, slot, effect.previousColor);
     clearPaletteDebuffAtSlot(next, target, slot);
     setPaletteColorAt(next, target, slot, color);
-    next.publicLog.push(`T${next.turn} Player ${actor} permanently injected chosen ${color} into one private palette slot of Player ${target}.`);
+    recordPaletteImpact(next, target, { kind: "forced", slot, previousColor: displayedColor, injectedColor: color, remaining: 0 });
+    next.publicLog.push(`T${next.turn} Player ${actor} used a skill; its private result is hidden.`);
   }, { color, target });
 }
 
@@ -2857,6 +2878,17 @@ function validateStandardState(state) {
         && COLORS.includes(effect.previousColor) && COLORS.includes(effect.injectedColor)
         && Number.isInteger(effect.remaining) && effect.remaining >= 1 && effect.remaining <= 2
         && (effect.slot < 2 ? state.basicPalettes[seat][effect.slot] : state.bonusColors[seat]) === effect.injectedColor)), "INVALID_PALETTE_DEBUFFS");
+    const paletteImpact = state.privateEffects?.[seat]?.paletteImpactEvent;
+    assertState(paletteImpact === undefined || (paletteImpact && typeof paletteImpact === "object" && !Array.isArray(paletteImpact)
+      && Number.isSafeInteger(paletteImpact.version) && paletteImpact.version >= 1 && paletteImpact.version <= state.version
+      && paletteImpact.eventId === `${state.matchId}:${paletteImpact.version}:palette-impact:${seat}`
+      && ["random", "chosen", "forced"].includes(paletteImpact.kind)
+      && Number.isInteger(paletteImpact.slot) && paletteImpact.slot >= 0 && paletteImpact.slot <= 2
+      && COLORS.includes(paletteImpact.previousColor) && COLORS.includes(paletteImpact.injectedColor)
+      && paletteImpact.previousColor !== paletteImpact.injectedColor
+      && Number.isInteger(paletteImpact.remaining) && paletteImpact.remaining >= 0 && paletteImpact.remaining <= 2
+      && (paletteImpact.kind === "random" ? paletteImpact.remaining === 1
+        : paletteImpact.kind === "chosen" ? paletteImpact.remaining === 2 : paletteImpact.remaining === 0)), "INVALID_PALETTE_IMPACT_EVENT");
   }
   if (state.status === "FINISHED") assertState(state.phase === "GAME_OVER" && ["A", "B"].includes(state.winner) && FINISHED_STATE_TERMINAL_REASONS.includes(state.terminalReason), "INVALID_TERMINAL_STATE");
   if (state.phase === "GAME_OVER") assertState(state.status === "FINISHED", "INVALID_TERMINAL_STATE");

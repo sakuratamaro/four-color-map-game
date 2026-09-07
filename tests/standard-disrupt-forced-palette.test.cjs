@@ -18,7 +18,7 @@ function use(state, rng, color = "red", actor = "A", expectedVersion = state.ver
   return match.applyStandardAction({ state, actor, action: { type: "USE_SKILL", payload: { skill: "disruptForcedPalette", color } }, expectedVersion, rngStreams: rng });
 }
 
-test("forced palette draws one private slot, publishes only the chosen color, and changes it permanently", () => {
+test("forced palette draws one private slot, keeps details target-private, and changes it permanently", () => {
   const { state, rng } = fixture();
   const beforePalette = palette(state, "B");
   const beforeRng = rng["skill-effect"].snapshot();
@@ -34,9 +34,15 @@ test("forced palette draws one private slot, publishes only the chosen color, an
   assert.equal(afterPalette[changed[0]], color);
   assert.equal(result.state.privateEffects.B.paletteDebuffs, undefined);
   assert.equal(JSON.stringify(result.publicState).includes("basicPalettes"), false);
+  assert.equal(JSON.stringify(result.publicState).includes("paletteImpactEvent"), false);
+  assert.equal(result.state.publicLog.at(-1), `T${result.state.turn} Player A used a skill; its private result is hidden.`);
   assert.deepEqual([...result.privateState.basicPalette, result.privateState.bonusColor], palette(result.state, "A"));
   const targetPrivate = match.projectStandardPrivateState(result.state, "B");
   assert.deepEqual([...targetPrivate.basicPalette, targetPrivate.bonusColor], afterPalette);
+  assert.deepEqual(targetPrivate.privateEffects.paletteImpactEvent, {
+    eventId: `${result.state.matchId}:${result.state.version}:palette-impact:B`, version: result.state.version,
+    kind: "forced", slot: changed[0], previousColor: beforePalette[changed[0]], injectedColor: color, remaining: 0,
+  });
 });
 
 test("forced replacement restores and clears an existing temporary effect before permanent injection", () => {
@@ -49,6 +55,10 @@ test("forced replacement restores and clears an existing temporary effect before
   assert.equal(result.ok, true);
   assert.deepEqual(palette(result.state, "B"), ["red", "red", "red"]);
   assert.equal(result.state.privateEffects.B.paletteDebuffs, undefined);
+  assert.deepEqual(result.state.privateEffects.B.paletteImpactEvent, {
+    eventId: `${result.state.matchId}:${result.state.version}:palette-impact:B`, version: result.state.version,
+    kind: "forced", slot: 2, previousColor: "blue", injectedColor: "red", remaining: 0,
+  });
 });
 
 test("an all-same legal empty replacement still consumes exactly one draw and one card", () => {
@@ -60,6 +70,7 @@ test("an all-same legal empty replacement still consumes exactly one draw and on
   assert.equal(result.rngDraws, 1);
   assert.equal(result.state.hands.A.disruptForcedPalette, 0);
   assert.deepEqual(palette(result.state, "B"), ["red", "red", "red"]);
+  assert.equal(result.state.privateEffects.B.paletteImpactEvent, undefined);
 });
 
 test("invalid color rejects before RNG while missing RNG and stale requests remain atomic", () => {

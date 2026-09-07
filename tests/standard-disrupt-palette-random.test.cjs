@@ -38,9 +38,15 @@ test("random palette corruption draws color and private slot exactly once each",
   assert.equal(palette(result.state, "B")[effect.slot], result.color);
   assert.equal(JSON.stringify(result.publicState).includes("paletteDebuffs"), false);
   assert.equal(JSON.stringify(result.publicState).includes(effect.previousColor), false);
+  assert.equal(JSON.stringify(result.publicState).includes("paletteImpactEvent"), false);
   assert.equal(JSON.stringify(result.privateState).includes("paletteDebuffs"), false);
-  assert.deepEqual(match.projectStandardPrivateState(result.state, "B").privateEffects.paletteDebuffs, [effect]);
-  assert.equal(result.state.publicLog.at(-1).includes(result.color), true);
+  const targetPrivate = match.projectStandardPrivateState(result.state, "B");
+  assert.deepEqual(targetPrivate.privateEffects.paletteDebuffs, [effect]);
+  assert.deepEqual(targetPrivate.privateEffects.paletteImpactEvent, {
+    eventId: `${result.state.matchId}:${result.state.version}:palette-impact:B`, version: result.state.version,
+    kind: "random", slot: effect.slot, previousColor: beforePalette[effect.slot], injectedColor: result.color, remaining: 1,
+  });
+  assert.equal(result.state.publicLog.at(-1), `T${result.state.turn} Player A used a skill; its private result is hidden.`);
 });
 
 test("corrupted palette is authoritative for one coloring and then restores exactly", () => {
@@ -106,4 +112,29 @@ test("malformed or palette-inconsistent private debuffs fail closed", () => {
     mutate(copy);
     assert.throws(() => match.validateStandardState(copy), (error) => error.code === "INVALID_PALETTE_DEBUFFS");
   }
+});
+
+test("malformed private palette-impact identities fail closed", () => {
+  const { state, rng } = fixture();
+  const impacted = use(state, rng).state;
+  for (const mutate of [
+    (copy) => { copy.privateEffects.B.paletteImpactEvent.eventId += "-wrong"; },
+    (copy) => { copy.privateEffects.B.paletteImpactEvent.version = copy.version + 1; },
+    (copy) => { copy.privateEffects.B.paletteImpactEvent.kind = "self"; },
+    (copy) => { copy.privateEffects.B.paletteImpactEvent.previousColor = copy.privateEffects.B.paletteImpactEvent.injectedColor; },
+    (copy) => { copy.privateEffects.B.paletteImpactEvent.remaining = 2; },
+  ]) {
+    const copy = JSON.parse(JSON.stringify(impacted));
+    mutate(copy);
+    assert.throws(() => match.validateStandardState(copy), (error) => error.code === "INVALID_PALETTE_IMPACT_EVENT");
+  }
+});
+
+test("private palette-impact identity survives the canonical match save round trip", () => {
+  const { state, rng } = fixture();
+  const impacted = use(state, rng).state;
+  const rngSnapshot = engine.snapshotRngDomains(rng, match.REQUIRED_RNG_STREAMS);
+  const restored = match.decodeStandardMatch(match.encodeStandardMatch(impacted, rngSnapshot));
+  assert.deepEqual(restored.state.privateEffects.B.paletteImpactEvent, impacted.privateEffects.B.paletteImpactEvent);
+  assert.deepEqual(restored.rngSnapshot, rngSnapshot);
 });

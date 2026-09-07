@@ -63,8 +63,8 @@ test("release preflight is read-only, secret-free, finite, and stage-aware", () 
   assert.match(source, /DEFERRED_CURSE_LOCAL_BUNDLE_MISMATCH/);
   assert.match(source, /app\.text\.includes\('★\$\{meta\.rarity\}'\)/);
   assert.match(source, /CANDIDATE_ASSET_GENERATION_UI_PHASE_MISMATCH/);
-  assert.match(source, /app\.js\?v=20260908-3/);
-  assert.match(source, /style\.css\?v=20260908-4/);
+  assert.match(source, /app\.js\?v=20260908-4/);
+  assert.match(source, /style\.css\?v=20260908-5/);
   assert.match(source, /standard-online-skill-intents\.js\?v=20260907-20/);
   assert.match(source, /standard-skill-registry\.generated\.js\?v=20260907-1/);
   assert.match(source, /cpu-portraits\.js\?v=20260908-1/);
@@ -87,8 +87,8 @@ test("release preflight is read-only, secret-free, finite, and stage-aware", () 
 
 test("candidate preflight rejects a stale local Standard bundle marker or missing deferred curse code", async () => {
   const { LOCAL_STANDARD_BUNDLE_MARKER, LOCAL_STANDARD_BUNDLE_SHA256, hasDeferredCurseLocalBundle } = await contractsPromise;
-  assert.equal(LOCAL_STANDARD_BUNDLE_MARKER, "app.bundle.js?v=20260908-1-8f874130fbcd");
-  assert.equal(LOCAL_STANDARD_BUNDLE_SHA256, "8f874130fbcd899f0a4d26159c94efb46a08bd726572e783fa377879db58cca9");
+  assert.equal(LOCAL_STANDARD_BUNDLE_MARKER, "app.bundle.js?v=20260908-2-87f722259e50");
+  assert.equal(LOCAL_STANDARD_BUNDLE_SHA256, "87f722259e50b407d99ef1bd877f3d13687c1ad82e9a9c2d017cc2d62c40daee");
   assert.equal(hasDeferredCurseLocalBundle(candidateLocalHtml, candidateLocalBundle), true);
   assert.equal(hasDeferredCurseLocalBundle(candidateLocalHtml.replace(LOCAL_STANDARD_BUNDLE_MARKER, "app.bundle.js?v=20260907-5"), candidateLocalBundle), false);
   assert.equal(hasDeferredCurseLocalBundle(candidateLocalHtml, candidateLocalBundle.replace("consumeDeferredCurseBacklashAfterColor(next, actor);", "void next;")), false);
@@ -143,8 +143,8 @@ test("candidate app satisfies the waiting-opponent release marker", () => {
 });
 
 test("candidate page and app satisfy the alpha.4 cache generation marker", () => {
-  assert.equal(candidateHtml.includes("app.js?v=20260908-3"), true);
-  assert.equal(candidateHtml.includes("style.css?v=20260908-4"), true);
+  assert.equal(candidateHtml.includes("app.js?v=20260908-4"), true);
+  assert.equal(candidateHtml.includes("style.css?v=20260908-5"), true);
   assert.equal(candidateHtml.includes("standard-online-skill-intents.js?v=20260907-20"), true);
   assert.equal(candidateHtml.includes("standard-skill-registry.generated.js?v=20260907-1"), true);
   assert.equal(candidateHtml.includes("cpu-portraits.js?v=20260908-1"), true);
