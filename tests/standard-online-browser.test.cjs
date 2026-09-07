@@ -44,6 +44,11 @@ async function bounded(stage, promise, timeoutMs) {
   }
 }
 
+async function clickMovingQuizOption(locator) {
+  await locator.focus();
+  await locator.click();
+}
+
 function closeServer(server) {
   return new Promise((resolve, reject) => {
     server.close((error) => error ? reject(error) : resolve());
@@ -83,6 +88,26 @@ async function installMock(context, mode) {
   }));
   await context.addInitScript(({ connectionKey: connection, saveKey: save, roomId: id, pendingId, mode: initialMode }) => {
     globalThis.__standardOnlineFocusEvents = [];
+    if (initialMode === "quizPhysics") {
+      const trackedQuizMotionEvents = new Set(["pointerenter", "pointerleave", "pointerdown", "pointerup", "pointercancel", "touchstart", "touchend", "touchcancel", "focusin", "focusout"]);
+      const originalAddEventListener = EventTarget.prototype.addEventListener;
+      globalThis.__quizMotionListenerAudit = { active: {}, added: {}, fired: {} };
+      EventTarget.prototype.addEventListener = function trackQuizMotionListeners(type, listener, options) {
+        if (this instanceof Element && this.id === "quizOptions" && trackedQuizMotionEvents.has(type)) {
+          const audit = globalThis.__quizMotionListenerAudit;
+          audit.active[type] = (audit.active[type] || 0) + 1;
+          audit.added[type] = (audit.added[type] || 0) + 1;
+          const originalListener = listener;
+          listener = function trackedQuizMotionListener(event) {
+            audit.fired[type] = (audit.fired[type] || 0) + 1;
+            return originalListener.call(this, event);
+          };
+          const signal = options && typeof options === "object" ? options.signal : null;
+          if (signal) originalAddEventListener.call(signal, "abort", () => { audit.active[type] -= 1; }, { once: true });
+        }
+        return originalAddEventListener.call(this, type, listener, options);
+      };
+    }
     const originalFocus = HTMLElement.prototype.focus;
     HTMLElement.prototype.focus = function trackedFocus(...args) {
       globalThis.__standardOnlineFocusEvents.push({ id: this.id || "", stack: new Error().stack || "" });
@@ -458,7 +483,7 @@ async function installMock(context, mode) {
             thinkingSteps: ["quizPolish", "quizLevel5"].includes(initialMode) ? 3 : question.templateId === "quadratic" ? 2 : 1,
             hintOptions: ["たし算：同じ位どうしを足す", "円の面積：S = πr²", "2次の行列式：det A = ad − bc"],
             hintDurationMs: 2500,
-            timeLimitSeconds: initialMode === "handoffStart" ? 1 : 10,
+            timeLimitSeconds: initialMode === "handoffStart" ? 1 : initialMode === "quizPhysics" ? 120 : 10,
             options: Array.from({ length: 6 }, (_, optionIndex) => ({ id: `q${index + 1}-${optionIndex + 1}`, label: String(index + optionIndex + 2) })),
           }));
           return { data: { sessionId: "66666666-6666-4666-8666-666666666666", duplicate: false, selectedLevel: request.body.selectedLevel, answerMode: "per-question-v1", expiresAt: "2099-01-01T00:00:00.000Z", questions, timeoutAnswerId: "__timeout__" } };
@@ -2405,100 +2430,162 @@ test("actual Edge quiz freezes for the hint, resumes without room polling, and a
     const resumedAt = await page.locator("#quizTimeBar").evaluate((node) => Number.parseFloat(node.style.width));
     assert.ok(resumedAt < stillFrozenAt - 2, `timer did not resume: ${stillFrozenAt} to ${resumedAt}`);
 
-    await page.locator("#quizOptions button").first().click();
+    await clickMovingQuizOption(page.locator("#quizOptions button").first());
     await page.getByText("2 / 10", { exact: true }).waitFor();
     const startCall = await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.find((entry) => entry.body?.operation === "quiz-start")?.body);
     assert.equal(startCall.selectedLevel, 1);
   });
 });
 
-test(`${browserName} keeps quiz hitboxes fixed while their labels drift at 390px`, { timeout: 130000 }, async () => {
-  await withPage("quiz", async (page) => {
+test(`${browserName} moves whole quiz buttons in one collision arena and pauses every interaction safely`, { timeout: 130000 }, async () => {
+  await withPage("quizPhysics", async (page) => {
     await page.getByRole("button", { name: "クイズ・ガチャ" }).click();
     await page.getByRole("button", { name: "10問チャレンジ開始" }).click();
-    const options = page.locator("#quizOptions button");
+    const arena = page.locator("#quizOptions");
+    const options = arena.locator("button[data-quiz-option]");
     await options.first().waitFor();
+    assert.equal(await options.count(), 6);
+    assert.equal(await arena.locator(".quiz-option-float").count(), 0);
+    const motionEventTypes = ["pointerenter", "pointerleave", "pointerdown", "pointerup", "pointercancel", "touchstart", "touchend", "touchcancel", "focusin", "focusout"];
+    const assertOneListenerGeneration = async (minimumAdded) => {
+      const audit = await page.evaluate((types) => {
+        const current = globalThis.__quizMotionListenerAudit;
+        return Object.fromEntries(types.map((type) => [type, {
+          active: current.active[type] || 0,
+          added: current.added[type] || 0,
+        }]));
+      }, motionEventTypes);
+      const added = audit[motionEventTypes[0]].added;
+      assert.ok(added >= minimumAdded, JSON.stringify(audit));
+      assert.deepEqual(audit, Object.fromEntries(motionEventTypes.map((type) => [type, { active: 1, added }])));
+      return added;
+    };
+    const initialListenerGeneration = await assertOneListenerGeneration(1);
+    await arena.evaluate((node) => node.scrollIntoView({ block: "center", behavior: "auto" }));
     await page.mouse.move(1, 1);
-    await page.waitForFunction(() => [...document.querySelectorAll("#quizOptions .quiz-option-float")]
-      .every((label) => getComputedStyle(label).animationName === "quiz-option-drift"));
-    await options.first().evaluate((button) => button.scrollIntoView({ block: "center" }));
+    await page.waitForFunction(() => document.querySelector("#quizOptions")?.dataset.motionState === "running");
 
-    const snapshot = () => page.evaluate(() => ({
-      order: [...document.querySelectorAll("#quizOptions button")].map((button) => button.textContent),
-      overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
-      buttons: [...document.querySelectorAll("#quizOptions button")].map((button) => {
-        const label = button.querySelector(".quiz-option-float");
-        const box = button.getBoundingClientRect();
-        const visual = label.getBoundingClientRect();
-        return {
-          box: { x: box.x, y: box.y, width: box.width, height: box.height },
-          visual: { left: visual.left, right: visual.right, top: visual.top, bottom: visual.bottom },
-          animationName: getComputedStyle(label).animationName,
-          centerTargetIsButton: document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2) === button,
-        };
-      }),
-    }));
+    const snapshot = () => page.evaluate(() => {
+      const host = document.querySelector("#quizOptions"); const arenaBox = host.getBoundingClientRect();
+      return {
+        state: host.dataset.motionState,
+        order: [...host.querySelectorAll("button[data-quiz-option]")].map((button) => button.textContent),
+        overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+        unobscuredBottom: Math.min(innerHeight, document.querySelector(".app-tabs")?.getBoundingClientRect().top || innerHeight),
+        arena: { left: arenaBox.left, top: arenaBox.top, right: arenaBox.right, bottom: arenaBox.bottom },
+        buttons: [...host.querySelectorAll("button[data-quiz-option]")].map((button) => {
+          const box = button.getBoundingClientRect();
+          return {
+            x: box.x, y: box.y, left: box.left, top: box.top, right: box.right, bottom: box.bottom,
+            width: box.width, height: box.height, transform: getComputedStyle(button).transform,
+            centerTargetIsButton: document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2) === button,
+          };
+        }),
+      };
+    });
+    const assertPacked = (state) => {
+      assert.equal(state.overflow, false, JSON.stringify(state));
+      assert.ok(state.buttons.every((button) => button.left >= state.arena.left - 0.5 && button.right <= state.arena.right + 0.5
+        && button.top >= state.arena.top - 0.5 && button.bottom <= state.arena.bottom + 0.5), JSON.stringify(state));
+      assert.ok(state.buttons.every((button) => button.height >= 52 && button.transform !== "none"), JSON.stringify(state));
+      const unobscured = state.buttons.filter((button) => button.y + button.height / 2 < state.unobscuredBottom);
+      assert.ok(unobscured.length >= 3 && unobscured.every((button) => button.centerTargetIsButton), JSON.stringify(state));
+      for (let index = 0; index < state.buttons.length; index += 1) for (let other = index + 1; other < state.buttons.length; other += 1) {
+        const a = state.buttons[index]; const b = state.buttons[other];
+        assert.ok(a.right <= b.left + 0.5 || b.right <= a.left + 0.5 || a.bottom <= b.top + 0.5 || b.bottom <= a.top + 0.5, JSON.stringify({ a, b }));
+      }
+    };
 
     const before = await snapshot();
-    await page.waitForTimeout(450);
-    const after = await snapshot();
-    assert.deepEqual(after.order, before.order);
-    assert.equal(after.overflow, false);
-    assert.ok(after.buttons.every(({ box }) => box.height >= 52), JSON.stringify(after));
-    assert.ok(after.buttons.every(({ animationName }) => animationName === "quiz-option-drift"), JSON.stringify(after));
-    assert.ok(after.buttons.every(({ centerTargetIsButton }) => centerTargetIsButton), JSON.stringify(after));
-    for (let index = 0; index < before.buttons.length; index += 1) {
-      assert.deepEqual(after.buttons[index].box, before.buttons[index].box);
-      const { box, visual } = after.buttons[index];
-      assert.ok(visual.left >= box.x && visual.right <= box.x + box.width, JSON.stringify(after.buttons[index]));
-      assert.ok(visual.top >= box.y && visual.bottom <= box.y + box.height, JSON.stringify(after.buttons[index]));
-      for (let other = index + 1; other < after.buttons.length; other += 1) {
-        const a = box; const b = after.buttons[other].box;
-        assert.ok(a.x + a.width <= b.x || b.x + b.width <= a.x || a.y + a.height <= b.y || b.y + b.height <= a.y);
-      }
-    }
+    await page.waitForTimeout(650);
+    const moving = await snapshot();
+    assert.deepEqual(moving.order, before.order);
+    assert.ok(moving.buttons.every((button, index) => Math.hypot(button.x - before.buttons[index].x, button.y - before.buttons[index].y) > 0.1), JSON.stringify({ before, moving }));
+    assertPacked(moving);
+
+    const firstCenter = { x: moving.buttons[0].x + moving.buttons[0].width / 2, y: moving.buttons[0].y + moving.buttons[0].height / 2 };
+    await page.mouse.move(firstCenter.x, firstCenter.y);
+    await page.waitForFunction(() => document.querySelector("#quizOptions")?.dataset.motionState === "paused");
+    const hovered = await snapshot();
+    await page.waitForTimeout(350);
+    const stillHovered = await snapshot();
+    assert.deepEqual(stillHovered.buttons, hovered.buttons);
 
     await options.first().focus();
     await page.keyboard.press("Tab");
-    await page.keyboard.press("Shift+Tab");
-    const focused = await options.first().evaluate((button) => ({
-      outline: getComputedStyle(button).outlineStyle,
-      outlineOffset: getComputedStyle(button).outlineOffset,
-      motion: getComputedStyle(button.querySelector(".quiz-option-float")).animationName,
-    }));
-    assert.equal(focused.outline, "solid");
-    assert.equal(focused.outlineOffset, "-4px");
-    assert.equal(focused.motion, "none");
+    assert.equal(await options.nth(1).evaluate((button) => document.activeElement === button), true);
+    assert.equal((await snapshot()).state, "paused");
+    await page.evaluate(() => document.activeElement?.blur());
+    await page.mouse.move(1, 1);
+    await page.waitForFunction(() => document.querySelector("#quizOptions")?.dataset.motionState === "running");
+
+    await page.setViewportSize({ width: 430, height: 844 });
+    await page.setViewportSize({ width: 390, height: 844 });
+    await arena.evaluate((node) => node.scrollIntoView({ block: "center", behavior: "auto" }));
+    await page.waitForFunction(() => document.querySelector("#quizOptions")?.dataset.motionState === "running");
+    assertPacked(await snapshot());
+
+    await arena.dispatchEvent("pointerdown", { pointerType: "touch", bubbles: true });
+    assert.equal((await snapshot()).state, "paused");
+    await arena.dispatchEvent("pointerup", { pointerType: "touch", bubbles: true });
+    await page.waitForTimeout(500);
+    await page.mouse.move(1, 1);
+    await page.waitForFunction(() => document.querySelector("#quizOptions")?.dataset.motionState === "running");
 
     await page.getByRole("button", { name: "ヒントを見る" }).click();
-    assert.ok(await options.evaluateAll((buttons) => buttons.every((button) => getComputedStyle(button.querySelector(".quiz-option-float")).animationName === "none")));
+    assert.equal((await snapshot()).state, "paused");
     await page.locator("#quizHintText").waitFor({ state: "hidden", timeout: 4500 });
-    assert.ok(await options.evaluateAll((buttons) => buttons.every((button) => getComputedStyle(button.querySelector(".quiz-option-float")).animationName === "quiz-option-drift")));
-
-    await page.evaluate(() => { globalThis.__standardOnlineRuntime.failNextQuizAnswer = true; });
-    await options.first().click();
-    await page.getByRole("button", { name: "同じ回答を再送" }).waitFor();
-    const labels = page.locator("#quizOptions .quiz-option-float");
-    assert.equal(await labels.count(), 6);
-    assert.ok(await labels.evaluateAll((nodes) => nodes.every((node) => getComputedStyle(node).animationName === "none")));
-    await page.getByRole("button", { name: "同じ回答を再送" }).click();
-    await page.getByText("2 / 10", { exact: true }).waitFor();
-    assert.ok(await page.locator("#quizOptions .quiz-option-float").evaluateAll((nodes) => nodes.every((node) => getComputedStyle(node).animationName === "none")));
-    await page.waitForTimeout(700);
-    await page.mouse.move(0, 0);
-    assert.ok(await page.locator("#quizOptions .quiz-option-float").evaluateAll((nodes) => nodes.every((node) => getComputedStyle(node).animationName === "quiz-option-drift")));
-    await page.reload({ waitUntil: "load" });
-    await page.locator("#connectionBadge.good").waitFor();
-    await page.locator("#quizOptions .quiz-option-float").first().waitFor();
-    await page.mouse.move(0, 0);
-    assert.ok(await page.locator("#quizOptions .quiz-option-float").evaluateAll((nodes) => nodes.every((node) => getComputedStyle(node).animationName === "quiz-option-drift")));
+    await page.waitForFunction(() => document.querySelector("#quizOptions")?.dataset.motionState === "running");
 
     await page.emulateMedia({ reducedMotion: "reduce" });
-    assert.ok(await page.locator("#quizOptions button").evaluateAll((buttons) => buttons.every((button) => {
-      const style = getComputedStyle(button.querySelector(".quiz-option-float"));
-      return style.animationName === "none" && style.transform === "none";
-    })));
-  }, { viewport: { width: 390, height: 844 } });
+    await page.waitForFunction(() => document.querySelector("#quizOptions")?.dataset.motionState === "paused");
+    const reduced = await snapshot();
+    await page.waitForTimeout(300);
+    assert.deepEqual((await snapshot()).buttons, reduced.buttons);
+    await page.emulateMedia({ reducedMotion: "no-preference" });
+    await page.mouse.move(1, 1);
+    await page.waitForFunction(() => document.querySelector("#quizOptions")?.dataset.motionState === "running");
+
+    const clickable = await snapshot();
+    assert.equal(clickable.buttons[0].centerTargetIsButton, true);
+    let target = clickable.buttons[0];
+    await page.mouse.move(target.x + target.width / 2, target.y + target.height / 2);
+    await page.waitForFunction(() => document.querySelector("#quizOptions")?.dataset.motionState === "paused");
+    target = (await snapshot()).buttons[0];
+    assert.equal(target.centerTargetIsButton, true);
+    await page.mouse.click(target.x + target.width / 2, target.y + target.height / 2);
+    await page.waitForTimeout(800);
+    const firstAnswerState = await page.evaluate(() => ({
+      progress: document.querySelector("#quizProgress")?.textContent,
+      status: document.querySelector("#quizStatus")?.textContent,
+      pending: JSON.parse(localStorage.getItem("fourColorMapGame.standard.online.v5.pending-quiz") || "null")?.pendingAnswer || null,
+      calls: globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "quiz-answer").length,
+    }));
+    assert.equal(firstAnswerState.progress, "2 / 10", JSON.stringify(firstAnswerState));
+    let answerCalls = await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "quiz-answer"));
+    assert.equal(answerCalls.length, 1);
+    const secondQuestionListenerGeneration = await assertOneListenerGeneration(initialListenerGeneration + 1);
+    await page.locator("#quizOptions button[data-quiz-option]").first().evaluate((button) => { button.click(); button.click(); });
+    await page.getByText("3 / 10", { exact: true }).waitFor();
+    answerCalls = await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "quiz-answer"));
+    assert.equal(answerCalls.length, 2);
+    await assertOneListenerGeneration(secondQuestionListenerGeneration + 1);
+    const firedDeltas = await arena.evaluate(async (node, types) => {
+      const audit = globalThis.__quizMotionListenerAudit;
+      const before = Object.fromEntries(types.map((type) => [type, audit.fired[type] || 0]));
+      for (const type of types) {
+        const event = type.startsWith("pointer")
+          ? new PointerEvent(type, { bubbles: true, pointerType: "mouse" })
+          : type.startsWith("focus")
+            ? new FocusEvent(type, { bubbles: true })
+            : new Event(type, { bubbles: true });
+        node.dispatchEvent(event);
+      }
+      await new Promise((resolve) => queueMicrotask(resolve));
+      return Object.fromEntries(types.map((type) => [type, (audit.fired[type] || 0) - before[type]]));
+    }, motionEventTypes);
+    assert.deepEqual(firedDeltas, Object.fromEntries(motionEventTypes.map((type) => [type, 1])));
+  }, { viewport: { width: 1280, height: 900 }, bodyTimeout: 75_000 });
 });
 
 test("per-question quiz feedback commits before advancing, retries the same answer, and keeps only brief motion", { timeout: 130000 }, async () => {
@@ -2507,7 +2594,7 @@ test("per-question quiz feedback commits before advancing, retries the same answ
     await page.getByRole("button", { name: "10問チャレンジ開始" }).click();
     await page.locator("#quizOptions button").first().waitFor();
     await page.evaluate(() => { globalThis.__standardOnlineRuntime.failNextQuizAnswer = true; });
-    await page.locator("#quizOptions button").first().click();
+    await clickMovingQuizOption(page.locator("#quizOptions button").first());
     await page.getByText("回答を保存できませんでした。同じ回答で安全に再送できます。", { exact: true }).waitFor();
     assert.equal(await page.locator("#quizProgress").textContent(), "1 / 10");
     const pendingBeforeRetry = await page.evaluate(() => JSON.parse(localStorage.getItem("fourColorMapGame.standard.online.v5.pending-quiz"))?.pendingAnswer);
@@ -2527,7 +2614,7 @@ test("per-question quiz feedback commits before advancing, retries the same answ
     assert.equal(await feedback.evaluate((node) => node.classList.contains("emphasize")), false);
     assert.equal(await feedback.textContent(), "前問 Q1：○ 正解！なるほど：1 + 1 = 2");
 
-    await page.locator("#quizOptions button").nth(1).click();
+    await clickMovingQuizOption(page.locator("#quizOptions button").nth(1));
     await page.getByText("3 / 10", { exact: true }).waitFor();
     assert.equal(await feedback.textContent(), "前問 Q2：× おしい　正解：3なるほど：2 + 1 = 3");
     await page.getByRole("button", { name: "カード" }).click();
@@ -2535,7 +2622,7 @@ test("per-question quiz feedback commits before advancing, retries the same answ
     assert.equal(await feedback.textContent(), "前問 Q2：× おしい　正解：3なるほど：2 + 1 = 3");
 
     for (let questionNumber = 3; questionNumber <= 10; questionNumber += 1) {
-      await page.locator("#quizOptions button").first().click();
+    await clickMovingQuizOption(page.locator("#quizOptions button").first());
       if (questionNumber < 10) await page.getByText(`${questionNumber + 1} / 10`, { exact: true }).waitFor();
       if (questionNumber === 4) {
         assert.equal(await page.locator("#quizStreak").textContent(), "いい流れ！ 2連続正解");
@@ -2576,7 +2663,7 @@ test("quadratic names the smaller root visibly and restored progress counts only
     const outlookLayouts = [await readOutlookLayout()];
 
     await page.evaluate(() => { globalThis.__standardOnlineRuntime.failNextQuizAnswer = true; });
-    await page.locator("#quizOptions button").nth(1).click();
+    await clickMovingQuizOption(page.locator("#quizOptions button").nth(1));
     await page.getByText("回答を保存できませんでした。同じ回答で安全に再送できます。", { exact: true }).waitFor();
     assert.match(await page.locator("#quizConfirmedProgress").textContent(), /0\/0正解/);
     await page.getByRole("button", { name: "同じ回答を再送" }).click();
@@ -2591,7 +2678,7 @@ test("quadratic names the smaller root visibly and restored progress counts only
     assert.match(await page.locator("#quizRewardTarget").textContent(), /10問後にサーバーが確定・保存/);
     outlookLayouts.push(await readOutlookLayout());
     for (let answered = 2; answered <= 9; answered += 1) {
-      await page.locator("#quizOptions button").nth(1).click();
+      await clickMovingQuizOption(page.locator("#quizOptions button").nth(1));
       await page.getByText(`${answered + 1} / 10`, { exact: true }).waitFor();
       outlookLayouts.push(await readOutlookLayout());
       if (answered === 3) assert.match(await page.locator("#quizRewardPreview").textContent(), /Lv\.3券1枚.*3ミス時の救済/);
@@ -2634,7 +2721,7 @@ test("Level 5 matrix trace and three-variable mission stay exact and visible at 
     assert.equal(await page.locator("#quizTimer").getAttribute("aria-live"), "off");
     await page.waitForFunction(() => document.querySelector("#quizTimerAnnouncement")?.textContent === "残り10秒です");
 
-    await page.locator("#quizOptions button").first().click();
+    await clickMovingQuizOption(page.locator("#quizOptions button").first());
     await page.getByText("2 / 10", { exact: true }).waitFor();
     assert.equal(await page.locator("#quizMission").textContent(), "3つの式から x+y+z を求めよう");
     assert.equal(await question.locator("math mtable mtr").count(), 3);
@@ -2677,7 +2764,7 @@ test("actual Edge presents prompt-only stories, dimension diagrams, structured m
     assert.equal(await question.locator(".quiz-visible-prompt").textContent(), "時速12kmで8時間進むと何km？");
     assert.doesNotMatch(await question.textContent(), /12\s*[×÷+]\s*8|=\s*\?/);
 
-    await page.locator("#quizOptions button").first().click();
+    await clickMovingQuizOption(page.locator("#quizOptions button").first());
     await page.getByText("2 / 10", { exact: true }).waitFor();
     const diagram = question.locator(".quiz-geometry svg");
     assert.equal(await diagram.getAttribute("role"), "img");
@@ -2685,25 +2772,25 @@ test("actual Edge presents prompt-only stories, dimension diagrams, structured m
     assert.equal(await diagram.locator(".quiz-geometry-cutout").count(), 1);
     assert.doesNotMatch(await diagram.textContent(), /[=×÷?]|面積|S|V/);
 
-    await page.locator("#quizOptions button").first().click();
+    await clickMovingQuizOption(page.locator("#quizOptions button").first());
     await page.getByText("3 / 10", { exact: true }).waitFor();
     assert.equal(await question.locator("math mfrac").count(), 1);
     assert.equal(await question.locator("math msub").count(), 1);
     assert.match((await question.locator("math").textContent()).replace(/\s+/g, ""), /^y=4x²\+2x,dydx\|x=6=\?$/);
 
-    await page.locator("#quizOptions button").first().click();
+    await clickMovingQuizOption(page.locator("#quizOptions button").first());
     await page.getByText("4 / 10", { exact: true }).waitFor();
     assert.ok((await page.evaluate(() => globalThis.__quizObserverStats.disconnected)) >= 1);
     assert.equal(await question.locator("math msubsup").count(), 1);
     assert.match((await question.locator("math").textContent()).replace(/\s+/g, ""), /^∫052xdx=\?$/);
 
-    await page.locator("#quizOptions button").first().click();
+    await clickMovingQuizOption(page.locator("#quizOptions button").first());
     await page.getByText("5 / 10", { exact: true }).waitFor();
     assert.equal(await question.locator("math msub").count(), 2);
     assert.equal(await question.locator("math msub").last().textContent(), "a12");
     assert.equal(await question.locator(".quiz-overflow-scrollbar").isHidden(), true);
 
-    await page.locator("#quizOptions button").first().click();
+    await clickMovingQuizOption(page.locator("#quizOptions button").first());
     await page.getByText("6 / 10", { exact: true }).waitFor();
     const viewport = question.locator(".quiz-math-scroll");
     const scrollbar = question.locator(".quiz-overflow-scrollbar");
@@ -2721,23 +2808,23 @@ test("actual Edge presents prompt-only stories, dimension diagrams, structured m
     assert.equal(await scrollbar.isVisible(), true);
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth), false);
 
-    await page.locator("#quizOptions button").first().click();
+    await clickMovingQuizOption(page.locator("#quizOptions button").first());
     await page.getByText("7 / 10", { exact: true }).waitFor();
     assert.equal(await question.locator("math").count(), 0);
     assert.equal(await question.locator(".quiz-visible-prompt").textContent(), "りんごが12個ずつ8箱あります。全部で何個？");
     assert.doesNotMatch(await question.textContent(), /12\s*×\s*8/);
 
-    await page.locator("#quizOptions button").first().click();
+    await clickMovingQuizOption(page.locator("#quizOptions button").first());
     await page.getByText("8 / 10", { exact: true }).waitFor();
     assert.equal(await question.locator(".quiz-visible-prompt").textContent(), "たて5、よこ8の長方形の周の長さは？");
     assert.deepEqual(await question.locator(".quiz-geometry svg text").allTextContents(), ["よこ 8", "たて 5"]);
 
-    await page.locator("#quizOptions button").first().click();
+    await clickMovingQuizOption(page.locator("#quizOptions button").first());
     await page.getByText("9 / 10", { exact: true }).waitFor();
     assert.equal(await question.locator("math munderover").count(), 1);
     assert.match((await question.locator("math").textContent()).replace(/\s+/g, ""), /^∑k=15k=\?$/);
 
-    await page.locator("#quizOptions button").first().click();
+    await clickMovingQuizOption(page.locator("#quizOptions button").first());
     await page.getByText("10 / 10", { exact: true }).waitFor();
     assert.equal(await question.locator(".quiz-visible-prompt").textContent(), "外側の半径5、内側の半径2、高さ6の中空円柱の体積は何π？");
     assert.equal(await question.locator(".quiz-geometry svg ellipse").count(), 4);
@@ -3101,7 +3188,7 @@ test("waiting-opponent notice does not interrupt quiz answers or gacha draws", {
     { mode: "lobby", operation: "quiz-answer", start: async (page) => {
       await page.getByRole("button", { name: "クイズ・ガチャ", exact: true }).click();
       await page.getByRole("button", { name: "10問チャレンジ開始" }).click();
-      await page.locator("#quizOptions button").first().click();
+    await clickMovingQuizOption(page.locator("#quizOptions button").first());
     } },
     { mode: "lobby", operation: "gacha", start: async (page) => {
       await page.getByRole("button", { name: "クイズ・ガチャ", exact: true }).click();
@@ -3164,7 +3251,7 @@ test("actual Edge finishes one quiz answer and its feedback before handing a wai
     await page.getByRole("button", { name: "対戦相手を募集" }).click();
     await page.getByRole("button", { name: "クイズ・ガチャ", exact: true }).click();
     await page.getByRole("button", { name: "10問チャレンジ開始" }).click();
-    await page.locator("#quizOptions button").first().click();
+    await clickMovingQuizOption(page.locator("#quizOptions button").first());
     await page.evaluate(() => {
       globalThis.__standardOnlineRuntime.matchNow = true;
       document.dispatchEvent(new Event("visibilitychange"));
@@ -3238,7 +3325,7 @@ test("actual Edge waits for a pending quiz from another tab and locks later answ
     assert.equal(await page.locator("body").getAttribute("data-active-tab"), "cards");
     await page.getByRole("button", { name: "クイズ・ガチャ", exact: true }).click();
     assert.ok(await page.locator("#quizOptions button:not([disabled])").count() > 0);
-    await page.locator("#quizOptions button:not([disabled])").first().click();
+    await clickMovingQuizOption(page.locator("#quizOptions button:not([disabled])").first());
     await page.getByText(/前問 Q1：○ 正解！/).waitFor();
     await page.locator("body[data-active-tab='battle']").waitFor();
     assert.equal(await page.locator("#matchedRoomHandoff").isVisible(), false);

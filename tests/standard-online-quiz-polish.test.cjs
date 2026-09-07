@@ -51,28 +51,45 @@ test("hints mix one useful formula with decoys without identifying the useful on
   assert.match(app, /使うものと使わないものが混ざっています/);
 });
 
-test("question choices drift inside fixed glowing click targets and honor reduced motion", () => {
-  assert.match(css, /body\[data-active-tab="quiz"\] \.quiz-options:not\(\.motion-paused\) button:not\(:disabled\)\{animation:quiz-option-glow/);
-  const glow = css.match(/@keyframes quiz-option-glow\{[^}]+\}[^}]+\}/)?.[0] || "";
-  assert.match(glow, /box-shadow/);
-  assert.doesNotMatch(glow, /transform|translate|rotate/);
-  const drift = css.match(/@keyframes quiz-option-drift\{[^}]+\}[^}]+\}/)?.[0] || "";
-  assert.match(drift, /translate3d\(-2px,-2px,0\)/);
-  assert.match(drift, /translate3d\(2px,3px,0\)/);
-  assert.match(css, /\.quiz-options button\{min-height:52px;overflow:hidden/);
-  assert.match(css, /\.quiz-option-float\{display:block;pointer-events:none/);
-  assert.match(css, /\.quiz-options button:is\(:hover,:focus-visible,:active\) \.quiz-option-float\{animation:none!important;transform:none!important\}/);
-  assert.match(css, /@media\(prefers-reduced-motion:reduce\)\{\.quiz-options button,\.quiz-option-float\{animation:none!important;transform:none!important/);
+test("question choices use one whole-button physics arena with safe pause contracts", () => {
+  assert.match(html, /id="quizOptions"[^>]+aria-describedby="quizMotionHelp"/);
+  assert.match(html, /id="quizMotionHelp"/);
+  assert.match(css, /\.quiz-options\.is-physics\{position:relative;display:block;height:310px/);
+  assert.match(css, /button\[data-quiz-option\]\{position:absolute/);
+  assert.match(css, /button\[data-quiz-option\][^}]+transform:translate3d\(0,0,0\)/);
+  assert.doesNotMatch(css, /quiz-option-drift|quiz-option-float/);
+  assert.match(css, /@media\(max-width:620px\)\{\.quiz-options\.is-physics\{height:290px/);
+  assert.match(css, /@media\(prefers-reduced-motion:reduce\)\{\.quiz-options\.is-physics button\[data-quiz-option\]/);
   const render = app.slice(app.indexOf("function renderQuiz()"), app.indexOf("async function startOnlineQuiz()"));
-  assert.match(render, /label\.className = "quiz-option-float"/);
-  assert.match(render, /label\.textContent = option\.label/);
-  assert.match(render, /button\.appendChild\(label\)/);
-  assert.match(render, /button\.style\.setProperty\("--float-order", String\(optionIndex\)\)/);
-  assert.doesNotMatch(render, /Math\.random|requestAnimationFrame|setInterval/);
-  assert.match(app, /document\.visibilityState !== "visible"/);
-  assert.match(app, /activeAppTab !== "quiz"/);
-  assert.match(app, /Boolean\(pendingQuiz\.pendingAnswer\)/);
-  assert.match(app, /Number\(state\?\.hintActiveUntil \|\| 0\) > Date\.now\(\)/);
+  assert.match(render, /button\.dataset\.quizOption = option\.id/);
+  assert.match(render, /button\.textContent = option\.label/);
+  assert.match(render, /initializeQuizOptionPhysics\(optionButtons/);
+  assert.doesNotMatch(render, /quiz-option-float|appendChild\(label\)/);
+  assert.match(app, /function advanceQuizOptionPhysics\(/);
+  assert.match(app, /requestAnimationFrame\(animateQuizOptionPhysics\)/);
+  assert.match(app, /overlapX <= 0 \|\| overlapY <= 0/);
+  for (const pauseContract of [
+    /document\.visibilityState !== "visible"/,
+    /quizWindowBlurred/,
+    /quizReducedMotion\.matches/,
+    /activeAppTab !== "quiz"/,
+    /Boolean\(pendingQuiz\.pendingAnswer\)/,
+    /hintActiveUntil/,
+    /remainingMs/,
+    /arena\?\.matches\(":hover"\)/,
+    /arena\?\.contains\(document\.activeElement\)/,
+    /interaction\?\.pointerInside/,
+    /interaction\?\.pointerDown/,
+    /interaction\?\.touchActive/,
+    /interaction\?\.focusInside/,
+  ]) assert.match(app, pauseContract);
+  for (const eventName of ["pointerenter", "pointerleave", "pointerdown", "pointerup", "pointercancel", "touchstart", "touchend", "touchcancel", "focusin", "focusout"]) {
+    assert.match(app, new RegExp(`addEventListener\\("${eventName}"`));
+  }
+  assert.match(app, /listenerController: new AbortController\(\)/);
+  assert.match(app, /motion\.listenerController\?\.abort\(\)/);
+  assert.match(app, /motion\.resizeObserver = new ResizeObserver/);
+  assert.match(app, /motion\.resizeObserver\?\.disconnect\(\)/);
   assert.match(app, /const motionResumeDelay = Math\.max\(0, quizFeedbackUntil - Date\.now\(\)\) \+ 10/);
 });
 
@@ -177,9 +194,9 @@ test("only overflowing quiz math receives a persistent horizontal position bar",
   assert.match(css, /\.quiz-math-scroll\{[^}]*overflow-x:auto/);
   assert.match(css, /\.quiz-question \.quiz-math-scroll math\{[^}]*white-space:nowrap/);
   assert.match(css, /\.quiz-overflow-scrollbar\[hidden\]\{display:none\}/);
-  assert.match(html, /style\.css\?v=20260908-1/);
+  assert.match(html, /style\.css\?v=20260908-2/);
   assert.match(html, /standard-online-client\.js\?v=20260907-21/);
-  assert.match(html, /app\.js\?v=20260908-1/);
+  assert.match(html, /app\.js\?v=20260908-2/);
 });
 
 test("per-question feedback is server-acknowledged, retryable, brief in motion, and followed by an optional review", () => {
