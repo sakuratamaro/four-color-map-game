@@ -54,3 +54,28 @@ test("malformed target values fail before an action identity is allocated", () =
   assert.deepEqual(intents.buildSkillPayload("legalRecolor", { regionId: "R1" }), { skill: "legalRecolor", regionId: "R1" });
   assert.throws(() => intents.buildSkillPayload("legalRecolor", { regionId: "R0" }), /INVALID_SKILL_TARGET/);
 });
+
+test("color choice details retain owned zero-use bonus colors and merge every availability source", () => {
+  const details = intents.colorChoiceDetails({
+    basicPalette: ["red", "red", "corrupt"],
+    bonusColor: "red",
+    bonusUsesRemaining: 0,
+    privateEffects: { temporaryColors: ["yellow", "corrupt"], prism: false },
+  });
+  assert.deepEqual(details.map((choice) => choice.color), ["red", "yellow"]);
+  assert.deepEqual(details[0], {
+    color: "red", isBasic: true, isBonus: true, bonusUsesRemaining: 0,
+    isTemporary: false, isPrism: false, available: true,
+  });
+  assert.equal(details[1].isTemporary, true);
+  assert.deepEqual(intents.availableColorChoices({
+    basicPalette: [], bonusColor: "blue", bonusUsesRemaining: 0, privateEffects: {},
+  }), []);
+  assert.deepEqual(intents.colorChoiceDetails({
+    basicPalette: [], bonusColor: "blue", bonusUsesRemaining: 0, privateEffects: {},
+  }).map((choice) => [choice.color, choice.available, choice.bonusUsesRemaining]), [["blue", false, 0]]);
+  assert.deepEqual(intents.availableColorChoices({
+    basicPalette: [], bonusColor: "corrupt", bonusUsesRemaining: 9,
+    privateEffects: { temporaryColors: [], prism: true },
+  }), ["red", "blue", "yellow", "green"]);
+});

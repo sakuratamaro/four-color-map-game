@@ -3979,7 +3979,7 @@ test("actual Edge presents public seals and blocks every stale paint path withou
     });
     const red = page.locator('#paletteControls .color-button[data-color="red"]');
     await red.waitFor();
-    assert.equal(await red.textContent(), "赤");
+    assert.match(await red.textContent(), /赤.*回数無制限/);
     assert.equal(await red.isEnabled(), true);
 
     await page.evaluate(() => { globalThis.__standardOnlineRuntime.failNextColorAction = true; });
@@ -4001,7 +4001,7 @@ test("actual Edge presents public seals and blocks every stale paint path withou
     });
     const sealedRed = page.locator('#paletteControls .color-button[data-color="red"]');
     await page.waitForFunction(() => document.querySelector('#paletteControls .color-button[data-color="red"]')?.disabled === true);
-    assert.equal(await sealedRed.textContent(), "🔒 赤（封印中）");
+    assert.match(await sealedRed.textContent(), /🔒 赤.*封印 残り1回/);
     assert.equal(await sealedRed.isDisabled(), true);
     assert.equal(await sealedRed.evaluate((node) => node.classList.contains("is-sealed")), true);
     assert.notEqual(await page.evaluate(() => document.activeElement?.dataset?.color), "red");
@@ -4026,11 +4026,50 @@ test("actual Edge presents public seals and blocks every stale paint path withou
     });
     const cpuBlue = page.locator('#paletteControls .color-button[data-color="blue"]');
     await page.waitForFunction(() => document.querySelector('#paletteControls .color-button[data-color="blue"]')?.disabled === true);
-    assert.equal(await cpuBlue.textContent(), "🔒 青（封印中）");
+    assert.match(await cpuBlue.textContent(), /🔒 青.*封印 残り1回/);
     assert.equal(await page.locator('#paletteControls .color-button[data-color="red"]').isEnabled(), true);
     await page.locator('#paletteControls .color-button[data-color="red"]').click();
     await page.getByText("操作を保存しました。").waitFor();
     assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "action").length), 2);
+
+    await page.evaluate(() => {
+      const runtime = globalThis.__standardOnlineRuntime;
+      const version = runtime.room.version + 1;
+      runtime.room = { ...runtime.room, version, public_state: {
+        ...runtime.room.public_state, version, active: "A", phase: "COLOR", pending: "R1",
+        publicEffects: { ...runtime.room.public_state.publicEffects, A: { seals: { red: 2, green: 3 } } },
+      } };
+      runtime.view = { ...runtime.view, version, private_state: {
+        ...runtime.view.private_state,
+        basicPalette: ["red", "red", "corrupt"], bonusColor: "red", bonusUsesRemaining: 0,
+        privateEffects: { temporaryColors: ["yellow", "corrupt"] },
+      } };
+      runtime.onInvalidate();
+    });
+    const duplicateBonus = page.locator('#paletteControls .color-button[data-color="red"]');
+    await page.waitForFunction(() => document.querySelector('#paletteControls .color-button[data-color="red"]')?.textContent.includes("残り0回"));
+    assert.match(await duplicateBonus.textContent(), /おまけ色 残り0回.*封印 残り2回/);
+    assert.equal(await duplicateBonus.isDisabled(), true);
+    assert.match(await page.locator('#paletteControls .color-button[data-color="yellow"]').textContent(), /一時色/);
+    assert.equal(await page.locator('#paletteControls .color-button[data-color="yellow"]').isEnabled(), true);
+    assert.equal(await page.locator('#paletteControls .color-button[data-color="blue"]').count(), 0);
+    assert.equal(await page.locator('#paletteControls .color-button[data-color="green"]').count(), 0);
+
+    await page.evaluate(() => {
+      const runtime = globalThis.__standardOnlineRuntime;
+      const version = runtime.room.version + 1;
+      runtime.room = { ...runtime.room, version, public_state: { ...runtime.room.public_state, version } };
+      runtime.view = { ...runtime.view, version, private_state: {
+        ...runtime.view.private_state,
+        basicPalette: [], bonusColor: "green", bonusUsesRemaining: 0,
+        privateEffects: {},
+      } };
+      runtime.onInvalidate();
+    });
+    const sealedZeroBonus = page.locator('#paletteControls .color-button[data-color="green"]');
+    await sealedZeroBonus.waitFor();
+    assert.match(await sealedZeroBonus.textContent(), /おまけ色 残り0回.*封印 残り3回/);
+    assert.equal(await sealedZeroBonus.isDisabled(), true);
 
     await page.evaluate(() => {
       const runtime = globalThis.__standardOnlineRuntime;

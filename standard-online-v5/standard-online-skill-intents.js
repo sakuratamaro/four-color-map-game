@@ -41,12 +41,35 @@
   }
   function regionId(value) { if (typeof value !== "string" || !/^R[1-9][0-9]*$/.test(value)) invalid(); return value; }
 
+  function colorChoiceDetails(privateState = {}) {
+    const basic = new Set((Array.isArray(privateState.basicPalette) ? privateState.basicPalette : []).filter((color) => COLORS.includes(color)));
+    const bonusColor = COLORS.includes(privateState.bonusColor) ? privateState.bonusColor : null;
+    const bonusUsesRemaining = Number.isSafeInteger(privateState.bonusUsesRemaining) && privateState.bonusUsesRemaining >= 0
+      ? privateState.bonusUsesRemaining : 0;
+    const temporary = new Set((Array.isArray(privateState.privateEffects?.temporaryColors)
+      ? privateState.privateEffects.temporaryColors : []).filter((color) => COLORS.includes(color)));
+    const prism = privateState.privateEffects?.prism === true;
+    return Object.freeze(COLORS.flatMap((color) => {
+      const isBasic = basic.has(color);
+      const isBonus = color === bonusColor;
+      const isTemporary = temporary.has(color);
+      const isPrism = prism;
+      const owned = isBasic || isBonus || isTemporary || isPrism;
+      if (!owned) return [];
+      return [Object.freeze({
+        color,
+        isBasic,
+        isBonus,
+        bonusUsesRemaining: isBonus ? bonusUsesRemaining : null,
+        isTemporary,
+        isPrism,
+        available: isBasic || isTemporary || isPrism || (isBonus && bonusUsesRemaining > 0),
+      })];
+    }));
+  }
+
   function availableColorChoices(privateState = {}) {
-    const choices = new Set(Array.isArray(privateState.basicPalette) ? privateState.basicPalette : []);
-    if (privateState.bonusUsesRemaining > 0) choices.add(privateState.bonusColor);
-    for (const color of privateState.privateEffects?.temporaryColors || []) choices.add(color);
-    if (privateState.privateEffects?.prism) for (const color of COLORS) choices.add(color);
-    return Object.freeze(COLORS.filter((color) => choices.has(color)));
+    return Object.freeze(colorChoiceDetails(privateState).filter((choice) => choice.available).map((choice) => choice.color));
   }
 
   function buildSkillPayload(skill, input = {}) {
@@ -80,5 +103,5 @@
     invalid();
   }
 
-  return Object.freeze({ COLORS, EXPERIMENTAL_TARGET_KIND, LAB_TARGET_KIND, TARGET_KIND, availableColorChoices, buildSkillPayload, isImmediate: (skill) => targetKind(skill) === "none", targetKind });
+  return Object.freeze({ COLORS, EXPERIMENTAL_TARGET_KIND, LAB_TARGET_KIND, TARGET_KIND, availableColorChoices, buildSkillPayload, colorChoiceDetails, isImmediate: (skill) => targetKind(skill) === "none", targetKind });
 });

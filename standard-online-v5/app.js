@@ -3822,12 +3822,30 @@ function renderBasicActions(state, privateState) {
     });
   }
   if (canRespondToColor) {
-    const colors = skillIntents.availableColorChoices(privateState);
-    for (const color of colors) {
+    const choices = skillIntents.colorChoiceDetails(privateState);
+    for (const choice of choices) {
+      const { color } = choice;
       const sealed = isColorSealed(state, seat, color);
-      const button = document.createElement("button"); button.className = `color-button${sealed ? " is-sealed" : ""}`; button.dataset.color = color;
-      button.textContent = sealed ? `🔒 ${COLOR_JA[color] || color}（封印中）` : COLOR_JA[color] || color;
-      button.disabled = actionBusy || sealed; button.onclick = () => sendAction("COLOR_REGION", { color }); palette.appendChild(button);
+      const sealRemaining = Number(state?.publicEffects?.[seat]?.seals?.[color] || 0);
+      const button = document.createElement("button");
+      button.className = `color-button${sealed ? " is-sealed" : ""}${choice.available ? "" : " is-exhausted"}`;
+      button.dataset.color = color;
+      const name = document.createElement("strong");
+      name.className = "color-button-name";
+      name.textContent = `${sealed ? "🔒 " : ""}${COLOR_JA[color] || color}`;
+      const details = [];
+      if (choice.isBonus) details.push(`おまけ色 残り${choice.bonusUsesRemaining}回`);
+      if (choice.isTemporary) details.push("一時色");
+      if (choice.isPrism && !choice.isBasic && !choice.isBonus && !choice.isTemporary) details.push("四色解放");
+      if (sealed) details.push(`封印 残り${sealRemaining}回`);
+      const meta = document.createElement("span");
+      meta.className = "color-button-meta";
+      meta.textContent = details.join("・") || "基本色・回数無制限";
+      button.append(name, meta);
+      button.disabled = actionBusy || sealed || !choice.available;
+      button.setAttribute("aria-label", `${COLOR_JA[color] || color}。${meta.textContent}${sealed ? "。使用できません" : choice.available ? "。使用できます" : "。残り回数がないため使用できません"}`);
+      button.onclick = () => sendAction("COLOR_REGION", { color });
+      palette.appendChild(button);
     }
   }
   $("showColorSkills").disabled = actionBusy || !canRespondToColor;

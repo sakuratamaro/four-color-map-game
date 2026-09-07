@@ -45,9 +45,9 @@ test("release preflight is read-only, secret-free, finite, and stage-aware", () 
   assert.match(source, /ALPHA3_SKILL_CATEGORY_UI_PHASE_MISMATCH/);
   assert.match(source, /ALPHA4_COLORED_CORNER_BLOOM_UI_PHASE_MISMATCH/);
   assert.match(source, /CANDIDATE_ASSET_GENERATION_UI_PHASE_MISMATCH/);
-  assert.match(source, /app\.js\?v=20260907-42/);
-  assert.match(source, /style\.css\?v=20260907-40/);
-  assert.match(source, /standard-online-skill-intents\.js\?v=20260907-19/);
+  assert.match(source, /app\.js\?v=20260907-43/);
+  assert.match(source, /style\.css\?v=20260907-41/);
+  assert.match(source, /standard-online-skill-intents\.js\?v=20260907-20/);
   assert.match(source, /skillCategoryWindow/);
   assert.match(source, /SKILL_CATEGORY_ALREADY_USED_IN_WINDOW/);
   assert.match(source, /colorBonusRefill/);
@@ -74,9 +74,9 @@ test("candidate app satisfies the waiting-opponent release marker", () => {
 });
 
 test("candidate page and app satisfy the alpha.4 cache generation marker", () => {
-  assert.equal(candidateHtml.includes("app.js?v=20260907-42"), true);
-  assert.equal(candidateHtml.includes("style.css?v=20260907-40"), true);
-  assert.equal(candidateHtml.includes("standard-online-skill-intents.js?v=20260907-19"), true);
+  assert.equal(candidateHtml.includes("app.js?v=20260907-43"), true);
+  assert.equal(candidateHtml.includes("style.css?v=20260907-41"), true);
+  assert.equal(candidateHtml.includes("standard-online-skill-intents.js?v=20260907-20"), true);
   assert.equal(candidateApp.includes("skillCategoryWindow"), true);
   assert.equal(candidateApp.includes("SKILL_CATEGORY_ALREADY_USED_IN_WINDOW"), true);
   assert.equal(candidateApp.includes("colorBonusRefill"), true);

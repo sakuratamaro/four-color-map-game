@@ -66,9 +66,9 @@ test("online alpha.3 UI understands category windows and the experimental bonus-
 });
 
 test("CPU commentary is public-event-only, bounded, non-blocking, and terminal-persistent", () => {
-  assert.match(html, /style\.css\?v=20260907-40/);
-  assert.match(html, /standard-online-skill-intents\.js\?v=20260907-19/);
-  assert.match(html, /app\.js\?v=20260907-42/);
+  assert.match(html, /style\.css\?v=20260907-41/);
+  assert.match(html, /standard-online-skill-intents\.js\?v=20260907-20/);
+  assert.match(html, /app\.js\?v=20260907-43/);
   assert.match(app, /cpuCommentary\?\.VERSION !== "standard-cpu-commentary-v2"/);
   assert.ok(html.indexOf("cpu-commentary.js") < html.indexOf('type="module" src="app.js'));
   assert.match(html, /id="cpuCommentaryStage"[^>]+aria-hidden="true"/);
@@ -621,9 +621,9 @@ test("UI does not expose an adjacency or legal-color oracle", () => {
 test("public color seals disable only paint intents before an action identity is allocated", () => {
   assert.match(app, /function isColorSealed\(state, seat, color\)/);
   assert.match(app, /state\?\.publicEffects\?\.\[seat\]\?\.seals\?\.\[color\]/);
-  assert.match(app, /sealed \? `🔒 \$\{COLOR_JA\[color\] \|\| color\}（封印中）`/);
-  assert.match(app, /button\.disabled = actionBusy \|\| sealed/);
-  assert.match(app, /button\.className = `color-button\$\{sealed \? " is-sealed" : ""\}`/);
+  assert.match(app, /name\.textContent = `\$\{sealed \? "🔒 " : ""\}\$\{COLOR_JA\[color\] \|\| color\}`/);
+  assert.match(app, /button\.disabled = actionBusy \|\| sealed \|\| !choice\.available/);
+  assert.match(app, /button\.className = `color-button\$\{sealed \? " is-sealed" : ""\}\$\{choice\.available \? "" : " is-exhausted"\}`/);
   const sendAction = app.slice(app.indexOf("async function sendAction"), app.indexOf("async function syncSelectedProfile"));
   assert.ok(sendAction.indexOf('type === "COLOR_REGION" && isColorSealed') < sendAction.indexOf("const signature = actionSignature"));
   assert.ok(sendAction.indexOf('type === "COLOR_REGION" && isColorSealed') < sendAction.indexOf("crypto.randomUUID()"));
@@ -633,6 +633,11 @@ test("public color seals disable only paint intents before an action identity is
   const sealGuard = sendAction.slice(0, sendAction.indexOf("const signature = actionSignature"));
   assert.doesNotMatch(sealGuard, /regions|adjacent|legal/i);
   assert.match(css, /\.color-button\.is-sealed:disabled/);
+  assert.match(app, /skillIntents\.colorChoiceDetails\(privateState\)/);
+  assert.match(app, /おまけ色 残り\$\{choice\.bonusUsesRemaining\}回/);
+  assert.match(app, /封印 残り\$\{sealRemaining\}回/);
+  assert.match(app, /button\.disabled = actionBusy \|\| sealed \|\| !choice\.available/);
+  assert.match(css, /\.color-button\{[^}]*min-height:56px/);
 });
 
 test("private basic colors keep a readable text separator between visual swatches", () => {
