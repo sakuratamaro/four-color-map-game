@@ -2,7 +2,7 @@ name: Standard browser gate
 
 on:
   push:
-    branches: [codex/standard-release-command]
+    branches: [codex/standard-release-command, codex/quiz-whole-button-publish-20260908]
     paths:
       - .github/workflows/standard-browser-gate.yml
       - online/supabase-config.js
@@ -151,6 +151,7 @@ jobs:
           tests/standard-online-client.test.cjs
           tests/standard-online-quiz-generator-runtime.test.cjs
           tests/standard-online-quiz-polish.test.cjs
+          tests/standard-quiz-option-physics.test.cjs
           tests/standard-online-random-info-ui.test.cjs
           tests/standard-online-skill-registry.test.cjs
           tests/standard-online-skill-intents.test.cjs

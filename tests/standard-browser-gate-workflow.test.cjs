@@ -16,7 +16,7 @@ test("Standard browser gate YAML text uses stable whitespace", () => {
 });
 
 test("Standard browser gate is candidate-push, manual, or pull-request only and least-privileged", () => {
-  assert.match(workflow, /^on:\r?\n  push:\r?\n    branches: \[codex\/standard-release-command\][\s\S]+?  pull_request:[\s\S]+?  workflow_dispatch:/m);
+  assert.match(workflow, /^on:\r?\n  push:\r?\n    branches: \[codex\/standard-release-command, codex\/quiz-whole-button-publish-20260908\][\s\S]+?  pull_request:[\s\S]+?  workflow_dispatch:/m);
   assert.equal((workflow.match(/      - online\/supabase-config\.js/g) || []).length, 2);
   assert.equal((workflow.match(/      - online-v5\/style\.css/g) || []).length, 2);
   assert.equal((workflow.match(/      - standard-online-v5\/\*\*/g) || []).length, 2);
@@ -58,6 +58,7 @@ test("Standard browser gate runs CPU contracts and the scoped browser file seria
   assert.match(workflow, /tests\/standard-online-browser-harness-static\.test\.cjs/);
   assert.match(workflow, /tests\/browser-server-cleanup\.test\.cjs/);
   assert.match(workflow, /tests\/standard-online-quiz-generator-runtime\.test\.cjs/);
+  assert.match(workflow, /tests\/standard-quiz-option-physics\.test\.cjs/);
   assert.match(workflow, /tests\/standard-matchmaking-availability-migration\.test\.cjs/);
   assert.match(workflow, /tests\/standard-cpu-commentary\.test\.cjs/);
   assert.match(workflow, /tests\/standard-basic-feedback\.test\.cjs/);
