@@ -3400,7 +3400,12 @@ function renderSkillTarget(state) {
   }
   if (["source-macros", "region-split"].includes(targetDraft.kind)) {
     const note = document.createElement("span"); note.className = "selected-macro-note";
-    note.textContent = `盤面選択 ${selectedMacros.size}マス`;
+    if (targetDraft.kind === "source-macros") {
+      const connectedCount = connectedCandidateMacros(state).size;
+      note.textContent = `盤面選択 ${selectedMacros.size}マス。${selectedMacros.size
+        ? `緑の破線は次に辺でつなげて選べる候補です（${connectedCount}か所）。`
+        : "水色の破線は最初のおすすめ選択候補です。自動選択ではありません。"}`;
+    } else note.textContent = `盤面選択 ${selectedMacros.size}マス。`;
     controls.appendChild(note);
   }
   if (targetDraft.kind === "corner-bloom") {
@@ -3587,27 +3592,90 @@ function connectedMacros(macros, width) {
 }
 
 function macroHasFreeMicro(state, macro) {
-  if (!playableMacro(state, macro)) return false;
+  return macroFreeMicros(state, macro).length > 0;
+}
+
+function macroFreeMicros(state, macro) {
+  if (!playableMacro(state, macro)) return [];
   const { macroWidth, microScale } = state.playableBounds;
   const microWidth = macroWidth * microScale;
   const macroCol = macro % macroWidth;
   const macroRow = Math.floor(macro / macroWidth);
   const occupied = new Set(Object.values(state.regions || {}).flatMap((region) => Array.isArray(region?.micro) ? region.micro : []));
+  const free = [];
   for (let row = 0; row < microScale; row += 1) {
     for (let col = 0; col < microScale; col += 1) {
       const micro = ((macroRow * microScale) + row) * microWidth + (macroCol * microScale) + col;
-      if (!occupied.has(micro)) return true;
+      if (!occupied.has(micro)) free.push(micro);
     }
   }
-  return false;
+  return free;
+}
+
+function outgoingSelectionGuidanceActive() {
+  return !targetDraft || targetDraft.kind === "source-macros";
+}
+
+function outgoingSelectionAcceptedByCurrentMode(state, macros) {
+  if (!outgoingSelectionGuidanceActive() || macros.length !== state.requiredSize
+      || new Set(macros).size !== macros.length || !connectedMacros(macros, state.playableBounds.macroWidth)) return false;
+  const micro = macros.flatMap((macro) => macroFreeMicros(state, macro));
+  if (macros.some((macro) => !macroHasFreeMicro(state, macro))
+      || !connectedMacros(micro, state.playableBounds.macroWidth * state.playableBounds.microScale)) return false;
+  if (targetDraft?.kind === "source-macros" || !Object.keys(state.regions || {}).length) return true;
+  const shape = new Set(micro);
+  const occupied = new Set(Object.values(state.regions || {}).flatMap((region) => Array.isArray(region?.micro) ? region.micro : []));
+  const microWidth = state.playableBounds.macroWidth * state.playableBounds.microScale;
+  return micro.some((cell) => adjacentMacros(cell, microWidth).some((neighbor) => !shape.has(neighbor) && occupied.has(neighbor)));
+}
+
+function outgoingSelectionCanComplete(state, selectedInput) {
+  const requiredSize = Number(state?.requiredSize);
+  const selected = new Set(selectedInput);
+  if (!outgoingSelectionGuidanceActive() || !Number.isSafeInteger(requiredSize) || requiredSize < 1
+      || selected.size !== selectedInput.length || selected.size < 1 || selected.size > requiredSize
+      || [...selected].some((macro) => !macroHasFreeMicro(state, macro))
+      || !connectedMacros([...selected], state.playableBounds.macroWidth)) return false;
+  const seen = new Set();
+  const search = (current) => {
+    const ordered = [...current].sort((left, right) => left - right);
+    const signature = ordered.join(",");
+    if (seen.has(signature)) return false;
+    seen.add(signature);
+    if (current.size === requiredSize) return outgoingSelectionAcceptedByCurrentMode(state, ordered);
+    const frontier = new Set();
+    for (const macro of current) {
+      for (const neighbor of adjacentMacros(macro, state.playableBounds.macroWidth)) {
+        if (!current.has(neighbor) && macroHasFreeMicro(state, neighbor)) frontier.add(neighbor);
+      }
+    }
+    for (const macro of [...frontier].sort((left, right) => left - right)) {
+      if (search(new Set(current).add(macro))) return true;
+    }
+    return false;
+  };
+  return search(selected);
+}
+
+function firstGuidedMacro(state) {
+  if (!boardSelectionAvailable(state) || !outgoingSelectionGuidanceActive() || selectedMacros.size) return null;
+  const bounds = state.playableBounds;
+  for (let row = bounds.minRow; row <= bounds.maxRow; row += 1) {
+    for (let col = bounds.minCol; col <= bounds.maxCol; col += 1) {
+      const macro = row * bounds.macroWidth + col;
+      if (outgoingSelectionCanComplete(state, [macro])) return macro;
+    }
+  }
+  return null;
 }
 
 function connectedCandidateMacros(state) {
   const result = new Set();
-  if (!selectedMacros.size || selectedMacros.size >= state.requiredSize) return result;
+  if (!outgoingSelectionGuidanceActive() || !selectedMacros.size || selectedMacros.size >= state.requiredSize) return result;
   for (const macro of selectedMacros) {
     for (const neighbor of adjacentMacros(macro, state.playableBounds.macroWidth)) {
-      if (!selectedMacros.has(neighbor) && macroHasFreeMicro(state, neighbor)) result.add(neighbor);
+      if (!selectedMacros.has(neighbor) && macroHasFreeMicro(state, neighbor)
+          && outgoingSelectionCanComplete(state, [...selectedMacros, neighbor])) result.add(neighbor);
     }
   }
   return result;
@@ -3626,7 +3694,8 @@ function boardMacroDescription(state, macro) {
   let availability = "使用済み";
   if (selectedMacros.has(macro)) availability = "選択済み";
   else if (macroHasFreeMicro(state, macro)) {
-    if (!selectedMacros.size) availability = "空きあり、選択開始位置";
+    if (!selectedMacros.size && firstGuidedMacro(state) === macro) availability = "空きあり、最初のおすすめ選択候補";
+    else if (!selectedMacros.size) availability = "空きあり";
     else if (selectedMacros.size >= state.requiredSize) availability = "空きあり、必要数は選択済み";
     else if (connectedCandidateMacros(state).has(macro)) availability = "次に辺でつなげて選べる候補";
     else availability = "空きあり、現在の選択とは非接続";
@@ -3642,7 +3711,7 @@ function ensureBoardKeyboardMacro(state) {
   if (playableMacro(state, boardKeyboardMacro)) return boardKeyboardMacro;
   const firstSelected = visibleOutgoingMacros(state).find((macro) => playableMacro(state, macro));
   const bounds = state.playableBounds;
-  boardKeyboardMacro = firstSelected ?? bounds.minRow * bounds.macroWidth + bounds.minCol;
+  boardKeyboardMacro = firstSelected ?? firstGuidedMacro(state) ?? bounds.minRow * bounds.macroWidth + bounds.minCol;
   return boardKeyboardMacro;
 }
 
@@ -4068,7 +4137,15 @@ function strokeMicroTargetFrame(ctx, micro, microWidth, cell) {
 function renderBoard(state) {
   const canvas = $("board"); const ctx = canvas.getContext("2d");
   const boardInteractive = syncBoardSelectionAssist(state);
-  canvas.setAttribute("aria-label", targetDraft?.kind === "existing-region"
+  const startGuidedMacro = boardInteractive && outgoingSelectionGuidanceActive() ? firstGuidedMacro(state) : null;
+  const connectedGuidedMacros = boardInteractive && outgoingSelectionGuidanceActive() ? connectedCandidateMacros(state) : new Set();
+  const guidanceMode = Number.isSafeInteger(startGuidedMacro) ? "start" : connectedGuidedMacros.size ? "connected" : "none";
+  canvas.dataset.selectionGuidance = guidanceMode;
+  if (Number.isSafeInteger(startGuidedMacro)) canvas.dataset.guidedMacro = String(startGuidedMacro);
+  else delete canvas.dataset.guidedMacro;
+  if (connectedGuidedMacros.size) canvas.dataset.connectedGuidedMacros = [...connectedGuidedMacros].sort((left, right) => left - right).join(",");
+  else delete canvas.dataset.connectedGuidedMacros;
+  const boardLabel = targetDraft?.kind === "existing-region"
     ? "塗り直す彩色済みエリアを選択。番号と色名は下の対象一覧でも選べます。"
     : cornerBloomCellTargetActive()
       ? "角膨張の対象セルを選択。矢印キーで細分セルを移動し、SpaceまたはEnterで即発動、Escapeでキャンセルできます。"
@@ -4076,7 +4153,10 @@ function renderBoard(state) {
       ? `${targetDraft.input.axis === "ROW" ? "動かす横の行" : "動かす縦の列"}を選択。矢印キーで移動し、SpaceまたはEnterで対象を決め、Escapeで対象を解除できます。`
     : boardInteractive
       ? "四色地図の対戦盤面。矢印キーでマスを移動し、SpaceまたはEnterで選択、Escapeで全解除できます。"
-      : "四色地図の対戦盤面");
+      : "四色地図の対戦盤面";
+  canvas.setAttribute("aria-label", `${boardLabel}${guidanceMode === "start"
+    ? " 水色の破線は最初のおすすめ選択候補です。"
+    : guidanceMode === "connected" ? " 緑の破線は次に辺でつなげて選べる候補です。" : ""}`);
   const macroWidth = state.playableBounds.macroWidth; const microScale = state.playableBounds.microScale;
   const microWidth = macroWidth * microScale; const cell = canvas.width / microWidth;
   ctx.fillStyle = "#020617"; ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -4097,8 +4177,10 @@ function renderBoard(state) {
     ctx.beginPath(); ctx.moveTo(offset, 0); ctx.lineTo(offset, canvas.height); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(0, offset); ctx.lineTo(canvas.width, offset); ctx.stroke();
   }
-  if (boardInteractive && targetDraft?.kind !== "corner-bloom") {
-    for (const macro of connectedCandidateMacros(state)) {
+  if (boardInteractive && outgoingSelectionGuidanceActive()) {
+    if (Number.isSafeInteger(startGuidedMacro)) {
+      strokeMacroFrame(ctx, startGuidedMacro, macroWidth, microScale, cell, { color: "#38bdf8", cssWidth: 3, cssDash: [3, 3] });
+    } else for (const macro of connectedGuidedMacros) {
       strokeMacroFrame(ctx, macro, macroWidth, microScale, cell, { color: "#86efac", cssWidth: 2.5, cssDash: [5, 4] });
     }
   }
@@ -4210,6 +4292,9 @@ function renderTurnGuide(state) {
       ? "カード効果を反映したエリアです。白い枠をそのまま相手へ渡してください。"
       : "緑の破線は辺でつなげて選べる位置の目印です。確定できるかはサーバーが判定します。"
     : "選んだエリアは相手が塗ります。相手が困る形や接し方を考えてみましょう。";
+  const startHint = Number.isSafeInteger(firstGuidedMacro(state))
+    ? "水色の破線は最初のおすすめ選択候補です。自動選択ではないので、盤面を見て選んでください。"
+    : "空きのある盤面マスから選択を始めてください。";
   const setText = (id, value) => { if ($(id).textContent !== value) $(id).textContent = value; };
   const present = (kind, step, title, detail) => {
     guide.dataset.state = kind;
@@ -4230,12 +4315,12 @@ function renderTurnGuide(state) {
     const remaining = Math.max(0, state.requiredSize - outgoingMacros.length);
     if (remaining > 0) return present("select", rolePath, `白い盤面をタップして、あと${remaining}マス選ぶ`, outgoingMacros.length
       ? connectedHint
-      : "選べたら「このエリアを渡す」を押します。選んだエリアは相手が塗ります。");
+      : `${startHint} 選べたら「このエリアを渡す」を押します。選んだエリアは相手が塗ります。`);
     return present("ready", rolePath, "選べました。「このエリアを渡す」へ", "選んだマスは白い枠で表示されています。下のボタンで相手へ渡します。");
   }
   if (state.phase === "WORK") {
     const remaining = Math.max(0, state.requiredSize - outgoingMacros.length);
-    if (remaining > 0) return present("select", rolePath, `盤面をタップ／クリックして、あと${remaining}マス選ぶ`, connectedHint);
+    if (remaining > 0) return present("select", rolePath, `盤面をタップ／クリックして、あと${remaining}マス選ぶ`, outgoingMacros.length ? connectedHint : startHint);
     return present("ready", rolePath, "選べました。「このエリアを渡す」へ", "選んだマスは白い枠で表示されています。下のボタンで相手へ渡します。");
   }
   if (state.phase === "COLOR") return present("color", rolePath, "受け取った灰色エリアを塗る", "盤面の下にある持ち色から選びます。同じ色が辺で接しないように塗りましょう。");

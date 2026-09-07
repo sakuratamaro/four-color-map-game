@@ -4053,6 +4053,146 @@ test("actual browser enlarges a 12-column board and completes connected selectio
   }, { viewport: { width: 390, height: 844 } });
 });
 
+test("actual browser guides one public legal start then switches fully to connected candidates", { timeout: 180000 }, async () => {
+  await withPage("playing", async (page) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.evaluate(() => {
+      const runtime = globalThis.__standardOnlineRuntime;
+      runtime.room.public_state = {
+        ...runtime.room.public_state,
+        requiredSize: 2,
+        rolledSize: 2,
+        baseRequiredSize: 2,
+        active: "A",
+        phase: "WORK",
+        playableBounds: { macroWidth: 4, microScale: 1, minCol: 1, minRow: 1, maxCol: 3, maxRow: 3 },
+        regions: { R1: { id: "R1", micro: [15], sourceMacros: [15], controllers: ["B"], color: "red", isPending: false } },
+      };
+      runtime.view = { ...runtime.view, private_state: {
+        ...runtime.view.private_state,
+        hand: { ...runtime.view.private_state.hand, areaMicroBloom: 1, areaCornerBloom: 1, areaHalfShift: 1 },
+      } };
+      runtime.onInvalidate?.({});
+    });
+    const board = page.locator("#board");
+    await page.waitForFunction(() => document.querySelector("#board")?.dataset.guidedMacro === "7");
+    assert.equal(await board.getAttribute("data-selection-guidance"), "start");
+    assert.equal(await board.getAttribute("data-guided-macro"), "7");
+    assert.equal(await board.getAttribute("data-connected-guided-macros"), null);
+    assert.equal(await board.getAttribute("aria-describedby"), "boardKeyboardHelp boardKeyboardStatus");
+    assert.match(await board.getAttribute("aria-label"), /水色の破線は最初のおすすめ選択候補/);
+    assert.match(await page.locator("#boardKeyboardHelp").textContent(), /自動選択ではありません/);
+    assert.match(await page.locator("#turnGuideDetail").textContent(), /水色の破線.*自動選択ではない/);
+    assert.equal(await board.evaluate((node) => getComputedStyle(node).animationName), "none");
+
+    await board.focus();
+    assert.match(await page.locator("#boardKeyboardStatus").textContent(), /左から3列目.*最初のおすすめ選択候補/);
+    await page.keyboard.press("Space");
+    assert.equal(await page.locator("#selectionCount").textContent(), "1 / 2マス");
+    assert.equal(await board.getAttribute("data-selection-guidance"), "connected");
+    assert.equal(await board.getAttribute("data-guided-macro"), null);
+    assert.equal(await board.getAttribute("data-connected-guided-macros"), "11");
+    assert.doesNotMatch(await board.getAttribute("aria-label"), /最初のおすすめ/);
+    assert.match(await board.getAttribute("aria-label"), /緑の破線は次に辺でつなげて選べる候補/);
+    assert.doesNotMatch(await page.locator("#turnGuideDetail").textContent(), /水色|最初のおすすめ/);
+    assert.match(await page.locator("#turnGuideDetail").textContent(), /緑の破線.*サーバーが判定/);
+
+    await page.keyboard.press("Escape");
+    await page.locator('#skillControls button[data-skill="areaMicroBloom"]').click();
+    await page.waitForFunction(() => document.querySelector("#board")?.dataset.guidedMacro === "5");
+    assert.equal(await board.getAttribute("data-selection-guidance"), "start");
+    assert.equal(await board.getAttribute("data-guided-macro"), "5");
+    assert.match(await page.locator("#skillTargetControls").textContent(), /水色の破線は最初のおすすめ選択候補/);
+    await page.getByRole("button", { name: "キャンセル", exact: true }).click();
+
+    await page.locator('#skillControls button[data-skill="areaCornerBloom"]').click();
+    assert.equal(await board.getAttribute("data-selection-guidance"), "none");
+    assert.equal(await board.getAttribute("data-guided-macro"), null);
+    await page.getByRole("button", { name: "角膨張をキャンセル", exact: true }).click();
+    await page.locator('#skillControls button[data-skill="areaHalfShift"]').click();
+    assert.equal(await board.getAttribute("data-selection-guidance"), "none");
+    await page.getByRole("button", { name: "キャンセル", exact: true }).click();
+    assert.equal(await board.getAttribute("data-guided-macro"), "7");
+
+    await page.evaluate(() => {
+      const runtime = globalThis.__standardOnlineRuntime;
+      const version = runtime.room.public_state.version + 1;
+      runtime.room = { ...runtime.room, version, public_state: { ...runtime.room.public_state, version, active: "B", phase: "COLOR" } };
+      runtime.view = { ...runtime.view, version };
+      runtime.onInvalidate?.({});
+    });
+    await page.waitForFunction(() => document.querySelector("#board")?.dataset.selectionGuidance === "none");
+    assert.equal(await board.getAttribute("data-guided-macro"), null);
+    await page.evaluate(() => {
+      const runtime = globalThis.__standardOnlineRuntime;
+      const version = runtime.room.public_state.version + 1;
+      runtime.room = { ...runtime.room, version, public_state: { ...runtime.room.public_state, version, active: "A", phase: "WORK" } };
+      runtime.view = { ...runtime.view, version };
+      runtime.onInvalidate?.({});
+    });
+    await page.waitForFunction(() => document.querySelector("#board")?.dataset.guidedMacro === "7");
+    assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls
+      .filter((entry) => entry.body?.operation === "action").length), 0);
+
+    await page.reload({ waitUntil: "load" });
+    await page.locator("#connectionBadge.good").waitFor();
+    await page.waitForFunction(() => document.querySelector("#board")?.dataset.selectionGuidance === "start");
+    assert.equal(await page.locator("#selectionCount").textContent(), "0 / 1マス");
+    assert.equal(await page.evaluate(async () => (await globalThis.__standardOnlineLifetimeInvocations())
+      .filter((body) => body?.operation === "action").length), 0);
+  }, { viewport: { width: 390, height: 844 } });
+
+  await withPage("playing", async (page) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.evaluate(() => {
+      const runtime = globalThis.__standardOnlineRuntime;
+      runtime.room.public_state = {
+        ...runtime.room.public_state,
+        requiredSize: 2,
+        rolledSize: 2,
+        baseRequiredSize: 2,
+        active: "A",
+        phase: "WORK",
+        playableBounds: { macroWidth: 4, microScale: 1, minCol: 1, minRow: 1, maxCol: 3, maxRow: 3 },
+        regions: { R1: { id: "R1", micro: [15], sourceMacros: [15], controllers: ["B"], color: "red", isPending: false } },
+      };
+      runtime.onInvalidate?.({});
+    });
+    const board = page.locator("#board");
+    await page.waitForFunction(() => document.querySelector("#board")?.dataset.guidedMacro === "7");
+    const box = await board.boundingBox();
+    await board.click({ position: { x: box.width * (3.5 / 4), y: box.height * (1.5 / 4) } });
+    assert.equal(await page.locator("#selectionCount").textContent(), "1 / 2マス");
+    assert.equal(await board.getAttribute("data-selection-guidance"), "connected");
+    assert.equal(await board.getAttribute("data-connected-guided-macros"), "11");
+    assert.equal(await board.evaluate((node) => getComputedStyle(node).animationName), "none");
+    assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls
+      .filter((entry) => entry.body?.operation === "action").length), 0);
+
+    const maximumBoardRenderMs = await page.evaluate(() => {
+      const runtime = globalThis.__standardOnlineRuntime;
+      const version = runtime.room.public_state.version + 1;
+      runtime.room = { ...runtime.room, version, public_state: {
+        ...runtime.room.public_state,
+        version,
+        requiredSize: 5,
+        rolledSize: 4,
+        baseRequiredSize: 4,
+        playableBounds: { macroWidth: 12, microScale: 1, minCol: 0, minRow: 0, maxCol: 11, maxRow: 11 },
+        regions: { R1: { id: "R1", micro: [143], sourceMacros: [143], controllers: ["B"], color: "red", isPending: false } },
+      } };
+      runtime.view = { ...runtime.view, version };
+      const startedAt = performance.now();
+      runtime.onInvalidate?.({});
+      return performance.now() - startedAt;
+    });
+    await page.waitForFunction(() => document.querySelector("#board")?.dataset.selectionGuidance === "start");
+    const maximumBoardGuide = Number(await board.getAttribute("data-guided-macro"));
+    assert.ok(Number.isSafeInteger(maximumBoardGuide) && maximumBoardGuide >= 0 && maximumBoardGuide < 143, String(maximumBoardGuide));
+    assert.ok(maximumBoardRenderMs < 1000, `maximum-board guidance render took ${maximumBoardRenderMs.toFixed(1)}ms`);
+  }, { viewport: { width: 1280, height: 900 } });
+});
+
 test("actual browser clears transient board selection when the authoritative turn scope advances", { timeout: 130000 }, async () => {
   await withPage("playing", async (page) => {
     await page.evaluate(() => {

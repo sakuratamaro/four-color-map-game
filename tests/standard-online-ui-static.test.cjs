@@ -79,7 +79,7 @@ test("online alpha.3 UI understands category windows and the experimental bonus-
 test("CPU commentary is public-event-only, bounded, non-blocking, and terminal-persistent", () => {
   assert.match(html, /style\.css\?v=20260908-5/);
   assert.match(html, /standard-online-skill-intents\.js\?v=20260907-20/);
-  assert.match(html, /app\.js\?v=20260908-5/);
+  assert.match(html, /app\.js\?v=20260908-6/);
   assert.match(app, /cpuCommentary\?\.VERSION !== "standard-cpu-commentary-v2"/);
   assert.ok(html.indexOf("cpu-commentary.js") < html.indexOf('type="module" src="app.js'));
   assert.match(html, /id="cpuCommentaryStage"[^>]+aria-hidden="true"/);
@@ -394,7 +394,7 @@ test("existing online progression is hydrated from the server rather than re-upl
 
 test("UI derives its canonical and experimental card metadata from the generated registry", () => {
   assert.equal(Object.values(STANDARD_SKILLS).filter((skill) => skill.v49Catalogued).length, 19);
-  assert.match(html, /standard-skill-registry\.generated\.js\?v=20260907-1[\s\S]+app\.js\?v=20260908-5/);
+  assert.match(html, /standard-skill-registry\.generated\.js\?v=20260907-1[\s\S]+app\.js\?v=20260908-6/);
   assert.match(app, /const STANDARD_SKILL_REGISTRY = globalThis\.FourColorStandardSkillRegistry/);
   assert.match(app, /STANDARD_SKILL_REGISTRY\.v49SkillIds\.map/);
   assert.match(app, /Object\.entries\(STANDARD_SKILL_REGISTRY\.skills\)/);
@@ -575,6 +575,9 @@ test("board selection assist enlarges targets and supports connected keyboard se
   const macroAssist = assist.slice(0, assist.indexOf("function macroForMicro"));
   assert.match(assist, /function connectedMacros\(macros, width\)/);
   assert.match(assist, /function macroHasFreeMicro\(state, macro\)/);
+  assert.match(assist, /function macroFreeMicros\(state, macro\)[\s\S]+if \(!playableMacro\(state, macro\)\) return \[\]/);
+  assert.match(assist, /function outgoingSelectionCanComplete\(state, selectedInput\)/);
+  assert.match(assist, /function firstGuidedMacro\(state\)[\s\S]+if \(!boardSelectionAvailable\(state\)[\s\S]+return null/);
   assert.match(assist, /function connectedCandidateMacros\(state\)/);
   assert.match(assist, /白い枠と辺でつながる隣のマスを選んでください/);
   assert.match(assist, /次に辺でつなげて選べる候補/);
@@ -587,8 +590,12 @@ test("board selection assist enlarges targets and supports connected keyboard se
   assert.match(app, /moved <= 10 && scrolled <= 4\) boardPointer\(event\)/);
   assert.match(app, /strokeMacroFrame\(ctx, macro[\s\S]+color: "#f0abfc"/);
   assert.match(app, /strokeMacroFrame\(ctx, macro[\s\S]+color: "#86efac"/);
+  assert.match(app, /strokeMacroFrame\(ctx, startGuidedMacro[\s\S]+color: "#38bdf8"/);
+  assert.match(app, /canvas\.dataset\.selectionGuidance = guidanceMode/);
+  assert.match(app, /canvas\.dataset\.connectedGuidedMacros/);
   assert.match(app, /color: "#fdf4ff", cssWidth: 1\.5, cssDash: \[\], cssInset: 8/);
-  assert.match(html, /緑の破線は次に辺でつなげて選べる位置の目印、紫と白の二重線は現在のキーボード位置/);
+  assert.match(html, /0マス選択時の水色の破線は最初のおすすめ選択候補で、自動選択ではありません/);
+  assert.match(html, /1マス以上選択した後の緑の破線は次に辺でつなげて選べる候補/);
   assert.match(app, /if \(tab !== "battle"\) resetBoardSelectionAssist\(\)/);
   assert.match(assist, /toggle\.classList\.toggle\("hidden", !interactive\)/);
   assert.match(app, /ensureMoveControlsVisible = false/);
@@ -600,7 +607,9 @@ test("board selection assist enlarges targets and supports connected keyboard se
   assert.match(css, /\.skin-board-aurora \.board-viewport #board,[^}]+\{outline:none;box-shadow:none\}/);
   assert.match(css, /\.board-viewport:has\(#board\.turn-arrival-beat\)\{animation:turn-arrival-board-frame/);
   assert.doesNotMatch(css, /body\[data-active-tab="battle"\]\{padding-bottom:132px\}/);
-  assert.doesNotMatch(macroAssist, /sendAction|submitAction|availableColorChoices|legalColors|adjacentRegionIds|contactColor/);
+  assert.match(macroAssist, /targetDraft\?\.kind === "source-macros" \|\| !Object\.keys\(state\.regions \|\| \{\}\)\.length/);
+  assert.match(macroAssist, /adjacentMacros\(cell, microWidth\)[\s\S]+occupied\.has\(neighbor\)/);
+  assert.doesNotMatch(macroAssist, /sendAction|submitAction|availableColorChoices|legalColors|adjacentRegionIds|contactColor|privateState|basicPalette|bonusColor|privateEffects|hand/);
   assert.match(app, /function preparedOutgoingSourceMacros\(state\)[\s\S]+prepared\?\.actor === state\.active/);
   assert.match(app, /function currentOutgoingMacros\(state\)[\s\S]+preparedOutgoingSourceMacros\(state\)[\s\S]+selectedMacros\.size === state\.requiredSize/);
   assert.match(app, /sendAction\("CREATE_REGION", \{ sourceMacros: currentOutgoingMacros\(state\)\.sort/);
