@@ -1,6 +1,7 @@
 "use strict";
 
 const assert = require("node:assert/strict");
+const { createHash } = require("node:crypto");
 const fs = require("node:fs");
 const path = require("node:path");
 const test = require("node:test");
@@ -23,7 +24,7 @@ const contactPressureBrowserGate = fs.readFileSync(path.join(root, "tests", "sta
 const bundleBuilder = fs.readFileSync(path.join(root, "scripts", "build-standard-v5-bundle.mjs"), "utf8");
 
 test("local alpha has a bundled offline entry point", () => {
-  assert.match(html, /app\.bundle\.js\?v=20260907-5/);
+  assert.match(html, /app\.bundle\.js\?v=20260908-1-8f874130fbcd/);
   for (const id of ["profileA", "profileB", "firstPlayer", "startMatch", "handover", "privatePanel", "resultPanel"]) {
     assert.match(html, new RegExp(`id="${id}"`));
   }
@@ -35,11 +36,15 @@ test("local alpha has a bundled offline entry point", () => {
   assert.match(bundle, /"standard\/standard-cpu\.js":function/);
 });
 
-test("local alpha.4 cache marker publishes the rebuilt colored corner-bloom bundle", () => {
-  assert.match(html, /app\.bundle\.js\?v=20260907-5/);
+test("local cache marker publishes the rebuilt alpha.4 and deferred-curse bundle", () => {
+  const bundleHash = createHash("sha256").update(bundle).digest("hex");
+  assert.equal(bundleHash, "8f874130fbcd899f0a4d26159c94efb46a08bd726572e783fa377879db58cca9");
+  assert.match(html, new RegExp(`app\\.bundle\\.js\\?v=20260908-1-${bundleHash.slice(0, 12)}`));
   assert.match(bundle, /SKILL_CATEGORY_ALREADY_USED_IN_WINDOW/);
   assert.match(bundle, /COLORED_CORNER_BLOOM_ENGINE_VERSION/);
   assert.match(bundle, /colorBonusRefill/);
+  assert.match(bundle, /function consumeDeferredCurseBacklashAfterColor/);
+  assert.match(bundle, /consumeDeferredCurseBacklashAfterColor\(next, actor\)/);
 });
 
 test("local bundle builder includes every relative JavaScript dependency", () => {
