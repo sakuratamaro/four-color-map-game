@@ -19,13 +19,15 @@ test("online Standard presents cumulative two, three, and four-color contact tie
   assert.match(app, /}, 700\)/);
 });
 
-test("contact feedback observes only new committed public contact events", () => {
-  assert.match(app, /function observeCommittedContact\(state\)/);
-  assert.match(app, /trace\.eventId === observedTraceEventId/);
-  assert.match(app, /trace\.type === "CREATE_REGION" && trace\.contactColorCount >= 2\) showContactReveal\(trace\.contactColorCount, trace\.eventId\)/);
-  assert.match(app, /observeCommittedContact\(publicState\)/);
-  assert.doesNotMatch(app, /function selectedContactColorCount/);
-  assert.doesNotMatch(app, /showContactReveal\(selectedContactColorCount/);
+test("contact feedback is local to the selecting player and never replays from committed public traces", () => {
+  assert.match(app, /function selectedContactColorCount\(state, macros = selectedMacros\)/);
+  assert.match(app, /function presentSelectedContact\(state, macros = selectedMacros\)/);
+  assert.match(app, /!targetDraft && selectedMacros\.size === state\.requiredSize\) presentSelectedContact\(state\)/);
+  assert.match(app, /showContactReveal\(contactColorCount, `\$\{state\.matchId\}:\$\{state\.version\}:local-contact:/);
+  assert.match(app, /function syncContactSelectionScope\(state\)/);
+  const scopeSync = app.slice(app.indexOf("function syncContactSelectionScope"), app.indexOf("function cpuCommentaryContext"));
+  assert.doesNotMatch(scopeSync, /lastPublicTrace|validPublicTrace|showContactReveal|notifyBasicFeedback/);
+  assert.doesNotMatch(app, /showContactReveal\(trace\.contactColorCount/);
   assert.doesNotMatch(app, /showContactReveal\(response\.result/);
 });
 

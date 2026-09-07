@@ -258,8 +258,8 @@ let cpuCommentaryTimer = null;
 let cpuCommentaryAnnouncementTimer = null;
 let observedCpuCommentaryScope = null;
 let observedCpuCommentarySourceEventId = null;
-let observedTraceScope = null;
-let observedTraceEventId = null;
+let contactSelectionScope = null;
+let presentedContactSelectionKey = null;
 let observedTurnScope = null;
 let observedTurnVersion = null;
 let observedTurnActive = null;
@@ -810,24 +810,19 @@ function observeTurnArrival(state) {
   }
 }
 
-function observeCommittedContact(state) {
+function syncContactSelectionScope(state) {
   if (!state || !roomModel?.room?.id) {
-    if (observedTraceScope !== null) clearContactReveal();
-    observedTraceScope = null;
-    observedTraceEventId = null;
+    if (contactSelectionScope !== null) clearContactReveal();
+    contactSelectionScope = null;
+    presentedContactSelectionKey = null;
     return;
   }
   const scope = `${roomModel.room.id}:${state.matchId}`;
-  const trace = validPublicTrace(state);
-  if (scope !== observedTraceScope) {
+  if (scope !== contactSelectionScope) {
     clearContactReveal();
-    observedTraceScope = scope;
-    observedTraceEventId = trace?.eventId || null;
-    return;
+    contactSelectionScope = scope;
+    presentedContactSelectionKey = null;
   }
-  if (!trace || trace.eventId === observedTraceEventId) return;
-  observedTraceEventId = trace.eventId;
-  if (state.status === "ACTIVE" && trace.type === "CREATE_REGION" && trace.contactColorCount >= 2) showContactReveal(trace.contactColorCount, trace.eventId);
 }
 
 function cpuCommentaryContext(state) {
@@ -2756,7 +2751,7 @@ function render() {
   show("matchCard", !cpuDraftOwnsRoomlessEntry && ["playing", "finished"].includes(roomModel?.room?.status));
   show("rematchControls", !cpuDraftOwnsRoomlessEntry && roomModel?.room?.status === "finished");
   if (!snapshot.roomId) {
-    observeCommittedContact(null);
+    syncContactSelectionScope(null);
     observeTurnArrival(null);
     observeCpuCommentary(null);
     show("tacticalTrace", false);
@@ -2767,7 +2762,7 @@ function render() {
     return;
   }
   if (roomStatePending) {
-    observeCommittedContact(null);
+    syncContactSelectionScope(null);
     observeTurnArrival(null);
     observeCpuCommentary(null);
     show("tacticalTrace", false);
@@ -2855,7 +2850,7 @@ function render() {
     $("privateProjection").textContent = safeJson(privateState);
     renderRandomSummary(publicState, privateState);
     revealRandomSetup(publicState, privateState);
-    observeCommittedContact(publicState);
+    syncContactSelectionScope(publicState);
     observeTurnArrival(publicState);
     observeCpuCommentary(publicState);
     renderTacticalTrace(publicState);
@@ -2865,7 +2860,7 @@ function render() {
     renderPersistentTerminalResult(publicState, privateState);
     renderTerminalResult(publicState);
   } else {
-    observeCommittedContact(null);
+    syncContactSelectionScope(null);
     observeTurnArrival(null);
     observeCpuCommentary(null);
     show("tacticalTrace", false);
@@ -2925,7 +2920,7 @@ function beginSkill(skill) {
   const kind = skillIntents.targetKind(skill);
   targetDraft = { skill, kind, input: {}, feedback: "", roomId: roomModel?.room?.id, matchId: state?.matchId, version: state?.version };
   if (kind === "band-shift") targetDraft.input.axis = "ROW";
-  if (kind !== "corner-bloom") selectedMacros.clear();
+  if (!["corner-bloom", "source-macros"].includes(kind)) selectedMacros.clear();
   if (kind === "corner-bloom") boardZoomed = true;
   render();
   if (kind === "corner-bloom") {
@@ -2956,7 +2951,7 @@ function targetChoice(label, key, value) {
 
 function cancelSkillTarget() {
   const skill = targetDraft?.skill;
-  const preserveBoardSelection = targetDraft?.kind === "corner-bloom";
+  const preserveBoardSelection = ["corner-bloom", "source-macros"].includes(targetDraft?.kind);
   targetDraft = null;
   if (!preserveBoardSelection) selectedMacros.clear();
   render();
@@ -3149,6 +3144,7 @@ function renderSkillTarget(state) {
       useTarget.disabled = !bandShiftTargetReady(state);
       useTarget.setAttribute("aria-describedby", "bandShiftTargetGuide");
     }
+    if (targetDraft.kind === "source-macros") useTarget.disabled = selectedMacros.size !== state.requiredSize;
     actions.appendChild(useTarget);
   }
   const cancelTarget = button(targetDraft.kind === "corner-bloom" ? "角膨張をキャンセル" : "キャンセル", cancelSkillTarget, "ghost");
@@ -3170,7 +3166,7 @@ function submitSkillTarget() {
 }
 
 function boardSelectionAvailable(state = roomModel?.room?.public_state) {
-  const geometrySelection = !targetDraft || ["corner-bloom", "band-shift"].includes(targetDraft.kind);
+  const geometrySelection = !targetDraft || ["source-macros", "corner-bloom", "band-shift"].includes(targetDraft.kind);
   const preparedLocksSelection = Boolean(state?.preparedOutgoing?.actor === state?.active && targetDraft?.kind !== "corner-bloom");
   return Boolean(state && roomModel?.room?.status === "playing" && state.status === "ACTIVE" && !actionBusy && !pendingAction
     && !preparedLocksSelection && geometrySelection
@@ -3405,6 +3401,61 @@ function visibleOutgoingMacros(state) {
   return prepared.length ? prepared : [...selectedMacros];
 }
 
+function selectedContactColorCount(state, macros = selectedMacros) {
+  const sourceMacros = [...macros].filter(Number.isSafeInteger).sort((left, right) => left - right);
+  if (!state || !sourceMacros.length || new Set(sourceMacros).size !== sourceMacros.length) return 0;
+  const { macroWidth, microScale } = state.playableBounds || {};
+  if (!Number.isSafeInteger(macroWidth) || macroWidth < 1 || !Number.isSafeInteger(microScale) || microScale < 1) return 0;
+  const microWidth = Number.isSafeInteger(state.microWidth) && state.microWidth > 0
+    ? state.microWidth : macroWidth * microScale;
+  const occupiedByMicro = new Map();
+  for (const region of Object.values(state.regions || {})) {
+    for (const micro of region?.micro || []) if (Number.isSafeInteger(micro)) occupiedByMicro.set(micro, region.id);
+  }
+  const prepared = state.preparedOutgoing;
+  const preparedMatches = prepared?.actor === state.active
+    && Array.isArray(prepared.sourceMacros)
+    && JSON.stringify([...prepared.sourceMacros].sort((left, right) => left - right)) === JSON.stringify(sourceMacros)
+    && Array.isArray(prepared.micro);
+  const selectedMicro = new Set(preparedMatches ? prepared.micro : sourceMacros.flatMap((macro) => {
+    const macroCol = macro % macroWidth;
+    const macroRow = Math.floor(macro / macroWidth);
+    const cells = [];
+    for (let dy = 0; dy < microScale; dy += 1) {
+      for (let dx = 0; dx < microScale; dx += 1) {
+        const micro = (macroRow * microScale + dy) * microWidth + macroCol * microScale + dx;
+        if (!occupiedByMicro.has(micro)) cells.push(micro);
+      }
+    }
+    return cells;
+  }));
+  const colors = new Set();
+  for (const micro of selectedMicro) {
+    const col = micro % microWidth;
+    const neighbors = [micro - microWidth, micro + microWidth];
+    if (col > 0) neighbors.push(micro - 1);
+    if (col < microWidth - 1) neighbors.push(micro + 1);
+    for (const neighbor of neighbors) {
+      if (selectedMicro.has(neighbor)) continue;
+      const region = state.regions?.[occupiedByMicro.get(neighbor)];
+      if (region?.color) colors.add(region.color);
+    }
+  }
+  return colors.size;
+}
+
+function presentSelectedContact(state, macros = selectedMacros) {
+  const sourceMacros = [...macros].filter(Number.isSafeInteger).sort((left, right) => left - right);
+  if (state?.status !== "ACTIVE" || state.active !== roomModel?.view?.seat
+      || !["CREATE_FIRST", "WORK"].includes(state.phase)
+      || sourceMacros.length !== state.requiredSize || new Set(sourceMacros).size !== sourceMacros.length) return;
+  const key = `${roomModel?.room?.id}:${state.matchId}:${state.version}:${sourceMacros.join("-")}`;
+  if (key === presentedContactSelectionKey) return;
+  presentedContactSelectionKey = key;
+  const contactColorCount = selectedContactColorCount(state, sourceMacros);
+  if (contactColorCount >= 2) showContactReveal(contactColorCount, `${state.matchId}:${state.version}:local-contact:${sourceMacros.join("-")}`);
+}
+
 function boardMicroDescription(state, micro) {
   const { macroWidth, microScale, minCol, minRow } = state.playableBounds;
   const microWidth = macroWidth * microScale;
@@ -3555,6 +3606,7 @@ function toggleBoardMacro(state, macro, { selectCornerTarget = true } = {}) {
   }
   selectedMacros.add(macro);
   announceBoardSelection(`${boardMacroDescription(state, macro)}。選択しました。`);
+  if (!targetDraft && selectedMacros.size === state.requiredSize) presentSelectedContact(state);
   render();
   return true;
 }
@@ -3963,6 +4015,7 @@ function boardPointer(event) {
   const row = Math.max(0, Math.min(width - 1, Math.floor((event.clientY - rect.top) / rect.height * width)));
   const macro = row * width + col;
   if (!skillGeometry) return toggleBoardMacro(state, macro);
+  if (targetDraft?.kind === "source-macros") return toggleBoardMacro(state, macro);
   if (targetDraft?.kind === "band-shift") return selectBandShiftMacro(state, macro);
   if (targetDraft?.kind === "corner-bloom") return selectCornerBloomMacro(state, macro);
   if (selectedMacros.has(macro)) selectedMacros.delete(macro);

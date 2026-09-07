@@ -26,20 +26,21 @@ test("online feedback settings are explicit, separate, persistent, and keyboard-
 
 test("feedback script is cache-busted before the matching app generation", () => {
   const controllerScript = html.indexOf('<script src="basic-feedback.js?v=20260906-2"></script>');
-  const appScript = html.indexOf('<script type="module" src="app.js?v=20260907-47"></script>');
+  const appScript = html.indexOf('<script type="module" src="app.js?v=20260907-48"></script>');
   assert.ok(controllerScript >= 0 && appScript > controllerScript);
   assert.match(html, /style\.css\?v=20260907-42/);
   assert.doesNotMatch(html, /app\.js\?v=20260906-(?:36|38)|style\.css\?v=20260906-(?:36|37)/);
   assert.match(app, /basicFeedbackFactory\?\.VERSION === "standard-basic-feedback-v1"/);
 });
 
-test("only new public presentation events request sound or vibration", () => {
-  const contactObserver = app.slice(app.indexOf("function observeCommittedContact"), app.indexOf("function cpuCommentaryContext"));
-  const turnObserver = app.slice(app.indexOf("function observeTurnArrival"), app.indexOf("function observeCommittedContact"));
+test("only local selection and new turn or terminal presentation events request sound or vibration", () => {
+  const contactScope = app.slice(app.indexOf("function syncContactSelectionScope"), app.indexOf("function cpuCommentaryContext"));
+  const turnObserver = app.slice(app.indexOf("function observeTurnArrival"), app.indexOf("function syncContactSelectionScope"));
+  const contactSelection = app.slice(app.indexOf("function selectedContactColorCount"), app.indexOf("function boardMicroDescription"));
   const contactReveal = app.slice(app.indexOf("function showContactReveal"), app.indexOf("function renderTerminalResult"));
   const terminal = app.slice(app.indexOf("function renderTerminalResult"), app.indexOf("function colorName"));
-  assert.match(contactObserver, /trace\.eventId === observedTraceEventId/);
-  assert.match(contactObserver, /showContactReveal\(trace\.contactColorCount, trace\.eventId\)/);
+  assert.doesNotMatch(contactScope, /lastPublicTrace|showContactReveal|notifyBasicFeedback/);
+  assert.match(contactSelection, /showContactReveal\(contactColorCount, `\$\{state\.matchId\}:\$\{state\.version\}:local-contact:/);
   assert.match(contactReveal, /notifyBasicFeedback\(\{ eventId, cue: `contact-\$\{contactColorCount\}` \}\)/);
   assert.match(turnObserver, /previousActive !== seat && active === seat/);
   assert.match(turnObserver, /startTurnArrivalBeat\(`\$\{matchId\}:\$\{version\}:turn:\$\{seat\}`\)/);

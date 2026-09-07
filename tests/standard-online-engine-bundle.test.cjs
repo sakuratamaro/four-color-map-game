@@ -147,6 +147,53 @@ test("generated server bundle executes the alpha.4 colored corner-bloom payload"
   assert.equal(JSON.stringify(applied.state.skillCategoryWindow), JSON.stringify({ actor: "A", categories: ["area"] }));
 });
 
+test("generated server bundle executes Micro Bloom and commits its prepared outgoing region", () => {
+  const api = loadApi();
+  const microLoadouts = JSON.parse(JSON.stringify(loadouts));
+  microLoadouts.A.area = ["areaMicroBloom", "areaDiePlus"];
+  const created = api.create({ matchId: "online-micro-bloom", loadouts: microLoadouts, seed: 0x12345683, firstSeat: "A" });
+  const state = created.state;
+  const macro = 13;
+  const macroRow = Math.floor(macro / 12);
+  const macroCol = macro % 12;
+  state.phase = "WORK";
+  state.requiredSize = 1;
+  state.rolledSize = 1;
+  state.baseRequiredSize = 1;
+  state.regions = {
+    R1: {
+      id: "R1",
+      micro: Array.from({ length: 16 }, (_, index) => (macroRow * 4 + Math.floor(index / 4)) * 48 + macroCol * 4 + (index % 4)),
+      sourceMacros: [macro],
+      controllers: ["B"],
+      color: "red",
+      isPending: false,
+    },
+  };
+  const bloomed = api.apply({
+    state,
+    rngSnapshot: created.rngSnapshot,
+    actor: "A",
+    expectedVersion: 0,
+    action: { id: "online-micro-bloom-use", type: "USE_SKILL", payload: { skill: "areaMicroBloom", sourceMacros: [26] } },
+  });
+  assert.equal(bloomed.ok, true);
+  assert.deepEqual(JSON.parse(JSON.stringify(bloomed.state.preparedOutgoing.sourceMacros)), [26]);
+  assert.equal(bloomed.state.preparedOutgoing.skills.includes("areaMicroBloom"), true);
+  assert.equal(bloomed.state.hands.A.areaMicroBloom, 0);
+  const committed = api.apply({
+    state: bloomed.state,
+    rngSnapshot: bloomed.rngSnapshot,
+    actor: "A",
+    expectedVersion: 1,
+    action: { id: "online-micro-bloom-create", type: "CREATE_REGION", payload: { sourceMacros: [26] } },
+  });
+  assert.equal(committed.ok, true);
+  assert.equal(committed.state.preparedOutgoing, null);
+  assert.deepEqual([committed.state.active, committed.state.phase, committed.state.pending], ["B", "COLOR", "R2"]);
+  assert.equal(committed.contactColorCount, 1);
+});
+
 test("server bundle exposes ten safe CPU identities and deterministic legal decisions", () => {
   const api = loadApi();
   const roster = api.getCpuRoster();
