@@ -2,7 +2,7 @@ name: Standard browser gate
 
 on:
   push:
-    branches: [codex/standard-release-command]
+    branches: [codex/standard-release-command, codex/cpu-portraits-original-release-20260908]
     paths:
       - .github/workflows/standard-browser-gate.yml
       - online/supabase-config.js
@@ -120,6 +120,7 @@ jobs:
           tests/standard-basic-feedback.test.cjs
           tests/standard-online-basic-feedback-static.test.cjs
           tests/standard-online-contact-feedback.test.cjs
+          tests/standard-cpu-portraits.test.cjs
           tests/standard-online-micro-bloom-regression.test.cjs
           tests/standard-cpu-commentary.test.cjs
           tests/standard-cpu.test.cjs
