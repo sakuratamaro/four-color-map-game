@@ -109,6 +109,15 @@
       return merged.slice(-EVENT_HISTORY_LIMIT);
     }
 
+    function waitForStorageTurn() {
+      const schedule = safeGlobal?.setTimeout;
+      if (typeof schedule !== "function") return Promise.resolve(false);
+      return new Promise((resolve) => {
+        try { schedule.call(safeGlobal, () => resolve(true), 0); }
+        catch { resolve(false); }
+      });
+    }
+
     function vibrationSupported() {
       return typeof safeNavigator?.vibrate === "function";
     }
@@ -253,7 +262,11 @@
       const requestLock = safeNavigator?.locks?.request;
       if (typeof requestLock === "function") {
         try {
-          return await requestLock.call(safeNavigator.locks, EVENT_HISTORY_LOCK, { mode: "exclusive" }, () => remember(eventId));
+          return await requestLock.call(safeNavigator.locks, EVENT_HISTORY_LOCK, { mode: "exclusive" }, async () => {
+            const storageTurnAvailable = await waitForStorageTurn();
+            const local = remember(eventId);
+            return storageTurnAvailable ? local : Object.freeze({ claimed: false, duplicate: local.duplicate });
+          });
         } catch { /* unsupported, denied, or interrupted lock service: consume without output */ }
       }
       const local = remember(eventId);

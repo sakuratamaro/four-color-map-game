@@ -70,7 +70,7 @@ test("release preflight is read-only, secret-free, finite, and stage-aware", () 
   assert.match(source, /standard-online-skill-intents\.js\?v=20260907-20/);
   assert.match(source, /standard-skill-registry\.generated\.js\?v=20260907-1/);
   assert.match(source, /cpu-portraits\.js\?v=20260908-1/);
-  assert.match(source, /basic-feedback\.js\?v=20260908-1/);
+  assert.match(source, /basic-feedback\.js\?v=20260908-2/);
   assert.match(source, /getOptionalBytes\(`\$\{publicUrl\}assets\/cpu-portraits\/cpu-portrait-atlas\.png`\)/);
   assert.match(source, /getOptionalText\(publicEdgeBundleUrl\)/);
   assert.match(source, /standard-engine\.bundle\.js/);
@@ -159,7 +159,7 @@ test("candidate page and app satisfy the alpha.4 cache generation marker", () =>
   assert.equal(candidateHtml.includes("standard-online-skill-intents.js?v=20260907-20"), true);
   assert.equal(candidateHtml.includes("standard-skill-registry.generated.js?v=20260907-1"), true);
   assert.equal(candidateHtml.includes("cpu-portraits.js?v=20260908-1"), true);
-  assert.equal(candidateHtml.includes("basic-feedback.js?v=20260908-1"), true);
+  assert.equal(candidateHtml.includes("basic-feedback.js?v=20260908-2"), true);
   assert.equal(candidateApp.includes("skillCategoryWindow"), true);
   assert.equal(candidateApp.includes("SKILL_CATEGORY_ALREADY_USED_IN_WINDOW"), true);
   assert.equal(candidateApp.includes("colorBonusRefill"), true);
