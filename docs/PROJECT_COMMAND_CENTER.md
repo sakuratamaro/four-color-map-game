@@ -8,7 +8,7 @@
 
 ## 司令塔ルール
 
-- 公開製品コードは `c5369b0`、確認済みmainは `1c6ad47`。盤面主導Shift選択、基本feedback、共通COLOR応答窓、CPU実況、legal-recolor LAB、同カテゴリ連打制限、alpha.4 direct-cell角膨張、おまけ色残数・封印残数の実ボタン表示まで累積している。次の変更も専用clean worktreeでのみ統合する。
+- 公開製品コードは `26c4bd2`、確認済みmainは `72acb8c`。盤面主導Shift選択、基本feedback、共通COLOR応答窓、CPU実況、legal-recolor LAB、同カテゴリ連打制限、alpha.4 direct-cell角膨張、おまけ色残数・封印残数の実ボタン表示、registry正本レア度まで累積している。次の変更も専用clean worktreeでのみ統合する。
 - release候補はdirtyな司令塔床から直接出さず、`origin/main`起点のclean release worktreeへ採用commitだけを積み、candidate CIのtree一致を確認してfast-forwardする。
 - 古いdirty worktreeからbuild、merge、deployしない。
 - `実装済み`、`ローカル検証済み`、`live検証済み`、`公開済み`を別状態として記録する。
@@ -107,7 +107,7 @@
 | UDL-20260907-019 | おまけ色残数を色ボタン内へ | おまけ色を含む実ボタンへ`残りN回`を常時表示 | 基本色重複、残0、一時色、prism、入替、補充を網羅 | current-seat private projection | UX＋privacy | P0 public UX recovery | PUBLIC_VERIFIED | `2f75e40` | `e941d11` | `34114644417` | ローカル非browser 477/477、lifecycle Edge 79/79、online Edge/Chrome各83/83。公開app43/style41/intents20、candidate preflight、390px overflow 0、console 0 | `01a06c79` handoff | — | YES |
 | UDL-20260907-020 | 封印色を消さず鍵表示 | 所有中の封印色をdisabledで残し公開される残り封印回数を表示 | 残0おまけ色を含む、相手private palette非表示 | public effects＋current-seat private projection | UX＋privacy | P0 public UX recovery | PUBLIC_VERIFIED | `2f75e40` | `e941d11` | `34114644417` | ローカル非browser 477/477、lifecycle Edge 79/79、online Edge/Chrome各83/83。公開app43/style41/intents20、candidate preflight、390px overflow 0、console 0 | `01a06c79` handoff | — | YES |
 | UDL-20260907-021 | クイズのボタン自体を衝突移動 | 大枠内で大きいbutton全体を壁反射・相互衝突させる | hover/focus/touch即停止、feedback中停止、DOM順keyboard、hidden/handoff/hint/pending/reduced-motion停止、resize再配置 | server quiz exactly-once boundary | クイズ＋UX＋a11y | P0 public UX recovery | IMPLEMENTING | — | NO | NO | NOT_RUN | `01a06c79` handoff | fixed hitbox＋label driftをSUPERSEDED | YES |
-| UDL-20260907-022 | スキル使用UIへ正本レアリティ | 6枚一覧と対象指定へregistryの星数を表示 | inventory数から推測せず、private漏えいなし、生成物とsource parity | `standard-skill-registry.js` | UX＋registry | P0 public UX recovery | IMPLEMENTING | — | NO | NO | NOT_RUN | `01a06c79` handoff | — | YES |
+| UDL-20260907-022 | スキル使用UIへ正本レアリティ | 6枚一覧と対象指定へregistryの星数を表示 | inventory数から推測せず、private漏えいなし、生成物とsource parity | `standard-skill-registry.js` | UX＋registry | P0 public UX recovery | PUBLIC_VERIFIED | `26c4bd2` | `72acb8c` | `34123125700` | 非browser 479/479、lifecycle Edge 79/79、online Edge/Chrome各83/83。公開app45/registry v1、21件parity、candidate preflight `hasRegistryRarityUi:true`、公開page overflow 0 | `01a06c79` handoff | — | YES |
 | UDL-20260907-023 | 中幅ロビー崩れを復旧 | CPU／友だち／野良cardを安全にreflow | 390px・報告中幅・wide、44px controls、overflow/clip/text overlap 0 | lobby CSS | UX＋responsive | P0 public UX recovery | IMPLEMENTING | — | NO | NO | NOT_RUN | `01a06c79` handoff | 旧PUBLIC_VERIFIEDを実画面不合格で再開 | YES |
 | UDL-20260907-024 | ひとふくらみUI/authoritative経路復旧 | 合法対象は成功、違法対象はwrite-free・カード非消費・日本語案内 | payload、partial macro、bounds、phase、card、alpha.4 interaction、source/bundle parity | skill intents＋engine/Edge | ルール＋UX＋Edge | P0 public UX recovery | IMPLEMENTING | — | NO | NO | NOT_RUN | `01a06c79` handoff | — | YES |
 | UDL-20260907-025 | ★4角膨張を実盤面で迷わず使える状態へ | server判定を維持しつつ送信対象セルを紫枠で示し、keyboard初期位置を最初の対象へ置く | 旧room互換、成功可否oracleなし、原因別日本語、reject時カード・手番不変、同一ID再送 | alpha.4 direct-cell、public geometry | UX＋a11y＋privacy | Corner bloom recovery | PUBLIC_VERIFIED | `c5369b0` | `1c6ad47` | `34118055876` | 非browser 477/477、lifecycle Edge 79/79、online Edge/Chrome各83/83。公開app44/client20、candidate preflight、overflow 0、console 0 | `01a06c79` handoff＋current priority | ★1ひとふくらみとは別要求 | YES |

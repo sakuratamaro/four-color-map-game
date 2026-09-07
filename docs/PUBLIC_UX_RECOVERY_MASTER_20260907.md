@@ -12,7 +12,7 @@
 | 色ボタン内のおまけ色残数 | ユーザー確定 | PUBLIC_VERIFIED (`2f75e40`) | 所有中の全色を正規化する`colorChoiceDetails`を追加し、実ボタンへ`おまけ色 残りN回`を表示。基本色重複時は残0でも使用可能 | UX/privacy・本worktree | main `e941d11`、Pages `34114644417`、公開app43/style41/intents20、candidate preflight、390px overflow 0、console 0 |
 | 封印色の鍵と残期間 | ユーザー確定 | PUBLIC_VERIFIED (`2f75e40`) | 残0おまけ色も消さずdisabledで保持し、鍵と公開封印残数を同じボタンへ表示。相手private paletteは参照しない | UX/privacy・本worktree | 同上 |
 | クイズbutton全体の衝突移動 | ユーザー確定・fixed hitboxを上書き | IMPLEMENTING | grid上のbuttonは固定で、子`span.quiz-option-float`だけ2–3px drift。衝突計算がない | Quiz/UX/a11y・本worktree | whole-button座標変化、bounds、非重複、衝突、停止条件、resize、exactly-once |
-| 6枚/対象指定へregistryレアリティ | ユーザー確定 | IMPLEMENTING | clientの`SKILL_META`は名前/categoryの複製でrarityを持たず、registry artifactも読んでいない | UX/registry・本worktree | source registryから生成、21件parity、表示browser test |
+| 6枚/対象指定へregistryレアリティ | ユーザー確定 | PUBLIC_VERIFIED (`26c4bd2`) | `standard-skill-registry.js`から21件の公開metadataを決定的生成し、6枚一覧と対象パネルが同じrarityを読む。手書きrarityとinventory推測を撤去 | UX/registry・本worktree | main `72acb8c`、Pages `34123125700`、479/479＋79/79＋Edge/Chrome各83/83、公開app45/registry v1、preflight合格 |
 | 中幅ロビーreflow | ユーザー確定・旧live判定を再開 | IMPLEMENTING | 高優先度の`#lobby ... auto-fit minmax(280px)`が1180px content内へ3cardを詰め、旧1080px breakpointより上でfriend/public controlsが潰れる | responsive・本worktree | 390/報告中幅/wideでoverflow・clip・overlap 0、controls 44px以上 |
 | ひとふくらみ合法使用と失敗案内 | ユーザー確定 | IMPLEMENTING | engine/bundleの合法fixtureは成功するが、online `beginSkill`が既選択を消して再選択を強いる。候補0/不正選択のcodeはclient allowlist外で一般エラーになり、再選択可能性が伝わらない | Rule/UX/Edge・本worktree | UI payload→source engine→generated bundle成功、違法時state/card/RNG/write不変と日本語案内 |
 
@@ -21,6 +21,7 @@
 | 要求 | 出典区分 | 現状 | 実装 | 担当・worktree | 次の証拠 |
 | --- | --- | --- | --- | --- | --- |
 | ★4 角膨張を実盤面で使える状態へ | ユーザー確定・★1ひとふくらみとは別 | PUBLIC_VERIFIED (`c5369b0`) | public geometry由来の送信対象を紫枠表示し、keyboard初期位置を最初の対象へ移動。成功可否はserverだけが判定し、候補0・旧room・位置不一致を原因別日本語で再選択可能にした | UX/a11y/privacy・本worktree | main `1c6ad47`、Pages `34118055876`、公開app44/client20、candidate preflight、overflow 0、console 0 |
+| 6枚一覧・対象指定の正本レア度 | ユーザー確定 | PUBLIC_VERIFIED (`26c4bd2`) | authoritative registryからbrowser artifactを生成し、全19枚＋実験2枚の名前・category・usageCategory・rarityを共通化。6枚ボタンへ`（★N）`、対象指定へ星badgeを表示 | UX/registry・本worktree | main `72acb8c`、Pages `34123125700`、公開app45/registry v1、source parity、candidate preflight、overflow 0 |
 
 ## 別管理マスターバックログ
 
