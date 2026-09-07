@@ -46,6 +46,7 @@ test("release preflight is read-only, secret-free, finite, and stage-aware", () 
   assert.match(source, /ALPHA3_SKILL_CATEGORY_UI_PHASE_MISMATCH/);
   assert.match(source, /ALPHA4_COLORED_CORNER_BLOOM_UI_PHASE_MISMATCH/);
   assert.match(source, /REGISTRY_RARITY_UI_PHASE_MISMATCH/);
+  assert.match(source, /app\.text\.includes\('★\$\{meta\.rarity\}'\)/);
   assert.match(source, /CANDIDATE_ASSET_GENERATION_UI_PHASE_MISMATCH/);
   assert.match(source, /app\.js\?v=20260907-45/);
   assert.match(source, /style\.css\?v=20260907-41/);

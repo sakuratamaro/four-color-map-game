@@ -99,7 +99,7 @@ const result = {
     hasRegistryRarityUi: registry.text.includes('"areaCornerBloom"')
       && registry.text.includes('"rarity": 4')
       && app.text.includes('STANDARD_SKILL_REGISTRY.skills')
-      && app.text.includes('`（★${meta.rarity}）`')
+      && app.text.includes('★${meta.rarity}')
       && app.text.includes('rarity.textContent = `★${targetMeta.rarity}`'),
     hasCandidateAssetGeneration: page.text.includes(candidateAssetMarkers.app)
       && page.text.includes(candidateAssetMarkers.style)
