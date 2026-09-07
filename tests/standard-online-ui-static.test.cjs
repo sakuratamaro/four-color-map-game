@@ -57,7 +57,7 @@ test("Standard online setup UI exposes the complete reconnect path", () => {
 });
 
 test("online alpha.3 UI understands category windows and the experimental bonus-refill loan", () => {
-  assert.match(app, /colorBonusRefill: Object\.freeze\(\{ name: "おまけ色補充"/);
+  assert.match(app, /Object\.entries\(STANDARD_SKILL_REGISTRY\.skills\)\.map/);
   assert.match(app, /state\.skillCategoryWindow\?\.categories/);
   assert.match(app, /SKILL_CATEGORY_ALREADY_USED_IN_WINDOW/);
   assert.match(app, /カードは減りませんが、この手番の妨害カード使用枠は使いました/);
@@ -68,7 +68,7 @@ test("online alpha.3 UI understands category windows and the experimental bonus-
 test("CPU commentary is public-event-only, bounded, non-blocking, and terminal-persistent", () => {
   assert.match(html, /style\.css\?v=20260907-41/);
   assert.match(html, /standard-online-skill-intents\.js\?v=20260907-20/);
-  assert.match(html, /app\.js\?v=20260907-44/);
+  assert.match(html, /app\.js\?v=20260907-45/);
   assert.match(app, /cpuCommentary\?\.VERSION !== "standard-cpu-commentary-v2"/);
   assert.ok(html.indexOf("cpu-commentary.js") < html.indexOf('type="module" src="app.js'));
   assert.match(html, /id="cpuCommentaryStage"[^>]+aria-hidden="true"/);
@@ -379,15 +379,16 @@ test("existing online progression is hydrated from the server rather than re-upl
   assert.match(sync, /else \{[\s\S]+client\.syncProfile\(\{ displayName: displayName\(\), profileState: value \}\)/);
 });
 
-test("UI enumerates exactly the 19 canonical Standard cards by category", () => {
-  const catalog = app.slice(app.indexOf("const SKILLS = ["), app.indexOf("];", app.indexOf("const SKILLS = [")) + 2);
-  const ids = [...catalog.matchAll(/\["([A-Za-z][A-Za-z0-9]+)", "[^"]+", "(color|area|disrupt)"\]/g)].map((match) => match[1]);
-  const canonical = Object.values(STANDARD_SKILLS).filter((skill) => skill.v49Catalogued).map((skill) => skill.id);
-  assert.equal(ids.length, 19);
-  assert.deepEqual([...ids].sort(), [...canonical].sort());
-  assert.equal(new Set(ids).size, 19);
-  assert.doesNotMatch(catalog, /legalRecolor/);
-  assert.match(app, /const EXPERIMENTAL_SKILLS = Object\.freeze\(\{[\s\S]+legalRecolor/);
+test("UI derives its canonical and experimental card metadata from the generated registry", () => {
+  assert.equal(Object.values(STANDARD_SKILLS).filter((skill) => skill.v49Catalogued).length, 19);
+  assert.match(html, /standard-skill-registry\.generated\.js\?v=20260907-1[\s\S]+app\.js\?v=20260907-45/);
+  assert.match(app, /const STANDARD_SKILL_REGISTRY = globalThis\.FourColorStandardSkillRegistry/);
+  assert.match(app, /STANDARD_SKILL_REGISTRY\.v49SkillIds\.map/);
+  assert.match(app, /Object\.entries\(STANDARD_SKILL_REGISTRY\.skills\)/);
+  assert.match(app, /definition\.displayName/);
+  assert.match(app, /definition\.usageCategory/);
+  assert.match(app, /definition\.rarity/);
+  assert.doesNotMatch(app, /\["colorRandomBorrow", "色拾い・乱", "color"\]/);
 });
 
 test("profile, room, setup, initialize, and reconnect flow only through the client boundary", () => {

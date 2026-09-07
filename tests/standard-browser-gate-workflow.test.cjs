@@ -22,6 +22,7 @@ test("Standard browser gate is candidate-push, manual, or pull-request only and 
   assert.equal((workflow.match(/      - standard-online-v5\/\*\*/g) || []).length, 2);
   assert.equal((workflow.match(/      - standard-v5\/\*\*/g) || []).length, 2);
   assert.equal((workflow.match(/      - scripts\/build-standard-v5-bundle\.mjs/g) || []).length, 2);
+  assert.equal((workflow.match(/      - scripts\/build-standard-online-skill-registry\.mjs/g) || []).length, 2);
   assert.equal((workflow.match(/      - scripts\/check-standard-decision-reconciliation\.mjs/g) || []).length, 2);
   assert.equal((workflow.match(/      - docs\/PROJECT_COMMAND_CENTER\.md/g) || []).length, 2);
   assert.equal((workflow.match(/      - docs\/STANDARD_PUBLIC_RELEASE_RUNBOOK\.md/g) || []).length, 2);
@@ -51,7 +52,7 @@ test("Standard browser gate pins its tools and disables package-manager caching 
 });
 
 test("Standard browser gate runs CPU contracts and the scoped browser file serially without release integration", () => {
-  assert.match(workflow, /node scripts\/build-standard-v5-bundle\.mjs[\s\S]+node scripts\/build-standard-online-engine\.mjs[\s\S]+git diff --exit-code -- standard-v5\/app\.bundle\.js supabase\/functions\/standard-game-action\/standard-engine\.bundle\.js/);
+  assert.match(workflow, /node scripts\/build-standard-v5-bundle\.mjs[\s\S]+node scripts\/build-standard-online-engine\.mjs[\s\S]+node scripts\/build-standard-online-skill-registry\.mjs[\s\S]+git diff --exit-code -- standard-v5\/app\.bundle\.js supabase\/functions\/standard-game-action\/standard-engine\.bundle\.js standard-online-v5\/standard-skill-registry\.generated\.js/);
   assert.match(workflow, /node --test --test-concurrency=1[\s\S]+?tests\/standard-kurogane-lookahead\.test\.cjs[\s\S]+?tests\/standard-cpu-browser\.test\.cjs/);
   assert.match(workflow, /tests\/standard-browser-gate-workflow\.test\.cjs/);
   assert.match(workflow, /tests\/standard-online-browser-harness-static\.test\.cjs/);
@@ -62,6 +63,7 @@ test("Standard browser gate runs CPU contracts and the scoped browser file seria
   assert.match(workflow, /tests\/standard-basic-feedback\.test\.cjs/);
   assert.match(workflow, /tests\/standard-online-basic-feedback-static\.test\.cjs/);
   assert.match(workflow, /tests\/standard-online-contact-feedback\.test\.cjs/);
+  assert.match(workflow, /tests\/standard-online-skill-registry\.test\.cjs/);
   for (const file of ["standard-cpu.test.cjs", "standard-cpu-colored-corner-bloom.test.cjs", "standard-cpu-roster.test.cjs", "standard-no-color-rescue.test.cjs", "standard-color-region-split.test.cjs", "standard-area-colored-corner-bloom.test.cjs", "standard-local-ui-static.test.cjs", "standard-live-color-response-canary-static.test.cjs", "standard-decision-reconciliation.test.cjs"]) {
     assert.match(workflow, new RegExp(`tests/${file.replaceAll(".", "\\.")}`));
   }

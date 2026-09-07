@@ -41,19 +41,12 @@ const STARTER_INVENTORY = Object.freeze({
   areaMicroBloom: 3, areaDiePlus: 3,
   disruptRandomOne: 3, disruptChoiceOne: 3,
 });
-const SKILLS = [
-  ["colorRandomBorrow", "色拾い・乱", "color"], ["colorChoiceBorrow", "色借り", "color"], ["colorPrism", "四色解放", "color"],
-  ["colorRegionSplit", "エリア二分", "color"], ["colorPaletteChange", "持ち色変更", "color"],
-  ["areaMicroBloom", "ひとふくらみ", "area"], ["areaDiePlus", "エリア拡張", "area"], ["areaResize", "拡大縮小", "area"],
-  ["areaCornerBloom", "角膨張", "area"], ["areaHalfShift", "半マスシフト", "area"], ["areaTripleShift", "三層断層", "area"],
-  ["disruptRandomOne", "色封じ・乱", "disrupt"], ["disruptChoiceOne", "色封じ", "disrupt"], ["disruptRandomTwo", "二重封じ・乱", "disrupt"],
-  ["disruptPaletteRandom", "持ち色汚染・乱", "disrupt"], ["disruptChoiceTwo", "追封", "disrupt"], ["disruptPaletteChoice", "持ち色汚染", "disrupt"],
-  ["disruptChoiceThree", "長封", "disrupt"], ["disruptForcedPalette", "強制持ち替え", "disrupt"],
-];
-const EXPERIMENTAL_SKILLS = Object.freeze({
-  colorBonusRefill: Object.freeze({ name: "おまけ色補充", category: "color", usageCategory: "color" }),
-  legalRecolor: Object.freeze({ name: "塗り直し・乱", category: "experimental", usageCategory: "color" }),
-});
+const STANDARD_SKILL_REGISTRY = globalThis.FourColorStandardSkillRegistry;
+if (STANDARD_SKILL_REGISTRY?.VERSION !== "standard-skill-registry-generated-v1") throw new Error("STANDARD_SKILL_REGISTRY_REQUIRED");
+const SKILLS = Object.freeze(STANDARD_SKILL_REGISTRY.v49SkillIds.map((id) => {
+  const definition = STANDARD_SKILL_REGISTRY.skills[id];
+  return Object.freeze([definition.id, definition.displayName, definition.category]);
+}));
 const LEGAL_RECOLOR_LAB_RULE_SET_ID = "STANDARD_V5_LEGAL_RECOLOR_LAB_V1";
 const CATEGORY_LABEL = { color: "色カード", area: "エリアカード", disrupt: "妨害カード" };
 const PHASE_LABEL = {
@@ -299,7 +292,12 @@ const COLOR_HEX = { red: "#ef4444", blue: "#3b82f6", yellow: "#eab308", green: "
 const COLOR_JA = { red: "赤", blue: "青", yellow: "黄", green: "緑" };
 const APP_TABS = new Set(["home", "battle", "quiz", "cards", "profile"]);
 let activeAppTab = APP_TABS.has(location.hash.slice(1)) ? location.hash.slice(1) : localStorage.getItem(APP_TAB_KEY) || "home";
-const SKILL_META = Object.freeze({ ...Object.fromEntries(SKILLS.map(([id, name, category]) => [id, { name, category, usageCategory: category }])), ...EXPERIMENTAL_SKILLS });
+const SKILL_META = Object.freeze(Object.fromEntries(Object.entries(STANDARD_SKILL_REGISTRY.skills).map(([id, definition]) => [id, Object.freeze({
+  name: definition.displayName,
+  category: definition.category,
+  usageCategory: definition.usageCategory,
+  rarity: definition.rarity,
+})])));
 
 function validCpuCommentaryPresentationEntry(value) {
   return value && typeof value === "object" && !Array.isArray(value)
@@ -2882,7 +2880,7 @@ function renderSkills(state, privateState) {
       box.appendChild(label);
     }
     const item = document.createElement("div"); item.className = "skill-entry";
-    const node = button(`${meta.name} ${state.debugUnlimitedSkills ? "∞" : `×${count}`}`, () => beginSkill(skill), "skill");
+    const node = button(`${meta.name} ${state.debugUnlimitedSkills ? "∞" : `×${count}`}（★${meta.rarity}）`, () => beginSkill(skill), "skill");
     node.dataset.skill = skill;
     const timingOkay = skill === "legalRecolor" ? state.phase === "WORK"
       : meta.category === "color" ? state.phase === "COLOR" : ["CREATE_FIRST", "WORK"].includes(state.phase);
@@ -3019,7 +3017,11 @@ function setSkillTargetFeedback(message, tone = "") {
 function renderSkillTarget(state) {
   const panel = $("skillTargetControls"); panel.replaceChildren(); show("skillTargetControls", Boolean(targetDraft));
   if (!targetDraft) return;
-  const title = document.createElement("strong"); title.tabIndex = -1; title.textContent = `${SKILL_META[targetDraft.skill].name} — 対象を指定`; panel.appendChild(title);
+  const targetMeta = SKILL_META[targetDraft.skill];
+  const heading = document.createElement("div"); heading.className = "row between wrap skill-target-heading";
+  const title = document.createElement("strong"); title.tabIndex = -1; title.textContent = `${targetMeta.name} — 対象を指定`; heading.appendChild(title);
+  const rarity = document.createElement("span"); rarity.className = "skill-rarity"; rarity.textContent = `★${targetMeta.rarity}`; rarity.setAttribute("aria-label", `レア度 星${targetMeta.rarity}`); heading.appendChild(rarity);
+  panel.appendChild(heading);
   const controls = document.createElement("div"); controls.className = "controls";
   if (["color", "slot-color"].includes(targetDraft.kind)) {
     for (const color of skillIntents.COLORS) controls.appendChild(targetChoice(COLOR_JA[color], "color", color));

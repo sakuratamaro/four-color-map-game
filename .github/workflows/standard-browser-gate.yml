@@ -13,6 +13,7 @@ on:
       - standard-v5/**
       - standard/**
       - scripts/build-standard-online-engine.mjs
+      - scripts/build-standard-online-skill-registry.mjs
       - scripts/build-standard-v5-bundle.mjs
       - scripts/check-standard-decision-reconciliation.mjs
       - scripts/standard-cpu-selfplay.cjs
@@ -41,6 +42,7 @@ on:
       - standard-v5/**
       - standard/**
       - scripts/build-standard-online-engine.mjs
+      - scripts/build-standard-online-skill-registry.mjs
       - scripts/build-standard-v5-bundle.mjs
       - scripts/check-standard-decision-reconciliation.mjs
       - scripts/standard-cpu-selfplay.cjs
@@ -92,7 +94,8 @@ jobs:
         run: |
           node scripts/build-standard-v5-bundle.mjs
           node scripts/build-standard-online-engine.mjs
-          git diff --exit-code -- standard-v5/app.bundle.js supabase/functions/standard-game-action/standard-engine.bundle.js
+          node scripts/build-standard-online-skill-registry.mjs
+          git diff --exit-code -- standard-v5/app.bundle.js supabase/functions/standard-game-action/standard-engine.bundle.js standard-online-v5/standard-skill-registry.generated.js
       - name: Run Standard CPU policy contract tests
         run: >-
           node --test --test-concurrency=1
@@ -148,6 +151,7 @@ jobs:
           tests/standard-online-quiz-generator-runtime.test.cjs
           tests/standard-online-quiz-polish.test.cjs
           tests/standard-online-random-info-ui.test.cjs
+          tests/standard-online-skill-registry.test.cjs
           tests/standard-online-skill-intents.test.cjs
           tests/standard-online-ui-static.test.cjs
           tests/standard-recolor.test.cjs

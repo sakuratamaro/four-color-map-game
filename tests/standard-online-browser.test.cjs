@@ -1908,6 +1908,7 @@ test("actual browser activates a two-cell legacy corner bloom from the keyboard 
     await skill.focus();
     await page.keyboard.press("Enter");
     await page.getByText("角膨張 — 対象を指定").waitFor();
+    assert.equal(await page.locator("#skillTargetControls .skill-rarity").textContent(), "★4");
     await page.waitForFunction(() => document.activeElement?.id === "board");
     assert.equal(await page.locator("#skillTargetControls [data-corner-bloom-macro]").count(), 0);
     assert.equal(await page.getByRole("button", { name: "この対象で使う" }).count(), 0);
@@ -2195,7 +2196,7 @@ test("actual browser exposes one keyboard-safe recolor lab loan without touching
     assert.equal(await page.evaluate(() => document.activeElement?.textContent), "キャンセル");
     await page.keyboard.press("Enter");
     await page.waitForFunction(() => document.activeElement?.dataset?.skill === "legalRecolor");
-    assert.equal(await page.evaluate(() => document.activeElement?.textContent), "塗り直し・乱 ×1");
+    assert.equal(await page.evaluate(() => document.activeElement?.textContent), "塗り直し・乱 ×1（★3）");
     assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "action").length), 0);
 
     await page.keyboard.press("Enter");
@@ -4430,7 +4431,7 @@ test("actual browser keeps blocked COLOR active until voluntary surrender at 390
     await page.getByRole("button", { name: "色操作カードを見る" }).focus();
     await page.keyboard.press("Enter");
     await page.waitForFunction(() => document.activeElement?.dataset?.skill === "colorPrism");
-    assert.equal(await page.evaluate(() => document.activeElement?.textContent), "四色解放 ×1");
+    assert.equal(await page.evaluate(() => document.activeElement?.textContent), "四色解放 ×1（★3）");
 
     await page.reload({ waitUntil: "load" });
     await page.locator("#colorResponse:not(.hidden)").waitFor();
