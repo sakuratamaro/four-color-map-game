@@ -20,7 +20,7 @@
 
 | 要求 | 出典区分 | 現状 | 実装 | 担当・worktree | 次の証拠 |
 | --- | --- | --- | --- | --- | --- |
-| ★4 角膨張を実盤面で使える状態へ | ユーザー確定・★1ひとふくらみとは別 | LOCAL_VERIFIED (`c5369b0`) | public geometry由来の送信対象を紫枠表示し、keyboard初期位置を最初の対象へ移動。成功可否はserverだけが判定し、候補0・旧room・位置不一致を原因別日本語で再選択可能にした | UX/a11y/privacy・本worktree | 非browser 477/477、lifecycle Edge 79/79、online Edge/Chrome各83/83。次はmain/Pages/live確認 |
+| ★4 角膨張を実盤面で使える状態へ | ユーザー確定・★1ひとふくらみとは別 | PUBLIC_VERIFIED (`c5369b0`) | public geometry由来の送信対象を紫枠表示し、keyboard初期位置を最初の対象へ移動。成功可否はserverだけが判定し、候補0・旧room・位置不一致を原因別日本語で再選択可能にした | UX/a11y/privacy・本worktree | main `1c6ad47`、Pages `34118055876`、公開app44/client20、candidate preflight、overflow 0、console 0 |
 
 ## 別管理マスターバックログ
 

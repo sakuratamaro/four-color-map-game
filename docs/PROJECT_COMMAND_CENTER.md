@@ -8,7 +8,7 @@
 
 ## 司令塔ルール
 
-- 統合基点と公開製品は `origin/main@e941d11`。盤面主導Shift選択、基本feedback、共通COLOR応答窓、CPU実況、legal-recolor LAB、同カテゴリ連打制限、alpha.4 direct-cell角膨張、おまけ色残数・封印残数の実ボタン表示まで累積している。次の変更も専用clean worktreeでのみ統合する。
+- 公開製品コードは `c5369b0`、確認済みmainは `1c6ad47`。盤面主導Shift選択、基本feedback、共通COLOR応答窓、CPU実況、legal-recolor LAB、同カテゴリ連打制限、alpha.4 direct-cell角膨張、おまけ色残数・封印残数の実ボタン表示まで累積している。次の変更も専用clean worktreeでのみ統合する。
 - release候補はdirtyな司令塔床から直接出さず、`origin/main`起点のclean release worktreeへ採用commitだけを積み、candidate CIのtree一致を確認してfast-forwardする。
 - 古いdirty worktreeからbuild、merge、deployしない。
 - `実装済み`、`ローカル検証済み`、`live検証済み`、`公開済み`を別状態として記録する。
@@ -110,7 +110,7 @@
 | UDL-20260907-022 | スキル使用UIへ正本レアリティ | 6枚一覧と対象指定へregistryの星数を表示 | inventory数から推測せず、private漏えいなし、生成物とsource parity | `standard-skill-registry.js` | UX＋registry | P0 public UX recovery | IMPLEMENTING | — | NO | NO | NOT_RUN | `01a06c79` handoff | — | YES |
 | UDL-20260907-023 | 中幅ロビー崩れを復旧 | CPU／友だち／野良cardを安全にreflow | 390px・報告中幅・wide、44px controls、overflow/clip/text overlap 0 | lobby CSS | UX＋responsive | P0 public UX recovery | IMPLEMENTING | — | NO | NO | NOT_RUN | `01a06c79` handoff | 旧PUBLIC_VERIFIEDを実画面不合格で再開 | YES |
 | UDL-20260907-024 | ひとふくらみUI/authoritative経路復旧 | 合法対象は成功、違法対象はwrite-free・カード非消費・日本語案内 | payload、partial macro、bounds、phase、card、alpha.4 interaction、source/bundle parity | skill intents＋engine/Edge | ルール＋UX＋Edge | P0 public UX recovery | IMPLEMENTING | — | NO | NO | NOT_RUN | `01a06c79` handoff | — | YES |
-| UDL-20260907-025 | ★4角膨張を実盤面で迷わず使える状態へ | server判定を維持しつつ送信対象セルを紫枠で示し、keyboard初期位置を最初の対象へ置く | 旧room互換、成功可否oracleなし、原因別日本語、reject時カード・手番不変、同一ID再送 | alpha.4 direct-cell、public geometry | UX＋a11y＋privacy | Corner bloom recovery | LOCAL_VERIFIED | `c5369b0` | NO | NO | 非browser 477/477、lifecycle Edge 79/79、online Edge/Chrome各83/83 | `01a06c79` handoff＋current priority | ★1ひとふくらみとは別要求 | YES |
+| UDL-20260907-025 | ★4角膨張を実盤面で迷わず使える状態へ | server判定を維持しつつ送信対象セルを紫枠で示し、keyboard初期位置を最初の対象へ置く | 旧room互換、成功可否oracleなし、原因別日本語、reject時カード・手番不変、同一ID再送 | alpha.4 direct-cell、public geometry | UX＋a11y＋privacy | Corner bloom recovery | PUBLIC_VERIFIED | `c5369b0` | `1c6ad47` | `34118055876` | 非browser 477/477、lifecycle Edge 79/79、online Edge/Chrome各83/83。公開app44/client20、candidate preflight、overflow 0、console 0 | `01a06c79` handoff＋current priority | ★1ひとふくらみとは別要求 | YES |
 
 ### Decision reconciliation gate
 
