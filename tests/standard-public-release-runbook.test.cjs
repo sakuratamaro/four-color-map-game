@@ -75,6 +75,38 @@ test("release runbook fixes migration history and the retired-declaration Pages-
   assert.match(runbook, /0でなければ `202609050006` を適用せず/);
 });
 
+test("release runbook proves the actual Edge deployment independently from the Pages artifact", () => {
+  const proofSection = runbook.slice(runbook.indexOf("## Edge deployment同一性証明ゲート"), runbook.indexOf("## EdgeとPagesの順序"));
+  for (const phrase of [
+    "repository artifactの公開copy", "live Edge確認", "functions list", "functions download standard-game-action --use-api",
+    "functions deploy standard-game-action", "status=ACTIVE", "verify_jwt=true", "ezbr_sha256",
+    "NOT_EXPOSED_BY_CLI", "standard-engine.bundle.js", "全byte一致", "UTF-8 LF正規化比較", "15分以内",
+    "deploy log → projects → functions metadata → download readback → canary", "SOURCE_VERIFIED_CANARY_PENDING",
+    "gateState=VERIFIED", "--canary-log", "active room件数",
+  ]) assert.match(proofSection, new RegExp(phrase.replaceAll(".", "\\.")));
+  assert.match(proofSection, /id \+ version/);
+  assert.match(proofSection, /--project-ref qkcuhludisairpgzhryl/);
+  assert.match(proofSection, /--use-api/);
+  assert.match(proofSection, /--stage=source/);
+  assert.match(proofSection, /--stage=release/);
+  assert.match(proofSection, /--expect-version <deployment-version>/);
+  assert.match(proofSection, /--deploy-log/);
+  assert.match(proofSection, /--download-log/);
+  assert.match(proofSection, /live-standard-edge-canary\.mjs --confirm-live/);
+  assert.match(proofSection, /CLIが未導入、未認証.*`BLOCKED`/);
+  assert.match(proofSection, /function名を省略した一括deploy.*使わない/);
+  assert.match(proofSection, /access token.*service role.*証拠へ出さない/);
+  assert.match(proofSection, /CLI未認証時のsigned-in Dashboard ZIP fallback/);
+  assert.match(proofSection, /VERIFIED_WITH_DASHBOARD_SOURCE_READBACK/);
+  assert.match(proofSection, /CONTROL_PLANE_ID_NOT_OBSERVED/);
+  assert.match(proofSection, /--metadata-mode=dashboard/);
+  assert.match(proofSection, /baseline\/standard-game-action/);
+  assert.match(proofSection, /post\/standard-game-action/);
+  assert.match(proofSection, /--baseline-download-log/);
+  assert.match(proofSection, /version\/idが必要な監査ではこの制約を`PENDING`/);
+  assert.match(proofSection, /alpha\.4 active roomが0になる前にalpha\.4非対応sourceへ戻さない/);
+});
+
 test("release gates cover human, CPU, persistence, privacy, load, and safe rollback", () => {
   for (const phrase of ["別々の二端末", "実時間90秒", "180秒", "10件同時確保", "同じCPUとの再戦", "profile=null", "p50", "p95", "private漏えい"]) {
     assert.match(runbook, new RegExp(phrase));
