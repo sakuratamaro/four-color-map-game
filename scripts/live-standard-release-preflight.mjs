@@ -2,12 +2,14 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { hasApprovedEdgeGachaOdds, hasApprovedGachaOddsUi, hasWholeButtonQuizPhysics } from "./standard-release-preflight-contracts.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const configSource = fs.readFileSync(path.join(root, "online", "supabase-config.js"), "utf8");
 const supabaseUrl = configSource.match(/url:\s*"([^"]+)"/)?.[1];
 const publishableKey = configSource.match(/publishableKey:\s*"([^"]+)"/)?.[1];
 const publicUrl = "https://sakuratamaro.github.io/four-color-map-game/standard-online-v5/";
+const publicEdgeBundleUrl = new URL("../supabase/functions/standard-game-action/standard-engine.bundle.js", publicUrl).href;
 const expectedPhase = process.argv.find((argument) => argument.startsWith("--expect="))?.slice("--expect=".length) || null;
 const zeroUuid = "00000000-0000-0000-0000-000000000000";
 const candidateAssetMarkers = Object.freeze({
@@ -64,13 +66,14 @@ async function probeProtectedRpc(name, body) {
   throw new Error(`UNEXPECTED_RPC_PROBE_${name}_${response.status}_${String(data?.code || "UNKNOWN")}`);
 }
 
-const [page, app, intents, registry, portraits, portraitAtlas, snapshotV1, snapshotV2, matchmaking, matchmakingAvailability, pregameAbandon, activeRoom, setupLoadV3, initializeRoomV3] = await Promise.all([
+const [page, app, intents, registry, portraits, portraitAtlas, publicEdgeBundle, snapshotV1, snapshotV2, matchmaking, matchmakingAvailability, pregameAbandon, activeRoom, setupLoadV3, initializeRoomV3] = await Promise.all([
   getText(publicUrl),
   getText(`${publicUrl}app.js`),
   getText(`${publicUrl}standard-online-skill-intents.js`),
   getText(`${publicUrl}standard-skill-registry.generated.js`),
   getOptionalText(`${publicUrl}cpu-portraits.js`),
   getOptionalBytes(`${publicUrl}assets/cpu-portraits/cpu-portrait-atlas.png`),
+  getOptionalText(publicEdgeBundleUrl),
   probeProtectedRpc("fcg_standard_room_snapshot", { p_room_id: zeroUuid }),
   probeProtectedRpc("fcg_standard_room_snapshot_v2", { p_room_id: zeroUuid, p_known_profile_revision: null }),
   probeProtectedRpc("fcg_standard_matchmaking_recruit", { p_display_name: "preflight", p_ticket_id: zeroUuid }),
@@ -133,6 +136,9 @@ const result = {
       && portraitAtlas.bytes.length > 500_000
       && portraitAtlasDimensions?.width === 1448
       && portraitAtlasDimensions?.height === 1086,
+    hasWholeButtonQuizPhysics: hasWholeButtonQuizPhysics(page.text, app.text),
+    hasApprovedGachaOddsUi: hasApprovedGachaOddsUi(page.text, app.text),
+    hasApprovedEdgeGachaOdds: publicEdgeBundle.status === 200 && hasApprovedEdgeGachaOdds(publicEdgeBundle.text),
     hasCandidateAssetGeneration: page.text.includes(candidateAssetMarkers.app)
       && page.text.includes(candidateAssetMarkers.style)
       && page.text.includes(candidateAssetMarkers.intents)
@@ -145,7 +151,7 @@ const result = {
 const phaseExpectations = {
   baseline: { pregameAbandonUi: true, pregameAbandonDb: true, activeRoomUi: true, activeRoomDb: true, setupRevisionGuardDb: true, legalRecolorLabUi: true, matchmakingAvailabilityDb: false, waitingOpponentUi: false },
   "db-ready": { pregameAbandonUi: true, pregameAbandonDb: true, activeRoomUi: true, activeRoomDb: true, setupRevisionGuardDb: true, legalRecolorLabUi: true, matchmakingAvailabilityDb: true, waitingOpponentUi: false },
-  candidate: { pregameAbandonUi: true, pregameAbandonDb: true, activeRoomUi: true, activeRoomDb: true, setupRevisionGuardDb: true, legalRecolorLabUi: true, matchmakingAvailabilityDb: true, waitingOpponentUi: true, alpha3SkillCategoryUi: true, alpha4ColoredCornerBloomUi: true, registryRarityUi: true, cpuPortraitsUi: true, candidateAssetGenerationUi: true },
+  candidate: { pregameAbandonUi: true, pregameAbandonDb: true, activeRoomUi: true, activeRoomDb: true, setupRevisionGuardDb: true, legalRecolorLabUi: true, matchmakingAvailabilityDb: true, waitingOpponentUi: true, alpha3SkillCategoryUi: true, alpha4ColoredCornerBloomUi: true, registryRarityUi: true, cpuPortraitsUi: true, wholeButtonQuizPhysicsUi: true, approvedGachaOddsUi: true, approvedEdgeGachaOdds: true, candidateAssetGenerationUi: true },
 };
 
 if (expectedPhase) {
@@ -170,6 +176,9 @@ if (expectedPhase) {
     assert.equal(result.publicPage.hasAlpha4ColoredCornerBloom, expected.alpha4ColoredCornerBloomUi, "ALPHA4_COLORED_CORNER_BLOOM_UI_PHASE_MISMATCH");
     assert.equal(result.publicPage.hasRegistryRarityUi, expected.registryRarityUi, "REGISTRY_RARITY_UI_PHASE_MISMATCH");
     assert.equal(result.publicPage.hasCpuPortraits, expected.cpuPortraitsUi, "CPU_PORTRAITS_UI_PHASE_MISMATCH");
+    assert.equal(result.publicPage.hasWholeButtonQuizPhysics, expected.wholeButtonQuizPhysicsUi, "WHOLE_BUTTON_QUIZ_PHYSICS_UI_PHASE_MISMATCH");
+    assert.equal(result.publicPage.hasApprovedGachaOddsUi, expected.approvedGachaOddsUi, "APPROVED_GACHA_ODDS_UI_PHASE_MISMATCH");
+    assert.equal(result.publicPage.hasApprovedEdgeGachaOdds, expected.approvedEdgeGachaOdds, "APPROVED_GACHA_ODDS_EDGE_BUNDLE_MISMATCH");
     assert.equal(result.publicPage.hasCandidateAssetGeneration, expected.candidateAssetGenerationUi, "CANDIDATE_ASSET_GENERATION_UI_PHASE_MISMATCH");
   }
 }
