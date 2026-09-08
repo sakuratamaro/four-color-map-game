@@ -96,6 +96,31 @@
 
   function firstRow(data) { return Array.isArray(data) ? data[0] : data; }
   function clone(value) { return JSON.parse(JSON.stringify(value)); }
+  const STANDARD_COLORS = new Set(["red", "blue", "yellow", "green"]);
+  function plainObject(value) { return value && typeof value === "object" && !Array.isArray(value); }
+  function validCurrentSeatView(view, roomVersion) {
+    const privateState = view?.private_state;
+    return plainObject(view)
+      && ["A", "B"].includes(view.seat)
+      && Number.isSafeInteger(view.version)
+      && view.version === roomVersion
+      && plainObject(privateState)
+      && Array.isArray(privateState.basicPalette)
+      && privateState.basicPalette.length === 2
+      && privateState.basicPalette.every((color) => STANDARD_COLORS.has(color))
+      && STANDARD_COLORS.has(privateState.bonusColor)
+      && Number.isSafeInteger(privateState.bonusUsesRemaining)
+      && privateState.bonusUsesRemaining >= 0
+      && (privateState.privateEffects === undefined || plainObject(privateState.privateEffects));
+  }
+  function assertCoherentRoomSnapshot(snapshot, roomId) {
+    const roomVersion = Number(snapshot?.room?.version);
+    const snapshotVersion = Number(snapshot?.snapshot_version);
+    if (snapshot?.room?.id !== roomId || !Number.isSafeInteger(roomVersion) || roomVersion < 0
+        || snapshotVersion !== roomVersion) throw new Error("INVALID_ROOM_SNAPSHOT");
+    if (["playing", "finished"].includes(snapshot.room.status)
+        && !validCurrentSeatView(snapshot.view, roomVersion)) throw new Error("INVALID_ROOM_SNAPSHOT");
+  }
   const SETUP_CATEGORIES = Object.freeze(["color", "area", "disrupt"]);
   function normalizePendingSetup(value) {
     if (!value || typeof value !== "object" || Array.isArray(value)) return null;
@@ -659,6 +684,7 @@
           || !Number.isSafeInteger(Number(snapshot?.profile_revision))
           || !snapshot?.room || !Array.isArray(snapshot.members)) throw new Error("INVALID_ROOM_SNAPSHOT");
       if (snapshot.room.game_mode !== "standard_v5") throw new Error("WRONG_GAME_MODE");
+      assertCoherentRoomSnapshot(snapshot, roomId);
       if (snapshot.room.status === "ready" && Number.isSafeInteger(state.rematchExpectedVersion)
           && Number(snapshot.room.version) > state.rematchExpectedVersion) {
         state.setupRevision = 0;
