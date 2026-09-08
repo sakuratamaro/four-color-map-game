@@ -2,7 +2,7 @@ name: Standard browser gate
 
 on:
   push:
-    branches: [codex/standard-release-command]
+    branches: [codex/standard-release-command, codex/standard-palette-green-turn-recovery-20260908]
     paths:
       - .github/workflows/standard-browser-gate.yml
       - online/supabase-config.js
