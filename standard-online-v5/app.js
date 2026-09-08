@@ -2356,6 +2356,23 @@ function quizOptionInitialVelocity(index) {
   return { vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed };
 }
 
+function quizOptionUsesOrbShape(element) {
+  return /^[+\-−]?\d{1,3}(?:\.\d)?(?:π)?$/.test(String(element?.textContent || "").trim());
+}
+
+function measureQuizOption(element, maximumWidth) {
+  const orb = quizOptionUsesOrbShape(element);
+  element.classList.toggle("is-orb", orb);
+  element.classList.toggle("is-capsule", !orb);
+  if (orb) return { width: 52, height: 52 };
+  element.style.width = "auto";
+  element.style.height = "auto";
+  const width = Math.max(72, Math.min(maximumWidth, Math.ceil(element.scrollWidth + 2)));
+  element.style.width = `${width}px`;
+  const height = Math.max(52, Math.min(72, Math.ceil(element.scrollHeight + 2)));
+  return { width, height };
+}
+
 function advanceQuizOptionPhysics(items, arenaWidth, arenaHeight, dt) {
   for (const item of items) {
     item.x += item.vx * dt;
@@ -2414,19 +2431,20 @@ function layoutQuizOptionPhysics(motion = quizOptionPhysics) {
   const rows = Math.ceil(motion.items.length / columns);
   const sidePadding = arenaWidth < 360 ? 8 : 12;
   const minimumColumnGap = arenaWidth < 360 ? 7 : 10;
+  const minimumRowGap = 8;
   const reservedBottom = motion.arena.classList.contains("has-quiz-retry") ? 68 : 0;
   const availableHeight = Math.max(1, arenaHeight - reservedBottom);
-  const buttonWidth = Math.max(82, Math.min(156, Math.floor((arenaWidth - sidePadding * 2 - minimumColumnGap * (columns - 1)) / columns)));
-  const buttonHeight = arenaWidth < 520 ? 56 : 60;
-  const columnGap = columns > 1 ? Math.max(minimumColumnGap, (arenaWidth - sidePadding * 2 - columns * buttonWidth) / (columns - 1)) : 0;
-  const rowGap = rows > 1 ? Math.max(8, (availableHeight - sidePadding * 2 - rows * buttonHeight) / (rows - 1)) : 0;
+  const columnWidth = Math.max(1, (arenaWidth - sidePadding * 2 - minimumColumnGap * (columns - 1)) / columns);
+  const rowHeight = Math.max(1, (availableHeight - sidePadding * 2 - minimumRowGap * (rows - 1)) / rows);
+  const maximumButtonWidth = Math.max(72, Math.min(156, Math.floor(columnWidth - 2)));
   motion.items.forEach((item, index) => {
     const column = index % columns; const row = Math.floor(index / columns);
-    item.width = buttonWidth; item.height = buttonHeight;
-    item.x = sidePadding + column * (buttonWidth + columnGap);
-    item.y = sidePadding + row * (buttonHeight + rowGap);
-    item.element.style.width = `${buttonWidth}px`;
-    item.element.style.height = `${buttonHeight}px`;
+    const size = measureQuizOption(item.element, maximumButtonWidth);
+    item.width = size.width; item.height = Math.min(size.height, rowHeight);
+    item.x = sidePadding + column * (columnWidth + minimumColumnGap) + (columnWidth - item.width) / 2;
+    item.y = sidePadding + row * (rowHeight + minimumRowGap) + (rowHeight - item.height) / 2;
+    item.element.style.width = `${item.width}px`;
+    item.element.style.height = `${item.height}px`;
   });
   motion.arenaWidth = arenaWidth;
   motion.arenaHeight = arenaHeight;

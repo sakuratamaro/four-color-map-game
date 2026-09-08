@@ -484,7 +484,12 @@ async function installMock(context, mode) {
             hintOptions: ["たし算：同じ位どうしを足す", "円の面積：S = πr²", "2次の行列式：det A = ad − bc"],
             hintDurationMs: 2500,
             timeLimitSeconds: initialMode === "handoffStart" ? 1 : initialMode === "quizPhysics" ? 120 : 10,
-            options: Array.from({ length: 6 }, (_, optionIndex) => ({ id: `q${index + 1}-${optionIndex + 1}`, label: String(index + optionIndex + 2) })),
+            options: Array.from({ length: 6 }, (_, optionIndex) => ({
+              id: `q${index + 1}-${optionIndex + 1}`,
+              label: initialMode === "quizPhysics"
+                ? ["2", "12", "-7", "3.5", "123456", "-123456789"][optionIndex]
+                : String(index + optionIndex + 2),
+            })),
           }));
           return { data: { sessionId: "66666666-6666-4666-8666-666666666666", duplicate: false, selectedLevel: request.body.selectedLevel, answerMode: "per-question-v1", expiresAt: "2099-01-01T00:00:00.000Z", questions, timeoutAnswerId: "__timeout__" } };
         }
@@ -2624,6 +2629,7 @@ test(`${browserName} moves whole quiz buttons in one collision arena and pauses 
           return {
             x: box.x, y: box.y, left: box.left, top: box.top, right: box.right, bottom: box.bottom,
             width: box.width, height: box.height, transform: getComputedStyle(button).transform,
+            text: button.textContent, shape: button.classList.contains("is-orb") ? "orb" : button.classList.contains("is-capsule") ? "capsule" : "none",
             centerTargetIsButton: document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2) === button,
           };
         }),
@@ -2643,6 +2649,9 @@ test(`${browserName} moves whole quiz buttons in one collision arena and pauses 
     };
 
     const before = await snapshot();
+    assert.ok(before.buttons.slice(0, 4).every((button) => button.shape === "orb" && Math.abs(button.width - button.height) < 0.5 && button.width <= 54), JSON.stringify(before));
+    assert.ok(before.buttons.slice(4).every((button) => button.shape === "capsule" && button.width > button.height), JSON.stringify(before));
+    assert.ok(before.buttons.every((button) => button.width <= (before.arena.right - before.arena.left) / 3), JSON.stringify(before));
     const travelled = before.buttons.map(() => 0);
     let moving = before;
     for (let sample = 0; sample < 12; sample += 1) {

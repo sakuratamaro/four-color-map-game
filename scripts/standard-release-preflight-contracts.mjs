@@ -24,6 +24,9 @@ export function hasWholeButtonQuizPhysics(pageText, appText) {
   ]) && includesAll(appText, [
     "const QUIZ_OPTION_VELOCITY_ANGLES = Object.freeze([0.9, 2.2, -0.7, 2.5, -0.8, -2.3]);",
     "const speed = 56 + index % 3 * 5;",
+    "function quizOptionUsesOrbShape(element)",
+    'element.classList.toggle("is-orb", orb);',
+    "const size = measureQuizOption(item.element, maximumButtonWidth);",
     "function advanceQuizOptionPhysics(items, arenaWidth, arenaHeight, dt)",
     "const overlapX = Math.min(left.x + left.width, right.x + right.width) - Math.max(left.x, right.x);",
     "const overlapY = Math.min(left.y + left.height, right.y + right.height) - Math.max(left.y, right.y);",

@@ -57,6 +57,8 @@ test("question choices use one whole-button physics arena with safe pause contra
   assert.match(css, /\.quiz-options\.is-physics\{position:relative;display:block;height:310px/);
   assert.match(css, /button\[data-quiz-option\]\{position:absolute/);
   assert.match(css, /button\[data-quiz-option\][^}]+transform:translate3d\(0,0,0\)/);
+  assert.match(css, /button\[data-quiz-option\]\.is-orb\{[^}]*border-radius:50%/);
+  assert.match(css, /button\[data-quiz-option\]\.is-capsule\{border-radius:999px/);
   assert.doesNotMatch(css, /quiz-option-drift|quiz-option-float/);
   assert.match(css, /@media\(max-width:620px\)\{\.quiz-options\.is-physics\{height:290px/);
   assert.match(css, /@media\(prefers-reduced-motion:reduce\)\{\.quiz-options\.is-physics button\[data-quiz-option\]/);
@@ -66,6 +68,8 @@ test("question choices use one whole-button physics arena with safe pause contra
   assert.match(render, /initializeQuizOptionPhysics\(optionButtons/);
   assert.doesNotMatch(render, /quiz-option-float|appendChild\(label\)/);
   assert.match(app, /function advanceQuizOptionPhysics\(/);
+  assert.match(app, /function quizOptionUsesOrbShape\(/);
+  assert.match(app, /const size = measureQuizOption\(item\.element, maximumButtonWidth\)/);
   assert.match(app, /requestAnimationFrame\(animateQuizOptionPhysics\)/);
   assert.match(app, /overlapX <= 0 \|\| overlapY <= 0/);
   for (const pauseContract of [
@@ -191,7 +195,7 @@ test("only overflowing quiz math receives a persistent horizontal position bar",
   assert.match(css, /\.quiz-math-scroll\{[^}]*overflow-x:auto/);
   assert.match(css, /\.quiz-question \.quiz-math-scroll math\{[^}]*white-space:nowrap/);
   assert.match(css, /\.quiz-overflow-scrollbar\[hidden\]\{display:none\}/);
-  assert.match(html, /style\.css\?v=20260908-5/);
+  assert.match(html, /style\.css\?v=20260908-6/);
   assert.match(html, /standard-online-client\.js\?v=20260908-1/);
   assert.match(html, /app\.js\?v=20260908-9/);
 });

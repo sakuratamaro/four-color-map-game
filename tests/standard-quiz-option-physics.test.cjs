@@ -51,14 +51,15 @@ test("whole-button physics keeps all choice hitboxes inside the arena", () => {
 });
 
 test("whole-button physics visibly travels and trades columns within five seconds at 390px", () => {
-  const arenaWidth = 280;
+  const arenaWidth = 358;
   const arenaHeight = 290;
+  const widths = [52, 52, 52, 64, 86, 104];
   const items = Array.from({ length: 6 }, (_, index) => ({
     id: index,
-    x: 8 + (index % 2) * 134,
-    y: 8 + Math.floor(index / 2) * 105,
-    width: 130,
-    height: 56,
+    x: 12 + (index % 3) * 117 + (104 - widths[index]) / 2,
+    y: 28 + Math.floor(index / 3) * 145,
+    width: widths[index],
+    height: index > 3 ? 56 : 52,
     ...context.initialVelocity(index),
   }));
   const initialSides = items.map((item) => item.x + item.width / 2 < arenaWidth / 2);
