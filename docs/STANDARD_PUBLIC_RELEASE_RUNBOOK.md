@@ -157,6 +157,16 @@ rollbackも「旧version番号へ戻った」という目視だけでは完了�
 
 ## EdgeとPagesの順序
 
+### 基本palette torn snapshot拒否便
+
+正式候補は`origin/main@3e453a2`へ製品、asset marker、fixture整合修正だけを再構成した`a68c6ab`。試験枝を再実行するためだけのworkflow変更`462f999`は含めない。current-seat private paletteを持つclientだけのPages便であり、DB、migration、RPC、Edge、engine、ルール、カード、報酬を変更しない。
+
+1. unit 51/51と、390pxで`coherent COLOR → version不一致か基本色破損 → coherent CPU turn → 次のCOLOR`を通すfocused Chrome/Edgeを再確認する。torn中は最後の基本2色を保持し、再接続表示、action送信0、public表示へのprivate palette漏えい0を必須にする。
+2. 正式候補をtest branchへpushし、Windows Chrome/Edge gateを同一treeで完走する。一時CI triggerを候補へ戻さず、失敗時はrunと原因を保持する。
+3. gate成功後にmainをforceなしでfast-forwardし、Pages runの成功と公開HTMLの`standard-online-client.js?v=20260908-1`をキャッシュ回避付きで確認する。
+4. 公開環境ではtorn responseを捏造せず、新しい通常CPU戦で基本2色を確認し、CPU手番をまたぐpoll、COLOR復帰、reload後も同じ基本2色と回数無制限表示が維持されることを確認する。console warning/error 0と横overflow 0を記録する。
+5. synthetic torn時系列はformal browser gate、公開後は実serverの通常時系列として証拠を分ける。両方が揃うまで`PUBLIC_VERIFIED`へ上げない。
+
 ### alpha.4彩色済みエリア角膨張便
 
 候補中。この便は新payloadを旧Edgeが拒否する一方、新Edgeは旧UIのoutgoing payloadを継続できるため、`alpha.4対応Edge → live canary → Pages`の順にする。Pages候補assetはonline app `app.js?v=20260908-8`、style `style.css?v=20260908-5`、intents `standard-online-skill-intents.js?v=20260907-20`、client `standard-online-client.js?v=20260908-1`、portrait `cpu-portraits.js?v=20260908-1`、Local bundle `app.bundle.js?v=20260908-2-87f722259e50`である。DB、migration、RPC、secret、cleanup scheduleは変更しない。
