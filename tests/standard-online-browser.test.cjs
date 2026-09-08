@@ -1680,6 +1680,7 @@ test("actual Edge celebrates an opponent surrender and presents defeat from the 
         version: 10,
         public_state: { ...runtime.room.public_state, version: 10, winner: "B", terminalReason: "SURRENDER" },
       };
+      runtime.view = { ...runtime.view, version: 10 };
       runtime.onInvalidate();
     });
     await page.getByRole("heading", { name: "敗北" }).waitFor({ timeout: 5000 });
@@ -3560,8 +3561,12 @@ test("actual Edge preserves paused quiz time across finish and missing-room clea
       const remainingBefore = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)).questionState.remainingMs, pendingQuizKey);
       if (cleanup === "finished") {
         await page.evaluate(() => {
-          globalThis.__standardOnlineRuntime.room = { ...globalThis.__standardOnlineRuntime.room, status: "finished" };
-          globalThis.__standardOnlineRuntime.onInvalidate?.({});
+          const runtime = globalThis.__standardOnlineRuntime;
+          runtime.room = { ...runtime.room, status: "finished" };
+          runtime.view = { seat: "A", version: runtime.room.version, private_state: {
+            hand: {}, basicPalette: ["red", "blue"], bonusColor: "yellow", bonusUsesRemaining: 2, privateEffects: {},
+          } };
+          runtime.onInvalidate?.({});
         });
         await page.locator("#roomStatus").getByText("対戦終了", { exact: true }).waitFor();
       } else {
@@ -4686,6 +4691,7 @@ test("actual browser presents contact only for the local completed selection and
         },
         lastPublicTrace: null,
       } };
+      runtime.view = { ...runtime.view, version: 10 };
       runtime.onInvalidate?.({});
     });
     await page.waitForFunction(() => document.querySelector("#versionText")?.textContent === "10");
@@ -4718,6 +4724,7 @@ test("actual browser presents contact only for the local completed selection and
         regions: { ...runtime.room.public_state.regions, R4: { id: "R4", micro: [5], sourceMacros: [5], controllers: ["A"], color: null, isPending: true } },
         lastPublicTrace: { eventId: `${matchId}:${version}`, version, type: "CREATE_REGION", actor: "A", regionId: "R4", sourceMacroCount: 1, contactColorCount: 3 },
       } };
+      runtime.view = { ...runtime.view, version };
       runtime.onInvalidate?.({});
     });
     await page.waitForFunction(() => document.querySelector("#tacticalTraceAction")?.textContent === "あなたが1マスを渡した");
@@ -4736,6 +4743,7 @@ test("actual browser presents contact only for the local completed selection and
         regions: { ...runtime.room.public_state.regions, R4: { ...runtime.room.public_state.regions.R4, color: "green", isPending: false } },
         lastPublicTrace: { eventId: `${matchId}:${version}`, version, type: "COLOR_REGION", actor: "B", regionId: "R4", color: "green" },
       } };
+      runtime.view = { ...runtime.view, version };
       runtime.onInvalidate?.({});
     });
     await page.waitForFunction(() => document.querySelector("#tacticalTraceAction")?.textContent === "相手が緑で塗った");
@@ -4749,6 +4757,7 @@ test("actual browser presents contact only for the local completed selection and
         ...runtime.room.public_state, version, active: "A", phase: "WORK", pending: null,
         lastPublicTrace: { eventId: `${matchId}:${version}`, version, type: "CREATE_REGION", actor: "B", regionId: "R5", sourceMacroCount: 1, contactColorCount: 4 },
       } };
+      runtime.view = { ...runtime.view, version };
       runtime.onInvalidate?.({});
     });
     await page.waitForFunction(() => document.querySelector("#tacticalTraceAction")?.textContent === "相手が1マスを渡した");
@@ -4793,6 +4802,7 @@ test("actual browser never draws removed current or previous region history outl
             lastPublicTrace: nextTrace ? { eventId: `${matchId}:${nextVersion}`, version: nextVersion, ...nextTrace } : null,
           },
         };
+        runtime.view = { ...runtime.view, version: nextVersion };
         runtime.onInvalidate?.({});
       }, { version, active, phase, pending, regions, trace, finished });
       await page.waitForFunction((expected) => document.querySelector("#versionText")?.textContent === String(expected), version);
@@ -4993,6 +5003,7 @@ test("actual browser plays one finite turn-arrival beat without hydration reload
             } : null,
           },
         };
+        runtime.view = { ...runtime.view, version: nextVersion };
         runtime.onInvalidate?.({});
       }, { nextVersion: version, nextActive: active, cpuRoom: cpu, withContact: contact });
       await page.waitForFunction((expected) => document.querySelector("#versionText")?.textContent === String(expected), version);
@@ -5244,6 +5255,7 @@ test("actual browser reduced motion skips intermediate local-selection contact s
         },
         lastPublicTrace: null,
       } };
+      runtime.view = { ...runtime.view, version: 10 };
       runtime.onInvalidate?.({});
     });
     await page.waitForFunction(() => document.querySelector("#versionText")?.textContent === "10");
@@ -5270,6 +5282,7 @@ test("actual browser reduced motion skips intermediate local-selection contact s
         ...runtime.room.public_state, status: "FINISHED", phase: "GAME_OVER", version, winner: "A", terminalReason: "NO_LEGAL_COLOR",
         lastPublicTrace: { eventId: `${matchId}:${version}`, version, type: "CREATE_REGION", actor: "A", regionId: "R2", sourceMacroCount: 1, contactColorCount: 4 },
       } };
+      runtime.view = { ...runtime.view, version };
       runtime.onInvalidate?.({});
     });
     await page.locator("#terminalOverlay").waitFor({ state: "visible", timeout: 5000 });
