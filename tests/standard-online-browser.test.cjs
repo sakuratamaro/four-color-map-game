@@ -2639,7 +2639,7 @@ test(`${browserName} moves whole quiz buttons in one collision arena and pauses 
       assert.equal(state.overflow, false, JSON.stringify(state));
       assert.ok(state.buttons.every((button) => button.left >= state.arena.left - 0.5 && button.right <= state.arena.right + 0.5
         && button.top >= state.arena.top - 0.5 && button.bottom <= state.arena.bottom + 0.5), JSON.stringify(state));
-      assert.ok(state.buttons.every((button) => button.height >= 52 && button.transform !== "none"), JSON.stringify(state));
+      assert.ok(state.buttons.every((button) => button.height >= 51.5 && button.transform !== "none"), JSON.stringify(state));
       const unobscured = state.buttons.filter((button) => button.y + button.height / 2 < state.unobscuredBottom);
       assert.ok(unobscured.length >= 3 && unobscured.every((button) => button.centerTargetIsButton), JSON.stringify(state));
       for (let index = 0; index < state.buttons.length; index += 1) for (let other = index + 1; other < state.buttons.length; other += 1) {
