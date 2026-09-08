@@ -944,7 +944,7 @@ function syncContactSelectionScope(state) {
 
 function cpuCommentaryContext(state) {
   const characterId = roomModel?.room?.cpu_character_id;
-  if (roomModel?.room?.opponent_kind !== "cpu" || !state || cpuCommentary?.VERSION !== "standard-cpu-commentary-v2"
+  if (roomModel?.room?.opponent_kind !== "cpu" || !state || cpuCommentary?.VERSION !== "standard-cpu-commentary-v3"
     || !cpuCommentary.CPU_CHARACTER_IDS.includes(characterId)) return null;
   return { characterId, cpuSeat: "B", name: CPU_NAMES[characterId], publicState: state };
 }
@@ -981,6 +981,7 @@ function chooseCpuCommentary(context, { respectHistory = true } = {}) {
   return cpuCommentary.chooseCpuCommentary({
     characterId: context.characterId,
     cpuSeat: context.cpuSeat,
+    speakerName: context.name,
     publicState: context.publicState,
     presentedEventIds: respectHistory ? cpuCommentaryPresentation.presented.map((entry) => entry.eventId) : [],
     lastPresented: respectHistory ? cpuCommentaryPresentation.lastPresented : null,
@@ -1037,15 +1038,19 @@ function clearCpuTerminalCommentary() {
 }
 
 function renderCpuTerminalCommentary(item, context) {
-  const text = item?.priority === "terminal" ? `${context.name}「${item.text}」` : "";
+  const dialogue = item?.priority === "terminal" && item.dialogue ? `${context.name}「${item.dialogue}」` : "";
+  const narration = item?.priority === "terminal" && item.narration ? item.narration : "";
+  const preservePlayerDefeatDetail = context.publicState?.winner === context.cpuSeat
+    && ["NO_LEGAL_COLOR", "SEALED_OUT"].includes(context.publicState?.terminalReason);
   for (const target of [
-    { cardId: "cpuTerminalCommentarySummaryCard", textId: "cpuTerminalCommentarySummary", frameId: "cpuTerminalPortraitSummaryFrame", artId: "cpuTerminalPortraitSummary", fallbackId: "cpuTerminalPortraitSummaryFallback" },
-    { cardId: "cpuTerminalCommentaryOverlayCard", textId: "cpuTerminalCommentaryOverlay", frameId: "cpuTerminalPortraitOverlayFrame", artId: "cpuTerminalPortraitOverlay", fallbackId: "cpuTerminalPortraitOverlayFallback" },
+    { cardId: "cpuTerminalCommentarySummaryCard", textId: "cpuTerminalCommentarySummary", narrationId: "terminalOutcomeReason", frameId: "cpuTerminalPortraitSummaryFrame", artId: "cpuTerminalPortraitSummary", fallbackId: "cpuTerminalPortraitSummaryFallback" },
+    { cardId: "cpuTerminalCommentaryOverlayCard", textId: "cpuTerminalCommentaryOverlay", narrationId: "terminalReasonText", frameId: "cpuTerminalPortraitOverlayFrame", artId: "cpuTerminalPortraitOverlay", fallbackId: "cpuTerminalPortraitOverlayFallback" },
   ]) {
-    if ($(target.textId).textContent !== text) $(target.textId).textContent = text;
-    if (text) renderCpuPortrait(target.frameId, target.artId, target.fallbackId, context, item);
+    if ($(target.textId).textContent !== dialogue) $(target.textId).textContent = dialogue;
+    if (narration && !preservePlayerDefeatDetail && $(target.narrationId).textContent !== narration) $(target.narrationId).textContent = narration;
+    if (dialogue) renderCpuPortrait(target.frameId, target.artId, target.fallbackId, context, item);
     else clearCpuPortrait(target.frameId, target.artId, target.fallbackId);
-    show(target.cardId, Boolean(text));
+    show(target.cardId, Boolean(dialogue));
   }
 }
 
@@ -3369,7 +3374,6 @@ function render() {
     revealRandomSetup(publicState, privateState);
     syncContactSelectionScope(publicState);
     observeTurnArrival(publicState);
-    observeCpuCommentary(publicState);
     observePaletteImpact(publicState, privateState);
     renderTacticalTrace(publicState);
     renderBoard(publicState);
@@ -3377,6 +3381,7 @@ function render() {
     renderSkills(publicState, privateState);
     renderPersistentTerminalResult(publicState, privateState);
     renderTerminalResult(publicState);
+    observeCpuCommentary(publicState);
   } else {
     syncContactSelectionScope(null);
     observeTurnArrival(null);

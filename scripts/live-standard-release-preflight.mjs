@@ -14,7 +14,8 @@ const publicEdgeBundleUrl = new URL("../supabase/functions/standard-game-action/
 const expectedPhase = process.argv.find((argument) => argument.startsWith("--expect="))?.slice("--expect=".length) || null;
 const zeroUuid = "00000000-0000-0000-0000-000000000000";
 const candidateAssetMarkers = Object.freeze({
-  app: "app.js?v=20260910-22",
+  app: "app.js?v=20260910-23",
+  commentary: "cpu-commentary.js?v=20260910-1",
   style: "style.css?v=20260910-11",
   client: "standard-online-client.js?v=20260910-1",
   intents: "standard-online-skill-intents.js?v=20260907-20",
@@ -154,6 +155,7 @@ const result = {
     hasCpuSealTimingPolicy: publicEdgeBundle.status === 200 && hasCpuSealTimingPolicy(publicEdgeBundle.text),
     hasMatchRewardEconomy: publicEdgeBundle.status === 200 && hasMatchRewardEconomy(page.text, app.text, publicEdgeBundle.text),
     hasCandidateAssetGeneration: page.text.includes(candidateAssetMarkers.app)
+      && page.text.includes(candidateAssetMarkers.commentary)
       && page.text.includes(candidateAssetMarkers.style)
       && page.text.includes(candidateAssetMarkers.client)
       && page.text.includes(candidateAssetMarkers.intents)

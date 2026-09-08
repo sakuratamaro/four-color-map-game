@@ -331,14 +331,14 @@
       </div>
       <section id="terminalSummary" class="terminal-summary hidden" aria-labelledby="terminalOutcomeTitle">
         <strong id="terminalOutcomeTitle"></strong>
-        <p id="terminalOutcomeReason"></p>
         <div id="cpuTerminalCommentarySummaryCard" class="cpu-terminal-commentary-card hidden">
           <span id="cpuTerminalPortraitSummaryFrame" class="cpu-portrait-frame cpu-terminal-portrait" aria-hidden="true">
             <span id="cpuTerminalPortraitSummary" class="cpu-portrait-art" hidden></span>
             <span id="cpuTerminalPortraitSummaryFallback" class="cpu-portrait-fallback">CPU</span>
           </span>
-          <p id="cpuTerminalCommentarySummary" class="cpu-terminal-commentary"></p>
+          <p id="cpuTerminalCommentarySummary" class="cpu-terminal-commentary" data-terminal-copy="dialogue"></p>
         </div>
+        <p id="terminalOutcomeReason" data-terminal-copy="narration"></p>
       </section>
       <section id="turnGuide" class="turn-guide hidden">
         <span id="turnGuideStep" class="turn-guide-step">NEXT</span>
@@ -416,7 +416,7 @@
     </section>
   </main>
   <div id="terminalOverlay" class="terminal-overlay hidden" aria-live="assertive">
-    <section class="terminal-celebration" role="dialog" aria-modal="true" aria-labelledby="terminalTitle" aria-describedby="terminalMessage terminalReasonText cpuTerminalCommentaryOverlay terminalProgressText">
+    <section class="terminal-celebration" role="dialog" aria-modal="true" aria-labelledby="terminalTitle" aria-describedby="terminalMessage cpuTerminalCommentaryOverlay terminalReasonText terminalProgressText">
       <div class="terminal-confetti" aria-hidden="true">
         <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
       </div>
@@ -424,14 +424,14 @@
       <p id="terminalEyebrow" class="terminal-eyebrow">対戦終了</p>
       <h2 id="terminalTitle">勝利！</h2>
       <p id="terminalMessage" class="terminal-message"></p>
-      <p id="terminalReasonText" class="terminal-reason"></p>
       <div id="cpuTerminalCommentaryOverlayCard" class="cpu-terminal-commentary-card hidden">
         <span id="cpuTerminalPortraitOverlayFrame" class="cpu-portrait-frame cpu-terminal-portrait" aria-hidden="true">
           <span id="cpuTerminalPortraitOverlay" class="cpu-portrait-art" hidden></span>
           <span id="cpuTerminalPortraitOverlayFallback" class="cpu-portrait-fallback">CPU</span>
         </span>
-        <p id="cpuTerminalCommentaryOverlay" class="cpu-terminal-commentary"></p>
+        <p id="cpuTerminalCommentaryOverlay" class="cpu-terminal-commentary" data-terminal-copy="dialogue"></p>
       </div>
+      <p id="terminalReasonText" class="terminal-reason" data-terminal-copy="narration"></p>
       <p id="terminalProgressText" class="terminal-progress"></p>
       <div class="terminal-actions">
         <button id="terminalGoGacha" class="primary hidden" type="button">獲得した券でガチャへ</button>
@@ -491,8 +491,8 @@
   <script src="standard-online-sync.js"></script>
   <script src="standard-online-skill-intents.js?v=20260907-20"></script>
   <script src="cpu-portraits.js?v=20260908-1"></script>
-  <script src="cpu-commentary.js?v=20260906-2"></script>
+  <script src="cpu-commentary.js?v=20260910-1"></script>
   <script src="basic-feedback.js?v=20260908-2"></script>
-  <script type="module" src="app.js?v=20260910-22"></script>
+  <script type="module" src="app.js?v=20260910-23"></script>
 </body>
 </html>

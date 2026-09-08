@@ -52,7 +52,7 @@ test("Standard online setup UI exposes the complete reconnect path", () => {
   ]) assert.match(html, new RegExp(`id=["']${id}["']`));
   assert.match(html, /standard-online-client\.js/);
   assert.match(html, /standard-online-skill-intents\.js/);
-  assert.match(html, /cpu-commentary\.js\?v=20260906-2/);
+  assert.match(html, /cpu-commentary\.js\?v=20260910-1/);
   assert.match(html, /type="module" src="app\.js(?:\?v=[0-9-]+)?"/);
 });
 
@@ -80,20 +80,29 @@ test("CPU commentary is public-event-only, bounded, non-blocking, and terminal-p
   assert.match(html, /style\.css\?v=20260910-11/);
   assert.match(html, /standard-online-client\.js\?v=20260910-1/);
   assert.match(html, /standard-online-skill-intents\.js\?v=20260907-20/);
-  assert.match(html, /app\.js\?v=20260910-22/);
-  assert.match(app, /cpuCommentary\?\.VERSION !== "standard-cpu-commentary-v2"/);
+  assert.match(html, /cpu-commentary\.js\?v=20260910-1/);
+  assert.match(html, /app\.js\?v=20260910-23/);
+  assert.match(app, /cpuCommentary\?\.VERSION !== "standard-cpu-commentary-v3"/);
   assert.ok(html.indexOf("cpu-commentary.js") < html.indexOf('type="module" src="app.js'));
   assert.match(html, /id="cpuCommentaryStage"[^>]+aria-hidden="true"/);
   assert.match(html, /id="cpuCommentaryAnnouncement"[^>]+role="status"[^>]+aria-live="polite"[^>]+aria-atomic="true"/);
-  assert.match(html, /aria-describedby="terminalMessage terminalReasonText cpuTerminalCommentaryOverlay terminalProgressText"/);
+  assert.match(html, /aria-describedby="terminalMessage cpuTerminalCommentaryOverlay terminalReasonText terminalProgressText"/);
   assert.doesNotMatch(html, /id="cpuTerminalCommentaryOverlay"[^>]+aria-hidden/);
+  assert.match(html, /id="cpuTerminalCommentarySummary"[^>]+data-terminal-copy="dialogue"[\s\S]+id="terminalOutcomeReason"[^>]+data-terminal-copy="narration"/);
+  assert.match(html, /id="cpuTerminalCommentaryOverlay"[^>]+data-terminal-copy="dialogue"[\s\S]+id="terminalReasonText"[^>]+data-terminal-copy="narration"/);
   const terminalPresentation = app.slice(app.indexOf("if (item.priority === \"terminal\")"), app.indexOf("clearCpuTerminalCommentary();", app.indexOf("if (item.priority === \"terminal\")")));
   assert.doesNotMatch(terminalPresentation, /announceCpuCommentary/);
   assert.match(app, /const cpuCommentary = globalThis\.FourColorStandardCpuCommentary/);
   assert.match(app, /CPU_COMMENTARY_PRESENTATION_LIMIT = 32/);
   assert.match(app, /sessionStorage\.setItem\(CPU_COMMENTARY_PRESENTATION_KEY/);
   assert.match(app, /presented: cpuCommentaryPresentation\.presented\.slice\(-CPU_COMMENTARY_PRESENTATION_LIMIT\)/);
-  assert.match(app, /characterId: context\.characterId,[\s\S]+cpuSeat: context\.cpuSeat,[\s\S]+publicState: context\.publicState/);
+  assert.match(app, /characterId: context\.characterId,[\s\S]+cpuSeat: context\.cpuSeat,[\s\S]+speakerName: context\.name,[\s\S]+publicState: context\.publicState/);
+  assert.match(app, /const dialogue = item\?\.priority === "terminal"[\s\S]+const narration = item\?\.priority === "terminal"/);
+  assert.match(app, /const preservePlayerDefeatDetail = context\.publicState\?\.winner === context\.cpuSeat[\s\S]+\["NO_LEGAL_COLOR", "SEALED_OUT"\]\.includes\(context\.publicState\?\.terminalReason\)/);
+  assert.match(app, /if \(narration && !preservePlayerDefeatDetail && \$\(target\.narrationId\)\.textContent !== narration\)/);
+  assert.match(app, /narrationId: "terminalOutcomeReason"[\s\S]+narrationId: "terminalReasonText"/);
+  assert.match(app, /`\$\{context\.name\}「\$\{item\.dialogue\}」`/);
+  assert.doesNotMatch(app, /`\$\{context\.name\}「\$\{item\.text\}」`/);
   assert.doesNotMatch(app.slice(app.indexOf("function chooseCpuCommentary"), app.indexOf("function clearCpuCommentaryBubble")), /private_state|privateState/);
   assert.match(app, /document\.visibilityState !== "visible"/);
   assert.match(app, /clearContactReveal\(\);[\s\S]+show\("randomReveal", false\)/);
@@ -436,7 +445,7 @@ test("existing online progression is hydrated from the server rather than re-upl
 
 test("UI derives its canonical and experimental card metadata from the generated registry", () => {
   assert.equal(Object.values(STANDARD_SKILLS).filter((skill) => skill.v49Catalogued).length, 19);
-  assert.match(html, /standard-skill-registry\.generated\.js\?v=20260907-1[\s\S]+app\.js\?v=20260910-22/);
+  assert.match(html, /standard-skill-registry\.generated\.js\?v=20260907-1[\s\S]+app\.js\?v=20260910-23/);
   assert.match(app, /const STANDARD_SKILL_REGISTRY = globalThis\.FourColorStandardSkillRegistry/);
   assert.match(app, /STANDARD_SKILL_REGISTRY\.v49SkillIds\.map/);
   assert.match(app, /Object\.entries\(STANDARD_SKILL_REGISTRY\.skills\)/);

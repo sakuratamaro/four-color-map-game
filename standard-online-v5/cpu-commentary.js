@@ -5,7 +5,7 @@
 })(typeof globalThis !== "undefined" ? globalThis : this, function standardCpuCommentaryFactory() {
   "use strict";
 
-  const VERSION = "standard-cpu-commentary-v2";
+  const VERSION = "standard-cpu-commentary-v3";
   const MIN_ACTIVE_VERSION_GAP = 4;
   const ACTIVE_TRACE_TYPES = Object.freeze(["CREATE_REGION", "COLOR_REGION", "USE_SKILL", "LEGAL_RECOLOR"]);
   const TERMINAL_REASONS = Object.freeze(["ILLEGAL_COLOR", "BOARD_LOCK", "SURRENDER", "SEALED_OUT", "NO_LEGAL_COLOR"]);
@@ -155,23 +155,23 @@
     return trace;
   }
 
-  function terminalReasonHint({ reason, cpuWon, trace, groundedNoColorSurrender }) {
-    const ours = cpuWon ? "あなた" : "こちら";
-    if (reason === "SURRENDER") return cpuWon ? "あなたの投了で決着しました。"
-      : groundedNoColorSurrender ? "こちらは塗れる色を打開できず、自分で投了しました。" : "こちらの投了で決着しました。";
-    if (reason === "BOARD_LOCK") return cpuWon ? "これ以上エリアを作れない盤面にして決着しました。" : "これ以上エリアを作れない盤面にされ、決着しました。";
-    if (reason === "ILLEGAL_COLOR") return `${ours}の接色禁止違反が勝敗を決めました。`;
-    if (reason === "SEALED_OUT") return `色封じで${ours}の使える色が0色になりました。`;
+  function terminalNarration({ reason, cpuWon, trace, groundedNoColorSurrender }, speakerName) {
+    const cpuName = typeof speakerName === "string" && speakerName.trim() ? speakerName.trim().slice(0, 40) : "CPU";
+    if (reason === "SURRENDER") return cpuWon ? `あなたが投了し、${cpuName}の勝利が決まりました。`
+      : groundedNoColorSurrender ? `${cpuName}は、塗れる色を確保できず投了しました。` : `${cpuName}が投了しました。`;
+    if (reason === "BOARD_LOCK") return cpuWon ? `${cpuName}は、これ以上エリアを作れない盤面にして勝利しました。` : `${cpuName}は、これ以上エリアを作れない盤面にされて敗北しました。`;
+    if (reason === "ILLEGAL_COLOR") return cpuWon ? `あなたの接色禁止違反により、${cpuName}の勝利が決まりました。` : `${cpuName}は接色禁止に違反して敗北しました。`;
+    if (reason === "SEALED_OUT") return cpuWon ? `色封じであなたの使える色が0色になり、${cpuName}の勝利が決まりました。` : `色封じで${cpuName}の使える色が0色になり、敗北しました。`;
     if (reason === "NO_LEGAL_COLOR") {
       if (trace?.type === "CREATE_REGION") {
         const pressure = trace.contactColorCount >= 4 ? "四色に接するエリア"
           : trace.contactColorCount === 3 ? "三色に接するエリア"
           : trace.contactColorCount === 2 ? "二色に接するエリア" : "隣接色が重なるエリア";
-        return cpuWon ? `${pressure}を渡し、あなたの塗れる色をなくしました。` : `${pressure}を渡され、こちらの塗れる色がなくなりました。`;
+        return cpuWon ? `${cpuName}は、${pressure}を渡してあなたの塗れる色をなくしました。` : `${cpuName}は、${pressure}を渡されて塗れる色がなくなりました。`;
       }
-      return cpuWon ? "公開盤面で、あなたの塗れる色がなくなりました。" : "公開盤面で、こちらの塗れる色がなくなりました。";
+      return cpuWon ? `公開盤面であなたの塗れる色がなくなり、${cpuName}の勝利が決まりました。` : `公開盤面で${cpuName}の塗れる色がなくなりました。`;
     }
-    return "公開された盤面で決着しました。";
+    return `公開された盤面で、${cpuName}との対戦が決着しました。`;
   }
 
   function previousCreateTrace(publicState) {
@@ -231,6 +231,7 @@
     characterId,
     cpuSeat = "B",
     publicState,
+    speakerName = "CPU",
     presentedEventIds = [],
     lastPresented = null,
     visible = true,
@@ -245,13 +246,15 @@
     if (!terminal && lastPresented?.matchId === publicState.matchId && Number.isSafeInteger(lastPresented.version)
       && event.version - lastPresented.version < MIN_ACTIVE_VERSION_GAP) return null;
 
-    let text;
+    let text = null;
+    let dialogue = null;
+    let narration = null;
     if (terminal) {
       const groundedKuroganeLoss = characterId === "kurogane" && !event.cpuWon
         && event.reason === "NO_LEGAL_COLOR" && event.trace;
-      const lead = event.groundedNoColorSurrender ? voice.noColorLoss
+      dialogue = event.groundedNoColorSurrender ? voice.noColorLoss
         : groundedKuroganeLoss ? "なんと見事なエリア選択……完敗だ。" : event.cpuWon ? voice.win : voice.loss;
-      text = `${lead} ${terminalReasonHint(event)}`;
+      narration = terminalNarration(event, speakerName);
     } else if (event.kind === "opponent-skill") text = voice.opponentSkill;
     else if (event.kind === "ambient") text = voice.ambient[hashText(`${event.sourceEventId}:${characterId}`) % voice.ambient.length];
     else text = voice[event.kind];
@@ -263,6 +266,8 @@
       version: event.version,
       kind: event.kind,
       text,
+      dialogue,
+      narration,
       priority: terminal ? "terminal" : event.kind === "ambient" ? "ambient" : "notable",
       announce: terminal || event.kind !== "ambient",
       reason: terminal ? event.reason : null,

@@ -64,19 +64,23 @@ test("CPU no-color surrender keeps SURRENDER as the result and explains its publ
   const state = finishedState({ winner: "A", terminalReason: "SURRENDER", contactColorCount: 3, version: 12 });
   state.lastPublicTrace.version = 11;
   state.lastPublicTrace.eventId = `${state.matchId}:11`;
-  const kurogane = commentary.chooseCpuCommentary({ characterId: "kurogane", publicState: state });
+  const kurogane = commentary.chooseCpuCommentary({ characterId: "kurogane", speakerName: "四色のクロガネ", publicState: state });
   assert.equal(kurogane.reason, "SURRENDER");
-  assert.match(kurogane.text, /まさか合法色がない……だと……！？/);
-  assert.match(kurogane.text, /自分で投了/);
+  assert.match(kurogane.dialogue, /まさか合法色がない……だと……！？/);
+  assert.equal(kurogane.narration, "四色のクロガネは、塗れる色を確保できず投了しました。");
+  assert.equal(kurogane.text, null);
+  assert.doesNotMatch(kurogane.dialogue, /こちらは|自分で/);
 
-  const yuzu = commentary.chooseCpuCommentary({ characterId: "yuzu", publicState: state });
-  assert.match(yuzu.text, /ミスったー！！/);
+  const yuzu = commentary.chooseCpuCommentary({ characterId: "yuzu", speakerName: "うっかりユズ", publicState: state });
+  assert.match(yuzu.dialogue, /ミスったー！！/);
+  assert.match(yuzu.narration, /^うっかりユズは/);
 
   const ordinary = commentary.chooseCpuCommentary({
     characterId: "kurogane",
     publicState: finishedState({ winner: "A", terminalReason: "SURRENDER", contactColorCount: null, version: 12 }),
   });
-  assert.doesNotMatch(ordinary.text, /合法色/);
+  assert.doesNotMatch(ordinary.dialogue, /合法色/);
+  assert.equal(ordinary.narration, "CPUが投了しました。");
 });
 
 test("notable confirmed actions select character-specific lines without gameplay RNG", () => {
@@ -108,24 +112,27 @@ test("notable confirmed actions select character-specific lines without gameplay
   assert.deepEqual(commentary.chooseCpuCommentary({ characterId: "kurogane", publicState: attack }), kurogane);
 });
 
-test("terminal lines state the public reason for both CPU wins and losses", () => {
-  const cpuWin = commentary.chooseCpuCommentary({ characterId: "rei", publicState: finishedState() });
+test("terminal dialogue and narration are separate for both CPU wins and losses", () => {
+  const cpuWin = commentary.chooseCpuCommentary({ characterId: "rei", speakerName: "カード博士レイ", publicState: finishedState() });
   assert.equal(cpuWin.kind, "terminal-win");
-  assert.match(cpuWin.text, /勝ち筋にも.*理由/);
-  assert.match(cpuWin.text, /四色に接するエリア.*あなたの塗れる色/);
+  assert.match(cpuWin.dialogue, /勝ち筋にも.*理由/);
+  assert.match(cpuWin.narration, /カード博士レイは、四色に接するエリア.*あなたの塗れる色/);
+  assert.doesNotMatch(cpuWin.dialogue, /四色に接するエリア/);
 
   const cpuLoss = commentary.chooseCpuCommentary({
     characterId: "kurogane",
+    speakerName: "四色のクロガネ",
     publicState: finishedState({ winner: "A", contactColorCount: 3 }),
   });
   assert.equal(cpuLoss.kind, "terminal-loss");
-  assert.match(cpuLoss.text, /見事なエリア選択.*完敗/);
-  assert.match(cpuLoss.text, /三色に接するエリア.*こちらの塗れる色/);
+  assert.match(cpuLoss.dialogue, /見事なエリア選択.*完敗/);
+  assert.match(cpuLoss.narration, /四色のクロガネは、三色に接するエリア.*塗れる色がなくなりました/);
+  assert.doesNotMatch(cpuLoss.narration, /こちら|自分/);
 
   const reasonSignals = {
     SURRENDER: /投了/,
     BOARD_LOCK: /これ以上エリアを作れない盤面/,
-    ILLEGAL_COLOR: /接色禁止違反/,
+    ILLEGAL_COLOR: /接色禁止.*違反/,
     SEALED_OUT: /色封じ.*0色/,
     NO_LEGAL_COLOR: /塗れる色/,
   };
@@ -133,9 +140,12 @@ test("terminal lines state the public reason for both CPU wins and losses", () =
     for (const [terminalReason, pattern] of Object.entries(reasonSignals)) {
       const line = commentary.chooseCpuCommentary({
         characterId: "aoi",
+        speakerName: "慎重派アオイ",
         publicState: finishedState({ winner, terminalReason, contactColorCount: terminalReason === "NO_LEGAL_COLOR" ? 4 : null }),
       });
-      assert.match(line.text, pattern, `${winner}/${terminalReason}`);
+      assert.match(line.narration, pattern, `${winner}/${terminalReason}`);
+      assert.match(line.narration, /慎重派アオイ/);
+      assert.ok(line.dialogue.length > 0);
       assert.equal(line.priority, "terminal");
       assert.equal(line.reason, terminalReason);
     }
@@ -146,7 +156,7 @@ test("every character keeps a distinct voice at the same terminal event", () => 
   const lines = commentary.CPU_CHARACTER_IDS.map((characterId) => commentary.chooseCpuCommentary({
     characterId,
     publicState: finishedState({ winner: "A", contactColorCount: 4 }),
-  }).text);
+  }).dialogue);
   assert.equal(new Set(lines).size, commentary.CPU_CHARACTER_IDS.length);
 });
 
@@ -185,9 +195,9 @@ test("strict public trace allowlist rejects stale, malformed, or enriched events
 
 test("no-color cause names a contact tier only for the winning current CREATE event", () => {
   const grounded = finishedState({ winner: "B", contactColorCount: 2 });
-  assert.match(commentary.chooseCpuCommentary({ characterId: "rei", publicState: grounded }).text, /二色に接するエリアを渡し/);
+  assert.match(commentary.chooseCpuCommentary({ characterId: "rei", speakerName: "カード博士レイ", publicState: grounded }).narration, /カード博士レイは、二色に接するエリアを渡し/);
   const seatACpu = finishedState({ winner: "A", contactColorCount: 3 });
-  assert.match(commentary.chooseCpuCommentary({ characterId: "rei", cpuSeat: "A", publicState: seatACpu }).text, /三色に接するエリアを渡し/);
+  assert.match(commentary.chooseCpuCommentary({ characterId: "rei", cpuSeat: "A", speakerName: "カード博士レイ", publicState: seatACpu }).narration, /カード博士レイは、三色に接するエリアを渡し/);
 
   const mismatches = [
     { ...grounded, pending: "R9" },
@@ -200,8 +210,8 @@ test("no-color cause names a contact tier only for the winning current CREATE ev
   ];
   for (const state of mismatches) {
     const line = commentary.chooseCpuCommentary({ characterId: "rei", publicState: state });
-    assert.match(line.text, /公開盤面で、あなたの塗れる色がなくなりました/);
-    assert.doesNotMatch(line.text, /色に接するエリアを渡し/);
+    assert.match(line.narration, /公開盤面であなたの塗れる色がなくなり/);
+    assert.doesNotMatch(line.narration, /色に接するエリアを渡し/);
   }
 });
 

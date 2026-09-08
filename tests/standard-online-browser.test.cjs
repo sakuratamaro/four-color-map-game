@@ -5891,7 +5891,9 @@ test("actual browser presents CPU commentary once from public events and keeps t
       runtime.onInvalidate?.({});
     });
     await page.locator("#terminalOverlay").waitFor({ state: "visible", timeout: 5000 });
-    assert.match(await page.locator("#cpuTerminalCommentaryOverlay").textContent(), /うっかりユズ.*四色に接するエリア.*こちらの塗れる色がなくなりました/);
+    assert.match(await page.locator("#cpuTerminalCommentaryOverlay").textContent(), /^うっかりユズ「.+」$/);
+    assert.doesNotMatch(await page.locator("#cpuTerminalCommentaryOverlay").textContent(), /四色に接するエリア|こちら|自分/);
+    assert.equal(await page.locator("#terminalReasonText").textContent(), "うっかりユズは、四色に接するエリアを渡されて塗れる色がなくなりました。");
     await page.waitForFunction(() => globalThis.FourColorStandardCpuPortraits?.getAtlasState() === "ready"
       && document.querySelector("#cpuTerminalPortraitOverlay")?.hidden === false);
     assert.deepEqual(await page.locator("#cpuTerminalPortraitOverlayFrame").evaluate((frame) => ({
@@ -5902,7 +5904,7 @@ test("actual browser presents CPU commentary once from public events and keeps t
     assert.equal(await page.locator("#cpuTerminalPortraitOverlayFallback").isHidden(), true);
     assert.equal(await page.evaluate(() => Math.max(0, document.documentElement.scrollWidth - document.documentElement.clientWidth)), 0);
     const describedText = await page.locator(".terminal-celebration").evaluate((node) => node.getAttribute("aria-describedby").split(/\s+/).map((id) => document.getElementById(id)?.textContent || "").join(" "));
-    assert.match(describedText, /うっかりユズ.*四色に接するエリア.*こちらの塗れる色がなくなりました/);
+    assert.match(describedText, /うっかりユズ「.+」.*うっかりユズは、四色に接するエリア/);
     await page.waitForTimeout(250);
     assert.equal(await page.evaluate(() => globalThis.__cpuCommentaryAnnouncements.length), 1);
     assert.equal(await page.locator("#cpuTerminalCommentarySummary").isVisible(), true);
@@ -5923,7 +5925,8 @@ test("actual browser presents CPU commentary once from public events and keeps t
     await page.locator("#connectionBadge.good").waitFor({ state: "visible" });
     await page.locator("#terminalSummary:not(.hidden)").waitFor({ state: "visible" });
     await page.waitForTimeout(250);
-    assert.match(await page.locator("#cpuTerminalCommentarySummary").textContent(), /塗れる色がなくなりました/);
+    assert.match(await page.locator("#cpuTerminalCommentarySummary").textContent(), /^うっかりユズ「.+」$/);
+    assert.equal(await page.locator("#terminalOutcomeReason").textContent(), "うっかりユズは、四色に接するエリアを渡されて塗れる色がなくなりました。");
     assert.equal(await page.locator("#terminalOverlay").isHidden(), true);
     assert.equal(await page.locator("#cpuCommentaryAnnouncement").textContent(), "");
 
@@ -5946,7 +5949,8 @@ test("actual browser presents CPU commentary once from public events and keeps t
       runtime.view = { ...runtime.view, version };
       runtime.onInvalidate?.({});
     });
-    await page.waitForFunction(() => document.querySelector("#cpuTerminalCommentarySummary")?.textContent.includes("あなたの投了")
+    await page.waitForFunction(() => document.querySelector("#cpuTerminalCommentarySummary")?.textContent.includes("うまくいきました")
+      && document.querySelector("#terminalOutcomeReason")?.textContent.includes("あなたが投了し、うっかりユズの勝利")
       && document.querySelector("#cpuTerminalPortraitSummary")?.hidden === false);
     assert.deepEqual(await page.locator("#cpuTerminalPortraitSummaryFrame").evaluate((frame) => ({
       mode: frame.dataset.portraitMode,
@@ -5973,7 +5977,8 @@ test("actual browser presents CPU commentary once from public events and keeps t
       runtime.view = { ...runtime.view, version };
       runtime.onInvalidate?.({});
     });
-    await page.waitForFunction(() => document.querySelector("#cpuTerminalCommentarySummary")?.textContent.includes("こちらの投了"));
+    await page.waitForFunction(() => document.querySelector("#cpuTerminalCommentarySummary")?.textContent.includes("そこで決まっちゃいました")
+      && document.querySelector("#terminalOutcomeReason")?.textContent === "うっかりユズが投了しました。");
     assert.deepEqual(await page.locator("#cpuTerminalPortraitSummaryFrame").evaluate((frame) => ({
       mode: frame.dataset.portraitMode,
       reason: frame.dataset.portraitReason || null,
