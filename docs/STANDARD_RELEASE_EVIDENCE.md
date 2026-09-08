@@ -13,7 +13,7 @@
 | 採否棚卸し | VERIFIED | `ONLINE_COMPLETION_INVENTORY.md`。旧Expo試作と現行Web Standardを分離済み | 公開後に状態列だけ更新 |
 | 製品コード・生成元 | PUBLIC_VERIFIED | alpha.4 engine製品`90e718b`とdirect-cell UI `26a4161`をmainへ適用。Local/Edge bundleは決定的再生成、配備済みEdge deployment 24 sourceはLF正規化後に候補と一致 | 次回engine変更時に再生成一致を確認 |
 | alpha.3カテゴリ制限 | PUBLIC_VERIFIED | source `d627cd5`、統合`d3cb130`、起動修正`549e716`。候補59 pathはblob 59/59同値。独立focused 232/232、Chrome/Edge全browser各77/77・skip 0、正式実browser各79/79・skip 0。Windows `34048695008`成功、Pages `34051979716`、Edge deployment 23、公開canary 7/7＋COLOR追補263/263＋23/23＋108/108。互換rollback `3f4548d`はGitHub保全済み | 物理二端末受入 |
-| alpha.4彩色済みエリア角膨張 | PUBLIC_VERIFIED | engine製品`90e718b`、direct-cell UI `26a4161`。カード→公開microcell→即発動とし、旧mode/番号候補/別確定UIを撤去。focused非browser 138/138、ローカル実Edge/Chrome各6/6、Windows `34065224136`、Pages `34065705946`、公開candidate preflight `ok:true`、app v42/style v40/intents v19、390px overflow 0、console 0、独立再監査P0/P1/P2なし。対象外通信0、preparedOutgoing継続とpointer lock、retry同一性、server不成立後の44px再選択を確認。互換rollback`4d2f6ff`、Edge deployment 24の基本7/7＋COLOR 225/225、配備ZIP SHA一致。DB、migration、RPC、secret変更なし | 物理二端末受入 |
+| alpha.4彩色済みエリア角膨張 | PUBLIC_VERIFIED | engine製品`90e718b`、direct-cell UI `26a4161`。カード→公開microcell→即発動とし、旧mode/番号候補/別確定UIを撤去。focused非browser 138/138、ローカル実Edge/Chrome各6/6、Windows `34065224136`、Pages `34065705946`、公開candidate preflight `ok:true`、app v42/style v40/intents v19、390px overflow 0、console 0、独立再監査P0/P1/P2なし。対象外通信0、preparedOutgoing継続とpointer lock、retry同一性、server不成立後の44px再選択を確認。現行の互換rollbackは`codex/standard-alpha4-current-compat-rollback-20260908@531adb2`。Edge deployment 24の基本7/7＋COLOR 225/225、配備ZIP SHA一致。DB、migration、RPC、secret変更なし | 物理二端末受入 |
 | ローカル製品試験 | VERIFIED | 音便focused unit/static/workflow/bundle 96/96・skip 0、独立再監査P0/P1なし。Web Locks 2ページ競合はローカルEdge/Chrome各2/2、同一ID一意出力・異ID保持・3ページ目duplicateを確認 | 物理端末で音量・振動感と救済判断、Lv5の体感確認 |
 | Shift select候補 | SUPERSEDED | `24caae8`→`d9b6fe9`→`1557ff1`。失敗run `34026276754` / `34027199050`で旧fixtureとretry payloadを修正し、run `34027488186`はChrome/Edge成功。ただしユーザー決定は盤面tap指定のためmain/Pagesへ昇格せず、`8944572`で製品差分をrevert | UDL-20260906-001として盤面操作UXを再設計 |
 | Shift盤面選択 | PUBLIC_VERIFIED | 製品`ad49a41`、main `4b2ea3d`、公開HEAD `ddfb0a7`。select/数値入力を廃止し、行・列→盤面tap/keyboard、自然語方向、取消無送信、再送identity、no-oracleを維持。Windows `34041850645`はChrome/Edge成功、独立各3/3・skip 0。Pages `34043472457`成功、公開asset SHA一致、390px overflow 0、console 0、preflight `ok:true` | 物理端末でShift操作感を最終受入 |
@@ -387,6 +387,29 @@
 - focused非browserは129/129、実Edge/Chrome各3/3、source engineと生成bundleのdiff 0。Windows run `34137623118`はChrome成功、Edge初回だけ既存feedback競合と角膨張focusのflake 2件を保持し、各ケースのEdge 3連続再試験とfailed job `101796202440`の再実行で最終成功した。一時CI allowlist commit `5f69abe`はmainへ統合していない。
 - `origin/main`をforceなしで`844f563`へfast-forwardし、Pages run `34139833503`が成功。公開HTMLはapp48/client21/style42、candidate preflightは`ok:true`。DB、migration、RPC、Edge Function、SQLは変更していない。
 - 公開CPU戦で人間UIから「ひとふくらみ」→盤面2マス→「この対象で使う」を送信し、hand 0、preparedOutgoing、`T3 Player A used micro bloom ...`の公開logを確認した。無効候補はカード・手番非消費の日本語案内となった。CPUが作った2色接触traceでは演出0、人間がmacro 66→54→53の3マスを完成すると「二色接触！」が1回だけ表示され、完全reload後は表示・読み上げとも0だった。
+
+## 2026-09-08 Standard最終統合公開
+
+- 最終候補`codex/standard-final-release-20260908@1a6d048204d2c97d19520d5312aebd1230481b7f`は、公開直前の`origin/main@d8343f0984959809b110581a3afebf6b2f69ae32`をancestorとするforce-free fast-forwardであることを再確認した。同候補の正式Standard Browser Gate #95、run `34216209689`はChrome job `102028443273`とEdge job `102028443554`がともにSuccess。成功後だけ`origin/main`を`1a6d048204d2c97d19520d5312aebd1230481b7f`へforceなしでfast-forwardした。
+- GitHub Pages #102、run `34217230267`はbuild job `102031750497`、deploy job `102031882937`、report-build-status job `102031882968`がすべてSuccess。github-pages deployment `6325911334`はSHA `1a6d048204d2c97d19520d5312aebd1230481b7f`としてSuccessになった。公開HTMLはonline app `20260908-8`、style `20260908-5`、client `20260907-21`、skill intents `20260907-20`、CPU portraits `20260908-1`、basic feedback `20260908-2`、Local bundle `20260908-2-87f722259e50`を参照し、`live-standard-release-preflight.mjs --expect=candidate`は`ok:true`だった。
+- cache-bust付き公開HTTP応答と候補worktreeのバイト列をSHA-256で比較し、次の11 assetがすべてHTTP 200かつ完全一致した。
+
+  | 公開asset | SHA-256 |
+  | --- | --- |
+  | `standard-online-v5/index.html` | `cc420c7f6b0ab4dae43c4e18d0d2e29671b9fc163390e28dd99f023a3833035c` |
+  | `standard-online-v5/style.css` | `3b3085b18b97a3215b376babf46ea68b4c41667fd856c6d8169968b143f1b86a` |
+  | `standard-online-v5/standard-online-client.js` | `f087dcf27f895aab8b11fcd8a89326476bfd6807b4041dc6279fc0ad3c29b572` |
+  | `standard-online-v5/standard-online-skill-intents.js` | `d5c28a73a6f0b4dbd0676cb076347b8122cceb4d9b7bcefba19915680b54b6cb` |
+  | `standard-online-v5/cpu-portraits.js` | `37d0f301a37ce7d4c10e0b9235b6650b2c40af365ad0037c9c07266f38bf49a7` |
+  | `standard-online-v5/cpu-commentary.js` | `ea3b6d675f70fbbaf50ba427fe57916c59b5f4d7eb82f783b5cb69001617d898` |
+  | `standard-online-v5/basic-feedback.js` | `7ae5e17eb24ff6339573bef32dced39834ab48def5e001f140b043a136771f03` |
+  | `standard-online-v5/app.js` | `090fff09b9487a2105f24746c849708c8623985261ef114ec3d2501657e76f62` |
+  | `standard-online-v5/standard-skill-registry.generated.js` | `5a9f10f6f5e8afb29c0297f42081eb38a9e8b3885788880ee13b13a1da36202e` |
+  | `standard-v5/index.html` | `6504f26e0e8c0f3145df78d1b666a97eeca204cf25e4b8c6494a2dc44dd13373` |
+  | `standard-v5/app.bundle.js` | `87f722259e50b407d99ef1bd877f3d13687c1ad82e9a9c2d017cc2d62c40daee` |
+
+- 同じ公開便のSupabase証拠は、読み取り専用DB契約72/72 true、配備後Dashboard source readbackの`standard-game-action/index.ts` SHA-256 `a80c7fb6773764da291e82fc82086dac497148317e77d6f78ebb8ec7b2833be1`、`standard-engine.bundle.js` SHA-256 `6220c7eb72266ae1e3ad2f770429c891192b905b99dd83f9bd491d5113dac673`であり、両方が候補と一致した。JWT検証ON、基本canary 7/7、COLOR専用canary 263/263がSuccess。cleanup後のactive roomは便の前から存在する`playing` alpha.4の1件だけで、検証用roomは残していない。Supabase control planeのEdge deployment ID/versionは未観測であり、Dashboard source readbackとlive canaryから架空の番号を推定しない。DB migration、RPC、secret、cleanup scheduleは変更していない。
+- alpha.4互換rollbackの現行保全先は`codex/standard-alpha4-current-compat-rollback-20260908@531adb2e413bee86b05d41f9c557bf7103f22094`。旧`4d2f6ff`は履歴証拠であり、現行候補のrollbackには使わない。active alpha.4 roomが0になる前にalpha.4非対応sourceへ戻さない。
 
 ## 公開識別子
 
