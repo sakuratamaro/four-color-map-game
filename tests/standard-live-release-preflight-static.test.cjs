@@ -78,10 +78,10 @@ test("release preflight is read-only, secret-free, finite, and stage-aware", () 
   assert.match(source, /MATCH_REWARD_ECONOMY_MISMATCH/);
   assert.match(source, /app\.text\.includes\('★\$\{meta\.rarity\}'\)/);
   assert.match(source, /CANDIDATE_ASSET_GENERATION_UI_PHASE_MISMATCH/);
-  assert.match(source, /app\.js\?v=20260910-23/);
+  assert.match(source, /app\.js\?v=20260910-24/);
   assert.match(source, /cpu-commentary\.js\?v=20260910-1/);
   assert.match(source, /progression\.css/);
-  assert.match(source, /style\.css\?v=20260910-11/);
+  assert.match(source, /style\.css\?v=20260910-12/);
   assert.match(source, /standard-online-client\.js\?v=20260910-1/);
   assert.match(source, /standard-online-skill-intents\.js\?v=20260907-20/);
   assert.match(source, /standard-skill-registry\.generated\.js\?v=20260907-1/);
@@ -227,9 +227,9 @@ test("candidate app satisfies the waiting-opponent release marker", () => {
 });
 
 test("candidate page and app satisfy the alpha.4 cache generation marker", () => {
-  assert.equal(candidateHtml.includes("app.js?v=20260910-23"), true);
+  assert.equal(candidateHtml.includes("app.js?v=20260910-24"), true);
   assert.equal(candidateHtml.includes("cpu-commentary.js?v=20260910-1"), true);
-  assert.equal(candidateHtml.includes("style.css?v=20260910-11"), true);
+  assert.equal(candidateHtml.includes("style.css?v=20260910-12"), true);
   assert.equal(candidateHtml.includes("standard-online-client.js?v=20260910-1"), true);
   assert.equal(candidateHtml.includes("standard-online-skill-intents.js?v=20260907-20"), true);
   assert.equal(candidateHtml.includes("standard-skill-registry.generated.js?v=20260907-1"), true);

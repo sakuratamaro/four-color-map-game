@@ -5194,21 +5194,46 @@ function guardNewMatchEntry(options = {}) {
   return true;
 }
 
+function clearCpuRosterPortraits(grid) {
+  if (cpuPortraits?.VERSION !== "standard-cpu-portraits-v2") return;
+  for (const frame of grid.querySelectorAll(".cpu-roster-portrait")) {
+    cpuPortraits.clearCpuPortrait({
+      frame,
+      art: frame.querySelector(".cpu-portrait-art"),
+      fallback: frame.querySelector(".cpu-portrait-fallback"),
+    });
+  }
+}
+
 function renderCpuRoster(characters) {
-  const grid = $("cpuRosterGrid"); grid.replaceChildren();
+  const grid = $("cpuRosterGrid");
+  clearCpuRosterPortraits(grid);
+  grid.replaceChildren();
   const pendingCharacter = cpuRosterOrigin === "direct" ? pendingCpuStartSaga?.characterId || client.snapshot().cpuStartCharacterId : null;
-  for (const character of characters) {
+  for (const [index, character] of characters.entries()) {
     const item = document.createElement("article"); item.className = "cpu-character-card";
-    const title = document.createElement("h3"); title.textContent = character.name;
+    const title = document.createElement("h3"); title.id = `cpu-character-title-${index}`; title.textContent = character.name;
+    item.setAttribute("aria-labelledby", title.id);
+    const portrait = document.createElement("span"); portrait.className = "cpu-portrait-frame cpu-roster-portrait"; portrait.setAttribute("aria-hidden", "true");
+    const portraitArt = document.createElement("span"); portraitArt.className = "cpu-portrait-art"; portraitArt.hidden = true;
+    const portraitFallback = document.createElement("span"); portraitFallback.className = "cpu-portrait-fallback"; portraitFallback.textContent = "CPU";
+    portrait.append(portraitArt, portraitFallback);
     const line = document.createElement("p"); line.className = "cpu-character-line"; line.textContent = `「${character.line}」`;
     const strength = document.createElement("p"); strength.textContent = `得意：${character.strength}`;
     const weakness = document.createElement("p"); weakness.textContent = `苦手：${character.weakness}`;
     const favorites = document.createElement("p"); favorites.className = "muted small";
     favorites.textContent = `よく使う：${(character.favorites || []).map((id) => SKILL_META[id]?.name || id).join("・")}`;
+    const copy = document.createElement("div"); copy.className = "cpu-character-copy";
+    copy.append(title, line, strength, weakness, favorites);
+    const summary = document.createElement("div"); summary.className = "cpu-character-main";
+    summary.append(portrait, copy);
     const retrying = pendingCharacter === character.id;
     const choose = button(retrying ? `${character.name}との開始を再確認` : cpuRosterOrigin === "direct" ? `${character.name}を選んで6枚を確認` : `${character.name}と対戦`, () => acceptCpuCharacter(character), "primary");
     choose.type = "button"; choose.disabled = cpuAcceptBusy || Boolean(pendingCharacter && !retrying);
-    item.append(title, line, strength, weakness, favorites, choose); grid.appendChild(item);
+    item.append(summary, choose); grid.appendChild(item);
+    if (cpuPortraits?.VERSION === "standard-cpu-portraits-v2") {
+      cpuPortraits.showCpuPortrait({ frame: portrait, art: portraitArt, fallback: portraitFallback, characterId: character.id });
+    }
   }
 }
 

@@ -933,6 +933,11 @@ test("actual Edge carries a fresh player from the home CPU CTA through profile s
     assert.equal(await page.locator("#profileCard").isVisible(), false);
     await page.locator("#cpuRosterDialog[open]").waitFor();
     assert.equal(await page.locator("#cpuRosterGrid .cpu-character-card").count(), 10);
+    await page.locator("#cpuRosterGrid .cpu-roster-portrait[data-portrait-status=\"ready\"]").first().waitFor();
+    assert.equal(await page.locator("#cpuRosterGrid .cpu-roster-portrait").count(), 10);
+    assert.equal(await page.locator("#cpuRosterGrid .cpu-roster-portrait[data-portrait-status=\"ready\"]").count(), 10);
+    assert.equal(await page.locator("#cpuRosterGrid .cpu-portrait-art:visible").count(), 10);
+    assert.equal(await page.locator("#cpuRosterGrid .cpu-portrait-fallback:visible").count(), 0);
     const profileCalls = await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "profile").map((entry) => entry.body));
     assert.equal(profileCalls.length, 1);
     const profileCall = profileCalls[0];
