@@ -518,6 +518,33 @@ async function installCornerBloomState(page, blocked = false) {
   await page.getByText(/Player A の情報/).waitFor();
 }
 
+async function installColoredCornerBloomState(page) {
+  const rootValue = await persistedRoot(page);
+  const state = rootValue.activeMatch.state;
+  state.active = "A";
+  state.phase = "WORK";
+  state.requiredSize = 1;
+  state.rolledSize = 1;
+  state.baseRequiredSize = 1;
+  state.preparedOutgoing = null;
+  state.lastPublicTrace = null;
+  state.regions = {
+    R1: { id: "R1", micro: macroMicroCells(27), sourceMacros: [27], controllers: ["B"], color: "red", isPending: false },
+  };
+  state.pending = null;
+  state.reserved = null;
+  state.hands.A.areaCornerBloom = 1;
+  rootValue.activeMatch.cardSources.A.areaCornerBloom = "INVENTORY_BACKED";
+  rootValue.profiles.playerA.inventory.areaCornerBloom = 1;
+  rootValue.reservations.playerA.areaCornerBloom = 1;
+  standardMatch.validateStandardState(state);
+  await page.evaluate(({ key, value }) => localStorage.setItem(key, value), { key: saveKey, value: JSON.stringify(rootValue) });
+  await page.reload({ waitUntil: "load" });
+  await assertHandoverIsPrivate(page);
+  await page.getByRole("button", { name: "自分の情報を表示" }).click();
+  await page.getByText(/Player A の情報/).waitFor();
+}
+
 async function assertCornerBloomUse(browser, gesture) {
   const { context, page, metrics } = await newMeasuredPage(browser);
   try {
@@ -1714,6 +1741,33 @@ test("color-seal native keyboard and normal-URL lifecycle gates", { skip: !chrom
     await t.test("pointer double activation resolves areaCornerBloom exactly once", () => assertCornerBloomUse(browser, "pointer"));
     await t.test("Enter repeat resolves areaCornerBloom exactly once", () => assertCornerBloomUse(browser, "Enter"));
     await t.test("Space repeat resolves areaCornerBloom exactly once", () => assertCornerBloomUse(browser, " "));
+    await t.test("alpha.4 colored corner bloom resolves from one normal board square without preselection", async () => {
+      const { context, page, metrics } = await newMeasuredPage(browser);
+      try {
+        await bootToAWork(page);
+        await installColoredCornerBloomState(page);
+        const cells = page.locator('[aria-label="盤面"] button');
+        const before = await persistedSnapshot(page);
+        const beforeCounters = { ...metrics };
+        await page.getByRole("button", { name: "角膨張", exact: true }).click();
+        await page.getByText(/盤面で見えている通常の1マス/).waitFor();
+        const target = cells.nth(27);
+        assert.match(await target.getAttribute("aria-label"), /角膨張をこの通常マスへ使う/);
+        await target.click();
+        await page.waitForFunction(({ key, revision }) => JSON.parse(localStorage.getItem(key)).rootRevision === revision + 1, { key: saveKey, revision: before.rootRevision });
+        const after = await persistedSnapshot(page);
+        const afterRoot = await persistedRoot(page);
+        assert.equal(metrics.generatedIds, beforeCounters.generatedIds + 1);
+        assert.equal(metrics.saveWrites, beforeCounters.saveWrites + 1);
+        assert.equal(after.matchVersion, before.matchVersion + 1);
+        assert.equal(afterRoot.activeMatch.state.hands.A.areaCornerBloom, 0);
+        assert.ok(afterRoot.activeMatch.state.regions.R1.micro.length > 16);
+        assert.equal(afterRoot.activeMatch.state.preparedOutgoing, null);
+        await assertReloadStable(page, metrics, "colored corner bloom normal-square target");
+      } finally {
+        await context.close();
+      }
+    });
     await t.test("areaCornerBloom candidate-zero rejects without write or consumption", async () => {
       const { context, page, metrics } = await newMeasuredPage(browser);
       try {

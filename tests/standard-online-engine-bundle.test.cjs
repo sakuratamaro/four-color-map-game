@@ -110,7 +110,7 @@ test("server engine defaults to alpha.4 while preserving alpha.1, alpha.2, and a
   assert.equal(api.project(current.state).publicState.engineVersion, "5.0.0-alpha.4");
 });
 
-test("generated server bundle executes the alpha.4 colored corner-bloom payload", () => {
+test("generated server bundle authoritatively resolves an alpha.4 normal-square corner-bloom payload", () => {
   const api = loadApi();
   const cornerLoadouts = JSON.parse(JSON.stringify(loadouts));
   cornerLoadouts.A.area = ["areaCornerBloom", "areaDiePlus"];
@@ -133,12 +133,24 @@ test("generated server bundle executes the alpha.4 colored corner-bloom payload"
       isPending: false,
     },
   };
+  const before = JSON.stringify(state);
+  const rejected = api.apply({
+    state,
+    rngSnapshot: created.rngSnapshot,
+    actor: "A",
+    expectedVersion: 0,
+    action: { id: "alpha4-colored-corner-invalid", type: "USE_SKILL", payload: { skill: "areaCornerBloom", macro: 27 } },
+  });
+  assert.deepEqual(JSON.parse(JSON.stringify(rejected)), { ok: false, code: "INVALID_COLORED_CORNER_BLOOM_TARGET" });
+  assert.equal(JSON.stringify(state), before);
+  assert.equal(state.hands.A.areaCornerBloom, 1);
+
   const applied = api.apply({
     state,
     rngSnapshot: created.rngSnapshot,
     actor: "A",
     expectedVersion: 0,
-    action: { id: "alpha4-colored-corner", type: "USE_SKILL", payload: { skill: "areaCornerBloom", regionId: "R1", macro } },
+    action: { id: "alpha4-colored-corner", type: "USE_SKILL", payload: { skill: "areaCornerBloom", macro } },
   });
   assert.equal(applied.ok, true);
   assert.equal(applied.state.engineVersion, "5.0.0-alpha.4");

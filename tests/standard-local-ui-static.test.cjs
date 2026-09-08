@@ -22,9 +22,14 @@ const settlementInflightBrowserGate = fs.readFileSync(path.join(root, "tests", "
 const responsiveBrowserGate = fs.readFileSync(path.join(root, "tests", "standard-responsive-browser.test.cjs"), "utf8");
 const contactPressureBrowserGate = fs.readFileSync(path.join(root, "tests", "standard-contact-pressure-browser.test.cjs"), "utf8");
 const bundleBuilder = fs.readFileSync(path.join(root, "scripts", "build-standard-v5-bundle.mjs"), "utf8");
+const cornerTargetCss = fs.readFileSync(path.join(root, "standard-v5", "corner-target.css"), "utf8");
 
 test("local alpha has a bundled offline entry point", () => {
-  assert.match(html, /app\.bundle\.js\?v=20260910-8-79935a0310f2/);
+  assert.match(html, /app\.bundle\.js\?v=20260910-9-666cd89bf05e/);
+  assert.match(html, /corner-target\.css\?v=20260910-1/);
+  assert.match(cornerTargetCss, /\.board\.corner-bloom-target[\s\S]+min-width:\s*528px/);
+  assert.match(cornerTargetCss, /\.board\.corner-bloom-target \.cell[\s\S]+min-width:\s*44px[\s\S]+min-height:\s*44px/);
+  assert.match(app, /角膨張をこの通常マスへ使う/);
   for (const id of ["profileA", "profileB", "firstPlayer", "startMatch", "handover", "privatePanel", "resultPanel"]) {
     assert.match(html, new RegExp(`id="${id}"`));
   }
@@ -39,8 +44,8 @@ test("local alpha has a bundled offline entry point", () => {
 
 test("local cache marker publishes the rebuilt alpha.4 and deferred-curse bundle", () => {
   const bundleHash = createHash("sha256").update(bundle).digest("hex");
-  assert.equal(bundleHash, "79935a0310f241c072c18a4387e275076c403415a8128094b078a61e1d71dc17");
-  assert.match(html, new RegExp(`app\\.bundle\\.js\\?v=20260910-8-${bundleHash.slice(0, 12)}`));
+  assert.equal(bundleHash, "666cd89bf05e3ab20acd28c0f9e102eb5680ad5bf2e1c6120f454d335467414c");
+  assert.match(html, new RegExp(`app\\.bundle\\.js\\?v=20260910-9-${bundleHash.slice(0, 12)}`));
   assert.match(bundle, /SKILL_CATEGORY_ALREADY_USED_IN_WINDOW/);
   assert.match(bundle, /COLORED_CORNER_BLOOM_ENGINE_VERSION/);
   assert.match(bundle, /colorBonusRefill/);

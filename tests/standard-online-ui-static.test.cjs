@@ -79,9 +79,9 @@ test("online alpha.3 UI understands category windows and the experimental bonus-
 test("CPU commentary is public-event-only, bounded, non-blocking, and terminal-persistent", () => {
   assert.match(html, /style\.css\?v=20260910-12/);
   assert.match(html, /standard-online-client\.js\?v=20260910-1/);
-  assert.match(html, /standard-online-skill-intents\.js\?v=20260907-20/);
+  assert.match(html, /standard-online-skill-intents\.js\?v=20260910-2/);
   assert.match(html, /cpu-commentary\.js\?v=20260910-1/);
-  assert.match(html, /app\.js\?v=20260910-24/);
+  assert.match(html, /app\.js\?v=20260910-25/);
   assert.match(app, /cpuCommentary\?\.VERSION !== "standard-cpu-commentary-v3"/);
   assert.ok(html.indexOf("cpu-commentary.js") < html.indexOf('type="module" src="app.js'));
   assert.match(html, /id="cpuCommentaryStage"[^>]+aria-hidden="true"/);
@@ -445,7 +445,7 @@ test("existing online progression is hydrated from the server rather than re-upl
 
 test("UI derives its canonical and experimental card metadata from the generated registry", () => {
   assert.equal(Object.values(STANDARD_SKILLS).filter((skill) => skill.v49Catalogued).length, 19);
-  assert.match(html, /standard-skill-registry\.generated\.js\?v=20260907-1[\s\S]+app\.js\?v=20260910-24/);
+  assert.match(html, /standard-skill-registry\.generated\.js\?v=20260907-1[\s\S]+app\.js\?v=20260910-25/);
   assert.match(app, /const STANDARD_SKILL_REGISTRY = globalThis\.FourColorStandardSkillRegistry/);
   assert.match(app, /STANDARD_SKILL_REGISTRY\.v49SkillIds\.map/);
   assert.match(app, /Object\.entries\(STANDARD_SKILL_REGISTRY\.skills\)/);
@@ -798,14 +798,14 @@ test("all 19 skill target kinds route through the reviewed intent builder", () =
   assert.match(app, /sendAction\("USE_SKILL", payload\)/);
 });
 
-test("corner bloom is card then board cell then immediate action without a chooser or confirmation", () => {
+test("corner bloom is card then one normal board square then immediate action without a chooser or confirmation", () => {
   const target = app.slice(app.indexOf("function beginSkill"), app.indexOf("function bandShiftAxisBounds"));
   const resolver = app.slice(app.indexOf("function regionsAtMicro"), app.indexOf("function scrollBoardMacroIntoView"));
   const renderTarget = app.slice(app.indexOf("function renderSkillTarget"), app.indexOf("function submitSkillTarget"));
   assert.match(target, /kind === "corner-bloom"[\s\S]+board\?\.focus\(\{ preventScroll: true \}\)[\s\S]+board\?\.scrollIntoView/);
   assert.match(target, /const scheduledTarget = targetDraft;[\s\S]+const scheduledKind = kind;[\s\S]+requestAnimationFrame\(\(\) => \{[\s\S]+targetDraft !== scheduledTarget \|\| targetDraft\?\.kind !== scheduledKind[\s\S]+board\?\.focus/);
-  assert.match(app, /色のついたセル[\s\S]+すぐ発動/);
-  assert.match(resolver, /function activateCornerBloomCell\(state, micro\)/);
+  assert.match(app, /盤面で見えている通常の1マス[\s\S]+すぐ発動/);
+  assert.match(resolver, /function activateCornerBloomMacro\(state, macro\)/);
   assert.match(resolver, /skillIntents\.buildSkillPayload\(targetDraft\.skill, input\)/);
   assert.match(resolver, /sendAction\("USE_SKILL", payload\)/);
   assert.match(renderTarget, /!\["corner-bloom", "region-split"\]\.includes\(targetDraft\.kind\)[\s\S]+actions\.appendChild\(useTarget\)/);
@@ -813,33 +813,28 @@ test("corner bloom is card then board cell then immediate action without a choos
   assert.doesNotMatch(css, /\.corner-bloom-mode-controls|\.corner-bloom-targets/);
   assert.doesNotMatch(renderTarget, /角を広げる基準マス|盤面で色のついたエリアを選ぶ|盤面で渡すエリアを選ぶ/);
   assert.match(css, /\.skill-target-feedback\[data-tone="error"\]/);
-  assert.match(css, /#board\.corner-bloom-cell-target\{width:2112px\}/);
+  assert.match(app, /if \(kind === "corner-bloom"\) boardZoomed = true/);
+  assert.match(css, /\.board-viewport\.is-zoomed #board[\s\S]+width:200%/);
   assert.match(css, /@media\(max-width:390px\)\{\.corner-bloom-cancel\{width:100%;min-height:48px\}\}/);
 });
 
-test("alpha.4 corner bloom resolves one public micro cell without a client legality oracle", () => {
+test("alpha.4 corner bloom sends one public normal-square intent without a client legality oracle", () => {
   const resolver = app.slice(app.indexOf("function regionsAtMicro"), app.indexOf("function scrollBoardMacroIntoView"));
   const board = app.slice(app.indexOf("function boardKeydown"), app.indexOf("async function sendAction"));
   const pointer = app.slice(app.indexOf("function boardPointer(event)"), app.indexOf("function boardPointerDown"));
   assert.match(app, /state\?\.engineVersion === "5\.0\.0-alpha\.4"/);
-  assert.match(resolver, /const regions = eligibleOnly \? eligibleRecolorRegions\(state\) : Object\.values\(state\.regions \|\| \{\}\)/);
-  assert.match(resolver, /regions\.filter\(\(region\) => Array\.isArray\(region\?\.micro\) && region\.micro\.includes\(micro\)\)/);
-  assert.match(resolver, /const occupyingRegions = regionsAtMicro\(state, micro\)[\s\S]+occupyingRegions\.length > 1[\s\S]+return rejectCornerBloomCell/);
-  assert.match(resolver, /if \(colored\) input = \{ regionId: colored\.id, macro \};[\s\S]+else if \(occupied\) \{[\s\S]+return rejectCornerBloomCell/);
-  assert.match(resolver, /const colored = supportsColoredCornerBloom\(state\) \? regionAtMicro\(state, micro, \{ eligibleOnly: true \}\) : null/);
-  assert.match(resolver, /function boardMicroDescription[\s\S]+supportsColoredCornerBloom\(state\) \? regionAtMicro/);
-  assert.match(resolver, /if \(colored\) input = \{ regionId: colored\.id, macro \}/);
-  assert.match(resolver, /else if \(outgoingMacros\.includes\(macro\)\) \{[\s\S]+input = \{ sourceMacros: outgoingMacros, macro \}/);
-  assert.match(resolver, /return rejectCornerBloomCell[\s\S]+skillIntents\.buildSkillPayload\(targetDraft\.skill, input\)/);
-  assert.match(resolver, /function rejectCornerBloomCell[\s\S]+const scheduledTarget = targetDraft;[\s\S]+const scheduledKind = targetDraft\?\.kind;[\s\S]+requestAnimationFrame\(\(\) => \{[\s\S]+targetDraft !== scheduledTarget \|\| targetDraft\?\.kind !== scheduledKind \|\| scheduledKind !== "corner-bloom"[\s\S]+\$\("board"\)\?\.focus/);
+  assert.match(resolver, /if \(outgoingMacros\.includes\(macro\)\) input = \{ sourceMacros: outgoingMacros, macro \}/);
+  assert.match(resolver, /else if \(supportsColoredCornerBloom\(state\)\) input = \{ macro \}/);
+  assert.match(resolver, /return rejectCornerBloomMacro[\s\S]+skillIntents\.buildSkillPayload\(targetDraft\.skill, input\)/);
+  assert.match(resolver, /function rejectCornerBloomMacro[\s\S]+const scheduledTarget = targetDraft;[\s\S]+const scheduledKind = targetDraft\?\.kind;[\s\S]+requestAnimationFrame\(\(\) => \{[\s\S]+targetDraft !== scheduledTarget \|\| targetDraft\?\.kind !== scheduledKind \|\| scheduledKind !== "corner-bloom"[\s\S]+\$\("board"\)\?\.focus/);
   assert.match(resolver, /if \(pendingAction\)[\s\S]+同じ操作を再送[\s\S]+return false/);
   assert.match(app, /boardSelectionAvailable[\s\S]+!actionBusy && !pendingAction/);
-  assert.match(app, /const preserveCornerTarget = cornerBloomCellTargetActive\(\);[\s\S]+!interactive && !preserveCornerTarget[\s\S]+resetBoardSelectionAssist\(\)/);
+  assert.match(app, /const preserveCornerTarget = cornerBloomMacroTargetActive\(\);[\s\S]+!interactive && !preserveCornerTarget[\s\S]+resetBoardSelectionAssist\(\)/);
   assert.doesNotMatch(resolver, /controllers|privateState|candidateCount|cornerBloomPlan|coloredCornerBloomPlan|adjacentRegionIds/);
-  assert.match(pointer, /const micro = microRow \* microWidth \+ microCol[\s\S]+activateCornerBloomCell\(state, micro\)/);
-  assert.match(board, /boardKeyboardMicro/);
-  assert.match(board, /cornerBloomCellTargetActive\(\)[\s\S]+ArrowUp[\s\S]+ArrowDown[\s\S]+ArrowLeft[\s\S]+ArrowRight/);
-  assert.match(board, /cornerBloomCellTargetActive\(\)[\s\S]+activateCornerBloomCell\(state, micro\)/);
+  assert.match(pointer, /const macro = row \* width \+ col[\s\S]+activateCornerBloomMacro\(state, macro\)/);
+  assert.doesNotMatch(app, /boardKeyboardMicro|ensureBoardKeyboardMicro|boardMicroDescription|activateCornerBloomCell|strokeMicroTargetFrame/);
+  assert.match(board, /ArrowUp[\s\S]+ArrowDown[\s\S]+ArrowLeft[\s\S]+ArrowRight/);
+  assert.match(board, /toggleBoardMacro\(state, macro\)/);
   assert.match(board, /event\.key === "Escape"[\s\S]+cancelSkillTarget\(\)/);
   assert.match(board, /entry\.micro\?\.includes\(micro\)/);
   assert.doesNotMatch(resolver, /createElement\("select"\)|input\.type = "number"/);
@@ -867,7 +862,7 @@ test("half shift and triple shift select their bands on the board without raw po
 test("region split is card then one normal board cell then an authoritative immediate action", () => {
   const target = app.slice(app.indexOf("function beginSkill"), app.indexOf("function bandShiftAxisBounds"));
   const targets = app.slice(app.indexOf("function regionSplitTargetMacros"), app.indexOf("function macroHasFreeMicro"));
-  const resolver = app.slice(app.indexOf("function activateRegionSplitMacro"), app.indexOf("function activateCornerBloomCell"));
+  const resolver = app.slice(app.indexOf("function activateRegionSplitMacro"), app.indexOf("function activateCornerBloomMacro"));
   const board = app.slice(app.indexOf("function boardKeydown"), app.indexOf("async function sendAction"));
   const pointer = app.slice(app.indexOf("function boardPointer(event)"), app.indexOf("function boardPointerDown"));
   const renderTarget = app.slice(app.indexOf("function renderSkillTarget"), app.indexOf("function submitSkillTarget"));

@@ -34,7 +34,10 @@ function validateTargetSchema(definition, payload, state) {
     const coloredRegion = state.engineVersion === COLORED_CORNER_BLOOM_ENGINE_VERSION
       && typeof payload.regionId === "string" && payload.regionId.length > 0
       && !Object.hasOwn(payload, "sourceMacros") && Number.isInteger(payload.macro);
-    return outgoing || coloredRegion;
+    const coloredMacro = state.engineVersion === COLORED_CORNER_BLOOM_ENGINE_VERSION
+      && !Object.hasOwn(payload, "regionId") && !Object.hasOwn(payload, "sourceMacros")
+      && Number.isInteger(payload.macro);
+    return outgoing || coloredRegion || coloredMacro;
   }
   if (definition.id === "areaResize") return ["expand", "shrink"].includes(payload.mode) && ["top", "bottom", "left", "right"].includes(payload.side);
   if (["disruptChoiceOne", "disruptChoiceTwo", "disruptChoiceThree", "disruptPaletteChoice", "disruptForcedPalette"].includes(definition.id)) return typeof payload.color === "string";

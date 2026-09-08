@@ -87,7 +87,9 @@
     if (kind === "corner-bloom") {
       const outgoing = Object.hasOwn(input, "sourceMacros");
       const colored = Object.hasOwn(input, "regionId");
-      if (outgoing === colored) invalid();
+      const macroOnly = !outgoing && !colored && Object.hasOwn(input, "macro");
+      if ((!macroOnly && outgoing === colored) || (macroOnly && (outgoing || colored))) invalid();
+      if (macroOnly) return Object.freeze({ skill, macro: integer(input.macro) });
       return outgoing
         ? Object.freeze({ skill, sourceMacros: macros(input.sourceMacros), macro: integer(input.macro) })
         : Object.freeze({ skill, regionId: regionId(input.regionId), macro: integer(input.macro) });

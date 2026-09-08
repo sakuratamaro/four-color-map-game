@@ -94,6 +94,7 @@ const STANDARD_SKILLS = Object.freeze({
     targetSchema: {
       outgoing: { sourceMacros: "macro-index-array", macro: "macro-index" },
       coloredRegionAlpha4: { regionId: "region-id", macro: "macro-index" },
+      coloredMacroAlpha4: { macro: "macro-index" },
     },
     implemented: true,
     consumptionPolicy: "RESOLVED_ONLY_AVAILABLE_CORNER_EXPANSION",

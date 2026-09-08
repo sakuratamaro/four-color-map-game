@@ -884,6 +884,7 @@ const STANDARD_SKILLS = Object.freeze({
     targetSchema: {
       outgoing: { sourceMacros: "macro-index-array", macro: "macro-index" },
       coloredRegionAlpha4: { regionId: "region-id", macro: "macro-index" },
+      coloredMacroAlpha4: { macro: "macro-index" },
     },
     implemented: true,
     consumptionPolicy: "RESOLVED_ONLY_AVAILABLE_CORNER_EXPANSION",
@@ -1387,6 +1388,28 @@ function coloredCornerBloomPlan(state, regionId, macro) {
   });
 }
 
+function coloredCornerBloomMacroPlan(state, macro) {
+  if (state.engineVersion !== COLORED_CORNER_BLOOM_ENGINE_VERSION) {
+    return Object.freeze({ ok: false, code: "COLORED_CORNER_BLOOM_NOT_SUPPORTED", regionId: null, plan: [], micro: [] });
+  }
+  if (!Number.isInteger(macro)) {
+    return Object.freeze({ ok: false, code: "INVALID_COLORED_CORNER_BLOOM_MACRO", regionId: null, plan: [], micro: [] });
+  }
+  const candidates = Object.values(state.regions || {})
+    .filter((region) => region?.color && region.id !== state.pending && region.id !== state.reserved
+      && !region.isPending && !region.isReserved && !region.deleted && !region.delayed && !region.delayState
+      && Array.isArray(region.micro) && region.micro.some((cell) => microToMacro(cell, state) === macro))
+    .sort((left, right) => Number(left.id.slice(1)) - Number(right.id.slice(1)));
+  if (!candidates.length) {
+    return Object.freeze({ ok: false, code: "INVALID_COLORED_CORNER_BLOOM_TARGET", regionId: null, plan: [], micro: [] });
+  }
+  for (const region of candidates) {
+    const planned = coloredCornerBloomPlan(state, region.id, macro);
+    if (planned.ok && planned.plan.length) return Object.freeze({ ...planned, regionId: region.id });
+  }
+  return Object.freeze({ ok: true, regionId: candidates[0].id, plan: [], micro: [] });
+}
+
 function transferColoredCornerIntrusions(state, targetRegionId, cells) {
   const owners = regionOwners(state);
   const donors = new Set();
@@ -1491,23 +1514,26 @@ function applyAreaMicroBloom({ state, actor, payload, random }) {
 }
 
 function applyAreaCornerBloom({ state, actor, payload }) {
-  if (typeof payload.regionId === "string") {
-    const planned = coloredCornerBloomPlan(state, payload.regionId, payload.macro);
+  if (typeof payload.regionId === "string" || !Object.hasOwn(payload, "sourceMacros")) {
+    const planned = typeof payload.regionId === "string"
+      ? coloredCornerBloomPlan(state, payload.regionId, payload.macro)
+      : coloredCornerBloomMacroPlan(state, payload.macro);
     if (!planned.ok) return Object.freeze({ ok: false, code: planned.code, state });
     if (!planned.plan.length) return Object.freeze({ ok: false, code: "NO_COLORED_CORNER_BLOOM_CANDIDATE", state });
+    const regionId = typeof payload.regionId === "string" ? payload.regionId : planned.regionId;
     let intrusion;
     let merge;
     const result = resolved(state, actor, "areaCornerBloom", (next) => {
-      intrusion = transferColoredCornerIntrusions(next, payload.regionId, planned.plan);
-      const target = next.regions[payload.regionId];
+      intrusion = transferColoredCornerIntrusions(next, regionId, planned.plan);
+      const target = next.regions[regionId];
       target.micro = [...planned.micro];
       target.sourceMacros = sourceMacrosFromMicro(target.micro, next);
-      merge = mergeSameColorComponent(next, payload.regionId);
+      merge = mergeSameColorComponent(next, regionId);
       next.publicLog.push(`T${next.turn} Player ${actor} expanded the current colored region at macro ${payload.macro}, adding ${planned.plan.length} microcells.`);
     });
     return Object.freeze({
       ...result,
-      regionId: payload.regionId,
+      regionId,
       keptRegionId: merge.keptId,
       macro: payload.macro,
       addedCount: planned.plan.length,
@@ -2026,6 +2052,7 @@ module.exports = {
   microBloomCandidates,
   cornerBloomPlan,
   coloredCornerBloomPlan,
+  coloredCornerBloomMacroPlan,
   preparedOutgoingCandidates,
   planHalfShift,
   planTripleShift,
@@ -2071,7 +2098,10 @@ function validateTargetSchema(definition, payload, state) {
     const coloredRegion = state.engineVersion === COLORED_CORNER_BLOOM_ENGINE_VERSION
       && typeof payload.regionId === "string" && payload.regionId.length > 0
       && !Object.hasOwn(payload, "sourceMacros") && Number.isInteger(payload.macro);
-    return outgoing || coloredRegion;
+    const coloredMacro = state.engineVersion === COLORED_CORNER_BLOOM_ENGINE_VERSION
+      && !Object.hasOwn(payload, "regionId") && !Object.hasOwn(payload, "sourceMacros")
+      && Number.isInteger(payload.macro);
+    return outgoing || coloredRegion || coloredMacro;
   }
   if (definition.id === "areaResize") return ["expand", "shrink"].includes(payload.mode) && ["top", "bottom", "left", "right"].includes(payload.side);
   if (["disruptChoiceOne", "disruptChoiceTwo", "disruptChoiceThree", "disruptPaletteChoice", "disruptForcedPalette"].includes(definition.id)) return typeof payload.color === "string";
@@ -7363,6 +7393,10 @@ function boot() {
     return Object.values(publicState.regions).find((region) => (region.sourceMacros || []).includes(macro));
   }
 
+  function supportsColoredCornerBloom(publicState) {
+    return publicState?.engineVersion === "5.0.0-alpha.4";
+  }
+
   function showContactReveal(contactColorCount) {
     const reveals = {
       2: { title: "二色接触！", detail: "相手の選択肢へ圧力", tone: "warn" },
@@ -7499,6 +7533,7 @@ function boot() {
       ? "対戦終了。公開結果をご確認ください。"
       : `Turn ${publicState.turn}・Player ${publicState.active}・${publicState.phase}・指定 ${publicState.requiredSize}マス`;
     board.replaceChildren();
+    board.classList.toggle("corner-bloom-target", targetMode?.kind === "areaCornerBloom");
     const bounds = publicState.playableBounds;
     const preparedMacros = new Set(publicState.preparedOutgoing?.sourceMacros || []);
     for (let macro = 0; macro < 144; macro += 1) {
@@ -7511,11 +7546,14 @@ function boot() {
       cell.className = `cell${region?.color ? ` ${region.color}` : ""}${region?.isPending ? " pending" : ""}`;
       const inside = col >= bounds.minCol && col <= bounds.maxCol && row >= bounds.minRow && row <= bounds.maxRow;
       if (!inside) cell.classList.add("outside");
-      const cornerTargets = targetMode?.kind === "areaCornerBloom" ? new Set(targetMode.sourceMacros) : null;
+      const cornerTarget = targetMode?.kind === "areaCornerBloom";
+      const cornerTargets = cornerTarget ? new Set(targetMode.sourceMacros || []) : null;
       const bandShiftTarget = targetMode?.kind === "bandShift";
       const regionSplitTarget = targetMode?.kind === "colorRegionSplit";
-      if (bandShiftTarget || regionSplitTarget) cell.dataset.macro = String(macro);
-      if (!inside || publicState.status === "FINISHED" || (!bandShiftTarget && (cornerTargets ? !cornerTargets.has(macro) : Boolean(publicState.preparedOutgoing)))) cell.disabled = true;
+      if (bandShiftTarget || regionSplitTarget || cornerTarget) cell.dataset.macro = String(macro);
+      if (!inside || publicState.status === "FINISHED"
+          || (!bandShiftTarget && !regionSplitTarget && !cornerTarget && Boolean(publicState.preparedOutgoing))
+          || (cornerTarget && !targetMode.macroOnly && !cornerTargets.has(macro))) cell.disabled = true;
       if (selected.has(macro) || preparedMacros.has(macro)) cell.classList.add("selected");
       if (bandShiftTarget && Number.isSafeInteger(targetMode.index)) {
         const band = targetMode.axis === "ROW" ? row : col;
@@ -7525,14 +7563,14 @@ function boot() {
       if (regionSplitTarget && region?.id === publicState.pending) cell.classList.add("split-target");
       if (bandShiftTarget) cell.setAttribute("aria-label", `上から${row - bounds.minRow + 1}行目、左から${col - bounds.minCol + 1}列目。${targetMode.axis === "ROW" ? "この行" : "この列"}を対象に選ぶ`);
       if (regionSplitTarget) cell.setAttribute("aria-label", `上から${row - bounds.minRow + 1}行目、左から${col - bounds.minCol + 1}列目。${region?.id === publicState.pending ? "エリア二分で先に彩色する側として即発動" : "エリア二分の対象外"}`);
+      if (cornerTarget) cell.setAttribute("aria-label", `上から${row - bounds.minRow + 1}行目、左から${col - bounds.minCol + 1}列目。角膨張をこの通常マスへ使う`);
       cell.onclick = () => {
         if (!cell.isConnected) return;
         if (!revealedSeat) return;
         if (targetMode?.kind === "areaCornerBloom") {
-          if (!targetMode.sourceMacros.includes(macro)) return;
-          const sourceMacros = [...targetMode.sourceMacros];
-          targetMode = null;
-          dispatch("USE_SKILL", { skill: "areaCornerBloom", sourceMacros, macro });
+          const sourceMacros = [...(targetMode.sourceMacros || [])];
+          if (sourceMacros.includes(macro)) dispatch("USE_SKILL", { skill: "areaCornerBloom", sourceMacros, macro });
+          else if (targetMode.macroOnly) dispatch("USE_SKILL", { skill: "areaCornerBloom", macro });
           return;
         }
         if (targetMode?.kind === "bandShift") {
@@ -7577,6 +7615,7 @@ function boot() {
         if (privateResult.ok) renderPrivate(privateResult.privateState);
       };
       cell.addEventListener("keydown", (event) => {
+        if (!["bandShift", "areaCornerBloom", "colorRegionSplit"].includes(targetMode?.kind)) return;
         if (targetMode?.kind === "colorRegionSplit" && event.key === "Escape") {
           event.preventDefault();
           targetMode = null;
@@ -7588,9 +7627,17 @@ function boot() {
           if (privateResult.ok) renderPrivate(privateResult.privateState);
           return;
         }
-        if (targetMode?.kind !== "bandShift") return;
         if (event.key === "Escape") {
           event.preventDefault();
+          if (targetMode.kind === "areaCornerBloom") {
+            targetMode = null;
+            session.cancelPendingActionRetry();
+            say("角膨張の対象選択を解除しました。");
+            renderPublic(publicState);
+            const privateResult = session.revealPrivate(revealedSeat);
+            if (privateResult.ok) renderPrivate(privateResult.privateState);
+            return;
+          }
           targetMode.index = null;
           targetMode.direction = null;
           say("盤面の対象を解除しました。選び直してください。");
@@ -7762,11 +7809,16 @@ function boot() {
     }
     if (own.hand.areaCornerBloom > 0) {
       const sourceMacros = publicState.preparedOutgoing?.sourceMacros || [...selected].sort((a, b) => a - b);
-      appendButton("角膨張", areaSkillUsed || targetMode !== null || !["CREATE_FIRST", "WORK"].includes(phase) || sourceMacros.length !== publicState.requiredSize, () => {
-        targetMode = { kind: "areaCornerBloom", sourceMacros: [...sourceMacros] };
-        say("選択エリア内で、四隅を膨張させる1マスを選んでください。");
+      const macroOnly = supportsColoredCornerBloom(publicState) && sourceMacros.length !== publicState.requiredSize;
+      appendButton("角膨張", areaSkillUsed || targetMode !== null || !["CREATE_FIRST", "WORK"].includes(phase)
+        || (!macroOnly && sourceMacros.length !== publicState.requiredSize), () => {
+        targetMode = { kind: "areaCornerBloom", sourceMacros: [...sourceMacros], macroOnly };
+        say(macroOnly
+          ? "盤面で見えている通常の1マスを選んでください。選ぶとすぐサーバーが判定します。"
+          : "選択エリア内で、角を膨張させる通常の1マスを選んでください。");
         renderPublic(publicState);
         renderPrivate(own);
+        requestAnimationFrame(() => board.querySelector("button[data-macro]:not(:disabled)")?.focus({ preventScroll: true }));
       });
     }
     if (targetMode?.kind === "areaCornerBloom") appendButton("角膨張をキャンセル", false, () => {

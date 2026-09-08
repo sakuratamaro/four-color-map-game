@@ -78,12 +78,12 @@ test("release preflight is read-only, secret-free, finite, and stage-aware", () 
   assert.match(source, /MATCH_REWARD_ECONOMY_MISMATCH/);
   assert.match(source, /app\.text\.includes\('★\$\{meta\.rarity\}'\)/);
   assert.match(source, /CANDIDATE_ASSET_GENERATION_UI_PHASE_MISMATCH/);
-  assert.match(source, /app\.js\?v=20260910-24/);
+  assert.match(source, /app\.js\?v=20260910-25/);
   assert.match(source, /cpu-commentary\.js\?v=20260910-1/);
   assert.match(source, /progression\.css/);
   assert.match(source, /style\.css\?v=20260910-12/);
   assert.match(source, /standard-online-client\.js\?v=20260910-1/);
-  assert.match(source, /standard-online-skill-intents\.js\?v=20260907-20/);
+  assert.match(source, /standard-online-skill-intents\.js\?v=20260910-2/);
   assert.match(source, /standard-skill-registry\.generated\.js\?v=20260907-1/);
   assert.match(source, /cpu-portraits\.js\?v=20260908-1/);
   assert.match(source, /basic-feedback\.js\?v=20260908-2/);
@@ -106,8 +106,8 @@ test("release preflight is read-only, secret-free, finite, and stage-aware", () 
 
 test("candidate preflight rejects a stale local Standard bundle marker or missing deferred curse code", async () => {
   const { LOCAL_STANDARD_BUNDLE_MARKER, LOCAL_STANDARD_BUNDLE_SHA256, hasDeferredCurseLocalBundle } = await contractsPromise;
-  assert.equal(LOCAL_STANDARD_BUNDLE_MARKER, "app.bundle.js?v=20260910-8-79935a0310f2");
-  assert.equal(LOCAL_STANDARD_BUNDLE_SHA256, "79935a0310f241c072c18a4387e275076c403415a8128094b078a61e1d71dc17");
+  assert.equal(LOCAL_STANDARD_BUNDLE_MARKER, "app.bundle.js?v=20260910-9-666cd89bf05e");
+  assert.equal(LOCAL_STANDARD_BUNDLE_SHA256, "666cd89bf05e3ab20acd28c0f9e102eb5680ad5bf2e1c6120f454d335467414c");
   assert.equal(hasDeferredCurseLocalBundle(candidateLocalHtml, candidateLocalBundle), true);
   assert.equal(hasDeferredCurseLocalBundle(candidateLocalHtml.replace(LOCAL_STANDARD_BUNDLE_MARKER, "app.bundle.js?v=20260907-5"), candidateLocalBundle), false);
   assert.equal(hasDeferredCurseLocalBundle(candidateLocalHtml, candidateLocalBundle.replace("consumeDeferredCurseBacklashAfterColor(next, actor);", "void next;")), false);
@@ -227,11 +227,11 @@ test("candidate app satisfies the waiting-opponent release marker", () => {
 });
 
 test("candidate page and app satisfy the alpha.4 cache generation marker", () => {
-  assert.equal(candidateHtml.includes("app.js?v=20260910-24"), true);
+  assert.equal(candidateHtml.includes("app.js?v=20260910-25"), true);
   assert.equal(candidateHtml.includes("cpu-commentary.js?v=20260910-1"), true);
   assert.equal(candidateHtml.includes("style.css?v=20260910-12"), true);
   assert.equal(candidateHtml.includes("standard-online-client.js?v=20260910-1"), true);
-  assert.equal(candidateHtml.includes("standard-online-skill-intents.js?v=20260907-20"), true);
+  assert.equal(candidateHtml.includes("standard-online-skill-intents.js?v=20260910-2"), true);
   assert.equal(candidateHtml.includes("standard-skill-registry.generated.js?v=20260907-1"), true);
   assert.equal(candidateHtml.includes("cpu-portraits.js?v=20260908-1"), true);
   assert.equal(candidateHtml.includes("basic-feedback.js?v=20260908-2"), true);
@@ -239,9 +239,9 @@ test("candidate page and app satisfy the alpha.4 cache generation marker", () =>
   assert.equal(candidateApp.includes("SKILL_CATEGORY_ALREADY_USED_IN_WINDOW"), true);
   assert.equal(candidateApp.includes("colorBonusRefill"), true);
   assert.equal(candidateApp.includes('state?.engineVersion === "5.0.0-alpha.4"'), true);
-  assert.equal(candidateApp.includes("function activateCornerBloomCell(state, micro)"), true);
-  assert.equal(candidateApp.includes("regionAtMicro(state, micro, { eligibleOnly: true })"), true);
+  assert.equal(candidateApp.includes("function activateCornerBloomMacro(state, macro)"), true);
+  assert.equal(candidateApp.includes("else if (supportsColoredCornerBloom(state)) input = { macro };"), true);
   assert.equal(candidateApp.includes('sendAction("USE_SKILL", payload)'), true);
-  assert.equal(candidateIntents.includes('const colored = Object.hasOwn(input, "regionId")'), true);
-  assert.equal(candidateIntents.includes('Object.freeze({ skill, regionId: regionId(input.regionId), macro: integer(input.macro) })'), true);
+  assert.equal(candidateIntents.includes('const macroOnly = !outgoing && !colored && Object.hasOwn(input, "macro")'), true);
+  assert.equal(candidateIntents.includes('Object.freeze({ skill, macro: integer(input.macro) })'), true);
 });

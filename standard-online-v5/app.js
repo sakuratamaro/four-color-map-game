@@ -299,7 +299,6 @@ let userInteractionRevision = 0;
 const selectedMacros = new Set();
 let boardZoomed = false;
 let boardKeyboardMacro = null;
-let boardKeyboardMicro = null;
 let boardInteractionScope = null;
 let boardPointerGesture = null;
 let observedColorResponseScope = null;
@@ -801,7 +800,7 @@ function supportsColoredCornerBloom(state) {
   return state?.engineVersion === "5.0.0-alpha.4";
 }
 
-function cornerBloomCellTargetActive() {
+function cornerBloomMacroTargetActive() {
   return targetDraft?.kind === "corner-bloom";
 }
 
@@ -3455,13 +3454,9 @@ function beginSkill(skill) {
       const board = $("board");
       board?.focus({ preventScroll: true });
       board?.scrollIntoView({ block: "center", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
-      if (kind === "corner-bloom") {
-        const micro = ensureBoardKeyboardMicro(state);
-        scrollBoardMacroIntoView(state, macroForMicro(state, micro), scheduledTarget, scheduledKind);
-      } else {
-        const macro = ensureBoardKeyboardMacro(state);
-        scrollBoardMacroIntoView(state, macro, scheduledTarget, scheduledKind);
-      }
+      const macro = ensureBoardKeyboardMacro(state);
+      announceBoardSelection(boardMacroDescription(state, macro));
+      scrollBoardMacroIntoView(state, macro, scheduledTarget, scheduledKind);
     });
   } else $("skillTargetControls")?.querySelector("strong")?.focus({ preventScroll: true });
 }
@@ -3552,10 +3547,10 @@ function selectBandShiftMacro(state, macro) {
 
 function cornerBloomSelectionMessage(state) {
   if (supportsColoredCornerBloom(state)) {
-    return "紫の枠が対象セルです。色のついたセル、または白い枠で選択済みの渡すエリア内の空きセルをタップすると、すぐ発動します。広がる角がない場合もカードと手番は減らず、別の紫枠を選び直せます。";
+    return "盤面で見えている通常の1マスをタップすると、すぐ発動します。選択済みの渡すエリアはその形を、彩色済みマスはそのマス内で膨張できるエリアをサーバーが判定します。不成立でもカードと手番は減らず、別のマスを選び直せます。";
   }
   return currentOutgoingMacros(state).length === state.requiredSize
-    ? "紫の枠が対象セルです。白い枠で選択済みの渡すエリア内の空きセルをタップすると、すぐ発動します。"
+    ? "白い枠で選択済みの渡すエリアから、通常の1マスをタップするとすぐ発動します。"
     : `先に相手へ渡すエリアを${state.requiredSize}マス選び、その後で角膨張カードをタップしてください。`;
 }
 
@@ -3789,7 +3784,6 @@ function resetBoardSelectionAssist({ clearSelection = false } = {}) {
   }
   boardZoomed = false;
   boardKeyboardMacro = null;
-  boardKeyboardMicro = null;
   boardPointerGesture = null;
   $("boardViewport")?.classList.remove("is-zoomed");
   const toggle = $("toggleBoardZoom");
@@ -3812,15 +3806,15 @@ function syncBoardSelectionAssist(state) {
     resetBoardSelectionAssist({ clearSelection: true });
   }
   const interactive = boardSelectionAvailable(state);
-  const preserveCornerTarget = cornerBloomCellTargetActive();
+  const preserveCornerTarget = cornerBloomMacroTargetActive();
   if (!interactive && !preserveCornerTarget
-      && (boardZoomed || boardKeyboardMacro !== null || boardKeyboardMicro !== null)) resetBoardSelectionAssist();
+      && (boardZoomed || boardKeyboardMacro !== null)) resetBoardSelectionAssist();
   const viewport = $("boardViewport");
   const canvas = $("board");
   const toggle = $("toggleBoardZoom");
   toggle.classList.toggle("hidden", !interactive);
   viewport.classList.toggle("is-zoomed", interactive && boardZoomed);
-  canvas.classList.toggle("corner-bloom-cell-target", cornerBloomCellTargetActive());
+  canvas.classList.toggle("corner-bloom-macro-target", cornerBloomMacroTargetActive());
   canvas.tabIndex = interactive ? 0 : -1;
   toggle.disabled = !interactive;
   toggle.setAttribute("aria-pressed", String(interactive && boardZoomed));
@@ -3967,6 +3961,15 @@ function boardMacroDescription(state, macro) {
       && (index <= bandShiftAxisBounds(state).min || index >= bandShiftAxisBounds(state).max);
     return `上から${row}行目、左から${col}列目。${targetDraft.input.axis === "ROW" ? "この行" : "この列"}${invalidTriple ? "は三層の外周なので選べません" : "を対象に選べます"}`;
   }
+  if (targetDraft?.kind === "corner-bloom") {
+    const outgoing = currentOutgoingMacros(state).includes(macro);
+    const availability = outgoing
+      ? "選択済みの渡すエリア内。角膨張をすぐサーバーへ送れます"
+      : supportsColoredCornerBloom(state)
+        ? "この通常マスの角膨張をサーバーが判定します"
+        : "旧ルールでは選択済みの渡すエリア外なので対象にできません";
+    return `上から${row}行目、左から${col}列目。${availability}`;
+  }
   if (targetDraft?.kind === "region-split") {
     const target = regionSplitTargetMacros(state).includes(macro);
     return `上から${row}行目、左から${col}列目。${target ? "エリア二分で先に彩色する側として即発動できます" : "エリア二分の対象外です"}`;
@@ -4004,62 +4007,6 @@ function macroForMicro(state, micro) {
   const microCol = micro % microWidth;
   const microRow = Math.floor(micro / microWidth);
   return Math.floor(microRow / microScale) * macroWidth + Math.floor(microCol / microScale);
-}
-
-function playableMicro(state, micro) {
-  if (!Number.isSafeInteger(micro)) return false;
-  const { macroWidth, microScale, minCol, maxCol, minRow, maxRow } = state.playableBounds;
-  const microWidth = macroWidth * microScale;
-  const col = micro % microWidth;
-  const row = Math.floor(micro / microWidth);
-  return col >= minCol * microScale && col < (maxCol + 1) * microScale
-    && row >= minRow * microScale && row < (maxRow + 1) * microScale;
-}
-
-function cornerBloomSelectableMicros(state) {
-  if (!state || !cornerBloomCellTargetActive()) return [];
-  const selectable = new Set();
-  if (supportsColoredCornerBloom(state)) {
-    for (const region of eligibleRecolorRegions(state)) {
-      for (const micro of region.micro || []) if (playableMicro(state, micro)) selectable.add(micro);
-    }
-  }
-  const { macroWidth, microScale } = state.playableBounds;
-  const microWidth = macroWidth * microScale;
-  const occupied = new Set(Object.values(state.regions || {}).flatMap((region) => Array.isArray(region?.micro) ? region.micro : []));
-  for (const macro of currentOutgoingMacros(state)) {
-    const macroCol = macro % macroWidth;
-    const macroRow = Math.floor(macro / macroWidth);
-    for (let y = 0; y < microScale; y += 1) {
-      for (let x = 0; x < microScale; x += 1) {
-        const micro = (macroRow * microScale + y) * microWidth + macroCol * microScale + x;
-        if (playableMicro(state, micro) && !occupied.has(micro)) selectable.add(micro);
-      }
-    }
-  }
-  return [...selectable].sort((a, b) => a - b);
-}
-
-function ensureBoardKeyboardMicro(state) {
-  const cornerTargets = cornerBloomCellTargetActive() ? cornerBloomSelectableMicros(state) : [];
-  if (playableMicro(state, boardKeyboardMicro) && (!cornerTargets.length || cornerTargets.includes(boardKeyboardMicro))) return boardKeyboardMicro;
-  const { macroWidth, microScale, minCol, minRow } = state.playableBounds;
-  const microWidth = macroWidth * microScale;
-  if (cornerTargets.length) {
-    boardKeyboardMicro = cornerTargets[0];
-    boardKeyboardMacro = macroForMicro(state, boardKeyboardMicro);
-    return boardKeyboardMicro;
-  }
-  const selected = visibleOutgoingMacros(state).find((macro) => playableMacro(state, macro));
-  if (Number.isSafeInteger(selected)) {
-    const macroCol = selected % macroWidth;
-    const macroRow = Math.floor(selected / macroWidth);
-    boardKeyboardMicro = macroRow * microScale * microWidth + macroCol * microScale;
-  } else {
-    boardKeyboardMicro = minRow * microScale * microWidth + minCol * microScale;
-  }
-  boardKeyboardMacro = macroForMicro(state, boardKeyboardMicro);
-  return boardKeyboardMicro;
 }
 
 function regionsAtMicro(state, micro, { eligibleOnly = false } = {}) {
@@ -4153,26 +4100,7 @@ function presentSelectedContactChange(state, previousMacros, nextMacros = select
     { minimumStage: previousContactColorCount + 1 });
 }
 
-function boardMicroDescription(state, micro) {
-  const { macroWidth, microScale, minCol, minRow } = state.playableBounds;
-  const microWidth = macroWidth * microScale;
-  const col = (micro % microWidth) - minCol * microScale + 1;
-  const row = Math.floor(micro / microWidth) - minRow * microScale + 1;
-  const macro = macroForMicro(state, micro);
-  const colored = supportsColoredCornerBloom(state) ? regionAtMicro(state, micro, { eligibleOnly: true }) : null;
-  const occupied = regionAtMicro(state, micro);
-  const outgoing = !occupied && currentOutgoingMacros(state).includes(macro);
-  const availability = colored
-    ? `${COLOR_JA[colored.color] || colored.color}の彩色済みエリア。ここを選ぶとすぐサーバーへ発動を試みます`
-    : outgoing
-      ? "選択済みの渡すエリア内の空きセル。ここを選ぶとすぐサーバーへ発動を試みます"
-      : occupied
-        ? "このセルのエリアは対象にできません"
-        : "対象外の空きセルです";
-  return `細分セル、上から${row}行目、左から${col}列目。${availability}`;
-}
-
-function rejectCornerBloomCell(message) {
+function rejectCornerBloomMacro(message) {
   const scheduledTarget = targetDraft;
   const scheduledKind = targetDraft?.kind;
   setSkillTargetFeedback(`${message} カードと手番は減りません。`, "error");
@@ -4214,58 +4142,29 @@ function activateRegionSplitMacro(state, macro) {
   }
 }
 
-function activateCornerBloomCell(state, micro) {
+function activateCornerBloomMacro(state, macro) {
   if (targetDraft?.kind !== "corner-bloom" || actionBusy) return false;
   if (pendingAction) {
-    setSkillTargetFeedback("前の角膨張の結果を確認中です。別のセルは送らず、「同じ操作を再送」で確認してください。", "error");
+    setSkillTargetFeedback("前の角膨張の結果を確認中です。別のマスは送らず、「同じ操作を再送」で確認してください。", "error");
     announceBoardSelection("前の角膨張を同じ操作IDで再送してください。");
     render();
     requestAnimationFrame(() => $("retryAction")?.focus({ preventScroll: true }));
     return false;
   }
-  if (!playableMicro(state, micro)) return rejectCornerBloomCell("盤面のプレイ範囲内から対象セルを選んでください。");
-  const macro = macroForMicro(state, micro);
-  boardKeyboardMicro = micro;
+  if (!playableMacro(state, macro)) return rejectCornerBloomMacro("盤面のプレイ範囲内から通常の1マスを選んでください。");
   boardKeyboardMacro = macro;
-  const occupyingRegions = regionsAtMicro(state, micro);
-  if (occupyingRegions.length > 1) return rejectCornerBloomCell("このセルの盤面情報が重複しているため対象にできません。");
-  const occupied = occupyingRegions[0];
-  const colored = supportsColoredCornerBloom(state) ? regionAtMicro(state, micro, { eligibleOnly: true }) : null;
   const outgoingMacros = currentOutgoingMacros(state);
   let input;
-  if (colored) input = { regionId: colored.id, macro };
-  else if (occupied) {
-    return rejectCornerBloomCell("このセルのエリアは、いま角膨張の対象にできません。");
-  } else if (outgoingMacros.includes(macro)) {
-    input = { sourceMacros: outgoingMacros, macro };
-  } else {
-    return rejectCornerBloomCell(supportsColoredCornerBloom(state)
-      ? "色のついたセルか、白い枠で選択済みの渡すエリア内の空きセルを選んでください。"
-      : "白い枠で選択済みの渡すエリア内の空きセルを選んでください。");
-  }
+  if (outgoingMacros.includes(macro)) input = { sourceMacros: outgoingMacros, macro };
+  else if (supportsColoredCornerBloom(state)) input = { macro };
+  else return rejectCornerBloomMacro("白い枠で選択済みの渡すエリア内から通常の1マスを選んでください。");
   try {
     const payload = skillIntents.buildSkillPayload(targetDraft.skill, input);
     announceBoardSelection("角膨張をサーバーで確認します。");
     sendAction("USE_SKILL", payload);
     return true;
   } catch {
-    return rejectCornerBloomCell("対象を確定できませんでした。別のセルを選んでください。");
-  }
-}
-
-function selectCornerBloomMacro(state, macro) {
-  boardKeyboardMacro = macro;
-  const outgoingMacros = currentOutgoingMacros(state);
-  if (!outgoingMacros.includes(macro)) {
-    return rejectCornerBloomCell("白い枠で選択済みの渡すエリア内の空きセルを選んでください。");
-  }
-  try {
-    const payload = skillIntents.buildSkillPayload(targetDraft.skill, { sourceMacros: outgoingMacros, macro });
-    announceBoardSelection("角膨張をサーバーで確認します。");
-    sendAction("USE_SKILL", payload);
-    return true;
-  } catch {
-    return rejectCornerBloomCell("対象を確定できませんでした。別のセルを選んでください。");
+    return rejectCornerBloomMacro("対象を確定できませんでした。別のマスを選んでください。");
   }
 }
 
@@ -4306,7 +4205,7 @@ function rejectBoardSelection(message) {
 }
 
 function toggleBoardMacro(state, macro, { selectCornerTarget = true } = {}) {
-  if (selectCornerTarget && targetDraft?.kind === "corner-bloom") return selectCornerBloomMacro(state, macro);
+  if (selectCornerTarget && targetDraft?.kind === "corner-bloom") return activateCornerBloomMacro(state, macro);
   boardKeyboardMacro = macro;
   const width = state.playableBounds.macroWidth;
   if (!macroHasFreeMicro(state, macro) && !selectedMacros.has(macro)) {
@@ -4350,37 +4249,6 @@ function boardKeydown(event) {
   const state = roomModel?.room?.public_state;
   if (!boardSelectionAvailable(state)) return;
   const bounds = state.playableBounds;
-  if (cornerBloomCellTargetActive()) {
-    const microWidth = bounds.macroWidth * bounds.microScale;
-    let micro = ensureBoardKeyboardMicro(state);
-    let col = micro % microWidth;
-    let row = Math.floor(micro / microWidth);
-    if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(event.key)) {
-      event.preventDefault();
-      if (event.key === "ArrowUp") row = Math.max(bounds.minRow * bounds.microScale, row - 1);
-      if (event.key === "ArrowDown") row = Math.min((bounds.maxRow + 1) * bounds.microScale - 1, row + 1);
-      if (event.key === "ArrowLeft") col = Math.max(bounds.minCol * bounds.microScale, col - 1);
-      if (event.key === "ArrowRight") col = Math.min((bounds.maxCol + 1) * bounds.microScale - 1, col + 1);
-      boardKeyboardMicro = row * microWidth + col;
-      boardKeyboardMacro = macroForMicro(state, boardKeyboardMicro);
-      announceBoardSelection(boardMicroDescription(state, boardKeyboardMicro));
-      renderBoard(state);
-      scrollBoardMacroIntoView(state, boardKeyboardMacro);
-      return;
-    }
-    if ([" ", "Enter"].includes(event.key)) {
-      event.preventDefault();
-      activateCornerBloomCell(state, micro);
-      scrollBoardMacroIntoView(state, macroForMicro(state, micro));
-      return;
-    }
-    if (event.key === "Escape") {
-      event.preventDefault();
-      announceBoardSelection("角膨張をキャンセルしました。");
-      cancelSkillTarget();
-    }
-    return;
-  }
   const width = bounds.macroWidth;
   let macro = ensureBoardKeyboardMacro(state);
   let col = macro % width;
@@ -4452,24 +4320,6 @@ function strokeMacroFrame(ctx, macro, macroWidth, microScale, cell, { color, css
   ctx.restore();
 }
 
-function strokeMicroTargetFrame(ctx, micro, microWidth, cell) {
-  const displayedWidth = ctx.canvas.getBoundingClientRect().width;
-  const cssScale = displayedWidth > 0 ? ctx.canvas.width / displayedWidth : 1;
-  const x = micro % microWidth;
-  const y = Math.floor(micro / microWidth);
-  const inset = 3 * cssScale;
-  const size = Math.max(1, cell - (2 * inset));
-  ctx.save();
-  ctx.setLineDash([5 * cssScale, 3 * cssScale]);
-  ctx.strokeStyle = "#020617";
-  ctx.lineWidth = 5 * cssScale;
-  ctx.strokeRect(x * cell + inset, y * cell + inset, size, size);
-  ctx.strokeStyle = "#f0abfc";
-  ctx.lineWidth = 2.5 * cssScale;
-  ctx.strokeRect(x * cell + inset, y * cell + inset, size, size);
-  ctx.restore();
-}
-
 function renderBoard(state) {
   const canvas = $("board"); const ctx = canvas.getContext("2d");
   const boardInteractive = syncBoardSelectionAssist(state);
@@ -4485,8 +4335,8 @@ function renderBoard(state) {
   else delete canvas.dataset.connectedGuidedMacros;
   const boardLabel = targetDraft?.kind === "existing-region"
     ? "塗り直す彩色済みエリアを選択。番号と色名は下の対象一覧でも選べます。"
-    : cornerBloomCellTargetActive()
-      ? "角膨張の対象セルを選択。矢印キーで細分セルを移動し、SpaceまたはEnterで即発動、Escapeでキャンセルできます。"
+    : cornerBloomMacroTargetActive()
+      ? "角膨張の対象となる通常の1マスを選択。矢印キーでマスを移動し、SpaceまたはEnterで即発動、Escapeでキャンセルできます。"
     : targetDraft?.kind === "region-split"
       ? `エリア二分の対象を選択。紫枠の受取エリア${splitTargets.size}マスから矢印キーで移動し、SpaceまたはEnterで即発動、Escapeでキャンセルできます。`
     : targetDraft?.kind === "band-shift"
@@ -4532,9 +4382,6 @@ function renderBoard(state) {
     const col = macro % macroWidth; const row = Math.floor(macro / macroWidth);
     ctx.fillRect(col * microScale * cell, row * microScale * cell, microScale * cell, microScale * cell);
     ctx.strokeRect(col * microScale * cell + 1, row * microScale * cell + 1, microScale * cell - 2, microScale * cell - 2);
-  }
-  if (cornerBloomCellTargetActive()) {
-    for (const micro of cornerBloomSelectableMicros(state)) strokeMicroTargetFrame(ctx, micro, microWidth, cell);
   }
   if (targetDraft?.kind === "band-shift" && Number.isSafeInteger(targetDraft.input.index)) {
     const axis = targetDraft.input.axis;
@@ -4588,24 +4435,9 @@ function renderBoard(state) {
     }
   }
   if (boardInteractive && document.activeElement === canvas) {
-    if (cornerBloomCellTargetActive()) {
-      const micro = ensureBoardKeyboardMicro(state);
-      const microWidth = macroWidth * microScale;
-      const x = micro % microWidth;
-      const y = Math.floor(micro / microWidth);
-      ctx.save();
-      ctx.strokeStyle = "#020617";
-      ctx.lineWidth = Math.max(5, cell * .22);
-      ctx.strokeRect(x * cell + 1, y * cell + 1, Math.max(1, cell - 2), Math.max(1, cell - 2));
-      ctx.strokeStyle = "#fdf4ff";
-      ctx.lineWidth = Math.max(2, cell * .1);
-      ctx.strokeRect(x * cell + 1, y * cell + 1, Math.max(1, cell - 2), Math.max(1, cell - 2));
-      ctx.restore();
-    } else {
-      const macro = ensureBoardKeyboardMacro(state);
-      strokeMacroFrame(ctx, macro, macroWidth, microScale, cell, { color: "#f0abfc", cssWidth: 4, cssDash: [] });
-      strokeMacroFrame(ctx, macro, macroWidth, microScale, cell, { color: "#fdf4ff", cssWidth: 1.5, cssDash: [], cssInset: 8 });
-    }
+    const macro = ensureBoardKeyboardMacro(state);
+    strokeMacroFrame(ctx, macro, macroWidth, microScale, cell, { color: "#f0abfc", cssWidth: 4, cssDash: [] });
+    strokeMacroFrame(ctx, macro, macroWidth, microScale, cell, { color: "#fdf4ff", cssWidth: 1.5, cssDash: [], cssInset: 8 });
   }
 }
 
@@ -4765,18 +4597,14 @@ function boardPointer(event) {
   if (!state || roomModel?.room?.status !== "playing" || state.status !== "ACTIVE" || actionBusy || pendingAction || state.active !== seat
     || preparedLocksSelection || (!recolorTarget && !skillGeometry && !["CREATE_FIRST", "WORK"].includes(state.phase))) return;
   const rect = event.currentTarget.getBoundingClientRect(); const width = state.playableBounds.macroWidth;
-  if (recolorTarget || cornerBloomCellTargetActive()) {
+  if (recolorTarget) {
     const microWidth = width * state.playableBounds.microScale;
     const microCol = Math.max(0, Math.min(microWidth - 1, Math.floor((event.clientX - rect.left) / rect.width * microWidth)));
     const microRow = Math.max(0, Math.min(microWidth - 1, Math.floor((event.clientY - rect.top) / rect.height * microWidth)));
     const micro = microRow * microWidth + microCol;
-    if (cornerBloomCellTargetActive()) {
-      activateCornerBloomCell(state, micro);
-    } else {
-      const region = eligibleRecolorRegions(state).find((entry) => entry.micro?.includes(micro));
-      if (region) targetDraft.input.regionId = region.id;
-      render();
-    }
+    const region = eligibleRecolorRegions(state).find((entry) => entry.micro?.includes(micro));
+    if (region) targetDraft.input.regionId = region.id;
+    render();
     return;
   }
   const col = Math.max(0, Math.min(width - 1, Math.floor((event.clientX - rect.left) / rect.width * width)));
@@ -4786,7 +4614,7 @@ function boardPointer(event) {
   if (targetDraft?.kind === "source-macros") return toggleBoardMacro(state, macro);
   if (targetDraft?.kind === "region-split") return activateRegionSplitMacro(state, macro);
   if (targetDraft?.kind === "band-shift") return selectBandShiftMacro(state, macro);
-  if (targetDraft?.kind === "corner-bloom") return selectCornerBloomMacro(state, macro);
+  if (targetDraft?.kind === "corner-bloom") return activateCornerBloomMacro(state, macro);
   if (selectedMacros.has(macro)) selectedMacros.delete(macro);
   else if (selectedMacros.size < state.requiredSize) selectedMacros.add(macro);
   render();
@@ -4857,7 +4685,7 @@ async function sendAction(type, payload = {}, retry = false) {
       pendingAction = null;
       operationFeedback("actionStatus", `${safeMessage} 最新の盤面を確認し、操作を選び直してください。`, "error");
       if (type === "USE_SKILL" && payload?.skill === "areaCornerBloom" && targetDraft?.kind === "corner-bloom") {
-        setSkillTargetFeedback(`${safeMessage} カードと手番は減っていません。別のセルを選べます。`, "error");
+        setSkillTargetFeedback(`${safeMessage} カードと手番は減っていません。別のマスを選べます。`, "error");
       }
       if (type === "USE_SKILL" && payload?.skill === "colorRegionSplit" && targetDraft?.kind === "region-split") {
         setSkillTargetFeedback(`${safeMessage} カードと手番は減っていません。別の紫枠を選べます。`, "error");
@@ -5840,13 +5668,8 @@ $("board").addEventListener("keydown", boardKeydown);
 $("board").addEventListener("focus", () => {
   const state = roomModel?.room?.public_state;
   if (!boardSelectionAvailable(state)) return;
-  if (cornerBloomCellTargetActive()) {
-    const micro = ensureBoardKeyboardMicro(state);
-    announceBoardSelection(boardMicroDescription(state, micro));
-  } else {
-    const macro = ensureBoardKeyboardMacro(state);
-    announceBoardSelection(boardMacroDescription(state, macro));
-  }
+  const macro = ensureBoardKeyboardMacro(state);
+  announceBoardSelection(boardMacroDescription(state, macro));
   renderBoard(state);
 });
 $("board").addEventListener("blur", () => {

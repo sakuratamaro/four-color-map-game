@@ -562,6 +562,10 @@ function boot() {
     return Object.values(publicState.regions).find((region) => (region.sourceMacros || []).includes(macro));
   }
 
+  function supportsColoredCornerBloom(publicState) {
+    return publicState?.engineVersion === "5.0.0-alpha.4";
+  }
+
   function showContactReveal(contactColorCount) {
     const reveals = {
       2: { title: "二色接触！", detail: "相手の選択肢へ圧力", tone: "warn" },
@@ -698,6 +702,7 @@ function boot() {
       ? "対戦終了。公開結果をご確認ください。"
       : `Turn ${publicState.turn}・Player ${publicState.active}・${publicState.phase}・指定 ${publicState.requiredSize}マス`;
     board.replaceChildren();
+    board.classList.toggle("corner-bloom-target", targetMode?.kind === "areaCornerBloom");
     const bounds = publicState.playableBounds;
     const preparedMacros = new Set(publicState.preparedOutgoing?.sourceMacros || []);
     for (let macro = 0; macro < 144; macro += 1) {
@@ -710,11 +715,14 @@ function boot() {
       cell.className = `cell${region?.color ? ` ${region.color}` : ""}${region?.isPending ? " pending" : ""}`;
       const inside = col >= bounds.minCol && col <= bounds.maxCol && row >= bounds.minRow && row <= bounds.maxRow;
       if (!inside) cell.classList.add("outside");
-      const cornerTargets = targetMode?.kind === "areaCornerBloom" ? new Set(targetMode.sourceMacros) : null;
+      const cornerTarget = targetMode?.kind === "areaCornerBloom";
+      const cornerTargets = cornerTarget ? new Set(targetMode.sourceMacros || []) : null;
       const bandShiftTarget = targetMode?.kind === "bandShift";
       const regionSplitTarget = targetMode?.kind === "colorRegionSplit";
-      if (bandShiftTarget || regionSplitTarget) cell.dataset.macro = String(macro);
-      if (!inside || publicState.status === "FINISHED" || (!bandShiftTarget && (cornerTargets ? !cornerTargets.has(macro) : Boolean(publicState.preparedOutgoing)))) cell.disabled = true;
+      if (bandShiftTarget || regionSplitTarget || cornerTarget) cell.dataset.macro = String(macro);
+      if (!inside || publicState.status === "FINISHED"
+          || (!bandShiftTarget && !regionSplitTarget && !cornerTarget && Boolean(publicState.preparedOutgoing))
+          || (cornerTarget && !targetMode.macroOnly && !cornerTargets.has(macro))) cell.disabled = true;
       if (selected.has(macro) || preparedMacros.has(macro)) cell.classList.add("selected");
       if (bandShiftTarget && Number.isSafeInteger(targetMode.index)) {
         const band = targetMode.axis === "ROW" ? row : col;
@@ -724,14 +732,14 @@ function boot() {
       if (regionSplitTarget && region?.id === publicState.pending) cell.classList.add("split-target");
       if (bandShiftTarget) cell.setAttribute("aria-label", `上から${row - bounds.minRow + 1}行目、左から${col - bounds.minCol + 1}列目。${targetMode.axis === "ROW" ? "この行" : "この列"}を対象に選ぶ`);
       if (regionSplitTarget) cell.setAttribute("aria-label", `上から${row - bounds.minRow + 1}行目、左から${col - bounds.minCol + 1}列目。${region?.id === publicState.pending ? "エリア二分で先に彩色する側として即発動" : "エリア二分の対象外"}`);
+      if (cornerTarget) cell.setAttribute("aria-label", `上から${row - bounds.minRow + 1}行目、左から${col - bounds.minCol + 1}列目。角膨張をこの通常マスへ使う`);
       cell.onclick = () => {
         if (!cell.isConnected) return;
         if (!revealedSeat) return;
         if (targetMode?.kind === "areaCornerBloom") {
-          if (!targetMode.sourceMacros.includes(macro)) return;
-          const sourceMacros = [...targetMode.sourceMacros];
-          targetMode = null;
-          dispatch("USE_SKILL", { skill: "areaCornerBloom", sourceMacros, macro });
+          const sourceMacros = [...(targetMode.sourceMacros || [])];
+          if (sourceMacros.includes(macro)) dispatch("USE_SKILL", { skill: "areaCornerBloom", sourceMacros, macro });
+          else if (targetMode.macroOnly) dispatch("USE_SKILL", { skill: "areaCornerBloom", macro });
           return;
         }
         if (targetMode?.kind === "bandShift") {
@@ -776,6 +784,7 @@ function boot() {
         if (privateResult.ok) renderPrivate(privateResult.privateState);
       };
       cell.addEventListener("keydown", (event) => {
+        if (!["bandShift", "areaCornerBloom", "colorRegionSplit"].includes(targetMode?.kind)) return;
         if (targetMode?.kind === "colorRegionSplit" && event.key === "Escape") {
           event.preventDefault();
           targetMode = null;
@@ -787,9 +796,17 @@ function boot() {
           if (privateResult.ok) renderPrivate(privateResult.privateState);
           return;
         }
-        if (targetMode?.kind !== "bandShift") return;
         if (event.key === "Escape") {
           event.preventDefault();
+          if (targetMode.kind === "areaCornerBloom") {
+            targetMode = null;
+            session.cancelPendingActionRetry();
+            say("角膨張の対象選択を解除しました。");
+            renderPublic(publicState);
+            const privateResult = session.revealPrivate(revealedSeat);
+            if (privateResult.ok) renderPrivate(privateResult.privateState);
+            return;
+          }
           targetMode.index = null;
           targetMode.direction = null;
           say("盤面の対象を解除しました。選び直してください。");
@@ -961,11 +978,16 @@ function boot() {
     }
     if (own.hand.areaCornerBloom > 0) {
       const sourceMacros = publicState.preparedOutgoing?.sourceMacros || [...selected].sort((a, b) => a - b);
-      appendButton("角膨張", areaSkillUsed || targetMode !== null || !["CREATE_FIRST", "WORK"].includes(phase) || sourceMacros.length !== publicState.requiredSize, () => {
-        targetMode = { kind: "areaCornerBloom", sourceMacros: [...sourceMacros] };
-        say("選択エリア内で、四隅を膨張させる1マスを選んでください。");
+      const macroOnly = supportsColoredCornerBloom(publicState) && sourceMacros.length !== publicState.requiredSize;
+      appendButton("角膨張", areaSkillUsed || targetMode !== null || !["CREATE_FIRST", "WORK"].includes(phase)
+        || (!macroOnly && sourceMacros.length !== publicState.requiredSize), () => {
+        targetMode = { kind: "areaCornerBloom", sourceMacros: [...sourceMacros], macroOnly };
+        say(macroOnly
+          ? "盤面で見えている通常の1マスを選んでください。選ぶとすぐサーバーが判定します。"
+          : "選択エリア内で、角を膨張させる通常の1マスを選んでください。");
         renderPublic(publicState);
         renderPrivate(own);
+        requestAnimationFrame(() => board.querySelector("button[data-macro]:not(:disabled)")?.focus({ preventScroll: true }));
       });
     }
     if (targetMode?.kind === "areaCornerBloom") appendButton("角膨張をキャンセル", false, () => {

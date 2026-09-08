@@ -59,6 +59,41 @@ function useOutgoing(state, rng, macro = 26) {
   });
 }
 
+function useMacro(state, rng, macro = 26) {
+  return match.applyStandardAction({
+    state,
+    actor: "A",
+    action: { type: "USE_SKILL", payload: { skill: "areaCornerBloom", macro } },
+    expectedVersion: state.version,
+    rngStreams: rng,
+  });
+}
+
+test("alpha.4 resolves one normal board square authoritatively without a client region id", () => {
+  const { state, rng } = fixture();
+  const before = JSON.stringify(state);
+  const result = useMacro(state, rng);
+  assert.deepEqual([result.ok, result.regionId, result.macro, result.addedCount], [true, "R1", 26, 12]);
+  assert.equal(result.state.regions.R1.micro.length, 28);
+  assert.deepEqual([result.state.version, result.state.hands.A.areaCornerBloom], [1, 0]);
+  assert.equal(JSON.stringify(state), before, "authoritative resolution must not mutate caller state");
+});
+
+test("macro-only corner bloom is alpha.4-only and illegal targets remain byte-stable and unconsumed", () => {
+  for (const engineVersion of [match.LEGACY_ENGINE_VERSION, match.PREVIOUS_ENGINE_VERSION, match.CATEGORY_WINDOW_ENGINE_VERSION]) {
+    const { state, rng } = fixture({ engineVersion });
+    const before = JSON.stringify(state);
+    const rejected = useMacro(state, rng);
+    assert.deepEqual([rejected.ok, rejected.code, JSON.stringify(state)], [false, "INVALID_TARGET_SCHEMA", before], engineVersion);
+    assert.equal(state.hands.A.areaCornerBloom, 1, engineVersion);
+  }
+  const { state, rng } = fixture();
+  const before = JSON.stringify(state);
+  const rejected = useMacro(state, rng, 27);
+  assert.deepEqual([rejected.ok, rejected.code, JSON.stringify(state)], [false, "INVALID_COLORED_CORNER_BLOOM_TARGET", before]);
+  assert.equal(state.hands.A.areaCornerBloom, 1);
+});
+
 test("alpha.4 colored corner bloom expands the current colored shape without controller ownership", () => {
   for (const controllers of [["A"], ["B"], ["A", "B"], []]) {
     const { state, rng } = fixture({ controllers });

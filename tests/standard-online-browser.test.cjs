@@ -2159,7 +2159,7 @@ test("actual browser activates a two-cell legacy corner bloom from the keyboard 
   }, { viewport: { width: 390, height: 844 } });
 });
 
-test("actual browser sends alpha.4 corner bloom from one pointer cell, ignores outside cells, and retries one identity", { timeout: 130000 }, async () => {
+test("actual browser sends alpha.4 corner bloom from one pointer square, ignores outside squares, and retries one identity", { timeout: 130000 }, async () => {
   await withPage("playing", async (page) => {
     await page.evaluate(() => {
       const originalStrokeRect = CanvasRenderingContext2D.prototype.strokeRect;
@@ -2172,11 +2172,11 @@ test("actual browser sends alpha.4 corner bloom from one pointer cell, ignores o
       runtime.room.public_state = {
         ...runtime.room.public_state,
         engineVersion: "5.0.0-alpha.4",
-        playableBounds: { macroWidth: 12, microScale: 4, minCol: 0, minRow: 0, maxCol: 11, maxRow: 11 },
+        playableBounds: { macroWidth: 12, microScale: 4, minCol: 1, minRow: 1, maxCol: 11, maxRow: 11 },
         regions: {
-          R1: { id: "R1", micro: [0], sourceMacros: [3], controllers: ["B"], color: "red", isPending: false },
-          R2: { id: "R2", micro: [1], sourceMacros: [2], controllers: ["A"], color: "blue", isPending: false },
-          R3: { id: "R3", micro: [2], sourceMacros: [0], controllers: ["B"], color: "green", isPending: true },
+          R1: { id: "R1", micro: [196], sourceMacros: [13], controllers: ["B"], color: "red", isPending: false },
+          R2: { id: "R2", micro: [197], sourceMacros: [13], controllers: ["A"], color: "blue", isPending: false },
+          R3: { id: "R3", micro: [198], sourceMacros: [13], controllers: ["B"], color: "green", isPending: true },
         },
         pending: "R3",
         reserved: null,
@@ -2192,15 +2192,15 @@ test("actual browser sends alpha.4 corner bloom from one pointer cell, ignores o
     const target = page.locator("#skillTargetControls");
     const board = page.locator("#board");
     await skill.click();
-    await target.getByText(/色のついたセル.*すぐ発動/).waitFor();
+    await target.getByText(/通常の1マス.*すぐ発動/).waitFor();
     await page.waitForFunction(() => document.activeElement?.id === "board");
     assert.ok(await page.evaluate(() => globalThis.__cornerTargetFrames.length > 0));
     assert.equal(await target.locator('[data-corner-bloom-mode], [data-corner-bloom-region], [data-corner-bloom-macro], .corner-bloom-targets').count(), 0);
     assert.equal(await target.getByRole("button", { name: "この対象で使う" }).count(), 0);
     const box = await board.boundingBox();
-    assert.ok(box.width / 48 >= 44);
-    await board.click({ position: { x: box.width * (2.5 / 48), y: box.height * (.5 / 48) } });
-    await target.locator('.skill-target-feedback[data-tone="error"]').getByText(/このセルのエリア.*対象にできません/).waitFor();
+    assert.ok(Math.min(box.width, box.height) / 12 >= 44, JSON.stringify(box));
+    await board.click({ position: { x: box.width * (.5 / 12), y: box.height * (.5 / 12) } });
+    await target.locator('.skill-target-feedback[data-tone="error"]').getByText(/プレイ範囲内.*通常の1マス/).waitFor();
     assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "action").length), 0);
     await page.keyboard.press("Escape");
     await target.waitFor({ state: "hidden" });
@@ -2215,16 +2215,16 @@ test("actual browser sends alpha.4 corner bloom from one pointer cell, ignores o
       runtime.operationDelayMs = 250;
       runtime.failNextCornerBloomAction = true;
     });
-    await board.click({ position: { x: box.width / 96, y: box.height / 96 } });
-    await board.click({ position: { x: box.width / 96, y: box.height / 96 }, force: true });
+    await board.click({ position: { x: box.width * (1.5 / 12), y: box.height * (1.5 / 12) } });
+    await board.click({ position: { x: box.width * (1.5 / 12), y: box.height * (1.5 / 12) }, force: true });
     await page.locator("#actionStatus").getByText(/同じ操作を再送/).waitFor();
     let actions = await page.evaluate(() => globalThis.__standardOnlineRuntime.calls
       .filter((entry) => entry.body?.operation === "action").map((entry) => entry.body.action));
     assert.equal(actions.length, 1);
-    assert.deepEqual(actions[0].payload, { skill: "areaCornerBloom", regionId: "R1", macro: 0 });
+    assert.deepEqual(actions[0].payload, { skill: "areaCornerBloom", macro: 13 });
     const first = structuredClone(actions[0]);
     assert.equal(await board.getAttribute("tabindex"), "-1");
-    await board.click({ position: { x: box.width * (1.5 / 48), y: box.height * (.5 / 48) }, force: true });
+    await board.click({ position: { x: box.width * (2.5 / 12), y: box.height * (1.5 / 12) }, force: true });
     assert.match(await page.locator("#actionStatus").textContent(), /同じ操作を再送/);
     actions = await page.evaluate(() => globalThis.__standardOnlineRuntime.calls
       .filter((entry) => entry.body?.operation === "action").map((entry) => entry.body.action));
@@ -2247,8 +2247,8 @@ test("actual browser never lets stale corner-bloom frames steal focus after imme
       runtime.room.public_state = {
         ...runtime.room.public_state,
         engineVersion: "5.0.0-alpha.4",
-        playableBounds: { macroWidth: 12, microScale: 4, minCol: 0, minRow: 0, maxCol: 11, maxRow: 11 },
-        regions: { R1: { id: "R1", micro: [0], sourceMacros: [0], controllers: ["B"], color: "red", isPending: false } },
+        playableBounds: { macroWidth: 12, microScale: 4, minCol: 1, minRow: 1, maxCol: 11, maxRow: 11 },
+        regions: { R1: { id: "R1", micro: [196], sourceMacros: [13], controllers: ["B"], color: "red", isPending: false } },
         pending: null,
         reserved: null,
       };
@@ -2287,10 +2287,10 @@ test("actual browser never lets stale corner-bloom frames steal focus after imme
     const board = page.locator("#board");
     for (let iteration = 0; iteration < 24; iteration += 1) {
       await skill.click();
-      await target.getByText(/色のついたセル.*すぐ発動/).waitFor();
+      await target.getByText(/通常の1マス.*すぐ発動/).waitFor();
       const box = await board.boundingBox();
-      await board.click({ position: { x: box.width * (2.5 / 48), y: box.height * (.5 / 48) }, force: true });
-      await target.locator('.skill-target-feedback[data-tone="error"]').getByText(/色のついたセルか.*選んでください/).waitFor();
+      await board.click({ position: { x: box.width * (.5 / 12), y: box.height * (.5 / 12) }, force: true });
+      await target.locator('.skill-target-feedback[data-tone="error"]').getByText(/プレイ範囲内.*通常の1マス/).waitFor();
       await board.evaluate((node) => node.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true })));
       await target.waitFor({ state: "hidden" });
       assert.equal(await skill.evaluate((node) => node === document.activeElement), true, `cancel focus before frame ${iteration}`);
@@ -2340,26 +2340,26 @@ test("actual browser keeps alpha.4 corner bloom targeting after a non-retryable 
     await skill.click();
     await page.waitForFunction(() => document.activeElement?.id === "board");
     const box = await board.boundingBox();
-    assert.ok(Math.min(box.width, box.height) / 48 >= 44, JSON.stringify(box));
-    await board.click({ position: { x: box.width / 96, y: box.height / 96 } });
+    assert.ok(Math.min(box.width, box.height) / 12 >= 44, JSON.stringify(box));
+    await board.click({ position: { x: box.width * (.5 / 12), y: box.height * (.5 / 12) } });
     await target.locator('.skill-target-feedback[data-tone="error"]')
-      .getByText(/広げられる角.*カード・手番は減っていません.*別のセルを選べます/).waitFor();
+      .getByText(/広げられる角.*カード・手番は減っていません.*別のマスを選べます/).waitFor();
     assert.equal(await target.isVisible(), true);
     assert.equal(await page.locator("#retryAction").isHidden(), true);
     await page.waitForFunction(() => document.activeElement?.id === "board");
     const retryBox = await board.boundingBox();
-    assert.ok(Math.min(retryBox.width, retryBox.height) / 48 >= 44, JSON.stringify(retryBox));
+    assert.ok(Math.min(retryBox.width, retryBox.height) / 12 >= 44, JSON.stringify(retryBox));
     let actions = await page.evaluate(() => globalThis.__standardOnlineRuntime.calls
       .filter((entry) => entry.body?.operation === "action").map((entry) => entry.body.action));
     assert.equal(actions.length, 1);
-    assert.deepEqual(actions[0].payload, { skill: "areaCornerBloom", regionId: "R1", macro: 0 });
+    assert.deepEqual(actions[0].payload, { skill: "areaCornerBloom", macro: 0 });
 
-    await board.click({ position: { x: retryBox.width * (1.5 / 48), y: retryBox.height * (.5 / 48) } });
+    await board.click({ position: { x: retryBox.width * (1.5 / 12), y: retryBox.height * (.5 / 12) } });
     await page.getByText("操作を保存しました。").waitFor();
     actions = await page.evaluate(() => globalThis.__standardOnlineRuntime.calls
       .filter((entry) => entry.body?.operation === "action").map((entry) => entry.body.action));
     assert.equal(actions.length, 2);
-    assert.deepEqual(actions[1].payload, { skill: "areaCornerBloom", regionId: "R2", macro: 0 });
+    assert.deepEqual(actions[1].payload, { skill: "areaCornerBloom", macro: 1 });
     assert.notEqual(actions[1].id, actions[0].id);
   }, { viewport: { width: 390, height: 844 } });
 });
@@ -2437,7 +2437,7 @@ test("actual browser locks normal pointer selection to prepared outgoing macros 
   }, { viewport: { width: 390, height: 844 } });
 });
 
-test("actual browser uses an alpha.4 micro-cell keyboard cursor for immediate corner bloom", { timeout: 130000 }, async () => {
+test("actual browser uses an alpha.4 normal-square keyboard cursor for immediate corner bloom", { timeout: 130000 }, async () => {
   await withPage("playing", async (page) => {
     await page.evaluate(() => {
       const runtime = globalThis.__standardOnlineRuntime;
@@ -2463,14 +2463,14 @@ test("actual browser uses an alpha.4 micro-cell keyboard cursor for immediate co
     await skill.focus();
     await page.keyboard.press("Enter");
     await page.waitForFunction(() => document.activeElement?.id === "board");
-    assert.match(await page.locator("#board").getAttribute("aria-label"), /セル.*矢印キー.*Space.*Enter.*Escape/);
-    assert.match(await page.locator("#boardKeyboardStatus").textContent(), /赤の彩色済みエリア/);
+    assert.match(await page.locator("#board").getAttribute("aria-label"), /通常の1マス.*矢印キー.*Space.*Enter.*Escape/);
+    assert.match(await page.locator("#boardKeyboardStatus").textContent(), /通常マス.*サーバーが判定/);
     await page.keyboard.press("Enter");
     await page.getByText("操作を保存しました。").waitFor();
     const actions = await page.evaluate(() => globalThis.__standardOnlineRuntime.calls
       .filter((entry) => entry.body?.operation === "action").map((entry) => entry.body.action));
     assert.equal(actions.length, 1);
-    assert.deepEqual(actions[0].payload, { skill: "areaCornerBloom", regionId: "R1", macro: 0 });
+    assert.deepEqual(actions[0].payload, { skill: "areaCornerBloom", macro: 0 });
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth), false);
   }, { viewport: { width: 390, height: 844 } });
 });

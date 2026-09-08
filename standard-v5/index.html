@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>四色地図 標準モード α</title>
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="corner-target.css?v=20260910-1">
   <link rel="stylesheet" href="terminal-reveal.css">
   <style>
     .contact-reveal{position:fixed;inset:0;z-index:45;display:grid;place-items:center;pointer-events:none}
@@ -36,7 +37,7 @@
     <section id="setupDetails" class="status" aria-live="polite"></section>
     <section class="status" id="status" aria-live="polite"></section>
     <div class="layout">
-      <section class="panel"><div id="board" class="board" aria-label="盤面"></div></section>
+      <section class="panel board-panel"><div id="board" class="board" aria-label="盤面"></div></section>
       <aside class="panel"><div id="privatePanel"></div><div class="actions"><button id="commitRegion" type="button">選んだエリアを渡す</button><button id="surrender" type="button" class="danger">投了</button></div><p id="notice" class="notice" aria-live="polite"></p></aside>
     </div>
     <section id="resultPanel" class="panel terminal-result" aria-labelledby="terminalHeadline" hidden>
@@ -132,6 +133,6 @@
       <button id="eventRevealSkip" type="button">次へ</button>
     </div>
   </div>
-  <script src="app.bundle.js?v=20260910-8-79935a0310f2"></script>
+  <script src="app.bundle.js?v=20260910-9-666cd89bf05e"></script>
 </body>
 </html>

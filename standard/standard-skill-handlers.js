@@ -412,6 +412,28 @@ function coloredCornerBloomPlan(state, regionId, macro) {
   });
 }
 
+function coloredCornerBloomMacroPlan(state, macro) {
+  if (state.engineVersion !== COLORED_CORNER_BLOOM_ENGINE_VERSION) {
+    return Object.freeze({ ok: false, code: "COLORED_CORNER_BLOOM_NOT_SUPPORTED", regionId: null, plan: [], micro: [] });
+  }
+  if (!Number.isInteger(macro)) {
+    return Object.freeze({ ok: false, code: "INVALID_COLORED_CORNER_BLOOM_MACRO", regionId: null, plan: [], micro: [] });
+  }
+  const candidates = Object.values(state.regions || {})
+    .filter((region) => region?.color && region.id !== state.pending && region.id !== state.reserved
+      && !region.isPending && !region.isReserved && !region.deleted && !region.delayed && !region.delayState
+      && Array.isArray(region.micro) && region.micro.some((cell) => microToMacro(cell, state) === macro))
+    .sort((left, right) => Number(left.id.slice(1)) - Number(right.id.slice(1)));
+  if (!candidates.length) {
+    return Object.freeze({ ok: false, code: "INVALID_COLORED_CORNER_BLOOM_TARGET", regionId: null, plan: [], micro: [] });
+  }
+  for (const region of candidates) {
+    const planned = coloredCornerBloomPlan(state, region.id, macro);
+    if (planned.ok && planned.plan.length) return Object.freeze({ ...planned, regionId: region.id });
+  }
+  return Object.freeze({ ok: true, regionId: candidates[0].id, plan: [], micro: [] });
+}
+
 function transferColoredCornerIntrusions(state, targetRegionId, cells) {
   const owners = regionOwners(state);
   const donors = new Set();
@@ -516,23 +538,26 @@ function applyAreaMicroBloom({ state, actor, payload, random }) {
 }
 
 function applyAreaCornerBloom({ state, actor, payload }) {
-  if (typeof payload.regionId === "string") {
-    const planned = coloredCornerBloomPlan(state, payload.regionId, payload.macro);
+  if (typeof payload.regionId === "string" || !Object.hasOwn(payload, "sourceMacros")) {
+    const planned = typeof payload.regionId === "string"
+      ? coloredCornerBloomPlan(state, payload.regionId, payload.macro)
+      : coloredCornerBloomMacroPlan(state, payload.macro);
     if (!planned.ok) return Object.freeze({ ok: false, code: planned.code, state });
     if (!planned.plan.length) return Object.freeze({ ok: false, code: "NO_COLORED_CORNER_BLOOM_CANDIDATE", state });
+    const regionId = typeof payload.regionId === "string" ? payload.regionId : planned.regionId;
     let intrusion;
     let merge;
     const result = resolved(state, actor, "areaCornerBloom", (next) => {
-      intrusion = transferColoredCornerIntrusions(next, payload.regionId, planned.plan);
-      const target = next.regions[payload.regionId];
+      intrusion = transferColoredCornerIntrusions(next, regionId, planned.plan);
+      const target = next.regions[regionId];
       target.micro = [...planned.micro];
       target.sourceMacros = sourceMacrosFromMicro(target.micro, next);
-      merge = mergeSameColorComponent(next, payload.regionId);
+      merge = mergeSameColorComponent(next, regionId);
       next.publicLog.push(`T${next.turn} Player ${actor} expanded the current colored region at macro ${payload.macro}, adding ${planned.plan.length} microcells.`);
     });
     return Object.freeze({
       ...result,
-      regionId: payload.regionId,
+      regionId,
       keptRegionId: merge.keptId,
       macro: payload.macro,
       addedCount: planned.plan.length,
@@ -1051,6 +1076,7 @@ module.exports = {
   microBloomCandidates,
   cornerBloomPlan,
   coloredCornerBloomPlan,
+  coloredCornerBloomMacroPlan,
   preparedOutgoingCandidates,
   planHalfShift,
   planTripleShift,
