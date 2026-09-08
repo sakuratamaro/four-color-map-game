@@ -1995,17 +1995,17 @@ test("actual browser activates legacy outgoing corner bloom from the selected bo
     const skill = page.getByRole("button", { name: "角膨張 ×1" });
     await skill.click();
     const target = page.locator("#skillTargetControls");
-    await target.getByText(/選択済みの渡すエリア内.*すぐ発動/).waitFor();
+    await target.getByText(/選択済みの渡すエリアから.*すぐ発動/).waitFor();
     assert.equal(await target.locator('input[type="number"], select, [data-corner-bloom-mode], [data-corner-bloom-region], [data-corner-bloom-macro]').count(), 0);
     assert.equal(await target.getByRole("button", { name: "この対象で使う" }).count(), 0);
     await page.waitForFunction(() => document.activeElement?.id === "board");
     assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "action").length), 0);
     const box = await board.boundingBox();
-    assert.ok(box.width / 48 >= 44);
-    await board.click({ position: { x: box.width * (.5 / 48), y: box.height * (.5 / 48) } });
-    await target.locator('.skill-target-feedback[data-tone="error"]').getByText(/このセルのエリア.*対象にできません/).waitFor();
+    assert.ok(box.width / 12 >= 44);
+    await board.click({ position: { x: box.width * (1.5 / 12), y: box.height * (.5 / 12) } });
+    await target.locator('.skill-target-feedback[data-tone="error"]').getByText(/選択済みの渡すエリア内から通常の1マス/).waitFor();
     assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "action").length), 0);
-    await board.click({ position: { x: box.width * (1.5 / 48), y: box.height * (.5 / 48) } });
+    await board.click({ position: { x: box.width * (.5 / 12), y: box.height * (.5 / 12) } });
     await page.getByText("操作を保存しました。").waitFor();
     const actions = await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "action").map((entry) => entry.body.action));
     assert.equal(actions.length, 1);
@@ -2155,7 +2155,7 @@ test("actual browser activates a two-cell legacy corner bloom from the keyboard 
     assert.equal(action.type, "USE_SKILL");
     assert.equal(action.payload.skill, "areaCornerBloom");
     assert.deepEqual(action.payload.sourceMacros, [0, 1]);
-    assert.equal(action.payload.macro, 0);
+    assert.equal(action.payload.macro, 1);
   }, { viewport: { width: 390, height: 844 } });
 });
 
