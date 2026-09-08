@@ -49,7 +49,9 @@ function supabaseFixture({ roomStatus = "ready", roomVersion = 10 } = {}) {
         server_time: "2099-01-01T00:00:00Z",
         room: { id: ROOM_ID, status: roomStatus, version: roomVersion, game_mode: "standard_v5", public_state: null },
         members: [{ user_id: "33333333-3333-4333-8333-333333333333", seat: "A", display_name: "A" }],
-        view: { seat: "A", version: roomVersion, private_state: {} },
+        view: { seat: "A", version: roomVersion, private_state: {
+          basicPalette: ["red", "green"], bonusColor: "yellow", bonusUsesRemaining: 2, privateEffects: {},
+        } },
         profile: { revision: 3, display_name: "A", profile_state: { inventory: {} } },
       } };
       throw new Error(`unexpected rpc ${name}`);
@@ -763,6 +765,32 @@ test("room refresh uses one member-scoped profile-delta snapshot RPC instead of 
   assert.equal(room.view.seat, "A");
   assert.deepEqual(supabase.calls.filter((call) => call.kind === "rpc").map((call) => call.name), ["fcg_standard_room_snapshot_v2"]);
   assert.equal(supabase.calls[0].args.p_known_profile_revision, 0);
+});
+
+test("room refresh rejects a torn current-seat palette projection before changing client state", async () => {
+  const supabase = supabaseFixture({ roomStatus: "playing", roomVersion: 12 });
+  const originalRpc = supabase.rpc;
+  let projectionMode = "short-basic";
+  supabase.rpc = async (name, args) => {
+    const response = await originalRpc(name, args);
+    if (name !== "fcg_standard_room_snapshot_v2") return response;
+    if (projectionMode === "short-basic") response.data.view.private_state.basicPalette = ["red"];
+    else if (projectionMode === "stale-view") response.data.view.version = 11;
+    return response;
+  };
+  const client = createStandardOnlineClient({
+    supabase, storage: storageFixture({ roomId: ROOM_ID }), idFactory: () => ACTION_ID,
+  });
+
+  await assert.rejects(client.readRoom(), /INVALID_ROOM_SNAPSHOT/);
+  assert.equal(client.snapshot().profileRevision, 0, "a rejected snapshot must not partially advance local state");
+  projectionMode = "stale-view";
+  await assert.rejects(client.readRoom(), /INVALID_ROOM_SNAPSHOT/);
+  assert.equal(client.snapshot().profileRevision, 0);
+  projectionMode = "coherent";
+  const room = await client.readRoom();
+  assert.deepEqual(room.view.private_state.basicPalette, ["red", "green"]);
+  assert.equal(client.snapshot().profileRevision, 3);
 });
 
 test("unchanged profile bodies may be omitted while the snapshot revision remains authoritative", async () => {

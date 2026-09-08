@@ -4476,8 +4476,8 @@ test("actual Edge presents public seals and blocks every stale paint path withou
       } };
       runtime.view = { ...runtime.view, version, private_state: {
         ...runtime.view.private_state,
-        basicPalette: ["red", "red", "corrupt"], bonusColor: "red", bonusUsesRemaining: 0,
-        privateEffects: { temporaryColors: ["yellow", "corrupt"] },
+        basicPalette: ["red", "red"], bonusColor: "red", bonusUsesRemaining: 0,
+        privateEffects: { temporaryColors: ["yellow"] },
       } };
       runtime.onInvalidate();
     });
@@ -4496,7 +4496,7 @@ test("actual Edge presents public seals and blocks every stale paint path withou
       runtime.room = { ...runtime.room, version, public_state: { ...runtime.room.public_state, version } };
       runtime.view = { ...runtime.view, version, private_state: {
         ...runtime.view.private_state,
-        basicPalette: [], bonusColor: "green", bonusUsesRemaining: 0,
+        basicPalette: ["red", "blue"], bonusColor: "green", bonusUsesRemaining: 0,
         privateEffects: {},
       } };
       runtime.onInvalidate();
@@ -4525,6 +4525,56 @@ test("actual Edge presents public seals and blocks every stale paint path withou
     assert.equal(await targetRed.isEnabled(), true);
     assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "action").length), 2);
   }, { viewport: { width: 390, height: 844 } });
+});
+
+test("actual browser keeps both basic colors through a torn CPU-turn projection and the next coherent poll", { timeout: 130000 }, async () => {
+  await withPage("playing", async (page) => {
+    const update = async ({ version, active, phase, basicPalette, viewVersion = version }) => {
+      await page.evaluate(({ nextVersion, nextActive, nextPhase, nextBasicPalette, nextViewVersion }) => {
+        const runtime = globalThis.__standardOnlineRuntime;
+        const coloring = nextPhase === "COLOR";
+        runtime.room = { ...runtime.room, version: nextVersion, opponent_kind: "cpu", access_mode: "cpu", cpu_character_id: "yuzu",
+          public_state: { ...runtime.room.public_state, version: nextVersion, turn: nextVersion, active: nextActive,
+            phase: nextPhase, pending: coloring ? "R1" : null,
+            regions: coloring ? { R1: { id: "R1", micro: [0], sourceMacros: [0], controllers: ["B"], color: null, isPending: true } } : {} } };
+        runtime.view = { ...runtime.view, version: nextViewVersion, private_state: { ...runtime.view.private_state,
+          basicPalette: nextBasicPalette, bonusColor: "yellow", bonusUsesRemaining: 2, privateEffects: {} } };
+        runtime.onInvalidate();
+      }, { nextVersion: version, nextActive: active, nextPhase: phase, nextBasicPalette: basicPalette, nextViewVersion: viewVersion });
+    };
+
+    await update({ version: 10, active: "A", phase: "COLOR", basicPalette: ["red", "green"] });
+    await page.waitForFunction(() => document.querySelector("#versionText")?.textContent === "10"
+      && document.querySelector('#paletteControls .color-button[data-color="green"]')?.disabled === false);
+    assert.equal(await page.locator("#basicPaletteValue").textContent(), "赤・緑");
+
+    await update({ version: 11, active: "B", phase: "WORK", basicPalette: ["red"], viewVersion: 10 });
+    await page.getByText("再接続中（自動再試行）", { exact: true }).waitFor();
+    assert.equal(await page.locator("#versionText").textContent(), "10", "a torn public/private snapshot must not replace the coherent room model");
+    const green = page.locator('#paletteControls .color-button[data-color="green"]');
+    assert.equal(await green.isEnabled(), true);
+    assert.match(await green.textContent(), /緑.*基本色・回数無制限/);
+    assert.equal(await page.locator("#publicProjection").textContent().then((text) => /basicPalette|bonusColor|privateEffects/.test(text)), false);
+    assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "action").length), 0);
+
+    await update({ version: 11, active: "B", phase: "WORK", basicPalette: ["red", "green"] });
+    await page.waitForFunction(() => document.querySelector("#versionText")?.textContent === "11");
+    assert.equal(await page.locator("#basicPaletteValue").textContent(), "赤・緑");
+    assert.equal(await page.locator("#colorResponse").isHidden(), true);
+
+    await update({ version: 12, active: "A", phase: "COLOR", basicPalette: ["red", "green"] });
+    await page.waitForFunction(() => document.querySelector("#versionText")?.textContent === "12"
+      && document.querySelector('#paletteControls .color-button[data-color="green"]')?.disabled === false);
+    const layout = await page.evaluate(() => {
+      const button = document.querySelector('#paletteControls .color-button[data-color="green"]')?.getBoundingClientRect();
+      const boundary = Math.min(document.querySelector("#connectionCard")?.getBoundingClientRect().top ?? innerHeight,
+        document.querySelector(".app-tabs")?.getBoundingClientRect().top ?? innerHeight);
+      return { buttonBottom: button?.bottom, boundary, overflow: document.documentElement.scrollWidth > innerWidth };
+    });
+    assert.ok(layout.buttonBottom <= layout.boundary, JSON.stringify(layout));
+    assert.equal(layout.overflow, false);
+    assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "action").length), 0);
+  }, { viewport: { width: 390, height: 844 }, bodyTimeout: 50_000 });
 });
 
 test("actual Edge names the maker and painter across every handoff state", { timeout: 130000 }, async () => {
