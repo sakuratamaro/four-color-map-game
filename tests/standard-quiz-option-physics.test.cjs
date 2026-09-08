@@ -7,11 +7,11 @@ const test = require("node:test");
 const vm = require("node:vm");
 
 const app = fs.readFileSync(path.join(__dirname, "..", "standard-online-v5", "app.js"), "utf8");
-const start = app.indexOf("function advanceQuizOptionPhysics(");
+const start = app.indexOf("const QUIZ_OPTION_VELOCITY_ANGLES");
 const end = app.indexOf("function applyQuizOptionPhysicsPositions(");
 assert.ok(start >= 0 && end > start, "physics step must remain independently testable");
 const context = vm.createContext({});
-new vm.Script(`${app.slice(start, end)}\nglobalThis.step = advanceQuizOptionPhysics;`).runInContext(context);
+new vm.Script(`${app.slice(start, end)}\nglobalThis.step = advanceQuizOptionPhysics; globalThis.initialVelocity = quizOptionInitialVelocity;`).runInContext(context);
 
 test("whole-button physics reflects from every arena wall", () => {
   const items = [
@@ -48,4 +48,45 @@ test("whole-button physics keeps all choice hitboxes inside the arena", () => {
     assert.ok(item.x >= 0 && item.x + item.width <= 200, JSON.stringify(item));
     assert.ok(item.y >= 0 && item.y + item.height <= 100, JSON.stringify(item));
   }
+});
+
+test("whole-button physics visibly travels and trades columns within five seconds at 390px", () => {
+  const arenaWidth = 280;
+  const arenaHeight = 290;
+  const items = Array.from({ length: 6 }, (_, index) => ({
+    id: index,
+    x: 8 + (index % 2) * 134,
+    y: 8 + Math.floor(index / 2) * 105,
+    width: 130,
+    height: 56,
+    ...context.initialVelocity(index),
+  }));
+  const initialSides = items.map((item) => item.x + item.width / 2 < arenaWidth / 2);
+  const initialVisualOrder = items.map((item) => item.id).join("");
+  const travelled = items.map(() => 0);
+  let visualOrderChanged = false;
+  let maximumSideChanges = 0;
+
+  for (let frame = 0; frame < 270; frame += 1) {
+    const before = items.map((item) => ({ x: item.x, y: item.y }));
+    context.step(items, arenaWidth, arenaHeight, 1 / 60);
+    items.forEach((item, index) => { travelled[index] += Math.hypot(item.x - before[index].x, item.y - before[index].y); });
+    const visualOrder = [...items].sort((left, right) => left.y - right.y || left.x - right.x).map((item) => item.id).join("");
+    visualOrderChanged ||= visualOrder !== initialVisualOrder;
+    maximumSideChanges = Math.max(maximumSideChanges, items.filter((item, index) => (item.x + item.width / 2 < arenaWidth / 2) !== initialSides[index]).length);
+    for (const item of items) {
+      assert.ok(item.x >= 0 && item.x + item.width <= arenaWidth, JSON.stringify(item));
+      assert.ok(item.y >= 0 && item.y + item.height <= arenaHeight, JSON.stringify(item));
+    }
+    for (let index = 0; index < items.length; index += 1) for (let other = index + 1; other < items.length; other += 1) {
+      const left = items[index]; const right = items[other];
+      assert.ok(left.x + left.width <= right.x + 0.001 || right.x + right.width <= left.x + 0.001
+        || left.y + left.height <= right.y + 0.001 || right.y + right.height <= left.y + 0.001,
+      JSON.stringify({ frame, left, right }));
+    }
+  }
+
+  assert.ok(travelled.every((distance) => distance >= 200), JSON.stringify(travelled));
+  assert.equal(visualOrderChanged, true);
+  assert.ok(maximumSideChanges >= 2, String(maximumSideChanges));
 });

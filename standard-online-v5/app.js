@@ -2348,6 +2348,14 @@ function renderQuizResult() {
   }
 }
 
+const QUIZ_OPTION_VELOCITY_ANGLES = Object.freeze([0.9, 2.2, -0.7, 2.5, -0.8, -2.3]);
+
+function quizOptionInitialVelocity(index) {
+  const speed = 56 + index % 3 * 5;
+  const angle = QUIZ_OPTION_VELOCITY_ANGLES[index % QUIZ_OPTION_VELOCITY_ANGLES.length];
+  return { vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed };
+}
+
 function advanceQuizOptionPhysics(items, arenaWidth, arenaHeight, dt) {
   for (const item of items) {
     item.x += item.vx * dt;
@@ -2357,32 +2365,37 @@ function advanceQuizOptionPhysics(items, arenaWidth, arenaHeight, dt) {
     if (item.y <= 0) { item.y = 0; item.vy = Math.abs(item.vy); }
     else if (item.y + item.height >= arenaHeight) { item.y = Math.max(0, arenaHeight - item.height); item.vy = -Math.abs(item.vy); }
   }
-  for (let leftIndex = 0; leftIndex < items.length; leftIndex += 1) {
-    for (let rightIndex = leftIndex + 1; rightIndex < items.length; rightIndex += 1) {
-      const left = items[leftIndex]; const right = items[rightIndex];
-      const overlapX = Math.min(left.x + left.width, right.x + right.width) - Math.max(left.x, right.x);
-      const overlapY = Math.min(left.y + left.height, right.y + right.height) - Math.max(left.y, right.y);
-      if (overlapX <= 0 || overlapY <= 0) continue;
-      if (overlapX < overlapY) {
-        const leftBeforeRight = left.x + left.width / 2 <= right.x + right.width / 2;
-        const correction = overlapX / 2 + 0.05;
-        left.x += leftBeforeRight ? -correction : correction;
-        right.x += leftBeforeRight ? correction : -correction;
-        const approaching = leftBeforeRight ? left.vx > right.vx : right.vx > left.vx;
-        if (approaching) [left.vx, right.vx] = [right.vx, left.vx];
-      } else {
-        const leftAboveRight = left.y + left.height / 2 <= right.y + right.height / 2;
-        const correction = overlapY / 2 + 0.05;
-        left.y += leftAboveRight ? -correction : correction;
-        right.y += leftAboveRight ? correction : -correction;
-        const approaching = leftAboveRight ? left.vy > right.vy : right.vy > left.vy;
-        if (approaching) [left.vy, right.vy] = [right.vy, left.vy];
+  for (let pass = 0; pass < items.length; pass += 1) {
+    let separated = true;
+    for (let leftIndex = 0; leftIndex < items.length; leftIndex += 1) {
+      for (let rightIndex = leftIndex + 1; rightIndex < items.length; rightIndex += 1) {
+        const left = items[leftIndex]; const right = items[rightIndex];
+        const overlapX = Math.min(left.x + left.width, right.x + right.width) - Math.max(left.x, right.x);
+        const overlapY = Math.min(left.y + left.height, right.y + right.height) - Math.max(left.y, right.y);
+        if (overlapX <= 0 || overlapY <= 0) continue;
+        separated = false;
+        if (overlapX < overlapY) {
+          const leftBeforeRight = left.x + left.width / 2 <= right.x + right.width / 2;
+          const correction = overlapX / 2 + 0.05;
+          left.x += leftBeforeRight ? -correction : correction;
+          right.x += leftBeforeRight ? correction : -correction;
+          const approaching = leftBeforeRight ? left.vx > right.vx : right.vx > left.vx;
+          if (approaching) [left.vx, right.vx] = [right.vx, left.vx];
+        } else {
+          const leftAboveRight = left.y + left.height / 2 <= right.y + right.height / 2;
+          const correction = overlapY / 2 + 0.05;
+          left.y += leftAboveRight ? -correction : correction;
+          right.y += leftAboveRight ? correction : -correction;
+          const approaching = leftAboveRight ? left.vy > right.vy : right.vy > left.vy;
+          if (approaching) [left.vy, right.vy] = [right.vy, left.vy];
+        }
+        left.x = Math.max(0, Math.min(arenaWidth - left.width, left.x));
+        right.x = Math.max(0, Math.min(arenaWidth - right.width, right.x));
+        left.y = Math.max(0, Math.min(arenaHeight - left.height, left.y));
+        right.y = Math.max(0, Math.min(arenaHeight - right.height, right.y));
       }
-      left.x = Math.max(0, Math.min(arenaWidth - left.width, left.x));
-      right.x = Math.max(0, Math.min(arenaWidth - right.width, right.x));
-      left.y = Math.max(0, Math.min(arenaHeight - left.height, left.y));
-      right.y = Math.max(0, Math.min(arenaHeight - right.height, right.y));
     }
+    if (separated) break;
   }
   return items;
 }
@@ -2437,9 +2450,8 @@ function quizOptionMotionPaused(state = pendingQuiz?.questionState) {
     || Date.now() < quizFeedbackUntil
     || Number(state?.hintActiveUntil || 0) > Date.now()
     || Number(state?.remainingMs || 0) <= 0
-    || Boolean(quizHoverMotion.matches && arena?.matches(":hover"))
+    || Boolean(quizHoverMotion.matches && arena?.querySelector('button[data-quiz-option]:hover'))
     || Boolean(arena?.contains(document.activeElement))
-    || Boolean(interaction?.pointerInside)
     || Boolean(interaction?.pointerDown)
     || Boolean(interaction?.touchActive)
     || Boolean(interaction?.focusInside);
@@ -2500,18 +2512,16 @@ function initializeQuizOptionPhysics(buttons, { reserveRetry = false } = {}) {
   if (!arena || !buttons.length) return;
   arena.classList.add("is-physics");
   arena.classList.toggle("has-quiz-retry", reserveRetry);
-  const velocityAngles = [0.42, 2.58, -0.72, -2.66, 1.18, -1.92];
   const motion = {
     arena,
     arenaWidth: 0,
     arenaHeight: 0,
     playHeight: 0,
     items: buttons.map((element, index) => {
-      const speed = 19 + index % 3 * 3;
-      const angle = velocityAngles[index % velocityAngles.length];
-      return { element, x: 0, y: 0, width: 0, height: 0, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed };
+      const velocity = quizOptionInitialVelocity(index);
+      return { element, x: 0, y: 0, width: 0, height: 0, ...velocity };
     }),
-    interaction: { pointerInside: false, pointerDown: false, touchActive: false, focusInside: false },
+    interaction: { pointerDown: false, touchActive: false, focusInside: false },
     raf: 0,
     lastFrame: 0,
     resizeObserver: null,
@@ -2522,8 +2532,8 @@ function initializeQuizOptionPhysics(buttons, { reserveRetry = false } = {}) {
   const pause = () => syncQuizOptionMotion();
   const listenerOptions = { signal: motion.listenerController.signal };
   const passiveListenerOptions = { passive: true, signal: motion.listenerController.signal };
-  arena.addEventListener("pointerenter", (event) => { if (event.pointerType !== "touch") motion.interaction.pointerInside = true; pause(); }, listenerOptions);
-  arena.addEventListener("pointerleave", (event) => { if (event.pointerType !== "touch") motion.interaction.pointerInside = false; motion.interaction.pointerDown = false; pause(); }, listenerOptions);
+  arena.addEventListener("pointerenter", pause, listenerOptions);
+  arena.addEventListener("pointerleave", () => { motion.interaction.pointerDown = false; pause(); }, listenerOptions);
   arena.addEventListener("pointerdown", (event) => { motion.interaction.pointerDown = true; if (event.pointerType === "touch") motion.interaction.touchActive = true; pause(); }, listenerOptions);
   const releasePointer = (event) => {
     motion.interaction.pointerDown = false;

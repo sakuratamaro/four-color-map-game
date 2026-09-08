@@ -20,8 +20,10 @@ export function hasWholeButtonQuizPhysics(pageText, appText) {
   return includesAll(pageText, [
     'id="quizOptions"',
     'id="quizMotionHelp"',
-    "選択肢はボタン全体がゆっくり漂います。",
+    "選択肢はボタン全体が大きく漂い、位置が入れ替わります。",
   ]) && includesAll(appText, [
+    "const QUIZ_OPTION_VELOCITY_ANGLES = Object.freeze([0.9, 2.2, -0.7, 2.5, -0.8, -2.3]);",
+    "const speed = 56 + index % 3 * 5;",
     "function advanceQuizOptionPhysics(items, arenaWidth, arenaHeight, dt)",
     "const overlapX = Math.min(left.x + left.width, right.x + right.width) - Math.max(left.x, right.x);",
     "const overlapY = Math.min(left.y + left.height, right.y + right.height) - Math.max(left.y, right.y);",
@@ -31,6 +33,7 @@ export function hasWholeButtonQuizPhysics(pageText, appText) {
     "listenerController: new AbortController(),",
     "const listenerOptions = { signal: motion.listenerController.signal };",
     "motion.listenerController?.abort();",
+    "arena?.querySelector('button[data-quiz-option]:hover')",
     "initializeQuizOptionPhysics(optionButtons, { reserveRetry: Boolean(pendingQuiz.pendingAnswer) });",
   ]);
 }

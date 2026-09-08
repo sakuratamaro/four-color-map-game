@@ -2612,6 +2612,10 @@ test(`${browserName} moves whole quiz buttons in one collision arena and pauses 
       return {
         state: host.dataset.motionState,
         order: [...host.querySelectorAll("button[data-quiz-option]")].map((button) => button.textContent),
+        visualOrder: [...host.querySelectorAll("button[data-quiz-option]")]
+          .sort((left, right) => left.getBoundingClientRect().y - right.getBoundingClientRect().y
+            || left.getBoundingClientRect().x - right.getBoundingClientRect().x)
+          .map((button) => button.textContent),
         overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
         unobscuredBottom: Math.min(innerHeight, document.querySelector(".app-tabs")?.getBoundingClientRect().top || innerHeight),
         arena: { left: arenaBox.left, top: arenaBox.top, right: arenaBox.right, bottom: arenaBox.bottom },
@@ -2639,10 +2643,27 @@ test(`${browserName} moves whole quiz buttons in one collision arena and pauses 
     };
 
     const before = await snapshot();
-    await page.waitForTimeout(650);
-    const moving = await snapshot();
+    const travelled = before.buttons.map(() => 0);
+    let moving = before;
+    for (let sample = 0; sample < 12; sample += 1) {
+      await page.waitForTimeout(250);
+      const current = await snapshot();
+      current.buttons.forEach((button, index) => { travelled[index] += Math.hypot(button.x - moving.buttons[index].x, button.y - moving.buttons[index].y); });
+      moving = current;
+    }
     assert.deepEqual(moving.order, before.order);
-    assert.ok(moving.buttons.every((button, index) => Math.hypot(button.x - before.buttons[index].x, button.y - before.buttons[index].y) > 0.1), JSON.stringify({ before, moving }));
+    assert.ok(travelled.every((distance) => distance >= 80), JSON.stringify({ before, moving, travelled }));
+    await page.waitForFunction(({ initialSides }) => {
+      const host = document.querySelector("#quizOptions");
+      const middle = host.getBoundingClientRect().left + host.getBoundingClientRect().width / 2;
+      const currentSides = [...host.querySelectorAll("button[data-quiz-option]")]
+        .map((button) => button.getBoundingClientRect().left + button.getBoundingClientRect().width / 2 < middle);
+      return currentSides.filter((side, index) => side !== initialSides[index]).length >= 2;
+    }, {
+      initialSides: before.buttons.map((button) => button.left + button.width / 2 < (before.arena.left + before.arena.right) / 2),
+    }, { timeout: 3_000 });
+    moving = await snapshot();
+    assert.notDeepEqual(moving.visualOrder, before.visualOrder);
     assertPacked(moving);
 
     const firstCenter = { x: moving.buttons[0].x + moving.buttons[0].width / 2, y: moving.buttons[0].y + moving.buttons[0].height / 2 };

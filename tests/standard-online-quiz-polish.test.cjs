@@ -76,9 +76,8 @@ test("question choices use one whole-button physics arena with safe pause contra
     /Boolean\(pendingQuiz\.pendingAnswer\)/,
     /hintActiveUntil/,
     /remainingMs/,
-    /arena\?\.matches\(":hover"\)/,
+    /arena\?\.querySelector\('button\[data-quiz-option\]:hover'\)/,
     /arena\?\.contains\(document\.activeElement\)/,
-    /interaction\?\.pointerInside/,
     /interaction\?\.pointerDown/,
     /interaction\?\.touchActive/,
     /interaction\?\.focusInside/,
@@ -194,7 +193,7 @@ test("only overflowing quiz math receives a persistent horizontal position bar",
   assert.match(css, /\.quiz-overflow-scrollbar\[hidden\]\{display:none\}/);
   assert.match(html, /style\.css\?v=20260908-5/);
   assert.match(html, /standard-online-client\.js\?v=20260908-1/);
-  assert.match(html, /app\.js\?v=20260908-8/);
+  assert.match(html, /app\.js\?v=20260908-9/);
 });
 
 test("per-question feedback is server-acknowledged, retryable, brief in motion, and followed by an optional review", () => {
