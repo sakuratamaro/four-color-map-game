@@ -26,22 +26,29 @@ test("online feedback settings are explicit, separate, persistent, and keyboard-
 
 test("feedback script is cache-busted before the matching app generation", () => {
   const controllerScript = html.indexOf('<script src="basic-feedback.js?v=20260908-2"></script>');
-  const appScript = html.indexOf('<script type="module" src="app.js?v=20260910-15"></script>');
+  const appScript = html.indexOf('<script type="module" src="app.js?v=20260910-16"></script>');
   assert.ok(controllerScript >= 0 && appScript > controllerScript);
   assert.match(html, /style\.css\?v=20260910-10/);
   assert.doesNotMatch(html, /app\.js\?v=20260906-(?:36|38)|style\.css\?v=20260906-(?:36|37)/);
   assert.match(app, /basicFeedbackFactory\?\.VERSION === "standard-basic-feedback-v1"/);
 });
 
-test("only local selection and new turn or terminal presentation events request sound or vibration", () => {
+test("only per-cell local threshold increases and new turn or terminal presentation events request sound or vibration", () => {
   const contactScope = app.slice(app.indexOf("function syncContactSelectionScope"), app.indexOf("function cpuCommentaryContext"));
   const turnObserver = app.slice(app.indexOf("function observeTurnArrival"), app.indexOf("function syncContactSelectionScope"));
   const contactSelection = app.slice(app.indexOf("function selectedContactColorCount"), app.indexOf("function boardMicroDescription"));
   const contactReveal = app.slice(app.indexOf("function showContactReveal"), app.indexOf("function renderTerminalResult"));
   const terminal = app.slice(app.indexOf("function renderTerminalResult"), app.indexOf("function colorName"));
   assert.doesNotMatch(contactScope, /lastPublicTrace|showContactReveal|notifyBasicFeedback/);
-  assert.match(contactSelection, /showContactReveal\(contactColorCount, `\$\{state\.matchId\}:\$\{state\.version\}:local-contact:/);
+  assert.match(contactSelection, /function presentSelectedContactChange\(state, previousMacros, nextMacros = selectedMacros\)/);
+  assert.doesNotMatch(contactSelection, /sourceMacros\.length !== state\.requiredSize/);
+  assert.match(contactSelection, /const previousContactColorCount = selectedContactColorCount\(state, previousSourceMacros\)/);
+  assert.match(contactSelection, /if \(contactColorCount < previousContactColorCount\) \{\s*clearContactReveal\(\)/);
+  assert.match(contactSelection, /if \(contactColorCount < 2 \|\| contactColorCount <= previousContactColorCount\) return/);
+  assert.match(contactSelection, /showContactReveal\(contactColorCount,[\s\S]+local-contact:\$\{contactSelectionPresentationSequence\}/);
   assert.match(contactReveal, /notifyBasicFeedback\(\{ eventId, cue: `contact-\$\{contactColorCount\}` \}\)/);
+  assert.match(contactReveal, /const firstStage = Math\.max\(2, Math\.min\(contactColorCount, minimumStage\)\)/);
+  assert.equal((app.match(/presentSelectedContactChange\(state, previousMacros\)/g) || []).length, 2);
   assert.match(turnObserver, /previousActive !== seat && active === seat/);
   assert.match(turnObserver, /startTurnArrivalBeat\(`\$\{matchId\}:\$\{version\}:turn:\$\{seat\}`\)/);
   assert.match(terminal, /shownTerminalEventKey !== eventKey[\s\S]+notifyBasicFeedback\(\{[\s\S]+state\.matchId[\s\S]+state\.version[\s\S]+state\.winner[\s\S]+state\.terminalReason/);

@@ -4749,7 +4749,7 @@ test("actual Edge explains private random setup and every visible skill without 
   });
 });
 
-test("actual browser presents contact only for the local completed selection and keeps public traces presentation-free", { timeout: 120000 }, async () => {
+test("actual browser presents each rising local contact threshold immediately and keeps public traces presentation-free", { timeout: 120000 }, async () => {
   await withPage("playing", async (page) => {
     await page.evaluate(() => {
       globalThis.__contactEvidence = { stages: [], announcements: [], startedAt: 0, hiddenAt: 0 };
@@ -4764,7 +4764,10 @@ test("actual browser presents contact only for the local completed selection and
           lastTitle = title.textContent;
           evidence.stages.push({ title: title.textContent, at: performance.now() });
         }
-        if (reveal.classList.contains("hidden") && evidence.startedAt) evidence.hiddenAt = performance.now();
+        if (reveal.classList.contains("hidden")) {
+          lastTitle = "";
+          if (evidence.startedAt) evidence.hiddenAt = performance.now();
+        }
       };
       new MutationObserver(recordVisual).observe(reveal, { subtree: true, childList: true, attributes: true, characterData: true });
       new MutationObserver(() => {
@@ -4775,11 +4778,14 @@ test("actual browser presents contact only for the local completed selection and
       const runtime = globalThis.__standardOnlineRuntime;
       const state = runtime.room.public_state;
       runtime.room = { ...runtime.room, version: 10, public_state: {
-        ...state, version: 10, turn: 10, requiredSize: 1, active: "A", phase: "WORK", pending: null,
+        ...state, version: 10, turn: 10, requiredSize: 4, rolledSize: 4, baseRequiredSize: 4,
+        active: "A", phase: "WORK", pending: null,
+        playableBounds: { macroWidth: 5, microScale: 1, minCol: 0, minRow: 0, maxCol: 4, maxRow: 4 },
         regions: {
           R1: { id: "R1", micro: [1], sourceMacros: [1], controllers: ["B"], color: "red", isPending: false },
-          R2: { id: "R2", micro: [4], sourceMacros: [4], controllers: ["B"], color: "blue", isPending: false },
-          R3: { id: "R3", micro: [6], sourceMacros: [6], controllers: ["B"], color: "yellow", isPending: false },
+          R2: { id: "R2", micro: [5], sourceMacros: [5], controllers: ["B"], color: "blue", isPending: false },
+          R3: { id: "R3", micro: [2], sourceMacros: [2], controllers: ["B"], color: "yellow", isPending: false },
+          R4: { id: "R4", micro: [3], sourceMacros: [3], controllers: ["B"], color: "green", isPending: false },
         },
         lastPublicTrace: null,
       } };
@@ -4788,11 +4794,42 @@ test("actual browser presents contact only for the local completed selection and
     });
     await page.waitForFunction(() => document.querySelector("#versionText")?.textContent === "10");
     const board = page.locator("#board");
+    const boardBox = await board.boundingBox();
+    const macroPoint = (macro) => ({
+      x: boardBox.width * ((macro % 5) + 0.5) / 5,
+      y: boardBox.height * (Math.floor(macro / 5) + 0.5) / 5,
+    });
+    await board.click({ position: macroPoint(6) });
+    await page.locator("#contactRevealTitle").filter({ hasText: "二色接触" }).waitFor({ timeout: 5000 });
+    await page.waitForFunction(() => document.querySelector("#contactRevealAnnouncement")?.textContent.includes("二色接触"));
+    assert.equal(await page.locator("#selectionCount").textContent(), "1 / 4マス");
+
     await board.focus();
     await page.keyboard.press("ArrowRight");
-    await page.keyboard.press("ArrowDown");
     await page.keyboard.press("Enter");
     await page.locator("#contactRevealTitle").filter({ hasText: "三色圧力" }).waitFor({ timeout: 5000 });
+    await page.waitForFunction(() => document.querySelector("#contactRevealAnnouncement")?.textContent.includes("三色圧力"));
+    assert.equal(await page.locator("#selectionCount").textContent(), "2 / 4マス");
+    await page.keyboard.press("ArrowRight");
+    await page.keyboard.press("Enter");
+    await page.locator("#contactRevealTitle").filter({ hasText: "四色包囲" }).waitFor({ timeout: 5000 });
+    await page.waitForFunction(() => document.querySelector("#contactRevealAnnouncement")?.textContent.includes("四色包囲"));
+    assert.equal(await page.locator("#selectionCount").textContent(), "3 / 4マス");
+    assert.deepEqual(await page.evaluate(() => globalThis.__contactEvidence.stages.map((entry) => entry.title)),
+      ["二色接触！", "三色圧力!!", "四色包囲!!!"]);
+
+    await board.click({ position: macroPoint(9) });
+    assert.equal(await page.locator("#selectionCount").textContent(), "4 / 4マス");
+    await page.waitForTimeout(250);
+    assert.equal(await page.evaluate(() => globalThis.__contactEvidence.stages.length), 3, "same-color-count selection must not replay contact");
+    await board.click({ position: macroPoint(9) });
+    await board.click({ position: macroPoint(8) });
+    assert.equal(await page.locator("#selectionCount").textContent(), "2 / 4マス");
+    assert.equal(await page.locator("#contactReveal").isHidden(), true, "removing a threshold cell must clear stale contact feedback");
+    await board.click({ position: macroPoint(8) });
+    await page.locator("#contactRevealTitle").filter({ hasText: "四色包囲" }).waitFor({ timeout: 5000 });
+    await page.waitForFunction(() => document.querySelector("#contactRevealAnnouncement")?.textContent.includes("四色包囲"));
+    assert.equal(await page.locator("#selectionCount").textContent(), "3 / 4マス");
     assert.equal(await page.locator("#tacticalTrace").isHidden(), true);
     assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "action").length), 0);
     const box = await page.locator("#contactRevealCard").boundingBox();
@@ -4804,17 +4841,22 @@ test("actual browser presents contact only for the local completed selection and
     assert.equal(contactIntercepted, false);
     await page.locator("#contactReveal").waitFor({ state: "hidden", timeout: 5000 });
     const first = await page.evaluate(() => structuredClone(globalThis.__contactEvidence));
-    assert.deepEqual(first.stages.map((entry) => entry.title), ["二色接触！", "三色圧力!!"]);
-    assert.deepEqual(first.announcements, ["三色圧力!! 3色に接する強いエリア"]);
-    assert.ok(first.hiddenAt - first.startedAt < 1500, `cascade lasted ${first.hiddenAt - first.startedAt}ms`);
+    assert.deepEqual(first.stages.map((entry) => entry.title), ["二色接触！", "三色圧力!!", "四色包囲!!!", "四色包囲!!!"]);
+    assert.deepEqual(first.announcements, [
+      "二色接触！ 2色に接する灰色エリア",
+      "三色圧力!! 3色に接する強いエリア",
+      "四色包囲!!! 全色が一点へ集中",
+      "四色包囲!!! 全色が一点へ集中",
+    ]);
+    assert.ok(first.hiddenAt - first.startedAt < 2500, `threshold sequence lasted ${first.hiddenAt - first.startedAt}ms`);
     await page.evaluate(() => {
       const runtime = globalThis.__standardOnlineRuntime;
       const version = 11;
       const matchId = runtime.room.public_state.matchId;
       runtime.room = { ...runtime.room, version, public_state: {
         ...runtime.room.public_state, version, turn: 4, active: "B", phase: "COLOR", pending: "R4",
-        regions: { ...runtime.room.public_state.regions, R4: { id: "R4", micro: [5], sourceMacros: [5], controllers: ["A"], color: null, isPending: true } },
-        lastPublicTrace: { eventId: `${matchId}:${version}`, version, type: "CREATE_REGION", actor: "A", regionId: "R4", sourceMacroCount: 1, contactColorCount: 3 },
+        regions: { ...runtime.room.public_state.regions, R5: { id: "R5", micro: [9], sourceMacros: [9], controllers: ["A"], color: null, isPending: true } },
+        lastPublicTrace: { eventId: `${matchId}:${version}`, version, type: "CREATE_REGION", actor: "A", regionId: "R5", sourceMacroCount: 1, contactColorCount: 3 },
       } };
       runtime.view = { ...runtime.view, version };
       runtime.onInvalidate?.({});
@@ -4824,7 +4866,7 @@ test("actual browser presents contact only for the local completed selection and
     assert.match(await page.locator("#tacticalTraceNext").textContent(), /相手が、隣接色と違う持ち色を選ぶ/);
     await page.evaluate(() => globalThis.__standardOnlineRuntime.onInvalidate?.({}));
     await page.waitForTimeout(350);
-    assert.equal(await page.evaluate(() => globalThis.__contactEvidence.stages.length), 2);
+    assert.equal(await page.evaluate(() => globalThis.__contactEvidence.stages.length), 4);
     assert.equal(await page.locator("#contactReveal").isHidden(), true);
     await page.evaluate(() => {
       const runtime = globalThis.__standardOnlineRuntime;
@@ -4832,22 +4874,22 @@ test("actual browser presents contact only for the local completed selection and
       const matchId = runtime.room.public_state.matchId;
       runtime.room = { ...runtime.room, version, public_state: {
         ...runtime.room.public_state, version, active: "A", phase: "WORK", pending: null,
-        regions: { ...runtime.room.public_state.regions, R4: { ...runtime.room.public_state.regions.R4, color: "green", isPending: false } },
-        lastPublicTrace: { eventId: `${matchId}:${version}`, version, type: "COLOR_REGION", actor: "B", regionId: "R4", color: "green" },
+        regions: { ...runtime.room.public_state.regions, R5: { ...runtime.room.public_state.regions.R5, color: "green", isPending: false } },
+        lastPublicTrace: { eventId: `${matchId}:${version}`, version, type: "COLOR_REGION", actor: "B", regionId: "R5", color: "green" },
       } };
       runtime.view = { ...runtime.view, version };
       runtime.onInvalidate?.({});
     });
     await page.waitForFunction(() => document.querySelector("#tacticalTraceAction")?.textContent === "相手が緑で塗った");
     assert.match(await page.locator("#tacticalTraceChange").textContent(), /受け取ったエリアが緑の領域になった/);
-    assert.equal(await page.evaluate(() => globalThis.__contactEvidence.stages.length), 2);
+    assert.equal(await page.evaluate(() => globalThis.__contactEvidence.stages.length), 4);
     await page.evaluate(() => {
       const runtime = globalThis.__standardOnlineRuntime;
       const version = 13;
       const matchId = runtime.room.public_state.matchId;
       runtime.room = { ...runtime.room, version, public_state: {
         ...runtime.room.public_state, version, active: "A", phase: "WORK", pending: null,
-        lastPublicTrace: { eventId: `${matchId}:${version}`, version, type: "CREATE_REGION", actor: "B", regionId: "R5", sourceMacroCount: 1, contactColorCount: 4 },
+        lastPublicTrace: { eventId: `${matchId}:${version}`, version, type: "CREATE_REGION", actor: "B", regionId: "R6", sourceMacroCount: 1, contactColorCount: 4 },
       } };
       runtime.view = { ...runtime.view, version };
       runtime.onInvalidate?.({});
@@ -4855,7 +4897,7 @@ test("actual browser presents contact only for the local completed selection and
     await page.waitForFunction(() => document.querySelector("#tacticalTraceAction")?.textContent === "相手が1マスを渡した");
     assert.match(await page.locator("#tacticalTraceChange").textContent(), /4色に接している/);
     await page.waitForTimeout(350);
-    assert.equal(await page.evaluate(() => globalThis.__contactEvidence.stages.length), 2);
+    assert.equal(await page.evaluate(() => globalThis.__contactEvidence.stages.length), 4);
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
   }, { viewport: { width: 390, height: 844 } });
 });

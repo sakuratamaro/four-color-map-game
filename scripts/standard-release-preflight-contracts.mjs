@@ -59,6 +59,17 @@ export function hasBoardFirstCandidateGuidance(pageText, appText) {
   ]);
 }
 
+export function hasPerCellContactFeedback(appText) {
+  return includesAll(appText, [
+    "function presentSelectedContactChange(state, previousMacros, nextMacros = selectedMacros)",
+    "const previousContactColorCount = selectedContactColorCount(state, previousSourceMacros);",
+    "if (contactColorCount < previousContactColorCount)",
+    "if (contactColorCount < 2 || contactColorCount <= previousContactColorCount) return;",
+    "{ minimumStage: previousContactColorCount + 1 }",
+    "if (!targetDraft) presentSelectedContactChange(state, previousMacros);",
+  ]);
+}
+
 export function hasApprovedGachaOddsUi(pageText, appText) {
   return includesAll(pageText, [
     'id="gachaOdds"',
