@@ -44,8 +44,10 @@ test("random palette corruption draws color and private slot exactly once each",
   assert.deepEqual(targetPrivate.privateEffects.paletteDebuffs, [effect]);
   assert.deepEqual(targetPrivate.privateEffects.paletteImpactEvent, {
     eventId: `${result.state.matchId}:${result.state.version}:palette-impact:B`, version: result.state.version,
+    actor: "A", skill: "disruptPaletteRandom",
     kind: "random", slot: effect.slot, previousColor: beforePalette[effect.slot], injectedColor: result.color, remaining: 1,
   });
+  assert.deepEqual(targetPrivate.privateEffects.paletteImpactHistory, [targetPrivate.privateEffects.paletteImpactEvent]);
   assert.equal(result.state.publicLog.at(-1), `T${result.state.turn} Player A used a skill; its private result is hidden.`);
 });
 
@@ -136,5 +138,7 @@ test("private palette-impact identity survives the canonical match save round tr
   const rngSnapshot = engine.snapshotRngDomains(rng, match.REQUIRED_RNG_STREAMS);
   const restored = match.decodeStandardMatch(match.encodeStandardMatch(impacted, rngSnapshot));
   assert.deepEqual(restored.state.privateEffects.B.paletteImpactEvent, impacted.privateEffects.B.paletteImpactEvent);
+  assert.deepEqual(restored.state.privateEffects.B.paletteImpactHistory, impacted.privateEffects.B.paletteImpactHistory);
+  assert.deepEqual(restored.state.initialPalettes, impacted.initialPalettes);
   assert.deepEqual(restored.rngSnapshot, rngSnapshot);
 });

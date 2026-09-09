@@ -329,6 +329,9 @@ test("public and per-seat projections preserve the private boundary", () => {
   assert.equal(Object.hasOwn(created.publicState, "basicPalettes"), false);
   assert.equal(created.privateA.seat, "A");
   assert.equal(created.privateB.seat, "B");
+  assert.deepEqual(created.privateA.initialBasicPalette, created.state.basicPalettes.A);
+  assert.equal(created.privateA.initialBonusColor, created.state.bonusColors.A);
+  assert.equal(new Set([...created.privateA.initialBasicPalette, created.privateA.initialBonusColor]).size, 3);
   assert.notDeepEqual(created.privateA, created.privateB);
   assert.equal(JSON.stringify(created.privateA).includes(JSON.stringify(created.state.basicPalettes.B)), false);
   assert.equal(JSON.stringify(created.privateB).includes(JSON.stringify(created.state.basicPalettes.A)), false);
@@ -351,6 +354,10 @@ test("generated server bundle emits palette-impact identity only in the affected
   const event = applied.privateB.privateEffects.paletteImpactEvent;
   assert.equal(event.eventId, `${applied.state.matchId}:${applied.state.version}:palette-impact:B`);
   assert.equal(event.kind, "random");
+  assert.equal(event.actor, "A");
+  assert.equal(event.skill, "disruptPaletteRandom");
+  assert.equal(applied.privateB.privateEffects.paletteImpactHistory.length, 1);
+  assert.equal(applied.privateB.privateEffects.paletteImpactHistory[0].eventId, event.eventId);
   assert.equal(JSON.stringify(applied.publicState).includes("paletteImpactEvent"), false);
   assert.equal(JSON.stringify(applied.privateA).includes("paletteImpactEvent"), false);
   assert.equal(applied.state.publicLog.at(-1), `T${applied.state.turn} Player A used a skill; its private result is hidden.`);

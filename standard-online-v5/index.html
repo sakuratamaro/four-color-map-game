@@ -6,7 +6,7 @@
   <title>Four Color Map Game v5.0 Standard Online</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='30' height='30' x='1' y='1' rx='8' fill='%23ef476f'/%3E%3Crect width='30' height='30' x='33' y='1' rx='8' fill='%23ffd166'/%3E%3Crect width='30' height='30' x='1' y='33' rx='8' fill='%2306d6a0'/%3E%3Crect width='30' height='30' x='33' y='33' rx='8' fill='%231182e8'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="../online-v5/style.css">
-  <link rel="stylesheet" href="style.css?v=20260908-7">
+  <link rel="stylesheet" href="style.css?v=20260910-8">
   <link rel="stylesheet" href="debug-mode.css">
   <link rel="stylesheet" href="progression.css">
 </head>
@@ -368,9 +368,15 @@
         <div class="random-summary-heading"><span class="dice-mark" aria-hidden="true">🎲</span><div><strong id="randomSummaryTitle">今回のランダム結果</strong><small>サーバーが対戦ごとに抽選</small></div></div>
         <dl>
           <div><dt>渡すエリア</dt><dd id="rolledSizeValue">抽選中</dd></div>
-          <div><dt>自分の基本の持ち色（全4色から抽選）</dt><dd id="basicPaletteValue">確認中</dd></div>
-          <div><dt>自分のおまけ色</dt><dd id="bonusColorValue">確認中</dd></div>
+          <div><dt>自分の現在の基本色</dt><dd id="basicPaletteValue">確認中</dd></div>
+          <div><dt>自分の現在のおまけ色</dt><dd id="bonusColorValue">確認中</dd></div>
         </dl>
+        <details id="paletteHistoryPanel" class="palette-history">
+          <summary>持ち色の初期値・変更履歴 <span id="paletteHistoryCount">変更なし</span></summary>
+          <p><strong>初期値：</strong><span id="initialPaletteValue">確認中</span></p>
+          <p id="paletteHistoryEmpty" class="muted">この対局で持ち色の変更はありません。</p>
+          <ol id="paletteHistoryList"></ol>
+        </details>
       </section>
       <section id="tacticalTrace" class="tactical-trace hidden" aria-labelledby="tacticalTraceTitle">
         <div class="tactical-trace-heading"><span aria-hidden="true">↳</span><strong id="tacticalTraceTitle">直前の一手</strong></div>
@@ -482,6 +488,6 @@
   <script src="cpu-portraits.js?v=20260908-1"></script>
   <script src="cpu-commentary.js?v=20260906-2"></script>
   <script src="basic-feedback.js?v=20260908-2"></script>
-  <script type="module" src="app.js?v=20260908-12"></script>
+  <script type="module" src="app.js?v=20260910-13"></script>
 </body>
 </html>

@@ -27,6 +27,7 @@ test("standard match creation is deterministic and validates the authoritative c
   for (const seat of ["A", "B"]) {
     assert.equal(left.basicPalettes[seat].length, 2);
     assert.equal(new Set([...left.basicPalettes[seat], left.bonusColors[seat]]).size, 3);
+    assert.deepEqual(left.initialPalettes[seat], { basic: left.basicPalettes[seat], bonus: left.bonusColors[seat] });
     assert.ok([1, 2, 3, 4].includes(left.bonusUsesRemaining[seat]));
   }
   assert.notEqual(
@@ -56,6 +57,8 @@ test("public and private projections enforce the secret boundary", () => {
   for (const key of ["basicPalettes", "bonusColors", "bonusUsesRemaining", "hands", "loadouts", "privateEffects"]) assert.equal(Object.hasOwn(publicState, key), false);
   assert.equal(Object.hasOwn(own, "seat"), true);
   assert.equal(Object.hasOwn(own, "B"), false);
+  assert.deepEqual(own.initialBasicPalette, state.basicPalettes.A);
+  assert.equal(own.initialBonusColor, state.bonusColors.A);
   assert.equal(JSON.stringify(publicState).includes("OPPONENT-ONLY-TOKEN"), false);
   assert.equal(JSON.stringify(own).includes("OPPONENT-ONLY-TOKEN"), false);
 });

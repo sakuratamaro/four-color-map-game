@@ -41,8 +41,10 @@ test("forced palette draws one private slot, keeps details target-private, and c
   assert.deepEqual([...targetPrivate.basicPalette, targetPrivate.bonusColor], afterPalette);
   assert.deepEqual(targetPrivate.privateEffects.paletteImpactEvent, {
     eventId: `${result.state.matchId}:${result.state.version}:palette-impact:B`, version: result.state.version,
+    actor: "A", skill: "disruptForcedPalette",
     kind: "forced", slot: changed[0], previousColor: beforePalette[changed[0]], injectedColor: color, remaining: 0,
   });
+  assert.deepEqual(targetPrivate.privateEffects.paletteImpactHistory, [targetPrivate.privateEffects.paletteImpactEvent]);
 });
 
 test("forced replacement restores and clears an existing temporary effect before permanent injection", () => {
@@ -57,6 +59,7 @@ test("forced replacement restores and clears an existing temporary effect before
   assert.equal(result.state.privateEffects.B.paletteDebuffs, undefined);
   assert.deepEqual(result.state.privateEffects.B.paletteImpactEvent, {
     eventId: `${result.state.matchId}:${result.state.version}:palette-impact:B`, version: result.state.version,
+    actor: "A", skill: "disruptForcedPalette",
     kind: "forced", slot: 2, previousColor: "blue", injectedColor: "red", remaining: 0,
   });
 });

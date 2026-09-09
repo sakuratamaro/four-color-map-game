@@ -98,19 +98,28 @@ function clearPaletteDebuffAtSlot(state, actor, slot) {
   if (!state.privateEffects[actor].paletteDebuffs.length) delete state.privateEffects[actor].paletteDebuffs;
 }
 
-function recordPaletteImpact(state, target, { kind, slot, previousColor, injectedColor, remaining }) {
+const PALETTE_IMPACT_HISTORY_LIMIT = 12;
+
+function recordPaletteImpact(state, target, { actor, skill, kind, slot, previousColor, injectedColor, remaining }) {
   if (previousColor === injectedColor) return;
   state.privateEffects[target] = state.privateEffects[target] || {};
   const version = state.version + 1;
-  state.privateEffects[target].paletteImpactEvent = {
+  const event = {
     eventId: `${state.matchId}:${version}:palette-impact:${target}`,
     version,
+    actor,
+    skill,
     kind,
     slot,
     previousColor,
     injectedColor,
     remaining,
   };
+  state.privateEffects[target].paletteImpactEvent = event;
+  state.privateEffects[target].paletteImpactHistory = [
+    ...(state.privateEffects[target].paletteImpactHistory || []).filter((entry) => entry.eventId !== event.eventId),
+    event,
+  ].slice(-PALETTE_IMPACT_HISTORY_LIMIT);
 }
 
 function applyColorPaletteChange({ state, actor, payload }) {
@@ -119,8 +128,11 @@ function applyColorPaletteChange({ state, actor, payload }) {
   }
   if (paletteColorAt(state, actor, payload.slot) === payload.color) return Object.freeze({ ok: false, code: "PALETTE_COLOR_UNCHANGED", state });
   return resolved(state, actor, "colorPaletteChange", (next) => {
+    const previousColor = paletteColorAt(next, actor, payload.slot);
     clearPaletteDebuffAtSlot(next, actor, payload.slot);
     setPaletteColorAt(next, actor, payload.slot, payload.color);
+    recordPaletteImpact(next, actor, { actor, skill: "colorPaletteChange", kind: "self", slot: payload.slot,
+      previousColor, injectedColor: payload.color, remaining: 0 });
     next.publicLog.push(`T${next.turn} Player ${actor} permanently changed one private palette slot.`);
   });
 }
@@ -895,7 +907,7 @@ function applyDisruptPaletteRandom({ state, actor, random }) {
     const previousColor = paletteColorAt(next, target, slot);
     setPaletteColorAt(next, target, slot, color);
     next.privateEffects[target].paletteDebuffs = [{ slot, previousColor, injectedColor: color, remaining: 1 }, ...(next.privateEffects[target].paletteDebuffs || [])];
-    recordPaletteImpact(next, target, { kind: "random", slot, previousColor: displayedColor, injectedColor: color, remaining: 1 });
+    recordPaletteImpact(next, target, { actor, skill: "disruptPaletteRandom", kind: "random", slot, previousColor: displayedColor, injectedColor: color, remaining: 1 });
     next.publicLog.push(`T${next.turn} Player ${actor} used a skill; its private result is hidden.`);
   }, { color, target });
 }
@@ -926,7 +938,7 @@ function applyDisruptPaletteChoice({ state, actor, payload, random }) {
     const previousColor = paletteColorAt(next, target, slot);
     setPaletteColorAt(next, target, slot, color);
     next.privateEffects[target].paletteDebuffs = [{ slot, previousColor, injectedColor: color, remaining: 2 }, ...(next.privateEffects[target].paletteDebuffs || [])];
-    recordPaletteImpact(next, target, { kind: "chosen", slot, previousColor: displayedColor, injectedColor: color, remaining: 2 });
+    recordPaletteImpact(next, target, { actor, skill: "disruptPaletteChoice", kind: "chosen", slot, previousColor: displayedColor, injectedColor: color, remaining: 2 });
     next.publicLog.push(`T${next.turn} Player ${actor} used a skill; its private result is hidden.`);
   }, { color, target });
 }
@@ -950,7 +962,7 @@ function applyDisruptForcedPalette({ state, actor, payload, random }) {
     for (const effect of existing) if (paletteColorAt(next, target, slot) === effect.injectedColor) setPaletteColorAt(next, target, slot, effect.previousColor);
     clearPaletteDebuffAtSlot(next, target, slot);
     setPaletteColorAt(next, target, slot, color);
-    recordPaletteImpact(next, target, { kind: "forced", slot, previousColor: displayedColor, injectedColor: color, remaining: 0 });
+    recordPaletteImpact(next, target, { actor, skill: "disruptForcedPalette", kind: "forced", slot, previousColor: displayedColor, injectedColor: color, remaining: 0 });
     next.publicLog.push(`T${next.turn} Player ${actor} used a skill; its private result is hidden.`);
   }, { color, target });
 }

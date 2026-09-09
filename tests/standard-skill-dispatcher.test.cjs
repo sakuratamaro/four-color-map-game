@@ -205,8 +205,16 @@ test("palette change replaces one private basic slot, allows duplicates, and con
   assert.equal(result.state.hands.A.colorPaletteChange, 0);
   assert.deepEqual(result.state.basicPalettes.A, [replacement, replacement]);
   assert.equal(result.state.bonusColors.A, bonusBefore);
+  assert.deepEqual(result.state.initialPalettes.A, state.initialPalettes.A);
   assert.equal(result.publicState.basicPalettes, undefined);
+  assert.equal(result.publicState.initialPalettes, undefined);
   assert.deepEqual(result.privateState.basicPalette, [replacement, replacement]);
+  assert.deepEqual(result.privateState.privateEffects.paletteImpactEvent, {
+    eventId: `${state.matchId}:${result.state.version}:palette-impact:A`, version: result.state.version,
+    actor: "A", skill: "colorPaletteChange", kind: "self", slot: 0,
+    previousColor: state.basicPalettes.A[0], injectedColor: replacement, remaining: 0,
+  });
+  assert.deepEqual(result.privateState.privateEffects.paletteImpactHistory, [result.privateState.privateEffects.paletteImpactEvent]);
   assert.equal(result.state.publicLog.at(-1).includes(replacement), false);
   assert.deepEqual(snapshotRngStreams(rng), beforeRng);
 });

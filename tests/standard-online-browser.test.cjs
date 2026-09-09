@@ -5220,26 +5220,43 @@ test("actual browser presents current-seat palette impacts once across poll, bac
       }).observe(document.querySelector("#paletteImpactNotice"), { attributes: true, attributeFilter: ["class"] });
     });
 
-    const impact = async (version, kind, slot, previousColor, injectedColor, remaining, { cpu = false, waitForRefresh = true } = {}) => {
-      await page.evaluate(({ nextVersion, nextKind, nextSlot, before, after, nextRemaining, cpuRoom }) => {
+    await page.evaluate(() => {
+      const runtime = globalThis.__standardOnlineRuntime;
+      runtime.view = { ...runtime.view, private_state: { ...runtime.view.private_state,
+        initialBasicPalette: ["red", "blue"], initialBonusColor: "yellow" } };
+      runtime.onInvalidate?.({});
+    });
+    await page.waitForFunction(() => document.querySelector("#initialPaletteValue")?.textContent?.startsWith("基本色1"));
+    assert.equal(await page.locator("#initialPaletteValue").textContent(), "基本色1 赤・基本色2 青・おまけ色 黄");
+    assert.equal(await page.locator("#paletteHistoryCount").textContent(), "変更なし");
+
+    const impact = async (version, kind, slot, previousColor, injectedColor, remaining, { cpu = false, self = false, waitForRefresh = true } = {}) => {
+      await page.evaluate(({ nextVersion, nextKind, nextSlot, before, after, nextRemaining, cpuRoom, selfImpact }) => {
         const runtime = globalThis.__standardOnlineRuntime;
         const matchId = runtime.room.public_state.matchId;
+        const actor = selfImpact ? "A" : "B";
+        const skill = { self: "colorPaletteChange", random: "disruptPaletteRandom", chosen: "disruptPaletteChoice", forced: "disruptForcedPalette" }[nextKind];
+        const event = { eventId: `${matchId}:${nextVersion}:palette-impact:A`, version: nextVersion,
+          actor, skill, kind: nextKind, slot: nextSlot, previousColor: before, injectedColor: after, remaining: nextRemaining };
+        const priorHistory = runtime.view.private_state.privateEffects?.paletteImpactHistory || [];
         runtime.room = { ...runtime.room, version: nextVersion, opponent_kind: cpuRoom ? "cpu" : "human",
           access_mode: cpuRoom ? "cpu" : "private_code", cpu_character_id: cpuRoom ? "yuzu" : null,
           public_state: { ...runtime.room.public_state, version: nextVersion, turn: nextVersion,
-            lastPublicTrace: { eventId: `${matchId}:${nextVersion}`, version: nextVersion, type: "USE_SKILL", actor: "B" } } };
+            lastPublicTrace: { eventId: `${matchId}:${nextVersion}`, version: nextVersion, type: "USE_SKILL", actor } } };
         runtime.view = { ...runtime.view, seat: "A", version: nextVersion, private_state: { ...runtime.view.private_state,
-          privateEffects: { paletteImpactEvent: { eventId: `${matchId}:${nextVersion}:palette-impact:A`, version: nextVersion,
-            kind: nextKind, slot: nextSlot, previousColor: before, injectedColor: after, remaining: nextRemaining } } } };
+          initialBasicPalette: ["red", "blue"], initialBonusColor: "yellow",
+          privateEffects: { paletteImpactEvent: event, paletteImpactHistory: [...priorHistory, event].slice(-12) } } };
         runtime.onInvalidate?.({});
-      }, { nextVersion: version, nextKind: kind, nextSlot: slot, before: previousColor, after: injectedColor, nextRemaining: remaining, cpuRoom: cpu });
+      }, { nextVersion: version, nextKind: kind, nextSlot: slot, before: previousColor, after: injectedColor, nextRemaining: remaining, cpuRoom: cpu, selfImpact: self });
       if (waitForRefresh) await page.waitForFunction((expected) => document.querySelector("#versionText")?.textContent === String(expected), version);
     };
 
     await impact(10, "random", 0, "red", "green", 1);
     await notice.waitFor({ state: "visible" });
     assert.equal(await page.locator("#paletteImpactTitle").textContent(), "持ち色汚染を受けました");
-    assert.equal(await page.locator("#paletteImpactDetail").textContent(), "基本色1が赤から緑へ変わりました。次の1回の彩色後に元へ戻ります。");
+    assert.equal(await page.locator("#paletteImpactDetail").textContent(), "Bが「持ち色汚染・乱」で、基本色1を赤から緑へ変更しました。次の1回の彩色後に元へ戻ります。");
+    assert.equal(await page.locator("#paletteHistoryCount").textContent(), "1件");
+    assert.match(await page.locator("#paletteHistoryList").textContent(), /B「持ち色汚染・乱」｜基本色1 赤 → 緑/);
     assert.equal(await page.locator("#publicProjection").textContent().then((text) => /paletteImpact|previousColor|injectedColor/.test(text)), false);
     await page.evaluate(() => { globalThis.__standardOnlineRuntime.onInvalidate?.({}); globalThis.__standardOnlineRuntime.onInvalidate?.({}); });
     await page.waitForTimeout(150);
@@ -5259,7 +5276,7 @@ test("actual browser presents current-seat palette impacts once across poll, bac
       const runtime = globalThis.__standardOnlineRuntime;
       runtime.room = { ...runtime.room, version: 11, public_state: { ...runtime.room.public_state, version: 11, turn: 11 } };
       runtime.view = { ...runtime.view, version: 11, private_state: { ...runtime.view.private_state,
-        basicPalette: ["blue", "green"], privateEffects: {} } };
+        basicPalette: ["blue", "green"], privateEffects: runtime.view.private_state.privateEffects } };
       runtime.onInvalidate?.({});
     });
     await page.waitForFunction(() => document.querySelector("#versionText")?.textContent === "11");
@@ -5285,13 +5302,14 @@ test("actual browser presents current-seat palette impacts once across poll, bac
       document.dispatchEvent(new Event("visibilitychange"));
     });
     await notice.waitFor({ state: "visible" });
-    assert.equal(await page.locator("#paletteImpactDetail").textContent(), "おまけ色が黄から青へ変わりました。次の2回の彩色後に元へ戻ります。");
+    assert.equal(await page.locator("#paletteImpactDetail").textContent(), "Bが「持ち色汚染」で、おまけ色を黄から青へ変更しました。次の2回の彩色後に元へ戻ります。");
     await page.locator("#dismissPaletteImpact").click();
 
     await impact(13, "forced", 1, "blue", "red", 0, { cpu: true });
     await notice.waitFor({ state: "visible" });
     assert.equal(await page.locator("#paletteImpactTitle").textContent(), "強制持ち替えを受けました");
-    assert.match(await page.locator("#paletteImpactDetail").textContent(), /基本色2が青から赤へ.*対戦終了まで/);
+    assert.match(await page.locator("#paletteImpactDetail").textContent(), /Bが「強制持ち替え」で、基本色2を青から赤へ変更.*対戦終了まで/);
+    assert.equal(await page.locator("#paletteHistoryCount").textContent(), "3件");
     await page.evaluate(() => globalThis.__standardOnlineRuntime.onInvalidate?.({}));
     await page.waitForTimeout(150);
     assert.equal(await page.evaluate(() => globalThis.__paletteImpactPresentations), 2);
@@ -5302,6 +5320,13 @@ test("actual browser presents current-seat palette impacts once across poll, bac
       return { left: box.left, right: box.right, viewport: innerWidth, overflow: document.documentElement.scrollWidth > innerWidth };
     });
     assert.ok(layout.left >= 0 && layout.right <= layout.viewport && !layout.overflow, JSON.stringify(layout));
+
+    await page.locator("#dismissPaletteImpact").click();
+    await impact(14, "self", 2, "yellow", "green", 0, { self: true });
+    await notice.waitFor({ state: "visible" });
+    assert.equal(await page.locator("#paletteImpactTitle").textContent(), "持ち色を変更しました");
+    assert.equal(await page.locator("#paletteImpactDetail").textContent(), "あなたが「持ち色変更」で、おまけ色を黄から緑へ変更しました。この変更は対戦終了まで続きます。");
+    assert.match(await page.locator("#paletteHistoryList").textContent(), /あなた「持ち色変更」｜おまけ色 黄 → 緑/);
 
     await page.evaluate(() => {
       const runtime = globalThis.__standardOnlineRuntime;
@@ -5356,7 +5381,7 @@ test("actual browser presents a deferred palette impact when returning to battle
     });
     await page.locator('[data-app-tab="battle"]').click();
     await notice.waitFor({ state: "visible" });
-    assert.equal(await page.locator("#paletteImpactDetail").textContent(), "基本色1が赤から青へ変わりました。この変更は対戦終了まで続きます。");
+    assert.equal(await page.locator("#paletteImpactDetail").textContent(), "Bが「強制持ち替え」で、基本色1を赤から青へ変更しました。この変更は対戦終了まで続きます。");
     await page.locator("#dismissPaletteImpact").click();
     await page.locator('[data-app-tab="cards"]').click();
     await page.locator('[data-app-tab="battle"]').click();
