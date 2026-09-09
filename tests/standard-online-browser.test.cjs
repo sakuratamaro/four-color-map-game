@@ -2652,16 +2652,31 @@ test(`${browserName} moves whole quiz buttons in one collision arena and pauses 
     assert.ok(before.buttons.slice(0, 4).every((button) => button.shape === "orb" && Math.abs(button.width - button.height) < 0.5 && button.width <= 54), JSON.stringify(before));
     assert.ok(before.buttons.slice(4).every((button) => button.shape === "capsule" && button.width > button.height), JSON.stringify(before));
     assert.ok(before.buttons.every((button) => button.width <= (before.arena.right - before.arena.left) / 3), JSON.stringify(before));
+    const occupiedRatio = before.buttons.reduce((sum, button) => sum + button.width * button.height, 0)
+      / ((before.arena.right - before.arena.left) * (before.arena.bottom - before.arena.top));
+    assert.ok(occupiedRatio <= 0.24, JSON.stringify({ occupiedRatio, before }));
     const travelled = before.buttons.map(() => 0);
+    const maximumExcursion = before.buttons.map(() => 0);
+    const stationaryStreak = before.buttons.map(() => 0);
+    const maximumStationaryStreak = before.buttons.map(() => 0);
     let moving = before;
     for (let sample = 0; sample < 12; sample += 1) {
       await page.waitForTimeout(250);
       const current = await snapshot();
-      current.buttons.forEach((button, index) => { travelled[index] += Math.hypot(button.x - moving.buttons[index].x, button.y - moving.buttons[index].y); });
+      current.buttons.forEach((button, index) => {
+        const sampleDistance = Math.hypot(button.x - moving.buttons[index].x, button.y - moving.buttons[index].y);
+        travelled[index] += sampleDistance;
+        maximumExcursion[index] = Math.max(maximumExcursion[index], Math.hypot(button.x - before.buttons[index].x, button.y - before.buttons[index].y));
+        stationaryStreak[index] = sampleDistance < 3 ? stationaryStreak[index] + 1 : 0;
+        maximumStationaryStreak[index] = Math.max(maximumStationaryStreak[index], stationaryStreak[index]);
+      });
       moving = current;
     }
     assert.deepEqual(moving.order, before.order);
     assert.ok(travelled.every((distance) => distance >= 80), JSON.stringify({ before, moving, travelled }));
+    assert.ok(maximumExcursion.every((distance) => distance >= 45), JSON.stringify({ before, moving, maximumExcursion }));
+    assert.ok(maximumExcursion.filter((distance) => distance >= 72).length >= 4, JSON.stringify({ before, moving, maximumExcursion }));
+    assert.ok(maximumStationaryStreak.every((samples) => samples <= 1), JSON.stringify({ maximumStationaryStreak }));
     await page.waitForFunction(({ initialSides }) => {
       const host = document.querySelector("#quizOptions");
       const middle = host.getBoundingClientRect().left + host.getBoundingClientRect().width / 2;

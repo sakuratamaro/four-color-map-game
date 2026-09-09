@@ -64,14 +64,22 @@ test("whole-button physics visibly travels and trades columns within five second
   }));
   const initialSides = items.map((item) => item.x + item.width / 2 < arenaWidth / 2);
   const initialVisualOrder = items.map((item) => item.id).join("");
+  const initialPositions = items.map((item) => ({ x: item.x, y: item.y }));
+  const occupiedRatio = items.reduce((sum, item) => sum + item.width * item.height, 0) / (arenaWidth * arenaHeight);
   const travelled = items.map(() => 0);
+  const maximumExcursion = items.map(() => 0);
+  const visitedHalves = items.map((item) => new Set([`${item.x + item.width / 2 < arenaWidth / 2}:${item.y + item.height / 2 < arenaHeight / 2}`]));
   let visualOrderChanged = false;
   let maximumSideChanges = 0;
 
   for (let frame = 0; frame < 270; frame += 1) {
     const before = items.map((item) => ({ x: item.x, y: item.y }));
     context.step(items, arenaWidth, arenaHeight, 1 / 60);
-    items.forEach((item, index) => { travelled[index] += Math.hypot(item.x - before[index].x, item.y - before[index].y); });
+    items.forEach((item, index) => {
+      travelled[index] += Math.hypot(item.x - before[index].x, item.y - before[index].y);
+      maximumExcursion[index] = Math.max(maximumExcursion[index], Math.hypot(item.x - initialPositions[index].x, item.y - initialPositions[index].y));
+      visitedHalves[index].add(`${item.x + item.width / 2 < arenaWidth / 2}:${item.y + item.height / 2 < arenaHeight / 2}`);
+    });
     const visualOrder = [...items].sort((left, right) => left.y - right.y || left.x - right.x).map((item) => item.id).join("");
     visualOrderChanged ||= visualOrder !== initialVisualOrder;
     maximumSideChanges = Math.max(maximumSideChanges, items.filter((item, index) => (item.x + item.width / 2 < arenaWidth / 2) !== initialSides[index]).length);
@@ -87,7 +95,11 @@ test("whole-button physics visibly travels and trades columns within five second
     }
   }
 
+  assert.ok(occupiedRatio <= 0.24, String(occupiedRatio));
   assert.ok(travelled.every((distance) => distance >= 200), JSON.stringify(travelled));
+  assert.ok(maximumExcursion.every((distance) => distance >= 60), JSON.stringify(maximumExcursion));
+  assert.ok(maximumExcursion.filter((distance) => distance >= 90).length >= 4, JSON.stringify(maximumExcursion));
+  assert.ok(visitedHalves.filter((visited) => visited.size >= 2).length >= 4, JSON.stringify(visitedHalves.map((visited) => [...visited])));
   assert.equal(visualOrderChanged, true);
   assert.ok(maximumSideChanges >= 2, String(maximumSideChanges));
 });
