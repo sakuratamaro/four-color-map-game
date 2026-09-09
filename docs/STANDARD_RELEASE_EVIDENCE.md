@@ -1,6 +1,6 @@
 # Standard公開候補 証拠台帳
 
-更新日: 2026-09-08
+更新日: 2026-09-09
 
 この文書は「コードがある」と「公開環境で確認した」を混同しないための台帳である。`VERIFIED` は同じ行に再現可能な根拠がある場合だけ使用する。token、API key、user ID、個人情報は記録しない。
 
@@ -29,6 +29,7 @@
 | 即時Standard CPU開始 | PUBLIC_VERIFIED | migration `202609050002`とEdge deployment 9。製品`cc96350`、公開`a4c6490`、DB 47項目、Edge基本6/6、即時CPU 7/7、Windows run `33931963065`、Pages run `33932159043`合格。公開UIでCPU初手まで確認 | 物理端末で一試合完走・再読込・同じCPUとの再戦を確認 |
 | CPU完走後の次戦導線 | PUBLIC_VERIFIED | `29c6958`。同じCPUとの同room再戦を維持し、終了結果から別CPU選択へ進める。live即時CPU完走・再戦canary 25/25、Windows Chrome/Edge成功、Pages反映済み | 物理端末で別CPU選択と再戦を体感確認 |
 | CPU報酬からガチャへの直行 | PUBLIC_VERIFIED | `e36dfcc`＋`193a0e6`。保存済み通常CPU精算だけにCTAを出し、抽選せずLv.1ガチャへ移動。対人・未精算・debugを拒否し、390×844で券・抽選操作・focus・再読込を確認 | 物理端末でCPU一局からガチャまでの体感を確認 |
+| CPU完了報酬の実所持突合 | VERIFIED | B後続製品`65f23c9`、本番canary `eb629e5`。配備済みEdgeのindex/bundleをbyte・SHA一致で読戻し、基本7/7、CPU敗北の券付与・profile delta・完全reload・終局action再送を18/18で確認。関連113/113、390px focused Chrome/Edge各1/1で終局`2→3`、ガチャ`×3`、抽選後reload`×2`を確認 | B便の公開後に独立Windows gate、Pages公開、通常CPU実画面で前後総数を確認 |
 | GitHub main・Pages更新 | PUBLIC_VERIFIED | alpha.3製品`549e716`をforceなしでmainへfast-forwardし、Pages `34049734628`成功。付随404を除くfavicon追補`df56432`もbrowser gate `34050740206`後にmainへfast-forwardし、Pages `34051979716`成功。公開asset app v40/intents v18/local bundle v4、SHA、preflightを確認 | 二端末受入後にカテゴリ制限、Shift、物理音量・振動感を記録 |
 | server-side active-room復帰 | PUBLIC_VERIFIED | private/public/CPUを有限8列で本人にだけ返し、厳格な1行だけ採用。raw sentinel/UUID非表示、background focus非奪取、CPU/matchmaking saga優先、復帰時の新room/setup送信0をbrowser回帰とlive 10/10で確認 | 物理端末でlocal identity喪失後の復帰を体感確認 |
 | 塗り直し・乱 LAB | PUBLIC_VERIFIED | `ad53bb4` / 公開`3fb3ef8`。private-code human双方同意、debug排他、固定ruleset、server-only乱数、1人1回貸与、通常19枚/6枚/CPU/野良/戦績/報酬/在庫非変更。DB 70/70、Edge 23/23、Windows/Pages/公開preflight合格 | 二端末LAB一局 |
