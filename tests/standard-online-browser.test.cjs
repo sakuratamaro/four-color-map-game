@@ -5393,6 +5393,11 @@ test("actual browser reduced motion skips intermediate local-selection contact s
     await page.keyboard.press("ArrowDown");
     await page.keyboard.press("Enter");
     await page.waitForFunction(() => globalThis.__reducedContactTitles.includes("三色圧力!!"), null, { timeout: 5000 });
+    await page.waitForFunction(
+      () => document.querySelector("#contactRevealAnnouncement")?.textContent === "三色圧力!! 3色に接する強いエリア",
+      null,
+      { timeout: 5000 },
+    );
     assert.equal(await page.locator("#contactRevealAnnouncement").textContent(), "三色圧力!! 3色に接する強いエリア");
     await page.waitForTimeout(300);
     assert.deepEqual(await page.evaluate(() => globalThis.__reducedContactTitles), ["三色圧力!!"]);
