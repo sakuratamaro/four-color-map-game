@@ -295,16 +295,16 @@ test("blocked COLOR voluntary-surrender browser transaction gates", { skip: !chr
       }
     });
 
-    await t.test("the real 390px response offers rescue guidance and voluntary surrender without a legality oracle", async () => {
+    await t.test("the real 390px response keeps only normal actions and voluntary surrender without a legality oracle", async () => {
       const { context, page, metrics } = await newMeasuredPage(browser, { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
       try {
         await bootToAColor(page);
         await installNoLegalColorState(page);
         assert.equal(await page.getByRole("button", { name: "サーバーに「塗れる色なし」と申告" }).count(), 0, "private declaration is absent before handover reveal");
         await page.getByRole("button", { name: "自分の情報を表示" }).click();
-        const summary = page.getByText("塗れる色が見つからないとき", { exact: true });
-        await summary.waitFor();
-        assert.match(await page.locator(".no-color-response").textContent(), /自動では敗北しません.*自分で決めたとき.*投了/s);
+        assert.ok(await page.locator("#privatePanel .palette .color").count() > 0);
+        assert.equal(await page.getByText("塗れる色が見つからないとき", { exact: true }).count(), 0);
+        assert.equal(await page.locator(".no-color-response").count(), 0);
         assert.equal(await page.getByRole("button", { name: "サーバーに「塗れる色なし」と申告" }).count(), 0);
         const surrender = page.getByRole("button", { name: "投了", exact: true });
         const surrenderBox = await surrender.boundingBox();
@@ -323,7 +323,7 @@ test("blocked COLOR voluntary-surrender browser transaction gates", { skip: !chr
         const legalBefore = await persistedPayload(page);
         const writesBeforeWrong = metrics.saveWrites;
         assert.equal(await page.getByRole("button", { name: "サーバーに「塗れる色なし」と申告" }).count(), 0);
-        assert.match(await page.locator(".no-color-response").textContent(), /自動では敗北しません/);
+        assert.equal(await page.locator(".no-color-response").count(), 0);
         assert.equal(await persistedPayload(page), legalBefore);
         assert.equal(metrics.saveWrites, writesBeforeWrong);
       } finally {
