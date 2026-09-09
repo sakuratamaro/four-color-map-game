@@ -2,7 +2,7 @@
 
 更新日: 2026-09-10
 
-状態: 現行運用。migration `202609030006`–`202609030013`、`202609050001`–`202609050007`、`202609060001`–`202609060003`、Edge deployment 25、Pages product `21c1e23`（online app v14、style v9、skill intents v20、local bundle v3）は適用済み。`5.0.0-alpha.4`の既存互換とrollback保全を維持する。今便はDB変更なしで、migration、RPC、Edge、engine、報酬量、ガチャ率も変更していない。次便も実行直前にmain HEAD、Pages run、Edge deployment、migration tailを現物から再取得する。
+状態: 現行運用。migration `202609030006`–`202609030013`、`202609050001`–`202609050007`、`202609060001`–`202609060003`、Edge deployment 25、Pages product `816f51e`（online app v14、style v10、skill intents v20、local bundle v3）は適用済み。`5.0.0-alpha.4`の既存互換とrollback保全を維持する。今便はDB変更なしで、migration、RPC、Edge、engine、報酬量、ガチャ率も変更していない。次便も実行直前にmain HEAD、Pages run、Edge deployment、migration tailを現物から再取得する。
 
 実行中の状態、数値、識別子、失敗は `docs/STANDARD_RELEASE_EVIDENCE.md` に追記する。根拠のない項目を`VERIFIED`や`PASS`へ変更しない。
 
@@ -197,6 +197,16 @@ B便後の最新main `3d84294`へ本番canary `eb629e5`と製品・試験`65f23c
 3. [完了] Windows `34390627632`は初回Edge成功／Chrome既存`badge-ready` timeout、attempt 2はChrome成功／Edge既存reduced-motion告知raceだった。前者は同一SHAの局所Chrome 1/1、後者は告知文自体を待つよう修正して局所Chrome/Edge各1/1。`34393139988`はChrome成功、Edgeが81/82・fail 0のまま15分上限でcancelされたため、workflowの有限上限を20分へ更新し契約11/11を確認した。最終`34394919317`はexact `eac26ed`でChrome・Edgeとも成功した。途中runも削除しない。
 4. [完了] `origin/main@a4f9bf4`の不変、候補clean、祖先関係を再確認し、forceなしで`eac26ed`へfast-forward。Pages `34396124927`は同SHAで成功し、candidate preflightは`ok:true`。
 5. [完了] 公開390pxでonline app `app.js?v=20260910-14`、Standard style `style.css?v=20260910-9`、横overflow 0、console warning/error 0を確認した。公開プロフィールは持ち色変更0枚のため本番actionを捏造せず、公開asset／表示健全性と正式browser behaviorを分離して記録し、`UDL-038`を`PUBLIC_VERIFIED`へ昇格した。
+
+### 封印中の元色保持便
+
+COLOR長文案内撤去証跡追補後の最新main `1b39b69`へ、保全済み差分から製品変更だけを再構成したPages-only便である。公開製品は`816f51e`（製品`9d1647a`、asset marker`816f51e`）。所有中の色buttonへ赤・青・黄・緑それぞれの固有surface／border／ink変数を持たせ、封印時も同じ変数とopacity 1を使う。鍵、封印中、公開される残り回数、disabled、keyboard遮断は維持する。DB、migration、RPC、Edge、engine、ルール、palette projectionを変更しない。
+
+1. [完了] 古い保全作業床を直接mergeせず、最新main起点のclean branch `codex/sealed-color-release-20260910`へ製品差分だけを移植した。app v14を維持し、CSS変更をstyle v10へcache-bustした。static/runbook 83/83、対象Chrome/Edge各1/1が合格した。
+2. [完了] 正式browserは未封印の赤と封印後の赤でsurface／borderが同一、opacity 1であることを比較し、全4色の期待surface／border、基本／おまけ／残0、鍵とdisabled、stale clickのaction 0、skill target不変、keyboard、390px、相手private非漏えいを確認した。
+3. [完了] Windows `34402078335`はChrome／Edgeとも成功した。`origin/main@1b39b69`の不変、候補clean、祖先関係を再確認し、forceなしで`816f51e`へfast-forwardした。
+4. [完了] Pages `34403138912`は同SHAで成功し、candidate preflightは`ok:true`。公開390pxはonline app `app.js?v=20260910-14`、style `style.css?v=20260910-10`、横overflow 0だった。公開CSSOMから4色の固有変数と`.color-button.is-sealed:disabled`の元色変数／opacity 1を確認した。
+5. [完了] 公開プロフィールに実封印状態がなかったため本番対局を捏造せず、公開asset／CSSOM／表示健全性と正式browser behaviorを分離して記録し、`UDL-036`を`PUBLIC_VERIFIED`へ昇格した。
 
 ### COLOR長文案内撤去便
 
