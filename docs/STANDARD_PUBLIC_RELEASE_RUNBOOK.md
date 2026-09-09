@@ -188,9 +188,20 @@ B便の正式候補`4508fb4`へ本番canary `eb629e5`と製品・試験`65f23c9`
 5. gate成功後にmainをforceなしでfast-forwardしPagesを公開する。公開asset marker、HTTP 200、candidate preflight、console warning/error 0、390px横overflow 0を確認する。
 6. 公開通常CPU戦で終局表示の前後総数、ガチャ画面の同じ総数、1枚抽選後の減算、reload後の消費後総数を実見する。抽選前reloadと同一action再送でも二重付与しないことを確認するまで`PUBLIC_VERIFIED`へ上げない。
 
+### COLOR応答長文撤去便
+
+B便→CPU完了報酬の実所持突合便の後続製品`608962e`。OnlineとLocalのCOLOR応答から「塗れる色が見つからないとき」の常設長文だけを撤去し、通常色、既存の色操作skill、任意の投了を残すPages-only便である。自動敗北、合法色oracle、時間制限、DB、migration、RPC、Edge、報酬、対局stateは変更しない。Online assetは先行便を継承してapp `app.js?v=20260908-10`、style `style.css?v=20260908-6`。Local bundleは`app.bundle.js?v=20260908-3-ad91938e65c4`、SHA-256は`ad91938e65c4c7dd66f90c3efcef61ad54cb6d395364badd2c9f0d17a01ae79b`。
+
+1. [完了] 静的85/85で長文・旧申告button・合法色oracleがなく、通常色、色操作skill、投了境界が残ることを確認した。
+2. [完了] 390px Online Chrome/Edge各1/1で、色button、色操作カードへのkeyboard focus、48px以上の投了、横overflow 0、任意投了のserver action 1回を確認した。
+3. [完了] 390px Local Chrome/Edge各3/3で、通常色、任意投了、settlement・reload、旧申告の保存write 0を確認した。
+4. 先行の報酬便を公開・公開後確認してから、このbranchを最新mainへ再構成し、Local bundleを再生成してSHA・markerを更新する。Windows Chrome/Edge gateを通し、失敗runは保持する。
+5. gate成功後にmainをforceなしでfast-forwardしPagesを公開する。公開HTML、Local bundle SHA、candidate preflight、console warning/error 0、390px横overflow 0を確認する。
+6. 公開OnlineとLocalのCOLOR応答で常設長文がなく、通常色・色操作skill・投了が操作可能であることを実見するまで`PUBLIC_VERIFIED`へ上げない。
+
 ### alpha.4彩色済みエリア角膨張便
 
-候補中。この便は新payloadを旧Edgeが拒否する一方、新Edgeは旧UIのoutgoing payloadを継続できるため、`alpha.4対応Edge → live canary → Pages`の順にする。Pages候補assetはonline app `app.js?v=20260908-9`、style `style.css?v=20260908-6`、intents `standard-online-skill-intents.js?v=20260907-20`、client `standard-online-client.js?v=20260908-1`、portrait `cpu-portraits.js?v=20260908-1`、Local bundle `app.bundle.js?v=20260908-2-87f722259e50`である。DB、migration、RPC、secret、cleanup scheduleは変更しない。
+候補中。この便は新payloadを旧Edgeが拒否する一方、新Edgeは旧UIのoutgoing payloadを継続できるため、`alpha.4対応Edge → live canary → Pages`の順にする。Pages候補assetはonline app `app.js?v=20260908-10`、style `style.css?v=20260908-6`、intents `standard-online-skill-intents.js?v=20260907-20`、client `standard-online-client.js?v=20260908-1`、portrait `cpu-portraits.js?v=20260908-1`、Local bundle `app.bundle.js?v=20260908-3-ad91938e65c4`である。DB、migration、RPC、secret、cleanup scheduleは変更しない。
 
 1. `origin/main@63972b6`起点の専用clean worktreeで両bundleを2回生成し、2回目のSHAが不変、正式全製品試験、Windows Chrome/Edge CI、対象実browserのskip 0を確認する。
 2. alpha.4対応bundleを保持したまま新規対局だけを`5.0.0-alpha.3`へ戻す互換rollback branchを作成・GitHub保全する。既存alpha.4 stateの読込み・継続と、alpha.3新規stateが彩色済みpayloadをwrite-free拒否することを確認する。
