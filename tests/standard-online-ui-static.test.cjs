@@ -79,7 +79,7 @@ test("online alpha.3 UI understands category windows and the experimental bonus-
 test("CPU commentary is public-event-only, bounded, non-blocking, and terminal-persistent", () => {
   assert.match(html, /style\.css\?v=20260908-7/);
   assert.match(html, /standard-online-skill-intents\.js\?v=20260907-20/);
-  assert.match(html, /app\.js\?v=20260908-10/);
+  assert.match(html, /app\.js\?v=20260908-11/);
   assert.match(app, /cpuCommentary\?\.VERSION !== "standard-cpu-commentary-v2"/);
   assert.ok(html.indexOf("cpu-commentary.js") < html.indexOf('type="module" src="app.js'));
   assert.match(html, /id="cpuCommentaryStage"[^>]+aria-hidden="true"/);
@@ -404,7 +404,7 @@ test("existing online progression is hydrated from the server rather than re-upl
 
 test("UI derives its canonical and experimental card metadata from the generated registry", () => {
   assert.equal(Object.values(STANDARD_SKILLS).filter((skill) => skill.v49Catalogued).length, 19);
-  assert.match(html, /standard-skill-registry\.generated\.js\?v=20260907-1[\s\S]+app\.js\?v=20260908-10/);
+  assert.match(html, /standard-skill-registry\.generated\.js\?v=20260907-1[\s\S]+app\.js\?v=20260908-11/);
   assert.match(app, /const STANDARD_SKILL_REGISTRY = globalThis\.FourColorStandardSkillRegistry/);
   assert.match(app, /STANDARD_SKILL_REGISTRY\.v49SkillIds\.map/);
   assert.match(app, /Object\.entries\(STANDARD_SKILL_REGISTRY\.skills\)/);
@@ -589,7 +589,7 @@ test("board selection assist enlarges targets and supports connected keyboard se
   assert.match(assist, /function macroHasFreeMicro\(state, macro\)/);
   assert.match(assist, /function macroFreeMicros\(state, macro\)[\s\S]+if \(!playableMacro\(state, macro\)\) return \[\]/);
   assert.match(assist, /function outgoingSelectionCanComplete\(state, selectedInput\)/);
-  assert.match(assist, /function firstGuidedMacro\(state\)[\s\S]+if \(!boardSelectionAvailable\(state\)[\s\S]+return null/);
+  assert.match(assist, /function startCandidateMacros\(state\)[\s\S]+if \(!boardSelectionAvailable\(state\)[\s\S]+return result/);
   assert.match(assist, /function connectedCandidateMacros\(state\)/);
   assert.match(assist, /白い枠と辺でつながる隣のマスを選んでください/);
   assert.match(assist, /次に辺でつなげて選べる候補/);
@@ -602,11 +602,12 @@ test("board selection assist enlarges targets and supports connected keyboard se
   assert.match(app, /moved <= 10 && scrolled <= 4\) boardPointer\(event\)/);
   assert.match(app, /strokeMacroFrame\(ctx, macro[\s\S]+color: "#f0abfc"/);
   assert.match(app, /strokeMacroFrame\(ctx, macro[\s\S]+color: "#86efac"/);
-  assert.match(app, /strokeMacroFrame\(ctx, startGuidedMacro[\s\S]+color: "#38bdf8"/);
+  assert.match(app, /for \(const macro of startGuidedMacros\) strokeMacroFrame\(ctx, macro[\s\S]+color: "#38bdf8"/);
   assert.match(app, /canvas\.dataset\.selectionGuidance = guidanceMode/);
+  assert.match(app, /canvas\.dataset\.startCandidateMacros = \[\.\.\.startGuidedMacros\]\.sort/);
   assert.match(app, /canvas\.dataset\.connectedGuidedMacros/);
   assert.match(app, /color: "#fdf4ff", cssWidth: 1\.5, cssDash: \[\], cssInset: 8/);
-  assert.match(html, /0マス選択時の水色の破線は最初のおすすめ選択候補で、自動選択ではありません/);
+  assert.match(html, /0マス選択時の水色の破線は、既存ルールで選択を開始して必要数まで完成できる全候補です。自動選択ではありません/);
   assert.match(html, /1マス以上選択した後の緑の破線は次に辺でつなげて選べる候補/);
   assert.match(app, /if \(tab !== "battle"\) resetBoardSelectionAssist\(\)/);
   assert.match(assist, /toggle\.classList\.toggle\("hidden", !interactive\)/);

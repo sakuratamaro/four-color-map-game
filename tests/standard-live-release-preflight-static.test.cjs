@@ -65,7 +65,7 @@ test("release preflight is read-only, secret-free, finite, and stage-aware", () 
   assert.match(source, /DEFERRED_CURSE_LOCAL_BUNDLE_MISMATCH/);
   assert.match(source, /app\.text\.includes\('★\$\{meta\.rarity\}'\)/);
   assert.match(source, /CANDIDATE_ASSET_GENERATION_UI_PHASE_MISMATCH/);
-  assert.match(source, /app\.js\?v=20260908-10/);
+  assert.match(source, /app\.js\?v=20260908-11/);
   assert.match(source, /style\.css\?v=20260908-7/);
   assert.match(source, /standard-online-skill-intents\.js\?v=20260907-20/);
   assert.match(source, /standard-skill-registry\.generated\.js\?v=20260907-1/);
@@ -111,11 +111,12 @@ test("candidate preflight accepts only whole-button AABB physics with abortable 
   assert.equal(hasWholeButtonQuizPhysics(candidateHtml.replace('id="quizOptions"', 'id="legacyQuizOptions"'), candidateApp), false);
 });
 
-test("candidate preflight rejects missing first-candidate guidance or stale connected guidance", async () => {
+test("candidate preflight rejects missing all-start-candidate guidance or stale connected guidance", async () => {
   const { hasBoardFirstCandidateGuidance } = await contractsPromise;
   assert.equal(hasBoardFirstCandidateGuidance(candidateHtml, candidateApp), true);
-  assert.equal(hasBoardFirstCandidateGuidance(candidateHtml.replace("最初のおすすめ選択候補", "選択開始位置"), candidateApp), false);
-  assert.equal(hasBoardFirstCandidateGuidance(candidateHtml, candidateApp.replace("function firstGuidedMacro(state)", "function oldGuidedMacro(state)")), false);
+  assert.equal(hasBoardFirstCandidateGuidance(candidateHtml.replace("必要数まで完成できる全候補", "選択開始位置"), candidateApp), false);
+  assert.equal(hasBoardFirstCandidateGuidance(candidateHtml, candidateApp.replace("function startCandidateMacros(state)", "function oldCandidateMacros(state)")), false);
+  assert.equal(hasBoardFirstCandidateGuidance(candidateHtml, candidateApp.replace("canvas.dataset.startCandidateMacros", "canvas.dataset.oneStartCandidate")), false);
   assert.equal(hasBoardFirstCandidateGuidance(candidateHtml, candidateApp.replace('color: "#86efac", cssWidth: 2.5, cssDash: [5, 4]', 'color: "#38bdf8", cssWidth: 3, cssDash: [3, 3]')), false);
 });
 
@@ -156,7 +157,7 @@ test("candidate app satisfies the waiting-opponent release marker", () => {
 });
 
 test("candidate page and app satisfy the alpha.4 cache generation marker", () => {
-  assert.equal(candidateHtml.includes("app.js?v=20260908-10"), true);
+  assert.equal(candidateHtml.includes("app.js?v=20260908-11"), true);
   assert.equal(candidateHtml.includes("style.css?v=20260908-7"), true);
   assert.equal(candidateHtml.includes("standard-online-skill-intents.js?v=20260907-20"), true);
   assert.equal(candidateHtml.includes("standard-skill-registry.generated.js?v=20260907-1"), true);
