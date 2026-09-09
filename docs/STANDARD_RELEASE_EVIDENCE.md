@@ -488,6 +488,7 @@
 | `844f563` ひとふくらみ・本人選択時接触演出 | PASS | 2026-09-08 | Windows `34137623118`、Pages `34139833503`、公開app48/client21/style42、candidate preflight `ok:true`。公開CPU戦でひとふくらみ送信成功、本人「二色接触！」1回、CPU・完全reload 0 |
 | `21b58c6` original CPU portrait atlas | PASS | 2026-09-08 | Windows `34142743062`はChrome `101808117594`、Edge `101808117342`成功。Pages `34165800064`。公開app/style/portraits `20260908-1`、client21、candidate preflight `ok:true`。既存CPU戦で`yuzu:normal`、`portraitStatus=ready`、34×34、fallback非表示、console 0。第三者portrait commit群はHOLDのままmain不採用 |
 | `345c472` クイズbutton全体の衝突移動 | PASS | 2026-09-08 | Windows `34166855484`はChrome `101879510377` 6分54秒、Edge `101879510182` 9分10秒で成功。Pages `34167465748`。公開app/style `20260908-2`、client21、portraits v1、candidate preflight `ok:true`。公開desktopで6 buttonが各9.1–12.0px移動、bounds内、overlap 0、hover/focus中2.2秒座標不変、回答1回保存、console 0。390px/reduced-motionは正式実browserで確認し、live 390pxとは主張しない |
+| `4cefe9f` 基本palette torn snapshot拒否 | PASS | 2026-09-09 | 専用branch `codex/standard-palette-green-release-candidate-20260908`へexact SHAをpush。unit 51/51、focused Chrome/Edge各1/1、Windows run `34354740441`のChrome `102476448386`・Edge `102476448811`が成功。`3e453a2→4cefe9f`をforceなしでmainへfast-forwardし、Pages `34355861649`のbuild/report/deploy成功とcandidate preflight `ok:true`を確認。公開通常CPUで緑・赤がCPU手番、次COLOR、reload後の次COLORまで`基本色・回数無制限`、黄は残1。390×844で横overflow 0、console warning/error 0。synthetic tornはformal gateだけで、公開環境では捏造していない |
 | 角膨張・エラー表示 Windows gate | PASS | 2026-09-06 | `75791fb`、run `34017288334`。Chrome `101443203494`、Edge `101443203230`が各73件成功。2マスkeyboard、connected cue、setup/成立済みconnectionと3行toastの遷移中/後非交差を検査 |
 | `75791fb` Pages・公開asset | PASS | 2026-09-06 | Pages `34017695831`。app/style v34、client v18、intents v17、CPU commentary v1、HTML/app/style HTTP 200、新marker、履歴凡例不在、candidate preflight `ok:true`、公開Chrome warning/error 0。DB/Edge変更なし |
 | 二端末最終受入 | NOT_RUN | PENDING | PENDING |
@@ -497,7 +498,7 @@
 - Dashboard T0は17項目を取得したが、Database 24hグラフ等20項目はDashboard取得不能でPARTIAL。資源逼迫alert 2件と7日Compute/CPU peak 99%があるため、負荷由来を切り分けるまで新しい高負荷経路を追加しない。
 - profile作成安定化はCの逐次16件で500/429なしを確認した。高並列作成そのものはAuth上限を消費するため再試験せず、再発時はEdge/DBログと資源警告を関連調査する。
 - Cのstatus正規化は本番関数定義、既存ticket整合、live canary 210/210まで確認済み。今後もIPあたり30 anonymous sign-ins/時を守り、同じ認証窓で重いcanaryを再試行しない。
-- 現行公開製品`345c472`（original CPU portrait atlas、クイズbutton全体の衝突移動、Lv3/4強化、Lv5全問120秒、ひとふくらみ復旧、本人選択時だけの接触演出、registryレアリティ、盤面選択、LAB公開、待機通知を含み、`afc89af`の金/水色履歴outlineは撤去）はPagesへ反映済み。自動browser、公開desktop実画面、公開asset、公開匿名CPU・クイズ有限受入、Edge/DB保護境界、LAB API実動の合格と、公開390px未確認・未実施の物理二端末受入を混同しない。
+- 現行公開製品`4cefe9f`（`345c472`までの累積機能と基本palette torn snapshot拒否を含む）はPagesへ反映済み。A便は公開390px通常CPUで確認したが、synthetic tornはformal browserだけであり、物理二端末受入は未実施。クイズwhole-button物理は公開履歴を持つ一方、2026-09-09の「button過大・衝突過多」実見に対するUX受入はREOPENEDであり、公開済み機能と体験達成を混同しない。
 - deployment 19はDashboard editorの追記によるworker boot errorで、正規単一内容のdeployment 20へ修復済み。20の基本7/7とRunbook B 234/234後に公開した。失敗履歴は消さず、今後のDashboard編集は全選択・消去後の行数照合を必須とする。
 - Edgeのper-isolate濫用抑止は分散レート制限ではない。公開後の計測で必要性が出た場合だけprovider側制限を検討する。
 - 10人CPUの合法性・決定性は自動検証済みだが、人間が感じる個性と楽しさは代表3人の実プレイ後も定性的判断として残る。

@@ -159,13 +159,13 @@ rollbackも「旧version番号へ戻った」という目視だけでは完了�
 
 ### 基本palette torn snapshot拒否便
 
-正式候補は`origin/main@3e453a2`へ製品、asset marker、fixture整合修正だけを再構成した`a68c6ab`。試験枝を再実行するためだけのworkflow変更`462f999`は含めない。current-seat private paletteを持つclientだけのPages便であり、DB、migration、RPC、Edge、engine、ルール、カード、報酬を変更しない。
+完了。正式候補は`origin/main@3e453a2`へ製品、asset marker、fixture整合修正だけを再構成した`4cefe9f`（製品`023dcf5`、再構成の元`a68c6ab`）。試験枝を再実行するためだけのworkflow変更`462f999`は含めなかった。current-seat private paletteを持つclientだけのPages便であり、DB、migration、RPC、Edge、engine、ルール、カード、報酬は変更していない。
 
-1. unit 51/51と、390pxで`coherent COLOR → version不一致か基本色破損 → coherent CPU turn → 次のCOLOR`を通すfocused Chrome/Edgeを再確認する。torn中は最後の基本2色を保持し、再接続表示、action送信0、public表示へのprivate palette漏えい0を必須にする。
-2. 正式候補をtest branchへpushし、Windows Chrome/Edge gateを同一treeで完走する。一時CI triggerを候補へ戻さず、失敗時はrunと原因を保持する。
-3. gate成功後にmainをforceなしでfast-forwardし、Pages runの成功と公開HTMLの`standard-online-client.js?v=20260908-1`をキャッシュ回避付きで確認する。
-4. 公開環境ではtorn responseを捏造せず、新しい通常CPU戦で基本2色を確認し、CPU手番をまたぐpoll、COLOR復帰、reload後も同じ基本2色と回数無制限表示が維持されることを確認する。console warning/error 0と横overflow 0を記録する。
-5. synthetic torn時系列はformal browser gate、公開後は実serverの通常時系列として証拠を分ける。両方が揃うまで`PUBLIC_VERIFIED`へ上げない。
+1. [完了] unit 51/51と、390pxで`coherent COLOR → version不一致か基本色破損 → coherent CPU turn → 次のCOLOR`を通すfocused Chrome/Edge各1/1を再確認。torn中の最後の基本2色保持、再接続表示、action送信0、public表示へのprivate palette漏えい0を確認した。
+2. [完了] 専用branch `codex/standard-palette-green-release-candidate-20260908`へexact `4cefe9f`をpush。Windows `34354740441`はChrome `102476448386`、Edge `102476448811`とも成功。一時CI triggerを候補へ戻していない。
+3. [完了] mainを`3e453a2→4cefe9f`へforceなしでfast-forward。Pages `34355861649`は同SHAのbuild/report/deployが成功し、公開candidate preflightは`ok:true`。
+4. [完了] 公開環境でtorn responseを捏造せず、通常CPU戦で基本色「緑・赤」をCPU手番、次のCOLOR、reload後の次COLORまで確認し、両方の`基本色・回数無制限`とおまけ色「黄・残り1回」を維持。390×844でconsole warning/error 0、横overflow 0。
+5. [完了] synthetic torn時系列はformal browser gate、公開後は実server通常時系列として証拠を分離し、`PUBLIC_VERIFIED`へ昇格した。
 
 ### alpha.4彩色済みエリア角膨張便
 
