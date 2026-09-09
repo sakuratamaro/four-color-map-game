@@ -3339,7 +3339,7 @@ function renderSkills(state, privateState) {
     info.type = "button"; info.setAttribute("aria-label", `${meta.name}の説明`); info.title = `${meta.name}の説明`;
     item.append(node, info); box.appendChild(item);
   }
-  renderSkillTarget(state);
+  renderSkillTarget(state, privateState);
 }
 
 function beginSkill(skill) {
@@ -3367,10 +3367,11 @@ function beginSkill(skill) {
   } else $("skillTargetControls")?.querySelector("strong")?.focus({ preventScroll: true });
 }
 
-function targetChoice(label, key, value) {
+function targetChoice(label, key, value, { disabled = false, onSelect = null } = {}) {
   const selected = targetDraft?.input?.[key] === value;
   const node = button(label, () => {
     targetDraft.input[key] = value;
+    onSelect?.(targetDraft.input);
     render();
     const choice = [...$("skillTargetControls").querySelectorAll("button[data-target-key]")]
       .find((candidate) => candidate.dataset.targetKey === key && candidate.dataset.targetValue === String(value));
@@ -3379,6 +3380,7 @@ function targetChoice(label, key, value) {
   node.dataset.targetKey = key;
   node.dataset.targetValue = String(value);
   node.setAttribute("aria-pressed", String(selected));
+  node.disabled = disabled;
   return node;
 }
 
@@ -3464,7 +3466,61 @@ function setSkillTargetFeedback(message, tone = "") {
   targetDraft.feedbackTone = tone;
 }
 
-function renderSkillTarget(state) {
+function paletteChangeSlotOptions(privateState) {
+  const basic = Array.isArray(privateState?.basicPalette) ? privateState.basicPalette : [];
+  const bonus = privateState?.bonusColor;
+  const remaining = Number.isInteger(privateState?.bonusUsesRemaining) ? privateState.bonusUsesRemaining : null;
+  return [
+    { slot: 0, color: basic[0], label: `基本色1・${COLOR_JA[basic[0]] || "不明"}`, detail: "回数無制限" },
+    { slot: 1, color: basic[1], label: `基本色2・${COLOR_JA[basic[1]] || "不明"}`, detail: "回数無制限" },
+    { slot: 2, color: bonus, label: `おまけ色・${COLOR_JA[bonus] || "不明"}`, detail: remaining === null ? "残り回数不明" : `残り${remaining}回` },
+  ];
+}
+
+function appendPaletteChangeTargeting(controls, privateState) {
+  const slots = paletteChangeSlotOptions(privateState);
+  const selectedSlot = slots.find((entry) => entry.slot === targetDraft.input.slot) || null;
+  const selectedColor = skillIntents.COLORS.includes(targetDraft.input.color) ? targetDraft.input.color : null;
+  const shell = document.createElement("div"); shell.className = "palette-change-targeting";
+
+  const source = document.createElement("fieldset"); source.className = "palette-change-step";
+  const sourceLegend = document.createElement("legend"); sourceLegend.textContent = "1. 変更する枠"; source.appendChild(sourceLegend);
+  const sourceChoices = document.createElement("div"); sourceChoices.className = "palette-change-options palette-change-slots";
+  for (const entry of slots) {
+    const choice = targetChoice(`${entry.label}（${entry.detail}）`, "slot", entry.slot, {
+      disabled: !skillIntents.COLORS.includes(entry.color),
+      onSelect(input) { if (input.color === entry.color) delete input.color; },
+    });
+    choice.dataset.paletteSlot = String(entry.slot);
+    sourceChoices.appendChild(choice);
+  }
+  source.appendChild(sourceChoices);
+
+  const destination = document.createElement("fieldset"); destination.className = "palette-change-step";
+  const destinationLegend = document.createElement("legend"); destinationLegend.textContent = "2. 変更先の色"; destination.appendChild(destinationLegend);
+  const destinationChoices = document.createElement("div"); destinationChoices.className = "palette-change-options palette-change-colors";
+  for (const color of skillIntents.COLORS) {
+    const current = selectedSlot?.color === color;
+    const choice = targetChoice(`${COLOR_JA[color]}${current ? "（現在の色・変更不可）" : ""}`, "color", color, {
+      disabled: !selectedSlot || current,
+    });
+    choice.dataset.paletteDestination = color;
+    if (current) choice.dataset.currentColor = "true";
+    destinationChoices.appendChild(choice);
+  }
+  destination.appendChild(destinationChoices);
+
+  const summary = document.createElement("p");
+  summary.id = "paletteChangeSummary";
+  summary.className = "palette-change-summary";
+  summary.setAttribute("role", "status");
+  summary.setAttribute("aria-live", "polite");
+  summary.textContent = `変更する枠：${selectedSlot ? `${selectedSlot.label}（${selectedSlot.detail}）` : "未選択"} → 変更先：${selectedColor ? COLOR_JA[selectedColor] : "未選択"}`;
+  shell.append(source, destination, summary);
+  controls.appendChild(shell);
+}
+
+function renderSkillTarget(state, privateState) {
   const panel = $("skillTargetControls"); panel.replaceChildren(); show("skillTargetControls", Boolean(targetDraft));
   if (!targetDraft) return;
   const targetMeta = SKILL_META[targetDraft.skill];
@@ -3473,10 +3529,10 @@ function renderSkillTarget(state) {
   const rarity = document.createElement("span"); rarity.className = "skill-rarity"; rarity.textContent = `★${targetMeta.rarity}`; rarity.setAttribute("aria-label", `レア度 星${targetMeta.rarity}`); heading.appendChild(rarity);
   panel.appendChild(heading);
   const controls = document.createElement("div"); controls.className = "controls";
-  if (["color", "slot-color"].includes(targetDraft.kind)) {
+  if (targetDraft.kind === "color") {
     for (const color of skillIntents.COLORS) controls.appendChild(targetChoice(COLOR_JA[color], "color", color));
   }
-  if (targetDraft.kind === "slot-color") for (const slot of [0, 1, 2]) controls.appendChild(targetChoice(`持ち色${slot + 1}`, "slot", slot));
+  if (targetDraft.kind === "slot-color") appendPaletteChangeTargeting(controls, privateState);
   if (targetDraft.kind === "region-split") {
     for (const id of Object.keys(state.regions || {})) controls.appendChild(targetChoice(id, "regionId", id));
   }
@@ -3573,7 +3629,8 @@ function renderSkillTarget(state) {
     }, "ghost"));
   }
   if (targetDraft.kind !== "corner-bloom") {
-    const useTarget = button(targetDraft.kind === "existing-region" ? "このエリアをランダムに塗り直す" : "この対象で使う", submitSkillTarget, "primary");
+    const useTarget = button(targetDraft.kind === "existing-region" ? "このエリアをランダムに塗り直す"
+      : targetDraft.kind === "slot-color" ? "この変更を使う" : "この対象で使う", submitSkillTarget, "primary");
     if (targetDraft.kind === "existing-region") {
       useTarget.disabled = !targetDraft.input.regionId;
       useTarget.setAttribute("aria-describedby", "legalRecolorTargetNote");
@@ -3583,9 +3640,15 @@ function renderSkillTarget(state) {
       useTarget.setAttribute("aria-describedby", "bandShiftTargetGuide");
     }
     if (targetDraft.kind === "source-macros") useTarget.disabled = selectedMacros.size !== state.requiredSize;
+    if (targetDraft.kind === "slot-color") {
+      const slot = paletteChangeSlotOptions(privateState).find((entry) => entry.slot === targetDraft.input.slot);
+      useTarget.disabled = !slot || !skillIntents.COLORS.includes(targetDraft.input.color) || slot.color === targetDraft.input.color;
+      useTarget.setAttribute("aria-describedby", "paletteChangeSummary");
+    }
     actions.appendChild(useTarget);
   }
-  const cancelTarget = button(targetDraft.kind === "corner-bloom" ? "角膨張をキャンセル" : "キャンセル", cancelSkillTarget, "ghost");
+  const cancelTarget = button(targetDraft.kind === "corner-bloom" ? "角膨張をキャンセル"
+    : targetDraft.kind === "slot-color" ? "持ち色変更をキャンセル" : "キャンセル", cancelSkillTarget, "ghost");
   if (targetDraft.kind === "corner-bloom") cancelTarget.classList.add("corner-bloom-cancel");
   actions.appendChild(cancelTarget); panel.appendChild(actions);
 }
