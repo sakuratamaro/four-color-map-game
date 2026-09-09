@@ -3666,7 +3666,7 @@ test("actual Edge hydrates a CPU win once, routes its earned ticket deliberately
   await withPage("cpuWin", async (page) => {
     await page.locator("#board").click({ position: { x: 50, y: 50 } });
     await page.getByRole("button", { name: "このエリアを渡す" }).click();
-    await page.getByText("戦績を保存しました：CPU戦 勝利 1\n完了報酬：Lv.1ガチャ券 +1").waitFor();
+    await page.getByText("戦績を保存しました：CPU戦 勝利 1\n完了報酬：Lv.1ガチャ券 +1（所持 2→3）").waitFor();
     const first = await page.evaluate(({ key }) => ({
       profile: JSON.parse(localStorage.getItem(key)),
       actionCalls: globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "action").length,
@@ -3698,6 +3698,8 @@ test("actual Edge hydrates a CPU win once, routes its earned ticket deliberately
     assert.ok(terminalLayout.dialogScrollHeight <= terminalLayout.dialogClientHeight + 1, JSON.stringify(terminalLayout));
     await rewardCta.click();
     await page.locator("#gachaPanel:not(.hidden)").waitFor();
+    await page.getByText("CPU戦の完了報酬を反映済み：Lv.1券 所持 ×3。1枚引くと所持券は2枚になります。").waitFor();
+    assert.match(await page.locator("#gachaTickets").textContent(), /Lv\.1 ×3/);
     await page.waitForFunction(() => document.activeElement?.id === "gachaTitle");
     await page.waitForFunction(() => {
       const draw = document.querySelector("#gachaDrawOne").getBoundingClientRect();
@@ -3746,6 +3748,8 @@ test("actual Edge hydrates a CPU win once, routes its earned ticket deliberately
     await page.locator("#connectionBadge.good").waitFor();
     await page.locator("#gachaPanel:not(.hidden):not(.tab-panel-hidden)").waitFor();
     await page.getByRole("button", { name: "6枚を選び直して同じCPUと再戦" }).waitFor();
+    assert.match(await page.locator("#gachaTickets").textContent(), /Lv\.1 ×2/);
+    assert.equal(await page.locator("#gachaStatus").textContent(), "1枚を獲得しました。券消費とカード付与は一度だけ保存済みです。");
     assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "gacha").length), 0);
     await page.evaluate(() => {
       document.querySelector("#gachaCpuRematch").click();

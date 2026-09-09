@@ -1261,18 +1261,21 @@ function renderTerminalResult(state) {
     && resultWasSaved
     && Number.isSafeInteger(resultCount)
     && resultCount >= 0;
-  const cpuRewardWasSaved = progressWasSaved && opponentKind === "cpu" && !experimentalMatch;
+  const cpuRewardTicketTotal = Number(profile()?.gachaTickets?.["1"]);
+  const cpuRewardWasSaved = progressWasSaved && opponentKind === "cpu" && !experimentalMatch
+    && Number.isSafeInteger(cpuRewardTicketTotal) && cpuRewardTicketTotal >= 1;
   terminalCpuRewardGachaCandidate = cpuRewardWasSaved ? {
     source: "cpu-completion-reward",
     roomId: roomModel.room.id,
     roomVersion: Number(roomModel.room.version),
     matchId: state.matchId,
     ticketLevel: 1,
+    ticketTotal: cpuRewardTicketTotal,
   } : null;
   $("terminalProgressText").textContent = experimentalMatch
     ? "実験対戦のため、戦績・報酬・在庫は変わりません。"
     : progressWasSaved
-    ? `戦績を保存しました：${resultLabel} ${won ? "勝利" : "敗北"} ${resultCount}${cpuRewardWasSaved ? "\n完了報酬：Lv.1ガチャ券 +1" : ""}`
+    ? `戦績を保存しました：${resultLabel} ${won ? "勝利" : "敗北"} ${resultCount}${cpuRewardWasSaved ? `\n完了報酬：Lv.1ガチャ券 +1（所持 ${cpuRewardTicketTotal - 1}→${cpuRewardTicketTotal}）` : ""}`
     : "戦績を同期しています。マイページで確認できます。";
   show("terminalGoGacha", cpuRewardWasSaved);
   try { localStorage.setItem(TERMINAL_PRESENTED_KEY, eventKey); } catch { /* presentation still works when storage is unavailable */ }
@@ -1699,6 +1702,11 @@ function renderGacha() {
     ? "★4・★5も排出されます（合計1%）。"
     : `★${rarityFloor}以上確定。`;
   $("gachaOdds").textContent = `Lv.${level} 排出率：${[1, 2, 3, 4, 5].map((rarity) => `★${rarity} ${odds[rarity]}%`).join(" / ")}　${guarantee}`;
+  if (!gachaBusy && !pendingGacha) {
+    $("gachaStatus").textContent = lastGachaDraws.length > 0
+      ? `${lastGachaDraws.length}枚を獲得しました。券消費とカード付与は一度だけ保存済みです。`
+      : `現在、Lv.${level}券を${available}枚所持しています。1枚引くと券を1枚消費します。`;
+  }
   $("gachaDrawOne").disabled = gachaBusy || Boolean(pendingGacha) || hasMatchedRoomHandoff() || available < 1;
   $("gachaDrawAll").disabled = gachaBusy || Boolean(pendingGacha) || hasMatchedRoomHandoff() || available < 1;
   $("gachaRetry").classList.toggle("hidden", !pendingGacha);
@@ -5551,6 +5559,7 @@ $("terminalGoGacha").onclick = () => {
   dismissTerminalResult();
   goToGacha(1);
   armedCpuRewardGachaOrigin = origin;
+  if (origin) $("gachaStatus").textContent = `CPU戦の完了報酬を反映済み：Lv.1券 所持 ×${origin.ticketTotal}。1枚引くと所持券は${origin.ticketTotal - 1}枚になります。`;
 };
 $("terminalClose").onclick = () => {
   dismissTerminalResult();

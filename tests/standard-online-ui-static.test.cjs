@@ -350,6 +350,16 @@ test("gacha persists its action identity before sending and hydrates the committ
   assert.match(app, /runGacha\(1, true\)/);
 });
 
+test("CPU completion reward copy is bound to the hydrated ticket total", () => {
+  assert.match(app, /const cpuRewardTicketTotal = Number\(profile\(\)\?\.gachaTickets\?\.\["1"\]\)/);
+  assert.match(app, /Number\.isSafeInteger\(cpuRewardTicketTotal\) && cpuRewardTicketTotal >= 1/);
+  assert.match(app, /ticketTotal: cpuRewardTicketTotal/);
+  assert.match(app, /完了報酬：Lv\.1ガチャ券 \+1（所持 \$\{cpuRewardTicketTotal - 1\}→\$\{cpuRewardTicketTotal\}）/);
+  assert.match(app, /現在、Lv\.\$\{level\}券を\$\{available\}枚所持しています。1枚引くと券を1枚消費します。/);
+  assert.match(app, /CPU戦の完了報酬を反映済み：Lv\.1券 所持 ×\$\{origin\.ticketTotal\}/);
+  assert.match(app, /1枚引くと所持券は\$\{origin\.ticketTotal - 1\}枚になります/);
+});
+
 test("CPU completion gacha offers one explicit loadout rematch without crossing progression boundaries", () => {
   assert.match(html, /id="gachaResultTitle"[^>]*>次の対戦へ<\/h3>/);
   assert.match(html, /id="gachaResultAnnouncement"[^>]+visually-hidden[^>]+role="status"[^>]+aria-live="polite"[^>]+aria-atomic="true"/);
