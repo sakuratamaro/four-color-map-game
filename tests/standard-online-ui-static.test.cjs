@@ -706,7 +706,8 @@ test("basic board actions keep blocked COLOR voluntary and projection-bounded", 
   assert.match(app, /sendAction\("CREATE_REGION", \{ sourceMacros:/);
   assert.match(app, /sendAction\("COLOR_REGION", \{ color \}\)/);
   assert.match(app, /sendAction\("SURRENDER"\)/);
-  assert.match(html, /id="colorResponse"[\s\S]+id="colorRescueGuide"[\s\S]+自動では敗北せず[\s\S]+id="showColorSkills"[\s\S]+id="colorSurrender"[^>]+aria-describedby="colorRescueExplanation"/);
+  assert.match(html, /id="colorResponse"[\s\S]+id="paletteControls"[\s\S]+id="colorResponseActions"[\s\S]+id="showColorSkills"[\s\S]+id="colorSurrender"/);
+  assert.doesNotMatch(html, /塗れる色が見つからないとき|id="colorRescueExplanation"|id="colorRescueGuide"/);
   assert.doesNotMatch(html, /id="declareNoColor"|サーバーに「塗れる色なし」と申告/);
   assert.match(app, /canRespondToColor = myTurn && state\.phase === "COLOR" && !targetDraft/);
   assert.match(app, /showColorSkills[\s\S]+button\[data-skill\]:not\(:disabled\)[\s\S]+category === "color"[\s\S]+scrollIntoView/);

@@ -24,7 +24,7 @@ const contactPressureBrowserGate = fs.readFileSync(path.join(root, "tests", "sta
 const bundleBuilder = fs.readFileSync(path.join(root, "scripts", "build-standard-v5-bundle.mjs"), "utf8");
 
 test("local alpha has a bundled offline entry point", () => {
-  assert.match(html, /app\.bundle\.js\?v=20260908-2-87f722259e50/);
+  assert.match(html, /app\.bundle\.js\?v=20260908-3-ad91938e65c4/);
   for (const id of ["profileA", "profileB", "firstPlayer", "startMatch", "handover", "privatePanel", "resultPanel"]) {
     assert.match(html, new RegExp(`id="${id}"`));
   }
@@ -38,8 +38,8 @@ test("local alpha has a bundled offline entry point", () => {
 
 test("local cache marker publishes the rebuilt alpha.4 and deferred-curse bundle", () => {
   const bundleHash = createHash("sha256").update(bundle).digest("hex");
-  assert.equal(bundleHash, "87f722259e50b407d99ef1bd877f3d13687c1ad82e9a9c2d017cc2d62c40daee");
-  assert.match(html, new RegExp(`app\\.bundle\\.js\\?v=20260908-2-${bundleHash.slice(0, 12)}`));
+  assert.equal(bundleHash, "ad91938e65c4c7dd66f90c3efcef61ad54cb6d395364badd2c9f0d17a01ae79b");
+  assert.match(html, new RegExp(`app\\.bundle\\.js\\?v=20260908-3-${bundleHash.slice(0, 12)}`));
   assert.match(bundle, /SKILL_CATEGORY_ALREADY_USED_IN_WINDOW/);
   assert.match(bundle, /COLORED_CORNER_BLOOM_ENGINE_VERSION/);
   assert.match(bundle, /colorBonusRefill/);
@@ -194,10 +194,9 @@ test("no-color session hook remains test-owned while the product exposes only vo
   assert.match(noColorBrowserGate, /globalThis\.__codexStandardSession = session/);
   assert.match(noColorBrowserGate, /context\.route/);
   assert.doesNotMatch(`${html}\n${app}\n${bundle}`, /__codexStandardSession/);
-  assert.match(app, /phase === "COLOR" && targetMode === null/);
-  assert.match(app, /打開できない場合も自動では敗北しません/);
-  assert.match(app, /下の「投了」を押してください/);
-  assert.doesNotMatch(app, /右の「投了」/);
+  assert.doesNotMatch(`${html}\n${app}\n${bundle}`, /塗れる色が見つからないとき|打開できない場合も自動では敗北しません|下の「投了」を押してください|右の「投了」/);
+  assert.match(app, /dispatch\("COLOR_REGION", \{ color \}\)/);
+  assert.match(app, /own\.hand\.colorPrism > 0/);
   assert.doesNotMatch(app, /dispatch\("DECLARE_NO_COLOR", \{\}\)|サーバーに「塗れる色なし」と申告/);
   assert.match(app, /surrender\.onclick = \(\) => dispatch\("SURRENDER"\)/);
   assert.match(bundle, /LEGACY_ENGINE_VERSION/);

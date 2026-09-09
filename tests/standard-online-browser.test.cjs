@@ -4951,7 +4951,9 @@ test("actual browser keeps blocked COLOR active until voluntary surrender at 390
     const response = page.locator("#colorResponse");
     await response.waitFor({ state: "visible" });
     assert.equal(await page.locator("#declareNoColor").count(), 0);
-    assert.match(await page.locator("#colorRescueGuide").textContent(), /自動では敗北せず.*自分で投了/s);
+    assert.ok(await page.locator("#paletteControls .color-button").count() > 0);
+    assert.equal(await page.getByText("塗れる色が見つからないとき", { exact: true }).count(), 0);
+    assert.equal(await page.locator("#colorRescueExplanation").count(), 0);
 
     await page.evaluate(() => {
       const runtime = globalThis.__standardOnlineRuntime;
@@ -4975,8 +4977,7 @@ test("actual browser keeps blocked COLOR active until voluntary surrender at 390
       );
       return bottom <= obstructionTop - 8;
     });
-    assert.equal(await page.locator("#colorSurrender").getAttribute("aria-describedby"), "colorRescueExplanation");
-    assert.match(await page.locator("#colorRescueExplanation").textContent(), /打開できない場合も自動では敗北せず/);
+    assert.equal(await page.locator("#colorSurrender").getAttribute("aria-describedby"), null);
     const [showSkillsBox, surrenderBox] = await Promise.all([
       page.getByRole("button", { name: "色操作カードを見る" }).boundingBox(),
       page.locator("#colorSurrender").boundingBox(),

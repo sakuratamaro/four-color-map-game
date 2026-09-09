@@ -7405,16 +7405,6 @@ function boot() {
       used.textContent = `この操作権区間で使用済み：${[...usedSkillCategories].map((category) => ({ color: "色操作", area: "エリア操作", disrupt: "妨害" })[category]).join("・")}`;
       privatePanel.appendChild(used);
     }
-    if (phase === "COLOR" && targetMode === null) {
-      const guidance = document.createElement("section");
-      guidance.className = "no-color-response";
-      const summary = document.createElement("strong");
-      summary.textContent = "塗れる色が見つからないとき";
-      const explanation = document.createElement("p");
-      explanation.textContent = "まず色操作カードで打開できるか確認してください。打開できない場合も自動では敗北しません。自分で決めたときに下の「投了」を押してください。";
-      guidance.append(summary, explanation);
-      privatePanel.appendChild(guidance);
-    }
     const usedBoardColors = [...new Set(Object.values(publicState.regions).map((region) => region.color).filter((color) => Object.hasOwn(COLOR_NAMES, color)))];
     if (own.hand.colorRandomBorrow > 0) appendButton("色拾い・乱", colorSkillUsed || targetMode !== null || phase !== "COLOR", () => dispatch("USE_SKILL", { skill: "colorRandomBorrow" }));
     if (own.hand.colorChoiceBorrow > 0) appendButton("色借り", colorSkillUsed || targetMode !== null || phase !== "COLOR" || usedBoardColors.length === 0, () => {
