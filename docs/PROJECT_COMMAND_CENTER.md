@@ -73,6 +73,8 @@
 | P1 | Lv3/4の問題内容による難化 | クイズ＋Edge＋司令塔 | REOPENED | `a0eeca7`の公開・試験履歴は保持するが、後発`UDL-20260908-032`により、Lv3/4の難化は時間ではなく問題内容で達成する。実生成問題の内容で差を確認するまで現行受入は未達 |
 | P1 | CPU敗北表情・理由別台詞 | 演出＋UX＋素材 | REOPENED | `d06f34d`＋`21b58c6`の公開履歴は保持する。ただし台詞／ナレーション分離と主語は`UDL-20260908-030`、portraitの暫定扱いと将来差替え条件は`UDL-20260908-033`で現行受入を再開した |
 | P1 | 基本効果音・スマホ振動 | 演出＋アクセシビリティ | PUBLIC_VERIFIED | `4e71ebc`＋競合修正`9be6b90`、公開`767805b`。初期OFFの独立設定、trusted gesture、可視中・event ID重複排除、Web Locksによる同時タブ一意presenter、OFF即停止、保存、reduced-motion独立。Windows `34039704692`はChrome/Edge各2/2・skip 0、Pages `34040260269`、公開v37/feedback v2/app v38と設定再読込、candidate preflightを確認。Edge/DB変更なし |
+| P0 | クイズ正解・完走報酬・ガチャ結果の効果音／振動拡張 | 演出＋クイズ＋進行＋アクセシビリティ＋司令塔 | DECIDED | `UDL-20260910-047`。既存`basic-feedback.js`だけを拡張し、通常正解、3/5 streak、保存済み完走報酬、perfect、保存済みガチャ結果を段階cueへする。server ACK／保存確定後だけstable event IDでexactly-once発火し、1/10/100枚ガチャはmaxRarity代表の1セットへ集約。初期OFF・音／振動独立・非対応no-op・失敗を強く罰しない境界を維持する |
+| P1 | Lv.5全画面手書きメモ＋四則電卓 | クイズ＋UX＋アクセシビリティ＋privacy＋司令塔 | SPEC_READY | `UDL-20260910-048`。旧textarea案を撤回し、Lv.5だけで透明Canvasの手書き面と安全な四則電卓を提供する。既存timer／timeout自動回答、pending answer再送、問題生成、採点、報酬、選択肢物理密度、DB／Edgeを変えない独立スライス |
 | P2 | 既塗エリアへの差し色追加／重ね塗り | ルール＋UX | DECIDED | ★5候補。現在盤面の一続きの既塗エリアを盤面選択し、所有者でなく現在形状を判定対象とする。Shift分断・同色合流後の再構成結果へ作用する |
 | P1 | 既塗エリアの角膨張 | ルール＋UX＋司令塔 | REOPENED | engine・Edge 24と`26a4161`の公開履歴は保持する。後発`UDL-20260908-029`により、公開microcellではなく通常表示の1マスを直接tapするカード→対象マス→即使用へSUPERSEDED |
 | P1 | 同一ターン同一カテゴリ1枚制約 | ルール＋CPU＋UX＋Edge | PUBLIC_VERIFIED | `STANDARD_SKILL_CATEGORY_AUDIT.md`の19枚（5 color／6 area／8 disrupt）と別`usageCategory`をalpha.3へ実装。accepted no-op、retry/replay、CPU/debug/LAB、旧alpha.1/2互換を自動・Windows・liveで確認。物理二端末だけPENDING |
@@ -134,8 +136,10 @@
 | UDL-20260909-044 | クイズ正答率を全体とLv別に見たい | 全体＋Lv1〜5ごとに正答率、正解数、判定数を表示し、過去データがなければ記録開始以降と明記する | 分母は判定済みだけ、未出題／未完了を誤答にしない、時間切れは既存採点規則、再送／reload／複数tabで二重算入0、推定値0 | quiz settlement receipts、profile schema | クイズ＋Edge＋DB＋UX | Quiz accuracy stats | DECIDED | — | NO | NO | NOT_RUN | 2026-09-09追加監査 | — | YES |
 | UDL-20260909-045 | CPUが封印skillを弱い局面で浪費する | 序盤一律禁止にせず、接触色が少なく代替手段が多い時は温存し、応手を絞れる局面では初手を含め使用できる判断へする | 公開／許可情報だけ、相手private palette／hand参照0、全CPU合法・決定性、弱体化0、seeded局面比較 | CPU policy、public contact colors、seal skills | CPU＋privacy＋ルール | CPU seal timing | DECIDED | — | NO | NO | NOT_RUN | 2026-09-09追加監査 | — | YES |
 | UDL-20260909-046 | 対戦報酬強化と永続化修正を混同しない | PvP rolling 60分10報酬試合、CPU敗北Lv1×1、PvP勝敗別・CPU勝利強さ別の券レベル／枚数範囲、matchId冪等を固定し、最終分布は別決定にする | UDL-042を先に満たし、境界時刻、再送、同時tab、再戦、旧room、在庫、ガチャ表示、収支上限を検証 | UDL-042、economy version、settlement receipt | 経済＋Edge＋DB＋司令塔 | Reward economy follow-up | DECIDED | — | NO | NO | NOT_RUN | 2026-09-09追加監査 | 具体分布は未確定。永続化bugの修正完了を報酬強化の完成扱いにしない | YES |
+| UDL-20260910-047 | クイズ正解やガチャでも効果音・振動を使い、気持ちよい節目を増やす | P0は通常正解、保存済み完走報酬、保存済みガチャ結果、★4、★5。P1は3/5 streak、P2は任意のガチャ開始と弱い不正解／timeout。通常正解は短い明音＋単発振動、3/5 streak・perfectは通常cueと重ねず上位compound cue 1本、ガチャは1 draw actionにつきmaxRarity代表cue 1セットとし、★4／★5を明確に格上にする | `basic-feedback.js`を唯一の基盤にし、音／振動の個別設定と初期OFF、非対応no-op、可視テキスト／aria-liveを維持する。answer ACK＋`isCorrect`、finish＋券保存、draw＋券消費／カード付与／profile保存の確定後だけstable event IDで発火し、render、reload、復元、保存失敗では成功cue 0。同一answer／finish／drawのretry・reload・別tabを通じ合計1回。1/10/100枚と低レアのみ／★4混在／★5複数を各1セットで検証し、既存手番・接触2/3/4・勝敗cueを非回帰。全体原則1秒以内、長い振動・曲・queueなし。Desktop Chrome/Edge、390px、実振動端末まで確認し、実機未確認はPHYSICAL_ACCEPTEDにしない | UDL-008、UDL-018、UDL-040、UDL-042、quiz answer/finish action ID、gacha action ID／server receipt、既存Web Lock履歴 | 演出＋クイズ＋進行＋a11y＋司令塔 | Rewarding quiz/gacha feedback slices A–F | DECIDED | — | NO | NO | NOT_RUN | 2026-09-10「設計書作成」チャット＋ユーザー決定 | UDL-008の公開済み安全基盤をSUPERSEDEせず拡張する。既存の視覚streak 2/4/6は変更せず、音／振動の節目だけ3/5。完走cueはUDL-042の保存確定契約に従い、保存不具合の完成扱いにはしない | YES |
+| UDL-20260910-048 | Lv.5で画面全体へ手書きし、四則電卓も使いたい | Lv.5だけにMemo ON入口を置き、透明な全画面Canvasでペン／消しゴム／Undo／全消去を提供する。ON中はMemo OFFと描画道具と四則電卓以外の通常UIを操作不能にし、回答にはOFFが必要。OFF後も線を表示したままCanvasはpointer透過にする。正式な次問、終了、失敗、放棄、期限切れ、新規クイズで線・Undo・電卓式／結果／履歴を消し、同一問題のrender、reload、回答送信中、通信失敗、pending answer再送中は保持する。電卓は数字、小数点、括弧、符号、Backspace、Clear、`=`を入力補助として許し、演算は＋－×÷だけ、`eval`／`Function`は禁止する | mouse／touch／pen、pointer capture、回転・resize・DPR 1/2/3、正規化座標、390px、keyboard／screen reader、Escape、focus／inert、toolbar 44px、OFF後scrollとpointer透過を確認。Memo独自のtimer pauseを追加せず既存hint／room pauseとtimeout自動回答を維持し、ON中timeoutは強制OFF後に既存回答経路を通す。scopeは`sessionId + answers.length`で同一問題だけsessionStorage復元し、別問／別sessionへ持ち越さず無関係keyを消さない。strokes／calculatorを回答payload、RPC、server、analytics、pendingQuizへ含めず、correct answer、採点器、非公開metadataを補助moduleへ渡さない。0除算、不完全式、括弧不一致、非有限値、破損／quota／Canvas失敗でquizを落とさず、Undo・eraser・Clear→Undo、回答lock、room成立／fatal UI優先、次問clear、通信失敗保持をChrome／Edgeで検証する | 現行quiz lifecycle、pending answer再送、timer／room lock、UDL-034の公開済み選択肢物理 | クイズ＋UX＋a11y＋privacy＋司令塔 | Lv.5 quiz memo and four-operation calculator | SPEC_READY | — | NO | NO | NOT_RUN | 2026-09-10「設計書作成」チャット＋ユーザー確定 | 旧textarea式memo案と「任意メモ・電卓」の未確定扱いをSUPERSEDED。選択肢密度、効果音、報酬、CPU素材とは別コミット／別検証にする | YES |
 
-## 2026-09-09 三分類の現在値
+## 2026-09-10 三分類の現在値
 
 この節の`CHAT_ONLY`は「ユーザー要件として正本へ収載済みだが、担当・実装計画・完了便が未確定」を表す。提案や未承認という意味ではない。`PUBLIC_BUT_UX_UNMET`は公開履歴を保持しつつ、後発の実見で現行受入を満たさない状態である。同じ項目の履歴と現在状態を別行にせず、この列で併記する。
 
@@ -156,8 +160,10 @@
 | クイズ全体＋Lv別正答率 | CHAT_ONLY | 既存quiz records／settlementを精査前。`UDL-044` |
 | CPU封印skillの局面判断 | CHAT_ONLY | 一律序盤禁止を追加せず公開情報だけで評価。`UDL-045` |
 | 対戦報酬強化の最終分布 | PLANNED | rolling 60分10試合、CPU敗北Lv1×1、matchId冪等等の境界は固定。具体分布は未確定。`UDL-046` |
+| クイズ／ガチャの確定後feedback拡張 | DECIDED / SLICED | `basic-feedback.js`へA:基盤、B:正解＋3/5 streak、C:保存済み完走＋perfect、D:maxRarityガチャ、E:任意start/wrong/timeout、F:回帰／実機の順で小分けする。UDL-042の保存確定を先行境界にし、進行中の公開UX復旧やdirty worktreeへ混載しない。`UDL-047` |
+| Lv.5全画面手書きメモ＋四則電卓 | SPEC_READY | 旧textarea案を撤回。Canvas、四則限定safe parser、scope storage、timeout bypass、次問clear、focus／inert、390px／DPRのP0/P1契約を固定し、既存公開UX復旧とは別branchで着手する。`UDL-048` |
 | 現AI portraitの将来差替え | PLANNED | 現assetは暫定継続。ライセンス、manifest、視覚承認前は置換しない。`UDL-033` |
-| 検索・紹介入口、CPU勝利全身絵、呪返し／レア度再編／弱い★2封印、任意メモ・電卓 | CHAT_ONLY / PLANNED | 既存backlogの決定・保留状態を維持し、この追補だけで担当・実装・公開済みへ昇格しない |
+| 検索・紹介入口、CPU勝利全身絵、呪返し／レア度再編／弱い★2封印 | CHAT_ONLY / PLANNED | 既存backlogの決定・保留状態を維持し、この追補だけで担当・実装・公開済みへ昇格しない |
 
 ### 2. 専用候補あり・未公開
 
@@ -191,6 +197,8 @@
 | PROPOSAL-20260908-004 | UDL-030、UDL-031 | speaker、narration、portraitを独立componentにし、一覧と対戦結果で同じportrait fallback契約を再利用する | PROPOSED_UNAPPROVED |
 | PROPOSAL-20260908-005 | UDL-032 | 問題の必須操作数・情報統合数・誤答誘因をdifficulty rubricにし、時間と独立したgenerator契約にする | PROPOSED_UNAPPROVED |
 | PROPOSAL-20260908-006 | UDL-033 | asset intake checklistとmanifest validatorを先に用意し、視覚候補は製品asset外で比較する | PROPOSED_UNAPPROVED |
+| PROPOSAL-20260910-007 | UDL-048 | `quiz-calculator.js`、`quiz-scratch-state.js`、`quiz-memo-canvas.js`をpure ES moduleへ分離し、app.jsはscope／timer／room／physics／focusのorchestrationだけを持つ。Memo操作では`renderQuiz()`を呼ばずoption DOMと位置を維持し、OFF時は位置を飛ばさず速度だけ再抽選する。timeout回答だけはMemo／回答lockをbypassして既存経路を必ず通す | PROPOSED_REVIEWED_P0_P1 |
+| PROPOSAL-20260910-008 | UDL-048 | 初期feel値はpen 3 CSS px、eraser 20 CSS px、Undo 100操作、保存250ms、12,000 points／問、JSON 512KB目標、電卓履歴8件、式96文字、token 64、括弧深度12、表示12有効数字、Memo OFF後answer lock 450ms。仕様境界を変えない範囲で実機feel testから調整する | PROPOSED_ADJUSTABLE_P2 |
 
 ### Decision reconciliation gate
 
