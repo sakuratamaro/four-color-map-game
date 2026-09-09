@@ -4179,7 +4179,7 @@ test("actual browser enlarges a 12-column board and completes connected selectio
   }, { viewport: { width: 390, height: 844 } });
 });
 
-test("actual browser guides one public legal start then switches fully to connected candidates", { timeout: 180000 }, async () => {
+test("actual browser guides every public legal start then switches fully to connected candidates", { timeout: 180000 }, async () => {
   await withPage("playing", async (page) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.evaluate(() => {
@@ -4201,21 +4201,24 @@ test("actual browser guides one public legal start then switches fully to connec
       runtime.onInvalidate?.({});
     });
     const board = page.locator("#board");
-    await page.waitForFunction(() => document.querySelector("#board")?.dataset.guidedMacro === "7");
+    await page.waitForFunction(() => document.querySelector("#board")?.dataset.startCandidateMacros === "7,10,11,13,14");
     assert.equal(await board.getAttribute("data-selection-guidance"), "start");
-    assert.equal(await board.getAttribute("data-guided-macro"), "7");
+    assert.equal(await board.getAttribute("data-start-candidate-macros"), "7,10,11,13,14");
+    assert.equal(await board.getAttribute("data-guided-macro"), null);
     assert.equal(await board.getAttribute("data-connected-guided-macros"), null);
     assert.equal(await board.getAttribute("aria-describedby"), "boardKeyboardHelp boardKeyboardStatus");
-    assert.match(await board.getAttribute("aria-label"), /水色の破線は最初のおすすめ選択候補/);
-    assert.match(await page.locator("#boardKeyboardHelp").textContent(), /自動選択ではありません/);
-    assert.match(await page.locator("#turnGuideDetail").textContent(), /水色の破線.*自動選択ではない.*選んだエリアは相手が塗ります/);
+    assert.match(await board.getAttribute("aria-label"), /水色の破線は選択を開始できる全候補5か所/);
+    assert.match(await page.locator("#boardKeyboardHelp").textContent(), /必要数まで完成できる全候補.*自動選択ではありません/);
+    assert.match(await page.locator("#turnGuideDetail").textContent(), /水色の破線.*全候補.*5か所.*自動選択ではない.*選んだエリアは相手が塗ります/);
+    assert.equal(await page.locator("#selectionCount").textContent(), "0 / 2マス");
     assert.equal(await board.evaluate((node) => getComputedStyle(node).animationName), "none");
 
     await board.focus();
-    assert.match(await page.locator("#boardKeyboardStatus").textContent(), /左から3列目.*最初のおすすめ選択候補/);
+    assert.match(await page.locator("#boardKeyboardStatus").textContent(), /左から3列目.*選択を開始できる候補/);
     await page.keyboard.press("Space");
     assert.equal(await page.locator("#selectionCount").textContent(), "1 / 2マス");
     assert.equal(await board.getAttribute("data-selection-guidance"), "connected");
+    assert.equal(await board.getAttribute("data-start-candidate-macros"), null);
     assert.equal(await board.getAttribute("data-guided-macro"), null);
     assert.equal(await board.getAttribute("data-connected-guided-macros"), "11");
     assert.doesNotMatch(await board.getAttribute("aria-label"), /最初のおすすめ/);
@@ -4225,20 +4228,21 @@ test("actual browser guides one public legal start then switches fully to connec
 
     await page.keyboard.press("Escape");
     await page.locator('#skillControls button[data-skill="areaMicroBloom"]').click();
-    await page.waitForFunction(() => document.querySelector("#board")?.dataset.guidedMacro === "5");
+    await page.waitForFunction(() => document.querySelector("#board")?.dataset.startCandidateMacros === "5,6,7,9,10,11,13,14");
     assert.equal(await board.getAttribute("data-selection-guidance"), "start");
-    assert.equal(await board.getAttribute("data-guided-macro"), "5");
-    assert.match(await page.locator("#skillTargetControls").textContent(), /水色の破線は最初のおすすめ選択候補/);
+    assert.equal(await board.getAttribute("data-start-candidate-macros"), "5,6,7,9,10,11,13,14");
+    assert.match(await page.locator("#skillTargetControls").textContent(), /水色の破線は選択を開始できる全候補.*8か所/);
     await page.getByRole("button", { name: "キャンセル", exact: true }).click();
 
     await page.locator('#skillControls button[data-skill="areaCornerBloom"]').click();
     assert.equal(await board.getAttribute("data-selection-guidance"), "none");
+    assert.equal(await board.getAttribute("data-start-candidate-macros"), null);
     assert.equal(await board.getAttribute("data-guided-macro"), null);
     await page.getByRole("button", { name: "角膨張をキャンセル", exact: true }).click();
     await page.locator('#skillControls button[data-skill="areaHalfShift"]').click();
     assert.equal(await board.getAttribute("data-selection-guidance"), "none");
     await page.getByRole("button", { name: "キャンセル", exact: true }).click();
-    assert.equal(await board.getAttribute("data-guided-macro"), "7");
+    assert.equal(await board.getAttribute("data-start-candidate-macros"), "7,10,11,13,14");
 
     await page.evaluate(() => {
       const runtime = globalThis.__standardOnlineRuntime;
@@ -4248,7 +4252,7 @@ test("actual browser guides one public legal start then switches fully to connec
       runtime.onInvalidate?.({});
     });
     await page.waitForFunction(() => document.querySelector("#board")?.dataset.selectionGuidance === "none");
-    assert.equal(await board.getAttribute("data-guided-macro"), null);
+    assert.equal(await board.getAttribute("data-start-candidate-macros"), null);
     await page.evaluate(() => {
       const runtime = globalThis.__standardOnlineRuntime;
       const version = runtime.room.public_state.version + 1;
@@ -4256,7 +4260,7 @@ test("actual browser guides one public legal start then switches fully to connec
       runtime.view = { ...runtime.view, version };
       runtime.onInvalidate?.({});
     });
-    await page.waitForFunction(() => document.querySelector("#board")?.dataset.guidedMacro === "7");
+    await page.waitForFunction(() => document.querySelector("#board")?.dataset.startCandidateMacros === "7,10,11,13,14");
     assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls
       .filter((entry) => entry.body?.operation === "action").length), 0);
 
@@ -4285,7 +4289,7 @@ test("actual browser guides one public legal start then switches fully to connec
       runtime.onInvalidate?.({});
     });
     const board = page.locator("#board");
-    await page.waitForFunction(() => document.querySelector("#board")?.dataset.guidedMacro === "7");
+    await page.waitForFunction(() => document.querySelector("#board")?.dataset.startCandidateMacros === "7,10,11,13,14");
     const box = await board.boundingBox();
     await board.click({ position: { x: box.width * (3.5 / 4), y: box.height * (1.5 / 4) } });
     assert.equal(await page.locator("#selectionCount").textContent(), "1 / 2マス");
@@ -4313,9 +4317,13 @@ test("actual browser guides one public legal start then switches fully to connec
       return performance.now() - startedAt;
     });
     await page.waitForFunction(() => document.querySelector("#board")?.dataset.selectionGuidance === "start");
-    const maximumBoardGuide = Number(await board.getAttribute("data-guided-macro"));
-    assert.ok(Number.isSafeInteger(maximumBoardGuide) && maximumBoardGuide >= 0 && maximumBoardGuide < 143, String(maximumBoardGuide));
+    const maximumBoardGuides = (await board.getAttribute("data-start-candidate-macros")).split(",").map(Number);
+    assert.ok(maximumBoardGuides.length > 1, JSON.stringify(maximumBoardGuides));
+    assert.deepEqual(maximumBoardGuides, [...new Set(maximumBoardGuides)].sort((left, right) => left - right));
+    assert.ok(maximumBoardGuides.every((macro) => Number.isSafeInteger(macro) && macro >= 0 && macro < 143), JSON.stringify(maximumBoardGuides));
     assert.ok(maximumBoardRenderMs < 1000, `maximum-board guidance render took ${maximumBoardRenderMs.toFixed(1)}ms`);
+    assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls
+      .filter((entry) => entry.body?.operation === "action").length), 0);
   }, { viewport: { width: 1280, height: 900 } });
 });
 

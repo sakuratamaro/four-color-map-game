@@ -3499,7 +3499,7 @@ function renderSkillTarget(state, privateState) {
       const connectedCount = connectedCandidateMacros(state).size;
       note.textContent = `盤面選択 ${selectedMacros.size}マス。${selectedMacros.size
         ? `緑の破線は次に辺でつなげて選べる候補です（${connectedCount}か所）。`
-        : "水色の破線は最初のおすすめ選択候補です。自動選択ではありません。"}`;
+        : `水色の破線は選択を開始できる全候補です（${startCandidateMacros(state).size}か所）。自動選択ではありません。`}`;
     } else note.textContent = `盤面選択 ${selectedMacros.size}マス。`;
     controls.appendChild(note);
   }
@@ -3759,16 +3759,17 @@ function outgoingSelectionCanComplete(state, selectedInput) {
   return search(selected);
 }
 
-function firstGuidedMacro(state) {
-  if (!boardSelectionAvailable(state) || !outgoingSelectionGuidanceActive() || selectedMacros.size) return null;
+function startCandidateMacros(state) {
+  const result = new Set();
+  if (!boardSelectionAvailable(state) || !outgoingSelectionGuidanceActive() || selectedMacros.size) return result;
   const bounds = state.playableBounds;
   for (let row = bounds.minRow; row <= bounds.maxRow; row += 1) {
     for (let col = bounds.minCol; col <= bounds.maxCol; col += 1) {
       const macro = row * bounds.macroWidth + col;
-      if (outgoingSelectionCanComplete(state, [macro])) return macro;
+      if (outgoingSelectionCanComplete(state, [macro])) result.add(macro);
     }
   }
-  return null;
+  return result;
 }
 
 function connectedCandidateMacros(state) {
@@ -3796,8 +3797,8 @@ function boardMacroDescription(state, macro) {
   let availability = "使用済み";
   if (selectedMacros.has(macro)) availability = "選択済み";
   else if (macroHasFreeMicro(state, macro)) {
-    if (!selectedMacros.size && firstGuidedMacro(state) === macro) availability = "空きあり、最初のおすすめ選択候補";
-    else if (!selectedMacros.size) availability = "空きあり";
+    if (!selectedMacros.size && startCandidateMacros(state).has(macro)) availability = "空きあり、選択を開始できる候補";
+    else if (!selectedMacros.size) availability = "空きあり、この位置から必要数を完成できません";
     else if (selectedMacros.size >= state.requiredSize) availability = "空きあり、必要数は選択済み";
     else if (connectedCandidateMacros(state).has(macro)) availability = "次に辺でつなげて選べる候補";
     else availability = "空きあり、現在の選択とは非接続";
@@ -3812,8 +3813,9 @@ function announceBoardSelection(message) {
 function ensureBoardKeyboardMacro(state) {
   if (playableMacro(state, boardKeyboardMacro)) return boardKeyboardMacro;
   const firstSelected = visibleOutgoingMacros(state).find((macro) => playableMacro(state, macro));
+  const firstStartCandidate = startCandidateMacros(state).values().next().value;
   const bounds = state.playableBounds;
-  boardKeyboardMacro = firstSelected ?? firstGuidedMacro(state) ?? bounds.minRow * bounds.macroWidth + bounds.minCol;
+  boardKeyboardMacro = firstSelected ?? firstStartCandidate ?? bounds.minRow * bounds.macroWidth + bounds.minCol;
   return boardKeyboardMacro;
 }
 
@@ -4245,12 +4247,13 @@ function strokeMicroTargetFrame(ctx, micro, microWidth, cell) {
 function renderBoard(state) {
   const canvas = $("board"); const ctx = canvas.getContext("2d");
   const boardInteractive = syncBoardSelectionAssist(state);
-  const startGuidedMacro = boardInteractive && outgoingSelectionGuidanceActive() ? firstGuidedMacro(state) : null;
+  const startGuidedMacros = boardInteractive && outgoingSelectionGuidanceActive() ? startCandidateMacros(state) : new Set();
   const connectedGuidedMacros = boardInteractive && outgoingSelectionGuidanceActive() ? connectedCandidateMacros(state) : new Set();
-  const guidanceMode = Number.isSafeInteger(startGuidedMacro) ? "start" : connectedGuidedMacros.size ? "connected" : "none";
+  const guidanceMode = startGuidedMacros.size ? "start" : connectedGuidedMacros.size ? "connected" : "none";
   canvas.dataset.selectionGuidance = guidanceMode;
-  if (Number.isSafeInteger(startGuidedMacro)) canvas.dataset.guidedMacro = String(startGuidedMacro);
-  else delete canvas.dataset.guidedMacro;
+  if (startGuidedMacros.size) canvas.dataset.startCandidateMacros = [...startGuidedMacros].sort((left, right) => left - right).join(",");
+  else delete canvas.dataset.startCandidateMacros;
+  delete canvas.dataset.guidedMacro;
   if (connectedGuidedMacros.size) canvas.dataset.connectedGuidedMacros = [...connectedGuidedMacros].sort((left, right) => left - right).join(",");
   else delete canvas.dataset.connectedGuidedMacros;
   const boardLabel = targetDraft?.kind === "existing-region"
@@ -4263,7 +4266,7 @@ function renderBoard(state) {
       ? "四色地図の対戦盤面。矢印キーでマスを移動し、SpaceまたはEnterで選択、Escapeで全解除できます。"
       : "四色地図の対戦盤面";
   canvas.setAttribute("aria-label", `${boardLabel}${guidanceMode === "start"
-    ? " 水色の破線は最初のおすすめ選択候補です。"
+    ? ` 水色の破線は選択を開始できる全候補${startGuidedMacros.size}か所です。`
     : guidanceMode === "connected" ? " 緑の破線は次に辺でつなげて選べる候補です。" : ""}`);
   const macroWidth = state.playableBounds.macroWidth; const microScale = state.playableBounds.microScale;
   const microWidth = macroWidth * microScale; const cell = canvas.width / microWidth;
@@ -4286,8 +4289,8 @@ function renderBoard(state) {
     ctx.beginPath(); ctx.moveTo(0, offset); ctx.lineTo(canvas.width, offset); ctx.stroke();
   }
   if (boardInteractive && outgoingSelectionGuidanceActive()) {
-    if (Number.isSafeInteger(startGuidedMacro)) {
-      strokeMacroFrame(ctx, startGuidedMacro, macroWidth, microScale, cell, { color: "#38bdf8", cssWidth: 3, cssDash: [3, 3] });
+    if (startGuidedMacros.size) {
+      for (const macro of startGuidedMacros) strokeMacroFrame(ctx, macro, macroWidth, microScale, cell, { color: "#38bdf8", cssWidth: 3, cssDash: [3, 3] });
     } else for (const macro of connectedGuidedMacros) {
       strokeMacroFrame(ctx, macro, macroWidth, microScale, cell, { color: "#86efac", cssWidth: 2.5, cssDash: [5, 4] });
     }
@@ -4400,8 +4403,9 @@ function renderTurnGuide(state) {
       ? "カード効果を反映したエリアです。白い枠をそのまま相手へ渡してください。"
       : "緑の破線は辺でつなげて選べる位置の目印です。確定できるかはサーバーが判定します。"
     : "選んだエリアは相手が塗ります。相手が困る形や接し方を考えてみましょう。";
-  const startHint = Number.isSafeInteger(firstGuidedMacro(state))
-    ? "水色の破線は最初のおすすめ選択候補です。自動選択ではないので、盤面を見て選んでください。"
+  const startCount = startCandidateMacros(state).size;
+  const startHint = startCount
+    ? `水色の破線は選択を開始できる全候補です（${startCount}か所）。自動選択ではないので、盤面を見て選んでください。`
     : "空きのある盤面マスから選択を始めてください。";
   const setText = (id, value) => { if ($(id).textContent !== value) $(id).textContent = value; };
   const present = (kind, step, title, detail) => {
