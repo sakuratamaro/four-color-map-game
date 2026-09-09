@@ -77,9 +77,9 @@ test("online alpha.3 UI understands category windows and the experimental bonus-
 });
 
 test("CPU commentary is public-event-only, bounded, non-blocking, and terminal-persistent", () => {
-  assert.match(html, /style\.css\?v=20260908-6/);
+  assert.match(html, /style\.css\?v=20260910-9/);
   assert.match(html, /standard-online-skill-intents\.js\?v=20260907-20/);
-  assert.match(html, /app\.js\?v=20260908-10/);
+  assert.match(html, /app\.js\?v=20260910-14/);
   assert.match(app, /cpuCommentary\?\.VERSION !== "standard-cpu-commentary-v2"/);
   assert.ok(html.indexOf("cpu-commentary.js") < html.indexOf('type="module" src="app.js'));
   assert.match(html, /id="cpuCommentaryStage"[^>]+aria-hidden="true"/);
@@ -404,7 +404,7 @@ test("existing online progression is hydrated from the server rather than re-upl
 
 test("UI derives its canonical and experimental card metadata from the generated registry", () => {
   assert.equal(Object.values(STANDARD_SKILLS).filter((skill) => skill.v49Catalogued).length, 19);
-  assert.match(html, /standard-skill-registry\.generated\.js\?v=20260907-1[\s\S]+app\.js\?v=20260908-10/);
+  assert.match(html, /standard-skill-registry\.generated\.js\?v=20260907-1[\s\S]+app\.js\?v=20260910-14/);
   assert.match(app, /const STANDARD_SKILL_REGISTRY = globalThis\.FourColorStandardSkillRegistry/);
   assert.match(app, /STANDARD_SKILL_REGISTRY\.v49SkillIds\.map/);
   assert.match(app, /Object\.entries\(STANDARD_SKILL_REGISTRY\.skills\)/);
@@ -664,7 +664,7 @@ test("public color seals disable only paint intents before an action identity is
   assert.ok(sendAction.indexOf('type === "COLOR_REGION" && isColorSealed') < sendAction.indexOf("crypto.randomUUID()"));
   assert.ok(sendAction.indexOf('type === "COLOR_REGION" && isColorSealed') < sendAction.indexOf("client.submitAction"));
   assert.match(sendAction, /return;[\s\S]+const signature = actionSignature/);
-  assert.match(app, /if \(\["color", "slot-color"\]\.includes\(targetDraft\.kind\)\) \{\s*for \(const color of skillIntents\.COLORS\)/);
+  assert.match(app, /if \(targetDraft\.kind === "color"\) \{\s*for \(const color of skillIntents\.COLORS\)/);
   const sealGuard = sendAction.slice(0, sendAction.indexOf("const signature = actionSignature"));
   assert.doesNotMatch(sealGuard, /regions|adjacent|legal/i);
   assert.match(css, /\.color-button\.is-sealed:disabled/);
@@ -673,6 +673,27 @@ test("public color seals disable only paint intents before an action identity is
   assert.match(app, /封印 残り\$\{sealRemaining\}回/);
   assert.match(app, /button\.disabled = actionBusy \|\| sealed \|\| !choice\.available/);
   assert.match(css, /\.color-button\{[^}]*min-height:56px/);
+});
+
+test("palette change separates the private source slot from the destination color", () => {
+  const privateOptions = app.slice(app.indexOf("function paletteChangeSlotOptions"), app.indexOf("function appendPaletteChangeTargeting"));
+  const target = app.slice(app.indexOf("function appendPaletteChangeTargeting"), app.indexOf("function submitSkillTarget"));
+  assert.match(privateOptions, /privateState\?\.basicPalette/);
+  assert.match(privateOptions, /privateState\?\.bonusColor/);
+  assert.match(privateOptions, /privateState\?\.bonusUsesRemaining/);
+  assert.match(privateOptions, /基本色1・/);
+  assert.match(privateOptions, /基本色2・/);
+  assert.match(privateOptions, /おまけ色・/);
+  assert.doesNotMatch(privateOptions, /public_state|regions|members|opponent/i);
+  assert.match(target, /1\. 変更する枠/);
+  assert.match(target, /2\. 変更先の色/);
+  assert.match(target, /現在の色・変更不可/);
+  assert.match(target, /変更する枠：\$\{[\s\S]+→ 変更先：\$\{/);
+  assert.match(target, /slot\.color === targetDraft\.input\.color/);
+  assert.match(target, /この変更を使う/);
+  assert.match(target, /持ち色変更をキャンセル/);
+  assert.match(css, /\.palette-change-options\{[^}]*grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
+  assert.match(css, /@media\(max-width:520px\)\{\.palette-change-options,\.palette-change-colors\{grid-template-columns:1fr\}/);
 });
 
 test("private basic colors keep a readable text separator between visual swatches", () => {

@@ -5226,6 +5226,91 @@ test("actual browser presents current-seat palette impacts once across poll, bac
   }, { viewport: { width: 390, height: 844 }, bodyTimeout: 45_000 });
 });
 
+test("actual browser separates a private palette source slot from its destination and submits once at 390px", { timeout: 120000 }, async () => {
+  await withPage("playing", async (page) => {
+    await page.evaluate(() => {
+      const runtime = globalThis.__standardOnlineRuntime;
+      runtime.room = { ...runtime.room, public_state: { ...runtime.room.public_state,
+        active: "A", phase: "COLOR", pending: "R1", skillCategoryWindow: { actor: "A", categories: [] },
+        regions: { R1: { id: "R1", micro: [0], sourceMacros: [0], controllers: ["B"], color: null, isPending: true } },
+      } };
+      runtime.view = { ...runtime.view, private_state: { ...runtime.view.private_state,
+        hand: { colorPaletteChange: 1 }, basicPalette: ["red", "blue"], bonusColor: "yellow", bonusUsesRemaining: 2,
+        initialBasicPalette: ["red", "blue"], initialBonusColor: "yellow", privateEffects: {},
+      } };
+      runtime.onInvalidate?.({});
+    });
+
+    const skill = page.locator('#skillControls button[data-skill="colorPaletteChange"]');
+    const target = page.locator("#skillTargetControls");
+    await skill.click();
+    await target.getByText("持ち色変更 — 対象を指定", { exact: true }).waitFor();
+    assert.equal(await target.getByText("1. 変更する枠", { exact: true }).count(), 1);
+    assert.equal(await target.getByText("2. 変更先の色", { exact: true }).count(), 1);
+    assert.equal(await target.locator("[data-palette-slot]").count(), 3);
+    assert.equal(await target.locator("[data-palette-destination]").count(), 4);
+    assert.equal(await target.locator("[data-palette-destination]:enabled").count(), 0);
+    assert.equal(await target.getByRole("button", { name: "この変更を使う" }).isDisabled(), true);
+    assert.equal(await target.locator("#paletteChangeSummary").textContent(), "変更する枠：未選択 → 変更先：未選択");
+
+    const bonus = target.locator('[data-palette-slot="2"]');
+    await bonus.focus();
+    await page.keyboard.press("Enter");
+    assert.equal(await target.locator("#paletteChangeSummary").textContent(), "変更する枠：おまけ色・黄（残り2回） → 変更先：未選択");
+    assert.equal(await target.locator('[data-palette-destination="yellow"]').isDisabled(), true);
+    assert.match(await target.locator('[data-palette-destination="yellow"]').textContent(), /現在の色・変更不可/);
+    assert.equal(await target.getByRole("button", { name: "この変更を使う" }).isDisabled(), true);
+    await target.getByRole("button", { name: "持ち色変更をキャンセル" }).click();
+    assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "action").length), 0);
+    assert.equal(await skill.evaluate((node) => node === document.activeElement), true);
+
+    await page.keyboard.press("Enter");
+    const firstBasic = target.locator('[data-palette-slot="0"]');
+    await firstBasic.focus();
+    await page.keyboard.press("Space");
+    assert.equal(await target.locator('[data-palette-destination="red"]').isDisabled(), true);
+    assert.equal(await target.locator('[data-palette-destination="blue"]').isEnabled(), true);
+    const blue = target.locator('[data-palette-destination="blue"]');
+    await blue.focus();
+    await page.keyboard.press("Enter");
+    assert.equal(await target.locator("#paletteChangeSummary").textContent(), "変更する枠：基本色1・赤（回数無制限） → 変更先：青");
+    const confirm = target.getByRole("button", { name: "この変更を使う" });
+    assert.equal(await confirm.isEnabled(), true);
+    await confirm.evaluate((node) => { node.click(); node.click(); });
+    await page.getByText("操作を保存しました。", { exact: true }).waitFor();
+    const actions = await page.evaluate(() => globalThis.__standardOnlineRuntime.calls
+      .filter((entry) => entry.body?.operation === "action").map((entry) => entry.body.action));
+    assert.equal(actions.length, 1);
+    assert.deepEqual(actions[0], {
+      id: actions[0].id,
+      expectedVersion: 9,
+      type: "USE_SKILL",
+      payload: { skill: "colorPaletteChange", slot: 0, color: "blue" },
+    });
+
+    await page.evaluate(() => {
+      const runtime = globalThis.__standardOnlineRuntime;
+      const version = runtime.room.public_state.version + 1;
+      const matchId = runtime.room.public_state.matchId;
+      const event = { eventId: `${matchId}:${version}:palette-impact:A`, version, actor: "A", skill: "colorPaletteChange",
+        kind: "self", slot: 0, previousColor: "red", injectedColor: "blue", remaining: 0 };
+      runtime.room = { ...runtime.room, version, public_state: { ...runtime.room.public_state, version,
+        lastPublicTrace: { eventId: `${matchId}:${version}`, version, type: "USE_SKILL", actor: "A" } } };
+      runtime.view = { ...runtime.view, version, private_state: { ...runtime.view.private_state,
+        hand: {}, basicPalette: ["blue", "blue"], privateEffects: { paletteImpactEvent: event, paletteImpactHistory: [event] } } };
+      runtime.onInvalidate?.({});
+    });
+    await page.locator("#paletteImpactNotice").waitFor({ state: "visible" });
+    assert.equal(await page.locator("#basicPaletteValue").textContent(), "青・青");
+    assert.equal(await page.locator("#paletteImpactDetail").textContent(), "あなたが「持ち色変更」で、基本色1を赤から青へ変更しました。この変更は対戦終了まで続きます。");
+    assert.match(await page.locator("#paletteHistoryList").textContent(), /あなた「持ち色変更」｜基本色1 赤 → 青/);
+    const layout = await target.evaluate((node) => ({
+      hidden: node.classList.contains("hidden"), overflow: document.documentElement.scrollWidth > innerWidth,
+    }));
+    assert.deepEqual(layout, { hidden: true, overflow: false });
+  }, { viewport: { width: 390, height: 844 }, bodyTimeout: 45_000 });
+});
+
 test("actual browser keeps the private palette-impact notice inside a desktop viewport", { timeout: 120000 }, async () => {
   await withPage("playing", async (page) => {
     await page.evaluate(() => {

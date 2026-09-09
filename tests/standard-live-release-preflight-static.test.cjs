@@ -65,8 +65,8 @@ test("release preflight is read-only, secret-free, finite, and stage-aware", () 
   assert.match(source, /DEFERRED_CURSE_LOCAL_BUNDLE_MISMATCH/);
   assert.match(source, /app\.text\.includes\('★\$\{meta\.rarity\}'\)/);
   assert.match(source, /CANDIDATE_ASSET_GENERATION_UI_PHASE_MISMATCH/);
-  assert.match(source, /app\.js\?v=20260908-10/);
-  assert.match(source, /style\.css\?v=20260908-6/);
+  assert.match(source, /app\.js\?v=20260910-14/);
+  assert.match(source, /style\.css\?v=20260910-9/);
   assert.match(source, /standard-online-skill-intents\.js\?v=20260907-20/);
   assert.match(source, /standard-skill-registry\.generated\.js\?v=20260907-1/);
   assert.match(source, /cpu-portraits\.js\?v=20260908-1/);
@@ -156,8 +156,8 @@ test("candidate app satisfies the waiting-opponent release marker", () => {
 });
 
 test("candidate page and app satisfy the alpha.4 cache generation marker", () => {
-  assert.equal(candidateHtml.includes("app.js?v=20260908-10"), true);
-  assert.equal(candidateHtml.includes("style.css?v=20260908-6"), true);
+  assert.equal(candidateHtml.includes("app.js?v=20260910-14"), true);
+  assert.equal(candidateHtml.includes("style.css?v=20260910-9"), true);
   assert.equal(candidateHtml.includes("standard-online-skill-intents.js?v=20260907-20"), true);
   assert.equal(candidateHtml.includes("standard-skill-registry.generated.js?v=20260907-1"), true);
   assert.equal(candidateHtml.includes("cpu-portraits.js?v=20260908-1"), true);
