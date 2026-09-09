@@ -2,7 +2,7 @@
 
 更新日: 2026-09-10
 
-状態: 現行運用。migration `202609030006`–`202609030013`、`202609050001`–`202609050007`、`202609060001`–`202609060003`、Edge deployment 25、Pages product `4318793`（online app v10、style v6、skill intents v20、local bundle v2）は適用済み。`5.0.0-alpha.4`の既存互換とrollback保全を維持する。今便はDB変更なしで、migration、RPC、Edge、engine、報酬量、ガチャ率も変更していない。次便も実行直前にmain HEAD、Pages run、Edge deployment、migration tailを現物から再取得する。
+状態: 現行運用。migration `202609030006`–`202609030013`、`202609050001`–`202609050007`、`202609060001`–`202609060003`、Edge deployment 25、Pages product `eac26ed`（online app v14、style v9、skill intents v20、local bundle v2）は適用済み。`5.0.0-alpha.4`の既存互換とrollback保全を維持する。今便はDB変更なしで、migration、RPC、Edge、engine、報酬量、ガチャ率も変更していない。次便も実行直前にmain HEAD、Pages run、Edge deployment、migration tailを現物から再取得する。
 
 実行中の状態、数値、識別子、失敗は `docs/STANDARD_RELEASE_EVIDENCE.md` に追記する。根拠のない項目を`VERIFIED`や`PASS`へ変更しない。
 
@@ -187,6 +187,16 @@ B便後の最新main `3d84294`へ本番canary `eb629e5`と製品・試験`65f23c
 4. [完了] B便公開後の最新main `3d84294`から専用branch `codex/reward-persistence-release-20260910`へ5 commitを再構成し、exact `4318793`をpushした。Windows run `34384691415`は古いapp v9期待を検出したため修正し、run `34385103929`はChrome成功、Edge attempt 1だけ既存`badge-ready`待機timeout。同一SHAの該当Edge単体1/1後、failed job再実行のattempt 2でEdgeも成功した。失敗runは保持する。
 5. [完了] `origin/main@3d84294`が候補の祖先、ahead 5・behind 0を再確認し、forceなしで`4318793`へfast-forward。Pages `34387630198`は同SHAで成功し、公開asset marker、HTTP 200、candidate preflight `ok:true`、console warning/error 0、390px横overflow 0を確認した。
 6. [完了] 公開通常CPU戦で終局表示`Lv.1券 15→16`、ガチャ画面`×16`、1枚抽選後`×15`、reload後も`×15`と獲得カード「色封じ・乱」を実見した。本番canaryの完全reload・同一終局action再送非二重付与18/18と合わせ、`PUBLIC_VERIFIED`へ昇格した。
+
+### 持ち色変更の変更元枠→変更先色UI便
+
+報酬証跡追補後の最新main `a4f9bf4`から専用branch `codex/palette-change-release-20260910`へ製品`f3ea574`、対象試験`6b7940b`、asset marker、browser待機安定化、有限CI予算だけを積んだPages-only便である。公開製品は`eac26ed`。基本色1／2・おまけ色を変更元として先に選び、別段で変更先色を選ぶ。選択slotの現色だけをno-opとして無効化し、他slotと同色にする既存serverルールは維持する。DB、migration、RPC、Edge、engine、ルール、カード在庫は変更しない。
+
+1. [完了] 元の累積worktreeは`51ca420`として専用branchへ保全し、直接統合しなかった。最新main起点のclean release worktreeへ対象差分だけを再構成し、static/runbook 83/83、対象390px Chrome/Edge各1/1、diff checkを合格させた。
+2. [完了] 正式browserで基本色1／2・おまけ色の色と無制限／残数、変更元選択前の変更先非表示、選択slotの現色disabled、別slotとの同色化、summary、Escape／取消のwrite-free、二重clickでもaction一回、server refresh後の`青・青`、390px overflowなし、private payload非漏えいを確認した。
+3. [完了] Windows `34390627632`は初回Edge成功／Chrome既存`badge-ready` timeout、attempt 2はChrome成功／Edge既存reduced-motion告知raceだった。前者は同一SHAの局所Chrome 1/1、後者は告知文自体を待つよう修正して局所Chrome/Edge各1/1。`34393139988`はChrome成功、Edgeが81/82・fail 0のまま15分上限でcancelされたため、workflowの有限上限を20分へ更新し契約11/11を確認した。最終`34394919317`はexact `eac26ed`でChrome・Edgeとも成功した。途中runも削除しない。
+4. [完了] `origin/main@a4f9bf4`の不変、候補clean、祖先関係を再確認し、forceなしで`eac26ed`へfast-forward。Pages `34396124927`は同SHAで成功し、candidate preflightは`ok:true`。
+5. [完了] 公開390pxでonline app `app.js?v=20260910-14`、Standard style `style.css?v=20260910-9`、横overflow 0、console warning/error 0を確認した。公開プロフィールは持ち色変更0枚のため本番actionを捏造せず、公開asset／表示健全性と正式browser behaviorを分離して記録し、`UDL-038`を`PUBLIC_VERIFIED`へ昇格した。
 
 ### alpha.4彩色済みエリア角膨張便
 
