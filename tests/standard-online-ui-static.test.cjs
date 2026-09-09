@@ -77,7 +77,7 @@ test("online alpha.3 UI understands category windows and the experimental bonus-
 });
 
 test("CPU commentary is public-event-only, bounded, non-blocking, and terminal-persistent", () => {
-  assert.match(html, /style\.css\?v=20260910-9/);
+  assert.match(html, /style\.css\?v=20260910-10/);
   assert.match(html, /standard-online-skill-intents\.js\?v=20260907-20/);
   assert.match(html, /app\.js\?v=20260910-14/);
   assert.match(app, /cpuCommentary\?\.VERSION !== "standard-cpu-commentary-v2"/);
@@ -668,6 +668,12 @@ test("public color seals disable only paint intents before an action identity is
   const sealGuard = sendAction.slice(0, sendAction.indexOf("const signature = actionSignature"));
   assert.doesNotMatch(sealGuard, /regions|adjacent|legal/i);
   assert.match(css, /\.color-button\.is-sealed:disabled/);
+  for (const [color, surface] of Object.entries({ red: "#7f1d1d", blue: "#1e3a8a", yellow: "#713f12", green: "#14532d" })) {
+    assert.match(css, new RegExp(`\\.color-button\\[data-color="${color}"\\]\\{[^}]*--color-surface:${surface}`));
+  }
+  assert.match(css, /\.color-button\.is-sealed:disabled\{[^}]*border-color:var\(--color-border\)[^}]*background:var\(--color-surface\)[^}]*color:var\(--color-ink\)[^}]*opacity:1/);
+  const sealedRule = css.match(/\.color-button\.is-sealed:disabled\{[^}]+\}/)?.[0] || "";
+  assert.doesNotMatch(sealedRule, /#fb7185|background:#1e293b/);
   assert.match(app, /skillIntents\.colorChoiceDetails\(privateState\)/);
   assert.match(app, /おまけ色 残り\$\{choice\.bonusUsesRemaining\}回/);
   assert.match(app, /封印 残り\$\{sealRemaining\}回/);

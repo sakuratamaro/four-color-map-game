@@ -4470,6 +4470,11 @@ test("actual Edge presents public seals and blocks every stale paint path withou
     await red.waitFor();
     assert.match(await red.textContent(), /赤.*回数無制限/);
     assert.equal(await red.isEnabled(), true);
+    const unsealedRedStyle = await red.evaluate((node) => {
+      const style = getComputedStyle(node);
+      return { background: style.backgroundColor, border: style.borderTopColor };
+    });
+    assert.deepEqual(unsealedRedStyle, { background: "rgb(127, 29, 29)", border: "rgb(252, 165, 165)" });
 
     await page.evaluate(() => { globalThis.__standardOnlineRuntime.failNextColorAction = true; });
     await red.click();
@@ -4493,6 +4498,10 @@ test("actual Edge presents public seals and blocks every stale paint path withou
     assert.match(await sealedRed.textContent(), /🔒 赤.*封印 残り1回/);
     assert.equal(await sealedRed.isDisabled(), true);
     assert.equal(await sealedRed.evaluate((node) => node.classList.contains("is-sealed")), true);
+    assert.deepEqual(await sealedRed.evaluate((node) => {
+      const style = getComputedStyle(node);
+      return { background: style.backgroundColor, border: style.borderTopColor, opacity: style.opacity };
+    }), { ...unsealedRedStyle, opacity: "1" });
     assert.notEqual(await page.evaluate(() => document.activeElement?.dataset?.color), "red");
 
     await sealedRed.evaluate((node) => node.click());
@@ -4559,6 +4568,32 @@ test("actual Edge presents public seals and blocks every stale paint path withou
     await sealedZeroBonus.waitFor();
     assert.match(await sealedZeroBonus.textContent(), /おまけ色 残り0回.*封印 残り3回/);
     assert.equal(await sealedZeroBonus.isDisabled(), true);
+
+    await page.evaluate(() => {
+      const runtime = globalThis.__standardOnlineRuntime;
+      const version = runtime.room.version + 1;
+      runtime.room = { ...runtime.room, version, public_state: {
+        ...runtime.room.public_state, version, active: "A", phase: "COLOR", pending: "R1",
+        publicEffects: { ...runtime.room.public_state.publicEffects, A: { seals: { red: 1, blue: 1, yellow: 1, green: 1 } } },
+      } };
+      runtime.view = { ...runtime.view, version, private_state: {
+        ...runtime.view.private_state,
+        basicPalette: ["red", "blue"], bonusColor: "yellow", bonusUsesRemaining: 1,
+        privateEffects: { prism: true },
+      } };
+      runtime.onInvalidate();
+    });
+    await page.waitForFunction(() => document.querySelectorAll("#paletteControls .color-button.is-sealed:disabled").length === 4);
+    assert.deepEqual(await page.locator("#paletteControls .color-button").evaluateAll((nodes) => Object.fromEntries(nodes.map((node) => {
+      const style = getComputedStyle(node);
+      return [node.dataset.color, { background: style.backgroundColor, border: style.borderTopColor, opacity: style.opacity }];
+    }))), {
+      red: { background: "rgb(127, 29, 29)", border: "rgb(252, 165, 165)", opacity: "1" },
+      blue: { background: "rgb(30, 58, 138)", border: "rgb(147, 197, 253)", opacity: "1" },
+      yellow: { background: "rgb(113, 63, 18)", border: "rgb(253, 224, 71)", opacity: "1" },
+      green: { background: "rgb(20, 83, 45)", border: "rgb(134, 239, 172)", opacity: "1" },
+    });
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
 
     await page.evaluate(() => {
       const runtime = globalThis.__standardOnlineRuntime;
