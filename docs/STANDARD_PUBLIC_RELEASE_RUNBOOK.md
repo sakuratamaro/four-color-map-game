@@ -2,7 +2,7 @@
 
 更新日: 2026-09-10
 
-状態: 現行運用。migration `202609030006`–`202609030013`、`202609050001`–`202609050007`、`202609060001`–`202609060003`、Edge deployment 25、Pages product `816f51e`（online app v14、style v10、skill intents v20、local bundle v3）は適用済み。`5.0.0-alpha.4`の既存互換とrollback保全を維持する。今便はDB変更なしで、migration、RPC、Edge、engine、報酬量、ガチャ率も変更していない。次便も実行直前にmain HEAD、Pages run、Edge deployment、migration tailを現物から再取得する。
+状態: 現行運用。migration `202609030006`–`202609030013`、`202609050001`–`202609050007`、`202609060001`–`202609060003`、Edge deployment 25、Pages product `4a8cb28`（online app v15、style v10、skill intents v20、local bundle v3）は適用済み。`5.0.0-alpha.4`の既存互換とrollback保全を維持する。今便はDB変更なしで、migration、RPC、Edge、engine、報酬量、ガチャ率も変更していない。次便も実行直前にmain HEAD、Pages run、Edge deployment、migration tailを現物から再取得する。
 
 実行中の状態、数値、識別子、失敗は `docs/STANDARD_RELEASE_EVIDENCE.md` に追記する。根拠のない項目を`VERIFIED`や`PASS`へ変更しない。
 
@@ -197,6 +197,16 @@ B便後の最新main `3d84294`へ本番canary `eb629e5`と製品・試験`65f23c
 3. [完了] Windows `34390627632`は初回Edge成功／Chrome既存`badge-ready` timeout、attempt 2はChrome成功／Edge既存reduced-motion告知raceだった。前者は同一SHAの局所Chrome 1/1、後者は告知文自体を待つよう修正して局所Chrome/Edge各1/1。`34393139988`はChrome成功、Edgeが81/82・fail 0のまま15分上限でcancelされたため、workflowの有限上限を20分へ更新し契約11/11を確認した。最終`34394919317`はexact `eac26ed`でChrome・Edgeとも成功した。途中runも削除しない。
 4. [完了] `origin/main@a4f9bf4`の不変、候補clean、祖先関係を再確認し、forceなしで`eac26ed`へfast-forward。Pages `34396124927`は同SHAで成功し、candidate preflightは`ok:true`。
 5. [完了] 公開390pxでonline app `app.js?v=20260910-14`、Standard style `style.css?v=20260910-9`、横overflow 0、console warning/error 0を確認した。公開プロフィールは持ち色変更0枚のため本番actionを捏造せず、公開asset／表示健全性と正式browser behaviorを分離して記録し、`UDL-038`を`PUBLIC_VERIFIED`へ昇格した。
+
+### 0マス時の全開始候補便
+
+封印色証跡追補後の最新main `efaa185`へ、保全済み同等差分から製品変更だけを再構成したPages-only便である。公開製品は`4a8cb28`（製品`1e4a7ce`、asset marker`4a8cb28`）。0マス時は既存の公開盤面・必要数・completion判定から、必要数まで完成可能な開始候補をすべて水色破線で示す。自動選択、選択数加算、通信、サーバー制約、合法色oracleは追加しない。DB、migration、RPC、Edge、engine、ルールを変更しない。
+
+1. [完了] 古い累積作業床を直接mergeせず、最新main起点のclean branch `codex/all-start-release-20260910`へ製品差分だけを移植した。style v10を維持し、JavaScript変更をapp v15へcache-bustした。static/runbook 83/83、対象Chrome/Edge各1/1が合格した。
+2. [完了] 正式browserは通常手の5候補とskill対象の8候補を集合一致で確認し、重複0、範囲外0、選択数0、action通信0を固定した。pointer／keyboard、focus位置、選択後の緑の接続候補への切替、取消、手番外none、390px、最大盤面1280px／1秒未満を確認した。
+3. [完了] Windows `34404697454`はChrome／Edgeとも成功した。`origin/main@efaa185`の不変、候補clean、祖先関係を再確認し、forceなしで`4a8cb28`へfast-forwardした。
+4. [完了] Pages `34405690053`は同SHAで成功し、candidate preflightは`ok:true`。公開390pxはonline app `app.js?v=20260910-15`、style `style.css?v=20260910-10`、横overflow 0で、全候補／自動選択なしのkeyboard helpを実配信している。
+5. [完了] 公開プロフィールで進行中CREATE手番を捏造せず、公開asset／案内／表示健全性と正式browser behaviorを分離して記録し、`UDL-039`を`PUBLIC_VERIFIED`へ昇格した。
 
 ### 封印中の元色保持便
 
