@@ -200,6 +200,19 @@ async function run() {
     && initializedB.data?.room?.seat === "B"
     && initializedB.data?.room?.version === initializedA.data?.room?.version, initializedB);
 
+  for (const [seat, initialized] of [["A", initializedA], ["B", initializedB]]) {
+    const privateState = initialized.data?.room?.privateState;
+    const initialColors = [...(privateState?.initialBasicPalette || []), privateState?.initialBonusColor];
+    check(`player ${seat} initial palette projected privately`, privateState?.seat === seat
+      && initialColors.length === 3
+      && initialColors.every((color) => ["red", "blue", "yellow", "green"].includes(color))
+      && new Set(initialColors).size === 3
+      && JSON.stringify(privateState.initialBasicPalette) === JSON.stringify(privateState.basicPalette)
+      && privateState.initialBonusColor === privateState.bonusColor, initialized);
+  }
+  check("initial palettes absent from public projection", !JSON.stringify(initializedA.data.room.publicState).includes("initialBasicPalette")
+    && !JSON.stringify(initializedA.data.room.publicState).includes("initialBonusColor"));
+
   const initialPublicState = initializedA.data.room.publicState;
   const activePlayer = initialPublicState.active === "A" ? playerA : playerB;
   check("active seat projected", initialPublicState.active === "A" || initialPublicState.active === "B");
