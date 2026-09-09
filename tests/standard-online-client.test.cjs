@@ -414,6 +414,7 @@ test("FunctionsHttpError exposes only allowlisted finite rule errors and retry c
     ["NO_COLORED_CORNER_BLOOM_CANDIDATE", /広げられる角.*カード・手番は減っていません/],
     ["INVALID_OUTGOING_SELECTION", /渡すエリアの選択.*カード・手番は減っていません/],
     ["NO_MICRO_BLOOM_CANDIDATE", /ひとふくらみ.*接続できる角.*カード・手番は減っていません/],
+    ["INSUFFICIENT_COINS", /コインが不足.*最新の残高と必要数/],
   ]) {
     const targetedError = await normalizeFunctionError({ code, message: privateMessage });
     assert.equal(targetedError.code, code);

@@ -1432,6 +1432,10 @@ function persistRemoteProfile(profileState, remoteName = null, revision = null) 
   if (!profileState || typeof profileState !== "object" || Array.isArray(profileState)) return;
   const next = JSON.parse(JSON.stringify(profileState));
   if (remoteName) next.displayName = String(remoteName).trim().slice(0, 20);
+  const nextCoins = Number(next.coins);
+  if (cosmeticProjection && Number.isSafeInteger(nextCoins) && nextCoins >= 0) {
+    cosmeticProjection = { ...cosmeticProjection, coins: nextCoins };
+  }
   localStorage.setItem(REMOTE_PROFILE_KEY, JSON.stringify(next));
   localStorage.setItem(PROFILE_CHOICE_KEY, REMOTE_PROFILE_ID);
   if (revision !== null && Number.isSafeInteger(Number(revision))) hydratedProfileRevision = Number(revision);
@@ -1559,7 +1563,9 @@ function renderCosmetics() {
     return;
   }
   $("collectionIdentity").textContent = cosmeticIdentity(value.displayName || "PLAYER", projection.equipped);
-  $("cosmeticCoins").textContent = `🪙 ${Number(projection.coins || 0)}コイン`;
+  const projectedCoins = Number(projection.coins);
+  const availableCoins = Number.isSafeInteger(projectedCoins) && projectedCoins >= 0 ? projectedCoins : 0;
+  $("cosmeticCoins").textContent = `🪙 ${availableCoins}コイン`;
   const locked = cosmeticBusy || Boolean(pendingCosmeticAction);
   for (const item of Array.isArray(projection.items) ? projection.items : []) {
     const card = document.createElement("article");
@@ -1572,8 +1578,10 @@ function renderCosmetics() {
     const detail = document.createElement("p");
     detail.textContent = item.trophyId ? `トロフィー「${TROPHY_META[item.trophyId]?.name || "実績"}」で解放`
       : Number(item.price) > 0 ? `${Number(item.price)}コイン・対戦能力への効果なし` : "無料・対戦能力への効果なし";
-    const select = button(item.equipped ? "装備中" : !item.trophyUnlocked ? "未解放" : item.owned ? "装備する" : "購入して装備", () => prepareOnlineCosmetic(item.cosmeticId));
-    select.disabled = locked || item.equipped || !item.trophyUnlocked;
+    const price = Math.max(0, Number(item.price || 0));
+    const coinShortfall = !item.owned && item.trophyUnlocked && price > availableCoins ? price - availableCoins : 0;
+    const select = button(item.equipped ? "装備中" : !item.trophyUnlocked ? "未解放" : item.owned ? "装備する" : coinShortfall > 0 ? `あと${coinShortfall}コイン` : "購入して装備", () => prepareOnlineCosmetic(item.cosmeticId));
+    select.disabled = locked || item.equipped || !item.trophyUnlocked || coinShortfall > 0;
     card.append(type, preview, name, detail, select); $("cosmeticCatalog").appendChild(card);
   }
   const pending = pendingCosmeticAction;
@@ -1613,7 +1621,9 @@ async function prepareOnlineCosmetic(cosmeticId) {
     localStorage.setItem(COSMETIC_PENDING_KEY, JSON.stringify(pendingCosmeticAction));
     $("cosmeticStatus").textContent = "内容を確認してから保存してください。キャンセル時は何も変更されません。";
   } catch (error) {
-    $("cosmeticStatus").textContent = "この見た目は現在購入・装備できません。残高や解除条件を確認してください。";
+    $("cosmeticStatus").textContent = error?.code === "INSUFFICIENT_COINS"
+      ? "コインが不足しています。最新の残高と必要数を確認してください。"
+      : "この見た目は現在購入・装備できません。残高や解除条件を確認してください。";
     toast(error.message || "見た目を確認できませんでした。");
   } finally { cosmeticBusy = false; renderCosmetics(); }
 }

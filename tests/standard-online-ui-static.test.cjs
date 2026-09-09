@@ -78,8 +78,9 @@ test("online alpha.3 UI understands category windows and the experimental bonus-
 
 test("CPU commentary is public-event-only, bounded, non-blocking, and terminal-persistent", () => {
   assert.match(html, /style\.css\?v=20260910-11/);
+  assert.match(html, /standard-online-client\.js\?v=20260910-1/);
   assert.match(html, /standard-online-skill-intents\.js\?v=20260907-20/);
-  assert.match(html, /app\.js\?v=20260910-17/);
+  assert.match(html, /app\.js\?v=20260910-18/);
   assert.match(app, /cpuCommentary\?\.VERSION !== "standard-cpu-commentary-v2"/);
   assert.ok(html.indexOf("cpu-commentary.js") < html.indexOf('type="module" src="app.js'));
   assert.match(html, /id="cpuCommentaryStage"[^>]+aria-hidden="true"/);
@@ -204,6 +205,9 @@ test("online cosmetics require confirmation, persist retry identity, and allowli
   assert.ok(persisted >= 0 && sent > persisted);
   assert.match(app, /persistRemoteProfile\(result\.profileState, displayName\(\), Number\(result\.revision\)\)/);
   assert.match(app, /COSMETIC_STYLE_CLASS\[cosmeticId\]/);
+  assert.match(app, /coinShortfall > 0 \? `あと\$\{coinShortfall\}コイン` : "購入して装備"/);
+  assert.match(app, /cosmeticProjection = \{ \.\.\.cosmeticProjection, coins: nextCoins \}/);
+  assert.match(clientSource, /INSUFFICIENT_COINS: "コインが不足しています。最新の残高と必要数を確認してください。"/);
   assert.doesNotMatch(app, /classList\.add\(item\.cssClass\)|innerHTML/);
   assert.match(css, /\.skin-board-aurora #board/);
   assert.match(css, /\.member-nameplate-gold/);
@@ -404,7 +408,7 @@ test("existing online progression is hydrated from the server rather than re-upl
 
 test("UI derives its canonical and experimental card metadata from the generated registry", () => {
   assert.equal(Object.values(STANDARD_SKILLS).filter((skill) => skill.v49Catalogued).length, 19);
-  assert.match(html, /standard-skill-registry\.generated\.js\?v=20260907-1[\s\S]+app\.js\?v=20260910-17/);
+  assert.match(html, /standard-skill-registry\.generated\.js\?v=20260907-1[\s\S]+app\.js\?v=20260910-18/);
   assert.match(app, /const STANDARD_SKILL_REGISTRY = globalThis\.FourColorStandardSkillRegistry/);
   assert.match(app, /STANDARD_SKILL_REGISTRY\.v49SkillIds\.map/);
   assert.match(app, /Object\.entries\(STANDARD_SKILL_REGISTRY\.skills\)/);

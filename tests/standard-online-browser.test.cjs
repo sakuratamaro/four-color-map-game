@@ -3090,6 +3090,36 @@ test("actual Edge confirms, persists, restores, and safely cancels online appear
   });
 });
 
+test("actual Edge disables unaffordable cosmetics and enables them after a saved card sale", { timeout: 130000 }, async () => {
+  await withPage("cosmetic", async (page) => {
+    await page.locator("#cosmeticPanel:not(.hidden)").waitFor();
+    await page.evaluate(() => { globalThis.__standardOnlineRuntime.profile.profile_state.coins = 590; });
+    await page.getByRole("button", { name: "見た目一覧を更新" }).click();
+    const aurora = page.locator("#cosmeticCatalog .collection-card", { hasText: "オーロラ盤面" });
+    const shortfall = aurora.getByRole("button", { name: "あと10コイン" });
+    await shortfall.waitFor();
+    assert.equal(await shortfall.isDisabled(), true);
+    await shortfall.press("Enter");
+    assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "cosmetic-quote").length), 0);
+
+    await page.getByRole("button", { name: "カード", exact: true }).click();
+    await page.locator("#cardLibraryPanel:not(.hidden)").waitFor();
+    await page.locator("#cardSaleSkill").selectOption("colorRandomBorrow");
+    await page.locator("#cardSaleCount").fill("1");
+    await page.getByRole("button", { name: "売却内容を確認" }).click();
+    await page.getByRole("button", { name: "この内容で売る" }).click();
+    await page.getByText("10コインを獲得しました。カード減算とコイン加算は一度だけ保存済みです。").waitFor();
+
+    await page.getByRole("button", { name: "マイページ", exact: true }).click();
+    await page.locator("#cosmeticPanel:not(.hidden)").waitFor();
+    assert.equal(await page.locator("#cosmeticCoins").textContent(), "🪙 600コイン");
+    const affordable = aurora.getByRole("button", { name: "購入して装備" });
+    await affordable.waitFor();
+    assert.equal(await affordable.isDisabled(), false);
+    assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "cosmetic-quote").length), 0);
+  });
+});
+
 test("actual Edge recruits and cancels with one persisted public matchmaking ticket", { timeout: 130000 }, async () => {
   await withPage("lobby", async (page) => {
     await page.getByRole("button", { name: "対戦相手を募集" }).click();

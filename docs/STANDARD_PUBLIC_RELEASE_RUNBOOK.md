@@ -240,7 +240,7 @@ COLOR長文案内撤去証跡追補後の最新main `1b39b69`へ、保全済み�
 
 ### alpha.4彩色済みエリア角膨張便
 
-候補中。この便は新payloadを旧Edgeが拒否する一方、新Edgeは旧UIのoutgoing payloadを継続できるため、`alpha.4対応Edge → live canary → Pages`の順にする。Pages候補assetはonline app `app.js?v=20260910-17`、style `style.css?v=20260910-11`、intents `standard-online-skill-intents.js?v=20260907-20`、client `standard-online-client.js?v=20260908-1`、portrait `cpu-portraits.js?v=20260908-1`、Local bundle `app.bundle.js?v=20260910-4-3e483dc37b1d`である。DB、migration、RPC、secret、cleanup scheduleは変更しない。
+候補中。この便は新payloadを旧Edgeが拒否する一方、新Edgeは旧UIのoutgoing payloadを継続できるため、`alpha.4対応Edge → live canary → Pages`の順にする。Pages候補assetはonline app `app.js?v=20260910-18`、style `style.css?v=20260910-11`、intents `standard-online-skill-intents.js?v=20260907-20`、client `standard-online-client.js?v=20260910-1`、portrait `cpu-portraits.js?v=20260908-1`、Local bundle `app.bundle.js?v=20260910-4-3e483dc37b1d`である。DB、migration、RPC、secret、cleanup scheduleは変更しない。
 
 1. `origin/main@63972b6`起点の専用clean worktreeで両bundleを2回生成し、2回目のSHAが不変、正式全製品試験、Windows Chrome/Edge CI、対象実browserのskip 0を確認する。
 2. alpha.4対応bundleを保持したまま新規対局だけを`5.0.0-alpha.3`へ戻す互換rollback branchを作成・GitHub保全する。既存alpha.4 stateの読込み・継続と、alpha.3新規stateが彩色済みpayloadをwrite-free拒否することを確認する。
