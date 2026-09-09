@@ -2,7 +2,7 @@
 
 更新日: 2026-09-10
 
-状態: 現行運用。migration `202609030006`–`202609030013`、`202609050001`–`202609050007`、`202609060001`–`202609060003`、Edge deployment 25、Pages product `4a8cb28`（online app v15、style v10、skill intents v20、local bundle v3）は適用済み。`5.0.0-alpha.4`の既存互換とrollback保全を維持する。今便はDB変更なしで、migration、RPC、Edge、engine、報酬量、ガチャ率も変更していない。次便も実行直前にmain HEAD、Pages run、Edge deployment、migration tailを現物から再取得する。
+状態: 現行運用。migration `202609030006`–`202609030013`、`202609050001`–`202609050007`、`202609060001`–`202609060003`、Edge deployment 25、Pages product `3dea0ed`（online app v16、style v10、skill intents v20、local bundle v3）は適用済み。`5.0.0-alpha.4`の既存互換とrollback保全を維持する。今便はDB変更なしで、migration、RPC、Edge、engine、報酬量、ガチャ率も変更していない。次便も実行直前にmain HEAD、Pages run、Edge deployment、migration tailを現物から再取得する。
 
 実行中の状態、数値、識別子、失敗は `docs/STANDARD_RELEASE_EVIDENCE.md` に追記する。根拠のない項目を`VERIFIED`や`PASS`へ変更しない。
 
@@ -197,6 +197,16 @@ B便後の最新main `3d84294`へ本番canary `eb629e5`と製品・試験`65f23c
 3. [完了] Windows `34390627632`は初回Edge成功／Chrome既存`badge-ready` timeout、attempt 2はChrome成功／Edge既存reduced-motion告知raceだった。前者は同一SHAの局所Chrome 1/1、後者は告知文自体を待つよう修正して局所Chrome/Edge各1/1。`34393139988`はChrome成功、Edgeが81/82・fail 0のまま15分上限でcancelされたため、workflowの有限上限を20分へ更新し契約11/11を確認した。最終`34394919317`はexact `eac26ed`でChrome・Edgeとも成功した。途中runも削除しない。
 4. [完了] `origin/main@a4f9bf4`の不変、候補clean、祖先関係を再確認し、forceなしで`eac26ed`へfast-forward。Pages `34396124927`は同SHAで成功し、candidate preflightは`ok:true`。
 5. [完了] 公開390pxでonline app `app.js?v=20260910-14`、Standard style `style.css?v=20260910-9`、横overflow 0、console warning/error 0を確認した。公開プロフィールは持ち色変更0枚のため本番actionを捏造せず、公開asset／表示健全性と正式browser behaviorを分離して記録し、`UDL-038`を`PUBLIC_VERIFIED`へ昇格した。
+
+### 各セル選択直後の接触演出便
+
+全開始候補証跡追補後の最新main `5fc8a3b`へ、保全済み差分から製品変更だけを再構成したPages-only便である。公開製品は`3dea0ed`（製品`b5fdd36`、asset marker`56afb4e`、静的契約`3dea0ed`）。自分のCREATE local draftだけを各選択・解除直後に再計算し、接触色数が2、3、4へ上昇した時だけ対応演出を即時提示する。required-size完成、送信、server ACKは待たない。DB、migration、RPC、Edge、engine、ルールを変更しない。
+
+1. [完了] 古い累積作業床を直接mergeせず、最新main起点のclean branch `codex/per-cell-contact-release-20260910`へ製品差分だけを移植した。style v10を維持し、JavaScript変更をapp v16へcache-bustした。static/runbook 84/84、対象Chrome/Edge各1/1が合格した。
+2. [完了] 正式browserは1マス目2色、2マス目3色、3マス目4色を即時提示し、4マス目の同数では再提示0、解除による閾値低下で古い演出clear、再上昇で一回だけ再提示することを確認した。pointer／keyboard、reduced-motion、aria-live、390px、action通信0を確認し、CPU／相手／poll／reload／public trace／skill targetでは発火しない。
+3. [完了] 初回Windows `34406783091`は、今回SUPERSEDEした完成時-only仕様を要求する旧静的契約2件によりChrome／EdgeともCPU policy stepで失敗した。製品コードを変えず契約を各セル上昇閾値へ更新し、正式stepをローカル505/505で再現後、修正run `34407352376`はChrome／Edgeとも成功した。失敗履歴は保持する。
+4. [完了] `origin/main@5fc8a3b`の不変、候補clean、祖先関係を再確認し、forceなしで`3dea0ed`へfast-forward。Pages `34408261449`は同SHAで成功し、candidate preflightは`ok:true`、`hasPerCellContactFeedback:true`だった。
+5. [完了] 公開390pxはonline app `app.js?v=20260910-16`、style `style.css?v=20260910-10`、contact reveal/titleとpolite announcement DOM、横overflow 0を確認した。実CREATE手番は捏造せず、公開asset／DOM／表示健全性と正式browser behaviorを分離して`UDL-040`を`PUBLIC_VERIFIED`へ昇格した。
 
 ### 0マス時の全開始候補便
 
