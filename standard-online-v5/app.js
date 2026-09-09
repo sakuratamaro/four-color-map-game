@@ -271,7 +271,7 @@ let observedCpuCommentarySourceEventId = null;
 let observedPaletteImpactScope = null;
 let presentedPaletteImpactEventId = null;
 let contactSelectionScope = null;
-let presentedContactSelectionKey = null;
+let contactSelectionPresentationSequence = 0;
 let observedTurnScope = null;
 let observedTurnVersion = null;
 let observedTurnActive = null;
@@ -901,14 +901,14 @@ function syncContactSelectionScope(state) {
   if (!state || !roomModel?.room?.id) {
     if (contactSelectionScope !== null) clearContactReveal();
     contactSelectionScope = null;
-    presentedContactSelectionKey = null;
+    contactSelectionPresentationSequence = 0;
     return;
   }
   const scope = `${roomModel.room.id}:${state.matchId}`;
   if (scope !== contactSelectionScope) {
     clearContactReveal();
     contactSelectionScope = scope;
-    presentedContactSelectionKey = null;
+    contactSelectionPresentationSequence = 0;
   }
 }
 
@@ -1176,7 +1176,7 @@ function clearContactReveal({ clearAnnouncement = true } = {}) {
   if (clearAnnouncement) $("contactRevealAnnouncement").textContent = "";
 }
 
-function showContactReveal(contactColorCount, eventId) {
+function showContactReveal(contactColorCount, eventId, { minimumStage = 2 } = {}) {
   const reveals = {
     2: { title: "二色接触！", detail: "2色に接する灰色エリア", tone: "contact-pressure-2" },
     3: { title: "三色圧力!!", detail: "3色に接する強いエリア", tone: "contact-pressure-3" },
@@ -1188,7 +1188,9 @@ function showContactReveal(contactColorCount, eventId) {
   clearTimeout(contactRevealTimer);
   $("contactRevealAnnouncement").textContent = "";
   const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const stages = reducedMotion ? [contactColorCount] : Array.from({ length: contactColorCount - 1 }, (_, index) => index + 2);
+  const firstStage = Math.max(2, Math.min(contactColorCount, minimumStage));
+  const stages = reducedMotion ? [contactColorCount]
+    : Array.from({ length: contactColorCount - firstStage + 1 }, (_, index) => firstStage + index);
   const presentStage = (stageIndex) => {
     if (generation !== contactPresentationGeneration) return;
     const stage = stages[stageIndex];
@@ -3556,6 +3558,7 @@ function boardSelectionAvailable(state = roomModel?.room?.public_state) {
 
 function resetBoardSelectionAssist({ clearSelection = false } = {}) {
   if (clearSelection) {
+    if (selectedMacros.size) clearContactReveal();
     selectedMacros.clear();
     announceBoardSelection("");
   }
@@ -3891,16 +3894,24 @@ function selectedContactColorCount(state, macros = selectedMacros) {
   return colors.size;
 }
 
-function presentSelectedContact(state, macros = selectedMacros) {
-  const sourceMacros = [...macros].filter(Number.isSafeInteger).sort((left, right) => left - right);
+function presentSelectedContactChange(state, previousMacros, nextMacros = selectedMacros) {
+  const previousSourceMacros = [...previousMacros].filter(Number.isSafeInteger).sort((left, right) => left - right);
+  const sourceMacros = [...nextMacros].filter(Number.isSafeInteger).sort((left, right) => left - right);
   if (state?.status !== "ACTIVE" || state.active !== roomModel?.view?.seat
       || !["CREATE_FIRST", "WORK"].includes(state.phase)
-      || sourceMacros.length !== state.requiredSize || new Set(sourceMacros).size !== sourceMacros.length) return;
-  const key = `${roomModel?.room?.id}:${state.matchId}:${state.version}:${sourceMacros.join("-")}`;
-  if (key === presentedContactSelectionKey) return;
-  presentedContactSelectionKey = key;
+      || targetDraft || new Set(sourceMacros).size !== sourceMacros.length
+      || new Set(previousSourceMacros).size !== previousSourceMacros.length) return;
+  const previousContactColorCount = selectedContactColorCount(state, previousSourceMacros);
   const contactColorCount = selectedContactColorCount(state, sourceMacros);
-  if (contactColorCount >= 2) showContactReveal(contactColorCount, `${state.matchId}:${state.version}:local-contact:${sourceMacros.join("-")}`);
+  if (contactColorCount < previousContactColorCount) {
+    clearContactReveal();
+    return;
+  }
+  if (contactColorCount < 2 || contactColorCount <= previousContactColorCount) return;
+  contactSelectionPresentationSequence += 1;
+  showContactReveal(contactColorCount,
+    `${state.matchId}:${state.version}:local-contact:${contactSelectionPresentationSequence}:${sourceMacros.join("-")}`,
+    { minimumStage: previousContactColorCount + 1 });
 }
 
 function boardMicroDescription(state, micro) {
@@ -4036,6 +4047,7 @@ function toggleBoardMacro(state, macro, { selectCornerTarget = true } = {}) {
     return false;
   }
   if (selectedMacros.has(macro)) {
+    const previousMacros = new Set(selectedMacros);
     const next = new Set(selectedMacros); next.delete(macro);
     if (!connectedMacros(next, width)) {
       rejectBoardSelection("つながりを保つため、選択範囲の端から解除してください。");
@@ -4043,6 +4055,7 @@ function toggleBoardMacro(state, macro, { selectCornerTarget = true } = {}) {
       return false;
     }
     selectedMacros.delete(macro);
+    if (!targetDraft) presentSelectedContactChange(state, previousMacros);
     announceBoardSelection(`${boardMacroDescription(state, macro)}。解除しました。`);
     render();
     return true;
@@ -4057,9 +4070,10 @@ function toggleBoardMacro(state, macro, { selectCornerTarget = true } = {}) {
     renderBoard(state);
     return false;
   }
+  const previousMacros = new Set(selectedMacros);
   selectedMacros.add(macro);
   announceBoardSelection(`${boardMacroDescription(state, macro)}。選択しました。`);
-  if (!targetDraft && selectedMacros.size === state.requiredSize) presentSelectedContact(state);
+  if (!targetDraft) presentSelectedContactChange(state, previousMacros);
   render();
   return true;
 }
@@ -4137,6 +4151,7 @@ function boardKeydown(event) {
       render();
       return;
     }
+    if (selectedMacros.size) clearContactReveal();
     selectedMacros.clear();
     announceBoardSelection("盤面の選択をすべて解除しました。");
     render();
@@ -5533,6 +5548,7 @@ $("toggleBoardZoom").onclick = () => setBoardZoom(!boardZoomed);
 $("clearSelection").onclick = () => {
   const state = roomModel?.room?.public_state;
   if (preparedOutgoingSourceMacros(state).length) return;
+  if (selectedMacros.size) clearContactReveal();
   selectedMacros.clear();
   announceBoardSelection("盤面の選択をすべて解除しました。");
   render();
