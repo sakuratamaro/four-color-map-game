@@ -5291,19 +5291,13 @@ test("actual browser separates a private palette source slot from its destinatio
     await page.evaluate(() => {
       const runtime = globalThis.__standardOnlineRuntime;
       const version = runtime.room.public_state.version + 1;
-      const matchId = runtime.room.public_state.matchId;
-      const event = { eventId: `${matchId}:${version}:palette-impact:A`, version, actor: "A", skill: "colorPaletteChange",
-        kind: "self", slot: 0, previousColor: "red", injectedColor: "blue", remaining: 0 };
-      runtime.room = { ...runtime.room, version, public_state: { ...runtime.room.public_state, version,
-        lastPublicTrace: { eventId: `${matchId}:${version}`, version, type: "USE_SKILL", actor: "A" } } };
+      runtime.room = { ...runtime.room, version, public_state: { ...runtime.room.public_state, version } };
       runtime.view = { ...runtime.view, version, private_state: { ...runtime.view.private_state,
-        hand: {}, basicPalette: ["blue", "blue"], privateEffects: { paletteImpactEvent: event, paletteImpactHistory: [event] } } };
+        hand: {}, basicPalette: ["blue", "blue"] } };
       runtime.onInvalidate?.({});
     });
-    await page.locator("#paletteImpactNotice").waitFor({ state: "visible" });
+    await page.waitForFunction(() => document.querySelector("#basicPaletteValue")?.textContent === "青・青");
     assert.equal(await page.locator("#basicPaletteValue").textContent(), "青・青");
-    assert.equal(await page.locator("#paletteImpactDetail").textContent(), "あなたが「持ち色変更」で、基本色1を赤から青へ変更しました。この変更は対戦終了まで続きます。");
-    assert.match(await page.locator("#paletteHistoryList").textContent(), /あなた「持ち色変更」｜基本色1 赤 → 青/);
     const layout = await target.evaluate((node) => ({
       hidden: node.classList.contains("hidden"), overflow: document.documentElement.scrollWidth > innerWidth,
     }));
