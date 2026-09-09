@@ -172,10 +172,10 @@ rollbackも「旧version番号へ戻った」という目視だけでは完了�
 正式候補は最新main `6b9133f`へ製品・asset marker・試験だけを再構成した`4f61201`。短い数値は52pxの実寸丸型、長い値は内容に応じた実寸カプセルとし、見えない旧大矩形を残さず、そのwidth/heightを壁反射・相互衝突へ直接使う。通常移動の結果として上下左右が入れ替わり、瞬間shuffle、速度だけ、衝突ジッターの累積移動量で代用しない。DB、Edge、クイズ生成、制限時間、採点、再送、報酬を変更しないPages-only便である。
 
 1. [完了] static/physics 74/74と390pxのChrome/Edge各1/1で、全6候補の実寸、button面積合計がarenaの24%以下、全buttonが開始位置から60px以上、6個中4個以上が90px以上、4個以上が上下／左右帯を移動、連続停滞0、visual order入替、bounds、overlap 0、button中心hit、hover/focus/touch/hint/feedback/hidden/handoff/reduced-motion停止、keyboard DOM順、resize、回答1回を確認した。
-2. 専用test branchへexact候補をpushし、Windows Chrome/Edge gateを同一treeで完走する。失敗runは省略せず原因とともに保持する。
-3. gate成功後にmain先端と親子関係を再確認し、forceなしでfast-forwardしてPagesを公開する。公開asset marker、HTTP 200、console warning/error 0、390px横overflow 0を確認する。
-4. 公開PC幅とsmartphone幅で、buttonが初期位置付近へ詰まり続けず、複数buttonが目で追える距離を巡回し、上下左右の位置関係が入れ替わり、移動先のbutton本体で回答できることを時系列座標または秘密・個人情報を含まない短い録画で確認する。
-5. 公開後に大四角の詰まり、見えない旧hitbox、長時間の小刻みな押し合い、重なり、選択不能、回答重複のいずれかを確認した場合は`PUBLIC_VERIFIED`へ上げず再修正する。
+2. [完了] 専用branch `codex/quiz-density-release-candidate-20260909`へexact `4508fb4`をpush。Windows `34379857918`はChrome成功、Edge attempt 1だけ既存reduced-motion接触文言のtimingで失敗した。同一SHAの該当Edge単体1/1を局所再現確認し、failed job再実行のattempt 2でEdgeも成功した。失敗runは削除・省略していない。
+3. [完了] `origin/main@6b9133f`が候補の祖先、ahead 5・behind 0を再確認し、forceなしで`4508fb4`へfast-forward。Pages `34382383719`は同SHAで成功し、公開candidate preflightは`ok:true`、390px横overflow 0、console warning/error 0。
+4. [完了] 公開Lv.5クイズをPC幅と390×844で実測。PCはbutton面積合計4.7%、5秒で全6個154–228px移動。390pxは18.3%、10秒で全6個172–256px移動し、全6個が上下または左右帯を入れ替えた。両幅でbounds内、overlap 0。移動先のbutton中央click直後に全候補disabled・motion paused、server ACK後は採点済み履歴が1回だけ増えて次問で再開した。
+5. [完了] 大四角の詰まり、見えない旧hitbox、長時間の小刻みな押し合い、重なり、選択不能、回答重複は公開実測で確認されず、`PUBLIC_VERIFIED`へ昇格した。
 
 ### alpha.4彩色済みエリア角膨張便
 
