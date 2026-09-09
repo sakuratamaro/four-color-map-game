@@ -177,6 +177,17 @@ rollbackも「旧version番号へ戻った」という目視だけでは完了�
 4. [完了] 公開Lv.5クイズをPC幅と390×844で実測。PCはbutton面積合計4.7%、5秒で全6個154–228px移動。390pxは18.3%、10秒で全6個172–256px移動し、全6個が上下または左右帯を入れ替えた。両幅でbounds内、overlap 0。移動先のbutton中央click直後に全候補disabled・motion paused、server ACK後は採点済み履歴が1回だけ増えて次問で再開した。
 5. [完了] 大四角の詰まり、見えない旧hitbox、長時間の小刻みな押し合い、重なり、選択不能、回答重複は公開実測で確認されず、`PUBLIC_VERIFIED`へ昇格した。
 
+### CPU完了報酬の実所持突合便
+
+B便の正式候補`4508fb4`へ本番canary `eb629e5`と製品・試験`65f23c9`を積み上げた後続Pages-only便である。終局の獲得表示をhydration済みLv.1券総数へ拘束し、`+1（所持 2→3）`のように付与前後を明示する。ガチャ画面でも現在総数と1回あたりの消費数を表示し、抽選後reloadでは消費後総数と保存済み結果を一致させる。Pages assetはonline app `app.js?v=20260908-10`、style `style.css?v=20260908-6`。DB、migration、RPC、Edge、engine、報酬量、ガチャ率は変更しない。
+
+1. [完了] 配備済みEdge deploymentのZIPを再取得し、`index.ts` SHA-256 `a80c7fb6773764da291e82fc82086dac497148317e77d6f78ebb8ec7b2833be1`、bundle SHA-256 `6220c7eb72266ae1e3ad2f770429c891192b905b99dd83f9bd491d5113dac673`がローカル候補とbyte単位で一致することを確認した。
+2. [完了] 本番CPU敗北を使う有限canary 18/18で、profile revision +1、match history、Lv.1券 +1、既知revisionのdelta省略、完全reload、同一終局action再送のrevision・券非増加を確認した。既存基本Edge canaryも7/7。
+3. [完了] 関連非browser 113/113と390px focused Chrome/Edge各1/1で、CPU勝利時の`2→3`、ガチャ遷移時`×3`、1枚抽選後reload時`×2`、結果文の復元、対人・未精算・実験対戦の非表示を確認した。
+4. B便を公開・公開後確認してから、この後続branchを最新mainへ再構成し、Windows Chrome/Edge gateを通す。B便と同時公開せず、失敗runは保持する。
+5. gate成功後にmainをforceなしでfast-forwardしPagesを公開する。公開asset marker、HTTP 200、candidate preflight、console warning/error 0、390px横overflow 0を確認する。
+6. 公開通常CPU戦で終局表示の前後総数、ガチャ画面の同じ総数、1枚抽選後の減算、reload後の消費後総数を実見する。抽選前reloadと同一action再送でも二重付与しないことを確認するまで`PUBLIC_VERIFIED`へ上げない。
+
 ### alpha.4彩色済みエリア角膨張便
 
 候補中。この便は新payloadを旧Edgeが拒否する一方、新Edgeは旧UIのoutgoing payloadを継続できるため、`alpha.4対応Edge → live canary → Pages`の順にする。Pages候補assetはonline app `app.js?v=20260908-9`、style `style.css?v=20260908-6`、intents `standard-online-skill-intents.js?v=20260907-20`、client `standard-online-client.js?v=20260908-1`、portrait `cpu-portraits.js?v=20260908-1`、Local bundle `app.bundle.js?v=20260908-2-87f722259e50`である。DB、migration、RPC、secret、cleanup scheduleは変更しない。
