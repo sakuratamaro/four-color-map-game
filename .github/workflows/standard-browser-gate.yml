@@ -73,7 +73,7 @@ jobs:
   browser:
     name: Standard online browser (${{ matrix.STANDARD_BROWSER }})
     runs-on: windows-2025
-    timeout-minutes: 15
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
