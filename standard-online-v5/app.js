@@ -361,20 +361,47 @@ function operationFeedback(id, message, tone = "") {
   node.dataset.tone = tone;
 }
 
-function validPaletteImpactEvent(state, privateState) {
-  const seat = roomModel?.view?.seat;
-  const event = privateState?.privateEffects?.paletteImpactEvent;
+const PALETTE_IMPACT_SKILL_BY_KIND = Object.freeze({
+  self: "colorPaletteChange",
+  random: "disruptPaletteRandom",
+  chosen: "disruptPaletteChoice",
+  forced: "disruptForcedPalette",
+});
+
+function validPaletteImpactEntry(state, seat, event) {
   if (!state || !["A", "B"].includes(seat) || !event || typeof event !== "object" || Array.isArray(event)
     || !Number.isSafeInteger(event.version) || event.version < 1 || event.version > state.version
     || event.eventId !== `${state.matchId}:${event.version}:palette-impact:${seat}`
-    || !["random", "chosen", "forced"].includes(event.kind)
+    || !Object.hasOwn(PALETTE_IMPACT_SKILL_BY_KIND, event.kind)
     || !Number.isInteger(event.slot) || event.slot < 0 || event.slot > 2
     || !Object.hasOwn(COLOR_JA, event.previousColor) || !Object.hasOwn(COLOR_JA, event.injectedColor)
     || event.previousColor === event.injectedColor || !Number.isInteger(event.remaining)
     || (event.kind === "random" && event.remaining !== 1)
     || (event.kind === "chosen" && event.remaining !== 2)
-    || (event.kind === "forced" && event.remaining !== 0)) return null;
-  return event;
+    || (["self", "forced"].includes(event.kind) && event.remaining !== 0)) return null;
+  const legacy = event.kind !== "self" && event.actor === undefined && event.skill === undefined;
+  const actor = legacy ? (seat === "A" ? "B" : "A") : event.actor;
+  const skill = legacy ? PALETTE_IMPACT_SKILL_BY_KIND[event.kind] : event.skill;
+  if (actor !== (event.kind === "self" ? seat : (seat === "A" ? "B" : "A"))
+    || skill !== PALETTE_IMPACT_SKILL_BY_KIND[event.kind]) return null;
+  return { ...event, actor, skill };
+}
+
+function validPaletteImpactEvent(state, privateState) {
+  return validPaletteImpactEntry(state, roomModel?.view?.seat, privateState?.privateEffects?.paletteImpactEvent);
+}
+
+function validPaletteImpactHistory(state, privateState) {
+  const seat = roomModel?.view?.seat;
+  const history = privateState?.privateEffects?.paletteImpactHistory;
+  if (!Array.isArray(history) || history.length > 12) return [];
+  const valid = history.map((event) => validPaletteImpactEntry(state, seat, event));
+  if (valid.some((event) => !event) || new Set(valid.map((event) => event.eventId)).size !== valid.length
+    || valid.some((event, index) => index > 0 && valid[index - 1].version >= event.version)) return [];
+  const latest = validPaletteImpactEntry(state, seat, privateState?.privateEffects?.paletteImpactEvent);
+  if (valid.length && (!latest || ["eventId", "version", "actor", "skill", "kind", "slot", "previousColor", "injectedColor", "remaining"]
+    .some((key) => valid.at(-1)[key] !== latest[key]))) return [];
+  return valid;
 }
 
 function hidePaletteImpactNotice() {
@@ -412,8 +439,11 @@ function observePaletteImpact(state, privateState) {
   rememberPaletteImpact(event.eventId);
   presentedPaletteImpactEventId = event.eventId;
   const slot = event.slot < 2 ? `基本色${event.slot + 1}` : "おまけ色";
-  $("paletteImpactTitle").textContent = event.kind === "forced" ? "強制持ち替えを受けました" : "持ち色汚染を受けました";
-  $("paletteImpactDetail").textContent = `${slot}が${COLOR_JA[event.previousColor]}から${COLOR_JA[event.injectedColor]}へ変わりました。${event.kind === "forced" ? "この変更は対戦終了まで続きます。" : `次の${event.remaining}回の彩色後に元へ戻ります。`}`;
+  const actor = event.actor === seat ? "あなた" : playerName(event.actor);
+  const skill = SKILL_META[event.skill]?.name || event.skill;
+  $("paletteImpactTitle").textContent = event.kind === "self" ? "持ち色を変更しました"
+    : event.kind === "forced" ? "強制持ち替えを受けました" : "持ち色汚染を受けました";
+  $("paletteImpactDetail").textContent = `${actor}が「${skill}」で、${slot}を${COLOR_JA[event.previousColor]}から${COLOR_JA[event.injectedColor]}へ変更しました。${event.kind === "forced" || event.kind === "self" ? "この変更は対戦終了まで続きます。" : `次の${event.remaining}回の彩色後に元へ戻ります。`}`;
   show("paletteImpactNotice", true);
 }
 function pendingSetupForCurrentRoom(snapshot = client.snapshot()) {
@@ -1322,6 +1352,31 @@ function renderRandomSummary(publicState, privateState) {
   }
   if (!(privateState.basicPalette || []).length) $("basicPaletteValue").textContent = "確認中";
   renderColorValue("bonusColorValue", privateState.bonusColor, `（残り${privateState.bonusUsesRemaining || 0}回）`);
+  renderPaletteHistory(publicState, privateState);
+}
+
+function paletteText(basic, bonus) {
+  if (!Array.isArray(basic) || basic.length !== 2 || ![...basic, bonus].every((color) => Object.hasOwn(COLOR_JA, color))
+    || new Set([...basic, bonus]).size !== 3) return null;
+  return `基本色1 ${colorName(basic[0])}・基本色2 ${colorName(basic[1])}・おまけ色 ${colorName(bonus)}`;
+}
+
+function renderPaletteHistory(publicState, privateState) {
+  const initial = paletteText(privateState.initialBasicPalette, privateState.initialBonusColor);
+  $("initialPaletteValue").textContent = initial || "この対局は初期値の記録に未対応です";
+  const history = validPaletteImpactHistory(publicState, privateState);
+  $("paletteHistoryCount").textContent = history.length ? `${history.length}件` : "変更なし";
+  const list = $("paletteHistoryList");
+  list.replaceChildren();
+  for (const event of history) {
+    const item = document.createElement("li");
+    const slot = event.slot < 2 ? `基本色${event.slot + 1}` : "おまけ色";
+    const actor = event.actor === roomModel?.view?.seat ? "あなた" : playerName(event.actor);
+    const skill = SKILL_META[event.skill]?.name || event.skill;
+    item.textContent = `状態更新${event.version}｜${actor}「${skill}」｜${slot} ${colorName(event.previousColor)} → ${colorName(event.injectedColor)}`;
+    list.appendChild(item);
+  }
+  show("paletteHistoryEmpty", history.length === 0);
 }
 
 function revealRandomSetup(publicState, privateState) {

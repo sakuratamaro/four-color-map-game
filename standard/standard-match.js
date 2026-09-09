@@ -29,6 +29,7 @@ const BONUS_USE_POOL = Object.freeze([1, 1, 2, 2, 3, 4]);
 const TERMINAL_REASONS = Object.freeze(["ILLEGAL_COLOR", "BOARD_LOCK", "SURRENDER", "SEALED_OUT", "NO_LEGAL_COLOR"]);
 const ENGINE_TERMINAL_REASONS = TERMINAL_REASONS;
 const FINISHED_STATE_TERMINAL_REASONS = TERMINAL_REASONS;
+const PALETTE_IMPACT_HISTORY_LIMIT = 12;
 
 function clone(value) {
   return JSON.parse(JSON.stringify(value));
@@ -133,6 +134,10 @@ function createStandardMatch(config = {}, rngStreams = {}) {
     baseRequiredSize: rolledSize,
     basicPalettes: { A: A.basic, B: B.basic },
     bonusColors: { A: A.bonus, B: B.bonus },
+    initialPalettes: {
+      A: { basic: clone(A.basic), bonus: A.bonus },
+      B: { basic: clone(B.basic), bonus: B.bonus },
+    },
     bonusUsesRemaining: { A: A.uses, B: B.uses },
     hands: config.hands ? clone(config.hands) : { A: handFromLoadout(loadouts.A), B: handFromLoadout(loadouts.B) },
     loadouts,
@@ -273,6 +278,10 @@ function validateStandardState(state) {
     const bonus = state.bonusColors?.[seat];
     assertState(Array.isArray(basic) && basic.length === 2, "INVALID_PALETTE");
     assertState([...basic, bonus].every((color) => COLORS.includes(color)), "INVALID_PALETTE");
+    const initialPalette = state.initialPalettes?.[seat];
+    assertState(state.initialPalettes === undefined || (initialPalette && Array.isArray(initialPalette.basic)
+      && initialPalette.basic.length === 2 && [...initialPalette.basic, initialPalette.bonus].every((color) => COLORS.includes(color))
+      && new Set([...initialPalette.basic, initialPalette.bonus]).size === 3), "INVALID_INITIAL_PALETTE");
     assertState(Number.isInteger(state.bonusUsesRemaining?.[seat]) && state.bonusUsesRemaining[seat] >= 0, "INVALID_BONUS_USES");
     const temporaryColors = state.privateEffects?.[seat]?.temporaryColors;
     assertState(temporaryColors === undefined || (Array.isArray(temporaryColors)
@@ -289,13 +298,34 @@ function validateStandardState(state) {
     assertState(paletteImpact === undefined || (paletteImpact && typeof paletteImpact === "object" && !Array.isArray(paletteImpact)
       && Number.isSafeInteger(paletteImpact.version) && paletteImpact.version >= 1 && paletteImpact.version <= state.version
       && paletteImpact.eventId === `${state.matchId}:${paletteImpact.version}:palette-impact:${seat}`
-      && ["random", "chosen", "forced"].includes(paletteImpact.kind)
+      && ["self", "random", "chosen", "forced"].includes(paletteImpact.kind)
       && Number.isInteger(paletteImpact.slot) && paletteImpact.slot >= 0 && paletteImpact.slot <= 2
       && COLORS.includes(paletteImpact.previousColor) && COLORS.includes(paletteImpact.injectedColor)
       && paletteImpact.previousColor !== paletteImpact.injectedColor
       && Number.isInteger(paletteImpact.remaining) && paletteImpact.remaining >= 0 && paletteImpact.remaining <= 2
       && (paletteImpact.kind === "random" ? paletteImpact.remaining === 1
-        : paletteImpact.kind === "chosen" ? paletteImpact.remaining === 2 : paletteImpact.remaining === 0)), "INVALID_PALETTE_IMPACT_EVENT");
+        : paletteImpact.kind === "chosen" ? paletteImpact.remaining === 2 : paletteImpact.remaining === 0)
+      && (paletteImpact.actor === undefined || ["A", "B"].includes(paletteImpact.actor))
+      && (paletteImpact.skill === undefined || ["colorPaletteChange", "disruptPaletteRandom", "disruptPaletteChoice", "disruptForcedPalette"].includes(paletteImpact.skill))
+      && ((paletteImpact.kind !== "self" && paletteImpact.actor === undefined && paletteImpact.skill === undefined)
+        || (paletteImpact.actor === (paletteImpact.kind === "self" ? seat : other(seat))
+          && paletteImpact.skill === ({ self: "colorPaletteChange", random: "disruptPaletteRandom", chosen: "disruptPaletteChoice", forced: "disruptForcedPalette" })[paletteImpact.kind]))), "INVALID_PALETTE_IMPACT_EVENT");
+    const paletteHistory = state.privateEffects?.[seat]?.paletteImpactHistory;
+    assertState(paletteHistory === undefined || (Array.isArray(paletteHistory) && paletteHistory.length <= PALETTE_IMPACT_HISTORY_LIMIT
+      && new Set(paletteHistory.map((event) => event?.eventId)).size === paletteHistory.length
+      && paletteHistory.every((event, index) => event && typeof event === "object" && !Array.isArray(event)
+        && Number.isSafeInteger(event.version) && event.version >= 1 && event.version <= state.version
+        && event.eventId === `${state.matchId}:${event.version}:palette-impact:${seat}`
+        && ["self", "random", "chosen", "forced"].includes(event.kind)
+        && Number.isInteger(event.slot) && event.slot >= 0 && event.slot <= 2
+        && COLORS.includes(event.previousColor) && COLORS.includes(event.injectedColor) && event.previousColor !== event.injectedColor
+        && Number.isInteger(event.remaining) && (event.kind === "random" ? event.remaining === 1
+          : event.kind === "chosen" ? event.remaining === 2 : event.remaining === 0)
+        && event.actor === (event.kind === "self" ? seat : other(seat))
+        && event.skill === ({ self: "colorPaletteChange", random: "disruptPaletteRandom", chosen: "disruptPaletteChoice", forced: "disruptForcedPalette" })[event.kind]
+        && (index === 0 || paletteHistory[index - 1].version < event.version))
+      && (!paletteHistory.length || (paletteImpact && ["eventId", "version", "actor", "skill", "kind", "slot", "previousColor", "injectedColor", "remaining"]
+        .every((key) => paletteHistory.at(-1)[key] === paletteImpact[key])))), "INVALID_PALETTE_IMPACT_HISTORY");
   }
   if (state.status === "FINISHED") assertState(state.phase === "GAME_OVER" && ["A", "B"].includes(state.winner) && FINISHED_STATE_TERMINAL_REASONS.includes(state.terminalReason), "INVALID_TERMINAL_STATE");
   if (state.phase === "GAME_OVER") assertState(state.status === "FINISHED", "INVALID_TERMINAL_STATE");
@@ -316,6 +346,8 @@ function projectStandardPrivateState(state, seat) {
   assertState(seat === "A" || seat === "B", "NOT_A_PLAYER");
   return Object.freeze({
     seat,
+    initialBasicPalette: state.initialPalettes?.[seat] ? clone(state.initialPalettes[seat].basic) : null,
+    initialBonusColor: state.initialPalettes?.[seat]?.bonus || null,
     basicPalette: clone(state.basicPalettes[seat]),
     bonusColor: state.bonusColors[seat],
     bonusUsesRemaining: state.bonusUsesRemaining[seat],

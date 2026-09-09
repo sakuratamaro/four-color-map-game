@@ -52,8 +52,10 @@ test("chosen palette corruption draws one private slot and exposes its details o
   assert.deepEqual(targetPrivate.privateEffects.paletteDebuffs, [effect]);
   assert.deepEqual(targetPrivate.privateEffects.paletteImpactEvent, {
     eventId: `${result.state.matchId}:${result.state.version}:palette-impact:B`, version: result.state.version,
+    actor: "A", skill: "disruptPaletteChoice",
     kind: "chosen", slot: effect.slot, previousColor: effect.previousColor, injectedColor: "yellow", remaining: 2,
   });
+  assert.deepEqual(targetPrivate.privateEffects.paletteImpactHistory, [targetPrivate.privateEffects.paletteImpactEvent]);
 });
 
 test("the authoritative injected slot persists for one coloring and restores after the second", () => {
