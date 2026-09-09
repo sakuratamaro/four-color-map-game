@@ -1,8 +1,8 @@
 # Standard公開版 段階リリース手順
 
-更新日: 2026-09-07
+更新日: 2026-09-10
 
-状態: 現行運用。migration `202609030006`–`202609030013`、`202609050001`–`202609050007`、`202609060001`–`202609060003`、Edge deployment 23、Pages product `df56432`（online app v40、style v38、skill intents v18、local bundle v4）は適用済み。`5.0.0-alpha.3`は同一seatの連続action-control windowで同じusage categoryを1回に制限し、実験貸与のおまけ色補充とHard CPUの有限な追加chargeを含む。旧対局 `5.0.0-alpha.1`/`5.0.0-alpha.2`の互換とrollback `3f4548d`は維持する。今便はDB変更なしで、migration、RPC、secretも変更していない。次便も実行直前にmain HEAD、Pages run、Edge deployment、migration tailを現物から再取得する。
+状態: 現行運用。migration `202609030006`–`202609030013`、`202609050001`–`202609050007`、`202609060001`–`202609060003`、Edge deployment 25、Pages product `4318793`（online app v10、style v6、skill intents v20、local bundle v2）は適用済み。`5.0.0-alpha.4`の既存互換とrollback保全を維持する。今便はDB変更なしで、migration、RPC、Edge、engine、報酬量、ガチャ率も変更していない。次便も実行直前にmain HEAD、Pages run、Edge deployment、migration tailを現物から再取得する。
 
 実行中の状態、数値、識別子、失敗は `docs/STANDARD_RELEASE_EVIDENCE.md` に追記する。根拠のない項目を`VERIFIED`や`PASS`へ変更しない。
 
@@ -179,14 +179,14 @@ rollbackも「旧version番号へ戻った」という目視だけでは完了�
 
 ### CPU完了報酬の実所持突合便
 
-B便の正式候補`4508fb4`へ本番canary `eb629e5`と製品・試験`65f23c9`を積み上げた後続Pages-only便である。終局の獲得表示をhydration済みLv.1券総数へ拘束し、`+1（所持 2→3）`のように付与前後を明示する。ガチャ画面でも現在総数と1回あたりの消費数を表示し、抽選後reloadでは消費後総数と保存済み結果を一致させる。Pages assetはonline app `app.js?v=20260908-10`、style `style.css?v=20260908-6`。DB、migration、RPC、Edge、engine、報酬量、ガチャ率は変更しない。
+B便後の最新main `3d84294`へ本番canary `eb629e5`と製品・試験`65f23c9`を再構成したPages-only便である。公開候補は`4318793`。終局の獲得表示をhydration済みLv.1券総数へ拘束し、`+1（所持 2→3）`のように付与前後を明示する。ガチャ画面でも現在総数と1回あたりの消費数を表示し、抽選後reloadでは消費後総数と保存済み結果を一致させる。Pages assetはonline app `app.js?v=20260908-10`、style `style.css?v=20260908-6`。DB、migration、RPC、Edge、engine、報酬量、ガチャ率は変更しない。
 
 1. [完了] 配備済みEdge deploymentのZIPを再取得し、`index.ts` SHA-256 `a80c7fb6773764da291e82fc82086dac497148317e77d6f78ebb8ec7b2833be1`、bundle SHA-256 `6220c7eb72266ae1e3ad2f770429c891192b905b99dd83f9bd491d5113dac673`がローカル候補とbyte単位で一致することを確認した。
 2. [完了] 本番CPU敗北を使う有限canary 18/18で、profile revision +1、match history、Lv.1券 +1、既知revisionのdelta省略、完全reload、同一終局action再送のrevision・券非増加を確認した。既存基本Edge canaryも7/7。
 3. [完了] 関連非browser 113/113と390px focused Chrome/Edge各1/1で、CPU勝利時の`2→3`、ガチャ遷移時`×3`、1枚抽選後reload時`×2`、結果文の復元、対人・未精算・実験対戦の非表示を確認した。
-4. B便を公開・公開後確認してから、この後続branchを最新mainへ再構成し、Windows Chrome/Edge gateを通す。B便と同時公開せず、失敗runは保持する。
-5. gate成功後にmainをforceなしでfast-forwardしPagesを公開する。公開asset marker、HTTP 200、candidate preflight、console warning/error 0、390px横overflow 0を確認する。
-6. 公開通常CPU戦で終局表示の前後総数、ガチャ画面の同じ総数、1枚抽選後の減算、reload後の消費後総数を実見する。抽選前reloadと同一action再送でも二重付与しないことを確認するまで`PUBLIC_VERIFIED`へ上げない。
+4. [完了] B便公開後の最新main `3d84294`から専用branch `codex/reward-persistence-release-20260910`へ5 commitを再構成し、exact `4318793`をpushした。Windows run `34384691415`は古いapp v9期待を検出したため修正し、run `34385103929`はChrome成功、Edge attempt 1だけ既存`badge-ready`待機timeout。同一SHAの該当Edge単体1/1後、failed job再実行のattempt 2でEdgeも成功した。失敗runは保持する。
+5. [完了] `origin/main@3d84294`が候補の祖先、ahead 5・behind 0を再確認し、forceなしで`4318793`へfast-forward。Pages `34387630198`は同SHAで成功し、公開asset marker、HTTP 200、candidate preflight `ok:true`、console warning/error 0、390px横overflow 0を確認した。
+6. [完了] 公開通常CPU戦で終局表示`Lv.1券 15→16`、ガチャ画面`×16`、1枚抽選後`×15`、reload後も`×15`と獲得カード「色封じ・乱」を実見した。本番canaryの完全reload・同一終局action再送非二重付与18/18と合わせ、`PUBLIC_VERIFIED`へ昇格した。
 
 ### alpha.4彩色済みエリア角膨張便
 

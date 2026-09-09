@@ -1,6 +1,6 @@
 # 四色地図ゲーム 司令塔台帳
 
-更新日: 2026-09-09
+更新日: 2026-09-10
 
 目的: 四色地図ゲームを、迷わず始められ、駆け引きが伝わり、もう一局遊びたくなる体験へ磨き上げる。
 
@@ -8,7 +8,7 @@
 
 ## 司令塔ルール
 
-- 公開製品コードと確認済みmainは `4cefe9f`。Pages `34355861649`が成功し、基本paletteのtorn snapshot拒否まで累積している。公開通常CPU戦では基本色「緑・赤」がCPU手番、次のCOLOR、reload後の次COLORまでともに`基本色・回数無制限`で維持され、おまけ色「黄・残り1回」、390px横overflow 0、console warning/error 0を確認した。次の変更も専用clean worktreeでのみ統合する。
+- 公開製品コードと確認済みmainは `4318793`。Windows `34385103929` attempt 2とPages `34387630198`が成功し、基本paletteのtorn snapshot拒否、compact quiz巡回、CPU完了報酬の実所持突合まで累積している。公開390px通常CPU戦でLv.1券`15→16`、ガチャ1枚後`16→15`、reload後の同じ残数と獲得カード「色封じ・乱」、横overflow 0、console warning/error 0を確認した。次の変更も専用clean worktreeでのみ統合する。
 - `UDL-20260908-027`〜`033`と`UDL-20260909-034`〜`046`は上記公開後のユーザー決定である。関連する過去の`PUBLIC_VERIFIED`は公開履歴の証拠として残すが、後発決定に対する現行の受入・実装済みを意味しない。
 - release候補はdirtyな司令塔床から直接出さず、`origin/main`起点のclean release worktreeへ採用commitだけを積み、candidate CIのtree一致を確認してfast-forwardする。
 - 古いdirty worktreeからbuild、merge、deployしない。
@@ -131,7 +131,7 @@
 | UDL-20260909-039 | 0マス時に左上1候補だけでなく実際に選べる全候補を見たい | 0マス時は既存ルールで実際に選択可能な開始候補をすべて案内強調し、選択数は0のままにする | 自動選択0、focus ringと区別、全候補過不足0、案内のための新制約0、pointer／keyboard、390px | board-first guidance、server geometry | UX＋a11y＋privacy | All start candidates | DECIDED | — | NO | NO | NOT_RUN | 2026-09-09追加監査 | 公開の単一おすすめ候補を現行受入としてREOPENED | YES |
 | UDL-20260909-040 | 2／3／4色接触演出を1マス選択ごとに即時反応させたい | 自分のlocal draftだけを各選択・解除直後に再判定し、2→3→4色の閾値上昇時だけ発火する | required-size／送信待ちにしない、同色数連打0、解除追随、CPU／相手／poll／reload／replay派手演出0、常時outline 0、reduced-motion | UDL-018、public board geometry | UX＋a11y＋privacy | Per-cell contact feedback | DECIDED | — | NO | NO | NOT_RUN | 2026-09-09追加監査 | 公開の完成時のみ接触feedbackを現行受入としてREOPENED | YES |
 | UDL-20260909-041 | 「塗れる色が見つからないとき」の長文案内を削除したい | 長文説明を撤去し、通常の色、既存skill、投了操作だけを残す | 自動敗北、合法色oracle、時間制限を復活させず、救済skillと投了のserver境界、keyboard、390pxを維持 | UDL-006、common COLOR response | UX＋ルール＋a11y | COLOR guidance trim | DECIDED | — | NO | NO | NOT_RUN | 2026-09-09追加監査 | 2026-09-09公開実画面にも長文が残るためREOPENED | YES |
-| UDL-20260909-042 | 完了報酬が獲得表示だけで所持券へ永続化されない報告 | 保存成功後だけ獲得表示し、付与前後、ガチャ画面、reload後の所持数を一致させ、結果再表示／再戦でも二重付与しない | matchId冪等、CPU／PvP、勝敗、未精算、応答喪失、reload、同時tab、券消費との整合 | settlement receipt、profile tickets、UDL-046 | 進行＋Edge＋DB＋UX | Reward persistence P0 | LOCAL_VERIFIED | `65f23c9`（canary `eb629e5`） | NO | NO | 本番backend 18/18、関連113/113、390px focused Chrome/Edge各1/1。配備済みEdge index/bundleは候補とbyte/SHA一致。CPU敗北の付与、profile delta、完全reload、同一終局action再送の非二重付与を実測 | 2026-09-09追加監査 | backend不具合は再現せず、UIを保存済み総数に拘束して`所持 2→3`と消費後総数を明示。B便公開後にPages-onlyで公開実見するまでREOPENED | YES |
+| UDL-20260909-042 | 完了報酬が獲得表示だけで所持券へ永続化されない報告 | 保存成功後だけ獲得表示し、付与前後、ガチャ画面、reload後の所持数を一致させ、結果再表示／再戦でも二重付与しない | matchId冪等、CPU／PvP、勝敗、未精算、応答喪失、reload、同時tab、券消費との整合 | settlement receipt、profile tickets、UDL-046 | 進行＋Edge＋DB＋UX | Reward persistence P0 | PUBLIC_VERIFIED | `4318793`（製品`65f23c9`、canary `eb629e5`） | `4318793` | `34387630198` | backend 18/18、関連113/113、390px focused Chrome/Edge各1/1。Windows `34385103929` attempt 2はChrome/Edge成功。公開CPU敗北で券`15→16`、ガチャ1枚後`16→15`、reload後も残数と獲得結果を維持。横overflow 0、console 0 | 2026-09-09追加監査 | backend不具合は再現せず、UIを保存済み総数に拘束した。報酬強化UDL-046とは分離したままP0を完了 | YES |
 | UDL-20260909-043 | CPU戦績10人の縦長cardをコンパクト一覧にしたい | 顔、名前、勝敗を一目で比較できる一覧へし、mobile 2列等を検討する | 既存portrait再利用、10人、0戦、長い名前、keyboard／screen reader、390px overflow 0、閲覧通信0 | UDL-031、CPU per-character stats | UX＋a11y | Compact CPU records | DECIDED | portrait候補`e2d0713`へ統合要 | NO | NO | NOT_RUN | 2026-09-09追加監査 | 顔表示候補はLOCAL_VERIFIEDだがカード密度は別受入としてREOPENED | YES |
 | UDL-20260909-044 | クイズ正答率を全体とLv別に見たい | 全体＋Lv1〜5ごとに正答率、正解数、判定数を表示し、過去データがなければ記録開始以降と明記する | 分母は判定済みだけ、未出題／未完了を誤答にしない、時間切れは既存採点規則、再送／reload／複数tabで二重算入0、推定値0 | quiz settlement receipts、profile schema | クイズ＋Edge＋DB＋UX | Quiz accuracy stats | DECIDED | — | NO | NO | NOT_RUN | 2026-09-09追加監査 | — | YES |
 | UDL-20260909-045 | CPUが封印skillを弱い局面で浪費する | 序盤一律禁止にせず、接触色が少なく代替手段が多い時は温存し、応手を絞れる局面では初手を含め使用できる判断へする | 公開／許可情報だけ、相手private palette／hand参照0、全CPU合法・決定性、弱体化0、seeded局面比較 | CPU policy、public contact colors、seal skills | CPU＋privacy＋ルール | CPU seal timing | DECIDED | — | NO | NO | NOT_RUN | 2026-09-09追加監査 | — | YES |
@@ -155,7 +155,6 @@
 | 0マス時の実選択可能な全候補 | CHAT_ONLY | 公開・A便は単一おすすめ候補のまま。`UDL-039` |
 | 2／3／4色接触を各セル選択直後に再判定 | REOPENED | 公開のrequired-size完成時feedbackと重複実装せず置換する。`UDL-040` |
 | COLOR長文案内撤去 | CHAT_ONLY | 2026-09-09公開画面にも残存。自動敗北／合法色oracleへ戻さない。`UDL-041` |
-| 完了報酬の実所持・reload永続化 | LOCAL_VERIFIED / REOPENED | `65f23c9`で保存済み総数に獲得表示を拘束し、終局・ガチャ・reloadの数を明示。backend 18/18と両browser合格。B便後続の独立Pages公開・公開実見待ち |
 | CPU戦績一覧のコンパクト化 | CHAT_ONLY | portrait表示`e2d0713`へ受入統合が必要。`UDL-043` |
 | クイズ全体＋Lv別正答率 | CHAT_ONLY | 既存quiz records／settlementを精査前。`UDL-044` |
 | CPU封印skillの局面判断 | CHAT_ONLY | 一律序盤禁止を追加せず公開情報だけで評価。`UDL-045` |
@@ -179,10 +178,11 @@
 
 | 項目 | 現在状態 | 公開証拠と未達境界 |
 | --- | --- | --- |
-| 現在の公開製品 | PUBLIC_VERIFIED | `4508fb4`、Windows `34379857918` attempt 2、Pages `34382383719`、candidate preflight `ok:true`、公開PC・390pxでcompact quiz巡回、overflow 0、console 0 |
+| 現在の公開製品 | PUBLIC_VERIFIED | `4318793`、Windows `34385103929` attempt 2、Pages `34387630198`、candidate preflight `ok:true`。公開390pxでCPU報酬`15→16`、ガチャ1枚後`16→15`、reload後も獲得結果を維持、overflow 0、console 0 |
 | 基本palette torn snapshot拒否 | PUBLIC_VERIFIED | CPU手番→COLOR→reload→次COLORで緑・赤の回数無制限と黄残1を維持。初期重複・変更履歴は`UDL-035`で未達 |
 | クイズ選択肢のcompact巡回・位置入替 | PUBLIC_VERIFIED | `4508fb4`。公開PC占有率4.7%・5秒で全6個154–228px、390px占有率18.3%・10秒で全6個172–256px・全6個帯入替。bounds内、overlap 0、中央hit、回答停止・一回保存、console 0 |
-| おまけ残数、skill★、ガチャ率／券Lv、Lv5 120秒、original CPU portrait、whole-button物理 | PUBLIC_VERIFIED（履歴） | 後発決定のクイズ密度、portrait将来差替え、報酬永続化報告はそれぞれREOPENEDとして分離 |
+| 完了報酬の実所持・reload永続化 | PUBLIC_VERIFIED | `4318793`。保存済み総数に終局表示を拘束し、ガチャ画面へ同じ総数を引継ぎ、1枚消費と獲得結果がreload後も一致。backend冪等canaryと公開実操作を分離して確認 |
+| おまけ残数、skill★、ガチャ率／券Lv、Lv5 120秒、original CPU portrait、whole-button物理 | PUBLIC_VERIFIED（履歴） | 後発決定のportrait将来差替えと報酬強化UDL-046は別件として未完了。報酬永続化UDL-042は`4318793`でPUBLIC_VERIFIED |
 | 角膨張／ひとふくらみ既存契約、タブ整理、自動敗北廃止、同カテゴリ1枚制限、南京錠、図形SVG、scroll導線、クロガネ強化 | PUBLIC_VERIFIED（履歴） | 通常1マス角膨張、元色保持封印、最新11項目の改善は未公開。releaseごとに退行確認する |
 
 ## ChatGPT / agent提案（ユーザー決定ではない）

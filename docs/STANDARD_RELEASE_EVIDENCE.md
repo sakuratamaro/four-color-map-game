@@ -1,6 +1,6 @@
 # Standard公開候補 証拠台帳
 
-更新日: 2026-09-09
+更新日: 2026-09-10
 
 この文書は「コードがある」と「公開環境で確認した」を混同しないための台帳である。`VERIFIED` は同じ行に再現可能な根拠がある場合だけ使用する。token、API key、user ID、個人情報は記録しない。
 
@@ -20,7 +20,7 @@
 | 次期UX候補のローカル検査 | VERIFIED | `codex/standard-release-command@1673ff8`。profile安定化、初回対戦導線、Quick Half Shift、status正規化、Realtime/poll復旧を含む非browser製品試験91ファイル522/522。browser workflow/harness静的11/11合格 | Pages反映後のpreflightと二端末受入 |
 | 初回導線・接続表示の次期候補 | VERIFIED | `9d42784`。初回starter作成＋profile同期を一操作化し、全5タブで単一接続statusを常時表示。空名write 0、room外offline復帰、390px下部nav非干渉を契約化。静的39/39、非browser 89ファイル513/513、Windows Chrome/Edge各18/18合格 | 物理二端末受入 |
 | Windows実browser CI | VERIFIED | alpha.3候補`549e716`のrun `34048695008`はChrome成功、Edgeの既存feedback複数タブ競合が初回のみ失敗し、同一commitの再実行`101529617681`が成功。favicon追補後の終了処理はBrowserServer所有へ強化。追随漏れの静的契約だけが停止させたrun `34053352498`を保持し、修正`23f56af`のrun `34053724009`はChrome `101541739097`／Edge `101541739242`、各79/79・skip 0、CPU契約457/457、helper 4/4で成功 | 公開URLで同じ主要導線を二端末受入 |
-| 現行公開Pages | PUBLIC_VERIFIED | 公開HEAD `26a4161`、Pages run `34065705946`成功。公開URLでapp v42、style v40、skill-intents v19を確認。390×844はhorizontal overflow 0、console warning/error 0、candidate preflight `ok:true` | 別々の二端末でカテゴリ制限、Shift、角膨張、音量・振動感を最終受入 |
+| 現行公開Pages | PUBLIC_VERIFIED | 公開HEAD `4318793`、Pages run `34387630198`成功。公開URLでapp v10、style v6、candidate preflight `ok:true`。390×844はhorizontal overflow 0、console warning/error 0。通常CPU報酬`15→16`、ガチャ1枚後`16→15`、reload後も残数と獲得結果を維持 | 別々の二端末でカテゴリ制限、Shift、角膨張、音量・振動感を最終受入 |
 | 初回公開前DB境界（履歴） | VERIFIED | 旧snapshotは匿名権限拒否。snapshot v2と野良募集が未存在だった初回baseline | 現行境界は適用migrationとlive canaryを参照 |
 | migration 006–013静的検査 | VERIFIED | migration別security/transaction testsと読み取り専用44項目SQL | 実DBで全行`ok=true` |
 | Dashboard Advisor・使用量baseline | WATCH_RESOURCE_ALERT | 既存2件のplatform resource alertは継続。一方、2026-09-07の24h DashboardはCPU 2%、RAM 63%、disk 17%、disk IO 1%、接続peak 20/60、DB 30.5MB、WAL 128MB、API error 0.07%。同時read-only SQLはDB 16.7MB、接続18/60、blocked/idle-in-transaction 0、slot 2/2 active、最大retained WAL 16.77MB。DB契約72/72、Edge 24のpreflight/canaryも全成功で、実枯渇や新規悪化の根拠はない | 同じ指標とalert名を継続監視。新規alert、inactive slot、blocked接続、429/5xx悪化だけをHOLDへ昇格し、推測cleanup・課金・Compute変更はしない |
@@ -29,8 +29,8 @@
 | 即時Standard CPU開始 | PUBLIC_VERIFIED | migration `202609050002`とEdge deployment 9。製品`cc96350`、公開`a4c6490`、DB 47項目、Edge基本6/6、即時CPU 7/7、Windows run `33931963065`、Pages run `33932159043`合格。公開UIでCPU初手まで確認 | 物理端末で一試合完走・再読込・同じCPUとの再戦を確認 |
 | CPU完走後の次戦導線 | PUBLIC_VERIFIED | `29c6958`。同じCPUとの同room再戦を維持し、終了結果から別CPU選択へ進める。live即時CPU完走・再戦canary 25/25、Windows Chrome/Edge成功、Pages反映済み | 物理端末で別CPU選択と再戦を体感確認 |
 | CPU報酬からガチャへの直行 | PUBLIC_VERIFIED | `e36dfcc`＋`193a0e6`。保存済み通常CPU精算だけにCTAを出し、抽選せずLv.1ガチャへ移動。対人・未精算・debugを拒否し、390×844で券・抽選操作・focus・再読込を確認 | 物理端末でCPU一局からガチャまでの体感を確認 |
-| CPU完了報酬の実所持突合 | VERIFIED | B後続製品`65f23c9`、本番canary `eb629e5`。配備済みEdgeのindex/bundleをbyte・SHA一致で読戻し、基本7/7、CPU敗北の券付与・profile delta・完全reload・終局action再送を18/18で確認。関連113/113、390px focused Chrome/Edge各1/1で終局`2→3`、ガチャ`×3`、抽選後reload`×2`を確認 | B便の公開後に独立Windows gate、Pages公開、通常CPU実画面で前後総数を確認 |
-| GitHub main・Pages更新 | PUBLIC_VERIFIED | alpha.3製品`549e716`をforceなしでmainへfast-forwardし、Pages `34049734628`成功。付随404を除くfavicon追補`df56432`もbrowser gate `34050740206`後にmainへfast-forwardし、Pages `34051979716`成功。公開asset app v40/intents v18/local bundle v4、SHA、preflightを確認 | 二端末受入後にカテゴリ制限、Shift、物理音量・振動感を記録 |
+| CPU完了報酬の実所持突合 | PUBLIC_VERIFIED | 公開`4318793`（製品`65f23c9`、本番canary `eb629e5`）。Edge index/bundleのbyte・SHA一致、基本7/7、CPU敗北の券付与・profile delta・完全reload・終局action再送18/18、関連113/113、390px focused Chrome/Edge各1/1。Windows `34385103929` attempt 2とPages `34387630198`成功。公開CPU戦で券`15→16`、ガチャ`×16`、1枚抽選後とreload後`×15`、獲得結果維持を確認 | 物理端末で報酬からガチャまでの体感を確認 |
+| GitHub main・Pages更新 | PUBLIC_VERIFIED | `3d84294→4318793`をforceなしでmainへfast-forwardし、Pages `34387630198`成功。公開asset app v10/style v6、candidate preflight `ok:true`、390px overflow 0、console 0 | 二端末受入後にカテゴリ制限、Shift、物理音量・振動感を記録 |
 | server-side active-room復帰 | PUBLIC_VERIFIED | private/public/CPUを有限8列で本人にだけ返し、厳格な1行だけ採用。raw sentinel/UUID非表示、background focus非奪取、CPU/matchmaking saga優先、復帰時の新room/setup送信0をbrowser回帰とlive 10/10で確認 | 物理端末でlocal identity喪失後の復帰を体感確認 |
 | 塗り直し・乱 LAB | PUBLIC_VERIFIED | `ad53bb4` / 公開`3fb3ef8`。private-code human双方同意、debug排他、固定ruleset、server-only乱数、1人1回貸与、通常19枚/6枚/CPU/野良/戦績/報酬/在庫非変更。DB 70/70、Edge 23/23、Windows/Pages/公開preflight合格 | 二端末LAB一局 |
 | 合言葉対戦canary | VERIFIED | deployment 15で`live-standard-runbook-a-canary.mjs --confirm-live` 44/44合格。確定CREATEの公開trace shapeも検査 | 実ブラウザ再読込と二端末最終受入 |
@@ -491,6 +491,7 @@
 | `345c472` クイズbutton全体の衝突移動 | PASS | 2026-09-08 | Windows `34166855484`はChrome `101879510377` 6分54秒、Edge `101879510182` 9分10秒で成功。Pages `34167465748`。公開app/style `20260908-2`、client21、portraits v1、candidate preflight `ok:true`。公開desktopで6 buttonが各9.1–12.0px移動、bounds内、overlap 0、hover/focus中2.2秒座標不変、回答1回保存、console 0。390px/reduced-motionは正式実browserで確認し、live 390pxとは主張しない |
 | `4cefe9f` 基本palette torn snapshot拒否 | PASS | 2026-09-09 | 専用branch `codex/standard-palette-green-release-candidate-20260908`へexact SHAをpush。unit 51/51、focused Chrome/Edge各1/1、Windows run `34354740441`のChrome `102476448386`・Edge `102476448811`が成功。`3e453a2→4cefe9f`をforceなしでmainへfast-forwardし、Pages `34355861649`のbuild/report/deploy成功とcandidate preflight `ok:true`を確認。公開通常CPUで緑・赤がCPU手番、次COLOR、reload後の次COLORまで`基本色・回数無制限`、黄は残1。390×844で横overflow 0、console warning/error 0。synthetic tornはformal gateだけで、公開環境では捏造していない |
 | `4508fb4` クイズ選択肢compact巡回 | PASS | 2026-09-10 | 専用branch `codex/quiz-density-release-candidate-20260909`へexact SHAをpush。static/physics 74/74、focused Chrome/Edge各1/1。Windows `34379857918`はChrome成功、Edge attempt 1の既存reduced-motion timing失敗を同一SHAの局所Edge 1/1後にfailed job再実行しattempt 2成功。`6b9133f→4508fb4`をforceなしでmainへfast-forwardし、Pages `34382383719`とcandidate preflight `ok:true`を確認。公開PCは占有率4.7%、5秒で全6個154–228px移動、390pxは占有率18.3%、10秒で全6個172–256px移動・全6個帯入替。両幅でbounds内・overlap 0、390px横overflow 0、中央hit後paused＋全disabled、server ACK後に一回だけ次問へ進行、console warning/error 0。DB、Edge、問題生成、時間、採点、報酬変更なし |
+| `4318793` CPU完了報酬の実所持突合 | PASS | 2026-09-10 | 専用branch `codex/reward-persistence-release-20260910`へexact SHAをpush。関連95/95、focused Chrome/Edge各1/1。Windows `34385103929`はChrome成功、Edge attempt 1の既存`badge-ready` timeoutを同一SHAの局所Edge 1/1後にfailed job再実行しattempt 2成功。`3d84294→4318793`をforceなしでmainへfast-forwardし、Pages `34387630198`とcandidate preflight `ok:true`を確認。公開390px通常CPU戦で終局`15→16`、ガチャ`×16`、1枚抽選後とreload後`×15`、獲得カード「色封じ・乱」を確認。overflow 0、console warning/error 0。DB、Edge、RPC、engine、報酬量、ガチャ率変更なし |
 | 角膨張・エラー表示 Windows gate | PASS | 2026-09-06 | `75791fb`、run `34017288334`。Chrome `101443203494`、Edge `101443203230`が各73件成功。2マスkeyboard、connected cue、setup/成立済みconnectionと3行toastの遷移中/後非交差を検査 |
 | `75791fb` Pages・公開asset | PASS | 2026-09-06 | Pages `34017695831`。app/style v34、client v18、intents v17、CPU commentary v1、HTML/app/style HTTP 200、新marker、履歴凡例不在、candidate preflight `ok:true`、公開Chrome warning/error 0。DB/Edge変更なし |
 | 二端末最終受入 | NOT_RUN | PENDING | PENDING |
@@ -500,7 +501,7 @@
 - Dashboard T0は17項目を取得したが、Database 24hグラフ等20項目はDashboard取得不能でPARTIAL。資源逼迫alert 2件と7日Compute/CPU peak 99%があるため、負荷由来を切り分けるまで新しい高負荷経路を追加しない。
 - profile作成安定化はCの逐次16件で500/429なしを確認した。高並列作成そのものはAuth上限を消費するため再試験せず、再発時はEdge/DBログと資源警告を関連調査する。
 - Cのstatus正規化は本番関数定義、既存ticket整合、live canary 210/210まで確認済み。今後もIPあたり30 anonymous sign-ins/時を守り、同じ認証窓で重いcanaryを再試行しない。
-- 現行公開製品`4508fb4`は基本palette torn snapshot拒否とクイズ選択肢compact巡回を含み、Pagesへ反映済み。A便のsynthetic tornはformal browserだけであり、物理二端末受入は未実施。B便のクイズ物理は公開PC・390pxの実時系列で密度、移動、帯入替、重なり0、中央hit、回答停止・一回保存まで確認し、2026-09-09の「button過大・衝突過多」受入を`PUBLIC_VERIFIED`へ昇格した。
+- 現行公開製品`4318793`は基本palette torn snapshot拒否、クイズ選択肢compact巡回、CPU完了報酬の実所持突合を含み、Pagesへ反映済み。A便のsynthetic tornはformal browserだけであり、物理二端末受入は未実施。B便のクイズ物理は公開PC・390pxで`PUBLIC_VERIFIED`。報酬P0は公開通常CPU戦で券`15→16→15`とreload後の結果維持まで確認したが、報酬強化UDL-046と物理端末の体感確認は別残件である。
 - deployment 19はDashboard editorの追記によるworker boot errorで、正規単一内容のdeployment 20へ修復済み。20の基本7/7とRunbook B 234/234後に公開した。失敗履歴は消さず、今後のDashboard編集は全選択・消去後の行数照合を必須とする。
 - Edgeのper-isolate濫用抑止は分散レート制限ではない。公開後の計測で必要性が出た場合だけprovider側制限を検討する。
 - 10人CPUの合法性・決定性は自動検証済みだが、人間が感じる個性と楽しさは代表3人の実プレイ後も定性的判断として残る。
