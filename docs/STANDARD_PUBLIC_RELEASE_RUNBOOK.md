@@ -167,9 +167,19 @@ rollbackも「旧version番号へ戻った」という目視だけでは完了�
 4. [完了] 公開環境でtorn responseを捏造せず、通常CPU戦で基本色「緑・赤」をCPU手番、次のCOLOR、reload後の次COLORまで確認し、両方の`基本色・回数無制限`とおまけ色「黄・残り1回」を維持。390×844でconsole warning/error 0、横overflow 0。
 5. [完了] synthetic torn時系列はformal browser gate、公開後は実server通常時系列として証拠を分離し、`PUBLIC_VERIFIED`へ昇格した。
 
+### クイズ選択肢のcompact巡回・位置入替便
+
+正式候補は最新main `6b9133f`へ製品・asset marker・試験だけを再構成した`4f61201`。短い数値は52pxの実寸丸型、長い値は内容に応じた実寸カプセルとし、見えない旧大矩形を残さず、そのwidth/heightを壁反射・相互衝突へ直接使う。通常移動の結果として上下左右が入れ替わり、瞬間shuffle、速度だけ、衝突ジッターの累積移動量で代用しない。DB、Edge、クイズ生成、制限時間、採点、再送、報酬を変更しないPages-only便である。
+
+1. [完了] static/physics 74/74と390pxのChrome/Edge各1/1で、全6候補の実寸、button面積合計がarenaの24%以下、全buttonが開始位置から60px以上、6個中4個以上が90px以上、4個以上が上下／左右帯を移動、連続停滞0、visual order入替、bounds、overlap 0、button中心hit、hover/focus/touch/hint/feedback/hidden/handoff/reduced-motion停止、keyboard DOM順、resize、回答1回を確認した。
+2. 専用test branchへexact候補をpushし、Windows Chrome/Edge gateを同一treeで完走する。失敗runは省略せず原因とともに保持する。
+3. gate成功後にmain先端と親子関係を再確認し、forceなしでfast-forwardしてPagesを公開する。公開asset marker、HTTP 200、console warning/error 0、390px横overflow 0を確認する。
+4. 公開PC幅とsmartphone幅で、buttonが初期位置付近へ詰まり続けず、複数buttonが目で追える距離を巡回し、上下左右の位置関係が入れ替わり、移動先のbutton本体で回答できることを時系列座標または秘密・個人情報を含まない短い録画で確認する。
+5. 公開後に大四角の詰まり、見えない旧hitbox、長時間の小刻みな押し合い、重なり、選択不能、回答重複のいずれかを確認した場合は`PUBLIC_VERIFIED`へ上げず再修正する。
+
 ### alpha.4彩色済みエリア角膨張便
 
-候補中。この便は新payloadを旧Edgeが拒否する一方、新Edgeは旧UIのoutgoing payloadを継続できるため、`alpha.4対応Edge → live canary → Pages`の順にする。Pages候補assetはonline app `app.js?v=20260908-8`、style `style.css?v=20260908-5`、intents `standard-online-skill-intents.js?v=20260907-20`、client `standard-online-client.js?v=20260908-1`、portrait `cpu-portraits.js?v=20260908-1`、Local bundle `app.bundle.js?v=20260908-2-87f722259e50`である。DB、migration、RPC、secret、cleanup scheduleは変更しない。
+候補中。この便は新payloadを旧Edgeが拒否する一方、新Edgeは旧UIのoutgoing payloadを継続できるため、`alpha.4対応Edge → live canary → Pages`の順にする。Pages候補assetはonline app `app.js?v=20260908-9`、style `style.css?v=20260908-6`、intents `standard-online-skill-intents.js?v=20260907-20`、client `standard-online-client.js?v=20260908-1`、portrait `cpu-portraits.js?v=20260908-1`、Local bundle `app.bundle.js?v=20260908-2-87f722259e50`である。DB、migration、RPC、secret、cleanup scheduleは変更しない。
 
 1. `origin/main@63972b6`起点の専用clean worktreeで両bundleを2回生成し、2回目のSHAが不変、正式全製品試験、Windows Chrome/Edge CI、対象実browserのskip 0を確認する。
 2. alpha.4対応bundleを保持したまま新規対局だけを`5.0.0-alpha.3`へ戻す互換rollback branchを作成・GitHub保全する。既存alpha.4 stateの読込み・継続と、alpha.3新規stateが彩色済みpayloadをwrite-free拒否することを確認する。

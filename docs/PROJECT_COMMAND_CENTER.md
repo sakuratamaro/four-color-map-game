@@ -121,7 +121,7 @@
 | UDL-20260908-031 | CPU一覧で選択前に顔を見せる | CPU選択一覧の各候補に、選ぶ前から本人の通常portraitを表示する | 選択前10人、選択後、fallback、顔と上半身を表すalt/文言、keyboard/screen reader、390px overflow 0を確認。閲覧だけで選択・room作成・通信を起こさない | CPU roster、UDL-004、UDL-033 | UX＋素材＋a11y | CPU roster portraits | LOCAL_VERIFIED | `e2d0713`（製品`20956d5`＋試験`4720073`） | NO | NO | 統合Node 198 pass・0 fail、実Chrome/Edge各5/5。選択前10人、画像ready、名前付き`role=img`、390px overflow 0、一覧閲覧による対局通信0を確認 | 2026-09-08後発ユーザー決定 | 一覧カードのコンパクト化は後発`UDL-20260909-043`で別途REOPENED。portrait表示だけを完成扱いにしない | YES |
 | UDL-20260908-032 | Lv3/4は時間ではなく問題内容を難しくする | Lv3/4の難化は制限時間の長短で代用せず、問題そのものに必要な推論・計算段階を増やす | 実生成されたLv3/4各問題で内容差を検証し、timer変更だけを合格にしない。10問秘匿、server採点、再送、報酬、Lv1/2を非回帰 | UDL-009、UDL-026、Edge quiz runtime | クイズ＋Edge＋司令塔 | Quiz content difficulty recovery | LOCAL_VERIFIED | `048d04e`（製品`0498927`、専用canary `0a83480`） | NO | NO | 単独88/88、直列focused 68/68＋文書16/16、live NOT_RUN。実生成した全20テンプレートのseeded再計算、境界安全整数、Lv3全問2段階／Lv4全問3段階、旧易問ID除去、answer非漏えいを確認 | 2026-09-08後発ユーザー決定 | UDL-026の公開履歴は保持。main統合、Edge source readback、基本＋内容専用live canary後にのみ昇格 | YES |
 | UDL-20260908-033 | 現AI portraitsは暫定。将来はライセンス確認済み素材へ差し替える | 現portraitを最終素材と扱わない。将来候補はライセンスを確認し、WebPへ加工し、NOTICE・manifest・creditを揃え、差替え前にユーザーの視覚承認を得る | 出典、権利条件、取得元、原本hash、加工内容をmanifestへ記録し、必要なcredit/NOTICE、WebP品質、fallback、10人、390px、a11yを確認。ユーザー視覚承認前は製品assetを置換しない | UDL-004、UDL-007、UDL-031、asset pipeline | 素材＋法務確認＋UX＋司令塔 | Licensed CPU portrait replacement | DECIDED | — | NO | NO | NOT_RUN | 2026-09-08後発ユーザー決定 | UDL-004のoriginal atlas最終採用と第三者素材一律HOLDをSUPERSEDED。現assetは暫定継続 | YES |
-| UDL-20260909-034 | クイズbuttonが大きすぎ、衝突過多でほぼ動いて見えない | whole-button物理を維持しつつbutton、arena、初期配置、速度、再分離を一体調整して巡回余地を作る | 390pxで開始位置付近へ詰まらず複数buttonが目で追える距離を移動し、列／上下関係が変わる。累積移動量だけを合格にせず、初期・長時間overlap 0、枠内、中心hit、回答時停止、reduced-motion、keyboard、公開後実見を確認 | UDL-021、UDL-027、server quiz exactly-once | クイズ＋UX＋a11y＋司令塔 | Quiz density recovery | DECIDED | prior候補`7ab44c7`は再調整対象 | NO | NO | NOT_RUN | 2026-09-09追加監査 | 公開`345c472`と未公開`7ab44c7`の旧証拠は履歴。現行UX受入はREOPENED | YES |
+| UDL-20260909-034 | クイズbuttonが大きすぎ、衝突過多でほぼ動いて見えない | whole-button物理を維持しつつbutton、arena、初期配置、速度、再分離を一体調整して巡回余地を作る | 390pxで開始位置付近へ詰まらず複数buttonが目で追える距離を移動し、列／上下関係が変わる。累積移動量だけを合格にせず、初期・長時間overlap 0、枠内、中心hit、回答時停止、reduced-motion、keyboard、公開後実見を確認 | UDL-021、UDL-027、server quiz exactly-once | クイズ＋UX＋a11y＋司令塔 | Quiz density recovery | LOCAL_VERIFIED | `4f61201`（製品`1e15513`＋compact`39f4a3e`＋gate`4f61201`） | NO | NO | 74/74、390px focused Chrome/Edge各1/1。占有率24%以下、全button開始点から60px以上、6個中4個以上90px以上、4個以上が上下／左右帯を移動、連続停滞0、visual order入替、overlap 0、中心hitと停止・一回性を確認 | 2026-09-09追加監査 | 公開`345c472`はPUBLIC_BUT_UX_UNMET。公開PC・smartphone実見と短い時系列証拠後にだけ昇格 | YES |
 | UDL-20260909-035 | 持ち色の初期重複／消失と変更通知 | 初期基本色とおまけ色を重複させず、後発の持ち色変更は当事者へ行為者、skill、対象枠、変更前後色を通知・履歴化する。同色化しても基本／おまけ枠を統合せず、初期値と現在値を区別する | server-authoritativeな初期配布、基本2枠＋おまけ枠、残数、reload、効果終了、相手private非漏えい、通知一回性を確認 | UDL-019、UDL-028、palette impact event | ルール＋Edge＋UX＋privacy | Palette semantics follow-up | DECIDED | — | NO | NO | NOT_RUN | 2026-09-09追加監査 | `4cefe9f`はtorn snapshot拒否だけを解決。初期重複と変更履歴は別件としてREOPENED | YES |
 | UDL-20260909-036 | 封印中の色ボタンが元色を失い赤／ピンク枠に見える | button本体は元の色を維持し、鍵、封印中、残り回数でdisabled状態を示す | 赤色選択との誤認0、黄／緑／赤／青、基本／おまけ、残0、keyboard、contrast、相手private非漏えい | UDL-020、public seal effect | UX＋a11y＋privacy | Sealed color identity | DECIDED | — | NO | NO | NOT_RUN | 2026-09-09追加監査 | 既存の鍵表示公開履歴だけでは元色保持の現行受入を満たさずREOPENED | YES |
 | UDL-20260909-037 | エリア二分を番号入力でなく盤面の対象へ直接使いたい | カード→通常表示の対象マス→即発動とし、R1/R2/R3、内部microcell、別確認buttonを露出しない。分割側は盤面上で示す | pointer／keyboard、対象外通信0、取消、二重activation 0、再送、server-authoritative/no-oracle、旧room互換、390px | UDL-014、areaHalfShift engine | ルール＋UX＋a11y＋privacy | Area split direct target | DECIDED | — | NO | NO | NOT_RUN | 2026-09-09追加監査 | 角膨張の通常1マス化とは別カードとして管理 | YES |
@@ -143,7 +143,7 @@
 
 | 項目 | 現在状態 | 既存作業との照合 |
 | --- | --- | --- |
-| クイズbutton過大・衝突過多 | PUBLIC_BUT_UX_UNMET / REOPENED | whole-button物理は公開済み、`7ab44c7`も旧受入でLOCAL_VERIFIED。ただし`UDL-034`の巡回余地・公開smartphone実見は未達 |
+| クイズbutton過大・衝突過多 | PUBLIC_BUT_UX_UNMET / LOCAL_VERIFIED | whole-button物理の公開版はUX未達。最新main上の専用候補`4f61201`が`UDL-034`のローカル受入を通過したが、公開smartphone実見は未達 |
 | 初期palette重複、持ち色変更通知・履歴、基本／おまけ枠分離 | REOPENED | `4cefe9f`はtorn snapshot拒否のみ。`UDL-035`を別件化し二重実装を防止 |
 | 封印中も元色を保つbutton | REOPENED | 鍵・残り回数の公開履歴は保持。元色を赤／pink状態色で上書きしない受入は`UDL-036` |
 | エリア二分の盤面直接指定 | CHAT_ONLY | 角膨張通常1マス候補`f2d34db`とは別カード。`UDL-037` |
@@ -163,7 +163,7 @@
 
 | 項目 | 現在状態 | 候補と境界 |
 | --- | --- | --- |
-| クイズの見える位置入替・compact化 | LOCAL_VERIFIED / REOPENED | 累積候補`7ab44c7`。旧受入は通過したが`UDL-034`を追加反映してから再ゲートする |
+| クイズの見える位置入替・compact化 | LOCAL_VERIFIED | 最新main上の専用候補`4f61201`。`UDL-034`の占有率、実移動、停滞、位置入替を追加ゲート済み。push／Windows／Pages／公開smartphoneは未実施 |
 | 角膨張の通常1マス直接tap | LOCAL_VERIFIED | 累積候補`f2d34db`、製品`66a09ab`、旧room互換`d100349`。Edge→Pages順が必要 |
 | CPU選択前portrait | LOCAL_VERIFIED | 累積候補`e2d0713`。compact戦績cardの`UDL-043`は未実装 |
 | CPU台詞／地の文分離 | LOCAL_VERIFIED | 累積候補`ced155f`、製品`e117677`。公開event、reload、PvP、LAB境界をformal browserで確認済み |
