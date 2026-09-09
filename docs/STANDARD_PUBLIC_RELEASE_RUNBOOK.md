@@ -2,7 +2,7 @@
 
 更新日: 2026-09-10
 
-状態: 現行運用。migration `202609030006`–`202609030013`、`202609050001`–`202609050007`、`202609060001`–`202609060003`、Edge deployment 25、Pages product `eac26ed`（online app v14、style v9、skill intents v20、local bundle v2）は適用済み。`5.0.0-alpha.4`の既存互換とrollback保全を維持する。今便はDB変更なしで、migration、RPC、Edge、engine、報酬量、ガチャ率も変更していない。次便も実行直前にmain HEAD、Pages run、Edge deployment、migration tailを現物から再取得する。
+状態: 現行運用。migration `202609030006`–`202609030013`、`202609050001`–`202609050007`、`202609060001`–`202609060003`、Edge deployment 25、Pages product `21c1e23`（online app v14、style v9、skill intents v20、local bundle v3）は適用済み。`5.0.0-alpha.4`の既存互換とrollback保全を維持する。今便はDB変更なしで、migration、RPC、Edge、engine、報酬量、ガチャ率も変更していない。次便も実行直前にmain HEAD、Pages run、Edge deployment、migration tailを現物から再取得する。
 
 実行中の状態、数値、識別子、失敗は `docs/STANDARD_RELEASE_EVIDENCE.md` に追記する。根拠のない項目を`VERIFIED`や`PASS`へ変更しない。
 
@@ -197,6 +197,16 @@ B便後の最新main `3d84294`へ本番canary `eb629e5`と製品・試験`65f23c
 3. [完了] Windows `34390627632`は初回Edge成功／Chrome既存`badge-ready` timeout、attempt 2はChrome成功／Edge既存reduced-motion告知raceだった。前者は同一SHAの局所Chrome 1/1、後者は告知文自体を待つよう修正して局所Chrome/Edge各1/1。`34393139988`はChrome成功、Edgeが81/82・fail 0のまま15分上限でcancelされたため、workflowの有限上限を20分へ更新し契約11/11を確認した。最終`34394919317`はexact `eac26ed`でChrome・Edgeとも成功した。途中runも削除しない。
 4. [完了] `origin/main@a4f9bf4`の不変、候補clean、祖先関係を再確認し、forceなしで`eac26ed`へfast-forward。Pages `34396124927`は同SHAで成功し、candidate preflightは`ok:true`。
 5. [完了] 公開390pxでonline app `app.js?v=20260910-14`、Standard style `style.css?v=20260910-9`、横overflow 0、console warning/error 0を確認した。公開プロフィールは持ち色変更0枚のため本番actionを捏造せず、公開asset／表示健全性と正式browser behaviorを分離して記録し、`UDL-038`を`PUBLIC_VERIFIED`へ昇格した。
+
+### COLOR長文案内撤去便
+
+パレット変更証跡追補後の最新main `21b4b57`へ、保全済み同一patch `ae06452`／`608962e`から製品差分だけを再構成したPages-only便である。公開製品は`21c1e23`（製品`bf9b5c1`、Local bundle marker`21c1e23`）。COLOR中の「塗れる色が見つからないとき」と説明文だけをonline／Local Standard双方から撤去し、通常色、既存色操作カード、明示投了を残す。自動敗北、合法色oracle、時間制限、旧`DECLARE_NO_COLOR`は追加しない。DB、migration、RPC、Edge、engine、ルール、報酬を変更しない。
+
+1. [完了] 古い2作業床の製品commitがpatch ID `dd10c34bcaee736b96746924e57104b915c7f0d3`で同一と確認し、古いdocsを混ぜず最新main起点のclean branch `codex/color-guidance-trim-release-20260910`へ一度だけ適用した。Local bundleを再生成して差分0、static/runbook 94/94、対象390px Chrome/Edge各4/4を確認した。
+2. [完了] onlineでは通常palette、`色操作カードを見る`、`敗北として投了する`を残し、長文heading、説明ID、aria参照を撤去。Localでは通常paletteと`投了`を残し、private panelの長文sectionだけを撤去した。合法色一覧や隣接色oracleを追加せず、旧申告は引き続きwrite-free拒否する。
+3. [完了] Windows `34397743592`は初回Edge成功、Chromeが変更外のhidden new-match fixtureで`badge-ready` timeout。同一SHAの該当Chrome単体1/1後、failed-job attempt 2でChromeも成功した。失敗履歴は保持する。
+4. [完了] `origin/main@21b4b57`の不変、候補clean、祖先関係を再確認し、forceなしで`21c1e23`へfast-forward。Pages `34400264017`は同SHAで成功し、candidate preflightは`ok:true`。
+5. [完了] 公開390pxのonline／Local Standardで長文heading 0、旧guide 0、通常操作と投了の残存、横overflow 0、console warning/error 0を確認。Localは`app.bundle.js?v=20260908-3-ad91938e65c4`を配信し、`UDL-041`を`PUBLIC_VERIFIED`へ昇格した。
 
 ### alpha.4彩色済みエリア角膨張便
 
