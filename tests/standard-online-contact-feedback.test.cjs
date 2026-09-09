@@ -8,22 +8,27 @@ const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
 const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
 const css = fs.readFileSync(path.join(root, "style.css"), "utf8");
 
-test("online Standard presents cumulative two, three, and four-color contact tiers", () => {
+test("online Standard presents each newly crossed two, three, and four-color contact tier", () => {
   for (const text of ["二色接触！", "三色圧力!!", "四色包囲!!!"]) assert.match(app, new RegExp(text));
   for (const tier of [2, 3, 4]) assert.match(css, new RegExp(`contact-pressure-${tier}`));
   for (const id of ["contactReveal", "contactRevealCard", "contactRevealSteps", "contactRevealTitle", "contactRevealDetail", "contactRevealAnnouncement"]) {
     assert.match(html, new RegExp(`id="${id}"`));
   }
-  assert.match(app, /Array\.from\(\{ length: contactColorCount - 1 \}[^\n]+index \+ 2/);
+  assert.match(app, /const firstStage = Math\.max\(2, Math\.min\(contactColorCount, minimumStage\)\)/);
+  assert.match(app, /Array\.from\(\{ length: contactColorCount - firstStage \+ 1 \}[^\n]+firstStage \+ index/);
   assert.match(app, /setTimeout\(\(\) => presentStage\(stageIndex \+ 1\), 200\)/);
   assert.match(app, /}, 700\)/);
 });
 
 test("contact feedback is local to the selecting player and never replays from committed public traces", () => {
   assert.match(app, /function selectedContactColorCount\(state, macros = selectedMacros\)/);
-  assert.match(app, /function presentSelectedContact\(state, macros = selectedMacros\)/);
-  assert.match(app, /!targetDraft && selectedMacros\.size === state\.requiredSize\) presentSelectedContact\(state\)/);
-  assert.match(app, /showContactReveal\(contactColorCount, `\$\{state\.matchId\}:\$\{state\.version\}:local-contact:/);
+  assert.match(app, /function presentSelectedContactChange\(state, previousMacros, nextMacros = selectedMacros\)/);
+  assert.match(app, /const previousContactColorCount = selectedContactColorCount\(state, previousSourceMacros\)/);
+  assert.match(app, /if \(contactColorCount < previousContactColorCount\) \{\s*clearContactReveal\(\)/);
+  assert.match(app, /if \(contactColorCount < 2 \|\| contactColorCount <= previousContactColorCount\) return/);
+  assert.match(app, /\{ minimumStage: previousContactColorCount \+ 1 \}/);
+  assert.match(app, /if \(!targetDraft\) presentSelectedContactChange\(state, previousMacros\)/);
+  assert.doesNotMatch(app, /selectedMacros\.size === state\.requiredSize\) presentSelectedContact/);
   assert.match(app, /function syncContactSelectionScope\(state\)/);
   const scopeSync = app.slice(app.indexOf("function syncContactSelectionScope"), app.indexOf("function cpuCommentaryContext"));
   assert.doesNotMatch(scopeSync, /lastPublicTrace|validPublicTrace|showContactReveal|notifyBasicFeedback/);
