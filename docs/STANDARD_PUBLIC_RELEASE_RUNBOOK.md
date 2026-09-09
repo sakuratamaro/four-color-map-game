@@ -1,6 +1,6 @@
 # Standard公開版 段階リリース手順
 
-更新日: 2026-09-07
+更新日: 2026-09-10
 
 状態: 現行運用。migration `202609030006`–`202609030013`、`202609050001`–`202609050007`、`202609060001`–`202609060003`、Edge deployment 23、Pages product `df56432`（online app v40、style v38、skill intents v18、local bundle v4）は適用済み。`5.0.0-alpha.3`は同一seatの連続action-control windowで同じusage categoryを1回に制限し、実験貸与のおまけ色補充とHard CPUの有限な追加chargeを含む。旧対局 `5.0.0-alpha.1`/`5.0.0-alpha.2`の互換とrollback `3f4548d`は維持する。今便はDB変更なしで、migration、RPC、secretも変更していない。次便も実行直前にmain HEAD、Pages run、Edge deployment、migration tailを現物から再取得する。
 
@@ -199,9 +199,20 @@ B便→CPU完了報酬の実所持突合便の後続製品`608962e`。OnlineとL
 5. gate成功後にmainをforceなしでfast-forwardしPagesを公開する。公開HTML、Local bundle SHA、candidate preflight、console warning/error 0、390px横overflow 0を確認する。
 6. 公開OnlineとLocalのCOLOR応答で常設長文がなく、通常色・色操作skill・投了が操作可能であることを実見するまで`PUBLIC_VERIFIED`へ上げない。
 
+### 封印中color identity便
+
+B便→CPU完了報酬の実所持突合便→COLOR応答長文撤去便の後続製品`06d85a4`。封印中の色buttonを一律の赤／pink状態色へ上書きせず、赤・青・黄・緑それぞれの背景と枠を維持し、白い内側ring、鍵、`封印 残りN回`、disabledで状態を重ねるPages-only便である。基本色、おまけ色残0、一時色、四色解放を同じ表示契約へ通す。色選択、skill対象、公開seal情報、相手private palette、DB、migration、RPC、Edge、報酬、対局stateは変更しない。Online assetはapp `app.js?v=20260908-10`、style `style.css?v=20260908-7`。
+
+1. [完了] 静的78/78で4色surface変数、封印時の元色再利用、固定pink border／灰色backgroundの不在、公開情報だけを使うdisabled境界、先行3便のasset markerを確認した。
+2. [完了] 390px Chrome/Edge各1/1で赤・青・黄・緑のcomputed background／border、opacity 1、鍵、残り回数、基本／おまけ残0／prism、横overflow 0を確認した。
+3. [完了] stale button click、keyboard、同一操作再送、CPU COLOR、色封じskill targetを含む既存回帰を維持し、封印色のaction write 0と非封印色の保存1回を確認した。単独候補の初回Edgeは共通CSS枠色の詳細度競合を検出して停止し、色固有ruleを同等以上へ修正後に再実行して合格した。
+4. 先行3便を1便ずつ公開・公開後確認してから、このbranchを最新mainへ再構成する。Windows Chrome/Edge gateを通し、失敗runは保持する。
+5. gate成功後にmainをforceなしでfast-forwardしPagesを公開する。公開app/style marker、candidate preflight、console warning/error 0、390px横overflow 0を確認する。
+6. 公開通常対戦で黄／緑／赤／青の封印buttonが元色を保ち、鍵・残り回数・disabledが読め、非封印色と誤認しないことを実見するまで`PUBLIC_VERIFIED`へ上げない。
+
 ### alpha.4彩色済みエリア角膨張便
 
-候補中。この便は新payloadを旧Edgeが拒否する一方、新Edgeは旧UIのoutgoing payloadを継続できるため、`alpha.4対応Edge → live canary → Pages`の順にする。Pages候補assetはonline app `app.js?v=20260908-10`、style `style.css?v=20260908-6`、intents `standard-online-skill-intents.js?v=20260907-20`、client `standard-online-client.js?v=20260908-1`、portrait `cpu-portraits.js?v=20260908-1`、Local bundle `app.bundle.js?v=20260908-3-ad91938e65c4`である。DB、migration、RPC、secret、cleanup scheduleは変更しない。
+候補中。この便は新payloadを旧Edgeが拒否する一方、新Edgeは旧UIのoutgoing payloadを継続できるため、`alpha.4対応Edge → live canary → Pages`の順にする。Pages候補assetはonline app `app.js?v=20260908-10`、style `style.css?v=20260908-7`、intents `standard-online-skill-intents.js?v=20260907-20`、client `standard-online-client.js?v=20260908-1`、portrait `cpu-portraits.js?v=20260908-1`、Local bundle `app.bundle.js?v=20260908-3-ad91938e65c4`である。DB、migration、RPC、secret、cleanup scheduleは変更しない。
 
 1. `origin/main@63972b6`起点の専用clean worktreeで両bundleを2回生成し、2回目のSHAが不変、正式全製品試験、Windows Chrome/Edge CI、対象実browserのskip 0を確認する。
 2. alpha.4対応bundleを保持したまま新規対局だけを`5.0.0-alpha.3`へ戻す互換rollback branchを作成・GitHub保全する。既存alpha.4 stateの読込み・継続と、alpha.3新規stateが彩色済みpayloadをwrite-free拒否することを確認する。

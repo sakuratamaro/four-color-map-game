@@ -1,6 +1,6 @@
 # 四色地図ゲーム 司令塔台帳
 
-更新日: 2026-09-09
+更新日: 2026-09-10
 
 目的: 四色地図ゲームを、迷わず始められ、駆け引きが伝わり、もう一局遊びたくなる体験へ磨き上げる。
 
@@ -123,7 +123,7 @@
 | UDL-20260908-033 | 現AI portraitsは暫定。将来はライセンス確認済み素材へ差し替える | 現portraitを最終素材と扱わない。将来候補はライセンスを確認し、WebPへ加工し、NOTICE・manifest・creditを揃え、差替え前にユーザーの視覚承認を得る | 出典、権利条件、取得元、原本hash、加工内容をmanifestへ記録し、必要なcredit/NOTICE、WebP品質、fallback、10人、390px、a11yを確認。ユーザー視覚承認前は製品assetを置換しない | UDL-004、UDL-007、UDL-031、asset pipeline | 素材＋法務確認＋UX＋司令塔 | Licensed CPU portrait replacement | DECIDED | — | NO | NO | NOT_RUN | 2026-09-08後発ユーザー決定 | UDL-004のoriginal atlas最終採用と第三者素材一律HOLDをSUPERSEDED。現assetは暫定継続 | YES |
 | UDL-20260909-034 | クイズbuttonが大きすぎ、衝突過多でほぼ動いて見えない | whole-button物理を維持しつつbutton、arena、初期配置、速度、再分離を一体調整して巡回余地を作る | 390pxで開始位置付近へ詰まらず複数buttonが目で追える距離を移動し、列／上下関係が変わる。累積移動量だけを合格にせず、初期・長時間overlap 0、枠内、中心hit、回答時停止、reduced-motion、keyboard、公開後実見を確認 | UDL-021、UDL-027、server quiz exactly-once | クイズ＋UX＋a11y＋司令塔 | Quiz density recovery | LOCAL_VERIFIED | `4f61201`（製品`1e15513`＋compact`39f4a3e`＋gate`4f61201`） | NO | NO | 74/74、390px focused Chrome/Edge各1/1。占有率24%以下、全button開始点から60px以上、6個中4個以上90px以上、4個以上が上下／左右帯を移動、連続停滞0、visual order入替、overlap 0、中心hitと停止・一回性を確認 | 2026-09-09追加監査 | 公開`345c472`はPUBLIC_BUT_UX_UNMET。公開PC・smartphone実見と短い時系列証拠後にだけ昇格 | YES |
 | UDL-20260909-035 | 持ち色の初期重複／消失と変更通知 | 初期基本色とおまけ色を重複させず、後発の持ち色変更は当事者へ行為者、skill、対象枠、変更前後色を通知・履歴化する。同色化しても基本／おまけ枠を統合せず、初期値と現在値を区別する | server-authoritativeな初期配布、基本2枠＋おまけ枠、残数、reload、効果終了、相手private非漏えい、通知一回性を確認 | UDL-019、UDL-028、palette impact event | ルール＋Edge＋UX＋privacy | Palette semantics follow-up | DECIDED | — | NO | NO | NOT_RUN | 2026-09-09追加監査 | `4cefe9f`はtorn snapshot拒否だけを解決。初期重複と変更履歴は別件としてREOPENED | YES |
-| UDL-20260909-036 | 封印中の色ボタンが元色を失い赤／ピンク枠に見える | button本体は元の色を維持し、鍵、封印中、残り回数でdisabled状態を示す | 赤色選択との誤認0、黄／緑／赤／青、基本／おまけ、残0、keyboard、contrast、相手private非漏えい | UDL-020、public seal effect | UX＋a11y＋privacy | Sealed color identity | DECIDED | — | NO | NO | NOT_RUN | 2026-09-09追加監査 | 既存の鍵表示公開履歴だけでは元色保持の現行受入を満たさずREOPENED | YES |
+| UDL-20260909-036 | 封印中の色ボタンが元色を失い赤／ピンク枠に見える | button本体は元の色を維持し、鍵、封印中、残り回数でdisabled状態を示す | 赤色選択との誤認0、黄／緑／赤／青、基本／おまけ、残0、keyboard、contrast、相手private非漏えい | UDL-020、public seal effect | UX＋a11y＋privacy | Sealed color identity | LOCAL_VERIFIED | `06d85a4` | NO | NO | 静的78/78、390px Chrome/Edge各1/1。赤・青・黄・緑の背景／枠を実computed styleで固定し、鍵、封印残数、opacity 1、基本／おまけ残0、stale click write 0、横overflow 0を確認 | 2026-09-09追加監査 | B便→報酬便→COLOR長文撤去後続のPages-only候補。Windows gate・公開実見までREOPENED | YES |
 | UDL-20260909-037 | エリア二分を番号入力でなく盤面の対象へ直接使いたい | カード→通常表示の対象マス→即発動とし、R1/R2/R3、内部microcell、別確認buttonを露出しない。分割側は盤面上で示す | pointer／keyboard、対象外通信0、取消、二重activation 0、再送、server-authoritative/no-oracle、旧room互換、390px | UDL-014、areaHalfShift engine | ルール＋UX＋a11y＋privacy | Area split direct target | DECIDED | — | NO | NO | NOT_RUN | 2026-09-09追加監査 | 角膨張の通常1マス化とは別カードとして管理 | YES |
 | UDL-20260909-038 | 持ち色変更の変更元と変更先が分かりにくい | 変更元slotと変更先色を分離し、`変更する枠: 基本色・緑 → 変更先: 青`のように示す。おまけ枠は残数も表示 | 基本2枠／おまけ枠、同色、no-op、取消、送信一回性、効果後表示、相手private非漏えい | UDL-003、UDL-035、colorPaletteChange | UX＋ルール＋privacy | Palette change targeting | DECIDED | — | NO | NO | NOT_RUN | 2026-09-09追加監査 | 既存の説明文公開だけでは操作対象の明確化を満たさずREOPENED | YES |
 | UDL-20260909-039 | 0マス時に左上1候補だけでなく実際に選べる全候補を見たい | 0マス時は既存ルールで実際に選択可能な開始候補をすべて案内強調し、選択数は0のままにする | 自動選択0、focus ringと区別、全候補過不足0、案内のための新制約0、pointer／keyboard、390px | board-first guidance、server geometry | UX＋a11y＋privacy | All start candidates | DECIDED | — | NO | NO | NOT_RUN | 2026-09-09追加監査 | 公開の単一おすすめ候補を現行受入としてREOPENED | YES |
@@ -145,7 +145,7 @@
 | --- | --- | --- |
 | クイズbutton過大・衝突過多 | PUBLIC_BUT_UX_UNMET / LOCAL_VERIFIED | whole-button物理の公開版はUX未達。最新main上の専用候補`4f61201`が`UDL-034`のローカル受入を通過したが、公開smartphone実見は未達 |
 | 初期palette重複、持ち色変更通知・履歴、基本／おまけ枠分離 | REOPENED | `4cefe9f`はtorn snapshot拒否のみ。`UDL-035`を別件化し二重実装を防止 |
-| 封印中も元色を保つbutton | REOPENED | 鍵・残り回数の公開履歴は保持。元色を赤／pink状態色で上書きしない受入は`UDL-036` |
+| 封印中も元色を保つbutton | LOCAL_VERIFIED / REOPENED | `06d85a4`で4色の元背景・枠を維持し、白い内側ring、鍵、残り回数を重ねる。先行3便後のWindows gate・Pages公開実見待ち。`UDL-036` |
 | エリア二分の盤面直接指定 | CHAT_ONLY | 角膨張通常1マス候補`f2d34db`とは別カード。`UDL-037` |
 | 持ち色変更の変更元枠→変更先色UI | CHAT_ONLY | 既存説明文とpalette impact通知を再利用候補にするが実装済み扱いにしない。`UDL-038` |
 | 0マス時の実選択可能な全候補 | CHAT_ONLY | 公開・A便は単一おすすめ候補のまま。`UDL-039` |
