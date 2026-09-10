@@ -88,6 +88,16 @@ origin/mainは今回fetchして上記SHAと確認。ユーザーは試験用プ�
 
 公式の[Scheduled tasks](https://learn.chatgpt.com/docs/automations?surface=app)は、同一タスクへの分単位の再確認と、ローカル作業時のPC電源・アプリ起動の必要性を説明している。今回もローカル環境のため、PC停止中やアプリ終了中の定刻実行は保証しない。20分ごとの再開にもモデル使用量はかかり、無償の監視ではない。
 
+## 2026-09-11 パレット候補の遅延連絡・送達確認
+
+`CANON_RECEIPT version=shared-canon-v1.1 base=5c03e6c2d0e94c843776ea7eae0d7bbe2917a174 request=UDL-20260910-052/051,UDL-20260911-056 specs=AGENTS.md,docs/SHARED_CANON.md,docs/CHATGPT_COLLABORATION_OPERATION.md,docs/CHATGPT_REVIEW_DECISIONS.json,docs/ASTRA_PALETTE_REPORT_20260911.md checks=bounded-transport-and-JSON-readback-only`
+
+文書HEADはce781c9、baseはlocal origin/main tracking ref（今回fetchなし）。元のdeferred期限23:19:27Z内でavailability取得を2回目として1回実行し、最新user `bbb215c4-69f9-4ed7-90b6-d9acf1e3ed9f` と完了済みAstra返答 `9553a070-9041-4e82-9705-9f467955e341`、idleを確認した。ユーザー要望とAI設計案を既存coordinationへ未処理キューとして保存し、全体監査・ゲーム実装へ展開していない。新着の内容はCPUの最強／最弱と二つ名、オーロラの可視性、エリア二分の操作理解、角膨張の通常マス操作。実装済みや公開承認にはしない。
+
+先にsend_attempts=1を保存してから、固定候補ce6fab535235d7aff90d0bc846bbfb648c9a56e4・UDL-052-roles-v1・spec blob5652a3f41caa453c67cb69fbe80a7a14a6a5c2ef・Pages_only・DB/Edge各[]のレビューを1回送信した。送信API成功後の初回読戻しは旧turnだった。待機ループや再送をせず一度だけ補完し、message `8464f659-ad62-4c09-83d9-44e1cc91316b` と実送信本文の完全一致を22:57:14Zに確認。送達確認の読戻しは計2回で、自動レビュー確認はまだ0回。
+
+新規候補の返答待ちだけを22:57:14Zから最大3回・120分で設定。23:17:14Z、23:37:14Z、翌00:37:14Zを予定し、翌00:57:14Zをhard deadlineとする。旧d53ac7bのwait_budgetはcompleted_review_waitsへ履歴保存し、旧期限は変えていない。OpenAI Docsの既存チャット定期処理の案内とこの有限運用に従い、automation ID `automation` を20分へ更新。APIはACTIVEを返し、保存設定もstatus=ACTIVE、updated_at=1789081126281、prompt完全一致を確認した。2回目後は60分、3回目／期限切れ／有効な返答受領で実PAUSEDにする。本番変更・ゲーム試験再実行・新たな司令塔／automationはない。
+
 ## 初回の実施記録
 
 - 専用branchへ `c511711dcd0f74239827556c6e27527b9644f966` をpushし、追加要望成果物・保存済みの実APPROVE_DOCS・この運用案を相手が取得可能にした。
