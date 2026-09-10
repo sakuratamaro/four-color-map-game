@@ -4921,6 +4921,47 @@ test("actual Edge presents public seals and blocks every stale paint path withou
   }, { viewport: { width: 390, height: 844 } });
 });
 
+test("UDL-052 actual browser identifies overlapping basic and bonus roles at desktop and narrow widths", { timeout: 130000 }, async () => {
+  for (const viewport of [{ width: 900, height: 800 }, { width: 390, height: 844 }]) {
+    await withPage("playing", async (page) => {
+      const update = async (basicPalette, bonusUsesRemaining, seals = {}, privateEffects = {}) => {
+        await page.evaluate(({ basicPalette, bonusUsesRemaining, seals, privateEffects }) => {
+          const runtime = globalThis.__standardOnlineRuntime;
+          const version = runtime.room.version + 1;
+          runtime.room = { ...runtime.room, version, public_state: { ...runtime.room.public_state, version, turn: version, active: "A", phase: "COLOR", pending: "R1",
+            regions: { R1: { id: "R1", micro: [0], sourceMacros: [0], controllers: ["B"], color: null, isPending: true } },
+            publicEffects: { ...runtime.room.public_state.publicEffects, A: { seals } } } };
+          runtime.view = { ...runtime.view, version, private_state: { ...runtime.view.private_state,
+            basicPalette, bonusColor: "red", bonusUsesRemaining, privateEffects } };
+          runtime.onInvalidate();
+        }, { basicPalette, bonusUsesRemaining, seals, privateEffects });
+        await page.waitForFunction(() => document.querySelector("#versionText")?.textContent === String(globalThis.__standardOnlineRuntime.room.version));
+      };
+      const red = page.locator('#paletteControls .color-button[data-color="red"]');
+      await update(["red", "blue"], 3);
+      assert.match(await red.textContent(), /基本色・回数無制限.*おまけ色 残り3回/);
+      assert.match(await red.getAttribute("aria-label"), /基本色・回数無制限.*おまけ色 残り3回.*使用できます/);
+      assert.equal(await red.isEnabled(), true);
+      await update(["red", "red"], 0);
+      assert.match(await red.textContent(), /基本色×2・回数無制限.*おまけ色 残り0回/);
+      assert.equal(await red.isEnabled(), true);
+      assert.equal(await page.locator("#paletteControls .color-button").count(), 1, "do not adopt four-color or slot layout in this slice");
+      await update(["red", "red"], 0, { red: 2 }, { temporaryColors: ["red"] });
+      assert.match(await red.textContent(), /基本色×2.*おまけ色 残り0回.*一時色.*封印 残り2回/);
+      assert.equal(await red.isDisabled(), true);
+      await update(["blue", "yellow"], 0);
+      assert.doesNotMatch(await red.textContent(), /基本色|回数無制限/);
+      assert.equal(await red.isDisabled(), true);
+      await update(["blue", "yellow"], 0, {}, { temporaryColors: ["red"] });
+      assert.match(await red.textContent(), /おまけ色 残り0回.*一時色/);
+      assert.equal(await red.isEnabled(), true);
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+      assert.equal(await page.locator("#publicProjection").textContent().then((text) => /basicPalette|bonusColor|privateEffects/.test(text)), false);
+      assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "action").length), 0);
+    }, { viewport });
+  }
+});
+
 test("actual browser keeps both basic colors through a torn CPU-turn projection and the next coherent poll", { timeout: 130000 }, async () => {
   await withPage("playing", async (page) => {
     const update = async ({ version, active, phase, basicPalette, viewVersion = version }) => {

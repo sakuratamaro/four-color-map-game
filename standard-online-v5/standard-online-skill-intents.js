@@ -42,7 +42,7 @@
   function regionId(value) { if (typeof value !== "string" || !/^R[1-9][0-9]*$/.test(value)) invalid(); return value; }
 
   function colorChoiceDetails(privateState = {}) {
-    const basic = new Set((Array.isArray(privateState.basicPalette) ? privateState.basicPalette : []).filter((color) => COLORS.includes(color)));
+    const basic = (Array.isArray(privateState.basicPalette) ? privateState.basicPalette : []).filter((color) => COLORS.includes(color));
     const bonusColor = COLORS.includes(privateState.bonusColor) ? privateState.bonusColor : null;
     const bonusUsesRemaining = Number.isSafeInteger(privateState.bonusUsesRemaining) && privateState.bonusUsesRemaining >= 0
       ? privateState.bonusUsesRemaining : 0;
@@ -50,7 +50,8 @@
       ? privateState.privateEffects.temporaryColors : []).filter((color) => COLORS.includes(color)));
     const prism = privateState.privateEffects?.prism === true;
     return Object.freeze(COLORS.flatMap((color) => {
-      const isBasic = basic.has(color);
+      const basicSlotCount = basic.filter((entry) => entry === color).length;
+      const isBasic = basicSlotCount > 0;
       const isBonus = color === bonusColor;
       const isTemporary = temporary.has(color);
       const isPrism = prism;
@@ -59,6 +60,7 @@
       return [Object.freeze({
         color,
         isBasic,
+        basicSlotCount,
         isBonus,
         bonusUsesRemaining: isBonus ? bonusUsesRemaining : null,
         isTemporary,

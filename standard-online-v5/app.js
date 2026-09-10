@@ -4743,13 +4743,14 @@ function renderBasicActions(state, privateState) {
       name.className = "color-button-name";
       name.textContent = `${sealed ? "🔒 " : ""}${COLOR_JA[color] || color}`;
       const details = [];
+      if (choice.isBasic) details.push(`基本色${choice.basicSlotCount > 1 ? `×${choice.basicSlotCount}` : ""}・回数無制限`);
       if (choice.isBonus) details.push(`おまけ色 残り${choice.bonusUsesRemaining}回`);
       if (choice.isTemporary) details.push("一時色");
       if (choice.isPrism && !choice.isBasic && !choice.isBonus && !choice.isTemporary) details.push("四色解放");
       if (sealed) details.push(`封印 残り${sealRemaining}回`);
       const meta = document.createElement("span");
       meta.className = "color-button-meta";
-      meta.textContent = details.join("・") || "基本色・回数無制限";
+      meta.textContent = details.join("・");
       button.append(name, meta);
       button.disabled = actionBusy || sealed || !choice.available;
       button.setAttribute("aria-label", `${COLOR_JA[color] || color}。${meta.textContent}${sealed ? "。使用できません" : choice.available ? "。使用できます" : "。残り回数がないため使用できません"}`);

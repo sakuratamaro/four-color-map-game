@@ -64,10 +64,11 @@ test("color choice details retain owned zero-use bonus colors and merge every av
   });
   assert.deepEqual(details.map((choice) => choice.color), ["red", "yellow"]);
   assert.deepEqual(details[0], {
-    color: "red", isBasic: true, isBonus: true, bonusUsesRemaining: 0,
+    color: "red", isBasic: true, basicSlotCount: 2, isBonus: true, bonusUsesRemaining: 0,
     isTemporary: false, isPrism: false, available: true,
   });
   assert.equal(details[1].isTemporary, true);
+  assert.equal(details[1].basicSlotCount, 0);
   assert.deepEqual(intents.availableColorChoices({
     basicPalette: [], bonusColor: "blue", bonusUsesRemaining: 0, privateEffects: {},
   }), []);
@@ -78,4 +79,24 @@ test("color choice details retain owned zero-use bonus colors and merge every av
     basicPalette: [], bonusColor: "corrupt", bonusUsesRemaining: 9,
     privateEffects: { temporaryColors: [], prism: true },
   }), ["red", "blue", "yellow", "green"]);
+});
+
+test("UDL-052 palette roles keep basic multiplicity independent of bonus uses without changing choices", () => {
+  for (const remaining of [0, 1, 3]) {
+    for (const basicPalette of [["red", "blue"], ["red", "red"]]) {
+      const state = { basicPalette, bonusColor: "red", bonusUsesRemaining: remaining };
+      const before = JSON.stringify(state);
+      const red = intents.colorChoiceDetails(state).find((choice) => choice.color === "red");
+      assert.equal(red.basicSlotCount, basicPalette.filter((color) => color === "red").length);
+      assert.equal(red.isBasic, true);
+      assert.equal(red.isBonus, true);
+      assert.equal(red.bonusUsesRemaining, remaining);
+      assert.equal(red.available, true, "exhausted bonus never disables a basic color");
+      assert.deepEqual(intents.availableColorChoices(state), [...new Set(basicPalette)]);
+      assert.equal(JSON.stringify(state), before, "display projection must not consume or rewrite slots");
+    }
+  }
+  const onlyBonus = intents.colorChoiceDetails({ basicPalette: ["blue", "yellow"], bonusColor: "red", bonusUsesRemaining: 0 })[0];
+  assert.equal(onlyBonus.basicSlotCount, 0);
+  assert.equal(onlyBonus.available, false);
 });
