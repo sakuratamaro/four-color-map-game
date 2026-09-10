@@ -4,9 +4,11 @@
 
 目的: 四色地図ゲームを、迷わず始められ、駆け引きが伝わり、もう一局遊びたくなる体験へ磨き上げる。
 
-この台帳は、設計・実装・未コミット作業・公開済み状態を混同しないための入口である。双方のAIが読む正本の場所と最小入力は `SHARED_CANON.md` (`shared-canon-v1`) を入口にする。公開可否の有限な証拠は `STANDARD_RELEASE_EVIDENCE.md`、具体的な公開順序は `STANDARD_PUBLIC_RELEASE_RUNBOOK.md`、作業床と未コミット物の保全判断は `WORKTREE_HYGIENE_INVENTORY.md` を正本とする。
+この台帳は、設計・実装・未コミット作業・公開済み状態を混同しないための入口である。双方のAIが読む正本の場所と最小入力は `SHARED_CANON.md` (`shared-canon-v1.1`) を入口にする。公開可否の有限な証拠は `STANDARD_RELEASE_EVIDENCE.md`、具体的な公開順序は `STANDARD_PUBLIC_RELEASE_RUNBOOK.md`、作業床と未コミット物の保全判断は `WORKTREE_HYGIENE_INVENTORY.md` を正本とする。
 
 ## 司令塔ルール
+
+2026-09-10の後続ユーザー依頼による継続確認・改修連携の暫定手順は `CHATGPT_COLLABORATION_OPERATION.md`。既存司令塔・UDLを置換せず、固定候補f9a4ab9への文書承認と新しい改修／本番公開権限を分離する。
 
 - 公開製品コードは `7d69d34`（CPU選択前portrait。直前のCPU台詞／地の文分離は`4b84e52`、対戦報酬製品は`ca97731`）。製品treeと完全一致する検証merge `e726b36`でWindows `34444981630`のChrome／Edgeが成功し、製品SHAのPages `34445753305`も成功、candidate preflight `ok:true`。Edge Function version 29と報酬canaryの既存証拠は不変。再起動後のChrome拡張接続だけが未復旧のため、公開Chrome実見前は`MERGED / LIVE_CHROME_PENDING`とし`PUBLIC_VERIFIED`へ過大昇格しない。次の変更も専用clean worktreeでのみ統合する。
 - `UDL-20260908-027`〜`033`と`UDL-20260909-034`〜`046`は上記公開後のユーザー決定である。関連する過去の`PUBLIC_VERIFIED`は公開履歴の証拠として残すが、後発決定に対する現行の受入・実装済みを意味しない。

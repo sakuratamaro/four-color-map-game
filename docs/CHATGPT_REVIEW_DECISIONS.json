@@ -40,6 +40,20 @@
       "notes": "Delivery is not approval. No main, Pages, Edge, DB, or game change. No review polling loop was started. The fixed review subject remains f9a4ab9; this receipt is later evidence only."
     }
   ],
+  "coordination": {
+    "status": "preparing_followup",
+    "reviewer_thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
+    "last_consumed_review_message_id": "bd946af1-ff4e-4e9e-b202-28eddda704d7",
+    "pending_user_intake_message_ids": ["ea61f25f-bebf-499a-81e9-029712a96f99"],
+    "pending_user_intake_note": "10 CPUs grouped two per level and individualized strength: direction from the user; precise roster/charges/size bonuses and seal-bypass semantics in the assistant reply remain proposals. Reconcile with UDL-051 before implementation.",
+    "automation_id": null,
+    "pending_subject_sha": null,
+    "last_sent_message_id": null,
+    "sent_at_utc": null,
+    "unchanged_checks": 0,
+    "reminder_count": 0,
+    "max_reminders_per_request": 1
+  },
   "decisions": [
     {
       "review_id": "CHATGPT-REVIEW-20260910-001",
@@ -65,6 +79,32 @@
       "blockers": ["B1: local candidate was unavailable to the reviewer; GitHub returned 422 No commit found for SHA"],
       "applies_to_current_candidate": false,
       "notes": "Real decision from the designated ChatGPT, retrieved with read_thread. Preserved for its original subject only. No documentation or game release was approved."
+    },
+    {
+      "review_id": "CHATGPT-REVIEW-20260910-002",
+      "review_kind": "documentation_introduction",
+      "subject_sha": "f9a4ab9245638c67fbbd6818790371265ced15fd",
+      "canon_version": "shared-canon-v1.1",
+      "base_sha": "2f855ccfef11d7c099cfb73fb57ec3da79be8789",
+      "spec_snapshot_sha": "b0673739bf4dc15875c69b9ab52c69b725d9e312",
+      "spec_snapshot_kind": "git_blob:docs/SHARED_CANON.md",
+      "db_change_set": [],
+      "edge_change_set": [],
+      "scope": "documentation_introduction",
+      "decision": "APPROVE_DOCS",
+      "source": {
+        "kind": "chatgpt",
+        "thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
+        "message_id": "bd946af1-ff4e-4e9e-b202-28eddda704d7",
+        "request_message_id": "cefaccf8-2648-4d63-b7fe-5a4a78023ec2",
+        "url": "https://chatgpt.com/c/6aa229e7-e098-83ee-ac5e-d366a12653a4",
+        "quoted_decision": "APPROVE_DOCS",
+        "quoted_scope": "ゲーム本番公開、main統合、Pages・Edge・DB変更の実行許可へ読み替えないでください。"
+      },
+      "blockers": [],
+      "applies_to_current_candidate": false,
+      "nonblocking_notes": ["Align shared-canon-v1 in the command-center introduction with the v1.1 entrypoint in a later documentation cleanup."],
+      "notes": "Actual response retrieved from the designated ChatGPT. Reviewer reports fetching the candidate and matching the entrypoint blob. It did not rerun the reported 23 tests. Approval binds f9a4ab9 only, not bc58a0e, eb2fc0f, later operations, or any production action."
     }
   ]
 }
