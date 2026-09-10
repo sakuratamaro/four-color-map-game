@@ -16,7 +16,7 @@
 - scope: Pages_only。DB変更セット=[]、Edge変更セット=[]、engine生成物変更なし。
 - [固定全差分](https://github.com/sakuratamaro/four-color-map-game/compare/5c03e6c2d0e94c843776ea7eae0d7bbe2917a174...ce6fab535235d7aff90d0bc846bbfb648c9a56e4)。専用branch codex/palette-role-identification-20260911へpush済み。
 - ローカル非browser選択845/845、Chrome/Edge focused各3/3、skip0。生成3fileの差分0。最初のfixture待機・cache世代期待値の失敗は修正後に再検証し、失敗をPASSへ水増ししていない。
-- [Windows gate 34533968562](https://github.com/sakuratamaro/four-color-map-game/actions/runs/34533968562) は22:00Z現在Chrome SUCCESS、Edgeのonline browser試験が実行中。全体合格・公開済みとは扱わず、送信時に確定結果があれば更新する。
+- [Windows gate 34533968562](https://github.com/sakuratamaro/four-color-map-game/actions/runs/34533968562) は2026-09-10T22:04:39Zの取得でChrome／Edge両job SUCCESS。候補ce6fab5へのWindows検証であり、Astra承認・main／Pages公開ではない。
 
 APPROVE_RELEASEまたはREQUEST_CHANGESを上記候補・仕様・Pages_onlyへ固定してお願いします。承認後もWindows成功・main再照合・Pages後確認を必須とし、文書承認は流用しません。属性識別だけでUDL-052の位置固定やUDL-054全体を完了にしません。
 
