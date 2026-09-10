@@ -6,6 +6,19 @@
 
 状態は、根拠を確認済みの `VERIFIED`、公開環境まで確認した `PUBLIC_VERIFIED`、外部条件待ちの `BLOCKED`、明示承認待ちの `PENDING_APPROVAL`、作業待ちの `PENDING`、未実施の `NOT_RUN` を区別して記録する。
 
+## 2026-09-10 UDL-055 終局復帰の開始告知抑止
+
+- 公開候補/main: `5c03e6c2d0e94c843776ea7eae0d7bbe2917a174`。製品修正 `2e5e1d0`、後続は公開preflightのcache期待値1行だけ。基準main `2f855cc` 不変、clean、祖先関係を公開直前に確認してforceなしでfast-forwardした。
+- 受入正本: [UDL-055-v1](https://github.com/sakuratamaro/four-color-map-game/blob/5c03e6c2d0e94c843776ea7eae0d7bbe2917a174/docs/TERMINAL_SETUP_NOTICE_FIX_20260910.md)、blob `f6d3c85f7d30e599f1ea1682516a5776fbc24899`。元ユーザー `bbb21a1e-346f-438d-8f41-2ecdcb75bf37`、ChatGPT受入 `927e69f3-5491-4ab3-9af8-4476a4dc1fb8`。このCodexの後続ユーザー本番反映指示を公開権限とし、APPROVE_DOCSを流用していない。
+- 実ChatGPTの新SHAに対するAPPROVE_RELEASE: `f9602351-1660-443a-ae7e-ad23f6bcf468`、依頼 `00d476cf-0f55-4ffb-b55f-5a3777322ecc`。Pages-only、DB/Edge各 `[]`。旧SHAへの承認は別に保存し、流用しなかった。
+- clean候補の非browser製品回帰 **859/859 PASS、skip 0**。focused Chrome/Edge各 **5/5 PASS、skip 0**（browser4件＋runtime1件）。3 builder後生成物差分0。同期show→hide、終了済みreload、新tab、背景復帰、演出中の終局、明示CPU再戦、profile/結果/room保持を検証。
+- Windows [34488809507](https://github.com/sakuratamaro/four-color-map-game/actions/runs/34488809507): Chrome `102909875803`、Edge `102909876053`ともSUCCESS。旧Windows `34488482619`は古いcache期待値で失敗、削除せず保持。ローカル途中の古いharness契約・runbook marker・dirty candidate試験失敗は修正/clean化後に再確認した。
+- Pages [34490277366](https://github.com/sakuratamaro/four-color-map-game/actions/runs/34490277366): 同一SHAでSUCCESS。通常公開URLのHTTP GETだけでHTMLとapp v25を取得し、候補Git blobと全byte一致した。
+- 公開 `index.html`: 36,139 bytes / SHA-256 `53f24229ad03a2337933c284eae916747463be9920482b1f790740608c015b2a`。
+- 公開 `app.js?v=20260910-25`: 321,691 bytes / SHA-256 `c0a4ae72426b2c01bad53cbd2375af502c733b199b0471b74e65d48ecc8f9b85`。
+- **PAGES_ASSET_VERIFIED**。実本番対局・物理二端末は **NOT_RUN**。試験profile/CPU room作成を伴うlive canary案はauto-reviewがPages-only範囲外として拒否し、ファイル作成・実行とも行われなかった（予定scriptの不存在確認済み）。認証・profile・room・actionを使わないGET-only照合へ切替えた。本番データ作成の追加試験には別の明示許可が必要。UDL状態はMERGED＋Pages成功/配信証拠を分記し、実機受入まで推測で完了にしない。
+- 今回DB、Edge配備、migration、RNG、報酬・ルール、既存対局、dirty root、他worktreeは変更していない。旧未公開便や共有正本文書一式をmainへ混入させていない。
+
 ## 現在のゲート
 
 | ゲート | 状態 | 現在の根拠 | 次の証拠 |

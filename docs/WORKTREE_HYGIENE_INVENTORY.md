@@ -4,6 +4,10 @@
 
 この台帳は、散在するworktree、未コミット差分、保留設計を、現行リリースへ誤って混ぜないための司令塔用索引である。これは削除許可ではない。削除は対象の到達可能性、dirty状態、正本収録を直前に再確認してから別途行う。
 
+## 2026-09-10 追加保全
+
+`codex/terminal-setup-notice-20260910` / `.codex-worktrees/terminal-setup-notice-20260910` は最新main `2f855cc` 起点のPages-only UDL-055便。`5c03e6c`を専用branchとmainへpushし、Windows34488809507・Pages34490277366成功、公開HTML/appのGit blob全byte一致。cleanのまま保全する。共有正本の文書/通信証拠は既存 `codex/dev-brain-current-20260910` で別に管理し、dirty rootや古い候補を再利用しない。以下は過去の基点記録として維持する。
+
 ## 現在の統合基点
 
 | 項目 | 現在値 | 扱い |

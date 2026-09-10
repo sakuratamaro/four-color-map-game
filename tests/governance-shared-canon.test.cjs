@@ -84,8 +84,37 @@ test("ChatGPT review records require an exact subject and cannot imply productio
     for (const field of ["review_id", "review_kind", "subject_sha", "canon_version", "base_sha", "spec_snapshot_sha", "db_change_set", "edge_change_set", "scope", "decision", "source"]) {
       assert.ok(decision[field], field);
     }
-    assert.notEqual(decision.review_kind, "game_production_release_approval");
+    if (decision.review_kind === "documentation_introduction") {
+      assert.notEqual(decision.decision, "APPROVE_RELEASE");
+      assert.equal(decision.scope, "documentation_introduction");
+    } else {
+      assert.equal(decision.review_kind, "game_production_release_approval");
+      assert.equal(decision.source.kind, "chatgpt");
+      assert.equal(decision.source.thread_id, "6aa229e7-e098-83ee-ac5e-d366a12653a4");
+      assert.ok(decision.source.message_id && decision.source.request_message_id);
+      assert.match(decision.subject_sha, /^[0-9a-f]{40}$/);
+      assert.match(decision.spec_snapshot_sha, /^[0-9a-f]{40}$/);
+      assert.equal(decision.feature_spec_version, "UDL-055-v1");
+      assert.equal(decision.scope, "Pages-only game bugfix");
+      assert.deepEqual(decision.db_change_set, []);
+      assert.deepEqual(decision.edge_change_set, []);
+    }
   }
+});
+
+test("finite wait policy records a non-resetting three-check two-hour deadline and real pause evidence", () => {
+  const log = JSON.parse(read("docs/CHATGPT_REVIEW_DECISIONS.json"));
+  const budget = log.coordination.wait_budget;
+  assert.equal(budget.max_automatic_checks, 3);
+  assert.equal(budget.max_age_minutes, 120);
+  assert.deepEqual(budget.offset_minutes, [20, 40, 100]);
+  assert.equal(Date.parse(budget.expires_at_utc) - Date.parse(budget.started_at_utc), 120 * 60_000);
+  assert.equal(budget.reset_on_candidate_revision, false);
+  assert.equal(budget.reset_on_restart_or_unrelated_message, false);
+  assert.equal(budget.confirmed_delivery_reminders, 0);
+  assert.ok(budget.automatic_checks <= budget.max_automatic_checks);
+  assert.match(read("docs/CHATGPT_COLLABORATION_OPERATION.md"), /updated_at=1789050322147/);
+  // This validates the saved policy/evidence, not a future scheduler execution.
 });
 
 test("palette addendum reuses canonical IDs and keeps design and numeric proposals unapproved", async () => {
