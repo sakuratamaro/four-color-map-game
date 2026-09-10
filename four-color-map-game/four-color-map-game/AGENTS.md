@@ -1,5 +1,7 @@
 # AGENTS.md — Codex instructions
 
+Repository-wide governance and current online-project routing are defined in `../../docs/SHARED_CANON.md`. Read it first and record its canon version and baseline SHA. This file continues to govern only this legacy/local prototype subtree; it must not override later UDL decisions or authorize online/production work.
+
 ## Priority
 
 Correctness of the game rules is more important than UI polish or implementation speed.

@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "canon_version": "shared-canon-v1",
+  "rules": {
+    "silence_is_approval": false,
+    "codex_self_approval": false,
+    "cross_ai_substitution": false,
+    "candidate_or_spec_change_invalidates_reuse": true,
+    "documentation_approval_is_game_release_approval": false
+  },
+  "decisions": []
+}
