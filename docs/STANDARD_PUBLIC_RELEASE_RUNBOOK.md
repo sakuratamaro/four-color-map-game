@@ -249,9 +249,21 @@ COLOR長文案内撤去証跡追補後の最新main `1b39b69`へ、保全済み�
 
 Edge失敗時はPagesを公開せず、直前の成功deploymentへ戻す。Pages公開後に表示退行が出た場合はEdge互換を保ったまま直前のPages commitへ戻す。DB rollback、policy外private推測、test-only本番状態注入は行わない。
 
+### クイズ全体・Lv別正答率便
+
+`UDL-20260909-044`の候補。既存の`attempts`、`bestCorrect`、直近成績から過去の正答数を推定せず、新migration適用後にサーバー採点が確定した回答だけを`trackedAnswered`／`trackedCorrect`へ累積する。旧recordはそのまま有効で、最初の新規精算から記録を開始する。表示は全体とLv.1〜5を常に並べ、未記録は`—`と`0/0問正解`、390pxは2列とする。
+
+1. 最新main起点の専用clean branchで新旧record、10問精算、3ミスを含む時間切れ、同一finish actionの再送、reload、破損counter拒否、公開画面の追加read 0を確認する。旧migrationとv4.9 baselineのbyte/SHAを不変に保つ。
+2. Windows Chrome／Edge gateを同一候補SHAで通す。正式対応は最新Chromeとし、EdgeはChromium回帰として維持する。
+3. Pagesより先に`202609100001_standard_quiz_accuracy.sql`をSQL Editorで一度だけ適用し、関数signature、service-role限定、旧record非推定、重複精算のcounter不変をread-onlyで検証する。既存Edge index／bundleは変更しない。
+4. live quiz canaryで一度の新規精算が判定数を10だけ増やし、同一action再送とcold reloadで二重算入しないことを確認する。同一認証窓で重いcanaryを反復しない。
+5. mainをforceなしでfast-forwardしてPagesを公開し、candidate preflight、app v21、progression CSS v2、全体＋Lv.1〜5、注記、390px 2列、横overflow 0、console warning/error 0をChromeで確認する。公開プロフィールに移行後の精算がなければ0/0表示を正しい結果として扱う。
+
+Pages表示の退行は直前Pagesへ戻せる。適用済みcounterは旧clientが無視できる追加fieldなので、migrationを逆適用・削除せず保持する。counter異常時は新規quiz公開を止め、receiptとprofileをread-onlyで照合してから追加migrationで修正する。
+
 ### alpha.4彩色済みエリア角膨張便
 
-完了履歴。この便は新payloadを旧Edgeが拒否する一方、新Edgeは旧UIのoutgoing payloadを継続できるため、`alpha.4対応Edge → live canary → Pages`の順で公開した。後続CPU封印便のPages候補assetはonline app `app.js?v=20260910-20`、progression `progression.css?v=20260910-1`、style `style.css?v=20260910-11`、intents `standard-online-skill-intents.js?v=20260907-20`、client `standard-online-client.js?v=20260910-1`、portrait `cpu-portraits.js?v=20260908-1`、Local bundle `app.bundle.js?v=20260910-6-5888f3df390d`である。DB、migration、RPC、secret、cleanup scheduleは変更しない。
+完了履歴。この便は新payloadを旧Edgeが拒否する一方、新Edgeは旧UIのoutgoing payloadを継続できるため、`alpha.4対応Edge → live canary → Pages`の順で公開した。後続クイズ正答率便のPages候補assetはonline app `app.js?v=20260910-21`、progression `progression.css?v=20260910-2`、style `style.css?v=20260910-11`、intents `standard-online-skill-intents.js?v=20260907-20`、client `standard-online-client.js?v=20260910-1`、portrait `cpu-portraits.js?v=20260908-1`、Local bundle `app.bundle.js?v=20260910-7-6439df81e5b9`である。このalpha.4便自体ではDB、migration、RPC、secret、cleanup scheduleは変更しない。
 
 1. `origin/main@63972b6`起点の専用clean worktreeで両bundleを2回生成し、2回目のSHAが不変、正式全製品試験、Windows Chrome/Edge CI、対象実browserのskip 0を確認する。
 2. alpha.4対応bundleを保持したまま新規対局だけを`5.0.0-alpha.3`へ戻す互換rollback branchを作成・GitHub保全する。既存alpha.4 stateの読込み・継続と、alpha.3新規stateが彩色済みpayloadをwrite-free拒否することを確認する。

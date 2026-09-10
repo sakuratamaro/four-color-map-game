@@ -63,6 +63,9 @@ function settleQuizReward({ root, expectedRootRevision, operationId, quizSession
   profile.gachaTickets[ticketKey] = currentTickets + reward.draws;
   const recordKey = String(facts.selectedLevel);
   const previous = profile.quizRecords[recordKey] || { attempts: 0, bestCorrect: 0, bestStreak: 0, lastCorrect: 0, lastWrong: 0, lastCompletedAt: completedAt };
+  const previousTrackedAnswered = Number.isSafeInteger(previous.trackedAnswered) ? previous.trackedAnswered : 0;
+  const previousTrackedCorrect = Number.isSafeInteger(previous.trackedCorrect) ? previous.trackedCorrect : 0;
+  const trackingStartedAt = typeof previous.trackingStartedAt === "string" ? previous.trackingStartedAt : completedAt;
   profile.quizRecords[recordKey] = {
     attempts: previous.attempts + 1,
     bestCorrect: Math.max(previous.bestCorrect, facts.correct),
@@ -70,6 +73,9 @@ function settleQuizReward({ root, expectedRootRevision, operationId, quizSession
     lastCorrect: facts.correct,
     lastWrong: facts.wrong,
     lastCompletedAt: completedAt,
+    trackedAnswered: previousTrackedAnswered + facts.correct + facts.wrong,
+    trackedCorrect: previousTrackedCorrect + facts.correct,
+    trackingStartedAt,
   };
   next.rootRevision += 1;
   const receipt = {

@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="../online-v5/style.css">
   <link rel="stylesheet" href="style.css?v=20260910-11">
   <link rel="stylesheet" href="debug-mode.css">
-  <link rel="stylesheet" href="progression.css?v=20260910-1">
+  <link rel="stylesheet" href="progression.css?v=20260910-2">
 </head>
 <body>
   <header>
@@ -197,6 +197,9 @@
       <h3 id="cpuCharacterRecordsTitle">CPU別成績</h3>
       <p id="cpuCharacterRecordsHelp" class="muted small">10人全員の勝敗です。まだ対戦していないCPUも0戦で表示します。</p>
       <div id="cpuCharacterRecords" class="cpu-character-records" role="list" aria-labelledby="cpuCharacterRecordsTitle" aria-describedby="cpuCharacterRecordsHelp"></div>
+      <h3 id="quizAccuracyTitle">クイズ正答率</h3>
+      <p id="quizAccuracyHelp" class="muted small">この表示の記録開始以降に、サーバーで採点が確定した回答だけを集計します。</p>
+      <div id="quizAccuracyRecords" class="quiz-accuracy-records" role="list" aria-labelledby="quizAccuracyTitle" aria-describedby="quizAccuracyHelp"></div>
       <h3>トロフィー</h3>
       <div id="trophyList" class="trophy-list"></div>
       <details class="history-details">
@@ -490,6 +493,6 @@
   <script src="cpu-portraits.js?v=20260908-1"></script>
   <script src="cpu-commentary.js?v=20260906-2"></script>
   <script src="basic-feedback.js?v=20260908-2"></script>
-  <script type="module" src="app.js?v=20260910-20"></script>
+  <script type="module" src="app.js?v=20260910-21"></script>
 </body>
 </html>

@@ -234,10 +234,17 @@ async function runQuizRound(player, current, round, { verifyReplay = false, useS
   const previousTickets = Number(current.profile.gachaTickets?.[ticketKey] || 0);
   const nextRecord = finished.data.profileState?.quizRecords?.[recordKey];
   const previousAttempts = Number(current.profile.quizRecords?.[recordKey]?.attempts || 0);
+  const previousTrackedAnswered = Number(current.profile.quizRecords?.[recordKey]?.trackedAnswered || 0);
+  const previousTrackedCorrect = Number(current.profile.quizRecords?.[recordKey]?.trackedCorrect || 0);
+  const previousTrackingStartedAt = current.profile.quizRecords?.[recordKey]?.trackingStartedAt || null;
   check(`quiz ${round} reward applies once`, Number(finished.data.revision) === current.revision + 1
     && Number(finished.data.profileState?.gachaTickets?.[ticketKey] || 0) === previousTickets + 1
     && Number(nextRecord?.attempts) === previousAttempts + 1
     && Number(nextRecord?.lastCorrect) === 0 && Number(nextRecord?.lastWrong) === 10);
+  check(`quiz ${round} accuracy tracks adjudicated answers once`, Number(nextRecord?.trackedAnswered) === previousTrackedAnswered + 10
+    && Number(nextRecord?.trackedCorrect) === previousTrackedCorrect
+    && Number.isFinite(Date.parse(nextRecord?.trackingStartedAt))
+    && (previousTrackingStartedAt === null || nextRecord.trackingStartedAt === previousTrackingStartedAt));
   return { revision: Number(finished.data.revision), profile: finished.data.profileState };
 }
 

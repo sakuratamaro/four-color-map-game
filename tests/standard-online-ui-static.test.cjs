@@ -43,7 +43,7 @@ test("Standard online setup UI exposes the complete reconnect path", () => {
     "gachaPanel", "gachaTitle", "gachaTickets", "gachaLevel", "gachaOdds", "gachaDrawOne", "gachaDrawAll", "gachaRetry", "gachaStatus", "gachaResults",
     "gachaResultSummary", "gachaResultTitle", "gachaResultAnnouncement", "gachaCpuRematch", "gachaCpuRematchNote",
     "quizAnswerFeedback", "quizRewardSummary", "quizGoGacha", "quizReview", "quizReviewList",
-    "progressionPanel", "profileCoins", "profileStats", "cpuProfileStats", "cpuCharacterRecords", "trophyList", "matchHistory",
+    "progressionPanel", "profileCoins", "profileStats", "cpuProfileStats", "cpuCharacterRecords", "quizAccuracyRecords", "trophyList", "matchHistory",
     "cardSaleSkill", "cardSaleCount", "cardSaleQuote", "cardSaleCommit", "cardSaleRetry", "cardSaleReset", "cardSaleStatus",
     "cosmeticPanel", "cosmeticCoins", "collectionIdentity", "refreshCosmetics", "cosmeticCatalog", "cosmeticConfirmation", "cosmeticConfirmationText", "cosmeticCommit", "cosmeticCancel", "cosmeticRetry", "cosmeticStatus",
     "matchmakingPanel", "recruitOpponent", "findOpponent", "cancelMatchmaking", "matchmakingWait", "matchmakingElapsed", "matchmakingStatus", "roomIdentityLabel",
@@ -80,7 +80,7 @@ test("CPU commentary is public-event-only, bounded, non-blocking, and terminal-p
   assert.match(html, /style\.css\?v=20260910-11/);
   assert.match(html, /standard-online-client\.js\?v=20260910-1/);
   assert.match(html, /standard-online-skill-intents\.js\?v=20260907-20/);
-  assert.match(html, /app\.js\?v=20260910-20/);
+  assert.match(html, /app\.js\?v=20260910-21/);
   assert.match(app, /cpuCommentary\?\.VERSION !== "standard-cpu-commentary-v2"/);
   assert.ok(html.indexOf("cpu-commentary.js") < html.indexOf('type="module" src="app.js'));
   assert.match(html, /id="cpuCommentaryStage"[^>]+aria-hidden="true"/);
@@ -183,6 +183,20 @@ test("server-hydrated progression renders stats, three trophies, and recent hist
   assert.doesNotMatch(app, /matchHistory[^\n]+innerHTML/);
   assert.match(progressionCss, /\.trophy\.unlocked/);
   assert.match(progressionCss, /\.history-win/);
+});
+
+test("quiz accuracy presents overall and every level from exact tracked counters", () => {
+  assert.match(html, /id="quizAccuracyRecords"[^>]+role="list"/);
+  assert.match(html, /記録開始以降に、サーバーで採点が確定した回答だけを集計/);
+  assert.match(app, /function quizAccuracyCounts\(record\)/);
+  assert.match(app, /record\?\.trackedAnswered/);
+  assert.match(app, /record\?\.trackedCorrect/);
+  assert.match(app, /Math\.round\(counts\.correct \/ counts\.answered \* 100\)/);
+  assert.match(app, /for \(let level = 1; level <= 5; level \+= 1\)/);
+  assert.match(app, /appendQuizAccuracyRecord\("全体", overall\)/);
+  assert.doesNotMatch(app, /bestCorrect[^\n]+quiz-accuracy|lastCorrect[^\n]+quiz-accuracy/);
+  assert.match(progressionCss, /\.quiz-accuracy-records \{ display: grid; grid-template-columns: repeat\(3/);
+  assert.match(progressionCss, /\.quiz-accuracy-records \{ grid-template-columns: repeat\(2/);
 });
 
 test("card sale persists an immutable action before commit and hydrates only the server result", () => {
@@ -310,7 +324,7 @@ test("PvP and CPU records are visibly separate and CPU rematch uses its dedicate
   assert.doesNotMatch(app, /Object\.entries\(value\.cpuCharacterStats \|\| \{\}\)\.filter/);
   assert.match(html, /id="cpuCharacterRecords"[^>]*role="list"[^>]*aria-labelledby="cpuCharacterRecordsTitle"/);
   assert.match(html, /10人全員の勝敗です。まだ対戦していないCPUも0戦で表示します。/);
-  assert.match(html, /progression\.css\?v=20260910-1/);
+  assert.match(html, /progression\.css\?v=20260910-2/);
   assert.match(progressionCss, /\.cpu-character-records \{[^}]*grid-template-columns: repeat\(5, minmax\(0, 1fr\)\)/);
   assert.match(progressionCss, /@media \(max-width: 760px\)[\s\S]*?\.cpu-character-records \{ grid-template-columns: repeat\(2, minmax\(0, 1fr\)\); \}/);
   assert.match(progressionCss, /\.cpu-character-record-copy strong \{[^}]*overflow-wrap: anywhere/);
@@ -419,7 +433,7 @@ test("existing online progression is hydrated from the server rather than re-upl
 
 test("UI derives its canonical and experimental card metadata from the generated registry", () => {
   assert.equal(Object.values(STANDARD_SKILLS).filter((skill) => skill.v49Catalogued).length, 19);
-  assert.match(html, /standard-skill-registry\.generated\.js\?v=20260907-1[\s\S]+app\.js\?v=20260910-20/);
+  assert.match(html, /standard-skill-registry\.generated\.js\?v=20260907-1[\s\S]+app\.js\?v=20260910-21/);
   assert.match(app, /const STANDARD_SKILL_REGISTRY = globalThis\.FourColorStandardSkillRegistry/);
   assert.match(app, /STANDARD_SKILL_REGISTRY\.v49SkillIds\.map/);
   assert.match(app, /Object\.entries\(STANDARD_SKILL_REGISTRY\.skills\)/);

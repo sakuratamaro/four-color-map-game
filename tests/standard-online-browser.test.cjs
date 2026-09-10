@@ -257,6 +257,13 @@ async function installMock(context, mode) {
         kurogane: { matches: 7, wins: 2, losses: 5, firstWinAt: "2026-09-02T00:00:00.000Z" },
       };
     }
+    if (initialMode === "quizAccuracy") {
+      profileState.quizRecords = {
+        "1": { attempts: 3, bestCorrect: 9, bestStreak: 5, lastCorrect: 8, lastWrong: 2, lastCompletedAt: "2026-09-09T00:00:00.000Z", trackedAnswered: 30, trackedCorrect: 21, trackingStartedAt: "2026-09-08T00:00:00.000Z" },
+        "3": { attempts: 2, bestCorrect: 8, bestStreak: 4, lastCorrect: 6, lastWrong: 3, lastCompletedAt: "2026-09-09T01:00:00.000Z", trackedAnswered: 19, trackedCorrect: 11, trackingStartedAt: "2026-09-08T01:00:00.000Z" },
+        "5": { attempts: 8, bestCorrect: 10, bestStreak: 10, lastCorrect: 10, lastWrong: 0, lastCompletedAt: "2026-09-07T00:00:00.000Z" },
+      };
+    }
     if (["cosmetic", "cpuWin"].includes(initialMode)) {
       try { Object.assign(profileState, JSON.parse(localStorage.getItem("fourColorMapGame.standard.online.v5.remote-profile") || "null") || {}); } catch { /* fresh mock profile */ }
     }
@@ -3153,6 +3160,29 @@ test("actual browser presents all ten CPU records as a two-column portrait list 
     assert.deepEqual(desktopLayout, { columns: 5, cardOverflow: false, pageOverflow: false });
     const callsAfter = await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.length);
     assert.equal(callsAfter, callsBefore);
+  }, { bodyTimeout: 60_000, viewport: { width: 390, height: 844 } });
+});
+
+test("actual browser shows overall and Lv1-5 quiz accuracy from tracked adjudications only", { timeout: 130000 }, async () => {
+  await withPage("quizAccuracy", async (page) => {
+    const callsBefore = await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.length);
+    await page.getByRole("button", { name: "マイページ" }).click();
+    const list = page.getByRole("list", { name: "クイズ正答率" });
+    const records = list.getByRole("listitem");
+    await list.waitFor();
+    assert.equal(await records.count(), 6);
+    assert.deepEqual(await records.allTextContents(), ["全体65%32/49問正解", "Lv.170%21/30問正解", "Lv.2—0/0問正解", "Lv.358%11/19問正解", "Lv.4—0/0問正解", "Lv.5—0/0問正解"]);
+    assert.equal(await records.nth(0).getAttribute("aria-label"), "全体、正答率65%、32/49問正解");
+    assert.equal(await records.nth(5).getAttribute("aria-label"), "Lv.5、正答率—、0/0問正解");
+    assert.match(await page.locator("#quizAccuracyHelp").textContent(), /記録開始以降.*採点が確定した回答だけ/);
+    const layout = await list.evaluate((node) => ({
+      columns: new Set([...node.children].slice(0, 2).map((item) => Math.round(item.getBoundingClientRect().left))).size,
+      cardOverflow: [...node.children].some((item) => item.scrollWidth > item.clientWidth),
+      pageOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+      interactive: node.querySelectorAll("button, a, input, [tabindex]").length,
+    }));
+    assert.deepEqual(layout, { columns: 2, cardOverflow: false, pageOverflow: false, interactive: 0 });
+    assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.length), callsBefore);
   }, { bodyTimeout: 60_000, viewport: { width: 390, height: 844 } });
 });
 

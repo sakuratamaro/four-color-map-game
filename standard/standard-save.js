@@ -65,6 +65,16 @@ function validateProfile(profile, profileId) {
     for (const field of ["attempts", "bestCorrect", "bestStreak", "lastCorrect", "lastWrong"]) nonnegativeInteger(record[field], "INVALID_QUIZ_RECORD");
     assertSave(record.bestCorrect <= 10 && record.bestStreak <= record.bestCorrect && record.lastCorrect <= 10 && record.lastWrong <= 3 && record.lastCorrect + record.lastWrong <= 10, "INVALID_QUIZ_RECORD");
     assertSave(typeof record.lastCompletedAt === "string" && Number.isFinite(Date.parse(record.lastCompletedAt)), "INVALID_QUIZ_RECORD");
+    const hasTrackedAnswered = record.trackedAnswered !== undefined;
+    const hasTrackedCorrect = record.trackedCorrect !== undefined;
+    const hasTrackingStartedAt = record.trackingStartedAt !== undefined;
+    assertSave(hasTrackedAnswered === hasTrackedCorrect && hasTrackedCorrect === hasTrackingStartedAt, "INVALID_QUIZ_RECORD");
+    if (hasTrackedAnswered) {
+      nonnegativeInteger(record.trackedAnswered, "INVALID_QUIZ_RECORD");
+      nonnegativeInteger(record.trackedCorrect, "INVALID_QUIZ_RECORD");
+      assertSave(record.trackedCorrect <= record.trackedAnswered, "INVALID_QUIZ_RECORD");
+      assertSave(typeof record.trackingStartedAt === "string" && Number.isFinite(Date.parse(record.trackingStartedAt)), "INVALID_QUIZ_RECORD");
+    }
   }
   safeRecord(profile.inventory, "INVALID_INVENTORY");
   for (const [level, count] of Object.entries(profile.gachaTickets)) {

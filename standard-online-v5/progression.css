@@ -37,12 +37,19 @@
 .cpu-character-record-copy strong { min-width: 0; color: #f8fafc; font-size: 13px; line-height: 1.25; overflow-wrap: anywhere; }
 .cpu-character-score { color: #cbd5e1; font-size: 12px; font-weight: 850; white-space: nowrap; }
 .cpu-character-matches { color: #94a3b8; font-size: 11px; white-space: nowrap; }
+.quiz-accuracy-records { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 8px 0 16px; }
+.quiz-accuracy-record { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 4px 10px; min-width: 0; padding: 10px 12px; border: 1px solid #334155; border-radius: 12px; background: #07111f; }
+.quiz-accuracy-record strong { color: #f8fafc; font-size: 13px; }
+.quiz-accuracy-rate { color: #67e8f9; font-size: 20px; font-weight: 950; font-variant-numeric: tabular-nums; }
+.quiz-accuracy-count { grid-column: 1 / -1; color: #94a3b8; font-size: 12px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.quiz-accuracy-record.is-empty .quiz-accuracy-rate { color: #64748b; }
 
 @media (max-width: 760px) {
   .profile-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .trophy-list { grid-template-columns: 1fr; }
   .match-history li { align-items: flex-start; flex-direction: column; gap: 3px; }
   .cpu-character-records { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .quiz-accuracy-records { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 .lobby-choice-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }

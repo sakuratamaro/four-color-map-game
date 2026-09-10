@@ -3565,6 +3565,16 @@ function validateProfile(profile, profileId) {
     for (const field of ["attempts", "bestCorrect", "bestStreak", "lastCorrect", "lastWrong"]) nonnegativeInteger(record[field], "INVALID_QUIZ_RECORD");
     assertSave(record.bestCorrect <= 10 && record.bestStreak <= record.bestCorrect && record.lastCorrect <= 10 && record.lastWrong <= 3 && record.lastCorrect + record.lastWrong <= 10, "INVALID_QUIZ_RECORD");
     assertSave(typeof record.lastCompletedAt === "string" && Number.isFinite(Date.parse(record.lastCompletedAt)), "INVALID_QUIZ_RECORD");
+    const hasTrackedAnswered = record.trackedAnswered !== undefined;
+    const hasTrackedCorrect = record.trackedCorrect !== undefined;
+    const hasTrackingStartedAt = record.trackingStartedAt !== undefined;
+    assertSave(hasTrackedAnswered === hasTrackedCorrect && hasTrackedCorrect === hasTrackingStartedAt, "INVALID_QUIZ_RECORD");
+    if (hasTrackedAnswered) {
+      nonnegativeInteger(record.trackedAnswered, "INVALID_QUIZ_RECORD");
+      nonnegativeInteger(record.trackedCorrect, "INVALID_QUIZ_RECORD");
+      assertSave(record.trackedCorrect <= record.trackedAnswered, "INVALID_QUIZ_RECORD");
+      assertSave(typeof record.trackingStartedAt === "string" && Number.isFinite(Date.parse(record.trackingStartedAt)), "INVALID_QUIZ_RECORD");
+    }
   }
   safeRecord(profile.inventory, "INVALID_INVENTORY");
   for (const [level, count] of Object.entries(profile.gachaTickets)) {
@@ -6063,6 +6073,9 @@ function settleQuizReward({ root, expectedRootRevision, operationId, quizSession
   profile.gachaTickets[ticketKey] = currentTickets + reward.draws;
   const recordKey = String(facts.selectedLevel);
   const previous = profile.quizRecords[recordKey] || { attempts: 0, bestCorrect: 0, bestStreak: 0, lastCorrect: 0, lastWrong: 0, lastCompletedAt: completedAt };
+  const previousTrackedAnswered = Number.isSafeInteger(previous.trackedAnswered) ? previous.trackedAnswered : 0;
+  const previousTrackedCorrect = Number.isSafeInteger(previous.trackedCorrect) ? previous.trackedCorrect : 0;
+  const trackingStartedAt = typeof previous.trackingStartedAt === "string" ? previous.trackingStartedAt : completedAt;
   profile.quizRecords[recordKey] = {
     attempts: previous.attempts + 1,
     bestCorrect: Math.max(previous.bestCorrect, facts.correct),
@@ -6070,6 +6083,9 @@ function settleQuizReward({ root, expectedRootRevision, operationId, quizSession
     lastCorrect: facts.correct,
     lastWrong: facts.wrong,
     lastCompletedAt: completedAt,
+    trackedAnswered: previousTrackedAnswered + facts.correct + facts.wrong,
+    trackedCorrect: previousTrackedCorrect + facts.correct,
+    trackingStartedAt,
   };
   next.rootRevision += 1;
   const receipt = {

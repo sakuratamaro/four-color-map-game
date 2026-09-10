@@ -36,7 +36,7 @@ test("quiz settlement atomically records the result, adds difficulty-bearing tic
   assert.equal(settled.code, "SETTLED");
   assert.equal(settled.root.rootRevision, 1);
   assert.equal(settled.root.profiles.playerA.gachaTickets[4], 3);
-  assert.deepEqual(settled.root.profiles.playerA.quizRecords[4], { attempts: 1, bestCorrect: 7, bestStreak: 4, lastCorrect: 7, lastWrong: 3, lastCompletedAt: "2026-09-01T10:30:00.000Z" });
+  assert.deepEqual(settled.root.profiles.playerA.quizRecords[4], { attempts: 1, bestCorrect: 7, bestStreak: 4, lastCorrect: 7, lastWrong: 3, lastCompletedAt: "2026-09-01T10:30:00.000Z", trackedAnswered: 10, trackedCorrect: 7, trackingStartedAt: "2026-09-01T10:30:00.000Z" });
   assert.equal(settled.receipt.ticketLevel, 4);
   assert.equal(settled.receipt.ticketCount, 3);
   assert.equal(Object.keys(settled.root.receipts.quizSettlement).length, 1);
@@ -85,7 +85,19 @@ test("repeated attempts preserve bests while updating last result and accumulati
   }));
   assert.equal(second.root.profiles.playerA.gachaTickets[4], 3);
   assert.equal(second.root.profiles.playerA.gachaTickets[3], 1);
-  assert.deepEqual(second.root.profiles.playerA.quizRecords[4], { attempts: 2, bestCorrect: 7, bestStreak: 4, lastCorrect: 2, lastWrong: 3, lastCompletedAt: "2026-09-01T10:31:00.000Z" });
+  assert.deepEqual(second.root.profiles.playerA.quizRecords[4], { attempts: 2, bestCorrect: 7, bestStreak: 4, lastCorrect: 2, lastWrong: 3, lastCompletedAt: "2026-09-01T10:31:00.000Z", trackedAnswered: 15, trackedCorrect: 9, trackingStartedAt: "2026-09-01T10:30:00.000Z" });
+});
+
+test("legacy quiz records begin exact accuracy tracking without guessing old answers", () => {
+  const root = fixture();
+  root.profiles.playerA.quizRecords[4] = { attempts: 8, bestCorrect: 10, bestStreak: 7, lastCorrect: 6, lastWrong: 3, lastCompletedAt: "2026-08-31T10:00:00.000Z" };
+  const settled = settleQuizReward(args(root));
+  assert.equal(settled.ok, true);
+  assert.deepEqual(settled.root.profiles.playerA.quizRecords[4], {
+    attempts: 9, bestCorrect: 10, bestStreak: 7, lastCorrect: 7, lastWrong: 3,
+    lastCompletedAt: "2026-09-01T10:30:00.000Z", trackedAnswered: 10, trackedCorrect: 7,
+    trackingStartedAt: "2026-09-01T10:30:00.000Z",
+  });
 });
 
 test("save validation rejects a quiz receipt whose ticket award differs from policy", () => {

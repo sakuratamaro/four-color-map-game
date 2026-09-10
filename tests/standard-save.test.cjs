@@ -113,3 +113,29 @@ test("malformed, oversized, and unknown-profile saves are rejected", () => {
   unknown.activeMatch.participants.B.profileId = "missing";
   assert.throws(() => save.validateStandardSave(unknown), /UNKNOWN_MATCH_PROFILE/);
 });
+
+test("quiz accuracy counters are optional for legacy records and otherwise stay complete and consistent", () => {
+  const { root } = fixture();
+  const legacyRecord = {
+    attempts: 1,
+    bestCorrect: 7,
+    bestStreak: 4,
+    lastCorrect: 7,
+    lastWrong: 3,
+    lastCompletedAt: "2026-09-10T00:00:00.000Z",
+  };
+  root.profiles.playerA.quizRecords = { 1: legacyRecord };
+  assert.equal(save.validateStandardSave(root), true);
+
+  const partial = JSON.parse(JSON.stringify(root));
+  partial.profiles.playerA.quizRecords[1].trackedAnswered = 10;
+  assert.throws(() => save.validateStandardSave(partial), /INVALID_QUIZ_RECORD/);
+
+  const inconsistent = JSON.parse(JSON.stringify(root));
+  Object.assign(inconsistent.profiles.playerA.quizRecords[1], {
+    trackedAnswered: 10,
+    trackedCorrect: 11,
+    trackingStartedAt: "2026-09-10T00:00:00.000Z",
+  });
+  assert.throws(() => save.validateStandardSave(inconsistent), /INVALID_QUIZ_RECORD/);
+});

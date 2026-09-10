@@ -9,8 +9,8 @@ const APP_GACHA_ODDS_MARKERS = Object.freeze([
 ]);
 
 const EDGE_GACHA_ODDS_MARKER = 'const gachaOdds = {"1":{"1":65,"2":29,"3":5,"4":0.9,"5":0.1},"2":{"1":40,"2":35,"3":19,"4":5.5,"5":0.5},"3":{"1":25,"2":35,"3":28,"4":10,"5":2},"4":{"1":0,"2":35,"3":35,"4":24,"5":6},"5":{"1":0,"2":0,"3":40,"4":40,"5":20}};';
-const LOCAL_STANDARD_BUNDLE_SHA256 = "5888f3df390d0a6bba228c52146fdcc22029ea87f05d58345f28c63570b02091";
-const LOCAL_STANDARD_BUNDLE_MARKER = `app.bundle.js?v=20260910-6-${LOCAL_STANDARD_BUNDLE_SHA256.slice(0, 12)}`;
+const LOCAL_STANDARD_BUNDLE_SHA256 = "6439df81e5b9467a59ead3e545ff41baedfa03321db2fbf59f32e1c9c1245149";
+const LOCAL_STANDARD_BUNDLE_MARKER = `app.bundle.js?v=20260910-7-${LOCAL_STANDARD_BUNDLE_SHA256.slice(0, 12)}`;
 
 function includesAll(source, markers) {
   return typeof source === "string" && markers.every((marker) => source.includes(marker));
@@ -121,7 +121,7 @@ export function hasRegionSplitDirectTarget(appText, localBundleText) {
 
 export function hasCompactCpuRecords(pageText, appText, progressionCssText) {
   return includesAll(pageText, [
-    'progression.css?v=20260910-1',
+    'progression.css?v=20260910-2',
     'id="cpuCharacterRecords" class="cpu-character-records" role="list"',
     "10人全員の勝敗です。まだ対戦していないCPUも0戦で表示します。",
   ])
@@ -129,7 +129,7 @@ export function hasCompactCpuRecords(pageText, appText, progressionCssText) {
       "function clearCpuCharacterRecordPortraits()",
       "function cpuCharacterRecordCount(value)",
       "function appendCpuCharacterRecord(characterId, record)",
-      'item.setAttribute("role", "listitem")',
+      'item.setAttribute("aria-label", `${nameText}、${wins}勝 ${losses}敗、合計${matches}戦`)',
       "cpuPortraits.showCpuPortrait({ frame: portrait, art, fallback, characterId })",
       "for (const characterId of Object.keys(CPU_NAMES)) appendCpuCharacterRecord(characterId, characterStats[characterId]);",
     ])
@@ -138,6 +138,26 @@ export function hasCompactCpuRecords(pageText, appText, progressionCssText) {
       ".cpu-character-records { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr));",
       ".cpu-character-record-copy strong { min-width: 0; color: #f8fafc; font-size: 13px; line-height: 1.25; overflow-wrap: anywhere; }",
       ".cpu-character-records { grid-template-columns: repeat(2, minmax(0, 1fr)); }",
+    ]);
+}
+
+export function hasQuizAccuracyRecords(pageText, appText, progressionCssText) {
+  return includesAll(pageText, [
+    'app.js?v=20260910-21',
+    'progression.css?v=20260910-2',
+    'id="quizAccuracyRecords" class="quiz-accuracy-records" role="list"',
+    "記録開始以降に、サーバーで採点が確定した回答だけを集計します。",
+  ])
+    && includesAll(appText, [
+      "function quizAccuracyCounts(record)",
+      "record?.trackedAnswered",
+      "record?.trackedCorrect",
+      "for (let level = 1; level <= 5; level += 1)",
+      'appendQuizAccuracyRecord("全体", overall)',
+    ])
+    && includesAll(progressionCssText, [
+      ".quiz-accuracy-records { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));",
+      ".quiz-accuracy-records { grid-template-columns: repeat(2, minmax(0, 1fr)); }",
     ]);
 }
 

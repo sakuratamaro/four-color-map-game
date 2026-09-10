@@ -36,6 +36,6 @@ test("borrowed colors are not confused with an exhausted bonus color", () => {
 
 test("the Standard online COLOR controls use the canonical private color choices", () => {
   const source = fs.readFileSync(path.resolve(__dirname, "../standard-online-v5/app.js"), "utf8");
-  assert.match(source, /const colors = skillIntents\.availableColorChoices\(privateState\)/);
+  assert.match(source, /skillIntents\.availableColorChoices\(privateState\)/);
   assert.doesNotMatch(source, /const colors = \[\.\.\.new Set\(\[\.\.\.\(privateState\.basicPalette/);
 });

@@ -1510,6 +1510,37 @@ function appendCpuCharacterRecord(characterId, record) {
   }
 }
 
+function quizAccuracyCounts(record) {
+  const answered = Number(record?.trackedAnswered);
+  const correct = Number(record?.trackedCorrect);
+  if (!Number.isSafeInteger(answered) || answered < 0 || !Number.isSafeInteger(correct) || correct < 0 || correct > answered) {
+    return { answered: 0, correct: 0 };
+  }
+  return { answered, correct };
+}
+
+function appendQuizAccuracyRecord(label, counts) {
+  const item = document.createElement("div");
+  item.className = `quiz-accuracy-record${counts.answered ? "" : " is-empty"}`;
+  item.setAttribute("role", "listitem");
+  const rateText = counts.answered ? `${Math.round(counts.correct / counts.answered * 100)}%` : "—";
+  item.setAttribute("aria-label", `${label}、正答率${rateText}、${counts.correct}/${counts.answered}問正解`);
+  const name = document.createElement("strong"); name.textContent = label;
+  const rate = document.createElement("span"); rate.className = "quiz-accuracy-rate"; rate.textContent = rateText;
+  const count = document.createElement("span"); count.className = "quiz-accuracy-count"; count.textContent = `${counts.correct}/${counts.answered}問正解`;
+  item.append(name, rate, count);
+  $("quizAccuracyRecords").appendChild(item);
+}
+
+function renderQuizAccuracy(records) {
+  $("quizAccuracyRecords").replaceChildren();
+  const levels = [];
+  for (let level = 1; level <= 5; level += 1) levels.push(quizAccuracyCounts(records?.[String(level)]));
+  const overall = levels.reduce((sum, value) => ({ answered: sum.answered + value.answered, correct: sum.correct + value.correct }), { answered: 0, correct: 0 });
+  appendQuizAccuracyRecord("全体", overall);
+  levels.forEach((counts, index) => appendQuizAccuracyRecord(`Lv.${index + 1}`, counts));
+}
+
 function renderProgression() {
   const value = profile();
   if (!value || !$("progressionPanel")) return;
@@ -1533,6 +1564,7 @@ function renderProgression() {
   $("cpuCharacterRecords").replaceChildren();
   const characterStats = value.cpuCharacterStats || {};
   for (const characterId of Object.keys(CPU_NAMES)) appendCpuCharacterRecord(characterId, characterStats[characterId]);
+  renderQuizAccuracy(value.quizRecords || {});
 
   $("trophyList").replaceChildren();
   for (const [id, meta] of Object.entries(TROPHY_META)) {
