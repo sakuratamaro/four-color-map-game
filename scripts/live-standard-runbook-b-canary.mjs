@@ -35,6 +35,7 @@ const FREE_COSMETIC = "nameplateDefault";
 const QUIZ_LEVEL = 5;
 const QUIZ_RESCUE_TICKET_LEVEL = 4;
 const QUIZ_ROUNDS = 22;
+const QUIZ_ACCURACY_ONLY = process.argv.includes("--quiz-accuracy-only");
 const EXPECTED_TOTAL_GACHA_DRAWS = 25;
 const MATCH_LOCK_RETAINED_COUNT = 2;
 const PAID_COSMETIC_PRICE = 350;
@@ -323,12 +324,19 @@ async function run() {
   check("starter profiles", profileA.revision === 1 && profileB.revision === 1
     && Number(profileA.profile.gachaTickets?.["1"]) === 3);
 
-  for (let round = 1; round <= QUIZ_ROUNDS; round += 1) {
+  const quizRounds = QUIZ_ACCURACY_ONLY ? 1 : QUIZ_ROUNDS;
+  for (let round = 1; round <= quizRounds; round += 1) {
     profileA = await runQuizRound(playerA, profileA, round, {
       verifyReplay: round === 1,
       useServerAnswers: round === 1,
       verifyLegacyBulk: round === 2,
     });
+  }
+
+  if (QUIZ_ACCURACY_ONLY) {
+    for (const name of checks) console.log(`PASS  ${name}`);
+    console.log(`SUMMARY ${checks.length}/${checks.length} Runbook B quiz accuracy live checks passed`);
+    return;
   }
 
   activeStage = "gacha";
