@@ -17,6 +17,27 @@
       "delivered": false,
       "reason": "The automatic approval reviewer required explicit authorization to export the full internal repository diff to the external ChatGPT thread.",
       "notes": "Not a ChatGPT review decision. No destination response or approval exists for this attempt. No alternate transmission was attempted."
+    },
+    {
+      "subject_sha": "f9a4ab9245638c67fbbd6818790371265ced15fd",
+      "destination_thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
+      "destination_message_id": "cefaccf8-2648-4d63-b7fe-5a4a78023ec2",
+      "payload_kind": "full_baseline_to_candidate_diff_and_separate_evidence_diff",
+      "status": "sent_after_explicit_user_authorization",
+      "delivered": true,
+      "recorded_at_utc": "2026-09-10T13:31:47Z",
+      "authorization": {
+        "source_thread_id": "01a07b56-616e-7733-9aae-90575659688e",
+        "full_diff_export": "User explicitly authorized sending the full new-candidate diff, including the request ledger, to the existing ChatGPT task 改修ロールバック防止策.",
+        "branch_push": "User separately authorized pushing codex/dev-brain-current-20260910 to origin."
+      },
+      "remote_branch": "https://github.com/sakuratamaro/four-color-map-game/tree/codex/dev-brain-current-20260910",
+      "remote_head_at_submission": "bc58a0e0abf5942498a720e6273ade63c36eaba0",
+      "candidate_patch_sha256": "52D80C02AF03DFD4B441508FACEE5C1A4687F8D799928DDAEDD93748990490F1",
+      "evidence_patch_sha256": "E78A7793F87F62B660773A42D5C76AD0E97BC8041C6AF46F158C36B104D3BC31",
+      "verification": "send_message_to_thread succeeded; read_thread confirmed the destination message header and fixed review-subject metadata. Readback was capped at 3000 characters, so the full chat body was not independently rehashed. git ls-remote confirmed the published branch head.",
+      "review_status_at_recording": "PENDING",
+      "notes": "Delivery is not approval. No main, Pages, Edge, DB, or game change. No review polling loop was started. The fixed review subject remains f9a4ab9; this receipt is later evidence only."
     }
   ],
   "decisions": [

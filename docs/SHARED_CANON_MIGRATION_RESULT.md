@@ -82,6 +82,18 @@ Windowsローカル、bundled Nodeによる以下の明示的な実行が **23/2
 
 ## 停止・再開と非変更範囲
 
+### 2026-09-10 許可後の送信追記
+
+`CANON_RECEIPT version=shared-canon-v1.1 base=2f855ccfef11d7c099cfb73fb57ec3da79be8789 request=UDL-20260910-050 specs=AGENTS.md,docs/SHARED_CANON.md,docs/CHATGPT_REVIEW_DECISIONS.json,docs/SHARED_CANON_MIGRATION_RESULT.md tests=tests/governance-shared-canon.test.cjs,tests/standard-decision-reconciliation.test.cjs`
+
+ユーザーが要望台帳を含む全差分の指定ChatGPT会話への送信と、`codex/dev-brain-current-20260910` のoriginへのpushを、それぞれ明示許可したため実行した。送信時のリモート先端は `bc58a0e0abf5942498a720e6273ade63c36eaba0`。`git ls-remote` で一致確認した。レビュー対象は引き続き `f9a4ab9245638c67fbbd6818790371265ced15fd`。
+
+同一ChatGPTタスク「改修ロールバック防止策」への送信messageは `cefaccf8-2648-4d63-b7fe-5a4a78023ec2`。基準から候補への全差分と、候補から証拠コミットへの全差分を分けて本文へ送り、GitHubの固定SHAリンクも添えた。送信APIの成功と、送信先でのmessage冒頭／対象SHAの読戻しを確認。読戻しはAPIの文字数制限があるため、チャット全文の再ハッシュ一致を確認したとは扱わない。
+
+これにより、上の「外部未公開・未送信」は**許可以前の履歴**になった。旧提出ZIPはその時点の固定スナップショットとして上書きせず保持する。現状は「専用レビューbranchへpush済み／全差分送信済み／新候補のレビュー判定待ち」。本追記の保存時点ではAPPROVE_DOCSは未取得であり、無応答を承認へ変換しない。main・Pages・Edge・DB・ゲーム内容は変更していない。受信確認後に停止し、レビュー判定の確認ループは作らない。
+
+送信記録の追加後、ガバナンス＋既存UDL照合テストは13/13 PASS、`git diff --check` もPASS。ゲームコード変更はなく、ゲーム代表10件の追加再実行はしていない。
+
 導入成果物、正本位置／版、対応関係、試験結果、手動区間を報告した時点で移行ゴールを終了する。既存タスクへの新しいユーザーメッセージが再開手段。承認待ちのモデル確認ループ、新規常駐司令塔、キュー、schedulerを作らない。
 
-ゲームソース、生成bundle、DB／migration、Edge、main、Pages、本番設定を変更しない。既存dirty worktreeをreset・削除・再利用しない。文書導入候補は「ローカル検証済み／外部未公開」であり、本番公開の包括許可をこのゴールから推論しない。
+ゲームソース、生成bundle、DB／migration、Edge、main、Pages、本番設定を変更しない。既存dirty worktreeをreset・削除・再利用しない。文書導入候補は「ローカル検証済み／専用レビューbranchへpush済み／main未統合」であり、本番公開の包括許可をこのゴールや今回の送信・branch push許可から推論しない。
