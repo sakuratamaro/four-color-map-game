@@ -32,7 +32,7 @@
 - 定期実行は1本だけ。設定済みの同一窓口のものがあれば更新する。今回は保存されたautomation.tomlに既存設定が見つからなかったため、必要なheartbeatを現在タスクへ1本登録する。
 - 適格な確認対象がなくなれば、pendingが残っていても `automation_update` で実際の設定をPAUSEDにして読戻す。独立した作業は通常の司令塔で続けられるが、期限切れ依頼を再取得しない。既存タスクへのユーザー指示または独立した新依頼の明示送達で再開する。認証など人だけの操作が必要なら具体的に報告し、同じ失敗を無限再試行しない。
 
-本改訂は実ChatGPT判定 `c76043e6-e84e-4d14-9795-5f51fd0d5f7a` のREQUEST_CHANGES（対象c511711）への対応。新しい文書候補への承認は未取得であり、自己承認しない。暫定値は3回・120分として適用する。
+本改訂は実ChatGPT判定 `c76043e6-e84e-4d14-9795-5f51fd0d5f7a` のREQUEST_CHANGES（対象c511711）への対応。2026-09-11 JSTの初回定期受信で、対象d53ac7bへの実APPROVE_DOCS `77551f6f-4d00-402e-9c71-96f8923b094c` を取得した。承認はこの固定文書候補だけで、後続証拠やゲーム公開へ流用しない。3回・120分の上限を維持する。
 
 ## 承認境界
 
@@ -49,6 +49,14 @@ OpenAI Docsの[Scheduled tasks](https://learn.chatgpt.com/docs/automations?surfa
 再提出候補 `d53ac7ba6a50a433701a5664703a8a5e22d1bb35` とUDL-055公開結果を同じChatGPTへ送信し、送信API成功を確認した。直後の小範囲読戻しは前のturnを返したため、新message IDは推定せず未確定で保存。処理済みのゲーム承認を再取得対象にしない。文書再レビューには元の依頼 `5b8245b3-0cf1-4ece-bb78-470c510c0fdc` の120分期限 `2026-09-10T15:56:42.007Z` を保持し、候補改訂で延長しない。
 
 有限promptのまま同じautomationをACTIVEへ戻し、API成功と `updated_at=1789051557644` / `status="ACTIVE"` を読戻した。新規常駐司令塔は作っていない。今回の公開・検証証拠の正本はSTANDARD_RELEASE_EVIDENCE.md、次の実装対象は既存UDL-052属性識別スライスであり、まだ実装済みとは扱わない。
+
+## 2026-09-11 定期受信の結果
+
+`CANON_RECEIPT version=shared-canon-v1.1 base=5c03e6c2d0e94c843776ea7eae0d7bbe2917a174 request=UDL-20260910-050/052 specs=AGENTS.md,docs/SHARED_CANON.md,docs/CHATGPT_COLLABORATION_OPERATION.md,docs/CHATGPT_REVIEW_DECISIONS.json checks=exact-review-binding-only`
+
+基準SHAはローカルorigin/main tracking ref、作業床HEADは585e0f8。受信専用のためremote再取得・製品再試験は行わない。期限15:56:42.007Zに対し15:09:18.935Zの起動で予算内を確認し、ChatGPTを1回だけ取得した。依頼 `0e2ea02e-abfb-4d81-9898-038c62b32897` と完全な返答 `77551f6f-4d00-402e-9c71-96f8923b094c` をidle/completed状態で確認。自動確認回数は1、元の期限は不変。
+
+確認待ちは解消し、既存automationを実際にPAUSEDへ更新した。API結果と保存設定読戻しの `status="PAUSED"`、`updated_at=1789053097952` が一致。これは返答受領による停止の実証であり、期限切れの自動停止試験とは区別する。次のUDL-052属性識別は既存coordinationのnext_sliceへ出典付きで振分け済み。ゲーム実装、本番操作、全体監査・試験、全文再送は行っていない。
 
 ## 現時点の技術的制約
 
