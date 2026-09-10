@@ -2151,6 +2151,13 @@ const LEVELS = Object.freeze(["easy", "normal", "hard"]);
 const HARD_CPU_REPEATABLE_AREA_SKILLS = Object.freeze(["areaCornerBloom", "areaHalfShift", "areaTripleShift"]);
 const HARD_CPU_REPEATABLE_SKILL_CHARGE = 100;
 const HARD_CPU_FINITE_SKILL_CHARGES = Object.freeze({ colorBonusRefill: 2 });
+const SEAL_SKILL_EFFECTS = Object.freeze({
+  disruptRandomOne: Object.freeze({ randomCount: 1, duration: 1 }),
+  disruptChoiceOne: Object.freeze({ randomCount: 0, duration: 1 }),
+  disruptRandomTwo: Object.freeze({ randomCount: 2, duration: 1 }),
+  disruptChoiceTwo: Object.freeze({ randomCount: 0, duration: 2 }),
+  disruptChoiceThree: Object.freeze({ randomCount: 0, duration: 3 }),
+});
 const POLICY_VERSIONS = Object.freeze({
   easy: "standard-easy-v1-random-safe",
   normal: "standard-normal-v1-contact-safe",
@@ -2310,6 +2317,46 @@ function immediateOpponentColorOptions(observation, action) {
   const opponentSeat = ownPrivateState.seat === "A" ? "B" : "A";
   const seals = publicState.publicEffects?.[opponentSeat]?.seals || {};
   return Object.freeze(COLORS.filter((color) => !blocked.has(color) && !(seals[color] > 0)));
+}
+
+function sealResponseProfiles(publicState, ownPrivateState) {
+  const observation = { publicState, ownPrivateState };
+  return enumerateRegionActions(publicState, 96).map((regionAction) => ({
+    options: immediateOpponentColorOptions(observation, regionAction),
+  }));
+}
+
+function sealTimingMetrics(publicState, ownPrivateState, skill, color = null, profiles = null) {
+  const effect = SEAL_SKILL_EFFECTS[skill];
+  if (!effect) throw new TypeError("INVALID_CPU_SEAL_SKILL");
+  const opportunities = (profiles || sealResponseProfiles(publicState, ownPrivateState)).map(({ options }) => {
+    const reduction = effect.randomCount > 0
+      ? Math.min(effect.randomCount, options.length)
+      : Number(options.includes(color));
+    return {
+      before: options.length,
+      afterPotential: options.length - reduction,
+      reduction,
+    };
+  }).sort((left, right) => left.afterPotential - right.afterPotential
+    || left.before - right.before
+    || right.reduction - left.reduction);
+  const effectiveOpportunities = opportunities.filter((entry) => entry.reduction > 0);
+  const best = effectiveOpportunities[0] || opportunities[0]
+    || { before: COLORS.length, afterPotential: COLORS.length, reduction: 0 };
+  // Three or more public replies still leave broad alternatives. A seal becomes
+  // tactical only when an immediately creatable region already narrows the
+  // public reply set to two or fewer colors and this card can narrow it again.
+  const opportunity = best.before <= 2 && best.reduction > 0;
+  return {
+    skillPriority: opportunity ? 40 + (2 - best.afterPotential) * 8 + (effect.duration - 1) * 2 : -100,
+    sealOpportunity: opportunity ? 1 : 0,
+    sealResponseOptionsBefore: best.before,
+    sealResponseOptionsAfterPotential: best.afterPotential,
+    sealReductionPotential: best.reduction,
+    sealDuration: effect.duration,
+    sealRandomCount: effect.randomCount,
+  };
 }
 
 function skillAction(skill, payload = {}, metrics = {}) {
@@ -2492,10 +2539,18 @@ function enumerateWorkSkillActions(publicState, ownPrivateState) {
   actions.push(...enumerateShiftActions(publicState, ownPrivateState, "areaHalfShift", planHalfShift));
   actions.push(...enumerateShiftActions(publicState, ownPrivateState, "areaTripleShift", planTripleShift));
 
-  for (const skill of ["disruptRandomOne", "disruptRandomTwo", "disruptPaletteRandom"]) {
-    if (availableHand(ownPrivateState, skill)) actions.push(skillAction(skill, {}, { skillPriority: 17 }));
+  const hasSeal = Object.keys(SEAL_SKILL_EFFECTS).some((skill) => availableHand(ownPrivateState, skill));
+  const sealProfiles = hasSeal ? sealResponseProfiles(publicState, ownPrivateState) : [];
+  for (const skill of ["disruptRandomOne", "disruptRandomTwo"]) {
+    if (availableHand(ownPrivateState, skill)) actions.push(skillAction(skill, {}, sealTimingMetrics(publicState, ownPrivateState, skill, null, sealProfiles)));
   }
-  for (const skill of ["disruptChoiceOne", "disruptChoiceTwo", "disruptChoiceThree", "disruptPaletteChoice", "disruptForcedPalette"]) {
+  for (const skill of ["disruptChoiceOne", "disruptChoiceTwo", "disruptChoiceThree"]) {
+    if (availableHand(ownPrivateState, skill)) for (const color of COLORS) {
+      actions.push(skillAction(skill, { color }, sealTimingMetrics(publicState, ownPrivateState, skill, color, sealProfiles)));
+    }
+  }
+  if (availableHand(ownPrivateState, "disruptPaletteRandom")) actions.push(skillAction("disruptPaletteRandom", {}, { skillPriority: 17 }));
+  for (const skill of ["disruptPaletteChoice", "disruptForcedPalette"]) {
     if (availableHand(ownPrivateState, skill)) for (const color of COLORS) actions.push(skillAction(skill, { color }, { skillPriority: 19 }));
   }
   if (availableHand(ownPrivateState, "legalRecolor") && !publicState.interferenceLock) {

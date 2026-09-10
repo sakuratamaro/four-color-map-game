@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { LOCAL_STANDARD_BUNDLE_MARKER, hasApprovedEdgeGachaOdds, hasApprovedGachaOddsUi, hasBoardFirstCandidateGuidance, hasCompactCpuRecords, hasDeferredCurseLocalBundle, hasPerCellContactFeedback, hasRegionSplitDirectTarget, hasWholeButtonQuizPhysics } from "./standard-release-preflight-contracts.mjs";
+import { LOCAL_STANDARD_BUNDLE_MARKER, hasApprovedEdgeGachaOdds, hasApprovedGachaOddsUi, hasBoardFirstCandidateGuidance, hasCompactCpuRecords, hasCpuSealTimingPolicy, hasDeferredCurseLocalBundle, hasPerCellContactFeedback, hasRegionSplitDirectTarget, hasWholeButtonQuizPhysics } from "./standard-release-preflight-contracts.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const configSource = fs.readFileSync(path.join(root, "online", "supabase-config.js"), "utf8");
@@ -150,6 +150,7 @@ const result = {
     hasDeferredCurseLocalBundle: hasDeferredCurseLocalBundle(localStandardPage.text, localStandardBundle.text),
     hasRegionSplitDirectTarget: hasRegionSplitDirectTarget(app.text, localStandardBundle.text),
     hasCompactCpuRecords: hasCompactCpuRecords(page.text, app.text, progressionCss.text),
+    hasCpuSealTimingPolicy: publicEdgeBundle.status === 200 && hasCpuSealTimingPolicy(publicEdgeBundle.text),
     hasCandidateAssetGeneration: page.text.includes(candidateAssetMarkers.app)
       && page.text.includes(candidateAssetMarkers.style)
       && page.text.includes(candidateAssetMarkers.client)
@@ -164,7 +165,7 @@ const result = {
 const phaseExpectations = {
   baseline: { pregameAbandonUi: true, pregameAbandonDb: true, activeRoomUi: true, activeRoomDb: true, setupRevisionGuardDb: true, legalRecolorLabUi: true, matchmakingAvailabilityDb: false, waitingOpponentUi: false },
   "db-ready": { pregameAbandonUi: true, pregameAbandonDb: true, activeRoomUi: true, activeRoomDb: true, setupRevisionGuardDb: true, legalRecolorLabUi: true, matchmakingAvailabilityDb: true, waitingOpponentUi: false },
-  candidate: { pregameAbandonUi: true, pregameAbandonDb: true, activeRoomUi: true, activeRoomDb: true, setupRevisionGuardDb: true, legalRecolorLabUi: true, matchmakingAvailabilityDb: true, waitingOpponentUi: true, alpha3SkillCategoryUi: true, alpha4ColoredCornerBloomUi: true, registryRarityUi: true, cpuPortraitsUi: true, wholeButtonQuizPhysicsUi: true, boardFirstCandidateGuidanceUi: true, perCellContactFeedbackUi: true, approvedGachaOddsUi: true, approvedEdgeGachaOdds: true, deferredCurseLocalBundle: true, regionSplitDirectTargetUi: true, compactCpuRecordsUi: true, candidateAssetGenerationUi: true },
+  candidate: { pregameAbandonUi: true, pregameAbandonDb: true, activeRoomUi: true, activeRoomDb: true, setupRevisionGuardDb: true, legalRecolorLabUi: true, matchmakingAvailabilityDb: true, waitingOpponentUi: true, alpha3SkillCategoryUi: true, alpha4ColoredCornerBloomUi: true, registryRarityUi: true, cpuPortraitsUi: true, wholeButtonQuizPhysicsUi: true, boardFirstCandidateGuidanceUi: true, perCellContactFeedbackUi: true, approvedGachaOddsUi: true, approvedEdgeGachaOdds: true, deferredCurseLocalBundle: true, regionSplitDirectTargetUi: true, compactCpuRecordsUi: true, cpuSealTimingPolicy: true, candidateAssetGenerationUi: true },
 };
 
 if (expectedPhase) {
@@ -197,6 +198,7 @@ if (expectedPhase) {
     assert.equal(result.publicPage.hasDeferredCurseLocalBundle, expected.deferredCurseLocalBundle, "DEFERRED_CURSE_LOCAL_BUNDLE_MISMATCH");
     assert.equal(result.publicPage.hasRegionSplitDirectTarget, expected.regionSplitDirectTargetUi, "REGION_SPLIT_DIRECT_TARGET_UI_MISMATCH");
     assert.equal(result.publicPage.hasCompactCpuRecords, expected.compactCpuRecordsUi, "COMPACT_CPU_RECORDS_UI_MISMATCH");
+    assert.equal(result.publicPage.hasCpuSealTimingPolicy, expected.cpuSealTimingPolicy, "CPU_SEAL_TIMING_POLICY_MISMATCH");
     assert.equal(result.publicPage.hasCandidateAssetGeneration, expected.candidateAssetGenerationUi, "CANDIDATE_ASSET_GENERATION_UI_PHASE_MISMATCH");
   }
 }

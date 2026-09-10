@@ -12,19 +12,19 @@ function streams(seed) {
 }
 
 const FIXED_TRACES = Object.freeze({
-  yuzu: { type: "USE_SKILL", payload: { skill: "disruptRandomOne" }, metrics: { skillPriority: 17 } },
+  yuzu: { type: "USE_SKILL", payload: { skill: "areaDiePlus" }, metrics: { skillPriority: 16 } },
   ren: { type: "USE_SKILL", payload: { skill: "areaDiePlus" }, metrics: { skillPriority: 16 } },
   minato: { type: "USE_SKILL", payload: { skill: "disruptPaletteChoice", color: "yellow" }, metrics: { skillPriority: 19 } },
   koharu: { type: "USE_SKILL", payload: { skill: "areaResize", mode: "expand", side: "right" }, metrics: { skillPriority: 10 } },
-  aoi: { type: "USE_SKILL", payload: { skill: "disruptChoiceOne", color: "yellow" }, metrics: { skillPriority: 19 } },
+  aoi: { type: "CREATE_REGION", payload: { sourceMacros: [16, 17, 29] }, metrics: { contacts: 0, colorPressure: 0 } },
   kai: { type: "CREATE_REGION", payload: { sourceMacros: [61] }, metrics: { contacts: 0, colorPressure: 0 } },
   tsubasa: { type: "USE_SKILL", payload: { skill: "disruptPaletteChoice", color: "green" }, metrics: { skillPriority: 19 } },
   shion: { type: "USE_SKILL", payload: { skill: "disruptPaletteChoice", color: "blue" }, metrics: { skillPriority: 19 } },
-  rei: { type: "USE_SKILL", payload: { skill: "disruptChoiceTwo", color: "yellow" }, metrics: { skillPriority: 19 } },
+  rei: { type: "CREATE_REGION", payload: { sourceMacros: [15, 16, 28, 29] }, metrics: { contacts: 0, colorPressure: 0 } },
   kurogane: { type: "USE_SKILL", payload: { skill: "disruptChoiceThree", color: "green" }, metrics: { skillPriority: 19 } },
 });
 
-test("the nine unchanged policies and legacy Kurogane retain their fixed traces", () => {
+test("the tactical-seal policies and legacy Kurogane retain deterministic fixed traces", () => {
   for (const [index, character] of Object.values(roster.CPU_CHARACTERS).entries()) {
     const rng = streams(1000 + index);
     const current = match.createStandardMatch({

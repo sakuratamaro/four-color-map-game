@@ -238,9 +238,20 @@ COLOR長文案内撤去証跡追補後の最新main `1b39b69`へ、保全済み�
 4. [完了] `origin/main@21b4b57`の不変、候補clean、祖先関係を再確認し、forceなしで`21c1e23`へfast-forward。Pages `34400264017`は同SHAで成功し、candidate preflightは`ok:true`。
 5. [完了] 公開390pxのonline／Local Standardで長文heading 0、旧guide 0、通常操作と投了の残存、横overflow 0、console warning/error 0を確認。Localは`app.bundle.js?v=20260908-3-ad91938e65c4`を配信し、`UDL-041`を`PUBLIC_VERIFIED`へ昇格した。
 
+### CPU封印skill局面判断便
+
+候補中。`UDL-20260909-045`はCPUが参照できる公開盤面と自分のprivate状態だけを使い、直後に作成可能な領域の公開応答候補色を評価する。候補が3色以上なら封印を温存し、2色以下からさらに減らせる場合だけ封印を高評価にする。turn番号による一律禁止は置かず、1手目でも条件を満たせば使用できる。相手のprivate palette／handは参照せず、ランダム封印の結果は`potential`として扱い確定情報にしない。
+
+1. 最新main起点の専用branchで、弱い1接触と強い2接触のseeded比較、対象色／空振り色、10人の合法性・決定性、private noise不変、formal self-playを確認する。生成済みEdge bundleとLocal bundleを2回再生成し、2回目差分0を確認する。
+2. Windows Chrome/Edge gateを同一commitで成功させる。Pages assetはonline app v20／progression CSS v1を維持し、Local bundleだけ`app.bundle.js?v=20260910-6-5888f3df390d`へ更新する。DB、migration、RPC、index.ts、rules、報酬は変更しない。
+3. Pagesより先にEdge `standard-game-action`へ候補の未変更`index.ts`と生成済み`standard-engine.bundle.js`を同時反映し、配備後downloadと候補のbyte／SHA一致、JWT verification ONを確認する。基本Edge canaryとCPU有限進行を実行し、公開／private境界、accepted action、terminal cleanupを確認する。局面を本番へ注入せず、強弱比較はsource一致したbundleのseeded試験証拠として分離する。
+4. Edge成功後にmainをforceなしでfast-forwardしPagesを公開する。candidate preflightの`hasCpuSealTimingPolicy:true`、Local bundle hash、公開Chrome warning/error 0を確認する。
+
+Edge失敗時はPagesを公開せず、直前の成功deploymentへ戻す。Pages公開後に表示退行が出た場合はEdge互換を保ったまま直前のPages commitへ戻す。DB rollback、policy外private推測、test-only本番状態注入は行わない。
+
 ### alpha.4彩色済みエリア角膨張便
 
-候補中。この便は新payloadを旧Edgeが拒否する一方、新Edgeは旧UIのoutgoing payloadを継続できるため、`alpha.4対応Edge → live canary → Pages`の順にする。Pages候補assetはonline app `app.js?v=20260910-20`、progression `progression.css?v=20260910-1`、style `style.css?v=20260910-11`、intents `standard-online-skill-intents.js?v=20260907-20`、client `standard-online-client.js?v=20260910-1`、portrait `cpu-portraits.js?v=20260908-1`、Local bundle `app.bundle.js?v=20260910-5-e2eaa264973b`である。DB、migration、RPC、secret、cleanup scheduleは変更しない。今回のCPU別戦績便はPages-onlyで、Edge、engineも変更しない。
+完了履歴。この便は新payloadを旧Edgeが拒否する一方、新Edgeは旧UIのoutgoing payloadを継続できるため、`alpha.4対応Edge → live canary → Pages`の順で公開した。後続CPU封印便のPages候補assetはonline app `app.js?v=20260910-20`、progression `progression.css?v=20260910-1`、style `style.css?v=20260910-11`、intents `standard-online-skill-intents.js?v=20260907-20`、client `standard-online-client.js?v=20260910-1`、portrait `cpu-portraits.js?v=20260908-1`、Local bundle `app.bundle.js?v=20260910-6-5888f3df390d`である。DB、migration、RPC、secret、cleanup scheduleは変更しない。
 
 1. `origin/main@63972b6`起点の専用clean worktreeで両bundleを2回生成し、2回目のSHAが不変、正式全製品試験、Windows Chrome/Edge CI、対象実browserのskip 0を確認する。
 2. alpha.4対応bundleを保持したまま新規対局だけを`5.0.0-alpha.3`へ戻す互換rollback branchを作成・GitHub保全する。既存alpha.4 stateの読込み・継続と、alpha.3新規stateが彩色済みpayloadをwrite-free拒否することを確認する。

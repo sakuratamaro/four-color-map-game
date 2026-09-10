@@ -48,10 +48,11 @@ test("release preflight is read-only, secret-free, finite, and stage-aware", () 
   assert.match(source, /hasDeferredCurseLocalBundle/);
   assert.match(source, /hasRegionSplitDirectTarget/);
   assert.match(source, /hasCompactCpuRecords/);
+  assert.match(source, /hasCpuSealTimingPolicy/);
   assert.match(source, /hasCandidateAssetGeneration/);
   assert.match(source, /baseline:\s*\{[^}]*matchmakingAvailabilityDb:\s*false[^}]*waitingOpponentUi:\s*false\s*\}/);
   assert.match(source, /"db-ready":\s*\{[^}]*matchmakingAvailabilityDb:\s*true[^}]*waitingOpponentUi:\s*false\s*\}/);
-  assert.match(source, /candidate:\s*\{[^}]*matchmakingAvailabilityDb:\s*true[^}]*waitingOpponentUi:\s*true[^}]*alpha3SkillCategoryUi:\s*true[^}]*alpha4ColoredCornerBloomUi:\s*true[^}]*registryRarityUi:\s*true[^}]*cpuPortraitsUi:\s*true[^}]*wholeButtonQuizPhysicsUi:\s*true[^}]*boardFirstCandidateGuidanceUi:\s*true[^}]*perCellContactFeedbackUi:\s*true[^}]*approvedGachaOddsUi:\s*true[^}]*approvedEdgeGachaOdds:\s*true[^}]*deferredCurseLocalBundle:\s*true[^}]*regionSplitDirectTargetUi:\s*true[^}]*compactCpuRecordsUi:\s*true[^}]*candidateAssetGenerationUi:\s*true\s*\}/);
+  assert.match(source, /candidate:\s*\{[^}]*matchmakingAvailabilityDb:\s*true[^}]*waitingOpponentUi:\s*true[^}]*alpha3SkillCategoryUi:\s*true[^}]*alpha4ColoredCornerBloomUi:\s*true[^}]*registryRarityUi:\s*true[^}]*cpuPortraitsUi:\s*true[^}]*wholeButtonQuizPhysicsUi:\s*true[^}]*boardFirstCandidateGuidanceUi:\s*true[^}]*perCellContactFeedbackUi:\s*true[^}]*approvedGachaOddsUi:\s*true[^}]*approvedEdgeGachaOdds:\s*true[^}]*deferredCurseLocalBundle:\s*true[^}]*regionSplitDirectTargetUi:\s*true[^}]*compactCpuRecordsUi:\s*true[^}]*cpuSealTimingPolicy:\s*true[^}]*candidateAssetGenerationUi:\s*true\s*\}/);
   assert.match(source, /ACTIVE_ROOM_RECOVERY_PHASE_MISMATCH/);
   assert.match(source, /LEGAL_RECOLOR_LAB_UI_PHASE_MISMATCH/);
   assert.match(source, /SETUP_LOAD_V3_PHASE_MISMATCH/);
@@ -70,6 +71,7 @@ test("release preflight is read-only, secret-free, finite, and stage-aware", () 
   assert.match(source, /DEFERRED_CURSE_LOCAL_BUNDLE_MISMATCH/);
   assert.match(source, /REGION_SPLIT_DIRECT_TARGET_UI_MISMATCH/);
   assert.match(source, /COMPACT_CPU_RECORDS_UI_MISMATCH/);
+  assert.match(source, /CPU_SEAL_TIMING_POLICY_MISMATCH/);
   assert.match(source, /app\.text\.includes\('★\$\{meta\.rarity\}'\)/);
   assert.match(source, /CANDIDATE_ASSET_GENERATION_UI_PHASE_MISMATCH/);
   assert.match(source, /app\.js\?v=20260910-20/);
@@ -99,8 +101,8 @@ test("release preflight is read-only, secret-free, finite, and stage-aware", () 
 
 test("candidate preflight rejects a stale local Standard bundle marker or missing deferred curse code", async () => {
   const { LOCAL_STANDARD_BUNDLE_MARKER, LOCAL_STANDARD_BUNDLE_SHA256, hasDeferredCurseLocalBundle } = await contractsPromise;
-  assert.equal(LOCAL_STANDARD_BUNDLE_MARKER, "app.bundle.js?v=20260910-5-e2eaa264973b");
-  assert.equal(LOCAL_STANDARD_BUNDLE_SHA256, "e2eaa264973b6bcedc8a4b4a810395e4072c174617b2047073b11faedd14d960");
+  assert.equal(LOCAL_STANDARD_BUNDLE_MARKER, "app.bundle.js?v=20260910-6-5888f3df390d");
+  assert.equal(LOCAL_STANDARD_BUNDLE_SHA256, "5888f3df390d0a6bba228c52146fdcc22029ea87f05d58345f28c63570b02091");
   assert.equal(hasDeferredCurseLocalBundle(candidateLocalHtml, candidateLocalBundle), true);
   assert.equal(hasDeferredCurseLocalBundle(candidateLocalHtml.replace(LOCAL_STANDARD_BUNDLE_MARKER, "app.bundle.js?v=20260907-5"), candidateLocalBundle), false);
   assert.equal(hasDeferredCurseLocalBundle(candidateLocalHtml, candidateLocalBundle.replace("consumeDeferredCurseBacklashAfterColor(next, actor);", "void next;")), false);
@@ -180,6 +182,13 @@ test("candidate preflight rejects an old public Edge bundle odds table", async (
   assert.notEqual(oldBundle, candidateEdgeBundle);
   assert.equal(hasApprovedEdgeGachaOdds(oldBundle), false);
   assert.equal(hasApprovedEdgeGachaOdds("const gachaOdds = {}; GACHA_ODDS:gachaOdds"), false);
+});
+
+test("candidate preflight requires the public-only CPU seal timing policy", async () => {
+  const { hasCpuSealTimingPolicy } = await contractsPromise;
+  assert.equal(hasCpuSealTimingPolicy(candidateEdgeBundle), true);
+  assert.equal(hasCpuSealTimingPolicy(candidateEdgeBundle.replace("best.before <= 2", "best.before <= 3")), false);
+  assert.equal(hasCpuSealTimingPolicy(candidateEdgeBundle.replace("const applySealTiming = !legacyKurogane;", "const applySealTiming = true;")), false);
 });
 
 test("candidate app satisfies the complete legal-recolor LAB release marker", () => {

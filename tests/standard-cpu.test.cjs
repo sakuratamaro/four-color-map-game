@@ -120,6 +120,47 @@ test("hard CPU prioritizes distinct public color pressure over equal contact cou
   assert.equal(action.metrics.colorPressure, 2);
 });
 
+function sealTimingFixture(contactColors) {
+  const current = state(32 + contactColors.length);
+  current.phase = "WORK";
+  current.turn = 1;
+  current.requiredSize = 1;
+  current.rolledSize = 1;
+  current.baseRequiredSize = 1;
+  current.hands.A = { disruptChoiceOne: 1, disruptRandomTwo: 1 };
+  current.regions = {
+    R1: { id: "R1", micro: macroMicroCells(13), sourceMacros: [13], controllers: ["B"], color: contactColors[0], isPending: false },
+    ...(contactColors[1] ? { R2: { id: "R2", micro: macroMicroCells(15), sourceMacros: [15], controllers: ["B"], color: contactColors[1], isPending: false } } : {}),
+  };
+  return current;
+}
+
+test("CPU holds seals while public replies remain broad and spends them when the next region narrows replies", () => {
+  const broad = sealTimingFixture(["red"]);
+  const broadActions = cpu.enumerateCpuActions(observation(broad, "hard"));
+  const broadSeals = broadActions.filter((action) => action.type === "USE_SKILL" && /^(?:disruptChoiceOne|disruptRandomTwo)$/.test(action.payload.skill));
+  assert.ok(broadSeals.length > 0);
+  assert.ok(broadSeals.every((action) => action.metrics.sealOpportunity === 0));
+  assert.ok(broadSeals.every((action) => action.metrics.sealResponseOptionsBefore >= 3));
+  assert.equal(cpu.chooseCpuAction({ observation: observation(broad, "hard"), random: () => 0, tieBreakRandom: () => 0 }).type, "CREATE_REGION");
+
+  const pressured = sealTimingFixture(["red", "blue"]);
+  const pressuredActions = cpu.enumerateCpuActions(observation(pressured, "hard"));
+  const targeted = pressuredActions.filter((action) => action.payload?.skill === "disruptChoiceOne");
+  const liveTargets = targeted.filter((action) => action.metrics.sealOpportunity === 1);
+  const misses = targeted.filter((action) => action.metrics.sealOpportunity === 0);
+  assert.deepEqual(liveTargets.map((action) => action.payload.color).sort(), ["green", "yellow"]);
+  assert.deepEqual(liveTargets.map((action) => [action.metrics.sealResponseOptionsBefore, action.metrics.sealResponseOptionsAfterPotential]), [[2, 1], [2, 1]]);
+  assert.deepEqual(misses.map((action) => action.payload.color).sort(), ["blue", "red"]);
+  const chosen = cpu.chooseCpuAction({ observation: observation(pressured, "hard"), random: () => 0, tieBreakRandom: () => 0 });
+  assert.equal(chosen.type, "USE_SKILL");
+  assert.ok(["disruptChoiceOne", "disruptRandomTwo"].includes(chosen.payload.skill));
+  assert.equal(chosen.metrics.sealOpportunity, 1);
+  const applied = match.applyStandardAction({ state: pressured, actor: "A", action: chosen, expectedVersion: pressured.version, rngStreams: streams(350) });
+  assert.equal(applied.ok, true);
+  assert.equal(applied.state.version, pressured.version + 1);
+});
+
 function macroMicroCells(macro) {
   const row = Math.floor(macro / 12);
   const col = macro % 12;

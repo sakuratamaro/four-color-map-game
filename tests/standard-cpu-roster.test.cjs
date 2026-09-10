@@ -70,6 +70,53 @@ test("changing the opponent private state cannot alter a character decision", ()
   assert.deepEqual(choose(current), choose(changed));
 });
 
+function macroMicroCells(macro) {
+  const row = Math.floor(macro / 12);
+  const col = macro % 12;
+  const cells = [];
+  for (let dy = 0; dy < 4; dy += 1) for (let dx = 0; dx < 4; dx += 1) cells.push((row * 4 + dy) * 48 + col * 4 + dx);
+  return cells;
+}
+
+function shionSealFixture(colors) {
+  const character = roster.CPU_CHARACTERS.shion;
+  const current = match.createStandardMatch({ matchId: `shion-seal-${colors.length}`, firstSeat: "A", loadouts: { A: character.loadout, B: character.loadout } }, streams(780 + colors.length));
+  current.phase = "WORK";
+  current.turn = 1;
+  current.requiredSize = 1;
+  current.rolledSize = 1;
+  current.baseRequiredSize = 1;
+  current.hands.A = { disruptChoiceOne: 1 };
+  current.regions = {
+    R1: { id: "R1", micro: macroMicroCells(13), sourceMacros: [13], controllers: ["B"], color: colors[0], isPending: false },
+    ...(colors[1] ? { R2: { id: "R2", micro: macroMicroCells(15), sourceMacros: [15], controllers: ["B"], color: colors[1], isPending: false } } : {}),
+  };
+  return current;
+}
+
+test("character policy holds a favorite seal in a weak position but may use it on turn one when public replies are constrained", () => {
+  const choose = (current) => roster.chooseCharacterAction({
+    publicState: match.projectStandardPublicState(current),
+    ownPrivateState: match.projectStandardPrivateState(current, "A"),
+    characterId: "shion",
+    policyVersion: roster.CPU_CHARACTERS.shion.policyVersion,
+    random: () => 0,
+    tieBreakRandom: () => 0,
+  });
+  const held = choose(shionSealFixture(["red"]));
+  assert.equal(held.type, "CREATE_REGION");
+
+  const spent = choose(shionSealFixture(["red", "blue"]));
+  assert.equal(spent.type, "USE_SKILL");
+  assert.equal(spent.payload.skill, "disruptChoiceOne");
+  assert.ok(["green", "yellow"].includes(spent.payload.color));
+  assert.equal(spent.metrics.sealResponseOptionsAfterPotential, 1);
+  const pressured = shionSealFixture(["red", "blue"]);
+  const applied = match.applyStandardAction({ state: pressured, actor: "A", action: spent, expectedVersion: pressured.version, rngStreams: streams(790) });
+  assert.equal(applied.ok, true);
+  assert.equal(applied.state.publicEffects.B.seals[spent.payload.color], 1);
+});
+
 test("character CPU rescue behavior is partitioned by the match engine version", () => {
   const character = roster.CPU_CHARACTERS.ren;
   const current = match.createStandardMatch({ matchId: "rescue-policy", firstSeat: "A", loadouts: { A: character.loadout, B: character.loadout } }, streams(88));

@@ -10,6 +10,7 @@ const KUROGANE_POLICY_VERSION = `${ROSTER_VERSION}:kurogane-lookahead-v2`;
 const CREATE_COLOR_OPTION_STRIDE = 1000000;
 const GUARANTEED_TRAP_BONUS = 1000000000;
 const RANDOM_SKILLS = new Set(["colorRandomBorrow", "areaMicroBloom", "disruptRandomOne", "disruptRandomTwo", "disruptPaletteRandom", "disruptPaletteChoice", "disruptForcedPalette"]);
+const RANDOM_SEAL_SKILLS = new Set(["disruptRandomOne", "disruptRandomTwo"]);
 
 const definitions = [
   ["yuzu", "うっかりユズ", "あっ、こっちも塗れそう！", "小さなエリアをテンポよく作る", "終盤の色不足とスキル機会を見落としがち", ["colorRandomBorrow", "areaMicroBloom"], ["colorRandomBorrow", "colorChoiceBorrow", "areaMicroBloom", "areaDiePlus", "disruptRandomOne", "disruptChoiceOne"], [1, .92, .28, .34, .10, .68, .18, .12, .90]],
@@ -55,7 +56,7 @@ function publicRoster() {
   return Object.values(CPU_CHARACTERS).map(({ id, name, line, strength, weakness, favorites, policyVersion }) => ({ id, name, line, strength, weakness, favorites: [...favorites], policyVersion }));
 }
 
-function actionScore(action, character) {
+function actionScore(action, character, { applySealTiming = true } = {}) {
   const p = character.parameters;
   if (action.type === "DECLARE_NO_COLOR") return 10000;
   if (action.type === "SURRENDER") return -10000;
@@ -67,14 +68,20 @@ function actionScore(action, character) {
   const skillId = action.payload?.skill;
   const favorite = character.favorites.includes(skillId) ? 1 : 0;
   const random = RANDOM_SKILLS.has(skillId) ? 1 : 0;
+  if (applySealTiming && action.metrics.sealOpportunity === 0) return -1000;
+  const sealOpportunityBonus = applySealTiming && action.metrics.sealOpportunity === 1
+    ? 500 + (2 - action.metrics.sealResponseOptionsAfterPotential) * 100
+      + (action.metrics.sealDuration - 1) * 10
+    : 0;
   return (action.metrics.skillPriority || 0) * (2 + p.skillWindowRecall * 4)
     + favorite * p.favoriteSkillBias * 90
     + random * p.riskTolerance * 24
-    + (action.metrics.candidates || action.metrics.movedCount || action.metrics.splitSize || 0) * p.skillTargetAccuracy;
+    + (action.metrics.candidates || action.metrics.movedCount || action.metrics.splitSize || 0) * p.skillTargetAccuracy
+    + sealOpportunityBonus;
 }
 
-function kuroganeLookaheadScore(action, character, observation) {
-  let score = actionScore(action, character);
+function kuroganeLookaheadScore(action, character, observation, applySealTiming) {
+  let score = actionScore(action, character, { applySealTiming });
   if (action.type === "CREATE_REGION") {
     const possibleColors = cpu.immediateOpponentColorOptions(observation, action);
     // CPU-generated CREATE metrics are board-bounded and remain far below this
@@ -96,6 +103,14 @@ function kuroganeLookaheadScore(action, character, observation) {
   return score;
 }
 
+function legacySealAction(action) {
+  if (action.metrics?.sealOpportunity === undefined) return action;
+  return {
+    ...action,
+    metrics: { skillPriority: RANDOM_SEAL_SKILLS.has(action.payload?.skill) ? 17 : 19 },
+  };
+}
+
 function chooseCharacterAction({ publicState, ownPrivateState, characterId, policyVersion, random, tieBreakRandom = random }) {
   validateRoster();
   const character = CPU_CHARACTERS[characterId];
@@ -109,11 +124,17 @@ function chooseCharacterAction({ publicState, ownPrivateState, characterId, poli
     : cpu.enumerateCpuActions(observation);
   if (!actions.length) return null;
   const useLookahead = selectedPolicyVersion === KUROGANE_POLICY_VERSION;
-  const ranked = actions.map((action, index) => ({
-    action,
-    index,
-    score: useLookahead ? kuroganeLookaheadScore(action, character, observation) : actionScore(action, character),
-  }))
+  const applySealTiming = !legacyKurogane;
+  const ranked = actions.map((candidate, index) => {
+    const action = legacyKurogane ? legacySealAction(candidate) : candidate;
+    return {
+      action,
+      index,
+      score: useLookahead
+        ? kuroganeLookaheadScore(action, character, observation, applySealTiming)
+        : actionScore(action, character, { applySealTiming }),
+    };
+  })
     .sort((a, b) => b.score - a.score || a.index - b.index);
   const noiseWindow = Math.min(ranked.length, 1 + Math.floor(character.parameters.legalChoiceNoise * Math.min(9, ranked.length - 1)));
   const value = random();
