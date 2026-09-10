@@ -8,6 +8,17 @@
     "candidate_or_spec_change_invalidates_reuse": true,
     "documentation_approval_is_game_release_approval": false
   },
+  "delivery_attempts": [
+    {
+      "subject_sha": "f9a4ab9245638c67fbbd6818790371265ced15fd",
+      "destination_thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
+      "payload_kind": "full_baseline_to_candidate_diff",
+      "status": "rejected_by_auto_review",
+      "delivered": false,
+      "reason": "The automatic approval reviewer required explicit authorization to export the full internal repository diff to the external ChatGPT thread.",
+      "notes": "Not a ChatGPT review decision. No destination response or approval exists for this attempt. No alternate transmission was attempted."
+    }
+  ],
   "decisions": [
     {
       "review_id": "CHATGPT-REVIEW-20260910-001",
