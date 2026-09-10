@@ -6,6 +6,15 @@
   "evidence_policy": "Reported repository evidence at the pinned baseline, not a fresh live audit. Update active decisions only in the existing UDL; this imported crosswalk is a dated index. Empty UDL mappings remain explicitly unresolved.",
   "baseline_sha": "2f855ccfef11d7c099cfb73fb57ec3da79be8789",
   "canonical_ledger": "docs/PROJECT_COMMAND_CENTER.md#user-decision-ledger",
+  "received_addenda": [
+    {
+      "batch_id": "ADD-20260910-PALETTE-VIEWPORT",
+      "artifact_sha256": "7D6E0B050DE3E6391A56A2372F7ED7FF336BC7DC5FAD2F180B02252C5CA180CE",
+      "receipt": "docs/REQUEST_ADDENDUM_20260910_PALETTE.md",
+      "mapping": "docs/REQUEST_ADDENDUM_20260910_PALETTE.json",
+      "note": "Immutable intake snapshot and alias mapping only; ongoing state and ownership remain in the existing UDL. Does not replace the original 28-request snapshot."
+    }
+  ],
   "sources": {
     "CHATGPT_DRAFT": {
       "share_url": "https://chatgpt.com/share/6aa27ea9-5620-83e9-9298-a021879ff218",

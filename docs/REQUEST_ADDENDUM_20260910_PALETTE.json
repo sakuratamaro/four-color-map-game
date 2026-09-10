@@ -1,0 +1,111 @@
+{
+  "schema_version": 1,
+  "kind": "intake_snapshot_not_operational_ledger",
+  "batch_id": "ADD-20260910-PALETTE-VIEWPORT",
+  "canon_version_read": "shared-canon-v1.1",
+  "base_sha": "2f855ccfef11d7c099cfb73fb57ec3da79be8789",
+  "intake_parent_sha": "a7a081f38e917585dcb8127fb2932a9288502d49",
+  "canonical_ledger": "docs/PROJECT_COMMAND_CENTER.md#user-decision-ledger",
+  "source": {
+    "artifact": "four-color-requests-addendum-20260910-palette.zip",
+    "artifact_sha256": "7D6E0B050DE3E6391A56A2372F7ED7FF336BC7DC5FAD2F180B02252C5CA180CE",
+    "source_file": "REQUESTS_ADDITION.yaml",
+    "source_file_sha256": "fddac4888d796d81cf42e0a5f47eebd068afecdd7c76ba09e08d1c87a8a3d413",
+    "chatgpt_thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
+    "user_message_id": "03751588-f991-4bd6-84bf-578e76949808",
+    "verification": "Original user text was retrieved with read_thread. All six members listed in VALIDATION.json matched their SHA-256. The two screenshots were visually inspected. The archive's YAML/game-test claims are not independent execution evidence."
+  },
+  "records": [
+    {
+      "id": "ADD-20260910-OPS-01",
+      "canonical_id": "UDL-20260910-050",
+      "kind": "operation_report",
+      "source_quote": "共有正本運用を導入し、導入結果を報告したら終了",
+      "intent_state": "reported_existing_goal_change",
+      "implementation_state": "existing_migration_artifact_no_setting_change",
+      "verification_state": "source_message_confirmed",
+      "release_state": "not_a_product_release_request",
+      "note": "The completed finite goal is not restarted. Permanent-rule integration suggestions are not new authority from this attachment."
+    },
+    {
+      "id": "ADD-20260910-PALETTE-01",
+      "canonical_id": "UDL-20260910-052",
+      "kind": "user_requirement",
+      "source_quote": "赤ボタンが三つになってもいいから、ボタン減らさないでほしいな\n\nおまけ色がどれかわかるように配置を固定してほしい……",
+      "intent_state": "decided_direction",
+      "implementation_state": "not_started_for_new_acceptance",
+      "verification_state": "source_and_screenshots_checked_not_live_reproduced",
+      "release_state": "not_merged",
+      "reopens_acceptance_of": ["UDL-20260909-035"],
+      "tests_existing_related": ["tests/standard-online-skill-intents.test.cjs", "tests/standard-palette-semantics.test.cjs", "tests/standard-online-browser.test.cjs"],
+      "new_acceptance_tests_state": "not_implemented"
+    },
+    {
+      "id": "ADD-20260910-PALETTE-02",
+      "canonical_id": "UDL-20260910-052",
+      "kind": "design_option",
+      "source_quote": "いや違うな、四色の位置を固定して、その固定マスの中で、基本色は鮮やかに表示、おまけ色はぼんやりと表示、今回の開始時ランダムで選択されなかった色は灰色が勝手表示、とかの方がＵＩとして優秀かしら？",
+      "intent_state": "considering_not_adopted",
+      "implementation_state": "not_started",
+      "verification_state": "not_run",
+      "release_state": "not_merged",
+      "user_approved_design": false,
+      "preserved_alternative": "basic1/basic2/bonus three-slot fixed positions",
+      "assistant_proposal_only": ["red/blue/yellow/green order", "current-unowned rather than initially-unselected gray state", "basic x2 and dual-role labels"],
+      "note": "One requirement with alternative presentations, not two parallel implementations."
+    },
+    {
+      "id": "ADD-20260910-RULE-01",
+      "canonical_id": "UDL-20260909-035",
+      "kind": "rule_question",
+      "source_quote": "自分が持ってない色は相手が必ず持ってるのよね",
+      "intent_state": "answered_no_rule_change",
+      "implementation_state": "existing_initial_assignment_unchanged",
+      "verification_state": "initialSeatSecrets_and_fallback_source_checked",
+      "release_state": "no_new_release_evidence",
+      "answer_scope": "Initial three-color sets only; neither opponent slot type nor later availability is revealed or guaranteed."
+    },
+    {
+      "id": "ADD-20260910-GACHA-01",
+      "canonical_id": "UDL-20260910-053",
+      "kind": "user_requirement",
+      "source_quote": "レベル２ガチャ券で☆４出るの５％近くあって多すぎるから減らしてほしいな",
+      "intent_state": "decided_direction_numeric_value_unset",
+      "implementation_state": "not_started",
+      "verification_state": "existing_source_odds_checked_only",
+      "release_state": "not_merged",
+      "current_source_lv2_star4_percent": 5.5,
+      "assistant_proposed_lv2_star4_percent": 2.0,
+      "adopted_lv2_star4_percent": null,
+      "tests_existing_related": ["tests/standard-gacha-transaction.test.cjs", "tests/standard-gacha-browser.test.cjs", "tests/standard-online-gacha-migration.test.cjs"],
+      "new_acceptance_tests_state": "not_implemented"
+    },
+    {
+      "id": "ADD-20260910-SKILL-01",
+      "canonical_id": "UDL-20260906-010",
+      "kind": "user_requirement_reaffirmation",
+      "source_quote": "差し色スキル（一つのエリアを二色の市松模様に塗るスキル）とか、スキルのバリエーションを増やす改修を首を長くして待ってます",
+      "intent_state": "decided_direction_existing_id_retained",
+      "implementation_state": "not_started_for_two_color_rules",
+      "verification_state": "not_run",
+      "release_state": "not_merged",
+      "preserved_prior_decisions": ["current connected already-colored region", "current shape after split/merge", "ownership is not the target predicate", "star5 remains a candidate", "two-color separate-ruleset boundary needs reconciliation"],
+      "unresolved_rules": ["color sources and seal handling", "boundary microcell vs region-wide adjacency", "bonus consumption", "shift/split/merge interaction", "final rarity and acquisition"],
+      "new_acceptance_tests_state": "not_implemented"
+    },
+    {
+      "id": "ADD-20260910-VIEWPORT-01",
+      "canonical_id": "UDL-20260910-054",
+      "kind": "user_requirement",
+      "source_quote": "ＰＣ表示でもスマホ表示でも、地図と色塗りボタンは一画面の中に納まっててほしい",
+      "intent_state": "decided_direction",
+      "implementation_state": "not_started_for_whole_board_and_palette_acceptance",
+      "verification_state": "not_run_for_new_acceptance",
+      "release_state": "not_merged",
+      "tests_existing_related": ["tests/standard-online-browser.test.cjs"],
+      "new_acceptance_tests_state": "not_implemented",
+      "viewports_user_specified": false,
+      "note": "Existing palette visibility or zero horizontal overflow is not proof that the entire board and all color controls are simultaneously visible."
+    }
+  ]
+}

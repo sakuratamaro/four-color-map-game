@@ -88,6 +88,34 @@ test("ChatGPT review records require an exact subject and cannot imply productio
   }
 });
 
+test("palette addendum reuses canonical IDs and keeps design and numeric proposals unapproved", async () => {
+  const intake = JSON.parse(read("docs/REQUEST_ADDENDUM_20260910_PALETTE.json"));
+  const { parseDecisionLedger } = await import(pathToFileURL(path.join(root,
+    "scripts/check-standard-decision-reconciliation.mjs")).href);
+  const ledger = parseDecisionLedger(read("docs/PROJECT_COMMAND_CENTER.md"));
+  const ids = new Set(ledger.rows.map((row) => row.values.ID));
+  assert.equal(intake.kind, "intake_snapshot_not_operational_ledger");
+  assert.equal(intake.records.length, 7);
+  assert.equal(new Set(intake.records.map((row) => row.id)).size, 7);
+  assert.equal(intake.source.user_message_id, "03751588-f991-4bd6-84bf-578e76949808");
+  assert.equal(intake.source.artifact_sha256, "7D6E0B050DE3E6391A56A2372F7ED7FF336BC7DC5FAD2F180B02252C5CA180CE");
+  for (const row of intake.records) {
+    assert.ok(ids.has(row.canonical_id), row.id);
+    for (const field of ["source_quote", "intent_state", "implementation_state", "verification_state", "release_state"]) {
+      assert.ok(typeof row[field] === "string" && row[field].length > 0, `${row.id}.${field}`);
+    }
+    for (const testPath of row.tests_existing_related ?? []) {
+      assert.ok(fs.existsSync(path.join(root, testPath)), testPath);
+    }
+  }
+  const byId = Object.fromEntries(intake.records.map((row) => [row.id, row]));
+  assert.equal(byId["ADD-20260910-PALETTE-01"].canonical_id, byId["ADD-20260910-PALETTE-02"].canonical_id);
+  assert.equal(byId["ADD-20260910-PALETTE-02"].user_approved_design, false);
+  assert.equal(byId["ADD-20260910-GACHA-01"].adopted_lv2_star4_percent, null);
+  assert.equal(byId["ADD-20260910-SKILL-01"].canonical_id, "UDL-20260906-010");
+  assert.equal(byId["ADD-20260910-RULE-01"].intent_state, "answered_no_rule_change");
+});
+
 test("binding checker rejects stale, cross-scope, missing, and substitute-AI approvals", async () => {
   const { auditChatgptReviewBinding } = await import(pathToFileURL(path.join(root,
     "scripts/check-standard-decision-reconciliation.mjs")).href);
