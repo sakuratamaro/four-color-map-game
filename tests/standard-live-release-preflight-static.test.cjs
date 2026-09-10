@@ -105,8 +105,8 @@ test("release preflight is read-only, secret-free, finite, and stage-aware", () 
 
 test("candidate preflight rejects a stale local Standard bundle marker or missing deferred curse code", async () => {
   const { LOCAL_STANDARD_BUNDLE_MARKER, LOCAL_STANDARD_BUNDLE_SHA256, hasDeferredCurseLocalBundle } = await contractsPromise;
-  assert.equal(LOCAL_STANDARD_BUNDLE_MARKER, "app.bundle.js?v=20260910-7-6439df81e5b9");
-  assert.equal(LOCAL_STANDARD_BUNDLE_SHA256, "6439df81e5b9467a59ead3e545ff41baedfa03321db2fbf59f32e1c9c1245149");
+  assert.equal(LOCAL_STANDARD_BUNDLE_MARKER, "app.bundle.js?v=20260910-8-79935a0310f2");
+  assert.equal(LOCAL_STANDARD_BUNDLE_SHA256, "79935a0310f241c072c18a4387e275076c403415a8128094b078a61e1d71dc17");
   assert.equal(hasDeferredCurseLocalBundle(candidateLocalHtml, candidateLocalBundle), true);
   assert.equal(hasDeferredCurseLocalBundle(candidateLocalHtml.replace(LOCAL_STANDARD_BUNDLE_MARKER, "app.bundle.js?v=20260907-5"), candidateLocalBundle), false);
   assert.equal(hasDeferredCurseLocalBundle(candidateLocalHtml, candidateLocalBundle.replace("consumeDeferredCurseBacklashAfterColor(next, actor);", "void next;")), false);

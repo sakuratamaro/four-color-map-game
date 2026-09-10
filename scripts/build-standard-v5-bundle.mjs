@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const ids = [
   "standard/standard-engine.js",
+  "standard/standard-match-reward.js",
   "standard/standard-profile.js",
   "standard/standard-cosmetics.js",
   "standard/standard-skill-registry.js",

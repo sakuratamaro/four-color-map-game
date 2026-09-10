@@ -9,8 +9,8 @@ const APP_GACHA_ODDS_MARKERS = Object.freeze([
 ]);
 
 const EDGE_GACHA_ODDS_MARKER = 'const gachaOdds = {"1":{"1":65,"2":29,"3":5,"4":0.9,"5":0.1},"2":{"1":40,"2":35,"3":19,"4":5.5,"5":0.5},"3":{"1":25,"2":35,"3":28,"4":10,"5":2},"4":{"1":0,"2":35,"3":35,"4":24,"5":6},"5":{"1":0,"2":0,"3":40,"4":40,"5":20}};';
-const LOCAL_STANDARD_BUNDLE_SHA256 = "6439df81e5b9467a59ead3e545ff41baedfa03321db2fbf59f32e1c9c1245149";
-const LOCAL_STANDARD_BUNDLE_MARKER = `app.bundle.js?v=20260910-7-${LOCAL_STANDARD_BUNDLE_SHA256.slice(0, 12)}`;
+const LOCAL_STANDARD_BUNDLE_SHA256 = "79935a0310f241c072c18a4387e275076c403415a8128094b078a61e1d71dc17";
+const LOCAL_STANDARD_BUNDLE_MARKER = `app.bundle.js?v=20260910-8-${LOCAL_STANDARD_BUNDLE_SHA256.slice(0, 12)}`;
 
 function includesAll(source, markers) {
   return typeof source === "string" && markers.every((marker) => source.includes(marker));
