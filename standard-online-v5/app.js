@@ -1074,9 +1074,7 @@ function presentCpuCommentary(item, context) {
   if (item.priority === "terminal") {
     clearCpuCommentaryBubble();
     clearContactReveal();
-    clearTimeout(randomRevealTimer);
-    randomRevealTimer = null;
-    show("randomReveal", false);
+    clearRandomSetupReveal();
     renderCpuTerminalCommentary(item, context);
     return;
   }
@@ -1399,7 +1397,22 @@ function renderPaletteHistory(publicState, privateState) {
   show("paletteHistoryEmpty", history.length === 0);
 }
 
+function clearRandomSetupReveal() {
+  clearTimeout(randomRevealTimer);
+  randomRevealTimer = null;
+  show("randomReveal", false);
+}
+
+function canRevealRandomSetup(publicState) {
+  return Boolean(publicState?.matchId
+    && roomModel?.room?.id === client.snapshot().roomId
+    && roomModel?.room?.status === "playing"
+    && publicState.status === "ACTIVE" && publicState.phase !== "GAME_OVER");
+}
+
 function revealRandomSetup(publicState, privateState) {
+  // Authoritative terminal/pending state outranks a missing per-tab presentation receipt.
+  if (!canRevealRandomSetup(publicState)) return clearRandomSetupReveal();
   const key = `${RANDOM_REVEAL_PREFIX}${publicState.matchId}`;
   if (!publicState.matchId || sessionStorage.getItem(key)) return;
   sessionStorage.setItem(key, "shown");
@@ -3231,6 +3244,7 @@ function render() {
   const authoritativeRoomLoaded = Boolean(snapshot.roomId && roomModel?.room?.id === snapshot.roomId);
   const roomStatePending = Boolean(snapshot.roomId && !authoritativeRoomLoaded);
   const roomFinished = roomModel?.room?.status === "finished";
+  if (!canRevealRandomSetup(roomModel?.room?.public_state)) clearRandomSetupReveal();
   const replacesShownFinishedCpu = Boolean(roomFinished && roomModel?.room?.opponent_kind === "cpu" && (
     (pendingCpuStartSaga?.stage === "start" && pendingCpuStartSaga.replaceRoomId === snapshot.roomId)
     || cpuEntryDraft?.replaceRoomId === snapshot.roomId

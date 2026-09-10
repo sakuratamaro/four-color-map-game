@@ -4,6 +4,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const test = require("node:test");
+const vm = require("node:vm");
 
 const root = path.resolve(__dirname, "..");
 const app = fs.readFileSync(path.join(root, "standard-online-v5", "app.js"), "utf8");
@@ -53,4 +54,32 @@ test("skill information buttons cover all 19 Standard skills plus two separate e
   assert.match(app, /★\$\{meta\.rarity\}/);
   assert.match(app, /rarity\.textContent = `★\$\{targetMeta\.rarity\}`/);
   assert.doesNotMatch(app, /innerHTML/);
+});
+
+test("UDL-055 terminal and unhydrated setup gates cancel presentation before consulting session storage", () => {
+  const source = app.slice(app.indexOf("function clearRandomSetupReveal()"), app.indexOf("function openSkillInfo("));
+  assert.ok(source.includes("function canRevealRandomSetup("));
+  const state = { matchId: "match-1", status: "ACTIVE", phase: "CREATE_FIRST" };
+  for (const fixture of [
+    { roomModel: null, publicState: state },
+    { roomModel: { room: { id: "other-room", status: "playing" } }, publicState: state },
+    { roomModel: { room: { id: "room-1", status: "ready" } }, publicState: state },
+    { roomModel: { room: { id: "room-1", status: "finished" } }, publicState: state },
+    { roomModel: { room: { id: "room-1", status: "playing" } }, publicState: { ...state, status: "FINISHED" } },
+    { roomModel: { room: { id: "room-1", status: "playing" } }, publicState: { ...state, phase: "GAME_OVER" } },
+    { roomModel: { room: { id: "room-1", status: "playing" } }, publicState: null },
+  ]) {
+    const calls = [];
+    const context = vm.createContext({
+      ...fixture, client: { snapshot: () => ({ roomId: "room-1" }) },
+      randomRevealTimer: 42,
+      clearTimeout: (id) => calls.push(["cancel", id]),
+      show: (id, visible) => calls.push([id, visible]),
+      sessionStorage: { getItem: () => assert.fail("terminal/pending state must win before the shown receipt") },
+    });
+    vm.runInContext(`${source}\nrevealRandomSetup(publicState, {});`, context);
+    assert.deepEqual(calls, [["cancel", 42], ["randomReveal", false]]);
+    assert.equal(context.randomRevealTimer, null);
+  }
+  assert.match(app, /if \(!canRevealRandomSetup\(roomModel\?\.room\?\.public_state\)\) clearRandomSetupReveal\(\);/);
 });

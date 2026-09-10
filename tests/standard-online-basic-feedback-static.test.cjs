@@ -26,7 +26,7 @@ test("online feedback settings are explicit, separate, persistent, and keyboard-
 
 test("feedback script is cache-busted before the matching app generation", () => {
   const controllerScript = html.indexOf('<script src="basic-feedback.js?v=20260908-2"></script>');
-  const appScript = html.indexOf('<script type="module" src="app.js?v=20260910-24"></script>');
+  const appScript = html.indexOf('<script type="module" src="app.js?v=20260910-25"></script>');
   assert.ok(controllerScript >= 0 && appScript > controllerScript);
   assert.match(html, /style\.css\?v=20260910-12/);
   assert.doesNotMatch(html, /app\.js\?v=20260906-(?:36|38)|style\.css\?v=20260906-(?:36|37)/);

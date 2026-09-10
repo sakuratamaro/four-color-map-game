@@ -786,6 +786,9 @@ async function installMock(context, mode) {
           return { data: [{ matchmaking_status: initialMode === "publicFind" ? "matched" : "none_available", room_id: initialMode === "publicFind" ? id : null, seat: initialMode === "publicFind" ? "B" : null, server_time: new Date().toISOString(), duplicate: false }] };
         }
         if (name === "fcg_standard_room_snapshot_v2" && runtime.missingRoom) return { data: null, error: Object.assign(new Error("room removed"), { code: "P0002" }) };
+        if (name === "fcg_standard_room_snapshot_v2" && globalThis.__randomRevealSnapshotDelayMs) {
+          await new Promise((resolve) => setTimeout(resolve, globalThis.__randomRevealSnapshotDelayMs));
+        }
         if (name === "fcg_standard_room_snapshot_v2") return { data: [{
           snapshot_schema_version: 2,
           snapshot_version: runtime.room.version,
@@ -842,7 +845,7 @@ async function installMock(context, mode) {
   }, { connectionKey, saveKey, roomId, pendingId: pendingRematchId, mode });
 }
 
-async function withPage(mode, run, { bodyTimeout = 35_000, viewport = { width: 900, height: 800 } } = {}) {
+async function withPage(mode, run, { bodyTimeout = 35_000, viewport = { width: 900, height: 800 }, beforeNavigate = null } = {}) {
   assert.ok(chromium, "Playwright is required");
   assert.ok(fs.existsSync(browserPath), `${browserName} browser is required`);
   let browserServer;
@@ -867,6 +870,7 @@ async function withPage(mode, run, { bodyTimeout = 35_000, viewport = { width: 9
     browserStage("page-start");
     const page = await bounded("page-ready", context.newPage(), 5_000);
     browserStage("page-ready");
+    if (beforeNavigate) await bounded("before-navigation", beforeNavigate(page), 5_000);
     browserStage("navigation-start");
     await bounded("navigation-ready", page.goto(`${url}/standard-online-v5/index.html`, { timeout: 20_000 }), 20_000);
     browserStage("navigation-ready");
@@ -1695,6 +1699,100 @@ test("actual Edge reuses a persisted rematch ID and returns to fresh setup", { t
     assert.equal(evidence.stored.setupRevision, 0);
     assert.equal(evidence.stored.rematchActionId, null);
   });
+});
+
+async function auditRandomSetupReveal(page) {
+  await page.addInitScript(() => {
+    globalThis.__randomRevealShows = 0;
+    globalThis.__randomRevealSnapshotDelayMs = 250;
+    const originalToggle = DOMTokenList.prototype.toggle;
+    DOMTokenList.prototype.toggle = function (...args) {
+      const result = originalToggle.apply(this, args);
+      if (this === document.getElementById("randomReveal")?.classList && args[0] === "hidden" && !result) {
+        globalThis.__randomRevealShows += 1;
+      }
+      return result;
+    };
+  });
+}
+
+test("UDL-055 actual browser never flashes random setup on finished resume, reload or a fresh tab", { timeout: 130000 }, async () => {
+  for (const mode of ["finished", "finishedCpu"]) {
+    await withPage(mode, async (page) => {
+      await page.locator("#terminalSummary:not(.hidden)").waitFor();
+      const before = await page.evaluate(() => ({
+        profile: JSON.stringify(globalThis.__standardOnlineRuntime.profile.profile_state),
+        state: JSON.stringify(globalThis.__standardOnlineRuntime.room.public_state),
+        reason: document.querySelector("#terminalOutcomeReason").textContent,
+      }));
+      const assertRestored = async (target) => {
+        await target.locator("#terminalSummary:not(.hidden)").waitFor();
+        assert.equal(await target.evaluate(() => globalThis.__randomRevealShows), 0, "even a synchronous show-then-hide is forbidden");
+        assert.equal(await target.locator("#randomReveal").isVisible(), false);
+        assert.equal(await target.locator("#terminalOutcomeReason").textContent(), before.reason);
+        const restored = await target.evaluate(({ key }) => ({
+          profile: JSON.stringify(globalThis.__standardOnlineRuntime.profile.profile_state),
+          state: JSON.stringify(globalThis.__standardOnlineRuntime.room.public_state),
+          roomId: JSON.parse(localStorage.getItem(key)).roomId,
+          revealReceipt: sessionStorage.getItem(`fourColorMapGame.standard.online.v5.random-reveal.${globalThis.__standardOnlineRuntime.room.public_state.matchId}`),
+          writes: globalThis.__standardOnlineRuntime.calls.filter((entry) => (entry.kind === "invoke" && entry.body?.operation !== "cosmetic-catalog")
+            || entry.name === "fcg_standard_request_rematch"),
+        }), { key: connectionKey });
+        assert.equal(restored.profile, before.profile);
+        assert.equal(restored.state, before.state);
+        assert.equal(restored.roomId, roomId, "do not force the player back to the lobby");
+        assert.equal(restored.revealReceipt, null, "terminal suppression must not depend on a shown receipt");
+        assert.deepEqual(restored.writes, [], "no reinitialization, action or settlement is needed");
+      };
+      await assertRestored(page);
+      const readsBefore = await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.length);
+      await page.evaluate(() => {
+        Object.defineProperty(document, "visibilityState", { configurable: true, get: () => "hidden" });
+        document.dispatchEvent(new Event("visibilitychange"));
+        Object.defineProperty(document, "visibilityState", { configurable: true, get: () => "visible" });
+        document.dispatchEvent(new Event("visibilitychange"));
+        globalThis.__standardOnlineRuntime.onInvalidate();
+      });
+      await page.waitForFunction((count) => globalThis.__standardOnlineRuntime.calls.length > count, readsBefore);
+      await assertRestored(page);
+      await page.reload();
+      await assertRestored(page);
+      const freshTab = await page.context().newPage();
+      await auditRandomSetupReveal(freshTab);
+      await freshTab.goto(page.url());
+      await assertRestored(freshTab);
+      await freshTab.close();
+
+      if (mode === "finishedCpu") {
+        await page.locator("#requestRematch").click();
+        await page.locator("#setupCard:not(.hidden)").waitFor();
+        await page.locator("#submitSetup").click();
+        await page.waitForFunction(() => globalThis.__randomRevealShows === 1);
+        assert.equal(await page.locator("#randomReveal").isVisible(), true, "explicit rematch still reveals its new setup");
+        assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.room.public_state.matchId), `${roomId}:10`);
+      }
+    }, { beforeNavigate: auditRandomSetupReveal, viewport: { width: 390, height: 844 } });
+  }
+});
+
+test("UDL-055 actual browser cancels a running setup reveal when the match finishes", { timeout: 130000 }, async () => {
+  await withPage("playing", async (page) => {
+    await page.waitForFunction(() => globalThis.__randomRevealShows === 1);
+    assert.equal(await page.evaluate(() => globalThis.__randomRevealShows), 1, "new matches retain their initial reveal");
+    assert.equal(await page.locator("#randomReveal").isVisible(), true);
+    await page.evaluate(() => {
+      const runtime = globalThis.__standardOnlineRuntime;
+      runtime.room = { ...runtime.room, status: "finished", version: 10, public_state: {
+        ...runtime.room.public_state, status: "FINISHED", phase: "GAME_OVER", version: 10,
+        winner: "A", terminalReason: "SURRENDER",
+      } };
+      runtime.view = { ...runtime.view, version: 10 };
+      runtime.onInvalidate();
+    });
+    await page.locator("#terminalSummary:not(.hidden)").waitFor();
+    assert.equal(await page.locator("#randomReveal").isVisible(), false);
+    assert.equal(await page.evaluate(() => globalThis.__randomRevealShows), 1);
+  }, { beforeNavigate: auditRandomSetupReveal });
 });
 
 test("actual Edge celebrates an opponent surrender and presents defeat from the local seat", { timeout: 130000 }, async () => {

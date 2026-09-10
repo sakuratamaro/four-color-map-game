@@ -41,6 +41,7 @@ test("withPage emits deterministic stages and bounds every setup and test-body a
   assert.match(withPage, /bounded\("context-ready", browser\.newContext\([\s\S]+?\), 5_000\)/);
   assert.match(withPage, /bounded\("mock-ready", installMock\(context, mode\), 5_000\)/);
   assert.match(withPage, /bounded\("page-ready", context\.newPage\(\), 5_000\)/);
+  assert.match(withPage, /if \(beforeNavigate\) await bounded\("before-navigation", beforeNavigate\(page\), 5_000\)/);
   assert.match(withPage, /bounded\("navigation-ready", page\.goto\([\s\S]+?timeout: 20_000[\s\S]+?\), 20_000\)/);
   assert.match(withPage, /bounded\("badge-ready", page\.locator\("#connectionBadge\.good"\)\.waitFor\(\{ state: "visible", timeout: 20_000 \}\), 20_000\)/);
   assert.match(withPage, /RESTORED_ROOM_MODES\.has\(mode\)[\s\S]+?bounded\("room-ready", page\.locator\("#room:not\(\.hidden\)"\)\.waitFor\(\{ timeout: 15_000 \}\), 15_000\)/);
@@ -48,7 +49,7 @@ test("withPage emits deterministic stages and bounds every setup and test-body a
 });
 
 test("timeout hierarchy preserves Playwright diagnostics and teardown room", () => {
-  assert.match(withPage, /\{ bodyTimeout = 35_000, viewport = \{ width: 900, height: 800 \} \}/);
+  assert.match(withPage, /\{ bodyTimeout = 35_000, viewport = \{ width: 900, height: 800 \}, beforeNavigate = null \}/);
   const browserTests = source.split(/\r?\n/).filter((line) => line.startsWith("test("));
   assert.ok(browserTests.length > 0);
   for (const declaration of browserTests) {
