@@ -85,7 +85,8 @@ test("release runbook fixes migration history and the retired-declaration Pages-
     assert.match(releaseSection, new RegExp(phrase.replaceAll(".", "\\.")));
   }
   assert.match(runbook, /PagesをDBより先に公開しない/);
-  assert.match(runbook, /今便はDB変更なし/);
+  assert.match(runbook, /最新便はquiz finish DB関数と表示だけを変更/);
+  assert.match(runbook, /`202609100001_standard_quiz_accuracy\.sql`をSQL Editorで一度だけ適用/);
   assert.match(runbook, /migration tail `202609060003`/);
   assert.match(runbook, /202609060003`適用後にPagesを戻す場合も、旧クライアントから未使用のavailability関数と索引は保持/);
   assert.match(runbook, /202609050006.*適用直前[\s\S]+duplicate_active_actor_state[\s\S]+重複件数が0/);

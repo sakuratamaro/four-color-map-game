@@ -2,7 +2,7 @@
 
 更新日: 2026-09-10
 
-状態: 現行運用。migration `202609030006`–`202609030013`、`202609050001`–`202609050007`、`202609060001`–`202609060003`、Edge deployment 25、Pages product `3dea0ed`（online app v16、style v10、skill intents v20、local bundle v3）は適用済み。`5.0.0-alpha.4`の既存互換とrollback保全を維持する。今便はDB変更なしで、migration、RPC、Edge、engine、報酬量、ガチャ率も変更していない。次便も実行直前にmain HEAD、Pages run、Edge deployment、migration tailを現物から再取得する。
+状態: 現行運用。migration `202609030006`–`202609030013`、`202609050001`–`202609050007`、`202609060001`–`202609060003`、`202609100001`、Edge deployment 25相当のsource、Pages product `c36bd18`（online app v21、style v11、progression v2、skill intents v20、local bundle v7）は適用済み。`5.0.0-alpha.4`の既存互換とrollback保全を維持する。最新便はquiz finish DB関数と表示だけを変更し、Edge source、engine、対戦ルール、報酬量、ガチャ率は変更していない。次便も実行直前にmain HEAD、Pages run、Edge source、migration tailを現物から再取得する。
 
 実行中の状態、数値、識別子、失敗は `docs/STANDARD_RELEASE_EVIDENCE.md` に追記する。根拠のない項目を`VERIFIED`や`PASS`へ変更しない。
 
@@ -251,13 +251,13 @@ Edge失敗時はPagesを公開せず、直前の成功deploymentへ戻す。Page
 
 ### クイズ全体・Lv別正答率便
 
-`UDL-20260909-044`の候補。既存の`attempts`、`bestCorrect`、直近成績から過去の正答数を推定せず、新migration適用後にサーバー採点が確定した回答だけを`trackedAnswered`／`trackedCorrect`へ累積する。旧recordはそのまま有効で、最初の新規精算から記録を開始する。表示は全体とLv.1〜5を常に並べ、未記録は`—`と`0/0問正解`、390pxは2列とする。
+完了。`UDL-20260909-044`は既存の`attempts`、`bestCorrect`、直近成績から過去の正答数を推定せず、新migration適用後にサーバー採点が確定した回答だけを`trackedAnswered`／`trackedCorrect`へ累積する。旧recordはそのまま有効で、最初の新規精算から記録を開始する。表示は全体とLv.1〜5を常に並べ、未記録は`—`と`0/0問正解`、390pxは2列とする。
 
-1. 最新main起点の専用clean branchで新旧record、10問精算、3ミスを含む時間切れ、同一finish actionの再送、reload、破損counter拒否、公開画面の追加read 0を確認する。旧migrationとv4.9 baselineのbyte/SHAを不変に保つ。
-2. Windows Chrome／Edge gateを同一候補SHAで通す。正式対応は最新Chromeとし、EdgeはChromium回帰として維持する。
-3. Pagesより先に`202609100001_standard_quiz_accuracy.sql`をSQL Editorで一度だけ適用し、関数signature、service-role限定、旧record非推定、重複精算のcounter不変をread-onlyで検証する。既存Edge index／bundleは変更しない。
-4. live quiz canaryで一度の新規精算が判定数を10だけ増やし、同一action再送とcold reloadで二重算入しないことを確認する。同一認証窓で重いcanaryを反復しない。
-5. mainをforceなしでfast-forwardしてPagesを公開し、candidate preflight、app v21、progression CSS v2、全体＋Lv.1〜5、注記、390px 2列、横overflow 0、console warning/error 0をChromeで確認する。公開プロフィールに移行後の精算がなければ0/0表示を正しい結果として扱う。
+1. [完了] 最新main起点branch `codex/quiz-accuracy-release-20260910`の製品`a60aee3`で新旧record、10問精算、時間切れ、同一finish action再送、破損counter拒否、追加read 0を確認。関連143/143、save 7/7、clean proof 10/10、accuracy browser 1/1。旧migrationとv4.9 baselineのbyte/SHAは不変。
+2. [完了] Windows `34432093814`は製品`a60aee3`のChrome／Edgeとも成功。正式対応は最新Chromeとし、EdgeはChromium回帰として維持する。
+3. [完了] Pagesより先に`202609100001_standard_quiz_accuracy.sql`をSQL Editorで一度だけ適用。貼付全文は候補と改行正規化一致、SHA-256 `bb85eed5a2f3c98fc37b8625a41b7a86df226441ceb86b8d52dd2da5201b82c8`。配備後のsignature、security definer、空search_path、3 counter marker、duplicate guard、anon/authenticated禁止、service-role許可の総合判定はtrue。既存Edge bundle SHA `ffd11ac23830f711a270c7837d0d543b3d4f4462abfa78771e8489eb7fb89b8d`は不変で再配備していない。
+4. [完了] 既存Runbook B全体はクイズ22ラウンド通過後、変更外の古い売却lock期待で停止したため全体PASSとはしない。代わりに1ラウンド専用modeを`89b2976`／`c36bd18`で追加し、10問、各answer再送、finish再送、判定数+10、正解数不変、報酬一回、cold reload全文一致を本番47/47で確認した。
+5. [完了] `05bf50c→c36bd18`をforceなしでmainへfast-forwardし、Pages `34433653551`成功、candidate preflight `ok:true`／`hasQuizAccuracyRecords:true`。公開Chromeはapp v21、progression CSS v2、390×844で6件・2列、各card／page横overflow 0、注記、console 0。公開プロフィールに移行後精算がないため全6件`—`／`0/0問正解`を正しい表示として確認した。
 
 Pages表示の退行は直前Pagesへ戻せる。適用済みcounterは旧clientが無視できる追加fieldなので、migrationを逆適用・削除せず保持する。counter異常時は新規quiz公開を止め、receiptとprofileをread-onlyで照合してから追加migrationで修正する。
 
