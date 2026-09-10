@@ -9,7 +9,7 @@
 
 | 添付固定ID | 正本への対応 | 採否／今回の範囲 |
 |---|---|---|
-| REQ-ADD-20260910-CPU-TIERS-01 | UDL-20260910-051へ範囲拡張を照合 | 10人をLv1〜5へ2人ずつという方向。個々の配置は提案。未実装・未検証・未公開。 |
+| REQ-ADD-20260910-CPU-TIERS-01 | UDL-20260910-051へ範囲拡張を照合 | 10人をLv1〜5へ2人ずつという方向。v1時点の個々の配置は提案。後続v3の外見維持・シオンLv5／レイLv4を下記へ統合し、旧配置を実装根拠にしない。製品は未実装・未検証・未公開。 |
 | REQ-ADD-20260910-CPU-TIERS-02 | UDL-20260910-051 | 個性別強化の方向。総1〜3回は試験案。100回付与との競合を解消せず上書き／重複加算しない。 |
 | REQ-ADD-20260910-CPU-TIERS-03 | UDL-20260910-051 | 任意n+1・上限5は提案。既存nの合法手、requiredSizeのサーバー契約、表示・保存を同時に検討する。 |
 | REQ-ADD-20260910-SEAL-COUNTER-01 | UDL-051の関連する未採用ルール相談として保全 | 色借り／持ち色変更による一回だけの封印無視。別仕様の採否前にCPUやUIへ実装しない。独立IDは元発言確認後の通常受付で割り当てる。 |
@@ -19,3 +19,27 @@
 ## 30分後の実会話確認で受けた後続条件
 
 2026-09-10T21:49:54Zに実ChatGPT会話の最新user message `39bb0729-e396-4201-a05b-e84aaab30ebc` を取得。「各レベルで男女1:1」「並びをレベル順にするならシオンとレイの見た目を交換、見た目を維持するなら両者のレベルを交換」という明示条件。UDL-051へ追加し、旧配置案を確定として実装しない。今回画像から性別・キャラクター設定を推測せず、画像変更は行わない。具体的な採用方法と新チャージ値は別のCPUスライスで照合する。
+
+## v3受領: 外見維持・ランク交換の設計選択
+
+`CANON_RECEIPT version=shared-canon-v1.1 base=5c03e6c2d0e94c843776ea7eae0d7bbe2917a174 request=UDL-20260910-051,UDL-20260911-056 specs=AGENTS.md,docs/SHARED_CANON.md,docs/PROJECT_COMMAND_CENTER.md,docs/CPU_TIERS_INTAKE_20260911.md tests=tests/governance-shared-canon.test.cjs,tests/standard-decision-reconciliation.test.cjs`
+
+基準はこの受領時のlocal origin/main tracking ref。文書作業床は既存 `codex/dev-brain-current-20260910@fa1d39b4525750e467c8e4fa71a42edd0b3d5a12`。この受領ではremote main再取得や本番確認を行っていない。
+
+- 2026-09-11 JST、ユーザーがCPU_GENDER_BALANCE_HANDOFF.mdとfour-color-dev-brain-20260911-v3.zipを「渡しとくね」と提供した。別添SHA-256 `741C5ECE7E668C849D5304E1203B0D875FED296245D8014D1C8993C8C5878318` はZIP内 `docs/CPU_GENDER_BALANCE_HANDOFF.md` とbyte一致。
+- 搬送ID `ADD-20260911-CPU-GENDER-BALANCE` を既存UDL-20260910-051へ統合する。男女比の引用本文は前回直接取得済みの実user message `39bb0729-e396-4201-a05b-e84aaab30ebc` と一致。新しい要望IDや重複タスクを作らない。
+- ユーザーが許可した二案のうち、添付は `assistant_selected_option=preserve_appearance_swap_rank` を選択している。これは届いたAI設計判断であり、ユーザーが全員の性別設定を確定した証拠や、候補公開の承認ではない。既存の顔・名前・個性・IDの対応を保全するため、この選択をCPU設計の現行方針へ採用する。
+
+| Lv | 固有ID／キャラクター | 旧案との差 |
+|---|---|---|
+| 1 | yuzu／ユズ、ren／レン | 前案維持 |
+| 2 | minato／ミナト、koharu／コハル | 前案維持 |
+| 3 | aoi／アオイ、kai／カイ | 前案維持 |
+| 4 | tsubasa／ツバサ、rei／レイ | レイをLv5案から移す |
+| 5 | shion／シオン、kurogane／クロガネ | シオンをLv4案から移す |
+
+旧「シオンLv4／レイLv5」は出典原本としてだけ保全し、新規実装の根拠に戻さない。設計採否は選択済み、製品実装は未着手、ゲーム検証はNOT_RUN、公開は未確認のまま。今回の資料検査ではLv1〜5各2人・固有ID10件重複なしを確認したが、男女比の実装試験とは数えない。読取対象mainの名簿blob `68847421ad2589cb0edcce8c1021fa75a2add884` は添付の参照と一致する。現名簿の `lookaheadDepth` は思考パラメータであり、Lv1〜5のランクへ流用しない。全10人の正式な性別設定との照合は未検証で、画像・名前から補完しない。
+
+次のCPUスライスの受入は、IDでの一覧並べ替え・選択先と実対戦相手の一致、顔／名前／台詞／既存戦績の不変、ランク表示と特典設定の一致、シオンの公開情報推理とレイの組合せ戦術の維持。関連する既存 `tests/standard-cpu-roster.test.cjs`、`tests/standard-cpu-portraits.test.cjs`、`tests/standard-online-browser.test.cjs` への追加対象であり、この受領でこれらのゲーム試験を実装・実行したとは扱わない。
+
+画像交換、戦術の丸ごと交換、人間/PvP・在庫・報酬・券レベル／確率の変更は含めない。1〜3回、n+1／最大5、封印突破は引き続き未採用。UDL-052候補へ混ぜず、受領やZIP更新待ちで独立した改修を停止しない。
