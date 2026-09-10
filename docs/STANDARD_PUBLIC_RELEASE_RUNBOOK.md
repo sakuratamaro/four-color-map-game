@@ -240,12 +240,12 @@ COLOR長文案内撤去証跡追補後の最新main `1b39b69`へ、保全済み�
 
 ### CPU封印skill局面判断便
 
-候補中。`UDL-20260909-045`はCPUが参照できる公開盤面と自分のprivate状態だけを使い、直後に作成可能な領域の公開応答候補色を評価する。候補が3色以上なら封印を温存し、2色以下からさらに減らせる場合だけ封印を高評価にする。turn番号による一律禁止は置かず、1手目でも条件を満たせば使用できる。相手のprivate palette／handは参照せず、ランダム封印の結果は`potential`として扱い確定情報にしない。
+完了。`UDL-20260909-045`はCPUが参照できる公開盤面と自分のprivate状態だけを使い、直後に作成可能な領域の公開応答候補色を評価する。候補が3色以上なら封印を温存し、2色以下からさらに減らせる場合だけ封印を高評価にする。turn番号による一律禁止は置かず、1手目でも条件を満たせば使用できる。相手のprivate palette／handは参照せず、ランダム封印の結果は`potential`として扱い確定情報にしない。
 
-1. 最新main起点の専用branchで、弱い1接触と強い2接触のseeded比較、対象色／空振り色、10人の合法性・決定性、private noise不変、formal self-playを確認する。生成済みEdge bundleとLocal bundleを2回再生成し、2回目差分0を確認する。
-2. Windows Chrome/Edge gateを同一commitで成功させる。Pages assetはonline app v20／progression CSS v1を維持し、Local bundleだけ`app.bundle.js?v=20260910-6-5888f3df390d`へ更新する。DB、migration、RPC、index.ts、rules、報酬は変更しない。
-3. Pagesより先にEdge `standard-game-action`へ候補の未変更`index.ts`と生成済み`standard-engine.bundle.js`を同時反映し、配備後downloadと候補のbyte／SHA一致、JWT verification ONを確認する。基本Edge canaryとCPU有限進行を実行し、公開／private境界、accepted action、terminal cleanupを確認する。局面を本番へ注入せず、強弱比較はsource一致したbundleのseeded試験証拠として分離する。
-4. Edge成功後にmainをforceなしでfast-forwardしPagesを公開する。candidate preflightの`hasCpuSealTimingPolicy:true`、Local bundle hash、公開Chrome warning/error 0を確認する。
+1. [完了] 最新main `b79bf29`起点の専用branch `codex/cpu-seal-timing-release-20260910`で、弱い1接触と強い2接触のseeded比較、対象色／空振り色、10人の合法性・決定性、private noise不変、formal self-playを確認した。関連99/99、formal self-play＋彩色済み角膨張10/10、実CPU browser 1/1、Edge deployment proof 10/10。Edge bundleとLocal bundleを2回再生成し、2回目差分0だった。
+2. [完了] exact `e50044a`を専用branchへpush。Windows `34426581125`はChrome attempt 1だけ変更外の既存クイズ初期配置timingで失敗し、同一SHAの局所Chrome 1/1後にfailed jobを再実行してattempt 2でChrome／Edgeとも成功した。Pages assetはonline app v20／progression CSS v1を維持し、Local bundleだけ`app.bundle.js?v=20260910-6-5888f3df390d`へ更新した。
+3. [完了] Pagesより先にEdge `standard-game-action`へ未変更`index.ts`と生成済みbundleを同時反映し、成功toast後にDashboard editorから両ファイル全文を再取得した。LF正規化後の内容は候補と完全一致し、SHA-256はindex `a80c7fb6773764da291e82fc82086dac497148317e77d6f78ebb8ec7b2833be1`、bundle `ffd11ac23830f711a270c7837d0d543b3d4f4462abfa78771e8489eb7fb89b8d`。JWT verification ON、基本7/7、CPU有限canary 107/107を確認した。CLI未導入のためcontrol-plane id/versionはPENDINGのまま分離する。
+4. [完了] `b79bf29→e50044a`をforceなしでmainへfast-forwardし、Pages `34428346200`は同SHAで成功した。candidate preflightは`ok:true`／`hasCpuSealTimingPolicy:true`、Local bundle SHA-256は`5888f3df390d0a6bba228c52146fdcc22029ea87f05d58345f28c63570b02091`。公開Chromeはapp v20を読み込み、表示正常、warning/error 0だった。局面を本番へ注入せず、強弱比較はsource一致したbundleのseeded試験証拠として分離して`PUBLIC_VERIFIED`へ昇格した。
 
 Edge失敗時はPagesを公開せず、直前の成功deploymentへ戻す。Pages公開後に表示退行が出た場合はEdge互換を保ったまま直前のPages commitへ戻す。DB rollback、policy外private推測、test-only本番状態注入は行わない。
 
