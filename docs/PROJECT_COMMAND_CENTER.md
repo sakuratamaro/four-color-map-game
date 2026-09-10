@@ -8,7 +8,7 @@
 
 ## 司令塔ルール
 
-- 公開製品コードは `ca97731`（対戦報酬製品`a937d9a`＋Local bundle依存修正`ca97731`）。Windows `34438667550`とPages `34440101131`が同SHAで成功し、Edge Function version 29はCLI読戻しで2ファイルbyte一致、基本7/7＋CPU報酬永続化18/18、candidate preflight `ok:true`／`hasMatchRewardEconomy:true`。再起動後のChrome拡張接続だけが未復旧のため、公開Chrome実見前は`MERGED / LIVE_CHROME_PENDING`とし`PUBLIC_VERIFIED`へ過大昇格しない。次の変更も専用clean worktreeでのみ統合する。
+- 公開製品コードは `4b84e52`（CPU台詞／地の文分離。直前の対戦報酬製品は`ca97731`）。製品treeと完全一致する検証merge `2317eac`でWindows `34443155947`のChrome／Edgeが成功し、製品SHAのPages `34443914778`もbuild／report／deploy成功、candidate preflight `ok:true`。Edge Function version 29と報酬canaryの既存証拠は不変。再起動後のChrome拡張接続だけが未復旧のため、公開Chrome実見前は`MERGED / LIVE_CHROME_PENDING`とし`PUBLIC_VERIFIED`へ過大昇格しない。次の変更も専用clean worktreeでのみ統合する。
 - `UDL-20260908-027`〜`033`と`UDL-20260909-034`〜`046`は上記公開後のユーザー決定である。関連する過去の`PUBLIC_VERIFIED`は公開履歴の証拠として残すが、後発決定に対する現行の受入・実装済みを意味しない。
 - release候補はdirtyな司令塔床から直接出さず、`origin/main`起点のclean release worktreeへ採用commitだけを積み、candidate CIのtree一致を確認してfast-forwardする。
 - 古いdirty worktreeからbuild、merge、deployしない。
@@ -181,7 +181,6 @@
 | --- | --- | --- |
 | 角膨張の通常1マス直接tap | LOCAL_VERIFIED | 累積候補`f2d34db`、製品`66a09ab`、旧room互換`d100349`。Edge→Pages順が必要 |
 | CPU選択前portrait | LOCAL_VERIFIED | 累積候補`e2d0713`。別件のcompact戦績card `UDL-043`は`3ddac0c`でPUBLIC_VERIFIED |
-| CPU台詞／地の文分離 | LOCAL_VERIFIED | 累積候補`ced155f`、製品`e117677`。公開event、reload、PvP、LAB境界をformal browserで確認済み |
 | Lv3／4問題内容の難化 | LOCAL_VERIFIED | 製品`0498927`、canary`0a83480`、証拠`048d04e`。Edge source readbackとlive canaryは未実施 |
 | 2026-09-09追加11項目と報酬経済 | CHAT_ONLY / PLANNED | 上表と`UDL-035`〜`046`で既存対応、再開、新規を分離。設計だけを実装済みに数えない |
 
@@ -189,7 +188,8 @@
 
 | 項目 | 現在状態 | 公開証拠と未達境界 |
 | --- | --- | --- |
-| 現在の公開製品 | MERGED / LIVE_CHROME_PENDING | `ca97731`、Windows `34438667550`、Edge version 29、Pages `34440101131`、candidate preflight `ok:true`／報酬経済true。Local bundle v8 SHA-256 `79935a03…dc17`。公開Chrome実見だけ再起動後の拡張接続待ちで、前便までの`PUBLIC_VERIFIED`履歴は保持 |
+| 現在の公開製品 | MERGED / LIVE_CHROME_PENDING | `4b84e52`、tree一致Windows gate merge `2317eac`／run `34443155947`、Pages `34443914778`、candidate preflight `ok:true`。online app v23／CPU commentary `20260910-1`。Edge 29、報酬経済、Local bundle v8は不変。公開Chrome実見だけ再起動後の拡張接続待ちで、前便までの`PUBLIC_VERIFIED`履歴は保持 |
+| CPU台詞／地の文分離 | MERGED / LIVE_CHROME_PENDING | `4b84e52`（旧製品`e117677`を現行mainへ再統合）。終局のキャラ台詞と地の文を別DOMにし、人間敗北時の`NO_LEGAL_COLOR`／`SEALED_OUT`詳細は上書きしない。CI同一517/517、対象static 61/61、実Chrome終局2/2、Windows `34443155947`、Pages `34443914778`、preflight `ok:true`。DB／Edge／rule／reward変更なし。公開Chrome実見だけPENDING |
 | 基本palette torn snapshot拒否 | PUBLIC_VERIFIED | CPU手番→COLOR→reload→次COLORで緑・赤の回数無制限と黄残1を維持。初期重複・変更履歴は`UDL-035`で未達 |
 | クイズ選択肢のcompact巡回・位置入替 | PUBLIC_VERIFIED | `4508fb4`。公開PC占有率4.7%・5秒で全6個154–228px、390px占有率18.3%・10秒で全6個172–256px・全6個帯入替。bounds内、overlap 0、中央hit、回答停止・一回保存、console 0 |
 | 完了報酬の実所持・reload永続化 | PUBLIC_VERIFIED | `4318793`。保存済み総数に終局表示を拘束し、ガチャ画面へ同じ総数を引継ぎ、1枚消費と獲得結果がreload後も一致。backend冪等canaryと公開実操作を分離して確認 |
