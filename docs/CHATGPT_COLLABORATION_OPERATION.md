@@ -58,7 +58,17 @@ OpenAI Docsの[Scheduled tasks](https://learn.chatgpt.com/docs/automations?surfa
 
 確認待ちは解消し、既存automationを実際にPAUSEDへ更新した。API結果と保存設定読戻しの `status="PAUSED"`、`updated_at=1789053097952` が一致。これは返答受領による停止の実証であり、期限切れの自動停止試験とは区別する。次のUDL-052属性識別は既存coordinationのnext_sliceへ出典付きで振分け済み。ゲーム実装、本番操作、全体監査・試験、全文再送は行っていない。
 
-## 現時点の技術的制約
+## 2026-09-11 通常作業の再開と一度限りの遅延連絡
+
+`CANON_RECEIPT version=shared-canon-v1.1 base=5c03e6c2d0e94c843776ea7eae0d7bbe2917a174 request=UDL-20260910-051/052/055 specs=AGENTS.md,docs/SHARED_CANON.md,docs/PROJECT_COMMAND_CENTER.md,docs/REQUEST_ADDENDUM_20260910_PALETTE.md,docs/STANDARD_PUBLIC_RELEASE_RUNBOOK.md tests=tests/standard-online-skill-intents.test.cjs,tests/standard-online-browser.test.cjs`
+
+origin/mainは今回fetchして上記SHAと確認。ユーザーは試験用プロフィール・対局の作成を明示許可した。既存プレイヤーのデータ変更・削除は含まない。パレットは返事待ちではなく通常司令塔の実装待ちだったため、既存の指示c76043e6/77551f6fの属性識別だけを新しいclean床 `.codex-worktrees/palette-role-identification-20260911` で開始する。固定4色方式・配置・CPU強化・ガチャ率・DB/Edgeを混ぜない。
+
+ユーザーがChatGPTと会話中のため、今回は30分後（2026-09-11 06:49 JST以降）の一度限りの連絡を既存automationへ予約する。新規レビューではないd53ac7bのAPPROVE_DOCSは再送・再申請しない。成果と必要な質問はASTRA_PALETTE_REPORT_20260911.mdへ集約する。生成中なら割り込まず未送達として停止し、無期限の再試行をしない。新しい固定候補への実レビュー依頼を送達できた場合だけ、従来の最大3回・120分の別待機予算を作る。進捗報告だけなら返答待ちを新設せず停止する。
+
+## 現時点の技術的制約（詳細）
+
+30分後の実取得（21:49:54Z）は直近user質問39bb0729にassistant返答がない状態だった。APIのidleだけで会話が終わったとみなさず、送信0回で保留した。ユーザーの遅延連絡意図の範囲で、相手の回答完了を30分間隔・最大3回のavailability取得で確認し、元の23:19:27Z期限は延長しない。最大1回の送信、送達後の20/40/100分・最大3回・120分のレビュー待機は別管理する。availabilityの3回目も未回答なら実設定をPAUSEDにする。旧文書レビューの予算を再開しない。
 
 アプリのsend/readでこのChatGPT窓口へ連携できるが、ChatGPT完了イベントをこのローカルCodexへ直接通知する機能は、今回利用可能なツールでは確認できていない。`wait_threads`はこのChatGPT窓口には使えない。したがって完全なイベント駆動を実装済みとは言わない。
 

@@ -1,5 +1,11 @@
 # Standard公開候補 証拠台帳
 
+## 2026-09-11 UDL-055 本番試験追補
+
+ユーザーの試験プロフィール・対局作成の明示許可を受け、`scripts/live-standard-terminal-setup-canary.cjs --confirm-live` を実行。2026-09-10T21:31:08.208Zに20/20 PASS。公開対象はmain/Pages `5c03e6c`、実Chrome 390×844、新規匿名プロフィール1件とユズCPU対局1件のみ。通常のsetup/initialize/CPU進行/投了を使用し、対局はfinished・SURRENDERで終了確認済み。プロフィールと終局記録は削除せず保持した。
+
+cold restore、reload、新規tabでrandom setupのshow呼出し0、overlay非表示、同じroomと終局理由を確認。元tabへの復帰でもoverlay非表示。復元中のゲームwrite 0、pageerror 0、前後のserver room・profile（報酬/履歴を含む）完全一致。秘密値、room/user/action IDは出力・保存しない。これは実本番API＋ブラウザーの確認であり、物理2端末・触感、長時間background、明示再戦のlive実測を代替しない。今回の配備変更・DB構造変更・既存プレイヤー変更は0。
+
 更新日: 2026-09-10
 
 この文書は「コードがある」と「公開環境で確認した」を混同しないための台帳である。`VERIFIED` は同じ行に再現可能な根拠がある場合だけ使用する。token、API key、user ID、個人情報は記録しない。
