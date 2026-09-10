@@ -39,6 +39,7 @@
 | P1 | 0マス時の全開始候補 | UX＋a11y＋privacy | PUBLIC_VERIFIED | `4a8cb28`（製品`1e4a7ce`）。必要数まで完成可能な開始候補を水色破線ですべて示し、選択数0・自動選択0・通信0を維持。選択後だけ緑の接続候補へ切替。static/runbook 83/83、対象Chrome/Edge各1/1、Windows `34404697454`、Pages `34405690053`、公開app v15/style v10、preflight `ok:true`、390px overflow 0 |
 | P1 | 各セル選択直後の接触演出 | UX＋a11y＋privacy | PUBLIC_VERIFIED | `3dea0ed`（製品`b5fdd36`、契約`3dea0ed`）。local draftの2→3→4色上昇時だけ即時発火し、同閾値連打0、解除追随、CPU／相手／poll／reload発火0、通信0。static 84/84、正式step 505/505、対象Chrome/Edge各1/1、Windows `34407352376`、Pages `34408261449`、公開app v16/style v10、preflight `ok:true`、390px overflow 0 |
 | P1 | エリア二分の盤面直接指定 | ルール＋UX＋a11y＋privacy | PUBLIC_VERIFIED | `4bed50f`。カード→紫枠の通常1マス→即発動とし、R番号・内部microcell・別確定buttonを撤去。対象外通信0、取消write 0、二重activation 0、同一ID再送、server判定を固定。Chrome local 76/76、対象Chrome/Edge各1/1、Windows `34420468878`、Pages `34421134839`、公開app v19／Local bundle v5、preflight `ok:true`、390px overflow 0、console 0 |
+| P1 | CPU別戦績10人のコンパクト一覧 | UX＋a11y | PUBLIC_VERIFIED | `3ddac0c`。既存portraitを再利用し、未対戦を含む10人を常時表示。desktop 5列、390px 2列、各recordの読み上げ名・勝敗・合計を固定し、閲覧通信と追加tab stopを0にした。static 87/87、対象Chrome/Edge各1/1、Windows `34423102769`、Pages `34424023010`、公開app v20／progression CSS v1、preflight `ok:true`、390px overflow 0、console 0 |
 | P0 | クロガネ公開情報lookahead v2 | CPU＋Edge＋DB | PUBLIC_VERIFIED | `a3425a4`。migration `202609050005`、新規クロガネだけv2、旧roomは旧policy維持、再戦時v2更新。公開情報だけの合法手、再送、決着、同CPU再戦canary合格。Windows run `33947039777`、Pages run `33947644765`成功 |
 | P0 | Supabase資源とRealtime負荷の追跡 | 運用 | WATCH_RESOURCE_ALERT | 既存2件のplatform alertは継続するが、2026-09-07再診断はCPU 2%、RAM 63%、disk 17%、disk IO 1%、接続18/60、blocked/idle-in-transaction 0、Realtime slot 2/2 active、DB契約72/72。Edge 24のpreflight、基本7/7、COLOR 225/225も成功。新規alert、inactive slot、blocked接続、429/5xx悪化が出た時だけHOLDへ上げ、推測cleanup・課金・Compute変更はしない |
 | P0 | 別々の二端末による最終受入 | チャッピー先生＋司令塔 | PENDING | 対人/CPUの完走、復帰、再戦、永続化を確認 |
@@ -138,7 +139,7 @@
 | UDL-20260909-040 | 2／3／4色接触演出を1マス選択ごとに即時反応させたい | 自分のlocal draftだけを各選択・解除直後に再判定し、2→3→4色の閾値上昇時だけ発火する | required-size／送信待ちにしない、同色数連打0、解除追随、CPU／相手／poll／reload／replay派手演出0、常時outline 0、reduced-motion | UDL-018、public board geometry | UX＋a11y＋privacy | Per-cell contact feedback | PUBLIC_VERIFIED | `3dea0ed`（製品`b5fdd36`、asset marker`56afb4e`、契約`3dea0ed`） | `3dea0ed` | `34408261449` | static/runbook 84/84、正式CPU policy step 505/505、対象Chrome/Edge各1/1。初回Windows `34406783091`は旧完成時-only静的契約2件で両job失敗、契約更新後`34407352376`成功。公開preflight `ok:true`、app v16/style v10、390px演出DOM・overflow 0 | 2026-09-09追加監査 | 2→3→4閾値上昇だけ発火、同数0、低下時clear、再上昇時再提示。local draft限定でCPU／相手／poll／reload／replay、skill target、DB/Edge/engine変更なし | YES |
 | UDL-20260909-041 | 「塗れる色が見つからないとき」の長文案内を削除したい | 長文説明を撤去し、通常の色、既存skill、投了操作だけを残す | 自動敗北、合法色oracle、時間制限を復活させず、救済skillと投了のserver境界、keyboard、390pxを維持 | UDL-006、common COLOR response | UX＋ルール＋a11y | COLOR guidance trim | PUBLIC_VERIFIED | `21c1e23`（製品`bf9b5c1`、asset marker`21c1e23`） | `21c1e23` | `34400264017` | static/runbook 94/94、対象390px Chrome/Edge各4/4、変更外new-match局所Chrome 1/1。Windows `34397743592`は初回Edge成功／Chrome既存`badge-ready` timeout、同一SHAのfailed-job attempt 2でChrome成功。公開preflight `ok:true`、online/localとも長文0・通常操作残存・overflow 0・console 0、Local bundle v3 hash一致 | 2026-09-09追加監査 | 自動敗北／合法色oracle／旧DECLARE_NO_COLORを追加せず、通常色・「色操作カードを見る」・明示投了だけを残した。DB/Edge/RPC/engine/rule/reward変更なし | YES |
 | UDL-20260909-042 | 完了報酬が獲得表示だけで所持券へ永続化されない報告 | 保存成功後だけ獲得表示し、付与前後、ガチャ画面、reload後の所持数を一致させ、結果再表示／再戦でも二重付与しない | matchId冪等、CPU／PvP、勝敗、未精算、応答喪失、reload、同時tab、券消費との整合 | settlement receipt、profile tickets、UDL-046 | 進行＋Edge＋DB＋UX | Reward persistence P0 | PUBLIC_VERIFIED | `4318793`（製品`65f23c9`、canary `eb629e5`） | `4318793` | `34387630198` | backend 18/18、関連113/113、390px focused Chrome/Edge各1/1。Windows `34385103929` attempt 2はChrome/Edge成功。公開CPU敗北で券`15→16`、ガチャ1枚後`16→15`、reload後も残数と獲得結果を維持。横overflow 0、console 0 | 2026-09-09追加監査 | backend不具合は再現せず、UIを保存済み総数に拘束した。報酬強化UDL-046とは分離したままP0を完了 | YES |
-| UDL-20260909-043 | CPU戦績10人の縦長cardをコンパクト一覧にしたい | 顔、名前、勝敗を一目で比較できる一覧へし、mobile 2列等を検討する | 既存portrait再利用、10人、0戦、長い名前、keyboard／screen reader、390px overflow 0、閲覧通信0 | UDL-031、CPU per-character stats | UX＋a11y | Compact CPU records | DECIDED | portrait候補`e2d0713`へ統合要 | NO | NO | NOT_RUN | 2026-09-09追加監査 | 顔表示候補はLOCAL_VERIFIEDだがカード密度は別受入としてREOPENED | YES |
+| UDL-20260909-043 | CPU戦績10人の縦長cardをコンパクト一覧にしたい | 顔、名前、勝敗を一目で比較できる一覧へし、mobile 2列等を検討する | 既存portrait再利用、10人、0戦、長い名前、keyboard／screen reader、390px overflow 0、閲覧通信0 | UDL-031、CPU per-character stats | UX＋a11y | Compact CPU records | PUBLIC_VERIFIED | `3ddac0c` | `3ddac0c` | `34424023010` | static 87/87、対象Chrome/Edge各1/1、Windows `34423102769`成功。公開preflight `ok:true`／compact CPU records true。公開Chrome 390×844で10人、2列、portrait ready 10/10、最長名を含むcard／page overflow 0、interactive descendant 0、console 0 | 2026-09-09追加監査 | 未対戦を含む全10人を常時表示し、既存portrait、名前、勝敗、合計をcompact化。desktop 5列、mobile 2列。DB、Edge、RPC、戦績集計、対戦通信変更なし | YES |
 | UDL-20260909-044 | クイズ正答率を全体とLv別に見たい | 全体＋Lv1〜5ごとに正答率、正解数、判定数を表示し、過去データがなければ記録開始以降と明記する | 分母は判定済みだけ、未出題／未完了を誤答にしない、時間切れは既存採点規則、再送／reload／複数tabで二重算入0、推定値0 | quiz settlement receipts、profile schema | クイズ＋Edge＋DB＋UX | Quiz accuracy stats | DECIDED | — | NO | NO | NOT_RUN | 2026-09-09追加監査 | — | YES |
 | UDL-20260909-045 | CPUが封印skillを弱い局面で浪費する | 序盤一律禁止にせず、接触色が少なく代替手段が多い時は温存し、応手を絞れる局面では初手を含め使用できる判断へする | 公開／許可情報だけ、相手private palette／hand参照0、全CPU合法・決定性、弱体化0、seeded局面比較 | CPU policy、public contact colors、seal skills | CPU＋privacy＋ルール | CPU seal timing | DECIDED | — | NO | NO | NOT_RUN | 2026-09-09追加監査 | — | YES |
 | UDL-20260909-046 | 対戦報酬強化と永続化修正を混同しない | PvP rolling 60分10報酬試合、CPU敗北Lv1×1、PvP勝敗別・CPU勝利強さ別の券レベル／枚数範囲、matchId冪等を固定し、最終分布は別決定にする | UDL-042を先に満たし、境界時刻、再送、同時tab、再戦、旧room、在庫、ガチャ表示、収支上限を検証 | UDL-042、economy version、settlement receipt | 経済＋Edge＋DB＋司令塔 | Reward economy follow-up | DECIDED | — | NO | NO | NOT_RUN | 2026-09-09追加監査 | 具体分布は未確定。永続化bugの修正完了を報酬強化の完成扱いにしない | YES |
@@ -162,7 +163,7 @@
 | 0マス時の実選択可能な全候補 | PUBLIC_VERIFIED | `4a8cb28`で完成可能な全開始候補を水色破線表示。選択数0・自動選択0・通信0、選択後の接続候補切替、pointer／keyboard、390pxを正式Chrome/Edgeと公開画面で確認。`UDL-039` |
 | 2／3／4色接触を各セル選択直後に再判定 | PUBLIC_VERIFIED | `3dea0ed`で完成待ちを撤去し、local draftの各選択・解除直後へ置換。2→3→4上昇のみ、同数0、解除clear、CPU／相手／poll／reload 0、390pxを正式Chrome/Edgeで確認。`UDL-040` |
 | COLOR長文案内撤去 | PUBLIC_VERIFIED | `21c1e23`でonline/local双方から長文を撤去。通常色・色操作カード・投了、非oracle、server境界、keyboard、390pxを正式Chrome/Edgeと公開画面で確認。`UDL-041` |
-| CPU戦績一覧のコンパクト化 | CHAT_ONLY | portrait表示`e2d0713`へ受入統合が必要。`UDL-043` |
+| CPU戦績一覧のコンパクト化 | PUBLIC_VERIFIED | `3ddac0c`で未対戦を含む10人、既存portrait、名前、勝敗、合計をdesktop 5列／390px 2列へ変更。公開Chromeでportrait 10/10、長名・page overflow 0、console 0を確認。`UDL-043` |
 | クイズ全体＋Lv別正答率 | CHAT_ONLY | 既存quiz records／settlementを精査前。`UDL-044` |
 | CPU封印skillの局面判断 | CHAT_ONLY | 一律序盤禁止を追加せず公開情報だけで評価。`UDL-045` |
 | 対戦報酬強化の最終分布 | PLANNED | rolling 60分10試合、CPU敗北Lv1×1、matchId冪等等の境界は固定。具体分布は未確定。`UDL-046` |
@@ -176,7 +177,7 @@
 | 項目 | 現在状態 | 候補と境界 |
 | --- | --- | --- |
 | 角膨張の通常1マス直接tap | LOCAL_VERIFIED | 累積候補`f2d34db`、製品`66a09ab`、旧room互換`d100349`。Edge→Pages順が必要 |
-| CPU選択前portrait | LOCAL_VERIFIED | 累積候補`e2d0713`。compact戦績cardの`UDL-043`は未実装 |
+| CPU選択前portrait | LOCAL_VERIFIED | 累積候補`e2d0713`。別件のcompact戦績card `UDL-043`は`3ddac0c`でPUBLIC_VERIFIED |
 | CPU台詞／地の文分離 | LOCAL_VERIFIED | 累積候補`ced155f`、製品`e117677`。公開event、reload、PvP、LAB境界をformal browserで確認済み |
 | Lv3／4問題内容の難化 | LOCAL_VERIFIED | 製品`0498927`、canary`0a83480`、証拠`048d04e`。Edge source readbackとlive canaryは未実施 |
 | 2026-09-09追加11項目と報酬経済 | CHAT_ONLY / PLANNED | 上表と`UDL-035`〜`046`で既存対応、再開、新規を分離。設計だけを実装済みに数えない |
@@ -185,7 +186,7 @@
 
 | 項目 | 現在状態 | 公開証拠と未達境界 |
 | --- | --- | --- |
-| 現在の公開製品 | PUBLIC_VERIFIED | `4318793`、Windows `34385103929` attempt 2、Pages `34387630198`、candidate preflight `ok:true`。公開390pxでCPU報酬`15→16`、ガチャ1枚後`16→15`、reload後も獲得結果を維持、overflow 0、console 0 |
+| 現在の公開製品 | PUBLIC_VERIFIED | `3ddac0c`、Windows `34423102769`、Pages `34424023010`、candidate preflight `ok:true`。公開Chrome 390pxでCPU戦績10人／2列／portrait 10/10、長名を含むoverflow 0、console 0。累積して報酬永続化、エリア二分直接指定等を保持 |
 | 基本palette torn snapshot拒否 | PUBLIC_VERIFIED | CPU手番→COLOR→reload→次COLORで緑・赤の回数無制限と黄残1を維持。初期重複・変更履歴は`UDL-035`で未達 |
 | クイズ選択肢のcompact巡回・位置入替 | PUBLIC_VERIFIED | `4508fb4`。公開PC占有率4.7%・5秒で全6個154–228px、390px占有率18.3%・10秒で全6個172–256px・全6個帯入替。bounds内、overlap 0、中央hit、回答停止・一回保存、console 0 |
 | 完了報酬の実所持・reload永続化 | PUBLIC_VERIFIED | `4318793`。保存済み総数に終局表示を拘束し、ガチャ画面へ同じ総数を引継ぎ、1枚消費と獲得結果がreload後も一致。backend冪等canaryと公開実操作を分離して確認 |
