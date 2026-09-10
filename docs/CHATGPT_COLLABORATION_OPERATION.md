@@ -46,6 +46,10 @@ OpenAI Docsの[Scheduled tasks](https://learn.chatgpt.com/docs/automations?surfa
 
 今回の停止証拠は実設定のAPI＋読戻し。3回目/期限切れでの将来の自動PAUSED実行そのものは未観測であり、実施済みとしない。
 
+再提出候補 `d53ac7ba6a50a433701a5664703a8a5e22d1bb35` とUDL-055公開結果を同じChatGPTへ送信し、送信API成功を確認した。直後の小範囲読戻しは前のturnを返したため、新message IDは推定せず未確定で保存。処理済みのゲーム承認を再取得対象にしない。文書再レビューには元の依頼 `5b8245b3-0cf1-4ece-bb78-470c510c0fdc` の120分期限 `2026-09-10T15:56:42.007Z` を保持し、候補改訂で延長しない。
+
+有限promptのまま同じautomationをACTIVEへ戻し、API成功と `updated_at=1789051557644` / `status="ACTIVE"` を読戻した。新規常駐司令塔は作っていない。今回の公開・検証証拠の正本はSTANDARD_RELEASE_EVIDENCE.md、次の実装対象は既存UDL-052属性識別スライスであり、まだ実装済みとは扱わない。
+
 ## 現時点の技術的制約
 
 アプリのsend/readでこのChatGPT窓口へ連携できるが、ChatGPT完了イベントをこのローカルCodexへ直接通知する機能は、今回利用可能なツールでは確認できていない。`wait_threads`はこのChatGPT窓口には使えない。したがって完全なイベント駆動を実装済みとは言わない。
