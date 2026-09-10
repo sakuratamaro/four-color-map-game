@@ -1,13 +1,18 @@
 {
   "schema_version": 1,
   "kind": "imported_request_crosswalk_not_second_ledger",
-  "canon_version": "shared-canon-v1",
+  "canon_version": "shared-canon-v1.1",
+  "snapshot_only": true,
+  "evidence_policy": "Reported repository evidence at the pinned baseline, not a fresh live audit. Update active decisions only in the existing UDL; this imported crosswalk is a dated index. Empty UDL mappings remain explicitly unresolved.",
   "baseline_sha": "2f855ccfef11d7c099cfb73fb57ec3da79be8789",
   "canonical_ledger": "docs/PROJECT_COMMAND_CENTER.md#user-decision-ledger",
   "sources": {
     "CHATGPT_DRAFT": {
       "share_url": "https://chatgpt.com/share/6aa27ea9-5620-83e9-9298-a021879ff218",
       "artifact": "four-color-map-game-dev-brain-reconciled-20260910.zip",
+      "artifact_sha256": "6CCBE31F832AF04563C27AD4CAABEF714623E94C7E59352A7A6F5C46F8CE5DBF",
+      "original_artifact": "four-color-map-game-dev-brain-20260910.zip",
+      "original_artifact_sha256": "5266466D58B25449410EF7AA4330DC89E0E3E15F3ACC45C07D1AB5337D356972",
       "note": "Conversation-derived aliases and dates; not proof of implementation or publication."
     },
     "COMMAND": {
@@ -200,13 +205,14 @@
       "id": "REQ-20260905-015",
       "title": "最強CPUを強化",
       "source": "CHATGPT_DRAFT",
-      "udl_refs": [],
+      "udl_refs": ["UDL-20260910-051"],
       "intent_state": "decided",
-      "implementation_state": "implemented",
-      "verification_state": "live_pass_physical_feel_pending",
-      "release_state": "public_verified",
+      "implementation_state": "previous_version_implemented_new_acceptance_pending",
+      "verification_state": "not_run_for_reopened_request",
+      "release_state": "historical_evidence_only",
       "evidence": ["a3425a4", "Pages 33947644765"],
-      "tests": ["tests/standard-kurogane-lookahead.test.cjs"]
+      "tests": ["tests/standard-kurogane-lookahead.test.cjs"],
+      "note": "User's 2026-09-10 weakness report reopens acceptance. Prior v2 publication does not prove the new request complete; see REQ-CPU-20260910-KUROGANE-STRENGTH."
     },
     {
       "id": "REQ-20260905-016",
@@ -275,9 +281,9 @@
       "udl_refs": [],
       "intent_state": "decided",
       "implementation_state": "implemented",
-      "verification_state": "live_pass",
-      "release_state": "public_verified",
-      "evidence": ["SVG geometry public history"],
+      "verification_state": "reported_partial_not_rerun",
+      "release_state": "historical_evidence_only",
+      "evidence": ["docs/STANDARD_RELEASE_EVIDENCE.md: 2026-09-07 23時台 JST Lv3/4強化・Lv5解答時間延長公開"],
       "tests": ["tests/standard-online-quiz-polish.test.cjs"]
     },
     {
@@ -287,9 +293,9 @@
       "udl_refs": [],
       "intent_state": "decided",
       "implementation_state": "implemented",
-      "verification_state": "live_pass",
-      "release_state": "public_verified",
-      "evidence": ["long-math scroll public history"],
+      "verification_state": "reported_partial_not_rerun",
+      "release_state": "historical_evidence_only",
+      "evidence": ["docs/STANDARD_RELEASE_EVIDENCE.md: 2026-09-06 10時台 JST クイズ明確化・進捗表示公開"],
       "tests": ["tests/standard-online-quiz-polish.test.cjs"]
     },
     {
@@ -339,7 +345,7 @@
       "implementation_state": "implemented",
       "verification_state": "live_pass",
       "release_state": "public_verified",
-      "evidence": ["five-tab public navigation"],
+      "evidence": ["docs/PROJECT_COMMAND_CENTER.md: 対戦を主役にする情報設計", "docs/STANDARD_RELEASE_EVIDENCE.md: 3e2b959 Pages・公開asset"],
       "tests": ["tests/standard-online-quiz-polish.test.cjs"]
     },
     {
@@ -351,7 +357,7 @@
       "implementation_state": "implemented",
       "verification_state": "live_pass",
       "release_state": "public_verified",
-      "evidence": ["current-screen error visibility release history"],
+      "evidence": ["docs/STANDARD_RELEASE_EVIDENCE.md: 2026-09-06 角膨張・エラー可視化・盤面outline整理公開", "75791fb", "Pages 34017695831"],
       "tests": ["tests/standard-online-browser.test.cjs"]
     },
     {

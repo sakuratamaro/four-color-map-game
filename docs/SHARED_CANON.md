@@ -1,12 +1,14 @@
 # Shared canon entrypoint
 
-Version: `shared-canon-v1`
+Version: `shared-canon-v1.1`
 
 Baseline: `origin/main@2f855ccfef11d7c099cfb73fb57ec3da79be8789`
 
 Introduced by: `UDL-20260910-050`
 
 This is a routing document, not a second command center. ChatGPT and Codex use these existing repository sources instead of repeatedly exchanging full conversation history.
+
+The integration proposal lives on local branch `codex/dev-brain-current-20260910` in `.codex-worktrees/dev-brain-current-20260910`. It is not yet on remote main. Until integration is separately authorized, both reviewers use the exact candidate SHA and preserved-path review packet; the routing below identifies existing authorities at the pinned baseline, not an already installed remote configuration.
 
 ## Canonical locations
 
@@ -39,7 +41,7 @@ At startup and before each new request slice, record:
 
 ```text
 CANON_RECEIPT
-version=shared-canon-v1
+version=shared-canon-v1.1
 base=<exact origin/main SHA>
 request=<UDL and optional REQ aliases>
 specs=<exact paths read>
@@ -62,6 +64,10 @@ If the baseline or candidate changes, issue a new receipt. A stale receipt, task
 
 ChatGPT review is stored with `review_kind`, exact `subject_sha`, `canon_version`, `base_sha`, DB/Edge change set, decision, and source thread/message. A changed candidate or spec snapshot invalidates reuse. Silence is not approval; Codex cannot self-author a ChatGPT approval. A documentation-introduction review is not a game-production release approval.
 
+The spec snapshot is the Git blob SHA of this entrypoint, while the exact candidate commit binds all referenced changes. The existing `scripts/check-standard-decision-reconciliation.mjs` accepts `--review-file=<log.json> --subject-file=<subject.json> --review-id=<id> --json` to reject mismatched or absent documentation approvals. The commander must first retrieve the genuine response from the designated ChatGPT. This local checker neither authenticates a copied JSON claim nor deploys anything; production still uses the existing runbook.
+
+Store the review as a later evidence commit without amending its reviewed subject. Any further implementation or specification change needs a new subject. The evidence commit itself is not retrospectively covered by the preceding approval.
+
 ## Current handoff boundary
 
 The governance migration itself changes no game code, production DB, migration, Edge Function, Pages asset, or main branch. At this baseline, the command center reports public product `7d69d34` as `MERGED / LIVE_CHROME_PENDING`. The separate corner-bloom candidate `98bad1d` has Windows run `34447976952` successful and remains outside this migration branch at the pre-Edge safe point.
@@ -73,4 +79,6 @@ The governance migration itself changes no game code, production DB, migration, 
 3. Assignee returns only the IDs, base/candidate SHAs, changed paths, tests, and pending evidence.
 4. Commander integrates once and records resulting evidence.
 5. ChatGPT reviews only when the task calls for its judgment; the decision is saved with exact scope.
-6. If no approval or new request is pending, stop. Do not spend model usage polling unchanged state.
+6. When waiting for approval, or when there is no new request, stop and use the existing user/event resume mechanism. Do not spend model usage polling unchanged state.
+
+Current transport: the existing app can send text to ChatGPT task `改修ロールバック防止策` and read its completed response. A message received while that chat is busy may be rejected; do not claim delivery without verification. `wait_threads` cannot await a ChatGPT chat. Artifact attachments and shared remote branch availability are not automated in this migration. A new user message in this existing task resumes work; no new scheduler is installed.

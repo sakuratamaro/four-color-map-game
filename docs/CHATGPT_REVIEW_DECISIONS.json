@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "canon_version": "shared-canon-v1",
+  "canon_version": "shared-canon-v1.1",
   "rules": {
     "silence_is_approval": false,
     "codex_self_approval": false,
@@ -8,5 +8,31 @@
     "candidate_or_spec_change_invalidates_reuse": true,
     "documentation_approval_is_game_release_approval": false
   },
-  "decisions": []
+  "decisions": [
+    {
+      "review_id": "CHATGPT-REVIEW-20260910-001",
+      "review_kind": "documentation_introduction",
+      "subject_sha": "7b4006e93483127d14dcb802ba4a9780ddf89c47",
+      "canon_version": "shared-canon-v1",
+      "base_sha": "2f855ccfef11d7c099cfb73fb57ec3da79be8789",
+      "spec_snapshot_sha": "c9a6c5a94460b43c9261b05ea1fe7eb527cd4931",
+      "spec_snapshot_kind": "git_blob:docs/SHARED_CANON.md",
+      "db_change_set": [],
+      "edge_change_set": [],
+      "scope": "documentation_introduction",
+      "decision": "HOLD",
+      "source": {
+        "kind": "chatgpt",
+        "thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
+        "message_id": "c191da5c-6b0f-4326-aeaf-7d9ba24770c4",
+        "request_message_id": "ef6f161d-f2b9-40c0-ab06-f6eacf4c4d38",
+        "url": "https://chatgpt.com/c/6aa229e7-e098-83ee-ac5e-d366a12653a4",
+        "quoted_decision": "DECISION: HOLD; SUBJECT_SHA: 7b4006e93483127d14dcb802ba4a9780ddf89c47",
+        "quoted_blocker": "対象候補の実体を取得できず、文書・差分・テスト内容を確認できていません。"
+      },
+      "blockers": ["B1: local candidate was unavailable to the reviewer; GitHub returned 422 No commit found for SHA"],
+      "applies_to_current_candidate": false,
+      "notes": "Real decision from the designated ChatGPT, retrieved with read_thread. Preserved for its original subject only. No documentation or game release was approved."
+    }
+  ]
 }

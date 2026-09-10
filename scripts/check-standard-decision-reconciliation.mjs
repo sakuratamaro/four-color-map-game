@@ -185,21 +185,73 @@ export function auditDecisionLedger(markdown) {
   return { ok: errors.length === 0, entryCount: parsed.rows.length, errors, warnings, manualReconciliation: uniqueManual };
 }
 
+// This checks scope binding only. The commander must first retrieve and preserve
+// the actual decision from the designated ChatGPT; JSON cannot prove authorship.
+export function auditChatgptReviewBinding(review, subject) {
+  const errors = [];
+  if (!review || !subject) return { ok: false, errors: ["review and subject are required; silence is not approval"] };
+  const sha = /^[0-9a-f]{40}$/;
+  for (const field of ["subject_sha", "base_sha", "spec_snapshot_sha"]) {
+    if (!sha.test(review[field] ?? "") || !sha.test(subject[field] ?? "") || review[field] !== subject[field]) {
+      errors.push(`${field} must match the exact reviewed subject`);
+    }
+  }
+  for (const field of ["canon_version", "scope", "review_kind"]) {
+    if (typeof subject[field] !== "string" || !subject[field] || review[field] !== subject[field]) {
+      errors.push(`${field} must match the exact reviewed subject`);
+    }
+  }
+  for (const field of ["db_change_set", "edge_change_set"]) {
+    if (!Array.isArray(review[field]) || !Array.isArray(subject[field])
+        || JSON.stringify(review[field]) !== JSON.stringify(subject[field])) {
+      errors.push(`${field} must match the reviewed ordered change set`);
+    }
+  }
+  if (subject.review_kind !== "documentation_introduction" || subject.scope !== "documentation_introduction") {
+    errors.push("this migration checker grants no game production authorization");
+  }
+  if (review.decision !== "APPROVE_DOCS") errors.push("an explicit APPROVE_DOCS decision is required");
+  if (review.source?.kind !== "chatgpt"
+      || !subject.reviewer_thread_id
+      || review.source?.thread_id !== subject.reviewer_thread_id
+      || !review.source?.message_id) {
+    errors.push("the designated ChatGPT source thread and message are required");
+  }
+  return { ok: errors.length === 0, errors };
+}
+
 function parseArguments(argv) {
   let file = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "docs", "PROJECT_COMMAND_CENTER.md");
   let json = false;
+  let reviewFile = null;
+  let subjectFile = null;
+  let reviewId = null;
   for (const argument of argv) {
     if (argument === "--json") json = true;
     else if (argument.startsWith("--file=")) file = path.resolve(argument.slice("--file=".length));
+    else if (argument.startsWith("--review-file=")) reviewFile = path.resolve(argument.slice("--review-file=".length));
+    else if (argument.startsWith("--subject-file=")) subjectFile = path.resolve(argument.slice("--subject-file=".length));
+    else if (argument.startsWith("--review-id=")) reviewId = argument.slice("--review-id=".length);
     else throw new Error(`unknown argument: ${argument}`);
   }
-  return { file, json };
+  if ([reviewFile, subjectFile, reviewId].some(Boolean) && ![reviewFile, subjectFile, reviewId].every(Boolean)) {
+    throw new Error("review-file, subject-file, and review-id must be supplied together");
+  }
+  return { file, json, reviewFile, subjectFile, reviewId };
 }
 
 export function runDecisionReconciliationCli(argv = process.argv.slice(2)) {
   try {
     const options = parseArguments(argv);
     const result = auditDecisionLedger(fs.readFileSync(options.file, "utf8"));
+    if (options.reviewFile) {
+      const log = JSON.parse(fs.readFileSync(options.reviewFile, "utf8"));
+      const matches = log.decisions.filter((item) => item.review_id === options.reviewId);
+      result.review = auditChatgptReviewBinding(matches.length === 1 ? matches[0] : null,
+        JSON.parse(fs.readFileSync(options.subjectFile, "utf8")));
+      result.ok = result.ok && result.review.ok;
+      result.errors.push(...result.review.errors.map((error) => `review: ${error}`));
+    }
     if (options.json) console.log(JSON.stringify({ file: options.file, ...result }, null, 2));
     else {
       console.log(`Decision reconciliation: ${result.ok ? "PASS" : "FAIL"} (${result.entryCount} entries, ${result.manualReconciliation.length} manual)`);
