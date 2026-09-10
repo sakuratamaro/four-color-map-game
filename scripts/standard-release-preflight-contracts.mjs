@@ -143,7 +143,7 @@ export function hasCompactCpuRecords(pageText, appText, progressionCssText) {
 
 export function hasQuizAccuracyRecords(pageText, appText, progressionCssText) {
   return includesAll(pageText, [
-    'app.js?v=20260910-21',
+    'app.js?v=20260910-22',
     'progression.css?v=20260910-2',
     'id="quizAccuracyRecords" class="quiz-accuracy-records" role="list"',
     "記録開始以降に、サーバーで採点が確定した回答だけを集計します。",
@@ -170,6 +170,26 @@ export function hasCpuSealTimingPolicy(bundleText) {
     "if (applySealTiming && action.metrics.sealOpportunity === 0) return -1000;",
     "const sealOpportunityBonus = applySealTiming && action.metrics.sealOpportunity === 1",
     "const applySealTiming = !legacyKurogane;",
+  ]);
+}
+
+export function hasMatchRewardEconomy(pageText, appText, bundleText) {
+  return includesAll(pageText, [
+    "対人勝利はLv.2、敗北はLv.1（直近60分で10試合まで）",
+    "CPU勝利は強さに応じLv.1〜3、敗北はLv.1",
+  ]) && includesAll(appText, [
+    "const matchReward = settledMatch?.matchReward;",
+    "matchReward?.reason === \"PVP_REWARD_LIMIT\"",
+    "完了報酬：Lv.${rewardTicketLevel}ガチャ券 +${rewardTicketCount}",
+    "直近60分の付与済み10試合に達したため、今回はありません。",
+  ]) && includesAll(bundleText, [
+    'const ECONOMY_VERSION = "standard-match-reward-v2";',
+    "const PVP_REWARD_WINDOW_MS = 60 * 60 * 1000;",
+    "const PVP_REWARD_LIMIT = 10;",
+    "yuzu: Object.freeze({ ticketLevel: 1, ticketCount: 2, band: \"BEGINNER\" })",
+    "kurogane: Object.freeze({ ticketLevel: 3, ticketCount: 2, band: \"MASTER\" })",
+    "ticketLevel: awarded ? (won ? 2 : 1) : null",
+    "Date.parse(entry.endedAt) > cutoff",
   ]);
 }
 

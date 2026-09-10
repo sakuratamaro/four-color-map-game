@@ -140,7 +140,7 @@
 
     <section id="gachaPanel" class="card gacha-panel hidden" data-app-tab-panel="quiz">
       <div class="row between wrap">
-        <div><h2 id="gachaTitle" tabindex="-1">カードガチャ</h2><p class="muted">対戦を終えると二人ともLv.1券を1枚獲得します。</p></div>
+        <div><h2 id="gachaTitle" tabindex="-1">カードガチャ</h2><p class="muted">対人勝利はLv.2、敗北はLv.1（直近60分で10試合まで）。CPU勝利は強さに応じLv.1〜3、敗北はLv.1の券を獲得します。</p></div>
         <strong id="gachaTickets">Lv.1 ×0 / Lv.2 ×0 / Lv.3 ×0 / Lv.4 ×0 / Lv.5 ×0</strong>
       </div>
       <div class="gacha-setup">
@@ -434,7 +434,7 @@
       </div>
       <p id="terminalProgressText" class="terminal-progress"></p>
       <div class="terminal-actions">
-        <button id="terminalGoGacha" class="primary hidden" type="button">獲得したLv.1券でガチャへ</button>
+        <button id="terminalGoGacha" class="primary hidden" type="button">獲得した券でガチャへ</button>
         <button id="terminalClose" class="ghost terminal-close" type="button">再戦・対戦結果へ戻る</button>
       </div>
     </section>
@@ -493,6 +493,6 @@
   <script src="cpu-portraits.js?v=20260908-1"></script>
   <script src="cpu-commentary.js?v=20260906-2"></script>
   <script src="basic-feedback.js?v=20260908-2"></script>
-  <script type="module" src="app.js?v=20260910-21"></script>
+  <script type="module" src="app.js?v=20260910-22"></script>
 </body>
 </html>

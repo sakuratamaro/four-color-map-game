@@ -1293,22 +1293,37 @@ function renderTerminalResult(state) {
     && resultWasSaved
     && Number.isSafeInteger(resultCount)
     && resultCount >= 0;
-  const cpuRewardTicketTotal = Number(profile()?.gachaTickets?.["1"]);
-  const cpuRewardWasSaved = progressWasSaved && opponentKind === "cpu" && !experimentalMatch
-    && Number.isSafeInteger(cpuRewardTicketTotal) && cpuRewardTicketTotal >= 1;
+  const matchReward = settledMatch?.matchReward;
+  const rewardTicketLevel = Number(matchReward?.ticketLevel);
+  const rewardTicketCount = Number(matchReward?.ticketCount);
+  const rewardTicketTotal = Number(profile()?.gachaTickets?.[String(rewardTicketLevel)]);
+  const rewardWasSaved = progressWasSaved && !experimentalMatch && matchReward?.awarded === true
+    && Number.isSafeInteger(rewardTicketLevel) && rewardTicketLevel >= 1 && rewardTicketLevel <= 5
+    && Number.isSafeInteger(rewardTicketCount) && rewardTicketCount >= 1
+    && Number.isSafeInteger(rewardTicketTotal) && rewardTicketTotal >= rewardTicketCount;
+  const rewardWasLimited = progressWasSaved && !experimentalMatch && opponentKind !== "cpu"
+    && matchReward?.awarded === false && matchReward?.reason === "PVP_REWARD_LIMIT";
+  const cpuRewardWasSaved = rewardWasSaved && opponentKind === "cpu";
   terminalCpuRewardGachaCandidate = cpuRewardWasSaved ? {
     source: "cpu-completion-reward",
     roomId: roomModel.room.id,
     roomVersion: Number(roomModel.room.version),
     matchId: state.matchId,
-    ticketLevel: 1,
-    ticketTotal: cpuRewardTicketTotal,
+    ticketLevel: rewardTicketLevel,
+    ticketCount: rewardTicketCount,
+    ticketTotal: rewardTicketTotal,
   } : null;
+  const rewardText = rewardWasSaved
+    ? `\n完了報酬：Lv.${rewardTicketLevel}ガチャ券 +${rewardTicketCount}（所持 ${rewardTicketTotal - rewardTicketCount}→${rewardTicketTotal}）`
+    : rewardWasLimited
+    ? "\n完了報酬：直近60分の付与済み10試合に達したため、今回はありません。"
+    : "";
   $("terminalProgressText").textContent = experimentalMatch
     ? "実験対戦のため、戦績・報酬・在庫は変わりません。"
     : progressWasSaved
-    ? `戦績を保存しました：${resultLabel} ${won ? "勝利" : "敗北"} ${resultCount}${cpuRewardWasSaved ? `\n完了報酬：Lv.1ガチャ券 +1（所持 ${cpuRewardTicketTotal - 1}→${cpuRewardTicketTotal}）` : ""}`
+    ? `戦績を保存しました：${resultLabel} ${won ? "勝利" : "敗北"} ${resultCount}${rewardText}`
     : "戦績を同期しています。マイページで確認できます。";
+  if (cpuRewardWasSaved) $("terminalGoGacha").textContent = `獲得したLv.${rewardTicketLevel}券でガチャへ`;
   show("terminalGoGacha", cpuRewardWasSaved);
   try { localStorage.setItem(TERMINAL_PRESENTED_KEY, eventKey); } catch { /* presentation still works when storage is unavailable */ }
   show("terminalOverlay", true);
@@ -1879,7 +1894,7 @@ function persistCpuRewardGachaResult() {
 function isCurrentCpuRewardGachaContinuation(value) {
   const state = roomModel?.room?.public_state;
   return value?.source === "cpu-completion-reward"
-    && value.ticketLevel === 1
+    && Number.isSafeInteger(value.ticketLevel) && value.ticketLevel >= 1 && value.ticketLevel <= 5
     && value.roomId === roomModel?.room?.id
     && value.roomVersion === Number(roomModel?.room?.version)
     && value.matchId === state?.matchId
@@ -5841,9 +5856,9 @@ $("closeSkillInfo").onclick = () => $("skillInfoDialog").close();
 $("terminalGoGacha").onclick = () => {
   const origin = terminalCpuRewardGachaCandidate ? { ...terminalCpuRewardGachaCandidate } : null;
   dismissTerminalResult();
-  goToGacha(1);
+  goToGacha(origin?.ticketLevel || 1);
   armedCpuRewardGachaOrigin = origin;
-  if (origin) $("gachaStatus").textContent = `CPU戦の完了報酬を反映済み：Lv.1券 所持 ×${origin.ticketTotal}。1枚引くと所持券は${origin.ticketTotal - 1}枚になります。`;
+  if (origin) $("gachaStatus").textContent = `CPU戦の完了報酬を反映済み：Lv.${origin.ticketLevel}券 所持 ×${origin.ticketTotal}。1枚引くと所持券は${origin.ticketTotal - 1}枚になります。`;
 };
 $("terminalClose").onclick = () => {
   dismissTerminalResult();

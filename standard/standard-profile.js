@@ -2,6 +2,7 @@
 
 const { STANDARD_SKILLS } = require("./standard-skill-registry.js");
 const cosmetics = require("./standard-cosmetics.js");
+const matchReward = require("./standard-match-reward.js");
 
 const STARTER_SPOTLIGHT_SKILL = "areaHalfShift";
 const ECONOMY_VERSION = "standard-alpha-economy-v1";
@@ -96,6 +97,7 @@ function validateProgressionFields(profile) {
     if (Object.hasOwn(entry, "onlineOpponentKind")) {
       assertProfile(entry.onlineOpponentKind === "cpu" && /^[a-z][a-z0-9-]{1,31}$/.test(entry.cpuCharacterId), "INVALID_ONLINE_CPU_HISTORY");
     }
+    if (Object.hasOwn(entry, "matchReward")) matchReward.validateMatchReward(entry.matchReward);
     if (Object.hasOwn(entry, "mode")) {
       assertProfile(entry.mode === "standard", "INVALID_HISTORY_MODE");
       assertProfile(typeof entry.profileId === "string" && entry.profileId.length >= 1 && entry.profileId.length <= 64, "INVALID_HISTORY_PROFILE_ID");

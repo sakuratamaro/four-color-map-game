@@ -11,6 +11,7 @@ const ids = [
   "standard/standard-engine.js",
   "standard/standard-region-geometry.js",
   "standard/standard-cosmetics.js",
+  "standard/standard-match-reward.js",
   "standard/standard-skill-registry.js",
   "standard/standard-profile.js",
   "standard/standard-skill-handlers.js",
@@ -26,6 +27,7 @@ const entry = String.raw`
 const engine = load("standard/standard-engine.js");
 const match = load("standard/standard-match.js");
 const profileModel = load("standard/standard-profile.js");
+const matchReward = load("standard/standard-match-reward.js");
 const cosmetics = load("standard/standard-cosmetics.js");
 const cpu = load("standard/standard-cpu.js");
 const cpuRoster = load("standard/standard-cpu-roster.js");
@@ -219,8 +221,12 @@ function applyProfiles({profiles,beforeState,nextState,actor,action,finishedAt,d
         profile:next[seat],matchId:nextState.matchId,won:nextState.winner===seat,
         terminalReason:nextState.terminalReason,fullPaint,skillsUsed:nextState.skillsUsed[seat],endedAt:finishedAt,
       }));
-      validateGachaTickets(next[seat]);
-      next[seat].gachaTickets["1"]=(next[seat].gachaTickets["1"]||0)+1;
+      const reward=matchReward.quoteMatchReward({
+        profile:next[seat],matchId:nextState.matchId,won:nextState.winner===seat,
+        opponentKind:"pvp",finishedAt,
+      });
+      next[seat]=clone(matchReward.applyMatchReward({profile:next[seat],matchId:nextState.matchId,reward}));
+      validateProfile(next[seat]);
       changed[seat]=true;
     }
   }
@@ -257,8 +263,12 @@ function applyCpuProfiles({profiles,beforeState,nextState,actor,action,finishedA
       profile:next.A,matchId:nextState.matchId,cpuCharacterId:characterId,won:nextState.winner==="A",
       terminalReason:nextState.terminalReason,fullPaint,skillsUsed:nextState.skillsUsed.A,endedAt:finishedAt,
     }));
-    validateGachaTickets(next.A);
-    next.A.gachaTickets["1"]=(next.A.gachaTickets["1"]||0)+1;
+    const reward=matchReward.quoteMatchReward({
+      profile:next.A,matchId:nextState.matchId,won:nextState.winner==="A",
+      opponentKind:"cpu",cpuCharacterId:characterId,finishedAt,
+    });
+    next.A=clone(matchReward.applyMatchReward({profile:next.A,matchId:nextState.matchId,reward}));
+    validateProfile(next.A);
     changed.A=true;
   }
   return {profiles:next,changed};
@@ -296,6 +306,7 @@ function apply({state,rngSnapshot,actor,action,expectedVersion,debugMode=false,l
 }
 globalThis.FourColorStandardServerEngine=Object.freeze({
   ENGINE_VERSION:match.ENGINE_VERSION,
+  MATCH_REWARD_ECONOMY_VERSION:matchReward.ECONOMY_VERSION,
   GACHA_ODDS:gachaOdds,
   REQUIRED_RNG_STREAMS:match.REQUIRED_RNG_STREAMS,
   StandardRuleError:engine.StandardRuleError,

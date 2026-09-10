@@ -80,7 +80,7 @@ test("CPU commentary is public-event-only, bounded, non-blocking, and terminal-p
   assert.match(html, /style\.css\?v=20260910-11/);
   assert.match(html, /standard-online-client\.js\?v=20260910-1/);
   assert.match(html, /standard-online-skill-intents\.js\?v=20260907-20/);
-  assert.match(html, /app\.js\?v=20260910-21/);
+  assert.match(html, /app\.js\?v=20260910-22/);
   assert.match(app, /cpuCommentary\?\.VERSION !== "standard-cpu-commentary-v2"/);
   assert.ok(html.indexOf("cpu-commentary.js") < html.indexOf('type="module" src="app.js'));
   assert.match(html, /id="cpuCommentaryStage"[^>]+aria-hidden="true"/);
@@ -330,15 +330,16 @@ test("PvP and CPU records are visibly separate and CPU rematch uses its dedicate
   assert.match(progressionCss, /\.cpu-character-record-copy strong \{[^}]*overflow-wrap: anywhere/);
   assert.match(app, /対人戦 勝利/);
   assert.match(app, /CPU戦 勝利/);
-  assert.match(app, /完了報酬：Lv\.1ガチャ券 \+1/);
+  assert.match(app, /完了報酬：Lv\.\$\{rewardTicketLevel\}ガチャ券 \+\$\{rewardTicketCount\}/);
+  assert.match(app, /直近60分の付与済み10試合に達したため、今回はありません/);
   assert.match(app, /opponentKind === "cpu"/);
   assert.match(css, /\.terminal-progress\{[^}]*white-space:pre-line/);
   assert.match(app, /entry\.onlineOpponentKind === "cpu"/);
   assert.match(app, /roomModel\?\.room\?\.status === "finished"[\s\S]+?settledMatch\?\.matchId === state\.matchId[\s\S]+?Number\.isSafeInteger\(resultCount\)/);
-  assert.match(app, /const cpuRewardWasSaved = progressWasSaved && opponentKind === "cpu" && !experimentalMatch/);
+  assert.match(app, /const cpuRewardWasSaved = rewardWasSaved && opponentKind === "cpu"/);
   assert.match(app, /show\("terminalGoGacha", cpuRewardWasSaved\)/);
   const terminalGachaHandler = app.slice(app.indexOf('$("terminalGoGacha").onclick'), app.indexOf('$("terminalClose").onclick'));
-  assert.match(terminalGachaHandler, /dismissTerminalResult\(\);\s*goToGacha\(1\)/);
+  assert.match(terminalGachaHandler, /dismissTerminalResult\(\);\s*goToGacha\(origin\?\.ticketLevel \|\| 1\)/);
   assert.doesNotMatch(terminalGachaHandler, /runGacha|drawGacha|clearRoom|requestCpuRematch|beginImmediateCpuEntry/);
   assert.match(app, /\$\("gachaTitle"\)\.focus\(\{ preventScroll: true \}\)/);
   assert.match(css, /\.gacha-panel h2:focus,\.gacha-result-summary h3:focus\{[^}]*outline:3px solid #fde047/);
@@ -379,13 +380,15 @@ test("gacha persists its action identity before sending and hydrates the committ
   assert.match(app, /runGacha\(1, true\)/);
 });
 
-test("CPU completion reward copy is bound to the hydrated ticket total", () => {
-  assert.match(app, /const cpuRewardTicketTotal = Number\(profile\(\)\?\.gachaTickets\?\.\["1"\]\)/);
-  assert.match(app, /Number\.isSafeInteger\(cpuRewardTicketTotal\) && cpuRewardTicketTotal >= 1/);
-  assert.match(app, /ticketTotal: cpuRewardTicketTotal/);
-  assert.match(app, /完了報酬：Lv\.1ガチャ券 \+1（所持 \$\{cpuRewardTicketTotal - 1\}→\$\{cpuRewardTicketTotal\}）/);
+test("CPU completion reward copy is bound to the saved match reward and hydrated ticket total", () => {
+  assert.match(app, /const matchReward = settledMatch\?\.matchReward/);
+  assert.match(app, /const rewardTicketTotal = Number\(profile\(\)\?\.gachaTickets\?\.\[String\(rewardTicketLevel\)\]\)/);
+  assert.match(app, /rewardTicketTotal >= rewardTicketCount/);
+  assert.match(app, /ticketLevel: rewardTicketLevel/);
+  assert.match(app, /ticketCount: rewardTicketCount/);
+  assert.match(app, /完了報酬：Lv\.\$\{rewardTicketLevel\}ガチャ券 \+\$\{rewardTicketCount\}（所持 \$\{rewardTicketTotal - rewardTicketCount\}→\$\{rewardTicketTotal\}）/);
   assert.match(app, /現在、Lv\.\$\{level\}券を\$\{available\}枚所持しています。1枚引くと券を1枚消費します。/);
-  assert.match(app, /CPU戦の完了報酬を反映済み：Lv\.1券 所持 ×\$\{origin\.ticketTotal\}/);
+  assert.match(app, /CPU戦の完了報酬を反映済み：Lv\.\$\{origin\.ticketLevel\}券 所持 ×\$\{origin\.ticketTotal\}/);
   assert.match(app, /1枚引くと所持券は\$\{origin\.ticketTotal - 1\}枚になります/);
 });
 
@@ -433,7 +436,7 @@ test("existing online progression is hydrated from the server rather than re-upl
 
 test("UI derives its canonical and experimental card metadata from the generated registry", () => {
   assert.equal(Object.values(STANDARD_SKILLS).filter((skill) => skill.v49Catalogued).length, 19);
-  assert.match(html, /standard-skill-registry\.generated\.js\?v=20260907-1[\s\S]+app\.js\?v=20260910-21/);
+  assert.match(html, /standard-skill-registry\.generated\.js\?v=20260907-1[\s\S]+app\.js\?v=20260910-22/);
   assert.match(app, /const STANDARD_SKILL_REGISTRY = globalThis\.FourColorStandardSkillRegistry/);
   assert.match(app, /STANDARD_SKILL_REGISTRY\.v49SkillIds\.map/);
   assert.match(app, /Object\.entries\(STANDARD_SKILL_REGISTRY\.skills\)/);

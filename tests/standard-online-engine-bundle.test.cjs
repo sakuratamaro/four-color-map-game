@@ -516,7 +516,9 @@ test("terminal profile settlement is derived from the accepted authoritative sta
   assert.equal(settled.profiles.A.matchHistory[0].matchId, "settled-online");
   assert.equal(settled.profiles.B.matchHistory[0].terminalReason, "SURRENDER");
   assert.equal(settled.profiles.A.gachaTickets["1"], 1);
-  assert.equal(settled.profiles.B.gachaTickets["1"], 1);
+  assert.equal(settled.profiles.B.gachaTickets["2"], 1);
+  assert.equal(settled.profiles.A.matchHistory[0].matchReward.reason, "PVP_LOSS");
+  assert.equal(settled.profiles.B.matchHistory[0].matchReward.reason, "PVP_WIN");
 });
 
 test("CPU settlement records only the human CPU history and never rewards the synthetic profile", () => {
@@ -535,6 +537,7 @@ test("CPU settlement records only the human CPU history and never rewards the sy
   assert.equal(settled.profiles.A.cpuStats.losses, 1);
   assert.equal(settled.profiles.A.cpuCharacterStats.yuzu.matches, 1);
   assert.equal(settled.profiles.A.gachaTickets["1"], 1);
+  assert.equal(settled.profiles.A.matchHistory[0].matchReward.reason, "CPU_LOSS");
   assert.deepEqual(settled.profiles.B, cpu.profile);
 });
 
@@ -555,6 +558,28 @@ test("CPU settlement records a human win exactly once in aggregate and character
   assert.equal(settled.profiles.A.cpuStats.losses, 0);
   assert.equal(JSON.stringify(settled.profiles.A.cpuCharacterStats.yuzu), JSON.stringify({ matches: 1, wins: 1, losses: 0, firstWinAt: input.finishedAt }));
   assert.equal(settled.profiles.A.matchHistory.filter((entry) => entry.matchId === "cpu-human-win").length, 1);
-  assert.equal(settled.profiles.A.gachaTickets["1"], 1);
+  assert.equal(settled.profiles.A.gachaTickets["1"], 2);
+  assert.equal(settled.profiles.A.matchHistory[0].matchReward.reason, "CPU_WIN_BEGINNER");
   assert.throws(() => api.applyCpuProfiles({ ...input, profiles: settled.profiles }), /MATCH_ALREADY_RECORDED/);
+});
+
+test("server settlement records all PvP results but rewards only ten matches in a rolling hour", () => {
+  const api = loadApi();
+  let current = profiles();
+  for (let index = 0; index < 11; index += 1) {
+    const matchId = `hourly-pvp-${index}`;
+    const created = api.create({ matchId, loadouts, profiles: current, seed: 3000 + index, firstSeat: "A" });
+    const applied = api.apply({ state: created.state, rngSnapshot: created.rngSnapshot, actor: "A", action: { id: `hourly-surrender-${index}`, type: "SURRENDER", payload: {} }, expectedVersion: 0 });
+    current = api.applyProfiles({
+      profiles: current, beforeState: created.state, nextState: applied.state,
+      actor: "A", action: { type: "SURRENDER" },
+      finishedAt: `2026-09-10T10:${String(index).padStart(2, "0")}:00.000Z`,
+    }).profiles;
+  }
+  assert.deepEqual([current.A.stats.losses, current.B.stats.wins], [11, 11]);
+  assert.deepEqual([current.A.gachaTickets["1"], current.B.gachaTickets["2"]], [10, 10]);
+  assert.deepEqual(
+    [current.A.matchHistory[0].matchReward.awarded, current.A.matchHistory[0].matchReward.reason],
+    [false, "PVP_REWARD_LIMIT"],
+  );
 });

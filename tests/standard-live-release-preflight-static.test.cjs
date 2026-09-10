@@ -50,10 +50,11 @@ test("release preflight is read-only, secret-free, finite, and stage-aware", () 
   assert.match(source, /hasCompactCpuRecords/);
   assert.match(source, /hasQuizAccuracyRecords/);
   assert.match(source, /hasCpuSealTimingPolicy/);
+  assert.match(source, /hasMatchRewardEconomy/);
   assert.match(source, /hasCandidateAssetGeneration/);
   assert.match(source, /baseline:\s*\{[^}]*matchmakingAvailabilityDb:\s*false[^}]*waitingOpponentUi:\s*false\s*\}/);
   assert.match(source, /"db-ready":\s*\{[^}]*matchmakingAvailabilityDb:\s*true[^}]*waitingOpponentUi:\s*false\s*\}/);
-  assert.match(source, /candidate:\s*\{[^}]*matchmakingAvailabilityDb:\s*true[^}]*waitingOpponentUi:\s*true[^}]*alpha3SkillCategoryUi:\s*true[^}]*alpha4ColoredCornerBloomUi:\s*true[^}]*registryRarityUi:\s*true[^}]*cpuPortraitsUi:\s*true[^}]*wholeButtonQuizPhysicsUi:\s*true[^}]*boardFirstCandidateGuidanceUi:\s*true[^}]*perCellContactFeedbackUi:\s*true[^}]*approvedGachaOddsUi:\s*true[^}]*approvedEdgeGachaOdds:\s*true[^}]*deferredCurseLocalBundle:\s*true[^}]*regionSplitDirectTargetUi:\s*true[^}]*compactCpuRecordsUi:\s*true[^}]*quizAccuracyRecordsUi:\s*true[^}]*cpuSealTimingPolicy:\s*true[^}]*candidateAssetGenerationUi:\s*true\s*\}/);
+  assert.match(source, /candidate:\s*\{[^}]*matchmakingAvailabilityDb:\s*true[^}]*waitingOpponentUi:\s*true[^}]*alpha3SkillCategoryUi:\s*true[^}]*alpha4ColoredCornerBloomUi:\s*true[^}]*registryRarityUi:\s*true[^}]*cpuPortraitsUi:\s*true[^}]*wholeButtonQuizPhysicsUi:\s*true[^}]*boardFirstCandidateGuidanceUi:\s*true[^}]*perCellContactFeedbackUi:\s*true[^}]*approvedGachaOddsUi:\s*true[^}]*approvedEdgeGachaOdds:\s*true[^}]*deferredCurseLocalBundle:\s*true[^}]*regionSplitDirectTargetUi:\s*true[^}]*compactCpuRecordsUi:\s*true[^}]*quizAccuracyRecordsUi:\s*true[^}]*cpuSealTimingPolicy:\s*true[^}]*matchRewardEconomy:\s*true[^}]*candidateAssetGenerationUi:\s*true\s*\}/);
   assert.match(source, /ACTIVE_ROOM_RECOVERY_PHASE_MISMATCH/);
   assert.match(source, /LEGAL_RECOLOR_LAB_UI_PHASE_MISMATCH/);
   assert.match(source, /SETUP_LOAD_V3_PHASE_MISMATCH/);
@@ -74,9 +75,10 @@ test("release preflight is read-only, secret-free, finite, and stage-aware", () 
   assert.match(source, /COMPACT_CPU_RECORDS_UI_MISMATCH/);
   assert.match(source, /QUIZ_ACCURACY_RECORDS_UI_MISMATCH/);
   assert.match(source, /CPU_SEAL_TIMING_POLICY_MISMATCH/);
+  assert.match(source, /MATCH_REWARD_ECONOMY_MISMATCH/);
   assert.match(source, /app\.text\.includes\('★\$\{meta\.rarity\}'\)/);
   assert.match(source, /CANDIDATE_ASSET_GENERATION_UI_PHASE_MISMATCH/);
-  assert.match(source, /app\.js\?v=20260910-21/);
+  assert.match(source, /app\.js\?v=20260910-22/);
   assert.match(source, /progression\.css/);
   assert.match(source, /style\.css\?v=20260910-11/);
   assert.match(source, /standard-online-client\.js\?v=20260910-1/);
@@ -201,6 +203,14 @@ test("candidate preflight requires the public-only CPU seal timing policy", asyn
   assert.equal(hasCpuSealTimingPolicy(candidateEdgeBundle.replace("const applySealTiming = !legacyKurogane;", "const applySealTiming = true;")), false);
 });
 
+test("candidate preflight requires the complete match reward economy", async () => {
+  const { hasMatchRewardEconomy } = await contractsPromise;
+  assert.equal(hasMatchRewardEconomy(candidateHtml, candidateApp, candidateEdgeBundle), true);
+  assert.equal(hasMatchRewardEconomy(candidateHtml, candidateApp, candidateEdgeBundle.replace("const PVP_REWARD_LIMIT = 10;", "const PVP_REWARD_LIMIT = 11;")), false);
+  assert.equal(hasMatchRewardEconomy(candidateHtml, candidateApp, candidateEdgeBundle.replace("Date.parse(entry.endedAt) > cutoff", "Date.parse(entry.endedAt) >= cutoff")), false);
+  assert.equal(hasMatchRewardEconomy(candidateHtml.replace("対人勝利はLv.2", "対人勝利はLv.1"), candidateApp, candidateEdgeBundle), false);
+});
+
 test("candidate app satisfies the complete legal-recolor LAB release marker", () => {
   const detected = candidateApp.includes('$("legalRecolorLabMode")')
     && candidateApp.includes('const LEGAL_RECOLOR_LAB_RULE_SET_ID = "STANDARD_V5_LEGAL_RECOLOR_LAB_V1"')
@@ -216,7 +226,7 @@ test("candidate app satisfies the waiting-opponent release marker", () => {
 });
 
 test("candidate page and app satisfy the alpha.4 cache generation marker", () => {
-  assert.equal(candidateHtml.includes("app.js?v=20260910-21"), true);
+  assert.equal(candidateHtml.includes("app.js?v=20260910-22"), true);
   assert.equal(candidateHtml.includes("style.css?v=20260910-11"), true);
   assert.equal(candidateHtml.includes("standard-online-client.js?v=20260910-1"), true);
   assert.equal(candidateHtml.includes("standard-online-skill-intents.js?v=20260907-20"), true);
