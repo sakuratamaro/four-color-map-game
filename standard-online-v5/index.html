@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="../online-v5/style.css">
   <link rel="stylesheet" href="style.css?v=20260910-11">
   <link rel="stylesheet" href="debug-mode.css">
-  <link rel="stylesheet" href="progression.css">
+  <link rel="stylesheet" href="progression.css?v=20260910-1">
 </head>
 <body>
   <header>
@@ -194,7 +194,9 @@
       <div id="profileStats" class="profile-stats" aria-label="対人戦成績"></div>
       <h3>CPU対戦成績</h3>
       <div id="cpuProfileStats" class="profile-stats" aria-label="CPU対戦成績"></div>
-      <div id="cpuCharacterRecords" class="cpu-character-records" aria-label="CPUキャラクター別成績"></div>
+      <h3 id="cpuCharacterRecordsTitle">CPU別成績</h3>
+      <p id="cpuCharacterRecordsHelp" class="muted small">10人全員の勝敗です。まだ対戦していないCPUも0戦で表示します。</p>
+      <div id="cpuCharacterRecords" class="cpu-character-records" role="list" aria-labelledby="cpuCharacterRecordsTitle" aria-describedby="cpuCharacterRecordsHelp"></div>
       <h3>トロフィー</h3>
       <div id="trophyList" class="trophy-list"></div>
       <details class="history-details">
@@ -488,6 +490,6 @@
   <script src="cpu-portraits.js?v=20260908-1"></script>
   <script src="cpu-commentary.js?v=20260906-2"></script>
   <script src="basic-feedback.js?v=20260908-2"></script>
-  <script type="module" src="app.js?v=20260910-19"></script>
+  <script type="module" src="app.js?v=20260910-20"></script>
 </body>
 </html>

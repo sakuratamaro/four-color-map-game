@@ -1469,6 +1469,47 @@ function appendStat(label, value, targetId = "profileStats") {
   item.append(number, caption); $(targetId).appendChild(item);
 }
 
+function clearCpuCharacterRecordPortraits() {
+  if (cpuPortraits?.VERSION !== "standard-cpu-portraits-v2") return;
+  for (const frame of $("cpuCharacterRecords").querySelectorAll(".cpu-record-portrait")) {
+    cpuPortraits.clearCpuPortrait({
+      frame,
+      art: frame.querySelector(".cpu-portrait-art"),
+      fallback: frame.querySelector(".cpu-portrait-fallback"),
+    });
+  }
+}
+
+function cpuCharacterRecordCount(value) {
+  const number = Number(value);
+  return Number.isSafeInteger(number) && number >= 0 ? number : 0;
+}
+
+function appendCpuCharacterRecord(characterId, record) {
+  const wins = cpuCharacterRecordCount(record?.wins);
+  const losses = cpuCharacterRecordCount(record?.losses);
+  const matches = cpuCharacterRecordCount(record?.matches);
+  const nameText = CPU_NAMES[characterId] || "CPU";
+  const item = document.createElement("article");
+  item.className = `cpu-character-record${matches ? "" : " is-unplayed"}`;
+  item.setAttribute("role", "listitem");
+  item.setAttribute("aria-label", `${nameText}、${wins}勝 ${losses}敗、合計${matches}戦`);
+  const portrait = document.createElement("span"); portrait.className = "cpu-portrait-frame cpu-record-portrait"; portrait.setAttribute("aria-hidden", "true");
+  const art = document.createElement("span"); art.className = "cpu-portrait-art"; art.hidden = true;
+  const fallback = document.createElement("span"); fallback.className = "cpu-portrait-fallback"; fallback.textContent = "CPU";
+  portrait.append(art, fallback);
+  const copy = document.createElement("span"); copy.className = "cpu-character-record-copy";
+  const name = document.createElement("strong"); name.textContent = nameText;
+  const score = document.createElement("span"); score.className = "cpu-character-score"; score.textContent = `${wins}勝 ${losses}敗`;
+  const total = document.createElement("span"); total.className = "cpu-character-matches"; total.textContent = `合計${matches}戦`;
+  copy.append(name, score, total);
+  item.append(portrait, copy);
+  $("cpuCharacterRecords").appendChild(item);
+  if (cpuPortraits?.VERSION === "standard-cpu-portraits-v2") {
+    cpuPortraits.showCpuPortrait({ frame: portrait, art, fallback, characterId });
+  }
+}
+
 function renderProgression() {
   const value = profile();
   if (!value || !$("progressionPanel")) return;
@@ -1488,19 +1529,10 @@ function renderProgression() {
   appendStat("CPU戦 連勝中", Number(cpuStats.currentWinStreak || 0), "cpuProfileStats");
   appendStat("CPU戦 最高連勝", Number(cpuStats.bestWinStreak || 0), "cpuProfileStats");
   appendStat("CPU戦 完塗り", Number(cpuStats.fullPaints || 0), "cpuProfileStats");
+  clearCpuCharacterRecordPortraits();
   $("cpuCharacterRecords").replaceChildren();
-  const characterStats = Object.entries(value.cpuCharacterStats || {}).filter(([, record]) => Number(record?.matches || 0) > 0);
-  if (!characterStats.length) {
-    const empty = document.createElement("p"); empty.className = "muted small"; empty.textContent = "CPUとの対戦記録はまだありません。";
-    $("cpuCharacterRecords").appendChild(empty);
-  } else {
-    for (const [characterId, record] of characterStats.sort((a, b) => Number(b[1].matches) - Number(a[1].matches))) {
-      const item = document.createElement("div"); item.className = "cpu-character-record";
-      const name = document.createElement("strong"); name.textContent = CPU_NAMES[characterId] || characterId;
-      const score = document.createElement("span"); score.textContent = `${Number(record.wins || 0)}勝 ${Number(record.losses || 0)}敗（${Number(record.matches || 0)}戦）`;
-      item.append(name, score); $("cpuCharacterRecords").appendChild(item);
-    }
-  }
+  const characterStats = value.cpuCharacterStats || {};
+  for (const characterId of Object.keys(CPU_NAMES)) appendCpuCharacterRecord(characterId, characterStats[characterId]);
 
   $("trophyList").replaceChildren();
   for (const [id, meta] of Object.entries(TROPHY_META)) {

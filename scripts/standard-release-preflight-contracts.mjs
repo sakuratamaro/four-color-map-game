@@ -119,6 +119,28 @@ export function hasRegionSplitDirectTarget(appText, localBundleText) {
     && !localBundleText.includes("エリア二分を確定");
 }
 
+export function hasCompactCpuRecords(pageText, appText, progressionCssText) {
+  return includesAll(pageText, [
+    'progression.css?v=20260910-1',
+    'id="cpuCharacterRecords" class="cpu-character-records" role="list"',
+    "10人全員の勝敗です。まだ対戦していないCPUも0戦で表示します。",
+  ])
+    && includesAll(appText, [
+      "function clearCpuCharacterRecordPortraits()",
+      "function cpuCharacterRecordCount(value)",
+      "function appendCpuCharacterRecord(characterId, record)",
+      'item.setAttribute("role", "listitem")',
+      "cpuPortraits.showCpuPortrait({ frame: portrait, art, fallback, characterId })",
+      "for (const characterId of Object.keys(CPU_NAMES)) appendCpuCharacterRecord(characterId, characterStats[characterId]);",
+    ])
+    && !appText.includes("Object.entries(value.cpuCharacterStats || {}).filter")
+    && includesAll(progressionCssText, [
+      ".cpu-character-records { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr));",
+      ".cpu-character-record-copy strong { min-width: 0; color: #f8fafc; font-size: 13px; line-height: 1.25; overflow-wrap: anywhere; }",
+      ".cpu-character-records { grid-template-columns: repeat(2, minmax(0, 1fr)); }",
+    ]);
+}
+
 export const APPROVED_GACHA_ODDS = Object.freeze({
   appMarkers: APP_GACHA_ODDS_MARKERS,
   edgeMarker: EDGE_GACHA_ODDS_MARKER,

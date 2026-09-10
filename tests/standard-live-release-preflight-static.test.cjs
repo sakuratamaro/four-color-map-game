@@ -13,6 +13,7 @@ const candidateIntents = fs.readFileSync(path.join(__dirname, "..", "standard-on
 const candidateEdgeBundle = fs.readFileSync(path.join(__dirname, "..", "supabase", "functions", "standard-game-action", "standard-engine.bundle.js"), "utf8");
 const candidateLocalHtml = fs.readFileSync(path.join(__dirname, "..", "standard-v5", "index.html"), "utf8");
 const candidateLocalBundle = fs.readFileSync(path.join(__dirname, "..", "standard-v5", "app.bundle.js"), "utf8");
+const candidateProgressionCss = fs.readFileSync(path.join(__dirname, "..", "standard-online-v5", "progression.css"), "utf8");
 const contractsPromise = import(pathToFileURL(path.join(__dirname, "..", "scripts", "standard-release-preflight-contracts.mjs")).href);
 
 test("release preflight is read-only, secret-free, finite, and stage-aware", () => {
@@ -46,10 +47,11 @@ test("release preflight is read-only, secret-free, finite, and stage-aware", () 
   assert.match(source, /hasApprovedEdgeGachaOdds/);
   assert.match(source, /hasDeferredCurseLocalBundle/);
   assert.match(source, /hasRegionSplitDirectTarget/);
+  assert.match(source, /hasCompactCpuRecords/);
   assert.match(source, /hasCandidateAssetGeneration/);
   assert.match(source, /baseline:\s*\{[^}]*matchmakingAvailabilityDb:\s*false[^}]*waitingOpponentUi:\s*false\s*\}/);
   assert.match(source, /"db-ready":\s*\{[^}]*matchmakingAvailabilityDb:\s*true[^}]*waitingOpponentUi:\s*false\s*\}/);
-  assert.match(source, /candidate:\s*\{[^}]*matchmakingAvailabilityDb:\s*true[^}]*waitingOpponentUi:\s*true[^}]*alpha3SkillCategoryUi:\s*true[^}]*alpha4ColoredCornerBloomUi:\s*true[^}]*registryRarityUi:\s*true[^}]*cpuPortraitsUi:\s*true[^}]*wholeButtonQuizPhysicsUi:\s*true[^}]*boardFirstCandidateGuidanceUi:\s*true[^}]*perCellContactFeedbackUi:\s*true[^}]*approvedGachaOddsUi:\s*true[^}]*approvedEdgeGachaOdds:\s*true[^}]*deferredCurseLocalBundle:\s*true[^}]*regionSplitDirectTargetUi:\s*true[^}]*candidateAssetGenerationUi:\s*true\s*\}/);
+  assert.match(source, /candidate:\s*\{[^}]*matchmakingAvailabilityDb:\s*true[^}]*waitingOpponentUi:\s*true[^}]*alpha3SkillCategoryUi:\s*true[^}]*alpha4ColoredCornerBloomUi:\s*true[^}]*registryRarityUi:\s*true[^}]*cpuPortraitsUi:\s*true[^}]*wholeButtonQuizPhysicsUi:\s*true[^}]*boardFirstCandidateGuidanceUi:\s*true[^}]*perCellContactFeedbackUi:\s*true[^}]*approvedGachaOddsUi:\s*true[^}]*approvedEdgeGachaOdds:\s*true[^}]*deferredCurseLocalBundle:\s*true[^}]*regionSplitDirectTargetUi:\s*true[^}]*compactCpuRecordsUi:\s*true[^}]*candidateAssetGenerationUi:\s*true\s*\}/);
   assert.match(source, /ACTIVE_ROOM_RECOVERY_PHASE_MISMATCH/);
   assert.match(source, /LEGAL_RECOLOR_LAB_UI_PHASE_MISMATCH/);
   assert.match(source, /SETUP_LOAD_V3_PHASE_MISMATCH/);
@@ -67,9 +69,11 @@ test("release preflight is read-only, secret-free, finite, and stage-aware", () 
   assert.match(source, /APPROVED_GACHA_ODDS_EDGE_BUNDLE_MISMATCH/);
   assert.match(source, /DEFERRED_CURSE_LOCAL_BUNDLE_MISMATCH/);
   assert.match(source, /REGION_SPLIT_DIRECT_TARGET_UI_MISMATCH/);
+  assert.match(source, /COMPACT_CPU_RECORDS_UI_MISMATCH/);
   assert.match(source, /app\.text\.includes\('★\$\{meta\.rarity\}'\)/);
   assert.match(source, /CANDIDATE_ASSET_GENERATION_UI_PHASE_MISMATCH/);
-  assert.match(source, /app\.js\?v=20260910-19/);
+  assert.match(source, /app\.js\?v=20260910-20/);
+  assert.match(source, /progression\.css/);
   assert.match(source, /style\.css\?v=20260910-11/);
   assert.match(source, /standard-online-client\.js\?v=20260910-1/);
   assert.match(source, /standard-online-skill-intents\.js\?v=20260907-20/);
@@ -110,6 +114,15 @@ test("candidate preflight requires direct Region Split targeting in online and l
   assert.equal(hasRegionSplitDirectTarget(candidateApp.replace("盤面の1マスだけで選べます。", "エリアIDを選んでください。"), candidateLocalBundle), false);
   assert.equal(hasRegionSplitDirectTarget(`${candidateApp}\ntargetChoice(id, "regionId", id);`, candidateLocalBundle), false);
   assert.equal(hasRegionSplitDirectTarget(candidateApp, `${candidateLocalBundle}\nエリア二分を確定`), false);
+});
+
+test("candidate preflight requires the complete ten-character compact CPU record list", async () => {
+  const { hasCompactCpuRecords } = await contractsPromise;
+  assert.equal(hasCompactCpuRecords(candidateHtml, candidateApp, candidateProgressionCss), true);
+  assert.equal(hasCompactCpuRecords(candidateHtml.replace("10人全員の勝敗です。", "対戦済みCPUの勝敗です。"), candidateApp, candidateProgressionCss), false);
+  assert.equal(hasCompactCpuRecords(candidateHtml, candidateApp.replace("Object.keys(CPU_NAMES)", "Object.keys(characterStats)"), candidateProgressionCss), false);
+  assert.equal(hasCompactCpuRecords(candidateHtml, candidateApp.replace('item.setAttribute("role", "listitem")', "void item"), candidateProgressionCss), false);
+  assert.equal(hasCompactCpuRecords(candidateHtml, candidateApp, candidateProgressionCss.replace(".cpu-character-records { grid-template-columns: repeat(2, minmax(0, 1fr)); }", ".cpu-character-records { grid-template-columns: 1fr; }")), false);
 });
 
 test("candidate preflight accepts only whole-button AABB physics with abortable listener cleanup", async () => {
@@ -184,7 +197,7 @@ test("candidate app satisfies the waiting-opponent release marker", () => {
 });
 
 test("candidate page and app satisfy the alpha.4 cache generation marker", () => {
-  assert.equal(candidateHtml.includes("app.js?v=20260910-19"), true);
+  assert.equal(candidateHtml.includes("app.js?v=20260910-20"), true);
   assert.equal(candidateHtml.includes("style.css?v=20260910-11"), true);
   assert.equal(candidateHtml.includes("standard-online-client.js?v=20260910-1"), true);
   assert.equal(candidateHtml.includes("standard-online-skill-intents.js?v=20260907-20"), true);

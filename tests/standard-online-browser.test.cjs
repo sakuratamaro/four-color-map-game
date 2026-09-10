@@ -250,6 +250,13 @@ async function installMock(context, mode) {
       cpuCharacterStats: {},
       matchHistory: [{ matchId: "history-1", result: "WIN", terminalReason: "BOARD_LOCK", endedAt: "2026-09-01T00:00:00.000Z", fullPaint: true, skillsUsed: 0 }],
     };
+    if (initialMode === "cpuRecords") {
+      profileState.cpuStats = { wins: 15, losses: 9, currentWinStreak: 2, bestWinStreak: 5, fullPaints: 3 };
+      profileState.cpuCharacterStats = {
+        yuzu: { matches: 5, wins: 3, losses: 2, firstWinAt: "2026-09-01T00:00:00.000Z" },
+        kurogane: { matches: 7, wins: 2, losses: 5, firstWinAt: "2026-09-02T00:00:00.000Z" },
+      };
+    }
     if (["cosmetic", "cpuWin"].includes(initialMode)) {
       try { Object.assign(profileState, JSON.parse(localStorage.getItem("fourColorMapGame.standard.online.v5.remote-profile") || "null") || {}); } catch { /* fresh mock profile */ }
     }
@@ -3106,6 +3113,47 @@ test("actual Edge presents server-hydrated stats, trophy state, and match histor
     assert.equal(await page.locator("#trophyList .locked").count(), 1);
     assert.match(await page.locator("#matchHistory .history-win").textContent(), /勝利.*完塗り.*スキル0回/);
   });
+});
+
+test("actual browser presents all ten CPU records as a two-column portrait list at 390px without a read request", { timeout: 130000 }, async () => {
+  await withPage("cpuRecords", async (page) => {
+    const callsBefore = await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.length);
+    await page.getByRole("button", { name: "マイページ" }).click();
+    const list = page.getByRole("list", { name: "CPU別成績" });
+    await list.waitFor();
+    const records = list.getByRole("listitem");
+    assert.equal(await records.count(), 10);
+    assert.equal(await page.locator("#cpuCharacterRecords .cpu-record-portrait").count(), 10);
+    await page.locator('#cpuCharacterRecords .cpu-record-portrait[data-portrait-status="ready"]').first().waitFor();
+    assert.equal(await page.locator('#cpuCharacterRecords .cpu-record-portrait[data-portrait-status="ready"]').count(), 10);
+    assert.equal(await records.nth(0).getAttribute("aria-label"), "うっかりユズ、3勝 2敗、合計5戦");
+    assert.equal(await records.nth(1).getAttribute("aria-label"), "せっかちレン、0勝 0敗、合計0戦");
+    assert.equal(await records.nth(9).getAttribute("aria-label"), "四色のクロガネ、2勝 5敗、合計7戦");
+    assert.equal(await page.locator("#cpuCharacterRecords .is-unplayed").count(), 8);
+    assert.equal(await list.locator("button, a, input, [tabindex]").count(), 0);
+    const layout = await page.locator("#cpuCharacterRecords").evaluate((node) => {
+      const cards = [...node.querySelectorAll(".cpu-character-record")];
+      const rows = cards.map((card) => card.getBoundingClientRect());
+      return {
+        columns: new Set(rows.slice(0, 2).map((rect) => Math.round(rect.left))).size,
+        cardOverflow: cards.some((card) => card.scrollWidth > card.clientWidth),
+        pageOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+      };
+    });
+    assert.deepEqual(layout, { columns: 2, cardOverflow: false, pageOverflow: false });
+    await page.setViewportSize({ width: 1280, height: 900 });
+    const desktopLayout = await page.locator("#cpuCharacterRecords").evaluate((node) => {
+      const cards = [...node.querySelectorAll(".cpu-character-record")];
+      return {
+        columns: new Set(cards.slice(0, 5).map((card) => Math.round(card.getBoundingClientRect().left))).size,
+        cardOverflow: cards.some((card) => card.scrollWidth > card.clientWidth),
+        pageOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+      };
+    });
+    assert.deepEqual(desktopLayout, { columns: 5, cardOverflow: false, pageOverflow: false });
+    const callsAfter = await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.length);
+    assert.equal(callsAfter, callsBefore);
+  }, { bodyTimeout: 60_000, viewport: { width: 390, height: 844 } });
 });
 
 test("actual Edge hides onboarding after restoring a synced profile into the saved battle tab", { timeout: 130000 }, async () => {

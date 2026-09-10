@@ -80,7 +80,7 @@ test("CPU commentary is public-event-only, bounded, non-blocking, and terminal-p
   assert.match(html, /style\.css\?v=20260910-11/);
   assert.match(html, /standard-online-client\.js\?v=20260910-1/);
   assert.match(html, /standard-online-skill-intents\.js\?v=20260907-20/);
-  assert.match(html, /app\.js\?v=20260910-19/);
+  assert.match(html, /app\.js\?v=20260910-20/);
   assert.match(app, /cpuCommentary\?\.VERSION !== "standard-cpu-commentary-v2"/);
   assert.ok(html.indexOf("cpu-commentary.js") < html.indexOf('type="module" src="app.js'));
   assert.match(html, /id="cpuCommentaryStage"[^>]+aria-hidden="true"/);
@@ -303,6 +303,17 @@ test("pregame abandon confirmation is safe-first, retryable, responsive, and sin
 test("PvP and CPU records are visibly separate and CPU rematch uses its dedicated boundary", () => {
   assert.match(app, /value\.cpuStats \|\| \{\}/);
   assert.match(app, /value\.cpuCharacterStats \|\| \{\}/);
+  assert.match(app, /for \(const characterId of Object\.keys\(CPU_NAMES\)\) appendCpuCharacterRecord/);
+  assert.match(app, /item\.setAttribute\("role", "listitem"\)/);
+  assert.match(app, /item\.setAttribute\("aria-label", `\$\{nameText\}、\$\{wins\}勝 \$\{losses\}敗、合計\$\{matches\}戦`\)/);
+  assert.match(app, /cpuPortraits\.showCpuPortrait\(\{ frame: portrait, art, fallback, characterId \}\)/);
+  assert.doesNotMatch(app, /Object\.entries\(value\.cpuCharacterStats \|\| \{\}\)\.filter/);
+  assert.match(html, /id="cpuCharacterRecords"[^>]*role="list"[^>]*aria-labelledby="cpuCharacterRecordsTitle"/);
+  assert.match(html, /10人全員の勝敗です。まだ対戦していないCPUも0戦で表示します。/);
+  assert.match(html, /progression\.css\?v=20260910-1/);
+  assert.match(progressionCss, /\.cpu-character-records \{[^}]*grid-template-columns: repeat\(5, minmax\(0, 1fr\)\)/);
+  assert.match(progressionCss, /@media \(max-width: 760px\)[\s\S]*?\.cpu-character-records \{ grid-template-columns: repeat\(2, minmax\(0, 1fr\)\); \}/);
+  assert.match(progressionCss, /\.cpu-character-record-copy strong \{[^}]*overflow-wrap: anywhere/);
   assert.match(app, /対人戦 勝利/);
   assert.match(app, /CPU戦 勝利/);
   assert.match(app, /完了報酬：Lv\.1ガチャ券 \+1/);
@@ -408,7 +419,7 @@ test("existing online progression is hydrated from the server rather than re-upl
 
 test("UI derives its canonical and experimental card metadata from the generated registry", () => {
   assert.equal(Object.values(STANDARD_SKILLS).filter((skill) => skill.v49Catalogued).length, 19);
-  assert.match(html, /standard-skill-registry\.generated\.js\?v=20260907-1[\s\S]+app\.js\?v=20260910-19/);
+  assert.match(html, /standard-skill-registry\.generated\.js\?v=20260907-1[\s\S]+app\.js\?v=20260910-20/);
   assert.match(app, /const STANDARD_SKILL_REGISTRY = globalThis\.FourColorStandardSkillRegistry/);
   assert.match(app, /STANDARD_SKILL_REGISTRY\.v49SkillIds\.map/);
   assert.match(app, /Object\.entries\(STANDARD_SKILL_REGISTRY\.skills\)/);

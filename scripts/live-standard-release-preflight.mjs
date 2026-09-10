@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { LOCAL_STANDARD_BUNDLE_MARKER, hasApprovedEdgeGachaOdds, hasApprovedGachaOddsUi, hasBoardFirstCandidateGuidance, hasDeferredCurseLocalBundle, hasPerCellContactFeedback, hasRegionSplitDirectTarget, hasWholeButtonQuizPhysics } from "./standard-release-preflight-contracts.mjs";
+import { LOCAL_STANDARD_BUNDLE_MARKER, hasApprovedEdgeGachaOdds, hasApprovedGachaOddsUi, hasBoardFirstCandidateGuidance, hasCompactCpuRecords, hasDeferredCurseLocalBundle, hasPerCellContactFeedback, hasRegionSplitDirectTarget, hasWholeButtonQuizPhysics } from "./standard-release-preflight-contracts.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const configSource = fs.readFileSync(path.join(root, "online", "supabase-config.js"), "utf8");
@@ -14,7 +14,7 @@ const publicEdgeBundleUrl = new URL("../supabase/functions/standard-game-action/
 const expectedPhase = process.argv.find((argument) => argument.startsWith("--expect="))?.slice("--expect=".length) || null;
 const zeroUuid = "00000000-0000-0000-0000-000000000000";
 const candidateAssetMarkers = Object.freeze({
-  app: "app.js?v=20260910-19",
+  app: "app.js?v=20260910-20",
   style: "style.css?v=20260910-11",
   client: "standard-online-client.js?v=20260910-1",
   intents: "standard-online-skill-intents.js?v=20260907-20",
@@ -69,9 +69,10 @@ async function probeProtectedRpc(name, body) {
   throw new Error(`UNEXPECTED_RPC_PROBE_${name}_${response.status}_${String(data?.code || "UNKNOWN")}`);
 }
 
-const [page, app, intents, registry, portraits, portraitAtlas, localStandardPage, localStandardBundle, publicEdgeBundle, snapshotV1, snapshotV2, matchmaking, matchmakingAvailability, pregameAbandon, activeRoom, setupLoadV3, initializeRoomV3] = await Promise.all([
+const [page, app, progressionCss, intents, registry, portraits, portraitAtlas, localStandardPage, localStandardBundle, publicEdgeBundle, snapshotV1, snapshotV2, matchmaking, matchmakingAvailability, pregameAbandon, activeRoom, setupLoadV3, initializeRoomV3] = await Promise.all([
   getText(publicUrl),
   getText(`${publicUrl}app.js`),
+  getText(`${publicUrl}progression.css`),
   getText(`${publicUrl}standard-online-skill-intents.js`),
   getText(`${publicUrl}standard-skill-registry.generated.js`),
   getOptionalText(`${publicUrl}cpu-portraits.js`),
@@ -148,6 +149,7 @@ const result = {
     hasApprovedEdgeGachaOdds: publicEdgeBundle.status === 200 && hasApprovedEdgeGachaOdds(publicEdgeBundle.text),
     hasDeferredCurseLocalBundle: hasDeferredCurseLocalBundle(localStandardPage.text, localStandardBundle.text),
     hasRegionSplitDirectTarget: hasRegionSplitDirectTarget(app.text, localStandardBundle.text),
+    hasCompactCpuRecords: hasCompactCpuRecords(page.text, app.text, progressionCss.text),
     hasCandidateAssetGeneration: page.text.includes(candidateAssetMarkers.app)
       && page.text.includes(candidateAssetMarkers.style)
       && page.text.includes(candidateAssetMarkers.client)
@@ -162,7 +164,7 @@ const result = {
 const phaseExpectations = {
   baseline: { pregameAbandonUi: true, pregameAbandonDb: true, activeRoomUi: true, activeRoomDb: true, setupRevisionGuardDb: true, legalRecolorLabUi: true, matchmakingAvailabilityDb: false, waitingOpponentUi: false },
   "db-ready": { pregameAbandonUi: true, pregameAbandonDb: true, activeRoomUi: true, activeRoomDb: true, setupRevisionGuardDb: true, legalRecolorLabUi: true, matchmakingAvailabilityDb: true, waitingOpponentUi: false },
-  candidate: { pregameAbandonUi: true, pregameAbandonDb: true, activeRoomUi: true, activeRoomDb: true, setupRevisionGuardDb: true, legalRecolorLabUi: true, matchmakingAvailabilityDb: true, waitingOpponentUi: true, alpha3SkillCategoryUi: true, alpha4ColoredCornerBloomUi: true, registryRarityUi: true, cpuPortraitsUi: true, wholeButtonQuizPhysicsUi: true, boardFirstCandidateGuidanceUi: true, perCellContactFeedbackUi: true, approvedGachaOddsUi: true, approvedEdgeGachaOdds: true, deferredCurseLocalBundle: true, regionSplitDirectTargetUi: true, candidateAssetGenerationUi: true },
+  candidate: { pregameAbandonUi: true, pregameAbandonDb: true, activeRoomUi: true, activeRoomDb: true, setupRevisionGuardDb: true, legalRecolorLabUi: true, matchmakingAvailabilityDb: true, waitingOpponentUi: true, alpha3SkillCategoryUi: true, alpha4ColoredCornerBloomUi: true, registryRarityUi: true, cpuPortraitsUi: true, wholeButtonQuizPhysicsUi: true, boardFirstCandidateGuidanceUi: true, perCellContactFeedbackUi: true, approvedGachaOddsUi: true, approvedEdgeGachaOdds: true, deferredCurseLocalBundle: true, regionSplitDirectTargetUi: true, compactCpuRecordsUi: true, candidateAssetGenerationUi: true },
 };
 
 if (expectedPhase) {
@@ -194,6 +196,7 @@ if (expectedPhase) {
     assert.equal(result.publicPage.hasApprovedEdgeGachaOdds, expected.approvedEdgeGachaOdds, "APPROVED_GACHA_ODDS_EDGE_BUNDLE_MISMATCH");
     assert.equal(result.publicPage.hasDeferredCurseLocalBundle, expected.deferredCurseLocalBundle, "DEFERRED_CURSE_LOCAL_BUNDLE_MISMATCH");
     assert.equal(result.publicPage.hasRegionSplitDirectTarget, expected.regionSplitDirectTargetUi, "REGION_SPLIT_DIRECT_TARGET_UI_MISMATCH");
+    assert.equal(result.publicPage.hasCompactCpuRecords, expected.compactCpuRecordsUi, "COMPACT_CPU_RECORDS_UI_MISMATCH");
     assert.equal(result.publicPage.hasCandidateAssetGeneration, expected.candidateAssetGenerationUi, "CANDIDATE_ASSET_GENERATION_UI_PHASE_MISMATCH");
   }
 }
