@@ -24,7 +24,7 @@ const contactPressureBrowserGate = fs.readFileSync(path.join(root, "tests", "sta
 const bundleBuilder = fs.readFileSync(path.join(root, "scripts", "build-standard-v5-bundle.mjs"), "utf8");
 
 test("local alpha has a bundled offline entry point", () => {
-  assert.match(html, /app\.bundle\.js\?v=20260910-4-3e483dc37b1d/);
+  assert.match(html, /app\.bundle\.js\?v=20260910-5-e2eaa264973b/);
   for (const id of ["profileA", "profileB", "firstPlayer", "startMatch", "handover", "privatePanel", "resultPanel"]) {
     assert.match(html, new RegExp(`id="${id}"`));
   }
@@ -38,8 +38,8 @@ test("local alpha has a bundled offline entry point", () => {
 
 test("local cache marker publishes the rebuilt alpha.4 and deferred-curse bundle", () => {
   const bundleHash = createHash("sha256").update(bundle).digest("hex");
-  assert.equal(bundleHash, "3e483dc37b1d386ee82471f15e591606db1256710211cad1cd780fe82a537402");
-  assert.match(html, new RegExp(`app\\.bundle\\.js\\?v=20260910-4-${bundleHash.slice(0, 12)}`));
+  assert.equal(bundleHash, "e2eaa264973b6bcedc8a4b4a810395e4072c174617b2047073b11faedd14d960");
+  assert.match(html, new RegExp(`app\\.bundle\\.js\\?v=20260910-5-${bundleHash.slice(0, 12)}`));
   assert.match(bundle, /SKILL_CATEGORY_ALREADY_USED_IN_WINDOW/);
   assert.match(bundle, /COLORED_CORNER_BLOOM_ENGINE_VERSION/);
   assert.match(bundle, /colorBonusRefill/);
@@ -83,6 +83,20 @@ test("local shift targets are selected on the board with keyboard support and na
   assert.match(css, /\.cell\.shift-adjacent\{[^}]*#d8b4fe/);
   assert.match(css, /@media\(max-width:390px\)\{\.shift-controls button\{[^}]*min-height:48px/);
   assert.match(bundle, /function appendBandShiftControls/);
+});
+
+test("local Region Split uses one normal board cell with no ID or confirmation control", () => {
+  const boardFlow = app.slice(app.indexOf("function renderPublic"), app.indexOf("function appendButton"));
+  const controls = app.slice(app.indexOf('if (own.hand.colorRegionSplit > 0)'), app.indexOf('appendButton("四色解放"'));
+  assert.match(boardFlow, /const regionSplitTarget = targetMode\?\.kind === "colorRegionSplit"/);
+  assert.match(boardFlow, /region\?\.id === publicState\.pending[\s\S]+classList\.add\("split-target"\)/);
+  assert.match(boardFlow, /dispatch\("USE_SKILL", \{ skill: "colorRegionSplit", regionId: publicState\.pending, sourceMacros: \[macro\] \}\)/);
+  assert.match(boardFlow, /targetMode\?\.kind === "colorRegionSplit" && event\.key === "Escape"/);
+  assert.match(controls, /1マスを選ぶと即発動/);
+  assert.match(controls, /エリア二分をキャンセル/);
+  assert.doesNotMatch(controls, /エリア二分を確定|R1|R2|R3|microcell|細分セル.*指定/);
+  assert.match(css, /\.cell\.split-target\{[^}]*#c084fc/);
+  assert.match(bundle, /sourceMacros: \[macro\]/);
 });
 
 test("formal Standard setup requires a complete owned two-per-category loadout before issuing start identities", () => {

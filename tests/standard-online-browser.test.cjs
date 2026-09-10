@@ -315,6 +315,7 @@ async function installMock(context, mode) {
       operationDelayMs: 0,
       failNextColorAction: false,
       failNextCornerBloomAction: false,
+      failNextRegionSplitAction: false,
       rejectNextCornerBloomAction: false,
       failNextGacha: false,
       failNextQuizAnswer: false,
@@ -663,6 +664,10 @@ async function installMock(context, mode) {
         if (request.body.operation === "action" && request.body.action?.payload?.skill === "areaCornerBloom" && runtime.failNextCornerBloomAction) {
           runtime.failNextCornerBloomAction = false;
           return { error: new Error("simulated corner bloom network failure") };
+        }
+        if (request.body.operation === "action" && request.body.action?.payload?.skill === "colorRegionSplit" && runtime.failNextRegionSplitAction) {
+          runtime.failNextRegionSplitAction = false;
+          return { error: new Error("simulated region split network failure") };
         }
         if (request.body.operation === "action" && request.body.action?.payload?.skill === "areaCornerBloom" && runtime.rejectNextCornerBloomAction) {
           const code = typeof runtime.rejectNextCornerBloomAction === "string" ? runtime.rejectNextCornerBloomAction : "RULE_REJECTED";
@@ -1807,6 +1812,79 @@ test("actual browser selects and submits one usable Micro Bloom target from the 
       type: "USE_SKILL",
       payload: { skill: "areaMicroBloom", sourceMacros: [26] },
     });
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth), false);
+  }, { viewport: { width: 390, height: 844 } });
+});
+
+test("actual browser activates Region Split from one normal board cell without IDs or confirmation", { timeout: 130000 }, async () => {
+  await withPage("playing", async (page) => {
+    await page.evaluate(() => {
+      const originalStrokeRect = CanvasRenderingContext2D.prototype.strokeRect;
+      globalThis.__regionSplitTargetFrames = [];
+      CanvasRenderingContext2D.prototype.strokeRect = function recordedRegionSplitFrame(...args) {
+        if (String(this.strokeStyle) === "#c084fc") globalThis.__regionSplitTargetFrames.push([...args]);
+        return originalStrokeRect.apply(this, args);
+      };
+      const runtime = globalThis.__standardOnlineRuntime;
+      runtime.room.public_state = {
+        ...runtime.room.public_state,
+        active: "A",
+        phase: "COLOR",
+        pending: "R1",
+        reserved: null,
+        requiredSize: 3,
+        regions: {
+          R1: { id: "R1", micro: [5, 6, 7], sourceMacros: [5, 6, 7], controllers: ["B"], color: null, isPending: true },
+        },
+        skillCategoryWindow: { actor: "A", categories: [] },
+      };
+      runtime.view = { ...runtime.view, private_state: {
+        ...runtime.view.private_state,
+        hand: { ...runtime.view.private_state.hand, colorRegionSplit: 1 },
+      } };
+      runtime.onInvalidate?.({});
+    });
+
+    const skill = page.getByRole("button", { name: /エリア二分 ×1（★4）/ });
+    const target = page.locator("#skillTargetControls");
+    const board = page.locator("#board");
+    await skill.click();
+    await target.getByText(/1マスを選ぶと即発動/).waitFor();
+    await page.waitForFunction(() => document.activeElement?.id === "board");
+    assert.ok(await page.evaluate(() => globalThis.__regionSplitTargetFrames.length >= 3));
+    assert.equal(await target.getByRole("button", { name: /この対象で使う|確定/ }).count(), 0);
+    assert.equal(await target.getByText(/^R\d+$/).count(), 0);
+    const box = await board.boundingBox();
+    await board.click({ position: { x: box.width * (.5 / 4), y: box.height * (.5 / 4) } });
+    await target.locator('.skill-target-feedback[data-tone="error"]').getByText(/紫枠の受取エリア/).waitFor();
+    assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "action").length), 0);
+    await page.keyboard.press("Escape");
+    await target.waitFor({ state: "hidden" });
+    assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "action").length), 0);
+
+    await skill.click();
+    await page.waitForFunction(() => document.activeElement?.id === "board");
+    await page.evaluate(() => {
+      const runtime = globalThis.__standardOnlineRuntime;
+      runtime.delayedOperation = "action";
+      runtime.operationDelayMs = 250;
+      runtime.failNextRegionSplitAction = true;
+    });
+    await board.click({ position: { x: box.width * (1.5 / 4), y: box.height * (1.5 / 4) } });
+    await board.click({ position: { x: box.width * (1.5 / 4), y: box.height * (1.5 / 4) }, force: true });
+    await page.locator("#actionStatus").getByText(/同じ操作を再送/).waitFor();
+    let actions = await page.evaluate(() => globalThis.__standardOnlineRuntime.calls
+      .filter((entry) => entry.body?.operation === "action").map((entry) => entry.body.action));
+    assert.equal(actions.length, 1);
+    assert.deepEqual(actions[0].payload, { skill: "colorRegionSplit", regionId: "R1", sourceMacros: [5] });
+    const first = structuredClone(actions[0]);
+    assert.equal(await board.getAttribute("tabindex"), "-1");
+    await page.locator("#retryAction").click();
+    await page.getByText("操作を保存しました。", { exact: true }).waitFor();
+    actions = await page.evaluate(() => globalThis.__standardOnlineRuntime.calls
+      .filter((entry) => entry.body?.operation === "action").map((entry) => entry.body.action));
+    assert.equal(actions.length, 2);
+    assert.deepEqual(actions[1], first);
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth), false);
   }, { viewport: { width: 390, height: 844 } });
 });

@@ -14,7 +14,7 @@ const edge = fs.readFileSync(path.join(root, "supabase", "functions", "standard-
 test("Micro Bloom keeps or accepts a connected board selection and submits the canonical intent", () => {
   assert.match(intents, /areaMicroBloom: "source-macros"/);
   assert.match(app, /\["corner-bloom", "source-macros"\]\.includes\(kind\)/);
-  assert.match(app, /\["source-macros", "corner-bloom", "band-shift"\]\.includes\(targetDraft\.kind\)/);
+  assert.match(app, /\["source-macros", "corner-bloom", "band-shift", "region-split"\]\.includes\(targetDraft\.kind\)/);
   assert.match(app, /targetDraft\?\.kind === "source-macros"\) return toggleBoardMacro\(state, macro\)/);
   assert.match(app, /targetDraft\.kind === "source-macros"\) useTarget\.disabled = selectedMacros\.size !== state\.requiredSize/);
   assert.match(app, /skillIntents\.buildSkillPayload\(targetDraft\.skill, input\)/);

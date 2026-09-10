@@ -3363,7 +3363,7 @@ function beginSkill(skill) {
   if (!["corner-bloom", "source-macros"].includes(kind)) selectedMacros.clear();
   if (kind === "corner-bloom") boardZoomed = true;
   render();
-  if (kind === "corner-bloom") {
+  if (["corner-bloom", "region-split"].includes(kind)) {
     const scheduledTarget = targetDraft;
     const scheduledKind = kind;
     requestAnimationFrame(() => {
@@ -3371,8 +3371,13 @@ function beginSkill(skill) {
       const board = $("board");
       board?.focus({ preventScroll: true });
       board?.scrollIntoView({ block: "center", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
-      const micro = ensureBoardKeyboardMicro(state);
-      scrollBoardMacroIntoView(state, macroForMicro(state, micro), scheduledTarget, scheduledKind);
+      if (kind === "corner-bloom") {
+        const micro = ensureBoardKeyboardMicro(state);
+        scrollBoardMacroIntoView(state, macroForMicro(state, micro), scheduledTarget, scheduledKind);
+      } else {
+        const macro = ensureBoardKeyboardMacro(state);
+        scrollBoardMacroIntoView(state, macro, scheduledTarget, scheduledKind);
+      }
     });
   } else $("skillTargetControls")?.querySelector("strong")?.focus({ preventScroll: true });
 }
@@ -3544,7 +3549,11 @@ function renderSkillTarget(state, privateState) {
   }
   if (targetDraft.kind === "slot-color") appendPaletteChangeTargeting(controls, privateState);
   if (targetDraft.kind === "region-split") {
-    for (const id of Object.keys(state.regions || {})) controls.appendChild(targetChoice(id, "regionId", id));
+    const guide = document.createElement("p");
+    guide.id = "regionSplitTargetGuide";
+    guide.className = "skill-target-guide";
+    guide.textContent = "紫枠の受取エリアで、先に彩色したい側の1マスを選ぶと即発動します。盤面の1マスだけで選べます。";
+    controls.appendChild(guide);
   }
   if (targetDraft.kind === "existing-region") {
     const regions = eligibleRecolorRegions(state);
@@ -3567,7 +3576,9 @@ function renderSkillTarget(state, privateState) {
       note.textContent = `盤面選択 ${selectedMacros.size}マス。${selectedMacros.size
         ? `緑の破線は次に辺でつなげて選べる候補です（${connectedCount}か所）。`
         : `水色の破線は選択を開始できる全候補です（${startCandidateMacros(state).size}か所）。自動選択ではありません。`}`;
-    } else note.textContent = `盤面選択 ${selectedMacros.size}マス。`;
+    } else note.textContent = selectedMacros.size
+      ? "選んだ1マスを先に彩色する側として、サーバーで成立可否を確認しています。"
+      : `紫枠の対象 ${regionSplitTargetMacros(state).length}マス。対象外を選んでも通信しません。`;
     controls.appendChild(note);
   }
   if (targetDraft.kind === "corner-bloom") {
@@ -3632,13 +3643,13 @@ function renderSkillTarget(state, privateState) {
   feedback.textContent = targetDraft.feedback || "";
   panel.appendChild(feedback);
   const actions = document.createElement("div"); actions.className = "controls";
-  if (["source-macros", "region-split"].includes(targetDraft.kind)) {
+  if (targetDraft.kind === "source-macros") {
     actions.appendChild(button("盤面選択を解除", () => {
       selectedMacros.clear();
       render();
     }, "ghost"));
   }
-  if (targetDraft.kind !== "corner-bloom") {
+  if (!["corner-bloom", "region-split"].includes(targetDraft.kind)) {
     const useTarget = button(targetDraft.kind === "existing-region" ? "このエリアをランダムに塗り直す"
       : targetDraft.kind === "slot-color" ? "この変更を使う" : "この対象で使う", submitSkillTarget, "primary");
     if (targetDraft.kind === "existing-region") {
@@ -3658,6 +3669,7 @@ function renderSkillTarget(state, privateState) {
     actions.appendChild(useTarget);
   }
   const cancelTarget = button(targetDraft.kind === "corner-bloom" ? "角膨張をキャンセル"
+    : targetDraft.kind === "region-split" ? "エリア二分をキャンセル"
     : targetDraft.kind === "slot-color" ? "持ち色変更をキャンセル" : "キャンセル", cancelSkillTarget, "ghost");
   if (targetDraft.kind === "corner-bloom") cancelTarget.classList.add("corner-bloom-cancel");
   actions.appendChild(cancelTarget); panel.appendChild(actions);
@@ -3677,11 +3689,12 @@ function submitSkillTarget() {
 }
 
 function boardSelectionAvailable(state = roomModel?.room?.public_state) {
-  const geometrySelection = !targetDraft || ["source-macros", "corner-bloom", "band-shift"].includes(targetDraft.kind);
+  const regionSplit = targetDraft?.kind === "region-split";
+  const geometrySelection = !targetDraft || ["source-macros", "corner-bloom", "band-shift", "region-split"].includes(targetDraft.kind);
   const preparedLocksSelection = Boolean(state?.preparedOutgoing?.actor === state?.active && targetDraft?.kind !== "corner-bloom");
   return Boolean(state && roomModel?.room?.status === "playing" && state.status === "ACTIVE" && !actionBusy && !pendingAction
     && !preparedLocksSelection && geometrySelection
-    && state.active === roomModel?.view?.seat && ["CREATE_FIRST", "WORK"].includes(state.phase));
+    && state.active === roomModel?.view?.seat && (regionSplit ? state.phase === "COLOR" : ["CREATE_FIRST", "WORK"].includes(state.phase)));
 }
 
 function resetBoardSelectionAssist({ clearSelection = false } = {}) {
@@ -3759,6 +3772,14 @@ function connectedMacros(macros, width) {
     }
   }
   return seen.size === cells.size;
+}
+
+function regionSplitTargetMacros(state) {
+  if (targetDraft?.kind !== "region-split") return [];
+  const region = state?.regions?.[state.pending];
+  return Array.isArray(region?.sourceMacros)
+    ? [...new Set(region.sourceMacros)].filter(Number.isSafeInteger).sort((left, right) => left - right)
+    : [];
 }
 
 function macroHasFreeMicro(state, macro) {
@@ -3862,6 +3883,10 @@ function boardMacroDescription(state, macro) {
       && (index <= bandShiftAxisBounds(state).min || index >= bandShiftAxisBounds(state).max);
     return `上から${row}行目、左から${col}列目。${targetDraft.input.axis === "ROW" ? "この行" : "この列"}${invalidTriple ? "は三層の外周なので選べません" : "を対象に選べます"}`;
   }
+  if (targetDraft?.kind === "region-split") {
+    const target = regionSplitTargetMacros(state).includes(macro);
+    return `上から${row}行目、左から${col}列目。${target ? "エリア二分で先に彩色する側として即発動できます" : "エリア二分の対象外です"}`;
+  }
   let availability = "使用済み";
   if (selectedMacros.has(macro)) availability = "選択済み";
   else if (macroHasFreeMicro(state, macro)) {
@@ -3879,11 +3904,13 @@ function announceBoardSelection(message) {
 }
 
 function ensureBoardKeyboardMacro(state) {
-  if (playableMacro(state, boardKeyboardMacro)) return boardKeyboardMacro;
+  if (playableMacro(state, boardKeyboardMacro)
+      && (targetDraft?.kind !== "region-split" || regionSplitTargetMacros(state).includes(boardKeyboardMacro))) return boardKeyboardMacro;
+  const firstSplitTarget = regionSplitTargetMacros(state)[0];
   const firstSelected = visibleOutgoingMacros(state).find((macro) => playableMacro(state, macro));
   const firstStartCandidate = startCandidateMacros(state).values().next().value;
   const bounds = state.playableBounds;
-  boardKeyboardMacro = firstSelected ?? firstStartCandidate ?? bounds.minRow * bounds.macroWidth + bounds.minCol;
+  boardKeyboardMacro = firstSplitTarget ?? firstSelected ?? firstStartCandidate ?? bounds.minRow * bounds.macroWidth + bounds.minCol;
   return boardKeyboardMacro;
 }
 
@@ -4074,6 +4101,35 @@ function rejectCornerBloomCell(message) {
   return false;
 }
 
+function rejectRegionSplitMacro(message) {
+  setSkillTargetFeedback(`${message} カードと手番は減りません。`, "error");
+  announceBoardSelection(message);
+  render();
+  requestAnimationFrame(() => targetDraft?.kind === "region-split" && $("board")?.focus({ preventScroll: true }));
+  return false;
+}
+
+function activateRegionSplitMacro(state, macro) {
+  if (targetDraft?.kind !== "region-split" || actionBusy || pendingAction) return false;
+  boardKeyboardMacro = macro;
+  if (!playableMacro(state, macro) || !regionSplitTargetMacros(state).includes(macro)) {
+    return rejectRegionSplitMacro("紫枠の受取エリアから対象マスを選んでください。");
+  }
+  selectedMacros.clear();
+  selectedMacros.add(macro);
+  targetDraft.input.regionId = state.pending;
+  try {
+    const payload = skillIntents.buildSkillPayload(targetDraft.skill, { regionId: state.pending, sourceMacros: [macro] });
+    setSkillTargetFeedback("選んだ1マスを先に彩色する側として、サーバーで成立可否を確認します。", "success");
+    announceBoardSelection("エリア二分をサーバーで確認します。");
+    render();
+    sendAction("USE_SKILL", payload);
+    return true;
+  } catch {
+    return rejectRegionSplitMacro("対象を確定できませんでした。別のマスを選んでください。");
+  }
+}
+
 function activateCornerBloomCell(state, micro) {
   if (targetDraft?.kind !== "corner-bloom" || actionBusy) return false;
   if (pendingAction) {
@@ -4259,13 +4315,19 @@ function boardKeydown(event) {
   }
   if ([" ", "Enter"].includes(event.key)) {
     event.preventDefault();
-    if (targetDraft?.kind === "band-shift") selectBandShiftMacro(state, macro);
+    if (targetDraft?.kind === "region-split") activateRegionSplitMacro(state, macro);
+    else if (targetDraft?.kind === "band-shift") selectBandShiftMacro(state, macro);
     else toggleBoardMacro(state, macro);
     scrollBoardMacroIntoView(state, macro);
     return;
   }
   if (event.key === "Escape") {
     event.preventDefault();
+    if (targetDraft?.kind === "region-split") {
+      announceBoardSelection("エリア二分をキャンセルしました。");
+      cancelSkillTarget();
+      return;
+    }
     if (targetDraft?.kind === "corner-bloom") {
       announceBoardSelection("角膨張をキャンセルしました。");
       cancelSkillTarget();
@@ -4329,6 +4391,7 @@ function renderBoard(state) {
   const boardInteractive = syncBoardSelectionAssist(state);
   const startGuidedMacros = boardInteractive && outgoingSelectionGuidanceActive() ? startCandidateMacros(state) : new Set();
   const connectedGuidedMacros = boardInteractive && outgoingSelectionGuidanceActive() ? connectedCandidateMacros(state) : new Set();
+  const splitTargets = new Set(regionSplitTargetMacros(state));
   const guidanceMode = startGuidedMacros.size ? "start" : connectedGuidedMacros.size ? "connected" : "none";
   canvas.dataset.selectionGuidance = guidanceMode;
   if (startGuidedMacros.size) canvas.dataset.startCandidateMacros = [...startGuidedMacros].sort((left, right) => left - right).join(",");
@@ -4340,6 +4403,8 @@ function renderBoard(state) {
     ? "塗り直す彩色済みエリアを選択。番号と色名は下の対象一覧でも選べます。"
     : cornerBloomCellTargetActive()
       ? "角膨張の対象セルを選択。矢印キーで細分セルを移動し、SpaceまたはEnterで即発動、Escapeでキャンセルできます。"
+    : targetDraft?.kind === "region-split"
+      ? `エリア二分の対象を選択。紫枠の受取エリア${splitTargets.size}マスから矢印キーで移動し、SpaceまたはEnterで即発動、Escapeでキャンセルできます。`
     : targetDraft?.kind === "band-shift"
       ? `${targetDraft.input.axis === "ROW" ? "動かす横の行" : "動かす縦の列"}を選択。矢印キーで移動し、SpaceまたはEnterで対象を決め、Escapeで対象を解除できます。`
     : boardInteractive
@@ -4374,6 +4439,9 @@ function renderBoard(state) {
     } else for (const macro of connectedGuidedMacros) {
       strokeMacroFrame(ctx, macro, macroWidth, microScale, cell, { color: "#86efac", cssWidth: 2.5, cssDash: [5, 4] });
     }
+  }
+  if (targetDraft?.kind === "region-split") {
+    for (const macro of splitTargets) strokeMacroFrame(ctx, macro, macroWidth, microScale, cell, { color: "#c084fc", cssWidth: 3.5, cssDash: [] });
   }
   ctx.fillStyle = "#ffffff38"; ctx.strokeStyle = "#f8fafc"; ctx.lineWidth = 3;
   for (const macro of visibleOutgoingMacros(state)) {
@@ -4632,6 +4700,7 @@ function boardPointer(event) {
   const macro = row * width + col;
   if (!skillGeometry) return toggleBoardMacro(state, macro);
   if (targetDraft?.kind === "source-macros") return toggleBoardMacro(state, macro);
+  if (targetDraft?.kind === "region-split") return activateRegionSplitMacro(state, macro);
   if (targetDraft?.kind === "band-shift") return selectBandShiftMacro(state, macro);
   if (targetDraft?.kind === "corner-bloom") return selectCornerBloomMacro(state, macro);
   if (selectedMacros.has(macro)) selectedMacros.delete(macro);
@@ -4705,6 +4774,9 @@ async function sendAction(type, payload = {}, retry = false) {
       operationFeedback("actionStatus", `${safeMessage} 最新の盤面を確認し、操作を選び直してください。`, "error");
       if (type === "USE_SKILL" && payload?.skill === "areaCornerBloom" && targetDraft?.kind === "corner-bloom") {
         setSkillTargetFeedback(`${safeMessage} カードと手番は減っていません。別のセルを選べます。`, "error");
+      }
+      if (type === "USE_SKILL" && payload?.skill === "colorRegionSplit" && targetDraft?.kind === "region-split") {
+        setSkillTargetFeedback(`${safeMessage} カードと手番は減っていません。別の紫枠を選べます。`, "error");
       }
     } else {
       operationFeedback("actionStatus", `${safeMessage} 下の「同じ操作を再送」で結果を確認してください。`, "retry");

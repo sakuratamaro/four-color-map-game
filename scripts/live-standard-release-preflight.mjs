@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { LOCAL_STANDARD_BUNDLE_MARKER, hasApprovedEdgeGachaOdds, hasApprovedGachaOddsUi, hasBoardFirstCandidateGuidance, hasDeferredCurseLocalBundle, hasPerCellContactFeedback, hasWholeButtonQuizPhysics } from "./standard-release-preflight-contracts.mjs";
+import { LOCAL_STANDARD_BUNDLE_MARKER, hasApprovedEdgeGachaOdds, hasApprovedGachaOddsUi, hasBoardFirstCandidateGuidance, hasDeferredCurseLocalBundle, hasPerCellContactFeedback, hasRegionSplitDirectTarget, hasWholeButtonQuizPhysics } from "./standard-release-preflight-contracts.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const configSource = fs.readFileSync(path.join(root, "online", "supabase-config.js"), "utf8");
@@ -14,7 +14,7 @@ const publicEdgeBundleUrl = new URL("../supabase/functions/standard-game-action/
 const expectedPhase = process.argv.find((argument) => argument.startsWith("--expect="))?.slice("--expect=".length) || null;
 const zeroUuid = "00000000-0000-0000-0000-000000000000";
 const candidateAssetMarkers = Object.freeze({
-  app: "app.js?v=20260910-18",
+  app: "app.js?v=20260910-19",
   style: "style.css?v=20260910-11",
   client: "standard-online-client.js?v=20260910-1",
   intents: "standard-online-skill-intents.js?v=20260907-20",
@@ -147,6 +147,7 @@ const result = {
     hasApprovedGachaOddsUi: hasApprovedGachaOddsUi(page.text, app.text),
     hasApprovedEdgeGachaOdds: publicEdgeBundle.status === 200 && hasApprovedEdgeGachaOdds(publicEdgeBundle.text),
     hasDeferredCurseLocalBundle: hasDeferredCurseLocalBundle(localStandardPage.text, localStandardBundle.text),
+    hasRegionSplitDirectTarget: hasRegionSplitDirectTarget(app.text, localStandardBundle.text),
     hasCandidateAssetGeneration: page.text.includes(candidateAssetMarkers.app)
       && page.text.includes(candidateAssetMarkers.style)
       && page.text.includes(candidateAssetMarkers.client)
@@ -161,7 +162,7 @@ const result = {
 const phaseExpectations = {
   baseline: { pregameAbandonUi: true, pregameAbandonDb: true, activeRoomUi: true, activeRoomDb: true, setupRevisionGuardDb: true, legalRecolorLabUi: true, matchmakingAvailabilityDb: false, waitingOpponentUi: false },
   "db-ready": { pregameAbandonUi: true, pregameAbandonDb: true, activeRoomUi: true, activeRoomDb: true, setupRevisionGuardDb: true, legalRecolorLabUi: true, matchmakingAvailabilityDb: true, waitingOpponentUi: false },
-  candidate: { pregameAbandonUi: true, pregameAbandonDb: true, activeRoomUi: true, activeRoomDb: true, setupRevisionGuardDb: true, legalRecolorLabUi: true, matchmakingAvailabilityDb: true, waitingOpponentUi: true, alpha3SkillCategoryUi: true, alpha4ColoredCornerBloomUi: true, registryRarityUi: true, cpuPortraitsUi: true, wholeButtonQuizPhysicsUi: true, boardFirstCandidateGuidanceUi: true, perCellContactFeedbackUi: true, approvedGachaOddsUi: true, approvedEdgeGachaOdds: true, deferredCurseLocalBundle: true, candidateAssetGenerationUi: true },
+  candidate: { pregameAbandonUi: true, pregameAbandonDb: true, activeRoomUi: true, activeRoomDb: true, setupRevisionGuardDb: true, legalRecolorLabUi: true, matchmakingAvailabilityDb: true, waitingOpponentUi: true, alpha3SkillCategoryUi: true, alpha4ColoredCornerBloomUi: true, registryRarityUi: true, cpuPortraitsUi: true, wholeButtonQuizPhysicsUi: true, boardFirstCandidateGuidanceUi: true, perCellContactFeedbackUi: true, approvedGachaOddsUi: true, approvedEdgeGachaOdds: true, deferredCurseLocalBundle: true, regionSplitDirectTargetUi: true, candidateAssetGenerationUi: true },
 };
 
 if (expectedPhase) {
@@ -192,6 +193,7 @@ if (expectedPhase) {
     assert.equal(result.publicPage.hasApprovedGachaOddsUi, expected.approvedGachaOddsUi, "APPROVED_GACHA_ODDS_UI_PHASE_MISMATCH");
     assert.equal(result.publicPage.hasApprovedEdgeGachaOdds, expected.approvedEdgeGachaOdds, "APPROVED_GACHA_ODDS_EDGE_BUNDLE_MISMATCH");
     assert.equal(result.publicPage.hasDeferredCurseLocalBundle, expected.deferredCurseLocalBundle, "DEFERRED_CURSE_LOCAL_BUNDLE_MISMATCH");
+    assert.equal(result.publicPage.hasRegionSplitDirectTarget, expected.regionSplitDirectTargetUi, "REGION_SPLIT_DIRECT_TARGET_UI_MISMATCH");
     assert.equal(result.publicPage.hasCandidateAssetGeneration, expected.candidateAssetGenerationUi, "CANDIDATE_ASSET_GENERATION_UI_PHASE_MISMATCH");
   }
 }

@@ -712,7 +712,8 @@ function boot() {
       if (!inside) cell.classList.add("outside");
       const cornerTargets = targetMode?.kind === "areaCornerBloom" ? new Set(targetMode.sourceMacros) : null;
       const bandShiftTarget = targetMode?.kind === "bandShift";
-      if (bandShiftTarget) cell.dataset.macro = String(macro);
+      const regionSplitTarget = targetMode?.kind === "colorRegionSplit";
+      if (bandShiftTarget || regionSplitTarget) cell.dataset.macro = String(macro);
       if (!inside || publicState.status === "FINISHED" || (!bandShiftTarget && (cornerTargets ? !cornerTargets.has(macro) : Boolean(publicState.preparedOutgoing)))) cell.disabled = true;
       if (selected.has(macro) || preparedMacros.has(macro)) cell.classList.add("selected");
       if (bandShiftTarget && Number.isSafeInteger(targetMode.index)) {
@@ -720,7 +721,9 @@ function boot() {
         if (band === targetMode.index) cell.classList.add("shift-target");
         else if (targetMode.skill === "areaTripleShift" && Math.abs(band - targetMode.index) === 1) cell.classList.add("shift-adjacent");
       }
+      if (regionSplitTarget && region?.id === publicState.pending) cell.classList.add("split-target");
       if (bandShiftTarget) cell.setAttribute("aria-label", `上から${row - bounds.minRow + 1}行目、左から${col - bounds.minCol + 1}列目。${targetMode.axis === "ROW" ? "この行" : "この列"}を対象に選ぶ`);
+      if (regionSplitTarget) cell.setAttribute("aria-label", `上から${row - bounds.minRow + 1}行目、左から${col - bounds.minCol + 1}列目。${region?.id === publicState.pending ? "エリア二分で先に彩色する側として即発動" : "エリア二分の対象外"}`);
       cell.onclick = () => {
         if (!cell.isConnected) return;
         if (!revealedSeat) return;
@@ -754,11 +757,10 @@ function boot() {
         if (targetMode?.kind === "areaResize") return;
         if (targetMode?.kind === "colorRegionSplit") {
           if (publicState.phase !== "COLOR" || region?.id !== publicState.pending) return;
-          session.cancelPendingActionRetry();
-          selected.has(macro) ? selected.delete(macro) : selected.add(macro);
+          selected.clear();
+          selected.add(macro);
           renderPublic(session.getPublicProjection());
-          const privateResult = session.revealPrivate(revealedSeat);
-          if (privateResult.ok) renderPrivate(privateResult.privateState);
+          dispatch("USE_SKILL", { skill: "colorRegionSplit", regionId: publicState.pending, sourceMacros: [macro] });
           return;
         }
         if (targetMode === "legalRecolor" && region?.color) {
@@ -774,6 +776,17 @@ function boot() {
         if (privateResult.ok) renderPrivate(privateResult.privateState);
       };
       cell.addEventListener("keydown", (event) => {
+        if (targetMode?.kind === "colorRegionSplit" && event.key === "Escape") {
+          event.preventDefault();
+          targetMode = null;
+          selected.clear();
+          session.cancelPendingActionRetry();
+          say("エリア二分の対象選択をキャンセルしました。");
+          renderPublic(publicState);
+          const privateResult = session.revealPrivate(revealedSeat);
+          if (privateResult.ok) renderPrivate(privateResult.privateState);
+          return;
+        }
         if (targetMode?.kind !== "bandShift") return;
         if (event.key === "Escape") {
           event.preventDefault();
@@ -916,20 +929,17 @@ function boot() {
       appendButton("エリア二分", colorSkillUsed || targetMode !== null || phase !== "COLOR" || !pendingRegion || (pendingRegion.sourceMacros || []).length < 2, () => {
         selected.clear();
         targetMode = { kind: "colorRegionSplit" };
-        say("受取エリア上で、先に自分が彩色する側を選んでください。両側とも連結が必要です。");
+        say("紫枠の受取エリアから、先に彩色する側の1マスを選んでください。選ぶとすぐ発動し、成立可否はゲーム側が判定します。");
         renderPublic(publicState);
         renderPrivate(own);
+        requestAnimationFrame(() => board.querySelector('.cell.split-target:not(:disabled)')?.focus({ preventScroll: true }));
       });
     }
     if (targetMode?.kind === "colorRegionSplit") {
       const label = document.createElement("p");
-      label.textContent = `先に彩色する側：${selected.size}マス選択中`;
+      label.className = "split-target-guide";
+      label.textContent = "紫枠の受取エリアで、先に彩色したい側の1マスを選ぶと即発動します。盤面の1マスだけで選べます。";
       privatePanel.appendChild(label);
-      appendButton("エリア二分を確定", selected.size === 0, () => {
-        const regionId = publicState.pending;
-        const sourceMacros = [...selected].sort((a, b) => a - b);
-        dispatch("USE_SKILL", { skill: "colorRegionSplit", regionId, sourceMacros });
-      });
       appendButton("エリア二分をキャンセル", false, () => {
         targetMode = null;
         selected.clear();

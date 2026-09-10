@@ -80,7 +80,7 @@ test("CPU commentary is public-event-only, bounded, non-blocking, and terminal-p
   assert.match(html, /style\.css\?v=20260910-11/);
   assert.match(html, /standard-online-client\.js\?v=20260910-1/);
   assert.match(html, /standard-online-skill-intents\.js\?v=20260907-20/);
-  assert.match(html, /app\.js\?v=20260910-18/);
+  assert.match(html, /app\.js\?v=20260910-19/);
   assert.match(app, /cpuCommentary\?\.VERSION !== "standard-cpu-commentary-v2"/);
   assert.ok(html.indexOf("cpu-commentary.js") < html.indexOf('type="module" src="app.js'));
   assert.match(html, /id="cpuCommentaryStage"[^>]+aria-hidden="true"/);
@@ -408,7 +408,7 @@ test("existing online progression is hydrated from the server rather than re-upl
 
 test("UI derives its canonical and experimental card metadata from the generated registry", () => {
   assert.equal(Object.values(STANDARD_SKILLS).filter((skill) => skill.v49Catalogued).length, 19);
-  assert.match(html, /standard-skill-registry\.generated\.js\?v=20260907-1[\s\S]+app\.js\?v=20260910-18/);
+  assert.match(html, /standard-skill-registry\.generated\.js\?v=20260907-1[\s\S]+app\.js\?v=20260910-19/);
   assert.match(app, /const STANDARD_SKILL_REGISTRY = globalThis\.FourColorStandardSkillRegistry/);
   assert.match(app, /STANDARD_SKILL_REGISTRY\.v49SkillIds\.map/);
   assert.match(app, /Object\.entries\(STANDARD_SKILL_REGISTRY\.skills\)/);
@@ -759,7 +759,7 @@ test("corner bloom is card then board cell then immediate action without a choos
   assert.match(resolver, /function activateCornerBloomCell\(state, micro\)/);
   assert.match(resolver, /skillIntents\.buildSkillPayload\(targetDraft\.skill, input\)/);
   assert.match(resolver, /sendAction\("USE_SKILL", payload\)/);
-  assert.match(renderTarget, /targetDraft\.kind !== "corner-bloom"[\s\S]+actions\.appendChild\(useTarget\)/);
+  assert.match(renderTarget, /!\["corner-bloom", "region-split"\]\.includes\(targetDraft\.kind\)[\s\S]+actions\.appendChild\(useTarget\)/);
   assert.doesNotMatch(app, /setCornerBloomMode|data-corner-bloom-mode|data-corner-bloom-region|data-corner-bloom-macro|dataset\.cornerBloomMacro/);
   assert.doesNotMatch(css, /\.corner-bloom-mode-controls|\.corner-bloom-targets/);
   assert.doesNotMatch(renderTarget, /角を広げる基準マス|盤面で色のついたエリアを選ぶ|盤面で渡すエリアを選ぶ/);
@@ -811,8 +811,30 @@ test("half shift and triple shift select their bands on the board without raw po
   assert.doesNotMatch(target, /input\.type = "number"|createElement\("select"\)|正方向|負方向/);
   assert.match(board, /targetDraft\?\.kind === "band-shift"\) selectBandShiftMacro\(state, macro\)/);
   assert.match(board, /color: center \? "#fde047" : "#d8b4fe"/);
-  assert.match(app, /\["source-macros", "corner-bloom", "band-shift"\]\.includes\(targetDraft\.kind\)/);
+  assert.match(app, /\["source-macros", "corner-bloom", "band-shift", "region-split"\]\.includes\(targetDraft\.kind\)/);
   assert.match(css, /@media\(max-width:390px\)\{\.shift-axis-controls button,[^}]*min-height:48px/);
+});
+
+test("region split is card then one normal board cell then an authoritative immediate action", () => {
+  const target = app.slice(app.indexOf("function beginSkill"), app.indexOf("function bandShiftAxisBounds"));
+  const targets = app.slice(app.indexOf("function regionSplitTargetMacros"), app.indexOf("function macroHasFreeMicro"));
+  const resolver = app.slice(app.indexOf("function activateRegionSplitMacro"), app.indexOf("function activateCornerBloomCell"));
+  const board = app.slice(app.indexOf("function boardKeydown"), app.indexOf("async function sendAction"));
+  const pointer = app.slice(app.indexOf("function boardPointer(event)"), app.indexOf("function boardPointerDown"));
+  const renderTarget = app.slice(app.indexOf("function renderSkillTarget"), app.indexOf("function submitSkillTarget"));
+  assert.match(target, /\["corner-bloom", "region-split"\]\.includes\(kind\)[\s\S]+board\?\.focus/);
+  assert.match(renderTarget, /regionSplitTargetGuide[\s\S]+1マスを選ぶと即発動/);
+  assert.match(renderTarget, /!\["corner-bloom", "region-split"\]\.includes\(targetDraft\.kind\)/);
+  assert.doesNotMatch(renderTarget, /targetChoice\(id, "regionId"|エリア二分.*確定/);
+  assert.match(targets, /function regionSplitTargetMacros\(state\)[\s\S]+state\?\.regions\?\.\[state\.pending\][\s\S]+sourceMacros/);
+  assert.match(resolver, /function activateRegionSplitMacro\(state, macro\)[\s\S]+regionSplitTargetMacros\(state\)\.includes\(macro\)/);
+  assert.match(resolver, /skillIntents\.buildSkillPayload\(targetDraft\.skill, \{ regionId: state\.pending, sourceMacros: \[macro\] \}\)/);
+  assert.match(resolver, /sendAction\("USE_SKILL", payload\)/);
+  assert.doesNotMatch(resolver, /connectedMacros|adjacentRegionIds|candidate|controllers|privateState/);
+  assert.match(pointer, /targetDraft\?\.kind === "region-split"\) return activateRegionSplitMacro\(state, macro\)/);
+  assert.match(board, /targetDraft\?\.kind === "region-split"\) activateRegionSplitMacro\(state, macro\)/);
+  assert.match(board, /targetDraft\?\.kind === "region-split"[\s\S]+cancelSkillTarget\(\)/);
+  assert.match(board, /color: "#c084fc", cssWidth: 3\.5/);
 });
 
 test("skill target cancel is write-free and clears only transient selection", () => {

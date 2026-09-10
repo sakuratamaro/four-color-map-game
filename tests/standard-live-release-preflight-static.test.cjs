@@ -45,10 +45,11 @@ test("release preflight is read-only, secret-free, finite, and stage-aware", () 
   assert.match(source, /hasApprovedGachaOddsUi/);
   assert.match(source, /hasApprovedEdgeGachaOdds/);
   assert.match(source, /hasDeferredCurseLocalBundle/);
+  assert.match(source, /hasRegionSplitDirectTarget/);
   assert.match(source, /hasCandidateAssetGeneration/);
   assert.match(source, /baseline:\s*\{[^}]*matchmakingAvailabilityDb:\s*false[^}]*waitingOpponentUi:\s*false\s*\}/);
   assert.match(source, /"db-ready":\s*\{[^}]*matchmakingAvailabilityDb:\s*true[^}]*waitingOpponentUi:\s*false\s*\}/);
-  assert.match(source, /candidate:\s*\{[^}]*matchmakingAvailabilityDb:\s*true[^}]*waitingOpponentUi:\s*true[^}]*alpha3SkillCategoryUi:\s*true[^}]*alpha4ColoredCornerBloomUi:\s*true[^}]*registryRarityUi:\s*true[^}]*cpuPortraitsUi:\s*true[^}]*wholeButtonQuizPhysicsUi:\s*true[^}]*boardFirstCandidateGuidanceUi:\s*true[^}]*perCellContactFeedbackUi:\s*true[^}]*approvedGachaOddsUi:\s*true[^}]*approvedEdgeGachaOdds:\s*true[^}]*deferredCurseLocalBundle:\s*true[^}]*candidateAssetGenerationUi:\s*true\s*\}/);
+  assert.match(source, /candidate:\s*\{[^}]*matchmakingAvailabilityDb:\s*true[^}]*waitingOpponentUi:\s*true[^}]*alpha3SkillCategoryUi:\s*true[^}]*alpha4ColoredCornerBloomUi:\s*true[^}]*registryRarityUi:\s*true[^}]*cpuPortraitsUi:\s*true[^}]*wholeButtonQuizPhysicsUi:\s*true[^}]*boardFirstCandidateGuidanceUi:\s*true[^}]*perCellContactFeedbackUi:\s*true[^}]*approvedGachaOddsUi:\s*true[^}]*approvedEdgeGachaOdds:\s*true[^}]*deferredCurseLocalBundle:\s*true[^}]*regionSplitDirectTargetUi:\s*true[^}]*candidateAssetGenerationUi:\s*true\s*\}/);
   assert.match(source, /ACTIVE_ROOM_RECOVERY_PHASE_MISMATCH/);
   assert.match(source, /LEGAL_RECOLOR_LAB_UI_PHASE_MISMATCH/);
   assert.match(source, /SETUP_LOAD_V3_PHASE_MISMATCH/);
@@ -65,9 +66,10 @@ test("release preflight is read-only, secret-free, finite, and stage-aware", () 
   assert.match(source, /APPROVED_GACHA_ODDS_UI_PHASE_MISMATCH/);
   assert.match(source, /APPROVED_GACHA_ODDS_EDGE_BUNDLE_MISMATCH/);
   assert.match(source, /DEFERRED_CURSE_LOCAL_BUNDLE_MISMATCH/);
+  assert.match(source, /REGION_SPLIT_DIRECT_TARGET_UI_MISMATCH/);
   assert.match(source, /app\.text\.includes\('★\$\{meta\.rarity\}'\)/);
   assert.match(source, /CANDIDATE_ASSET_GENERATION_UI_PHASE_MISMATCH/);
-  assert.match(source, /app\.js\?v=20260910-18/);
+  assert.match(source, /app\.js\?v=20260910-19/);
   assert.match(source, /style\.css\?v=20260910-11/);
   assert.match(source, /standard-online-client\.js\?v=20260910-1/);
   assert.match(source, /standard-online-skill-intents\.js\?v=20260907-20/);
@@ -93,12 +95,21 @@ test("release preflight is read-only, secret-free, finite, and stage-aware", () 
 
 test("candidate preflight rejects a stale local Standard bundle marker or missing deferred curse code", async () => {
   const { LOCAL_STANDARD_BUNDLE_MARKER, LOCAL_STANDARD_BUNDLE_SHA256, hasDeferredCurseLocalBundle } = await contractsPromise;
-  assert.equal(LOCAL_STANDARD_BUNDLE_MARKER, "app.bundle.js?v=20260910-4-3e483dc37b1d");
-  assert.equal(LOCAL_STANDARD_BUNDLE_SHA256, "3e483dc37b1d386ee82471f15e591606db1256710211cad1cd780fe82a537402");
+  assert.equal(LOCAL_STANDARD_BUNDLE_MARKER, "app.bundle.js?v=20260910-5-e2eaa264973b");
+  assert.equal(LOCAL_STANDARD_BUNDLE_SHA256, "e2eaa264973b6bcedc8a4b4a810395e4072c174617b2047073b11faedd14d960");
   assert.equal(hasDeferredCurseLocalBundle(candidateLocalHtml, candidateLocalBundle), true);
   assert.equal(hasDeferredCurseLocalBundle(candidateLocalHtml.replace(LOCAL_STANDARD_BUNDLE_MARKER, "app.bundle.js?v=20260907-5"), candidateLocalBundle), false);
   assert.equal(hasDeferredCurseLocalBundle(candidateLocalHtml, candidateLocalBundle.replace("consumeDeferredCurseBacklashAfterColor(next, actor);", "void next;")), false);
   assert.equal(hasDeferredCurseLocalBundle(candidateLocalHtml, `${candidateLocalBundle}\n`), false);
+});
+
+test("candidate preflight requires direct Region Split targeting in online and local Standard", async () => {
+  const { hasRegionSplitDirectTarget } = await contractsPromise;
+  assert.equal(hasRegionSplitDirectTarget(candidateApp, candidateLocalBundle), true);
+  assert.equal(hasRegionSplitDirectTarget(candidateApp.replace("function activateRegionSplitMacro(state, macro)", "function chooseRegionSplitId(state, macro)"), candidateLocalBundle), false);
+  assert.equal(hasRegionSplitDirectTarget(candidateApp.replace("盤面の1マスだけで選べます。", "エリアIDを選んでください。"), candidateLocalBundle), false);
+  assert.equal(hasRegionSplitDirectTarget(`${candidateApp}\ntargetChoice(id, "regionId", id);`, candidateLocalBundle), false);
+  assert.equal(hasRegionSplitDirectTarget(candidateApp, `${candidateLocalBundle}\nエリア二分を確定`), false);
 });
 
 test("candidate preflight accepts only whole-button AABB physics with abortable listener cleanup", async () => {
@@ -173,7 +184,7 @@ test("candidate app satisfies the waiting-opponent release marker", () => {
 });
 
 test("candidate page and app satisfy the alpha.4 cache generation marker", () => {
-  assert.equal(candidateHtml.includes("app.js?v=20260910-18"), true);
+  assert.equal(candidateHtml.includes("app.js?v=20260910-19"), true);
   assert.equal(candidateHtml.includes("style.css?v=20260910-11"), true);
   assert.equal(candidateHtml.includes("standard-online-client.js?v=20260910-1"), true);
   assert.equal(candidateHtml.includes("standard-online-skill-intents.js?v=20260907-20"), true);

@@ -9,8 +9,8 @@ const APP_GACHA_ODDS_MARKERS = Object.freeze([
 ]);
 
 const EDGE_GACHA_ODDS_MARKER = 'const gachaOdds = {"1":{"1":65,"2":29,"3":5,"4":0.9,"5":0.1},"2":{"1":40,"2":35,"3":19,"4":5.5,"5":0.5},"3":{"1":25,"2":35,"3":28,"4":10,"5":2},"4":{"1":0,"2":35,"3":35,"4":24,"5":6},"5":{"1":0,"2":0,"3":40,"4":40,"5":20}};';
-const LOCAL_STANDARD_BUNDLE_SHA256 = "3e483dc37b1d386ee82471f15e591606db1256710211cad1cd780fe82a537402";
-const LOCAL_STANDARD_BUNDLE_MARKER = `app.bundle.js?v=20260910-4-${LOCAL_STANDARD_BUNDLE_SHA256.slice(0, 12)}`;
+const LOCAL_STANDARD_BUNDLE_SHA256 = "e2eaa264973b6bcedc8a4b4a810395e4072c174617b2047073b11faedd14d960";
+const LOCAL_STANDARD_BUNDLE_MARKER = `app.bundle.js?v=20260910-5-${LOCAL_STANDARD_BUNDLE_SHA256.slice(0, 12)}`;
 
 function includesAll(source, markers) {
   return typeof source === "string" && markers.every((marker) => source.includes(marker));
@@ -100,6 +100,23 @@ export function hasDeferredCurseLocalBundle(pageText, bundleText) {
       "consumeDeferredCurseBacklashAfterColor(next, actor);",
       "Curse backlash resolved after Player ${actor} completed coloring.",
     ]);
+}
+
+export function hasRegionSplitDirectTarget(appText, localBundleText) {
+  return includesAll(appText, [
+    "function regionSplitTargetMacros(state)",
+    "function activateRegionSplitMacro(state, macro)",
+    "skillIntents.buildSkillPayload(targetDraft.skill, { regionId: state.pending, sourceMacros: [macro] })",
+    'sendAction("USE_SKILL", payload)',
+    "盤面の1マスだけで選べます。",
+  ])
+    && !appText.includes('targetChoice(id, "regionId", id)')
+    && includesAll(localBundleText, [
+      'const regionSplitTarget = targetMode?.kind === "colorRegionSplit";',
+      'dispatch("USE_SKILL", { skill: "colorRegionSplit", regionId: publicState.pending, sourceMacros: [macro] });',
+      "盤面の1マスだけで選べます。",
+    ])
+    && !localBundleText.includes("エリア二分を確定");
 }
 
 export const APPROVED_GACHA_ODDS = Object.freeze({

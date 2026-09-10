@@ -1038,12 +1038,13 @@ async function assertSplitUse(browser, gesture) {
     const beforeRoot = await persistedRoot(page);
     const beforeCounters = { ...metrics };
     await page.getByRole("button", { name: "エリア二分", exact: true }).click();
-    await page.locator('[aria-label="盤面"] button').nth(26).click();
-    const confirm = page.getByRole("button", { name: "エリア二分を確定" });
+    assert.equal(await page.getByRole("button", { name: "エリア二分を確定" }).count(), 0);
+    assert.equal(await page.locator('.split-target').count(), 3);
+    const target = page.locator('[aria-label="盤面"] button').nth(26);
     if (gesture === "pointer") {
-      await confirm.evaluate((button) => { button.click(); button.click(); });
+      await target.evaluate((button) => { button.click(); button.click(); });
     } else {
-      await confirm.focus();
+      await target.focus();
       await page.keyboard.down(gesture);
       await page.keyboard.down(gesture);
       await page.keyboard.up(gesture);
@@ -1550,7 +1551,7 @@ test("color-seal native keyboard and normal-URL lifecycle gates", { skip: !chrom
     await t.test("pointer double activation resolves colorPaletteChange exactly once", () => assertPaletteChangeUse(browser, "pointer"));
     await t.test("Enter repeat resolves colorPaletteChange exactly once", () => assertPaletteChangeUse(browser, "Enter"));
     await t.test("Space repeat resolves colorPaletteChange exactly once", () => assertPaletteChangeUse(browser, " "));
-    await t.test("split selection cancel and reload are write-free and never revive selection UI", async () => {
+    await t.test("split direct-target cancel and reload are write-free and never revive targeting UI", async () => {
       const { context, page, metrics } = await newMeasuredPage(browser);
       try {
         await bootToAWork(page);
@@ -1558,15 +1559,14 @@ test("color-seal native keyboard and normal-URL lifecycle gates", { skip: !chrom
         const before = await persistedSnapshot(page);
         const counters = { ...metrics };
         await page.getByRole("button", { name: "エリア二分", exact: true }).click();
-        await page.locator('[aria-label="盤面"] button').nth(26).click();
-        assert.equal(await page.locator('[aria-label="盤面"] button.selected').count(), 1);
+        assert.equal(await page.getByRole("button", { name: "エリア二分を確定" }).count(), 0);
+        assert.equal(await page.locator('.split-target').count(), 3);
         await page.getByRole("button", { name: "エリア二分をキャンセル" }).click();
-        assert.equal(await page.locator('[aria-label="盤面"] button.selected').count(), 0);
+        assert.equal(await page.locator('.split-target').count(), 0);
         assert.deepEqual(await persistedSnapshot(page), before);
         assert.deepEqual(metrics, counters);
 
         await page.getByRole("button", { name: "エリア二分", exact: true }).click();
-        await page.locator('[aria-label="盤面"] button').nth(26).click();
         await page.reload({ waitUntil: "load" });
         await assertHandoverIsPrivate(page);
         assert.equal(await page.locator('[aria-label="盤面"] button.selected').count(), 0);
@@ -1590,9 +1590,8 @@ test("color-seal native keyboard and normal-URL lifecycle gates", { skip: !chrom
         const rawBefore = await page.evaluate((key) => localStorage.getItem(key), saveKey);
         const counters = { ...metrics };
         await page.getByRole("button", { name: "エリア二分", exact: true }).click();
-        await page.locator('[aria-label="盤面"] button').nth(26).click();
         await page.evaluate(() => globalThis.__codexFailNextStandardWrite());
-        await page.getByRole("button", { name: "エリア二分を確定" }).click();
+        await page.locator('[aria-label="盤面"] button').nth(26).click();
         await page.getByText("操作できません（PERSISTENCE_FAILED）。", { exact: true }).waitFor();
         assert.equal(await page.evaluate((key) => localStorage.getItem(key), saveKey), rawBefore);
         assert.deepEqual(await persistedSnapshot(page), before);
@@ -1603,7 +1602,7 @@ test("color-seal native keyboard and normal-URL lifecycle gates", { skip: !chrom
 
         await page.waitForTimeout(350);
         const retryCounters = { ...metrics };
-        await page.getByRole("button", { name: "エリア二分を確定" }).click();
+        await page.locator('[aria-label="盤面"] button').nth(26).click();
         await page.waitForFunction(({ key, revision }) => JSON.parse(localStorage.getItem(key)).rootRevision === revision + 1, {
           key: saveKey, revision: before.rootRevision,
         });
