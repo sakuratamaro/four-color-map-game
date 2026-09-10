@@ -47,6 +47,7 @@ test("Runbook B canary covers economy retries, cancellation, lock, settlement, a
   assert.match(source, /const QUIZ_ACCURACY_ONLY = process\.argv\.includes\("--quiz-accuracy-only"\)/);
   assert.match(source, /const quizRounds = QUIZ_ACCURACY_ONLY \? 1 : QUIZ_ROUNDS/);
   assert.match(source, /round <= quizRounds/);
+  assert.match(source, /quiz accuracy cold restore is exact/);
   assert.match(source, /Runbook B quiz accuracy live checks passed/);
   assert.match(source, /paid cosmetic is owned once/);
   assert.match(source, /surrender trophy state is stable/);

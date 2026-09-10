@@ -334,6 +334,10 @@ async function run() {
   }
 
   if (QUIZ_ACCURACY_ONLY) {
+    activeStage = "quiz accuracy cold restore";
+    const restoredProfileA = await readProfile({ token: playerA.token }, CANARY_NAMES.A);
+    check("quiz accuracy cold restore is exact", restoredProfileA.revision === profileA.revision
+      && same(restoredProfileA.profile, profileA.profile));
     for (const name of checks) console.log(`PASS  ${name}`);
     console.log(`SUMMARY ${checks.length}/${checks.length} Runbook B quiz accuracy live checks passed`);
     return;
