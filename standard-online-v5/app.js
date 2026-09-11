@@ -4832,11 +4832,17 @@ function battleViewportInsets() {
 function fitPlaySurface() {
   if (activeAppTab !== "battle" || $("matchCard").classList.contains("hidden")) return;
   const { top, bottom } = battleViewportInsets();
-  const responseHeight = $("colorResponse").getBoundingClientRect().height;
-  const controlHeight = $("regionControls").getBoundingClientRect().height;
-  const noticeHeight = $("paletteImpactNotice").getBoundingClientRect().height;
-  const guideHeight = noticeHeight ? 0 : $("turnGuide").getBoundingClientRect().height;
-  const room = Math.floor(innerHeight - top - bottom - responseHeight - controlHeight - noticeHeight - guideHeight - 48);
+  const board = $("boardViewport").getBoundingClientRect();
+  const response = $("colorResponse").getBoundingClientRect();
+  const controls = $("regionControls").getBoundingClientRect();
+  const notice = $("paletteImpactNotice").getBoundingClientRect();
+  const guide = $("turnGuide").getBoundingClientRect();
+  const start = notice.height ? notice.top : guide.height ? guide.top : board.top;
+  const end = response.height ? response.bottom : controls.height ? controls.bottom : board.bottom;
+  // Measure real flow gaps rather than reserving a guessed 48px again. Font
+  // metrics differ between Windows installations; double-counting shrank the board.
+  const otherContentHeight = Math.max(0, end - start - board.height);
+  const room = Math.floor(innerHeight - top - bottom - otherContentHeight - 8);
   $("playSurface").style.setProperty("--play-board-max", `${Math.max(280, Math.min(560, room))}px`);
   show("playViewportHint", room < 280);
 }
