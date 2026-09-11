@@ -42,6 +42,7 @@
   ],
   "coordination": {
     "status": "palette_public_verified_new_intake_reconciled",
+    "latest_publication_report": {"kind":"publication_and_intake_report_not_review_request","destination_thread_id":"6aa229e7-e098-83ee-ac5e-d366a12653a4","artifact_sha":"9519431aaf56e2e35a123b021df9178f89ada653","send_tool_succeeded":true,"destination_message_id":null,"delivery_readback":"PENDING_ACTIVE_TURN_NOT_INCLUDED_IN_READ_THREAD","delivery_checks":1,"review_wait_started":false,"note":"The one bounded read returned the prior completed v6 user turn 0832e679 while the chat was active. That ID is not this report's message ID. Do not claim full delivery equality or reviewer acknowledgement. No resend or model polling loop; reconcile at the next normal task event."},
     "deferred_outbound": {
       "id": "USER-20260911-DEFERRED-PALETTE-REPORT",
       "state": "sent_review_request_confirmed",
