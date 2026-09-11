@@ -46,3 +46,11 @@ Public gameplay and physical devices are **NOT_RUN** at preparation. Candidate r
 v7 is queued for deduplicated intake. The actual latest paired v8 user/Astra messages (`bbb21715-8ab0-4dfb-ad2f-b46883434765` / `c1c1a98e-749e-42ec-8a95-2ef30abd5035`, designated chat) were read while implementing. They replace color-position-fixed presentation with role-position-fixed separate slots and request simpler lobby/battle/purchase UI. This is queued separately; it does not revoke completed role identification/reward navigation or alter this memo candidate. No personal details from that conversation are copied into this public packet.
 
 Please review this fixed candidate and return `DECISION`, `SUBJECT_SHA`, blockers and scope-bound notes. This request is not an attempt to reopen completed 052/055/059 reviews or use a documentation approval for game release.
+
+## Delivery and gate completion receipt
+
+Windows run `34626368159` finished **SUCCESS** at `2026-09-11T17:25:26Z` for exact `a6c24f4`, both Chrome `103352343608` and Edge `103352343857`. Product source was not amended during the run.
+
+Review request was sent once through the existing ChatGPT connection. First bounded transport read still showed the preceding completed turn; the second confirmed user message `94d51f28-a7ba-48fe-b175-dfb951eba226` with **full prompt equality**. ChatGPT was generating, with no assistant decision yet. No resend or approval inference. Shared artifact at delivery was `19ecf246f71d00a2d8b97bad6c77180bca0c9177`; this later receipt is not a different product candidate.
+
+The existing finite wait uses conservative start `2026-09-11T17:25:00Z`, checks at 17:45 / 18:05 / 19:05 UTC, maximum three and hard expiry 19:25 UTC, without resetting on restarts/candidate revisions. The previous completed UDL059 budget is retained separately. Opt-in guard for the live canary exited 2 with no network writes as required; live behavior and physical devices remain NOT_RUN.

@@ -41,13 +41,20 @@
     }
   ],
   "coordination": {
-    "status": "udl048_candidate_windows_running_review_preparation",
+    "status": "udl048_exact_review_delivered_windows_success",
     "latest_v8_intake": {
       "state": "PAIRED_SOURCE_READ_QUEUED_NOT_IMPLEMENTED",
       "source_thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
       "user_message_id": "bbb21715-8ab0-4dfb-ad2f-b46883434765",
       "astra_response_id": "c1c1a98e-749e-42ec-8a95-2ef30abd5035",
-      "topics": ["simplify lobby to CPU, friend, anyone", "role-position-fixed separate palette slots supersede color-position-fixed proposal", "board and palette in one viewport, hand 3 by 2", "result-local next actions", "item-local purchase and equip", "remove implementation jargon"],
+      "topics": [
+        "simplify lobby to CPU, friend, anyone",
+        "role-position-fixed separate palette slots supersede color-position-fixed proposal",
+        "board and palette in one viewport, hand 3 by 2",
+        "result-local next actions",
+        "item-local purchase and equip",
+        "remove implementation jargon"
+      ],
       "note": "Actual completed paired source read. ZIP v8 not yet acquired or validated here. Preserve prior public role identification and reward navigation. Independent backlog; not mixed into UDL048 or treated as release approval. Personal conversation details omitted."
     },
     "intake_received_while_implementing": {
@@ -61,8 +68,33 @@
       "state": "RECEIVED_QUEUED_FOR_DEDUPLICATED_INTAKE_NOT_BLOCKING_UDL048",
       "note": "Transfer reports manifest 40/40 and 28 unchanged plus 8 new requests. Commander read actual paired user/Astra text on 2026-09-12; package revalidation and canonical mapping remain pending. Not a new release approval, 5-color adoption or production change. Author contact remains forbidden."
     },
-    "latest_publication_report": {"kind":"publication_report_not_review_request","destination_thread_id":"6aa229e7-e098-83ee-ac5e-d366a12653a4","artifact_sha":"7fdaef9cacdef8c1d97298a8e83c765316b722ef","candidate_sha":"f8713d7006da0619b9c356d53a472754833fb910","send_attempts":1,"send_attempt_reserved_at_utc":"2026-09-11T04:44:13Z","send_tool_succeeded":true,"destination_message_id":null,"delivery_readback":"SENT_API_SUCCESS_MESSAGE_ID_NOT_YET_VISIBLE_IN_TWO_BOUNDED_READS","review_wait_started":false,"note":"Send API succeeded. Both bounded readbacks still returned the preceding completed review while ChatGPT was active; do not claim full destination-body equality or acknowledgement. No resend, no new wait, automation remains PAUSED. Resolve message ID opportunistically at the next normal task, not by polling.","delivery_checks":2},
-    "latest_implementation_instruction": {"source_kind":"chatgpt_implementation_direction_not_release_approval","thread_id":"6aa229e7-e098-83ee-ac5e-d366a12653a4","request_message_id":"9a175c4b-6ab1-4236-b5b6-1d47fbf84ad4","response_message_id":"3709f277-5a0b-4fb1-be6e-58375acd6c0f","url":"https://chatgpt.com/c/6aa229e7-e098-83ee-ac5e-d366a12653a4","readback":"FULL_PAIRED_RESPONSE_COMPLETED_IDLE","response_text":"**受領しました。固定成果物 `9519431aaf56e2e35a123b021df9178f89ada653` の公開証拠と、v4〜v6の受領記録を確認しました。UDL-052の完了済みレビューは再開せず、次はUDL-059へ進めてください。**\n\n## 完了したものと、残っているもの\n\n**UDL-052の属性識別スライスは、公開・公開後確認まで完了したものとして扱います。** `ce6fab5`のPages配備、配信ファイルのbyte一致、公開Chromeでの30/30 PASSが記録されています。30/30はCodexの実測報告として受領したもので、こちらで再実行したものではありません。位置固定・4色方式・UDL-054・物理端末確認は、引き続き別の未完項目です。\n\n**頭脳ZIPのv4〜v6も、「こちらで資料化しただけ」から「Codexが受領し、既存UDLへ対応付けた」段階へ進みました。** CPU関連を051へまとめ、瞬間整列・二分説明・角膨張は既存項目へ、新しい履歴・オーロラ・報酬券レベル引継ぎだけを057〜059へ分けた受領記録を確認しています。これらの受領完了を、ゲームへの実装完了とは混同しません。\n\nv4の元message ID補完は通常の受付作業として残し、今回の独立改修の停止条件にはしません。\n\n## 次はUDL-059：クイズ報酬からの券レベル引継ぎ\n\n受領資料にある**「CPU報酬導線は保存報酬の券レベルを渡しているが、`quizGoGacha`は無引数」**という切り分けに沿って、不足したクイズ入口を最小差分で修正する方針でよいです。既存CPU導線を作り直す必要はありません。\n\n今回の受入条件は、次に絞ります。\n\n| 場面 | 必要な動作 |\n|---|---|\n| 前回Lv.5を選択後、確定したLv.2報酬から移動 | **Lv.2が選択済み**。クイズ難易度から推測せず、保存された報酬の`ticketLevel`を使う |\n| 移動後の同期・再描画 | 指定レベルが初期値へ戻らない。その後の手動選択を、同じ報酬指定で繰り返し上書きしない |\n| 対象券の残数が0 | そのレベルの残数0を表示し、別レベルへ勝手に切り替えない |\n| 未決着のガチャが存在 | **既存のactionId・券レベル・枚数を保持**し、報酬リンクの指定で再送内容を差し替えない |\n\n**遷移だけで抽選・券消費を起こさず、選択表示・排出率表示・抽選時に渡す券レベルが一致すること**を確認してください。通常のタブ移動、既存CPU報酬導線、報酬量・排出率は非変更範囲です。\n\n**この報告への承認待ちは不要です。** UDL-059を通常司令塔で実装・検証し、新候補ができた時点で固定SHA・差分・試験結果を提示してください。文書整理やCPU強化の完成待ちにはせず、候補レビューと必要なゲートを通した便から順次公開する方針を維持します。","request_ids":["UDL-20260911-059"],"status":"ROUTED_TO_EXISTING_COMMANDER"},
+    "latest_publication_report": {
+      "kind": "publication_report_not_review_request",
+      "destination_thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
+      "artifact_sha": "7fdaef9cacdef8c1d97298a8e83c765316b722ef",
+      "candidate_sha": "f8713d7006da0619b9c356d53a472754833fb910",
+      "send_attempts": 1,
+      "send_attempt_reserved_at_utc": "2026-09-11T04:44:13Z",
+      "send_tool_succeeded": true,
+      "destination_message_id": null,
+      "delivery_readback": "SENT_API_SUCCESS_MESSAGE_ID_NOT_YET_VISIBLE_IN_TWO_BOUNDED_READS",
+      "review_wait_started": false,
+      "note": "Send API succeeded. Both bounded readbacks still returned the preceding completed review while ChatGPT was active; do not claim full destination-body equality or acknowledgement. No resend, no new wait, automation remains PAUSED. Resolve message ID opportunistically at the next normal task, not by polling.",
+      "delivery_checks": 2
+    },
+    "latest_implementation_instruction": {
+      "source_kind": "chatgpt_implementation_direction_not_release_approval",
+      "thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
+      "request_message_id": "9a175c4b-6ab1-4236-b5b6-1d47fbf84ad4",
+      "response_message_id": "3709f277-5a0b-4fb1-be6e-58375acd6c0f",
+      "url": "https://chatgpt.com/c/6aa229e7-e098-83ee-ac5e-d366a12653a4",
+      "readback": "FULL_PAIRED_RESPONSE_COMPLETED_IDLE",
+      "response_text": "**受領しました。固定成果物 `9519431aaf56e2e35a123b021df9178f89ada653` の公開証拠と、v4〜v6の受領記録を確認しました。UDL-052の完了済みレビューは再開せず、次はUDL-059へ進めてください。**\n\n## 完了したものと、残っているもの\n\n**UDL-052の属性識別スライスは、公開・公開後確認まで完了したものとして扱います。** `ce6fab5`のPages配備、配信ファイルのbyte一致、公開Chromeでの30/30 PASSが記録されています。30/30はCodexの実測報告として受領したもので、こちらで再実行したものではありません。位置固定・4色方式・UDL-054・物理端末確認は、引き続き別の未完項目です。\n\n**頭脳ZIPのv4〜v6も、「こちらで資料化しただけ」から「Codexが受領し、既存UDLへ対応付けた」段階へ進みました。** CPU関連を051へまとめ、瞬間整列・二分説明・角膨張は既存項目へ、新しい履歴・オーロラ・報酬券レベル引継ぎだけを057〜059へ分けた受領記録を確認しています。これらの受領完了を、ゲームへの実装完了とは混同しません。\n\nv4の元message ID補完は通常の受付作業として残し、今回の独立改修の停止条件にはしません。\n\n## 次はUDL-059：クイズ報酬からの券レベル引継ぎ\n\n受領資料にある**「CPU報酬導線は保存報酬の券レベルを渡しているが、`quizGoGacha`は無引数」**という切り分けに沿って、不足したクイズ入口を最小差分で修正する方針でよいです。既存CPU導線を作り直す必要はありません。\n\n今回の受入条件は、次に絞ります。\n\n| 場面 | 必要な動作 |\n|---|---|\n| 前回Lv.5を選択後、確定したLv.2報酬から移動 | **Lv.2が選択済み**。クイズ難易度から推測せず、保存された報酬の`ticketLevel`を使う |\n| 移動後の同期・再描画 | 指定レベルが初期値へ戻らない。その後の手動選択を、同じ報酬指定で繰り返し上書きしない |\n| 対象券の残数が0 | そのレベルの残数0を表示し、別レベルへ勝手に切り替えない |\n| 未決着のガチャが存在 | **既存のactionId・券レベル・枚数を保持**し、報酬リンクの指定で再送内容を差し替えない |\n\n**遷移だけで抽選・券消費を起こさず、選択表示・排出率表示・抽選時に渡す券レベルが一致すること**を確認してください。通常のタブ移動、既存CPU報酬導線、報酬量・排出率は非変更範囲です。\n\n**この報告への承認待ちは不要です。** UDL-059を通常司令塔で実装・検証し、新候補ができた時点で固定SHA・差分・試験結果を提示してください。文書整理やCPU強化の完成待ちにはせず、候補レビューと必要なゲートを通した便から順次公開する方針を維持します。",
+      "request_ids": [
+        "UDL-20260911-059"
+      ],
+      "status": "ROUTED_TO_EXISTING_COMMANDER"
+    },
     "deferred_outbound": {
       "id": "USER-20260911-DEFERRED-PALETTE-REPORT",
       "state": "sent_review_request_confirmed",
@@ -171,7 +203,7 @@
     },
     "active_slice": {
       "id": "UDL-20260910-048",
-      "state": "IMPLEMENTED_LOCAL_VERIFIED_WINDOWS_RUNNING",
+      "state": "WINDOWS_VERIFIED_EXACT_ASTRA_REVIEW_PENDING",
       "owner_thread_id": "01a07b56-616e-7733-9aae-90575659688e",
       "base_sha": "f8713d7006da0619b9c356d53a472754833fb910",
       "branch": "codex/quiz-memo-calculator-20260912",
@@ -182,22 +214,41 @@
       "spec_snapshot_sha": "3182edb815f723039ceacb41ae00e5e05391ee93",
       "local_tests": "900/900 clean final nonbrowser; 38/38 pure; Chrome 11/11 related, Edge 8/8 new, final rotation 1/1 each; skip 0",
       "windows_run": "34626368159",
-      "windows_status": "IN_PROGRESS",
-      "review_status": "NOT_SENT",
+      "windows_status": "SUCCESS",
+      "review_status": "PENDING",
+      "review_send_attempts": 1,
+      "review_send_reserved_at_utc": "2026-09-11T17:22:00Z",
+      "review_source_artifact_sha": "19ecf246f71d00a2d8b97bad6c77180bca0c9177",
       "review_packet": "docs/ASTRA_QUIZ_MEMO_REVIEW_20260912.md",
       "public_gameplay": "NOT_RUN",
       "physical_devices": "NOT_RUN",
       "scope": "Pages_only",
       "db_change_set": [],
       "edge_change_set": [],
-      "goal_completion": "Exact candidate tests and genuine Astra review, Windows gate, main/Pages and public verification. Not completed by an intake or status report."
+      "goal_completion": "Exact candidate tests and genuine Astra review, Windows gate, main/Pages and public verification. Not completed by an intake or status report.",
+      "windows_updated_at_utc": "2026-09-11T17:25:26Z",
+      "windows_jobs": [
+        {
+          "id": "103352343608",
+          "browser": "chrome",
+          "status": "SUCCESS"
+        },
+        {
+          "id": "103352343857",
+          "browser": "edge",
+          "status": "SUCCESS"
+        }
+      ],
+      "review_request_message_id": "94d51f28-a7ba-48fe-b175-dfb951eba226",
+      "review_delivery_checks": 2,
+      "review_delivery_note": "Full prompt equality with the destination user message; thread active and no assistant answer yet. No resend."
     },
     "automation_id": "automation",
-    "automation_status_at_recording": "PAUSED",
-    "automation_readback_updated_at": 1789100649518,
+    "automation_status_at_recording": "ACTIVE",
+    "automation_readback_updated_at": 1789147656508,
     "automation_prompt_readback_equal": true,
-    "automation_pause_reason": "Exact UDL-059 review received; no eligible review wait. Normal commander release proceeds independently.",
-    "automation_active_reason": null,
+    "automation_pause_reason": null,
+    "automation_active_reason": "Exact UDL048 delivered message 94d51f28; finite 17:45/18:05/19:05 UTC checks and 19:25 expiry. Updated API and saved full prompt verified; no duplicate automation.",
     "completed_review_waits": [
       {
         "root_request_message_id": "8464f659-ad62-4c09-83d9-44e1cc91316b",
@@ -245,13 +296,37 @@
         "status": "review_received_closed",
         "response_message_id": "77551f6f-4d00-402e-9c71-96f8923b094c",
         "subject_sha": "d53ac7ba6a50a433701a5664703a8a5e22d1bb35"
+      },
+      {
+        "root_request_message_id": "0e59ad44-7ce7-440b-ac6f-11d325bd1e68",
+        "subject_sha": "f8713d7006da0619b9c356d53a472754833fb910",
+        "started_at_utc": "2026-09-11T03:50:05Z",
+        "expires_at_utc": "2026-09-11T05:50:05Z",
+        "automatic_checks": 0,
+        "max_automatic_checks": 3,
+        "offset_minutes": [
+          20,
+          40,
+          100
+        ],
+        "next_check_utc": null,
+        "max_age_minutes": 120,
+        "reset_on_candidate_revision": false,
+        "reset_on_restart_or_unrelated_message": false,
+        "confirmed_delivery_reminders": 0,
+        "status": "review_received_closed",
+        "start_note": "Conservative timestamp at the beginning of the bounded delivery-confirmation read; no extension while recording or updating automation.",
+        "response_message_id": "bbc180c1-1cdb-4754-b53b-71eec1e11895",
+        "closed_at_utc": "2026-09-11T04:26:33Z",
+        "manual_checks": 1,
+        "close_trigger": "User notified the normal commander that Astra had replied. No automatic counter or deadline reset."
       }
     ],
     "wait_budget": {
-      "root_request_message_id": "0e59ad44-7ce7-440b-ac6f-11d325bd1e68",
-      "subject_sha": "f8713d7006da0619b9c356d53a472754833fb910",
-      "started_at_utc": "2026-09-11T03:50:05Z",
-      "expires_at_utc": "2026-09-11T05:50:05Z",
+      "root_request_message_id": "94d51f28-a7ba-48fe-b175-dfb951eba226",
+      "subject_sha": "a6c24f496338412a7cb4e933b0faba06cb28ccce",
+      "started_at_utc": "2026-09-11T17:25:00Z",
+      "expires_at_utc": "2026-09-11T19:25:00Z",
       "automatic_checks": 0,
       "max_automatic_checks": 3,
       "offset_minutes": [
@@ -259,19 +334,24 @@
         40,
         100
       ],
-      "next_check_utc": null,
+      "next_check_utc": "2026-09-11T17:45:00Z",
       "max_age_minutes": 120,
       "reset_on_candidate_revision": false,
       "reset_on_restart_or_unrelated_message": false,
       "confirmed_delivery_reminders": 0,
-      "status": "review_received_closed",
-      "start_note": "Conservative timestamp at the beginning of the bounded delivery-confirmation read; no extension while recording or updating automation.",
-      "response_message_id": "bbc180c1-1cdb-4754-b53b-71eec1e11895",
-      "closed_at_utc": "2026-09-11T04:26:33Z",
-      "manual_checks": 1,
-      "close_trigger": "User notified the normal commander that Astra had replied. No automatic counter or deadline reset."
+      "status": "review_pending",
+      "start_note": "Conservative minute preceding the second bounded transport read; full prompt equality confirmed. No response acquired and no reminder."
     },
-    "pending_review_subject": null,
+    "pending_review_subject": {
+      "subject_sha": "a6c24f496338412a7cb4e933b0faba06cb28ccce",
+      "base_sha": "f8713d7006da0619b9c356d53a472754833fb910",
+      "feature_spec_version": "UDL-048-memo-v1",
+      "spec_snapshot_sha": "3182edb815f723039ceacb41ae00e5e05391ee93",
+      "spec_snapshot_kind": "git_blob:docs/QUIZ_MEMO_CALCULATOR_20260912.md",
+      "scope": "Pages_only",
+      "db_change_set": [],
+      "edge_change_set": []
+    },
     "documentation_test_followup": {
       "path": "tests/governance-shared-canon.test.cjs",
       "observation": "Genuine review 008 binds UDL-059-quiz-v1, not prior UDL-055 or UDL-052 candidates.",
@@ -280,11 +360,11 @@
       "boundary": "Governance evidence maintenance did not amend or block independently approved product f8713d7."
     },
     "initial_interval_minutes": 20,
-    "pending_subject_sha": null,
-    "pending_scope": null,
-    "pending_delivery_status": "exact_review_received_closed",
-    "last_confirmed_sent_message_id": "0e59ad44-7ce7-440b-ac6f-11d325bd1e68",
-    "last_sent_message_id": "0e59ad44-7ce7-440b-ac6f-11d325bd1e68",
+    "pending_subject_sha": "a6c24f496338412a7cb4e933b0faba06cb28ccce",
+    "pending_scope": "Pages_only",
+    "pending_delivery_status": "delivery_verified_response_pending",
+    "last_confirmed_sent_message_id": "94d51f28-a7ba-48fe-b175-dfb951eba226",
+    "last_sent_message_id": "94d51f28-a7ba-48fe-b175-dfb951eba226",
     "self_sent_message_ids": [
       "ef6f161d-f2b9-40c0-ab06-f6eacf4c4d38",
       "cefaccf8-2648-4d63-b7fe-5a4a78023ec2",
@@ -294,10 +374,11 @@
       "0e2ea02e-abfb-4d81-9898-038c62b32897",
       "8464f659-ad62-4c09-83d9-44e1cc91316b",
       "9a175c4b-6ab1-4236-b5b6-1d47fbf84ad4",
-      "0e59ad44-7ce7-440b-ac6f-11d325bd1e68"
+      "0e59ad44-7ce7-440b-ac6f-11d325bd1e68",
+      "94d51f28-a7ba-48fe-b175-dfb951eba226"
     ],
-    "sent_at_utc": "2026-09-11T03:47:13Z",
-    "last_check_utc": "2026-09-11T04:26:33Z",
+    "sent_at_utc": "2026-09-11T17:22:00Z",
+    "last_check_utc": "2026-09-11T17:25:27Z",
     "unchanged_checks": 0,
     "reminder_count": 0,
     "max_reminders_per_request": 1,
@@ -428,7 +509,9 @@
         "quoted_decision": "DECISION: HOLD; SUBJECT_SHA: 7b4006e93483127d14dcb802ba4a9780ddf89c47",
         "quoted_blocker": "対象候補の実体を取得できず、文書・差分・テスト内容を確認できていません。"
       },
-      "blockers": ["B1: local candidate was unavailable to the reviewer; GitHub returned 422 No commit found for SHA"],
+      "blockers": [
+        "B1: local candidate was unavailable to the reviewer; GitHub returned 422 No commit found for SHA"
+      ],
       "applies_to_current_candidate": false,
       "notes": "Real decision from the designated ChatGPT, retrieved with read_thread. Preserved for its original subject only. No documentation or game release was approved."
     },
@@ -455,7 +538,9 @@
       },
       "blockers": [],
       "applies_to_current_candidate": false,
-      "nonblocking_notes": ["Align shared-canon-v1 in the command-center introduction with the v1.1 entrypoint in a later documentation cleanup."],
+      "nonblocking_notes": [
+        "Align shared-canon-v1 in the command-center introduction with the v1.1 entrypoint in a later documentation cleanup."
+      ],
       "notes": "Actual response retrieved from the designated ChatGPT. Reviewer reports fetching the candidate and matching the entrypoint blob. It did not rerun the reported 23 tests. Approval binds f9a4ab9 only, not bc58a0e, eb2fc0f, later operations, or any production action."
     },
     {
@@ -466,10 +551,21 @@
       "base_sha": "2f855ccfef11d7c099cfb73fb57ec3da79be8789",
       "spec_snapshot_sha": "b0673739bf4dc15875c69b9ab52c69b725d9e312",
       "spec_snapshot_kind": "git_blob:docs/SHARED_CANON.md",
-      "db_change_set": [], "edge_change_set": [], "scope": "documentation_introduction",
+      "db_change_set": [],
+      "edge_change_set": [],
+      "scope": "documentation_introduction",
       "decision": "REQUEST_CHANGES",
-      "source": { "kind": "chatgpt", "thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4", "message_id": "c76043e6-e84e-4d14-9795-5f51fd0d5f7a", "request_message_id": "5b8245b3-0cf1-4ece-bb78-470c510c0fdc", "quoted_decision": "REQUEST_CHANGES", "quoted_blocker": "未回答時の定期確認に、総回数・期限の上限がありません。" },
-      "blockers": ["Bound each logical review wait to three checks and 120 minutes, separate intake from implementation, and actually pause the schedule."],
+      "source": {
+        "kind": "chatgpt",
+        "thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
+        "message_id": "c76043e6-e84e-4d14-9795-5f51fd0d5f7a",
+        "request_message_id": "5b8245b3-0cf1-4ece-bb78-470c510c0fdc",
+        "quoted_decision": "REQUEST_CHANGES",
+        "quoted_blocker": "未回答時の定期確認に、総回数・期限の上限がありません。"
+      },
+      "blockers": [
+        "Bound each logical review wait to three checks and 120 minutes, separate intake from implementation, and actually pause the schedule."
+      ],
       "applies_to_current_candidate": false,
       "notes": "Complete actual response read. No new intake blockers. UDL-052 attribute identification was specified independently; game publication not approved by this documentation response. Follow-up finite-wait edit is unapproved until separately reviewed."
     },
@@ -482,9 +578,18 @@
       "base_sha": "2f855ccfef11d7c099cfb73fb57ec3da79be8789",
       "spec_snapshot_sha": "f6d3c85f7d30e599f1ea1682516a5776fbc24899",
       "spec_snapshot_kind": "git_blob:docs/TERMINAL_SETUP_NOTICE_FIX_20260910.md",
-      "db_change_set": [], "edge_change_set": [], "scope": "Pages-only game bugfix",
+      "db_change_set": [],
+      "edge_change_set": [],
+      "scope": "Pages-only game bugfix",
       "decision": "APPROVE_RELEASE",
-      "source": { "kind": "chatgpt", "thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4", "message_id": "231cf559-308c-49a3-8326-e3382a06987f", "request_message_id": "85de07dc-a8cd-4f35-921d-2f682d224a5c", "quoted_decision": "APPROVE_RELEASE", "quoted_scope": "UDL-055-v1／この固定候補のPages-only修正／DB・Edge変更各 []" },
+      "source": {
+        "kind": "chatgpt",
+        "thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
+        "message_id": "231cf559-308c-49a3-8326-e3382a06987f",
+        "request_message_id": "85de07dc-a8cd-4f35-921d-2f682d224a5c",
+        "quoted_decision": "APPROVE_RELEASE",
+        "quoted_scope": "UDL-055-v1／この固定候補のPages-only修正／DB・Edge変更各 []"
+      },
       "blockers": [],
       "applies_to_current_candidate": false,
       "notes": "Actual approval fetched in full. Candidate changed to 5c03e6c while review ran (one preflight marker line); approval is not reused. New exact-SHA review requested. CI/live acceptance remains independently required."
@@ -498,10 +603,20 @@
       "base_sha": "2f855ccfef11d7c099cfb73fb57ec3da79be8789",
       "spec_snapshot_sha": "f6d3c85f7d30e599f1ea1682516a5776fbc24899",
       "spec_snapshot_kind": "git_blob:docs/TERMINAL_SETUP_NOTICE_FIX_20260910.md",
-      "db_change_set": [], "edge_change_set": [], "scope": "Pages-only game bugfix",
+      "db_change_set": [],
+      "edge_change_set": [],
+      "scope": "Pages-only game bugfix",
       "decision": "APPROVE_RELEASE",
-      "source": { "kind": "chatgpt", "thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4", "message_id": "f9602351-1660-443a-ae7e-ad23f6bcf468", "request_message_id": "00d476cf-0f55-4ffb-b55f-5a3777322ecc", "quoted_decision": "APPROVE_RELEASE", "quoted_scope": "この新SHAへ承認を再固定します。" },
-      "blockers": [], "applies_to_current_candidate": true,
+      "source": {
+        "kind": "chatgpt",
+        "thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
+        "message_id": "f9602351-1660-443a-ae7e-ad23f6bcf468",
+        "request_message_id": "00d476cf-0f55-4ffb-b55f-5a3777322ecc",
+        "quoted_decision": "APPROVE_RELEASE",
+        "quoted_scope": "この新SHAへ承認を再固定します。"
+      },
+      "blockers": [],
+      "applies_to_current_candidate": true,
       "notes": "Read complete response in idle/completed state. Reviewer verified the one-line preflight cache update and reconfirmed UDL-055-v1, spec blob, Pages-only, DB/Edge[]. It did not rerun tests. Windows gate, main freshness, deployment and live checks remain separate gates."
     },
     {
@@ -512,10 +627,22 @@
       "base_sha": "2f855ccfef11d7c099cfb73fb57ec3da79be8789",
       "spec_snapshot_sha": "b0673739bf4dc15875c69b9ab52c69b725d9e312",
       "spec_snapshot_kind": "git_blob:docs/SHARED_CANON.md",
-      "db_change_set": [], "edge_change_set": [], "scope": "documentation_introduction",
+      "db_change_set": [],
+      "edge_change_set": [],
+      "scope": "documentation_introduction",
       "decision": "APPROVE_DOCS",
-      "source": { "kind": "chatgpt", "thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4", "message_id": "77551f6f-4d00-402e-9c71-96f8923b094c", "request_message_id": "0e2ea02e-abfb-4d81-9898-038c62b32897", "url": "https://chatgpt.com/c/6aa229e7-e098-83ee-ac5e-d366a12653a4", "quoted_decision": "APPROVE_DOCS", "quoted_scope": "documentation_introduction／DB・Edge変更各 []", "quoted_next_instruction": "次はUDL-052の属性識別スライスを、既定の仕様・非変更範囲で続行してください。" },
-      "blockers": [], "applies_to_current_candidate": false,
+      "source": {
+        "kind": "chatgpt",
+        "thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
+        "message_id": "77551f6f-4d00-402e-9c71-96f8923b094c",
+        "request_message_id": "0e2ea02e-abfb-4d81-9898-038c62b32897",
+        "url": "https://chatgpt.com/c/6aa229e7-e098-83ee-ac5e-d366a12653a4",
+        "quoted_decision": "APPROVE_DOCS",
+        "quoted_scope": "documentation_introduction／DB・Edge変更各 []",
+        "quoted_next_instruction": "次はUDL-052の属性識別スライスを、既定の仕様・非変更範囲で続行してください。"
+      },
+      "blockers": [],
+      "applies_to_current_candidate": false,
       "notes": "Complete designated ChatGPT response read once within the original wait budget, with thread idle and turn completed. Approval is bound to d53ac7b only, not later receipt commit 585e0f8 or new game candidates. Reviewer accepted 15/15 and PAUSED readback as Codex reports, not independently rerun evidence. UDL-055 review stays closed; UDL-052 is queued only, not implemented by this heartbeat."
     },
     {
