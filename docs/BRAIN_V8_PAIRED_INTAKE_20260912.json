@@ -1,0 +1,107 @@
+{
+  "kind": "intake_snapshot_not_operational_ledger",
+  "source": {
+    "thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
+    "user_message_id": "bbb21715-8ab0-4dfb-ad2f-b46883434765",
+    "response_message_id": "c1c1a98e-749e-42ec-8a95-2ef30abd5035",
+    "readback": "FULL_COMPLETED_PAIR_VERIFIED",
+    "zip_status": "TRANSFER_PENDING_NOT_YET_HASHED_BY_COMMANDER"
+  },
+  "alias_policy": "CHAT-V8 IDs are commander-assigned source item keys, not unverified ZIP delta IDs. Reconcile ZIP aliases when the existing transfer completes without creating duplicate UDL rows.",
+  "records": [
+    {
+      "id": "CHAT-V8-20260912-01",
+      "canonical_ids": [
+        "UDL-20260907-023"
+      ],
+      "source_quote": "上部、一画面に収まる範囲に、構造化された「このタブで何ができるのか」、一目でわかるものを置いて",
+      "design_summary": "CPU／友だち／だれかの3択。人と対戦は見出し。選択後に関連操作だけ表示。",
+      "intent_state": "decided",
+      "implementation_state": "not_started",
+      "verification_state": "not_run",
+      "release_state": "not_merged",
+      "new_acceptance_automated": false
+    },
+    {
+      "id": "CHAT-V8-20260912-02",
+      "canonical_ids": [
+        "UDL-20260910-052"
+      ],
+      "source_quote": "以前要望した、色ごとに位置固定は撤回で、基本色基本色おまけ色残り色として一行に並べてください",
+      "design_summary": "役割4枠固定。同色でも別button。∞／残数／🔒／❌、外部役割名と読み上げ。複数追加色は第4枠選択。隣接合法色hintなし。",
+      "intent_state": "decided",
+      "implementation_state": "not_started",
+      "verification_state": "not_run",
+      "release_state": "not_merged",
+      "new_acceptance_automated": false
+    },
+    {
+      "id": "CHAT-V8-20260912-03",
+      "canonical_ids": [
+        "UDL-20260910-054",
+        "UDL-20260912-063"
+      ],
+      "source_quote": "色塗りボタンと現在のマップは一画面に収まっててください",
+      "design_summary": "盤面全体とpalette同時可視。手札3列×2行、使用済み位置保持、説明は任意、重要なpalette変更原因は隠さない。",
+      "intent_state": "decided",
+      "implementation_state": "not_started",
+      "verification_state": "not_run",
+      "release_state": "not_merged",
+      "new_acceptance_automated": false
+    },
+    {
+      "id": "CHAT-V8-20260912-04",
+      "canonical_ids": [
+        "UDL-20260912-060"
+      ],
+      "source_quote": "終了後に上まで行ってロビーに戻らないと他の操作がしにくいの、わかりにくいし不親切だよね",
+      "design_summary": "結果付近に再戦／別相手／獲得券ガチャ／ロビー。終了結果・報酬を保持し、他tabへの移動に上scrollを要求しない。",
+      "intent_state": "decided",
+      "implementation_state": "not_started",
+      "verification_state": "not_run",
+      "release_state": "not_merged",
+      "new_acceptance_automated": false
+    },
+    {
+      "id": "CHAT-V8-20260912-05",
+      "canonical_ids": [
+        "UDL-20260912-061"
+      ],
+      "source_quote": "装飾の購入も、購入ボタンを押すだけじゃなくて、押したあと下に行ってサーバーに送信、みたいな一手間があるのも導線が悪いよね",
+      "design_summary": "商品上の明示購入／装備だけで保存完結。同じ場所にpending／success／retry、二重購入防止と実価格変更確認を維持。",
+      "intent_state": "decided",
+      "implementation_state": "not_started",
+      "verification_state": "not_run",
+      "release_state": "not_merged",
+      "new_acceptance_automated": false
+    },
+    {
+      "id": "CHAT-V8-20260912-06",
+      "canonical_ids": [
+        "UDL-20260912-062"
+      ],
+      "source_quote": "プレイヤーが「え、それ俺に言われても知らんし…」ってなりそうな文言は全部消してね",
+      "design_summary": "実装用語を結果と次の操作に置換。価格／率／ルール／credits／真のerrorは残す。",
+      "intent_state": "decided",
+      "implementation_state": "not_started",
+      "verification_state": "not_run",
+      "release_state": "not_merged",
+      "new_acceptance_automated": false
+    },
+    {
+      "id": "CHAT-V8-20260912-07",
+      "canonical_ids": [
+        "UDL-20260907-023"
+      ],
+      "source_quote": "ローカルの導線はもういらないんじゃないですか？",
+      "design_summary": "通常home／battleのLocal／Quick入口を外す。既存code／saveを削除しない。",
+      "intent_state": "decided",
+      "implementation_state": "not_started",
+      "verification_state": "not_run",
+      "release_state": "not_merged",
+      "new_acceptance_automated": false
+    }
+  ],
+  "privacy": "Only product requirements retained. Unrelated personal conversation content excluded.",
+  "implementation_gate": "Queue for the explicit successor UI goal after UDL048 public completion. Intake is not implementation or release approval."
+}

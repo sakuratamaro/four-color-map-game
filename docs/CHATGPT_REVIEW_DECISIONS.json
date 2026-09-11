@@ -41,9 +41,9 @@
     }
   ],
   "coordination": {
-    "status": "udl048_portrait_regression_fix_awaiting_new_review_submission",
+    "status": "udl048_public_verified_ui_goal_ready",
     "latest_v8_intake": {
-      "state": "PAIRED_SOURCE_READ_QUEUED_NOT_IMPLEMENTED",
+      "state": "PAIRED_SOURCE_MAPPED_CANONICAL_UI_GOAL_QUEUED_ZIP_PENDING",
       "source_thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
       "user_message_id": "bbb21715-8ab0-4dfb-ad2f-b46883434765",
       "astra_response_id": "c1c1a98e-749e-42ec-8a95-2ef30abd5035",
@@ -55,7 +55,8 @@
         "item-local purchase and equip",
         "remove implementation jargon"
       ],
-      "note": "Actual completed paired source read. ZIP v8 not yet acquired or validated here. Preserve prior public role identification and reward navigation. Independent backlog; not mixed into UDL048 or treated as release approval. Personal conversation details omitted."
+      "note": "Actual completed paired source read. ZIP v8 not yet acquired or validated here. Preserve prior public role identification and reward navigation. Independent backlog; not mixed into UDL048 or treated as release approval. Personal conversation details omitted.",
+      "intake_snapshot": "docs/BRAIN_V8_PAIRED_INTAKE_20260912.json"
     },
     "intake_received_while_implementing": {
       "package_id": "BRAIN-UPDATE-20260911-07",
@@ -152,8 +153,8 @@
       "scope": "receive_and_route_only"
     },
     "reviewer_thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
-    "last_consumed_review_message_id": "c2ade94f-bf09-40c8-b010-302d17264a30",
-    "last_received_message_id": "c2ade94f-bf09-40c8-b010-302d17264a30",
+    "last_consumed_review_message_id": "ffc94034-65a2-45b0-93d9-c04062e27fcc",
+    "last_received_message_id": "ffc94034-65a2-45b0-93d9-c04062e27fcc",
     "pending_user_intake_message_ids": [
       "ea61f25f-bebf-499a-81e9-029712a96f99"
     ],
@@ -209,42 +210,7 @@
       "matches_created": 0,
       "data_deleted": false
     },
-    "active_slice": {
-      "id": "UDL-20260910-048",
-      "state": "PORTRAIT_FIX_LOCAL_VERIFICATION_NEW_REVIEW_REQUIRED",
-      "owner_thread_id": "01a07b56-616e-7733-9aae-90575659688e",
-      "base_sha": "a6c24f496338412a7cb4e933b0faba06cb28ccce",
-      "branch": "codex/quiz-memo-calculator-20260912",
-      "worktree": ".codex-worktrees/quiz-memo-calculator-20260912",
-      "spec_version": "UDL-048-memo-v1.1",
-      "spec_path": "docs/QUIZ_MEMO_CALCULATOR_20260912.md",
-      "candidate_sha": "a26ffd14a8f896d9d087dac032d8f079ece82f7d",
-      "spec_snapshot_sha": "347b31327c14937530b019a4eb36b9a9e22d5a30",
-      "local_tests": "a26ffd1 clean nonbrowser900/900 skip0; c4be0ec identical product/browser files Chrome9/9 and Edge portrait1/1; final runbook7/7; three builders zero diff. Earlier c4be0ec899/900 old documentation marker failure retained.",
-      "windows_run": "34630426525",
-      "windows_status": "IN_PROGRESS",
-      "review_status": "PENDING_NEW_EXACT_REVIEW",
-      "review_send_attempts": 0,
-      "review_send_reserved_at_utc": "2026-09-11T17:22:00Z",
-      "review_source_artifact_sha": "19ecf246f71d00a2d8b97bad6c77180bca0c9177",
-      "review_packet": "docs/ASTRA_QUIZ_MEMO_PORTRAIT_REVIEW_20260912.md",
-      "public_gameplay": "INITIAL_FUNCTIONAL_PASS_VISUAL_FAIL_FOLLOWUP_NOT_RUN",
-      "physical_devices": "NOT_RUN",
-      "scope": "Pages_only",
-      "db_change_set": [],
-      "edge_change_set": [],
-      "goal_completion": "Exact candidate tests and genuine Astra review, Windows gate, main/Pages and public verification. Not completed by an intake or status report.",
-      "review_request_message_id": null,
-      "review_delivery_checks": 2,
-      "review_delivery_note": "Full prompt equality with the destination user message; thread active and no assistant answer yet. No resend.",
-      "review_id": null,
-      "review_response_message_id": null,
-      "next_action": "New exact follow-up review and Windows gate, then publish unchanged reviewed candidate and run the 38-check public canary including visual geometry.",
-      "initial_public_candidate_sha": "a6c24f496338412a7cb4e933b0faba06cb28ccce",
-      "initial_public_pages_run": "34629235891",
-      "initial_public_functional_checks": "36/36 PASS",
-      "initial_public_visual_acceptance": "FAIL_PORTRAIT_QUESTION_OFFSCREEN_REPRODUCED"
-    },
+    "active_slice": null,
     "automation_id": "automation",
     "automation_status_at_recording": "PAUSED",
     "automation_readback_updated_at": 1789148333425,
@@ -345,7 +311,11 @@
       "start_note": "Conservative minute preceding the second bounded transport read; full prompt equality confirmed. No response acquired and no reminder.",
       "response_message_id": "c2ade94f-bf09-40c8-b010-302d17264a30",
       "received_at_utc": "2026-09-11T17:41:17Z",
-      "followup_note": "The follow-up fixes a newly discovered public visual defect; retain the original 17:25 start, 19:25 expiry and automatic-check count. Approval009 is closed for its original candidate and not reused."
+      "followup_note": "The follow-up fixes a newly discovered public visual defect; retain the original 17:25 start, 19:25 expiry and automatic-check count. Approval009 is closed for its original candidate and not reused.",
+      "followup_request_message_id": "7480776e-6929-493c-b09f-64b544fd61d7",
+      "followup_response_message_id": "ffc94034-65a2-45b0-93d9-c04062e27fcc",
+      "followup_subject_sha": "a26ffd14a8f896d9d087dac032d8f079ece82f7d",
+      "followup_status": "review_received_closed_same_original_deadline_no_automatic_reads"
     },
     "pending_review_subject": null,
     "documentation_test_followup": {
@@ -359,8 +329,8 @@
     "pending_subject_sha": null,
     "pending_scope": null,
     "pending_delivery_status": "review_received_closed",
-    "last_confirmed_sent_message_id": "94d51f28-a7ba-48fe-b175-dfb951eba226",
-    "last_sent_message_id": "94d51f28-a7ba-48fe-b175-dfb951eba226",
+    "last_confirmed_sent_message_id": "7480776e-6929-493c-b09f-64b544fd61d7",
+    "last_sent_message_id": "7480776e-6929-493c-b09f-64b544fd61d7",
     "self_sent_message_ids": [
       "ef6f161d-f2b9-40c0-ab06-f6eacf4c4d38",
       "cefaccf8-2648-4d63-b7fe-5a4a78023ec2",
@@ -371,7 +341,8 @@
       "8464f659-ad62-4c09-83d9-44e1cc91316b",
       "9a175c4b-6ab1-4236-b5b6-1d47fbf84ad4",
       "0e59ad44-7ce7-440b-ac6f-11d325bd1e68",
-      "94d51f28-a7ba-48fe-b175-dfb951eba226"
+      "94d51f28-a7ba-48fe-b175-dfb951eba226",
+      "7480776e-6929-493c-b09f-64b544fd61d7"
     ],
     "sent_at_utc": "2026-09-11T17:22:00Z",
     "last_check_utc": "2026-09-11T17:25:27Z",
@@ -462,6 +433,63 @@
         "test_profiles_created_across_attempts": 4,
         "matches_created": 0,
         "data_deleted": false
+      },
+      {
+        "id": "UDL-20260910-048",
+        "state": "PUBLIC_VERIFIED",
+        "owner_thread_id": "01a07b56-616e-7733-9aae-90575659688e",
+        "base_sha": "a6c24f496338412a7cb4e933b0faba06cb28ccce",
+        "branch": "codex/quiz-memo-calculator-20260912",
+        "worktree": ".codex-worktrees/quiz-memo-calculator-20260912",
+        "spec_version": "UDL-048-memo-v1.1",
+        "spec_path": "docs/QUIZ_MEMO_CALCULATOR_20260912.md",
+        "candidate_sha": "a26ffd14a8f896d9d087dac032d8f079ece82f7d",
+        "spec_snapshot_sha": "347b31327c14937530b019a4eb36b9a9e22d5a30",
+        "local_tests": "a26ffd1 clean nonbrowser900/900 skip0; c4be0ec identical product/browser files Chrome9/9 and Edge portrait1/1; final runbook7/7; three builders zero diff. Earlier c4be0ec899/900 old documentation marker failure retained.",
+        "windows_run": "34630426525",
+        "windows_status": "SUCCESS",
+        "review_status": "APPROVE_RELEASE_CONDITIONS_SATISFIED",
+        "review_send_attempts": 1,
+        "review_send_reserved_at_utc": "2026-09-11T17:22:00Z",
+        "review_source_artifact_sha": "52c0c763c594f729a13d11b490206e82f711f83e",
+        "review_packet": "docs/ASTRA_QUIZ_MEMO_PORTRAIT_REVIEW_20260912.md",
+        "public_gameplay": "PASS_38_OF_38_AND_ACTUAL_PORTRAIT_DESKTOP_VISUAL_PASS",
+        "physical_devices": "NOT_RUN",
+        "scope": "Pages_only",
+        "db_change_set": [],
+        "edge_change_set": [],
+        "goal_completion": "Exact candidate tests and genuine Astra review, Windows gate, main/Pages and public verification. Not completed by an intake or status report.",
+        "review_request_message_id": "7480776e-6929-493c-b09f-64b544fd61d7",
+        "review_delivery_checks": 2,
+        "review_delivery_note": "Full paired request equality at completed/idle after two stale bounded transport reads. No resend.",
+        "review_id": "CHATGPT-REVIEW-20260912-010",
+        "review_response_message_id": "ffc94034-65a2-45b0-93d9-c04062e27fcc",
+        "next_action": "Completed; keep reviews closed and start the user-requested UI goal.",
+        "initial_public_candidate_sha": "a6c24f496338412a7cb4e933b0faba06cb28ccce",
+        "initial_public_pages_run": "34629235891",
+        "initial_public_functional_checks": "36/36 PASS",
+        "initial_public_visual_acceptance": "FAIL_PORTRAIT_QUESTION_OFFSCREEN_REPRODUCED",
+        "main_sha": "a26ffd14a8f896d9d087dac032d8f079ece82f7d",
+        "pages_run": "34631861134",
+        "pages_status": "SUCCESS",
+        "public_finished_at_utc": "2026-09-11T18:13:05.660Z",
+        "windows_jobs": [
+          {
+            "browser": "Chrome",
+            "id": "103365606727",
+            "status": "SUCCESS"
+          },
+          {
+            "browser": "Edge",
+            "id": "103365606971",
+            "status": "SUCCESS"
+          }
+        ],
+        "evidence": "docs/QUIZ_MEMO_RELEASE_20260912.md",
+        "evidence_json": "docs/QUIZ_MEMO_FOLLOWUP_LIVE_20260912.json",
+        "test_profiles_created_across_attempts": 2,
+        "matches_created": 0,
+        "data_deleted": false
       }
     ],
     "normal_work_receipt": {
@@ -482,7 +510,7 @@
       "receipt": "docs/QUIZ_MEMO_RELEASE_20260912.md"
     },
     "next_goal": {
-      "state": "QUEUED_AFTER_UDL048_PUBLIC_VERIFIED",
+      "state": "READY_PREDECESSOR_PUBLIC_VERIFIED",
       "title": "UIデザインのダイエット",
       "source": {
         "kind": "explicit_user_instruction",
@@ -494,7 +522,17 @@
       "transfer_thread_id": "01a08d9e-ae35-7f70-a879-cb342dafef47",
       "transfer_requested": true,
       "source_package": "Latest available brain ZIP from existing transfer task; v8 paired source known, artifact verification pending.",
-      "boundaries": "Finish existing goal first. Reuse commander/canon/queue. Small independent UI slices, exact Astra review and required gates before release. Preserve private-state boundary and public 052/055/059 improvements. No new controller or unbounded polling."
+      "boundaries": "Finish existing goal first. Reuse commander/canon/queue. Small independent UI slices, exact Astra review and required gates before release. Preserve private-state boundary and public 052/055/059 improvements. No new controller or unbounded polling.",
+      "request_ids": [
+        "UDL-20260907-023",
+        "UDL-20260910-052",
+        "UDL-20260910-054",
+        "UDL-20260912-060",
+        "UDL-20260912-061",
+        "UDL-20260912-062",
+        "UDL-20260912-063"
+      ],
+      "preparation": "docs/UI_DIET_PREPARATION_20260912.md"
     }
   },
   "decisions": [
@@ -738,6 +776,46 @@
       "applies_to_current_candidate": false,
       "received_at_utc": "2026-09-11T17:41:17Z",
       "notes": "Genuine completed paired response retrieved in the normal user-resumed commander turn. Full text preserved; exact candidate, base, spec and change sets match. No product amendment. Review does not authorize a new UI candidate."
+    },
+    {
+      "review_id": "CHATGPT-REVIEW-20260912-010",
+      "review_kind": "game_production_release_approval",
+      "subject_sha": "a26ffd14a8f896d9d087dac032d8f079ece82f7d",
+      "base_sha": "a6c24f496338412a7cb4e933b0faba06cb28ccce",
+      "canon_version": "shared-canon-v1.1",
+      "feature_spec_version": "UDL-048-memo-v1.1",
+      "spec_snapshot_sha": "347b31327c14937530b019a4eb36b9a9e22d5a30",
+      "spec_snapshot_kind": "git_blob:docs/QUIZ_MEMO_CALCULATOR_20260912.md",
+      "scope": "Pages_only",
+      "db_change_set": [],
+      "edge_change_set": [],
+      "decision": "APPROVE_RELEASE",
+      "source": {
+        "kind": "chatgpt",
+        "thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
+        "message_id": "ffc94034-65a2-45b0-93d9-c04062e27fcc",
+        "request_message_id": "7480776e-6929-493c-b09f-64b544fd61d7",
+        "url": "https://chatgpt.com/c/6aa229e7-e098-83ee-ac5e-d366a12653a4",
+        "quoted_decision": "APPROVE_RELEASE",
+        "quoted_scope": "UDL-048-memo-v1.1／Pages_only／DB・Edge変更各 []",
+        "response_text": "## DECISION\n**APPROVE_RELEASE**\n\n## SUBJECT_SHA\n`a26ffd14a8f896d9d087dac032d8f079ece82f7d`\n\n## BLOCKERS\n**コードレビュー上、修正必須の欠陥は見つかりませんでした。Windows gateの成功は、引き続き公開前の必須条件です。**\n\nスクロール後の実座標で上部のナビゲーションだけを補正する変更と、狭幅時の電卓パネルを最大62dvh・内部スクロールにする変更を確認しました。**Memo ON・電卓展開・縦→横→縦の切替で、問題文が画面内にあり、縦画面ではパネルに隠れないことを検査する回帰テスト**も確認しています。\n\n## NOTES\n承認範囲は、BASE_SHA `a6c24f496338412a7cb4e933b0faba06cb28ccce` からの本候補、**`UDL-048-memo-v1.1`／`Pages_only`／DB・Edge変更各 `[]`**です。仕様blobも提出値 `347b31327c14937530b019a4eb36b9a9e22d5a30` と一致しています。\n\n**Windows gate `34630426525`は、今回取得した時点では、この候補SHAでIN_PROGRESSでした。** Chrome／Edge両jobの成功とmain再照合を確認後、ユーザーへの許可を取り直さず、forceなしのmain統合→同一SHAのPages公開へ進めてください。\n\n最終900/900とローカルブラウザー試験はCodexの実行報告として受領し、こちらでは再実行していません。`c4be0ec`から最終候補への追加変更が、runbookの旧asset markerを直す文書1行だけであることも確認しました。\n\n公開後は、**7assetのbyte一致を先に確認し、提示された38項目と実画面の視認性を確認**してください。初便の36/36は機能検証の履歴として保持し、今回の表示不具合まで解消済みだったことにはしません。物理端末は未実施なら`NOT_RUN`のままです。\n\n**補正の公開後確認を終えたら、ユーザー指定どおり、次の目標をv8に沿った「UIダイエット」に切り替えて着手してください。** その着手に追加の許可待ちは不要ですが、将来のUI公開候補へ今回の承認は流用しないでください。"
+      },
+      "blockers": [],
+      "release_conditions": [
+        "Windows34630426525 must succeed on both jobs at this exact SHA before main integration",
+        "Fresh main reconciliation and post-Pages38-check plus actual visual verification"
+      ],
+      "applies_to_current_candidate": true,
+      "received_at_utc": "2026-09-11T18:09:48Z",
+      "notes": "Actual completed paired response after a newer idle snapshot; exact sent prompt equality. Initial two reads were stale; no resend or automation reactivation. Conditional Windows success is checked separately. Original deadline19:25 unchanged.",
+      "release_conditions_verified": {
+        "windows_same_sha_both_jobs": "SUCCESS_34630426525",
+        "force_free_main_readback": "a26ffd14a8f896d9d087dac032d8f079ece82f7d",
+        "pages_same_sha": "SUCCESS_34631861134",
+        "public_checks": "38/38 PASS",
+        "actual_visual_inspection": "PASS",
+        "physical_devices": "NOT_RUN"
+      }
     }
   ]
 }

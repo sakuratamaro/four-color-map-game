@@ -1,0 +1,158 @@
+{
+  "subject": "UDL-20260910-048",
+  "candidateSha": "a26ffd14a8f896d9d087dac032d8f079ece82f7d",
+  "profilesCreated": 1,
+  "quizzesStarted": 1,
+  "quizzesCompleted": 1,
+  "matchesCreated": 0,
+  "explicitDraws": 0,
+  "physicalDevices": "NOT_RUN",
+  "faultInjection": "NONE",
+  "assetHashes": [
+    {
+      "file": "index.html",
+      "sha256": "48f0c7b9e64d2b6ad8bebaa39a7a2beb5e309194ba27bf5adddc2e270d8647a8"
+    },
+    {
+      "file": "app.js",
+      "sha256": "2223efd87c289049a37ca04ece39c3d9929eb3ccb8dcd0deecb6479a337af84a"
+    },
+    {
+      "file": "quiz-memo.js",
+      "sha256": "0026bbf0e68c7f78e82fdc8c9717861e816a105ec278e2081e083fd1f6976382"
+    },
+    {
+      "file": "quiz-calculator.js",
+      "sha256": "04a93a1c45874acb562ef77c89db35a6d1f400591e7e7faf64b5cd67a04f26c1"
+    },
+    {
+      "file": "quiz-scratch-state.js",
+      "sha256": "1d2332c7e0b75dbed3260b01cdc5de097a8e422758dc4800a22f4561540f03d1"
+    },
+    {
+      "file": "quiz-memo-canvas.js",
+      "sha256": "1c02675868c7310bbbb767b723d1525e0cb74770a1f5f2ac67ded7e8aaa38547"
+    },
+    {
+      "file": "quiz-memo.css",
+      "sha256": "64d7f4f35c4bbb881634f0222139f7e11feb3e976db78a7b63318016a5a0418b"
+    }
+  ],
+  "checks": [
+    "index.html: HTTP 200",
+    "index.html: exact candidate bytes",
+    "app.js: HTTP 200",
+    "app.js: exact candidate bytes",
+    "quiz-memo.js: HTTP 200",
+    "quiz-memo.js: exact candidate bytes",
+    "quiz-calculator.js: HTTP 200",
+    "quiz-calculator.js: exact candidate bytes",
+    "quiz-scratch-state.js: HTTP 200",
+    "quiz-scratch-state.js: exact candidate bytes",
+    "quiz-memo-canvas.js: HTTP 200",
+    "quiz-memo-canvas.js: exact candidate bytes",
+    "quiz-memo.css: HTTP 200",
+    "quiz-memo.css: exact candidate bytes",
+    "new anonymous test session",
+    "new test profile persisted",
+    "memo enables and background is inert",
+    "portrait question visible when memo opens",
+    "scratch canvas is transparent",
+    "native mouse creates a multi-point stroke",
+    "four operations calculate independently",
+    "expanded portrait calculator leaves question visible",
+    "memo does not pause timer",
+    "no answer while memo used",
+    "pending quiz contains no scratch data",
+    "390px no horizontal overflow",
+    "OFF restores background and pointer access",
+    "same-question reload preserves ink and calculator",
+    "resize preserves normalized ink",
+    "1280px no horizontal overflow",
+    "next acknowledged question clears scratch",
+    "next question calculator is empty",
+    "completion clears scratch and hides entry",
+    "exactly one start ten answers one finish",
+    "scratch and calculator never enter network payloads",
+    "no match or gacha operations",
+    "no unsuccessful API response",
+    "console and page errors zero"
+  ],
+  "liveGameplay": "REAL_PUBLIC_LV5_MEMO_CALCULATOR_RELOAD_ACK_CLEAR_COMPLETION_NO_MOCKS",
+  "cleanup": "NO_MATCH_CREATED_NO_DATA_DELETED",
+  "operationCounts": {
+    "quiz-start": 1,
+    "quiz-answer": 10,
+    "quiz-finish": 1,
+    "gacha": 0
+  },
+  "operationResponses": [
+    {
+      "operation": "cosmetic-catalog",
+      "status": 200
+    },
+    {
+      "operation": "quiz-start",
+      "status": 200
+    },
+    {
+      "operation": "cosmetic-catalog",
+      "status": 200
+    },
+    {
+      "operation": "quiz-answer",
+      "status": 200
+    },
+    {
+      "operation": "quiz-answer",
+      "status": 200
+    },
+    {
+      "operation": "quiz-answer",
+      "status": 200
+    },
+    {
+      "operation": "quiz-answer",
+      "status": 200
+    },
+    {
+      "operation": "quiz-answer",
+      "status": 200
+    },
+    {
+      "operation": "quiz-answer",
+      "status": 200
+    },
+    {
+      "operation": "quiz-answer",
+      "status": 200
+    },
+    {
+      "operation": "quiz-answer",
+      "status": 200
+    },
+    {
+      "operation": "quiz-answer",
+      "status": 200
+    },
+    {
+      "operation": "quiz-answer",
+      "status": 200
+    },
+    {
+      "operation": "quiz-finish",
+      "status": 200
+    }
+  ],
+  "ok": true,
+  "completedAt": "2026-09-11T18:13:05.660Z",
+  "visual_inspection": {
+    "status": "PASS_PORTRAIT_AND_DESKTOP",
+    "method": "Commander inspected actual public screenshots at390x844 and1280; question visible above expanded calculator; portrait tools internally scroll and OFF remains reachable.",
+    "screenshots": [
+      "public-live-02.json.390.png",
+      "public-live-02.json.1280.png"
+    ],
+    "physical_devices": "NOT_RUN"
+  }
+}

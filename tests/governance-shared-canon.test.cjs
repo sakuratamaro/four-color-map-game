@@ -92,6 +92,26 @@ test("quiz reward release traces exact review and public behavior while retainin
   assert.equal(wait.response_message_id, review.source.message_id);
 });
 
+test("v8 paired intake preserves withdrawal, canonical reuse and unimplemented successor scope", async () => {
+  const intake = JSON.parse(read("docs/BRAIN_V8_PAIRED_INTAKE_20260912.json"));
+  assert.equal(intake.kind, "intake_snapshot_not_operational_ledger");
+  assert.equal(intake.source.user_message_id, "bbb21715-8ab0-4dfb-ad2f-b46883434765");
+  assert.equal(intake.source.response_message_id, "c1c1a98e-749e-42ec-8a95-2ef30abd5035");
+  const { parseDecisionLedger } = await import(pathToFileURL(path.join(root,
+    "scripts/check-standard-decision-reconciliation.mjs")).href);
+  const ids = new Set(parseDecisionLedger(read("docs/PROJECT_COMMAND_CENTER.md")).rows.map(r => r.values.ID));
+  assert.equal(intake.records.length, 7);
+  for (const row of intake.records) {
+    assert.ok(row.source_quote && row.design_summary);
+    for (const id of row.canonical_ids) assert.ok(ids.has(id), id);
+    assert.equal(row.new_acceptance_automated, false);
+    assert.equal(row.implementation_state, "not_started");
+    assert.equal(row.verification_state, "not_run");
+  }
+  assert.match(intake.records[1].source_quote, /色ごとに位置固定は撤回/);
+  assert.deepEqual(intake.records[1].canonical_ids, ["UDL-20260910-052"]);
+});
+
 test("shared canon entrypoint routes to the existing authorities", () => {
   const agents = read("AGENTS.md");
   const canon = read("docs/SHARED_CANON.md");
@@ -207,6 +227,7 @@ test("ChatGPT review records require an exact subject and cannot imply productio
       assert.match(decision.subject_sha, /^[0-9a-f]{40}$/);
       assert.match(decision.spec_snapshot_sha, /^[0-9a-f]{40}$/);
       const bindings = {
+        "CHATGPT-REVIEW-20260912-010": ["a26ffd14a8f896d9d087dac032d8f079ece82f7d", "a6c24f496338412a7cb4e933b0faba06cb28ccce", "UDL-048-memo-v1.1", "347b31327c14937530b019a4eb36b9a9e22d5a30", "Pages_only"],
         "CHATGPT-REVIEW-20260912-009": ["a6c24f496338412a7cb4e933b0faba06cb28ccce", "f8713d7006da0619b9c356d53a472754833fb910", "UDL-048-memo-v1", "3182edb815f723039ceacb41ae00e5e05391ee93", "Pages_only"],
         "CHATGPT-REVIEW-20260910-004": ["2e5e1d050adb60640454a17281b989e0af642df0", "2f855ccfef11d7c099cfb73fb57ec3da79be8789", "UDL-055-v1", "f6d3c85f7d30e599f1ea1682516a5776fbc24899", "Pages-only game bugfix"],
         "CHATGPT-REVIEW-20260910-005": ["5c03e6c2d0e94c843776ea7eae0d7bbe2917a174", "2f855ccfef11d7c099cfb73fb57ec3da79be8789", "UDL-055-v1", "f6d3c85f7d30e599f1ea1682516a5776fbc24899", "Pages-only game bugfix"],
@@ -220,6 +241,24 @@ test("ChatGPT review records require an exact subject and cannot imply productio
       assert.deepEqual(decision.edge_change_set, []);
     }
   }
+});
+
+test("UDL048 closure preserves the initial visual failure and binds the final public evidence", () => {
+  const log = JSON.parse(read("docs/CHATGPT_REVIEW_DECISIONS.json"));
+  const slice = log.coordination.completed_slices.find((item) => item.id === "UDL-20260910-048");
+  const live = JSON.parse(read("docs/QUIZ_MEMO_FOLLOWUP_LIVE_20260912.json"));
+  const initial = JSON.parse(read("docs/QUIZ_MEMO_LIVE_20260912.json"));
+  assert.equal(slice.candidate_sha, "a26ffd14a8f896d9d087dac032d8f079ece82f7d");
+  assert.equal(live.candidateSha, slice.candidate_sha);
+  assert.equal(slice.state, "PUBLIC_VERIFIED");
+  assert.equal(slice.windows_status, "SUCCESS");
+  assert.equal(slice.windows_jobs.every((job) => job.status === "SUCCESS"), true);
+  assert.equal(slice.pages_run, "34631861134");
+  assert.equal(live.ok, true);
+  assert.equal(live.checks.length, 38);
+  assert.equal(live.visual_inspection.status, "PASS_PORTRAIT_AND_DESKTOP");
+  assert.equal(initial.visual_inspection.status, "FAIL_PORTRAIT_QUESTION_OFFSCREEN");
+  assert.equal(live.physicalDevices, "NOT_RUN");
 });
 
 test("finite wait policy records a non-resetting three-check two-hour deadline and real pause evidence", () => {
