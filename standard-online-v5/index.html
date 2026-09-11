@@ -257,7 +257,7 @@
 
     <section id="cosmeticPanel" class="card cosmetic-panel hidden" data-app-tab-panel="profile">
       <div class="row between wrap">
-        <div><h2>見た目コレクション</h2><p class="muted">対戦能力には影響しません。購入・装備はサーバーへ一度だけ保存されます。</p></div>
+        <div><h2>見た目コレクション</h2><p class="muted">商品を選ぶと購入・装備できます。対戦能力には影響しません。</p></div>
         <strong id="cosmeticCoins" class="coin-badge">🪙 0コイン</strong>
       </div>
       <div id="collectionIdentity" class="collection-identity">PLAYER</div>
@@ -267,9 +267,9 @@
         <strong>内容を確認</strong>
         <p id="cosmeticConfirmationText"></p>
         <div class="controls">
-          <button id="cosmeticCommit" class="primary">この内容で保存</button>
+          <button id="cosmeticCommit" class="primary">この内容で購入・装備</button>
           <button id="cosmeticCancel" class="ghost">キャンセル</button>
-          <button id="cosmeticRetry" class="ghost hidden">同じ処理IDで再送</button>
+          <button id="cosmeticRetry" class="ghost hidden">購入・装備の結果を確認</button>
         </div>
       </div>
       <p id="cosmeticStatus" class="callout" aria-live="polite">見た目一覧を読み込んでいます…</p>
@@ -531,6 +531,6 @@
   <script src="cpu-portraits.js?v=20260908-1"></script>
   <script src="cpu-commentary.js?v=20260910-1"></script>
   <script src="basic-feedback.js?v=20260908-2"></script>
-  <script type="module" src="app.js?v=20260912-32"></script>
+  <script type="module" src="app.js?v=20260912-33"></script>
 </body>
 </html>

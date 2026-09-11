@@ -847,7 +847,7 @@ async function installMock(context, mode) {
       profile: initialMode === "empty" ? null : { revision: 1, display_name: "A", profile_state: profileState },
       gachaReceipts: {},
       cardSaleReceipts: {},
-      cosmeticReceipts: {},
+      cosmeticReceipts: JSON.parse(sessionStorage.getItem("mock-standard-cosmetic-receipts") || "{}"),
       quizAnswerReceipts: {},
       quizFinishReceipts: {},
       cpuStartReceipts: JSON.parse(sessionStorage.getItem("mock-standard-cpu-start-receipts") || "{}"),
@@ -1120,18 +1120,24 @@ async function installMock(context, mode) {
         }
         if (request.body.operation === "cosmetic-catalog") return { data: { revision: runtime.profile.revision, cosmetics: cosmeticProjection() } };
         if (request.body.operation === "cosmetic-quote") {
-          const purchaseRequired = !runtime.profile.profile_state.cosmeticsOwned.includes(request.body.cosmeticId);
-          return { data: { revision: runtime.profile.revision, quote: { cosmeticId: request.body.cosmeticId, name: "オーロラ盤面", type: "board", price: purchaseRequired ? 600 : 0, coinsAfter: runtime.profile.profile_state.coins - (purchaseRequired ? 600 : 0), purchaseRequired } } };
+          const item = cosmeticProjection().items.find(item => item.cosmeticId === request.body.cosmeticId);
+          const purchaseRequired = !item.owned;
+          const price = purchaseRequired ? runtime.cosmeticQuotePrice ?? item.price : 0;
+          return { data: { revision: runtime.profile.revision, quote: { cosmeticId: item.cosmeticId, name: item.name, type: item.type, price, coinsAfter: runtime.profile.profile_state.coins - price, purchaseRequired } } };
         }
         if (request.body.operation === "cosmetic-action") {
           const prior = runtime.cosmeticReceipts[request.body.actionId];
           if (prior) return { data: { ...prior, duplicate: true } };
           const next = JSON.parse(JSON.stringify(runtime.profile.profile_state));
-          if (!next.cosmeticsOwned.includes(request.body.cosmeticId)) { next.cosmeticsOwned.push(request.body.cosmeticId); next.coins -= 600; }
-          next.equipped.board = request.body.cosmeticId;
+          const item = cosmeticProjection().items.find(item => item.cosmeticId === request.body.cosmeticId);
+          const price = item.owned ? 0 : runtime.cosmeticQuotePrice ?? item.price;
+          if (!item.owned) { next.cosmeticsOwned.push(item.cosmeticId); next.coins -= price; }
+          next.equipped[item.type] = item.cosmeticId;
           runtime.profile = { ...runtime.profile, revision: runtime.profile.revision + 1, profile_state: next };
-          const result = { revision: runtime.profile.revision, duplicate: false, quote: { name: "オーロラ盤面", price: 600 }, profileState: next, cosmetics: cosmeticProjection() };
+          const result = { revision: runtime.profile.revision, duplicate: false, quote: { name: item.name, price }, profileState: next, cosmetics: cosmeticProjection() };
           runtime.cosmeticReceipts[request.body.actionId] = result;
+          sessionStorage.setItem("mock-standard-cosmetic-receipts", JSON.stringify(runtime.cosmeticReceipts));
+          if (runtime.failNextCosmeticAck) { runtime.failNextCosmeticAck = false; return functionError(500, "TEMPORARY_UNAVAILABLE", "lost cosmetic ACK"); }
           return { data: result };
         }
         if (request.body.operation === "cpu-roster") return { data: { rosterVersion: "standard-character-roster-v1", characters: [
@@ -4054,18 +4060,16 @@ test("actual Edge quotes and commits one server-authoritative card sale", { time
   });
 });
 
-test("actual Edge confirms, persists, restores, and safely cancels online appearance", { timeout: 130000 }, async () => {
+test("UDL061 actual browser purchases at the item, persists and restores online appearance", { timeout: 130000 }, async () => {
   await withPage("cosmetic", async (page) => {
     await page.locator("#cosmeticPanel:not(.hidden)").waitFor();
     const aurora = page.locator("#cosmeticCatalog .collection-card", { hasText: "オーロラ盤面" });
     await aurora.getByRole("button", { name: "購入して装備" }).click();
-    await page.getByText(/600コインで購入して装備/).waitFor();
-    const pendingBefore = await page.evaluate(() => JSON.parse(localStorage.getItem("fourColorMapGame.standard.online.v5.pending-cosmetic")));
-    assert.match(pendingBefore.actionId, /^[0-9a-f-]{36}$/i);
-    assert.equal(pendingBefore.expectedRevision, 1);
-    assert.equal((await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "cosmetic-action").length)), 0);
-    await page.getByRole("button", { name: "この内容で保存" }).click();
-    await page.getByText(/オーロラ盤面を一度だけ保存/).waitFor();
+    await aurora.locator(".cosmetic-item-status").getByText("オーロラ盤面を装備しました。", {exact:true}).waitFor();
+    const applied = await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter(entry => entry.body?.operation === "cosmetic-action"));
+    assert.equal(applied.length, 1);
+    assert.match(applied[0].body.actionId, /^[0-9a-f-]{36}$/i);
+    assert.equal(applied[0].body.expectedRevision, 1);
     assert.equal(await page.locator("body").evaluate((node) => node.classList.contains("skin-board-aurora")), true);
     assert.match(await page.locator("#boardViewport").evaluate((node) => getComputedStyle(node).outlineColor), /rgb\(34, 211, 238\)/);
     assert.equal(await page.locator("#board").evaluate((node) => getComputedStyle(node).outlineStyle), "none");
@@ -4076,12 +4080,101 @@ test("actual Edge confirms, persists, restores, and safely cancels online appear
 
     const title = page.locator("#cosmeticCatalog .collection-card", { hasText: "四色の匠" });
     await title.getByRole("button", { name: "装備する" }).click();
-    await page.getByRole("button", { name: "キャンセル" }).click();
-    assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "cosmetic-action").length), 1);
+    await title.locator(".cosmetic-item-status").getByText("四色の匠を装備しました。", {exact:true}).waitFor();
+    assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "cosmetic-action").length), 2);
+    assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.profile.profile_state.coins), 400);
     await page.reload();
     await page.locator("#cosmeticPanel:not(.hidden)").waitFor();
     assert.equal(await page.locator("body").evaluate((node) => node.classList.contains("skin-board-aurora")), true);
   });
+});
+
+test("UDL061 changed quote confirms or cancels on the same item without silent purchase", { timeout: 130000 }, async () => {
+  await withPage("cosmetic",async page=>{
+    const item=page.locator('[data-cosmetic-id="boardAurora"]');
+    await item.waitFor();
+    await page.evaluate(()=>{globalThis.__standardOnlineRuntime.cosmeticQuotePrice=650;});
+    await item.getByRole("button",{name:"購入して装備",exact:true}).click();
+    await item.locator("#cosmeticCommit:not(.hidden)").waitFor();
+    assert.match(await item.locator("#cosmeticConfirmationText").textContent(),/650コイン/);
+    assert.equal(await page.evaluate(()=>globalThis.__standardOnlineRuntime.calls.filter(c=>c.body?.operation==="cosmetic-action").length),0);
+    await item.locator("#cosmeticCancel").click();
+    assert.equal(await page.evaluate(()=>globalThis.__standardOnlineRuntime.profile.profile_state.coins),1000);
+    await item.getByRole("button",{name:"購入して装備",exact:true}).click();
+    await item.locator("#cosmeticCommit:not(.hidden)").waitFor();
+    await page.evaluate(()=>{globalThis.__standardOnlineRuntime.cosmeticQuotePrice=675;});
+    await item.locator("#cosmeticCommit").click();
+    await page.waitForFunction(()=>document.querySelector("#cosmeticConfirmationText").textContent.includes("675コイン"));
+    assert.equal(await page.evaluate(()=>globalThis.__standardOnlineRuntime.calls.filter(c=>c.body?.operation==="cosmetic-action").length),0);
+    await item.locator("#cosmeticCommit").click();
+    await item.locator(".cosmetic-item-status").getByText("オーロラ盤面を装備しました。",{exact:true}).waitFor();
+    assert.equal(await page.evaluate(()=>globalThis.__standardOnlineRuntime.profile.profile_state.coins),325);
+    assert.equal(await page.evaluate(()=>globalThis.__standardOnlineRuntime.calls.filter(c=>c.body?.operation==="cosmetic-action").length),1);
+  },{viewport:{width:390,height:844}});
+});
+
+test("UDL061 lost purchase ACK and reload preserve one exact retry without automatic resubmission", { timeout: 130000 }, async () => {
+  await withPage("cosmetic",async page=>{
+    const item=page.locator('[data-cosmetic-id="boardAurora"]'),key="fourColorMapGame.standard.online.v5.pending-cosmetic";
+    await item.waitFor();await page.evaluate(()=>{globalThis.__standardOnlineRuntime.failNextCosmeticAck=true;});
+    await item.getByRole("button",{name:"購入して装備",exact:true}).click();
+    await item.locator("#cosmeticRetry:not(.hidden)").waitFor();
+    const pending=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),key);
+    assert.equal(pending.submitted,true);assert.equal(await item.locator("#cosmeticCancel").isVisible(),false);
+    assert.equal(await page.evaluate(()=>globalThis.__standardOnlineRuntime.profile.profile_state.coins),400);
+    await page.reload();await item.locator("#cosmeticRetry:not(.hidden)").waitFor();
+    assert.equal(await page.evaluate(()=>globalThis.__standardOnlineRuntime.calls.filter(c=>c.body?.operation==="cosmetic-action").length),0);
+    assert.deepEqual(await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),key),pending);
+    await item.locator("#cosmeticRetry").click();
+    await item.locator(".cosmetic-item-status").getByText("オーロラ盤面を装備しました。",{exact:true}).waitFor();
+    const calls=await page.evaluate(()=>globalThis.__standardOnlineRuntime.calls.filter(c=>c.body?.operation==="cosmetic-action"));
+    assert.equal(calls.length,1);for(const field of ["actionId","expectedRevision","cosmeticId"])assert.equal(calls[0].body[field],pending[field]);
+    assert.equal(await page.evaluate(key=>JSON.parse(localStorage.getItem(key)).coins,remoteProfileKey),400);
+    assert.equal(await page.evaluate(()=>Object.keys(globalThis.__standardOnlineRuntime.cosmeticReceipts).length),1);
+  },{viewport:{width:390,height:844}});
+});
+
+test("UDL061 repeat pointer Enter and Space stay single-action and44px at each width", { timeout: 130000 }, async () => {
+  for(const [method,width,height] of [["pointer",390,844],["Enter",768,900],["Space",1280,900]])await withPage("cosmetic",async page=>{
+    const item=page.locator('[data-cosmetic-id="boardAurora"]'),button=item.getByRole("button",{name:"購入して装備",exact:true});
+    await button.waitFor();await button.scrollIntoViewIfNeeded();
+    const b=await button.boundingBox();assert.ok(b.width>=44&&b.height>=44);
+    const before=await page.evaluate(()=>JSON.stringify({inventory:globalThis.__standardOnlineRuntime.profile.profile_state.inventory,tickets:globalThis.__standardOnlineRuntime.profile.profile_state.gachaTickets}));
+    if(method==="pointer")await button.evaluate(e=>{e.click();e.click();});
+    else{await button.focus();await page.keyboard.down(method);await page.keyboard.down(method);await page.keyboard.up(method);}
+    await item.locator(".cosmetic-item-status").getByText("オーロラ盤面を装備しました。",{exact:true}).waitFor();
+    assert.equal(await page.evaluate(()=>globalThis.__standardOnlineRuntime.calls.filter(c=>c.body?.operation==="cosmetic-action").length),1);
+    assert.equal(await page.evaluate(()=>document.activeElement?.closest("[data-cosmetic-id]")?.dataset.cosmeticId),"boardAurora");
+    assert.equal(await page.evaluate(()=>JSON.stringify({inventory:globalThis.__standardOnlineRuntime.profile.profile_state.inventory,tickets:globalThis.__standardOnlineRuntime.profile.profile_state.gachaTickets})),before);
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+  },{viewport:{width,height}});
+});
+
+test("UDL061 legacy unsent pending restores confirmation on its item without auto-purchase", { timeout: 130000 }, async () => {
+  await withPage("cosmetic",async page=>{
+    const key="fourColorMapGame.standard.online.v5.pending-cosmetic";
+    await page.locator('[data-cosmetic-id="boardAurora"]').waitFor();
+    await page.evaluate(key=>localStorage.setItem(key,JSON.stringify({actionId:"11111111-1111-4111-8111-111111111111",expectedRevision:1,cosmeticId:"boardAurora",quote:{cosmeticId:"boardAurora",name:"オーロラ盤面",purchaseRequired:true,price:600,coinsAfter:400},failed:false})),key);
+    await page.reload();
+    const item=page.locator('[data-cosmetic-id="boardAurora"]');await item.locator("#cosmeticCommit:not(.hidden)").waitFor();
+    assert.equal(await page.evaluate(()=>globalThis.__standardOnlineRuntime.calls.filter(c=>c.body?.operation==="cosmetic-action").length),0);
+    await item.locator("#cosmeticCancel").click();
+    assert.equal(await page.evaluate(key=>localStorage.getItem(key),key),null);
+    assert.equal(await page.evaluate(()=>globalThis.__standardOnlineRuntime.profile.profile_state.coins),1000);
+  },{viewport:{width:390,height:844}});
+});
+
+test("UDL061 local intent storage failure prevents any purchase before explicit recovery", { timeout: 130000 }, async () => {
+  await withPage("cosmetic",async page=>{
+    const item=page.locator('[data-cosmetic-id="boardAurora"]');await item.waitFor();
+    await page.evaluate(()=>{const original=Storage.prototype.setItem;let fail=true;Storage.prototype.setItem=function(key,value){if(key.endsWith("pending-cosmetic")&&fail){fail=false;throw new DOMException("fixture-storage-failure","QuotaExceededError");}return original.call(this,key,value);};});
+    await item.getByRole("button",{name:"購入して装備",exact:true}).click();
+    await item.locator(".cosmetic-item-status").getByText(/まだ購入は送信していません/).waitFor();
+    assert.equal(await page.evaluate(()=>globalThis.__standardOnlineRuntime.calls.filter(c=>c.body?.operation==="cosmetic-action").length),0);
+    await item.locator("#cosmeticCommit").click();
+    await item.locator(".cosmetic-item-status").getByText("オーロラ盤面を装備しました。",{exact:true}).waitFor();
+    assert.equal(await page.evaluate(()=>globalThis.__standardOnlineRuntime.calls.filter(c=>c.body?.operation==="cosmetic-action").length),1);
+  },{viewport:{width:390,height:844}});
 });
 
 test("actual Edge disables unaffordable cosmetics and enables them after a saved card sale", { timeout: 130000 }, async () => {

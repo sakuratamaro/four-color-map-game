@@ -3,6 +3,7 @@ import "../online/supabase-config.js";
 import { createQuizMemo } from "./quiz-memo.js?v=20260912-1";
 import { paletteRoleSlots, stableHandSlots } from "./play-surface-model.js?v=20260912-1";
 import { savedResultReward } from "./result-continuation.js?v=20260912-1";
+import { displayedCosmeticIntent, cosmeticQuoteMatchesIntent, pendingCosmeticPresentation } from "./cosmetic-item-action.js?v=20260912-1";
 
 const cfg = globalThis.FourColorSupabaseConfig;
 const supabase = createClient(cfg.url, cfg.publishableKey, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false } });
@@ -156,6 +157,7 @@ let cardSaleBusy = false;
 let cosmeticBusy = false;
 let cosmeticProjection = null;
 let cosmeticCatalogLoaded = false;
+let cosmeticItemFeedback = null;
 let matchmakingBusy = false;
 let matchmakingStatusTimer = null;
 let matchmakingDisplayTimer = null;
@@ -1735,13 +1737,19 @@ function renderCosmetics() {
   const value = profile();
   const projection = cosmeticProjection;
   applyCosmeticClasses();
+  const focused = document.activeElement;
+  const focusedItem = focused?.closest?.("[data-cosmetic-id]")?.dataset.cosmeticId;
+  const focusedControl = focused?.id || focused?.dataset?.cosmeticAction;
+  // Keep the legacy pending panel alive while rebuilding the catalog, then put it on its item.
+  const confirmation = $("cosmeticConfirmation");
+  $("cosmeticPanel").appendChild(confirmation);
   $("cosmeticCatalog").replaceChildren();
   $("refreshCosmetics").disabled = cosmeticBusy || !synced;
   if (!value || !projection) {
     $("collectionIdentity").textContent = value?.displayName || "PLAYER";
     $("cosmeticCoins").textContent = `🪙 ${Number(value?.coins || 0)}コイン`;
     if (!cosmeticBusy) $("cosmeticStatus").textContent = synced ? "見た目一覧を読み込めませんでした。更新してください。" : "プロフィール同期後に利用できます。";
-    show("cosmeticConfirmation", Boolean(pendingCosmeticAction));
+    renderCosmeticPendingControls();
     return;
   }
   $("collectionIdentity").textContent = cosmeticIdentity(value.displayName || "PLAYER", projection.equipped);
@@ -1752,6 +1760,8 @@ function renderCosmetics() {
   for (const item of Array.isArray(projection.items) ? projection.items : []) {
     const card = document.createElement("article");
     card.className = `collection-card${item.equipped ? " equipped" : ""}${!item.trophyUnlocked ? " locked" : ""}`;
+    card.dataset.cosmeticId = item.cosmeticId;
+    card.tabIndex = -1;
     const type = document.createElement("strong"); type.textContent = COSMETIC_TYPE_LABEL[item.type] || "見た目";
     const preview = document.createElement("div");
     const previewClass = COSMETIC_PREVIEW_CLASS.has(item.previewClass) ? ` ${item.previewClass}` : "";
@@ -1763,19 +1773,54 @@ function renderCosmetics() {
     const price = Math.max(0, Number(item.price || 0));
     const coinShortfall = !item.owned && item.trophyUnlocked && price > availableCoins ? price - availableCoins : 0;
     const select = button(item.equipped ? "装備中" : !item.trophyUnlocked ? "未解放" : item.owned ? "装備する" : coinShortfall > 0 ? `あと${coinShortfall}コイン` : "購入して装備", () => prepareOnlineCosmetic(item.cosmeticId));
+    select.dataset.cosmeticAction = "select";
     select.disabled = locked || item.equipped || !item.trophyUnlocked || coinShortfall > 0;
     card.append(type, preview, name, detail, select); $("cosmeticCatalog").appendChild(card);
+    if (pendingCosmeticAction?.cosmeticId === item.cosmeticId) card.appendChild(confirmation);
+    if (cosmeticItemFeedback?.cosmeticId === item.cosmeticId) {
+      const status = document.createElement("p"); status.className = "cosmetic-item-status";
+      status.setAttribute("role", "status"); status.textContent = cosmeticItemFeedback.message; card.appendChild(status);
+    }
   }
+  renderCosmeticPendingControls();
+  if (focusedItem) {
+    const card = $("cosmeticCatalog").querySelector(`[data-cosmetic-id="${CSS.escape(focusedItem)}"]`);
+    const next = focusedControl === "select" ? card?.querySelector('[data-cosmetic-action="select"]') : $(focusedControl);
+    (next && !next.disabled && !next.classList.contains("hidden") ? next : card)?.focus({ preventScroll: true });
+  }
+}
+
+function renderCosmeticPendingControls() {
   const pending = pendingCosmeticAction;
+  const stage = pendingCosmeticPresentation(pending);
   show("cosmeticConfirmation", Boolean(pending));
-  show("cosmeticCommit", Boolean(pending) && !pending?.failed);
-  show("cosmeticRetry", Boolean(pending?.failed));
+  show("cosmeticCommit", stage === "confirm");
+  show("cosmeticRetry", stage === "retry");
+  show("cosmeticCancel", stage === "confirm");
+  $("cosmeticCommit").disabled = cosmeticBusy;
+  $("cosmeticRetry").disabled = cosmeticBusy;
   $("cosmeticCancel").disabled = cosmeticBusy;
   if (pending?.quote) {
     $("cosmeticConfirmationText").textContent = pending.quote.purchaseRequired
       ? `${pending.quote.name}を${Number(pending.quote.price)}コインで購入して装備します。残高は${Number(pending.quote.coinsAfter)}コインになります。`
       : `${pending.quote.name}を装備します。コインは消費しません。`;
+    if (stage === "retry") $("cosmeticConfirmationText").textContent = "購入・装備の結果を確認します。重ねて購入はしません。";
   }
+}
+
+function setCosmeticItemStatus(cosmeticId, message) {
+  cosmeticItemFeedback = { cosmeticId, message };
+  $("cosmeticStatus").textContent = message;
+}
+
+function focusCosmeticItem(cosmeticId) {
+  const card = $("cosmeticCatalog").querySelector(`[data-cosmetic-id="${CSS.escape(cosmeticId)}"]`);
+  if (!card || !$("cosmeticPanel").getClientRects().length) return;
+  const focus = document.activeElement;
+  if (focus !== document.body && !focus?.closest?.(`[data-cosmetic-id="${CSS.escape(cosmeticId)}"]`)) return;
+  const control = card.querySelector('#cosmeticCommit:not(.hidden):not([disabled]), #cosmeticRetry:not(.hidden):not([disabled])');
+  (control || card).focus({ preventScroll: true });
+  card.scrollIntoView({ block: "nearest", behavior: "instant" });
 }
 
 async function refreshOnlineCosmetics({ quiet = false } = {}) {
@@ -1796,45 +1841,81 @@ async function refreshOnlineCosmetics({ quiet = false } = {}) {
 
 async function prepareOnlineCosmetic(cosmeticId) {
   if (cosmeticBusy || pendingCosmeticAction) return;
-  cosmeticBusy = true; $("cosmeticStatus").textContent = "サーバーで購入・装備内容を確認中…"; renderCosmetics();
+  const item = cosmeticProjection?.items?.find(value => value.cosmeticId === cosmeticId);
+  const intent = displayedCosmeticIntent(item);
+  if (!intent || Number(cosmeticProjection.coins) < intent.price) return;
+  cosmeticBusy = true; setCosmeticItemStatus(cosmeticId, "購入・装備内容を確認中…"); renderCosmetics();
+  let submit = false;
   try {
     const result = await client.quoteCosmetic({ cosmeticId });
-    pendingCosmeticAction = { actionId: crypto.randomUUID(), expectedRevision: Number(result.revision), cosmeticId, quote: result.quote, failed: false };
+    if (result.quote?.cosmeticId !== cosmeticId || typeof result.quote.purchaseRequired !== "boolean"
+        || !Number.isSafeInteger(result.quote.price) || result.quote.price < 0 || !Number.isSafeInteger(Number(result.revision))) throw new Error("INVALID_COSMETIC_QUOTE");
+    pendingCosmeticAction = { actionId: crypto.randomUUID(), expectedRevision: Number(result.revision), cosmeticId, quote: result.quote, submitted: false, failed: false };
     localStorage.setItem(COSMETIC_PENDING_KEY, JSON.stringify(pendingCosmeticAction));
-    $("cosmeticStatus").textContent = "内容を確認してから保存してください。キャンセル時は何も変更されません。";
+    submit = cosmeticQuoteMatchesIntent(intent, result.quote);
+    if (!submit) setCosmeticItemStatus(cosmeticId, "表示していた内容から変わりました。最新の内容を確認してください。");
   } catch (error) {
-    $("cosmeticStatus").textContent = error?.code === "INSUFFICIENT_COINS"
+    setCosmeticItemStatus(cosmeticId, error?.code === "INSUFFICIENT_COINS"
       ? "コインが不足しています。最新の残高と必要数を確認してください。"
-      : "この見た目は現在購入・装備できません。残高や解除条件を確認してください。";
+      : "購入・装備を確認できませんでした。まだ購入は送信していません。");
     toast(error.message || "見た目を確認できませんでした。");
   } finally { cosmeticBusy = false; renderCosmetics(); }
+  if (submit) await commitOnlineCosmetic();
+  else focusCosmeticItem(cosmeticId);
 }
 
 async function commitOnlineCosmetic() {
   if (cosmeticBusy || !pendingCosmeticAction) return;
-  cosmeticBusy = true; $("cosmeticStatus").textContent = "サーバーへ一度だけ保存しています…"; renderCosmetics();
+  const cosmeticId = pendingCosmeticAction.cosmeticId;
+  cosmeticBusy = true; setCosmeticItemStatus(cosmeticId, "購入・装備を保存中…"); renderCosmetics();
   try {
+    pendingCosmeticAction.submitted = true;
+    localStorage.setItem(COSMETIC_PENDING_KEY, JSON.stringify(pendingCosmeticAction));
     const result = await client.applyCosmetic(pendingCosmeticAction);
     persistRemoteProfile(result.profileState, displayName(), Number(result.revision));
     cosmeticProjection = result.cosmetics;
     const name = pendingCosmeticAction.quote?.name || "見た目";
-    pendingCosmeticAction = null; localStorage.removeItem(COSMETIC_PENDING_KEY);
-    $("cosmeticStatus").textContent = `${name}を一度だけ保存して装備しました。対戦能力は変わりません。`;
+    localStorage.removeItem(COSMETIC_PENDING_KEY); pendingCosmeticAction = null;
+    setCosmeticItemStatus(cosmeticId, `${name}を装備しました。`);
   } catch (error) {
     pendingCosmeticAction.failed = true;
-    localStorage.setItem(COSMETIC_PENDING_KEY, JSON.stringify(pendingCosmeticAction));
+    try { localStorage.setItem(COSMETIC_PENDING_KEY, JSON.stringify(pendingCosmeticAction)); } catch { /* keep the in-memory identity, never submit a different action */ }
     const remote = await client.readProfile().catch(() => null);
     if (remote) hydrateProfileRow(remote);
-    $("cosmeticStatus").textContent = "結果を確認できませんでした。同じ処理IDで安全に再送するか、キャンセルして一覧を更新してください。";
+    setCosmeticItemStatus(cosmeticId, "結果を確認できませんでした。「購入・装備の結果を確認」で同じ操作を確かめてください。");
     toast(error.message || "見た目を保存できませんでした。");
   } finally { cosmeticBusy = false; renderProgression(); renderCosmetics(); render(); }
+  focusCosmeticItem(cosmeticId);
 }
 
 function cancelOnlineCosmetic() {
-  if (cosmeticBusy) return;
-  pendingCosmeticAction = null; localStorage.removeItem(COSMETIC_PENDING_KEY);
-  $("cosmeticStatus").textContent = "購入・装備をキャンセルしました。サーバーのデータは変更していません。";
+  if (cosmeticBusy || pendingCosmeticPresentation(pendingCosmeticAction) !== "confirm") return;
+  const cosmeticId = pendingCosmeticAction.cosmeticId;
+  localStorage.removeItem(COSMETIC_PENDING_KEY); pendingCosmeticAction = null;
+  setCosmeticItemStatus(cosmeticId, "購入・装備をキャンセルしました。コインは使っていません。");
   renderCosmetics();
+  focusCosmeticItem(cosmeticId);
+}
+
+async function confirmOnlineCosmetic() {
+  if (cosmeticBusy || pendingCosmeticPresentation(pendingCosmeticAction) !== "confirm") return;
+  const cosmeticId = pendingCosmeticAction.cosmeticId;
+  const accepted = { cosmeticId, purchaseRequired: pendingCosmeticAction.quote.purchaseRequired, price: pendingCosmeticAction.quote.price };
+  cosmeticBusy = true; setCosmeticItemStatus(cosmeticId, "最新の購入・装備内容を確認中…"); renderCosmetics();
+  let submit = false;
+  try {
+    const result = await client.quoteCosmetic({ cosmeticId });
+    if (result.quote?.cosmeticId !== cosmeticId || typeof result.quote.purchaseRequired !== "boolean"
+        || !Number.isSafeInteger(result.quote.price) || result.quote.price < 0) throw new Error("INVALID_COSMETIC_QUOTE");
+    submit = cosmeticQuoteMatchesIntent(accepted, result.quote);
+    pendingCosmeticAction.quote = result.quote;
+    pendingCosmeticAction.expectedRevision = Number(result.revision);
+    localStorage.setItem(COSMETIC_PENDING_KEY, JSON.stringify(pendingCosmeticAction));
+    if (!submit) setCosmeticItemStatus(cosmeticId, "内容が変わりました。新しい内容でもう一度確認してください。");
+  } catch { submit = false; setCosmeticItemStatus(cosmeticId, "最新の内容を確認できませんでした。購入は送信していません。"); }
+  finally { cosmeticBusy = false; renderCosmetics(); }
+  if (submit) await commitOnlineCosmetic();
+  else focusCosmeticItem(cosmeticId);
 }
 
 function renderCardSale() {
@@ -6025,7 +6106,7 @@ $("cardSaleRetry").onclick = () => commitOnlineCardSale(true);
 $("cardSaleReset").onclick = clearCardSaleDraft;
 $("editNextLoadout").onclick = openLoadoutWorkshop;
 $("refreshCosmetics").onclick = () => refreshOnlineCosmetics();
-$("cosmeticCommit").onclick = commitOnlineCosmetic;
+$("cosmeticCommit").onclick = confirmOnlineCosmetic;
 $("cosmeticRetry").onclick = commitOnlineCosmetic;
 $("cosmeticCancel").onclick = cancelOnlineCosmetic;
 $("createRoom").onclick = createRoom;
