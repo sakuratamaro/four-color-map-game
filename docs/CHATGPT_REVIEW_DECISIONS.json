@@ -843,14 +843,33 @@
         "UDL-20260912-060"
       ],
       "owner_thread_id": "01a07b56-616e-7733-9aae-90575659688e",
-      "state": "RESULT_MODEL_DOM_CSS_DRAFT_UNVERIFIED",
-      "base_sha": "32046255e88901ce03dc88c59f51e803529b9f63",
-      "base_status": "CANDIDATE_NOT_PUBLIC",
-      "scope": "Result-local continuation; no changes to candidate under review.",
+      "state": "LOCAL_VERIFIED_EXTERNAL_PUSH_BLOCKED",
+      "base_sha": "d6f745d3f1291457539dd2f3476e9a749a547069",
+      "base_status": "WINDOWS_PASS_REVIEW_PENDING_NOT_PUBLIC",
+      "candidate_sha": "ccc9e91e0d1fecb74ce693b15d324c375671f8a1",
+      "spec_version": "UDL-060-result-v1",
+      "spec_path": "docs/UI_RESULT_CONTINUATION_20260912.md",
+      "spec_snapshot_sha": "191a69d0db1b3cfa47521ff70d2a577f7b046213",
+      "scope": "Pages_only",
+      "db_change_set": [],
+      "edge_change_set": [],
       "review_status": "NOT_REQUESTED",
+      "windows_status": "NOT_RUN_PUSH_BLOCKED",
       "publication": "NOT_RUN",
       "worktree": ".codex-worktrees/ui-result-20260912",
-      "branch": "codex/ui-result-20260912"
+      "branch": "codex/ui-result-20260912",
+      "local_tests": "clean910/910 (121.839s); installed Chrome11/11 (111.861s), Edge11/11 (91.342s), all skip0; three builders zero tracked diff; candidate clean",
+      "transport_blocker": {
+        "type": "AUTO_REVIEW_REJECTED_EXTERNAL_CODE_DISCLOSURE",
+        "attempts": 2,
+        "repo": "sakuratamaro/four-color-map-game",
+        "branch": "codex/ui-result-20260912",
+        "payload": "16 game-code/test/spec/cache-contract paths; no screenshot, credential or personal data",
+        "prior_authority_checked": "User full-diff sharing and continuing UI work plus UDL056 were supplied; auto-review still requires exact branch/payload user authorization.",
+        "no_workaround": true,
+        "required_user_action": "Explicit permission to push ccc9e91 to codex/ui-result-20260912 on existing public repository"
+      },
+      "evidence": "docs/UI_RESULT_LOCAL_20260912.md"
     }
   },
   "decisions": [
