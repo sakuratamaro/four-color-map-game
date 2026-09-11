@@ -294,8 +294,8 @@
         "sha256": "F1173BE999D765DB28558DED3CB8BAFB1515281F01411E13494A320EE6C68C6B",
         "entry": "intake/REQUESTS_ADDITION.json",
         "thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
-        "user_message_id": null,
-        "message_id_status": "NOT_RETRIEVED_USE_ARCHIVED_QUOTE"
+        "user_message_id": "0832e679-e775-4622-8f09-08a2900ca109",
+        "message_id_status": "matched_to_full_completed_user_message_retrieved_after_initial_intake"
       },
       "source_quote": "自分の色を変えたり増やしたり、エリア二分とか、自分を救済するスキルもちゃんと使ってほしい",
       "intent_state": "decided",
@@ -323,8 +323,8 @@
         "sha256": "F1173BE999D765DB28558DED3CB8BAFB1515281F01411E13494A320EE6C68C6B",
         "entry": "intake/REQUESTS_ADDITION.json",
         "thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
-        "user_message_id": null,
-        "message_id_status": "NOT_RETRIEVED_USE_ARCHIVED_QUOTE"
+        "user_message_id": "0832e679-e775-4622-8f09-08a2900ca109",
+        "message_id_status": "matched_to_full_completed_user_message_retrieved_after_initial_intake"
       },
       "source_quote": "「獲得した券でガチャる」みたいなボタンを押してガチャに飛ぶときは、当該レベルのガチャ券を選択した状態になっててほしいな",
       "intent_state": "decided",
@@ -352,8 +352,8 @@
         "sha256": "F1173BE999D765DB28558DED3CB8BAFB1515281F01411E13494A320EE6C68C6B",
         "entry": "intake/REQUESTS_ADDITION.json",
         "thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
-        "user_message_id": null,
-        "message_id_status": "NOT_RETRIEVED_USE_ARCHIVED_QUOTE"
+        "user_message_id": "0832e679-e775-4622-8f09-08a2900ca109",
+        "message_id_status": "matched_to_full_completed_user_message_retrieved_after_initial_intake"
       },
       "source_quote": "最強のキャラは女子、最弱のキャラは男子にして！",
       "intent_state": "reaffirmed",
@@ -377,7 +377,7 @@
     "Only ZIP data read; supplied scripts not executed; no bulk extraction.",
     "JSON/YAML semantic parity not rerun.",
     "Manifest PASS is packaging evidence, not game test evidence.",
-    "v4/v6 original message IDs unresolved; v5 matched to prior genuine retrieval. Images not treated as reproduced gameplay.",
+    "v4 original message ID unresolved. v5 matched to prior genuine retrieval; v6 user0832e679 fully read after initial intake and matched (paired response f3492a87 is design/intake, not release approval). Images not treated as reproduced gameplay.",
     "No CPU, quiz-motion, cosmetic, split, corner, reward change implemented by this intake. No review approval inferred."
   ]
 }

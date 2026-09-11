@@ -32,3 +32,7 @@ CPU救済は未所持・候補漏れ・対象/順序評価を分ける。持ち�
 独立して承認済みのパレット `ce6fab5` は本取込を待たずmain/Pagesへ公開し、実本番30/30で確認済み。資料の旧pending表示へ戻さない。今回の新要望はまだ公開済みではなく、ZIP自体はAPPROVE_RELEASEではない。既存review waitはPAUSEDを維持する。
 
 取込後検証: `node --test tests/governance-shared-canon.test.cjs tests/standard-decision-reconciliation.test.cjs` は17/17 PASS・skip0。新alias11件の唯一性/出典/既存UDL/試験path、旧28件snapshot保持、公開slice範囲、実承認004/005/007の個別SHA/base/spec/scope、否定ケースを検証した。これは文書と接続の検証であり、新CPU等のゲーム受入合格ではない。次の059は通常作業への引継ぎで、まだ実装開始済みとはしない。
+
+### 出典IDの追加確認
+
+初回受領後、報告先の既存会話「改修ロールバック防止策」の完了済み最新turnを確認し、v6の実user message `0832e679-e775-4622-8f09-08a2900ca109` を全文取得・照合した。CPU救済、報酬券Lv引継ぎ、最強女子/最弱男子の再確認と末尾の受渡し文が一致。v6の3 aliasへ実IDを補った。対応Astra応答 `f3492a87-d6f7-40ad-8cd5-288a299ad6d2` は資料整理の応答であり候補公開承認ではない。未取得のまま残る元IDはv4。本文先頭の署名付き画像URLは保存・共有資料へ複製していない。

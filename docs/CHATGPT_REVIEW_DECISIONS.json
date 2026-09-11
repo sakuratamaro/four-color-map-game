@@ -109,7 +109,7 @@
         "receipt": "docs/BRAIN_V4_V6_INTAKE_20260911.json"
       }
     ],
-    "pending_user_intake_note": "v3/v4/v5/v6 reconciled as dated aliases: CPU051, quiz034, split037, corner029, history057, aurora058, reward navigation059. Source bbb215c4 matched and consumed; v4/v6 original message IDs unresolved (archive quote/hash retained). Original ea61f25f remains not fully consumed. CPU formal settings and exact perk numbers remain unverified; not implemented by intake. User publication/delegation policy056 and completed055/052 evidence are preserved.",
+    "pending_user_intake_note": "v3/v4/v5/v6 reconciled as dated aliases: CPU051, quiz034, split037, corner029, history057, aurora058, reward navigation059. Source bbb215c4 matched and consumed; v4 original message ID unresolved (archive quote/hash retained); v6 source0832e679 subsequently read in full and matched. Original ea61f25f remains not fully consumed. CPU formal settings and exact perk numbers remain unverified; not implemented by intake. User publication/delegation policy056 and completed055/052 evidence are preserved.",
     "last_completed_slice": {
       "id": "UDL-20260910-052",
       "owner_thread_id": "01a07b56-616e-7733-9aae-90575659688e",
