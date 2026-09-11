@@ -41,7 +41,7 @@
     }
   ],
   "coordination": {
-    "status": "ui_play_surface_local_verified_review_ready",
+    "status": "ui_play_surface_review_transport_pending_result_implementation",
     "latest_v8_intake": {
       "state": "PAIRED_SOURCE_MAPPED_CANONICAL_UI_GOAL_QUEUED_ZIP_PENDING",
       "source_thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
@@ -255,7 +255,7 @@
         "UDL-20260910-054",
         "UDL-20260912-063"
       ],
-      "state": "LOCAL_VERIFIED",
+      "state": "REVISION_REQUIRED_NOT_PUBLISHED",
       "owner_thread_id": "01a07b56-616e-7733-9aae-90575659688e",
       "base_sha": "93c05c7c68576b28a126588d0716f0f56c015531",
       "branch": "codex/ui-play-surface-20260912",
@@ -267,23 +267,42 @@
       "scope": "Pages_only",
       "db_change_set": [],
       "edge_change_set": [],
-      "review_status": "NOT_REQUESTED",
+      "review_status": "DELIVERY_UNCONFIRMED",
       "review_send_attempts": 1,
       "review_packet": "docs/ASTRA_UI_PLAY_SURFACE_REVIEW_20260912.md",
       "local_tests": "clean906/906 skip0; actualChrome22/22 and Edge22/22 skip0 on6cd12ae; manual390/1280 board plus390 hand images inspected PASS",
       "windows_run": "34642709902",
-      "windows_status": "IN_PROGRESS",
+      "windows_status": "FAILURE",
       "public_gameplay": "NOT_RUN",
       "physical_devices": "NOT_RUN",
-      "next_action": "Send fixed review once; require exact approval and Windows success before main/Pages; bounded public own-CPU canary afterwards.",
-      "review_send_reserved_at_utc": "2026-09-11T20:17:19Z"
+      "next_action": "Fix observed failures, preserve6cd review and original finite deadline, no public promotion even if6cd review approves. Do not send followup while reviewer active.",
+      "review_send_reserved_at_utc": "2026-09-11T20:17:19Z",
+      "review_delivery_checks": 2,
+      "review_source_artifact_sha": "4ff46fc5999f4dbbc6ff57bf11801e3e8ac88552",
+      "review_request_message_id": null,
+      "review_delivery_note": "Two bounded valid readbacks returned prior1ba/d7 while chatactive. API accepted one send. No guessed message ID and no third immediate read or resend.",
+      "windows_failures": [
+        "recolor loan visible label changed",
+        "first move actionOrder retained obsolete DOM selector",
+        "normal390 board width fell below old>300 guard",
+        "CPU commentary can overlap guide in Windows"
+      ],
+      "prepared_revision": {
+        "candidate_sha": "32046255e88901ce03dc88c59f51e803529b9f63",
+        "spec_version": "UDL-052-054-063-play-v1.1",
+        "spec_snapshot_sha": "977101c8f05d13836c060dedeb1b425a3c96fb16",
+        "windows_run": "34644395034",
+        "windows_status": "IN_PROGRESS",
+        "local_tests": "clean906/906 Chrome26/26; Edge25/26 owned-cleanup failure then isolated1/1 normal cleanup. Old Windows4 failures preserved. No product assertion failure in final local candidate.",
+        "review_status": "NOT_SENT_WHILE_PREVIOUS_CHAT_ACTIVE"
+      }
     },
     "automation_id": "automation",
-    "automation_status_at_recording": "PAUSED",
-    "automation_readback_updated_at": 1789154072321,
+    "automation_status_at_recording": "ACTIVE",
+    "automation_readback_updated_at": 1789158081364,
     "automation_prompt_readback_equal": true,
     "automation_pause_reason": "Exact93 completed review arrived during bounded transport read. No eligible review wait remains; actual heartbeat stays PAUSED.",
-    "automation_active_reason": "Independent UI request delivered; original closed memo wait preserved.20/40/100 max3 before20:51:55Z.",
+    "automation_active_reason": "New play-surface fixed review accepted by send API but bounded readback stale; finite retrieval budget conservatively starts before send and cannot reset. Existing entrance wait closed.",
     "completed_review_waits": [
       {
         "root_request_message_id": "8464f659-ad62-4c09-83d9-44e1cc91316b",
@@ -382,34 +401,54 @@
         "followup_response_message_id": "ffc94034-65a2-45b0-93d9-c04062e27fcc",
         "followup_subject_sha": "a26ffd14a8f896d9d087dac032d8f079ece82f7d",
         "followup_status": "review_received_closed_same_original_deadline_no_automatic_reads"
+      },
+      {
+        "root_request_message_id": "6d1b03f6-b19b-4b6e-935f-78c9afb0dbaa",
+        "subject_sha": "a9b2ff984c448819483286eae5acfa91530fc5db",
+        "started_at_utc": "2026-09-11T18:51:55Z",
+        "expires_at_utc": "2026-09-11T20:51:55Z",
+        "automatic_checks": 1,
+        "max_automatic_checks": 3,
+        "offset_minutes": [
+          20,
+          40,
+          100
+        ],
+        "next_check_utc": null,
+        "max_age_minutes": 120,
+        "reset_on_candidate_revision": false,
+        "reset_on_restart_or_unrelated_message": false,
+        "confirmed_delivery_reminders": 0,
+        "status": "review_received_closed",
+        "start_note": "Separate UI logical review after closed memo goal; second bounded transport read confirmed exact full prompt. No completed response yet; not a reset of the closed memo wait.",
+        "response_message_id": "0b9e9ee9-8a0d-4a61-8da3-17ccd3a2bbc5",
+        "received_at_utc": "2026-09-11T19:12:50Z",
+        "followup_request_message_id": "94a4152d-fba7-4718-ac5f-f7698c5cf89d",
+        "followup_subject_sha": "93c05c7c68576b28a126588d0716f0f56c015531",
+        "followup_response_message_id": "9f4e5736-a704-4c73-819a-40c4005f9bf6",
+        "followup_status": "review_received_closed_same_original_deadline_no_additional_scheduled_reads",
+        "followup_received_at_utc": "2026-09-11T19:20:00Z"
       }
     ],
     "wait_budget": {
-      "root_request_message_id": "6d1b03f6-b19b-4b6e-935f-78c9afb0dbaa",
-      "subject_sha": "a9b2ff984c448819483286eae5acfa91530fc5db",
-      "started_at_utc": "2026-09-11T18:51:55Z",
-      "expires_at_utc": "2026-09-11T20:51:55Z",
-      "automatic_checks": 1,
+      "root_request_message_id": null,
+      "subject_sha": "6cd12ae888f26c9403fb504596f92f4d9a65b301",
+      "started_at_utc": "2026-09-11T20:17:19Z",
+      "expires_at_utc": "2026-09-11T22:17:19Z",
+      "automatic_checks": 0,
       "max_automatic_checks": 3,
       "offset_minutes": [
         20,
         40,
         100
       ],
-      "next_check_utc": null,
+      "next_check_utc": "2026-09-11T20:37:19Z",
       "max_age_minutes": 120,
       "reset_on_candidate_revision": false,
       "reset_on_restart_or_unrelated_message": false,
       "confirmed_delivery_reminders": 0,
-      "status": "review_received_closed",
-      "start_note": "Separate UI logical review after closed memo goal; second bounded transport read confirmed exact full prompt. No completed response yet; not a reset of the closed memo wait.",
-      "response_message_id": "0b9e9ee9-8a0d-4a61-8da3-17ccd3a2bbc5",
-      "received_at_utc": "2026-09-11T19:12:50Z",
-      "followup_request_message_id": "94a4152d-fba7-4718-ac5f-f7698c5cf89d",
-      "followup_subject_sha": "93c05c7c68576b28a126588d0716f0f56c015531",
-      "followup_response_message_id": "9f4e5736-a704-4c73-819a-40c4005f9bf6",
-      "followup_status": "review_received_closed_same_original_deadline_no_additional_scheduled_reads",
-      "followup_received_at_utc": "2026-09-11T19:20:00Z"
+      "status": "delivery_unconfirmed_api_accepted_no_resend_while_active",
+      "start_note": "New independent play-surface request. Conservatively bounded from send reservation, earlier than any future readback. Both bounded immediate readbacks still showed prior completed entrance turn while chat active. Never extend upon later delivery confirmation."
     },
     "pending_review_subject": {
       "review_kind": "game_production_release_approval",
@@ -434,7 +473,7 @@
     "initial_interval_minutes": 20,
     "pending_subject_sha": "6cd12ae888f26c9403fb504596f92f4d9a65b301",
     "pending_scope": "Pages_only",
-    "pending_delivery_status": "SINGLE_SEND_RESERVED",
+    "pending_delivery_status": "SEND_API_ACCEPTED_READBACK_UNCONFIRMED_ACTIVE_NO_RESEND",
     "last_confirmed_sent_message_id": "94a4152d-fba7-4718-ac5f-f7698c5cf89d",
     "last_sent_message_id": "94a4152d-fba7-4718-ac5f-f7698c5cf89d",
     "self_sent_message_ids": [
@@ -728,19 +767,23 @@
         "UDL-20260912-062",
         "UDL-20260912-063"
       ],
-      "preparation": "docs/UI_DIET_PREPARATION_20260912.md"
+      "preparation": "docs/UI_DIET_PREPARATION_20260912.md",
+      "status": "ACTIVE",
+      "registration_receipt": "get_goal returned null on2026-09-11T20:20Z; explicitly user-requested UI goal re-created without budget; no other active goal existed. Work and completed slices preserved."
     },
     "preparing_next_slice": {
       "request_ids": [
         "UDL-20260912-060"
       ],
       "owner_thread_id": "01a07b56-616e-7733-9aae-90575659688e",
-      "state": "READ_ONLY_DEPENDENCY_INSPECTION",
-      "base_sha": "6cd12ae888f26c9403fb504596f92f4d9a65b301",
+      "state": "DRAFT_SPEC_AND_PURE_RESULT_REWARD_MODEL",
+      "base_sha": "32046255e88901ce03dc88c59f51e803529b9f63",
       "base_status": "CANDIDATE_NOT_PUBLIC",
       "scope": "Result-local continuation; no changes to candidate under review.",
       "review_status": "NOT_REQUESTED",
-      "publication": "NOT_RUN"
+      "publication": "NOT_RUN",
+      "worktree": ".codex-worktrees/ui-result-20260912",
+      "branch": "codex/ui-result-20260912"
     }
   },
   "decisions": [

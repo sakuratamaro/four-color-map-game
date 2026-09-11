@@ -46,10 +46,22 @@ test("palette public receipt keeps live evidence and unfinished layout acceptanc
 test("an active review wait stays bound to the delivered current candidate, not an earlier completed slice", () => {
   const { coordination: c } = JSON.parse(read("docs/CHATGPT_REVIEW_DECISIONS.json"));
   if (c.automation_status_at_recording !== "ACTIVE") return;
-  assert.equal(c.wait_budget.status, "review_pending");
-  assert.equal(c.pending_delivery_status, "delivery_verified_response_pending");
-  assert.ok(c.self_sent_message_ids.includes(c.wait_budget.root_request_message_id));
-  assert.equal(c.last_confirmed_sent_message_id, c.wait_budget.root_request_message_id);
+  if (c.wait_budget.status === "delivery_unconfirmed_api_accepted_no_resend_while_active") {
+    assert.equal(c.pending_delivery_status, "SEND_API_ACCEPTED_READBACK_UNCONFIRMED_ACTIVE_NO_RESEND");
+    assert.equal(c.wait_budget.root_request_message_id, null, "do not invent a delivery ID");
+    assert.equal(c.active_slice.review_request_message_id, null);
+    assert.equal(c.active_slice.review_send_attempts, 1);
+    assert.equal(c.active_slice.review_delivery_checks, 2);
+    assert.equal(c.active_slice.review_status, "DELIVERY_UNCONFIRMED");
+    assert.equal(c.wait_budget.confirmed_delivery_reminders, 0);
+    assert.equal(c.wait_budget.reset_on_candidate_revision, false);
+    assert.equal(Date.parse(c.wait_budget.expires_at_utc) - Date.parse(c.wait_budget.started_at_utc), 120 * 60_000);
+  } else {
+    assert.equal(c.wait_budget.status, "review_pending");
+    assert.equal(c.pending_delivery_status, "delivery_verified_response_pending");
+    assert.ok(c.self_sent_message_ids.includes(c.wait_budget.root_request_message_id));
+    assert.equal(c.last_confirmed_sent_message_id, c.wait_budget.root_request_message_id);
+  }
   assert.equal(c.pending_subject_sha, c.active_slice.candidate_sha);
   assert.equal(c.wait_budget.subject_sha, c.active_slice.candidate_sha);
   assert.equal(c.pending_review_subject.subject_sha, c.active_slice.candidate_sha);
