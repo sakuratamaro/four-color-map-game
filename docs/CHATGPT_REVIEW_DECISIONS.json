@@ -66,6 +66,7 @@
       "astra_response_id": "61a5e22b-e1da-4a75-865f-74b7535d96d4",
       "transfer_thread_id": "01a08d9e-ae35-7f70-a879-cb342dafef47",
       "state": "RECEIVED_QUEUED_FOR_DEDUPLICATED_INTAKE_NOT_BLOCKING_UDL048",
+      "commander_package_verification": { "sha256_matches": true, "manifest_files_verified": 40, "unique_safe_archive_entries": 41, "new_delta_records_read": 8, "canonical_mapping": "PENDING", "source_diagnostic_read_not_executed": true },
       "note": "Transfer reports manifest 40/40 and 28 unchanged plus 8 new requests. Commander read actual paired user/Astra text on 2026-09-12; package revalidation and canonical mapping remain pending. Not a new release approval, 5-color adoption or production change. Author contact remains forbidden."
     },
     "latest_publication_report": {
