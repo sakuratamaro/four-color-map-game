@@ -5799,7 +5799,11 @@ $("createStarterProfile").onclick = createStarterProfile;
 $("syncProfile").onclick = syncSelectedProfile;
 $("quizStart").onclick = startOnlineQuiz;
 $("quizHint").onclick = openQuizHint;
-$("quizGoGacha").onclick = () => goToGacha();
+$("quizGoGacha").onclick = () => {
+  const ticketLevel = lastQuizResult?.reward?.ticketLevel;
+  if (!Number.isSafeInteger(ticketLevel) || ticketLevel < 1 || ticketLevel > 5) return;
+  goToGacha(ticketLevel);
+};
 $("gachaLevel").onchange = () => { armedCpuRewardGachaOrigin = null; clearCpuRewardGachaResult({ clearDraws: true }); renderGacha(); };
 $("gachaDrawOne").onclick = () => runGacha(1);
 $("gachaDrawAll").onclick = () => runGacha(null);

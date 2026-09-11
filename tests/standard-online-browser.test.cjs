@@ -113,7 +113,7 @@ async function installMock(context, mode) {
       globalThis.__standardOnlineFocusEvents.push({ id: this.id || "", stack: new Error().stack || "" });
       return originalFocus.apply(this, args);
     };
-    const quizReloadModes = ["handoffReload", "quizReloadPrivate", "quizReloadCpu", "quizReloadPublicFinished", "quizReloadStale"];
+    const quizReloadModes = ["handoffReload", "quizReloadPrivate", "quizReloadCpu", "quizReloadPublicFinished", "quizReloadStale", "quizReward"];
     const initialTab = ["gacha", "quiz", "quizPolish", ...quizReloadModes].includes(initialMode) ? "quiz" : initialMode === "cosmetic" ? "profile" : initialMode === "empty" ? "home" : "battle";
     const setupTransition = ["setupTransition", "setupTransitionCpuFirst"].includes(initialMode);
     const setupPending = setupTransition || initialMode === "setupDebugError";
@@ -228,7 +228,8 @@ async function installMock(context, mode) {
       }));
       localStorage.setItem("fourColorMapGame.standard.online.v5.pending-quiz", JSON.stringify({
         sessionId: "66666666-6666-4666-8666-666666666666", finishActionId: pendingId,
-        selectedLevel: 1, expiresAt: "2099-01-01T00:00:00.000Z", questions, answers: [], answerResults: [],
+        selectedLevel: initialMode === "quizReward" ? 5 : 1, expiresAt: "2099-01-01T00:00:00.000Z", questions,
+        answers: initialMode === "quizReward" ? questions.map((_, index) => `q${index + 1}-1`) : [], answerResults: [],
         answerMode: "per-question-v1", pendingAnswer: null, timeoutAnswerId: "__timeout__",
         questionState: { index: 0, remainingMs: 30000, lastTickAt: Date.now() - 5000, hintUsed: false, hintActiveUntil: 0 },
       }));
@@ -240,7 +241,7 @@ async function installMock(context, mode) {
     };
     const finished = { ...active, status: "FINISHED", phase: "GAME_OVER", winner: "A", terminalReason: "SURRENDER" };
     const profileState = {
-      displayName: "A", inventory, gachaTickets: { "1": 2 }, coins: initialMode === "cosmetic" ? 1000 : 0,
+      displayName: "A", inventory, gachaTickets: initialMode === "quizReward" ? { "1": 2, "2": 1, "3": 2, "4": 2, "5": 2 } : { "1": 2 }, coins: initialMode === "cosmetic" ? 1000 : 0,
       protectedSkills: { areaHalfShift: true }, cosmeticsOwned: ["boardDefault", "effectDefault", "nameplateDefault", "titleNone"],
       equipped: { board: "boardDefault", effect: "effectDefault", nameplate: "nameplateDefault", title: "titleNone" },
       trophies: { fullPaint: true, fullPaint3: false, noSkillFullPaint: true },
@@ -543,7 +544,7 @@ async function installMock(context, mode) {
             isCorrect: answerId === `q${index + 1}-1`,
             explanation: `${index + 1} + 1 = ${index + 2}`,
           }));
-          const result = { revision: runtime.profile.revision + 1, duplicate: false, correct, wrong: 10 - correct, bestStreak: correct, reward: { ticketLevel: 1, draws: 1, reason: "参加報酬" }, profileState: runtime.profile.profile_state, answerReview };
+          const result = { revision: runtime.profile.revision + 1, duplicate: false, correct, wrong: 10 - correct, bestStreak: correct, reward: { ticketLevel: initialMode === "quizReward" ? 2 : 1, draws: 1, reason: "参加報酬" }, profileState: runtime.profile.profile_state, answerReview };
           runtime.quizFinishReceipts[request.body.actionId] = result;
           return { data: result };
         }
@@ -2716,6 +2717,65 @@ test("actual browser shows the approved odds and rarity floor for each selected 
     assert.ok(layout.left >= 0 && layout.right <= layout.viewport, JSON.stringify(layout));
     assert.equal(layout.overflow, false);
   }, { viewport: { width: 390, height: 844 } });
+});
+
+test("UDL-059 quiz reward navigation uses the saved level, survives hydration and manual changes, and preserves zero stock", { timeout: 130000 }, async () => {
+  await withPage("quizReward", async (page) => {
+    await page.locator("#gachaLevel").selectOption("5");
+    assert.match(await page.locator("#quizLevelBadge").textContent(), /Lv\.5/);
+    await page.locator("#quizResult:not(.hidden)").waitFor();
+    await page.locator("#quizGoGacha").click();
+    assert.equal(await page.locator("#gachaLevel").inputValue(), "2");
+    assert.match(await page.locator("#gachaOdds").textContent(), /^Lv\.2 排出率/);
+    assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter(c => c.body?.operation === "gacha").length), 0);
+    await page.locator("#gachaDrawOne").click();
+    await page.waitForFunction(() => document.querySelector("#gachaStatus").textContent.includes("1枚を獲得"));
+    const drawn = await page.evaluate(key => ({
+      calls: globalThis.__standardOnlineRuntime.calls.filter(c => c.body?.operation === "gacha").map(c => c.body),
+      tickets: JSON.parse(localStorage.getItem(key)).gachaTickets,
+    }), remoteProfileKey);
+    assert.equal(drawn.calls.length, 1);
+    assert.equal(drawn.calls[0].ticketLevel, 2);
+    assert.equal(drawn.tickets["2"], 0);
+    assert.equal(drawn.tickets["5"], 2);
+    await page.locator("#gachaLevel").selectOption("3");
+    await page.locator('[data-app-tab="battle"]').click();
+    await page.locator('[data-app-tab="quiz"]').click();
+    assert.equal(await page.locator("#gachaLevel").inputValue(), "3");
+    await page.locator("#gachaDrawOne").click();
+    await page.waitForFunction(key => JSON.parse(localStorage.getItem(key)).gachaTickets["3"] === 1, remoteProfileKey);
+    assert.equal(await page.locator("#gachaLevel").inputValue(), "3", "profile hydration does not reapply the old reward");
+    assert.match(await page.locator("#gachaOdds").textContent(), /^Lv\.3 排出率/);
+    await page.locator("#quizGoGacha").click();
+    assert.equal(await page.locator("#gachaLevel").inputValue(), "2");
+    assert.match(await page.locator("#gachaStatus").textContent(), /Lv\.2券を0枚/);
+    assert.equal(await page.locator("#gachaDrawOne").isDisabled(), true);
+    assert.equal(await page.locator("#gachaDrawAll").isDisabled(), true);
+    assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter(c => c.body?.operation === "gacha").length), 2);
+  }, { viewport: { width: 390, height: 844 } });
+});
+
+test("UDL-059 quiz reward link cannot replace an unresolved draw or its retry payload", { timeout: 130000 }, async () => {
+  await withPage("quizReward", async (page) => {
+    await page.locator("#gachaLevel").selectOption("5");
+    await page.evaluate(() => { globalThis.__standardOnlineRuntime.failNextGacha = true; });
+    await page.locator("#gachaDrawAll").click();
+    await page.locator("#gachaRetry:not(.hidden)").waitFor();
+    const pendingKey = "fourColorMapGame.standard.online.v5.pending-gacha";
+    const pending = await page.evaluate(key => JSON.parse(localStorage.getItem(key)), pendingKey);
+    assert.equal(pending.ticketLevel, 5);
+    assert.equal(pending.count, 2);
+    await page.locator("#quizResult:not(.hidden)").waitFor();
+    await page.locator("#quizGoGacha").click();
+    assert.equal(await page.locator("#gachaLevel").inputValue(), "5", "the existing unresolved draw takes precedence");
+    assert.deepEqual(await page.evaluate(key => JSON.parse(localStorage.getItem(key)), pendingKey), pending);
+    assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter(c => c.body?.operation === "gacha").length), 1);
+    await page.locator("#gachaRetry").click();
+    await page.waitForFunction(key => localStorage.getItem(key) === null, pendingKey);
+    const calls = await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter(c => c.body?.operation === "gacha").map(c => c.body));
+    assert.equal(calls.length, 2);
+    for (const field of ["actionId", "ticketLevel", "count"]) assert.equal(calls[1][field], calls[0][field], field);
+  });
 });
 
 test("actual Edge gacha persists one server draw and immediately hydrates inventory", { timeout: 130000 }, async () => {
