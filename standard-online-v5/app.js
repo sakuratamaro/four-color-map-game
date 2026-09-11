@@ -1,6 +1,7 @@
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 import "../online/supabase-config.js";
 import { createQuizMemo } from "./quiz-memo.js?v=20260912-1";
+import { paletteRoleSlots, stableHandSlots } from "./play-surface-model.js?v=20260912-1";
 
 const cfg = globalThis.FourColorSupabaseConfig;
 const supabase = createClient(cfg.url, cfg.publishableKey, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false } });
@@ -304,6 +305,8 @@ let boardKeyboardMicro = null;
 let boardInteractionScope = null;
 let boardPointerGesture = null;
 let observedColorResponseScope = null;
+let remainingColorSelection = { scope: null, color: null };
+let playSurfaceFitFrame = null;
 let initialHydrationPending = true;
 const COLOR_HEX = { red: "#ef4444", blue: "#3b82f6", yellow: "#eab308", green: "#22c55e" };
 const COLOR_JA = { red: "赤", blue: "青", yellow: "黄", green: "緑" };
@@ -628,14 +631,7 @@ function alignPlayingViewport({ expectedInteractionRevision = null, focusHeading
     requestAnimationFrame(() => {
       if (expectedInteractionRevision !== null && userInteractionRevision !== expectedInteractionRevision
         || activeAppTab !== "battle" || document.visibilityState !== "visible") return;
-      const controls = $("regionControls");
-      const guide = $("turnGuide");
-      const connection = document.querySelector(".connection-card");
-      if (controls.classList.contains("hidden") || guide.classList.contains("hidden") || !connection) return;
-      const overlap = controls.getBoundingClientRect().bottom - connection.getBoundingClientRect().top;
-      const available = Math.max(0, Math.floor(guide.getBoundingClientRect().top));
-      const adjustment = Math.min(Math.max(0, Math.ceil(overlap + 8)), available);
-      if (adjustment > 0) scrollBy({ top: adjustment, behavior: scrollBehavior });
+      alignColorResponseAboveBattleChrome();
     });
   });
 }
@@ -683,6 +679,9 @@ function activateAppTab(requestedTab, { updateHash = true, scrollTop = true } = 
     roomSync?.invalidate?.();
   }
   if (scrollTop) window.scrollTo({ top: 0, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+  if (tab === "battle" && roomModel?.room?.status === "playing") {
+    requestAnimationFrame(alignColorResponseAboveBattleChrome);
+  }
 }
 
 function hasMatchedRoomHandoff() {
@@ -3482,7 +3481,7 @@ function renderSkills(state, privateState) {
   const usedCategories = new Set(state.skillCategoryWindow?.categories || []);
   if (usedCategories.size) {
     const note = document.createElement("p");
-    note.className = "small";
+    note.className = "small skill-category-note";
     note.textContent = `この手番で使用済み：${[...usedCategories].map((category) => CATEGORY_LABEL[category] || category).join("・")}（同じ種類は次の手番まで使えません）`;
     box.appendChild(note);
   }
@@ -3490,8 +3489,8 @@ function renderSkills(state, privateState) {
     targetDraft = null;
     selectedMacros.clear();
   }
-  for (const [skill, count] of Object.entries(privateState.hand || {})) {
-    if (!(count > 0) || !SKILL_META[skill]) continue;
+  for (const slot of stableHandSlots(privateState, SKILL_META)) {
+    const { skill, count, used, extra } = slot;
     const meta = SKILL_META[skill];
     if (skill === "legalRecolor") {
       const label = document.createElement("strong");
@@ -3499,14 +3498,21 @@ function renderSkills(state, privateState) {
       label.textContent = "LAB貸与カード（この対戦で1回）";
       box.appendChild(label);
     }
-    const item = document.createElement("div"); item.className = "skill-entry";
-    const node = button(`${meta.name} ${state.debugUnlimitedSkills ? "∞" : `×${count}`}（★${meta.rarity}）`, () => beginSkill(skill), "skill");
+    const item = document.createElement("div");
+    item.className = `skill-entry${used ? " is-used" : ""}${extra ? " is-extra" : ""}`;
+    item.dataset.slot = String(slot.index);
+    const node = button("", () => beginSkill(skill), "skill");
+    const name = document.createElement("strong"); name.textContent = meta.name;
+    const status = document.createElement("span"); status.className = "skill-card-status";
+    status.textContent = `★${meta.rarity} · ${used ? "使用済み" : state.debugUnlimitedSkills ? "∞" : `×${count}`}`;
+    node.append(name, status);
+    node.setAttribute("aria-label", `${meta.name} ${used ? "使用済み" : state.debugUnlimitedSkills ? "∞" : `×${count}`}（★${meta.rarity}）`);
     node.dataset.skill = skill;
     const timingOkay = skill === "legalRecolor" ? state.phase === "WORK"
       : meta.category === "color" ? state.phase === "COLOR" : ["CREATE_FIRST", "WORK"].includes(state.phase);
     const categoryUsed = usedCategories.has(meta.usageCategory || meta.category);
     const refillFull = skill === "colorBonusRefill" && (privateState.bonusUsesRemaining || 0) >= 4;
-    node.disabled = actionBusy || Boolean(pendingAction) || !myTurn || !timingOkay || categoryUsed || refillFull;
+    node.disabled = used || actionBusy || Boolean(pendingAction) || !myTurn || !timingOkay || categoryUsed || refillFull;
     if (categoryUsed) node.title = "この手番では同じ種類のスキルはもう使えません";
     const info = button("ⓘ", () => openSkillInfo(skill), "skill-info-button");
     info.type = "button"; info.setAttribute("aria-label", `${meta.name}の説明`); info.title = `${meta.name}の説明`;
@@ -4758,18 +4764,52 @@ function isColorSealed(state, seat, color) {
     && Number(state?.publicEffects?.[seat]?.seals?.[color] || 0) > 0;
 }
 
+function battleViewportInsets() {
+  // Reserve existing notice space before an announcement, so its arrival does
+  // not change focus or move the board. Sticky top navigation is not a footer.
+  let top = 76, bottom = 12;
+  for (const node of [$("connectionCard"), document.querySelector(".app-tabs")]) {
+    if (!node || !node.getClientRects().length) continue;
+    const style = getComputedStyle(node), height = node.getBoundingClientRect().height;
+    if (!["fixed", "sticky"].includes(style.position)) continue;
+    if (style.bottom !== "auto") bottom = Math.max(bottom, parseFloat(style.bottom) + height + 8);
+    else if (style.top !== "auto") top = Math.max(top, parseFloat(style.top) + height + 8);
+  }
+  return { top, bottom };
+}
+
+function fitPlaySurface() {
+  if (activeAppTab !== "battle" || $("matchCard").classList.contains("hidden")) return;
+  const { top, bottom } = battleViewportInsets();
+  const responseHeight = $("colorResponse").getBoundingClientRect().height;
+  const controlHeight = $("regionControls").getBoundingClientRect().height;
+  const noticeHeight = $("paletteImpactNotice").getBoundingClientRect().height;
+  const guideHeight = noticeHeight ? 0 : $("turnGuide").getBoundingClientRect().height;
+  const room = Math.floor(innerHeight - top - bottom - responseHeight - controlHeight - noticeHeight - guideHeight - 48);
+  $("playSurface").style.setProperty("--play-board-max", `${Math.max(280, Math.min(560, room))}px`);
+  show("playViewportHint", room < 280);
+}
+
+function schedulePlaySurfaceFit() {
+  if (playSurfaceFitFrame !== null) cancelAnimationFrame(playSurfaceFitFrame);
+  playSurfaceFitFrame = requestAnimationFrame(() => { playSurfaceFitFrame = null; fitPlaySurface(); });
+}
+
 function alignColorResponseAboveBattleChrome() {
   const response = $("colorResponse");
   if (!response || response.classList.contains("hidden") || activeAppTab !== "battle" || document.visibilityState !== "visible") return;
-  response.scrollIntoView({ block: "nearest", behavior: "auto" });
+  fitPlaySurface();
+  const { top, bottom } = battleViewportInsets();
+  const boardRect = $("boardViewport").getBoundingClientRect();
+  const noticeRect = $("paletteImpactNotice").getBoundingClientRect();
+  const guideRect = $("turnGuide").getBoundingClientRect();
+  const surfaceTop = noticeRect.height ? noticeRect.top : guideRect.height ? guideRect.top : boardRect.top;
   const responseRect = response.getBoundingClientRect();
-  const obstructionTop = Math.min(
-    $("connectionCard")?.getBoundingClientRect().top ?? innerHeight,
-    document.querySelector(".app-tabs")?.getBoundingClientRect().top ?? innerHeight,
-  );
-  if (responseRect.bottom > obstructionTop - 8) {
-    scrollBy({ top: responseRect.bottom - obstructionTop + 8, behavior: "auto" });
-  }
+  const fits = responseRect.bottom - surfaceTop <= innerHeight - top - bottom;
+  const adjustment = responseRect.bottom > innerHeight - bottom
+    ? responseRect.bottom - (innerHeight - bottom)
+    : fits && surfaceTop < top ? surfaceTop - top : 0;
+  if (adjustment) scrollBy({ top: adjustment, behavior: "auto" });
 }
 
 function renderBasicActions(state, privateState) {
@@ -4785,7 +4825,9 @@ function renderBasicActions(state, privateState) {
   $("submitRegion").disabled = !canCreate || actionBusy || Boolean(pendingAction) || outgoingMacros.length !== state.requiredSize;
   const palette = $("paletteControls"); palette.replaceChildren();
   const canRespondToColor = myTurn && state.phase === "COLOR" && !targetDraft;
-  show("colorResponse", canRespondToColor);
+  show("colorResponse", state.status === "ACTIVE");
+  show("colorResponseActions", canRespondToColor);
+  $("colorResponseHeading").textContent = canRespondToColor ? "塗る色を選ぶ" : "あなたの持ち色";
   const colorResponseScope = canRespondToColor ? `${state.matchId}:${state.version}:${seat}:${state.pending}` : null;
   if (!canRespondToColor) {
     observedColorResponseScope = null;
@@ -4795,34 +4837,63 @@ function renderBasicActions(state, privateState) {
       if (observedColorResponseScope === colorResponseScope) alignColorResponseAboveBattleChrome();
     });
   }
-  if (canRespondToColor) {
-    const choices = skillIntents.colorChoiceDetails(privateState);
+  if (state.status === "ACTIVE") {
+    const scope = `${state.matchId}:${seat}`;
+    if (remainingColorSelection.scope !== scope) remainingColorSelection = { scope, color: null };
+    const seals = state.publicEffects?.[seat]?.seals || {};
+    const choices = paletteRoleSlots(privateState, seals, remainingColorSelection.color);
+    remainingColorSelection.color = choices[3].color;
+    const labels = { basic1: "基本①", basic2: "基本②", bonus: "おまけ", remaining: "残り色" };
     for (const choice of choices) {
       const { color } = choice;
       const sealed = isColorSealed(state, seat, color);
       const sealRemaining = Number(state?.publicEffects?.[seat]?.seals?.[color] || 0);
+      const item = document.createElement("div"); item.className = "palette-role";
+      item.dataset.role = choice.role;
+      const roleLabel = document.createElement("span"); roleLabel.className = "palette-role-label";
+      roleLabel.textContent = labels[choice.role];
       const button = document.createElement("button");
       button.className = `color-button${sealed ? " is-sealed" : ""}${choice.available ? "" : " is-exhausted"}`;
-      button.dataset.color = color;
+      if (color) button.dataset.color = color;
+      button.dataset.role = choice.role;
+      const mark = document.createElement("span"); mark.className = "palette-role-mark";
+      mark.setAttribute("aria-hidden", "true"); mark.textContent = choice.mark;
       const name = document.createElement("strong");
-      name.className = "color-button-name";
+      name.className = "color-button-name visually-hidden";
       name.textContent = `${sealed ? "🔒 " : ""}${COLOR_JA[color] || color}`;
       const details = [];
-      if (choice.isBasic) details.push(`基本色${choice.basicSlotCount > 1 ? `×${choice.basicSlotCount}` : ""}・回数無制限`);
-      if (choice.isBonus) details.push(`おまけ色 残り${choice.bonusUsesRemaining}回`);
-      if (choice.isTemporary) details.push("一時色");
-      if (choice.isPrism && !choice.isBasic && !choice.isBonus && !choice.isTemporary) details.push("四色解放");
+      if (choice.role.startsWith("basic")) details.push("基本色・回数無制限");
+      if (choice.role === "bonus") details.push(`おまけ色 残り${choice.uses}回`);
+      if (choice.role === "remaining") details.push(choice.available ? "一時色・この手で使用可" : "いまは使えません");
       if (sealed) details.push(`封印 残り${sealRemaining}回`);
       const meta = document.createElement("span");
-      meta.className = "color-button-meta";
+      meta.className = "color-button-meta visually-hidden";
       meta.textContent = details.join("・");
-      button.append(name, meta);
-      button.disabled = actionBusy || sealed || !choice.available;
-      button.setAttribute("aria-label", `${COLOR_JA[color] || color}。${meta.textContent}${sealed ? "。使用できません" : choice.available ? "。使用できます" : "。残り回数がないため使用できません"}`);
+      button.append(mark, name, meta);
+      button.disabled = !canRespondToColor || actionBusy || !choice.selectable;
+      button.setAttribute("aria-label", `${labels[choice.role]}。${COLOR_JA[color] || "未所持"}。${meta.textContent}${sealed ? "。使用できません" : choice.available ? "。使用できます" : "。残り回数がないため使用できません"}`);
+      button.title = button.getAttribute("aria-label");
       button.onclick = () => sendAction("COLOR_REGION", { color });
-      palette.appendChild(button);
+      item.append(roleLabel, button);
+      if (choice.options?.length > 1) {
+        const select = document.createElement("select"); select.id = "remainingColorSelect";
+        select.setAttribute("aria-label", "残り色を選ぶ");
+        for (const option of choice.options) {
+          const node = document.createElement("option"); node.value = option.color;
+          node.textContent = `${COLOR_JA[option.color]}${option.sealed ? " 🔒" : option.available ? "" : " ❌"}`;
+          node.disabled = !option.selectable; node.selected = option.color === color; select.appendChild(node);
+        }
+        select.disabled = actionBusy || Boolean(pendingAction) || !choice.options.some(option => option.selectable);
+        select.onchange = () => {
+          remainingColorSelection = { scope, color: select.value }; render();
+          $("remainingColorSelect")?.focus({ preventScroll: true });
+        };
+        item.appendChild(select);
+      }
+      palette.appendChild(item);
     }
   }
+  schedulePlaySurfaceFit();
   $("showColorSkills").disabled = actionBusy || !canRespondToColor;
   $("colorSurrender").disabled = actionBusy || !canRespondToColor;
   $("surrender").disabled = actionBusy || !myTurn;
@@ -6062,6 +6133,14 @@ $("openWaitingOpponent").onclick = () => {
   });
 };
 window.addEventListener("hashchange", () => activateAppTab(location.hash.slice(1), { updateHash: false }));
+function resizePlaySurface() {
+  const rect = $("boardViewport").getBoundingClientRect();
+  const inView = rect.height > 0 && rect.top < innerHeight && rect.bottom > 0;
+  schedulePlaySurfaceFit();
+  if (inView) requestAnimationFrame(alignColorResponseAboveBattleChrome);
+}
+window.addEventListener("resize", resizePlaySurface);
+window.visualViewport?.addEventListener("resize", resizePlaySurface);
 
 const bootInteractionRevision = userInteractionRevision;
 basicFeedback.bindControls({ soundInput: $("soundEffectsEnabled"), vibrationInput: $("vibrationEnabled"), status: $("feedbackSettingsStatus") });

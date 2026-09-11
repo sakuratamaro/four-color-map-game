@@ -81,7 +81,7 @@ test("CPU commentary is public-event-only, bounded, non-blocking, and terminal-p
   assert.match(html, /standard-online-client\.js\?v=20260910-1/);
   assert.match(html, /standard-online-skill-intents\.js\?v=20260911-21/);
   assert.match(html, /cpu-commentary\.js\?v=20260910-1/);
-assert.match(html, /app\.js\?v=20260912-30/);
+assert.match(html, /app\.js\?v=20260912-31/);
   assert.match(app, /cpuCommentary\?\.VERSION !== "standard-cpu-commentary-v3"/);
   assert.ok(html.indexOf("cpu-commentary.js") < html.indexOf('type="module" src="app.js'));
   assert.match(html, /id="cpuCommentaryStage"[^>]+aria-hidden="true"/);
@@ -459,7 +459,7 @@ test("existing online progression is hydrated from the server rather than re-upl
 
 test("UI derives its canonical and experimental card metadata from the generated registry", () => {
   assert.equal(Object.values(STANDARD_SKILLS).filter((skill) => skill.v49Catalogued).length, 19);
-  assert.match(html, /standard-skill-registry\.generated\.js\?v=20260907-1[\s\S]+app\.js\?v=20260912-30/);
+  assert.match(html, /standard-skill-registry\.generated\.js\?v=20260907-1[\s\S]+app\.js\?v=20260912-31/);
   assert.match(app, /const STANDARD_SKILL_REGISTRY = globalThis\.FourColorStandardSkillRegistry/);
   assert.match(app, /STANDARD_SKILL_REGISTRY\.v49SkillIds\.map/);
   assert.match(app, /Object\.entries\(STANDARD_SKILL_REGISTRY\.skills\)/);
@@ -679,8 +679,8 @@ test("board selection assist enlarges targets and supports connected keyboard se
   assert.match(app, /if \(tab !== "battle"\) resetBoardSelectionAssist\(\)/);
   assert.match(assist, /toggle\.classList\.toggle\("hidden", !interactive\)/);
   assert.match(app, /ensureMoveControlsVisible = false/);
-  assert.match(app, /const overlap = controls\.getBoundingClientRect\(\)\.bottom - connection\.getBoundingClientRect\(\)\.top/);
-  assert.match(app, /const adjustment = Math\.min\(Math\.max\(0, Math\.ceil\(overlap \+ 8\)\), available\)/);
+  assert.match(app, /function battleViewportInsets\(\)/);
+  assert.match(app, /style\.bottom !== "auto"[\s\S]+style\.top !== "auto"/);
   assert.match(app, /behavior: "auto", ensureMoveControlsVisible: true/);
   assert.match(app, /緑の破線は辺でつなげて選べる位置の目印です。確定できるかはサーバーが判定します。/);
   assert.match(css, /\.skin-board-aurora \.board-viewport\{outline:3px solid #22d3ee/);
@@ -725,7 +725,7 @@ test("public color seals disable only paint intents before an action identity is
   assert.match(app, /function isColorSealed\(state, seat, color\)/);
   assert.match(app, /state\?\.publicEffects\?\.\[seat\]\?\.seals\?\.\[color\]/);
   assert.match(app, /name\.textContent = `\$\{sealed \? "🔒 " : ""\}\$\{COLOR_JA\[color\] \|\| color\}`/);
-  assert.match(app, /button\.disabled = actionBusy \|\| sealed \|\| !choice\.available/);
+  assert.match(app, /button\.disabled = !canRespondToColor \|\| actionBusy \|\| !choice\.selectable/);
   assert.match(app, /button\.className = `color-button\$\{sealed \? " is-sealed" : ""\}\$\{choice\.available \? "" : " is-exhausted"\}`/);
   const sendAction = app.slice(app.indexOf("async function sendAction"), app.indexOf("async function syncSelectedProfile"));
   assert.ok(sendAction.indexOf('type === "COLOR_REGION" && isColorSealed') < sendAction.indexOf("const signature = actionSignature"));
@@ -742,10 +742,10 @@ test("public color seals disable only paint intents before an action identity is
   assert.match(css, /\.color-button\.is-sealed:disabled\{[^}]*border-color:var\(--color-border\)[^}]*background:var\(--color-surface\)[^}]*color:var\(--color-ink\)[^}]*opacity:1/);
   const sealedRule = css.match(/\.color-button\.is-sealed:disabled\{[^}]+\}/)?.[0] || "";
   assert.doesNotMatch(sealedRule, /#fb7185|background:#1e293b/);
-  assert.match(app, /skillIntents\.colorChoiceDetails\(privateState\)/);
-  assert.match(app, /おまけ色 残り\$\{choice\.bonusUsesRemaining\}回/);
+  assert.match(app, /paletteRoleSlots\(privateState, seals, remainingColorSelection\.color\)/);
+  assert.match(app, /おまけ色 残り\$\{choice\.uses\}回/);
   assert.match(app, /封印 残り\$\{sealRemaining\}回/);
-  assert.match(app, /button\.disabled = actionBusy \|\| sealed \|\| !choice\.available/);
+  assert.match(app, /button\.disabled = !canRespondToColor \|\| actionBusy \|\| !choice\.selectable/);
   assert.match(css, /\.color-button\{[^}]*min-height:56px/);
 });
 
@@ -802,7 +802,7 @@ test("failed actions retain the exact identity and retry only the same intent", 
 });
 
 test("all 19 skill target kinds route through the reviewed intent builder", () => {
-  assert.match(app, /Object\.entries\(privateState\.hand \|\| \{\}\)/);
+  assert.match(app, /stableHandSlots\(privateState, SKILL_META\)/);
   assert.match(app, /skillIntents\.isImmediate\(skill\)/);
   assert.match(app, /skillIntents\.buildSkillPayload\(skill\)/);
   assert.match(app, /skillIntents\.buildSkillPayload\(targetDraft\.skill, input\)/);

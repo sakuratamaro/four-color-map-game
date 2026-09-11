@@ -27,7 +27,7 @@ export function paletteRoleSlots(privateState = {}, ownSeals = {}, selectedRemai
   if (bonus && bonusUses > 0) covered.add(bonus);
   const remaining = PALETTE_COLORS.filter(color => !covered.has(color))
     .map(color => choice("remaining", color, 1, prism || temporary.has(color)));
-  const selected = remaining.find(item => item.color === selectedRemaining)
+  const selected = remaining.find(item => item.color === selectedRemaining && item.available)
     || remaining.find(item => item.selectable)
     || remaining.find(item => item.available)
     || remaining[0]

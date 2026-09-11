@@ -11,6 +11,7 @@
   <link rel="stylesheet" href="progression.css?v=20260910-2">
   <link rel="stylesheet" href="quiz-memo.css?v=20260912-2">
   <link rel="stylesheet" href="ui-diet.css?v=20260912-2">
+  <link rel="stylesheet" href="play-surface.css?v=20260912-1">
 </head>
 <body>
   <header>
@@ -316,11 +317,6 @@
       <h2 id="matchTitle" tabindex="-1">Standard対戦スタート</h2>
       <div class="row wrap"><span id="turnBadge" class="badge"></span><span>第 <b id="versionText">1</b> 手</span></div>
       <p id="phaseText" class="callout"></p>
-      <section id="paletteImpactNotice" class="palette-impact-notice hidden" role="status" aria-live="polite" aria-atomic="true" aria-labelledby="paletteImpactTitle">
-        <div class="palette-impact-mark" aria-hidden="true">!</div>
-        <div><strong id="paletteImpactTitle"></strong><p id="paletteImpactDetail"></p></div>
-        <button id="dismissPaletteImpact" class="ghost" type="button">確認しました</button>
-      </section>
       <div id="cpuCommentaryStage" class="cpu-commentary-stage hidden" aria-hidden="true">
         <aside id="cpuCommentaryBubble" class="cpu-commentary-bubble is-silent">
           <span id="cpuCommentaryPortraitFrame" class="cpu-portrait-frame cpu-commentary-portrait" aria-hidden="true">
@@ -346,6 +342,12 @@
         <div role="status" aria-live="polite" aria-atomic="true"><strong id="turnGuideTitle"></strong><p id="turnGuideDetail"></p></div>
         <button id="toggleBoardZoom" class="ghost board-zoom-toggle hidden" type="button" aria-pressed="false">盤面を拡大</button>
       </section>
+      <div id="playSurface" class="play-surface">
+      <section id="paletteImpactNotice" class="palette-impact-notice hidden" role="status" aria-live="polite" aria-atomic="true" aria-labelledby="paletteImpactTitle">
+        <div class="palette-impact-mark" aria-hidden="true">!</div>
+        <div><strong id="paletteImpactTitle"></strong><p id="paletteImpactDetail"></p></div>
+        <button id="dismissPaletteImpact" class="ghost" type="button">確認しました</button>
+      </section>
       <div class="board-stage">
         <div id="boardViewport" class="board-viewport">
           <canvas id="board" width="720" height="720" tabindex="-1" aria-label="Standardオンライン盤面" aria-describedby="boardKeyboardHelp boardKeyboardStatus"></canvas>
@@ -368,33 +370,35 @@
           </div>
         </div>
       </section>
+      <p id="playViewportHint" class="small muted hidden">画面が低いときは、縦向き表示かスクロールで盤面と持ち色を確認できます。細かなマスは「盤面を拡大」で選べます。</p>
+      </div>
       <p id="actionStatus" class="muted operation-feedback" role="status" aria-live="polite" aria-atomic="true"></p>
       <button id="retryAction" class="primary hidden">同じ操作を再送</button>
-      <section class="random-summary" aria-labelledby="randomSummaryTitle">
-        <div class="random-summary-heading"><span class="dice-mark" aria-hidden="true">🎲</span><div><strong id="randomSummaryTitle">今回のランダム結果</strong><small>サーバーが対戦ごとに抽選</small></div></div>
+      <h3 class="hand-heading">あなたの6枚</h3>
+      <div id="skillControls" class="skills"></div>
+      <div id="skillTargetControls" class="target-panel hidden"></div>
+      <details id="matchSetupDetails" class="random-summary" aria-labelledby="randomSummaryTitle">
+        <summary id="randomSummaryTitle">この対局の設定</summary>
         <dl>
           <div><dt>渡すエリア</dt><dd id="rolledSizeValue">抽選中</dd></div>
           <div><dt>自分の現在の基本色</dt><dd id="basicPaletteValue">確認中</dd></div>
           <div><dt>自分の現在のおまけ色</dt><dd id="bonusColorValue">確認中</dd></div>
         </dl>
+      </details>
         <details id="paletteHistoryPanel" class="palette-history">
           <summary>持ち色の初期値・変更履歴 <span id="paletteHistoryCount">変更なし</span></summary>
           <p><strong>初期値：</strong><span id="initialPaletteValue">確認中</span></p>
           <p id="paletteHistoryEmpty" class="muted">この対局で持ち色の変更はありません。</p>
           <ol id="paletteHistoryList"></ol>
         </details>
-      </section>
-      <section id="tacticalTrace" class="tactical-trace hidden" aria-labelledby="tacticalTraceTitle">
-        <div class="tactical-trace-heading"><span aria-hidden="true">↳</span><strong id="tacticalTraceTitle">直前の一手</strong></div>
+      <details id="tacticalTrace" class="tactical-trace hidden" aria-labelledby="tacticalTraceTitle">
+        <summary class="tactical-trace-heading"><span aria-hidden="true">↳</span><strong id="tacticalTraceTitle">直前の一手</strong></summary>
         <ol class="tactical-trace-flow">
           <li><small>直前の手</small><span id="tacticalTraceAction"></span></li>
           <li><small>盤面変化</small><span id="tacticalTraceChange"></span></li>
           <li><small>次の判断</small><span id="tacticalTraceNext"></span></li>
         </ol>
-      </section>
-      <h3>あなたの6枚</h3>
-      <div id="skillControls" class="skills"></div>
-      <div id="skillTargetControls" class="target-panel hidden"></div>
+      </details>
       <div class="controls">
         <button id="surrender" class="danger compact-danger">敗北として投了する</button>
       </div>
@@ -519,6 +523,6 @@
   <script src="cpu-portraits.js?v=20260908-1"></script>
   <script src="cpu-commentary.js?v=20260910-1"></script>
   <script src="basic-feedback.js?v=20260908-2"></script>
-  <script type="module" src="app.js?v=20260912-30"></script>
+  <script type="module" src="app.js?v=20260912-31"></script>
 </body>
 </html>

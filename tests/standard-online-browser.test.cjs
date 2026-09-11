@@ -54,6 +54,135 @@ async function choosePublicWaiting(page) {
   await page.locator("#recruitOpponent").click();
 }
 
+test("UDL052 role palette keeps duplicates and temporary alternatives independently reachable", { timeout: 130000 }, async () => {
+  await withPage("colorResponse", async (page) => {
+    await page.locator('#paletteControls [data-role="basic1"].color-button').waitFor();
+    await page.evaluate(() => {
+      const r = globalThis.__standardOnlineRuntime;
+      r.view.private_state = { ...r.view.private_state, basicPalette: ["red", "red"], bonusColor: "red", bonusUsesRemaining: 0,
+        privateEffects: { temporaryColors: ["yellow", "green"] } };
+      r.onInvalidate();
+    });
+    await page.waitForFunction(() => document.querySelector('#paletteControls [data-role="bonus"] .palette-role-mark')?.textContent === "❌");
+    assert.equal(await page.locator("#paletteControls .color-button").count(), 4);
+    assert.equal(await page.locator('#paletteControls .color-button[data-color="red"]').count(), 3);
+    assert.equal(await page.locator('#paletteControls .color-button[data-role="basic1"]').isEnabled(), true);
+    assert.equal(await page.locator('#paletteControls .color-button[data-role="basic2"]').isEnabled(), true);
+    assert.equal(await page.locator('#paletteControls .color-button[data-role="bonus"]').isDisabled(), true);
+    await page.locator("#remainingColorSelect").selectOption("green");
+    assert.equal(await page.locator('#paletteControls .color-button[data-role="remaining"]').getAttribute("data-color"), "green");
+    assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter(c => c.body?.operation === "action").length), 0);
+    await page.locator('#paletteControls .color-button[data-role="remaining"]').click();
+    await page.getByText("操作を保存しました。", { exact: true }).waitFor();
+    const calls = await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter(c => c.body?.operation === "action").map(c => c.body));
+    assert.equal(calls.length, 1);
+    assert.deepEqual(calls[0].action.payload, { color: "green" });
+    assert.equal(calls[0].action.type, "COLOR_REGION");
+  }, { viewport: { width: 390, height: 844 } });
+});
+
+test("UDL054 UDL063 board palette viewport and stable three-by-two hand", { timeout: 150000 }, async () => {
+  await withPage("colorResponse", async (page) => {
+    const ids = ["colorRandomBorrow", "colorChoiceBorrow", "areaDiePlus", "areaResize", "disruptChoiceOne", "disruptRandomOne"];
+    await page.locator("#paletteControls .color-button").first().waitFor();
+    await page.locator("#randomReveal").waitFor({state:"hidden"});
+    await page.evaluate(ids => {
+      const r = globalThis.__standardOnlineRuntime;
+      r.view.private_state = { ...r.view.private_state, loadout: { color: ids.slice(0, 2), area: ids.slice(2, 4), disrupt: ids.slice(4) },
+        hand: Object.fromEntries(ids.map(id => [id, 1])) };
+      r.onInvalidate();
+    }, ids);
+    await page.waitForFunction(() => document.querySelectorAll("#skillControls .skill-entry").length === 6);
+    for (const viewport of [{ width: 390, height: 844 }, { width: 768, height: 900 }, { width: 1280, height: 900 }]) {
+      await page.setViewportSize(viewport);
+      // A real battle-tab return uses the application's existing viewport handoff.
+      await page.getByRole("button", { name: "マイページ", exact: true }).click();
+      await page.getByRole("button", { name: "対戦", exact: true }).click();
+      await page.waitForFunction(() => {
+        const b = document.getElementById("boardViewport").getBoundingClientRect();
+        const p = document.getElementById("paletteControls").getBoundingClientRect();
+        const el = document.querySelector("#paletteControls .color-button");
+        const r=el.getBoundingClientRect(),hit=document.elementFromPoint(r.x+r.width/2,r.y+r.height/2);
+        return b.top >= 0 && p.bottom <= innerHeight && (hit===el||el.contains(hit));
+      });
+      const layout = await page.evaluate(() => {
+        const rect = id => { const r = document.getElementById(id).getBoundingClientRect(); return { x:r.x, top:r.top, bottom:r.bottom, width:r.width, height:r.height }; };
+        const buttons = [...document.querySelectorAll("#paletteControls .color-button")].map(el => {
+          const r = el.getBoundingClientRect(), hit = document.elementFromPoint(r.x+r.width/2,r.y+r.height/2);
+          return { top:r.top, bottom:r.bottom, width:r.width, height:r.height, hit:hit===el||el.contains(hit) };
+        });
+        const cards = [...document.querySelectorAll("#skillControls .skill-entry")].map(el => { const r=el.getBoundingClientRect();return {x:r.x,y:r.y}; });
+        return { board:rect("boardViewport"), palette:rect("paletteControls"), buttons, cards,
+          overflow:document.documentElement.scrollWidth>innerWidth, randomOpen:document.getElementById("matchSetupDetails").open };
+      });
+      assert.equal(layout.overflow, false);
+      assert.ok(layout.board.width >= 280, JSON.stringify(layout));
+      assert.ok(layout.board.top >= 0 && layout.palette.bottom <= viewport.height, JSON.stringify(layout));
+      assert.ok(layout.buttons.every(b=>b.width>=44&&b.height>=44&&b.hit), JSON.stringify(layout));
+      assert.equal(new Set(layout.cards.slice(0,3).map(c=>c.y)).size, 1);
+      assert.equal(new Set(layout.cards.slice(3).map(c=>c.y)).size, 1);
+      assert.equal(new Set(layout.cards.map(c=>c.x)).size, 3);
+      assert.equal(layout.randomOpen, false);
+      if (process.env.UI_DIET_SCREENSHOTS) {
+        fs.mkdirSync(process.env.UI_DIET_SCREENSHOTS,{recursive:true});
+        await page.screenshot({path:path.join(process.env.UI_DIET_SCREENSHOTS,`${browserName}-play-${viewport.width}.png`)});
+      }
+    }
+    const orderBefore = await page.locator("#skillControls .skill").evaluateAll(nodes=>nodes.map(n=>n.dataset.skill));
+    await page.evaluate(id=>{ const r=globalThis.__standardOnlineRuntime;r.view.private_state.hand[id]=0;r.onInvalidate(); },ids[0]);
+    await page.locator('#skillControls .is-used .skill[data-skill="colorRandomBorrow"]').waitFor();
+    assert.deepEqual(await page.locator("#skillControls .skill").evaluateAll(nodes=>nodes.map(n=>n.dataset.skill)),orderBefore);
+    assert.equal(await page.locator('#skillControls .skill[data-skill="colorRandomBorrow"]').isDisabled(),true);
+    if (process.env.UI_DIET_SCREENSHOTS) {
+      await page.setViewportSize({width:390,height:844});
+      await page.locator("#skillControls").screenshot({path:path.join(process.env.UI_DIET_SCREENSHOTS,`${browserName}-hand-390.png`)});
+    }
+    await page.locator("#skillControls .is-used .skill-info-button").click();
+    await page.locator("#skillInfoDialog[open]").waitFor();
+    await page.keyboard.press("Escape");
+    assert.equal(await page.evaluate(()=>globalThis.__standardOnlineRuntime.calls.filter(c=>c.body?.operation==="action").length),0);
+  }, {viewport:{width:390,height:844}});
+});
+
+test("UDL054 keeps a palette-change cause visible with the board and has a short-screen fallback", {timeout:130000}, async()=>{
+  await withPage("colorResponse",async page=>{
+    await page.locator("#paletteControls .color-button").first().waitFor();
+    await page.locator("#randomReveal").waitFor({state:"hidden"});
+    await page.evaluate(()=>{
+      const r=globalThis.__standardOnlineRuntime,version=r.room.version+1,matchId=r.room.public_state.matchId;
+      r.room={...r.room,version,public_state:{...r.room.public_state,version,turn:version,
+        lastPublicTrace:{eventId:`${matchId}:${version}`,version,type:"USE_SKILL",actor:"B"}}};
+      r.view={...r.view,version,private_state:{...r.view.private_state,bonusColor:"green",
+        privateEffects:{paletteImpactEvent:{eventId:`${matchId}:${version}:palette-impact:A`,version,kind:"forced",slot:2,
+          previousColor:"yellow",injectedColor:"green",remaining:0}}}};
+      r.onInvalidate();
+    });
+    await page.locator("#paletteImpactNotice").waitFor();
+    await page.waitForFunction(()=>{
+      const n=document.getElementById("paletteImpactNotice").getBoundingClientRect();
+      const p=document.getElementById("paletteControls").getBoundingClientRect();
+      const tabs=document.querySelector(".app-tabs").getBoundingClientRect();
+      return n.top>=0&&p.bottom<tabs.top;
+    });
+    const layout=await page.evaluate(()=>{
+      const box=id=>{const r=document.getElementById(id).getBoundingClientRect();return {top:r.top,bottom:r.bottom,width:r.width};};
+      return {notice:box("paletteImpactNotice"),board:box("boardViewport"),palette:box("paletteControls"),text:document.getElementById("paletteImpactDetail").textContent};
+    });
+    assert.ok(layout.notice.bottom<=layout.board.top&&layout.board.bottom<=layout.palette.top,JSON.stringify(layout));
+    assert.ok(layout.board.width>=280,JSON.stringify(layout));
+    assert.match(layout.text,/おまけ色を黄から緑へ変更/);
+    await page.locator("#dismissPaletteImpact").click();
+    await page.setViewportSize({width:844,height:390});
+    await page.locator("#playViewportHint").waitFor();
+    assert.ok(await page.locator("#boardViewport").evaluate(el=>el.getBoundingClientRect().width>=280));
+    await page.setViewportSize({width:1280,height:900});
+    await page.evaluate(()=>{document.documentElement.style.zoom="2";window.dispatchEvent(new Event("resize"));});
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
+    assert.equal(await page.locator("#paletteControls .color-button").count(),4);
+    assert.equal(await page.evaluate(()=>globalThis.__standardOnlineRuntime.calls.filter(c=>c.body?.operation==="action").length),0);
+  },{viewport:{width:390,height:844}});
+});
+
 test("UDL-023 compact quiz layout keeps every focused option clear of existing notices", { timeout: 150000 }, async () => {
   for (const viewport of [{ width: 390, height: 844 }, { width: 900, height: 800 }, { width: 1280, height: 900 }]) {
     await withPage("lobby", async (page) => {
@@ -5215,6 +5344,7 @@ test("actual Edge presents public seals and blocks every stale paint path withou
     });
     const red = page.locator('#paletteControls .color-button[data-color="red"]');
     await red.waitFor();
+    await page.waitForFunction(() => document.querySelector('#paletteControls .color-button[data-role="basic1"]')?.disabled === false);
     assert.match(await red.textContent(), /赤.*回数無制限/);
     assert.equal(await red.isEnabled(), true);
     const unsealedRedStyle = await red.evaluate((node) => {
@@ -5291,8 +5421,8 @@ test("actual Edge presents public seals and blocks every stale paint path withou
       } };
       runtime.onInvalidate();
     });
-    const duplicateBonus = page.locator('#paletteControls .color-button[data-color="red"]');
-    await page.waitForFunction(() => document.querySelector('#paletteControls .color-button[data-color="red"]')?.textContent.includes("残り0回"));
+    const duplicateBonus = page.locator('#paletteControls .color-button[data-role="bonus"]');
+    await page.waitForFunction(() => document.querySelector('#paletteControls .color-button[data-role="bonus"]')?.textContent.includes("残り0回"));
     assert.match(await duplicateBonus.textContent(), /おまけ色 残り0回.*封印 残り2回/);
     assert.equal(await duplicateBonus.isDisabled(), true);
     assert.match(await page.locator('#paletteControls .color-button[data-color="yellow"]').textContent(), /一時色/);
@@ -5311,8 +5441,9 @@ test("actual Edge presents public seals and blocks every stale paint path withou
       } };
       runtime.onInvalidate();
     });
-    const sealedZeroBonus = page.locator('#paletteControls .color-button[data-color="green"]');
+    const sealedZeroBonus = page.locator('#paletteControls .color-button[data-role="bonus"]');
     await sealedZeroBonus.waitFor();
+    await page.waitForFunction(() => document.querySelector('#paletteControls .color-button[data-role="bonus"]')?.dataset.color === "green");
     assert.match(await sealedZeroBonus.textContent(), /おまけ色 残り0回.*封印 残り3回/);
     assert.equal(await sealedZeroBonus.isDisabled(), true);
 
@@ -5381,22 +5512,35 @@ test("UDL-052 actual browser identifies overlapping basic and bonus roles at des
       };
       const red = page.locator('#paletteControls .color-button[data-color="red"]');
       await update(["red", "blue"], 3);
-      assert.match(await red.textContent(), /基本色・回数無制限.*おまけ色 残り3回/);
-      assert.match(await red.getAttribute("aria-label"), /基本色・回数無制限.*おまけ色 残り3回.*使用できます/);
-      assert.equal(await red.isEnabled(), true);
+      const basic1 = page.locator('#paletteControls .color-button[data-role="basic1"]');
+      const basic2 = page.locator('#paletteControls .color-button[data-role="basic2"]');
+      const bonus = page.locator('#paletteControls .color-button[data-role="bonus"]');
+      const remaining = page.locator('#paletteControls .color-button[data-role="remaining"]');
+      assert.equal(await red.count(), 2);
+      assert.match(await basic1.getAttribute("aria-label"), /基本色・回数無制限.*使用できます/);
+      assert.match(await bonus.getAttribute("aria-label"), /おまけ色 残り3回.*使用できます/);
+      assert.equal(await basic1.isEnabled(), true);
+      assert.equal(await bonus.isEnabled(), true);
       await update(["red", "red"], 0);
-      assert.match(await red.textContent(), /基本色×2・回数無制限.*おまけ色 残り0回/);
-      assert.equal(await red.isEnabled(), true);
-      assert.equal(await page.locator("#paletteControls .color-button").count(), 1, "do not adopt four-color or slot layout in this slice");
+      assert.equal(await red.count(), 3, "v8 supersedes the earlier aggregated single-button presentation");
+      assert.equal(await basic1.isEnabled(), true);
+      assert.equal(await basic2.isEnabled(), true);
+      assert.match(await bonus.getAttribute("aria-label"), /おまけ色 残り0回/);
+      assert.equal(await bonus.isDisabled(), true);
+      assert.equal(await page.locator("#paletteControls .color-button").count(), 4);
       await update(["red", "red"], 0, { red: 2 }, { temporaryColors: ["red"] });
-      assert.match(await red.textContent(), /基本色×2.*おまけ色 残り0回.*一時色.*封印 残り2回/);
-      assert.equal(await red.isDisabled(), true);
+      assert.match(await basic1.getAttribute("aria-label"), /封印 残り2回/);
+      assert.equal(await basic1.isDisabled(), true);
+      assert.equal(await basic2.isDisabled(), true);
+      assert.equal(await bonus.isDisabled(), true);
       await update(["blue", "yellow"], 0);
-      assert.doesNotMatch(await red.textContent(), /基本色|回数無制限/);
-      assert.equal(await red.isDisabled(), true);
+      assert.doesNotMatch(await bonus.getAttribute("aria-label"), /基本色|回数無制限/);
+      assert.equal(await bonus.isDisabled(), true);
       await update(["blue", "yellow"], 0, {}, { temporaryColors: ["red"] });
-      assert.match(await red.textContent(), /おまけ色 残り0回.*一時色/);
-      assert.equal(await red.isEnabled(), true);
+      assert.equal(await bonus.isDisabled(), true, "exhausted resource stays distinct from the temporary grant");
+      assert.equal(await remaining.getAttribute("data-color"), "red");
+      assert.match(await remaining.getAttribute("aria-label"), /一時色/);
+      assert.equal(await remaining.isEnabled(), true);
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
       assert.equal(await page.locator("#publicProjection").textContent().then((text) => /basicPalette|bonusColor|privateEffects/.test(text)), false);
       assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "action").length), 0);
@@ -5437,7 +5581,8 @@ test("actual browser keeps both basic colors through a torn CPU-turn projection 
     await update({ version: 11, active: "B", phase: "WORK", basicPalette: ["red", "green"] });
     await page.waitForFunction(() => document.querySelector("#versionText")?.textContent === "11");
     assert.equal(await page.locator("#basicPaletteValue").textContent(), "赤・緑");
-    assert.equal(await page.locator("#colorResponse").isHidden(), true);
+    assert.equal(await page.locator("#colorResponse").isVisible(), true);
+    assert.equal(await page.locator("#paletteControls .color-button:enabled").count(), 0, "own palette stays visible but cannot paint outside the color turn");
 
     await update({ version: 12, active: "A", phase: "COLOR", basicPalette: ["red", "green"] });
     await page.waitForFunction(() => document.querySelector("#versionText")?.textContent === "12"
@@ -5825,7 +5970,8 @@ test("actual browser keeps blocked COLOR active until voluntary surrender at 390
       runtime.view = { ...runtime.view, seat: "B", private_state: { ...runtime.view.private_state, hand: {} } };
       runtime.onInvalidate?.({});
     });
-    await response.waitFor({ state: "hidden" });
+    await page.locator("#colorResponseActions").waitFor({ state: "hidden" });
+    assert.equal(await page.locator("#paletteControls .color-button:enabled").count(), 0);
     assert.equal(await page.locator("#colorSurrender").isHidden(), true);
     await page.evaluate(() => {
       const runtime = globalThis.__standardOnlineRuntime;
@@ -5834,6 +5980,7 @@ test("actual browser keeps blocked COLOR active until voluntary surrender at 390
     });
     await response.waitFor({ state: "visible" });
 
+    await page.locator("#colorResponseActions").waitFor({ state: "visible" });
     await page.waitForFunction(() => {
       const bottom = document.querySelector("#colorSurrender")?.getBoundingClientRect().bottom ?? innerHeight;
       const obstructionTop = Math.min(
@@ -5853,7 +6000,7 @@ test("actual browser keeps blocked COLOR active until voluntary surrender at 390
     await page.getByRole("button", { name: "色操作カードを見る" }).focus();
     await page.keyboard.press("Enter");
     await page.waitForFunction(() => document.activeElement?.dataset?.skill === "colorPrism");
-    assert.equal(await page.evaluate(() => document.activeElement?.textContent), "四色解放 ×1（★3）");
+    assert.equal(await page.evaluate(() => document.activeElement?.getAttribute("aria-label")), "四色解放 ×1（★3）");
 
     await page.reload({ waitUntil: "load" });
     await page.locator("#colorResponse:not(.hidden)").waitFor();

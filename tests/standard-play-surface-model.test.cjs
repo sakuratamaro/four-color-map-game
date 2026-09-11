@@ -23,6 +23,8 @@ test("UDL052 exhausted bonus can still be selected through an independent tempor
   assert.equal(slots[2].mark, "❌");
   assert.deepEqual(slots[3].options.map(s => [s.color, s.mark, s.selectable]), [["yellow", "1", true], ["green", "1", true]]);
   assert.equal(slots[3].color, "green");
+  assert.equal(paletteRoleSlots({ ...own, privateEffects: { temporaryColors: ["yellow"] } }, {}, "green")[3].color, "yellow",
+    "a previously unowned remaining color does not obscure a newly granted playable color");
   assert.equal(paletteRoleSlots(own, { green: 1 }, "green")[3].mark, "🔒");
   assert.equal(paletteRoleSlots(own, { green: 1 }, "green")[3].selectable, false);
 });
