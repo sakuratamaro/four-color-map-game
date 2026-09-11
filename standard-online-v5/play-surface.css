@@ -19,6 +19,7 @@
 #skillControls .skill-entry { grid-template-columns: 1fr; gap: 0; border: 1px solid #475569; border-radius: 12px; overflow: hidden; background: #07111f; }
 #skillControls .skill { display: grid; align-content: center; gap: 5px; width: 100%; min-width: 0; min-height: 76px; padding: 8px 5px; border: 0; border-radius: 0; white-space: normal; overflow-wrap: anywhere; font-size: 13px; line-height: 1.35; }
 #skillControls .skill strong { font-size: inherit; }
+#skillControls .skill:disabled { opacity: 1; color: #94a3b8; background: #0f172a; }
 .skill-card-status { font-size: 11px; color: #fde68a; }
 #skillControls .skill-info-button { min-width: 44px; min-height: 44px; padding: 4px; border: 0; border-top: 1px solid #334155; border-radius: 0; background: transparent; font-size: 17px; }
 #skillControls .is-used { border-style: dashed; }

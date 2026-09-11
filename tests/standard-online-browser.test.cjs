@@ -141,9 +141,16 @@ test("UDL054 UDL063 board palette viewport and stable three-by-two hand", { time
     assert.deepEqual(await page.locator("#skillControls .skill").evaluateAll(nodes=>nodes.map(n=>n.dataset.skill)),orderBefore);
     assert.equal(await page.locator('#skillControls .skill[data-skill="colorRandomBorrow"]').isDisabled(),true);
     assert.deepEqual(await slotOffsets(), offsetsBefore, "category-used guidance must not push all six slots down");
+    // Scroll the real hand clear of fixed browser-app chrome; do not hide that chrome for screenshots.
+    await page.locator("#skillControls").evaluate(el => window.scrollBy(0, el.getBoundingClientRect().top - 100));
+    await page.waitForFunction(() => [...document.querySelectorAll("#skillControls .skill-info-button")].every(el => {
+      const r = el.getBoundingClientRect(), hit = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);
+      return hit === el || el.contains(hit);
+    }));
+    assert.equal(await page.locator('#skillControls .skill[data-skill="areaDiePlus"]').evaluate(el => getComputedStyle(el).opacity), "1", "unavailable card names remain readable");
     if (process.env.UI_DIET_SCREENSHOTS) {
       await page.setViewportSize({width:390,height:844});
-      await page.locator("#skillControls").screenshot({path:path.join(process.env.UI_DIET_SCREENSHOTS,`${browserName}-hand-390.png`)});
+      await page.screenshot({path:path.join(process.env.UI_DIET_SCREENSHOTS,`${browserName}-hand-390.png`)});
     }
     await page.locator("#skillControls .is-used .skill-info-button").click();
     await page.locator("#skillInfoDialog[open]").waitFor();
