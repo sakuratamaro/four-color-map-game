@@ -7,6 +7,39 @@ const { pathToFileURL } = require("node:url");
 const root = path.resolve(__dirname, "..");
 const read = (relativePath) => fs.readFileSync(path.join(root, relativePath), "utf8");
 
+test("v4-v6 intake is an additive provenance crosswalk, not implemented game acceptance", async () => {
+  const intake = JSON.parse(read("docs/BRAIN_V4_V6_INTAKE_20260911.json"));
+  const { parseDecisionLedger } = await import(pathToFileURL(path.join(root,
+    "scripts/check-standard-decision-reconciliation.mjs")).href);
+  const ids = new Set(parseDecisionLedger(read("docs/PROJECT_COMMAND_CENTER.md")).rows.map(row => row.values.ID));
+  assert.equal(intake.kind, "intake_snapshot_not_operational_ledger");
+  assert.equal(intake.records.length, 11);
+  assert.equal(new Set(intake.records.map(row => row.id)).size, 11);
+  assert.deepEqual(intake.packages.map(p => [p.record_count, p.unchanged_previous, p.new_ids.length]), [[20, 17, 3], [25, 20, 5], [28, 25, 3]]);
+  for (const item of intake.records) {
+    assert.ok(ids.has(item.canonical_id), item.id);
+    assert.ok(item.source_quote && /^[0-9A-F]{64}$/.test(item.source.sha256));
+    for (const field of ["intent_state", "implementation_state", "verification_state", "release_state"]) assert.ok(item[field]);
+    assert.equal(item.new_acceptance_automated, false);
+    assert.equal(item.release_state, "no_new_release_claim");
+    for (const related of item.existing_related_tests) assert.ok(fs.existsSync(path.join(root, related)), related);
+  }
+  assert.equal(intake.records.filter(r => r.canonical_id === "UDL-20260910-051").length, 5);
+  assert.equal(intake.records.find(r => r.id.endsWith("CORNER-NO-MICRO-REPEAT")).canonical_id, "UDL-20260908-029");
+  assert.equal(intake.records.find(r => r.id.endsWith("REWARD-GACHA-LEVEL")).canonical_id, "UDL-20260911-059");
+});
+
+test("palette public receipt keeps live evidence and unfinished layout acceptance distinct", () => {
+  const log = JSON.parse(read("docs/CHATGPT_REVIEW_DECISIONS.json"));
+  const done = log.coordination.completed_slices.find(row => row.candidate_sha === "ce6fab535235d7aff90d0bc846bbfb648c9a56e4");
+  assert.equal(done.state, "PUBLIC_VERIFIED_ATTRIBUTE_IDENTIFICATION_ONLY");
+  assert.equal(done.pages_run, "34554265788");
+  assert.equal(done.physical_devices, "NOT_RUN");
+  assert.equal(log.coordination.automation_status_at_recording, "PAUSED");
+  assert.match(read(done.evidence), /30\/30 PASS/);
+  assert.match(read(done.evidence), /UDL-054 remain unfinished/);
+});
+
 test("shared canon entrypoint routes to the existing authorities", () => {
   const agents = read("AGENTS.md");
   const canon = read("docs/SHARED_CANON.md");
@@ -94,8 +127,14 @@ test("ChatGPT review records require an exact subject and cannot imply productio
       assert.ok(decision.source.message_id && decision.source.request_message_id);
       assert.match(decision.subject_sha, /^[0-9a-f]{40}$/);
       assert.match(decision.spec_snapshot_sha, /^[0-9a-f]{40}$/);
-      assert.equal(decision.feature_spec_version, "UDL-055-v1");
-      assert.equal(decision.scope, "Pages-only game bugfix");
+      const bindings = {
+        "CHATGPT-REVIEW-20260910-004": ["2e5e1d050adb60640454a17281b989e0af642df0", "2f855ccfef11d7c099cfb73fb57ec3da79be8789", "UDL-055-v1", "f6d3c85f7d30e599f1ea1682516a5776fbc24899", "Pages-only game bugfix"],
+        "CHATGPT-REVIEW-20260910-005": ["5c03e6c2d0e94c843776ea7eae0d7bbe2917a174", "2f855ccfef11d7c099cfb73fb57ec3da79be8789", "UDL-055-v1", "f6d3c85f7d30e599f1ea1682516a5776fbc24899", "Pages-only game bugfix"],
+        "CHATGPT-REVIEW-20260911-007": ["ce6fab535235d7aff90d0bc846bbfb648c9a56e4", "5c03e6c2d0e94c843776ea7eae0d7bbe2917a174", "UDL-052-roles-v1", "5652a3f41caa453c67cb69fbe80a7a14a6a5c2ef", "Pages_only"],
+      };
+      assert.ok(bindings[decision.review_id], "each genuine review needs an explicit exact binding");
+      assert.deepEqual([decision.subject_sha, decision.base_sha, decision.feature_spec_version,
+        decision.spec_snapshot_sha, decision.scope], bindings[decision.review_id]);
       assert.deepEqual(decision.db_change_set, []);
       assert.deepEqual(decision.edge_change_set, []);
     }

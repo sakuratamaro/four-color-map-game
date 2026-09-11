@@ -1,5 +1,11 @@
 # Standard公開候補 証拠台帳
 
+## 2026-09-11 UDL-052 属性識別slice公開
+
+候補/main `ce6fab535235d7aff90d0bc846bbfb648c9a56e4`、Astra実承認007（a5e21358）、Windows34533968562成功後、Pages34554265788成功。公開HTML/app/intentsは候補Git blobとbyte一致。candidate preflight `ok:true`。2026-09-11T02:26:27.225Z、許可された新規CPU1対局で公開Chrome390/1280px・reload・基本色/おまけ残数・状態非変更の30/30 PASS。console 0、試験対局は通常投了で終了、削除なし。詳しいhashと範囲は `docs/PALETTE_ROLE_RELEASE_20260911.md`。
+
+属性識別だけPUBLIC_VERIFIED。重複/封印/残0の組合せは候補browser gateの証拠であり、liveで全組合せ実測済みではない。位置固定・4色案・UDL054・物理二端末は未完。DB/Edge変更なし。
+
 ## 2026-09-11 UDL-055 本番試験追補
 
 ユーザーの試験プロフィール・対局作成の明示許可を受け、`scripts/live-standard-terminal-setup-canary.cjs --confirm-live` を実行。2026-09-10T21:31:08.208Zに20/20 PASS。公開対象はmain/Pages `5c03e6c`、実Chrome 390×844、新規匿名プロフィール1件とユズCPU対局1件のみ。通常のsetup/initialize/CPU進行/投了を使用し、対局はfinished・SURRENDERで終了確認済み。プロフィールと終局記録は削除せず保持した。

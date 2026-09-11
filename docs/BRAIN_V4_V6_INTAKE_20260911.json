@@ -1,0 +1,383 @@
+{
+  "schema_version": 1,
+  "kind": "intake_snapshot_not_operational_ledger",
+  "canon_version": "shared-canon-v1.1",
+  "baseline_sha": "ce6fab535235d7aff90d0bc846bbfb648c9a56e4",
+  "canonical_ledger": "docs/PROJECT_COMMAND_CENTER.md#user-decision-ledger",
+  "received_via_thread_id": "01a08d9e-ae35-7f70-a879-cb342dafef47",
+  "packages": [
+    {
+      "version": 4,
+      "sha256": "DDD52795517ADBE21C7A8255080DBA908D9F4A870D8D5290674276A39EB45963",
+      "package_id": "BRAIN-UPDATE-20260911-04",
+      "manifest_files_verified": 24,
+      "record_count": 20,
+      "unchanged_previous": 17,
+      "new_ids": [
+        "ADD-20260911-CPU-SKILL-VALUE",
+        "ADD-20260911-QUIZ-NO-POSITION-RESET",
+        "ADD-20260911-RECENT-SKILL-HISTORY"
+      ],
+      "changed_ids": [],
+      "removed_ids": [],
+      "parent_hash_matches": true,
+      "manifest_pass": true
+    },
+    {
+      "version": 5,
+      "sha256": "CDD66B6C38C2B65AE1601F44F69035DCDAD805A2BD89AB99CD78B56F66641DF7",
+      "package_id": "BRAIN-UPDATE-20260911-05",
+      "manifest_files_verified": 27,
+      "record_count": 25,
+      "unchanged_previous": 20,
+      "new_ids": [
+        "ADD-20260911-CPU-EXTREMES",
+        "ADD-20260911-CPU-EPITHETS",
+        "ADD-20260911-AURORA-VISIBILITY",
+        "ADD-20260911-REGION-SPLIT-USABILITY",
+        "ADD-20260911-CORNER-NO-MICRO-REPEAT"
+      ],
+      "changed_ids": [],
+      "removed_ids": [],
+      "parent_hash_matches": true,
+      "manifest_pass": true
+    },
+    {
+      "version": 6,
+      "sha256": "F1173BE999D765DB28558DED3CB8BAFB1515281F01411E13494A320EE6C68C6B",
+      "package_id": "BRAIN-UPDATE-20260911-06",
+      "manifest_files_verified": 32,
+      "record_count": 28,
+      "unchanged_previous": 25,
+      "new_ids": [
+        "ADD-20260911-CPU-RESCUE-BEFORE-SURRENDER",
+        "ADD-20260911-REWARD-GACHA-LEVEL",
+        "ADD-20260911-CPU-CAST-REAFFIRM"
+      ],
+      "changed_ids": [],
+      "removed_ids": [],
+      "parent_hash_matches": true,
+      "manifest_pass": true
+    }
+  ],
+  "records": [
+    {
+      "id": "ADD-20260911-CPU-SKILL-VALUE",
+      "canonical_id": "UDL-20260910-051",
+      "source": {
+        "artifact": "four-color-dev-brain-20260911-v4.zip",
+        "sha256": "DDD52795517ADBE21C7A8255080DBA908D9F4A870D8D5290674276A39EB45963",
+        "entry": "intake/REQUESTS_ADDITION.json",
+        "thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
+        "user_message_id": null,
+        "message_id_status": "NOT_RETRIEVED_USE_ARCHIVED_QUOTE"
+      },
+      "source_quote": "初手からエリア二分とかもちいろ汚染とか、意味のないスキル運用をしちゃうCPUを救ってあげてくれ～",
+      "intent_state": "decided",
+      "implementation_state": "not_started",
+      "verification_state": "not_run_for_new_acceptance",
+      "release_state": "no_new_release_claim",
+      "acceptance": [
+        "全10人。温存すべき局面と初手でも有効な局面を正規engine候補で比較する",
+        "公開盤面＋自身privateだけ。favoriteは有効候補の選び分け",
+        "対局結果・無意味消費・救済残し投了・処理時間を固定seedで比較"
+      ],
+      "existing_related_tests": [
+        "tests/standard-cpu.test.cjs",
+        "tests/standard-cpu-roster.test.cjs",
+        "tests/standard-cpu-selfplay.test.cjs"
+      ],
+      "new_acceptance_automated": false,
+      "reconciliation": "UDL-045の封印改善を保護。初手一律禁止、100回特典・経済・カード効果変更を混ぜない"
+    },
+    {
+      "id": "ADD-20260911-QUIZ-NO-POSITION-RESET",
+      "canonical_id": "UDL-20260909-034",
+      "source": {
+        "artifact": "four-color-dev-brain-20260911-v4.zip",
+        "sha256": "DDD52795517ADBE21C7A8255080DBA908D9F4A870D8D5290674276A39EB45963",
+        "entry": "intake/REQUESTS_ADDITION.json",
+        "thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
+        "user_message_id": null,
+        "message_id_status": "NOT_RETRIEVED_USE_ARCHIVED_QUOTE"
+      },
+      "source_quote": "クイズに解答したとき、動き回る解答ボタンが一瞬初期位置に整列して見えるのがビックリしちゃうからそう見せないでほしいな",
+      "intent_state": "decided",
+      "implementation_state": "not_started",
+      "verification_state": "not_run_for_new_acceptance",
+      "release_state": "no_new_release_claim",
+      "acceptance": [
+        "同問の回答・待機・失敗・再送でID別位置を保持",
+        "次問・10問目・reduced-motion・復帰・resizeはフレーム列で検査",
+        "時計・採点・再送・報酬を保護"
+      ],
+      "existing_related_tests": [
+        "tests/standard-quiz-option-physics.test.cjs",
+        "tests/standard-online-browser.test.cjs"
+      ],
+      "new_acceptance_automated": false,
+      "reconciliation": "UDL-034を新受入でREOPEN。旧巡回実測は履歴として保持。新しい整列ちらつきは本番動画再現済みとしない"
+    },
+    {
+      "id": "ADD-20260911-RECENT-SKILL-HISTORY",
+      "canonical_id": "UDL-20260911-057",
+      "source": {
+        "artifact": "four-color-dev-brain-20260911-v4.zip",
+        "sha256": "DDD52795517ADBE21C7A8255080DBA908D9F4A870D8D5290674276A39EB45963",
+        "entry": "intake/REQUESTS_ADDITION.json",
+        "thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
+        "user_message_id": null,
+        "message_id_status": "NOT_RETRIEVED_USE_ARCHIVED_QUOTE"
+      },
+      "source_quote": "直前の一手について、もし表示する方針なら、せめてスキル使用歴とかを書いてくれないと存在意義が薄すぎるぜ",
+      "intent_state": "decided_conditional",
+      "implementation_state": "not_started",
+      "verification_state": "not_run_for_new_acceptance",
+      "release_state": "no_new_release_claim",
+      "acceptance": [
+        "残す場合のみスキル→彩色→作成の確定履歴",
+        "reload/再送で重複なし、match間で混線なし",
+        "許可された構造化公開eventだけ。中間version欠落時に過去を推測しない"
+      ],
+      "existing_related_tests": [
+        "tests/standard-online-browser.test.cjs",
+        "tests/standard-cpu-commentary.test.cjs"
+      ],
+      "new_acceptance_automated": false,
+      "reconciliation": "008/035/040は効果音・本人private通知・接触演出で同等ではないため固定ID057。大型常設パネル採用ではない"
+    },
+    {
+      "id": "ADD-20260911-CPU-EXTREMES",
+      "canonical_id": "UDL-20260910-051",
+      "source": {
+        "artifact": "four-color-dev-brain-20260911-v5.zip",
+        "sha256": "CDD66B6C38C2B65AE1601F44F69035DCDAD805A2BD89AB99CD78B56F66641DF7",
+        "entry": "intake/REQUESTS_ADDITION.json",
+        "thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
+        "user_message_id": "bbb215c4-69f9-4ed7-90b6-d9acf1e3ed9f",
+        "message_id_status": "matched_to_previously_retrieved_user_statement"
+      },
+      "source_quote": "最強のキャラは女子、最弱のキャラは男子にして！",
+      "intent_state": "decided",
+      "implementation_state": "not_started",
+      "verification_state": "not_run_for_new_acceptance",
+      "release_state": "no_new_release_claim",
+      "acceptance": [
+        "各Lv男女1:1。レン最弱、シオン最強の実効強度を同条件で比較",
+        "Lv4ツバサ/レイ、Lv5クロガネ/シオン、ID/顔/履歴を保持"
+      ],
+      "existing_related_tests": [
+        "tests/standard-cpu-roster.test.cjs",
+        "tests/standard-cpu-selfplay.test.cjs"
+      ],
+      "new_acceptance_automated": false,
+      "reconciliation": "具体キャラ選択はAstra設計9553a070。性別を名前・見た目から推測せず設定確認を残す"
+    },
+    {
+      "id": "ADD-20260911-CPU-EPITHETS",
+      "canonical_id": "UDL-20260910-051",
+      "source": {
+        "artifact": "four-color-dev-brain-20260911-v5.zip",
+        "sha256": "CDD66B6C38C2B65AE1601F44F69035DCDAD805A2BD89AB99CD78B56F66641DF7",
+        "entry": "intake/REQUESTS_ADDITION.json",
+        "thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
+        "user_message_id": "bbb215c4-69f9-4ed7-90b6-d9acf1e3ed9f",
+        "message_id_status": "matched_to_previously_retrieved_user_statement"
+      },
+      "source_quote": "女子の方が二つ名にマイナスイメージが強めの単語が使われてるのもなんかやだ！",
+      "intent_state": "decided_requirement_ai_design_selected",
+      "implementation_state": "not_started",
+      "verification_state": "not_run_for_new_acceptance",
+      "release_state": "no_new_release_claim",
+      "acceptance": [
+        "速攻のレン/彩りのユズ/ひらめきのミナト/彩術師コハル/慧眼のシオンをAI設計として採用",
+        "ID・顔・台詞・戦績の参照先を混線させない"
+      ],
+      "existing_related_tests": [
+        "tests/standard-cpu-roster.test.cjs",
+        "tests/standard-cpu-commentary.test.cjs"
+      ],
+      "new_acceptance_automated": false,
+      "reconciliation": "v3の名前不変は二つ名に限って後続要望で置換。固有ID/顔/履歴は不変。報酬の数値改定なし"
+    },
+    {
+      "id": "ADD-20260911-AURORA-VISIBILITY",
+      "canonical_id": "UDL-20260911-058",
+      "source": {
+        "artifact": "four-color-dev-brain-20260911-v5.zip",
+        "sha256": "CDD66B6C38C2B65AE1601F44F69035DCDAD805A2BD89AB99CD78B56F66641DF7",
+        "entry": "intake/REQUESTS_ADDITION.json",
+        "thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
+        "user_message_id": "bbb215c4-69f9-4ed7-90b6-d9acf1e3ed9f",
+        "message_id_status": "matched_to_previously_retrieved_user_statement"
+      },
+      "source_quote": "外見にオーロラ装備してるのにどう反映されてるのかよくわかんない",
+      "intent_state": "decided",
+      "implementation_state": "not_started",
+      "verification_state": "not_run_for_new_acceptance",
+      "release_state": "no_new_release_claim",
+      "acceptance": [
+        "保存appearance→projection→body class→computed styleを確認",
+        "ショップpreviewと実盤面の見た目を対応",
+        "PC/スマホ・標準/装備・reload/resumeで識別可能"
+      ],
+      "existing_related_tests": [
+        "tests/standard-cosmetics.test.cjs",
+        "tests/standard-cosmetic-browser.test.cjs",
+        "tests/standard-online-browser.test.cjs"
+      ],
+      "new_acceptance_automated": false,
+      "reconciliation": "UDL049の購入不足表示とは別症状として058。ユーザーprofileは未取得。未適用と視認性不足を未確定で区別"
+    },
+    {
+      "id": "ADD-20260911-REGION-SPLIT-USABILITY",
+      "canonical_id": "UDL-20260909-037",
+      "source": {
+        "artifact": "four-color-dev-brain-20260911-v5.zip",
+        "sha256": "CDD66B6C38C2B65AE1601F44F69035DCDAD805A2BD89AB99CD78B56F66641DF7",
+        "entry": "intake/REQUESTS_ADDITION.json",
+        "thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
+        "user_message_id": "bbb215c4-69f9-4ed7-90b6-d9acf1e3ed9f",
+        "message_id_status": "matched_to_previously_retrieved_user_statement"
+      },
+      "source_quote": "エリア二分の使い方がわかんなくて試合に負けちゃった(涙)",
+      "intent_state": "decided",
+      "implementation_state": "not_started",
+      "verification_state": "not_run_for_new_acceptance",
+      "release_state": "no_new_release_claim",
+      "acceptance": [
+        "選んだ側を自分で塗り、残りを相手へ返すことを盤面近くに表示",
+        "3マス列の端成功/中央切断不可/1マス不可/変形済みを確認",
+        "取消・無効は非消費、追加確認なし、合法色oracleなし"
+      ],
+      "existing_related_tests": [
+        "tests/standard-color-region-split.test.cjs",
+        "tests/standard-online-browser.test.cjs"
+      ],
+      "new_acceptance_automated": false,
+      "reconciliation": "盤面直接指定の公開履歴を保護し、説明不足の受入をREOPEN。報告された敗戦操作列は未取得"
+    },
+    {
+      "id": "ADD-20260911-CORNER-NO-MICRO-REPEAT",
+      "canonical_id": "UDL-20260908-029",
+      "source": {
+        "artifact": "four-color-dev-brain-20260911-v5.zip",
+        "sha256": "CDD66B6C38C2B65AE1601F44F69035DCDAD805A2BD89AB99CD78B56F66641DF7",
+        "entry": "intake/REQUESTS_ADDITION.json",
+        "thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
+        "user_message_id": "bbb215c4-69f9-4ed7-90b6-d9acf1e3ed9f",
+        "message_id_status": "matched_to_previously_retrieved_user_statement"
+      },
+      "source_quote": "角膨張の適用先選択が相変わらずセル内部の4掛け四が見えてる感じでプレイヤーがビックリしちゃう",
+      "intent_state": "decided",
+      "implementation_state": "stale_candidate",
+      "verification_state": "not_run_for_new_acceptance",
+      "release_state": "no_new_release_claim",
+      "acceptance": [
+        "カード→通常1マス→即使用。pointer/keyboard",
+        "内部4x4選択・micro座標・番号一覧・追加確認なし",
+        "実際の変形境界は保持。旧roomと合法性判定を保護"
+      ],
+      "existing_related_tests": [
+        "tests/standard-online-skill-intents.test.cjs",
+        "tests/standard-online-browser.test.cjs",
+        "tests/standard-cpu-colored-corner-bloom.test.cjs"
+      ],
+      "new_acceptance_automated": false,
+      "reconciliation": "029の再要求で新規採番しない。mainにはmacro payloadがあるがmicro選択/2112px zoomが残る。全候補が未統合とも公開済みとも推測しない"
+    },
+    {
+      "id": "ADD-20260911-CPU-RESCUE-BEFORE-SURRENDER",
+      "canonical_id": "UDL-20260910-051",
+      "source": {
+        "artifact": "four-color-dev-brain-20260911-v6.zip",
+        "sha256": "F1173BE999D765DB28558DED3CB8BAFB1515281F01411E13494A320EE6C68C6B",
+        "entry": "intake/REQUESTS_ADDITION.json",
+        "thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
+        "user_message_id": null,
+        "message_id_status": "NOT_RETRIEVED_USE_ARCHIVED_QUOTE"
+      },
+      "source_quote": "自分の色を変えたり増やしたり、エリア二分とか、自分を救済するスキルもちゃんと使ってほしい",
+      "intent_state": "decided",
+      "implementation_state": "not_started",
+      "verification_state": "not_run_for_new_acceptance",
+      "release_state": "no_new_release_claim",
+      "acceptance": [
+        "持ち色変更/色追加/二分を正規engineの彩色成功まで確認",
+        "生存→局面改善→温存。救済不能は有限停止",
+        "ランダム実結果で再評価。秘密・非所持・封印・残0・カテゴリ制限を破らない"
+      ],
+      "existing_related_tests": [
+        "tests/standard-no-color-rescue.test.cjs",
+        "tests/standard-cpu.test.cjs",
+        "tests/standard-cpu-roster.test.cjs"
+      ],
+      "new_acceptance_automated": false,
+      "reconciliation": "浪費削減と両立。持ち色変更→二分は同カテゴリ制限に照合する例であり合法確定ではない。危機時の裏付与禁止は事前定義チャージ案の撤回ではない"
+    },
+    {
+      "id": "ADD-20260911-REWARD-GACHA-LEVEL",
+      "canonical_id": "UDL-20260911-059",
+      "source": {
+        "artifact": "four-color-dev-brain-20260911-v6.zip",
+        "sha256": "F1173BE999D765DB28558DED3CB8BAFB1515281F01411E13494A320EE6C68C6B",
+        "entry": "intake/REQUESTS_ADDITION.json",
+        "thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
+        "user_message_id": null,
+        "message_id_status": "NOT_RETRIEVED_USE_ARCHIVED_QUOTE"
+      },
+      "source_quote": "「獲得した券でガチャる」みたいなボタンを押してガチャに飛ぶときは、当該レベルのガチャ券を選択した状態になっててほしいな",
+      "intent_state": "decided",
+      "implementation_state": "not_started",
+      "verification_state": "not_run_for_new_acceptance",
+      "release_state": "no_new_release_claim",
+      "acceptance": [
+        "保存されたreward.ticketLevelを使い難度/名前から推測しない",
+        "明示遷移後の手動変更と通常タブ選択を保持。残0で別Lvへ変更しない",
+        "遷移のみの抽選0。未決着actionId/券Lv/枚数を変更しない",
+        "複数券・前回別Lv・遅延同期・再描画で選択/率/明示抽選Lv一致"
+      ],
+      "existing_related_tests": [
+        "tests/standard-gacha-transaction.test.cjs",
+        "tests/standard-online-browser.test.cjs"
+      ],
+      "new_acceptance_automated": false,
+      "reconciliation": "042/046の報酬永続化・数量とは異なる不足導線として059。mainのCPU報酬導線にはticketLevel引継ぎ済み。quizGoGachaだけ無引数。既存経路を維持し欠落入口だけ修正"
+    },
+    {
+      "id": "ADD-20260911-CPU-CAST-REAFFIRM",
+      "canonical_id": "UDL-20260910-051",
+      "source": {
+        "artifact": "four-color-dev-brain-20260911-v6.zip",
+        "sha256": "F1173BE999D765DB28558DED3CB8BAFB1515281F01411E13494A320EE6C68C6B",
+        "entry": "intake/REQUESTS_ADDITION.json",
+        "thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
+        "user_message_id": null,
+        "message_id_status": "NOT_RETRIEVED_USE_ARCHIVED_QUOTE"
+      },
+      "source_quote": "最強のキャラは女子、最弱のキャラは男子にして！",
+      "intent_state": "reaffirmed",
+      "implementation_state": "not_started",
+      "verification_state": "not_run_for_new_acceptance",
+      "release_state": "no_new_release_claim",
+      "acceptance": [
+        "v5の配置と前向きな二つ名を維持",
+        "顔/名前/台詞/戦績/報酬参照のID対応を確認",
+        "実効強度と救済を評価し、表示変更だけで完了にしない"
+      ],
+      "existing_related_tests": [
+        "tests/standard-cpu-roster.test.cjs",
+        "tests/standard-cpu-selfplay.test.cjs"
+      ],
+      "new_acceptance_automated": false,
+      "reconciliation": "v5の再確認。引用の命名例は自動置換しない。報酬整合確認を数値変更指示にしない"
+    }
+  ],
+  "limitations": [
+    "Only ZIP data read; supplied scripts not executed; no bulk extraction.",
+    "JSON/YAML semantic parity not rerun.",
+    "Manifest PASS is packaging evidence, not game test evidence.",
+    "v4/v6 original message IDs unresolved; v5 matched to prior genuine retrieval. Images not treated as reproduced gameplay.",
+    "No CPU, quiz-motion, cosmetic, split, corner, reward change implemented by this intake. No review approval inferred."
+  ]
+}

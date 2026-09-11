@@ -13,6 +13,13 @@
       "receipt": "docs/REQUEST_ADDENDUM_20260910_PALETTE.md",
       "mapping": "docs/REQUEST_ADDENDUM_20260910_PALETTE.json",
       "note": "Immutable intake snapshot and alias mapping only; ongoing state and ownership remain in the existing UDL. Does not replace the original 28-request snapshot."
+    },
+    {
+      "batch_id": "BRAIN-UPDATE-20260911-04_TO_06",
+      "artifact_sha256": "F1173BE999D765DB28558DED3CB8BAFB1515281F01411E13494A320EE6C68C6B",
+      "receipt": "docs/BRAIN_V4_V6_INTAKE_20260911.md",
+      "mapping": "docs/BRAIN_V4_V6_INTAKE_20260911.json",
+      "note": "Dated delta crosswalk: v3's 17 records preserved, eleven additive aliases mapped to seven UDL rows. Active states remain in the existing ledger. Package manifests are not game tests."
     }
   ],
   "sources": {
