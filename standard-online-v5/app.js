@@ -6120,7 +6120,8 @@ $("closeSkillInfo").onclick = () => $("skillInfoDialog").close();
 $("terminalGoGacha").onclick = openSavedResultGacha;
 $("terminalClose").onclick = () => {
   dismissTerminalResult();
-  $("requestRematch").focus({ preventScroll: false });
+  $("terminalSummary").scrollIntoView({ block: "center", behavior: "instant" });
+  $("requestRematch").focus({ preventScroll: true });
 };
 $("leaveRoom").onclick = closeDisplayedRoom;
 $("abandonRoom").onclick = (event) => openRoomAbandonDialog(event.currentTarget);

@@ -6,6 +6,18 @@ const { pathToFileURL } = require("node:url");
 const modulePromise = import(pathToFileURL(path.join(__dirname,"../standard-online-v5/result-continuation.js")).href);
 const room = {id:"own-room",version:20,status:"finished",opponent_kind:"cpu",public_state:{status:"FINISHED",matchId:"own-match",winner:"A"}};
 const profile = {matchHistory:[{matchId:"own-match",result:"WIN",onlineOpponentKind:"cpu",matchReward:{awarded:true,ticketLevel:3,ticketCount:2}}],gachaTickets:{3:0}};
+
+test("UDL060 saved rewards remain local-seat correct for human and CPU wins and losses",async()=>{
+  const {savedResultReward}=await modulePromise;
+  for(const kind of ["cpu","human"]) for(const seat of ["A","B"]) for(const winner of ["A","B"]) {
+    const r={...room,opponent_kind:kind,public_state:{...room.public_state,winner}};
+    const p=structuredClone(profile);p.matchHistory[0].onlineOpponentKind=kind;
+    p.matchHistory[0].result=seat===winner?"WIN":"LOSS";
+    assert.equal(savedResultReward(r,seat,p)?.ticketLevel,3);
+    p.matchHistory[0].result=seat===winner?"LOSS":"WIN";
+    assert.equal(savedResultReward(r,seat,p),null);
+  }
+});
 test("UDL060 saved finished reward drives navigation even after its ticket balance reaches zero",async()=>{
   const {savedResultReward}=await modulePromise;
   const before=JSON.stringify({room,profile});

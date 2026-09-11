@@ -2288,6 +2288,9 @@ test("UDL060 result-local next actions fit mobile and desktop and route saved ze
         await page.locator("#terminalClose").click();
         assert.equal(await page.locator("#terminalSummary #rematchControls").isVisible(),true);
         assert.equal(await page.locator("#resultGoGacha").textContent(),"Lv.3券のガチャを開く");
+        await page.waitForFunction(()=>[...document.querySelectorAll("#rematchControls button")]
+          .filter(e=>e.getClientRects().length).every(e=>{const r=e.getBoundingClientRect();
+            return r.width>=44&&r.height>=44&&r.top>=0&&r.bottom<=innerHeight&&e.contains(document.elementFromPoint(r.x+r.width/2,r.y+r.height/2));}));
         if (process.env.STANDARD_UI_ARTIFACT_DIR) await page.screenshot({path:path.join(process.env.STANDARD_UI_ARTIFACT_DIR,`${mode}-${viewport.width}-persistent.png`)});
         await page.locator("#resultGoGacha").click();
         assert.equal(await page.locator("#gachaLevel").inputValue(),"3");
@@ -2306,7 +2309,7 @@ test("UDL060 result-local next actions fit mobile and desktop and route saved ze
   }
 });
 
-test("UDL060 saved result navigation retains an unresolved draw level and exact retry", { timeout:130000 }, async () => {
+test("UDL060 saved result navigation retains an unresolved draw level and exact retry", { timeout: 130000 }, async () => {
   await withPage("resultRewardCpu",async page=>{
     await page.locator("#terminalClose").click();
     await page.locator("#resultGoGacha").click();
@@ -2329,7 +2332,7 @@ test("UDL060 saved result navigation retains an unresolved draw level and exact 
   },{viewport:{width:390,height:844}});
 });
 
-test("UDL060 overlay rematch is explicit and double activation retains one CPU request", { timeout:130000 }, async () => {
+test("UDL060 overlay rematch is explicit and double activation retains one CPU request", { timeout: 130000 }, async () => {
   await withPage("finishedCpu",async page=>{
     await page.locator("#terminalRematch").waitFor();
     assert.deepEqual(await resultWriteCalls(page),[]);
@@ -2344,7 +2347,7 @@ test("UDL060 overlay rematch is explicit and double activation retains one CPU r
   });
 });
 
-test("UDL060 explicit human next-opponent exit keeps server history and starts no search", { timeout:130000 }, async () => {
+test("UDL060 explicit human next-opponent exit keeps server history and starts no search", { timeout: 130000 }, async () => {
   await withPage("resultRewardHuman",async page=>{
     await page.locator("#terminalClose").click();
     const before=await page.evaluate(()=>JSON.stringify({room:globalThis.__standardOnlineRuntime.room,profile:globalThis.__standardOnlineRuntime.profile}));
@@ -2356,7 +2359,7 @@ test("UDL060 explicit human next-opponent exit keeps server history and starts n
   },{viewport:{width:390,height:844}});
 });
 
-test("UDL060 pending rematch blocks competing result exits but retains the same retry", { timeout:130000 }, async () => {
+test("UDL060 pending rematch blocks competing result exits but retains the same retry", { timeout: 130000 }, async () => {
   await withPage("finished",async page=>{
     await page.locator("#terminalClose").click();
     for(const id of ["resultGoLobby","chooseDifferentHuman"])assert.equal(await page.locator("#"+id).isDisabled(),true);
@@ -2369,7 +2372,7 @@ test("UDL060 pending rematch blocks competing result exits but retains the same 
 });
 
 
-test("UDL060 canceling the overlay CPU picker restores a visible result control", { timeout:130000 }, async () => {
+test("UDL060 canceling the overlay CPU picker restores a visible result control", { timeout: 130000 }, async () => {
   await withPage("finishedCpu",async page=>{
     await page.locator("#terminalChooseAnother").click();
     await page.locator("#cpuRosterDialog[open]").waitFor();

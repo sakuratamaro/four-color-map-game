@@ -1,10 +1,10 @@
 # Result-local continuation
 
-Version: UDL-060-result-v1-draft
+Version: UDL-060-result-v1
 
-CANON_RECEIPT version=shared-canon-v1.1 base=32046255e88901ce03dc88c59f51e803529b9f63 public_floor=93c05c7c68576b28a126588d0716f0f56c015531 request=UDL-20260912-060 specs=AGENTS.md,docs/SHARED_CANON.md,docs/PROJECT_COMMAND_CENTER.md,docs/UI_DIET_PREPARATION_20260912.md,docs/BRAIN_V8_PAIRED_INTAKE_20260912.json tests=tests/standard-online-browser.test.cjs,tests/standard-online-ui-static.test.cjs worktree=.codex-worktrees/ui-result-20260912
+CANON_RECEIPT version=shared-canon-v1.1 base=d6f745d3f1291457539dd2f3476e9a749a547069 public_floor=93c05c7c68576b28a126588d0716f0f56c015531 request=UDL-20260912-060 specs=AGENTS.md,docs/SHARED_CANON.md,docs/PROJECT_COMMAND_CENTER.md,docs/UI_DIET_PREPARATION_20260912.md,docs/BRAIN_V8_PAIRED_INTAKE_20260912.json tests=tests/standard-online-browser.test.cjs,tests/standard-online-ui-static.test.cjs,tests/standard-result-continuation.test.cjs worktree=.codex-worktrees/ui-result-20260912
 
-The predecessor3204625 is a candidate, NOT public yet. Keep this successor isolated while its parent is reviewed and tested. Governance sources live on existing codex/dev-brain-current-20260910, not a copied second ledger. Source is paired v8 userbbb21715-8ab0-4dfb-ad2f-b46883434765/designc1c1a98e-749e-42ec-8a95-2ef30abd5035. The explicit current user asks to complete UI simplification after memo/calculator, now completed; no new controller or CPU/card/DB/Edge work.
+The preparatory320 base was updated by a normal merge of d6f745d, preserving all WIP. D6 is Windows-verified but NOT public at spec freeze. Keep this successor isolated until its parent is genuinely reviewed and published. Governance sources live on existing codex/dev-brain-current-20260910, not a copied second ledger. Source is paired v8 userbbb21715-8ab0-4dfb-ad2f-b46883434765/designc1c1a98e-749e-42ec-8a95-2ef30abd5035. The explicit current user asks to complete UI simplification after memo/calculator, now completed; no new controller or CPU/card/DB/Edge work.
 
 ## Design and acceptance
 
@@ -16,4 +16,8 @@ Normal tab/gacha navigation keeps the current room connection, result, reward an
 
 390x844/768x900/1280x900: readable result reason and local next controls,44px targets, no horizontal overflow or fixed-chrome occlusion, keyboard/focus returns, overlay dismissal/reload, CPU/human, reward hydration/daily limit/zero balance/pending gacha, no automatic write, one explicit rematch and retry identity. Keep UDL048/052/054/055/059 and existing setup/private-state/game rules. Scripted browser fixtures are not real public gameplay or physical-device acceptance.
 
-This draft is an implementation receipt, not an approval. Freeze a final spec and candidate, run relevant and whole Windows gates, obtain genuine exact-SHA Astra approval and fresh-main reconciliation, then force-free same-SHA Pages/public verification. UI goal remains active through060/061/062.
+Overlay CPU-picker cancellation returns focus to the visible persistent CPU choice, not its hidden overlay trigger. Explicit rematch returns focus to new setup or the existing pending-request control; gacha's own continuation retains its tab/focus behavior. Buttons remain44px minimum, two-column next actions with compact mobile celebration; tests wait for finite entrance animation before measuring settled hit boxes and do not mistake read-only cpu-roster retrieval for a game write. Reload preserves the selected tab, so a result inspection explicitly returns to the battle tab instead of treating hidden other-tab content as lost state.
+
+Initial desktop screenshots showed lower next actions below the viewport even though the first focused button was visible. Dismissing the overlay now centers the complete persistent result before focusing its first action without another scroll. The browser test checks every visible result action for44px size and an unobstructed center point on all three widths. Remove only the redundant inner box, retaining the result boundary, reasons and real rewards.
+
+Pages-only app v20260912-32, result model/CSS v20260912-1. This spec is not an approval. Run relevant and whole Windows gates, obtain genuine exact-SHA Astra approval and fresh-main reconciliation, then force-free same-SHA Pages/public verification. UI goal remains active through060/061/062.
