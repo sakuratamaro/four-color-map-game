@@ -41,7 +41,7 @@
     }
   ],
   "coordination": {
-    "status": "udl048_public_verified_ui_goal_ready",
+    "status": "ui_entrance_local_verified_review_prepared_windows_running",
     "latest_v8_intake": {
       "state": "PAIRED_SOURCE_MAPPED_CANONICAL_UI_GOAL_QUEUED_ZIP_PENDING",
       "source_thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
@@ -80,16 +80,15 @@
     "latest_publication_report": {
       "kind": "publication_report_not_review_request",
       "destination_thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
-      "artifact_sha": "7fdaef9cacdef8c1d97298a8e83c765316b722ef",
-      "candidate_sha": "f8713d7006da0619b9c356d53a472754833fb910",
+      "artifact_sha": "7544c59406f95aefdcf5c1b8235f7cc49667eabd",
+      "candidate_sha": "a26ffd14a8f896d9d087dac032d8f079ece82f7d",
       "send_attempts": 1,
-      "send_attempt_reserved_at_utc": "2026-09-11T04:44:13Z",
       "send_tool_succeeded": true,
-      "destination_message_id": null,
-      "delivery_readback": "SENT_API_SUCCESS_MESSAGE_ID_NOT_YET_VISIBLE_IN_TWO_BOUNDED_READS",
+      "destination_message_id": "a0ca9fde-c994-4ab1-a86f-b0bf91754d63",
+      "response_message_id": "36b63473-e10a-4dad-88a1-b46aae53407d",
+      "delivery_readback": "FULL_PAIRED_COMPLETED_RESPONSE",
       "review_wait_started": false,
-      "note": "Send API succeeded. Both bounded readbacks still returned the preceding completed review while ChatGPT was active; do not claim full destination-body equality or acknowledgement. No resend, no new wait, automation remains PAUSED. Resolve message ID opportunistically at the next normal task, not by polling.",
-      "delivery_checks": 2
+      "note": "Astra acknowledged memo PUBLIC_VERIFIED evidence as Codex measurements, confirmed starting UDL023 without ZIP wait; not a UI release approval."
     },
     "latest_implementation_instruction": {
       "source_kind": "chatgpt_implementation_direction_not_release_approval",
@@ -210,7 +209,31 @@
       "matches_created": 0,
       "data_deleted": false
     },
-    "active_slice": null,
+    "active_slice": {
+      "id": "UDL-20260907-023",
+      "state": "LOCAL_VERIFIED",
+      "owner_thread_id": "01a07b56-616e-7733-9aae-90575659688e",
+      "base_sha": "a26ffd14a8f896d9d087dac032d8f079ece82f7d",
+      "branch": "codex/ui-diet-20260912",
+      "worktree": ".codex-worktrees/ui-diet-20260912",
+      "spec_path": "docs/UI_DIET_ENTRANCE_20260912.md",
+      "spec_version": "UDL-023-entrance-v1",
+      "candidate_sha": "a9b2ff984c448819483286eae5acfa91530fc5db",
+      "review_status": "PENDING_SEND",
+      "public_gameplay": "NOT_RUN",
+      "physical_devices": "NOT_RUN",
+      "scope": "Pages_only",
+      "db_change_set": [],
+      "edge_change_set": [],
+      "next_action": "Implement entrance and executable regressions; exact review and Windows gate before publication.",
+      "spec_snapshot_sha": "d5c0f6e8b6de875d844eaf9bd8c154e281472952",
+      "local_tests": "clean901/901, actualChrome9/9 and Edge9/9 skip0; three builders zero diff; earlier dirty898/901 retained",
+      "windows_run": "34635024201",
+      "windows_status": "IN_PROGRESS",
+      "review_send_attempts": 1,
+      "review_packet": "docs/ASTRA_UI_ENTRANCE_REVIEW_20260912.md",
+      "review_send_reserved_at_utc": "2026-09-11T18:49:00Z"
+    },
     "automation_id": "automation",
     "automation_status_at_recording": "PAUSED",
     "automation_readback_updated_at": 1789148333425,
@@ -510,7 +533,7 @@
       "receipt": "docs/QUIZ_MEMO_RELEASE_20260912.md"
     },
     "next_goal": {
-      "state": "READY_PREDECESSOR_PUBLIC_VERIFIED",
+      "state": "ACTIVE",
       "title": "UIデザインのダイエット",
       "source": {
         "kind": "explicit_user_instruction",
