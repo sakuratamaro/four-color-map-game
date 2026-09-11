@@ -1,6 +1,6 @@
 # UI diet — battle entrance
 
-Version: `UDL-023-entrance-v1`
+Version: `UDL-023-entrance-v1.1`
 
 CANON_RECEIPT version=shared-canon-v1.1 base=a26ffd14a8f896d9d087dac032d8f079ece82f7d request=UDL-20260907-023,UDL-20260912-062 specs=AGENTS.md,docs/SHARED_CANON.md,docs/PROJECT_COMMAND_CENTER.md,docs/UI_DIET_PREPARATION_20260912.md tests=tests/standard-online-browser.test.cjs,tests/standard-online-ui-static.test.cjs worktree=.codex-worktrees/ui-diet-20260912
 
@@ -20,6 +20,7 @@ CPU opens the existing ten-person roster and requires the existing six-card conf
 - Only selected route is visible/accessibly expanded; keyboard reaches real buttons; hidden controls cannot receive normal input. Human heading is not a button. CPU dialog focus restoration and optional wait disclosure work.
 - Search matched: enter existing room, no recruitment. Empty successful explicit search: one recruit, persisted ticket; double-click cannot duplicate. Error/lost response: retain search identity; no recruit. Pending reload/cancel/race recovery unaffected.
 - New-player name creation, active-room return, pending CPU saga, finished return, quiz/calculator048, role labels052, finished reveal055 and reward level059 stay protected by executable existing tests.
+- Native quiz-option focus reserves90px of scroll margin above/below for existing fixed notices. Arrival must not move the focused option, steal focus, announce over it or cover it. The first Windows candidate exposed a real overlap after removing the all-tab profile editor; keep that failure and reverify every quiz option at390/900/1280px.
 
 ## Non-changes and release
 

@@ -1,4 +1,6 @@
 /* UDL023: keep the three destinations together; reveal only their controls. */
+/* Native focus reserves room for existing fixed notices before they arrive. */
+#quizOptions button { scroll-margin-block: 90px; }
 .battle-entrance { box-sizing: border-box; width: 100%; max-width: 820px; margin-inline: auto; }
 .battle-entrance > .section-kicker { margin: 0 0 4px; color: #a5f3fc; letter-spacing: .16em; }
 .battle-entrance > h2 { margin: 0 0 18px; font-size: clamp(24px, 4vw, 32px); }
