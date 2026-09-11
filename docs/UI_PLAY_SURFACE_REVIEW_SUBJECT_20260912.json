@@ -1,10 +1,10 @@
 {
   "review_kind": "game_production_release_approval",
-  "subject_sha": "6cd12ae888f26c9403fb504596f92f4d9a65b301",
+  "subject_sha": "d6f745d3f1291457539dd2f3476e9a749a547069",
   "base_sha": "93c05c7c68576b28a126588d0716f0f56c015531",
   "canon_version": "shared-canon-v1.1",
-  "feature_spec_version": "UDL-052-054-063-play-v1",
-  "spec_snapshot_sha": "67d52446047eafb6a6c32e38e8e7c9538aea88b4",
+  "feature_spec_version": "UDL-052-054-063-play-v1.2",
+  "spec_snapshot_sha": "5a63468c8f75d777cafcb6de7fec19e4048d0f5b",
   "spec_snapshot_kind": "git_blob:docs/UI_PLAY_SURFACE_20260912.md",
   "scope": "Pages_only",
   "db_change_set": [],

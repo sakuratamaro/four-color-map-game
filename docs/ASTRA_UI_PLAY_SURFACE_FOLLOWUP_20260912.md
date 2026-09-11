@@ -1,5 +1,7 @@
 # Play-surface Windows follow-up
 
+Historical320 preparation only, never sent: Windows34644395034 ultimately FAILED both browsers. Superseded by ASTRA_UI_PLAY_SURFACE_D6_REVIEW_20260912.md; neither this draft nor HOLD013 approves d6.
+
 SUBJECT_SHA `32046255e88901ce03dc88c59f51e803529b9f63`
 
 BASE_SHA `93c05c7c68576b28a126588d0716f0f56c015531` (6cd was never published)

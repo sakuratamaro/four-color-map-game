@@ -41,7 +41,7 @@
     }
   ],
   "coordination": {
-    "status": "ui_play_surface_review_transport_pending_result_implementation",
+    "status": "ui_play_surface_windows_pass_review_ready_result_implementation",
     "latest_v8_intake": {
       "state": "PAIRED_SOURCE_MAPPED_CANONICAL_UI_GOAL_QUEUED_ZIP_PENDING",
       "source_thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
@@ -142,8 +142,8 @@
       "scope": "receive_and_route_only"
     },
     "reviewer_thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
-    "last_consumed_review_message_id": "9f4e5736-a704-4c73-819a-40c4005f9bf6",
-    "last_received_message_id": "d7a96f4c-12db-45ca-b50b-b12b95edb727",
+    "last_consumed_review_message_id": "ce88c333-e4f7-4ca1-a71b-ab9aec58d4d2",
+    "last_received_message_id": "ce88c333-e4f7-4ca1-a71b-ab9aec58d4d2",
     "pending_user_intake_message_ids": [
       "ea61f25f-bebf-499a-81e9-029712a96f99"
     ],
@@ -255,54 +255,107 @@
         "UDL-20260910-054",
         "UDL-20260912-063"
       ],
-      "state": "REVISION_REQUIRED_NOT_PUBLISHED",
+      "state": "WINDOWS_VERIFIED_REVIEW_READY",
       "owner_thread_id": "01a07b56-616e-7733-9aae-90575659688e",
       "base_sha": "93c05c7c68576b28a126588d0716f0f56c015531",
       "branch": "codex/ui-play-surface-20260912",
       "worktree": ".codex-worktrees/ui-play-surface-20260912",
       "spec_path": "docs/UI_PLAY_SURFACE_20260912.md",
-      "spec_version": "UDL-052-054-063-play-v1",
-      "spec_snapshot_sha": "67d52446047eafb6a6c32e38e8e7c9538aea88b4",
-      "candidate_sha": "6cd12ae888f26c9403fb504596f92f4d9a65b301",
+      "spec_version": "UDL-052-054-063-play-v1.2",
+      "spec_snapshot_sha": "5a63468c8f75d777cafcb6de7fec19e4048d0f5b",
+      "candidate_sha": "d6f745d3f1291457539dd2f3476e9a749a547069",
       "scope": "Pages_only",
       "db_change_set": [],
       "edge_change_set": [],
-      "review_status": "DELIVERY_UNCONFIRMED",
-      "review_send_attempts": 1,
-      "review_packet": "docs/ASTRA_UI_PLAY_SURFACE_REVIEW_20260912.md",
-      "local_tests": "clean906/906 skip0; actualChrome22/22 and Edge22/22 skip0 on6cd12ae; manual390/1280 board plus390 hand images inspected PASS",
-      "windows_run": "34642709902",
-      "windows_status": "FAILURE",
+      "review_status": "NOT_SENT",
+      "review_send_attempts": 0,
+      "review_packet": "docs/ASTRA_UI_PLAY_SURFACE_D6_REVIEW_20260912.md",
+      "local_tests": "Clean906/906 (65.369s); clean Chrome5/5 (72.512s), Edge5/5 (81.759s, first owned-browser close timed out but owned cleanup completed and process exit0). Earlier320: Chrome26/26, Edge25/26 cleanup-only failure plus isolated1/1. Do not relabel older failure.",
+      "windows_run": "34645533910",
+      "windows_status": "SUCCESS",
       "public_gameplay": "NOT_RUN",
       "physical_devices": "NOT_RUN",
-      "next_action": "Fix observed failures, preserve6cd review and original finite deadline, no public promotion even if6cd review approves. Do not send followup while reviewer active.",
-      "review_send_reserved_at_utc": "2026-09-11T20:17:19Z",
-      "review_delivery_checks": 2,
-      "review_source_artifact_sha": "4ff46fc5999f4dbbc6ff57bf11801e3e8ac88552",
+      "next_action": "Send exact d6 review once; preserve original20:17:19Z/22:17:19Z logical budget count1. No publication before genuine exact review.",
+      "review_delivery_checks": 0,
+      "review_source_artifact_sha": null,
       "review_request_message_id": null,
-      "review_delivery_note": "Two bounded valid readbacks returned prior1ba/d7 while chatactive. API accepted one send. No guessed message ID and no third immediate read or resend.",
-      "windows_failures": [
-        "recolor loan visible label changed",
-        "first move actionOrder retained obsolete DOM selector",
-        "normal390 board width fell below old>300 guard",
-        "CPU commentary can overlap guide in Windows"
+      "review_id": null,
+      "review_response_message_id": null,
+      "windows_jobs": [
+        {
+          "id": "103415286289",
+          "browser": "chrome",
+          "conclusion": "success",
+          "online_browser_tests": "117/117"
+        },
+        {
+          "id": "103415286641",
+          "browser": "edge",
+          "conclusion": "success",
+          "online_browser_tests": "117/117",
+          "lifecycle_tests": "79/79"
+        }
       ],
-      "prepared_revision": {
-        "candidate_sha": "32046255e88901ce03dc88c59f51e803529b9f63",
-        "spec_version": "UDL-052-054-063-play-v1.1",
-        "spec_snapshot_sha": "977101c8f05d13836c060dedeb1b425a3c96fb16",
-        "windows_run": "34644395034",
-        "windows_status": "IN_PROGRESS",
-        "local_tests": "clean906/906 Chrome26/26; Edge25/26 owned-cleanup failure then isolated1/1 normal cleanup. Old Windows4 failures preserved. No product assertion failure in final local candidate.",
-        "review_status": "NOT_SENT_WHILE_PREVIOUS_CHAT_ACTIVE"
-      }
+      "superseded_candidates": [
+        {
+          "id": "UDL-20260910-052/054+UDL-20260912-063",
+          "request_ids": [
+            "UDL-20260910-052",
+            "UDL-20260910-054",
+            "UDL-20260912-063"
+          ],
+          "state": "REVISION_REQUIRED_NOT_PUBLISHED",
+          "owner_thread_id": "01a07b56-616e-7733-9aae-90575659688e",
+          "base_sha": "93c05c7c68576b28a126588d0716f0f56c015531",
+          "branch": "codex/ui-play-surface-20260912",
+          "worktree": ".codex-worktrees/ui-play-surface-20260912",
+          "spec_path": "docs/UI_PLAY_SURFACE_20260912.md",
+          "spec_version": "UDL-052-054-063-play-v1",
+          "spec_snapshot_sha": "67d52446047eafb6a6c32e38e8e7c9538aea88b4",
+          "candidate_sha": "6cd12ae888f26c9403fb504596f92f4d9a65b301",
+          "scope": "Pages_only",
+          "db_change_set": [],
+          "edge_change_set": [],
+          "review_status": "HOLD",
+          "review_send_attempts": 1,
+          "review_packet": "docs/ASTRA_UI_PLAY_SURFACE_REVIEW_20260912.md",
+          "local_tests": "clean906/906 skip0; actualChrome22/22 and Edge22/22 skip0 on6cd12ae; manual390/1280 board plus390 hand images inspected PASS",
+          "windows_run": "34642709902",
+          "windows_status": "FAILURE",
+          "public_gameplay": "NOT_RUN",
+          "physical_devices": "NOT_RUN",
+          "next_action": "Fix observed failures, preserve6cd review and original finite deadline, no public promotion even if6cd review approves. Do not send followup while reviewer active.",
+          "review_send_reserved_at_utc": "2026-09-11T20:17:19Z",
+          "review_delivery_checks": 2,
+          "review_source_artifact_sha": "4ff46fc5999f4dbbc6ff57bf11801e3e8ac88552",
+          "review_request_message_id": "a3ce86c3-cfb9-4d1c-bfc3-4557a5ef6889",
+          "review_delivery_note": "First scheduled read confirmed full request equality and completed actual HOLD. Two earlier bounded reads stale. Original count1/deadline unchanged.",
+          "windows_failures": [
+            "recolor loan visible label changed",
+            "first move actionOrder retained obsolete DOM selector",
+            "normal390 board width fell below old>300 guard",
+            "CPU commentary can overlap guide in Windows"
+          ],
+          "prepared_revision": {
+            "candidate_sha": "32046255e88901ce03dc88c59f51e803529b9f63",
+            "spec_version": "UDL-052-054-063-play-v1.1",
+            "spec_snapshot_sha": "977101c8f05d13836c060dedeb1b425a3c96fb16",
+            "windows_run": "34644395034",
+            "windows_status": "FAILURE_BOTH",
+            "local_tests": "clean906/906 Chrome26/26; Edge25/26 owned-cleanup failure then isolated1/1 normal cleanup. Old Windows4 failures preserved. No product assertion failure in final local candidate.",
+            "review_status": "NOT_SENT_WHILE_PREVIOUS_CHAT_ACTIVE"
+          },
+          "review_id": "CHATGPT-REVIEW-20260912-013",
+          "review_response_message_id": "ce88c333-e4f7-4ca1-a71b-ab9aec58d4d2"
+        }
+      ]
     },
     "automation_id": "automation",
-    "automation_status_at_recording": "ACTIVE",
-    "automation_readback_updated_at": 1789158081364,
+    "automation_status_at_recording": "PAUSED",
+    "automation_readback_updated_at": 1789159224275,
     "automation_prompt_readback_equal": true,
-    "automation_pause_reason": "Exact93 completed review arrived during bounded transport read. No eligible review wait remains; actual heartbeat stays PAUSED.",
-    "automation_active_reason": "New play-surface fixed review accepted by send API but bounded readback stale; finite retrieval budget conservatively starts before send and cannot reset. Existing entrance wait closed.",
+    "automation_pause_reason": "HOLD received for6cd; no new eligible sent review. Next correction retains same original logical deadline and count.",
+    "automation_active_reason": null,
     "completed_review_waits": [
       {
         "root_request_message_id": "8464f659-ad62-4c09-83d9-44e1cc91316b",
@@ -431,38 +484,28 @@
       }
     ],
     "wait_budget": {
-      "root_request_message_id": null,
+      "root_request_message_id": "a3ce86c3-cfb9-4d1c-bfc3-4557a5ef6889",
       "subject_sha": "6cd12ae888f26c9403fb504596f92f4d9a65b301",
       "started_at_utc": "2026-09-11T20:17:19Z",
       "expires_at_utc": "2026-09-11T22:17:19Z",
-      "automatic_checks": 0,
+      "automatic_checks": 1,
       "max_automatic_checks": 3,
       "offset_minutes": [
         20,
         40,
         100
       ],
-      "next_check_utc": "2026-09-11T20:37:19Z",
+      "next_check_utc": null,
       "max_age_minutes": 120,
       "reset_on_candidate_revision": false,
       "reset_on_restart_or_unrelated_message": false,
       "confirmed_delivery_reminders": 0,
-      "status": "delivery_unconfirmed_api_accepted_no_resend_while_active",
-      "start_note": "New independent play-surface request. Conservatively bounded from send reservation, earlier than any future readback. Both bounded immediate readbacks still showed prior completed entrance turn while chat active. Never extend upon later delivery confirmation."
+      "status": "review_received_closed",
+      "start_note": "New independent play-surface request. Conservatively bounded from send reservation, earlier than any future readback. Both bounded immediate readbacks still showed prior completed entrance turn while chat active. Never extend upon later delivery confirmation.",
+      "response_message_id": "ce88c333-e4f7-4ca1-a71b-ab9aec58d4d2",
+      "received_at_utc": "2026-09-11T20:37:21Z"
     },
-    "pending_review_subject": {
-      "review_kind": "game_production_release_approval",
-      "subject_sha": "6cd12ae888f26c9403fb504596f92f4d9a65b301",
-      "base_sha": "93c05c7c68576b28a126588d0716f0f56c015531",
-      "canon_version": "shared-canon-v1.1",
-      "feature_spec_version": "UDL-052-054-063-play-v1",
-      "spec_snapshot_sha": "67d52446047eafb6a6c32e38e8e7c9538aea88b4",
-      "spec_snapshot_kind": "git_blob:docs/UI_PLAY_SURFACE_20260912.md",
-      "scope": "Pages_only",
-      "db_change_set": [],
-      "edge_change_set": [],
-      "reviewer_thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4"
-    },
+    "pending_review_subject": null,
     "documentation_test_followup": {
       "path": "tests/governance-shared-canon.test.cjs",
       "observation": "Genuine review 008 binds UDL-059-quiz-v1, not prior UDL-055 or UDL-052 candidates.",
@@ -471,11 +514,11 @@
       "boundary": "Governance evidence maintenance did not amend or block independently approved product f8713d7."
     },
     "initial_interval_minutes": 20,
-    "pending_subject_sha": "6cd12ae888f26c9403fb504596f92f4d9a65b301",
-    "pending_scope": "Pages_only",
-    "pending_delivery_status": "SEND_API_ACCEPTED_READBACK_UNCONFIRMED_ACTIVE_NO_RESEND",
-    "last_confirmed_sent_message_id": "94a4152d-fba7-4718-ac5f-f7698c5cf89d",
-    "last_sent_message_id": "94a4152d-fba7-4718-ac5f-f7698c5cf89d",
+    "pending_subject_sha": null,
+    "pending_scope": null,
+    "pending_delivery_status": "FOLLOWUP_PREPARED_NOT_SENT",
+    "last_confirmed_sent_message_id": "a3ce86c3-cfb9-4d1c-bfc3-4557a5ef6889",
+    "last_sent_message_id": "a3ce86c3-cfb9-4d1c-bfc3-4557a5ef6889",
     "self_sent_message_ids": [
       "ef6f161d-f2b9-40c0-ab06-f6eacf4c4d38",
       "cefaccf8-2648-4d63-b7fe-5a4a78023ec2",
@@ -490,10 +533,11 @@
       "7480776e-6929-493c-b09f-64b544fd61d7",
       "6d1b03f6-b19b-4b6e-935f-78c9afb0dbaa",
       "94a4152d-fba7-4718-ac5f-f7698c5cf89d",
-      "1baec9cd-22cc-4f8b-80e4-57abcb1c2e47"
+      "1baec9cd-22cc-4f8b-80e4-57abcb1c2e47",
+      "a3ce86c3-cfb9-4d1c-bfc3-4557a5ef6889"
     ],
     "sent_at_utc": "2026-09-11T19:14:55Z",
-    "last_check_utc": "2026-09-11T19:12:50Z",
+    "last_check_utc": "2026-09-11T20:37:21Z",
     "unchanged_checks": 0,
     "reminder_count": 0,
     "max_reminders_per_request": 1,
@@ -776,7 +820,7 @@
         "UDL-20260912-060"
       ],
       "owner_thread_id": "01a07b56-616e-7733-9aae-90575659688e",
-      "state": "DRAFT_SPEC_AND_PURE_RESULT_REWARD_MODEL",
+      "state": "RESULT_MODEL_DOM_CSS_DRAFT_UNVERIFIED",
       "base_sha": "32046255e88901ce03dc88c59f51e803529b9f63",
       "base_status": "CANDIDATE_NOT_PUBLIC",
       "scope": "Result-local continuation; no changes to candidate under review.",
@@ -1124,6 +1168,34 @@
         "same-SHA Pages success, strict three-asset byte comparison before isolated navigation profile"
       ],
       "notes": "Actual completed paired response with full sent prompt equality. Reviewer independently obtained Windows34636944139 and both SUCCESS jobs. Old011 stays a9-only, CI failure and never-published history preserved. Followup transport read returned review; no additional scheduled read, resend, wait extension or heartbeat reactivation."
+    },
+    {
+      "review_id": "CHATGPT-REVIEW-20260912-013",
+      "review_kind": "game_production_release_approval",
+      "subject_sha": "6cd12ae888f26c9403fb504596f92f4d9a65b301",
+      "base_sha": "93c05c7c68576b28a126588d0716f0f56c015531",
+      "canon_version": "shared-canon-v1.1",
+      "feature_spec_version": "UDL-052-054-063-play-v1",
+      "spec_snapshot_sha": "67d52446047eafb6a6c32e38e8e7c9538aea88b4",
+      "spec_snapshot_kind": "git_blob:docs/UI_PLAY_SURFACE_20260912.md",
+      "scope": "Pages_only",
+      "db_change_set": [],
+      "edge_change_set": [],
+      "reviewer_thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
+      "decision": "HOLD",
+      "source": {
+        "kind": "chatgpt",
+        "thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
+        "message_id": "ce88c333-e4f7-4ca1-a71b-ab9aec58d4d2",
+        "request_message_id": "a3ce86c3-cfb9-4d1c-bfc3-4557a5ef6889",
+        "response_text": "## DECISION\n**HOLD**\n\n## SUBJECT_SHA\n`6cd12ae888f26c9403fb504596f92f4d9a65b301`\n\n## BLOCKERS\n**B1 — Windows gateが、両ブラウザーともFAILで終了しています。**\n\n今回取得した`34642709902`では、**本候補SHAのChrome／Edge両jobが、`Run Standard online browser test serially`で失敗**しています。生成物・契約試験の成功は確認できましたが、公開に必要な全ブラウザーテストの成功には達していません。提出時のIN_PROGRESSから状態が変わっています。\n\n**取得できたログの範囲では、失敗した個別テストとアサーションまでは特定できていません。** 製品の回帰、検証側の問題、実行環境の問題のどれかを推測で断定せず、原因が分かるまで公開を保留します。\n\n## NOTES\nレビュー対象は、BASE_SHA `93c05c7c68576b28a126588d0716f0f56c015531`からの本候補、**`shared-canon-v1.1`／`UDL-052-054-063-play-v1`／`Pages_only`／DB・Edge各`[]`**です。仕様blobは提出値`67d52446047eafb6a6c32e38e8e7c9538aea88b4`と一致しています。\n\n**4枠の独立表示・既存の色指定による送信・使用済み手札の位置保持という設計方針を変更する要求ではありません。** ローカル906/906・各22/22はCodexの実行報告として保持しますが、今回のCI失敗を打ち消す証拠にはしません。こちらではテストを再実行していません。\n\n次は、**失敗テスト名、期待値と実測値、最初の例外、局所再現の結果**を切り分け、必要な箇所だけ修正してください。既存テストを削除・緩和して通すのではなく、検証側の不備なら、その根拠を残して修正する扱いです。\n\n**公開済み`93c05c7`は維持し、この候補はまだmain／Pagesへ進めないでください。** 原因と再検証結果、変更した場合は新しい固定SHAと差分を再提出してください。文書整理や後続の結果・装飾改修を、新たな停止条件に追加する必要はありません。"
+      },
+      "blockers": [
+        "B1 both exact6cd Windows jobs failed online browser suite"
+      ],
+      "applies_to_current_candidate": false,
+      "received_at_utc": "2026-09-11T20:37:21Z",
+      "notes": "Actual full completed paired prompt equality. Reviewer did not locate detailed assertions; commander independently fetched logs and reproduced before revising. 6cd never published.320's remaining295px failure also retained; next revision requires fresh exact review."
     }
   ]
 }

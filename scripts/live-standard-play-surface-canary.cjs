@@ -27,7 +27,7 @@ const key = config.match(/publishableKey:\s*"([^"]+)"/)?.[1];
 assert.ok(url && key);
 const connectionKey = "fourColorMapGame.standard.online.v5.connection";
 const checks = [];
-const report = { subject: "UDL-052-054-063-play-v1", candidateSha, profilesCreated: 0, matchesCreated: 0,
+const report = { subject: "UDL-052-054-063-play-v1.2", candidateSha, profilesCreated: 0, matchesCreated: 0,
   cleanup: "NOT_NEEDED", physicalDevices: "NOT_RUN", liveOverlapSealExhaustion: "NOT_RUN_USE_FIXED_CANDIDATE_GATE",
   assetHashes: [], browserWidths: [], checks };
 let token, roomId, room, browserServer, context, failed = false, stage = "public assets";

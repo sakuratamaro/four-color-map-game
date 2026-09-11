@@ -239,6 +239,7 @@ test("ChatGPT review records require an exact subject and cannot imply productio
       assert.match(decision.subject_sha, /^[0-9a-f]{40}$/);
       assert.match(decision.spec_snapshot_sha, /^[0-9a-f]{40}$/);
       const bindings = {
+        "CHATGPT-REVIEW-20260912-013": ["6cd12ae888f26c9403fb504596f92f4d9a65b301", "93c05c7c68576b28a126588d0716f0f56c015531", "UDL-052-054-063-play-v1", "67d52446047eafb6a6c32e38e8e7c9538aea88b4", "Pages_only"],
         "CHATGPT-REVIEW-20260912-012": ["93c05c7c68576b28a126588d0716f0f56c015531", "a26ffd14a8f896d9d087dac032d8f079ece82f7d", "UDL-023-entrance-v1.1", "dd839a5424fc13ecd9d6b604023666b1996cbd76", "Pages_only"],
         "CHATGPT-REVIEW-20260912-011": ["a9b2ff984c448819483286eae5acfa91530fc5db", "a26ffd14a8f896d9d087dac032d8f079ece82f7d", "UDL-023-entrance-v1", "d5c0f6e8b6de875d844eaf9bd8c154e281472952", "Pages_only"],
         "CHATGPT-REVIEW-20260912-010": ["a26ffd14a8f896d9d087dac032d8f079ece82f7d", "a6c24f496338412a7cb4e933b0faba06cb28ccce", "UDL-048-memo-v1.1", "347b31327c14937530b019a4eb36b9a9e22d5a30", "Pages_only"],
