@@ -310,11 +310,13 @@ const COLOR_JA = { red: "赤", blue: "青", yellow: "黄", green: "緑" };
 const APP_TABS = new Set(["home", "battle", "quiz", "cards", "profile"]);
 let activeAppTab = APP_TABS.has(location.hash.slice(1)) ? location.hash.slice(1) : localStorage.getItem(APP_TAB_KEY) || "home";
 function alignQuizMemoEntry() {
+  $("quizMemoOn").scrollIntoView({ block: "start", behavior: "auto" });
   const navigation = document.querySelector(".app-tabs");
   const style = navigation && getComputedStyle(navigation);
-  const inset = style && ["sticky", "fixed"].includes(style.position) && style.top !== "auto"
-    ? navigation.getBoundingClientRect().height + (parseFloat(style.top) || 0) : 0;
-  $("quizMemoOn").scrollIntoView({ block: "start", behavior: "auto" });
+  const rect = navigation?.getBoundingClientRect();
+  // Fixed bottom tabs also have a computed top in px; only top-edge chrome obscures the entry.
+  const inset = style && ["sticky", "fixed"].includes(style.position) && rect.top <= innerHeight - rect.bottom
+    ? Math.max(0, rect.bottom) : 0;
   window.scrollBy({ top: -inset - 12, behavior: "auto" });
 }
 const quizMemo = createQuizMemo({ onViewportChange: alignQuizMemoEntry, onActiveChange(active) {

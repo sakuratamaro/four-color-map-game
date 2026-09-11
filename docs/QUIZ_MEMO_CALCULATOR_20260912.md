@@ -1,8 +1,8 @@
 # UDL-048: Level 5 scratch paper and calculator
 
-CANON_RECEIPT version=shared-canon-v1.1 base=f8713d7006da0619b9c356d53a472754833fb910 request=UDL-20260910-048 specs=AGENTS.md,docs/SHARED_CANON.md,docs/PROJECT_COMMAND_CENTER.md tests=tests/standard-quiz-scratch.test.cjs,tests/standard-online-browser.test.cjs
+CANON_RECEIPT version=shared-canon-v1.1 base=a6c24f496338412a7cb4e933b0faba06cb28ccce request=UDL-20260910-048 specs=AGENTS.md,docs/SHARED_CANON.md,docs/PROJECT_COMMAND_CENTER.md tests=tests/standard-quiz-scratch.test.cjs,tests/standard-online-browser.test.cjs
 
-Specification version: `UDL-048-memo-v1`.
+Specification version: `UDL-048-memo-v1.1`.
 Owner: existing Codex commander, task `01a07b56-616e-7733-9aae-90575659688e`.
 Worktree: `.codex-worktrees/quiz-memo-calculator-20260912`.
 Branch: `codex/quiz-memo-calculator-20260912`.
@@ -26,7 +26,7 @@ Required checks: pure parser/state negative cases; actual Chrome/Edge level elig
 
 Memo entry sits immediately above the question. Opening and active viewport rotation align that entry and question below any top-fixed navigation without rebuilding the option DOM. The bottom-right tool panel keeps the calculator collapsed by default; its sticky OFF control remains reachable when the panel scrolls. The scratch canvas explicitly overrides the existing board canvas background/border so it is actually transparent.
 
-Implementation is present; validation is in progress. No candidate release approval, Windows gate or publication is claimed yet. Goal completion requires those separate stages and public verification.
+The initial candidate a6c24f4 reached Pages with approval 009 and 36/36 functional public checks, but visual inspection found a portrait navigation offset defect. The bottom fixed tab bar must not count as top navigation, and the portrait calculator panel leaves space above it for the question. A native-input/portrait-to-landscape-to-portrait regression was added. This follow-up requires its own exact candidate review, Windows gate and public verification; the old approval is not reused.
 
 | Acceptance | Executable coverage |
 | --- | --- |

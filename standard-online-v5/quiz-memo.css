@@ -26,4 +26,4 @@
 .quiz-calculator-keys [data-calc-key="="] { background: #fce6ef; }
 .quiz-calculator-history { font-size: .8rem; max-height: 90px; overflow: auto; padding-left: 24px; overflow-wrap: anywhere; }
 .quiz-memo-tools :focus-visible { outline: 3px solid #137cbd; outline-offset: 2px; }
-@media (max-width: 480px) { .quiz-memo-tools { width: min(308px, calc(100vw - 16px)); padding: 10px; } }
+@media (max-width: 480px) { .quiz-memo-tools { width: min(308px, calc(100vw - 16px)); max-height: min(62dvh, calc(100dvh - 16px - env(safe-area-inset-top) - env(safe-area-inset-bottom))); padding: 10px; } }

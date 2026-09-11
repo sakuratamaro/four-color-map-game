@@ -131,6 +131,36 @@ test("UDL-048 memo ink, calculator, focus and same-question reload work without 
   }, { viewport: { width: 390, height: 844 }, deviceScaleFactor: 3, bodyTimeout: 45_000 });
 });
 
+test("UDL-048 portrait bottom navigation never offsets the memo question offscreen", { timeout: 120000 }, async () => {
+  await withPage("quizPhysics", async (page) => {
+    await startMemoQuiz(page);
+    const visibleQuestion = async () => {
+      const geometry = await page.evaluate(() => {
+        const question = document.querySelector("#quizQuestion").getBoundingClientRect();
+        const tools = document.querySelector("#quizMemoTools").getBoundingClientRect();
+        return { top: question.top, bottom: question.bottom, toolsTop: tools.top, height: innerHeight };
+      });
+      assert.ok(geometry.top >= 0 && geometry.bottom <= geometry.height, JSON.stringify(geometry));
+      if (await page.evaluate(() => innerWidth <= 480)) assert.ok(geometry.bottom <= geometry.toolsTop, "calculator must leave the portrait question visible");
+    };
+    await page.locator("#quizMemoOn").click();
+    await visibleQuestion();
+    await page.locator("#quizCalculatorPanel summary").click();
+    await page.locator("#quizCalculatorExpression").click();
+    await page.keyboard.type("(1234.56+2)*3");
+    await page.keyboard.press("Enter");
+    await visibleQuestion();
+    await page.setViewportSize({ width: 844, height: 390 });
+    await page.waitForTimeout(100);
+    await visibleQuestion();
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.waitForTimeout(100);
+    await visibleQuestion();
+    await page.locator("#quizMemoOff").click();
+    assert.equal(await page.locator("main").evaluate(node => node.inert), false);
+  }, { viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
+});
+
 test("UDL-048 failed answers and reload retry preserve scratch until the server acknowledges the next question", { timeout: 120000 }, async () => {
   await withPage("quizPhysics", async (page) => {
     await startMemoQuiz(page);
