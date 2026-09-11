@@ -4830,7 +4830,8 @@ test("actual Edge hands one submitted setup to the visible first-move guide with
       connection: rect(".connection-card"),
       tabs: rect(".app-tabs"),
       overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
-      actionOrder: Boolean(document.querySelector("#regionControls + #colorResponse + #actionStatus + #retryAction + .random-summary + #tacticalTrace")),
+      actionOrder: Boolean(document.querySelector("#playSurface > #regionControls + #colorResponse"))
+        && Boolean(document.querySelector("#playSurface + #actionStatus + #retryAction + .hand-heading + #skillControls + #skillTargetControls + #matchSetupDetails + #paletteHistoryPanel + #tacticalTrace")),
       playableHit: document.elementFromPoint(
         document.querySelector("#board").getBoundingClientRect().left + document.querySelector("#board").getBoundingClientRect().width * 10.5 / 12,
         document.querySelector("#board").getBoundingClientRect().top + document.querySelector("#board").getBoundingClientRect().height * 1.5 / 12,

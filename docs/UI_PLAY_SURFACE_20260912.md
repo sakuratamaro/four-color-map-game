@@ -1,6 +1,6 @@
 # UI diet — board, role palette and stable hand
 
-Version: UDL-052-054-063-play-v1
+Version: UDL-052-054-063-play-v1.1
 
 CANON_RECEIPT version=shared-canon-v1.1 base=93c05c7c68576b28a126588d0716f0f56c015531 request=UDL-20260910-052,UDL-20260910-054,UDL-20260912-063 specs=AGENTS.md,docs/SHARED_CANON.md,docs/PROJECT_COMMAND_CENTER.md,docs/UI_DIET_PREPARATION_20260912.md tests=tests/standard-play-surface-model.test.cjs,tests/standard-online-browser.test.cjs worktree=.codex-worktrees/ui-play-surface-20260912
 
@@ -23,6 +23,8 @@ Four role-labelled buttons are present throughout an active match; they are disa
 Fit the board and palette using actual fixed/sticky chrome dimensions, keeping top navigation distinct from bottom bars. Normal390x844,768x900,1280x900 must show the complete board and all four44px-or-larger color controls without occlusion or page overflow. The current turn guide is included when possible. A visible palette-change cause takes priority over duplicate turn prose; it stays adjacent to the board and is never folded or silently dismissed. Viewport fitting is presentation-only, coalesced in requestAnimationFrame, and must not choose cells, infer legal answers or move keyboard focus. Tab return is explicit navigation; resizing only follows a board already in view.
 
 Keep a minimum280px board on short screens, and give a visible scroll/portrait/zoom fallback instead of claiming impossible all-at-once fit. Existing twofold pan/keyboard zoom supports12-column boards; alpha.4 fine-cell zoom remains unchanged. Test normal viewports, landscape short-height fallback, a200-percent CSS-zoom proxy, palette-cause notice, CPU torn/coherent projections and voluntary surrender. CSS zoom is not physical-device acceptance.
+
+The first full Windows gate on6cd12ae was113/117 in both browsers, not releasable. Preserve the old normal390px board width>300 check, zoom/guide clearance, CPU public-commentary stable-hitbox check and LAB loan keyboard/payload test. Reserve notice space from resolved CSS top/height even while hidden, including safe-area inset; compact mobile guide typography and native scroll margin keep controls clear without hiding the guide or changing on notice arrival. Update only the first-move test's obsolete sibling selector to the adopted playSurface/hand/details structure; all its geometry/focus/action assertions remain. LAB loan cards retain their existing visible label and keyboard cancellation target. Review the successor SHA/spec anew; no6cd approval or wait-budget reset may authorize it.
 
 Own six-card loadout stays3x2 in authoritative category order, including disabled used cards. Description buttons are optional and44px-or-larger, including for used cards; activation still calls existing beginSkill directly. Loan cards span a separate following row. Preserve timing/category/debug/pending guards and no opponent hand inspection. Fold only match setup and public trace details after the hand; palette-change notice remains outside details.
 

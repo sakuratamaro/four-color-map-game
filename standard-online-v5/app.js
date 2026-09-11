@@ -3507,6 +3507,7 @@ function renderSkills(state, privateState) {
     const status = document.createElement("span"); status.className = "skill-card-status";
     status.textContent = `★${meta.rarity} · ${used ? "使用済み" : state.debugUnlimitedSkills ? "∞" : `×${count}`}`;
     node.append(name, status);
+    if (extra || skill === "legalRecolor") node.textContent = `${meta.name} ${used ? "使用済み" : state.debugUnlimitedSkills ? "∞" : `×${count}`}（★${meta.rarity}）`;
     node.setAttribute("aria-label", `${meta.name} ${used ? "使用済み" : state.debugUnlimitedSkills ? "∞" : `×${count}`}（★${meta.rarity}）`);
     node.dataset.skill = skill;
     const timingOkay = skill === "legalRecolor" ? state.phase === "WORK"
@@ -4769,7 +4770,16 @@ function isColorSealed(state, seat, color) {
 function battleViewportInsets() {
   // Reserve existing notice space before an announcement, so its arrival does
   // not change focus or move the board. Sticky top navigation is not a footer.
-  let top = 76, bottom = 12;
+  let top = 8, bottom = 12;
+  for (const node of [$("cpuCommentaryStage"), $("waitingOpponentNotice")]) {
+    if (!node) continue;
+    const style = getComputedStyle(node);
+    // These notices have a fixed CSS height even while hidden. Reserve it before
+    // arrival, including the resolved safe-area inset, without moving on arrival.
+    if (style.position === "fixed" && style.top !== "auto") {
+      top = Math.max(top, (parseFloat(style.top) || 0) + (parseFloat(style.height) || 0) + 8);
+    }
+  }
   for (const node of [$("connectionCard"), document.querySelector(".app-tabs")]) {
     if (!node || !node.getClientRects().length) continue;
     const style = getComputedStyle(node), height = node.getBoundingClientRect().height;

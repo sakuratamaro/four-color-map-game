@@ -41,6 +41,12 @@
 #playSurface .palette-impact-notice p { font-size: 12px; line-height: 1.45; }
 #playSurface .palette-impact-notice button { grid-column: auto; width: 58px; min-width: 44px; min-height: 44px; padding: 4px; font-size: 11px; }
 .palette-role button:focus-visible, .palette-role select:focus-visible, #skillControls button:focus-visible { outline: 3px solid #fde047; outline-offset: -3px; }
+#turnGuide, #toggleBoardZoom { scroll-margin-block-start: 80px; }
+@media (max-width: 520px) {
+  body[data-active-tab="battle"] #turnGuide { padding: 8px; }
+  #turnGuide strong { font-size: 16px; }
+  #turnGuide p { font-size: 12px; line-height: 1.35; }
+}
 @media (max-width: 390px) {
   #paletteControls, #skillControls { gap: 6px; }
   #playSurface .color-response { padding: 8px; }
