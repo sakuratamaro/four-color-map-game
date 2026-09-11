@@ -41,7 +41,7 @@
     }
   ],
   "coordination": {
-    "status": "udl059_local_verified_gate_in_progress",
+    "status": "udl059_windows_verified_waiting_for_exact_review",
     "latest_publication_report": {"kind":"publication_and_intake_report_not_review_request","destination_thread_id":"6aa229e7-e098-83ee-ac5e-d366a12653a4","artifact_sha":"9519431aaf56e2e35a123b021df9178f89ada653","send_tool_succeeded":true,"destination_message_id":"9a175c4b-6ab1-4236-b5b6-1d47fbf84ad4","delivery_readback":"FULL_REPORT_AND_PAIRED_ACKNOWLEDGEMENT_VERIFIED","response_message_id":"3709f277-5a0b-4fb1-be6e-58375acd6c0f","delivery_checks":1,"review_wait_started":false,"note":"Previously pending report readback resolved at the next user-triggered normal task. No resend. Astra acknowledged palette publication and intake, then gave UDL-059 implementation direction; no new release approval."},
     "latest_implementation_instruction": {"source_kind":"chatgpt_implementation_direction_not_release_approval","thread_id":"6aa229e7-e098-83ee-ac5e-d366a12653a4","request_message_id":"9a175c4b-6ab1-4236-b5b6-1d47fbf84ad4","response_message_id":"3709f277-5a0b-4fb1-be6e-58375acd6c0f","url":"https://chatgpt.com/c/6aa229e7-e098-83ee-ac5e-d366a12653a4","readback":"FULL_PAIRED_RESPONSE_COMPLETED_IDLE","response_text":"**受領しました。固定成果物 `9519431aaf56e2e35a123b021df9178f89ada653` の公開証拠と、v4〜v6の受領記録を確認しました。UDL-052の完了済みレビューは再開せず、次はUDL-059へ進めてください。**\n\n## 完了したものと、残っているもの\n\n**UDL-052の属性識別スライスは、公開・公開後確認まで完了したものとして扱います。** `ce6fab5`のPages配備、配信ファイルのbyte一致、公開Chromeでの30/30 PASSが記録されています。30/30はCodexの実測報告として受領したもので、こちらで再実行したものではありません。位置固定・4色方式・UDL-054・物理端末確認は、引き続き別の未完項目です。\n\n**頭脳ZIPのv4〜v6も、「こちらで資料化しただけ」から「Codexが受領し、既存UDLへ対応付けた」段階へ進みました。** CPU関連を051へまとめ、瞬間整列・二分説明・角膨張は既存項目へ、新しい履歴・オーロラ・報酬券レベル引継ぎだけを057〜059へ分けた受領記録を確認しています。これらの受領完了を、ゲームへの実装完了とは混同しません。\n\nv4の元message ID補完は通常の受付作業として残し、今回の独立改修の停止条件にはしません。\n\n## 次はUDL-059：クイズ報酬からの券レベル引継ぎ\n\n受領資料にある**「CPU報酬導線は保存報酬の券レベルを渡しているが、`quizGoGacha`は無引数」**という切り分けに沿って、不足したクイズ入口を最小差分で修正する方針でよいです。既存CPU導線を作り直す必要はありません。\n\n今回の受入条件は、次に絞ります。\n\n| 場面 | 必要な動作 |\n|---|---|\n| 前回Lv.5を選択後、確定したLv.2報酬から移動 | **Lv.2が選択済み**。クイズ難易度から推測せず、保存された報酬の`ticketLevel`を使う |\n| 移動後の同期・再描画 | 指定レベルが初期値へ戻らない。その後の手動選択を、同じ報酬指定で繰り返し上書きしない |\n| 対象券の残数が0 | そのレベルの残数0を表示し、別レベルへ勝手に切り替えない |\n| 未決着のガチャが存在 | **既存のactionId・券レベル・枚数を保持**し、報酬リンクの指定で再送内容を差し替えない |\n\n**遷移だけで抽選・券消費を起こさず、選択表示・排出率表示・抽選時に渡す券レベルが一致すること**を確認してください。通常のタブ移動、既存CPU報酬導線、報酬量・排出率は非変更範囲です。\n\n**この報告への承認待ちは不要です。** UDL-059を通常司令塔で実装・検証し、新候補ができた時点で固定SHA・差分・試験結果を提示してください。文書整理やCPU強化の完成待ちにはせず、候補レビューと必要なゲートを通した便から順次公開する方針を維持します。","request_ids":["UDL-20260911-059"],"status":"ROUTED_TO_EXISTING_COMMANDER"},
     "deferred_outbound": {
@@ -141,12 +141,35 @@
       "public_asset_bytes": "index.html/app.js/standard-online-skill-intents.js equal exact candidate Git blobs",
       "evidence": "docs/PALETTE_ROLE_RELEASE_20260911.md"
     },
-    "active_slice": {"id":"UDL-20260911-059","owner_thread_id":"01a07b56-616e-7733-9aae-90575659688e","branch":"codex/reward-gacha-level-20260911","base_sha":"ce6fab535235d7aff90d0bc846bbfb648c9a56e4","state":"LOCAL_VERIFIED_GATE_IN_PROGRESS","spec":"docs/REWARD_GACHA_LEVEL_20260911.md","spec_version":"UDL-059-quiz-v1","candidate_sha":"f8713d7006da0619b9c356d53a472754833fb910","review_status":"NOT_SUBMITTED","instruction_message_id":"3709f277-5a0b-4fb1-be6e-58375acd6c0f","non_change_scope":"Pages-only missing quiz entry. Preserve CPU reward route, draw retry identity, reward amounts and odds. DB/Edge change sets [].","spec_snapshot_sha":"d548792499924e84709957750dabdd5106d9f99a","local_tests":"847/847 clean nonbrowser; actual local Chrome/Edge focused 5/5 each; skip 0","windows_run":"34559185018","windows_status":"IN_PROGRESS","review_packet":"docs/ASTRA_REWARD_GACHA_REPORT_20260911.md","public_gameplay":"NOT_RUN","physical_devices":"NOT_RUN"},
+    "active_slice": {"id":"UDL-20260911-059","owner_thread_id":"01a07b56-616e-7733-9aae-90575659688e","branch":"codex/reward-gacha-level-20260911","base_sha":"ce6fab535235d7aff90d0bc846bbfb648c9a56e4","state":"WINDOWS_VERIFIED_AWAITING_EXACT_REVIEW","spec":"docs/REWARD_GACHA_LEVEL_20260911.md","spec_version":"UDL-059-quiz-v1","candidate_sha":"f8713d7006da0619b9c356d53a472754833fb910","review_status":"PENDING","instruction_message_id":"3709f277-5a0b-4fb1-be6e-58375acd6c0f","non_change_scope":"Pages-only missing quiz entry. Preserve CPU reward route, draw retry identity, reward amounts and odds. DB/Edge change sets [].","spec_snapshot_sha":"d548792499924e84709957750dabdd5106d9f99a","local_tests":"847/847 clean nonbrowser; actual local Chrome/Edge focused 5/5 each; skip 0","windows_run":"34559185018","windows_status":"SUCCESS","review_packet":"docs/ASTRA_REWARD_GACHA_REPORT_20260911.md","public_gameplay":"NOT_RUN","physical_devices":"NOT_RUN","review_requested_at_utc":"2026-09-11T03:47:13Z","review_delivery_checks":2,"review_delivery_note":"Second bounded transport read confirmed the exact new message ID and full prompt equality. Thread active, no complete response yet.","review_source_artifact_sha":"c86c280d1b5756c538b66009b0b84d07d3ee93c9","review_request_message_id":"0e59ad44-7ce7-440b-ac6f-11d325bd1e68","handoff_status":"AWAITING_REVIEW_RECEPTION_THEN_NORMAL_COMMANDER_RELEASE"},
     "automation_id": "automation",
-    "automation_status_at_recording": "PAUSED",
-    "automation_readback_updated_at": 1789082740632,
-    "automation_pause_reason": "Exact palette candidate APPROVE_RELEASE received, saved, and routed; no eligible review wait remains.",
+    "automation_status_at_recording": "ACTIVE",
+    "automation_readback_updated_at": 1789098810114,
+    "automation_prompt_readback_equal": true,
+    "automation_pause_reason": null,
+    "automation_active_reason": "Only the delivered UDL-059 exact-candidate review: next 04:10:05Z, then 04:30:05Z / 05:30:05Z, deadline 05:50:05Z. No model polling in this normal turn.",
     "completed_review_waits": [
+      {
+        "root_request_message_id": "8464f659-ad62-4c09-83d9-44e1cc91316b",
+        "subject_sha": "ce6fab535235d7aff90d0bc846bbfb648c9a56e4",
+        "started_at_utc": "2026-09-10T22:57:14Z",
+        "expires_at_utc": "2026-09-11T00:57:14.000Z",
+        "automatic_checks": 1,
+        "max_automatic_checks": 3,
+        "offset_minutes": [
+          20,
+          40,
+          100
+        ],
+        "next_check_utc": null,
+        "max_age_minutes": 120,
+        "reset_on_candidate_revision": false,
+        "reset_on_restart_or_unrelated_message": false,
+        "confirmed_delivery_reminders": 0,
+        "status": "review_received_closed",
+        "response_message_id": "a5e21358-7545-41cd-8c57-0f4d1b2fdd4b",
+        "closed_at_utc": "2026-09-10T23:25:35Z"
+      },
       {
         "root_request_message_id": "85de07dc-a8cd-4f35-921d-2f682d224a5c",
         "subject_sha": "5c03e6c2d0e94c843776ea7eae0d7bbe2917a174",
@@ -175,27 +198,26 @@
       }
     ],
     "wait_budget": {
-      "root_request_message_id": "8464f659-ad62-4c09-83d9-44e1cc91316b",
-      "subject_sha": "ce6fab535235d7aff90d0bc846bbfb648c9a56e4",
-      "started_at_utc": "2026-09-10T22:57:14Z",
-      "expires_at_utc": "2026-09-11T00:57:14.000Z",
-      "automatic_checks": 1,
+      "root_request_message_id": "0e59ad44-7ce7-440b-ac6f-11d325bd1e68",
+      "subject_sha": "f8713d7006da0619b9c356d53a472754833fb910",
+      "started_at_utc": "2026-09-11T03:50:05Z",
+      "expires_at_utc": "2026-09-11T05:50:05Z",
+      "automatic_checks": 0,
       "max_automatic_checks": 3,
       "offset_minutes": [
         20,
         40,
         100
       ],
-      "next_check_utc": null,
+      "next_check_utc": "2026-09-11T04:10:05Z",
       "max_age_minutes": 120,
       "reset_on_candidate_revision": false,
       "reset_on_restart_or_unrelated_message": false,
       "confirmed_delivery_reminders": 0,
-      "status": "review_received_closed",
-      "response_message_id": "a5e21358-7545-41cd-8c57-0f4d1b2fdd4b",
-      "closed_at_utc": "2026-09-10T23:25:35Z"
+      "status": "review_pending",
+      "start_note": "Conservative timestamp at the beginning of the bounded delivery-confirmation read; no extension while recording or updating automation."
     },
-    "pending_review_subject": null,
+    "pending_review_subject": {"subject_sha":"f8713d7006da0619b9c356d53a472754833fb910","base_sha":"ce6fab535235d7aff90d0bc846bbfb648c9a56e4","canon_version":"shared-canon-v1.1","feature_spec_version":"UDL-059-quiz-v1","spec_snapshot_sha":"d548792499924e84709957750dabdd5106d9f99a","spec_snapshot_kind":"git_blob:docs/REWARD_GACHA_LEVEL_20260911.md","scope":"Pages_only","db_change_set":[],"edge_change_set":[]},
     "documentation_test_followup": {
       "path": "tests/governance-shared-canon.test.cjs:97",
       "observation": "The saved-review fixture currently fixes every game approval to UDL-055-v1 and Pages-only game bugfix; the genuine new review is UDL-052-roles-v1 / Pages_only.",
@@ -204,11 +226,11 @@
       "boundary": "Governance branch fixture maintenance is separate from ce6fab5 product tests/Windows evidence and must not block this independently approved game slice."
     },
     "initial_interval_minutes": 20,
-    "pending_subject_sha": null,
-    "pending_scope": null,
-    "pending_delivery_status": "delivery_and_complete_response_verified",
-    "last_confirmed_sent_message_id": "8464f659-ad62-4c09-83d9-44e1cc91316b",
-    "last_sent_message_id": "8464f659-ad62-4c09-83d9-44e1cc91316b",
+    "pending_subject_sha": "f8713d7006da0619b9c356d53a472754833fb910",
+    "pending_scope": "Pages_only",
+    "pending_delivery_status": "delivery_verified_response_pending",
+    "last_confirmed_sent_message_id": "0e59ad44-7ce7-440b-ac6f-11d325bd1e68",
+    "last_sent_message_id": "0e59ad44-7ce7-440b-ac6f-11d325bd1e68",
     "self_sent_message_ids": [
       "ef6f161d-f2b9-40c0-ab06-f6eacf4c4d38",
       "cefaccf8-2648-4d63-b7fe-5a4a78023ec2",
@@ -217,9 +239,10 @@
       "00d476cf-0f55-4ffb-b55f-5a3777322ecc",
       "0e2ea02e-abfb-4d81-9898-038c62b32897",
       "8464f659-ad62-4c09-83d9-44e1cc91316b",
-      "9a175c4b-6ab1-4236-b5b6-1d47fbf84ad4"
+      "9a175c4b-6ab1-4236-b5b6-1d47fbf84ad4",
+      "0e59ad44-7ce7-440b-ac6f-11d325bd1e68"
     ],
-    "sent_at_utc": "2026-09-10T22:56:03.518Z",
+    "sent_at_utc": "2026-09-11T03:47:13Z",
     "last_check_utc": "2026-09-10T23:25:35Z",
     "unchanged_checks": 0,
     "reminder_count": 0,

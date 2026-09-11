@@ -35,9 +35,30 @@ test("palette public receipt keeps live evidence and unfinished layout acceptanc
   assert.equal(done.state, "PUBLIC_VERIFIED_ATTRIBUTE_IDENTIFICATION_ONLY");
   assert.equal(done.pages_run, "34554265788");
   assert.equal(done.physical_devices, "NOT_RUN");
-  assert.equal(log.coordination.automation_status_at_recording, "PAUSED");
+  const wait = [...log.coordination.completed_review_waits, log.coordination.wait_budget]
+    .find(row => row.subject_sha === done.candidate_sha);
+  assert.equal(wait.status, "review_received_closed", "a later review must not reopen the palette wait");
+  assert.equal(wait.response_message_id, done.review_response_message_id);
   assert.match(read(done.evidence), /30\/30 PASS/);
   assert.match(read(done.evidence), /UDL-054 remain unfinished/);
+});
+
+test("an active review wait stays bound to the delivered current candidate, not an earlier completed slice", () => {
+  const { coordination: c } = JSON.parse(read("docs/CHATGPT_REVIEW_DECISIONS.json"));
+  if (c.automation_status_at_recording !== "ACTIVE") return;
+  assert.equal(c.wait_budget.status, "review_pending");
+  assert.equal(c.pending_delivery_status, "delivery_verified_response_pending");
+  assert.ok(c.self_sent_message_ids.includes(c.wait_budget.root_request_message_id));
+  assert.equal(c.last_confirmed_sent_message_id, c.wait_budget.root_request_message_id);
+  assert.equal(c.pending_subject_sha, c.active_slice.candidate_sha);
+  assert.equal(c.wait_budget.subject_sha, c.active_slice.candidate_sha);
+  assert.equal(c.pending_review_subject.subject_sha, c.active_slice.candidate_sha);
+  assert.equal(c.pending_review_subject.base_sha, c.active_slice.base_sha);
+  assert.equal(c.pending_review_subject.spec_snapshot_sha, c.active_slice.spec_snapshot_sha);
+  assert.equal(c.pending_review_subject.feature_spec_version, c.active_slice.spec_version);
+  assert.equal(c.pending_review_subject.scope, c.pending_scope);
+  assert.equal(c.automation_prompt_readback_equal, true);
+  assert.equal(c.completed_review_waits.some(row => row.root_request_message_id === c.wait_budget.root_request_message_id), false);
 });
 
 test("shared canon entrypoint routes to the existing authorities", () => {

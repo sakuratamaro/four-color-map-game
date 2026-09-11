@@ -34,3 +34,15 @@ Existing pending-draw precedence is deliberate: an unresolved draw retains its d
 The new public canary script is syntax-checked only at this point. It requires --confirm-live and an exact candidate, compares delivered bytes before creating one new profile, then uses one ordinary ten-question quiz and one explicit draw. No matches, existing-player mutation, response injection or deletion. Public behavior and physical devices are NOT_RUN until separately executed and recorded; mock browser fixtures are not live evidence.
 
 The prior palette role slice remains public/completed. Fixed-position/four-color layout, UDL-054, CPU changes, other new requests and physical acceptance remain separate unfinished work. This candidate does not claim them.
+
+## Gate completion and delivery receipt
+
+At 2026-09-11 03:50 UTC, GitHub reported Windows run 34559185018 completed/success for the exact f8713d7 candidate, Chrome job 103138207048 and Edge job 103138206844 both success. Run updated_at was 03:48:58Z. No rerun or workflow change was needed.
+
+The review was sent once at 03:47:13Z while that gate was running. The second bounded transport read confirmed new message 0e59ad44-7ce7-440b-ac6f-11d325bd1e68 and full prompt equality. ChatGPT was still active with no complete response; this is delivery, not approval. No reminder was sent.
+
+The existing heartbeat alone is ACTIVE, API/config readback updated_at=1789098810114 and full prompt equality confirmed. Conservative confirmation-read start 03:50:05Z fixes checks at 04:10:05Z / 04:30:05Z / 05:30:05Z, maximum three and deadline 05:50:05Z, no reset. Receipt/queue only, then normal commander handles an exact review under UDL-056. Prior completed waits are preserved. Main remains ce6fab5; the candidate is not yet publicly released.
+
+Public-canary syntax and missing-opt-in exit-2 guard passed without network writes. Live behavior and physical devices remain NOT_RUN.
+
+Post-receipt governance/reconciliation: 18/18 PASS, skip 0. The old palette test incorrectly required the global automation to stay PAUSED forever; it now checks the closed palette wait and response identity, while a separate test binds any active wait to the delivered current candidate. This preserves the historical pause evidence and does not alter the product candidate, Windows gate or approval requirements.
