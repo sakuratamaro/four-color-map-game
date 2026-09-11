@@ -88,6 +88,9 @@ const readScratch = () => page.evaluate(k => JSON.parse(sessionStorage.getItem(k
     await page.goto(`${publicPage}#battle`, { waitUntil: "domcontentloaded", timeout: 30_000 });
     await page.locator("#connectionBadge.good").waitFor();
     await page.waitForFunction(k => Boolean(JSON.parse(localStorage.getItem(k) || "null")), profileKey);
+    // hydrateProfileRow persists before the active-room recovery await; the
+    // authenticated badge/storage alone is not the completed boot render.
+    await page.waitForFunction(() => !document.getElementById("quizPanel").classList.contains("hidden"));
     await page.locator("#lobby").waitFor({ state: "visible" });
     check("returning profile editor hidden on battle", await page.locator("#profileCard").isHidden());
     for (const viewport of [{ width: 390, height: 844 }, { width: 768, height: 900 }, { width: 1280, height: 900 }]) {
@@ -111,15 +114,20 @@ const readScratch = () => page.evaluate(k => JSON.parse(sessionStorage.getItem(k
     await page.locator("#choosePublicBattle").click();
     check("public route replaces friend controls", await page.locator("#friendBattlePanel").isHidden() && await page.locator("#matchmakingPanel").isVisible());
     check("optional wait-only controls collapsed", !(await page.locator("#publicWaitingOptions").evaluate(el => el.open)));
+    stage = "public CPU roster loading and return";
     await page.locator("#startStandardCpuLobby").click();
     await page.locator("#cpuRosterDialog[open]").waitFor();
+    await page.locator("#cpuRosterGrid .cpu-character-card").first().waitFor();
     check("CPU route shows ten actual roster choices", await page.locator("#cpuRosterGrid .cpu-character-card").count() === 10);
     await page.keyboard.press("Escape");
+    await page.waitForFunction(() => document.activeElement?.id === "startStandardCpuLobby");
     check("CPU close restores focus without starting match", await page.evaluate(() => document.activeElement?.id === "startStandardCpuLobby"));
+    stage = "public tab navigation and reload";
     await page.getByRole("button", { name: "マイページ", exact: true }).click();
     check("profile editor accessible on My Page", await page.locator("#profileCard").isVisible());
     await page.getByRole("button", { name: "対戦", exact: true }).click();
     await page.reload({ waitUntil: "domcontentloaded" });
+    await page.waitForFunction(() => !document.getElementById("quizPanel").classList.contains("hidden"));
     await page.locator("#lobby").waitFor({ state: "visible" });
     check("reload starts with collapsed routes", await page.locator("#friendBattlePanel").isHidden() && await page.locator("#matchmakingPanel").isHidden());
     check("no normal Local or Quick links", await page.locator('a[href*="solo-v5"], a[href*="standard-v5"]').count() === 0);
@@ -132,6 +140,7 @@ const readScratch = () => page.evaluate(k => JSON.parse(sessionStorage.getItem(k
   } catch (error) {
     failed = true; report.failureStage = stage; report.errorKind = error?.name || "Error"; report.errorCode = error?.code || null;
     if (error?.code === "ERR_ASSERTION") report.failedCheck = error.message;
+    if (page && reportPath) await page.screenshot({ path: reportPath + ".failure.png" }).catch(() => {});
     console.error(`FAIL ${stage}`);
   } finally {
     try { if (context) await bounded("context-close", context.close(), 10_000); } catch { failed = true; report.browserCleanup = "CONTEXT_CLOSE_FAILED"; }

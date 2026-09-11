@@ -1,5 +1,9 @@
 # Standard公開候補 証拠台帳
 
+## 2026-09-12 UDL023 対戦入口の整理
+
+PUBLIC_VERIFIED `93c05c7c68576b28a126588d0716f0f56c015531`。実Astra承認012、Windows34636944139 Chrome/Edge成功、fresh main a26からforceなしで公開、同SHA Pages34638574408 SUCCESS。3assets厳密byte一致をprofile作成前に確認、公開preflight PASS。実公開Chrome28/28（390/768/1280、route・CPU一覧・keyboard・reload）、390/1280実画像目視PASS、物理NOT_RUN。実募集/検索write・対局・quiz・gacha0。最終1件＋初期harness失敗2件で試験profile計3、削除なし。旧a9はCI失敗で未公開、012へ承認取り直し済み。全試行・hash・限界は `docs/UI_ENTRANCE_RELEASE_20260912.md` と `docs/UI_ENTRANCE_LIVE_20260912.json`。UI目標は継続し、次便052/054/063へ進む。レビュー待機は閉じ、既存heartbeat PAUSED。
+
 ## 2026-09-11 UDL-059 クイズ報酬券レベルの引継ぎ
 
 実Astra承認008（response bbc180c1-1cdb-4754-b53b-71eec1e11895）、候補/本番main `f8713d7006da0619b9c356d53a472754833fb910`、Windows34559185018 SUCCESS、main再照合・通常push後にPages34562271949 SUCCESS。仕様UDL-059-quiz-v1/blob d548792499924e84709957750dabdd5106d9f99a、Pages_only、DB/Edge各[]。公開HTML/app v20260911-27は候補Git blobと全byte一致、candidate preflight ok:true。

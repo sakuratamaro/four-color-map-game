@@ -1,0 +1,264 @@
+{
+  "attempts": [
+    {
+      "subject": "UDL-20260907-023",
+      "candidateSha": "93c05c7c68576b28a126588d0716f0f56c015531",
+      "profilesCreated": 1,
+      "quizzesStarted": 0,
+      "quizzesCompleted": 0,
+      "matchesCreated": 0,
+      "explicitDraws": 0,
+      "physicalDevices": "NOT_RUN",
+      "faultInjection": "NONE",
+      "assetHashes": [
+        {
+          "file": "index.html",
+          "sha256": "77faa40d5c862f9b48eecd81082f331850cd8b2efbcff2deeaf1fcedef234c7e"
+        },
+        {
+          "file": "app.js",
+          "sha256": "b77f1d4c4205043ccb4aeb1308be662bcb74887deee0e0968234c18135344ab9"
+        },
+        {
+          "file": "ui-diet.css",
+          "sha256": "2b674aa02db0864821ff932de0793cac89ced8e1b11225b2034e0e317e2a2a6c"
+        }
+      ],
+      "checks": [
+        "index.html: HTTP 200",
+        "index.html: exact candidate bytes",
+        "app.js: HTTP 200",
+        "app.js: exact candidate bytes",
+        "ui-diet.css: HTTP 200",
+        "ui-diet.css: exact candidate bytes",
+        "new anonymous test session",
+        "new test profile persisted"
+      ],
+      "failureStage": "public profile hydration",
+      "errorKind": "AssertionError",
+      "errorCode": "ERR_ASSERTION",
+      "failedCheck": "returning profile editor hidden on battle",
+      "cleanup": "NO_MATCH_CREATED_NO_DATA_DELETED",
+      "operationCounts": {
+        "quiz-start": 0,
+        "quiz-answer": 0,
+        "quiz-finish": 0,
+        "gacha": 0
+      },
+      "operationResponses": [],
+      "ok": false,
+      "completedAt": "2026-09-11T19:25:22.116Z"
+    },
+    {
+      "subject": "UDL-20260907-023",
+      "candidateSha": "93c05c7c68576b28a126588d0716f0f56c015531",
+      "profilesCreated": 1,
+      "quizzesStarted": 0,
+      "quizzesCompleted": 0,
+      "matchesCreated": 0,
+      "explicitDraws": 0,
+      "physicalDevices": "NOT_RUN",
+      "faultInjection": "NONE",
+      "assetHashes": [
+        {
+          "file": "index.html",
+          "sha256": "77faa40d5c862f9b48eecd81082f331850cd8b2efbcff2deeaf1fcedef234c7e"
+        },
+        {
+          "file": "app.js",
+          "sha256": "b77f1d4c4205043ccb4aeb1308be662bcb74887deee0e0968234c18135344ab9"
+        },
+        {
+          "file": "ui-diet.css",
+          "sha256": "2b674aa02db0864821ff932de0793cac89ced8e1b11225b2034e0e317e2a2a6c"
+        }
+      ],
+      "checks": [
+        "index.html: HTTP 200",
+        "index.html: exact candidate bytes",
+        "app.js: HTTP 200",
+        "app.js: exact candidate bytes",
+        "ui-diet.css: HTTP 200",
+        "ui-diet.css: exact candidate bytes",
+        "new anonymous test session",
+        "new test profile persisted",
+        "returning profile editor hidden on battle",
+        "390px three choices visible and hit targets >=44px",
+        "390px no horizontal overflow",
+        "768px three choices visible and hit targets >=44px",
+        "768px no horizontal overflow",
+        "1280px three choices visible and hit targets >=44px",
+        "1280px no horizontal overflow",
+        "unselected human routes hidden",
+        "keyboard opens friend route only",
+        "public route replaces friend controls",
+        "optional wait-only controls collapsed"
+      ],
+      "failureStage": "public profile hydration",
+      "errorKind": "AssertionError",
+      "errorCode": "ERR_ASSERTION",
+      "failedCheck": "CPU route shows ten actual roster choices",
+      "cleanup": "NO_MATCH_CREATED_NO_DATA_DELETED",
+      "operationCounts": {
+        "quiz-start": 0,
+        "quiz-answer": 0,
+        "quiz-finish": 0,
+        "gacha": 0
+      },
+      "operationResponses": [
+        {
+          "operation": "cosmetic-catalog",
+          "status": 200
+        }
+      ],
+      "ok": false,
+      "completedAt": "2026-09-11T19:26:46.678Z"
+    },
+    {
+      "subject": "UDL-20260907-023",
+      "candidateSha": "93c05c7c68576b28a126588d0716f0f56c015531",
+      "profilesCreated": 1,
+      "quizzesStarted": 0,
+      "quizzesCompleted": 0,
+      "matchesCreated": 0,
+      "explicitDraws": 0,
+      "physicalDevices": "NOT_RUN",
+      "faultInjection": "NONE",
+      "assetHashes": [
+        {
+          "file": "index.html",
+          "sha256": "77faa40d5c862f9b48eecd81082f331850cd8b2efbcff2deeaf1fcedef234c7e"
+        },
+        {
+          "file": "app.js",
+          "sha256": "b77f1d4c4205043ccb4aeb1308be662bcb74887deee0e0968234c18135344ab9"
+        },
+        {
+          "file": "ui-diet.css",
+          "sha256": "2b674aa02db0864821ff932de0793cac89ced8e1b11225b2034e0e317e2a2a6c"
+        }
+      ],
+      "checks": [
+        "index.html: HTTP 200",
+        "index.html: exact candidate bytes",
+        "app.js: HTTP 200",
+        "app.js: exact candidate bytes",
+        "ui-diet.css: HTTP 200",
+        "ui-diet.css: exact candidate bytes",
+        "new anonymous test session",
+        "new test profile persisted",
+        "returning profile editor hidden on battle",
+        "390px three choices visible and hit targets >=44px",
+        "390px no horizontal overflow",
+        "768px three choices visible and hit targets >=44px",
+        "768px no horizontal overflow",
+        "1280px three choices visible and hit targets >=44px",
+        "1280px no horizontal overflow",
+        "unselected human routes hidden",
+        "keyboard opens friend route only",
+        "public route replaces friend controls",
+        "optional wait-only controls collapsed",
+        "CPU route shows ten actual roster choices",
+        "CPU close restores focus without starting match",
+        "profile editor accessible on My Page",
+        "reload starts with collapsed routes",
+        "no normal Local or Quick links",
+        "route selections allocate no room or matchmaking RPC",
+        "no game or reward mutation from navigation",
+        "no unsuccessful Edge API response",
+        "console and page errors zero"
+      ],
+      "liveGameplay": "REAL_PUBLIC_NAVIGATION_CPU_ROSTER_NO_GAMEPLAY_MUTATION",
+      "livePublicMatchmaking": "NOT_RUN_TO_AVOID_MATCHING_REAL_PLAYERS; matched/none/lost/cancel verified in fixtures",
+      "cleanup": "NO_MATCH_CREATED_NO_DATA_DELETED",
+      "operationCounts": {
+        "quiz-start": 0,
+        "quiz-answer": 0,
+        "quiz-finish": 0,
+        "gacha": 0
+      },
+      "operationResponses": [
+        {
+          "operation": "cosmetic-catalog",
+          "status": 200
+        },
+        {
+          "operation": "cpu-roster",
+          "status": 200
+        }
+      ],
+      "ok": true,
+      "completedAt": "2026-09-11T19:27:39.782Z"
+    }
+  ],
+  "public_preflight": {
+    "ok": true,
+    "expectedPhase": "candidate",
+    "publicPage": {
+      "status": 200,
+      "title": "Four Color Map Game v5.0 Standard Online",
+      "hasPublicMatchmaking": true,
+      "hasCpuRoster": true,
+      "hasCosmetics": true,
+      "hasPregameAbandon": true,
+      "hasActiveRoomRecovery": true,
+      "hasLegalRecolorLab": true,
+      "hasWaitingOpponentNotice": true,
+      "hasAlpha3SkillCategoryWindow": true,
+      "hasAlpha4ColoredCornerBloom": true,
+      "hasRegistryRarityUi": true,
+      "hasCpuPortraits": true,
+      "hasWholeButtonQuizPhysics": true,
+      "hasBoardFirstCandidateGuidance": true,
+      "hasPerCellContactFeedback": true,
+      "hasApprovedGachaOddsUi": true,
+      "hasApprovedEdgeGachaOdds": true,
+      "hasDeferredCurseLocalBundle": true,
+      "hasRegionSplitDirectTarget": true,
+      "hasCompactCpuRecords": true,
+      "hasQuizAccuracyRecords": true,
+      "hasCpuSealTimingPolicy": true,
+      "hasMatchRewardEconomy": true,
+      "hasCandidateAssetGeneration": true
+    },
+    "database": {
+      "snapshotV1": "protected",
+      "snapshotV2": "protected",
+      "matchmaking": "protected",
+      "matchmakingAvailability": "protected",
+      "pregameAbandon": "protected",
+      "activeRoom": "protected",
+      "setupLoadV3": "protected",
+      "initializeRoomV3": "protected"
+    }
+  },
+  "windows": {
+    "run": 34636944139,
+    "jobs": [
+      {
+        "id": 103387028406,
+        "name": "Standard online browser (edge)",
+        "conclusion": "success"
+      },
+      {
+        "id": 103387028683,
+        "name": "Standard online browser (chrome)",
+        "conclusion": "success"
+      }
+    ]
+  },
+  "pages": {
+    "run": 34638574408,
+    "sha": "93c05c7c68576b28a126588d0716f0f56c015531",
+    "conclusion": "success"
+  },
+  "actual_visual_inspection": {
+    "viewports": [
+      390,
+      1280
+    ],
+    "state": "PASS",
+    "source": "tool view_image of real public screenshots",
+    "physical_devices": "NOT_RUN"
+  }
+}
