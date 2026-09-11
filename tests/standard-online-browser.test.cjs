@@ -54,6 +54,32 @@ async function choosePublicWaiting(page) {
   await page.locator("#recruitOpponent").click();
 }
 
+test("UDL-023 compact quiz layout keeps every focused option clear of existing notices", { timeout: 150000 }, async () => {
+  for (const viewport of [{ width: 390, height: 844 }, { width: 900, height: 800 }, { width: 1280, height: 900 }]) {
+    await withPage("lobby", async (page) => {
+      await startMemoQuiz(page, "1");
+      await page.evaluate(() => {
+        globalThis.__standardOnlineRuntime.matchmakingAvailable = true;
+        document.dispatchEvent(new Event("visibilitychange"));
+      });
+      await page.locator("#waitingOpponentNotice:not(.hidden)").waitFor();
+      const options = page.locator("#quizOptions button[data-quiz-option]");
+      for (let index = 0; index < await options.count(); index++) {
+        await options.nth(index).focus();
+        await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+        const evidence = await options.nth(index).evaluate(el => {
+          const r = el.getBoundingClientRect(), notice = document.querySelector("#waitingOpponentNotice").getBoundingClientRect();
+          return { overlap: !(notice.right <= r.left || notice.left >= r.right || notice.bottom <= r.top || notice.top >= r.bottom), focused: document.activeElement === el };
+        });
+        assert.equal(evidence.overlap, false, JSON.stringify({ viewport, index, evidence }));
+        assert.equal(evidence.focused, true);
+      }
+      assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter(c => c.body?.operation === "quiz-answer").length), 0);
+      assert.equal(await page.locator("#waitingOpponentAnnouncement").textContent(), "");
+    }, { viewport });
+  }
+});
+
 test("UDL-023 explicit public search waits only after a successful empty result", { timeout: 120000 }, async () => {
   await withPage("lobby", async (page) => {
     await page.locator("#choosePublicBattle").click();
