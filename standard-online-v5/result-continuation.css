@@ -1,0 +1,24 @@
+/* The result and its next steps stay together; actions retain native buttons. */
+.result-next-actions{margin-top:16px;padding-top:12px;border-top:1px solid #475569}
+.result-next-actions h3{margin:0 0 8px;font-size:16px}
+.result-next-actions .controls,.terminal-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.result-next-actions .controls button,.terminal-actions button{min-width:0;min-height:44px;padding:10px 8px;white-space:normal;overflow-wrap:anywhere}
+.result-next-actions .controls .hidden,.terminal-actions .hidden{display:none!important}
+#terminalClose{grid-column:1/-1}
+#rematchControls{scroll-margin-block:84px 168px}
+#resultRewardSummary{margin:6px 0;color:#fde68a}
+.terminal-celebration{padding:24px;max-height:calc(100dvh - 36px)}
+.terminal-icon{font-size:56px}
+.terminal-eyebrow{margin-top:10px}
+.terminal-celebration h2{font-size:clamp(40px,9vw,60px)}
+.terminal-message{margin:12px 0 6px;font-size:20px}
+.terminal-reason{margin-bottom:14px}
+.terminal-celebration .cpu-terminal-commentary-card{margin-bottom:12px}
+@media(max-width:450px){
+  .terminal-overlay{padding:12px}
+  .terminal-celebration{padding:18px 14px;max-height:calc(100dvh - 24px);border-radius:20px}
+  .terminal-icon{font-size:44px}
+  .terminal-celebration h2{font-size:40px}
+  .terminal-message{font-size:17px}
+  .terminal-actions button{font-size:13px}
+}

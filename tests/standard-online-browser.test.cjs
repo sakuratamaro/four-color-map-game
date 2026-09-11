@@ -31,6 +31,9 @@ function browserStage(stage) {
   console.error(`BROWSER_STAGE ${stage}`);
 }
 
+RESTORED_ROOM_MODES.add("resultRewardCpu");
+RESTORED_ROOM_MODES.add("resultRewardHuman");
+
 async function startMemoQuiz(page, level = "5") {
   await page.getByRole("button", { name: "クイズ・ガチャ", exact: true }).click();
   await page.locator("#quizLevel").selectOption(level);
@@ -609,6 +612,8 @@ async function installMock(context, mode) {
     body: "export function createClient(){return globalThis.__standardOnlineMockSupabase}",
   }));
   await context.addInitScript(({ connectionKey: connection, saveKey: save, roomId: id, pendingId, mode: initialMode }) => {
+    const resultRewardKind = initialMode === "resultRewardCpu" ? "cpu" : initialMode === "resultRewardHuman" ? "human" : null;
+    if (resultRewardKind) initialMode = resultRewardKind === "cpu" ? "finishedCpu" : "finished";
     globalThis.__standardOnlineFocusEvents = [];
     if (initialMode === "quizPhysics") {
       const trackedQuizMotionEvents = new Set(["pointerenter", "pointerleave", "pointerdown", "pointerup", "pointercancel", "touchstart", "touchend", "touchcancel", "focusin", "focusout"]);
@@ -702,8 +707,8 @@ async function installMock(context, mode) {
           && !(["setupLabPersist", "setupLabLostResponse"].includes(initialMode) && restoredConnection)) {
         localStorage.setItem(connection, JSON.stringify({
           roomId: id, roomCode: "A1B2C3", profileRevision: 1, setupRevision: initialMode === "setupLabMismatch" ? 3 : setupPending || pregameMode ? 0 : 3,
-          rematchActionId: initialMode === "finished" ? pendingId : null,
-          rematchExpectedVersion: initialMode === "finished" ? 9 : null,
+          rematchActionId: initialMode === "finished" && !resultRewardKind ? pendingId : null,
+          rematchExpectedVersion: initialMode === "finished" && !resultRewardKind ? 9 : null,
           ...(initialMode === "abandonLost" && restoredConnection ? {
             abandonRoomId: restoredConnection.abandonRoomId,
             abandonActionId: restoredConnection.abandonActionId,
@@ -792,6 +797,12 @@ async function installMock(context, mode) {
     }
     if (initialMode === "finished") {
       profileState.matchHistory.unshift({ matchId: `${id}:9`, result: "WIN", terminalReason: "SURRENDER", endedAt: "2026-09-05T00:00:00.000Z", fullPaint: false, skillsUsed: 0, onlineOpponentKind: "human" });
+    }
+    if (resultRewardKind) {
+      profileState.cpuStats.wins = 1;
+      profileState.gachaTickets = { "3": 0, "5": 2 };
+      profileState.matchHistory = [{ matchId: `${id}:9`, result: "WIN", onlineOpponentKind: resultRewardKind,
+        terminalReason: "SURRENDER", matchReward: { awarded: true, ticketLevel: 3, ticketCount: 2 } }];
     }
     if (["cpuTurn", "cpuTurnNoColor"].includes(initialMode)) {
       active.active = "B";
@@ -2227,6 +2238,7 @@ test("actual Edge reuses a persisted rematch ID and returns to fresh setup", { t
 });
 
 async function auditRandomSetupReveal(page) {
+  // UDL055 remains independent of result-local navigation.
   await page.addInitScript(() => {
     globalThis.__randomRevealShows = 0;
     globalThis.__randomRevealSnapshotDelayMs = 250;
@@ -2240,6 +2252,134 @@ async function auditRandomSetupReveal(page) {
     };
   });
 }
+
+async function resultWriteCalls(page) {
+  return page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter(c =>
+    (c.kind === "invoke" && !["cosmetic-catalog", "cpu-roster"].includes(c.body?.operation))
+    || c.name === "fcg_standard_request_rematch"));
+}
+
+test("UDL060 result-local next actions fit mobile and desktop and route saved zero-stock rewards without writes", { timeout: 240000 }, async () => {
+  for (const mode of ["resultRewardCpu", "resultRewardHuman"]) {
+    for (const viewport of [{width:390,height:844}, {width:768,height:900}, {width:1280,height:900}]) {
+      await withPage(mode, async page => {
+        await page.locator("#terminalOverlay:not(.hidden)").waitFor();
+        await page.locator("#terminalGoGacha:not(.hidden)").waitFor();
+        await page.locator(".terminal-celebration").evaluate(async e => {
+          await Promise.all(e.getAnimations().filter(a => a.effect.getTiming().iterations !== Infinity).map(a => a.finished));
+        });
+        const before = await page.evaluate(() => JSON.stringify({room:globalThis.__standardOnlineRuntime.room,profile:globalThis.__standardOnlineRuntime.profile}));
+        const geometry = await page.evaluate(() => {
+          const dialog=document.querySelector(".terminal-celebration");
+          const r=dialog.getBoundingClientRect();
+          const buttons=[...document.querySelectorAll(".terminal-actions button")].filter(e=>e.getClientRects().length);
+          return {overflow:document.documentElement.scrollWidth>innerWidth,
+            fits:r.top>=0&&r.bottom<=innerHeight&&dialog.scrollHeight<=dialog.clientHeight+1,
+            targets:buttons.map(e=>{const b=e.getBoundingClientRect();return {id:e.id,w:b.width,h:b.height,hit:e.contains(document.elementFromPoint(b.x+b.width/2,b.y+b.height/2))};})};
+        });
+        assert.equal(geometry.overflow,false);
+        assert.equal(geometry.fits,true,JSON.stringify(geometry));
+        assert.equal(geometry.targets.length,5);
+        assert.ok(geometry.targets.every(x=>x.w>=44&&x.h>=44&&x.hit),JSON.stringify(geometry));
+        if (process.env.STANDARD_UI_ARTIFACT_DIR) {
+          fs.mkdirSync(process.env.STANDARD_UI_ARTIFACT_DIR,{recursive:true});
+          await page.screenshot({path:path.join(process.env.STANDARD_UI_ARTIFACT_DIR,`${mode}-${viewport.width}-overlay.png`)});
+        }
+        await page.locator("#terminalClose").click();
+        assert.equal(await page.locator("#terminalSummary #rematchControls").isVisible(),true);
+        assert.equal(await page.locator("#resultGoGacha").textContent(),"Lv.3券のガチャを開く");
+        if (process.env.STANDARD_UI_ARTIFACT_DIR) await page.screenshot({path:path.join(process.env.STANDARD_UI_ARTIFACT_DIR,`${mode}-${viewport.width}-persistent.png`)});
+        await page.locator("#resultGoGacha").click();
+        assert.equal(await page.locator("#gachaLevel").inputValue(),"3");
+        assert.equal(await page.locator("#gachaDrawOne").isDisabled(),true);
+        assert.deepEqual(await resultWriteCalls(page),[]);
+        assert.equal(await page.evaluate(() => JSON.stringify({room:globalThis.__standardOnlineRuntime.room,profile:globalThis.__standardOnlineRuntime.profile})),before);
+        assert.equal(await page.evaluate(key=>JSON.parse(localStorage.getItem(key)).roomId,connectionKey),roomId);
+        await page.reload();
+        await page.locator('[data-app-tab="battle"]').click();
+        await page.locator("#terminalSummary:not(.hidden)").waitFor();
+        assert.equal(await page.locator("#terminalOverlay").isVisible(),false);
+        assert.equal(await page.locator("#resultGoGacha").textContent(),"Lv.3券のガチャを開く");
+        assert.deepEqual(await resultWriteCalls(page),[]);
+      },{viewport});
+    }
+  }
+});
+
+test("UDL060 saved result navigation retains an unresolved draw level and exact retry", { timeout:130000 }, async () => {
+  await withPage("resultRewardCpu",async page=>{
+    await page.locator("#terminalClose").click();
+    await page.locator("#resultGoGacha").click();
+    await page.locator("#gachaLevel").selectOption("5");
+    await page.evaluate(()=>{globalThis.__standardOnlineRuntime.failNextGacha=true;});
+    await page.locator("#gachaDrawAll").click();
+    await page.locator("#gachaRetry:not(.hidden)").waitFor();
+    const pendingKey="fourColorMapGame.standard.online.v5.pending-gacha";
+    const pending=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),pendingKey);
+    await page.locator('[data-app-tab="battle"]').click();
+    await page.locator("#resultGoGacha").click();
+    assert.equal(await page.locator("#gachaLevel").inputValue(),"5");
+    assert.deepEqual(await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),pendingKey),pending);
+    assert.equal((await resultWriteCalls(page)).filter(c=>c.body?.operation==="gacha").length,1);
+    await page.locator("#gachaRetry").click();
+    await page.waitForFunction(key=>localStorage.getItem(key)===null,pendingKey);
+    const calls=(await resultWriteCalls(page)).filter(c=>c.body?.operation==="gacha").map(c=>c.body);
+    assert.equal(calls.length,2);
+    for(const field of ["actionId","ticketLevel","count"])assert.equal(calls[0][field],calls[1][field]);
+  },{viewport:{width:390,height:844}});
+});
+
+test("UDL060 overlay rematch is explicit and double activation retains one CPU request", { timeout:130000 }, async () => {
+  await withPage("finishedCpu",async page=>{
+    await page.locator("#terminalRematch").waitFor();
+    assert.deepEqual(await resultWriteCalls(page),[]);
+    await page.evaluate(()=>{document.querySelector("#terminalRematch").click();document.querySelector("#terminalRematch").click();});
+    await page.locator("#setupCard:not(.hidden)").waitFor();
+    const calls=(await resultWriteCalls(page)).filter(c=>c.body?.operation==="cpu-rematch");
+    assert.equal(calls.length,1);
+    assert.equal(calls[0].body.expectedVersion,9);
+    assert.match(calls[0].body.actionId,/^[0-9a-f-]{36}$/i);
+    await page.waitForFunction(()=>document.activeElement?.id==="setupTitle");
+    assert.equal(await page.evaluate(key=>JSON.parse(localStorage.getItem(key)).roomId,connectionKey),roomId);
+  });
+});
+
+test("UDL060 explicit human next-opponent exit keeps server history and starts no search", { timeout:130000 }, async () => {
+  await withPage("resultRewardHuman",async page=>{
+    await page.locator("#terminalClose").click();
+    const before=await page.evaluate(()=>JSON.stringify({room:globalThis.__standardOnlineRuntime.room,profile:globalThis.__standardOnlineRuntime.profile}));
+    await page.locator("#chooseDifferentHuman").click();
+    assert.equal(await page.evaluate(key=>JSON.parse(localStorage.getItem(key)).roomId,connectionKey),null);
+    assert.equal(await page.evaluate(()=>JSON.stringify({room:globalThis.__standardOnlineRuntime.room,profile:globalThis.__standardOnlineRuntime.profile})),before);
+    assert.deepEqual(await resultWriteCalls(page),[]);
+    assert.equal(await page.locator("#findOpponent").isVisible(),true);
+  },{viewport:{width:390,height:844}});
+});
+
+test("UDL060 pending rematch blocks competing result exits but retains the same retry", { timeout:130000 }, async () => {
+  await withPage("finished",async page=>{
+    await page.locator("#terminalClose").click();
+    for(const id of ["resultGoLobby","chooseDifferentHuman"])assert.equal(await page.locator("#"+id).isDisabled(),true);
+    assert.deepEqual(await resultWriteCalls(page),[]);
+    await page.locator("#requestRematch").click();
+    await page.locator("#setupCard:not(.hidden)").waitFor();
+    const calls=(await resultWriteCalls(page)).filter(c=>c.name==="fcg_standard_request_rematch");
+    assert.equal(calls.length,1);assert.equal(calls[0].args.p_action_id,pendingRematchId);
+  });
+});
+
+
+test("UDL060 canceling the overlay CPU picker restores a visible result control", { timeout:130000 }, async () => {
+  await withPage("finishedCpu",async page=>{
+    await page.locator("#terminalChooseAnother").click();
+    await page.locator("#cpuRosterDialog[open]").waitFor();
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(()=>document.activeElement?.id==="chooseDifferentCpu");
+    assert.equal(await page.locator("#chooseDifferentCpu").isVisible(),true);
+    assert.equal(await page.evaluate(key=>JSON.parse(localStorage.getItem(key)).roomId,connectionKey),roomId);
+    assert.deepEqual(await resultWriteCalls(page),[]);
+  },{viewport:{width:390,height:844}});
+});
 
 test("UDL-055 actual browser never flashes random setup on finished resume, reload or a fresh tab", { timeout: 130000 }, async () => {
   for (const mode of ["finished", "finishedCpu"]) {

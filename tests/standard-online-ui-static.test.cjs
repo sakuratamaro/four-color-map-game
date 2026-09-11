@@ -359,10 +359,12 @@ test("PvP and CPU records are visibly separate and CPU rematch uses its dedicate
   assert.match(css, /\.terminal-progress\{[^}]*white-space:pre-line/);
   assert.match(app, /entry\.onlineOpponentKind === "cpu"/);
   assert.match(app, /roomModel\?\.room\?\.status === "finished"[\s\S]+?settledMatch\?\.matchId === state\.matchId[\s\S]+?Number\.isSafeInteger\(resultCount\)/);
-  assert.match(app, /const cpuRewardWasSaved = rewardWasSaved && opponentKind === "cpu"/);
-  assert.match(app, /show\("terminalGoGacha", cpuRewardWasSaved\)/);
-  const terminalGachaHandler = app.slice(app.indexOf('$("terminalGoGacha").onclick'), app.indexOf('$("terminalClose").onclick'));
-  assert.match(terminalGachaHandler, /dismissTerminalResult\(\);\s*goToGacha\(origin\?\.ticketLevel \|\| 1\)/);
+  assert.ok(app.includes('const resultReward = savedResultReward(roomModel?.room, mySeat, profile())'));
+  assert.ok(app.includes('show("terminalGoGacha", Boolean(resultReward))'));
+  assert.ok(app.includes('$("terminalGoGacha").onclick = openSavedResultGacha'));
+  const terminalGachaHandler = app.slice(app.indexOf('function openSavedResultGacha()'), app.indexOf('function clearContactReveal('));
+  assert.ok(terminalGachaHandler.includes('if (!reward) return'));
+  assert.ok(terminalGachaHandler.includes('goToGacha(reward.ticketLevel)'));
   assert.doesNotMatch(terminalGachaHandler, /runGacha|drawGacha|clearRoom|requestCpuRematch|beginImmediateCpuEntry/);
   assert.match(app, /\$\("gachaTitle"\)\.focus\(\{ preventScroll: true \}\)/);
   assert.match(css, /\.gacha-panel h2:focus,\.gacha-result-summary h3:focus\{[^}]*outline:3px solid #fde047/);
@@ -407,8 +409,8 @@ test("CPU completion reward copy is bound to the saved match reward and hydrated
   assert.match(app, /const matchReward = settledMatch\?\.matchReward/);
   assert.match(app, /const rewardTicketTotal = Number\(profile\(\)\?\.gachaTickets\?\.\[String\(rewardTicketLevel\)\]\)/);
   assert.match(app, /rewardTicketTotal >= rewardTicketCount/);
-  assert.match(app, /ticketLevel: rewardTicketLevel/);
-  assert.match(app, /ticketCount: rewardTicketCount/);
+  assert.match(app, /ticketLevel: reward\.ticketLevel/);
+  assert.match(app, /ticketCount: reward\.ticketCount/);
   assert.match(app, /完了報酬：Lv\.\$\{rewardTicketLevel\}ガチャ券 \+\$\{rewardTicketCount\}（所持 \$\{rewardTicketTotal - rewardTicketCount\}→\$\{rewardTicketTotal\}）/);
   assert.match(app, /現在、Lv\.\$\{level\}券を\$\{available\}枚所持しています。1枚引くと券を1枚消費します。/);
   assert.match(app, /CPU戦の完了報酬を反映済み：Lv\.\$\{origin\.ticketLevel\}券 所持 ×\$\{origin\.ticketTotal\}/);

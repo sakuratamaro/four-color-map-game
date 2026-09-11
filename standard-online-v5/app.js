@@ -2,6 +2,7 @@ import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 import "../online/supabase-config.js";
 import { createQuizMemo } from "./quiz-memo.js?v=20260912-1";
 import { paletteRoleSlots, stableHandSlots } from "./play-surface-model.js?v=20260912-1";
+import { savedResultReward } from "./result-continuation.js?v=20260912-1";
 
 const cfg = globalThis.FourColorSupabaseConfig;
 const supabase = createClient(cfg.url, cfg.publishableKey, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false } });
@@ -252,7 +253,6 @@ function restoreCpuRewardGachaResult() {
 }
 const restoredCpuRewardGachaResult = restoreCpuRewardGachaResult();
 let lastGachaDraws = restoredCpuRewardGachaResult.draws;
-let terminalCpuRewardGachaCandidate = null;
 let armedCpuRewardGachaOrigin = null;
 let lastGachaContinuation = restoredCpuRewardGachaResult.continuation;
 let pendingGacha = (() => { try { return JSON.parse(localStorage.getItem(GACHA_PENDING_KEY) || "null"); } catch { return null; } })();
@@ -1241,6 +1241,55 @@ function renderPersistentTerminalResult(state, privateState) {
   const reason = terminalReasonDetail(state, privateState);
   if ($("terminalOutcomeTitle").textContent !== title) $("terminalOutcomeTitle").textContent = title;
   if ($("terminalOutcomeReason").textContent !== reason) $("terminalOutcomeReason").textContent = reason;
+  renderResultContinuation();
+}
+
+function resultContinuationPending() {
+  const snapshot = client.snapshot();
+  return rematchBusy || Boolean(snapshot.rematchActionId && snapshot.rematchExpectedVersion === roomModel?.room?.version);
+}
+
+function renderResultContinuation() {
+  const room = roomModel?.room;
+  const reward = savedResultReward(room, roomModel?.view?.seat, profile());
+  const blocked = resultContinuationPending();
+  show("resultGoGacha", Boolean(reward));
+  show("resultRewardSummary", Boolean(reward));
+  if (reward) {
+    $("resultGoGacha").textContent = `Lv.${reward.ticketLevel}券のガチャを開く`;
+    $("resultRewardSummary").textContent = `この対戦で獲得：Lv.${reward.ticketLevel}ガチャ券 ×${reward.ticketCount}`;
+  }
+  show("chooseDifferentHuman", room?.opponent_kind !== "cpu");
+  for (const id of ["chooseDifferentCpu", "chooseDifferentHuman", "resultGoLobby", "terminalChooseAnother", "terminalGoLobby"]) $(id).disabled = blocked;
+  $("terminalRematch").disabled = rematchBusy || room?.status !== "finished";
+}
+
+function leaveFinishedResult({ publicChoice = false } = {}) {
+  if (roomModel?.room?.status !== "finished" || resultContinuationPending()) return;
+  dismissTerminalResult();
+  closeDisplayedRoom();
+  if (publicChoice) chooseBattleRoute("public");
+}
+
+function chooseAnotherResultOpponent(trigger) {
+  if (roomModel?.room?.status !== "finished" || resultContinuationPending()) return;
+  dismissTerminalResult();
+  const returnTrigger = trigger?.closest("#terminalOverlay") ? $("chooseDifferentCpu") : trigger;
+  if (roomModel.room.opponent_kind === "cpu") return beginImmediateCpuEntry(returnTrigger, { replaceFinished: true });
+  leaveFinishedResult({ publicChoice: true });
+}
+
+function openSavedResultGacha() {
+  const reward = savedResultReward(roomModel?.room, roomModel?.view?.seat, profile());
+  if (!reward) return;
+  const origin = reward.opponentKind === "cpu" && reward.ticketTotal >= reward.ticketCount ? {
+    source: "cpu-completion-reward", roomId: reward.roomId, roomVersion: reward.roomVersion,
+    matchId: reward.matchId, ticketLevel: reward.ticketLevel, ticketCount: reward.ticketCount, ticketTotal: reward.ticketTotal,
+  } : null;
+  dismissTerminalResult();
+  goToGacha(reward.ticketLevel);
+  armedCpuRewardGachaOrigin = origin;
+  if (origin) $("gachaStatus").textContent = `CPU戦の完了報酬を反映済み：Lv.${origin.ticketLevel}券 所持 ×${origin.ticketTotal}。1枚引くと所持券は${origin.ticketTotal - 1}枚になります。`;
 }
 
 function clearContactReveal({ clearAnnouncement = true } = {}) {
@@ -1308,7 +1357,6 @@ function renderTerminalResult(state) {
   const overlay = $("terminalOverlay");
   if (state?.status !== "FINISHED" || !["A", "B"].includes(state.winner)) {
     show("terminalOverlay", false);
-    terminalCpuRewardGachaCandidate = null;
     shownTerminalEventKey = null;
     dismissedTerminalEventKey = null;
     return;
@@ -1352,16 +1400,7 @@ function renderTerminalResult(state) {
     && Number.isSafeInteger(rewardTicketTotal) && rewardTicketTotal >= rewardTicketCount;
   const rewardWasLimited = progressWasSaved && !experimentalMatch && opponentKind !== "cpu"
     && matchReward?.awarded === false && matchReward?.reason === "PVP_REWARD_LIMIT";
-  const cpuRewardWasSaved = rewardWasSaved && opponentKind === "cpu";
-  terminalCpuRewardGachaCandidate = cpuRewardWasSaved ? {
-    source: "cpu-completion-reward",
-    roomId: roomModel.room.id,
-    roomVersion: Number(roomModel.room.version),
-    matchId: state.matchId,
-    ticketLevel: rewardTicketLevel,
-    ticketCount: rewardTicketCount,
-    ticketTotal: rewardTicketTotal,
-  } : null;
+  const resultReward = savedResultReward(roomModel?.room, mySeat, profile());
   const rewardText = rewardWasSaved
     ? `\n完了報酬：Lv.${rewardTicketLevel}ガチャ券 +${rewardTicketCount}（所持 ${rewardTicketTotal - rewardTicketCount}→${rewardTicketTotal}）`
     : rewardWasLimited
@@ -1372,8 +1411,8 @@ function renderTerminalResult(state) {
     : progressWasSaved
     ? `戦績を保存しました：${resultLabel} ${won ? "勝利" : "敗北"} ${resultCount}${rewardText}`
     : "戦績を同期しています。マイページで確認できます。";
-  if (cpuRewardWasSaved) $("terminalGoGacha").textContent = `獲得したLv.${rewardTicketLevel}券でガチャへ`;
-  show("terminalGoGacha", cpuRewardWasSaved);
+  if (resultReward) $("terminalGoGacha").textContent = `獲得したLv.${resultReward.ticketLevel}券でガチャへ`;
+  show("terminalGoGacha", Boolean(resultReward));
   try { localStorage.setItem(TERMINAL_PRESENTED_KEY, eventKey); } catch { /* presentation still works when storage is unavailable */ }
   show("terminalOverlay", true);
   if (shownTerminalEventKey !== eventKey) {
@@ -5878,6 +5917,7 @@ async function confirmRoomAbandon() {
 
 function closeDisplayedRoom() {
   if (!client.snapshot().roomId) return;
+  if (roomModel?.room?.status === "finished" && resultContinuationPending()) return toast("再戦の申請結果を確認中です。結果を確認してから次へ進めます。");
   if (roomModel?.room?.status !== "finished") {
     activateAppTab("home");
     render();
@@ -5915,7 +5955,13 @@ async function requestRematch() {
   } catch (error) {
     toast(error.message || "再戦を申請できませんでした。同じIDで再送できます。");
     await roomSync.refreshNow().catch(() => {});
-  } finally { rematchBusy = false; render(); }
+  } finally {
+    rematchBusy = false; render();
+    if (activeAppTab === "battle") {
+      if (roomModel?.room?.status === "ready") focusMatchedRoom();
+      else if (roomModel?.room?.status === "finished") $("requestRematch").focus();
+    }
+  }
 }
 
 async function continueCpuRewardRematch() {
@@ -6057,15 +6103,15 @@ $("colorSurrender").onclick = () => sendAction("SURRENDER");
 $("surrender").onclick = () => sendAction("SURRENDER");
 $("retryAction").onclick = () => pendingAction && sendAction(pendingAction.type, pendingAction.payload, true);
 $("requestRematch").onclick = requestRematch;
-$("chooseDifferentCpu").onclick = (event) => beginImmediateCpuEntry(event.currentTarget, { replaceFinished: true });
+$("chooseDifferentCpu").onclick = (event) => chooseAnotherResultOpponent(event.currentTarget);
+$("chooseDifferentHuman").onclick = (event) => chooseAnotherResultOpponent(event.currentTarget);
+$("resultGoLobby").onclick = () => leaveFinishedResult();
+$("resultGoGacha").onclick = openSavedResultGacha;
+$("terminalRematch").onclick = () => { if (roomModel?.room?.status !== "finished" || rematchBusy) return; dismissTerminalResult(); requestRematch(); };
+$("terminalChooseAnother").onclick = (event) => chooseAnotherResultOpponent(event.currentTarget);
+$("terminalGoLobby").onclick = () => leaveFinishedResult();
 $("closeSkillInfo").onclick = () => $("skillInfoDialog").close();
-$("terminalGoGacha").onclick = () => {
-  const origin = terminalCpuRewardGachaCandidate ? { ...terminalCpuRewardGachaCandidate } : null;
-  dismissTerminalResult();
-  goToGacha(origin?.ticketLevel || 1);
-  armedCpuRewardGachaOrigin = origin;
-  if (origin) $("gachaStatus").textContent = `CPU戦の完了報酬を反映済み：Lv.${origin.ticketLevel}券 所持 ×${origin.ticketTotal}。1枚引くと所持券は${origin.ticketTotal - 1}枚になります。`;
-};
+$("terminalGoGacha").onclick = openSavedResultGacha;
 $("terminalClose").onclick = () => {
   dismissTerminalResult();
   $("requestRematch").focus({ preventScroll: false });

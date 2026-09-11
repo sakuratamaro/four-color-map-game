@@ -12,6 +12,7 @@
   <link rel="stylesheet" href="quiz-memo.css?v=20260912-2">
   <link rel="stylesheet" href="ui-diet.css?v=20260912-2">
   <link rel="stylesheet" href="play-surface.css?v=20260912-1">
+  <link rel="stylesheet" href="result-continuation.css?v=20260912-1">
 </head>
 <body>
   <header>
@@ -336,6 +337,18 @@
           <p id="cpuTerminalCommentarySummary" class="cpu-terminal-commentary" data-terminal-copy="dialogue"></p>
         </div>
         <p id="terminalOutcomeReason" data-terminal-copy="narration"></p>
+        <div id="rematchControls" class="target-panel hidden result-next-actions">
+          <strong>次はどうする？</strong>
+          <p id="resultRewardSummary" class="small hidden"></p>
+          <p id="rematchStatus" class="muted">両プレイヤーの申請後、6枚セットを選び直します。</p>
+          <div class="controls">
+            <button id="requestRematch" class="primary">再戦を申し込む</button>
+            <button id="chooseDifferentCpu" class="ghost hidden" type="button">別のCPUを選んで新しく対戦</button>
+            <button id="chooseDifferentHuman" class="ghost hidden" type="button">結果を閉じて別の相手を選ぶ</button>
+            <button id="resultGoGacha" class="primary hidden" type="button">獲得券のガチャを開く</button>
+            <button id="resultGoLobby" class="ghost" type="button">結果を閉じる・ロビーへ</button>
+          </div>
+        </div>
       </section>
       <section id="turnGuide" class="turn-guide hidden">
         <span id="turnGuideStep" class="turn-guide-step">NEXT</span>
@@ -402,14 +415,6 @@
       <div class="controls">
         <button id="surrender" class="danger compact-danger">敗北として投了する</button>
       </div>
-      <div id="rematchControls" class="target-panel hidden">
-        <strong>もう一度対戦</strong>
-        <p id="rematchStatus" class="muted">両プレイヤーの申請後、6枚セットを選び直します。</p>
-        <div class="controls">
-          <button id="requestRematch" class="primary">再戦を申し込む</button>
-          <button id="chooseDifferentCpu" class="ghost hidden" type="button">別のCPUを選んで新しく対戦</button>
-        </div>
-      </div>
       <details class="sync-details">
         <summary>上級者向け：同期データを表示</summary>
         <div class="projection-grid">
@@ -439,7 +444,10 @@
       <p id="terminalReasonText" class="terminal-reason" data-terminal-copy="narration"></p>
       <p id="terminalProgressText" class="terminal-progress"></p>
       <div class="terminal-actions">
+        <button id="terminalRematch" class="primary" type="button">もう一度対戦</button>
+        <button id="terminalChooseAnother" class="ghost" type="button">相手を変える</button>
         <button id="terminalGoGacha" class="primary hidden" type="button">獲得した券でガチャへ</button>
+        <button id="terminalGoLobby" class="ghost" type="button">結果を閉じる・ロビーへ</button>
         <button id="terminalClose" class="ghost terminal-close" type="button">再戦・対戦結果へ戻る</button>
       </div>
     </section>
