@@ -309,6 +309,7 @@ const COLOR_HEX = { red: "#ef4444", blue: "#3b82f6", yellow: "#eab308", green: "
 const COLOR_JA = { red: "赤", blue: "青", yellow: "黄", green: "緑" };
 const APP_TABS = new Set(["home", "battle", "quiz", "cards", "profile"]);
 let activeAppTab = APP_TABS.has(location.hash.slice(1)) ? location.hash.slice(1) : localStorage.getItem(APP_TAB_KEY) || "home";
+let battleEntranceRoute = null;
 function alignQuizMemoEntry() {
   $("quizMemoOn").scrollIntoView({ block: "start", behavior: "auto" });
   const navigation = document.querySelector(".app-tabs");
@@ -574,7 +575,27 @@ function persistCpuStartSaga(value) {
 }
 function hasCpuEntryIntent() { return sessionStorage.getItem(CPU_ENTRY_INTENT_KEY) === "direct"; }
 function setCpuEntryIntent(active) { if (active) sessionStorage.setItem(CPU_ENTRY_INTENT_KEY, "direct"); else sessionStorage.removeItem(CPU_ENTRY_INTENT_KEY); }
-function renderProfileCardVisibility() { show("profileCard", activeAppTab !== "battle" || !synced); }
+function renderProfileCardVisibility() { show("profileCard", activeAppTab === "profile" || !synced); }
+
+function renderBattleEntrance() {
+  const snapshot = client.snapshot();
+  // A pending ticket/search always owns its visible recovery controls.
+  const route = snapshot.matchmakingTicketId || snapshot.matchmakingFindActionId ? "public" : battleEntranceRoute;
+  show("friendBattlePanel", synced && route === "friend");
+  show("matchmakingPanel", synced && route === "public");
+  $("chooseFriendBattle").setAttribute("aria-expanded", String(synced && route === "friend"));
+  $("choosePublicBattle").setAttribute("aria-expanded", String(synced && route === "public"));
+}
+
+function chooseBattleRoute(route) {
+  battleEntranceRoute = route;
+  renderBattleEntrance();
+  if (!synced) {
+    renderProfileCardVisibility();
+    const target = profile() ? $("syncProfile") : $("starterName");
+    target.focus();
+  }
+}
 function safeJson(value) { return JSON.stringify(value, null, 2); }
 function actionSignature(type, payload) { return JSON.stringify({ type, payload }); }
 function hasStandardPublicState(value) {
@@ -3319,7 +3340,7 @@ function render() {
   show("progressionPanel", synced && Boolean(profile()));
   show("cosmeticPanel", synced && Boolean(profile()));
   renderCosmetics();
-  show("lobby", synced && !snapshot.roomId && !cpuDraftOwnsRoomlessEntry);
+  show("lobby", !snapshot.roomId && !cpuDraftOwnsRoomlessEntry && (synced || !hasCpuEntryIntent()));
   renderMatchmaking();
   show("room", Boolean(snapshot.roomId));
   const setupVisible = Boolean(profile()) && !roomStatePending && ((Boolean(snapshot.roomId) && !["playing", "finished"].includes(roomModel?.room?.status))
@@ -5201,6 +5222,7 @@ async function pollMatchmakingStatus() {
 
 function renderMatchmaking() {
   if (!$("matchmakingPanel")) return;
+  renderBattleEntrance();
   const snapshot = client.snapshot();
   const searching = Boolean(snapshot.matchmakingTicketId) && !snapshot.roomId;
   const cpuStartPending = Boolean(snapshot.cpuStartActionId && snapshot.cpuStartCharacterId) || Boolean(cpuEntryDraft || pendingCpuStartSaga);
@@ -5389,6 +5411,7 @@ async function beginImmediateCpuEntry(trigger = document.activeElement, { replac
   }
   setCpuEntryIntent(true);
   activateAppTab("battle");
+  render();
   if (client.snapshot().roomId && (!replaceFinished || roomModel?.room?.status !== "finished")) {
     setCpuEntryIntent(false);
     focusMatchedRoom();
@@ -5535,18 +5558,23 @@ async function recruitPublicOpponent() {
   } finally { matchmakingBusy = false; render(); }
 }
 
-async function findPublicOpponent({ resumePending = false } = {}) {
+async function findPublicOpponent({ resumePending = false, waitIfNone = false } = {}) {
   if (guardNewMatchEntry({ allowFindResume: resumePending }) || matchmakingBusy || !profile()) return;
-  matchmakingBusy = true; $("matchmakingStatus").textContent = "今入れる試合を探しています…"; renderMatchmaking();
+  matchmakingBusy = true; $("matchmakingStatus").textContent = "相手を探しています…"; renderMatchmaking();
+  let startWaiting = false;
   try {
     const result = await client.findOpponent({ displayName: displayName() });
     if (result?.matchmaking_status === "matched") return await enterPublicMatch();
-    $("matchmakingStatus").textContent = "今すぐ入れる試合はありません。『対戦相手を募集』なら待機を始められます。";
+    startWaiting = waitIfNone && result?.matchmaking_status === "none_available";
+    $("matchmakingStatus").textContent = startWaiting ? "相手が来るのを待っています…" : "今は相手が見つかりませんでした。もう一度探せます。";
   } catch (error) {
     if (await recoverServerActiveRoom({ focusOnSuccess: true }).catch(() => false)) return;
     $("matchmakingStatus").textContent = "検索結果を確認できませんでした。同じ検索IDで再試行します。";
     toast(error.message || "今入れる試合を探せませんでした。");
   } finally { matchmakingBusy = false; render(); }
+  // Only a successful empty search from this explicit click may start waiting.
+  // Lost responses and resumed searches retain their original identity instead.
+  if (startWaiting) return recruitPublicOpponent();
 }
 
 async function cancelPublicMatchmaking() {
@@ -5866,9 +5894,11 @@ $("cosmeticCommit").onclick = commitOnlineCosmetic;
 $("cosmeticRetry").onclick = commitOnlineCosmetic;
 $("cosmeticCancel").onclick = cancelOnlineCosmetic;
 $("createRoom").onclick = createRoom;
+$("chooseFriendBattle").onclick = () => chooseBattleRoute("friend");
+$("choosePublicBattle").onclick = () => chooseBattleRoute("public");
 $("joinRoom").onclick = joinRoom;
 $("recruitOpponent").onclick = recruitPublicOpponent;
-$("findOpponent").onclick = findPublicOpponent;
+$("findOpponent").onclick = () => findPublicOpponent({ waitIfNone: true });
 $("cancelMatchmaking").onclick = cancelPublicMatchmaking;
 $("startStandardCpuHome").onclick = (event) => beginImmediateCpuEntry(event.currentTarget);
 $("startStandardCpuLobby").onclick = (event) => beginImmediateCpuEntry(event.currentTarget);
@@ -6022,6 +6052,7 @@ $(`dismissPaletteImpact`).onclick = () => {
 for (const button of document.querySelectorAll("[data-tab-jump]")) button.onclick = () => activateAppTab(button.dataset.tabJump);
 $("openWaitingOpponent").onclick = () => {
   if ($("openWaitingOpponent").disabled || $("openWaitingOpponent").classList.contains("hidden")) return;
+  battleEntranceRoute = "public";
   activateAppTab("battle");
   render();
   requestAnimationFrame(() => {

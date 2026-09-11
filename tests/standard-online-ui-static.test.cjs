@@ -81,7 +81,7 @@ test("CPU commentary is public-event-only, bounded, non-blocking, and terminal-p
   assert.match(html, /standard-online-client\.js\?v=20260910-1/);
   assert.match(html, /standard-online-skill-intents\.js\?v=20260911-21/);
   assert.match(html, /cpu-commentary\.js\?v=20260910-1/);
-assert.match(html, /app\.js\?v=20260912-29/);
+assert.match(html, /app\.js\?v=20260912-30/);
   assert.match(app, /cpuCommentary\?\.VERSION !== "standard-cpu-commentary-v3"/);
   assert.ok(html.indexOf("cpu-commentary.js") < html.indexOf('type="module" src="app.js'));
   assert.match(html, /id="cpuCommentaryStage"[^>]+aria-hidden="true"/);
@@ -148,7 +148,7 @@ test("waiting-opponent notice is global, privacy-finite, and non-interrupting", 
 
 test("fresh players can finish profile setup inside the battle tab without automatic matchmaking", () => {
   assert.match(html, /id="profileCard"[^>]+data-app-tab-panel="[^"]*\bbattle\b[^"]*"/);
-  assert.match(app, /function renderProfileCardVisibility\(\) \{ show\("profileCard", activeAppTab !== "battle" \|\| !synced\); \}/);
+  assert.match(app, /function renderProfileCardVisibility\(\) \{ show\("profileCard", activeAppTab === "profile" \|\| !synced\); \}/);
   assert.match(app, /document\.body\.dataset\.activeTab = tab;\s*renderProfileCardVisibility\(\);/);
   assert.match(app, /function render\(\) \{\s*renderProfileCardVisibility\(\);/);
   assert.match(app, /synced = true; badge\("プロフィール同期済み", "good"\); renderProfile\(\); render\(\);/);
@@ -237,8 +237,8 @@ test("online cosmetics require confirmation, persist retry identity, and allowli
 });
 
 test("public matchmaking stays code-free, recoverable, cancellable, and separate from invitation rooms", () => {
-  assert.match(html, /友だちと遊ぶ/);
-  assert.match(html, /だれかと遊ぶ/);
+  assert.match(html, /友だちと対戦/);
+  assert.match(html, /だれかと対戦/);
   assert.match(app, /client\.recruitOpponent\(\{ displayName: displayName\(\) \}\)/);
   assert.match(app, /client\.findOpponent\(\{ displayName: displayName\(\) \}\)/);
   assert.match(app, /client\.readMatchmakingStatus\(\)/);
@@ -246,6 +246,20 @@ test("public matchmaking stays code-free, recoverable, cancellable, and separate
   assert.match(app, /accessMode === "public_queue" \? "野良対戦"/);
   assert.match(app, /document\.visibilityState === "hidden"/);
   assert.match(progressionCss, /prefers-reduced-motion: reduce/);
+});
+
+test("UDL023 entrance routes are presentational and protect pending public recovery", () => {
+  assert.match(html, /id="humanBattleTitle">人と対戦<\/h3>/);
+  for (const [button, panel] of [["chooseFriendBattle", "friendBattlePanel"], ["choosePublicBattle", "matchmakingPanel"]]) {
+    assert.match(html, new RegExp('id="' + button + '"[^>]*aria-expanded="false"[^>]*aria-controls="' + panel + '"'));
+  }
+  assert.doesNotMatch(html, /href="\.\.\/(?:solo-v5|standard-v5)\//);
+  assert.ok(html.indexOf('id="lobby"') < html.indexOf('id="profileCard"'));
+  assert.match(app, /snapshot\.matchmakingTicketId \|\| snapshot\.matchmakingFindActionId \? "public" : battleEntranceRoute/);
+  const route = app.slice(app.indexOf("function chooseBattleRoute("), app.indexOf("function safeJson("));
+  assert.doesNotMatch(route, /client\.(?:createRoom|joinRoom|findOpponent|recruitOpponent)/);
+  assert.match(app, /startWaiting = waitIfNone && result\?\.matchmaking_status === "none_available"/);
+  assert.match(app, /if \(startWaiting\) return recruitPublicOpponent\(\)/);
 });
 
 test("Standard lobby keeps two useful desktop columns and one mobile column", () => {
@@ -445,7 +459,7 @@ test("existing online progression is hydrated from the server rather than re-upl
 
 test("UI derives its canonical and experimental card metadata from the generated registry", () => {
   assert.equal(Object.values(STANDARD_SKILLS).filter((skill) => skill.v49Catalogued).length, 19);
-  assert.match(html, /standard-skill-registry\.generated\.js\?v=20260907-1[\s\S]+app\.js\?v=20260912-29/);
+  assert.match(html, /standard-skill-registry\.generated\.js\?v=20260907-1[\s\S]+app\.js\?v=20260912-30/);
   assert.match(app, /const STANDARD_SKILL_REGISTRY = globalThis\.FourColorStandardSkillRegistry/);
   assert.match(app, /STANDARD_SKILL_REGISTRY\.v49SkillIds\.map/);
   assert.match(app, /Object\.entries\(STANDARD_SKILL_REGISTRY\.skills\)/);

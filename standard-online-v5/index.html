@@ -10,14 +10,11 @@
   <link rel="stylesheet" href="debug-mode.css">
   <link rel="stylesheet" href="progression.css?v=20260910-2">
   <link rel="stylesheet" href="quiz-memo.css?v=20260912-2">
+  <link rel="stylesheet" href="ui-diet.css?v=20260912-1">
 </head>
 <body>
   <header>
-    <div><h1>Four Color Map Game</h1><p>v5.0 Standard Online — 正式6枚対戦</p></div>
-    <nav class="header-links" aria-label="遊び方を選ぶ">
-      <a href="../solo-v5/index.html">Quick CPU練習</a>
-      <a href="../standard-v5/index.html">ローカル Standard</a>
-    </nav>
+    <div><h1>Four Color Map Game</h1><p>色とカードで、次の一手を。</p></div>
   </header>
   <nav class="app-tabs" aria-label="メインメニュー">
     <button type="button" data-app-tab="home" aria-selected="true"><span aria-hidden="true">⌂</span><strong>ホーム</strong></button>
@@ -49,7 +46,7 @@
     <section class="card home-hero" data-app-tab-panel="home">
       <p class="home-kicker">YOUR NEXT MOVE</p>
       <h2>今日は何をする？</h2>
-      <p class="muted">対戦、数字ラッシュ、カード編成をひとつずつ集中して進められます。</p>
+      <p class="muted">好きな相手と対戦。クイズでカードを集めよう。</p>
       <div class="home-actions">
         <button id="startStandardCpuHome" type="button" class="primary">CPUとすぐStandard対戦</button>
         <button type="button" data-tab-jump="battle">友だち・だれかと対戦</button>
@@ -77,9 +74,55 @@
       <p id="feedbackSettingsStatus" class="muted small" role="status" aria-live="polite" aria-atomic="true">効果音 OFF｜振動 OFF</p>
     </section>
 
-    <section class="card mode-callout" aria-label="Quick CPU練習" data-app-tab-panel="home">
-      <div><strong>🤖 短時間のQuick練習（別ルール）</strong><p class="muted small">通信なしの速攻ルール。正式6枚のStandard対戦とは別モードです。</p></div>
-      <a class="primary" href="../solo-v5/index.html" aria-label="Quick CPU対戦を始める（別ルール）">Quick練習を開く</a>
+    <section id="lobby" class="card battle-entrance hidden" data-app-tab-panel="battle">
+      <p class="section-kicker">LET'S PLAY</p>
+      <h2 id="lobbyTitle" tabindex="-1">だれと遊ぶ？</h2>
+      <p id="roomLifecycleAnnouncement" class="callout room-lifecycle-announcement hidden" role="status" aria-live="polite" aria-atomic="true"></p>
+      <div class="lobby-choice-grid">
+        <section id="standardCpuChoice" class="lobby-choice standard-cpu-choice">
+          <span class="battle-choice-icon" aria-hidden="true">♟</span>
+          <h3>CPUと対戦</h3>
+          <p class="muted small">10人の中から、好きな相手と。</p>
+          <button id="startStandardCpuLobby" class="primary" type="button">10人からCPUを選ぶ</button>
+        </section>
+        <section id="humanBattleChoice" class="lobby-choice human-battle-choice" aria-labelledby="humanBattleTitle">
+          <h3 id="humanBattleTitle">人と対戦</h3>
+          <button id="chooseFriendBattle" type="button" aria-expanded="false" aria-controls="friendBattlePanel">友だちと対戦<span aria-hidden="true">→</span></button>
+          <button id="choosePublicBattle" type="button" aria-expanded="false" aria-controls="matchmakingPanel">だれかと対戦<span aria-hidden="true">→</span></button>
+        </section>
+      </div>
+      <section id="friendBattlePanel" class="lobby-choice battle-route-panel hidden" aria-labelledby="friendBattleTitle">
+        <h3 id="friendBattleTitle" tabindex="-1">合言葉で対戦</h3>
+        <div class="lobby-grid">
+          <button id="createRoom" class="primary">合言葉ルームを作る</button>
+          <div class="join-box">
+            <label for="roomCode">合言葉を入力</label>
+            <input id="roomCode" maxlength="6" autocomplete="off" placeholder="合言葉6文字">
+            <button id="joinRoom">合言葉で参加</button>
+          </div>
+        </div>
+      </section>
+        <section id="matchmakingPanel" class="lobby-choice public-matchmaking hidden" aria-labelledby="publicBattleTitle">
+          <h3 id="publicBattleTitle" tabindex="-1">だれかと対戦</h3>
+          <p class="muted small">相手が見つかるまで、クイズやガチャで遊べます。</p>
+          <div class="controls">
+            <button id="findOpponent" class="primary">相手を探す</button>
+            <button id="cancelMatchmaking" class="ghost hidden">募集を取り消す</button>
+          </div>
+          <details id="publicWaitingOptions"><summary>相手を待つだけにする</summary><button id="recruitOpponent" type="button">対戦相手を募集</button></details>
+          <div id="matchmakingWait" class="matchmaking-wait hidden">
+            <span class="searching-pulse" aria-hidden="true"></span>
+            <div><strong>対戦相手を探しています</strong><p id="matchmakingElapsed" class="muted small">待機 0秒</p></div>
+          </div>
+          <div id="cpuOpponentOffer" class="cpu-opponent-offer hidden">
+            <div><strong>🤖 CPUと対戦できます</strong><p id="cpuOfferMessage" class="muted small">人間の対戦相手を待ち続けることもできます。</p></div>
+            <div class="controls">
+              <button id="chooseCpuOpponent" class="primary">CPUを選ぶ</button>
+              <button id="keepWaitingForHuman" class="ghost">このまま人を待つ</button>
+            </div>
+          </div>
+          <p id="matchmakingStatus" class="callout" aria-live="polite" tabindex="-1">「相手を探す」で対戦相手を見つけます。</p>
+        </section>
     </section>
 
     <section id="profileCard" class="card hidden" data-app-tab-panel="home battle quiz cards profile">
@@ -228,50 +271,6 @@
         </div>
       </div>
       <p id="cosmeticStatus" class="callout" aria-live="polite">見た目一覧を読み込んでいます…</p>
-    </section>
-
-    <section id="lobby" class="card hidden" data-app-tab-panel="battle">
-      <h2 id="lobbyTitle" tabindex="-1">Standardロビー</h2>
-      <p id="roomLifecycleAnnouncement" class="callout room-lifecycle-announcement hidden" role="status" aria-live="polite" aria-atomic="true"></p>
-      <div class="lobby-choice-grid">
-        <section id="standardCpuChoice" class="lobby-choice standard-cpu-choice">
-          <h3>CPUと今すぐ遊ぶ <span class="standard-cpu-badge">Standard</span></h3>
-          <p class="muted small">正式6枚・Standardルール。待ち時間なし。CPU戦績とLv.1ガチャ券の対象です。</p>
-          <button id="startStandardCpuLobby" class="primary" type="button">10人からCPUを選ぶ</button>
-        </section>
-        <section class="lobby-choice">
-          <h3>友だちと遊ぶ</h3>
-          <p class="muted small">合言葉を伝えて、決まった相手と対戦します。</p>
-          <div class="lobby-grid">
-            <button id="createRoom" class="primary">合言葉ルームを作る</button>
-            <div class="join-box">
-              <input id="roomCode" maxlength="6" autocomplete="off" placeholder="合言葉6文字">
-              <button id="joinRoom">合言葉で参加</button>
-            </div>
-          </div>
-        </section>
-        <section id="matchmakingPanel" class="lobby-choice public-matchmaking">
-          <h3>だれかと遊ぶ <span class="badge warn">試験中</span></h3>
-          <p class="muted small">合言葉なしでStandard対戦。待機中もクイズやガチャで遊べます。</p>
-          <div class="controls">
-            <button id="recruitOpponent" class="primary">対戦相手を募集</button>
-            <button id="findOpponent">今入れる試合を探す</button>
-            <button id="cancelMatchmaking" class="ghost hidden">募集を取り消す</button>
-          </div>
-          <div id="matchmakingWait" class="matchmaking-wait hidden">
-            <span class="searching-pulse" aria-hidden="true"></span>
-            <div><strong>対戦相手を探しています</strong><p id="matchmakingElapsed" class="muted small">待機 0秒</p></div>
-          </div>
-          <div id="cpuOpponentOffer" class="cpu-opponent-offer hidden">
-            <div><strong>🤖 CPUと対戦できます</strong><p id="cpuOfferMessage" class="muted small">人間の対戦相手を待ち続けることもできます。</p></div>
-            <div class="controls">
-              <button id="chooseCpuOpponent" class="primary">CPUを選ぶ</button>
-              <button id="keepWaitingForHuman" class="ghost">このまま人を待つ</button>
-            </div>
-          </div>
-          <p id="matchmakingStatus" class="callout" aria-live="polite" tabindex="-1">募集するか、今待っている人を探してください。</p>
-        </section>
-      </div>
     </section>
 
     <section id="room" class="card hidden" data-app-tab-panel="battle">
@@ -520,6 +519,6 @@
   <script src="cpu-portraits.js?v=20260908-1"></script>
   <script src="cpu-commentary.js?v=20260910-1"></script>
   <script src="basic-feedback.js?v=20260908-2"></script>
-  <script type="module" src="app.js?v=20260912-29"></script>
+  <script type="module" src="app.js?v=20260912-30"></script>
 </body>
 </html>

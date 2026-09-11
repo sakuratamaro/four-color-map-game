@@ -77,8 +77,8 @@ test("online quiz UI resumes after a hint and rejects answers at the timeout bou
 test("Standard Online exposes a server-backed quiz and a published CPU entry", () => {
   assert.match(html, /id="quizPanel"/);
   assert.match(html, /ガチャ券クイズ/);
-  assert.match(html, /href="\.\.\/solo-v5\/index\.html"/);
-  assert.match(html, /CPU対戦を始める/);
+  assert.doesNotMatch(html, /href="\.\.\/solo-v5\/index\.html"/);
+  assert.match(html, /id="startStandardCpuLobby"[^>]+>10人からCPUを選ぶ/);
   assert.match(app, /client\.startQuiz/);
   assert.match(app, /client\.finishQuiz/);
   assert.match(app, /QUIZ_PENDING_KEY/);
