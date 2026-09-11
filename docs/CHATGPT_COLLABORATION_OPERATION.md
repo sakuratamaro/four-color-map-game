@@ -120,6 +120,12 @@ CANON_RECEIPT version=shared-canon-v1.1 base=ce6fab535235d7aff90d0bc846bbfb648c9
 
 [公式のScheduled tasks](https://learn.chatgpt.com/docs/automations)をOpenAI Docsスキルで確認し、同じheartbeatだけをACTIVEへ更新。APIと保存設定status=ACTIVE、updated_at=1789098810114、prompt完全一致を読戻した。新予算は保守的な取得開始03:50:05Zを基準に、04:10:05Z・04:30:05Z・05:30:05Zの最大3回、05:50:05Z期限。旧052の終了済み予算は履歴へ保全し、再開しない。取得・キュー振分けと通常司令塔の公開処理を分離し、無応答承認や重複監視を作らない。main/Pages/DB/Edgeはこの候補でまだ変更していない。
 
+## 2026-09-11 UDL-059 通常司令塔での受領・公開完了
+
+ユーザーの「アストラ先生から返事きてるよー」で通常処理を再開し、依頼0e59ad44に対応する実返答bbc180c1を1回の小範囲取得で全文確認。APPROVE_RELEASEを008へ候補f8713d7/base ce6fab5/UDL-059-quiz-v1/blob d5487924/Pages_only/DB・Edge[]に固定して保存した。定期受信専用の処理に本番公開を混ぜたのではなく、UDL-056に基づく通常司令塔の公開処理である。元の待機期限・自動確認回数をリセットせず、手動受信1回で閉じ、実automation APIと保存設定のPAUSED・updated_at=1789100649518・prompt同一を確認した。
+
+main再照合後、同じ候補をforceなしで公開し、Pages34562271949 SUCCESS、配信byte一致/preflight、実公開Chrome22/22 PASSまで完了。過去の失敗3試行、実測報酬Lv1と候補fixture Lv2の違い、物理NOT_RUNをREWARD_GACHA_RELEASE_20260911.mdへ分離記録する。新しい監視・再送・自己承認はなく、この完了報告の返答待ちを新設しない。残る要望は既存司令塔の別sliceで扱う。
+
 ## 初回の実施記録
 
 - 専用branchへ `c511711dcd0f74239827556c6e27527b9644f966` をpushし、追加要望成果物・保存済みの実APPROVE_DOCS・この運用案を相手が取得可能にした。

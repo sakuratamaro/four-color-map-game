@@ -1,5 +1,13 @@
 # Standard公開候補 証拠台帳
 
+## 2026-09-11 UDL-059 クイズ報酬券レベルの引継ぎ
+
+実Astra承認008（response bbc180c1-1cdb-4754-b53b-71eec1e11895）、候補/本番main `f8713d7006da0619b9c356d53a472754833fb910`、Windows34559185018 SUCCESS、main再照合・通常push後にPages34562271949 SUCCESS。仕様UDL-059-quiz-v1/blob d548792499924e84709957750dabdd5106d9f99a、Pages_only、DB/Edge各[]。公開HTML/app v20260911-27は候補Git blobと全byte一致、candidate preflight ok:true。
+
+2026-09-11T04:36:58.527Z、実公開Chrome 390px/1280pxでクイズ10問→確定報酬Lv1→ガチャLv1→明示1回抽選→再読込の22/22 PASS。表示/率/券消費一致、遷移抽選0、二重finish/draw 0、console/page error 0。ローカル847/847・重点Chrome/Edge各5/5と実本番証拠を分離する。保存Lv2・残0・未決着の組合せは候補browser gate、物理端末NOT_RUN。
+
+失敗3試行も保存した。初回はprofile hydration待ちを追加、2回目はクイズ中timeout、3回目は回答10件200・採点409（エラーコード未採取）。既存5秒未満完了ガードを保持し回答間隔700msとした4回目が成功。ゲームコード/DB/Edgeの変更による解消ではない。計4試験プロフィール、対局作成0、削除0。詳しい全試行・hash・範囲は `docs/REWARD_GACHA_RELEASE_20260911.md` と `docs/REWARD_GACHA_LIVE_20260911.json`。UDL-059のみPUBLIC_VERIFIED。返答待ちautomationはPAUSED実読戻し済みで、文書整理や他の未完改修を公開条件に追加していない。
+
 ## 2026-09-11 UDL-052 属性識別slice公開
 
 候補/main `ce6fab535235d7aff90d0bc846bbfb648c9a56e4`、Astra実承認007（a5e21358）、Windows34533968562成功後、Pages34554265788成功。公開HTML/app/intentsは候補Git blobとbyte一致。candidate preflight `ok:true`。2026-09-11T02:26:27.225Z、許可された新規CPU1対局で公開Chrome390/1280px・reload・基本色/おまけ残数・状態非変更の30/30 PASS。console 0、試験対局は通常投了で終了、削除なし。詳しいhashと範囲は `docs/PALETTE_ROLE_RELEASE_20260911.md`。

@@ -25,10 +25,11 @@ const key = config.match(/publishableKey:\s*"([^"]+)"/)?.[1];
 assert.ok(url && key);
 const remoteProfileKey = "fourColorMapGame.standard.online.v5.remote-profile";
 const checks = [];
-const report = { subject: "UDL-059-quiz-v1", candidateSha, profilesCreated: 0, quizzesCompleted: 0,
+const report = { subject: "UDL-059-quiz-v1", candidateSha, answerPacingMs: 700, profilesCreated: 0, quizzesCompleted: 0,
   explicitDraws: 0, matchesCreated: 0, physicalDevices: "NOT_RUN", faultInjection: "NONE",
   pendingAndZeroStock: "FIXED_CANDIDATE_BROWSER_GATE_ONLY", assetHashes: [], checks };
-let token, browserServer, context, failed = false, stage = "published candidate byte equality";
+let token, browserServer, context, page, failed = false, stage = "published candidate byte equality";
+const calls = [], reads = [], operationResponses = [];
 const hardTimeout = setTimeout(() => { console.error("FAIL safety timeout; no data deletion attempted"); process.exit(1); }, 240_000);
 const check = (label, value) => { assert.ok(value, label); checks.push(label); };
 async function bounded(label, promise, ms) {
@@ -58,10 +59,12 @@ async function request(endpoint, body, useToken = token) {
     const created = await request("/functions/v1/standard-game-action", { operation: "profile", expectedRevision: 0, displayName: "QuizGachaCanary", profileState: {} });
     report.profilesCreated = 1;
     check("new test profile persisted", created.revision === 1);
+    stage = "isolated Chrome launch";
     browserServer = await chromium.launchServer({ executablePath: "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe", headless: true, timeout: 20_000 });
     const browser = await chromium.connect(browserServer.wsEndpoint());
     context = await browser.newContext({ viewport: { width: 390, height: 844 }, reducedMotion: "reduce" });
     const bootstrap = await context.newPage();
+    stage = "test session bootstrap";
     await bootstrap.goto("https://sakuratamaro.github.io/four-color-map-game/", { waitUntil: "domcontentloaded", timeout: 30_000 });
     await bootstrap.evaluate(async ({ url, key, accessToken, refreshToken }) => {
       const { createClient } = await import("https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm");
@@ -71,32 +74,46 @@ async function request(endpoint, body, useToken = token) {
       client.auth.stopAutoRefresh();
     }, { url, key, accessToken: token, refreshToken: session.refresh_token });
     await bootstrap.close();
-    const calls = [], reads = [];
     let finished, warnings = 0, errors = 0;
     context.on("request", req => {
       if (req.url() === `${url}/functions/v1/standard-game-action` && req.method() === "POST") calls.push(req.postDataJSON());
     });
     context.on("response", res => {
+      if (res.url() === `${url}/functions/v1/standard-game-action`) {
+        const operation = res.request().postDataJSON()?.operation;
+        if (["quiz-start", "quiz-answer", "quiz-finish", "gacha"].includes(operation)) operationResponses.push({ operation, status: res.status() });
+      }
       if (res.url() === `${url}/functions/v1/standard-game-action` && res.request().postDataJSON()?.operation === "quiz-finish") {
         reads.push(res.json().then(value => { finished = value; }));
       }
     });
-    const page = await context.newPage();
+    page = await context.newPage();
     page.on("pageerror", () => { errors += 1; });
     page.on("console", msg => { if (msg.type() === "warning") warnings += 1; if (msg.type() === "error") errors += 1; });
     page.setDefaultTimeout(20_000);
+    stage = "public profile hydration";
     await page.goto(`${publicPage}#quiz`, { waitUntil: "domcontentloaded", timeout: 30_000 });
     await page.locator("#connectionBadge.good").waitFor();
-    const beforeTickets = await page.evaluate(key => JSON.parse(localStorage.getItem(key)).gachaTickets, remoteProfileKey);
-    stage = "ordinary ten-question quiz in public Chrome";
+    // The login badge precedes readProfile/hydrateProfileRow at boot.
+    await page.waitForFunction(key => Boolean(JSON.parse(localStorage.getItem(key) || "null")), remoteProfileKey);
+    await page.locator("#quizStart:not(:disabled)").waitFor();
+    const beforeTickets = await page.evaluate(key => JSON.parse(localStorage.getItem(key)).gachaTickets || {}, remoteProfileKey);
+    stage = "select previous gacha Lv5";
     await page.locator("#gachaLevel").selectOption("5");
+    stage = "select quiz Lv2";
     await page.locator("#quizLevel").selectOption("2");
+    stage = "start ordinary quiz";
     await page.locator("#quizStart").click();
     for (let i = 0; i < 10; i += 1) {
+      stage = `question ${i + 1} ready`;
       await page.waitForFunction(index => document.querySelector("#quizProgress").textContent === `${index + 1} / 10`
         && Boolean(document.querySelector("#quizOptions [data-quiz-option]:not(:disabled)")), i);
+      // Preserve the server's five-second QUIZ_TOO_FAST guard; do not alter clocks.
+      await page.waitForTimeout(report.answerPacingMs);
+      stage = `question ${i + 1} explicit answer`;
       await page.locator("#quizOptions [data-quiz-option]").first().click();
     }
+    stage = "quiz finished result";
     await page.locator("#quizResult:not(.hidden)").waitFor();
     await Promise.all(reads);
     check("one real quiz finish response", reads.length === 1 && Number.isSafeInteger(finished?.reward?.ticketLevel));
@@ -128,6 +145,7 @@ async function request(endpoint, body, useToken = token) {
     check("1280px no horizontal overflow", await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
     await page.reload({ waitUntil: "domcontentloaded", timeout: 30_000 });
     await page.locator("#connectionBadge.good").waitFor();
+    await page.waitForFunction(key => Boolean(JSON.parse(localStorage.getItem(key) || "null")), remoteProfileKey);
     check("tickets survive reload", JSON.stringify(afterTickets) === JSON.stringify(await page.evaluate(key => JSON.parse(localStorage.getItem(key)).gachaTickets, remoteProfileKey)));
     check("reload creates no duplicate finish or draw", calls.filter(c => c.operation === "quiz-finish").length === 1 && calls.filter(c => c.operation === "gacha").length === 1);
     check("no match operations", calls.every(c => !["cpu-start", "create", "join", "setup", "action", "cpu-action"].includes(c.operation)));
@@ -137,6 +155,16 @@ async function request(endpoint, body, useToken = token) {
     failed = true;
     report.failureStage = stage;
     report.errorKind = error?.name || "Error";
+    report.errorCode = error?.code || null;
+    // Only our assertion labels may be persisted; never browser URLs or auth input.
+    if (error?.code === "ERR_ASSERTION") report.failedCheck = error.message;
+    if (page) report.failureUi = await page.evaluate(() => ({
+      quizProgress: document.querySelector("#quizProgress")?.textContent,
+      quizStatus: document.querySelector("#quizStatus")?.textContent,
+      optionCount: document.querySelectorAll("#quizOptions [data-quiz-option]").length,
+      quizVisible: !document.querySelector("#quizPanel")?.classList.contains("hidden"),
+      gachaVisible: !document.querySelector("#gachaPanel")?.classList.contains("hidden"),
+    })).catch(() => null);
     console.error(`FAIL ${stage}`);
   } finally {
     try { if (context) await bounded("context-close", context.close(), 10_000); }
@@ -145,6 +173,8 @@ async function request(endpoint, body, useToken = token) {
     catch { failed = true; report.browserCleanup = "FAILED"; }
     clearTimeout(hardTimeout);
     report.cleanup = "NO_MATCH_CREATED_NO_DATA_DELETED";
+    report.operationCounts = Object.fromEntries(["quiz-start", "quiz-answer", "quiz-finish", "gacha"].map(operation => [operation, calls.filter(c => c.operation === operation).length]));
+    report.operationResponses = operationResponses;
     report.ok = !failed;
     report.completedAt = new Date().toISOString();
     console.log(JSON.stringify(report, null, 2));

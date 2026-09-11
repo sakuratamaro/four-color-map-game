@@ -4,6 +4,8 @@ CANON_RECEIPT version=shared-canon-v1.1 base=ce6fab535235d7aff90d0bc846bbfb648c9
 
 Owner: existing commander 01a07b56-616e-7733-9aae-90575659688e. Intake and status remain on the existing shared-canon branch. The product worktree is separate and clean; frozen root and previous palette worktree are preserved.
 
+Current outcome (2026-09-11 04:36 UTC): actual APPROVE_RELEASE 008 received, exact f8713d7 published to main/Pages34562271949, candidate bytes/preflight confirmed, real public Chrome 22/22 PASS. Full success/failure history: `docs/REWARD_GACHA_RELEASE_20260911.md` and `docs/REWARD_GACHA_LIVE_20260911.json`. The preparation and delivery notes below are historical snapshots, not a still-active review wait; existing automation is PAUSED.
+
 - Candidate: `f8713d7006da0619b9c356d53a472754833fb910`
 - Base: `ce6fab535235d7aff90d0bc846bbfb648c9a56e4`
 - Product branch: `codex/reward-gacha-level-20260911` (origin push confirmed)

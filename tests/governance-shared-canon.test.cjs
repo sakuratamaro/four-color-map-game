@@ -61,6 +61,37 @@ test("an active review wait stays bound to the delivered current candidate, not 
   assert.equal(c.completed_review_waits.some(row => row.root_request_message_id === c.wait_budget.root_request_message_id), false);
 });
 
+test("quiz reward release traces exact review and public behavior while retaining failed attempts", () => {
+  const log = JSON.parse(read("docs/CHATGPT_REVIEW_DECISIONS.json"));
+  const done = log.coordination.completed_slices.find(row => row.id === "UDL-20260911-059");
+  const review = log.decisions.find(row => row.review_id === done.review_id);
+  const evidence = JSON.parse(read(done.evidence_json));
+  assert.equal(done.state, "PUBLIC_VERIFIED_QUIZ_REWARD_LEVEL_NAVIGATION");
+  assert.equal(done.candidate_sha, review.subject_sha);
+  assert.equal(done.main_sha, review.subject_sha);
+  assert.equal(done.spec_snapshot_sha, review.spec_snapshot_sha);
+  assert.equal(done.review_response_message_id, "bbc180c1-1cdb-4754-b53b-71eec1e11895");
+  assert.equal(done.pages_run, "34562271949");
+  assert.equal(evidence.candidate_sha, done.candidate_sha);
+  assert.equal(evidence.pages_run, done.pages_run);
+  assert.equal(evidence.attempts.length, 4);
+  assert.deepEqual(evidence.attempts.map(row => row.ok), [false, false, false, true]);
+  assert.equal(evidence.attempts.reduce((sum, row) => sum + row.profilesCreated, 0), 4);
+  const final = evidence.attempts.at(-1);
+  assert.equal(final.checks.length, 22);
+  assert.equal(final.faultInjection, "NONE");
+  assert.deepEqual(final.operationCounts, { "quiz-start": 1, "quiz-answer": 10, "quiz-finish": 1, gacha: 1 });
+  assert.ok(final.operationResponses.every(row => row.status === 200));
+  assert.equal(final.reward.ticketLevel, 1, "live reward level is observed, not relabeled as the Lv2 fixture");
+  assert.equal(done.physical_devices, "NOT_RUN");
+  assert.equal(evidence.public_preflight.ok, true);
+  assert.match(read(done.evidence), /22\/22 PASS/);
+  const wait = [...log.coordination.completed_review_waits, log.coordination.wait_budget]
+    .find(row => row.subject_sha === done.candidate_sha);
+  assert.equal(wait.status, "review_received_closed");
+  assert.equal(wait.response_message_id, review.source.message_id);
+});
+
 test("shared canon entrypoint routes to the existing authorities", () => {
   const agents = read("AGENTS.md");
   const canon = read("docs/SHARED_CANON.md");
@@ -152,6 +183,7 @@ test("ChatGPT review records require an exact subject and cannot imply productio
         "CHATGPT-REVIEW-20260910-004": ["2e5e1d050adb60640454a17281b989e0af642df0", "2f855ccfef11d7c099cfb73fb57ec3da79be8789", "UDL-055-v1", "f6d3c85f7d30e599f1ea1682516a5776fbc24899", "Pages-only game bugfix"],
         "CHATGPT-REVIEW-20260910-005": ["5c03e6c2d0e94c843776ea7eae0d7bbe2917a174", "2f855ccfef11d7c099cfb73fb57ec3da79be8789", "UDL-055-v1", "f6d3c85f7d30e599f1ea1682516a5776fbc24899", "Pages-only game bugfix"],
         "CHATGPT-REVIEW-20260911-007": ["ce6fab535235d7aff90d0bc846bbfb648c9a56e4", "5c03e6c2d0e94c843776ea7eae0d7bbe2917a174", "UDL-052-roles-v1", "5652a3f41caa453c67cb69fbe80a7a14a6a5c2ef", "Pages_only"],
+        "CHATGPT-REVIEW-20260911-008": ["f8713d7006da0619b9c356d53a472754833fb910", "ce6fab535235d7aff90d0bc846bbfb648c9a56e4", "UDL-059-quiz-v1", "d548792499924e84709957750dabdd5106d9f99a", "Pages_only"],
       };
       assert.ok(bindings[decision.review_id], "each genuine review needs an explicit exact binding");
       assert.deepEqual([decision.subject_sha, decision.base_sha, decision.feature_spec_version,

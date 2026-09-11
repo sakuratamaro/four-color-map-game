@@ -1,0 +1,346 @@
+{
+  "kind": "public_canary_execution_evidence",
+  "request_id": "UDL-20260911-059",
+  "candidate_sha": "f8713d7006da0619b9c356d53a472754833fb910",
+  "pages_run": "34562271949",
+  "attempts": [
+    {
+      "subject": "UDL-059-quiz-v1",
+      "candidateSha": "f8713d7006da0619b9c356d53a472754833fb910",
+      "profilesCreated": 1,
+      "quizzesCompleted": 0,
+      "explicitDraws": 0,
+      "matchesCreated": 0,
+      "physicalDevices": "NOT_RUN",
+      "faultInjection": "NONE",
+      "assetHashes": [
+        {
+          "file": "index.html",
+          "sha256": "5c81e8f0006da8bff414e8ae5532c589a5e3396dcf30390e4f03b4603847be73"
+        },
+        {
+          "file": "app.js",
+          "sha256": "a2640e6fca8dc4c0fb2178211c616d2b3c41781b1dcccdf3aae47a2dc2938ca5"
+        }
+      ],
+      "checks": [
+        "index.html: HTTP 200",
+        "index.html: exact published candidate bytes",
+        "app.js: HTTP 200",
+        "app.js: exact published candidate bytes",
+        "new anonymous test session",
+        "new test profile persisted"
+      ],
+      "failureStage": "new isolated test profile",
+      "errorKind": "Error",
+      "cleanup": "NO_MATCH_CREATED_NO_DATA_DELETED",
+      "ok": false,
+      "completedAt": "2026-09-11T04:28:46.650Z"
+    },
+    {
+      "subject": "UDL-059-quiz-v1",
+      "candidateSha": "f8713d7006da0619b9c356d53a472754833fb910",
+      "profilesCreated": 1,
+      "quizzesCompleted": 0,
+      "explicitDraws": 0,
+      "matchesCreated": 0,
+      "physicalDevices": "NOT_RUN",
+      "faultInjection": "NONE",
+      "pendingAndZeroStock": "FIXED_CANDIDATE_BROWSER_GATE_ONLY",
+      "assetHashes": [
+        {
+          "file": "index.html",
+          "sha256": "5c81e8f0006da8bff414e8ae5532c589a5e3396dcf30390e4f03b4603847be73"
+        },
+        {
+          "file": "app.js",
+          "sha256": "a2640e6fca8dc4c0fb2178211c616d2b3c41781b1dcccdf3aae47a2dc2938ca5"
+        }
+      ],
+      "checks": [
+        "index.html: HTTP 200",
+        "index.html: exact published candidate bytes",
+        "app.js: HTTP 200",
+        "app.js: exact published candidate bytes",
+        "new anonymous test session",
+        "new test profile persisted"
+      ],
+      "failureStage": "ordinary ten-question quiz in public Chrome",
+      "errorKind": "TimeoutError",
+      "errorCode": null,
+      "cleanup": "NO_MATCH_CREATED_NO_DATA_DELETED",
+      "ok": false,
+      "completedAt": "2026-09-11T04:32:26.375Z"
+    },
+    {
+      "subject": "UDL-059-quiz-v1",
+      "candidateSha": "f8713d7006da0619b9c356d53a472754833fb910",
+      "profilesCreated": 1,
+      "quizzesCompleted": 0,
+      "explicitDraws": 0,
+      "matchesCreated": 0,
+      "physicalDevices": "NOT_RUN",
+      "faultInjection": "NONE",
+      "pendingAndZeroStock": "FIXED_CANDIDATE_BROWSER_GATE_ONLY",
+      "assetHashes": [
+        {
+          "file": "index.html",
+          "sha256": "5c81e8f0006da8bff414e8ae5532c589a5e3396dcf30390e4f03b4603847be73"
+        },
+        {
+          "file": "app.js",
+          "sha256": "a2640e6fca8dc4c0fb2178211c616d2b3c41781b1dcccdf3aae47a2dc2938ca5"
+        }
+      ],
+      "checks": [
+        "index.html: HTTP 200",
+        "index.html: exact published candidate bytes",
+        "app.js: HTTP 200",
+        "app.js: exact published candidate bytes",
+        "new anonymous test session",
+        "new test profile persisted"
+      ],
+      "failureStage": "quiz finished result",
+      "errorKind": "TimeoutError",
+      "errorCode": null,
+      "failureUi": {
+        "quizProgress": "10 / 10",
+        "quizStatus": "採点結果を保存できませんでした。同じ回答で安全に再試行できます。",
+        "optionCount": 0,
+        "quizVisible": true,
+        "gachaVisible": true
+      },
+      "cleanup": "NO_MATCH_CREATED_NO_DATA_DELETED",
+      "operationCounts": {
+        "quiz-start": 1,
+        "quiz-answer": 10,
+        "quiz-finish": 1,
+        "gacha": 0
+      },
+      "operationResponses": [
+        {
+          "operation": "quiz-start",
+          "status": 200
+        },
+        {
+          "operation": "quiz-answer",
+          "status": 200
+        },
+        {
+          "operation": "quiz-answer",
+          "status": 200
+        },
+        {
+          "operation": "quiz-answer",
+          "status": 200
+        },
+        {
+          "operation": "quiz-answer",
+          "status": 200
+        },
+        {
+          "operation": "quiz-answer",
+          "status": 200
+        },
+        {
+          "operation": "quiz-answer",
+          "status": 200
+        },
+        {
+          "operation": "quiz-answer",
+          "status": 200
+        },
+        {
+          "operation": "quiz-answer",
+          "status": 200
+        },
+        {
+          "operation": "quiz-answer",
+          "status": 200
+        },
+        {
+          "operation": "quiz-answer",
+          "status": 200
+        },
+        {
+          "operation": "quiz-finish",
+          "status": 409
+        }
+      ],
+      "ok": false,
+      "completedAt": "2026-09-11T04:35:04.483Z"
+    },
+    {
+      "subject": "UDL-059-quiz-v1",
+      "candidateSha": "f8713d7006da0619b9c356d53a472754833fb910",
+      "answerPacingMs": 700,
+      "profilesCreated": 1,
+      "quizzesCompleted": 1,
+      "explicitDraws": 1,
+      "matchesCreated": 0,
+      "physicalDevices": "NOT_RUN",
+      "faultInjection": "NONE",
+      "pendingAndZeroStock": "FIXED_CANDIDATE_BROWSER_GATE_ONLY",
+      "assetHashes": [
+        {
+          "file": "index.html",
+          "sha256": "5c81e8f0006da8bff414e8ae5532c589a5e3396dcf30390e4f03b4603847be73"
+        },
+        {
+          "file": "app.js",
+          "sha256": "a2640e6fca8dc4c0fb2178211c616d2b3c41781b1dcccdf3aae47a2dc2938ca5"
+        }
+      ],
+      "checks": [
+        "index.html: HTTP 200",
+        "index.html: exact published candidate bytes",
+        "app.js: HTTP 200",
+        "app.js: exact published candidate bytes",
+        "new anonymous test session",
+        "new test profile persisted",
+        "one real quiz finish response",
+        "saved reward differs from prior Lv5",
+        "persisted profile matches finish reward",
+        "reward link selects saved level",
+        "odds use saved level",
+        "navigation creates no draw",
+        "navigation consumes no ticket",
+        "one explicit draw uses displayed reward level",
+        "only selected-level ticket decremented",
+        "manual selection survives ordinary tab return",
+        "390px no horizontal overflow",
+        "1280px no horizontal overflow",
+        "tickets survive reload",
+        "reload creates no duplicate finish or draw",
+        "no match operations",
+        "console and page errors zero"
+      ],
+      "reward": {
+        "ticketLevel": 1,
+        "draws": 1
+      },
+      "liveGameplay": "REAL_PUBLIC_QUIZ_REWARD_NAVIGATION_EXPLICIT_DRAW_NO_MOCKS",
+      "cleanup": "NO_MATCH_CREATED_NO_DATA_DELETED",
+      "operationCounts": {
+        "quiz-start": 1,
+        "quiz-answer": 10,
+        "quiz-finish": 1,
+        "gacha": 1
+      },
+      "operationResponses": [
+        {
+          "operation": "quiz-start",
+          "status": 200
+        },
+        {
+          "operation": "quiz-answer",
+          "status": 200
+        },
+        {
+          "operation": "quiz-answer",
+          "status": 200
+        },
+        {
+          "operation": "quiz-answer",
+          "status": 200
+        },
+        {
+          "operation": "quiz-answer",
+          "status": 200
+        },
+        {
+          "operation": "quiz-answer",
+          "status": 200
+        },
+        {
+          "operation": "quiz-answer",
+          "status": 200
+        },
+        {
+          "operation": "quiz-answer",
+          "status": 200
+        },
+        {
+          "operation": "quiz-answer",
+          "status": 200
+        },
+        {
+          "operation": "quiz-answer",
+          "status": 200
+        },
+        {
+          "operation": "quiz-answer",
+          "status": 200
+        },
+        {
+          "operation": "quiz-finish",
+          "status": 200
+        },
+        {
+          "operation": "gacha",
+          "status": 200
+        }
+      ],
+      "ok": true,
+      "completedAt": "2026-09-11T04:36:58.527Z"
+    }
+  ],
+  "harness_followup": "Connection badge is set before readProfile and hydration. Added an explicit persisted-profile and enabled-quiz wait, stage labels, and empty pre-reward ticket-map handling. Product candidate unchanged. Read-only isolated browser launch/connect/public library import checks succeeded; no signup/quiz/draw in those diagnostics. Third attempt completed ten quiz-answer calls (HTTP 200), then quiz-finish returned 409. Existing SQL rejects quiz completion under five seconds; synthetic click pacing was absent. Error code was not captured for that attempt, so the precise rejection cause is inferred, not independently observed. Add real seven-second minimum answer pacing without changing game code or server guards.",
+  "result": {
+    "status": "PUBLIC_VERIFIED",
+    "successful_checks": 22,
+    "total_checks": 22,
+    "profiles_created_across_attempts": 4,
+    "matches_created_across_attempts": 0,
+    "data_deleted": false,
+    "final_attempt_only": {
+      "quizzes_completed": 1,
+      "explicit_gacha_draws": 1,
+      "reward_ticket_level": 1,
+      "reported_draws": 1
+    },
+    "early_attempt_operation_counts": "Not collected for attempts 1 and 2; do not infer their complete server activity from the failure stage.",
+    "physical_devices": "NOT_RUN"
+  },
+  "public_preflight": {
+    "ok": true,
+    "expectedPhase": "candidate",
+    "publicPage": {
+      "status": 200,
+      "title": "Four Color Map Game v5.0 Standard Online",
+      "hasPublicMatchmaking": true,
+      "hasCpuRoster": true,
+      "hasCosmetics": true,
+      "hasPregameAbandon": true,
+      "hasActiveRoomRecovery": true,
+      "hasLegalRecolorLab": true,
+      "hasWaitingOpponentNotice": true,
+      "hasAlpha3SkillCategoryWindow": true,
+      "hasAlpha4ColoredCornerBloom": true,
+      "hasRegistryRarityUi": true,
+      "hasCpuPortraits": true,
+      "hasWholeButtonQuizPhysics": true,
+      "hasBoardFirstCandidateGuidance": true,
+      "hasPerCellContactFeedback": true,
+      "hasApprovedGachaOddsUi": true,
+      "hasApprovedEdgeGachaOdds": true,
+      "hasDeferredCurseLocalBundle": true,
+      "hasRegionSplitDirectTarget": true,
+      "hasCompactCpuRecords": true,
+      "hasQuizAccuracyRecords": true,
+      "hasCpuSealTimingPolicy": true,
+      "hasMatchRewardEconomy": true,
+      "hasCandidateAssetGeneration": true
+    },
+    "database": {
+      "snapshotV1": "protected",
+      "snapshotV2": "protected",
+      "matchmaking": "protected",
+      "matchmakingAvailability": "protected",
+      "pregameAbandon": "protected",
+      "activeRoom": "protected",
+      "setupLoadV3": "protected",
+      "initializeRoomV3": "protected"
+    }
+  }
+}
