@@ -1,0 +1,210 @@
+{
+  "schema_version": 1,
+  "request": "UDL-20260910-048",
+  "initial_candidate": "a6c24f496338412a7cb4e933b0faba06cb28ccce",
+  "pages_run": "34629235891",
+  "public_preflight": {
+    "ok": true,
+    "expectedPhase": "candidate",
+    "publicPage": {
+      "status": 200,
+      "title": "Four Color Map Game v5.0 Standard Online",
+      "hasPublicMatchmaking": true,
+      "hasCpuRoster": true,
+      "hasCosmetics": true,
+      "hasPregameAbandon": true,
+      "hasActiveRoomRecovery": true,
+      "hasLegalRecolorLab": true,
+      "hasWaitingOpponentNotice": true,
+      "hasAlpha3SkillCategoryWindow": true,
+      "hasAlpha4ColoredCornerBloom": true,
+      "hasRegistryRarityUi": true,
+      "hasCpuPortraits": true,
+      "hasWholeButtonQuizPhysics": true,
+      "hasBoardFirstCandidateGuidance": true,
+      "hasPerCellContactFeedback": true,
+      "hasApprovedGachaOddsUi": true,
+      "hasApprovedEdgeGachaOdds": true,
+      "hasDeferredCurseLocalBundle": true,
+      "hasRegionSplitDirectTarget": true,
+      "hasCompactCpuRecords": true,
+      "hasQuizAccuracyRecords": true,
+      "hasCpuSealTimingPolicy": true,
+      "hasMatchRewardEconomy": true,
+      "hasCandidateAssetGeneration": true
+    },
+    "database": {
+      "snapshotV1": "protected",
+      "snapshotV2": "protected",
+      "matchmaking": "protected",
+      "matchmakingAvailability": "protected",
+      "pregameAbandon": "protected",
+      "activeRoom": "protected",
+      "setupLoadV3": "protected",
+      "initializeRoomV3": "protected"
+    }
+  },
+  "attempts": [
+    {
+      "subject": "UDL-20260910-048",
+      "candidateSha": "a6c24f496338412a7cb4e933b0faba06cb28ccce",
+      "profilesCreated": 1,
+      "quizzesStarted": 1,
+      "quizzesCompleted": 1,
+      "matchesCreated": 0,
+      "explicitDraws": 0,
+      "physicalDevices": "NOT_RUN",
+      "faultInjection": "NONE",
+      "assetHashes": [
+        {
+          "file": "index.html",
+          "sha256": "f48341392f3aac8cd29f7755c35a9a164e6494b4d516fb20bf6460e5e9874292"
+        },
+        {
+          "file": "app.js",
+          "sha256": "8700f528d71d5347b691d01c2fa40f13541962496e1cac61f4c5325d5b340dcf"
+        },
+        {
+          "file": "quiz-memo.js",
+          "sha256": "0026bbf0e68c7f78e82fdc8c9717861e816a105ec278e2081e083fd1f6976382"
+        },
+        {
+          "file": "quiz-calculator.js",
+          "sha256": "04a93a1c45874acb562ef77c89db35a6d1f400591e7e7faf64b5cd67a04f26c1"
+        },
+        {
+          "file": "quiz-scratch-state.js",
+          "sha256": "1d2332c7e0b75dbed3260b01cdc5de097a8e422758dc4800a22f4561540f03d1"
+        },
+        {
+          "file": "quiz-memo-canvas.js",
+          "sha256": "1c02675868c7310bbbb767b723d1525e0cb74770a1f5f2ac67ded7e8aaa38547"
+        },
+        {
+          "file": "quiz-memo.css",
+          "sha256": "ce7ccd358a7e2ad2bd704017ac012c92c8931cd5af14d5906f1d8689838b81a2"
+        }
+      ],
+      "checks": [
+        "index.html: HTTP 200",
+        "index.html: exact candidate bytes",
+        "app.js: HTTP 200",
+        "app.js: exact candidate bytes",
+        "quiz-memo.js: HTTP 200",
+        "quiz-memo.js: exact candidate bytes",
+        "quiz-calculator.js: HTTP 200",
+        "quiz-calculator.js: exact candidate bytes",
+        "quiz-scratch-state.js: HTTP 200",
+        "quiz-scratch-state.js: exact candidate bytes",
+        "quiz-memo-canvas.js: HTTP 200",
+        "quiz-memo-canvas.js: exact candidate bytes",
+        "quiz-memo.css: HTTP 200",
+        "quiz-memo.css: exact candidate bytes",
+        "new anonymous test session",
+        "new test profile persisted",
+        "memo enables and background is inert",
+        "scratch canvas is transparent",
+        "native mouse creates a multi-point stroke",
+        "four operations calculate independently",
+        "memo does not pause timer",
+        "no answer while memo used",
+        "pending quiz contains no scratch data",
+        "390px no horizontal overflow",
+        "OFF restores background and pointer access",
+        "same-question reload preserves ink and calculator",
+        "resize preserves normalized ink",
+        "1280px no horizontal overflow",
+        "next acknowledged question clears scratch",
+        "next question calculator is empty",
+        "completion clears scratch and hides entry",
+        "exactly one start ten answers one finish",
+        "scratch and calculator never enter network payloads",
+        "no match or gacha operations",
+        "no unsuccessful API response",
+        "console and page errors zero"
+      ],
+      "liveGameplay": "REAL_PUBLIC_LV5_MEMO_CALCULATOR_RELOAD_ACK_CLEAR_COMPLETION_NO_MOCKS",
+      "cleanup": "NO_MATCH_CREATED_NO_DATA_DELETED",
+      "operationCounts": {
+        "quiz-start": 1,
+        "quiz-answer": 10,
+        "quiz-finish": 1,
+        "gacha": 0
+      },
+      "operationResponses": [
+        {
+          "operation": "cosmetic-catalog",
+          "status": 200
+        },
+        {
+          "operation": "quiz-start",
+          "status": 200
+        },
+        {
+          "operation": "cosmetic-catalog",
+          "status": 200
+        },
+        {
+          "operation": "quiz-answer",
+          "status": 200
+        },
+        {
+          "operation": "quiz-answer",
+          "status": 200
+        },
+        {
+          "operation": "quiz-answer",
+          "status": 200
+        },
+        {
+          "operation": "quiz-answer",
+          "status": 200
+        },
+        {
+          "operation": "quiz-answer",
+          "status": 200
+        },
+        {
+          "operation": "quiz-answer",
+          "status": 200
+        },
+        {
+          "operation": "quiz-answer",
+          "status": 200
+        },
+        {
+          "operation": "quiz-answer",
+          "status": 200
+        },
+        {
+          "operation": "quiz-answer",
+          "status": 200
+        },
+        {
+          "operation": "quiz-answer",
+          "status": 200
+        },
+        {
+          "operation": "quiz-finish",
+          "status": 200
+        }
+      ],
+      "ok": true,
+      "completedAt": "2026-09-11T17:45:11.091Z"
+    }
+  ],
+  "visual_inspection": {
+    "status": "FAIL_PORTRAIT_QUESTION_OFFSCREEN",
+    "functional_checks_passed": 36,
+    "physical_devices": "NOT_RUN",
+    "source": "Commander inspected public 390px screenshot and reproduced with native mouse/keyboard on local Chrome.",
+    "reproducer": {
+      "question_top": 908.34375,
+      "question_bottom": 982.34375,
+      "viewport_height": 844
+    },
+    "cause": "The fixed bottom tab bar returns computed top in pixels and was counted as a top obstruction.",
+    "followup_candidate": "c4be0ec19217b04186dc9d721b99760f103f0872",
+    "goal_complete": false
+  }
+}

@@ -48,7 +48,7 @@ const readScratch = () => page.evaluate(k => JSON.parse(sessionStorage.getItem(k
 (async () => {
   try {
     for (const file of ["index.html", "app.js", "quiz-memo.js", "quiz-calculator.js", "quiz-scratch-state.js", "quiz-memo-canvas.js", "quiz-memo.css"]) {
-      const suffix = file === "index.html" ? "" : `${file}?v=${file === "app.js" ? "20260912-28" : "20260912-1"}`;
+      const suffix = file === "index.html" ? "" : `${file}?v=${file === "app.js" ? "20260912-29" : file === "quiz-memo.css" ? "20260912-2" : "20260912-1"}`;
       const response = await fetch(publicPage + suffix, { signal: AbortSignal.timeout(20_000), cache: "no-store" });
       check(`${file}: HTTP 200`, response.status === 200);
       const bytes = Buffer.from(await response.arrayBuffer());
@@ -96,6 +96,9 @@ const readScratch = () => page.evaluate(k => JSON.parse(sessionStorage.getItem(k
     stage = "ordinary Lv5 memo and arithmetic";
     await page.locator("#quizMemoOn").click();
     check("memo enables and background is inert", await page.locator("main").evaluate(node => node.inert));
+    check("portrait question visible when memo opens", await page.locator("#quizQuestion").evaluate(node => {
+      const r = node.getBoundingClientRect(); return r.top >= 0 && r.bottom < innerHeight;
+    }));
     check("scratch canvas is transparent", await page.locator("#quizMemoCanvas").evaluate(node => getComputedStyle(node).backgroundColor === "rgba(0, 0, 0, 0)"));
     const beforeTimer = await page.locator("#quizTimeBar").evaluate(node => parseFloat(node.style.width));
     await page.mouse.move(25, 350); await page.mouse.down(); await page.mouse.move(55, 450, { steps: 10 }); await page.mouse.up();
@@ -106,6 +109,10 @@ const readScratch = () => page.evaluate(k => JSON.parse(sessionStorage.getItem(k
     await page.locator("#quizCalculatorExpression").fill("(1234.56+2)*3");
     await page.locator("#quizCalculatorExpression").press("Enter");
     check("four operations calculate independently", await page.locator("#quizCalculatorResult").textContent() === "3709.68");
+    check("expanded portrait calculator leaves question visible", await page.locator("#quizQuestion").evaluate(node => {
+      const r = node.getBoundingClientRect(); const tools = document.querySelector("#quizMemoTools").getBoundingClientRect();
+      return r.top >= 0 && r.bottom <= tools.top;
+    }));
     check("memo does not pause timer", await page.locator("#quizTimeBar").evaluate(node => parseFloat(node.style.width)) < beforeTimer);
     check("no answer while memo used", calls.filter(c => c.operation === "quiz-answer").length === 0);
     check("pending quiz contains no scratch data", await page.evaluate(k => !/scratch|calculator|operations/.test(localStorage.getItem(k)), pendingKey));
