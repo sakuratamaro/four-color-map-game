@@ -3479,11 +3479,12 @@ function renderSkills(state, privateState) {
   const box = $("skillControls"); box.replaceChildren();
   const myTurn = state.status === "ACTIVE" && state.active === roomModel?.view?.seat;
   const usedCategories = new Set(state.skillCategoryWindow?.categories || []);
+  let categoryNote = null;
   if (usedCategories.size) {
     const note = document.createElement("p");
     note.className = "small skill-category-note";
     note.textContent = `この手番で使用済み：${[...usedCategories].map((category) => CATEGORY_LABEL[category] || category).join("・")}（同じ種類は次の手番まで使えません）`;
-    box.appendChild(note);
+    categoryNote = note;
   }
   if (targetDraft && (targetDraft.roomId !== roomModel?.room?.id || targetDraft.matchId !== state.matchId || targetDraft.version !== state.version)) {
     targetDraft = null;
@@ -3518,6 +3519,7 @@ function renderSkills(state, privateState) {
     info.type = "button"; info.setAttribute("aria-label", `${meta.name}の説明`); info.title = `${meta.name}の説明`;
     item.append(node, info); box.appendChild(item);
   }
+  if (categoryNote) box.appendChild(categoryNote);
   renderSkillTarget(state, privateState);
 }
 

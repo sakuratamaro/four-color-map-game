@@ -128,11 +128,19 @@ test("UDL054 UDL063 board palette viewport and stable three-by-two hand", { time
         await page.screenshot({path:path.join(process.env.UI_DIET_SCREENSHOTS,`${browserName}-play-${viewport.width}.png`)});
       }
     }
+    await page.setViewportSize({width:390,height:844});
+    const slotOffsets = () => page.locator("#skillControls .skill-entry").evaluateAll(nodes => {
+      const origin = document.getElementById("skillControls").getBoundingClientRect();
+      return nodes.map(n=>{const r=n.getBoundingClientRect();return [r.x-origin.x,r.y-origin.y];});
+    });
+    const offsetsBefore = await slotOffsets();
     const orderBefore = await page.locator("#skillControls .skill").evaluateAll(nodes=>nodes.map(n=>n.dataset.skill));
-    await page.evaluate(id=>{ const r=globalThis.__standardOnlineRuntime;r.view.private_state.hand[id]=0;r.onInvalidate(); },ids[0]);
+    await page.evaluate(id=>{ const r=globalThis.__standardOnlineRuntime;r.view.private_state.hand[id]=0;
+      r.room.public_state.skillCategoryWindow={categories:["color"]};r.onInvalidate(); },ids[0]);
     await page.locator('#skillControls .is-used .skill[data-skill="colorRandomBorrow"]').waitFor();
     assert.deepEqual(await page.locator("#skillControls .skill").evaluateAll(nodes=>nodes.map(n=>n.dataset.skill)),orderBefore);
     assert.equal(await page.locator('#skillControls .skill[data-skill="colorRandomBorrow"]').isDisabled(),true);
+    assert.deepEqual(await slotOffsets(), offsetsBefore, "category-used guidance must not push all six slots down");
     if (process.env.UI_DIET_SCREENSHOTS) {
       await page.setViewportSize({width:390,height:844});
       await page.locator("#skillControls").screenshot({path:path.join(process.env.UI_DIET_SCREENSHOTS,`${browserName}-hand-390.png`)});
@@ -144,7 +152,7 @@ test("UDL054 UDL063 board palette viewport and stable three-by-two hand", { time
   }, {viewport:{width:390,height:844}});
 });
 
-test("UDL054 keeps a palette-change cause visible with the board and has a short-screen fallback", {timeout:130000}, async()=>{
+test("UDL054 keeps a palette-change cause visible with the board and has a short-screen fallback", { timeout: 130000 }, async () => {
   await withPage("colorResponse",async page=>{
     await page.locator("#paletteControls .color-button").first().waitFor();
     await page.locator("#randomReveal").waitFor({state:"hidden"});
