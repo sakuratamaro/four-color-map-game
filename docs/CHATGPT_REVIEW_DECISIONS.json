@@ -41,7 +41,7 @@
     }
   ],
   "coordination": {
-    "status": "ui_entrance_local_verified_review_prepared_windows_running",
+    "status": "ui_entrance_review_delivered_windows_running",
     "latest_v8_intake": {
       "state": "PAIRED_SOURCE_MAPPED_CANONICAL_UI_GOAL_QUEUED_ZIP_PENDING",
       "source_thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
@@ -219,27 +219,40 @@
       "spec_path": "docs/UI_DIET_ENTRANCE_20260912.md",
       "spec_version": "UDL-023-entrance-v1",
       "candidate_sha": "a9b2ff984c448819483286eae5acfa91530fc5db",
-      "review_status": "PENDING_SEND",
+      "review_status": "PENDING",
       "public_gameplay": "NOT_RUN",
       "physical_devices": "NOT_RUN",
       "scope": "Pages_only",
       "db_change_set": [],
       "edge_change_set": [],
-      "next_action": "Implement entrance and executable regressions; exact review and Windows gate before publication.",
+      "next_action": "Diagnose Windows browser failures without changing the submitted candidate; preserve fixed review and non-resetting wait.",
       "spec_snapshot_sha": "d5c0f6e8b6de875d844eaf9bd8c154e281472952",
       "local_tests": "clean901/901, actualChrome9/9 and Edge9/9 skip0; three builders zero diff; earlier dirty898/901 retained",
       "windows_run": "34635024201",
-      "windows_status": "IN_PROGRESS",
+      "windows_status": "FAILURE",
       "review_send_attempts": 1,
       "review_packet": "docs/ASTRA_UI_ENTRANCE_REVIEW_20260912.md",
-      "review_send_reserved_at_utc": "2026-09-11T18:49:00Z"
+      "review_send_reserved_at_utc": "2026-09-11T18:49:00Z",
+      "review_request_message_id": "6d1b03f6-b19b-4b6e-935f-78c9afb0dbaa",
+      "review_delivery_checks": 2,
+      "review_source_artifact_sha": "720baea3031e9f520a57477451adef1991c2075f",
+      "review_delivery_note": "First transport read stale; second exact paired prompt equality; no response, no resend.",
+      "prepared_revision": {
+        "subject_sha": "93c05c7c68576b28a126588d0716f0f56c015531",
+        "feature_spec_version": "UDL-023-entrance-v1.1",
+        "spec_snapshot_sha": "dd839a5424fc13ecd9d6b604023666b1996cbd76",
+        "review_status": "NOT_REQUESTED_CURRENT_REVIEW_A9_ONLY",
+        "reason": "Both initial Windows jobs failed real quiz notice/option overlap after profile hiding. CSS scroll-margin90 and native every-option regression fix; Chrome6/6; clean/Edge running. No main/Pages changes.",
+        "original_windows": "34635024201_FAILURE_BOTH",
+        "original_budget_preserved": true
+      }
     },
     "automation_id": "automation",
-    "automation_status_at_recording": "PAUSED",
-    "automation_readback_updated_at": 1789148333425,
+    "automation_status_at_recording": "ACTIVE",
+    "automation_readback_updated_at": 1789152818266,
     "automation_prompt_readback_equal": true,
-    "automation_pause_reason": "Exact complete paired APPROVE_RELEASE received during user-resumed normal commander work. API and saved config PAUSED, prompt unchanged. No pending review.",
-    "automation_active_reason": null,
+    "automation_pause_reason": null,
+    "automation_active_reason": "Independent UI request delivered; original closed memo wait preserved.20/40/100 max3 before20:51:55Z.",
     "completed_review_waits": [
       {
         "root_request_message_id": "8464f659-ad62-4c09-83d9-44e1cc91316b",
@@ -311,13 +324,40 @@
         "closed_at_utc": "2026-09-11T04:26:33Z",
         "manual_checks": 1,
         "close_trigger": "User notified the normal commander that Astra had replied. No automatic counter or deadline reset."
+      },
+      {
+        "root_request_message_id": "94d51f28-a7ba-48fe-b175-dfb951eba226",
+        "subject_sha": "a6c24f496338412a7cb4e933b0faba06cb28ccce",
+        "started_at_utc": "2026-09-11T17:25:00Z",
+        "expires_at_utc": "2026-09-11T19:25:00Z",
+        "automatic_checks": 0,
+        "max_automatic_checks": 3,
+        "offset_minutes": [
+          20,
+          40,
+          100
+        ],
+        "next_check_utc": null,
+        "max_age_minutes": 120,
+        "reset_on_candidate_revision": false,
+        "reset_on_restart_or_unrelated_message": false,
+        "confirmed_delivery_reminders": 0,
+        "status": "review_received_closed",
+        "start_note": "Conservative minute preceding the second bounded transport read; full prompt equality confirmed. No response acquired and no reminder.",
+        "response_message_id": "c2ade94f-bf09-40c8-b010-302d17264a30",
+        "received_at_utc": "2026-09-11T17:41:17Z",
+        "followup_note": "The follow-up fixes a newly discovered public visual defect; retain the original 17:25 start, 19:25 expiry and automatic-check count. Approval009 is closed for its original candidate and not reused.",
+        "followup_request_message_id": "7480776e-6929-493c-b09f-64b544fd61d7",
+        "followup_response_message_id": "ffc94034-65a2-45b0-93d9-c04062e27fcc",
+        "followup_subject_sha": "a26ffd14a8f896d9d087dac032d8f079ece82f7d",
+        "followup_status": "review_received_closed_same_original_deadline_no_automatic_reads"
       }
     ],
     "wait_budget": {
-      "root_request_message_id": "94d51f28-a7ba-48fe-b175-dfb951eba226",
-      "subject_sha": "a6c24f496338412a7cb4e933b0faba06cb28ccce",
-      "started_at_utc": "2026-09-11T17:25:00Z",
-      "expires_at_utc": "2026-09-11T19:25:00Z",
+      "root_request_message_id": "6d1b03f6-b19b-4b6e-935f-78c9afb0dbaa",
+      "subject_sha": "a9b2ff984c448819483286eae5acfa91530fc5db",
+      "started_at_utc": "2026-09-11T18:51:55Z",
+      "expires_at_utc": "2026-09-11T20:51:55Z",
       "automatic_checks": 0,
       "max_automatic_checks": 3,
       "offset_minutes": [
@@ -325,22 +365,27 @@
         40,
         100
       ],
-      "next_check_utc": null,
+      "next_check_utc": "2026-09-11T19:11:55Z",
       "max_age_minutes": 120,
       "reset_on_candidate_revision": false,
       "reset_on_restart_or_unrelated_message": false,
       "confirmed_delivery_reminders": 0,
-      "status": "review_received_closed",
-      "start_note": "Conservative minute preceding the second bounded transport read; full prompt equality confirmed. No response acquired and no reminder.",
-      "response_message_id": "c2ade94f-bf09-40c8-b010-302d17264a30",
-      "received_at_utc": "2026-09-11T17:41:17Z",
-      "followup_note": "The follow-up fixes a newly discovered public visual defect; retain the original 17:25 start, 19:25 expiry and automatic-check count. Approval009 is closed for its original candidate and not reused.",
-      "followup_request_message_id": "7480776e-6929-493c-b09f-64b544fd61d7",
-      "followup_response_message_id": "ffc94034-65a2-45b0-93d9-c04062e27fcc",
-      "followup_subject_sha": "a26ffd14a8f896d9d087dac032d8f079ece82f7d",
-      "followup_status": "review_received_closed_same_original_deadline_no_automatic_reads"
+      "status": "review_pending",
+      "start_note": "Separate UI logical review after closed memo goal; second bounded transport read confirmed exact full prompt. No completed response yet; not a reset of the closed memo wait."
     },
-    "pending_review_subject": null,
+    "pending_review_subject": {
+      "subject_sha": "a9b2ff984c448819483286eae5acfa91530fc5db",
+      "base_sha": "a26ffd14a8f896d9d087dac032d8f079ece82f7d",
+      "canon_version": "shared-canon-v1.1",
+      "feature_spec_version": "UDL-023-entrance-v1",
+      "spec_snapshot_sha": "d5c0f6e8b6de875d844eaf9bd8c154e281472952",
+      "spec_snapshot_kind": "git_blob:docs/UI_DIET_ENTRANCE_20260912.md",
+      "scope": "Pages_only",
+      "review_kind": "game_production_release_approval",
+      "db_change_set": [],
+      "edge_change_set": [],
+      "reviewer_thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4"
+    },
     "documentation_test_followup": {
       "path": "tests/governance-shared-canon.test.cjs",
       "observation": "Genuine review 008 binds UDL-059-quiz-v1, not prior UDL-055 or UDL-052 candidates.",
@@ -349,11 +394,11 @@
       "boundary": "Governance evidence maintenance did not amend or block independently approved product f8713d7."
     },
     "initial_interval_minutes": 20,
-    "pending_subject_sha": null,
-    "pending_scope": null,
-    "pending_delivery_status": "review_received_closed",
-    "last_confirmed_sent_message_id": "7480776e-6929-493c-b09f-64b544fd61d7",
-    "last_sent_message_id": "7480776e-6929-493c-b09f-64b544fd61d7",
+    "pending_subject_sha": "a9b2ff984c448819483286eae5acfa91530fc5db",
+    "pending_scope": "Pages_only",
+    "pending_delivery_status": "delivery_verified_response_pending",
+    "last_confirmed_sent_message_id": "6d1b03f6-b19b-4b6e-935f-78c9afb0dbaa",
+    "last_sent_message_id": "6d1b03f6-b19b-4b6e-935f-78c9afb0dbaa",
     "self_sent_message_ids": [
       "ef6f161d-f2b9-40c0-ab06-f6eacf4c4d38",
       "cefaccf8-2648-4d63-b7fe-5a4a78023ec2",
@@ -365,9 +410,10 @@
       "9a175c4b-6ab1-4236-b5b6-1d47fbf84ad4",
       "0e59ad44-7ce7-440b-ac6f-11d325bd1e68",
       "94d51f28-a7ba-48fe-b175-dfb951eba226",
-      "7480776e-6929-493c-b09f-64b544fd61d7"
+      "7480776e-6929-493c-b09f-64b544fd61d7",
+      "6d1b03f6-b19b-4b6e-935f-78c9afb0dbaa"
     ],
-    "sent_at_utc": "2026-09-11T17:22:00Z",
+    "sent_at_utc": "2026-09-11T18:50:08Z",
     "last_check_utc": "2026-09-11T17:25:27Z",
     "unchanged_checks": 0,
     "reminder_count": 0,
@@ -556,6 +602,24 @@
         "UDL-20260912-063"
       ],
       "preparation": "docs/UI_DIET_PREPARATION_20260912.md"
+    },
+    "preparing_next_slice": {
+      "request_ids": [
+        "UDL-20260910-052",
+        "UDL-20260910-054",
+        "UDL-20260912-063"
+      ],
+      "owner_thread_id": "01a07b56-616e-7733-9aae-90575659688e",
+      "state": "INDEPENDENT_LOCAL_PREPARATION",
+      "base_sha": "a9b2ff984c448819483286eae5acfa91530fc5db",
+      "base_status": "PENDING_ENTRANCE_PUBLICATION_NOT_CURRENT_MAIN",
+      "worktree": ".codex-worktrees/ui-play-surface-20260912",
+      "branch": "codex/ui-play-surface-20260912",
+      "scope": "role palette, board viewport, stable hand; no engine/DB/Edge changes",
+      "review_status": "NOT_REQUESTED",
+      "publication": "NOT_RUN",
+      "candidate_sha": "becf83ceb6f0df4ec3f6886dd22e4d3ab2427266",
+      "local_tests": "5/5 pure model,6144 own palette projections, no DOM or publication yet"
     }
   },
   "decisions": [

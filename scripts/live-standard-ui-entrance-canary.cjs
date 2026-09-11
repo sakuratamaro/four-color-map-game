@@ -48,7 +48,7 @@ const readScratch = () => page.evaluate(k => JSON.parse(sessionStorage.getItem(k
 (async () => {
   try {
     for (const file of ["index.html", "app.js", "ui-diet.css"]) {
-      const suffix = file === "index.html" ? "" : `${file}?v=${file === "app.js" ? "20260912-30" : "20260912-1"}`;
+      const suffix = file === "index.html" ? "" : `${file}?v=${file === "app.js" ? "20260912-30" : "20260912-2"}`;
       const response = await fetch(publicPage + suffix, { signal: AbortSignal.timeout(20_000), cache: "no-store" });
       check(`${file}: HTTP 200`, response.status === 200);
       const bytes = Buffer.from(await response.arrayBuffer());
