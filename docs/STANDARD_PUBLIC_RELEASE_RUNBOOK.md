@@ -162,6 +162,7 @@ rollbackも「旧version番号へ戻った」という目視だけでは完了�
 `docs/QUIZ_MEMO_CALCULATOR_20260912.md` (`UDL-048-memo-v1`) を仕様とするPages-only候補。基準は `f8713d7006da0619b9c356d53a472754833fb910`。DB・Edge変更セットはともに `[]` であり、この便のために再配備しない。
 
 1. clean候補SHA・仕様blobを固定し、既存生成bundleの差分ゼロ、全非browser試験、UDL-048のChrome/Edge実browser試験とWindows gateを確認する。
+   - 現在のブラウザー操作接続はtimeout、GitHub連携のPR作成は403。旧CI投入branchは候補の祖先ではないためforce更新しない。既存workflowのpush対象へ専用branch `codex/quiz-memo-calculator-20260912` だけを追加し、同一候補をWindows検証する。main・全branchへのtrigger拡大、権限追加、新workflowは行わない。
 2. 既存アストラ会話へ固定候補の全差分・仕様・試験証拠を渡す。候補SHA／仕様版・blob／DB `[]`／Edge `[]` に一致するゲーム公開判定が必要。文書承認や別候補の承認を流用しない。
 3. fresh `origin/main` が候補の祖先であることを再確認してforceなしでfast-forwardする。同一SHAのPages成功後、online app `app.js?v=20260912-28` とメモの4 JS／CSS `v=20260912-1` を含め、公開byte/SHAを固定候補に突き合わせる。
 4. 公開candidate preflight、390pxとPC幅、実Lv.5クイズでメモON/OFF・描画・四則計算・同問reload保持・次問ACK後消去を確認する。サーバー状態・時計を注入せず、通信にメモが混入しないこと、console errorと横overflowがないことを記録する。
