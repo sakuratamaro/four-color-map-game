@@ -2359,6 +2359,21 @@ test("UDL060 explicit human next-opponent exit keeps server history and starts n
   },{viewport:{width:390,height:844}});
 });
 
+test("UDL060 human overlay explicitly closes the displayed result before another opponent without server writes", { timeout: 130000 }, async () => {
+  await withPage("resultRewardHuman",async page=>{
+    const next=page.locator("#terminalChooseAnother");
+    await next.waitFor();
+    assert.equal(await next.textContent(),"結果を閉じて別の相手を選ぶ");
+    const before=await page.evaluate(()=>JSON.stringify({room:globalThis.__standardOnlineRuntime.room,profile:globalThis.__standardOnlineRuntime.profile}));
+    await next.click();
+    assert.equal(await page.locator("#terminalOverlay").isVisible(),false);
+    assert.equal(await page.evaluate(key=>JSON.parse(localStorage.getItem(key)).roomId,connectionKey),null);
+    assert.equal(await page.evaluate(()=>JSON.stringify({room:globalThis.__standardOnlineRuntime.room,profile:globalThis.__standardOnlineRuntime.profile})),before);
+    assert.deepEqual(await resultWriteCalls(page),[]);
+    assert.equal(await page.locator("#findOpponent").isVisible(),true);
+  },{viewport:{width:390,height:844}});
+});
+
 test("UDL060 pending rematch blocks competing result exits but retains the same retry", { timeout: 130000 }, async () => {
   await withPage("finished",async page=>{
     await page.locator("#terminalClose").click();
@@ -2374,6 +2389,7 @@ test("UDL060 pending rematch blocks competing result exits but retains the same 
 
 test("UDL060 canceling the overlay CPU picker restores a visible result control", { timeout: 130000 }, async () => {
   await withPage("finishedCpu",async page=>{
+    assert.equal(await page.locator("#terminalChooseAnother").textContent(),"別のCPUを選ぶ");
     await page.locator("#terminalChooseAnother").click();
     await page.locator("#cpuRosterDialog[open]").waitFor();
     await page.keyboard.press("Escape");

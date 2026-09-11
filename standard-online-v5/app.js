@@ -1260,6 +1260,7 @@ function renderResultContinuation() {
     $("resultRewardSummary").textContent = `この対戦で獲得：Lv.${reward.ticketLevel}ガチャ券 ×${reward.ticketCount}`;
   }
   show("chooseDifferentHuman", room?.opponent_kind !== "cpu");
+  $("terminalChooseAnother").textContent = room?.opponent_kind === "cpu" ? "別のCPUを選ぶ" : "結果を閉じて別の相手を選ぶ";
   for (const id of ["chooseDifferentCpu", "chooseDifferentHuman", "resultGoLobby", "terminalChooseAnother", "terminalGoLobby"]) $(id).disabled = blocked;
   $("terminalRematch").disabled = rematchBusy || room?.status !== "finished";
 }

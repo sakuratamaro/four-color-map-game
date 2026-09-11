@@ -1,6 +1,6 @@
 # Result-local continuation
 
-Version: UDL-060-result-v1
+Version: UDL-060-result-v1.1
 
 CANON_RECEIPT version=shared-canon-v1.1 base=d6f745d3f1291457539dd2f3476e9a749a547069 public_floor=93c05c7c68576b28a126588d0716f0f56c015531 request=UDL-20260912-060 specs=AGENTS.md,docs/SHARED_CANON.md,docs/PROJECT_COMMAND_CENTER.md,docs/UI_DIET_PREPARATION_20260912.md,docs/BRAIN_V8_PAIRED_INTAKE_20260912.json tests=tests/standard-online-browser.test.cjs,tests/standard-online-ui-static.test.cjs,tests/standard-result-continuation.test.cjs worktree=.codex-worktrees/ui-result-20260912
 
@@ -20,4 +20,6 @@ Overlay CPU-picker cancellation returns focus to the visible persistent CPU choi
 
 Initial desktop screenshots showed lower next actions below the viewport even though the first focused button was visible. Dismissing the overlay now centers the complete persistent result before focusing its first action without another scroll. The browser test checks every visible result action for44px size and an unobstructed center point on all three widths. Remove only the redundant inner box, retaining the result boundary, reasons and real rewards.
 
-Pages-only app v20260912-32, result model/CSS v20260912-1. This spec is not an approval. Run relevant and whole Windows gates, obtain genuine exact-SHA Astra approval and fresh-main reconciliation, then force-free same-SHA Pages/public verification. UI goal remains active through060/061/062.
+Review015 ofccc9 requested one local correction: the overlay's another-opponent action must use the same explicit-close wording for human matches. It now says「結果を閉じて別の相手を選ぶ」for humans and「別のCPUを選ぶ」for CPU picker entry. Existing client-only close semantics, server history/tickets preservation and CPU cancel behavior are unchanged; no extra confirmation or click is added. A dedicated human-overlay test covers the label, cleared client reference, unchanged server fixture room/profile/history/tickets, and zero recruitment/search/match creation. The prior CPU cancellation/focus case now also checks its truthful label. The specification's frozen old base-status paragraph remains historical; d6 is now publicly verified. Original060 review deadline is not reset by this correction.
+
+Pages-only app v20260912-33, result model/CSS v20260912-1. This spec is not an approval. Run relevant and whole Windows gates, obtain genuine exact-SHA Astra approval and fresh-main reconciliation, then force-free same-SHA Pages/public verification. UI goal remains active through060/061/062.
