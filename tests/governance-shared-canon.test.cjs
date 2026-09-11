@@ -159,6 +159,33 @@ test("first incoming Astra request is provenance-bound and remains unimplemented
   assert.match(read("docs/PROJECT_COMMAND_CENTER.md"), /UDL-20260910-051/);
 });
 
+test("illustration handoff reuses UDL033 without inventing permissions or completed replacement", async () => {
+  const intake = JSON.parse(read("docs/CPU_ILLUSTRATION_INTAKE_20260911.json"));
+  assert.equal(intake.kind, "intake_snapshot_not_operational_ledger");
+  assert.equal(intake.canonical_id, "UDL-20260908-033");
+  assert.equal(intake.source.thread_id, "6aa364fd-b598-83ee-8d71-ba37dbcae648");
+  assert.equal(intake.source.user_message_id, "bbb21389-6f9d-4690-bb88-499547529b83");
+  assert.equal(intake.source.response_message_id, "96e97c41-9676-414e-aac8-2a2c49bbf04d");
+  assert.equal(intake.source.user_text, "変更してほしいなー");
+  assert.equal(intake.source.readback, "FULL_COMPLETED_PAIR_VERIFIED");
+  assert.match(intake.source_response_text, /最新公開版の交換状況についての断定は撤回/);
+  assert.equal(intake.rights_verification.state, "NOT_VERIFIED");
+  assert.equal(intake.author_contact.allowed, false);
+  assert.equal(intake.author_contact.user_handles_email, true);
+  assert.equal(intake.authority_reconciliation.is_game_release_approval, false);
+  assert.notEqual(intake.source.thread_id, intake.authority_reconciliation.designated_release_reviewer_thread_id);
+  assert.equal(intake.new_material_acceptance_automated, false);
+  for (const related of intake.existing_related_tests) assert.ok(fs.existsSync(path.join(root, related)));
+  const { parseDecisionLedger } = await import(pathToFileURL(path.join(root,
+    "scripts/check-standard-decision-reconciliation.mjs")).href);
+  const rows = parseDecisionLedger(read("docs/PROJECT_COMMAND_CENTER.md")).rows
+    .filter(row => row.values.ID === intake.canonical_id);
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].values.状態, "DECIDED");
+  assert.equal(rows[0].values.main統合, "NO");
+  assert.equal(rows[0].values.Pages, "NO");
+});
+
 test("ChatGPT review records require an exact subject and cannot imply production approval", () => {
   const log = JSON.parse(read("docs/CHATGPT_REVIEW_DECISIONS.json"));
   assert.equal(log.rules.silence_is_approval, false);

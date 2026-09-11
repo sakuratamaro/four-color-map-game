@@ -1,0 +1,102 @@
+{
+  "schema_version": 1,
+  "kind": "intake_snapshot_not_operational_ledger",
+  "canonical_id": "UDL-20260908-033",
+  "received_at_utc": "2026-09-11T14:36:29Z",
+  "canon_receipt": {
+    "version": "shared-canon-v1.1",
+    "base_sha": "f8713d7006da0619b9c356d53a472754833fb910",
+    "base_source": "local origin/main tracking ref; no fetch or completed-release re-audit",
+    "governance_start_head": "f924e417d9da58c4f24ca60f87bf383444634575",
+    "branch": "codex/dev-brain-current-20260910",
+    "specs": [
+      "AGENTS.md",
+      "docs/SHARED_CANON.md",
+      "docs/PROJECT_COMMAND_CENTER.md"
+    ],
+    "tests": [
+      "tests/governance-shared-canon.test.cjs",
+      "tests/standard-decision-reconciliation.test.cjs"
+    ]
+  },
+  "source": {
+    "kind": "chatgpt_text",
+    "thread_id": "6aa364fd-b598-83ee-8d71-ba37dbcae648",
+    "thread_title": "イラスト権利確認",
+    "url": "https://chatgpt.com/g/g-p-6a752100c7288191837d5e80c6fd6587/c/6aa364fd-b598-83ee-8d71-ba37dbcae648",
+    "user_message_id": "bbb21389-6f9d-4690-bb88-499547529b83",
+    "response_message_id": "96e97c41-9676-414e-aac8-2a2c49bbf04d",
+    "user_text": "変更してほしいなー",
+    "readback": "FULL_COMPLETED_PAIR_VERIFIED",
+    "attachments": []
+  },
+  "handoff": {
+    "thread_id": "01a08d9e-ae35-7f70-a879-cb342dafef47",
+    "scope": "Read and record receipt against existing UDL; no new game implementation, publication or author contact.",
+    "reported_direct_user_request": "CPUイラストをAI生成からわたおきばさんのものへ変更し、クレジットとお礼メールを検討。回答完成後に司令塔へ共有。メールはユーザー自身が送り、AIから今は送らない。",
+    "provenance": "Reported by the handoff task; original no-email message ID was not supplied. The cited ChatGPT pair was independently read."
+  },
+  "state_at_intake": {
+    "intent_state": "decided_existing_replacement_request_clarified",
+    "implementation_state": "no_new_replacement_implementation_in_this_intake",
+    "verification_state": "new_material_terms_and_acceptance_not_run",
+    "release_state": "no_new_release",
+    "canonical_lifecycle": "DECIDED"
+  },
+  "intent_reconciliation": [
+    "既存UDL-033へ統合し、新UDLや重複作業を作らない。わたおきばを第一候補とする差し替え要望へ具体化し、単なる将来案のままにしない。",
+    "クレジット画面・表示例・リンク、顔/全身の同キャラクター統一はChatGPT実装提案。ユーザーの検討依頼とAIの設計細部を同一視しない。",
+    "10人のID・強さ・戦績、公開情報境界、最新UI/クイズ/スキルを素材変更で巻き戻さない。",
+    "末尾の『現行コードと台帳を確認した』という先行断定の撤回も保存。この回答を変更・公開済みの証拠にしない。"
+  ],
+  "proposed_implementation_details": [
+    "CPU選択前と対戦中は顔、プレイヤー勝利時は同じCPUのがっかり演出/全身絵。",
+    "ホーム/メニューからクレジットを開く。採用時のサイト名『わたおきば』、作者名『わたおび』は公式表記を確認し、配布元/規約リンクを付ける。",
+    "出典・取得元・原本hash・加工内容・NOTICE/manifestを保存。元ZIPや未使用画像を丸ごと公開せず、コードの再利用ライセンスを素材へ誤適用しない。",
+    "画像欠落、10人の対応、fallback、390px、a11y、勝利演出、クレジット表示/リンクを候補で検証。採用素材・commit・公開URL・スクリーンショットを報告。"
+  ],
+  "rights_verification": {
+    "state": "NOT_VERIFIED",
+    "claims_are": "ChatGPT assertions, not independently checked official permission",
+    "unverified_claims": [
+      "自作ゲーム利用・顔の切り抜き・拡大縮小の許可",
+      "クレジットは原則任意",
+      "素材自体の再配布・販売は禁止"
+    ],
+    "release_conditions": [
+      "ゲーム組込み・加工・公開GitHub画像収録・Pages配信を区別して公式条件を確認する",
+      "加工すれば再配布条件を回避できると扱わない",
+      "不明な素材の採用/配布を確定しない"
+    ],
+    "official_terms_consulted_this_intake": false
+  },
+  "authority_reconciliation": {
+    "review_kind": "implementation_proposal_not_candidate_approval",
+    "is_game_release_approval": false,
+    "subject_sha": null,
+    "designated_release_reviewer_thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
+    "note": "別ChatGPT回答は候補SHA/仕様/DB・Edge変更セットへの指定Astraレビューを代替しない。UDL-056は維持。UDL-033の素材別視覚承認条件を本受渡しで黙って削除せず、将来候補選定時に後続ユーザー決定との適用関係を照合する。"
+  },
+  "author_contact": {
+    "allowed": false,
+    "user_handles_email": true,
+    "action_this_intake": "NONE"
+  },
+  "existing_related_tests": [
+    "tests/standard-cpu-portraits.test.cjs",
+    "tests/standard-cpu-browser.test.cjs",
+    "tests/standard-online-browser.test.cjs"
+  ],
+  "new_material_acceptance_automated": false,
+  "receipt_checks": {
+    "governance_and_reconciliation": "20/20 PASS; skip 0",
+    "scope": "Receipt provenance and existing ledger consistency only, not new portrait/credit product tests",
+    "full_response_readback_equal": true,
+    "git_diff_check": "PASS"
+  },
+  "historical_alias": {
+    "id": "REQ-20260905-016",
+    "meaning": "旧atlasのdated crosswalkを新素材交換・全身絵・クレジットの公開済み根拠にはしない。v4/v5/v6の再取込や履歴書換えはしない。"
+  },
+  "source_response_text": "うん。**「将来差し替える」のままにせず、イラスト交換とクレジット表示をセットで、Codex先生向けの実装指示としてここに出します。**\n\n以前の候補の「わたおきば」は、自作ゲームへの利用、顔の切り抜き、拡大縮小などを許可しています。クレジットは原則任意ですが、**このゲームでは表示する方針**にします。なお、著作権が放棄された素材ではなく、規約に従って無料利用できる素材です。citeturn754088view0\n\n## Codex先生へ｜CPUイラスト差し替え・クレジット表示の実装指示\n\n**本件はユーザーからの改修依頼です。調査・方針記録だけで完了扱いにせず、差し替えと画面への反映まで進めてください。**\n\n### 1．CPU全員のイラストを差し替える\n「わたおきば」を第一候補に、利用条件が本ゲームの公開方法に適合する素材を選んでください。既存キャラクターの名前・性格・雰囲気はできるだけ維持し、**CPU選択画面、対戦中の顔、勝利時に見せる全身絵を同じキャラクターで統一**してください。\n\n通常は顔を見せ、プレイヤー勝利時にCPUのがっかり演出と全身絵を見せる、という既存の要望は維持します。画像の変更を理由に、CPUの識別子・強さ・戦績を変更しないでください。\n\n### 2．プレイヤーが見られるクレジットを設置する\nREADMEへの記載だけではなく、ホームまたはメニューから開ける**「クレジット」画面**を設けてください。わたおきばを採用した場合の表示例は、次のとおりです。\n\n> キャラクターイラスト：わたおきば  \n> 作者：わたおび\n\nサイト名から配布元へ移動できるリンクと、利用規約へのリンクを付けてください。作者名・サイト名は公式表記に合わせます。citeturn754088view0\n\n### 3．素材の公開方法も整理する\n公式規約では、**素材自体の再配布・販売は禁止**されています。ゲームへの組み込みと、公開リポジトリでの画像ファイルの扱いは区別して確認してください。元ZIPや未使用の表情差分を丸ごと公開せず、加工すれば再配布条件を回避できる、という扱いにもしないでください。citeturn754088view0\n\n使用素材・配布元・利用条件を記録し、第三者素材をゲームのソースコードと同じライセンスで自由に再利用できるような表記は避けてください。\n\n### 4．既存改修を戻さず、検証して公開する\n**最新の正本に差分として実装し、古い画面ファイルへの丸ごと置換はしないでください。** 最近のUI・クイズ・スキル修正を維持したうえで、画像の欠落、スマートフォンでの表示、勝利演出、クレジットの表示・リンクを確認してください。\n\n既存の公開方針どおり、必要な回帰テストに問題がなければ、追加の承認待ちだけで止めず公開まで進めてください。完了報告には、**採用素材、変更コミット、公開URL、差し替え後とクレジット画面のスクリーンショット**を添えてください。\n\n---\n\n一点訂正です。先ほどの私の「現行コードと台帳を確認した」という断定は、今回参照できた資料では裏付けを再確認できませんでした。**最新公開版の交換状況についての断定は撤回します。ここで行ったのは実装指示の投稿であり、変更・公開完了の報告ではありません。**"
+}
