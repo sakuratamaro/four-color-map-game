@@ -41,7 +41,7 @@
     }
   ],
   "coordination": {
-    "status": "ui_entrance_public_verified_play_surface_in_progress",
+    "status": "ui_play_surface_local_verified_review_ready",
     "latest_v8_intake": {
       "state": "PAIRED_SOURCE_MAPPED_CANONICAL_UI_GOAL_QUEUED_ZIP_PENDING",
       "source_thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
@@ -78,30 +78,20 @@
       "note": "Transfer reports manifest 40/40 and 28 unchanged plus 8 new requests. Commander read actual paired user/Astra text on 2026-09-12; package revalidation and canonical mapping remain pending. Not a new release approval, 5-color adoption or production change. Author contact remains forbidden."
     },
     "latest_publication_report": {
-      "kind": "publication_report_not_review_request",
-      "destination_thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
-      "artifact_sha": "7544c59406f95aefdcf5c1b8235f7cc49667eabd",
-      "candidate_sha": "a26ffd14a8f896d9d087dac032d8f079ece82f7d",
-      "send_attempts": 1,
-      "send_tool_succeeded": true,
-      "destination_message_id": "a0ca9fde-c994-4ab1-a86f-b0bf91754d63",
-      "response_message_id": "36b63473-e10a-4dad-88a1-b46aae53407d",
-      "delivery_readback": "FULL_PAIRED_COMPLETED_RESPONSE",
-      "review_wait_started": false,
-      "note": "Astra acknowledged memo PUBLIC_VERIFIED evidence as Codex measurements, confirmed starting UDL023 without ZIP wait; not a UI release approval."
+      "subject_sha": "93c05c7c68576b28a126588d0716f0f56c015531",
+      "request_message_id": "1baec9cd-22cc-4f8b-80e4-57abcb1c2e47",
+      "response_message_id": "d7a96f4c-12db-45ca-b50b-b12b95edb727",
+      "source_thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
+      "state": "FULL_COMPLETED_PAIR_RECEIVED_NO_REVIEW_WAIT",
+      "evidence_commit": "20e001a16facb26abdbc034c42b64ee0fc3fe69a",
+      "note": "Actual Astra confirms entrance PUBLIC_VERIFIED and next052/054/063; no next-candidate approval."
     },
     "latest_implementation_instruction": {
-      "source_kind": "chatgpt_implementation_direction_not_release_approval",
-      "thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
-      "request_message_id": "9a175c4b-6ab1-4236-b5b6-1d47fbf84ad4",
-      "response_message_id": "3709f277-5a0b-4fb1-be6e-58375acd6c0f",
-      "url": "https://chatgpt.com/c/6aa229e7-e098-83ee-ac5e-d366a12653a4",
-      "readback": "FULL_PAIRED_RESPONSE_COMPLETED_IDLE",
-      "response_text": "**受領しました。固定成果物 `9519431aaf56e2e35a123b021df9178f89ada653` の公開証拠と、v4〜v6の受領記録を確認しました。UDL-052の完了済みレビューは再開せず、次はUDL-059へ進めてください。**\n\n## 完了したものと、残っているもの\n\n**UDL-052の属性識別スライスは、公開・公開後確認まで完了したものとして扱います。** `ce6fab5`のPages配備、配信ファイルのbyte一致、公開Chromeでの30/30 PASSが記録されています。30/30はCodexの実測報告として受領したもので、こちらで再実行したものではありません。位置固定・4色方式・UDL-054・物理端末確認は、引き続き別の未完項目です。\n\n**頭脳ZIPのv4〜v6も、「こちらで資料化しただけ」から「Codexが受領し、既存UDLへ対応付けた」段階へ進みました。** CPU関連を051へまとめ、瞬間整列・二分説明・角膨張は既存項目へ、新しい履歴・オーロラ・報酬券レベル引継ぎだけを057〜059へ分けた受領記録を確認しています。これらの受領完了を、ゲームへの実装完了とは混同しません。\n\nv4の元message ID補完は通常の受付作業として残し、今回の独立改修の停止条件にはしません。\n\n## 次はUDL-059：クイズ報酬からの券レベル引継ぎ\n\n受領資料にある**「CPU報酬導線は保存報酬の券レベルを渡しているが、`quizGoGacha`は無引数」**という切り分けに沿って、不足したクイズ入口を最小差分で修正する方針でよいです。既存CPU導線を作り直す必要はありません。\n\n今回の受入条件は、次に絞ります。\n\n| 場面 | 必要な動作 |\n|---|---|\n| 前回Lv.5を選択後、確定したLv.2報酬から移動 | **Lv.2が選択済み**。クイズ難易度から推測せず、保存された報酬の`ticketLevel`を使う |\n| 移動後の同期・再描画 | 指定レベルが初期値へ戻らない。その後の手動選択を、同じ報酬指定で繰り返し上書きしない |\n| 対象券の残数が0 | そのレベルの残数0を表示し、別レベルへ勝手に切り替えない |\n| 未決着のガチャが存在 | **既存のactionId・券レベル・枚数を保持**し、報酬リンクの指定で再送内容を差し替えない |\n\n**遷移だけで抽選・券消費を起こさず、選択表示・排出率表示・抽選時に渡す券レベルが一致すること**を確認してください。通常のタブ移動、既存CPU報酬導線、報酬量・排出率は非変更範囲です。\n\n**この報告への承認待ちは不要です。** UDL-059を通常司令塔で実装・検証し、新候補ができた時点で固定SHA・差分・試験結果を提示してください。文書整理やCPU強化の完成待ちにはせず、候補レビューと必要なゲートを通した便から順次公開する方針を維持します。",
-      "request_ids": [
-        "UDL-20260911-059"
-      ],
-      "status": "ROUTED_TO_EXISTING_COMMANDER"
+      "source_thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
+      "user_message_id": "1baec9cd-22cc-4f8b-80e4-57abcb1c2e47",
+      "response_message_id": "d7a96f4c-12db-45ca-b50b-b12b95edb727",
+      "state": "ACTUAL_COMPLETED_CONTINUATION_NOT_APPROVAL",
+      "response_text": "**受領しました。UDL023「対戦入口」はPUBLIC_VERIFIEDまで完了したものとして扱います。承認012の再レビュー・追加の返信待機は不要です。**\n\n固定成果物 `20e001a16facb26abdbc034c42b64ee0fc3fe69a` の公開記録を確認しました。製品`93c05c7`、同一SHAのPages成功、3assetの厳密byte一致、**公開Chrome28/28と390／1280pxの画像確認**が対応付けられています。実測はCodexの報告として受領し、こちらで再実行したものではありません。\n\n初回2試行の失敗、旧`a9b2ff9`のCI失敗・未公開、live募集／検索未実施、物理端末`NOT_RUN`も、現在の区別を維持してください。**製品を変えず、実際のUI準備完了を待つよう検証側を修正した経緯も確認しました。** \n\n## 次は052／054／063を、予定どおり進めてください\n\n公開済みの入口改善を保全し、次便ではこの3点を実画面へ接続します。\n\n| 対象 | 維持する受入条件 |\n|---|---|\n| **役割4枠** | **基本①・基本②・おまけ・残り色**の順。同色でも別ボタンを維持し、数字／∞／🔒／❌で表示。追加色も選択不能にしない |\n| **盤面と彩色操作** | 通常のPC・スマホ画面で同時に見える。固定バーによる隠れや、押せないほどの縮小で帳尻を合わせない |\n| **手札6枚** | **3列×2行、使用済みも位置を維持。** 詳細説明は任意で、発動までの必須操作を増やさない |\n\n**6,144組の一致は、表示モデルの検証として保持してください。** DOM接続後は、同色の各枠・残0・封印・一時色について、表示だけでなく実際の操作も確認する段階です。送信は既存どおり`color`のみとし、枠を分けたことを理由に消費元指定や消費順の変更を導入しない。変更原因の通知と、相手の非公開情報を守る境界も維持します。\n\n**この報告への承認待ちは設けず続行してください。** 次の固定候補ができた段階で、その差分と検証結果をレビューします。入口の完了をUI全体の完了にはせず、結果周辺・装飾内操作などの残件も引き続き追跡します。"
     },
     "deferred_outbound": {
       "id": "USER-20260911-DEFERRED-PALETTE-REPORT",
@@ -153,7 +143,7 @@
     },
     "reviewer_thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
     "last_consumed_review_message_id": "9f4e5736-a704-4c73-819a-40c4005f9bf6",
-    "last_received_message_id": "9f4e5736-a704-4c73-819a-40c4005f9bf6",
+    "last_received_message_id": "d7a96f4c-12db-45ca-b50b-b12b95edb727",
     "pending_user_intake_message_ids": [
       "ea61f25f-bebf-499a-81e9-029712a96f99"
     ],
@@ -259,91 +249,34 @@
       "evidence_json": "docs/UI_ENTRANCE_LIVE_20260912.json"
     },
     "active_slice": {
-      "id": "UDL-20260907-023",
-      "state": "PUBLIC_VERIFIED",
+      "id": "UDL-20260910-052/054+UDL-20260912-063",
+      "request_ids": [
+        "UDL-20260910-052",
+        "UDL-20260910-054",
+        "UDL-20260912-063"
+      ],
+      "state": "LOCAL_VERIFIED",
       "owner_thread_id": "01a07b56-616e-7733-9aae-90575659688e",
-      "base_sha": "a26ffd14a8f896d9d087dac032d8f079ece82f7d",
-      "branch": "codex/ui-diet-20260912",
-      "worktree": ".codex-worktrees/ui-diet-20260912",
-      "spec_path": "docs/UI_DIET_ENTRANCE_20260912.md",
-      "spec_version": "UDL-023-entrance-v1.1",
-      "candidate_sha": "93c05c7c68576b28a126588d0716f0f56c015531",
-      "review_status": "APPROVE_RELEASE",
-      "public_gameplay": "PASS_28_OF_28_PUBLIC_NAVIGATION_ONLY",
-      "physical_devices": "NOT_RUN",
+      "base_sha": "93c05c7c68576b28a126588d0716f0f56c015531",
+      "branch": "codex/ui-play-surface-20260912",
+      "worktree": ".codex-worktrees/ui-play-surface-20260912",
+      "spec_path": "docs/UI_PLAY_SURFACE_20260912.md",
+      "spec_version": "UDL-052-054-063-play-v1",
+      "spec_snapshot_sha": "67d52446047eafb6a6c32e38e8e7c9538aea88b4",
+      "candidate_sha": "6cd12ae888f26c9403fb504596f92f4d9a65b301",
       "scope": "Pages_only",
       "db_change_set": [],
       "edge_change_set": [],
-      "next_action": "Closed entrance; continue active UI goal with052/054/063 from public93; no review wait.",
-      "spec_snapshot_sha": "dd839a5424fc13ecd9d6b604023666b1996cbd76",
-      "local_tests": "clean901/901 skip0; actualChrome6/6 Edge6/6 including unchanged old arrival regression and every-option390/900/1280",
-      "windows_run": "34636944139",
-      "windows_status": "SUCCESS",
+      "review_status": "NOT_REQUESTED",
       "review_send_attempts": 1,
-      "review_packet": "docs/ASTRA_UI_ENTRANCE_FOLLOWUP_20260912.md",
-      "review_send_reserved_at_utc": "2026-09-11T18:49:00Z",
-      "review_request_message_id": "94a4152d-fba7-4718-ac5f-f7698c5cf89d",
-      "review_delivery_checks": 2,
-      "review_source_artifact_sha": "b9419d94d70efabd80281e255cb5f12a9a92e727",
-      "review_delivery_note": "First valid bounded read stale; second full paired prompt equality and completed actual review. Invalid maxOutputChars argument produced no fetch and not counted.",
-      "review_id": "CHATGPT-REVIEW-20260912-012",
-      "review_response_message_id": "9f4e5736-a704-4c73-819a-40c4005f9bf6",
-      "superseded_candidates": [
-        {
-          "id": "UDL-20260907-023",
-          "state": "LOCAL_VERIFIED",
-          "owner_thread_id": "01a07b56-616e-7733-9aae-90575659688e",
-          "base_sha": "a26ffd14a8f896d9d087dac032d8f079ece82f7d",
-          "branch": "codex/ui-diet-20260912",
-          "worktree": ".codex-worktrees/ui-diet-20260912",
-          "spec_path": "docs/UI_DIET_ENTRANCE_20260912.md",
-          "spec_version": "UDL-023-entrance-v1",
-          "candidate_sha": "a9b2ff984c448819483286eae5acfa91530fc5db",
-          "review_status": "APPROVED_A9_NOT_USABLE_FOR_REVISED_93",
-          "public_gameplay": "NOT_RUN",
-          "physical_devices": "NOT_RUN",
-          "scope": "Pages_only",
-          "db_change_set": [],
-          "edge_change_set": [],
-          "next_action": "Send fixed93 correction review once. Preserve original wait budget.",
-          "spec_snapshot_sha": "d5c0f6e8b6de875d844eaf9bd8c154e281472952",
-          "local_tests": "clean901/901, actualChrome9/9 and Edge9/9 skip0; three builders zero diff; earlier dirty898/901 retained",
-          "windows_run": "34635024201",
-          "windows_status": "FAILURE",
-          "review_send_attempts": 1,
-          "review_packet": "docs/ASTRA_UI_ENTRANCE_REVIEW_20260912.md",
-          "review_send_reserved_at_utc": "2026-09-11T18:49:00Z",
-          "review_request_message_id": "6d1b03f6-b19b-4b6e-935f-78c9afb0dbaa",
-          "review_delivery_checks": 2,
-          "review_source_artifact_sha": "720baea3031e9f520a57477451adef1991c2075f",
-          "review_delivery_note": "First transport read stale; second exact paired prompt equality; no response, no resend.",
-          "review_id": "CHATGPT-REVIEW-20260912-011",
-          "review_response_message_id": "0b9e9ee9-8a0d-4a61-8da3-17ccd3a2bbc5"
-        }
-      ],
-      "windows_jobs": [
-        {
-          "id": "103387028406",
-          "name": "Standard online browser (edge)",
-          "status": "success",
-          "completed_at": "2026-09-11T19:15:51Z"
-        },
-        {
-          "id": "103387028683",
-          "name": "Standard online browser (chrome)",
-          "status": "success",
-          "completed_at": "2026-09-11T19:13:54Z"
-        }
-      ],
-      "main_sha": "93c05c7c68576b28a126588d0716f0f56c015531",
-      "pages_run": "34638574408",
-      "pages_status": "SUCCESS",
-      "public_finished_at_utc": "2026-09-11T19:27:39.782Z",
-      "test_profiles_created_across_attempts": 3,
-      "matches_created": 0,
-      "data_deleted": false,
-      "evidence": "docs/UI_ENTRANCE_RELEASE_20260912.md",
-      "evidence_json": "docs/UI_ENTRANCE_LIVE_20260912.json"
+      "review_packet": "docs/ASTRA_UI_PLAY_SURFACE_REVIEW_20260912.md",
+      "local_tests": "clean906/906 skip0; actualChrome22/22 and Edge22/22 skip0 on6cd12ae; manual390/1280 board plus390 hand images inspected PASS",
+      "windows_run": "34642709902",
+      "windows_status": "IN_PROGRESS",
+      "public_gameplay": "NOT_RUN",
+      "physical_devices": "NOT_RUN",
+      "next_action": "Send fixed review once; require exact approval and Windows success before main/Pages; bounded public own-CPU canary afterwards.",
+      "review_send_reserved_at_utc": "2026-09-11T20:17:19Z"
     },
     "automation_id": "automation",
     "automation_status_at_recording": "PAUSED",
@@ -478,7 +411,19 @@
       "followup_status": "review_received_closed_same_original_deadline_no_additional_scheduled_reads",
       "followup_received_at_utc": "2026-09-11T19:20:00Z"
     },
-    "pending_review_subject": null,
+    "pending_review_subject": {
+      "review_kind": "game_production_release_approval",
+      "subject_sha": "6cd12ae888f26c9403fb504596f92f4d9a65b301",
+      "base_sha": "93c05c7c68576b28a126588d0716f0f56c015531",
+      "canon_version": "shared-canon-v1.1",
+      "feature_spec_version": "UDL-052-054-063-play-v1",
+      "spec_snapshot_sha": "67d52446047eafb6a6c32e38e8e7c9538aea88b4",
+      "spec_snapshot_kind": "git_blob:docs/UI_PLAY_SURFACE_20260912.md",
+      "scope": "Pages_only",
+      "db_change_set": [],
+      "edge_change_set": [],
+      "reviewer_thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4"
+    },
     "documentation_test_followup": {
       "path": "tests/governance-shared-canon.test.cjs",
       "observation": "Genuine review 008 binds UDL-059-quiz-v1, not prior UDL-055 or UDL-052 candidates.",
@@ -487,9 +432,9 @@
       "boundary": "Governance evidence maintenance did not amend or block independently approved product f8713d7."
     },
     "initial_interval_minutes": 20,
-    "pending_subject_sha": null,
-    "pending_scope": null,
-    "pending_delivery_status": "review_received_closed",
+    "pending_subject_sha": "6cd12ae888f26c9403fb504596f92f4d9a65b301",
+    "pending_scope": "Pages_only",
+    "pending_delivery_status": "SINGLE_SEND_RESERVED",
     "last_confirmed_sent_message_id": "94a4152d-fba7-4718-ac5f-f7698c5cf89d",
     "last_sent_message_id": "94a4152d-fba7-4718-ac5f-f7698c5cf89d",
     "self_sent_message_ids": [
@@ -505,7 +450,8 @@
       "94d51f28-a7ba-48fe-b175-dfb951eba226",
       "7480776e-6929-493c-b09f-64b544fd61d7",
       "6d1b03f6-b19b-4b6e-935f-78c9afb0dbaa",
-      "94a4152d-fba7-4718-ac5f-f7698c5cf89d"
+      "94a4152d-fba7-4718-ac5f-f7698c5cf89d",
+      "1baec9cd-22cc-4f8b-80e4-57abcb1c2e47"
     ],
     "sent_at_utc": "2026-09-11T19:14:55Z",
     "last_check_utc": "2026-09-11T19:12:50Z",
@@ -786,21 +732,15 @@
     },
     "preparing_next_slice": {
       "request_ids": [
-        "UDL-20260910-052",
-        "UDL-20260910-054",
-        "UDL-20260912-063"
+        "UDL-20260912-060"
       ],
       "owner_thread_id": "01a07b56-616e-7733-9aae-90575659688e",
-      "state": "DOM_IMPLEMENTATION",
-      "base_sha": "93c05c7c68576b28a126588d0716f0f56c015531",
-      "base_status": "PUBLIC_VERIFIED_ENTRANCE",
-      "worktree": ".codex-worktrees/ui-play-surface-20260912",
-      "branch": "codex/ui-play-surface-20260912",
-      "scope": "role palette, board viewport, stable hand; no engine/DB/Edge changes",
+      "state": "READ_ONLY_DEPENDENCY_INSPECTION",
+      "base_sha": "6cd12ae888f26c9403fb504596f92f4d9a65b301",
+      "base_status": "CANDIDATE_NOT_PUBLIC",
+      "scope": "Result-local continuation; no changes to candidate under review.",
       "review_status": "NOT_REQUESTED",
-      "publication": "NOT_RUN",
-      "candidate_sha": "becf83ceb6f0df4ec3f6886dd22e4d3ab2427266",
-      "local_tests": "5/5 pure model,6144 own palette projections, no DOM or publication yet"
+      "publication": "NOT_RUN"
     }
   },
   "decisions": [
