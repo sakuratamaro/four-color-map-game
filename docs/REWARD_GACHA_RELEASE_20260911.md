@@ -32,3 +32,7 @@ Keep all four attempts in `docs/REWARD_GACHA_LIVE_20260911.json`. The first stop
 Four isolated test profiles were created across attempts; no matches and no data deletion. Tokens stayed in short-lived process/browser memory. The initial two attempts' complete quiz-operation counts were not collected and are not reconstructed. Browser instances were closed. Physical devices: NOT_RUN. UDL-052 layout, UDL-054, CPU work and other intake are still separate unfinished requests.
 
 Final governance/reconciliation checks: 19/19 PASS, skip 0. They bind review 008 to its exact candidate/spec/scope and preserve the four-attempt public evidence; they are documentation evidence checks, not additional product/browser acceptance. The public canary script passes syntax checking. Shared evidence is committed separately from the unchanged product candidate.
+
+## Report handoff
+
+The fixed artifact 7fdaef9cacdef8c1d97298a8e83c765316b722ef was pushed to the existing shared-canon branch. A completion report with pinned evidence links was sent once to the designated Astra chat; send API succeeded. Two bounded readbacks still showed the preceding review while the chat was active, so the new message ID/full-body readback and acknowledgement are not yet confirmed. No resend or review-wait automation was started. Resolve the transport receipt on a later normal user/event resume. This does not reopen the completed product review or block the verified release.
