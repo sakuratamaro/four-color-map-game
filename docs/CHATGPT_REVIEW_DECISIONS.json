@@ -41,7 +41,7 @@
     }
   ],
   "coordination": {
-    "status": "ui_play_surface_windows_pass_review_ready_result_implementation",
+    "status": "ui_play_surface_exact_review_pending_result_implementation",
     "latest_v8_intake": {
       "state": "PAIRED_SOURCE_MAPPED_CANONICAL_UI_GOAL_QUEUED_ZIP_PENDING",
       "source_thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
@@ -267,8 +267,8 @@
       "scope": "Pages_only",
       "db_change_set": [],
       "edge_change_set": [],
-      "review_status": "NOT_SENT",
-      "review_send_attempts": 0,
+      "review_status": "PENDING",
+      "review_send_attempts": 1,
       "review_packet": "docs/ASTRA_UI_PLAY_SURFACE_D6_REVIEW_20260912.md",
       "local_tests": "Clean906/906 (65.369s); clean Chrome5/5 (72.512s), Edge5/5 (81.759s, first owned-browser close timed out but owned cleanup completed and process exit0). Earlier320: Chrome26/26, Edge25/26 cleanup-only failure plus isolated1/1. Do not relabel older failure.",
       "windows_run": "34645533910",
@@ -276,9 +276,9 @@
       "public_gameplay": "NOT_RUN",
       "physical_devices": "NOT_RUN",
       "next_action": "Send exact d6 review once; preserve original20:17:19Z/22:17:19Z logical budget count1. No publication before genuine exact review.",
-      "review_delivery_checks": 0,
-      "review_source_artifact_sha": null,
-      "review_request_message_id": null,
+      "review_delivery_checks": 2,
+      "review_source_artifact_sha": "eb3fdfc5cb7b34a1f4c6888e72792fc1cdd3a24b",
+      "review_request_message_id": "1874e03e-803f-4130-9c38-4f803c00e58e",
       "review_id": null,
       "review_response_message_id": null,
       "windows_jobs": [
@@ -348,14 +348,16 @@
           "review_id": "CHATGPT-REVIEW-20260912-013",
           "review_response_message_id": "ce88c333-e4f7-4ca1-a71b-ab9aec58d4d2"
         }
-      ]
+      ],
+      "review_send_reserved_at_utc": "2026-09-11T21:12:41Z",
+      "review_delivery_note": "First bounded read stale/active, second exact full prompt equality. No response yet, no resend."
     },
     "automation_id": "automation",
-    "automation_status_at_recording": "PAUSED",
-    "automation_readback_updated_at": 1789159224275,
+    "automation_status_at_recording": "ACTIVE",
+    "automation_readback_updated_at": 1789161350967,
     "automation_prompt_readback_equal": true,
-    "automation_pause_reason": "HOLD received for6cd; no new eligible sent review. Next correction retains same original logical deadline and count.",
-    "automation_active_reason": null,
+    "automation_pause_reason": null,
+    "automation_active_reason": "Exact corrected d6 request delivered, same original22:17:19Z expiry/count1; next original100-minute slot21:57:19Z only.",
     "completed_review_waits": [
       {
         "root_request_message_id": "8464f659-ad62-4c09-83d9-44e1cc91316b",
@@ -495,7 +497,7 @@
         40,
         100
       ],
-      "next_check_utc": null,
+      "next_check_utc": "2026-09-11T21:57:19Z",
       "max_age_minutes": 120,
       "reset_on_candidate_revision": false,
       "reset_on_restart_or_unrelated_message": false,
@@ -503,9 +505,29 @@
       "status": "review_received_closed",
       "start_note": "New independent play-surface request. Conservatively bounded from send reservation, earlier than any future readback. Both bounded immediate readbacks still showed prior completed entrance turn while chat active. Never extend upon later delivery confirmation.",
       "response_message_id": "ce88c333-e4f7-4ca1-a71b-ab9aec58d4d2",
-      "received_at_utc": "2026-09-11T20:37:21Z"
+      "received_at_utc": "2026-09-11T20:37:21Z",
+      "followup_subject_sha": "d6f745d3f1291457539dd2f3476e9a749a547069",
+      "followup_spec_version": "UDL-052-054-063-play-v1.2",
+      "followup_request_message_id": "1874e03e-803f-4130-9c38-4f803c00e58e",
+      "followup_status": "review_pending",
+      "skipped_offset_minutes": [
+        40
+      ],
+      "skip_note": "40-minute slot elapsed while preceding HOLD was closed and revision unsubmitted; do not replay it immediately after follow-up transport reads or extend deadline."
     },
-    "pending_review_subject": null,
+    "pending_review_subject": {
+      "review_kind": "game_production_release_approval",
+      "subject_sha": "d6f745d3f1291457539dd2f3476e9a749a547069",
+      "base_sha": "93c05c7c68576b28a126588d0716f0f56c015531",
+      "canon_version": "shared-canon-v1.1",
+      "feature_spec_version": "UDL-052-054-063-play-v1.2",
+      "spec_snapshot_sha": "5a63468c8f75d777cafcb6de7fec19e4048d0f5b",
+      "spec_snapshot_kind": "git_blob:docs/UI_PLAY_SURFACE_20260912.md",
+      "scope": "Pages_only",
+      "db_change_set": [],
+      "edge_change_set": [],
+      "reviewer_thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4"
+    },
     "documentation_test_followup": {
       "path": "tests/governance-shared-canon.test.cjs",
       "observation": "Genuine review 008 binds UDL-059-quiz-v1, not prior UDL-055 or UDL-052 candidates.",
@@ -514,10 +536,10 @@
       "boundary": "Governance evidence maintenance did not amend or block independently approved product f8713d7."
     },
     "initial_interval_minutes": 20,
-    "pending_subject_sha": null,
-    "pending_scope": null,
-    "pending_delivery_status": "FOLLOWUP_PREPARED_NOT_SENT",
-    "last_confirmed_sent_message_id": "a3ce86c3-cfb9-4d1c-bfc3-4557a5ef6889",
+    "pending_subject_sha": "d6f745d3f1291457539dd2f3476e9a749a547069",
+    "pending_scope": "Pages_only",
+    "pending_delivery_status": "delivery_verified_response_pending",
+    "last_confirmed_sent_message_id": "1874e03e-803f-4130-9c38-4f803c00e58e",
     "last_sent_message_id": "a3ce86c3-cfb9-4d1c-bfc3-4557a5ef6889",
     "self_sent_message_ids": [
       "ef6f161d-f2b9-40c0-ab06-f6eacf4c4d38",
@@ -534,7 +556,8 @@
       "6d1b03f6-b19b-4b6e-935f-78c9afb0dbaa",
       "94a4152d-fba7-4718-ac5f-f7698c5cf89d",
       "1baec9cd-22cc-4f8b-80e4-57abcb1c2e47",
-      "a3ce86c3-cfb9-4d1c-bfc3-4557a5ef6889"
+      "a3ce86c3-cfb9-4d1c-bfc3-4557a5ef6889",
+      "1874e03e-803f-4130-9c38-4f803c00e58e"
     ],
     "sent_at_utc": "2026-09-11T19:14:55Z",
     "last_check_utc": "2026-09-11T20:37:21Z",
