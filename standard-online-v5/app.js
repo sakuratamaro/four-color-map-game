@@ -1,5 +1,6 @@
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 import "../online/supabase-config.js";
+import { createQuizMemo } from "./quiz-memo.js?v=20260912-1";
 
 const cfg = globalThis.FourColorSupabaseConfig;
 const supabase = createClient(cfg.url, cfg.publishableKey, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false } });
@@ -308,6 +309,26 @@ const COLOR_HEX = { red: "#ef4444", blue: "#3b82f6", yellow: "#eab308", green: "
 const COLOR_JA = { red: "赤", blue: "青", yellow: "黄", green: "緑" };
 const APP_TABS = new Set(["home", "battle", "quiz", "cards", "profile"]);
 let activeAppTab = APP_TABS.has(location.hash.slice(1)) ? location.hash.slice(1) : localStorage.getItem(APP_TAB_KEY) || "home";
+function alignQuizMemoEntry() {
+  const navigation = document.querySelector(".app-tabs");
+  const style = navigation && getComputedStyle(navigation);
+  const inset = style && ["sticky", "fixed"].includes(style.position) && style.top !== "auto"
+    ? navigation.getBoundingClientRect().height + (parseFloat(style.top) || 0) : 0;
+  $("quizMemoOn").scrollIntoView({ block: "start", behavior: "auto" });
+  window.scrollBy({ top: -inset - 12, behavior: "auto" });
+}
+const quizMemo = createQuizMemo({ onViewportChange: alignQuizMemoEntry, onActiveChange(active) {
+  if (active) alignQuizMemoEntry();
+  if (!active && quizOptionPhysics) {
+    quizOptionPhysics.items.forEach((item, index) => {
+      const angle = Math.random() * Math.PI * 2;
+      const initial = quizOptionInitialVelocity(index);
+      const speed = Math.hypot(initial.vx, initial.vy);
+      item.vx = Math.cos(angle) * speed; item.vy = Math.sin(angle) * speed;
+    });
+  }
+  syncQuizOptionMotion();
+} });
 const SKILL_META = Object.freeze(Object.fromEntries(Object.entries(STANDARD_SKILL_REGISTRY.skills).map(([id, definition]) => [id, Object.freeze({
   name: definition.displayName,
   category: definition.category,
@@ -625,6 +646,7 @@ function activateAppTab(requestedTab, { updateHash = true, scrollTop = true } = 
   }
   document.body.dataset.activeTab = tab;
   renderProfileCardVisibility();
+  syncQuizMemoContext();
   if (tab === "battle" && hasMatchedRoomHandoff()) pauseQuizClockForMatchedRoom();
   renderMatchedRoomHandoff();
   if (resumePausedQuiz) renderQuiz();
@@ -650,6 +672,7 @@ function quizLockedByMatchedRoom() {
 }
 
 function pauseQuizClockForMatchedRoom() {
+  quizMemo.deactivate({ lockAnswers: false, restoreFocus: false });
   if (pendingQuiz && pendingQuiz.answers.length < 10) {
     const state = quizPausedForMatchedRoom ? ensureQuizQuestionState() : settleQuizClock();
     quizPausedForMatchedRoom = true;
@@ -697,6 +720,7 @@ function renderMatchedRoomHandoff() {
     matchedRoomHandoff = null;
   }
   const visible = hasMatchedRoomHandoff() && activeAppTab !== "battle";
+  if (visible) quizMemo.deactivate({ lockAnswers: false, restoreFocus: false });
   show("matchedRoomHandoff", visible);
   $("connectionCard").classList.toggle("has-matched-room", visible);
   if (!visible) return;
@@ -2278,6 +2302,7 @@ function stopQuizClock() {
 }
 
 function updateQuizClock() {
+  syncQuizMemoContext();
   if (quizLockedByMatchedRoom() || !pendingQuiz || pendingQuiz.answers.length >= 10 || !$("quizTimer")) return stopQuizClock();
   const now = Date.now();
   const previousState = ensureQuizQuestionState(now);
@@ -2339,7 +2364,7 @@ function renderQuizHint(question, state) {
 }
 
 function openQuizHint() {
-  if (!pendingQuiz || quizBusy || quizLockedByMatchedRoom()) return;
+  if (!pendingQuiz || quizBusy || quizLockedByMatchedRoom() || quizMemo.active) return;
   const now = Date.now();
   const state = settleQuizClock(now);
   if (!state || state.hintUsed || state.remainingMs <= 0) return;
@@ -2633,6 +2658,7 @@ function quizOptionMotionPaused(state = pendingQuiz?.questionState) {
     || quizReducedMotion.matches
     || activeAppTab !== "quiz"
     || quizBusy
+    || quizMemo.active
     || quizLockedByMatchedRoom()
     || !pendingQuiz
     || pendingQuiz.answers.length >= 10
@@ -2766,6 +2792,19 @@ function initializeQuizOptionPhysics(buttons, { reserveRetry = false } = {}) {
   });
 }
 
+function syncQuizMemoContext() {
+  const index = pendingQuiz?.answers?.length;
+  const expired = pendingQuiz && Number.isFinite(Date.parse(pendingQuiz.expiresAt)) && Date.parse(pendingQuiz.expiresAt) <= Date.now();
+  quizMemo.setContext({
+    sessionId: pendingQuiz?.sessionId,
+    questionIndex: index,
+    eligible: pendingQuiz?.selectedLevel === 5 && Number.isSafeInteger(index) && index < 10 && !expired,
+    isVisible: activeAppTab === "quiz",
+    isBlocked: quizBusy || Boolean(pendingQuiz?.pendingAnswer) || quizLockedByMatchedRoom() || hasMatchedRoomHandoff()
+      || Number(pendingQuiz?.questionState?.hintActiveUntil || 0) > Date.now(),
+  });
+}
+
 function renderQuiz() {
   renderWaitingOpponentNotice();
   if (!$('quizPanel')) return;
@@ -2789,6 +2828,7 @@ function renderQuiz() {
   renderQuizAnswerFeedback();
   renderQuizStreak();
   renderQuizOutlook();
+  syncQuizMemoContext();
   if (!pendingQuiz) { stopQuizClock(); stopQuizOptionPhysics({ clear: true }); syncQuizOptionMotion(); return; }
   const lockedByMatch = quizLockedByMatchedRoom();
   if (lockedByMatch) $("quizStatus").textContent = quizRoomClassificationPending
@@ -2880,6 +2920,8 @@ async function startOnlineQuiz() {
 }
 
 async function answerOnlineQuiz(optionId, { timedOut = false } = {}) {
+  if (timedOut) quizMemo.deactivate({ lockAnswers: false, restoreFocus: false });
+  if (!timedOut && quizMemo.answerLocked) return;
   if (quizBusy || quizLockedByMatchedRoom() || !pendingQuiz || pendingQuiz.answers.length >= 10) return;
   const questionState = settleQuizClock();
   if (!timedOut && Number(questionState?.hintActiveUntil || 0) > Date.now()) return;

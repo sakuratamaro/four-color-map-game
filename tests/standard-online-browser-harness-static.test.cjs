@@ -49,7 +49,7 @@ test("withPage emits deterministic stages and bounds every setup and test-body a
 });
 
 test("timeout hierarchy preserves Playwright diagnostics and teardown room", () => {
-  assert.match(withPage, /\{ bodyTimeout = 35_000, viewport = \{ width: 900, height: 800 \}, beforeNavigate = null \}/);
+  assert.match(withPage, /\{ bodyTimeout = 35_000, viewport = \{ width: 900, height: 800 \}, beforeNavigate = null, deviceScaleFactor = 1 \}/);
   const browserTests = source.split(/\r?\n/).filter((line) => line.startsWith("test("));
   assert.ok(browserTests.length > 0);
   for (const declaration of browserTests) {

@@ -20,6 +20,7 @@ if (!Object.hasOwn(BROWSER_PATHS, browserName)) throw new Error("STANDARD_BROWSE
 const browserPath = BROWSER_PATHS[browserName];
 const connectionKey = "fourColorMapGame.standard.online.v5.connection";
 const pendingQuizKey = "fourColorMapGame.standard.online.v5.pending-quiz";
+const scratchKey = "fourColorMapGame.standard.online.v5.quiz-scratch-v1";
 const saveKey = "fourColorMapGame.standard.v5.save";
 const remoteProfileKey = "fourColorMapGame.standard.online.v5.remote-profile";
 const roomId = "11111111-1111-4111-8111-111111111111";
@@ -29,6 +30,286 @@ const RESTORED_ROOM_MODES = new Set(["finished", "playing", "colorResponse", "la
 function browserStage(stage) {
   console.error(`BROWSER_STAGE ${stage}`);
 }
+
+async function startMemoQuiz(page, level = "5") {
+  await page.getByRole("button", { name: "クイズ・ガチャ", exact: true }).click();
+  await page.locator("#quizLevel").selectOption(level);
+  await page.locator("#quizStart").click();
+  await page.locator("#quizOptions button[data-quiz-option]").first().waitFor();
+}
+
+async function drawMemoStroke(page) {
+  await page.mouse.move(25, 350);
+  await page.mouse.down();
+  await page.mouse.move(55, 450, { steps: 10 });
+  await page.mouse.up();
+  await page.waitForFunction((key) => JSON.parse(sessionStorage.getItem(key) || "null")?.operations.length > 0, scratchKey);
+}
+
+async function readScratch(page) { return page.evaluate((key) => JSON.parse(sessionStorage.getItem(key) || "null"), scratchKey); }
+
+test("UDL-048 memo ink, calculator, focus and same-question reload work without changing option DOM", { timeout: 120000 }, async () => {
+  await withPage("quizPhysics", async (page) => {
+    const errors = []; page.on("pageerror", (error) => errors.push(error.message));
+    await startMemoQuiz(page);
+    await page.locator("#quizMemoOn").click();
+    await page.waitForFunction(() => document.querySelector("#quizMemoOverlay").classList.contains("is-active"));
+    assert.equal(await page.locator("main").evaluate((node) => node.inert), true);
+    const canvasStyle = await page.locator("#quizMemoCanvas").evaluate((node) => ({ background: getComputedStyle(node).backgroundColor, border: getComputedStyle(node).borderTopWidth }));
+    assert.deepEqual(canvasStyle, { background: "rgba(0, 0, 0, 0)", border: "0px" });
+    assert.equal(await page.locator("#quizMemoOff").evaluate((node) => node === document.activeElement), true);
+    await page.locator("#quizOptions button[data-quiz-option]").first().evaluate((node) => node.click());
+    assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((call) => call.body?.operation === "quiz-answer").length), 0);
+    const timerBefore = await page.locator("#quizTimeBar").evaluate((node) => parseFloat(node.style.width));
+    await page.evaluate(() => { globalThis.__memoOptionNodes = [...document.querySelectorAll("#quizOptions button")]; globalThis.__memoOptionPositions = globalThis.__memoOptionNodes.map((node) => node.style.transform); });
+    await drawMemoStroke(page);
+    const ink = (await readScratch(page)).operations;
+    assert.ok(ink[0].points.length > 1);
+    await page.locator("#quizMemoEraser").click();
+    await drawMemoStroke(page);
+    await page.waitForFunction((key) => JSON.parse(sessionStorage.getItem(key)).operations.length === 2, scratchKey);
+    assert.equal((await readScratch(page)).operations[1].tool, "eraser");
+    await page.locator("#quizMemoClear").click();
+    await page.locator("#quizMemoUndo").click();
+    await page.locator("#quizMemoUndo").click();
+    await page.waitForFunction((key) => JSON.parse(sessionStorage.getItem(key)).operations.length === 1, scratchKey);
+    assert.deepEqual((await readScratch(page)).operations, ink);
+    await page.locator("#quizCalculatorPanel summary").click();
+    await page.locator("#quizCalculatorExpression").fill("(1234.56+2)*3");
+    await page.locator("#quizCalculatorExpression").press("Enter");
+    assert.equal(await page.locator("#quizCalculatorResult").textContent(), "3709.68");
+    if (process.env.QUIZ_MEMO_SCREENSHOTS) {
+      fs.mkdirSync(process.env.QUIZ_MEMO_SCREENSHOTS, { recursive: true });
+      await page.screenshot({ path: path.join(process.env.QUIZ_MEMO_SCREENSHOTS, `${browserName}-memo-390.png`) });
+    }
+    const toggleEvidence = await page.evaluate(() => {
+      const nodes = [...document.querySelectorAll("#quizOptions button[data-quiz-option]")];
+      const before = nodes.map((node) => node.style.transform);
+      document.querySelector("#quizMemoOff").click();
+      nodes[0].click();
+      return { before, after: nodes.map((node) => node.style.transform), answers: globalThis.__standardOnlineRuntime.calls.filter((call) => call.body?.operation === "quiz-answer").length };
+    });
+    assert.deepEqual(toggleEvidence.after, toggleEvidence.before);
+    assert.equal(toggleEvidence.answers, 0);
+    assert.equal(await page.locator("main").evaluate((node) => node.inert), false);
+    assert.equal(await page.locator("#quizMemoCanvas").evaluate((node) => getComputedStyle(node).pointerEvents), "none");
+    assert.equal(await page.locator("#quizMemoOn").evaluate((node) => node === document.activeElement), true);
+    const scroll = await page.evaluate(() => { const before = scrollY; window.scrollTo(0, before > 100 ? before - 100 : 100); return { before, after: scrollY }; });
+    assert.notEqual(scroll.after, scroll.before);
+    assert.equal(await page.evaluate(() => globalThis.__memoOptionNodes.every((node, i) => node === document.querySelectorAll("#quizOptions button")[i])), true);
+    assert.ok(await page.locator("#quizTimeBar").evaluate((node) => parseFloat(node.style.width)) < timerBefore);
+    const saved = await readScratch(page);
+    assert.equal(saved.calculator.history.length, 1);
+    assert.equal(await page.evaluate((key) => /scratch|calculator|operations/.test(localStorage.getItem(key)), pendingQuizKey), false);
+    await page.reload();
+    await page.locator("#quizMemoOn").waitFor();
+    assert.deepEqual(await readScratch(page), saved);
+    await page.locator("#quizMemoOn").click();
+    assert.equal(await page.locator("#quizCalculatorExpression").inputValue(), "(1234.56+2)*3");
+    await page.setViewportSize({ width: 844, height: 390 });
+    await page.waitForFunction(() => document.querySelector("#quizMemoCanvas").width === Math.ceil(844 * devicePixelRatio));
+    await page.waitForFunction(() => {
+      const question = document.querySelector("#quizQuestion").getBoundingClientRect();
+      const navigation = document.querySelector(".app-tabs").getBoundingClientRect();
+      return question.top >= navigation.bottom && question.bottom <= innerHeight;
+    });
+    assert.deepEqual((await readScratch(page)).operations, ink);
+    assert.ok(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth) <= 1);
+    if (process.env.QUIZ_MEMO_SCREENSHOTS) await page.screenshot({ path: path.join(process.env.QUIZ_MEMO_SCREENSHOTS, `${browserName}-memo-844.png`) });
+    await page.locator("#quizMemoOff").click();
+    await page.waitForTimeout(500);
+    await clickMovingQuizOption(page.locator("#quizOptions button[data-quiz-option]").first());
+    await page.waitForFunction(() => document.querySelector("#quizProgress").textContent === "2 / 10");
+    await page.locator("#quizMemoOn").click();
+    assert.equal(await page.locator("#quizCalculatorExpression").inputValue(), "");
+    assert.equal(await page.locator("#quizMemoUndo").isDisabled(), true);
+    assert.equal(await page.locator("#quizMemoStatus").textContent(), "");
+    const calls = await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((call) => call.body).map((call) => call.body));
+    assert.equal(JSON.stringify(calls).includes("1234.56"), false);
+    assert.equal(calls.filter((call) => call.operation === "quiz-answer").length, 1);
+    assert.deepEqual(errors, []);
+  }, { viewport: { width: 390, height: 844 }, deviceScaleFactor: 3, bodyTimeout: 45_000 });
+});
+
+test("UDL-048 failed answers and reload retry preserve scratch until the server acknowledges the next question", { timeout: 120000 }, async () => {
+  await withPage("quizPhysics", async (page) => {
+    await startMemoQuiz(page);
+    await page.locator("#quizMemoOn").click();
+    await drawMemoStroke(page);
+    await page.locator("#quizMemoOff").click();
+    const saved = await readScratch(page);
+    await page.addInitScript(() => { globalThis.__standardOnlineRuntime.failNextQuizAnswer = true; });
+    await page.evaluate(() => { globalThis.__standardOnlineRuntime.failNextQuizAnswer = true; });
+    await page.waitForTimeout(500);
+    await clickMovingQuizOption(page.locator("#quizOptions button[data-quiz-option]").first());
+    await page.locator(".quiz-answer-retry:not([disabled])").waitFor();
+    assert.deepEqual(await readScratch(page), saved);
+    const pending = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)).pendingAnswer, pendingQuizKey);
+    assert.equal(await page.locator("#quizMemoOn").isDisabled(), true);
+    await page.reload();
+    await page.locator(".quiz-answer-retry:not([disabled])").waitFor();
+    assert.deepEqual(await readScratch(page), saved);
+    assert.deepEqual(await page.evaluate((key) => JSON.parse(localStorage.getItem(key)).pendingAnswer, pendingQuizKey), pending);
+    await page.locator(".quiz-answer-retry").click();
+    await page.waitForFunction(() => document.querySelector("#quizProgress").textContent === "2 / 10");
+    assert.equal(await readScratch(page), null);
+    const calls = await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((call) => call.body?.operation === "quiz-answer").map((call) => call.body));
+    assert.equal(new Set(calls.map((call) => call.actionId)).size, 1);
+    assert.equal(JSON.stringify(calls).includes("operations"), false);
+  }, { viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
+});
+
+test("UDL-048 timeout exits memo and submits exactly one timeout through the unchanged answer route", { timeout: 120000 }, async () => {
+  await withPage("quizPhysics", async (page) => {
+    await startMemoQuiz(page);
+    await page.evaluate((key) => { const quiz = JSON.parse(localStorage.getItem(key)); quiz.questionState.remainingMs = 8000; quiz.questionState.lastTickAt = Date.now(); localStorage.setItem(key, JSON.stringify(quiz)); }, pendingQuizKey);
+    await page.reload();
+    await page.locator("#quizMemoOn").click();
+    await drawMemoStroke(page);
+    await page.waitForFunction(() => document.querySelector("#quizProgress").textContent === "2 / 10", null, { timeout: 12_000 });
+    assert.equal(await page.locator("#quizMemoOverlay").evaluate((node) => node.classList.contains("is-active")), false);
+    assert.equal(await page.locator("main").evaluate((node) => node.inert), false);
+    assert.equal(await readScratch(page), null);
+    const calls = await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((call) => call.body?.operation === "quiz-answer").map((call) => call.body));
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0].answerId, "__timeout__");
+    assert.deepEqual(Object.keys(calls[0]).sort(), ["actionId", "answerId", "operation", "questionIndex", "sessionId"].sort());
+  });
+});
+
+test("UDL-048 lower levels have no memo and canvas/storage failures do not disable Level 5 answers", { timeout: 120000 }, async () => {
+  await withPage("quizPhysics", async (page) => {
+    await startMemoQuiz(page, "4");
+    assert.equal(await page.locator("#quizMemoOn").isHidden(), true);
+    await page.evaluate((key) => { const quiz = JSON.parse(localStorage.getItem(key)); quiz.selectedLevel = 5; localStorage.setItem(key, JSON.stringify(quiz)); }, pendingQuizKey);
+    await page.addInitScript(() => {
+      const originalContext = HTMLCanvasElement.prototype.getContext;
+      HTMLCanvasElement.prototype.getContext = function (...args) { if (this.id === "quizMemoCanvas") return null; return originalContext.apply(this, args); };
+      const originalSet = Storage.prototype.setItem;
+      Storage.prototype.setItem = function (key, value) { if (key.includes("quiz-scratch-v1")) throw new DOMException("test quota", "QuotaExceededError"); return originalSet.call(this, key, value); };
+    });
+    await page.reload();
+    await page.locator("#quizMemoOn").click();
+    assert.equal(await page.locator("#quizMemoPen").isDisabled(), true);
+    await page.locator("#quizCalculatorPanel summary").click();
+    await page.locator("#quizCalculatorExpression").fill("1/0");
+    await page.locator("#quizCalculatorExpression").press("Enter");
+    assert.match(await page.locator("#quizMemoStatus").textContent(), /0では割れません/);
+    await page.locator("#quizCalculatorExpression").fill("2+3");
+    await page.locator("#quizCalculatorExpression").press("Enter");
+    assert.equal(await page.locator("#quizCalculatorResult").textContent(), "5");
+    await page.locator("#quizMemoOff").click();
+    await page.waitForTimeout(500);
+    await clickMovingQuizOption(page.locator("#quizOptions button[data-quiz-option]").first());
+    await page.waitForFunction(() => document.querySelector("#quizProgress").textContent === "2 / 10");
+    assert.equal(await page.locator("main").evaluate((node) => node.inert), false);
+  });
+});
+
+test("UDL-048 keyboard focus stays in memo, Escape exits, and a fatal dialog takes priority", { timeout: 120000 }, async () => {
+  await withPage("quizPhysics", async (page) => {
+    await startMemoQuiz(page);
+    await page.locator("#quizMemoOn").focus();
+    await page.keyboard.press("Enter");
+    assert.equal(await page.locator("#quizMemoOff").evaluate((node) => node === document.activeElement), true);
+    await page.keyboard.press("Shift+Tab");
+    assert.equal(await page.locator("#quizCalculatorPanel summary").evaluate((node) => node === document.activeElement), true);
+    await page.keyboard.press("Tab");
+    assert.equal(await page.locator("#quizMemoOff").evaluate((node) => node === document.activeElement), true);
+    await page.keyboard.press("Escape");
+    assert.equal(await page.locator("#quizMemoOn").evaluate((node) => node === document.activeElement), true);
+    await page.locator("#quizMemoOn").click();
+    const sizes = await page.locator("#quizMemoTools button:visible, #quizMemoTools summary").evaluateAll((nodes) => nodes.map((node) => node.getBoundingClientRect().height));
+    assert.ok(sizes.every((height) => height >= 44), JSON.stringify(sizes));
+    await page.evaluate(() => {
+      const dialog = document.createElement("dialog"); dialog.id = "memoCriticalTest"; dialog.setAttribute("aria-label", "重要なお知らせ");
+      const close = document.createElement("button"); close.id = "memoCriticalClose"; close.textContent = "確認"; dialog.appendChild(close); document.body.appendChild(dialog); dialog.showModal(); close.focus();
+    });
+    await page.waitForFunction(() => !document.querySelector("#quizMemoOverlay").classList.contains("is-active"));
+    assert.equal(await page.locator("#memoCriticalClose").evaluate((node) => node === document.activeElement), true);
+    assert.equal(await page.locator("main").evaluate((node) => node.inert), false);
+    await page.locator("#memoCriticalTest").evaluate((node) => { node.close(); node.remove(); });
+  });
+});
+
+test("UDL-048 matched-room handoff exits memo without losing the current question or its answer route", { timeout: 120000 }, async () => {
+  await withPage("handoffActivity", async (page) => {
+    await page.getByRole("button", { name: "対戦相手を募集" }).click();
+    await startMemoQuiz(page);
+    await page.locator("#quizMemoOn").click();
+    await drawMemoStroke(page);
+    const saved = await readScratch(page);
+    await page.evaluate(() => { globalThis.__standardOnlineRuntime.matchNow = true; document.dispatchEvent(new Event("visibilitychange")); });
+    await page.waitForFunction(() => document.querySelector("#matchedRoomAnnouncement")?.textContent.includes("対戦相手が見つかりました"));
+    assert.equal(await page.locator("#quizMemoOverlay").evaluate((node) => node.classList.contains("is-active")), false);
+    assert.equal(await page.locator("main").evaluate((node) => node.inert), false);
+    assert.deepEqual(await readScratch(page), saved);
+    assert.equal(await page.locator("#quizMemoOn").isDisabled(), true);
+    await clickMovingQuizOption(page.locator("#quizOptions button[data-quiz-option]").first());
+    await page.locator("body[data-active-tab='battle']").waitFor();
+    assert.equal(await page.locator("#quizMemoOverlay").isHidden(), true);
+    assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((call) => call.body?.operation === "quiz-answer").length), 1);
+  }, { viewport: { width: 390, height: 844 } });
+});
+
+test("UDL-048 native pen and touch cancellation save one stroke each and leave no stuck capture", { timeout: 120000 }, async () => {
+  await withPage("quizPhysics", async (page) => {
+    await startMemoQuiz(page);
+    await page.locator("#quizMemoOn").click();
+    await page.evaluate(() => {
+      globalThis.__memoPointerTypes = [];
+      document.querySelector("#quizMemoCanvas").addEventListener("pointerdown", (event) => globalThis.__memoPointerTypes.push(event.pointerType));
+    });
+    const cdp = await page.context().newCDPSession(page);
+    try {
+      await cdp.send("Input.dispatchMouseEvent", { type: "mousePressed", x: 25, y: 350, button: "left", buttons: 1, clickCount: 1, pointerType: "pen" });
+      await cdp.send("Input.dispatchMouseEvent", { type: "mouseMoved", x: 55, y: 450, buttons: 1, pointerType: "pen" });
+      await cdp.send("Input.dispatchMouseEvent", { type: "mouseReleased", x: 55, y: 450, button: "left", buttons: 0, clickCount: 1, pointerType: "pen" });
+      await cdp.send("Emulation.setTouchEmulationEnabled", { enabled: true, maxTouchPoints: 1 });
+      await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x: 25, y: 480, id: 2 }] });
+      await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: 55, y: 540, id: 2 }] });
+      await cdp.send("Input.dispatchTouchEvent", { type: "touchCancel", touchPoints: [] });
+      await page.waitForFunction((key) => JSON.parse(sessionStorage.getItem(key) || "null")?.operations.length === 2, scratchKey);
+      assert.deepEqual(await page.evaluate(() => globalThis.__memoPointerTypes), ["pen", "touch"]);
+      assert.ok((await readScratch(page)).operations.every((operation) => operation.points.length >= 2));
+      await page.locator("#quizMemoOff").click();
+      assert.equal(await page.locator("main").evaluate((node) => node.inert), false);
+    } finally { await cdp.detach(); }
+  }, { viewport: { width: 390, height: 844 } });
+});
+
+test("UDL-048 completion and expired sessions clear scratch without clearing unrelated session data", { timeout: 120000 }, async () => {
+  for (const boundary of ["complete", "expired"]) {
+    await withPage("quizPhysics", async (page) => {
+      await startMemoQuiz(page);
+      await page.evaluate(({ key, boundary }) => {
+        sessionStorage.setItem("memo-test-unrelated", "keep");
+        if (boundary === "complete") {
+          const quiz = JSON.parse(localStorage.getItem(key));
+          quiz.answers = Array.from({ length: 9 }, (_, i) => `q${i + 1}-1`);
+          quiz.questionState = null;
+          localStorage.setItem(key, JSON.stringify(quiz));
+        }
+      }, { key: pendingQuizKey, boundary });
+      if (boundary === "complete") await page.reload();
+      await page.locator("#quizMemoOn").click();
+      await drawMemoStroke(page);
+      await page.locator("#quizMemoOff").click();
+      if (boundary === "complete") {
+        await page.waitForTimeout(500);
+        await clickMovingQuizOption(page.locator("#quizOptions button[data-quiz-option]").first());
+        await page.locator("#quizResult:not(.hidden)").waitFor();
+      } else {
+        await page.evaluate((key) => { const quiz = JSON.parse(localStorage.getItem(key)); quiz.expiresAt = "2020-01-01T00:00:00Z"; localStorage.setItem(key, JSON.stringify(quiz)); }, pendingQuizKey);
+        await page.reload();
+        await page.locator("#quizSetup:not(.hidden)").waitFor();
+      }
+      assert.equal(await page.locator("#quizMemoOn").isHidden(), true);
+      assert.equal(await readScratch(page), null);
+      assert.equal(await page.evaluate(() => sessionStorage.getItem("memo-test-unrelated")), "keep");
+    });
+  }
+});
 
 async function bounded(stage, promise, timeoutMs) {
   let timer;
@@ -846,7 +1127,7 @@ async function installMock(context, mode) {
   }, { connectionKey, saveKey, roomId, pendingId: pendingRematchId, mode });
 }
 
-async function withPage(mode, run, { bodyTimeout = 35_000, viewport = { width: 900, height: 800 }, beforeNavigate = null } = {}) {
+async function withPage(mode, run, { bodyTimeout = 35_000, viewport = { width: 900, height: 800 }, beforeNavigate = null, deviceScaleFactor = 1 } = {}) {
   assert.ok(chromium, "Playwright is required");
   assert.ok(fs.existsSync(browserPath), `${browserName} browser is required`);
   let browserServer;
@@ -865,7 +1146,7 @@ async function withPage(mode, run, { bodyTimeout = 35_000, viewport = { width: 9
     browser = await bounded("browser-connect", chromium.connect(browserServer.wsEndpoint()), 5_000);
     browserStage("browser-connect-ready");
     browserStage("context-start");
-    context = await bounded("context-ready", browser.newContext({ viewport }), 5_000);
+    context = await bounded("context-ready", browser.newContext({ viewport, deviceScaleFactor }), 5_000);
     browserStage("context-ready");
     await bounded("mock-ready", installMock(context, mode), 5_000);
     browserStage("page-start");

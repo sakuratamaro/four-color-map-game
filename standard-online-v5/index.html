@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="style.css?v=20260910-12">
   <link rel="stylesheet" href="debug-mode.css">
   <link rel="stylesheet" href="progression.css?v=20260910-2">
+  <link rel="stylesheet" href="quiz-memo.css?v=20260912-1">
 </head>
 <body>
   <header>
@@ -121,6 +122,7 @@
           <strong id="quizMission" class="quiz-mission"></strong>
           <span id="quizThinkingSteps" class="quiz-thinking-steps"></span>
         </div>
+        <button id="quizMemoOn" class="quiz-memo-entry" type="button" hidden aria-controls="quizMemoOverlay">✎ Memo ON・電卓</button>
         <div id="quizQuestion" class="quiz-question"></div>
         <div id="quizOptions" class="quiz-options" role="group" aria-label="答えの選択肢" aria-describedby="quizMotionHelp"></div>
         <p id="quizMotionHelp" class="quiz-motion-help">選択肢はボタン全体が大きく漂い、位置が入れ替わります。触れる・ポイントする・キーボードで選ぶ間は安全に停止します。</p>
@@ -486,6 +488,31 @@
     </form>
   </dialog>
   <div id="toast" role="status" aria-live="polite"></div>
+  <div id="quizMemoOverlay" class="quiz-memo-overlay" aria-labelledby="quizMemoTitle" aria-describedby="quizMemoHelp" hidden>
+    <canvas id="quizMemoCanvas" aria-hidden="true"></canvas>
+    <section id="quizMemoTools" class="quiz-memo-tools" hidden>
+      <div class="quiz-memo-heading"><h2 id="quizMemoTitle">考えるメモ</h2><button id="quizMemoOff" type="button">Memo OFF・回答へ</button></div>
+      <p id="quizMemoHelp">時間は進みます。回答は Memo OFF（Esc）で。メモはこの問題だけ端末内に保存します。</p>
+      <div class="quiz-memo-drawing" role="group" aria-label="手書き道具">
+        <button id="quizMemoPen" type="button" aria-pressed="true">ペン</button><button id="quizMemoEraser" type="button" aria-pressed="false">消す</button>
+        <button id="quizMemoUndo" type="button">戻す</button><button id="quizMemoClear" type="button">全消去</button>
+      </div>
+      <details id="quizCalculatorPanel">
+        <summary>四則電卓</summary>
+        <label for="quizCalculatorExpression">計算式（＋ − × ÷）</label><input id="quizCalculatorExpression" type="text" inputmode="decimal" maxlength="96" autocomplete="off" spellcheck="false">
+        <output id="quizCalculatorResult" class="quiz-calculator-result" for="quizCalculatorExpression" aria-live="polite" aria-atomic="true">—</output>
+        <div id="quizCalculatorKeys" class="quiz-calculator-keys" role="group" aria-label="電卓のキー">
+          <button type="button" data-calc-key="Clear" aria-label="電卓を全消去">C</button><button type="button" data-calc-key="(" aria-label="括弧を開く">(</button><button type="button" data-calc-key=")" aria-label="括弧を閉じる">)</button><button type="button" data-calc-key="Backspace" aria-label="一文字消す">⌫</button>
+          <button type="button" data-calc-key="7">7</button><button type="button" data-calc-key="8">8</button><button type="button" data-calc-key="9">9</button><button type="button" data-calc-key="÷" aria-label="割る">÷</button>
+          <button type="button" data-calc-key="4">4</button><button type="button" data-calc-key="5">5</button><button type="button" data-calc-key="6">6</button><button type="button" data-calc-key="×" aria-label="掛ける">×</button>
+          <button type="button" data-calc-key="1">1</button><button type="button" data-calc-key="2">2</button><button type="button" data-calc-key="3">3</button><button type="button" data-calc-key="−" aria-label="引く・負の符号">−</button>
+          <button type="button" data-calc-key="0">0</button><button type="button" data-calc-key=".">.</button><button type="button" data-calc-key="=">=</button><button type="button" data-calc-key="+" aria-label="足す">+</button>
+        </div>
+        <ol id="quizCalculatorHistory" class="quiz-calculator-history" aria-label="この問題の計算履歴"></ol>
+      </details>
+      <p id="quizMemoStatus" role="status" aria-live="polite"></p>
+    </section>
+  </div>
   <script src="standard-skill-registry.generated.js?v=20260907-1"></script>
   <script src="standard-online-client.js?v=20260910-1"></script>
   <script src="standard-online-sync.js"></script>
@@ -493,6 +520,6 @@
   <script src="cpu-portraits.js?v=20260908-1"></script>
   <script src="cpu-commentary.js?v=20260910-1"></script>
   <script src="basic-feedback.js?v=20260908-2"></script>
-  <script type="module" src="app.js?v=20260911-27"></script>
+  <script type="module" src="app.js?v=20260912-28"></script>
 </body>
 </html>

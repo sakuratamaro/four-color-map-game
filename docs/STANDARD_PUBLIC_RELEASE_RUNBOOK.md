@@ -157,6 +157,16 @@ rollbackも「旧version番号へ戻った」という目視だけでは完了�
 
 ## EdgeとPagesの順序
 
+### UDL-048: Lv.5手書きメモ・四則電卓便
+
+`docs/QUIZ_MEMO_CALCULATOR_20260912.md` (`UDL-048-memo-v1`) を仕様とするPages-only候補。基準は `f8713d7006da0619b9c356d53a472754833fb910`。DB・Edge変更セットはともに `[]` であり、この便のために再配備しない。
+
+1. clean候補SHA・仕様blobを固定し、既存生成bundleの差分ゼロ、全非browser試験、UDL-048のChrome/Edge実browser試験とWindows gateを確認する。
+2. 既存アストラ会話へ固定候補の全差分・仕様・試験証拠を渡す。候補SHA／仕様版・blob／DB `[]`／Edge `[]` に一致するゲーム公開判定が必要。文書承認や別候補の承認を流用しない。
+3. fresh `origin/main` が候補の祖先であることを再確認してforceなしでfast-forwardする。同一SHAのPages成功後、online app `app.js?v=20260912-28` とメモの4 JS／CSS `v=20260912-1` を含め、公開byte/SHAを固定候補に突き合わせる。
+4. 公開candidate preflight、390pxとPC幅、実Lv.5クイズでメモON/OFF・描画・四則計算・同問reload保持・次問ACK後消去を確認する。サーバー状態・時計を注入せず、通信にメモが混入しないこと、console errorと横overflowがないことを記録する。
+5. 本番確認と物理端末受入を分ける。物理操作未実行は `NOT_RUN` のまま残す。問題時はPages-onlyの既知baselineへ戻す案を対象を明記して扱い、DBやEdgeを巻き戻さない。
+
 ### 基本palette torn snapshot拒否便
 
 完了。正式候補は`origin/main@3e453a2`へ製品、asset marker、fixture整合修正だけを再構成した`4cefe9f`（製品`023dcf5`、再構成の元`a68c6ab`）。試験枝を再実行するためだけのworkflow変更`462f999`は含めなかった。current-seat private paletteを持つclientだけのPages便であり、DB、migration、RPC、Edge、engine、ルール、カード、報酬は変更していない。
@@ -263,7 +273,7 @@ Pages表示の退行は直前Pagesへ戻せる。適用済みcounterは旧client
 
 ### alpha.4彩色済みエリア角膨張便
 
-完了履歴。この便は新payloadを旧Edgeが拒否する一方、新Edgeは旧UIのoutgoing payloadを継続できるため、`alpha.4対応Edge → live canary → Pages`の順で公開した。後続の対戦報酬便、CPU台詞／地の文分離便、CPU選択前portrait便、終局復帰時の開始告知抑止便、パレット属性識別便、クイズ報酬券レベル引継ぎ候補を含む現在のPages候補assetはonline app `app.js?v=20260911-27`、CPU commentary `cpu-commentary.js?v=20260910-1`、progression `progression.css?v=20260910-2`、style `style.css?v=20260910-12`、intents `standard-online-skill-intents.js?v=20260911-21`、client `standard-online-client.js?v=20260910-1`、portrait `cpu-portraits.js?v=20260908-1`、Local bundle `app.bundle.js?v=20260910-8-79935a0310f2`である。このalpha.4便自体ではDB、migration、RPC、secret、cleanup scheduleは変更しない。
+完了履歴。この便は新payloadを旧Edgeが拒否する一方、新Edgeは旧UIのoutgoing payloadを継続できるため、`alpha.4対応Edge → live canary → Pages`の順で公開した。後続の対戦報酬便、CPU台詞／地の文分離便、CPU選択前portrait便、終局復帰時の開始告知抑止便、パレット属性識別便、クイズ報酬券レベル引継ぎ候補を含む現在のPages候補assetはonline app `app.js?v=20260912-28`、CPU commentary `cpu-commentary.js?v=20260910-1`、progression `progression.css?v=20260910-2`、style `style.css?v=20260910-12`、intents `standard-online-skill-intents.js?v=20260911-21`、client `standard-online-client.js?v=20260910-1`、portrait `cpu-portraits.js?v=20260908-1`、Local bundle `app.bundle.js?v=20260910-8-79935a0310f2`である。このalpha.4便自体ではDB、migration、RPC、secret、cleanup scheduleは変更しない。
 
 1. `origin/main@63972b6`起点の専用clean worktreeで両bundleを2回生成し、2回目のSHAが不変、正式全製品試験、Windows Chrome/Edge CI、対象実browserのskip 0を確認する。
 2. alpha.4対応bundleを保持したまま新規対局だけを`5.0.0-alpha.3`へ戻す互換rollback branchを作成・GitHub保全する。既存alpha.4 stateの読込み・継続と、alpha.3新規stateが彩色済みpayloadをwrite-free拒否することを確認する。

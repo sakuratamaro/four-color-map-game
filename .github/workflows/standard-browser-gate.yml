@@ -151,6 +151,7 @@ jobs:
           tests/standard-online-client.test.cjs
           tests/standard-online-quiz-generator-runtime.test.cjs
           tests/standard-online-quiz-polish.test.cjs
+          tests/standard-quiz-scratch.test.cjs
           tests/standard-online-random-info-ui.test.cjs
           tests/standard-online-skill-registry.test.cjs
           tests/standard-online-skill-intents.test.cjs
