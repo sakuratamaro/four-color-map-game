@@ -29,7 +29,7 @@ const connectionKey = "fourColorMapGame.standard.online.v5.connection";
 const checks = [];
 const report = { subject: "UDL-052-054-063-play-v1.2", candidateSha, profilesCreated: 0, matchesCreated: 0,
   cleanup: "NOT_NEEDED", physicalDevices: "NOT_RUN", liveOverlapSealExhaustion: "NOT_RUN_USE_FIXED_CANDIDATE_GATE",
-  assetHashes: [], browserWidths: [], checks };
+  assetHashes: [], browserWidths: [], geometry: [], checks };
 let token, roomId, room, browserServer, context, failed = false, stage = "public assets";
 const hardTimeout = setTimeout(() => { console.error("FAIL safety timeout; owned test cleanup may need follow-up"); process.exit(1); }, 240_000);
 function check(label, value) { assert.ok(value, label); checks.push(label); }
@@ -142,7 +142,17 @@ async function finishOwnedMatch() {
           return r.bottom<=innerHeight&&r.width>=44&&r.height>=44&&(hit===el||el.contains(hit));
         });
       });
-      check(`${label}: board and palette visible without occlusion`, await page.locator("#boardViewport").evaluate(el=>el.getBoundingClientRect().width>=280));
+      const geometry = await page.locator("#boardViewport").evaluate(el=>{
+        const b=el.getBoundingClientRect();
+        const samples=[.1,.5,.9].flatMap(x=>[.1,.5,.9].map(y=>document.elementFromPoint(b.x+b.width*x,b.y+b.height*y)));
+        return {viewport:{width:innerWidth,height:innerHeight},board:{x:b.x,y:b.y,width:b.width,height:b.height,bottom:b.bottom},
+          fullBoardVisible:b.x>=0&&b.y>=0&&b.right<=innerWidth&&b.bottom<=innerHeight&&samples.every(hit=>hit===el||el.contains(hit))};
+      });
+      report.geometry.push({label,...geometry});
+      check(`${label}: full board visible without fixed-bar occlusion`, geometry.fullBoardVisible);
+      check(`${label}: board meets short-screen floor`, geometry.board.width>=280);
+      if(geometry.viewport.width===390&&geometry.viewport.height===844)
+        check(`${label}: normal390 board width exceeds300`, geometry.board.width>300);
       check(`${label}: stable six-card grid`, await page.locator("#skillControls .skill-entry").evaluateAll(nodes=>{
         const r=nodes.map(el=>el.getBoundingClientRect());
         return r.length===6&&new Set(r.slice(0,3).map(b=>b.y)).size===1&&new Set(r.slice(3).map(b=>b.y)).size===1&&new Set(r.map(b=>b.x)).size===3;

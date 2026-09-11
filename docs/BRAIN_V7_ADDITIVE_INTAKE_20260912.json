@@ -1,0 +1,274 @@
+{
+  "kind": "additive_intake_snapshot_not_second_ledger",
+  "package_id": "BRAIN-UPDATE-20260911-07",
+  "zip_path": "C:/Users/user/Downloads/four-color-dev-brain-20260911-v7.zip",
+  "zip_sha256": "1b4e19afd40b69b800a924318006614dcb65ece2260302efaf58578635bf7560",
+  "receipt_date_jst": "2026-09-12",
+  "source": {
+    "thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
+    "user_message_id": "bbb21c0c-3f50-4862-874f-599066f29669",
+    "response_message_id": "61a5e22b-e1da-4a75-865f-74b7535d96d4",
+    "source_text_path": "sources/USER_CPU_PROGRESSION_BALANCE_20260911.md",
+    "verification": "Prior full completed paired read recorded; package hash rechecked this turn, 40/40 manifest verification preserved. Only8 new aliases, older28 not reimported."
+  },
+  "records": [
+    {
+      "source": "USER_CPU_PROGRESSION_BALANCE_20260911",
+      "implementation_state": "not_started",
+      "verification_state": "not_run_for_new_game_acceptance",
+      "release_state": "not_merged",
+      "integration_state": "mapped_by_existing_commander",
+      "id": "ADD-20260911-WATAOKIBA-PORTRAIT-FOLLOWUP",
+      "title": "わたおきば素材へのCPU立ち絵差替えを進める",
+      "canonical_udl_refs": [
+        "UDL-20260908-033"
+      ],
+      "intent_state": "reaffirmed_user_requirement",
+      "user_requirement": [
+        "CPU絵をわたおきば素材へ早く変更したい。"
+      ],
+      "assistant_design": [
+        "第三者素材一律HOLDではなく、既存033の出典/規約/視覚承認/素材対応工程を進める。固有ステージの完成待ちにしない。",
+        "キャラクターID・戦績・各Lv男女1:1・最強シオン/最弱レンは維持。具体素材の視覚承認済みとは推測しない。",
+        "配布元素材の再配布と作品内利用を区別し、必要な加工済み素材/出典/表示対応だけを整える。"
+      ],
+      "acceptance_draft": [
+        "10人への素材対応・表情・fallback・規約/取得元・加工履歴を033に対応付ける。",
+        "候補選定・視覚承認・取り込み・公開を別々に記録する。"
+      ],
+      "related_udl_refs": []
+    },
+    {
+      "source": "USER_CPU_PROGRESSION_BALANCE_20260911",
+      "implementation_state": "not_started",
+      "verification_state": "not_run_for_new_game_acceptance",
+      "release_state": "not_merged",
+      "integration_state": "mapped_by_existing_commander",
+      "id": "ADD-20260911-CPU-RECORD-DIALOGUE-STAGE",
+      "title": "CPU別戦績に応じた台詞と固有ステージ",
+      "canonical_udl_refs": [
+        "UDL-20260912-064"
+      ],
+      "intent_state": "user_design_proposal_recommended",
+      "user_requirement": [
+        "CPUとの戦績に応じて台詞が変わる。",
+        "条件を満たすとCPU固有ステージへ挑戦できる。"
+      ],
+      "assistant_design": [
+        "初対面/再戦/初勝利/挑戦解禁/技習得後の短い定型台詞を、保存済みCPU別記録から選ぶ。対戦中の生成AI呼出は不要。",
+        "初勝利で固有ステージ解禁を初期案とし、大量周回を必須にしない。負けた側を嘲笑する文言を避ける。",
+        "地形/初期配置/固定貸出デッキ/課題で個性を出す。通常戦の役割や相手秘密情報の境界は維持。",
+        "最初は1体で台詞→試練→習得までを試作し、全10人分完成を通常改修の停止条件にしない。"
+      ],
+      "acceptance_draft": [
+        "CPU別記録と画面のIDが一致し、reload/retryで勝敗/解禁を二重計上しない。",
+        "過去に保存されていない対局内容を台詞で捏造しない。",
+        "ステージに複数の合法な解法や公平な課題があることを例示し、特殊条件を開始前に表示する。"
+      ],
+      "mapping_note": "成長/ステージの同等UDLがなければ既存司令塔が採番。051のCPU判断修正を置き換えない。",
+      "related_udl_refs": []
+    },
+    {
+      "source": "USER_CPU_PROGRESSION_BALANCE_20260911",
+      "implementation_state": "not_started",
+      "verification_state": "not_run_for_new_game_acceptance",
+      "release_state": "not_merged",
+      "integration_state": "mapped_by_existing_commander",
+      "id": "ADD-20260911-LEARNED-TECHNIQUE-SLOT",
+      "title": "固有ステージ初回クリアで非消耗の固有技を習得",
+      "canonical_udl_refs": [
+        "UDL-20260906-011"
+      ],
+      "intent_state": "user_requested_design_direction",
+      "user_requirement": [
+        "固有ステージをクリアするとCPUから固有スキルを教わる。",
+        "カードは消費されず1試合に1回使用できる。",
+        "既存6枠とは別の枠へ装備できる。"
+      ],
+      "assistant_design": [
+        "通常6枠＋伝授技1枠を初期設計にする。習得数は増やせるが同時装備は1枚。10人分を同時使用する設計にしない。",
+        "既存のusage category制限は技にも適用。追加装備枠とカテゴリ制限の免除は別。",
+        "対局途中で技を交換して使用回数を回復させない。使用済みは対局単位で保持、次の試合で1回に戻す。",
+        "最初の技は守備寄り。例：自分の所持1色の封印解除、または現在のおまけ回数+1。具体効果は試験案として選ぶ。",
+        "最上位CPUでしか必須対抗手段を得られない構成にしない。入門の技/試練用貸出技を用意する。",
+        "人間だけ強くするとCPU弱さを悪化させるため、CPUも表示された固有技を正規に使用する。PvPへの適用条件は別途明示し、不所持者の無説明な不利を避ける。",
+        "既存カードの置換/削除はしない。新ID・1回/対局・永続アンロックを正規状態へ設計する。"
+      ],
+      "acceptance_draft": [
+        "初回クリア付与が再送/再読込で二重にならない。",
+        "習得済み技は使用後も所持一覧から消えず、同一対局では2回目をサーバーが拒否する。",
+        "既存6枚の編成/在庫/ガチャを壊さず、別枠がUIと正規対局状態で一致する。",
+        "カテゴリ消費、封印/使用禁止との相互作用、試練クリア/報酬保存失敗の再送を定義する。"
+      ],
+      "related_udl_refs": [
+        "UDL-20260912-064"
+      ]
+    },
+    {
+      "source": "USER_CPU_PROGRESSION_BALANCE_20260911",
+      "implementation_state": "not_started",
+      "verification_state": "not_run_for_new_game_acceptance",
+      "release_state": "not_merged",
+      "integration_state": "mapped_by_existing_commander",
+      "id": "ADD-20260911-MATCH-LENGTH-FOUR-FIVE",
+      "title": "短期決着の原因を分けて4色/5色を比較する",
+      "canonical_udl_refs": [
+        "UDL-20260910-051"
+      ],
+      "intent_state": "user_requests_balance_review_not_color_change",
+      "user_requirement": [
+        "自分の5回目に達する前に勝つことがあり、盛り上がりに欠ける。",
+        "できればAstra自身のプレイとバランス評価がほしい。",
+        "旧5色・各3色/共通1色へ戻すべきか意見を求めている。"
+      ],
+      "assistant_design": [
+        "当面4色を維持し、まずCPUの浪費/救済漏れと封印対抗策を検証する提案。5色復帰の実装指示ではない。",
+        "N色/所持集合H/隣接集合A/封印集合Sの可用性H\\(A∪S)を区別する。全体の色を増やしても所持3色のままなら自動で救われない。",
+        "先に現行4色、救済判断修正版4色を比較。次に防御技付き4色、5色試験を別条件で比較し変更原因を混ぜない。",
+        "最初は代表CPUと少数固定seed、先後交換で比較。手数はversionやskill操作回数ではなく各席の彩色成功回数も記録。",
+        "短手数率、投了時の使用可能救済札、反撃回数、盤面利用率、決着時間、先後差、探索時間を追う。5回未満を機械的禁止しない。",
+        "5色試験は配札重なり、封印の抽選母集団、全色使用skill、描画/保存/合法性を揃える。UIだけ5色にしない。"
+      ],
+      "acceptance_draft": [
+        "原因をCPU判断漏れ/正規救済不能/封印併用/在庫枯渇に分類する。",
+        "未完走/探索上限/通信失敗は通常敗北や引分けへ混ぜず分記。",
+        "新手段をプレイヤーだけに与えた試験をCPU強化効果としない。"
+      ],
+      "trial_targets": "中位以上の通常戦で5回未満の一方的勝利が大半を占めない、危機→切り返し→再攻撃が成立することをまず目指す。数値の最終閾値は未設定。",
+      "related_udl_refs": []
+    },
+    {
+      "source": "USER_CPU_PROGRESSION_BALANCE_20260911",
+      "implementation_state": "not_started",
+      "verification_state": "authoritative_offline_baseline_reproduced_not_fixed",
+      "release_state": "not_merged",
+      "integration_state": "mapped_by_existing_commander",
+      "id": "ADD-20260911-CPU-SPLIT-ORIENTATION-DIAGNOSTIC",
+      "title": "エリア二分で自分が残す側を片方向しか列挙しない診断",
+      "canonical_udl_refs": [
+        "UDL-20260910-051"
+      ],
+      "intent_state": "assistant_source_diagnostic_not_live_replay",
+      "user_requirement": [
+        "CPUが二分など救済札を有効活用すること。"
+      ],
+      "assistant_design": [
+        "splitSelectionsのif (!(mask & 1)) continueは最小macroを含む側だけ列挙する。二分では自分が塗る側と相手へ返す側が非対称なので、補集合側も候補評価する必要がある。",
+        "修正は正式engine生成の局面で再現/否定してから。カテゴリ制限を解除したり相手privateを見たりしない。"
+      ],
+      "acceptance_draft": [
+        "2マスの左だけ赤青に接触し自分基本赤青/bonus0の局面とその鏡像で、救済側を両方列挙する。",
+        "正規dispatcherで分割→自分彩色→残りを相手へ渡すまで実行する。",
+        "借色や変更がないfixture、分割不可/使用済みカテゴリ/既予約の負例で無限試行や不正操作を起こさない。"
+      ],
+      "evidence": {
+        "source_sha": "f8713d7006da0619b9c356d53a472754833fb910",
+        "source_blob": "1269eebf065630c8cfb142ca2cd721280b411be2",
+        "test": "diagnostics/split-orientation-probe.cjs",
+        "result": "diagnostics/SPLIT_PROBE_RESULT.json",
+        "executed_here": true,
+        "full_engine_replay": false,
+        "live_play": false
+      },
+      "related_udl_refs": []
+    },
+    {
+      "source": "USER_CPU_PROGRESSION_BALANCE_20260911",
+      "implementation_state": "not_started",
+      "verification_state": "not_run_for_new_game_acceptance",
+      "release_state": "not_merged",
+      "integration_state": "mapped_by_existing_commander",
+      "id": "ADD-20260911-REGION-DESTRUCTION-VS-UNCOLOR",
+      "title": "エリア形状を消す破壊と、形状を残す色落としを別カード化",
+      "canonical_udl_refs": [
+        "UDL-20260906-011"
+      ],
+      "intent_state": "user_proposes_new_skills",
+      "user_requirement": [
+        "既存エリアを完全破壊しエリア選択からやり直す手段。",
+        "単に色を除いて塗り直しさせる手段。"
+      ],
+      "assistant_design": [
+        "音声転記「そのエリアする選択」は形状選択のやり直しと解釈した設計案。原文は別保存。",
+        "破壊は対象の形・色を除き普通の空きマスへ戻す。色落としは形状と占有を残して再彩色対象へする。単なるランダム別色塗り直しと区別。",
+        "最初の破壊は表示面積上限付きの小さい既塗1領域。現在受取中/返却予約中の領域を消して義務を回避しない。",
+        "色落としは誰がいつ再彩色するか、既存受取と重なる時どうするかを定義してから実装。灰色へ描くだけで完了としない。",
+        "所有者で対象を決めず、分裂/合流後の現在領域を使う。既存差し色を新案のたびに後回しにしない。"
+      ],
+      "acceptance_draft": [
+        "破壊は再選択可能な空白、色落としは再選択不可の未彩色形状として異なる。",
+        "未彩色の宙ぶらりん状態、必須彩色回避、経過履歴からの秘密色露出を作らない。"
+      ],
+      "related_udl_refs": []
+    },
+    {
+      "source": "USER_CPU_PROGRESSION_BALANCE_20260911",
+      "implementation_state": "not_started",
+      "verification_state": "not_run_for_new_game_acceptance",
+      "release_state": "not_merged",
+      "integration_state": "mapped_by_existing_commander",
+      "id": "ADD-20260911-SKILL-SILENCE-COUNTERPLAY",
+      "title": "相手の次ターンのスキル使用禁止案を対抗可能性と合わせて検討",
+      "canonical_udl_refs": [
+        "UDL-20260906-011"
+      ],
+      "intent_state": "user_skill_proposal_full_silence_not_yet_adopted",
+      "user_requirement": [
+        "相手が次ターンにスキルを発動できなくするスキル。"
+      ],
+      "assistant_design": [
+        "色封印と全スキル禁止の併用は救済札まで止め、短期決着を助長し得る。全封鎖版は初期追加の優先対象にしない。",
+        "先行代案は妨害カテゴリだけを相手の次の使用機会1回制限する別カード。救済色カードは止めない。原案をこの代案で黙って上書きしない。",
+        "期間開始/終了・重ね掛け・連打による永久封鎖・解除技自身の使用可否を明文化する。"
+      ],
+      "acceptance_draft": [
+        "封印＋禁止の組合せを調べ、対抗手段が使用不能になる問題を設計時に検査。",
+        "連続延長/再送で永久ロックを作らず、人間とCPUに同じ効果規則を適用。"
+      ],
+      "related_udl_refs": []
+    },
+    {
+      "source": "USER_CPU_PROGRESSION_BALANCE_20260911",
+      "implementation_state": "not_started",
+      "verification_state": "not_run_for_new_game_acceptance",
+      "release_state": "not_merged",
+      "integration_state": "mapped_by_existing_commander",
+      "id": "ADD-20260911-SEAL-REMOVAL-SKILLS",
+      "title": "色封印への解除専用札や持ち色系スキルの副次効果",
+      "canonical_udl_refs": [
+        "UDL-20260906-011",
+        "UDL-20260910-051"
+      ],
+      "intent_state": "user_requests_counterplay_design_variants",
+      "user_requirement": [
+        "色封印が強すぎるため、解除専用skillやおまけ補充等に付随する解除を検討したい。"
+      ],
+      "assistant_design": [
+        "初期提案は新カード「解封」: 自分の現在所持1色の封印を解除。隣接同色禁止は維持し、無敵や全色付与はしない。",
+        "「おまけ補充・解」など上位の別カードに、補充とおまけ色だけの解封を持たせる案。既存補充を無言で置換しない。",
+        "通常の残数補充は残数0だけを救い、現行封印を解除しない。封印0と隣接による使用不可も別。",
+        "既存の一回限り封印突破案と完全解除は競合する別案なので、最終効果を混ぜず比較する。",
+        "対抗技は初期でも確保できる経路を用意し、持っているのに使えないカテゴリ問題を確認。CPUは同じ対抗札を適切に使う。"
+      ],
+      "acceptance_draft": [
+        "所持色/非所持色、封印1/複数、残期間、bonus満タンだが封印中、残0、隣接同色の境界を試験。",
+        "解除後も隣接不合法の色を塗れるようにしない。",
+        "採用効果/使用カテゴリ/タイミング/レア度を明示し、表示とengineとCPU評価を一致させる。"
+      ],
+      "related_udl_refs": []
+    }
+  ],
+  "priority": [
+    "Finish active UI slices; preserve completed023/052/054/063",
+    "CPU033/051 portrait/identity/versioned-policy slices; source and rights verification separate",
+    "011 defensive-card design and064 one-CPU progression pilot",
+    "Other011 additions after explicit design/spec review; 5-color and total-silence proposals remain unadopted"
+  ],
+  "boundaries": [
+    "No ZIP overwrite of canon/product",
+    "No CPU/game release approval inferred from draft",
+    "No duplicate controller, agent team or polling loop",
+    "No artist contact; concrete assets and visual acceptance pending",
+    "Source package version is not product release version"
+  ]
+}

@@ -41,7 +41,7 @@
     }
   ],
   "coordination": {
-    "status": "ui_play_surface_exact_review_pending_result_implementation",
+    "status": "ui_play_surface_public_verified_result_push_blocked_cpu_successor_queued",
     "latest_v8_intake": {
       "state": "PAIRED_SOURCE_MAPPED_CANONICAL_UI_GOAL_QUEUED_ZIP_PENDING",
       "source_thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
@@ -66,25 +66,28 @@
       "user_message_id": "bbb21c0c-3f50-4862-874f-599066f29669",
       "astra_response_id": "61a5e22b-e1da-4a75-865f-74b7535d96d4",
       "transfer_thread_id": "01a08d9e-ae35-7f70-a879-cb342dafef47",
-      "state": "RECEIVED_QUEUED_FOR_DEDUPLICATED_INTAKE_NOT_BLOCKING_UDL048",
+      "state": "VERIFIED_8_V7_ALIASES_MAPPED_NOT_GAME_IMPLEMENTATION",
       "commander_package_verification": {
         "sha256_matches": true,
         "manifest_files_verified": 40,
         "unique_safe_archive_entries": 41,
         "new_delta_records_read": 8,
-        "canonical_mapping": "PENDING",
+        "canonical_mapping": "8/8 mapped;7 aliases reuse033/051/011; progression alias newly064",
         "source_diagnostic_read_not_executed": true
       },
-      "note": "Transfer reports manifest 40/40 and 28 unchanged plus 8 new requests. Commander read actual paired user/Astra text on 2026-09-12; package revalidation and canonical mapping remain pending. Not a new release approval, 5-color adoption or production change. Author contact remains forbidden."
+      "note": "ZIP SHA rechecked; prior40/40 manifest verification retained.8 new records read and mapped without reimporting28 earlier items.5colors/full silence remain proposals. No source ZIP overwrite, release approval or artist contact.",
+      "intake_snapshot": "docs/BRAIN_V7_ADDITIVE_INTAKE_20260912.json"
     },
     "latest_publication_report": {
-      "subject_sha": "93c05c7c68576b28a126588d0716f0f56c015531",
-      "request_message_id": "1baec9cd-22cc-4f8b-80e4-57abcb1c2e47",
-      "response_message_id": "d7a96f4c-12db-45ca-b50b-b12b95edb727",
+      "subject_sha": "d6f745d3f1291457539dd2f3476e9a749a547069",
       "source_thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
       "state": "FULL_COMPLETED_PAIR_RECEIVED_NO_REVIEW_WAIT",
-      "evidence_commit": "20e001a16facb26abdbc034c42b64ee0fc3fe69a",
-      "note": "Actual Astra confirms entrance PUBLIC_VERIFIED and next052/054/063; no next-candidate approval."
+      "request_message_id": "47322867-f7d1-41c7-bca8-5fb6a95b2f2e",
+      "evidence": "docs/UI_PLAY_SURFACE_RELEASE_20260912.md",
+      "message_kind": "completion_metadata_only_no_internal_diff",
+      "note": "Exact completion prompt and genuine full completed acknowledgment received. No new approval or wait. Local governance changes remain unpushed.",
+      "response_message_id": "3a5a46cc-ce9b-4ebb-9e8b-a80ae5475a05",
+      "response_text": "**承認014の完了報告として受領しました。本報告に基づき、UDL052／054／063を`PUBLIC_VERIFIED`・公開修正タスク完了として扱います。**\n\n対象は製品／main **`d6f745d3f1291457539dd2f3476e9a749a547069`**、仕様`UDL-052-054-063-play-v1.2`／blob `5a63468c8f75d777cafcb6de7fec19e4048d0f5b`の **Pages_only／DB[]／Edge[]** に限定します。\n\n公開後ゲートは、同SHAのPages成功、preflight、5asset厳密byte一致、実Chrome **55/55**、最終d6画像の目視PASSまで完了した報告として受け付けます。前回明示した通常390pxの盤面幅`>300px`も、cold／reloadともに**328×328px**で充足しています。表示・復帰の無書込、明示borrowの単回消費、使用済み手札の位置・reload保持、試験対局だけの通常投了も完了範囲に含めます。\n\n**物理端末とlive特殊全組合せは`NOT_RUN`のまま別管理**とし、今回観察された基本色封印を全組合せの合格へ拡張しません。旧候補の失敗履歴とd6のcleanup警告も保全扱いです。\n\n原待機は**2/3消費で閉鎖**、既存heartbeatは**`PAUSED`**との報告を受領しました。再レビュー・返信待機・再armは開始しません。UI全体の完了とはせず、残件と後続CPU目標・最新頭脳の受け渡しは、既存司令塔での継続対象とします。"
     },
     "latest_implementation_instruction": {
       "source_thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
@@ -142,8 +145,8 @@
       "scope": "receive_and_route_only"
     },
     "reviewer_thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
-    "last_consumed_review_message_id": "ce88c333-e4f7-4ca1-a71b-ab9aec58d4d2",
-    "last_received_message_id": "ce88c333-e4f7-4ca1-a71b-ab9aec58d4d2",
+    "last_consumed_review_message_id": "9b9b252a-2a5e-43b8-a9c8-20f6b87e9f1f",
+    "last_received_message_id": "9b9b252a-2a5e-43b8-a9c8-20f6b87e9f1f",
     "pending_user_intake_message_ids": [
       "ea61f25f-bebf-499a-81e9-029712a96f99"
     ],
@@ -162,100 +165,13 @@
     ],
     "pending_user_intake_note": "v3/v4/v5/v6 reconciled as dated aliases: CPU051, quiz034, split037, corner029, history057, aurora058, reward navigation059. Source bbb215c4 matched and consumed; v4 original message ID unresolved (archive quote/hash retained); v6 source0832e679 subsequently read in full and matched. Original ea61f25f remains not fully consumed. CPU formal settings and exact perk numbers remain unverified; not implemented by intake. User publication/delegation policy056 and completed055/052 evidence are preserved.",
     "last_completed_slice": {
-      "id": "UDL-20260907-023",
-      "state": "PUBLIC_VERIFIED",
-      "owner_thread_id": "01a07b56-616e-7733-9aae-90575659688e",
-      "base_sha": "a26ffd14a8f896d9d087dac032d8f079ece82f7d",
-      "branch": "codex/ui-diet-20260912",
-      "worktree": ".codex-worktrees/ui-diet-20260912",
-      "spec_path": "docs/UI_DIET_ENTRANCE_20260912.md",
-      "spec_version": "UDL-023-entrance-v1.1",
-      "candidate_sha": "93c05c7c68576b28a126588d0716f0f56c015531",
-      "review_status": "APPROVE_RELEASE",
-      "public_gameplay": "PASS_28_OF_28_PUBLIC_NAVIGATION_ONLY",
-      "physical_devices": "NOT_RUN",
-      "scope": "Pages_only",
-      "db_change_set": [],
-      "edge_change_set": [],
-      "next_action": "Closed entrance; continue active UI goal with052/054/063 from public93; no review wait.",
-      "spec_snapshot_sha": "dd839a5424fc13ecd9d6b604023666b1996cbd76",
-      "local_tests": "clean901/901 skip0; actualChrome6/6 Edge6/6 including unchanged old arrival regression and every-option390/900/1280",
-      "windows_run": "34636944139",
-      "windows_status": "SUCCESS",
-      "review_send_attempts": 1,
-      "review_packet": "docs/ASTRA_UI_ENTRANCE_FOLLOWUP_20260912.md",
-      "review_send_reserved_at_utc": "2026-09-11T18:49:00Z",
-      "review_request_message_id": "94a4152d-fba7-4718-ac5f-f7698c5cf89d",
-      "review_delivery_checks": 2,
-      "review_source_artifact_sha": "b9419d94d70efabd80281e255cb5f12a9a92e727",
-      "review_delivery_note": "First valid bounded read stale; second full paired prompt equality and completed actual review. Invalid maxOutputChars argument produced no fetch and not counted.",
-      "review_id": "CHATGPT-REVIEW-20260912-012",
-      "review_response_message_id": "9f4e5736-a704-4c73-819a-40c4005f9bf6",
-      "superseded_candidates": [
-        {
-          "id": "UDL-20260907-023",
-          "state": "LOCAL_VERIFIED",
-          "owner_thread_id": "01a07b56-616e-7733-9aae-90575659688e",
-          "base_sha": "a26ffd14a8f896d9d087dac032d8f079ece82f7d",
-          "branch": "codex/ui-diet-20260912",
-          "worktree": ".codex-worktrees/ui-diet-20260912",
-          "spec_path": "docs/UI_DIET_ENTRANCE_20260912.md",
-          "spec_version": "UDL-023-entrance-v1",
-          "candidate_sha": "a9b2ff984c448819483286eae5acfa91530fc5db",
-          "review_status": "APPROVED_A9_NOT_USABLE_FOR_REVISED_93",
-          "public_gameplay": "NOT_RUN",
-          "physical_devices": "NOT_RUN",
-          "scope": "Pages_only",
-          "db_change_set": [],
-          "edge_change_set": [],
-          "next_action": "Send fixed93 correction review once. Preserve original wait budget.",
-          "spec_snapshot_sha": "d5c0f6e8b6de875d844eaf9bd8c154e281472952",
-          "local_tests": "clean901/901, actualChrome9/9 and Edge9/9 skip0; three builders zero diff; earlier dirty898/901 retained",
-          "windows_run": "34635024201",
-          "windows_status": "FAILURE",
-          "review_send_attempts": 1,
-          "review_packet": "docs/ASTRA_UI_ENTRANCE_REVIEW_20260912.md",
-          "review_send_reserved_at_utc": "2026-09-11T18:49:00Z",
-          "review_request_message_id": "6d1b03f6-b19b-4b6e-935f-78c9afb0dbaa",
-          "review_delivery_checks": 2,
-          "review_source_artifact_sha": "720baea3031e9f520a57477451adef1991c2075f",
-          "review_delivery_note": "First transport read stale; second exact paired prompt equality; no response, no resend.",
-          "review_id": "CHATGPT-REVIEW-20260912-011",
-          "review_response_message_id": "0b9e9ee9-8a0d-4a61-8da3-17ccd3a2bbc5"
-        }
-      ],
-      "windows_jobs": [
-        {
-          "id": "103387028406",
-          "name": "Standard online browser (edge)",
-          "status": "success",
-          "completed_at": "2026-09-11T19:15:51Z"
-        },
-        {
-          "id": "103387028683",
-          "name": "Standard online browser (chrome)",
-          "status": "success",
-          "completed_at": "2026-09-11T19:13:54Z"
-        }
-      ],
-      "main_sha": "93c05c7c68576b28a126588d0716f0f56c015531",
-      "pages_run": "34638574408",
-      "pages_status": "SUCCESS",
-      "public_finished_at_utc": "2026-09-11T19:27:39.782Z",
-      "test_profiles_created_across_attempts": 3,
-      "matches_created": 0,
-      "data_deleted": false,
-      "evidence": "docs/UI_ENTRANCE_RELEASE_20260912.md",
-      "evidence_json": "docs/UI_ENTRANCE_LIVE_20260912.json"
-    },
-    "active_slice": {
       "id": "UDL-20260910-052/054+UDL-20260912-063",
       "request_ids": [
         "UDL-20260910-052",
         "UDL-20260910-054",
         "UDL-20260912-063"
       ],
-      "state": "WINDOWS_VERIFIED_REVIEW_READY",
+      "state": "PUBLIC_VERIFIED",
       "owner_thread_id": "01a07b56-616e-7733-9aae-90575659688e",
       "base_sha": "93c05c7c68576b28a126588d0716f0f56c015531",
       "branch": "codex/ui-play-surface-20260912",
@@ -267,7 +183,7 @@
       "scope": "Pages_only",
       "db_change_set": [],
       "edge_change_set": [],
-      "review_status": "PENDING",
+      "review_status": "APPROVE",
       "review_send_attempts": 1,
       "review_packet": "docs/ASTRA_UI_PLAY_SURFACE_D6_REVIEW_20260912.md",
       "local_tests": "Clean906/906 (65.369s); clean Chrome5/5 (72.512s), Edge5/5 (81.759s, first owned-browser close timed out but owned cleanup completed and process exit0). Earlier320: Chrome26/26, Edge25/26 cleanup-only failure plus isolated1/1. Do not relabel older failure.",
@@ -275,12 +191,12 @@
       "windows_status": "SUCCESS",
       "public_gameplay": "NOT_RUN",
       "physical_devices": "NOT_RUN",
-      "next_action": "Send exact d6 review once; preserve original20:17:19Z/22:17:19Z logical budget count1. No publication before genuine exact review.",
+      "next_action": "Closed052/054/063. Continue UI060/061/062; CPU remains successor, not mixed.",
       "review_delivery_checks": 2,
       "review_source_artifact_sha": "eb3fdfc5cb7b34a1f4c6888e72792fc1cdd3a24b",
       "review_request_message_id": "1874e03e-803f-4130-9c38-4f803c00e58e",
-      "review_id": null,
-      "review_response_message_id": null,
+      "review_id": "CHATGPT-REVIEW-20260912-014",
+      "review_response_message_id": "9b9b252a-2a5e-43b8-a9c8-20f6b87e9f1f",
       "windows_jobs": [
         {
           "id": "103415286289",
@@ -350,14 +266,130 @@
         }
       ],
       "review_send_reserved_at_utc": "2026-09-11T21:12:41Z",
-      "review_delivery_note": "First bounded read stale/active, second exact full prompt equality. No response yet, no resend."
+      "review_delivery_note": "First bounded read stale/active, second exact full prompt equality. No response yet, no resend.",
+      "pages_run": "34652199703",
+      "pages_status": "SUCCESS",
+      "main_sha": "d6f745d3f1291457539dd2f3476e9a749a547069",
+      "public_verification": "55/55 actual Chrome; normal390 board328px,1280 board462px;5assets exact bytes; final3images visually PASS",
+      "evidence": "docs/UI_PLAY_SURFACE_RELEASE_20260912.md",
+      "evidence_json": "docs/UI_PLAY_SURFACE_LIVE_20260912.json"
+    },
+    "active_slice": {
+      "id": "UDL-20260910-052/054+UDL-20260912-063",
+      "request_ids": [
+        "UDL-20260910-052",
+        "UDL-20260910-054",
+        "UDL-20260912-063"
+      ],
+      "state": "PUBLIC_VERIFIED",
+      "owner_thread_id": "01a07b56-616e-7733-9aae-90575659688e",
+      "base_sha": "93c05c7c68576b28a126588d0716f0f56c015531",
+      "branch": "codex/ui-play-surface-20260912",
+      "worktree": ".codex-worktrees/ui-play-surface-20260912",
+      "spec_path": "docs/UI_PLAY_SURFACE_20260912.md",
+      "spec_version": "UDL-052-054-063-play-v1.2",
+      "spec_snapshot_sha": "5a63468c8f75d777cafcb6de7fec19e4048d0f5b",
+      "candidate_sha": "d6f745d3f1291457539dd2f3476e9a749a547069",
+      "scope": "Pages_only",
+      "db_change_set": [],
+      "edge_change_set": [],
+      "review_status": "APPROVE",
+      "review_send_attempts": 1,
+      "review_packet": "docs/ASTRA_UI_PLAY_SURFACE_D6_REVIEW_20260912.md",
+      "local_tests": "Clean906/906 (65.369s); clean Chrome5/5 (72.512s), Edge5/5 (81.759s, first owned-browser close timed out but owned cleanup completed and process exit0). Earlier320: Chrome26/26, Edge25/26 cleanup-only failure plus isolated1/1. Do not relabel older failure.",
+      "windows_run": "34645533910",
+      "windows_status": "SUCCESS",
+      "public_gameplay": "NOT_RUN",
+      "physical_devices": "NOT_RUN",
+      "next_action": "Closed052/054/063. Continue UI060/061/062; CPU remains successor, not mixed.",
+      "review_delivery_checks": 2,
+      "review_source_artifact_sha": "eb3fdfc5cb7b34a1f4c6888e72792fc1cdd3a24b",
+      "review_request_message_id": "1874e03e-803f-4130-9c38-4f803c00e58e",
+      "review_id": "CHATGPT-REVIEW-20260912-014",
+      "review_response_message_id": "9b9b252a-2a5e-43b8-a9c8-20f6b87e9f1f",
+      "windows_jobs": [
+        {
+          "id": "103415286289",
+          "browser": "chrome",
+          "conclusion": "success",
+          "online_browser_tests": "117/117"
+        },
+        {
+          "id": "103415286641",
+          "browser": "edge",
+          "conclusion": "success",
+          "online_browser_tests": "117/117",
+          "lifecycle_tests": "79/79"
+        }
+      ],
+      "superseded_candidates": [
+        {
+          "id": "UDL-20260910-052/054+UDL-20260912-063",
+          "request_ids": [
+            "UDL-20260910-052",
+            "UDL-20260910-054",
+            "UDL-20260912-063"
+          ],
+          "state": "REVISION_REQUIRED_NOT_PUBLISHED",
+          "owner_thread_id": "01a07b56-616e-7733-9aae-90575659688e",
+          "base_sha": "93c05c7c68576b28a126588d0716f0f56c015531",
+          "branch": "codex/ui-play-surface-20260912",
+          "worktree": ".codex-worktrees/ui-play-surface-20260912",
+          "spec_path": "docs/UI_PLAY_SURFACE_20260912.md",
+          "spec_version": "UDL-052-054-063-play-v1",
+          "spec_snapshot_sha": "67d52446047eafb6a6c32e38e8e7c9538aea88b4",
+          "candidate_sha": "6cd12ae888f26c9403fb504596f92f4d9a65b301",
+          "scope": "Pages_only",
+          "db_change_set": [],
+          "edge_change_set": [],
+          "review_status": "HOLD",
+          "review_send_attempts": 1,
+          "review_packet": "docs/ASTRA_UI_PLAY_SURFACE_REVIEW_20260912.md",
+          "local_tests": "clean906/906 skip0; actualChrome22/22 and Edge22/22 skip0 on6cd12ae; manual390/1280 board plus390 hand images inspected PASS",
+          "windows_run": "34642709902",
+          "windows_status": "FAILURE",
+          "public_gameplay": "NOT_RUN",
+          "physical_devices": "NOT_RUN",
+          "next_action": "Fix observed failures, preserve6cd review and original finite deadline, no public promotion even if6cd review approves. Do not send followup while reviewer active.",
+          "review_send_reserved_at_utc": "2026-09-11T20:17:19Z",
+          "review_delivery_checks": 2,
+          "review_source_artifact_sha": "4ff46fc5999f4dbbc6ff57bf11801e3e8ac88552",
+          "review_request_message_id": "a3ce86c3-cfb9-4d1c-bfc3-4557a5ef6889",
+          "review_delivery_note": "First scheduled read confirmed full request equality and completed actual HOLD. Two earlier bounded reads stale. Original count1/deadline unchanged.",
+          "windows_failures": [
+            "recolor loan visible label changed",
+            "first move actionOrder retained obsolete DOM selector",
+            "normal390 board width fell below old>300 guard",
+            "CPU commentary can overlap guide in Windows"
+          ],
+          "prepared_revision": {
+            "candidate_sha": "32046255e88901ce03dc88c59f51e803529b9f63",
+            "spec_version": "UDL-052-054-063-play-v1.1",
+            "spec_snapshot_sha": "977101c8f05d13836c060dedeb1b425a3c96fb16",
+            "windows_run": "34644395034",
+            "windows_status": "FAILURE_BOTH",
+            "local_tests": "clean906/906 Chrome26/26; Edge25/26 owned-cleanup failure then isolated1/1 normal cleanup. Old Windows4 failures preserved. No product assertion failure in final local candidate.",
+            "review_status": "NOT_SENT_WHILE_PREVIOUS_CHAT_ACTIVE"
+          },
+          "review_id": "CHATGPT-REVIEW-20260912-013",
+          "review_response_message_id": "ce88c333-e4f7-4ca1-a71b-ab9aec58d4d2"
+        }
+      ],
+      "review_send_reserved_at_utc": "2026-09-11T21:12:41Z",
+      "review_delivery_note": "First bounded read stale/active, second exact full prompt equality. No response yet, no resend.",
+      "pages_run": "34652199703",
+      "pages_status": "SUCCESS",
+      "main_sha": "d6f745d3f1291457539dd2f3476e9a749a547069",
+      "public_verification": "55/55 actual Chrome; normal390 board328px,1280 board462px;5assets exact bytes; final3images visually PASS",
+      "evidence": "docs/UI_PLAY_SURFACE_RELEASE_20260912.md",
+      "evidence_json": "docs/UI_PLAY_SURFACE_LIVE_20260912.json"
     },
     "automation_id": "automation",
-    "automation_status_at_recording": "ACTIVE",
-    "automation_readback_updated_at": 1789161350967,
+    "automation_status_at_recording": "PAUSED",
+    "automation_readback_updated_at": 1789163984893,
     "automation_prompt_readback_equal": true,
-    "automation_pause_reason": null,
-    "automation_active_reason": "Exact corrected d6 request delivered, same original22:17:19Z expiry/count1; next original100-minute slot21:57:19Z only.",
+    "automation_pause_reason": "Exact d6 follow-up approval received at original100-minute slot; finite wait closed; actual PAUSED API and file readback.",
+    "automation_active_reason": null,
     "completed_review_waits": [
       {
         "root_request_message_id": "8464f659-ad62-4c09-83d9-44e1cc91316b",
@@ -490,14 +522,14 @@
       "subject_sha": "6cd12ae888f26c9403fb504596f92f4d9a65b301",
       "started_at_utc": "2026-09-11T20:17:19Z",
       "expires_at_utc": "2026-09-11T22:17:19Z",
-      "automatic_checks": 1,
+      "automatic_checks": 2,
       "max_automatic_checks": 3,
       "offset_minutes": [
         20,
         40,
         100
       ],
-      "next_check_utc": "2026-09-11T21:57:19Z",
+      "next_check_utc": null,
       "max_age_minutes": 120,
       "reset_on_candidate_revision": false,
       "reset_on_restart_or_unrelated_message": false,
@@ -509,11 +541,14 @@
       "followup_subject_sha": "d6f745d3f1291457539dd2f3476e9a749a547069",
       "followup_spec_version": "UDL-052-054-063-play-v1.2",
       "followup_request_message_id": "1874e03e-803f-4130-9c38-4f803c00e58e",
-      "followup_status": "review_pending",
+      "followup_status": "review_received_closed",
       "skipped_offset_minutes": [
         40
       ],
-      "skip_note": "40-minute slot elapsed while preceding HOLD was closed and revision unsubmitted; do not replay it immediately after follow-up transport reads or extend deadline."
+      "skip_note": "40-minute slot elapsed while preceding HOLD was closed and revision unsubmitted; do not replay it immediately after follow-up transport reads or extend deadline.",
+      "followup_response_message_id": "9b9b252a-2a5e-43b8-a9c8-20f6b87e9f1f",
+      "followup_received_at_utc": "2026-09-11T21:58:12Z",
+      "followup_check_note": "Second automatic check at original100-minute slot; completed paired response. Original expiry and skipped40 preserved; no more checks."
     },
     "pending_review_subject": {
       "review_kind": "game_production_release_approval",
@@ -538,7 +573,7 @@
     "initial_interval_minutes": 20,
     "pending_subject_sha": "d6f745d3f1291457539dd2f3476e9a749a547069",
     "pending_scope": "Pages_only",
-    "pending_delivery_status": "delivery_verified_response_pending",
+    "pending_delivery_status": "review_received_closed",
     "last_confirmed_sent_message_id": "1874e03e-803f-4130-9c38-4f803c00e58e",
     "last_sent_message_id": "a3ce86c3-cfb9-4d1c-bfc3-4557a5ef6889",
     "self_sent_message_ids": [
@@ -560,7 +595,7 @@
       "1874e03e-803f-4130-9c38-4f803c00e58e"
     ],
     "sent_at_utc": "2026-09-11T19:14:55Z",
-    "last_check_utc": "2026-09-11T20:37:21Z",
+    "last_check_utc": "2026-09-11T21:58:12Z",
     "unchanged_checks": 0,
     "reminder_count": 0,
     "max_reminders_per_request": 1,
@@ -792,6 +827,116 @@
         "data_deleted": false,
         "evidence": "docs/UI_ENTRANCE_RELEASE_20260912.md",
         "evidence_json": "docs/UI_ENTRANCE_LIVE_20260912.json"
+      },
+      {
+        "id": "UDL-20260910-052",
+        "request_ids": [
+          "UDL-20260910-052",
+          "UDL-20260910-054",
+          "UDL-20260912-063"
+        ],
+        "state": "PUBLIC_VERIFIED",
+        "owner_thread_id": "01a07b56-616e-7733-9aae-90575659688e",
+        "base_sha": "93c05c7c68576b28a126588d0716f0f56c015531",
+        "branch": "codex/ui-play-surface-20260912",
+        "worktree": ".codex-worktrees/ui-play-surface-20260912",
+        "spec_path": "docs/UI_PLAY_SURFACE_20260912.md",
+        "spec_version": "UDL-052-054-063-play-v1.2",
+        "spec_snapshot_sha": "5a63468c8f75d777cafcb6de7fec19e4048d0f5b",
+        "candidate_sha": "d6f745d3f1291457539dd2f3476e9a749a547069",
+        "scope": "Pages_only",
+        "db_change_set": [],
+        "edge_change_set": [],
+        "review_status": "APPROVE",
+        "review_send_attempts": 1,
+        "review_packet": "docs/ASTRA_UI_PLAY_SURFACE_D6_REVIEW_20260912.md",
+        "local_tests": "Clean906/906 (65.369s); clean Chrome5/5 (72.512s), Edge5/5 (81.759s, first owned-browser close timed out but owned cleanup completed and process exit0). Earlier320: Chrome26/26, Edge25/26 cleanup-only failure plus isolated1/1. Do not relabel older failure.",
+        "windows_run": "34645533910",
+        "windows_status": "SUCCESS",
+        "public_gameplay": "NOT_RUN",
+        "physical_devices": "NOT_RUN",
+        "next_action": "Closed052/054/063. Continue UI060/061/062; CPU remains successor, not mixed.",
+        "review_delivery_checks": 2,
+        "review_source_artifact_sha": "eb3fdfc5cb7b34a1f4c6888e72792fc1cdd3a24b",
+        "review_request_message_id": "1874e03e-803f-4130-9c38-4f803c00e58e",
+        "review_id": "CHATGPT-REVIEW-20260912-014",
+        "review_response_message_id": "9b9b252a-2a5e-43b8-a9c8-20f6b87e9f1f",
+        "windows_jobs": [
+          {
+            "id": "103415286289",
+            "browser": "chrome",
+            "conclusion": "success",
+            "online_browser_tests": "117/117"
+          },
+          {
+            "id": "103415286641",
+            "browser": "edge",
+            "conclusion": "success",
+            "online_browser_tests": "117/117",
+            "lifecycle_tests": "79/79"
+          }
+        ],
+        "superseded_candidates": [
+          {
+            "id": "UDL-20260910-052/054+UDL-20260912-063",
+            "request_ids": [
+              "UDL-20260910-052",
+              "UDL-20260910-054",
+              "UDL-20260912-063"
+            ],
+            "state": "REVISION_REQUIRED_NOT_PUBLISHED",
+            "owner_thread_id": "01a07b56-616e-7733-9aae-90575659688e",
+            "base_sha": "93c05c7c68576b28a126588d0716f0f56c015531",
+            "branch": "codex/ui-play-surface-20260912",
+            "worktree": ".codex-worktrees/ui-play-surface-20260912",
+            "spec_path": "docs/UI_PLAY_SURFACE_20260912.md",
+            "spec_version": "UDL-052-054-063-play-v1",
+            "spec_snapshot_sha": "67d52446047eafb6a6c32e38e8e7c9538aea88b4",
+            "candidate_sha": "6cd12ae888f26c9403fb504596f92f4d9a65b301",
+            "scope": "Pages_only",
+            "db_change_set": [],
+            "edge_change_set": [],
+            "review_status": "HOLD",
+            "review_send_attempts": 1,
+            "review_packet": "docs/ASTRA_UI_PLAY_SURFACE_REVIEW_20260912.md",
+            "local_tests": "clean906/906 skip0; actualChrome22/22 and Edge22/22 skip0 on6cd12ae; manual390/1280 board plus390 hand images inspected PASS",
+            "windows_run": "34642709902",
+            "windows_status": "FAILURE",
+            "public_gameplay": "NOT_RUN",
+            "physical_devices": "NOT_RUN",
+            "next_action": "Fix observed failures, preserve6cd review and original finite deadline, no public promotion even if6cd review approves. Do not send followup while reviewer active.",
+            "review_send_reserved_at_utc": "2026-09-11T20:17:19Z",
+            "review_delivery_checks": 2,
+            "review_source_artifact_sha": "4ff46fc5999f4dbbc6ff57bf11801e3e8ac88552",
+            "review_request_message_id": "a3ce86c3-cfb9-4d1c-bfc3-4557a5ef6889",
+            "review_delivery_note": "First scheduled read confirmed full request equality and completed actual HOLD. Two earlier bounded reads stale. Original count1/deadline unchanged.",
+            "windows_failures": [
+              "recolor loan visible label changed",
+              "first move actionOrder retained obsolete DOM selector",
+              "normal390 board width fell below old>300 guard",
+              "CPU commentary can overlap guide in Windows"
+            ],
+            "prepared_revision": {
+              "candidate_sha": "32046255e88901ce03dc88c59f51e803529b9f63",
+              "spec_version": "UDL-052-054-063-play-v1.1",
+              "spec_snapshot_sha": "977101c8f05d13836c060dedeb1b425a3c96fb16",
+              "windows_run": "34644395034",
+              "windows_status": "FAILURE_BOTH",
+              "local_tests": "clean906/906 Chrome26/26; Edge25/26 owned-cleanup failure then isolated1/1 normal cleanup. Old Windows4 failures preserved. No product assertion failure in final local candidate.",
+              "review_status": "NOT_SENT_WHILE_PREVIOUS_CHAT_ACTIVE"
+            },
+            "review_id": "CHATGPT-REVIEW-20260912-013",
+            "review_response_message_id": "ce88c333-e4f7-4ca1-a71b-ab9aec58d4d2"
+          }
+        ],
+        "review_send_reserved_at_utc": "2026-09-11T21:12:41Z",
+        "review_delivery_note": "First bounded read stale/active, second exact full prompt equality. No response yet, no resend.",
+        "pages_run": "34652199703",
+        "pages_status": "SUCCESS",
+        "main_sha": "d6f745d3f1291457539dd2f3476e9a749a547069",
+        "public_verification": "55/55 actual Chrome; normal390 board328px,1280 board462px;5assets exact bytes; final3images visually PASS",
+        "evidence": "docs/UI_PLAY_SURFACE_RELEASE_20260912.md",
+        "evidence_json": "docs/UI_PLAY_SURFACE_LIVE_20260912.json"
       }
     ],
     "normal_work_receipt": {
@@ -836,7 +981,36 @@
       ],
       "preparation": "docs/UI_DIET_PREPARATION_20260912.md",
       "status": "ACTIVE",
-      "registration_receipt": "get_goal returned null on2026-09-11T20:20Z; explicitly user-requested UI goal re-created without budget; no other active goal existed. Work and completed slices preserved."
+      "registration_receipt": "get_goal returned null on2026-09-11T20:20Z; explicitly user-requested UI goal re-created without budget; no other active goal existed. Work and completed slices preserved.",
+      "latest_checkpoint": "023/052/054/063 PUBLIC_VERIFIED.060 local910/910,Chrome/Edge11/11, externalpushblocked.061/062 not implemented. CPU successor registered; goal API remains existing active UI goal."
+    },
+    "successor_goal": {
+      "title": "CPUの画像・人物設定・実効強度の改善",
+      "state": "QUEUED_AFTER_UI_THREE_CPU_BASELINE_DEFECTS_REPRODUCED",
+      "source": {
+        "kind": "explicit_user_instruction",
+        "thread_id": "01a07b56-616e-7733-9aae-90575659688e",
+        "date_jst": "2026-09-12",
+        "message_id": null,
+        "quote": "UIが改善できたなら次はCPUの画像をわたおきばさんの絵に差し替え、男女比や二つ名等を整理して、強化していきましょう。目標も更新してくださいね。",
+        "source_note": "Current direct user turn; message ID unavailable. Preparation only while UI remains unfinished."
+      },
+      "request_ids": [
+        "UDL-20260908-033",
+        "UDL-20260910-051"
+      ],
+      "owner_thread_id": "01a07b56-616e-7733-9aae-90575659688e",
+      "transfer_thread_id": "01a08d9e-ae35-7f70-a879-cb342dafef47",
+      "transfer_requested": true,
+      "transfer_state": "REQUEST_SENT_EXISTING_TASK_WAITING_ON_APPROVAL_NO_COMPLETED_REPLY",
+      "preparation": "docs/CPU_SUCCESSOR_PREPARATION_20260912.md",
+      "goal_api_state": "Existing UI goal remains ACTIVE; no false completion or duplicate goal. Activate this successor after UI stopping condition is actually met.",
+      "scope": "Separate portrait/credits, identity/tier presentation, and versioned CPU-policy slices. No game changes in current UI candidate. Preserve IDs/history/private-state boundary and existing match policy; no unapproved economic/rule changes.",
+      "publication": "NOT_RUN",
+      "rights_state": "Official terms and Q&A read; game use/cropping allowed, standalone redistribution prohibited, public GitHub asset inclusion unresolved. No artist contact or material upload.",
+      "stop_condition": "Selected compliant portraits/credits and adopted identity/tier/policy slices pass exact candidate Astra review, required regression/Windows gates, main/Pages/Edge as applicable, and public verification; report unresolved physical/manual acceptance separately.",
+      "diagnosis": "docs/CPU_SUCCESSOR_DIAGNOSIS_20260912.json",
+      "source_package": "Verified ZIPv7,8 additions mapped; v8 paired UI text mapped, v8ZIP still pending transfer."
     },
     "preparing_next_slice": {
       "request_ids": [
@@ -870,6 +1044,29 @@
         "required_user_action": "Explicit permission to push ccc9e91 to codex/ui-result-20260912 on existing public repository"
       },
       "evidence": "docs/UI_RESULT_LOCAL_20260912.md"
+    },
+    "remaining_brain_work": {
+      "source": {
+        "kind": "explicit_user_followup",
+        "thread_id": "01a07b56-616e-7733-9aae-90575659688e",
+        "date_jst": "2026-09-12",
+        "quote": "そこに乗っている残りの項目も、着実に公開までこぎ着けていきましょう。目標を更新して作業にとりかかってください。"
+      },
+      "verified_zip_version": "v7",
+      "paired_text_version": "v8",
+      "unverified_zip_version": "v8",
+      "ordered_targets": [
+        "Finish existing UI060/061/062",
+        "CPU033/051 portraits,identity,tiering,effective strength",
+        "011 defensive/new-card designs and064 single-CPU progression pilot",
+        "Other adopted requests, with exact per-slice source/spec/review/test/public proof"
+      ],
+      "not_automatically_adopted": [
+        "Immediate5-color conversion",
+        "Whole-skill silence",
+        "Specific unlock thresholds/card numbers from drafts"
+      ],
+      "goal_registration": "Existing UI API goal stays active, CPU successor in existing queue; do not falsely complete or create another controller."
     }
   },
   "decisions": [
@@ -1238,6 +1435,32 @@
       "applies_to_current_candidate": false,
       "received_at_utc": "2026-09-11T20:37:21Z",
       "notes": "Actual full completed paired prompt equality. Reviewer did not locate detailed assertions; commander independently fetched logs and reproduced before revising. 6cd never published.320's remaining295px failure also retained; next revision requires fresh exact review."
+    },
+    {
+      "review_id": "CHATGPT-REVIEW-20260912-014",
+      "review_kind": "game_production_release_approval",
+      "subject_sha": "d6f745d3f1291457539dd2f3476e9a749a547069",
+      "base_sha": "93c05c7c68576b28a126588d0716f0f56c015531",
+      "canon_version": "shared-canon-v1.1",
+      "feature_spec_version": "UDL-052-054-063-play-v1.2",
+      "spec_snapshot_sha": "5a63468c8f75d777cafcb6de7fec19e4048d0f5b",
+      "spec_snapshot_kind": "git_blob:docs/UI_PLAY_SURFACE_20260912.md",
+      "scope": "Pages_only",
+      "db_change_set": [],
+      "edge_change_set": [],
+      "reviewer_thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
+      "decision": "APPROVE",
+      "source": {
+        "kind": "chatgpt",
+        "thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
+        "message_id": "9b9b252a-2a5e-43b8-a9c8-20f6b87e9f1f",
+        "request_message_id": "1874e03e-803f-4130-9c38-4f803c00e58e",
+        "response_text": "## DECISION\n**APPROVE — 本固定候補のPages_only公開移行を承認します。**\n\n013の公開停止理由だったWindows gateの失敗は、**今回のSUBJECT_SHAについて解消**と判定します。これはd6／spec v1.2に対する独立した承認であり、012の流用でも、旧6cd／320の遡及承認でもありません。**PUBLIC_VERIFIEDは、予定している公開後検証と最終実画像の目視が完了するまで未付与**です。\n\n## SUBJECT_SHA\n`d6f745d3f1291457539dd2f3476e9a749a547069`\n\nBASE：`93c05c7c68576b28a126588d0716f0f56c015531`  \nCANON：`shared-canon-v1.1`  \nSPEC：`UDL-052-054-063-play-v1.2`  \nSCOPE：`Pages_only / DB[] / Edge[]`\n\n対象SHAの`docs/UI_PLAY_SURFACE_20260912.md`を取得し、**SPEC_BLOBが`5a63468c8f75d777cafcb6de7fec19e4048d0f5b`と一致**することを確認しました。\n\n## BLOCKERS\n**なし — 固定候補レビュー／公開移行の範囲。**\n\nrun `34645533910`のChrome `103415286289`・Edge `103415286641`は、いずれも対象SHAで`completed / success`です。両jobの生成物検証・契約試験・online browser試験のSUCCESSを照合しました。固定資料の内訳はChrome **117/117**、Edge **117/117＋lifecycle 79/79**です。lifecycleの証拠はEdgeのものとして扱います。\n\n## NOTES\n\n### 1. 013の4失敗に対する修正は妥当です\n\n| 失敗箇所 | 今回の判断 |\n|---|---|\n| **LAB貸出カードlabel** | 貸出枠等の元表記を復元する局所修正です。通常6枚の新しい表示構造を撤回せず、既存の貸出カード操作との整合を戻す対応として妥当です。 |\n| **first-moveのDOM順序検証** | 旧sibling selectorを、採用済みの`playSurface → 手札 → 詳細`構造を具体的に検証するselectorへ置換しています。単に順序検証を削除しておらず、今回の構造変更に伴う検証側の更新として認めます。 |\n| **通常390pxで盤面が280／295pxになる問題** | d6では、固定48pxの見積りを、guide／noticeからcontrols／paletteまでの実測寸法から盤面高を差し引く計算へ変更しています。**8pxの余裕と低画面280pxの下限を残し、通常時の`>300`基準を下げずに原因へ対処**しています。 |\n| **CPU通知によるguide／zoomの遮蔽** | 非表示中もcomputed CSSの固定通知位置・高さを予約し、guideのcompact書式とscroll marginで調整しています。通知到来時の位置変動を避ける方針を維持する修正として妥当です。 |\n\nしたがって、今回の修正を**「失敗した基準を緩めて合格させた対応」とは判定しません**。特に盤面幅は、中間320のローカル成功だけで閉じず、Windowsで残った実測不足をd6で修正した点が、013の解除根拠です。\n\n### 2. 4役割・手札・ルールの境界は維持してください\n\n基本①／基本②／おまけ／残り色を独立表示し、残0のおまけと同色の借色を第4枠で扱うモデル、own projectionのloadoutに基づいて使用済み手札を残すモデルを確認しました。**役割枠は表示上の区分であり、消費元を指定する新しい送信契約ではありません。** 既存の`COLOR_REGION {color}`、消費順、seal／pending／同カテゴリguard、相手private境界は引き続き変更対象外です。\n\n### 3. 公開は提示された順序で進めてください\n\n**最新mainとの整合確認 → force-freeで同SHAをmainへ → 同SHAのPages成功 → 公開preflightと5assetの厳密byte一致 → 許可済みの隔離profile 1／CPU対局1による確認 → 最終画像目視**、の順序を承認します。準備canaryも、5assetを`git show`のbytesと直接比較してから認証・試験対局作成へ進む構造です。governance側のcanaryを製品d6へ混ぜる必要はありません。\n\n**公開検証では、通常390pxの盤面幅`>300px`の実測値も残してください。** 準備canaryの盤面幅`>=280`判定だけでは、今回問題になった「通常画面での縮みすぎ」を区別できません。280pxは低画面fallbackの下限として扱い、通常画面の合格根拠へ流用しないこと。44px以上の操作領域、盤面全体・palette・固定バーの非遮蔽も、予定どおり確認してください。これは製品SHAの変更要求ではありません。\n\n表示確認中の無書込と、明示したborrowカード1回の書込は分けて記録し、server残数・使用済み位置・reloadを確認後、**その試験対局だけを通常投了で終了**してください。既存プレイヤー・募集・quiz／gachaへの操作、削除へ範囲を広げないでください。\n\n### 4. 証拠状態・後続範囲・待機予算\n\n**最終d6の公開検証／実画像目視は、現時点ではNOT_RUNとして保持**します。320画像、6144組のfixture、CSS zoom proxyを、それぞれd6の公開実画像・live特殊組合せ・物理端末の合格へ読み替えません。6cd／320の失敗履歴、320 Edgeの失敗suiteと孤立再試験、d6 Edgeのowned cleanup警告も、そのまま残してください。\n\n入口93の既存`PUBLIC_VERIFIED`記録は保全します。今回の公開後検証が通った場合の完了対象は**UDL052／054／063**であり、別床の060やUI全体の完了には拡張しません。\n\n原論理待機は**20:17:19Z開始／22:17:19Z期限／自動1/3消費のまま**。修正・再提出・本承認を理由にリセットしません。**この固定SHAのまま、上記の公開・検証工程へ進んでください。**"
+      },
+      "blockers": [],
+      "applies_to_current_candidate": true,
+      "received_at_utc": "2026-09-11T21:58:12Z",
+      "notes": "Genuine completed paired request fully equals delivered d6 prompt. Literal APPROVE explicitly authorizes exact Pages-only production transition, not PUBLIC_VERIFIED. Normal390 width>300 and final live images required. Old6cd/320 failures and cleanup warning retained; no other slice authorized."
     }
   ]
 }

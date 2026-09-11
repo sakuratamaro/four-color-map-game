@@ -1,0 +1,143 @@
+{
+  "subject": "UDL-052-054-063-play-v1.2",
+  "candidateSha": "d6f745d3f1291457539dd2f3476e9a749a547069",
+  "profilesCreated": 1,
+  "matchesCreated": 1,
+  "cleanup": "TERMINAL_CONFIRMED_NO_DELETION",
+  "physicalDevices": "NOT_RUN",
+  "liveOverlapSealExhaustion": "NOT_RUN_USE_FIXED_CANDIDATE_GATE",
+  "assetHashes": [
+    {
+      "file": "index.html",
+      "sha256": "c13aef1c5bb4bf3a85d249ed3c142b01e4e65895d18d96186bf307cb081bc739"
+    },
+    {
+      "file": "app.js",
+      "sha256": "2c69398105e5fa056fd9bf00827643546f5c8cbab08a2402138ec750e700d642"
+    },
+    {
+      "file": "play-surface-model.js",
+      "sha256": "da4e91b58309e01c99d0c5936b439e5b67222c057430f229d14d3a1515aad8e9"
+    },
+    {
+      "file": "play-surface.css",
+      "sha256": "d3a54c524f8cd85a9621c4bffce926f70ebc2e666f37f4b28f16bd4848022300"
+    },
+    {
+      "file": "ui-diet.css",
+      "sha256": "2b674aa02db0864821ff932de0793cac89ced8e1b11225b2034e0e317e2a2a6c"
+    }
+  ],
+  "browserWidths": [
+    390,
+    1280
+  ],
+  "geometry": [
+    {
+      "label": "390px cold",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "board": {
+        "x": 31,
+        "y": 190.375,
+        "width": 328,
+        "height": 328,
+        "bottom": 518.375
+      },
+      "fullBoardVisible": true
+    },
+    {
+      "label": "390px reload",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "board": {
+        "x": 31,
+        "y": 190.375,
+        "width": 328,
+        "height": 328,
+        "bottom": 518.375
+      },
+      "fullBoardVisible": true
+    },
+    {
+      "label": "1280px resized",
+      "viewport": {
+        "width": 1280,
+        "height": 900
+      },
+      "board": {
+        "x": 409,
+        "y": 183.046875,
+        "width": 462,
+        "height": 462,
+        "bottom": 645.046875
+      },
+      "fullBoardVisible": true
+    }
+  ],
+  "checks": [
+    "index.html: public HTTP 200",
+    "index.html: exact Git blob bytes delivered",
+    "app.js: public HTTP 200",
+    "app.js: exact Git blob bytes delivered",
+    "play-surface-model.js: public HTTP 200",
+    "play-surface-model.js: exact Git blob bytes delivered",
+    "play-surface.css: public HTTP 200",
+    "play-surface.css: exact Git blob bytes delivered",
+    "ui-diet.css: public HTTP 200",
+    "ui-diet.css: exact Git blob bytes delivered",
+    "anonymous test session",
+    "new profile persisted",
+    "one new CPU match",
+    "ordinary opening fits public bounds",
+    "actual human COLOR phase reached",
+    "own private projection only",
+    "390px cold: four independent roles",
+    "390px cold: basic1 color and unlimited role",
+    "390px cold: basic2 color and unlimited role",
+    "390px cold: bonus resource count",
+    "390px cold: full board visible without fixed-bar occlusion",
+    "390px cold: board meets short-screen floor",
+    "390px cold: normal390 board width exceeds300",
+    "390px cold: stable six-card grid",
+    "390px cold: no horizontal overflow",
+    "390px cold: own room retained",
+    "390px reload: four independent roles",
+    "390px reload: basic1 color and unlimited role",
+    "390px reload: basic2 color and unlimited role",
+    "390px reload: bonus resource count",
+    "390px reload: full board visible without fixed-bar occlusion",
+    "390px reload: board meets short-screen floor",
+    "390px reload: normal390 board width exceeds300",
+    "390px reload: stable six-card grid",
+    "390px reload: no horizontal overflow",
+    "390px reload: own room retained",
+    "1280px resized: four independent roles",
+    "1280px resized: basic1 color and unlimited role",
+    "1280px resized: basic2 color and unlimited role",
+    "1280px resized: bonus resource count",
+    "1280px resized: full board visible without fixed-bar occlusion",
+    "1280px resized: board meets short-screen floor",
+    "1280px resized: stable six-card grid",
+    "1280px resized: no horizontal overflow",
+    "1280px resized: own room retained",
+    "no game writes from inspection",
+    "console and page errors zero",
+    "room state unchanged by restore and inspection",
+    "one own borrowed-color card available",
+    "used card is disabled and its position remains",
+    "server hand consumed exactly the explicit card",
+    "reload retains the used slot and order",
+    "exactly one explicit browser game write",
+    "all six descriptions remain reachable above fixed chrome",
+    "final console/page errors zero"
+  ],
+  "explicitBrowserSkillActions": 1,
+  "liveGameplay": "ORDINARY_CPU_OPENING_COLOR_CARD_AND_USED_HAND_RELOAD_NO_MOCKS",
+  "ok": true,
+  "completedAt": "2026-09-11T22:04:34.251Z"
+}
