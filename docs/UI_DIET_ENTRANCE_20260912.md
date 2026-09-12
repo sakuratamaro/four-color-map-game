@@ -1,5 +1,7 @@
 # UI diet — battle entrance
 
+Historical v1.1 snapshot. The later verifiedv13 flat-layout requirement supersedes the CPU/human grouping below. The current successor specification is `docs/UI_FLAT_ENTRANCE_20260912.md` (UDL-023-entrance-v2); preserved behavioral/recovery safeguards below remain required. This pointer does not claim the successor is published.
+
 Version: `UDL-023-entrance-v1.1`
 
 CANON_RECEIPT version=shared-canon-v1.1 base=a26ffd14a8f896d9d087dac032d8f079ece82f7d request=UDL-20260907-023,UDL-20260912-062 specs=AGENTS.md,docs/SHARED_CANON.md,docs/PROJECT_COMMAND_CENTER.md,docs/UI_DIET_PREPARATION_20260912.md tests=tests/standard-online-browser.test.cjs,tests/standard-online-ui-static.test.cjs worktree=.codex-worktrees/ui-diet-20260912

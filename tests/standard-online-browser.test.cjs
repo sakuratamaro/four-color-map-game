@@ -1720,11 +1720,15 @@ test("UDL-023 three battle choices fit mobile, intermediate and desktop without 
       await page.evaluate(() => { document.documentElement.style.scrollBehavior = "auto"; window.scrollTo(0, 0); });
       const layout = await page.evaluate(() => {
         const ids = ["startStandardCpuLobby", "chooseFriendBattle", "choosePublicBattle"];
+        const grid = document.querySelector("#lobby .lobby-choice-grid");
         const tabs = document.querySelector(".app-tabs").getBoundingClientRect();
         const navAtBottom = tabs.top > innerHeight / 2;
         return {
           scroll: scrollY,
           overflow: document.documentElement.scrollWidth > innerWidth,
+          peers: grid.children.length === 3 && ids.every((id) => document.getElementById(id).parentElement === grid),
+          tops: ids.map((id) => document.getElementById(id).getBoundingClientRect().top),
+          widths: ids.map((id) => document.getElementById(id).getBoundingClientRect().width),
           controls: ids.map((id) => {
             const el = document.getElementById(id), r = el.getBoundingClientRect();
             const hit = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);
@@ -1734,6 +1738,9 @@ test("UDL-023 three battle choices fit mobile, intermediate and desktop without 
       });
       assert.equal(layout.scroll, 0);
       assert.equal(layout.overflow, false);
+      assert.equal(layout.peers, true);
+      assert.ok(Math.max(...layout.tops) - Math.min(...layout.tops) < 1, "three peer buttons stay in one row");
+      assert.ok(Math.max(...layout.widths) - Math.min(...layout.widths) < 1, "three choices have equal visual weight");
       for (const control of layout.controls) {
         assert.ok(control.height >= 44 && control.width >= 44 && control.visible && control.hit, JSON.stringify({ viewport, control }));
       }
@@ -1743,7 +1750,17 @@ test("UDL-023 three battle choices fit mobile, intermediate and desktop without 
       }
     }
     assert.equal(await page.locator("#profileCard").isVisible(), false);
-    assert.equal(await page.locator("#humanBattleTitle").getAttribute("role"), null);
+    assert.equal(await page.locator("#humanBattleTitle, #humanBattleChoice, #standardCpuChoice, #lobby .section-kicker").count(), 0);
+    assert.equal(await page.getByRole("button", { name: "CPUと対戦", exact: true }).count(), 1);
+    assert.equal(await page.getByRole("button", { name: "友だちと対戦", exact: true }).count(), 1);
+    assert.equal(await page.getByRole("button", { name: "だれとでも対戦", exact: true }).count(), 1);
+    await page.locator("#lobbyTitle").focus();
+    assert.equal(await page.evaluate(() => document.activeElement?.id), "lobbyTitle");
+    assert.equal(await page.locator("#lobbyTitle").evaluate((el) => getComputedStyle(el).outlineStyle), "none");
+    await page.keyboard.press("Tab");
+    assert.equal(await page.evaluate(() => document.activeElement?.id), "startStandardCpuLobby");
+    await page.keyboard.press("Tab");
+    assert.equal(await page.evaluate(() => document.activeElement?.id), "chooseFriendBattle");
     assert.equal(await page.locator("#friendBattlePanel").isVisible(), false);
     assert.equal(await page.locator("#matchmakingPanel").isVisible(), false);
     await page.locator("#chooseFriendBattle").focus();
@@ -1764,7 +1781,7 @@ test("UDL-023 three battle choices fit mobile, intermediate and desktop without 
 
 test("actual Edge reviews six cards before starting Standard CPU exactly once", { timeout: 130000 }, async () => {
   await withPage("lobby", async (page) => {
-    const trigger = page.getByRole("button", { name: "10人からCPUを選ぶ" });
+    const trigger = page.getByRole("button", { name: "CPUと対戦", exact: true });
     await trigger.click();
     await page.locator("#cpuRosterDialog[open]").waitFor();
     assert.equal(await page.locator("#cpuRosterTitle").textContent(), "Standard CPU対戦 — 相手を選ぶ");
@@ -1819,7 +1836,7 @@ test("actual Edge resumes a lost immediate CPU response with the same stored act
 
 test("actual Edge resumes the immutable CPU setup saga after a lost setup response", { timeout: 130000 }, async () => {
   await withPage("lobby", async (page) => {
-    await page.getByRole("button", { name: "10人からCPUを選ぶ" }).click();
+    await page.getByRole("button", { name: "CPUと対戦", exact: true }).click();
     await page.getByRole("button", { name: "うっかりユズを選んで6枚を確認" }).click();
     await page.evaluate(() => { globalThis.__standardOnlineRuntime.failNextSetupResponse = true; });
     await page.getByRole("button", { name: "このCPU・6枚で対戦開始" }).click();
@@ -1857,7 +1874,7 @@ test("actual Edge resumes the immutable CPU setup saga after a lost setup respon
 
 test("actual Edge retries only the same CPU start after its response is lost", { timeout: 130000 }, async () => {
   await withPage("lobby", async (page) => {
-    await page.getByRole("button", { name: "10人からCPUを選ぶ" }).click();
+    await page.getByRole("button", { name: "CPUと対戦", exact: true }).click();
     await page.getByRole("button", { name: "うっかりユズを選んで6枚を確認" }).click();
     await page.evaluate(() => { globalThis.__standardOnlineRuntime.failNextCpuStartResponse = true; });
     await page.getByRole("button", { name: "このCPU・6枚で対戦開始" }).click();
@@ -1913,7 +1930,7 @@ test("restored CPU start replaces only its old finished room and never a differe
 
 test("actual Edge recovers an existing room without submitting the new CPU draft", { timeout: 130000 }, async () => {
   await withPage("lobby", async (page) => {
-    await page.getByRole("button", { name: "10人からCPUを選ぶ" }).click();
+    await page.getByRole("button", { name: "CPUと対戦", exact: true }).click();
     await page.getByRole("button", { name: "せっかちレンを選んで6枚を確認" }).click();
     await page.evaluate(() => { globalThis.__standardOnlineRuntime.recoverExistingCpuStart = true; });
     await page.getByRole("button", { name: "このCPU・6枚で対戦開始" }).click();
@@ -2176,7 +2193,7 @@ test("hidden new-match handlers allocate no action and make no RPC while another
     assert.equal(evidence.connection.roomId, roomId);
   });
   await withPage("lobby", async (page) => {
-    await page.getByRole("button", { name: "10人からCPUを選ぶ" }).click();
+    await page.getByRole("button", { name: "CPUと対戦", exact: true }).click();
     await page.getByRole("button", { name: "うっかりユズを選んで6枚を確認" }).click();
     await page.evaluate(async (ids) => { for (const id of ids) await document.getElementById(id).onclick(); }, entryIds);
     const evidence = await page.evaluate((names) => ({
@@ -2215,7 +2232,7 @@ test("hidden new-match handlers allocate no action and make no RPC while another
   });
   for (const kind of ["ticket", "find"]) {
     await withPage("lobby", async (page) => {
-      await page.getByRole("button", { name: "10人からCPUを選ぶ" }).click();
+      await page.getByRole("button", { name: "CPUと対戦", exact: true }).click();
       if (kind === "ticket") {
         await page.evaluate(() => document.getElementById("recruitOpponent").onclick());
       } else {

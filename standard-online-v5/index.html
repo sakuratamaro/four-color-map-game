@@ -10,7 +10,7 @@
   <link rel="stylesheet" href="debug-mode.css">
   <link rel="stylesheet" href="progression.css?v=20260910-2">
   <link rel="stylesheet" href="quiz-memo.css?v=20260912-2">
-  <link rel="stylesheet" href="ui-diet.css?v=20260912-2">
+  <link rel="stylesheet" href="ui-diet.css?v=20260912-3">
   <link rel="stylesheet" href="play-surface.css?v=20260912-1">
   <link rel="stylesheet" href="result-continuation.css?v=20260912-1">
   <link rel="stylesheet" href="skill-cutin.css?v=20260912-1">
@@ -78,21 +78,12 @@
     </section>
 
     <section id="lobby" class="card battle-entrance hidden" data-app-tab-panel="battle">
-      <p class="section-kicker">LET'S PLAY</p>
       <h2 id="lobbyTitle" tabindex="-1">だれと遊ぶ？</h2>
       <p id="roomLifecycleAnnouncement" class="callout room-lifecycle-announcement hidden" role="status" aria-live="polite" aria-atomic="true"></p>
-      <div class="lobby-choice-grid">
-        <section id="standardCpuChoice" class="lobby-choice standard-cpu-choice">
-          <span class="battle-choice-icon" aria-hidden="true">♟</span>
-          <h3>CPUと対戦</h3>
-          <p class="muted small">10人の中から、好きな相手と。</p>
-          <button id="startStandardCpuLobby" class="primary" type="button">10人からCPUを選ぶ</button>
-        </section>
-        <section id="humanBattleChoice" class="lobby-choice human-battle-choice" aria-labelledby="humanBattleTitle">
-          <h3 id="humanBattleTitle">人と対戦</h3>
-          <button id="chooseFriendBattle" type="button" aria-expanded="false" aria-controls="friendBattlePanel">友だちと対戦<span aria-hidden="true">→</span></button>
-          <button id="choosePublicBattle" type="button" aria-expanded="false" aria-controls="matchmakingPanel">だれかと対戦<span aria-hidden="true">→</span></button>
-        </section>
+      <div class="lobby-choice-grid" role="group" aria-labelledby="lobbyTitle">
+        <button id="startStandardCpuLobby" type="button" aria-haspopup="dialog" aria-controls="cpuRosterDialog" aria-label="CPUと対戦">CPU</button>
+        <button id="chooseFriendBattle" type="button" aria-expanded="false" aria-controls="friendBattlePanel" aria-label="友だちと対戦">友だち</button>
+        <button id="choosePublicBattle" type="button" aria-expanded="false" aria-controls="matchmakingPanel" aria-label="だれとでも対戦">だれとでも</button>
       </div>
       <section id="friendBattlePanel" class="lobby-choice battle-route-panel hidden" aria-labelledby="friendBattleTitle">
         <h3 id="friendBattleTitle" tabindex="-1">合言葉で対戦</h3>

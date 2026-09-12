@@ -78,7 +78,7 @@ test("Standard Online exposes a server-backed quiz and a published CPU entry", (
   assert.match(html, /id="quizPanel"/);
   assert.match(html, /ガチャ券クイズ/);
   assert.doesNotMatch(html, /href="\.\.\/solo-v5\/index\.html"/);
-  assert.match(html, /id="startStandardCpuLobby"[^>]+>10人からCPUを選ぶ/);
+  assert.match(html, /id="startStandardCpuLobby"[^>]+aria-label="CPUと対戦">CPU<\/button>/);
   assert.match(app, /client\.startQuiz/);
   assert.match(app, /client\.finishQuiz/);
   assert.match(app, /QUIZ_PENDING_KEY/);

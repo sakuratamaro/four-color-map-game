@@ -19,6 +19,7 @@ test("Standard Online declares its own four-color favicon", () => {
 });
 const clientSource = fs.readFileSync(path.join(root, "standard-online-v5", "standard-online-client.js"), "utf8");
 const css = fs.readFileSync(path.join(root, "standard-online-v5", "style.css"), "utf8");
+const uiDietCss = fs.readFileSync(path.join(root, "standard-online-v5", "ui-diet.css"), "utf8");
 const progressionCss = fs.readFileSync(path.join(root, "standard-online-v5", "progression.css"), "utf8");
 
 test("missing room snapshots return to the lobby without discarding rooms on network errors", () => {
@@ -249,7 +250,12 @@ test("public matchmaking stays code-free, recoverable, cancellable, and separate
 });
 
 test("UDL023 entrance routes are presentational and protect pending public recovery", () => {
-  assert.match(html, /id="humanBattleTitle">人と対戦<\/h3>/);
+  assert.doesNotMatch(html, /id="(?:humanBattleTitle|humanBattleChoice|standardCpuChoice)"/);
+  assert.match(html, /class="lobby-choice-grid" role="group" aria-labelledby="lobbyTitle"/);
+  assert.match(html, /id="startStandardCpuLobby"[^>]+aria-haspopup="dialog"[^>]+aria-label="CPUと対戦">CPU<\/button>/);
+  assert.match(html, /id="chooseFriendBattle"[^>]+aria-label="友だちと対戦">友だち<\/button>/);
+  assert.match(html, /id="choosePublicBattle"[^>]+aria-label="だれとでも対戦">だれとでも<\/button>/);
+  assert.match(html, /ui-diet\.css\?v=20260912-3/);
   for (const [button, panel] of [["chooseFriendBattle", "friendBattlePanel"], ["choosePublicBattle", "matchmakingPanel"]]) {
     assert.match(html, new RegExp('id="' + button + '"[^>]*aria-expanded="false"[^>]*aria-controls="' + panel + '"'));
   }
@@ -262,14 +268,16 @@ test("UDL023 entrance routes are presentational and protect pending public recov
   assert.match(app, /if \(startWaiting\) return recruitPublicOpponent\(\)/);
 });
 
-test("Standard lobby keeps two useful desktop columns and one mobile column", () => {
-  assert.doesNotMatch(css, /#lobby \.lobby-choice-grid\{grid-template-columns:repeat\(auto-fit/);
-  assert.match(css, /#lobby \.lobby-choice-grid\{grid-template-columns:repeat\(2,minmax\(0,1fr\)\)\}/);
+test("UDL023 flat entrance keeps three peer columns and a keyboard heading without a yellow frame", () => {
+  assert.match(uiDietCss, /#lobby \.lobby-choice-grid \{ grid-template-columns: repeat\(3, minmax\(0, 1fr\)\)/);
+  assert.doesNotMatch(uiDietCss, /grid-template-columns: 1fr|human-battle-choice|standard-cpu-choice/);
+  assert.match(uiDietCss, /#lobby #lobbyTitle:focus \{ outline: none; \}/);
+  assert.match(uiDietCss, /#lobby #lobbyTitle:focus-visible \{ text-decoration: underline;/);
+  assert.match(uiDietCss, /#quizOptions button \{ scroll-margin-block: 90px; \}/);
   assert.match(css, /#lobby \.public-matchmaking\{grid-column:1\/-1\}/);
   assert.match(css, /#lobby \.lobby-grid\{grid-template-columns:1fr\}/);
   assert.match(css, /#lobby \.lobby-grid>button\{width:100%\}/);
   assert.match(css, /#lobby \.lobby-choice button,#lobby \.lobby-choice input\{max-width:100%;overflow-wrap:anywhere\}/);
-  assert.match(css, /@media\(max-width:760px\)\{#lobby \.lobby-choice-grid\{grid-template-columns:1fr\}/);
   assert.match(css, /@media\(max-width:760px\)\{#lobby \.public-matchmaking\{grid-column:auto\}\}/);
 });
 
