@@ -1,5 +1,7 @@
 # アストラ先生との継続改修運用（有限待機への改訂）
 
+2026-09-12追記：同じactiveタスクへのself-sendは、そのturnへの追加入力になり、別の通常workerを起動しなかった。API受付だけを通常作業再開の証拠にしない。今回ユーザーの直接メッセージで通常司令塔が再開し、自身で061をmain/Pagesへ公開した。引継ぎ送信を繰り返さず、未設定の自動再開を動作中と報告しない。詳細はUI_COSMETICS_RELEASE_20260912.md。既存の取得/実装分離・単一司令塔・有限待機は維持する。
+
 2026-09-10、ユーザーが成果物の共有・確認依頼・返答に応じた改修継続・約20分後の再確認を明示依頼した。先の有限な共有正本移行ゴールは終了したまま、この後続依頼を既存Codexタスクで扱う。新しい司令塔・運用台帳・別タスクを作らない。
 
 `CANON_RECEIPT version=shared-canon-v1.1 base=2f855ccfef11d7c099cfb73fb57ec3da79be8789 request=UDL-20260910-050/052/053/054,UDL-20260906-010 specs=AGENTS.md,docs/SHARED_CANON.md,docs/PROJECT_COMMAND_CENTER.md tests=tests/governance-shared-canon.test.cjs,tests/standard-decision-reconciliation.test.cjs`

@@ -1,0 +1,34 @@
+{
+  "candidate": "a757c126e1325532bb11a719cf92d0d13401d3ae",
+  "kind": "OFFLINE_FIXTURE_NOT_LIVE",
+  "productionRequests": 0,
+  "geometry": [
+    {
+      "viewport": 390,
+      "overflow": false,
+      "cardWidth": 320,
+      "buttonWidth": 72,
+      "buttonHeight": 45,
+      "feedbackInside": false
+    },
+    {
+      "viewport": 1280,
+      "overflow": false,
+      "cardWidth": 363.328125,
+      "buttonWidth": 72,
+      "buttonHeight": 45,
+      "feedbackInside": false
+    }
+  ],
+  "checks": [
+    "fixture profile coins ownership and revision unchanged by reload",
+    "fixture reload sends no cosmetic action",
+    "390: transient success message is cleared after reload",
+    "390: original combined live assertion rejects only missing transient feedback",
+    "1280: transient success message is cleared after reload",
+    "1280: original combined live assertion rejects only missing transient feedback",
+    "no production request was attempted"
+  ],
+  "ok": true,
+  "completedAt": "2026-09-12T04:09:53.016Z"
+}

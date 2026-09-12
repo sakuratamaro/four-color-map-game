@@ -10,6 +10,7 @@ const assert=require("node:assert/strict"),fs=require("node:fs"),path=require("n
 const {execFileSync}=require("node:child_process"),{randomUUID,createHash}=require("node:crypto");
 const {chromium}=require("playwright");
 const {closeOwnedBrowserServer}=require("../tests/helpers/browser-server-cleanup.cjs");
+const {cosmeticItemLayoutPass}=require("../tests/helpers/cosmetic-canary-layout.cjs");
 const candidateRoot=path.resolve(__dirname,"../../ui-cosmetics-20260912");
 const git=(...args)=>execFileSync("git",["-c","safe.directory="+candidateRoot.replaceAll("\\","/"),...args],{cwd:candidateRoot,windowsHide:true,maxBuffer:2_000_000});
 assert.equal(git("rev-parse","HEAD").toString().trim(),candidateSha);
@@ -69,11 +70,12 @@ async function quizRound(){
   current=result;report.quizzesCompleted++;
 }
 function gameInvariant(p){return JSON.stringify({inventory:p.inventory,tickets:p.gachaTickets,stats:p.stats,history:p.matchHistory,quiz:p.quizRecords,protected:p.protectedSkills,trophies:p.trophies});}
-async function inspect(label){
+async function inspect(label,{requireFeedback=true}={}){
   const item=page.locator('[data-cosmetic-id="nameplateGold"]');await item.scrollIntoViewIfNeeded();
   const geometry=await item.evaluate(e=>{const r=e.getBoundingClientRect(),b=e.querySelector("button").getBoundingClientRect();return {viewport:innerWidth,overflow:document.documentElement.scrollWidth>innerWidth,cardWidth:r.width,buttonWidth:b.width,buttonHeight:b.height,feedbackInside:Boolean(e.querySelector(".cosmetic-item-status"))};});
-  check(label+": item feedback and44px controls fit",!geometry.overflow&&geometry.cardWidth<=geometry.viewport&&geometry.buttonWidth>=44&&geometry.buttonHeight>=44&&geometry.feedbackInside);
-  report.geometry.push({label,...geometry});await page.screenshot({path:reportPath+"."+label+".png"});
+  report.geometry.push({label,requireFeedback,...geometry});
+  await page.screenshot({path:reportPath+"."+label+".png"});
+  check(label+": item state and44px controls fit",cosmeticItemLayoutPass(geometry,{requireFeedback}));
 }
 (async()=>{try{
   for(const [file,suffix] of [["index.html",""],["app.js","app.js?v=20260912-36"],["cosmetic-item-action.js","cosmetic-item-action.js?v=20260912-2"]]){
@@ -118,7 +120,10 @@ async function inspect(label){
   await gold.getByRole("button",{name:"装備する",exact:true}).click();await gold.locator(".cosmetic-item-status").getByText("黄金名札を装備しました。",{exact:true}).waitFor();
   const after=await refresh();check("free then owned equip preserves debit and ownership",after.revision===baseline.revision+3&&after.profileState.coins===coins-350&&after.profileState.cosmeticsOwned.filter(id=>id==="nameplateGold").length===1);
   check("cosmetics leave game inventory tickets records and trophies unchanged",gameInvariant(after.profileState)===invariant);
-  await page.reload({waitUntil:"domcontentloaded",timeout:30_000});await gold.getByRole("button",{name:"装備中",exact:true}).waitFor();await page.setViewportSize({width:390,height:844});await inspect("390-reloaded");
+  stage="reload restores equipped state without another purchase";
+  await page.reload({waitUntil:"domcontentloaded",timeout:30_000});await gold.getByRole("button",{name:"装備中",exact:true}).waitFor();
+  report.reloadEquippedButtonObserved=true;
+  await page.setViewportSize({width:390,height:844});await inspect("390-reloaded",{requireFeedback:false});
   const final=await refresh();check("reload is a read-only exact profile restore",JSON.stringify(final)===JSON.stringify(after)&&await page.evaluate(key=>JSON.parse(localStorage.getItem(key)).equipped.nameplate,remoteKey)==="nameplateGold");
   const acknowledged=await Promise.all(reads);check("exactly three acknowledged cosmetic actions",report.cosmeticActions===3&&acknowledged.length===3&&acknowledged.every(r=>r.status===200&&!r.data.duplicate));
   check("browser makes no match quiz draw or sale writes",actions.every(op=>["cosmetic-catalog","cosmetic-quote","cosmetic-action"].includes(op)));

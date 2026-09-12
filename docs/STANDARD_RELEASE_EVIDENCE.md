@@ -1,5 +1,9 @@
 # Standard公開候補 証拠台帳
 
+## 2026-09-12 UDL061 商品の中で購入・装備
+
+`a757c126e1325532bb11a719cf92d0d13401d3ae` を実Astra018と同SHA Windows34663861170両SUCCESS、fresh main b81・祖先確認後、司令塔自身がforceなしでmainへ公開。Pages34671793635 SUCCESS、preflight ok:true、公開index/app36/intent2の厳密byte一致。**PAGES_PUBLISHED / LIVE_ACCEPTANCE_PARTIAL**。1試験profileで黄金名札350の単回購入・無料/所有済み再装備の追加減算0・390/1280表示を確認。reloadの装備中buttonまで観測後、一時メッセージ残存を要求したharnessがFAIL。原JSON保持、offline診断7/7・修正harness4/4、製品変更0。最終server等価/ACK集計/操作allowlist/console0は未実行、物理NOT_RUN、追加profile0。PUBLIC_VERIFIEDへ推測昇格しない。全証拠：docs/UI_COSMETICS_RELEASE_20260912.md。
+
 ## 2026-09-12 UDL060 結果のそばから次へ
 
 PUBLIC_VERIFIED `b81a1d52e8230d41ec9e69610d89bafc86d1d84e`。実Astra016でUDL-060-result-v1.1/blob54cd9c8a945fcc84dff1354733fad6a32cc5624aを承認、DB/Edge[]。Windows34659862518最終両SUCCESS、fresh main d6から通常push、同SHA Pages34662217796 SUCCESS。公開preflightと4asset byte一致、実Chrome390/1280の37/37と最終画像3枚目視PASS。移動時draw/rematch/write0、最後のserver room/profile/history/tickets/revision不変。物理端末・実対人はNOT_RUN。全履歴と限界は `docs/UI_RESULT_RELEASE_20260912.md`。

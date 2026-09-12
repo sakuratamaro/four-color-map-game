@@ -1,4 +1,4 @@
-# UDL062 review packet — prepared, NOT SENT
+# UDL062 review packet — prepared, NOT SENT (updated after061 publication)
 
 SUBJECT_SHA: 6f8aeab0cbdfe9e013541f5cf30e16c93fb18cd3
 BASE_SHA: a757c126e1325532bb11a719cf92d0d13401d3ae
@@ -21,8 +21,14 @@ https://github.com/sakuratamaro/four-color-map-game/actions/runs/34664375319
 
 製品変更はapp/indexの表示文字列だけ、キャッシュ37。client/サーバー/DB/Edge/ID生成/保存key/ACK/状態遷移/ガチャ・売却・再戦の冪等性とroom保持は不変。061 B1修正a757を通常mergeし、35/36だけの競合を37へ一致させました。旧の確定拒否不能へ戻していません。code差分にクイズQ10調査、CPU、画像、カード追加は混ぜません。
 
-検証: clean6f8全917/917 (58.010s)、実Chrome6/6 (31.806s)、Edge6/6 (29.484s)、skip0、生成3builder差分0。新診断optional390/1280、接続badge各tab/offline、lost lab setup同ID、persisted rematch同ID、CPU saved/unsaved表示、親061 stale revision reload回復を実browserで確認。旧77の全件913/915はhandoff旧文言assert2件FAILを保存、修正358640cと正常merge後に再実行しました。live/物理はNOT_RUN。Windowsの実結果は送信直前に証拠へ追記し、見込みでSUCCESSとしません。
+検証: clean6f8全917/917 (58.010s)、実Chrome6/6 (31.806s)、Edge6/6 (29.484s)、skip0、生成3builder差分0。新診断optional390/1280、接続badge各tab/offline、lost lab setup同ID、persisted rematch同ID、CPU saved/unsaved表示、親061 stale revision reload回復を実browserで確認。旧77の全件913/915はhandoff旧文言assert2件FAILを保存、修正358640cと正常merge後に再実行しました。live/物理はNOT_RUN。2026-09-12のfresh APIでWindows34664375319はexact6f8、completed SUCCESS。Chrome103473206770、Edge103473206663とも最終SUCCESS、両online132/132・contracts575/575、Edge lifecycle79/79。clean HEAD/spec blob/remote branch一致、fresh main=a757も確認しました。
 
-前便061のreview取込中なので、この文書はまだ送信していません。相手生成中に追送しない。061の公開確認、062自身の実APPROVE_RELEASE・Windows両成功・fresh main=a757を確認した後だけ062を公開し、親の承認を流用しません。公開後はindex/app37厳密byte一致と、許可済み新規profile1・通常接続/各tab/閉じた診断を開く/390・1280/reloadのread-only実画面確認を計画。新対局/quiz/draw/sale0、物理NOT_RUN。送信時に独立062の有限待機開始を記録し、古い061予算を延長しません。
+この文書はまだ未送信です。主チャットの新しいuser bbb216f0-9194-45cf-acd6-504a9a55d40aに対する返答をまだ観測できず、APIのidleだけで追送しません。061の公開後確認、062自身の実APPROVE_RELEASE・Windows両成功・fresh main=a757を確認した後だけ062を公開し、親の承認を流用しません。公開後はindex/app37厳密byte一致と、許可済み新規profile1・通常接続/各tab/閉じた診断を開く/390・1280/reloadのread-only実画面確認を計画。新対局/quiz/draw/sale0、物理NOT_RUN。実送達時だけ独立062の有限待機開始を記録し、閉じた061の原予算を延長しません。
+
+前便061の報告と検証相談（018の再承認依頼ではありません）: a757はWindows34663861170両最終SUCCESS後、forceなしmain・同SHA Pages34671793635 SUCCESS、preflightと3asset厳密byte一致まで完了しました。1profileの実黄金名札350購入370→20・無料/所有済み切替追加減算0・390/1280はPASS。reloadの装備中buttonも観測しましたが、検証側が一時的な成功feedbackの残存まで要求しFAIL。最終server等価・3ACK集計・操作allowlist・console0はその後に置かれていたため未実行です。原failed JSONを保持し、PUBLIC_VERIFIEDにはしていません。
+
+同一製品のoffline既存fixtureで誤ったpredicateを7/7再現し、harnessだけ修正しました。公開製品/spec/価格/DB/Edgeの差分0。試験用profile1件の枠は消費済み、旧sessionは閉じ、追加profileはまだ作っていません。証拠はdocs/UI_COSMETICS_RELEASE_20260912.md、UI_COSMETICS_LIVE_20260912.json、UI_COSMETICS_RELOAD_DIAGNOSIS_20260912.json。
+
+残る公開後照合の最小手順を判断してください。ユーザーの既存試験用プロフィール作成許可の範囲で、追加1profile・最大3quiz/30回答/30抽選と必要な余剰売却・削除0の一回だけ修正harnessを再実行し、原失敗と分けて保存する案です。無応答をこの追加試行への同意にせず、既存018の製品承認と062の判定も混同しません。
 
 DECISION / SUBJECT_SHA / BLOCKERS / NOTESをお願いします。
