@@ -61,15 +61,17 @@
       });
     } catch { return false; }
   }
-  function createObserver({ storage, locks, show, clear }) {
+  function createObserver({ storage, locks, show, clear, canShow = () => true }) {
     let previous = null, generation = 0;
     function interrupt() { generation += 1; clear(); }
     function observe(input) {
       const current = snapshot(input);
-      if (previous && current?.scope === previous.scope && current.version < previous.version) return Promise.resolve(false);
-      if (!input?.visible || !current || current.status !== "ACTIVE") {
-        interrupt(); previous = current; return Promise.resolve(false);
+      if (!input?.visible || input?.blocked || !current || current.status !== "ACTIVE") {
+        interrupt();
+        if (!previous || !current || current.scope !== previous.scope || current.version >= previous.version) previous = current;
+        return Promise.resolve(false);
       }
+      if (previous && current?.scope === previous.scope && current.version < previous.version) return Promise.resolve(false);
       if (previous && current?.scope === previous.scope && current.version === previous.version) {
         previous = current; return Promise.resolve(false);
       }
@@ -80,6 +82,7 @@
       const revision = generation;
       return claim(event, storage, locks).then(accepted => {
         if (!accepted || revision !== generation) return false;
+        if (!canShow(event, input)) { interrupt(); return false; }
         show(event, input);
         return true;
       }).catch(() => false);

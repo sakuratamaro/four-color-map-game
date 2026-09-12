@@ -70,3 +70,32 @@ test("UDL065 navigation/terminal interrupts a delayed claim before display",asyn
   await observer.observe(input(1));const work=observer.observe(input(2));observer.interrupt();pending.shift()();await work;
   assert.equal(shown.length,0);
 });
+
+test("UDL065 same-version blocking stops a visible event and never replays on close",async()=>{
+  let visible=false,spoken="",count=0;
+  const observer=api.createObserver({storage:fakeStore(),locks,show(){visible=true;spoken="skill";count++;},clear(){visible=false;spoken="";}});
+  await observer.observe(input(1));await observer.observe(input(2));
+  assert.equal(visible,true);await observer.observe(input(2,{blocked:true}));
+  assert.equal(visible,false);assert.equal(spoken,"");
+  await observer.observe(input(2));assert.equal(count,1);assert.equal(visible,false);
+  await observer.observe(input(3));assert.equal(count,2);
+});
+test("UDL065 same-version blocking invalidates a pending claim even after dialog closes",async()=>{
+  let finish,shown=0,spoken="";
+  const delayed={request:(_name,_opts,run)=>new Promise(resolve=>{finish=()=>resolve(run());})};
+  const observer=api.createObserver({storage:fakeStore(),locks:delayed,show(){shown++;spoken="skill";},clear(){spoken="";}});
+  await observer.observe(input(1));const work=observer.observe(input(2));
+  await observer.observe(input(2,{blocked:true}));await observer.observe(input(2));
+  finish();assert.equal(await work,false);assert.equal(shown,0);assert.equal(spoken,"");
+});
+test("UDL065 final live presentation guard suppresses delayed events without requiring a new snapshot",async()=>{
+  for(const throws of [false,true]){
+    let finish,ready=true,shown=0;
+    const delayed={request:(_name,_opts,run)=>new Promise(resolve=>{finish=()=>resolve(run());})};
+    const observer=api.createObserver({storage:fakeStore(),locks:delayed,show(){shown++;},clear(){},
+      canShow(){if(throws)throw Error("unavailable");return ready;}});
+    await observer.observe(input(1));const work=observer.observe(input(2));ready=false;
+    finish();assert.equal(await work,false);assert.equal(shown,0);
+    ready=true;await observer.observe(input(2));assert.equal(shown,0);
+  }
+});

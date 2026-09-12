@@ -907,14 +907,30 @@ function presentSkillCutin(event) {
   $("skillCutinAnnouncement").textContent = `${$("skillCutinActor").textContent}、${event.title}${event.detail === event.title ? "" : "、" + event.detail}`;
   skillCutinTimer = setTimeout(clearSkillCutin, 1000);
 }
-const skillCutin = globalThis.FourColorSkillCutin.createObserver({
-  storage: localStorage, locks: navigator.locks, show: presentSkillCutin, clear: clearSkillCutin,
-});
+function skillCutinBlocked() {
+  return Boolean(document.querySelector("dialog[open]"))
+    || ["terminalOverlay", "contactReveal", "randomReveal"].some(id => !$(id).classList.contains("hidden"));
+}
+function canPresentSkillCutin(event) {
+  const state = roomModel?.room?.public_state;
+  return activeAppTab === "battle" && document.visibilityState === "visible" && !skillCutinBlocked()
+    && state?.status === "ACTIVE" && state.version === event.version
+    && `${roomModel?.room?.id}:${state.matchId}:${roomModel?.view?.seat}` === event.scope;
+}
+const skillCutin = (() => {
+  const disabled = Object.freeze({ observe: () => Promise.resolve(false), interrupt() {} });
+  try {
+    const observer = globalThis.FourColorSkillCutin?.createObserver?.({
+      storage: localStorage, locks: navigator.locks, show: presentSkillCutin, clear: clearSkillCutin,
+      canShow: canPresentSkillCutin,
+    });
+    return typeof observer?.observe === "function" && typeof observer?.interrupt === "function" ? observer : disabled;
+  } catch { return disabled; } // Missing/failed optional assets must never prevent game startup.
+})();
 function observeSkillCutin(state, privateState) {
   try {
     const visible = activeAppTab === "battle" && document.visibilityState === "visible";
-    const blocked = Boolean(document.querySelector("dialog[open]"))
-      || ["terminalOverlay", "contactReveal", "randomReveal"].some(id => !$(id).classList.contains("hidden"));
+    const blocked = skillCutinBlocked();
     void skillCutin.observe({ state, roomId: roomModel?.room?.id, seat: roomModel?.view?.seat,
       ownColors: skillIntents.availableColorChoices(privateState), ack: lastOwnSkillAck, visible, blocked });
   } catch { clearSkillCutin(); } // An optional visual must never interrupt a game action.
@@ -1570,6 +1586,7 @@ function openSkillInfo(skill) {
   $("skillInfoBody").textContent = SKILL_DESCRIPTION[skill] || "説明を準備中です。";
   show("skillInfoRandom", RANDOM_SKILLS.has(skill));
   const dialog = $("skillInfoDialog");
+  skillCutin.interrupt();
   if (!dialog.open) dialog.showModal();
 }
 
@@ -5628,6 +5645,7 @@ async function openCpuRoster(origin = "fallback", trigger = document.activeEleme
     ? "正式6枚のStandardルールで対戦します。CPUを選ぶまで対戦は始まりません。"
     : "人間の募集を終了し、選んだCPUと正式6枚のStandardルールで対戦します。";
   $("closeCpuRoster").textContent = replacingFinishedCpu ? "対戦結果に戻る" : origin === "direct" ? "ロビーに戻る" : "人を待ち続ける";
+  skillCutin.interrupt();
   if (!$("cpuRosterDialog").open) $("cpuRosterDialog").showModal();
   requestAnimationFrame(() => $("cpuRosterTitle").focus());
   $("cpuRosterStatus").textContent = "CPU一覧を読み込んでいます…";
@@ -6012,6 +6030,7 @@ function openRoomAbandonDialog(trigger = document.activeElement) {
   operationFeedback("abandonRoomStatus", retrying
     ? "前回の結果を確認できませんでした。もう一度、結果を確かめられます。"
     : "");
+  skillCutin.interrupt();
   if (!$("abandonRoomDialog").open) $("abandonRoomDialog").showModal();
   requestAnimationFrame(() => $("abandonRoomTitle").focus({ preventScroll: true }));
 }

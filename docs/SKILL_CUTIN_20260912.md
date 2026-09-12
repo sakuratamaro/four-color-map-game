@@ -1,5 +1,5 @@
 # Self and opponent skill cut-in
-Version: UDL-065-cutin-v1
+Version: UDL-065-cutin-v1.1
 
 CANON_RECEIPT version=shared-canon-v1.1 base=a1a9b1c830eceb98464b107f2442deacaf765505 request=UDL-20260912-065,ADD-20260911-SKILL-FEEDBACK,ADD-20260912-SKILL-CUTIN-PRIORITY specs=docs/SHARED_CANON.md@codex/dev-brain-current-20260910,docs/SKILL_CUTIN_20260912.md tests=tests/standard-skill-cutin.test.cjs,tests/standard-online-browser.test.cjs worktree=.codex-worktrees/skill-cutin-20260912
 
@@ -19,4 +19,6 @@ Presentation is pointer-transparent, never focuses, never blocks an action/quiz,
 
 Pure tests: strict trace, same/different scope, initial/reload/retry, gap/stale, hidden/other tab, own named ACK/no-op/failed action, public-only neutral opponent, observable colour/seal/geometry, duplicate-tab claim/storage failures.
 Actual Chrome/Edge: both directions, sequential DOM timings, pointer hit and focus, 390/1280 layouts, reduced-motion, settings OFF, no replay after poll/reload/return and terminal cleanup. Existing all-start/contact/palette/CPU/quiz regressions retained. Generated bundles must remain byte-identical. Windows exact SHA required.
+
+Revision v1.1 addresses genuine Astra025 (6e8506a8-039e-4b88-879e-6ad73005ef94) only: missing/failed optional module initialization installs a no-op observer without stopping startup, connection, ordinary actions or existing contact feedback. Blocking UI interrupts active/pending cut-ins even at the same version; every application dialog entry clears the cut-in and its announcement. Immediately before delayed presentation, recheck actual tab/visibility/dialog and priority overlays plus the current room/seat/version. Closing a dialog never replays the cancelled event; later fresh events remain eligible. Cover missing network resource and throwing initialization in actual browsers, same-version active/pending interruption in pure tests, and real Web Lock contention with actual dialogs. No extra confirmation, timer pause, reconnection logic or server change.
 Pages_only; DB[] and Edge[]. Exact candidate/spec review by genuine Astra before force-free main and same-SHA Pages. Public byte preflight before a bounded dedicated live canary (one profile, one CPU match, only that match's finite legal actions/surrender; no quiz/gacha/purchase/deletion). Capture real own/opponent skill events if available; if CPU does not produce an observable event within the finite bound, report that missing live case instead of fabricating it or adding profiles. Physical devices NOT_RUN until actually tested.

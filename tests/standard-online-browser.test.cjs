@@ -1508,6 +1508,99 @@ test("UDL065 reduced motion, other tabs, gaps, terminal and reload preserve no r
   },{viewport:{width:390,height:844},bodyTimeout:45000});
 });
 
+
+test("UDL065 missing or failed cut-in initialization leaves connection, ordinary action and contact feedback working", { timeout: 120000 }, async () => {
+  for (const fault of ["missing", "initialization"]) {
+    const errors = [];
+    await withPage("playing", async page => {
+      await page.locator("#randomReveal").waitFor({ state: "hidden" });
+      assert.equal(await page.locator("#connectionBadge.good").isVisible(), true);
+      assert.equal(await page.locator("#skillCutin").isHidden(), true);
+      await page.evaluate(() => {
+        const r = globalThis.__standardOnlineRuntime, s = r.room.public_state;
+        r.room = { ...r.room, version: 10, public_state: { ...s, version: 10, turn: 10,
+          active: "A", phase: "WORK", requiredSize: 1, rolledSize: 1, baseRequiredSize: 1, pending: null,
+          playableBounds: { macroWidth: 5, microScale: 1, minCol: 0, minRow: 0, maxCol: 4, maxRow: 4 },
+          regions: {
+            R1: { id: "R1", micro: [1], sourceMacros: [1], controllers: ["B"], color: "red", isPending: false },
+            R2: { id: "R2", micro: [5], sourceMacros: [5], controllers: ["B"], color: "blue", isPending: false },
+          }, lastPublicTrace: null } };
+        r.view = { ...r.view, version: 10 }; r.onInvalidate();
+      });
+      await page.waitForFunction(() => document.getElementById("versionText").textContent === "10");
+      const board = page.locator("#board"), box = await board.boundingBox();
+      await board.click({ position: { x: box.width * 1.5 / 5, y: box.height * 1.5 / 5 } });
+      await page.locator("#contactRevealTitle").filter({ hasText: "二色接触" }).waitFor();
+      assert.match(await page.locator("#contactRevealAnnouncement").textContent(), /二色接触/);
+      await page.locator("#submitRegion").click();
+      await page.getByText("操作を保存しました。", { exact: true }).waitFor();
+      const actions = await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter(c => c.body?.operation === "action").map(c => c.body.action));
+      assert.equal(actions.length, 1); assert.equal(actions[0].type, "CREATE_REGION");
+      assert.deepEqual(actions[0].payload, { sourceMacros: [6] });
+      assert.equal(await page.locator("#skillCutin").isHidden(), true);
+      assert.deepEqual(errors, [], "optional cut-in fault must not become a JS startup exception");
+    }, { viewport: { width: 390, height: 844 }, beforeNavigate: async page => {
+      page.on("pageerror", error => errors.push(error.message));
+      await page.route("**/skill-cutin.js*", route => fault === "missing" ? route.abort("failed")
+        : route.fulfill({ status: 200, contentType: "application/javascript",
+          body: 'globalThis.FourColorSkillCutin = { createObserver() { throw new Error("synthetic initialization failure"); } };' }));
+    } });
+  }
+});
+
+test("UDL065 same-version dialogs cancel visible and real Web Lock queued cut-ins without replay", { timeout: 120000 }, async () => {
+  await withPage("colorResponse", async page => {
+    await cutinReady(page);
+    await cutinAdvance(page, { change: "palette" });
+    await page.locator("#skillCutin").waitFor({ state: "visible" });
+    const info = page.locator("#skillControls .skill-info-button").first();
+    const version = await page.locator("#versionText").textContent();
+    await info.click();
+    await page.locator("#skillInfoDialog[open]").waitFor();
+    assert.equal(await page.locator("#versionText").textContent(), version);
+    assert.equal(await page.locator("#skillCutin").isHidden(), true);
+    assert.equal(await page.locator("#skillCutinAnnouncement").textContent(), "");
+    assert.equal(await page.locator(".skill-cutin-palette,.skill-cutin-board").count(), 0);
+    await page.locator("#closeSkillInfo").click();
+    for (const path of ["app-dialog", "direct-dialog"]) {
+      await page.evaluate(() => {
+        const name = globalThis.FourColorSkillCutin.STORAGE_KEY + ".lock";
+        globalThis.__cutinHeldLock = navigator.locks.request(name, () => new Promise(resolve => { globalThis.__releaseCutinLock = resolve; }));
+      });
+      await page.waitForFunction(() => typeof globalThis.__releaseCutinLock === "function");
+      await cutinAdvance(page, { change: "none" });
+      await page.waitForFunction(async () => (await navigator.locks.query()).pending.some(l => l.name.endsWith("skill-cutin-v1.lock")));
+      const sameVersion = await page.locator("#versionText").textContent();
+      if (path === "app-dialog") {
+        await info.click();
+        await page.locator("#closeSkillInfo").click();
+      } else {
+        // No application render/interrupt here: the last-moment live DOM guard must reject.
+        await page.evaluate(() => document.getElementById("skillInfoDialog").showModal());
+      }
+      await page.evaluate(async () => {
+        globalThis.__releaseCutinLock(); await globalThis.__cutinHeldLock; globalThis.__releaseCutinLock = null;
+      });
+      await page.waitForFunction(async () => {
+        const all = await navigator.locks.query();
+        return ![...all.held, ...all.pending].some(l => l.name.endsWith("skill-cutin-v1.lock"));
+      });
+      assert.equal(await page.locator("#skillCutin").isHidden(), true);
+      assert.equal(await page.locator("#skillCutinAnnouncement").textContent(), "");
+      if (path === "direct-dialog") await page.locator("#closeSkillInfo").click();
+      await page.evaluate(() => globalThis.__standardOnlineRuntime.onInvalidate());
+      await page.waitForTimeout(400);
+      assert.equal(await page.locator("#versionText").textContent(), sameVersion);
+      assert.equal(await page.evaluate(() => globalThis.__cutinEvents.length), 1);
+      assert.equal(await page.locator("#skillCutinAnnouncement").textContent(), "");
+    }
+    await cutinAdvance(page, { change: "none" });
+    await page.locator("#skillCutin").waitFor({ state: "visible" });
+    assert.equal(await page.evaluate(() => globalThis.__cutinEvents.length), 2, "future live event remains enabled");
+    assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter(c => c.body?.operation === "action").length), 0);
+  }, { viewport: { width: 390, height: 844 }, bodyTimeout: 45000 });
+});
+
 async function withPage(mode, run, { bodyTimeout = 35_000, viewport = { width: 900, height: 800 }, beforeNavigate = null, deviceScaleFactor = 1 } = {}) {
   assert.ok(chromium, "Playwright is required");
   assert.ok(fs.existsSync(browserPath), `${browserName} browser is required`);
