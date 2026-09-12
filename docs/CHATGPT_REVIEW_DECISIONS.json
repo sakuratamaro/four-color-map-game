@@ -212,8 +212,8 @@
         "response_message_id": "dacf4682-d6fa-427b-acaf-a5d166c17529",
         "thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
         "user_text": "頭脳zipは？",
-        "status": "GENUINE_COMPLETED_BRAIN_RESPONSE_OBSERVED_ARCHIVE_NOT_RETRIEVED",
-        "note": "Astra reports47prioritems preserved and new ZIP validated, version/artifact link not exposed in read_thread. Existing transfer owner handles actual bounded retrieval; no private screenshot intake."
+        "status": "V10_VERSION_IDENTIFIED_TRANSFER_FAILED_ARCHIVE_NOT_OBTAINED",
+        "note": "Existing transfer owner reports button+filenamev10, one failed normal download. Main readback confirms its completed memo and no v10 file.47itemretention/manifest/delta remain author-reported; verifiedZIPstillv8."
       }
     ],
     "pending_user_intake_note": "v3/v4/v5/v6 reconciled as dated aliases: CPU051, quiz034, split037, corner029, history057, aurora058, reward navigation059. Source bbb215c4 matched and consumed; v4 original message ID unresolved (archive quote/hash retained); v6 source0832e679 subsequently read in full and matched. Original ea61f25f remains not fully consumed. CPU formal settings and exact perk numbers remain unverified; not implemented by intake. User publication/delegation policy056 and completed055/052 evidence are preserved.",
@@ -2279,10 +2279,33 @@
         "transfer_status": {
           "thread_id": "01a08d9e-ae35-7f70-a879-cb342dafef47",
           "cursor": "c4058d32-8462-4822-8b6b-0b23463dbcb2:5",
-          "state": "ACTIVE_WAITING_ON_APPROVAL",
-          "note": "One compact snapshot, no repeated polling or inferred cause; newZIP not yet verified here."
+          "state": "BOUNDED_TRANSFER_FINISHED_V10_IDENTIFIED_ARCHIVE_NOT_OBTAINED",
+          "note": "Existing owner returned final report; one normal download failedERR_BLOCKED_BY_CLIENT. No longer infer waiting-on-approval from the earlier snapshot; no new retry requested."
         }
       }
+    },
+    "latest_brain_transfer": {
+      "version_observed": "v10",
+      "filename_observed": "four-color-dev-brain-20260912-v10.zip",
+      "state": "TRANSFER_REPORT_RECEIVED_ARCHIVE_NOT_OBTAINED",
+      "source_thread_id": "01a08d9e-ae35-7f70-a879-cb342dafef47",
+      "source_kind": "existing_transfer_owner_report",
+      "chatgpt_thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
+      "user_message_id": "bbb21b1c-37ec-431a-8a00-a63496b35155",
+      "response_message_id": "dacf4682-d6fa-427b-acaf-a5d166c17529",
+      "evidence_path": "docs/BRAIN_V9_TRANSFER_20260912.md",
+      "attempts": 1,
+      "reported_failure": "ERR_BLOCKED_BY_CLIENT",
+      "archive_path": null,
+      "sha256": null,
+      "manifest_verification": "NOT_RUN_ARCHIVE_MISSING",
+      "retention_47_items": "AUTHOR_REPORT_ONLY_NOT_INDEPENDENTLY_VERIFIED",
+      "latest_independently_verified_archive": "v8",
+      "no_new_review_decision": true,
+      "no_product_hold_added": true,
+      "retry_or_regeneration_requested": false,
+      "private_images_transferred": false,
+      "note": "Commander received the finite existing-owner report and read its assigned memo. Independent Downloads filename check found no v10. No new browser attempt, security-setting change, ChatGPT poll, new queue or game publication. V10 is creation/version evidence only, not a verified ZIP or source of new adopted implementation details."
     }
   },
   "decisions": [
