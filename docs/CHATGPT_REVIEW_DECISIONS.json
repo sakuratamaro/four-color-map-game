@@ -181,8 +181,8 @@
       "normal_owner_observation": "Previous normal turn completed after branch push; stored normal_work_receipt waiting. This heartbeat is the same task, not a second active owner."
     },
     "reviewer_thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
-    "last_consumed_review_message_id": "922d83f0-9779-4fd1-a8da-de7cdac862bd",
-    "last_received_message_id": "922d83f0-9779-4fd1-a8da-de7cdac862bd",
+    "last_consumed_review_message_id": "8adbfdb6-2d36-4f20-8958-8fe4dd7d6450",
+    "last_received_message_id": "8adbfdb6-2d36-4f20-8958-8fe4dd7d6450",
     "pending_user_intake_message_ids": [
       "ea61f25f-bebf-499a-81e9-029712a96f99",
       "bbb216f0-9194-45cf-acd6-504a9a55d40a",
@@ -330,14 +330,39 @@
       "live_canary_completed_at_utc": "2026-09-12T16:39:09.075Z",
       "live_canary_diagnosis": "Screenshotpathname regexoverescaped; retained.json. LocalemptyChromereproduced unsupportedmimeapplication/json. All21details/key/Escape,2unownedlab,390geometrypassed; 768/1280/reload/visualNOT_RUN. Finalstate/revision,permittedreads4,console0PASS. No automaticretry/newprofile.",
       "acceptance_followup": {
-        "state": "SEND_RESERVED",
+        "state": "030_VISUAL_ATTEMPT_RESERVED_BEFORE_RUN",
         "send_attempts": 1,
         "reserved_before_api": true,
         "reserved_at_utc": "2026-09-12T16:45:03Z",
         "scope": "Ask0profile0matchread-onlyvisualsupplement;notproductrereview",
         "report": "docs/SKILL_CATALOG_RELEASE_20260913.md",
-        "delivery_checks": 0,
-        "new_wait_budget": false
+        "delivery_checks": 1,
+        "new_wait_budget": false,
+        "sent_at_utc": "2026-09-12T16:46:14Z",
+        "request_message_id": "9ff538bc-db7a-4b1e-a73a-9ab0a4a75768",
+        "full_body_equality": true,
+        "chars": 7114,
+        "evidence_sha": "244adde",
+        "due_read_result": "active/user-only; no genuine response yet. Delivery not approval.",
+        "review_id": "CHATGPT-REVIEW-20260913-030",
+        "response_message_id": "8adbfdb6-2d36-4f20-8958-8fe4dd7d6450",
+        "received_at_utc": "2026-09-12T17:05:36Z",
+        "receipt_trigger": "Independentready067reviewavailability; genuinecompletedreplyreadincidental, noautomaticbudgetreset.",
+        "visual_attempts": 1,
+        "visual_reserved_at_utc": "2026-09-12T17:10:15Z",
+        "visual_profiles": 0,
+        "visual_matches": 0,
+        "visual_max_seconds": 90,
+        "visual_report": "docs/SKILL_CATALOG_VISUAL_20260913.json",
+        "visual_harness": "scripts/live-standard-catalog-visual.cjs",
+        "visual_tests": "11/11PASS4117.4208ms; localChromeHTTP/WSdeny0serverrequests,PNGsignature,25msdeadlineabort,failureevidencepreserve.",
+        "bounds": {
+          "additional_profiles": 0,
+          "accounts": 0,
+          "matches": 0,
+          "max_seconds": 90,
+          "attempts": 1
+        }
       }
     },
     "automation_id": "automation",
@@ -741,7 +766,7 @@
     "wait_budget": {
       "started_at_utc": "2026-09-12T16:07:23Z",
       "expires_at_utc": "2026-09-12T18:07:23.000Z",
-      "automatic_checks": 1,
+      "automatic_checks": 2,
       "max_automatic_checks": 3,
       "offset_minutes": [
         20,
@@ -758,7 +783,8 @@
       "remaining_scheduled_slots": 0,
       "delivery_readback_checks": 2,
       "consumed_slots_utc": [
-        "2026-09-12T16:27:23.000Z"
+        "2026-09-12T16:27:23.000Z",
+        "2026-09-12T16:47:23.000Z"
       ],
       "skipped_slots_utc": [],
       "check_receipts": [
@@ -771,15 +797,27 @@
           "max_chars_per_item": 20000,
           "response_message_id": "922d83f0-9779-4fd1-a8da-de7cdac862bd",
           "review_id": "CHATGPT-REVIEW-20260913-029"
+        },
+        {
+          "slot_utc": "2026-09-12T16:47:23.000Z",
+          "reserved_at_utc": "2026-09-12T16:48:22Z",
+          "state": "DELIVERY_EXACT_NO_GENUINE_RESPONSE",
+          "turn_id": "01a09667-c507-7201-9297-91ebbd3857c2",
+          "kind": "same066acceptancefollowup",
+          "request_message_id": "9ff538bc-db7a-4b1e-a73a-9ab0a4a75768"
         }
       ],
       "new_scope": "UDL-066-catalog-v1",
       "prior_budgets_reopened": false,
       "start_basis": "Conservative reserved before send independent066logicalrequest, no deadline extension.",
       "root_request_message_id": "30ed4b53-5ad3-45e1-920d-4cf4919dd24b",
-      "last_result": "Genuine029APPROVE_RELEASEexact2fc",
+      "last_result": "Exact7114characterfollowupdelivered; active/user-only. Nextautomaticread17:47:23,originaldeadline18:07:23.",
       "response_message_id": "922d83f0-9779-4fd1-a8da-de7cdac862bd",
-      "closed_at_utc": "2026-09-12T16:34:10Z"
+      "closed_at_utc": "2026-09-12T16:34:10Z",
+      "followup_request_message_id": "9ff538bc-db7a-4b1e-a73a-9ab0a4a75768",
+      "followup_status": "review_received_closed",
+      "followup_response_message_id": "8adbfdb6-2d36-4f20-8958-8fe4dd7d6450",
+      "followup_closed_at_utc": "2026-09-12T17:05:36Z"
     },
     "pending_review_subject": {
       "subject_sha": "2fcfea9bb2a3d1ad7e22a5e8e3b61983f0404152",
@@ -2279,7 +2317,7 @@
         "UDL-20260912-067"
       ],
       "owner_thread_id": "01a07b56-616e-7733-9aae-90575659688e",
-      "state": "PURE_MODEL_VERIFIED_NOT_UI_INTEGRATED",
+      "state": "LOCAL_VERIFIED_PUSHED_REVIEW_READY",
       "worktree": ".codex-worktrees/surrender-confirmation-20260913",
       "branch": "codex/surrender-confirmation-20260913",
       "base_sha": "2fcfea9bb2a3d1ad7e22a5e8e3b61983f0404152",
@@ -2292,7 +2330,18 @@
       "review_status": "NOT_SENT",
       "review_send_attempts": 0,
       "next_action": "Integrate nativeconfirmation intoappbothsurrenderhandlers, removeCOLORhelperbutton; preservependingretry, stale/terminal/tabguard; Chrome/Edge/Windows/exactreview.",
-      "tests": "Pure4/4PASS155.2587ms; exact10CPUvoices/publicscope/stalependingguards; noDOM/browsertestingyet."
+      "tests": "clean141files937/937PASS63716.5739ms;Chrome6/6;Edge14/14;finalfocusChrome1/1andEdge1/1;skip0",
+      "request_id": "UDL-20260912-067",
+      "candidate_sha": "8fe4c206547851550de7b4b59c0eb82241ba3060",
+      "spec_snapshot_sha": "e5f2c0617d3defcc8dc6105bf567f6ed59fb4432",
+      "review_id": null,
+      "push_status": "PUSHED_EXACT_BRANCH",
+      "windows_run": "34707002949",
+      "windows_status": "IN_PROGRESS",
+      "evidence": "docs/SURRENDER_LOCAL_20260913.md",
+      "review_packet": "docs/ASTRA_SURRENDER_REVIEW_20260913.md",
+      "live_canary_state": "PLAN_NOT_IMPLEMENTED_NOT_RUN",
+      "live_canary_attempts": 0
     },
     "remaining_brain_work": {
       "source": {
@@ -3648,6 +3697,39 @@
         "matches": 0,
         "attempts": 1,
         "max_seconds": 180,
+        "economy_actions": 0,
+        "deletions": 0
+      }
+    },
+    {
+      "review_id": "CHATGPT-REVIEW-20260913-030",
+      "subject_sha": "2fcfea9bb2a3d1ad7e22a5e8e3b61983f0404152",
+      "base_sha": "9515f9bed9536dc2c44b71817129abb9c86ef24f",
+      "canon_version": "shared-canon-v1.1",
+      "feature_spec_version": "UDL-066-catalog-v1",
+      "spec_snapshot_sha": "9aa1c780aac6b394bf1ee622cc2ba10297b6bab1",
+      "spec_snapshot_kind": "git_blob:docs/SKILL_CATALOG_20260912.md",
+      "scope": "post_publication_bounded_acceptance",
+      "review_kind": "public_acceptance_supplement",
+      "db_change_set": [],
+      "edge_change_set": [],
+      "decision": "APPROVE_BOUNDED_ACCEPTANCE",
+      "source": {
+        "kind": "chatgpt",
+        "thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
+        "message_id": "8adbfdb6-2d36-4f20-8958-8fe4dd7d6450",
+        "request_message_id": "9ff538bc-db7a-4b1e-a73a-9ab0a4a75768",
+        "response_text": "## DECISION\n**承認 — 新規プロフィール0件で、公開画面のレイアウト・reload・目視確認を補う90秒の試験を、1回実行して構いません。**\n\n**初回の認証付きcanaryを最初から繰り返す必要はありません。** 補完が成功した場合は、初回の実測と組み合わせてUDL066の限定受入を完了できます。製品の再承認・修正・再公開を要求するものではありません。\n\n## SUBJECT_SHA\n`2fcfea9bb2a3d1ad7e22a5e8e3b61983f0404152`\n\n対象：`UDL-066-catalog-v1`／仕様blob `9aa1c780aac6b394bf1ee622cc2ba10297b6bab1`／`Pages_only`／DB・Edge各`[]`  \n確認した証拠・ハーネス補正：`244adde130a151908a28259d4589e14b82c4faa2`\n\n## BLOCKERS\n**提案された補完計画を妨げる不足はありません。ただし、補完実行前の現時点では`PUBLIC_VERIFIED`にはしません。**\n\n固定JSONでは、全21件の掲載・詳細・使用段階・キーボード操作・フォーカス復帰と390pxの配置に加え、**保存`profileState`／revision不変、許可通信のみ、consoleエラー・警告0の独立3監査まで成功**しています。一方、画像は未作成で、768／1280px・reload・最終目視の証拠はありません。この残りだけを補う切り分けは適切です。\n\nスクリーンショット名を`path.dirname`／`path.basename`で組み立て、`.png`にする修正と、3幅・拡張子・原JSONとの別名を検査するテストも確認しました。**こちらでは再実行していません。** \n\n## NOTES\n\n### 1．プロフィールなしの補完として実行する\n\n**新しい空のChromeコンテキスト1個・最大90秒・1回**に限定します。最初にHTML・app40・registry2・catalog CSS1の厳密byte一致を確認し、不一致なら画面試験へ進まず停止してください。\n\nページ遷移前から、対象Supabaseへの通信をすべて送信前に遮断します。認証情報の持込み、セッション設定、プロフィール・対局・経済データの注入は行いません。**追加のアカウント／プロフィール／対局／経済操作／削除はいずれも0**です。\n\nただし、アプリが認証を試みて遮断された場合は、**「送信試行・遮断件数」と「サーバーへ送信された件数0」を分けて記録**してください。遮断された試行まで「発生していない」とは扱いません。\n\n### 2．「接続済み」ではなく、図鑑の描画を待つ\n\n固定製品では、`loadProfiles()`・タブ選択・`render()`が`ensureSession()`より前に実行されます。今回のプロフィールなし確認では、**旧canaryの接続成功・プロフィール取得待ちを流用せず、図鑑パネルと正確な21件の描画を待つ**方法にしてください。\n\n補完対象は、390／768／1280pxの2／3／4列、文字・枚数の可読性、44px以上の操作領域、overflow、各幅のPNGと実目視、reload後の21件再表示・詳細操作です。全21件の説明を再確認しても構いませんが、**既に成功した認証付き詳細試験を、全幅で最初から繰り返す必要はありません。**\n\n意図的な通信遮断による接続エラーは、その遮断と対応付けて別記録にします。**console全体を無視せず、想定外の例外・図鑑の操作不良は失敗として残してください。** 接続表示を偽装したり、検証のために本番HTML／JSを書き換えたりする方法は使いません。\n\n補完ドライバーはまだ未実装なので、実装後に**通信遮断・90秒での停止・PNGの実保存・失敗時の証拠保存**を局所検証してから実行してください。この承認範囲内の検証コード整備だけで、追加の製品レビュー待ちは不要です。\n\n### 3．成功時の受入記録\n\n**初回JSONの`57チェック成功＋独立3監査成功・ok:false`は、そのまま保存してください。** 補完結果は別ファイルにし、件数を足して「単一試行が全件PASSだった」とは書き換えません。\n\n補完成功時は、既存台帳へ次の区別で記録し、**UDL066を対象範囲限定の`PUBLIC_VERIFIED`へ更新して構いません。**\n\n> 認証付き公開試験で図鑑機能・保存状態保全・許可通信を確認。別のプロフィールなし公開画面試験で、残る3幅の画像・目視・reload後の図鑑表示を補完して受入完了。初回の撮影失敗は原記録のまま保持。\n\n**認証付きreloadの追加実測ではないこと、補完環境はバックエンド遮断であること、物理端末`NOT_RUN`は明記**してください。補完側に保存プロフィールがないことを、保存状態比較PASSとして数える必要もありません。その根拠は初回の独立監査です。\n\n累計プロフィールは**1件のまま**です。成功後は完了報告だけでよく、失敗した場合は追加試行を重ねず取得済みの結果を残してください。**旧062／065／9515を再開せず、原066の期限・消費数も維持し、067は独立して進めてください。**"
+      },
+      "recorded_at_utc": "2026-09-12T17:05:36Z",
+      "blockers": [],
+      "notes": "OneemptyChrome90s publicvisualonly; exact4bytesbeforepage,ALLbackendblockedbeforepage,noauthbootstrap/injection/signup/profile/match/economy/deletion. Preserveblockedattemptcounts,expectedvsunexpectedconsole. Afterlocaldriverproofandsuccess+actualvisualmayaccept066usingseparatefirstlive57+3; no authenticatedreloadclaim.",
+      "bounds": {
+        "additional_profiles": 0,
+        "accounts": 0,
+        "matches": 0,
+        "attempts": 1,
+        "max_seconds": 90,
         "economy_actions": 0,
         "deletions": 0
       }
