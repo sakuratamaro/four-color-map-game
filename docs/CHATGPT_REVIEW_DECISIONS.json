@@ -41,7 +41,7 @@
     }
   ],
   "coordination": {
-    "status": "061_PUBLIC_VERIFIED_062_B1_REVIEW_PREPARING",
+    "status": "061_PUBLIC_VERIFIED_062_B1_DELIVERED_WINDOWS_PASS_REVIEW_PENDING",
     "latest_v8_intake": {
       "state": "PAIRED_SOURCE_AND_ZIP_VERIFIED_ALIASES_MAPPED",
       "source_thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
@@ -429,10 +429,10 @@
     },
     "automation_id": "automation",
     "automation_status_at_recording": "ACTIVE",
-    "automation_readback_updated_at": 1789195504114,
+    "automation_readback_updated_at": 1789198207388,
     "automation_prompt_readback_equal": true,
     "automation_pause_reason": null,
-    "automation_active_reason": "Separate normal-work run for explicit019 bounded061 acceptance then062 B1; no new review poll.",
+    "automation_active_reason": "Original062100-minute receive only; after genuine exact review reserve separate normal work, never self-send.",
     "completed_review_waits": [
       {
         "root_request_message_id": "8464f659-ad62-4c09-83d9-44e1cc91316b",
@@ -683,8 +683,8 @@
       "root_request_message_id": "336393d6-5c0d-4294-810f-3a772f7b5bd6",
       "subject_sha": "6f8aeab0cbdfe9e013541f5cf30e16c93fb18cd3",
       "status": "review_received_closed",
-      "next_check_utc": null,
-      "remaining_scheduled_slots": 0,
+      "next_check_utc": "2026-09-12T07:45:12Z",
+      "remaining_scheduled_slots": 1,
       "delivery_readback_checks": 1,
       "delivery_matching_chars": 20000,
       "delivery_total_chars": 57256,
@@ -700,14 +700,26 @@
         }
       ],
       "response_message_id": "f2aebe0a-d1a8-4966-85d6-9a09625f453b",
-      "closed_at_utc": "2026-09-12T06:39:07Z"
+      "closed_at_utc": "2026-09-12T06:39:07Z",
+      "followup_subject_sha": "a1a9b1c830eceb98464b107f2442deacaf765505",
+      "followup_request_message_id": "7bdcf425-9980-4e45-b616-5fd439781925",
+      "followup_status": "review_pending",
+      "followup_sent_at_utc": "2026-09-12T07:20:05Z",
+      "followup_delivery_readback_checks": 2,
+      "followup_delivery_matching_chars": 7658,
+      "followup_delivery_total_chars": 7659,
+      "followup_delivery_normalization": "Only one terminal newline removed by transport",
+      "skipped_slots_utc": [
+        "2026-09-12T06:45:12Z"
+      ],
+      "followup_note": "Same logical062 request. Original20-slot consumed once;40-slot missed, not moved. Only100-slot remains; deadline and counter unchanged."
     },
     "pending_review_subject": {
-      "subject_sha": "6f8aeab0cbdfe9e013541f5cf30e16c93fb18cd3",
+      "subject_sha": "a1a9b1c830eceb98464b107f2442deacaf765505",
       "base_sha": "a757c126e1325532bb11a719cf92d0d13401d3ae",
       "canon_version": "shared-canon-v1.1",
-      "feature_spec_version": "UDL-062-copy-v1",
-      "spec_snapshot_sha": "9a3488f3b7e5d2c94666a64529a679bc863d8171",
+      "feature_spec_version": "UDL-062-copy-v1.1",
+      "spec_snapshot_sha": "5481afd8c2b9ff5354bba0e671615c97fb8ceef7",
       "review_kind": "game_production_release_approval",
       "scope": "Pages_only",
       "db_change_set": [],
@@ -721,11 +733,11 @@
       "boundary": "Governance evidence maintenance did not amend or block independently approved product f8713d7."
     },
     "initial_interval_minutes": 20,
-    "pending_subject_sha": "6f8aeab0cbdfe9e013541f5cf30e16c93fb18cd3",
+    "pending_subject_sha": "a1a9b1c830eceb98464b107f2442deacaf765505",
     "pending_scope": "Pages_only",
-    "pending_delivery_status": "review_received",
-    "last_confirmed_sent_message_id": "336393d6-5c0d-4294-810f-3a772f7b5bd6",
-    "last_sent_message_id": "336393d6-5c0d-4294-810f-3a772f7b5bd6",
+    "pending_delivery_status": "delivery_verified_response_pending",
+    "last_confirmed_sent_message_id": "7bdcf425-9980-4e45-b616-5fd439781925",
+    "last_sent_message_id": "7bdcf425-9980-4e45-b616-5fd439781925",
     "self_sent_message_ids": [
       "ef6f161d-f2b9-40c0-ab06-f6eacf4c4d38",
       "cefaccf8-2648-4d63-b7fe-5a4a78023ec2",
@@ -747,9 +759,10 @@
       "90728dd9-6afe-4a36-9d1a-8cf274b8a996",
       "26418926-b237-4a11-8182-0034cc362503",
       "c0629536-84d4-45cf-b3b3-e02fbf97b7a4",
-      "336393d6-5c0d-4294-810f-3a772f7b5bd6"
+      "336393d6-5c0d-4294-810f-3a772f7b5bd6",
+      "7bdcf425-9980-4e45-b616-5fd439781925"
     ],
-    "sent_at_utc": "2026-09-12T06:05:12Z",
+    "sent_at_utc": "2026-09-12T07:20:05Z",
     "last_check_utc": "2026-09-12T06:39:07Z",
     "unchanged_checks": 0,
     "reminder_count": 0,
@@ -1614,7 +1627,7 @@
         "UDL-20260912-062"
       ],
       "owner_thread_id": "01a07b56-616e-7733-9aae-90575659688e",
-      "state": "LOCAL_VERIFIED_PUSHED_REVIEW_PREPARING",
+      "state": "LOCAL_VERIFIED_WINDOWS_PASS_REVIEW_PENDING",
       "branch": "codex/ui-player-copy-20260912",
       "worktree": ".codex-worktrees/ui-player-copy-20260912",
       "base_sha": "a757c126e1325532bb11a719cf92d0d13401d3ae",
@@ -1623,33 +1636,49 @@
       "spec_version": "UDL-062-copy-v1.1",
       "local_tests": "Clean a1a9b1c917/917,66.905955s; selected-contact/copy pure6/6; actual Chrome8/8,72.8875801s; Edge8/8,41.7123054s; skip0,3builders no generated diff. Correction only3files6adds3deletes; app.js unchanged.",
       "publication": "NOT_RUN",
-      "review_status": "NOT_SENT",
+      "review_status": "REVIEW_PENDING",
       "parent_note": "061 a757 is PUBLIC_VERIFIED after authorized94/94 bounded retry, cumulative2profiles, original failed report immutable and physical NOT_RUN. 018/019 are not062 release approval.",
       "spec_snapshot_sha": "5481afd8c2b9ff5354bba0e671615c97fb8ceef7",
       "windows_run": "34679764998",
-      "windows_status": "IN_PROGRESS",
+      "windows_status": "SUCCESS",
       "review_packet": "docs/ASTRA_UI_PLAYER_COPY_B1_REVIEW_20260912.md",
       "push_status": "PUSHED_EXACT_BRANCH",
-      "windows_jobs": [],
+      "windows_jobs": [
+        {
+          "id": "103516091078",
+          "browser": "chrome",
+          "tests": "132/132",
+          "contracts": "575/575",
+          "skipped": 0
+        },
+        {
+          "id": "103516090978",
+          "browser": "edge",
+          "tests": "132/132",
+          "contracts": "575/575",
+          "lifecycle": "79/79",
+          "skipped": 0
+        }
+      ],
       "evidence": "docs/UI_PLAYER_COPY_B1_LOCAL_20260912.md",
-      "review_send_attempts": 0,
+      "review_send_attempts": 1,
       "delivery_block": {
         "status": "CLEARED_COMPLETED_PAIR_OBSERVED",
         "source_thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
         "user_message_id": "bbb216f0-9194-45cf-acd6-504a9a55d40a",
         "response_message_id": "7c83d564-d958-4c6e-9830-f363e81762f6"
       },
-      "send_attempt_reserved_before_api": false,
-      "review_request_message_id": null,
-      "review_delivery_checks": 0,
-      "review_delivery_note": "B1 candidate not sent yet. Rejected6f8 delivery receipts remain only in superseded_candidates.",
-      "delivery_full_body_verified": false,
+      "send_attempt_reserved_before_api": true,
+      "review_request_message_id": "7bdcf425-9980-4e45-b616-5fd439781925",
+      "review_delivery_checks": 2,
+      "review_delivery_note": "Two bounded delivery reads. First returned prior completed turn while active; second obtained exact7658-character request7bdcf425. Body equals all7659 sent characters after removal of only the terminal newline. Response still active/not received; no third delivery read or resend.",
+      "delivery_full_body_verified": true,
       "scope": "Pages_only",
       "db_change_set": [],
       "edge_change_set": [],
       "review_id": null,
       "review_response_message_id": null,
-      "next_action": "Send exact B1 delta review plus061 completion; record Windows in progress without treating as final pass.",
+      "next_action": "Receive exact B1 decision at original100-minute slot; if approved, separate normal run performs fresh release gates and bounded navigation canary without further user permission wait.",
       "superseded_candidates": [
         {
           "request_ids": [
@@ -1709,7 +1738,19 @@
           "review_response_message_id": "f2aebe0a-d1a8-4966-85d6-9a09625f453b",
           "next_action": "Fix only the misleading no-adjacent-colour-count explanation and matching static test; preserve contact feedback and no-legal-colour-oracle behavior; new exact SHA/review, no additional UI scope."
         }
-      ]
+      ],
+      "delivery_normalization": "Only one terminal newline removed by transport",
+      "public_canary_preparation": {
+        "path": "scripts/live-standard-player-copy-canary.cjs",
+        "tests": "tests/governance-player-copy-canary.test.cjs",
+        "status": "PREPARED_OFFLINE_SAFETY_TESTED_NOT_RUN",
+        "profiles_created": 0,
+        "planned_profiles": 1,
+        "matches": 0,
+        "economy_actions": 0,
+        "diagnostics": "Fresh profile has no match: inspect closed DOM/label only; live diagnostic interaction NOT_RUN_NO_MATCH, exercised by exact candidate local/Windows playing browser tests.",
+        "note": "No live profile, main or Pages change for062."
+      }
     },
     "remaining_brain_work": {
       "source": {
@@ -1760,7 +1801,7 @@
       "evidence": "docs/QUIZ_QUESTION_IDENTITY_INTAKE_20260912.md",
       "note": "Genuine completed text subsequently received in normal authorized reviewer-chat reading; no image viewed or forwarded and no original session identified."
     },
-    "sent_at_precision": "minute-level local observation; exact message identity is authoritative",
+    "sent_at_precision": "Conservative send API completion; original logical wait start remains06:05:12Z.",
     "publication_report_history": [
       {
         "subject_sha": "d6f745d3f1291457539dd2f3476e9a749a547069",
@@ -1892,12 +1933,11 @@
       "checker": "scripts/check-commander-continuation.cjs",
       "tests": "tests/governance-commander-continuation.test.cjs",
       "next_run": {
-        "phase": "NORMAL_WORK",
-        "subject_sha": "a757c126e1325532bb11a719cf92d0d13401d3ae",
-        "at_utc": "2026-09-12T06:50:00Z",
-        "action": "BOUNDED_LIVE_FOLLOWUP",
-        "source_review_id": "CHATGPT-REVIEW-20260912-019",
-        "not_before_utc": "2026-09-12T06:50:00Z",
+        "phase": "RECEIVE",
+        "subject_sha": "a1a9b1c830eceb98464b107f2442deacaf765505",
+        "at_utc": "2026-09-12T07:45:12Z",
+        "action": "CHECK_EXACT_REVIEW",
+        "request_message_id": "7bdcf425-9980-4e45-b616-5fd439781925",
         "receipt_status": "API_AND_ACTUAL_SETTING_VERIFIED"
       },
       "first_scheduled_normal_run": {
@@ -1916,25 +1956,26 @@
         "id": "automation",
         "status": "ACTIVE",
         "target_thread_id": "01a07b56-616e-7733-9aae-90575659688e",
-        "rrule": "FREQ=DAILY;BYHOUR=15;BYMINUTE=50;BYSECOND=0",
-        "updated_at": 1789195504114,
+        "rrule": "FREQ=DAILY;BYHOUR=16;BYMINUTE=45;BYSECOND=12",
+        "updated_at": 1789198207388,
         "created_at": 1789048677730,
         "prompt_exact_equal": true,
-        "scheduled_for_utc": "2026-09-12T06:50:00Z",
+        "scheduled_for_utc": "2026-09-12T07:45:12Z",
         "readback_verified": true
       },
       "normal_work_claim": {
-        "state": "RUNNING",
+        "state": "COMPLETED_WORK_REVIEW_WAIT",
         "turn_id": "01a09462-aeab-7242-9c90-75104cc6df58",
         "action": "REVISE_EXACT_SLICE",
-        "subject_sha": "a1a9b1c830eceb98464b107f2442deacaf765505"
+        "subject_sha": "a1a9b1c830eceb98464b107f2442deacaf765505",
+        "result": "061 PUBLIC_VERIFIED94/94;062B1a1 local917/917 Chrome8/8 Edge8/8 Windows exact bothSUCCESS;review7bdcf425 complete delivery;bounded public navigation harness prepared, not run."
       },
       "review_scope": "New user-authorized local continuation repair, not covered by old APPROVE_DOCS; fixed docs candidate will be separately reported.",
       "verification": {
         "regression_tests": "42/42 PASS; skip0;638.46ms",
         "old_paused_state_guard": "Previously reproduced ORPHANED_ACTIONABLE_WORK; now also rejects past/under2minute calendar reservations and schedule-time mismatch.",
         "actual_scheduler_execution": "OBSERVED_SEPARATE_NORMAL_RUN_WITH_LIVE_WORK_RESULT",
-        "latest_tests": "42/42 PASS; skip0;789.6554ms after061 closure"
+        "latest_tests": "45/45 PASS; skip0;1144.5258ms on final pending B1 binding"
       },
       "current_run": {
         "phase": "NORMAL_WORK",
@@ -1942,7 +1983,7 @@
         "turn_id": "01a09462-aeab-7242-9c90-75104cc6df58",
         "started_at_utc": "2026-09-12T06:51:30Z",
         "actual_scheduled_run": true,
-        "state": "RUNNING"
+        "state": "WORK_COMPLETE_ENDING"
       },
       "missed_schedule_observation": {
         "scheduled_at_utc": "2026-09-12T06:25:12Z",
@@ -1953,9 +1994,39 @@
         "no_burst_retry": true
       },
       "documentation_review_followup": {
-        "state": "PREPARED_NOT_SENT",
-        "initial_candidate": "5f3cd0fe6b4fb62ce4c5c46a1c8a833a3af2640b",
-        "note": "Missed-slot guard followup changes candidate. Final exact commit must be reported in normal work; not a game gate."
+        "state": "DELIVERED_REVIEW_PENDING_NO_INDEPENDENT_POLL",
+        "subject_sha": "d18ebfade8bbb53acf2bb860a8e2789e539f4441",
+        "base_sha": "542f97f49d10443b215fb9e99377d881e0c45e9e",
+        "canon_version": "shared-canon-v1.1",
+        "spec_snapshot_sha": "48fe73dbf4a740dcb4b6b40142dec2e7918b56ab",
+        "scope": "documentation_introduction",
+        "review_kind": "documentation_introduction",
+        "db_change_set": [],
+        "edge_change_set": [],
+        "independent_game_gate": false,
+        "new_polling_budget": false,
+        "request_message_id": "7bdcf425-9980-4e45-b616-5fd439781925",
+        "delivery_full_body_verified": true
+      },
+      "export_safety_receipt": {
+        "initial_write_rejected": true,
+        "no_rejection_bypass": true,
+        "read_only_checks": "Exactorigin sakuratamaro/four-color-map-game;10explicit text files, credential-pattern scan allfalse; retry/preflight JSON fullinspection noauth/profile IDs; noimages.",
+        "subsequent_review_allowed": true,
+        "pushed_evidence_sha": "d18ebfade8bbb53acf2bb860a8e2789e539f4441",
+        "source_authorization": "Existing user's explicit full-diff export and codex/dev-brain-current-20260910 push permission.",
+        "recovered_without_new_user_wait": true
+      },
+      "end_turn_guard": {
+        "at_utc": "2026-09-12T07:34:34Z",
+        "exit_code": 0,
+        "phase": "WAIT_REVIEW",
+        "subject_sha": "a1a9b1c830eceb98464b107f2442deacaf765505",
+        "request_message_id": "7bdcf425-9980-4e45-b616-5fd439781925",
+        "scheduled_at_utc": "2026-09-12T07:45:12Z",
+        "errors": [],
+        "remaining_margin_seconds": 638,
+        "note": "Recheck at actual final exit; this records the observed guard run, not a future guarantee."
       }
     }
   },

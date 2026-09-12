@@ -1,6 +1,16 @@
 # Commander continuation repair — 2026-09-12
 
+## B1 delivery and next actual receive reservation
+
+Normal turn01a09462 completed061 acceptance and then implemented/retested/pushed062B1a1 without waiting for another user permission. Exact Windows34679764998 is now SUCCESS. New actual Astra request7bdcf425 contains the complete B1 three-file delta plus061 completion and a separately bound documentation-introduction review ofd18ebfade8bbb53acf2bb860a8e2789e539f4441 (base542f97f49d10443b215fb9e99377d881e0c45e9e,shared-canon-v1.1,spec blob48fe73dbf4a740dcb4b6b40142dec2e7918b56ab,DB/Edge[]). Full7658-character body verified; only the one terminal newline from7659 sent characters was removed by transport. Response remains pending. D18 does not cover subsequent evidence or new canary preparation, and the document review is not a game gate.
+
+Existingautomation was updated through the actual API to RECEIVE at16:45:12JST/07:45:12Z. Saved setting readback confirmsACTIVE, sameid/target/created_at, updated_at1789198207388 and full prompt equality. Original062 start06:05:12Z/expiry08:05:12Z remain;20-minute recovery check1,40-minute missed, only100-minute remains. No third delivery read or new docs wait. The actual first normal run is already OBSERVED; the next receive execution is not claimed yet. Before ending, the checker must verify the current future schedule and at least two minutes of margin.
+
+An automatic safety reviewer initially rejected the evidence push because it could include sensitive data. No bypass was used: read-only checks established the user's exact GitHub destination, credential-pattern scan of the10 explicit text files found none, and both new JSON reports were fully inspected as counts/public asset hashes with no auth or test profile IDs. No screenshots were staged. After those checks the same scoped request was accepted; d18 was pushed and exact remote readback verified. Existing user authorization for full ledger diff sharing and this dedicated branch remained sufficient; no new user approval loop was created.
+
 ## Actual separately scheduled normal execution observed
+
+Final local check on the new delivered B1 binding:45/45 PASS,skip0,1144.5258ms. At07:34:34Z the actual end-turn guard returned WAIT_REVIEW for exacta1/request7bdcf425, next07:45:12Z, errors[] and638seconds of margin. This is evidence of the check at that time, not a claim that the later receive has run. Recheck before the final exit.
 
 The15:50JST NORMAL_WORK reservation genuinely produced heartbeat turn01a09462-aeab-7242-9c90-75104cc6df58 at06:51:30Z. The previous RECEIVE turn01a09454 ended06:47:51Z; the observed IDs and times are distinct. This is no longer just API configuration evidence and used no self-send. The normal commander then executed the single authorized061 retry:94/94 PASS, preflight/strict bytes before signup, final server/ACK/allowlist/console checks plus390/1280 visual inspection. Evidence: UI_COSMETICS_RETRY_LIVE_20260912.json and UI_COSMETICS_RELEASE_20260912.md. first_scheduled_normal_run is nowOBSERVED with that actual work result. Other future scheduled runs and PC-off behavior are not thereby guaranteed.
 

@@ -14,3 +14,15 @@ Normal push6f8→a1a9b1c succeeded, remote branch exacta1; remote main remainsa7
 061 parent acceptance completed separately94/94 and390/1280 actual visual inspection, original failure preserved, cumulative2profiles. Evidence UI_COSMETICS_RELEASE_20260912.md and UI_COSMETICS_RETRY_LIVE_20260912.json. No062 profile or match created.
 
 The standard sandbox process briefly failed CreateProcessWithLogonW1909 after push. A scoped approved read-only escalation verified remote SHA; OS accounts/protection were not modified. Actual product tests and browser sessions had already run and ended successfully.
+
+## Exact B1 Windows, delivery and bounded next step
+
+Windows34679764998 is now completed/success at exacta1. Chrome job103516091078:575/575 contracts and132/132 online,skip0; Edge103516090978:575/575 contracts,79/79 lifecycle,132/132 online,skip0. Both generated-bundle steps succeeded. The earlier IN_PROGRESS observation above remains historical.
+
+New request7bdcf425-9980-4e45-b616-5fd439781925 was sent once to the same actual Astra chat. Two bounded delivery reads: first old completed turn while active, second full7658-character request. It equals all7659 sent characters after removing only the final newline; no other normalization or truncated tail. New review still generating/not received. 019 is not reused. One message carries exact B1 three-file diff,061 completion with fixedd18ebfa evidence URLs, and a separately boundd18ebfa documentation-introduction review. No screenshot or private image was sent.
+
+Original062 wait start06:05:12Z and expiry08:05:12Z remain unchanged;20-minute slot consumed1,40-minute slot missed/unexecuted. Only100-minute07:45:12Z remains. No third transport read, resend or separate docs polling budget.
+
+CANON_RECEIPT version=shared-canon-v1.1 base=a757c126e1325532bb11a719cf92d0d13401d3ae request=UDL-20260912-062 specs=docs/UI_PLAYER_COPY_20260912.md@a1 tests=tests/governance-player-copy-canary.test.cjs worktree=.codex-worktrees/dev-brain-current-20260910
+
+Prepared scripts/live-standard-player-copy-canary.cjs for after exact review/publication. Explicit opt-in/clean exact candidate/public HTML+app37 bytes before one isolated profile; old report overwrite refused;180-second bounded workflow and owned-browser cleanup. Only5 ordinary tabs at390/1280, connection text/reload/server equality and request allowlist. No match, quiz, draw, purchase, sale, direct DB, deletion or real currency. The room-only diagnostics are closed and labelled in DOM but live opening is NOT_RUN_NO_MATCH, because creating a match is outside this canary; playing interaction was verified by fixed-candidate Chrome/Edge/Windows fixtures. No DOM forcing or fault injection. New safety tests3/3 executed as part of governance45/45,skip0,1274.5573ms. The live canary itself is NOT_RUN and062 profiles created0; these local safety tests are not public gameplay evidence.
