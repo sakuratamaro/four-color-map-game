@@ -1,5 +1,7 @@
 # UDL051 F1: next bounded CPU slice
 
+Genuine Astra follow-up93dc7316-940b-46d7-b1f7-9dbc4a19d987 to exact result message6d2304e2-a209-468b-9ba1-bea3f2a65e58, saved as038: proceed with this independentF1, not a new-candidate/docs approval. Do not optimize for fewer palette changes in themselves. Pair a needless-change case with a necessary-change rescue accepted by the engine, and retain F3’s two rescue orientations and every saved policy. Full source is in CHATGPT_REVIEW_DECISIONS.json. No extra live trial or completedF3 review is reopened.
+
 CANON_RECEIPT version=shared-canon-v1.1 base=d9ce111d7d97019d55b3e90842602001e045ea04 request=UDL-20260910-051,REG-CPU-F1-PALETTE-WASTE specs=PROJECT_COMMAND_CENTER.md,CPU_SUCCESSOR_PREPARATION_20260912.md,CPU_SPLIT_RESCUE_20260913.md@d9ce111 tests=standard-cpu,standard-cpu-roster,standard-kurogane-lookahead,standard-cpu-split-rescue,governance-commander-continuation
 
 Existing commander only. Branch codex/cpu-palette-efficiency-20260913, worktree .codex-worktrees/cpu-palette-efficiency-20260913, starts at public d9ce111. Published F3 and its one consumed live attempt are immutable. This plan is not a new Astra release approval, and037 does not cover this later document/routing change.

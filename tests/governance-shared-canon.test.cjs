@@ -314,6 +314,18 @@ test("ChatGPT review records require an exact subject and cannot imply productio
         assert.equal(slice.acceptance_review_id,decision.review_id);
         assert.equal(slice.review_id,"CHATGPT-REVIEW-20260913-034","post-publication disposition must not replace the original release gate");
         assert.equal(JSON.parse(read("docs/SURRENDER_LIVE_20260913.json")).ok,false);
+      } else if (decision.review_id === "CHATGPT-REVIEW-20260913-038") {
+        assert.equal(decision.review_kind,"public_acceptance_disposition");
+        assert.equal(decision.decision,"ACCEPT_SCOPED");
+        assert.equal(decision.evidence_sha,"6b9cea3c4cee4e54ade0bbbc03b34fa59af1c5ba");
+        assert.equal(decision.source.message_id,"93dc7316-940b-46d7-b1f7-9dbc4a19d987");
+        assert.equal(decision.source.request_message_id,"6d2304e2-a209-468b-9ba1-bea3f2a65e58");
+        assert.equal(decision.source.response_text.length,1364);
+        assert.equal(decision.source.request_body_equality,true);
+        assert.deepEqual(decision.bounds,{additional_profiles:0,additional_matches:0,additional_canary_attempts:0,additional_deployments:0});
+        assert.equal(log.coordination.preparing_next_slice.review_id,"CHATGPT-REVIEW-20260913-036");
+        assert.equal(log.coordination.preparing_next_slice.acceptance_review_id,decision.review_id);
+        assert.equal(log.coordination.successor_goal.preparing_independent_slice.latest_design_guidance.release_approval,false);
       } else if (decision.review_id === "CHATGPT-REVIEW-20260912-024") {
         assert.equal(decision.review_kind, "public_acceptance_disposition");
         assert.equal(decision.decision, "ACCEPT");
@@ -330,6 +342,7 @@ test("ChatGPT review records require an exact subject and cannot imply productio
       assert.match(decision.subject_sha, /^[0-9a-f]{40}$/);
       assert.match(decision.spec_snapshot_sha, /^[0-9a-f]{40}$/);
       const bindings = {
+        "CHATGPT-REVIEW-20260913-038": ["d9ce111d7d97019d55b3e90842602001e045ea04", "f507c0b2dd9701f3ac1867131150b5e48d0ada8d", "UDL-051-split-v1.1", "5b4b137769f1be7736ded6a187e438ccb6d9a702", "Pages_Edge_DB_managed_activation"],
         "CHATGPT-REVIEW-20260913-036": ["d9ce111d7d97019d55b3e90842602001e045ea04", "f507c0b2dd9701f3ac1867131150b5e48d0ada8d", "UDL-051-split-v1.1", "5b4b137769f1be7736ded6a187e438ccb6d9a702", "Pages_Edge_DB_managed_activation"],
         "CHATGPT-REVIEW-20260913-035": ["f507c0b2dd9701f3ac1867131150b5e48d0ada8d", "2fcfea9bb2a3d1ad7e22a5e8e3b61983f0404152", "UDL-067-surrender-v1.1", "1e7e2a4c02acd58ed40ca0b6f2fbb0513f333463", "Pages_only"],
         "CHATGPT-REVIEW-20260913-034": ["f507c0b2dd9701f3ac1867131150b5e48d0ada8d", "2fcfea9bb2a3d1ad7e22a5e8e3b61983f0404152", "UDL-067-surrender-v1.1", "1e7e2a4c02acd58ed40ca0b6f2fbb0513f333463", "Pages_only"],
@@ -364,7 +377,7 @@ test("ChatGPT review records require an exact subject and cannot imply productio
       assert.ok(bindings[decision.review_id], "each genuine review needs an explicit exact binding");
       assert.deepEqual([decision.subject_sha, decision.base_sha, decision.feature_spec_version,
         decision.spec_snapshot_sha, decision.scope], bindings[decision.review_id]);
-      if(decision.review_id === "CHATGPT-REVIEW-20260913-036") {
+      if(["CHATGPT-REVIEW-20260913-036","CHATGPT-REVIEW-20260913-038"].includes(decision.review_id)) {
         assert.deepEqual(decision.db_change_set,["supabase/migrations/202609130001_standard_cpu_split_rescue.sql"]);
         assert.deepEqual(decision.edge_change_set,["supabase/functions/standard-game-action/index.ts","supabase/functions/standard-game-action/standard-engine.bundle.js"]);
         assert.deepEqual(decision.managed_setting_change_set,[{name:"FCG_CPU_SPLIT_RESCUE",compatible_deploy_value:null,activation_value:"standard-character-split-rescue-v1",rollback:"disable activation; retain compatible Edge and additive SQL"}]);

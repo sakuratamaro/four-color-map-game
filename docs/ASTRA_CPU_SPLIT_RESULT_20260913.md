@@ -1,0 +1,32 @@
+アストラ先生へ。既存Codex司令塔から、CPU051 F3の公開完了報告です。実返答7f806672-5501-4673-8bc9-6f7626e08552の036 APPROVE_RELEASEと別037 APPROVE_DOCSは、出典と対象を分離して保存しました。
+
+公開したゲーム候補は変更なく d9ce111d7d97019d55b3e90842602001e045ea04、基準f507c0b2dd9701f3ac1867131150b5e48d0ada8d、shared-canon-v1.1／UDL-051-split-v1.1／仕様blob5b4b137769f1be7736ded6a187e438ccb6d9a702、承認されたDB1・Edge2・管理設定1の範囲です。
+
+固定した公開記録：
+https://github.com/sakuratamaro/four-color-map-game/blob/6b9cea3c4cee4e54ade0bbbc03b34fa59af1c5ba/docs/CPU_SPLIT_DEPLOYMENT_20260913.md
+共有正本の全16ファイル差分：
+https://github.com/sakuratamaro/four-color-map-game/compare/bd07609b4914f911ba9b20722fb335ffab5c6bff...6b9cea3c4cee4e54ade0bbbc03b34fa59af1c5ba
+これはユーザーが許可した共有ブランチへの証拠pushです。後続の文書・検証用harness・局所的なF1再開経路を037の承認済みとは扱いません。ゲームmainにはそれらを混入していません。
+
+実行結果：
+1. fresh main/Pages f507、旧Edge2fileをDashboardから新しくdownloadして同mainとbyte一致、管理変数ABSENT、FREE planを確認。DBの記録migration末尾は202609020006で既存手動適用の履歴gapあり。現行の対象3関数本文は保存baselineとMD5一致。古いSQLや履歴backfillを追加適用していません。
+2. 承認された202609130001だけを一回、BEGIN/COMMITで適用。SQL Editor成功後、固定verifySQLの5項目がすべてtrue。既存CPU18対局の対応も確認し、既存行の書換え・削除なし。
+3. activation未設定のまま互換Edgeを一回配備。完了の保守的な観測時刻21:15:29.018Z。Deploying終了・両M消失・更新時刻を確認（成功toastは未観測）。配備後に新規downloadしたZIPから2fileを固定候補と全byte一致。index67228bc8…603、bundle91bc29ec…d6f。21:18:31.848ZのOPTIONSはcapability一致・legacy。
+4. 21:32:58ZにFCG_CPU_SPLIT_RESCUEだけをexact standard-character-split-rescue-v1へ保存。完了観測から1048.982秒、最低460秒を満たします。Dashboard digest一致、21:33:39.266Z OPTIONS=current、再配備0。JWT・認証・他設定は不変。全地域伝播/全worker drainの実証とはしていません。
+5. 既存司令塔がforceなしでmain f507→d9ce111をpush。Pages34720335950同SHA SUCCESS、freshpreflight ok:true、公開9file strictbyte一致。
+https://github.com/sakuratamaro/four-color-map-game/actions/runs/34720335950
+
+配備証拠の限界も明記します。Dashboard Download fallbackでcontrol-plane id/version/ezbrは露出せずNOT_EXPOSED、旧deployment25を新識別子にしていません。プロジェクト/function・完了時刻・ZIPと2fileSHAで成果物を特定しています。source verifierは21:19:12ZにSOURCE_VERIFIED_CANARY_PENDINGでPASS。460秒段階待機を含むため汎用の「全段階15分以内＋genericcanary」のfullcertificateは生成していません。古いログの時刻変更やfreshに見せる再保存はせず、今回の036固有の段階順序と実ソース/実smokeを別記録で示しました。Dashboardソース証拠のJSONも上記固定成果物に含みます。
+
+限定live：
+局所11/11 PASS後、専用API-only harnessを一回だけ実行。2026-09-12T21:37:04.866Z～21:37:08.906Z、4040ms、raw ok:true。
+匿名signup/プロフィール1・即時レイ対局1・setup1・初回initialize1・CPU送信1・SURRENDER送信1。全13許可通信200。
+一覧だけでなく本人membership snapshotで保存newpolicyを確認。CPUのversion0→1を実測。終局はinitializeでなくsnapshot-v2でFINISHED/winnerB/SURRENDER、本人profileでLOSS/SURRENDER/レイ履歴1件と敗北数+1・revision進行を確認しました。再送・追加試行・削除・経済操作・特権探索0。失敗時の各監査は独立で、結果不明時の投了再送なし。wxの専用attemptreceiptでプロセス再実行も拒否します。
+raw：
+https://github.com/sakuratamaro/four-color-map-game/blob/6b9cea3c4cee4e54ade0bbbc03b34fa59af1c5ba/docs/CPU_SPLIT_LIVE_20260913.json
+
+API-onlyなのでブラウザーUI/console/物理はNOT_RUNで、console0とはしていません。F3特定局面、旧worker競合、全10人stockhands、勝率向上はlive未実測です。969/969・Windows両成功・局面別engine検査とは分けました。F3のみPUBLIC_VERIFIED_SCOPED、UDL051全体はIMPLEMENTING。067は原ok:falseと部分受入・消費済み枠をそのまま保持し、この新対局の成功で旧067を閉じません。
+
+次は採用済みF1「不要なpalette変更」を独立実装します。新mainを用いた153msの実engine再診断でF1/F2は残存、F3の現在policy選択は両向き救済になりました。旧diagnosticのenumeration helperはlegacy既定なので、enumeratedSafeSidefalse欄を現在policyの回帰とはしていません。新しい専用作業床codex/cpu-palette-efficiency-20260913をd9ceから作り、既存保存policy（新公開split-rescueも含む）を変えず、必要な救済・privacy・RNG・F3を保つ小さなversioned改修とテストへ進めます。F2、画像/男女比/二つ名/ランクは別の残件です。
+
+これは公開結果の報告と後続作業の共有で、追加live枠や同じ候補の再承認を求めるものではありません。今回の終了済みレビュー予算は再開せず、返事待ちを独立F1の停止理由にしません。別の新候補を本番に出す前には、新候補そのものの実レビューと各ゲートを改めて揃えます。
