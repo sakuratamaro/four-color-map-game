@@ -107,7 +107,7 @@ async function run({candidate,report:out}) {
         });
         report.geometry.push({width,...geometry});check(width+": catalog readable targets and columns",!geometry.overflow
           &&geometry.columns===(width===390?2:width===768?3:4)&&geometry.cards.every(c=>c.width>=44&&c.height>=44&&!c.overflow));
-        const screenshot=out.replace(/\\.json$/,"-"+width+".png");
+        const screenshot=screenshotPath(out,width);
         assert.ok(!fs.existsSync(screenshot),"new screenshot only");
         await page.locator("#cardLibraryPanel").screenshot({path:screenshot});report.screenshots.push(path.basename(screenshot));
       }
@@ -138,4 +138,9 @@ async function run({candidate,report:out}) {
 if(require.main===module){let o;try{o=parseOptions(process.argv.slice(2));}catch(e){console.error(e.message);process.exit(2);}
   run(o).then(code=>{process.exitCode=code;}).catch(()=>{console.error("FAIL candidate preparation (redacted)");process.exitCode=1;});}
 function isSameIds(actual,expected){return actual.length===new Set(actual).size&&actual.length===expected.length&&actual.slice().sort().every((id,i)=>id===expected.slice().sort()[i]);}
-module.exports={parseOptions,persistedComparison,finalResults,isSameIds};
+function screenshotPath(report,width){
+  assert.ok([390,768,1280].includes(width));
+  assert.equal(path.extname(report),".json");
+  return path.join(path.dirname(report),path.basename(report,".json")+"-"+width+".png");
+}
+module.exports={parseOptions,persistedComparison,finalResults,isSameIds,screenshotPath};

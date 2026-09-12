@@ -221,7 +221,7 @@
     "active_slice": {
       "request_id": "UDL-20260912-066",
       "owner_thread_id": "01a07b56-616e-7733-9aae-90575659688e",
-      "state": "PAGES_DEPLOYED_CANARY_RESERVED",
+      "state": "PUBLISHED_ACCEPTANCE_PARTIAL_HARNESS_FILENAME_FAILURE",
       "worktree": ".codex-worktrees/skill-catalog-20260912",
       "branch": "codex/skill-catalog-20260912",
       "parent_sha": "9515f9bed9536dc2c44b71817129abb9c86ef24f",
@@ -281,7 +281,7 @@
       "review_delivery_checks": 2,
       "review_packet": "docs/ASTRA_SKILL_CATALOG_REVIEW_20260913.md",
       "live_canary_attempts": 1,
-      "live_canary_state": "HARNESS16_OF16_PASS_ATTEMPT_RESERVED",
+      "live_canary_state": "FAIL_PRESERVED_57_CHECKS_PLUS_3_AUDITS_PASS",
       "send_attempt_reserved_before_api": true,
       "sent_at_utc": "2026-09-12T16:07:23Z",
       "review_evidence_sha": "2747ec3468f0fe8c0e69963909423f241ac25a94",
@@ -310,9 +310,10 @@
       "pages_status": "SUCCESS",
       "published_sha": "2fcfea9bb2a3d1ad7e22a5e8e3b61983f0404152",
       "public_preflight": {
-        "at_utc": "2026-09-12T16:41:00Z",
         "ok": true,
-        "scope": "fresh candidate read-only no profile"
+        "scope": "fresh candidate read-only beforecanary",
+        "at_utc": null,
+        "time_precision": "PrecisecommandtimeNOT_RECORDED; oldguessed16:41timestampremoved. Mustnotinferitfollowedthe16:39canarycompletion."
       },
       "live_canary_profiles_reserved": 1,
       "live_canary_matches_reserved": 0,
@@ -320,7 +321,24 @@
       "live_canary_report": "docs/SKILL_CATALOG_LIVE_20260913.json",
       "live_canary_harness": "scripts/live-standard-skill-catalog-canary.cjs",
       "live_canary_tests": "16/16 PASS;skip0;563.256ms",
-      "live_canary_note": "Reservedbeforeexecution;fresh4assetbytescheckedagaininsidebeforeprofile. No retryonfailure."
+      "live_canary_note": "Reservedbeforeexecution;fresh4assetbytescheckedagaininsidebeforeprofile. No retryonfailure.",
+      "live_canary_harness_sha": "32906ff",
+      "live_canary_harness_sha256": "7E69619E0CB4B70545611BDF7730C891851FB5312440CB7E65BAF527E4EF3818",
+      "live_canary_raw_sha256": "35AC0BF85A3DE5F0C8888945521AC87364BBD7CF6BAC2C1AD4FB404A4F92C66F",
+      "live_canary_profiles_created": 1,
+      "live_canary_matches_created": 0,
+      "live_canary_completed_at_utc": "2026-09-12T16:39:09.075Z",
+      "live_canary_diagnosis": "Screenshotpathname regexoverescaped; retained.json. LocalemptyChromereproduced unsupportedmimeapplication/json. All21details/key/Escape,2unownedlab,390geometrypassed; 768/1280/reload/visualNOT_RUN. Finalstate/revision,permittedreads4,console0PASS. No automaticretry/newprofile.",
+      "acceptance_followup": {
+        "state": "SEND_RESERVED",
+        "send_attempts": 1,
+        "reserved_before_api": true,
+        "reserved_at_utc": "2026-09-12T16:45:03Z",
+        "scope": "Ask0profile0matchread-onlyvisualsupplement;notproductrereview",
+        "report": "docs/SKILL_CATALOG_RELEASE_20260913.md",
+        "delivery_checks": 0,
+        "new_wait_budget": false
+      }
     },
     "automation_id": "automation",
     "automation_status_at_recording": "ACTIVE",

@@ -1,0 +1,241 @@
+{
+  "subject": "UDL-066-catalog-v1",
+  "review": "CHATGPT-REVIEW-20260913-029",
+  "candidate": "2fcfea9bb2a3d1ad7e22a5e8e3b61983f0404152",
+  "profileAttempts": 1,
+  "profilesCreated": 1,
+  "matchesCreated": 0,
+  "economyActions": 0,
+  "deletions": 0,
+  "physicalDevices": "NOT_RUN",
+  "faultInjection": "NONE",
+  "writeProtection": "DENY_UNEXPECTED_BROWSER_REQUESTS",
+  "initialAcceptance062": "CLOSED_NO_ADDITIONAL062_PROFILE",
+  "assetHashes": [
+    {
+      "file": "index.html",
+      "sha256": "22f7ee7ccd8f10e9186d8599071f733eff89126ec9d3d6bae3148cd79f76b63f"
+    },
+    {
+      "file": "app.js",
+      "sha256": "4f62ab00fdd58dc7d813f2ca300a290e08729e3bc62e87f7f3b3429cfdbf0dab"
+    },
+    {
+      "file": "standard-skill-registry.generated.js",
+      "sha256": "ad6a8d35e2182549d04208ac34e5be3db730ff6797bbf756cd0f435aa3ae8bc6"
+    },
+    {
+      "file": "skill-catalog.css",
+      "sha256": "5e27352633c54d05f0ed4a2ac7e03ab3aef5794710d2d104c55036e257f8b4f4"
+    }
+  ],
+  "geometry": [
+    {
+      "width": 390,
+      "overflow": false,
+      "columns": 2,
+      "cards": [
+        {
+          "width": 156,
+          "height": 82,
+          "overflow": false
+        },
+        {
+          "width": 156,
+          "height": 82,
+          "overflow": false
+        },
+        {
+          "width": 156,
+          "height": 82,
+          "overflow": false
+        },
+        {
+          "width": 156,
+          "height": 82,
+          "overflow": false
+        },
+        {
+          "width": 156,
+          "height": 82,
+          "overflow": false
+        },
+        {
+          "width": 156,
+          "height": 82,
+          "overflow": false
+        },
+        {
+          "width": 156,
+          "height": 82,
+          "overflow": false
+        },
+        {
+          "width": 156,
+          "height": 82,
+          "overflow": false
+        },
+        {
+          "width": 156,
+          "height": 82,
+          "overflow": false
+        },
+        {
+          "width": 156,
+          "height": 82,
+          "overflow": false
+        },
+        {
+          "width": 156,
+          "height": 82,
+          "overflow": false
+        },
+        {
+          "width": 156,
+          "height": 82,
+          "overflow": false
+        },
+        {
+          "width": 156,
+          "height": 82,
+          "overflow": false
+        },
+        {
+          "width": 156,
+          "height": 82,
+          "overflow": false
+        },
+        {
+          "width": 156,
+          "height": 82,
+          "overflow": false
+        },
+        {
+          "width": 156,
+          "height": 82,
+          "overflow": false
+        },
+        {
+          "width": 156,
+          "height": 82,
+          "overflow": false
+        },
+        {
+          "width": 156,
+          "height": 82,
+          "overflow": false
+        },
+        {
+          "width": 156,
+          "height": 82,
+          "overflow": false
+        },
+        {
+          "width": 156,
+          "height": 82,
+          "overflow": false
+        },
+        {
+          "width": 156,
+          "height": 82,
+          "overflow": false
+        }
+      ]
+    }
+  ],
+  "checks": [
+    "index.html: HTTP200",
+    "index.html: exact candidate bytes",
+    "app.js: HTTP200",
+    "app.js: exact candidate bytes",
+    "standard-skill-registry.generated.js: HTTP200",
+    "standard-skill-registry.generated.js: exact candidate bytes",
+    "skill-catalog.css: HTTP200",
+    "skill-catalog.css: exact candidate bytes",
+    "fresh isolated session",
+    "one initial profile revision",
+    "authoritative 21 exact unique entries",
+    "four groups and normal19 experimental2",
+    "colorRandomBorrow: readable correct detail and timing",
+    "colorRandomBorrow: Escape restores opener",
+    "colorChoiceBorrow: readable correct detail and timing",
+    "colorChoiceBorrow: Escape restores opener",
+    "colorPrism: readable correct detail and timing",
+    "colorPrism: Escape restores opener",
+    "colorBonusRefill: readable correct detail and timing",
+    "colorBonusRefill: unowned experiment readable, not normal gacha",
+    "colorBonusRefill: Escape restores opener",
+    "colorRegionSplit: readable correct detail and timing",
+    "colorRegionSplit: Escape restores opener",
+    "colorPaletteChange: readable correct detail and timing",
+    "colorPaletteChange: Escape restores opener",
+    "areaMicroBloom: readable correct detail and timing",
+    "areaMicroBloom: Escape restores opener",
+    "areaDiePlus: readable correct detail and timing",
+    "areaDiePlus: Escape restores opener",
+    "areaResize: readable correct detail and timing",
+    "areaResize: Escape restores opener",
+    "areaCornerBloom: readable correct detail and timing",
+    "areaCornerBloom: Escape restores opener",
+    "areaHalfShift: readable correct detail and timing",
+    "areaHalfShift: Escape restores opener",
+    "areaTripleShift: readable correct detail and timing",
+    "areaTripleShift: Escape restores opener",
+    "disruptRandomOne: readable correct detail and timing",
+    "disruptRandomOne: Escape restores opener",
+    "disruptChoiceOne: readable correct detail and timing",
+    "disruptChoiceOne: Escape restores opener",
+    "disruptRandomTwo: readable correct detail and timing",
+    "disruptRandomTwo: Escape restores opener",
+    "disruptPaletteRandom: readable correct detail and timing",
+    "disruptPaletteRandom: Escape restores opener",
+    "disruptChoiceTwo: readable correct detail and timing",
+    "disruptChoiceTwo: Escape restores opener",
+    "disruptPaletteChoice: readable correct detail and timing",
+    "disruptPaletteChoice: Escape restores opener",
+    "disruptChoiceThree: readable correct detail and timing",
+    "disruptChoiceThree: Escape restores opener",
+    "disruptForcedPalette: readable correct detail and timing",
+    "disruptForcedPalette: Escape restores opener",
+    "legalRecolor: readable correct detail and timing",
+    "legalRecolor: unowned experiment readable, not normal gacha",
+    "legalRecolor: Escape restores opener",
+    "390: catalog readable targets and columns"
+  ],
+  "screenshots": [],
+  "failureStage": "public catalog",
+  "errorKind": "Error",
+  "comparison": {
+    "validSnapshots": true,
+    "sameRevision": true,
+    "sameProfileState": true,
+    "responseName": {
+      "beforePresent": true,
+      "afterPresent": false,
+      "same": false
+    },
+    "responseNameDisposition": "INFORMATIONAL_UNRESOLVED_REG-20260912-PROFILE-RESPONSE-CONTRACT-01"
+  },
+  "finalChecks": [
+    {
+      "label": "persisted profileState and revision unchanged",
+      "passed": true
+    },
+    {
+      "label": "only permitted browser reads",
+      "passed": true
+    },
+    {
+      "label": "console and page errors zero",
+      "passed": true
+    }
+  ],
+  "requestCount": 4,
+  "consoleCounts": {
+    "errors": 0,
+    "warnings": 0
+  },
+  "finalReadScope": "ONE_OWNED_PROFILE_READ_AFTER_BROWSER_CLOSED",
+  "ok": false,
+  "completedAt": "2026-09-12T16:39:09.075Z"
+}

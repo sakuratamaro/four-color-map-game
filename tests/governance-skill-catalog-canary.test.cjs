@@ -2,9 +2,17 @@
 const test=require("node:test"),assert=require("node:assert/strict"),fs=require("node:fs"),path=require("node:path");
 const {spawnSync}=require("node:child_process");
 const file=path.join(__dirname,"../scripts/live-standard-skill-catalog-canary.cjs");
-const {parseOptions,isSameIds,finalResults}=require(file);
+const {parseOptions,isSameIds,finalResults,screenshotPath}=require(file);
 const sha="2fcfea9bb2a3d1ad7e22a5e8e3b61983f0404152";
 const report=path.join(__dirname,"../docs/CATALOG_NOT_EXECUTED_UNIT_TEST.json");
+test("catalog screenshot filename cannot retain JSON extension or overwrite raw evidence",()=>{
+  for(const width of [390,768,1280]){
+    const image=screenshotPath(report,width);
+    assert.equal(path.dirname(image),path.dirname(report));assert.equal(path.extname(image),".png");
+    assert.notEqual(image,report);assert.equal(path.basename(image),"CATALOG_NOT_EXECUTED_UNIT_TEST-"+width+".png");
+  }
+  assert.throws(()=>screenshotPath(report,0));assert.throws(()=>screenshotPath(report+".other",390));
+});
 test("catalog029 requires fixed reviewed SHA, opt-in and a new scoped output",()=>{
   const base=["--confirm-live","--candidate="+sha,"--report="+report];
   assert.equal(parseOptions(base).candidate,sha);
