@@ -41,7 +41,7 @@
     }
   ],
   "coordination": {
-    "status": "NORMAL_OWNER_REVISING067_B1_066_CLOSED",
+    "status": "067_B1_FIXED_REVIEW_PENDING_066_PUBLIC_VERIFIED",
     "latest_v8_intake": {
       "state": "PAIRED_SOURCE_AND_ZIP_VERIFIED_ALIASES_MAPPED",
       "source_thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
@@ -379,10 +379,10 @@
     },
     "automation_id": "automation",
     "automation_status_at_recording": "ACTIVE",
-    "automation_readback_updated_at": 1789234011536,
+    "automation_readback_updated_at": 1789235336219,
     "automation_prompt_readback_equal": true,
     "automation_pause_reason": null,
-    "automation_active_reason": "Independent067fixedreviewfinitefirstslot; no old066budgetreset.",
+    "automation_active_reason": "Original067second40minslot for exact231B1revision; 1/3consumed and originalexpiry unchanged;066closed.",
     "completed_review_waits": [
       {
         "root_request_message_id": "8464f659-ad62-4c09-83d9-44e1cc91316b",
@@ -874,12 +874,17 @@
       ],
       "new_scope": "UDL-067-surrender-v1",
       "prior_budgets_reopened": false,
-      "last_result": "Genuine031HOLD067B1 and032ACCEPT066. Original067budget1/3 and originaldeadline preserved for exactrevision; not newwait.",
+      "last_result": "Read2confirmed full4829normalizedcharacters andactualmessageID; active/user-only/noresponse. Two delivery checks exhausted, no third or resend.",
       "response_message_id": "fa226fa2-ad5e-437c-a447-3a6c84fcd2c1",
-      "received_at_utc": "2026-09-12T17:37:19Z"
+      "received_at_utc": "2026-09-12T17:37:19Z",
+      "followup_subject_sha": "23133ef52efb81c39d0623479b0ea7819f850f7d",
+      "followup_request_message_id": "28d25760-2a7a-4fe0-9c48-bb7ca4888b9a",
+      "followup_status": "review_pending",
+      "followup_delivery_readback_checks": 2,
+      "followup_preserves_original_budget": true
     },
     "pending_review_subject": {
-      "subject_sha": "8fe4c206547851550de7b4b59c0eb82241ba3060",
+      "subject_sha": "23133ef52efb81c39d0623479b0ea7819f850f7d",
       "base_sha": "2fcfea9bb2a3d1ad7e22a5e8e3b61983f0404152",
       "canon_version": "shared-canon-v1.1",
       "feature_spec_version": "UDL-067-surrender-v1",
@@ -897,11 +902,11 @@
       "boundary": "Governance evidence maintenance did not amend or block independently approved product f8713d7."
     },
     "initial_interval_minutes": 20,
-    "pending_subject_sha": "8fe4c206547851550de7b4b59c0eb82241ba3060",
+    "pending_subject_sha": "23133ef52efb81c39d0623479b0ea7819f850f7d",
     "pending_scope": "Pages_only",
     "pending_delivery_status": "delivery_verified_response_pending",
-    "last_confirmed_sent_message_id": "f5646b27-8424-405f-95a7-a21c87b09274",
-    "last_sent_message_id": "f5646b27-8424-405f-95a7-a21c87b09274",
+    "last_confirmed_sent_message_id": "28d25760-2a7a-4fe0-9c48-bb7ca4888b9a",
+    "last_sent_message_id": "28d25760-2a7a-4fe0-9c48-bb7ca4888b9a",
     "self_sent_message_ids": [
       "ef6f161d-f2b9-40c0-ab06-f6eacf4c4d38",
       "cefaccf8-2648-4d63-b7fe-5a4a78023ec2",
@@ -931,10 +936,11 @@
       "d4a6aa86-a289-4876-b4e1-4d6ef8d579c9",
       "1b0193a0-02b0-4500-807f-0e5f2e6ae52f",
       "30ed4b53-5ad3-45e1-920d-4cf4919dd24b",
-      "f5646b27-8424-405f-95a7-a21c87b09274"
+      "f5646b27-8424-405f-95a7-a21c87b09274",
+      "28d25760-2a7a-4fe0-9c48-bb7ca4888b9a"
     ],
-    "sent_at_utc": "2026-09-12T17:20:55Z",
-    "last_check_utc": "2026-09-12T17:23:59Z",
+    "sent_at_utc": "2026-09-12T17:45:13Z",
+    "last_check_utc": "2026-09-12T17:47:38Z",
     "unchanged_checks": 0,
     "reminder_count": 0,
     "max_reminders_per_request": 1,
@@ -2200,7 +2206,7 @@
         "tests/standard-online-browser.test.cjs"
       ],
       "worktree": ".codex-worktrees/surrender-confirmation-20260913",
-      "state": "B1_REVISION_REVIEW_RESERVED",
+      "state": "B1_FIXED_REVIEW_DELIVERED_WAITING_EXACT_REVIEW_AND_CI",
       "turn_id": "01a09667-c507-7201-9297-91ebbd3857c2"
     },
     "next_goal": {
@@ -2377,7 +2383,7 @@
         "UDL-20260912-067"
       ],
       "owner_thread_id": "01a07b56-616e-7733-9aae-90575659688e",
-      "state": "B1_REVISED_LOCAL_VERIFIED_REVIEW_READY",
+      "state": "B1_REVISED_LOCAL_VERIFIED_REVIEW_PENDING",
       "worktree": ".codex-worktrees/surrender-confirmation-20260913",
       "branch": "codex/surrender-confirmation-20260913",
       "base_sha": "2fcfea9bb2a3d1ad7e22a5e8e3b61983f0404152",
@@ -2387,9 +2393,9 @@
       "db_change_set": [],
       "edge_change_set": [],
       "publication": "NOT_RUN",
-      "review_status": "REVISION_SEND_RESERVED",
+      "review_status": "PENDING",
       "review_send_attempts": 1,
-      "next_action": "Sendexact231revisionandonefilefulldiffonce; original067budget1/3 and19:15:08deadlineunchanged. Genuineexactreview/finalnewWindowsrequired.",
+      "next_action": "Receive exact231reviewonlyatremaining17:55:08/18:55:08slots, immutable19:15:08deadline; finalsameSHA Windows34708897042bothSUCCESSandgenuineapprovalbeforemain/Pages.",
       "tests": "clean231141files937/937PASS62729.8167ms; B1resizeChrome1/1PASS13624.0885ms,Edge1/1PASS15014.8737ms; existing067Chrome6/Edge14andfocusboth1fromunchangedproduct8fe.",
       "request_id": "UDL-20260912-067",
       "candidate_sha": "23133ef52efb81c39d0623479b0ea7819f850f7d",
@@ -2415,13 +2421,13 @@
       "review_first_delivery_result": "Read1 showed previous completed030pair while destinationactive; deliverynotyetverified. No resend.",
       "review_second_delivery_read_reserved_before_api": true,
       "review_second_delivery_read_reserved_at_utc": "2026-09-12T17:22:22Z",
-      "review_request_message_id": null,
-      "review_delivery_full_body_verified": false,
-      "review_delivery_matching_chars": 20000,
-      "review_delivery_total_chars": 61079,
+      "review_request_message_id": "28d25760-2a7a-4fe0-9c48-bb7ca4888b9a",
+      "review_delivery_full_body_verified": true,
+      "review_delivery_matching_chars": 4829,
+      "review_delivery_total_chars": 4830,
       "review_delivery_result": "Read2 verified actual067message ID and exactfirst20000of61079chars; active/user-only, no genuine response. Two delivery checks exhausted; no third read or resend.",
       "review_delivery_confirmed_at_utc": "2026-09-12T17:23:59Z",
-      "review_evidence_sha": "4d13012",
+      "review_evidence_sha": "2bb324606f58c3fe18e0fdaf98d6d687cde5c02c",
       "windows_jobs": [],
       "review_response_message_id": null,
       "local_revision": {
@@ -2461,7 +2467,22 @@
       "revision_review_send_attempts": 1,
       "revision_review_reserved_at_utc": "2026-09-12T17:43:04Z",
       "revision_review_reserved_before_api": true,
-      "revision_delivery_readback_checks": 0
+      "revision_delivery_readback_checks": 2,
+      "revision_sent_recorded_at_utc": "2026-09-12T17:45:13Z",
+      "revision_sent_time_precision": "Recorded immediately after send API completion; originalwaitstart unchanged.",
+      "revision_review_status": "DELIVERED_REVIEW_PENDING",
+      "revision_evidence_sha": "2bb324606f58c3fe18e0fdaf98d6d687cde5c02c",
+      "revision_body_characters": 4830,
+      "revision_first_delivery_read_reserved_before_api": true,
+      "revision_availability_checks": 1,
+      "revision_availability": "Ready231materialrevisionpre-send: genuine031pair idle; no user interruption.",
+      "revision_first_delivery_result": "Oldcompleted031pair whiledestinationactive; noresend.",
+      "revision_second_delivery_read_reserved_before_api": true,
+      "revision_second_delivery_read_reserved_at_utc": "2026-09-12T17:46:22Z",
+      "review_delivery_normalization": "Onlyonefinalnewlineomitted; all4829othercharacters exact.",
+      "revision_request_message_id": "28d25760-2a7a-4fe0-9c48-bb7ca4888b9a",
+      "revision_delivery_result": "Read2confirmed full4829normalizedcharacters andactualmessageID; active/user-only/noresponse. Two delivery checks exhausted, no third or resend.",
+      "revision_delivery_confirmed_at_utc": "2026-09-12T17:47:38Z"
     },
     "remaining_brain_work": {
       "source": {
@@ -2745,9 +2766,9 @@
       "tests": "tests/governance-commander-continuation.test.cjs",
       "next_run": {
         "phase": "RECEIVE",
-        "at_utc": "2026-09-12T17:35:08.000Z",
-        "subject_sha": "8fe4c206547851550de7b4b59c0eb82241ba3060",
-        "reason": "Independent067first20minslot; closed0662/3 and065/9515budgets not reset."
+        "at_utc": "2026-09-12T17:55:08.000Z",
+        "subject_sha": "23133ef52efb81c39d0623479b0ea7819f850f7d",
+        "reason": "Original067second40minslot; consumed20min1/3, no revisionreset."
       },
       "first_scheduled_normal_run": {
         "status": "OBSERVED",
@@ -2765,25 +2786,25 @@
         "id": "automation",
         "status": "ACTIVE",
         "target_thread_id": "01a07b56-616e-7733-9aae-90575659688e",
-        "rrule": "FREQ=DAILY;BYHOUR=2;BYMINUTE=35;BYSECOND=8",
-        "updated_at": 1789234011536,
+        "rrule": "FREQ=DAILY;BYHOUR=2;BYMINUTE=55;BYSECOND=8",
+        "updated_at": 1789235336219,
         "created_at": 1789048677730,
         "prompt_exact_equal": true,
-        "scheduled_for_utc": "2026-09-12T17:35:08.000Z",
+        "scheduled_for_utc": "2026-09-12T17:55:08.000Z",
         "readback_verified": true
       },
       "normal_work_claim": {
-        "state": "LOCAL_IMPLEMENTATION_DONE_REVIEW_PENDING_NOT_HANDOFF",
+        "state": "NORMAL_WORK_COMPLETED_AT_REVIEW_CHECKPOINT",
         "turn_id": "01a09667-c507-7201-9297-91ebbd3857c2",
-        "action": "067_FIXED_REVIEW_DELIVERED_AND_066_EXISTING_EVIDENCE_DISPOSITION_REQUESTED",
-        "subject_sha": "2fcfea9bb2a3d1ad7e22a5e8e3b61983f0404152"
+        "action": "066_PUBLISHED_ACCEPTED_067_IMPLEMENTED_AND_B1_FIXED_REVIEW_DELIVERED",
+        "subject_sha": "23133ef52efb81c39d0623479b0ea7819f850f7d"
       },
       "review_scope": "New user-authorized local continuation repair, not covered by old APPROVE_DOCS; fixed docs candidate will be separately reported.",
       "verification": {
         "regression_tests": "42/42 PASS; skip0;638.46ms",
         "old_paused_state_guard": "Previously reproduced ORPHANED_ACTIONABLE_WORK; now also rejects past/under2minute calendar reservations and schedule-time mismatch.",
         "actual_scheduler_execution": "OBSERVED_SEPARATE_NORMAL_RUN_WITH_LIVE_WORK_RESULT",
-        "latest_tests": "49/49PASS941.2963ms; skip0; endguardWAIT_REVIEWexact2fcerrors[]."
+        "latest_tests": "35/35PASS454.2085ms; skip0; exactreviewbindings and --end-turn WAIT_REVIEW231 errors[]."
       },
       "current_run": {
         "phase": "NORMAL_WORK",
@@ -2842,17 +2863,17 @@
         "recovered_without_new_user_wait": true
       },
       "end_turn_guard": {
-        "at_utc": "2026-09-12T16:14:32Z",
+        "at_utc": "2026-09-12T17:50:05Z",
         "exit_code": 0,
         "phase": "WAIT_REVIEW",
         "reason": "ONE_BOUNDED_READ_ONLY_NO_RESEND",
         "errors": [],
-        "subject_sha": "2fcfea9bb2a3d1ad7e22a5e8e3b61983f0404152",
-        "next_run_at_utc": "2026-09-12T16:27:23.000Z",
+        "subject_sha": "23133ef52efb81c39d0623479b0ea7819f850f7d",
+        "next_run_at_utc": "2026-09-12T17:55:08.000Z",
         "actual_automation_status": "ACTIVE",
-        "actual_setting_updated_at": 1789229577598,
+        "actual_setting_updated_at": 1789235336219,
         "prompt_exact_equal": true,
-        "note": "Substantive027/028publicacceptance,066CIfixanddeliveredreview,067puremodeltests; fullgoalactive. No third065/062trial orclosedbudgetreset."
+        "note": "Fullv13goalactive;066actual032PUBLIC_VERIFIED,067implemented937PASS andB1single-test231revisiondelivered. Original067budget1/3expiryunchanged; no userapprovalwait, newcontroller, oldtrialorbudgetreset."
       },
       "latest_receive_schedule_observation": {
         "scheduled_at_utc": "2026-09-12T07:45:12Z",

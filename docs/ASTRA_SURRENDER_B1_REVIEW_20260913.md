@@ -1,5 +1,7 @@
 # UDL067 B1: resize test synchronization repair
 
+送達記録: 一度だけ送信した4830文字は実依頼28d25760-2a7a-4fe0-9c48-bb7ca4888b9aへ到達。二度目の有限読戻しで末尾改行一つを除く4829文字が全文一致。最新取得はactive/user-onlyで新判定未観測。送達確認2回は消費、第三回/再送なし。原067の1/3消費と19:15:08Z期限を維持し、次17:55:08Z枠へ同じ既存heartbeatを設定する。
+
 CANON_RECEIPT version=shared-canon-v1.1 base=2fcfea9bb2a3d1ad7e22a5e8e3b61983f0404152 request=UDL-20260912-067 specs=docs/SURRENDER_CONFIRMATION_20260913.md tests=tests/standard-online-browser.test.cjs
 
 SUBJECT_SHA: 23133ef52efb81c39d0623479b0ea7819f850f7d
