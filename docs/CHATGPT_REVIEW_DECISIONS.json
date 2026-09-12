@@ -1861,7 +1861,19 @@
         "retry_report": "docs/UI_PLAYER_COPY_RETRY_LIVE_20260912.json",
         "retry_status": "FAILED_NO_FURTHER_PROFILE_ATTEMPT",
         "retry_passed_checks": 54,
-        "diagnosis_followup": "Exacta1 SQL returns only revision/profile_state; actual existing Edge response expression reads missing existing.display_name. Offline3/3 reproduces omitted envelope name with unchanged stored state. Matches the saved live boolean pattern, but discarded live name value/presence is not reconstructed."
+        "diagnosis_followup": "Exacta1 SQL returns only revision/profile_state; actual existing Edge response expression reads missing existing.display_name. Offline3/3 reproduces omitted envelope name with unchanged stored state. Matches the saved live boolean pattern, but discarded live name value/presence is not reconstructed.",
+        "saved_edge_source_corroboration": {
+          "at_utc": "2026-09-12 09:26:53 UTC",
+          "source_archive": "C:\\Users\\user\\Downloads\\standard-game-action (7).zip",
+          "entry": "index.ts",
+          "sha256": "a80c7fb6773764da291e82fc82086dac497148317e77d6f78ebb8ec7b2833be1",
+          "matches_current_clean_candidate": true,
+          "matches_recorded_deployed_source": true,
+          "recorded_release_evidence": "docs/STANDARD_RELEASE_EVIDENCE.md:465",
+          "fresh_control_plane_read": false,
+          "fresh_database_schema_read": false,
+          "note": "Historical deployed-source readback, not a present deployment or fresh actual DB return shape. It cannot prove the discarded live name value or independently accept062."
+        }
       },
       "live_acceptance_followup": {
         "state": "FAILED_ONE_AUTHORIZED_RETRY_CONSUMED",
@@ -2096,9 +2108,9 @@
         "readback_verified": true
       },
       "normal_work_claim": {
-        "state": "REPORT_COMPLETE_EXTERNAL_DISPOSITION_REQUIRED",
-        "turn_id": "01a094d3-9834-78c0-9dcc-602cf88fdc41",
-        "action": "REPORT_BOUNDED_RETRY_AND_SOURCE_CONTRACT_DIAGNOSIS",
+        "state": "EXTERNAL_DISPOSITION_REQUIRED",
+        "turn_id": "01a094ed-dbb0-7f12-9554-01894edb0c52",
+        "action": "SAVED_EDGE_SOURCE_BYTES_REVALIDATED_NO_LIVE_RETRY",
         "subject_sha": "a1a9b1c830eceb98464b107f2442deacaf765505"
       },
       "review_scope": "New user-authorized local continuation repair, not covered by old APPROVE_DOCS; fixed docs candidate will be separately reported.",
@@ -2110,11 +2122,11 @@
       },
       "current_run": {
         "phase": "NORMAL_WORK",
-        "origin": "explicit_user_resume",
-        "turn_id": "01a094d3-9834-78c0-9dcc-602cf88fdc41",
-        "started_at_utc": "2026-09-12T08:54:50Z",
+        "origin": "automatic_goal_continuation",
+        "turn_id": "01a094ed-dbb0-7f12-9554-01894edb0c52",
+        "started_at_utc": "2026-09-12T09:23:31.000Z",
         "actual_scheduled_run": false,
-        "state": "COMPLETED_ONE_RETRY_AND_OFFLINE_DIAGNOSIS_REPORT_DELIVERED"
+        "state": "BOUNDED_SAVED_EDGE_SOURCE_REVALIDATION"
       },
       "missed_schedule_observation": {
         "scheduled_at_utc": "2026-09-12T06:25:12Z",
@@ -2187,22 +2199,24 @@
         "condition_id": "UDL062_RETRY_SERVER_ENVELOPE_DISPOSITION",
         "condition": "One permitted retry failed only envelope name comparison; source contract diagnosed. No further profile authorized.",
         "consecutive_goal_turn_ids": [
-          "01a094d3-9834-78c0-9dcc-602cf88fdc41"
+          "01a094d3-9834-78c0-9dcc-602cf88fdc41",
+          "01a094ed-dbb0-7f12-9554-01894edb0c52"
         ],
         "threshold": 3,
-        "current_turn_classification": "progress_actual_live_retry_and_offline_diagnosis",
+        "current_turn_classification": "no_progress_toward_acceptance_after_bounded_saved_source_revalidation",
         "previous_condition_resolved_by": "CHATGPT-REVIEW-20260912-022",
         "actual_goal_status": "active",
         "no_further_profile_attempt": true,
-        "note": "Fresh boundary after actual retry and useful diagnosis. No goal-blocked mutation at this first boundary; do not inherit the old condition's3turns. Genuine Astra report is delivered/active at final bounded read but no automatic read budget."
+        "note": "This is the second consecutive resumed condition boundary, including the prior user-triggered turn. Historical source hash corroborates the diagnosis but does not change the next action. No current live handle polled, no verified wait claimed, no old budget reset, no new profile or early blocked mutation.",
+        "previous_turn_classification": "progress_actual_live_retry_and_offline_diagnosis"
       },
       "previous_run": {
         "phase": "NORMAL_WORK",
-        "origin": "automatic_goal_continuation",
-        "turn_id": "01a094cb-ace8-7e41-a594-8b124fca8f26",
-        "started_at_utc": "2026-09-12T08:46:11.000Z",
+        "origin": "explicit_user_resume",
+        "turn_id": "01a094d3-9834-78c0-9dcc-602cf88fdc41",
+        "started_at_utc": "2026-09-12T08:54:50Z",
         "actual_scheduled_run": false,
-        "state": "BLOCKED_AFTER_THIRD_BOUNDARY_AUDIT"
+        "state": "COMPLETED_ONE_RETRY_AND_OFFLINE_DIAGNOSIS_REPORT_DELIVERED"
       },
       "goal_blocked_audit_history": [
         {
