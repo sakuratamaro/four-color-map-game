@@ -3094,9 +3094,9 @@ function renderQuiz() {
   $("quizProgress").textContent = `${Math.min(index + 1, 10)} / 10`;
   $("quizLevelBadge").textContent = `Lv.${pendingQuiz.selectedLevel}`;
   const focusedQuizOptionIndex = [...$("quizOptions").querySelectorAll("button")].indexOf(document.activeElement);
-  stopQuizOptionPhysics({ clear: true });
-  $("quizOptions").replaceChildren();
   if (index >= 10) {
+    stopQuizOptionPhysics({ clear: true });
+    $("quizOptions").replaceChildren();
     stopQuizClock();
     syncQuizOptionMotion();
     $("quizQuestion").textContent = "10問回答済みです。サーバーで採点します。";
@@ -3114,6 +3114,20 @@ function renderQuiz() {
     questionState.lastTickAt = Date.now();
     savePendingQuiz();
   }
+  // An unchanged room snapshot must not replace the current quiz controls.
+  // Include every option/lock/retry input; answer ACKs and changed locks still rebuild.
+  const optionRenderKey = JSON.stringify([pendingQuiz.sessionId, index, question,
+    quizBusy, lockedByMatch, pendingQuiz.pendingAnswer, questionState?.hintActiveUntil, questionState?.hintUsed]);
+  if (quizOptionPhysics?.renderKey === optionRenderKey
+      && quizOptionPhysics.items.length === (question.options || []).length
+      && quizOptionPhysics.items.every(item => item.element.parentElement === $("quizOptions"))) {
+    if (pendingQuiz.pendingAnswer || lockedByMatch) stopQuizClock();
+    else startQuizClock();
+    syncQuizOptionMotion(questionState);
+    return;
+  }
+  stopQuizOptionPhysics({ clear: true });
+  $("quizOptions").replaceChildren();
   renderQuizExperience(question);
   renderQuizQuestion(question);
   renderQuizHint(question, questionState);
@@ -3138,6 +3152,7 @@ function renderQuiz() {
   } else if (lockedByMatch) stopQuizClock();
   else startQuizClock();
   initializeQuizOptionPhysics(optionButtons, { reserveRetry: Boolean(pendingQuiz.pendingAnswer) });
+  if (quizOptionPhysics) quizOptionPhysics.renderKey = optionRenderKey;
   const restoredQuizOption = $("quizOptions").querySelectorAll("button")[focusedQuizOptionIndex];
   if (focusedQuizOptionIndex >= 0 && restoredQuizOption && !restoredQuizOption.disabled) restoredQuizOption.focus({ preventScroll: true });
   syncQuizOptionMotion(questionState);

@@ -1,5 +1,5 @@
 # Voluntary surrender confirmation and CPU dialogue
-Version: UDL-067-surrender-v1
+Version: UDL-067-surrender-v1.1
 
 CANON_RECEIPT version=shared-canon-v1.1 base=2fcfea9bb2a3d1ad7e22a5e8e3b61983f0404152 public_base=9515f9bed9536dc2c44b71817129abb9c86ef24f request=UDL-20260912-067 specs=docs/SHARED_CANON.md@codex/dev-brain-current-20260910,docs/SURRENDER_CONFIRMATION_20260913.md tests=tests/standard-surrender-confirmation.test.cjs,tests/standard-online-browser.test.cjs worktree=.codex-worktrees/surrender-confirmation-20260913
 
@@ -20,4 +20,12 @@ Pure tests: complete ten known IDs, stable copy, human/unknown fallback, source-
 
 This worktree was prepared on the then-unpublished catalogue candidate. Parent2fc is now main/Pages34705612667; catalogue live acceptance remains partial because of a separately recorded harness screenshot filename failure. It is not a confirmed product regression or a new067publicationhold. Keep 065/flat UI/066 boundaries and failures intact; reconcile exact fresh main before fixing/reviewing a release SHA. Pages_only, DB[] and Edge[]. Exact Astra and Windows gates and bounded public acceptance are still required; implementation alone is not approval.
 
-Cache contract: app20260913-41, surrender-confirmation.js/css20260913-1. Existing layout/classes are reused; a dialog-only cyan focus-visible outline keeps the safe initial choice legible on the dark background. All generated registry/local/Edge bundles unchanged. The pure guard includes room/view version equality as required by the current client snapshot contract. Fault tests distinguish network failure beforecommit from lostACK after one committed surrender with temporarily stale snapshot; both must reuse the exact action envelope once, not allocate a new surrender.
+Cache contract: app20260913-42, surrender-confirmation.js/css20260913-1. Existing layout/classes are reused; a dialog-only cyan focus-visible outline keeps the safe initial choice legible on the dark background. All generated registry/local/Edge bundles unchanged. The pure guard includes room/view version equality as required by the current client snapshot contract. Fault tests distinguish network failure beforecommit from lostACK after one committed surrender with temporarily stale snapshot; both must reuse the exact action envelope once, not allocate a new surrender.
+
+## Regression found by the Windows gate
+
+REG-UDL048-ROOM-SYNC: existing private-room synchronization recreated unchanged quiz options during Level 5 memo use. Windows34708897042 Edge failed the original node-identity assertion; a deterministic local invalidation reproduced the path refreshRoom → render → renderQuiz → replaceChildren on unchanged231. This is a real existing UI regression, not an assertion to remove.
+
+For the same session, answer index, question/options and lock/retry/hint state, retain the existing option nodes, positions and motion listeners across room refresh. Do not suppress room synchronization, quiz time, lock updates, ACK advancement, retry or handoff. Changed render inputs rebuild through the existing path. Regression coverage forces two real mock-room invalidations while memo is active and checks node/position preservation and zero answers; existing memo timeout, failed-answer/ACK, handoff and motion tests remain required.
+
+This narrowly scoped regression repair changes app code and this specification. Review033 for231 is not reused for the revised SHA/specification. A new exact review and complete Windows gates are required; the former CI failures stay failed. Separately, genuine032 has since accepted066 from its preserved combined evidence; no new066 trial is requested.

@@ -4,7 +4,7 @@ const {dialogueFor,makeIntent,isCurrentIntent}=require("../standard-online-v5/su
 test("UDL067 native safe-first dialog and its scoped focus style load before app41",()=>{
   const fs=require("node:fs"),path=require("node:path"),root=path.join(__dirname,"../standard-online-v5");
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8"),css=fs.readFileSync(path.join(root,"surrender-confirmation.css"),"utf8");
-  assert.ok(html.indexOf('surrender-confirmation.js?v=20260913-1')<html.indexOf('app.js?v=20260913-41'));
+  assert.ok(html.indexOf('surrender-confirmation.js?v=20260913-1')<html.indexOf('app.js?v=20260913-42'));
   assert.ok(html.includes('surrender-confirmation.css?v=20260913-1'));
   const dialog=html.slice(html.indexOf('<dialog id="surrenderDialog"'),html.indexOf('<dialog id="abandonRoomDialog"'));
   assert.match(dialog,/aria-labelledby="surrenderTitle" aria-describedby="surrenderSpeaker surrenderDescription"/);

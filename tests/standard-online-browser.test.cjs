@@ -425,6 +425,49 @@ test("UDL-048 memo ink, calculator, focus and same-question reload work without 
   }, { viewport: { width: 390, height: 844 }, deviceScaleFactor: 3, bodyTimeout: 45_000 });
 });
 
+test("REG-UDL048-ROOM-SYNC same-question room refresh preserves memo option nodes and positions", { timeout: 120000 }, async () => {
+  await withPage("quizPhysics", async (page) => {
+    await startMemoQuiz(page);
+    await page.locator("#quizMemoOn").click();
+    await page.waitForFunction(() => document.querySelector("#quizMemoOverlay").classList.contains("is-active"));
+    await page.evaluate(() => {
+      globalThis.__memoSyncNodes = [...document.querySelectorAll("#quizOptions button[data-quiz-option]")];
+      globalThis.__memoSyncPositions = globalThis.__memoSyncNodes.map(node => node.style.transform);
+      globalThis.__memoSyncRebuilds = [];
+      const replaceChildren = Element.prototype.replaceChildren;
+      Element.prototype.replaceChildren = function (...children) {
+        if (this.id === "quizOptions") globalThis.__memoSyncRebuilds.push(new Error().stack);
+        return replaceChildren.apply(this, children);
+      };
+    });
+    for (let refresh = 0; refresh < 2; refresh += 1) {
+      const before = await page.evaluate(() => {
+        const r = globalThis.__standardOnlineRuntime;
+        const count = r.calls.filter(c => c.name === "fcg_standard_room_snapshot_v2").length;
+        r.onInvalidate();
+        return count;
+      });
+      await page.waitForFunction(count => globalThis.__standardOnlineRuntime.calls
+        .filter(c => c.name === "fcg_standard_room_snapshot_v2").length > count, before);
+      await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+      const evidence = await page.evaluate(() => ({
+        sameNodes: globalThis.__memoSyncNodes.every((node, i) => node === document.querySelectorAll("#quizOptions button[data-quiz-option]")[i]),
+        samePositions: globalThis.__memoSyncNodes.every((node, i) => node.style.transform === globalThis.__memoSyncPositions[i]),
+        rebuilds: globalThis.__memoSyncRebuilds,
+        active: document.querySelector("#quizMemoOverlay").classList.contains("is-active"),
+        answers: globalThis.__standardOnlineRuntime.calls.filter(c => c.body?.operation === "quiz-answer").length,
+      }));
+      assert.equal(evidence.sameNodes, true, JSON.stringify(evidence));
+      assert.equal(evidence.samePositions, true);
+      assert.equal(evidence.active, true);
+      assert.equal(evidence.answers, 0);
+    }
+    await page.locator("#quizMemoOff").click();
+    assert.equal(await page.evaluate(() => globalThis.__memoSyncNodes.every((node, i) =>
+      node === document.querySelectorAll("#quizOptions button[data-quiz-option]")[i])), true);
+  }, { viewport: { width: 390, height: 844 } });
+});
+
 test("UDL-048 portrait bottom navigation never offsets the memo question offscreen", { timeout: 120000 }, async () => {
   await withPage("quizPhysics", async (page) => {
     await startMemoQuiz(page);
