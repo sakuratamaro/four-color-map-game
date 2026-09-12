@@ -20,5 +20,6 @@ test("UDL062 keeps optional diagnostics, critical notices and existing retry ent
     assert.equal((html.match(new RegExp('id="'+id+'"','g'))||[]).length,1,id);
   for(const key of ["setupActionId","rematchActionId","COSMETIC_PENDING_KEY","GACHA_PENDING_KEY","pendingAnswer","client.ensureSession()"])
     assert.ok(app.includes(key),key);
-  assert.match(html,/隣接色の数や塗れる色の答えは表示しません/);
+  assert.match(html,/同じ色が辺で接しないように塗りましょう。直前の操作は「直前の一手」で確認できます。/);
+  assert.doesNotMatch(html,/隣接色の数や塗れる色の答えは表示しません/);
 });

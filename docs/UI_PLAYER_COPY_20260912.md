@@ -1,6 +1,8 @@
 # Player-facing recovery and connection copy
 
-Version: UDL-062-copy-v1
+Version: UDL-062-copy-v1.1
+
+B1 receipt: CANON_RECEIPT version=shared-canon-v1.1 base=a757c126e1325532bb11a719cf92d0d13401d3ae request=UDL-20260912-062 specs=docs/UI_PLAYER_COPY_20260912.md tests=tests/standard-player-copy-static.test.cjs,tests/standard-online-contact-feedback.test.cjs,tests/standard-online-browser.test.cjs worktree=.codex-worktrees/ui-player-copy-20260912. Genuine Astra019 response f2aebe0a-d1a8-4966-85d6-9a09625f453b requires only the misleading pre-commit contact-count explanation and its static assertion to change. The selecting player's existing2/3/4-colour feedback remains; a legal-colour oracle remains absent. Replace that explanation with the ordinary edge-adjacency rule and the existing last-action entrypoint. No app code, contact behavior, action processing, CSS, asset generation, DB or Edge changes in this correction. App cache37 stays correct because app.js is unchanged. The prior candidate6f8 was not approved; this revision needs its own exact review.
 
 Revision receipt: CANON_RECEIPT version=shared-canon-v1.1 base=a757c126e1325532bb11a719cf92d0d13401d3ae public_floor=b81a1d52e8230d41ec9e69610d89bafc86d1d84e request=UDL-20260912-062 specs=docs/UI_PLAYER_COPY_20260912.md tests=tests/standard-player-copy-static.test.cjs,tests/standard-online-browser.test.cjs. Normal merge retains the061 B1 definite-rejection recovery. Cache-only conflicts35/36 are unified to37; no rejected061 behavior is restored. Earlier receipt below remains historical.
 
