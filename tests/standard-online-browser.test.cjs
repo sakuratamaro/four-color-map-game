@@ -3046,7 +3046,11 @@ test("actual browser exposes the alpha.3 category window, refill loan, and accep
     const area = page.getByRole("button", { name: "拡大縮小 ×1" });
     const disrupt = page.getByRole("button", { name: "色封じ ×1" });
     await refill.waitFor();
-    assert.equal(await page.locator("#cardInventory").getByText("おまけ色補充", { exact: true }).count(), 0);
+    // UDL066 supersedes the old hidden-library expectation, not the loan/inventory rules.
+    assert.equal(await page.locator('#cardInventory [data-catalog-group="lab"] [data-catalog-skill="colorBonusRefill"].is-unowned').count(), 1);
+    assert.equal(await page.locator('#cardInventory [data-catalog-group="lab"] [data-catalog-skill="colorBonusRefill"] .inventory-count').textContent(), "×0");
+    assert.equal(await page.locator('#cardInventory section:not([data-catalog-group="lab"]) button[data-catalog-skill]').count(), 19);
+    assert.equal(await page.locator('#cardSaleSkill option[value="colorBonusRefill"]').count(), 0);
     assert.equal(await refill.isDisabled(), true);
     assert.equal(await refill.getAttribute("title"), "この手番では同じ種類のスキルはもう使えません");
     assert.equal(await recolor.isDisabled(), true);
@@ -3595,12 +3599,15 @@ test("actual browser uses an alpha.4 micro-cell keyboard cursor for immediate co
   }, { viewport: { width: 390, height: 844 } });
 });
 
-test("actual browser exposes one keyboard-safe recolor lab loan without touching the 19-card library", { timeout: 130000 }, async () => {
+test("actual browser exposes one keyboard-safe recolor lab loan while catalog study leaves the 19-card inventory unchanged", { timeout: 130000 }, async () => {
   await withPage("labPlaying", async (page) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.getByText("対戦中・LAB（無報酬）").waitFor();
     await page.getByText("LAB貸与カード（この対戦で1回）").waitFor();
-    assert.equal(await page.locator("#cardInventory").getByText("塗り直し・乱", { exact: true }).count(), 0);
+    assert.equal(await page.locator('#cardInventory [data-catalog-group="lab"] [data-catalog-skill="legalRecolor"].is-unowned').count(), 1);
+    assert.equal(await page.locator('#cardInventory [data-catalog-skill="legalRecolor"] .inventory-count').textContent(), "×0");
+    assert.equal(await page.locator('#cardInventory section:not([data-catalog-group="lab"]) button[data-catalog-skill]').count(), 19);
+    assert.equal(await page.locator('#cardSaleSkill option[value="legalRecolor"]').count(), 0);
 
     const skillButton = page.getByRole("button", { name: "塗り直し・乱 ×1" });
     await skillButton.focus();
