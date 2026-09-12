@@ -31,7 +31,8 @@ function consoleRecord(message){
 function expectedBlockedConsole(event,blocked,backend){
   const origin=new URL(backend).origin;
   if(event.type!=="error"||blocked.length===0)return false;
-  if(event.source.startsWith(origin+"/")&&event.firstLine==="Failed to load resource: net::ERR_BLOCKED_BY_CLIENT")return true;
+  const blockedResource=blocked.some(request=>event.source===origin+request.pathname);
+  if(blockedResource&&["Failed to load resource: net::ERR_BLOCKED_BY_CLIENT","Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector"].includes(event.firstLine))return true;
   const authBlocked=blocked.some(x=>x.pathname==="/auth/v1/signup");
   if(!authBlocked)return false;
   if(event.firstLine==="AuthRetryableFetchError: Failed to fetch"&&event.source.startsWith(PUBLIC))return true;

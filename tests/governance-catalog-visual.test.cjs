@@ -21,6 +21,9 @@ test("intentional blocked authentication is separate from unrelated console and 
  const backend="https://fixture.supabase.co",blocked=[{pathname:"/auth/v1/signup"}];
  const resource={type:"error",firstLine:"Failed to load resource: net::ERR_BLOCKED_BY_CLIENT",source:backend+"/auth/v1/signup"};
  assert.equal(expectedBlockedConsole(resource,blocked,backend),true);
+ assert.equal(expectedBlockedConsole({...resource,firstLine:resource.firstLine+".Inspector"},blocked,backend),true);
+ assert.equal(expectedBlockedConsole({...resource,firstLine:resource.firstLine+".UNEXPECTED"},blocked,backend),false);
+ assert.equal(expectedBlockedConsole({...resource,source:backend+"/another-path"},blocked,backend),false);
  assert.equal(expectedBlockedConsole(resource,[],backend),false);
  assert.equal(expectedBlockedConsole({...resource,source:"https://cdn.example/missing.js"},blocked,backend),false);
  const app={type:"error",firstLine:"AuthRetryableFetchError: Failed to fetch",source:"https://sakuratamaro.github.io/four-color-map-game/standard-online-v5/app.js"};

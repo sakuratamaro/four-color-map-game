@@ -330,7 +330,7 @@
       "live_canary_completed_at_utc": "2026-09-12T16:39:09.075Z",
       "live_canary_diagnosis": "Screenshotpathname regexoverescaped; retained.json. LocalemptyChromereproduced unsupportedmimeapplication/json. All21details/key/Escape,2unownedlab,390geometrypassed; 768/1280/reload/visualNOT_RUN. Finalstate/revision,permittedreads4,console0PASS. No automaticretry/newprofile.",
       "acceptance_followup": {
-        "state": "030_VISUAL_ATTEMPT_RESERVED_BEFORE_RUN",
+        "state": "030_PROBE_COMPLETE_CONSOLE_SUFFIX_DISPOSITION_PENDING",
         "send_attempts": 1,
         "reserved_before_api": true,
         "reserved_at_utc": "2026-09-12T16:45:03Z",
@@ -362,7 +362,12 @@
           "matches": 0,
           "max_seconds": 90,
           "attempts": 1
-        }
+        },
+        "visual_raw_ok": false,
+        "visual_checks_passed": 19,
+        "visual_final_audits": "backend0/pageerrors0PASS;console classifierFAILonly2ERR_BLOCKED_BY_CLIENT.Inspectorevents,2AuthRetryableexpected",
+        "visual_image_review": "ACTUALLY_VIEWED390_768_1280; nativefixednavvisibleinoverlaidpanelPNG; notpretendedauthenticated",
+        "visual_offline_classification": "AfterexactChromesuffixandmatchedblockedpathallowance,4/4expectedblocked/nootherconsole;originalJSONunchanged;nogenuinedispositionyet."
       }
     },
     "automation_id": "automation",
@@ -2327,8 +2332,8 @@
       "db_change_set": [],
       "edge_change_set": [],
       "publication": "NOT_RUN",
-      "review_status": "NOT_SENT",
-      "review_send_attempts": 0,
+      "review_status": "SEND_RESERVED",
+      "review_send_attempts": 1,
       "next_action": "Integrate nativeconfirmation intoappbothsurrenderhandlers, removeCOLORhelperbutton; preservependingretry, stale/terminal/tabguard; Chrome/Edge/Windows/exactreview.",
       "tests": "clean141files937/937PASS63716.5739ms;Chrome6/6;Edge14/14;finalfocusChrome1/1andEdge1/1;skip0",
       "request_id": "UDL-20260912-067",
@@ -2341,7 +2346,12 @@
       "evidence": "docs/SURRENDER_LOCAL_20260913.md",
       "review_packet": "docs/ASTRA_SURRENDER_REVIEW_20260913.md",
       "live_canary_state": "PLAN_NOT_IMPLEMENTED_NOT_RUN",
-      "live_canary_attempts": 0
+      "live_canary_attempts": 0,
+      "windows_last_observed_at_utc": "2026-09-12T17:11:14Z",
+      "review_send_reserved_before_api": true,
+      "review_reserved_at_utc": "2026-09-12T17:15:08Z",
+      "availability_checks": 1,
+      "availability": "Actualcompleted030pair/idleobservedduringindependent067pre-sendavailability; source8adbfdb6."
     },
     "remaining_brain_work": {
       "source": {

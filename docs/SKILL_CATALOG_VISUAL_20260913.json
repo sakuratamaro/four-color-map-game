@@ -1,0 +1,456 @@
+{
+  "subject": "UDL-066-catalog-v1",
+  "candidate": "2fcfea9bb2a3d1ad7e22a5e8e3b61983f0404152",
+  "review": "CHATGPT-REVIEW-20260913-030",
+  "profileAttempts": 0,
+  "accountsCreated": 0,
+  "profilesCreated": 0,
+  "matchesCreated": 0,
+  "economyActions": 0,
+  "deletions": 0,
+  "backend": "ALL_BLOCKED_BEFORE_NAVIGATION",
+  "authenticatedReload": "NOT_RUN",
+  "persistedProfileComparison": "NOT_APPLICABLE_USE_ORIGINAL_AUTHENTICATED_AUDIT",
+  "physicalDevices": "NOT_RUN",
+  "visualInspection": "PENDING_EXTERNAL_IMAGE_REVIEW",
+  "assetHashes": [
+    {
+      "file": "index.html",
+      "sha256": "22f7ee7ccd8f10e9186d8599071f733eff89126ec9d3d6bae3148cd79f76b63f"
+    },
+    {
+      "file": "app.js",
+      "sha256": "4f62ab00fdd58dc7d813f2ca300a290e08729e3bc62e87f7f3b3429cfdbf0dab"
+    },
+    {
+      "file": "standard-skill-registry.generated.js",
+      "sha256": "ad6a8d35e2182549d04208ac34e5be3db730ff6797bbf756cd0f435aa3ae8bc6"
+    },
+    {
+      "file": "skill-catalog.css",
+      "sha256": "5e27352633c54d05f0ed4a2ac7e03ab3aef5794710d2d104c55036e257f8b4f4"
+    }
+  ],
+  "geometry": [
+    {
+      "width": 390,
+      "overflow": false,
+      "columns": 2,
+      "cards": [
+        {
+          "width": 156,
+          "height": 82,
+          "overflow": false
+        },
+        {
+          "width": 156,
+          "height": 82,
+          "overflow": false
+        },
+        {
+          "width": 156,
+          "height": 82,
+          "overflow": false
+        },
+        {
+          "width": 156,
+          "height": 82,
+          "overflow": false
+        },
+        {
+          "width": 156,
+          "height": 82,
+          "overflow": false
+        },
+        {
+          "width": 156,
+          "height": 82,
+          "overflow": false
+        },
+        {
+          "width": 156,
+          "height": 82,
+          "overflow": false
+        },
+        {
+          "width": 156,
+          "height": 82,
+          "overflow": false
+        },
+        {
+          "width": 156,
+          "height": 82,
+          "overflow": false
+        },
+        {
+          "width": 156,
+          "height": 82,
+          "overflow": false
+        },
+        {
+          "width": 156,
+          "height": 82,
+          "overflow": false
+        },
+        {
+          "width": 156,
+          "height": 82,
+          "overflow": false
+        },
+        {
+          "width": 156,
+          "height": 82,
+          "overflow": false
+        },
+        {
+          "width": 156,
+          "height": 82,
+          "overflow": false
+        },
+        {
+          "width": 156,
+          "height": 82,
+          "overflow": false
+        },
+        {
+          "width": 156,
+          "height": 82,
+          "overflow": false
+        },
+        {
+          "width": 156,
+          "height": 82,
+          "overflow": false
+        },
+        {
+          "width": 156,
+          "height": 82,
+          "overflow": false
+        },
+        {
+          "width": 156,
+          "height": 82,
+          "overflow": false
+        },
+        {
+          "width": 156,
+          "height": 82,
+          "overflow": false
+        },
+        {
+          "width": 156,
+          "height": 82,
+          "overflow": false
+        }
+      ]
+    },
+    {
+      "width": 768,
+      "overflow": false,
+      "columns": 3,
+      "cards": [
+        {
+          "width": 227.328125,
+          "height": 82,
+          "overflow": false
+        },
+        {
+          "width": 227.328125,
+          "height": 82,
+          "overflow": false
+        },
+        {
+          "width": 227.328125,
+          "height": 82,
+          "overflow": false
+        },
+        {
+          "width": 227.328125,
+          "height": 82,
+          "overflow": false
+        },
+        {
+          "width": 227.328125,
+          "height": 82,
+          "overflow": false
+        },
+        {
+          "width": 227.328125,
+          "height": 82,
+          "overflow": false
+        },
+        {
+          "width": 227.328125,
+          "height": 82,
+          "overflow": false
+        },
+        {
+          "width": 227.328125,
+          "height": 82,
+          "overflow": false
+        },
+        {
+          "width": 227.328125,
+          "height": 82,
+          "overflow": false
+        },
+        {
+          "width": 227.328125,
+          "height": 82,
+          "overflow": false
+        },
+        {
+          "width": 227.328125,
+          "height": 82,
+          "overflow": false
+        },
+        {
+          "width": 227.328125,
+          "height": 82,
+          "overflow": false
+        },
+        {
+          "width": 227.328125,
+          "height": 82,
+          "overflow": false
+        },
+        {
+          "width": 227.328125,
+          "height": 82,
+          "overflow": false
+        },
+        {
+          "width": 227.328125,
+          "height": 82,
+          "overflow": false
+        },
+        {
+          "width": 227.328125,
+          "height": 82,
+          "overflow": false
+        },
+        {
+          "width": 227.328125,
+          "height": 82,
+          "overflow": false
+        },
+        {
+          "width": 227.328125,
+          "height": 82,
+          "overflow": false
+        },
+        {
+          "width": 227.328125,
+          "height": 82,
+          "overflow": false
+        },
+        {
+          "width": 227.328125,
+          "height": 82,
+          "overflow": false
+        },
+        {
+          "width": 227.328125,
+          "height": 82,
+          "overflow": false
+        }
+      ]
+    },
+    {
+      "width": 1280,
+      "overflow": false,
+      "columns": 4,
+      "cards": [
+        {
+          "width": 271.5,
+          "height": 82,
+          "overflow": false
+        },
+        {
+          "width": 271.5,
+          "height": 82,
+          "overflow": false
+        },
+        {
+          "width": 271.5,
+          "height": 82,
+          "overflow": false
+        },
+        {
+          "width": 271.5,
+          "height": 82,
+          "overflow": false
+        },
+        {
+          "width": 271.5,
+          "height": 82,
+          "overflow": false
+        },
+        {
+          "width": 271.5,
+          "height": 82,
+          "overflow": false
+        },
+        {
+          "width": 271.5,
+          "height": 82,
+          "overflow": false
+        },
+        {
+          "width": 271.5,
+          "height": 82,
+          "overflow": false
+        },
+        {
+          "width": 271.5,
+          "height": 82,
+          "overflow": false
+        },
+        {
+          "width": 271.5,
+          "height": 82,
+          "overflow": false
+        },
+        {
+          "width": 271.5,
+          "height": 82,
+          "overflow": false
+        },
+        {
+          "width": 271.5,
+          "height": 82,
+          "overflow": false
+        },
+        {
+          "width": 271.5,
+          "height": 82,
+          "overflow": false
+        },
+        {
+          "width": 271.5,
+          "height": 82,
+          "overflow": false
+        },
+        {
+          "width": 271.5,
+          "height": 82,
+          "overflow": false
+        },
+        {
+          "width": 271.5,
+          "height": 82,
+          "overflow": false
+        },
+        {
+          "width": 271.5,
+          "height": 82,
+          "overflow": false
+        },
+        {
+          "width": 271.5,
+          "height": 82,
+          "overflow": false
+        },
+        {
+          "width": 271.5,
+          "height": 82,
+          "overflow": false
+        },
+        {
+          "width": 271.5,
+          "height": 82,
+          "overflow": false
+        },
+        {
+          "width": 271.5,
+          "height": 82,
+          "overflow": false
+        }
+      ]
+    }
+  ],
+  "screenshots": [
+    "SKILL_CATALOG_VISUAL_20260913-390.png",
+    "SKILL_CATALOG_VISUAL_20260913-768.png",
+    "SKILL_CATALOG_VISUAL_20260913-1280.png"
+  ],
+  "checks": [
+    "index.html: HTTP200",
+    "index.html: strict candidate bytes",
+    "app.js: HTTP200",
+    "app.js: strict candidate bytes",
+    "standard-skill-registry.generated.js: HTTP200",
+    "standard-skill-registry.generated.js: strict candidate bytes",
+    "skill-catalog.css: HTTP200",
+    "skill-catalog.css: strict candidate bytes",
+    "exact21 profile-free",
+    "390: readable 44px targets columns no overflow",
+    "390: PNG really saved",
+    "768: readable 44px targets columns no overflow",
+    "768: PNG really saved",
+    "1280: readable 44px targets columns no overflow",
+    "1280: PNG really saved",
+    "reload exact21",
+    "reload unowned detail correct WORK timing",
+    "reload Escape restores opener",
+    "no saved profile or auth introduced"
+  ],
+  "backendSendAttemptsBlocked": [
+    {
+      "method": "POST",
+      "pathname": "/auth/v1/signup",
+      "operation": null
+    },
+    {
+      "method": "POST",
+      "pathname": "/auth/v1/signup",
+      "operation": null
+    }
+  ],
+  "blockedCount": 2,
+  "backendResponses": 0,
+  "backendSentCount": 0,
+  "pageErrors": 0,
+  "console": [
+    {
+      "type": "error",
+      "firstLine": "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+      "source": "https://qkcuhludisairpgzhryl.supabase.co/auth/v1/signup",
+      "supabaseStack": false,
+      "expectedBlockedConnection": false
+    },
+    {
+      "type": "error",
+      "firstLine": "AuthRetryableFetchError: Failed to fetch",
+      "source": "https://sakuratamaro.github.io/four-color-map-game/standard-online-v5/app.js",
+      "supabaseStack": true,
+      "expectedBlockedConnection": true
+    },
+    {
+      "type": "error",
+      "firstLine": "Failed to load resource: net::ERR_BLOCKED_BY_CLIENT.Inspector",
+      "source": "https://qkcuhludisairpgzhryl.supabase.co/auth/v1/signup",
+      "supabaseStack": false,
+      "expectedBlockedConnection": false
+    },
+    {
+      "type": "error",
+      "firstLine": "AuthRetryableFetchError: Failed to fetch",
+      "source": "https://sakuratamaro.github.io/four-color-map-game/standard-online-v5/app.js",
+      "supabaseStack": true,
+      "expectedBlockedConnection": true
+    }
+  ],
+  "finalChecks": [
+    {
+      "label": "no backend response or exception",
+      "passed": true
+    },
+    {
+      "label": "no unexpected console errors or warnings",
+      "passed": false
+    }
+  ],
+  "ok": false,
+  "completedAt": "2026-09-12T17:10:57.719Z"
+}
