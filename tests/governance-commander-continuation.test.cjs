@@ -137,6 +137,19 @@ test("approved unpublished CI in progress remains normal work, never an idle sto
   assert.equal(planContinuation(log,{now:"2026-09-12T00:06:00Z"}).action,"RELEASE_CHECKS");
   assert.equal(log.coordination.wait_budget.status,"review_received_closed");
 });
+test("conditional approval preserves exact decision and cannot bypass failed or unfinished CI",()=>{
+  for (const [status, action] of [["IN_PROGRESS","CHECK_CI"],["FAILURE","INVESTIGATE_CI"],["SUCCESS","RELEASE_CHECKS"]]) {
+    const log=waitingCiFixture();
+    log.decisions[0].decision="APPROVE_WITH_CONDITIONS";
+    log.coordination.active_slice.windows_status=status;
+    const before=JSON.stringify(log);
+    assert.equal(planContinuation(log,{now:"2026-09-12T00:01:00Z"}).action,action);
+    assert.equal(JSON.stringify(log),before);
+    log.decisions[0].subject_sha="d".repeat(40);
+    assert.equal(planContinuation(log,{now:"2026-09-12T00:01:00Z"}).phase,"STOP");
+  }
+});
+
 test("CI check slots and deadline do not reset across restart or missing a slot",()=>{
   const log=waitingCiFixture(),s=log.coordination.active_slice;
   s.ci_followup=planContinuation(log,{now:"2026-09-12T00:01:00Z"}).ci_budget;

@@ -102,7 +102,7 @@ function planContinuation(log, {now = new Date().toISOString(), otherOwnerActive
         review_id:f.source_review_id, reason:"EXPLICIT_REVIEW_DISPOSITION_WITH_ORIGINAL_FAILURE_PRESERVED"};
     if (s.review_id && !r) issues.push(ref + ":EXACT_REVIEW_BINDING_REQUIRED");
     // A review is a gate, not a release command: fresh main/CI/Pages/live checks remain mandatory.
-    if (r && ["APPROVE_RELEASE","APPROVE"].includes(r.decision) &&
+    if (r && ["APPROVE_RELEASE","APPROVE","APPROVE_WITH_CONDITIONS"].includes(r.decision) &&
         ["NOT_RUN","NOT_MERGED","not_merged"].includes(s.publication) &&
         s.push_status === "PUSHED_EXACT_BRANCH") {
       if(s.windows_status === "SUCCESS")
