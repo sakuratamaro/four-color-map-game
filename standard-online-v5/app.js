@@ -3490,8 +3490,8 @@ async function runCpuTurn() {
 }
 
 function render() {
-  if (!client.snapshot().roomId) observeSkillCutin(null, null);
   renderProfileCardVisibility();
+  if (!client.snapshot().roomId) observeSkillCutin(null, null);
   renderMatchedRoomHandoff();
   renderWaitingOpponentNotice();
   ensureMatchmakingAvailabilityWatch();
