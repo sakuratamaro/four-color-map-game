@@ -1539,7 +1539,7 @@
       "preparation": "docs/UI_DIET_PREPARATION_20260912.md",
       "status": "GOAL_API_ACTIVE_NORMAL_WORK",
       "registration_receipt": "get_goal returned null on2026-09-11T20:20Z; explicitly user-requested UI goal re-created without budget; no other active goal existed. Work and completed slices preserved.",
-      "latest_checkpoint": "061 PUBLIC_VERIFIED94/94.062 a1 approved020 and main/Pages34682215186/preflight/2asset bytes verified;52live checks then server-comparison failure preserved. Harness corrected offline, no additional profile; bounded acceptance disposition needed.",
+      "latest_checkpoint": "Bounded completion audit: current main a1 and13 public asset bytes match;6exact review/spec/ancestor groups traced.048/023/052-054-063/060/061 have preserved successful live evidence;062 remains partial at the final3 checks, no additional profile or expired-budget review read.",
       "actual_api_status": "active",
       "actual_api_observation_note": "Fresh get_goal returned active on2026-09-12T08:26:31Z, superseding but preserving old blocked receipt. UI acceptance is still incomplete, not complete.",
       "actual_api_observation_history": [
@@ -1554,7 +1554,25 @@
           "updated_at": 1789201562,
           "note": "Actual get_goal read in the user-resumed turn; existing same UI objective returned active. No status mutation tool was called."
         }
-      ]
+      ],
+      "completion_audit": {
+        "turn_id": "01a094c1-7550-7451-92b4-61fbff9ccd98",
+        "at_utc": "2026-09-12T08:40:37.164Z",
+        "base_sha": "a1a9b1c830eceb98464b107f2442deacaf765505",
+        "report": "docs/UI_GOAL_COMPLETION_AUDIT_20260912.md",
+        "data": "docs/UI_GOAL_COMPLETION_AUDIT_20260912.json",
+        "current_public_assets_exact": 13,
+        "completed_live_groups": 5,
+        "total_groups": 6,
+        "unresolved": [
+          "062 final live server profile comparison",
+          "062 final browser operation allowlist assertion",
+          "062 final console assertion"
+        ],
+        "complete": false,
+        "profile_creations": 0,
+        "review_reads": 0
+      }
     },
     "successor_goal": {
       "title": "CPUの画像・人物設定・実効強度の改善",
@@ -2023,9 +2041,9 @@
         "readback_verified": true
       },
       "normal_work_claim": {
-        "state": "COMPLETED_RELEASE_AND_LOCAL_REPAIR_PENDING_EXTERNAL_DISPOSITION",
-        "turn_id": "01a0949e-ab97-7712-8c4f-67ec29f2f551",
-        "action": "RECORD_PUBLIC_PARTIAL_AND_REPAIR_CI_RACE",
+        "state": "COMPLETED_AUDIT_EXTERNAL_DISPOSITION_STILL_REQUIRED",
+        "turn_id": "01a094c1-7550-7451-92b4-61fbff9ccd98",
+        "action": "AUDIT_UI_COMPLETION_BOUNDARIES",
         "subject_sha": "a1a9b1c830eceb98464b107f2442deacaf765505"
       },
       "review_scope": "New user-authorized local continuation repair, not covered by old APPROVE_DOCS; fixed docs candidate will be separately reported.",
@@ -2037,11 +2055,11 @@
       },
       "current_run": {
         "phase": "NORMAL_WORK",
-        "origin": "explicit_user_resume",
-        "turn_id": "01a0949e-ab97-7712-8c4f-67ec29f2f551",
-        "started_at_utc": "2026-09-12T07:57:01Z",
+        "origin": "automatic_goal_continuation",
+        "turn_id": "01a094c1-7550-7451-92b4-61fbff9ccd98",
+        "started_at_utc": "2026-09-12T08:35:01Z",
         "actual_scheduled_run": false,
-        "state": "COMPLETED_WITH_LIVE_ACCEPTANCE_AND_DOCS_REVIEW_PENDING"
+        "state": "COMPLETED_BOUNDED_COMPLETION_AUDIT"
       },
       "missed_schedule_observation": {
         "scheduled_at_utc": "2026-09-12T06:25:12Z",
@@ -2109,6 +2127,30 @@
         "next_observed_turn_origin": "explicit_user_resume",
         "scheduled_execution_observed": false,
         "cause": "NOT_PROVEN_NO_SCHEDULED_TURN_IN_CURRENT_READBACK"
+      },
+      "goal_blocked_audit": {
+        "condition_id": "UDL062_LIVE_ACCEPTANCE_DISPOSITION",
+        "condition": "UDL062 live acceptance supplement has no recorded genuine Astra disposition; one-profile limit already consumed; old review polling budget is closed.",
+        "consecutive_goal_turn_ids": [
+          "01a0949e-ab97-7712-8c4f-67ec29f2f551",
+          "01a094c1-7550-7451-92b4-61fbff9ccd98"
+        ],
+        "threshold": 3,
+        "previous_turn_classification": "progress_publication_and_repair",
+        "current_turn_classification": "progress_completion_evidence_audit",
+        "verified_wait": false,
+        "live_handle_confirmed": false,
+        "external_review_read_budget_available": false,
+        "next_safe_action": "Genuine disposition or explicit user direction needed; no automatic repeat profile, resend or closed-budget read.",
+        "goal_left_active": true
+      },
+      "previous_run": {
+        "phase": "NORMAL_WORK",
+        "origin": "explicit_user_resume",
+        "turn_id": "01a0949e-ab97-7712-8c4f-67ec29f2f551",
+        "started_at_utc": "2026-09-12T07:57:01Z",
+        "actual_scheduled_run": false,
+        "state": "COMPLETED_WITH_LIVE_ACCEPTANCE_AND_DOCS_REVIEW_PENDING"
       }
     }
   },
