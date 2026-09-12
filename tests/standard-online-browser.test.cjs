@@ -6741,7 +6741,7 @@ test("UDL067 changed public snapshot, tab, offline and failed dialog cannot reus
 });
 
 for(const fault of ["failNextSurrenderRequest","loseNextSurrenderAck"]){
-  test("UDL067 surrender preserves exact retry identity through "+fault,{timeout:120000},async()=>{
+  test("UDL067 surrender preserves exact retry identity through "+fault, { timeout: 120000 }, async () => {
     await withPage("colorResponse",async page=>{
       await page.locator("#colorSurrender:not([disabled])").waitFor();
       await page.evaluate(fault=>{globalThis.__standardOnlineRuntime[fault]=true;},fault);
@@ -6763,7 +6763,7 @@ for(const fault of ["failNextSurrenderRequest","loseNextSurrenderAck"]){
     },{viewport:{width:390,height:900},bodyTimeout:45000});
   });
 }
-test("UDL067 missing optional module fails closed without breaking cards or game startup",{timeout:120000},async()=>{
+test("UDL067 missing optional module fails closed without breaking cards or game startup", { timeout: 120000 }, async () => {
   const errors=[];
   await withPage("colorResponse",async page=>{
     assert.equal(await page.locator("#colorSurrender").isDisabled(),true);
