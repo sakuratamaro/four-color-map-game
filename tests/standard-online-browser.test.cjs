@@ -1430,7 +1430,7 @@ async function cutinReady(page) {
     }).observe(element,{attributes:true,subtree:true});
   });
 }
-test("UDL065 self and opponent cut-ins animate from each source with real pointer transparency at390/1280", {timeout:120000},async()=>{
+test("UDL065 self and opponent cut-ins animate from each source with real pointer transparency at390/1280", { timeout: 120000 }, async () => {
   await withPage("colorResponse",async page=>{
     await cutinReady(page);
     for(const width of [390,1280]){
@@ -1466,7 +1466,7 @@ test("UDL065 self and opponent cut-ins animate from each source with real pointe
     assert.equal(await page.locator("#vibrationEnabled").isChecked(),false);
   },{viewport:{width:390,height:900},bodyTimeout:45000});
 });
-test("UDL065 actual submit ACK names self skill, no-op has no effect, definite rejection never celebrates",{timeout:120000},async()=>{
+test("UDL065 actual submit ACK names self skill, no-op has no effect, definite rejection never celebrates", { timeout: 120000 }, async () => {
   await withPage("colorResponse",async page=>{
     await cutinReady(page);
     const skill=page.locator('#skillControls button[data-skill="colorPrism"]');
@@ -1486,7 +1486,7 @@ test("UDL065 actual submit ACK names self skill, no-op has no effect, definite r
     assert.equal(await page.evaluate(()=>globalThis.__cutinEvents.length),2);
   },{viewport:{width:390,height:844}});
 });
-test("UDL065 reduced motion, other tabs, gaps, terminal and reload preserve no replay",{timeout:120000},async()=>{
+test("UDL065 reduced motion, other tabs, gaps, terminal and reload preserve no replay", { timeout: 120000 }, async () => {
   await withPage("colorResponse",async page=>{
     await cutinReady(page);await page.emulateMedia({reducedMotion:"reduce"});
     await cutinAdvance(page,{change:"seal"});await page.locator("#skillCutin").waitFor({state:"visible"});
