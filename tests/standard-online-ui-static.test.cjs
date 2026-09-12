@@ -81,7 +81,7 @@ test("CPU commentary is public-event-only, bounded, non-blocking, and terminal-p
   assert.match(html, /standard-online-client\.js\?v=20260910-1/);
   assert.match(html, /standard-online-skill-intents\.js\?v=20260911-21/);
   assert.match(html, /cpu-commentary\.js\?v=20260910-1/);
-assert.match(html, /app\.js\?v=20260912-37/);
+assert.match(html, /app\.js\?v=20260912-38/);
   assert.match(app, /cpuCommentary\?\.VERSION !== "standard-cpu-commentary-v3"/);
   assert.ok(html.indexOf("cpu-commentary.js") < html.indexOf('type="module" src="app.js'));
   assert.match(html, /id="cpuCommentaryStage"[^>]+aria-hidden="true"/);

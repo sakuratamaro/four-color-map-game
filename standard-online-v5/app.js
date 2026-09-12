@@ -652,6 +652,7 @@ function activateAppTab(requestedTab, { updateHash = true, scrollTop = true } = 
     && (!client.snapshot().roomId || roomModel);
   if (resumePausedQuiz) resumeQuizClockOnQuizTab();
   activeAppTab = tab;
+  if (tab !== "battle") observeSkillCutin(roomModel?.room?.public_state, roomModel?.view?.private_state);
   if (tab !== "battle") clearCpuCommentaryBubble();
   if (tab !== "battle") resetBoardSelectionAssist();
   localStorage.setItem(APP_TAB_KEY, tab);
@@ -876,6 +877,48 @@ function validPublicTrace(state) {
   return trace;
 }
 
+let skillCutinTimer = null;
+let lastOwnSkillAck = null;
+function clearSkillCutin() {
+  clearTimeout(skillCutinTimer);
+  skillCutinTimer = null;
+  $("skillCutin")?.classList.add("hidden");
+  $("skillCutinAnnouncement").textContent = "";
+  $("boardViewport")?.classList.remove("skill-cutin-board");
+  $("paletteControls")?.classList.remove("skill-cutin-palette");
+}
+function presentSkillCutin(event) {
+  clearSkillCutin();
+  const root = $("skillCutin");
+  root.dataset.actor = event.actor;
+  root.dataset.eventId = event.eventId;
+  $("skillCutinActor").textContent = event.actor === "self" ? "あなたのカード" : `${publicActorLabel(roomModel.view.seat === "A" ? "B" : "A")}のスキル`;
+  $("skillCutinTitle").textContent = event.title;
+  $("skillCutinDetail").textContent = event.detail === event.title ? "" : event.detail;
+  const portrait = { frame: $("skillCutinSource"), art: $("skillCutinPortrait"), fallback: $("skillCutinFallback") };
+  cpuPortraits?.clearCpuPortrait?.(portrait);
+  $("skillCutinFallback").textContent = event.actor === "self" ? "✦" : "相手";
+  if (event.actor === "opponent" && roomModel.room.opponent_kind === "cpu") {
+    cpuPortraits?.showCpuPortrait?.({ ...portrait, characterId: roomModel.room.cpu_character_id });
+  }
+  if (event.destination === "palette") $("paletteControls").classList.add("skill-cutin-palette");
+  if (event.destination === "board") $("boardViewport").classList.add("skill-cutin-board");
+  root.classList.remove("hidden");
+  $("skillCutinAnnouncement").textContent = `${$("skillCutinActor").textContent}、${event.title}${event.detail === event.title ? "" : "、" + event.detail}`;
+  skillCutinTimer = setTimeout(clearSkillCutin, 1000);
+}
+const skillCutin = globalThis.FourColorSkillCutin.createObserver({
+  storage: localStorage, locks: navigator.locks, show: presentSkillCutin, clear: clearSkillCutin,
+});
+function observeSkillCutin(state, privateState) {
+  try {
+    const visible = activeAppTab === "battle" && document.visibilityState === "visible";
+    const blocked = Boolean(document.querySelector("dialog[open]"))
+      || ["terminalOverlay", "contactReveal", "randomReveal"].some(id => !$(id).classList.contains("hidden"));
+    void skillCutin.observe({ state, roomId: roomModel?.room?.id, seat: roomModel?.view?.seat,
+      ownColors: skillIntents.availableColorChoices(privateState), ack: lastOwnSkillAck, visible, blocked });
+  } catch { clearSkillCutin(); } // An optional visual must never interrupt a game action.
+}
 function nextPublicJudgment(state) {
   const actor = publicActorLabel(state.active);
   if (state.phase === "COLOR") return `${actor}が、隣接色と違う持ち色を選ぶ`;
@@ -1308,6 +1351,7 @@ function clearContactReveal({ clearAnnouncement = true } = {}) {
 }
 
 function showContactReveal(contactColorCount, eventId, { minimumStage = 2 } = {}) {
+  skillCutin.interrupt();
   const reveals = {
     2: { title: "二色接触！", detail: "2色に接する灰色エリア", tone: "contact-pressure-2" },
     3: { title: "三色圧力!!", detail: "3色に接する強いエリア", tone: "contact-pressure-3" },
@@ -3446,6 +3490,7 @@ async function runCpuTurn() {
 }
 
 function render() {
+  if (!client.snapshot().roomId) observeSkillCutin(null, null);
   renderProfileCardVisibility();
   renderMatchedRoomHandoff();
   renderWaitingOpponentNotice();
@@ -3609,6 +3654,7 @@ function render() {
     renderPersistentTerminalResult(publicState, privateState);
     renderTerminalResult(publicState);
     observeCpuCommentary(publicState);
+    observeSkillCutin(publicState, privateState);
   } else {
     syncContactSelectionScope(null);
     observeTurnArrival(null);
@@ -5157,7 +5203,12 @@ async function sendAction(type, payload = {}, retry = false) {
   }
   actionBusy = true; operationFeedback("actionStatus", "サーバーで確認中…"); render();
   try {
+    const submitted = pendingAction;
     const response = await client.submitAction(pendingAction);
+    if (type === "USE_SKILL" && response?.room?.version === submitted.expectedVersion + 1) {
+      lastOwnSkillAck = { eventId: `${matchId}:${response.room.version}`, scope: `${roomId}:${matchId}:${roomModel?.view?.seat}`,
+        name: SKILL_META[payload.skill]?.name || null, noOp: response?.result?.noOp === true };
+    }
     pendingAction = null; selectedMacros.clear(); targetDraft = null;
     operationFeedback("actionStatus", response?.result?.noOp === true
       ? "効果は空振りでした。カードは減りませんが、この手番の妨害カード使用枠は使いました。"
@@ -6243,6 +6294,7 @@ $("abandonRoomDialog").addEventListener("close", () => {
   restoreAbandonDialogFocus = true;
 });
 document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState !== "visible") observeSkillCutin(roomModel?.room?.public_state, roomModel?.view?.private_state);
   roomSync.handleVisibilityChange();
   syncQuizOptionMotion();
   if (document.visibilityState === "hidden") {

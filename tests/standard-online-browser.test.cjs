@@ -1244,6 +1244,16 @@ async function installMock(context, mode) {
           runtime.view = { ...runtime.view, version: nextVersion };
           return { data: { duplicate: false, room: runtime.room } };
         }
+        if (request.body.operation === "action" && runtime.cutinActionMode && request.body.action?.type === "USE_SKILL") {
+          if (runtime.cutinActionMode === "reject") return functionError(400, "RULE_REJECTED", "definite skill rejection");
+          const version = runtime.room.version + 1, s = runtime.room.public_state;
+          const noOp = runtime.cutinActionMode === "noop";
+          runtime.room = { ...runtime.room, version, public_state: { ...s, version, turn: version,
+            lastPublicTrace: { eventId: `${s.matchId}:${version}`, version, type: "USE_SKILL", actor: "A" } } };
+          runtime.view = { ...runtime.view, version, private_state: { ...runtime.view.private_state,
+            ...(!noOp ? { privateEffects: { temporaryColors: ["red", "blue", "yellow", "green"] } } : {}) } };
+          return { data: { duplicate: false, result: { noOp }, room: runtime.room } };
+        }
         if (request.body.operation === "action" && initialMode === "alpha3CategoryWindow" && request.body.action?.type === "USE_SKILL") {
           const nextVersion = runtime.room.version + 1;
           runtime.room = { ...runtime.room, version: nextVersion, public_state: {
@@ -1391,6 +1401,112 @@ async function installMock(context, mode) {
     };
   }, { connectionKey, saveKey, roomId, pendingId: pendingRematchId, mode });
 }
+
+async function cutinAdvance(page, { actor="B", change="board", skip=1, finished=false }={}) {
+  await page.evaluate(({actor,change,skip,finished})=>{
+    const r=globalThis.__standardOnlineRuntime,version=r.room.version+skip,s=r.room.public_state;
+    r.room={...r.room,version, status:finished?"finished":"playing",public_state:{...s,version,turn:version,
+      status:finished?"FINISHED":"ACTIVE",phase:finished?"GAME_OVER":s.phase,
+      winner:finished?"A":null,terminalReason:finished?"SURRENDER":null,
+      requiredSize:change==="board"?s.requiredSize+1:s.requiredSize,
+      publicEffects:change==="seal"?{...s.publicEffects,A:{...s.publicEffects?.A,seals:{red:1}}}:s.publicEffects,
+      lastPublicTrace:{eventId:`${s.matchId}:${version}`,version,type:"USE_SKILL",actor}}};
+    r.view={...r.view,version,private_state:{...r.view.private_state,
+      ...(change==="palette"?{basicPalette:["green","yellow"]}:{})}};
+    r.onInvalidate();
+  },{actor,change,skip,finished});
+  await page.waitForFunction(()=>document.querySelector("#versionText").textContent===String(globalThis.__standardOnlineRuntime.room.public_state.turn));
+}
+async function cutinReady(page) {
+  await page.locator("#randomReveal").waitFor({state:"hidden"});
+  await page.evaluate(()=>{
+    globalThis.__cutinEvents=[];
+    const element=document.getElementById("skillCutin");
+    let last=null;
+    new MutationObserver(()=>{
+      if(!element.classList.contains("hidden")&&element.dataset.eventId!==last){
+        last=element.dataset.eventId;globalThis.__cutinEvents.push({event:last,at:performance.now(),actor:element.dataset.actor});
+      }
+    }).observe(element,{attributes:true,subtree:true});
+  });
+}
+test("UDL065 self and opponent cut-ins animate from each source with real pointer transparency at390/1280", {timeout:120000},async()=>{
+  await withPage("colorResponse",async page=>{
+    await cutinReady(page);
+    for(const width of [390,1280]){
+      await page.setViewportSize({width,height:900});
+      await page.locator("#board").focus();
+      const focused=await page.evaluate(()=>document.activeElement?.id);
+      if(width===390) await page.evaluate(()=>{const r=globalThis.__standardOnlineRuntime;r.room={...r.room,opponent_kind:"cpu",cpu_character_id:"yuzu"};});
+      await cutinAdvance(page,{actor:width===390?"B":"A",change:width===390?"palette":"board"});
+      await page.locator("#skillCutin").waitFor({state:"visible"});
+      await page.waitForFunction(()=>document.querySelector(".skill-cutin-card").getAnimations()[0]?.currentTime>=260);
+      const info=await page.locator(".skill-cutin-card").evaluate(el=>{
+        const r=el.getBoundingClientRect(),root=document.getElementById("skillCutin"),hit=document.elementFromPoint(r.x+r.width/2,r.y+r.height/2);
+        return {left:r.left,right:r.right,top:r.top,bottom:r.bottom,animation:getComputedStyle(el).animationName,
+          pointer:getComputedStyle(root).pointerEvents,transparent:!root.contains(hit),focus:document.activeElement?.id};
+      });
+      assert.equal(info.pointer,"none");assert.equal(info.transparent,true);
+      assert.equal(info.focus,focused);assert.ok(info.left>=0&&info.right<=width&&info.top>=0&&info.bottom<=900);
+      assert.equal(info.animation,width===390?"skill-from-opponent":"skill-from-hand");
+      if(width===390) assert.equal(await page.locator("#skillCutinSource").getAttribute("data-portrait-mode"),"normal");
+      assert.equal(await page.locator("#skillCutinTitle").textContent(),"スキルを使用");
+      assert.equal(await page.locator(width===390?"#paletteControls":"#boardViewport").evaluate(el=>el.className.includes("skill-cutin-")),true);
+      if(process.env.STANDARD_CUTIN_ARTIFACT_DIR){fs.mkdirSync(process.env.STANDARD_CUTIN_ARTIFACT_DIR,{recursive:true});
+        await page.screenshot({path:path.join(process.env.STANDARD_CUTIN_ARTIFACT_DIR,`cutin-${browserName}-${width}.png`)});
+      }
+      const start=Date.now();await page.locator("#skillCutin").waitFor({state:"hidden"});
+      assert.ok(Date.now()-start<1800);
+      await page.evaluate(()=>globalThis.__standardOnlineRuntime.onInvalidate());
+      await page.waitForTimeout(120);
+    }
+    assert.equal(await page.evaluate(()=>globalThis.__cutinEvents.length),2);
+    assert.equal(await page.evaluate(()=>globalThis.__standardOnlineRuntime.calls.filter(c=>c.body?.operation==="action").length),0);
+    assert.equal(await page.locator("#soundEffectsEnabled").isChecked(),false);
+    assert.equal(await page.locator("#vibrationEnabled").isChecked(),false);
+  },{viewport:{width:390,height:900},bodyTimeout:45000});
+});
+test("UDL065 actual submit ACK names self skill, no-op has no effect, definite rejection never celebrates",{timeout:120000},async()=>{
+  await withPage("colorResponse",async page=>{
+    await cutinReady(page);
+    const skill=page.locator('#skillControls button[data-skill="colorPrism"]');
+    await page.evaluate(()=>{globalThis.__standardOnlineRuntime.cutinActionMode="success";});
+    await skill.click();await page.locator("#skillCutin").waitFor({state:"visible"});
+    assert.notEqual(await page.locator("#skillCutinTitle").textContent(),"スキルを使用");
+    assert.equal(await page.locator("#skillCutin").getAttribute("data-actor"),"self");
+    await page.locator("#skillCutin").waitFor({state:"hidden"});
+    await page.evaluate(()=>{globalThis.__standardOnlineRuntime.cutinActionMode="noop";});
+    await skill.click();await page.locator("#skillCutin").waitFor({state:"visible"});
+    assert.equal(await page.locator("#skillCutinDetail").textContent(),"空振り");
+    assert.equal(await page.locator(".skill-cutin-palette,.skill-cutin-board").count(),0);
+    await page.locator("#skillCutin").waitFor({state:"hidden"});
+    await page.evaluate(()=>{globalThis.__standardOnlineRuntime.cutinActionMode="reject";});
+    await skill.click();await page.locator('#actionStatus[data-tone="error"]').waitFor();
+    assert.equal(await page.locator("#skillCutin").isHidden(),true);
+    assert.equal(await page.evaluate(()=>globalThis.__cutinEvents.length),2);
+  },{viewport:{width:390,height:844}});
+});
+test("UDL065 reduced motion, other tabs, gaps, terminal and reload preserve no replay",{timeout:120000},async()=>{
+  await withPage("colorResponse",async page=>{
+    await cutinReady(page);await page.emulateMedia({reducedMotion:"reduce"});
+    await cutinAdvance(page,{change:"seal"});await page.locator("#skillCutin").waitFor({state:"visible"});
+    assert.equal(await page.locator(".skill-cutin-card").evaluate(el=>getComputedStyle(el).animationName),"skill-still");
+    assert.match(await page.locator("#skillCutinAnnouncement").textContent(),/相手.*持ち色/);
+    await page.getByRole("button",{name:"マイページ",exact:true}).click();
+    assert.equal(await page.locator("#skillCutin").isHidden(),true);
+    await cutinAdvance(page);
+    await page.getByRole("button",{name:"対戦",exact:true}).click();
+    await page.waitForTimeout(160);assert.equal(await page.locator("#skillCutin").isHidden(),true);
+    await cutinAdvance(page,{skip:3});assert.equal(await page.locator("#skillCutin").isHidden(),true);
+    await cutinAdvance(page,{change:"none"});await page.locator("#skillCutin").waitFor({state:"visible"});
+    await cutinAdvance(page,{finished:true});
+    assert.equal(await page.locator("#skillCutin").isHidden(),true);
+    const before=await page.evaluate(()=>globalThis.__cutinEvents.length);
+    assert.equal(before,2);
+    await page.reload();await page.locator("#connectionBadge.good").waitFor();
+    assert.equal(await page.locator("#skillCutin").isHidden(),true);
+  },{viewport:{width:390,height:844},bodyTimeout:45000});
+});
 
 async function withPage(mode, run, { bodyTimeout = 35_000, viewport = { width: 900, height: 800 }, beforeNavigate = null, deviceScaleFactor = 1 } = {}) {
   assert.ok(chromium, "Playwright is required");

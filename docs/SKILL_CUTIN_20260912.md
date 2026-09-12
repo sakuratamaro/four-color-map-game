@@ -1,0 +1,22 @@
+# Self and opponent skill cut-in
+Version: UDL-065-cutin-v1
+
+CANON_RECEIPT version=shared-canon-v1.1 base=a1a9b1c830eceb98464b107f2442deacaf765505 request=UDL-20260912-065,ADD-20260911-SKILL-FEEDBACK,ADD-20260912-SKILL-CUTIN-PRIORITY specs=docs/SHARED_CANON.md@codex/dev-brain-current-20260910,docs/SKILL_CUTIN_20260912.md tests=tests/standard-skill-cutin.test.cjs,tests/standard-online-browser.test.cjs worktree=.codex-worktrees/skill-cutin-20260912
+
+User sources in the existing Astra conversation: bbb216f0-9194-45cf-acd6-504a9a55d40a and independent repeat bbb2137d-8aaa-4432-ab40-0938b5a4cde2. v13 verified ZIP c0da3f30fe4361eaed33bb5272d918ef5c0b16f7f125d73429c864a4b1dc6290, docs/UI_CATALOG_SKILL_CUTIN_HANDOFF.md and SCREENSHOT_UI_REFINEMENT_HANDOFF.md. These establish the requested feature, not a release approval. Existing008/035/040 feedback remains protected;065 identifies this newly explicit common skill cut-in acceptance, not another parallel owner.
+
+## First independent slice
+
+Show a short layered card/actor cut-in, not a permanent text notice. Self originates from the hand side; opponent originates from the face/name side, using only the existing normal CPU portrait (human/unknown fallback). Never show reward-only full-body art. Show actor plus self skill name only when a matching successful submit ACK establishes it. The opponent's generic USE_SKILL trace stays generic; do not fetch/guess the opponent's hand, palette, bonus role, selected colour, skill or target.
+
+Existing exact public trace matchId/version/eventId/actor/type is the authority. Only consecutive live versions after a baseline observation are eligible; initial render, reload, room/viewer change, missing versions, hidden pages and other application tabs produce no replay. A successful no-op still has a USE_SKILL trace in the current engine: generic text says only 'スキルを使用', never claims an effect. A matching own noOp ACK says '空振り' and animates no destination. Definite rejection without a new trace shows no success. Unknown ACK may produce a neutral confirmed-public-use cut-in, but cannot infer private results.
+
+Effect destination reacts only when consecutive snapshots show an actual change: own available colours or own public seals -> palette; public geometry/required size -> board edge. No legal-colour oracle, highlighted hidden target or predictive effect. No full-state storage: animation receipts contain only bounded scope/event identifiers. Same-origin Web Lock plus durable receipt claim prevents duplicate tabs; missing lock/storage fails closed for this optional animation. Delayed claims are invalidated on navigation/background, newer versions or terminal state.
+
+Presentation is pointer-transparent, never focuses, never blocks an action/quiz, adds no confirmation or game write. A short fade/static composition replaces travel motion under reduced-motion; actor/use text remains accessible. Existing sound/vibration settings and basic-feedback cues are unchanged (no new audio in this visual-first slice). Existing palette cause notice, seals, contact selection effects, six hand slots and both browsers remain intact. Hide the cut-in before terminal/contact priority overlays and on tab change/background.
+
+## Acceptance and release
+
+Pure tests: strict trace, same/different scope, initial/reload/retry, gap/stale, hidden/other tab, own named ACK/no-op/failed action, public-only neutral opponent, observable colour/seal/geometry, duplicate-tab claim/storage failures.
+Actual Chrome/Edge: both directions, sequential DOM timings, pointer hit and focus, 390/1280 layouts, reduced-motion, settings OFF, no replay after poll/reload/return and terminal cleanup. Existing all-start/contact/palette/CPU/quiz regressions retained. Generated bundles must remain byte-identical. Windows exact SHA required.
+Pages_only; DB[] and Edge[]. Exact candidate/spec review by genuine Astra before force-free main and same-SHA Pages. Public byte preflight before a bounded dedicated live canary (one profile, one CPU match, only that match's finite legal actions/surrender; no quiz/gacha/purchase/deletion). Capture real own/opponent skill events if available; if CPU does not produce an observable event within the finite bound, report that missing live case instead of fabricating it or adding profiles. Physical devices NOT_RUN until actually tested.

@@ -13,6 +13,7 @@
   <link rel="stylesheet" href="ui-diet.css?v=20260912-2">
   <link rel="stylesheet" href="play-surface.css?v=20260912-1">
   <link rel="stylesheet" href="result-continuation.css?v=20260912-1">
+  <link rel="stylesheet" href="skill-cutin.css?v=20260912-1">
 </head>
 <body>
   <header>
@@ -531,6 +532,14 @@
   <script src="cpu-portraits.js?v=20260908-1"></script>
   <script src="cpu-commentary.js?v=20260910-1"></script>
   <script src="basic-feedback.js?v=20260908-2"></script>
-  <script type="module" src="app.js?v=20260912-37"></script>
+  <div id="skillCutin" class="skill-cutin hidden" aria-hidden="true">
+    <div class="skill-cutin-card">
+      <span id="skillCutinSource" class="skill-cutin-source cpu-portrait-frame"><span id="skillCutinPortrait" class="cpu-portrait-art" hidden></span><span id="skillCutinFallback" class="cpu-portrait-fallback">✦</span></span>
+      <div class="skill-cutin-copy"><small id="skillCutinActor"></small><strong id="skillCutinTitle"></strong><span id="skillCutinDetail"></span></div>
+    </div>
+  </div>
+  <p id="skillCutinAnnouncement" class="visually-hidden" role="status" aria-live="polite" aria-atomic="true"></p>
+  <script src="skill-cutin.js?v=20260912-1"></script>
+  <script type="module" src="app.js?v=20260912-38"></script>
 </body>
 </html>
