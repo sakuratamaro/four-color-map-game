@@ -50,8 +50,16 @@ test("cosmetic publication never converts the failed live attempt or offline dia
   assert.equal(local.candidate,live.candidateSha);
   const slice=[c.active_slice,...c.completed_slices].find(s=>s.candidate_sha===live.candidateSha);
   assert.equal(slice.main_sha,live.candidateSha);assert.equal(slice.pages_run,"34671793635");
-  assert.equal(slice.live_acceptance.additional_profiles,0);assert.equal(slice.live_acceptance.physical_devices,"NOT_RUN");
-  assert.equal(slice.live_acceptance.not_executed.length,4);
-  assert.equal(slice.state,"PAGES_PUBLISHED_LIVE_ACCEPTANCE_PARTIAL");
+  assert.equal(slice.live_acceptance.additional_profiles,1);assert.equal(slice.live_acceptance.physical_devices,"NOT_RUN");
+  assert.equal(slice.live_acceptance.initial_attempt.not_executed.length,4);
+  assert.equal(slice.live_acceptance.not_executed.length,0);
+  assert.equal(slice.state,"PUBLIC_VERIFIED");
+  const retry=read("UI_COSMETICS_RETRY_LIVE_20260912.json");
+  assert.equal(retry.ok,true);assert.equal(retry.checks.length,94);assert.equal(retry.candidateSha,live.candidateSha);
+  assert.equal(retry.profilesCreated,1);assert.equal(slice.live_acceptance.cumulative_profiles,live.profilesCreated+retry.profilesCreated);
+  for(const label of ["reload is a read-only exact profile restore","exactly three acknowledged cosmetic actions",
+    "browser makes no match quiz draw or sale writes","console warning error and pageerror zero"]) assert.ok(retry.checks.includes(label));
+  assert.equal(slice.live_acceptance_followup.source_response_message_id,"f2aebe0a-d1a8-4966-85d6-9a09625f453b");
+  assert.equal(slice.live_acceptance_followup.attempts_started,1);
   assert.equal(c.normal_work_handoff.send_attempts,1,"no repeated self-send to pretend another worker exists");
 });

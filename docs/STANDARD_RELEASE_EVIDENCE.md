@@ -2,6 +2,8 @@
 
 ## 2026-09-12 UDL061 商品の中で購入・装備
 
+追補: **PUBLIC_VERIFIED**。実Astra019の追加1profile限定判断に従い、同じ公開a757のpreflight/3asset byte一致を作成前に再確認し、修正canary94/94 PASS（06:54:48Z）。黄金名札350→0、無料/所有済み切替追加減算0、reload最終server等価、3ACK、操作allowlist、console0、390/1280目視まで実行。試験profile累計2、元失敗JSONは不変、物理NOT_RUN。UI_COSMETICS_RETRY_LIVE_20260912.json / UI_COSMETICS_RETRY_PREFLIGHT_20260912.json。以下は初回部分確認の履歴。
+
 `a757c126e1325532bb11a719cf92d0d13401d3ae` を実Astra018と同SHA Windows34663861170両SUCCESS、fresh main b81・祖先確認後、司令塔自身がforceなしでmainへ公開。Pages34671793635 SUCCESS、preflight ok:true、公開index/app36/intent2の厳密byte一致。**PAGES_PUBLISHED / LIVE_ACCEPTANCE_PARTIAL**。1試験profileで黄金名札350の単回購入・無料/所有済み再装備の追加減算0・390/1280表示を確認。reloadの装備中buttonまで観測後、一時メッセージ残存を要求したharnessがFAIL。原JSON保持、offline診断7/7・修正harness4/4、製品変更0。最終server等価/ACK集計/操作allowlist/console0は未実行、物理NOT_RUN、追加profile0。PUBLIC_VERIFIEDへ推測昇格しない。全証拠：docs/UI_COSMETICS_RELEASE_20260912.md。
 
 ## 2026-09-12 UDL060 結果のそばから次へ

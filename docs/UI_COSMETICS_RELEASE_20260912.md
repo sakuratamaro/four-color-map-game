@@ -2,7 +2,19 @@
 
 CANON_RECEIPT version=shared-canon-v1.1 base=b81a1d52e8230d41ec9e69610d89bafc86d1d84e request=UDL-20260912-061 specs=AGENTS.md,docs/SHARED_CANON.md,docs/UI_COSMETIC_ITEM_ACTION_20260912.md,docs/STANDARD_PUBLIC_RELEASE_RUNBOOK.md tests=tests/standard-online-browser.test.cjs,tests/governance-cosmetic-item-canary.test.cjs worktree=.codex-worktrees/ui-cosmetics-20260912
 
-State: **PAGES_PUBLISHED / LIVE_ACCEPTANCE_PARTIAL**, not PUBLIC_VERIFIED.
+State: **PUBLIC_VERIFIED** after the separately authorized bounded retry below. The original failed attempt remains unchanged.
+
+## Completed acceptance supplement — actual scheduled normal run
+
+Astra019 response f2aebe0a-d1a8-4966-85d6-9a09625f453b (request336393d6-5c0d-4294-810f-3a772f7b5bd6) explicitly approved one additional isolated-profile corrected canary. This is separate from019's062 REQUEST_CHANGES and does not replace018's exact product approval.
+
+The same existing automation genuinely started NORMAL_WORK turn01a09462-aeab-7242-9c90-75104cc6df58 at06:51:30Z, after receiving turn01a09454-7d62-7530-91c9-9144a7ac0785 completed06:47:51Z. No self-send. The approved attempt was reserved once before preflight. Clean product/main remaineda757; public preflight passed before signup, saved in UI_COSMETICS_RETRY_PREFLIGHT_20260912.json. The canary verified all3public asset bytes before creating its profile.
+
+UI_COSMETICS_RETRY_LIVE_20260912.json: **94/94 PASS**, completed06:54:48.243Z. Additional profiles1,3quizzes/30answers/6draws/17necessary spare sales, funding350. Golden purchase350→0, free and owned re-equip with no extra debit, no inventory/ticket/record/trophy changes from the cosmetic actions. Reload exact server-profile equality, exactly3nonduplicate200 ACKs, browser operation allowlist and console/pageerror/warnings0 all executed and passed. No matches, deletion, arbitrary credit, direct DB write, real-money operation or fault injection. Browser session closed, credentials not saved.
+
+Actual screenshots390-purchased,1280-purchased,390-reloaded were visually inspected: golden card, equipped state and44px-plus controls fit; purchase feedback is inside the item, reload does not replay the old success message. Geometry reports horizontal overflowfalse, buttons72x45. PNGs remain local. Physical devices remainNOT_RUN.
+
+Cumulative isolated profiles **2 = original1 + retry1**; cumulative funding6quizzes/60answers/12draws/33spare sales, cosmetic actions6. These cumulative counts do not redefine the per-attempt caps. Original failure and offline7/7 remain separate evidence. No further profile or canary rerun is needed.
 
 ## Publication evidence
 

@@ -1,5 +1,9 @@
 # Commander continuation repair — 2026-09-12
 
+## Actual separately scheduled normal execution observed
+
+The15:50JST NORMAL_WORK reservation genuinely produced heartbeat turn01a09462-aeab-7242-9c90-75104cc6df58 at06:51:30Z. The previous RECEIVE turn01a09454 ended06:47:51Z; the observed IDs and times are distinct. This is no longer just API configuration evidence and used no self-send. The normal commander then executed the single authorized061 retry:94/94 PASS, preflight/strict bytes before signup, final server/ACK/allowlist/console checks plus390/1280 visual inspection. Evidence: UI_COSMETICS_RETRY_LIVE_20260912.json and UI_COSMETICS_RELEASE_20260912.md. first_scheduled_normal_run is nowOBSERVED with that actual work result. Other future scheduled runs and PC-off behavior are not thereby guaranteed.
+
 ## Followup receipt after the first calendar slot
 
 The previous turn01a09434-bf57-73f2-8432-d2902d7be15b completed at06:25:13Z, one second after the06:25:12Z reservation. At06:36 the next observed turn01a09454-7d62-7530-91c9-9144a7ac0785 was started by the existing v9 transfer owner's message, not an observed scheduled run. Timing overlap is confirmed; internal scheduler causation is **not proven**. The previous setting readback was real but is not evidence of successful execution.
