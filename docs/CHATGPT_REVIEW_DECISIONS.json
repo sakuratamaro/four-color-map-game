@@ -379,10 +379,10 @@
     },
     "automation_id": "automation",
     "automation_status_at_recording": "ACTIVE",
-    "automation_readback_updated_at": 1789235336219,
+    "automation_readback_updated_at": 1789237932421,
     "automation_prompt_readback_equal": true,
     "automation_pause_reason": null,
-    "automation_active_reason": "Original067second40minslot for exact231B1revision; 1/3consumed and originalexpiry unchanged;066closed.",
+    "automation_active_reason": "Originalfinal18:55:08slot f507 delivery+review binding;2/3alreadyconsumed; no immediatepoll.",
     "completed_review_waits": [
       {
         "root_request_message_id": "8464f659-ad62-4c09-83d9-44e1cc91316b",
@@ -849,8 +849,8 @@
       "root_request_message_id": "f5646b27-8424-405f-95a7-a21c87b09274",
       "subject_sha": "8fe4c206547851550de7b4b59c0eb82241ba3060",
       "status": "review_received_revision_required",
-      "next_check_utc": null,
-      "remaining_scheduled_slots": 0,
+      "next_check_utc": "2026-09-12T18:55:08.000Z",
+      "remaining_scheduled_slots": 1,
       "delivery_readback_checks": 2,
       "consumed_slots_utc": [
         "2026-09-12T17:35:08.000Z",
@@ -886,25 +886,21 @@
       ],
       "new_scope": "UDL-067-surrender-v1",
       "prior_budgets_reopened": false,
-      "last_result": "Actual033conditionedapprovalreceived atoriginalsecondslot2/3; CIconditionnotmet duefinalEdgeFAIL. NoextraAstraread/newbudget.",
+      "last_result": "New f507 sentAPIaccepted; first read rejected argument beforefetch, second boundedread returned prior033 whileactive. Two reservedattempts consumed; use originalfinalslot only. No message ID invented.",
       "response_message_id": "fa226fa2-ad5e-437c-a447-3a6c84fcd2c1",
       "received_at_utc": "2026-09-12T17:37:19Z",
-      "followup_subject_sha": "23133ef52efb81c39d0623479b0ea7819f850f7d",
-      "followup_request_message_id": "28d25760-2a7a-4fe0-9c48-bb7ca4888b9a",
-      "followup_status": "review_received_closed",
+      "followup_subject_sha": "f507c0b2dd9701f3ac1867131150b5e48d0ada8d",
+      "followup_request_message_id": null,
+      "followup_status": "delivery_unconfirmed_api_accepted_no_resend_while_active",
       "followup_delivery_readback_checks": 2,
-      "followup_preserves_original_budget": true,
-      "followup_response_message_id": "2394c582-b972-492d-9ef9-7c48fa829a16",
-      "followup_closed_at_utc": "2026-09-12T17:57:06Z"
+      "followup_preserves_original_budget": true
     },
     "pending_review_subject": {
-      "subject_sha": "23133ef52efb81c39d0623479b0ea7819f850f7d",
+      "subject_sha": "f507c0b2dd9701f3ac1867131150b5e48d0ada8d",
       "base_sha": "2fcfea9bb2a3d1ad7e22a5e8e3b61983f0404152",
-      "canon_version": "shared-canon-v1.1",
-      "feature_spec_version": "UDL-067-surrender-v1",
-      "spec_snapshot_sha": "e5f2c0617d3defcc8dc6105bf567f6ed59fb4432",
+      "feature_spec_version": "UDL-067-surrender-v1.1",
+      "spec_snapshot_sha": "1e7e2a4c02acd58ed40ca0b6f2fbb0513f333463",
       "scope": "Pages_only",
-      "review_kind": "game_production_release_approval",
       "db_change_set": [],
       "edge_change_set": []
     },
@@ -916,9 +912,9 @@
       "boundary": "Governance evidence maintenance did not amend or block independently approved product f8713d7."
     },
     "initial_interval_minutes": 20,
-    "pending_subject_sha": "23133ef52efb81c39d0623479b0ea7819f850f7d",
+    "pending_subject_sha": "f507c0b2dd9701f3ac1867131150b5e48d0ada8d",
     "pending_scope": "Pages_only",
-    "pending_delivery_status": "delivery_verified_response_pending",
+    "pending_delivery_status": "SEND_API_ACCEPTED_READBACK_UNCONFIRMED_ACTIVE_NO_RESEND",
     "last_confirmed_sent_message_id": "28d25760-2a7a-4fe0-9c48-bb7ca4888b9a",
     "last_sent_message_id": "28d25760-2a7a-4fe0-9c48-bb7ca4888b9a",
     "self_sent_message_ids": [
@@ -953,7 +949,7 @@
       "f5646b27-8424-405f-95a7-a21c87b09274",
       "28d25760-2a7a-4fe0-9c48-bb7ca4888b9a"
     ],
-    "sent_at_utc": "2026-09-12T17:45:13Z",
+    "sent_at_utc": "2026-09-12T18:27:24.616Z",
     "last_check_utc": "2026-09-12T17:47:38Z",
     "unchanged_checks": 0,
     "reminder_count": 0,
@@ -2391,6 +2387,19 @@
         "additional_live_profiles": 0,
         "implementation": "NOT_RUN",
         "evidence": "docs/CPU_SUCCESSOR_PREPARATION_20260912.md"
+      },
+      "preparing_independent_slice": {
+        "request_id": "UDL-20260910-051",
+        "regression_id": "REG-CPU-F3-SPLIT-ORIENTATION",
+        "owner_thread_id": "01a07b56-616e-7733-9aae-90575659688e",
+        "worktree": ".codex-worktrees/cpu-split-rescue-20260913",
+        "branch": "codex/cpu-split-rescue-20260913",
+        "base_sha": "2fcfea9bb2a3d1ad7e22a5e8e3b61983f0404152",
+        "state": "SOURCE_AND_COMPATIBILITY_PREPARED_NOT_IMPLEMENTED",
+        "spec_path": "docs/CPU_SPLIT_RESCUE_20260913.md",
+        "evidence": "Baseline threeblob equalityconfirmed; freshmain2fc; exactDBpolicy helperrequiresreviewedadditiveSQL before newpolicy version, notPages_only.",
+        "next_action": "Implement ordered enumeration behind versioned new-character policy with legacy traces and engine split/color/return tests; freeze SQL/Edge changes for its ownreview.",
+        "publication": "NOT_RUN"
       }
     },
     "preparing_next_slice": {
@@ -2402,7 +2411,7 @@
         "REG-UDL048-ROOM-SYNC"
       ],
       "owner_thread_id": "01a07b56-616e-7733-9aae-90575659688e",
-      "state": "REVISION_REVIEW_SEND_RESERVED",
+      "state": "DELIVERY_UNCONFIRMED_ACTIVE_NO_RESEND",
       "worktree": ".codex-worktrees/surrender-confirmation-20260913",
       "branch": "codex/surrender-confirmation-20260913",
       "base_sha": "2fcfea9bb2a3d1ad7e22a5e8e3b61983f0404152",
@@ -2416,11 +2425,11 @@
       "publication": "NOT_RUN",
       "push_status": "PUSHED_EXACT_BRANCH",
       "windows_run": "34710997698",
-      "windows_status": "IN_PROGRESS",
+      "windows_status": "SUCCESS",
       "tests": "clean f507 141files937/937PASS61204.6228ms; same product before runbook-only commit Chrome13/13PASS105047.8117ms,Edge13/13PASS105174.4439ms; all skips0.",
       "evidence": "docs/ASTRA_SURRENDER_B2_REVIEW_20260913.md",
       "review_packet": "docs/ASTRA_SURRENDER_B2_REVIEW_20260913.md",
-      "review_status": "SEND_RESERVED",
+      "review_status": "DELIVERY_UNCONFIRMED",
       "review_send_attempts": 1,
       "live_canary_state": "IMPLEMENTED_LOCAL_GUARDS_8_PASS_NOT_RUN",
       "live_canary_attempts": 0,
@@ -2431,14 +2440,43 @@
         "windows_status": "FAILURE",
         "publication": "NOT_RUN"
       },
-      "next_action": "Send materially revised exact f507 with full231..f507 diff and regression evidence; only original18:55:08 reviewslot remains, immutable19:15:08 expiry.",
+      "next_action": "At original18:55:08Z slot only, first bindactualf507requestfromsource; receive genuine completedresponse ifpresent. No publication without exactnewSHA/spec review and sameSHA WindowsSUCCESS.",
       "availability_checks": 1,
       "availability_check_reserved_at_utc": "2026-09-12T18:24:00Z",
       "availability_check_reserved_before_api": true,
       "availability": "One presend read observed genuine033 completed/idle at designated existing chat. No newer user turn observed.",
       "review_send_reserved_before_api": true,
       "review_reserved_at_utc": "2026-09-12T18:25:42.927Z",
-      "review_delivery_readback_checks": 0
+      "review_delivery_readback_checks": 2,
+      "review_evidence_sha": "c38de24bc386ff2898bc6786c6da3cc3d5d14384",
+      "review_sent_at_utc": "2026-09-12T18:27:24.616Z",
+      "review_body_characters": 24099,
+      "review_first_delivery_read_reserved_before_api": true,
+      "review_first_delivery_read_reserved_at_utc": "2026-09-12T18:27:24.616Z",
+      "review_first_delivery_result": "Argument validation rejected maxOutputCharsPerItem28000 (toolcap20000); no threadcontentread. Keep reservedcheck1 counted; no reset.",
+      "review_second_delivery_read_reserved_before_api": true,
+      "review_second_delivery_read_reserved_at_utc": "2026-09-12T18:27:56.079Z",
+      "review_request_message_id": null,
+      "send_api_accepted": true,
+      "send_api_target_thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
+      "review_second_delivery_result": "Actual bounded read showed prior033 completed pair while destination active; new body/message ID not visible. No equality or delivery claim. No third delivery read or resend.",
+      "review_delivery_full_body_verified": false,
+      "review_delivery_matching_chars": 0,
+      "windows_last_observed_at_utc": "2026-09-12T18:38:29.977Z",
+      "windows_jobs": [
+        {
+          "id": "103599654218",
+          "name": "Standard online browser (chrome)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": "103599654373",
+          "name": "Standard online browser (edge)",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ]
     },
     "remaining_brain_work": {
       "source": {
@@ -2722,9 +2760,9 @@
       "tests": "tests/governance-commander-continuation.test.cjs",
       "next_run": {
         "phase": "RECEIVE",
-        "at_utc": "2026-09-12T17:55:08.000Z",
-        "subject_sha": "23133ef52efb81c39d0623479b0ea7819f850f7d",
-        "reason": "Original067second40minslot; consumed20min1/3, no revisionreset."
+        "at_utc": "2026-09-12T18:55:08.000Z",
+        "subject_sha": "f507c0b2dd9701f3ac1867131150b5e48d0ada8d",
+        "reason": "Final original067slot only; bind actual new request first, no invented ID or resend."
       },
       "first_scheduled_normal_run": {
         "status": "OBSERVED",
@@ -2742,11 +2780,11 @@
         "id": "automation",
         "status": "ACTIVE",
         "target_thread_id": "01a07b56-616e-7733-9aae-90575659688e",
-        "rrule": "FREQ=DAILY;BYHOUR=2;BYMINUTE=55;BYSECOND=8",
-        "updated_at": 1789235336219,
+        "rrule": "FREQ=DAILY;BYHOUR=3;BYMINUTE=55;BYSECOND=8",
+        "updated_at": 1789237932421,
         "created_at": 1789048677730,
         "prompt_exact_equal": true,
-        "scheduled_for_utc": "2026-09-12T17:55:08.000Z",
+        "scheduled_for_utc": "2026-09-12T18:55:08.000Z",
         "readback_verified": true
       },
       "normal_work_claim": {
@@ -2768,7 +2806,7 @@
         "source": "automatic_goal_continuation",
         "started_at_utc": "2026-09-12T17:51:36.000Z",
         "worktree": ".codex-worktrees/dev-brain-current-20260910",
-        "request": "Preparebounded067canary locally; receive231replyonlyatfixed17:55:08Z; thenfollowactualreview/exactCI. No closed066/065/9515trial."
+        "request": "Received033, diagnosed231Edge failure, fixed REG-UDL048-ROOM-SYNC, cleanf507937+both13,pushed/sent; finitecanaryprepared. CPU051independentpreparationnext."
       },
       "missed_schedule_observation": {
         "scheduled_at_utc": "2026-09-12T06:25:12Z",
@@ -2819,17 +2857,12 @@
         "recovered_without_new_user_wait": true
       },
       "end_turn_guard": {
-        "at_utc": "2026-09-12T17:50:05Z",
-        "exit_code": 0,
-        "phase": "WAIT_REVIEW",
-        "reason": "ONE_BOUNDED_READ_ONLY_NO_RESEND",
-        "errors": [],
-        "subject_sha": "23133ef52efb81c39d0623479b0ea7819f850f7d",
-        "next_run_at_utc": "2026-09-12T17:55:08.000Z",
-        "actual_automation_status": "ACTIVE",
-        "actual_setting_updated_at": 1789235336219,
-        "prompt_exact_equal": true,
-        "note": "Fullv13goalactive;066actual032PUBLIC_VERIFIED,067implemented937PASS andB1single-test231revisiondelivered. Original067budget1/3expiryunchanged; no userapprovalwait, newcontroller, oldtrialorbudgetreset."
+        "status": "PASS",
+        "checked_at_utc": "2026-09-12T18:39:47.236Z",
+        "plan": "WAIT_REVIEW",
+        "next_run_utc": "2026-09-12T18:55:08.000Z",
+        "subject_sha": "f507c0b2dd9701f3ac1867131150b5e48d0ada8d",
+        "errors": []
       },
       "latest_receive_schedule_observation": {
         "scheduled_at_utc": "2026-09-12T07:45:12Z",
@@ -2948,7 +2981,11 @@
           "Edge231failure diagnosed via deterministic product regression",
           "memo sync repair f507 clean937 and Chrome/Edge13 each",
           "exactbranch pushed",
-          "067boundedharness8guardtests"
+          "067boundedharness8guardtests",
+          "Windows34710997698 bothjobs finalSUCCESS",
+          "newf507review APIaccepted, deliveryunconfirmed preserved without fakeID",
+          "existingheartbeat final18:55slot actualreadback",
+          "CPU F3 separatepublicmain worktree and versionedDB compatibility plan prepared"
         ],
         "repeated_blocker": false
       }

@@ -45,20 +45,20 @@ test("palette public receipt keeps live evidence and unfinished layout acceptanc
 
 test("an active review wait stays bound to the delivered current candidate, not an earlier completed slice", () => {
   const { coordination: c } = JSON.parse(read("docs/CHATGPT_REVIEW_DECISIONS.json"));
-  if ((c.wait_budget.followup_status || c.wait_budget.status) !== "review_pending" &&
-      c.wait_budget.status !== "delivery_unconfirmed_api_accepted_no_resend_while_active") return;
+  const waitStatus = c.wait_budget.followup_status || c.wait_budget.status;
+  if (waitStatus !== "review_pending" && waitStatus !== "delivery_unconfirmed_api_accepted_no_resend_while_active") return;
   const waitSubject = c.wait_budget.followup_subject_sha || c.wait_budget.subject_sha;
   const waitRequest = c.wait_budget.followup_request_message_id || c.wait_budget.root_request_message_id;
   const matches = [c.active_slice, c.preparing_next_slice].filter(s => s?.candidate_sha === waitSubject);
   assert.equal(matches.length, 1, "the pending review resolves exactly one existing slice");
   const pendingSlice = matches[0];
-  if (c.wait_budget.status === "delivery_unconfirmed_api_accepted_no_resend_while_active") {
+  if (waitStatus === "delivery_unconfirmed_api_accepted_no_resend_while_active") {
     assert.equal(c.pending_delivery_status, "SEND_API_ACCEPTED_READBACK_UNCONFIRMED_ACTIVE_NO_RESEND");
-    assert.equal(c.wait_budget.root_request_message_id, null, "do not invent a delivery ID");
-    assert.equal(c.active_slice.review_request_message_id, null);
-    assert.equal(c.active_slice.review_send_attempts, 1);
-    assert.equal(c.active_slice.review_delivery_checks, 2);
-    assert.equal(c.active_slice.review_status, "DELIVERY_UNCONFIRMED");
+    assert.equal(c.wait_budget.followup_subject_sha ? c.wait_budget.followup_request_message_id : c.wait_budget.root_request_message_id, null, "do not invent a delivery ID");
+    assert.equal(pendingSlice.review_request_message_id, null);
+    assert.equal(pendingSlice.review_send_attempts, 1);
+    assert.equal(pendingSlice.review_delivery_readback_checks, 2);
+    assert.equal(pendingSlice.review_status, "DELIVERY_UNCONFIRMED");
     assert.equal(c.wait_budget.confirmed_delivery_reminders, 0);
     assert.equal(c.wait_budget.reset_on_candidate_revision, false);
     assert.equal(Date.parse(c.wait_budget.expires_at_utc) - Date.parse(c.wait_budget.started_at_utc), 120 * 60_000);

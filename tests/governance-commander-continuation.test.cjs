@@ -33,6 +33,26 @@ test("new pending review can live in preparing_next_slice while parent remains p
   assert.equal(planContinuation(log,{now:"2026-09-12T00:10:00Z"}).phase,"WAIT_REVIEW");
   c.pending_review_subject.base_sha="d".repeat(40);assert.equal(pendingBinding(c),false);
 });
+test("accepted send with unconfirmed delivery gets only its original finite read, never an invented message ID",()=>{
+  for(const followup of [false,true]){
+    const log=fixture(),c=log.coordination,s=c.active_slice,w=c.wait_budget;
+    const status="delivery_unconfirmed_api_accepted_no_resend_while_active";
+    if(followup){c.preparing_next_slice=s;delete c.active_slice;w.followup_subject_sha=s.candidate_sha;
+      w.followup_request_message_id=null;w.followup_status=status;w.root_request_message_id="old-received-request";}
+    else {w.root_request_message_id=null;w.status=status;}
+    Object.assign(s,{review_request_message_id:null,review_status:"DELIVERY_UNCONFIRMED",
+      review_delivery_readback_checks:2,send_api_accepted:true,send_api_target_thread_id:REVIEWER});
+    c.pending_delivery_status="SEND_API_ACCEPTED_READBACK_UNCONFIRMED_ACTIVE_NO_RESEND";
+    assert.equal(pendingBinding(c),true);
+    const p=planContinuation(log,{now:"2026-09-12T00:10:00Z"});
+    assert.equal(p.phase,"WAIT_REVIEW");assert.equal(p.request_message_id,null);
+    assert.equal(p.at_utc,"2026-09-12T00:20:00.000Z");
+    assert.equal(planContinuation(log,{now:"2026-09-12T02:00:00Z"}).phase,"STOP");
+    s.send_api_target_thread_id="another-chat";assert.equal(pendingBinding(c),false);
+    s.send_api_target_thread_id=REVIEWER;s.review_send_attempts=2;assert.equal(pendingBinding(c),false);
+  }
+});
+
 test("review receipt schedules a distinct normal run, never a self-send or automatic publication",()=>{
   const log=fixture();approve(log);
   const before=JSON.stringify(log),plan=planContinuation(log,{now:"2026-09-12T00:21:00Z"});

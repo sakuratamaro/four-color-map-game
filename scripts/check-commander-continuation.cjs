@@ -31,15 +31,22 @@ function matchingReview(log, slice) {
 function pendingBinding(c) {
   const w = c.wait_budget || {};
   const subject = w.followup_subject_sha || w.subject_sha;
-  const request = w.followup_request_message_id || w.root_request_message_id;
+  const request = w.followup_subject_sha ? w.followup_request_message_id : w.root_request_message_id;
   const matches = slices(c).filter(({slice}) => slice.candidate_sha === subject);
   if (matches.length !== 1) return false;
   const s = matches[0].slice, p = c.pending_review_subject || {};
-  return SHA.test(subject || "") && subject === c.pending_subject_sha &&
+  const envelopeMatches = SHA.test(subject || "") && subject === c.pending_subject_sha &&
     p.subject_sha === subject && p.base_sha === s.base_sha &&
     p.feature_spec_version === s.spec_version && p.spec_snapshot_sha === s.spec_snapshot_sha &&
     p.scope === s.scope && equal(p.db_change_set,s.db_change_set) &&
-    equal(p.edge_change_set,s.edge_change_set) && Boolean(request) &&
+    equal(p.edge_change_set,s.edge_change_set);
+  if ((w.followup_status || w.status) === "delivery_unconfirmed_api_accepted_no_resend_while_active")
+    return envelopeMatches && request === null && s.review_request_message_id === null &&
+      s.review_send_attempts === 1 && s.review_delivery_readback_checks === 2 &&
+      s.review_status === "DELIVERY_UNCONFIRMED" && s.send_api_accepted === true &&
+      s.send_api_target_thread_id === REVIEWER &&
+      c.pending_delivery_status === "SEND_API_ACCEPTED_READBACK_UNCONFIRMED_ACTIVE_NO_RESEND";
+  return envelopeMatches && Boolean(request) &&
     request === s.review_request_message_id && request === c.last_confirmed_sent_message_id &&
     (c.self_sent_message_ids || []).includes(request);
 }
@@ -121,7 +128,7 @@ function planContinuation(log, {now = new Date().toISOString(), otherOwnerActive
         reason:"READY_UNSENT_IS_WORK_NOT_A_REVIEW_WAIT"};
   }
   if (issues.length) return {phase:"STOP", reason:"RECONCILE_INVALID_REVIEW", issues};
-  const w = c.wait_budget || {}, pending = (w.followup_status || w.status) === "review_pending";
+  const w = c.wait_budget || {}, pending = ["review_pending","delivery_unconfirmed_api_accepted_no_resend_while_active"].includes(w.followup_status || w.status);
   if (!pending) return recordedCiStop || {phase:"STOP", reason:"NO_ELIGIBLE_REVIEW_OR_READY_WORK"};
   if (!pendingBinding(c)) return {phase:"STOP", reason:"INVALID_PENDING_BINDING"};
   const start = Date.parse(w.started_at_utc), expiry = Date.parse(w.expires_at_utc), time = Date.parse(now);
@@ -145,8 +152,8 @@ function planContinuation(log, {now = new Date().toISOString(), otherOwnerActive
   const next = due.length ? due.at(-1) : at;
   return {phase:time >= at ? "RECEIVE" : "WAIT_REVIEW",
     at_utc:new Date(next).toISOString(), subject_sha:w.followup_subject_sha || w.subject_sha,
-    request_message_id:w.followup_request_message_id || w.root_request_message_id,
-    reason:"ONE_BOUNDED_READ_ONLY_NO_RESEND"};
+    request_message_id:w.followup_subject_sha ? w.followup_request_message_id : w.root_request_message_id,
+    reason:(w.followup_status || w.status) === "review_pending" ? "ONE_BOUNDED_READ_ONLY_NO_RESEND" : "ONE_BOUNDED_DELIVERY_READ_NO_RESEND"};
 }
 
 function endOfTurnIssues(plan, continuation, automation, {now = new Date().toISOString()} = {}) {

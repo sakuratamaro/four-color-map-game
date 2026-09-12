@@ -2,7 +2,7 @@
 
 更新日: 2026-09-12
 
-2026-09-13 03:24JST 現行: 頭脳v13受領・照合済み、065/9515入口/066図鑑は公開受入済み。067旧231への実033は条件付き承認だが、その後Windows34708897042がEdge既存メモ試験1件FAIL（ChromeSUCCESS）。定期対局同期が同一問題の選択肢を作り直すREG-UDL048-ROOM-SYNCを局所再現し、ノード保持を修正。新f507c0b（仕様UDL-067-surrender-v1.1/blob1e7e2a4c）はclean937/937、Chrome13/13・Edge13/13、専用ブランチpush済み。Windows34710997698は実行中、新SHA/仕様への実Astraレビューを提出準備中。旧承認流用・main変更・追加live試験なし。証拠はdocs/ASTRA_SURRENDER_B2_REVIEW_20260913.md。原067待機2/3・最終18:55:08Z・期限19:15:08Zを維持。以下の過去時点の状態は履歴。
+2026-09-13 03:38JST 現行: 頭脳v13受領・照合済み、065/9515入口/066図鑑は公開受入済み。067旧231への実033は条件付き承認だが、Windows34708897042はEdge既存メモ1件FAIL。定期対局同期の同一問題DOM再生成REG-UDL048-ROOM-SYNCを実再現・修正し、新f507c0b（仕様v1.1/blob1e7e2a4c）はclean937/937、Chrome13/13・Edge13/13、専用branch push、Windows34710997698のChrome103599654218・Edge103599654373とも最終SUCCESS。全差分24099字の新レビュー送信APIは受理、2回の送達確認予約後も旧033turn/active表示で新message ID未確認。再送せず、原067予算2/3・最終18:55:08Z・期限19:15:08Zに既存heartbeatを実ACTIVE設定・全文読戻し一致。旧承認流用・main変更・067live試験はなし。証拠docs/ASTRA_SURRENDER_B2_REVIEW_20260913.md。CPU051は現main2fcから独立cpu-split-rescue床を作り、旧対局互換とDB policy helperの厳密版照合を含む実装境界を準備（製品修正はまだNOT_RUN）。以下は履歴。
 
 2026-09-13 02:49JST 現行: 頭脳v13の134manifest・59records照合済み。065・9515入口に加え、066図鑑も実032（fa226fa2）で限定PUBLIC_VERIFIEDとして閉鎖。初回/補完rawは両FAILのまま、保存ログの限定再分類を別受入し追加profile0、累計profile1。067投了UIは旧8feのWindowsでChrome143/144、EdgeSUCCESSとなり実031HOLD。失敗はquiz430→390の非同期再配置前を拾う既存テストで、1fileの有限geometry待ちだけを23133efで修正。局所Chrome1/1・Edge1/1、clean141files937/937PASS、専用branch push済み、新Windows34708897042IN_PROGRESS。新候補の1file全差分を実依頼28d25760へ送信し、末尾改行一つ以外4829字全文一致で送達確認。返答未観測、旧HOLDは承認へ流用しない。067原期限19:15:08Z・1/3消費を保持し、次17:55:08Zへ既存heartbeatを実ACTIVE設定・prompt/時刻/target読戻し一致。CPU033/051等の全体ゴールは継続。以下は日時別の履歴。
 
