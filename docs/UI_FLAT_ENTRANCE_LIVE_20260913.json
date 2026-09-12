@@ -1,0 +1,181 @@
+{
+  "subject": "UDL-023-entrance-v2",
+  "candidate": "9515f9bed9536dc2c44b71817129abb9c86ef24f",
+  "profileAttempts": 1,
+  "profilesCreated": 1,
+  "matchesCreated": 0,
+  "economyActions": 0,
+  "deletions": 0,
+  "physicalDevices": "NOT_RUN",
+  "faultInjection": "NONE",
+  "writeProtection": "DENY_UNEXPECTED_BROWSER_REQUESTS",
+  "initialAcceptance062": "CLOSED_NO_ADDITIONAL062_PROFILE",
+  "assetHashes": [
+    {
+      "file": "index.html",
+      "sha256": "ea4fb87a1aa1c7ecb20293fae748ddf73be404b98c6d790359c195cde21e2472"
+    },
+    {
+      "file": "app.js",
+      "sha256": "fdb892ed08593a1f2103ff9acce43ffb62848e15f3c050e4e78037fe885ca60a"
+    },
+    {
+      "file": "ui-diet.css",
+      "sha256": "57eb29ef5caea6fd613978c74e6b6569e1d24ebd88a8f3c39ddecdd8217eb16f"
+    }
+  ],
+  "geometry": [
+    {
+      "width": 390,
+      "overflow": false,
+      "children": 3,
+      "boxes": [
+        {
+          "width": 101.328125,
+          "height": 56,
+          "top": 164,
+          "hit": true,
+          "peer": true
+        },
+        {
+          "width": 101.328125,
+          "height": 56,
+          "top": 164,
+          "hit": true,
+          "peer": true
+        },
+        {
+          "width": 101.34375,
+          "height": 56,
+          "top": 164,
+          "hit": true,
+          "peer": true
+        }
+      ],
+      "removed": true
+    },
+    {
+      "width": 768,
+      "overflow": false,
+      "children": 3,
+      "boxes": [
+        {
+          "width": 226,
+          "height": 56,
+          "top": 280,
+          "hit": true,
+          "peer": true
+        },
+        {
+          "width": 226,
+          "height": 56,
+          "top": 280,
+          "hit": true,
+          "peer": true
+        },
+        {
+          "width": 226,
+          "height": 56,
+          "top": 280,
+          "hit": true,
+          "peer": true
+        }
+      ],
+      "removed": true
+    },
+    {
+      "width": 1280,
+      "overflow": false,
+      "children": 3,
+      "boxes": [
+        {
+          "width": 255.328125,
+          "height": 56,
+          "top": 281,
+          "hit": true,
+          "peer": true
+        },
+        {
+          "width": 255.328125,
+          "height": 56,
+          "top": 281,
+          "hit": true,
+          "peer": true
+        },
+        {
+          "width": 255.328125,
+          "height": 56,
+          "top": 281,
+          "hit": true,
+          "peer": true
+        }
+      ],
+      "removed": true
+    }
+  ],
+  "checks": [
+    "index.html: HTTP200",
+    "index.html: exact candidate bytes",
+    "app.js: HTTP200",
+    "app.js: exact candidate bytes",
+    "ui-diet.css: HTTP200",
+    "ui-diet.css: exact candidate bytes",
+    "fresh isolated session",
+    "one initial profile revision",
+    "390: peer choices fit",
+    "390: friend route",
+    "390: public route",
+    "390: no automatic waiting",
+    "390: ten CPU choices",
+    "390: CPU cancel restores focus",
+    "390: heading has no frame",
+    "768: peer choices fit",
+    "768: friend route",
+    "768: public route",
+    "768: no automatic waiting",
+    "768: ten CPU choices",
+    "768: CPU cancel restores focus",
+    "768: heading has no frame",
+    "1280: peer choices fit",
+    "1280: friend route",
+    "1280: public route",
+    "1280: no automatic waiting",
+    "1280: ten CPU choices",
+    "1280: CPU cancel restores focus",
+    "1280: heading has no frame",
+    "reload still has three peer choices"
+  ],
+  "comparison": {
+    "validSnapshots": true,
+    "sameRevision": true,
+    "sameProfileState": true,
+    "responseName": {
+      "beforePresent": true,
+      "afterPresent": false,
+      "same": false
+    },
+    "responseNameDisposition": "INFORMATIONAL_UNRESOLVED_REG-20260912-PROFILE-RESPONSE-CONTRACT-01"
+  },
+  "finalChecks": [
+    {
+      "label": "persisted profileState and revision unchanged",
+      "passed": true
+    },
+    {
+      "label": "only permitted browser reads",
+      "passed": true
+    },
+    {
+      "label": "console and page errors zero",
+      "passed": true
+    }
+  ],
+  "requestCount": 6,
+  "consoleCounts": {
+    "errors": 0,
+    "warnings": 0
+  },
+  "finalReadScope": "ONE_OWNED_PROFILE_READ_AFTER_BROWSER_CLOSED",
+  "ok": true,
+  "completedAt": "2026-09-12T16:01:13.718Z"
+}

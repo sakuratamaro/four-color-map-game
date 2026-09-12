@@ -1,0 +1,142 @@
+{
+  "subject": "UDL-065-cutin-v1.1",
+  "candidateSha": "3b1d4e65197c476686b7b8a13c49f97ffd591e68",
+  "profileAttempts": 1,
+  "profilesCreated": 1,
+  "matchAttempts": 1,
+  "matchesCreated": 1,
+  "cleanup": "TERMINAL_CONFIRMED_NO_DELETION",
+  "physicalDevices": "NOT_RUN",
+  "opponentCutin": "OBSERVED",
+  "assetHashes": [
+    {
+      "file": "index.html",
+      "sha256": "90d166cd11cad39774197c00a472be86bd79d3e5e0ad5059995e75a2d80031ad"
+    },
+    {
+      "file": "app.js",
+      "sha256": "fdb892ed08593a1f2103ff9acce43ffb62848e15f3c050e4e78037fe885ca60a"
+    },
+    {
+      "file": "skill-cutin.js",
+      "sha256": "93cba20c441e89b51edf2f19b0a5004cf4bb2c1120d7f194d57e301a937ab5cd"
+    },
+    {
+      "file": "skill-cutin.css",
+      "sha256": "5d9d7457fcbebb8a6cad430d688b6cb5056fe57e5bd41190f76f5dbfdbf273de"
+    }
+  ],
+  "checks": [
+    "index.html: public HTTP200",
+    "index.html: exact fixed Git bytes",
+    "app.js: public HTTP200",
+    "app.js: exact fixed Git bytes",
+    "skill-cutin.js: public HTTP200",
+    "skill-cutin.js: exact fixed Git bytes",
+    "skill-cutin.css: public HTTP200",
+    "skill-cutin.css: exact fixed Git bytes",
+    "anonymous test session",
+    "new profile persisted",
+    "one new CPU match",
+    "bounded owned ordinary action",
+    "bounded owned CPU action",
+    "bounded owned CPU action",
+    "actual own COLOR phase",
+    "cold render has no cut-in replay",
+    "cold restore leaves own room unchanged",
+    "starter borrowed-color card",
+    "exact one own card consumed",
+    "one explicit browser skill write",
+    "bounded owned ordinary action",
+    "bounded owned ordinary action",
+    "bounded owned ordinary action",
+    "one own cut-in, no repeated own event",
+    "cut-ins never capture focus or pointer",
+    "opponent text remains generic",
+    "all captured event identities unique",
+    "desktop viewport no horizontal overflow",
+    "bounded owned ordinary action",
+    "reload does not replay prior cut-ins",
+    "no unapproved browser operation",
+    "final console and page errors zero"
+  ],
+  "operations": {
+    "profile": 1,
+    "cpu-start": 1,
+    "setup": 1,
+    "initialize": 13,
+    "action": 6,
+    "cpu-action": 6,
+    "cosmetic-catalog": 2
+  },
+  "events": [
+    {
+      "actor": "self",
+      "title": "色拾い・乱",
+      "detail": "スキルを使用",
+      "pointerTransparent": true,
+      "focusOutside": true,
+      "animation": "skill-from-hand",
+      "paletteReacted": false,
+      "boardReacted": false
+    },
+    {
+      "actor": "opponent",
+      "title": "スキルを使用",
+      "detail": "持ち色に変化",
+      "pointerTransparent": true,
+      "focusOutside": true,
+      "animation": "skill-from-opponent",
+      "paletteReacted": true,
+      "boardReacted": false
+    },
+    {
+      "actor": "opponent",
+      "title": "スキルを使用",
+      "detail": "盤面に変化",
+      "pointerTransparent": true,
+      "focusOutside": true,
+      "animation": "skill-from-opponent",
+      "paletteReacted": false,
+      "boardReacted": true
+    }
+  ],
+  "screenshots": [
+    "artifacts/skill_cutin_retry_live_20260913/live-own-390.png",
+    "artifacts/skill_cutin_retry_live_20260913/live-restored-1280.png"
+  ],
+  "reloadHydrated": true,
+  "reloadPriorEventReplayed": false,
+  "browserWidths": [
+    390,
+    1280
+  ],
+  "browserSkillActions": 1,
+  "liveGameplay": "REAL_OWN_BORROW_AND_FINITE_ORDINARY_CPU_PLAY_NO_STATE_INJECTION",
+  "finalChecks": [
+    {
+      "label": "reload does not replay prior cut-ins",
+      "passed": true,
+      "status": "VERIFIED"
+    },
+    {
+      "label": "no unapproved browser operation",
+      "passed": true
+    },
+    {
+      "label": "final console and page errors zero",
+      "passed": true
+    }
+  ],
+  "ok": true,
+  "totalCpuActionAttempts": 6,
+  "totalOwnActionAttempts": 6,
+  "browserAudit": {
+    "unexpectedWrites": 0,
+    "errors": 0,
+    "warnings": 0,
+    "blockedOperations": {}
+  },
+  "budgetStops": 0,
+  "completedAt": "2026-09-12T15:55:11.068Z"
+}
