@@ -12,6 +12,7 @@
   <link rel="stylesheet" href="quiz-memo.css?v=20260912-2">
   <link rel="stylesheet" href="ui-diet.css?v=20260912-3">
   <link rel="stylesheet" href="skill-catalog.css?v=20260912-1">
+  <link rel="stylesheet" href="surrender-confirmation.css?v=20260913-1">
   <link rel="stylesheet" href="play-surface.css?v=20260912-1">
   <link rel="stylesheet" href="result-continuation.css?v=20260912-1">
   <link rel="stylesheet" href="skill-cutin.css?v=20260912-1">
@@ -371,8 +372,7 @@
         <div id="paletteControls" class="controls"></div>
         <div id="colorResponseActions" class="no-color-response">
           <div class="controls">
-            <button id="showColorSkills" class="ghost" type="button">色操作カードを見る</button>
-            <button id="colorSurrender" class="danger" type="button">敗北として投了する</button>
+            <button id="colorSurrender" class="danger" type="button">投了</button>
           </div>
         </div>
       </section>
@@ -406,7 +406,7 @@
         </ol>
       </details>
       <div class="controls">
-        <button id="surrender" class="danger compact-danger">敗北として投了する</button>
+        <button id="surrender" class="danger compact-danger" type="button">投了</button>
       </div>
       <details class="sync-details">
         <summary>接続の詳細（調査用）</summary>
@@ -472,6 +472,17 @@
       <p id="skillInfoRandom" class="random-skill-note hidden">🎲 このスキルにはランダム抽選があります</p>
     </form>
   </dialog>
+  <dialog id="surrenderDialog" class="room-abandon-dialog" aria-labelledby="surrenderTitle" aria-describedby="surrenderSpeaker surrenderDescription">
+    <form method="dialog">
+      <h2 id="surrenderTitle">投了しますか？</h2>
+      <p id="surrenderSpeaker" class="muted"></p>
+      <p id="surrenderDescription"></p>
+      <div class="room-abandon-dialog-actions">
+        <button id="cancelSurrender" type="button" class="ghost" autofocus>対戦を続ける</button>
+        <button id="confirmSurrender" type="button" class="danger">投了する</button>
+      </div>
+    </form>
+  </dialog>
   <dialog id="abandonRoomDialog" class="room-abandon-dialog" aria-labelledby="abandonRoomTitle" aria-describedby="abandonRoomDescription">
     <form method="dialog">
       <p class="dialog-kicker">BEFORE MATCH</p>
@@ -533,6 +544,7 @@
   </div>
   <p id="skillCutinAnnouncement" class="visually-hidden" role="status" aria-live="polite" aria-atomic="true"></p>
   <script src="skill-cutin.js?v=20260912-2"></script>
-  <script type="module" src="app.js?v=20260912-40"></script>
+  <script src="surrender-confirmation.js?v=20260913-1"></script>
+  <script type="module" src="app.js?v=20260913-42"></script>
 </body>
 </html>
