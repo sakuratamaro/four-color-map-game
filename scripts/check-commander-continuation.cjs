@@ -106,7 +106,7 @@ function planContinuation(log, {now = new Date().toISOString(), otherOwnerActive
     reason:"ONE_BOUNDED_READ_ONLY_NO_RESEND"};
 }
 
-function endOfTurnIssues(plan, continuation, automation) {
+function endOfTurnIssues(plan, continuation, automation, {now = new Date().toISOString()} = {}) {
   const errors = [];
   if (continuation?.resume_transport !== "existing_heartbeat_next_run")
     errors.push("NO_SELF_SEND_OR_NEW_CONTROLLER");
@@ -121,6 +121,10 @@ function endOfTurnIssues(plan, continuation, automation) {
     errors.push("NEXT_RUN_SUBJECT_MISMATCH");
   if (needed && !Number.isFinite(Date.parse(continuation.next_run?.at_utc)))
     errors.push("NEXT_RUN_TIME_REQUIRED");
+  if (needed && Date.parse(automation.scheduled_for_utc) !== Date.parse(continuation.next_run?.at_utc))
+    errors.push("ACTUAL_SCHEDULE_TIME_MISMATCH");
+  if (needed && Date.parse(continuation.next_run?.at_utc) - Date.parse(now) < 120_000)
+    errors.push("NEXT_RUN_MUST_HAVE_TWO_MINUTE_END_TURN_MARGIN");
   if (needed && plan.phase !== "NORMAL_WORK" && Date.parse(continuation.next_run?.at_utc) !== Date.parse(plan.at_utc))
     errors.push("FINITE_SLOT_MUST_NOT_MOVE");
   if (!needed && automation.status !== "PAUSED") errors.push("PAUSE_WHEN_NO_ELIGIBLE_WORK");
@@ -136,7 +140,7 @@ if (require.main === module) {
   const log = JSON.parse(fs.readFileSync(file,"utf8"));
   const plan = planContinuation(log,{now:nowArg?.slice(6)});
   const errors = args.includes("--end-turn") ? endOfTurnIssues(plan,log.coordination.continuation,
-    log.coordination.continuation?.automation_readback || {}) : [];
+    log.coordination.continuation?.automation_readback || {}, {now:nowArg?.slice(6)}) : [];
   console.log(JSON.stringify({plan,end_turn_errors:errors},null,2));
   if (errors.length || (plan.phase === "STOP" && /INVALID|RECONCILE/.test(plan.reason))) process.exitCode=1;
 }

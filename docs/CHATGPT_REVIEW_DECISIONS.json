@@ -41,7 +41,7 @@
     }
   ],
   "coordination": {
-    "status": "NORMAL_WORK_CONTINUATION_REPAIR_AND062_REVIEW_PENDING",
+    "status": "NORMAL_WORK_QUEUED_061_ACCEPTANCE_THEN062_B1",
     "latest_v8_intake": {
       "state": "PAIRED_SOURCE_AND_ZIP_VERIFIED_ALIASES_MAPPED",
       "source_thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
@@ -103,7 +103,15 @@
       "response_message_id": "7c83d564-d958-4c6e-9830-f363e81762f6",
       "state": "V9_COMPLETED_MESSAGE_OBSERVED_ARCHIVE_NOT_DOWNLOADED",
       "note": "New completed source asks priority cut-ins independent of other UI cleanup and compact all-skill encyclopedia; not a candidate approval. Existing transfer memo reports blocked download; do not repeat or infer verified v9 archive.",
-      "transfer_receipt": "docs/BRAIN_V9_TRANSFER_20260912.md"
+      "transfer_receipt": "docs/BRAIN_V9_TRANSFER_20260912.md",
+      "transfer_delivery": {
+        "source_thread_id": "01a08d9e-ae35-7f70-a879-cb342dafef47",
+        "delivery_state": "RECEIVED_CURRENT_TURN",
+        "card_request_message_id": "bbb21b41-147b-4869-810f-ada7f33bb3f7",
+        "card_design_message_id": "544402ae-d429-4a0e-a928-1877b7940247",
+        "information_diet_user_message_id": "bbb21143-7f50-497d-a733-cabb682a7f4f",
+        "zip_verified": false
+      }
     },
     "deferred_outbound": {
       "id": "USER-20260911-DEFERRED-PALETTE-REPORT",
@@ -173,8 +181,8 @@
       "normal_owner_observation": "Previous normal turn completed after branch push; stored normal_work_receipt waiting. This heartbeat is the same task, not a second active owner."
     },
     "reviewer_thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
-    "last_consumed_review_message_id": "c64ae754-9306-452b-83ad-0d9233eef7cc",
-    "last_received_message_id": "c64ae754-9306-452b-83ad-0d9233eef7cc",
+    "last_consumed_review_message_id": "f2aebe0a-d1a8-4966-85d6-9a09625f453b",
+    "last_received_message_id": "f2aebe0a-d1a8-4966-85d6-9a09625f453b",
     "pending_user_intake_message_ids": [
       "ea61f25f-bebf-499a-81e9-029712a96f99",
       "bbb216f0-9194-45cf-acd6-504a9a55d40a"
@@ -221,7 +229,7 @@
       "local_tests": "Clean a757915/915,67.889s; installedChrome9/9 plus pure5/5 (14/14,40.385s), Edge9/9,51.564s; skip0;3builders no generated diff. Changed-quote390 image viewed. Initial dirty/runbook old marker failures and untracked artifact clean-gate failure retained; artifacts moved within workspace to existing governance, no deletions or suppressions.",
       "review_status": "APPROVE_RELEASE",
       "publication": "PAGES_PUBLISHED",
-      "next_action": "Report the preserved live failure and offline harness diagnosis with062 review packet; obtain Astra disposition on smallest remaining acceptance without re-requesting the unchanged018 product approval. Do not fabricate PUBLIC_VERIFIED or silently create another profile.",
+      "next_action": "Run the authorized single additional-profile corrected canary first; source019 supplemental disposition, not renewed018 or062 release approval.",
       "evidence": "docs/UI_COSMETICS_RELEASE_20260912.md",
       "review_send_attempts": 1,
       "review_packet": "docs/ASTRA_UI_COSMETICS_B1_REVIEW_20260912.md",
@@ -358,14 +366,40 @@
         "harness_issue": "REG-20260912-COSMETIC-CANARY-01",
         "offline_diagnosis": "docs/UI_COSMETICS_RELOAD_DIAGNOSIS_20260912.json",
         "scope": "Offline diagnosis is not replacement live proof. One-profile live bound is consumed; no unrecorded rerun."
+      },
+      "live_acceptance_followup": {
+        "state": "READY_BOUNDED_TEST",
+        "subject_sha": "a757c126e1325532bb11a719cf92d0d13401d3ae",
+        "spec_snapshot_sha": "12eb7874f69b5c707104de79a2b631ac55aff345",
+        "source_review_id": "CHATGPT-REVIEW-20260912-019",
+        "source_response_message_id": "f2aebe0a-d1a8-4966-85d6-9a09625f453b",
+        "source_request_message_id": "336393d6-5c0d-4294-810f-3a772f7b5bd6",
+        "source_quote": "公開製品`a757`を変えないまま、追加1プロフィールによる修正版canaryの一回再実行",
+        "bounds": {
+          "additional_profiles": 1,
+          "max_quizzes": 3,
+          "max_answers": 30,
+          "max_draws": 30,
+          "max_sale_actions": 30,
+          "matches": 0,
+          "deletions": 0,
+          "arbitrary_coin_grants": 0,
+          "real_money": 0,
+          "preserve_last_copy": true,
+          "preserve_protected_cards": true
+        },
+        "original_attempt": "docs/UI_COSMETICS_LIVE_20260912.json",
+        "retry_report": "docs/UI_COSMETICS_RETRY_LIVE_20260912.json",
+        "attempts_started": 0,
+        "scope": "Exact public preflight and3asset byte match before profile. One350 purchase/free equip/owned equip/reload/final4checks/3901280. Original failure stays immutable. Success only permits PUBLIC_VERIFIED. Independent of062 correction and docs/v9."
       }
     },
     "automation_id": "automation",
     "automation_status_at_recording": "ACTIVE",
-    "automation_readback_updated_at": 1789193994241,
+    "automation_readback_updated_at": 1789195504114,
     "automation_prompt_readback_equal": true,
     "automation_pause_reason": null,
-    "automation_active_reason": "Independent062 finite review waiting; same heartbeat will schedule separate NORMAL_WORK after receipt, no self-send.",
+    "automation_active_reason": "Separate normal-work run for explicit019 bounded061 acceptance then062 B1; no new review poll.",
     "completed_review_waits": [
       {
         "root_request_message_id": "8464f659-ad62-4c09-83d9-44e1cc91316b",
@@ -602,7 +636,7 @@
       "started_at_utc": "2026-09-12T06:05:12Z",
       "expires_at_utc": "2026-09-12T08:05:12Z",
       "start_basis": "Conservative send API receipt; successful bounded readback followed.",
-      "automatic_checks": 0,
+      "automatic_checks": 1,
       "max_automatic_checks": 3,
       "offset_minutes": [
         20,
@@ -615,13 +649,25 @@
       "confirmed_delivery_reminders": 0,
       "root_request_message_id": "336393d6-5c0d-4294-810f-3a772f7b5bd6",
       "subject_sha": "6f8aeab0cbdfe9e013541f5cf30e16c93fb18cd3",
-      "status": "review_pending",
-      "next_check_utc": "2026-09-12T06:25:12Z",
-      "remaining_scheduled_slots": 3,
+      "status": "review_received_closed",
+      "next_check_utc": null,
+      "remaining_scheduled_slots": 0,
       "delivery_readback_checks": 1,
       "delivery_matching_chars": 20000,
       "delivery_total_chars": 57256,
-      "consumed_slots_utc": []
+      "consumed_slots_utc": [
+        "2026-09-12T06:25:12Z"
+      ],
+      "check_receipts": [
+        {
+          "slot": "2026-09-12T06:25:12Z",
+          "kind": "bounded_recovery_receive_after_forwarded_intake",
+          "scheduled_execution_observed": false,
+          "reserved_before_read": true
+        }
+      ],
+      "response_message_id": "f2aebe0a-d1a8-4966-85d6-9a09625f453b",
+      "closed_at_utc": "2026-09-12T06:39:07Z"
     },
     "pending_review_subject": {
       "subject_sha": "6f8aeab0cbdfe9e013541f5cf30e16c93fb18cd3",
@@ -644,7 +690,7 @@
     "initial_interval_minutes": 20,
     "pending_subject_sha": "6f8aeab0cbdfe9e013541f5cf30e16c93fb18cd3",
     "pending_scope": "Pages_only",
-    "pending_delivery_status": "delivery_verified_response_pending",
+    "pending_delivery_status": "review_received",
     "last_confirmed_sent_message_id": "336393d6-5c0d-4294-810f-3a772f7b5bd6",
     "last_sent_message_id": "336393d6-5c0d-4294-810f-3a772f7b5bd6",
     "self_sent_message_ids": [
@@ -671,7 +717,7 @@
       "336393d6-5c0d-4294-810f-3a772f7b5bd6"
     ],
     "sent_at_utc": "2026-09-12T06:05:12Z",
-    "last_check_utc": "2026-09-12T02:09:26Z",
+    "last_check_utc": "2026-09-12T06:39:07Z",
     "unchanged_checks": 0,
     "reminder_count": 0,
     "max_reminders_per_request": 1,
@@ -1317,7 +1363,7 @@
         "UDL-20260912-062"
       ],
       "owner_thread_id": "01a07b56-616e-7733-9aae-90575659688e",
-      "state": "REVIEW_SENT_PENDING",
+      "state": "REVISION_REQUIRED_NOT_PUBLISHED",
       "branch": "codex/ui-player-copy-20260912",
       "worktree": ".codex-worktrees/ui-player-copy-20260912",
       "base_sha": "a757c126e1325532bb11a719cf92d0d13401d3ae",
@@ -1326,7 +1372,7 @@
       "spec_version": "UDL-062-copy-v1",
       "local_tests": "Clean6f8 917/917,58.010s; installedChrome6/6,31.806s; Edge6/6,29.484s; skip0;3builderszero generated diff. Includes061 stale-revision reload regression. Old77 full913/915 stale text failures preserved, fixed358640c and normalmerge6f8.",
       "publication": "NOT_RUN",
-      "review_status": "REVIEW_PENDING",
+      "review_status": "REQUEST_CHANGES",
       "parent_note": "061 a757 is now main/Pages with exact Windows/018, live acceptance partial due preserved harness failure. Never claim completed parent or reuse018 for062.",
       "spec_snapshot_sha": "9a3488f3b7e5d2c94666a64529a679bc863d8171",
       "windows_run": "34664375319",
@@ -1365,7 +1411,10 @@
       "delivery_full_body_verified": false,
       "scope": "Pages_only",
       "db_change_set": [],
-      "edge_change_set": []
+      "edge_change_set": [],
+      "review_id": "CHATGPT-REVIEW-20260912-019",
+      "review_response_message_id": "f2aebe0a-d1a8-4966-85d6-9a09625f453b",
+      "next_action": "Fix only the misleading no-adjacent-colour-count explanation and matching static test; preserve contact feedback and no-legal-colour-oracle behavior; new exact SHA/review, no additional UI scope."
     },
     "remaining_brain_work": {
       "source": {
@@ -1524,10 +1573,13 @@
       "checker": "scripts/check-commander-continuation.cjs",
       "tests": "tests/governance-commander-continuation.test.cjs",
       "next_run": {
-        "phase": "RECEIVE",
-        "subject_sha": "6f8aeab0cbdfe9e013541f5cf30e16c93fb18cd3",
-        "at_utc": "2026-09-12T06:25:12Z",
-        "request_message_id": "336393d6-5c0d-4294-810f-3a772f7b5bd6"
+        "phase": "NORMAL_WORK",
+        "subject_sha": "a757c126e1325532bb11a719cf92d0d13401d3ae",
+        "at_utc": "2026-09-12T06:50:00Z",
+        "action": "BOUNDED_LIVE_FOLLOWUP",
+        "source_review_id": "CHATGPT-REVIEW-20260912-019",
+        "not_before_utc": "2026-09-12T06:50:00Z",
+        "receipt_status": "API_AND_ACTUAL_SETTING_VERIFIED"
       },
       "first_scheduled_normal_run": {
         "status": "NOT_RUN",
@@ -1537,22 +1589,42 @@
         "id": "automation",
         "status": "ACTIVE",
         "target_thread_id": "01a07b56-616e-7733-9aae-90575659688e",
-        "rrule": "FREQ=DAILY;BYHOUR=15;BYMINUTE=25;BYSECOND=12",
-        "updated_at": 1789193994241,
+        "rrule": "FREQ=DAILY;BYHOUR=15;BYMINUTE=50;BYSECOND=0",
+        "updated_at": 1789195504114,
         "created_at": 1789048677730,
         "prompt_exact_equal": true,
+        "scheduled_for_utc": "2026-09-12T06:50:00Z",
         "readback_verified": true
       },
       "normal_work_claim": {
-        "state": "RELEASING_FOR_SCHEDULED_RECEIVE",
-        "source": "current explicit-user normal turn",
-        "next_run_must_not_edit_concurrently": true
+        "state": "RELEASED_TO_SEPARATELY_SCHEDULED_NORMAL_WORK",
+        "source_review_id": "CHATGPT-REVIEW-20260912-019"
       },
       "review_scope": "New user-authorized local continuation repair, not covered by old APPROVE_DOCS; fixed docs candidate will be separately reported.",
       "verification": {
-        "regression_tests": "40/40 PASS; skip0; duration634ms",
-        "old_paused_state_guard": "FAIL as expected: ORPHANED_ACTIONABLE_WORK + ACTUAL_EXISTING_SCHEDULE_READBACK_REQUIRED",
+        "regression_tests": "42/42 PASS; skip0;638.46ms",
+        "old_paused_state_guard": "Previously reproduced ORPHANED_ACTIONABLE_WORK; now also rejects past/under2minute calendar reservations and schedule-time mismatch.",
         "actual_scheduler_execution": "NOT_RUN"
+      },
+      "current_run": {
+        "phase": "RECEIVE",
+        "origin": "forwarded_v9_intake_message",
+        "turn_id": "01a09454-7d62-7530-91c9-9144a7ac0785",
+        "actual_scheduled_run": false,
+        "state": "RECEIVE_COMPLETED_NO_PRODUCT_ACTION"
+      },
+      "missed_schedule_observation": {
+        "scheduled_at_utc": "2026-09-12T06:25:12Z",
+        "previous_turn_completed_at_utc": "2026-09-12T06:25:13Z",
+        "next_observed_turn_origin": "forwarded_v9_intake",
+        "next_turn_started_at_utc": "2026-09-12T06:36:00Z",
+        "cause": "NOT_PROVEN_TIMING_OVERLAP_OBSERVED",
+        "no_burst_retry": true
+      },
+      "documentation_review_followup": {
+        "state": "PREPARED_NOT_SENT",
+        "initial_candidate": "5f3cd0fe6b4fb62ce4c5c46a1c8a833a3af2640b",
+        "note": "Missed-slot guard followup changes candidate. Final exact commit must be reported in normal work; not a game gate."
       }
     }
   },
@@ -2045,6 +2117,31 @@
       },
       "recorded_at_utc": "2026-09-12T02:09:26Z",
       "notes": "Genuine completed pair fetched once in the original final100-minute slot. Review017 B1 resolved. Astra observed Windows still in progress at its review time; existing later Windows SUCCESS evidence must be checked by normal commander before release. No game publication or test suite run by this receiver."
+    },
+    {
+      "subject_sha": "6f8aeab0cbdfe9e013541f5cf30e16c93fb18cd3",
+      "base_sha": "a757c126e1325532bb11a719cf92d0d13401d3ae",
+      "canon_version": "shared-canon-v1.1",
+      "feature_spec_version": "UDL-062-copy-v1",
+      "spec_snapshot_sha": "9a3488f3b7e5d2c94666a64529a679bc863d8171",
+      "review_kind": "game_production_release_approval",
+      "scope": "Pages_only",
+      "db_change_set": [],
+      "edge_change_set": [],
+      "review_id": "CHATGPT-REVIEW-20260912-019",
+      "decision": "REQUEST_CHANGES",
+      "spec_snapshot_kind": "git_blob:docs/UI_PLAYER_COPY_20260912.md",
+      "source": {
+        "kind": "chatgpt",
+        "thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
+        "request_message_id": "336393d6-5c0d-4294-810f-3a772f7b5bd6",
+        "message_id": "f2aebe0a-d1a8-4966-85d6-9a09625f453b",
+        "request_body_equality": false,
+        "request_prefix_matching_chars": 20000,
+        "response_text": "## DECISION\n**REQUEST_CHANGES**\n\n**062は文言と対応テストの局所修正が1点必要です。別件の061については、修正版canaryを追加1プロフィールで一度だけ実行する受入補完を承認します。** 両者の判定は分けて保存してください。\n\n## SUBJECT_SHA\n`6f8aeab0cbdfe9e013541f5cf30e16c93fb18cd3`\n\n## BLOCKERS\n**B1 — 今回書き換えた説明が、既存の「選択中の接色演出」と矛盾し、その誤説明を新設テストで固定しています。**\n\n`index.html`にある次の文言です。\n\n> エリアを確定する前は、隣接色の数や塗れる色の答えは表示しません。\n\n一方、同じ固定候補では、マスの選択・解除時に`presentSelectedContactChange()`を呼んでいます。既存テストも、**選択した本人に2色・3色・4色の接触を知らせ、必要マス数の選択完了まで待たない**動作を保護しています。「接色数を知らせる」と「どの色なら塗れるかを教える」は別です。\n\nこれは以前の説明にも含まれていた不整合ですが、今回の`standard-player-copy-static.test.cjs`で、そのまま必須文言にするのは避けてください。**演出を誤説明に合わせて消すのではなく、説明とその固定文字列テストだけを直します。** \n\n置換は、例えば次の短文で十分です。\n\n> **同じ色が辺で接しないように塗りましょう。直前の操作は「直前の一手」で確認できます。**\n\n接色演出・合法色を先回りで教えない境界・操作処理は変更不要です。文言整理全体や未着の要望まで追加せず、**この説明と対応テストの修正後、新しい固定SHA・差分・検証結果を提出してください。**\n\n## NOTES\n\n### 062の確認範囲とCI\n\n対象はBASE `a757c126e1325532bb11a719cf92d0d13401d3ae`からの本候補、**`shared-canon-v1.1`／`UDL-062-copy-v1`／`Pages_only`／DB・Edge各`[]`**です。仕様blobは提出値`9a3488f3b7e5d2c94666a64529a679bc863d8171`と一致しています。接続・復帰を平易な言葉にし、診断を任意表示にする設計方針自体は妥当です。\n\n**Windows `34664375319`は、本候補SHAのChrome／Edge両jobが`completed / success`であることを確認しました。今回の差戻しはCI失敗によるものではありません。** ローカル917/917・各6/6はCodexの実施報告として受領し、こちらでは再実行していません。\n\n### 061の残る公開後照合：追加1回を進めてください\n\n固定公開報告と修正canaryを確認しました。元の試行では購入・装備切替まで確認できていますが、**reload後の最終server等価、3件のACK集計、操作allowlist、console確認は未実行**です。これらを、offline診断の7/7で代替しない整理で合っています。\n\nまた、記録では旧試験の認証情報を保存せず、セッションを閉じています。そのため、今回は旧プロフィールの復元を追い続けず、**公開製品`a757`を変えないまま、追加1プロフィールによる修正版canaryの一回再実行**を受入補完として認めます。018の製品承認をやり直すものではありません。\n\n実行範囲は次に固定します。\n\n- **プロフィール作成前に**、公開preflightとHTML・app36・intent module2の厳密byte一致を再確認する。\n- **追加プロフィールは1件だけ。** この再試行の資金準備は最大3クイズ・30回答・30抽選と必要な余剰売却まで。最後の1枚・保護カードを維持し、不足なら停止する。\n- 黄金名札350の単回購入、無料装備への切替、所有済み再装備、reloadに続けて、**残る4項目と画面確認まで実行・記録**する。新対局・実通貨・任意コイン付与・DB直書き・既存ユーザー操作・削除は行わない。\n\n修正canaryは、**購入直後には商品内の成功表示を要求し、reload後には装備状態を要求する一方、過去の一時的な成功メッセージの再演は要求しない**構造になっています。この修正は適切です。\n\n元の失敗JSONを上書きせず、再試行は別の証拠として保存してください。プロフィール数は**旧1件＋追加1件＝累計2件**と記録し、再試行成功時にだけ061を`PUBLIC_VERIFIED`へ進めます。失敗時も、取得できた事実と未実行項目を分けます。\n\n**061の受入補完は、062のB1修正・運用文書レビュー・v9の受渡しを待たずに進めてください。** 062の公開は修正後の固定候補レビューで判断します。閉じた061の待機予算を再開する必要はなく、今回の判定を将来の別候補へ流用しない扱いです。"
+      },
+      "recorded_at_utc": "2026-09-12T06:39:07Z",
+      "notes": "Completed genuine response read once during recovery of the missed first scheduled slot.062 B1 requires copy/static-test correction only;061 additional1-profile acceptance permission is separately bound in active_slice.live_acceptance_followup. No silence approval."
     }
   ]
 }

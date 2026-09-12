@@ -1,5 +1,21 @@
 # Commander continuation repair — 2026-09-12
 
+## Followup receipt after the first calendar slot
+
+The previous turn01a09434-bf57-73f2-8432-d2902d7be15b completed at06:25:13Z, one second after the06:25:12Z reservation. At06:36 the next observed turn01a09454-7d62-7530-91c9-9144a7ac0785 was started by the existing v9 transfer owner's message, not an observed scheduled run. Timing overlap is confirmed; internal scheduler causation is **not proven**. The previous setting readback was real but is not evidence of successful execution.
+
+The end-turn guard now also rejects a past/less-than-two-minute reservation and a mismatch between the actual saved schedule time and the next phase. Normal-work reservations use at least five minutes of lead time; fixed review slots are never shifted to create this margin. Related tests after this correction: **42/42 PASS**, skip0,638.46ms.
+
+During this RECEIVE recovery turn, the original20-minute slot was conservatively reserved as check1 before one bounded read. Genuine completed Astra response **f2aebe0a-d1a8-4966-85d6-9a09625f453b** to request336393d6 was obtained in full, stored as019. No supplement or resend. The original062 deadline08:05:12Z is preserved, wait closed and remaining automatic slots0; candidate revision must not reset that logical budget.
+
+- 062/6f8: **REQUEST_CHANGES**, not release approval. Fix only the misleading explanation claiming adjacent-colour count is hidden and its static text test. Preserve the existing local selected-contact effect and the no-legal-colour-oracle boundary; submit a new exact candidate and verification.
+- 061/a757: separately **authorized one additional isolated-profile corrected canary attempt**. Preserve the failed original report, preflight/3asset bytes before signup, bounded funding, final4checks and390/1280. No product changes or additional user permission wait. Active slice contains source019 and the exact limits. No additional profile has been created by this receiver.
+- v9: existing transfer owner's actual message received; direct card requestbbb21b41 / design544402ae and information-diet userbbb21143 were appended as provenance to existing coordination. ZIP remains unverified. The owner's later memo edits remain preserved.
+
+The same automation was updated to **NORMAL_WORK at15:50 JST**. API returnedACTIVE; saved setting confirms full prompt equality, same ID/target/created_at and updated_at1789195504114. The next step is actual061 acceptance, then062 B1, not another review-only turn. **Separately scheduled normal execution remains NOT_RUN until that actual later receipt.** This recovery RECEIVE did not perform game tests or production mutations. The end-turn check must pass with at least two minutes remaining before this turn ends.
+
+The initial5f3cd0f governance commit was pushed and exact remote readback confirmed. This followup is a later, separately reviewable change; it is not retrospectively approved by any old documentation review. Product work is not blocked on its review.
+
 Regression: REG-20260912-SELF-HANDOFF-01
 Operation: commander-continuation-v1
 Authority: the user's direct request in existing commander task 01a07b56-616e-7733-9aae-90575659688e, 「作業を再開し、また、このような不毛な停止が起きないように再発防止策を施してください」.

@@ -8,7 +8,7 @@
 
 - 定期実行は既存ID `automation` の1本、司令塔も既存タスク1件のまま。新しい連携基盤は作らない。`coordination.continuation` は既存キューを参照する次回起動メタデータであり、別の要望台帳や作業キューではない。
 - 起動時のphaseを固定する。`RECEIVE` は有限取得・真の出典保存・既存キュー反映まで。`NORMAL_WORK` はその後の**別の実際の定期起動**で既存司令塔が実装・公開前ゲート・公開後確認を進める。RECEIVEの途中でNORMAL_WORKへ読み替えない。ユーザーから直接再開された通常turnは通常作業である。
-- 受信して承認済み未公開やREQUEST_CHANGESが残れば、待機予算を閉じても全体をPAUSEDにしない。次回のNORMAL_WORKを約1分後に同じheartbeatへ予約し、APIと保存設定を読戻して当該受信turnを終える。同じactiveタスクへのsend_message_to_threadは再開手段に使わない。
+- 受信して承認済み未公開やREQUEST_CHANGESが残れば、待機予算を閉じても全体をPAUSEDにしない。次回のNORMAL_WORKは通常5分以上先へ同じheartbeatで予約し、APIと保存設定を読戻して当該受信turnを終える。最終チェック時に最低2分の余裕を要求する。同じactiveタスクへのsend_message_to_threadは再開手段に使わない。
 - 読取専用 `scripts/check-commander-continuation.cjs` が既存active/preparing slice、実レビュー出典、完全SHA・base・仕様・DB/Edgeを照合する。未送信の準備済み候補は「返事待ち」でなくSEND_REVIEW。未回答を承認にしない。この補助はレビューの真正性確認・公開ゲート・本番操作そのものを代行しない。
 - 各turnの開始と終了で補助を実行し、終了時は `--end-turn` を使う。進行可能な作業／有限レビュー待ちと実PAUSED設定の組合せをエラーにする。phase・候補・次回時刻・同じtargetの実設定読戻しが必要。別ownerが実行中なら同時編集せず、そのownerの終了処理に任せる。予約済みphaseを同じ進行中turnへ割込入力として受けた場合は実起動済みにせず、現在ownerが安全に終了してからの次回へ予約する。
 - NORMAL_WORK起動では既存スライスの状態と外部証拠を再照合し、開始receiptを保存する。前回のclaimが残っていても自動的に未実行と決めず、git/Pages/保存結果を先に読む。再起動で同じ公開や売買を無条件に再実行しない。

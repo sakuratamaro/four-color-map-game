@@ -1,4 +1,6 @@
-# UDL062 review packet — SENT, response pending
+# UDL062 review packet — SENT, REQUEST_CHANGES received
+
+受信追記: 実返答f2aebe0a-d1a8-4966-85d6-9a09625f453bを019へ全文保存。062/6f8は「隣接色の数を確定前に表示しない」という誤説明とstatic text testの局所修正が必要。接色演出・操作・合法色oracle非公開境界は変更しない。新候補で再レビュー、元の論理待機期限をリセットしない。同返答の061追加1profileによる受入補完は別判定としてactive_sliceへ固定し、実行は次の通常作業で行う。以下の送信時packetと証拠を保持する。
 
 SUBJECT_SHA: 6f8aeab0cbdfe9e013541f5cf30e16c93fb18cd3
 BASE_SHA: a757c126e1325532bb11a719cf92d0d13401d3ae

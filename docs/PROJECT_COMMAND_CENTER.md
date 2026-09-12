@@ -8,6 +8,8 @@
 
 ## 司令塔ルール
 
+2026-09-12 15:39JST受信: 実Astra019（返答f2aebe0a）を原062予算の初回枠として1回取得。062/6f8は接色の説明文・対応static testだけのREQUEST_CHANGES。061/a757は別判定として追加1profileの修正canary一回を承認、まだ追加実行0。v9中継は既存担当から実送達を受領し出典IDを統合、ZIP未検証。15:25予約と前turn終了が重なり別自動起動は未観測だったため、終了時に過去／直前予約を拒否する回帰チェックを追加。既存heartbeatは15:50のNORMAL_WORKへ実設定・読戻し済み。受信処理は製品や本番を変更していない。
+
 2026-09-12 再開・再発防止: 最新の直接ユーザー指示で通常司令塔が再開。062/6f8の全15file差分レビューを実message336393d6へ送達し、元の061公開後検証の残件も併記。REG-20260912-SELF-HANDOFF-01は「自分宛て送信を別worker起動と誤認し、唯一のheartbeatを停止した」が原因。既存1本のRECEIVE→別実起動NORMAL_WORKへ変更し、進行可能な作業とPAUSEDの組合せを終了時の実行チェックで拒否する。適用・検証・未観測の実予約起動はCOMMANDER_CONTINUATION_REPAIR_20260912.md。v9完成投稿と既存搬送メモは受領したがZIPは未取得、検証済みZIPはv8のまま。以下の過去snapshotは最新状態ではない。
 
 2026-09-12 通常作業で司令塔本人が061/a757をmain・Pagesへ公開した（実018、Windows34663861170、Pages34671793635、公開byte一致/preflight PASS）。状態はPAGES_PUBLISHED / LIVE_ACCEPTANCE_PARTIAL。黄金名札の単回購入・無料/所有済み再装備・390/1280表示は実測、reload装備中まで観測。成功メッセージの残存を誤要求したharness失敗を保存し、offline原因確認・harnessのみ修正。最終server照合等は未実行、追加profile0。自己送信を別worker起動と誤認した前回引継ぎは無効、公開責任者はこの既存タスクのまま。旧061待機は閉鎖・実automation PAUSED、062レビューは別件。詳細UI_COSMETICS_RELEASE_20260912.md。下記は過去snapshot。

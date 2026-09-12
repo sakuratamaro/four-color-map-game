@@ -42,7 +42,19 @@ test("review receipt schedules a distinct normal run, never a self-send or autom
   assert.ok(endOfTurnIssues(plan,continuation,{status:"PAUSED"}).includes("ORPHANED_ACTIONABLE_WORK"));
   assert.ok(endOfTurnIssues(plan,continuation,{status:"PAUSED"}).includes("NO_SELF_SEND_OR_NEW_CONTROLLER"));
   continuation.resume_transport="existing_heartbeat_next_run";
-  assert.deepEqual(endOfTurnIssues(plan,continuation,{id:"automation",status:"ACTIVE",readback_verified:true,target_thread_id:OWNER}),[]);
+  assert.deepEqual(endOfTurnIssues(plan,continuation,{id:"automation",status:"ACTIVE",readback_verified:true,
+    target_thread_id:OWNER,scheduled_for_utc:"2026-09-12T00:22:00Z"},{now:"2026-09-12T00:19:00Z"}),[]);
+});
+test("an ACTIVE calendar reservation cannot pass after its slot or just before the current turn ends",()=>{
+  const log=fixture(),plan=planContinuation(log,{now:"2026-09-12T00:19:00Z"});
+  const continuation={resume_transport:"existing_heartbeat_next_run",next_run:{phase:"RECEIVE",
+    subject_sha:plan.subject_sha,at_utc:"2026-09-12T00:20:00Z"}};
+  const automation={id:"automation",status:"ACTIVE",readback_verified:true,target_thread_id:OWNER,
+    scheduled_for_utc:"2026-09-12T00:20:00Z"};
+  for(const now of ["2026-09-12T00:19:00Z","2026-09-12T00:20:01Z"])
+    assert.ok(endOfTurnIssues(plan,continuation,automation,{now}).includes("NEXT_RUN_MUST_HAVE_TWO_MINUTE_END_TURN_MARGIN"));
+  automation.scheduled_for_utc="2026-09-13T00:20:00Z";
+  assert.ok(endOfTurnIssues(plan,continuation,automation,{now:"2026-09-12T00:10:00Z"}).includes("ACTUAL_SCHEDULE_TIME_MISMATCH"));
 });
 test("wrong SHA, source, spec or change set cannot route to release",()=>{
   for(const patch of [
