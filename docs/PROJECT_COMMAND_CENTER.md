@@ -2,6 +2,8 @@
 
 更新日: 2026-09-12
 
+2026-09-13 04:36JST 追記: 067結果は実依頼5e34d880へ5584字全文送達確認済み、返答未取得・追加読取なし。元liveFAIL/未検証は維持。CPU22bは局所50PASSの後、clean全143非browser files952/954・2FAIL（63814.9415ms、skip0）。新local bundleと旧cache markerの不一致を検出し、docs/CPU_SPLIT_FULL_TEST_20260913.mdに原失敗を保全。安全なEdge段階配備・SQL実検証と最終cache修正・全ゲートへ続行、未公開。通常作業予約は同じheartbeatを04:45JSTへ更新・全文設定読戻し済み、067原待機は閉鎖のまま。共有正本12filesの検査101/101PASS。以下は時点別の履歴。
+
 2026-09-13 04:15JST 現行: v13照合済み。067/f507は実Astra034のAPPROVE_RELEASEとWindows両最終SUCCESSを受け、既存司令塔がmain/Pages34712742032へ公開。fresh preflight・4asset厳密byte一致。限定liveは30checksと独立3監査PASS・一度の敗北精算確認、390/1280目視済み。ただし終局後initializeを使う検証側の契約不一致がありrawFAIL、reload/独立終局snapshotは未完。原1profile/レイ1枠を消費、追加試行なし・PUBLIC_VERIFIEDへ過大昇格しない。14局所検査でsnapshot-v2読取へ検証側を修正し、元失敗を保持してAstraへ報告する。CPU051F3は独立22b7650に実装し、f507通常merge後clean50/50PASS、SQL実検証・安全なEdge有効化・全ゲートが後続。旧11policyとQuick互換を保持、F1/F2/画像・人物設定は残件。原067自動読取3/3は閉鎖し、同じ1本のheartbeatで独立CPUの通常作業を継続する。以下は履歴。
 
 2026-09-13 03:38JST 現行: 頭脳v13受領・照合済み、065/9515入口/066図鑑は公開受入済み。067旧231への実033は条件付き承認だが、Windows34708897042はEdge既存メモ1件FAIL。定期対局同期の同一問題DOM再生成REG-UDL048-ROOM-SYNCを実再現・修正し、新f507c0b（仕様v1.1/blob1e7e2a4c）はclean937/937、Chrome13/13・Edge13/13、専用branch push、Windows34710997698のChrome103599654218・Edge103599654373とも最終SUCCESS。全差分24099字の新レビュー送信APIは受理、2回の送達確認予約後も旧033turn/active表示で新message ID未確認。再送せず、原067予算2/3・最終18:55:08Z・期限19:15:08Zに既存heartbeatを実ACTIVE設定・全文読戻し一致。旧承認流用・main変更・067live試験はなし。証拠docs/ASTRA_SURRENDER_B2_REVIEW_20260913.md。CPU051は現main2fcから独立cpu-split-rescue床を作り、旧対局互換とDB policy helperの厳密版照合を含む実装境界を準備（製品修正はまだNOT_RUN）。以下は履歴。

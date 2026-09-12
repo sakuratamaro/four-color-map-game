@@ -2418,11 +2418,12 @@
         "state": "LOCAL_IMPLEMENTED_COMPATIBILITY_PENDING",
         "spec_path": "docs/CPU_SPLIT_RESCUE_20260913.md",
         "evidence": "Baseline threeblob equalityconfirmed; freshmain2fc; exactDBpolicy helperrequiresreviewedadditiveSQL before newpolicy version, notPages_only.",
-        "next_action": "Validate isolated SQL and compatibility-first Edge activation, preserve legacy; add exact dedicated branch trigger, freeze current-main candidate and fulltests/Windows/Astra before DB/Edge/main. F1/F2/artwork separate.",
+        "next_action": "Resolve staged compatibility/isolatedSQL; bind final rebuilt local bundle cache marker (full22b952/954 failed2); exact branch trigger, fullclean rerun/Windows/fixedCPU Astra before DB/Edge/main. F1/F2/artwork separate.",
         "publication": "NOT_RUN",
         "checkpoint_sha": "22b7650f82ec3cb5b38962c44032cbd566db6f81",
         "implementation_commit": "5cf9da5",
-        "verification": "clean22b focus50/50PASS3463.1007ms;skip0. SQL source/model only; PostgreSQL runtimeNOT_RUN."
+        "verification": "Focused clean22b50/50PASS3463.1007ms; laterfull143files952/954PASS2FAIL63814.9415ms skip0, cached localbundle hash contract. SQL source/model only, PostgreSQL runtimeNOT_RUN.",
+        "full_test_evidence": "docs/CPU_SPLIT_FULL_TEST_20260913.md"
       }
     },
     "preparing_next_slice": {
@@ -2544,19 +2545,39 @@
         "harness_fix": "Post-attempt only: own snapshot-v2 replaces repeat initialize;14localtestsPASS190.7878ms;NOT_RUNlive."
       },
       "publication_outcome_report": {
-        "state": "RESERVED_BEFORE_SEND",
+        "state": "DELIVERED_FULL_BODY_REVIEW_NOT_YET_RECEIVED",
         "destination_thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
         "subject_sha": "f507c0b2dd9701f3ac1867131150b5e48d0ada8d",
         "source_review_id": "CHATGPT-REVIEW-20260913-034",
         "send_attempts": 1,
         "reserved_before_api": true,
-        "delivery_checks": 0,
+        "delivery_checks": 2,
         "max_delivery_checks": 2,
         "new_polling_budget": false,
         "additional_profiles_authorized": false,
         "raw_report": "docs/SURRENDER_LIVE_20260913.json",
         "evidence_report": "docs/SURRENDER_RELEASE_20260913.md",
-        "next_action": "Send one evidence-pinned publication/partial-acceptance report, bounded delivery only; continueCPU without067automaticwait."
+        "next_action": "Send one evidence-pinned publication/partial-acceptance report, bounded delivery only; continueCPU without067automaticwait.",
+        "sent_at_utc": "2026-09-12T19:30:27Z",
+        "evidence_sha": "3c0f82163121f3582e67dd8158afa5fae5ad8661",
+        "packet_path": "docs/ASTRA_SURRENDER_OUTCOME_20260913.md",
+        "body_characters": 5584,
+        "first_delivery_check_reserved_before_api": true,
+        "first_delivery_result": "Read1 returned old completed034 pair while ChatGPT active; current5584-character outcome not yet visible. No invented request ID.",
+        "link_erratum": {
+          "state": "SEND_REJECTED_ALREADY_RESPONDING_NOT_DELIVERED",
+          "messages": 1,
+          "reason": "One secondary preflight URL omitted RELEASE from its filename; primary pinned report/raw/compare links unchanged. Correct only the URL, no duplicate report or new review budget.",
+          "correct_file": "docs/SURRENDER_RELEASE_PREFLIGHT_20260913.json",
+          "response": "Chat6aa229e7-e098-83ee-ac5e-d366a12653a4 is already responding.",
+          "next_action": "No immediate retry; preserve exact correction in report and include in the next otherwise-authorized substantive message if needed."
+        },
+        "second_delivery_check_reserved_before_api": true,
+        "request_message_id": "5e34d880-725b-4e60-a263-14605137f473",
+        "delivery_full_body_verified": true,
+        "verified_characters": 5584,
+        "delivery_result": "Second and final delivery read confirmed exact5584characters, current request user-only while ChatGPT active. Not a completed review; no third delivery read or closed067poll.",
+        "review_response_observed": false
       }
     },
     "remaining_brain_work": {
@@ -2841,7 +2862,7 @@
       "tests": "tests/governance-commander-continuation.test.cjs",
       "next_run": {
         "phase": "NORMAL_WORK",
-        "at_utc": "2026-09-12T19:40:00Z",
+        "at_utc": "2026-09-12T19:45:00Z",
         "subject_sha": "22b7650f82ec3cb5b38962c44032cbd566db6f81",
         "reason": "Adopted ownedCPU compatibility/validation is actionable independently of closed067 acceptance. No new old067poll/trial."
       },
@@ -2861,11 +2882,11 @@
         "id": "automation",
         "status": "ACTIVE",
         "target_thread_id": "01a07b56-616e-7733-9aae-90575659688e",
-        "rrule": "FREQ=DAILY;BYHOUR=4;BYMINUTE=40;BYSECOND=0",
-        "updated_at": 1789240950857,
+        "rrule": "FREQ=DAILY;BYHOUR=4;BYMINUTE=45;BYSECOND=0",
+        "updated_at": 1789241844428,
         "created_at": 1789048677730,
         "prompt_exact_equal": true,
-        "scheduled_for_utc": "2026-09-12T19:40:00Z",
+        "scheduled_for_utc": "2026-09-12T19:45:00Z",
         "readback_verified": true
       },
       "normal_work_claim": {
@@ -2939,12 +2960,12 @@
       },
       "end_turn_guard": {
         "status": "PASS",
-        "checked_at_utc": "2026-09-12T19:24:00Z",
+        "checked_at_utc": "2026-09-12T19:37:39Z",
         "plan": "CONTINUE_INDEPENDENT_IMPLEMENTATION",
-        "next_run_utc": "2026-09-12T19:40:00Z",
+        "next_run_utc": "2026-09-12T19:45:00Z",
         "subject_sha": "22b7650f82ec3cb5b38962c44032cbd566db6f81",
         "errors": [],
-        "note": "Will run checker again after outcome delivery; configuration is not scheduler execution."
+        "configuration_is_execution": false
       },
       "latest_receive_schedule_observation": {
         "scheduled_at_utc": "2026-09-12T07:45:12Z",
@@ -3074,7 +3095,8 @@
           "genuine034samef507releaseapproved",
           "forcefreemainf507/Pages34712742032success/preflight/fourbytes",
           "one067profileReitrial30checks3finalauditsPASSsettlementtrue/rawFAILpreserved;390/1280visuallyinspected",
-          "terminalreadharnesscontractdiagnosedandfixedoffline14PASS;noextraquota"
+          "terminalreadharnesscontractdiagnosedandfixedoffline14PASS;noextraquota",
+          "CPU clean22bfull143files952/954FAIL2 cache contract; raw failure retained for next compatibility/marker repair"
         ],
         "actual_goal_status": "active"
       }
