@@ -112,6 +112,86 @@ test("finished work pauses without another model loop; blocked goal label is not
   const plan=planContinuation(log);assert.equal(plan.phase,"STOP");
   assert.ok(endOfTurnIssues(plan,{resume_transport:"existing_heartbeat_next_run"},{status:"ACTIVE"}).includes("PAUSE_WHEN_NO_ELIGIBLE_WORK"));
 });
+
+function waitingCiFixture(){
+  const log=fixture();approve(log);
+  log.decisions[0].recorded_at_utc="2026-09-12T00:00:00Z";
+  const s=log.coordination.active_slice;s.windows_status="IN_PROGRESS";s.windows_run="12345";
+  return log;
+}
+test("approved unpublished CI in progress remains normal work, never an idle stop",()=>{
+  const log=waitingCiFixture(),before=JSON.stringify(log);
+  const plan=planContinuation(log,{now:"2026-09-12T00:01:00Z"});
+  assert.equal(plan.phase,"NORMAL_WORK");assert.equal(plan.action,"CHECK_CI");
+  assert.equal(plan.run_id,"12345");assert.equal(plan.at_utc,"2026-09-12T00:05:00.000Z");
+  assert.equal(plan.ci_budget.expires_at_utc,"2026-09-12T01:00:00.000Z");
+  assert.equal(plan.ci_budget.max_checks,3);assert.equal(JSON.stringify(log),before);
+  const continuation={resume_transport:"existing_heartbeat_next_run",next_run:{phase:"NORMAL_WORK",subject_sha:plan.subject_sha,at_utc:plan.at_utc}};
+  assert.ok(endOfTurnIssues(plan,continuation,{status:"PAUSED"},{now:"2026-09-12T00:01:00Z"}).includes("ORPHANED_ACTIONABLE_WORK"));
+  assert.ok(endOfTurnIssues(plan,continuation,{status:"ACTIVE"},{now:"2026-09-12T00:01:00Z"}).includes("CI_BUDGET_MUST_BE_SAVED_BEFORE_END"));
+  log.coordination.active_slice.ci_followup=plan.ci_budget;
+  const saved=planContinuation(log,{now:"2026-09-12T00:01:00Z"});
+  assert.deepEqual(endOfTurnIssues(saved,continuation,{id:"automation",status:"ACTIVE",target_thread_id:OWNER,
+    readback_verified:true,scheduled_for_utc:plan.at_utc},{now:"2026-09-12T00:01:00Z"}),[]);
+  log.coordination.active_slice.windows_status="SUCCESS";
+  assert.equal(planContinuation(log,{now:"2026-09-12T00:06:00Z"}).action,"RELEASE_CHECKS");
+  assert.equal(log.coordination.wait_budget.status,"review_received_closed");
+});
+test("CI check slots and deadline do not reset across restart or missing a slot",()=>{
+  const log=waitingCiFixture(),s=log.coordination.active_slice;
+  s.ci_followup=planContinuation(log,{now:"2026-09-12T00:01:00Z"}).ci_budget;
+  assert.equal(planContinuation(log,{now:"2026-09-12T00:30:00Z"}).at_utc,"2026-09-12T00:20:00.000Z");
+  s.ci_followup.consumed_slots_utc=["2026-09-12T00:20:00.000Z"];
+  const plan=planContinuation(log,{now:"2026-09-12T00:31:00Z"});
+  assert.equal(plan.at_utc,"2026-09-12T00:50:00.000Z");
+  assert.equal(plan.ci_budget.started_at_utc,"2026-09-12T00:00:00.000Z");
+  assert.equal(plan.ci_budget.expires_at_utc,"2026-09-12T01:00:00.000Z");
+  const continuation={resume_transport:"existing_heartbeat_next_run",next_run:{phase:"NORMAL_WORK",subject_sha:plan.subject_sha,at_utc:"2026-09-12T00:55:00Z"}};
+  assert.ok(endOfTurnIssues(plan,continuation,{status:"ACTIVE"},{now:"2026-09-12T00:31:00Z"}).includes("CI_SLOT_MUST_NOT_MOVE"));
+});
+test("failed, exhausted or expired CI moves to one diagnosis, not endless result checks",()=>{
+  for(const scenario of ["failure","exhausted","expired"]){
+    const log=waitingCiFixture(),s=log.coordination.active_slice;
+    s.ci_followup=planContinuation(log,{now:"2026-09-12T00:01:00Z"}).ci_budget;
+    if(scenario==="failure")s.windows_status="FAILURE";
+    if(scenario==="exhausted")s.ci_followup.consumed_slots_utc=["2026-09-12T00:05:00.000Z","2026-09-12T00:20:00.000Z","2026-09-12T00:50:00.000Z"];
+    const now=scenario==="expired"?"2026-09-12T01:00:00Z":"2026-09-12T00:51:00Z";
+    const plan=planContinuation(log,{now});assert.equal(plan.action,"INVESTIGATE_CI");assert.equal(plan.phase,"NORMAL_WORK");
+    s.ci_followup.investigation={subject_sha:s.candidate_sha,run_id:s.windows_run,reason:plan.reason,status:"RECORDED"};
+    const held=planContinuation(log,{now});assert.equal(held.phase,"STOP");assert.match(held.reason,/CI_.*_RECORDED/);
+    assert.equal(log.coordination.wait_budget.status,"review_received_closed");
+  }
+});
+test("CI budget rejects changed run, anchor, expiry and duplicate consumed slots",()=>{
+  for(const patch of [{run_id:"67890"},{started_at_utc:"2026-09-12T00:01:00Z"},{expires_at_utc:"2026-09-12T02:00:00Z"},
+    {consumed_slots_utc:["2026-09-12T00:05:00.000Z","2026-09-12T00:05:00.000Z"]},{max_checks:4}]){
+    const log=waitingCiFixture(),s=log.coordination.active_slice;
+    s.ci_followup={...planContinuation(log,{now:"2026-09-12T00:01:00Z"}).ci_budget,...patch};
+    assert.equal(planContinuation(log,{now:"2026-09-12T00:02:00Z"}).action,"INVESTIGATE_CI");
+  }
+  const log=waitingCiFixture();delete log.coordination.active_slice.windows_run;
+  assert.equal(planContinuation(log,{now:"2026-09-12T00:02:00Z"}).reason,"CI_RUN_BINDING_MISSING");
+});
+
+test("receive-only work may skip a missed CI slot without inventing a check or shifting the deadline",()=>{
+  const log=waitingCiFixture(),s=log.coordination.active_slice;
+  s.ci_followup=planContinuation(log,{now:"2026-09-12T00:01:00Z"}).ci_budget;
+  s.ci_followup.skipped_slots_utc=["2026-09-12T00:05:00.000Z"];
+  const plan=planContinuation(log,{now:"2026-09-12T00:10:00Z"});
+  assert.equal(plan.at_utc,"2026-09-12T00:20:00.000Z");assert.equal(plan.ci_budget.consumed_slots_utc.length,0);
+  assert.equal(plan.ci_budget.expires_at_utc,"2026-09-12T01:00:00.000Z");
+});
+
+test("a recorded CI hold does not orphan another ready existing slice",()=>{
+  const log=waitingCiFixture(),s=log.coordination.active_slice;
+  s.ci_followup=planContinuation(log,{now:"2026-09-12T00:01:00Z"}).ci_budget;s.windows_status="FAILURE";
+  const held=planContinuation(log,{now:"2026-09-12T00:10:00Z"});
+  s.ci_followup.investigation={subject_sha:s.candidate_sha,run_id:s.windows_run,reason:held.reason,status:"RECORDED"};
+  log.coordination.preparing_next_slice={owner_thread_id:OWNER,candidate_sha:"e".repeat(40),
+    review_send_attempts:0,review_status:"NOT_SENT",windows_status:"SUCCESS",push_status:"PUSHED_EXACT_BRANCH"};
+  assert.equal(planContinuation(log,{now:"2026-09-12T00:10:00Z"}).action,"SEND_REVIEW");
+});
+
 test("repository routing uses one automation and records actual execution separately from configuration",()=>{
   const c=JSON.parse(fs.readFileSync(path.join(__dirname,"../docs/CHATGPT_REVIEW_DECISIONS.json"),"utf8")).coordination;
   assert.equal(c.continuation.resume_transport,"existing_heartbeat_next_run");

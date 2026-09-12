@@ -44,11 +44,49 @@ function pendingBinding(c) {
     (c.self_sent_message_ids || []).includes(request);
 }
 
+// Same-run CI continuation is metadata on the existing slice, not a second queue.
+function pendingCiPlan(s, review, ref, now) {
+  const base={phase:"NORMAL_WORK",ref,subject_sha:s.candidate_sha,review_id:review.review_id,run_id:s.windows_run};
+  const investigate=reason=>{
+    const saved=s.ci_followup?.investigation;
+    if(saved?.status==="RECORDED" && saved.reason===reason &&
+        saved.subject_sha===s.candidate_sha && saved.run_id===s.windows_run)
+      return {...base,phase:"STOP",reason:reason+"_RECORDED"};
+    return {...base,action:"INVESTIGATE_CI",reason};
+  };
+  if(!/^[1-9][0-9]*$/.test(String(s.windows_run||"")))return investigate("CI_RUN_BINDING_MISSING");
+  const start=Date.parse(review.recorded_at_utc),time=Date.parse(now);
+  if(!Number.isFinite(start)||!Number.isFinite(time))return investigate("CI_REVIEW_ANCHOR_MISSING");
+  const offsets=[5,20,50],expiry=start+60*60_000,slots=offsets.map(m=>new Date(start+m*60_000).toISOString());
+  const budget=s.ci_followup || {run_id:s.windows_run,subject_sha:s.candidate_sha,
+    started_at_utc:new Date(start).toISOString(),expires_at_utc:new Date(expiry).toISOString(),
+    offset_minutes:offsets,max_checks:3,consumed_slots_utc:[],skipped_slots_utc:[],reset_on_restart_or_candidate_revision:false};
+  const consumed=budget.consumed_slots_utc,skipped=budget.skipped_slots_utc;
+  if(budget.run_id!==s.windows_run || budget.subject_sha!==s.candidate_sha ||
+      Date.parse(budget.started_at_utc)!==start || Date.parse(budget.expires_at_utc)!==expiry ||
+      budget.max_checks!==3 || !equal(budget.offset_minutes,offsets) ||
+      budget.reset_on_restart_or_candidate_revision!==false || !Array.isArray(consumed) || !Array.isArray(skipped) ||
+      consumed.length+skipped.length>3 || new Set([...consumed,...skipped]).size!==consumed.length+skipped.length ||
+      [...consumed,...skipped].some(at=>!slots.includes(at)))
+    return investigate("CI_BUDGET_INVALID");
+  if(!["IN_PROGRESS","QUEUED","PENDING","WAITING"].includes(s.windows_status))
+    return investigate("CI_FAILED_OR_UNKNOWN");
+  if(time>=expiry)return investigate("CI_DEADLINE_EXPIRED");
+  const last=Math.max(-Infinity,...[...consumed,...skipped].map(Date.parse));
+  const remaining=slots.filter(at=>Date.parse(at)>last);
+  if(consumed.length>=3||!remaining.length)return investigate("CI_CHECK_BUDGET_EXHAUSTED");
+  const due=remaining.filter(at=>Date.parse(at)<=time);
+  return {...base,action:"CHECK_CI",at_utc:due.at(-1)||remaining[0],
+    ci_budget:budget,budget_persisted:Boolean(s.ci_followup),
+    reason:"APPROVED_UNPUBLISHED_SAME_CI_RUN_REQUIRES_BOUNDED_CHECK"};
+}
+
 function planContinuation(log, {now = new Date().toISOString(), otherOwnerActive = false} = {}) {
   const c = log.coordination;
   if (!c || c.automation_id !== "automation") return {phase:"STOP", reason:"INVALID_EXISTING_COORDINATION"};
   if (otherOwnerActive) return {phase:"OWNER_ACTIVE", reason:"NO_CONCURRENT_LEDGER_WRITE"};
   const issues = [];
+  let recordedCiStop;
   for (const {ref,slice:s} of slices(c)) {
     if (s.owner_thread_id !== OWNER) continue;
     const r = matchingReview(log,s);
@@ -66,9 +104,14 @@ function planContinuation(log, {now = new Date().toISOString(), otherOwnerActive
     // A review is a gate, not a release command: fresh main/CI/Pages/live checks remain mandatory.
     if (r && ["APPROVE_RELEASE","APPROVE"].includes(r.decision) &&
         ["NOT_RUN","NOT_MERGED","not_merged"].includes(s.publication) &&
-        s.windows_status === "SUCCESS" && s.push_status === "PUSHED_EXACT_BRANCH")
-      return {phase:"NORMAL_WORK", action:"RELEASE_CHECKS", ref, subject_sha:s.candidate_sha,
-        review_id:r.review_id, reason:"APPROVED_UNPUBLISHED_WORK_MUST_NOT_BE_ORPHANED"};
+        s.push_status === "PUSHED_EXACT_BRANCH") {
+      if(s.windows_status === "SUCCESS")
+        return {phase:"NORMAL_WORK", action:"RELEASE_CHECKS", ref, subject_sha:s.candidate_sha,
+          review_id:r.review_id, reason:"APPROVED_UNPUBLISHED_WORK_MUST_NOT_BE_ORPHANED"};
+      const ci=pendingCiPlan(s,r,ref,now);
+      if(ci.phase!=="STOP")return ci;
+      recordedCiStop=ci; // A recorded CI hold must not hide another ready slice or review.
+    }
     if (r?.decision === "REQUEST_CHANGES" && s.state === "REVISION_REQUIRED_NOT_PUBLISHED")
       return {phase:"NORMAL_WORK", action:"REVISE_EXACT_SLICE", ref, subject_sha:s.candidate_sha,
         review_id:r.review_id, reason:"RECEIVED_CHANGES_NEED_NORMAL_WORK"};
@@ -79,7 +122,7 @@ function planContinuation(log, {now = new Date().toISOString(), otherOwnerActive
   }
   if (issues.length) return {phase:"STOP", reason:"RECONCILE_INVALID_REVIEW", issues};
   const w = c.wait_budget || {}, pending = (w.followup_status || w.status) === "review_pending";
-  if (!pending) return {phase:"STOP", reason:"NO_ELIGIBLE_REVIEW_OR_READY_WORK"};
+  if (!pending) return recordedCiStop || {phase:"STOP", reason:"NO_ELIGIBLE_REVIEW_OR_READY_WORK"};
   if (!pendingBinding(c)) return {phase:"STOP", reason:"INVALID_PENDING_BINDING"};
   const start = Date.parse(w.started_at_utc), expiry = Date.parse(w.expires_at_utc), time = Date.parse(now);
   const checks = w.automatic_checks;
@@ -127,6 +170,11 @@ function endOfTurnIssues(plan, continuation, automation, {now = new Date().toISO
     errors.push("NEXT_RUN_MUST_HAVE_TWO_MINUTE_END_TURN_MARGIN");
   if (needed && plan.phase !== "NORMAL_WORK" && Date.parse(continuation.next_run?.at_utc) !== Date.parse(plan.at_utc))
     errors.push("FINITE_SLOT_MUST_NOT_MOVE");
+  if (plan.action === "CHECK_CI") {
+    if (!plan.budget_persisted) errors.push("CI_BUDGET_MUST_BE_SAVED_BEFORE_END");
+    if (Date.parse(continuation.next_run?.at_utc) !== Date.parse(plan.at_utc)) errors.push("CI_SLOT_MUST_NOT_MOVE");
+    if (Date.parse(continuation.next_run?.at_utc) >= Date.parse(plan.ci_budget.expires_at_utc)) errors.push("CI_DEADLINE_MUST_NOT_EXTEND");
+  }
   if (!needed && automation.status !== "PAUSED") errors.push("PAUSE_WHEN_NO_ELIGIBLE_WORK");
   return errors;
 }
