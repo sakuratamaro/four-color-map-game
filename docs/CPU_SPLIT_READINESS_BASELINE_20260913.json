@@ -1,0 +1,21 @@
+{
+  "kind": "read_only_probe_stdout_transcription",
+  "source": "scripts/check-cpu-split-readiness.cjs --generation=baseline",
+  "candidate_reference": "d9ce111d7d97019d55b3e90842602001e045ea04",
+  "candidate_deployed": false,
+  "observedAt": "2026-09-12T20:38:44.119Z",
+  "ok": true,
+  "status": 200,
+  "bodyMatches": true,
+  "expectedGeneration": "baseline",
+  "capability": "NOT_ADVERTISED",
+  "generation": "NOT_ADVERTISED",
+  "requestCount": 1,
+  "profileWrites": 0,
+  "databaseWrites": 0,
+  "artifactEquality": "NOT_CHECKED",
+  "allRegions": "NOT_CHECKED",
+  "workerDrain": "NOT_EVALUATED",
+  "releaseAuthorized": false,
+  "note": "Exact safe fields transcribed from this turn's terminal stdout. Baseline metadata absence is not proof of old-policy behavior or successful CPU deployment. No auth/profile/RPC/production mutation."
+}

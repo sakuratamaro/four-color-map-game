@@ -2722,7 +2722,22 @@
           "head_sha": "d9ce111d7d97019d55b3e90842602001e045ea04",
           "run_id": 34716323082
         }
-      ]
+      ],
+      "read_only_deployment_probe": {
+        "script": "scripts/check-cpu-split-readiness.cjs",
+        "tests": "tests/governance-cpu-readiness.test.cjs",
+        "baseline": "docs/CPU_SPLIT_READINESS_BASELINE_20260913.json",
+        "test_result": "7/7PASS274.7111ms skip0",
+        "public_baseline_at_utc": "2026-09-12T20:38:44.119Z",
+        "public_baseline": "200/ok;capability+generationNOT_ADVERTISED",
+        "public_requests": 1,
+        "profile_writes": 0,
+        "database_writes": 0,
+        "release_authority": false,
+        "artifact_equality": "NOT_CHECKED",
+        "all_regions": "NOT_CHECKED",
+        "worker_drain": "NOT_EVALUATED"
+      }
     },
     "remaining_brain_work": {
       "source": {
@@ -3035,8 +3050,8 @@
       },
       "normal_work_claim": {
         "state": "WORK_CHECKPOINT_REVIEW_PENDING",
-        "turn_id": "01a09721-e553-7bf0-a6a7-64afdd99f7bc",
-        "action": "RECEIVE_FIXED_CPU_REVIEW",
+        "turn_id": "01a09754-e72f-7d82-adbc-076d2805ae1e",
+        "action": "PREPARE_READ_ONLY_CPU_DEPLOYMENT_PROBE",
         "subject_sha": "d9ce111d7d97019d55b3e90842602001e045ea04"
       },
       "review_scope": "New user-authorized local continuation repair, not covered by old APPROVE_DOCS; fixed docs candidate will be separately reported.",
@@ -3048,11 +3063,11 @@
       },
       "current_run": {
         "phase": "NORMAL_WORK",
-        "turn_id": "01a09721-e553-7bf0-a6a7-64afdd99f7bc",
+        "turn_id": "01a09754-e72f-7d82-adbc-076d2805ae1e",
         "source": "automatic_goal_continuation",
-        "started_at_utc": "2026-09-12T19:39:36.000Z",
-        "worktree": ".codex-worktrees/cpu-split-rescue-20260913",
-        "request": "CPU F3 final activation/cache/isolated SQL validation; preserve closed067."
+        "started_at_utc": "2026-09-12T20:35:19Z",
+        "worktree": ".codex-worktrees/dev-brain-current-20260910",
+        "request": "Prepare independent read-only CPU deployment probe while respecting future fixed review slot; do not touch fixed product candidate."
       },
       "missed_schedule_observation": {
         "scheduled_at_utc": "2026-09-12T06:25:12Z",
@@ -3104,7 +3119,7 @@
       },
       "end_turn_guard": {
         "status": "PASS",
-        "checked_at_utc": "2026-09-12T20:31:05Z",
+        "checked_at_utc": "2026-09-12T20:40:48Z",
         "plan": "WAIT_REVIEW",
         "next_run_utc": "2026-09-12T20:44:15.000Z",
         "subject_sha": "d9ce111d7d97019d55b3e90842602001e045ea04",
@@ -3143,11 +3158,11 @@
       },
       "previous_run": {
         "phase": "NORMAL_WORK",
-        "turn_id": "01a096eb-d1a9-74c1-a65e-213074b8470b",
+        "turn_id": "01a09721-e553-7bf0-a6a7-64afdd99f7bc",
         "source": "automatic_goal_continuation",
-        "started_at_utc": "2026-09-12T18:40:32Z",
-        "worktree": ".codex-worktrees/dev-brain-current-20260910",
-        "request": "CPU F3 implemented and merged with f507; genuine034 exactrelease, one bounded067 rawFAIL saved; offline harness fixed. Continue separateCPU, no oldwait reset."
+        "started_at_utc": "2026-09-12T19:39:36.000Z",
+        "worktree": ".codex-worktrees/cpu-split-rescue-20260913",
+        "request": "CPU F3 final activation/cache/isolated SQL validation; preserve closed067."
       },
       "goal_blocked_audit_history": [
         {
@@ -3223,21 +3238,6 @@
         }
       },
       "previous_goal_turn_classification": {
-        "turn_id": "01a096eb-d1a9-74c1-a65e-213074b8470b",
-        "classification": "PROGRESS",
-        "not_merely_wait": true,
-        "repeated_blocker": false,
-        "evidence": [
-          "CPUF3newpoliciesandlegacy dispatchimplemented;clean22b50testsPASS",
-          "genuine034samef507releaseapproved",
-          "forcefreemainf507/Pages34712742032success/preflight/fourbytes",
-          "one067profileReitrial30checks3finalauditsPASSsettlementtrue/rawFAILpreserved;390/1280visuallyinspected",
-          "terminalreadharnesscontractdiagnosedandfixedoffline14PASS;noextraquota",
-          "CPU clean22bfull143files952/954FAIL2 cache contract; raw failure retained for next compatibility/marker repair"
-        ],
-        "actual_goal_status": "active"
-      },
-      "current_goal_turn_classification": {
         "turn_id": "01a09721-e553-7bf0-a6a7-64afdd99f7bc",
         "classification": "PROGRESS",
         "actual_goal_status": "active",
@@ -3255,6 +3255,17 @@
           "full_body_equality": true,
           "next_slot_utc": "2026-09-12T20:44:15.000Z"
         }
+      },
+      "current_goal_turn_classification": {
+        "turn_id": "01a09754-e72f-7d82-adbc-076d2805ae1e",
+        "classification": "PROGRESS",
+        "actual_goal_status": "active",
+        "evidence": [
+          "Read-only CPU deployment readiness helper implemented with7passing contracts",
+          "One actual public baselineOPTIONS200/ok; no advertised capability; no profile/DBwrite",
+          "Fixed CPUd9ce111 remainsclean; originalfirst20:44:15Z slot unchanged and not prematurely polled"
+        ],
+        "old_wait_reopened": false
       }
     },
     "latest_brain_transfer": {
