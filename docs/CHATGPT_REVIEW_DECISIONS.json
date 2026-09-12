@@ -1376,9 +1376,9 @@
       "target_thread_id": "01a07b56-616e-7733-9aae-90575659688e",
       "source_review_id": "CHATGPT-REVIEW-20260912-018",
       "source_response_message_id": "c64ae754-9306-452b-83ad-0d9233eef7cc",
-      "status": "RESERVED_ONE_SEND_AFTER_RECEIVER_CLOSE",
+      "status": "SEND_API_ACCEPTED_NORMAL_TURN_NOT_YET_OBSERVED",
       "send_attempts": 1,
-      "send_result": null,
+      "send_result": "API accepted for the same existing task; no second send or self-wait. Normal turn execution not yet observed by receiver.",
       "scope": "Resume normal commander publication flow for exact061; then handle separately reviewed062. Receiver itself does not publish or run product tests.",
       "no_retry_loop": true
     }
