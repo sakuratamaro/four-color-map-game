@@ -4021,7 +4021,18 @@ test(`${browserName} moves whole quiz buttons in one collision arena and pauses 
     await page.setViewportSize({ width: 430, height: 844 });
     await page.setViewportSize({ width: 390, height: 844 });
     await arena.evaluate((node) => node.scrollIntoView({ block: "center", behavior: "auto" }));
-    await page.waitForFunction(() => document.querySelector("#quizOptions")?.dataset.motionState === "running");
+    // "running" survives resize; wait for the asynchronous layout, not that old latch.
+    await page.waitForFunction(() => {
+      const host = document.querySelector("#quizOptions");
+      if (host?.dataset.motionState !== "running") return false;
+      const box = host.getBoundingClientRect();
+      const buttons = [...host.querySelectorAll("button[data-quiz-option]")];
+      return buttons.length === 6 && buttons.every((button) => {
+        const rect = button.getBoundingClientRect();
+        return rect.left >= box.left - 0.5 && rect.right <= box.right + 0.5
+          && rect.top >= box.top - 0.5 && rect.bottom <= box.bottom + 0.5;
+      });
+    }, null, { timeout: 2_000 });
     assertPacked(await snapshot());
 
     await arena.dispatchEvent("pointerdown", { pointerType: "touch", bubbles: true });
