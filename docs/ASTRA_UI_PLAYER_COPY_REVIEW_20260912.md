@@ -1,4 +1,4 @@
-# UDL062 review packet — prepared, NOT SENT (updated after061 publication)
+# UDL062 review packet — SENT, response pending
 
 SUBJECT_SHA: 6f8aeab0cbdfe9e013541f5cf30e16c93fb18cd3
 BASE_SHA: a757c126e1325532bb11a719cf92d0d13401d3ae
@@ -23,7 +23,9 @@ https://github.com/sakuratamaro/four-color-map-game/actions/runs/34664375319
 
 検証: clean6f8全917/917 (58.010s)、実Chrome6/6 (31.806s)、Edge6/6 (29.484s)、skip0、生成3builder差分0。新診断optional390/1280、接続badge各tab/offline、lost lab setup同ID、persisted rematch同ID、CPU saved/unsaved表示、親061 stale revision reload回復を実browserで確認。旧77の全件913/915はhandoff旧文言assert2件FAILを保存、修正358640cと正常merge後に再実行しました。live/物理はNOT_RUN。2026-09-12のfresh APIでWindows34664375319はexact6f8、completed SUCCESS。Chrome103473206770、Edge103473206663とも最終SUCCESS、両online132/132・contracts575/575、Edge lifecycle79/79。clean HEAD/spec blob/remote branch一致、fresh main=a757も確認しました。
 
-この文書はまだ未送信です。主チャットの新しいuser bbb216f0-9194-45cf-acd6-504a9a55d40aに対する返答をまだ観測できず、APIのidleだけで追送しません。061の公開後確認、062自身の実APPROVE_RELEASE・Windows両成功・fresh main=a757を確認した後だけ062を公開し、親の承認を流用しません。公開後はindex/app37厳密byte一致と、許可済み新規profile1・通常接続/各tab/閉じた診断を開く/390・1280/reloadのread-only実画面確認を計画。新対局/quiz/draw/sale0、物理NOT_RUN。実送達時だけ独立062の有限待機開始を記録し、閉じた061の原予算を延長しません。
+送達記録: 2026-09-12T06:05:12Zを保守的なAPI受付時刻とし、既存ChatGPTへ全15ファイル差分を含む57,256文字を1回送信。実message IDは336393d6-5c0d-4294-810f-3a772f7b5bd6。最大20,000文字の読戻しは先頭から完全一致し、固定metadata・packet・差分先頭を確認。全文末尾の一致は未確認で、全文一致とは報告しない。返答は送達確認時点で未生成。旧availability blockerはv9完成返答7c83d564-d958-4c6e-9830-f363e81762f6で解消した。
+
+061の公開後確認、062自身の実APPROVE_RELEASE・Windows両成功・fresh main=a757を確認した後だけ062を公開し、親の承認を流用しません。公開後はindex/app37厳密byte一致と、許可済み新規profile1・通常接続/各tab/閉じた診断を開く/390・1280/reloadのread-only実画面確認を計画。新対局/quiz/draw/sale0、物理NOT_RUN。独立062の予定枠は06:25:12Z・06:45:12Z・07:45:12Z、期限08:05:12Z。閉じた061の原予算を延長しません。
 
 前便061の報告と検証相談（018の再承認依頼ではありません）: a757はWindows34663861170両最終SUCCESS後、forceなしmain・同SHA Pages34671793635 SUCCESS、preflightと3asset厳密byte一致まで完了しました。1profileの実黄金名札350購入370→20・無料/所有済み切替追加減算0・390/1280はPASS。reloadの装備中buttonも観測しましたが、検証側が一時的な成功feedbackの残存まで要求しFAIL。最終server等価・3ACK集計・操作allowlist・console0はその後に置かれていたため未実行です。原failed JSONを保持し、PUBLIC_VERIFIEDにはしていません。
 

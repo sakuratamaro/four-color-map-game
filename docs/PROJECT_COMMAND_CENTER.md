@@ -8,6 +8,8 @@
 
 ## 司令塔ルール
 
+2026-09-12 再開・再発防止: 最新の直接ユーザー指示で通常司令塔が再開。062/6f8の全15file差分レビューを実message336393d6へ送達し、元の061公開後検証の残件も併記。REG-20260912-SELF-HANDOFF-01は「自分宛て送信を別worker起動と誤認し、唯一のheartbeatを停止した」が原因。既存1本のRECEIVE→別実起動NORMAL_WORKへ変更し、進行可能な作業とPAUSEDの組合せを終了時の実行チェックで拒否する。適用・検証・未観測の実予約起動はCOMMANDER_CONTINUATION_REPAIR_20260912.md。v9完成投稿と既存搬送メモは受領したがZIPは未取得、検証済みZIPはv8のまま。以下の過去snapshotは最新状態ではない。
+
 2026-09-12 通常作業で司令塔本人が061/a757をmain・Pagesへ公開した（実018、Windows34663861170、Pages34671793635、公開byte一致/preflight PASS）。状態はPAGES_PUBLISHED / LIVE_ACCEPTANCE_PARTIAL。黄金名札の単回購入・無料/所有済み再装備・390/1280表示は実測、reload装備中まで観測。成功メッセージの残存を誤要求したharness失敗を保存し、offline原因確認・harnessのみ修正。最終server照合等は未実行、追加profile0。自己送信を別worker起動と誤認した前回引継ぎは無効、公開責任者はこの既存タスクのまま。旧061待機は閉鎖・実automation PAUSED、062レビューは別件。詳細UI_COSMETICS_RELEASE_20260912.md。下記は過去snapshot。
 
 2026-09-12、ユーザー許可のccc9e91/16file画像なしpushは成功。015の差戻しを直したb81a1d5は実016とWindows最終成功後main/Pagesへ公開、37/37・4asset byte一致・390/1280目視PASSでUDL060 PUBLIC_VERIFIED。061は実017のSTALE_VERSION回復B1をa757c12/v1.1へ修正、clean915/915・Chrome/Edge各9/9・Windows34663861170両131/131、専用branch push/固定review c062送達済み。062は親a757を通常mergeした6f8aeab、clean917/917・Chrome/Edge各6/6・Windows34664375319両132/132、専用branch push済み・review草案未送信。061判定取込の原100分枠02:04Z（11:04JST）を同一heartbeatへ予約、回数1/3・原期限02:24Z不変、その取得後は未回答でも実PAUSED。appgoal APIblockedを偽のACTIVE/完了にしない。頭脳v8は独立SHA/manifest47確認済み。Q10の式同一性はREG-20260912-QUIZ-IDENTITY-01で未再現受付、私的画像の別タスク共有は未許可/未送達のまま。

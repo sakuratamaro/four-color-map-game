@@ -32,7 +32,8 @@ test("v7 additions map once without treating proposals as product implementation
   assert.equal(log.coordination.next_goal.actual_api_status, "blocked", "do not relabel the observed app goal status as active");
   assert.match(log.coordination.successor_goal.state, /^QUEUED_AFTER_UI/);
   assert.equal(log.coordination.remaining_brain_work.verified_zip_version, "v8");
-  assert.equal(log.coordination.remaining_brain_work.unverified_zip_version, null);
+  assert.equal(log.coordination.remaining_brain_work.unverified_zip_version, "v9");
+  assert.equal(log.coordination.latest_implementation_instruction.state, "V9_COMPLETED_MESSAGE_OBSERVED_ARCHIVE_NOT_DOWNLOADED");
 });
 
 test("CPU baseline evidence records real defects and mirror control without claiming a fix", () => {

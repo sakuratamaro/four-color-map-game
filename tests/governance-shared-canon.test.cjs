@@ -45,9 +45,13 @@ test("palette public receipt keeps live evidence and unfinished layout acceptanc
 
 test("an active review wait stays bound to the delivered current candidate, not an earlier completed slice", () => {
   const { coordination: c } = JSON.parse(read("docs/CHATGPT_REVIEW_DECISIONS.json"));
-  if (c.automation_status_at_recording !== "ACTIVE") return;
+  if ((c.wait_budget.followup_status || c.wait_budget.status) !== "review_pending" &&
+      c.wait_budget.status !== "delivery_unconfirmed_api_accepted_no_resend_while_active") return;
   const waitSubject = c.wait_budget.followup_subject_sha || c.wait_budget.subject_sha;
   const waitRequest = c.wait_budget.followup_request_message_id || c.wait_budget.root_request_message_id;
+  const matches = [c.active_slice, c.preparing_next_slice].filter(s => s?.candidate_sha === waitSubject);
+  assert.equal(matches.length, 1, "the pending review resolves exactly one existing slice");
+  const pendingSlice = matches[0];
   if (c.wait_budget.status === "delivery_unconfirmed_api_accepted_no_resend_while_active") {
     assert.equal(c.pending_delivery_status, "SEND_API_ACCEPTED_READBACK_UNCONFIRMED_ACTIVE_NO_RESEND");
     assert.equal(c.wait_budget.root_request_message_id, null, "do not invent a delivery ID");
@@ -64,12 +68,12 @@ test("an active review wait stays bound to the delivered current candidate, not 
     assert.ok(c.self_sent_message_ids.includes(waitRequest));
     assert.equal(c.last_confirmed_sent_message_id, waitRequest);
   }
-  assert.equal(c.pending_subject_sha, c.active_slice.candidate_sha);
-  assert.equal(waitSubject, c.active_slice.candidate_sha);
-  assert.equal(c.pending_review_subject.subject_sha, c.active_slice.candidate_sha);
-  assert.equal(c.pending_review_subject.base_sha, c.active_slice.base_sha);
-  assert.equal(c.pending_review_subject.spec_snapshot_sha, c.active_slice.spec_snapshot_sha);
-  assert.equal(c.pending_review_subject.feature_spec_version, c.active_slice.spec_version);
+  assert.equal(c.pending_subject_sha, pendingSlice.candidate_sha);
+  assert.equal(waitSubject, pendingSlice.candidate_sha);
+  assert.equal(c.pending_review_subject.subject_sha, pendingSlice.candidate_sha);
+  assert.equal(c.pending_review_subject.base_sha, pendingSlice.base_sha);
+  assert.equal(c.pending_review_subject.spec_snapshot_sha, pendingSlice.spec_snapshot_sha);
+  assert.equal(c.pending_review_subject.feature_spec_version, pendingSlice.spec_version);
   assert.equal(c.pending_review_subject.scope, c.pending_scope);
   assert.equal(c.automation_prompt_readback_equal, true);
   assert.equal(c.completed_review_waits.some(row => row.root_request_message_id === c.wait_budget.root_request_message_id), false);
