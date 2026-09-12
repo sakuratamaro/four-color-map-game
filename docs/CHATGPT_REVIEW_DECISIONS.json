@@ -41,7 +41,7 @@
     }
   ],
   "coordination": {
-    "status": "WAITING_EXACT066_REVIEW",
+    "status": "NORMAL_OWNER_PUBLISHING066",
     "latest_v8_intake": {
       "state": "PAIRED_SOURCE_AND_ZIP_VERIFIED_ALIASES_MAPPED",
       "source_thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
@@ -181,8 +181,8 @@
       "normal_owner_observation": "Previous normal turn completed after branch push; stored normal_work_receipt waiting. This heartbeat is the same task, not a second active owner."
     },
     "reviewer_thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
-    "last_consumed_review_message_id": "0398f396-109f-485c-9add-9950421fc477",
-    "last_received_message_id": "0398f396-109f-485c-9add-9950421fc477",
+    "last_consumed_review_message_id": "922d83f0-9779-4fd1-a8da-de7cdac862bd",
+    "last_received_message_id": "922d83f0-9779-4fd1-a8da-de7cdac862bd",
     "pending_user_intake_message_ids": [
       "ea61f25f-bebf-499a-81e9-029712a96f99",
       "bbb216f0-9194-45cf-acd6-504a9a55d40a",
@@ -221,7 +221,7 @@
     "active_slice": {
       "request_id": "UDL-20260912-066",
       "owner_thread_id": "01a07b56-616e-7733-9aae-90575659688e",
-      "state": "REVIEW_PENDING_WINDOWS_IN_PROGRESS",
+      "state": "PAGES_DEPLOYED_CANARY_RESERVED",
       "worktree": ".codex-worktrees/skill-catalog-20260912",
       "branch": "codex/skill-catalog-20260912",
       "parent_sha": "9515f9bed9536dc2c44b71817129abb9c86ef24f",
@@ -231,8 +231,8 @@
       "source_message_id": "bbb21b41-147b-4869-810f-ada7f33bb3f7",
       "diagnosis": "Currentcatalog19normalonly; twoimplementedalpha experiments omitted; no profile clearslibrary. Exactformalsource21 implementedincludes19normaland2experimentalnotordinarygacha.",
       "tests": "Combined static110/110PASS956.0322ms; Chrome2/2PASS14731.1098ms; Edge11/11PASS80836.7081ms (catalog2, hand1, cutin5, gacha1, sale1, cosmetics1). Skips0. Registrybuilder exact; engine/localbuilderszero generateddiff. ThreeChrome390/768/1280screenshots visually inspected.",
-      "publication": "NOT_RUN",
-      "review_status": "PENDING",
+      "publication": "MAIN_AND_PAGES_EXACT_VERIFIED_ACCEPTANCE_PENDING",
+      "review_status": "APPROVE_RELEASE",
       "boundary": "localstackedpreparationonly; keep065firstthenflatUI; no newskills/server/economy/assets.",
       "initial_failures": {
         "count": 3,
@@ -246,11 +246,11 @@
       "spec_snapshot_sha": "9aa1c780aac6b394bf1ee622cc2ba10297b6bab1",
       "push_status": "PUSHED_EXACT_BRANCH",
       "windows_run": "34703885487",
-      "windows_status": "IN_PROGRESS",
-      "windows_last_observed_at_utc": "2026-09-12T16:14:32Z",
+      "windows_status": "SUCCESS",
+      "windows_last_observed_at_utc": "2026-09-12T16:34:10Z",
       "evidence": "docs/SKILL_CATALOG_LOCAL_20260913.md",
       "clean_tests": "139files928/928PASS,skip0,39820.3615ms; prior dirty927/928 kept. Chrome2/2, Edge11/11, static110/110.",
-      "next_action": "Sendindependentfixed18file066review; exactnewWindowsrequiredfinalSUCCESS.",
+      "next_action": "Freshmainancestrythenforce-freeexact2fcpublish; build/testgovernancecanarybeforeoneauthorizedprofile.",
       "previous_candidate": {
         "sha": "a7441d643f35f59cdc5c5a6e35c3221521b84e96",
         "windows_run": "34702569676",
@@ -280,8 +280,8 @@
       "review_send_attempts": 1,
       "review_delivery_checks": 2,
       "review_packet": "docs/ASTRA_SKILL_CATALOG_REVIEW_20260913.md",
-      "live_canary_attempts": 0,
-      "live_canary_state": "NOT_IMPLEMENTED_NOT_RUN",
+      "live_canary_attempts": 1,
+      "live_canary_state": "HARNESS16_OF16_PASS_ATTEMPT_RESERVED",
       "send_attempt_reserved_before_api": true,
       "sent_at_utc": "2026-09-12T16:07:23Z",
       "review_evidence_sha": "2747ec3468f0fe8c0e69963909423f241ac25a94",
@@ -291,7 +291,36 @@
       "review_delivery_full_body_verified": false,
       "review_delivery_matching_chars": 20000,
       "review_delivery_total_chars": 54231,
-      "review_delivery_note": "Two boundedreads;firstold027pairwhileactive,secondactualrequestexactfirst20000. No thirdread/resend. Full18filefixedGitHubdiff separatelyavailable."
+      "review_delivery_note": "Two boundedreads;firstold027pairwhileactive,secondactualrequestexactfirst20000. No thirdread/resend. Full18filefixedGitHubdiff separatelyavailable.",
+      "review_id": "CHATGPT-REVIEW-20260913-029",
+      "review_response_message_id": "922d83f0-9779-4fd1-a8da-de7cdac862bd",
+      "windows_jobs": [
+        {
+          "id": 103580326008,
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "id": 103580326189,
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ],
+      "pages_run": "34705612667",
+      "pages_status": "SUCCESS",
+      "published_sha": "2fcfea9bb2a3d1ad7e22a5e8e3b61983f0404152",
+      "public_preflight": {
+        "at_utc": "2026-09-12T16:41:00Z",
+        "ok": true,
+        "scope": "fresh candidate read-only no profile"
+      },
+      "live_canary_profiles_reserved": 1,
+      "live_canary_matches_reserved": 0,
+      "live_canary_max_seconds": 180,
+      "live_canary_report": "docs/SKILL_CATALOG_LIVE_20260913.json",
+      "live_canary_harness": "scripts/live-standard-skill-catalog-canary.cjs",
+      "live_canary_tests": "16/16 PASS;skip0;563.256ms",
+      "live_canary_note": "Reservedbeforeexecution;fresh4assetbytescheckedagaininsidebeforeprofile. No retryonfailure."
     },
     "automation_id": "automation",
     "automation_status_at_recording": "ACTIVE",
@@ -694,7 +723,7 @@
     "wait_budget": {
       "started_at_utc": "2026-09-12T16:07:23Z",
       "expires_at_utc": "2026-09-12T18:07:23.000Z",
-      "automatic_checks": 0,
+      "automatic_checks": 1,
       "max_automatic_checks": 3,
       "offset_minutes": [
         20,
@@ -706,18 +735,33 @@
       "reset_on_restart_or_unrelated_message": false,
       "confirmed_delivery_reminders": 0,
       "subject_sha": "2fcfea9bb2a3d1ad7e22a5e8e3b61983f0404152",
-      "status": "review_pending",
-      "next_check_utc": "2026-09-12T16:27:23.000Z",
-      "remaining_scheduled_slots": 3,
+      "status": "review_received_closed",
+      "next_check_utc": null,
+      "remaining_scheduled_slots": 0,
       "delivery_readback_checks": 2,
-      "consumed_slots_utc": [],
+      "consumed_slots_utc": [
+        "2026-09-12T16:27:23.000Z"
+      ],
       "skipped_slots_utc": [],
-      "check_receipts": [],
+      "check_receipts": [
+        {
+          "slot_utc": "2026-09-12T16:27:23.000Z",
+          "reserved_at_utc": "2026-09-12T16:32:20Z",
+          "state": "GENUINE_REVIEW_RECEIVED",
+          "turn_id": "01a09667-c507-7201-9297-91ebbd3857c2",
+          "max_turns": 2,
+          "max_chars_per_item": 20000,
+          "response_message_id": "922d83f0-9779-4fd1-a8da-de7cdac862bd",
+          "review_id": "CHATGPT-REVIEW-20260913-029"
+        }
+      ],
       "new_scope": "UDL-066-catalog-v1",
       "prior_budgets_reopened": false,
       "start_basis": "Conservative reserved before send independent066logicalrequest, no deadline extension.",
       "root_request_message_id": "30ed4b53-5ad3-45e1-920d-4cf4919dd24b",
-      "last_result": "Genuine30ed4b53request confirmed exact20000prefix; active/noassistant. Independent066only."
+      "last_result": "Genuine029APPROVE_RELEASEexact2fc",
+      "response_message_id": "922d83f0-9779-4fd1-a8da-de7cdac862bd",
+      "closed_at_utc": "2026-09-12T16:34:10Z"
     },
     "pending_review_subject": {
       "subject_sha": "2fcfea9bb2a3d1ad7e22a5e8e3b61983f0404152",
@@ -2023,27 +2067,25 @@
     ],
     "normal_work_receipt": {
       "version": "shared-canon-v1.1",
-      "start_base_sha": "a757c126e1325532bb11a719cf92d0d13401d3ae",
+      "start_base_sha": "9515f9bed9536dc2c44b71817129abb9c86ef24f",
+      "base_source": "origin/main trackingref/publication evidence; freshremote beforeanyrelease",
+      "worktree_head": "2fcfea9bb2a3d1ad7e22a5e8e3b61983f0404152",
       "request": [
-        "UDL-20260912-061",
-        "UDL-20260912-062",
-        "REG-20260912-SELF-HANDOFF-01"
+        "UDL-20260912-067"
       ],
-      "worktree": ".codex-worktrees/dev-brain-current-20260910",
-      "source": "actual heartbeat automation NORMAL_WORK",
-      "turn_id": "01a09462-aeab-7242-9c90-75104cc6df58",
-      "started_at_utc": "2026-09-12T06:51:30Z",
-      "state": "NORMAL_WORK_ACTIVE",
       "specs": [
         "AGENTS.md",
         "docs/SHARED_CANON.md",
         "docs/CHATGPT_COLLABORATION_OPERATION.md",
-        "docs/UI_COSMETICS_RELEASE_20260912.md"
+        "docs/SURRENDER_CONFIRMATION_20260913.md"
       ],
       "tests": [
-        "scripts/live-standard-cosmetic-item-canary.cjs",
-        "tests/governance-cosmetic-item-canary.test.cjs"
-      ]
+        "tests/standard-surrender-confirmation.test.cjs",
+        "tests/standard-online-browser.test.cjs"
+      ],
+      "worktree": ".codex-worktrees/surrender-confirmation-20260913",
+      "state": "NORMAL_WORK_ACTIVE",
+      "turn_id": "01a09667-c507-7201-9297-91ebbd3857c2"
     },
     "next_goal": {
       "state": "COMPLETED_ORIGINAL_UI_DELIVERY",
@@ -2543,9 +2585,9 @@
         "readback_verified": true
       },
       "normal_work_claim": {
-        "state": "TURN_FINISHING_PROGRESS_RECORDED",
-        "turn_id": "01a09643-eee7-71f1-9bb6-6f1d9164d872",
-        "action": "REVIEW066_PENDING_CONTINUE067_LOCAL",
+        "state": "RUNNING_NORMAL_WORK",
+        "turn_id": "01a09667-c507-7201-9297-91ebbd3857c2",
+        "action": "PUBLISH066_EXACT029_AND_PREPARE067",
         "subject_sha": "2fcfea9bb2a3d1ad7e22a5e8e3b61983f0404152"
       },
       "review_scope": "New user-authorized local continuation repair, not covered by old APPROVE_DOCS; fixed docs candidate will be separately reported.",
@@ -2557,18 +2599,11 @@
       },
       "current_run": {
         "phase": "NORMAL_WORK",
-        "turn_id": "01a09643-eee7-71f1-9bb6-6f1d9164d872",
+        "turn_id": "01a09667-c507-7201-9297-91ebbd3857c2",
         "source": "automatic_goal_continuation",
-        "started_at_utc": "2026-09-12T15:37:09.000Z",
-        "request": "Continuefullv13goal. Read9515onlyatfixed15:44:51Z; prepare067spec/source and diagnostic againstcurrenta744.",
-        "worktree": ".codex-worktrees/dev-brain-current-20260910",
-        "additional_worktrees": [
-          ".codex-worktrees/skill-cutin-20260912",
-          ".codex-worktrees/ui-flat-entry-20260912",
-          ".codex-worktrees/skill-catalog-20260912",
-          ".codex-worktrees/surrender-confirmation-20260913"
-        ],
-        "progress": "Genuine027/028→successful06532checkssupplementand9515main/Pages/live33PASS;066CIfailureinvestigated,testrepair2fcpushed/reviewdelivered;067source/scope/pureguards4PASS."
+        "started_at_utc": "2026-09-12T16:16:18.000Z",
+        "worktree": ".codex-worktrees/surrender-confirmation-20260913",
+        "request": "Integrate067existingpuremodel/nativeconfirmation; noearly066reviewread beforefixed16:27:23Z."
       },
       "missed_schedule_observation": {
         "scheduled_at_utc": "2026-09-12T06:25:12Z",
@@ -2663,17 +2698,18 @@
       },
       "previous_run": {
         "phase": "NORMAL_WORK",
-        "turn_id": "01a0960e-63a8-7fc3-b822-9664d71a3305",
+        "turn_id": "01a09643-eee7-71f1-9bb6-6f1d9164d872",
         "source": "automatic_goal_continuation",
-        "started_at_utc": "2026-09-12T14:38:40Z",
-        "request": "Continuev13goal; receiveonly atfixed15:05:37slot; recordexactflatWindows andinspect066canonicalgap",
+        "started_at_utc": "2026-09-12T15:37:09.000Z",
+        "request": "Continuefullv13goal. Read9515onlyatfixed15:44:51Z; prepare067spec/source and diagnostic againstcurrenta744.",
         "worktree": ".codex-worktrees/dev-brain-current-20260910",
         "additional_worktrees": [
           ".codex-worktrees/skill-cutin-20260912",
           ".codex-worktrees/ui-flat-entry-20260912",
-          ".codex-worktrees/skill-catalog-20260912"
+          ".codex-worktrees/skill-catalog-20260912",
+          ".codex-worktrees/surrender-confirmation-20260913"
         ],
-        "progress": "Genuine026→exact3b1main/Pages andoneboundedlive; preserved31checks/FAIL andfinishedtestroom, correctedharness7/7 withoutsecondattempt; exact9515UIreview40059charsdelivered; independent066a744clean928/928 plusChrome2/Edge11,pushedandWindowsrunning."
+        "progress": "Genuine027/028→successful06532checkssupplementand9515main/Pages/live33PASS;066CIfailureinvestigated,testrepair2fcpushed/reviewdelivered;067source/scope/pureguards4PASS."
       },
       "goal_blocked_audit_history": [
         {
@@ -2740,9 +2776,9 @@
         "reason": "After context continuation get_goal returned null; current explicit user-authorized successor objective was restored once via create_goal. No budget inferred."
       },
       "previous_goal_turn_classification": {
-        "turn_id": "01a0960e-63a8-7fc3-b822-9664d71a3305",
+        "turn_id": "01a09643-eee7-71f1-9bb6-6f1d9164d872",
         "classification": "progress",
-        "evidence": "Genuine026→3b1main/Pages/publicbytes/oneboundlive; firstauditFAILretained+sourceharnesscorrected7/7+report; independent9515reviewdelivered;066implementedChrome2/Edge11/static110.",
+        "evidence": "Genuine027/028→successful06532checkssupplementand9515main/Pages/live33PASS;066CIfailureinvestigated,testrepair2fcpushed/reviewdelivered;067source/scope/pureguards4PASS.",
         "actual_goal_status": "active",
         "not_merely_wait": true
       },
@@ -3560,6 +3596,40 @@
         "matches": 1,
         "cpu_actions": 24,
         "own_actions": 9,
+        "economy_actions": 0,
+        "deletions": 0
+      }
+    },
+    {
+      "review_id": "CHATGPT-REVIEW-20260913-029",
+      "subject_sha": "2fcfea9bb2a3d1ad7e22a5e8e3b61983f0404152",
+      "base_sha": "9515f9bed9536dc2c44b71817129abb9c86ef24f",
+      "canon_version": "shared-canon-v1.1",
+      "feature_spec_version": "UDL-066-catalog-v1",
+      "spec_snapshot_sha": "9aa1c780aac6b394bf1ee622cc2ba10297b6bab1",
+      "spec_snapshot_kind": "git_blob:docs/SKILL_CATALOG_20260912.md",
+      "scope": "Pages_only",
+      "review_kind": "game_production_release_approval",
+      "db_change_set": [],
+      "edge_change_set": [],
+      "decision": "APPROVE_RELEASE",
+      "source": {
+        "kind": "chatgpt",
+        "thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
+        "message_id": "922d83f0-9779-4fd1-a8da-de7cdac862bd",
+        "request_message_id": "30ed4b53-5ad3-45e1-920d-4cf4919dd24b",
+        "response_text": "## DECISION\n**APPROVE_RELEASE**\n\n## SUBJECT_SHA\n`2fcfea9bb2a3d1ad7e22a5e8e3b61983f0404152`\n\n## BLOCKERS\n**コードレビュー上、公開前に修正必須の欠陥は見つかりませんでした。同一SHAのWindows両jobの最終SUCCESSは、引き続き公開前の必須条件です。**\n\n**「図鑑に載せること」と「所持・使用・ガチャ対象にすること」が分離されています。** 掲載対象はregistryの実装・UI有効フラグから導出され、未所持でも説明を開けます。図鑑ボタンの処理は詳細表示だけで、カード使用・付与・売却を呼び出していません。枚数更新時も既存のボタンを再利用する実装です。\n\n通常19件と実験2件を分け、実験カードには通常ガチャ対象外の説明を付けています。また、**分類ではなくregistryの`timing`で使用段階を表示**するため、`legalRecolor`の色カテゴリとWORK段階を混同しない変更になっています。\n\n旧テストの「実験カードを図鑑に表示しない」という期待の変更も妥当です。単なる削除ではなく、**実験区分への掲載・所持0・通常19件の維持・売却対象への非混入**を検査する形に置き換え、貸与カードの操作・使用制限は維持しています。\n\n## NOTES\n\n### 承認範囲・検証状態\n\n承認範囲はBASE  \n`9515f9bed9536dc2c44b71817129abb9c86ef24f`  \nからの本候補、**`shared-canon-v1.1`／`UDL-066-catalog-v1`／`game_production_release_approval`／`Pages_only`／DB・Edge各`[]`**です。仕様blobは提出値`9aa1c780aac6b394bf1ee622cc2ba10297b6bab1`と一致しています。\n\n**Windows `34703885487`は、今回取得した時点で、本候補SHAのChrome `103580326008`・Edge `103580326189`ともonline-browser段階がIN_PROGRESSでした。** 生成物・契約試験とEdgeのlifecycleは成功していますが、両job全体の成功とは扱いません。\n\na744の928/928と、新2fcの重点Chrome／Edge各4/4・契約75/75は、それぞれの候補に対応するCodexの実施報告として受領します。**こちらではテストを再実行しておらず、実画像も確認していません。** プロフィールなし閲覧、全21件の詳細、更新時のフォーカス保持、3幅の配置を検査するテスト内容は確認しました。\n\n### 公開・限定canaryの計画を承認します\n\n**同じ候補SHAの両Windows job成功とfresh mainの整合・祖先確認後、追加のユーザー許可やAstra再レビューを待たず、forceなしのmain統合→同一SHAのPages公開へ進めてください。** 候補が変更された場合は、この承認を流用しません。\n\n公開後はfresh preflightと、**HTML・app40・generated registry2・catalog CSS1の4asset厳密byte一致を、プロフィール作成前に確認**してください。\n\nその後の確認は、提示された**専用プロフィール1件・対局0件・180秒のcanary1回**の範囲で承認します。ハーネスを実装・局所検証してから、全21件と4区分、未所持の詳細、使用段階・実験条件、Enter／Space／Escapeとフォーカス復帰、390／768／1280pxの可読性・操作領域・reloadを確認してください。**図鑑の確認のためにカードを入手したり、実験対局を作ったりする必要はありません。**\n\n保存`profileState`全体・revision、許可通信、consoleの独立結果は、途中失敗時も採取・保存してから総合判定してください。既知の応答直下`displayName`の不整合は別REGの情報項目のままにし、保存状態の比較は維持します。クイズ・抽選・購入・売却・対局作成・削除・本番状態の注入には広げません。\n\n**公開後の確認と最終画面の目視が完了するまでは、066を`PUBLIC_VERIFIED`にしない**扱いです。プロフィールなし閲覧や模擬snapshot更新の試験と、今回のlive実測は分け、物理端末は未実施なら`NOT_RUN`で残してください。\n\n先行065の受入補完成功と9515の公開後確認完了は、Codexの実測報告として受領します。両件を再レビュー・再試験せず、旧失敗証拠と累計プロフィール数を保持したまま閉じてください。**066は独立して公開まで進め、投了UI・CPU画像・CPU強化・文書整備の完成待ちは追加しません。**",
+        "request_body_equality": false,
+        "request_prefix_matching_chars": 20000
+      },
+      "recorded_at_utc": "2026-09-12T16:34:10Z",
+      "blockers": [],
+      "notes": "Exact2fc release conditionalonfinalWindowsbothSUCCESS/freshmain. Oneprofile/zero-match180s canaryafterlocallyvalidatedharness; all4bytesbeforeprofile. PUBLIC_VERIFIEDonlyafterliveandvisual. No further065/9515trials/review.",
+      "bounds": {
+        "profiles": 1,
+        "matches": 0,
+        "attempts": 1,
+        "max_seconds": 180,
         "economy_actions": 0,
         "deletions": 0
       }
