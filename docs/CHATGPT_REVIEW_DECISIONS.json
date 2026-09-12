@@ -2008,7 +2008,7 @@
         "reason": "Three added test timeout declarations failed existing format regex; full browser steps skipped. Three declaration-only lines corrected inbe52."
       },
       "review_delivery_checks": 2,
-      "review_evidence_sha": null,
+      "review_evidence_sha": "48483959af1efb639545485982f57608815c5cc4",
       "sent_at_utc": "2026-09-12T14:03:07Z",
       "delivery_read_reserved_before_api": true,
       "delivery_read_invalid_arguments": 1,
@@ -2145,7 +2145,7 @@
           "UDL-20260912-062"
         ],
         "alias": "ADD-20260912-ENTRY-FLAT-THREE-BUTTONS",
-        "state": "IMPLEMENTING_LOCAL_ONLY",
+        "state": "LOCAL_VERIFIED_NOT_REVIEWED",
         "worktree": ".codex-worktrees/ui-flat-entry-20260912",
         "branch": "codex/ui-flat-entry-20260912",
         "owner_thread_id": "01a07b56-616e-7733-9aae-90575659688e",
@@ -2156,7 +2156,17 @@
         "non_change": "HTML/CSS only, app.js/game/server unchanged. Preserve023 behavior, old062 acceptance, all065. Localpreparationnot releaseorder.",
         "review_status": "NOT_REQUESTED",
         "publication": "NOT_RUN",
-        "tests": "66/66 static PASS; selectedChrome running. Not full acceptance."
+        "tests": "Localstatic93/93; Chrome10/10 andEdge15/15 including065;3sizesvisuallyviewed;3builderszerotrackeddiff. Not fullnonbrowser913rerun.",
+        "candidate_sha": "9515f9bed9536dc2c44b71817129abb9c86ef24f",
+        "spec_snapshot_sha": "630964f0af6956ff544d0209ba55209f6ba7d317",
+        "windows_run": "34699225793",
+        "windows_status": "IN_PROGRESS",
+        "push_status": "PUSHED_EXACT_DEDICATED_BRANCH",
+        "live_canary": "scripts/live-standard-flat-entry-canary.cjs",
+        "live_canary_precheck": "5/5PASS322.1229ms; liveNOT_RUN/profileattempts0",
+        "evidence": "docs/UI_FLAT_ENTRANCE_LOCAL_20260912.md",
+        "next_action": "After065PUBLIC_VERIFIED,freshmain/ancestry andexactWindows; sendfixedUIreview once. Do notreopen062.",
+        "windows_last_observed_at_utc": "2026-09-12T14:35:46Z"
       }
     },
     "limited_attachment_intake": {
@@ -2341,11 +2351,12 @@
         "readback_verified": true
       },
       "normal_work_claim": {
-        "state": "RUNNING_NORMAL_WORK",
+        "state": "COMPLETED_WITH_FINITE_REVIEW_WAIT",
         "turn_id": "01a095d9-634c-7fa0-8b7f-42b4b9723f21",
         "action": "WAIT_EXACT_REVIEW",
         "subject_sha": "3b1d4e65197c476686b7b8a13c49f97ffd591e68",
-        "source_review_id": "CHATGPT-REVIEW-20260912-025"
+        "additional_result_sha": "9515f9bed9536dc2c44b71817129abb9c86ef24f",
+        "next_run_at_utc": "2026-09-12T15:05:37Z"
       },
       "review_scope": "New user-authorized local continuation repair, not covered by old APPROVE_DOCS; fixed docs candidate will be separately reported.",
       "verification": {
@@ -2360,7 +2371,11 @@
         "source": "automatic_goal_continuation",
         "started_at_utc": "2026-09-12T13:40:47Z",
         "request": "Continue v13 release goal; preserve pending065 finite review slot",
-        "worktree": ".codex-worktrees/skill-cutin-20260912"
+        "worktree": ".codex-worktrees/skill-cutin-20260912",
+        "additional_worktrees": [
+          ".codex-worktrees/ui-flat-entry-20260912"
+        ],
+        "progress": "Implementedandpushed065B1/B2revision3b1, genuine025saved, exactWindowsSUCCESS; preparedindependentflatUI9515+93local+Chrome10/Edge15; fixedboundedcanary5/5. Main/PagesNOTRUN for both."
       },
       "missed_schedule_observation": {
         "scheduled_at_utc": "2026-09-12T06:25:12Z",
@@ -2411,17 +2426,17 @@
         "recovered_without_new_user_wait": true
       },
       "end_turn_guard": {
-        "at_utc": "2026-09-12T13:39:30Z",
+        "at_utc": "2026-09-12T14:37:00Z",
         "exit_code": 0,
         "phase": "WAIT_REVIEW",
         "reason": "ONE_BOUNDED_READ_ONLY_NO_RESEND",
         "errors": [],
-        "subject_sha": "be52f755b813e8a6de58529eb2a39065ffc63623",
-        "next_run_at_utc": "2026-09-12T13:45:37Z",
+        "subject_sha": "3b1d4e65197c476686b7b8a13c49f97ffd591e68",
+        "next_run_at_utc": "2026-09-12T15:05:37Z",
         "actual_automation_status": "ACTIVE",
-        "actual_setting_updated_at": 1789219761254,
+        "actual_setting_updated_at": 1789222046684,
         "prompt_exact_equal": true,
-        "note": "Fixed independent065review remainspending; successfulWindowsnotapproval. No newliveprofile/publication started. Normalworkharnessprepared; finite sameheartbeat actualreadback verified."
+        "note": "Currentnormalturn made065revisionandindependentflatUIprogress. Final065slotremains; bothproductcandidatesNOTpublished. Noextra062profile orclosedbudgetreset."
       },
       "latest_receive_schedule_observation": {
         "scheduled_at_utc": "2026-09-12T07:45:12Z",
@@ -2529,6 +2544,13 @@
         "turn_id": "01a09599-b083-7fe1-a9f1-3e604469807b",
         "classification": "progress",
         "evidence": "be52 implementation+pushed Windows135/135both; v13 intakedcea; genuine065requestdelivered; finiteACTIVEsetting; harness/evidence70669cf.",
+        "not_merely_wait": true
+      },
+      "current_goal_turn_classification": {
+        "turn_id": "01a095d9-634c-7fa0-8b7f-42b4b9723f21",
+        "classification": "progress",
+        "evidence": "025 genuine review -> B1/B2fixed3b1 +Windows586/137both; new9515flatUI +local93/Chrome10/Edge15 +oneboundedharness5/5; exactqueuedreview and actualsamefiniteheartbeat.",
+        "actual_goal_status": "active",
         "not_merely_wait": true
       }
     },

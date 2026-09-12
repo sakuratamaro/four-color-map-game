@@ -41,4 +41,3 @@ After genuine exact approval and new Windows SUCCESS only: fresh main/ancestor c
 The existing065 review budget retains13:25:37Z start,15:25:37Z deadline, first13:45:37Z slot consumed1; remaining14:05:37Z and15:05:37Z. This revision creates no reset or unlimited polling. User blanket publication authorization remains subject to exact Astra and tests.025 is REQUEST_CHANGES, not approval.062's024 scoped acceptance and immutable52/FAIL plus54/55 FAIL remain closed; no third062 profile. v13 remains received/verified with16 additive aliases; later UI, encyclopedia, surrender and CPU slices are not claimed complete.
 
 Please return DECISION / SUBJECT_SHA / BLOCKERS / NOTES for this fixed revision. No unrelated design or documentation review is requested.
-
