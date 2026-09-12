@@ -93,6 +93,26 @@ test("an unsent tested candidate is normal work, not indefinite response waiting
   s.review_status="NOT_SENT";s.review_send_attempts=0;log.coordination.wait_budget.status="closed";
   assert.equal(planContinuation(log).action,"SEND_REVIEW");
 });
+
+test("managed CPU activation must bind exactly in both pending envelopes and genuine release records",()=>{
+  const changes=[{name:"FCG_CPU_SPLIT_RESCUE",compatible_deploy_value:null,activation_value:"standard-character-split-rescue-v1"}];
+  for(const mismatch of [undefined,null,[],[{...changes[0],activation_value:"true"}],[{...changes[0],compatible_deploy_value:"active"}]]){
+    const log=fixture(),s=log.coordination.active_slice;
+    s.managed_setting_change_set=changes;
+    log.coordination.pending_review_subject.managed_setting_change_set=mismatch;
+    assert.equal(pendingBinding(log.coordination),false);
+    approve(log);log.decisions[0].managed_setting_change_set=mismatch;
+    assert.equal(matchingReview(log,s),null);
+    assert.equal(planContinuation(log).phase,"STOP");
+  }
+  const log=fixture(),s=log.coordination.active_slice;
+  s.managed_setting_change_set=changes;
+  log.coordination.pending_review_subject.managed_setting_change_set=changes;
+  assert.equal(pendingBinding(log.coordination),true);
+  approve(log);log.decisions[0].managed_setting_change_set=changes;
+  assert.equal(matchingReview(log,s),log.decisions[0]);
+  assert.equal(planContinuation(log).action,"RELEASE_CHECKS");
+});
 test("no response has only three fixed slots and an immutable two-hour deadline",()=>{
   const log=fixture();
   assert.equal(planContinuation(log,{now:"2026-09-12T00:19:00Z"}).phase,"WAIT_REVIEW");

@@ -302,6 +302,18 @@ test("ChatGPT review records require an exact subject and cannot imply productio
         assert.equal(decision.evidence_sha, "4d1301236e7fbf16d9caaf581f2b6f94d372f05c");
         assert.equal(decision.source.message_id, "fa226fa2-ad5e-437c-a447-3a6c84fcd2c1");
         assert.equal(decision.source.request_message_id, "f5646b27-8424-405f-95a7-a21c87b09274");
+      } else if (decision.review_id === "CHATGPT-REVIEW-20260913-035") {
+        assert.equal(decision.review_kind, "public_acceptance_disposition");
+        assert.equal(decision.decision, "ACCEPT_SCOPED");
+        assert.equal(decision.evidence_sha, "3c0f82163121f3582e67dd8158afa5fae5ad8661");
+        assert.equal(decision.source.message_id, "1bb33ef7-814c-41eb-a4bd-06009842f65d");
+        assert.equal(decision.source.request_message_id, "5e34d880-725b-4e60-a263-14605137f473");
+        assert.deepEqual(decision.bounds,{additional_profiles:0,additional_matches:0,additional_canary_attempts:0,privileged_room_recovery:false});
+        const slice=[log.coordination.active_slice,...log.coordination.completed_slices].find(s=>s.id==="UDL-20260912-067");
+        assert.equal(slice.state,"PAGES_PUBLISHED_LIVE_ACCEPTANCE_PARTIAL");
+        assert.equal(slice.acceptance_review_id,decision.review_id);
+        assert.equal(slice.review_id,"CHATGPT-REVIEW-20260913-034","post-publication disposition must not replace the original release gate");
+        assert.equal(JSON.parse(read("docs/SURRENDER_LIVE_20260913.json")).ok,false);
       } else if (decision.review_id === "CHATGPT-REVIEW-20260912-024") {
         assert.equal(decision.review_kind, "public_acceptance_disposition");
         assert.equal(decision.decision, "ACCEPT");
@@ -318,6 +330,7 @@ test("ChatGPT review records require an exact subject and cannot imply productio
       assert.match(decision.subject_sha, /^[0-9a-f]{40}$/);
       assert.match(decision.spec_snapshot_sha, /^[0-9a-f]{40}$/);
       const bindings = {
+        "CHATGPT-REVIEW-20260913-035": ["f507c0b2dd9701f3ac1867131150b5e48d0ada8d", "2fcfea9bb2a3d1ad7e22a5e8e3b61983f0404152", "UDL-067-surrender-v1.1", "1e7e2a4c02acd58ed40ca0b6f2fbb0513f333463", "Pages_only"],
         "CHATGPT-REVIEW-20260913-034": ["f507c0b2dd9701f3ac1867131150b5e48d0ada8d", "2fcfea9bb2a3d1ad7e22a5e8e3b61983f0404152", "UDL-067-surrender-v1.1", "1e7e2a4c02acd58ed40ca0b6f2fbb0513f333463", "Pages_only"],
         "CHATGPT-REVIEW-20260913-033": ["23133ef52efb81c39d0623479b0ea7819f850f7d", "2fcfea9bb2a3d1ad7e22a5e8e3b61983f0404152", "UDL-067-surrender-v1", "e5f2c0617d3defcc8dc6105bf567f6ed59fb4432", "Pages_only"],
         "CHATGPT-REVIEW-20260913-032": ["2fcfea9bb2a3d1ad7e22a5e8e3b61983f0404152", "9515f9bed9536dc2c44b71817129abb9c86ef24f", "UDL-066-catalog-v1", "9aa1c780aac6b394bf1ee622cc2ba10297b6bab1", "post_publication_bounded_acceptance"],

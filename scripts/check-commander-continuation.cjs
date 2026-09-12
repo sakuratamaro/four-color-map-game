@@ -8,6 +8,11 @@ const REVIEWER = "6aa229e7-e098-83ee-ac5e-d366a12653a4";
 const SHA = /^[0-9a-f]{40}$/;
 const slices = c => ["active_slice", "preparing_next_slice"].flatMap(ref => c[ref] ? [{ref, slice:c[ref]}] : []);
 const equal = (a,b) => JSON.stringify(a) === JSON.stringify(b);
+// Older slices had no managed activation. Absence means no change; null does not.
+const managedChangesMatch = (a,b) => {
+  const left=a === undefined ? [] : a, right=b === undefined ? [] : b;
+  return Array.isArray(left) && Array.isArray(right) && equal(left,right);
+};
 
 function matchingReview(log, slice) {
   const matches = log.decisions.filter(r => r.review_id === slice.review_id);
@@ -25,6 +30,7 @@ function matchingReview(log, slice) {
   if (r.feature_spec_version !== slice.spec_version || r.scope !== slice.scope) return null;
   for (const key of ["db_change_set","edge_change_set"])
     if (!Array.isArray(slice[key]) || !equal(r[key],slice[key])) return null;
+  if (!managedChangesMatch(r.managed_setting_change_set,slice.managed_setting_change_set)) return null;
   return r;
 }
 
@@ -39,7 +45,8 @@ function pendingBinding(c) {
     p.subject_sha === subject && p.base_sha === s.base_sha &&
     p.feature_spec_version === s.spec_version && p.spec_snapshot_sha === s.spec_snapshot_sha &&
     p.scope === s.scope && equal(p.db_change_set,s.db_change_set) &&
-    equal(p.edge_change_set,s.edge_change_set);
+    equal(p.edge_change_set,s.edge_change_set) &&
+    managedChangesMatch(p.managed_setting_change_set,s.managed_setting_change_set);
   if ((w.followup_status || w.status) === "delivery_unconfirmed_api_accepted_no_resend_while_active")
     return envelopeMatches && request === null && s.review_request_message_id === null &&
       s.review_send_attempts === 1 && s.review_delivery_readback_checks === 2 &&
