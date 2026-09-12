@@ -844,7 +844,7 @@ async function installMock(context, mode) {
       waitStartedAt: initialMode === "cpuWait" ? new Date(Date.now() - 91000).toISOString() : new Date().toISOString(),
       room: { id, status: ["finished", "finishedCpu", "finishedCpuSagaStart", "finishedHumanSagaBlocked", "finishedCpuWrongSagaBlocked", "quizReloadPublicFinished"].includes(initialMode) || restoreCpuRewardResult || restoreNoColorResult ? "finished" : pregameMode ? pregameStatus : ["publicFind", "handoffActivity", "handoffStart", "handoffReload"].includes(initialMode) || setupPending ? "ready" : "playing", version: restoredRoomVersion, game_mode: "standard_v5", access_mode: cpuRoomMode ? "cpu" : ["publicFind", "handoffActivity", "handoffStart", "handoffReload", "quizReloadPublicFinished"].includes(initialMode) ? "public_queue" : "private_code", opponent_kind: cpuRoomMode ? "cpu" : "human", cpu_character_id: cpuRoomMode ? "yuzu" : null, public_state: restoreNoColorResult ? noColorFinished : ["finished", "finishedCpu", "finishedCpuSagaStart", "finishedHumanSagaBlocked", "finishedCpuWrongSagaBlocked", "quizReloadPublicFinished"].includes(initialMode) || restoreCpuRewardResult ? { ...finished, version: restoredRoomVersion } : pregameMode || ["publicFind", "handoffActivity", "handoffStart", "handoffReload"].includes(initialMode) || setupPending ? null : active },
       view: pregameMode || ["publicFind", "handoffActivity", "handoffStart", "handoffReload"].includes(initialMode) || setupPending ? null : { seat: "A", version: restoredRoomVersion, private_state: { hand: initialMode === "labPlaying" ? { areaDiePlus: 1, legalRecolor: 1 } : initialMode === "colorResponse" ? { colorPrism: 1, areaDiePlus: 1 } : initialMode === "alpha3CategoryWindow" ? { colorBonusRefill: 1, legalRecolor: 1, areaResize: 1, disruptChoiceOne: 1 } : { areaDiePlus: 1, areaResize: 1 }, basicPalette: initialMode === "cpuTurnNoColor" ? ["yellow", "green"] : ["red", "blue"], bonusColor: initialMode === "cpuTurnNoColor" ? "blue" : "yellow", bonusUsesRemaining: initialMode === "cpuTurnNoColor" ? 3 : 2, privateEffects: {} } },
-      profile: initialMode === "empty" ? null : { revision: 1, display_name: "A", profile_state: profileState },
+      profile: initialMode === "empty" ? null : { revision: Number(sessionStorage.getItem("mock-standard-cosmetic-profile-revision") || 1), display_name: "A", profile_state: profileState },
       gachaReceipts: {},
       cardSaleReceipts: {},
       cosmeticReceipts: JSON.parse(sessionStorage.getItem("mock-standard-cosmetic-receipts") || "{}"),
@@ -1128,6 +1128,12 @@ async function installMock(context, mode) {
         if (request.body.operation === "cosmetic-action") {
           const prior = runtime.cosmeticReceipts[request.body.actionId];
           if (prior) return { data: { ...prior, duplicate: true } };
+          if (runtime.advanceCosmeticRevisionBeforeCommit) {
+            runtime.advanceCosmeticRevisionBeforeCommit = false;
+            runtime.profile.revision += 1;
+            sessionStorage.setItem("mock-standard-cosmetic-profile-revision", String(runtime.profile.revision));
+          }
+          if (request.body.expectedRevision !== runtime.profile.revision) return functionError(409, "STALE_VERSION", "profile revision changed before cosmetic commit");
           const next = JSON.parse(JSON.stringify(runtime.profile.profile_state));
           const item = cosmeticProjection().items.find(item => item.cosmeticId === request.body.cosmeticId);
           const price = item.owned ? 0 : runtime.cosmeticQuotePrice ?? item.price;
@@ -1137,6 +1143,7 @@ async function installMock(context, mode) {
           const result = { revision: runtime.profile.revision, duplicate: false, quote: { name: item.name, price }, profileState: next, cosmetics: cosmeticProjection() };
           runtime.cosmeticReceipts[request.body.actionId] = result;
           sessionStorage.setItem("mock-standard-cosmetic-receipts", JSON.stringify(runtime.cosmeticReceipts));
+          sessionStorage.setItem("mock-standard-cosmetic-profile-revision", String(runtime.profile.revision));
           if (runtime.failNextCosmeticAck) { runtime.failNextCosmeticAck = false; return functionError(500, "TEMPORARY_UNAVAILABLE", "lost cosmetic ACK"); }
           return { data: result };
         }
@@ -4154,6 +4161,60 @@ test("UDL061 lost purchase ACK and reload preserve one exact retry without autom
     const calls=await page.evaluate(()=>globalThis.__standardOnlineRuntime.calls.filter(c=>c.body?.operation==="cosmetic-action"));
     assert.equal(calls.length,1);for(const field of ["actionId","expectedRevision","cosmeticId"])assert.equal(calls[0].body[field],pending[field]);
     assert.equal(await page.evaluate(key=>JSON.parse(localStorage.getItem(key)).coins,remoteProfileKey),400);
+    assert.equal(await page.evaluate(()=>Object.keys(globalThis.__standardOnlineRuntime.cosmeticReceipts).length),1);
+  },{viewport:{width:390,height:844}});
+});
+
+test("UDL061 stale revision reload recovers at the same item with a fresh explicit purchase", { timeout: 130000 }, async () => {
+  await withPage("cosmetic",async page=>{
+    const item=page.locator('[data-cosmetic-id="boardAurora"]'),key="fourColorMapGame.standard.online.v5.pending-cosmetic";
+    await item.waitFor();
+    await page.evaluate(()=>{globalThis.__standardOnlineRuntime.advanceCosmeticRevisionBeforeCommit=true;});
+    await item.getByRole("button",{name:"購入して装備",exact:true}).click();
+    await item.getByRole("button",{name:"最新の内容を確認",exact:true}).waitFor();
+    const rejected=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),key);
+    assert.equal(rejected.submitted,false);assert.equal(rejected.failed,false);
+    assert.deepEqual(rejected.rejection,{code:"STALE_VERSION",actionId:rejected.actionId,expectedRevision:1});
+    assert.equal(await page.evaluate(()=>Object.keys(globalThis.__standardOnlineRuntime.cosmeticReceipts).length),0);
+    assert.equal(await page.evaluate(()=>globalThis.__standardOnlineRuntime.profile.profile_state.coins),1000);
+    assert.equal(await item.locator("#cosmeticRetry").isVisible(),false);
+    assert.equal(await item.locator("#cosmeticCancel").isVisible(),true);
+    await page.reload();await item.getByRole("button",{name:"最新の内容を確認",exact:true}).waitFor();
+    assert.deepEqual(await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),key),rejected);
+    assert.equal(await page.evaluate(()=>globalThis.__standardOnlineRuntime.calls.filter(c=>c.body?.operation==="cosmetic-action").length),0);
+    await page.evaluate(()=>{globalThis.__standardOnlineRuntime.cosmeticQuotePrice=650;});
+    await item.getByRole("button",{name:"最新の内容を確認",exact:true}).click();
+    await item.getByRole("button",{name:"この内容で購入・装備",exact:true}).waitFor();
+    assert.match(await item.locator("#cosmeticConfirmationText").textContent(),/650コイン/);
+    const renewed=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),key);
+    assert.notEqual(renewed.actionId,rejected.actionId);assert.equal(renewed.expectedRevision,2);
+    assert.deepEqual(renewed.previousRejection,rejected.rejection);
+    assert.equal(await page.evaluate(()=>globalThis.__standardOnlineRuntime.calls.filter(c=>c.body?.operation==="cosmetic-action").length),0);
+    assert.equal(await page.evaluate(()=>document.activeElement?.closest("[data-cosmetic-id]")?.dataset.cosmeticId),"boardAurora");
+    if(process.env.STANDARD_UI_ARTIFACT_DIR){fs.mkdirSync(process.env.STANDARD_UI_ARTIFACT_DIR,{recursive:true});await page.screenshot({path:path.join(process.env.STANDARD_UI_ARTIFACT_DIR,`${browserName}-cosmetic-rejected-renewed-390.png`)});}
+    await item.locator("#cosmeticCommit").click();
+    await item.locator(".cosmetic-item-status").getByText("オーロラ盤面を装備しました。",{exact:true}).waitFor();
+    const calls=await page.evaluate(()=>globalThis.__standardOnlineRuntime.calls.filter(c=>c.body?.operation==="cosmetic-action"));
+    assert.equal(calls.length,1);assert.equal(calls[0].body.actionId,renewed.actionId);assert.equal(calls[0].body.expectedRevision,2);
+    assert.equal(await page.evaluate(()=>globalThis.__standardOnlineRuntime.profile.profile_state.coins),350);
+    assert.equal(await page.evaluate(()=>Object.keys(globalThis.__standardOnlineRuntime.cosmeticReceipts).length),1);
+    assert.equal(await page.evaluate(key=>localStorage.getItem(key),key),null);
+  },{viewport:{width:390,height:844}});
+});
+
+test("UDL061 definitely rejected purchase can cancel and choose another item without a debit", { timeout: 130000 }, async () => {
+  await withPage("cosmetic",async page=>{
+    const item=page.locator('[data-cosmetic-id="boardAurora"]');await item.waitFor();
+    await page.evaluate(()=>{globalThis.__standardOnlineRuntime.advanceCosmeticRevisionBeforeCommit=true;});
+    await item.getByRole("button",{name:"購入して装備",exact:true}).click();
+    await item.getByRole("button",{name:"最新の内容を確認",exact:true}).waitFor();
+    await item.locator("#cosmeticCancel").click();
+    assert.equal(await page.evaluate(()=>localStorage.getItem("fourColorMapGame.standard.online.v5.pending-cosmetic")),null);
+    assert.equal(await page.evaluate(()=>globalThis.__standardOnlineRuntime.profile.profile_state.coins),1000);
+    const title=page.locator("#cosmeticCatalog .collection-card",{hasText:"四色の匠"});
+    await title.getByRole("button",{name:"装備する",exact:true}).click();
+    await title.locator(".cosmetic-item-status").getByText("四色の匠を装備しました。",{exact:true}).waitFor();
+    assert.equal(await page.evaluate(()=>globalThis.__standardOnlineRuntime.profile.profile_state.coins),1000);
     assert.equal(await page.evaluate(()=>Object.keys(globalThis.__standardOnlineRuntime.cosmeticReceipts).length),1);
   },{viewport:{width:390,height:844}});
 });

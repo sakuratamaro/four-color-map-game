@@ -3,7 +3,7 @@ import "../online/supabase-config.js";
 import { createQuizMemo } from "./quiz-memo.js?v=20260912-1";
 import { paletteRoleSlots, stableHandSlots } from "./play-surface-model.js?v=20260912-1";
 import { savedResultReward } from "./result-continuation.js?v=20260912-1";
-import { displayedCosmeticIntent, cosmeticQuoteMatchesIntent, pendingCosmeticPresentation } from "./cosmetic-item-action.js?v=20260912-1";
+import { displayedCosmeticIntent, cosmeticQuoteMatchesIntent, pendingCosmeticPresentation, definiteCosmeticRejection } from "./cosmetic-item-action.js?v=20260912-2";
 
 const cfg = globalThis.FourColorSupabaseConfig;
 const supabase = createClient(cfg.url, cfg.publishableKey, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false } });
@@ -1795,9 +1795,10 @@ function renderCosmeticPendingControls() {
   const pending = pendingCosmeticAction;
   const stage = pendingCosmeticPresentation(pending);
   show("cosmeticConfirmation", Boolean(pending));
-  show("cosmeticCommit", stage === "confirm");
+  show("cosmeticCommit", stage === "confirm" || stage === "rejected");
+  $("cosmeticCommit").textContent = stage === "rejected" ? "最新の内容を確認" : "この内容で購入・装備";
   show("cosmeticRetry", stage === "retry");
-  show("cosmeticCancel", stage === "confirm");
+  show("cosmeticCancel", stage === "confirm" || stage === "rejected");
   $("cosmeticCommit").disabled = cosmeticBusy;
   $("cosmeticRetry").disabled = cosmeticBusy;
   $("cosmeticCancel").disabled = cosmeticBusy;
@@ -1806,6 +1807,7 @@ function renderCosmeticPendingControls() {
       ? `${pending.quote.name}を${Number(pending.quote.price)}コインで購入して装備します。残高は${Number(pending.quote.coinsAfter)}コインになります。`
       : `${pending.quote.name}を装備します。コインは消費しません。`;
     if (stage === "retry") $("cosmeticConfirmationText").textContent = "購入・装備の結果を確認します。重ねて購入はしません。";
+    if (stage === "rejected") $("cosmeticConfirmationText").textContent = "持ち物が先に更新されたため、この購入・装備は行われませんでした。最新の内容を確認するか、キャンセルして選び直せます。";
   }
 }
 
@@ -1866,8 +1868,9 @@ async function prepareOnlineCosmetic(cosmeticId) {
 }
 
 async function commitOnlineCosmetic() {
-  if (cosmeticBusy || !pendingCosmeticAction) return;
+  if (cosmeticBusy || !pendingCosmeticAction || pendingCosmeticPresentation(pendingCosmeticAction) === "rejected") return;
   const cosmeticId = pendingCosmeticAction.cosmeticId;
+  const priorOutcomeUnknown = pendingCosmeticAction.submitted !== false || pendingCosmeticAction.failed === true;
   cosmeticBusy = true; setCosmeticItemStatus(cosmeticId, "購入・装備を保存中…"); renderCosmetics();
   try {
     pendingCosmeticAction.submitted = true;
@@ -1879,18 +1882,25 @@ async function commitOnlineCosmetic() {
     localStorage.removeItem(COSMETIC_PENDING_KEY); pendingCosmeticAction = null;
     setCosmeticItemStatus(cosmeticId, `${name}を装備しました。`);
   } catch (error) {
-    pendingCosmeticAction.failed = true;
+    const rejected = definiteCosmeticRejection(error, priorOutcomeUnknown);
+    if (rejected) {
+      pendingCosmeticAction.rejection = { code: "STALE_VERSION", actionId: pendingCosmeticAction.actionId, expectedRevision: pendingCosmeticAction.expectedRevision };
+      pendingCosmeticAction.submitted = false;
+      pendingCosmeticAction.failed = false;
+    } else pendingCosmeticAction.failed = true;
     try { localStorage.setItem(COSMETIC_PENDING_KEY, JSON.stringify(pendingCosmeticAction)); } catch { /* keep the in-memory identity, never submit a different action */ }
     const remote = await client.readProfile().catch(() => null);
     if (remote) hydrateProfileRow(remote);
-    setCosmeticItemStatus(cosmeticId, "結果を確認できませんでした。「購入・装備の結果を確認」で同じ操作を確かめてください。");
-    toast(error.message || "見た目を保存できませんでした。");
+    const message = rejected ? "この購入・装備は行われませんでした。最新の内容を確認して、もう一度選べます。"
+      : "結果を確認できませんでした。「購入・装備の結果を確認」で同じ操作を確かめてください。";
+    setCosmeticItemStatus(cosmeticId, message);
+    toast(rejected ? message : error.message || "見た目を保存できませんでした。");
   } finally { cosmeticBusy = false; renderProgression(); renderCosmetics(); render(); }
   focusCosmeticItem(cosmeticId);
 }
 
 function cancelOnlineCosmetic() {
-  if (cosmeticBusy || pendingCosmeticPresentation(pendingCosmeticAction) !== "confirm") return;
+  if (cosmeticBusy || !["confirm", "rejected"].includes(pendingCosmeticPresentation(pendingCosmeticAction))) return;
   const cosmeticId = pendingCosmeticAction.cosmeticId;
   localStorage.removeItem(COSMETIC_PENDING_KEY); pendingCosmeticAction = null;
   setCosmeticItemStatus(cosmeticId, "購入・装備をキャンセルしました。コインは使っていません。");
@@ -1899,6 +1909,7 @@ function cancelOnlineCosmetic() {
 }
 
 async function confirmOnlineCosmetic() {
+  if (!cosmeticBusy && pendingCosmeticPresentation(pendingCosmeticAction) === "rejected") return renewRejectedCosmetic();
   if (cosmeticBusy || pendingCosmeticPresentation(pendingCosmeticAction) !== "confirm") return;
   const cosmeticId = pendingCosmeticAction.cosmeticId;
   const accepted = { cosmeticId, purchaseRequired: pendingCosmeticAction.quote.purchaseRequired, price: pendingCosmeticAction.quote.price };
@@ -1907,7 +1918,7 @@ async function confirmOnlineCosmetic() {
   try {
     const result = await client.quoteCosmetic({ cosmeticId });
     if (result.quote?.cosmeticId !== cosmeticId || typeof result.quote.purchaseRequired !== "boolean"
-        || !Number.isSafeInteger(result.quote.price) || result.quote.price < 0) throw new Error("INVALID_COSMETIC_QUOTE");
+        || !Number.isSafeInteger(result.quote.price) || result.quote.price < 0 || !Number.isSafeInteger(Number(result.revision))) throw new Error("INVALID_COSMETIC_QUOTE");
     submit = cosmeticQuoteMatchesIntent(accepted, result.quote);
     pendingCosmeticAction.quote = result.quote;
     pendingCosmeticAction.expectedRevision = Number(result.revision);
@@ -1917,6 +1928,23 @@ async function confirmOnlineCosmetic() {
   finally { cosmeticBusy = false; renderCosmetics(); }
   if (submit) await commitOnlineCosmetic();
   else focusCosmeticItem(cosmeticId);
+}
+
+async function renewRejectedCosmetic() {
+  if (cosmeticBusy || pendingCosmeticPresentation(pendingCosmeticAction) !== "rejected") return;
+  const rejected = pendingCosmeticAction, cosmeticId = rejected.cosmeticId;
+  cosmeticBusy = true; renderCosmetics();
+  try {
+    const result = await client.quoteCosmetic({ cosmeticId });
+    if (result.quote?.cosmeticId !== cosmeticId || typeof result.quote.purchaseRequired !== "boolean"
+        || !Number.isSafeInteger(result.quote.price) || result.quote.price < 0 || !Number.isSafeInteger(Number(result.revision))) throw new Error("INVALID_COSMETIC_QUOTE");
+    pendingCosmeticAction = { actionId: crypto.randomUUID(), expectedRevision: Number(result.revision), cosmeticId,
+      quote: result.quote, submitted: false, failed: false, previousRejection: rejected.rejection };
+    localStorage.setItem(COSMETIC_PENDING_KEY, JSON.stringify(pendingCosmeticAction));
+    setCosmeticItemStatus(cosmeticId, "最新の内容です。内容を確認してから購入・装備してください。");
+  } catch { setCosmeticItemStatus(cosmeticId, "最新の内容を確認できませんでした。購入は送信していません。キャンセルして選び直すこともできます。"); }
+  finally { cosmeticBusy = false; renderCosmetics(); }
+  focusCosmeticItem(cosmeticId);
 }
 
 function renderCardSale() {
