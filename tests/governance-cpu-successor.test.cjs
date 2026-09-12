@@ -38,11 +38,15 @@ test("v7 additions map once without treating proposals as product implementation
   assert.equal(goal.status, "COMPLETE", "original delivery audit is distinct from its last retained API observation");
   assert.equal(goal.completion_audit.complete, true);
   assert.equal(goal.completion_audit.later_v13_changes_not_complete, true);
-  assert.equal(log.coordination.successor_goal.state, "INDEPENDENT_CPU_IMPLEMENTATION_IN_PROGRESS");
+  assert.equal(log.coordination.successor_goal.state, "INDEPENDENT_CPU_CANDIDATE_REVIEW_PENDING");
   const checkpoint = log.coordination.successor_goal.preparing_independent_slice;
   assert.equal(checkpoint.request_id, "UDL-20260910-051");
   assert.equal(checkpoint.publication, "NOT_RUN", "local F3 work is not a full CPU release");
-  assert.equal(checkpoint.state, "LOCAL_IMPLEMENTED_COMPATIBILITY_PENDING");
+  assert.equal(checkpoint.state, "FIXED_CANDIDATE_REVIEW_PENDING");
+  assert.equal(checkpoint.checkpoint_sha, "d9ce111d7d97019d55b3e90842602001e045ea04");
+  assert.equal(log.coordination.preparing_next_slice.candidate_sha,checkpoint.checkpoint_sha);
+  assert.equal(log.coordination.preparing_next_slice.push_status,"PUSHED_EXACT_BRANCH");
+  assert.equal(log.coordination.preparing_next_slice.managed_setting_change_set[0].activation_value,"standard-character-split-rescue-v1");
   assert.match(checkpoint.checkpoint_sha, /^[0-9a-f]{40}$/);
   const api = log.coordination.continuation.successor_goal_api_receipt.latest_observation;
   assert.equal(api.source, "get_goal");
@@ -64,6 +68,19 @@ test("CPU baseline evidence records real defects and mirror control without clai
   assert.equal(split.enumeratedSafeSide, false);
   assert.equal(split.splitThenColorThenOpponentReturnAccepted, true);
   assert.equal(report.findings.find(r => r.id === "F3_MIRROR_CONTROL").mirrorControlPassed, true);
+});
+
+test("current ledger uses canonical coarse states while CPU review and partial067 acceptance stay explicit", async () => {
+  const {pathToFileURL}=require("node:url");
+  const {auditDecisionLedger,parseDecisionLedger}=await import(pathToFileURL(path.join(__dirname,"../scripts/check-standard-decision-reconciliation.mjs")).href);
+  const source=fs.readFileSync(path.join(__dirname,"../docs/PROJECT_COMMAND_CENTER.md"),"utf8");
+  assert.equal(auditDecisionLedger(source).ok,true);
+  const rows=parseDecisionLedger(source).rows;
+  assert.equal(rows.find(r=>r.values.ID==="UDL-20260910-051").values.状態,"IMPLEMENTING");
+  assert.equal(rows.find(r=>r.values.ID==="UDL-20260912-067").values.状態,"MERGED");
+  const log=read("docs/CHATGPT_REVIEW_DECISIONS.json");
+  assert.equal(log.coordination.active_slice.state,"PAGES_PUBLISHED_LIVE_ACCEPTANCE_PARTIAL");
+  assert.equal(log.coordination.preparing_next_slice.review_status,"REVIEW_PENDING");
 });
 
 test("final play-surface live proof binds d6 and normal390 width while keeping physical NOT_RUN", () => {
