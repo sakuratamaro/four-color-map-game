@@ -9,6 +9,7 @@ const KUROGANE_LEGACY_POLICY_VERSION = `${ROSTER_VERSION}:kurogane`;
 const KUROGANE_POLICY_VERSION = `${ROSTER_VERSION}:kurogane-lookahead-v2`;
 const SPLIT_RESCUE_POLICY_VERSION = "standard-character-split-rescue-v1";
 const PALETTE_EFFICIENCY_POLICY_VERSION = "standard-character-palette-efficiency-v1";
+const KUROGANE_PALETTE_CHANGE_CHARGES = 100;
 const CREATE_COLOR_OPTION_STRIDE = 1000000;
 const GUARANTEED_TRAP_BONUS = 1000000000;
 const RANDOM_SKILLS = new Set(["colorRandomBorrow", "areaMicroBloom", "disruptRandomOne", "disruptRandomTwo", "disruptPaletteRandom", "disruptPaletteChoice", "disruptForcedPalette"]);
@@ -128,7 +129,9 @@ function chooseCharacterAction({ publicState, ownPrivateState, characterId, poli
   const enumerated = publicState.engineVersion === "5.0.0-alpha.1"
     ? cpu.enumerateCpuActionsLegacy(observation)
     : cpu.enumerateCpuActions(observation, { orderedSplits });
-  const actions = paletteEfficiency && publicState.engineVersion !== "5.0.0-alpha.1"
+  // Later direct user instruction: palette changing defines "四色のクロガネ".
+  // Preserve his preferred choices; the other nine use the bounded F1 filter.
+  const actions = paletteEfficiency && characterId !== "kurogane" && publicState.engineVersion !== "5.0.0-alpha.1"
     ? cpu.filterPaletteEfficiencyActions(observation, enumerated) : enumerated;
   if (!actions.length) return null;
   const useLookahead = characterId === "kurogane" && !legacyKurogane;
@@ -165,6 +168,7 @@ module.exports = {
   ROSTER_VERSION,
   SPLIT_RESCUE_POLICY_VERSION,
   PALETTE_EFFICIENCY_POLICY_VERSION,
+  KUROGANE_PALETTE_CHANGE_CHARGES,
   chooseCharacterAction,
   publicRoster,
   validateRoster,

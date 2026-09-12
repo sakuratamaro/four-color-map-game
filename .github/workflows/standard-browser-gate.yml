@@ -114,6 +114,7 @@ jobs:
           tests/standard-cpu-split-sql-runtime.test.cjs
           tests/standard-cpu-palette-efficiency.test.cjs
           tests/standard-cpu-palette-sql-runtime.test.cjs
+          tests/standard-kurogane-palette-charges.test.cjs
           tests/standard-kurogane-policy-migration.test.cjs
           tests/standard-edge-handler.test.cjs
           tests/standard-online-engine-bundle.test.cjs

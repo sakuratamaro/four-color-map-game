@@ -35,6 +35,11 @@ function worker(activation, {room = {}, choose, paletteActivation} = {}) {
         action_public_state:{fixture:"public"},actor_private_state:{fixture:"own-only"},
       }]};
       if (name === "fcg_standard_server_replay_action") return {data:[{found:true,action_result:{ok:true}}]};
+      if (name === "fcg_standard_server_initialize_room") {
+        Object.assign(room,{room_status:"playing",authoritative_state:plain(args.p_authoritative_state),
+          action_public_state:plain(args.p_public_state),actor_private_state:plain(args.p_private_a)});
+        return {data:[]};
+      }
       if (["fcg_standard_server_start_cpu","fcg_standard_server_accept_cpu","fcg_standard_server_request_cpu_rematch"].includes(name))
         return {data:[{room_id:roomId,seat:"A",opponent_kind:"cpu",cpu_character_id:args.p_character_id,duplicate:false}]};
       throw new Error("Unexpected isolated RPC: " + name);
@@ -164,4 +169,36 @@ test("both activation settings dispatch an existing CPU turn using only its save
       assert.equal(w.calls.at(-1).name,"fcg_standard_server_replay_action","receipt completes without executing a second action");
     }
   }
+});
+
+test("initialize binds100 charges to the saved Kurogane policy, ignores client activation and never refills existing state",async()=>{
+  for(const paletteActivation of [undefined,roster.PALETTE_EFFICIENCY_POLICY_VERSION]){
+    const seedWorker=worker(roster.SPLIT_RESCUE_POLICY_VERSION);
+    const profile=plain(seedWorker.api.createCpuProfile("kurogane")).profile,loadout=roster.CPU_CHARACTERS.kurogane.loadout;
+    for(const saved of [roster.PRE_SPLIT_POLICY_VERSIONS.kurogane,roster.CPU_CHARACTERS.kurogane.policyVersion,roster.PALETTE_EFFICIENCY_POLICY_VERSION+":kurogane"]){
+      const room={room_status:"ready",room_version:7,cpu_character_id:"kurogane",cpu_policy_version:saved,
+        setup_a:loadout,setup_b:loadout,setup_a_revision:1,setup_b_revision:1,profile_a_state:profile,profile_b_state:profile,authoritative_state:null};
+      const w=worker(roster.SPLIT_RESCUE_POLICY_VERSION,{paletteActivation,room});
+      const body={operation:"initialize",roomId,cpuCharacterId:"rei",cpuPolicyVersion:"invented",FCG_CPU_PALETTE_EFFICIENCY:"client-spoof"};
+      const first=await w.post(body);assert.equal(first.status,200);
+      const initial=w.calls.find(c=>c.name==="fcg_standard_server_initialize_room").args.p_authoritative_state.state;
+      const expected=saved===roster.PALETTE_EFFICIENCY_POLICY_VERSION+":kurogane"?100:1;
+      assert.equal(initial.hands.B.colorPaletteChange,expected);assert.equal(initial.hands.A.colorPaletteChange,1);
+      room.authoritative_state.state.hands.B.colorPaletteChange=expected-1;
+      const before=plain(room.authoritative_state),repeat=await w.post(body);assert.equal(repeat.status,200);
+      assert.equal(w.calls.filter(c=>c.name==="fcg_standard_server_initialize_room").length,1);
+      assert.deepEqual(room.authoritative_state,before,"already-saved count is not refilled on initialize retry");
+    }
+  }
+});
+test("PvP initialize cannot obtain the Kurogane100 bonus from a client body or misleading CPU columns",async()=>{
+  const profile=plain(worker().api.createCpuProfile("kurogane")).profile,loadout=roster.CPU_CHARACTERS.kurogane.loadout;
+  const room={opponent_kind:"human",room_status:"ready",room_version:7,cpu_character_id:"kurogane",
+    cpu_policy_version:roster.PALETTE_EFFICIENCY_POLICY_VERSION+":kurogane",setup_a:loadout,setup_b:loadout,
+    setup_a_revision:1,setup_b_revision:1,profile_a_state:profile,profile_b_state:profile,authoritative_state:null};
+  const w=worker(roster.SPLIT_RESCUE_POLICY_VERSION,{room,paletteActivation:roster.PALETTE_EFFICIENCY_POLICY_VERSION});
+  const result=await w.post({operation:"initialize",roomId,cpuSeat:"B",cpuCharacterId:"kurogane",cpuPolicyVersion:room.cpu_policy_version});
+  assert.equal(result.status,200);
+  const state=w.calls.find(c=>c.name==="fcg_standard_server_initialize_room").args.p_authoritative_state.state;
+  assert.equal(state.hands.A.colorPaletteChange,1);assert.equal(state.hands.B.colorPaletteChange,1);
 });

@@ -62,7 +62,7 @@ test("Standard browser gate runs CPU contracts and the scoped browser file seria
   assert.match(workflow, /tests\/standard-online-quiz-generator-runtime\.test\.cjs/);
   assert.match(workflow, /tests\/standard-matchmaking-availability-migration\.test\.cjs/);
   assert.match(workflow, /tests\/standard-cpu-commentary\.test\.cjs/);
-  for (const file of ["standard-cpu-split-rescue.test.cjs", "standard-cpu-split-policy-migration.test.cjs", "standard-cpu-rollout.test.cjs", "standard-cpu-split-sql-runtime.test.cjs", "standard-cpu-palette-efficiency.test.cjs", "standard-cpu-palette-sql-runtime.test.cjs"]) {
+  for (const file of ["standard-cpu-split-rescue.test.cjs", "standard-cpu-split-policy-migration.test.cjs", "standard-cpu-rollout.test.cjs", "standard-cpu-split-sql-runtime.test.cjs", "standard-cpu-palette-efficiency.test.cjs", "standard-cpu-palette-sql-runtime.test.cjs", "standard-kurogane-palette-charges.test.cjs"]) {
     assert.match(workflow, new RegExp(`tests/${file.replaceAll(".", "\\.")}`));
   }
   assert.match(workflow, /tests\/standard-basic-feedback\.test\.cjs/);

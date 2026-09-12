@@ -5,7 +5,7 @@ type JsonObject = Record<string, unknown>;
 type Seat = "A" | "B";
 type CpuProfileOptions = { policyGeneration?: "current" | "legacy" | "palette" };
 type StandardEngineApi = {
-  create(input: { matchId: string; loadouts: Record<Seat, JsonObject>; profiles: Record<Seat, JsonObject>; seed: number; debugMode?: boolean; labMode?: boolean; cpuSeat?: Seat | null; engineVersion?: string }): JsonObject;
+  create(input: { matchId: string; loadouts: Record<Seat, JsonObject>; profiles: Record<Seat, JsonObject>; seed: number; debugMode?: boolean; labMode?: boolean; cpuSeat?: Seat | null; cpuCharacterId?: string | null; cpuPolicyVersion?: string | null; engineVersion?: string }): JsonObject;
   apply(input: { state: JsonObject; rngSnapshot: JsonObject; actor: Seat; action: JsonObject; expectedVersion: number; debugMode?: boolean; labMode?: boolean }): JsonObject;
   applyCosmetic(input: { profile: JsonObject; cosmeticId: string }): { profile: JsonObject; quote: JsonObject };
   applyProfiles(input: { profiles: Record<Seat, JsonObject>; beforeState: JsonObject; nextState: JsonObject; actor: Seat; action: JsonObject; finishedAt: string; debugMode?: boolean; labMode?: boolean; cardConsumed?: boolean }): { profiles: Record<Seat, JsonObject>; changed: Record<Seat, boolean> };
@@ -1010,6 +1010,8 @@ Deno.serve(async (request: Request) => {
           debugMode,
           labMode,
           cpuSeat: room.opponent_kind === "cpu" ? "B" : null,
+          cpuCharacterId: room.opponent_kind === "cpu" ? room.cpu_character_id as string : null,
+          cpuPolicyVersion: room.opponent_kind === "cpu" ? room.cpu_policy_version as string : null,
           engineVersion: NEW_STANDARD_MATCH_ENGINE_VERSION,
         });
         const initialState = { ...(created.state as JsonObject), version: initialVersion };

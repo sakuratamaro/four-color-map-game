@@ -119,7 +119,7 @@ function projections(state,debugMode=false,labMode=false){
   if(labMode)publicState.labRuleSetId=LEGAL_RECOLOR_LAB_RULE_SET_ID;
   return {publicState,privateA:match.projectStandardPrivateState(state,"A"),privateB:match.projectStandardPrivateState(state,"B")};
 }
-function create({matchId,loadouts,profiles=null,seed,firstSeat=null,debugMode=false,labMode=false,cpuSeat=null,engineVersion=match.ENGINE_VERSION}){
+function create({matchId,loadouts,profiles=null,seed,firstSeat=null,debugMode=false,labMode=false,cpuSeat=null,cpuCharacterId=null,cpuPolicyVersion=null,engineVersion=match.ENGINE_VERSION}){
   if(typeof debugMode!=="boolean")throw new Error("INVALID_DEBUG_MODE");
   if(typeof labMode!=="boolean"||debugMode&&labMode)throw new Error("INVALID_LAB_MODE");
   if(cpuSeat!==null&&!['A','B'].includes(cpuSeat))throw new Error("INVALID_CPU_SEAT");
@@ -133,7 +133,14 @@ function create({matchId,loadouts,profiles=null,seed,firstSeat=null,debugMode=fa
   const streams=engine.createRngDomains(seed,match.REQUIRED_RNG_STREAMS);
   let state=match.createStandardMatch({matchId,loadouts,firstSeat,engineVersion},streams);
   state=clone(state);
-  if(cpuSeat!==null)cpu.applyHardCpuSkillCharges(state,cpuSeat);
+  if(cpuSeat!==null){
+    cpu.applyHardCpuSkillCharges(state,cpuSeat);
+    // Initial state only; exact saved room identity/policy, never current flags
+    // or client input. Inventory, other cards and already-saved hands stay intact.
+    if(cpuCharacterId==="kurogane"&&cpuPolicyVersion===cpuRoster.PALETTE_EFFICIENCY_POLICY_VERSION+":kurogane"
+      &&(state.hands[cpuSeat].colorPaletteChange||0)>0)
+      state.hands[cpuSeat].colorPaletteChange=cpuRoster.KUROGANE_PALETTE_CHANGE_CHARGES;
+  }
   state.ruleSetId=labMode?LEGAL_RECOLOR_LAB_RULE_SET_ID:STANDARD_RULE_SET_ID;
   if(labMode){
     state.hands.A.legalRecolor=1;
