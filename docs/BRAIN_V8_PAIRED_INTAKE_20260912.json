@@ -5,9 +5,21 @@
     "user_message_id": "bbb21715-8ab0-4dfb-ad2f-b46883434765",
     "response_message_id": "c1c1a98e-749e-42ec-8a95-2ef30abd5035",
     "readback": "FULL_COMPLETED_PAIR_VERIFIED",
-    "zip_status": "TRANSFER_PENDING_NOT_YET_HASHED_BY_COMMANDER"
+    "zip_status": "ZIP_RECEIVED_HASH_AND_MANIFEST_VERIFIED",
+    "prior_zip_status": "TRANSFER_PENDING_NOT_YET_HASHED_BY_COMMANDER",
+    "package": {
+      "id": "BRAIN-UPDATE-20260912-08",
+      "file_name": "four-color-dev-brain-20260912-v8.zip",
+      "sha256": "CC27C090BFEE5F69A66AA32BC84ED32771A8655D876602ACF077151F0B35587B",
+      "bytes": 522675,
+      "parent_sha256": "1b4e19afd40b69b800a924318006614dcb65ece2260302efaf58578635bf7560",
+      "manifest_checks": "47/47 bytes+SHA256 independently verified by commander;48 entries including manifest;unsafe/unexpected/duplicate0",
+      "transfer_source_thread_id": "01a08d9e-ae35-7f70-a879-cb342dafef47",
+      "transfer_record_validation": "Transfer owner reports v7 old36 unchanged,43total unique records,new7 equalsDELTA_V8. Commander did not rerun JSON/YAML semantic check or bundled code.",
+      "scope": "ZIP intake only; never overwrite current implementation/public evidence with package-time states."
+    }
   },
-  "alias_policy": "CHAT-V8 IDs are commander-assigned source item keys, not unverified ZIP delta IDs. Reconcile ZIP aliases when the existing transfer completes without creating duplicate UDL rows.",
+  "alias_policy": "CHAT-V8 IDs preserve original paired-source item keys. Verified v8 ZIP aliases map to those same canonical rows in zip_aliases; no duplicate requirements. Original intake-time states below remain historical, not current implementation/public state.",
   "records": [
     {
       "id": "CHAT-V8-20260912-01",
@@ -103,5 +115,71 @@
     }
   ],
   "privacy": "Only product requirements retained. Unrelated personal conversation content excluded.",
-  "implementation_gate": "Queue for the explicit successor UI goal after UDL048 public completion. Intake is not implementation or release approval."
+  "implementation_gate": "Queue for the explicit successor UI goal after UDL048 public completion. Intake is not implementation or release approval.",
+  "zip_aliases": [
+    {
+      "zip_id": "ADD-20260912-BATTLE-ENTRY-SIMPLIFY",
+      "canonical_ids": [
+        "UDL-20260907-023"
+      ],
+      "paired_item_ids": [
+        "CHAT-V8-20260912-01",
+        "CHAT-V8-20260912-07"
+      ]
+    },
+    {
+      "zip_id": "ADD-20260912-TERMINAL-NEARBY-ACTIONS",
+      "canonical_ids": [
+        "UDL-20260912-060"
+      ],
+      "paired_item_ids": [
+        "CHAT-V8-20260912-04"
+      ]
+    },
+    {
+      "zip_id": "ADD-20260912-COSMETIC-DIRECT-CHECKOUT",
+      "canonical_ids": [
+        "UDL-20260912-061"
+      ],
+      "paired_item_ids": [
+        "CHAT-V8-20260912-05"
+      ]
+    },
+    {
+      "zip_id": "ADD-20260912-PLAYER-FACING-COPY",
+      "canonical_ids": [
+        "UDL-20260912-062"
+      ],
+      "paired_item_ids": [
+        "CHAT-V8-20260912-06"
+      ]
+    },
+    {
+      "zip_id": "ADD-20260912-PALETTE-FOUR-ROLE-SLOTS",
+      "canonical_ids": [
+        "UDL-20260910-052"
+      ],
+      "paired_item_ids": [
+        "CHAT-V8-20260912-02"
+      ]
+    },
+    {
+      "zip_id": "ADD-20260912-BOARD-PALETTE-ONE-VIEWPORT",
+      "canonical_ids": [
+        "UDL-20260910-054"
+      ],
+      "paired_item_ids": [
+        "CHAT-V8-20260912-03"
+      ]
+    },
+    {
+      "zip_id": "ADD-20260912-SKILL-SIX-COMPACT",
+      "canonical_ids": [
+        "UDL-20260912-063"
+      ],
+      "paired_item_ids": [
+        "CHAT-V8-20260912-03"
+      ]
+    }
+  ]
 }

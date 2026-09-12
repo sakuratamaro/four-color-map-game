@@ -12,6 +12,8 @@ The transfer request was sent to01a08d9e-ae35-7f70-a879-cb342dafef47. A compact 
 
 ## Adopted direction, kept separate from unapproved details
 
+Subsequent completed handoff2026-09-12: existing transfer owner01a08d9e-ae35-7f70-a879-cb342dafef47 returned four-color-dev-brain-20260912-v8.zip, SHA256CC27C090BFEE5F69A66AA32BC84ED32771A8655D876602ACF077151F0B35587B,522675bytes. Commander independently checked file hash and47/47 manifest byte/hash entries,48 archive entries including self-excluded manifest,unsafe/unexpected/duplicate0. This supersedes the pending-delivery snapshot above. Exact alias mapping is in existing BRAIN_V8_PAIRED_INTAKE_20260912.json, not a new ledger. Bundled CPU handoffs repeat already-intaken directions; no new selected illustration assets or individual public-repository permission are included. Prior split probe remains authored evidence, not the commander's later real-engine reproduction. No CPU code changed by this receipt.
+
 - Existing CPU_TIERS_INTAKE selects Lv1 yuzu/ren, Lv2 minato/koharu, Lv3 aoi/kai, Lv4 tsubasa/rei, Lv5 shion/kurogane. Each level is intended to have one male and one female. Confirm fictional character settings from sources rather than infer gender from pictures/names.
 - Shion strongest and Ren weakest must be demonstrated by comparable play, not labels alone. Five adopted epithets: 彩りのユズ, 速攻のレン, ひらめきのミナト, 彩術師コハル, 慧眼のシオン. Existing IDs, personality and history links remain stable.
 - The older preserve-face instruction prevented swapping identities to fix tier order; the later explicit artwork replacement supersedes unchanged-image bytes only. Map each existing ID to one selected new character consistently across chooser, battle and result. Do not exchange identities or histories.

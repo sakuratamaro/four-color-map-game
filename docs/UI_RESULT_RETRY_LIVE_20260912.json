@@ -1,0 +1,294 @@
+{
+  "subject": "UDL-060-result-v1.1",
+  "candidateSha": "b81a1d52e8230d41ec9e69610d89bafc86d1d84e",
+  "profilesCreated": 1,
+  "matchesCreated": 1,
+  "cleanup": "TERMINAL_CONFIRMED_NO_DELETION",
+  "physicalDevices": "NOT_RUN",
+  "liveHumanAndPendingGacha": "NOT_RUN_USE_FIXED_CANDIDATE_GATE",
+  "draws": 0,
+  "rematches": 0,
+  "deletions": 0,
+  "assetHashes": [
+    {
+      "file": "index.html",
+      "sha256": "d5437728f9a89cd61eb63dcc6456314b0577de56e2f306fbcbbfe0b20d95a33a"
+    },
+    {
+      "file": "app.js",
+      "sha256": "b14751f2c14a968a77b16965d6c268dcffd5ff4d45515d5b936e03eb7505eb67"
+    },
+    {
+      "file": "result-continuation.js",
+      "sha256": "fe41ed03ab611e8cf6bd0f52201b077b9b6af0a09c7a66394586730ce2170cad"
+    },
+    {
+      "file": "result-continuation.css",
+      "sha256": "b50e6eedf4c9d3fd39cc28abdd18b499c70a0183671835ea066f691236fc0808"
+    }
+  ],
+  "geometry": [
+    {
+      "label": "390-overlay",
+      "width": 390,
+      "height": 844,
+      "overflow": false,
+      "result": {
+        "top": 150.5,
+        "bottom": 693.5,
+        "contentFits": true
+      },
+      "targets": [
+        {
+          "id": "terminalRematch",
+          "width": 163,
+          "height": 44,
+          "hit": true
+        },
+        {
+          "id": "terminalChooseAnother",
+          "width": 163,
+          "height": 44,
+          "hit": true
+        },
+        {
+          "id": "terminalGoGacha",
+          "width": 163,
+          "height": 44,
+          "hit": true
+        },
+        {
+          "id": "terminalGoLobby",
+          "width": 163,
+          "height": 44,
+          "hit": true
+        },
+        {
+          "id": "terminalClose",
+          "width": 334,
+          "height": 44,
+          "hit": true
+        }
+      ]
+    },
+    {
+      "label": "1280-overlay",
+      "width": 1280,
+      "height": 900,
+      "overflow": false,
+      "result": {
+        "top": 143,
+        "bottom": 757,
+        "contentFits": true
+      },
+      "targets": [
+        {
+          "id": "terminalRematch",
+          "width": 240,
+          "height": 44,
+          "hit": true
+        },
+        {
+          "id": "terminalChooseAnother",
+          "width": 240,
+          "height": 44,
+          "hit": true
+        },
+        {
+          "id": "terminalGoGacha",
+          "width": 240,
+          "height": 44,
+          "hit": true
+        },
+        {
+          "id": "terminalGoLobby",
+          "width": 240,
+          "height": 44,
+          "hit": true
+        },
+        {
+          "id": "terminalClose",
+          "width": 488,
+          "height": 44,
+          "hit": true
+        }
+      ]
+    },
+    {
+      "label": "1280-persistent",
+      "width": 1280,
+      "height": 900,
+      "overflow": false,
+      "result": {
+        "top": 249.90625,
+        "bottom": 649.125,
+        "contentFits": true
+      },
+      "targets": [
+        {
+          "id": "requestRematch",
+          "width": 536,
+          "height": 44,
+          "hit": true
+        },
+        {
+          "id": "chooseDifferentCpu",
+          "width": 536,
+          "height": 44,
+          "hit": true
+        },
+        {
+          "id": "resultGoGacha",
+          "width": 536,
+          "height": 44,
+          "hit": true
+        },
+        {
+          "id": "resultGoLobby",
+          "width": 536,
+          "height": 44,
+          "hit": true
+        }
+      ]
+    },
+    {
+      "label": "390-reloaded-persistent",
+      "width": 390,
+      "height": 844,
+      "overflow": false,
+      "result": {
+        "top": 176,
+        "bottom": 668.78125,
+        "contentFits": true
+      },
+      "targets": [
+        {
+          "id": "requestRematch",
+          "width": 145,
+          "height": 64,
+          "hit": true
+        },
+        {
+          "id": "chooseDifferentCpu",
+          "width": 145,
+          "height": 64,
+          "hit": true
+        },
+        {
+          "id": "resultGoGacha",
+          "width": 145,
+          "height": 64,
+          "hit": true
+        },
+        {
+          "id": "resultGoLobby",
+          "width": 145,
+          "height": 64,
+          "hit": true
+        }
+      ]
+    }
+  ],
+  "browserRequests": [
+    {
+      "pathname": "/rest/v1/rpc/fcg_standard_room_snapshot_v2",
+      "operation": null,
+      "write": false
+    },
+    {
+      "pathname": "/functions/v1/standard-game-action",
+      "operation": "cosmetic-catalog",
+      "write": false
+    },
+    {
+      "pathname": "/rest/v1/rpc/fcg_standard_matchmaking_availability",
+      "operation": null,
+      "write": false
+    },
+    {
+      "pathname": "/rest/v1/rpc/fcg_standard_room_snapshot_v2",
+      "operation": null,
+      "write": false
+    },
+    {
+      "pathname": "/rest/v1/rpc/fcg_standard_room_snapshot_v2",
+      "operation": null,
+      "write": false
+    },
+    {
+      "pathname": "/functions/v1/standard-game-action",
+      "operation": "cosmetic-catalog",
+      "write": false
+    },
+    {
+      "pathname": "/rest/v1/rpc/fcg_standard_matchmaking_availability",
+      "operation": null,
+      "write": false
+    },
+    {
+      "pathname": "/rest/v1/rpc/fcg_standard_room_snapshot_v2",
+      "operation": null,
+      "write": false
+    },
+    {
+      "pathname": "/functions/v1/standard-game-action",
+      "operation": "cpu-roster",
+      "write": false
+    },
+    {
+      "pathname": "/rest/v1/rpc/fcg_standard_room_snapshot_v2",
+      "operation": null,
+      "write": false
+    }
+  ],
+  "requestErrors": [],
+  "checks": [
+    "index.html: public200",
+    "index.html: exact Git blob bytes",
+    "app.js: public200",
+    "app.js: exact Git blob bytes",
+    "result-continuation.js: public200",
+    "result-continuation.js: exact Git blob bytes",
+    "result-continuation.css: public200",
+    "result-continuation.css: exact Git blob bytes",
+    "isolated anonymous session",
+    "profile persisted",
+    "one ordinary owned CPU match",
+    "explicit ordinary surrender completed own match",
+    "saved exact match loss reward",
+    "390-overlay: no horizontal overflow",
+    "390-overlay: all next-action targets visible and44px",
+    "390-overlay: complete result fits",
+    "1280-overlay: no horizontal overflow",
+    "1280-overlay: all next-action targets visible and44px",
+    "1280-overlay: complete result fits",
+    "1280-persistent: no horizontal overflow",
+    "1280-persistent: all next-action targets visible and44px",
+    "1280-persistent: complete result fits",
+    "saved loss reason visible",
+    "saved reward route level",
+    "gacha selected saved ticket level",
+    "normal navigation keeps room",
+    "reload retains result without replay overlay",
+    "reload retains saved reward route",
+    "390-reloaded-persistent: no horizontal overflow",
+    "390-reloaded-persistent: all next-action targets visible and44px",
+    "390-reloaded-persistent: complete result fits",
+    "canceled CPU choice keeps own room",
+    "view reload navigation and picker create no game writes",
+    "explicit result close clears client room only",
+    "explicit close sends no game write",
+    "server room saved history tickets and revision unchanged",
+    "console warning error and pageerror zero"
+  ],
+  "ownedRoomId": "b7666533-b2ec-4c72-8f2f-d4510e961c0a",
+  "reward": {
+    "ticketLevel": 1,
+    "ticketCount": 1,
+    "total": 4
+  },
+  "browserGameWrites": 0,
+  "liveGameplay": "REAL_CPU_LOSS_SAVED_REWARD_NAVIGATION_RELOAD_PICKER_CANCEL_CLIENT_EXIT",
+  "ok": true,
+  "completedAt": "2026-09-12T00:45:30.000Z"
+}

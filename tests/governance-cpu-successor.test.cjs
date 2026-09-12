@@ -21,10 +21,14 @@ test("v7 additions map once without treating proposals as product implementation
   assert.deepEqual(progression.canonical_udl_refs, ["UDL-20260912-064"]);
   assert.equal(intake.records.find(r => r.id === "ADD-20260911-MATCH-LENGTH-FOUR-FIVE").intent_state, "user_requests_balance_review_not_color_change");
   const log = read("docs/CHATGPT_REVIEW_DECISIONS.json");
-  assert.equal(log.coordination.next_goal.state, "ACTIVE");
+  assert.equal(log.coordination.next_goal.state, "WAITING_FOR_BOUNDED_REVIEW");
+  assert.equal(log.coordination.wait_budget.next_check_utc, "2026-09-12T02:04:00Z");
+  assert.equal(log.coordination.wait_budget.automatic_checks, 1);
+  assert.equal(log.coordination.wait_budget.remaining_scheduled_slots, 1);
+  assert.equal(log.coordination.next_goal.actual_api_status, "blocked", "do not relabel the observed app goal status as active");
   assert.match(log.coordination.successor_goal.state, /^QUEUED_AFTER_UI/);
-  assert.equal(log.coordination.remaining_brain_work.verified_zip_version, "v7");
-  assert.equal(log.coordination.remaining_brain_work.unverified_zip_version, "v8");
+  assert.equal(log.coordination.remaining_brain_work.verified_zip_version, "v8");
+  assert.equal(log.coordination.remaining_brain_work.unverified_zip_version, null);
 });
 
 test("CPU baseline evidence records real defects and mirror control without claiming a fix", () => {
@@ -59,5 +63,9 @@ test("final play-surface live proof binds d6 and normal390 width while keeping p
   assert.equal(approval.decision, "APPROVE");
   assert.equal(approval.subject_sha, report.candidateSha);
   assert.equal(approval.source.message_id, "9b9b252a-2a5e-43b8-a9c8-20f6b87e9f1f");
-  assert.equal(log.coordination.automation_status_at_recording, "PAUSED");
+  const closed = log.coordination.completed_review_waits.find(w => w.followup_subject_sha === report.candidateSha);
+  assert.equal(closed.followup_status, "review_received_closed");
+  assert.equal(closed.followup_response_message_id, approval.source.message_id);
+  assert.equal(closed.expires_at_utc, "2026-09-11T22:17:19Z");
+  assert.equal(closed.automatic_checks, 2, "a later independent wait must not reopen or reset the d6 budget");
 });

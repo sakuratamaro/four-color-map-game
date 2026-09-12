@@ -115,6 +115,13 @@ test("v8 paired intake preserves withdrawal, canonical reuse and unimplemented s
     "scripts/check-standard-decision-reconciliation.mjs")).href);
   const ids = new Set(parseDecisionLedger(read("docs/PROJECT_COMMAND_CENTER.md")).rows.map(r => r.values.ID));
   assert.equal(intake.records.length, 7);
+  assert.equal(intake.source.zip_status, "ZIP_RECEIVED_HASH_AND_MANIFEST_VERIFIED");
+  assert.equal(intake.source.package.sha256, "CC27C090BFEE5F69A66AA32BC84ED32771A8655D876602ACF077151F0B35587B");
+  assert.equal(intake.source.package.bytes, 522675);
+  assert.equal(intake.zip_aliases.length, 7);
+  assert.equal(new Set(intake.zip_aliases.map(row => row.zip_id)).size, 7);
+  for (const row of intake.zip_aliases) for (const id of row.canonical_ids) assert.ok(ids.has(id), id);
+  assert.deepEqual(intake.zip_aliases.find(row => row.zip_id.endsWith("COSMETIC-DIRECT-CHECKOUT")).canonical_ids, ["UDL-20260912-061"]);
   for (const row of intake.records) {
     assert.ok(row.source_quote && row.design_summary);
     for (const id of row.canonical_ids) assert.ok(ids.has(id), id);
@@ -241,6 +248,9 @@ test("ChatGPT review records require an exact subject and cannot imply productio
       assert.match(decision.subject_sha, /^[0-9a-f]{40}$/);
       assert.match(decision.spec_snapshot_sha, /^[0-9a-f]{40}$/);
       const bindings = {
+        "CHATGPT-REVIEW-20260912-017": ["0b5d0b2ea7ab510ce107bfc2477e2e275f9a9125", "b81a1d52e8230d41ec9e69610d89bafc86d1d84e", "UDL-061-cosmetics-v1", "ebb2229705f4b7e075b97e315b789198ee84126c", "Pages_only"],
+        "CHATGPT-REVIEW-20260912-016": ["b81a1d52e8230d41ec9e69610d89bafc86d1d84e", "d6f745d3f1291457539dd2f3476e9a749a547069", "UDL-060-result-v1.1", "54cd9c8a945fcc84dff1354733fad6a32cc5624a", "Pages_only"],
+        "CHATGPT-REVIEW-20260912-015": ["ccc9e91e0d1fecb74ce693b15d324c375671f8a1", "d6f745d3f1291457539dd2f3476e9a749a547069", "UDL-060-result-v1", "191a69d0db1b3cfa47521ff70d2a577f7b046213", "Pages_only"],
         "CHATGPT-REVIEW-20260912-014": ["d6f745d3f1291457539dd2f3476e9a749a547069", "93c05c7c68576b28a126588d0716f0f56c015531", "UDL-052-054-063-play-v1.2", "5a63468c8f75d777cafcb6de7fec19e4048d0f5b", "Pages_only"],
         "CHATGPT-REVIEW-20260912-013": ["6cd12ae888f26c9403fb504596f92f4d9a65b301", "93c05c7c68576b28a126588d0716f0f56c015531", "UDL-052-054-063-play-v1", "67d52446047eafb6a6c32e38e8e7c9538aea88b4", "Pages_only"],
         "CHATGPT-REVIEW-20260912-012": ["93c05c7c68576b28a126588d0716f0f56c015531", "a26ffd14a8f896d9d087dac032d8f079ece82f7d", "UDL-023-entrance-v1.1", "dd839a5424fc13ecd9d6b604023666b1996cbd76", "Pages_only"],

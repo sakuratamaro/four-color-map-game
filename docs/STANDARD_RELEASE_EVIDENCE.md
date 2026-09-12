@@ -1,5 +1,11 @@
 # Standard公開候補 証拠台帳
 
+## 2026-09-12 UDL060 結果のそばから次へ
+
+PUBLIC_VERIFIED `b81a1d52e8230d41ec9e69610d89bafc86d1d84e`。実Astra016でUDL-060-result-v1.1/blob54cd9c8a945fcc84dff1354733fad6a32cc5624aを承認、DB/Edge[]。Windows34659862518最終両SUCCESS、fresh main d6から通常push、同SHA Pages34662217796 SUCCESS。公開preflightと4asset byte一致、実Chrome390/1280の37/37と最終画像3枚目視PASS。移動時draw/rematch/write0、最後のserver room/profile/history/tickets/revision不変。物理端末・実対人はNOT_RUN。全履歴と限界は `docs/UI_RESULT_RELEASE_20260912.md`。
+
+初回Edge帯選択timeoutは同SHAの一度の失敗job再実行でPASS、原因未確定の観察REG-20260912-EDGE-BAND-01を保持。初回live harnessの読み取りRPC分類・終局再確認方法の失敗も保存し、harnessのみ修正した追加1回で完了。計試験profile2/CPU2、削除0。061/062は別の未公開候補として続行し、060の承認を流用しない。
+
 ## 2026-09-12 UDL023 対戦入口の整理
 
 PUBLIC_VERIFIED `93c05c7c68576b28a126588d0716f0f56c015531`。実Astra承認012、Windows34636944139 Chrome/Edge成功、fresh main a26からforceなしで公開、同SHA Pages34638574408 SUCCESS。3assets厳密byte一致をprofile作成前に確認、公開preflight PASS。実公開Chrome28/28（390/768/1280、route・CPU一覧・keyboard・reload）、390/1280実画像目視PASS、物理NOT_RUN。実募集/検索write・対局・quiz・gacha0。最終1件＋初期harness失敗2件で試験profile計3、削除なし。旧a9はCI失敗で未公開、012へ承認取り直し済み。全試行・hash・限界は `docs/UI_ENTRANCE_RELEASE_20260912.md` と `docs/UI_ENTRANCE_LIVE_20260912.json`。UI目標は継続し、次便052/054/063へ進む。レビュー待機は閉じ、既存heartbeat PAUSED。
