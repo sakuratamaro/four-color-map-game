@@ -1,0 +1,129 @@
+{
+  "candidate": "d9ce111d7d97019d55b3e90842602001e045ea04",
+  "review": "CHATGPT-REVIEW-20260913-036",
+  "mode": "API_ONLY",
+  "startedAt": "2026-09-12T21:37:04.866Z",
+  "console": {
+    "state": "NOT_RUN",
+    "reason": "API-only smoke; no browser or console collection. Not zero browser errors."
+  },
+  "browserUi": "NOT_RUN",
+  "physicalDevices": "NOT_RUN",
+  "f3SpecificPosition": "NOT_RUN",
+  "allTenStockHands": "NOT_RUN",
+  "oldWorkerRace": "NOT_RUN",
+  "profileCreated": true,
+  "matchCreated": true,
+  "newPolicyRoster": "VERIFIED",
+  "newPolicyOwnedRoom": "VERIFIED",
+  "cpuAction": "OBSERVED",
+  "cpuObserved": [
+    {
+      "beforeVersion": 0,
+      "afterVersion": 1,
+      "policyMatches": true
+    }
+  ],
+  "surrenderAcknowledged": true,
+  "terminalRead": "FINISHED_VERIFIED",
+  "profileRead": "READ_VERIFIED",
+  "settlement": "ONCE_LOSS_SURRENDER_VERIFIED",
+  "finishedAt": "2026-09-12T21:37:08.906Z",
+  "elapsedMs": 4040,
+  "attemptCounts": {
+    "signup": 1,
+    "match": 1,
+    "setup": 1,
+    "initialize": 1,
+    "cpu": 1,
+    "surrender": 1
+  },
+  "network": {
+    "state": "ALLOWLIST_ONLY",
+    "blocked": 0,
+    "requests": [
+      {
+        "operation": "signup",
+        "allowed": true,
+        "status": 200,
+        "result": "RECEIVED"
+      },
+      {
+        "operation": "profile",
+        "allowed": true,
+        "status": 200,
+        "result": "RECEIVED"
+      },
+      {
+        "operation": "cpu-roster",
+        "allowed": true,
+        "status": 200,
+        "result": "RECEIVED"
+      },
+      {
+        "operation": "cpu-start",
+        "allowed": true,
+        "status": 200,
+        "result": "RECEIVED"
+      },
+      {
+        "operation": "setup",
+        "allowed": true,
+        "status": 200,
+        "result": "RECEIVED"
+      },
+      {
+        "operation": "initialize",
+        "allowed": true,
+        "status": 200,
+        "result": "RECEIVED"
+      },
+      {
+        "operation": "owned-snapshot-v2",
+        "allowed": true,
+        "status": 200,
+        "result": "RECEIVED"
+      },
+      {
+        "operation": "cpu-action",
+        "allowed": true,
+        "status": 200,
+        "result": "RECEIVED"
+      },
+      {
+        "operation": "owned-snapshot-v2",
+        "allowed": true,
+        "status": 200,
+        "result": "RECEIVED"
+      },
+      {
+        "operation": "owned-snapshot-v2",
+        "allowed": true,
+        "status": 200,
+        "result": "RECEIVED"
+      },
+      {
+        "operation": "action",
+        "allowed": true,
+        "status": 200,
+        "result": "RECEIVED"
+      },
+      {
+        "operation": "owned-snapshot-v2",
+        "allowed": true,
+        "status": 200,
+        "result": "RECEIVED"
+      },
+      {
+        "operation": "profile",
+        "allowed": true,
+        "status": 200,
+        "result": "RECEIVED"
+      }
+    ]
+  },
+  "failures": [],
+  "withinDeadline": true,
+  "terminalSurrender": true,
+  "ok": true
+}

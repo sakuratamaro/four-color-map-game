@@ -1,0 +1,124 @@
+{
+  "scope": "offline authoritative enumeration/action-acceptance diagnosis, not benchmark or live verification",
+  "sourceRoot": "C:\\Users\\user\\Documents\\ChatGPT\\四色地図オンライン対戦\\.codex-worktrees\\cpu-split-rescue-20260913",
+  "policyVersion": "standard-character-split-rescue-v1:kurogane",
+  "sourceGitBlobs": {
+    "standard/standard-cpu-roster.js": "b721a4934ce8e46aeb0f6bed08aa37bd72cde286",
+    "standard/standard-cpu.js": "9ab148a9140635967256a4ee3d7d659b6f607a8e",
+    "standard/standard-match.js": "c956a879477c84e70b5979b66dbabfb0ef0ce414"
+  },
+  "elapsedMs": 153,
+  "findings": [
+    {
+      "id": "F1",
+      "fixture": "accepted deterministic opening; isolated unblocked incoming region",
+      "selected": {
+        "type": "USE_SKILL",
+        "payload": {
+          "skill": "colorPaletteChange",
+          "slot": 0,
+          "color": "red"
+        }
+      },
+      "legalColorCount": 3,
+      "selectedAccepted": true,
+      "legalColorAccepted": true,
+      "beforePalette": [
+        "yellow",
+        "blue"
+      ],
+      "afterPalette": [
+        "red",
+        "blue"
+      ],
+      "distinctBasicColorsBefore": 2,
+      "distinctBasicColorsAfter": 2,
+      "reproduced": true,
+      "privacyUnchanged": true
+    },
+    {
+      "id": "F2",
+      "fixture": "authored WORK position with three colored neighbors; not historical replay",
+      "selected": {
+        "type": "CREATE_REGION",
+        "payload": {
+          "sourceMacros": [
+            13
+          ]
+        }
+      },
+      "selectedAccepted": true,
+      "selectedOrdinaryReplyColors": [
+        "green"
+      ],
+      "tacticalSeal": {
+        "payload": {
+          "skill": "disruptChoiceThree",
+          "color": "green"
+        },
+        "metrics": {
+          "skillPriority": 60,
+          "sealOpportunity": 1,
+          "sealResponseOptionsBefore": 1,
+          "sealResponseOptionsAfterPotential": 0,
+          "sealReductionPotential": 1,
+          "sealDuration": 3,
+          "sealRandomCount": 0
+        }
+      },
+      "sealAndCreateAccepted": true,
+      "createAfterSeal": {
+        "sourceMacros": [
+          13
+        ]
+      },
+      "ordinaryReplyColorsAfterSeal": [],
+      "reproduced": true,
+      "privacyUnchanged": true,
+      "limitation": "Zero ordinary public colors is not proof of victory; opponent rescue cards are private and not inspected."
+    },
+    {
+      "id": "F3_SPLIT_ORIENTATION",
+      "characterId": "rei",
+      "fixture": "authored valid state, isolated split card, blocked basic colors and bonus0",
+      "selected": {
+        "type": "USE_SKILL",
+        "payload": {
+          "skill": "colorRegionSplit",
+          "regionId": "R3",
+          "sourceMacros": [
+            14
+          ]
+        }
+      },
+      "safeMacro": 14,
+      "enumeratedSafeSide": false,
+      "splitThenColorThenOpponentReturnAccepted": true,
+      "reproduced": false,
+      "mirrorControlPassed": null,
+      "privacyUnchanged": true
+    },
+    {
+      "id": "F3_MIRROR_CONTROL",
+      "characterId": "rei",
+      "fixture": "authored valid state, isolated split card, blocked basic colors and bonus0",
+      "selected": {
+        "type": "USE_SKILL",
+        "payload": {
+          "skill": "colorRegionSplit",
+          "regionId": "R3",
+          "sourceMacros": [
+            13
+          ]
+        }
+      },
+      "safeMacro": 13,
+      "enumeratedSafeSide": true,
+      "splitThenColorThenOpponentReturnAccepted": true,
+      "reproduced": false,
+      "mirrorControlPassed": true,
+      "privacyUnchanged": true
+    }
+  ],
+  "reproducedCount": 2
+}

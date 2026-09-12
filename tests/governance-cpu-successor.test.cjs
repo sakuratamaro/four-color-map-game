@@ -38,11 +38,14 @@ test("v7 additions map once without treating proposals as product implementation
   assert.equal(goal.status, "COMPLETE", "original delivery audit is distinct from its last retained API observation");
   assert.equal(goal.completion_audit.complete, true);
   assert.equal(goal.completion_audit.later_v13_changes_not_complete, true);
-  assert.equal(log.coordination.successor_goal.state, "INDEPENDENT_CPU_APPROVED_PENDING_PRODUCTION_GATES");
+  assert.equal(log.coordination.successor_goal.state, "F3_PUBLISHED_F1_IMPLEMENTATION_PENDING");
   const checkpoint = log.coordination.successor_goal.preparing_independent_slice;
   assert.equal(checkpoint.request_id, "UDL-20260910-051");
-  assert.equal(checkpoint.publication, "NOT_RUN", "local F3 work is not a full CPU release");
-  assert.equal(checkpoint.state, "FIXED_CANDIDATE_APPROVED");
+  assert.equal(checkpoint.publication, "NOT_RUN", "F1 is not implemented or released by the F3 result");
+  assert.equal(checkpoint.state, "BASELINE_DIAGNOSED_IMPLEMENTATION_PENDING");
+  assert.equal(checkpoint.regression_id,"REG-CPU-F1-PALETTE-WASTE");
+  assert.equal(checkpoint.branch,"codex/cpu-palette-efficiency-20260913");
+  assert.equal(log.coordination.successor_goal.completed_independent_slices.at(-1).publication,"PUBLIC_VERIFIED_SCOPED");
   assert.equal(checkpoint.checkpoint_sha, "d9ce111d7d97019d55b3e90842602001e045ea04");
   assert.equal(log.coordination.preparing_next_slice.candidate_sha,checkpoint.checkpoint_sha);
   assert.equal(log.coordination.preparing_next_slice.push_status,"PUSHED_EXACT_BRANCH");
@@ -90,7 +93,7 @@ test("genuine CPU036 and docs037 stay separate, bounded and exact after the firs
   const docs=log.decisions.find(r=>r.review_id==="CHATGPT-REVIEW-20260913-037");
   const slice=log.coordination.preparing_next_slice;
   assert.equal(matchingReview(log,slice),cpu);
-  assert.equal(planContinuation(log).action,"RELEASE_CHECKS");
+  assert.equal(planContinuation(log).action,"CONTINUE_CPU_PALETTE_IMPLEMENTATION");
   assert.equal(cpu.decision,"APPROVE_RELEASE");
   assert.equal(cpu.source.message_id,"7f806672-5501-4673-8bc9-6f7626e08552");
   assert.equal(cpu.source.request_message_id,"c566e41e-1282-4603-8c56-1f3a46e2db9c");
@@ -99,8 +102,9 @@ test("genuine CPU036 and docs037 stay separate, bounded and exact after the firs
   assert.equal(cpu.source.response_complete,true);
   assert.deepEqual(cpu.bounds,{profiles:1,matches:1,character_id:"rei",attempts:1,max_seconds:240,cpu_send_attempts:8,surrender_send_attempts:1,additional_matches:0,additional_profiles:0,economy_actions:0,deletions:0,privileged_room_recovery:false});
   assert.deepEqual(slice.live_canary_bounds,cpu.bounds);
-  assert.equal(slice.live_canary_attempts,0);
-  assert.equal(slice.publication,"NOT_RUN");
+  assert.equal(slice.live_canary_attempts,1);
+  assert.equal(slice.publication,"PUBLIC_VERIFIED_SCOPED");
+  assert.equal(slice.live_canary_state,"PASS_SINGLE_ATTEMPT_API_ONLY");
   assert.equal(docs.review_kind,"documentation_introduction");
   assert.equal(docs.decision,"APPROVE_DOCS");
   assert.deepEqual([docs.subject_sha,docs.base_sha,docs.spec_snapshot_sha],

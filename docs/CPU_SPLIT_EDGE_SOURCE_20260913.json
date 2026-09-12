@@ -1,0 +1,76 @@
+{
+  "evidenceOrigin": "Unmodified parsed stdout of existing source verifier; persisted with apply_patch.",
+  "ok": true,
+  "gateState": "SOURCE_VERIFIED_CANARY_PENDING",
+  "capturedAt": "2026-09-12T21:19:12.449Z",
+  "candidateCommit": "d9ce111d7d97019d55b3e90842602001e045ea04",
+  "project": {
+    "authenticated": true,
+    "authenticationEvidence": "SIGNED_IN_DASHBOARD_DOWNLOAD",
+    "projectRef": "qkcuhludisairpgzhryl"
+  },
+  "function": "standard-game-action",
+  "deployment": {
+    "id": null,
+    "version": null,
+    "status": null,
+    "verifyJwt": true,
+    "ezbrSha256": null,
+    "ezbrSha256State": "NOT_EXPOSED_BY_DASHBOARD_DOWNLOAD",
+    "identityState": "CONTROL_PLANE_ID_NOT_OBSERVED",
+    "updatedLabel": "a few seconds ago",
+    "fileCount": 2
+  },
+  "deploy": {
+    "method": "supabase-dashboard-deploy",
+    "logSha256": "1a176954675c205f01b5d2c6a608004f57b9ca25d72b79ce840a1ca515b96b9f"
+  },
+  "sourceReadback": {
+    "method": "supabase-dashboard-download-zip",
+    "receipt": {
+      "method": "supabase-dashboard-download-zip",
+      "logSha256": "19cebf7f8900f84f90bb743c49659cfe5c2d5afedf6e0137dba00c0a7d74f11f"
+    },
+    "files": {
+      "index.ts": {
+        "candidateSha256": "67228bc8e73276c8aff482e46fe263a3e00ef4b3669aa183f692bdf275cd7603",
+        "downloadedSha256": "67228bc8e73276c8aff482e46fe263a3e00ef4b3669aa183f692bdf275cd7603",
+        "candidateBytes": 82533,
+        "downloadedBytes": 82533,
+        "comparison": "BYTE_EXACT"
+      },
+      "standard-engine.bundle.js": {
+        "candidateSha256": "91bc29ecb53775eae6df11690852246c04ae8453e2a91c84210b40aa8efc0d6f",
+        "downloadedSha256": "91bc29ecb53775eae6df11690852246c04ae8453e2a91c84210b40aa8efc0d6f",
+        "candidateBytes": 210287,
+        "downloadedBytes": 210287,
+        "comparison": "BYTE_EXACT"
+      }
+    },
+    "baselineFiles": {
+      "index.ts": {
+        "sha256": "a80c7fb6773764da291e82fc82086dac497148317e77d6f78ebb8ec7b2833be1",
+        "bytes": 81586
+      },
+      "standard-engine.bundle.js": {
+        "sha256": "1ed7a11e14a8cb22ac3bc46003053bad0a7652fd236e52ae403a9aee7af0ecb6",
+        "bytes": 208815
+      }
+    },
+    "baselineReceipt": {
+      "method": "supabase-dashboard-baseline-download-zip",
+      "logSha256": "2f881ed154478785de6a716ee12b46537157a6fb4cdd26d1ea0c4ef6fb34ea75"
+    },
+    "changedFilesAgainstBaseline": [
+      "index.ts",
+      "standard-engine.bundle.js"
+    ]
+  },
+  "liveCanaries": [],
+  "evidenceWindow": {
+    "maximumAgeSeconds": 900,
+    "oldestAgeSeconds": 632.9655876464843,
+    "order": "baseline-download<=deploy<=dashboard-metadata<=post-download<=canary"
+  },
+  "pagesArtifactIsNotLiveEdgeEvidence": true
+}

@@ -1,0 +1,15 @@
+# UDL051 F1: next bounded CPU slice
+
+CANON_RECEIPT version=shared-canon-v1.1 base=d9ce111d7d97019d55b3e90842602001e045ea04 request=UDL-20260910-051,REG-CPU-F1-PALETTE-WASTE specs=PROJECT_COMMAND_CENTER.md,CPU_SUCCESSOR_PREPARATION_20260912.md,CPU_SPLIT_RESCUE_20260913.md@d9ce111 tests=standard-cpu,standard-cpu-roster,standard-kurogane-lookahead,standard-cpu-split-rescue,governance-commander-continuation
+
+Existing commander only. Branch codex/cpu-palette-efficiency-20260913, worktree .codex-worktrees/cpu-palette-efficiency-20260913, starts at public d9ce111. Published F3 and its one consumed live attempt are immutable. This plan is not a new Astra release approval, and037 does not cover this later document/routing change.
+
+The user adopted CPU efficiency/strength work under UDL051. The existing offline authoritative diagnostic was rerun once against the newly published d9ce111,153ms, expected exit1: F1 andF2 remain reproduced, F3’s current-policy choice now takes the safe split in both directions. CPU_AFTER_F3_DIAGNOSIS_20260913.json is the raw output. Its legacy default enumeration helper still reports enumeratedSafeSidefalse on the old F3 orientation; that field is not current-policy enumeration proof or a new F3 regression. The release's dedicated version-aware engine tests provide that proof.
+
+Next normal work: isolate F1 (unnecessary colorPaletteChange with ordinary legal colors), inspect its actual scoring, then implement a small versioned efficiency change with fixed regressions. Preserve necessary rescue, useful diversity changes, other personalities, same-category use limits, privacy, deterministic RNG and the published F3 fix. Compare ordinary-color choices and skill consumption over fixed seeds and exchanged seats; do not call an authored fixture a historical match or claim a win-rate increase without a measured benchmark. Avoid deliberately restoring waste to create weak characters.
+
+Compatibility must preserve every already-saved old policy, including the just-published split-rescue-v1. Do not mutate that policy in place or reuse036 for another candidate. Select the smallest compatible policy/activation approach after reading current implementation; bind any future DB/Edge/managed changes to a new exact candidate and genuine review. No production/profile/room changes in this preparation.
+
+F2 cross-action scoring is REG-CPU-F2-CROSS-ACTION-SCALE and remains later work. Portraits/gender/tiers/epithets, charge counts, economy, game rules and other UI features are outside this F1 slice. No repeated author-permission wait is reintroduced for the separately authorized artwork work. Old067 remains partially accepted with no automatic extra trial.
+
+Continuation uses the same preparing_independent_slice field and automation ID. A narrowly bound local-work route may resume this adopted F1 plan without reopening the completedF3 review or fabricating unpublished status. It cannot authorize release, new live attempts, another controller or indefinite review polling. Stop after a finite implementation/test checkpoint and persist the next real normal-work phase.

@@ -136,7 +136,22 @@ function planContinuation(log, {now = new Date().toISOString(), otherOwnerActive
   }
   if (issues.length) return {phase:"STOP", reason:"RECONCILE_INVALID_REVIEW", issues};
   const independent=c.successor_goal?.preparing_independent_slice;
-  const independentPlan=independent?.owner_thread_id===OWNER
+  // Existing adopted F1 work must not disappear when the preceding F3 publishes.
+  // Local implementation routing only; this creates no review/release/live authority.
+  const palettePlan=independent?.owner_thread_id===OWNER && independent.request_id==="UDL-20260910-051"
+    &&independent.regression_id==="REG-CPU-F1-PALETTE-WASTE"
+    &&independent.state==="BASELINE_DIAGNOSED_IMPLEMENTATION_PENDING"
+    &&independent.branch==="codex/cpu-palette-efficiency-20260913"
+    &&independent.worktree===".codex-worktrees/cpu-palette-efficiency-20260913"
+    &&independent.spec_path==="docs/CPU_PALETTE_EFFICIENCY_PLAN_20260913.md"
+    &&independent.implementation_authority?.kind==="adopted_user_request"
+    &&independent.implementation_authority.request_id===independent.request_id
+    &&SHA.test(independent.checkpoint_sha||"")&&SHA.test(independent.base_sha||"")
+    &&independent.publication==="NOT_RUN"&&independent.next_action
+    ? {phase:"NORMAL_WORK",action:"CONTINUE_CPU_PALETTE_IMPLEMENTATION",
+      ref:"successor_goal.preparing_independent_slice",subject_sha:independent.checkpoint_sha,
+      request_id:independent.request_id,reason:"ADOPTED_BOUNDED_LOCAL_WORK_NOT_RELEASE_AUTHORITY"}:null;
+  const legacyIndependentPlan=independent?.owner_thread_id===OWNER
     &&independent.request_id==="UDL-20260910-051"
     &&independent.regression_id==="REG-CPU-F3-SPLIT-ORIENTATION"
     &&independent.state==="LOCAL_IMPLEMENTED_COMPATIBILITY_PENDING"
@@ -147,6 +162,7 @@ function planContinuation(log, {now = new Date().toISOString(), otherOwnerActive
     ? {phase:"NORMAL_WORK",action:"CONTINUE_INDEPENDENT_IMPLEMENTATION",
       ref:"successor_goal.preparing_independent_slice",subject_sha:independent.checkpoint_sha,
       request_id:independent.request_id,reason:"CLOSED_REVIEW_MUST_NOT_ORPHAN_ADOPTED_LOCAL_WORK"}:null;
+  const independentPlan=palettePlan||legacyIndependentPlan;
   const w = c.wait_budget || {}, pending = ["review_pending","delivery_unconfirmed_api_accepted_no_resend_while_active"].includes(w.followup_status || w.status);
   if (!pending) return independentPlan || recordedCiStop || {phase:"STOP", reason:"NO_ELIGIBLE_REVIEW_OR_READY_WORK"};
   if (!pendingBinding(c)) return {phase:"STOP", reason:"INVALID_PENDING_BINDING"};

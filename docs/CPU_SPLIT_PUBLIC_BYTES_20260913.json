@@ -1,0 +1,71 @@
+{
+  "observedAt": "2026-09-12T21:36:18.981Z",
+  "candidate": "d9ce111d7d97019d55b3e90842602001e045ea04",
+  "ok": true,
+  "results": [
+    {
+      "file": "standard-v5/index.html",
+      "status": 200,
+      "bytes": 9754,
+      "sha256": "2d93b7c7af30c55f19d7202fddda33a28b5f790935dbaf796cde53b9d79544ca",
+      "byteExact": true
+    },
+    {
+      "file": "standard-v5/app.bundle.js",
+      "status": 200,
+      "bytes": 419271,
+      "sha256": "4f66b9b284ba6df6a03cfc1458ad49847d9f30f7d916ded929ee5986f6f3e9cd",
+      "byteExact": true
+    },
+    {
+      "file": "standard/standard-cpu.js",
+      "status": 200,
+      "bytes": 28065,
+      "sha256": "0d937790482523efa6ea4b186451922baa3434e938ace5e35912f8b765c2f591",
+      "byteExact": true
+    },
+    {
+      "file": "standard/standard-cpu-roster.js",
+      "status": 200,
+      "bytes": 11821,
+      "sha256": "93b8ae7f60505878b23ef5d23baee6625752aff0d18389f192169fc4bd473096",
+      "byteExact": true
+    },
+    {
+      "file": "supabase/functions/standard-game-action/index.ts",
+      "status": 200,
+      "bytes": 82533,
+      "sha256": "67228bc8e73276c8aff482e46fe263a3e00ef4b3669aa183f692bdf275cd7603",
+      "byteExact": true
+    },
+    {
+      "file": "supabase/functions/standard-game-action/standard-engine.bundle.js",
+      "status": 200,
+      "bytes": 210287,
+      "sha256": "91bc29ecb53775eae6df11690852246c04ae8453e2a91c84210b40aa8efc0d6f",
+      "byteExact": true
+    },
+    {
+      "file": "standard-online-v5/index.html",
+      "status": 200,
+      "bytes": 41447,
+      "sha256": "668d7ed3797ae29917d86d9ed7cfcd8f47f9facd8c44d0a8364f4ecb54d132da",
+      "byteExact": true
+    },
+    {
+      "file": "standard-online-v5/app.js",
+      "status": 200,
+      "bytes": 352425,
+      "sha256": "48fa25ed0eef4c4c6293cfe3936cee84e6072afe2d95c45e7147003fa648b333",
+      "byteExact": true
+    },
+    {
+      "file": "standard-online-v5/standard-skill-registry.generated.js",
+      "status": 200,
+      "bytes": 8603,
+      "sha256": "ad6a8d35e2182549d04208ac34e5be3db730ff6797bbf756cd0f435aa3ae8bc6",
+      "byteExact": true
+    }
+  ],
+  "edgeDeploymentEvidence": false
+}

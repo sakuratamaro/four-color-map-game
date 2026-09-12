@@ -27,6 +27,29 @@ function approve(log){
     decision:"APPROVE_RELEASE",review_kind:"game_production_release_approval",
     source:{kind:"chatgpt",thread_id:REVIEWER,message_id:s.review_response_message_id,request_message_id:s.review_request_message_id}});
 }
+
+test("published F3 hands adopted F1 to the same commander without replaying review or release",()=>{
+  const log=fixture();approve(log);log.coordination.active_slice.publication="PUBLIC_VERIFIED_SCOPED";
+  log.coordination.successor_goal={preparing_independent_slice:{owner_thread_id:OWNER,request_id:"UDL-20260910-051",
+    regression_id:"REG-CPU-F1-PALETTE-WASTE",state:"BASELINE_DIAGNOSED_IMPLEMENTATION_PENDING",
+    branch:"codex/cpu-palette-efficiency-20260913",worktree:".codex-worktrees/cpu-palette-efficiency-20260913",
+    spec_path:"docs/CPU_PALETTE_EFFICIENCY_PLAN_20260913.md",checkpoint_sha:"d".repeat(40),base_sha:"d".repeat(40),
+    implementation_authority:{kind:"adopted_user_request",request_id:"UDL-20260910-051"},publication:"NOT_RUN",next_action:"Bounded local implementation."}};
+  const original=JSON.stringify(log),p=planContinuation(log);
+  assert.equal(p.phase,"NORMAL_WORK");assert.equal(p.action,"CONTINUE_CPU_PALETTE_IMPLEMENTATION");
+  assert.equal(p.subject_sha,"d".repeat(40));assert.equal(p.review_id,undefined);
+  assert.equal(JSON.stringify(log),original,"planning cannot manufacture approval or mutate old publication");
+  const due=JSON.parse(original);due.coordination.wait_budget.status="review_pending";
+  assert.equal(planContinuation(due,{now:"2026-09-12T00:20:01Z"}).phase,"RECEIVE","F1 must not hide a due properly bound review");
+  assert.equal(planContinuation(log,{otherOwnerActive:true}).phase,"OWNER_ACTIVE");
+  for(const [field,value] of [["owner_thread_id","other"],["regression_id","draft"],["branch","main"],["base_sha","bad"],
+    ["spec_path","unadopted.md"],["implementation_authority",{kind:"proposal",request_id:"UDL-20260910-051"}],["publication","PUBLIC_VERIFIED"]]){
+    const copy=JSON.parse(original);copy.coordination.successor_goal.preparing_independent_slice[field]=value;
+    assert.equal(planContinuation(copy).phase,"STOP");
+  }
+  log.coordination.active_slice.publication="NOT_RUN";
+  assert.equal(planContinuation(log).action,"RELEASE_CHECKS","approved unpublished product retains priority");
+});
 test("new pending review can live in preparing_next_slice while parent remains partial",()=>{
   const log=fixture(),c=log.coordination;c.preparing_next_slice=c.active_slice;delete c.active_slice;
   assert.equal(pendingBinding(c),true);

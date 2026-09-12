@@ -1,5 +1,9 @@
 # Standard公開候補 証拠台帳
 
+## 2026-09-13 CPU051 F3 / d9ce111 限定公開確認
+
+F3のみPUBLIC_VERIFIED_SCOPED。実036が固定d9ce111/UDL-051-split-v1.1/DB1/Edge2/管理設定1を承認。969/969とWindows34716323082両SUCCESS、指定SQL本番5/5読戻し、互換Edge2file厳密一致とlegacy確認後1048.982秒で管理値activation/current確認。mainへ通常push、同SHA Pages34720335950成功、freshcandidatepreflight・公開9filebyte一致。11/11局所検証後の1回だけのAPIliveは1profile/レイ1/CPU送信1/投了1、4040ms、newpolicy/CPU進行/本人snapshot終局/一度のLOSS精算を確認。13許可通信すべて200、raw ok:true。削除/追加試行なし。ブラウザーUI・console/物理/旧worker競合/F3特定局面/全10人stockhands/勝率はNOT_RUN live。Dashboardcontrol-planeID/version/ezbr非露出、15分汎用fullcertificate未作成を保持。CPU_SPLIT_DEPLOYMENT_20260913.md、CPU_SPLIT_EDGE_SOURCE_20260913.json、CPU_SPLIT_PUBLIC_BYTES_20260913.json、CPU_SPLIT_LIVE_20260913.json、専用attemptreceiptが証拠。UDL051全体はIMPLEMENTING、F1/F2/人物・画像は残件。067の部分受入・元rawFAILは変更しない。
+
 ## 2026-09-13 UDL067 / f507 公開・有限liveは部分確認
 
 実034 ce9dbfb5→3625b9f8で同一f507/UDL-067-surrender-v1.1/Pages_only/DB[]Edge[]公開承認。Windows34710997698両成功、forcefree main2fc→f507、Pages34712742032同SHA成功、freshpreflight・4asset厳密byte一致。live1profile/レイ1/21.223秒/CPU0/SURRENDER1で30checks・独立3監査PASS、390/1280確認画面目視・本人一度の敗北精算を確認。終局再取得にinitializeを使ったharness契約不一致を保存し、raw ok:false、reload NOT_RUN、別終局snapshot未取得のまま。後続snapshot-v2修正14局所PASSを新live成功にしない。追加プロフィール/試行0、物理NOT_RUN、状態PAGES_PUBLISHED_LIVE_ACCEPTANCE_PARTIAL。詳細SURRENDER_RELEASE_20260913.md、raw SURRENDER_LIVE_20260913.json、SURRENDER_RELEASE_PREFLIGHT_20260913.json。原067自動枠3/3を再開せず、独立CPU作業を継続。

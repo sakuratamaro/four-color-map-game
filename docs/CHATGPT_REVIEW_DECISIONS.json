@@ -2548,7 +2548,7 @@
     },
     "successor_goal": {
       "title": "CPUの画像・人物設定・実効強度の改善",
-      "state": "INDEPENDENT_CPU_APPROVED_PENDING_PRODUCTION_GATES",
+      "state": "F3_PUBLISHED_F1_IMPLEMENTATION_PENDING",
       "source": {
         "kind": "explicit_user_instruction",
         "thread_id": "01a07b56-616e-7733-9aae-90575659688e",
@@ -2568,7 +2568,7 @@
       "preparation": "docs/CPU_SUCCESSOR_PREPARATION_20260912.md",
       "goal_api_state": "Fullv13successor goal active; UI067publishedpartial acceptance does not block independent CPU localwork.",
       "scope": "Separate portrait/credits, identity/tier presentation, and versioned CPU-policy slices. No game changes in current UI candidate. Preserve IDs/history/private-state boundary and existing match policy; no unapproved economic/rule changes.",
-      "publication": "NOT_RUN",
+      "publication": "F3_ONLY_PUBLIC_VERIFIED_OVERALL_INCOMPLETE",
       "rights_state": "USER_AUTHORIZED_GAME_RUNTIME_ASSETS_NO_PRERELEASE_AUTHOR_WAIT",
       "artwork_publication_decision": {
         "decision_id": "ARTWORK-USER-20260912-033",
@@ -2639,25 +2639,50 @@
       },
       "preparing_independent_slice": {
         "request_id": "UDL-20260910-051",
-        "regression_id": "REG-CPU-F3-SPLIT-ORIENTATION",
+        "regression_id": "REG-CPU-F1-PALETTE-WASTE",
         "owner_thread_id": "01a07b56-616e-7733-9aae-90575659688e",
-        "worktree": ".codex-worktrees/cpu-split-rescue-20260913",
-        "branch": "codex/cpu-split-rescue-20260913",
-        "base_sha": "f507c0b2dd9701f3ac1867131150b5e48d0ada8d",
-        "state": "FIXED_CANDIDATE_APPROVED",
-        "spec_path": "docs/CPU_SPLIT_RESCUE_20260913.md",
-        "evidence": "docs/CPU_SPLIT_FULL_TEST_20260913.md; docs/CPU_SPLIT_RESCUE_20260913.md@d9ce111",
-        "next_action": "No further user/Astra approval wait: fresh main/Edge/migration/absent flag; exactSQL+5true; compatibleEdge off/source readback/legacy; verified completion+>=460s; exactactivation/current; sameSHA main/Pages/strictbytes; locally verified single bounded live harness.",
-        "publication": "NOT_RUN",
+        "worktree": ".codex-worktrees/cpu-palette-efficiency-20260913",
+        "branch": "codex/cpu-palette-efficiency-20260913",
+        "base_sha": "d9ce111d7d97019d55b3e90842602001e045ea04",
         "checkpoint_sha": "d9ce111d7d97019d55b3e90842602001e045ea04",
-        "implementation_commit": "5cf9da5",
-        "verification": "Clean d9ce111:145 non-Playwright files969/969 PASS96391.6707ms skip0; generated3 bundles rebuild byte-equal. SQL runtime9/9; actual Edge6/6. Windows34716323082 both exact-SHA jobs completed/success; Chrome lifecycle intentionally outside scope.",
-        "full_test_evidence": "docs/CPU_SPLIT_FULL_TEST_20260913.md",
-        "activation_preparation_status": "IMPLEMENTED_DEFAULT_OFF_COMPATIBLE_EDGE_WITH_EXACT_MANAGED_VALUE",
-        "linked_candidate_ref": "preparing_next_slice",
-        "review_request_message_id": "c566e41e-1282-4603-8c56-1f3a46e2db9c",
-        "review_id": "CHATGPT-REVIEW-20260913-036"
-      }
+        "state": "BASELINE_DIAGNOSED_IMPLEMENTATION_PENDING",
+        "implementation_authority": {
+          "kind": "adopted_user_request",
+          "request_id": "UDL-20260910-051",
+          "source_path": "docs/PROJECT_COMMAND_CENTER.md#user-decision-ledger",
+          "quote": "クロガネが非常に弱い。CPUを実効強化したい。"
+        },
+        "spec_path": "docs/CPU_PALETTE_EFFICIENCY_PLAN_20260913.md",
+        "evidence": "docs/CPU_AFTER_F3_DIAGNOSIS_20260913.json",
+        "verification": "One153ms authoritative offline diagnostic: F1/F2 reproduced; F3 current safe-side choice fixed. Not a winrate/live benchmark.",
+        "publication": "NOT_RUN",
+        "review_status": "NOT_REQUESTED_NO_RELEASE_AUTHORITY",
+        "next_action": "Inspect F1 palette-change scoring; small versioned efficiency repair and real-engine/privacy/legacy/F3 regression tests; no production or live actions.",
+        "non_change": "F2, portraits, gender/epithets/tiers, charge/economy/rules, old saved policies and067 trial remain unchanged."
+      },
+      "completed_independent_slices": [
+        {
+          "request_id": "UDL-20260910-051",
+          "regression_id": "REG-CPU-F3-SPLIT-ORIENTATION",
+          "owner_thread_id": "01a07b56-616e-7733-9aae-90575659688e",
+          "worktree": ".codex-worktrees/cpu-split-rescue-20260913",
+          "branch": "codex/cpu-split-rescue-20260913",
+          "base_sha": "f507c0b2dd9701f3ac1867131150b5e48d0ada8d",
+          "state": "PUBLIC_VERIFIED_SCOPED",
+          "spec_path": "docs/CPU_SPLIT_RESCUE_20260913.md",
+          "evidence": "docs/CPU_SPLIT_DEPLOYMENT_20260913.md",
+          "next_action": "Complete F3 only; no repeated deployment or live attempt.",
+          "publication": "PUBLIC_VERIFIED_SCOPED",
+          "checkpoint_sha": "d9ce111d7d97019d55b3e90842602001e045ea04",
+          "implementation_commit": "5cf9da5",
+          "verification": "Clean d9ce111:145 non-Playwright files969/969 PASS96391.6707ms skip0; generated3 bundles rebuild byte-equal. SQL runtime9/9; actual Edge6/6. Windows34716323082 both exact-SHA jobs completed/success; Chrome lifecycle intentionally outside scope.",
+          "full_test_evidence": "docs/CPU_SPLIT_FULL_TEST_20260913.md",
+          "activation_preparation_status": "IMPLEMENTED_DEFAULT_OFF_COMPATIBLE_EDGE_WITH_EXACT_MANAGED_VALUE",
+          "linked_candidate_ref": "preparing_next_slice",
+          "review_request_message_id": "c566e41e-1282-4603-8c56-1f3a46e2db9c",
+          "review_id": "CHATGPT-REVIEW-20260913-036"
+        }
+      ]
     },
     "preparing_next_slice": {
       "id": "UDL-20260910-051",
@@ -2667,7 +2692,7 @@
       ],
       "regression_id": "REG-CPU-F3-SPLIT-ORIENTATION",
       "owner_thread_id": "01a07b56-616e-7733-9aae-90575659688e",
-      "state": "APPROVED_PENDING_PRODUCTION_GATES",
+      "state": "PUBLIC_VERIFIED_SCOPED",
       "worktree": ".codex-worktrees/cpu-split-rescue-20260913",
       "branch": "codex/cpu-split-rescue-20260913",
       "base_sha": "f507c0b2dd9701f3ac1867131150b5e48d0ada8d",
@@ -2691,7 +2716,7 @@
           "rollback": "disable activation; retain compatible Edge and additive SQL"
         }
       ],
-      "publication": "NOT_RUN",
+      "publication": "PUBLIC_VERIFIED_SCOPED",
       "push_status": "PUSHED_EXACT_BRANCH",
       "windows_run": "34716323082",
       "windows_status": "SUCCESS",
@@ -2703,9 +2728,9 @@
       "review_send_attempts": 1,
       "review_delivery_readback_checks": 2,
       "availability_checks": 1,
-      "live_canary_state": "APPROVED_HARNESS_NOT_IMPLEMENTED_NOT_RUN",
-      "live_canary_attempts": 0,
-      "next_action": "No further user/Astra approval wait: fresh main/Edge/migration/absent flag; exactSQL+5true; compatibleEdge off/source readback/legacy; verified completion+>=460s; exactactivation/current; sameSHA main/Pages/strictbytes; locally verified single bounded live harness.",
+      "live_canary_state": "PASS_SINGLE_ATTEMPT_API_ONLY",
+      "live_canary_attempts": 1,
+      "next_action": "F3 release complete within036; no further trial/redeploy. Continue independent adopted F1; preserve067partial and remaining CPU/persona work.",
       "non_change": "F1/F2 palette/scoring; portraits/gender/tiers/epithets; rule sizes/charge/RNG/economy; old policy behavior.",
       "availability_check_reserved_at_utc": "2026-09-12T20:15:55Z",
       "availability_check_reserved_before_api": true,
@@ -2780,12 +2805,223 @@
         "privileged_room_recovery": false
       },
       "production_gates": {
-        "sql": "NOT_RUN",
-        "compatible_edge": "NOT_RUN",
-        "managed_activation": "NOT_RUN",
-        "main": "NOT_RUN",
-        "pages": "NOT_RUN",
-        "live_smoke": "NOT_RUN"
+        "sql": "APPLIED_5_OF5_VERIFIED",
+        "compatible_edge": "DEPLOYED_BYTE_EXACT_LEGACY_VERIFIED",
+        "managed_activation": "CURRENT_VERIFIED_AFTER_460_SECONDS",
+        "main": "EXACT_SHA_PUBLISHED",
+        "pages": "SUCCESS_PREFLIGHT_BYTE_EXACT",
+        "live_smoke": "PASS_SINGLE_ATTEMPT_API_ONLY"
+      },
+      "deployment_attempt": {
+        "started_at_utc": "2026-09-12T21:09:30Z",
+        "owner_turn_id": "01a09769-bcfd-7bf1-aee8-ba0f9b6ecb60",
+        "review_id": "CHATGPT-REVIEW-20260913-036",
+        "base_main_sha": "f507c0b2dd9701f3ac1867131150b5e48d0ada8d",
+        "pages_baseline": {
+          "run": 34712742032,
+          "sha": "f507c0b2dd9701f3ac1867131150b5e48d0ada8d",
+          "conclusion": "success"
+        },
+        "sql_baseline": {
+          "recorded_migration_tail": "202609020006",
+          "known_manual_history_gap": true,
+          "effective_latest_in_runbook": "202609100001",
+          "effective_latest_fresh_full_check": "NOT_RUN",
+          "supported_split_policy": false,
+          "current_legacy_policy": true,
+          "active_cpu_room_count": 18,
+          "source_matches_baseline": true,
+          "source_md5": {
+            "supported": "37c98f869c141d922029f55b34e9d97a",
+            "current": "68cb48bb127f85d0757da0298e78b522",
+            "start": "758cfaaba67db8e5e09c144a76c72065"
+          },
+          "unrelated_migrations_to_apply": []
+        },
+        "edge_baseline": {
+          "function": "standard-game-action",
+          "verify_jwt": true,
+          "files": 2,
+          "source_download": "standard-game-action (8).zip",
+          "zip_sha256": "35fbe13f3eab0b1c14c308638e690338a35ef73f3da28e35c7357db87e4d89a2",
+          "acquired_at_utc": "2026-09-12T21:08:31.1902601Z",
+          "source_hashes": [
+            {
+              "file": "index.ts",
+              "baselineSha256": "a80c7fb6773764da291e82fc82086dac497148317e77d6f78ebb8ec7b2833be1",
+              "mainSha256": "a80c7fb6773764da291e82fc82086dac497148317e77d6f78ebb8ec7b2833be1",
+              "byteEqual": true,
+              "lfEqual": true,
+              "bytes": 81586
+            },
+            {
+              "file": "standard-engine.bundle.js",
+              "baselineSha256": "1ed7a11e14a8cb22ac3bc46003053bad0a7652fd236e52ae403a9aee7af0ecb6",
+              "mainSha256": "1ed7a11e14a8cb22ac3bc46003053bad0a7652fd236e52ae403a9aee7af0ecb6",
+              "byteEqual": true,
+              "lfEqual": true,
+              "bytes": 208815
+            }
+          ],
+          "control_plane_id_version": "NOT_EXPOSED_IN_DASHBOARD",
+          "cli": "NOT_ON_PATH",
+          "source_mode": "signed-in Dashboard ZIP fallback"
+        },
+        "managed_setting_baseline": {
+          "name": "FCG_CPU_SPLIT_RESCUE",
+          "state": "ABSENT",
+          "custom_secret_count": 0
+        },
+        "platform": {
+          "plan": "FREE",
+          "max_worker_seconds": 150,
+          "conservative_minimum_wait_seconds": 460,
+          "source": "https://supabase.com/docs/guides/functions/limits",
+          "all_regions_proven": false
+        },
+        "sql_apply_reserved_before_execution": true,
+        "sql_apply_attempts": 1,
+        "sql_apply_reserved_at_utc": "2026-09-12T21:09:30Z",
+        "sql_sha256": "95607c48b1b0d2436de99a77d035a70b991f977045d3d90f7166fab61101881e",
+        "sql_transaction_wrapper": "BEGIN/COMMIT; unchanged fixed SQL body",
+        "sql_result": "SUCCESS_NO_ROWS_RETURNED",
+        "sql_readback_at_utc": "2026-09-12T21:12:52Z",
+        "sql_verification_file": "supabase/verification/standard_cpu_split_rescue_verify.sql",
+        "sql_verification_sha256": "c18cfdb658d1fc7df178a7a820f59354ae2d58453ed6ca25e57860c53a780364",
+        "sql_checks": [
+          {
+            "name": "active CPU rooms remain supported",
+            "ok": true
+          },
+          {
+            "name": "exact function/ACL fcg_private.fcg_standard_cpu_policy_is_current(text,text)",
+            "ok": true
+          },
+          {
+            "name": "exact function/ACL fcg_private.fcg_standard_cpu_policy_is_supported(text,text)",
+            "ok": true
+          },
+          {
+            "name": "exact function/ACL public.fcg_standard_server_start_cpu(uuid,uuid,uuid,text,text,text,jsonb,jsonb,text)",
+            "ok": true
+          },
+          {
+            "name": "exact old/new/null/invalid policy matrix",
+            "ok": true
+          }
+        ],
+        "sql_readback_source": "Supabase SQL Editor actual5-row result, transcribed",
+        "stored_room_rewrites": 0,
+        "edge_deploy_reserved_before_execution": true,
+        "edge_deploy_attempts": 1,
+        "edge_deploy_reserved_at_utc": "2026-09-12T21:12:52Z",
+        "edge_state": "DEPLOYED_SOURCE_BYTE_EXACT_LEGACY_VERIFIED",
+        "activation": "APPLIED_DIGEST_MATCH_CURRENT_VERIFIED",
+        "edge_deploy_observed_complete_at_utc": "2026-09-12T21:15:29.018Z",
+        "edge_deploy_completion_evidence": "Dashboard Deploying completed; modal closed; both modified markers cleared; updated a few seconds ago; no error. No success toast or control-plane identifier observed.",
+        "edge_source_proof": "docs/CPU_SPLIT_EDGE_SOURCE_20260913.json",
+        "edge_source_proof_at_utc": "2026-09-12T21:19:12.449Z",
+        "edge_post_zip_sha256": "9FA527667B0A9A6613EFC46EA79BF6382DA055373D31942B662F9E9D17254501",
+        "edge_control_plane_identity": "NOT_EXPOSED",
+        "legacy_options": {
+          "observed_at_utc": "2026-09-12T21:18:31.848Z",
+          "status": 200,
+          "body_matches": true,
+          "capability": "MATCH",
+          "generation": "legacy",
+          "requests": 1,
+          "profile_writes": 0,
+          "database_writes": 0
+        },
+        "earliest_activation_at_utc": "2026-09-12T21:23:09.018Z",
+        "activation_reserved_before_execution": true,
+        "activation_attempts": 1,
+        "activation_reserved_at_utc": "2026-09-12T21:32:21Z",
+        "activation_minimum_elapsed_seconds": 1011.982,
+        "managed_setting_pre_activation_read": "No custom secrets created; exact flag ABSENT",
+        "activation_dashboard_updated_at_utc": "2026-09-12T21:32:58Z",
+        "activation_digest_matches": true,
+        "activation_observed_at_utc": "2026-09-12T21:33:29.076Z",
+        "activation_elapsed_after_compatible_deploy_seconds": 1048.982,
+        "current_options": {
+          "observedAt": "2026-09-12T21:33:39.266Z",
+          "ok": true,
+          "status": 200,
+          "bodyMatches": true,
+          "expectedGeneration": "current",
+          "capability": "MATCH",
+          "generation": "current",
+          "requestCount": 1,
+          "profileWrites": 0,
+          "databaseWrites": 0,
+          "artifactEquality": "NOT_CHECKED",
+          "allRegions": "NOT_CHECKED",
+          "workerDrain": "NOT_EVALUATED",
+          "releaseAuthorized": false
+        },
+        "managed_setting_redeploys": 0,
+        "main_push_reserved_before_execution": true,
+        "main_push_attempts": 1,
+        "main_push_source": "d9ce111d7d97019d55b3e90842602001e045ea04",
+        "main_fresh_base_before_push": "f507c0b2dd9701f3ac1867131150b5e48d0ada8d",
+        "main_push_result": "SUCCESS_FORCE_FREE_f507_TO_d9ce111",
+        "main_readback_sha": "d9ce111d7d97019d55b3e90842602001e045ea04",
+        "pages": {
+          "run": 34720335950,
+          "head_sha": "d9ce111d7d97019d55b3e90842602001e045ea04",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        "preflight": {
+          "ok": true,
+          "expectedPhase": "candidate",
+          "source": "Actual execution stdout observed2026-09-12T21:35:38Z; publicPage markers true/protected RPC checks; not live authenticated smoke."
+        },
+        "public_byte_proof": "docs/CPU_SPLIT_PUBLIC_BYTES_20260913.json",
+        "live_result": {
+          "ok": true,
+          "started_at_utc": "2026-09-12T21:37:04.866Z",
+          "finished_at_utc": "2026-09-12T21:37:08.906Z",
+          "elapsed_ms": 4040,
+          "attempt_counts": {
+            "signup": 1,
+            "match": 1,
+            "setup": 1,
+            "initialize": 1,
+            "cpu": 1,
+            "surrender": 1
+          },
+          "new_policy_owned_room": "VERIFIED",
+          "cpu_action": "OBSERVED",
+          "terminal_read": "FINISHED_VERIFIED",
+          "settlement": "ONCE_LOSS_SURRENDER_VERIFIED",
+          "browser_console": "NOT_RUN",
+          "physical": "NOT_RUN"
+        }
+      },
+      "live_canary_harness": {
+        "script": "scripts/live-standard-cpu-split-canary.cjs",
+        "tests": "tests/governance-cpu-live-canary.test.cjs",
+        "result": "11/11PASS234.8118ms skip0; initial source-key mismatch failed local gate then fixed to actual message_id; no live attempt",
+        "mode": "API_ONLY",
+        "browser_console": "NOT_RUN; not zero errors",
+        "exclusive_admission": "Durable wx attempt receipt before network; no reset/retry"
+      },
+      "pages_run": "34720335950",
+      "live_canary_reserved_before_execution": true,
+      "live_canary_reserved_at_utc": "2026-09-12T21:36:49Z",
+      "live_canary_result": "docs/CPU_SPLIT_LIVE_20260913.json",
+      "result_report": {
+        "state": "PREPARING_FIXED_EVIDENCE_EXPORT",
+        "destination_thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
+        "availability_checks": 1,
+        "availability": "Actual one pre-send read found completed old036/037pair and idle; no new response consumed.",
+        "availability_reserved_before_api": false,
+        "availability_read_note": "Performed as one result-report availability check, not a reopened closed CPU review slot.",
+        "send_attempts": 0,
+        "delivery_checks": 0,
+        "new_review_polling_budget": false,
+        "extra_live_authorized": false
       }
     },
     "remaining_brain_work": {
@@ -3098,8 +3334,8 @@
         "readback_verified": true
       },
       "normal_work_claim": {
-        "state": "REVIEW_RECEIPT_SAVED_RELEASE_READY",
-        "turn_id": "01a0975a-7375-7c43-8e38-f8f37ffeaf23",
+        "state": "CPU_F3_PUBLISHED_PREPARING_NEXT_F1",
+        "turn_id": "01a09769-bcfd-7bf1-aee8-ba0f9b6ecb60",
         "subject_sha": "d9ce111d7d97019d55b3e90842602001e045ea04",
         "review_id": "CHATGPT-REVIEW-20260913-036"
       },
@@ -3108,18 +3344,16 @@
         "regression_tests": "42/42 PASS; skip0;638.46ms",
         "old_paused_state_guard": "Previously reproduced ORPHANED_ACTIONABLE_WORK; now also rejects past/under2minute calendar reservations and schedule-time mismatch.",
         "actual_scheduler_execution": "OBSERVED_SEPARATE_NORMAL_RUN_WITH_LIVE_WORK_RESULT",
-        "latest_tests": "Genuine036+037 exact receipt and bounded/partial retention: four focused governance files53/53PASS850.2376ms,skip0; no product rerun/live."
+        "latest_tests": "Five focused governance files66/66PASS764.8214ms skip0 after release; actual smoke one1profile/1Rei/CPU1/SURRENDER1/4040msPASS. Additional pending-review precedence guard rerun before commit."
       },
       "current_run": {
         "phase": "NORMAL_WORK",
-        "turn_id": "01a0975a-7375-7c43-8e38-f8f37ffeaf23",
+        "turn_id": "01a09769-bcfd-7bf1-aee8-ba0f9b6ecb60",
         "source": "automatic_goal_continuation",
-        "started_at_utc": "2026-09-12T20:41:22.000Z",
-        "worktree": ".codex-worktrees/dev-brain-current-20260910",
-        "request": "Receive first due CPU review slot, save source-bound decision and route later normal work; no scheduled execution claimed.",
-        "completed_receipt_at_utc": "2026-09-12T20:55:50Z",
-        "canon_receipt": "shared-canon-v1.1; base=f507c0b2dd9701f3ac1867131150b5e48d0ada8d (fixed candidate parent, no new fetch); govHEAD=89abc114e3c767a02a013771c9f72c53da323031; request=UDL-20260910-051,REG-CPU-F3-SPLIT-ORIENTATION; specs=AGENTS.md,SHARED_CANON.md,CHATGPT_COLLABORATION_OPERATION.md,CPU_SPLIT_RESCUE_20260913.md@d9ce111; tests=governance-shared-canon,governance-cpu-successor,governance-commander-continuation,governance-cpu-readiness",
-        "scheduled_origin_claimed": false
+        "started_at_utc": "2026-09-12T20:58:04.000Z",
+        "worktree": ".codex-worktrees/cpu-split-rescue-20260913",
+        "request": "Completed genuine036 CPU staged release and bounded API smoke; prepared next adopted F1 slice without reopening old waits.",
+        "canon_receipt": "shared-canon-v1.1;freshMain=f507c0b2dd9701f3ac1867131150b5e48d0ada8d;candidate=d9ce111d7d97019d55b3e90842602001e045ea04;request=UDL-20260910-051;spec=UDL-051-split-v1.1/blob5b4b137769f1be7736ded6a187e438ccb6d9a702;genuineReview036;tests=exact-gates/staged-SQL-Edge-activation-and-bounded-smoke"
       },
       "missed_schedule_observation": {
         "scheduled_at_utc": "2026-09-12T06:25:12Z",
@@ -3197,11 +3431,14 @@
       },
       "previous_run": {
         "phase": "NORMAL_WORK",
-        "turn_id": "01a09754-e72f-7d82-adbc-076d2805ae1e",
+        "turn_id": "01a0975a-7375-7c43-8e38-f8f37ffeaf23",
         "source": "automatic_goal_continuation",
-        "started_at_utc": "2026-09-12T20:35:19Z",
+        "started_at_utc": "2026-09-12T20:41:22.000Z",
         "worktree": ".codex-worktrees/dev-brain-current-20260910",
-        "request": "Prepare independent read-only CPU deployment probe while respecting future fixed review slot; do not touch fixed product candidate."
+        "request": "Receive first due CPU review slot, save source-bound decision and route later normal work; no scheduled execution claimed.",
+        "completed_receipt_at_utc": "2026-09-12T20:55:50Z",
+        "canon_receipt": "shared-canon-v1.1; base=f507c0b2dd9701f3ac1867131150b5e48d0ada8d (fixed candidate parent, no new fetch); govHEAD=89abc114e3c767a02a013771c9f72c53da323031; request=UDL-20260910-051,REG-CPU-F3-SPLIT-ORIENTATION; specs=AGENTS.md,SHARED_CANON.md,CHATGPT_COLLABORATION_OPERATION.md,CPU_SPLIT_RESCUE_20260913.md@d9ce111; tests=governance-shared-canon,governance-cpu-successor,governance-commander-continuation,governance-cpu-readiness",
+        "scheduled_origin_claimed": false
       },
       "goal_blocked_audit_history": [
         {
@@ -3268,26 +3505,15 @@
         "reason": "After context continuation get_goal returned null; current explicit user-authorized successor objective was restored once via create_goal. No budget inferred.",
         "latest_observation": {
           "source": "get_goal",
-          "observed_at_utc": "2026-09-12T19:20:39Z",
+          "observed_at_utc": "2026-09-12T21:38:00Z",
           "status": "active",
           "created_at": 1789219206,
-          "updated_at": 1789240839,
+          "updated_at": 1789249029,
           "thread_id": "01a07b56-616e-7733-9aae-90575659688e",
           "not_old_ui_goal": true
         }
       },
       "previous_goal_turn_classification": {
-        "turn_id": "01a09754-e72f-7d82-adbc-076d2805ae1e",
-        "classification": "PROGRESS",
-        "actual_goal_status": "active",
-        "evidence": [
-          "Read-only CPU deployment readiness helper implemented with7passing contracts",
-          "One actual public baselineOPTIONS200/ok; no advertised capability; no profile/DBwrite",
-          "Fixed CPUd9ce111 remainsclean; originalfirst20:44:15Z slot unchanged and not prematurely polled"
-        ],
-        "old_wait_reopened": false
-      },
-      "current_goal_turn_classification": {
         "turn_id": "01a0975a-7375-7c43-8e38-f8f37ffeaf23",
         "classification": "PROGRESS",
         "actual_goal_status": "active",
@@ -3298,6 +3524,21 @@
           "53/53focused receipt/binding governance tests passed; exact automation API/TOML ACTIVE normal slot readback; fixed CPUcandidate remainsclean"
         ],
         "production_executed": false
+      },
+      "current_goal_turn_classification": {
+        "turn_id": "01a09769-bcfd-7bf1-aee8-ba0f9b6ecb60",
+        "classification": "PROGRESS",
+        "actual_goal_status": "active",
+        "evidence": [
+          "freshmainPages matchedbase; liveEdge2source exactbase hashes; actualoldSQL3source matchedbaseline;flagabsent",
+          "Approved CPU SQL applied once intransaction; actual5/5sourceACL/policy/activeCPUchecks true",
+          "CompatibleEdge exact2file Dashboarddownload/source checkpoint; legacyOPTIONS; exactmanagementactivation after1048.982seconds; currentOPTIONS",
+          "Force-free main d9ce and sameSHA Pages34720335950success; freshpreflight and9publicassetbytes exact",
+          "Locally11/11verified one-shot APIcanary:1profile/1Rei/CPU1/SURRENDER1;4040ms;newpolicy/CPUadvance/terminal/oneLOSSsettlement verified",
+          "IndependentF1/F2 re-diagnosed on newmain; dedicatedF1 worktree created without changing published candidate"
+        ],
+        "old067_touched": false,
+        "production_executed": true
       },
       "documentation_review_followup_history": [
         {
