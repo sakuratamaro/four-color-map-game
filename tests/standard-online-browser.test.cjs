@@ -4113,6 +4113,14 @@ test("UDL061 changed quote confirms or cancels on the same item without silent p
     await item.getByRole("button",{name:"購入して装備",exact:true}).click();
     await item.locator("#cosmeticCommit:not(.hidden)").waitFor();
     assert.match(await item.locator("#cosmeticConfirmationText").textContent(),/650コイン/);
+    for (const control of ["#cosmeticCommit", "#cosmeticCancel"]) {
+      const bounds=await item.locator(control).boundingBox();
+      assert.ok(bounds.width>=44&&bounds.height>=44);
+    }
+    if(process.env.STANDARD_UI_ARTIFACT_DIR){
+      fs.mkdirSync(process.env.STANDARD_UI_ARTIFACT_DIR,{recursive:true});
+      await page.screenshot({path:path.join(process.env.STANDARD_UI_ARTIFACT_DIR,`${browserName}-cosmetic-changed-quote-390.png`)});
+    }
     assert.equal(await page.evaluate(()=>globalThis.__standardOnlineRuntime.calls.filter(c=>c.body?.operation==="cosmetic-action").length),0);
     await item.locator("#cosmeticCancel").click();
     assert.equal(await page.evaluate(()=>globalThis.__standardOnlineRuntime.profile.profile_state.coins),1000);
@@ -4163,6 +4171,10 @@ test("UDL061 repeat pointer Enter and Space stay single-action and44px at each w
     assert.equal(await page.evaluate(()=>document.activeElement?.closest("[data-cosmetic-id]")?.dataset.cosmeticId),"boardAurora");
     assert.equal(await page.evaluate(()=>JSON.stringify({inventory:globalThis.__standardOnlineRuntime.profile.profile_state.inventory,tickets:globalThis.__standardOnlineRuntime.profile.profile_state.gachaTickets})),before);
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+    if(process.env.STANDARD_UI_ARTIFACT_DIR){
+      fs.mkdirSync(process.env.STANDARD_UI_ARTIFACT_DIR,{recursive:true});
+      await page.screenshot({path:path.join(process.env.STANDARD_UI_ARTIFACT_DIR,`${browserName}-cosmetic-saved-${width}.png`)});
+    }
   },{viewport:{width,height}});
 });
 
