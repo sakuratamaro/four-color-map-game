@@ -20,6 +20,13 @@
       "receipt": "docs/BRAIN_V4_V6_INTAKE_20260911.md",
       "mapping": "docs/BRAIN_V4_V6_INTAKE_20260911.json",
       "note": "Dated delta crosswalk: v3's 17 records preserved, eleven additive aliases mapped to seven UDL rows. Active states remain in the existing ledger. Package manifests are not game tests."
+    },
+    {
+      "batch_id": "BRAIN-UPDATE-20260912-08_TO_13",
+      "artifact_sha256": "c0da3f30fe4361eaed33bb5272d918ef5c0b16f7f125d73429c864a4b1dc6290",
+      "receipt": "docs/BRAIN_V9_TRANSFER_20260912.md",
+      "mapping": "docs/BRAIN_V13_DELTA_INTAKE_20260912.json",
+      "note": "43 preserved plus16 added; active acceptance,latest withdrawals and priority are in existing UDL. No ZIP/private-image publication.065 common cut-in,066 catalog and067 surrender group introduced after checking related older requests."
     }
   ],
   "sources": {
@@ -49,25 +56,42 @@
       "id": "REQ-20260906-001",
       "title": "合法色0でも自動敗北させない",
       "source": "CHATGPT_DRAFT",
-      "udl_refs": ["UDL-20260906-006"],
+      "udl_refs": [
+        "UDL-20260906-006"
+      ],
       "intent_state": "decided",
       "implementation_state": "implemented",
       "verification_state": "live_pass",
       "release_state": "public_verified",
-      "evidence": ["d06f34d", "df9f01b", "Pages 34035229549", "Edge 22"],
-      "tests": ["tests/standard-no-color-rescue.test.cjs"]
+      "evidence": [
+        "d06f34d",
+        "df9f01b",
+        "Pages 34035229549",
+        "Edge 22"
+      ],
+      "tests": [
+        "tests/standard-no-color-rescue.test.cjs"
+      ]
     },
     {
       "id": "REQ-20260907-002",
       "title": "2／3／4色接触は本人の各セル選択直後",
       "source": "CHATGPT_DRAFT",
-      "udl_refs": ["UDL-20260907-018", "UDL-20260909-040"],
+      "udl_refs": [
+        "UDL-20260907-018",
+        "UDL-20260909-040"
+      ],
       "intent_state": "decided",
       "implementation_state": "implemented",
       "verification_state": "live_pass",
       "release_state": "public_verified",
-      "evidence": ["3dea0ed", "Pages 34408261449"],
-      "tests": ["tests/standard-online-contact-feedback.test.cjs"]
+      "evidence": [
+        "3dea0ed",
+        "Pages 34408261449"
+      ],
+      "tests": [
+        "tests/standard-online-contact-feedback.test.cjs"
+      ]
     },
     {
       "id": "REQ-20260907-003",
@@ -78,82 +102,135 @@
       "implementation_state": "implemented",
       "verification_state": "not_run_for_this_snapshot",
       "release_state": "historical_evidence_only",
-      "evidence": ["docs/HANDOFF_PUBLIC_UX_RECOVERY_20260907.md"],
-      "tests": ["tests/standard-online-browser.test.cjs"],
+      "evidence": [
+        "docs/HANDOFF_PUBLIC_UX_RECOVERY_20260907.md"
+      ],
+      "tests": [
+        "tests/standard-online-browser.test.cjs"
+      ],
       "note": "Current UI and exact case must be reconciled before upgrading the evidence state."
     },
     {
       "id": "REQ-20260907-004",
       "title": "選択可能領域を初手から強調",
       "source": "CHATGPT_DRAFT",
-      "udl_refs": ["UDL-20260909-039"],
+      "udl_refs": [
+        "UDL-20260909-039"
+      ],
       "intent_state": "decided",
       "implementation_state": "implemented",
       "verification_state": "live_pass",
       "release_state": "public_verified",
-      "evidence": ["4a8cb28", "Pages 34405690053"],
-      "tests": ["tests/standard-online-browser.test.cjs"]
+      "evidence": [
+        "4a8cb28",
+        "Pages 34405690053"
+      ],
+      "tests": [
+        "tests/standard-online-browser.test.cjs"
+      ]
     },
     {
       "id": "REQ-20260907-005",
       "title": "おまけ色残回数を色ボタン内表示",
       "source": "CHATGPT_DRAFT",
-      "udl_refs": ["UDL-20260907-019", "UDL-20260908-028", "UDL-20260909-035"],
+      "udl_refs": [
+        "UDL-20260907-019",
+        "UDL-20260908-028",
+        "UDL-20260909-035"
+      ],
       "intent_state": "decided",
       "implementation_state": "implemented",
       "verification_state": "live_pass",
       "release_state": "public_verified",
-      "evidence": ["4cefe9f", "Pages 34355861649"],
-      "tests": ["tests/standard-online-browser.test.cjs"]
+      "evidence": [
+        "4cefe9f",
+        "Pages 34355861649"
+      ],
+      "tests": [
+        "tests/standard-online-browser.test.cjs"
+      ]
     },
     {
       "id": "REQ-20260909-006",
       "title": "持ち色が勝手に変わった理由を通知",
       "source": "CHATGPT_DRAFT",
-      "udl_refs": ["UDL-20260909-035", "UDL-20260909-038"],
+      "udl_refs": [
+        "UDL-20260909-035",
+        "UDL-20260909-038"
+      ],
       "intent_state": "decided",
       "implementation_state": "implemented",
       "verification_state": "live_pass",
       "release_state": "public_verified",
-      "evidence": ["d566d62", "eac26ed"],
-      "tests": ["tests/standard-disrupt-palette-choice.test.cjs"]
+      "evidence": [
+        "d566d62",
+        "eac26ed"
+      ],
+      "tests": [
+        "tests/standard-disrupt-palette-choice.test.cjs"
+      ]
     },
     {
       "id": "REQ-20260907-007",
       "title": "強制持ち替え・汚染を被影響側へ明示",
       "source": "CHATGPT_DRAFT",
-      "udl_refs": ["UDL-20260909-035", "UDL-20260909-038"],
+      "udl_refs": [
+        "UDL-20260909-035",
+        "UDL-20260909-038"
+      ],
       "intent_state": "decided",
       "implementation_state": "implemented",
       "verification_state": "live_pass",
       "release_state": "public_verified",
-      "evidence": ["d566d62", "eac26ed"],
-      "tests": ["tests/standard-disrupt-palette-choice.test.cjs"]
+      "evidence": [
+        "d566d62",
+        "eac26ed"
+      ],
+      "tests": [
+        "tests/standard-disrupt-palette-choice.test.cjs"
+      ]
     },
     {
       "id": "REQ-20260906-008",
       "title": "角膨張は通常1マスを指定して2タップ即発動",
       "source": "CHATGPT_DRAFT",
-      "udl_refs": ["UDL-20260908-029"],
+      "udl_refs": [
+        "UDL-20260908-029"
+      ],
       "intent_state": "decided",
       "implementation_state": "implemented_candidate",
       "verification_state": "windows_gate_pass",
       "release_state": "not_merged",
-      "evidence": ["candidate 98bad1d", "Windows 34447976952"],
-      "tests": ["tests/standard-online-micro-bloom-regression.test.cjs", "tests/standard-area-corner-bloom.test.cjs"],
+      "evidence": [
+        "candidate 98bad1d",
+        "Windows 34447976952"
+      ],
+      "tests": [
+        "tests/standard-online-micro-bloom-regression.test.cjs",
+        "tests/standard-area-corner-bloom.test.cjs"
+      ],
       "note": "Separate release branch; Edge, main, and Pages remain pending."
     },
     {
       "id": "REQ-20260906-009",
       "title": "同カテゴリは1ターン1枚まで",
       "source": "CHATGPT_DRAFT",
-      "udl_refs": ["UDL-20260906-012"],
+      "udl_refs": [
+        "UDL-20260906-012"
+      ],
       "intent_state": "decided",
       "implementation_state": "implemented",
       "verification_state": "live_pass",
       "release_state": "public_verified",
-      "evidence": ["d627cd5", "549e716", "Pages 34049734628", "Edge 23"],
-      "tests": ["tests/standard-skill-dispatcher.test.cjs"]
+      "evidence": [
+        "d627cd5",
+        "549e716",
+        "Pages 34049734628",
+        "Edge 23"
+      ],
+      "tests": [
+        "tests/standard-skill-dispatcher.test.cjs"
+      ]
     },
     {
       "id": "REQ-20260906-010",
@@ -164,8 +241,13 @@
       "implementation_state": "stale_candidate",
       "verification_state": "local_pass_historical",
       "release_state": "not_merged",
-      "evidence": ["7171753", "0fa6f7c"],
-      "tests": ["tests/standard-curse-backlash-deferred.test.cjs"],
+      "evidence": [
+        "7171753",
+        "0fa6f7c"
+      ],
+      "tests": [
+        "tests/standard-curse-backlash-deferred.test.cjs"
+      ],
       "note": "Reconstruct on current main; do not merge the stale branch."
     },
     {
@@ -190,93 +272,152 @@
       "implementation_state": "implemented",
       "verification_state": "source_checked",
       "release_state": "historical_evidence_only",
-      "evidence": ["standard-online-v5/app.js"],
-      "tests": ["tests/standard-online-skill-intents.test.cjs"]
+      "evidence": [
+        "standard-online-v5/app.js"
+      ],
+      "tests": [
+        "tests/standard-online-skill-intents.test.cjs"
+      ]
     },
     {
       "id": "REQ-20260907-013",
       "title": "CPUセリフと地の文を分離",
       "source": "CHATGPT_DRAFT",
-      "udl_refs": ["UDL-20260908-030"],
+      "udl_refs": [
+        "UDL-20260908-030"
+      ],
       "intent_state": "decided",
       "implementation_state": "implemented",
       "verification_state": "windows_gate_pass",
       "release_state": "pages_published_live_check_pending",
-      "evidence": ["4b84e52", "Windows 34443155947", "Pages 34443914778"],
-      "tests": ["tests/standard-cpu-commentary.test.cjs"]
+      "evidence": [
+        "4b84e52",
+        "Windows 34443155947",
+        "Pages 34443914778"
+      ],
+      "tests": [
+        "tests/standard-cpu-commentary.test.cjs"
+      ]
     },
     {
       "id": "REQ-20260908-014",
       "title": "CPU選択時点で顔を表示",
       "source": "CHATGPT_DRAFT",
-      "udl_refs": ["UDL-20260908-031"],
+      "udl_refs": [
+        "UDL-20260908-031"
+      ],
       "intent_state": "decided",
       "implementation_state": "implemented",
       "verification_state": "windows_gate_pass",
       "release_state": "pages_published_live_check_pending",
-      "evidence": ["7d69d34", "Windows 34444981630", "Pages 34445753305"],
-      "tests": ["tests/standard-cpu-portraits.test.cjs"]
+      "evidence": [
+        "7d69d34",
+        "Windows 34444981630",
+        "Pages 34445753305"
+      ],
+      "tests": [
+        "tests/standard-cpu-portraits.test.cjs"
+      ]
     },
     {
       "id": "REQ-20260905-015",
       "title": "最強CPUを強化",
       "source": "CHATGPT_DRAFT",
-      "udl_refs": ["UDL-20260910-051"],
+      "udl_refs": [
+        "UDL-20260910-051"
+      ],
       "intent_state": "decided",
       "implementation_state": "previous_version_implemented_new_acceptance_pending",
       "verification_state": "not_run_for_reopened_request",
       "release_state": "historical_evidence_only",
-      "evidence": ["a3425a4", "Pages 33947644765"],
-      "tests": ["tests/standard-kurogane-lookahead.test.cjs"],
+      "evidence": [
+        "a3425a4",
+        "Pages 33947644765"
+      ],
+      "tests": [
+        "tests/standard-kurogane-lookahead.test.cjs"
+      ],
       "note": "User's 2026-09-10 weakness report reopens acceptance. Prior v2 publication does not prove the new request complete; see REQ-CPU-20260910-KUROGANE-STRENGTH."
     },
     {
       "id": "REQ-20260905-016",
       "title": "CPU勝利時にご褒美演出",
       "source": "CHATGPT_DRAFT",
-      "udl_refs": ["UDL-20260906-004", "UDL-20260908-033"],
+      "udl_refs": [
+        "UDL-20260906-004",
+        "UDL-20260908-033"
+      ],
       "intent_state": "decided",
       "implementation_state": "implemented",
       "verification_state": "live_pass",
       "release_state": "public_verified",
-      "evidence": ["21b58c6", "Pages 34165800064"],
-      "tests": ["tests/standard-cpu-portraits.test.cjs"]
+      "evidence": [
+        "21b58c6",
+        "Pages 34165800064"
+      ],
+      "tests": [
+        "tests/standard-cpu-portraits.test.cjs"
+      ]
     },
     {
       "id": "REQ-20260906-017",
       "title": "選択肢ボタン自体が大枠内を動く",
       "source": "CHATGPT_DRAFT",
-      "udl_refs": ["UDL-20260907-021", "UDL-20260908-027", "UDL-20260909-034"],
+      "udl_refs": [
+        "UDL-20260907-021",
+        "UDL-20260908-027",
+        "UDL-20260909-034"
+      ],
       "intent_state": "decided",
       "implementation_state": "implemented",
       "verification_state": "live_pass",
       "release_state": "public_verified",
-      "evidence": ["4508fb4"],
-      "tests": ["tests/standard-online-quiz-polish.test.cjs"]
+      "evidence": [
+        "4508fb4"
+      ],
+      "tests": [
+        "tests/standard-online-quiz-polish.test.cjs"
+      ]
     },
     {
       "id": "REQ-20260906-018",
       "title": "Lv5難化・制限時間延長",
       "source": "CHATGPT_DRAFT",
-      "udl_refs": ["UDL-20260906-009", "UDL-20260908-032"],
+      "udl_refs": [
+        "UDL-20260906-009",
+        "UDL-20260908-032"
+      ],
       "intent_state": "decided",
       "implementation_state": "implemented",
       "verification_state": "live_pass_user_feel_pending",
       "release_state": "public_verified",
-      "evidence": ["a0eeca7", "Lv5 120 seconds"],
-      "tests": ["tests/standard-online-quiz-generator-runtime.test.cjs"]
+      "evidence": [
+        "a0eeca7",
+        "Lv5 120 seconds"
+      ],
+      "tests": [
+        "tests/standard-online-quiz-generator-runtime.test.cjs"
+      ]
     },
     {
       "id": "REQ-20260906-019",
       "title": "Lv3・Lv4も問題内容で難化",
       "source": "CHATGPT_DRAFT",
-      "udl_refs": ["UDL-20260908-032"],
+      "udl_refs": [
+        "UDL-20260908-032"
+      ],
       "intent_state": "decided",
       "implementation_state": "implemented_candidate",
       "verification_state": "local_pass_canary_pending",
       "release_state": "not_merged",
-      "evidence": ["0498927", "0a83480", "048d04e"],
-      "tests": ["tests/standard-online-quiz-generator-runtime.test.cjs"]
+      "evidence": [
+        "0498927",
+        "0a83480",
+        "048d04e"
+      ],
+      "tests": [
+        "tests/standard-online-quiz-generator-runtime.test.cjs"
+      ]
     },
     {
       "id": "REQ-20260905-020",
@@ -288,7 +429,9 @@
       "verification_state": "local_contract_present",
       "release_state": "historical_evidence_only",
       "evidence": [],
-      "tests": ["tests/standard-online-quiz-polish.test.cjs"]
+      "tests": [
+        "tests/standard-online-quiz-polish.test.cjs"
+      ]
     },
     {
       "id": "REQ-20260906-021",
@@ -299,8 +442,12 @@
       "implementation_state": "implemented",
       "verification_state": "reported_partial_not_rerun",
       "release_state": "historical_evidence_only",
-      "evidence": ["docs/STANDARD_RELEASE_EVIDENCE.md: 2026-09-07 23時台 JST Lv3/4強化・Lv5解答時間延長公開"],
-      "tests": ["tests/standard-online-quiz-polish.test.cjs"]
+      "evidence": [
+        "docs/STANDARD_RELEASE_EVIDENCE.md: 2026-09-07 23時台 JST Lv3/4強化・Lv5解答時間延長公開"
+      ],
+      "tests": [
+        "tests/standard-online-quiz-polish.test.cjs"
+      ]
     },
     {
       "id": "REQ-20260905-022",
@@ -311,8 +458,12 @@
       "implementation_state": "implemented",
       "verification_state": "reported_partial_not_rerun",
       "release_state": "historical_evidence_only",
-      "evidence": ["docs/STANDARD_RELEASE_EVIDENCE.md: 2026-09-06 10時台 JST クイズ明確化・進捗表示公開"],
-      "tests": ["tests/standard-online-quiz-polish.test.cjs"]
+      "evidence": [
+        "docs/STANDARD_RELEASE_EVIDENCE.md: 2026-09-06 10時台 JST クイズ明確化・進捗表示公開"
+      ],
+      "tests": [
+        "tests/standard-online-quiz-polish.test.cjs"
+      ]
     },
     {
       "id": "REQ-20260905-023",
@@ -323,8 +474,13 @@
       "implementation_state": "implemented_partial",
       "verification_state": "live_pass_for_immediate_feedback",
       "release_state": "public_verified_for_immediate_feedback",
-      "evidence": ["2f06504", "881bd17"],
-      "tests": ["tests/standard-online-quiz-polish.test.cjs"],
+      "evidence": [
+        "2f06504",
+        "881bd17"
+      ],
+      "tests": [
+        "tests/standard-online-quiz-polish.test.cjs"
+      ],
       "note": "Immediate result and one-line thinking are public; longer detailed explanation remains a proposal."
     },
     {
@@ -336,14 +492,20 @@
       "implementation_state": "implemented",
       "verification_state": "live_pass",
       "release_state": "public_verified",
-      "evidence": ["a4b9917"],
-      "tests": ["tests/standard-online-quiz-polish.test.cjs"]
+      "evidence": [
+        "a4b9917"
+      ],
+      "tests": [
+        "tests/standard-online-quiz-polish.test.cjs"
+      ]
     },
     {
       "id": "REQ-20260906-025",
       "title": "Lv5全画面Canvasメモ＋四則電卓",
       "source": "CHATGPT_DRAFT",
-      "udl_refs": ["UDL-20260910-048"],
+      "udl_refs": [
+        "UDL-20260910-048"
+      ],
       "intent_state": "spec_ready",
       "implementation_state": "not_started",
       "verification_state": "not_run",
@@ -361,8 +523,13 @@
       "implementation_state": "implemented",
       "verification_state": "live_pass",
       "release_state": "public_verified",
-      "evidence": ["docs/PROJECT_COMMAND_CENTER.md: 対戦を主役にする情報設計", "docs/STANDARD_RELEASE_EVIDENCE.md: 3e2b959 Pages・公開asset"],
-      "tests": ["tests/standard-online-quiz-polish.test.cjs"]
+      "evidence": [
+        "docs/PROJECT_COMMAND_CENTER.md: 対戦を主役にする情報設計",
+        "docs/STANDARD_RELEASE_EVIDENCE.md: 3e2b959 Pages・公開asset"
+      ],
+      "tests": [
+        "tests/standard-online-quiz-polish.test.cjs"
+      ]
     },
     {
       "id": "REQ-20260906-027",
@@ -373,8 +540,14 @@
       "implementation_state": "implemented",
       "verification_state": "live_pass",
       "release_state": "public_verified",
-      "evidence": ["docs/STANDARD_RELEASE_EVIDENCE.md: 2026-09-06 角膨張・エラー可視化・盤面outline整理公開", "75791fb", "Pages 34017695831"],
-      "tests": ["tests/standard-online-browser.test.cjs"]
+      "evidence": [
+        "docs/STANDARD_RELEASE_EVIDENCE.md: 2026-09-06 角膨張・エラー可視化・盤面outline整理公開",
+        "75791fb",
+        "Pages 34017695831"
+      ],
+      "tests": [
+        "tests/standard-online-browser.test.cjs"
+      ]
     },
     {
       "id": "REQ-20260905-028",
@@ -395,7 +568,9 @@
       "id": "REQ-CPU-20260910-KUROGANE-STRENGTH",
       "title": "クロガネの弱さの原因調査と実効強化",
       "source": "ASTRA_KUROGANE_AUDIT",
-      "udl_refs": ["UDL-20260910-051"],
+      "udl_refs": [
+        "UDL-20260910-051"
+      ],
       "intent_state": "decided",
       "implementation_state": "not_started",
       "verification_state": "proposal_probe_not_independently_rerun",
@@ -404,7 +579,9 @@
         "source roster git blob matches 68847421ad2589cb0edcce8c1021fa75a2add884",
         "artifact reports 2 isolated scoring violations"
       ],
-      "tests": ["tests/standard-kurogane-lookahead.test.cjs"],
+      "tests": [
+        "tests/standard-kurogane-lookahead.test.cjs"
+      ],
       "pending": [
         "reproduce F1 and F2 with actual engine-generated legal candidates",
         "read-only target match audit if separately authorized and uniquely identified",

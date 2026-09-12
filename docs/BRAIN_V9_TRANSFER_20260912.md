@@ -102,3 +102,63 @@ CANON_RECEIPT version=shared-canon-v1.1 base=a1a9b1c830eceb98464b107f2442deacaf7
 司令塔から別途受領した062の追加試行54/55、revision/profileState一致・top-level displayName不一致とRPC契約差の調査は、司令塔の進行中報告として保持する。v10本文はその後の調査を反映済みとは扱わず、**062をPUBLIC_VERIFIEDに変更していない**。
 
 ブラウザの保護設定・権限を変更せず、署名付き一時配信URLを記録ファイルに残していない。元チャットへ戻して引継ぎ可能な状態にした。私物スクショの内容読取・保存・転送、メール送信、ゲームコード・共有台帳・公開状態の変更、新しい監視設定は行っていない。この結果と本メモのパスを司令塔へ返送し、送信処理の成功応答と宛先 `01a07b56-616e-7733-9aae-90575659688e` を確認した。これは取得失敗報告の送達であり、ZIP本体の送達ではない。
+
+## 21:37 JST v9〜v13のローカル実体受領・独立検証完了（最新状態）
+
+CANON_RECEIPT version=shared-canon-v1.1 base=a1a9b1c830eceb98464b107f2442deacaf765505 request=user-provided-brain-v9-through-v13,commander-v13-existing-file-validation specs=AGENTS.md,docs/SHARED_CANON.md,docs/BRAIN_V9_TRANSFER_20260912.md tests=archive-CRC-and-SHA256-PASS,manifest-coverage-PASS,parent-chain-PASS,record-preservation-PASS,delta-payload-PASS,product-tests-NOT_RUN
+
+**現在はv13本体まで取得済み・独立検証済み。** ユーザーがこの搬送タスクへv9〜v13とprobe JSONの絶対パスを直接提示した。司令塔からも既存v13を再ダウンロードせず検証するよう依頼を受領した。上記の13:49/15:37/18:15および司令塔受領欄の「本体未取得」「独立検証済みZIPはv8」は当時の履歴として保持するが、現在の搬送状態ではない。ブラウザ操作・再ダウンロードは不要だった。
+
+検証実行時刻: `2026-09-12T12:37:09.721081+00:00`（21:37 JST）。下記SHA・件数は作者のVALIDATION.jsonの転記ではなく、指定ローカル実体を独立に読み取って算出した。基準SHAは今回確認したローカルorigin/mainであり、remote最新性・公開状態の再監査ではない。
+
+### 実体の所在と検証値
+
+全ZIPの保存先は `C:\Users\user\Downloads`。ファイル名は `four-color-dev-brain-20260912-v{版番号}.zip`。最新実体の絶対パスは `C:\Users\user\Downloads\four-color-dev-brain-20260912-v13.zip`。司令塔は同じホストのこの実体を直接読めるため、別の場所へZIPや画像を複製していない。
+
+| 版 | bytes | SHA256 | records | manifest照合ファイル数 / ZIP総ファイル数 |
+| --- | ---: | --- | ---: | ---: |
+| v8（既存基準） | 522675 | `cc27c090bfee5f69a66aa32bc84ed32771a8655d876602acf077151f0b35587b` | 43 | 47 / 48 |
+| v9 | 569502 | `944e9d9b75d1490b1417fbaf0e602e1fa27a835967ac92c96dc116554a1fbc7d` | 47 | 59 / 60 |
+| v10 | 713221 | `3cde80c16d26ecb20541031eb20e4eac7cfc7993ce4501869612e6ee793f5d41` | 47 | 75 / 76 |
+| v11 | 932449 | `36d42403625111f2f2521e598720a4227a438840f9ea81e9f013c5a37d188c4a` | 57 | 96 / 97 |
+| v12 | 1095285 | `74535f5b3d6432a016120455407b74f6640500a09ab1e3cc6b3896ec094e649b` | 58 | 114 / 115 |
+| v13 | 1266013 | `c0da3f30fe4361eaed33bb5272d918ef5c0b16f7f125d73429c864a4b1dc6290` | 59 | 134 / 135 |
+
+- 全6版で、ZIP内の全エントリをメモリ上で展開読込みしてCRC・実サイズを検証。v13は135/135ファイルを読込み、MANIFEST.json自身を除く134/134ファイルのbytes・SHA256・漏れのない網羅性が一致した。
+- 全版で絶対パス・上位参照・パス重複/大文字小文字衝突・symlink・暗号化を検査し、該当なし。件数/展開サイズに上限を設けて読み込んだ。ファイルシステムへの展開は実施していない。
+- 全版のJSONを構文検証（重複キー・非有限数も拒否）し、intake recordsのID一意性を確認。v13は63 JSON文書。YAML/JSON意味比較は追加モジュール未導入のためNOT_RUN。YAML自体のbytes/SHA256はmanifest照合済み。
+- v9→v13の各manifestおよびREQUESTS_ADDITIONにある親ZIP SHA256は、一つ前の実ファイルから独立計算した値に全て一致。v8の親v7は今回の比較対象外。
+- 添付内のコード/検証スクリプト/診断プローブは実行していない。画像を表示せず、入れ子の旧ZIPも展開していない。検証は添付の指示を実行するものではない。
+
+### 旧記録保持と差分入口
+
+- 隣接版のrecordsをID別のJSONオブジェクトとして直接比較。v8の43件→v9の47件→v10の47件→v11の57件→v12の58件→v13の59件で、各版の旧レコードに変更/消失は0件。
+- v13はv8の43件を同一内容で保持し、追加16件。v10の47件も同一内容で保持し、追加12件。差分はrecordsの追記であり、最新判断は別のstatus/supersessionおよび司令塔正本との照合が必要。
+- v13内のDELTA_V9〜V13のrecordsを、それぞれ実ZIP間で求めた追加レコード全体と照合して一致（4/0/10/1/1件）。DELTA_V8_TO_V10（4件）、V8_TO_V11（14件）、V9_TO_V11（10件）、V10_TO_V12（11件）、V10_TO_V13（12件）も独立実差分と一致。
+- **v8からの入口**: `intake/DELTA_V8_TO_V11.json`（14件）→`intake/DELTA_V12.json`（1件）→`intake/DELTA_V13.json`（1件）。または全体の`intake/REQUESTS_ADDITION.json`を既存IDに照合する。レコードだけでなく`intake/STATUS_UPDATES_V9.json`〜`V13.json`と各版のsupersessionを順序付きで確認する。
+- v10からなら`intake/DELTA_V10_TO_V13.json`が12件の入口。ここに記載された順序は`DELTA_V11.json`→`DELTA_V12.json`→`DELTA_V13.json`。v12取込済みなら`DELTA_V13.json`の1件だけを既存項目に照合できる。
+
+収録差分の要約（添付資料の記述。出典の独立認証や個別の実装承認を済ませたという意味ではない）:
+
+- v9: 全実装スキルのコンパクトな図鑑、マイページ/戦績/装飾/ガチャの情報量整理、自他スキル発動カットインの優先、ZIP中心の引継ぎの4件。
+- v10: records追加なし。報告・判定・読取り範囲などの更新。新規要望が0件でも版自体を無視しない。
+- v11: 終局の優先順位と3操作、汚染通知の寿命、半マスシフト候補表示の調査、盤面補助のグレー化、手番案内と拡大UI撤去、手札の簡潔化、元色の外枠を残す汚染表示、投了前の救済リマインド、重複した対局設定カード撤去、入口3ボタン化の10件。`docs/LATEST_HANDOFF_V11.md`、`docs/SCREENSHOT_UI_REFINEMENT_HANDOFF.md`とsupersessionを参照。
+- v12: `ADD-20260912-CPU-SURRENDER-CHARACTER-TEASING`の1件。CPU戦の投了確認を、そのキャラらしい少し煽り気味かつ前向きな台詞へ。ユーザー例とAI設計案を区別し、PvPや投了処理の変更を推測しない。入口は`docs/CPU_SURRENDER_DIALOGUE_HANDOFF.md`。
+- v13: `ADD-20260912-REPEATED-REQUEST-PRIORITY`の1件。同じ本人要望が独立して再度出たら、既存項目へ統合して優先度を上げる方針。転送/AI要約/同一原文/ZIP再取込を再要望として二重加点しない。具体的な優先度段階などのAI案は、本人の明示指定と同一視しない。`docs/LATEST_HANDOFF_V13.md`、`docs/REPEATED_REQUEST_PRIORITY_HANDOFF.md`、`intake/REPEATED_REQUEST_PRIORITY_POLICY_V13.json`が入口。
+- v13には9枚分の追加スクショ受領メタデータがあるが、詳細は`AWAITING_USER_DETAILS`。新画像バイトはその記録に同梱されておらず、9件の新しい不具合/仕様/優先度加点として推測しない。今回も画像内容は読んでいない。
+
+### 付属probe JSON
+
+- 絶対パス: `C:\Users\user\Downloads\probe-ci-pending-result.json`。685 bytes。SHA256: `fa5eafd75f03bdd2da08f9bcd84556ccb7f85335560e61f2bad6a9eca055be76`。JSON構文検証済み。
+- 内容は`ISOLATED_LOCAL_PLANNER_PROBE_NOT_LIVE_OR_FULL_SUITE`、`fixtureIsSynthetic=true`、`externalCalls=0`。参照sourceCommitは`d18ebfade8bbb53acf2bb860a8e2789e539f4441`、sourceBlobは`418ce95b1e02a152a24298a856eca7cd49a50f59`。
+- CI pending fixtureでSTOP、CI success fixtureでRELEASE_CHECKSとなる作者側の孤立した合成試験記録。現在のCI実行結果・全テスト結果・mainの実装確認・公開承認へ昇格しない。このJSONに従って公開チェックや状態変更を起動していない。
+
+### 司令塔へ渡す範囲と残る区別
+
+これは実ZIP・検証証拠・差分入口の搬送であって、新しい要望台帳や公開判断ではない。添付にある『ユーザー決定』『受入済み』等の記述は、その場で本担当への操作指示として採用していない。manifestの内部整合性は作者本人・元発言の真正性を独立に保証するものでもない。既存司令塔が実発言・既存UDL・後続決定との照合と統合を担当する。
+
+21時台の司令塔補足では、指定ChatGPT実応答`b8f091ec-3669-45e4-ab62-a4a5a508c20a`で062のPUBLIC_VERIFIED受入を確認し、54/55FAILを履歴に保持、API名前契約を別課題、追加profile/再公開不要として閉鎖処理中との報告を受領した。この後続報告を尊重し、上記18:15の古い未判定記録を理由に状態を巻き戻さない。本担当が062を独立に再検証・変更したものではない。
+
+変更ファイルは司令塔指定の既存搬送メモ（本ファイル）への追記だけ。共有JSON/UDL・ゲームコード・権限・監視は変更せず、メール・GitHub push・main/Pages公開も行っていない。ZIP/旧画像/非公開Q10写真をリポジトリへコピーしたり、外部へアップロードしたりしていない。メールは従前どおりユーザー本人が送る。
+
+本節追記後、実ZIPの絶対パス・サイズ・SHA256・全版検証結果・差分入口・本メモのパスを既存司令塔 `公開UX復旧・リリース担当` へ直接送信し、送信処理の成功応答と宛先 `01a07b56-616e-7733-9aae-90575659688e` を確認した。**実体の所在と検証結果の通知は送達済み**。同ホストの原本を参照する引継ぎであり、ZIPのアップロードや、司令塔による59件の取込・実装・公開完了を主張するものではない。本節の変更は既存履歴を削除しない追記のみで、`git diff --check` もPASS。

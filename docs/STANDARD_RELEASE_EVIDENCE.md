@@ -1,5 +1,9 @@
 # Standard公開候補 証拠台帳
 
+## 2026-09-12 21:43JST UDL062 範囲限定の公開受入完了
+
+実Astra024（b8f091ec-3669-45e4-ab62-a4a5a508c20a、依頼b39fb94d）によりa1/UDL-062-copy-v1.1/blob5481afd8のUI受入をPUBLIC_VERIFIEDへ更新。固定証拠7708077、保存profileState全体/revision一致とUI/allowlist/consoleが根拠。初回52/FAILと追加54/55 FAIL・ok:falseは不変、55/55と数え直さない。API名前応答契約はREG-20260912-PROFILE-RESPONSE-CONTRACT-01としてPCCへ分離し未修正。liveの名前実値/省略の別とDB別列照合は未確定。第3profile・追加live・再公開は行わず、累計2profile、物理NOT_RUN・対局診断NOT_RUN_NO_MATCH。旧UI6群のspec/review/祖先と現main a1の公開13assetをGETのみで再照合済み。詳細UI_GOAL_FINAL_ACCEPTANCE_20260912.json。以下は受入前の保存履歴。
+
 ## 2026-09-12 UDL062 プレイヤー向けの案内整理
 
 **PAGES_PUBLISHED / LIVE_ACCEPTANCE_PARTIAL**。実Astra020とWindows両SUCCESSに基づくa1・Pages34682215186は維持。022の追加1回を実行し、fresh preflight・HTML/app37 byte一致後、390/1280各5タブ・reloadを含む54/55 PASS。最終3項目はserver等価false、allowlisttrue、consoletrue。revisionとprofileStateは一致、top-level displayNameのみ不一致。RPCの2項目返却とEdgeの未返却name参照の契約差を固定a1の実コード式でoffline3/3再現。実name値/存在有無は未保存のため実通信値まで断定しない。累計2profile、対局/経済操作/非読取/削除0、物理NOT_RUN、対局内診断NOT_RUN_NO_MATCH。追加試行なし、原失敗JSON2件を保持してAstraへ診断報告。新証拠はUI_PLAYER_COPY_RETRY_LIVE_20260912.json、詳細はUI_PLAYER_COPY_RELEASE_20260912.md。別件の運用8d4ca4bは023 APPROVE_DOCS、追加の文書返信待ちは解消。

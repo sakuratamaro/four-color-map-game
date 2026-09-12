@@ -1,0 +1,282 @@
+{
+  "kind": "dated_delta_crosswalk_not_second_ledger",
+  "canon_version": "shared-canon-v1.1",
+  "canonical_ledger": "docs/PROJECT_COMMAND_CENTER.md#user-decision-ledger",
+  "package": "BRAIN-UPDATE-20260912-13",
+  "archive_sha256": "c0da3f30fe4361eaed33bb5272d918ef5c0b16f7f125d73429c864a4b1dc6290",
+  "verification": "docs/BRAIN_V9_TRANSFER_20260912.md",
+  "preserved_records": 43,
+  "added_records": 16,
+  "source_thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
+  "repeat_priority": {
+    "source_message_id": "bbb21712-1770-4162-8b2f-e4d793dc1435",
+    "decision": "Distinct user repeats consolidate into same request and raise priority. Forwarded originals,AI summaries,reimports and unexplained screenshots excluded.",
+    "implementation_choice": "One normal priority band upward, or earlier within top normal band; P0 safety/data-loss/progression emergencies retain precedence.",
+    "not_user_specified_numbers": true,
+    "latest_withdrawals_override_old_repeat_counts": true
+  },
+  "pending_screenshot_memo": {
+    "source_message_id": "bbb21712-1770-4162-8b2f-e4d793dc1435",
+    "count": 9,
+    "status": "AWAITING_USER_DETAILS",
+    "inferred_requests": 0,
+    "private_image_bytes_published": false
+  },
+  "records": [
+    {
+      "alias": "ADD-20260912-SKILL-CUTIN-PRIORITY",
+      "canonical_ids": [
+        "UDL-20260912-065"
+      ],
+      "source_message_id": "bbb216f0-9194-45cf-acd6-504a9a55d40a",
+      "independent_repeat_message_ids": [
+        "bbb2137d-8aaa-4432-ab40-0938b5a4cde2"
+      ],
+      "user_requirement_summary": "Self and opponent short cut-in first; independent of whole UI/portraits.",
+      "non_change_or_supersession": "008/035/040 preserved related feedback, not completion evidence for this common cut-in.",
+      "intent_state": "decided",
+      "implementation_state": "in_progress",
+      "verification_state": "not_run",
+      "release_state": "not_merged",
+      "historical_publication_is_not_new_acceptance": true
+    },
+    {
+      "alias": "ADD-20260912-CARD-ALL-SKILL-ENCYCLOPEDIA",
+      "canonical_ids": [
+        "UDL-20260912-066"
+      ],
+      "source_message_id": "bbb21b41-147b-4869-810f-ada7f33bb3f7",
+      "independent_repeat_message_ids": [],
+      "user_requirement_summary": "Compact implemented whole-skill catalog including unowned and small counts.",
+      "non_change_or_supersession": "Official registry, read-only details; no proposed/debug cards, grants or consumption.",
+      "intent_state": "decided",
+      "implementation_state": "not_started",
+      "verification_state": "not_run",
+      "release_state": "not_merged",
+      "historical_publication_is_not_new_acceptance": true
+    },
+    {
+      "alias": "ADD-20260912-SECONDARY-SCREENS-DIET",
+      "canonical_ids": [
+        "UDL-20260912-061",
+        "UDL-20260912-062",
+        "UDL-20260909-043",
+        "UDL-20260909-044",
+        "UDL-20260910-053"
+      ],
+      "source_message_id": "bbb21143-7f50-497d-a733-cabb682a7f4f",
+      "independent_repeat_message_ids": [],
+      "user_requirement_summary": "Reduce repetitive copy/space in profile,records,cosmetics,gacha.",
+      "non_change_or_supersession": "Old061 purchase state and062 acceptance preserved; odds unchanged.",
+      "intent_state": "decided",
+      "implementation_state": "not_started",
+      "verification_state": "not_run",
+      "release_state": "not_merged",
+      "historical_publication_is_not_new_acceptance": true
+    },
+    {
+      "alias": "ADD-20260912-ZIP-FIRST-HANDOFF",
+      "canonical_ids": [
+        "UDL-20260910-050"
+      ],
+      "source_message_id": "bbb216f0-9194-45cf-acd6-504a9a55d40a",
+      "independent_repeat_message_ids": [],
+      "user_requirement_summary": "Details in brain ZIP, concise conversation summaries.",
+      "non_change_or_supersession": "No second queue or private-image upload authority.",
+      "intent_state": "decided",
+      "implementation_state": "not_started",
+      "verification_state": "not_run",
+      "release_state": "not_a_game_release",
+      "historical_publication_is_not_new_acceptance": true
+    },
+    {
+      "alias": "ADD-20260912-TERMINAL-HIERARCHY-THREE-ACTIONS",
+      "canonical_ids": [
+        "UDL-20260912-060",
+        "UDL-20260908-033"
+      ],
+      "source_message_id": "bbb2137d-8aaa-4432-ab40-0938b5a4cde2",
+      "independent_repeat_message_ids": [],
+      "user_requirement_summary": "Win/loss then CPU speech/art, small reason and saved reward; gacha/close lobby/return result only.",
+      "non_change_or_supersession": "Withdraws overlay direct rematch/other opponent design; old060 public evidence remains.",
+      "intent_state": "decided",
+      "implementation_state": "not_started",
+      "verification_state": "not_run",
+      "release_state": "not_merged",
+      "historical_publication_is_not_new_acceptance": true
+    },
+    {
+      "alias": "ADD-20260912-POLLUTION-NOTICE-LIFECYCLE",
+      "canonical_ids": [
+        "UDL-20260909-035",
+        "UDL-20260909-038",
+        "UDL-20260910-052"
+      ],
+      "source_message_id": "bbb2137d-8aaa-4432-ab40-0938b5a4cde2",
+      "independent_repeat_message_ids": [],
+      "user_requirement_summary": "Short current-change cause and actual remaining duration; expire with effect, no acknowledgement.",
+      "non_change_or_supersession": "Reported stale notice needs reproduction; two turns is example, not fixed constant.",
+      "intent_state": "decided",
+      "implementation_state": "not_started",
+      "verification_state": "not_run",
+      "release_state": "not_merged",
+      "historical_publication_is_not_new_acceptance": true
+    },
+    {
+      "alias": "ADD-20260912-HALF-SHIFT-CANDIDATE-REPORT",
+      "canonical_ids": [
+        "UDL-20260909-039",
+        "UDL-20260910-054"
+      ],
+      "source_message_id": "bbb2137d-8aaa-4432-ab40-0938b5a4cde2",
+      "independent_repeat_message_ids": [],
+      "user_requirement_summary": "Investigate half-shift candidate correctness separately from visual clutter.",
+      "non_change_or_supersession": "Suspected regression, not reproduced; grayscale alone is not proof of fix.",
+      "intent_state": "decided",
+      "implementation_state": "not_started",
+      "verification_state": "not_run",
+      "release_state": "not_merged",
+      "historical_publication_is_not_new_acceptance": true
+    },
+    {
+      "alias": "ADD-20260912-BOARD-GRAYSCALE-AFFORDANCE",
+      "canonical_ids": [
+        "UDL-20260909-039",
+        "UDL-20260910-054"
+      ],
+      "source_message_id": "bbb2137d-8aaa-4432-ab40-0938b5a4cde2",
+      "independent_repeat_message_ids": [],
+      "user_requirement_summary": "Gray candidates/white selection, remove cyan dotted and pink assistance.",
+      "non_change_or_supersession": "Actual candidates, painted colours, keyboard and contact feedback preserved.",
+      "intent_state": "decided",
+      "implementation_state": "not_started",
+      "verification_state": "not_run",
+      "release_state": "not_merged",
+      "historical_publication_is_not_new_acceptance": true
+    },
+    {
+      "alias": "ADD-20260912-TURN-GUIDE-NO-ZOOM",
+      "canonical_ids": [
+        "UDL-20260910-054",
+        "UDL-20260912-062"
+      ],
+      "source_message_id": "bbb2137d-8aaa-4432-ab40-0938b5a4cde2",
+      "independent_repeat_message_ids": [],
+      "user_requirement_summary": "One short guide and nearby give button; remove custom zoom/repeated prose.",
+      "non_change_or_supersession": "Withdraws custom zoom fallback, not browser accessibility zoom or selection semantics.",
+      "intent_state": "decided",
+      "implementation_state": "not_started",
+      "verification_state": "not_run",
+      "release_state": "not_merged",
+      "historical_publication_is_not_new_acceptance": true
+    },
+    {
+      "alias": "ADD-20260912-HAND-COMPACT-INLINE-INFO",
+      "canonical_ids": [
+        "UDL-20260912-063"
+      ],
+      "source_message_id": "bbb2137d-8aaa-4432-ab40-0938b5a4cde2",
+      "independent_repeat_message_ids": [],
+      "user_requirement_summary": "Keep3x2, remove normal x1 and large information row; retain detail access.",
+      "non_change_or_supersession": "No requirement for all-skill confirmation; unavailable cards still explorable.",
+      "intent_state": "decided",
+      "implementation_state": "not_started",
+      "verification_state": "not_run",
+      "release_state": "not_merged",
+      "historical_publication_is_not_new_acceptance": true
+    },
+    {
+      "alias": "ADD-20260912-PALETTE-ORIGINAL-RIM-NO-DROPDOWN",
+      "canonical_ids": [
+        "UDL-20260910-052",
+        "UDL-20260909-035"
+      ],
+      "source_message_id": "bbb2137d-8aaa-4432-ab40-0938b5a4cde2",
+      "independent_repeat_message_ids": [],
+      "user_requirement_summary": "Stable4roles, origin rim/current inside, no dropdown, simple x.",
+      "non_change_or_supersession": "Withdraws select/emoji; all legitimate temporary colors reachable; origin from actual effect.",
+      "intent_state": "decided",
+      "implementation_state": "not_started",
+      "verification_state": "not_run",
+      "release_state": "not_merged",
+      "historical_publication_is_not_new_acceptance": true
+    },
+    {
+      "alias": "ADD-20260912-SURRENDER-CONFIRM-RESCUE-REMINDER",
+      "canonical_ids": [
+        "UDL-20260912-067"
+      ],
+      "source_message_id": "bbb2137d-8aaa-4432-ab40-0938b5a4cde2",
+      "independent_repeat_message_ids": [],
+      "user_requirement_summary": "Short surrender entry; explicit confirmation once, cancellation writes0.",
+      "non_change_or_supersession": "006 automatic-loss protection preserved; CPU generic text replaced byv12.",
+      "intent_state": "decided",
+      "implementation_state": "not_started",
+      "verification_state": "not_run",
+      "release_state": "not_merged",
+      "historical_publication_is_not_new_acceptance": true
+    },
+    {
+      "alias": "ADD-20260912-REMOVE-DUPLICATE-MATCH-SETTINGS",
+      "canonical_ids": [
+        "UDL-20260910-054",
+        "UDL-20260912-062"
+      ],
+      "source_message_id": "bbb2137d-8aaa-4432-ab40-0938b5a4cde2",
+      "independent_repeat_message_ids": [],
+      "user_requirement_summary": "Remove duplicate settings card, keep displayed needed size/colors and actual data.",
+      "non_change_or_supersession": "Withdraws move-settings-card-to-bottom design.",
+      "intent_state": "decided",
+      "implementation_state": "not_started",
+      "verification_state": "not_run",
+      "release_state": "not_merged",
+      "historical_publication_is_not_new_acceptance": true
+    },
+    {
+      "alias": "ADD-20260912-ENTRY-FLAT-THREE-BUTTONS",
+      "canonical_ids": [
+        "UDL-20260907-023",
+        "UDL-20260912-062"
+      ],
+      "source_message_id": "bbb2137d-8aaa-4432-ab40-0938b5a4cde2",
+      "independent_repeat_message_ids": [],
+      "user_requirement_summary": "Flat CPU/friend/anyone choices, no yellow heading box.",
+      "non_change_or_supersession": "Withdraws CPU/human grouping; old023 public evidence preserved.",
+      "intent_state": "decided",
+      "implementation_state": "not_started",
+      "verification_state": "not_run",
+      "release_state": "not_merged",
+      "historical_publication_is_not_new_acceptance": true
+    },
+    {
+      "alias": "ADD-20260912-CPU-SURRENDER-CHARACTER-TEASING",
+      "canonical_ids": [
+        "UDL-20260912-067"
+      ],
+      "source_message_id": "bbb213cb-7d07-47a9-be57-a928abfe955e",
+      "independent_repeat_message_ids": [],
+      "user_requirement_summary": "Lightly teasing character-specific CPU confirmation; PvP generic.",
+      "non_change_or_supersession": "Only CPU generic copy replaced; no guaranteed rescue, auto loss or reward-only art.",
+      "intent_state": "decided",
+      "implementation_state": "not_started",
+      "verification_state": "not_run",
+      "release_state": "not_merged",
+      "historical_publication_is_not_new_acceptance": true
+    },
+    {
+      "alias": "ADD-20260912-REPEATED-REQUEST-PRIORITY",
+      "canonical_ids": [
+        "UDL-20260910-050"
+      ],
+      "source_message_id": "bbb21712-1770-4162-8b2f-e4d793dc1435",
+      "independent_repeat_message_ids": [],
+      "user_requirement_summary": "Independent repeats raise priority within same ID.",
+      "non_change_or_supersession": "Forwarded quote/reimport not counted; latest9screens await details.",
+      "intent_state": "decided",
+      "implementation_state": "not_started",
+      "verification_state": "not_run",
+      "release_state": "not_a_game_release",
+      "historical_publication_is_not_new_acceptance": true
+    }
+  ]
+}

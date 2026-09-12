@@ -1,5 +1,14 @@
 # UDL062 player-copy public release
 
+## 21:43JST scoped acceptance complete
+
+CANON_RECEIPT version=shared-canon-v1.1 base=a1a9b1c830eceb98464b107f2442deacaf765505 request=UDL-20260912-062 specs=docs/SHARED_CANON.md,docs/UI_PLAYER_COPY_20260912.md@a1 tests=tests/governance-shared-canon.test.cjs,tests/governance-player-copy-profile-contract.test.cjs worktree=.codex-worktrees/dev-brain-current-20260910 turn=01a09599-b083-7fe1-a9f1-3e604469807b phase=NORMAL_WORK
+
+Actual Astra response b8f091ec-3669-45e4-ab62-a4a5a508c20a to exact4998-character b39fb94d-9d9c-4349-9663-0233256beb92 accepts UDL062 PUBLIC_VERIFIED, saved as024. Producta1, evidence7708077, specv1.1/blob5481afd8c2b9ff5354bba0e671615c97fb8ceef7, Pages_only, DB[]/Edge[]. This is a scoped UI acceptance disposition, NOT 55/55 automatic PASS. Original52/FAIL and retry54/55 FAIL remain immutable. Saved full profileState/revision, UI, allowlist and console establish scoped preservation. API envelope-name contract inconsistency remains REG-20260912-PROFILE-RESPONSE-CONTRACT-01 in the command center, with live name value/presence and DB separate-column equality unknown. No third profile, additional live test, product edit or republication; cumulative2profiles, physicalNOT_RUN, match diagnosticNOT_RUN_NO_MATCH.061 stays closed.
+
+At12:43:14.195Z, a fresh GET-only audit verified all13 current public assets exactly against maina1 and all6 original UI requirement groups' reviewed spec blobs/ancestor relationships. The five earlier live reports passed;062 is accepted through024 while its raw canary remains failed. Evidence UI_GOAL_FINAL_ACCEPTANCE_20260912.json. Newv9–v13 changes remain separate unimplemented followups. Focused governance/source diagnosis20/20PASS,skip0. Old approval waits remain closed and unreset. Prior sections below are dated history.
+
+
 ## Third resumed boundary: actual goal blocked
 
 CANON_RECEIPT version=shared-canon-v1.1 base=a1a9b1c830eceb98464b107f2442deacaf765505 request=UDL-20260912-062 specs=AGENTS.md,docs/SHARED_CANON.md,docs/CHATGPT_COLLABORATION_OPERATION.md,docs/CHATGPT_REVIEW_DECISIONS.json tests=scripts/check-commander-continuation.cjs worktree=.codex-worktrees/dev-brain-current-20260910 turn=01a094f2-0720-7c43-804e-4578e13989c0

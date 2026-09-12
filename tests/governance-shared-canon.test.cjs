@@ -284,6 +284,13 @@ test("ChatGPT review records require an exact subject and cannot imply productio
         assert.equal(decision.review_kind, "public_acceptance_supplement");
         assert.equal(decision.decision, "APPROVE_BOUNDED_ACCEPTANCE");
         assert.deepEqual(decision.bounds, {additional_profiles:1,attempts:1,max_seconds:180,matches:0,economy_actions:0,deletions:0});
+      } else if (decision.review_id === "CHATGPT-REVIEW-20260912-024") {
+        assert.equal(decision.review_kind, "public_acceptance_disposition");
+        assert.equal(decision.decision, "ACCEPT");
+        assert.equal(decision.evidence_sha, "77080770757deae155d153583ab134c20d53e5a5");
+        assert.equal(decision.source.message_id, "b8f091ec-3669-45e4-ab62-a4a5a508c20a");
+        assert.equal(decision.source.request_message_id, "b39fb94d-9d9c-4349-9663-0233256beb92");
+        assert.equal(decision.source.request_body_equality, true);
       } else {
         assert.equal(decision.review_kind, "game_production_release_approval");
       }
@@ -293,6 +300,7 @@ test("ChatGPT review records require an exact subject and cannot imply productio
       assert.match(decision.subject_sha, /^[0-9a-f]{40}$/);
       assert.match(decision.spec_snapshot_sha, /^[0-9a-f]{40}$/);
       const bindings = {
+        "CHATGPT-REVIEW-20260912-024": ["a1a9b1c830eceb98464b107f2442deacaf765505", "a757c126e1325532bb11a719cf92d0d13401d3ae", "UDL-062-copy-v1.1", "5481afd8c2b9ff5354bba0e671615c97fb8ceef7", "Pages_only"],
         "CHATGPT-REVIEW-20260912-022": ["a1a9b1c830eceb98464b107f2442deacaf765505", "a757c126e1325532bb11a719cf92d0d13401d3ae", "UDL-062-copy-v1.1", "5481afd8c2b9ff5354bba0e671615c97fb8ceef7", "post_publication_read_only_acceptance"],
         "CHATGPT-REVIEW-20260912-020": ["a1a9b1c830eceb98464b107f2442deacaf765505", "a757c126e1325532bb11a719cf92d0d13401d3ae", "UDL-062-copy-v1.1", "5481afd8c2b9ff5354bba0e671615c97fb8ceef7", "Pages_only"],
         "CHATGPT-REVIEW-20260912-019": ["6f8aeab0cbdfe9e013541f5cf30e16c93fb18cd3", "a757c126e1325532bb11a719cf92d0d13401d3ae", "UDL-062-copy-v1", "9a3488f3b7e5d2c94666a64529a679bc863d8171", "Pages_only"],
@@ -322,7 +330,7 @@ test("ChatGPT review records require an exact subject and cannot imply productio
 
 test("UDL062 exhausted bounded retry preserves both failures and records all final outcomes", () => {
   const log = JSON.parse(read("docs/CHATGPT_REVIEW_DECISIONS.json"));
-  const slice = log.coordination.preparing_next_slice;
+  const slice = log.coordination.completed_slices.find(item => item.id === "UDL-20260912-062");
   const original = JSON.parse(read("docs/UI_PLAYER_COPY_LIVE_20260912.json"));
   const retry = JSON.parse(read("docs/UI_PLAYER_COPY_RETRY_LIVE_20260912.json"));
   assert.equal(original.ok, false);
@@ -338,8 +346,34 @@ test("UDL062 exhausted bounded retry preserves both failures and records all fin
   assert.equal(slice.live_acceptance.new_profile_retry_authorized, false);
   assert.equal(slice.live_acceptance_followup.attempts_started, 1);
   assert.equal(slice.live_acceptance_followup.state, "FAILED_ONE_AUTHORIZED_RETRY_CONSUMED");
-  assert.equal(slice.state, "PUBLISHED_LIVE_ACCEPTANCE_PARTIAL");
+  assert.equal(slice.state, "PUBLIC_VERIFIED");
+  assert.equal(slice.public_acceptance_disposition.review_id, "CHATGPT-REVIEW-20260912-024");
+  assert.equal(slice.public_acceptance_disposition.raw_canary_ok, false);
+  assert.equal(slice.public_acceptance_disposition.raw_checks, "54/55");
+  assert.equal(slice.public_acceptance_disposition.unresolved_issue_id, "REG-20260912-PROFILE-RESPONSE-CONTRACT-01");
   assert.equal(log.decisions.find(item => item.review_id === "CHATGPT-REVIEW-20260912-023").decision, "APPROVE_DOCS");
+});
+
+test("v13 delta is verified, source-bound and does not duplicate repeated requests or infer screenshot details", () => {
+  const data = JSON.parse(read("docs/BRAIN_V13_DELTA_INTAKE_20260912.json"));
+  assert.equal(data.kind, "dated_delta_crosswalk_not_second_ledger");
+  assert.equal(data.records.length, 16);
+  assert.equal(data.preserved_records + data.records.length, 59);
+  assert.equal(new Set(data.records.map(r => r.alias)).size, 16);
+  for (const record of data.records) {
+    assert.ok(record.canonical_ids.length);
+    assert.match(record.source_message_id, /^[0-9a-f-]{36}$/);
+    assert.equal(record.historical_publication_is_not_new_acceptance, true);
+  }
+  const cutin = data.records.find(r => r.alias === "ADD-20260912-SKILL-CUTIN-PRIORITY");
+  assert.deepEqual(cutin.canonical_ids, ["UDL-20260912-065"]);
+  assert.equal(new Set([cutin.source_message_id,...cutin.independent_repeat_message_ids]).size, 2);
+  assert.equal(data.repeat_priority.latest_withdrawals_override_old_repeat_counts, true);
+  assert.equal(data.pending_screenshot_memo.inferred_requests, 0);
+  assert.equal(data.pending_screenshot_memo.private_image_bytes_published, false);
+  const s = data.records.filter(r => r.alias.includes("SURRENDER"));
+  assert.equal(s.length, 2);
+  assert.equal(new Set(s.flatMap(r => r.canonical_ids)).size, 1);
 });
 
 test("UDL048 closure preserves the initial visual failure and binds the final public evidence", () => {
