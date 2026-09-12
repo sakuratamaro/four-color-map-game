@@ -42,7 +42,7 @@ async function main(args) {
   const url=config.match(/url:\s*"([^"]+)"/)?.[1],key=config.match(/publishableKey:\s*"([^"]+)"/)?.[1];
   assert.ok(url&&key);
   const connectionKey="fourColorMapGame.standard.online.v5.connection";
-  const report={subject:"UDL-065-cutin-v1",candidateSha:sha,profileAttempts:0,profilesCreated:0,matchAttempts:0,matchesCreated:0,
+  const report={subject:"UDL-065-cutin-v1.1",candidateSha:sha,profileAttempts:0,profilesCreated:0,matchAttempts:0,matchesCreated:0,
     cleanup:"NOT_NEEDED",physicalDevices:"NOT_RUN",opponentCutin:"NOT_RUN",assetHashes:[],checks:[],operations:{},events:[]};
   let token,roomId,room,browserServer,context,failed=false,stage="public assets",cleaning=false,cpuSteps=0,humanSteps=0;
   const abort=new AbortController();
@@ -75,7 +75,7 @@ async function main(args) {
     }
   };
   try {
-    for(const [file,suffix] of [["index.html",""],["app.js","app.js?v=20260912-38"],["skill-cutin.js","skill-cutin.js?v=20260912-1"],["skill-cutin.css","skill-cutin.css?v=20260912-1"]]){
+    for(const [file,suffix] of [["index.html",""],["app.js","app.js?v=20260912-39"],["skill-cutin.js","skill-cutin.js?v=20260912-2"],["skill-cutin.css","skill-cutin.css?v=20260912-1"]]){
       const response=await fetch(publicPage+suffix,{cache:"no-store",signal:AbortSignal.timeout(20_000)});
       check(file+": public HTTP200",response.status===200);
       const bytes=Buffer.from(await response.arrayBuffer());

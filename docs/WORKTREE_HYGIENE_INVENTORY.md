@@ -72,6 +72,8 @@
 
 ## 禁止事項
 
+2026-09-12 追加保全: 既存司令塔が次便の入口UIだけを `.codex-worktrees/ui-flat-entry-20260912` / `codex/ui-flat-entry-20260912` に準備。初期parentはレビュー待ち065の固定3b1d4e6、現在public mainはfreshfetchでa1a9b1c。新床はcleanから開始し、root・他worktree・既存065候補を変更しない。共有台帳は引き続きdev-brain-currentだけで統合。065公開を先とし、UIのrelease候補はfresh main再照合後に確定する。削除・prune・既存branch付替えなし。
+
 - 保存checkoutを丸ごとcommit、merge、rebase、build、deployしない。
 - 古いローカル`main`を基点に収録済み判定をしない。
 - ライセンス未解決のCPU肖像を公開repo、Pages、配布物へ入れない。

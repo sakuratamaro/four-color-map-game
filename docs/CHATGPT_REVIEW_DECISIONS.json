@@ -41,7 +41,7 @@
     }
   ],
   "coordination": {
-    "status": "NORMAL_WORK_CANARY_PREPARATION_AND_BOUNDED065_REVIEW",
+    "status": "WAITING_EXACT065_REVISION_REVIEW",
     "latest_v8_intake": {
       "state": "PAIRED_SOURCE_AND_ZIP_VERIFIED_ALIASES_MAPPED",
       "source_thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
@@ -181,8 +181,8 @@
       "normal_owner_observation": "Previous normal turn completed after branch push; stored normal_work_receipt waiting. This heartbeat is the same task, not a second active owner."
     },
     "reviewer_thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
-    "last_consumed_review_message_id": "b8f091ec-3669-45e4-ab62-a4a5a508c20a",
-    "last_received_message_id": "a952818a-9d17-4128-9a2c-18d34118bb39",
+    "last_consumed_review_message_id": "6e8506a8-039e-4b88-879e-6ad73005ef94",
+    "last_received_message_id": "6e8506a8-039e-4b88-879e-6ad73005ef94",
     "pending_user_intake_message_ids": [
       "ea61f25f-bebf-499a-81e9-029712a96f99",
       "bbb216f0-9194-45cf-acd6-504a9a55d40a",
@@ -438,10 +438,10 @@
     },
     "automation_id": "automation",
     "automation_status_at_recording": "ACTIVE",
-    "automation_readback_updated_at": 1789219761254,
+    "automation_readback_updated_at": 1789222046684,
     "automation_prompt_readback_equal": true,
-    "automation_pause_reason": "062 single authorized retry consumed; source-contract diagnosis reported. No new automatic review budget; no repeat profile.023 docs approved, no docs hold.",
-    "automation_active_reason": "New independently delivered065 fixed review; finite20/40/100 slots, noclosed062reset.",
+    "automation_pause_reason": null,
+    "automation_active_reason": "Original065 last100-minute review slot, no reset; revised3b1awaits genuine review. Actualsingleheartbeat confirmed.",
     "completed_review_waits": [
       {
         "root_request_message_id": "8464f659-ad62-4c09-83d9-44e1cc91316b",
@@ -731,7 +731,7 @@
       "started_at_utc": "2026-09-12T13:25:37Z",
       "expires_at_utc": "2026-09-12T15:25:37Z",
       "start_basis": "Conservative successful send API start; bounded read confirms exact subject and20000characterprefix. Independent065request, not062reset.",
-      "automatic_checks": 0,
+      "automatic_checks": 2,
       "max_automatic_checks": 3,
       "offset_minutes": [
         20,
@@ -744,20 +744,49 @@
       "confirmed_delivery_reminders": 0,
       "root_request_message_id": "a952818a-9d17-4128-9a2c-18d34118bb39",
       "subject_sha": "be52f755b813e8a6de58529eb2a39065ffc63623",
-      "status": "review_pending",
-      "next_check_utc": "2026-09-12T13:45:37Z",
-      "remaining_scheduled_slots": 3,
+      "status": "review_received_closed",
+      "next_check_utc": "2026-09-12T15:05:37Z",
+      "remaining_scheduled_slots": 1,
       "delivery_readback_checks": 2,
       "delivery_source_reads": 1,
-      "consumed_slots_utc": [],
-      "skipped_slots_utc": []
+      "consumed_slots_utc": [
+        "2026-09-12T13:45:37Z",
+        "2026-09-12T14:05:37Z"
+      ],
+      "skipped_slots_utc": [],
+      "check_receipts": [
+        {
+          "slot": "2026-09-12T13:45:37Z",
+          "at_utc": "2026-09-12T13:46:06Z",
+          "kind": "normal_goal_run_due_slot",
+          "turn_id": "01a095d9-634c-7fa0-8b7f-42b4b9723f21",
+          "reserved_before_read": true,
+          "scheduled_new_turn_observed": false
+        },
+        {
+          "slot": "2026-09-12T14:05:37Z",
+          "at_utc": "2026-09-12T14:05:46Z",
+          "kind": "normal_goal_run_due_slot",
+          "turn_id": "01a095d9-634c-7fa0-8b7f-42b4b9723f21",
+          "reserved_before_read": true,
+          "scheduled_new_turn_observed": false
+        }
+      ],
+      "response_message_id": "6e8506a8-039e-4b88-879e-6ad73005ef94",
+      "received_at_utc": "2026-09-12T13:46:20Z",
+      "followup_subject_sha": "3b1d4e65197c476686b7b8a13c49f97ffd591e68",
+      "followup_request_message_id": "d4a6aa86-a289-4876-b4e1-4d6ef8d579c9",
+      "followup_status": "review_pending",
+      "followup_sent_at_utc": "2026-09-12T14:03:07Z",
+      "revision_budget_reset": false,
+      "last_result": "Matching revision request delivered; thread active and no completed assistant response. No resend."
     },
     "pending_review_subject": {
-      "subject_sha": "be52f755b813e8a6de58529eb2a39065ffc63623",
+      "subject_sha": "3b1d4e65197c476686b7b8a13c49f97ffd591e68",
       "base_sha": "a1a9b1c830eceb98464b107f2442deacaf765505",
       "canon_version": "shared-canon-v1.1",
-      "feature_spec_version": "UDL-065-cutin-v1",
-      "spec_snapshot_sha": "ee8c6c5c699e1083c6f8bb2780a4fccd6e599f9e",
+      "feature_spec_version": "UDL-065-cutin-v1.1",
+      "spec_snapshot_sha": "40410ee0cc5dee8ca2a46281c54e504c8c01a15f",
       "scope": "Pages_only",
       "review_kind": "game_production_release_approval",
       "db_change_set": [],
@@ -771,11 +800,11 @@
       "boundary": "Governance evidence maintenance did not amend or block independently approved product f8713d7."
     },
     "initial_interval_minutes": 20,
-    "pending_subject_sha": "be52f755b813e8a6de58529eb2a39065ffc63623",
+    "pending_subject_sha": "3b1d4e65197c476686b7b8a13c49f97ffd591e68",
     "pending_scope": "Pages_only",
     "pending_delivery_status": "delivery_verified_response_pending",
-    "last_confirmed_sent_message_id": "a952818a-9d17-4128-9a2c-18d34118bb39",
-    "last_sent_message_id": "a952818a-9d17-4128-9a2c-18d34118bb39",
+    "last_confirmed_sent_message_id": "d4a6aa86-a289-4876-b4e1-4d6ef8d579c9",
+    "last_sent_message_id": "d4a6aa86-a289-4876-b4e1-4d6ef8d579c9",
     "self_sent_message_ids": [
       "ef6f161d-f2b9-40c0-ab06-f6eacf4c4d38",
       "cefaccf8-2648-4d63-b7fe-5a4a78023ec2",
@@ -801,11 +830,12 @@
       "7bdcf425-9980-4e45-b616-5fd439781925",
       "08917c24-e4c8-47b0-b7e9-bcd803c1238e",
       "b39fb94d-9d9c-4349-9663-0233256beb92",
-      "a952818a-9d17-4128-9a2c-18d34118bb39"
+      "a952818a-9d17-4128-9a2c-18d34118bb39",
+      "d4a6aa86-a289-4876-b4e1-4d6ef8d579c9"
     ],
-    "sent_at_utc": "2026-09-12T13:25:37Z",
-    "last_check_utc": "2026-09-12T08:30:15Z",
-    "unchanged_checks": 0,
+    "sent_at_utc": "2026-09-12T14:03:07Z",
+    "last_check_utc": "2026-09-12T14:06:19Z",
+    "unchanged_checks": 1,
     "reminder_count": 0,
     "max_reminders_per_request": 1,
     "completed_slices": [
@@ -1955,22 +1985,22 @@
       "worktree": ".codex-worktrees/skill-cutin-20260912",
       "base_sha": "a1a9b1c830eceb98464b107f2442deacaf765505",
       "spec_path": "docs/SKILL_CUTIN_20260912.md",
-      "spec_version": "UDL-065-cutin-v1",
+      "spec_version": "UDL-065-cutin-v1.1",
       "scope": "Pages_only",
       "db_change_set": [],
       "edge_change_set": [],
       "publication": "NOT_RUN",
       "review_status": "PENDING",
-      "next_action": "Await genuine exact be52 review in fixed13:45:37Z slot; WindowsbothSUCCESS. Afterapproval freshmain/Pages/exactassets then one boundedcanary. No extrauserapproval.",
+      "next_action": "Exact3b1WindowsSUCCESS. Pendinggenuine revisionreview, originalfinal15:05:37Z slot only; afterAPPROVE freshmain and sameSHA Pages/live. No newuser permissionwait.",
       "id": "UDL-20260912-065",
-      "candidate_sha": "be52f755b813e8a6de58529eb2a39065ffc63623",
-      "spec_snapshot_sha": "ee8c6c5c699e1083c6f8bb2780a4fccd6e599f9e",
+      "candidate_sha": "3b1d4e65197c476686b7b8a13c49f97ffd591e68",
+      "spec_snapshot_sha": "40410ee0cc5dee8ca2a46281c54e504c8c01a15f",
       "push_status": "PUSHED_EXACT_BRANCH",
-      "windows_run": "34696173272",
+      "windows_run": "34697799620",
       "windows_status": "SUCCESS",
       "review_send_attempts": 1,
-      "review_packet": "docs/ASTRA_SKILL_CUTIN_REVIEW_20260912.md",
-      "local_tests": "20691 selected nonbrowser910/910 PASS; be52 harness/model14/14 and installedChrome3/3 PASS. Exact windows34696173272 running. See fixed packet for earlier SHA browser proof and raw failures.",
+      "review_packet": "docs/ASTRA_SKILL_CUTIN_B1_B2_REVIEW_20260912.md",
+      "local_tests": "Clean3b1 selected136 files913/913 PASS89.077s; Chrome5/5 and Edge5/5 including B1/B2; pure+harness17/17; static86/86; skip0;3builders zero generated diff.",
       "previous_ci_failure": {
         "subject_sha": "20691a2960dfcfcf1574bb57c04edde4594f3119",
         "run_id": "34695792746",
@@ -1978,36 +2008,109 @@
         "reason": "Three added test timeout declarations failed existing format regex; full browser steps skipped. Three declaration-only lines corrected inbe52."
       },
       "review_delivery_checks": 2,
-      "review_evidence_sha": "dcea85e660ab406215eb5ce3e3641c77b416a32b",
-      "sent_at_utc": "2026-09-12T13:25:37Z",
+      "review_evidence_sha": null,
+      "sent_at_utc": "2026-09-12T14:03:07Z",
       "delivery_read_reserved_before_api": true,
       "delivery_read_invalid_arguments": 1,
       "delivery_read_note": "First call rejected maxOutputCharsPerItem60000 before any source read; tool ceiling20000. One corrected bounded read follows; no resend.",
-      "review_request_message_id": "a952818a-9d17-4128-9a2c-18d34118bb39",
-      "review_delivery_note": "SendAPI succeeded; corrected read confirmed actual request ID and exact first20000 of54296 characters. Full message not rehashed because tool cap20000. Full16-file diff also at fixed GitHub subject; no resend.",
+      "review_request_message_id": "d4a6aa86-a289-4876-b4e1-4d6ef8d579c9",
+      "review_delivery_note": "Second bounded source read confirmed actualrequestd4a6aa86 and exact first20000 of32504chars; full13-file diff also published at fixed GitHub SHA. Firstread oldpair; no third deliveryread or resend. At original40-minute slot newrequest still active/noassistant; next15:05:37Z finalslot.",
       "review_delivery_matching_chars": 20000,
-      "review_delivery_total_chars": 54296,
+      "review_delivery_total_chars": 32504,
       "review_delivery_full_body_verified": false,
       "windows_jobs": [
         {
-          "id": "103559926932",
+          "id": "103564180897",
           "browser": "chrome",
-          "contracts": "583/583",
-          "tests": "135/135",
+          "contracts": "586/586",
+          "tests": "137/137",
           "skipped": 0
         },
         {
-          "id": "103559927191",
+          "id": "103564180806",
           "browser": "edge",
-          "contracts": "583/583",
+          "contracts": "586/586",
           "lifecycle": "79/79",
-          "tests": "135/135",
+          "tests": "137/137",
           "skipped": 0
         }
       ],
       "live_canary": "scripts/live-standard-skill-cutin-canary.cjs",
-      "live_canary_precheck": "5/5 local harness unit/scope tests,901.8422ms; explicit opt-in refusal verified; liveNOT_RUN; attempts0",
-      "evidence": "docs/SKILL_CUTIN_RELEASE_20260912.md"
+      "live_canary_precheck": "5/5 local harness tests PASS555.0646ms after app39/JS2/specv1.1 pin; liveNOT_RUN attempts0.",
+      "evidence": "docs/SKILL_CUTIN_RELEASE_20260912.md",
+      "review_id": null,
+      "review_response_message_id": null,
+      "revision_work_started_at_utc": "2026-09-12T13:46:30Z",
+      "superseded_candidates": [
+        {
+          "request_ids": [
+            "UDL-20260912-065"
+          ],
+          "owner_thread_id": "01a07b56-616e-7733-9aae-90575659688e",
+          "state": "REVISION_REQUIRED_NOT_PUBLISHED",
+          "branch": "codex/skill-cutin-20260912",
+          "worktree": ".codex-worktrees/skill-cutin-20260912",
+          "base_sha": "a1a9b1c830eceb98464b107f2442deacaf765505",
+          "spec_path": "docs/SKILL_CUTIN_20260912.md",
+          "spec_version": "UDL-065-cutin-v1",
+          "scope": "Pages_only",
+          "db_change_set": [],
+          "edge_change_set": [],
+          "publication": "NOT_RUN",
+          "review_status": "REQUEST_CHANGES",
+          "next_action": "Fix only B1 fail-safe initialization and B2 same-version/live show interruption, add focused tests, new fixedSHA/spec review within original065deadline.",
+          "id": "UDL-20260912-065",
+          "candidate_sha": "be52f755b813e8a6de58529eb2a39065ffc63623",
+          "spec_snapshot_sha": "ee8c6c5c699e1083c6f8bb2780a4fccd6e599f9e",
+          "push_status": "PUSHED_EXACT_BRANCH",
+          "windows_run": "34696173272",
+          "windows_status": "SUCCESS",
+          "review_send_attempts": 1,
+          "review_packet": "docs/ASTRA_SKILL_CUTIN_REVIEW_20260912.md",
+          "local_tests": "20691 selected nonbrowser910/910 PASS; be52 harness/model14/14 and installedChrome3/3 PASS. Exact windows34696173272 running. See fixed packet for earlier SHA browser proof and raw failures.",
+          "previous_ci_failure": {
+            "subject_sha": "20691a2960dfcfcf1574bb57c04edde4594f3119",
+            "run_id": "34695792746",
+            "contracts": "582/583",
+            "reason": "Three added test timeout declarations failed existing format regex; full browser steps skipped. Three declaration-only lines corrected inbe52."
+          },
+          "review_delivery_checks": 2,
+          "review_evidence_sha": "dcea85e660ab406215eb5ce3e3641c77b416a32b",
+          "sent_at_utc": "2026-09-12T13:25:37Z",
+          "delivery_read_reserved_before_api": true,
+          "delivery_read_invalid_arguments": 1,
+          "delivery_read_note": "First call rejected maxOutputCharsPerItem60000 before any source read; tool ceiling20000. One corrected bounded read follows; no resend.",
+          "review_request_message_id": "a952818a-9d17-4128-9a2c-18d34118bb39",
+          "review_delivery_note": "SendAPI succeeded; corrected read confirmed actual request ID and exact first20000 of54296 characters. Full message not rehashed because tool cap20000. Full16-file diff also at fixed GitHub subject; no resend.",
+          "review_delivery_matching_chars": 20000,
+          "review_delivery_total_chars": 54296,
+          "review_delivery_full_body_verified": false,
+          "windows_jobs": [
+            {
+              "id": "103559926932",
+              "browser": "chrome",
+              "contracts": "583/583",
+              "tests": "135/135",
+              "skipped": 0
+            },
+            {
+              "id": "103559927191",
+              "browser": "edge",
+              "contracts": "583/583",
+              "lifecycle": "79/79",
+              "tests": "135/135",
+              "skipped": 0
+            }
+          ],
+          "live_canary": "scripts/live-standard-skill-cutin-canary.cjs",
+          "live_canary_precheck": "5/5 local harness unit/scope tests,901.8422ms; explicit opt-in refusal verified; liveNOT_RUN; attempts0",
+          "evidence": "docs/SKILL_CUTIN_RELEASE_20260912.md",
+          "review_id": "CHATGPT-REVIEW-20260912-025",
+          "review_response_message_id": "6e8506a8-039e-4b88-879e-6ad73005ef94",
+          "revision_work_started_at_utc": "2026-09-12T13:46:30Z"
+        }
+      ],
+      "windows_completed_at_utc": "2026-09-12T14:09:17Z"
     },
     "remaining_brain_work": {
       "source": {
@@ -2035,6 +2138,25 @@
         "source_thread_id": "01a08d9e-ae35-7f70-a879-cb342dafef47",
         "reported_at_jst": "2026-09-12 12:58頃",
         "result": "One user-requested patrol reported v8 remains latest in inspected completed turns; no v9/new CPU images/mapping; existing018 already consumed. No new fetch/share/mail/publication or periodic patrol. Newer bbb216f0 intake is distinct from this timestamped report."
+      },
+      "current_local_preparation": {
+        "request_ids": [
+          "UDL-20260907-023",
+          "UDL-20260912-062"
+        ],
+        "alias": "ADD-20260912-ENTRY-FLAT-THREE-BUTTONS",
+        "state": "IMPLEMENTING_LOCAL_ONLY",
+        "worktree": ".codex-worktrees/ui-flat-entry-20260912",
+        "branch": "codex/ui-flat-entry-20260912",
+        "owner_thread_id": "01a07b56-616e-7733-9aae-90575659688e",
+        "parent_sha": "3b1d4e65197c476686b7b8a13c49f97ffd591e68",
+        "public_base_sha": "a1a9b1c830eceb98464b107f2442deacaf765505",
+        "spec_path": "docs/UI_FLAT_ENTRANCE_20260912.md",
+        "spec_version": "UDL-023-entrance-v2",
+        "non_change": "HTML/CSS only, app.js/game/server unchanged. Preserve023 behavior, old062 acceptance, all065. Localpreparationnot releaseorder.",
+        "review_status": "NOT_REQUESTED",
+        "publication": "NOT_RUN",
+        "tests": "66/66 static PASS; selectedChrome running. Not full acceptance."
       }
     },
     "limited_attachment_intake": {
@@ -2191,9 +2313,9 @@
       "tests": "tests/governance-commander-continuation.test.cjs",
       "next_run": {
         "phase": "RECEIVE",
-        "at_utc": "2026-09-12T13:45:37Z",
-        "subject_sha": "be52f755b813e8a6de58529eb2a39065ffc63623",
-        "reason": "Independent065first20minutecheck; no062budgetreset; ifcurrentownerstillactive do not concurrentwrite."
+        "at_utc": "2026-09-12T15:05:37Z",
+        "subject_sha": "3b1d4e65197c476686b7b8a13c49f97ffd591e68",
+        "reason": "Original065third100minute slot; previous20/40slots consumed2. Harddeadline15:25:37Z unchanged, no candidate reset."
       },
       "first_scheduled_normal_run": {
         "status": "OBSERVED",
@@ -2211,18 +2333,19 @@
         "id": "automation",
         "status": "ACTIVE",
         "target_thread_id": "01a07b56-616e-7733-9aae-90575659688e",
-        "rrule": "FREQ=DAILY;BYHOUR=22;BYMINUTE=45;BYSECOND=37",
-        "updated_at": 1789219761254,
+        "rrule": "FREQ=DAILY;BYHOUR=0;BYMINUTE=5;BYSECOND=37",
+        "updated_at": 1789222046684,
         "created_at": 1789048677730,
         "prompt_exact_equal": true,
-        "scheduled_for_utc": "2026-09-12T13:45:37Z",
+        "scheduled_for_utc": "2026-09-12T15:05:37Z",
         "readback_verified": true
       },
       "normal_work_claim": {
-        "state": "COMPLETED_LOCAL_WORK_AWAITING_BOUNDED_REVIEW",
-        "turn_id": "01a09599-b083-7fe1-a9f1-3e604469807b",
-        "action": "SEND_FIXED_REVIEW_AND_PREPARE_CANARY",
-        "subject_sha": "be52f755b813e8a6de58529eb2a39065ffc63623"
+        "state": "RUNNING_NORMAL_WORK",
+        "turn_id": "01a095d9-634c-7fa0-8b7f-42b4b9723f21",
+        "action": "WAIT_EXACT_REVIEW",
+        "subject_sha": "3b1d4e65197c476686b7b8a13c49f97ffd591e68",
+        "source_review_id": "CHATGPT-REVIEW-20260912-025"
       },
       "review_scope": "New user-authorized local continuation repair, not covered by old APPROVE_DOCS; fixed docs candidate will be separately reported.",
       "verification": {
@@ -2233,10 +2356,10 @@
       },
       "current_run": {
         "phase": "NORMAL_WORK",
-        "turn_id": "01a09599-b083-7fe1-a9f1-3e604469807b",
-        "source": "explicit_user_request",
-        "started_at_utc": "2026-09-12T12:31:12Z",
-        "request": "Astra reply receipt and v13 requested changes through publication",
+        "turn_id": "01a095d9-634c-7fa0-8b7f-42b4b9723f21",
+        "source": "automatic_goal_continuation",
+        "started_at_utc": "2026-09-12T13:40:47Z",
+        "request": "Continue v13 release goal; preserve pending065 finite review slot",
         "worktree": ".codex-worktrees/skill-cutin-20260912"
       },
       "missed_schedule_observation": {
@@ -2332,11 +2455,11 @@
       },
       "previous_run": {
         "phase": "NORMAL_WORK",
-        "origin": "automatic_goal_continuation",
-        "turn_id": "01a094ed-dbb0-7f12-9554-01894edb0c52",
-        "started_at_utc": "2026-09-12T09:23:31.000Z",
-        "actual_scheduled_run": false,
-        "state": "BOUNDED_SAVED_EDGE_SOURCE_REVALIDATION"
+        "turn_id": "01a09599-b083-7fe1-a9f1-3e604469807b",
+        "source": "explicit_user_request",
+        "started_at_utc": "2026-09-12T12:31:12Z",
+        "request": "Astra reply receipt and v13 requested changes through publication",
+        "worktree": ".codex-worktrees/skill-cutin-20260912"
       },
       "goal_blocked_audit_history": [
         {
@@ -2401,6 +2524,12 @@
         "state": "active",
         "created_at": 1789219206,
         "reason": "After context continuation get_goal returned null; current explicit user-authorized successor objective was restored once via create_goal. No budget inferred."
+      },
+      "previous_goal_turn_classification": {
+        "turn_id": "01a09599-b083-7fe1-a9f1-3e604469807b",
+        "classification": "progress",
+        "evidence": "be52 implementation+pushed Windows135/135both; v13 intakedcea; genuine065requestdelivered; finiteACTIVEsetting; harness/evidence70669cf.",
+        "not_merely_wait": true
       }
     },
     "latest_brain_transfer": {
@@ -3095,6 +3224,35 @@
       "recorded_at_utc": "2026-09-12T12:40:00Z",
       "notes": "Scoped post-publication acceptance, not an all-green automatic canary or new release permission. Original52/FAIL and retry54/55 FAIL preserved. Complete persisted profileState and revision agree; top-level name contract mismatch tracked separately. No third profile, further live test, product edit or republication.",
       "evidence_sha": "77080770757deae155d153583ab134c20d53e5a5"
+    },
+    {
+      "review_id": "CHATGPT-REVIEW-20260912-025",
+      "review_kind": "game_production_release_approval",
+      "subject_sha": "be52f755b813e8a6de58529eb2a39065ffc63623",
+      "base_sha": "a1a9b1c830eceb98464b107f2442deacaf765505",
+      "canon_version": "shared-canon-v1.1",
+      "feature_spec_version": "UDL-065-cutin-v1",
+      "spec_snapshot_sha": "ee8c6c5c699e1083c6f8bb2780a4fccd6e599f9e",
+      "scope": "Pages_only",
+      "db_change_set": [],
+      "edge_change_set": [],
+      "decision": "REQUEST_CHANGES",
+      "source": {
+        "kind": "chatgpt",
+        "thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
+        "message_id": "6e8506a8-039e-4b88-879e-6ad73005ef94",
+        "request_message_id": "a952818a-9d17-4128-9a2c-18d34118bb39",
+        "response_text": "## DECISION\n**REQUEST_CHANGES**\n\n## SUBJECT_SHA\n`be52f755b813e8a6de58529eb2a39065ffc63623`\n\n## BLOCKERS\n\n### B1 — カットインの初期化失敗が、ゲーム本体の起動を止めます\n\n`app.js`で、次の初期化をトップレベル・例外処理なしで実行しています。\n\n```js\nconst skillCutin = globalThis.FourColorSkillCutin.createObserver(...);\n```\n\nそのため、**追加した`skill-cutin.js`が読み込めなかった場合、カットインだけを停止するのではなく、この箇所で例外になります。** `observeSkillCutin()`内の`try/catch`は、この初期化を保護していません。\n\n新しい初期化式を、モジュール未定義の合成環境で実行し、`TypeError`で後続処理へ進まないことを確認しました。これはブラウザーや本番で通信障害を再現した試験ではありません。\n\n**修正は、初期化を保護し、利用できない場合は`observe`／`interrupt`が何もしない代替へ切り替えるだけで十分です。** カットインの読込・初期化失敗時も、接続・既存操作・接色演出が続くブラウザーテストを追加してください。新しい再接続処理やゲーム側の変更は不要です。\n\n### B2 — 同じ盤面versionのままダイアログが開くと、カットインを止められません\n\n`createObserver().observe()`は、同じscope・versionなら早期returnします。**その前に`blocked`への変化を処理していないため、表示中の演出も、Web Lockの取得待ちになっている演出も中断されません。** `blocked`の確認は新規イベントを作る`describe()`側だけです。\n\n固定ファイルのGit blob一致を確認して、外部通信なしの局所試験を実行しました。\n\n| 条件 | 実測 |\n|---|---|\n| 表示後、同じversionで`blocked: true` | 表示が残る |\n| 表示権の取得待ち中、同じversionで`blocked: true`にしてから取得完了 | `show`が1回実行される |\n| 比較用：取得待ち中に`visible: false` | `show`は0回 |\n\n**同じversionでも、表示を止める条件に入ったら中断・世代更新を行ってください。** 加えて、遅延した表示の直前にも、実際のタブ・可視状態・ダイアログ等の優先表示を確認する必要があります。ダイアログを閉じた後に、取り消した古い演出を再生しないことも維持します。\n\n追加テストは、**表示中／取得待ちの両方でダイアログを開く→演出と読み上げを抑止→閉じても再演しない**経路に絞ってください。確認クリックや時計停止を増やす修正ではありません。\n\n:chatgpt-content-reference{index=\"5\"}\n\n## NOTES\nレビュー範囲はBASE `a1a9b1c830eceb98464b107f2442deacaf765505`からの本候補、**`shared-canon-v1.1`／`UDL-065-cutin-v1`／`Pages_only`／DB・Edge各`[]`**です。仕様blobは提出値`ee8c6c5c699e1083c6f8bb2780a4fccd6e599f9e`と一致しています。\n\n**自他で発動元を区別すること、相手の非公開スキルを推測しないこと、空振りを効果成功として見せないこと、表示のためにゲームを書き換えないことは、今回の方針のままで進めてください。** 通常CPU顔を使った視覚演出の第1便として扱い、全身絵・音の追加・後続UIまで広げる要求はしません。\n\nWindows `34696173272`は、今回の最終取得時点で**本候補SHAのChrome／Edgeともonline-browser段階がIN_PROGRESS**でした。今回の差戻し理由はCI未完了ではなく、上記2点です。\n\n提出されたローカル試験・画像目視はCodexの実施報告として受領しています。**こちらで実行したのは上記の局所試験だけで、全回帰・ブラウザー・本番・実画像の確認はしていません。**\n\n**カットインの優先公開方針は維持し、初期化・中断処理と対応テストだけを修正して、新しい固定SHAと差分を提出してください。** 本候補はまだmain／Pagesへ進めず、文書整備・CPU画像差替え・別のUI改修を追加の待ち条件にはしません。",
+        "request_body_equality": false,
+        "request_prefix_matching_chars": 20000
+      },
+      "recorded_at_utc": "2026-09-12T13:46:20Z",
+      "blockers": [
+        "B1 optional cut-in initialization failure must not block app startup",
+        "B2 same-version blocking UI and delayed show must interrupt cut-in and accessibility announcement without replay"
+      ],
+      "notes": "Genuine completedreply at first fixed20minute slot. Reviewer observed earlierWindowsIN_PROGRESS; CodexlaterSUCCESS does not resolve the two blockers. No main/Pages approval. Preserve public/private/no-op/visual-firstscope.",
+      "spec_snapshot_kind": "git_blob:docs/SKILL_CUTIN_20260912.md"
     }
   ]
 }
