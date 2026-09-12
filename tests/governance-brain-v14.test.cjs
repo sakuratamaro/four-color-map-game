@@ -24,7 +24,12 @@ test("reward recollection requests an audit, while later direct Kurogane100 is a
  const d=read("docs/BRAIN_V14_DELTA_INTAKE_20260913.json"),c=read("docs/CHATGPT_REVIEW_DECISIONS.json").coordination;
  const reward=d.records.find(r=>r.alias==="ADD-20260913-MATCH-REWARD-RANGE-AUDIT");
  assert.equal(reward.intent_state,"verification_requested_user_recollection_not_adopted_economy_change");
- assert.equal(d.reward_audit.economy_changes_authorized,false);assert.equal(d.reward_audit.code_audit_by_commander,"NOT_RUN");
+ assert.equal(d.reward_audit.economy_changes_authorized,false);assert.equal(d.reward_audit.code_audit_by_commander,"LOCAL_CODE_VERIFIED");
+ assert.equal(d.reward_audit.past_adoption_source_audit,"PARTIAL_ADOPTION_SOURCE_GAP");
+ assert.equal(d.reward_audit.current_live_test,"NOT_RUN");
+ assert.equal(d.reward_audit.local_tests.pass,26);assert.equal(d.reward_audit.local_tests.fail,0);assert.equal(d.reward_audit.local_tests.skipped,0);
+ assert.equal(d.reward_audit.module_blob_at_first_implementation_base_and_candidate,"ca80916218a6b2855b946bdd14ac9a2b05730941");
+ assert.ok(fs.existsSync(path.join(__dirname,"..",d.reward_audit.report_path)));
  assert.deepEqual(d.records.find(r=>r.alias==="ADD-20260913-TUTORIAL-RULES-ENTRY").canonical_ids,["UDL-20260913-068"]);
  const s=c.preparing_next_slice;
  assert.equal(s.candidate_sha,"9590a4212d69185fc93df31b552d9bd870d5a9a3");

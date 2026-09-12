@@ -527,10 +527,26 @@
   "not_approval": true,
   "reward_audit": {
     "author_document": "docs/REWARD_COMPARISON_V14.md inside archive",
-    "code_audit_by_commander": "NOT_RUN",
-    "past_adoption_source_audit": "NOT_RUN",
+    "code_audit_by_commander": "LOCAL_CODE_VERIFIED",
+    "past_adoption_source_audit": "PARTIAL_ADOPTION_SOURCE_GAP",
     "economy_changes_authorized": false,
-    "ui_must_not_claim_unimplemented_reward_values": true
+    "ui_must_not_claim_unimplemented_reward_values": true,
+    "report_path": "docs/REWARD_RANGE_AUDIT_20260913.md",
+    "checked_product_sha": "9590a4212d69185fc93df31b552d9bd870d5a9a3",
+    "module_blob_at_first_implementation_base_and_candidate": "ca80916218a6b2855b946bdd14ac9a2b05730941",
+    "first_implementation_sha": "a937d9afa37514c67bfe68a3bd3c41086f98a755",
+    "local_tests": {
+      "files": [
+        "tests/standard-match-reward.test.cjs",
+        "tests/standard-online-engine-bundle.test.cjs"
+      ],
+      "pass": 26,
+      "fail": 0,
+      "skipped": 0,
+      "duration_ms": 520.6248
+    },
+    "current_live_test": "NOT_RUN",
+    "conclusion": "Fixed v2 verified and unchanged since first implementation; recalled random ranges differ. No loss of this module in checked history; exact original user adoption of current numeric distribution remains unlocated. Do not resolve conflict by matching code or change economy/UI."
   },
   "current_user_override": {
     "alias": "ADD-20260913-KUROGANE-PALETTE-100",

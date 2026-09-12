@@ -3229,10 +3229,22 @@
         "run_id": "34723536140",
         "candidate_sha": "9590a4212d69185fc93df31b552d9bd870d5a9a3",
         "reason": "Single failed unchanged390px band-selection timeout not reproduced in focused localEdge; one bounded exact-job rerun, preserve firstfailure; no repeated retries if recurs.",
-        "status": "NOT_STARTED_TRANSPORT_FAILURE",
+        "status": "NOT_STARTED_PERMISSION_AND_AUTOREVIEW_HOLD",
         "api_result": "403 Resource not accessible by integration; no rerun created",
         "ui_result": "Existing signed-inGitHub exactEdgejob shows Re-run thisjob, but click DOM.getContentQuads timeout then state timeout/kernel reset and one reselection recovery failed. API23:09 confirms run_attempt1/FAILURE. No newjob observed. Do not repeat blind clicks.",
-        "started_runs": 0
+        "started_runs": 0,
+        "safety_rejection": {
+          "attempted_operation": "Read-only browser.tabs.get/playwright.domSnapshot of exact existing Edge job",
+          "result": "Auto-review rejected operation as undocumented surface. No action executed; do not bypass with alternate APIs or credentials.",
+          "at_utc": null,
+          "time_precision": "Occurred in current continuation before 2026-09-12T23:27:25Z; exact tool timestamp unavailable"
+        },
+        "manual_action_requested": {
+          "at_utc": "2026-09-12T23:27:25Z",
+          "action": "User may click Re-run this job once for existing Edge job 103633568024; no deployment",
+          "request_via": "request_user_input_async",
+          "reply": "NOT_RECEIVED"
+        }
       },
       "review_send_reserved_before_api": true,
       "review_reserved_at_utc": "2026-09-12T23:14:20Z",
@@ -3383,6 +3395,11 @@
           "cause": "Two obsolete assertions excluded implemented experiments fromcatalog; productionrequirements requireinclusion."
         },
         "revision_tests": "Chrome4/4PASS20894.217ms; Edge4/4PASS37115.6618ms; static75/75PASS571.6801ms; skip0."
+      },
+      "reward_range_audit": {
+        "state": "LOCAL_CODE_VERIFIED_ADOPTION_SOURCE_GAP",
+        "report_path": "docs/REWARD_RANGE_AUDIT_20260913.md",
+        "economy_changes_authorized": false
       }
     },
     "limited_attachment_intake": {
@@ -3764,17 +3781,14 @@
         "production_executed": true
       },
       "current_goal_turn_classification": {
-        "turn_id": "01a097a0-352b-73e3-a15d-8a1ac5c2df2c",
+        "turn_id": null,
         "classification": "PROGRESS",
+        "source": "Normal goal continuation; individual turn id unavailable, not fabricated",
         "actual_goal_status": "active",
         "evidence": [
-          "Versioned F1 implemented and19/19 full-handler/core tests passed",
-          "ActualSQL old/new18/18 runtime tests,91/91 Edge/cache gates and7/7runbook passed",
-          "fa2789c22files fixed/pushed dedicated branch; productionNOT_RUN",
-          "Later user's100charge/Kurogane preference instruction adopted; oldcandidate superseded before any review/publication",
-          "Latest directuser Kurogane100 implemented in9590; exact branchpushed; clean998/998PASS skip0",
-          "v14 actual source2445characters/hash paired;12 new aliases integrated and repeats counted once perUDL. No game/reward/public change from intake.",
-          "Fixed9590 review+evidence1327 sent once to genuineAstra; exact4543character delivery verified718d0bfa-6d26-4931-ac81-22a21542ec50. WindowsChromePASS/Edgeonefailure preserved and disclosed; no rerun started due403/UItool failure."
+          "Prior fixed9590/998PASS/source-pairedv14/review delivery preserved; no product edits",
+          "CI latest terminal attempt1 verified; rerun remains NOT_STARTED after connector403, UI timeout and auto-review rejection. Manual exact-job action requested; no bypass",
+          "Independent UDL046 v14 reward code/history audit documented: 26/26 unchanged tests, stable original/base/candidate module blob, original numeric adoption source gap retained"
         ],
         "production_executed": false,
         "scheduled_origin_claimed": false
@@ -3811,7 +3825,23 @@
           "delivery_result": "Read1 returned old completed pair while active; read2 confirmed exact full17074-character request. Latest turn idle/user-only/completed with no agent response and no exposed error. Delivery is not review completion.",
           "review_response_observed": true
         }
-      ]
+      ],
+      "prior_goal_turn_classification": {
+        "turn_id": "01a097a0-352b-73e3-a15d-8a1ac5c2df2c",
+        "classification": "PROGRESS",
+        "actual_goal_status": "active",
+        "evidence": [
+          "Versioned F1 implemented and19/19 full-handler/core tests passed",
+          "ActualSQL old/new18/18 runtime tests,91/91 Edge/cache gates and7/7runbook passed",
+          "fa2789c22files fixed/pushed dedicated branch; productionNOT_RUN",
+          "Later user's100charge/Kurogane preference instruction adopted; oldcandidate superseded before any review/publication",
+          "Latest directuser Kurogane100 implemented in9590; exact branchpushed; clean998/998PASS skip0",
+          "v14 actual source2445characters/hash paired;12 new aliases integrated and repeats counted once perUDL. No game/reward/public change from intake.",
+          "Fixed9590 review+evidence1327 sent once to genuineAstra; exact4543character delivery verified718d0bfa-6d26-4931-ac81-22a21542ec50. WindowsChromePASS/Edgeonefailure preserved and disclosed; no rerun started due403/UItool failure."
+        ],
+        "production_executed": false,
+        "scheduled_origin_claimed": false
+      }
     },
     "latest_brain_transfer": {
       "version_observed": "v10",
