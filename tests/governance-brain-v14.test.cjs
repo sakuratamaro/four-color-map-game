@@ -1,0 +1,38 @@
+"use strict";
+const assert=require("node:assert/strict"),test=require("node:test"),fs=require("node:fs"),path=require("node:path");
+const read=p=>JSON.parse(fs.readFileSync(path.join(__dirname,"..",p),"utf8"));
+test("v14 maps twelve additions to one canonical ledger with genuine source and nonduplicated repeats",()=>{
+ const d=read("docs/BRAIN_V14_DELTA_INTAKE_20260913.json");
+ const ledger=fs.readFileSync(path.join(__dirname,"../docs/PROJECT_COMMAND_CENTER.md"),"utf8");
+ assert.equal(d.package,"BRAIN-UPDATE-20260913-14");assert.equal(d.records.length,12);
+ assert.equal(new Set(d.records.map(r=>r.alias)).size,12);
+ assert.equal(d.source.user_message_id,"bbb2135e-cfd1-4da8-845b-9e3d07d8b29a");
+ assert.equal(d.source.assistant_message_id,"5339aea3-bc6b-4fb2-9467-ef8a082c0538");
+ assert.equal(d.source.raw_text_sha256,"86ff50728f0cb3128642e81cb1373231c5a92c718edb6de31291ba09f62b071c");
+ assert.equal(d.source.source_md_sha256,"b69a954497eb39807f8601b8ee03732e999a9f020de7cf6f9232e0622e828c79");
+ assert.equal(d.source.body_characters,2445);assert.equal(d.source.response_complete,true);
+ for(const r of d.records){assert.equal(r.source_message_id,d.source.user_message_id);
+  for(const id of [...r.canonical_ids,...r.related_ids])assert.ok(ledger.includes("| "+id+" |"),id);
+  assert.equal(r.implementation_state,"not_started");assert.equal(r.verification_state,"not_run");assert.equal(r.release_state,"not_merged");
+  assert.equal(r.historical_publication_is_not_new_acceptance,true);}
+ assert.deepEqual(d.priority_updates.applied_to,["UDL-20260912-065","UDL-20260907-023","UDL-20260912-062"]);
+ assert.equal(d.priority_updates.reimport_repeat_increment,0);
+ assert.equal(d.screenshot_details.status,"DETAILS_RECEIVED");assert.equal(d.verification.no_images_published,true);
+ assert.equal(d.not_approval,true);
+});
+test("reward recollection requests an audit, while later direct Kurogane100 is adopted and independently verified",()=>{
+ const d=read("docs/BRAIN_V14_DELTA_INTAKE_20260913.json"),c=read("docs/CHATGPT_REVIEW_DECISIONS.json").coordination;
+ const reward=d.records.find(r=>r.alias==="ADD-20260913-MATCH-REWARD-RANGE-AUDIT");
+ assert.equal(reward.intent_state,"verification_requested_user_recollection_not_adopted_economy_change");
+ assert.equal(d.reward_audit.economy_changes_authorized,false);assert.equal(d.reward_audit.code_audit_by_commander,"NOT_RUN");
+ assert.deepEqual(d.records.find(r=>r.alias==="ADD-20260913-TUTORIAL-RULES-ENTRY").canonical_ids,["UDL-20260913-068"]);
+ const s=c.preparing_next_slice;
+ assert.equal(s.candidate_sha,"9590a4212d69185fc93df31b552d9bd870d5a9a3");
+ assert.equal(s.spec_version,"UDL-051-palette-v1.1");assert.equal(s.spec_snapshot_sha,"de0cc9e2299a8a69dd1bfbc9368cd98042ca9b9f");
+ assert.equal(s.latest_user_change.adopted_value,100);
+ assert.equal(s.latest_user_change.source.message_id,null,"no invented active-turn individual source ID");
+ assert.equal(c.successor_goal.preparing_independent_slice.superseded_candidate.sha,"fa2789c975095792fe4219b0aea5023b9eaa58f0");
+ assert.equal(c.successor_goal.preparing_independent_slice.superseded_candidate.review,"NOT_SENT");
+ assert.equal(c.active_slice.state,"PAGES_PUBLISHED_LIVE_ACCEPTANCE_PARTIAL");
+ assert.equal(c.successor_goal.completed_independent_slices[0].live_canary_attempts,1);
+});

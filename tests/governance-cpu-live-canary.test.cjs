@@ -95,6 +95,7 @@ test("wrong saved room policy cannot masquerade as roster verification or CPU su
 });
 test("exact review source, fixed mutation sets and completed gates required before live",()=>{
   const d=JSON.parse(fs.readFileSync(path.join(__dirname,"../docs/CHATGPT_REVIEW_DECISIONS.json"),"utf8"));
+  d.coordination.preparing_next_slice=structuredClone(d.coordination.successor_goal.completed_independent_slices.find(s=>s.candidate_sha===CANDIDATE));
   const s=d.coordination.preparing_next_slice;s.live_canary_attempts=1;s.live_canary_state="RESERVED_BEFORE_EXECUTION";
   Object.assign(s.production_gates,{sql:"APPLIED_5_OF5_VERIFIED",compatible_edge:"DEPLOYED_BYTE_EXACT_LEGACY_VERIFIED",managed_activation:"CURRENT_VERIFIED_AFTER_460_SECONDS",main:"EXACT_SHA_PUBLISHED",pages:"SUCCESS_PREFLIGHT_BYTE_EXACT"});
   validateGate(d);
@@ -116,7 +117,8 @@ test("saved real smoke remains one-shot scoped evidence and cannot complete CPU 
   assert.equal(raw.terminalRead,"FINISHED_VERIFIED");assert.equal(raw.settlement,"ONCE_LOSS_SURRENDER_VERIFIED");
   assert.equal(raw.console.state,"NOT_RUN");assert.equal(raw.physicalDevices,"NOT_RUN");
   const c=read("CHATGPT_REVIEW_DECISIONS.json").coordination;
-  assert.equal(c.preparing_next_slice.publication,"PUBLIC_VERIFIED_SCOPED");
+  assert.equal(c.successor_goal.completed_independent_slices.find(s=>s.candidate_sha===CANDIDATE).publication,"PUBLIC_VERIFIED_SCOPED");
+  assert.notEqual(c.preparing_next_slice.candidate_sha,CANDIDATE,"consumed F3 trial is no longer the active candidate");
   assert.equal(c.successor_goal.publication,"F3_ONLY_PUBLIC_VERIFIED_OVERALL_INCOMPLETE");
   assert.equal(c.active_slice.state,"PAGES_PUBLISHED_LIVE_ACCEPTANCE_PARTIAL");
   assert.equal(read("SURRENDER_LIVE_20260913.json").ok,false);

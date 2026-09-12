@@ -323,8 +323,9 @@ test("ChatGPT review records require an exact subject and cannot imply productio
         assert.equal(decision.source.response_text.length,1364);
         assert.equal(decision.source.request_body_equality,true);
         assert.deepEqual(decision.bounds,{additional_profiles:0,additional_matches:0,additional_canary_attempts:0,additional_deployments:0});
-        assert.equal(log.coordination.preparing_next_slice.review_id,"CHATGPT-REVIEW-20260913-036");
-        assert.equal(log.coordination.preparing_next_slice.acceptance_review_id,decision.review_id);
+        const completedF3=log.coordination.successor_goal.completed_independent_slices.find(s=>s.candidate_sha===decision.subject_sha);
+        assert.equal(completedF3.review_id,"CHATGPT-REVIEW-20260913-036");
+        assert.equal(completedF3.acceptance_review_id,decision.review_id);
         assert.equal(log.coordination.successor_goal.preparing_independent_slice.latest_design_guidance.release_approval,false);
       } else if (decision.review_id === "CHATGPT-REVIEW-20260912-024") {
         assert.equal(decision.review_kind, "public_acceptance_disposition");

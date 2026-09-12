@@ -27,6 +27,13 @@
       "receipt": "docs/BRAIN_V9_TRANSFER_20260912.md",
       "mapping": "docs/BRAIN_V13_DELTA_INTAKE_20260912.json",
       "note": "43 preserved plus16 added; active acceptance,latest withdrawals and priority are in existing UDL. No ZIP/private-image publication.065 common cut-in,066 catalog and067 surrender group introduced after checking related older requests."
+    },
+    {
+      "batch_id": "BRAIN-UPDATE-20260913-14",
+      "artifact_sha256": "bfee35404be028abe1fe540ccac7ce50237cb9d07cc3feadf5a3fa80de2552b4",
+      "receipt": "docs/BRAIN_V9_TRANSFER_20260912.md",
+      "mapping": "docs/BRAIN_V14_DELTA_INTAKE_20260913.json",
+      "note": "59 preserved plus12 added; exact user source pairedbbb2135e. Active state in UDL; one new068 tutorial. Existing released acceptance preserved; new UI changes and reward audit not completed. No archive/private-image publication or approval."
     }
   ],
   "sources": {

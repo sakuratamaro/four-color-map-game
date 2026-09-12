@@ -1,0 +1,551 @@
+{
+  "kind": "dated_delta_crosswalk_not_second_ledger",
+  "canon_version": "shared-canon-v1.1",
+  "canonical_ledger": "docs/PROJECT_COMMAND_CENTER.md#user-decision-ledger",
+  "package": "BRAIN-UPDATE-20260913-14",
+  "archive_sha256": "bfee35404be028abe1fe540ccac7ce50237cb9d07cc3feadf5a3fa80de2552b4",
+  "archive_bytes": 1493780,
+  "base_sha": "d9ce111d7d97019d55b3e90842602001e045ea04",
+  "verification": {
+    "archive_hash": "MATCH independently measured by commander",
+    "full_archive_manifest": "Existing transfer owner independently reported158 CRC/size and157 manifest entries PASS; docs/BRAIN_V9_TRANSFER_20260912.md, no commander duplicate full archive audit",
+    "parent": "v13 all59 unchanged;12 additions;71 total per transfer-owner exact JSON audit",
+    "no_images_published": true,
+    "no_zip_copied": true
+  },
+  "source": {
+    "thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
+    "user_message_id": "bbb2135e-cfd1-4da8-845b-9e3d07d8b29a",
+    "assistant_message_id": "5339aea3-bc6b-4fb2-9467-ef8a082c0538",
+    "started_at_epoch": 1789250589.578736,
+    "completed_at_epoch": 1789251525.197018,
+    "source_md_sha256": "b69a954497eb39807f8601b8ee03732e999a9f020de7cf6f9232e0622e828c79",
+    "source_md_bytes": 7340,
+    "body_characters": 2445,
+    "comparison": "EXACT_AFTER_MD_PREAMBLE_AND_ONE_TERMINAL_NEWLINE_EXCLUDED",
+    "response_complete": true,
+    "thread_status": "idle",
+    "raw_text_sha256": "86ff50728f0cb3128642e81cb1373231c5a92c718edb6de31291ba09f62b071c",
+    "raw_hash_encoding": "UTF-8 actual user body plus one LF; exact declared hash verified"
+  },
+  "priority_updates": {
+    "deduplication_key": "source user message ID plus canonical request ID; aliases/paragraphs/reimport count once",
+    "applied_to": [
+      "UDL-20260912-065",
+      "UDL-20260907-023",
+      "UDL-20260912-062"
+    ],
+    "rule": "Existingv13 repeat policy: advance one normal priority band;065 already highest normal band retains first UI follow-up. No P0 emergency or interruption of active safe CPU release.",
+    "reimport_repeat_increment": 0
+  },
+  "screenshot_details": {
+    "prior_memo": "bbb21712-1770-4162-8b2f-e4d793dc1435",
+    "status": "DETAILS_RECEIVED",
+    "source_message_id": "bbb2135e-cfd1-4da8-845b-9e3d07d8b29a",
+    "images_viewed": false,
+    "private_images_published": false
+  },
+  "records": [
+    {
+      "alias": "ADD-20260913-CUTIN-READABILITY-RESULT",
+      "title": "カットインを少し長くし、使ったスキルと実結果を一言で読めるようにする",
+      "canonical_ids": [
+        "UDL-20260912-065"
+      ],
+      "related_ids": [
+        "UDL-20260911-057"
+      ],
+      "source_message_id": "bbb2135e-cfd1-4da8-845b-9e3d07d8b29a",
+      "source_quotes": [
+        "ちょっと読み切れないので、もうちょっとだけ表示時間を長くしてもらって。",
+        "どんなスキルを使ってどういう結果になったのか一言説明があると助かります。"
+      ],
+      "user_requirement": [
+        "公開済みカットインは維持し、表示時間を少し延ばす。",
+        "何を使ったかと、どういう結果になったかを短く説明する。既に説明があるか読めていないだけかは本人も未確定。"
+      ],
+      "assistant_design_draft": [
+        "表示時間はユーザー未指定。AIの初期調整案は約1.8秒。JSの消去タイマーとCSSの可読区間を合わせ、文字が止まって読める時間を実DOM時系列と目視で確認する。値は候補仕様に固定してから検証。",
+        "例文はAI案：「四色解放：使える色が増えた」「エリア二分：受取エリアを二分」「持ち色汚染：基本① 青→緑」。実際に観測・開示できる効果のときだけ使う。効果なしは空振り、送信拒否は成功扱いしない。",
+        "自分は正しい成功ACKを使う。相手は公開可能な使用名・観測結果のみ。現行USE_SKILLが匿名traceなら勝手にスキル名を推定しない。必要な公開イベント名の追加はprivacyを維持する別候補で設計し、汎用文だけで名前付き説明の要求を完了にしない。",
+        "相手の基本色・隠し手札・おまけ役割は出さない。開示されていない情報を読まない。既存の選択中接色演出、原因通知、空振り表示を保護する。",
+        "非モーダル／pointer透過／focus中立／時計停止なし／再描画・復帰・別タブ再演なし／優先dialog・終局による中断を維持。長い演出待ちや確認ボタンを追加しない。",
+        "既公開065を未実装に戻さず、新たな可読性・説明の受入を追加。読み時間の小修正は公開イベント拡張や画像差替えを待たせない。"
+      ],
+      "acceptance_draft": [
+        "390px／PCで短文を最後まで読め、JSとCSSの表示時間が一致する。",
+        "自分・相手・空振り・拒否を区別し、公開／非公開の境界を保つ。",
+        "同一イベント一回性、初期化失敗、dialog中断、reduced-motion、次の入力と時計の非回帰を確認。"
+      ],
+      "intent_state": "decided",
+      "implementation_state": "not_started",
+      "verification_state": "not_run",
+      "release_state": "not_merged",
+      "historical_publication_is_not_new_acceptance": true,
+      "requires_code_check": [
+        "現行appの1000ms／CSS980msを照合し、差分として調整する。",
+        "相手公開traceに実スキル名があるかを確認。なければ全情報表示を実装済みとしない。"
+      ],
+      "integration_state": "mapped_by_existing_commander"
+    },
+    {
+      "alias": "ADD-20260913-SURRENDER-CPU-FACE",
+      "title": "投了確認に対戦相手CPUの顔イラストも表示する",
+      "canonical_ids": [
+        "UDL-20260912-067"
+      ],
+      "related_ids": [
+        "UDL-20260908-033"
+      ],
+      "source_message_id": "bbb2135e-cfd1-4da8-845b-9e3d07d8b29a",
+      "source_quotes": [
+        "ここのウィンドウでもCPUの顔のイラストが見られると嬉しいです。"
+      ],
+      "user_requirement": [
+        "CPUの煽り台詞がある投了確認に、そのキャラの顔を見せる。"
+      ],
+      "assistant_design_draft": [
+        "現在の公開CPU IDに対応する通常顔を既存描画部品から使う。名前と台詞と顔を一致させる。ユーザーは顔を依頼しており、勝利報酬専用全身絵は先出ししない。",
+        "顔素材の欠落・ロード失敗は代替表示で確認を継続。画像のために投了ガードや取消初期focusを壊さず、自動投了・追加確認・RNG変更なし。",
+        "対人・未知IDは従来の汎用確認。わたおきば差替えの全体完了を待たせず、別の素材変更でこの要望が消えないようにする。",
+        "実067の元live失敗・部分受入・終局／reload未確認はそのまま。本人の感謝を総合受入完了へ読み替えない。"
+      ],
+      "acceptance_draft": [
+        "既知10CPUの名前／台詞／通常顔の対応、未知ID・欠落fallbackを確認。",
+        "390／1280pxで両操作が隠れず、取消・Escはwrite0、肯定は既存guard内で一回。"
+      ],
+      "intent_state": "decided",
+      "implementation_state": "not_started",
+      "verification_state": "not_run",
+      "release_state": "not_merged",
+      "historical_publication_is_not_new_acceptance": true,
+      "requires_code_check": [
+        "既存portraitの公開素材・fallback部品を確認する。新画像バイトの公開承認をこのZIPから推論しない。"
+      ],
+      "integration_state": "mapped_by_existing_commander"
+    },
+    {
+      "alias": "ADD-20260913-PUBLIC-MATCH-TWO-ACTIONS",
+      "title": "だれとでも対戦の詳細は「待つ」「待っている相手に参加」の2ボタン",
+      "canonical_ids": [
+        "UDL-20260907-023"
+      ],
+      "related_ids": [],
+      "source_message_id": "bbb2135e-cfd1-4da8-845b-9e3d07d8b29a",
+      "source_quotes": [
+        "字に見えるのに押したらボタンになってるんですよ。",
+        "相手が来るのを待つっていうボタンが1個。",
+        "今待っている人のところに加入するみたいなニュアンスで1個"
+      ],
+      "user_requirement": [
+        "だれとでも対戦を選んだ後に、明らかにボタンと分かる操作を2個示す。",
+        "「相手を待つだけにする」の文字風の折りたたみをやめる。"
+      ],
+      "assistant_design_draft": [
+        "ボタン文言のAI案は「相手を待つ」「待っている相手に参加」。入口のCPU／友だち／だれとでも3択は維持。",
+        "待つは既存recruit、参加は既存find-onlyに接続する。参加先なしで自分の募集を勝手に始めない。開始状態で第三の検索／募集操作や隠れた待つ展開は作らない。",
+        "旧find成功none_available→自動recruitという設計の当該部分を今回の二択意図で置換する。lost-responseやresumeを新たな参加／募集へ読み替えない。",
+        "既存ticket／pending find／既存roomがあるときの状態表示・復帰・取消は隠さない。2ボタンは待機前の主操作の数であり、必要な取消やエラー復帰まで禁止しない。",
+        "タブ・経路の表示選択だけでは新規roomやticketを作らない。実ユーザーへ割り込むlive検索／募集試験はこのZIPでは許可しない。"
+      ],
+      "acceptance_draft": [
+        "未待機状態に2つのnative buttonが見え、Enter／Spaceでも機能する。",
+        "待つだけ／参加だけ／参加先なし／応答不明／既存待機の復帰・取消を検査。",
+        "重複クリック・reloadで新しいIDや二重ticketを作らない。"
+      ],
+      "intent_state": "decided",
+      "implementation_state": "not_started",
+      "verification_state": "not_run",
+      "release_state": "not_merged",
+      "historical_publication_is_not_new_acceptance": true,
+      "requires_code_check": [
+        "現行findPublicOpponentのwaitIfNoneと既存recruitの境界を確認する。"
+      ],
+      "integration_state": "mapped_by_existing_commander"
+    },
+    {
+      "alias": "ADD-20260913-HOME-GEAR-AND-TUTORIAL",
+      "title": "ホームの主機能を設定とチュートリアルに絞り、設定は歯車から開く",
+      "canonical_ids": [
+        "UDL-20260912-062"
+      ],
+      "related_ids": [
+        "UDL-20260906-008"
+      ],
+      "source_message_id": "bbb2135e-cfd1-4da8-845b-9e3d07d8b29a",
+      "source_quotes": [
+        "ここにホームに置くのは設定。",
+        "チュートリアルの2個だけでいいかなと思ってます。",
+        "普段は歯車マークの中に引っ込んでて、押したら効果音と振動のオンオフが選べるぐらいに"
+      ],
+      "user_requirement": [
+        "ホームで対戦／クイズ／カードの重複メニューを大きく並べない。",
+        "ホームの主入口を設定とチュートリアルの2つにする。",
+        "音・振動設定は普段閉じ、歯車から開く。"
+      ],
+      "assistant_design_draft": [
+        "歯車のaccessible nameは「設定」。展開後に音と振動の2スイッチを表示し、閉じた初期表示に長い技術説明やON/OFF要約の重複を残さない。",
+        "音／振動の保存値・初期OFF・ユーザー操作による有効化・非対応fallbackは維持。見た目整理で保存値や同意をリセットしない。",
+        "ホームの成功接続大パネルなど通常操作に不要な重複表示も簡素化の対象。ただし接続障害・対局成立・未確定処理の重要表示は消さない。",
+        "初回に不可欠な名前入力は必要時だけ到達可能にする。credits・ルール等を削除する指示ではなく、主入口を2つへ整理する。"
+      ],
+      "acceptance_draft": [
+        "通常のホームの主入口は設定・チュートリアルの2つで、既存各タブへの重複大ボタンはない。",
+        "設定は閉じた初期状態。開閉／reloadで音と振動の保存値が一致し、新しいゲーム操作は0。",
+        "必要なエラー・復帰・初回作成・クレジットへ到達できる。"
+      ],
+      "intent_state": "decided",
+      "implementation_state": "not_started",
+      "verification_state": "not_run",
+      "release_state": "not_merged",
+      "historical_publication_is_not_new_acceptance": true,
+      "requires_code_check": [],
+      "integration_state": "mapped_by_existing_commander"
+    },
+    {
+      "alias": "ADD-20260913-TUTORIAL-RULES-ENTRY",
+      "title": "初めての人向けチュートリアル／ルール説明をホームから開けるようにする",
+      "canonical_ids": [
+        "UDL-20260913-068"
+      ],
+      "related_ids": [],
+      "source_message_id": "bbb2135e-cfd1-4da8-845b-9e3d07d8b29a",
+      "source_quotes": [
+        "チュートリアルがいるっていう意見をいっぱいもらってるんで",
+        "あのルール説明というかね。"
+      ],
+      "user_requirement": [
+        "ホームのもう一つの入口をチュートリアル／ルール説明にする。"
+      ],
+      "assistant_design_draft": [
+        "まず現行の実ルールと操作に対応する短い説明を作る。自由閲覧でよく、必須講習・強制演習・長い物語・新しい報酬は今回要求されていない。",
+        "内容のAI案：エリアを渡す→受取を塗る、辺で同色を隣接させない、基本2枠とおまけ、6枚のスキル、手札での救済と任意投了。角膨張等の未公開操作を既に使えると教えない。",
+        "攻略を自動で教える合法色oracleや相手の隠し色の説明ではなく、ルールと操作の入口にする。実装例の名称・ステップ数はAI案。",
+        "「いっぱい意見」は本人の報告として残し、個々の友人発言を取得していないので反復数を複数加算しない。既存のtutorial UDLがあれば再利用し、新番号をこのZIPでは採番しない。"
+      ],
+      "acceptance_draft": [
+        "ホームから1操作でルール説明へ到達し、閉じると戻れる。",
+        "説明と現行の操作・ルールが一致。閲覧で対局作成・券消費・プロフィール作成を要求しない。"
+      ],
+      "intent_state": "decided",
+      "implementation_state": "not_started",
+      "verification_state": "not_run",
+      "release_state": "not_merged",
+      "historical_publication_is_not_new_acceptance": true,
+      "requires_code_check": [],
+      "integration_state": "mapped_by_existing_commander"
+    },
+    {
+      "alias": "ADD-20260913-PROFILE-COMPACT-PUBLIC-NAME",
+      "title": "マイページを再圧縮し、初回の公開名注意だけを分かりやすく残す",
+      "canonical_ids": [
+        "UDL-20260912-062"
+      ],
+      "related_ids": [],
+      "source_message_id": "bbb2135e-cfd1-4da8-845b-9e3d07d8b29a",
+      "source_quotes": [
+        "情報量のダイエット全然できてないんで。もっとすっきりさせましょう",
+        "この端末のスタンダードセーブから選べます、うんにゃうんにゃみたいな文言は全部いらんし。",
+        "他の人から見えてもいい名前は設定してくださいねっていう注意書きをもうちょっとわかりやすく"
+      ],
+      "user_requirement": [
+        "長い端末内セーブ／準備等の技術説明を通常表示から撤去。",
+        "初めて名前を設定するときは、他の人に表示される名前だと明確に注意する。"
+      ],
+      "assistant_design_draft": [
+        "AI文案：「この名前は対戦相手に表示されます。ニックネームを入力してください。」補足するなら個人の連絡先等を入れない短い注意に留める。",
+        "通常は名前・必要な概要と小さな編集入口。同期済みの人へ初回準備の長文を出しっぱなしにしない。既存プロフィール選択、戦績、トロフィー、残高、見た目等は消さず分かりやすく到達可能にする。",
+        "効果音と振動の常設大パネルは上記の歯車入口へ集約し、同じ設定を別々の値で増殖させない。",
+        "現行のAPI envelope displayName不整合を名前保存失敗や名前消失と決めつけない。表示整理だけでserver profileを再保存／作り直さない。"
+      ],
+      "acceptance_draft": [
+        "通常マイページから長い実装説明がなくなり、必要操作が短く到達可能。",
+        "初回名前入力に公開範囲の注意があり、編集／保存／reloadと他の集計値を壊さない。"
+      ],
+      "intent_state": "decided",
+      "implementation_state": "not_started",
+      "verification_state": "not_run",
+      "release_state": "not_merged",
+      "historical_publication_is_not_new_acceptance": true,
+      "requires_code_check": [
+        "現在の初回・復帰済み・保存中・エラーの分岐を確認する。"
+      ],
+      "integration_state": "mapped_by_existing_commander"
+    },
+    {
+      "alias": "ADD-20260913-BLOCKED-ACTION-RECOVERY-SHORTCUT",
+      "title": "売却等の長文を減らし、できない理由から解消先へのボタンを用意する",
+      "canonical_ids": [
+        "UDL-20260912-062"
+      ],
+      "related_ids": [],
+      "source_message_id": "bbb2135e-cfd1-4da8-845b-9e3d07d8b29a",
+      "source_quotes": [
+        "余ったカードを売るっていうのも、長々とした説明はいらないし。",
+        "できないってなって、例えば試合を終了しに行くみたいなショートカットみたく動くボタンが欲しい"
+      ],
+      "user_requirement": [
+        "カード売却の長文説明を短くする。",
+        "売却や持ち替えができないとき、理由だけで終わらず解消に必要な画面へ行ける操作を用意する。"
+      ],
+      "assistant_design_draft": [
+        "文字起こしの「試合が始められないと…」は実状態未特定。実装の禁止理由／pending／room状態から行先を決める。試合終了が常に必要だとは断定しない。",
+        "AI例：対戦中→「対戦に戻る」、準備中→「準備に戻る」、終局済み→「対戦結果へ」。ジャンプだけで投了・取りやめ・結果消去を自動実行しない。終了させる場合は既存の明示操作と067確認を通す。",
+        "最後の1枚・保護カード・残高等、必要な理由は短い文で残す。解消先がない理由に無意味なボタンを足さない。",
+        "売却の結果不明では既存IDで結果確認。再送／取消／新しい売却を混同しない。061の商品内購入、066図鑑閲覧、6枚編成の保護を維持。",
+        "売却そのものの確認を撤廃して即売却する依頼ではない。操作先への移動と状態変更を分ける。"
+      ],
+      "acceptance_draft": [
+        "禁止理由と対応する有効な行先が表示される。ジャンプのgame/economy write0。",
+        "最後の1枚・保護・準備ロック・対局中・終局・結果不明を区別。",
+        "元の売却／再送／報酬／手札に影響せず、成功状態とエラーが同じ見た目で混ざらない。"
+      ],
+      "intent_state": "decided",
+      "implementation_state": "not_started",
+      "verification_state": "not_run",
+      "release_state": "not_merged",
+      "historical_publication_is_not_new_acceptance": true,
+      "requires_code_check": [
+        "専用の既存売却UDLへ照合し、なければ既存062の詳細として受付。"
+      ],
+      "integration_state": "mapped_by_existing_commander"
+    },
+    {
+      "alias": "ADD-20260913-MATCH-REWARD-RANGE-AUDIT",
+      "title": "対戦報酬の現行実装を、本人が記憶するレベル・枚数の範囲と照合する",
+      "canonical_ids": [
+        "UDL-20260909-046"
+      ],
+      "related_ids": [
+        "UDL-20260909-042",
+        "UDL-20260910-051"
+      ],
+      "source_message_id": "bbb2135e-cfd1-4da8-845b-9e3d07d8b29a",
+      "source_quotes": [
+        "私が提案した案だともうちょっとレベル高いし、範囲もばらつき、枚数もばらつきがあったと思うんですよ。",
+        "対人戦勝利したらガチャ券レベル3から5を2から4枚。敗北時はレベル1から3を1から3枚。",
+        "CPUのレベルと同じガチャ券レベルで2から4枚、敗北時はレベル1を1から3枚",
+        "ちょっとそこの実装確認してほしいです。"
+      ],
+      "user_requirement": [
+        "対人勝利：券Lv3〜5、2〜4枚。対人敗北：券Lv1〜3、1〜3枚。",
+        "CPU勝利：そのCPUのLvと同じ券Lv、2〜4枚。CPU敗北：券Lv1、1〜3枚。",
+        "上記が以前の案／設定だったか、現在どう実装されているかを調べる。"
+      ],
+      "assistant_design_draft": [
+        "本人は「そうだったと思う、確認して」と述べている。今回の範囲を比較対象として保存し、過去に確定済み／現行で実装済み／ロールバック確定とは扱わない。",
+        "現main d9ceのstandard-match-reward-v2は別の固定報酬。詳細比較はdocs/REWARD_COMPARISON_V14.md。既存UDL046も同じ固定値を記録していた。今回の読み取りでは希望範囲の過去採用出典を確認していない。",
+        "報酬改定が必要なら既存046で別の経済変更候補として照合・設計する。UIの文言だけ希望数値へ置換しない。通常画面のダイエットと別便にする。",
+        "抽選分布・券Lvと枚数の独立性・一様確率・複数枚が同一Lvか混在かは未指定。CPU正式Lvの割当も現行設定を照合する。AI案を本人決定へ昇格させず、既存委任範囲で案を仕様化する。",
+        "保存済みmatchReward、再送と二重付与防止、既存履歴、対人rolling制限、既存room互換性は保全。率・排出プールの変更と混同せず、候補ごとの実レビューを通す。"
+      ],
+      "acceptance_draft": [
+        "主張の出典、現行定義、差分、未決の分布／CPU Lv対応を区別した比較表がある。",
+        "将来改定する場合は表示・付与・保存・再送・報酬リンクLvが同じ確定値となる。"
+      ],
+      "intent_state": "verification_requested_user_recollection_not_adopted_economy_change",
+      "implementation_state": "not_started",
+      "verification_state": "not_run",
+      "release_state": "not_merged",
+      "historical_publication_is_not_new_acceptance": true,
+      "requires_code_check": [
+        "過去ユーザーの当該範囲の決定有無とCPU Lv割当を既存台帳で照合。",
+        "このパッケージではlive DB／精算試験をしていない。"
+      ],
+      "integration_state": "mapped_by_existing_commander"
+    },
+    {
+      "alias": "ADD-20260913-GACHA-FIVE-LEVEL-BUTTONS",
+      "title": "ガチャはLv1〜5の5ボタン＋1枚／全部の2操作にし、重複説明を撤去",
+      "canonical_ids": [
+        "UDL-20260912-062"
+      ],
+      "related_ids": [
+        "UDL-20260911-059"
+      ],
+      "source_message_id": "bbb2135e-cfd1-4da8-845b-9e3d07d8b29a",
+      "source_quotes": [
+        "レベル1のボタン、2のボタン、3のボタンみたいな感じで四角が5個並んでて。",
+        "その下に1枚引く、全部引くの2個のボタン",
+        "現在レベル1券を2枚所持しています、うにゃうにゃみたいな文章もいらない。"
+      ],
+      "user_requirement": [
+        "券Lvをドロップダウンでなく5つの四角い選択ボタンとして並べる。",
+        "下に「1枚引く」「全部引く」の2ボタンを置く。",
+        "通常画面から券の入手規則、対人／CPU勝敗報酬の長文、所持枚数を繰り返す文章を削除する。"
+      ],
+      "assistant_design_draft": [
+        "各LvボタンにLvと小さな所持枚数を集約。選択が明確で、画面幅390pxでも5つを選びやすく配置する。最小操作領域を壊してまで一列を強制しない。",
+        "Lvボタンは選択だけでdraw0。実抽選は下の2操作だけ。0枚でも残数を正しく示し、別Lvへ勝手に変更しない。",
+        "既存059の保存報酬Lv優先、通常の手動選択保持、pending drawのLv/actionId/count固定を維持。未確定の抽選中に表示と実消費Lvを食い違わせない。",
+        "「全部」は既存のサーバー上限や保存／再送契約に従い、ここで上限・確率・価格を増減しない。",
+        "入手条件は必要時にルール説明等で参照できるようにし、通常表示から退けることと規則自体の削除を混同しない。"
+      ],
+      "acceptance_draft": [
+        "5Lvの所持数と選択状態が一致し、操作は明示drawの2つだけ。",
+        "報酬リンク・0枚・pending・reload・1枚／全部で表示Lv／率／実消費の一致。",
+        "長文が減り、固定バーによる操作遮蔽・overflow・誤抽選がない。"
+      ],
+      "intent_state": "decided",
+      "implementation_state": "not_started",
+      "verification_state": "not_run",
+      "release_state": "not_merged",
+      "historical_publication_is_not_new_acceptance": true,
+      "requires_code_check": [],
+      "integration_state": "mapped_by_existing_commander"
+    },
+    {
+      "alias": "ADD-20260913-GACHA-ODDS-ALL-LEVELS-ON-DEMAND",
+      "title": "排出率は閉じた入口の中でLv1〜5を一度に見比べられる表にする",
+      "canonical_ids": [
+        "UDL-20260912-062"
+      ],
+      "related_ids": [],
+      "source_message_id": "bbb2135e-cfd1-4da8-845b-9e3d07d8b29a",
+      "source_quotes": [
+        "排出率みたいなボタンに置いといて普段は広がってない",
+        "常にレベル1から5全部書いといて見比べやすいように",
+        "星4、5分排出されます合計1%とかそういう確率以外の情報はなくていいです。"
+      ],
+      "user_requirement": [
+        "通常画面では排出率を折りたたみ／任意表示にし、「排出率」入口を置く。",
+        "開いた表示ではLv1〜5全ての率を同時に比較できるようにする。",
+        "実際の確率以外の宣伝的・重複した補足文は不要。"
+      ],
+      "assistant_design_draft": [
+        "「常に全Lv」は排出率を開いた中での一覧を意味する。通常ガチャで常時展開する以前のパネルへ戻さない。",
+        "AI案は行＝券Lv1〜5、列＝★1〜5の表。率は現行の正式なガチャ定義から生成し、画像の数字や手書き別表から作らない。実験カードの扱い・表示対象に必要な説明だけを最小限残す。",
+        "排出率を見るだけでは選択Lvも抽選も変えない。タッチ／keyboardで開閉・戻るが可能。",
+        "法的な明記義務は本人の推測としてのみ保存。景品表示法の適用を本パックで判断したり、法令違反を断定したりしない。率を隠蔽する指示ではない。",
+        "今回のUI整理で確率そのものを変更しない。既存053 Lv2★4低減や046報酬数量改定とは別に扱う。"
+      ],
+      "acceptance_draft": [
+        "閉じた初期状態から排出率へ容易に到達し、全5Lvを切替なしで比較できる。",
+        "表示率が現行の抽選定義と一致し、表示だけでdraw0／選択Lv変更0。",
+        "重複する「★4・★5も出ます」等は常設も詳細も増やさない。"
+      ],
+      "intent_state": "decided",
+      "implementation_state": "not_started",
+      "verification_state": "not_run",
+      "release_state": "not_merged",
+      "historical_publication_is_not_new_acceptance": true,
+      "requires_code_check": [],
+      "integration_state": "mapped_by_existing_commander"
+    },
+    {
+      "alias": "ADD-20260913-QUIZ-FIVE-DIRECT-STARTS",
+      "title": "クイズ入口は各Lvの10問開始ボタン5つだけにする",
+      "canonical_ids": [
+        "UDL-20260912-062"
+      ],
+      "related_ids": [],
+      "source_message_id": "bbb2135e-cfd1-4da8-845b-9e3d07d8b29a",
+      "source_quotes": [
+        "そのレベル何みたいなボタンを押したらすぐ始まるドロップダウンリストがいらない。",
+        "10問チャレンジ開始のボタンがレベル5個分にずらっと全部で5個のボタンだけになるように"
+      ],
+      "user_requirement": [
+        "Lv1〜5それぞれの開始ボタンを常に並べ、クリックでそのLvの10問を開始。",
+        "難易度ドロップダウンと別の共通開始ボタンは撤去。",
+        "サーバー出題・採点の仕組み説明、「難易度を選んで始めてください」等の冗長案内は通常表示から削除。"
+      ],
+      "assistant_design_draft": [
+        "各ボタンの意味を「Lv.1の10問を開始」等にする。一般の大人に読める文字・keyboard／touch領域を確保。5ボタンが選択→別開始の二段階に戻らない。",
+        "既存startQuiz(level)の認証・接続・busy・pending・対局成立／handoff guardを使う。二重クリックでセッション二重生成しない。継続中クイズや未確定回答を勝手に放棄しない。",
+        "「5個だけ」は主開始操作の数。エラー／再送／継続と後述の報酬条件ボタンは必要時に残す。",
+        "出題内容・難易度・制限時間・正誤・クイズ報酬・メモ／電卓・動く選択肢のノード維持は変更しない。"
+      ],
+      "acceptance_draft": [
+        "Lv1〜5の各入口一回で正しいLvの開始が1件だけ実行される。",
+        "接続失敗・未確定回答・進行中クイズ・roomhandoffは復帰でき、状態を失わない。",
+        "開始説明の大きなパネルが減り、5ボタンと報酬の入口が見つかる。"
+      ],
+      "intent_state": "decided",
+      "implementation_state": "not_started",
+      "verification_state": "not_run",
+      "release_state": "not_merged",
+      "historical_publication_is_not_new_acceptance": true,
+      "requires_code_check": [],
+      "integration_state": "mapped_by_existing_commander"
+    },
+    {
+      "alias": "ADD-20260913-QUIZ-REWARD-RULES-ON-DEMAND",
+      "title": "正答条件と獲得券枚数はボタンから開く説明へ",
+      "canonical_ids": [
+        "UDL-20260912-062"
+      ],
+      "related_ids": [
+        "UDL-20260909-042"
+      ],
+      "source_message_id": "bbb2135e-cfd1-4da8-845b-9e3d07d8b29a",
+      "source_quotes": [
+        "クイズをどういうふうに正解したらガチャ券が何枚もらえるのかって説明文をボタンを押したら表示されるように"
+      ],
+      "user_requirement": [
+        "クイズの正答条件と、もらえるガチャ券の枚数を任意表示で確認できるようにする。"
+      ],
+      "assistant_design_draft": [
+        "入口名のAI案は「もらえる券」。正答数／達成条件、獲得枚数、券Lvの関係を現行の採点・finish契約から表示する。古い画像の1・3・5・10だけで閾値を捏造しない。",
+        "普段は閉じるが、開始前に容易に閲覧できる。開閉はstart／finish／drawの送信を起こさない。",
+        "クイズ中に必要な残時間・進捗・券見込みは削除対象ではない。長い報酬条件と現在のプレイ状態表示は分ける。",
+        "今回の依頼は説明の配置変更。報酬量の変更・正答閾値の変更・回答回数上限の変更には使わない。"
+      ],
+      "acceptance_draft": [
+        "開始前に正答条件と獲得券が分かり、表示値が実finish契約と一致する。",
+        "説明の開閉とreloadで余計なsession／報酬／ガチャ操作がない。"
+      ],
+      "intent_state": "decided",
+      "implementation_state": "not_started",
+      "verification_state": "not_run",
+      "release_state": "not_merged",
+      "historical_publication_is_not_new_acceptance": true,
+      "requires_code_check": [],
+      "integration_state": "mapped_by_existing_commander"
+    }
+  ],
+  "exclusions": [
+    {
+      "id": "DISPOSITION-V14-QUIZ-DIFFICULTY",
+      "source": "USER_SCREENSHOT_DETAILS_V14",
+      "quote": "いや、いっか。ちょっと一旦これは無視で。",
+      "state": "EXCLUDED_BY_USER_FROM_THIS_BATCH",
+      "effect": "スクショ4の単位換算の難易度に関する今回の発言は改修・再要望加点の対象にしない。過去の別発言に基づくLv3/4/5要望まで撤回しない。"
+    },
+    {
+      "id": "DISPOSITION-V14-UNSPECIFIED-OTHER-BUG",
+      "source": "USER_SCREENSHOT_DETAILS_V14",
+      "state": "NO_ACTION_UNSPECIFIED",
+      "effect": "「まだ直ってないと思ったところ、なんだったかな」は具体化されていないため要件やbugを推測しない。"
+    },
+    {
+      "id": "DISPOSITION-V14-LEGAL-SPECULATION",
+      "source": "USER_SCREENSHOT_DETAILS_V14",
+      "state": "UNVERIFIED_USER_SPECULATION_NOT_A_LEGAL_CONCLUSION",
+      "effect": "景品表示法による率明記義務は確定しない。率表示の導線維持というUI要求だけ受領。法律調査は行っていない。"
+    }
+  ],
+  "not_approval": true,
+  "reward_audit": {
+    "author_document": "docs/REWARD_COMPARISON_V14.md inside archive",
+    "code_audit_by_commander": "NOT_RUN",
+    "past_adoption_source_audit": "NOT_RUN",
+    "economy_changes_authorized": false,
+    "ui_must_not_claim_unimplemented_reward_values": true
+  },
+  "current_user_override": {
+    "alias": "ADD-20260913-KUROGANE-PALETTE-100",
+    "canonical_id": "UDL-20260910-051",
+    "source": {
+      "kind": "direct_user_instruction",
+      "thread_id": "01a07b56-616e-7733-9aae-90575659688e",
+      "turn_id": "01a097a0-352b-73e3-a15d-8a1ac5c2df2c",
+      "message_id": null,
+      "message_id_status": "NOT_EXPOSED_BY_ACTIVE_TURN_READ",
+      "recorded_at_utc": "2026-09-12T22:30:51Z",
+      "quote": "これ、クロガネの二つ名にとって重要な特徴だと思うので、くろがねの持ち色変更は使用回数100回とかにして、好きに使わせてあげてください"
+    },
+    "candidate": "9590a4212d69185fc93df31b552d9bd870d5a9a3",
+    "state": "IMPLEMENTED_LOCAL_VERIFIED_NOT_PUBLISHED",
+    "outside_v14_ui_slice": true
+  }
+}
