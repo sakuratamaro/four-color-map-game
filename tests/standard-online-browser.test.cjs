@@ -1316,12 +1316,32 @@ async function installMock(context, mode) {
           return functionError(400, code, "private corner bloom rule detail and service secret");
         }
         if (request.body.operation === "action" && initialMode === "colorResponse" && request.body.action?.type === "SURRENDER") {
+          if (runtime.failNextSurrenderRequest) {
+            runtime.failNextSurrenderRequest = false;
+            return { error: new Error("simulated surrender network failure before commit") };
+          }
+          if (runtime.surrenderCommittedAction) {
+            if (JSON.stringify(request.body.action) !== JSON.stringify(runtime.surrenderCommittedAction))
+              return functionError(409, "DUPLICATE_ACTION_MISMATCH", "different surrender retry");
+            runtime.surrenderHeldSnapshot = null;
+            return { data: { duplicate: true, room: runtime.room } };
+          }
+          const heldSnapshot = { snapshot_schema_version: 2, snapshot_version: runtime.room.version,
+            profile_revision: runtime.profile.revision, server_time: new Date().toISOString(),
+            room: structuredClone(runtime.room), view: structuredClone(runtime.view), members: resultFor("fcg_room_members"), profile: null };
           const nextVersion = runtime.room.version + 1;
           runtime.room = { ...runtime.room, status: "finished", version: nextVersion, winner_seat: "B", public_state: {
             ...runtime.room.public_state, status: "FINISHED", phase: "GAME_OVER", version: nextVersion,
             winner: "B", terminalReason: "SURRENDER",
           } };
           runtime.view = { ...runtime.view, version: nextVersion };
+          runtime.surrenderCommitCount = (runtime.surrenderCommitCount || 0) + 1;
+          runtime.surrenderCommittedAction = structuredClone(request.body.action);
+          if (runtime.loseNextSurrenderAck) {
+            runtime.loseNextSurrenderAck = false;
+            runtime.surrenderHeldSnapshot = heldSnapshot;
+            return { error: new Error("simulated lost surrender ACK after commit") };
+          }
           return { data: { duplicate: false, room: runtime.room } };
         }
         if (request.body.operation === "action" && runtime.cutinActionMode && request.body.action?.type === "USE_SKILL") {
@@ -1423,6 +1443,7 @@ async function installMock(context, mode) {
           return { data: [{ matchmaking_status: initialMode === "publicFind" ? "matched" : "none_available", room_id: initialMode === "publicFind" ? id : null, seat: initialMode === "publicFind" ? "B" : null, server_time: new Date().toISOString(), duplicate: false }] };
         }
         if (name === "fcg_standard_room_snapshot_v2" && runtime.missingRoom) return { data: null, error: Object.assign(new Error("room removed"), { code: "P0002" }) };
+        if (name === "fcg_standard_room_snapshot_v2" && runtime.surrenderHeldSnapshot) return { data: [runtime.surrenderHeldSnapshot] };
         if (name === "fcg_standard_room_snapshot_v2" && globalThis.__randomRevealSnapshotDelayMs) {
           await new Promise((resolve) => setTimeout(resolve, globalThis.__randomRevealSnapshotDelayMs));
         }
@@ -2192,7 +2213,7 @@ test("actual Edge resolves opponent abandon and ready-to-playing races without s
     await page.locator("#abandonRoomDialog").waitFor({ state: "hidden" });
     await page.locator("#matchCard:not(.hidden)").waitFor();
     assert.equal(await page.locator("#abandonRoom").isHidden(), true);
-    assert.equal(await page.getByRole("button", { name: "敗北として投了する" }).isVisible(), true);
+    assert.equal(await page.getByRole("button", { name: "投了", exact: true }).isVisible(), true);
     const calls = await page.evaluate(() => ({
       abandon: globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.name === "fcg_standard_abandon_room").length,
       surrender: globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "action" && entry.body?.action?.type === "SURRENDER").length,
@@ -6629,6 +6650,135 @@ test("actual browser never draws removed current or previous region history outl
   }, { viewport: { width: 390, height: 844 } });
 });
 
+test("UDL067 CPU surrender is cancel-first, stable, keyboard-safe and one explicit terminal write", { timeout: 120000 }, async () => {
+  await withPage("colorResponse", async page => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.evaluate(() => {
+      const r=globalThis.__standardOnlineRuntime;
+      r.room={...r.room,opponent_kind:"cpu",cpu_character_id:"rei"}; r.onInvalidate();
+    });
+    await page.waitForFunction(()=>document.querySelector("#cpuCommentaryName")?.textContent.includes("レイ"));
+    await page.locator("#colorSurrender:not([disabled])").waitFor();
+    const count=()=>page.evaluate(()=>globalThis.__standardOnlineRuntime.calls.filter(c=>c.body?.operation==="action").length);
+    const before=await count();
+    for(const width of [390,768,1280]){
+      await page.setViewportSize({width,height:900});
+      await page.locator("#colorSurrender").focus();await page.keyboard.press("Enter");
+      await page.locator("#surrenderDialog[open]").waitFor();
+      assert.equal(await page.evaluate(()=>document.activeElement.id),"cancelSurrender");
+      assert.equal(await page.locator("#cancelSurrender").evaluate(el=>getComputedStyle(el).outlineColor),"rgb(103, 232, 249)");
+      assert.match(await page.locator("#surrenderSpeaker").textContent(),/レイ/);
+      assert.equal(await page.locator("#surrenderDescription").textContent(),"ここまでにしますか？ もう少し、あなたの選択を観察したかったです。");
+      const geometry=await page.locator("#surrenderDialog").evaluate(el=>{
+        const r=el.getBoundingClientRect();return {fit:r.x>=0&&r.right<=innerWidth&&r.y>=0&&r.bottom<=innerHeight,
+          targets:[...el.querySelectorAll("button")].every(b=>{const q=b.getBoundingClientRect();return q.height>=44&&q.width>=44;})};
+      });
+      assert.deepEqual(geometry,{fit:true,targets:true});
+      if(process.env.SURRENDER_SCREENSHOTS){
+        fs.mkdirSync(process.env.SURRENDER_SCREENSHOTS,{recursive:true});
+        await page.screenshot({path:path.join(process.env.SURRENDER_SCREENSHOTS,`${browserName}-surrender-${width}.png`)});
+      }
+      await page.evaluate(()=>globalThis.__standardOnlineRuntime.onInvalidate());await page.waitForTimeout(80);
+      assert.equal(await page.locator("#surrenderDialog").getAttribute("open"),"");
+      await page.keyboard.press("Tab");assert.equal(await page.evaluate(()=>document.activeElement.id),"confirmSurrender");
+      await page.keyboard.press("Escape");
+      await page.waitForFunction(()=>document.activeElement?.id==="colorSurrender");
+      assert.equal(await count(),before);
+    }
+    await page.locator("#colorSurrender").click();await page.locator("#cancelSurrender").click();
+    assert.equal(await count(),before);
+    await page.locator("#colorSurrender").click();await page.keyboard.press("Enter");
+    assert.equal(await page.locator("#surrenderDialog").getAttribute("open"),null);
+    assert.equal(await count(),before);
+    await page.locator("#colorSurrender").click();
+    await page.locator("#confirmSurrender").evaluate(el=>{el.click();el.click();});
+    await page.locator("#terminalOverlay").waitFor({state:"visible"});
+    assert.equal(await count(),before+1);
+    assert.equal(await page.locator("#surrenderDialog").getAttribute("open"),null);
+  },{viewport:{width:390,height:900},bodyTimeout:60000});
+});
+
+test("UDL067 changed public snapshot, tab, offline and failed dialog cannot reuse surrender consent", { timeout: 120000 }, async () => {
+  await withPage("playing", async page => {
+    await page.locator("#randomReveal").waitFor({state:"hidden"});
+    const count=()=>page.evaluate(()=>globalThis.__standardOnlineRuntime.calls.filter(c=>c.body?.action?.type==="SURRENDER").length);
+    for(const change of ["version","match","seat","terminal"]){
+      await page.locator("#surrender:not([disabled])").click();
+      await page.locator("#surrenderDialog[open]").waitFor();
+      await page.evaluate(change=>{
+        const r=globalThis.__standardOnlineRuntime;
+        window.__surrenderOld={room:structuredClone(r.room),view:structuredClone(r.view)};
+        if(change==="version"){r.room.version++;r.view.version++;r.room.public_state.version++;}
+        if(change==="match")r.room.public_state.matchId+=":next";
+        if(change==="seat"){r.view.seat="B";r.room.public_state.active="B";}
+        if(change==="terminal"){r.room.status="finished";r.room.public_state.status="FINISHED";}
+        r.onInvalidate();
+      },change);
+      await page.locator("#surrenderDialog").waitFor({state:"hidden"});
+      await page.locator("#confirmSurrender").evaluate(el=>el.click());
+      assert.equal(await count(),0);
+      const restoredTurn=await page.evaluate(()=>{
+        const r=globalThis.__standardOnlineRuntime, old=window.__surrenderOld;
+        const version=Math.max(r.room.version,old.room.version)+1;
+        r.room={...old.room,version,public_state:{...old.room.public_state,version,turn:version}};
+        r.view={...old.view,version};r.onInvalidate();return version;
+      });
+      await page.waitForFunction(turn=>document.querySelector("#versionText")?.textContent===String(turn),restoredTurn);
+      if(await page.locator("#terminalOverlay").isVisible())await page.locator("#terminalClose").click();
+    }
+    for(const change of ["tab","offline"]){
+      await page.locator("#surrender:not([disabled])").click();
+      if(change==="tab")await page.evaluate(()=>document.querySelector('[data-app-tab="cards"]').click());
+      else await page.evaluate(()=>window.dispatchEvent(new Event("offline")));
+      await page.locator("#surrenderDialog").waitFor({state:"hidden"});
+      assert.equal(await count(),0);
+      await page.locator('[data-app-tab="battle"]').click();
+    }
+    await page.evaluate(()=>{document.querySelector("#surrenderDialog").showModal=()=>{throw Error("dialog unavailable");};});
+    await page.locator("#surrender").click();
+    assert.equal(await count(),0);assert.equal(await page.locator("#surrenderDialog").getAttribute("open"),null);
+  },{bodyTimeout:65000});
+});
+
+for(const fault of ["failNextSurrenderRequest","loseNextSurrenderAck"]){
+  test("UDL067 surrender preserves exact retry identity through "+fault,{timeout:120000},async()=>{
+    await withPage("colorResponse",async page=>{
+      await page.locator("#colorSurrender:not([disabled])").waitFor();
+      await page.evaluate(fault=>{globalThis.__standardOnlineRuntime[fault]=true;},fault);
+      await page.locator("#colorSurrender").click();await page.locator("#confirmSurrender").click();
+      await page.locator("#retryAction:not([disabled])").waitFor({state:"visible"});
+      assert.equal(await page.locator("#surrenderDialog").getAttribute("open"),null);
+      assert.equal(await page.locator("#colorSurrender").isDisabled(),true);
+      await page.locator("#confirmSurrender").evaluate(el=>el.click());
+      const before=await page.evaluate(()=>{const r=globalThis.__standardOnlineRuntime;return {commits:r.surrenderCommitCount||0,
+        actions:r.calls.filter(c=>c.body?.action?.type==="SURRENDER").map(c=>c.body)};});
+      assert.equal(before.actions.length,1);
+      assert.equal(before.commits,fault==="loseNextSurrenderAck"?1:0);
+      await page.locator("#retryAction").evaluate(el=>{el.click();el.click();});
+      await page.locator("#terminalOverlay").waitFor({state:"visible"});
+      const after=await page.evaluate(()=>{const r=globalThis.__standardOnlineRuntime;return {commits:r.surrenderCommitCount,
+        version:r.room.version,actions:r.calls.filter(c=>c.body?.action?.type==="SURRENDER").map(c=>c.body)};});
+      assert.equal(after.commits,1);assert.equal(after.version,10);assert.equal(after.actions.length,2);
+      assert.deepEqual(after.actions[1],before.actions[0]);assert.equal(await page.locator("#retryAction").isHidden(),true);
+    },{viewport:{width:390,height:900},bodyTimeout:45000});
+  });
+}
+test("UDL067 missing optional module fails closed without breaking cards or game startup",{timeout:120000},async()=>{
+  const errors=[];
+  await withPage("colorResponse",async page=>{
+    assert.equal(await page.locator("#colorSurrender").isDisabled(),true);
+    await page.locator("#colorSurrender").evaluate(el=>el.click());
+    assert.equal(await page.locator("#surrenderDialog").getAttribute("open"),null);
+    assert.equal(await page.evaluate(()=>globalThis.__standardOnlineRuntime.calls.filter(c=>c.body?.operation==="action").length),0);
+    await page.locator('[data-app-tab="cards"]').click();
+    assert.equal(await page.locator("#cardInventory button[data-catalog-skill]").count(),21);
+    assert.deepEqual(errors,[]);
+  },{beforeNavigate:async page=>{
+    page.on("pageerror",error=>errors.push(error.message));
+    await page.route("**/surrender-confirmation.js*",route=>route.abort("failed"));
+  }});
+});
+
 test("actual browser keeps blocked COLOR active until voluntary surrender at 390px", { timeout: 120000 }, async () => {
   await withPage("colorResponse", async (page) => {
     const response = page.locator("#colorResponse");
@@ -6663,22 +6813,18 @@ test("actual browser keeps blocked COLOR active until voluntary surrender at 390
       return bottom <= obstructionTop - 8;
     });
     assert.equal(await page.locator("#colorSurrender").getAttribute("aria-describedby"), null);
-    const [showSkillsBox, surrenderBox] = await Promise.all([
-      page.getByRole("button", { name: "色操作カードを見る" }).boundingBox(),
-      page.locator("#colorSurrender").boundingBox(),
-    ]);
-    assert.ok(showSkillsBox && showSkillsBox.height >= 48, JSON.stringify(showSkillsBox));
+    assert.equal(await page.locator("#showColorSkills").count(), 0);
+    const surrenderBox = await page.locator("#colorSurrender").boundingBox();
     assert.ok(surrenderBox && surrenderBox.height >= 48, JSON.stringify(surrenderBox));
-
-    await page.getByRole("button", { name: "色操作カードを見る" }).focus();
-    await page.keyboard.press("Enter");
-    await page.waitForFunction(() => document.activeElement?.dataset?.skill === "colorPrism");
-    assert.equal(await page.evaluate(() => document.activeElement?.getAttribute("aria-label")), "四色解放 ×1（★3）");
+    assert.equal(await page.locator('#skillControls .skill[data-skill="colorPrism"]').isEnabled(), true);
 
     await page.reload({ waitUntil: "load" });
     await page.locator("#colorResponse:not(.hidden)").waitFor();
     assert.equal(await page.locator("#declareNoColor").count(), 0);
     await page.locator("#colorSurrender").click();
+    await page.locator("#surrenderDialog[open]").waitFor();
+    assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter(c => c.body?.action?.type === "SURRENDER").length), 0);
+    await page.locator("#confirmSurrender").click();
     await page.locator("#terminalOverlay").waitFor({ state: "visible" });
     assert.equal(await page.locator("#terminalReasonText").textContent(), "A が投了しました。");
     const accepted = await page.evaluate(() => ({

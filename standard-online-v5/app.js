@@ -144,6 +144,8 @@ let abandonRetryRoomId = null;
 let abandonRetryExpectedVersion = null;
 let abandonDialogTrigger = null;
 let restoreAbandonDialogFocus = true;
+let surrenderIntent = null;
+let surrenderDialogTrigger = null;
 let pendingLifecycleLobbyFocus = false;
 let roomLifecycleAnnouncementToken = 0;
 let setupFailure = null;
@@ -652,6 +654,7 @@ function activateAppTab(requestedTab, { updateHash = true, scrollTop = true } = 
     && (!client.snapshot().roomId || roomModel);
   if (resumePausedQuiz) resumeQuizClockOnQuizTab();
   activeAppTab = tab;
+  if (tab !== "battle") closeSurrenderDialog(false);
   if (tab !== "battle") observeSkillCutin(roomModel?.room?.public_state, roomModel?.view?.private_state);
   if (tab !== "battle") clearCpuCommentaryBubble();
   if (tab !== "battle") resetBoardSelectionAssist();
@@ -3528,6 +3531,7 @@ async function runCpuTurn() {
 }
 
 function render() {
+  if (surrenderIntent && !isSurrenderIntentCurrent()) closeSurrenderDialog(false);
   renderProfileCardVisibility();
   if (!client.snapshot().roomId) observeSkillCutin(null, null);
   renderMatchedRoomHandoff();
@@ -5147,9 +5151,10 @@ function renderBasicActions(state, privateState) {
     }
   }
   schedulePlaySurfaceFit();
-  $("showColorSkills").disabled = actionBusy || !canRespondToColor;
-  $("colorSurrender").disabled = actionBusy || !canRespondToColor;
-  $("surrender").disabled = actionBusy || !myTurn;
+  const surrenderReady = Boolean(currentSurrenderIntent());
+  $("colorSurrender").disabled = !surrenderReady || !canRespondToColor;
+  $("surrender").disabled = !surrenderReady;
+  show("surrender", !canRespondToColor); // Keep one visible entry beside the current interaction.
   if (state.status === "FINISHED") {
     stopCpuTurnWatch();
     pendingAction = null;
@@ -6043,6 +6048,52 @@ function completeAbandonedRoom({ message, focusLobby = false }) {
   if (focusLobby || activeAppTab === "battle") focusBattleLobby();
 }
 
+function surrenderContext() {
+  return { model: roomModel, clientRoomId: client.snapshot().roomId,
+    connected: connected && navigator.onLine !== false && document.visibilityState === "visible", activeTab: activeAppTab,
+    busy: actionBusy || initializeBusy || cpuActionBusy, pending: pendingAction };
+}
+function currentSurrenderIntent() {
+  try { return globalThis.FourColorSurrenderConfirmation?.makeIntent(surrenderContext()) || null; }
+  catch { return null; } // Optional module failure cannot bypass confirmation or break game startup.
+}
+function isSurrenderIntentCurrent() {
+  try { return globalThis.FourColorSurrenderConfirmation?.isCurrentIntent(surrenderIntent, surrenderContext()) === true; }
+  catch { return false; }
+}
+function closeSurrenderDialog(restoreFocus = true) {
+  const trigger = surrenderDialogTrigger;
+  const mayRestore = restoreFocus && isSurrenderIntentCurrent();
+  surrenderIntent = null; surrenderDialogTrigger = null;
+  const dialog = $("surrenderDialog");
+  if (dialog?.open) dialog.close();
+  if (mayRestore && trigger?.isConnected && !trigger.disabled && trigger.getClientRects().length) trigger.focus({ preventScroll: true });
+}
+function openSurrenderDialog(trigger = document.activeElement) {
+  const dialog = $("surrenderDialog"), intent = currentSurrenderIntent();
+  if (!intent || !dialog || document.querySelector("dialog[open]")) return;
+  try {
+    const voice = globalThis.FourColorSurrenderConfirmation.dialogueFor(intent.opponentKind, intent.characterId);
+    $("surrenderSpeaker").textContent = intent.opponentKind === "cpu" ? publicActorLabel("B") : "";
+    show("surrenderSpeaker", intent.opponentKind === "cpu");
+    $("surrenderDescription").textContent = voice.line;
+    surrenderIntent = intent;
+    surrenderDialogTrigger = trigger instanceof HTMLElement ? trigger : $("surrender");
+    skillCutin.interrupt();
+    dialog.showModal();
+    $("cancelSurrender").focus({ preventScroll: true });
+  } catch {
+    closeSurrenderDialog(false);
+    operationFeedback("actionStatus", "投了の確認を開けませんでした。接続を確認して、もう一度お試しください。", "error");
+  }
+}
+function confirmSurrender() {
+  if (!$("surrenderDialog").open || !isSurrenderIntentCurrent()) { closeSurrenderDialog(false); return; }
+  // Consume the local consent before dispatch; the existing sender owns CAS and exact retries.
+  closeSurrenderDialog(false);
+  void sendAction("SURRENDER");
+}
+
 function openRoomAbandonDialog(trigger = document.activeElement) {
   const snapshot = client.snapshot();
   if (!snapshot.roomId || roomModel?.room?.id !== snapshot.roomId || !["waiting", "ready"].includes(roomModel?.room?.status) || abandonBusy) return;
@@ -6297,19 +6348,14 @@ $("submitRegion").onclick = () => {
   const state = roomModel?.room?.public_state;
   sendAction("CREATE_REGION", { sourceMacros: currentOutgoingMacros(state).sort((a, b) => a - b) });
 };
-$("showColorSkills").onclick = () => {
-  const target = [...$("skillControls").querySelectorAll("button[data-skill]:not(:disabled)")]
-    .find((candidate) => SKILL_META[candidate.dataset.skill]?.category === "color");
-  if (!target) {
-    operationFeedback("actionStatus", "今使える色操作カードは手札にありません。持ち色を再確認し、それでも塗れなければ自分で投了してください。", "error");
-    revealOperationFeedback("actionStatus");
-    return;
-  }
-  target.focus({ preventScroll: true });
-  target.scrollIntoView({ block: "center", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
-};
-$("colorSurrender").onclick = () => sendAction("SURRENDER");
-$("surrender").onclick = () => sendAction("SURRENDER");
+$("colorSurrender").onclick = (event) => openSurrenderDialog(event.currentTarget);
+$("surrender").onclick = (event) => openSurrenderDialog(event.currentTarget);
+$("cancelSurrender").onclick = () => closeSurrenderDialog();
+$("confirmSurrender").onclick = confirmSurrender;
+$("surrenderDialog").addEventListener("cancel", (event) => { event.preventDefault(); closeSurrenderDialog(); });
+$("surrenderDialog").addEventListener("close", () => {
+  if (!$("surrenderDialog").open) { surrenderIntent = null; surrenderDialogTrigger = null; }
+});
 $("retryAction").onclick = () => pendingAction && sendAction(pendingAction.type, pendingAction.payload, true);
 $("requestRematch").onclick = requestRematch;
 $("chooseDifferentCpu").onclick = (event) => chooseAnotherResultOpponent(event.currentTarget);
@@ -6335,7 +6381,9 @@ $("abandonRoomDialog").addEventListener("close", () => {
   if (restoreAbandonDialogFocus && trigger?.isConnected && !trigger.classList.contains("hidden") && !trigger.disabled) trigger.focus({ preventScroll: true });
   restoreAbandonDialogFocus = true;
 });
+window.addEventListener("offline", () => closeSurrenderDialog(false));
 document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState !== "visible") closeSurrenderDialog(false);
   if (document.visibilityState !== "visible") observeSkillCutin(roomModel?.room?.public_state, roomModel?.view?.private_state);
   roomSync.handleVisibilityChange();
   syncQuizOptionMotion();
