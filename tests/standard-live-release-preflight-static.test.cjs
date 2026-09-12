@@ -106,8 +106,8 @@ assert.match(source, /app\.js\?v=20260913-42/);
 
 test("candidate preflight rejects a stale local Standard bundle marker or missing deferred curse code", async () => {
   const { LOCAL_STANDARD_BUNDLE_MARKER, LOCAL_STANDARD_BUNDLE_SHA256, hasDeferredCurseLocalBundle } = await contractsPromise;
-  assert.equal(LOCAL_STANDARD_BUNDLE_MARKER, "app.bundle.js?v=20260910-8-79935a0310f2");
-  assert.equal(LOCAL_STANDARD_BUNDLE_SHA256, "79935a0310f241c072c18a4387e275076c403415a8128094b078a61e1d71dc17");
+  assert.equal(LOCAL_STANDARD_BUNDLE_MARKER, "app.bundle.js?v=20260913-9-4f66b9b284ba");
+  assert.equal(LOCAL_STANDARD_BUNDLE_SHA256, "4f66b9b284ba6df6a03cfc1458ad49847d9f30f7d916ded929ee5986f6f3e9cd");
   assert.equal(hasDeferredCurseLocalBundle(candidateLocalHtml, candidateLocalBundle), true);
   assert.equal(hasDeferredCurseLocalBundle(candidateLocalHtml.replace(LOCAL_STANDARD_BUNDLE_MARKER, "app.bundle.js?v=20260907-5"), candidateLocalBundle), false);
   assert.equal(hasDeferredCurseLocalBundle(candidateLocalHtml, candidateLocalBundle.replace("consumeDeferredCurseBacklashAfterColor(next, actor);", "void next;")), false);

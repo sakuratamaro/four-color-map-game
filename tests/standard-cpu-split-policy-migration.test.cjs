@@ -30,6 +30,7 @@ test("UDL051 additive migration replaces only two private policy helpers and the
     assert.match(helper, /'standard-character-roster-v1:' \|\| p_character_id/);
     assert.match(helper, /'standard-character-split-rescue-v1:' \|\| p_character_id/);
     assert.match(helper, /else false/);
+    assert.match(helper, /select coalesce\(case[\s\S]*end, false\)/, "SQL NULL must not bypass a NOT supported/current guard");
     assert.doesNotMatch(helper, /\blike\b|\bilike\b/i);
     assert.match(sql, new RegExp("revoke all on function fcg_private\\." + name + "\\(text, text\\) from public, anon, authenticated"));
   }

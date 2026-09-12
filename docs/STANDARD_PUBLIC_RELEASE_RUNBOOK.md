@@ -2,6 +2,8 @@
 
 更新日: 2026-09-10
 
+CPU分割救済の候補手順（2026-09-13、未公開）は `docs/CPU_SPLIT_RESCUE_20260913.md` の UDL-051-split-v1.1 を参照する。DB/Edge/管理設定/Pagesの別承認・互換Edge先行・460秒以上の旧worker待機・新方策を保存した対局を壊さないrollbackを固定している。下記の過去版状態を、このCPU候補の適用証拠として再利用しない。
+
 状態: 現行運用。migration `202609030006`–`202609030013`、`202609050001`–`202609050007`、`202609060001`–`202609060003`、`202609100001`、Edge deployment 25相当のsource、Pages product `c36bd18`（online app v21、style v11、progression v2、skill intents v20、local bundle v7）は適用済み。`5.0.0-alpha.4`の既存互換とrollback保全を維持する。最新便はquiz finish DB関数と表示だけを変更し、Edge source、engine、対戦ルール、報酬量、ガチャ率は変更していない。次便も実行直前にmain HEAD、Pages run、Edge source、migration tailを現物から再取得する。
 
 実行中の状態、数値、識別子、失敗は `docs/STANDARD_RELEASE_EVIDENCE.md` に追記する。根拠のない項目を`VERIFIED`や`PASS`へ変更しない。
@@ -276,7 +278,7 @@ Pages表示の退行は直前Pagesへ戻せる。適用済みcounterは旧client
 
 ### alpha.4彩色済みエリア角膨張便
 
-完了履歴。この便は新payloadを旧Edgeが拒否する一方、新Edgeは旧UIのoutgoing payloadを継続できるため、`alpha.4対応Edge → live canary → Pages`の順で公開した。後続の対戦報酬便、CPU台詞／地の文分離便、CPU選択前portrait便、終局復帰時の開始告知抑止便、パレット属性識別便、クイズ報酬券レベル引継ぎ候補を含む現在のPages候補assetはonline app `app.js?v=20260913-42`、CPU commentary `cpu-commentary.js?v=20260910-1`、progression `progression.css?v=20260910-2`、style `style.css?v=20260910-12`、intents `standard-online-skill-intents.js?v=20260911-21`、client `standard-online-client.js?v=20260910-1`、portrait `cpu-portraits.js?v=20260908-1`、Local bundle `app.bundle.js?v=20260910-8-79935a0310f2`である。このalpha.4便自体ではDB、migration、RPC、secret、cleanup scheduleは変更しない。
+完了履歴。この便は新payloadを旧Edgeが拒否する一方、新Edgeは旧UIのoutgoing payloadを継続できるため、`alpha.4対応Edge → live canary → Pages`の順で公開した。後続の対戦報酬便、CPU台詞／地の文分離便、CPU選択前portrait便、終局復帰時の開始告知抑止便、パレット属性識別便、クイズ報酬券レベル引継ぎ候補を含む現在のPages候補assetはonline app `app.js?v=20260913-42`、CPU commentary `cpu-commentary.js?v=20260910-1`、progression `progression.css?v=20260910-2`、style `style.css?v=20260910-12`、intents `standard-online-skill-intents.js?v=20260911-21`、client `standard-online-client.js?v=20260910-1`、portrait `cpu-portraits.js?v=20260908-1`、Local bundle `app.bundle.js?v=20260913-9-4f66b9b284ba`である。このalpha.4便自体ではDB、migration、RPC、secret、cleanup scheduleは変更しない。
 
 1. `origin/main@63972b6`起点の専用clean worktreeで両bundleを2回生成し、2回目のSHAが不変、正式全製品試験、Windows Chrome/Edge CI、対象実browserのskip 0を確認する。
 2. alpha.4対応bundleを保持したまま新規対局だけを`5.0.0-alpha.3`へ戻す互換rollback branchを作成・GitHub保全する。既存alpha.4 stateの読込み・継続と、alpha.3新規stateが彩色済みpayloadをwrite-free拒否することを確認する。

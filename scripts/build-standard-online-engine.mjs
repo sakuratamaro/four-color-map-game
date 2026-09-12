@@ -57,14 +57,19 @@ function createStarterProfile(displayName){
   validateProfile(profile);
   return profile;
 }
-function getCpuRoster(){return clone(cpuRoster.publicRoster());}
-function createCpuProfile(characterId){
+function selectedCpuPolicy(characterId,{policyGeneration="current"}={}){
+  if(!["current","legacy"].includes(policyGeneration))throw new Error("INVALID_CPU_POLICY_GENERATION");
+  return policyGeneration==="legacy"?cpuRoster.PRE_SPLIT_POLICY_VERSIONS[characterId]:cpuRoster.CPU_CHARACTERS[characterId]?.policyVersion;
+}
+function getCpuRoster(options){return clone(cpuRoster.publicRoster().map(character=>({...character,policyVersion:selectedCpuPolicy(character.id,options)})));}
+function createCpuProfile(characterId,options){
   const character=cpuRoster.CPU_CHARACTERS[characterId];
   if(!character)throw new Error("UNKNOWN_CPU_CHARACTER");
+  const policyVersion=selectedCpuPolicy(characterId,options);
   const inventory=Object.fromEntries(Object.values(character.loadout).flat().map((id)=>[id,1]));
   const profile={displayName:character.name,quizRecords:{},gachaTickets:{},inventory,coins:0,achievements:[],...profileModel.createProgressionFields()};
   validateProfile(profile);
-  return {profile,loadout:clone(character.loadout),policyVersion:character.policyVersion};
+  return {profile,loadout:clone(character.loadout),policyVersion};
 }
 function chooseCpuAction({publicState,ownPrivateState,characterId,policyVersion,seed}){
   if(!Number.isSafeInteger(seed)||seed<0||seed>0xffffffff)throw new Error("INVALID_SEED");

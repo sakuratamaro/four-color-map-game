@@ -16,7 +16,7 @@ test("Standard browser gate YAML text uses stable whitespace", () => {
 });
 
 test("Standard browser gate is candidate-push, manual, or pull-request only and least-privileged", () => {
-  assert.match(workflow, /^on:\r?\n  push:\r?\n    branches: \[codex\/standard-release-command, codex\/quiz-memo-calculator-20260912, codex\/ui-diet-20260912, codex\/ui-play-surface-20260912, codex\/ui-result-20260912, codex\/ui-cosmetics-20260912, codex\/ui-player-copy-20260912, codex\/skill-cutin-20260912, codex\/ui-flat-entry-20260912, codex\/skill-catalog-20260912, codex\/surrender-confirmation-20260913\][\s\S]+?  pull_request:[\s\S]+?  workflow_dispatch:/m);
+  assert.match(workflow, /^on:\r?\n  push:\r?\n    branches: \[codex\/standard-release-command, codex\/quiz-memo-calculator-20260912, codex\/ui-diet-20260912, codex\/ui-play-surface-20260912, codex\/ui-result-20260912, codex\/ui-cosmetics-20260912, codex\/ui-player-copy-20260912, codex\/skill-cutin-20260912, codex\/ui-flat-entry-20260912, codex\/skill-catalog-20260912, codex\/surrender-confirmation-20260913, codex\/cpu-split-rescue-20260913\][\s\S]+?  pull_request:[\s\S]+?  workflow_dispatch:/m);
   assert.equal((workflow.match(/      - online\/supabase-config\.js/g) || []).length, 2);
   assert.equal((workflow.match(/      - online-v5\/style\.css/g) || []).length, 2);
   assert.equal((workflow.match(/      - standard-online-v5\/\*\*/g) || []).length, 2);
@@ -28,6 +28,8 @@ test("Standard browser gate is candidate-push, manual, or pull-request only and 
   assert.equal((workflow.match(/      - docs\/STANDARD_PUBLIC_RELEASE_RUNBOOK\.md/g) || []).length, 2);
   assert.equal((workflow.match(/      - tests\/browser-server-cleanup\.test\.cjs/g) || []).length, 2);
   assert.equal((workflow.match(/      - tests\/helpers\/browser-server-cleanup\.cjs/g) || []).length, 2);
+  assert.equal((workflow.match(/      - tests\/helpers\/cpu-sql-runtime\.cjs/g) || []).length, 2);
+  assert.equal((workflow.match(/      - tests\/sql-runtime\/\*\*/g) || []).length, 2);
   assert.equal((workflow.match(/      - tests\/standard-online-browser\.test\.cjs/g) || []).length, 2);
   assert.equal((workflow.match(/      - tests\/standard-browser-gate-workflow\.test\.cjs/g) || []).length, 2);
   assert.match(workflow, /tests\/standard-public-release-runbook\.test\.cjs/);
@@ -48,7 +50,7 @@ test("Standard browser gate uses finite Windows Chrome and Edge jobs", () => {
 test("Standard browser gate pins its tools and disables package-manager caching and install scripts", () => {
   assert.match(workflow, /uses: actions\/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7\.0\.1[\s\S]*?persist-credentials: false/);
   assert.match(workflow, /uses: actions\/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7\.0\.0[\s\S]*?node-version: "24"[\s\S]*?package-manager-cache: false/);
-  assert.match(workflow, /run: npm install --no-save --no-package-lock --ignore-scripts playwright@1\.62\.1/);
+  assert.match(workflow, /run: npm install --no-save --no-package-lock --ignore-scripts playwright@1\.62\.1 @electric-sql\/pglite@0\.5\.8\r?$/m);
 });
 
 test("Standard browser gate runs CPU contracts and the scoped browser file serially without release integration", () => {
@@ -60,6 +62,9 @@ test("Standard browser gate runs CPU contracts and the scoped browser file seria
   assert.match(workflow, /tests\/standard-online-quiz-generator-runtime\.test\.cjs/);
   assert.match(workflow, /tests\/standard-matchmaking-availability-migration\.test\.cjs/);
   assert.match(workflow, /tests\/standard-cpu-commentary\.test\.cjs/);
+  for (const file of ["standard-cpu-split-rescue.test.cjs", "standard-cpu-split-policy-migration.test.cjs", "standard-cpu-rollout.test.cjs", "standard-cpu-split-sql-runtime.test.cjs"]) {
+    assert.match(workflow, new RegExp(`tests/${file.replaceAll(".", "\\.")}`));
+  }
   assert.match(workflow, /tests\/standard-basic-feedback\.test\.cjs/);
   assert.match(workflow, /tests\/standard-online-basic-feedback-static\.test\.cjs/);
   assert.match(workflow, /tests\/standard-online-contact-feedback\.test\.cjs/);

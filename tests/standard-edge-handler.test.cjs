@@ -131,9 +131,9 @@ test("initialization uses service-loaded loadouts and profiles with a server see
 
 test("CPU roster and consent derive identity, profile, and loadout only on the server", () => {
   assert.match(source, /operation === "cpu-roster"/);
-  assert.match(source, /FourColorStandardServerEngine\.getCpuRoster\(\)/);
+  assert.match(source, /FourColorStandardServerEngine\.getCpuRoster\(\{ policyGeneration: CPU_POLICY_GENERATION \}\)/);
   const accept = source.slice(source.indexOf('if (operation === "cpu-accept")'), source.indexOf('if (operation === "profile")'));
-  assert.match(accept, /FourColorStandardServerEngine\.createCpuProfile\(characterId\)/);
+  assert.match(accept, /FourColorStandardServerEngine\.createCpuProfile\(characterId, \{ policyGeneration: CPU_POLICY_GENERATION \}\)/);
   assert.match(accept, /service\.rpc\("fcg_standard_server_accept_cpu"/);
   assert.match(accept, /p_profile_state: cpu\.profile/);
   assert.match(accept, /p_loadout: cpu\.loadout/);
@@ -146,7 +146,7 @@ test("immediate CPU start is explicit, idempotent, and server-derived", () => {
   const branch = source.slice(source.indexOf('if (operation === "cpu-start")'), source.indexOf('if (operation === "cpu-accept")'));
   assert.match(branch, /body\.confirmed !== true/);
   assert.match(branch, /actionId[^\n]+UUID_PATTERN\.test\(actionId\)/);
-  assert.match(branch, /FourColorStandardServerEngine\.createCpuProfile\(characterId\)/);
+  assert.match(branch, /FourColorStandardServerEngine\.createCpuProfile\(characterId, \{ policyGeneration: CPU_POLICY_GENERATION \}\)/);
   assert.match(branch, /service\.rpc\("fcg_standard_server_start_cpu"/);
   assert.match(branch, /p_user_id: actorId/);
   assert.match(branch, /p_action_id: actionId/);
@@ -175,7 +175,7 @@ test("one CPU action is deterministic, sees only public plus its own private vie
 test("CPU rematch rebuilds the same character profile and loadout on the server", () => {
   const branch = source.slice(source.indexOf('if (operation === "cpu-rematch")'), source.indexOf('if (operation === "initialize")'));
   assert.match(branch, /seat !== "A" \|\| room\.opponent_kind !== "cpu" \|\| room\.room_status !== "finished"/);
-  assert.match(branch, /FourColorStandardServerEngine\.createCpuProfile\(room\.cpu_character_id as string\)/);
+  assert.match(branch, /FourColorStandardServerEngine\.createCpuProfile\(room\.cpu_character_id as string, \{ policyGeneration: CPU_POLICY_GENERATION \}\)/);
   assert.match(branch, /service\.rpc\("fcg_standard_server_request_cpu_rematch"/);
   assert.match(branch, /p_cpu_profile_state: cpu\.profile/);
   assert.match(branch, /p_cpu_loadout: cpu\.loadout/);

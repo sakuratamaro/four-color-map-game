@@ -12,7 +12,7 @@ language sql
 immutable
 set search_path = ''
 as $$
-  select case
+  select coalesce(case
     when p_character_id = 'kurogane' then p_policy_version in (
       'standard-character-roster-v1:kurogane',
       'standard-character-roster-v1:kurogane-lookahead-v2',
@@ -24,7 +24,7 @@ as $$
         'standard-character-split-rescue-v1:' || p_character_id
       )
     else false
-  end;
+  end, false);
 $$;
 
 create or replace function fcg_private.fcg_standard_cpu_policy_is_current(
@@ -37,7 +37,7 @@ set search_path = ''
 as $$
   -- An overlap set, deliberately retaining the pre-split production default.
   -- Do not retire it during the initial rollout or a supported Edge rollback.
-  select case
+  select coalesce(case
     when p_character_id = 'kurogane' then p_policy_version in (
       'standard-character-roster-v1:kurogane-lookahead-v2',
       'standard-character-split-rescue-v1:kurogane'
@@ -48,7 +48,7 @@ as $$
         'standard-character-split-rescue-v1:' || p_character_id
       )
     else false
-  end;
+  end, false);
 $$;
 
 revoke all on function fcg_private.fcg_standard_cpu_policy_is_supported(text, text) from public, anon, authenticated;

@@ -3,6 +3,7 @@ import "./standard-engine.bundle.js";
 
 type JsonObject = Record<string, unknown>;
 type Seat = "A" | "B";
+type CpuProfileOptions = { policyGeneration?: "current" | "legacy" };
 type StandardEngineApi = {
   create(input: { matchId: string; loadouts: Record<Seat, JsonObject>; profiles: Record<Seat, JsonObject>; seed: number; debugMode?: boolean; labMode?: boolean; cpuSeat?: Seat | null; engineVersion?: string }): JsonObject;
   apply(input: { state: JsonObject; rngSnapshot: JsonObject; actor: Seat; action: JsonObject; expectedVersion: number; debugMode?: boolean; labMode?: boolean }): JsonObject;
@@ -14,9 +15,9 @@ type StandardEngineApi = {
   quoteCardSale(input: { profile: JsonObject; skillId: string; count: number }): JsonObject;
   quoteCosmetic(input: { profile: JsonObject; cosmeticId: string }): JsonObject;
   sellCards(input: { profile: JsonObject; skillId: string; count: number; confirmed: boolean }): { profile: JsonObject; quote: JsonObject };
-  getCpuRoster(): JsonObject[];
+  getCpuRoster(options?: CpuProfileOptions): JsonObject[];
   getCosmetics(input: { profile: JsonObject }): JsonObject;
-  createCpuProfile(characterId: string): { profile: JsonObject; loadout: JsonObject; policyVersion: string };
+  createCpuProfile(characterId: string, options?: CpuProfileOptions): { profile: JsonObject; loadout: JsonObject; policyVersion: string };
   chooseCpuAction(input: { publicState: JsonObject; ownPrivateState: JsonObject; characterId: string; policyVersion: string; seed: number }): JsonObject;
   publicState(state: JsonObject): JsonObject;
   privateState(state: JsonObject, seat: Seat): JsonObject;
@@ -25,6 +26,9 @@ type StandardEngineApi = {
   validateSeatLoadout(input: { loadout: JsonObject; profile?: JsonObject }): boolean;
 };
 const NEW_STANDARD_MATCH_ENGINE_VERSION = "5.0.0-alpha.4";
+// Ship compatibility first; only an explicitly reviewed managed activation
+// changes new/rematched opponents. Existing rooms always keep their saved policy.
+const CPU_POLICY_GENERATION = Deno.env.get("FCG_CPU_SPLIT_RESCUE") === "standard-character-split-rescue-v1" ? "current" : "legacy";
 
 declare global {
   // Generated from the reviewed Standard engine and profile modules.
@@ -41,6 +45,9 @@ const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
+  // Static deployment capability only: no account, room or private game data.
+  "X-FCG-CPU-Policy-Capability": "standard-character-split-rescue-v1",
+  "X-FCG-CPU-Policy-Generation": CPU_POLICY_GENERATION,
 };
 const RATE_WINDOW_MS = 60_000;
 const RATE_ENTRY_LIMIT = 4096;
@@ -445,7 +452,12 @@ Deno.serve(async (request: Request) => {
     }
 
     if (operation === "cpu-roster") {
-      return json(200, { rosterVersion: "standard-character-roster-v1", characters: globalThis.FourColorStandardServerEngine.getCpuRoster() });
+      return json(200, {
+        rosterVersion: "standard-character-roster-v1",
+        cpuPolicyCapabilities: ["standard-character-split-rescue-v1"],
+        cpuPolicyGeneration: CPU_POLICY_GENERATION,
+        characters: globalThis.FourColorStandardServerEngine.getCpuRoster({ policyGeneration: CPU_POLICY_GENERATION }),
+      });
     }
 
     if (operation === "cpu-start") {
@@ -455,7 +467,7 @@ Deno.serve(async (request: Request) => {
         return json(400, { error: { code: "INVALID_CPU_START", message: "A confirmed action and CPU character are required." } });
       }
       let cpu;
-      try { cpu = globalThis.FourColorStandardServerEngine.createCpuProfile(characterId); }
+      try { cpu = globalThis.FourColorStandardServerEngine.createCpuProfile(characterId, { policyGeneration: CPU_POLICY_GENERATION }); }
       catch { return json(400, { error: { code: "UNKNOWN_CPU_CHARACTER", message: "That CPU character is not available." } }); }
       stage = "start-cpu";
       const { data, error } = await service.rpc("fcg_standard_server_start_cpu", {
@@ -489,7 +501,7 @@ Deno.serve(async (request: Request) => {
         return json(400, { error: { code: "INVALID_CPU_ACCEPT", message: "A valid ticket and CPU character are required." } });
       }
       let cpu;
-      try { cpu = globalThis.FourColorStandardServerEngine.createCpuProfile(characterId); }
+      try { cpu = globalThis.FourColorStandardServerEngine.createCpuProfile(characterId, { policyGeneration: CPU_POLICY_GENERATION }); }
       catch { return json(400, { error: { code: "UNKNOWN_CPU_CHARACTER", message: "That CPU character is not available." } }); }
       stage = "accept-cpu";
       const { data, error } = await service.rpc("fcg_standard_server_accept_cpu", {
@@ -945,7 +957,7 @@ Deno.serve(async (request: Request) => {
         return json(409, { error: { code: "CPU_ROOM_REQUIRED", message: "A finished CPU room is required." } });
       }
       let cpu;
-      try { cpu = globalThis.FourColorStandardServerEngine.createCpuProfile(room.cpu_character_id as string); }
+      try { cpu = globalThis.FourColorStandardServerEngine.createCpuProfile(room.cpu_character_id as string, { policyGeneration: CPU_POLICY_GENERATION }); }
       catch { throw new Error("UNKNOWN_CPU_CHARACTER"); }
       stage = "cpu-rematch";
       const { data, error } = await service.rpc("fcg_standard_server_request_cpu_rematch", {
