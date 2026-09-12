@@ -53,4 +53,6 @@ test("flat UI driver binds bytes before one profile, blocks unexpected writes, a
   assert.ok(s.indexOf('status:"FINAL_CHECKS_CAPTURED_NOT_YET_ACCEPTED"')<s.indexOf('failed=failed||!result.checks.every'));
   assert.doesNotMatch(s,/JSON\.stringify\((?:session|calls|baseline|actual|token)\)/);
   assert.match(s,/initialAcceptance062:"CLOSED_NO_ADDITIONAL062_PROFILE"/);
+  assert.ok(s.indexOf('await page.waitForFunction(()=>document.querySelectorAll("#cpuRosterGrid .cpu-character-card").length===10')
+    <s.indexOf('check(width+": ten CPU choices"'));
 });

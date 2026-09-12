@@ -25,6 +25,17 @@ async function awaitHydratedBattle(page, timeout=30_000) {
   await page.locator("#matchCard:not(.hidden)").waitFor({state:"visible",timeout});
   await page.locator("#boardViewport canvas").waitFor({state:"visible",timeout});
 }
+function canSpendAction({cpuSteps,humanSteps,cpu=0,own=0,cleaning=false}) {
+  return cpuSteps+cpu <= (cleaning?24:12) && humanSteps+own <= (cleaning?9:8);
+}
+function finalAudits({reloadHydrated,reloadPriorEventReplayed,unexpectedWrites,errors,warnings}) {
+  const verified=reloadHydrated===true&&typeof reloadPriorEventReplayed==="boolean";
+  return [
+    {label:"reload does not replay prior cut-ins",passed:verified?!reloadPriorEventReplayed:null,status:verified?"VERIFIED":"NOT_VERIFIED_RESTORE_INCOMPLETE"},
+    {label:"no unapproved browser operation",passed:unexpectedWrites===0},
+    {label:"final console and page errors zero",passed:errors===0&&warnings===0},
+  ];
+}
 function chooseOwnAction(room, planner) {
   assert.equal(room?.privateState?.seat,"A");
   assert.equal(room?.publicState?.active,"A");
@@ -61,8 +72,9 @@ async function main(args) {
   const report={subject:"UDL-065-cutin-v1.1",candidateSha:sha,profileAttempts:0,profilesCreated:0,matchAttempts:0,matchesCreated:0,
     cleanup:"NOT_NEEDED",physicalDevices:"NOT_RUN",opponentCutin:"NOT_RUN",assetHashes:[],checks:[],operations:{},events:[]};
   let token,roomId,room,browserServer,context,failed=false,stage="public assets",cleaning=false,cpuSteps=0,humanSteps=0;
-  let errors=0,warnings=0,unexpectedWrites=0,browserSkillActions=0;
+  let errors=0,warnings=0,unexpectedWrites=0,browserSkillActions=0,budgetStops=0;
   const blockedOperations={};
+  const playDeadline=Date.now()+180_000; // Reserve time as well as actions for ordinary terminal cleanup.
   const abort=new AbortController();
   const timer=setTimeout(()=>abort.abort(),240_000);
   const check=(label,value)=>{assert.ok(value,label);report.checks.push(label);};
@@ -83,12 +95,15 @@ async function main(args) {
   };
   const refresh=async()=>room=(await edge({operation:"initialize",roomId})).room;
   const action=async(type,payload={})=>{
-    check("bounded owned ordinary action",["CREATE_REGION","COLOR_REGION","SURRENDER"].includes(type)&&++humanSteps<=9);
+    check("bounded owned ordinary action",["CREATE_REGION","COLOR_REGION","SURRENDER"].includes(type)
+      &&canSpendAction({cpuSteps,humanSteps,own:1,cleaning}));
+    humanSteps++;
     room=(await edge({operation:"action",roomId,action:{id:randomUUID(),expectedVersion:room.version,type,payload}})).room;
   };
   const driveCpuWithoutBrowser=async()=>{
     for(let i=0;i<12&&room?.status==="playing"&&room.publicState?.active==="B";i++){
-      check("bounded owned CPU action",++cpuSteps<=24);
+      if(!canSpendAction({cpuSteps,humanSteps,cpu:1,cleaning}))break;
+      check("bounded owned CPU action",cpuSteps<24);cpuSteps++;
       room=(await edge({operation:"cpu-action",roomId,expectedVersion:room.version})).room;
     }
   };
@@ -136,10 +151,15 @@ async function main(args) {
       const req=route.request();
       if(req.method()!=="POST")return route.continue();
       const body=req.postDataJSON(),cost=browserOperationCost(body,roomId);
-      if(!cost||cpuSteps+cost.cpu>24||humanSteps+cost.own>9||abort.signal.aborted){
+      if(!cost){
         const label=/^[a-z-]{1,40}$/.test(body?.operation||"")?body.operation:"unknown";
         blockedOperations[label]=(blockedOperations[label]||0)+1;
         unexpectedWrites++;return route.abort("blockedbyclient");
+      }
+      if(cpuSteps+cost.cpu>24||humanSteps+cost.own>9
+          ||!canSpendAction({cpuSteps,humanSteps,...cost})||abort.signal.aborted
+          ||(Date.now()>=playDeadline&&(cost.cpu||cost.own))){
+        budgetStops++;return route.abort("blockedbyclient");
       }
       cpuSteps+=cost.cpu;humanSteps+=cost.own;
       if(cost.own)browserSkillActions++;
@@ -175,17 +195,18 @@ async function main(args) {
     const handBefore=room.privateState.hand.colorRandomBorrow;check("starter borrowed-color card",handBefore===1);
     await page.locator('#skillControls .skill[data-skill="colorRandomBorrow"]').click();
     await page.waitForFunction(()=>window.__skillCanary.events.some(e=>e.actor==="self"),null,{timeout:30_000});
-    const screenshotDir=path.resolve(__dirname,"../artifacts/skill-cutin-20260913");
+    const screenshotRelative="artifacts/"+path.basename(reportPath,".json").toLowerCase();
+    const screenshotDir=path.resolve(__dirname,"..",screenshotRelative);
     fs.mkdirSync(screenshotDir,{recursive:true});
     await page.screenshot({path:path.join(screenshotDir,"live-own-390.png")});
-    report.screenshots=["artifacts/skill-cutin-20260913/live-own-390.png"];
+    report.screenshots=[screenshotRelative+"/live-own-390.png"];
     await page.locator('#skillControls .is-used .skill[data-skill="colorRandomBorrow"]').waitFor({timeout:30_000});
     await refresh();check("exact one own card consumed",room.privateState.hand.colorRandomBorrow===handBefore-1);
     check("one explicit browser skill write",browserSkillActions===1);
     stage="finite ordinary play for an opponent event";
     for(let i=0;i<6;i++){
       if(await page.evaluate(()=>window.__skillCanary.events.some(e=>e.actor==="opponent")))break;
-      if(cpuSteps>=12)break; // Keep half the total CPU budget available for terminal cleanup.
+      if(cpuSteps>=12||humanSteps>=8||Date.now()>=playDeadline)break;
       await refresh();
       // The live app owns CPU writes while open. Never race it with a second CPU driver.
       for(let poll=0;poll<12&&room.status==="playing"&&room.publicState.active==="B";poll++){await delay(800);await refresh();}
@@ -211,14 +232,7 @@ async function main(args) {
     const reloadEvents=await page.evaluate(()=>window.__skillCanary.events);
     report.reloadPriorEventReplayed=reloadEvents.some(e=>previousIds.has(e.eventId));
     await page.screenshot({path:path.join(screenshotDir,"live-restored-1280.png")});
-    report.screenshots.push("artifacts/skill-cutin-20260913/live-restored-1280.png");
-    report.finalChecks=[
-      {label:"reload does not replay prior cut-ins",passed:!report.reloadPriorEventReplayed},
-      {label:"no unapproved browser operation",passed:unexpectedWrites===0},
-      {label:"final console and page errors zero",passed:errors===0&&warnings===0},
-    ];
-    for(const outcome of report.finalChecks)if(outcome.passed)report.checks.push(outcome.label);
-    check("all final independent audits pass",report.finalChecks.every(c=>c.passed));
+    report.screenshots.push(screenshotRelative+"/live-restored-1280.png");
     report.browserWidths=[390,1280];report.browserSkillActions=browserSkillActions;
     report.liveGameplay="REAL_OWN_BORROW_AND_FINITE_ORDINARY_CPU_PLAY_NO_STATE_INJECTION";
   } catch(error) {
@@ -233,14 +247,19 @@ async function main(args) {
       if(roomId){await refresh();await driveCpuWithoutBrowser();if(room.status==="playing"&&room.publicState.active==="A")await action("SURRENDER");
         report.cleanup=room.status==="finished"?"TERMINAL_CONFIRMED_NO_DELETION":"PENDING";}
     }catch{failed=true;report.cleanup="PENDING_REQUIRES_OWNED_TEST_ROOM_FOLLOWUP";}
+    // These outcomes are independent of hydration/screenshot/other earlier failure.
+    report.finalChecks=finalAudits({...report,unexpectedWrites,errors,warnings});
+    for(const outcome of report.finalChecks)if(outcome.passed)report.checks.push(outcome.label);
+    failed=failed||!report.finalChecks.every(c=>c.passed===true);
     report.ok=!failed&&report.cleanup==="TERMINAL_CONFIRMED_NO_DELETION";
     report.totalCpuActionAttempts=cpuSteps;report.totalOwnActionAttempts=humanSteps;
     report.browserAudit={unexpectedWrites,errors,warnings,blockedOperations};
+    report.budgetStops=budgetStops;
     report.completedAt=new Date().toISOString();
     fs.writeFileSync(reportPath,JSON.stringify(report,null,2)+"\n");
     console.log(JSON.stringify(report,null,2));
   }
   return report.ok?0:1;
 }
-module.exports={chooseOwnAction,redactEvents,LOADOUT,browserOperationCost,awaitHydratedBattle};
+module.exports={chooseOwnAction,redactEvents,LOADOUT,browserOperationCost,awaitHydratedBattle,canSpendAction,finalAudits};
 if(require.main===module)main(process.argv.slice(2)).then(code=>{process.exitCode=code;}).catch(()=>{console.error("FAIL canary setup (details redacted)");process.exitCode=1;});

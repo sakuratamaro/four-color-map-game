@@ -41,7 +41,7 @@
     }
   ],
   "coordination": {
-    "status": "WAITING_EXACT065_REVISION_REVIEW",
+    "status": "NORMAL_WORK065_SUPPLEMENT_THEN_APPROVED_FLAT_RELEASE",
     "latest_v8_intake": {
       "state": "PAIRED_SOURCE_AND_ZIP_VERIFIED_ALIASES_MAPPED",
       "source_thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
@@ -181,8 +181,8 @@
       "normal_owner_observation": "Previous normal turn completed after branch push; stored normal_work_receipt waiting. This heartbeat is the same task, not a second active owner."
     },
     "reviewer_thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
-    "last_consumed_review_message_id": "43edac17-535b-40f6-89d7-c9e09184b6a2",
-    "last_received_message_id": "43edac17-535b-40f6-89d7-c9e09184b6a2",
+    "last_consumed_review_message_id": "0398f396-109f-485c-9add-9950421fc477",
+    "last_received_message_id": "0398f396-109f-485c-9add-9950421fc477",
     "pending_user_intake_message_ids": [
       "ea61f25f-bebf-499a-81e9-029712a96f99",
       "bbb216f0-9194-45cf-acd6-504a9a55d40a",
@@ -383,6 +383,23 @@
         "failedCheck": "no unapproved browser operation",
         "final_console_audit": "NOT_RECORDED_DUE_TO_FAIL_FAST",
         "final_reload_visual": "LOADING_SNAPSHOT_NOT_FINAL_ACCEPTANCE"
+      },
+      "post_publication_retry": {
+        "state": "READY_ONE_AUTHORIZED_ATTEMPT",
+        "review_id": "CHATGPT-REVIEW-20260913-028",
+        "response_message_id": "0398f396-109f-485c-9add-9950421fc477",
+        "additional_profiles": 1,
+        "additional_matches": 1,
+        "attempts": 0,
+        "total_profile_limit": 2,
+        "total_match_limit": 2,
+        "cpu_action_limit": 24,
+        "own_action_limit": 9,
+        "duration_seconds": 240,
+        "evidence_json": "docs/SKILL_CUTIN_RETRY_LIVE_20260913.json",
+        "original_evidence_immutable": true,
+        "harness_sha256": "25260A271057D7499C90862251D5EC4644F23F022ECACFCC84A32CEE90A6B729",
+        "local_tests": "14/14PASS; skip0;747.8785ms; includes065nineandflatfive"
       }
     },
     "automation_id": "automation",
@@ -745,7 +762,7 @@
       "started_at_utc": "2026-09-12T15:24:51Z",
       "expires_at_utc": "2026-09-12T17:24:51Z",
       "start_basis": "Successful send API start for independent023v2 candidate9515, not065revision or retry.",
-      "automatic_checks": 0,
+      "automatic_checks": 1,
       "max_automatic_checks": 3,
       "offset_minutes": [
         20,
@@ -758,17 +775,30 @@
       "confirmed_delivery_reminders": 0,
       "root_request_message_id": "1b0193a0-02b0-4500-807f-0e5f2e6ae52f",
       "subject_sha": "9515f9bed9536dc2c44b71817129abb9c86ef24f",
-      "status": "review_pending",
-      "next_check_utc": "2026-09-12T15:44:51Z",
-      "remaining_scheduled_slots": 3,
+      "status": "review_received_closed",
+      "next_check_utc": null,
+      "remaining_scheduled_slots": 0,
       "delivery_readback_checks": 2,
-      "consumed_slots_utc": [],
+      "consumed_slots_utc": [
+        "2026-09-12T15:44:51Z"
+      ],
       "skipped_slots_utc": [],
-      "check_receipts": [],
+      "check_receipts": [
+        {
+          "slot": "2026-09-12T15:44:51Z",
+          "at_utc": "2026-09-12T15:48:45Z",
+          "kind": "normal_goal_run_due_slot",
+          "turn_id": "01a09643-eee7-71f1-9bb6-6f1d9164d872",
+          "reserved_before_read": true,
+          "scheduled_new_turn_observed": false
+        }
+      ],
       "new_scope": "UDL-023-entrance-v2",
       "prior065budget_reopened": false,
       "delivery_source_reads": 2,
-      "last_result": "Secondboundedread confirms request andexact20000prefix; no responseyet, no thirdread."
+      "last_result": "Secondboundedread confirms request andexact20000prefix; no responseyet, no thirdread.",
+      "response_message_id": "0398f396-109f-485c-9add-9950421fc477",
+      "received_at_utc": "2026-09-12T15:51:10Z"
     },
     "pending_review_subject": {
       "subject_sha": "9515f9bed9536dc2c44b71817129abb9c86ef24f",
@@ -824,7 +854,7 @@
       "1b0193a0-02b0-4500-807f-0e5f2e6ae52f"
     ],
     "sent_at_utc": "2026-09-12T15:24:51Z",
-    "last_check_utc": "2026-09-12T15:27:04Z",
+    "last_check_utc": "2026-09-12T15:48:45Z",
     "unchanged_checks": 1,
     "reminder_count": 0,
     "max_reminders_per_request": 1,
@@ -1971,7 +2001,7 @@
         "UDL-20260912-062"
       ],
       "alias": "ADD-20260912-ENTRY-FLAT-THREE-BUTTONS",
-      "state": "LOCAL_VERIFIED",
+      "state": "APPROVED_AWAITING065_ONE_SUPPLEMENT",
       "worktree": ".codex-worktrees/ui-flat-entry-20260912",
       "branch": "codex/ui-flat-entry-20260912",
       "owner_thread_id": "01a07b56-616e-7733-9aae-90575659688e",
@@ -1980,7 +2010,7 @@
       "spec_path": "docs/UI_FLAT_ENTRANCE_20260912.md",
       "spec_version": "UDL-023-entrance-v2",
       "non_change": "HTML/CSS only, app.js/game/server unchanged. Preserve023 behavior, old062 acceptance, all065. Localpreparationnot releaseorder.",
-      "review_status": "PENDING",
+      "review_status": "APPROVE_RELEASE",
       "publication": "NOT_RUN",
       "tests": "Localstatic93/93; Chrome10/10 andEdge15/15 including065;3sizesvisuallyviewed;3builderszerotrackeddiff. Not fullnonbrowser913rerun.",
       "candidate_sha": "9515f9bed9536dc2c44b71817129abb9c86ef24f",
@@ -1991,7 +2021,7 @@
       "live_canary": "scripts/live-standard-flat-entry-canary.cjs",
       "live_canary_precheck": "5/5PASS322.1229ms; liveNOT_RUN/profileattempts0",
       "evidence": "docs/UI_FLAT_ENTRANCE_LOCAL_20260912.md",
-      "next_action": "After065PUBLIC_VERIFIED,freshmain/ancestry andexactWindows; sendfixedUIreview once. Do notreopen062.",
+      "next_action": "Firstone065supplementon3b1, thenfreshmain/exact9515force-freepublicationandapprovedoneprofile/zero-matchcanary.",
       "windows_last_observed_at_utc": "2026-09-12T14:39:11Z",
       "windows_completed_at_utc": "2026-09-12T14:38:50Z",
       "windows_jobs": [
@@ -2027,7 +2057,9 @@
       "review_request_message_id": "1b0193a0-02b0-4500-807f-0e5f2e6ae52f",
       "review_delivery_full_body_verified": false,
       "review_delivery_matching_chars": 20000,
-      "review_delivery_total_chars": 40059
+      "review_delivery_total_chars": 40059,
+      "review_id": "CHATGPT-REVIEW-20260913-027",
+      "review_response_message_id": "0398f396-109f-485c-9add-9950421fc477"
     },
     "remaining_brain_work": {
       "source": {
@@ -2320,10 +2352,10 @@
         "readback_verified": true
       },
       "normal_work_claim": {
-        "state": "REVIEW_WAIT_WITH_SUCCESSOR_CI_RUNNING",
-        "turn_id": "01a0960e-63a8-7fc3-b822-9664d71a3305",
-        "subject_sha": "9515f9bed9536dc2c44b71817129abb9c86ef24f",
-        "action": "RETURN_TO_SINGLE_SCHEDULED_RECEIVE_NO_SELF_SEND"
+        "state": "RUNNING_NORMAL_WORK",
+        "turn_id": "01a09643-eee7-71f1-9bb6-6f1d9164d872",
+        "action": "EXECUTE028_BOUNDED_SUPPLEMENT_THEN027_RELEASE",
+        "subject_sha": "3b1d4e65197c476686b7b8a13c49f97ffd591e68"
       },
       "review_scope": "New user-authorized local continuation repair, not covered by old APPROVE_DOCS; fixed docs candidate will be separately reported.",
       "verification": {
@@ -2334,17 +2366,11 @@
       },
       "current_run": {
         "phase": "NORMAL_WORK",
-        "turn_id": "01a0960e-63a8-7fc3-b822-9664d71a3305",
+        "turn_id": "01a09643-eee7-71f1-9bb6-6f1d9164d872",
         "source": "automatic_goal_continuation",
-        "started_at_utc": "2026-09-12T14:38:40Z",
-        "request": "Continuev13goal; receiveonly atfixed15:05:37slot; recordexactflatWindows andinspect066canonicalgap",
-        "worktree": ".codex-worktrees/dev-brain-current-20260910",
-        "additional_worktrees": [
-          ".codex-worktrees/skill-cutin-20260912",
-          ".codex-worktrees/ui-flat-entry-20260912",
-          ".codex-worktrees/skill-catalog-20260912"
-        ],
-        "progress": "Genuine026→exact3b1main/Pages andoneboundedlive; preserved31checks/FAIL andfinishedtestroom, correctedharness7/7 withoutsecondattempt; exact9515UIreview40059charsdelivered; independent066a744clean928/928 plusChrome2/Edge11,pushedandWindowsrunning."
+        "started_at_utc": "2026-09-12T15:37:09.000Z",
+        "request": "Continuefullv13goal. Read9515onlyatfixed15:44:51Z; prepare067spec/source and diagnostic againstcurrenta744.",
+        "worktree": ".codex-worktrees/dev-brain-current-20260910"
       },
       "missed_schedule_observation": {
         "scheduled_at_utc": "2026-09-12T06:25:12Z",
@@ -2439,15 +2465,17 @@
       },
       "previous_run": {
         "phase": "NORMAL_WORK",
-        "turn_id": "01a095d9-634c-7fa0-8b7f-42b4b9723f21",
+        "turn_id": "01a0960e-63a8-7fc3-b822-9664d71a3305",
         "source": "automatic_goal_continuation",
-        "started_at_utc": "2026-09-12T13:40:47Z",
-        "request": "Continue v13 release goal; preserve pending065 finite review slot",
-        "worktree": ".codex-worktrees/skill-cutin-20260912",
+        "started_at_utc": "2026-09-12T14:38:40Z",
+        "request": "Continuev13goal; receiveonly atfixed15:05:37slot; recordexactflatWindows andinspect066canonicalgap",
+        "worktree": ".codex-worktrees/dev-brain-current-20260910",
         "additional_worktrees": [
-          ".codex-worktrees/ui-flat-entry-20260912"
+          ".codex-worktrees/skill-cutin-20260912",
+          ".codex-worktrees/ui-flat-entry-20260912",
+          ".codex-worktrees/skill-catalog-20260912"
         ],
-        "progress": "Implementedandpushed065B1/B2revision3b1, genuine025saved, exactWindowsSUCCESS; preparedindependentflatUI9515+93local+Chrome10/Edge15; fixedboundedcanary5/5. Main/PagesNOTRUN for both."
+        "progress": "Genuine026→exact3b1main/Pages andoneboundedlive; preserved31checks/FAIL andfinishedtestroom, correctedharness7/7 withoutsecondattempt; exact9515UIreview40059charsdelivered; independent066a744clean928/928 plusChrome2/Edge11,pushedandWindowsrunning."
       },
       "goal_blocked_audit_history": [
         {
@@ -2514,9 +2542,9 @@
         "reason": "After context continuation get_goal returned null; current explicit user-authorized successor objective was restored once via create_goal. No budget inferred."
       },
       "previous_goal_turn_classification": {
-        "turn_id": "01a095d9-634c-7fa0-8b7f-42b4b9723f21",
+        "turn_id": "01a0960e-63a8-7fc3-b822-9664d71a3305",
         "classification": "progress",
-        "evidence": "025 genuine review -> B1/B2fixed3b1 +Windows586/137both; new9515flatUI +local93/Chrome10/Edge15 +oneboundedharness5/5; exactqueuedreview and actualsamefiniteheartbeat.",
+        "evidence": "Genuine026→3b1main/Pages/publicbytes/oneboundlive; firstauditFAILretained+sourceharnesscorrected7/7+report; independent9515reviewdelivered;066implementedChrome2/Edge11/static110.",
         "actual_goal_status": "active",
         "not_merely_wait": true
       },
@@ -3275,6 +3303,68 @@
       "blockers": [],
       "notes": "Genuine completed exact3b1 approval, B1/B2 resolved. Requires sameSHA finalWindows, freshmain ancestry, exactPages/4bytes beforeoneprofile/oneCPU/240s boundedcanary24CPU9own total. Reviewer's earlier IN_PROGRESS is retained, finalCI separately verified byCodex. Old025 remainsREQUEST_CHANGES. No newuser/review permissionwait.",
       "spec_snapshot_kind": "git_blob:docs/SKILL_CUTIN_20260912.md"
+    },
+    {
+      "review_id": "CHATGPT-REVIEW-20260913-027",
+      "subject_sha": "9515f9bed9536dc2c44b71817129abb9c86ef24f",
+      "base_sha": "3b1d4e65197c476686b7b8a13c49f97ffd591e68",
+      "canon_version": "shared-canon-v1.1",
+      "feature_spec_version": "UDL-023-entrance-v2",
+      "spec_snapshot_sha": "630964f0af6956ff544d0209ba55209f6ba7d317",
+      "scope": "Pages_only",
+      "review_kind": "game_production_release_approval",
+      "db_change_set": [],
+      "edge_change_set": [],
+      "decision": "APPROVE_RELEASE",
+      "source": {
+        "kind": "chatgpt",
+        "thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
+        "message_id": "0398f396-109f-485c-9add-9950421fc477",
+        "request_message_id": "1b0193a0-02b0-4500-807f-0e5f2e6ae52f",
+        "response_text": "## 1．フラット入口・固定候補レビュー\n\n### DECISION\n**APPROVE_RELEASE**\n\n### SUBJECT_SHA\n`9515f9bed9536dc2c44b71817129abb9c86ef24f`\n\n### BLOCKERS\n**なし。確認した範囲で、公開前に修正必須の欠陥は見つかりませんでした。**\n\nCPU・友だち・だれとでもを同階層の3ボタンにし、入れ子の見出しや説明を除去する変更を確認しました。**既存のボタンID・操作処理は維持し、見出しの黄色い囲みだけを外して、キーボードでのフォーカス表示は残しています。** 対応テストも、3幅での同列・同幅・44px以上・クリック可能性・経路選択時の書込み0を検査しています。\n\n### NOTES\n承認範囲はBASE `3b1d4e65197c476686b7b8a13c49f97ffd591e68`からの本候補、**`shared-canon-v1.1`／`UDL-023-entrance-v2`／`game_production_release_approval`／`Pages_only`／DB・Edge各`[]`**です。仕様blobは提出値`630964f0af6956ff544d0209ba55209f6ba7d317`と一致しています。\n\n**Windows `34699225793`は、本候補SHAのChrome `103567909286`・Edge `103567909535`とも`completed / success`を確認しました。** ローカル試験と画像目視はCodexの実施報告として受領し、こちらでは再実行・画像確認していません。\n\nfresh mainの整合・祖先確認後、**forceなしの同一SHA公開→公開preflight→HTML・app39・ui-diet CSS3の厳密byte一致→提示された公開後確認**へ進めてください。候補が変わらなければ、追加の公開許可・再レビュー待ちは不要です。\n\n入口の公開後確認は、**専用プロフィール1件・対局0件・180秒の1回**に限定します。3幅の経路切替・CPU一覧・Escape・フォーカス復帰・reloadと、保存`profileState`／revision・許可通信・consoleを確認してください。既知のトップレベル`displayName`不整合を情報項目へ分け、保存状態の厳密比較は維持する検証側の構成も確認しました。\n\n検証側では、**CPUダイアログが開いたことと、一覧10件の読込完了を分けて待ってください。** 件数の判定を緩めるのではなく、上限時間内に実際の一覧描画を待つ扱いです。これは製品変更・再レビューの要求ではありません。\n\n---\n\n## 2．065・公開後の受入補完\n\n### DECISION\n**現時点では受入完了にせず、修正版ハーネスによる追加1回の限定試験を承認します。製品の再承認・再公開は不要です。**\n\n### SUBJECT_SHA\n`3b1d4e65197c476686b7b8a13c49f97ffd591e68`\n\n元の固定実行証拠：`845a43ce510bb86ef8004a2917d9819efdacaa90`  \n補完用ハーネス：`fc3207d36c81ddfb6fd617d9cae41b82a9f50f24`\n\n### BLOCKERS\n**065の受入完了には、復元完了後の再演抑止・許可通信・consoleの確認が不足しています。製品不具合が確定したという判断ではありません。**\n\n固定JSONには、自分のカットイン1件・相手のカットイン2件、単回のカード消費、ポインター透過、公開された盤面変化への反応、試験対局の終局が記録されています。**カットインの主要動作は実測できています。** 一方、総合結果は`FAIL`であり、通信判定の不合格と、未取得のconsole・復元後の確認を、これらの成功で代替はできません。\n\n`cosmetic-catalog`等を既存の読取として許可する修正と、接続・対局表示・盤面Canvasを待ってから過去イベントの再演を調べる修正は妥当です。ただし、**元試行の不許可判定が実際にcatalogだけによるものだったとは確定しません。** 拒否されたoperation名が未保存だった区別を維持します。\n\n### NOTES\n追加試験は、**新規プロフィール1件／CPU対局1件／240秒のcanary1回、CPU操作最大24回・自分の操作最大9回〔終局処理を含む〕**に固定します。065の累計は、実行後に**プロフィール2件・CPU対局2件**となります。クイズ・ガチャ・購入・削除・既存ユーザーへの操作は行いません。\n\n**実行前に、検証側だけ次の2点を補ってください。追加の製品レビューは不要です。**\n\n- **復元待ちが失敗しても、残る監査結果を保存する。** 現ハーネスは`awaitHydratedBattle()`成功後に`finalChecks`を組み立てています。復元待ちの途中で失敗した場合も、再演抑止は未確認と明記し、許可通信・console・拒否operation数は独立して最終保存してください。\n- **終局用の操作枠を使い切らない。** 通常プレイはcleanupの枠を残して打ち切り、その試験対局だけを通常手順で終了してください。時間・操作上限を超えてCPUイベントを追い続けない扱いです。\n\n補正したハーネスを局所検証した後、fresh preflightと**HTML・app39・cut-in JS2・CSS1の厳密byte一致を、プロフィール作成前に確認**して実行してください。前回の失敗JSONは上書きせず、追加試行を別の証拠として保存します。\n\n復元後に新しく発生したスキルと、復元前のイベントの再演は区別してください。相手のスキルが今回は観測できなくても、前回の観測証拠は残せます。**それを理由に3件目のプロフィール・対局を追加する必要はありません。**\n\n### 実行順序と完了範囲\n\n**065の補完を公開3b1上で一度実行・証拠保存してから、9515の配信へ切り替えてください。** 先に入口を更新するとHTMLの厳密比較対象が変わるため、異なる製品SHAの証拠を混ぜない順序です。\n\n065の追加試行が成功したら、その受入を完了できます。失敗した場合は再試行を重ねず、保存した独立結果で切り分けてください。**製品の回帰・安全上の問題が見つかった場合は9515への影響も判断しますが、検証側だけの未完を入口改善の無期限停止条件にはしません。**\n\n入口9515と065の受入補完は別記録とし、物理端末は未実施なら`NOT_RUN`のままです。旧065の待機予算は再開せず、図鑑066・CPU画像・投了UIなどの完成も待たせないでください。",
+        "request_body_equality": false,
+        "request_prefix_matching_chars": 20000
+      },
+      "recorded_at_utc": "2026-09-12T15:51:10Z",
+      "blockers": [],
+      "notes": "Part1 only: exact9515 release and oneprofile/zero-match180s UI canary. Firstfinishoneauthorized065supplementonpublic3b1. Part2separatelyrecorded028; noapprovalborrow.",
+      "spec_snapshot_kind": "git_blob:docs/UI_FLAT_ENTRANCE_20260912.md"
+    },
+    {
+      "review_id": "CHATGPT-REVIEW-20260913-028",
+      "subject_sha": "3b1d4e65197c476686b7b8a13c49f97ffd591e68",
+      "base_sha": "a1a9b1c830eceb98464b107f2442deacaf765505",
+      "canon_version": "shared-canon-v1.1",
+      "feature_spec_version": "UDL-065-cutin-v1.1",
+      "spec_snapshot_sha": "40410ee0cc5dee8ca2a46281c54e504c8c01a15f",
+      "scope": "post_publication_bounded_acceptance",
+      "review_kind": "public_acceptance_supplement",
+      "db_change_set": [],
+      "edge_change_set": [],
+      "decision": "APPROVE_BOUNDED_ACCEPTANCE",
+      "source": {
+        "kind": "chatgpt",
+        "thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
+        "message_id": "0398f396-109f-485c-9add-9950421fc477",
+        "request_message_id": "1b0193a0-02b0-4500-807f-0e5f2e6ae52f",
+        "response_text": "## 1．フラット入口・固定候補レビュー\n\n### DECISION\n**APPROVE_RELEASE**\n\n### SUBJECT_SHA\n`9515f9bed9536dc2c44b71817129abb9c86ef24f`\n\n### BLOCKERS\n**なし。確認した範囲で、公開前に修正必須の欠陥は見つかりませんでした。**\n\nCPU・友だち・だれとでもを同階層の3ボタンにし、入れ子の見出しや説明を除去する変更を確認しました。**既存のボタンID・操作処理は維持し、見出しの黄色い囲みだけを外して、キーボードでのフォーカス表示は残しています。** 対応テストも、3幅での同列・同幅・44px以上・クリック可能性・経路選択時の書込み0を検査しています。\n\n### NOTES\n承認範囲はBASE `3b1d4e65197c476686b7b8a13c49f97ffd591e68`からの本候補、**`shared-canon-v1.1`／`UDL-023-entrance-v2`／`game_production_release_approval`／`Pages_only`／DB・Edge各`[]`**です。仕様blobは提出値`630964f0af6956ff544d0209ba55209f6ba7d317`と一致しています。\n\n**Windows `34699225793`は、本候補SHAのChrome `103567909286`・Edge `103567909535`とも`completed / success`を確認しました。** ローカル試験と画像目視はCodexの実施報告として受領し、こちらでは再実行・画像確認していません。\n\nfresh mainの整合・祖先確認後、**forceなしの同一SHA公開→公開preflight→HTML・app39・ui-diet CSS3の厳密byte一致→提示された公開後確認**へ進めてください。候補が変わらなければ、追加の公開許可・再レビュー待ちは不要です。\n\n入口の公開後確認は、**専用プロフィール1件・対局0件・180秒の1回**に限定します。3幅の経路切替・CPU一覧・Escape・フォーカス復帰・reloadと、保存`profileState`／revision・許可通信・consoleを確認してください。既知のトップレベル`displayName`不整合を情報項目へ分け、保存状態の厳密比較は維持する検証側の構成も確認しました。\n\n検証側では、**CPUダイアログが開いたことと、一覧10件の読込完了を分けて待ってください。** 件数の判定を緩めるのではなく、上限時間内に実際の一覧描画を待つ扱いです。これは製品変更・再レビューの要求ではありません。\n\n---\n\n## 2．065・公開後の受入補完\n\n### DECISION\n**現時点では受入完了にせず、修正版ハーネスによる追加1回の限定試験を承認します。製品の再承認・再公開は不要です。**\n\n### SUBJECT_SHA\n`3b1d4e65197c476686b7b8a13c49f97ffd591e68`\n\n元の固定実行証拠：`845a43ce510bb86ef8004a2917d9819efdacaa90`  \n補完用ハーネス：`fc3207d36c81ddfb6fd617d9cae41b82a9f50f24`\n\n### BLOCKERS\n**065の受入完了には、復元完了後の再演抑止・許可通信・consoleの確認が不足しています。製品不具合が確定したという判断ではありません。**\n\n固定JSONには、自分のカットイン1件・相手のカットイン2件、単回のカード消費、ポインター透過、公開された盤面変化への反応、試験対局の終局が記録されています。**カットインの主要動作は実測できています。** 一方、総合結果は`FAIL`であり、通信判定の不合格と、未取得のconsole・復元後の確認を、これらの成功で代替はできません。\n\n`cosmetic-catalog`等を既存の読取として許可する修正と、接続・対局表示・盤面Canvasを待ってから過去イベントの再演を調べる修正は妥当です。ただし、**元試行の不許可判定が実際にcatalogだけによるものだったとは確定しません。** 拒否されたoperation名が未保存だった区別を維持します。\n\n### NOTES\n追加試験は、**新規プロフィール1件／CPU対局1件／240秒のcanary1回、CPU操作最大24回・自分の操作最大9回〔終局処理を含む〕**に固定します。065の累計は、実行後に**プロフィール2件・CPU対局2件**となります。クイズ・ガチャ・購入・削除・既存ユーザーへの操作は行いません。\n\n**実行前に、検証側だけ次の2点を補ってください。追加の製品レビューは不要です。**\n\n- **復元待ちが失敗しても、残る監査結果を保存する。** 現ハーネスは`awaitHydratedBattle()`成功後に`finalChecks`を組み立てています。復元待ちの途中で失敗した場合も、再演抑止は未確認と明記し、許可通信・console・拒否operation数は独立して最終保存してください。\n- **終局用の操作枠を使い切らない。** 通常プレイはcleanupの枠を残して打ち切り、その試験対局だけを通常手順で終了してください。時間・操作上限を超えてCPUイベントを追い続けない扱いです。\n\n補正したハーネスを局所検証した後、fresh preflightと**HTML・app39・cut-in JS2・CSS1の厳密byte一致を、プロフィール作成前に確認**して実行してください。前回の失敗JSONは上書きせず、追加試行を別の証拠として保存します。\n\n復元後に新しく発生したスキルと、復元前のイベントの再演は区別してください。相手のスキルが今回は観測できなくても、前回の観測証拠は残せます。**それを理由に3件目のプロフィール・対局を追加する必要はありません。**\n\n### 実行順序と完了範囲\n\n**065の補完を公開3b1上で一度実行・証拠保存してから、9515の配信へ切り替えてください。** 先に入口を更新するとHTMLの厳密比較対象が変わるため、異なる製品SHAの証拠を混ぜない順序です。\n\n065の追加試行が成功したら、その受入を完了できます。失敗した場合は再試行を重ねず、保存した独立結果で切り分けてください。**製品の回帰・安全上の問題が見つかった場合は9515への影響も判断しますが、検証側だけの未完を入口改善の無期限停止条件にはしません。**\n\n入口9515と065の受入補完は別記録とし、物理端末は未実施なら`NOT_RUN`のままです。旧065の待機予算は再開せず、図鑑066・CPU画像・投了UIなどの完成も待たせないでください。"
+      },
+      "recorded_at_utc": "2026-09-12T15:51:10Z",
+      "blockers": [
+        "Restored replay/read policy/console acceptance missing; not a proven product defect."
+      ],
+      "notes": "Part2 only: one additionalprofile/CPUmatch240s; totals2each; maxCPU24/own9includingcleanup. Harnessmustalwayssaveauditsafterhydrationfailureandreservecleanup. No productrereview/republication. Executeonpublic3b1before9515; successcanaccept, failurepreservewithoutfurtherretry.",
+      "spec_snapshot_kind": "git_blob:docs/SKILL_CUTIN_20260912.md",
+      "bounds": {
+        "additional_profiles": 1,
+        "attempts": 1,
+        "max_seconds": 240,
+        "matches": 1,
+        "cpu_actions": 24,
+        "own_actions": 9,
+        "economy_actions": 0,
+        "deletions": 0
+      }
     }
   ]
 }

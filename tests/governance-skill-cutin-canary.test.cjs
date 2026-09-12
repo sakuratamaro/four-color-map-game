@@ -1,7 +1,7 @@
 "use strict";
 const test=require("node:test"),assert=require("node:assert/strict"),fs=require("node:fs"),path=require("node:path");
 const {spawnSync}=require("node:child_process");
-const {chooseOwnAction,redactEvents,LOADOUT,browserOperationCost,awaitHydratedBattle}=require("../scripts/live-standard-skill-cutin-canary.cjs");
+const {chooseOwnAction,redactEvents,LOADOUT,browserOperationCost,awaitHydratedBattle,canSpendAction,finalAudits}=require("../scripts/live-standard-skill-cutin-canary.cjs");
 const source=fs.readFileSync(path.join(__dirname,"../scripts/live-standard-skill-cutin-canary.cjs"),"utf8");
 test("cut-in live driver refuses without explicit scope before browser or network",()=>{
   for(const args of [[],["--confirm-live"],["--candidate="+"a".repeat(40)]]){
@@ -53,7 +53,8 @@ test("cut-in final readback waits past the room loading shell and preserves inde
   assert.ok(observed.every(x=>x.state==="visible"&&x.timeout===17));
   await assert.rejects(()=>awaitHydratedBattle({locator:selector=>({waitFor:async()=>{if(selector==="#matchCard:not(.hidden)")throw Error("loading shell only");}})},17),/loading shell only/);
   assert.ok(source.indexOf("await awaitHydratedBattle(page)")<source.indexOf("report.reloadPriorEventReplayed="));
-  assert.ok(source.indexOf("report.finalChecks=[")<source.indexOf('check("all final independent audits pass"'));
+  assert.ok(source.indexOf("report.finalChecks=finalAudits")>source.indexOf("} finally {"));
+  assert.ok(source.indexOf("report.finalChecks=finalAudits")<source.indexOf("failed=failed||!report.finalChecks.every"));
   assert.match(source,/report\.browserAudit=\{unexpectedWrites,errors,warnings,blockedOperations\}/);
   assert.match(source,/reloadEvents\.some\(e=>previousIds\.has\(e\.eventId\)\)/);
 });
@@ -66,10 +67,27 @@ test("cut-in live scope is one fresh profile/match, exact bytes first, finite mo
   assert.match(source,/if\(!cleaning\)abort\.signal\.throwIfAborted\(\)/);
   assert.match(source,/for\(let i=0;i<6;i\+\+\)/);
   assert.match(source,/poll<12/);
-  assert.match(source,/\+\+humanSteps<=9/);
-  assert.match(source,/\+\+cpuSteps<=24/);
+  assert.match(source,/canSpendAction\(\{cpuSteps,humanSteps,own:1,cleaning\}\)/);
+  assert.match(source,/canSpendAction\(\{cpuSteps,humanSteps,cpu:1,cleaning\}\)/);
   assert.match(source,/cleaning=true;clearTimeout\(timer\)/);
   assert.match(source,/await action\("SURRENDER"\)/);
   assert.match(source,/NOT_RUN_NO_CPU_SKILL_OBSERVED_WITHIN_BOUND/);
   assert.doesNotMatch(source,/operation:"(?:gacha|quiz|cosmetic|admin|delete)|service_role|auth\.admin|mock|route\.fulfill/);
+});
+test("cut-in hydration failure preserves separate communication and console results without claiming replay success",()=>{
+  const missing=finalAudits({unexpectedWrites:2,errors:1,warnings:0});
+  assert.deepEqual(missing.map(x=>x.passed),[null,false,false]);
+  assert.equal(missing[0].status,"NOT_VERIFIED_RESTORE_INCOMPLETE");
+  assert.deepEqual(finalAudits({reloadHydrated:true,reloadPriorEventReplayed:false,unexpectedWrites:0,errors:0,warnings:0}).map(x=>x.passed),[true,true,true]);
+  assert.equal(finalAudits({reloadHydrated:true,reloadPriorEventReplayed:true,unexpectedWrites:0,errors:0,warnings:0})[0].passed,false);
+});
+test("cut-in normal play cannot consume the twelve CPU and one own cleanup reserves",()=>{
+  assert.equal(canSpendAction({cpuSteps:11,humanSteps:7,cpu:1,own:1}),true);
+  assert.equal(canSpendAction({cpuSteps:12,humanSteps:8,cpu:1}),false);
+  assert.equal(canSpendAction({cpuSteps:12,humanSteps:8,own:1}),false);
+  assert.equal(canSpendAction({cpuSteps:12,humanSteps:8,cpu:12,own:1,cleaning:true}),true);
+  assert.equal(canSpendAction({cpuSteps:24,humanSteps:9,cpu:1,cleaning:true}),false);
+  assert.equal(canSpendAction({cpuSteps:24,humanSteps:9,own:1,cleaning:true}),false);
+  assert.match(source,/humanSteps>=8\|\|Date\.now\(\)>=playDeadline/);
+  assert.match(source,/const playDeadline=Date\.now\(\)\+180_000/);
 });

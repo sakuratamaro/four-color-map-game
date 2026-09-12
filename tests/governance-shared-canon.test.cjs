@@ -284,6 +284,12 @@ test("ChatGPT review records require an exact subject and cannot imply productio
         assert.equal(decision.review_kind, "public_acceptance_supplement");
         assert.equal(decision.decision, "APPROVE_BOUNDED_ACCEPTANCE");
         assert.deepEqual(decision.bounds, {additional_profiles:1,attempts:1,max_seconds:180,matches:0,economy_actions:0,deletions:0});
+      } else if (decision.review_id === "CHATGPT-REVIEW-20260913-028") {
+        assert.equal(decision.review_kind, "public_acceptance_supplement");
+        assert.equal(decision.decision, "APPROVE_BOUNDED_ACCEPTANCE");
+        assert.deepEqual(decision.bounds, {additional_profiles:1,attempts:1,max_seconds:240,matches:1,cpu_actions:24,own_actions:9,economy_actions:0,deletions:0});
+        assert.equal(decision.source.message_id, "0398f396-109f-485c-9add-9950421fc477");
+        assert.equal(decision.source.request_message_id, "1b0193a0-02b0-4500-807f-0e5f2e6ae52f");
       } else if (decision.review_id === "CHATGPT-REVIEW-20260912-024") {
         assert.equal(decision.review_kind, "public_acceptance_disposition");
         assert.equal(decision.decision, "ACCEPT");
@@ -300,6 +306,8 @@ test("ChatGPT review records require an exact subject and cannot imply productio
       assert.match(decision.subject_sha, /^[0-9a-f]{40}$/);
       assert.match(decision.spec_snapshot_sha, /^[0-9a-f]{40}$/);
       const bindings = {
+        "CHATGPT-REVIEW-20260913-027": ["9515f9bed9536dc2c44b71817129abb9c86ef24f", "3b1d4e65197c476686b7b8a13c49f97ffd591e68", "UDL-023-entrance-v2", "630964f0af6956ff544d0209ba55209f6ba7d317", "Pages_only"],
+        "CHATGPT-REVIEW-20260913-028": ["3b1d4e65197c476686b7b8a13c49f97ffd591e68", "a1a9b1c830eceb98464b107f2442deacaf765505", "UDL-065-cutin-v1.1", "40410ee0cc5dee8ca2a46281c54e504c8c01a15f", "post_publication_bounded_acceptance"],
         "CHATGPT-REVIEW-20260912-025": ["be52f755b813e8a6de58529eb2a39065ffc63623", "a1a9b1c830eceb98464b107f2442deacaf765505", "UDL-065-cutin-v1", "ee8c6c5c699e1083c6f8bb2780a4fccd6e599f9e", "Pages_only"],
         "CHATGPT-REVIEW-20260913-026": ["3b1d4e65197c476686b7b8a13c49f97ffd591e68", "a1a9b1c830eceb98464b107f2442deacaf765505", "UDL-065-cutin-v1.1", "40410ee0cc5dee8ca2a46281c54e504c8c01a15f", "Pages_only"],
         "CHATGPT-REVIEW-20260912-024": ["a1a9b1c830eceb98464b107f2442deacaf765505", "a757c126e1325532bb11a719cf92d0d13401d3ae", "UDL-062-copy-v1.1", "5481afd8c2b9ff5354bba0e671615c97fb8ceef7", "Pages_only"],

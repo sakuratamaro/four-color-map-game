@@ -106,6 +106,7 @@ async function run({candidate,report:out}) {
         check(width+": public route",!await page.locator("#friendBattlePanel").isVisible()&&await page.locator("#matchmakingPanel").isVisible());
         check(width+": no automatic waiting",!await page.locator("#matchmakingWait").isVisible());
         await page.locator("#startStandardCpuLobby").click();await page.locator("#cpuRosterDialog[open]").waitFor();
+        await page.waitForFunction(()=>document.querySelectorAll("#cpuRosterGrid .cpu-character-card").length===10,null,{timeout:12_000});
         check(width+": ten CPU choices",await page.locator("#cpuRosterGrid .cpu-character-card").count()===10);
         await page.keyboard.press("Escape");check(width+": CPU cancel restores focus",await page.evaluate(()=>document.activeElement?.id)==="startStandardCpuLobby");
         await page.locator("#lobbyTitle").focus();check(width+": heading has no frame",await page.locator("#lobbyTitle").evaluate(el=>getComputedStyle(el).outlineStyle)==="none");
