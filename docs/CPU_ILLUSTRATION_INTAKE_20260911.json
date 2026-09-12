@@ -2,6 +2,11 @@
   "schema_version": 1,
   "kind": "intake_snapshot_not_operational_ledger",
   "canonical_id": "UDL-20260908-033",
+  "subsequent_decision_ref": {
+    "decision_id": "ARTWORK-USER-20260912-033",
+    "path": "docs/CHATGPT_REVIEW_DECISIONS.json#coordination.successor_goal.artwork_publication_decision",
+    "note": "This document preserves the 2026-09-11 intake snapshot. For current execution, use the later direct user authorization: no pre-publication author confirmation wait and no repeated public-GitHub hold on the same facts. User handles email after publication. Historical NOT_VERIFIED is not a current stop condition."
+  },
   "received_at_utc": "2026-09-11T14:36:29Z",
   "canon_receipt": {
     "version": "shared-canon-v1.1",

@@ -227,6 +227,41 @@ test("illustration handoff reuses UDL033 without inventing permissions or comple
   assert.equal(rows[0].values.Pages, "NO");
 });
 
+test("latest user artwork decision supersedes the old publication hold without inventing author permission", async () => {
+  const { coordination: c } = JSON.parse(read("docs/CHATGPT_REVIEW_DECISIONS.json"));
+  const decision = c.successor_goal.artwork_publication_decision;
+  const intake = JSON.parse(read("docs/CPU_ILLUSTRATION_INTAKE_20260911.json"));
+  assert.equal(c.successor_goal.rights_state, "USER_AUTHORIZED_GAME_RUNTIME_ASSETS_NO_PRERELEASE_AUTHOR_WAIT");
+  assert.equal(decision.decision_id, "ARTWORK-USER-20260912-033");
+  assert.equal(decision.request_id, intake.canonical_id);
+  assert.equal(decision.state, "ADOPTED");
+  assert.equal(decision.source.kind, "direct_user_message");
+  assert.equal(decision.source.thread_id, c.successor_goal.owner_thread_id);
+  assert.match(decision.source.quote, /公開後ぼくから作者にメール/);
+  assert.equal(decision.public_repository, "sakuratamaro/four-color-map-game");
+  assert.equal(decision.game_runtime_assets_publication_authorized, true);
+  assert.equal(decision.prerelease_author_confirmation_required, false);
+  assert.equal(decision.repeat_user_confirmation_on_same_facts, false);
+  assert.equal(decision.reopen_old_public_repository_hold, false);
+  assert.equal(decision.author_permission_obtained, false);
+  assert.deepEqual(decision.author_contact, { owner: "user", timing: "after_publication", ai_contact_authorized: false });
+  assert.equal(decision.is_exact_candidate_astra_release_approval, false);
+  assert.ok(decision.excluded_scope.includes("original_download_zip"));
+  assert.ok(decision.excluded_scope.includes("unused_expression_pack"));
+  assert.ok(decision.excluded_scope.includes("private_Q10_attachment_forwarding"));
+  assert.equal(intake.subsequent_decision_ref.decision_id, decision.decision_id);
+  assert.equal(intake.rights_verification.state, "NOT_VERIFIED", "keep the historical intake evidence, not its old operational hold");
+  assert.equal(decision.publication_state, "NOT_RUN", "recording user authority is not publication evidence");
+  assert.match(read(decision.evidence), /公開前の作者確認では止めない。公開後のメールはユーザーが行う/);
+  const { parseDecisionLedger } = await import(pathToFileURL(path.join(root,
+    "scripts/check-standard-decision-reconciliation.mjs")).href);
+  const row = parseDecisionLedger(read("docs/PROJECT_COMMAND_CENTER.md")).rows
+    .find(row => row.values.ID === decision.request_id);
+  assert.ok(row);
+  assert.match(JSON.stringify(row.values), /ARTWORK-USER-20260912-033/);
+  assert.match(JSON.stringify(row.values), /公開前の作者確認では止めない/);
+});
+
 test("ChatGPT review records require an exact subject and cannot imply production approval", () => {
   const log = JSON.parse(read("docs/CHATGPT_REVIEW_DECISIONS.json"));
   assert.equal(log.rules.silence_is_approval, false);

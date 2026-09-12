@@ -1164,10 +1164,63 @@
       "goal_api_state": "Existing UI objective unfinished; goal API observedblocked, current normal work resumed. No false completion, duplicate goal or controller. Activate successor only after UI stop condition is met.",
       "scope": "Separate portrait/credits, identity/tier presentation, and versioned CPU-policy slices. No game changes in current UI candidate. Preserve IDs/history/private-state boundary and existing match policy; no unapproved economic/rule changes.",
       "publication": "NOT_RUN",
-      "rights_state": "Official terms and Q&A read; game use/cropping allowed, standalone redistribution prohibited, public GitHub asset inclusion unresolved. No artist contact or material upload.",
+      "rights_state": "USER_AUTHORIZED_GAME_RUNTIME_ASSETS_NO_PRERELEASE_AUTHOR_WAIT",
+      "artwork_publication_decision": {
+        "decision_id": "ARTWORK-USER-20260912-033",
+        "request_id": "UDL-20260908-033",
+        "kind": "explicit_user_execution_authorization_not_author_permission",
+        "state": "ADOPTED",
+        "source": {
+          "kind": "direct_user_message",
+          "thread_id": "01a07b56-616e-7733-9aae-90575659688e",
+          "date_jst": "2026-09-12",
+          "message_id": null,
+          "quote": "この話、もう三回以上、配布に当たらないからオッケーって結論出てます\nいいかげんにして！\n公開後ぼくから作者にメールするから、もしダメだったらわかるから安心して",
+          "note": "Current direct user instruction. The count of past conclusions is the user's statement, not a claim of independently recovered three approvals."
+        },
+        "public_repository": "sakuratamaro/four-color-map-game",
+        "game_runtime_assets_publication_authorized": true,
+        "prerelease_author_confirmation_required": false,
+        "repeat_user_confirmation_on_same_facts": false,
+        "reopen_old_public_repository_hold": false,
+        "author_permission_obtained": false,
+        "author_contact": {
+          "owner": "user",
+          "timing": "after_publication",
+          "ai_contact_authorized": false
+        },
+        "allowed_scope": "Wataokiba images actually used by this game, processing, in-game credits, provenance and NOTICE, including its existing public repository/Pages delivery.",
+        "excluded_scope": [
+          "original_download_zip",
+          "unused_expression_pack",
+          "separate_source_asset_distribution",
+          "paid_purchase",
+          "private_Q10_attachment_forwarding"
+        ],
+        "is_exact_candidate_astra_release_approval": false,
+        "implementation_state": "NOT_RUN",
+        "verification_state": "NOT_RUN_PRODUCT_ACCEPTANCE",
+        "publication_state": "NOT_RUN",
+        "supersedes": "The old UDL033 public-GitHub ambiguity hold and pre-publication author/user reconfirmation condition, not historical source evidence or normal candidate review/tests.",
+        "evidence": "docs/CPU_SUCCESSOR_PREPARATION_20260912.md",
+        "coordination_handoff": {
+          "state": "SEND_API_ACCEPTED_EXISTING_TRANSFER_TASK_ACTIVE",
+          "thread_id": "01a08d9e-ae35-7f70-a879-cb342dafef47",
+          "observed_turn_id": "01a0934c-d4bc-7821-8e05-27bc99fffeeb",
+          "observed_cursor": "c4058d32-8462-4822-8b6b-0b23463dbcb2:3",
+          "response_recorded": false,
+          "scope": "Apply the user decision in existing handoffs; report only already selected/acquired asset locations if any; no new polling, controller, author contact or direct publication."
+        },
+        "receipt_checks": {
+          "governance_tests": "34/34 PASS; skip 0",
+          "initial_attempt": "33/34 without NODE_PATH; unchanged retry with the bundled dependency path passed 34/34. No product test fix mixed into this correction.",
+          "git_diff_check": "PASS",
+          "scope": "Decision precedence and existing governance regression only; not new portrait implementation, product acceptance or publication."
+        }
+      },
       "stop_condition": "Selected compliant portraits/credits and adopted identity/tier/policy slices pass exact candidate Astra review, required regression/Windows gates, main/Pages/Edge as applicable, and public verification; report unresolved physical/manual acceptance separately.",
       "diagnosis": "docs/CPU_SUCCESSOR_DIAGNOSIS_20260912.json",
-      "source_package": "Verified v8 ZIP, with v7 CPU additions preserved. No new asset/public-redistribution permission inferred."
+      "source_package": "Verified v8 ZIP, with v7 CPU additions preserved. The ZIP itself supplied no new author permission; subsequent direct user execution authorization ARTWORK-USER-20260912-033 governs publication without another pre-release author wait."
     },
     "preparing_next_slice": {
       "request_ids": [
