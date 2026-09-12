@@ -48,7 +48,7 @@ test("quiz handoff preserves the immutable pending answer and stops the next clo
   assert.ok(submit.indexOf("pendingQuiz.answers.push(pending.answerId)") < submit.indexOf("markQuizBoundaryForMatchedRoom({ feedback: true })"));
   assert.match(renderQuiz, /else if \(lockedByMatch\) stopQuizClock\(\)/);
   assert.match(app, /Date\.now\(\) \+ MATCHED_ROOM_FEEDBACK_MS/);
-  assert.match(app, /pendingQuiz\?\.pendingAnswer[^\n]+同じ回答IDで再送・確定/);
+  assert.match(app, /pendingQuiz\?\.pendingAnswer[^\n]+選んだ回答の保存を確認/);
   assert.match(app, /const quizInProgress = Boolean\(pendingQuiz\) && pendingQuiz\.answers\.length < 10/);
   assert.match(app, /const quizOperationInProgress = quizBusy/);
   assert.match(app, /if \(quizLockedByMatchedRoom\(\)[^\n]+return stopQuizClock\(\)/);
@@ -61,9 +61,9 @@ test("quiz handoff preserves the immutable pending answer and stops the next clo
 test("gacha settles to a result or retriable state before automatic movement", () => {
   const gacha = body("runGacha", "createStarterProfile");
   assert.ok(gacha.indexOf("client.drawGacha(pendingGacha)") < gacha.indexOf("pendingGacha = null"));
-  assert.match(gacha, /同じ抽選IDで安全に再試行できます/);
+  assert.match(gacha, /前回の抽選結果をもう一度確認できます/);
   assert.match(gacha, /finally \{ gachaBusy = false; renderGacha\(\); render\(\); flushMatchedRoomHandoff\(\); \}/);
-  assert.match(app, /gachaBusy\) return "抽選結果、または同じ抽選IDで再送できる状態/);
+  assert.match(app, /gachaBusy\) return "抽選結果の確認が終わるか、結果を再確認できる状態/);
   assert.match(app, /gachaDrawOne"\)\.disabled = gachaBusy \|\| Boolean\(pendingGacha\) \|\| hasMatchedRoomHandoff\(\)/);
   assert.match(app, /gachaDrawAll"\)\.disabled = gachaBusy \|\| Boolean\(pendingGacha\) \|\| hasMatchedRoomHandoff\(\)/);
   assert.match(app, /gachaRetry"\)\.disabled = gachaBusy \|\| hasMatchedRoomHandoff\(\)/);
