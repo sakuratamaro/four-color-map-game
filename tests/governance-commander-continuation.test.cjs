@@ -233,3 +233,36 @@ test("repository routing uses one automation and records actual execution separa
   assert.equal(c.continuation.owner_thread_id,OWNER);
   assert.ok(["NOT_RUN","OBSERVED"].includes(c.continuation.first_scheduled_normal_run.status));
 });
+function independentCpu(log) {
+  log.coordination.successor_goal={preparing_independent_slice:{owner_thread_id:OWNER,
+    request_id:"UDL-20260910-051",regression_id:"REG-CPU-F3-SPLIT-ORIENTATION",
+    state:"LOCAL_IMPLEMENTED_COMPATIBILITY_PENDING",branch:"codex/cpu-split-rescue-20260913",
+    worktree:".codex-worktrees/cpu-split-rescue-20260913",checkpoint_sha:"d".repeat(40),base_sha:"b".repeat(40),
+    publication:"NOT_RUN",next_action:"Validate compatibility and freeze a distinct reviewed CPU candidate."}};
+  return log.coordination.successor_goal.preparing_independent_slice;
+}
+test("closed/exhausted UI review does not orphan an adopted, owned CPU implementation or reset any budget",()=>{
+  for(const status of ["closed_review_received","review_pending"]) {
+    const log=fixture();independentCpu(log);
+    Object.assign(log.coordination.wait_budget,{status,automatic_checks:3,remaining_scheduled_slots:0});
+    const before=JSON.stringify(log),plan=planContinuation(log,{now:"2026-09-12T01:55:00Z"});
+    assert.equal(plan.action,"CONTINUE_INDEPENDENT_IMPLEMENTATION");assert.equal(plan.subject_sha,"d".repeat(40));
+    assert.equal(JSON.stringify(log),before);
+    assert.ok(endOfTurnIssues(plan,{resume_transport:"existing_heartbeat_next_run"},{status:"PAUSED"}).includes("ORPHANED_ACTIONABLE_WORK"));
+  }
+});
+test("independent CPU continuation never bypasses due reviews, approval binding errors or another owner",()=>{
+  const log=fixture();independentCpu(log);
+  assert.equal(planContinuation(log,{now:"2026-09-12T00:20:00Z"}).phase,"RECEIVE");
+  assert.equal(planContinuation(log,{now:"2026-09-12T00:10:00Z"}).phase,"WAIT_REVIEW");
+  assert.equal(planContinuation(log,{otherOwnerActive:true}).phase,"OWNER_ACTIVE");
+  approve(log);log.decisions[0].subject_sha="e".repeat(40);
+  assert.equal(planContinuation(log).reason,"RECONCILE_INVALID_REVIEW");
+});
+test("absent, finished, malformed or differently owned independent CPU work remains stopped",()=>{
+  for(const change of [s=>s.owner_thread_id="someone",s=>s.state="PUBLIC_VERIFIED",s=>s.checkpoint_sha="short",
+    s=>s.request_id="unadopted",s=>s.worktree="elsewhere",s=>s.publication="PUBLIC_VERIFIED"]) {
+    const log=fixture(),s=independentCpu(log);log.coordination.wait_budget.status="closed";change(s);
+    assert.equal(planContinuation(log).phase,"STOP");
+  }
+});

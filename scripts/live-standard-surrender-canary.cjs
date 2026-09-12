@@ -96,6 +96,15 @@ async function restoreFinishedPage(page) {
   await page.locator("#terminalSummary:not(.hidden)").waitFor();
   await page.locator("#surrenderDialog").waitFor({state:"hidden"});
 }
+async function readOwnedRoom(request,roomId) {
+  const raw=await request("/rest/v1/rpc/fcg_standard_room_snapshot_v2",{p_room_id:roomId,p_known_profile_revision:0});
+  const snapshot=Array.isArray(raw)?raw[0]:raw,r=snapshot?.room,v=snapshot?.view;
+  assert.ok(snapshot?.snapshot_schema_version===2&&r?.id===roomId
+    &&Number.isSafeInteger(Number(r.version))&&Number(r.version)===Number(snapshot.snapshot_version)
+    &&v?.seat==="A"&&Number(v.version)===Number(r.version)&&v.private_state
+    &&r.public_state&&["playing","finished"].includes(r.status),"OWNED_SNAPSHOT_REQUIRED");
+  return {status:r.status,version:Number(r.version),seat:v.seat,publicState:r.public_state,privateState:v.private_state};
+}
 async function run({candidate,report:out}) {
   const root=path.resolve(__dirname,"../../surrender-confirmation-20260913");
   const git=(...args)=>execFileSync("git",["-c","safe.directory="+root.replaceAll("\\","/"),...args],
@@ -113,7 +122,7 @@ async function run({candidate,report:out}) {
   let stage="four exact public assets",unexpected=0,errors=0,warnings=0,affirmed=false,settled=false;
   const abort=new AbortController(),deadlineTimer=setTimeout(()=>abort.abort(),budget.remaining(true));
   const recordError=(label,error)=>{failed=true;report.failures??=[];report.failures.push({stage:label,kind:error?.code==="ERR_ASSERTION"?"ASSERTION":error?.name||"Error",
-    details:"REDACTED"});};
+    details:"REDACTED",safeCode:/^HTTP_\d{3}$/.test(error?.message||"")?error.message:undefined});};
   const bounded=async(label,promise,ms)=>{
     let timer;const limit=Math.min(ms,budget.remaining(cleaning));
     try{return await Promise.race([promise,new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error("BROWSER_STAGE_TIMEOUT "+label)),limit);})]);}
@@ -142,7 +151,9 @@ async function run({candidate,report:out}) {
     return request("/functions/v1/standard-game-action",body);
   };
   const profile=()=>edge({operation:"profile",expectedRevision:0,displayName:"SurrenderCanary",profileState:{}});
-  const refresh=async()=>room=(await edge({operation:"initialize",roomId})).room;
+  // initialize creates a ready match but rejects finished rooms. Every later
+  // state/cleanup read uses the existing authenticated, own-seat snapshot RPC.
+  const refresh=async()=>room=await readOwnedRoom(request,roomId);
   const driveCpu=async()=>{
     while(room?.status==="playing"&&room.publicState?.active==="B"){
       budget.remaining(cleaning);
@@ -164,7 +175,7 @@ async function run({candidate,report:out}) {
     roomId=start.roomId;report.matchCreated=true;report.cleanup="PENDING";
     check("one new Rei CPU room",start.startStatus==="created"&&start.opponentKind==="cpu"&&Boolean(roomId));
     await edge({operation:"setup",roomId,expectedSetupRevision:0,setupActionId:randomUUID(),loadout:LOADOUT});
-    await refresh();await driveCpu();check("ordinary own turn",room?.status==="playing"&&room.publicState?.active==="A");
+    await edge({operation:"initialize",roomId});await refresh();await driveCpu();check("ordinary own turn",room?.status==="playing"&&room.publicState?.active==="A");
     matchId=room.publicState.matchId;beforeProfile=await profile();const before=structuredClone(room);
     stage="public Chrome restore and cancel controls";
     browserServer=await chromium.launchServer({executablePath:"C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",headless:true,timeout:20_000});
@@ -244,8 +255,8 @@ async function run({candidate,report:out}) {
             await refresh();
           }
         }
-        report.cleanup=terminal(room)?"TERMINAL_CONFIRMED_NO_DELETION":"PENDING_WITHIN_EXHAUSTED_BUDGET";
-      }catch(e){recordError("bounded terminal read or cleanup",e);report.cleanup="PENDING_WITHIN_EXHAUSTED_BUDGET";}
+        report.cleanup=terminal(room)?"TERMINAL_CONFIRMED_NO_DELETION":"TERMINAL_UNCONFIRMED_NO_EXTRA_BUDGET";
+      }catch(e){recordError("bounded terminal read or cleanup",e);report.cleanup="TERMINAL_READ_UNCONFIRMED";}
       // Independent profile/console/request/budget results survive earlier UI or cleanup failures.
       try{afterProfile=await profile();if(beforeProfile&&matchId)settled=settlement(afterProfile,beforeProfile,matchId);}
       catch(e){recordError("final owned profile read",e);}
@@ -259,6 +270,6 @@ async function run({candidate,report:out}) {
   }
   return report.ok?0:1;
 }
-module.exports={createBudget,browserPolicy,terminal,settlement,finalAudits,parseOptions,confirmationLayout,layoutReadable,reloadUnchanged,restoreFinishedPage};
+module.exports={createBudget,browserPolicy,terminal,settlement,finalAudits,parseOptions,confirmationLayout,layoutReadable,reloadUnchanged,restoreFinishedPage,readOwnedRoom};
 if(require.main===module){let options;try{options=parseOptions(process.argv.slice(2));}catch(e){console.error(e.message);process.exit(2);}
   run(options).then(code=>{process.exitCode=code;}).catch(()=>{console.error("FAIL candidate preparation (redacted)");process.exitCode=1;});}

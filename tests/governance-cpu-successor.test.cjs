@@ -35,10 +35,21 @@ test("v7 additions map once without treating proposals as product implementation
   assert.equal(goal.actual_api_observation_history.at(-1).source, "get_goal");
   assert.equal(goal.actual_api_observation_history.some(r => r.status === "blocked"), true,
     "keep the prior blocked observation instead of rewriting history");
-  assert.match(log.coordination.successor_goal.state, /^QUEUED_AFTER_UI/);
-  assert.equal(log.coordination.remaining_brain_work.verified_zip_version, "v8");
-  assert.equal(log.coordination.remaining_brain_work.unverified_zip_version, "v9");
-  assert.equal(log.coordination.latest_implementation_instruction.state, "V9_COMPLETED_MESSAGE_OBSERVED_ARCHIVE_NOT_DOWNLOADED");
+  assert.equal(goal.status, "COMPLETE", "original delivery audit is distinct from its last retained API observation");
+  assert.equal(goal.completion_audit.complete, true);
+  assert.equal(goal.completion_audit.later_v13_changes_not_complete, true);
+  assert.equal(log.coordination.successor_goal.state, "INDEPENDENT_CPU_IMPLEMENTATION_IN_PROGRESS");
+  const checkpoint = log.coordination.successor_goal.preparing_independent_slice;
+  assert.equal(checkpoint.request_id, "UDL-20260910-051");
+  assert.equal(checkpoint.publication, "NOT_RUN", "local F3 work is not a full CPU release");
+  assert.equal(checkpoint.state, "LOCAL_IMPLEMENTED_COMPATIBILITY_PENDING");
+  assert.match(checkpoint.checkpoint_sha, /^[0-9a-f]{40}$/);
+  const api = log.coordination.continuation.successor_goal_api_receipt.latest_observation;
+  assert.equal(api.source, "get_goal");
+  assert.equal(api.status, "active", "successor evidence must not rewrite the old goal history");
+  assert.equal(log.coordination.remaining_brain_work.verified_zip_version, "v13");
+  assert.equal(log.coordination.remaining_brain_work.unverified_zip_version, null);
+  assert.equal(log.coordination.latest_implementation_instruction.state, "V13_VERIFIED_INTAKE_RECONCILIATION");
 });
 
 test("CPU baseline evidence records real defects and mirror control without claiming a fix", () => {

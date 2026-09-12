@@ -92,3 +92,34 @@ test("034 supplemented harness uses both widths, actual reload, settled baseline
   assert.ok(s.indexOf('report.reload="PASS"')>s.indexOf('reloadUnchanged({'));
   assert.match(s,/workDeadline=started\+155_000/);
 });
+test("067 finished room is read through authenticated snapshot-v2, never initialize",async()=>{
+  const {readOwnedRoom}=require("../scripts/live-standard-surrender-canary.cjs");
+  for(const status of ["playing","finished"]) {
+    const snapshot={snapshot_schema_version:2,snapshot_version:7,room:{id:"owned",version:7,status,
+      public_state:{status:status==="finished"?"FINISHED":"ACTIVE"}},view:{seat:"A",version:7,private_state:{hand:{}}}};
+    let calls=0;
+    const room=await readOwnedRoom(async(endpoint,body)=>{
+      calls++;assert.equal(endpoint,"/rest/v1/rpc/fcg_standard_room_snapshot_v2");
+      assert.deepEqual(body,{p_room_id:"owned",p_known_profile_revision:0});return snapshot;
+    },"owned");
+    assert.equal(calls,1);assert.equal(room.status,status);assert.deepEqual(room.privateState,{hand:{}});
+  }
+});
+test("067 snapshot projection rejects another room/seat, stale view, unknown schema or missing authority",async()=>{
+  const {readOwnedRoom}=require("../scripts/live-standard-surrender-canary.cjs");
+  const snapshot={snapshot_schema_version:2,snapshot_version:7,room:{id:"owned",version:7,status:"finished",
+    public_state:{status:"FINISHED"}},view:{seat:"A",version:7,private_state:{hand:{}}}};
+  for(const change of [s=>s.room.id="other",s=>s.view.seat="B",s=>s.view.version=6,s=>s.snapshot_schema_version=1,
+    s=>s.room.public_state=null,s=>s.view.private_state=null,s=>s.room.version=6,s=>s.room.status="waiting"]) {
+    const bad=structuredClone(snapshot);change(bad);await assert.rejects(readOwnedRoom(async()=>bad,"owned"),/OWNED_SNAPSHOT_REQUIRED/);
+  }
+});
+test("067 terminal-read contract regression stays separated from the already-recorded failed live result",()=>{
+  const product=fs.readFileSync(path.resolve(__dirname,"../../surrender-confirmation-20260913/supabase/functions/standard-game-action/index.ts"),"utf8");
+  assert.match(product,/operation === "initialize"[\s\S]*?room\.room_status !== "ready" && room\.room_status !== "playing"[\s\S]*?ROOM_NOT_READY/);
+  const harness=fs.readFileSync(path.join(__dirname,"../scripts/live-standard-surrender-canary.cjs"),"utf8");
+  assert.match(harness,/const refresh=async\(\)=>room=await readOwnedRoom\(request,roomId\)/);
+  assert.equal((harness.match(/await edge\(\{operation:"initialize",roomId\}\)/g)||[]).length,1);
+  const raw=JSON.parse(fs.readFileSync(path.join(__dirname,"../docs/SURRENDER_LIVE_20260913.json"),"utf8"));
+  assert.equal(raw.ok,false);assert.equal(raw.reload,"NOT_RUN");assert.equal(raw.counts.profiles,1);
+});

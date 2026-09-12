@@ -1,0 +1,267 @@
+{
+  "candidate": "f507c0b2dd9701f3ac1867131150b5e48d0ada8d",
+  "subject": "UDL-067-surrender-v1.1",
+  "physicalDevices": "NOT_RUN",
+  "faultInjection": "NONE",
+  "checks": [
+    "index.html: HTTP200",
+    "index.html: exact fixed bytes",
+    "app.js: HTTP200",
+    "app.js: exact fixed bytes",
+    "surrender-confirmation.js: HTTP200",
+    "surrender-confirmation.js: exact fixed bytes",
+    "surrender-confirmation.css: HTTP200",
+    "surrender-confirmation.css: exact fixed bytes",
+    "fresh profile revision",
+    "one new Rei CPU room",
+    "ordinary own turn",
+    "one visible short surrender entry",
+    "Enter: safe initial focus",
+    "Enter: public Rei dialogue",
+    "Enter: dialog text and controls readable",
+    "Enter: room and own cards unchanged",
+    "Enter: profile unchanged",
+    "Enter: zero surrender sends",
+    "Escape: safe initial focus",
+    "Escape: public Rei dialogue",
+    "Escape: dialog text and controls readable",
+    "Escape: room and own cards unchanged",
+    "Escape: profile unchanged",
+    "Escape: zero surrender sends",
+    "button: safe initial focus",
+    "button: public Rei dialogue",
+    "button: dialog text and controls readable",
+    "button: room and own cards unchanged",
+    "button: profile unchanged",
+    "button: zero surrender sends"
+  ],
+  "assetHashes": [
+    {
+      "file": "index.html",
+      "sha256": "668d7ed3797ae29917d86d9ed7cfcd8f47f9facd8c44d0a8364f4ecb54d132da"
+    },
+    {
+      "file": "app.js",
+      "sha256": "48fa25ed0eef4c4c6293cfe3936cee84e6072afe2d95c45e7147003fa648b333"
+    },
+    {
+      "file": "surrender-confirmation.js",
+      "sha256": "0753f4a571623e723ab50be08004ddf630a3bf92a6a1af357a7c077d97d3c75a"
+    },
+    {
+      "file": "surrender-confirmation.css",
+      "sha256": "91c59cb7629a4e1b670c6446acba95feabecc0f639a770b6ec9aaf5fb209689b"
+    }
+  ],
+  "geometry": [
+    {
+      "phase": "Enter",
+      "width": 390,
+      "fit": true,
+      "noOverflow": true,
+      "safeFocus": true,
+      "text": [
+        {
+          "id": "surrenderTitle",
+          "inside": true,
+          "font": 24,
+          "visible": true,
+          "noOverflow": true
+        },
+        {
+          "id": "surrenderSpeaker",
+          "inside": true,
+          "font": 16,
+          "visible": true,
+          "noOverflow": true
+        },
+        {
+          "id": "surrenderDescription",
+          "inside": true,
+          "font": 16,
+          "visible": true,
+          "noOverflow": true
+        }
+      ],
+      "targets": [
+        {
+          "id": "cancelSurrender",
+          "width": 316,
+          "height": 48,
+          "inside": true,
+          "hit": true
+        },
+        {
+          "id": "confirmSurrender",
+          "width": 316,
+          "height": 48,
+          "inside": true,
+          "hit": true
+        }
+      ]
+    },
+    {
+      "phase": "Escape",
+      "width": 1280,
+      "fit": true,
+      "noOverflow": true,
+      "safeFocus": true,
+      "text": [
+        {
+          "id": "surrenderTitle",
+          "inside": true,
+          "font": 24,
+          "visible": true,
+          "noOverflow": true
+        },
+        {
+          "id": "surrenderSpeaker",
+          "inside": true,
+          "font": 16,
+          "visible": true,
+          "noOverflow": true
+        },
+        {
+          "id": "surrenderDescription",
+          "inside": true,
+          "font": 16,
+          "visible": true,
+          "noOverflow": true
+        }
+      ],
+      "targets": [
+        {
+          "id": "cancelSurrender",
+          "width": 231,
+          "height": 48,
+          "inside": true,
+          "hit": true
+        },
+        {
+          "id": "confirmSurrender",
+          "width": 231,
+          "height": 48,
+          "inside": true,
+          "hit": true
+        }
+      ]
+    },
+    {
+      "phase": "button",
+      "width": 390,
+      "fit": true,
+      "noOverflow": true,
+      "safeFocus": true,
+      "text": [
+        {
+          "id": "surrenderTitle",
+          "inside": true,
+          "font": 24,
+          "visible": true,
+          "noOverflow": true
+        },
+        {
+          "id": "surrenderSpeaker",
+          "inside": true,
+          "font": 16,
+          "visible": true,
+          "noOverflow": true
+        },
+        {
+          "id": "surrenderDescription",
+          "inside": true,
+          "font": 16,
+          "visible": true,
+          "noOverflow": true
+        }
+      ],
+      "targets": [
+        {
+          "id": "cancelSurrender",
+          "width": 316,
+          "height": 48,
+          "inside": true,
+          "hit": true
+        },
+        {
+          "id": "confirmSurrender",
+          "width": 316,
+          "height": 48,
+          "inside": true,
+          "hit": true
+        }
+      ]
+    }
+  ],
+  "screenshots": [
+    {
+      "file": "SURRENDER_LIVE_20260913-screens/confirmation-390.png",
+      "sha256": "41829806c0f1d1430fca30c1962cdf42847dd90aee2021289a592a8fb5326cd7"
+    },
+    {
+      "file": "SURRENDER_LIVE_20260913-screens/confirmation-1280.png",
+      "sha256": "5cddf93fb75bfe6550ecf702c2d3f3c08f19d7b6d32f26ed71af41a73ccdf6ca"
+    }
+  ],
+  "operations": {
+    "profile": 6,
+    "cpu-start": 1,
+    "setup": 1,
+    "initialize": 6,
+    "browser:action": 1
+  },
+  "profileCreated": true,
+  "matchCreated": true,
+  "cleanup": "PENDING_WITHIN_EXHAUSTED_BUDGET",
+  "reload": "NOT_RUN",
+  "failures": [
+    {
+      "stage": "explicit affirmative surrender",
+      "kind": "Error",
+      "details": "REDACTED"
+    },
+    {
+      "stage": "bounded terminal read or cleanup",
+      "kind": "Error",
+      "details": "REDACTED"
+    }
+  ],
+  "finalChecks": [
+    {
+      "label": "only permitted owned requests",
+      "passed": true
+    },
+    {
+      "label": "console and page errors zero",
+      "passed": true
+    },
+    {
+      "label": "one bounded profile and match",
+      "passed": true
+    },
+    {
+      "label": "explicit confirmation reached one normal surrender settlement",
+      "passed": false
+    },
+    {
+      "label": "cleanup inside original 240 second deadline",
+      "passed": false
+    }
+  ],
+  "counts": {
+    "profiles": 1,
+    "matches": 1,
+    "cpu": 0,
+    "surrender": 1
+  },
+  "consoleCounts": {
+    "errors": 0,
+    "warnings": 0
+  },
+  "unexpectedRequests": 0,
+  "affirmativeReached": true,
+  "settlementVerified": true,
+  "elapsedMs": 21223,
+  "ok": false,
+  "completedAt": "2026-09-12T19:05:44.506Z"
+}

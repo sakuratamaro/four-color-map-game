@@ -128,8 +128,20 @@ function planContinuation(log, {now = new Date().toISOString(), otherOwnerActive
         reason:"READY_UNSENT_IS_WORK_NOT_A_REVIEW_WAIT"};
   }
   if (issues.length) return {phase:"STOP", reason:"RECONCILE_INVALID_REVIEW", issues};
+  const independent=c.successor_goal?.preparing_independent_slice;
+  const independentPlan=independent?.owner_thread_id===OWNER
+    &&independent.request_id==="UDL-20260910-051"
+    &&independent.regression_id==="REG-CPU-F3-SPLIT-ORIENTATION"
+    &&independent.state==="LOCAL_IMPLEMENTED_COMPATIBILITY_PENDING"
+    &&independent.branch==="codex/cpu-split-rescue-20260913"
+    &&independent.worktree===".codex-worktrees/cpu-split-rescue-20260913"
+    &&SHA.test(independent.checkpoint_sha||"")&&SHA.test(independent.base_sha||"")
+    &&independent.publication==="NOT_RUN"&&independent.next_action
+    ? {phase:"NORMAL_WORK",action:"CONTINUE_INDEPENDENT_IMPLEMENTATION",
+      ref:"successor_goal.preparing_independent_slice",subject_sha:independent.checkpoint_sha,
+      request_id:independent.request_id,reason:"CLOSED_REVIEW_MUST_NOT_ORPHAN_ADOPTED_LOCAL_WORK"}:null;
   const w = c.wait_budget || {}, pending = ["review_pending","delivery_unconfirmed_api_accepted_no_resend_while_active"].includes(w.followup_status || w.status);
-  if (!pending) return recordedCiStop || {phase:"STOP", reason:"NO_ELIGIBLE_REVIEW_OR_READY_WORK"};
+  if (!pending) return independentPlan || recordedCiStop || {phase:"STOP", reason:"NO_ELIGIBLE_REVIEW_OR_READY_WORK"};
   if (!pendingBinding(c)) return {phase:"STOP", reason:"INVALID_PENDING_BINDING"};
   const start = Date.parse(w.started_at_utc), expiry = Date.parse(w.expires_at_utc), time = Date.parse(now);
   const checks = w.automatic_checks;
@@ -139,7 +151,7 @@ function planContinuation(log, {now = new Date().toISOString(), otherOwnerActive
       !Number.isInteger(checks) || checks < 0 || checks > 3)
     return {phase:"STOP", reason:"INVALID_FINITE_BUDGET"};
   if (time >= expiry || checks >= 3 || w.remaining_scheduled_slots === 0)
-    return {phase:"STOP", reason:"FINITE_WAIT_ENDED_NO_SILENCE_APPROVAL"};
+    return independentPlan || {phase:"STOP", reason:"FINITE_WAIT_ENDED_NO_SILENCE_APPROVAL"};
   const at = Date.parse(w.next_check_utc);
   const validSlots = w.offset_minutes.map(m => start + m*60_000);
   if (!validSlots.includes(at) || at >= expiry)

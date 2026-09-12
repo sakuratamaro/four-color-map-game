@@ -181,8 +181,8 @@
       "normal_owner_observation": "Previous normal turn completed after branch push; stored normal_work_receipt waiting. This heartbeat is the same task, not a second active owner."
     },
     "reviewer_thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
-    "last_consumed_review_message_id": "2394c582-b972-492d-9ef9-7c48fa829a16",
-    "last_received_message_id": "2394c582-b972-492d-9ef9-7c48fa829a16",
+    "last_consumed_review_message_id": "ce9dbfb5-56b1-4721-9f82-43553e4b65d6",
+    "last_received_message_id": "ce9dbfb5-56b1-4721-9f82-43553e4b65d6",
     "pending_user_intake_message_ids": [
       "ea61f25f-bebf-499a-81e9-029712a96f99",
       "bbb216f0-9194-45cf-acd6-504a9a55d40a",
@@ -2263,8 +2263,8 @@
       "status": "COMPLETE",
       "registration_receipt": "get_goal returned null on2026-09-11T20:20Z; explicitly user-requested UI goal re-created without budget; no other active goal existed. Work and completed slices preserved.",
       "latest_checkpoint": "024 accepts scoped062 UI with persisted profile/revision equal; immutable54/55 failure tracked as separate API envelope issue. Fresh static full-delivery audit pending. v13 followup UI and cut-in remain unimplemented.",
-      "actual_api_status": "complete",
-      "actual_api_observation_note": "Actual update_goal/get_goal at strict third resumed boundary returnedblocked; no objective rewrite or false completion.",
+      "actual_api_status": "blocked",
+      "actual_api_observation_note": "Historical old UI goal only: last retained get_goal is blocked09:29:16Z. Later accepted delivery/statusCOMPLETE is proven by completion_audit. Today's active get_goal is a different successor and recorded separately.",
       "actual_api_observation_history": [
         {
           "status": "blocked",
@@ -2310,11 +2310,16 @@
         "profiles_created": 0,
         "disposition": "CHATGPT-REVIEW-20260912-024",
         "later_v13_changes_not_complete": true
+      },
+      "prior_api_label_reconciliation": {
+        "previous_label": "complete",
+        "basis": "Retained completion audit accepts original UI delivery; the last raw get_goal entry retained in this old goal history is blocked at09:29:16Z. Do not fabricate a newer old-goal API response or replace it with today's successor goal.",
+        "corrected_at_utc": "2026-09-12T19:27:01Z"
       }
     },
     "successor_goal": {
       "title": "CPUの画像・人物設定・実効強度の改善",
-      "state": "QUEUED_AFTER_UI_THREE_CPU_BASELINE_DEFECTS_REPRODUCED",
+      "state": "INDEPENDENT_CPU_IMPLEMENTATION_IN_PROGRESS",
       "source": {
         "kind": "explicit_user_instruction",
         "thread_id": "01a07b56-616e-7733-9aae-90575659688e",
@@ -2332,7 +2337,7 @@
       "transfer_requested": true,
       "transfer_state": "V8_COMPLETED_TRANSFER_HASH_AND_MANIFEST_VERIFIED",
       "preparation": "docs/CPU_SUCCESSOR_PREPARATION_20260912.md",
-      "goal_api_state": "Fresh UI goal get_goal observedactive. UI062 live acceptance remains unfinished; successor preparation only, no false completion.",
+      "goal_api_state": "Fullv13successor goal active; UI067publishedpartial acceptance does not block independent CPU localwork.",
       "scope": "Separate portrait/credits, identity/tier presentation, and versioned CPU-policy slices. No game changes in current UI candidate. Preserve IDs/history/private-state boundary and existing match policy; no unapproved economic/rule changes.",
       "publication": "NOT_RUN",
       "rights_state": "USER_AUTHORIZED_GAME_RUNTIME_ASSETS_NO_PRERELEASE_AUTHOR_WAIT",
@@ -2409,12 +2414,15 @@
         "owner_thread_id": "01a07b56-616e-7733-9aae-90575659688e",
         "worktree": ".codex-worktrees/cpu-split-rescue-20260913",
         "branch": "codex/cpu-split-rescue-20260913",
-        "base_sha": "2fcfea9bb2a3d1ad7e22a5e8e3b61983f0404152",
-        "state": "SOURCE_AND_COMPATIBILITY_PREPARED_NOT_IMPLEMENTED",
+        "base_sha": "f507c0b2dd9701f3ac1867131150b5e48d0ada8d",
+        "state": "LOCAL_IMPLEMENTED_COMPATIBILITY_PENDING",
         "spec_path": "docs/CPU_SPLIT_RESCUE_20260913.md",
         "evidence": "Baseline threeblob equalityconfirmed; freshmain2fc; exactDBpolicy helperrequiresreviewedadditiveSQL before newpolicy version, notPages_only.",
-        "next_action": "Implement ordered enumeration behind versioned new-character policy with legacy traces and engine split/color/return tests; freeze SQL/Edge changes for its ownreview.",
-        "publication": "NOT_RUN"
+        "next_action": "Validate isolated SQL and compatibility-first Edge activation, preserve legacy; add exact dedicated branch trigger, freeze current-main candidate and fulltests/Windows/Astra before DB/Edge/main. F1/F2/artwork separate.",
+        "publication": "NOT_RUN",
+        "checkpoint_sha": "22b7650f82ec3cb5b38962c44032cbd566db6f81",
+        "implementation_commit": "5cf9da5",
+        "verification": "clean22b focus50/50PASS3463.1007ms;skip0. SQL source/model only; PostgreSQL runtimeNOT_RUN."
       }
     },
     "preparing_next_slice": {
@@ -2437,7 +2445,7 @@
       "scope": "Pages_only",
       "db_change_set": [],
       "edge_change_set": [],
-      "publication": "MAIN_AND_PAGES_PUBLISHED_LIVE_NOT_RUN",
+      "publication": "PAGES_PUBLISHED_LIVE_ACCEPTANCE_PARTIAL",
       "push_status": "PUSHED_EXACT_BRANCH",
       "windows_run": "34710997698",
       "windows_status": "SUCCESS",
@@ -2455,7 +2463,7 @@
         "windows_status": "FAILURE",
         "publication": "NOT_RUN"
       },
-      "next_action": "One approved034 canary after exact4assets; supplemental harness11unit+Chrome2 passed. CPUunfinishednotreleasehold.",
+      "next_action": "Preserve one rawfailedcanary; report harness terminal-read contract defect and no new profile/trial. Productf507 remains public; ask genuineAstra scoped disposition without resetting old wait.",
       "availability_checks": 1,
       "availability_check_reserved_at_utc": "2026-09-12T18:24:00Z",
       "availability_check_reserved_before_api": true,
@@ -2498,9 +2506,9 @@
       "pages_run": 34712742032,
       "pages_status": "SUCCESS",
       "preflight_status": "PASS",
-      "live_status": "NOT_RUN",
+      "live_status": "RAW_FAIL_30_CHECKS_3_FINAL_AUDITS_PASS_SETTLEMENT_TRUE_RELOAD_NOT_RUN",
       "live_attempt": {
-        "state": "RESERVED_BEFORE_EXECUTION",
+        "state": "COMPLETED_RAW_FAIL_NO_FURTHER_TRIAL",
         "source_review_id": "CHATGPT-REVIEW-20260913-034",
         "profiles": 1,
         "matches": 1,
@@ -2514,7 +2522,41 @@
         "report": "docs/SURRENDER_LIVE_20260913.json",
         "physical_devices": "NOT_RUN",
         "reserved_at_utc": "2026-09-12T19:03:15Z",
-        "new_budget": false
+        "new_budget": false,
+        "elapsed_ms": 21223,
+        "completed_at_utc": "2026-09-12T19:05:44.506Z",
+        "counts": {
+          "profiles": 1,
+          "matches": 1,
+          "cpu": 0,
+          "surrender": 1
+        },
+        "settlement_verified": true,
+        "reload": "NOT_RUN",
+        "terminal_read": "UNCONFIRMED_INITIALIZE_REJECTS_FINISHED_CONTRACT",
+        "raw_cleanup": "PENDING_WITHIN_EXHAUSTED_BUDGET",
+        "cleanup_label_caveat": "Raw generic error label, not evidence actual240s or counts were exhausted. No deletion required; final profile validates one normal ownmatchloss, separate terminal RPC notcaptured.",
+        "visuals": {
+          "confirmation390": "INSPECTED_READABLE",
+          "confirmation1280": "INSPECTED_READABLE",
+          "terminalReload": "NOT_CAPTURED"
+        },
+        "harness_fix": "Post-attempt only: own snapshot-v2 replaces repeat initialize;14localtestsPASS190.7878ms;NOT_RUNlive."
+      },
+      "publication_outcome_report": {
+        "state": "RESERVED_BEFORE_SEND",
+        "destination_thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
+        "subject_sha": "f507c0b2dd9701f3ac1867131150b5e48d0ada8d",
+        "source_review_id": "CHATGPT-REVIEW-20260913-034",
+        "send_attempts": 1,
+        "reserved_before_api": true,
+        "delivery_checks": 0,
+        "max_delivery_checks": 2,
+        "new_polling_budget": false,
+        "additional_profiles_authorized": false,
+        "raw_report": "docs/SURRENDER_LIVE_20260913.json",
+        "evidence_report": "docs/SURRENDER_RELEASE_20260913.md",
+        "next_action": "Send one evidence-pinned publication/partial-acceptance report, bounded delivery only; continueCPU without067automaticwait."
       }
     },
     "remaining_brain_work": {
@@ -2798,10 +2840,10 @@
       "checker": "scripts/check-commander-continuation.cjs",
       "tests": "tests/governance-commander-continuation.test.cjs",
       "next_run": {
-        "phase": "RECEIVE",
-        "at_utc": "2026-09-12T18:55:08.000Z",
-        "subject_sha": "f507c0b2dd9701f3ac1867131150b5e48d0ada8d",
-        "reason": "Final original067slot only; bind actual new request first, no invented ID or resend."
+        "phase": "NORMAL_WORK",
+        "at_utc": "2026-09-12T19:40:00Z",
+        "subject_sha": "22b7650f82ec3cb5b38962c44032cbd566db6f81",
+        "reason": "Adopted ownedCPU compatibility/validation is actionable independently of closed067 acceptance. No new old067poll/trial."
       },
       "first_scheduled_normal_run": {
         "status": "OBSERVED",
@@ -2819,33 +2861,33 @@
         "id": "automation",
         "status": "ACTIVE",
         "target_thread_id": "01a07b56-616e-7733-9aae-90575659688e",
-        "rrule": "FREQ=DAILY;BYHOUR=3;BYMINUTE=55;BYSECOND=8",
-        "updated_at": 1789237932421,
+        "rrule": "FREQ=DAILY;BYHOUR=4;BYMINUTE=40;BYSECOND=0",
+        "updated_at": 1789240950857,
         "created_at": 1789048677730,
         "prompt_exact_equal": true,
-        "scheduled_for_utc": "2026-09-12T18:55:08.000Z",
+        "scheduled_for_utc": "2026-09-12T19:40:00Z",
         "readback_verified": true
       },
       "normal_work_claim": {
-        "state": "RUNNING_NORMAL_WORK",
+        "state": "PROGRESS_CHECKPOINT_SAVED",
         "turn_id": "01a096eb-d1a9-74c1-a65e-213074b8470b",
-        "action": "RELEASE067_EXACT_APPROVAL_AND_SUPPLEMENT_CANARY",
-        "subject_sha": "f507c0b2dd9701f3ac1867131150b5e48d0ada8d"
+        "action": "CONTINUE_INDEPENDENT_IMPLEMENTATION",
+        "subject_sha": "22b7650f82ec3cb5b38962c44032cbd566db6f81"
       },
       "review_scope": "New user-authorized local continuation repair, not covered by old APPROVE_DOCS; fixed docs candidate will be separately reported.",
       "verification": {
         "regression_tests": "42/42 PASS; skip0;638.46ms",
         "old_paused_state_guard": "Previously reproduced ORPHANED_ACTIONABLE_WORK; now also rejects past/under2minute calendar reservations and schedule-time mismatch.",
         "actual_scheduler_execution": "OBSERVED_SEPARATE_NORMAL_RUN_WITH_LIVE_WORK_RESULT",
-        "latest_tests": "35/35PASS454.2085ms; skip0; exactreviewbindings and --end-turn WAIT_REVIEW231 errors[]."
+        "latest_tests": "Twelve governance files101/101PASS8503.682ms skip0; includes local mocked/intercepted Chrome evidence test. 067 opt-in browser supplement separately2/2 before live; no new live. Initial expanded19/21FAIL preserved in SURRENDER_RELEASE report."
       },
       "current_run": {
         "phase": "NORMAL_WORK",
-        "turn_id": "01a096bf-043b-7ba3-ba01-28a84d40fb72",
+        "turn_id": "01a096eb-d1a9-74c1-a65e-213074b8470b",
         "source": "automatic_goal_continuation",
-        "started_at_utc": "2026-09-12T17:51:36.000Z",
+        "started_at_utc": "2026-09-12T18:40:32Z",
         "worktree": ".codex-worktrees/dev-brain-current-20260910",
-        "request": "Received033, diagnosed231Edge failure, fixed REG-UDL048-ROOM-SYNC, cleanf507937+both13,pushed/sent; finitecanaryprepared. CPU051independentpreparationnext."
+        "request": "CPU F3 implemented and merged with f507; genuine034 exactrelease, one bounded067 rawFAIL saved; offline harness fixed. Continue separateCPU, no oldwait reset."
       },
       "missed_schedule_observation": {
         "scheduled_at_utc": "2026-09-12T06:25:12Z",
@@ -2897,11 +2939,12 @@
       },
       "end_turn_guard": {
         "status": "PASS",
-        "checked_at_utc": "2026-09-12T18:39:47.236Z",
-        "plan": "WAIT_REVIEW",
-        "next_run_utc": "2026-09-12T18:55:08.000Z",
-        "subject_sha": "f507c0b2dd9701f3ac1867131150b5e48d0ada8d",
-        "errors": []
+        "checked_at_utc": "2026-09-12T19:24:00Z",
+        "plan": "CONTINUE_INDEPENDENT_IMPLEMENTATION",
+        "next_run_utc": "2026-09-12T19:40:00Z",
+        "subject_sha": "22b7650f82ec3cb5b38962c44032cbd566db6f81",
+        "errors": [],
+        "note": "Will run checker again after outcome delivery; configuration is not scheduler execution."
       },
       "latest_receive_schedule_observation": {
         "scheduled_at_utc": "2026-09-12T07:45:12Z",
@@ -2935,11 +2978,11 @@
       },
       "previous_run": {
         "phase": "NORMAL_WORK",
-        "turn_id": "01a09667-c507-7201-9297-91ebbd3857c2",
+        "turn_id": "01a096bf-043b-7ba3-ba01-28a84d40fb72",
         "source": "automatic_goal_continuation",
-        "started_at_utc": "2026-09-12T16:16:18.000Z",
-        "worktree": ".codex-worktrees/surrender-confirmation-20260913",
-        "request": "Integrate067existingpuremodel/nativeconfirmation; noearly066reviewread beforefixed16:27:23Z."
+        "started_at_utc": "2026-09-12T17:51:36.000Z",
+        "worktree": ".codex-worktrees/dev-brain-current-20260910",
+        "request": "Received033, diagnosed231Edge failure, fixed REG-UDL048-ROOM-SYNC, cleanf507937+both13,pushed/sent; finitecanaryprepared. CPU051independentpreparationnext."
       },
       "goal_blocked_audit_history": [
         {
@@ -3003,7 +3046,16 @@
       "successor_goal_api_receipt": {
         "state": "active",
         "created_at": 1789219206,
-        "reason": "After context continuation get_goal returned null; current explicit user-authorized successor objective was restored once via create_goal. No budget inferred."
+        "reason": "After context continuation get_goal returned null; current explicit user-authorized successor objective was restored once via create_goal. No budget inferred.",
+        "latest_observation": {
+          "source": "get_goal",
+          "observed_at_utc": "2026-09-12T19:20:39Z",
+          "status": "active",
+          "created_at": 1789219206,
+          "updated_at": 1789240839,
+          "thread_id": "01a07b56-616e-7733-9aae-90575659688e",
+          "not_old_ui_goal": true
+        }
       },
       "previous_goal_turn_classification": {
         "turn_id": "01a09667-c507-7201-9297-91ebbd3857c2",
@@ -3013,20 +3065,18 @@
         "not_merely_wait": true
       },
       "current_goal_turn_classification": {
-        "turn_id": "01a096bf-043b-7ba3-ba01-28a84d40fb72",
+        "turn_id": "01a096eb-d1a9-74c1-a65e-213074b8470b",
         "classification": "PROGRESS",
+        "not_merely_wait": true,
+        "repeated_blocker": false,
         "evidence": [
-          "genuine033received",
-          "Edge231failure diagnosed via deterministic product regression",
-          "memo sync repair f507 clean937 and Chrome/Edge13 each",
-          "exactbranch pushed",
-          "067boundedharness8guardtests",
-          "Windows34710997698 bothjobs finalSUCCESS",
-          "newf507review APIaccepted, deliveryunconfirmed preserved without fakeID",
-          "existingheartbeat final18:55slot actualreadback",
-          "CPU F3 separatepublicmain worktree and versionedDB compatibility plan prepared"
+          "CPUF3newpoliciesandlegacy dispatchimplemented;clean22b50testsPASS",
+          "genuine034samef507releaseapproved",
+          "forcefreemainf507/Pages34712742032success/preflight/fourbytes",
+          "one067profileReitrial30checks3finalauditsPASSsettlementtrue/rawFAILpreserved;390/1280visuallyinspected",
+          "terminalreadharnesscontractdiagnosedandfixedoffline14PASS;noextraquota"
         ],
-        "repeated_blocker": false
+        "actual_goal_status": "active"
       }
     },
     "latest_brain_transfer": {

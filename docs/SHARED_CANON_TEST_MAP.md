@@ -34,3 +34,8 @@ Earlier candidate `2f2fbcb` passed five governance contracts plus ten existing c
 ## First live intake through the shared canon
 
 The user-delivered `kurogane-audit-20260910.zip` is recorded as `REQ-CPU-20260910-KUROGANE-STRENGTH` → `UDL-20260910-051`. Its ZIP SHA-256 and source ChatGPT thread/message are preserved. The reported two scorer violations remain proposal evidence; the migration independently confirmed only that the referenced `standard/standard-cpu-roster.js` git blob is `68847421ad2589cb0edcce8c1021fa75a2add884`. No probe, match audit, game fix, or production operation is claimed here.
+
+## 2026-09-13 successor slices (not retrospective migration proof)
+
+- UDL067/REG-UDL048-ROOM-SYNC: publicf507, pure surrender guards and existing online-browser tests, Windows34710997698 bothSUCCESS. Actual034 source and partial one-profile acceptance map to SURRENDER_RELEASE_20260913.md / SURRENDER_LIVE_20260913.json. Local harness tests14 and supplemental nativeChrome2 do not turn rawliveFAIL/reloadNOT_RUN intoPASS.
+- UDL051/REG-CPU-F3-SPLIT-ORIENTATION: local22b7650, tests/standard-cpu-split-rescue.test.cjs and tests/standard-cpu-split-policy-migration.test.cjs plus old roster/lookahead/server bundle. Fivefocusedfiles50PASS; SQL assertions are source/fingerprint-model tests, not PostgreSQL execution. Existing workflow includes the new tests but branch CI/activation/publication have not run.

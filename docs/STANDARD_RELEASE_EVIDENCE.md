@@ -1,5 +1,9 @@
 # Standard公開候補 証拠台帳
 
+## 2026-09-13 UDL067 / f507 公開・有限liveは部分確認
+
+実034 ce9dbfb5→3625b9f8で同一f507/UDL-067-surrender-v1.1/Pages_only/DB[]Edge[]公開承認。Windows34710997698両成功、forcefree main2fc→f507、Pages34712742032同SHA成功、freshpreflight・4asset厳密byte一致。live1profile/レイ1/21.223秒/CPU0/SURRENDER1で30checks・独立3監査PASS、390/1280確認画面目視・本人一度の敗北精算を確認。終局再取得にinitializeを使ったharness契約不一致を保存し、raw ok:false、reload NOT_RUN、別終局snapshot未取得のまま。後続snapshot-v2修正14局所PASSを新live成功にしない。追加プロフィール/試行0、物理NOT_RUN、状態PAGES_PUBLISHED_LIVE_ACCEPTANCE_PARTIAL。詳細SURRENDER_RELEASE_20260913.md、raw SURRENDER_LIVE_20260913.json、SURRENDER_RELEASE_PREFLIGHT_20260913.json。原067自動枠3/3を再開せず、独立CPU作業を継続。
+
 ## 2026-09-12 21:43JST UDL062 範囲限定の公開受入完了
 
 実Astra024（b8f091ec-3669-45e4-ab62-a4a5a508c20a、依頼b39fb94d）によりa1/UDL-062-copy-v1.1/blob5481afd8のUI受入をPUBLIC_VERIFIEDへ更新。固定証拠7708077、保存profileState全体/revision一致とUI/allowlist/consoleが根拠。初回52/FAILと追加54/55 FAIL・ok:falseは不変、55/55と数え直さない。API名前応答契約はREG-20260912-PROFILE-RESPONSE-CONTRACT-01としてPCCへ分離し未修正。liveの名前実値/省略の別とDB別列照合は未確定。第3profile・追加live・再公開は行わず、累計2profile、物理NOT_RUN・対局診断NOT_RUN_NO_MATCH。旧UI6群のspec/review/祖先と現main a1の公開13assetをGETのみで再照合済み。詳細UI_GOAL_FINAL_ACCEPTANCE_20260912.json。以下は受入前の保存履歴。
