@@ -1,7 +1,7 @@
 "use strict";
 const test=require("node:test"),assert=require("node:assert/strict"),fs=require("node:fs"),path=require("node:path");
 const {spawnSync}=require("node:child_process");
-const {chooseOwnAction,redactEvents,LOADOUT}=require("../scripts/live-standard-skill-cutin-canary.cjs");
+const {chooseOwnAction,redactEvents,LOADOUT,browserOperationCost}=require("../scripts/live-standard-skill-cutin-canary.cjs");
 const source=fs.readFileSync(path.join(__dirname,"../scripts/live-standard-skill-cutin-canary.cjs"),"utf8");
 test("cut-in live driver refuses without explicit scope before browser or network",()=>{
   for(const args of [[],["--confirm-live"],["--candidate="+"a".repeat(40)]]){
@@ -28,6 +28,19 @@ test("cut-in live driver rejects wrong viewer, opponent turn and missing legal c
 test("cut-in report redacts event identity and unrelated transient/session data",()=>{
   const r=redactEvents([{eventId:"private-match:4",token:"sensitive",actor:"self",title:"known",detail:"observed",pointerTransparent:true,focusOutside:true,animation:"skill-from-hand",paletteReacted:true,boardReacted:false}]);
   assert.deepEqual(r,[{actor:"self",title:"known",detail:"observed",pointerTransparent:true,focusOutside:true,animation:"skill-from-hand",paletteReacted:true,boardReacted:false}]);
+});
+test("cut-in browser and helper share the approved total action budgets before outbound writes",()=>{
+  const roomId="own-test-room";
+  assert.deepEqual(browserOperationCost({operation:"cpu-action",roomId},roomId),{cpu:1,own:0});
+  assert.deepEqual(browserOperationCost({operation:"action",roomId,action:{type:"USE_SKILL",payload:{skill:"colorRandomBorrow"}}},roomId),{cpu:0,own:1});
+  assert.deepEqual(browserOperationCost({operation:"initialize",roomId},roomId),{cpu:0,own:0});
+  for(const body of [null,{operation:"cpu-action",roomId:"another"},{operation:"profile",roomId},{operation:"setup",roomId},
+    {operation:"action",roomId,action:{type:"SURRENDER"}},{operation:"action",roomId,action:{type:"USE_SKILL",payload:{skill:"other"}}}])
+    assert.equal(browserOperationCost(body,roomId),null);
+  assert.match(source,/cpuSteps\+cost\.cpu>24\|\|humanSteps\+cost\.own>9/);
+  assert.match(source,/cpuSteps\+=cost\.cpu;humanSteps\+=cost\.own/);
+  assert.ok(source.indexOf('return route.abort("blockedbyclient")')<source.indexOf("cpuSteps+=cost.cpu"));
+  assert.match(source,/report\.totalCpuActionAttempts=cpuSteps;report\.totalOwnActionAttempts=humanSteps/);
 });
 test("cut-in live scope is one fresh profile/match, exact bytes first, finite moves and cleanup after abort",()=>{
   assert.equal(Object.values(LOADOUT).flat().length,6);

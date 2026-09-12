@@ -1,4 +1,18 @@
 # UDL065 cut-in release evidence
+
+## 2026-09-13 JST approval and public delivery
+
+First actual live attempt completed15:15:08.701Z: reportSKILL_CUTIN_LIVE_20260913.json is ok:false and immutable (SHA256E968514192E44454C1C612288426050BC0D64D324BDCDD94D3C4683605C31237). One profile/oneCPU, totalCPU7 andown6, terminalcleanup confirmed/no deletion. Fourpublicassets exactlymatch3b1; own namedcutin1, opponentgenericcutins2 (one observedboardreaction), owncard consumedexactly1, nofocus/pointercapture anduniqueevents observed. Failed finalcheck:no unapproved browser operation. Console/errorcounts were not saved because failure short-circuited the following check. No retry executed.
+
+Visualinspection: live-own-390.png genuinelyshows the owncardcutin over a live board and fourpalettecontrols; textlegible. live-restored-1280.png shows the reload loading/recovery view, not final hydrated gameplay. The recorded immediate0events assertion is not sufficient evidence of post-hydration replay suppression; retain it as raw output but do not claim fullreloadacceptance. Sourceinspection identifies that boot refreshOnlineCosmetics calls cosmetic-catalog, an existing readonly operation omitted from this harnesspolicy. The failed run did not record blockedoperation details, so this is a source-backed diagnosis, not a proven observedrequest identity. Execution harnessSHA25602D434A26B7D11ADC2E30A1BA07B60681A96C84B6C89AD331306EA3CAB3586F9 is frozen in the accompanying evidencecommit before correction.
+Final original slot was consumed before the single read at15:06Z. Genuine completed response43edac17-535b-40f6-89d7-c9e09184b6a2 to requestd4a6aa86-a289-4876-b4e1-4d6ef8d579c9 is APPROVE_RELEASE, saved026 for exact3b1/basea1/specv1.1/blob40410/Pages_only/DB[]/Edge[]. Old025 remainsREQUEST_CHANGES. Automaticchecks3, original13:25:37–15:25:37Z deadline unchanged; no additional065polling.
+
+ExactWindows34697799620 finalSUCCESS freshly read back. Freshmaina1 ancestor and clean3b1 checked, force-free main push15:08:08Z, remote main exact3b1. SameSHA Pages34701307182 SUCCESS. Candidate-worktree public preflight --expect=candidate at15:09:59Z returnedok:true; everypublicPage featuretrue and all8 protectedRPC probes protected. No DB/Edge writes.
+
+Before the one reserved live attempt, source inspection found that the original helper counter omitted automatic browserCPU and the one browser-owned skill from the total caps. Harness-only correction routes those same approved operations through the shared24CPU/9own totals before outbound requests and aborts unexpected operations. No product bytes or authorized limits changed; six focused testsPASS616.1661ms. Normal-loop stops at12CPU to leave capacity for terminalcleanup. Actual screenshots are captured locally, never added to Git. Original liveattempt0 was not executed; firstattempt is now reserved, not repeated.
+
+OpenAI Docs [same-task scheduling guidance](https://learn.chatgpt.com/docs/automations) used to retain the existingheartbeat only. UpdatedNORMAL_WORK for15:25:00Z /00:25JST, actualACTIVE and exactsavedprompt/target/rrule verified, updated_at1789225778216. Configuration is not claimed as future execution. This normalowner is performing publication directly, not waiting on a self-send.
+
 CANON_RECEIPT version=shared-canon-v1.1 base=a1a9b1c830eceb98464b107f2442deacaf765505 request=UDL-20260912-065 specs=docs/SHARED_CANON.md,docs/SKILL_CUTIN_20260912.md tests=tests/standard-skill-cutin.test.cjs,tests/standard-online-browser.test.cjs worktree=.codex-worktrees/skill-cutin-20260912
 
 ## 2026-09-12 normal user-requested continuation

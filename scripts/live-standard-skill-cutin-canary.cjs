@@ -9,6 +9,14 @@ const { isDeepStrictEqual } = require("node:util");
 const { closeOwnedBrowserServer } = require("../tests/helpers/browser-server-cleanup.cjs");
 const LOADOUT = { color:["colorRandomBorrow","colorChoiceBorrow"], area:["areaMicroBloom","areaDiePlus"], disrupt:["disruptRandomOne","disruptChoiceOne"] };
 const ALLOWED = new Set(["profile","cpu-start","setup","initialize","action","cpu-action"]);
+function browserOperationCost(body, ownedRoomId) {
+  if (!body || body.roomId !== ownedRoomId) return null;
+  if (body.operation === "initialize") return { cpu: 0, own: 0 };
+  if (body.operation === "cpu-action") return { cpu: 1, own: 0 };
+  if (body.operation === "action" && body.action?.type === "USE_SKILL"
+      && body.action?.payload?.skill === "colorRandomBorrow") return { cpu: 0, own: 1 };
+  return null;
+}
 function chooseOwnAction(room, planner) {
   assert.equal(room?.privateState?.seat,"A");
   assert.equal(room?.publicState?.active,"A");
@@ -115,16 +123,17 @@ async function main(args) {
     },{url,key,token,refreshToken:session.refresh_token,roomId,connectionKey});
     await bootstrap.close();
     let errors=0,warnings=0,unexpectedWrites=0,browserSkillActions=0;
-    context.on("request",req=>{
-      if(req.url()===url+"/functions/v1/standard-game-action"&&req.method()==="POST"){
-        const body=req.postDataJSON();
-        if(!ALLOWED.has(body?.operation)||body.roomId&&body.roomId!==roomId)unexpectedWrites++;
-        if(body.operation==="action"){
-          if(body.action?.type==="USE_SKILL"&&body.action?.payload?.skill==="colorRandomBorrow")browserSkillActions++;
-          else unexpectedWrites++;
-        }
-        if(["cpu-start","setup"].includes(body.operation)||body.operation==="profile"&&body.profileState)unexpectedWrites++;
+    await context.route(url+"/functions/v1/standard-game-action",async route=>{
+      const req=route.request();
+      if(req.method()!=="POST")return route.continue();
+      const body=req.postDataJSON(),cost=browserOperationCost(body,roomId);
+      if(!cost||cpuSteps+cost.cpu>24||humanSteps+cost.own>9||abort.signal.aborted){
+        unexpectedWrites++;return route.abort("blockedbyclient");
       }
+      cpuSteps+=cost.cpu;humanSteps+=cost.own;
+      if(cost.own)browserSkillActions++;
+      report.operations[body.operation]=(report.operations[body.operation]||0)+1;
+      return route.continue();
     });
     await context.addInitScript(()=>{
       window.__skillCanary={events:[]};
@@ -155,12 +164,17 @@ async function main(args) {
     const handBefore=room.privateState.hand.colorRandomBorrow;check("starter borrowed-color card",handBefore===1);
     await page.locator('#skillControls .skill[data-skill="colorRandomBorrow"]').click();
     await page.waitForFunction(()=>window.__skillCanary.events.some(e=>e.actor==="self"),null,{timeout:30_000});
+    const screenshotDir=path.resolve(__dirname,"../artifacts/skill-cutin-20260913");
+    fs.mkdirSync(screenshotDir,{recursive:true});
+    await page.screenshot({path:path.join(screenshotDir,"live-own-390.png")});
+    report.screenshots=["artifacts/skill-cutin-20260913/live-own-390.png"];
     await page.locator('#skillControls .is-used .skill[data-skill="colorRandomBorrow"]').waitFor({timeout:30_000});
     await refresh();check("exact one own card consumed",room.privateState.hand.colorRandomBorrow===handBefore-1);
     check("one explicit browser skill write",browserSkillActions===1);
     stage="finite ordinary play for an opponent event";
     for(let i=0;i<6;i++){
       if(await page.evaluate(()=>window.__skillCanary.events.some(e=>e.actor==="opponent")))break;
+      if(cpuSteps>=12)break; // Keep half the total CPU budget available for terminal cleanup.
       await refresh();
       // The live app owns CPU writes while open. Never race it with a second CPU driver.
       for(let poll=0;poll<12&&room.status==="playing"&&room.publicState.active==="B";poll++){await delay(800);await refresh();}
@@ -181,6 +195,8 @@ async function main(args) {
     await page.reload({waitUntil:"domcontentloaded",timeout:30_000});
     await page.locator("#room:not(.hidden)").waitFor({timeout:30_000});
     check("reload does not replay prior cut-ins",await page.evaluate(()=>window.__skillCanary.events.length===0));
+    await page.screenshot({path:path.join(screenshotDir,"live-restored-1280.png")});
+    report.screenshots.push("artifacts/skill-cutin-20260913/live-restored-1280.png");
     check("no unapproved browser operation",unexpectedWrites===0);
     check("final console and page errors zero",errors===0&&warnings===0);
     report.browserWidths=[390,1280];report.browserSkillActions=browserSkillActions;
@@ -198,11 +214,12 @@ async function main(args) {
         report.cleanup=room.status==="finished"?"TERMINAL_CONFIRMED_NO_DELETION":"PENDING";}
     }catch{failed=true;report.cleanup="PENDING_REQUIRES_OWNED_TEST_ROOM_FOLLOWUP";}
     report.ok=!failed&&report.cleanup==="TERMINAL_CONFIRMED_NO_DELETION";
+    report.totalCpuActionAttempts=cpuSteps;report.totalOwnActionAttempts=humanSteps;
     report.completedAt=new Date().toISOString();
     fs.writeFileSync(reportPath,JSON.stringify(report,null,2)+"\n");
     console.log(JSON.stringify(report,null,2));
   }
   return report.ok?0:1;
 }
-module.exports={chooseOwnAction,redactEvents,LOADOUT};
+module.exports={chooseOwnAction,redactEvents,LOADOUT,browserOperationCost};
 if(require.main===module)main(process.argv.slice(2)).then(code=>{process.exitCode=code;}).catch(()=>{console.error("FAIL canary setup (details redacted)");process.exitCode=1;});
