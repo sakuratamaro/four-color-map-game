@@ -343,6 +343,7 @@ test("ChatGPT review records require an exact subject and cannot imply productio
       assert.match(decision.subject_sha, /^[0-9a-f]{40}$/);
       assert.match(decision.spec_snapshot_sha, /^[0-9a-f]{40}$/);
       const bindings = {
+        "CHATGPT-REVIEW-20260913-039": ["9590a4212d69185fc93df31b552d9bd870d5a9a3", "d9ce111d7d97019d55b3e90842602001e045ea04", "UDL-051-palette-v1.1", "de0cc9e2299a8a69dd1bfbc9368cd98042ca9b9f", "Pages_Edge_DB_managed_activation"],
         "CHATGPT-REVIEW-20260913-038": ["d9ce111d7d97019d55b3e90842602001e045ea04", "f507c0b2dd9701f3ac1867131150b5e48d0ada8d", "UDL-051-split-v1.1", "5b4b137769f1be7736ded6a187e438ccb6d9a702", "Pages_Edge_DB_managed_activation"],
         "CHATGPT-REVIEW-20260913-036": ["d9ce111d7d97019d55b3e90842602001e045ea04", "f507c0b2dd9701f3ac1867131150b5e48d0ada8d", "UDL-051-split-v1.1", "5b4b137769f1be7736ded6a187e438ccb6d9a702", "Pages_Edge_DB_managed_activation"],
         "CHATGPT-REVIEW-20260913-035": ["f507c0b2dd9701f3ac1867131150b5e48d0ada8d", "2fcfea9bb2a3d1ad7e22a5e8e3b61983f0404152", "UDL-067-surrender-v1.1", "1e7e2a4c02acd58ed40ca0b6f2fbb0513f333463", "Pages_only"],
@@ -378,7 +379,19 @@ test("ChatGPT review records require an exact subject and cannot imply productio
       assert.ok(bindings[decision.review_id], "each genuine review needs an explicit exact binding");
       assert.deepEqual([decision.subject_sha, decision.base_sha, decision.feature_spec_version,
         decision.spec_snapshot_sha, decision.scope], bindings[decision.review_id]);
-      if(["CHATGPT-REVIEW-20260913-036","CHATGPT-REVIEW-20260913-038"].includes(decision.review_id)) {
+      if(decision.review_id==="CHATGPT-REVIEW-20260913-039") {
+        assert.equal(decision.decision,"APPROVE_WITH_CONDITIONS");
+        assert.equal(decision.source.message_id,"fd9b3fa2-dd74-4379-a0e7-7cf05ad31ff9");
+        assert.equal(decision.source.request_message_id,"718d0bfa-6d26-4931-ac81-22a21542ec50");
+        assert.equal(decision.source.response_text.length,4311);
+        assert.equal(decision.source.request_body_equality,true);
+        assert.equal(decision.source.response_complete,true);
+        assert.deepEqual(decision.db_change_set,["supabase/migrations/202609130002_standard_cpu_palette_efficiency.sql"]);
+        assert.deepEqual(decision.edge_change_set,["supabase/functions/standard-game-action/index.ts","supabase/functions/standard-game-action/standard-engine.bundle.js"]);
+        assert.deepEqual(decision.managed_setting_change_set,[{name:"FCG_CPU_PALETTE_EFFICIENCY",compatible_deploy_value:null,activation_value:"standard-character-palette-efficiency-v1",rollback:"disable new palette activation; retain compatible Edge and additive SQL; preserve existing split setting"}]);
+        assert.deepEqual(decision.bounds,{profiles:1,matches:1,character_id:"kurogane",attempts:1,max_seconds:240,cpu_send_attempts:8,surrender_send_attempts:1,additional_matches:0,additional_profiles:0,economy_actions:0,deletions:0,privileged_room_recovery:false});
+        assert.ok(decision.blockers.some(x=>x.startsWith("B1: Windows Edge")));
+      } else if(["CHATGPT-REVIEW-20260913-036","CHATGPT-REVIEW-20260913-038"].includes(decision.review_id)) {
         assert.deepEqual(decision.db_change_set,["supabase/migrations/202609130001_standard_cpu_split_rescue.sql"]);
         assert.deepEqual(decision.edge_change_set,["supabase/functions/standard-game-action/index.ts","supabase/functions/standard-game-action/standard-engine.bundle.js"]);
         assert.deepEqual(decision.managed_setting_change_set,[{name:"FCG_CPU_SPLIT_RESCUE",compatible_deploy_value:null,activation_value:"standard-character-split-rescue-v1",rollback:"disable activation; retain compatible Edge and additive SQL"}]);
