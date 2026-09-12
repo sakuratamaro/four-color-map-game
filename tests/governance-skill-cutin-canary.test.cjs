@@ -1,7 +1,7 @@
 "use strict";
 const test=require("node:test"),assert=require("node:assert/strict"),fs=require("node:fs"),path=require("node:path");
 const {spawnSync}=require("node:child_process");
-const {chooseOwnAction,redactEvents,LOADOUT,browserOperationCost}=require("../scripts/live-standard-skill-cutin-canary.cjs");
+const {chooseOwnAction,redactEvents,LOADOUT,browserOperationCost,awaitHydratedBattle}=require("../scripts/live-standard-skill-cutin-canary.cjs");
 const source=fs.readFileSync(path.join(__dirname,"../scripts/live-standard-skill-cutin-canary.cjs"),"utf8");
 test("cut-in live driver refuses without explicit scope before browser or network",()=>{
   for(const args of [[],["--confirm-live"],["--candidate="+"a".repeat(40)]]){
@@ -34,6 +34,10 @@ test("cut-in browser and helper share the approved total action budgets before o
   assert.deepEqual(browserOperationCost({operation:"cpu-action",roomId},roomId),{cpu:1,own:0});
   assert.deepEqual(browserOperationCost({operation:"action",roomId,action:{type:"USE_SKILL",payload:{skill:"colorRandomBorrow"}}},roomId),{cpu:0,own:1});
   assert.deepEqual(browserOperationCost({operation:"initialize",roomId},roomId),{cpu:0,own:0});
+  for(const operation of ["cosmetic-catalog","cosmetic-quote","cpu-roster"])
+    assert.deepEqual(browserOperationCost({operation},roomId),{cpu:0,own:0});
+  for(const operation of ["cosmetic-action","card-sale","gacha","profile"])
+    assert.equal(browserOperationCost({operation},roomId),null);
   for(const body of [null,{operation:"cpu-action",roomId:"another"},{operation:"profile",roomId},{operation:"setup",roomId},
     {operation:"action",roomId,action:{type:"SURRENDER"}},{operation:"action",roomId,action:{type:"USE_SKILL",payload:{skill:"other"}}}])
     assert.equal(browserOperationCost(body,roomId),null);
@@ -41,6 +45,17 @@ test("cut-in browser and helper share the approved total action budgets before o
   assert.match(source,/cpuSteps\+=cost\.cpu;humanSteps\+=cost\.own/);
   assert.ok(source.indexOf('return route.abort("blockedbyclient")')<source.indexOf("cpuSteps+=cost.cpu"));
   assert.match(source,/report\.totalCpuActionAttempts=cpuSteps;report\.totalOwnActionAttempts=humanSteps/);
+});
+test("cut-in final readback waits past the room loading shell and preserves independent audit outcomes",async()=>{
+  const observed=[];
+  await awaitHydratedBattle({locator:selector=>({waitFor:async options=>observed.push({selector,...options})})},17);
+  assert.deepEqual(observed.map(x=>x.selector),["#connectionBadge.good","#matchCard:not(.hidden)","#boardViewport canvas"]);
+  assert.ok(observed.every(x=>x.state==="visible"&&x.timeout===17));
+  await assert.rejects(()=>awaitHydratedBattle({locator:selector=>({waitFor:async()=>{if(selector==="#matchCard:not(.hidden)")throw Error("loading shell only");}})},17),/loading shell only/);
+  assert.ok(source.indexOf("await awaitHydratedBattle(page)")<source.indexOf("report.reloadPriorEventReplayed="));
+  assert.ok(source.indexOf("report.finalChecks=[")<source.indexOf('check("all final independent audits pass"'));
+  assert.match(source,/report\.browserAudit=\{unexpectedWrites,errors,warnings,blockedOperations\}/);
+  assert.match(source,/reloadEvents\.some\(e=>previousIds\.has\(e\.eventId\)\)/);
 });
 test("cut-in live scope is one fresh profile/match, exact bytes first, finite moves and cleanup after abort",()=>{
   assert.equal(Object.values(LOADOUT).flat().length,6);

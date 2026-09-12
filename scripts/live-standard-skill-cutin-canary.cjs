@@ -7,15 +7,23 @@ const { execFileSync } = require("node:child_process");
 const { randomUUID, createHash } = require("node:crypto");
 const { isDeepStrictEqual } = require("node:util");
 const { closeOwnedBrowserServer } = require("../tests/helpers/browser-server-cleanup.cjs");
+const { readOnlyRequest } = require("./live-standard-player-copy-canary.cjs");
 const LOADOUT = { color:["colorRandomBorrow","colorChoiceBorrow"], area:["areaMicroBloom","areaDiePlus"], disrupt:["disruptRandomOne","disruptChoiceOne"] };
 const ALLOWED = new Set(["profile","cpu-start","setup","initialize","action","cpu-action"]);
 function browserOperationCost(body, ownedRoomId) {
+  if (body && (!body.roomId || body.roomId === ownedRoomId)
+      && readOnlyRequest("POST","/functions/v1/standard-game-action",body.operation)) return { cpu: 0, own: 0 };
   if (!body || body.roomId !== ownedRoomId) return null;
   if (body.operation === "initialize") return { cpu: 0, own: 0 };
   if (body.operation === "cpu-action") return { cpu: 1, own: 0 };
   if (body.operation === "action" && body.action?.type === "USE_SKILL"
       && body.action?.payload?.skill === "colorRandomBorrow") return { cpu: 0, own: 1 };
   return null;
+}
+async function awaitHydratedBattle(page, timeout=30_000) {
+  await page.locator("#connectionBadge.good").waitFor({state:"visible",timeout});
+  await page.locator("#matchCard:not(.hidden)").waitFor({state:"visible",timeout});
+  await page.locator("#boardViewport canvas").waitFor({state:"visible",timeout});
 }
 function chooseOwnAction(room, planner) {
   assert.equal(room?.privateState?.seat,"A");
@@ -53,6 +61,8 @@ async function main(args) {
   const report={subject:"UDL-065-cutin-v1.1",candidateSha:sha,profileAttempts:0,profilesCreated:0,matchAttempts:0,matchesCreated:0,
     cleanup:"NOT_NEEDED",physicalDevices:"NOT_RUN",opponentCutin:"NOT_RUN",assetHashes:[],checks:[],operations:{},events:[]};
   let token,roomId,room,browserServer,context,failed=false,stage="public assets",cleaning=false,cpuSteps=0,humanSteps=0;
+  let errors=0,warnings=0,unexpectedWrites=0,browserSkillActions=0;
+  const blockedOperations={};
   const abort=new AbortController();
   const timer=setTimeout(()=>abort.abort(),240_000);
   const check=(label,value)=>{assert.ok(value,label);report.checks.push(label);};
@@ -122,12 +132,13 @@ async function main(args) {
       client.auth.stopAutoRefresh();
     },{url,key,token,refreshToken:session.refresh_token,roomId,connectionKey});
     await bootstrap.close();
-    let errors=0,warnings=0,unexpectedWrites=0,browserSkillActions=0;
     await context.route(url+"/functions/v1/standard-game-action",async route=>{
       const req=route.request();
       if(req.method()!=="POST")return route.continue();
       const body=req.postDataJSON(),cost=browserOperationCost(body,roomId);
       if(!cost||cpuSteps+cost.cpu>24||humanSteps+cost.own>9||abort.signal.aborted){
+        const label=/^[a-z-]{1,40}$/.test(body?.operation||"")?body.operation:"unknown";
+        blockedOperations[label]=(blockedOperations[label]||0)+1;
         unexpectedWrites++;return route.abort("blockedbyclient");
       }
       cpuSteps+=cost.cpu;humanSteps+=cost.own;
@@ -193,12 +204,21 @@ async function main(args) {
     await page.setViewportSize({width:1280,height:900});
     check("desktop viewport no horizontal overflow",await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
     await page.reload({waitUntil:"domcontentloaded",timeout:30_000});
-    await page.locator("#room:not(.hidden)").waitFor({timeout:30_000});
-    check("reload does not replay prior cut-ins",await page.evaluate(()=>window.__skillCanary.events.length===0));
+    stage="hydrated reload and final independent audits";
+    await awaitHydratedBattle(page);
+    report.reloadHydrated=true;
+    const previousIds=new Set(events.map(e=>e.eventId));
+    const reloadEvents=await page.evaluate(()=>window.__skillCanary.events);
+    report.reloadPriorEventReplayed=reloadEvents.some(e=>previousIds.has(e.eventId));
     await page.screenshot({path:path.join(screenshotDir,"live-restored-1280.png")});
     report.screenshots.push("artifacts/skill-cutin-20260913/live-restored-1280.png");
-    check("no unapproved browser operation",unexpectedWrites===0);
-    check("final console and page errors zero",errors===0&&warnings===0);
+    report.finalChecks=[
+      {label:"reload does not replay prior cut-ins",passed:!report.reloadPriorEventReplayed},
+      {label:"no unapproved browser operation",passed:unexpectedWrites===0},
+      {label:"final console and page errors zero",passed:errors===0&&warnings===0},
+    ];
+    for(const outcome of report.finalChecks)if(outcome.passed)report.checks.push(outcome.label);
+    check("all final independent audits pass",report.finalChecks.every(c=>c.passed));
     report.browserWidths=[390,1280];report.browserSkillActions=browserSkillActions;
     report.liveGameplay="REAL_OWN_BORROW_AND_FINITE_ORDINARY_CPU_PLAY_NO_STATE_INJECTION";
   } catch(error) {
@@ -215,11 +235,12 @@ async function main(args) {
     }catch{failed=true;report.cleanup="PENDING_REQUIRES_OWNED_TEST_ROOM_FOLLOWUP";}
     report.ok=!failed&&report.cleanup==="TERMINAL_CONFIRMED_NO_DELETION";
     report.totalCpuActionAttempts=cpuSteps;report.totalOwnActionAttempts=humanSteps;
+    report.browserAudit={unexpectedWrites,errors,warnings,blockedOperations};
     report.completedAt=new Date().toISOString();
     fs.writeFileSync(reportPath,JSON.stringify(report,null,2)+"\n");
     console.log(JSON.stringify(report,null,2));
   }
   return report.ok?0:1;
 }
-module.exports={chooseOwnAction,redactEvents,LOADOUT,browserOperationCost};
+module.exports={chooseOwnAction,redactEvents,LOADOUT,browserOperationCost,awaitHydratedBattle};
 if(require.main===module)main(process.argv.slice(2)).then(code=>{process.exitCode=code;}).catch(()=>{console.error("FAIL canary setup (details redacted)");process.exitCode=1;});
