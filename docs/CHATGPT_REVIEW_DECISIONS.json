@@ -41,7 +41,7 @@
     }
   ],
   "coordination": {
-    "status": "062_PUBLIC_PARTIAL_RETRY_CONSUMED_RESPONSE_CONTRACT_DIAGNOSED",
+    "status": "062_PUBLIC_PARTIAL_GOAL_BLOCKED_PENDING_GENUINE_ACCEPTANCE_DISPOSITION",
     "latest_v8_intake": {
       "state": "PAIRED_SOURCE_AND_ZIP_VERIFIED_ALIASES_MAPPED",
       "source_thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
@@ -1547,11 +1547,11 @@
         "UDL-20260912-063"
       ],
       "preparation": "docs/UI_DIET_PREPARATION_20260912.md",
-      "status": "GOAL_ACTIVE_RESPONSE_CONTRACT_DIAGNOSIS",
+      "status": "GOAL_API_BLOCKED_ACCEPTANCE_DISPOSITION",
       "registration_receipt": "get_goal returned null on2026-09-11T20:20Z; explicitly user-requested UI goal re-created without budget; no other active goal existed. Work and completed slices preserved.",
       "latest_checkpoint": "One022-authorized retry executed54/55; final3 all recorded,false/true/true. Persisted profileState/revision unchanged; displayName envelope false. Exact source contract reproduces this mismatch offline3/3. Additional profile budget exhausted.",
-      "actual_api_status": "active",
-      "actual_api_observation_note": "Direct user-resumed goal readback active; old blocked history preserved. No false goal completion.",
+      "actual_api_status": "blocked",
+      "actual_api_observation_note": "Actual update_goal/get_goal at strict third resumed boundary returnedblocked; no objective rewrite or false completion.",
       "actual_api_observation_history": [
         {
           "status": "blocked",
@@ -1577,6 +1577,13 @@
           "observed_at_utc": "2026-09-12T09:10:58Z",
           "updated_at": 1789203997,
           "note": "Direct user resumed this turn; get_goal returned active. Same goal retained."
+        },
+        {
+          "status": "blocked",
+          "source": "get_goal",
+          "observed_at_utc": "2026-09-12T09:29:16Z",
+          "updated_at": 1789205356,
+          "note": "Readback after strict third resumed same-boundary blocked mutation; no new profile, expired review read or product changes."
         }
       ],
       "completion_audit": {
@@ -2108,9 +2115,9 @@
         "readback_verified": true
       },
       "normal_work_claim": {
-        "state": "EXTERNAL_DISPOSITION_REQUIRED",
-        "turn_id": "01a094ed-dbb0-7f12-9554-01894edb0c52",
-        "action": "SAVED_EDGE_SOURCE_BYTES_REVALIDATED_NO_LIVE_RETRY",
+        "state": "BLOCKED_EXTERNAL_ACCEPTANCE_DISPOSITION_REQUIRED",
+        "turn_id": "01a094f2-0720-7c43-804e-4578e13989c0",
+        "action": "REVALIDATE_EXHAUSTED_BOUNDARY",
         "subject_sha": "a1a9b1c830eceb98464b107f2442deacaf765505"
       },
       "review_scope": "New user-authorized local continuation repair, not covered by old APPROVE_DOCS; fixed docs candidate will be separately reported.",
@@ -2123,10 +2130,10 @@
       "current_run": {
         "phase": "NORMAL_WORK",
         "origin": "automatic_goal_continuation",
-        "turn_id": "01a094ed-dbb0-7f12-9554-01894edb0c52",
-        "started_at_utc": "2026-09-12T09:23:31.000Z",
+        "turn_id": "01a094f2-0720-7c43-804e-4578e13989c0",
+        "started_at_utc": "2026-09-12T09:28:04.000Z",
         "actual_scheduled_run": false,
-        "state": "BOUNDED_SAVED_EDGE_SOURCE_REVALIDATION"
+        "state": "BLOCKED_AFTER_THIRD_RESUMED_BOUNDARY_AUDIT"
       },
       "missed_schedule_observation": {
         "scheduled_at_utc": "2026-09-12T06:25:12Z",
@@ -2177,15 +2184,15 @@
         "recovered_without_new_user_wait": true
       },
       "end_turn_guard": {
-        "at_utc": "2026-09-12 09:21:18 UTC",
+        "at_utc": "2026-09-12T09:29:16Z",
+        "exit_code": 0,
         "phase": "STOP",
         "reason": "NO_ELIGIBLE_REVIEW_OR_READY_WORK",
+        "errors": [],
         "actual_automation_status": "PAUSED",
         "actual_setting_updated_at": 1789204789116,
         "prompt_exact_equal": true,
-        "note": "Actual end-turn checker STOP,exit0,errors[]. Extra profile cap consumed; original review budget remains closed. Separate trailing whitespace detected by diff check was corrected before final validation.",
-        "exit_code": 0,
-        "errors": []
+        "note": "Existing current setting revalidated; old finite budget remainsclosed and one retry consumed. No new automatic queue or schedule."
       },
       "latest_receive_schedule_observation": {
         "scheduled_at_utc": "2026-09-12T07:45:12Z",
@@ -2200,23 +2207,28 @@
         "condition": "One permitted retry failed only envelope name comparison; source contract diagnosed. No further profile authorized.",
         "consecutive_goal_turn_ids": [
           "01a094d3-9834-78c0-9dcc-602cf88fdc41",
-          "01a094ed-dbb0-7f12-9554-01894edb0c52"
+          "01a094ed-dbb0-7f12-9554-01894edb0c52",
+          "01a094f2-0720-7c43-804e-4578e13989c0"
         ],
         "threshold": 3,
-        "current_turn_classification": "no_progress_toward_acceptance_after_bounded_saved_source_revalidation",
+        "current_turn_classification": "no_progress_same_authority_boundary_revalidated",
         "previous_condition_resolved_by": "CHATGPT-REVIEW-20260912-022",
-        "actual_goal_status": "active",
+        "actual_goal_status": "blocked",
         "no_further_profile_attempt": true,
-        "note": "This is the second consecutive resumed condition boundary, including the prior user-triggered turn. Historical source hash corroborates the diagnosis but does not change the next action. No current live handle polled, no verified wait claimed, no old budget reset, no new profile or early blocked mutation.",
-        "previous_turn_classification": "progress_actual_live_retry_and_offline_diagnosis"
+        "note": "Strict third consecutive occurrence after user resumption, counting01a094d3,01a094ed,01a094f2. Live retry authorization exhausted and no eligible automatic review read. Current local records still end at023 and existing automation actuallyPAUSED. No current external-live handle was polled, so no verified wait claimed. update_goal blocked succeeded and get_goal readback confirmedblocked; full objective and every failed/published proof remain intact.",
+        "previous_turn_classification": "no_progress_toward_acceptance_after_bounded_saved_source_revalidation",
+        "goal_api_updated_at": 1789205356,
+        "verified_wait": false,
+        "live_handle_confirmed_now": false,
+        "external_review_read_budget_available": false
       },
       "previous_run": {
         "phase": "NORMAL_WORK",
-        "origin": "explicit_user_resume",
-        "turn_id": "01a094d3-9834-78c0-9dcc-602cf88fdc41",
-        "started_at_utc": "2026-09-12T08:54:50Z",
+        "origin": "automatic_goal_continuation",
+        "turn_id": "01a094ed-dbb0-7f12-9554-01894edb0c52",
+        "started_at_utc": "2026-09-12T09:23:31.000Z",
         "actual_scheduled_run": false,
-        "state": "COMPLETED_ONE_RETRY_AND_OFFLINE_DIAGNOSIS_REPORT_DELIVERED"
+        "state": "BOUNDED_SAVED_EDGE_SOURCE_REVALIDATION"
       },
       "goal_blocked_audit_history": [
         {

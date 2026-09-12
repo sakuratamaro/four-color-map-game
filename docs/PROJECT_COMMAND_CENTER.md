@@ -8,6 +8,8 @@
 
 ## 司令塔ルール
 
+2026-09-12 18:29JST: 062の許可済み再検証は54/55で最終名前比較だけ未合格、追加枠消費済み。診断報告b39fb94dの受入判断が未取得の境界を、ユーザー再開後3連続turnで確認し、実goal APIをblockedへ変更・読戻し確認した（updated_at1789205356）。UI全体の目標・本番a1・検証証拠は保全、完了扱いもCPU目標への置換もしない。旧自動確認予算は再開せず、同じautomationはPAUSED。新しい判断の受領かユーザー明示再開が必要。詳細UI_PLAYER_COPY_RELEASE_20260912.md。以下は履歴。
+
 2026-09-12 18:06JST以降の現行状態: ユーザー再開で実Astra返答0eece1a5を受領し、022の追加1profile・一度限り検証を実行済み。54/55、最終allowlist/consoleは合格、revision/profileState一致、top-level名前比較のみ不一致。累計2profile・両失敗JSON保持、追加試行なし。固定SQL/Edge返却契約の不一致をoffline3/3再現し、証拠7708077を共有branchへpush、実依頼b39fb94dの全文送達を確認。023は8d4ca4bのAPPROVE_DOCSで文書承認待ちは解消。配備後保存ZIPのindex hashも現候補・公開証拠と一致するが、受入未合格のまま。現在は062の受入判定待ち、同じautomationはPAUSED、旧待機予算は閉鎖。実goalはユーザー再開後activeであり、以下の17:47blocked記録は前回の別境界の履歴。詳細UI_PLAYER_COPY_RELEASE_20260912.md。
 
 2026-09-12 17:47JST: 062の公開後最終3確認に必要な受入補完判断が未取得のまま3連続goal turnで継続。既存台帳と実PAUSED設定だけを再確認し、期限切れの再読取・追加profile・再試験をせず、規定どおりgoal APIをblockedへ変更・読戻し確認した（updated_at1789202836）。本番a1は維持、UI目標は未完了のまま保存。実Astraの補完判断またはユーザーの明示指示で再開する。詳細UI_GOAL_COMPLETION_AUDIT_20260912.md。以下は履歴。

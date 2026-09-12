@@ -1,5 +1,13 @@
 # UDL062 player-copy public release
 
+## Third resumed boundary: actual goal blocked
+
+CANON_RECEIPT version=shared-canon-v1.1 base=a1a9b1c830eceb98464b107f2442deacaf765505 request=UDL-20260912-062 specs=AGENTS.md,docs/SHARED_CANON.md,docs/CHATGPT_COLLABORATION_OPERATION.md,docs/CHATGPT_REVIEW_DECISIONS.json tests=scripts/check-commander-continuation.cjs worktree=.codex-worktrees/dev-brain-current-20260910 turn=01a094f2-0720-7c43-804e-4578e13989c0
+
+2026-09-12T09:29:16Z: fresh local state still has022 exhausted,023 approved docs,diagnosis requestb39fb94d delivered but no recorded subsequent disposition,old automatic deadline08:05:12Z closed,and actual automationPAUSED(updated_at1789204789116). Previous turn corroborated saved source but did not change the remaining acceptance action. No newprofile,reviewread,resend,producttest,SQL or deployment. This is no progress and not a verified live wait.
+
+The same fresh condition persisted through01a094d3-9834-78c0-9dcc-602cf88fdc41,01a094ed-dbb0-7f12-9554-01894edb0c52,and01a094f2-0720-7c43-804e-4578e13989c0. After that strict3turn threshold,actual update_goal(blocked) succeeded and get_goal readback confirmedblocked(updated_at1789205356). Full UI objective retained,not complete or replaced by CPU. This stops model-only no-progress continuations; genuine disposition or explicit user resumption can reopen the same task. Existing publisheda1 and both failed live reports remain unchanged.
+
 ## Saved-source corroboration at second resumed boundary
 
 CANON_RECEIPT version=shared-canon-v1.1 base=a1a9b1c830eceb98464b107f2442deacaf765505 request=UDL-20260912-062 specs=AGENTS.md,docs/SHARED_CANON.md,docs/CHATGPT_COLLABORATION_OPERATION.md,docs/UI_PLAYER_COPY_RELEASE_20260912.md tests=tests/governance-player-copy-profile-contract.test.cjs worktree=.codex-worktrees/dev-brain-current-20260910 turn=01a094ed-dbb0-7f12-9554-01894edb0c52
