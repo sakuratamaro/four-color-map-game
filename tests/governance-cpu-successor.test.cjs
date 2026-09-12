@@ -29,7 +29,12 @@ test("v7 additions map once without treating proposals as product implementation
   assert.equal(closed061.remaining_scheduled_slots, 0);
   assert.equal(closed061.expires_at_utc, "2026-09-12T02:24:00Z", "publication must not reset the original review deadline");
   assert.equal(closed061.followup_response_message_id, "c64ae754-9306-452b-83ad-0d9233eef7cc");
-  assert.equal(log.coordination.next_goal.actual_api_status, "blocked", "do not relabel the observed app goal status as active");
+  const goal = log.coordination.next_goal;
+  assert.equal(goal.actual_api_status, goal.actual_api_observation_history.at(-1).status,
+    "current label must match the latest real goal API receipt, not a desired state");
+  assert.equal(goal.actual_api_observation_history.at(-1).source, "get_goal");
+  assert.equal(goal.actual_api_observation_history.some(r => r.status === "blocked"), true,
+    "keep the prior blocked observation instead of rewriting history");
   assert.match(log.coordination.successor_goal.state, /^QUEUED_AFTER_UI/);
   assert.equal(log.coordination.remaining_brain_work.verified_zip_version, "v8");
   assert.equal(log.coordination.remaining_brain_work.unverified_zip_version, "v9");

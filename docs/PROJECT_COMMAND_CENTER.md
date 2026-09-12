@@ -8,6 +8,8 @@
 
 ## 司令塔ルール
 
+2026-09-12 17:30JST: 062は本番a1/Pages公開済み・受入PARTIAL。公開証拠8b90951と別のCI停止防止2file修正8d4ca4bを共有branchへpush、実依頼08917c24の17074文字全文送達を確認。最終取得はuser messageのみでAstraの新判定は未観測、追加profile未承認/未実行。元レビュー期限は再開せず、同じautomationの実PAUSED・保存prompt/target一致を確認。既存UIゴールはfresh get_goalでactiveと実読戻し、過去blocked表示と区別。CPU診断3blobは公開a1でも一致し、分割救済の候補除外箇所まで特定したがCPU変更はまだ行っていない。以下は履歴。
+
 2026-09-12 17:05JST: 実Astra020承認の062/a1を司令塔本人がmain・Pages34682215186へ公開。全job成功、公開preflight・index/app37 byte一致。1profileの公開52件PASS後server比較でFAILし、LIVE_ACCEPTANCE_PARTIALのまま保持。JSONキー順依存のharness欠陥をoffline再現・修正したが、実データ差分未保存のため合格へ読み替えない。別判定021はCI完了より先に承認が届く停止分岐だけを差戻し、局所修正・回帰検証中。061の94/94完了と実際の06:51:30Z自動通常起動は維持。詳細はUI_PLAYER_COPY_RELEASE_20260912.mdとCOMMANDER_CI_RACE_REPAIR_20260912.md。以下は過去snapshot。
 
 2026-09-12 15:39JST受信: 実Astra019（返答f2aebe0a）を原062予算の初回枠として1回取得。062/6f8は接色の説明文・対応static testだけのREQUEST_CHANGES。061/a757は別判定として追加1profileの修正canary一回を承認、まだ追加実行0。v9中継は既存担当から実送達を受領し出典IDを統合、ZIP未検証。15:25予約と前turn終了が重なり別自動起動は未観測だったため、終了時に過去／直前予約を拒否する回帰チェックを追加。既存heartbeatは15:50のNORMAL_WORKへ実設定・読戻し済み。受信処理は製品や本番を変更していない。
