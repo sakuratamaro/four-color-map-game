@@ -1,5 +1,9 @@
 # UDL062 player-copy public release
 
+Latest delivery receipt: fixed evidence `77080770757deae155d153583ab134c20d53e5a5` (13textfiles,noimages) was pushed to authorized `codex/dev-brain-current-20260910`; remote main remainsa1. Astra request `b39fb94d-9d9c-4349-9663-0233256beb92` contains the complete bounded-retry result and exact-source diagnosis. Second and final delivery read independently matched4998characters after removal of one terminal newline; task active, no agent decision yet. No resend,third delivery read,new review budget or thirdprofile. Original020 publication approval,022 exhausted retry and023 docs approval remain separate.
+
+Using OpenAI Docs and its [official scheduled-task guide](https://learn.chatgpt.com/docs/automations), the existing automation prompt was updated to preserve these consumed bounds and approved-docs status. Actual API+TOML readback statusPAUSED,targetexistingcommander,updated_at1789204789116,fullprompt equal. No new schedule/controller or future-execution claim. Genuine response or explicit user resumption is required for the remaining acceptance disposition. The user-resumed UI goal was actuallyactive and remains incomplete; prior blocked history is not a new current three-turn block.
+
 ## 2026-09-12 acceptance retry and source-contract diagnosis
 
 The genuine reply0eece1a5 to request08917c24 is saved separately as022 bounded acceptance and023 APPROVE_DOCS. The direct user-resumed NORMAL_WORK turn01a094d3-9834-78c0-9dcc-602cf88fdc41 executed the single022-authorized retry; no further live attempt is authorized.

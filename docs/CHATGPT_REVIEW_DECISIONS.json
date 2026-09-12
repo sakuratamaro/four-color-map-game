@@ -438,9 +438,9 @@
     },
     "automation_id": "automation",
     "automation_status_at_recording": "PAUSED",
-    "automation_readback_updated_at": 1789201783968,
+    "automation_readback_updated_at": 1789204789116,
     "automation_prompt_readback_equal": true,
-    "automation_pause_reason": "Original062 review received and immutable08:05:12Z budget closed; no reset for docs021 revision. Bounded delivery check2 reserved. Pending additional canary is not yet authorized.",
+    "automation_pause_reason": "062 single authorized retry consumed; source-contract diagnosis reported. No new automatic review budget; no repeat profile.023 docs approved, no docs hold.",
     "automation_active_reason": null,
     "completed_review_waits": [
       {
@@ -749,8 +749,8 @@
     "pending_subject_sha": "a1a9b1c830eceb98464b107f2442deacaf765505",
     "pending_scope": "Pages_only",
     "pending_delivery_status": "EXACT_17074_CHARACTER_BODY_CONFIRMED_RESPONSE_NOT_OBSERVED",
-    "last_confirmed_sent_message_id": "08917c24-e4c8-47b0-b7e9-bcd803c1238e",
-    "last_sent_message_id": "08917c24-e4c8-47b0-b7e9-bcd803c1238e",
+    "last_confirmed_sent_message_id": "b39fb94d-9d9c-4349-9663-0233256beb92",
+    "last_sent_message_id": "b39fb94d-9d9c-4349-9663-0233256beb92",
     "self_sent_message_ids": [
       "ef6f161d-f2b9-40c0-ab06-f6eacf4c4d38",
       "cefaccf8-2648-4d63-b7fe-5a4a78023ec2",
@@ -774,9 +774,10 @@
       "c0629536-84d4-45cf-b3b3-e02fbf97b7a4",
       "336393d6-5c0d-4294-810f-3a772f7b5bd6",
       "7bdcf425-9980-4e45-b616-5fd439781925",
-      "08917c24-e4c8-47b0-b7e9-bcd803c1238e"
+      "08917c24-e4c8-47b0-b7e9-bcd803c1238e",
+      "b39fb94d-9d9c-4349-9663-0233256beb92"
     ],
-    "sent_at_utc": "2026-09-12T07:20:05Z",
+    "sent_at_utc": "2026-09-12T09:17:37Z",
     "last_check_utc": "2026-09-12T08:30:15Z",
     "unchanged_checks": 0,
     "reminder_count": 0,
@@ -2088,14 +2089,14 @@
         "status": "PAUSED",
         "target_thread_id": "01a07b56-616e-7733-9aae-90575659688e",
         "rrule": "FREQ=DAILY;BYHOUR=16;BYMINUTE=45;BYSECOND=12",
-        "updated_at": 1789201783968,
+        "updated_at": 1789204789116,
         "created_at": 1789048677730,
         "prompt_exact_equal": true,
         "scheduled_for_utc": null,
         "readback_verified": true
       },
       "normal_work_claim": {
-        "state": "NORMAL_WORK_ACTIVE",
+        "state": "REPORT_COMPLETE_EXTERNAL_DISPOSITION_REQUIRED",
         "turn_id": "01a094d3-9834-78c0-9dcc-602cf88fdc41",
         "action": "REPORT_BOUNDED_RETRY_AND_SOURCE_CONTRACT_DIAGNOSIS",
         "subject_sha": "a1a9b1c830eceb98464b107f2442deacaf765505"
@@ -2105,7 +2106,7 @@
         "regression_tests": "42/42 PASS; skip0;638.46ms",
         "old_paused_state_guard": "Previously reproduced ORPHANED_ACTIONABLE_WORK; now also rejects past/under2minute calendar reservations and schedule-time mismatch.",
         "actual_scheduler_execution": "OBSERVED_SEPARATE_NORMAL_RUN_WITH_LIVE_WORK_RESULT",
-        "latest_tests": "Final receipt/state57/57 PASS;skip0;1328.2238ms;diff --check PASS;original failed live JSON unchanged against8b90951;end-turn checker exit0."
+        "latest_tests": "53/53PASS,skip0,817.6498ms. New one-run canary54/55FAIL saved; exact source-contract3/3PASS; not PUBLIC_VERIFIED."
       },
       "current_run": {
         "phase": "NORMAL_WORK",
@@ -2113,7 +2114,7 @@
         "turn_id": "01a094d3-9834-78c0-9dcc-602cf88fdc41",
         "started_at_utc": "2026-09-12T08:54:50Z",
         "actual_scheduled_run": false,
-        "state": "RETRY_FAILED_OFFLINE_DIAGNOSED_REPORTING"
+        "state": "COMPLETED_ONE_RETRY_AND_OFFLINE_DIAGNOSIS_REPORT_DELIVERED"
       },
       "missed_schedule_observation": {
         "scheduled_at_utc": "2026-09-12T06:25:12Z",
@@ -2164,15 +2165,15 @@
         "recovered_without_new_user_wait": true
       },
       "end_turn_guard": {
-        "at_utc": "2026-09-12T08:33:39Z",
-        "exit_code": 0,
+        "at_utc": "2026-09-12 09:21:18 UTC",
         "phase": "STOP",
         "reason": "NO_ELIGIBLE_REVIEW_OR_READY_WORK",
-        "errors": [],
         "actual_automation_status": "PAUSED",
-        "actual_setting_updated_at": 1789201783968,
+        "actual_setting_updated_at": 1789204789116,
         "prompt_exact_equal": true,
-        "note": "No valid review polling budget or authorized repeat canary. Pending response is not approval. Current published product remainsa1."
+        "note": "Actual end-turn checker STOP,exit0,errors[]. Extra profile cap consumed; original review budget remains closed. Separate trailing whitespace detected by diff check was corrected before final validation.",
+        "exit_code": 0,
+        "errors": []
       },
       "latest_receive_schedule_observation": {
         "scheduled_at_utc": "2026-09-12T07:45:12Z",
@@ -2185,12 +2186,15 @@
       "goal_blocked_audit": {
         "condition_id": "UDL062_RETRY_SERVER_ENVELOPE_DISPOSITION",
         "condition": "One permitted retry failed only envelope name comparison; source contract diagnosed. No further profile authorized.",
-        "consecutive_goal_turn_ids": [],
+        "consecutive_goal_turn_ids": [
+          "01a094d3-9834-78c0-9dcc-602cf88fdc41"
+        ],
         "threshold": 3,
         "current_turn_classification": "progress_actual_live_retry_and_offline_diagnosis",
         "previous_condition_resolved_by": "CHATGPT-REVIEW-20260912-022",
         "actual_goal_status": "active",
-        "no_further_profile_attempt": true
+        "no_further_profile_attempt": true,
+        "note": "Fresh boundary after actual retry and useful diagnosis. No goal-blocked mutation at this first boundary; do not inherit the old condition's3turns. Genuine Astra report is delivered/active at final bounded read but no automatic read budget."
       },
       "previous_run": {
         "phase": "NORMAL_WORK",
@@ -2222,7 +2226,37 @@
           "blocking_decision_source": "update_goal succeeded after the same boundary recurred for3consecutive goal turns; actual get_goal readback confirmedblocked.",
           "no_further_model_loop": true
         }
-      ]
+      ],
+      "acceptance_diagnosis_report": {
+        "state": "DELIVERED_AWAITING_GENUINE_DISPOSITION_NO_POLLING_BUDGET",
+        "evidence_sha": "77080770757deae155d153583ab134c20d53e5a5",
+        "product_sha": "a1a9b1c830eceb98464b107f2442deacaf765505",
+        "source_review_id": "CHATGPT-REVIEW-20260912-022",
+        "destination_thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
+        "send_attempts": 1,
+        "reserved_before_api": true,
+        "delivery_checks": 2,
+        "body_characters": 4999,
+        "new_polling_budget": false,
+        "additional_profiles_authorized": false,
+        "report": "docs/ASTRA_UI_COPY_RETRY_DIAGNOSIS_20260912.md",
+        "sent_at_utc": "2026-09-12T09:17:37Z",
+        "first_delivery_check_reserved": true,
+        "second_delivery_check_reserved": true,
+        "first_delivery_result": "Latest delivered pair still prior brain reply while task active; no resend.",
+        "request_message_id": "b39fb94d-9d9c-4349-9663-0233256beb92",
+        "delivery_full_body_verified": true,
+        "verified_characters": 4998,
+        "body_normalization": "Only one terminal newline removed by transport; all4998othercharacters exact.",
+        "delivery_result": "Second bounded read confirmed actual4998-character request while thread active; no agent response yet. Do not resend or perform third delivery read.",
+        "review_response_observed": false,
+        "transfer_status": {
+          "thread_id": "01a08d9e-ae35-7f70-a879-cb342dafef47",
+          "cursor": "c4058d32-8462-4822-8b6b-0b23463dbcb2:5",
+          "state": "ACTIVE_WAITING_ON_APPROVAL",
+          "note": "One compact snapshot, no repeated polling or inferred cause; newZIP not yet verified here."
+        }
+      }
     }
   },
   "decisions": [
