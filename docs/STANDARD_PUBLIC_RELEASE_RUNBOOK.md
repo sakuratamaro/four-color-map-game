@@ -166,7 +166,7 @@ rollbackも「旧version番号へ戻った」という目視だけでは完了�
 1. clean候補SHA・仕様blobを固定し、既存生成bundleの差分ゼロ、全非browser試験、UDL-048のChrome/Edge実browser試験とWindows gateを確認する。
    - 現在のブラウザー操作接続はtimeout、GitHub連携のPR作成は403。旧CI投入branchは候補の祖先ではないためforce更新しない。既存workflowのpush対象へ専用branch `codex/quiz-memo-calculator-20260912` だけを追加し、同一候補をWindows検証する。main・全branchへのtrigger拡大、権限追加、新workflowは行わない。
 2. 既存アストラ会話へ固定候補の全差分・仕様・試験証拠を渡す。候補SHA／仕様版・blob／DB `[]`／Edge `[]` に一致するゲーム公開判定が必要。文書承認や別候補の承認を流用しない。
-3. fresh `origin/main` が候補の祖先であることを再確認してforceなしでfast-forwardする。同一SHAのPages成功後、online app `app.js?v=20260913-41`、メモ4 JS `v=20260912-1`、CSS `v=20260912-2` を含め、公開byte/SHAを固定候補に突き合わせる。
+3. fresh `origin/main` が候補の祖先であることを再確認してforceなしでfast-forwardする。同一SHAのPages成功後、online app `app.js?v=20260913-42`、メモ4 JS `v=20260912-1`、CSS `v=20260912-2` を含め、公開byte/SHAを固定候補に突き合わせる。
 4. 公開candidate preflight、390pxとPC幅、実Lv.5クイズでメモON/OFF・描画・四則計算・同問reload保持・次問ACK後消去を確認する。サーバー状態・時計を注入せず、通信にメモが混入しないこと、console errorと横overflowがないことを記録する。
 5. 本番確認と物理端末受入を分ける。物理操作未実行は `NOT_RUN` のまま残す。問題時はPages-onlyの既知baselineへ戻す案を対象を明記して扱い、DBやEdgeを巻き戻さない。
 
@@ -276,7 +276,7 @@ Pages表示の退行は直前Pagesへ戻せる。適用済みcounterは旧client
 
 ### alpha.4彩色済みエリア角膨張便
 
-完了履歴。この便は新payloadを旧Edgeが拒否する一方、新Edgeは旧UIのoutgoing payloadを継続できるため、`alpha.4対応Edge → live canary → Pages`の順で公開した。後続の対戦報酬便、CPU台詞／地の文分離便、CPU選択前portrait便、終局復帰時の開始告知抑止便、パレット属性識別便、クイズ報酬券レベル引継ぎ候補を含む現在のPages候補assetはonline app `app.js?v=20260913-41`、CPU commentary `cpu-commentary.js?v=20260910-1`、progression `progression.css?v=20260910-2`、style `style.css?v=20260910-12`、intents `standard-online-skill-intents.js?v=20260911-21`、client `standard-online-client.js?v=20260910-1`、portrait `cpu-portraits.js?v=20260908-1`、Local bundle `app.bundle.js?v=20260910-8-79935a0310f2`である。このalpha.4便自体ではDB、migration、RPC、secret、cleanup scheduleは変更しない。
+完了履歴。この便は新payloadを旧Edgeが拒否する一方、新Edgeは旧UIのoutgoing payloadを継続できるため、`alpha.4対応Edge → live canary → Pages`の順で公開した。後続の対戦報酬便、CPU台詞／地の文分離便、CPU選択前portrait便、終局復帰時の開始告知抑止便、パレット属性識別便、クイズ報酬券レベル引継ぎ候補を含む現在のPages候補assetはonline app `app.js?v=20260913-42`、CPU commentary `cpu-commentary.js?v=20260910-1`、progression `progression.css?v=20260910-2`、style `style.css?v=20260910-12`、intents `standard-online-skill-intents.js?v=20260911-21`、client `standard-online-client.js?v=20260910-1`、portrait `cpu-portraits.js?v=20260908-1`、Local bundle `app.bundle.js?v=20260910-8-79935a0310f2`である。このalpha.4便自体ではDB、migration、RPC、secret、cleanup scheduleは変更しない。
 
 1. `origin/main@63972b6`起点の専用clean worktreeで両bundleを2回生成し、2回目のSHAが不変、正式全製品試験、Windows Chrome/Edge CI、対象実browserのskip 0を確認する。
 2. alpha.4対応bundleを保持したまま新規対局だけを`5.0.0-alpha.3`へ戻す互換rollback branchを作成・GitHub保全する。既存alpha.4 stateの読込み・継続と、alpha.3新規stateが彩色済みpayloadをwrite-free拒否することを確認する。
@@ -413,4 +413,4 @@ T0から24時間未満で実行した場合は`CAPTURE_INTERVAL_UNDER_24_HOURS` 
 
 UDL-067-surrender-v1は過去の長い投了ラベル／直接送信のみを置換する。短い「投了」から安全な取消を初期選択した確認へ進み、本人の明示肯定だけ既存SURRENDERを送る。既存の開始前取りやめ／対局を閉じる／終局理由を変えない。CPU台詞は公開IDへ固定、未知CPU／対人は汎用。確認中の対局版変更・端末非表示・切断・別タブで送信せず閉じる。
 
-app `20260913-41`、確認JS `20260913-1`。画像・DB・Edge・経済変更なし。正本仕様、純粋guard試験、両ブラウザーの誤送信/二重押し/同一ID再送試験、生成物差分ゼロ、同一SHAのWindows・実Astraが公開前条件。公開後試験のプロフィール/対局枠は別途同じ候補へ固定し、前便066の失敗や試験枠を流用しない。物理端末は未実施ならNOT_RUN。
+app `20260913-42`、確認JS `20260913-1`。画像・DB・Edge・経済変更なし。正本仕様、純粋guard試験、両ブラウザーの誤送信/二重押し/同一ID再送試験、生成物差分ゼロ、同一SHAのWindows・実Astraが公開前条件。公開後試験のプロフィール/対局枠は別途同じ候補へ固定し、前便066の失敗や試験枠を流用しない。物理端末は未実施ならNOT_RUN。
