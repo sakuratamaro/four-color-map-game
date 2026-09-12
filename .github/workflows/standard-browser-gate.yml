@@ -2,7 +2,7 @@ name: Standard browser gate
 
 on:
   push:
-    branches: [codex/standard-release-command, codex/quiz-memo-calculator-20260912, codex/ui-diet-20260912, codex/ui-play-surface-20260912, codex/ui-result-20260912, codex/ui-cosmetics-20260912]
+    branches: [codex/standard-release-command, codex/quiz-memo-calculator-20260912, codex/ui-diet-20260912, codex/ui-play-surface-20260912, codex/ui-result-20260912, codex/ui-cosmetics-20260912, codex/ui-player-copy-20260912]
     paths:
       - .github/workflows/standard-browser-gate.yml
       - online/supabase-config.js
@@ -159,6 +159,7 @@ jobs:
           tests/standard-play-surface-model.test.cjs
           tests/standard-result-continuation.test.cjs
           tests/standard-cosmetic-item-action.test.cjs
+          tests/standard-player-copy-static.test.cjs
           tests/standard-recolor.test.cjs
           tests/standard-cpu-browser.test.cjs
       - name: Run Standard local lifecycle browser tests serially

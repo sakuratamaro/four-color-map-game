@@ -727,11 +727,11 @@ function resolveQuizRoomClassification({ activePublicRoom = false } = {}) {
 
 function matchedRoomHandoffBlockReason() {
   if (!hasMatchedRoomHandoff()) return "";
-  if (gachaBusy) return "抽選結果、または同じ抽選IDで再送できる状態を確認してから対戦へ移ります。";
-  if (quizBusy) return "選んだ回答を同じ回答IDで確定してから対戦へ移ります。";
+  if (gachaBusy) return "抽選結果の確認が終わるか、結果を再確認できる状態になってから対戦へ移ります。";
+  if (quizBusy) return "選んだ回答の保存を確認してから対戦へ移ります。";
   if (Date.now() < quizFeedbackUntil) return "前問の○×を短く表示してから対戦へ移ります。";
   if (matchedRoomHandoff.waitForQuizBoundary && !matchedRoomHandoff.quizBoundaryReached) {
-    if (pendingQuiz?.pendingAnswer) return "選んだ回答を同じ回答IDで再送・確定してから対戦へ移ります。";
+    if (pendingQuiz?.pendingAnswer) return "選んだ回答の保存を確認してから対戦へ移ります。";
     if (pendingQuiz && pendingQuiz.answers.length < 10) return "いまの問題に回答したところで対戦へ移ります。次の問題の時計は開始しません。";
   }
   return "";
@@ -1413,7 +1413,7 @@ function renderTerminalResult(state) {
     ? "実験対戦のため、戦績・報酬・在庫は変わりません。"
     : progressWasSaved
     ? `戦績を保存しました：${resultLabel} ${won ? "勝利" : "敗北"} ${resultCount}${rewardText}`
-    : "戦績を同期しています。マイページで確認できます。";
+    : "戦績を確認しています。マイページでも確認できます。";
   if (resultReward) $("terminalGoGacha").textContent = `獲得したLv.${resultReward.ticketLevel}券でガチャへ`;
   show("terminalGoGacha", Boolean(resultReward));
   try { localStorage.setItem(TERMINAL_PRESENTED_KEY, eventKey); } catch { /* presentation still works when storage is unavailable */ }
@@ -1749,7 +1749,7 @@ function renderCosmetics() {
   if (!value || !projection) {
     $("collectionIdentity").textContent = value?.displayName || "PLAYER";
     $("cosmeticCoins").textContent = `🪙 ${Number(value?.coins || 0)}コイン`;
-    if (!cosmeticBusy) $("cosmeticStatus").textContent = synced ? "見た目一覧を読み込めませんでした。更新してください。" : "プロフィール同期後に利用できます。";
+    if (!cosmeticBusy) $("cosmeticStatus").textContent = synced ? "見た目一覧を読み込めませんでした。更新してください。" : "プレイヤー情報を読み込み中です。";
     renderCosmeticPendingControls();
     return;
   }
@@ -1994,7 +1994,7 @@ async function commitOnlineCardSale(retry = false) {
   } catch (error) {
     const remote = await client.readProfile().catch(() => null);
     if (remote) hydrateProfileRow(remote);
-    $("cardSaleStatus").textContent = "売却結果を確認できませんでした。同じ売却IDで安全に再送するか、やり直してください。";
+    $("cardSaleStatus").textContent = "売却結果を確認できませんでした。「前回の売却結果を確認」で確かめてください。";
     toast(error.message || "カード売却に失敗しました。");
   } finally { cardSaleBusy = false; renderProgression(); render(); }
 }
@@ -3018,7 +3018,7 @@ function renderQuiz() {
     stopQuizClock();
     const retry = document.createElement("button");
     retry.className = "primary quiz-answer-retry";
-    retry.textContent = quizBusy ? "回答を送信中…" : "同じ回答を再送";
+    retry.textContent = quizBusy ? "回答を送信中…" : "前回の回答を確認";
     retry.disabled = quizBusy || lockedByMatch;
     retry.onclick = submitPendingQuizAnswer;
     $("quizOptions").appendChild(retry);
@@ -3131,7 +3131,7 @@ async function submitPendingQuizAnswer() {
     $("quizStatus").textContent = result.duplicate ? "保存済みの回答を復元しました。" : "回答を保存しました。次の問題へ進みます。";
     shouldFinish = pendingQuiz.answers.length === 10;
   } catch (error) {
-    $("quizStatus").textContent = "回答を保存できませんでした。同じ回答で安全に再送できます。";
+    $("quizStatus").textContent = "回答の保存を確認できませんでした。「前回の回答を確認」で確かめてください。";
     toast(error.message || "クイズ回答の送信に失敗しました。");
   } finally {
     quizBusy = false;
@@ -3196,7 +3196,7 @@ async function runGacha(requestedCount = 1, retry = false) {
   } catch (error) {
     const remote = await client.readProfile().catch(() => null);
     if (remote) hydrateProfileRow(remote);
-    $("gachaStatus").textContent = "抽選結果を確認できませんでした。同じ抽選IDで安全に再試行できます。";
+    $("gachaStatus").textContent = "抽選結果を確認できませんでした。前回の抽選結果をもう一度確認できます。";
     toast(error.message || "ガチャに失敗しました。");
   } finally { gachaBusy = false; renderGacha(); render(); flushMatchedRoomHandoff(); }
 }
@@ -3281,7 +3281,7 @@ function renderLoadoutSelectionState(message = "") {
     ? `CPU「${cpuName}」とこの6枚で開始処理を再確認しています。選択内容は完了まで変更されません。`
     : `対戦相手：CPU「${cpuName}」。この画面ではまだ対戦は始まっていません。`;
   $("setupCommitTitle").textContent = actionPending ? "開始結果を安全に確認しています…"
-    : pendingSetup ? "前回の準備結果を同じ処理IDで再確認できます" : ready ? "6枚を選択済み・準備OK" : `あと${remaining}枚を選ぶと準備できます`;
+    : pendingSetup ? "前回の6枚の準備結果を確認できます" : ready ? "6枚を選択済み・準備OK" : `あと${remaining}枚を選ぶと準備できます`;
   $("setupCommitBar").classList.toggle("is-ready", ready);
   for (const input of document.querySelectorAll('#loadoutGrid input[type="checkbox"]')) {
     const label = input.closest(".loadout-option");
@@ -3291,7 +3291,7 @@ function renderLoadoutSelectionState(message = "") {
   }
   $("submitSetup").textContent = cpuDraft
     ? pendingCpuStartSaga ? "同じ開始処理を再確認" : `このCPU・6枚で対戦開始`
-    : roomlessWorkshop ? "この6枚を次戦候補に保存" : pendingSetup ? "同じ準備処理を再確認" : snapshot.setupRevision > 0
+    : roomlessWorkshop ? "この6枚を次戦候補に保存" : pendingSetup ? "前回の準備結果を確認" : snapshot.setupRevision > 0
       ? setupModeDirty ? "変更した設定・6枚で準備し直す" : "変更した6枚で準備し直す"
       : "この6枚で準備完了";
   $("submitSetup").disabled = actionPending || !ready;
@@ -3369,7 +3369,7 @@ const roomSync = onlineSyncFactory.createStandardOnlineSync({
   isVisible: () => document.visibilityState !== "hidden",
   isOnline: () => navigator.onLine,
   onConnectionState: (state) => {
-    if (state === "connected" || state === "realtime") badge("オンライン同期中", "good");
+    if (state === "connected" || state === "realtime") badge("接続済み", "good");
     else if (state === "offline") badge("オフライン（復帰待ち）", "warn");
     else badge("再接続中（自動再試行）", "warn");
   },
@@ -3377,7 +3377,7 @@ const roomSync = onlineSyncFactory.createStandardOnlineSync({
 
 function reflectBrowserConnectivity() {
   if (!navigator.onLine) badge("オフライン（復帰待ち）", "warn");
-  else if (!roomSync.snapshot().active && connected) badge("匿名ログイン済み", "good");
+  else if (!roomSync.snapshot().active && connected) badge("接続済み", "good");
 }
 
 function stopCpuTurnWatch() {
@@ -3534,7 +3534,7 @@ function render() {
   $("abandonRoom").textContent = pendingAbandon ? "取りやめ結果を再確認" : "開始前の対戦を取りやめる";
   $("abandonRoom").disabled = abandonBusy;
   const rematchPending = snapshot.rematchExpectedVersion === roomModel?.room?.version;
-  $("requestRematch").textContent = rematchPending ? "同じ再戦申請を再送" : cpuRoom ? "同じCPUと再戦する" : "再戦を申し込む";
+  $("requestRematch").textContent = rematchPending ? "前回の再戦申請を確認" : cpuRoom ? "同じCPUと再戦する" : "再戦を申し込む";
   $("requestRematch").disabled = rematchBusy || roomModel?.room?.status !== "finished";
   $("rematchStatus").textContent = cpuRoom ? "CPUの状態だけを初期化し、あなたは6枚セットを選び直します。" : rematchPending ? "再戦を申請済みです。相手の申請を待っています。" : "両プレイヤーの申請後、6枚セットを選び直します。";
   $("members").replaceChildren(...(roomModel?.members || []).map((member) => {
@@ -4426,8 +4426,8 @@ function activateRegionSplitMacro(state, macro) {
 function activateCornerBloomCell(state, micro) {
   if (targetDraft?.kind !== "corner-bloom" || actionBusy) return false;
   if (pendingAction) {
-    setSkillTargetFeedback("前の角膨張の結果を確認中です。別のセルは送らず、「同じ操作を再送」で確認してください。", "error");
-    announceBoardSelection("前の角膨張を同じ操作IDで再送してください。");
+    setSkillTargetFeedback("前の角膨張の結果を確認中です。別のセルは送らず、「前回の操作結果を確認」で確認してください。", "error");
+    announceBoardSelection("「前回の操作結果を確認」で、前の角膨張が反映されたか確かめてください。");
     render();
     requestAnimationFrame(() => $("retryAction")?.focus({ preventScroll: true }));
     return false;
@@ -4858,7 +4858,7 @@ function renderTurnGuide(state) {
   };
   if (state.status !== "ACTIVE" || targetDraft) return show("turnGuide", false);
   if (actionBusy) return present("wait", "送信中", "サーバーで操作を確認しています", "結果が返るまで、そのままお待ちください。");
-  if (pendingAction) return present("ready", "再送", "前の操作の結果を確認します", "下の「同じ操作を再送」で、同じ操作IDのまま安全に確認できます。");
+  if (pendingAction) return present("ready", "結果確認", "前の操作の結果を確認します", "下の「前回の操作結果を確認」で、前の操作が反映されたか確かめられます。");
   if (!myTurn && cpuRoom && state.active === "B" && state.phase === "CREATE_FIRST") {
     return present("wait", rolePath, "CPUが最初のエリアを選んでいます", "次は、受け取った灰色エリアを盤面の下にある持ち色から塗ります。");
   }
@@ -5153,7 +5153,7 @@ async function sendAction(type, payload = {}, retry = false) {
         setSkillTargetFeedback(`${safeMessage} カードと手番は減っていません。別の紫枠を選べます。`, "error");
       }
     } else {
-      operationFeedback("actionStatus", `${safeMessage} 下の「同じ操作を再送」で結果を確認してください。`, "retry");
+      operationFeedback("actionStatus", `${safeMessage} 下の「前回の操作結果を確認」で結果を確認してください。`, "retry");
     }
     revealOperationFeedback("actionStatus");
     toast(safeMessage);
@@ -5185,10 +5185,10 @@ async function syncSelectedProfile() {
       const created = await client.syncProfile({ displayName: displayName(), profileState: value });
       persistRemoteProfile(created.profileState || value, created.displayName || displayName(), Number(created.revision));
     }
-    synced = true; badge("プロフィール同期済み", "good"); renderProfile(); render();
+    synced = true; badge("プレイヤー情報を保存しました", "good"); renderProfile(); render();
     await refreshOnlineCosmetics({ quiet: true });
     if (hasCpuEntryIntent()) await openCpuRoster("direct", $("startStandardCpuHome"));
-  } catch (error) { toast(error.message || "同期に失敗しました。"); }
+  } catch (error) { toast(error.message || "保存できませんでした。通信環境を確認して、もう一度お試しください。"); }
   finally { profileSyncBusy = false; renderProfile(); }
 }
 
@@ -5478,7 +5478,7 @@ function guardNewMatchEntry(options = {}) {
     revealOperationFeedback("matchmakingStatus");
     requestAnimationFrame(() => $("matchmakingStatus").focus({ preventScroll: true }));
   } else {
-    operationFeedback("matchmakingStatus", "直前の検索結果を同じ検索IDで確認中です。新しい検索は開始しません。");
+    operationFeedback("matchmakingStatus", "直前の検索結果を確認中です。新しい検索は開始しません。");
     revealOperationFeedback("matchmakingStatus");
     requestAnimationFrame(() => $("matchmakingStatus").focus({ preventScroll: true }));
   }
@@ -5642,8 +5642,8 @@ async function runPendingCpuStartSaga({ focusOnSuccess = false, expectedInteract
   let saga = pendingCpuStartSaga;
   cpuStartSagaBusy = true;
   operationFeedback("setupStatus", saga.stage === "setup"
-    ? "作成済みCPU戦へ、同じ6枚確認IDだけを再送しています…"
-    : "CPU対戦の開始結果を同じ処理IDで確認しています…");
+    ? "作成済みのCPU戦で、6枚の準備結果を確認しています…"
+    : "CPU対戦が始まったか確認しています…");
   renderLoadoutSelectionState();
   try {
     if (saga.stage === "start") {
@@ -5686,7 +5686,7 @@ async function runPendingCpuStartSaga({ focusOnSuccess = false, expectedInteract
     toast("CPUと6枚を確認し、対戦を一度だけ開始しました。");
     return true;
   } catch (error) {
-    const message = error?.message || "CPU対戦の開始結果を確認できませんでした。同じ開始処理を再送できます。";
+    const message = error?.message || "CPU対戦の開始結果を確認できませんでした。前回の開始結果をもう一度確認できます。";
     const roomId = client.snapshot().roomId;
     if (roomId) setupFailure = { roomId, message };
     operationFeedback("setupStatus", message, "error");
@@ -5779,7 +5779,7 @@ async function findPublicOpponent({ resumePending = false, waitIfNone = false } 
     $("matchmakingStatus").textContent = startWaiting ? "相手が来るのを待っています…" : "今は相手が見つかりませんでした。もう一度探せます。";
   } catch (error) {
     if (await recoverServerActiveRoom({ focusOnSuccess: true }).catch(() => false)) return;
-    $("matchmakingStatus").textContent = "検索結果を確認できませんでした。同じ検索IDで再試行します。";
+    $("matchmakingStatus").textContent = "検索結果を確認できませんでした。前回の検索結果をもう一度確認します。";
     toast(error.message || "今入れる試合を探せませんでした。");
   } finally { matchmakingBusy = false; render(); }
   // Only a successful empty search from this explicit click may start waiting.
@@ -5842,7 +5842,7 @@ async function submitSetup() {
   const startingRoomStatus = roomModel?.room?.status;
   const interactionRevision = userInteractionRevision;
   setupBusy = true; setupFailure = null;
-  operationFeedback("setupStatus", pendingSetup ? "同じ準備処理IDで保存結果を再確認中…" : "6枚セットをサーバーで確認中…");
+  operationFeedback("setupStatus", pendingSetup ? "前回の6枚の準備結果を確認中…" : "6枚セットを確認しています…");
   renderLoadoutSelectionState();
   const debugMode = pendingSetup ? pendingSetup.debugMode : $("debugUnlimitedMode")?.checked === true;
   const labMode = pendingSetup ? pendingSetup.labMode : $("legalRecolorLabMode")?.checked === true;
@@ -5931,7 +5931,7 @@ function openRoomAbandonDialog(trigger = document.activeElement) {
   const retrying = abandonExpectedVersion(snapshot.roomId) !== null;
   $("confirmAbandonRoom").textContent = retrying ? "同じ取りやめ処理を再確認" : "無報酬で対戦を取りやめる";
   operationFeedback("abandonRoomStatus", retrying
-    ? "前回の応答を確認できませんでした。同じ処理を再送して結果を確認できます。"
+    ? "前回の結果を確認できませんでした。もう一度、結果を確かめられます。"
     : "");
   if (!$("abandonRoomDialog").open) $("abandonRoomDialog").showModal();
   requestAnimationFrame(() => $("abandonRoomTitle").focus({ preventScroll: true }));
@@ -6041,7 +6041,7 @@ async function requestRematch() {
     toast(cpuRoom || result.ready_to_setup ? "再戦用の6枚セットを選んでください。" : "再戦を申請しました。相手を待っています。");
     await roomSync.refreshNow();
   } catch (error) {
-    toast(error.message || "再戦を申請できませんでした。同じIDで再送できます。");
+    toast(error.message || "再戦の申請結果を確認できませんでした。再戦ボタンからもう一度確認できます。");
     await roomSync.refreshNow().catch(() => {});
   } finally {
     rematchBusy = false; render();
@@ -6300,8 +6300,8 @@ try {
   const session = await client.ensureSession();
   connected = true;
   scheduleMatchmakingAvailability(250);
-  $("connectionMessage").textContent = `端末ユーザー ${session.user.id.slice(0, 8)}…`;
-  badge("匿名ログイン済み", "good");
+  $("connectionMessage").textContent = "ゲームに接続できました。";
+  badge("接続済み", "good");
   reflectBrowserConnectivity();
   const remote = await client.readProfile();
   if (remote) { hydrateProfileRow(remote); synced = true; }
@@ -6337,5 +6337,5 @@ try {
   if (pendingQuiz?.pendingAnswer && pendingQuiz?.answerMode === "per-question-v1") submitPendingQuizAnswer();
   else if (pendingQuiz?.answers?.length === 10) finishOnlineQuiz();
 } catch (error) {
-  badge("接続失敗", "bad"); reflectBrowserConnectivity(); $("connectionMessage").textContent = "Supabaseへ接続できません。匿名ログイン設定を確認してください。"; console.error(error);
+  badge("接続失敗", "bad"); reflectBrowserConnectivity(); $("connectionMessage").textContent = "ゲームに接続できません。通信環境を確認して、ページを開き直してください。"; console.error(error);
 }

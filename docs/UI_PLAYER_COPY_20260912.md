@@ -1,0 +1,11 @@
+# Player-facing recovery and connection copy
+
+Version: UDL-062-copy-v1
+
+CANON_RECEIPT version=shared-canon-v1.1 base=0b5d0b2ea7ab510ce107bfc2477e2e275f9a9125 public_floor=d6f745d3f1291457539dd2f3476e9a749a547069 request=UDL-20260912-062 specs=docs/SHARED_CANON.md,docs/UI_DIET_PREPARATION_20260912.md,docs/BRAIN_V8_PAIRED_INTAKE_20260912.json tests=tests/standard-player-copy-static.test.cjs,tests/standard-online-browser.test.cjs worktree=.codex-worktrees/ui-player-copy-20260912
+
+User sourcebbb21715-8ab0-4dfb-ad2f-b46883434765 and paired designc1c1a98e-749e-42ec-8a95-2ef30abd5035 request ordinary words describing outcomes and next actions. This small slice covers connection/profile, saved-result waiting, quiz/draw handoff, setup/CPU-start, sale/rematch/action retry. Replace session/ID/retry jargon with previous-result verification, not a new operation. Hide no failures and promise no unsaved success. The diagnostics remain an initially closed details element with clearly distinguished public/own-private projections; account UUID is no longer placed in the normal connection paragraph.
+
+Product changes are displayed strings only, plus app cache35. Keep exact state transitions, action IDs, storage keys, server ACK, error logging, connectivity handling, one-retry identity, matched-room deferral, room/history/inventory/ticket ownership unchanged. Preserve prices, odds access, rules, credits, palette-cause notice and public-history limitations. Existing052/054/063 already fold setup/history under the play area; do not reimplement that layout or infer new UDL057 historical data.
+
+Acceptance: ordinary connection text on all tabs, offline warning/recovery without storage change; saved-result pending text never implies award before persistence; old pending setup/action/sale/rematch/answer uses the identical prior operation after reload; diagnostics stay closed until explicitly opened and private projection remains self-only. Exercise existing browser regressions at390/1280 and required Windows gates. This is local implementation, not release approval or physical acceptance. Pages_only, DB/Edge[]. Parent060/061 must finish their own exact release gates before this successor.

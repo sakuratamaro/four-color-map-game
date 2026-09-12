@@ -1981,7 +1981,7 @@ test("hidden new-match handlers allocate no action and make no RPC while another
     await page.evaluate(() => { globalThis.__standardOnlineRuntime.failNextFindResponse = true; });
     await page.locator("#choosePublicBattle").click();
     await page.getByRole("button", { name: "相手を探す", exact: true }).click();
-    await page.getByText("検索結果を確認できませんでした。同じ検索IDで再試行します。").waitFor();
+    await page.getByText("検索結果を確認できませんでした。前回の検索結果をもう一度確認します。").waitFor();
     await page.evaluate(async () => {
       for (const id of ["startStandardCpuHome", "startStandardCpuLobby"]) {
         const node = document.getElementById(id);
@@ -2186,6 +2186,8 @@ test("actual Edge keeps one connection status visible across tabs and reflects o
     const badgeNode = page.locator("#connectionBadge");
     const messageNode = page.locator("#connectionMessage");
     assert.equal(await badgeNode.count(), 1);
+    assert.equal(await badgeNode.textContent(), "接続済み");
+    assert.equal(await messageNode.textContent(), "ゲームに接続できました。");
     for (const [label, tab] of [["ホーム", "home"], ["対戦", "battle"], ["クイズ・ガチャ", "quiz"], ["カード", "cards"], ["マイページ", "profile"]]) {
       await page.getByRole("button", { name: label, exact: true }).click();
       await badgeNode.waitFor({ state: "visible" });
@@ -2221,6 +2223,23 @@ test("actual Edge keeps one connection status visible across tabs and reflects o
   });
 });
 
+test("UDL062 readable diagnostics stay optional and preserve existing projections", { timeout: 130000 }, async () => {
+  for(const width of [390,1280])await withPage("playing",async page=>{
+    const details=page.locator("details.sync-details");
+    assert.equal(await details.getAttribute("open"),null);
+    assert.equal(await details.locator("summary").textContent(),"接続の詳細（調査用）");
+    const before=await page.evaluate(()=>globalThis.__standardOnlineRuntime.calls.filter(c=>c.body?.operation==="action").length);
+    await details.locator("summary").click();
+    await page.locator("#publicProjection").waitFor();
+    assert.ok((await page.locator("#publicProjection").textContent()).length>0);
+    assert.ok((await page.locator("#privateProjection").textContent()).length>0);
+    assert.equal(await page.evaluate(()=>globalThis.__standardOnlineRuntime.calls.filter(c=>c.body?.operation==="action").length),before);
+    await details.locator("summary").click();
+    assert.equal(await details.getAttribute("open"),null);
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+  },{viewport:{width,height:900}});
+});
+
 test("actual Edge reuses a persisted rematch ID and returns to fresh setup", { timeout: 130000 }, async () => {
   await withPage("finished", async (page) => {
     const terminal = page.locator("#terminalOverlay");
@@ -2229,7 +2248,7 @@ test("actual Edge reuses a persisted rematch ID and returns to fresh setup", { t
     await page.locator("#connectionBadge.good").waitFor({ state: "visible" });
     await page.locator("#room:not(.hidden)").waitFor();
     assert.equal(await terminal.isVisible(), false);
-    await page.getByRole("button", { name: "同じ再戦申請を再送" }).click();
+    await page.getByRole("button", { name: "前回の再戦申請を確認" }).click();
     await page.locator("#setupCard:not(.hidden)").waitFor();
     const evidence = await page.evaluate(({ key, expectedId }) => {
       const stored = JSON.parse(localStorage.getItem(key));
@@ -2687,7 +2706,7 @@ test("actual browser activates Region Split from one normal board cell without I
     });
     await board.click({ position: { x: box.width * (1.5 / 4), y: box.height * (1.5 / 4) } });
     await board.click({ position: { x: box.width * (1.5 / 4), y: box.height * (1.5 / 4) }, force: true });
-    await page.locator("#actionStatus").getByText(/同じ操作を再送/).waitFor();
+    await page.locator("#actionStatus").getByText(/前回の操作結果を確認/).waitFor();
     let actions = await page.evaluate(() => globalThis.__standardOnlineRuntime.calls
       .filter((entry) => entry.body?.operation === "action").map((entry) => entry.body.action));
     assert.equal(actions.length, 1);
@@ -3005,7 +3024,7 @@ test("actual browser sends alpha.4 corner bloom from one pointer cell, ignores o
     });
     await board.click({ position: { x: box.width / 96, y: box.height / 96 } });
     await board.click({ position: { x: box.width / 96, y: box.height / 96 }, force: true });
-    await page.locator("#actionStatus").getByText(/同じ操作を再送/).waitFor();
+    await page.locator("#actionStatus").getByText(/前回の操作結果を確認/).waitFor();
     let actions = await page.evaluate(() => globalThis.__standardOnlineRuntime.calls
       .filter((entry) => entry.body?.operation === "action").map((entry) => entry.body.action));
     assert.equal(actions.length, 1);
@@ -3013,7 +3032,7 @@ test("actual browser sends alpha.4 corner bloom from one pointer cell, ignores o
     const first = structuredClone(actions[0]);
     assert.equal(await board.getAttribute("tabindex"), "-1");
     await board.click({ position: { x: box.width * (1.5 / 48), y: box.height * (.5 / 48) }, force: true });
-    assert.match(await page.locator("#actionStatus").textContent(), /同じ操作を再送/);
+    assert.match(await page.locator("#actionStatus").textContent(), /前回の操作結果を確認/);
     actions = await page.evaluate(() => globalThis.__standardOnlineRuntime.calls
       .filter((entry) => entry.body?.operation === "action").map((entry) => entry.body.action));
     assert.equal(actions.length, 1);
@@ -3348,7 +3367,7 @@ test("actual Edge keeps a lost lab setup immutable across reload and retries the
     await page.locator("#setupCard:not(.hidden)").waitFor();
     await labToggle.check();
     await page.getByRole("button", { name: "この6枚で準備完了" }).click();
-    await page.getByRole("button", { name: "同じ準備処理を再確認" }).waitFor();
+    await page.getByRole("button", { name: "前回の準備結果を確認" }).waitFor();
     const pending = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)).pendingSetup, connectionKey);
     assert.equal(pending.labMode, true);
     assert.match(pending.setupActionId, /^[0-9a-f-]{36}$/i);
@@ -3357,13 +3376,13 @@ test("actual Edge keeps a lost lab setup immutable across reload and retries the
 
     await page.reload({ waitUntil: "load" });
     await page.locator("#connectionBadge.good").waitFor();
-    await page.getByRole("button", { name: "同じ準備処理を再確認" }).waitFor();
+    await page.getByRole("button", { name: "前回の準備結果を確認" }).waitFor();
     assert.equal(await labToggle.isChecked(), true);
     assert.equal(await labToggle.isDisabled(), true);
     const beforeRetry = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)).pendingSetup, connectionKey);
     assert.deepEqual(beforeRetry, pending);
 
-    await page.getByRole("button", { name: "同じ準備処理を再確認" }).click();
+    await page.getByRole("button", { name: "前回の準備結果を確認" }).click();
     await page.getByText("準備完了。相手を待っています。開始前なら6枚を変更できます。", { exact: true }).waitFor();
     const evidence = await page.evaluate(async (key) => ({
       connection: JSON.parse(localStorage.getItem(key)),
@@ -3472,7 +3491,7 @@ test("actual Edge gacha persists one server draw and immediately hydrates invent
     await page.locator("#gachaPanel:not(.hidden)").waitFor();
     await page.evaluate(() => { globalThis.__standardOnlineRuntime.failNextGacha = true; });
     await page.getByRole("button", { name: "1枚引く" }).click();
-    await page.getByText("抽選結果を確認できませんでした。同じ抽選IDで安全に再試行できます。").waitFor();
+    await page.getByText("抽選結果を確認できませんでした。前回の抽選結果をもう一度確認できます。").waitFor();
     assert.equal(await page.locator("#gachaDrawOne").isDisabled(), true);
     assert.equal(await page.locator("#gachaDrawAll").isDisabled(), true);
     const failedActionId = await page.evaluate(() => JSON.parse(localStorage.getItem("fourColorMapGame.standard.online.v5.pending-gacha")).actionId);
@@ -3734,12 +3753,12 @@ test("per-question quiz feedback commits before advancing, retries the same answ
     await page.locator("#quizOptions button").first().waitFor();
     await page.evaluate(() => { globalThis.__standardOnlineRuntime.failNextQuizAnswer = true; });
     await clickMovingQuizOption(page.locator("#quizOptions button").first());
-    await page.getByText("回答を保存できませんでした。同じ回答で安全に再送できます。", { exact: true }).waitFor();
+    await page.getByText("回答の保存を確認できませんでした。「前回の回答を確認」で確かめてください。", { exact: true }).waitFor();
     assert.equal(await page.locator("#quizProgress").textContent(), "1 / 10");
     const pendingBeforeRetry = await page.evaluate(() => JSON.parse(localStorage.getItem("fourColorMapGame.standard.online.v5.pending-quiz"))?.pendingAnswer);
     assert.match(pendingBeforeRetry.actionId, /^[0-9a-f-]{36}$/i);
 
-    await page.getByRole("button", { name: "同じ回答を再送" }).click();
+    await page.getByRole("button", { name: "前回の回答を確認" }).click();
     await page.getByText("2 / 10", { exact: true }).waitFor();
     const feedback = page.locator("#quizAnswerFeedback");
     assert.equal(await feedback.textContent(), "前問 Q1：○ 正解！なるほど：1 + 1 = 2");
@@ -3803,9 +3822,9 @@ test("quadratic names the smaller root visibly and restored progress counts only
 
     await page.evaluate(() => { globalThis.__standardOnlineRuntime.failNextQuizAnswer = true; });
     await clickMovingQuizOption(page.locator("#quizOptions button").nth(1));
-    await page.getByText("回答を保存できませんでした。同じ回答で安全に再送できます。", { exact: true }).waitFor();
+    await page.getByText("回答の保存を確認できませんでした。「前回の回答を確認」で確かめてください。", { exact: true }).waitFor();
     assert.match(await page.locator("#quizConfirmedProgress").textContent(), /0\/0正解/);
-    await page.getByRole("button", { name: "同じ回答を再送" }).click();
+    await page.getByRole("button", { name: "前回の回答を確認" }).click();
     await page.getByText(/前問 Q1：× おしい　正解：2/).waitFor();
     assert.match(await page.locator("#quizConfirmedProgress").textContent(), /0\/1正解/);
     outlookLayouts.push(await readOutlookLayout());
@@ -4932,7 +4951,7 @@ test("CPU reward copy requires a saved CPU settlement", { timeout: 150000 }, asy
     assert.equal(await page.locator("#terminalGoGacha").isHidden(), true);
   });
   await withPage("finishedCpu", async (page) => {
-    await page.getByText("戦績を同期しています。マイページで確認できます。").waitFor();
+    await page.getByText("戦績を確認しています。マイページでも確認できます。").waitFor();
     assert.doesNotMatch(await page.locator("#terminalProgressText").textContent(), /完了報酬/);
     assert.equal(await page.locator("#terminalGoGacha").isHidden(), true);
     await page.evaluate(() => {
@@ -5635,7 +5654,7 @@ test("actual Edge presents public seals and blocks every stale paint path withou
 
     await page.evaluate(() => { globalThis.__standardOnlineRuntime.failNextColorAction = true; });
     await red.click();
-    await page.locator("#actionStatus").getByText(/サーバーの応答を確認できませんでした。.*同じ操作を再送/).waitFor();
+    await page.locator("#actionStatus").getByText(/サーバーの応答を確認できませんでした。.*前回の操作結果を確認/).waitFor();
     assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "action").length), 1);
 
     await page.locator('#paletteControls .color-button[data-color="red"]').focus();
@@ -5665,7 +5684,7 @@ test("actual Edge presents public seals and blocks every stale paint path withou
     await page.keyboard.press("Enter");
     await page.evaluate(() => globalThis.__staleRedButton.onclick());
     await page.getByText("赤は封印中です。", { exact: true }).waitFor();
-    await page.getByRole("button", { name: "同じ操作を再送" }).click();
+    await page.getByRole("button", { name: "前回の操作結果を確認" }).click();
     await page.getByText("🔒 赤は封印中です。別の色を選んでください。").waitFor();
     assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "action").length), 1);
 

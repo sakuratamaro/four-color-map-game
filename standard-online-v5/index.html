@@ -35,7 +35,7 @@
     <section id="connectionCard" class="card connection-card" data-app-tab-panel="home battle quiz cards profile">
       <div id="connectionStatus" role="status" aria-live="polite" aria-atomic="true">
         <div class="row between"><strong>接続状態</strong><span id="connectionBadge" class="badge warn">接続中</span></div>
-        <p id="connectionMessage" class="muted">匿名セッションを準備しています。</p>
+        <p id="connectionMessage" class="muted">ゲームに接続しています。</p>
       </div>
       <p id="matchedRoomAnnouncement" class="visually-hidden" role="status" aria-live="polite" aria-atomic="true"></p>
       <div id="matchedRoomHandoff" class="matched-room-handoff hidden">
@@ -226,7 +226,7 @@
           <label>枚数<input id="cardSaleCount" type="number" min="1" max="100" value="1" inputmode="numeric"></label>
           <button id="cardSaleQuote">売却内容を確認</button>
           <button id="cardSaleCommit" class="primary hidden">この内容で売る</button>
-          <button id="cardSaleRetry" class="ghost hidden">同じ売却を再送</button>
+          <button id="cardSaleRetry" class="ghost hidden">前回の売却結果を確認</button>
           <button id="cardSaleReset" class="ghost hidden">売却をやり直す</button>
         </div>
         <p id="cardSaleStatus" class="callout" aria-live="polite">カードと枚数を選んでください。</p>
@@ -386,7 +386,7 @@
       <p id="playViewportHint" class="small muted hidden">画面が低いときは、縦向き表示かスクロールで盤面と持ち色を確認できます。細かなマスは「盤面を拡大」で選べます。</p>
       </div>
       <p id="actionStatus" class="muted operation-feedback" role="status" aria-live="polite" aria-atomic="true"></p>
-      <button id="retryAction" class="primary hidden">同じ操作を再送</button>
+      <button id="retryAction" class="primary hidden">前回の操作結果を確認</button>
       <h3 class="hand-heading">あなたの6枚</h3>
       <div id="skillControls" class="skills"></div>
       <div id="skillTargetControls" class="target-panel hidden"></div>
@@ -416,13 +416,13 @@
         <button id="surrender" class="danger compact-danger">敗北として投了する</button>
       </div>
       <details class="sync-details">
-        <summary>上級者向け：同期データを表示</summary>
+        <summary>接続の詳細（調査用）</summary>
         <div class="projection-grid">
           <div><h3>全員に見える対戦データ</h3><pre id="publicProjection"></pre></div>
           <div><h3>自分だけに見える対戦データ</h3><pre id="privateProjection"></pre></div>
         </div>
       </details>
-      <p class="muted small">基本操作はサーバーで判定されます。エリアを確定する前は隣接色数や合法色の答えを表示せず、確定後の公開結果だけを振り返れます。</p>
+      <p class="muted small">エリアを確定する前は、隣接色の数や塗れる色の答えは表示しません。確定後の結果は「直前の一手」で確認できます。</p>
     </section>
   </main>
   <div id="terminalOverlay" class="terminal-overlay hidden" aria-live="assertive">
@@ -531,6 +531,6 @@
   <script src="cpu-portraits.js?v=20260908-1"></script>
   <script src="cpu-commentary.js?v=20260910-1"></script>
   <script src="basic-feedback.js?v=20260908-2"></script>
-  <script type="module" src="app.js?v=20260912-34"></script>
+  <script type="module" src="app.js?v=20260912-35"></script>
 </body>
 </html>

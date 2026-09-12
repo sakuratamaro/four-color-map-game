@@ -81,7 +81,7 @@ test("CPU commentary is public-event-only, bounded, non-blocking, and terminal-p
   assert.match(html, /standard-online-client\.js\?v=20260910-1/);
   assert.match(html, /standard-online-skill-intents\.js\?v=20260911-21/);
   assert.match(html, /cpu-commentary\.js\?v=20260910-1/);
-assert.match(html, /app\.js\?v=20260912-34/);
+assert.match(html, /app\.js\?v=20260912-35/);
   assert.match(app, /cpuCommentary\?\.VERSION !== "standard-cpu-commentary-v3"/);
   assert.ok(html.indexOf("cpu-commentary.js") < html.indexOf('type="module" src="app.js'));
   assert.match(html, /id="cpuCommentaryStage"[^>]+aria-hidden="true"/);
@@ -151,7 +151,7 @@ test("fresh players can finish profile setup inside the battle tab without autom
   assert.match(app, /function renderProfileCardVisibility\(\) \{ show\("profileCard", activeAppTab === "profile" \|\| !synced\); \}/);
   assert.match(app, /document\.body\.dataset\.activeTab = tab;\s*renderProfileCardVisibility\(\);/);
   assert.match(app, /function render\(\) \{\s*renderProfileCardVisibility\(\);/);
-  assert.match(app, /synced = true; badge\("プロフィール同期済み", "good"\); renderProfile\(\); render\(\);/);
+  assert.match(app, /synced = true; badge\("プレイヤー情報を保存しました", "good"\); renderProfile\(\); render\(\);/);
   const syncProfile = app.slice(app.indexOf("async function syncSelectedProfile()"), app.indexOf("function matchmakingWaitSeconds()"));
   assert.doesNotMatch(syncProfile, /(?:createRoom|joinRoom|recruitPublicOpponent|findPublicOpponent|acceptCpuCharacter)\s*\(/);
 });
@@ -178,7 +178,7 @@ test("connection status stays singular, live, and visible across every app tab",
   assert.match(css, /body\[data-active-tab\]:not\(\[data-active-tab="home"\]\) \.connection-card\{position:fixed/);
   assert.match(css, /pointer-events:none/);
   assert.match(css, /bottom:calc\(88px \+ env\(safe-area-inset-bottom\)\)/);
-  assert.match(app, /function reflectBrowserConnectivity\(\) \{\s*if \(!navigator\.onLine\) badge\("オフライン（復帰待ち）", "warn"\);\s*else if \(!roomSync\.snapshot\(\)\.active && connected\) badge\("匿名ログイン済み", "good"\);\s*\}/);
+  assert.match(app, /function reflectBrowserConnectivity\(\) \{\s*if \(!navigator\.onLine\) badge\("オフライン（復帰待ち）", "warn"\);\s*else if \(!roomSync\.snapshot\(\)\.active && connected\) badge\("接続済み", "good"\);\s*\}/);
   assert.match(app, /addEventListener\("online", \(\) => \{ roomSync\.handleConnectivityChange\(\); reflectBrowserConnectivity\(\);/);
   assert.match(app, /addEventListener\("offline", \(\) => \{ roomSync\.handleConnectivityChange\(\); reflectBrowserConnectivity\(\);/);
 });
@@ -461,7 +461,7 @@ test("existing online progression is hydrated from the server rather than re-upl
 
 test("UI derives its canonical and experimental card metadata from the generated registry", () => {
   assert.equal(Object.values(STANDARD_SKILLS).filter((skill) => skill.v49Catalogued).length, 19);
-  assert.match(html, /standard-skill-registry\.generated\.js\?v=20260907-1[\s\S]+app\.js\?v=20260912-34/);
+  assert.match(html, /standard-skill-registry\.generated\.js\?v=20260907-1[\s\S]+app\.js\?v=20260912-35/);
   assert.match(app, /const STANDARD_SKILL_REGISTRY = globalThis\.FourColorStandardSkillRegistry/);
   assert.match(app, /STANDARD_SKILL_REGISTRY\.v49SkillIds\.map/);
   assert.match(app, /Object\.entries\(STANDARD_SKILL_REGISTRY\.skills\)/);
@@ -578,7 +578,7 @@ test("server rule errors are safe, persistent, and never offered as an idempoten
   assert.match(clientSource, /httpStatus === 0 && !knownCode/);
   const action = app.slice(app.indexOf("async function sendAction"), app.indexOf("async function syncSelectedProfile"));
   assert.match(action, /if \(error\?\.retryable === false\) \{\s*pendingAction = null/);
-  assert.match(action, /同じ操作を再送/);
+  assert.match(action, /前回の操作結果を確認/);
   assert.match(html, /id="setupStatus"[^>]+operation-feedback[^>]+aria-atomic="true"/);
   assert.match(html, /id="actionStatus"[^>]+operation-feedback[^>]+aria-atomic="true"/);
   assert.match(css, /\.operation-feedback\[data-tone="error"\]/);
@@ -609,7 +609,7 @@ test("turn guide moves from selection to handoff without exposing a legality ora
   assert.match(app, /選べました。「このエリアを渡す」へ/);
   assert.match(app, /受け取った灰色エリアを塗る/);
   assert.match(app, /if \(actionBusy\) return present\("wait", "送信中"/);
-  assert.match(app, /if \(pendingAction\) return present\("ready", "再送"/);
+  assert.match(app, /if \(pendingAction\) return present\("ready", "結果確認"/);
   assert.match(app, /function phaseLabelFor\(state, seat, cpuRoom\)/);
   assert.match(app, /WORK: `\$\{actor\}が渡すエリアを選んでいます`/);
   assert.match(app, /submitRegion"\)\.disabled = !canCreate \|\| actionBusy/);
@@ -848,7 +848,7 @@ test("alpha.4 corner bloom resolves one public micro cell without a client legal
   assert.match(resolver, /else if \(outgoingMacros\.includes\(macro\)\) \{[\s\S]+input = \{ sourceMacros: outgoingMacros, macro \}/);
   assert.match(resolver, /return rejectCornerBloomCell[\s\S]+skillIntents\.buildSkillPayload\(targetDraft\.skill, input\)/);
   assert.match(resolver, /function rejectCornerBloomCell[\s\S]+const scheduledTarget = targetDraft;[\s\S]+const scheduledKind = targetDraft\?\.kind;[\s\S]+requestAnimationFrame\(\(\) => \{[\s\S]+targetDraft !== scheduledTarget \|\| targetDraft\?\.kind !== scheduledKind \|\| scheduledKind !== "corner-bloom"[\s\S]+\$\("board"\)\?\.focus/);
-  assert.match(resolver, /if \(pendingAction\)[\s\S]+同じ操作を再送[\s\S]+return false/);
+  assert.match(resolver, /if \(pendingAction\)[\s\S]+前回の操作結果を確認[\s\S]+return false/);
   assert.match(app, /boardSelectionAvailable[\s\S]+!actionBusy && !pendingAction/);
   assert.match(app, /const preserveCornerTarget = cornerBloomCellTargetActive\(\);[\s\S]+!interactive && !preserveCornerTarget[\s\S]+resetBoardSelectionAssist\(\)/);
   assert.doesNotMatch(resolver, /controllers|privateState|candidateCount|cornerBloomPlan|coloredCornerBloomPlan|adjacentRegionIds/);
@@ -915,7 +915,7 @@ test("skill target cancel is write-free and clears only transient selection", ()
 test("finished rooms expose a reconnect-safe rematch request", () => {
   assert.match(app, /show\("rematchControls", !cpuDraftOwnsRoomlessEntry && roomModel\?\.room\?\.status === "finished"\)/);
   assert.match(app, /client\.requestRematch\(\{ expectedVersion: roomModel\.room\.version \}\)/);
-  assert.match(app, /rematchPending \? "同じ再戦申請を再送"/);
+  assert.match(app, /rematchPending \? "前回の再戦申請を確認"/);
   assert.match(app, /await roomSync\.refreshNow\(\)/);
   assert.match(app, /roomModel\.room\.status === "ready" && client\.snapshot\(\)\.setupRevision > 0/);
 });

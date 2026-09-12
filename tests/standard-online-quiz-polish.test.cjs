@@ -197,7 +197,7 @@ test("only overflowing quiz math receives a persistent horizontal position bar",
   assert.match(css, /\.quiz-overflow-scrollbar\[hidden\]\{display:none\}/);
   assert.match(html, /style\.css\?v=20260910-12/);
   assert.match(html, /standard-online-client\.js\?v=20260910-1/);
-  assert.match(html, /app\.js\?v=20260912-34/);
+  assert.match(html, /app\.js\?v=20260912-35/);
 });
 
 test("per-question feedback is server-acknowledged, retryable, brief in motion, and followed by an optional review", () => {
@@ -215,7 +215,7 @@ test("per-question feedback is server-acknowledged, retryable, brief in motion, 
   assert.match(app, /await client\.answerQuiz\(/);
   assert.match(app, /pendingQuiz\.answers\.push\(pending\.answerId\)/);
   assert.ok(app.indexOf("await client.answerQuiz(") < app.indexOf("pendingQuiz.answers.push(pending.answerId)"));
-  assert.match(app, /retry\.textContent = quizBusy \? "回答を送信中…" : "同じ回答を再送"/);
+  assert.match(app, /retry\.textContent = quizBusy \? "回答を送信中…" : "前回の回答を確認"/);
   assert.match(app, /前問 Q\$\{Number\(feedback\.questionIndex\) \+ 1\}：/);
   assert.match(app, /正解：\$\{feedback\.correctOptionLabel\}/);
   assert.match(app, /setTimeout\([\s\S]{0,180}\}, 600\)/);
