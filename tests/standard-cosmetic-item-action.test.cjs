@@ -26,3 +26,17 @@ test("UDL061 reload never auto-submits legacy confirmation or an indeterminate s
   assert.equal(pendingCosmeticPresentation({actionId:"new",submitted:true,failed:false}),"retry");
   assert.equal(pendingCosmeticPresentation({actionId:"changed",submitted:false}),"confirm");
 });
+test("UDL061 only a first authoritative stale revision is definitely uncommitted",async()=>{
+  const {definiteCosmeticRejection}=await modulePromise;
+  assert.equal(definiteCosmeticRejection({code:"STALE_VERSION"},false),true);
+  for(const unknown of [true,undefined,null])assert.equal(definiteCosmeticRejection({code:"STALE_VERSION"},unknown),false);
+  for(const error of [null,new Error("STALE_VERSION"),{status:409},{status:400},{code:"TEMPORARY_UNAVAILABLE"},{code:"INSUFFICIENT_COINS"}])assert.equal(definiteCosmeticRejection(error,false),false);
+});
+test("UDL061 persisted definite rejection can recover but never overrides unknown ACK",async()=>{
+  const {pendingCosmeticPresentation}=await modulePromise;
+  const rejected={submitted:false,failed:false,rejection:{code:"STALE_VERSION",actionId:"original",expectedRevision:1}};
+  assert.equal(pendingCosmeticPresentation(JSON.parse(JSON.stringify(rejected))),"rejected");
+  assert.equal(pendingCosmeticPresentation({...rejected,submitted:true}),"retry");
+  assert.equal(pendingCosmeticPresentation({...rejected,failed:true}),"retry");
+  assert.equal(pendingCosmeticPresentation({submitted:false,previousRejection:rejected.rejection}),"confirm");
+});

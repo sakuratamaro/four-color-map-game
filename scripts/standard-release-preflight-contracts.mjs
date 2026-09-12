@@ -143,7 +143,7 @@ export function hasCompactCpuRecords(pageText, appText, progressionCssText) {
 
 export function hasQuizAccuracyRecords(pageText, appText, progressionCssText) {
   return includesAll(pageText, [
-'app.js?v=20260912-35',
+'app.js?v=20260912-37',
     'progression.css?v=20260910-2',
     'id="quizAccuracyRecords" class="quiz-accuracy-records" role="list"',
     "記録開始以降に、サーバーで採点が確定した回答だけを集計します。",

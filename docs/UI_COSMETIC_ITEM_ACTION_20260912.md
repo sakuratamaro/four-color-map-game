@@ -1,6 +1,12 @@
 # Item-local cosmetic actions
 
-Version: UDL-061-cosmetics-v1
+Version: UDL-061-cosmetics-v1.1
+
+Revision B1: genuine Astra review017, request26418926-b237-4a11-8182-0034cc362503 / response4743ac2d-d111-471b-bf13-3f8ebdef9470 in designated chat6aa229e7-e098-83ee-ac5e-d366a12653a4, rejected candidate0b5d0b2ea7ab510ce107bfc2477e2e275f9a9125. That decision is not release approval. Public parent is nowb81a1d52e8230d41ec9e69610d89bafc86d1d84e.
+
+Definite first-submit STALE_VERSION rejection is persisted separately from unknown ACK, with original actionId/revision. Because the authoritative server rejected before applying the request, the same item offers latest quote or cancel/reselect; renewal creates a fresh unsent intent, displays latest conditions, and requires another explicit purchase/equip action. Reload sends nothing. An earlier unknown outcome, including ambiguous legacy retry, retains its exact original ID/revision even if a later reply is STALE_VERSION. Generic HTTP failures are never classified as definitely uncommitted. No server, revision guard or receipt contract is changed.
+
+B1 regression coverage: quote revision1 -> concurrent profile revision2 -> rejection with receipt/debit0 -> reload with no automatic submission -> same-item650-coin quote/new intent -> explicit purchase once with revision2; alternate cancel/reselect route; existing committed purchase + lost ACK + reload uses original ID/revision and receipt/debit1. Pure classification tests exclude generic HTTP errors and prior unknown outcomes. Cache revision is appv20260912-36 / intent modulev20260912-2; earlier implementation receipt below remains historical.
 
 Revision receipt: CANON_RECEIPT version=shared-canon-v1.1 base=b81a1d52e8230d41ec9e69610d89bafc86d1d84e public_floor=d6f745d3f1291457539dd2f3476e9a749a547069 request=UDL-20260912-061 specs=docs/UI_COSMETIC_ITEM_ACTION_20260912.md tests=tests/standard-cosmetic-item-action.test.cjs,tests/standard-online-browser.test.cjs. Normal merge preserves the060 B1 label correction. This successor remains local and separately unreviewed; the historical receipt below records its initial base.
 

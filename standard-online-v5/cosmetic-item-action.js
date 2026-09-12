@@ -16,6 +16,13 @@ export function pendingCosmeticPresentation(pending) {
   if (!pending) return "idle";
   // A lost ACK is not a cancellation. Legacy failed records also require exact retry.
   if (pending.submitted === true || pending.failed === true) return "retry";
+  if (pending.submitted === false && pending.rejection?.code === "STALE_VERSION") return "rejected";
   // Old pre-submit records and changed quotes require a fresh explicit action at the item.
   return "confirm";
+}
+
+// Only a first, authoritative revision rejection is known not to have committed.
+// Never reinterpret an earlier unknown ACK (including ambiguous legacy state).
+export function definiteCosmeticRejection(error, priorOutcomeUnknown) {
+  return priorOutcomeUnknown === false && error?.code === "STALE_VERSION";
 }
