@@ -1,0 +1,132 @@
+{
+  "baseSha": "d9ce111d7d97019d55b3e90842602001e045ea04",
+  "source": "Frozen unmodified baseline CPU and roster modules; unchanged engine/fixture observation construction",
+  "policies": [
+    {
+      "character": "yuzu",
+      "policy": "standard-character-split-rescue-v1:yuzu",
+      "observations": 84,
+      "sha256": "78e7e1e3f506274bc3f50e6fac76135cb3b393345232bc2830909dd5759931af"
+    },
+    {
+      "character": "yuzu",
+      "policy": "standard-character-roster-v1:yuzu",
+      "observations": 84,
+      "sha256": "1e5c96006625389fecc281e5ddff2530e8a9735361f461e9bfb0663a3317c303"
+    },
+    {
+      "character": "ren",
+      "policy": "standard-character-split-rescue-v1:ren",
+      "observations": 84,
+      "sha256": "78e7e1e3f506274bc3f50e6fac76135cb3b393345232bc2830909dd5759931af"
+    },
+    {
+      "character": "ren",
+      "policy": "standard-character-roster-v1:ren",
+      "observations": 84,
+      "sha256": "1e5c96006625389fecc281e5ddff2530e8a9735361f461e9bfb0663a3317c303"
+    },
+    {
+      "character": "minato",
+      "policy": "standard-character-split-rescue-v1:minato",
+      "observations": 84,
+      "sha256": "78e7e1e3f506274bc3f50e6fac76135cb3b393345232bc2830909dd5759931af"
+    },
+    {
+      "character": "minato",
+      "policy": "standard-character-roster-v1:minato",
+      "observations": 84,
+      "sha256": "1e5c96006625389fecc281e5ddff2530e8a9735361f461e9bfb0663a3317c303"
+    },
+    {
+      "character": "koharu",
+      "policy": "standard-character-split-rescue-v1:koharu",
+      "observations": 84,
+      "sha256": "78e7e1e3f506274bc3f50e6fac76135cb3b393345232bc2830909dd5759931af"
+    },
+    {
+      "character": "koharu",
+      "policy": "standard-character-roster-v1:koharu",
+      "observations": 84,
+      "sha256": "1e5c96006625389fecc281e5ddff2530e8a9735361f461e9bfb0663a3317c303"
+    },
+    {
+      "character": "aoi",
+      "policy": "standard-character-split-rescue-v1:aoi",
+      "observations": 84,
+      "sha256": "bff4b5d0eae56b3af86fbf712f8cfacace139d956e5ad449042fa53d7ff31329"
+    },
+    {
+      "character": "aoi",
+      "policy": "standard-character-roster-v1:aoi",
+      "observations": 84,
+      "sha256": "99db6f7c09bdd569eead0372d99718f7f98fa200512335568a8ed3c356451105"
+    },
+    {
+      "character": "kai",
+      "policy": "standard-character-split-rescue-v1:kai",
+      "observations": 84,
+      "sha256": "78e7e1e3f506274bc3f50e6fac76135cb3b393345232bc2830909dd5759931af"
+    },
+    {
+      "character": "kai",
+      "policy": "standard-character-roster-v1:kai",
+      "observations": 84,
+      "sha256": "1e5c96006625389fecc281e5ddff2530e8a9735361f461e9bfb0663a3317c303"
+    },
+    {
+      "character": "tsubasa",
+      "policy": "standard-character-split-rescue-v1:tsubasa",
+      "observations": 84,
+      "sha256": "78e7e1e3f506274bc3f50e6fac76135cb3b393345232bc2830909dd5759931af"
+    },
+    {
+      "character": "tsubasa",
+      "policy": "standard-character-roster-v1:tsubasa",
+      "observations": 84,
+      "sha256": "1e5c96006625389fecc281e5ddff2530e8a9735361f461e9bfb0663a3317c303"
+    },
+    {
+      "character": "shion",
+      "policy": "standard-character-split-rescue-v1:shion",
+      "observations": 84,
+      "sha256": "78e7e1e3f506274bc3f50e6fac76135cb3b393345232bc2830909dd5759931af"
+    },
+    {
+      "character": "shion",
+      "policy": "standard-character-roster-v1:shion",
+      "observations": 84,
+      "sha256": "1e5c96006625389fecc281e5ddff2530e8a9735361f461e9bfb0663a3317c303"
+    },
+    {
+      "character": "rei",
+      "policy": "standard-character-split-rescue-v1:rei",
+      "observations": 84,
+      "sha256": "78e7e1e3f506274bc3f50e6fac76135cb3b393345232bc2830909dd5759931af"
+    },
+    {
+      "character": "rei",
+      "policy": "standard-character-roster-v1:rei",
+      "observations": 84,
+      "sha256": "1e5c96006625389fecc281e5ddff2530e8a9735361f461e9bfb0663a3317c303"
+    },
+    {
+      "character": "kurogane",
+      "policy": "standard-character-split-rescue-v1:kurogane",
+      "observations": 84,
+      "sha256": "78e7e1e3f506274bc3f50e6fac76135cb3b393345232bc2830909dd5759931af"
+    },
+    {
+      "character": "kurogane",
+      "policy": "standard-character-roster-v1:kurogane-lookahead-v2",
+      "observations": 84,
+      "sha256": "1e5c96006625389fecc281e5ddff2530e8a9735361f461e9bfb0663a3317c303"
+    },
+    {
+      "character": "kurogane",
+      "policy": "standard-character-roster-v1:kurogane",
+      "observations": 84,
+      "sha256": "1e5c96006625389fecc281e5ddff2530e8a9735361f461e9bfb0663a3317c303"
+    }
+  ]
+}

@@ -3260,6 +3260,45 @@ function enumerateLegacyColorActions(publicState, ownPrivateState) {
     : [{ type: "DECLARE_NO_COLOR", payload: {}, metrics: { blockedCount: blocked.size } }];
 }
 
+// F1 is opt-in through a new character policy. No opponent-private data,
+// speculative opponent hand, RNG or mutation is needed for these bounded tests.
+function filterPaletteEfficiencyActions(observation, actions) {
+  const { publicState, ownPrivateState: own } = observation;
+  if (publicState.phase !== "COLOR") return actions;
+  const blocked = new Set(adjacentRegionIds(publicState, publicState.pending)
+    .map((id) => publicState.regions[id]?.color).filter(Boolean));
+  const seals = publicState.publicEffects?.[own.seat]?.seals || {};
+  const unsealed = (color) => COLORS.includes(color) && !(seals[color] > 0);
+  const distinct = (colors) => [...new Set(colors)].filter(unsealed);
+  const potential = (privateState) => {
+    const basic = distinct(privateState.basicPalette);
+    const persistent = distinct([...privateState.basicPalette,
+      ...(privateState.bonusUsesRemaining > 0 ? [privateState.bonusColor] : [])]);
+    return {
+      legal: availableColors(publicState, privateState).filter((color) => !blocked.has(color)).length,
+      basicLegal: basic.filter((color) => !blocked.has(color)).length,
+      basic: basic.length,
+      persistent: persistent.length,
+    };
+  };
+  const before = potential(own);
+  return actions.filter((action) => {
+    if (action.type !== "USE_SKILL" || action.payload?.skill !== "colorPaletteChange") return true;
+    const { slot, color } = action.payload;
+    if (!Number.isInteger(slot) || slot < 0 || slot > 2 || !COLORS.includes(color)) return false;
+    const afterOwn = { ...own, basicPalette: [...own.basicPalette] };
+    if (slot < 2) afterOwn.basicPalette[slot] = color;
+    else afterOwn.bonusColor = color;
+    const after = potential(afterOwn);
+    // Never spend the category window on a change that still leaves no color.
+    // Basic-color availability also captures saving a finite bonus/borrowed color.
+    // Persistent diversity excludes prism/borrow effects, so useful repair of a
+    // duplicated palette remains possible while temporary colors are available.
+    return after.legal > 0 && (after.legal > before.legal || after.basicLegal > before.basicLegal
+      || after.basic > before.basic || after.persistent > before.persistent);
+  });
+}
+
 function contactColorsFromMicro(publicState, micro) {
   const microWidth = publicState.playableBounds.macroWidth * publicState.playableBounds.microScale;
   const shape = new Set(micro);
@@ -3626,6 +3665,7 @@ function chooseCpuAction({ observation, random, tieBreakRandom = random }) {
 }
 
 module.exports = {
+  filterPaletteEfficiencyActions,
   HARD_CPU_FINITE_SKILL_CHARGES,
   HARD_CPU_REPEATABLE_AREA_SKILLS,
   HARD_CPU_REPEATABLE_SKILL_CHARGE,
@@ -3652,6 +3692,7 @@ const ROSTER_VERSION = "standard-character-roster-v1";
 const KUROGANE_LEGACY_POLICY_VERSION = `${ROSTER_VERSION}:kurogane`;
 const KUROGANE_POLICY_VERSION = `${ROSTER_VERSION}:kurogane-lookahead-v2`;
 const SPLIT_RESCUE_POLICY_VERSION = "standard-character-split-rescue-v1";
+const PALETTE_EFFICIENCY_POLICY_VERSION = "standard-character-palette-efficiency-v1";
 const CREATE_COLOR_OPTION_STRIDE = 1000000;
 const GUARANTEED_TRAP_BONUS = 1000000000;
 const RANDOM_SKILLS = new Set(["colorRandomBorrow", "areaMicroBloom", "disruptRandomOne", "disruptRandomTwo", "disruptPaletteRandom", "disruptPaletteChoice", "disruptForcedPalette"]);
@@ -3764,12 +3805,15 @@ function chooseCharacterAction({ publicState, ownPrivateState, characterId, poli
   if (!character) throw new TypeError("UNKNOWN_CPU_CHARACTER");
   const selectedPolicyVersion = policyVersion || character.policyVersion;
   const legacyKurogane = characterId === "kurogane" && selectedPolicyVersion === KUROGANE_LEGACY_POLICY_VERSION;
-  const orderedSplits = selectedPolicyVersion === character.policyVersion;
+  const paletteEfficiency = selectedPolicyVersion === `${PALETTE_EFFICIENCY_POLICY_VERSION}:${characterId}`;
+  const orderedSplits = selectedPolicyVersion === character.policyVersion || paletteEfficiency;
   if (!orderedSplits && selectedPolicyVersion !== PRE_SPLIT_POLICY_VERSIONS[characterId] && !legacyKurogane) throw new TypeError("UNKNOWN_CPU_POLICY_VERSION");
   const observation = cpu.makeObservation({ publicState, ownPrivateState, difficulty: "hard" });
-  const actions = publicState.engineVersion === "5.0.0-alpha.1"
+  const enumerated = publicState.engineVersion === "5.0.0-alpha.1"
     ? cpu.enumerateCpuActionsLegacy(observation)
     : cpu.enumerateCpuActions(observation, { orderedSplits });
+  const actions = paletteEfficiency && publicState.engineVersion !== "5.0.0-alpha.1"
+    ? cpu.filterPaletteEfficiencyActions(observation, enumerated) : enumerated;
   if (!actions.length) return null;
   const useLookahead = characterId === "kurogane" && !legacyKurogane;
   const applySealTiming = !legacyKurogane;
@@ -3804,6 +3848,7 @@ module.exports = {
   PRE_SPLIT_POLICY_VERSIONS,
   ROSTER_VERSION,
   SPLIT_RESCUE_POLICY_VERSION,
+  PALETTE_EFFICIENCY_POLICY_VERSION,
   chooseCharacterAction,
   publicRoster,
   validateRoster,
@@ -3845,7 +3890,8 @@ function createStarterProfile(displayName){
   return profile;
 }
 function selectedCpuPolicy(characterId,{policyGeneration="current"}={}){
-  if(!["current","legacy"].includes(policyGeneration))throw new Error("INVALID_CPU_POLICY_GENERATION");
+  if(!["current","legacy","palette"].includes(policyGeneration))throw new Error("INVALID_CPU_POLICY_GENERATION");
+  if(policyGeneration==="palette")return cpuRoster.PALETTE_EFFICIENCY_POLICY_VERSION+":"+characterId;
   return policyGeneration==="legacy"?cpuRoster.PRE_SPLIT_POLICY_VERSIONS[characterId]:cpuRoster.CPU_CHARACTERS[characterId]?.policyVersion;
 }
 function getCpuRoster(options){return clone(cpuRoster.publicRoster().map(character=>({...character,policyVersion:selectedCpuPolicy(character.id,options)})));}

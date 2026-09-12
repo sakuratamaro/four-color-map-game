@@ -58,7 +58,8 @@ function createStarterProfile(displayName){
   return profile;
 }
 function selectedCpuPolicy(characterId,{policyGeneration="current"}={}){
-  if(!["current","legacy"].includes(policyGeneration))throw new Error("INVALID_CPU_POLICY_GENERATION");
+  if(!["current","legacy","palette"].includes(policyGeneration))throw new Error("INVALID_CPU_POLICY_GENERATION");
+  if(policyGeneration==="palette")return cpuRoster.PALETTE_EFFICIENCY_POLICY_VERSION+":"+characterId;
   return policyGeneration==="legacy"?cpuRoster.PRE_SPLIT_POLICY_VERSIONS[characterId]:cpuRoster.CPU_CHARACTERS[characterId]?.policyVersion;
 }
 function getCpuRoster(options){return clone(cpuRoster.publicRoster().map(character=>({...character,policyVersion:selectedCpuPolicy(character.id,options)})));}

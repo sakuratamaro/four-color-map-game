@@ -8,6 +8,7 @@ const ROSTER_VERSION = "standard-character-roster-v1";
 const KUROGANE_LEGACY_POLICY_VERSION = `${ROSTER_VERSION}:kurogane`;
 const KUROGANE_POLICY_VERSION = `${ROSTER_VERSION}:kurogane-lookahead-v2`;
 const SPLIT_RESCUE_POLICY_VERSION = "standard-character-split-rescue-v1";
+const PALETTE_EFFICIENCY_POLICY_VERSION = "standard-character-palette-efficiency-v1";
 const CREATE_COLOR_OPTION_STRIDE = 1000000;
 const GUARANTEED_TRAP_BONUS = 1000000000;
 const RANDOM_SKILLS = new Set(["colorRandomBorrow", "areaMicroBloom", "disruptRandomOne", "disruptRandomTwo", "disruptPaletteRandom", "disruptPaletteChoice", "disruptForcedPalette"]);
@@ -120,12 +121,15 @@ function chooseCharacterAction({ publicState, ownPrivateState, characterId, poli
   if (!character) throw new TypeError("UNKNOWN_CPU_CHARACTER");
   const selectedPolicyVersion = policyVersion || character.policyVersion;
   const legacyKurogane = characterId === "kurogane" && selectedPolicyVersion === KUROGANE_LEGACY_POLICY_VERSION;
-  const orderedSplits = selectedPolicyVersion === character.policyVersion;
+  const paletteEfficiency = selectedPolicyVersion === `${PALETTE_EFFICIENCY_POLICY_VERSION}:${characterId}`;
+  const orderedSplits = selectedPolicyVersion === character.policyVersion || paletteEfficiency;
   if (!orderedSplits && selectedPolicyVersion !== PRE_SPLIT_POLICY_VERSIONS[characterId] && !legacyKurogane) throw new TypeError("UNKNOWN_CPU_POLICY_VERSION");
   const observation = cpu.makeObservation({ publicState, ownPrivateState, difficulty: "hard" });
-  const actions = publicState.engineVersion === "5.0.0-alpha.1"
+  const enumerated = publicState.engineVersion === "5.0.0-alpha.1"
     ? cpu.enumerateCpuActionsLegacy(observation)
     : cpu.enumerateCpuActions(observation, { orderedSplits });
+  const actions = paletteEfficiency && publicState.engineVersion !== "5.0.0-alpha.1"
+    ? cpu.filterPaletteEfficiencyActions(observation, enumerated) : enumerated;
   if (!actions.length) return null;
   const useLookahead = characterId === "kurogane" && !legacyKurogane;
   const applySealTiming = !legacyKurogane;
@@ -160,6 +164,7 @@ module.exports = {
   PRE_SPLIT_POLICY_VERSIONS,
   ROSTER_VERSION,
   SPLIT_RESCUE_POLICY_VERSION,
+  PALETTE_EFFICIENCY_POLICY_VERSION,
   chooseCharacterAction,
   publicRoster,
   validateRoster,

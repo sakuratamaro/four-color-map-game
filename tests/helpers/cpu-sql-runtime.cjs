@@ -6,7 +6,8 @@ const { createRequire } = require("node:module");
 const { PGlite } = createRequire(path.join(__dirname,"../sql-runtime/package.json"))("@electric-sql/pglite");
 const root = path.join(__dirname,"../..");
 const migrationName = "202609130001_standard_cpu_split_rescue.sql";
-async function createCpuSqlDatabase() {
+async function createCpuSqlDatabase({ targetMigration = migrationName } = {}) {
+  if (![migrationName, "202609130002_standard_cpu_palette_efficiency.sql"].includes(targetMigration)) throw new TypeError("UNKNOWN_CPU_SQL_FIXTURE");
   const db = new PGlite();
   try {
     // Supabase platform fixtures, not a claim of testing its auth/pgcrypto service.
@@ -29,7 +30,7 @@ async function createCpuSqlDatabase() {
       create publication supabase_realtime;
     `);
     const directory=path.join(root,"supabase/migrations");
-    const baseline=fs.readdirSync(directory).filter(name=>name.endsWith(".sql")&&name<migrationName).sort();
+    const baseline=fs.readdirSync(directory).filter(name=>name.endsWith(".sql")&&name<targetMigration).sort();
     for(const name of baseline){
       let sql=fs.readFileSync(path.join(directory,name),"utf8");
       // PGlite has no pgcrypto extension; only its platform registration is replaced.
@@ -37,7 +38,7 @@ async function createCpuSqlDatabase() {
       sql=sql.replace(/^create extension if not exists pgcrypto with schema extensions;\r?\n/m,"");
       try {await db.exec(sql);} catch(error){error.message=name+": "+error.message;throw error;}
     }
-    return {db,baseline,migration:fs.readFileSync(path.join(directory,migrationName),"utf8")};
+    return {db,baseline,migration:fs.readFileSync(path.join(directory,targetMigration),"utf8")};
   }catch(error){await db.close();throw error;}
 }
 module.exports={createCpuSqlDatabase,migrationName};

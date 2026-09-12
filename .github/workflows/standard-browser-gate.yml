@@ -2,7 +2,7 @@ name: Standard browser gate
 
 on:
   push:
-    branches: [codex/standard-release-command, codex/quiz-memo-calculator-20260912, codex/ui-diet-20260912, codex/ui-play-surface-20260912, codex/ui-result-20260912, codex/ui-cosmetics-20260912, codex/ui-player-copy-20260912, codex/skill-cutin-20260912, codex/ui-flat-entry-20260912, codex/skill-catalog-20260912, codex/surrender-confirmation-20260913, codex/cpu-split-rescue-20260913]
+    branches: [codex/standard-release-command, codex/quiz-memo-calculator-20260912, codex/ui-diet-20260912, codex/ui-play-surface-20260912, codex/ui-result-20260912, codex/ui-cosmetics-20260912, codex/ui-player-copy-20260912, codex/skill-cutin-20260912, codex/ui-flat-entry-20260912, codex/skill-catalog-20260912, codex/surrender-confirmation-20260913, codex/cpu-split-rescue-20260913, codex/cpu-palette-efficiency-20260913]
     paths:
       - .github/workflows/standard-browser-gate.yml
       - online/supabase-config.js
@@ -31,6 +31,8 @@ on:
       - tests/standard-online-browser.test.cjs
       - tests/browser-server-cleanup.test.cjs
       - tests/helpers/browser-server-cleanup.cjs
+      - tests/helpers/cpu-palette-fixtures.cjs
+      - tests/fixtures/cpu-palette-legacy-traces.json
       - tests/helpers/cpu-sql-runtime.cjs
       - tests/sql-runtime/**
   pull_request:
@@ -62,6 +64,8 @@ on:
       - tests/standard-online-browser.test.cjs
       - tests/browser-server-cleanup.test.cjs
       - tests/helpers/browser-server-cleanup.cjs
+      - tests/helpers/cpu-palette-fixtures.cjs
+      - tests/fixtures/cpu-palette-legacy-traces.json
       - tests/helpers/cpu-sql-runtime.cjs
       - tests/sql-runtime/**
   workflow_dispatch:
@@ -108,6 +112,8 @@ jobs:
           tests/standard-cpu-split-policy-migration.test.cjs
           tests/standard-cpu-rollout.test.cjs
           tests/standard-cpu-split-sql-runtime.test.cjs
+          tests/standard-cpu-palette-efficiency.test.cjs
+          tests/standard-cpu-palette-sql-runtime.test.cjs
           tests/standard-kurogane-policy-migration.test.cjs
           tests/standard-edge-handler.test.cjs
           tests/standard-online-engine-bundle.test.cjs

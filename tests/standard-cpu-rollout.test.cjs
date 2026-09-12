@@ -17,11 +17,12 @@ const actionId = "33333333-3333-4333-8333-333333333333";
 const token = "eyJhbGciOiJIUzI1NiJ9." + Buffer.from(JSON.stringify({ sub:actor, role:"authenticated" })).toString("base64url") + ".fixture";
 const plain = value => JSON.parse(JSON.stringify(value));
 
-function worker(activation, {room = {}, choose} = {}) {
+function worker(activation, {room = {}, choose, paletteActivation} = {}) {
   const calls = [];
   let handler;
   const env = {SUPABASE_URL:"https://fixture.invalid",SUPABASE_SERVICE_ROLE_KEY:"isolated-test-not-a-credential"};
   if (activation !== undefined) env.FCG_CPU_SPLIT_RESCUE = activation;
+  if (paletteActivation !== undefined) env.FCG_CPU_PALETTE_EFFICIENCY = paletteActivation;
   const sandbox = {console,Request,Response,Headers,TextEncoder,TextDecoder,atob,crypto:webcrypto,
     Deno:{env:{get:name=>env[name]},serve:fn=>{handler=fn;}},
     createClient:()=>({rpc:async(name,args)=>{
@@ -57,9 +58,45 @@ test("Edge compatibility-first defaults reject typo/client activation while publ
     const result=await w.post({operation:"cpu-roster",policyGeneration:"current",FCG_CPU_SPLIT_RESCUE:roster.SPLIT_RESCUE_POLICY_VERSION});
     assert.equal(result.status,200);
     assert.equal(result.body.cpuPolicyGeneration,"legacy");
-    assert.deepEqual(result.body.cpuPolicyCapabilities,[roster.SPLIT_RESCUE_POLICY_VERSION]);
+    assert.deepEqual(result.body.cpuPolicyCapabilities,[roster.SPLIT_RESCUE_POLICY_VERSION,roster.PALETTE_EFFICIENCY_POLICY_VERSION]);
     for (const character of result.body.characters) assert.equal(character.policyVersion,roster.PRE_SPLIT_POLICY_VERSIONS[character.id]);
     assert.equal(w.calls.length,0,"roster is read-only and does not invoke SQL");
+  }
+});
+
+test("F1 stays off on old split activation or typo and cannot be activated by a request body",async()=>{
+  for(const paletteActivation of [undefined,"","true","standard-character-palette-efficiency-v2"]){
+    const w=worker(roster.SPLIT_RESCUE_POLICY_VERSION,{paletteActivation});
+    const r=await w.post({operation:"cpu-roster",policyGeneration:"palette",FCG_CPU_PALETTE_EFFICIENCY:roster.PALETTE_EFFICIENCY_POLICY_VERSION});
+    assert.equal(r.body.cpuPolicyGeneration,"current");
+    assert.ok(r.body.characters.every(c=>c.policyVersion===roster.SPLIT_RESCUE_POLICY_VERSION+":"+c.id));
+    const options=await w.options();assert.equal(options.headers.get("X-FCG-CPU-Palette-Capability"),roster.PALETTE_EFFICIENCY_POLICY_VERSION);
+    assert.equal(options.headers.get("X-FCG-CPU-Policy-Generation"),"current");assert.equal(w.calls.length,0);
+  }
+});
+test("exact F1 activation controls all three new-room paths, without profile/economy changes",async()=>{
+  const w=worker(roster.SPLIT_RESCUE_POLICY_VERSION,{paletteActivation:roster.PALETTE_EFFICIENCY_POLICY_VERSION});
+  assert.equal((await w.options()).headers.get("X-FCG-CPU-Policy-Generation"),"palette");
+  for(const body of [{operation:"cpu-start",actionId,confirmed:true,characterId:"kurogane"},
+    {operation:"cpu-accept",ticketId:actionId,characterId:"kurogane"},{operation:"cpu-rematch",roomId,actionId,expectedVersion:7}]){
+    const r=await w.post({...body,policyGeneration:"legacy"});assert.equal(r.status,200);
+    assert.equal(w.calls.at(-1).args.p_policy_version,roster.PALETTE_EFFICIENCY_POLICY_VERSION+":kurogane");
+  }
+  const rosterResult=await w.post({operation:"cpu-roster"});assert.equal(rosterResult.body.cpuPolicyGeneration,"palette");
+  for(const id of Object.keys(roster.CPU_CHARACTERS)){
+    const old=plain(w.api.createCpuProfile(id,{policyGeneration:"current"})),next=plain(w.api.createCpuProfile(id,{policyGeneration:"palette"}));
+    assert.deepEqual(next.profile,old.profile);assert.deepEqual(next.loadout,old.loadout);
+    assert.equal(next.policyVersion,roster.PALETTE_EFFICIENCY_POLICY_VERSION+":"+id);
+    assert.equal(rosterResult.body.characters.find(c=>c.id===id).policyVersion,next.policyVersion);
+  }
+});
+test("F1 activation rollback still executes all saved versions using their own policy",async()=>{
+  for(const paletteActivation of [undefined,roster.PALETTE_EFFICIENCY_POLICY_VERSION])for(const saved of
+    [roster.PRE_SPLIT_POLICY_VERSIONS.kurogane,roster.KUROGANE_LEGACY_POLICY_VERSION,roster.CPU_CHARACTERS.kurogane.policyVersion,roster.PALETTE_EFFICIENCY_POLICY_VERSION+":kurogane"]){
+    let seen;const w=worker(roster.SPLIT_RESCUE_POLICY_VERSION,{paletteActivation,
+      room:{room_status:"playing",cpu_policy_version:saved,cpu_user_id:actionId},choose:input=>{seen=plain(input);return {type:"SURRENDER",payload:{}};}});
+    const r=await w.post({operation:"cpu-action",roomId,expectedVersion:7,policyVersion:"invented"});assert.equal(r.status,200);
+    assert.equal(seen.policyVersion,saved);assert.deepEqual(seen.ownPrivateState,{fixture:"own-only"});
   }
 });
 

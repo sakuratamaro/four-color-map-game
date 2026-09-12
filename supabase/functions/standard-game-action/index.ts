@@ -3,7 +3,7 @@ import "./standard-engine.bundle.js";
 
 type JsonObject = Record<string, unknown>;
 type Seat = "A" | "B";
-type CpuProfileOptions = { policyGeneration?: "current" | "legacy" };
+type CpuProfileOptions = { policyGeneration?: "current" | "legacy" | "palette" };
 type StandardEngineApi = {
   create(input: { matchId: string; loadouts: Record<Seat, JsonObject>; profiles: Record<Seat, JsonObject>; seed: number; debugMode?: boolean; labMode?: boolean; cpuSeat?: Seat | null; engineVersion?: string }): JsonObject;
   apply(input: { state: JsonObject; rngSnapshot: JsonObject; actor: Seat; action: JsonObject; expectedVersion: number; debugMode?: boolean; labMode?: boolean }): JsonObject;
@@ -28,7 +28,8 @@ type StandardEngineApi = {
 const NEW_STANDARD_MATCH_ENGINE_VERSION = "5.0.0-alpha.4";
 // Ship compatibility first; only an explicitly reviewed managed activation
 // changes new/rematched opponents. Existing rooms always keep their saved policy.
-const CPU_POLICY_GENERATION = Deno.env.get("FCG_CPU_SPLIT_RESCUE") === "standard-character-split-rescue-v1" ? "current" : "legacy";
+const CPU_POLICY_GENERATION = Deno.env.get("FCG_CPU_PALETTE_EFFICIENCY") === "standard-character-palette-efficiency-v1" ? "palette"
+  : Deno.env.get("FCG_CPU_SPLIT_RESCUE") === "standard-character-split-rescue-v1" ? "current" : "legacy";
 
 declare global {
   // Generated from the reviewed Standard engine and profile modules.
@@ -47,6 +48,7 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
   // Static deployment capability only: no account, room or private game data.
   "X-FCG-CPU-Policy-Capability": "standard-character-split-rescue-v1",
+  "X-FCG-CPU-Palette-Capability": "standard-character-palette-efficiency-v1",
   "X-FCG-CPU-Policy-Generation": CPU_POLICY_GENERATION,
 };
 const RATE_WINDOW_MS = 60_000;
@@ -454,7 +456,7 @@ Deno.serve(async (request: Request) => {
     if (operation === "cpu-roster") {
       return json(200, {
         rosterVersion: "standard-character-roster-v1",
-        cpuPolicyCapabilities: ["standard-character-split-rescue-v1"],
+        cpuPolicyCapabilities: ["standard-character-split-rescue-v1", "standard-character-palette-efficiency-v1"],
         cpuPolicyGeneration: CPU_POLICY_GENERATION,
         characters: globalThis.FourColorStandardServerEngine.getCpuRoster({ policyGeneration: CPU_POLICY_GENERATION }),
       });
