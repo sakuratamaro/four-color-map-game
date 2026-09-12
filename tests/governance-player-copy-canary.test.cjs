@@ -2,7 +2,7 @@
 const test=require("node:test"),assert=require("node:assert/strict"),fs=require("node:fs"),path=require("node:path");
 const {spawnSync}=require("node:child_process");
 const file=path.join(__dirname,"../scripts/live-standard-player-copy-canary.cjs");
-const {parseOptions,readOnlyRequest}=require(file);
+const {parseOptions,readOnlyRequest,profileReadbackComparison}=require(file);
 
 test("copy canary refuses without complete opt-in before browser/network",()=>{
   for(const args of [[],["--confirm-live"],["--confirm-live","--candidate=short","--report=x"]])assert.throws(()=>parseOptions(args),/Refusing production test/);
@@ -26,8 +26,23 @@ test("copy canary preserves evidence and credentials while binding real public b
   assert.ok(src.indexOf('bytes.equals(git("show"')<src.indexOf('session=await request("/auth/v1/signup"'));
   assert.equal((src.match(/session=await request\("\/auth\/v1\/signup"/g)||[]).length,1);
   assert.match(src,/fs\.existsSync\(reportPath\),false/);
-  assert.match(src,/JSON\.stringify\(await profile\(\)\)===JSON\.stringify\(baseline\)/);
+  assert.match(src,/profileReadbackComparison\(final,baseline\)/);
+  assert.ok(src.indexOf('report.serverComparison=')<src.indexOf('check("same server profile'));
   assert.match(src,/180_000/);assert.match(src,/closeOwnedBrowserServer/);
   assert.match(src,/NOT_RUN_NO_MATCH/);
   assert.doesNotMatch(src,/\.route\(|addInitScript|service_role|\/admin\/|JSON\.stringify\((?:session|calls)\)/);
+});
+
+test("profile readback ignores JSON object key order but no persisted value or array order",()=>{
+  const initial={revision:1,profileState:{coins:0,inventory:{red:1,blue:2},history:["a","b"]},displayName:"Fixture"};
+  const loaded={displayName:"Fixture",profileState:{history:["a","b"],inventory:{blue:2,red:1},coins:0},revision:1};
+  assert.notEqual(JSON.stringify(initial),JSON.stringify(loaded),"old comparison falsely rejects key order alone");
+  assert.equal(profileReadbackComparison(loaded,initial).equal,true);
+  for(const changed of [{...loaded,revision:2},{...loaded,displayName:"Changed"},
+    {...loaded,profileState:{...loaded.profileState,coins:1}},
+    {...loaded,profileState:{...loaded.profileState,inventory:{blue:2,red:0}}},
+    {...loaded,profileState:{...loaded.profileState,history:["b","a"]}}])
+    assert.equal(profileReadbackComparison(changed,initial).equal,false);
+  assert.equal(profileReadbackComparison(undefined,undefined).equal,false);
+  assert.equal(profileReadbackComparison({},{}).equal,false);
 });

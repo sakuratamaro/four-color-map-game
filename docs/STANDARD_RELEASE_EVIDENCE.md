@@ -1,5 +1,9 @@
 # Standard公開候補 証拠台帳
 
+## 2026-09-12 UDL062 プレイヤー向けの案内整理
+
+**PAGES_PUBLISHED / LIVE_ACCEPTANCE_PARTIAL**。実Astra020、candidate/spec完全一致、Windows34679764998両SUCCESS、fresh main a757と祖先確認後、司令塔本人がa1a9b1cをforceなしでmainへ公開。exact同SHA Pages34682215186のbuild/deploy/report成功。公開preflight ok:true、index/app37厳密byte一致。1試験profile、390/1280各5タブ・接続表示・reloadなど52件PASS後、最終server profile比較でFAIL。対局/経済操作/ブラウザ非読取操作/削除0、実画像2枚目視済み。原JSON不変。JSONキー順に依存するharnessの欠陥を再現・修正しoffline4/4 PASSだが、実失敗時の値差分は未保存で原因の断定・合格への読み替えはしない。最終server等価/allowlist/consoleは受入未完了、追加profile0、物理NOT_RUN。全証拠と制約: `UI_PLAYER_COPY_RELEASE_20260912.md`。運用021の差戻しは別件で、062公開を止めていない。
+
 ## 2026-09-12 UDL061 商品の中で購入・装備
 
 追補: **PUBLIC_VERIFIED**。実Astra019の追加1profile限定判断に従い、同じ公開a757のpreflight/3asset byte一致を作成前に再確認し、修正canary94/94 PASS（06:54:48Z）。黄金名札350→0、無料/所有済み切替追加減算0、reload最終server等価、3ACK、操作allowlist、console0、390/1280目視まで実行。試験profile累計2、元失敗JSONは不変、物理NOT_RUN。UI_COSMETICS_RETRY_LIVE_20260912.json / UI_COSMETICS_RETRY_PREFLIGHT_20260912.json。以下は初回部分確認の履歴。

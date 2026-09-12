@@ -3,6 +3,7 @@
 const path = require("node:path");
 const fs = require("node:fs");
 const assert = require("node:assert/strict");
+const {isDeepStrictEqual}=require("node:util");
 
 function parseOptions(args) {
   const candidate = args.find(x => x.startsWith("--candidate="))?.slice(12);
@@ -17,6 +18,16 @@ function readOnlyRequest(method, pathname, operation) {
   if (pathname === "/functions/v1/standard-game-action")
     return ["cosmetic-catalog","cosmetic-quote","cpu-roster"].includes(operation);
   return ["/rest/v1/rpc/fcg_standard_active_room","/rest/v1/rpc/fcg_standard_matchmaking_availability"].includes(pathname);
+}
+function profileReadbackComparison(actual, expected) {
+  const valid=p=>p && Number.isSafeInteger(p.revision) && p.revision>0 && typeof p.displayName==="string"
+    && p.profileState && typeof p.profileState==="object" && !Array.isArray(p.profileState);
+  return {
+    equal:Boolean(valid(actual)&&valid(expected)&&isDeepStrictEqual(actual,expected)),
+    sameRevision:actual?.revision===expected?.revision,
+    sameDisplayName:actual?.displayName===expected?.displayName,
+    sameProfileState:isDeepStrictEqual(actual?.profileState,expected?.profileState)
+  };
 }
 async function run({candidate,report:reportPath}) {
   // Verify opt-in and a clean exact worktree before loading a browser or contacting production.
@@ -112,7 +123,9 @@ async function run({candidate,report:reportPath}) {
       await page.reload({waitUntil:"domcontentloaded",timeout:25_000});await page.locator("#connectionBadge.good").waitFor();
       await page.waitForFunction(key=>Boolean(JSON.parse(localStorage.getItem(key)||"null")),remoteKey);
       check("reload retains plain connected state",await page.locator("#connectionMessage").textContent()==="ゲームに接続できました。");
-      check("same server profile after all navigation",JSON.stringify(await profile())===JSON.stringify(baseline));
+      const final=await profile();
+      report.serverComparison=profileReadbackComparison(final,baseline);
+      check("same server profile after all navigation",report.serverComparison.equal);
       check("browser only performs allowed reads",calls.every(c=>readOnlyRequest(c.method,c.pathname,c.operation)));
       check("console warning error and pageerror zero",errors===0&&warnings===0);
       report.requestCount=calls.length;
@@ -133,4 +146,4 @@ if(require.main===module) {
   let options;try{options=parseOptions(process.argv.slice(2));}catch(error){console.error(error.message);process.exit(2);}
   run(options).then(code=>{process.exitCode=code;}).catch(()=>{console.error("FAIL candidate preparation (redacted)");process.exitCode=1;});
 }
-module.exports={parseOptions,readOnlyRequest};
+module.exports={parseOptions,readOnlyRequest,profileReadbackComparison};
