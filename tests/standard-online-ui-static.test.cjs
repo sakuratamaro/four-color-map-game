@@ -82,7 +82,7 @@ test("CPU commentary is public-event-only, bounded, non-blocking, and terminal-p
   assert.match(html, /standard-online-client\.js\?v=20260910-1/);
   assert.match(html, /standard-online-skill-intents\.js\?v=20260911-21/);
   assert.match(html, /cpu-commentary\.js\?v=20260910-1/);
-assert.match(html, /app\.js\?v=20260912-39/);
+assert.match(html, /app\.js\?v=20260912-40/);
   assert.match(app, /cpuCommentary\?\.VERSION !== "standard-cpu-commentary-v3"/);
   assert.ok(html.indexOf("cpu-commentary.js") < html.indexOf('type="module" src="app.js'));
   assert.match(html, /id="cpuCommentaryStage"[^>]+aria-hidden="true"/);
@@ -149,7 +149,7 @@ test("waiting-opponent notice is global, privacy-finite, and non-interrupting", 
 
 test("fresh players can finish profile setup inside the battle tab without automatic matchmaking", () => {
   assert.match(html, /id="profileCard"[^>]+data-app-tab-panel="[^"]*\bbattle\b[^"]*"/);
-  assert.match(app, /function renderProfileCardVisibility\(\) \{ show\("profileCard", activeAppTab === "profile" \|\| !synced\); \}/);
+  assert.match(app, /function renderProfileCardVisibility\(\) \{ show\("profileCard", activeAppTab === "profile" \|\| \(!synced && activeAppTab !== "cards"\)\); \}/);
   assert.match(app, /document\.body\.dataset\.activeTab = tab;\s*renderProfileCardVisibility\(\);/);
   assert.match(app, /function render\(\) \{\s*renderProfileCardVisibility\(\);/);
   assert.match(app, /synced = true; badge\("プレイヤー情報を保存しました", "good"\); renderProfile\(\); render\(\);/);
@@ -469,7 +469,7 @@ test("existing online progression is hydrated from the server rather than re-upl
 
 test("UI derives its canonical and experimental card metadata from the generated registry", () => {
   assert.equal(Object.values(STANDARD_SKILLS).filter((skill) => skill.v49Catalogued).length, 19);
-  assert.match(html, /standard-skill-registry\.generated\.js\?v=20260907-1[\s\S]+app\.js\?v=20260912-39/);
+  assert.match(html, /standard-skill-registry\.generated\.js\?v=20260912-2[\s\S]+app\.js\?v=20260912-40/);
   assert.match(app, /const STANDARD_SKILL_REGISTRY = globalThis\.FourColorStandardSkillRegistry/);
   assert.match(app, /STANDARD_SKILL_REGISTRY\.v49SkillIds\.map/);
   assert.match(app, /Object\.entries\(STANDARD_SKILL_REGISTRY\.skills\)/);

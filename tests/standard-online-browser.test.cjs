@@ -57,6 +57,86 @@ async function choosePublicWaiting(page) {
   await page.locator("#recruitOpponent").click();
 }
 
+test("UDL066 fresh catalog exposes all 21 native detail buttons without creating a profile or spending", { timeout: 120000 }, async () => {
+  await withPage("empty", async (page) => {
+    await page.locator('[data-app-tab="cards"]').click();
+    const cards = page.locator("#cardInventory button[data-catalog-skill]");
+    assert.equal(await cards.count(), 21);
+    assert.equal(await page.locator("#cardInventory section").count(), 4);
+    assert.equal(await page.locator("#profileCard").isHidden(), true);
+    assert.equal(await page.locator("#cardSaleBox").isHidden(), true);
+    assert.equal(await page.locator("#editNextLoadout").isHidden(), true);
+    const expected = Object.values(require("../standard/standard-skill-registry.js").STANDARD_SKILLS)
+      .filter(d => d.standardEngineImplemented && (d.standardUiEnabled || d.alphaUiEnabled));
+    assert.deepEqual((await cards.evaluateAll(els => els.map(el => el.dataset.catalogSkill))).sort(), expected.map(d => d.id).sort());
+    const before = await page.evaluate(() => ({ profile: globalThis.__standardOnlineRuntime.profile,
+      commands: globalThis.__standardOnlineRuntime.calls.filter(c => c.body).map(c => c.body) }));
+    for (const [i, definition] of expected.entries()) {
+      const card = page.locator(`[data-catalog-skill="${definition.id}"]`);
+      assert.equal(await card.locator(".inventory-count").textContent(), "×0");
+      assert.equal(await card.isEnabled(), true);
+      await card.focus(); await page.keyboard.press(i % 2 ? "Space" : "Enter");
+      await page.locator("#skillInfoDialog[open]").waitFor();
+      assert.equal(await page.locator("#skillInfoTitle").textContent(), definition.displayName);
+      assert.ok((await page.locator("#skillInfoBody").textContent()).length > 8);
+      assert.match(await page.locator("#skillInfoTiming").textContent(), definition.timing === "COLOR" ? /塗る前/ : /渡す前/);
+      if (!definition.standardUiEnabled) assert.match(await page.locator("#skillInfoAvailability").textContent(), /実験ルール専用。通常ガチャからは出ません/);
+      await page.keyboard.press("Escape");
+      assert.equal(await card.evaluate(el => el === document.activeElement), true);
+    }
+    const after = await page.evaluate(key => ({ profile: globalThis.__standardOnlineRuntime.profile,
+      commands: globalThis.__standardOnlineRuntime.calls.filter(c => c.body).map(c => c.body),
+      saved: localStorage.getItem(key) }), remoteProfileKey);
+    assert.deepEqual(after.profile, before.profile); assert.equal(after.profile, null);
+    assert.deepEqual(after.commands, before.commands); assert.equal(after.saved, null);
+  }, { viewport: { width: 390, height: 844 }, bodyTimeout: 65000 });
+});
+
+test("UDL066 catalog reuses focused cards across real snapshot hydration and remains readable at three widths", { timeout: 120000 }, async () => {
+  await withPage("colorResponse", async (page) => {
+    await page.locator('[data-app-tab="cards"]').click();
+    const card = page.locator('[data-catalog-skill="colorRandomBorrow"]');
+    await card.click();
+    await page.evaluate(() => {
+      globalThis.__catalogOpener = document.querySelector('[data-catalog-skill="colorRandomBorrow"]');
+      const r = globalThis.__standardOnlineRuntime;
+      r.profile = { ...r.profile, revision: r.profile.revision + 1, profile_state: { ...r.profile.profile_state,
+        inventory: { ...r.profile.profile_state.inventory, colorRandomBorrow: 27 } } };
+      r.onInvalidate();
+    });
+    await page.waitForFunction(() => document.querySelector('[data-catalog-skill="colorRandomBorrow"] .inventory-count')?.textContent === "×27");
+    assert.equal(await page.evaluate(() => globalThis.__catalogOpener === document.querySelector('[data-catalog-skill="colorRandomBorrow"]')), true);
+    assert.equal(await page.locator("#skillInfoDialog").getAttribute("open"), "");
+    await page.keyboard.press("Escape");
+    assert.equal(await card.evaluate(el => el === document.activeElement), true);
+    assert.equal(await page.locator("#cardSaleBox").isVisible(), true);
+    for (const viewport of [{ width: 390, height: 844 }, { width: 768, height: 900 }, { width: 1280, height: 900 }]) {
+      await page.setViewportSize(viewport);
+      const layout = await page.evaluate(() => {
+        const cards = [...document.querySelectorAll("#cardInventory button")];
+        return { overflow: document.documentElement.scrollWidth > innerWidth,
+          columns: getComputedStyle(document.querySelector("#cardInventory .catalog-grid")).gridTemplateColumns.split(" ").length,
+          cards: cards.map(el => { const r = el.getBoundingClientRect(); return { width: r.width, height: r.height, overflow: el.scrollWidth > el.clientWidth }; }) };
+      });
+      assert.equal(layout.overflow, false, JSON.stringify(layout));
+      assert.equal(layout.columns, viewport.width === 390 ? 2 : viewport.width === 768 ? 3 : 4);
+      assert.ok(layout.cards.every(c => c.width >= 44 && c.height >= 44 && !c.overflow), JSON.stringify(layout));
+      if (process.env.CATALOG_SCREENSHOTS) {
+        fs.mkdirSync(process.env.CATALOG_SCREENSHOTS, { recursive: true });
+        await page.screenshot({ path: path.join(process.env.CATALOG_SCREENSHOTS, `${browserName}-catalog-${viewport.width}.png`), fullPage: true });
+      }
+    }
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.addStyleTag({ content: "#cardInventory strong {font-size:28px!important} #cardInventory small {font-size:22px!important}" });
+    await card.locator("strong").evaluate(el => { el.textContent = "とても長い名称でも効果を読むカード図鑑"; });
+    await card.locator(".inventory-count").evaluate(el => { el.textContent = "×9007199254740991"; });
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+    assert.equal(await card.evaluate(el => el.scrollWidth > el.clientWidth), false);
+    assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter(c =>
+      c.body?.operation === "action" || c.body?.operation === "gacha" || c.body?.operation === "card-sale").length), 0);
+  }, { bodyTimeout: 65000 });
+});
+
 test("UDL052 role palette keeps duplicates and temporary alternatives independently reachable", { timeout: 130000 }, async () => {
   await withPage("colorResponse", async (page) => {
     await page.locator('#paletteControls [data-role="basic1"].color-button').waitFor();

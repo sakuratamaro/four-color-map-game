@@ -15,7 +15,9 @@
     "v49Catalogued": true,
     "standardUiEnabled": true,
     "alphaUiEnabled": false,
-    "experimental": false
+    "experimental": false,
+    "standardEngineImplemented": true,
+    "gachaEnabled": true
   },
   "colorChoiceBorrow": {
     "id": "colorChoiceBorrow",
@@ -27,7 +29,9 @@
     "v49Catalogued": true,
     "standardUiEnabled": true,
     "alphaUiEnabled": false,
-    "experimental": false
+    "experimental": false,
+    "standardEngineImplemented": true,
+    "gachaEnabled": true
   },
   "colorPrism": {
     "id": "colorPrism",
@@ -39,7 +43,9 @@
     "v49Catalogued": true,
     "standardUiEnabled": true,
     "alphaUiEnabled": false,
-    "experimental": false
+    "experimental": false,
+    "standardEngineImplemented": true,
+    "gachaEnabled": true
   },
   "colorBonusRefill": {
     "id": "colorBonusRefill",
@@ -51,7 +57,9 @@
     "v49Catalogued": false,
     "standardUiEnabled": false,
     "alphaUiEnabled": true,
-    "experimental": true
+    "experimental": true,
+    "standardEngineImplemented": true,
+    "gachaEnabled": false
   },
   "colorRegionSplit": {
     "id": "colorRegionSplit",
@@ -63,7 +71,9 @@
     "v49Catalogued": true,
     "standardUiEnabled": true,
     "alphaUiEnabled": false,
-    "experimental": false
+    "experimental": false,
+    "standardEngineImplemented": true,
+    "gachaEnabled": true
   },
   "colorPaletteChange": {
     "id": "colorPaletteChange",
@@ -75,7 +85,9 @@
     "v49Catalogued": true,
     "standardUiEnabled": true,
     "alphaUiEnabled": false,
-    "experimental": false
+    "experimental": false,
+    "standardEngineImplemented": true,
+    "gachaEnabled": true
   },
   "areaMicroBloom": {
     "id": "areaMicroBloom",
@@ -87,7 +99,9 @@
     "v49Catalogued": true,
     "standardUiEnabled": true,
     "alphaUiEnabled": false,
-    "experimental": false
+    "experimental": false,
+    "standardEngineImplemented": true,
+    "gachaEnabled": true
   },
   "areaDiePlus": {
     "id": "areaDiePlus",
@@ -99,7 +113,9 @@
     "v49Catalogued": true,
     "standardUiEnabled": true,
     "alphaUiEnabled": false,
-    "experimental": false
+    "experimental": false,
+    "standardEngineImplemented": true,
+    "gachaEnabled": true
   },
   "areaResize": {
     "id": "areaResize",
@@ -111,7 +127,9 @@
     "v49Catalogued": true,
     "standardUiEnabled": true,
     "alphaUiEnabled": false,
-    "experimental": false
+    "experimental": false,
+    "standardEngineImplemented": true,
+    "gachaEnabled": true
   },
   "areaCornerBloom": {
     "id": "areaCornerBloom",
@@ -123,7 +141,9 @@
     "v49Catalogued": true,
     "standardUiEnabled": true,
     "alphaUiEnabled": false,
-    "experimental": false
+    "experimental": false,
+    "standardEngineImplemented": true,
+    "gachaEnabled": true
   },
   "areaHalfShift": {
     "id": "areaHalfShift",
@@ -135,7 +155,9 @@
     "v49Catalogued": true,
     "standardUiEnabled": true,
     "alphaUiEnabled": false,
-    "experimental": false
+    "experimental": false,
+    "standardEngineImplemented": true,
+    "gachaEnabled": true
   },
   "areaTripleShift": {
     "id": "areaTripleShift",
@@ -147,7 +169,9 @@
     "v49Catalogued": true,
     "standardUiEnabled": true,
     "alphaUiEnabled": false,
-    "experimental": false
+    "experimental": false,
+    "standardEngineImplemented": true,
+    "gachaEnabled": true
   },
   "disruptRandomOne": {
     "id": "disruptRandomOne",
@@ -159,7 +183,9 @@
     "v49Catalogued": true,
     "standardUiEnabled": true,
     "alphaUiEnabled": false,
-    "experimental": false
+    "experimental": false,
+    "standardEngineImplemented": true,
+    "gachaEnabled": true
   },
   "disruptChoiceOne": {
     "id": "disruptChoiceOne",
@@ -171,7 +197,9 @@
     "v49Catalogued": true,
     "standardUiEnabled": true,
     "alphaUiEnabled": false,
-    "experimental": false
+    "experimental": false,
+    "standardEngineImplemented": true,
+    "gachaEnabled": true
   },
   "disruptRandomTwo": {
     "id": "disruptRandomTwo",
@@ -183,7 +211,9 @@
     "v49Catalogued": true,
     "standardUiEnabled": true,
     "alphaUiEnabled": false,
-    "experimental": false
+    "experimental": false,
+    "standardEngineImplemented": true,
+    "gachaEnabled": true
   },
   "disruptPaletteRandom": {
     "id": "disruptPaletteRandom",
@@ -195,7 +225,9 @@
     "v49Catalogued": true,
     "standardUiEnabled": true,
     "alphaUiEnabled": false,
-    "experimental": false
+    "experimental": false,
+    "standardEngineImplemented": true,
+    "gachaEnabled": true
   },
   "disruptChoiceTwo": {
     "id": "disruptChoiceTwo",
@@ -207,7 +239,9 @@
     "v49Catalogued": true,
     "standardUiEnabled": true,
     "alphaUiEnabled": false,
-    "experimental": false
+    "experimental": false,
+    "standardEngineImplemented": true,
+    "gachaEnabled": true
   },
   "disruptPaletteChoice": {
     "id": "disruptPaletteChoice",
@@ -219,7 +253,9 @@
     "v49Catalogued": true,
     "standardUiEnabled": true,
     "alphaUiEnabled": false,
-    "experimental": false
+    "experimental": false,
+    "standardEngineImplemented": true,
+    "gachaEnabled": true
   },
   "disruptChoiceThree": {
     "id": "disruptChoiceThree",
@@ -231,7 +267,9 @@
     "v49Catalogued": true,
     "standardUiEnabled": true,
     "alphaUiEnabled": false,
-    "experimental": false
+    "experimental": false,
+    "standardEngineImplemented": true,
+    "gachaEnabled": true
   },
   "disruptForcedPalette": {
     "id": "disruptForcedPalette",
@@ -243,7 +281,9 @@
     "v49Catalogued": true,
     "standardUiEnabled": true,
     "alphaUiEnabled": false,
-    "experimental": false
+    "experimental": false,
+    "standardEngineImplemented": true,
+    "gachaEnabled": true
   },
   "legalRecolor": {
     "id": "legalRecolor",
@@ -255,7 +295,9 @@
     "v49Catalogued": false,
     "standardUiEnabled": false,
     "alphaUiEnabled": true,
-    "experimental": true
+    "experimental": true,
+    "standardEngineImplemented": true,
+    "gachaEnabled": false
   }
 };
   for (const definition of Object.values(skills)) Object.freeze(definition);

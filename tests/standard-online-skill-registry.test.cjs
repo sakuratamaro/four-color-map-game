@@ -11,6 +11,7 @@ const root = path.resolve(__dirname, "..");
 const publicFields = [
   "id", "displayName", "category", "usageCategory", "rarity", "timing",
   "v49Catalogued", "standardUiEnabled", "alphaUiEnabled", "experimental",
+  "standardEngineImplemented", "gachaEnabled",
 ];
 
 test("browser skill metadata is generated exactly from the authoritative Standard registry", () => {

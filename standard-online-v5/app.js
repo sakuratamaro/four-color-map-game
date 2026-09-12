@@ -580,7 +580,7 @@ function persistCpuStartSaga(value) {
 }
 function hasCpuEntryIntent() { return sessionStorage.getItem(CPU_ENTRY_INTENT_KEY) === "direct"; }
 function setCpuEntryIntent(active) { if (active) sessionStorage.setItem(CPU_ENTRY_INTENT_KEY, "direct"); else sessionStorage.removeItem(CPU_ENTRY_INTENT_KEY); }
-function renderProfileCardVisibility() { show("profileCard", activeAppTab === "profile" || !synced); }
+function renderProfileCardVisibility() { show("profileCard", activeAppTab === "profile" || (!synced && activeAppTab !== "cards")); }
 
 function renderBattleEntrance() {
   const snapshot = client.snapshot();
@@ -1582,7 +1582,8 @@ function revealRandomSetup(publicState, privateState) {
 function openSkillInfo(skill) {
   const meta = SKILL_META[skill]; if (!meta) return;
   $("skillInfoTitle").textContent = meta.name;
-  $("skillInfoTiming").textContent = meta.category === "color" ? "使えるタイミング：エリアを塗る前" : "使えるタイミング：エリアを渡す前";
+  $("skillInfoTiming").textContent = STANDARD_SKILL_REGISTRY.skills[skill].timing === "COLOR" ? "使えるタイミング：エリアを塗る前" : "使えるタイミング：エリアを渡す前";
+  $("skillInfoAvailability").textContent = catalogAvailability(STANDARD_SKILL_REGISTRY.skills[skill]);
   $("skillInfoBody").textContent = SKILL_DESCRIPTION[skill] || "説明を準備中です。";
   show("skillInfoRandom", RANDOM_SKILLS.has(skill));
   const dialog = $("skillInfoDialog");
@@ -2178,30 +2179,50 @@ function isCurrentCpuRewardGachaContinuation(value) {
     && state?.debugUnlimitedSkills !== true;
 }
 
+function catalogDefinitions(registry = STANDARD_SKILL_REGISTRY) {
+  const categories = ["color", "area", "disrupt"];
+  const rank = (d) => d.standardUiEnabled ? categories.indexOf(d.usageCategory) : categories.length;
+  return Object.values(registry?.skills || {}).filter((d) => d?.standardEngineImplemented === true
+    && (d.standardUiEnabled === true || d.alphaUiEnabled === true) && categories.includes(d.usageCategory)
+    && typeof d.id === "string" && typeof d.displayName === "string" && Number.isInteger(d.rarity) && d.rarity >= 1 && d.rarity <= 5)
+    .sort((a, b) => rank(a) - rank(b) || a.rarity - b.rarity || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+}
+function catalogAvailability(definition) {
+  if (!definition) return "";
+  return (definition.standardUiEnabled ? "通常対戦用。" : "対応するラボ・実験ルール専用。")
+    + (definition.gachaEnabled ? "通常ガチャの対象です。" : "通常ガチャからは出ません。");
+}
 function renderCardLibrary() {
-  if (!$("cardInventory")) return;
-  const value = profile();
-  $("cardInventory").replaceChildren();
-  if (!value) return;
-  for (const [skillId, name, category] of SKILLS) {
-    const card = document.createElement("article");
-    card.className = `inventory-card category-${category}`;
-    const mark = document.createElement("span");
-    mark.className = "inventory-card-mark";
-    mark.textContent = category === "color" ? "●" : category === "area" ? "⬡" : "✦";
-    const copy = document.createElement("div");
-    const title = document.createElement("strong"); title.textContent = name;
-    const type = document.createElement("small"); type.textContent = CATEGORY_LABEL[category] || category;
-    copy.append(title, type);
-    const count = document.createElement("b");
-    count.className = "inventory-count";
-    count.textContent = `×${Number(value.inventory?.[skillId] || 0)}`;
-    card.append(mark, copy, count);
-    card.onclick = () => openSkillInfo(skillId);
-    card.tabIndex = 0;
-    card.setAttribute("role", "button");
-    card.onkeydown = (event) => { if (["Enter", " "].includes(event.key)) { event.preventDefault(); openSkillInfo(skillId); } };
-    $("cardInventory").appendChild(card);
+  const inventory = $("cardInventory"); if (!inventory) return;
+  const definitions = catalogDefinitions(), value = profile();
+  const groups = { color: "色", area: "エリア", disrupt: "妨害", lab: "ラボ・実験用" };
+  const existing = new Map([...inventory.querySelectorAll("button[data-catalog-skill]")].map((card) => [card.dataset.catalogSkill, card]));
+  for (const definition of definitions) {
+    const { id, displayName, usageCategory, rarity } = definition;
+    const group = definition.standardUiEnabled ? usageCategory : "lab";
+    let section = inventory.querySelector(`[data-catalog-group="${group}"]`);
+    if (!section) {
+      section = document.createElement("section"); section.dataset.catalogGroup = group;
+      const heading = document.createElement("h3"); heading.id = `catalog-${group}-title`; heading.textContent = groups[group];
+      section.setAttribute("aria-labelledby", heading.id); section.appendChild(heading);
+      if (group === "lab") { const note = document.createElement("p"); note.className = "muted small"; note.textContent = "通常ガチャ対象外。対応する実験ルールで使います。"; section.appendChild(note); }
+      const grid = document.createElement("div"); grid.className = "catalog-grid"; section.appendChild(grid); inventory.appendChild(section);
+    }
+    let card = existing.get(id);
+    if (!card) {
+      card = document.createElement("button"); card.type = "button"; card.dataset.catalogSkill = id;
+      card.className = `inventory-card category-${usageCategory}`;
+      const title = document.createElement("strong"); title.textContent = displayName;
+      const stars = document.createElement("small"); stars.className = "inventory-rarity"; stars.setAttribute("aria-hidden", "true"); stars.textContent = "★".repeat(rarity);
+      const count = document.createElement("small"); count.className = "inventory-count"; count.setAttribute("aria-hidden", "true");
+      card.append(title, stars, count); card.onclick = () => openSkillInfo(id);
+      section.querySelector(".catalog-grid").appendChild(card);
+    }
+    const raw = Number(value?.inventory?.[id] || 0), count = Number.isSafeInteger(raw) && raw >= 0 ? raw : 0;
+    card.classList.toggle("is-unowned", count === 0);
+    const countNode = card.querySelector(".inventory-count"), label = `×${count}`;
+    if (countNode.textContent !== label) countNode.textContent = label;
+    card.setAttribute("aria-label", `${displayName}、星${rarity}、所持${count}枚。効果を確認`);
   }
 }
 
@@ -3545,7 +3566,9 @@ function render() {
   renderQuiz();
   show("gachaPanel", synced && Boolean(profile()));
   renderGacha();
-  show("cardLibraryPanel", synced && Boolean(profile()));
+  show("cardLibraryPanel", true);
+  show("cardSaleBox", synced && Boolean(profile()));
+  show("editNextLoadout", synced && Boolean(profile()));
   renderCardLibrary();
   show("progressionPanel", synced && Boolean(profile()));
   show("cosmeticPanel", synced && Boolean(profile()));

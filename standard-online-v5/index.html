@@ -11,6 +11,7 @@
   <link rel="stylesheet" href="progression.css?v=20260910-2">
   <link rel="stylesheet" href="quiz-memo.css?v=20260912-2">
   <link rel="stylesheet" href="ui-diet.css?v=20260912-3">
+  <link rel="stylesheet" href="skill-catalog.css?v=20260912-1">
   <link rel="stylesheet" href="play-surface.css?v=20260912-1">
   <link rel="stylesheet" href="result-continuation.css?v=20260912-1">
   <link rel="stylesheet" href="skill-cutin.css?v=20260912-1">
@@ -206,11 +207,11 @@
 
     <section id="cardLibraryPanel" class="card card-library-panel hidden" data-app-tab-panel="cards">
       <div class="row between wrap">
-        <div><p class="section-kicker">DECK WORKSHOP</p><h2>カードとロードアウト</h2><p class="muted">所持カードを確認し、対戦へ持ち込む6枚を考える場所です。</p></div>
+        <div><h2>スキル図鑑</h2><p class="muted small">持っていないカードも、タップで効果を確認できます。</p></div>
         <button id="editNextLoadout" type="button" class="primary">次の対戦用6枚を編集</button>
       </div>
-      <div id="cardInventory" class="card-inventory" aria-label="所持カード一覧"></div>
-      <div class="card-sale-box">
+      <div id="cardInventory" class="skill-catalog" aria-label="実装済みスキル図鑑"></div>
+      <div id="cardSaleBox" class="card-sale-box">
         <h3>余ったカードを売る</h3>
         <p class="muted small">各カードを必ず1枚残します。保護カードと、6枚セット確認後・対戦中のカードは売れません。</p>
         <div class="card-sale-controls">
@@ -466,6 +467,7 @@
       <div class="row between"><span class="info-mark" aria-hidden="true">ⓘ</span><button id="closeSkillInfo" class="ghost" type="button" aria-label="説明を閉じる">閉じる</button></div>
       <h2 id="skillInfoTitle"></h2>
       <p id="skillInfoTiming" class="muted"></p>
+      <p id="skillInfoAvailability" class="muted small"></p>
       <p id="skillInfoBody"></p>
       <p id="skillInfoRandom" class="random-skill-note hidden">🎲 このスキルにはランダム抽選があります</p>
     </form>
@@ -516,7 +518,7 @@
       <p id="quizMemoStatus" role="status" aria-live="polite"></p>
     </section>
   </div>
-  <script src="standard-skill-registry.generated.js?v=20260907-1"></script>
+  <script src="standard-skill-registry.generated.js?v=20260912-2"></script>
   <script src="standard-online-client.js?v=20260910-1"></script>
   <script src="standard-online-sync.js"></script>
   <script src="standard-online-skill-intents.js?v=20260911-21"></script>
@@ -531,6 +533,6 @@
   </div>
   <p id="skillCutinAnnouncement" class="visually-hidden" role="status" aria-live="polite" aria-atomic="true"></p>
   <script src="skill-cutin.js?v=20260912-2"></script>
-  <script type="module" src="app.js?v=20260912-39"></script>
+  <script type="module" src="app.js?v=20260912-40"></script>
 </body>
 </html>

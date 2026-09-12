@@ -19,6 +19,8 @@ const publicFields = [
   "standardUiEnabled",
   "alphaUiEnabled",
   "experimental",
+  "standardEngineImplemented",
+  "gachaEnabled",
 ];
 const skills = Object.fromEntries(Object.entries(STANDARD_SKILLS).map(([id, definition]) => [
   id,

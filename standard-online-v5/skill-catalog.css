@@ -1,0 +1,16 @@
+/* UDL066: study every implemented card without changing the match hand. */
+#cardLibraryPanel h2 { font-size: clamp(22px, 4vw, 28px); }
+#cardLibraryPanel > .row p { margin: 6px 0 0; }
+#cardInventory { display: grid; gap: 20px; margin: 18px 0; }
+#cardInventory section { min-width: 0; }
+#cardInventory h3 { margin: 0 0 8px; font-size: 15px; color: #cbd5e1; }
+#cardInventory section > p { margin: -2px 0 10px; }
+#cardInventory .catalog-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+#cardInventory .inventory-card { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: 1fr auto; gap: 7px 5px; min-width: 0; min-height: 82px; margin: 0; padding: 10px; text-align: left; white-space: normal; overflow-wrap: anywhere; background: #132338; color: #f8fafc; }
+#cardInventory .inventory-card strong { grid-column: 1 / -1; font-size: 14px; line-height: 1.4; }
+#cardInventory .inventory-card.is-unowned { background: #07111f; }
+#cardInventory .inventory-rarity { align-self: end; color: #fde68a; font-size: 11px; letter-spacing: .02em; }
+#cardInventory .inventory-count { align-self: end; justify-self: end; max-width: 100%; padding: 0; background: transparent; color: #cbd5e1; font-size: 11px; font-weight: 400; }
+#cardInventory .inventory-card:focus-visible { outline: 3px solid #67e8f9; outline-offset: 2px; }
+@media (min-width: 700px) { #cardInventory .catalog-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (min-width: 1050px) { #cardInventory .catalog-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
