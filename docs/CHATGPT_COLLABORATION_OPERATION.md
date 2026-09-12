@@ -134,3 +134,15 @@ main再照合後、同じ候補をforceなしで公開し、Pages34562271949 SUC
 - ガバナンス／既存UDL照合は14/14 PASS。旧固定候補f9a4ab9に対する実APPROVE_DOCSはCLI照合でも `review.ok:true`。これらは次のゲーム仕様や本候補への承認ではない。
 - 保存時点では本候補へのレビュー・運用合意・次スライス指定はまだ未取得。heartbeatが次回処理する。新しい終局後復帰時の初期告知再演の要望（user message `bbb21a1e-346f-438d-8f41-2ecdcb75bf37`）も未処理IDに保全した。
 - 本記録は候補c511711の後続証拠であり、その候補をamendしない。main/Pages/Edge/DBの変更、新しいゲームコード、課金・認証設定変更はない。
+
+## 2026-09-12 UDL-061 最終予定枠の受信・停止
+
+CANON_RECEIPT version=shared-canon-v1.1 base=b81a1d52e8230d41ec9e69610d89bafc86d1d84e request=UDL-20260912-061 specs=AGENTS.md,docs/SHARED_CANON.md,docs/CHATGPT_COLLABORATION_OPERATION.md,docs/CHATGPT_REVIEW_DECISIONS.json,docs/ASTRA_UI_COSMETICS_B1_REVIEW_20260912.md checks=bounded-read/exact-review-binding/JSON/PAUSED-readback-only
+
+文書HEADはcd43d31、baseはlocal origin/main tracking refで今回fetchなし。02:04Zの最後の予定枠で、期限02:24Z内にChatGPTの直近2turnを1回だけ取得した。固定依頼c0629536-84d4-45cf-b3b3-e02fbf97b7a4は保存済み送信本文と完全一致し、完了済み実返答c64ae754-9306-452b-83ad-0d9233eef7ccのAPPROVE_RELEASEを018へ原文保存した。対象a757/base b81/spec v1.1/blob12eb7874/Pages_only/DB・Edge[]を照合。取得補完0・再送0で、自動取得は20分枠と100分枠の計2回。40分枠は未実行のまま移動せず、原期限・回数をリセットしていない。ページカーソルと処理済みレビューIDは別管理する。
+
+OpenAI Docsの[Scheduled tasks](https://learn.chatgpt.com/docs/automations?surface=app)と既存の有限運用に従い、同じautomation IDをPAUSEDに更新。API応答と保存設定のstatus=PAUSED、updated_at=1789179035641、およびprompt・schedule・target・他の既存設定の同一性を読戻し確認した。残る予定枠は0で、同じ依頼の自動確認を再開しない。これは最終予定枠での返答受領・実停止の観測であり、未回答のまま期限切れとなるケースの実証には拡張しない。
+
+Astraがレビュー時に観測したWindows IN_PROGRESSと、司令塔が後から記録した同SHAのSUCCESSを区別する。通常司令塔で既存Windows証拠・fresh main/祖先関係を確認後、追加のユーザー許可や同候補再レビューを待たず、main→同SHA Pages→厳密asset一致→既定の1プロフィール・有限資金獲得範囲の公開canaryへ進む。資金不足なら購入部分を未検証のまま残す。061のPUBLIC_VERIFIED、062のレビュー、物理受入はこの受信で成立しない。
+
+受信処理を閉じたうえで、同じ既存司令塔タスクへの通常処理引継ぎを1回だけ予約した。送信結果は既存coordination.normal_work_handoffに保存し、可否不明でも再試行ループを作らない。今回の受信中に届いた既存素材受渡し担当の033方針受領と「当担当で画像未選定・未取得」の報告はCPU後続キューへ保存し、新たな画像取得・CPU実装へは展開しない。Q10私的画像は閲覧・転送していない。ゲーム実装・製品テスト一式・main/Pages/DB/Edgeの本番変更はこの定期受信では行わない。
