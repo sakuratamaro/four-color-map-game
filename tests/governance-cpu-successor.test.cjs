@@ -38,11 +38,11 @@ test("v7 additions map once without treating proposals as product implementation
   assert.equal(goal.status, "COMPLETE", "original delivery audit is distinct from its last retained API observation");
   assert.equal(goal.completion_audit.complete, true);
   assert.equal(goal.completion_audit.later_v13_changes_not_complete, true);
-  assert.equal(log.coordination.successor_goal.state, "INDEPENDENT_CPU_CANDIDATE_REVIEW_PENDING");
+  assert.equal(log.coordination.successor_goal.state, "INDEPENDENT_CPU_APPROVED_PENDING_PRODUCTION_GATES");
   const checkpoint = log.coordination.successor_goal.preparing_independent_slice;
   assert.equal(checkpoint.request_id, "UDL-20260910-051");
   assert.equal(checkpoint.publication, "NOT_RUN", "local F3 work is not a full CPU release");
-  assert.equal(checkpoint.state, "FIXED_CANDIDATE_REVIEW_PENDING");
+  assert.equal(checkpoint.state, "FIXED_CANDIDATE_APPROVED");
   assert.equal(checkpoint.checkpoint_sha, "d9ce111d7d97019d55b3e90842602001e045ea04");
   assert.equal(log.coordination.preparing_next_slice.candidate_sha,checkpoint.checkpoint_sha);
   assert.equal(log.coordination.preparing_next_slice.push_status,"PUSHED_EXACT_BRANCH");
@@ -80,7 +80,47 @@ test("current ledger uses canonical coarse states while CPU review and partial06
   assert.equal(rows.find(r=>r.values.ID==="UDL-20260912-067").values.状態,"MERGED");
   const log=read("docs/CHATGPT_REVIEW_DECISIONS.json");
   assert.equal(log.coordination.active_slice.state,"PAGES_PUBLISHED_LIVE_ACCEPTANCE_PARTIAL");
-  assert.equal(log.coordination.preparing_next_slice.review_status,"REVIEW_PENDING");
+  assert.equal(log.coordination.preparing_next_slice.review_status,"APPROVE_RELEASE");
+});
+
+test("genuine CPU036 and docs037 stay separate, bounded and exact after the first review read", () => {
+  const log=read("docs/CHATGPT_REVIEW_DECISIONS.json");
+  const {matchingReview,planContinuation}=require("../scripts/check-commander-continuation.cjs");
+  const cpu=log.decisions.find(r=>r.review_id==="CHATGPT-REVIEW-20260913-036");
+  const docs=log.decisions.find(r=>r.review_id==="CHATGPT-REVIEW-20260913-037");
+  const slice=log.coordination.preparing_next_slice;
+  assert.equal(matchingReview(log,slice),cpu);
+  assert.equal(planContinuation(log).action,"RELEASE_CHECKS");
+  assert.equal(cpu.decision,"APPROVE_RELEASE");
+  assert.equal(cpu.source.message_id,"7f806672-5501-4673-8bc9-6f7626e08552");
+  assert.equal(cpu.source.request_message_id,"c566e41e-1282-4603-8c56-1f3a46e2db9c");
+  assert.equal(cpu.source.request_body_equality,true);
+  assert.equal(cpu.source.verified_request_characters,6755);
+  assert.equal(cpu.source.response_complete,true);
+  assert.deepEqual(cpu.bounds,{profiles:1,matches:1,character_id:"rei",attempts:1,max_seconds:240,cpu_send_attempts:8,surrender_send_attempts:1,additional_matches:0,additional_profiles:0,economy_actions:0,deletions:0,privileged_room_recovery:false});
+  assert.deepEqual(slice.live_canary_bounds,cpu.bounds);
+  assert.equal(slice.live_canary_attempts,0);
+  assert.equal(slice.publication,"NOT_RUN");
+  assert.equal(docs.review_kind,"documentation_introduction");
+  assert.equal(docs.decision,"APPROVE_DOCS");
+  assert.deepEqual([docs.subject_sha,docs.base_sha,docs.spec_snapshot_sha],
+    ["3930f3cf60519ae2f54bb015d96d52267007ff84","233a778249be91e2c379c05747a625593f28912f","5413c3a4e927b8091cdf796c38b31ba17d5d4951"]);
+  assert.equal(docs.source.message_id,cpu.source.message_id);
+  assert.equal(docs.source.request_message_id,cpu.source.request_message_id);
+  assert.deepEqual(docs.db_change_set,[]);
+  assert.deepEqual(docs.edge_change_set,[]);
+  assert.equal((cpu.source.response_text+"\n---\n\n"+docs.source.response_text).length,4641);
+  const forged=JSON.parse(JSON.stringify(slice));forged.review_id=docs.review_id;
+  assert.equal(matchingReview(log,forged),null,"docs approval cannot authorize CPU release");
+  const w=log.coordination.wait_budget;
+  assert.equal(w.status,"review_received_closed");
+  assert.equal(w.automatic_checks,1);
+  assert.equal(w.expires_at_utc,"2026-09-12T22:24:15.000Z");
+  assert.equal(w.next_check_utc,null);
+  assert.equal(w.remaining_scheduled_slots,0);
+  assert.deepEqual(w.consumed_slots_utc,["2026-09-12T20:44:15.000Z"]);
+  assert.equal(w.check_receipts[0].reserved_before_api,true);
+  assert.equal(w.check_receipts[0].supplementary_reads,0);
 });
 
 test("final play-surface live proof binds d6 and normal390 width while keeping physical NOT_RUN", () => {

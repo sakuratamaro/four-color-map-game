@@ -330,6 +330,7 @@ test("ChatGPT review records require an exact subject and cannot imply productio
       assert.match(decision.subject_sha, /^[0-9a-f]{40}$/);
       assert.match(decision.spec_snapshot_sha, /^[0-9a-f]{40}$/);
       const bindings = {
+        "CHATGPT-REVIEW-20260913-036": ["d9ce111d7d97019d55b3e90842602001e045ea04", "f507c0b2dd9701f3ac1867131150b5e48d0ada8d", "UDL-051-split-v1.1", "5b4b137769f1be7736ded6a187e438ccb6d9a702", "Pages_Edge_DB_managed_activation"],
         "CHATGPT-REVIEW-20260913-035": ["f507c0b2dd9701f3ac1867131150b5e48d0ada8d", "2fcfea9bb2a3d1ad7e22a5e8e3b61983f0404152", "UDL-067-surrender-v1.1", "1e7e2a4c02acd58ed40ca0b6f2fbb0513f333463", "Pages_only"],
         "CHATGPT-REVIEW-20260913-034": ["f507c0b2dd9701f3ac1867131150b5e48d0ada8d", "2fcfea9bb2a3d1ad7e22a5e8e3b61983f0404152", "UDL-067-surrender-v1.1", "1e7e2a4c02acd58ed40ca0b6f2fbb0513f333463", "Pages_only"],
         "CHATGPT-REVIEW-20260913-033": ["23133ef52efb81c39d0623479b0ea7819f850f7d", "2fcfea9bb2a3d1ad7e22a5e8e3b61983f0404152", "UDL-067-surrender-v1", "e5f2c0617d3defcc8dc6105bf567f6ed59fb4432", "Pages_only"],
@@ -363,8 +364,14 @@ test("ChatGPT review records require an exact subject and cannot imply productio
       assert.ok(bindings[decision.review_id], "each genuine review needs an explicit exact binding");
       assert.deepEqual([decision.subject_sha, decision.base_sha, decision.feature_spec_version,
         decision.spec_snapshot_sha, decision.scope], bindings[decision.review_id]);
-      assert.deepEqual(decision.db_change_set, []);
-      assert.deepEqual(decision.edge_change_set, []);
+      if(decision.review_id === "CHATGPT-REVIEW-20260913-036") {
+        assert.deepEqual(decision.db_change_set,["supabase/migrations/202609130001_standard_cpu_split_rescue.sql"]);
+        assert.deepEqual(decision.edge_change_set,["supabase/functions/standard-game-action/index.ts","supabase/functions/standard-game-action/standard-engine.bundle.js"]);
+        assert.deepEqual(decision.managed_setting_change_set,[{name:"FCG_CPU_SPLIT_RESCUE",compatible_deploy_value:null,activation_value:"standard-character-split-rescue-v1",rollback:"disable activation; retain compatible Edge and additive SQL"}]);
+      } else {
+        assert.deepEqual(decision.db_change_set, []);
+        assert.deepEqual(decision.edge_change_set, []);
+      }
     }
   }
 });

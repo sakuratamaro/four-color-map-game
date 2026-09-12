@@ -41,7 +41,7 @@
     }
   ],
   "coordination": {
-    "status": "CPU_EXACT_REQUEST_DELIVERED_REVIEW_PENDING",
+    "status": "CPU_APPROVED_READY_NORMAL_WORK",
     "latest_v8_intake": {
       "state": "PAIRED_SOURCE_AND_ZIP_VERIFIED_ALIASES_MAPPED",
       "source_thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
@@ -181,8 +181,8 @@
       "normal_owner_observation": "Previous normal turn completed after branch push; stored normal_work_receipt waiting. This heartbeat is the same task, not a second active owner."
     },
     "reviewer_thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
-    "last_consumed_review_message_id": "1bb33ef7-814c-41eb-a4bd-06009842f65d",
-    "last_received_message_id": "1bb33ef7-814c-41eb-a4bd-06009842f65d",
+    "last_consumed_review_message_id": "7f806672-5501-4673-8bc9-6f7626e08552",
+    "last_received_message_id": "7f806672-5501-4673-8bc9-6f7626e08552",
     "pending_user_intake_message_ids": [
       "ea61f25f-bebf-499a-81e9-029712a96f99",
       "bbb216f0-9194-45cf-acd6-504a9a55d40a",
@@ -381,10 +381,10 @@
     },
     "automation_id": "automation",
     "automation_status_at_recording": "ACTIVE",
-    "automation_readback_updated_at": 1789244947762,
+    "automation_readback_updated_at": 1789246469733,
     "automation_prompt_readback_equal": true,
     "automation_pause_reason": null,
-    "automation_active_reason": "Independent CPU exact request c566e41e fully delivered; originalfirst20:44:15Z slot,0/3consumed. Existing soleautomation readback verified, no old067reset.",
+    "automation_active_reason": "CPU036_APPROVED_UNPUBLISHED_NORMAL_WORK_REQUIRED",
     "completed_review_waits": [
       {
         "root_request_message_id": "8464f659-ad62-4c09-83d9-44e1cc91316b",
@@ -917,7 +917,7 @@
       "started_at_utc": "2026-09-12T20:24:15Z",
       "expires_at_utc": "2026-09-12T22:24:15.000Z",
       "start_basis": "Conservative reservation immediately before sole send for genuinely independent CPU051 fixed candidate; not067 extension.",
-      "automatic_checks": 0,
+      "automatic_checks": 1,
       "max_automatic_checks": 3,
       "offset_minutes": [
         20,
@@ -930,15 +930,38 @@
       "confirmed_delivery_reminders": 0,
       "root_request_message_id": "c566e41e-1282-4603-8c56-1f3a46e2db9c",
       "subject_sha": "d9ce111d7d97019d55b3e90842602001e045ea04",
-      "status": "review_pending",
-      "next_check_utc": "2026-09-12T20:44:15.000Z",
-      "remaining_scheduled_slots": 3,
+      "status": "review_received_closed",
+      "next_check_utc": null,
+      "remaining_scheduled_slots": 0,
       "delivery_readback_checks": 2,
-      "consumed_slots_utc": [],
+      "consumed_slots_utc": [
+        "2026-09-12T20:44:15.000Z"
+      ],
       "skipped_slots_utc": [],
-      "check_receipts": [],
+      "check_receipts": [
+        {
+          "slot_utc": "2026-09-12T20:44:15.000Z",
+          "reserved_at_utc": "2026-09-12T20:47:12Z",
+          "reserved_before_api": true,
+          "turn_id": "01a0975a-7375-7c43-8e38-f8f37ffeaf23",
+          "origin": "automatic_goal_continuation",
+          "result": "GENUINE_RELEASE_AND_DOCS_APPROVAL_RECEIVED",
+          "completed_at_utc": "2026-09-12T20:49:30Z",
+          "response_message_id": "7f806672-5501-4673-8bc9-6f7626e08552",
+          "request_full_body_equality": true,
+          "response_characters": 4641,
+          "supplementary_reads": 0
+        }
+      ],
       "new_scope": "UDL-051-split-v1.1",
-      "prior_budgets_reopened": false
+      "prior_budgets_reopened": false,
+      "response_message_id": "7f806672-5501-4673-8bc9-6f7626e08552",
+      "review_id": "CHATGPT-REVIEW-20260913-036",
+      "closed_at_utc": "2026-09-12T20:49:30Z",
+      "unexecuted_slots_closed_utc": [
+        "2026-09-12T21:04:15.000Z",
+        "2026-09-12T22:04:15.000Z"
+      ]
     },
     "pending_review_subject": {
       "subject_sha": "d9ce111d7d97019d55b3e90842602001e045ea04",
@@ -974,7 +997,7 @@
     "initial_interval_minutes": 20,
     "pending_subject_sha": "d9ce111d7d97019d55b3e90842602001e045ea04",
     "pending_scope": "Pages_Edge_DB_managed_activation",
-    "pending_delivery_status": "delivery_verified_response_pending",
+    "pending_delivery_status": "REVIEW_RECEIVED_CLOSED",
     "last_confirmed_sent_message_id": "c566e41e-1282-4603-8c56-1f3a46e2db9c",
     "last_sent_message_id": "28d25760-2a7a-4fe0-9c48-bb7ca4888b9a",
     "self_sent_message_ids": [
@@ -1012,7 +1035,7 @@
       "c566e41e-1282-4603-8c56-1f3a46e2db9c"
     ],
     "sent_at_utc": "2026-09-12T18:27:24.616Z",
-    "last_check_utc": "2026-09-12T17:47:38Z",
+    "last_check_utc": "2026-09-12T20:49:30Z",
     "unchanged_checks": 0,
     "reminder_count": 0,
     "max_reminders_per_request": 1,
@@ -2525,7 +2548,7 @@
     },
     "successor_goal": {
       "title": "CPUの画像・人物設定・実効強度の改善",
-      "state": "INDEPENDENT_CPU_CANDIDATE_REVIEW_PENDING",
+      "state": "INDEPENDENT_CPU_APPROVED_PENDING_PRODUCTION_GATES",
       "source": {
         "kind": "explicit_user_instruction",
         "thread_id": "01a07b56-616e-7733-9aae-90575659688e",
@@ -2621,10 +2644,10 @@
         "worktree": ".codex-worktrees/cpu-split-rescue-20260913",
         "branch": "codex/cpu-split-rescue-20260913",
         "base_sha": "f507c0b2dd9701f3ac1867131150b5e48d0ada8d",
-        "state": "FIXED_CANDIDATE_REVIEW_PENDING",
+        "state": "FIXED_CANDIDATE_APPROVED",
         "spec_path": "docs/CPU_SPLIT_RESCUE_20260913.md",
         "evidence": "docs/CPU_SPLIT_FULL_TEST_20260913.md; docs/CPU_SPLIT_RESCUE_20260913.md@d9ce111",
-        "next_action": "Same-SHA Windows34716323082 finalSUCCESS. Receive exact CPU decision only at original20:44:15/21:04:15/22:04:15Z slots; before any production work require genuine DB/Edge/managed-setting approval and preserve22:24:15Z deadline.",
+        "next_action": "No further user/Astra approval wait: fresh main/Edge/migration/absent flag; exactSQL+5true; compatibleEdge off/source readback/legacy; verified completion+>=460s; exactactivation/current; sameSHA main/Pages/strictbytes; locally verified single bounded live harness.",
         "publication": "NOT_RUN",
         "checkpoint_sha": "d9ce111d7d97019d55b3e90842602001e045ea04",
         "implementation_commit": "5cf9da5",
@@ -2632,7 +2655,8 @@
         "full_test_evidence": "docs/CPU_SPLIT_FULL_TEST_20260913.md",
         "activation_preparation_status": "IMPLEMENTED_DEFAULT_OFF_COMPATIBLE_EDGE_WITH_EXACT_MANAGED_VALUE",
         "linked_candidate_ref": "preparing_next_slice",
-        "review_request_message_id": "c566e41e-1282-4603-8c56-1f3a46e2db9c"
+        "review_request_message_id": "c566e41e-1282-4603-8c56-1f3a46e2db9c",
+        "review_id": "CHATGPT-REVIEW-20260913-036"
       }
     },
     "preparing_next_slice": {
@@ -2643,7 +2667,7 @@
       ],
       "regression_id": "REG-CPU-F3-SPLIT-ORIENTATION",
       "owner_thread_id": "01a07b56-616e-7733-9aae-90575659688e",
-      "state": "REVIEW_PENDING",
+      "state": "APPROVED_PENDING_PRODUCTION_GATES",
       "worktree": ".codex-worktrees/cpu-split-rescue-20260913",
       "branch": "codex/cpu-split-rescue-20260913",
       "base_sha": "f507c0b2dd9701f3ac1867131150b5e48d0ada8d",
@@ -2675,13 +2699,13 @@
       "tests": "Clean d9ce111:145 non-Playwright files969/969 PASS96391.6707ms skip0; generated3 bundles rebuild byte-equal. SQL runtime9/9; actual Edge6/6. Windows34716323082 both exact-SHA jobs completed/success; Chrome lifecycle intentionally outside scope.",
       "evidence": "docs/CPU_SPLIT_FULL_TEST_20260913.md",
       "review_packet": "docs/ASTRA_CPU_SPLIT_REVIEW_20260913.md",
-      "review_status": "REVIEW_PENDING",
+      "review_status": "APPROVE_RELEASE",
       "review_send_attempts": 1,
       "review_delivery_readback_checks": 2,
       "availability_checks": 1,
-      "live_canary_state": "PLAN_REQUIRES_EXACT_REVIEW_AND_HARNESS_NOT_RUN",
+      "live_canary_state": "APPROVED_HARNESS_NOT_IMPLEMENTED_NOT_RUN",
       "live_canary_attempts": 0,
-      "next_action": "Same-SHA Windows34716323082 finalSUCCESS. Receive exact CPU decision only at original20:44:15/21:04:15/22:04:15Z slots; before any production work require genuine DB/Edge/managed-setting approval and preserve22:24:15Z deadline.",
+      "next_action": "No further user/Astra approval wait: fresh main/Edge/migration/absent flag; exactSQL+5true; compatibleEdge off/source readback/legacy; verified completion+>=460s; exactactivation/current; sameSHA main/Pages/strictbytes; locally verified single bounded live harness.",
       "non_change": "F1/F2 palette/scoring; portraits/gender/tiers/epithets; rule sizes/charge/RNG/economy; old policy behavior.",
       "availability_check_reserved_at_utc": "2026-09-12T20:15:55Z",
       "availability_check_reserved_before_api": true,
@@ -2737,6 +2761,31 @@
         "artifact_equality": "NOT_CHECKED",
         "all_regions": "NOT_CHECKED",
         "worker_drain": "NOT_EVALUATED"
+      },
+      "review_id": "CHATGPT-REVIEW-20260913-036",
+      "review_response_message_id": "7f806672-5501-4673-8bc9-6f7626e08552",
+      "review_received_at_utc": "2026-09-12T20:49:30Z",
+      "live_canary_bounds": {
+        "profiles": 1,
+        "matches": 1,
+        "character_id": "rei",
+        "attempts": 1,
+        "max_seconds": 240,
+        "cpu_send_attempts": 8,
+        "surrender_send_attempts": 1,
+        "additional_matches": 0,
+        "additional_profiles": 0,
+        "economy_actions": 0,
+        "deletions": 0,
+        "privileged_room_recovery": false
+      },
+      "production_gates": {
+        "sql": "NOT_RUN",
+        "compatible_edge": "NOT_RUN",
+        "managed_activation": "NOT_RUN",
+        "main": "NOT_RUN",
+        "pages": "NOT_RUN",
+        "live_smoke": "NOT_RUN"
       }
     },
     "remaining_brain_work": {
@@ -3020,10 +3069,10 @@
       "checker": "scripts/check-commander-continuation.cjs",
       "tests": "tests/governance-commander-continuation.test.cjs",
       "next_run": {
-        "phase": "RECEIVE",
-        "at_utc": "2026-09-12T20:44:15.000Z",
+        "phase": "NORMAL_WORK",
+        "at_utc": "2026-09-12T21:00:44.000Z",
         "subject_sha": "d9ce111d7d97019d55b3e90842602001e045ea04",
-        "reason": "Exact full CPU request delivered; first fixed20minute genuine review slot, old067closed."
+        "reason": "Genuine CPU036 approval and exact Windows success; staged production gates without additional approval wait."
       },
       "first_scheduled_normal_run": {
         "status": "OBSERVED",
@@ -3041,33 +3090,36 @@
         "id": "automation",
         "status": "ACTIVE",
         "target_thread_id": "01a07b56-616e-7733-9aae-90575659688e",
-        "rrule": "FREQ=DAILY;BYHOUR=5;BYMINUTE=44;BYSECOND=15",
-        "updated_at": 1789244947762,
+        "rrule": "FREQ=DAILY;BYHOUR=6;BYMINUTE=0;BYSECOND=44",
+        "updated_at": 1789246469733,
         "created_at": 1789048677730,
         "prompt_exact_equal": true,
-        "scheduled_for_utc": "2026-09-12T20:44:15.000Z",
+        "scheduled_for_utc": "2026-09-12T21:00:44.000Z",
         "readback_verified": true
       },
       "normal_work_claim": {
-        "state": "WORK_CHECKPOINT_REVIEW_PENDING",
-        "turn_id": "01a09754-e72f-7d82-adbc-076d2805ae1e",
-        "action": "PREPARE_READ_ONLY_CPU_DEPLOYMENT_PROBE",
-        "subject_sha": "d9ce111d7d97019d55b3e90842602001e045ea04"
+        "state": "REVIEW_RECEIPT_SAVED_RELEASE_READY",
+        "turn_id": "01a0975a-7375-7c43-8e38-f8f37ffeaf23",
+        "subject_sha": "d9ce111d7d97019d55b3e90842602001e045ea04",
+        "review_id": "CHATGPT-REVIEW-20260913-036"
       },
       "review_scope": "New user-authorized local continuation repair, not covered by old APPROVE_DOCS; fixed docs candidate will be separately reported.",
       "verification": {
         "regression_tests": "42/42 PASS; skip0;638.46ms",
         "old_paused_state_guard": "Previously reproduced ORPHANED_ACTIONABLE_WORK; now also rejects past/under2minute calendar reservations and schedule-time mismatch.",
         "actual_scheduler_execution": "OBSERVED_SEPARATE_NORMAL_RUN_WITH_LIVE_WORK_RESULT",
-        "latest_tests": "Twelve governance files102/102PASS9902.1303ms skip0; no live. Managed activation exact-binding negative tests and real035 partial/raw-preservation receipt included; initial43/44 classification FAIL retained. Follow-up actual ledger audit exposed2unknown table states, normalized only coarse statuses with granular states preserved; targeted45/45PASS426.0304ms, ledger67rowsoktrue/4existingmanualflags."
+        "latest_tests": "Genuine036+037 exact receipt and bounded/partial retention: four focused governance files53/53PASS850.2376ms,skip0; no product rerun/live."
       },
       "current_run": {
         "phase": "NORMAL_WORK",
-        "turn_id": "01a09754-e72f-7d82-adbc-076d2805ae1e",
+        "turn_id": "01a0975a-7375-7c43-8e38-f8f37ffeaf23",
         "source": "automatic_goal_continuation",
-        "started_at_utc": "2026-09-12T20:35:19Z",
+        "started_at_utc": "2026-09-12T20:41:22.000Z",
         "worktree": ".codex-worktrees/dev-brain-current-20260910",
-        "request": "Prepare independent read-only CPU deployment probe while respecting future fixed review slot; do not touch fixed product candidate."
+        "request": "Receive first due CPU review slot, save source-bound decision and route later normal work; no scheduled execution claimed.",
+        "completed_receipt_at_utc": "2026-09-12T20:55:50Z",
+        "canon_receipt": "shared-canon-v1.1; base=f507c0b2dd9701f3ac1867131150b5e48d0ada8d (fixed candidate parent, no new fetch); govHEAD=89abc114e3c767a02a013771c9f72c53da323031; request=UDL-20260910-051,REG-CPU-F3-SPLIT-ORIENTATION; specs=AGENTS.md,SHARED_CANON.md,CHATGPT_COLLABORATION_OPERATION.md,CPU_SPLIT_RESCUE_20260913.md@d9ce111; tests=governance-shared-canon,governance-cpu-successor,governance-commander-continuation,governance-cpu-readiness",
+        "scheduled_origin_claimed": false
       },
       "missed_schedule_observation": {
         "scheduled_at_utc": "2026-09-12T06:25:12Z",
@@ -3079,34 +3131,20 @@
       },
       "documentation_review_followup": {
         "state": "APPROVE_DOCS_RECORDED",
-        "subject_sha": "8d4ca4b526858f1d8a7d0a6a521293a38e4ccd3d",
-        "base_sha": "8b9095192cd1743e5619c63c28d602337be98e5a",
+        "subject_sha": "3930f3cf60519ae2f54bb015d96d52267007ff84",
+        "base_sha": "233a778249be91e2c379c05747a625593f28912f",
         "canon_version": "shared-canon-v1.1",
-        "spec_snapshot_sha": "48fe73dbf4a740dcb4b6b40142dec2e7918b56ab",
+        "spec_snapshot_sha": "5413c3a4e927b8091cdf796c38b31ba17d5d4951",
         "scope": "documentation_introduction",
         "review_kind": "documentation_introduction",
         "db_change_set": [],
         "edge_change_set": [],
+        "review_id": "CHATGPT-REVIEW-20260913-037",
+        "response_message_id": "7f806672-5501-4673-8bc9-6f7626e08552",
+        "request_message_id": "c566e41e-1282-4603-8c56-1f3a46e2db9c",
         "independent_game_gate": false,
         "new_polling_budget": false,
-        "request_message_id": "08917c24-e4c8-47b0-b7e9-bcd803c1238e",
-        "delivery_full_body_verified": true,
-        "review_id": "CHATGPT-REVIEW-20260912-023",
-        "response_message_id": "0eece1a5-5d69-4d80-b6de-c45020c65c12",
-        "next_action": "No extra docs reply wait; exact2fileCIrepair approved. No new candidate or old wait reset.",
-        "repair_evidence": "docs/COMMANDER_CI_RACE_REPAIR_20260912.md",
-        "previous_subject_sha": "d18ebfade8bbb53acf2bb860a8e2789e539f4441",
-        "previous_base_sha": "542f97f49d10443b215fb9e99377d881e0c45e9e",
-        "send_attempts": 1,
-        "delivery_readback_checks": 2,
-        "reserved_before_api": true,
-        "previous_review_id": "CHATGPT-REVIEW-20260912-021",
-        "packet_path": "docs/ASTRA_CI_RACE_AND_COPY_ACCEPTANCE_20260912.md",
-        "sent_at_utc": "2026-09-12T08:24:30Z",
-        "second_delivery_read_reserved_before_api": true,
-        "delivery_verified_characters": 17074,
-        "delivery_result": "Read1 returned old completed pair while active; read2 confirmed exact full17074-character request. Latest turn idle/user-only/completed with no agent response and no exposed error. Delivery is not review completion.",
-        "review_response_observed": true
+        "next_action": "Fixed6-file governance accepted; CPU036 remains separate actual game gate."
       },
       "export_safety_receipt": {
         "initial_write_rejected": true,
@@ -3119,9 +3157,10 @@
       },
       "end_turn_guard": {
         "status": "PASS",
-        "checked_at_utc": "2026-09-12T20:40:48Z",
-        "plan": "WAIT_REVIEW",
-        "next_run_utc": "2026-09-12T20:44:15.000Z",
+        "checked_at_utc": "2026-09-12T20:56:49Z",
+        "plan": "NORMAL_WORK",
+        "action": "RELEASE_CHECKS",
+        "next_run_utc": "2026-09-12T21:00:44.000Z",
         "subject_sha": "d9ce111d7d97019d55b3e90842602001e045ea04",
         "errors": [],
         "configuration_is_execution": false
@@ -3158,11 +3197,11 @@
       },
       "previous_run": {
         "phase": "NORMAL_WORK",
-        "turn_id": "01a09721-e553-7bf0-a6a7-64afdd99f7bc",
+        "turn_id": "01a09754-e72f-7d82-adbc-076d2805ae1e",
         "source": "automatic_goal_continuation",
-        "started_at_utc": "2026-09-12T19:39:36.000Z",
-        "worktree": ".codex-worktrees/cpu-split-rescue-20260913",
-        "request": "CPU F3 final activation/cache/isolated SQL validation; preserve closed067."
+        "started_at_utc": "2026-09-12T20:35:19Z",
+        "worktree": ".codex-worktrees/dev-brain-current-20260910",
+        "request": "Prepare independent read-only CPU deployment probe while respecting future fixed review slot; do not touch fixed product candidate."
       },
       "goal_blocked_audit_history": [
         {
@@ -3238,25 +3277,6 @@
         }
       },
       "previous_goal_turn_classification": {
-        "turn_id": "01a09721-e553-7bf0-a6a7-64afdd99f7bc",
-        "classification": "PROGRESS",
-        "actual_goal_status": "active",
-        "evidence": [
-          "Compatible default-off managedCPU activation implemented; same full handler tested",
-          "Actual isolatedSQL NULL guard regression found/fixed; old/new replay/migration/runtime/ACL verified",
-          "Exact cache contracts repaired; clean d9ce111969/969",
-          "Dedicated branch pushed and real Windows34716323082 running"
-        ],
-        "old067_wait_reopened": false,
-        "actual_external_wait": {
-          "subject_sha": "d9ce111d7d97019d55b3e90842602001e045ea04",
-          "request_message_id": "c566e41e-1282-4603-8c56-1f3a46e2db9c",
-          "live_handle": "Real ChatGPT active request observed on second bounded delivery read",
-          "full_body_equality": true,
-          "next_slot_utc": "2026-09-12T20:44:15.000Z"
-        }
-      },
-      "current_goal_turn_classification": {
         "turn_id": "01a09754-e72f-7d82-adbc-076d2805ae1e",
         "classification": "PROGRESS",
         "actual_goal_status": "active",
@@ -3266,7 +3286,52 @@
           "Fixed CPUd9ce111 remainsclean; originalfirst20:44:15Z slot unchanged and not prematurely polled"
         ],
         "old_wait_reopened": false
-      }
+      },
+      "current_goal_turn_classification": {
+        "turn_id": "01a0975a-7375-7c43-8e38-f8f37ffeaf23",
+        "classification": "PROGRESS",
+        "actual_goal_status": "active",
+        "evidence": [
+          "Genuine complete4641-character CPU036 release and separate037docs decisions received",
+          "Original6755-character request exact readback; full candidate/spec/DB/Edge/managed tuple retained",
+          "OriginalCPUwait closed after1of3, deadlines unmodified;067partial and old trial untouched",
+          "53/53focused receipt/binding governance tests passed; exact automation API/TOML ACTIVE normal slot readback; fixed CPUcandidate remainsclean"
+        ],
+        "production_executed": false
+      },
+      "documentation_review_followup_history": [
+        {
+          "state": "APPROVE_DOCS_RECORDED",
+          "subject_sha": "8d4ca4b526858f1d8a7d0a6a521293a38e4ccd3d",
+          "base_sha": "8b9095192cd1743e5619c63c28d602337be98e5a",
+          "canon_version": "shared-canon-v1.1",
+          "spec_snapshot_sha": "48fe73dbf4a740dcb4b6b40142dec2e7918b56ab",
+          "scope": "documentation_introduction",
+          "review_kind": "documentation_introduction",
+          "db_change_set": [],
+          "edge_change_set": [],
+          "independent_game_gate": false,
+          "new_polling_budget": false,
+          "request_message_id": "08917c24-e4c8-47b0-b7e9-bcd803c1238e",
+          "delivery_full_body_verified": true,
+          "review_id": "CHATGPT-REVIEW-20260912-023",
+          "response_message_id": "0eece1a5-5d69-4d80-b6de-c45020c65c12",
+          "next_action": "No extra docs reply wait; exact2fileCIrepair approved. No new candidate or old wait reset.",
+          "repair_evidence": "docs/COMMANDER_CI_RACE_REPAIR_20260912.md",
+          "previous_subject_sha": "d18ebfade8bbb53acf2bb860a8e2789e539f4441",
+          "previous_base_sha": "542f97f49d10443b215fb9e99377d881e0c45e9e",
+          "send_attempts": 1,
+          "delivery_readback_checks": 2,
+          "reserved_before_api": true,
+          "previous_review_id": "CHATGPT-REVIEW-20260912-021",
+          "packet_path": "docs/ASTRA_CI_RACE_AND_COPY_ACCEPTANCE_20260912.md",
+          "sent_at_utc": "2026-09-12T08:24:30Z",
+          "second_delivery_read_reserved_before_api": true,
+          "delivery_verified_characters": 17074,
+          "delivery_result": "Read1 returned old completed pair while active; read2 confirmed exact full17074-character request. Latest turn idle/user-only/completed with no agent response and no exposed error. Delivery is not review completion.",
+          "review_response_observed": true
+        }
+      ]
     },
     "latest_brain_transfer": {
       "version_observed": "v10",
@@ -4465,6 +4530,100 @@
         "privileged_room_recovery": false
       },
       "notes": "067 stays PAGES_PUBLISHED_LIVE_ACCEPTANCE_PARTIAL. Preserve raw ok:false/3of5 audits; no rollback demanded. No CPU release or docs approval; retain closed3of3 original wait."
+    },
+    {
+      "review_id": "CHATGPT-REVIEW-20260913-036",
+      "subject_sha": "d9ce111d7d97019d55b3e90842602001e045ea04",
+      "base_sha": "f507c0b2dd9701f3ac1867131150b5e48d0ada8d",
+      "canon_version": "shared-canon-v1.1",
+      "feature_spec_version": "UDL-051-split-v1.1",
+      "spec_snapshot_sha": "5b4b137769f1be7736ded6a187e438ccb6d9a702",
+      "spec_snapshot_kind": "git_blob:docs/CPU_SPLIT_RESCUE_20260913.md",
+      "scope": "Pages_Edge_DB_managed_activation",
+      "review_kind": "game_production_release_approval",
+      "db_change_set": [
+        "supabase/migrations/202609130001_standard_cpu_split_rescue.sql"
+      ],
+      "edge_change_set": [
+        "supabase/functions/standard-game-action/index.ts",
+        "supabase/functions/standard-game-action/standard-engine.bundle.js"
+      ],
+      "managed_setting_change_set": [
+        {
+          "name": "FCG_CPU_SPLIT_RESCUE",
+          "compatible_deploy_value": null,
+          "activation_value": "standard-character-split-rescue-v1",
+          "rollback": "disable activation; retain compatible Edge and additive SQL"
+        }
+      ],
+      "decision": "APPROVE_RELEASE",
+      "source": {
+        "kind": "chatgpt",
+        "thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
+        "message_id": "7f806672-5501-4673-8bc9-6f7626e08552",
+        "request_message_id": "c566e41e-1282-4603-8c56-1f3a46e2db9c",
+        "request_body_equality": true,
+        "verified_request_characters": 6755,
+        "response_full_characters": 4641,
+        "response_complete": true,
+        "retrieval": "First original20minute review slot, one read of two completed turns; no supplementation/resend; source idle.",
+        "response_section": "1 CPU051 F3",
+        "response_text": "## 1．CPU051 F3・固定候補の公開レビュー\n\n### DECISION\n**APPROVE_RELEASE**\n\n**今回指定されたSQL・互換Edge・管理設定による段階的有効化・main／Pages公開と、下記の限定smokeを承認します。** 各段階の確認条件を満たしたら、追加のユーザー許可やAstra再レビューを待たず進めてください。\n\n### SUBJECT_SHA\n`d9ce111d7d97019d55b3e90842602001e045ea04`\n\n対象を次に固定します。\n\n```text\nBASE_SHA: f507c0b2dd9701f3ac1867131150b5e48d0ada8d\nCANON_VERSION: shared-canon-v1.1\nFEATURE_SPEC: UDL-051-split-v1.1\nSPEC_BLOB: 5b4b137769f1be7736ded6a187e438ccb6d9a702\nREVIEW_KIND: game_production_release_approval\nSCOPE: Pages_Edge_DB_managed_activation\n\nDB_CHANGE_SET:\n  supabase/migrations/202609130001_standard_cpu_split_rescue.sql\n\nEDGE_CHANGE_SET:\n  supabase/functions/standard-game-action/index.ts\n  supabase/functions/standard-game-action/standard-engine.bundle.js\n\nMANAGED_SETTING_CHANGE_SET:\n  name: FCG_CPU_SPLIT_RESCUE\n  compatible_deploy_value: null\n  activation_value: standard-character-split-rescue-v1\n  rollback: disable activation; retain compatible Edge and additive SQL\n```\n\n候補上の仕様blobは提出値と一致しています。ここでの`null`は**管理変数が未設定であること**であり、文字列`\"null\"`を設定する指示ではありません。\n\n### BLOCKERS\n**確認したコード・SQL・仕様・テスト内容の範囲で、公開前に修正必須の欠陥は見つかりませんでした。**\n\nF3の修正は、**自分が塗る側と相手へ返す側を、入れ替えても同じ候補とは扱わない**変更になっています。新policyだけで両方向を列挙し、2～5マス・接続条件・予約状態・所持札・カテゴリ制限を維持しています。旧policyでは従来の列挙を残し、クロガネの既存評価とalpha.1の分岐も保全されています。\n\nSQLも、既存の保存policyを一括更新する方式ではありません。旧・新policyを受け入れる期間を設け、開始処理の再送では**policy文字列以外の既存fingerprint構成要素を保持した比較**を行っています。名前・プロフィール・手札等の相違まで「同じ再送」として許す変更にはなっていません。NULLを明示的にfalseへ落とす修正、private／service-onlyの権限維持も確認しました。\n\n**Windows `34716323082`は、現在、同じd9ceのChrome `103614107064`・Edge `103614107227`とも`completed / success`です。** Chromeのlifecycleは既存条件によるskipとして区別し、全workflowがskip0とは扱いません。\n\n### NOTES\n\n#### 配備は、互換性を先に確保する順序を維持する\n\n次の順序を公開実行条件とします。\n\n1. **fresh main・現行Edge・migration末尾・管理変数の未設定を確認。** 今回のSQL以外の未適用migrationや、別担当の変更を一緒に反映しない。\n2. **指定SQLだけを適用し、読戻し5項目すべてがtrueであることを保存。** 関数本文・権限・policyの意味・既存CPU対局の対応可否を検査するクエリになっています。1項目でも不一致なら次へ進めません。\n3. **有効化をoffのまま、固定された互換Edgeを配備。** 配備成功・識別子・完了時刻・ソース読戻しを記録し、OPTIONSでcapabilityと`generation=legacy`を確認する。\n4. **配備完了から最低460秒経過後に、管理値だけを完全一致の値へ変更。** OPTIONSの`generation=current`を確認してから、同一候補のmain／Pages公開・preflight・配信byte確認へ進む。\n\nSupabase公式資料では、workerの最大存続時間は無料150秒、有料400秒です。ただし、**これはworkerの寿命であって、世界中の配備伝播が460秒で完了するという保証ではありません。** 今回の460秒は、確認済みの互換配備を前提とした安全余裕付きの運用条件として受け入れます。配備完了・対象環境の上限・読戻しが確認できなければ、時間だけで判断せずactivationをoffのまま残してください。citeturn194292view2\n\n公式資料上、管理シークレットの更新には通常、再配備は不要です。まず提示どおり管理値の変更と読戻しで進め、環境上の理由で再配備が必要になった場合も、**承認済みの同じ互換成果物だけ**を使用してください。citeturn194292view0\n\n**新policyの対局が作られた後は、activationを無効化しても互換Edgeと追加SQLを残します。** 元の未対応Edgeへの巻戻し、保存policyの書換え、対局削除は承認範囲外です。この方式なら、新規選択を止めることと、開始済み対局を継続できることを分離できます。\n\n#### 公開後smokeは、提案された小さい範囲で進める\n\n**新規匿名プロフィール1件・即時レイ対局1件・240秒・一回だけ**の計画を承認します。ハーネスは未実装なので、実装・局所検証を終えてから実行してください。\n\n操作上限は、曖昧さを残さないため、**CPUは成立回数だけでなく送信試行も合計最大8回、本人のSURRENDERは1回**としてください。結果不明時は既存snapshot-v2と本人プロフィールの読取を優先し、この承認だけで追加投了・追加対局・追加試行を増やさない扱いです。通常作業を早めに打ち切り、終局読取と証拠保存の時間を残します。\n\n新policyの選択確認、実際に観測できたCPU操作、本人の投了・通常精算を分けて記録してください。**新policyの一覧表示だけで、その対局のCPU操作まで実測したとは扱いません。** 自分が先手でCPU操作を観測できなかった場合などは、その項目を未実測として残し、追加対局で埋めないでください。\n\n終局後は`initialize`を読取に使わず、既存の本人membership限定snapshot-v2を使います。途中失敗時も、操作件数・許可通信・console・終局読取・本人プロフィールの各結果を独立して保存し、未確認を「予算超過」や「未終局確定」へ読み替えないでください。\n\nこのsmokeが確認するのは通常の新policy導入と実測できた進行・精算です。**F3の特定局面、旧workerとの競合、全10人の標準手札、勝率向上の実証にはしません。** F3の局面別根拠は、今回のauthoritative engineを通す試験と旧policy比較にあります。\n\n#### 検証済み範囲の区別\n\n969/969、Edge handler fixture、PGliteでの9/9はCodexの実施報告として受領します。テスト内容は確認しましたが、**こちらでは再実行していません。** PGlite側が実SQLを実行しつつ、auth・pgcrypto登録等をfixtureとして置き換えている境界も確認しています。native Supabase、別接続競合、物理端末の実測とは区別してください。\n\n**F3は先行公開してよく、F1／F2、男女比・二つ名・ランク・画像の完成は待たせません。** ただし、今回の完了をCPU強化全体の完了にはしない扱いです。\n"
+      },
+      "recorded_at_utc": "2026-09-12T20:49:30Z",
+      "blockers": [],
+      "conditions": [
+        "fresh main/current Edge/migration tail/managed setting absent; no unrelated migration",
+        "apply only exact SQL; all5readback predicates true",
+        "fixed compatible Edge defaultoff; deployment success/id/completion/source readback and OPTIONSlegacy",
+        "confirm worker limit and wait>=460seconds from confirmed compatible deployment completion; not a global propagation guarantee",
+        "exact managed value only; OPTIONScurrent before force-free same-SHA main/Pages/freshpreflight/strictbytes",
+        "implement and locally test bounded harness before sole live attempt; independent failure audits"
+      ],
+      "bounds": {
+        "profiles": 1,
+        "matches": 1,
+        "character_id": "rei",
+        "attempts": 1,
+        "max_seconds": 240,
+        "cpu_send_attempts": 8,
+        "surrender_send_attempts": 1,
+        "additional_matches": 0,
+        "additional_profiles": 0,
+        "economy_actions": 0,
+        "deletions": 0,
+        "privileged_room_recovery": false
+      },
+      "notes": "Exact Windows both jobs SUCCESS independently observed by Astra. CPU send attempts, not only accepted moves, count toward8; SURRENDER one total. If own side first, leave CPU operation NOT_OBSERVED rather than create another match. No initialize after terminal; own snapshot-v2/profile only. F1/F2/art/gender/rank/epithets remain separate; never restore incompatible old Edge after new policy saved."
+    },
+    {
+      "review_id": "CHATGPT-REVIEW-20260913-037",
+      "subject_sha": "3930f3cf60519ae2f54bb015d96d52267007ff84",
+      "base_sha": "233a778249be91e2c379c05747a625593f28912f",
+      "canon_version": "shared-canon-v1.1",
+      "spec_snapshot_sha": "5413c3a4e927b8091cdf796c38b31ba17d5d4951",
+      "spec_snapshot_kind": "git_blob:docs/CHATGPT_COLLABORATION_OPERATION.md",
+      "scope": "documentation_introduction",
+      "review_kind": "documentation_introduction",
+      "db_change_set": [],
+      "edge_change_set": [],
+      "decision": "APPROVE_DOCS",
+      "source": {
+        "kind": "chatgpt",
+        "thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
+        "message_id": "7f806672-5501-4673-8bc9-6f7626e08552",
+        "request_message_id": "c566e41e-1282-4603-8c56-1f3a46e2db9c",
+        "request_body_equality": true,
+        "verified_request_characters": 6755,
+        "response_full_characters": 4641,
+        "response_complete": true,
+        "retrieval": "First original20minute review slot, one read of two completed turns; no supplementation/resend; source idle.",
+        "response_section": "2 managed-setting binding governance",
+        "response_text": "## 2．管理設定の承認対象照合・文書運用差分\n\n### DECISION\n**APPROVE_DOCS**\n\n### SUBJECT_SHA\n`3930f3cf60519ae2f54bb015d96d52267007ff84`\n\n```text\nBASE_SHA: 233a778249be91e2c379c05747a625593f28912f\nCANON_VERSION: shared-canon-v1.1\nSPEC_PATH: docs/CHATGPT_COLLABORATION_OPERATION.md\nSPEC_BLOB: 5413c3a4e927b8091cdf796c38b31ba17d5d4951\nREVIEW_KIND: documentation_introduction\nSCOPE: documentation_introduction\nDB_CHANGE_SET: []\nEDGE_CHANGE_SET: []\n```\n\n仕様blobは提出値と一致しています。\n\n### BLOCKERS\n**今回の差分に、導入前の修正必須事項は見つかりませんでした。**\n\n`managed_setting_change_set`を、実レビューと候補、送達対象と候補の両方で照合する変更を確認しました。**CPU候補に変更セットがあるのに、レビュー側で欠落・null・空配列・別の値になっていれば一致しません。** 一方、管理設定変更がなかった旧候補の省略を空配列相当として扱い、過去の承認を一律に無効化しない区別も適切です。\n\n### NOTES\n本返信のCPU公開判定を保存するときは、**管理設定の名前・互換配備時の値・有効化値・rollback方針を含む変更セットを、そのまま保持**してください。文書承認をCPU公開承認に変換するのではなく、上段の`APPROVE_RELEASE`を別記録として紐付けます。\n\n44/44はCodexの実施報告として受領し、こちらでは再実行していません。今回の文書承認は、この6ファイル差分の導入判定であり、将来のheartbeat起動や本番配備が成功した証拠ではありません。\n\n**067は部分受入・公開後確認残ありのまま保持し、旧待機・消費済み試験枠を再開しません。CPU候補と文書差分の判定を分けて保存したら、今回の段階配備を前へ進めてください。**"
+      },
+      "recorded_at_utc": "2026-09-12T20:49:30Z",
+      "blockers": [],
+      "notes": "Only fixed6-file3930 diff. Later b180/89abc evidence and probe are not retrospectively approved. Not game release authority or proof of future scheduler/deployment execution."
     }
   ]
 }
