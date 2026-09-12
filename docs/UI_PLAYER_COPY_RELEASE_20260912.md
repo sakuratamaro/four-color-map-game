@@ -1,5 +1,27 @@
 # UDL062 player-copy public release
 
+## 2026-09-12 acceptance retry and source-contract diagnosis
+
+The genuine reply0eece1a5 to request08917c24 is saved separately as022 bounded acceptance and023 APPROVE_DOCS. The direct user-resumed NORMAL_WORK turn01a094d3-9834-78c0-9dcc-602cf88fdc41 executed the single022-authorized retry; no further live attempt is authorized.
+
+Fresh preflight passed before signup. PublicHTML/app37 bytes still exactly match producta1 and their original hashes. Retry completed2026-09-12T09:06:50.871Z: **54/55 checks passed, overall FAIL**. All three final outcomes were saved before aggregate assertion: server equalityfalse, operation allowlisttrue, consoletrue. Server comparison is sameRevisiontrue / sameDisplayNamefalse / sameProfileStatetrue.8allowed browser requests,console errors0/warnings0. One added account/profile; cumulative062 profiles2. Zero matches,economy actions,non-read browser requests,deletions or state injection.390/1280 home images visually inspected, readable without horizontal overflow. PhysicalNOT_RUN and match-only diagnosticsNOT_RUN_NO_MATCH;061 remains closed94/94.
+
+The new immutable execution evidence is `UI_PLAYER_COPY_RETRY_LIVE_20260912.json`; original failed `UI_PLAYER_COPY_LIVE_20260912.json` stays unchanged. The name value and its presence/type were not retained in the live report. Do not reinterpret either failed run as passed.
+
+Offline diagnosis against the fixeda1 source: `202609020006_standard_profile_load.sql` deliberately returns only revision/profile_state, while the Edge existing-profile response reads missing existing.display_name. JSONserialization omits that undefined top-level displayName; the profileState still contains its stored name. Executing the exact handler response expression against the exact SQL shape reproduces the saved false/true/false/true comparison pattern. Diagnosis tests3/3PASS; no product/DB/Edge changes. This is source-contract reproduction, **not recovery of the discarded live envelope** and not proof of a live rename.
+
+Proposed next disposition: assess the already-recorded full persisted-state/revision equality and independent UI/allowlist/console success against this bootstrap/read envelope mismatch. Keep top-level API contract followup separate if needed. Do not create a third profile, silently ignore name changes, or self-declare PUBLIC_VERIFIED; send the fixed evidence to genuine Astra. The CI repair8d4ca4b is separately APPROVE_DOCS under023, with no additional docs review wait.
+
+Safety6/6 and cross-governance/contract suite42/42PASS,skip0 (922.6791ms); final expanded governance/reconciliation/CPU-boundary run53/53PASS,skip0 (817.6498ms). Product remainsa1, Pages34682215186; no republish. Original review budget remains closed and unreset.
+
+## 09:00Z user-resumed acceptance supplement
+
+CANON_RECEIPT version=shared-canon-v1.1 base=a1a9b1c830eceb98464b107f2442deacaf765505 request=UDL-20260912-062 spec=UDL-062-copy-v1.1 spec_blob=5481afd8c2b9ff5354bba0e671615c97fb8ceef7 worktree=.codex-worktrees/dev-brain-current-20260910 turn=01a094d3-9834-78c0-9dcc-602cf88fdc41 origin=explicit_user_resume phase=NORMAL_WORK
+
+Genuine Astra response `0eece1a5-5d69-4d80-b6de-c45020c65c12` to exact17074-character request `08917c24-e4c8-47b0-b7e9-bcd803c1238e` was received in this direct user-resumed turn. Saved separately as022 bounded public acceptance and023 APPROVE_DOCS for8d4ca4b.020 product approval and021 historical REQUEST_CHANGES remain unchanged. No old polling budget reset; no product re-review wait for the expressly requested final3 collection supplement.
+
+One retry reserved before execution at 2026-09-12T09:05:16Z: additional1profile,one run,180s,zero matches/economy/deletions. Fresh preflight exited0,ok:true before signup; the harness also checks exact publicHTML/app37 bytes before creating a profile. Original JSON remains immutable; new evidence is `UI_PLAYER_COPY_RETRY_LIVE_20260912.json`. Harness now collects and checkpoints all final3 outcomes before aggregate failure, including safe server-read failure redaction. Latest safety tests6/6 PASS,skip0,402.5343ms. No repeat run on failure.
+
 CANON_RECEIPT version=shared-canon-v1.1 base=a757c126e1325532bb11a719cf92d0d13401d3ae request=UDL-20260912-062 specs=AGENTS.md,docs/SHARED_CANON.md,docs/UI_PLAYER_COPY_20260912.md@a1,docs/STANDARD_PUBLIC_RELEASE_RUNBOOK.md tests=tests/standard-player-copy-static.test.cjs,tests/standard-online-browser.test.cjs,scripts/live-standard-player-copy-canary.cjs worktree=.codex-worktrees/ui-player-copy-20260912
 
 Explicit user-resumed NORMAL_WORK turn01a0949e-ab97-7712-8c4f-67ec29f2f551 at07:57:01Z. Genuine completed Astra replyab7578b2 to request7bdcf425 was read at07:57:16Z.020 APPROVE_RELEASE binds candidatea1a9b1c830eceb98464b107f2442deacaf765505,basea757c126e1325532bb11a719cf92d0d13401d3ae,UDL-062-copy-v1.1,specblob5481afd8c2b9ff5354bba0e671615c97fb8ceef7,Pages_only,DB[]/Edge[].021 REQUEST_CHANGES applies separately tod18 governance only and is not a product hold.

@@ -29,6 +29,23 @@ function profileReadbackComparison(actual, expected) {
     sameProfileState:isDeepStrictEqual(actual?.profileState,expected?.profileState)
   };
 }
+function recordFinalChecks(report,{serverComparison,calls,errors,warnings}) {
+  report.serverComparison=serverComparison;
+  report.requestCount=calls.length;
+  report.consoleCounts={errors,warnings};
+  report.finalChecks=[
+    {label:"same server profile after all navigation",passed:serverComparison.equal},
+    {label:"browser only performs allowed reads",passed:calls.every(c=>readOnlyRequest(c.method,c.pathname,c.operation))},
+    {label:"console warning error and pageerror zero",passed:errors===0&&warnings===0}
+  ];
+  return report.finalChecks.every(result=>result.passed);
+}
+async function collectFinalChecks(report,{readProfile,baseline,calls,errors,warnings}) {
+  let final;
+  try { final=await readProfile(); }
+  catch(error) { report.finalProfileReadError={kind:error?.name||"Error"}; }
+  return recordFinalChecks(report,{serverComparison:profileReadbackComparison(final,baseline),calls,errors,warnings});
+}
 async function run({candidate,report:reportPath}) {
   // Verify opt-in and a clean exact worktree before loading a browser or contacting production.
   const {execFileSync}=require("node:child_process"),{createHash}=require("node:crypto");
@@ -123,12 +140,11 @@ async function run({candidate,report:reportPath}) {
       await page.reload({waitUntil:"domcontentloaded",timeout:25_000});await page.locator("#connectionBadge.good").waitFor();
       await page.waitForFunction(key=>Boolean(JSON.parse(localStorage.getItem(key)||"null")),remoteKey);
       check("reload retains plain connected state",await page.locator("#connectionMessage").textContent()==="ゲームに接続できました。");
-      const final=await profile();
-      report.serverComparison=profileReadbackComparison(final,baseline);
-      check("same server profile after all navigation",report.serverComparison.equal);
-      check("browser only performs allowed reads",calls.every(c=>readOnlyRequest(c.method,c.pathname,c.operation)));
-      check("console warning error and pageerror zero",errors===0&&warnings===0);
-      report.requestCount=calls.length;
+      const finalPass=await collectFinalChecks(report,{readProfile:profile,baseline,calls,errors,warnings});
+      // Persist every independent outcome before the aggregate assertion can throw.
+      fs.writeFileSync(reportPath,JSON.stringify({...report,ok:false,status:"FINAL_CHECKS_CAPTURED_NOT_YET_ACCEPTED"},null,2)+"\n");
+      for(const result of report.finalChecks)if(result.passed)report.checks.push(result.label);
+      assert.ok(finalPass,"final server, operation allowlist and console checks");
     })(),180_000);
   } catch(error) {
     failed=true;report.failureStage=stage;report.errorKind=error?.name||"Error";
@@ -146,4 +162,4 @@ if(require.main===module) {
   let options;try{options=parseOptions(process.argv.slice(2));}catch(error){console.error(error.message);process.exit(2);}
   run(options).then(code=>{process.exitCode=code;}).catch(()=>{console.error("FAIL candidate preparation (redacted)");process.exitCode=1;});
 }
-module.exports={parseOptions,readOnlyRequest,profileReadbackComparison};
+module.exports={parseOptions,readOnlyRequest,profileReadbackComparison,recordFinalChecks,collectFinalChecks};

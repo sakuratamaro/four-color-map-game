@@ -1,5 +1,11 @@
 # Approved-before-CI continuation repair
 
+## Genuine approval received
+
+2026-09-12 user-resumed turn01a094d3-9834-78c0-9dcc-602cf88fdc41 read genuine completed reply0eece1a5-5d69-4d80-b6de-c45020c65c12 to request08917c24-e4c8-47b0-b7e9-bcd803c1238e, exact17074-character body verified. Decision023 is APPROVE_DOCS for8d4ca4b526858f1d8a7d0a6a521293a38e4ccd3d,base8b9095192cd1743e5619c63c28d602337be98e5a,shared-canon-v1.1,SHARED_CANON blob48fe73dbf4a740dcb4b6b40142dec2e7918b56ab,documentation_introduction,DB[]/Edge[]. Exact checker/test2files only, distinct from022 one-run public acceptance. B1 resolved for this candidate; old021 REQUEST_CHANGES and missed07:45 actual-execution uncertainty remain history. No additional docs reply wait and no future scheduler guarantee.
+
+The submission and no-response passages below are dated history, superseded by this genuine receipt rather than rewritten.
+
 CANON_RECEIPT version=shared-canon-v1.1 base=ca5f59141f44b13dea525e74f0ccb4ecac039a5a request=REG-20260912-SELF-HANDOFF-01 specs=AGENTS.md,docs/SHARED_CANON.md,docs/CHATGPT_COLLABORATION_OPERATION.md tests=tests/governance-commander-continuation.test.cjs worktree=.codex-worktrees/dev-brain-current-20260910
 
 Source: genuine Astra021/ab7578b2 reply to7bdcf425.021 is REQUEST_CHANGES for d18; neither Codex's local correction nor silence is approval. Product062 was independently approved020 and published before this repair; no DB/Edge/product change is in this scope.

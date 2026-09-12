@@ -280,13 +280,20 @@ test("ChatGPT review records require an exact subject and cannot imply productio
       assert.notEqual(decision.decision, "APPROVE_RELEASE");
       assert.equal(decision.scope, "documentation_introduction");
     } else {
-      assert.equal(decision.review_kind, "game_production_release_approval");
+      if (decision.review_id === "CHATGPT-REVIEW-20260912-022") {
+        assert.equal(decision.review_kind, "public_acceptance_supplement");
+        assert.equal(decision.decision, "APPROVE_BOUNDED_ACCEPTANCE");
+        assert.deepEqual(decision.bounds, {additional_profiles:1,attempts:1,max_seconds:180,matches:0,economy_actions:0,deletions:0});
+      } else {
+        assert.equal(decision.review_kind, "game_production_release_approval");
+      }
       assert.equal(decision.source.kind, "chatgpt");
       assert.equal(decision.source.thread_id, "6aa229e7-e098-83ee-ac5e-d366a12653a4");
       assert.ok(decision.source.message_id && decision.source.request_message_id);
       assert.match(decision.subject_sha, /^[0-9a-f]{40}$/);
       assert.match(decision.spec_snapshot_sha, /^[0-9a-f]{40}$/);
       const bindings = {
+        "CHATGPT-REVIEW-20260912-022": ["a1a9b1c830eceb98464b107f2442deacaf765505", "a757c126e1325532bb11a719cf92d0d13401d3ae", "UDL-062-copy-v1.1", "5481afd8c2b9ff5354bba0e671615c97fb8ceef7", "post_publication_read_only_acceptance"],
         "CHATGPT-REVIEW-20260912-020": ["a1a9b1c830eceb98464b107f2442deacaf765505", "a757c126e1325532bb11a719cf92d0d13401d3ae", "UDL-062-copy-v1.1", "5481afd8c2b9ff5354bba0e671615c97fb8ceef7", "Pages_only"],
         "CHATGPT-REVIEW-20260912-019": ["6f8aeab0cbdfe9e013541f5cf30e16c93fb18cd3", "a757c126e1325532bb11a719cf92d0d13401d3ae", "UDL-062-copy-v1", "9a3488f3b7e5d2c94666a64529a679bc863d8171", "Pages_only"],
         "CHATGPT-REVIEW-20260912-018": ["a757c126e1325532bb11a719cf92d0d13401d3ae", "b81a1d52e8230d41ec9e69610d89bafc86d1d84e", "UDL-061-cosmetics-v1.1", "12eb7874f69b5c707104de79a2b631ac55aff345", "Pages_only"],
@@ -311,6 +318,28 @@ test("ChatGPT review records require an exact subject and cannot imply productio
       assert.deepEqual(decision.edge_change_set, []);
     }
   }
+});
+
+test("UDL062 exhausted bounded retry preserves both failures and records all final outcomes", () => {
+  const log = JSON.parse(read("docs/CHATGPT_REVIEW_DECISIONS.json"));
+  const slice = log.coordination.preparing_next_slice;
+  const original = JSON.parse(read("docs/UI_PLAYER_COPY_LIVE_20260912.json"));
+  const retry = JSON.parse(read("docs/UI_PLAYER_COPY_RETRY_LIVE_20260912.json"));
+  assert.equal(original.ok, false);
+  assert.equal(original.checks.length, 52);
+  assert.equal(retry.ok, false);
+  assert.equal(retry.candidate, "a1a9b1c830eceb98464b107f2442deacaf765505");
+  assert.equal(retry.checks.length, 54);
+  assert.deepEqual(retry.finalChecks.map(item => item.passed), [false, true, true]);
+  assert.deepEqual(retry.serverComparison, {equal:false,sameRevision:true,sameDisplayName:false,sameProfileState:true});
+  assert.equal(original.profilesCreated + retry.profilesCreated, 2);
+  for (const key of ["matchesCreated", "gameEconomyActions", "browserNonReadRequests", "deletions"])
+    assert.equal(retry[key], 0, key);
+  assert.equal(slice.live_acceptance.new_profile_retry_authorized, false);
+  assert.equal(slice.live_acceptance_followup.attempts_started, 1);
+  assert.equal(slice.live_acceptance_followup.state, "FAILED_ONE_AUTHORIZED_RETRY_CONSUMED");
+  assert.equal(slice.state, "PUBLISHED_LIVE_ACCEPTANCE_PARTIAL");
+  assert.equal(log.decisions.find(item => item.review_id === "CHATGPT-REVIEW-20260912-023").decision, "APPROVE_DOCS");
 });
 
 test("UDL048 closure preserves the initial visual failure and binds the final public evidence", () => {

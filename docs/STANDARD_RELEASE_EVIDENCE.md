@@ -2,7 +2,7 @@
 
 ## 2026-09-12 UDL062 プレイヤー向けの案内整理
 
-**PAGES_PUBLISHED / LIVE_ACCEPTANCE_PARTIAL**。実Astra020、candidate/spec完全一致、Windows34679764998両SUCCESS、fresh main a757と祖先確認後、司令塔本人がa1a9b1cをforceなしでmainへ公開。exact同SHA Pages34682215186のbuild/deploy/report成功。公開preflight ok:true、index/app37厳密byte一致。1試験profile、390/1280各5タブ・接続表示・reloadなど52件PASS後、最終server profile比較でFAIL。対局/経済操作/ブラウザ非読取操作/削除0、実画像2枚目視済み。原JSON不変。JSONキー順に依存するharnessの欠陥を再現・修正しoffline4/4 PASSだが、実失敗時の値差分は未保存で原因の断定・合格への読み替えはしない。最終server等価/allowlist/consoleは受入未完了、追加profile0、物理NOT_RUN。全証拠と制約: `UI_PLAYER_COPY_RELEASE_20260912.md`。運用021の差戻しは別件で、062公開を止めていない。
+**PAGES_PUBLISHED / LIVE_ACCEPTANCE_PARTIAL**。実Astra020とWindows両SUCCESSに基づくa1・Pages34682215186は維持。022の追加1回を実行し、fresh preflight・HTML/app37 byte一致後、390/1280各5タブ・reloadを含む54/55 PASS。最終3項目はserver等価false、allowlisttrue、consoletrue。revisionとprofileStateは一致、top-level displayNameのみ不一致。RPCの2項目返却とEdgeの未返却name参照の契約差を固定a1の実コード式でoffline3/3再現。実name値/存在有無は未保存のため実通信値まで断定しない。累計2profile、対局/経済操作/非読取/削除0、物理NOT_RUN、対局内診断NOT_RUN_NO_MATCH。追加試行なし、原失敗JSON2件を保持してAstraへ診断報告。新証拠はUI_PLAYER_COPY_RETRY_LIVE_20260912.json、詳細はUI_PLAYER_COPY_RELEASE_20260912.md。別件の運用8d4ca4bは023 APPROVE_DOCS、追加の文書返信待ちは解消。
 
 ## 2026-09-12 UDL061 商品の中で購入・装備
 

@@ -41,7 +41,7 @@
     }
   ],
   "coordination": {
-    "status": "062_PUBLIC_PARTIAL_BLOCKED_ON_EXTERNAL_ACCEPTANCE_DISPOSITION",
+    "status": "062_PUBLIC_PARTIAL_RETRY_CONSUMED_RESPONSE_CONTRACT_DIAGNOSED",
     "latest_v8_intake": {
       "state": "PAIRED_SOURCE_AND_ZIP_VERIFIED_ALIASES_MAPPED",
       "source_thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
@@ -181,11 +181,12 @@
       "normal_owner_observation": "Previous normal turn completed after branch push; stored normal_work_receipt waiting. This heartbeat is the same task, not a second active owner."
     },
     "reviewer_thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
-    "last_consumed_review_message_id": "ab7578b2-3439-4e13-ba68-5e9f01ca58a3",
-    "last_received_message_id": "08917c24-e4c8-47b0-b7e9-bcd803c1238e",
+    "last_consumed_review_message_id": "0eece1a5-5d69-4d80-b6de-c45020c65c12",
+    "last_received_message_id": "dacf4682-d6fa-427b-acaf-a5d166c17529",
     "pending_user_intake_message_ids": [
       "ea61f25f-bebf-499a-81e9-029712a96f99",
-      "bbb216f0-9194-45cf-acd6-504a9a55d40a"
+      "bbb216f0-9194-45cf-acd6-504a9a55d40a",
+      "bbb21b1c-37ec-431a-8a00-a63496b35155"
     ],
     "pending_intake_details": [
       {
@@ -205,6 +206,14 @@
         "status": "USER_TEXT_RECEIVED_ASTRA_RESPONSE_NOT_YET_OBSERVED_NOT_IMPLEMENTED",
         "user_text": "あと、自分相手問わずスキル発動時の差し込みエフェクトはゲーム体験への影響が大きいと思うので早めに公開まで持っていってほしいな\n\nここにズラズラ書くんじゃなくて、頭脳zipにまとめるんじゃなかったっけ？",
         "boundary": "Intake only. No candidate approval, artwork acquisition or new cut-in implementation."
+      },
+      {
+        "user_message_id": "bbb21b1c-37ec-431a-8a00-a63496b35155",
+        "response_message_id": "dacf4682-d6fa-427b-acaf-a5d166c17529",
+        "thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
+        "user_text": "頭脳zipは？",
+        "status": "GENUINE_COMPLETED_BRAIN_RESPONSE_OBSERVED_ARCHIVE_NOT_RETRIEVED",
+        "note": "Astra reports47prioritems preserved and new ZIP validated, version/artifact link not exposed in read_thread. Existing transfer owner handles actual bounded retrieval; no private screenshot intake."
       }
     ],
     "pending_user_intake_note": "v3/v4/v5/v6 reconciled as dated aliases: CPU051, quiz034, split037, corner029, history057, aurora058, reward navigation059. Source bbb215c4 matched and consumed; v4 original message ID unresolved (archive quote/hash retained); v6 source0832e679 subsequently read in full and matched. Original ea61f25f remains not fully consumed. CPU formal settings and exact perk numbers remain unverified; not implemented by intake. User publication/delegation policy056 and completed055/052 evidence are preserved.",
@@ -1514,7 +1523,7 @@
       ]
     },
     "next_goal": {
-      "state": "062_PAGES_PUBLISHED_LIVE_ACCEPTANCE_PARTIAL",
+      "state": "062_PAGES_PUBLISHED_FINAL_ENVELOPE_NAME_COMPARISON_UNRESOLVED",
       "title": "UIデザインのダイエット",
       "source": {
         "kind": "explicit_user_instruction",
@@ -1537,11 +1546,11 @@
         "UDL-20260912-063"
       ],
       "preparation": "docs/UI_DIET_PREPARATION_20260912.md",
-      "status": "GOAL_API_BLOCKED_ACCEPTANCE_DISPOSITION",
+      "status": "GOAL_ACTIVE_RESPONSE_CONTRACT_DIAGNOSIS",
       "registration_receipt": "get_goal returned null on2026-09-11T20:20Z; explicitly user-requested UI goal re-created without budget; no other active goal existed. Work and completed slices preserved.",
-      "latest_checkpoint": "Bounded completion audit: current main a1 and13 public asset bytes match;6exact review/spec/ancestor groups traced.048/023/052-054-063/060/061 have preserved successful live evidence;062 remains partial at the final3 checks, no additional profile or expired-budget review read.",
-      "actual_api_status": "blocked",
-      "actual_api_observation_note": "Actual get_goal readback after strict third-boundary update returnedblocked.062 final3live assertions unfinished; full UI objective retained.",
+      "latest_checkpoint": "One022-authorized retry executed54/55; final3 all recorded,false/true/true. Persisted profileState/revision unchanged; displayName envelope false. Exact source contract reproduces this mismatch offline3/3. Additional profile budget exhausted.",
+      "actual_api_status": "active",
+      "actual_api_observation_note": "Direct user-resumed goal readback active; old blocked history preserved. No false goal completion.",
       "actual_api_observation_history": [
         {
           "status": "blocked",
@@ -1560,6 +1569,13 @@
           "observed_at_utc": "2026-09-12 08:48:40 UTC",
           "updated_at": 1789202836,
           "note": "Read back after update_goal blocked at strict third consecutive same-boundary audit; no completion or objective rewrite."
+        },
+        {
+          "status": "active",
+          "source": "get_goal",
+          "observed_at_utc": "2026-09-12T09:10:58Z",
+          "updated_at": 1789203997,
+          "note": "Direct user resumed this turn; get_goal returned active. Same goal retained."
         }
       ],
       "completion_audit": {
@@ -1572,9 +1588,7 @@
         "completed_live_groups": 5,
         "total_groups": 6,
         "unresolved": [
-          "062 final live server profile comparison",
-          "062 final browser operation allowlist assertion",
-          "062 final console assertion"
+          "062 final server envelope name equality; successful independent allowlist/console now recorded in retry JSON"
         ],
         "complete": false,
         "profile_creations": 0,
@@ -1729,7 +1743,7 @@
       "edge_change_set": [],
       "review_id": "CHATGPT-REVIEW-20260912-020",
       "review_response_message_id": "ab7578b2-3439-4e13-ba68-5e9f01ca58a3",
-      "next_action": "Preserve original failed canary; request bounded acceptance disposition and submit separate docs021 correction. No repeat profile or product republish.",
+      "next_action": "Report one exhausted retry and offline response-contract diagnosis to genuine Astra; no extra profile, product change or automatic old-budget review read.",
       "superseded_candidates": [
         {
           "request_ids": [
@@ -1816,31 +1830,64 @@
         "passed_checks": 52,
         "failed_check": "same server profile after all navigation",
         "profiles_created": 1,
-        "additional_profiles": 0,
+        "additional_profiles": 1,
         "matches": 0,
         "economy_actions": 0,
         "browser_non_read_requests": 0,
         "deletions": 0,
         "physical": "NOT_RUN",
         "unverified": [
-          "same server profile",
-          "final operation allowlist assertion",
-          "final console assertion"
+          "same server profile top-level displayName equality; RPC/Edge response-shape mismatch reproduced offline"
         ],
         "diagnosis": "JSON.stringify order-dependent defect reproduced; live baseline/final values were not retained, so actual order-only cause is not proven.",
         "harness_tests": "4/4 PASS;294.8575ms; key order ignored, values and array order preserved",
         "visual_inspection": "Actual390/1280 home screenshots inspected; readable, no horizontal overflow.",
         "new_profile_retry_authorized": false,
         "disposition_request": {
-          "state": "DELIVERED_RESPONSE_NOT_OBSERVED",
+          "state": "GENUINE_BOUNDED_ACCEPTANCE_RECEIVED",
           "product_sha": "a1a9b1c830eceb98464b107f2442deacaf765505",
           "harness_sha": "8b9095192cd1743e5619c63c28d602337be98e5a",
           "requested_additional_profiles": 1,
           "attempts": 1,
-          "authorized": false,
+          "authorized": true,
           "request_message_id": "08917c24-e4c8-47b0-b7e9-bcd803c1238e",
-          "delivery_full_body_verified": true
-        }
+          "delivery_full_body_verified": true,
+          "review_id": "CHATGPT-REVIEW-20260912-022",
+          "response_message_id": "0eece1a5-5d69-4d80-b6de-c45020c65c12",
+          "read_at_utc": "2026-09-12T09:05:16Z"
+        },
+        "cumulative_profiles_created": 2,
+        "retry_report": "docs/UI_PLAYER_COPY_RETRY_LIVE_20260912.json",
+        "retry_status": "FAILED_NO_FURTHER_PROFILE_ATTEMPT",
+        "retry_passed_checks": 54,
+        "diagnosis_followup": "Exacta1 SQL returns only revision/profile_state; actual existing Edge response expression reads missing existing.display_name. Offline3/3 reproduces omitted envelope name with unchanged stored state. Matches the saved live boolean pattern, but discarded live name value/presence is not reconstructed."
+      },
+      "live_acceptance_followup": {
+        "state": "FAILED_ONE_AUTHORIZED_RETRY_CONSUMED",
+        "subject_sha": "a1a9b1c830eceb98464b107f2442deacaf765505",
+        "spec_snapshot_sha": "5481afd8c2b9ff5354bba0e671615c97fb8ceef7",
+        "source_review_id": "CHATGPT-REVIEW-20260912-022",
+        "source_request_message_id": "08917c24-e4c8-47b0-b7e9-bcd803c1238e",
+        "source_response_message_id": "0eece1a5-5d69-4d80-b6de-c45020c65c12",
+        "source_quote": "追加1プロフィール・一度だけの修正版canary実行を承認します。製品の再承認ではなく、未完了の公開後確認を補う判断です。",
+        "bounds": {
+          "additional_profiles": 1,
+          "attempts": 1,
+          "max_seconds": 180,
+          "matches": 0,
+          "economy_actions": 0,
+          "deletions": 0
+        },
+        "attempts_reserved": 1,
+        "reserved_before_execution": true,
+        "reserved_at_utc": "2026-09-12T09:05:16Z",
+        "attempt_status": "COMPLETED_FAILED_SERVER_ENVELOPE_COMPARISON",
+        "report": "docs/UI_PLAYER_COPY_RETRY_LIVE_20260912.json",
+        "no_retry_after_failure": true,
+        "attempts_started": 1,
+        "completed_at_utc": "2026-09-12T09:06:50.871Z",
+        "additional_profiles_created": 1,
+        "tests": "54/55 PASS; final3=[false,true,true]; revision=true,displayName=false,profileState=true;8allowedrequests;console0/0"
       }
     },
     "remaining_brain_work": {
@@ -2048,9 +2095,9 @@
         "readback_verified": true
       },
       "normal_work_claim": {
-        "state": "BLOCKED_EXTERNAL_DISPOSITION_REQUIRED",
-        "turn_id": "01a094cb-ace8-7e41-a594-8b124fca8f26",
-        "action": "REVALIDATE_ALREADY_AUDITED_BOUNDARY",
+        "state": "NORMAL_WORK_ACTIVE",
+        "turn_id": "01a094d3-9834-78c0-9dcc-602cf88fdc41",
+        "action": "REPORT_BOUNDED_RETRY_AND_SOURCE_CONTRACT_DIAGNOSIS",
         "subject_sha": "a1a9b1c830eceb98464b107f2442deacaf765505"
       },
       "review_scope": "New user-authorized local continuation repair, not covered by old APPROVE_DOCS; fixed docs candidate will be separately reported.",
@@ -2062,11 +2109,11 @@
       },
       "current_run": {
         "phase": "NORMAL_WORK",
-        "origin": "automatic_goal_continuation",
-        "turn_id": "01a094cb-ace8-7e41-a594-8b124fca8f26",
-        "started_at_utc": "2026-09-12T08:46:11.000Z",
+        "origin": "explicit_user_resume",
+        "turn_id": "01a094d3-9834-78c0-9dcc-602cf88fdc41",
+        "started_at_utc": "2026-09-12T08:54:50Z",
         "actual_scheduled_run": false,
-        "state": "BLOCKED_AFTER_THIRD_BOUNDARY_AUDIT"
+        "state": "RETRY_FAILED_OFFLINE_DIAGNOSED_REPORTING"
       },
       "missed_schedule_observation": {
         "scheduled_at_utc": "2026-09-12T06:25:12Z",
@@ -2077,7 +2124,7 @@
         "no_burst_retry": true
       },
       "documentation_review_followup": {
-        "state": "DELIVERED_AWAITING_GENUINE_RESPONSE_NO_POLLING_BUDGET",
+        "state": "APPROVE_DOCS_RECORDED",
         "subject_sha": "8d4ca4b526858f1d8a7d0a6a521293a38e4ccd3d",
         "base_sha": "8b9095192cd1743e5619c63c28d602337be98e5a",
         "canon_version": "shared-canon-v1.1",
@@ -2090,9 +2137,9 @@
         "new_polling_budget": false,
         "request_message_id": "08917c24-e4c8-47b0-b7e9-bcd803c1238e",
         "delivery_full_body_verified": true,
-        "review_id": null,
-        "response_message_id": null,
-        "next_action": "No resend or third delivery read. Resume on a genuine received response or explicit user instruction; immutable old review deadline remains closed.",
+        "review_id": "CHATGPT-REVIEW-20260912-023",
+        "response_message_id": "0eece1a5-5d69-4d80-b6de-c45020c65c12",
+        "next_action": "No extra docs reply wait; exact2fileCIrepair approved. No new candidate or old wait reset.",
         "repair_evidence": "docs/COMMANDER_CI_RACE_REPAIR_20260912.md",
         "previous_subject_sha": "d18ebfade8bbb53acf2bb860a8e2789e539f4441",
         "previous_base_sha": "542f97f49d10443b215fb9e99377d881e0c45e9e",
@@ -2105,7 +2152,7 @@
         "second_delivery_read_reserved_before_api": true,
         "delivery_verified_characters": 17074,
         "delivery_result": "Read1 returned old completed pair while active; read2 confirmed exact full17074-character request. Latest turn idle/user-only/completed with no agent response and no exposed error. Delivery is not review completion.",
-        "review_response_observed": false
+        "review_response_observed": true
       },
       "export_safety_receipt": {
         "initial_write_rejected": true,
@@ -2136,34 +2183,46 @@
         "cause": "NOT_PROVEN_NO_SCHEDULED_TURN_IN_CURRENT_READBACK"
       },
       "goal_blocked_audit": {
-        "condition_id": "UDL062_LIVE_ACCEPTANCE_DISPOSITION",
-        "condition": "UDL062 live acceptance supplement has no recorded genuine Astra disposition; one-profile limit already consumed; old review polling budget is closed.",
-        "consecutive_goal_turn_ids": [
-          "01a0949e-ab97-7712-8c4f-67ec29f2f551",
-          "01a094c1-7550-7451-92b4-61fbff9ccd98",
-          "01a094cb-ace8-7e41-a594-8b124fca8f26"
-        ],
+        "condition_id": "UDL062_RETRY_SERVER_ENVELOPE_DISPOSITION",
+        "condition": "One permitted retry failed only envelope name comparison; source contract diagnosed. No further profile authorized.",
+        "consecutive_goal_turn_ids": [],
         "threshold": 3,
-        "previous_turn_classification": "progress_completion_evidence_audit",
-        "current_turn_classification": "no_progress_after_bounded_boundary_revalidation",
-        "verified_wait": false,
-        "live_handle_confirmed": false,
-        "external_review_read_budget_available": false,
-        "next_safe_action": "Genuine disposition or explicit user direction needed; no automatic repeat profile, resend or closed-budget read.",
-        "goal_left_active": false,
-        "actual_goal_status": "blocked",
-        "goal_api_updated_at": 1789202836,
-        "blocking_decision_source": "update_goal succeeded after the same boundary recurred for3consecutive goal turns; actual get_goal readback confirmedblocked.",
-        "no_further_model_loop": true
+        "current_turn_classification": "progress_actual_live_retry_and_offline_diagnosis",
+        "previous_condition_resolved_by": "CHATGPT-REVIEW-20260912-022",
+        "actual_goal_status": "active",
+        "no_further_profile_attempt": true
       },
       "previous_run": {
         "phase": "NORMAL_WORK",
         "origin": "automatic_goal_continuation",
-        "turn_id": "01a094c1-7550-7451-92b4-61fbff9ccd98",
-        "started_at_utc": "2026-09-12T08:35:01Z",
+        "turn_id": "01a094cb-ace8-7e41-a594-8b124fca8f26",
+        "started_at_utc": "2026-09-12T08:46:11.000Z",
         "actual_scheduled_run": false,
-        "state": "COMPLETED_BOUNDED_COMPLETION_AUDIT"
-      }
+        "state": "BLOCKED_AFTER_THIRD_BOUNDARY_AUDIT"
+      },
+      "goal_blocked_audit_history": [
+        {
+          "condition_id": "UDL062_LIVE_ACCEPTANCE_DISPOSITION",
+          "condition": "UDL062 live acceptance supplement has no recorded genuine Astra disposition; one-profile limit already consumed; old review polling budget is closed.",
+          "consecutive_goal_turn_ids": [
+            "01a0949e-ab97-7712-8c4f-67ec29f2f551",
+            "01a094c1-7550-7451-92b4-61fbff9ccd98",
+            "01a094cb-ace8-7e41-a594-8b124fca8f26"
+          ],
+          "threshold": 3,
+          "previous_turn_classification": "progress_completion_evidence_audit",
+          "current_turn_classification": "no_progress_after_bounded_boundary_revalidation",
+          "verified_wait": false,
+          "live_handle_confirmed": false,
+          "external_review_read_budget_available": false,
+          "next_safe_action": "Genuine disposition or explicit user direction needed; no automatic repeat profile, resend or closed-budget read.",
+          "goal_left_active": false,
+          "actual_goal_status": "blocked",
+          "goal_api_updated_at": 1789202836,
+          "blocking_decision_source": "update_goal succeeded after the same boundary recurred for3consecutive goal turns; actual get_goal readback confirmedblocked.",
+          "no_further_model_loop": true
+        }
+      ]
     }
   },
   "decisions": [
@@ -2731,6 +2790,67 @@
       },
       "recorded_at_utc": "2026-09-12T07:57:16Z",
       "notes": "Only approved-but-CI-in-progress routing and corresponding tests requested. Bounded same-run checking, finite retries/deadline, failure/expiry to diagnosis. No new queue or reopening closed ChatGPT wait; do not block062."
+    },
+    {
+      "canon_version": "shared-canon-v1.1",
+      "db_change_set": [],
+      "edge_change_set": [],
+      "recorded_at_utc": "2026-09-12T09:05:16Z",
+      "review_id": "CHATGPT-REVIEW-20260912-022",
+      "review_kind": "public_acceptance_supplement",
+      "decision": "APPROVE_BOUNDED_ACCEPTANCE",
+      "subject_sha": "a1a9b1c830eceb98464b107f2442deacaf765505",
+      "base_sha": "a757c126e1325532bb11a719cf92d0d13401d3ae",
+      "feature_spec_version": "UDL-062-copy-v1.1",
+      "spec_snapshot_sha": "5481afd8c2b9ff5354bba0e671615c97fb8ceef7",
+      "spec_snapshot_kind": "git_blob:docs/UI_PLAYER_COPY_20260912.md",
+      "scope": "post_publication_read_only_acceptance",
+      "source": {
+        "kind": "chatgpt",
+        "thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
+        "request_message_id": "08917c24-e4c8-47b0-b7e9-bcd803c1238e",
+        "message_id": "0eece1a5-5d69-4d80-b6de-c45020c65c12",
+        "request_body_equality": true,
+        "verified_request_characters": 17074,
+        "response_section": "1. UDL062 public acceptance supplement",
+        "response_text": "## 1．UDL062・公開後の受入補完\n\n### DECISION\n**追加1プロフィール・一度だけの修正版canary実行を承認します。製品の再承認ではなく、未完了の公開後確認を補う判断です。**\n\n### SUBJECT_SHA\n`a1a9b1c830eceb98464b107f2442deacaf765505`\n\n### BLOCKERS\n**受入補完の実行を妨げる問題は、確認した範囲ではありません。**\n\n`isDeepStrictEqual`による比較と対応テストを確認しました。**オブジェクトのキー順だけの違いを許容し、revision・名前・コイン・在庫・配列順の変更は拒否する**修正になっています。比較結果のbooleanも、失敗判定より先に保存されます。\n\nただし、**元の実失敗がキー順だけによるものだったとは確定しません。** 当時のbefore／after値が未保存である以上、元の52件PASS後の失敗は、そのまま残す扱いです。\n\n### NOTES\n**公開製品a1を変更せず、次の範囲で進めてください。**\n\n- **作成前に**fresh公開preflightとHTML・app37の厳密byte一致を再確認する。\n- **追加プロフィール1件・実行1回・180秒の上限**を維持する。初期プロフィール作成以外は許可済みの読取と画面操作だけとし、対局・クイズ・抽選・売却・購入・削除は行わない。\n- 390／1280px、各タブ、reloadに加え、**最終server等価・操作allowlist・consoleの確認まで**記録する。対局内診断を確認するための対局作成や状態注入は不要。\n\n**検証側への小さな補足として、最後の3項目は結果をすべて採取・保存してから総合判定してください。** server等価が失敗しただけで、独立して確認できるallowlist・consoleまで未取得になることを避けます。合格基準を緩める変更ではなく、この補足のために製品の再レビューを挟む必要もありません。\n\n元JSONは上書きせず、新しい証拠へ保存し、**累計プロフィールは旧1＋追加1＝2件**と記録してください。成功後に062を`PUBLIC_VERIFIED`へ進め、失敗した場合は追加試行を重ねず、今回取得できた比較結果で切り分けます。物理端末・対局内診断の未実施区分と、完了済み061はそのまま維持します。",
+        "retrieval": "Direct user-resumed NORMAL_WORK turn01a094d3-9834-78c0-9dcc-602cf88fdc41; no old automatic wait budget reset."
+      },
+      "bounds": {
+        "additional_profiles": 1,
+        "attempts": 1,
+        "max_seconds": 180,
+        "matches": 0,
+        "economy_actions": 0,
+        "deletions": 0
+      },
+      "notes": "Not product reapproval. Preserve original failed JSON; final3 outcomes captured and saved before aggregate assertion. No new product review for this narrow harness supplement. Failure consumes the one retry."
+    },
+    {
+      "canon_version": "shared-canon-v1.1",
+      "db_change_set": [],
+      "edge_change_set": [],
+      "recorded_at_utc": "2026-09-12T09:05:16Z",
+      "review_id": "CHATGPT-REVIEW-20260912-023",
+      "review_kind": "documentation_introduction",
+      "decision": "APPROVE_DOCS",
+      "subject_sha": "8d4ca4b526858f1d8a7d0a6a521293a38e4ccd3d",
+      "base_sha": "8b9095192cd1743e5619c63c28d602337be98e5a",
+      "spec_snapshot_sha": "48fe73dbf4a740dcb4b6b40142dec2e7918b56ab",
+      "spec_snapshot_kind": "git_blob:docs/SHARED_CANON.md",
+      "scope": "documentation_introduction",
+      "source": {
+        "kind": "chatgpt",
+        "thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
+        "request_message_id": "08917c24-e4c8-47b0-b7e9-bcd803c1238e",
+        "message_id": "0eece1a5-5d69-4d80-b6de-c45020c65c12",
+        "request_body_equality": true,
+        "verified_request_characters": 17074,
+        "response_section": "2. CI order race documentation repair",
+        "response_text": "## 2．021のCI先後レース修正・文書導入レビュー\n\n### DECISION\n**APPROVE_DOCS**\n\n### SUBJECT_SHA\n`8d4ca4b526858f1d8a7d0a6a521293a38e4ccd3d`\n\n### BLOCKERS\n**なし。021のB1は、今回の固定候補で解消と判定します。**\n\n正確な承認済み・未公開・CI進行中を、`STOP`ではなく**`NORMAL_WORK / CHECK_CI`へ接続する分岐**を確認しました。CI成功時だけ`RELEASE_CHECKS`へ進み、CI確認が残る状態で唯一のheartbeatをPAUSEDにして終了することも、終了時チェックで拒否されます。\n\n同じ候補・run・承認記録時刻に結び付く**＋5／20／50分、最大3回、60分期限**と、予算未保存・run不一致・期限変更・重複枠を拒否する処理も確認しました。失敗・期限切れ等の切り分け、記録済みのCI停止が別のready作業を妨げないことについても、対応テストが追加されています。\n\n### NOTES\n承認範囲はBASE  \n`8b9095192cd1743e5619c63c28d602337be98e5a`  \nからの**checkerと対応testの2ファイル修正**、`shared-canon-v1.1`／`documentation_introduction`／DB・Edge各`[]`です。親コミットと、`docs/SHARED_CANON.md`のblob **`48fe73dbf4a740dcb4b6b40142dec2e7918b56ab`**を確認しました。\n\n運用時は提出手順どおり、**確認前に枠を記録し、取得したrunのhead SHAを照合**してください。過ぎた枠や終了までの余裕が足りない枠は、未確認のままskipとして残し、元の将来枠へ進める扱いです。閉じたChatGPTレビュー待機の再開や、別のキューは不要です。\n\n**57/57とcanary安全テスト4/4はCodexの実行報告として受領し、こちらでは再実行していません。** 今回確認したのはコード・テスト・手順の整合であり、将来の予約実行の成功を保証するものではありません。07:45:12Zの起動未観測も、原因未確定の記録として維持してください。\n\n**この文書承認と、上記062の受入補完承認は別々に保存し、追加の返信待ちを作らず進めてください。** 製品への追加変更、別候補の公開、旧待機予算のリセットには、いずれの判定も流用しません。",
+        "retrieval": "Direct user-resumed NORMAL_WORK turn01a094d3-9834-78c0-9dcc-602cf88fdc41; no old automatic wait budget reset."
+      },
+      "notes": "Exact2checker/test files only. Supersedes021 B1 for this subject, not its historical REQUEST_CHANGES. No game release scope, future scheduler guarantee or old wait reset."
     }
   ]
 }
