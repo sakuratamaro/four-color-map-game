@@ -284,12 +284,24 @@ test("ChatGPT review records require an exact subject and cannot imply productio
         assert.equal(decision.review_kind, "public_acceptance_supplement");
         assert.equal(decision.decision, "APPROVE_BOUNDED_ACCEPTANCE");
         assert.deepEqual(decision.bounds, {additional_profiles:1,attempts:1,max_seconds:180,matches:0,economy_actions:0,deletions:0});
+      } else if (decision.review_id === "CHATGPT-REVIEW-20260913-030") {
+        assert.equal(decision.review_kind, "public_acceptance_supplement");
+        assert.equal(decision.decision, "APPROVE_BOUNDED_ACCEPTANCE");
+        assert.deepEqual(decision.bounds, {additional_profiles:0,accounts:0,matches:0,attempts:1,max_seconds:90,economy_actions:0,deletions:0});
+        assert.equal(decision.source.message_id, "8adbfdb6-2d36-4f20-8958-8fe4dd7d6450");
+        assert.equal(decision.source.request_message_id, "9ff538bc-db7a-4b1e-a73a-9ab0a4a75768");
       } else if (decision.review_id === "CHATGPT-REVIEW-20260913-028") {
         assert.equal(decision.review_kind, "public_acceptance_supplement");
         assert.equal(decision.decision, "APPROVE_BOUNDED_ACCEPTANCE");
         assert.deepEqual(decision.bounds, {additional_profiles:1,attempts:1,max_seconds:240,matches:1,cpu_actions:24,own_actions:9,economy_actions:0,deletions:0});
         assert.equal(decision.source.message_id, "0398f396-109f-485c-9add-9950421fc477");
         assert.equal(decision.source.request_message_id, "1b0193a0-02b0-4500-807f-0e5f2e6ae52f");
+      } else if (decision.review_id === "CHATGPT-REVIEW-20260913-032") {
+        assert.equal(decision.review_kind, "public_acceptance_disposition");
+        assert.equal(decision.decision, "ACCEPT");
+        assert.equal(decision.evidence_sha, "4d1301236e7fbf16d9caaf581f2b6f94d372f05c");
+        assert.equal(decision.source.message_id, "fa226fa2-ad5e-437c-a447-3a6c84fcd2c1");
+        assert.equal(decision.source.request_message_id, "f5646b27-8424-405f-95a7-a21c87b09274");
       } else if (decision.review_id === "CHATGPT-REVIEW-20260912-024") {
         assert.equal(decision.review_kind, "public_acceptance_disposition");
         assert.equal(decision.decision, "ACCEPT");
@@ -306,6 +318,10 @@ test("ChatGPT review records require an exact subject and cannot imply productio
       assert.match(decision.subject_sha, /^[0-9a-f]{40}$/);
       assert.match(decision.spec_snapshot_sha, /^[0-9a-f]{40}$/);
       const bindings = {
+        "CHATGPT-REVIEW-20260913-032": ["2fcfea9bb2a3d1ad7e22a5e8e3b61983f0404152", "9515f9bed9536dc2c44b71817129abb9c86ef24f", "UDL-066-catalog-v1", "9aa1c780aac6b394bf1ee622cc2ba10297b6bab1", "post_publication_bounded_acceptance"],
+        "CHATGPT-REVIEW-20260913-031": ["8fe4c206547851550de7b4b59c0eb82241ba3060", "2fcfea9bb2a3d1ad7e22a5e8e3b61983f0404152", "UDL-067-surrender-v1", "e5f2c0617d3defcc8dc6105bf567f6ed59fb4432", "Pages_only"],
+        "CHATGPT-REVIEW-20260913-030": ["2fcfea9bb2a3d1ad7e22a5e8e3b61983f0404152", "9515f9bed9536dc2c44b71817129abb9c86ef24f", "UDL-066-catalog-v1", "9aa1c780aac6b394bf1ee622cc2ba10297b6bab1", "post_publication_bounded_acceptance"],
+        "CHATGPT-REVIEW-20260913-029": ["2fcfea9bb2a3d1ad7e22a5e8e3b61983f0404152", "9515f9bed9536dc2c44b71817129abb9c86ef24f", "UDL-066-catalog-v1", "9aa1c780aac6b394bf1ee622cc2ba10297b6bab1", "Pages_only"],
         "CHATGPT-REVIEW-20260913-027": ["9515f9bed9536dc2c44b71817129abb9c86ef24f", "3b1d4e65197c476686b7b8a13c49f97ffd591e68", "UDL-023-entrance-v2", "630964f0af6956ff544d0209ba55209f6ba7d317", "Pages_only"],
         "CHATGPT-REVIEW-20260913-028": ["3b1d4e65197c476686b7b8a13c49f97ffd591e68", "a1a9b1c830eceb98464b107f2442deacaf765505", "UDL-065-cutin-v1.1", "40410ee0cc5dee8ca2a46281c54e504c8c01a15f", "post_publication_bounded_acceptance"],
         "CHATGPT-REVIEW-20260912-025": ["be52f755b813e8a6de58529eb2a39065ffc63623", "a1a9b1c830eceb98464b107f2442deacaf765505", "UDL-065-cutin-v1", "ee8c6c5c699e1083c6f8bb2780a4fccd6e599f9e", "Pages_only"],

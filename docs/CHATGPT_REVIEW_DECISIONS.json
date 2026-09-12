@@ -41,7 +41,7 @@
     }
   ],
   "coordination": {
-    "status": "NORMAL_OWNER_PUBLISHING066",
+    "status": "NORMAL_OWNER_REVISING067_B1_066_CLOSED",
     "latest_v8_intake": {
       "state": "PAIRED_SOURCE_AND_ZIP_VERIFIED_ALIASES_MAPPED",
       "source_thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
@@ -181,8 +181,8 @@
       "normal_owner_observation": "Previous normal turn completed after branch push; stored normal_work_receipt waiting. This heartbeat is the same task, not a second active owner."
     },
     "reviewer_thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
-    "last_consumed_review_message_id": "8adbfdb6-2d36-4f20-8958-8fe4dd7d6450",
-    "last_received_message_id": "8adbfdb6-2d36-4f20-8958-8fe4dd7d6450",
+    "last_consumed_review_message_id": "fa226fa2-ad5e-437c-a447-3a6c84fcd2c1",
+    "last_received_message_id": "fa226fa2-ad5e-437c-a447-3a6c84fcd2c1",
     "pending_user_intake_message_ids": [
       "ea61f25f-bebf-499a-81e9-029712a96f99",
       "bbb216f0-9194-45cf-acd6-504a9a55d40a",
@@ -221,7 +221,7 @@
     "active_slice": {
       "request_id": "UDL-20260912-066",
       "owner_thread_id": "01a07b56-616e-7733-9aae-90575659688e",
-      "state": "PUBLISHED_ACCEPTANCE_PARTIAL_HARNESS_FILENAME_FAILURE",
+      "state": "PUBLIC_VERIFIED",
       "worktree": ".codex-worktrees/skill-catalog-20260912",
       "branch": "codex/skill-catalog-20260912",
       "parent_sha": "9515f9bed9536dc2c44b71817129abb9c86ef24f",
@@ -231,7 +231,7 @@
       "source_message_id": "bbb21b41-147b-4869-810f-ada7f33bb3f7",
       "diagnosis": "Currentcatalog19normalonly; twoimplementedalpha experiments omitted; no profile clearslibrary. Exactformalsource21 implementedincludes19normaland2experimentalnotordinarygacha.",
       "tests": "Combined static110/110PASS956.0322ms; Chrome2/2PASS14731.1098ms; Edge11/11PASS80836.7081ms (catalog2, hand1, cutin5, gacha1, sale1, cosmetics1). Skips0. Registrybuilder exact; engine/localbuilderszero generateddiff. ThreeChrome390/768/1280screenshots visually inspected.",
-      "publication": "MAIN_AND_PAGES_EXACT_VERIFIED_ACCEPTANCE_PENDING",
+      "publication": "PUBLIC_VERIFIED",
       "review_status": "APPROVE_RELEASE",
       "boundary": "localstackedpreparationonly; keep065firstthenflatUI; no newskills/server/economy/assets.",
       "initial_failures": {
@@ -330,7 +330,7 @@
       "live_canary_completed_at_utc": "2026-09-12T16:39:09.075Z",
       "live_canary_diagnosis": "Screenshotpathname regexoverescaped; retained.json. LocalemptyChromereproduced unsupportedmimeapplication/json. All21details/key/Escape,2unownedlab,390geometrypassed; 768/1280/reload/visualNOT_RUN. Finalstate/revision,permittedreads4,console0PASS. No automaticretry/newprofile.",
       "acceptance_followup": {
-        "state": "030_PROBE_COMPLETE_CONSOLE_SUFFIX_DISPOSITION_PENDING",
+        "state": "GENUINE032_ACCEPTED_EXISTING_EVIDENCE",
         "send_attempts": 1,
         "reserved_before_api": true,
         "reserved_at_utc": "2026-09-12T16:45:03Z",
@@ -367,15 +367,22 @@
         "visual_checks_passed": 19,
         "visual_final_audits": "backend0/pageerrors0PASS;console classifierFAILonly2ERR_BLOCKED_BY_CLIENT.Inspectorevents,2AuthRetryableexpected",
         "visual_image_review": "ACTUALLY_VIEWED390_768_1280; nativefixednavvisibleinoverlaidpanelPNG; notpretendedauthenticated",
-        "visual_offline_classification": "AfterexactChromesuffixandmatchedblockedpathallowance,4/4expectedblocked/nootherconsole;originalJSONunchanged;nogenuinedispositionyet."
+        "visual_offline_classification": "AfterexactChromesuffixandmatchedblockedpathallowance,4/4expectedblocked/nootherconsole;originalJSONunchanged;nogenuinedispositionyet.",
+        "disposition_request_message_id": "f5646b27-8424-405f-95a7-a21c87b09274",
+        "disposition_evidence_sha": "4d13012",
+        "disposition_review_id": "CHATGPT-REVIEW-20260913-032",
+        "disposition_response_message_id": "fa226fa2-ad5e-437c-a447-3a6c84fcd2c1",
+        "public_acceptance_at_utc": "2026-09-12T17:37:19Z",
+        "additional_trial_authorized": false,
+        "raw_failures_preserved": true
       }
     },
     "automation_id": "automation",
     "automation_status_at_recording": "ACTIVE",
-    "automation_readback_updated_at": 1789229577598,
+    "automation_readback_updated_at": 1789234011536,
     "automation_prompt_readback_equal": true,
     "automation_pause_reason": null,
-    "automation_active_reason": "Independent066first20minslot;genuine027028resolvedwithoutoldbudgetreset.",
+    "automation_active_reason": "Independent067fixedreviewfinitefirstslot; no old066budgetreset.",
     "completed_review_waits": [
       {
         "root_request_message_id": "8464f659-ad62-4c09-83d9-44e1cc91316b",
@@ -766,12 +773,69 @@
         "last_result": "Secondboundedread confirms request andexact20000prefix; no responseyet, no thirdread.",
         "response_message_id": "0398f396-109f-485c-9add-9950421fc477",
         "received_at_utc": "2026-09-12T15:51:10Z"
+      },
+      {
+        "started_at_utc": "2026-09-12T16:07:23Z",
+        "expires_at_utc": "2026-09-12T18:07:23.000Z",
+        "automatic_checks": 2,
+        "max_automatic_checks": 3,
+        "offset_minutes": [
+          20,
+          40,
+          100
+        ],
+        "max_age_minutes": 120,
+        "reset_on_candidate_revision": false,
+        "reset_on_restart_or_unrelated_message": false,
+        "confirmed_delivery_reminders": 0,
+        "subject_sha": "2fcfea9bb2a3d1ad7e22a5e8e3b61983f0404152",
+        "status": "review_received_closed",
+        "next_check_utc": null,
+        "remaining_scheduled_slots": 0,
+        "delivery_readback_checks": 2,
+        "consumed_slots_utc": [
+          "2026-09-12T16:27:23.000Z",
+          "2026-09-12T16:47:23.000Z"
+        ],
+        "skipped_slots_utc": [],
+        "check_receipts": [
+          {
+            "slot_utc": "2026-09-12T16:27:23.000Z",
+            "reserved_at_utc": "2026-09-12T16:32:20Z",
+            "state": "GENUINE_REVIEW_RECEIVED",
+            "turn_id": "01a09667-c507-7201-9297-91ebbd3857c2",
+            "max_turns": 2,
+            "max_chars_per_item": 20000,
+            "response_message_id": "922d83f0-9779-4fd1-a8da-de7cdac862bd",
+            "review_id": "CHATGPT-REVIEW-20260913-029"
+          },
+          {
+            "slot_utc": "2026-09-12T16:47:23.000Z",
+            "reserved_at_utc": "2026-09-12T16:48:22Z",
+            "state": "DELIVERY_EXACT_NO_GENUINE_RESPONSE",
+            "turn_id": "01a09667-c507-7201-9297-91ebbd3857c2",
+            "kind": "same066acceptancefollowup",
+            "request_message_id": "9ff538bc-db7a-4b1e-a73a-9ab0a4a75768"
+          }
+        ],
+        "new_scope": "UDL-066-catalog-v1",
+        "prior_budgets_reopened": false,
+        "start_basis": "Conservative reserved before send independent066logicalrequest, no deadline extension.",
+        "root_request_message_id": "30ed4b53-5ad3-45e1-920d-4cf4919dd24b",
+        "last_result": "Genuine030receivedonindependent067availability; original066closedafter2checks, firstandsupplementrawFAILpreserved; no066newbudget.",
+        "response_message_id": "922d83f0-9779-4fd1-a8da-de7cdac862bd",
+        "closed_at_utc": "2026-09-12T16:34:10Z",
+        "followup_request_message_id": "9ff538bc-db7a-4b1e-a73a-9ab0a4a75768",
+        "followup_status": "review_received_closed",
+        "followup_response_message_id": "8adbfdb6-2d36-4f20-8958-8fe4dd7d6450",
+        "followup_closed_at_utc": "2026-09-12T17:05:36Z"
       }
     ],
     "wait_budget": {
-      "started_at_utc": "2026-09-12T16:07:23Z",
-      "expires_at_utc": "2026-09-12T18:07:23.000Z",
-      "automatic_checks": 2,
+      "started_at_utc": "2026-09-12T17:15:08Z",
+      "expires_at_utc": "2026-09-12T19:15:08.000Z",
+      "start_basis": "Conservative reservation before single send API for independent067, not066retry or deadline reset.",
+      "automatic_checks": 1,
       "max_automatic_checks": 3,
       "offset_minutes": [
         20,
@@ -782,54 +846,44 @@
       "reset_on_candidate_revision": false,
       "reset_on_restart_or_unrelated_message": false,
       "confirmed_delivery_reminders": 0,
-      "subject_sha": "2fcfea9bb2a3d1ad7e22a5e8e3b61983f0404152",
-      "status": "review_received_closed",
-      "next_check_utc": null,
-      "remaining_scheduled_slots": 0,
+      "root_request_message_id": "f5646b27-8424-405f-95a7-a21c87b09274",
+      "subject_sha": "8fe4c206547851550de7b4b59c0eb82241ba3060",
+      "status": "review_received_revision_required",
+      "next_check_utc": "2026-09-12T17:55:08.000Z",
+      "remaining_scheduled_slots": 2,
       "delivery_readback_checks": 2,
       "consumed_slots_utc": [
-        "2026-09-12T16:27:23.000Z",
-        "2026-09-12T16:47:23.000Z"
+        "2026-09-12T17:35:08.000Z"
       ],
       "skipped_slots_utc": [],
       "check_receipts": [
         {
-          "slot_utc": "2026-09-12T16:27:23.000Z",
-          "reserved_at_utc": "2026-09-12T16:32:20Z",
-          "state": "GENUINE_REVIEW_RECEIVED",
+          "slot_utc": "2026-09-12T17:35:08.000Z",
+          "reserved_at_utc": "2026-09-12T17:35:30Z",
           "turn_id": "01a09667-c507-7201-9297-91ebbd3857c2",
+          "state": "GENUINE_REVIEW_RECEIVED",
+          "kind": "normal_goal_run_due_slot",
           "max_turns": 2,
           "max_chars_per_item": 20000,
-          "response_message_id": "922d83f0-9779-4fd1-a8da-de7cdac862bd",
-          "review_id": "CHATGPT-REVIEW-20260913-029"
-        },
-        {
-          "slot_utc": "2026-09-12T16:47:23.000Z",
-          "reserved_at_utc": "2026-09-12T16:48:22Z",
-          "state": "DELIVERY_EXACT_NO_GENUINE_RESPONSE",
-          "turn_id": "01a09667-c507-7201-9297-91ebbd3857c2",
-          "kind": "same066acceptancefollowup",
-          "request_message_id": "9ff538bc-db7a-4b1e-a73a-9ab0a4a75768"
+          "response_message_id": "fa226fa2-ad5e-437c-a447-3a6c84fcd2c1",
+          "review_ids": [
+            "CHATGPT-REVIEW-20260913-031",
+            "CHATGPT-REVIEW-20260913-032"
+          ]
         }
       ],
-      "new_scope": "UDL-066-catalog-v1",
+      "new_scope": "UDL-067-surrender-v1",
       "prior_budgets_reopened": false,
-      "start_basis": "Conservative reserved before send independent066logicalrequest, no deadline extension.",
-      "root_request_message_id": "30ed4b53-5ad3-45e1-920d-4cf4919dd24b",
-      "last_result": "Exact7114characterfollowupdelivered; active/user-only. Nextautomaticread17:47:23,originaldeadline18:07:23.",
-      "response_message_id": "922d83f0-9779-4fd1-a8da-de7cdac862bd",
-      "closed_at_utc": "2026-09-12T16:34:10Z",
-      "followup_request_message_id": "9ff538bc-db7a-4b1e-a73a-9ab0a4a75768",
-      "followup_status": "review_received_closed",
-      "followup_response_message_id": "8adbfdb6-2d36-4f20-8958-8fe4dd7d6450",
-      "followup_closed_at_utc": "2026-09-12T17:05:36Z"
+      "last_result": "Genuine031HOLD067B1 and032ACCEPT066. Original067budget1/3 and originaldeadline preserved for exactrevision; not newwait.",
+      "response_message_id": "fa226fa2-ad5e-437c-a447-3a6c84fcd2c1",
+      "received_at_utc": "2026-09-12T17:37:19Z"
     },
     "pending_review_subject": {
-      "subject_sha": "2fcfea9bb2a3d1ad7e22a5e8e3b61983f0404152",
-      "base_sha": "9515f9bed9536dc2c44b71817129abb9c86ef24f",
+      "subject_sha": "8fe4c206547851550de7b4b59c0eb82241ba3060",
+      "base_sha": "2fcfea9bb2a3d1ad7e22a5e8e3b61983f0404152",
       "canon_version": "shared-canon-v1.1",
-      "feature_spec_version": "UDL-066-catalog-v1",
-      "spec_snapshot_sha": "9aa1c780aac6b394bf1ee622cc2ba10297b6bab1",
+      "feature_spec_version": "UDL-067-surrender-v1",
+      "spec_snapshot_sha": "e5f2c0617d3defcc8dc6105bf567f6ed59fb4432",
       "scope": "Pages_only",
       "review_kind": "game_production_release_approval",
       "db_change_set": [],
@@ -843,11 +897,11 @@
       "boundary": "Governance evidence maintenance did not amend or block independently approved product f8713d7."
     },
     "initial_interval_minutes": 20,
-    "pending_subject_sha": "2fcfea9bb2a3d1ad7e22a5e8e3b61983f0404152",
+    "pending_subject_sha": "8fe4c206547851550de7b4b59c0eb82241ba3060",
     "pending_scope": "Pages_only",
     "pending_delivery_status": "delivery_verified_response_pending",
-    "last_confirmed_sent_message_id": "30ed4b53-5ad3-45e1-920d-4cf4919dd24b",
-    "last_sent_message_id": "30ed4b53-5ad3-45e1-920d-4cf4919dd24b",
+    "last_confirmed_sent_message_id": "f5646b27-8424-405f-95a7-a21c87b09274",
+    "last_sent_message_id": "f5646b27-8424-405f-95a7-a21c87b09274",
     "self_sent_message_ids": [
       "ef6f161d-f2b9-40c0-ab06-f6eacf4c4d38",
       "cefaccf8-2648-4d63-b7fe-5a4a78023ec2",
@@ -876,11 +930,12 @@
       "a952818a-9d17-4128-9a2c-18d34118bb39",
       "d4a6aa86-a289-4876-b4e1-4d6ef8d579c9",
       "1b0193a0-02b0-4500-807f-0e5f2e6ae52f",
-      "30ed4b53-5ad3-45e1-920d-4cf4919dd24b"
+      "30ed4b53-5ad3-45e1-920d-4cf4919dd24b",
+      "f5646b27-8424-405f-95a7-a21c87b09274"
     ],
-    "sent_at_utc": "2026-09-12T16:07:23Z",
-    "last_check_utc": "2026-09-12T15:48:45Z",
-    "unchanged_checks": 1,
+    "sent_at_utc": "2026-09-12T17:20:55Z",
+    "last_check_utc": "2026-09-12T17:23:59Z",
+    "unchanged_checks": 0,
     "reminder_count": 0,
     "max_reminders_per_request": 1,
     "completed_slices": [
@@ -2130,7 +2185,7 @@
       "version": "shared-canon-v1.1",
       "start_base_sha": "9515f9bed9536dc2c44b71817129abb9c86ef24f",
       "base_source": "origin/main trackingref/publication evidence; freshremote beforeanyrelease",
-      "worktree_head": "2fcfea9bb2a3d1ad7e22a5e8e3b61983f0404152",
+      "worktree_head": "23133ef52efb81c39d0623479b0ea7819f850f7d",
       "request": [
         "UDL-20260912-067"
       ],
@@ -2145,7 +2200,7 @@
         "tests/standard-online-browser.test.cjs"
       ],
       "worktree": ".codex-worktrees/surrender-confirmation-20260913",
-      "state": "NORMAL_WORK_ACTIVE",
+      "state": "B1_REVISION_REVIEW_RESERVED",
       "turn_id": "01a09667-c507-7201-9297-91ebbd3857c2"
     },
     "next_goal": {
@@ -2322,7 +2377,7 @@
         "UDL-20260912-067"
       ],
       "owner_thread_id": "01a07b56-616e-7733-9aae-90575659688e",
-      "state": "LOCAL_VERIFIED_PUSHED_REVIEW_READY",
+      "state": "B1_REVISED_LOCAL_VERIFIED_REVIEW_READY",
       "worktree": ".codex-worktrees/surrender-confirmation-20260913",
       "branch": "codex/surrender-confirmation-20260913",
       "base_sha": "2fcfea9bb2a3d1ad7e22a5e8e3b61983f0404152",
@@ -2332,26 +2387,81 @@
       "db_change_set": [],
       "edge_change_set": [],
       "publication": "NOT_RUN",
-      "review_status": "SEND_RESERVED",
+      "review_status": "REVISION_SEND_RESERVED",
       "review_send_attempts": 1,
-      "next_action": "Integrate nativeconfirmation intoappbothsurrenderhandlers, removeCOLORhelperbutton; preservependingretry, stale/terminal/tabguard; Chrome/Edge/Windows/exactreview.",
-      "tests": "clean141files937/937PASS63716.5739ms;Chrome6/6;Edge14/14;finalfocusChrome1/1andEdge1/1;skip0",
+      "next_action": "Sendexact231revisionandonefilefulldiffonce; original067budget1/3 and19:15:08deadlineunchanged. Genuineexactreview/finalnewWindowsrequired.",
+      "tests": "clean231141files937/937PASS62729.8167ms; B1resizeChrome1/1PASS13624.0885ms,Edge1/1PASS15014.8737ms; existing067Chrome6/Edge14andfocusboth1fromunchangedproduct8fe.",
       "request_id": "UDL-20260912-067",
-      "candidate_sha": "8fe4c206547851550de7b4b59c0eb82241ba3060",
+      "candidate_sha": "23133ef52efb81c39d0623479b0ea7819f850f7d",
       "spec_snapshot_sha": "e5f2c0617d3defcc8dc6105bf567f6ed59fb4432",
       "review_id": null,
       "push_status": "PUSHED_EXACT_BRANCH",
-      "windows_run": "34707002949",
+      "windows_run": "34708897042",
       "windows_status": "IN_PROGRESS",
       "evidence": "docs/SURRENDER_LOCAL_20260913.md",
-      "review_packet": "docs/ASTRA_SURRENDER_REVIEW_20260913.md",
+      "review_packet": "docs/ASTRA_SURRENDER_B1_REVIEW_20260913.md",
       "live_canary_state": "PLAN_NOT_IMPLEMENTED_NOT_RUN",
       "live_canary_attempts": 0,
-      "windows_last_observed_at_utc": "2026-09-12T17:11:14Z",
+      "windows_last_observed_at_utc": "2026-09-12T17:43:04Z",
       "review_send_reserved_before_api": true,
       "review_reserved_at_utc": "2026-09-12T17:15:08Z",
       "availability_checks": 1,
-      "availability": "Actualcompleted030pair/idleobservedduringindependent067pre-sendavailability; source8adbfdb6."
+      "availability": "Actualcompleted030pair/idleobservedduringindependent067pre-sendavailability; source8adbfdb6.",
+      "review_sent_at_utc": "2026-09-12T17:20:55Z",
+      "review_sent_time_precision": "Conservative recorded after send API completion; original wait start remains reserved17:15:08Z.",
+      "review_delivery_readback_checks": 2,
+      "review_first_delivery_read_reserved_before_api": true,
+      "review_body_characters": 61079,
+      "review_first_delivery_result": "Read1 showed previous completed030pair while destinationactive; deliverynotyetverified. No resend.",
+      "review_second_delivery_read_reserved_before_api": true,
+      "review_second_delivery_read_reserved_at_utc": "2026-09-12T17:22:22Z",
+      "review_request_message_id": null,
+      "review_delivery_full_body_verified": false,
+      "review_delivery_matching_chars": 20000,
+      "review_delivery_total_chars": 61079,
+      "review_delivery_result": "Read2 verified actual067message ID and exactfirst20000of61079chars; active/user-only, no genuine response. Two delivery checks exhausted; no third read or resend.",
+      "review_delivery_confirmed_at_utc": "2026-09-12T17:23:59Z",
+      "review_evidence_sha": "4d13012",
+      "windows_jobs": [],
+      "review_response_message_id": null,
+      "local_revision": {
+        "reason": "B1quizresizeoldrunninglatch",
+        "changed_files": [
+          "tests/standard-online-browser.test.cjs"
+        ],
+        "product_change": false,
+        "tests": "BaselineunchangedChrome1/1PASS13679.6623ms;boundedreflowgateChrome1/1PASS13624.0885ms,Edge1/1PASS15014.8737ms; oldWindowsFAILpreserved; no tolerance/skip/assertion removal.",
+        "candidate_sha": "23133ef52efb81c39d0623479b0ea7819f850f7d",
+        "state": "CLEAN_COMMITTED_PUSHED"
+      },
+      "previous_candidate": {
+        "sha": "8fe4c206547851550de7b4b59c0eb82241ba3060",
+        "review_id": "CHATGPT-REVIEW-20260913-031",
+        "response_message_id": "fa226fa2-ad5e-437c-a447-3a6c84fcd2c1",
+        "request_message_id": "f5646b27-8424-405f-95a7-a21c87b09274",
+        "windows_run": "34707002949",
+        "windows_status": "FAILURE",
+        "windows_jobs": [
+          {
+            "id": "103588754411",
+            "name": "Standard online browser (chrome)",
+            "status": "completed",
+            "conclusion": "failure"
+          },
+          {
+            "id": "103588754672",
+            "name": "Standard online browser (edge)",
+            "status": "completed",
+            "conclusion": "success"
+          }
+        ],
+        "publication": "NOT_RUN",
+        "failure_evidence": "docs/SURRENDER_LOCAL_20260913.md"
+      },
+      "revision_review_send_attempts": 1,
+      "revision_review_reserved_at_utc": "2026-09-12T17:43:04Z",
+      "revision_review_reserved_before_api": true,
+      "revision_delivery_readback_checks": 0
     },
     "remaining_brain_work": {
       "source": {
@@ -2386,7 +2496,7 @@
           "UDL-20260912-062"
         ],
         "alias": "ADD-20260912-ENTRY-FLAT-THREE-BUTTONS",
-        "state": "LOCAL_VERIFIED_NOT_REVIEWED",
+        "state": "PUBLIC_VERIFIED",
         "worktree": ".codex-worktrees/ui-flat-entry-20260912",
         "branch": "codex/ui-flat-entry-20260912",
         "owner_thread_id": "01a07b56-616e-7733-9aae-90575659688e",
@@ -2395,8 +2505,8 @@
         "spec_path": "docs/UI_FLAT_ENTRANCE_20260912.md",
         "spec_version": "UDL-023-entrance-v2",
         "non_change": "HTML/CSS only, app.js/game/server unchanged. Preserve023 behavior, old062 acceptance, all065. Localpreparationnot releaseorder.",
-        "review_status": "NOT_REQUESTED",
-        "publication": "NOT_RUN",
+        "review_status": "GENUINE027_APPROVED_AND_PUBLIC_VERIFIED",
+        "publication": "PUBLIC_VERIFIED",
         "tests": "Localstatic93/93; Chrome10/10 andEdge15/15 including065;3sizesvisuallyviewed;3builderszerotrackeddiff. Not fullnonbrowser913rerun.",
         "candidate_sha": "9515f9bed9536dc2c44b71817129abb9c86ef24f",
         "spec_snapshot_sha": "630964f0af6956ff544d0209ba55209f6ba7d317",
@@ -2406,7 +2516,7 @@
         "live_canary": "scripts/live-standard-flat-entry-canary.cjs",
         "live_canary_precheck": "5/5PASS322.1229ms; liveNOT_RUN/profileattempts0",
         "evidence": "docs/UI_FLAT_ENTRANCE_LOCAL_20260912.md",
-        "next_action": "After065PUBLIC_VERIFIED,freshmain/ancestry andexactWindows; sendfixedUIreview once. Do notreopen062.",
+        "next_action": "Completedflatentryslice; preservehistoricaltestevidence, noadditionalprofiletrial.",
         "windows_last_observed_at_utc": "2026-09-12T14:39:11Z",
         "windows_completed_at_utc": "2026-09-12T14:38:50Z",
         "windows_jobs": [
@@ -2425,12 +2535,13 @@
             "lifecycle": "79/79",
             "skipped": 0
           }
-        ]
+        ],
+        "evidence_json": "docs/UI_FLAT_ENTRANCE_LIVE_20260913.json"
       },
       "catalog_preparation": {
         "request_id": "UDL-20260912-066",
         "owner_thread_id": "01a07b56-616e-7733-9aae-90575659688e",
-        "state": "LOCAL_VERIFIED_WINDOWS_IN_PROGRESS",
+        "state": "PUBLIC_VERIFIED",
         "worktree": ".codex-worktrees/skill-catalog-20260912",
         "branch": "codex/skill-catalog-20260912",
         "parent_sha": "9515f9bed9536dc2c44b71817129abb9c86ef24f",
@@ -2440,8 +2551,8 @@
         "source_message_id": "bbb21b41-147b-4869-810f-ada7f33bb3f7",
         "diagnosis": "Currentcatalog19normalonly; twoimplementedalpha experiments omitted; no profile clearslibrary. Exactformalsource21 implementedincludes19normaland2experimentalnotordinarygacha.",
         "tests": "Combined static110/110PASS956.0322ms; Chrome2/2PASS14731.1098ms; Edge11/11PASS80836.7081ms (catalog2, hand1, cutin5, gacha1, sale1, cosmetics1). Skips0. Registrybuilder exact; engine/localbuilderszero generateddiff. ThreeChrome390/768/1280screenshots visually inspected.",
-        "publication": "NOT_RUN",
-        "review_status": "PENDING",
+        "publication": "PUBLIC_VERIFIED",
+        "review_status": "GENUINE029_APPROVED_030_SUPPLEMENT_CONSUMED_DISPOSITION_PENDING",
         "boundary": "localstackedpreparationonly; keep065firstthenflatUI; no newskills/server/economy/assets.",
         "initial_failures": {
           "count": 3,
@@ -2455,11 +2566,11 @@
         "spec_snapshot_sha": "9aa1c780aac6b394bf1ee622cc2ba10297b6bab1",
         "push_status": "PUSHED_EXACT_BRANCH",
         "windows_run": "34703885487",
-        "windows_status": "IN_PROGRESS",
+        "windows_status": "SUCCESS",
         "windows_last_observed_at_utc": "2026-09-12T16:14:32Z",
         "evidence": "docs/SKILL_CATALOG_LOCAL_20260913.md",
         "clean_tests": "139files928/928PASS,skip0,39820.3615ms; prior dirty927/928 kept. Chrome2/2, Edge11/11, static110/110.",
-        "next_action": "Sendindependentfixed18file066review; exactnewWindowsrequiredfinalSUCCESS.",
+        "next_action": "Closedbyactual032; no furtherprofile/probe/review.",
         "previous_candidate": {
           "sha": "a7441d643f35f59cdc5c5a6e35c3221521b84e96",
           "windows_run": "34702569676",
@@ -2501,7 +2612,7 @@
       "evidence": "docs/QUIZ_QUESTION_IDENTITY_INTAKE_20260912.md",
       "note": "Genuine completed text subsequently received in normal authorized reviewer-chat reading; no image viewed or forwarded and no original session identified."
     },
-    "sent_at_precision": "Conservative send API completion; original logical wait start remains06:05:12Z.",
+    "sent_at_precision": "Conservative recorded after send API completion; original wait start remains reserved17:15:08Z.",
     "publication_report_history": [
       {
         "subject_sha": "d6f745d3f1291457539dd2f3476e9a749a547069",
@@ -2634,9 +2745,9 @@
       "tests": "tests/governance-commander-continuation.test.cjs",
       "next_run": {
         "phase": "RECEIVE",
-        "at_utc": "2026-09-12T16:27:23.000Z",
-        "subject_sha": "2fcfea9bb2a3d1ad7e22a5e8e3b61983f0404152",
-        "reason": "New independent066 first20minslot; closed065/9515budgetsnotreopened."
+        "at_utc": "2026-09-12T17:35:08.000Z",
+        "subject_sha": "8fe4c206547851550de7b4b59c0eb82241ba3060",
+        "reason": "Independent067first20minslot; closed0662/3 and065/9515budgets not reset."
       },
       "first_scheduled_normal_run": {
         "status": "OBSERVED",
@@ -2654,17 +2765,17 @@
         "id": "automation",
         "status": "ACTIVE",
         "target_thread_id": "01a07b56-616e-7733-9aae-90575659688e",
-        "rrule": "FREQ=DAILY;BYHOUR=1;BYMINUTE=27;BYSECOND=23",
-        "updated_at": 1789229577598,
+        "rrule": "FREQ=DAILY;BYHOUR=2;BYMINUTE=35;BYSECOND=8",
+        "updated_at": 1789234011536,
         "created_at": 1789048677730,
         "prompt_exact_equal": true,
-        "scheduled_for_utc": "2026-09-12T16:27:23.000Z",
+        "scheduled_for_utc": "2026-09-12T17:35:08.000Z",
         "readback_verified": true
       },
       "normal_work_claim": {
-        "state": "RUNNING_NORMAL_WORK",
+        "state": "LOCAL_IMPLEMENTATION_DONE_REVIEW_PENDING_NOT_HANDOFF",
         "turn_id": "01a09667-c507-7201-9297-91ebbd3857c2",
-        "action": "PUBLISH066_EXACT029_AND_PREPARE067",
+        "action": "067_FIXED_REVIEW_DELIVERED_AND_066_EXISTING_EVIDENCE_DISPOSITION_REQUESTED",
         "subject_sha": "2fcfea9bb2a3d1ad7e22a5e8e3b61983f0404152"
       },
       "review_scope": "New user-authorized local continuation repair, not covered by old APPROVE_DOCS; fixed docs candidate will be separately reported.",
@@ -2860,9 +2971,9 @@
         "not_merely_wait": true
       },
       "current_goal_turn_classification": {
-        "turn_id": "01a09643-eee7-71f1-9bb6-6f1d9164d872",
+        "turn_id": "01a09667-c507-7201-9297-91ebbd3857c2",
         "classification": "progress",
-        "evidence": "Genuine027/028→successful06532checkssupplementand9515main/Pages/live33PASS;066CIfailureinvestigated,testrepair2fcpushed/reviewdelivered;067source/scope/pureguards4PASS.",
+        "evidence": "Genuine029→066exactmain/Pages;030→onezeroaccountvisual19functionalPASS/rawFAILclassifiedpreserved;067implementedclean937PASS,Chrome6/Edge14andfinalfocusbothPASS,pushed8feandfixedreviewsent. Genuine031→B1singlequiztestsynchronizationfix231,Chrome/Edgeboth1PASSclean937PASS/pushed;032→066scopedPUBLIC_VERIFIEDwithrawfailuresunchanged.",
         "actual_goal_status": "active",
         "not_merely_wait": true
       }
@@ -3743,6 +3854,64 @@
         "economy_actions": 0,
         "deletions": 0
       }
+    },
+    {
+      "canon_version": "shared-canon-v1.1",
+      "db_change_set": [],
+      "edge_change_set": [],
+      "recorded_at_utc": "2026-09-12T17:37:19Z",
+      "source": {
+        "kind": "chatgpt",
+        "thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
+        "message_id": "fa226fa2-ad5e-437c-a447-3a6c84fcd2c1",
+        "request_message_id": "f5646b27-8424-405f-95a7-a21c87b09274",
+        "request_body_equality": false,
+        "request_prefix_matching_chars": 20000,
+        "response_text": "## 1．UDL067・投了確認とCPU台詞\n\n### DECISION\n**HOLD — 投了確認のコード・仕様に修正必須の問題は見つかりませんでしたが、Windowsの既存クイズ試験で1件の失敗が確定しています。現時点では公開しないでください。**\n\n### SUBJECT_SHA\n`8fe4c206547851550de7b4b59c0eb82241ba3060`\n\n### BLOCKERS\n**B1 — クイズ選択肢のリサイズ後の配置試験が不合格です。**\n\nWindows `34707002949`の最新取得結果は、**Chrome `103588754411`がFAILURE、Edge `103588754672`がSUCCESS**です。両方が実行中という段階から進んでいます。\n\nChromeで失敗したのは、次の既存テストです。\n\n`chrome moves whole quiz buttons in one collision arena and pauses every interaction safely`\n\n**タイムアウトではなく、選択肢が大枠内に収まるというassertionの失敗**です。ログでは、大枠の右端が`355px`なのに対し、選択肢「-123456789」の右端が約`384.83px`になっています。失敗箇所は`assertPacked()`の3952行、呼出元は4025行です。\n\n該当箇所は、画面幅を**430→390pxへ戻し、`motionState === \"running\"`を待った直後**の配置確認でした。したがって、まずこの局所経路で、**リサイズ後の座標再計算前を検証側が拾ったのか、再計算後にも枠外表示が残るのか**を切り分けてください。ログだけで「一時的な試験不安定」「今回の製品回帰」のどちらかには断定しません。\n\n修正対象を投了UI全体へ広げる必要はありません。枠内判定の許容差を広げたり、試験を削除・skipしたりせず、該当試験を局所確認してください。実装・テストを変更する場合は新SHAで再提出、**同じSHAのまま切り分けられる場合は、根拠を保存して失敗Chrome jobだけを一度再実行し、その結果を報告する**進め方で構いません。成功するまで繰り返す運用にはしません。\n\n### NOTES\n承認判断の対象はBASE `2fcfea9bb2a3d1ad7e22a5e8e3b61983f0404152`からの本候補、`shared-canon-v1.1`／`UDL-067-surrender-v1`／`Pages_only`／DB・Edge各`[]`です。仕様blobは提出値`e5f2c0617d3defcc8dc6105bf567f6ed59fb4432`と一致しています。\n\n投了確認自体は、**取消側の初期フォーカス、公開CPU IDによる固定台詞、確認時の対局・版・席の再照合、送信前の同意消費、既存の同一ID再送の維持**を確認しました。optionalモジュール欠落時も無確認投了へ迂回しない設計です。今回、台詞の強さや別のCPU改修を追加の公開条件にはしません。\n\n**公開後canaryの計画範囲は妥当です。HOLD解除と公開後に限り、プロフィール1件・レイCPU対局1件・240秒・CPU操作最大6回・SURRENDER送信最大2回の計画で進めてください。** ハーネスは実装・局所検証してから実行し、終了処理もこの枠に含めます。結果不明時は既存の同一identityを保ち、新しい投了として送信し直さないでください。\n\n比較条件は、**開く／取消の段階では状態不変、肯定後は通常の投了・敗北精算が一度だけ成立**と分けてください。正常な敗北精算で戦績・報酬が更新されたことまで「プロフィールが変わった」として失敗にする必要はありません。\n\n同じSHAでCIが解消した場合は、**切り分けと最終結果の追記だけでHOLD解除を判断します。全16ファイルの再送は不要です。** ローカル試験・画像目視はCodexの実施報告として受領し、こちらでは再実行・画像確認していません。\n"
+      },
+      "review_id": "CHATGPT-REVIEW-20260913-031",
+      "subject_sha": "8fe4c206547851550de7b4b59c0eb82241ba3060",
+      "base_sha": "2fcfea9bb2a3d1ad7e22a5e8e3b61983f0404152",
+      "feature_spec_version": "UDL-067-surrender-v1",
+      "spec_snapshot_sha": "e5f2c0617d3defcc8dc6105bf567f6ed59fb4432",
+      "spec_snapshot_kind": "git_blob:docs/SURRENDER_CONFIRMATION_20260913.md",
+      "scope": "Pages_only",
+      "review_kind": "game_production_release_approval",
+      "decision": "HOLD",
+      "blockers": [
+        {
+          "id": "B1",
+          "description": "Chrome103588754411 exact8fe Windows34707002949 fails quizresize containment atassertPacked3952/call4025; distinguish oldgeometry read vs persistentlayout."
+        }
+      ],
+      "notes": "No mandatorysurrendercodechangefound. No releaseuntilHOLDlifted. Changedtest/code requiresnewSHAreview; unchangedSHAonlymayrerunfailedjobonceafterevidence. 1profile/1Rei240s CPU6/SURRENDER2 planappropriatebutconditionalonHOLDlift/publication/localharnessproof."
+    },
+    {
+      "canon_version": "shared-canon-v1.1",
+      "db_change_set": [],
+      "edge_change_set": [],
+      "recorded_at_utc": "2026-09-12T17:37:19Z",
+      "source": {
+        "kind": "chatgpt",
+        "thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
+        "message_id": "fa226fa2-ad5e-437c-a447-3a6c84fcd2c1",
+        "request_message_id": "f5646b27-8424-405f-95a7-a21c87b09274",
+        "request_body_equality": false,
+        "request_prefix_matching_chars": 20000,
+        "response_text": "\n## 2．UDL066・既存証拠による受入判定\n\n### DECISION\n**ACCEPT — 取得済みの初回試験・表示補完・限定的なconsole再分類を合わせ、UDL066を対象範囲限定の`PUBLIC_VERIFIED`として受け入れます。追加の本番試行・アカウント作成は不要です。**\n\n### SUBJECT_SHA\n`2fcfea9bb2a3d1ad7e22a5e8e3b61983f0404152`\n\n証拠参照：`4d1301236e7fbf16d9caaf581f2b6f94d372f05c`\n\n### BLOCKERS\n**066の限定受入を止める不足はありません。**\n\n初回の認証付き試験では、全21件の詳細・操作と保存状態保全・許可通信・consoleを確認できています。別のプロフィールなし補完では、残っていた3幅の配置・PNG保存・reload・詳細操作を取得しています。両者は同じ試験ではありませんが、今回の図鑑受入に必要な根拠として組み合わせられます。\n\n補完で未分類だった2件は、保存されたログ上、**遮断した`/auth/v1/signup`に対応する`ERR_BLOCKED_BY_CLIENT.Inspector`**です。修正した分類は、この正確な文字列と実際に遮断された送信先の一致を条件にしており、無関係なエラーを一括で無視する変更ではありません。この既存ログの再分類で十分です。\n\n### NOTES\n**初回・補完の両JSONは`ok:false`のまま保持し、新しいlive PASSへ書き換えないでください。** その上で、別の受入記録に次を追記してください。\n\n> 初回の認証付き公開試験と、プロフィールなしの表示・reload補完を合わせて図鑑UIを受入。補完のconsole失敗は、保存済みログに対する限定的な再分類で想定した通信遮断と判定した。原試行の失敗状態は変更していない。\n\n3画像の目視はCodexの実施報告として扱います。固定ナビ等の部分的な重なりがあるため、**全カードが同時に遮蔽なく見えることや、認証付きreloadを追加実測したことまでは主張しません。** 今回はコンパクトな図鑑・詳細閲覧・3幅の配置という対象範囲の受入です。\n\n**累計プロフィール1件、補完の新規作成0、物理端末`NOT_RUN`を維持して066を閉じてください。** 066の受入完了と、067のCI失敗によるHOLDは別記録です。旧062／065／9515の再試験や、閉じた待機予算の再開は不要です。"
+      },
+      "review_id": "CHATGPT-REVIEW-20260913-032",
+      "subject_sha": "2fcfea9bb2a3d1ad7e22a5e8e3b61983f0404152",
+      "base_sha": "9515f9bed9536dc2c44b71817129abb9c86ef24f",
+      "feature_spec_version": "UDL-066-catalog-v1",
+      "spec_snapshot_sha": "9aa1c780aac6b394bf1ee622cc2ba10297b6bab1",
+      "spec_snapshot_kind": "git_blob:docs/SKILL_CATALOG_20260912.md",
+      "scope": "post_publication_bounded_acceptance",
+      "review_kind": "public_acceptance_disposition",
+      "decision": "ACCEPT",
+      "evidence_sha": "4d1301236e7fbf16d9caaf581f2b6f94d372f05c",
+      "blockers": [],
+      "notes": "Scoped066PUBLIC_VERIFIEDfrominitialauth57+3 andzeroaccountvisual19+actualPNGview+exactblockedconsoleofflineclassification. Bothrawokfalseunchanged. Cumulativeprofile1,visualadditional0. Authenticatedreload/allcardssimultaneouslyunobscured/physicalNOT_RUN. Noadditionaltrialoroldbudget."
     }
   ]
 }

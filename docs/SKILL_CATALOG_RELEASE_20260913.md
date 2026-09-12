@@ -1,4 +1,6 @@
 # UDL066 publication and partial live acceptance
+
+Current acceptance: **PUBLIC_VERIFIED, scope-limited by genuine032**. The prior partial results below remain immutable historical evidence. Actual Astra response fa226fa2-ad5e-437c-a447-3a6c84fcd2c1 to f5646b27-8424-405f-95a7-a21c87b09274 accepted exact2fc from fixed evidence4d1301236e7fbf16d9caaf581f2b6f94d372f05c. Initial authenticated public checks, separate profile-free 3-width/reload/PNG supplement, actual Codex visual review and narrow offline classification of blocked console events together satisfy this catalog scope. Both raw JSONs remain ok:false; there is no new live PASS or additional trial. Totalprofiles1, supplementnewprofiles0, physicalNOT_RUN; no extra authenticatedreload or allcards-simultaneously-unobscured claim. No further066review/profile/probe; 067HOLD is a distinct record.
 CANON_RECEIPT version=shared-canon-v1.1 base=9515f9bed9536dc2c44b71817129abb9c86ef24f request=UDL-20260912-066 specs=docs/SKILL_CATALOG_20260912.md tests=tests/governance-skill-catalog-canary.test.cjs
 
 Product2fcfea9bb2a3d1ad7e22a5e8e3b61983f0404152, genuine029 response922d83f0-9779-4fd1-a8da-de7cdac862bd to request30ed4b53-5ad3-45e1-920d-4cf4919dd24b. UDL-066-catalog-v1, blob9aa1c780aac6b394bf1ee622cc2ba10297b6bab1, Pages_only DB[]Edge[].
