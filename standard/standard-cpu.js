@@ -252,13 +252,18 @@ function microToMacro(cell, bounds, microWidth) {
   return Math.floor(y / bounds.microScale) * bounds.macroWidth + Math.floor(x / bounds.microScale);
 }
 
-function splitSelections(region, bounds, microWidth) {
+function splitSelections(region, bounds, microWidth, orderedSplits = false) {
   const width = bounds.macroWidth;
   const macros = [...new Set(region.sourceMacros || [])].sort((a, b) => a - b);
   const results = [];
+  // Created pending regions have at most five source macros. Reject malformed
+  // new-policy observations before entering the exponential bit-mask loop.
+  if (orderedSplits && (macros.length < 2 || macros.length > 5)) return results;
   const fullMask = (1 << macros.length) - 1;
   for (let mask = 1; mask < fullMask; mask += 1) {
-    if (!(mask & 1)) continue;
+    // The selected half is colored by us; the complement is returned to the
+    // opponent. Only the versioned rescue policy treats these as ordered roles.
+    if (!orderedSplits && !(mask & 1)) continue;
     const selected = macros.filter((_, index) => mask & (1 << index));
     const returned = macros.filter((_, index) => !(mask & (1 << index)));
     const selectedSet = new Set(selected);
@@ -305,7 +310,7 @@ function colorSkillCanRescue(action, publicState, ownPrivateState, boardColors) 
   return false;
 }
 
-function enumerateColorSkillActions(publicState, ownPrivateState, annotateRescue = false, difficulty = "normal") {
+function enumerateColorSkillActions(publicState, ownPrivateState, annotateRescue = false, difficulty = "normal", orderedSplits = false) {
   const actions = [];
   const boardColors = [...new Set(Object.values(publicState.regions || {}).map((region) => region.color).filter(Boolean))];
   if (availableHand(ownPrivateState, "colorRandomBorrow") && boardColors.length) actions.push(skillAction("colorRandomBorrow", {}, { skillPriority: 18 }));
@@ -324,9 +329,10 @@ function enumerateColorSkillActions(publicState, ownPrivateState, annotateRescue
   }
   if (availableHand(ownPrivateState, "colorRegionSplit")) {
     const region = publicState.regions?.[publicState.pending];
-    if (region && !(region.controllers || []).includes(ownPrivateState.seat)) {
+    if (region && !(region.controllers || []).includes(ownPrivateState.seat)
+        && (!orderedSplits || (region.isPending && !region.color && !publicState.reserved))) {
       const microWidth = publicState.playableBounds.macroWidth * publicState.playableBounds.microScale;
-      for (const sourceMacros of splitSelections(region, publicState.playableBounds, microWidth)) {
+      for (const sourceMacros of splitSelections(region, publicState.playableBounds, microWidth, orderedSplits)) {
         actions.push(skillAction("colorRegionSplit", { regionId: region.id, sourceMacros }, { skillPriority: 30, splitSize: sourceMacros.length }));
       }
     }
@@ -439,13 +445,13 @@ function preparedTouchesColoredRegion(state, micro) {
   return false;
 }
 
-function enumerateCpuActions(observation) {
+function enumerateCpuActions(observation, { orderedSplits = false } = {}) {
   const { publicState, ownPrivateState } = observation;
   if (publicState.status === "FINISHED" || publicState.active !== ownPrivateState.seat) return Object.freeze([]);
   let actions = [];
   if (publicState.phase === "COLOR") {
     const colorActions = enumerateColorActions(publicState, ownPrivateState);
-    const skillActions = enumerateColorSkillActions(publicState, ownPrivateState, true, observation.difficulty);
+    const skillActions = enumerateColorSkillActions(publicState, ownPrivateState, true, observation.difficulty, orderedSplits);
     const rescueActions = skillActions.filter((action) => action.metrics.rescue > 0);
     const guaranteedRescueActions = rescueActions.filter((action) => action.payload.skill !== "colorRandomBorrow");
     const blockedCount = new Set(adjacentRegionIds(publicState, publicState.pending).map((id) => publicState.regions[id]?.color).filter(Boolean)).size;

@@ -253,7 +253,7 @@ test("server bundle exposes ten safe CPU identities and deterministic legal deci
   const cpuProfile = api.createCpuProfile("yuzu");
   assert.equal(Object.values(cpuProfile.loadout).flat().length, 6);
   assert.equal(cpuProfile.profile.displayName, "うっかりユズ");
-  assert.equal(cpuProfile.policyVersion, "standard-character-roster-v1:yuzu", "engine upgrade does not change persisted CPU identity");
+  assert.equal(cpuProfile.policyVersion, "standard-character-split-rescue-v1:yuzu", "new profiles use the versioned rescue policy; saved room dispatch is tested separately");
   const created = api.create({ matchId: "cpu-server", loadouts: { A: loadouts.A, B: cpuProfile.loadout }, profiles: { A: profiles().A, B: cpuProfile.profile }, seed: 123, firstSeat: "B" });
   const first = api.chooseCpuAction({ publicState: created.publicState, ownPrivateState: created.privateB, characterId: "yuzu", policyVersion: cpuProfile.policyVersion, seed: 999 });
   const second = api.chooseCpuAction({ publicState: created.publicState, ownPrivateState: created.privateB, characterId: "yuzu", policyVersion: cpuProfile.policyVersion, seed: 999 });

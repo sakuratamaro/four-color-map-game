@@ -100,6 +100,8 @@ jobs:
         run: >-
           node --test --test-concurrency=1
           tests/standard-kurogane-lookahead.test.cjs
+          tests/standard-cpu-split-rescue.test.cjs
+          tests/standard-cpu-split-policy-migration.test.cjs
           tests/standard-kurogane-policy-migration.test.cjs
           tests/standard-edge-handler.test.cjs
           tests/standard-online-engine-bundle.test.cjs

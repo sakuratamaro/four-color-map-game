@@ -7,6 +7,7 @@ const { STANDARD_SKILLS } = require("./standard-skill-registry.js");
 const ROSTER_VERSION = "standard-character-roster-v1";
 const KUROGANE_LEGACY_POLICY_VERSION = `${ROSTER_VERSION}:kurogane`;
 const KUROGANE_POLICY_VERSION = `${ROSTER_VERSION}:kurogane-lookahead-v2`;
+const SPLIT_RESCUE_POLICY_VERSION = "standard-character-split-rescue-v1";
 const CREATE_COLOR_OPTION_STRIDE = 1000000;
 const GUARANTEED_TRAP_BONUS = 1000000000;
 const RANDOM_SKILLS = new Set(["colorRandomBorrow", "areaMicroBloom", "disruptRandomOne", "disruptRandomTwo", "disruptPaletteRandom", "disruptPaletteChoice", "disruptForcedPalette"]);
@@ -26,6 +27,8 @@ const definitions = [
 ];
 
 const PARAMETER_NAMES = ["lookaheadDepth", "legalChoiceNoise", "skillWindowRecall", "skillTargetAccuracy", "hiddenInference", "riskTolerance", "endgameDiscipline", "adaptationRate", "favoriteSkillBias"];
+const PRE_SPLIT_POLICY_VERSIONS = Object.freeze(Object.fromEntries(definitions.map(([id]) =>
+  [id, id === "kurogane" ? KUROGANE_POLICY_VERSION : `${ROSTER_VERSION}:${id}`])));
 
 function splitLoadout(ids) {
   return Object.fromEntries(["color", "area", "disrupt"].map((category) => [category, Object.freeze(ids.filter((id) => STANDARD_SKILLS[id]?.category === category))]));
@@ -34,7 +37,7 @@ function splitLoadout(ids) {
 const CPU_CHARACTERS = Object.freeze(Object.fromEntries(definitions.map(([id, name, line, strength, weakness, favorites, ids, values]) => [id, Object.freeze({
   id, name, line, strength, weakness, favorites: Object.freeze([...favorites]), loadout: Object.freeze(splitLoadout(ids)),
   parameters: Object.freeze(Object.fromEntries(PARAMETER_NAMES.map((key, index) => [key, values[index]]))),
-  policyVersion: id === "kurogane" ? KUROGANE_POLICY_VERSION : `${ROSTER_VERSION}:${id}`,
+  policyVersion: `${SPLIT_RESCUE_POLICY_VERSION}:${id}`,
 })])));
 
 function validateRoster() {
@@ -117,13 +120,14 @@ function chooseCharacterAction({ publicState, ownPrivateState, characterId, poli
   if (!character) throw new TypeError("UNKNOWN_CPU_CHARACTER");
   const selectedPolicyVersion = policyVersion || character.policyVersion;
   const legacyKurogane = characterId === "kurogane" && selectedPolicyVersion === KUROGANE_LEGACY_POLICY_VERSION;
-  if (selectedPolicyVersion !== character.policyVersion && !legacyKurogane) throw new TypeError("UNKNOWN_CPU_POLICY_VERSION");
+  const orderedSplits = selectedPolicyVersion === character.policyVersion;
+  if (!orderedSplits && selectedPolicyVersion !== PRE_SPLIT_POLICY_VERSIONS[characterId] && !legacyKurogane) throw new TypeError("UNKNOWN_CPU_POLICY_VERSION");
   const observation = cpu.makeObservation({ publicState, ownPrivateState, difficulty: "hard" });
   const actions = publicState.engineVersion === "5.0.0-alpha.1"
     ? cpu.enumerateCpuActionsLegacy(observation)
-    : cpu.enumerateCpuActions(observation);
+    : cpu.enumerateCpuActions(observation, { orderedSplits });
   if (!actions.length) return null;
-  const useLookahead = selectedPolicyVersion === KUROGANE_POLICY_VERSION;
+  const useLookahead = characterId === "kurogane" && !legacyKurogane;
   const applySealTiming = !legacyKurogane;
   const ranked = actions.map((candidate, index) => {
     const action = legacyKurogane ? legacySealAction(candidate) : candidate;
@@ -153,7 +157,9 @@ module.exports = {
   CPU_CHARACTERS,
   KUROGANE_LEGACY_POLICY_VERSION,
   KUROGANE_POLICY_VERSION,
+  PRE_SPLIT_POLICY_VERSIONS,
   ROSTER_VERSION,
+  SPLIT_RESCUE_POLICY_VERSION,
   chooseCharacterAction,
   publicRoster,
   validateRoster,

@@ -34,7 +34,7 @@ test("the tactical-seal policies and legacy Kurogane retain deterministic fixed 
     }, rng);
     const policyVersion = character.id === "kurogane"
       ? roster.KUROGANE_LEGACY_POLICY_VERSION
-      : character.policyVersion;
+      : roster.PRE_SPLIT_POLICY_VERSIONS[character.id];
     const action = roster.chooseCharacterAction({
       publicState: match.projectStandardPublicState(current),
       ownPrivateState: match.projectStandardPrivateState(current, "A"),
