@@ -8,6 +8,8 @@
 
 ## 司令塔ルール
 
+2026-09-12 17:47JST: 062の公開後最終3確認に必要な受入補完判断が未取得のまま3連続goal turnで継続。既存台帳と実PAUSED設定だけを再確認し、期限切れの再読取・追加profile・再試験をせず、規定どおりgoal APIをblockedへ変更・読戻し確認した（updated_at1789202836）。本番a1は維持、UI目標は未完了のまま保存。実Astraの補完判断またはユーザーの明示指示で再開する。詳細UI_GOAL_COMPLETION_AUDIT_20260912.md。以下は履歴。
+
 2026-09-12 17:30JST: 062は本番a1/Pages公開済み・受入PARTIAL。公開証拠8b90951と別のCI停止防止2file修正8d4ca4bを共有branchへpush、実依頼08917c24の17074文字全文送達を確認。最終取得はuser messageのみでAstraの新判定は未観測、追加profile未承認/未実行。元レビュー期限は再開せず、同じautomationの実PAUSED・保存prompt/target一致を確認。既存UIゴールはfresh get_goalでactiveと実読戻し、過去blocked表示と区別。CPU診断3blobは公開a1でも一致し、分割救済の候補除外箇所まで特定したがCPU変更はまだ行っていない。以下は履歴。
 
 2026-09-12 17:05JST: 実Astra020承認の062/a1を司令塔本人がmain・Pages34682215186へ公開。全job成功、公開preflight・index/app37 byte一致。1profileの公開52件PASS後server比較でFAILし、LIVE_ACCEPTANCE_PARTIALのまま保持。JSONキー順依存のharness欠陥をoffline再現・修正したが、実データ差分未保存のため合格へ読み替えない。別判定021はCI完了より先に承認が届く停止分岐だけを差戻し、局所修正・回帰検証中。061の94/94完了と実際の06:51:30Z自動通常起動は維持。詳細はUI_PLAYER_COPY_RELEASE_20260912.mdとCOMMANDER_CI_RACE_REPAIR_20260912.md。以下は過去snapshot。

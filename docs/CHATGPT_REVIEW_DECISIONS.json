@@ -41,7 +41,7 @@
     }
   ],
   "coordination": {
-    "status": "062_PUBLIC_PARTIAL_AND_DOCS_REVISION_DELIVERED_FINITE_WAIT_CLOSED",
+    "status": "062_PUBLIC_PARTIAL_BLOCKED_ON_EXTERNAL_ACCEPTANCE_DISPOSITION",
     "latest_v8_intake": {
       "state": "PAIRED_SOURCE_AND_ZIP_VERIFIED_ALIASES_MAPPED",
       "source_thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
@@ -1537,11 +1537,11 @@
         "UDL-20260912-063"
       ],
       "preparation": "docs/UI_DIET_PREPARATION_20260912.md",
-      "status": "GOAL_API_ACTIVE_NORMAL_WORK",
+      "status": "GOAL_API_BLOCKED_ACCEPTANCE_DISPOSITION",
       "registration_receipt": "get_goal returned null on2026-09-11T20:20Z; explicitly user-requested UI goal re-created without budget; no other active goal existed. Work and completed slices preserved.",
       "latest_checkpoint": "Bounded completion audit: current main a1 and13 public asset bytes match;6exact review/spec/ancestor groups traced.048/023/052-054-063/060/061 have preserved successful live evidence;062 remains partial at the final3 checks, no additional profile or expired-budget review read.",
-      "actual_api_status": "active",
-      "actual_api_observation_note": "Fresh get_goal returned active on2026-09-12T08:26:31Z, superseding but preserving old blocked receipt. UI acceptance is still incomplete, not complete.",
+      "actual_api_status": "blocked",
+      "actual_api_observation_note": "Actual get_goal readback after strict third-boundary update returnedblocked.062 final3live assertions unfinished; full UI objective retained.",
       "actual_api_observation_history": [
         {
           "status": "blocked",
@@ -1553,6 +1553,13 @@
           "observed_at_utc": "2026-09-12T08:26:31Z",
           "updated_at": 1789201562,
           "note": "Actual get_goal read in the user-resumed turn; existing same UI objective returned active. No status mutation tool was called."
+        },
+        {
+          "status": "blocked",
+          "source": "get_goal",
+          "observed_at_utc": "2026-09-12 08:48:40 UTC",
+          "updated_at": 1789202836,
+          "note": "Read back after update_goal blocked at strict third consecutive same-boundary audit; no completion or objective rewrite."
         }
       ],
       "completion_audit": {
@@ -2041,9 +2048,9 @@
         "readback_verified": true
       },
       "normal_work_claim": {
-        "state": "COMPLETED_AUDIT_EXTERNAL_DISPOSITION_STILL_REQUIRED",
-        "turn_id": "01a094c1-7550-7451-92b4-61fbff9ccd98",
-        "action": "AUDIT_UI_COMPLETION_BOUNDARIES",
+        "state": "BLOCKED_EXTERNAL_DISPOSITION_REQUIRED",
+        "turn_id": "01a094cb-ace8-7e41-a594-8b124fca8f26",
+        "action": "REVALIDATE_ALREADY_AUDITED_BOUNDARY",
         "subject_sha": "a1a9b1c830eceb98464b107f2442deacaf765505"
       },
       "review_scope": "New user-authorized local continuation repair, not covered by old APPROVE_DOCS; fixed docs candidate will be separately reported.",
@@ -2056,10 +2063,10 @@
       "current_run": {
         "phase": "NORMAL_WORK",
         "origin": "automatic_goal_continuation",
-        "turn_id": "01a094c1-7550-7451-92b4-61fbff9ccd98",
-        "started_at_utc": "2026-09-12T08:35:01Z",
+        "turn_id": "01a094cb-ace8-7e41-a594-8b124fca8f26",
+        "started_at_utc": "2026-09-12T08:46:11.000Z",
         "actual_scheduled_run": false,
-        "state": "COMPLETED_BOUNDED_COMPLETION_AUDIT"
+        "state": "BLOCKED_AFTER_THIRD_BOUNDARY_AUDIT"
       },
       "missed_schedule_observation": {
         "scheduled_at_utc": "2026-09-12T06:25:12Z",
@@ -2133,24 +2140,29 @@
         "condition": "UDL062 live acceptance supplement has no recorded genuine Astra disposition; one-profile limit already consumed; old review polling budget is closed.",
         "consecutive_goal_turn_ids": [
           "01a0949e-ab97-7712-8c4f-67ec29f2f551",
-          "01a094c1-7550-7451-92b4-61fbff9ccd98"
+          "01a094c1-7550-7451-92b4-61fbff9ccd98",
+          "01a094cb-ace8-7e41-a594-8b124fca8f26"
         ],
         "threshold": 3,
-        "previous_turn_classification": "progress_publication_and_repair",
-        "current_turn_classification": "progress_completion_evidence_audit",
+        "previous_turn_classification": "progress_completion_evidence_audit",
+        "current_turn_classification": "no_progress_after_bounded_boundary_revalidation",
         "verified_wait": false,
         "live_handle_confirmed": false,
         "external_review_read_budget_available": false,
         "next_safe_action": "Genuine disposition or explicit user direction needed; no automatic repeat profile, resend or closed-budget read.",
-        "goal_left_active": true
+        "goal_left_active": false,
+        "actual_goal_status": "blocked",
+        "goal_api_updated_at": 1789202836,
+        "blocking_decision_source": "update_goal succeeded after the same boundary recurred for3consecutive goal turns; actual get_goal readback confirmedblocked.",
+        "no_further_model_loop": true
       },
       "previous_run": {
         "phase": "NORMAL_WORK",
-        "origin": "explicit_user_resume",
-        "turn_id": "01a0949e-ab97-7712-8c4f-67ec29f2f551",
-        "started_at_utc": "2026-09-12T07:57:01Z",
+        "origin": "automatic_goal_continuation",
+        "turn_id": "01a094c1-7550-7451-92b4-61fbff9ccd98",
+        "started_at_utc": "2026-09-12T08:35:01Z",
         "actual_scheduled_run": false,
-        "state": "COMPLETED_WITH_LIVE_ACCEPTANCE_AND_DOCS_REVIEW_PENDING"
+        "state": "COMPLETED_BOUNDED_COMPLETION_AUDIT"
       }
     }
   },
