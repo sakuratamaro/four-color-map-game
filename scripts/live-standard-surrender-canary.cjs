@@ -58,6 +58,44 @@ function finalAudits({unexpected=0,errors=0,warnings=0,budget,room,affirmed,sett
     {label:"cleanup inside original 240 second deadline",passed:withinDeadline===true&&terminal(room)},
   ];
 }
+async function confirmationLayout(page) {
+  return page.locator("#surrenderDialog").evaluate(dialog=>{
+    const box=dialog.getBoundingClientRect(),inside=r=>r.left>=box.left&&r.right<=box.right
+      &&r.top>=box.top&&r.bottom<=box.bottom;
+    const text=[...dialog.querySelectorAll("#surrenderTitle,#surrenderSpeaker,#surrenderDescription")].map(el=>{
+      const r=el.getBoundingClientRect(),style=getComputedStyle(el);
+      return {id:el.id,inside:inside(r),font:Number.parseFloat(style.fontSize),visible:r.width>0&&r.height>0
+        &&style.visibility==="visible"&&style.display!=="none",noOverflow:el.scrollWidth<=el.clientWidth+1};
+    });
+    const targets=[...dialog.querySelectorAll("button")].map(el=>{
+      const r=el.getBoundingClientRect();
+      return {id:el.id,width:r.width,height:r.height,inside:inside(r),
+        hit:el.contains(document.elementFromPoint(r.x+r.width/2,r.y+r.height/2))};
+    });
+    return {width:innerWidth,fit:box.left>=0&&box.right<=innerWidth&&box.top>=0&&box.bottom<=innerHeight,
+      noOverflow:dialog.scrollWidth<=dialog.clientWidth+1&&document.documentElement.scrollWidth<=innerWidth+1,
+      safeFocus:document.activeElement?.id==="cancelSurrender",text,targets};
+  });
+}
+function layoutReadable(layout) {
+  return layout.fit&&layout.noOverflow&&layout.safeFocus&&layout.text.length===3
+    &&layout.text.every(t=>t.inside&&t.visible&&t.noOverflow&&t.font>=(t.id==="surrenderSpeaker"?12:14))
+    &&layout.targets.length===2&&layout.targets.every(t=>t.inside&&t.hit&&t.width>=44&&t.height>=44);
+}
+function reloadUnchanged({room,beforeRoom,profile,beforeProfile,sends,beforeSends}) {
+  return terminal(room)&&terminal(beforeRoom)&&room.version===beforeRoom.version
+    &&isDeepStrictEqual(room.publicState,beforeRoom.publicState)
+    &&profile?.revision===beforeProfile?.revision
+    &&isDeepStrictEqual(profile?.profileState,beforeProfile?.profileState)
+    &&sends===beforeSends;
+}
+async function restoreFinishedPage(page) {
+  await page.reload({waitUntil:"domcontentloaded",timeout:20_000});
+  await page.locator("#connectionBadge.good").waitFor();
+  await page.locator('[data-app-tab="battle"]').click();
+  await page.locator("#terminalSummary:not(.hidden)").waitFor();
+  await page.locator("#surrenderDialog").waitFor({state:"hidden"});
+}
 async function run({candidate,report:out}) {
   const root=path.resolve(__dirname,"../../surrender-confirmation-20260913");
   const git=(...args)=>execFileSync("git",["-c","safe.directory="+root.replaceAll("\\","/"),...args],
@@ -70,7 +108,7 @@ async function run({candidate,report:out}) {
   assert.ok(url&&key);
   const publicPage="https://sakuratamaro.github.io/four-color-map-game/standard-online-v5/";
   const report={candidate,subject:"UDL-067-surrender-v1.1",physicalDevices:"NOT_RUN",faultInjection:"NONE",
-    checks:[],assetHashes:[],operations:{},profileCreated:false,matchCreated:false,cleanup:"NOT_NEEDED"};
+    checks:[],assetHashes:[],geometry:[],screenshots:[],operations:{},profileCreated:false,matchCreated:false,cleanup:"NOT_NEEDED",reload:"NOT_RUN"};
   let token,roomId,room,matchId,beforeProfile,afterProfile,browserServer,context,failed=false,cleaning=false;
   let stage="four exact public assets",unexpected=0,errors=0,warnings=0,affirmed=false,settled=false;
   const abort=new AbortController(),deadlineTimer=setTimeout(()=>abort.abort(),budget.remaining(true));
@@ -82,6 +120,13 @@ async function run({candidate,report:out}) {
     finally{clearTimeout(timer);}
   };
   const check=(label,value)=>{if(!value){report.failedChecks??=[];report.failedChecks.push(label);}assert.ok(value,label);report.checks.push(label);};
+  const capture=async(page,name)=>{
+    budget.remaining();const directory=out.slice(0,-5)+"-screens";fs.mkdirSync(directory,{recursive:true});
+    const file=path.join(directory,name+".png");assert.equal(fs.existsSync(file),false);
+    await bounded("screenshot",page.screenshot({path:file,timeout:10_000}),10_000);
+    report.screenshots.push({file:path.relative(path.dirname(out),file).replaceAll("\\","/"),
+      sha256:createHash("sha256").update(fs.readFileSync(file)).digest("hex")});
+  };
   const request=async(endpoint,body)=>{
     const ms=Math.min(15_000,budget.remaining(cleaning));abort.signal.throwIfAborted();
     const response=await fetch(url+endpoint,{method:"POST",signal:AbortSignal.any([abort.signal,AbortSignal.timeout(ms)]),
@@ -152,10 +197,15 @@ async function run({candidate,report:out}) {
     const trigger=page.locator("#surrender:visible:not([disabled]), #colorSurrender:visible:not([disabled])");
     check("one visible short surrender entry",await trigger.count()===1&&await trigger.textContent()==="投了");
     for(const cancel of ["Enter","Escape","button"]){
-      budget.remaining();await trigger.click();await page.locator("#surrenderDialog[open]").waitFor();
+      budget.remaining();const width=cancel==="Escape"?1280:390;
+      await page.setViewportSize({width,height:width===390?844:900});
+      await trigger.click();await page.locator("#surrenderDialog[open]").waitFor();
       check(cancel+": safe initial focus",await page.evaluate(()=>document.activeElement.id)==="cancelSurrender");
       check(cancel+": public Rei dialogue",/レイ/.test(await page.locator("#surrenderSpeaker").textContent())
         &&await page.locator("#surrenderDescription").textContent()==="ここまでにしますか？ もう少し、あなたの選択を観察したかったです。");
+      const layout=await confirmationLayout(page);report.geometry.push({phase:cancel,...layout});
+      check(cancel+": dialog text and controls readable",layoutReadable(layout));
+      if(cancel!=="button")await capture(page,"confirmation-"+width);
       if(cancel==="button")await page.locator("#cancelSurrender").click();else await page.keyboard.press(cancel);
       await page.locator("#surrenderDialog").waitFor({state:"hidden"});await refresh();
       const p=await profile();
@@ -169,6 +219,14 @@ async function run({candidate,report:out}) {
     check("one affirmative browser send",budget.counts.surrender===1);
     check("normal defeat terminal",terminal(room)&&room.publicState.winner==="B"&&room.publicState.terminalReason==="SURRENDER");
     afterProfile=await profile();settled=settlement(afterProfile,beforeProfile,matchId);check("one normal defeat settlement",settled);
+    stage="terminal reload without extra surrender or settlement";
+    budget.remaining();const settledRoom=structuredClone(room),settledProfile=structuredClone(afterProfile),sent=budget.counts.surrender;
+    await bounded("terminal-reload",restoreFinishedPage(page),25_000);
+    await refresh();afterProfile=await profile();
+    check("reload preserves confirmed terminal and settled profile without extra surrender",reloadUnchanged({
+      room,beforeRoom:settledRoom,profile:afterProfile,beforeProfile:settledProfile,sends:budget.counts.surrender,beforeSends:sent}));
+    check("reload shows persistent defeat",/敗北/.test(await page.locator("#terminalOutcomeTitle").textContent()));
+    report.reload="PASS";await capture(page,"terminal-reloaded-390");
   } catch(error){recordError(stage,error);}
   finally {
     cleaning=true;
@@ -201,6 +259,6 @@ async function run({candidate,report:out}) {
   }
   return report.ok?0:1;
 }
-module.exports={createBudget,browserPolicy,terminal,settlement,finalAudits,parseOptions};
+module.exports={createBudget,browserPolicy,terminal,settlement,finalAudits,parseOptions,confirmationLayout,layoutReadable,reloadUnchanged,restoreFinishedPage};
 if(require.main===module){let options;try{options=parseOptions(process.argv.slice(2));}catch(e){console.error(e.message);process.exit(2);}
   run(options).then(code=>{process.exitCode=code;}).catch(()=>{console.error("FAIL candidate preparation (redacted)");process.exitCode=1;});}

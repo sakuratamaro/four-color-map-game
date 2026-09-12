@@ -62,3 +62,33 @@ test("067 harness does not clear its hard deadline before independent final chec
   assert.match(source,/flag:"wx"/);
   assert.equal(source.includes("cleaning?AbortSignal.timeout"),false);
 });
+test("034 missing width or unreadable dialog cannot satisfy the supplemented acceptance",()=>{
+  const {layoutReadable}=require("../scripts/live-standard-surrender-canary.cjs");
+  const layout={fit:true,noOverflow:true,safeFocus:true,text:["surrenderTitle","surrenderSpeaker","surrenderDescription"].map(id=>({
+    id,inside:true,visible:true,font:16,noOverflow:true})),targets:[{inside:true,hit:true,width:100,height:44},{inside:true,hit:true,width:100,height:44}]};
+  assert.equal(layoutReadable(layout),true);
+  for(const change of [l=>l.fit=false,l=>l.noOverflow=false,l=>l.safeFocus=false,
+    l=>l.text.pop(),l=>l.text[2].font=10,l=>l.text[1].noOverflow=false,l=>l.targets[0].hit=false,l=>l.targets[1].height=43]){
+    const bad=structuredClone(layout);change(bad);assert.equal(layoutReadable(bad),false);
+  }
+});
+test("034 reload compares the settled baseline, rejecting extra sends and double settlement",()=>{
+  const {reloadUnchanged}=require("../scripts/live-standard-surrender-canary.cjs");
+  const room={status:"finished",version:9,publicState:{status:"FINISHED",winner:"B",terminalReason:"SURRENDER"}};
+  const profile={revision:3,profileState:{cpuStats:{losses:1},matchHistory:[{result:"LOSS"}]}};
+  const evidence={room,beforeRoom:structuredClone(room),profile,beforeProfile:structuredClone(profile),sends:1,beforeSends:1};
+  assert.equal(reloadUnchanged(evidence),true);
+  for(const change of [v=>v.sends++,v=>v.room.version++,v=>v.room.publicState.winner="A",
+    v=>v.profile.revision++,v=>v.profile.profileState.cpuStats.losses++,v=>v.profile.profileState.matchHistory.push({result:"LOSS"})]){
+    const bad=structuredClone(evidence);change(bad);assert.equal(reloadUnchanged(bad),false);
+  }
+});
+test("034 supplemented harness uses both widths, actual reload, settled baseline and fixed original work deadline",()=>{
+  const s=fs.readFileSync(path.join(__dirname,"../scripts/live-standard-surrender-canary.cjs"),"utf8");
+  assert.match(s,/const width=cancel==="Escape"\?1280:390/);
+  assert.match(s,/await page\.reload\(\{waitUntil:"domcontentloaded",timeout:20_000\}\)/);
+  assert.match(s,/await bounded\("terminal-reload",restoreFinishedPage\(page\),25_000\)/);
+  assert.match(s,/settledProfile=structuredClone\(afterProfile\)/);
+  assert.ok(s.indexOf('report.reload="PASS"')>s.indexOf('reloadUnchanged({'));
+  assert.match(s,/workDeadline=started\+155_000/);
+});

@@ -835,7 +835,7 @@
       "started_at_utc": "2026-09-12T17:15:08Z",
       "expires_at_utc": "2026-09-12T19:15:08.000Z",
       "start_basis": "Conservative reservation before single send API for independent067, not066retry or deadline reset.",
-      "automatic_checks": 2,
+      "automatic_checks": 3,
       "max_automatic_checks": 3,
       "offset_minutes": [
         20,
@@ -848,13 +848,14 @@
       "confirmed_delivery_reminders": 0,
       "root_request_message_id": "f5646b27-8424-405f-95a7-a21c87b09274",
       "subject_sha": "8fe4c206547851550de7b4b59c0eb82241ba3060",
-      "status": "review_received_revision_required",
-      "next_check_utc": "2026-09-12T18:55:08.000Z",
-      "remaining_scheduled_slots": 1,
+      "status": "closed_review_received",
+      "next_check_utc": null,
+      "remaining_scheduled_slots": 0,
       "delivery_readback_checks": 2,
       "consumed_slots_utc": [
         "2026-09-12T17:35:08.000Z",
-        "2026-09-12T17:55:08.000Z"
+        "2026-09-12T17:55:08.000Z",
+        "2026-09-12T18:55:08.000Z"
       ],
       "skipped_slots_utc": [],
       "check_receipts": [
@@ -882,16 +883,29 @@
           "max_chars_per_item": 20000,
           "response_message_id": "2394c582-b972-492d-9ef9-7c48fa829a16",
           "review_id": "CHATGPT-REVIEW-20260913-033"
+        },
+        {
+          "slot_utc": "2026-09-12T18:55:08.000Z",
+          "reserved_at_utc": "2026-09-12T18:55:28Z",
+          "turn_id": "01a096eb-d1a9-74c1-a65e-213074b8470b",
+          "state": "GENUINE_REVIEW_RECEIVED",
+          "kind": "normal_goal_run_due_slot",
+          "max_turns": 2,
+          "max_chars_per_item": 20000,
+          "subject_sha": "f507c0b2dd9701f3ac1867131150b5e48d0ada8d",
+          "response_message_id": "ce9dbfb5-56b1-4721-9f82-43553e4b65d6",
+          "request_message_id": "3625b9f8-e461-434c-a847-3769c8b55203",
+          "review_id": "CHATGPT-REVIEW-20260913-034"
         }
       ],
       "new_scope": "UDL-067-surrender-v1",
       "prior_budgets_reopened": false,
-      "last_result": "New f507 sentAPIaccepted; first read rejected argument beforefetch, second boundedread returned prior033 whileactive. Two reservedattempts consumed; use originalfinalslot only. No message ID invented.",
+      "last_result": "Genuine034 APPROVE_RELEASE exactf507 received; all3originalslotsconsumed, no reset/resend.",
       "response_message_id": "fa226fa2-ad5e-437c-a447-3a6c84fcd2c1",
       "received_at_utc": "2026-09-12T17:37:19Z",
       "followup_subject_sha": "f507c0b2dd9701f3ac1867131150b5e48d0ada8d",
-      "followup_request_message_id": null,
-      "followup_status": "delivery_unconfirmed_api_accepted_no_resend_while_active",
+      "followup_request_message_id": "3625b9f8-e461-434c-a847-3769c8b55203",
+      "followup_status": "review_received_approved",
       "followup_delivery_readback_checks": 2,
       "followup_preserves_original_budget": true
     },
@@ -914,8 +928,8 @@
     "initial_interval_minutes": 20,
     "pending_subject_sha": "f507c0b2dd9701f3ac1867131150b5e48d0ada8d",
     "pending_scope": "Pages_only",
-    "pending_delivery_status": "SEND_API_ACCEPTED_READBACK_UNCONFIRMED_ACTIVE_NO_RESEND",
-    "last_confirmed_sent_message_id": "28d25760-2a7a-4fe0-9c48-bb7ca4888b9a",
+    "pending_delivery_status": "DELIVERY_CONFIRMED_GENUINE_COMPLETED_REVIEW",
+    "last_confirmed_sent_message_id": "3625b9f8-e461-434c-a847-3769c8b55203",
     "last_sent_message_id": "28d25760-2a7a-4fe0-9c48-bb7ca4888b9a",
     "self_sent_message_ids": [
       "ef6f161d-f2b9-40c0-ab06-f6eacf4c4d38",
@@ -947,7 +961,8 @@
       "1b0193a0-02b0-4500-807f-0e5f2e6ae52f",
       "30ed4b53-5ad3-45e1-920d-4cf4919dd24b",
       "f5646b27-8424-405f-95a7-a21c87b09274",
-      "28d25760-2a7a-4fe0-9c48-bb7ca4888b9a"
+      "28d25760-2a7a-4fe0-9c48-bb7ca4888b9a",
+      "3625b9f8-e461-434c-a847-3769c8b55203"
     ],
     "sent_at_utc": "2026-09-12T18:27:24.616Z",
     "last_check_utc": "2026-09-12T17:47:38Z",
@@ -2422,14 +2437,14 @@
       "scope": "Pages_only",
       "db_change_set": [],
       "edge_change_set": [],
-      "publication": "NOT_RUN",
+      "publication": "MAIN_AND_PAGES_PUBLISHED_LIVE_NOT_RUN",
       "push_status": "PUSHED_EXACT_BRANCH",
       "windows_run": "34710997698",
       "windows_status": "SUCCESS",
       "tests": "clean f507 141files937/937PASS61204.6228ms; same product before runbook-only commit Chrome13/13PASS105047.8117ms,Edge13/13PASS105174.4439ms; all skips0.",
       "evidence": "docs/ASTRA_SURRENDER_B2_REVIEW_20260913.md",
       "review_packet": "docs/ASTRA_SURRENDER_B2_REVIEW_20260913.md",
-      "review_status": "DELIVERY_UNCONFIRMED",
+      "review_status": "APPROVE_RELEASE",
       "review_send_attempts": 1,
       "live_canary_state": "IMPLEMENTED_LOCAL_GUARDS_8_PASS_NOT_RUN",
       "live_canary_attempts": 0,
@@ -2440,7 +2455,7 @@
         "windows_status": "FAILURE",
         "publication": "NOT_RUN"
       },
-      "next_action": "At original18:55:08Z slot only, first bindactualf507requestfromsource; receive genuine completedresponse ifpresent. No publication without exactnewSHA/spec review and sameSHA WindowsSUCCESS.",
+      "next_action": "One approved034 canary after exact4assets; supplemental harness11unit+Chrome2 passed. CPUunfinishednotreleasehold.",
       "availability_checks": 1,
       "availability_check_reserved_at_utc": "2026-09-12T18:24:00Z",
       "availability_check_reserved_before_api": true,
@@ -2456,7 +2471,7 @@
       "review_first_delivery_result": "Argument validation rejected maxOutputCharsPerItem28000 (toolcap20000); no threadcontentread. Keep reservedcheck1 counted; no reset.",
       "review_second_delivery_read_reserved_before_api": true,
       "review_second_delivery_read_reserved_at_utc": "2026-09-12T18:27:56.079Z",
-      "review_request_message_id": null,
+      "review_request_message_id": "3625b9f8-e461-434c-a847-3769c8b55203",
       "send_api_accepted": true,
       "send_api_target_thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
       "review_second_delivery_result": "Actual bounded read showed prior033 completed pair while destination active; new body/message ID not visible. No equality or delivery claim. No third delivery read or resend.",
@@ -2476,7 +2491,31 @@
           "status": "completed",
           "conclusion": "success"
         }
-      ]
+      ],
+      "review_id": "CHATGPT-REVIEW-20260913-034",
+      "review_response_message_id": "ce9dbfb5-56b1-4721-9f82-43553e4b65d6",
+      "main_sha": "f507c0b2dd9701f3ac1867131150b5e48d0ada8d",
+      "pages_run": 34712742032,
+      "pages_status": "SUCCESS",
+      "preflight_status": "PASS",
+      "live_status": "NOT_RUN",
+      "live_attempt": {
+        "state": "RESERVED_BEFORE_EXECUTION",
+        "source_review_id": "CHATGPT-REVIEW-20260913-034",
+        "profiles": 1,
+        "matches": 1,
+        "character_id": "rei",
+        "max_seconds": 240,
+        "work_seconds": 155,
+        "cleanup_seconds": 85,
+        "cpu_actions": 6,
+        "surrender_attempts": 2,
+        "attempts": 1,
+        "report": "docs/SURRENDER_LIVE_20260913.json",
+        "physical_devices": "NOT_RUN",
+        "reserved_at_utc": "2026-09-12T19:03:15Z",
+        "new_budget": false
+      }
     },
     "remaining_brain_work": {
       "source": {
@@ -2789,9 +2828,9 @@
       },
       "normal_work_claim": {
         "state": "RUNNING_NORMAL_WORK",
-        "turn_id": "01a096bf-043b-7ba3-ba01-28a84d40fb72",
-        "action": "PREPARE067_LIMITED_CANARY_AND_DUE_REVIEW",
-        "subject_sha": "23133ef52efb81c39d0623479b0ea7819f850f7d"
+        "turn_id": "01a096eb-d1a9-74c1-a65e-213074b8470b",
+        "action": "RELEASE067_EXACT_APPROVAL_AND_SUPPLEMENT_CANARY",
+        "subject_sha": "f507c0b2dd9701f3ac1867131150b5e48d0ada8d"
       },
       "review_scope": "New user-authorized local continuation repair, not covered by old APPROVE_DOCS; fixed docs candidate will be separately reported.",
       "verification": {
@@ -4096,6 +4135,51 @@
         "surrender_attempts": 2
       },
       "notes": "B1 test reflow accepted; no zero-overflow-all-frames claim. CIwasinprogressatAstraobservation but currentfinalEdgeFAIL isnotfulfilledapprovalcondition. NewSHArequiresnewreview; rawfailuresandclosed066remain."
+    },
+    {
+      "review_id": "CHATGPT-REVIEW-20260913-034",
+      "subject_sha": "f507c0b2dd9701f3ac1867131150b5e48d0ada8d",
+      "base_sha": "2fcfea9bb2a3d1ad7e22a5e8e3b61983f0404152",
+      "canon_version": "shared-canon-v1.1",
+      "feature_spec_version": "UDL-067-surrender-v1.1",
+      "spec_snapshot_sha": "1e7e2a4c02acd58ed40ca0b6f2fbb0513f333463",
+      "spec_snapshot_kind": "git_blob:docs/SURRENDER_CONFIRMATION_20260913.md",
+      "scope": "Pages_only",
+      "review_kind": "game_production_release_approval",
+      "db_change_set": [],
+      "edge_change_set": [],
+      "decision": "APPROVE_RELEASE",
+      "source": {
+        "kind": "chatgpt",
+        "thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
+        "message_id": "ce9dbfb5-56b1-4721-9f82-43553e4b65d6",
+        "request_message_id": "3625b9f8-e461-434c-a847-3769c8b55203",
+        "response_text": "## DECISION\n**APPROVE_RELEASE**\n\n**同一SHAのWindows Chrome／Edge両jobの最終SUCCESSと既存の公開前条件を満たした後は、追加の承認待ちを挟まず公開へ進めてください。**\n\n## SUBJECT_SHA\n`f507c0b2dd9701f3ac1867131150b5e48d0ada8d`\n\n## BLOCKERS\n**製品コードについて、追加の修正必須事項は見つかりませんでした。`REG-UDL048-ROOM-SYNC`への修正を受け入れます。残る公開前条件は、同一候補のWindows両job成功です。**\n\n今回の変更は、単に「メモ使用中は再描画しない」とするものではありません。**session・問題番号・問題／選択肢・送信中状態・対局ロック・未確定回答・ヒント状態が一致し、既存ノードも残っている場合だけ、選択肢と物理演算の状態を保持する**実装です。入力が変われば従来の再生成経路へ進むため、回答確定・再送・ロック切替を一律に抑止していません。\n\n保持する経路でも、時刻の精算と時計の開始／停止、選択肢の動作状態の同期は残っています。追加テストは既存の対局同期を2回発生させ、**同じ選択肢ノード・座標・メモ表示を維持し、回答送信が0件であること**を検査しています。対局を持たない試験へ変更して原因を避ける対応ではなく、再現経路を残した修正です。\n\n## NOTES\n\n### 承認範囲と検証状況\n\n承認対象はBASE `2fcfea9bb2a3d1ad7e22a5e8e3b61983f0404152`からの本候補、**`shared-canon-v1.1`／`UDL-067-surrender-v1.1`／`game_production_release_approval`／`Pages_only`／DB・Edge各`[]`**です。仕様blobは提出値`1e7e2a4c02acd58ed40ca0b6f2fbb0513f333463`と一致しています。\n\n**Windows `34710997698`は、今回取得した時点で、本候補SHAのChrome `103599654218`・Edge `103599654373`ともonline-browser段階がIN_PROGRESSでした。** 生成物・契約試験とEdgeのlifecycleは成功していますが、両job全体の成功とは扱いません。失敗・取消等になった場合は公開せず、結果を記録してください。\n\n局所Chrome／Edge各13/13と最終f507の937/937は、Codexの実施報告として受領します。c832のrunbook不一致による失敗、旧231のEdge失敗、ローカル再現試験は、それぞれ元の証拠として保持してください。**こちらでは試験を再実行しておらず、実画像・本番・物理端末も確認していません。** \n\n### 公開と限定canary\n\n両Windows job成功後、fresh mainの整合・祖先確認→forceなしの同一SHA反映→同一SHAのPages成功→fresh preflight→**HTML・app42・確認JS1・CSS1の厳密byte一致**の順で進めてください。プロフィール作成は、その後です。製品や仕様を変更した場合は今回の承認対象外ですが、**これらの条件を満たすだけなら再レビューは不要**です。\n\n新候補にも、**プロフィール1件／レイCPU対局1件／240秒の一回、CPU操作最大6回・SURRENDER送信最大2回〔再送・cleanupを含む〕**の計画を承認します。通常作業155秒・終了処理用85秒という配分、終局確認を先に行うこと、結果不明時の完全同一envelopeの維持、失敗時の独立監査保存は、そのまま保持してください。\n\n### ハーネスは、本番実行前に未実装の受入項目だけ補ってください\n\n**固定ハーネスには、提示済み計画の「1280pxでの確認」と「投了後のreload確認」がまだありません。** 現在の処理は390pxで取消・肯定・精算を確認した後、そのままブラウザー終了へ進んでいます。このまま成功しても、計画全体の公開後確認が済んだとは記録できません。\n\n**検証側だけに、同じ対局での390／1280pxの確認画面・可読性確認と、終局後reload→復元完了→投了の追加送信・二重精算なしの確認を追加し、局所検証してから実行してください。** 新しいプロフィール・対局・クイズは不要です。追加項目も既定の時間・操作枠に収め、間に合わなければ未実施として保存します。この範囲のハーネス補完について、追加の製品レビュー待ちは設けません。\n\n取消段階では状態不変、肯定後は通常の敗北精算が一度だけ成立、reload後はその確定結果が維持される、と段階を分けて比較してください。正常な戦績更新まで不変要求に含めない扱いです。\n\n今回追加したメモ回帰修正の検証根拠は、ローカル／Windowsの試験です。**投了canaryで本番クイズの再現まで済んだとは扱わず、そのための試験枠も増やしません。**\n\n公開後確認と最終画面の目視が完了してから、067を対象範囲の`PUBLIC_VERIFIED`へ進めてください。066は閉じたまま、物理端末は`NOT_RUN`を維持します。**旧033の承認は旧231に残し、原067の待機期限・消費数をリセットせず、文書整備や別のCPU改修を今回の公開待ち条件に追加しないでください。**",
+        "request_body_equality": false,
+        "request_prefix_equality": true,
+        "verified_prefix_characters": 20000,
+        "request_truncated": true,
+        "note": "Final original boundedslot verified actual new request with exact20000character outbound prefix; full24099body not claimed. Complete genuine response and envelope match."
+      },
+      "recorded_at_utc": "2026-09-12T18:57:10Z",
+      "blockers": [],
+      "conditions": [
+        "Samef507Windows34710997698 bothjobs completed/success",
+        "fresh main ancestor;forcefree exactmain;exactPagessuccess;freshpreflight;fourstrictbytes beforeprofile",
+        "Harness-only390/1280dialoglegibility plus terminalreload/noextraSurrender/nodoublesettlement,localproof beforeoneboundedliveattempt"
+      ],
+      "bounds": {
+        "profiles": 1,
+        "matches": 1,
+        "character_id": "rei",
+        "attempts": 1,
+        "max_seconds": 240,
+        "work_seconds": 155,
+        "cleanup_seconds": 85,
+        "cpu_actions": 6,
+        "surrender_attempts": 2
+      },
+      "notes": "No product changes required. Harness supplementation within fixed budget needs no new product review. Memo regression evidence local/Windows only; do not add livequiz. Exactcandidateonly, preserve033/oldrawfailure and closed066. PhysicalNOT_RUN."
     }
   ]
 }
