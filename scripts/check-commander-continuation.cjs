@@ -6,7 +6,16 @@ const path = require("node:path");
 const OWNER = "01a07b56-616e-7733-9aae-90575659688e";
 const REVIEWER = "6aa229e7-e098-83ee-ac5e-d366a12653a4";
 const SHA = /^[0-9a-f]{40}$/;
-const slices = c => ["active_slice", "preparing_next_slice"].flatMap(ref => c[ref] ? [{ref, slice:c[ref]}] : []);
+const slices = c => {
+  const current=["active_slice", "preparing_next_slice"].flatMap(ref => c[ref] ? [{ref, slice:c[ref]}] : []);
+  // Reuse existing v14 preparation; keep partial067 and the CPU039 hold intact.
+  const ui=c.remaining_brain_work?.cutin_readability_preparation;
+  if(ui?.owner_thread_id===OWNER && ui.request_id==="UDL-20260912-065"
+    &&ui.branch==="codex/skill-cutin-readability-20260913"
+    &&ui.worktree===".codex-worktrees/skill-cutin-readability-20260913")
+    current.push({ref:"remaining_brain_work.cutin_readability_preparation",slice:ui});
+  return current;
+};
 const equal = (a,b) => JSON.stringify(a) === JSON.stringify(b);
 // Older slices had no managed activation. Absence means no change; null does not.
 const managedChangesMatch = (a,b) => {

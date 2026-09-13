@@ -56,6 +56,32 @@ test("new pending review can live in preparing_next_slice while parent remains p
   assert.equal(planContinuation(log,{now:"2026-09-12T00:10:00Z"}).phase,"WAIT_REVIEW");
   c.pending_review_subject.base_sha="d".repeat(40);assert.equal(pendingBinding(c),false);
 });
+
+test("existing v14 preparation receives a bound review without moving partial or CPU records",()=>{
+ const log=fixture(),c=log.coordination,ui=c.active_slice;
+ Object.assign(ui,{request_id:"UDL-20260912-065",branch:"codex/skill-cutin-readability-20260913",
+   worktree:".codex-worktrees/skill-cutin-readability-20260913"});
+ c.remaining_brain_work={cutin_readability_preparation:ui};
+ c.active_slice={owner_thread_id:OWNER,state:"PAGES_PUBLISHED_LIVE_ACCEPTANCE_PARTIAL",publication:"PAGES_PUBLISHED"};
+ const original=JSON.stringify(c.active_slice);
+ assert.equal(pendingBinding(c),true);
+ assert.equal(planContinuation(log,{now:"2026-09-12T00:10:00Z"}).phase,"WAIT_REVIEW");
+ ui.review_status="NOT_SENT";ui.review_send_attempts=0;c.wait_budget.status="closed";
+ const p=planContinuation(log);assert.equal(p.action,"SEND_REVIEW");assert.equal(p.ref,"remaining_brain_work.cutin_readability_preparation");
+ assert.equal(JSON.stringify(c.active_slice),original);
+ ui.branch="main";assert.equal(planContinuation(log).phase,"STOP");
+});
+
+test("v14 preparation approval still requires genuine exact scope and cannot borrow CPU approval",()=>{
+ const log=fixture();approve(log);const c=log.coordination,ui=c.active_slice;
+ Object.assign(ui,{request_id:"UDL-20260912-065",branch:"codex/skill-cutin-readability-20260913",
+   worktree:".codex-worktrees/skill-cutin-readability-20260913"});
+ c.remaining_brain_work={cutin_readability_preparation:ui};delete c.active_slice;
+ assert.equal(planContinuation(log).action,"RELEASE_CHECKS");
+ ui.candidate_sha="d".repeat(40);assert.equal(planContinuation(log).reason,"RECONCILE_INVALID_REVIEW");
+ ui.candidate_sha="a".repeat(40);log.decisions[0].scope="Pages_Edge_DB_managed_activation";
+ assert.equal(planContinuation(log).reason,"RECONCILE_INVALID_REVIEW");
+});
 test("accepted send with unconfirmed delivery gets only its original finite read, never an invented message ID",()=>{
   for(const followup of [false,true]){
     const log=fixture(),c=log.coordination,s=c.active_slice,w=c.wait_budget;

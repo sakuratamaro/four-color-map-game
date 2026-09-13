@@ -1,0 +1,640 @@
+diff --git a/.github/workflows/standard-browser-gate.yml b/.github/workflows/standard-browser-gate.yml
+index 6216a92..ee75d58 100644
+--- a/.github/workflows/standard-browser-gate.yml
++++ b/.github/workflows/standard-browser-gate.yml
+@@ -2,7 +2,7 @@ name: Standard browser gate
+ 
+ on:
+   push:
+-    branches: [codex/standard-release-command, codex/quiz-memo-calculator-20260912, codex/ui-diet-20260912, codex/ui-play-surface-20260912, codex/ui-result-20260912, codex/ui-cosmetics-20260912, codex/ui-player-copy-20260912, codex/skill-cutin-20260912, codex/ui-flat-entry-20260912, codex/skill-catalog-20260912, codex/surrender-confirmation-20260913, codex/cpu-split-rescue-20260913]
++    branches: [codex/standard-release-command, codex/quiz-memo-calculator-20260912, codex/ui-diet-20260912, codex/ui-play-surface-20260912, codex/ui-result-20260912, codex/ui-cosmetics-20260912, codex/ui-player-copy-20260912, codex/skill-cutin-20260912, codex/ui-flat-entry-20260912, codex/skill-catalog-20260912, codex/surrender-confirmation-20260913, codex/cpu-split-rescue-20260913, codex/skill-cutin-readability-20260913]
+     paths:
+       - .github/workflows/standard-browser-gate.yml
+       - online/supabase-config.js
+diff --git a/docs/SKILL_CUTIN_READABILITY_20260913.md b/docs/SKILL_CUTIN_READABILITY_20260913.md
+new file mode 100644
+index 0000000..2af5d73
+--- /dev/null
++++ b/docs/SKILL_CUTIN_READABILITY_20260913.md
+@@ -0,0 +1,49 @@
++# Skill cut-in readability and observed results
++
++Version: `UDL-065-readability-v1.1`
++
++Owner: existing Codex commander. Request: `UDL-20260912-065`, alias `ADD-20260913-CUTIN-READABILITY-RESULT`.
++
++`CANON_RECEIPT version=shared-canon-v1.1 base=d9ce111d7d97019d55b3e90842602001e045ea04 request=UDL-20260912-065 specs=AGENTS.md,docs/SHARED_CANON.md,docs/SKILL_CUTIN_20260912.md,docs/BRAIN_V14_DELTA_INTAKE_20260913.json tests=tests/standard-skill-cutin.test.cjs,tests/standard-online-browser.test.cjs worktree=.codex-worktrees/skill-cutin-readability-20260913`
++
++The entrypoint and v14 intake above are read from the existing shared branch `codex/dev-brain-current-20260910@36998082177e9ea5b5933a7389cbf87820b5d11c`. The clean product base is the separately verified main SHA above. Do not copy the governance branch's older product files into this slice.
++
++## Source and adopted scope
++
++The actual user message `bbb2135e-cfd1-4da8-845b-9e3d07d8b29a` in ChatGPT `6aa229e7-e098-83ee-ac5e-d366a12653a4` asks for slightly more reading time and a short explanation of the used skill and its result. The paired v14 package is `5339aea3-bc6b-4fb2-9467-ef8a082c0538`. Its 1.8-second value is an AI design proposal, not a user-mandated numeric rule.
++
++This small Pages-only slice adopts 1,800 ms, with a stationary readable interval from 10% to 90% (1,440 ms). Reduced motion uses the same total duration without movement. This roughly doubles the old one-second window without pausing the match or requiring dismissal. The duration is shared between the JS cleanup timer and CSS animation.
++
++An already displayed event may finish its bounded reading interval through a consecutive ordinary state update. Such an update invalidates pending, not-yet-displayed claims; it neither replays nor extends the old event. New skills replace the current card, without a queue. Scope changes, version gaps, hidden tabs, dialogs, contact/random reveals and terminal state still interrupt immediately. Version numbers, transport and match clocks are never modified.
++
++## Evidence-only explanation
++
++- Only a matching successful own action ACK may supply an otherwise unavailable skill name. Exact no-op ACK remains `空振り`, with no destination effect.
++- Compare canonical distinct own available palette colors (not adjacency/legal moves), own visible seals and public geometry. State a verified change in color count, a replacement, seal count, required area size, area count, color or shape. The palette wording explicitly refers to the viewer.
++- The summary is a short observation of the just-completed action, not a claim about the current board after later actions. Do not claim a win, rescue or success from a generic event.
++- Opponent `USE_SKILL` does not contain a skill name. Keep the neutral title and do not read hidden opponent palette, hand, stock, bonus roles or private state. Known public `LEGAL_RECOLOR` may explain its observed color change without inventing a catalog title.
++- No observable delta means neutral confirmed usage, not an invented effect or inferred no-op. Public-state-only summaries do not establish coverage of every skill's hidden effects.
++
++Named opponent skills remain an explicit follow-up requiring separately reviewed public-event data. This partial slice does not mark the entire v14 skill-name/result request complete.
++
++## Acceptance and non-change boundaries
++
++Executable coverage must demonstrate result selection and privacy, order/duplicate normalization, the 1,800 ms DOM/CSS duration at 390/1280 px, readable placement, unchanged pointer/focus behavior, normal input and state updates while visible, delayed-claim cancellation, one event once, reduced motion, priority interrupts and optional-module failure. Screenshot inspection supplements tests; it is not physical-device acceptance.
++
++No new image, game rule, CPU policy/charge, hand, reward, DB, Edge, managed flag or live-test entitlement. Preserve the fixed CPU candidate `9590a4212d69185fc93df31b552d9bd870d5a9a3` and review039's separate CI/release conditions. This new candidate needs its own fixed review, Windows gate and publication evidence; old025/026/028/039 approvals do not apply.
++
++Initial state: implementation in progress; tests not yet run; commit/push/review/main/Pages/live not run. Follow-up evidence is recorded without amending a reviewed candidate.
++
++## v1.1 independent release gate
++
++`CANON_RECEIPT version=shared-canon-v1.1 base=d9ce111d7d97019d55b3e90842602001e045ea04 request=UDL-20260912-065 specs=AGENTS.md,docs/SHARED_CANON.md,docs/SKILL_CUTIN_READABILITY_20260913.md tests=tests/standard-browser-gate-workflow.test.cjs,tests/standard-online-browser-harness-static.test.cjs,tests/standard-skill-cutin.test.cjs,tests/standard-online-browser.test.cjs worktree=.codex-worktrees/skill-cutin-readability-20260913`
++
++Governance reference: codex/dev-brain-current-20260910@bc08078109a3c528d0f37cb1936d7e5dbd456b31. Product main was freshly read as the same d9ce base.
++
++The earlier CPU-first ordering was commander planning, not a user requirement or technical dependency. The existing Windows workflow gains only this exact UI branch in the push allowlist; tests, permissions, timeout and deployment behavior are unchanged. This is a distinct candidate run, never a rerun or substitute result for CPU9590/039.
++
++Request genuine Astra review of this exact Pages-only candidate, including whether to publish the UI first. CPU9590 and its failure/conditional approval stay unchanged. If main changes first, later CPU integration needs a new SHA, fresh gates and genuine matching review; old039 does not authorize changed content. Likewise, reconcile/review this UI again if its base or content changes. Never force a branch or overwrite newer public code.
++
++Proposed new live acceptance, subject to exact genuine review: one new anonymous profile, one Yuzu match,240 seconds total, at most8 CPU-action sends,6 own game-action sends plus one SURRENDER send, no retries/rematches. Stop ordinary play by150 seconds to reserve90 for terminal/profile/snapshot readback and teardown; all paths share the240-second limit. Count attempted sends across browser and API before sending. A new durable exclusive reservation must precede the first mutation. Capture real cut-in timing if a skill occurs naturally; do not force server state or create another match when absent. Keep missing self/opponent cases as NOT_OBSERVED. No hidden opponent information, quiz/gacha/sale/purchase/DB edits. No current reservation or execution.
++
++The old065,067,F3 and039 reservations remain consumed or unused exactly as recorded. Existing canary scripts are reference material only: a separately verified harness must enforce the above bounds and current snapshot-v2 read contract before running. Named-opponent event work stays an unresolved follow-up.
+diff --git a/docs/STANDARD_PUBLIC_RELEASE_RUNBOOK.md b/docs/STANDARD_PUBLIC_RELEASE_RUNBOOK.md
+index 2c1950a..10c1fb6 100644
+--- a/docs/STANDARD_PUBLIC_RELEASE_RUNBOOK.md
++++ b/docs/STANDARD_PUBLIC_RELEASE_RUNBOOK.md
+@@ -161,6 +161,16 @@ rollbackも「旧version番号へ戻った」という目視だけでは完了
+ 
+ ## EdgeとPagesの順序
+ 
++### UDL-065: v14カットイン可読性・実結果説明
++
++`docs/SKILL_CUTIN_READABILITY_20260913.md`（`UDL-065-readability-v1.1`）を参照する独立Pages-only便。JS/CSSは `skill-cutin.js?v=20260913-1` / `skill-cutin.css?v=20260913-1`、online appは `app.js?v=20260913-43`。DB/Edge/管理設定の変更は各 `[]`。現在の候補参照markerの更新であり、古い便の実配信証拠をapp43へ書き換えるものではない。
++
++1. fresh main起点の候補SHAと仕様blobを固定し、このUIを独立したWindows・実Astra審査へ出す。CPU先行は技術的依存ではなく、UI先行可否も同レビューへ明示する。別9590/039の失敗Edgeジョブ条件はこの便で代用しない。どちらかのmain統合で後続候補が変われば、新SHA・新baseで必要なゲートと実レビューを取り直す。
++2. 既存bundle/registryの生成差分ゼロ、非browser回帰と両browserのUDL065実DOM試験を実行する。通常更新中の1800ms維持、連続技のタイマーとCSS再開始、実塗り操作、空振り、非公開境界、優先画面中断を含む。Windows同一SHAと、この候補そのものに対する実アストラ判定が必要。
++3. forceなしのmain統合と同一SHA Pages成功後、HTML/app/cutin JS/CSSを全byteで固定候補と比較し、candidate preflightを確認する。Pages-onlyのためEdge再配備やDB再適用をしない。
++4. 本番対局を必要とする確認は新候補へ有限の対象/回数/時間を明示してから行う。旧065/067/F3/039の試験枠を再使用しない。追加プロフィール・対局はこの文書では作らない。
++5. 相手の技名を開示する公開イベントは未実装の後続。汎用タイトルと観測結果だけでv14全件完了にしない。公開byte、実本番対局、物理端末受入を区別する。
++
+ ### UDL-048: Lv.5手書きメモ・四則電卓便
+ 
+ `docs/QUIZ_MEMO_CALCULATOR_20260912.md` (`UDL-048-memo-v1.1`) を仕様とするPages-only候補。初便の基準は `f8713d7006da0619b9c356d53a472754833fb910`、スマホ位置補正追補の基準は公開済み `a6c24f496338412a7cb4e933b0faba06cb28ccce`。DB・Edge変更セットはともに `[]` であり、この便のために再配備しない。初便の機能canary 36/36後に、下部固定タブのcomputed top誤判定で問題が画面外へ移る不具合を実見・再現した。追補は独立した固定候補レビューを受け、元の承認009を流用しない。
+@@ -168,7 +178,7 @@ rollbackも「旧version番号へ戻った」という目視だけでは完了
+ 1. clean候補SHA・仕様blobを固定し、既存生成bundleの差分ゼロ、全非browser試験、UDL-048のChrome/Edge実browser試験とWindows gateを確認する。
+    - 現在のブラウザー操作接続はtimeout、GitHub連携のPR作成は403。旧CI投入branchは候補の祖先ではないためforce更新しない。既存workflowのpush対象へ専用branch `codex/quiz-memo-calculator-20260912` だけを追加し、同一候補をWindows検証する。main・全branchへのtrigger拡大、権限追加、新workflowは行わない。
+ 2. 既存アストラ会話へ固定候補の全差分・仕様・試験証拠を渡す。候補SHA／仕様版・blob／DB `[]`／Edge `[]` に一致するゲーム公開判定が必要。文書承認や別候補の承認を流用しない。
+-3. fresh `origin/main` が候補の祖先であることを再確認してforceなしでfast-forwardする。同一SHAのPages成功後、online app `app.js?v=20260913-42`、メモ4 JS `v=20260912-1`、CSS `v=20260912-2` を含め、公開byte/SHAを固定候補に突き合わせる。
++3. fresh `origin/main` が候補の祖先であることを再確認してforceなしでfast-forwardする。同一SHAのPages成功後、online app `app.js?v=20260913-43`、メモ4 JS `v=20260912-1`、CSS `v=20260912-2` を含め、公開byte/SHAを固定候補に突き合わせる。
+ 4. 公開candidate preflight、390pxとPC幅、実Lv.5クイズでメモON/OFF・描画・四則計算・同問reload保持・次問ACK後消去を確認する。サーバー状態・時計を注入せず、通信にメモが混入しないこと、console errorと横overflowがないことを記録する。
+ 5. 本番確認と物理端末受入を分ける。物理操作未実行は `NOT_RUN` のまま残す。問題時はPages-onlyの既知baselineへ戻す案を対象を明記して扱い、DBやEdgeを巻き戻さない。
+ 
+@@ -278,7 +288,7 @@ Pages表示の退行は直前Pagesへ戻せる。適用済みcounterは旧client
+ 
+ ### alpha.4彩色済みエリア角膨張便
+ 
+-完了履歴。この便は新payloadを旧Edgeが拒否する一方、新Edgeは旧UIのoutgoing payloadを継続できるため、`alpha.4対応Edge → live canary → Pages`の順で公開した。後続の対戦報酬便、CPU台詞／地の文分離便、CPU選択前portrait便、終局復帰時の開始告知抑止便、パレット属性識別便、クイズ報酬券レベル引継ぎ候補を含む現在のPages候補assetはonline app `app.js?v=20260913-42`、CPU commentary `cpu-commentary.js?v=20260910-1`、progression `progression.css?v=20260910-2`、style `style.css?v=20260910-12`、intents `standard-online-skill-intents.js?v=20260911-21`、client `standard-online-client.js?v=20260910-1`、portrait `cpu-portraits.js?v=20260908-1`、Local bundle `app.bundle.js?v=20260913-9-4f66b9b284ba`である。このalpha.4便自体ではDB、migration、RPC、secret、cleanup scheduleは変更しない。
++完了履歴。この便は新payloadを旧Edgeが拒否する一方、新Edgeは旧UIのoutgoing payloadを継続できるため、`alpha.4対応Edge → live canary → Pages`の順で公開した。後続の対戦報酬便、CPU台詞／地の文分離便、CPU選択前portrait便、終局復帰時の開始告知抑止便、パレット属性識別便、クイズ報酬券レベル引継ぎ候補を含む現在のPages候補assetはonline app `app.js?v=20260913-43`、CPU commentary `cpu-commentary.js?v=20260910-1`、progression `progression.css?v=20260910-2`、style `style.css?v=20260910-12`、intents `standard-online-skill-intents.js?v=20260911-21`、client `standard-online-client.js?v=20260910-1`、portrait `cpu-portraits.js?v=20260908-1`、Local bundle `app.bundle.js?v=20260913-9-4f66b9b284ba`である。このalpha.4便自体ではDB、migration、RPC、secret、cleanup scheduleは変更しない。
+ 
+ 1. `origin/main@63972b6`起点の専用clean worktreeで両bundleを2回生成し、2回目のSHAが不変、正式全製品試験、Windows Chrome/Edge CI、対象実browserのskip 0を確認する。
+ 2. alpha.4対応bundleを保持したまま新規対局だけを`5.0.0-alpha.3`へ戻す互換rollback branchを作成・GitHub保全する。既存alpha.4 stateの読込み・継続と、alpha.3新規stateが彩色済みpayloadをwrite-free拒否することを確認する。
+@@ -415,4 +425,4 @@ T0から24時間未満で実行した場合は`CAPTURE_INTERVAL_UNDER_24_HOURS`
+ 
+ UDL-067-surrender-v1は過去の長い投了ラベル／直接送信のみを置換する。短い「投了」から安全な取消を初期選択した確認へ進み、本人の明示肯定だけ既存SURRENDERを送る。既存の開始前取りやめ／対局を閉じる／終局理由を変えない。CPU台詞は公開IDへ固定、未知CPU／対人は汎用。確認中の対局版変更・端末非表示・切断・別タブで送信せず閉じる。
+ 
+-app `20260913-42`、確認JS `20260913-1`。画像・DB・Edge・経済変更なし。正本仕様、純粋guard試験、両ブラウザーの誤送信/二重押し/同一ID再送試験、生成物差分ゼロ、同一SHAのWindows・実Astraが公開前条件。公開後試験のプロフィール/対局枠は別途同じ候補へ固定し、前便066の失敗や試験枠を流用しない。物理端末は未実施ならNOT_RUN。
++app `20260913-43`、確認JS `20260913-1`。画像・DB・Edge・経済変更なし。正本仕様、純粋guard試験、両ブラウザーの誤送信/二重押し/同一ID再送試験、生成物差分ゼロ、同一SHAのWindows・実Astraが公開前条件。公開後試験のプロフィール/対局枠は別途同じ候補へ固定し、前便066の失敗や試験枠を流用しない。物理端末は未実施ならNOT_RUN。
+diff --git a/scripts/live-standard-release-preflight.mjs b/scripts/live-standard-release-preflight.mjs
+index 0e288a2..dc407d2 100644
+--- a/scripts/live-standard-release-preflight.mjs
++++ b/scripts/live-standard-release-preflight.mjs
+@@ -14,7 +14,7 @@ const publicEdgeBundleUrl = new URL("../supabase/functions/standard-game-action/
+ const expectedPhase = process.argv.find((argument) => argument.startsWith("--expect="))?.slice("--expect=".length) || null;
+ const zeroUuid = "00000000-0000-0000-0000-000000000000";
+ const candidateAssetMarkers = Object.freeze({
+-app: "app.js?v=20260913-42",
++app: "app.js?v=20260913-43",
+   commentary: "cpu-commentary.js?v=20260910-1",
+   style: "style.css?v=20260910-12",
+   client: "standard-online-client.js?v=20260910-1",
+@@ -22,6 +22,8 @@ app: "app.js?v=20260913-42",
+   registry: "standard-skill-registry.generated.js?v=20260912-2",
+   portraits: "cpu-portraits.js?v=20260908-1",
+   feedback: "basic-feedback.js?v=20260908-2",
++  cutin: "skill-cutin.js?v=20260913-1",
++  cutinStyle: "skill-cutin.css?v=20260913-1",
+ });
+ 
+ assert.ok(supabaseUrl && publishableKey, "PUBLIC_SUPABASE_CONFIG_REQUIRED");
+@@ -161,7 +163,9 @@ const result = {
+       && page.text.includes(candidateAssetMarkers.intents)
+       && page.text.includes(candidateAssetMarkers.registry)
+       && page.text.includes(candidateAssetMarkers.portraits)
+-      && page.text.includes(candidateAssetMarkers.feedback),
++      && page.text.includes(candidateAssetMarkers.feedback)
++      && page.text.includes(candidateAssetMarkers.cutin)
++      && page.text.includes(candidateAssetMarkers.cutinStyle),
+   },
+   database: { snapshotV1, snapshotV2, matchmaking, matchmakingAvailability, pregameAbandon, activeRoom, setupLoadV3, initializeRoomV3 },
+ };
+diff --git a/scripts/standard-release-preflight-contracts.mjs b/scripts/standard-release-preflight-contracts.mjs
+index c3b0b6b..2ac4e87 100644
+--- a/scripts/standard-release-preflight-contracts.mjs
++++ b/scripts/standard-release-preflight-contracts.mjs
+@@ -143,7 +143,7 @@ export function hasCompactCpuRecords(pageText, appText, progressionCssText) {
+ 
+ export function hasQuizAccuracyRecords(pageText, appText, progressionCssText) {
+   return includesAll(pageText, [
+-'app.js?v=20260913-42',
++'app.js?v=20260913-43',
+     'progression.css?v=20260910-2',
+     'id="quizAccuracyRecords" class="quiz-accuracy-records" role="list"',
+     "記録開始以降に、サーバーで採点が確定した回答だけを集計します。",
+diff --git a/standard-online-v5/app.js b/standard-online-v5/app.js
+index 2f3028a..f025c65 100644
+--- a/standard-online-v5/app.js
++++ b/standard-online-v5/app.js
+@@ -893,6 +893,8 @@ function clearSkillCutin() {
+ function presentSkillCutin(event) {
+   clearSkillCutin();
+   const root = $("skillCutin");
++  const duration = globalThis.FourColorSkillCutin.DISPLAY_MS;
++  root.style.setProperty("--skill-cutin-duration", `${duration}ms`);
+   root.dataset.actor = event.actor;
+   root.dataset.eventId = event.eventId;
+   $("skillCutinActor").textContent = event.actor === "self" ? "あなたのカード" : `${publicActorLabel(roomModel.view.seat === "A" ? "B" : "A")}のスキル`;
+@@ -906,9 +908,11 @@ function presentSkillCutin(event) {
+   }
+   if (event.destination === "palette") $("paletteControls").classList.add("skill-cutin-palette");
+   if (event.destination === "board") $("boardViewport").classList.add("skill-cutin-board");
++  // Commit the hidden style so a rapid replacement gets a fresh CSS animation.
++  void root.offsetWidth;
+   root.classList.remove("hidden");
+   $("skillCutinAnnouncement").textContent = `${$("skillCutinActor").textContent}、${event.title}${event.detail === event.title ? "" : "、" + event.detail}`;
+-  skillCutinTimer = setTimeout(clearSkillCutin, 1000);
++  skillCutinTimer = setTimeout(clearSkillCutin, duration);
+ }
+ function skillCutinBlocked() {
+   return Boolean(document.querySelector("dialog[open]"))
+diff --git a/standard-online-v5/index.html b/standard-online-v5/index.html
+index 8a5964b..5b2638a 100644
+--- a/standard-online-v5/index.html
++++ b/standard-online-v5/index.html
+@@ -15,7 +15,7 @@
+   <link rel="stylesheet" href="surrender-confirmation.css?v=20260913-1">
+   <link rel="stylesheet" href="play-surface.css?v=20260912-1">
+   <link rel="stylesheet" href="result-continuation.css?v=20260912-1">
+-  <link rel="stylesheet" href="skill-cutin.css?v=20260912-1">
++  <link rel="stylesheet" href="skill-cutin.css?v=20260913-1">
+ </head>
+ <body>
+   <header>
+@@ -543,8 +543,8 @@
+     </div>
+   </div>
+   <p id="skillCutinAnnouncement" class="visually-hidden" role="status" aria-live="polite" aria-atomic="true"></p>
+-  <script src="skill-cutin.js?v=20260912-2"></script>
++  <script src="skill-cutin.js?v=20260913-1"></script>
+   <script src="surrender-confirmation.js?v=20260913-1"></script>
+-  <script type="module" src="app.js?v=20260913-42"></script>
++  <script type="module" src="app.js?v=20260913-43"></script>
+ </body>
+ </html>
+diff --git a/standard-online-v5/skill-cutin.css b/standard-online-v5/skill-cutin.css
+index bddf941..09c3695 100644
+--- a/standard-online-v5/skill-cutin.css
++++ b/standard-online-v5/skill-cutin.css
+@@ -1,7 +1,7 @@
+ /* UDL065: transient, pointer-transparent presentation; no layout or game-state changes. */
+ .skill-cutin { position: fixed; inset: 0; z-index: 84; pointer-events: none; overflow: hidden; }
+ .skill-cutin.hidden { display: none; }
+-.skill-cutin-card { position: absolute; left: 50%; top: 38%; width: min(340px, calc(100vw - 40px)); box-sizing: border-box; display: flex; align-items: center; gap: 16px; padding: 18px 22px; color: #fff; background: linear-gradient(120deg, #111827 5%, #334155 64%, #111827); border: 2px solid #f8fafc; border-radius: 10px; box-shadow: -9px 9px 0 #94a3b866, 0 16px 36px #0006; transform: translate(-50%, -50%); animation: skill-from-hand 980ms both; }
++.skill-cutin-card { position: absolute; left: 50%; top: 38%; width: min(340px, calc(100vw - 40px)); box-sizing: border-box; display: flex; align-items: center; gap: 16px; padding: 18px 22px; color: #fff; background: linear-gradient(120deg, #111827 5%, #334155 64%, #111827); border: 2px solid #f8fafc; border-radius: 10px; box-shadow: -9px 9px 0 #94a3b866, 0 16px 36px #0006; transform: translate(-50%, -50%); animation: skill-from-hand var(--skill-cutin-duration) both; }
+ .skill-cutin-card::before { content: ""; position: absolute; inset: -12px -36px; z-index: -1; background: linear-gradient(100deg, transparent, #e2e8f099, transparent); transform: skewX(-20deg); }
+ .skill-cutin-card::after { content: "✦"; position: absolute; right: 14px; top: -28px; font-size: 42px; color: #fff; text-shadow: 0 0 18px #fff; }
+ .skill-cutin[data-actor="opponent"] .skill-cutin-card { animation-name: skill-from-opponent; flex-direction: row-reverse; border-radius: 10px 28px 10px 10px; }
+@@ -12,13 +12,13 @@
+ .skill-cutin[data-actor="opponent"] .cpu-portrait-fallback { font-size: 18px; }
+ .skill-cutin-copy small { font-size: 12px; color: #e2e8f0; overflow-wrap: anywhere; }
+ .skill-cutin-copy strong { font-size: clamp(19px, 5vw, 26px); line-height: 1.25; overflow-wrap: anywhere; }
+-.skill-cutin-copy span { font-size: 13px; color: #f1f5f9; }
++.skill-cutin-copy span { font-size: 14px; line-height: 1.45; color: #f1f5f9; overflow-wrap: anywhere; }
+ .skill-cutin-board, .skill-cutin-palette { animation: skill-destination 800ms ease-out both; }
+-@keyframes skill-from-hand { 0% { opacity: 0; transform: translate(-72%, 95%) rotate(-12deg) scale(.65); } 20%, 70% { opacity: 1; transform: translate(-50%, -50%) rotate(-2deg) scale(1); } 100% { opacity: 0; transform: translate(-35%, -72%) scale(1.05); } }
+-@keyframes skill-from-opponent { 0% { opacity: 0; transform: translate(55%, -85%) rotate(12deg) scale(.65); } 20%, 70% { opacity: 1; transform: translate(-50%, -50%) rotate(2deg) scale(1); } 100% { opacity: 0; transform: translate(-70%, -20%) scale(1.05); } }
++@keyframes skill-from-hand { 0% { opacity: 0; transform: translate(-72%, 95%) rotate(-12deg) scale(.65); } 10%, 90% { opacity: 1; transform: translate(-50%, -50%) rotate(-2deg) scale(1); } 100% { opacity: 0; transform: translate(-35%, -72%) scale(1.05); } }
++@keyframes skill-from-opponent { 0% { opacity: 0; transform: translate(55%, -85%) rotate(12deg) scale(.65); } 10%, 90% { opacity: 1; transform: translate(-50%, -50%) rotate(2deg) scale(1); } 100% { opacity: 0; transform: translate(-70%, -20%) scale(1.05); } }
+ @keyframes skill-destination { 0%, 100% { box-shadow: 0 0 0 0 transparent; } 32% { box-shadow: 0 0 0 4px #f8fafc, 0 0 24px 8px #94a3b899; } }
+ @media (prefers-reduced-motion: reduce) {
+-  .skill-cutin-card, .skill-cutin[data-actor="opponent"] .skill-cutin-card { animation: skill-still 980ms both; }
++  .skill-cutin-card, .skill-cutin[data-actor="opponent"] .skill-cutin-card { animation: skill-still var(--skill-cutin-duration) both; }
+   .skill-cutin-board, .skill-cutin-palette { animation: none; outline: 2px solid #e2e8f0; outline-offset: 2px; }
+-  @keyframes skill-still { 0%, 85% { opacity: 1; } 100% { opacity: 0; } }
++  @keyframes skill-still { 0%, 90% { opacity: 1; } 100% { opacity: 0; } }
+ }
+diff --git a/standard-online-v5/skill-cutin.js b/standard-online-v5/skill-cutin.js
+index 943bef0..bb89cb4 100644
+--- a/standard-online-v5/skill-cutin.js
++++ b/standard-online-v5/skill-cutin.js
+@@ -5,7 +5,9 @@
+ })(typeof globalThis !== "undefined" ? globalThis : this, function () {
+   "use strict";
+   const STORAGE_KEY = "fourColorMapGame.standard.online.v5.skill-cutin-v1";
++  const DISPLAY_MS = 1800;
+   const COLORS = ["red", "blue", "yellow", "green"];
++  const COLOR_NAMES = { red: "赤", blue: "青", yellow: "黄", green: "緑" };
+   const safeId = value => typeof value === "string" && /^[A-Za-z0-9._:-]{1,300}$/.test(value);
+   function traceFor(state) {
+     const t = state?.lastPublicTrace;
+@@ -27,11 +29,37 @@
+     return {
+       scope: `${roomId}:${state.matchId}:${seat}`, version: state.version, status: state.status,
+       visible: input.visible === true,
+-      palette: JSON.stringify((input.ownColors || []).filter(c => COLORS.includes(c))),
++      palette: JSON.stringify(COLORS.filter(c => (input.ownColors || []).includes(c))),
+       seals: JSON.stringify(COLORS.map(c => Number(state.publicEffects?.[seat]?.seals?.[c] || 0) > 0)),
+       board: JSON.stringify([state.requiredSize, state.pending, state.reserved, state.preparedOutgoing, regions]),
++      requiredSize: Number.isSafeInteger(state.requiredSize) && state.requiredSize > 0 ? state.requiredSize : null,
++      regionCount: regions.filter(r => r[2] !== true).length,
++      geometry: JSON.stringify(regions.map(([id, , deleted, micro]) => [id, deleted, micro])),
++      regionColors: JSON.stringify(regions.map(([id, color]) => [id, color])),
+     };
+   }
++  function resultDetail(previous, current, trace) {
++    if (previous.seals !== current.seals) {
++      const delta = JSON.parse(current.seals).filter(Boolean).length - JSON.parse(previous.seals).filter(Boolean).length;
++      return delta ? `あなたの持ち色の封印が${Math.abs(delta)}色${delta > 0 ? "増えた" : "減った"}` : "あなたの持ち色の封印が変わった";
++    }
++    if (previous.palette !== current.palette) {
++      const count = JSON.parse(current.palette).length, before = JSON.parse(previous.palette).length;
++      return count === before ? "あなたの持ち色が入れ替わった" : `あなたの持ち色が${count}色に${count > before ? "増えた" : "減った"}`;
++    }
++    if (current.requiredSize !== null && previous.requiredSize !== null && previous.requiredSize !== current.requiredSize)
++      return `作るエリアが${current.requiredSize}マスになった`;
++    const delta = current.regionCount - previous.regionCount;
++    if (delta) return `エリアが${Math.abs(delta)}つ${delta > 0 ? "増えた" : "減った"}`;
++    if (previous.geometry !== current.geometry) return "エリアの形が変わった";
++    if (previous.regionColors !== current.regionColors) {
++      if (trace.type === "LEGAL_RECOLOR" && JSON.parse(current.regionColors).some(([id, color]) => id === trace.regionId && color === trace.color)
++        && JSON.parse(previous.regionColors).some(([id, color]) => id === trace.regionId && color !== trace.color))
++        return `エリアが${COLOR_NAMES[trace.color]}に塗り替わった`;
++      return "エリアの色が変わった";
++    }
++    return previous.board !== current.board ? "盤面の状態が変わった" : "スキルを使用";
++  }
+   function describe(previous, current, input) {
+     const trace = traceFor(input.state);
+     if (!previous || !current || previous.scope !== current.scope || current.version !== previous.version + 1
+@@ -43,7 +71,7 @@
+     const boardChanged = previous.board !== current.board;
+     return { eventId: trace.eventId, scope: current.scope, version: current.version, actor: own ? "self" : "opponent",
+       title: ack?.name ? String(ack.name).slice(0, 48) : "スキルを使用",
+-      detail: noOp ? "空振り" : paletteChanged ? "持ち色に変化" : boardChanged ? "盤面に変化" : "スキルを使用",
++      detail: noOp ? "空振り" : resultDetail(previous, current, trace),
+       destination: noOp ? null : paletteChanged ? "palette" : boardChanged ? "board" : null,
+       noOp };
+   }
+@@ -75,8 +103,14 @@
+       if (previous && current?.scope === previous.scope && current.version === previous.version) {
+         previous = current; return Promise.resolve(false);
+       }
+-      interrupt();
+       const event = describe(previous, current, input);
++      // A normal consecutive update may leave an already-shown past event readable.
++      // It must still invalidate any delayed claim, without restarting its deadline.
++      const ordinaryContinuation = previous && previous.scope === current.scope
++        && current.version === previous.version + 1 && previous.status === "ACTIVE" && previous.visible
++        && !["USE_SKILL", "LEGAL_RECOLOR"].includes(input.state?.lastPublicTrace?.type);
++      generation += 1;
++      if (!ordinaryContinuation) clear();
+       previous = current;
+       if (!event) return Promise.resolve(false);
+       const revision = generation;
+@@ -89,5 +123,5 @@
+     }
+     return { observe, interrupt };
+   }
+-  return Object.freeze({ VERSION: "skill-cutin-v1", STORAGE_KEY, traceFor, snapshot, describe, claim, createObserver });
++  return Object.freeze({ VERSION: "skill-cutin-v1", DISPLAY_MS, STORAGE_KEY, traceFor, snapshot, describe, claim, createObserver });
+ });
+diff --git a/tests/standard-browser-gate-workflow.test.cjs b/tests/standard-browser-gate-workflow.test.cjs
+index 0a40acb..fc92ead 100644
+--- a/tests/standard-browser-gate-workflow.test.cjs
++++ b/tests/standard-browser-gate-workflow.test.cjs
+@@ -16,7 +16,7 @@ test("Standard browser gate YAML text uses stable whitespace", () => {
+ });
+ 
+ test("Standard browser gate is candidate-push, manual, or pull-request only and least-privileged", () => {
+-  assert.match(workflow, /^on:\r?\n  push:\r?\n    branches: \[codex\/standard-release-command, codex\/quiz-memo-calculator-20260912, codex\/ui-diet-20260912, codex\/ui-play-surface-20260912, codex\/ui-result-20260912, codex\/ui-cosmetics-20260912, codex\/ui-player-copy-20260912, codex\/skill-cutin-20260912, codex\/ui-flat-entry-20260912, codex\/skill-catalog-20260912, codex\/surrender-confirmation-20260913, codex\/cpu-split-rescue-20260913\][\s\S]+?  pull_request:[\s\S]+?  workflow_dispatch:/m);
++  assert.match(workflow, /^on:\r?\n  push:\r?\n    branches: \[codex\/standard-release-command, codex\/quiz-memo-calculator-20260912, codex\/ui-diet-20260912, codex\/ui-play-surface-20260912, codex\/ui-result-20260912, codex\/ui-cosmetics-20260912, codex\/ui-player-copy-20260912, codex\/skill-cutin-20260912, codex\/ui-flat-entry-20260912, codex\/skill-catalog-20260912, codex\/surrender-confirmation-20260913, codex\/cpu-split-rescue-20260913, codex\/skill-cutin-readability-20260913\][\s\S]+?  pull_request:[\s\S]+?  workflow_dispatch:/m);
+   assert.equal((workflow.match(/      - online\/supabase-config\.js/g) || []).length, 2);
+   assert.equal((workflow.match(/      - online-v5\/style\.css/g) || []).length, 2);
+   assert.equal((workflow.match(/      - standard-online-v5\/\*\*/g) || []).length, 2);
+diff --git a/tests/standard-live-release-preflight-static.test.cjs b/tests/standard-live-release-preflight-static.test.cjs
+index 93722ca..733c21c 100644
+--- a/tests/standard-live-release-preflight-static.test.cjs
++++ b/tests/standard-live-release-preflight-static.test.cjs
+@@ -78,7 +78,7 @@ test("release preflight is read-only, secret-free, finite, and stage-aware", ()
+   assert.match(source, /MATCH_REWARD_ECONOMY_MISMATCH/);
+   assert.match(source, /app\.text\.includes\('★\$\{meta\.rarity\}'\)/);
+   assert.match(source, /CANDIDATE_ASSET_GENERATION_UI_PHASE_MISMATCH/);
+-assert.match(source, /app\.js\?v=20260913-42/);
++assert.match(source, /app\.js\?v=20260913-43/);
+   assert.match(source, /cpu-commentary\.js\?v=20260910-1/);
+   assert.match(source, /progression\.css/);
+   assert.match(source, /style\.css\?v=20260910-12/);
+@@ -87,6 +87,8 @@ assert.match(source, /app\.js\?v=20260913-42/);
+   assert.match(source, /standard-skill-registry\.generated\.js\?v=20260912-2/);
+   assert.match(source, /cpu-portraits\.js\?v=20260908-1/);
+   assert.match(source, /basic-feedback\.js\?v=20260908-2/);
++  assert.match(source, /skill-cutin\.js\?v=20260913-1/);
++  assert.match(source, /skill-cutin\.css\?v=20260913-1/);
+   assert.match(source, /getOptionalBytes\(`\$\{publicUrl\}assets\/cpu-portraits\/cpu-portrait-atlas\.png`\)/);
+   assert.match(source, /getOptionalText\(publicEdgeBundleUrl\)/);
+   assert.match(source, /standard-engine\.bundle\.js/);
+@@ -227,7 +229,7 @@ test("candidate app satisfies the waiting-opponent release marker", () => {
+ });
+ 
+ test("candidate page and app satisfy the alpha.4 cache generation marker", () => {
+-  assert.equal(candidateHtml.includes("app.js?v=20260913-42"), true);
++  assert.equal(candidateHtml.includes("app.js?v=20260913-43"), true);
+   assert.equal(candidateHtml.includes("cpu-commentary.js?v=20260910-1"), true);
+   assert.equal(candidateHtml.includes("style.css?v=20260910-12"), true);
+   assert.equal(candidateHtml.includes("standard-online-client.js?v=20260910-1"), true);
+@@ -235,6 +237,8 @@ test("candidate page and app satisfy the alpha.4 cache generation marker", () =>
+   assert.equal(candidateHtml.includes("standard-skill-registry.generated.js?v=20260912-2"), true);
+   assert.equal(candidateHtml.includes("cpu-portraits.js?v=20260908-1"), true);
+   assert.equal(candidateHtml.includes("basic-feedback.js?v=20260908-2"), true);
++  assert.equal(candidateHtml.includes("skill-cutin.js?v=20260913-1"), true);
++  assert.equal(candidateHtml.includes("skill-cutin.css?v=20260913-1"), true);
+   assert.equal(candidateApp.includes("skillCategoryWindow"), true);
+   assert.equal(candidateApp.includes("SKILL_CATEGORY_ALREADY_USED_IN_WINDOW"), true);
+   assert.equal(candidateApp.includes("colorBonusRefill"), true);
+diff --git a/tests/standard-online-basic-feedback-static.test.cjs b/tests/standard-online-basic-feedback-static.test.cjs
+index 4cdae63..6665e54 100644
+--- a/tests/standard-online-basic-feedback-static.test.cjs
++++ b/tests/standard-online-basic-feedback-static.test.cjs
+@@ -26,7 +26,7 @@ test("online feedback settings are explicit, separate, persistent, and keyboard-
+ 
+ test("feedback script is cache-busted before the matching app generation", () => {
+   const controllerScript = html.indexOf('<script src="basic-feedback.js?v=20260908-2"></script>');
+-const appScript = html.indexOf('<script type="module" src="app.js?v=20260913-42"></script>');
++const appScript = html.indexOf('<script type="module" src="app.js?v=20260913-43"></script>');
+   assert.ok(controllerScript >= 0 && appScript > controllerScript);
+   assert.match(html, /style\.css\?v=20260910-12/);
+   assert.doesNotMatch(html, /app\.js\?v=20260906-(?:36|38)|style\.css\?v=20260906-(?:36|37)/);
+diff --git a/tests/standard-online-browser.test.cjs b/tests/standard-online-browser.test.cjs
+index 0f5fb8b..237002d 100644
+--- a/tests/standard-online-browser.test.cjs
++++ b/tests/standard-online-browser.test.cjs
+@@ -1554,7 +1554,7 @@ async function cutinAdvance(page, { actor="B", change="board", skip=1, finished=
+       winner:finished?"A":null,terminalReason:finished?"SURRENDER":null,
+       requiredSize:change==="board"?s.requiredSize+1:s.requiredSize,
+       publicEffects:change==="seal"?{...s.publicEffects,A:{...s.publicEffects?.A,seals:{red:1}}}:s.publicEffects,
+-      lastPublicTrace:{eventId:`${s.matchId}:${version}`,version,type:"USE_SKILL",actor}}};
++      lastPublicTrace:change==="ordinary"?null:{eventId:`${s.matchId}:${version}`,version,type:"USE_SKILL",actor}}};
+     r.view={...r.view,version,private_state:{...r.view.private_state,
+       ...(change==="palette"?{basicPalette:["green","yellow"]}:{})}};
+     r.onInvalidate();
+@@ -1571,6 +1571,10 @@ async function cutinReady(page) {
+       if(!element.classList.contains("hidden")&&element.dataset.eventId!==last){
+         last=element.dataset.eventId;globalThis.__cutinEvents.push({event:last,at:performance.now(),actor:element.dataset.actor});
+       }
++      if(element.classList.contains("hidden")){
++        const current=globalThis.__cutinEvents.at(-1);
++        if(current&&!current.hiddenAt)current.hiddenAt=performance.now();
++      }
+     }).observe(element,{attributes:true,subtree:true});
+   });
+ }
+@@ -1588,19 +1592,26 @@ test("UDL065 self and opponent cut-ins animate from each source with real pointe
+       const info=await page.locator(".skill-cutin-card").evaluate(el=>{
+         const r=el.getBoundingClientRect(),root=document.getElementById("skillCutin"),hit=document.elementFromPoint(r.x+r.width/2,r.y+r.height/2);
+         return {left:r.left,right:r.right,top:r.top,bottom:r.bottom,animation:getComputedStyle(el).animationName,
++          duration:el.getAnimations()[0]?.effect.getTiming().duration,opacity:Number(getComputedStyle(el).opacity),
++          detail:document.getElementById("skillCutinDetail").textContent,
+           pointer:getComputedStyle(root).pointerEvents,transparent:!root.contains(hit),focus:document.activeElement?.id};
+       });
+       assert.equal(info.pointer,"none");assert.equal(info.transparent,true);
+       assert.equal(info.focus,focused);assert.ok(info.left>=0&&info.right<=width&&info.top>=0&&info.bottom<=900);
+       assert.equal(info.animation,width===390?"skill-from-opponent":"skill-from-hand");
++      assert.equal(info.duration,1800);assert.equal(info.opacity,1);
++      assert.match(info.detail,width===390?/^あなたの持ち色/:/^作るエリアが\d+マスになった$/);
+       if(width===390) assert.equal(await page.locator("#skillCutinSource").getAttribute("data-portrait-mode"),"normal");
+       assert.equal(await page.locator("#skillCutinTitle").textContent(),"スキルを使用");
+       assert.equal(await page.locator(width===390?"#paletteControls":"#boardViewport").evaluate(el=>el.className.includes("skill-cutin-")),true);
+       if(process.env.STANDARD_CUTIN_ARTIFACT_DIR){fs.mkdirSync(process.env.STANDARD_CUTIN_ARTIFACT_DIR,{recursive:true});
+         await page.screenshot({path:path.join(process.env.STANDARD_CUTIN_ARTIFACT_DIR,`cutin-${browserName}-${width}.png`)});
+       }
+-      const start=Date.now();await page.locator("#skillCutin").waitFor({state:"hidden"});
+-      assert.ok(Date.now()-start<1800);
++      await page.locator("#skillCutin").waitFor({state:"hidden"});
++      const timing=await page.evaluate(()=>{const e=globalThis.__cutinEvents.at(-1);return {duration:e.hiddenAt-e.at};});
++      assert.ok(timing.duration>=1700&&timing.duration<2300,JSON.stringify(timing));
++      if(process.env.STANDARD_CUTIN_ARTIFACT_DIR)fs.writeFileSync(
++        path.join(process.env.STANDARD_CUTIN_ARTIFACT_DIR,`cutin-${browserName}-${width}.json`),JSON.stringify({width,info,timing},null,2));
+       await page.evaluate(()=>globalThis.__standardOnlineRuntime.onInvalidate());
+       await page.waitForTimeout(120);
+     }
+@@ -1610,6 +1621,48 @@ test("UDL065 self and opponent cut-ins animate from each source with real pointe
+     assert.equal(await page.locator("#vibrationEnabled").isChecked(),false);
+   },{viewport:{width:390,height:900},bodyTimeout:45000});
+ });
++
++test("UDL065 reading interval survives ordinary input and an update without replay or deadline extension", { timeout: 120000 }, async () => {
++  await withPage("colorResponse",async page=>{
++    await cutinReady(page);await cutinAdvance(page,{change:"board"});
++    await page.locator("#skillCutin").waitFor({state:"visible"});
++    const event=await page.locator("#skillCutin").getAttribute("data-event-id");
++    const red=page.locator('#paletteControls .color-button[data-color="red"]').first();
++    assert.equal(await red.isEnabled(),true);
++    await red.click();
++    await page.waitForFunction(()=>globalThis.__standardOnlineRuntime.calls.some(c=>c.body?.action?.type==="COLOR_REGION"));
++    assert.equal(await page.locator("#skillCutin").isVisible(),true);
++    await cutinAdvance(page,{change:"ordinary"});
++    assert.equal(await page.locator("#skillCutin").isVisible(),true);
++    assert.equal(await page.locator("#skillCutin").getAttribute("data-event-id"),event);
++    await page.waitForFunction(()=>document.querySelector(".skill-cutin-card").getAnimations()[0]?.currentTime>=1200);
++    assert.equal(await page.locator(".skill-cutin-card").evaluate(el=>Number(getComputedStyle(el).opacity)),1);
++    await page.locator("#skillCutin").waitFor({state:"hidden"});
++    const result=await page.evaluate(()=>{
++      const events=globalThis.__cutinEvents;
++      return {events:events.length,duration:events[0].hiddenAt-events[0].at,
++        actions:globalThis.__standardOnlineRuntime.calls.filter(c=>c.body?.operation==="action").map(c=>c.body.action.type)};
++    });
++    assert.equal(result.events,1);assert.deepEqual(result.actions,["COLOR_REGION"]);
++    assert.ok(result.duration>=1700&&result.duration<2300,JSON.stringify(result));
++  },{viewport:{width:390,height:844}});
++});
++test("UDL065 a new skill replaces the old card with its own full reading interval", { timeout: 120000 }, async () => {
++  await withPage("colorResponse",async page=>{
++    await cutinReady(page);await cutinAdvance(page,{change:"board"});
++    await page.locator("#skillCutin").waitFor({state:"visible"});
++    await page.waitForFunction(()=>document.querySelector(".skill-cutin-card").getAnimations()[0]?.currentTime>=700);
++    await cutinAdvance(page,{change:"seal"});
++    const current=await page.locator(".skill-cutin-card").evaluate(el=>el.getAnimations()[0]?.currentTime);
++    assert.ok(current<500,`replacement animation must restart, got ${current} ms`);
++    assert.match(await page.locator("#skillCutinDetail").textContent(),/持ち色の封印が1色増えた/);
++    await page.locator("#skillCutin").waitFor({state:"hidden"});
++    const result=await page.evaluate(()=>({count:globalThis.__cutinEvents.length,
++      duration:globalThis.__cutinEvents[1].hiddenAt-globalThis.__cutinEvents[1].at}));
++    assert.equal(result.count,2);assert.ok(result.duration>=1700&&result.duration<2300,JSON.stringify(result));
++  },{viewport:{width:390,height:844}});
++});
++
+ test("UDL065 actual submit ACK names self skill, no-op has no effect, definite rejection never celebrates", { timeout: 120000 }, async () => {
+   await withPage("colorResponse",async page=>{
+     await cutinReady(page);
+@@ -1635,6 +1688,7 @@ test("UDL065 reduced motion, other tabs, gaps, terminal and reload preserve no r
+     await cutinReady(page);await page.emulateMedia({reducedMotion:"reduce"});
+     await cutinAdvance(page,{change:"seal"});await page.locator("#skillCutin").waitFor({state:"visible"});
+     assert.equal(await page.locator(".skill-cutin-card").evaluate(el=>getComputedStyle(el).animationName),"skill-still");
++    assert.equal(await page.locator(".skill-cutin-card").evaluate(el=>el.getAnimations()[0].effect.getTiming().duration),1800);
+     assert.match(await page.locator("#skillCutinAnnouncement").textContent(),/相手.*持ち色/);
+     await page.getByRole("button",{name:"マイページ",exact:true}).click();
+     assert.equal(await page.locator("#skillCutin").isHidden(),true);
+diff --git a/tests/standard-online-quiz-polish.test.cjs b/tests/standard-online-quiz-polish.test.cjs
+index fe1f8e8..8a3f8e1 100644
+--- a/tests/standard-online-quiz-polish.test.cjs
++++ b/tests/standard-online-quiz-polish.test.cjs
+@@ -197,7 +197,7 @@ test("only overflowing quiz math receives a persistent horizontal position bar",
+   assert.match(css, /\.quiz-overflow-scrollbar\[hidden\]\{display:none\}/);
+   assert.match(html, /style\.css\?v=20260910-12/);
+   assert.match(html, /standard-online-client\.js\?v=20260910-1/);
+-  assert.match(html, /app\.js\?v=20260913-42/);
++  assert.match(html, /app\.js\?v=20260913-43/);
+ });
+ 
+ test("per-question feedback is server-acknowledged, retryable, brief in motion, and followed by an optional review", () => {
+diff --git a/tests/standard-online-ui-static.test.cjs b/tests/standard-online-ui-static.test.cjs
+index 22ee0b9..b737dfa 100644
+--- a/tests/standard-online-ui-static.test.cjs
++++ b/tests/standard-online-ui-static.test.cjs
+@@ -82,7 +82,7 @@ test("CPU commentary is public-event-only, bounded, non-blocking, and terminal-p
+   assert.match(html, /standard-online-client\.js\?v=20260910-1/);
+   assert.match(html, /standard-online-skill-intents\.js\?v=20260911-21/);
+   assert.match(html, /cpu-commentary\.js\?v=20260910-1/);
+-assert.match(html, /app\.js\?v=20260913-42/);
++assert.match(html, /app\.js\?v=20260913-43/);
+   assert.match(app, /cpuCommentary\?\.VERSION !== "standard-cpu-commentary-v3"/);
+   assert.ok(html.indexOf("cpu-commentary.js") < html.indexOf('type="module" src="app.js'));
+   assert.match(html, /id="cpuCommentaryStage"[^>]+aria-hidden="true"/);
+@@ -469,7 +469,7 @@ test("existing online progression is hydrated from the server rather than re-upl
+ 
+ test("UI derives its canonical and experimental card metadata from the generated registry", () => {
+   assert.equal(Object.values(STANDARD_SKILLS).filter((skill) => skill.v49Catalogued).length, 19);
+-  assert.match(html, /standard-skill-registry\.generated\.js\?v=20260912-2[\s\S]+app\.js\?v=20260913-42/);
++  assert.match(html, /standard-skill-registry\.generated\.js\?v=20260912-2[\s\S]+app\.js\?v=20260913-43/);
+   assert.match(app, /const STANDARD_SKILL_REGISTRY = globalThis\.FourColorStandardSkillRegistry/);
+   assert.match(app, /STANDARD_SKILL_REGISTRY\.v49SkillIds\.map/);
+   assert.match(app, /Object\.entries\(STANDARD_SKILL_REGISTRY\.skills\)/);
+diff --git a/tests/standard-skill-cutin.test.cjs b/tests/standard-skill-cutin.test.cjs
+index 758d74d..2afe8f1 100644
+--- a/tests/standard-skill-cutin.test.cjs
++++ b/tests/standard-skill-cutin.test.cjs
+@@ -10,6 +10,85 @@ function input(version, extra={}) {
+ const snap=x=>api.snapshot(x);
+ function fakeStore() { const values=new Map();return { getItem:key=>values.get(key)||null,setItem:(key,value)=>values.set(key,value)}; }
+ const locks={request:async (_name,_options,run)=>run()};
++
++test("UDL065 readability uses a single 1800 ms duration",()=>{
++  assert.equal(api.DISPLAY_MS,1800);
++});
++
++test("UDL065 results describe only measured viewer palette, seals and public area changes",()=>{
++  const cases=[
++    [{ownColors:["red","blue","green"]},"あなたの持ち色が3色に増えた"],
++    [{ownColors:["red"]},"あなたの持ち色が1色に減った"],
++    [{ownColors:["green","yellow"]},"あなたの持ち色が入れ替わった"],
++    [{state:{publicEffects:{A:{seals:{red:1}}}}},"あなたの持ち色の封印が1色増えた"],
++    [{state:{requiredSize:3}},"作るエリアが3マスになった"],
++    [{state:{regions:{R1:{micro:[1],color:"red"},R2:{micro:[2],color:null}}}},"エリアが1つ増えた"],
++    [{state:{regions:{R1:{micro:[1,2,3],color:"red"}}}},"エリアの形が変わった"],
++  ];
++  for(const [extra,detail] of cases){
++    const after=input(2,extra);
++    assert.equal(api.describe(snap(input(1)),snap(after),after).detail,detail);
++  }
++  const sealed=input(1,{state:{publicEffects:{A:{seals:{red:2}}}}}),after=input(2);
++  assert.equal(api.describe(snap(sealed),snap(after),after).detail,"あなたの持ち色の封印が1色減った");
++});
++
++test("UDL065 palette ordering, duplicates and hidden effects never invent a result",()=>{
++  const after=input(2,{ownColors:["blue","red","red","not-a-color"],
++    state:{publicEffects:{B:{seals:{green:1}}},players:{B:{hand:["secret"],privatePalette:["yellow"]}}}});
++  const event=api.describe(snap(input(1)),snap(after),after);
++  assert.equal(event.detail,"スキルを使用");assert.equal(event.destination,null);
++  assert.doesNotMatch(JSON.stringify(snap(after)),/secret|privatePalette|hand/);
++});
++
++test("UDL065 public recolor only names a color that actually changed in the named region",()=>{
++  const before=input(1);
++  const after=input(2,{state:{regions:{R1:{micro:[1,2],color:"green"}},
++    lastPublicTrace:{eventId:"match:2",version:2,type:"LEGAL_RECOLOR",actor:"B",regionId:"R1",color:"green"}}});
++  let event=api.describe(snap(before),snap(after),after);
++  assert.equal(event.title,"スキルを使用");assert.equal(event.detail,"エリアが緑に塗り替わった");
++  after.state.lastPublicTrace.color="yellow";
++  event=api.describe(snap(before),snap(after),after);
++  assert.equal(event.detail,"エリアの色が変わった");assert.doesNotMatch(event.detail,/黄/);
++  after.state.regions=before.state.regions;
++  assert.equal(api.describe(snap(before),snap(after),after).detail,"スキルを使用");
++});
++
++test("UDL065 seal replacement and decrease in area count are observations, not hidden skill names",()=>{
++  const before=input(1,{state:{publicEffects:{A:{seals:{red:1}}}}});
++  const after=input(2,{state:{publicEffects:{A:{seals:{blue:1}}}}});
++  assert.equal(api.describe(snap(before),snap(after),after).detail,"あなたの持ち色の封印が変わった");
++  const fewer=input(2,{state:{regions:{}}});
++  assert.equal(api.describe(snap(input(1)),snap(fewer),fewer).detail,"エリアが1つ減った");
++});
++
++test("UDL065 new skill, malformed skill and changed scope still interrupt the displayed event",async()=>{
++  for(const after of [input(3),input(3,{state:{lastPublicTrace:{...input(3).state.lastPublicTrace,secret:true}}}),
++    input(3,{roomId:"other",state:{lastPublicTrace:null}})]){
++    let clears=0,shows=0;
++    const observer=api.createObserver({storage:fakeStore(),locks,clear(){clears++;},show(){shows++;}});
++    await observer.observe(input(1));await observer.observe(input(2));const previous=clears;
++    await observer.observe(after);assert.equal(clears,previous+1);
++    assert.equal(shows,api.traceFor(after.state)&&after.roomId==="room"?2:1);
++  }
++});
++
++test("UDL065 ordinary consecutive updates keep a displayed card but cancel a delayed claim",async()=>{
++  let visible=false,count=0;
++  const options={storage:fakeStore(),locks,show(){visible=true;count++;},clear(){visible=false;}};
++  const observer=api.createObserver(options);
++  await observer.observe(input(1));await observer.observe(input(2));
++  await observer.observe(input(3,{state:{lastPublicTrace:null}}));
++  assert.equal(visible,true);assert.equal(count,1);
++  await observer.observe(input(5,{state:{lastPublicTrace:null}}));
++  assert.equal(visible,false,"a version gap must still interrupt");
++  let finish;
++  const delayed=api.createObserver({...options,storage:fakeStore(),
++    locks:{request:(_name,_opts,run)=>new Promise(resolve=>{finish=()=>resolve(run());})}});
++  await delayed.observe(input(1));const pending=delayed.observe(input(2));
++  await delayed.observe(input(3,{state:{lastPublicTrace:null}}));
++  finish();assert.equal(await pending,false);assert.equal(count,1);assert.equal(visible,false);
++});
+ test("UDL065 exact public trace rejects private details, malformed identities and false skill claims",()=>{
+   assert.ok(api.traceFor(input(2).state));
+   for (const patch of [{eventId:"wrong"},{version:1},{actor:"C"},{skill:"hiddenSkill"},{type:"FAILURE"},{regionId:"R1"}])
+diff --git a/tests/standard-surrender-confirmation.test.cjs b/tests/standard-surrender-confirmation.test.cjs
+index 6a9b97c..8305218 100644
+--- a/tests/standard-surrender-confirmation.test.cjs
++++ b/tests/standard-surrender-confirmation.test.cjs
+@@ -4,7 +4,7 @@ const {dialogueFor,makeIntent,isCurrentIntent}=require("../standard-online-v5/su
+ test("UDL067 native safe-first dialog and its scoped focus style load before app41",()=>{
+   const fs=require("node:fs"),path=require("node:path"),root=path.join(__dirname,"../standard-online-v5");
+   const html=fs.readFileSync(path.join(root,"index.html"),"utf8"),css=fs.readFileSync(path.join(root,"surrender-confirmation.css"),"utf8");
+-  assert.ok(html.indexOf('surrender-confirmation.js?v=20260913-1')<html.indexOf('app.js?v=20260913-42'));
++  assert.ok(html.indexOf('surrender-confirmation.js?v=20260913-1')<html.indexOf('app.js?v=20260913-43'));
+   assert.ok(html.includes('surrender-confirmation.css?v=20260913-1'));
+   const dialog=html.slice(html.indexOf('<dialog id="surrenderDialog"'),html.indexOf('<dialog id="abandonRoomDialog"'));
+   assert.match(dialog,/aria-labelledby="surrenderTitle" aria-describedby="surrenderSpeaker surrenderDescription"/);
