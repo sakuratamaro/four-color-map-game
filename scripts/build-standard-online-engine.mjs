@@ -295,6 +295,16 @@ function apply({state,rngSnapshot,actor,action,expectedVersion,debugMode=false,l
     next.hands[actor][skill]=(next.hands[actor][skill]||0)+1;
     match.validateStandardState(next);
   }
+  const projection=projections(next,debugMode,labMode);
+  const trace=projection.publicState.lastPublicTrace;
+  // Annotate only a resolved action's public projection. Keep authoritative state
+  // and the legacy trace shape unchanged for old workers, saves and viewers.
+  if(action.type==="USE_SKILL"&&applied.definition===registry[action.payload?.skill]
+      &&applied.definition?.implemented===true&&trace?.actor===actor
+      &&trace.version===next.version&&trace.eventId===(next.matchId+":"+next.version)
+      &&trace.type===(applied.definition.id==="legalRecolor"?"LEGAL_RECOLOR":"USE_SKILL")){
+    projection.publicState.lastPublicSkill={eventId:trace.eventId,version:trace.version,actor:trace.actor,skillId:applied.definition.id};
+  }
   return {
     ok:true,
     code:applied.code,
@@ -303,7 +313,7 @@ function apply({state,rngSnapshot,actor,action,expectedVersion,debugMode=false,l
     contactColorCount:action.type==="CREATE_REGION"?applied.contactColorCount:null,
     state:next,
     rngSnapshot:engine.snapshotRngDomains(streams,match.REQUIRED_RNG_STREAMS),
-    ...projections(next,debugMode,labMode),
+    ...projection,
     finished:next.status==="FINISHED",
     winnerSeat:next.winner||null,
     terminalReason:next.terminalReason||null,
