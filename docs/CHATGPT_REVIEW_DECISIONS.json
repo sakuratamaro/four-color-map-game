@@ -41,7 +41,7 @@
     }
   ],
   "coordination": {
-    "status": "pointer_candidate_sent_delivery_unconfirmed_finite_wait_ended",
+    "status": "NORMAL_WORK_INDEPENDENT_FACE_WINDOWS_PENDING",
     "latest_v8_intake": {
       "state": "PAIRED_SOURCE_AND_ZIP_VERIFIED_ALIASES_MAPPED",
       "source_thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
@@ -392,11 +392,11 @@
       "acceptance_response_message_id": "1bb33ef7-814c-41eb-a4bd-06009842f65d"
     },
     "automation_id": "automation",
-    "automation_status_at_recording": "PAUSED",
-    "automation_readback_updated_at": 1789285754548,
+    "automation_status_at_recording": "ACTIVE",
+    "automation_readback_updated_at": 1789288744582,
     "automation_prompt_readback_equal": true,
-    "automation_pause_reason": "Originalreviewslots exhausted and07:46:14Zexpired. b9 sole sendaccepted butnewbody unconfirmed after2deliveryreads; no repeat or silenceapproval. Parent70esource/CPUCImanualholds retained.",
-    "automation_active_reason": null,
+    "automation_pause_reason": null,
+    "automation_active_reason": "Independent adopted v14 face exactcandidate normal CI/review preparation; closed b9 wait and CPU/source holds unchanged.",
     "completed_review_waits": [
       {
         "root_request_message_id": "8464f659-ad62-4c09-83d9-44e1cc91316b",
@@ -4243,6 +4243,87 @@
           "confirmation_basis": "One availability read for genuinely new fixed70e691b review also returned complete paired old result report; exact2521-character body match. No resend or old040 wait restarted."
         },
         "acceptance_review_id": "CHATGPT-REVIEW-20260913-041"
+      },
+      "surrender_face_preparation": {
+        "request_id": "UDL-20260912-067",
+        "alias": "ADD-20260913-SURRENDER-CPU-FACE",
+        "source_message_id": "bbb2135e-cfd1-4da8-845b-9e3d07d8b29a",
+        "owner_thread_id": "01a07b56-616e-7733-9aae-90575659688e",
+        "branch": "codex/surrender-cpu-face-20260913",
+        "worktree": ".codex-worktrees/surrender-cpu-face-20260913",
+        "base_sha": "954e1c5c52d5453fc9fee9872b2d7e922f850a39",
+        "spec_path": "docs/SURRENDER_CPU_FACE_20260913.md",
+        "spec_version": "UDL-067-face-v1",
+        "state": "LOCAL_VERIFIED_REVIEW_PREPARATION",
+        "implementation_authority": "adopted_v14_user_request",
+        "scope": "Pages_only",
+        "db_change_set": [],
+        "edge_change_set": [],
+        "managed_setting_change_set": [],
+        "new_image_bytes": 0,
+        "publication": "NOT_RUN",
+        "publication_authorized": false,
+        "live_canary_attempts": 0,
+        "review_status": "NOT_SENT",
+        "review_send_attempts": 0,
+        "next_action": "Collect own exact Windows run with bounded same-run checks; prepare fixed15-file review. Only genuine exact review plus all gates may authorize production; no inherited CPU/b9 review or live allowance.",
+        "candidate_sha": "5f44efb61b101c3f3f2bd0e1b36f2658a500c1c2",
+        "spec_snapshot_sha": "b2a5ad7dde6e590fb8122e3f4167de3ba4d744ff",
+        "local_verification": "PASS",
+        "local_tests": {
+          "full_nonbrowser": "977/977 PASS;145/161 files;skip/cancel0;46242.2412ms;clean candidate",
+          "focused_static": "34/34 PASS",
+          "affected_marker_contracts": "74/74 PASS",
+          "chrome": "9/9 PASS plus final identity1/1",
+          "edge": "8/8 PASS plus final identity1/1",
+          "builder_tracked_diff": "ZERO",
+          "failed_checkpoints_preserved": "docs/SURRENDER_CPU_FACE_LOCAL_20260913.md"
+        },
+        "push_status": "PUSHED_EXACT_BRANCH",
+        "windows_status": "IN_PROGRESS",
+        "windows_run": 34748004151,
+        "windows_discovery": "Exact successor run34748004151 attempt1 observed in_progress2026-09-13T08:35:28Z; no inheritedgate.",
+        "evidence": "docs/SURRENDER_CPU_FACE_LOCAL_20260913.md",
+        "superseded_candidates": [
+          {
+            "candidate_sha": "03a4a3bc0555c9c30dbdd0af9d44c7f90ddb0fd6",
+            "windows_run": 34747391707,
+            "windows_status": "FAILURE",
+            "attempt": 1,
+            "chrome_job": 103697714769,
+            "edge_job": 103697714861,
+            "both_contracts": "631/635;four exact stale asset-reference failures",
+            "review_status": "NOT_SENT",
+            "publication": "NOT_RUN",
+            "successor_diff": "3 text files,4 exact reference replacements;product/spec/images unchanged",
+            "rerun_attempts": 0
+          }
+        ],
+        "windows_created_at_utc": "2026-09-13T08:33:58Z",
+        "windows_attempt": 1,
+        "review_patch": "docs/SURRENDER_CPU_FACE_REVIEW_20260913.patch",
+        "ci_followup": {
+          "run_id": 34748004151,
+          "subject_sha": "5f44efb61b101c3f3f2bd0e1b36f2658a500c1c2",
+          "started_at_utc": "2026-09-13T08:33:58.000Z",
+          "expires_at_utc": "2026-09-13T09:33:58.000Z",
+          "offset_minutes": [
+            5,
+            20,
+            50
+          ],
+          "max_checks": 3,
+          "consumed_slots_utc": [],
+          "skipped_slots_utc": [
+            "2026-09-13T08:38:58.000Z"
+          ],
+          "reset_on_restart_or_candidate_revision": false,
+          "skip_reason": "First original slot forfeited without a check: current owner's end-turn minimum2-minute margin could not be met. Original20minute slot unchanged."
+        },
+        "review_patch_sha256": "e2176537a93daa9c2db2579a5aa3c7abc129658fcaa5bee637757c5cc3d37205",
+        "review_patch_bytes": 33347,
+        "review_patch_exact_git_diff": true,
+        "review_packet": "docs/ASTRA_SURRENDER_CPU_FACE_REVIEW_20260913.md"
       }
     },
     "limited_attachment_intake": {
@@ -4425,10 +4506,12 @@
       "checker": "scripts/check-commander-continuation.cjs",
       "tests": "tests/governance-commander-continuation.test.cjs",
       "next_run": {
-        "phase": "STOP",
-        "subject_sha": "b9c91af38986d96b226906ab5485aa1fe0b64088",
-        "at_utc": null,
-        "reason": "FINITE_WAIT_ENDED_NO_SILENCE_APPROVAL"
+        "phase": "NORMAL_WORK",
+        "action": "CHECK_CI",
+        "subject_sha": "5f44efb61b101c3f3f2bd0e1b36f2658a500c1c2",
+        "run_id": 34748004151,
+        "at_utc": "2026-09-13T08:53:58.000Z",
+        "reason": "Original20minute same-run slot; firstforfeited withoutread; no oldreviewbudget reset."
       },
       "first_scheduled_normal_run": {
         "status": "OBSERVED",
@@ -4444,33 +4527,33 @@
       },
       "automation_readback": {
         "id": "automation",
-        "status": "PAUSED",
+        "status": "ACTIVE",
         "target_thread_id": "01a07b56-616e-7733-9aae-90575659688e",
-        "rrule": "FREQ=DAILY;BYHOUR=16;BYMINUTE=26;BYSECOND=14",
-        "updated_at": 1789285754548,
+        "rrule": "FREQ=DAILY;BYHOUR=17;BYMINUTE=53;BYSECOND=58",
+        "updated_at": 1789288744582,
         "created_at": 1789048677730,
         "prompt_exact_equal": true,
-        "scheduled_for_utc": null,
+        "scheduled_for_utc": "2026-09-13T08:53:58.000Z",
         "readback_verified": true,
-        "verification_source": "Same existingheartbeat pauseAPI and fullactualTOML strict prompt/calendar/target equality; no scheduledexecution claim."
+        "verification_source": "Same existingheartbeat updateAPI and actualTOML fullprompt/calendar/target equality. FutureexecutionNOT_OBSERVED."
       },
-      "normal_work_claim": "b9 exactcandidate verified/pushed; fixed fivefile review artifact accessible atad566; sole sendaccepted but body not observed in2deliveryreads. No further permitted automatic read.",
-      "review_scope": "b9/base70e/UDL-023-public-actions-v1/blob468d/Pages_only/DBEdgeManaged[]. Increment845..b9fivefiles. No inheritedapproval.",
+      "normal_work_claim": "Independent v14 face implemented and exact candidate pushed; latest Kurogane100 preference preserved. Pending genuine face review, not self-approved.",
+      "review_scope": "Face5f44/base954e/UDL-067-face-v1/blob b2a5/Pages_only/DBEdgeManaged[]; no CPU or expiredb9 authority.",
       "verification": {
         "regression_tests": "42/42 PASS; skip0;638.46ms",
         "old_paused_state_guard": "Previously reproduced ORPHANED_ACTIONABLE_WORK; now also rejects past/under2minute calendar reservations and schedule-time mismatch.",
         "actual_scheduler_execution": "OBSERVED_SEPARATE_NORMAL_RUN_WITH_LIVE_WORK_RESULT",
-        "latest_tests": "59/59PASS412.1625ms skip/cancel0; exactpointer branchpair, no budgetrevival, realrecordunconfirmed binding and actualSTOPendguardPASS."
+        "latest_tests": "60/60PASS544.6369ms skip/cancel0; exactface owner/source/base/spec/emptychangesets and unreviewed finiteCI route; actualendguardPASS."
       },
       "current_run": {
         "phase": "NORMAL_WORK",
-        "source": "automatic_goal_continuation",
-        "started_at_utc": "2026-09-13T06:52:44Z",
+        "source": "automatic_goal_continuation_latest_user_policy_preserved",
+        "first_clock_observed_at_utc": "2026-09-13T08:23:30Z",
         "scheduled_origin_claimed": false,
-        "worktree": ".codex-worktrees/ui-public-match-actions-pointer-20260913",
-        "request": "UDL014/054 regression repair supporting exactUDL023 UI release. Existing normal commander; no earlyreview read.",
-        "canon_receipt": "CANON_RECEIPT version=shared-canon-v1.1 governance=e85a504d3e44015e15c00134fdea0c8980e1ea38 public_base=954e1c5c52d5453fc9fee9872b2d7e922f850a39 candidate_base=84587830730c1f62cf8c502daac4d768886a3f4d request=UDL-20260906-014,UDL-20260910-054,UDL-20260907-023 specs=docs/UI_PLAY_SURFACE_20260912.md,docs/UI_PUBLIC_MATCH_ACTIONS_20260913.md tests=tests/standard-online-browser.test.cjs,tests/canvas-native-pointer.test.cjs",
-        "result": "PROGRESS: derivative b9c91af committed, original845 and feature spec unchanged; correct native readiness-before-measure helper, native resize regression, exact Windowsbranch+helper paths. Chrome2/2, Edge2/2, unit/workflow/harness14/14PASS. Controlled order mutation rejected by unit and nativebrowser then restored. Clean148-file fullnonbrowser run session98187 now live. Fullclean148/164files1002/1002PASS74901.551ms; threebuilders unchanged; exactb9c91af force-freepush. ActualWindows34744571394 attempt1 bothjobsIN_PROGRESS at07:15:59Z. Full18file54028char/57353byte patch equals aggregate70e..b9 rawdiff. TerminalWindows bothSUCCESS07:24:51Z, genuine044 saved, fivefile15336bytepatch exact+applycheckPASS, b9 promoted within samecurrentrecord; old845/HOLD/CI retained as history. Genuine044 correctedlogidentity; b9WindowsfinalbothSUCCESS. Fixedfivefilepatch+proof published inad566d6; one substantive review sendaccepted, two deliveryreads returnedold044 whiletaskactive. DeliveryNOT_CONFIRMED. Originalslots exhausted/deadlineended; actualPAUSE being applied. Existingautomation actualPAUSED; fullTOML strict equality verified."
+        "worktree": ".codex-worktrees/surrender-cpu-face-20260913",
+        "request": "Adopted v14 UDL067 normal CPU face; preserve latest UDL051 Kurogane100 user policy.",
+        "canon_receipt": "CANON_RECEIPT version=shared-canon-v1.1 governance=7592ee57695299b77d00d876abc13fa1737b4fb8 public_base=954e1c5c52d5453fc9fee9872b2d7e922f850a39 candidate=5f44efb61b101c3f3f2bd0e1b36f2658a500c1c2 request=UDL-20260912-067,UDL-20260910-051 specs=docs/SURRENDER_CPU_FACE_20260913.md,docs/CPU_PALETTE_EFFICIENCY_20260913.md tests=tests/standard-online-browser.test.cjs,tests/standard-kurogane-palette-charges.test.cjs",
+        "result": "PROGRESS: implemented normal-face matching/fallback/guards; localbrowser success and8preserved screenshots. Initial03a4 Windows4marker failures preserved; exact3file followup5f44 product unchanged; clean977/977PASS and exact dedicatedpush. CPU9590 policy and5/5focusedPASS verified; originalCIattempt1failure unchanged. No production or new review read/send. Own Windows34748004151 attempt1 actuallyIN_PROGRESS; original08:33:58Z run anchor preserved, no Astra read budget changed. Prepared exact33347-byte15file patch, sameheartbeatACTIVE original17:53:58JST slot with fullTOML strictreadback, updated_at1789288744582; configuration not futureexecution."
       },
       "missed_schedule_observation": {
         "scheduled_at_utc": "2026-09-12T06:25:12Z",
@@ -4507,16 +4590,18 @@
         "recovered_without_new_user_wait": true
       },
       "end_turn_guard": {
-        "checked_at_utc": "2026-09-13T07:50:31Z",
-        "record_time_basis": "Adjacent clock after actual end-turn checker",
+        "checked_at_utc": "2026-09-13T08:40:35Z",
+        "record_time_basis": "Adjacent clock after actual checker and tests",
         "result": "PASS",
-        "phase": "STOP",
-        "subject_sha": "b9c91af38986d96b226906ab5485aa1fe0b64088",
-        "request_message_id": null,
-        "at_utc": null,
+        "phase": "NORMAL_WORK",
+        "action": "CHECK_CI",
+        "subject_sha": "5f44efb61b101c3f3f2bd0e1b36f2658a500c1c2",
+        "run_id": 34748004151,
+        "review_id": null,
+        "at_utc": "2026-09-13T08:53:58.000Z",
         "errors": [],
         "scheduled_origin_claimed": false,
-        "note": "Finiteoriginalwait exhausted andexpired;actualexistingheartbeatPAUSED/fullTOML strictmatch. b9deliverynotconfirmed,no newapproval."
+        "note": "Actual existingheartbeatACTIVE/fullTOML strictmatch. Originalfirstslotforfeited, original20minuteslot and60min deadline unchanged;no publicationauthority."
       },
       "latest_receive_schedule_observation": {
         "scheduled_at_utc": "2026-09-12T07:45:12Z",
@@ -4551,12 +4636,12 @@
       "previous_run": {
         "phase": "NORMAL_WORK",
         "source": "automatic_goal_continuation",
-        "started_at_utc": "2026-09-13T06:09:30Z",
+        "started_at_utc": "2026-09-13T06:52:44Z",
         "scheduled_origin_claimed": false,
-        "worktree": ".codex-worktrees/ui-public-match-actions-20260913",
-        "request": "UDL014/054: bounded diagnosis of frozen845 Windows shift-band pointer failure; no CI rerun or product revision yet.",
-        "canon_receipt": "CANON_RECEIPT version=shared-canon-v1.1 governance=888e8ae7e62ed002a7eaae21d4a52776af1dc5a8 candidate=84587830730c1f62cf8c502daac4d768886a3f4d base=70e691b6f8f1d808476e80990d20df7862bfb782 request=UDL-20260906-014,UDL-20260910-054,REG-20260913-SHIFT-BAND-POINTER specs=docs/UI_PLAY_SURFACE_20260912.md tests=existing151-suite-exact-single-case",
-        "result": "PROGRESS: 3 ordinary local1/1PASS; controlled328->292 stale click mappedrow5 andFAIL, freshgeometry mappedrow4 andPASS exactassertions. OriginalCIcauseNOT_PROVEN. Original40minute read returned genuine043HOLD; exactsamejob freshlog proves its catalogfailure identity wrong. No product/CI/production mutation. Genuine043/evidence committed and pushed asd992a810; supplement e547dc5b2308chars delivered once and matched on second bounded delivery read. Actualexistingheartbeat16:26:14JST fullreadback equal, original07:46:14Z expiry. No actualfutureexecution claim."
+        "worktree": ".codex-worktrees/ui-public-match-actions-pointer-20260913",
+        "request": "UDL014/054 regression repair supporting exactUDL023 UI release. Existing normal commander; no earlyreview read.",
+        "canon_receipt": "CANON_RECEIPT version=shared-canon-v1.1 governance=e85a504d3e44015e15c00134fdea0c8980e1ea38 public_base=954e1c5c52d5453fc9fee9872b2d7e922f850a39 candidate_base=84587830730c1f62cf8c502daac4d768886a3f4d request=UDL-20260906-014,UDL-20260910-054,UDL-20260907-023 specs=docs/UI_PLAY_SURFACE_20260912.md,docs/UI_PUBLIC_MATCH_ACTIONS_20260913.md tests=tests/standard-online-browser.test.cjs,tests/canvas-native-pointer.test.cjs",
+        "result": "PROGRESS: derivative b9c91af committed, original845 and feature spec unchanged; correct native readiness-before-measure helper, native resize regression, exact Windowsbranch+helper paths. Chrome2/2, Edge2/2, unit/workflow/harness14/14PASS. Controlled order mutation rejected by unit and nativebrowser then restored. Clean148-file fullnonbrowser run session98187 now live. Fullclean148/164files1002/1002PASS74901.551ms; threebuilders unchanged; exactb9c91af force-freepush. ActualWindows34744571394 attempt1 bothjobsIN_PROGRESS at07:15:59Z. Full18file54028char/57353byte patch equals aggregate70e..b9 rawdiff. TerminalWindows bothSUCCESS07:24:51Z, genuine044 saved, fivefile15336bytepatch exact+applycheckPASS, b9 promoted within samecurrentrecord; old845/HOLD/CI retained as history. Genuine044 correctedlogidentity; b9WindowsfinalbothSUCCESS. Fixedfivefilepatch+proof published inad566d6; one substantive review sendaccepted, two deliveryreads returnedold044 whiletaskactive. DeliveryNOT_CONFIRMED. Originalslots exhausted/deadlineended; actualPAUSE being applied. Existingautomation actualPAUSED; fullTOML strict equality verified."
       },
       "goal_blocked_audit_history": [
         {
@@ -4650,12 +4735,12 @@
       },
       "current_goal_turn_classification": {
         "previous_turn": "PROGRESS",
-        "previous_turn_reason": "Controlled diagnosis, exactgenuine043receipt, correctedactualjob evidence, one delivered2308-character substantive supplement and strictsameheartbeat readback.",
+        "previous_turn_reason": "b9 fixed pointer evidence and finite original delivery handling",
         "current_turn": "PROGRESS",
         "whole_goal_complete": false,
         "verified_wait": false,
-        "live_external_job_handle_confirmed": false,
-        "evidence": "Actual b9 committed/pushed;1002localPASS; Windows34744571394terminalSUCCESS both. Genuine044 accepted narrowrepair process but HOLD845 and no b9 releaseapproval. All originalreviewslots spent."
+        "live_external_job_handle_confirmed": true,
+        "evidence": "New independent adoptedface candidate5f44 implemented/tested/pushed. Own Windows discoverypending; raw failures preserved. No expiredAstra polling or production changes."
       },
       "documentation_review_followup_history": [
         {
@@ -4739,8 +4824,32 @@
           "errors": [],
           "scheduled_origin_claimed": false,
           "note": "Actual end-turn guard passed after conservative forfeiture of first unexecuted slot; next original40minute slot, immutable120minute deadline."
+        },
+        {
+          "checked_at_utc": "2026-09-13T07:50:31Z",
+          "record_time_basis": "Adjacent clock after actual end-turn checker",
+          "result": "PASS",
+          "phase": "STOP",
+          "subject_sha": "b9c91af38986d96b226906ab5485aa1fe0b64088",
+          "request_message_id": null,
+          "at_utc": null,
+          "errors": [],
+          "scheduled_origin_claimed": false,
+          "note": "Finiteoriginalwait exhausted andexpired;actualexistingheartbeatPAUSED/fullTOML strictmatch. b9deliverynotconfirmed,no newapproval."
         }
-      ]
+      ],
+      "previous_automation_readback": {
+        "id": "automation",
+        "status": "PAUSED",
+        "target_thread_id": "01a07b56-616e-7733-9aae-90575659688e",
+        "rrule": "FREQ=DAILY;BYHOUR=16;BYMINUTE=26;BYSECOND=14",
+        "updated_at": 1789285754548,
+        "created_at": 1789048677730,
+        "prompt_exact_equal": true,
+        "scheduled_for_utc": null,
+        "readback_verified": true,
+        "verification_source": "Same existingheartbeat pauseAPI and fullactualTOML strict prompt/calendar/target equality; no scheduledexecution claim."
+      }
     },
     "latest_brain_transfer": {
       "version_observed": "v10",

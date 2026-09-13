@@ -43,6 +43,17 @@ const slices = c => {
     &&equal(publicActions.db_change_set,[])&&equal(publicActions.edge_change_set,[])
     &&equal(publicActions.managed_setting_change_set,[]))
     current.push({ref:"remaining_brain_work.current_local_preparation.public_match_followup",slice:publicActions});
+  const face=c.remaining_brain_work?.surrender_face_preparation;
+  if(face?.owner_thread_id===OWNER&&face.request_id==="UDL-20260912-067"
+    &&face.alias==="ADD-20260913-SURRENDER-CPU-FACE"
+    &&face.source_message_id==="bbb2135e-cfd1-4da8-845b-9e3d07d8b29a"
+    &&face.branch==="codex/surrender-cpu-face-20260913"
+    &&face.worktree===".codex-worktrees/surrender-cpu-face-20260913"
+    &&face.spec_path==="docs/SURRENDER_CPU_FACE_20260913.md"&&face.spec_version==="UDL-067-face-v1"
+    &&SHA.test(face.candidate_sha||"")&&SHA.test(face.base_sha||"")&&SHA.test(face.spec_snapshot_sha||"")
+    &&face.scope==="Pages_only"&&face.new_image_bytes===0
+    &&equal(face.db_change_set,[])&&equal(face.edge_change_set,[])&&equal(face.managed_setting_change_set,[]))
+    current.push({ref:"remaining_brain_work.surrender_face_preparation",slice:face});
   return current;
 };
 const equal = (a,b) => JSON.stringify(a) === JSON.stringify(b);
@@ -98,7 +109,7 @@ function pendingBinding(c) {
 
 // Same-run CI continuation is metadata on the existing slice, not a second queue.
 function pendingCiPlan(s, review, ref, now) {
-  const base={phase:"NORMAL_WORK",ref,subject_sha:s.candidate_sha,review_id:review.review_id,run_id:s.windows_run};
+  const base={phase:"NORMAL_WORK",ref,subject_sha:s.candidate_sha,review_id:review?.review_id||null,run_id:s.windows_run};
   const investigate=reason=>{
     const saved=s.ci_followup?.investigation;
     if(saved?.status==="RECORDED" && saved.reason===reason &&
@@ -107,8 +118,8 @@ function pendingCiPlan(s, review, ref, now) {
     return {...base,action:"INVESTIGATE_CI",reason};
   };
   if(!/^[1-9][0-9]*$/.test(String(s.windows_run||"")))return investigate("CI_RUN_BINDING_MISSING");
-  const start=Date.parse(review.recorded_at_utc),time=Date.parse(now);
-  if(!Number.isFinite(start)||!Number.isFinite(time))return investigate("CI_REVIEW_ANCHOR_MISSING");
+  const start=Date.parse(review?review.recorded_at_utc:s.windows_created_at_utc),time=Date.parse(now);
+  if(!Number.isFinite(start)||!Number.isFinite(time))return investigate(review?"CI_REVIEW_ANCHOR_MISSING":"CI_RUN_ANCHOR_MISSING");
   const offsets=[5,20,50],expiry=start+60*60_000,slots=offsets.map(m=>new Date(start+m*60_000).toISOString());
   const budget=s.ci_followup || {run_id:s.windows_run,subject_sha:s.candidate_sha,
     started_at_utc:new Date(start).toISOString(),expires_at_utc:new Date(expiry).toISOString(),
@@ -130,7 +141,7 @@ function pendingCiPlan(s, review, ref, now) {
   const due=remaining.filter(at=>Date.parse(at)<=time);
   return {...base,action:"CHECK_CI",at_utc:due.at(-1)||remaining[0],
     ci_budget:budget,budget_persisted:Boolean(s.ci_followup),
-    reason:"APPROVED_UNPUBLISHED_SAME_CI_RUN_REQUIRES_BOUNDED_CHECK"};
+    reason:review?"APPROVED_UNPUBLISHED_SAME_CI_RUN_REQUIRES_BOUNDED_CHECK":"UNREVIEWED_EXACT_CANDIDATE_CI_ONLY_NO_RELEASE_AUTHORITY"};
 }
 
 function planContinuation(log, {now = new Date().toISOString(), otherOwnerActive = false} = {}) {
@@ -228,6 +239,15 @@ function planContinuation(log, {now = new Date().toISOString(), otherOwnerActive
         s.windows_status === "SUCCESS" && s.push_status === "PUSHED_EXACT_BRANCH")
       return {phase:"NORMAL_WORK", action:"SEND_REVIEW", ref, subject_sha:s.candidate_sha,
         reason:"READY_UNSENT_IS_WORK_NOT_A_REVIEW_WAIT"};
+    if(ref==="remaining_brain_work.surrender_face_preparation"
+      &&s.state==="LOCAL_VERIFIED_REVIEW_PREPARATION"&&s.local_verification==="PASS"
+      &&s.review_send_attempts===0&&s.review_status==="NOT_SENT"&&s.publication==="NOT_RUN"
+      &&s.publication_authorized===false&&s.live_canary_attempts===0){
+      if(s.push_status==="PUSHED_EXACT_BRANCH"&&s.windows_status!=="NOT_RUN")
+        return pendingCiPlan(s,null,ref,now);
+      return {phase:"NORMAL_WORK",action:"PREPARE_FIXED_SURRENDER_FACE_REVIEW",ref,subject_sha:s.candidate_sha,
+        reason:"ADOPTED_INDEPENDENT_FACE_REQUIRES_OWN_GATES_NOT_EXPIRED_PUBLIC_ACTIONS_WAIT"};
+    }
     if(ref==="remaining_brain_work.cutin_readability_preparation.named_skill_followup"
       &&s.state==="LOCAL_VERIFIED_REVIEW_PREPARATION"&&s.local_verification==="PASS"
       &&s.review_send_attempts===0&&s.review_status==="NOT_SENT"&&s.publication==="NOT_RUN")

@@ -76,6 +76,38 @@ function publicActionSuccessor(log){
   return s;
 }
 
+test("independent face preparation and unreviewed same-run CI never revive expired review or grant release",()=>{
+  const log=fixture();approve(log);sourceArtifactHold(log);
+  const s={owner_thread_id:OWNER,request_id:"UDL-20260912-067",alias:"ADD-20260913-SURRENDER-CPU-FACE",
+    source_message_id:"bbb2135e-cfd1-4da8-845b-9e3d07d8b29a",branch:"codex/surrender-cpu-face-20260913",
+    worktree:".codex-worktrees/surrender-cpu-face-20260913",spec_path:"docs/SURRENDER_CPU_FACE_20260913.md",
+    spec_version:"UDL-067-face-v1",candidate_sha:"d".repeat(40),base_sha:"e".repeat(40),spec_snapshot_sha:"f".repeat(40),
+    scope:"Pages_only",new_image_bytes:0,db_change_set:[],edge_change_set:[],managed_setting_change_set:[],
+    state:"LOCAL_VERIFIED_REVIEW_PREPARATION",local_verification:"PASS",review_send_attempts:0,review_status:"NOT_SENT",
+    publication:"NOT_RUN",publication_authorized:false,live_canary_attempts:0,push_status:"NOT_RUN",windows_status:"NOT_RUN"};
+  log.coordination.remaining_brain_work={surrender_face_preparation:s};
+  const original=JSON.stringify(log);
+  assert.equal(planContinuation(log).action,"PREPARE_FIXED_SURRENDER_FACE_REVIEW");
+  assert.equal(JSON.stringify(log),original);
+  for(const [key,value] of [["owner_thread_id","other"],["source_message_id","draft"],["branch","main"],
+    ["spec_snapshot_sha","bad"],["new_image_bytes",1],["edge_change_set",["unauthorized"]],
+    ["publication_authorized",true],["live_canary_attempts",1],["review_send_attempts",1]]){
+    const copy=JSON.parse(original);copy.coordination.remaining_brain_work.surrender_face_preparation[key]=value;
+    assert.equal(planContinuation(copy).reason,"CURRENT_EDGE_SOURCE_REQUIRES_USER_ARTIFACT");
+  }
+  Object.assign(s,{push_status:"PUSHED_EXACT_BRANCH",windows_status:"IN_PROGRESS",windows_run:"987",windows_created_at_utc:"2026-09-13T08:00:00Z"});
+  const wait=JSON.stringify(log.coordination.wait_budget),p=planContinuation(log,{now:"2026-09-13T08:01:00Z"});
+  assert.equal(p.action,"CHECK_CI");assert.equal(p.review_id,null);assert.equal(p.at_utc,"2026-09-13T08:05:00.000Z");
+  assert.equal(p.reason,"UNREVIEWED_EXACT_CANDIDATE_CI_ONLY_NO_RELEASE_AUTHORITY");
+  assert.equal(JSON.stringify(log.coordination.wait_budget),wait);
+  s.ci_followup=p.ci_budget;
+  assert.equal(planContinuation(log,{now:"2026-09-13T09:01:00Z"}).reason,"CI_DEADLINE_EXPIRED");
+  s.windows_status="FAILURE";
+  assert.equal(planContinuation(log,{now:"2026-09-13T08:10:00Z"}).action,"INVESTIGATE_CI");
+  s.windows_status="SUCCESS";
+  assert.equal(planContinuation(log).action,"SEND_REVIEW");assert.equal(s.publication,"NOT_RUN");
+});
+
 test("the exact pointer successor uses the same review queue without pairing a different worktree or reviving spent slots",()=>{
   const log=fixture();approve(log);sourceArtifactHold(log);const s=publicActionSuccessor(log);
   s.branch="codex/ui-public-match-actions-pointer-20260913";

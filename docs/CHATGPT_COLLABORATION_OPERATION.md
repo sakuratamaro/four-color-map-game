@@ -2,6 +2,8 @@
 
 ## 現行差分: commander-continuation-v1（2026-09-12）
 
+2026-09-13 v14投了通常顔の追補: 採用済みUDL067/ADD-20260913-SURRENDER-CPU-FACEを既存 `remaining_brain_work.surrender_face_preparation` に保持する。owner・本人出典・専用branch/worktree・仕様・完全SHA・Pages_only・空DB/Edge/管理変更セット・新画像0に一致する独立候補だけ、局所検証後の固定レビュー準備へ送る。未レビューの同SHA Windows確認は実run作成時刻を原起点に5/20/50分・最大3回・60分期限で行い、予算を事前保存する。失敗/期限切れは同じrunの一回診断へ分け、判明した欠陥の修正以外でCIを作り直さない。成功だけでは公開承認にならない。旧b9の終了したレビュー予算、70eのsource受渡し、CPU100/039、旧067 partial/rawFAILと消費済みliveを変更しない。既存heartbeat1本で通常再開し、別監視・古い承認の流用・APPROVE_DOCSの自称をしない。
+
 2026-09-13 v14公開対戦二択の追補: 既存入口便の `current_local_preparation.public_match_followup` に、採用済みUDL023の固定後続候補を保持する。親70eのsource本人受渡し停止とCPU039は保存したまま、専用床・本人出典・仕様・base・空DB/Edge/管理変更セットが一致するローカルUI準備を通常作業へ送る。旧9515公開を新受入へ流用せず、UI公開は親70e公開後のfresh main一致と新候補固有のWindows・真正レビューが必要。本人artifact未着を毎回ダウンロードする経路や新たなキュー/監視は作らない。本経路は042のAPPROVE_DOCSではない。
 
 2026-09-13 配備前sourceの本人受渡し追補: 正確な実公開承認とWindows成功があっても、現行Edgeの完全source取得を有限に試して未取得なら、既存candidateの `release_preflight_hold` に候補/仕様/実review/出典/無変更/試行数/本人依頼を保存する。helperはその完全一致と本番変更0の既存gateを確認して本人artifact待ちSTOPへ分ける。別の進行可能な便は隠さず、適格対象がなければ同じheartbeatを実PAUSEDにし、モデル取得ループを作らない。本人が新しい現行sourceを渡したら正確なfile set/bytesとfresh状態を照合し、元holdを証拠付き履歴へ移してから同じ公開ゲートへ戻す。承認の取消、無応答承認、公開前sourceゲートの免除、既存待機期限の再開、ブラウザー内部page拒否の迂回は行わない。本経路は042ゲーム承認のAPPROVE_DOCSではない。SKILL_PUBLIC_EVENT_RELEASE_PREFLIGHT_20260913.jsonに原失敗を保存。

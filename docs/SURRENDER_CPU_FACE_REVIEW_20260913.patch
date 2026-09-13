@@ -1,0 +1,402 @@
+diff --git a/.github/workflows/standard-browser-gate.yml b/.github/workflows/standard-browser-gate.yml
+index ee75d58ad61169c63341a0bffcdcc4180451422e..c8ae59e7cce9ca8ad18a089573dfde30eba36b84 100644
+--- a/.github/workflows/standard-browser-gate.yml
++++ b/.github/workflows/standard-browser-gate.yml
+@@ -2,7 +2,7 @@ name: Standard browser gate
+ 
+ on:
+   push:
+-    branches: [codex/standard-release-command, codex/quiz-memo-calculator-20260912, codex/ui-diet-20260912, codex/ui-play-surface-20260912, codex/ui-result-20260912, codex/ui-cosmetics-20260912, codex/ui-player-copy-20260912, codex/skill-cutin-20260912, codex/ui-flat-entry-20260912, codex/skill-catalog-20260912, codex/surrender-confirmation-20260913, codex/cpu-split-rescue-20260913, codex/skill-cutin-readability-20260913]
++    branches: [codex/standard-release-command, codex/quiz-memo-calculator-20260912, codex/ui-diet-20260912, codex/ui-play-surface-20260912, codex/ui-result-20260912, codex/ui-cosmetics-20260912, codex/ui-player-copy-20260912, codex/skill-cutin-20260912, codex/ui-flat-entry-20260912, codex/skill-catalog-20260912, codex/surrender-confirmation-20260913, codex/cpu-split-rescue-20260913, codex/skill-cutin-readability-20260913, codex/surrender-cpu-face-20260913]
+     paths:
+       - .github/workflows/standard-browser-gate.yml
+       - online/supabase-config.js
+diff --git a/docs/STANDARD_PUBLIC_RELEASE_RUNBOOK.md b/docs/STANDARD_PUBLIC_RELEASE_RUNBOOK.md
+index 10c1fb6924383bbd5fe3285d987389d92e6df873..d6dc49bf2cbf5745eca08e3a0384acb98155e951 100644
+--- a/docs/STANDARD_PUBLIC_RELEASE_RUNBOOK.md
++++ b/docs/STANDARD_PUBLIC_RELEASE_RUNBOOK.md
+@@ -288,7 +288,7 @@ Pages表示の退行は直前Pagesへ戻せる。適用済みcounterは旧client
+ 
+ ### alpha.4彩色済みエリア角膨張便
+ 
+-完了履歴。この便は新payloadを旧Edgeが拒否する一方、新Edgeは旧UIのoutgoing payloadを継続できるため、`alpha.4対応Edge → live canary → Pages`の順で公開した。後続の対戦報酬便、CPU台詞／地の文分離便、CPU選択前portrait便、終局復帰時の開始告知抑止便、パレット属性識別便、クイズ報酬券レベル引継ぎ候補を含む現在のPages候補assetはonline app `app.js?v=20260913-43`、CPU commentary `cpu-commentary.js?v=20260910-1`、progression `progression.css?v=20260910-2`、style `style.css?v=20260910-12`、intents `standard-online-skill-intents.js?v=20260911-21`、client `standard-online-client.js?v=20260910-1`、portrait `cpu-portraits.js?v=20260908-1`、Local bundle `app.bundle.js?v=20260913-9-4f66b9b284ba`である。このalpha.4便自体ではDB、migration、RPC、secret、cleanup scheduleは変更しない。
++完了履歴。この便は新payloadを旧Edgeが拒否する一方、新Edgeは旧UIのoutgoing payloadを継続できるため、`alpha.4対応Edge → live canary → Pages`の順で公開した。後続の対戦報酬便、CPU台詞／地の文分離便、CPU選択前portrait便、終局復帰時の開始告知抑止便、パレット属性識別便、クイズ報酬券レベル引継ぎ候補を含む現在のPages候補assetはonline app `app.js?v=20260913-46`、CPU commentary `cpu-commentary.js?v=20260910-1`、progression `progression.css?v=20260910-2`、style `style.css?v=20260910-12`、intents `standard-online-skill-intents.js?v=20260911-21`、client `standard-online-client.js?v=20260910-1`、portrait `cpu-portraits.js?v=20260908-1`、Local bundle `app.bundle.js?v=20260913-9-4f66b9b284ba`である。このalpha.4便自体ではDB、migration、RPC、secret、cleanup scheduleは変更しない。
+ 
+ 1. `origin/main@63972b6`起点の専用clean worktreeで両bundleを2回生成し、2回目のSHAが不変、正式全製品試験、Windows Chrome/Edge CI、対象実browserのskip 0を確認する。
+ 2. alpha.4対応bundleを保持したまま新規対局だけを`5.0.0-alpha.3`へ戻す互換rollback branchを作成・GitHub保全する。既存alpha.4 stateの読込み・継続と、alpha.3新規stateが彩色済みpayloadをwrite-free拒否することを確認する。
+diff --git a/docs/SURRENDER_CPU_FACE_20260913.md b/docs/SURRENDER_CPU_FACE_20260913.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..b2a5ad7dde6e590fb8122e3f4167de3ba4d744ff
+--- /dev/null
++++ b/docs/SURRENDER_CPU_FACE_20260913.md
+@@ -0,0 +1,18 @@
++# CPU face in the surrender confirmation
++
++Version: UDL-067-face-v1
++CANON_RECEIPT version=shared-canon-v1.1 governance=7592ee57695299b77d00d876abc13fa1737b4fb8 base=954e1c5c52d5453fc9fee9872b2d7e922f850a39 request=UDL-20260912-067,ADD-20260913-SURRENDER-CPU-FACE specs=docs/SURRENDER_CONFIRMATION_20260913.md,docs/BRAIN_V14_DELTA_INTAKE_20260913.json@codex/dev-brain-current-20260910 tests=tests/standard-surrender-confirmation.test.cjs,tests/standard-cpu-portraits.test.cjs,tests/standard-online-browser.test.cjs worktree=.codex-worktrees/surrender-cpu-face-20260913
++
++## Source and exact scope
++
++Adopted v14 user message bbb2135e-cfd1-4da8-845b-9e3d07d8b29a in actual ChatGPT task6aa229e7-e098-83ee-ac5e-d366a12653a4: 「ここのウィンドウでもCPUの顔のイラストが見られると嬉しいです。」 Package5339aea3-bc6b-4fb2-9467-ef8a082c0538, canonical UDL067. The existing root commander owns this independent Pages-only slice. No new asset bytes; reuse the current public portrait presenter and normal face selected by the same validated public CPU ID as the dialogue. This is not completion or substitution of the separately requested Wataokiba replacement.
++
++Place the normal face next to the existing CPU name/line in the surrender dialog. Portrait is decorative because the visible name already identifies the opponent; no extra focus stop, live announcement, victory/loss treatment or reward-only full-body art. The frame is76px on desktop,64px at390px (AI layout choice, not user-stated number). Unknown CPU and PvP retain generic confirmation with no portrait. Missing module, missing/failed atlas or presentation error must fall back without preventing cancel/confirm.
++
++Keep native dialog, safe initial cancel focus, both44px actions, existing room/match/version/seat/current-state guards, exactly-one SURRENDER and exact pending retry. Cancel/Escape/open/portrait loading do not send operations. Closing or stale-scope cancellation clears the portrait; same-snapshot refresh must keep it stable. Existing fixed CPU lines, skill cut-ins, gameplay, CPU decisions, counts, saved rooms, DB/Edge/managed settings and all image bytes remain unchanged.
++
++## Required evidence and release boundary
++
++Executable tests cover all10 public IDs with matching name/line/normal atlas cell; unknown/PvP, missing module/atlas and loading/fallback;390/768/1280 plus short landscape; keyboard focus/cancel/Enter/Escape and exact-one affirmative; unchanged-snapshot stable portrait and stale CPU/room/version invalidation; no extra game/profile/match operation. Check rendered screenshots and scoped portrait/confirmation regressions. Existing Windows Chrome/Edge gate and own genuine exact review are required before release. If the base changes, reconcile and rebind the candidate rather than borrowing an old approval.
++
++Base is fresh main954e, not the unpublished70e/b9 chain. Old067f507 publication/partial acceptance/rawFAIL and its used live allowance remain unchanged. This candidate grants no new profile/match/live test. CPU100/9590/039 and UIb9 delivery-unconfirmed expiredwait remain frozen; this new independent request does not restart that review. Production/main/Pages/DB/Edge/managed changes NOT_RUN. This specification and implementation are not self-approval.
+diff --git a/scripts/live-standard-release-preflight.mjs b/scripts/live-standard-release-preflight.mjs
+index dc407d2c6be0354c68fd5ad02b798fd4d388c9f8..beeae61d5b45a24b25dc14bef8dae4d651d8f266 100644
+--- a/scripts/live-standard-release-preflight.mjs
++++ b/scripts/live-standard-release-preflight.mjs
+@@ -14,7 +14,7 @@ const publicEdgeBundleUrl = new URL("../supabase/functions/standard-game-action/
+ const expectedPhase = process.argv.find((argument) => argument.startsWith("--expect="))?.slice("--expect=".length) || null;
+ const zeroUuid = "00000000-0000-0000-0000-000000000000";
+ const candidateAssetMarkers = Object.freeze({
+-app: "app.js?v=20260913-43",
++app: "app.js?v=20260913-46",
+   commentary: "cpu-commentary.js?v=20260910-1",
+   style: "style.css?v=20260910-12",
+   client: "standard-online-client.js?v=20260910-1",
+diff --git a/scripts/standard-release-preflight-contracts.mjs b/scripts/standard-release-preflight-contracts.mjs
+index 2ac4e8731da2f743f97364091fd73517f26d81bd..aa9ef2c93a2ae83dac5d39657d726ff79e6342ec 100644
+--- a/scripts/standard-release-preflight-contracts.mjs
++++ b/scripts/standard-release-preflight-contracts.mjs
+@@ -143,7 +143,7 @@ export function hasCompactCpuRecords(pageText, appText, progressionCssText) {
+ 
+ export function hasQuizAccuracyRecords(pageText, appText, progressionCssText) {
+   return includesAll(pageText, [
+-'app.js?v=20260913-43',
++'app.js?v=20260913-46',
+     'progression.css?v=20260910-2',
+     'id="quizAccuracyRecords" class="quiz-accuracy-records" role="list"',
+     "記録開始以降に、サーバーで採点が確定した回答だけを集計します。",
+diff --git a/standard-online-v5/app.js b/standard-online-v5/app.js
+index f025c65d8ac4dbb7b5f11d557c93b12a8674cfe8..b028beeda15ce2dc49318a732f26bc8ee93a2165 100644
+--- a/standard-online-v5/app.js
++++ b/standard-online-v5/app.js
+@@ -6080,12 +6080,26 @@ function isSurrenderIntentCurrent() {
+   try { return globalThis.FourColorSurrenderConfirmation?.isCurrentIntent(surrenderIntent, surrenderContext()) === true; }
+   catch { return false; }
+ }
++function renderSurrenderCpuPortrait(characterId = null) {
++  const ids = ["surrenderCpuPortraitFrame", "surrenderCpuPortrait", "surrenderCpuPortraitFallback"];
++  const elements = cpuPortraitElements(...ids);
++  show(ids[0], Boolean(characterId));
++  try {
++    clearCpuPortrait(...ids);
++    if (characterId) renderCpuPortrait(...ids, { characterId }); // Normal face, never a terminal/reward image.
++  } catch {
++    // Optional artwork cannot prevent the existing safe confirmation or show a stale face.
++    elements.art.hidden = true;
++    elements.fallback.hidden = false;
++  }
++}
+ function closeSurrenderDialog(restoreFocus = true) {
+   const trigger = surrenderDialogTrigger;
+   const mayRestore = restoreFocus && isSurrenderIntentCurrent();
+   surrenderIntent = null; surrenderDialogTrigger = null;
+   const dialog = $("surrenderDialog");
+   if (dialog?.open) dialog.close();
++  renderSurrenderCpuPortrait();
+   if (mayRestore && trigger?.isConnected && !trigger.disabled && trigger.getClientRects().length) trigger.focus({ preventScroll: true });
+ }
+ function openSurrenderDialog(trigger = document.activeElement) {
+@@ -6096,6 +6110,7 @@ function openSurrenderDialog(trigger = document.activeElement) {
+     $("surrenderSpeaker").textContent = intent.opponentKind === "cpu" ? publicActorLabel("B") : "";
+     show("surrenderSpeaker", intent.opponentKind === "cpu");
+     $("surrenderDescription").textContent = voice.line;
++    renderSurrenderCpuPortrait(voice.characterId);
+     surrenderIntent = intent;
+     surrenderDialogTrigger = trigger instanceof HTMLElement ? trigger : $("surrender");
+     skillCutin.interrupt();
+diff --git a/standard-online-v5/index.html b/standard-online-v5/index.html
+index 5b2638a0ac527b5ddea5d5a542aa7cb494803ee9..a6a97902e8bc0b929b0f26e0f94a46da155efe8d 100644
+--- a/standard-online-v5/index.html
++++ b/standard-online-v5/index.html
+@@ -12,7 +12,7 @@
+   <link rel="stylesheet" href="quiz-memo.css?v=20260912-2">
+   <link rel="stylesheet" href="ui-diet.css?v=20260912-3">
+   <link rel="stylesheet" href="skill-catalog.css?v=20260912-1">
+-  <link rel="stylesheet" href="surrender-confirmation.css?v=20260913-1">
++  <link rel="stylesheet" href="surrender-confirmation.css?v=20260913-2">
+   <link rel="stylesheet" href="play-surface.css?v=20260912-1">
+   <link rel="stylesheet" href="result-continuation.css?v=20260912-1">
+   <link rel="stylesheet" href="skill-cutin.css?v=20260913-1">
+@@ -475,8 +475,16 @@
+   <dialog id="surrenderDialog" class="room-abandon-dialog" aria-labelledby="surrenderTitle" aria-describedby="surrenderSpeaker surrenderDescription">
+     <form method="dialog">
+       <h2 id="surrenderTitle">投了しますか？</h2>
+-      <p id="surrenderSpeaker" class="muted"></p>
+-      <p id="surrenderDescription"></p>
++      <div class="surrender-dialogue">
++        <span id="surrenderCpuPortraitFrame" class="cpu-portrait-frame hidden" aria-hidden="true">
++          <span id="surrenderCpuPortrait" class="cpu-portrait-art" hidden></span>
++          <span id="surrenderCpuPortraitFallback" class="cpu-portrait-fallback">CPU</span>
++        </span>
++        <div class="surrender-dialogue-copy">
++          <p id="surrenderSpeaker" class="muted"></p>
++          <p id="surrenderDescription"></p>
++        </div>
++      </div>
+       <div class="room-abandon-dialog-actions">
+         <button id="cancelSurrender" type="button" class="ghost" autofocus>対戦を続ける</button>
+         <button id="confirmSurrender" type="button" class="danger">投了する</button>
+@@ -545,6 +553,6 @@
+   <p id="skillCutinAnnouncement" class="visually-hidden" role="status" aria-live="polite" aria-atomic="true"></p>
+   <script src="skill-cutin.js?v=20260913-1"></script>
+   <script src="surrender-confirmation.js?v=20260913-1"></script>
+-  <script type="module" src="app.js?v=20260913-43"></script>
++  <script type="module" src="app.js?v=20260913-46"></script>
+ </body>
+ </html>
+diff --git a/standard-online-v5/surrender-confirmation.css b/standard-online-v5/surrender-confirmation.css
+index 65a30d9ba2e56bba3e2efc7f7be8fe77d5d97e7d..fb3ff6099e1684e9bf4353e82059c51ba231038f 100644
+--- a/standard-online-v5/surrender-confirmation.css
++++ b/standard-online-v5/surrender-confirmation.css
+@@ -1,2 +1,12 @@
+ /* UDL067: keep the safe initial choice visible on the dark native dialog. */
+ #surrenderDialog button:focus-visible { outline: 3px solid #67e8f9; outline-offset: 3px; }
++.surrender-dialogue { display: flex; align-items: flex-start; gap: 14px; margin-block: 16px; }
++.surrender-dialogue-copy { flex: 1; min-width: 0; overflow-wrap: anywhere; }
++.surrender-dialogue-copy p { margin: 0; }
++.surrender-dialogue-copy #surrenderSpeaker:not(.hidden) { margin-bottom: 8px; }
++#surrenderCpuPortraitFrame { width: 76px; height: 76px; }
++#surrenderCpuPortraitFallback { font-size: 12px; }
++@media (max-width: 390px) {
++  .surrender-dialogue { gap: 10px; }
++  #surrenderCpuPortraitFrame { width: 64px; height: 64px; }
++}
+diff --git a/tests/standard-browser-gate-workflow.test.cjs b/tests/standard-browser-gate-workflow.test.cjs
+index fc92eadd0bcf147f362ae64377948414e43ad46e..6c5b511aeb973c75f73725e108ec9a98ba35b9b0 100644
+--- a/tests/standard-browser-gate-workflow.test.cjs
++++ b/tests/standard-browser-gate-workflow.test.cjs
+@@ -16,7 +16,7 @@ test("Standard browser gate YAML text uses stable whitespace", () => {
+ });
+ 
+ test("Standard browser gate is candidate-push, manual, or pull-request only and least-privileged", () => {
+-  assert.match(workflow, /^on:\r?\n  push:\r?\n    branches: \[codex\/standard-release-command, codex\/quiz-memo-calculator-20260912, codex\/ui-diet-20260912, codex\/ui-play-surface-20260912, codex\/ui-result-20260912, codex\/ui-cosmetics-20260912, codex\/ui-player-copy-20260912, codex\/skill-cutin-20260912, codex\/ui-flat-entry-20260912, codex\/skill-catalog-20260912, codex\/surrender-confirmation-20260913, codex\/cpu-split-rescue-20260913, codex\/skill-cutin-readability-20260913\][\s\S]+?  pull_request:[\s\S]+?  workflow_dispatch:/m);
++  assert.match(workflow, /^on:\r?\n  push:\r?\n    branches: \[codex\/standard-release-command, codex\/quiz-memo-calculator-20260912, codex\/ui-diet-20260912, codex\/ui-play-surface-20260912, codex\/ui-result-20260912, codex\/ui-cosmetics-20260912, codex\/ui-player-copy-20260912, codex\/skill-cutin-20260912, codex\/ui-flat-entry-20260912, codex\/skill-catalog-20260912, codex\/surrender-confirmation-20260913, codex\/cpu-split-rescue-20260913, codex\/skill-cutin-readability-20260913, codex\/surrender-cpu-face-20260913\][\s\S]+?  pull_request:[\s\S]+?  workflow_dispatch:/m);
+   assert.equal((workflow.match(/      - online\/supabase-config\.js/g) || []).length, 2);
+   assert.equal((workflow.match(/      - online-v5\/style\.css/g) || []).length, 2);
+   assert.equal((workflow.match(/      - standard-online-v5\/\*\*/g) || []).length, 2);
+diff --git a/tests/standard-live-release-preflight-static.test.cjs b/tests/standard-live-release-preflight-static.test.cjs
+index 733c21c67d4b160227ca1a7a14e33e132c70e78e..b562f488cad57dee11536ee86651fdca3782052b 100644
+--- a/tests/standard-live-release-preflight-static.test.cjs
++++ b/tests/standard-live-release-preflight-static.test.cjs
+@@ -78,7 +78,7 @@ test("release preflight is read-only, secret-free, finite, and stage-aware", ()
+   assert.match(source, /MATCH_REWARD_ECONOMY_MISMATCH/);
+   assert.match(source, /app\.text\.includes\('★\$\{meta\.rarity\}'\)/);
+   assert.match(source, /CANDIDATE_ASSET_GENERATION_UI_PHASE_MISMATCH/);
+-assert.match(source, /app\.js\?v=20260913-43/);
++assert.match(source, /app\.js\?v=20260913-46/);
+   assert.match(source, /cpu-commentary\.js\?v=20260910-1/);
+   assert.match(source, /progression\.css/);
+   assert.match(source, /style\.css\?v=20260910-12/);
+@@ -229,7 +229,7 @@ test("candidate app satisfies the waiting-opponent release marker", () => {
+ });
+ 
+ test("candidate page and app satisfy the alpha.4 cache generation marker", () => {
+-  assert.equal(candidateHtml.includes("app.js?v=20260913-43"), true);
++  assert.equal(candidateHtml.includes("app.js?v=20260913-46"), true);
+   assert.equal(candidateHtml.includes("cpu-commentary.js?v=20260910-1"), true);
+   assert.equal(candidateHtml.includes("style.css?v=20260910-12"), true);
+   assert.equal(candidateHtml.includes("standard-online-client.js?v=20260910-1"), true);
+diff --git a/tests/standard-online-basic-feedback-static.test.cjs b/tests/standard-online-basic-feedback-static.test.cjs
+index 6665e54184cc8a13ca8a5ce0da9881bf1ff9d3d8..1794f417131b57d41fa947782760c74e9634506a 100644
+--- a/tests/standard-online-basic-feedback-static.test.cjs
++++ b/tests/standard-online-basic-feedback-static.test.cjs
+@@ -26,7 +26,7 @@ test("online feedback settings are explicit, separate, persistent, and keyboard-
+ 
+ test("feedback script is cache-busted before the matching app generation", () => {
+   const controllerScript = html.indexOf('<script src="basic-feedback.js?v=20260908-2"></script>');
+-const appScript = html.indexOf('<script type="module" src="app.js?v=20260913-43"></script>');
++const appScript = html.indexOf('<script type="module" src="app.js?v=20260913-46"></script>');
+   assert.ok(controllerScript >= 0 && appScript > controllerScript);
+   assert.match(html, /style\.css\?v=20260910-12/);
+   assert.doesNotMatch(html, /app\.js\?v=20260906-(?:36|38)|style\.css\?v=20260906-(?:36|37)/);
+diff --git a/tests/standard-online-browser.test.cjs b/tests/standard-online-browser.test.cjs
+index 237002dd397f2913a32af55866768f67db996df2..12614985f58a86e278809d5329e1a8adc4a1b22a 100644
+--- a/tests/standard-online-browser.test.cjs
++++ b/tests/standard-online-browser.test.cjs
+@@ -6758,6 +6758,88 @@ test("actual browser never draws removed current or previous region history outl
+   }, { viewport: { width: 390, height: 844 } });
+ });
+ 
++test("UDL067 face follows all ten public CPU identities and clears without a game write", { timeout: 120000 }, async () => {
++  await withPage("colorResponse", async page => {
++    const names = { yuzu:"ユズ", ren:"レン", minato:"ミナト", koharu:"コハル", aoi:"アオイ",
++      kai:"カイ", tsubasa:"ツバサ", shion:"シオン", rei:"レイ", kurogane:"クロガネ" };
++    const dialogue = require("../standard-online-v5/surrender-confirmation.js");
++    const portraits = require("../standard-online-v5/cpu-portraits.js");
++    const commands = () => page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter(c => c.body).map(c => c.body));
++    const before = await commands();
++    for (const [id, name] of Object.entries(names)) {
++      await page.evaluate(id => {
++        const r = globalThis.__standardOnlineRuntime;
++        r.room = { ...r.room, opponent_kind:"cpu", cpu_character_id:id }; r.onInvalidate();
++      }, id);
++      await page.waitForFunction(name => document.querySelector("#cpuCommentaryName")?.textContent.includes(name), name);
++      await page.locator("#colorSurrender:not([disabled])").click();
++      await page.locator("#surrenderDialog[open]").waitFor();
++      const frame = page.locator("#surrenderCpuPortraitFrame");
++      await page.waitForFunction(() => document.querySelector("#surrenderCpuPortraitFrame").dataset.portraitStatus === "ready");
++      assert.equal(await frame.getAttribute("data-portrait-key"), id + ":normal");
++      assert.equal(await frame.getAttribute("data-portrait-mode"), "normal");
++      assert.equal(await frame.getAttribute("data-portrait-reason"), null);
++      assert.equal(await frame.getAttribute("aria-hidden"), "true");
++      assert.equal(await frame.isVisible(), true);
++      assert.equal(await frame.locator("button,a,[tabindex]").count(), 0);
++      assert.match(await page.locator("#surrenderSpeaker").textContent(), new RegExp(name));
++      assert.equal(await page.locator("#surrenderDescription").textContent(), dialogue.dialogueFor("cpu", id).line);
++      const selection = portraits.selectCpuPortrait({ characterId:id });
++      assert.deepEqual(await page.locator("#surrenderCpuPortrait").evaluate(el => ({
++        x:el.style.getPropertyValue("--cpu-portrait-x"), y:el.style.getPropertyValue("--cpu-portrait-y"), hidden:el.hidden
++      })), { x:selection.x, y:selection.y, hidden:false });
++      await page.evaluate(() => { globalThis.__faceBefore = document.querySelector("#surrenderCpuPortrait"); globalThis.__standardOnlineRuntime.onInvalidate(); });
++      assert.equal(await page.evaluate(() => document.querySelector("#surrenderCpuPortrait") === globalThis.__faceBefore), true);
++      assert.equal(await page.evaluate(() => document.activeElement.id), "cancelSurrender");
++      await page.keyboard.press("Escape");
++      assert.equal(await frame.isHidden(), true);
++      assert.equal(await frame.getAttribute("data-portrait-key"), null);
++    }
++    await page.locator("#colorSurrender:not([disabled])").click();
++    await page.evaluate(() => { const r=globalThis.__standardOnlineRuntime;
++      r.room={...r.room,cpu_character_id:"rei"};r.onInvalidate(); });
++    await page.locator("#surrenderDialog").waitFor({state:"hidden"});
++    assert.equal(await page.locator("#surrenderCpuPortraitFrame").isHidden(),true);
++    assert.equal(await page.locator("#surrenderCpuPortraitFrame").getAttribute("data-portrait-key"),null);
++    for (const kind of ["human","cpu"]) {
++      await page.evaluate(kind => { const r=globalThis.__standardOnlineRuntime;
++        r.room={...r.room,opponent_kind:kind,cpu_character_id:"unknown"}; r.onInvalidate(); }, kind);
++      await page.waitForFunction(() => document.querySelector("#cpuCommentaryStage").classList.contains("hidden"));
++      await page.locator("#colorSurrender:not([disabled])").click();
++      assert.equal(await page.locator("#surrenderCpuPortraitFrame").isHidden(), true);
++      assert.equal(await page.locator("#surrenderDescription").textContent(), dialogue.dialogueFor(kind,"unknown").line);
++      await page.locator("#cancelSurrender").click();
++    }
++    assert.deepEqual(await commands(), before);
++  }, { viewport:{width:390,height:844}, bodyTimeout:70000 });
++});
++
++for (const unavailable of ["atlas", "module"]) {
++  test("UDL067 face " + unavailable + " failure keeps visible fallback and safe explicit confirmation", { timeout: 120000 }, async () => {
++    const errors=[];
++    await withPage("colorResponse", async page => {
++      await page.evaluate(() => { const r=globalThis.__standardOnlineRuntime;
++        r.room={...r.room,opponent_kind:"cpu",cpu_character_id:"rei"};r.onInvalidate(); });
++      await page.waitForFunction(() => document.querySelector("#cpuCommentaryName")?.textContent.includes("レイ"));
++      const count=()=>page.evaluate(()=>globalThis.__standardOnlineRuntime.calls.filter(c=>c.body?.operation==="action").length);
++      const before=await count();
++      await page.locator("#colorSurrender:not([disabled])").click();
++      await page.locator("#surrenderDialog[open]").waitFor();
++      assert.equal(await page.locator("#surrenderCpuPortraitFrame").isVisible(),true);
++      assert.equal(await page.locator("#surrenderCpuPortrait").isHidden(),true);
++      assert.equal(await page.locator("#surrenderCpuPortraitFallback").isVisible(),true);
++      assert.equal(await page.evaluate(()=>document.activeElement.id),"cancelSurrender");
++      await page.keyboard.press("Enter");assert.equal(await count(),before);
++      await page.locator("#colorSurrender").click();await page.locator("#confirmSurrender").click();
++      await page.locator("#terminalOverlay").waitFor({state:"visible"});
++      assert.equal(await count(),before+1);assert.deepEqual(errors,[]);
++    }, {viewport:{width:390,height:844},beforeNavigate:async page=>{
++      page.on("pageerror",error=>errors.push(error.message));
++      await page.route(unavailable==="atlas"?"**/cpu-portrait-atlas.png":"**/cpu-portraits.js*",route=>route.abort("failed"));
++    }});
++  });
++}
++
+ test("UDL067 CPU surrender is cancel-first, stable, keyboard-safe and one explicit terminal write", { timeout: 120000 }, async () => {
+   await withPage("colorResponse", async page => {
+     await page.emulateMedia({ reducedMotion: "reduce" });
+@@ -6769,13 +6851,15 @@ test("UDL067 CPU surrender is cancel-first, stable, keyboard-safe and one explic
+     await page.locator("#colorSurrender:not([disabled])").waitFor();
+     const count=()=>page.evaluate(()=>globalThis.__standardOnlineRuntime.calls.filter(c=>c.body?.operation==="action").length);
+     const before=await count();
+-    for(const width of [390,768,1280]){
+-      await page.setViewportSize({width,height:900});
++    for(const [width,height] of [[390,844],[768,900],[1280,900],[844,390]]){
++      await page.setViewportSize({width,height});
+       await page.locator("#colorSurrender").focus();await page.keyboard.press("Enter");
+       await page.locator("#surrenderDialog[open]").waitFor();
+       assert.equal(await page.evaluate(()=>document.activeElement.id),"cancelSurrender");
+       assert.equal(await page.locator("#cancelSurrender").evaluate(el=>getComputedStyle(el).outlineColor),"rgb(103, 232, 249)");
+       assert.match(await page.locator("#surrenderSpeaker").textContent(),/レイ/);
++      assert.equal(await page.locator("#surrenderCpuPortraitFrame").isVisible(),true);
++      assert.equal(await page.locator("#surrenderCpuPortraitFrame").getAttribute("data-portrait-key"),"rei:normal");
+       assert.equal(await page.locator("#surrenderDescription").textContent(),"ここまでにしますか？ もう少し、あなたの選択を観察したかったです。");
+       const geometry=await page.locator("#surrenderDialog").evaluate(el=>{
+         const r=el.getBoundingClientRect();return {fit:r.x>=0&&r.right<=innerWidth&&r.y>=0&&r.bottom<=innerHeight,
+diff --git a/tests/standard-online-quiz-polish.test.cjs b/tests/standard-online-quiz-polish.test.cjs
+index 8a3f8e1e0441ac24f19ce1f35e201310473ca995..84630ebb35e212b7ed56feb4ad048e7fa5d77143 100644
+--- a/tests/standard-online-quiz-polish.test.cjs
++++ b/tests/standard-online-quiz-polish.test.cjs
+@@ -197,7 +197,7 @@ test("only overflowing quiz math receives a persistent horizontal position bar",
+   assert.match(css, /\.quiz-overflow-scrollbar\[hidden\]\{display:none\}/);
+   assert.match(html, /style\.css\?v=20260910-12/);
+   assert.match(html, /standard-online-client\.js\?v=20260910-1/);
+-  assert.match(html, /app\.js\?v=20260913-43/);
++  assert.match(html, /app\.js\?v=20260913-46/);
+ });
+ 
+ test("per-question feedback is server-acknowledged, retryable, brief in motion, and followed by an optional review", () => {
+diff --git a/tests/standard-online-ui-static.test.cjs b/tests/standard-online-ui-static.test.cjs
+index b737dfa881f8dc14fadd69c16af77ea71410c1cf..4b5a434d1ba3fe968f184607da51c15c93b55606 100644
+--- a/tests/standard-online-ui-static.test.cjs
++++ b/tests/standard-online-ui-static.test.cjs
+@@ -82,7 +82,7 @@ test("CPU commentary is public-event-only, bounded, non-blocking, and terminal-p
+   assert.match(html, /standard-online-client\.js\?v=20260910-1/);
+   assert.match(html, /standard-online-skill-intents\.js\?v=20260911-21/);
+   assert.match(html, /cpu-commentary\.js\?v=20260910-1/);
+-assert.match(html, /app\.js\?v=20260913-43/);
++assert.match(html, /app\.js\?v=20260913-46/);
+   assert.match(app, /cpuCommentary\?\.VERSION !== "standard-cpu-commentary-v3"/);
+   assert.ok(html.indexOf("cpu-commentary.js") < html.indexOf('type="module" src="app.js'));
+   assert.match(html, /id="cpuCommentaryStage"[^>]+aria-hidden="true"/);
+@@ -469,7 +469,7 @@ test("existing online progression is hydrated from the server rather than re-upl
+ 
+ test("UI derives its canonical and experimental card metadata from the generated registry", () => {
+   assert.equal(Object.values(STANDARD_SKILLS).filter((skill) => skill.v49Catalogued).length, 19);
+-  assert.match(html, /standard-skill-registry\.generated\.js\?v=20260912-2[\s\S]+app\.js\?v=20260913-43/);
++  assert.match(html, /standard-skill-registry\.generated\.js\?v=20260912-2[\s\S]+app\.js\?v=20260913-46/);
+   assert.match(app, /const STANDARD_SKILL_REGISTRY = globalThis\.FourColorStandardSkillRegistry/);
+   assert.match(app, /STANDARD_SKILL_REGISTRY\.v49SkillIds\.map/);
+   assert.match(app, /Object\.entries\(STANDARD_SKILL_REGISTRY\.skills\)/);
+diff --git a/tests/standard-surrender-confirmation.test.cjs b/tests/standard-surrender-confirmation.test.cjs
+index 830521820a14609086f59e210a1ca4c740be0d94..64b08d7b6318df7062993f63f58a2aab72b9305d 100644
+--- a/tests/standard-surrender-confirmation.test.cjs
++++ b/tests/standard-surrender-confirmation.test.cjs
+@@ -4,8 +4,8 @@ const {dialogueFor,makeIntent,isCurrentIntent}=require("../standard-online-v5/su
+ test("UDL067 native safe-first dialog and its scoped focus style load before app41",()=>{
+   const fs=require("node:fs"),path=require("node:path"),root=path.join(__dirname,"../standard-online-v5");
+   const html=fs.readFileSync(path.join(root,"index.html"),"utf8"),css=fs.readFileSync(path.join(root,"surrender-confirmation.css"),"utf8");
+-  assert.ok(html.indexOf('surrender-confirmation.js?v=20260913-1')<html.indexOf('app.js?v=20260913-43'));
+-  assert.ok(html.includes('surrender-confirmation.css?v=20260913-1'));
++  assert.ok(html.indexOf('surrender-confirmation.js?v=20260913-1')<html.indexOf('app.js?v=20260913-46'));
++  assert.ok(html.includes('surrender-confirmation.css?v=20260913-2'));
+   const dialog=html.slice(html.indexOf('<dialog id="surrenderDialog"'),html.indexOf('<dialog id="abandonRoomDialog"'));
+   assert.match(dialog,/aria-labelledby="surrenderTitle" aria-describedby="surrenderSpeaker surrenderDescription"/);
+   assert.match(dialog,/id="cancelSurrender"[^>]+autofocus>対戦を続ける/);
+@@ -15,6 +15,20 @@ test("UDL067 native safe-first dialog and its scoped focus style load before app
+ function context() { return {connected:true,activeTab:"battle",busy:false,pending:null,clientRoomId:"room",
+   model:{room:{id:"room",status:"playing",version:7,opponent_kind:"cpu",cpu_character_id:"yuzu",
+     public_state:{status:"ACTIVE",active:"A",version:4,matchId:"match"}},view:{seat:"A",version:7}}}; }
++test("UDL067 face is a decorative normal portrait beside existing copy, not a reward or consent control",()=>{
++  const fs=require("node:fs"),path=require("node:path"),root=path.join(__dirname,"../standard-online-v5");
++  const html=fs.readFileSync(path.join(root,"index.html"),"utf8"),app=fs.readFileSync(path.join(root,"app.js"),"utf8");
++  const dialog=html.slice(html.indexOf('<dialog id="surrenderDialog"'),html.indexOf('<dialog id="abandonRoomDialog"'));
++  assert.match(dialog,/id="surrenderCpuPortraitFrame" class="cpu-portrait-frame hidden" aria-hidden="true"/);
++  assert.match(dialog,/id="surrenderCpuPortrait" class="cpu-portrait-art" hidden/);
++  assert.match(dialog,/id="surrenderCpuPortraitFallback" class="cpu-portrait-fallback">CPU/);
++  assert.equal((dialog.match(/<button/g)||[]).length,2);
++  assert.doesNotMatch(dialog,/<img|tabindex|reward|full.body/i);
++  assert.ok(app.includes("renderSurrenderCpuPortrait(voice.characterId)"));
++  const render=app.slice(app.indexOf("function renderSurrenderCpuPortrait("),app.indexOf("function closeSurrenderDialog("));
++  assert.match(render,/if \(characterId\) renderCpuPortrait\(\.\.\.ids, \{ characterId \}\)/);
++  assert.doesNotMatch(render,/sendAction|client\.|private|Math\.random|setTimeout|terminal-loss/);
++});
+ test("UDL067 fixed voice follows each exact existing CPU id, never appearance or list position",()=>{
+   const ids=["yuzu","ren","minato","koharu","aoi","kai","tsubasa","shion","rei","kurogane"];
+   const lines=ids.map(id=>dialogueFor("cpu",id));
