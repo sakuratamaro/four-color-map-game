@@ -1,0 +1,135 @@
+{
+  "candidate_sha": "70e691b6f8f1d808476e80990d20df7862bfb782",
+  "base_sha": "954e1c5c52d5453fc9fee9872b2d7e922f850a39",
+  "run": {
+    "id": "34735790923",
+    "head_sha": "70e691b6f8f1d808476e80990d20df7862bfb782",
+    "status": "completed",
+    "conclusion": "success",
+    "attempt": 1,
+    "updated_at": "2026-09-13T03:48:30Z",
+    "url": "https://github.com/sakuratamaro/four-color-map-game/actions/runs/34735790923"
+  },
+  "jobs": [
+    {
+      "id": "103666861545",
+      "name": "Standard online browser (edge)",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "70e691b6f8f1d808476e80990d20df7862bfb782",
+      "started_at": "2026-09-13T03:33:44Z",
+      "completed_at": "2026-09-13T03:48:30Z",
+      "steps": [
+        {
+          "name": "Set up job",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
+          "conclusion": "success"
+        },
+        {
+          "name": "Install browser test dependency",
+          "conclusion": "success"
+        },
+        {
+          "name": "Verify generated Standard bundles",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run Standard CPU policy contract tests",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run Standard local lifecycle browser tests serially",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run Standard online browser test serially",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Run actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "conclusion": "success"
+        },
+        {
+          "name": "Complete job",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "id": "103666861611",
+      "name": "Standard online browser (chrome)",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "70e691b6f8f1d808476e80990d20df7862bfb782",
+      "started_at": "2026-09-13T03:33:44Z",
+      "completed_at": "2026-09-13T03:45:35Z",
+      "steps": [
+        {
+          "name": "Set up job",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
+          "conclusion": "success"
+        },
+        {
+          "name": "Install browser test dependency",
+          "conclusion": "success"
+        },
+        {
+          "name": "Verify generated Standard bundles",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run Standard CPU policy contract tests",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run Standard local lifecycle browser tests serially",
+          "conclusion": "skipped"
+        },
+        {
+          "name": "Run Standard online browser test serially",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Run actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
+          "conclusion": "success"
+        },
+        {
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "conclusion": "success"
+        },
+        {
+          "name": "Complete job",
+          "conclusion": "success"
+        }
+      ]
+    }
+  ],
+  "observed_at_utc": "2026-09-13T03:50:14Z",
+  "interpretation": {
+    "same_candidate_both_browsers_success": true,
+    "chrome_local_lifecycle_intentionally_skipped": true,
+    "whole_workflow_skip_zero": false,
+    "not_cpu039_substitute": true,
+    "production_changes": 0,
+    "live_profiles": 0,
+    "live_matches": 0
+  }
+}

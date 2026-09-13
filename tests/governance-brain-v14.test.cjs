@@ -15,6 +15,27 @@ test("v14 fixed UI Windows evidence is exact and cannot satisfy the different CP
  assert.equal(w.interpretation.not_cpu039_rerun_or_substitute,true);
  assert.equal(w.interpretation.production_not_run,true);assert.equal(w.interpretation.live_profile_reservations,0);
 });
+test("named-skill successor Windows and delivered request remain independent from old040 and CPU039",()=>{
+ const w=read("docs/SKILL_PUBLIC_EVENT_WINDOWS_20260913.json");
+ assert.equal(w.candidate_sha,"70e691b6f8f1d808476e80990d20df7862bfb782");
+ assert.equal(w.base_sha,"954e1c5c52d5453fc9fee9872b2d7e922f850a39");
+ assert.equal(w.run.id,"34735790923");assert.equal(w.run.attempt,1);assert.equal(w.run.conclusion,"success");
+ assert.equal(w.jobs.length,2);
+ for(const job of w.jobs){assert.equal(job.head_sha,w.candidate_sha);assert.equal(job.conclusion,"success");}
+ assert.equal(w.interpretation.not_cpu039_substitute,true);assert.equal(w.interpretation.live_profiles,0);
+ assert.equal(w.interpretation.production_changes,0);assert.equal(w.interpretation.whole_workflow_skip_zero,false);
+ const request=fs.readFileSync(path.join(__dirname,"../docs/ASTRA_PUBLIC_SKILL_REQUEST_20260913.md"),"utf8");
+ const at=request.indexOf("\n\nアストラ先生へ。");assert.ok(at>0);
+ assert.equal(request.slice(at+2).trimEnd().length,4001);
+ assert.ok(request.includes("18888286-8407-426f-8be7-23d3b2556e71"));
+ const c=read("docs/CHATGPT_REVIEW_DECISIONS.json").coordination;
+ const budget=[...c.completed_review_waits,c.wait_budget].find(x=>x.root_request_message_id==="18888286-8407-426f-8be7-23d3b2556e71");
+ assert.ok(budget);assert.equal(budget.subject_sha,w.candidate_sha);
+ assert.equal(Date.parse(budget.expires_at_utc)-Date.parse(budget.started_at_utc),7200000);
+ assert.equal(budget.started_at_utc,"2026-09-13T03:43:31Z");
+ assert.equal(budget.reset_on_candidate_revision,false);assert.equal(budget.reset_on_restart_or_unrelated_message,false);
+});
+
 test("v14 delivery keeps its exact source and finite new wait without resetting closed CPU039",()=>{
  const c=read("docs/CHATGPT_REVIEW_DECISIONS.json").coordination;
  const text=fs.readFileSync(path.join(__dirname,"../docs/ASTRA_CUTIN_READABILITY_REQUEST_20260913.md"),"utf8");

@@ -55,6 +55,12 @@ test("an active review wait stays bound to the delivered current candidate, not 
       ui.request_id === "UDL-20260912-065" &&
       ui.branch === "codex/skill-cutin-readability-20260913" &&
       ui.worktree === ".codex-worktrees/skill-cutin-readability-20260913") slices.push(ui);
+  const named = ui?.named_skill_followup;
+  if (named?.candidate_sha === waitSubject) {
+    assert.equal(require("../scripts/check-commander-continuation.cjs").pendingBinding(c), true,
+      "the named successor must satisfy exact owner/source/branch/worktree/base and envelope guards");
+    slices.push(named);
+  }
   const matches = slices.filter(s => s?.candidate_sha === waitSubject);
   assert.equal(matches.length, 1, "the pending review resolves exactly one existing slice");
   const pendingSlice = matches[0];
