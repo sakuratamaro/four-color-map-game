@@ -41,7 +41,7 @@
     }
   ],
   "coordination": {
-    "status": "public_actions_pointer_successor_exact_review_preparation",
+    "status": "pointer_candidate_sent_delivery_unconfirmed_finite_wait_ended",
     "latest_v8_intake": {
       "state": "PAIRED_SOURCE_AND_ZIP_VERIFIED_ALIASES_MAPPED",
       "source_thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
@@ -392,11 +392,11 @@
       "acceptance_response_message_id": "1bb33ef7-814c-41eb-a4bd-06009842f65d"
     },
     "automation_id": "automation",
-    "automation_status_at_recording": "ACTIVE",
-    "automation_readback_updated_at": 1789283959236,
+    "automation_status_at_recording": "PAUSED",
+    "automation_readback_updated_at": 1789285754548,
     "automation_prompt_readback_equal": true,
-    "automation_pause_reason": null,
-    "automation_active_reason": "One exact delivered same845 evidence-correction supplement, only original100minute slot remains; HOLD and immutable deadline retained.",
+    "automation_pause_reason": "Originalreviewslots exhausted and07:46:14Zexpired. b9 sole sendaccepted butnewbody unconfirmed after2deliveryreads; no repeat or silenceapproval. Parent70esource/CPUCImanualholds retained.",
+    "automation_active_reason": null,
     "completed_review_waits": [
       {
         "root_request_message_id": "8464f659-ad62-4c09-83d9-44e1cc91316b",
@@ -1178,19 +1178,30 @@
       "closed_review_id": "CHATGPT-REVIEW-20260913-043",
       "closed_response_message_id": "23050cab-6dd2-494a-a14f-707f79a6a517",
       "closing_note": "Original043 response received. A same-logical-subject evidence correction may use only original remaining100minute slot and07:46:14Z expiry, never a new wait budget.",
-      "followup_subject_sha": "84587830730c1f62cf8c502daac4d768886a3f4d",
-      "followup_request_message_id": "e547dc5b-3f8a-4b02-80ad-7add9d3ab93e",
-      "followup_status": "closed_response_received",
+      "followup_subject_sha": "b9c91af38986d96b226906ab5485aa1fe0b64088",
+      "followup_request_message_id": null,
+      "followup_status": "delivery_unconfirmed_api_accepted_no_resend_while_active",
       "followup_kind": "same_candidate_043_log_evidence_correction",
       "followup_original_expiry_unchanged": true,
       "followup_delivery_readback_checks": 2,
       "followup_delivery_confirmed_at_utc": "2026-09-13T06:48:31Z",
       "followup_closed_at_utc": "2026-09-13T07:27:25Z",
       "followup_closed_review_id": "CHATGPT-REVIEW-20260913-044",
-      "followup_closed_response_message_id": "e1d16e25-92cb-487e-83ca-14f0dce042a3"
+      "followup_closed_response_message_id": "e1d16e25-92cb-487e-83ca-14f0dce042a3",
+      "followup_history": [
+        {
+          "subject_sha": "84587830730c1f62cf8c502daac4d768886a3f4d",
+          "request_message_id": "e547dc5b-3f8a-4b02-80ad-7add9d3ab93e",
+          "status": "closed_response_received",
+          "review_id": "CHATGPT-REVIEW-20260913-044",
+          "response_message_id": "e1d16e25-92cb-487e-83ca-14f0dce042a3"
+        }
+      ],
+      "automatic_wait_closed_reason": "Originalslotsallspent; originaldeadline07:46:14Zexpired. Revision cannot reset.",
+      "delivery_reads_are_review_checks": false
     },
     "pending_review_subject": {
-      "subject_sha": "84587830730c1f62cf8c502daac4d768886a3f4d",
+      "subject_sha": "b9c91af38986d96b226906ab5485aa1fe0b64088",
       "base_sha": "70e691b6f8f1d808476e80990d20df7862bfb782",
       "canon_version": "shared-canon-v1.1",
       "feature_spec_version": "UDL-023-public-actions-v1",
@@ -1208,9 +1219,9 @@
       "boundary": "Governance evidence maintenance did not amend or block independently approved product f8713d7."
     },
     "initial_interval_minutes": 20,
-    "pending_subject_sha": "84587830730c1f62cf8c502daac4d768886a3f4d",
+    "pending_subject_sha": "b9c91af38986d96b226906ab5485aa1fe0b64088",
     "pending_scope": "Pages_only",
-    "pending_delivery_status": "response_received_closed",
+    "pending_delivery_status": "SEND_API_ACCEPTED_READBACK_UNCONFIRMED_ACTIVE_NO_RESEND",
     "last_confirmed_sent_message_id": "e547dc5b-3f8a-4b02-80ad-7add9d3ab93e",
     "last_sent_message_id": "e547dc5b-3f8a-4b02-80ad-7add9d3ab93e",
     "self_sent_message_ids": [
@@ -1254,8 +1265,8 @@
       "ef4742c7-afbb-478b-8965-0210ef000f5e",
       "e547dc5b-3f8a-4b02-80ad-7add9d3ab93e"
     ],
-    "sent_at_utc": "2026-09-13T06:43:36Z",
-    "last_check_utc": "2026-09-13T07:27:25Z",
+    "sent_at_utc": "2026-09-13T07:45:28Z",
+    "last_check_utc": "2026-09-13T07:46:46Z",
     "unchanged_checks": 0,
     "reminder_count": 0,
     "max_reminders_per_request": 1,
@@ -3588,7 +3599,7 @@
           "public_base_sha": "954e1c5c52d5453fc9fee9872b2d7e922f850a39",
           "release_after_sha": "70e691b6f8f1d808476e80990d20df7862bfb782",
           "candidate_sha": "b9c91af38986d96b226906ab5485aa1fe0b64088",
-          "state": "LOCAL_VERIFIED_REVIEW_PREPARATION",
+          "state": "DELIVERY_UNCONFIRMED_FINITE_WAIT_ENDED",
           "spec_path": "docs/UI_PUBLIC_MATCH_ACTIONS_20260913.md",
           "spec_version": "UDL-023-public-actions-v1",
           "spec_snapshot_sha": "468dad9e85fa633e47ea75a79628d18a0ad10565",
@@ -3610,7 +3621,7 @@
           "windows_next_action": "Complete; no same-run polling or rerun.",
           "evidence_path": "docs/SHIFT_BAND_POINTER_REPAIR_20260913.md",
           "non_change": "Parent70e, CPU100/9590/039, old040FAIL/067partial/062/F3; game/client/RPC/DB/Edge/managed/artwork unchanged. No new test profile/match or real-user find/recruit.",
-          "next_action": "Send exact five-file b9 review once to genuineAstra; no wait reset, old holds unchanged.",
+          "next_action": "Resume only on genuine newresponse/user input or separately eligible normal work; no automatic reviewread remains. Do not infer delivery or publication.",
           "windows_jobs": [
             {
               "id": "103689982812",
@@ -3625,7 +3636,6 @@
               "conclusion": "success"
             }
           ],
-          "windows_completed_observed_at_utc": "2026-09-13T07:25:00Z",
           "windows_verification": "Exact b9 checkout in both final logs. Contracts660/660 and online152/152 each. Edge lifecycle79/79, Chrome lifecycle existingSKIP. Both originalShift and newresizePASS.",
           "pointer_diagnosis": {
             "owner_thread_id": "01a07b56-616e-7733-9aae-90575659688e",
@@ -3649,7 +3659,7 @@
               "worktree": ".codex-worktrees/ui-public-match-actions-pointer-20260913",
               "base_sha": "84587830730c1f62cf8c502daac4d768886a3f4d",
               "release_base_sha": "70e691b6f8f1d808476e80990d20df7862bfb782",
-              "state": "LOCAL_WINDOWS_VERIFIED_OWN_REVIEW_READY",
+              "state": "CANDIDATE_PROMOTED_SENT_DELIVERY_UNCONFIRMED",
               "candidate_sha": "b9c91af38986d96b226906ab5485aa1fe0b64088",
               "publication": "NOT_RUN",
               "publication_authorized": false,
@@ -3667,7 +3677,7 @@
               ],
               "product_source_unchanged_from_845": true,
               "push_status": "PUSHED_EXACT_BRANCH",
-              "review_status": "NOT_SENT",
+              "review_status": "DELIVERY_UNCONFIRMED",
               "local_focused": {
                 "unit_workflow_harness": "14/14PASS251.7267ms",
                 "chrome": "2/2PASS10649.4054ms",
@@ -3717,7 +3727,7 @@
               "review_patch_bytes": 15336,
               "review_patch_sha256": "ca85807836d81b1167452f9c141eebb8f89ed030e8201fee411a8f71393ca295",
               "review_patch_local_diff_exact": true,
-              "review_send_attempts": 0,
+              "review_send_attempts": 1,
               "review_scope": "Pages_only",
               "db_change_set": [],
               "edge_change_set": [],
@@ -3789,11 +3799,11 @@
             }
           },
           "review_id": null,
-          "review_status": "NOT_SENT",
-          "review_send_attempts": 0,
+          "review_status": "DELIVERY_UNCONFIRMED",
+          "review_send_attempts": 1,
           "review_request_message_id": null,
           "review_response_message_id": null,
-          "review_delivery_readback_checks": 0,
+          "review_delivery_readback_checks": 2,
           "review_patch_path": "docs/SHIFT_BAND_POINTER_REPAIR_REVIEW_20260913.patch",
           "review_patch_sha256": "ca85807836d81b1167452f9c141eebb8f89ed030e8201fee411a8f71393ca295",
           "review_patch_characters": 15219,
@@ -3802,7 +3812,24 @@
           "review_diff_base_sha": "84587830730c1f62cf8c502daac4d768886a3f4d",
           "review_previous_hold_preserved_in": "coordination.candidate_revision_history and decisions043/044",
           "windows_completed_at_utc": "2026-09-13T07:24:51Z",
-          "windows_observation_precision": "Terminal log/run proof retrieved before07:26slot; exact retrieval instant not separately captured."
+          "windows_observation_precision": "Terminalcompletion07:24:51Z is exactrunupdatedtime; retrieval occurred before07:26slot but exactretrievalinstant not captured.",
+          "review_reserved_before_api": true,
+          "review_reserved_at_utc": "2026-09-13T07:45:28Z",
+          "review_body": "アストラ先生へ。真正044（e1d16e25-92cb-487e-83ca-14f0dce042a3）を全文保存しました。図鑑調査の撤回、原845再実行を前提にせず狭いテスト修正へ進むとの判定に従った、固定後続候補の最終レビュー依頼です。旧043/044のHOLDを自己解除せず、元16ファイルは再送しません。\n\nSUBJECT_SHA: b9c91af38986d96b226906ab5485aa1fe0b64088\nBASE_SHA / RELEASE_AFTER_SHA: 70e691b6f8f1d808476e80990d20df7862bfb782\nINCREMENTAL_DIFF_BASE_SHA: 84587830730c1f62cf8c502daac4d768886a3f4d\nCANON_VERSION: shared-canon-v1.1\nFEATURE_SPEC_VERSION: UDL-023-public-actions-v1\nSPEC_BLOB: 468dad9e85fa633e47ea75a79628d18a0ad10565\nSCOPE: Pages_only\nDB_CHANGE_SET: []\nEDGE_CHANGE_SET: []\nMANAGED_SETTING_CHANGE_SET: []\n\n専用branch codex/ui-public-match-actions-pointer-20260913 にexact b9をpush済み。845から変更したのは次の5ファイルだけで、製品コード・asset・仕様blobは845と同一です。\ntests/helpers/canvas-native-pointer.cjs\ntests/canvas-native-pointer.test.cjs\ntests/standard-online-browser.test.cjs\ntests/standard-browser-gate-workflow.test.cjs\n.github/workflows/standard-browser-gate.yml\n\n固定845..b9 patch（15219字/15336UTF-8byte、SHA256 ca85807836d81b1167452f9c141eebb8f89ed030e8201fee411a8f71393ca295）:\nhttps://raw.githubusercontent.com/sakuratamaro/four-color-map-game/ad566d6276f7d62cc1fc085c6244826abc50beae/docs/SHIFT_BAND_POINTER_REPAIR_REVIEW_20260913.patch\n直gitdiffとのbyte完全一致、frozen845でread-only applycheck、push後raw全文一致まで確認済みです。\n\n詳細・原失敗・mutation・非変更範囲:\nhttps://raw.githubusercontent.com/sakuratamaro/four-color-map-game/ad566d6276f7d62cc1fc085c6244826abc50beae/docs/SHIFT_BAND_POINTER_REPAIR_20260913.md\n固定対象一覧:\nhttps://raw.githubusercontent.com/sakuratamaro/four-color-map-game/ad566d6276f7d62cc1fc085c6244826abc50beae/docs/ASTRA_SHIFT_BAND_POINTER_REVIEW_20260913.md\n\nnative canvas.click({trial:true})で操作可能性/scrollを先に確認し、その後current geometryを測定、padding-box原点を補正して普通のclickを1回だけ行います。force/DOMdispatch/retry/追加sleep/固定盤面/製品変更なし。行4・列3・highlight・cancel操作0・keyboard/focus・外側拒否・exactpayloadと30秒/130秒上限を維持しています。実390x844→390x630 resizeをtrial境界へ入れる追加回帰で、fresh寸法・trusted pointer1回・row4UI・送信前0・HalfShift ROW4/plus payload・overflow0を確認。測定をtrial前へ戻すmutationはunit2/3FAIL、実Chrome0/1FAILを検出後に復元しました。これは制御条件の回帰検出であり原CI原因証明とは扱いません。\n\nclean148/164非browserfiles1002/1002PASS74901.551ms、16実Playwright filesは除外で未実行をPASSにしていません。局所Chrome2/2・Edge2/2・unit/workflow/harness14/14PASS。3builder無差分。\n\nWindows34744571394 attempt1 exactb9は07:24:51Z最終SUCCESS:\nhttps://github.com/sakuratamaro/four-color-map-game/actions/runs/34744571394\nEdge job103689982812、Chrome103689982883ともexactcheckoutを全ログで確認。各contract660/660・online152/152PASS、原Shiftと追加resizeは両browserとも明示PASS。Edge lifecycle79/79、Chrome lifecycle既存SKIPです。旧845/CPU039のjob再実行は0、別SHAの合格として維持します。\n\nこのexact b9/base70e/仕様/空変更セットへの公開可否を判定してください。承認されても親70e/042のfresh Edge source本人受渡しと先行公開、fresh main一致、通常Pages公開後byte確認は免除しません。CPU100/9590/039とその別CI停止、040 rawFAIL/消費済み試行、067/062/F3は不変。追加profile/対局/find/recruit/live0、本番変更0です。今回のGOV差分をAPPROVE_DOCSとして申請したものではありません。\n\n同じ論理依頼の元起点05:46:14Z・期限07:46:14Zは不変。原枠は2回使用＋1回放棄で残0、この候補改訂でも自動レビュー確認の新枠/新120分を作りません。送信は今回1回、送達の本文照合だけ最大2回。送達しても未回答は承認にせず、適格な取得枠/通常作業がなければ同じheartbeatを実PAUSEDにして停止します。",
+          "review_body_characters": 2959,
+          "review_evidence_sha": "ad566d6276f7d62cc1fc085c6244826abc50beae",
+          "review_patch_remote_full_equal": true,
+          "review_first_delivery_read_reserved_before_api": true,
+          "send_api_accepted": true,
+          "send_api_target_thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
+          "send_api_observed_at_utc": "2026-09-13T07:46:07Z",
+          "review_second_delivery_read_reserved_before_api": true,
+          "review_first_delivery_result": "Read1 returned old044 completed pair while realtaskactive; newmessage not yet visible. No resend/no newreviewconsumed.",
+          "review_delivery_verified": false,
+          "review_delivery_result": "SendAPI accepted once; two reserved readbacks both returned old044 pair while realtaskactive. New body/id not observed. No resend, no newdecision, no third deliveryread.",
+          "review_body_equality": false,
+          "review_response_observed": false,
+          "review_delivery_finished_at_utc": "2026-09-13T07:46:46Z"
         }
       },
       "catalog_preparation": {
@@ -4239,7 +4266,7 @@
       "evidence": "docs/QUIZ_QUESTION_IDENTITY_INTAKE_20260912.md",
       "note": "Genuine completed text subsequently received in normal authorized reviewer-chat reading; no image viewed or forwarded and no original session identified."
     },
-    "sent_at_precision": "Adjacent clock after supplement sendAPI, not exact delivery instant; original reservation retained.",
+    "sent_at_precision": "Reservation clock before send API; accepted observed by07:46:07Z.",
     "publication_report_history": [
       {
         "subject_sha": "d6f745d3f1291457539dd2f3476e9a749a547069",
@@ -4398,10 +4425,10 @@
       "checker": "scripts/check-commander-continuation.cjs",
       "tests": "tests/governance-commander-continuation.test.cjs",
       "next_run": {
-        "phase": "NORMAL_WORK",
+        "phase": "STOP",
         "subject_sha": "b9c91af38986d96b226906ab5485aa1fe0b64088",
         "at_utc": null,
-        "reason": "Current owner completing exact review; schedule reconciled before end."
+        "reason": "FINITE_WAIT_ENDED_NO_SILENCE_APPROVAL"
       },
       "first_scheduled_normal_run": {
         "status": "OBSERVED",
@@ -4417,25 +4444,23 @@
       },
       "automation_readback": {
         "id": "automation",
-        "status": "ACTIVE",
+        "status": "PAUSED",
         "target_thread_id": "01a07b56-616e-7733-9aae-90575659688e",
         "rrule": "FREQ=DAILY;BYHOUR=16;BYMINUTE=26;BYSECOND=14",
-        "updated_at": 1789283959236,
+        "updated_at": 1789285754548,
         "created_at": 1789048677730,
         "prompt_exact_equal": true,
-        "scheduled_for_utc": "2026-09-13T07:26:14.000Z",
+        "scheduled_for_utc": null,
         "readback_verified": true,
-        "verification_source": "Same heartbeat updateAPI and fullactualTOML strict prompt/calendar/target equality; original07:26slot andexpiry unchanged, no future execution claim.",
-        "verified_at_utc": "2026-09-13T07:19:27Z",
-        "verification_time_precision": "Adjacent clock after fullTOML strict string comparison."
+        "verification_source": "Same existingheartbeat pauseAPI and fullactualTOML strict prompt/calendar/target equality; no scheduledexecution claim."
       },
-      "normal_work_claim": "Actual b9 test-only successor local1002PASS and WindowsbothSUCCESS; genuine044 corrected original failure identity. Preparing own review, not publication.",
+      "normal_work_claim": "b9 exactcandidate verified/pushed; fixed fivefile review artifact accessible atad566; sole sendaccepted but body not observed in2deliveryreads. No further permitted automatic read.",
       "review_scope": "b9/base70e/UDL-023-public-actions-v1/blob468d/Pages_only/DBEdgeManaged[]. Increment845..b9fivefiles. No inheritedapproval.",
       "verification": {
         "regression_tests": "42/42 PASS; skip0;638.46ms",
         "old_paused_state_guard": "Previously reproduced ORPHANED_ACTIONABLE_WORK; now also rejects past/under2minute calendar reservations and schedule-time mismatch.",
         "actual_scheduler_execution": "OBSERVED_SEPARATE_NORMAL_RUN_WITH_LIVE_WORK_RESULT",
-        "latest_tests": "57/57PASS397.4925ms skip0 after strict pending-child lookup fix; initial56/57FAIL405.9451ms retained in local report."
+        "latest_tests": "59/59PASS412.1625ms skip/cancel0; exactpointer branchpair, no budgetrevival, realrecordunconfirmed binding and actualSTOPendguardPASS."
       },
       "current_run": {
         "phase": "NORMAL_WORK",
@@ -4445,7 +4470,7 @@
         "worktree": ".codex-worktrees/ui-public-match-actions-pointer-20260913",
         "request": "UDL014/054 regression repair supporting exactUDL023 UI release. Existing normal commander; no earlyreview read.",
         "canon_receipt": "CANON_RECEIPT version=shared-canon-v1.1 governance=e85a504d3e44015e15c00134fdea0c8980e1ea38 public_base=954e1c5c52d5453fc9fee9872b2d7e922f850a39 candidate_base=84587830730c1f62cf8c502daac4d768886a3f4d request=UDL-20260906-014,UDL-20260910-054,UDL-20260907-023 specs=docs/UI_PLAY_SURFACE_20260912.md,docs/UI_PUBLIC_MATCH_ACTIONS_20260913.md tests=tests/standard-online-browser.test.cjs,tests/canvas-native-pointer.test.cjs",
-        "result": "PROGRESS: derivative b9c91af committed, original845 and feature spec unchanged; correct native readiness-before-measure helper, native resize regression, exact Windowsbranch+helper paths. Chrome2/2, Edge2/2, unit/workflow/harness14/14PASS. Controlled order mutation rejected by unit and nativebrowser then restored. Clean148-file fullnonbrowser run session98187 now live. Fullclean148/164files1002/1002PASS74901.551ms; threebuilders unchanged; exactb9c91af force-freepush. ActualWindows34744571394 attempt1 bothjobsIN_PROGRESS at07:15:59Z. Full18file54028char/57353byte patch equals aggregate70e..b9 rawdiff. TerminalWindows bothSUCCESS07:24:51Z, genuine044 saved, fivefile15336bytepatch exact+applycheckPASS, b9 promoted within samecurrentrecord; old845/HOLD/CI retained as history."
+        "result": "PROGRESS: derivative b9c91af committed, original845 and feature spec unchanged; correct native readiness-before-measure helper, native resize regression, exact Windowsbranch+helper paths. Chrome2/2, Edge2/2, unit/workflow/harness14/14PASS. Controlled order mutation rejected by unit and nativebrowser then restored. Clean148-file fullnonbrowser run session98187 now live. Fullclean148/164files1002/1002PASS74901.551ms; threebuilders unchanged; exactb9c91af force-freepush. ActualWindows34744571394 attempt1 bothjobsIN_PROGRESS at07:15:59Z. Full18file54028char/57353byte patch equals aggregate70e..b9 rawdiff. TerminalWindows bothSUCCESS07:24:51Z, genuine044 saved, fivefile15336bytepatch exact+applycheckPASS, b9 promoted within samecurrentrecord; old845/HOLD/CI retained as history. Genuine044 correctedlogidentity; b9WindowsfinalbothSUCCESS. Fixedfivefilepatch+proof published inad566d6; one substantive review sendaccepted, two deliveryreads returnedold044 whiletaskactive. DeliveryNOT_CONFIRMED. Originalslots exhausted/deadlineended; actualPAUSE being applied. Existingautomation actualPAUSED; fullTOML strict equality verified."
       },
       "missed_schedule_observation": {
         "scheduled_at_utc": "2026-09-12T06:25:12Z",
@@ -4482,16 +4507,16 @@
         "recovered_without_new_user_wait": true
       },
       "end_turn_guard": {
-        "checked_at_utc": "2026-09-13T06:49:19Z",
-        "record_time_basis": "Adjacent clock after actual end-turn check, not precise checker invocation",
+        "checked_at_utc": "2026-09-13T07:50:31Z",
+        "record_time_basis": "Adjacent clock after actual end-turn checker",
         "result": "PASS",
-        "phase": "WAIT_REVIEW",
-        "subject_sha": "84587830730c1f62cf8c502daac4d768886a3f4d",
-        "request_message_id": "e547dc5b-3f8a-4b02-80ad-7add9d3ab93e",
-        "at_utc": "2026-09-13T07:26:14.000Z",
+        "phase": "STOP",
+        "subject_sha": "b9c91af38986d96b226906ab5485aa1fe0b64088",
+        "request_message_id": null,
+        "at_utc": null,
         "errors": [],
         "scheduled_origin_claimed": false,
-        "note": "Exact same845 supplement uses original lastslot; actualsameheartbeat fullreadback matched. No wait reset or new controller."
+        "note": "Finiteoriginalwait exhausted andexpired;actualexistingheartbeatPAUSED/fullTOML strictmatch. b9deliverynotconfirmed,no newapproval."
       },
       "latest_receive_schedule_observation": {
         "scheduled_at_utc": "2026-09-12T07:45:12Z",
