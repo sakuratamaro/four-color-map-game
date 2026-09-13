@@ -2,6 +2,8 @@
 
 更新日: 2026-09-13
 
+2026-09-13 15:07JST 予定のみの訂正: push後15:04:50の終了検査で初回15:06:14枠までの2分余裕が不足したため、初回枠はレビュー読取0のまま放棄。次は元の15:26:14JST枠、残2枠・16:46:14JST期限不変。同じheartbeat実ACTIVE、updated_at1789279604546、全文/時刻/target読戻し一致と終了guard PASS。枠の移動・期限延長・取得済みの捏造はない。将来の実起動は未観測。ゲーム候補/判定/本番状態は下記15:00記録と同じ。
+
 2026-09-13 15:00JST 現行: 新UI845の固定全16file差分をGOV58f2へ公開し、真正Astraへ1回送信、依頼ef4742c7の3852字全文を2回目の有限読戻しで一致確認。Windows34740424933 attempt1は最終FAIL（Chrome150/151、既存Half/TripleShift行4locator timeout）、Edge151/151PASS。未合格を隠さず、再実行/本番変更0。旧042の閉鎖予算を保全し、新依頼だけ原15:06/15:26/16:26JSTの最大3回・16:46JST期限、同じheartbeat実ACTIVE・全文同一読戻し。親70e source本人受渡し、クロガネ100/039、040原FAIL/067/F3とdirty資料は不変。送達は承認でなく、新UIもCPU100も未公開。詳細UI_PUBLIC_MATCH_ACTIONS_LOCAL_20260913.md。以下は時点別履歴。
 
 2026-09-13 14:32JST 現行: 親70e/実042のsource本人受渡し停止を保持し、採用済みv14 UDL023の公開対戦二択を独立後続8458783へ実装。clean999/999、静的141/141、Edge重点9/9、Chrome補完14/14（旧locator失敗は保全）、3幅目視。16text filesを専用branchへpush、同SHA Windows34740424933 attempt1実IN_PROGRESS。このUIはPages_only/DB・Edge・管理[]、親70e公開後にだけ別の真正レビューとfresh-mainゲートで公開する。クロガネ100/039/040原FAIL/067/F3とdirty root/BRAIN_V9_TRANSFERは不変。新UI公開/本番募集/新profile/追加liveは0。UI_PUBLIC_MATCH_ACTIONS_LOCAL_20260913.md。以下は履歴。
