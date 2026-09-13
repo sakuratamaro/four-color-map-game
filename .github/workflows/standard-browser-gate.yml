@@ -30,6 +30,8 @@ on:
       - tests/standard-online-engine-bundle.test.cjs
       - tests/standard-online-browser.test.cjs
       - tests/browser-server-cleanup.test.cjs
+      - tests/canvas-native-pointer.test.cjs
+      - tests/helpers/canvas-native-pointer.cjs
       - tests/helpers/browser-server-cleanup.cjs
       - tests/helpers/cpu-sql-runtime.cjs
       - tests/helpers/public-skill-fixture.cjs
@@ -64,6 +66,8 @@ on:
       - tests/standard-online-engine-bundle.test.cjs
       - tests/standard-online-browser.test.cjs
       - tests/browser-server-cleanup.test.cjs
+      - tests/canvas-native-pointer.test.cjs
+      - tests/helpers/canvas-native-pointer.cjs
       - tests/helpers/browser-server-cleanup.cjs
       - tests/helpers/cpu-sql-runtime.cjs
       - tests/helpers/public-skill-fixture.cjs
@@ -123,6 +127,7 @@ jobs:
           tests/standard-browser-gate-workflow.test.cjs
           tests/standard-online-browser-harness-static.test.cjs
           tests/browser-server-cleanup.test.cjs
+          tests/canvas-native-pointer.test.cjs
           tests/standard-legal-recolor-lab.test.cjs
           tests/standard-live-legal-recolor-lab-canary-static.test.cjs
           tests/standard-live-color-response-canary-static.test.cjs
