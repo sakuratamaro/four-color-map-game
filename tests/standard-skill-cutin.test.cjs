@@ -10,6 +10,85 @@ function input(version, extra={}) {
 const snap=x=>api.snapshot(x);
 function fakeStore() { const values=new Map();return { getItem:key=>values.get(key)||null,setItem:(key,value)=>values.set(key,value)}; }
 const locks={request:async (_name,_options,run)=>run()};
+
+test("UDL065 readability uses a single 1800 ms duration",()=>{
+  assert.equal(api.DISPLAY_MS,1800);
+});
+
+test("UDL065 results describe only measured viewer palette, seals and public area changes",()=>{
+  const cases=[
+    [{ownColors:["red","blue","green"]},"あなたの持ち色が3色に増えた"],
+    [{ownColors:["red"]},"あなたの持ち色が1色に減った"],
+    [{ownColors:["green","yellow"]},"あなたの持ち色が入れ替わった"],
+    [{state:{publicEffects:{A:{seals:{red:1}}}}},"あなたの持ち色の封印が1色増えた"],
+    [{state:{requiredSize:3}},"作るエリアが3マスになった"],
+    [{state:{regions:{R1:{micro:[1],color:"red"},R2:{micro:[2],color:null}}}},"エリアが1つ増えた"],
+    [{state:{regions:{R1:{micro:[1,2,3],color:"red"}}}},"エリアの形が変わった"],
+  ];
+  for(const [extra,detail] of cases){
+    const after=input(2,extra);
+    assert.equal(api.describe(snap(input(1)),snap(after),after).detail,detail);
+  }
+  const sealed=input(1,{state:{publicEffects:{A:{seals:{red:2}}}}}),after=input(2);
+  assert.equal(api.describe(snap(sealed),snap(after),after).detail,"あなたの持ち色の封印が1色減った");
+});
+
+test("UDL065 palette ordering, duplicates and hidden effects never invent a result",()=>{
+  const after=input(2,{ownColors:["blue","red","red","not-a-color"],
+    state:{publicEffects:{B:{seals:{green:1}}},players:{B:{hand:["secret"],privatePalette:["yellow"]}}}});
+  const event=api.describe(snap(input(1)),snap(after),after);
+  assert.equal(event.detail,"スキルを使用");assert.equal(event.destination,null);
+  assert.doesNotMatch(JSON.stringify(snap(after)),/secret|privatePalette|hand/);
+});
+
+test("UDL065 public recolor only names a color that actually changed in the named region",()=>{
+  const before=input(1);
+  const after=input(2,{state:{regions:{R1:{micro:[1,2],color:"green"}},
+    lastPublicTrace:{eventId:"match:2",version:2,type:"LEGAL_RECOLOR",actor:"B",regionId:"R1",color:"green"}}});
+  let event=api.describe(snap(before),snap(after),after);
+  assert.equal(event.title,"スキルを使用");assert.equal(event.detail,"エリアが緑に塗り替わった");
+  after.state.lastPublicTrace.color="yellow";
+  event=api.describe(snap(before),snap(after),after);
+  assert.equal(event.detail,"エリアの色が変わった");assert.doesNotMatch(event.detail,/黄/);
+  after.state.regions=before.state.regions;
+  assert.equal(api.describe(snap(before),snap(after),after).detail,"スキルを使用");
+});
+
+test("UDL065 seal replacement and decrease in area count are observations, not hidden skill names",()=>{
+  const before=input(1,{state:{publicEffects:{A:{seals:{red:1}}}}});
+  const after=input(2,{state:{publicEffects:{A:{seals:{blue:1}}}}});
+  assert.equal(api.describe(snap(before),snap(after),after).detail,"あなたの持ち色の封印が変わった");
+  const fewer=input(2,{state:{regions:{}}});
+  assert.equal(api.describe(snap(input(1)),snap(fewer),fewer).detail,"エリアが1つ減った");
+});
+
+test("UDL065 new skill, malformed skill and changed scope still interrupt the displayed event",async()=>{
+  for(const after of [input(3),input(3,{state:{lastPublicTrace:{...input(3).state.lastPublicTrace,secret:true}}}),
+    input(3,{roomId:"other",state:{lastPublicTrace:null}})]){
+    let clears=0,shows=0;
+    const observer=api.createObserver({storage:fakeStore(),locks,clear(){clears++;},show(){shows++;}});
+    await observer.observe(input(1));await observer.observe(input(2));const previous=clears;
+    await observer.observe(after);assert.equal(clears,previous+1);
+    assert.equal(shows,api.traceFor(after.state)&&after.roomId==="room"?2:1);
+  }
+});
+
+test("UDL065 ordinary consecutive updates keep a displayed card but cancel a delayed claim",async()=>{
+  let visible=false,count=0;
+  const options={storage:fakeStore(),locks,show(){visible=true;count++;},clear(){visible=false;}};
+  const observer=api.createObserver(options);
+  await observer.observe(input(1));await observer.observe(input(2));
+  await observer.observe(input(3,{state:{lastPublicTrace:null}}));
+  assert.equal(visible,true);assert.equal(count,1);
+  await observer.observe(input(5,{state:{lastPublicTrace:null}}));
+  assert.equal(visible,false,"a version gap must still interrupt");
+  let finish;
+  const delayed=api.createObserver({...options,storage:fakeStore(),
+    locks:{request:(_name,_opts,run)=>new Promise(resolve=>{finish=()=>resolve(run());})}});
+  await delayed.observe(input(1));const pending=delayed.observe(input(2));
+  await delayed.observe(input(3,{state:{lastPublicTrace:null}}));
+  finish();assert.equal(await pending,false);assert.equal(count,1);assert.equal(visible,false);
+});
 test("UDL065 exact public trace rejects private details, malformed identities and false skill claims",()=>{
   assert.ok(api.traceFor(input(2).state));
   for (const patch of [{eventId:"wrong"},{version:1},{actor:"C"},{skill:"hiddenSkill"},{type:"FAILURE"},{regionId:"R1"}])

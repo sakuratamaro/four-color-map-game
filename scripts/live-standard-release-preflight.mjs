@@ -14,7 +14,7 @@ const publicEdgeBundleUrl = new URL("../supabase/functions/standard-game-action/
 const expectedPhase = process.argv.find((argument) => argument.startsWith("--expect="))?.slice("--expect=".length) || null;
 const zeroUuid = "00000000-0000-0000-0000-000000000000";
 const candidateAssetMarkers = Object.freeze({
-app: "app.js?v=20260913-42",
+app: "app.js?v=20260913-43",
   commentary: "cpu-commentary.js?v=20260910-1",
   style: "style.css?v=20260910-12",
   client: "standard-online-client.js?v=20260910-1",
@@ -22,6 +22,8 @@ app: "app.js?v=20260913-42",
   registry: "standard-skill-registry.generated.js?v=20260912-2",
   portraits: "cpu-portraits.js?v=20260908-1",
   feedback: "basic-feedback.js?v=20260908-2",
+  cutin: "skill-cutin.js?v=20260913-1",
+  cutinStyle: "skill-cutin.css?v=20260913-1",
 });
 
 assert.ok(supabaseUrl && publishableKey, "PUBLIC_SUPABASE_CONFIG_REQUIRED");
@@ -161,7 +163,9 @@ const result = {
       && page.text.includes(candidateAssetMarkers.intents)
       && page.text.includes(candidateAssetMarkers.registry)
       && page.text.includes(candidateAssetMarkers.portraits)
-      && page.text.includes(candidateAssetMarkers.feedback),
+      && page.text.includes(candidateAssetMarkers.feedback)
+      && page.text.includes(candidateAssetMarkers.cutin)
+      && page.text.includes(candidateAssetMarkers.cutinStyle),
   },
   database: { snapshotV1, snapshotV2, matchmaking, matchmakingAvailability, pregameAbandon, activeRoom, setupLoadV3, initializeRoomV3 },
 };

@@ -893,6 +893,8 @@ function clearSkillCutin() {
 function presentSkillCutin(event) {
   clearSkillCutin();
   const root = $("skillCutin");
+  const duration = globalThis.FourColorSkillCutin.DISPLAY_MS;
+  root.style.setProperty("--skill-cutin-duration", `${duration}ms`);
   root.dataset.actor = event.actor;
   root.dataset.eventId = event.eventId;
   $("skillCutinActor").textContent = event.actor === "self" ? "あなたのカード" : `${publicActorLabel(roomModel.view.seat === "A" ? "B" : "A")}のスキル`;
@@ -906,9 +908,11 @@ function presentSkillCutin(event) {
   }
   if (event.destination === "palette") $("paletteControls").classList.add("skill-cutin-palette");
   if (event.destination === "board") $("boardViewport").classList.add("skill-cutin-board");
+  // Commit the hidden style so a rapid replacement gets a fresh CSS animation.
+  void root.offsetWidth;
   root.classList.remove("hidden");
   $("skillCutinAnnouncement").textContent = `${$("skillCutinActor").textContent}、${event.title}${event.detail === event.title ? "" : "、" + event.detail}`;
-  skillCutinTimer = setTimeout(clearSkillCutin, 1000);
+  skillCutinTimer = setTimeout(clearSkillCutin, duration);
 }
 function skillCutinBlocked() {
   return Boolean(document.querySelector("dialog[open]"))

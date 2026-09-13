@@ -5,7 +5,9 @@
 })(typeof globalThis !== "undefined" ? globalThis : this, function () {
   "use strict";
   const STORAGE_KEY = "fourColorMapGame.standard.online.v5.skill-cutin-v1";
+  const DISPLAY_MS = 1800;
   const COLORS = ["red", "blue", "yellow", "green"];
+  const COLOR_NAMES = { red: "赤", blue: "青", yellow: "黄", green: "緑" };
   const safeId = value => typeof value === "string" && /^[A-Za-z0-9._:-]{1,300}$/.test(value);
   function traceFor(state) {
     const t = state?.lastPublicTrace;
@@ -27,10 +29,36 @@
     return {
       scope: `${roomId}:${state.matchId}:${seat}`, version: state.version, status: state.status,
       visible: input.visible === true,
-      palette: JSON.stringify((input.ownColors || []).filter(c => COLORS.includes(c))),
+      palette: JSON.stringify(COLORS.filter(c => (input.ownColors || []).includes(c))),
       seals: JSON.stringify(COLORS.map(c => Number(state.publicEffects?.[seat]?.seals?.[c] || 0) > 0)),
       board: JSON.stringify([state.requiredSize, state.pending, state.reserved, state.preparedOutgoing, regions]),
+      requiredSize: Number.isSafeInteger(state.requiredSize) && state.requiredSize > 0 ? state.requiredSize : null,
+      regionCount: regions.filter(r => r[2] !== true).length,
+      geometry: JSON.stringify(regions.map(([id, , deleted, micro]) => [id, deleted, micro])),
+      regionColors: JSON.stringify(regions.map(([id, color]) => [id, color])),
     };
+  }
+  function resultDetail(previous, current, trace) {
+    if (previous.seals !== current.seals) {
+      const delta = JSON.parse(current.seals).filter(Boolean).length - JSON.parse(previous.seals).filter(Boolean).length;
+      return delta ? `あなたの持ち色の封印が${Math.abs(delta)}色${delta > 0 ? "増えた" : "減った"}` : "あなたの持ち色の封印が変わった";
+    }
+    if (previous.palette !== current.palette) {
+      const count = JSON.parse(current.palette).length, before = JSON.parse(previous.palette).length;
+      return count === before ? "あなたの持ち色が入れ替わった" : `あなたの持ち色が${count}色に${count > before ? "増えた" : "減った"}`;
+    }
+    if (current.requiredSize !== null && previous.requiredSize !== null && previous.requiredSize !== current.requiredSize)
+      return `作るエリアが${current.requiredSize}マスになった`;
+    const delta = current.regionCount - previous.regionCount;
+    if (delta) return `エリアが${Math.abs(delta)}つ${delta > 0 ? "増えた" : "減った"}`;
+    if (previous.geometry !== current.geometry) return "エリアの形が変わった";
+    if (previous.regionColors !== current.regionColors) {
+      if (trace.type === "LEGAL_RECOLOR" && JSON.parse(current.regionColors).some(([id, color]) => id === trace.regionId && color === trace.color)
+        && JSON.parse(previous.regionColors).some(([id, color]) => id === trace.regionId && color !== trace.color))
+        return `エリアが${COLOR_NAMES[trace.color]}に塗り替わった`;
+      return "エリアの色が変わった";
+    }
+    return previous.board !== current.board ? "盤面の状態が変わった" : "スキルを使用";
   }
   function describe(previous, current, input) {
     const trace = traceFor(input.state);
@@ -43,7 +71,7 @@
     const boardChanged = previous.board !== current.board;
     return { eventId: trace.eventId, scope: current.scope, version: current.version, actor: own ? "self" : "opponent",
       title: ack?.name ? String(ack.name).slice(0, 48) : "スキルを使用",
-      detail: noOp ? "空振り" : paletteChanged ? "持ち色に変化" : boardChanged ? "盤面に変化" : "スキルを使用",
+      detail: noOp ? "空振り" : resultDetail(previous, current, trace),
       destination: noOp ? null : paletteChanged ? "palette" : boardChanged ? "board" : null,
       noOp };
   }
@@ -75,8 +103,14 @@
       if (previous && current?.scope === previous.scope && current.version === previous.version) {
         previous = current; return Promise.resolve(false);
       }
-      interrupt();
       const event = describe(previous, current, input);
+      // A normal consecutive update may leave an already-shown past event readable.
+      // It must still invalidate any delayed claim, without restarting its deadline.
+      const ordinaryContinuation = previous && previous.scope === current.scope
+        && current.version === previous.version + 1 && previous.status === "ACTIVE" && previous.visible
+        && !["USE_SKILL", "LEGAL_RECOLOR"].includes(input.state?.lastPublicTrace?.type);
+      generation += 1;
+      if (!ordinaryContinuation) clear();
       previous = current;
       if (!event) return Promise.resolve(false);
       const revision = generation;
@@ -89,5 +123,5 @@
     }
     return { observe, interrupt };
   }
-  return Object.freeze({ VERSION: "skill-cutin-v1", STORAGE_KEY, traceFor, snapshot, describe, claim, createObserver });
+  return Object.freeze({ VERSION: "skill-cutin-v1", DISPLAY_MS, STORAGE_KEY, traceFor, snapshot, describe, claim, createObserver });
 });
