@@ -3044,7 +3044,7 @@ test("UDL060 result-local next actions fit mobile and desktop and route saved ze
             return r.width>=44&&r.height>=44&&r.top>=0&&r.bottom<=innerHeight&&e.contains(document.elementFromPoint(r.x+r.width/2,r.y+r.height/2));}));
         if (process.env.STANDARD_UI_ARTIFACT_DIR) await page.screenshot({path:path.join(process.env.STANDARD_UI_ARTIFACT_DIR,`${mode}-${viewport.width}-persistent.png`)});
         await page.locator("#resultGoGacha").click();
-        assert.equal(await page.locator("#gachaLevel").inputValue(),"3");
+        assert.equal(await page.locator('[data-gacha-level][aria-pressed="true"]').getAttribute("data-gacha-level"),"3");
         assert.equal(await page.locator("#gachaDrawOne").isDisabled(),true);
         assert.deepEqual(await resultWriteCalls(page),[]);
         assert.equal(await page.evaluate(() => JSON.stringify({room:globalThis.__standardOnlineRuntime.room,profile:globalThis.__standardOnlineRuntime.profile})),before);
@@ -3064,7 +3064,7 @@ test("UDL060 saved result navigation retains an unresolved draw level and exact 
   await withPage("resultRewardCpu",async page=>{
     await page.locator("#terminalClose").click();
     await page.locator("#resultGoGacha").click();
-    await page.locator("#gachaLevel").selectOption("5");
+    await page.locator('[data-gacha-level="5"]').click();
     await page.evaluate(()=>{globalThis.__standardOnlineRuntime.failNextGacha=true;});
     await page.locator("#gachaDrawAll").click();
     await page.locator("#gachaRetry:not(.hidden)").waitFor();
@@ -3072,7 +3072,7 @@ test("UDL060 saved result navigation retains an unresolved draw level and exact 
     const pending=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),pendingKey);
     await page.locator('[data-app-tab="battle"]').click();
     await page.locator("#resultGoGacha").click();
-    assert.equal(await page.locator("#gachaLevel").inputValue(),"5");
+    assert.equal(await page.locator('[data-gacha-level][aria-pressed="true"]').getAttribute("data-gacha-level"),"5");
     assert.deepEqual(await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),pendingKey),pending);
     assert.equal((await resultWriteCalls(page)).filter(c=>c.body?.operation==="gacha").length,1);
     await page.locator("#gachaRetry").click();
@@ -3093,7 +3093,7 @@ test("UDL060 v2 actual saved reward levels and counts update without balance or 
       await page.waitForFunction(level=>document.querySelector("#terminalProgressText").textContent===`完了報酬\nLv.${level}ガチャ券 ×${level}`,level);
     }
     await page.locator("#terminalGoGacha").click();
-    assert.equal(await page.locator("#gachaLevel").inputValue(),"5");
+    assert.equal(await page.locator('[data-gacha-level][aria-pressed="true"]').getAttribute("data-gacha-level"),"5");
     assert.equal(await page.locator("#gachaDrawOne").isDisabled(),true);
     assert.deepEqual(await resultWriteCalls(page),[]);
     assert.equal(await page.evaluate(key=>JSON.parse(localStorage.getItem(key)).roomId,connectionKey),roomId);
@@ -4236,33 +4236,206 @@ test("actual Edge keeps a lab mismatch visible with the exact recovery instructi
   });
 });
 
-test("actual browser shows the approved odds and rarity floor for each selected ticket level", { timeout: 120000 }, async () => {
+test("gacha entry shows all authoritative Lv odds on demand without drawing", { timeout: 130000 }, async () => {
   await withPage("gacha", async (page) => {
     await page.locator("#gachaPanel:not(.hidden):not(.tab-panel-hidden)").waitFor();
     const odds = page.locator("#gachaOdds");
-    assert.equal(await odds.textContent(), "Lv.1 排出率：★1 65% / ★2 29% / ★3 5% / ★4 0.9% / ★5 0.1%　★4・★5も排出されます（合計1%）。");
-    await page.locator("#gachaLevel").selectOption("4");
-    assert.equal(await odds.textContent(), "Lv.4 排出率：★1 0% / ★2 35% / ★3 35% / ★4 24% / ★5 6%　★2以上確定。");
-    await page.locator("#gachaLevel").selectOption("5");
-    assert.equal(await odds.textContent(), "Lv.5 排出率：★1 0% / ★2 0% / ★3 40% / ★4 40% / ★5 20%　★3以上確定。");
-    assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "gacha").length), 0);
-    const layout = await odds.evaluate((node) => {
-      const box = node.getBoundingClientRect();
-      return { left: box.left, right: box.right, viewport: innerWidth, overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth };
-    });
-    assert.ok(layout.left >= 0 && layout.right <= layout.viewport, JSON.stringify(layout));
-    assert.equal(layout.overflow, false);
+    assert.equal(await odds.getAttribute("open"), null);
+    assert.equal(await page.locator("#gachaOddsRows").isVisible(), false);
+    await odds.locator("summary").focus(); await page.keyboard.press("Enter");
+    const expected = require("../standard/standard-gacha-transaction.js").GACHA_ODDS;
+    for (const level of [1, 2, 3, 4, 5]) {
+      const row = page.locator("#gachaOddsRows tr").nth(level - 1);
+      assert.equal(await row.locator("th").textContent(), `Lv.${level}`);
+      assert.deepEqual(await row.locator("td").allTextContents(), [1,2,3,4,5].map(rarity => `${expected[level][rarity]}%`));
+    }
+    assert.doesNotMatch(await odds.textContent(), /以上確定|★4・★5も|合計1%/);
+    await odds.locator("summary").click();
+    for (const level of [4, 5]) await page.locator(`[data-gacha-level="${level}"]`).click();
+    assert.equal(await page.locator('[data-gacha-level][aria-pressed="true"]').getAttribute("data-gacha-level"), "5");
+    assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter(entry => entry.body?.operation === "gacha").length), 0);
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth), false);
   }, { viewport: { width: 390, height: 844 } });
+});
+
+test("gacha entry keeps keyboard targets and odds readable at narrow, enlarged and landscape sizes", { timeout: 150000 }, async () => {
+  await withPage("gacha", async (page) => {
+    const errors = [];
+    page.on("pageerror", (error) => errors.push(error.message));
+    await page.locator("#gachaPanel:not(.hidden):not(.tab-panel-hidden)").waitFor();
+    await page.locator(".random-reveal:not(.hidden)").waitFor({ state: "hidden" });
+    const odds = page.locator("#gachaOdds"), summary = odds.locator("summary");
+    const before = await page.evaluate(() => JSON.stringify(globalThis.__standardOnlineRuntime.profile));
+    for (const view of [
+      { width: 390, height: 844, textScale: 1 },
+      { width: 768, height: 1024, textScale: 1 },
+      { width: 1280, height: 900, textScale: 1 },
+      { width: 640, height: 360, textScale: 1 },
+      { width: 320, height: 640, textScale: 2 },
+    ]) {
+      await page.setViewportSize({ width: view.width, height: view.height });
+      await page.evaluate((scale) => { document.documentElement.style.fontSize = String(16 * scale) + "px"; }, view.textScale);
+      await page.locator('[data-gacha-level="1"]').focus();
+      await page.keyboard.press("Tab"); await page.keyboard.press("Shift+Tab");
+      for (const level of [1, 2, 3, 4, 5]) {
+        const button = page.locator('[data-gacha-level="' + level + '"]');
+        assert.equal(await button.evaluate((node) => document.activeElement === node), true);
+        const box = await button.boundingBox();
+        assert.ok(box && box.width >= 44 && box.height >= 44, JSON.stringify({ view, level, box }));
+        assert.equal(await button.evaluate((node) => node.scrollWidth <= node.clientWidth), true, JSON.stringify({ view, level }));
+        assert.equal(await button.evaluate((node) => getComputedStyle(node).outlineStyle), "solid");
+        assert.equal(await button.evaluate((node) => {
+          const r = node.getBoundingClientRect();
+          return node.contains(document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2));
+        }), true, JSON.stringify({ view, level, reason: "focused target unobstructed" }));
+        await page.keyboard.press("Tab");
+      }
+      for (const id of ["gachaDrawOne", "gachaDrawAll"]) {
+        assert.equal(await page.evaluate(() => document.activeElement.id), id);
+        const button = page.locator("#" + id), box = await button.boundingBox();
+        assert.ok(box && box.width >= 44 && box.height >= 44);
+        assert.equal(await button.evaluate((node) => node.scrollWidth <= node.clientWidth), true);
+        await page.keyboard.press("Tab");
+      }
+      assert.equal(await summary.evaluate((node) => document.activeElement === node), true);
+      await page.keyboard.press("Enter");
+      assert.equal(await odds.evaluate((node) => node.open), true);
+      const wrap = odds.locator(".gacha-odds-table-wrap");
+      await page.keyboard.press("Tab");
+      assert.equal(await wrap.evaluate((node) => document.activeElement === node), true);
+      if (await wrap.evaluate((node) => node.scrollWidth > node.clientWidth)) {
+        for (let i = 0; i < 12; i += 1) await page.keyboard.press("ArrowRight");
+        await page.waitForFunction(() => {
+          const node = document.querySelector(".gacha-odds-table-wrap");
+          return node.scrollLeft >= node.scrollWidth - node.clientWidth - 1;
+        });
+      }
+      const layout = await page.evaluate(() => ({
+        documentFits: document.documentElement.scrollWidth <= document.documentElement.clientWidth,
+        regionFits: document.querySelector(".gacha-odds-table-wrap").getBoundingClientRect().width <= document.querySelector("#gachaOdds").clientWidth + 1,
+        cellsFit: [...document.querySelectorAll("#gachaOdds th,#gachaOdds td")].every((node) => node.scrollWidth <= node.clientWidth),
+      }));
+      const overflow = !layout.documentFits ? await page.evaluate(() => [...document.querySelectorAll("body *")]
+        .filter((node) => node.getBoundingClientRect().right > innerWidth && !node.closest(".gacha-odds-table-wrap"))
+        .slice(0, 12).map((node) => ({ tag: node.tagName, id: node.id, className: node.className,
+          width: node.getBoundingClientRect().width, minWidth: getComputedStyle(node).minWidth }))) : [];
+      if (!layout.documentFits && process.env.GACHA_SCREENSHOTS) await page.screenshot({ path: path.join(process.env.GACHA_SCREENSHOTS, browserName + "-gacha-overflow.png") });
+      assert.deepEqual(layout, { documentFits: true, regionFits: true, cellsFit: true }, JSON.stringify({ view, layout, overflow }));
+      const last = odds.locator("tbody tr").last();
+      await last.scrollIntoViewIfNeeded();
+      const rowReachable = await last.evaluate((node) => {
+        const r = node.getBoundingClientRect();
+        const region = node.closest(".gacha-odds-table-wrap").getBoundingClientRect();
+        const x = (Math.max(r.left, region.left) + Math.min(r.right, region.right)) / 2;
+        return node.contains(document.elementFromPoint(x, r.y + r.height / 2));
+      });
+      if (!rowReachable && process.env.GACHA_SCREENSHOTS) await page.screenshot({ path: path.join(process.env.GACHA_SCREENSHOTS, browserName + "-gacha-row-covered.png") });
+      assert.equal(rowReachable, true, JSON.stringify({ view, reason: "last odds row reachable within scroll region and above navigation" }));
+      if (process.env.GACHA_SCREENSHOTS) {
+        fs.mkdirSync(process.env.GACHA_SCREENSHOTS, { recursive: true });
+        await page.screenshot({ path: path.join(process.env.GACHA_SCREENSHOTS, browserName + "-gacha-odds-" + view.width + "-" + view.textScale + "x.png") });
+      }
+      await summary.focus(); await page.keyboard.press("Space");
+      assert.equal(await odds.evaluate((node) => node.open), false);
+      assert.equal(await page.locator("#gachaStatus").textContent(), "");
+      assert.equal(await page.evaluate(() => JSON.stringify(globalThis.__standardOnlineRuntime.profile)), before);
+      if (process.env.GACHA_SCREENSHOTS && view.height > 360) {
+        await page.locator("#gachaLevels").scrollIntoViewIfNeeded();
+        await page.screenshot({ path: path.join(process.env.GACHA_SCREENSHOTS, browserName + "-gacha-entry-" + view.width + "-" + view.textScale + "x.png") });
+      }
+    }
+    await summary.click();
+    await page.reload({ waitUntil: "load" });
+    await page.locator("#connectionBadge.good").waitFor();
+    assert.equal(await odds.evaluate((node) => node.open), false);
+    const writes = await page.evaluate(async () => (await globalThis.__standardOnlineLifetimeInvocations())
+      .filter((entry) => ["gacha", "quiz-start", "quiz-answer", "quiz-finish", "profile"].includes(entry.operation)));
+    assert.deepEqual(writes, []);
+    assert.deepEqual(errors, []);
+  }, { bodyTimeout: 55_000 });
+});
+
+test("gacha entry caps all at 100, blocks busy double activation and keeps zero stock selected", { timeout: 130000 }, async () => {
+  await withPage("gacha", async (page) => {
+    await page.evaluate(() => {
+      const runtime = globalThis.__standardOnlineRuntime;
+      runtime.profile = { ...runtime.profile, revision: runtime.profile.revision + 1,
+        profile_state: { ...runtime.profile.profile_state, gachaTickets: { "1": 2, "2": 0, "3": 103, "4": 0, "5": 0 } } };
+      runtime.onInvalidate();
+    });
+    await page.waitForFunction(() => document.querySelector('[data-gacha-level="3"] [data-gacha-count]').textContent === "103枚");
+    await page.locator('[data-gacha-level="3"]').click();
+    assert.equal(await page.locator("#gachaLimitNote").isVisible(), true);
+    await page.evaluate(() => {
+      globalThis.__standardOnlineRuntime.delayedOperation = "gacha";
+      globalThis.__standardOnlineRuntime.operationDelayMs = 3000;
+    });
+    await page.locator("#gachaDrawAll").click();
+    await page.waitForFunction(() => globalThis.__standardOnlineRuntime.calls.some((entry) => entry.body?.operation === "gacha"));
+    for (const target of ['[data-gacha-level="1"]', '[data-gacha-level="5"]', "#gachaDrawOne", "#gachaDrawAll"]) {
+      assert.equal(await page.locator(target).isDisabled(), true);
+      await page.locator(target).click({ force: true });
+    }
+    await page.waitForFunction(() => document.querySelector("#gachaStatus").textContent === "100枚を獲得しました。");
+    const first = await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "gacha").map((entry) => entry.body));
+    assert.equal(first.length, 1);
+    assert.equal(first[0].count, 100); assert.equal(first[0].ticketLevel, 3);
+    assert.equal(await page.locator('[data-gacha-level="3"] [data-gacha-count]').textContent(), "3枚");
+    assert.equal(await page.locator("#gachaLimitNote").isHidden(), true);
+    await page.evaluate(() => { globalThis.__standardOnlineRuntime.operationDelayMs = 0; });
+    await page.locator("#gachaDrawAll").click();
+    await page.waitForFunction(() => document.querySelector("#gachaStatus").textContent === "3枚を獲得しました。");
+    assert.equal(await page.locator('[data-gacha-level][aria-pressed="true"]').getAttribute("data-gacha-level"), "3");
+    assert.equal(await page.locator('[data-gacha-level="3"] [data-gacha-count]').textContent(), "0枚");
+    for (const target of ["#gachaDrawOne", "#gachaDrawAll"]) {
+      assert.equal(await page.locator(target).isDisabled(), true);
+      await page.locator(target).click({ force: true });
+    }
+    const counts = await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "gacha").map((entry) => entry.body.count));
+    assert.deepEqual(counts, [100, 3]);
+  });
+});
+
+test("gacha entry restores the same Lv5 pending draw across reload and retries without replacement", { timeout: 130000 }, async () => {
+  await withPage("quizReward", async (page) => {
+    const key = "fourColorMapGame.standard.online.v5.pending-gacha";
+    await page.locator('[data-gacha-level="5"]').click();
+    await page.evaluate(() => { globalThis.__standardOnlineRuntime.failNextGacha = true; });
+    await page.locator("#gachaDrawAll").click();
+    await page.getByText("抽選結果を確認できませんでした。前回の抽選結果をもう一度確認できます。").waitFor();
+    const pending = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)), key);
+    assert.equal(pending.ticketLevel, 5); assert.equal(pending.count, 2);
+    await page.reload({ waitUntil: "load" });
+    await page.locator("#connectionBadge.good").waitFor();
+    assert.equal(await page.locator('[data-gacha-level][aria-pressed="true"]').getAttribute("data-gacha-level"), "5");
+    assert.match(await page.locator("#gachaStatus").textContent(), /前回の抽選結果を確認/);
+    for (const target of ['[data-gacha-level="2"]', "#gachaDrawOne", "#gachaDrawAll"]) {
+      assert.equal(await page.locator(target).isDisabled(), true);
+      await page.locator(target).click({ force: true });
+    }
+    await page.locator("#quizGoGacha").click();
+    assert.deepEqual(await page.evaluate((key) => JSON.parse(localStorage.getItem(key)), key), pending);
+    await page.locator("#gachaRetry").click();
+    await page.waitForFunction((key) => localStorage.getItem(key) === null, key);
+    const calls = await page.evaluate(async () => (await globalThis.__standardOnlineLifetimeInvocations()).filter((entry) => entry.operation === "gacha"));
+    assert.equal(calls.length, 2);
+    for (const field of ["actionId", "ticketLevel", "count"]) {
+      assert.equal(calls[0][field], pending[field]); assert.equal(calls[1][field], pending[field]);
+    }
+    assert.equal(await page.locator('[data-gacha-level][aria-pressed="true"]').getAttribute("data-gacha-level"), "5");
+    assert.equal(await page.locator('[data-gacha-level="5"] [data-gacha-count]').textContent(), "0枚");
+    assert.equal(await page.locator("#gachaRetry").isHidden(), true);
+  });
 });
 
 test("UDL-059 quiz reward navigation uses the saved level, survives hydration and manual changes, and preserves zero stock", { timeout: 130000 }, async () => {
   await withPage("quizReward", async (page) => {
-    await page.locator("#gachaLevel").selectOption("5");
+    await page.locator('[data-gacha-level="5"]').click();
     assert.match(await page.locator("#quizLevelBadge").textContent(), /Lv\.5/);
     await page.locator("#quizResult:not(.hidden)").waitFor();
     await page.locator("#quizGoGacha").click();
-    assert.equal(await page.locator("#gachaLevel").inputValue(), "2");
-    assert.match(await page.locator("#gachaOdds").textContent(), /^Lv\.2 排出率/);
+    assert.equal(await page.locator('[data-gacha-level][aria-pressed="true"]').getAttribute("data-gacha-level"), "2");
+    assert.match(await page.locator("#gachaOddsRows").textContent(), /Lv\.2/);
     assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter(c => c.body?.operation === "gacha").length), 0);
     await page.locator("#gachaDrawOne").click();
     await page.waitForFunction(() => document.querySelector("#gachaStatus").textContent.includes("1枚を獲得"));
@@ -4274,17 +4447,17 @@ test("UDL-059 quiz reward navigation uses the saved level, survives hydration an
     assert.equal(drawn.calls[0].ticketLevel, 2);
     assert.equal(drawn.tickets["2"], 0);
     assert.equal(drawn.tickets["5"], 2);
-    await page.locator("#gachaLevel").selectOption("3");
+    await page.locator('[data-gacha-level="3"]').click();
     await page.locator('[data-app-tab="battle"]').click();
     await page.locator('[data-app-tab="quiz"]').click();
-    assert.equal(await page.locator("#gachaLevel").inputValue(), "3");
+    assert.equal(await page.locator('[data-gacha-level][aria-pressed="true"]').getAttribute("data-gacha-level"), "3");
     await page.locator("#gachaDrawOne").click();
     await page.waitForFunction(key => JSON.parse(localStorage.getItem(key)).gachaTickets["3"] === 1, remoteProfileKey);
-    assert.equal(await page.locator("#gachaLevel").inputValue(), "3", "profile hydration does not reapply the old reward");
-    assert.match(await page.locator("#gachaOdds").textContent(), /^Lv\.3 排出率/);
+    assert.equal(await page.locator('[data-gacha-level][aria-pressed="true"]').getAttribute("data-gacha-level"), "3", "profile hydration does not reapply the old reward");
+    assert.match(await page.locator("#gachaOddsRows").textContent(), /Lv\.3/);
     await page.locator("#quizGoGacha").click();
-    assert.equal(await page.locator("#gachaLevel").inputValue(), "2");
-    assert.match(await page.locator("#gachaStatus").textContent(), /Lv\.2券を0枚/);
+    assert.equal(await page.locator('[data-gacha-level][aria-pressed="true"]').getAttribute("data-gacha-level"), "2");
+    assert.match(await page.locator('[data-gacha-level="2"] [data-gacha-count]').textContent(), /0枚/);
     assert.equal(await page.locator("#gachaDrawOne").isDisabled(), true);
     assert.equal(await page.locator("#gachaDrawAll").isDisabled(), true);
     assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter(c => c.body?.operation === "gacha").length), 2);
@@ -4293,7 +4466,7 @@ test("UDL-059 quiz reward navigation uses the saved level, survives hydration an
 
 test("UDL-059 quiz reward link cannot replace an unresolved draw or its retry payload", { timeout: 130000 }, async () => {
   await withPage("quizReward", async (page) => {
-    await page.locator("#gachaLevel").selectOption("5");
+    await page.locator('[data-gacha-level="5"]').click();
     await page.evaluate(() => { globalThis.__standardOnlineRuntime.failNextGacha = true; });
     await page.locator("#gachaDrawAll").click();
     await page.locator("#gachaRetry:not(.hidden)").waitFor();
@@ -4303,7 +4476,7 @@ test("UDL-059 quiz reward link cannot replace an unresolved draw or its retry pa
     assert.equal(pending.count, 2);
     await page.locator("#quizResult:not(.hidden)").waitFor();
     await page.locator("#quizGoGacha").click();
-    assert.equal(await page.locator("#gachaLevel").inputValue(), "5", "the existing unresolved draw takes precedence");
+    assert.equal(await page.locator('[data-gacha-level][aria-pressed="true"]').getAttribute("data-gacha-level"), "5", "the existing unresolved draw takes precedence");
     assert.deepEqual(await page.evaluate(key => JSON.parse(localStorage.getItem(key)), pendingKey), pending);
     assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter(c => c.body?.operation === "gacha").length), 1);
     await page.locator("#gachaRetry").click();
@@ -4333,7 +4506,7 @@ test("actual Edge gacha persists one server draw and immediately hydrates invent
     assert.equal(await page.locator("#gachaDrawOne").isDisabled(), true);
     assert.equal(await page.locator("#gachaDrawAll").isDisabled(), true);
     await page.getByRole("button", { name: "同じ抽選を再確認" }).click();
-    await page.getByText("1枚を獲得しました。券消費とカード付与は一度だけ保存済みです。").waitFor();
+    await page.getByText("1枚を獲得しました。").waitFor();
     const evidence = await page.evaluate(({ key }) => {
       const calls = globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "gacha").map((entry) => entry.body);
       return { calls, profile: JSON.parse(localStorage.getItem(key)) };
@@ -5756,8 +5929,8 @@ test("actual Edge hydrates a CPU win once, routes its earned ticket deliberately
     assert.ok(terminalLayout.dialogScrollHeight <= terminalLayout.dialogClientHeight + 1, JSON.stringify(terminalLayout));
     await rewardCta.click();
     await page.locator("#gachaPanel:not(.hidden)").waitFor();
-    await page.getByText("CPU戦の完了報酬を反映済み：Lv.1券 所持 ×4。1枚引くと所持券は3枚になります。").waitFor();
-    assert.match(await page.locator("#gachaTickets").textContent(), /Lv\.1 ×4/);
+    await page.getByText("対戦でもらったLv.1券を選びました。").waitFor();
+    assert.match(await page.locator('[data-gacha-level="1"] [data-gacha-count]').textContent(), /4枚/);
     await page.waitForFunction(() => document.activeElement?.id === "gachaTitle");
     await page.waitForFunction(() => {
       const draw = document.querySelector("#gachaDrawOne").getBoundingClientRect();
@@ -5769,7 +5942,7 @@ test("actual Edge hydrates a CPU win once, routes its earned ticket deliberately
       const tabs = document.querySelector(".app-tabs").getBoundingClientRect();
       return {
         activeTab: document.body.dataset.activeTab,
-        level: document.querySelector("#gachaLevel").value,
+        level: document.querySelector('[data-gacha-level][aria-pressed="true"]')?.dataset.gachaLevel,
         roomStatus: globalThis.__standardOnlineRuntime.room.status,
         storedRoomId: JSON.parse(localStorage.getItem(key)).roomId,
         gachaCalls: globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "gacha").length,
@@ -5781,7 +5954,7 @@ test("actual Edge hydrates a CPU win once, routes its earned ticket deliberately
     const selectedBeforeDraw = await page.locator('input[name="loadout-color"]:checked').evaluateAll((nodes) => nodes.map((node) => node.value));
     assert.equal(selectedBeforeDraw.includes("colorPrism"), false);
     await page.getByRole("button", { name: "1枚引く" }).click();
-    await page.getByText("1枚を獲得しました。券消費とカード付与は一度だけ保存済みです。").waitFor();
+    await page.getByText("1枚を獲得しました。").waitFor();
     await page.waitForFunction(() => document.activeElement?.id === "gachaResults");
     assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "gacha").length), 1);
     assert.equal(await page.locator("#gachaResultAnnouncement").textContent(), "1枚獲得。1種類、最高レアリティ星1。詳しくは獲得カード一覧で確認できます。");
@@ -5806,8 +5979,8 @@ test("actual Edge hydrates a CPU win once, routes its earned ticket deliberately
     await page.locator("#connectionBadge.good").waitFor();
     await page.locator("#gachaPanel:not(.hidden):not(.tab-panel-hidden)").waitFor();
     await page.getByRole("button", { name: "6枚を選び直して同じCPUと再戦" }).waitFor();
-    assert.match(await page.locator("#gachaTickets").textContent(), /Lv\.1 ×3/);
-    assert.equal(await page.locator("#gachaStatus").textContent(), "1枚を獲得しました。券消費とカード付与は一度だけ保存済みです。");
+    assert.match(await page.locator('[data-gacha-level="1"] [data-gacha-count]').textContent(), /3枚/);
+    assert.equal(await page.locator("#gachaStatus").textContent(), "1枚を獲得しました。");
     assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "gacha").length), 0);
     await page.evaluate(() => {
       document.querySelector("#gachaCpuRematch").click();

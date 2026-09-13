@@ -10,6 +10,7 @@ const source = fs.readFileSync(path.join(__dirname, "..", "scripts", "live-stand
 const candidateApp = fs.readFileSync(path.join(__dirname, "..", "standard-online-v5", "app.js"), "utf8");
 const candidateResultModel = fs.readFileSync(path.join(__dirname, "..", "standard-online-v5", "result-continuation.js"), "utf8");
 const candidateHtml = fs.readFileSync(path.join(__dirname, "..", "standard-online-v5", "index.html"), "utf8");
+const candidateRegistry = fs.readFileSync(path.join(__dirname, "..", "standard-online-v5", "standard-skill-registry.generated.js"), "utf8");
 const candidateIntents = fs.readFileSync(path.join(__dirname, "..", "standard-online-v5", "standard-online-skill-intents.js"), "utf8");
 const candidateEdgeBundle = fs.readFileSync(path.join(__dirname, "..", "supabase", "functions", "standard-game-action", "standard-engine.bundle.js"), "utf8");
 const candidateLocalHtml = fs.readFileSync(path.join(__dirname, "..", "standard-v5", "index.html"), "utf8");
@@ -79,13 +80,13 @@ test("release preflight is read-only, secret-free, finite, and stage-aware", () 
   assert.match(source, /MATCH_REWARD_ECONOMY_MISMATCH/);
   assert.match(source, /app\.text\.includes\('★\$\{meta\.rarity\}'\)/);
   assert.match(source, /CANDIDATE_ASSET_GENERATION_UI_PHASE_MISMATCH/);
-assert.match(source, /app\.js\?v=20260914-2/);
+assert.match(source, /app\.js\?v=20260914-3/);
   assert.match(source, /cpu-commentary\.js\?v=20260910-1/);
   assert.match(source, /progression\.css/);
-  assert.match(source, /style\.css\?v=20260914-2/);
+  assert.match(source, /style\.css\?v=20260914-3/);
   assert.match(source, /standard-online-client\.js\?v=20260910-1/);
   assert.match(source, /standard-online-skill-intents\.js\?v=20260911-21/);
-  assert.match(source, /standard-skill-registry\.generated\.js\?v=20260912-2/);
+  assert.match(source, /standard-skill-registry\.generated\.js\?v=20260914-1/);
   assert.match(source, /cpu-portraits\.js\?v=20260908-1/);
   assert.match(source, /basic-feedback\.js\?v=20260908-2/);
 assert.match(source, /skill-cutin\.js\?v=20260913-2/);
@@ -190,15 +191,16 @@ test("candidate preflight rejects completed-selection-only contact feedback", as
 });
 
 test("candidate preflight rejects missing or stale Lv.1-5 gacha UI odds", async () => {
-  const { hasApprovedGachaOddsUi } = await contractsPromise;
-  assert.equal(hasApprovedGachaOddsUi(candidateHtml, candidateApp), true);
-  const oldOddsApp = candidateApp.replace(
-    "1: Object.freeze({ 1: 65, 2: 29, 3: 5, 4: 0.9, 5: 0.1 })",
-    "1: Object.freeze({ 1: 64, 2: 30, 3: 5, 4: 0.9, 5: 0.1 })",
-  );
-  assert.equal(hasApprovedGachaOddsUi(candidateHtml, oldOddsApp), false);
-  assert.equal(hasApprovedGachaOddsUi(candidateHtml.replace('id="gachaOdds"', 'id="legacyGachaOdds"'), candidateApp), false);
-  assert.equal(hasApprovedGachaOddsUi(candidateHtml.replace("★1 65%", "★1 64%"), candidateApp), false);
+  const { hasApprovedGachaOddsUi, hasGachaEntryDiet } = await contractsPromise;
+  assert.equal(hasApprovedGachaOddsUi(candidateHtml, candidateApp, candidateRegistry), true);
+  assert.equal(hasApprovedGachaOddsUi(candidateHtml, candidateApp), false, "missing generated rates fail closed");
+  assert.equal(hasApprovedGachaOddsUi(candidateHtml, candidateApp, candidateRegistry.replace('"1": 65,', '"1": 64,')), false);
+  assert.equal(hasApprovedGachaOddsUi(candidateHtml.replace('id="gachaOdds"', 'id="legacyGachaOdds"'), candidateApp, candidateRegistry), false);
+  assert.equal(hasApprovedGachaOddsUi(candidateHtml, candidateApp.replace('GACHA_ODDS[ticketLevel][rarity]', '0'), candidateRegistry), false);
+  for (const html of [candidateHtml.replace('data-gacha-level="5"', 'data-gacha-level="4"'), candidateHtml.replace('<details id="gachaOdds"', '<details open id="gachaOdds"'), candidateHtml.replace('id="gachaOddsRows"','id="oldOdds"')]) {
+    assert.equal(hasGachaEntryDiet(html,candidateApp),false);
+  }
+  assert.equal(hasGachaEntryDiet(candidateHtml, candidateApp.replace('(!retry && pendingGacha)', 'false')),false);
 });
 
 test("candidate preflight rejects an old public Edge bundle odds table", async () => {
@@ -243,14 +245,14 @@ test("candidate app satisfies the waiting-opponent release marker", () => {
 });
 
 test("candidate page and app satisfy the alpha.4 cache generation marker", () => {
-  assert.equal(candidateHtml.includes("app.js?v=20260914-2"), true);
+  assert.equal(candidateHtml.includes("app.js?v=20260914-3"), true);
   assert.equal(candidateHtml.includes("terminal-result.css?v=20260914-1"), true);
   assert.equal(candidateApp.includes("result-continuation.js?v=20260914-1"), true);
   assert.equal(candidateHtml.includes("cpu-commentary.js?v=20260910-1"), true);
-  assert.equal(candidateHtml.includes("style.css?v=20260914-2"), true);
+  assert.equal(candidateHtml.includes("style.css?v=20260914-3"), true);
   assert.equal(candidateHtml.includes("standard-online-client.js?v=20260910-1"), true);
   assert.equal(candidateHtml.includes("standard-online-skill-intents.js?v=20260911-21"), true);
-  assert.equal(candidateHtml.includes("standard-skill-registry.generated.js?v=20260912-2"), true);
+  assert.equal(candidateHtml.includes("standard-skill-registry.generated.js?v=20260914-1"), true);
   assert.equal(candidateHtml.includes("cpu-portraits.js?v=20260908-1"), true);
   assert.equal(candidateHtml.includes("basic-feedback.js?v=20260908-2"), true);
   assert.equal(candidateHtml.includes("skill-cutin.js?v=20260913-2"), true);

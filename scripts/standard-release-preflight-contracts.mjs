@@ -81,7 +81,28 @@ export function hasPerCellContactFeedback(appText) {
   ]);
 }
 
-export function hasApprovedGachaOddsUi(pageText, appText) {
+export function hasGachaEntryDiet(pageText, appText) {
+  if (typeof pageText !== "string" || typeof appText !== "string") return false;
+  const levels = [...pageText.matchAll(/data-gacha-level="(\d)"/g)].map(match => match[1]).join(",");
+  const odds = pageText.match(/<details id="gachaOdds"[^>]*>[\s\S]*?<\/details>/)?.[0] || "";
+  return levels === "1,2,3,4,5" && !/<select[^>]*id="gachaLevel"/.test(pageText)
+    && !/\bopen\b/.test(odds.split(">")[0])
+    && includesAll(odds, ['id="gachaOddsRows"', 'scope="col">★5', '<summary>排出率</summary>'])
+    && includesAll(pageText, ['id="gachaLevels"', 'id="gachaDrawOne"', 'id="gachaDrawAll"', 'id="gachaHelp"'])
+    && includesAll(appText, ["pendingGacha?.ticketLevel ?? selectedGachaLevel", "(!retry && pendingGacha)",
+      "selectGachaLevel(Number(button.dataset.gachaLevel))", "GACHA_ODDS[ticketLevel][rarity]"]);
+}
+
+export function hasApprovedGachaOddsUi(pageText, appText, registryText = "") {
+  if (hasGachaEntryDiet(pageText, appText)
+    && includesAll(appText, ["const GACHA_ODDS = globalThis.FourColorStandardSkillRegistry.gachaOdds;"])) {
+    try {
+      const encoded = registryText.match(/const gachaOdds = (\{[\s\S]*?\});/)?.[1];
+      const expected = JSON.parse(EDGE_GACHA_ODDS_MARKER.slice("const gachaOdds = ".length, -1));
+      return JSON.stringify(JSON.parse(encoded)) === JSON.stringify(expected)
+        && includesAll(registryText, ["gachaOdds: Object.freeze(gachaOdds)", "Object.freeze(odds)"]);
+    } catch { return false; }
+  }
   return includesAll(pageText, [
     'id="gachaOdds"',
     "Lv.1 排出率：★1 65% / ★2 29% / ★3 5% / ★4 0.9% / ★5 0.1%",
@@ -154,7 +175,7 @@ export function hasCompactCpuRecords(pageText, appText, progressionCssText) {
 
 export function hasQuizAccuracyRecords(pageText, appText, progressionCssText) {
   return includesAll(pageText, [
-'app.js?v=20260914-2',
+'app.js?v=20260914-3',
     'progression.css?v=20260910-2',
     'id="quizAccuracyRecords" class="quiz-accuracy-records" role="list"',
     "記録開始以降に、サーバーで採点が確定した回答だけを集計します。",

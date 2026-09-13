@@ -29,13 +29,7 @@ const REMOTE_PROFILE_KEY = "fourColorMapGame.standard.online.v5.remote-profile";
 const REMOTE_PROFILE_ID = "online-server";
 const GACHA_PENDING_KEY = "fourColorMapGame.standard.online.v5.pending-gacha";
 const CPU_REWARD_GACHA_RESULT_KEY = "fourColorMapGame.standard.online.v5.cpu-reward-gacha-result";
-const GACHA_ODDS = Object.freeze({
-  1: Object.freeze({ 1: 65, 2: 29, 3: 5, 4: 0.9, 5: 0.1 }),
-  2: Object.freeze({ 1: 40, 2: 35, 3: 19, 4: 5.5, 5: 0.5 }),
-  3: Object.freeze({ 1: 25, 2: 35, 3: 28, 4: 10, 5: 2 }),
-  4: Object.freeze({ 1: 0, 2: 35, 3: 35, 4: 24, 5: 6 }),
-  5: Object.freeze({ 1: 0, 2: 0, 3: 40, 4: 40, 5: 20 }),
-});
+const GACHA_ODDS = globalThis.FourColorStandardSkillRegistry.gachaOdds;
 const QUIZ_PENDING_KEY = "fourColorMapGame.standard.online.v5.pending-quiz";
 const TERMINAL_PRESENTED_KEY = "fourColorMapGame.standard.online.v5.last-terminal-presentation";
 const APP_TAB_KEY = "fourColorMapGame.standard.online.v5.active-tab";
@@ -154,6 +148,7 @@ let setupModeRoomId = client.snapshot().roomId;
 let setupModeRevision = Number(client.snapshot().setupRevision) || 0;
 let rematchBusy = false;
 let gachaBusy = false;
+let selectedGachaLevel = 1;
 let quizBusy = false;
 let cardSaleBusy = false;
 let cosmeticBusy = false;
@@ -1350,7 +1345,7 @@ function openSavedResultGacha() {
   dismissTerminalResult();
   goToGacha(reward.ticketLevel);
   armedCpuRewardGachaOrigin = origin;
-  if (origin) $("gachaStatus").textContent = `CPU戦の完了報酬を反映済み：Lv.${origin.ticketLevel}券 所持 ×${origin.ticketTotal}。1枚引くと所持券は${origin.ticketTotal - 1}枚になります。`;
+  if (origin) $("gachaStatus").textContent = `対戦でもらったLv.${origin.ticketLevel}券を選びました。`;
 }
 
 function clearContactReveal({ clearAnnouncement = true } = {}) {
@@ -2077,29 +2072,56 @@ function starterProfile(displayName) {
   };
 }
 
+function currentGachaLevel() {
+  const level = pendingGacha?.ticketLevel ?? selectedGachaLevel;
+  return Number.isSafeInteger(level) && level >= 1 && level <= 5 ? level : null;
+}
+
+function selectGachaLevel(level) {
+  if (!Number.isSafeInteger(level) || level < 1 || level > 5 || gachaBusy || pendingGacha
+    || !profile() || !synced || profileSyncBusy || hasMatchedRoomHandoff()) return;
+  selectedGachaLevel = level;
+  armedCpuRewardGachaOrigin = null;
+  clearCpuRewardGachaResult({ clearDraws: true });
+  renderGacha();
+}
+
 function renderGacha() {
   renderWaitingOpponentNotice();
   const value = profile();
   if (!value || !$("gachaPanel")) return;
   const tickets = value.gachaTickets || {};
-  const level = Number($("gachaLevel").value || 1);
+  const level = currentGachaLevel();
   const available = Number(tickets[String(level)] || 0);
-  $("gachaTickets").textContent = [1, 2, 3, 4, 5].map((item) => `Lv.${item} ×${tickets[String(item)] || 0}`).join(" / ");
-  const odds = GACHA_ODDS[level];
-  const rarityFloor = [1, 2, 3, 4, 5].find((rarity) => odds[rarity] > 0);
-  const guarantee = level === 1
-    ? "★4・★5も排出されます（合計1%）。"
-    : `★${rarityFloor}以上確定。`;
-  $("gachaOdds").textContent = `Lv.${level} 排出率：${[1, 2, 3, 4, 5].map((rarity) => `★${rarity} ${odds[rarity]}%`).join(" / ")}　${guarantee}`;
+  for (const button of document.querySelectorAll("[data-gacha-level]")) {
+    const ticketLevel = Number(button.dataset.gachaLevel);
+    const count = Number(tickets[String(ticketLevel)] || 0);
+    button.querySelector("[data-gacha-count]").textContent = `${count}枚`;
+    button.setAttribute("aria-pressed", String(ticketLevel === level));
+    button.setAttribute("aria-label", `Lv.${ticketLevel}、ガチャ券${count}枚`);
+    button.disabled = gachaBusy || Boolean(pendingGacha) || !synced || profileSyncBusy || hasMatchedRoomHandoff();
+  }
+  if (!$("gachaOddsRows").children.length) {
+    for (const ticketLevel of [1, 2, 3, 4, 5]) {
+      const row = document.createElement("tr");
+      const title = document.createElement("th"); title.scope = "row"; title.textContent = `Lv.${ticketLevel}`; row.appendChild(title);
+      for (const rarity of [1, 2, 3, 4, 5]) {
+        const cell = document.createElement("td"); cell.textContent = `${GACHA_ODDS[ticketLevel][rarity]}%`; row.appendChild(cell);
+      }
+      $("gachaOddsRows").appendChild(row);
+    }
+  }
+  show("gachaLimitNote", available > 100);
   if (!gachaBusy && !pendingGacha) {
     $("gachaStatus").textContent = lastGachaDraws.length > 0
-      ? `${lastGachaDraws.length}枚を獲得しました。券消費とカード付与は一度だけ保存済みです。`
-      : `現在、Lv.${level}券を${available}枚所持しています。1枚引くと券を1枚消費します。`;
+      ? `${lastGachaDraws.length}枚を獲得しました。` : "";
+  } else if (!gachaBusy && pendingGacha && !$("gachaStatus").textContent) {
+    $("gachaStatus").textContent = "前回の抽選結果を確認してください。";
   }
-  $("gachaDrawOne").disabled = gachaBusy || Boolean(pendingGacha) || hasMatchedRoomHandoff() || available < 1;
-  $("gachaDrawAll").disabled = gachaBusy || Boolean(pendingGacha) || hasMatchedRoomHandoff() || available < 1;
+  $("gachaDrawOne").disabled = gachaBusy || Boolean(pendingGacha) || hasMatchedRoomHandoff() || !synced || profileSyncBusy || available < 1;
+  $("gachaDrawAll").disabled = gachaBusy || Boolean(pendingGacha) || hasMatchedRoomHandoff() || !synced || profileSyncBusy || available < 1;
   $("gachaRetry").classList.toggle("hidden", !pendingGacha);
-  $("gachaRetry").disabled = gachaBusy || hasMatchedRoomHandoff();
+  $("gachaRetry").disabled = gachaBusy || hasMatchedRoomHandoff() || !synced || profileSyncBusy;
   $("gachaResults").replaceChildren();
   for (const draw of lastGachaDraws) {
     const card = document.createElement("article"); card.className = `gacha-card r${draw.rarity}`; card.setAttribute("role", "listitem");
@@ -3259,8 +3281,9 @@ async function finishOnlineQuiz() {
 }
 
 async function runGacha(requestedCount = 1, retry = false) {
-  if (gachaBusy || !profile()) return;
-  const level = Number($("gachaLevel").value || 1);
+  if (gachaBusy || !profile() || !synced || profileSyncBusy || hasMatchedRoomHandoff() || (!retry && pendingGacha)) return;
+  const level = currentGachaLevel();
+  if (level === null) return;
   const available = Number(profile().gachaTickets?.[String(level)] || 0);
   if (!retry) {
     const count = requestedCount === null ? Math.min(available, 100) : requestedCount;
@@ -3274,7 +3297,7 @@ async function runGacha(requestedCount = 1, retry = false) {
     localStorage.setItem(GACHA_PENDING_KEY, JSON.stringify(pendingGacha));
   }
   if (!pendingGacha) return;
-  gachaBusy = true; $("gachaStatus").textContent = "サーバーで抽選中…"; renderGacha();
+  gachaBusy = true; $("gachaStatus").textContent = "抽選中…"; renderGacha();
   try {
     const completedContinuation = pendingGacha.continuation || null;
     const result = await client.drawGacha(pendingGacha);
@@ -3283,7 +3306,8 @@ async function runGacha(requestedCount = 1, retry = false) {
     lastGachaContinuation = isCurrentCpuRewardGachaContinuation(completedContinuation) ? completedContinuation : null;
     persistCpuRewardGachaResult();
     pendingGacha = null; localStorage.removeItem(GACHA_PENDING_KEY);
-    $("gachaStatus").textContent = `${lastGachaDraws.length}枚を獲得しました。券消費とカード付与は一度だけ保存済みです。`;
+    selectedGachaLevel = level;
+    $("gachaStatus").textContent = `${lastGachaDraws.length}枚を獲得しました。`;
     requestAnimationFrame(() => {
       $("gachaResults").focus({ preventScroll: true });
       $("gachaResults").scrollIntoView({ block: "start", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
@@ -6242,8 +6266,8 @@ function returnToTerminalSummary() {
 
 function goToGacha(ticketLevel = null) {
   const destinationLevel = pendingGacha?.ticketLevel ?? ticketLevel;
-  if (destinationLevel !== null) {
-    $("gachaLevel").value = String(destinationLevel);
+  if (Number.isSafeInteger(destinationLevel) && destinationLevel >= 1 && destinationLevel <= 5) {
+    selectedGachaLevel = destinationLevel;
   }
   if (!pendingGacha && ticketLevel !== null) {
     clearCpuRewardGachaResult({ clearDraws: true });
@@ -6267,7 +6291,9 @@ $("quizGoGacha").onclick = () => {
   if (!Number.isSafeInteger(ticketLevel) || ticketLevel < 1 || ticketLevel > 5) return;
   goToGacha(ticketLevel);
 };
-$("gachaLevel").onchange = () => { armedCpuRewardGachaOrigin = null; clearCpuRewardGachaResult({ clearDraws: true }); renderGacha(); };
+document.querySelectorAll("[data-gacha-level]").forEach(button => {
+  button.onclick = () => selectGachaLevel(Number(button.dataset.gachaLevel));
+});
 $("gachaDrawOne").onclick = () => runGacha(1);
 $("gachaDrawAll").onclick = () => runGacha(null);
 $("gachaRetry").onclick = () => runGacha(1, true);

@@ -5,7 +5,7 @@ const path = require("node:path");
 const vm = require("node:vm");
 const test = require("node:test");
 const source = fs.readFileSync(path.join(__dirname, "../standard-online-v5/app.js"), "utf8");
-const handler = source.match(/\$\("quizGoGacha"\)\.onclick = ([\s\S]+?);\r?\n\$\("gachaLevel"\)/)?.[1];
+const handler = source.match(/\$\("quizGoGacha"\)\.onclick = ([\s\S]+?);\r?\ndocument\.querySelectorAll\("\[data-gacha-level\]"\)/)?.[1];
 assert.ok(handler, "quiz reward click handler exists");
 function click(lastQuizResult) {
   const calls = [];

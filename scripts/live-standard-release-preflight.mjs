@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { LOCAL_STANDARD_BUNDLE_MARKER, hasApprovedEdgeGachaOdds, hasApprovedGachaOddsUi, hasBoardFirstCandidateGuidance, hasCompactCpuRecords, hasCpuSealTimingPolicy, hasDeferredCurseLocalBundle, hasDirectQuizEntry, hasMatchRewardEconomy, hasPerCellContactFeedback, hasQuizAccuracyRecords, hasRegionSplitDirectTarget, hasWholeButtonQuizPhysics } from "./standard-release-preflight-contracts.mjs";
+import { LOCAL_STANDARD_BUNDLE_MARKER, hasApprovedEdgeGachaOdds, hasApprovedGachaOddsUi, hasBoardFirstCandidateGuidance, hasCompactCpuRecords, hasCpuSealTimingPolicy, hasDeferredCurseLocalBundle, hasDirectQuizEntry, hasGachaEntryDiet, hasMatchRewardEconomy, hasPerCellContactFeedback, hasQuizAccuracyRecords, hasRegionSplitDirectTarget, hasWholeButtonQuizPhysics } from "./standard-release-preflight-contracts.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const configSource = fs.readFileSync(path.join(root, "online", "supabase-config.js"), "utf8");
@@ -14,13 +14,13 @@ const publicEdgeBundleUrl = new URL("../supabase/functions/standard-game-action/
 const expectedPhase = process.argv.find((argument) => argument.startsWith("--expect="))?.slice("--expect=".length) || null;
 const zeroUuid = "00000000-0000-0000-0000-000000000000";
 const candidateAssetMarkers = Object.freeze({
-app: "app.js?v=20260914-2",
+app: "app.js?v=20260914-3",
   terminalStyle: "terminal-result.css?v=20260914-1",
   commentary: "cpu-commentary.js?v=20260910-1",
-  style: "style.css?v=20260914-2",
+  style: "style.css?v=20260914-3",
   client: "standard-online-client.js?v=20260910-1",
   intents: "standard-online-skill-intents.js?v=20260911-21",
-  registry: "standard-skill-registry.generated.js?v=20260912-2",
+  registry: "standard-skill-registry.generated.js?v=20260914-1",
   portraits: "cpu-portraits.js?v=20260908-1",
   feedback: "basic-feedback.js?v=20260908-2",
   cutin: "skill-cutin.js?v=20260913-2",
@@ -149,9 +149,10 @@ const result = {
       && portraitAtlasDimensions?.height === 1086,
     hasWholeButtonQuizPhysics: hasWholeButtonQuizPhysics(page.text, app.text),
     hasDirectQuizEntry: hasDirectQuizEntry(page.text, app.text),
+    hasGachaEntryDiet: hasGachaEntryDiet(page.text, app.text),
     hasBoardFirstCandidateGuidance: hasBoardFirstCandidateGuidance(page.text, app.text),
     hasPerCellContactFeedback: hasPerCellContactFeedback(app.text),
-    hasApprovedGachaOddsUi: hasApprovedGachaOddsUi(page.text, app.text),
+    hasApprovedGachaOddsUi: hasApprovedGachaOddsUi(page.text, app.text, registry.text),
     hasApprovedEdgeGachaOdds: publicEdgeBundle.status === 200 && hasApprovedEdgeGachaOdds(publicEdgeBundle.text),
     hasDeferredCurseLocalBundle: hasDeferredCurseLocalBundle(localStandardPage.text, localStandardBundle.text),
     hasRegionSplitDirectTarget: hasRegionSplitDirectTarget(app.text, localStandardBundle.text),
@@ -198,6 +199,7 @@ if (expectedPhase) {
   assert.equal(result.publicPage.hasWaitingOpponentNotice, expected.waitingOpponentUi, "WAITING_OPPONENT_UI_PHASE_MISMATCH");
   if (expectedPhase === "candidate") {
     assert.equal(result.publicPage.hasDirectQuizEntry, true, "DIRECT_QUIZ_ENTRY_REQUIRED");
+    assert.equal(result.publicPage.hasGachaEntryDiet, true, "GACHA_ENTRY_DIET_REQUIRED");
     assert.ok(app.text.includes('result-continuation.js?v=20260914-1'), "TERMINAL_RESULT_MODEL_GENERATION_REQUIRED");
     for (const file of ["terminal-result.css", "result-continuation.js"]) {
       const response = file === "result-continuation.js" ? resultModel : await getText(`${publicUrl}${file}`);

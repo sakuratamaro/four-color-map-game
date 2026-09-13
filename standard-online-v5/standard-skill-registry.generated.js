@@ -301,9 +301,48 @@
   }
 };
   for (const definition of Object.values(skills)) Object.freeze(definition);
+  const gachaOdds = {
+  "1": {
+    "1": 65,
+    "2": 29,
+    "3": 5,
+    "4": 0.9,
+    "5": 0.1
+  },
+  "2": {
+    "1": 40,
+    "2": 35,
+    "3": 19,
+    "4": 5.5,
+    "5": 0.5
+  },
+  "3": {
+    "1": 25,
+    "2": 35,
+    "3": 28,
+    "4": 10,
+    "5": 2
+  },
+  "4": {
+    "1": 0,
+    "2": 35,
+    "3": 35,
+    "4": 24,
+    "5": 6
+  },
+  "5": {
+    "1": 0,
+    "2": 0,
+    "3": 40,
+    "4": 40,
+    "5": 20
+  }
+};
+  for (const odds of Object.values(gachaOdds)) Object.freeze(odds);
   return Object.freeze({
     VERSION: "standard-skill-registry-generated-v1",
     skills: Object.freeze(skills),
+    gachaOdds: Object.freeze(gachaOdds),
     v49SkillIds: Object.freeze(["colorRandomBorrow","colorChoiceBorrow","colorPrism","colorRegionSplit","colorPaletteChange","areaMicroBloom","areaDiePlus","areaResize","areaCornerBloom","areaHalfShift","areaTripleShift","disruptRandomOne","disruptChoiceOne","disruptRandomTwo","disruptPaletteRandom","disruptChoiceTwo","disruptPaletteChoice","disruptChoiceThree","disruptForcedPalette"]),
   });
 });
