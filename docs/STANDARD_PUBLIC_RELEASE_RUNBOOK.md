@@ -161,9 +161,17 @@ rollbackも「旧version番号へ戻った」という目視だけでは完了�
 
 ## EdgeとPagesの順序
 
+### UDL-023: v14公開対戦の二操作
+
+`docs/UI_PUBLIC_MATCH_ACTIONS_20260913.md`（`UDL-023-public-actions-v1`）を正本とするPages_only便。固定親 `70e691b6f8f1d808476e80990d20df7862bfb782` の公開後にだけ進め、fresh mainがその基準SHAであることを再確認する。親70eの承認・source取得停止を変更せず、このUI自身のWindows Chrome/Edge成功と真正Astra判定が必要。DB/Edge/管理設定は各 `[]`、既存client/RPCを変更しない。
+
+「相手を待つ」はrecruitだけ、「待っている相手に参加」はfindだけ。相手なし・応答不明・reloadを新たな募集へ変換しない。既存ticket/room/CPU saga排他、同一ID再送、取消、成立時の6枚確認を保持する。公開後は同じ候補のmain/Pages最終成功、既存preflight、HTMLと変更アセットの厳密byte一致を確認する。二択UI単独b9は `app.js?v=20260913-45`、後続のb9基準顔表示統合は `app.js?v=20260913-48`、両方とも `ui-diet.css?v=20260913-4` を使う。これらは別の候補・ゲート・承認対象であり、統合はfresh main=b9を必要とする。これは親70eのEdge再配備指示ではない。
+
+実ユーザーへのfind/recruit、試験profile/対局、旧065/067/062の追加試行はここでは許可しない。ローカルfixtureの実ブラウザーと配信byte確認を、本番対人マッチングの観測や物理受入へ拡張しない。公開/物理はNOT_RUN。
+
 ### UDL-065: 使用済みスキル名の公開表示
 
-`docs/SKILL_PUBLIC_EVENT_20260913.md`（`UDL-065-public-skill-v1`）が正本の独立後続便。基準は公開954e、DB/管理設定は各 `[]`。変更Edgeは生成 `standard-engine.bundle.js` だけで、変更なしの `index.ts` も同じ配備物へ含めて厳密読戻しする。初回70eのonlineは `app.js?v=20260913-44`。後続の投了CPU顔表示統合候補は `app.js?v=20260913-47` で、`skill-cutin.js?v=20260913-2`、CSSは `skill-cutin.css?v=20260913-1` を維持する。後続候補は別のWindows・実レビュー対象であり、70eの公開証拠や042承認を流用しない。
+`docs/SKILL_PUBLIC_EVENT_20260913.md`（`UDL-065-public-skill-v1`）が正本の独立後続便。基準は公開954e、DB/管理設定は各 `[]`。変更Edgeは生成 `standard-engine.bundle.js` だけで、変更なしの `index.ts` も同じ配備物へ含めて厳密読戻しする。初回70eのonlineは `app.js?v=20260913-44`。後続の二択UI基準の投了CPU顔表示統合候補は `app.js?v=20260913-48` で、`ui-diet.css?v=20260913-4`、`skill-cutin.js?v=20260913-2`、`skill-cutin.css?v=20260913-1`、surrender JS1/CSS2を維持する。仕様は `docs/SURRENDER_CPU_FACE_20260913.md`（`UDL-067-face-v1.1`）。親70e配信完了→045対象のb9公開→別SHAの顔表示統合、の順とし、統合のfresh baseはb9。後続候補は別のWindows・実レビュー対象であり、042・045・046の承認を流用しない。追加live/profile/match/find/recruit/cleanupは0。
 
 1. 固定候補SHA・仕様blob・全差分・同一SHAのWindows Chrome/Edge成功と実Astra判定をそろえる。CPU039とUI040、旧失敗・部分受入は流用/書換しない。
 2. 実engine/handler/commit/snapshot/replay SQLと旧新viewerの互換試験後、互換Edge → 完全2file読戻し → Pages の順に公開する。管理設定・SQL・JWTは変更しない。旧workerでは汎用名へfallbackするが、正規state/RNG/private/旧traceと操作意味は不変。
@@ -297,7 +305,7 @@ Pages表示の退行は直前Pagesへ戻せる。適用済みcounterは旧client
 
 ### alpha.4彩色済みエリア角膨張便
 
-完了履歴。この便は新payloadを旧Edgeが拒否する一方、新Edgeは旧UIのoutgoing payloadを継続できるため、`alpha.4対応Edge → live canary → Pages`の順で公開した。後続の対戦報酬便、CPU台詞／地の文分離便、CPU選択前portrait便、終局復帰時の開始告知抑止便、パレット属性識別便、クイズ報酬券レベル引継ぎ候補を含む現在のPages候補assetはonline app `app.js?v=20260913-47`、CPU commentary `cpu-commentary.js?v=20260910-1`、progression `progression.css?v=20260910-2`、style `style.css?v=20260910-12`、intents `standard-online-skill-intents.js?v=20260911-21`、client `standard-online-client.js?v=20260910-1`、portrait `cpu-portraits.js?v=20260908-1`、Local bundle `app.bundle.js?v=20260913-9-4f66b9b284ba`である。このalpha.4便自体ではDB、migration、RPC、secret、cleanup scheduleは変更しない。
+完了履歴。この便は新payloadを旧Edgeが拒否する一方、新Edgeは旧UIのoutgoing payloadを継続できるため、`alpha.4対応Edge → live canary → Pages`の順で公開した。後続の対戦報酬便、CPU台詞／地の文分離便、CPU選択前portrait便、終局復帰時の開始告知抑止便、パレット属性識別便、クイズ報酬券レベル引継ぎ候補を含む現在のPages候補assetはonline app `app.js?v=20260913-48`、CPU commentary `cpu-commentary.js?v=20260910-1`、progression `progression.css?v=20260910-2`、style `style.css?v=20260910-12`、intents `standard-online-skill-intents.js?v=20260911-21`、client `standard-online-client.js?v=20260910-1`、portrait `cpu-portraits.js?v=20260908-1`、Local bundle `app.bundle.js?v=20260913-9-4f66b9b284ba`である。このalpha.4便自体ではDB、migration、RPC、secret、cleanup scheduleは変更しない。
 
 1. `origin/main@63972b6`起点の専用clean worktreeで両bundleを2回生成し、2回目のSHAが不変、正式全製品試験、Windows Chrome/Edge CI、対象実browserのskip 0を確認する。
 2. alpha.4対応bundleを保持したまま新規対局だけを`5.0.0-alpha.3`へ戻す互換rollback branchを作成・GitHub保全する。既存alpha.4 stateの読込み・継続と、alpha.3新規stateが彩色済みpayloadをwrite-free拒否することを確認する。

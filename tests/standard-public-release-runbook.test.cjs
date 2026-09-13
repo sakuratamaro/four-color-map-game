@@ -19,8 +19,18 @@ test("UDL065 named-skill lane binds Edge-first compatibility and forbids borrowi
   const section = runbook.slice(runbook.indexOf("### UDL-065: 使用済みスキル名の公開表示"), runbook.indexOf("### UDL-065: v14カットイン可読性・実結果説明"));
   for (const phrase of ["UDL-065-public-skill-v1", "DB/管理設定は各 `[]`", "standard-engine.bundle.js", "index.ts",
     "互換Edge → 完全2file読戻し → Pages", "CPU039とUI040", "040の消費済み試行を再使用しない", "NOT_RUN"]) assert.ok(section.includes(phrase), phrase);
-  for (const pattern of [/src="(app\.js\?v=[^"]+)"/, /src="(skill-cutin\.js\?v=[^"]+)"/, /href="(skill-cutin\.css\?v=[^"]+)"/])
-    assert.ok(section.includes(assetReference(onlineIndex, pattern, "named-skill lane")));
+  // This is the frozen parent70e lane, not a moving UI successor's cache markers.
+  for (const marker of ["app.js?v=20260913-44", "skill-cutin.js?v=20260913-2", "skill-cutin.css?v=20260913-1"])
+    assert.ok(section.includes(marker));
+});
+
+test("UDL023 v14 is a separate Pages-only successor with explicit actions and no live authority", () => {
+  const section = runbook.slice(runbook.indexOf("### UDL-023: v14公開対戦の二操作"), runbook.indexOf("### UDL-065: 使用済みスキル名の公開表示"));
+  for (const phrase of ["UDL-023-public-actions-v1", "70e691b6f8f1d808476e80990d20df7862bfb782", "Pages_only",
+    "DB/Edge/管理設定は各 `[]`", "真正Astra判定", "recruitだけ", "findだけ", "同一ID再送",
+    "実ユーザーへのfind/recruit", "ここでは許可しない", "NOT_RUN"]) assert.ok(section.includes(phrase), phrase);
+  for (const pattern of [/src="(app\.js\?v=[^"]+)"/, /href="(ui-diet\.css\?v=[^"]+)"/])
+    assert.ok(section.includes(assetReference(onlineIndex, pattern, "public-actions lane")));
 });
 
 test("current alpha.4 release lane deploys the compatible Edge before Pages and preserves active rooms", () => {
