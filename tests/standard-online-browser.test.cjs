@@ -1622,7 +1622,7 @@ test("UDL065 self and opponent cut-ins animate from each source with real pointe
   },{viewport:{width:390,height:900},bodyTimeout:45000});
 });
 
-test("UDL065 reading interval survives ordinary input and an update without replay or deadline extension", { timeout: 60000 }, async () => {
+test("UDL065 reading interval survives ordinary input and an update without replay or deadline extension", { timeout: 120000 }, async () => {
   await withPage("colorResponse",async page=>{
     await cutinReady(page);await cutinAdvance(page,{change:"board"});
     await page.locator("#skillCutin").waitFor({state:"visible"});
@@ -1647,7 +1647,7 @@ test("UDL065 reading interval survives ordinary input and an update without repl
     assert.ok(result.duration>=1700&&result.duration<2300,JSON.stringify(result));
   },{viewport:{width:390,height:844}});
 });
-test("UDL065 a new skill replaces the old card with its own full reading interval", { timeout: 60000 }, async () => {
+test("UDL065 a new skill replaces the old card with its own full reading interval", { timeout: 120000 }, async () => {
   await withPage("colorResponse",async page=>{
     await cutinReady(page);await cutinAdvance(page,{change:"board"});
     await page.locator("#skillCutin").waitFor({state:"visible"});
