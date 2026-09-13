@@ -3827,7 +3827,7 @@
       "next_run": {
         "phase": "NORMAL_WORK",
         "subject_sha": "954e1c5c52d5453fc9fee9872b2d7e922f850a39",
-        "at_utc": "2026-09-13T01:35:00Z",
+        "at_utc": "2026-09-13T01:45:00Z",
         "reason": "Exact040 approved UI alreadyPagespublished; finish newbounded harness and one-shot acceptance. No selfsend."
       },
       "first_scheduled_normal_run": {
@@ -3846,13 +3846,13 @@
         "id": "automation",
         "status": "ACTIVE",
         "target_thread_id": "01a07b56-616e-7733-9aae-90575659688e",
-        "rrule": "FREQ=DAILY;BYHOUR=10;BYMINUTE=35;BYSECOND=0",
-        "updated_at": 1789262510866,
+        "rrule": "FREQ=DAILY;BYHOUR=10;BYMINUTE=45;BYSECOND=0",
+        "updated_at": 1789263312106,
         "created_at": 1789048677730,
         "prompt_exact_equal": true,
-        "scheduled_for_utc": "2026-09-13T01:35:00Z",
+        "scheduled_for_utc": "2026-09-13T01:45:00Z",
         "readback_verified": true,
-        "verification_source": "Actual API ACTIVE and saved TOML exact fullprompt/id/name/target/time/created_at. Not proof of future scheduled origin."
+        "verification_source": "Actual update API ACTIVE and full saved TOML equal to preserved prompt/id/name/target/created_at at 01:35:14Z. Normal work slot moved from10:35 to10:45JST for end-turn margin; closed review budget unchanged; future execution not claimed."
       },
       "normal_work_claim": {
         "state": "UI_PAGES_PUBLISHED_NEW_LIVE_HARNESS_INCOMPLETE",
@@ -3874,7 +3874,7 @@
         "started_at_utc": "2026-09-13T01:03:16Z",
         "worktree": ".codex-worktrees/skill-cutin-readability-20260913",
         "request": "Save genuine040; publish exact UI954e main/Pages with byte evidence; prepare guard-only bounded live acceptance without a new profile or match.",
-        "canon_receipt": "shared-canon-v1.1;base=d9ce111d7d97019d55b3e90842602001e045ea04;candidate=954e1c5c52d5453fc9fee9872b2d7e922f850a39;spec=UDL-065-readability-v1.1/blob2af5d73528a35edc29f45b3be5b700f6ceaf4688;request=UDL-20260912-065;tests=976local,Windows34728306768,78governance"
+        "canon_receipt": "shared-canon-v1.1;base=d9ce111d7d97019d55b3e90842602001e045ea04;candidate=954e1c5c52d5453fc9fee9872b2d7e922f850a39;spec=UDL-065-readability-v1.1/blob2af5d73528a35edc29f45b3be5b700f6ceaf4688;request=UDL-20260912-065;tests=976local,Windows34728306768,85governance;Pages34730074280+4byteassets"
       },
       "missed_schedule_observation": {
         "scheduled_at_utc": "2026-09-12T06:25:12Z",
@@ -3911,15 +3911,16 @@
         "recovered_without_new_user_wait": true
       },
       "end_turn_guard": {
-        "checked_at_utc": "2026-09-13T01:32:07Z",
+        "checked_at_utc": "2026-09-13T01:35:44Z",
         "result": "PASS",
         "phase": "NORMAL_WORK",
         "action": "PREPARE_BOUNDED_UI_CANARY",
         "subject_sha": "954e1c5c52d5453fc9fee9872b2d7e922f850a39",
-        "at_utc": "2026-09-13T01:35:00Z",
+        "at_utc": "2026-09-13T01:45:00Z",
         "errors": [],
         "tests": "85/85 PASS1039.7766ms skip0. Prior84/85 FAIL1585.3933ms missing explicit040 binding; intermediate84/85 FAIL988.6936ms expected blob transcription typo; corrected to actual exact spec blob. No product assertion or release gate weakened.",
-        "scheduled_origin_claimed": false
+        "scheduled_origin_claimed": false,
+        "normal_work_slot_adjustment": "After evidence push4947da6,10:35 slot no longer had the required2minute end-turn margin. Same automation updated to10:45 and full TOML verified; no review wait deadline or consumed slot reset."
       },
       "latest_receive_schedule_observation": {
         "scheduled_at_utc": "2026-09-12T07:45:12Z",
