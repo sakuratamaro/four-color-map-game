@@ -368,6 +368,7 @@ test("ChatGPT review records require an exact subject and cannot imply productio
       assert.match(decision.subject_sha, /^[0-9a-f]{40}$/);
       assert.match(decision.spec_snapshot_sha, /^[0-9a-f]{40}$/);
       const bindings = {
+        "CHATGPT-REVIEW-20260913-042": ["70e691b6f8f1d808476e80990d20df7862bfb782", "954e1c5c52d5453fc9fee9872b2d7e922f850a39", "UDL-065-public-skill-v1", "97d434d32c67741e73b8eb4f73602186d83e2d3e", "Pages_Edge"],
         "CHATGPT-REVIEW-20260913-041": ["954e1c5c52d5453fc9fee9872b2d7e922f850a39", "d9ce111d7d97019d55b3e90842602001e045ea04", "UDL-065-readability-v1.1", "2af5d73528a35edc29f45b3be5b700f6ceaf4688", "Pages_only"],
         "CHATGPT-REVIEW-20260913-040": ["954e1c5c52d5453fc9fee9872b2d7e922f850a39", "d9ce111d7d97019d55b3e90842602001e045ea04", "UDL-065-readability-v1.1", "2af5d73528a35edc29f45b3be5b700f6ceaf4688", "Pages_only"],
         "CHATGPT-REVIEW-20260913-039": ["9590a4212d69185fc93df31b552d9bd870d5a9a3", "d9ce111d7d97019d55b3e90842602001e045ea04", "UDL-051-palette-v1.1", "de0cc9e2299a8a69dd1bfbc9368cd98042ca9b9f", "Pages_Edge_DB_managed_activation"],
@@ -406,7 +407,20 @@ test("ChatGPT review records require an exact subject and cannot imply productio
       assert.ok(bindings[decision.review_id], "each genuine review needs an explicit exact binding");
       assert.deepEqual([decision.subject_sha, decision.base_sha, decision.feature_spec_version,
         decision.spec_snapshot_sha, decision.scope], bindings[decision.review_id]);
-      if(decision.review_id==="CHATGPT-REVIEW-20260913-040") {
+      if(decision.review_id==="CHATGPT-REVIEW-20260913-042") {
+        assert.equal(decision.decision,"APPROVE_RELEASE");
+        assert.equal(decision.source.message_id,"747e7144-a155-44f7-9173-8175bd45c115");
+        assert.equal(decision.source.request_message_id,"18888286-8407-426f-8be7-23d3b2556e71");
+        assert.equal(decision.source.response_text.length,3788);
+        assert.equal(decision.source.verified_request_characters,4001);
+        assert.equal(decision.source.request_body_equality,true);
+        assert.equal(decision.source.response_complete,true);
+        assert.deepEqual(decision.db_change_set,[]);
+        assert.deepEqual(decision.edge_change_set,["supabase/functions/standard-game-action/standard-engine.bundle.js"]);
+        assert.deepEqual(decision.managed_setting_change_set,[]);
+        assert.deepEqual(decision.blockers,[]);
+        assert.deepEqual(decision.bounds,{additional_profiles:0,additional_matches:0,additional_game_operations:0,additional_cleanup:0,old_040_trial_reopened:false});
+      } else if(decision.review_id==="CHATGPT-REVIEW-20260913-040") {
         assert.equal(decision.decision,"APPROVE_RELEASE");
         assert.equal(decision.source.message_id,"fb1e2e48-53e5-4a1a-b34a-2fa2e66f862d");
         assert.equal(decision.source.request_message_id,"3e6efd53-710a-45ed-9de4-05627ca5f40e");

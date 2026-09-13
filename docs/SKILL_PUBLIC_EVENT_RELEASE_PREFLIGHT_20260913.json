@@ -1,0 +1,162 @@
+{
+  "schema_version": 1,
+  "request_id": "UDL-20260912-065",
+  "candidate_sha": "70e691b6f8f1d808476e80990d20df7862bfb782",
+  "base_sha": "954e1c5c52d5453fc9fee9872b2d7e922f850a39",
+  "spec_snapshot_sha": "97d434d32c67741e73b8eb4f73602186d83e2d3e",
+  "review_id": "CHATGPT-REVIEW-20260913-042",
+  "state": "CURRENT_EDGE_SOURCE_NOT_OBTAINED_BEFORE_ANY_RELEASE_WRITE",
+  "turn_source": "automatic_goal_continuation",
+  "observed_at_utc": "2026-09-13T04:39:17Z",
+  "fresh_git": {
+    "candidate_head": "70e691b6f8f1d808476e80990d20df7862bfb782",
+    "origin_main": "954e1c5c52d5453fc9fee9872b2d7e922f850a39",
+    "spec_blob": "97d434d32c67741e73b8eb4f73602186d83e2d3e",
+    "worktree_clean": true,
+    "fetch_verified_by_utc": "2026-09-13T04:23:40Z"
+  },
+  "windows": {
+    "run": "34735790923",
+    "attempt": 1,
+    "status": "completed",
+    "conclusion": "success",
+    "head_sha": "70e691b6f8f1d808476e80990d20df7862bfb782",
+    "jobs": [
+      {
+        "id": 103666861611,
+        "browser": "Chrome",
+        "conclusion": "success",
+        "skipped": [
+          "Run Standard local lifecycle browser tests serially"
+        ]
+      },
+      {
+        "id": 103666861545,
+        "browser": "Edge",
+        "conclusion": "success",
+        "skipped": []
+      }
+    ]
+  },
+  "edge": {
+    "project_ref": "qkcuhludisairpgzhryl",
+    "function": "standard-game-action",
+    "browser_surface": "Signed-in Supabase main Production Code",
+    "file_names": [
+      "index.ts",
+      "standard-engine.bundle.js"
+    ],
+    "updated_label": "7 hours ago",
+    "cli_on_path": false,
+    "cli_authentication": "NOT_CHECKED_CLI_NOT_ON_PATH",
+    "control_plane_id": "NOT_EXPOSED",
+    "control_plane_version": "NOT_EXPOSED",
+    "verify_jwt": "NOT_RECHECKED_THIS_TURN",
+    "current_complete_source": "NOT_OBTAINED",
+    "baseline_byte_equality": "NOT_VERIFIED"
+  },
+  "download_attempts": [
+    {
+      "method": "Dashboard Download as ZIP",
+      "started_at_utc": "2026-09-13T04:32:08.686Z",
+      "result": "Click accepted; no fresh matching source artifact found in user Downloads. No completion claim."
+    },
+    {
+      "method": "Documented waitForEvent(download) with same ordinary Dashboard Download as ZIP",
+      "started_at_utc": null,
+      "time_precision": "Exact adjacent start clock not recorded; after first attempt and before04:39:17Z.",
+      "timeout_ms": 20000,
+      "result": "Timed out after20000ms waiting for download; no new matching source archive or partial artifact found."
+    }
+  ],
+  "browser_policy": {
+    "blocked_action": "Open chrome://downloads/ to inspect download status",
+    "result": "Browser URL policy rejected internal page",
+    "no_retry_or_bypass_of_internal_page": true,
+    "safer_action": "Only one normal, authorized Supabase source download with documented event receiver; no alternate browser history, rawCDP, profileDB, internalstate or securitysetting access."
+  },
+  "final_download_error_log": {
+    "filter": "download",
+    "levels": [
+      "error"
+    ],
+    "limit": 5,
+    "matching_entries": 0,
+    "note": "Does not establish all-console cleanliness or successful download."
+  },
+  "handoff": {
+    "request_sent": true,
+    "method": "request_user_input_async",
+    "request": "Save current standard-game-action Download as ZIP to Downloads and report completion; no deployment yet.",
+    "browser_tab_id": "1820535566",
+    "url": "https://supabase.com/dashboard/project/qkcuhludisairpgzhryl/functions/standard-game-action/code",
+    "tab_marked_handoff": true,
+    "automatic_download_retries": 0,
+    "resume_requires": "User-supplied current source archive, allowlisted exact2entries, bytecomparison to expected currentbaseline and fresh state reconciliation."
+  },
+  "production": {
+    "edge_deployments": 0,
+    "main_pushes": 0,
+    "pages_deployments": 0,
+    "sql_writes": 0,
+    "managed_setting_changes": 0,
+    "jwt_changes": 0,
+    "profiles": 0,
+    "matches": 0,
+    "game_operations": 0,
+    "cleanup": 0
+  },
+  "verification_history": {
+    "shared_fixture_initial": {
+      "tests": 52,
+      "pass": 51,
+      "fail": 1,
+      "skip": 0,
+      "duration_ms": 753.2436,
+      "cause": "Old v14 assertion permanently required named publication_authorized=false despite genuine042."
+    },
+    "shared_fixture_updated": {
+      "tests": 52,
+      "pass": 52,
+      "fail": 0,
+      "skip": 0,
+      "duration_ms": 444.114
+    },
+    "source_hold_routing": {
+      "tests": 54,
+      "pass": 54,
+      "fail": 0,
+      "skip": 0,
+      "duration_ms": 662.7804
+    },
+    "product_rerun": "NOT_RUN_EXACT_PREVIOUS_EVIDENCE_PRESERVED"
+  },
+  "preservation": [
+    "All prior review decisions and finite wait anchors remain unchanged.",
+    "042 remains genuine APPROVE_RELEASE for exact70e, not revoked and not reused as documentation approval.",
+    "040 consumed trial/rawFAIL/PLAYING/settlementNOT_VERIFIED remain unchanged.",
+    "CPU9590/039/Kurogane100,067/F3 remain separate and unchanged.",
+    "No old archive renamed or timestamp refreshed to imitate a new source readback."
+  ],
+  "next_action": "Wait for the requested source artifact without model/Download polling. Keep this same existing commander; do not promote Pages before exact deployed source proof.",
+  "final_validation": {
+    "tests": 55,
+    "pass": 55,
+    "fail": 0,
+    "skip": 0,
+    "duration_ms": 465.2367,
+    "product_rerun": false,
+    "scope": "Genuine042 binding, historical failures, exact pre-write source hold and independent-work routing."
+  },
+  "automation": {
+    "id": "automation",
+    "status": "PAUSED",
+    "updated_at": 1789274796463,
+    "rrule_preserved": "FREQ=DAILY;BYHOUR=14;BYMINUTE=0;BYSECOND=0",
+    "target_unchanged": "01a07b56-616e-7733-9aae-90575659688e",
+    "prompt_exact_readback": true,
+    "model_download_loop": false,
+    "goal_marked_complete_or_blocked": false,
+    "reason": "Manual current-source artifact required; active broad goal remains unfinished and this is the first observed blocking turn."
+  }
+}

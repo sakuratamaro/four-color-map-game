@@ -61,7 +61,15 @@ test("v14 cut-in follow-up stays separate from published065 and the fixed CPU039
  assert.equal(p.release_state,"pages_published");assert.equal(p.publication,"PAGES_PUBLISHED");assert.equal(p.no_live_attempt_reserved,false);
  assert.equal(p.live_canary_attempts,1);assert.equal(p.live_canary_state,"ATTEMPT_FINISHED");
  assert.equal(p.live_canary_result.ok,false);assert.equal(p.live_canary_result.terminal,"PLAYING_OBSERVED");
- assert.equal(read(p.live_canary_result.report).ok,false);assert.equal(p.named_skill_followup.publication_authorized,false);
+ assert.equal(read(p.live_canary_result.report).ok,false);
+ const names=p.named_skill_followup,log=read("docs/CHATGPT_REVIEW_DECISIONS.json");
+ assert.equal(names.publication_authorized,true);
+ assert.equal(names.review_id,"CHATGPT-REVIEW-20260913-042");
+ const review=require("../scripts/check-commander-continuation.cjs").matchingReview(log,names);
+ assert.ok(review);assert.equal(review.decision,"APPROVE_RELEASE");
+ assert.equal(review.source.message_id,"747e7144-a155-44f7-9173-8175bd45c115");
+ assert.equal(names.live_reexecution_authorized,false);assert.equal(names.live_canary_attempts,0);
+ assert.deepEqual(review.bounds,{additional_profiles:0,additional_matches:0,additional_game_operations:0,additional_cleanup:0,old_040_trial_reopened:false});
  assert.equal(p.review_id,"CHATGPT-REVIEW-20260913-040");assert.equal(p.pages_run,"34730074280");
  assert.equal(p.main_sha,p.candidate_sha);assert.equal(p.pages_sha,p.candidate_sha);
  const published=read(p.public_asset_evidence);assert.equal(published.public_preflight.ok,true);
@@ -73,6 +81,21 @@ test("v14 cut-in follow-up stays separate from published065 and the fixed CPU039
  assert.equal(c.preparing_next_slice.candidate_sha,"9590a4212d69185fc93df31b552d9bd870d5a9a3");
  assert.equal(c.preparing_next_slice.review_id,"CHATGPT-REVIEW-20260913-039");
 });
+test("named release source acquisition failure remains evidence, not a deployment or renewed review wait",()=>{
+ const p=read("docs/SKILL_PUBLIC_EVENT_RELEASE_PREFLIGHT_20260913.json");
+ assert.equal(p.candidate_sha,"70e691b6f8f1d808476e80990d20df7862bfb782");
+ assert.equal(p.review_id,"CHATGPT-REVIEW-20260913-042");
+ assert.equal(p.fresh_git.origin_main,"954e1c5c52d5453fc9fee9872b2d7e922f850a39");
+ assert.equal(p.fresh_git.worktree_clean,true);
+ assert.equal(p.windows.head_sha,p.candidate_sha);assert.equal(p.windows.conclusion,"success");
+ assert.equal(p.edge.current_complete_source,"NOT_OBTAINED");assert.equal(p.edge.baseline_byte_equality,"NOT_VERIFIED");
+ assert.equal(p.download_attempts.length,2);assert.equal(p.download_attempts[1].timeout_ms,20000);
+ assert.equal(p.browser_policy.no_retry_or_bypass_of_internal_page,true);
+ assert.equal(p.handoff.request_sent,true);assert.equal(p.handoff.automatic_download_retries,0);
+ assert.ok(Object.values(p.production).every(value=>value===0));
+ assert.equal(read("docs/SKILL_CUTIN_READABILITY_LIVE_20260913.json").ok,false);
+});
+
 test("v14 maps twelve additions to one canonical ledger with genuine source and nonduplicated repeats",()=>{
  const d=read("docs/BRAIN_V14_DELTA_INTAKE_20260913.json");
  const ledger=fs.readFileSync(path.join(__dirname,"../docs/PROJECT_COMMAND_CENTER.md"),"utf8");

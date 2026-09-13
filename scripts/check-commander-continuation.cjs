@@ -122,7 +122,7 @@ function planContinuation(log, {now = new Date().toISOString(), otherOwnerActive
   if (!c || c.automation_id !== "automation") return {phase:"STOP", reason:"INVALID_EXISTING_COORDINATION"};
   if (otherOwnerActive) return {phase:"OWNER_ACTIVE", reason:"NO_CONCURRENT_LEDGER_WRITE"};
   const issues = [];
-  let recordedCiStop;
+  let recordedCiStop, recordedReleaseStop;
   for (const {ref,slice:s} of slices(c)) {
     if (s.owner_thread_id !== OWNER) continue;
     const r = matchingReview(log,s);
@@ -172,6 +172,23 @@ function planContinuation(log, {now = new Date().toISOString(), otherOwnerActive
     if (r && ["APPROVE_RELEASE","APPROVE","APPROVE_WITH_CONDITIONS"].includes(r.decision) &&
         ["NOT_RUN","NOT_MERGED","not_merged"].includes(s.publication) &&
         s.push_status === "PUSHED_EXACT_BRANCH") {
+      if(s.windows_status === "SUCCESS" && s.release_preflight_hold) {
+        const h=s.release_preflight_hold;
+        // A source artifact missing before any release write requires a human handoff,
+        // not a repeated model/Download loop. This metadata grants no release authority.
+        if(h.state!=="AWAITING_USER_ARTIFACT" || h.kind!=="current_edge_source_unavailable" ||
+          h.subject_sha!==s.candidate_sha || h.spec_snapshot_sha!==s.spec_snapshot_sha ||
+          h.review_id!==r.review_id || h.review_response_message_id!==r.source.message_id ||
+          !Array.isArray(s.edge_change_set) || s.edge_change_set.length===0 ||
+          !Number.isFinite(Date.parse(h.observed_at_utc)) || !h.evidence_path ||
+          h.user_request_sent!==true || h.no_production_mutation!==true || h.automatic_retries!==0 ||
+          ![1,2].includes(h.download_attempts) ||
+          !["edge","main","pages"].every(k=>s.production_gates?.[k]==="NOT_RUN"))
+          issues.push(ref+":EXACT_PREFLIGHT_HOLD_BINDING_REQUIRED");
+        else recordedReleaseStop={phase:"STOP",ref,subject_sha:s.candidate_sha,review_id:r.review_id,
+          reason:"CURRENT_EDGE_SOURCE_REQUIRES_USER_ARTIFACT",evidence_path:h.evidence_path};
+        continue;
+      }
       if(s.windows_status === "SUCCESS")
         return {phase:"NORMAL_WORK", action:"RELEASE_CHECKS", ref, subject_sha:s.candidate_sha,
           review_id:r.review_id, reason:"APPROVED_UNPUBLISHED_WORK_MUST_NOT_BE_ORPHANED"};
@@ -222,7 +239,7 @@ function planContinuation(log, {now = new Date().toISOString(), otherOwnerActive
       request_id:independent.request_id,reason:"CLOSED_REVIEW_MUST_NOT_ORPHAN_ADOPTED_LOCAL_WORK"}:null;
   const independentPlan=palettePlan||legacyIndependentPlan;
   const w = c.wait_budget || {}, pending = ["review_pending","delivery_unconfirmed_api_accepted_no_resend_while_active"].includes(w.followup_status || w.status);
-  if (!pending) return independentPlan || recordedCiStop || {phase:"STOP", reason:"NO_ELIGIBLE_REVIEW_OR_READY_WORK"};
+  if (!pending) return independentPlan || recordedReleaseStop || recordedCiStop || {phase:"STOP", reason:"NO_ELIGIBLE_REVIEW_OR_READY_WORK"};
   if (!pendingBinding(c)) return {phase:"STOP", reason:"INVALID_PENDING_BINDING"};
   const start = Date.parse(w.started_at_utc), expiry = Date.parse(w.expires_at_utc), time = Date.parse(now);
   const checks = w.automatic_checks;

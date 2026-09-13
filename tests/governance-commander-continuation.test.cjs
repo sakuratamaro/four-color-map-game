@@ -50,6 +50,47 @@ test("published F3 hands adopted F1 to the same commander without replaying revi
   log.coordination.active_slice.publication="NOT_RUN";
   assert.equal(planContinuation(log).action,"RELEASE_CHECKS","approved unpublished product retains priority");
 });
+function sourceArtifactHold(log){
+  const s=log.coordination.active_slice,r=log.decisions[0];
+  s.scope=r.scope="Pages_Edge";
+  s.edge_change_set=r.edge_change_set=["supabase/functions/standard-game-action/standard-engine.bundle.js"];
+  s.production_gates={edge:"NOT_RUN",main:"NOT_RUN",pages:"NOT_RUN"};
+  s.release_preflight_hold={state:"AWAITING_USER_ARTIFACT",kind:"current_edge_source_unavailable",
+    subject_sha:s.candidate_sha,spec_snapshot_sha:s.spec_snapshot_sha,review_id:r.review_id,
+    review_response_message_id:r.source.message_id,observed_at_utc:"2026-09-13T04:39:17Z",
+    evidence_path:"docs/source-artifact-fixture.json",download_attempts:2,user_request_sent:true,
+    no_production_mutation:true,automatic_retries:0};
+}
+test("a genuine pre-write source artifact hold stops repeated release attempts without losing approval",()=>{
+  const log=fixture();approve(log);sourceArtifactHold(log);
+  const original=JSON.stringify(log),p=planContinuation(log);
+  assert.equal(p.phase,"STOP");assert.equal(p.reason,"CURRENT_EDGE_SOURCE_REQUIRES_USER_ARTIFACT");
+  assert.equal(p.subject_sha,log.coordination.active_slice.candidate_sha);
+  assert.equal(JSON.stringify(log),original,"read-only routing cannot clear the hold or change the review");
+  delete log.coordination.active_slice.release_preflight_hold;
+  assert.equal(planContinuation(log).action,"RELEASE_CHECKS","explicitly resolved source returns to exact existing gates");
+});
+test("a source artifact hold fails closed on mismatched proof and does not hide independent ready work",()=>{
+  const log=fixture();approve(log);sourceArtifactHold(log);
+  for(const [key,value] of [["subject_sha","d".repeat(40)],["review_id","other"],
+    ["review_response_message_id","other"],["spec_snapshot_sha","d".repeat(40)],
+    ["observed_at_utc","invalid"],["evidence_path",""],["user_request_sent",false],
+    ["no_production_mutation",false],["automatic_retries",1],["download_attempts",3]]){
+    const copy=JSON.parse(JSON.stringify(log));copy.coordination.active_slice.release_preflight_hold[key]=value;
+    assert.equal(planContinuation(copy).reason,"RECONCILE_INVALID_REVIEW",key);
+  }
+  const changed=JSON.parse(JSON.stringify(log));changed.coordination.active_slice.production_gates.edge="DEPLOYED";
+  assert.equal(planContinuation(changed).reason,"RECONCILE_INVALID_REVIEW");
+  const s=JSON.parse(JSON.stringify(log.coordination.active_slice));delete s.release_preflight_hold;
+  s.candidate_sha="d".repeat(40);s.review_id="other-review";s.review_request_message_id="other-request";
+  s.review_response_message_id="other-response";log.coordination.preparing_next_slice=s;
+  const r=JSON.parse(JSON.stringify(log.decisions[0]));r.subject_sha=s.candidate_sha;r.review_id=s.review_id;
+  r.source.message_id=s.review_response_message_id;r.source.request_message_id=s.review_request_message_id;
+  log.decisions.push(r);
+  assert.equal(planContinuation(log).subject_sha,s.candidate_sha);
+  assert.equal(planContinuation(log).action,"RELEASE_CHECKS");
+});
+
 test("new pending review can live in preparing_next_slice while parent remains partial",()=>{
   const log=fixture(),c=log.coordination;c.preparing_next_slice=c.active_slice;delete c.active_slice;
   assert.equal(pendingBinding(c),true);

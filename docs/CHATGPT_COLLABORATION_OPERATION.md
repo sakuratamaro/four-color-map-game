@@ -2,6 +2,8 @@
 
 ## 現行差分: commander-continuation-v1（2026-09-12）
 
+2026-09-13 配備前sourceの本人受渡し追補: 正確な実公開承認とWindows成功があっても、現行Edgeの完全source取得を有限に試して未取得なら、既存candidateの `release_preflight_hold` に候補/仕様/実review/出典/無変更/試行数/本人依頼を保存する。helperはその完全一致と本番変更0の既存gateを確認して本人artifact待ちSTOPへ分ける。別の進行可能な便は隠さず、適格対象がなければ同じheartbeatを実PAUSEDにし、モデル取得ループを作らない。本人が新しい現行sourceを渡したら正確なfile set/bytesとfresh状態を照合し、元holdを証拠付き履歴へ移してから同じ公開ゲートへ戻す。承認の取消、無応答承認、公開前sourceゲートの免除、既存待機期限の再開、ブラウザー内部page拒否の迂回は行わない。本経路は042ゲーム承認のAPPROVE_DOCSではない。SKILL_PUBLIC_EVENT_RELEASE_PREFLIGHT_20260913.jsonに原失敗を保存。
+
 2026-09-13 固定後続候補の追補: 同じ `cutin_readability_preparation.named_skill_followup` にある使用済み技名候補も既存の完全SHA・仕様・変更セット・実レビュー・有限待機で扱う。親954eの公開・失敗した試行は保全し、既存owner/出典/専用branch/worktree/baseに一致する子だけを参照対象にする。独立候補への公開承認流用、試行枠の移転、新キュー/監視は行わない。局所検証済み・未送信は通常の固定レビュー準備へ、送達後は元の有限受信へ振り分ける。本経路追加は040や過去APPROVE_DOCSの承認範囲ではない。
 
 2026-09-13 新040有限live終了後: 消費済みの試行を再開対象へ戻さない。同じUDL065に明示採用され、出典・owner・基準SHA・計画がある相手技名の後続ローカル準備だけを既存metadataから通常作業へ振り分ける。これは本番公開や追加liveの承認ではなく、終了したレビュー待機も再開しない。元のFAILと精算未確認を維持する。
