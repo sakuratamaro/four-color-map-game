@@ -61,6 +61,47 @@ function sourceArtifactHold(log){
     evidence_path:"docs/source-artifact-fixture.json",download_attempts:2,user_request_sent:true,
     no_production_mutation:true,automatic_retries:0};
 }
+
+function publicActionSuccessor(log){
+  const c=log.coordination,s={owner_thread_id:OWNER,request_id:"UDL-20260907-023",
+    alias:"ADD-20260913-PUBLIC-MATCH-TWO-ACTIONS",source_message_id:"bbb2135e-cfd1-4da8-845b-9e3d07d8b29a",
+    branch:"codex/ui-public-match-actions-20260913",worktree:".codex-worktrees/ui-public-match-actions-20260913",
+    spec_path:"docs/UI_PUBLIC_MATCH_ACTIONS_20260913.md",candidate_sha:"d".repeat(40),base_sha:"e".repeat(40),
+    release_after_sha:"e".repeat(40),spec_snapshot_sha:"f".repeat(40),spec_version:"UDL-023-public-actions-v1",
+    scope:"Pages_only",db_change_set:[],edge_change_set:[],managed_setting_change_set:[],
+    state:"LOCAL_VERIFIED_REVIEW_PREPARATION",local_verification:"PASS",review_send_attempts:0,
+    review_status:"NOT_SENT",publication:"NOT_RUN",push_status:"NOT_RUN",windows_status:"NOT_RUN"};
+  c.remaining_brain_work={current_local_preparation:{state:"PUBLIC_VERIFIED",public_match_followup:s},
+    cutin_readability_preparation:{named_skill_followup:{candidate_sha:s.base_sha,publication:"NOT_RUN"}}};
+  return s;
+}
+
+test("adopted v14 public actions progress locally without reopening a parent source hold or inheriting approval",()=>{
+  const log=fixture();approve(log);sourceArtifactHold(log);publicActionSuccessor(log);
+  const original=JSON.stringify(log),p=planContinuation(log);
+  assert.equal(p.action,"PREPARE_FIXED_PUBLIC_MATCH_REVIEW");assert.equal(p.subject_sha,"d".repeat(40));
+  assert.equal(p.review_id,undefined);assert.equal(JSON.stringify(log),original);
+  for(const [field,value] of [["owner_thread_id","other"],["source_message_id","invented"],["base_sha","bad"],
+    ["release_after_sha","0".repeat(40)],["spec_snapshot_sha","bad"],["branch","main"],
+    ["edge_change_set",["unauthorized"]],["managed_setting_change_set",[{}]],["alias","draft"]]){
+    const copy=JSON.parse(original);copy.coordination.remaining_brain_work.current_local_preparation.public_match_followup[field]=value;
+    assert.equal(planContinuation(copy).reason,"CURRENT_EDGE_SOURCE_REQUIRES_USER_ARTIFACT",field);
+  }
+});
+
+test("public-action approval still waits for exact parent publication; no read-only planner grants that state",()=>{
+  const log=fixture();approve(log);sourceArtifactHold(log);const s=publicActionSuccessor(log);
+  s.review_request_message_id="successor-request";s.review_send_attempts=1;
+  const approved=fixture();approved.coordination.active_slice=s;approve(approved);
+  s.review_id="successor-review";approved.decisions[0].review_id=s.review_id;
+  s.push_status="PUSHED_EXACT_BRANCH";s.windows_status="SUCCESS";log.decisions.push(approved.decisions[0]);
+  const original=JSON.stringify(log);
+  assert.equal(planContinuation(log).reason,"PARENT_RELEASE_REQUIRED_BEFORE_PUBLIC_ACTIONS");
+  assert.equal(JSON.stringify(log),original);
+  Object.assign(log.coordination.remaining_brain_work.cutin_readability_preparation.named_skill_followup,
+    {publication:"PAGES_PUBLISHED",main_sha:s.base_sha,pages_sha:s.base_sha,pages_status:"SUCCESS"});
+  const p=planContinuation(log);assert.equal(p.action,"RELEASE_CHECKS");assert.equal(p.subject_sha,s.candidate_sha);
+});
 test("a genuine pre-write source artifact hold stops repeated release attempts without losing approval",()=>{
   const log=fixture();approve(log);sourceArtifactHold(log);
   const original=JSON.stringify(log),p=planContinuation(log);

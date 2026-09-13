@@ -1,0 +1,544 @@
+diff --git a/.github/workflows/standard-browser-gate.yml b/.github/workflows/standard-browser-gate.yml
+index 4a9b7a4..fa9b3bc 100644
+--- a/.github/workflows/standard-browser-gate.yml
++++ b/.github/workflows/standard-browser-gate.yml
+@@ -2,7 +2,7 @@ name: Standard browser gate
+ 
+ on:
+   push:
+-    branches: [codex/standard-release-command, codex/quiz-memo-calculator-20260912, codex/ui-diet-20260912, codex/ui-play-surface-20260912, codex/ui-result-20260912, codex/ui-cosmetics-20260912, codex/ui-player-copy-20260912, codex/skill-cutin-20260912, codex/ui-flat-entry-20260912, codex/skill-catalog-20260912, codex/surrender-confirmation-20260913, codex/cpu-split-rescue-20260913, codex/skill-cutin-readability-20260913, codex/skill-cutin-public-names-20260913]
++    branches: [codex/standard-release-command, codex/quiz-memo-calculator-20260912, codex/ui-diet-20260912, codex/ui-play-surface-20260912, codex/ui-result-20260912, codex/ui-cosmetics-20260912, codex/ui-player-copy-20260912, codex/skill-cutin-20260912, codex/ui-flat-entry-20260912, codex/skill-catalog-20260912, codex/surrender-confirmation-20260913, codex/cpu-split-rescue-20260913, codex/skill-cutin-readability-20260913, codex/skill-cutin-public-names-20260913, codex/ui-public-match-actions-20260913]
+     paths:
+       - .github/workflows/standard-browser-gate.yml
+       - online/supabase-config.js
+diff --git a/docs/STANDARD_PUBLIC_RELEASE_RUNBOOK.md b/docs/STANDARD_PUBLIC_RELEASE_RUNBOOK.md
+index 35be09e..9355d62 100644
+--- a/docs/STANDARD_PUBLIC_RELEASE_RUNBOOK.md
++++ b/docs/STANDARD_PUBLIC_RELEASE_RUNBOOK.md
+@@ -161,6 +161,14 @@ rollbackも「旧version番号へ戻った」という目視だけでは完了
+ 
+ ## EdgeとPagesの順序
+ 
++### UDL-023: v14公開対戦の二操作
++
++`docs/UI_PUBLIC_MATCH_ACTIONS_20260913.md`（`UDL-023-public-actions-v1`）を正本とするPages_only便。固定親 `70e691b6f8f1d808476e80990d20df7862bfb782` の公開後にだけ進め、fresh mainがその基準SHAであることを再確認する。親70eの承認・source取得停止を変更せず、このUI自身のWindows Chrome/Edge成功と真正Astra判定が必要。DB/Edge/管理設定は各 `[]`、既存client/RPCを変更しない。
++
++「相手を待つ」はrecruitだけ、「待っている相手に参加」はfindだけ。相手なし・応答不明・reloadを新たな募集へ変換しない。既存ticket/room/CPU saga排他、同一ID再送、取消、成立時の6枚確認を保持する。公開後は同じ候補のmain/Pages最終成功、既存preflight、HTML・`app.js?v=20260913-45`・`ui-diet.css?v=20260913-4` の厳密byte一致を確認する。これは親70eのEdge再配備指示ではない。
++
++実ユーザーへのfind/recruit、試験profile/対局、旧065/067/062の追加試行はここでは許可しない。ローカルfixtureの実ブラウザーと配信byte確認を、本番対人マッチングの観測や物理受入へ拡張しない。公開/物理はNOT_RUN。
++
+ ### UDL-065: 使用済みスキル名の公開表示
+ 
+ `docs/SKILL_PUBLIC_EVENT_20260913.md`（`UDL-065-public-skill-v1`）が正本の独立後続便。基準は公開954e、DB/管理設定は各 `[]`。変更Edgeは生成 `standard-engine.bundle.js` だけで、変更なしの `index.ts` も同じ配備物へ含めて厳密読戻しする。online `app.js?v=20260913-44`、`skill-cutin.js?v=20260913-2`、CSSは `skill-cutin.css?v=20260913-1` を維持。
+@@ -297,7 +305,7 @@ Pages表示の退行は直前Pagesへ戻せる。適用済みcounterは旧client
+ 
+ ### alpha.4彩色済みエリア角膨張便
+ 
+-完了履歴。この便は新payloadを旧Edgeが拒否する一方、新Edgeは旧UIのoutgoing payloadを継続できるため、`alpha.4対応Edge → live canary → Pages`の順で公開した。後続の対戦報酬便、CPU台詞／地の文分離便、CPU選択前portrait便、終局復帰時の開始告知抑止便、パレット属性識別便、クイズ報酬券レベル引継ぎ候補を含む現在のPages候補assetはonline app `app.js?v=20260913-44`、CPU commentary `cpu-commentary.js?v=20260910-1`、progression `progression.css?v=20260910-2`、style `style.css?v=20260910-12`、intents `standard-online-skill-intents.js?v=20260911-21`、client `standard-online-client.js?v=20260910-1`、portrait `cpu-portraits.js?v=20260908-1`、Local bundle `app.bundle.js?v=20260913-9-4f66b9b284ba`である。このalpha.4便自体ではDB、migration、RPC、secret、cleanup scheduleは変更しない。
++完了履歴。この便は新payloadを旧Edgeが拒否する一方、新Edgeは旧UIのoutgoing payloadを継続できるため、`alpha.4対応Edge → live canary → Pages`の順で公開した。後続の対戦報酬便、CPU台詞／地の文分離便、CPU選択前portrait便、終局復帰時の開始告知抑止便、パレット属性識別便、クイズ報酬券レベル引継ぎ候補を含む現在のPages候補assetはonline app `app.js?v=20260913-45`、CPU commentary `cpu-commentary.js?v=20260910-1`、progression `progression.css?v=20260910-2`、style `style.css?v=20260910-12`、intents `standard-online-skill-intents.js?v=20260911-21`、client `standard-online-client.js?v=20260910-1`、portrait `cpu-portraits.js?v=20260908-1`、Local bundle `app.bundle.js?v=20260913-9-4f66b9b284ba`である。このalpha.4便自体ではDB、migration、RPC、secret、cleanup scheduleは変更しない。
+ 
+ 1. `origin/main@63972b6`起点の専用clean worktreeで両bundleを2回生成し、2回目のSHAが不変、正式全製品試験、Windows Chrome/Edge CI、対象実browserのskip 0を確認する。
+ 2. alpha.4対応bundleを保持したまま新規対局だけを`5.0.0-alpha.3`へ戻す互換rollback branchを作成・GitHub保全する。既存alpha.4 stateの読込み・継続と、alpha.3新規stateが彩色済みpayloadをwrite-free拒否することを確認する。
+diff --git a/docs/UI_PUBLIC_MATCH_ACTIONS_20260913.md b/docs/UI_PUBLIC_MATCH_ACTIONS_20260913.md
+new file mode 100644
+index 0000000..468dad9
+--- /dev/null
++++ b/docs/UI_PUBLIC_MATCH_ACTIONS_20260913.md
+@@ -0,0 +1,31 @@
++# Explicit public matchmaking actions
++
++Version: `UDL-023-public-actions-v1`
++
++CANON_RECEIPT version=shared-canon-v1.1 governance=8a4ccb45e43e93020a69be9ae7574f808c2d5905 base=70e691b6f8f1d808476e80990d20df7862bfb782 public_base=954e1c5c52d5453fc9fee9872b2d7e922f850a39 request=UDL-20260907-023,ADD-20260913-PUBLIC-MATCH-TWO-ACTIONS specs=docs/SHARED_CANON.md@codex/dev-brain-current-20260910,docs/BRAIN_V14_DELTA_INTAKE_20260913.json@codex/dev-brain-current-20260910,docs/UI_FLAT_ENTRANCE_20260912.md,docs/UI_PUBLIC_MATCH_ACTIONS_20260913.md tests=tests/standard-online-browser.test.cjs,tests/standard-online-ui-static.test.cjs,tests/standard-online-client.test.cjs,tests/standard-matchmaking-activity-handoff.test.cjs worktree=.codex-worktrees/ui-public-match-actions-20260913
++
++Owner: existing commander `01a07b56-616e-7733-9aae-90575659688e`.
++User source: genuine Astra conversation `6aa229e7-e098-83ee-ac5e-d366a12653a4`, user message `bbb2135e-cfd1-4da8-845b-9e3d07d8b29a`, verified v14 intake alias above.
++
++The user asks for two obvious buttons after choosing public play: wait for an opponent, or join someone already waiting. This supersedes only UDL023's old automatic recruitment after an empty find and the text-like waiting disclosure. Earlier flat three-way entrance publication remains historical evidence, not acceptance of this new behavior.
++
++## Contract
++
++- Keep the CPU / friend / public entrance. Route selection sends no room/ticket/start operation.
++- Show two native buttons together: 「相手を待つ」 and 「待っている相手に参加」. No waiting disclosure or third initial search action. Both have at least44px hit targets, visible focus and readable wrapping at390/768/1280px and narrow/large-text layouts.
++- Waiting uses the existing recruit method only. Joining uses the existing find method only. An empty successful search does not recruit; explain that nobody is waiting and leave the two explicit choices available.
++- Preserve busy, actor ownership, existing ticket/room/CPU-saga guards. Repeated clicks while a request is pending cannot allocate another operation. Keep each client's persisted ID on lost responses and reload; a resumed find never becomes recruitment.
++- Existing waiting status, cancel, expired/error recovery, CPU offer, matched-room handoff and six-card setup remain available. This request does not remove necessary recovery actions.
++- No client transaction, RPC, DB, Edge, managed setting, identity/private-data, clock, game/card/reward, CPU or artwork changes. Kurogane100's separate9590 candidate and its gates remain untouched.
++
++## Executable acceptance
++
++Extend existing browser fixtures to prove the visible two-button layout and native Enter/Space operation, empty search with recruit0, successful join with recruit0, busy double-click protection, pending-find same-ID reload with recruit0, and wait-only same-ticket reload/cancel. Retain room/CPU ownership and quiz/handoff tests. These are local real-browser tests with fixture services, not live-user matchmaking or physical acceptance.
++
++Source/static checks bind the removal of automatic waiting to this later user requirement; update the old assertion explicitly, not by weakening it into an existence check. Existing client tests still exercise transaction identity and retry behavior unchanged.
++
++## Release boundary
++
++Prepare locally on approved but unpublished70e without changing it. This UI must follow70e, not replace or publish ahead of it. Fresh main must equal the reviewed UI base before a separately fixed candidate can publish; reconcile and obtain new exact review if it differs. Windows Chrome/Edge must pass on that candidate, followed by genuine Astra review, same-SHA force-free main/Pages and changed-asset byte/preflight evidence. Prior039/040/042 approvals and closed waits cannot authorize this UI.
++
++No real-user find/recruit, new test profile/match, or reopening old065/067/062 trials is authorized here. Publication and physical acceptance are NOT_RUN.
+diff --git a/scripts/live-standard-release-preflight.mjs b/scripts/live-standard-release-preflight.mjs
+index 58173e9..f2bccf6 100644
+--- a/scripts/live-standard-release-preflight.mjs
++++ b/scripts/live-standard-release-preflight.mjs
+@@ -14,7 +14,7 @@ const publicEdgeBundleUrl = new URL("../supabase/functions/standard-game-action/
+ const expectedPhase = process.argv.find((argument) => argument.startsWith("--expect="))?.slice("--expect=".length) || null;
+ const zeroUuid = "00000000-0000-0000-0000-000000000000";
+ const candidateAssetMarkers = Object.freeze({
+-app: "app.js?v=20260913-44",
++app: "app.js?v=20260913-45",
+   commentary: "cpu-commentary.js?v=20260910-1",
+   style: "style.css?v=20260910-12",
+   client: "standard-online-client.js?v=20260910-1",
+diff --git a/scripts/standard-release-preflight-contracts.mjs b/scripts/standard-release-preflight-contracts.mjs
+index 67dc6a3..5b3175e 100644
+--- a/scripts/standard-release-preflight-contracts.mjs
++++ b/scripts/standard-release-preflight-contracts.mjs
+@@ -143,7 +143,7 @@ export function hasCompactCpuRecords(pageText, appText, progressionCssText) {
+ 
+ export function hasQuizAccuracyRecords(pageText, appText, progressionCssText) {
+   return includesAll(pageText, [
+-'app.js?v=20260913-44',
++'app.js?v=20260913-45',
+     'progression.css?v=20260910-2',
+     'id="quizAccuracyRecords" class="quiz-accuracy-records" role="list"',
+     "記録開始以降に、サーバーで採点が確定した回答だけを集計します。",
+diff --git a/standard-online-v5/app.js b/standard-online-v5/app.js
+index ff26bee..d7ad41f 100644
+--- a/standard-online-v5/app.js
++++ b/standard-online-v5/app.js
+@@ -5903,7 +5903,7 @@ async function recruitPublicOpponent() {
+   try {
+     const result = await client.recruitOpponent({ displayName: displayName() });
+     if (result?.matchmaking_status === "matched") return await enterPublicMatch();
+-    $("matchmakingStatus").textContent = "対戦相手を探しています。待っている間もクイズやガチャで遊べます。";
++    $("matchmakingStatus").textContent = "対戦相手を待っています。待っている間もクイズやガチャで遊べます。";
+     scheduleMatchmakingStatus();
+   } catch (error) {
+     if (await recoverServerActiveRoom({ focusOnSuccess: true }).catch(() => false)) return;
+@@ -5913,23 +5913,19 @@ async function recruitPublicOpponent() {
+   } finally { matchmakingBusy = false; render(); }
+ }
+ 
+-async function findPublicOpponent({ resumePending = false, waitIfNone = false } = {}) {
++async function findPublicOpponent({ resumePending = false } = {}) {
+   if (guardNewMatchEntry({ allowFindResume: resumePending }) || matchmakingBusy || !profile()) return;
+   matchmakingBusy = true; $("matchmakingStatus").textContent = "相手を探しています…"; renderMatchmaking();
+-  let startWaiting = false;
+   try {
+     const result = await client.findOpponent({ displayName: displayName() });
+     if (result?.matchmaking_status === "matched") return await enterPublicMatch();
+-    startWaiting = waitIfNone && result?.matchmaking_status === "none_available";
+-    $("matchmakingStatus").textContent = startWaiting ? "相手が来るのを待っています…" : "今は相手が見つかりませんでした。もう一度探せます。";
++    $("matchmakingStatus").textContent = "待っている相手はいませんでした。「相手を待つ」で募集できます。";
+   } catch (error) {
+     if (await recoverServerActiveRoom({ focusOnSuccess: true }).catch(() => false)) return;
+     $("matchmakingStatus").textContent = "検索結果を確認できませんでした。前回の検索結果をもう一度確認します。";
+     toast(error.message || "今入れる試合を探せませんでした。");
+   } finally { matchmakingBusy = false; render(); }
+-  // Only a successful empty search from this explicit click may start waiting.
+-  // Lost responses and resumed searches retain their original identity instead.
+-  if (startWaiting) return recruitPublicOpponent();
++  // v14: joining and waiting are separate explicit choices, including after resume.
+ }
+ 
+ async function cancelPublicMatchmaking() {
+@@ -6307,7 +6303,7 @@ $("chooseFriendBattle").onclick = () => chooseBattleRoute("friend");
+ $("choosePublicBattle").onclick = () => chooseBattleRoute("public");
+ $("joinRoom").onclick = joinRoom;
+ $("recruitOpponent").onclick = recruitPublicOpponent;
+-$("findOpponent").onclick = () => findPublicOpponent({ waitIfNone: true });
++$("findOpponent").onclick = () => findPublicOpponent();
+ $("cancelMatchmaking").onclick = cancelPublicMatchmaking;
+ $("startStandardCpuHome").onclick = (event) => beginImmediateCpuEntry(event.currentTarget);
+ $("startStandardCpuLobby").onclick = (event) => beginImmediateCpuEntry(event.currentTarget);
+diff --git a/standard-online-v5/index.html b/standard-online-v5/index.html
+index df27952..b955653 100644
+--- a/standard-online-v5/index.html
++++ b/standard-online-v5/index.html
+@@ -10,7 +10,7 @@
+   <link rel="stylesheet" href="debug-mode.css">
+   <link rel="stylesheet" href="progression.css?v=20260910-2">
+   <link rel="stylesheet" href="quiz-memo.css?v=20260912-2">
+-  <link rel="stylesheet" href="ui-diet.css?v=20260912-3">
++  <link rel="stylesheet" href="ui-diet.css?v=20260913-4">
+   <link rel="stylesheet" href="skill-catalog.css?v=20260912-1">
+   <link rel="stylesheet" href="surrender-confirmation.css?v=20260913-1">
+   <link rel="stylesheet" href="play-surface.css?v=20260912-1">
+@@ -101,14 +101,14 @@
+         <section id="matchmakingPanel" class="lobby-choice public-matchmaking hidden" aria-labelledby="publicBattleTitle">
+           <h3 id="publicBattleTitle" tabindex="-1">だれかと対戦</h3>
+           <p class="muted small">相手が見つかるまで、クイズやガチャで遊べます。</p>
+-          <div class="controls">
+-            <button id="findOpponent" class="primary">相手を探す</button>
+-            <button id="cancelMatchmaking" class="ghost hidden">募集を取り消す</button>
++          <div class="public-match-actions" role="group" aria-label="だれとでも対戦の始め方">
++            <button id="recruitOpponent" type="button">相手を待つ</button>
++            <button id="findOpponent" type="button" class="primary">待っている相手に参加</button>
+           </div>
+-          <details id="publicWaitingOptions"><summary>相手を待つだけにする</summary><button id="recruitOpponent" type="button">対戦相手を募集</button></details>
++          <button id="cancelMatchmaking" type="button" class="ghost hidden">募集を取り消す</button>
+           <div id="matchmakingWait" class="matchmaking-wait hidden">
+             <span class="searching-pulse" aria-hidden="true"></span>
+-            <div><strong>対戦相手を探しています</strong><p id="matchmakingElapsed" class="muted small">待機 0秒</p></div>
++            <div><strong>対戦相手を待っています</strong><p id="matchmakingElapsed" class="muted small">待機 0秒</p></div>
+           </div>
+           <div id="cpuOpponentOffer" class="cpu-opponent-offer hidden">
+             <div><strong>🤖 CPUと対戦できます</strong><p id="cpuOfferMessage" class="muted small">人間の対戦相手を待ち続けることもできます。</p></div>
+@@ -117,7 +117,7 @@
+               <button id="keepWaitingForHuman" class="ghost">このまま人を待つ</button>
+             </div>
+           </div>
+-          <p id="matchmakingStatus" class="callout" aria-live="polite" tabindex="-1">「相手を探す」で対戦相手を見つけます。</p>
++          <p id="matchmakingStatus" class="callout" aria-live="polite" tabindex="-1">待つ・参加するを選んでください。</p>
+         </section>
+     </section>
+ 
+@@ -545,6 +545,6 @@
+   <p id="skillCutinAnnouncement" class="visually-hidden" role="status" aria-live="polite" aria-atomic="true"></p>
+   <script src="skill-cutin.js?v=20260913-2"></script>
+   <script src="surrender-confirmation.js?v=20260913-1"></script>
+-  <script type="module" src="app.js?v=20260913-44"></script>
++  <script type="module" src="app.js?v=20260913-45"></script>
+ </body>
+ </html>
+diff --git a/standard-online-v5/ui-diet.css b/standard-online-v5/ui-diet.css
+index 55c01fe..60e7294 100644
+--- a/standard-online-v5/ui-diet.css
++++ b/standard-online-v5/ui-diet.css
+@@ -16,8 +16,9 @@
+ #lobby .join-box label { font-size: 13px; margin: 0; }
+ #lobby button, #lobby input, #lobby summary { min-height: 44px; }
+ #lobby summary { display: flex; align-items: center; cursor: pointer; color: #cbd5e1; font-size: 13px; }
+-#publicWaitingOptions { margin-top: 8px; }
+-#publicWaitingOptions button { margin-block: 4px 8px; }
++.public-match-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
++.public-match-actions > button { min-width: 0; min-height: 48px; margin: 0; padding: 12px 8px; white-space: normal; overflow-wrap: anywhere; line-height: 1.5; }
++#cancelMatchmaking { margin-top: 10px; }
+ #lobby button:focus-visible, #lobby summary:focus-visible { outline: 3px solid #fde047; outline-offset: 3px; }
+ @media (max-width: 760px) {
+   #lobby.battle-entrance { padding: 16px; }
+diff --git a/tests/standard-browser-gate-workflow.test.cjs b/tests/standard-browser-gate-workflow.test.cjs
+index 6c08183..65b91bf 100644
+--- a/tests/standard-browser-gate-workflow.test.cjs
++++ b/tests/standard-browser-gate-workflow.test.cjs
+@@ -16,7 +16,7 @@ test("Standard browser gate YAML text uses stable whitespace", () => {
+ });
+ 
+ test("Standard browser gate is candidate-push, manual, or pull-request only and least-privileged", () => {
+-  assert.match(workflow, /^on:\r?\n  push:\r?\n    branches: \[codex\/standard-release-command, codex\/quiz-memo-calculator-20260912, codex\/ui-diet-20260912, codex\/ui-play-surface-20260912, codex\/ui-result-20260912, codex\/ui-cosmetics-20260912, codex\/ui-player-copy-20260912, codex\/skill-cutin-20260912, codex\/ui-flat-entry-20260912, codex\/skill-catalog-20260912, codex\/surrender-confirmation-20260913, codex\/cpu-split-rescue-20260913, codex\/skill-cutin-readability-20260913, codex\/skill-cutin-public-names-20260913\][\s\S]+?  pull_request:[\s\S]+?  workflow_dispatch:/m);
++  assert.match(workflow, /^on:\r?\n  push:\r?\n    branches: \[codex\/standard-release-command, codex\/quiz-memo-calculator-20260912, codex\/ui-diet-20260912, codex\/ui-play-surface-20260912, codex\/ui-result-20260912, codex\/ui-cosmetics-20260912, codex\/ui-player-copy-20260912, codex\/skill-cutin-20260912, codex\/ui-flat-entry-20260912, codex\/skill-catalog-20260912, codex\/surrender-confirmation-20260913, codex\/cpu-split-rescue-20260913, codex\/skill-cutin-readability-20260913, codex\/skill-cutin-public-names-20260913, codex\/ui-public-match-actions-20260913\][\s\S]+?  pull_request:[\s\S]+?  workflow_dispatch:/m);
+   assert.equal((workflow.match(/      - online\/supabase-config\.js/g) || []).length, 2);
+   assert.equal((workflow.match(/      - online-v5\/style\.css/g) || []).length, 2);
+   assert.equal((workflow.match(/      - standard-online-v5\/\*\*/g) || []).length, 2);
+diff --git a/tests/standard-live-release-preflight-static.test.cjs b/tests/standard-live-release-preflight-static.test.cjs
+index 56f5003..e757574 100644
+--- a/tests/standard-live-release-preflight-static.test.cjs
++++ b/tests/standard-live-release-preflight-static.test.cjs
+@@ -78,7 +78,7 @@ test("release preflight is read-only, secret-free, finite, and stage-aware", ()
+   assert.match(source, /MATCH_REWARD_ECONOMY_MISMATCH/);
+   assert.match(source, /app\.text\.includes\('★\$\{meta\.rarity\}'\)/);
+   assert.match(source, /CANDIDATE_ASSET_GENERATION_UI_PHASE_MISMATCH/);
+-assert.match(source, /app\.js\?v=20260913-44/);
++assert.match(source, /app\.js\?v=20260913-45/);
+   assert.match(source, /cpu-commentary\.js\?v=20260910-1/);
+   assert.match(source, /progression\.css/);
+   assert.match(source, /style\.css\?v=20260910-12/);
+@@ -229,7 +229,7 @@ test("candidate app satisfies the waiting-opponent release marker", () => {
+ });
+ 
+ test("candidate page and app satisfy the alpha.4 cache generation marker", () => {
+-  assert.equal(candidateHtml.includes("app.js?v=20260913-44"), true);
++  assert.equal(candidateHtml.includes("app.js?v=20260913-45"), true);
+   assert.equal(candidateHtml.includes("cpu-commentary.js?v=20260910-1"), true);
+   assert.equal(candidateHtml.includes("style.css?v=20260910-12"), true);
+   assert.equal(candidateHtml.includes("standard-online-client.js?v=20260910-1"), true);
+diff --git a/tests/standard-online-basic-feedback-static.test.cjs b/tests/standard-online-basic-feedback-static.test.cjs
+index a0ab534..38617af 100644
+--- a/tests/standard-online-basic-feedback-static.test.cjs
++++ b/tests/standard-online-basic-feedback-static.test.cjs
+@@ -26,7 +26,7 @@ test("online feedback settings are explicit, separate, persistent, and keyboard-
+ 
+ test("feedback script is cache-busted before the matching app generation", () => {
+   const controllerScript = html.indexOf('<script src="basic-feedback.js?v=20260908-2"></script>');
+-const appScript = html.indexOf('<script type="module" src="app.js?v=20260913-44"></script>');
++const appScript = html.indexOf('<script type="module" src="app.js?v=20260913-45"></script>');
+   assert.ok(controllerScript >= 0 && appScript > controllerScript);
+   assert.match(html, /style\.css\?v=20260910-12/);
+   assert.doesNotMatch(html, /app\.js\?v=20260906-(?:36|38)|style\.css\?v=20260906-(?:36|37)/);
+diff --git a/tests/standard-online-browser.test.cjs b/tests/standard-online-browser.test.cjs
+index 3733528..56f19a2 100644
+--- a/tests/standard-online-browser.test.cjs
++++ b/tests/standard-online-browser.test.cjs
+@@ -53,7 +53,6 @@ async function readScratch(page) { return page.evaluate((key) => JSON.parse(sess
+ 
+ async function choosePublicWaiting(page) {
+   await page.locator("#choosePublicBattle").click();
+-  await page.locator("#publicWaitingOptions summary").click();
+   await page.locator("#recruitOpponent").click();
+ }
+ 
+@@ -307,14 +306,73 @@ test("UDL-023 compact quiz layout keeps every focused option clear of existing n
+   }
+ });
+ 
+-test("UDL-023 explicit public search waits only after a successful empty result", { timeout: 120000 }, async () => {
++test("UDL-023 v14 shows two obvious native public actions at three widths without starting a match", { timeout: 120000 }, async () => {
++  await withPage("lobby", async (page) => {
++    const errors = []; page.on("pageerror", error => errors.push(error.message));
++    await page.locator("#choosePublicBattle").click();
++    assert.equal(await page.locator("#publicWaitingOptions").count(), 0);
++    const actions = page.getByRole("group", { name: "だれとでも対戦の始め方" }).getByRole("button");
++    assert.deepEqual(await actions.allTextContents(), ["相手を待つ", "待っている相手に参加"]);
++    for (const width of [390, 768, 1280]) {
++      await page.setViewportSize({ width, height: 900 });
++      await actions.first().scrollIntoViewIfNeeded();
++      const layout = await actions.evaluateAll(els => ({ overflow: document.documentElement.scrollWidth > innerWidth,
++        buttons: els.map(el => { const r = el.getBoundingClientRect(), s = getComputedStyle(el);
++          return { tag: el.tagName, width: r.width, height: r.height, top: r.top,
++            clips: el.scrollWidth > el.clientWidth, border: parseFloat(s.borderTopWidth),
++            hit: el.contains(document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2)) }; }) }));
++      assert.equal(layout.overflow, false, JSON.stringify(layout));
++      assert.equal(layout.buttons[0].top, layout.buttons[1].top);
++      assert.ok(layout.buttons.every(b => b.tag === "BUTTON" && b.width >= 44 && b.height >= 44 && b.border > 0 && !b.clips && b.hit), JSON.stringify(layout));
++      if (process.env.PUBLIC_MATCH_SCREENSHOTS) {
++        fs.mkdirSync(process.env.PUBLIC_MATCH_SCREENSHOTS, { recursive: true });
++        await page.screenshot({ path: path.join(process.env.PUBLIC_MATCH_SCREENSHOTS, `${browserName}-public-actions-${width}.png`), fullPage: true });
++      }
++    }
++    await actions.first().focus(); await page.keyboard.press("Tab");
++    assert.equal(await actions.last().evaluate(el => el === document.activeElement), true);
++    assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter(c =>
++      /fcg_standard_(create_room|join_room|matchmaking_find|matchmaking_recruit)$/.test(c.name) ||
++      ["cpu-start", "cpu-accept"].includes(c.body?.operation)).length), 0);
++    await page.setViewportSize({ width: 320, height: 900 });
++    await page.addStyleTag({ content: ".public-match-actions > button { font-size: 28px !important; }" });
++    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
++    assert.equal(await actions.evaluateAll(els => els.some(el => el.scrollWidth > el.clientWidth)), false);
++    assert.deepEqual(errors, []);
++  }, { viewport: { width: 390, height: 900 } });
++});
++
++test("UDL-023 v14 empty join stays find-only across duplicate pending clicks and reload", { timeout: 120000 }, async () => {
++  await withPage("lobby", async (page) => {
++    await page.locator("#choosePublicBattle").click();
++    await page.evaluate(() => { globalThis.__standardOnlineRuntime.findDelayMs = 400; });
++    await page.locator("#findOpponent").focus();
++    await page.keyboard.press("Space"); await page.keyboard.press("Space");
++    await page.getByText("待っている相手はいませんでした。「相手を待つ」で募集できます。", { exact: true }).waitFor();
++    const result = await page.evaluate(key => ({ calls: globalThis.__standardOnlineRuntime.calls.filter(c =>
++      /fcg_standard_matchmaking_(find|recruit)$/.test(c.name)), saved: JSON.parse(localStorage.getItem(key)) }), connectionKey);
++    assert.deepEqual(result.calls.map(c => c.name), ["fcg_standard_matchmaking_find"]);
++    assert.equal(result.saved.matchmakingTicketId, null);
++    assert.equal(result.saved.matchmakingFindActionId, null);
++    assert.equal(await page.locator("#matchmakingWait").isHidden(), true);
++    assert.equal(await page.locator("#recruitOpponent").isEnabled(), true);
++    assert.equal(await page.locator("#findOpponent").isEnabled(), true);
++    await page.reload(); await page.locator("#choosePublicBattle").click();
++    assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter(c =>
++      /fcg_standard_matchmaking_(find|recruit)$/.test(c.name)).length), 0);
++  });
++});
++
++test("UDL-023 v14 waiting uses recruit only and preserves one ticket across reload and cancellation", { timeout: 120000 }, async () => {
+   await withPage("lobby", async (page) => {
+     await page.locator("#choosePublicBattle").click();
+     const entries = () => page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((call) => /fcg_standard_matchmaking_(find|recruit)$/.test(call.name)));
+     assert.equal((await entries()).length, 0);
+-    await page.locator("#findOpponent").dblclick();
++    await page.evaluate(() => { globalThis.__standardOnlineRuntime.recruitDelayMs = 400; });
++    await page.locator("#recruitOpponent").focus();
++    await page.keyboard.press("Enter"); await page.keyboard.press("Enter");
+     await page.locator("#matchmakingWait:not(.hidden)").waitFor();
+-    assert.deepEqual((await entries()).map((call) => call.name), ["fcg_standard_matchmaking_find", "fcg_standard_matchmaking_recruit"]);
++    assert.deepEqual((await entries()).map((call) => call.name), ["fcg_standard_matchmaking_recruit"]);
+     const saved = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)), connectionKey);
+     assert.ok(saved.matchmakingTicketId);
+     await page.locator("#chooseFriendBattle").click();
+@@ -325,6 +383,10 @@ test("UDL-023 explicit public search waits only after a successful empty result"
+     assert.equal(await page.evaluate((key) => JSON.parse(localStorage.getItem(key)).matchmakingTicketId, connectionKey), saved.matchmakingTicketId);
+     await page.locator("#cancelMatchmaking").click();
+     await page.waitForFunction((key) => !JSON.parse(localStorage.getItem(key)).matchmakingTicketId, connectionKey);
++    const afterReload = await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter(c =>
++      /fcg_standard_matchmaking_(find|recruit|cancel)$/.test(c.name)));
++    assert.deepEqual(afterReload.map(c => c.name), ["fcg_standard_matchmaking_cancel"]);
++    assert.equal(afterReload[0].args.p_ticket_id, saved.matchmakingTicketId);
+   });
+ });
+ 
+@@ -339,6 +401,17 @@ test("UDL-023 failed public search does not recruit and keeps recovery visible",
+     assert.deepEqual(calls.map((call) => call.name), ["fcg_standard_matchmaking_find"]);
+     assert.equal(await page.locator("#matchmakingStatus").isVisible(), true);
+     assert.equal(await page.locator("#friendBattlePanel").isVisible(), false);
++    const saved = await page.evaluate(key => JSON.parse(localStorage.getItem(key)), connectionKey);
++    assert.equal(await page.locator("#recruitOpponent").isDisabled(), true);
++    assert.equal(await page.locator("#findOpponent").isDisabled(), true);
++    await page.reload();
++    await page.waitForFunction(key => !JSON.parse(localStorage.getItem(key))?.matchmakingFindActionId &&
++      globalThis.__standardOnlineRuntime.calls.some(c => c.name === "fcg_standard_matchmaking_find"), connectionKey);
++    const resumed = await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter(c =>
++      /fcg_standard_matchmaking_(find|recruit)$/.test(c.name)));
++    assert.equal(resumed.length, 1);
++    assert.equal(resumed[0].args.p_action_id, saved.matchmakingFindActionId);
++    assert.equal(resumed[0].name, "fcg_standard_matchmaking_find");
+   });
+ });
+ 
+@@ -1473,12 +1546,14 @@ async function installMock(context, mode) {
+           }) };
+         }
+         if (name === "fcg_standard_matchmaking_recruit") {
++          if (runtime.recruitDelayMs) await new Promise(resolve => setTimeout(resolve, runtime.recruitDelayMs));
+           runtime.ticketId = args.p_ticket_id;
+           return { data: [{ ticket_id: args.p_ticket_id, matchmaking_status: "searching", room_id: null, seat: null, wait_started_at: runtime.waitStartedAt, server_time: new Date().toISOString() }] };
+         }
+         if (name === "fcg_standard_matchmaking_status") return { data: [{ ticket_id: args.p_ticket_id, matchmaking_status: runtime.matchNow ? "matched" : "searching", room_id: runtime.matchNow ? id : null, seat: runtime.matchNow ? "A" : null, wait_started_at: runtime.waitStartedAt, server_time: new Date().toISOString() }] };
+         if (name === "fcg_standard_matchmaking_cancel") return { data: [{ ticket_id: args.p_ticket_id, matchmaking_status: "cancelled", room_id: null, seat: null, server_time: new Date().toISOString() }] };
+         if (name === "fcg_standard_matchmaking_find") {
++          if (runtime.findDelayMs) await new Promise(resolve => setTimeout(resolve, runtime.findDelayMs));
+           if (runtime.failNextFindResponse) {
+             runtime.failNextFindResponse = false;
+             return { error: new Error("simulated lost find response") };
+@@ -2027,7 +2102,8 @@ test("UDL-023 three battle choices fit mobile, intermediate and desktop without
+     assert.equal(await page.locator("#friendBattlePanel").isVisible(), false);
+     assert.equal(await page.locator("#matchmakingPanel").isVisible(), true);
+     assert.equal(await page.locator("#choosePublicBattle").getAttribute("aria-expanded"), "true");
+-    assert.equal(await page.locator("#publicWaitingOptions").getAttribute("open"), null);
++    assert.equal(await page.locator("#publicWaitingOptions").count(), 0);
++    assert.equal(await page.locator(".public-match-actions > button").count(), 2);
+     const writes = await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((call) => /fcg_standard_(create_room|join_room|matchmaking_find|matchmaking_recruit)$/.test(call.name) || ["cpu-start", "cpu-accept"].includes(call.body?.operation)));
+     assert.deepEqual(writes, []);
+     assert.equal(await page.locator('a[href*="solo-v5"], a[href*="standard-v5"]').count(), 0);
+@@ -2469,7 +2545,7 @@ test("hidden new-match handlers allocate no action and make no RPC while another
+   await withPage("lobby", async (page) => {
+     await page.evaluate(() => { globalThis.__standardOnlineRuntime.failNextFindResponse = true; });
+     await page.locator("#choosePublicBattle").click();
+-    await page.getByRole("button", { name: "相手を探す", exact: true }).click();
++    await page.getByRole("button", { name: "待っている相手に参加", exact: true }).click();
+     await page.getByText("検索結果を確認できませんでした。前回の検索結果をもう一度確認します。").waitFor();
+     await page.evaluate(async () => {
+       for (const id of ["startStandardCpuHome", "startStandardCpuLobby"]) {
+@@ -4821,7 +4897,7 @@ test("actual Edge recruits and cancels with one persisted public matchmaking tic
+     await page.locator("#matchmakingWait:not(.hidden)").waitFor();
+     const beforeCancel = await page.evaluate(({ key }) => JSON.parse(localStorage.getItem(key)), { key: connectionKey });
+     assert.match(beforeCancel.matchmakingTicketId, /^[0-9a-f-]{36}$/i);
+-    assert.equal(await page.getByRole("button", { name: "相手を探す", exact: true }).isDisabled(), true);
++    assert.equal(await page.getByRole("button", { name: "待っている相手に参加", exact: true }).isDisabled(), true);
+     await page.getByRole("button", { name: "募集を取り消す" }).click();
+     await page.getByText("募集を取り消しました。").waitFor();
+     const afterCancel = await page.evaluate(({ key }) => JSON.parse(localStorage.getItem(key)), { key: connectionKey });
+@@ -5593,7 +5669,7 @@ test("actual Edge keeps a finished CPU room until another CPU is chosen", { time
+ test("actual Edge finds a public opponent and enters setup without exposing a code", { timeout: 130000 }, async () => {
+   await withPage("publicFind", async (page) => {
+     await page.locator("#choosePublicBattle").click();
+-    await page.getByRole("button", { name: "相手を探す", exact: true }).click();
++    await page.getByRole("button", { name: "待っている相手に参加", exact: true }).click();
+     await page.locator("#room:not(.hidden)").waitFor();
+     assert.equal(await page.locator("#roomIdentityLabel").textContent(), "対戦形式");
+     assert.equal(await page.locator("#shownCode").textContent(), "野良対戦");
+@@ -5608,7 +5684,7 @@ test("actual Edge finds a public opponent and enters setup without exposing a co
+ test("actual Edge makes the six-card setup explicit, constrained, and keyboard-safe on mobile", { timeout: 150000 }, async () => {
+   await withPage("publicFind", async (page) => {
+     await page.locator("#choosePublicBattle").click();
+-    await page.getByRole("button", { name: "相手を探す", exact: true }).click();
++    await page.getByRole("button", { name: "待っている相手に参加", exact: true }).click();
+     await page.locator("#setupCard:not(.hidden)").waitFor();
+     const summary = page.locator("#loadoutSummary");
+     await summary.getByText("選択 6/6｜色 2/2｜エリア 2/2｜妨害 2/2｜準備OK", { exact: true }).waitFor();
+diff --git a/tests/standard-online-quiz-polish.test.cjs b/tests/standard-online-quiz-polish.test.cjs
+index e7f3046..1d45344 100644
+--- a/tests/standard-online-quiz-polish.test.cjs
++++ b/tests/standard-online-quiz-polish.test.cjs
+@@ -197,7 +197,7 @@ test("only overflowing quiz math receives a persistent horizontal position bar",
+   assert.match(css, /\.quiz-overflow-scrollbar\[hidden\]\{display:none\}/);
+   assert.match(html, /style\.css\?v=20260910-12/);
+   assert.match(html, /standard-online-client\.js\?v=20260910-1/);
+-  assert.match(html, /app\.js\?v=20260913-44/);
++  assert.match(html, /app\.js\?v=20260913-45/);
+ });
+ 
+ test("per-question feedback is server-acknowledged, retryable, brief in motion, and followed by an optional review", () => {
+diff --git a/tests/standard-online-ui-static.test.cjs b/tests/standard-online-ui-static.test.cjs
+index a21d7f7..6b34cef 100644
+--- a/tests/standard-online-ui-static.test.cjs
++++ b/tests/standard-online-ui-static.test.cjs
+@@ -82,7 +82,7 @@ test("CPU commentary is public-event-only, bounded, non-blocking, and terminal-p
+   assert.match(html, /standard-online-client\.js\?v=20260910-1/);
+   assert.match(html, /standard-online-skill-intents\.js\?v=20260911-21/);
+   assert.match(html, /cpu-commentary\.js\?v=20260910-1/);
+-assert.match(html, /app\.js\?v=20260913-44/);
++assert.match(html, /app\.js\?v=20260913-45/);
+   assert.match(app, /cpuCommentary\?\.VERSION !== "standard-cpu-commentary-v3"/);
+   assert.ok(html.indexOf("cpu-commentary.js") < html.indexOf('type="module" src="app.js'));
+   assert.match(html, /id="cpuCommentaryStage"[^>]+aria-hidden="true"/);
+@@ -255,7 +255,7 @@ test("UDL023 entrance routes are presentational and protect pending public recov
+   assert.match(html, /id="startStandardCpuLobby"[^>]+aria-haspopup="dialog"[^>]+aria-label="CPUと対戦">CPU<\/button>/);
+   assert.match(html, /id="chooseFriendBattle"[^>]+aria-label="友だちと対戦">友だち<\/button>/);
+   assert.match(html, /id="choosePublicBattle"[^>]+aria-label="だれとでも対戦">だれとでも<\/button>/);
+-  assert.match(html, /ui-diet\.css\?v=20260912-3/);
++  assert.match(html, /ui-diet\.css\?v=20260913-4/);
+   for (const [button, panel] of [["chooseFriendBattle", "friendBattlePanel"], ["choosePublicBattle", "matchmakingPanel"]]) {
+     assert.match(html, new RegExp('id="' + button + '"[^>]*aria-expanded="false"[^>]*aria-controls="' + panel + '"'));
+   }
+@@ -264,8 +264,13 @@ test("UDL023 entrance routes are presentational and protect pending public recov
+   assert.match(app, /snapshot\.matchmakingTicketId \|\| snapshot\.matchmakingFindActionId \? "public" : battleEntranceRoute/);
+   const route = app.slice(app.indexOf("function chooseBattleRoute("), app.indexOf("function safeJson("));
+   assert.doesNotMatch(route, /client\.(?:createRoom|joinRoom|findOpponent|recruitOpponent)/);
+-  assert.match(app, /startWaiting = waitIfNone && result\?\.matchmaking_status === "none_available"/);
+-  assert.match(app, /if \(startWaiting\) return recruitPublicOpponent\(\)/);
++  // v14 explicitly replaces the old successful-empty-find -> automatic recruit rule.
++  const find = app.slice(app.indexOf("async function findPublicOpponent("), app.indexOf("async function cancelPublicMatchmaking("));
++  assert.doesNotMatch(find, /recruitPublicOpponent|waitIfNone|startWaiting/);
++  assert.match(find, /client\.findOpponent/);
++  assert.match(html, /<button id="recruitOpponent" type="button">相手を待つ<\/button>/);
++  assert.match(html, /<button id="findOpponent" type="button" class="primary">待っている相手に参加<\/button>/);
++  assert.doesNotMatch(html, /publicWaitingOptions|相手を待つだけにする/);
+ });
+ 
+ test("UDL023 flat entrance keeps three peer columns and a keyboard heading without a yellow frame", () => {
+@@ -469,7 +474,7 @@ test("existing online progression is hydrated from the server rather than re-upl
+ 
+ test("UI derives its canonical and experimental card metadata from the generated registry", () => {
+   assert.equal(Object.values(STANDARD_SKILLS).filter((skill) => skill.v49Catalogued).length, 19);
+-  assert.match(html, /standard-skill-registry\.generated\.js\?v=20260912-2[\s\S]+app\.js\?v=20260913-44/);
++  assert.match(html, /standard-skill-registry\.generated\.js\?v=20260912-2[\s\S]+app\.js\?v=20260913-45/);
+   assert.match(app, /const STANDARD_SKILL_REGISTRY = globalThis\.FourColorStandardSkillRegistry/);
+   assert.match(app, /STANDARD_SKILL_REGISTRY\.v49SkillIds\.map/);
+   assert.match(app, /Object\.entries\(STANDARD_SKILL_REGISTRY\.skills\)/);
+diff --git a/tests/standard-public-release-runbook.test.cjs b/tests/standard-public-release-runbook.test.cjs
+index 32b11f4..9a61d8a 100644
+--- a/tests/standard-public-release-runbook.test.cjs
++++ b/tests/standard-public-release-runbook.test.cjs
+@@ -19,8 +19,18 @@ test("UDL065 named-skill lane binds Edge-first compatibility and forbids borrowi
+   const section = runbook.slice(runbook.indexOf("### UDL-065: 使用済みスキル名の公開表示"), runbook.indexOf("### UDL-065: v14カットイン可読性・実結果説明"));
+   for (const phrase of ["UDL-065-public-skill-v1", "DB/管理設定は各 `[]`", "standard-engine.bundle.js", "index.ts",
+     "互換Edge → 完全2file読戻し → Pages", "CPU039とUI040", "040の消費済み試行を再使用しない", "NOT_RUN"]) assert.ok(section.includes(phrase), phrase);
+-  for (const pattern of [/src="(app\.js\?v=[^"]+)"/, /src="(skill-cutin\.js\?v=[^"]+)"/, /href="(skill-cutin\.css\?v=[^"]+)"/])
+-    assert.ok(section.includes(assetReference(onlineIndex, pattern, "named-skill lane")));
++  // This is the frozen parent70e lane, not a moving UI successor's cache markers.
++  for (const marker of ["app.js?v=20260913-44", "skill-cutin.js?v=20260913-2", "skill-cutin.css?v=20260913-1"])
++    assert.ok(section.includes(marker));
++});
++
++test("UDL023 v14 is a separate Pages-only successor with explicit actions and no live authority", () => {
++  const section = runbook.slice(runbook.indexOf("### UDL-023: v14公開対戦の二操作"), runbook.indexOf("### UDL-065: 使用済みスキル名の公開表示"));
++  for (const phrase of ["UDL-023-public-actions-v1", "70e691b6f8f1d808476e80990d20df7862bfb782", "Pages_only",
++    "DB/Edge/管理設定は各 `[]`", "真正Astra判定", "recruitだけ", "findだけ", "同一ID再送",
++    "実ユーザーへのfind/recruit", "ここでは許可しない", "NOT_RUN"]) assert.ok(section.includes(phrase), phrase);
++  for (const pattern of [/src="(app\.js\?v=[^"]+)"/, /href="(ui-diet\.css\?v=[^"]+)"/])
++    assert.ok(section.includes(assetReference(onlineIndex, pattern, "public-actions lane")));
+ });
+ 
+ test("current alpha.4 release lane deploys the compatible Edge before Pages and preserves active rooms", () => {
+diff --git a/tests/standard-surrender-confirmation.test.cjs b/tests/standard-surrender-confirmation.test.cjs
+index 7f2fe5a..a2c4597 100644
+--- a/tests/standard-surrender-confirmation.test.cjs
++++ b/tests/standard-surrender-confirmation.test.cjs
+@@ -4,7 +4,7 @@ const {dialogueFor,makeIntent,isCurrentIntent}=require("../standard-online-v5/su
+ test("UDL067 native safe-first dialog and its scoped focus style load before app41",()=>{
+   const fs=require("node:fs"),path=require("node:path"),root=path.join(__dirname,"../standard-online-v5");
+   const html=fs.readFileSync(path.join(root,"index.html"),"utf8"),css=fs.readFileSync(path.join(root,"surrender-confirmation.css"),"utf8");
+-  assert.ok(html.indexOf('surrender-confirmation.js?v=20260913-1')<html.indexOf('app.js?v=20260913-44'));
++  assert.ok(html.indexOf('surrender-confirmation.js?v=20260913-1')<html.indexOf('app.js?v=20260913-45'));
+   assert.ok(html.includes('surrender-confirmation.css?v=20260913-1'));
+   const dialog=html.slice(html.indexOf('<dialog id="surrenderDialog"'),html.indexOf('<dialog id="abandonRoomDialog"'));
+   assert.match(dialog,/aria-labelledby="surrenderTitle" aria-describedby="surrenderSpeaker surrenderDescription"/);

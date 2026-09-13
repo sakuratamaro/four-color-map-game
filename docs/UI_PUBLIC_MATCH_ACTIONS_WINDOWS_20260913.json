@@ -1,0 +1,135 @@
+{
+  "kind": "same_candidate_windows_observation_not_final_result",
+  "subject_sha": "84587830730c1f62cf8c502daac4d768886a3f4d",
+  "run_id": "34740424933",
+  "attempt": 1,
+  "status": "in_progress",
+  "conclusion": null,
+  "observed_at_utc": null,
+  "time_precision": "Fetched during this turn; adjacent exact timestamp not captured.",
+  "created_at_utc": "2026-09-13T05:29:34Z",
+  "jobs": [
+    {
+      "id": "103679089219",
+      "name": "Standard online browser (chrome)",
+      "status": "in_progress",
+      "conclusion": null,
+      "started_at_utc": "2026-09-13T05:29:36Z",
+      "completed_at_utc": null,
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Install browser test dependency",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Verify generated Standard bundles",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run Standard CPU policy contract tests",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run Standard local lifecycle browser tests serially",
+          "status": "completed",
+          "conclusion": "skipped"
+        },
+        {
+          "name": "Run Standard online browser test serially",
+          "status": "in_progress",
+          "conclusion": null
+        },
+        {
+          "name": "Post Run actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
+          "status": "pending",
+          "conclusion": null
+        },
+        {
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "pending",
+          "conclusion": null
+        }
+      ]
+    },
+    {
+      "id": "103679089313",
+      "name": "Standard online browser (edge)",
+      "status": "in_progress",
+      "conclusion": null,
+      "started_at_utc": "2026-09-13T05:29:38Z",
+      "completed_at_utc": null,
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Install browser test dependency",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Verify generated Standard bundles",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run Standard CPU policy contract tests",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run Standard local lifecycle browser tests serially",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run Standard online browser test serially",
+          "status": "in_progress",
+          "conclusion": null
+        },
+        {
+          "name": "Post Run actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
+          "status": "pending",
+          "conclusion": null
+        },
+        {
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "pending",
+          "conclusion": null
+        }
+      ]
+    }
+  ],
+  "not_cpu039_evidence": true,
+  "no_rerun_requested": true
+}

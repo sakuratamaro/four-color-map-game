@@ -41,7 +41,7 @@
     }
   ],
   "coordination": {
-    "status": "approved_release_waiting_user_artifact",
+    "status": "public_actions_review_preparation_parent_source_hold_preserved",
     "latest_v8_intake": {
       "state": "PAIRED_SOURCE_AND_ZIP_VERIFIED_ALIASES_MAPPED",
       "source_thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
@@ -3494,7 +3494,63 @@
             "skipped": 0
           }
         ],
-        "evidence_json": "docs/UI_FLAT_ENTRANCE_LIVE_20260913.json"
+        "evidence_json": "docs/UI_FLAT_ENTRANCE_LIVE_20260913.json",
+        "public_match_followup": {
+          "request_id": "UDL-20260907-023",
+          "alias": "ADD-20260913-PUBLIC-MATCH-TWO-ACTIONS",
+          "source_message_id": "bbb2135e-cfd1-4da8-845b-9e3d07d8b29a",
+          "owner_thread_id": "01a07b56-616e-7733-9aae-90575659688e",
+          "worktree": ".codex-worktrees/ui-public-match-actions-20260913",
+          "branch": "codex/ui-public-match-actions-20260913",
+          "base_sha": "70e691b6f8f1d808476e80990d20df7862bfb782",
+          "public_base_sha": "954e1c5c52d5453fc9fee9872b2d7e922f850a39",
+          "release_after_sha": "70e691b6f8f1d808476e80990d20df7862bfb782",
+          "candidate_sha": "84587830730c1f62cf8c502daac4d768886a3f4d",
+          "state": "LOCAL_VERIFIED_REVIEW_PREPARATION",
+          "spec_path": "docs/UI_PUBLIC_MATCH_ACTIONS_20260913.md",
+          "spec_version": "UDL-023-public-actions-v1",
+          "spec_snapshot_sha": "468dad9e85fa633e47ea75a79628d18a0ad10565",
+          "scope": "Pages_only",
+          "db_change_set": [],
+          "edge_change_set": [],
+          "managed_setting_change_set": [],
+          "publication": "NOT_RUN",
+          "publication_authorized": false,
+          "live_reexecution_authorized": false,
+          "live_canary_attempts": 0,
+          "review_status": "NOT_SENT",
+          "review_id": null,
+          "review_request_message_id": null,
+          "review_response_message_id": null,
+          "review_send_attempts": 0,
+          "push_status": "PUSHED_EXACT_BRANCH",
+          "local_verification": "PASS",
+          "verification": "Clean147/163 non-browser files999/999PASS74968.2479ms. Static/client141/141PASS1335.0666ms. Edgefocused9/9PASS64069.4345ms. Chromefirst8/9; obsolete selector corrected, supplement14/14PASS123812.4648ms incl oldfailure+UDL065/handoff. Three Chrome sizes viewed; no live writes. Initial failures retained in UI_PUBLIC_MATCH_ACTIONS_LOCAL_20260913.md.",
+          "windows_run": "34740424933",
+          "windows_status": "IN_PROGRESS",
+          "windows_run_attempt": 1,
+          "windows_created_at_utc": "2026-09-13T05:29:34Z",
+          "windows_next_action": "Observe original34740424933; do not start another run because a read times out. No CPU039 gate substitution.",
+          "review_patch_path": "docs/UI_PUBLIC_MATCH_ACTIONS_REVIEW_20260913.patch",
+          "evidence_path": "docs/UI_PUBLIC_MATCH_ACTIONS_LOCAL_20260913.md",
+          "non_change": "Parent70e, CPU100/9590/039, old040FAIL/067partial/062/F3; game/client/RPC/DB/Edge/managed/artwork unchanged. No new test profile/match or real-user find/recruit.",
+          "next_action": "Finish same-candidate Windows verification and prepare/send one exact genuine Astra review; preserve parent70e source artifact hold. UI publication follows parent70e only.",
+          "windows_jobs": [
+            {
+              "id": "103679089219",
+              "name": "Standard online browser (chrome)",
+              "status": "in_progress",
+              "conclusion": null
+            },
+            {
+              "id": "103679089313",
+              "name": "Standard online browser (edge)",
+              "status": "in_progress",
+              "conclusion": null
+            }
+          ],
+          "review_patch_sha256": "d68fa62cd96c0e74fa872371bdafcbd782c65f255d1dbf9625c2eb06ef5d163d"
+        }
       },
       "catalog_preparation": {
         "request_id": "UDL-20260912-066",
@@ -4102,14 +4158,15 @@
       },
       "current_run": {
         "phase": "NORMAL_WORK",
-        "turn_id": null,
         "source": "automatic_goal_continuation",
-        "started_at_utc": "2026-09-13T04:20:50Z",
+        "started_at_utc": null,
+        "time_precision": "Exact start clock not captured; first adjacent clock was observed during implementation.",
         "scheduled_origin_claimed": false,
-        "worktree": ".codex-worktrees/skill-cutin-public-names-20260913",
-        "request": "Publish exact approved70e: fresh main/currentEdge, source readback, sameSHA main/Pages/preflight/assets; no extra live.",
-        "canon_receipt": "CANON_RECEIPT version=shared-canon-v1.1 governance=f287d288cb3fbe2453ca89f1327ae8dfa8642453 base=954e1c5c52d5453fc9fee9872b2d7e922f850a39 candidate=70e691b6f8f1d808476e80990d20df7862bfb782 request=UDL-20260912-065 specs=docs/SKILL_PUBLIC_EVENT_20260913.md,docs/STANDARD_PUBLIC_RELEASE_RUNBOOK.md,docs/CHATGPT_REVIEW_DECISIONS.json checks=fresh-main/Windows/Edge-source/Pages/served-bytes",
-        "result": "Freshmain954e/clean70e/spec97d and Windows exactSUCCESS reconfirmed. Currentsource download2 attempts notobtained; browserinternalDownloads URL refused and notbypassed. Genuine approval preserved, no production/livewrites. Scopeduserartifact request sent."
+        "worktree": ".codex-worktrees/ui-public-match-actions-20260913",
+        "request": "UDL023 v14 public wait/join actions; keep source-blocked70e and CPU100 frozen.",
+        "canon_receipt": "CANON_RECEIPT version=shared-canon-v1.1 governance=8a4ccb45e43e93020a69be9ae7574f808c2d5905 base=70e691b6f8f1d808476e80990d20df7862bfb782 public_base=954e1c5c52d5453fc9fee9872b2d7e922f850a39 candidate=84587830730c1f62cf8c502daac4d768886a3f4d request=UDL-20260907-023 specs=docs/UI_PUBLIC_MATCH_ACTIONS_20260913.md tests=static/client/browser/full147",
+        "result": "Two explicit native controls implemented; no auto recruit after empty/resumed find, IDs/guards preserved.16file clean8458783 fixed and pushed.999/999 plus localbrowser evidence; actual sameSHA Windows run in progress. Genuine review/publication not yet authorized.",
+        "first_clock_observed_at_utc": "2026-09-13T05:07:20Z"
       },
       "missed_schedule_observation": {
         "scheduled_at_utc": "2026-09-12T06:25:12Z",
@@ -4290,18 +4347,19 @@
         "production_executed": true
       },
       "current_goal_turn_classification": {
-        "previous_turn": "PROGRESS",
+        "previous_turn": "NO_PROGRESS",
+        "previous_turn_reason": "Previous user turn revalidated/reported already implemented Kurogane100 and unchanged unpublished status; it did not implement or publish new work.",
         "current_turn": "PROGRESS",
-        "evidence": "Fresh main/clean exact70e/spec/Windows verified. Actual current-source acquisition failed to yield an artifact; explicit user handoff sent. Source-bound no-retry routing+regression55/55PASS, actualheartbeatPAUSED. All old reviews/CPU/rawFAIL and production0 preserved.",
+        "evidence": "Adoptedv14 public actions implemented in8458783, regression red->green, clean999/999, focused real browsers,16file dedicated branch pushed and exactWindowsrun observed.",
         "whole_goal_complete": false,
         "verified_wait": false,
-        "live_external_job_handle_confirmed": false,
-        "blocker": {
+        "live_external_job_handle_confirmed": true,
+        "external_handle": "GitHub Actions34740424933 attempt1 in_progress on8458783",
+        "scoped_blocker": {
           "condition_id": "NAMED70E_CURRENT_EDGE_SOURCE_ARTIFACT_UNAVAILABLE",
-          "first_observed_turn_source": "automatic_goal_continuation",
-          "consecutive_goal_turns": 1,
-          "requires_user_artifact": true,
-          "goal_status": "active"
+          "unchanged": true,
+          "blocks_entire_goal": false,
+          "reason": "Safe adopted UI implementation and independent exact review preparation are progressing; no goal-blocked assertion."
         }
       },
       "documentation_review_followup_history": [

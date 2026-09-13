@@ -27,6 +27,22 @@ const slices = c => {
       current.push({ref:"remaining_brain_work.cutin_readability_preparation.named_skill_followup",slice:names});
     current.push({ref:"remaining_brain_work.cutin_readability_preparation",slice:ui});
   }
+  const publicActions=c.remaining_brain_work?.current_local_preparation?.public_match_followup;
+  // v14 follow-up reuses the existing entrance record; frozen parents/holds stay intact.
+  if(publicActions?.owner_thread_id===OWNER && publicActions.request_id==="UDL-20260907-023"
+    &&publicActions.alias==="ADD-20260913-PUBLIC-MATCH-TWO-ACTIONS"
+    &&publicActions.source_message_id==="bbb2135e-cfd1-4da8-845b-9e3d07d8b29a"
+    &&publicActions.branch==="codex/ui-public-match-actions-20260913"
+    &&publicActions.worktree===".codex-worktrees/ui-public-match-actions-20260913"
+    &&publicActions.spec_path==="docs/UI_PUBLIC_MATCH_ACTIONS_20260913.md"
+    &&SHA.test(publicActions.candidate_sha||"")&&SHA.test(publicActions.base_sha||"")
+    &&SHA.test(publicActions.spec_snapshot_sha||"")
+    &&publicActions.base_sha===ui?.named_skill_followup?.candidate_sha
+    &&publicActions.release_after_sha===publicActions.base_sha
+    &&publicActions.scope==="Pages_only"
+    &&equal(publicActions.db_change_set,[])&&equal(publicActions.edge_change_set,[])
+    &&equal(publicActions.managed_setting_change_set,[]))
+    current.push({ref:"remaining_brain_work.current_local_preparation.public_match_followup",slice:publicActions});
   return current;
 };
 const equal = (a,b) => JSON.stringify(a) === JSON.stringify(b);
@@ -189,6 +205,15 @@ function planContinuation(log, {now = new Date().toISOString(), otherOwnerActive
           reason:"CURRENT_EDGE_SOURCE_REQUIRES_USER_ARTIFACT",evidence_path:h.evidence_path};
         continue;
       }
+      if(s.windows_status==="SUCCESS"&&ref==="remaining_brain_work.current_local_preparation.public_match_followup"){
+        const parent=c.remaining_brain_work?.cutin_readability_preparation?.named_skill_followup;
+        if(parent?.publication!=="PAGES_PUBLISHED"||parent.main_sha!==s.base_sha||
+          parent.pages_sha!==s.base_sha||parent.pages_status!=="SUCCESS"){
+          recordedReleaseStop={phase:"STOP",ref,subject_sha:s.candidate_sha,review_id:r.review_id,
+            blocked_by_sha:s.base_sha,reason:"PARENT_RELEASE_REQUIRED_BEFORE_PUBLIC_ACTIONS"};
+          continue;
+        }
+      }
       if(s.windows_status === "SUCCESS")
         return {phase:"NORMAL_WORK", action:"RELEASE_CHECKS", ref, subject_sha:s.candidate_sha,
           review_id:r.review_id, reason:"APPROVED_UNPUBLISHED_WORK_MUST_NOT_BE_ORPHANED"};
@@ -208,6 +233,11 @@ function planContinuation(log, {now = new Date().toISOString(), otherOwnerActive
       &&s.review_send_attempts===0&&s.review_status==="NOT_SENT"&&s.publication==="NOT_RUN")
       return {phase:"NORMAL_WORK",action:"PREPARE_FIXED_PUBLIC_SKILL_REVIEW",ref,subject_sha:s.candidate_sha,
         reason:"FIXED_LOCAL_SUCCESSOR_NEEDS_OWN_PUSH_GATE_AND_GENUINE_REVIEW_NOT_PARENT_AUTHORITY"};
+    if(ref==="remaining_brain_work.current_local_preparation.public_match_followup"
+      &&s.state==="LOCAL_VERIFIED_REVIEW_PREPARATION"&&s.local_verification==="PASS"
+      &&s.review_send_attempts===0&&s.review_status==="NOT_SENT"&&s.publication==="NOT_RUN")
+      return {phase:"NORMAL_WORK",action:"PREPARE_FIXED_PUBLIC_MATCH_REVIEW",ref,subject_sha:s.candidate_sha,
+        reason:"ADOPTED_TWO_ACTION_UI_NEEDS_OWN_GATES_WITH_PARENT_RELEASE_HOLD_PRESERVED"};
   }
   if (issues.length) return {phase:"STOP", reason:"RECONCILE_INVALID_REVIEW", issues};
   const independent=c.successor_goal?.preparing_independent_slice;
