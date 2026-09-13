@@ -41,7 +41,7 @@
     }
   ],
   "coordination": {
-    "status": "public_actions_genuine_review_pending_parent_source_hold_preserved",
+    "status": "public_actions_043_hold_evidence_correction_preparation",
     "latest_v8_intake": {
       "state": "PAIRED_SOURCE_AND_ZIP_VERIFIED_ALIASES_MAPPED",
       "source_thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
@@ -188,8 +188,8 @@
       "normal_owner_observation": "Previous normal turn completed after branch push; stored normal_work_receipt waiting. This heartbeat is the same task, not a second active owner."
     },
     "reviewer_thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
-    "last_consumed_review_message_id": "747e7144-a155-44f7-9173-8175bd45c115",
-    "last_received_message_id": "747e7144-a155-44f7-9173-8175bd45c115",
+    "last_consumed_review_message_id": "23050cab-6dd2-494a-a14f-707f79a6a517",
+    "last_received_message_id": "23050cab-6dd2-494a-a14f-707f79a6a517",
     "pending_user_intake_message_ids": [
       "ea61f25f-bebf-499a-81e9-029712a96f99",
       "bbb216f0-9194-45cf-acd6-504a9a55d40a",
@@ -1110,7 +1110,7 @@
     "wait_budget": {
       "subject_sha": "84587830730c1f62cf8c502daac4d768886a3f4d",
       "root_request_message_id": "ef4742c7-afbb-478b-8965-0210ef000f5e",
-      "status": "review_pending",
+      "status": "closed_response_received",
       "start_basis": "First reservation before sole send of genuinely new v14 public-actions845. Closed042 unchanged in completed_review_waits; no old deadline reset.",
       "started_at_utc": "2026-09-13T05:46:14Z",
       "expires_at_utc": "2026-09-13T07:46:14.000Z",
@@ -1120,10 +1120,12 @@
         100
       ],
       "max_automatic_checks": 3,
-      "automatic_checks": 0,
-      "next_check_utc": "2026-09-13T06:26:14.000Z",
-      "remaining_scheduled_slots": 2,
-      "consumed_slots_utc": [],
+      "automatic_checks": 1,
+      "next_check_utc": "2026-09-13T07:26:14.000Z",
+      "remaining_scheduled_slots": 1,
+      "consumed_slots_utc": [
+        "2026-09-13T06:26:14.000Z"
+      ],
       "skipped_slots_utc": [
         "2026-09-13T06:06:14.000Z"
       ],
@@ -1139,7 +1141,28 @@
           "recorded_at_utc": "2026-09-13T06:06:52Z",
           "reason": "Final end-turn guard at06:04:50Z failed two-minute margin while original owner still active; conservatively forfeit unexecuted first slot. No read or consumed check claimed; no slot/deadline reset."
         }
-      ]
+      ],
+      "last_reserved_slot_utc": "2026-09-13T06:26:14.000Z",
+      "last_automatic_check_utc": "2026-09-13T06:26:29Z",
+      "check_receipts": [
+        {
+          "slot_utc": "2026-09-13T06:26:14.000Z",
+          "reserved_at_utc": "2026-09-13T06:26:29Z",
+          "origin": "existing_normal_goal_owner_due_original_slot",
+          "scheduled_origin_claimed": false,
+          "status": "COMPLETE_GENUINE_RESPONSE_SAVED",
+          "actual_reads": 1,
+          "read_at_utc": "2026-09-13T06:27:21Z",
+          "response_message_id": "23050cab-6dd2-494a-a14f-707f79a6a517",
+          "response_complete": true,
+          "request_body_equality": true,
+          "scheduled_execution_claimed": false
+        }
+      ],
+      "closed_at_utc": "2026-09-13T06:27:21Z",
+      "closed_review_id": "CHATGPT-REVIEW-20260913-043",
+      "closed_response_message_id": "23050cab-6dd2-494a-a14f-707f79a6a517",
+      "closing_note": "Original043 response received. A same-logical-subject evidence correction may use only original remaining100minute slot and07:46:14Z expiry, never a new wait budget."
     },
     "pending_review_subject": {
       "subject_sha": "84587830730c1f62cf8c502daac4d768886a3f4d",
@@ -1206,7 +1229,7 @@
       "ef4742c7-afbb-478b-8965-0210ef000f5e"
     ],
     "sent_at_utc": "2026-09-13T05:48:19Z",
-    "last_check_utc": "2026-09-13T04:12:25Z",
+    "last_check_utc": "2026-09-13T06:27:21Z",
     "unchanged_checks": 0,
     "reminder_count": 0,
     "max_reminders_per_request": 1,
@@ -3539,7 +3562,7 @@
           "public_base_sha": "954e1c5c52d5453fc9fee9872b2d7e922f850a39",
           "release_after_sha": "70e691b6f8f1d808476e80990d20df7862bfb782",
           "candidate_sha": "84587830730c1f62cf8c502daac4d768886a3f4d",
-          "state": "REVIEW_PENDING",
+          "state": "HOLD_CI_LOG_RECONCILIATION",
           "spec_path": "docs/UI_PUBLIC_MATCH_ACTIONS_20260913.md",
           "spec_version": "UDL-023-public-actions-v1",
           "spec_snapshot_sha": "468dad9e85fa633e47ea75a79628d18a0ad10565",
@@ -3551,10 +3574,10 @@
           "publication_authorized": false,
           "live_reexecution_authorized": false,
           "live_canary_attempts": 0,
-          "review_status": "PENDING",
-          "review_id": null,
+          "review_status": "HOLD",
+          "review_id": "CHATGPT-REVIEW-20260913-043",
           "review_request_message_id": "ef4742c7-afbb-478b-8965-0210ef000f5e",
-          "review_response_message_id": null,
+          "review_response_message_id": "23050cab-6dd2-494a-a14f-707f79a6a517",
           "review_send_attempts": 1,
           "push_status": "PUSHED_EXACT_BRANCH",
           "local_verification": "PASS",
@@ -3563,11 +3586,11 @@
           "windows_status": "FAILURE",
           "windows_run_attempt": 1,
           "windows_created_at_utc": "2026-09-13T05:29:34Z",
-          "windows_next_action": "Do not waive Chrome failure or reuse Edge success for CPU039. Await exact genuine review, then normal scoped root-cause diagnosis/correction; no rerun requested.",
+          "windows_next_action": "Correct reviewer log mismatch, preserving actualShiftFAIL. Controlledresize diagnosis saved; no retry.",
           "review_patch_path": "docs/UI_PUBLIC_MATCH_ACTIONS_REVIEW_20260913.patch",
           "evidence_path": "docs/UI_PUBLIC_MATCH_ACTIONS_LOCAL_20260913.md",
           "non_change": "Parent70e, CPU100/9590/039, old040FAIL/067partial/062/F3; game/client/RPC/DB/Edge/managed/artwork unchanged. No new test profile/match or real-user find/recruit.",
-          "next_action": "Read genuine review at original06:26:14Z slot; first unexecuted slot forfeited, no resend. WindowsFAIL, parent70e source and CPU039 holds preserved.",
+          "next_action": "Save genuine043 HOLD and send one same-candidate evidence correction for wrong B1 test identity. No candidate mutation or CI retry.",
           "windows_jobs": [
             {
               "id": "103679089219",
@@ -3599,7 +3622,7 @@
           "review_delivery_verified": true,
           "review_delivery_verified_at_utc": "2026-09-13T05:50:13Z",
           "review_delivery_characters": 3852,
-          "review_response_observed": false,
+          "review_response_observed": true,
           "review_delivery_result": "Read2 exact3852-character delivered request in active genuine chat; no assistant response yet. Two bounded delivery reads total; no resend.",
           "windows_completed_observed_at_utc": "2026-09-13T05:53:33Z",
           "windows_verification": "Final attempt1: Chrome contract657/657, online150/151 FAIL; Edge contract657/657, lifecycle79/79, online151/151 PASS. Chrome lifecycle existingSKIP. See saved final JSON; no retry.",
@@ -3613,7 +3636,25 @@
             "limit_ms": 30000,
             "log_excerpt": "waiting for locator('#skillTargetControls').getByText('対象：上から4行目') to be visible",
             "cause": "NOT_PROVEN; failing test body unchanged from70e. The same locator previously failed inCPU039's separate Edge run. Do not infer harmless flakiness or waive either gate."
-          }
+          },
+          "pointer_diagnosis": {
+            "owner_thread_id": "01a07b56-616e-7733-9aae-90575659688e",
+            "request_id": "UDL-20260906-014",
+            "related_request_id": "UDL-20260910-054",
+            "regression_id": "REG-20260913-SHIFT-BAND-POINTER",
+            "state": "CONTROLLED_MECHANISM_REPRODUCED_ORIGINAL_CI_CAUSE_UNPROVEN",
+            "candidate_sha": "84587830730c1f62cf8c502daac4d768886a3f4d",
+            "evidence": "docs/SHIFT_BAND_POINTER_DIAGNOSIS_20260913.md",
+            "source_failure": "run34740424933/job103679089219 original FAIL; no retry",
+            "non_change": "Observe existing localfixture only. Do not mutate frozen845/70e/9590 or production; no approval/wait reset.",
+            "evidence_json": "docs/SHIFT_BAND_POINTER_DIAGNOSIS_20260913.json",
+            "ordinary_local_passes": 3,
+            "controlled_stale_geometry": "FAIL_ROW5_NOT_EXPECTED_ROW4",
+            "controlled_fresh_geometry": "PASS_EXACT_ORIGINAL_ASSERTIONS",
+            "product_changed": false,
+            "ci_reruns": 0
+          },
+          "review_received_at_utc": "2026-09-13T06:27:21Z"
         }
       },
       "catalog_preparation": {
@@ -4157,6 +4198,23 @@
           "tests/governance-commander-continuation.test.cjs"
         ],
         "scope": "Existing commander resumes bounded verification, separate062 review and single-automation continuation repair; no self-send/new commander."
+      },
+      {
+        "phase": "NORMAL_WORK",
+        "source": "automatic_goal_continuation",
+        "started_at_utc": null,
+        "time_precision": "Exact start clock not captured; first adjacent clock was observed during implementation.",
+        "scheduled_origin_claimed": false,
+        "worktree": ".codex-worktrees/ui-public-match-actions-20260913",
+        "request": "UDL023 v14 public wait/join actions; keep source-blocked70e and CPU100 frozen.",
+        "canon_receipt": "CANON_RECEIPT version=shared-canon-v1.1 governance=8a4ccb45e43e93020a69be9ae7574f808c2d5905 base=70e691b6f8f1d808476e80990d20df7862bfb782 public_base=954e1c5c52d5453fc9fee9872b2d7e922f850a39 candidate=84587830730c1f62cf8c502daac4d768886a3f4d request=UDL-20260907-023 specs=docs/UI_PUBLIC_MATCH_ACTIONS_20260913.md tests=static/client/browser/full147",
+        "result": "Two explicit native controls implemented; no auto recruit after empty/resumed find, IDs/guards preserved.16file clean8458783 fixed and pushed.999/999 plus localbrowser evidence; actual sameSHA Windows run in progress. Genuine review/publication not yet authorized. Review artifact fixed at58f2, remote fullpatch equality confirmed; sole review send reserved. Genuine requestef4742c7 full3852characters confirmed on second bounded delivery read; response not yet observed. Windows originalrun completed FAIL: Chrome150/151 (unchanged Half/TripleShift row4 target timeout), Edge151/151 PASS; preserved actual failure and logs, no rerun. Sameheartbeat actualACTIVE exactreadback at06:06:14Z finite firstslot. Post-push final margin check failed at06:04:50Z; no guard waiver. First review slot forfeited with automaticchecks0, next original40minute slot06:26:14Z actualACTIVE/readback; corrected end guardPASS.",
+        "first_clock_observed_at_utc": "2026-09-13T05:07:20Z",
+        "user_direction_check": {
+          "request_id": "UDL-20260910-051",
+          "candidate_sha": "9590a4212d69185fc93df31b552d9bd870d5a9a3",
+          "result": "Existing clean frozen candidate/spec preserve direct user100charges, favored free Kurogane palette decisions. No new code/test/publication or CPU rerun claimed."
+        }
       }
     ],
     "normal_work_handoff": {
@@ -4224,19 +4282,12 @@
       "current_run": {
         "phase": "NORMAL_WORK",
         "source": "automatic_goal_continuation",
-        "started_at_utc": null,
-        "time_precision": "Exact start clock not captured; first adjacent clock was observed during implementation.",
+        "started_at_utc": "2026-09-13T06:09:30Z",
         "scheduled_origin_claimed": false,
         "worktree": ".codex-worktrees/ui-public-match-actions-20260913",
-        "request": "UDL023 v14 public wait/join actions; keep source-blocked70e and CPU100 frozen.",
-        "canon_receipt": "CANON_RECEIPT version=shared-canon-v1.1 governance=8a4ccb45e43e93020a69be9ae7574f808c2d5905 base=70e691b6f8f1d808476e80990d20df7862bfb782 public_base=954e1c5c52d5453fc9fee9872b2d7e922f850a39 candidate=84587830730c1f62cf8c502daac4d768886a3f4d request=UDL-20260907-023 specs=docs/UI_PUBLIC_MATCH_ACTIONS_20260913.md tests=static/client/browser/full147",
-        "result": "Two explicit native controls implemented; no auto recruit after empty/resumed find, IDs/guards preserved.16file clean8458783 fixed and pushed.999/999 plus localbrowser evidence; actual sameSHA Windows run in progress. Genuine review/publication not yet authorized. Review artifact fixed at58f2, remote fullpatch equality confirmed; sole review send reserved. Genuine requestef4742c7 full3852characters confirmed on second bounded delivery read; response not yet observed. Windows originalrun completed FAIL: Chrome150/151 (unchanged Half/TripleShift row4 target timeout), Edge151/151 PASS; preserved actual failure and logs, no rerun. Sameheartbeat actualACTIVE exactreadback at06:06:14Z finite firstslot. Post-push final margin check failed at06:04:50Z; no guard waiver. First review slot forfeited with automaticchecks0, next original40minute slot06:26:14Z actualACTIVE/readback; corrected end guardPASS.",
-        "first_clock_observed_at_utc": "2026-09-13T05:07:20Z",
-        "user_direction_check": {
-          "request_id": "UDL-20260910-051",
-          "candidate_sha": "9590a4212d69185fc93df31b552d9bd870d5a9a3",
-          "result": "Existing clean frozen candidate/spec preserve direct user100charges, favored free Kurogane palette decisions. No new code/test/publication or CPU rerun claimed."
-        }
+        "request": "UDL014/054: bounded diagnosis of frozen845 Windows shift-band pointer failure; no CI rerun or product revision yet.",
+        "canon_receipt": "CANON_RECEIPT version=shared-canon-v1.1 governance=888e8ae7e62ed002a7eaae21d4a52776af1dc5a8 candidate=84587830730c1f62cf8c502daac4d768886a3f4d base=70e691b6f8f1d808476e80990d20df7862bfb782 request=UDL-20260906-014,UDL-20260910-054,REG-20260913-SHIFT-BAND-POINTER specs=docs/UI_PLAY_SURFACE_20260912.md tests=existing151-suite-exact-single-case",
+        "result": "PROGRESS: 3 ordinary local1/1PASS; controlled328->292 stale click mappedrow5 andFAIL, freshgeometry mappedrow4 andPASS exactassertions. OriginalCIcauseNOT_PROVEN. Original40minute read returned genuine043HOLD; exactsamejob freshlog proves its catalogfailure identity wrong. No product/CI/production mutation."
       },
       "missed_schedule_observation": {
         "scheduled_at_utc": "2026-09-12T06:25:12Z",
@@ -4416,20 +4467,13 @@
         "production_executed": true
       },
       "current_goal_turn_classification": {
-        "previous_turn": "NO_PROGRESS",
-        "previous_turn_reason": "Previous user turn revalidated/reported already implemented Kurogane100 and unchanged unpublished status; it did not implement or publish new work.",
+        "previous_turn": "PROGRESS",
+        "previous_turn_reason": "Implemented/pushed845, exactgenuine review delivered, WindowsFAIL evidence changed release next action; finite existing schedule.",
         "current_turn": "PROGRESS",
-        "evidence": "Adoptedv14 public actions implemented in8458783, regression red->green, clean999/999, focused real browsers,16file dedicated branch pushed and exactWindowsrun observed. Sole3852-character realreview delivered; original Windows failure saved, same finite heartbeat actualACTIVE. No publication or CPUgate equivalence.",
         "whole_goal_complete": false,
-        "verified_wait": true,
-        "live_external_job_handle_confirmed": true,
-        "external_handle": "GenuineAstra active exactrequestef4742c7 observed05:50:13Z awaiting first original finite slot; Windows34740424933 terminalFAIL, no longer running.",
-        "scoped_blocker": {
-          "condition_id": "NAMED70E_CURRENT_EDGE_SOURCE_ARTIFACT_UNAVAILABLE",
-          "unchanged": true,
-          "blocks_entire_goal": false,
-          "reason": "Safe adopted UI implementation and independent exact review preparation are progressing; no goal-blocked assertion."
-        }
+        "verified_wait": false,
+        "live_external_job_handle_confirmed": false,
+        "evidence": "docs/SHIFT_BAND_POINTER_DIAGNOSIS_20260913.md and genuine043 plus fresh exact-job evidence discrepancy"
       },
       "documentation_review_followup_history": [
         {
@@ -4672,7 +4716,7 @@
         }
       }
     ],
-    "last_consumed_message_id": "747e7144-a155-44f7-9173-8175bd45c115"
+    "last_consumed_message_id": "23050cab-6dd2-494a-a14f-707f79a6a517"
   },
   "decisions": [
     {
@@ -6088,6 +6132,68 @@
         "Chrome local lifecycle remains skipped; CPU039 Edge failure is separate. Local998/998, browser9/9each, SQL7/7 and PNG review are Codex reports, not Astra reexecution or PNG inspection.",
         "Actual040 rawFAIL, finalPLAYING, settlementNOT_VERIFIED and cutinsNOT_OBSERVED remain unchanged; old CPU9590/039,067/F3 unaffected.",
         "This is not APPROVE_DOCS for the separate governance continuation changes. Same fixed candidate and procedure need no additional interim approval."
+      ]
+    },
+    {
+      "review_id": "CHATGPT-REVIEW-20260913-043",
+      "subject_sha": "84587830730c1f62cf8c502daac4d768886a3f4d",
+      "base_sha": "70e691b6f8f1d808476e80990d20df7862bfb782",
+      "release_after_sha": "70e691b6f8f1d808476e80990d20df7862bfb782",
+      "canon_version": "shared-canon-v1.1",
+      "feature_spec_version": "UDL-023-public-actions-v1",
+      "spec_snapshot_sha": "468dad9e85fa633e47ea75a79628d18a0ad10565",
+      "spec_snapshot_kind": "git_blob",
+      "scope": "Pages_only",
+      "db_change_set": [],
+      "edge_change_set": [],
+      "managed_setting_change_set": [],
+      "review_kind": "game_production_release_approval",
+      "decision": "HOLD",
+      "source": {
+        "kind": "chatgpt",
+        "thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
+        "message_id": "23050cab-6dd2-494a-a14f-707f79a6a517",
+        "request_message_id": "ef4742c7-afbb-478b-8965-0210ef000f5e",
+        "request_body_equality": true,
+        "verified_request_characters": 3852,
+        "response_full_characters": 2754,
+        "response_complete": true,
+        "retrieval": "One original40minute slot, reserved before one bounded paired read; actual thread idle and turn completed. First20minute slot remains forfeited; no response polling or resend.",
+        "read_at_utc": "2026-09-13T06:27:21Z",
+        "response_text": "## DECISION\n\n**HOLD — 二択UIのコード・仕様に修正必須の問題は見つかりませんでしたが、同一候補のWindows Chromeゲートで1件の失敗が確定しています。現時点では845を公開しないでください。**\n\n提出時の`IN_PROGRESS`から進み、**ChromeはFAILURE、EdgeはSUCCESS**になっています。今回の保留はこの未解決のCI失敗によるもので、親70eへの042承認を取り消すものではありません。\n\n## SUBJECT_SHA / BASE_SHA\n\n```text\nSUBJECT_SHA: 84587830730c1f62cf8c502daac4d768886a3f4d\nBASE_SHA: 70e691b6f8f1d808476e80990d20df7862bfb782\nRELEASE_AFTER_SHA: 70e691b6f8f1d808476e80990d20df7862bfb782\nCANON_VERSION: shared-canon-v1.1\nFEATURE_SPEC_VERSION: UDL-023-public-actions-v1\nSPEC_BLOB: 468dad9e85fa633e47ea75a79628d18a0ad10565\nSCOPE: Pages_only\nDB_CHANGE_SET: []\nEDGE_CHANGE_SET: []\nMANAGED_SETTING_CHANGE_SET: []\n```\n\n固定仕様の版・blobは取得結果と一致しています。\n\n## BLOCKERS\n\n### B1 — 既存の図鑑試験が、最初のカードタブ操作でタイムアウトしています\n\nWindows `34740424933`、attempt 1、head SHA845の取得結果です。\n\n| 対象 | Job ID | 最終結果 |\n|---|---|---|\n| Chrome | `103679089219` | `completed / failure` |\n| Edge | `103679089313` | `completed / success` |\n\n取得したChromeログでは、online-browserは**148/149成功・1件失敗**で、不合格は次の既存テストでした。\n\n```text\nUDL066 fresh catalog exposes all 21 native detail buttons\nwithout creating a profile or spending\n\nlocator.click: Timeout 30000ms exceeded.\nwaiting for locator('[data-app-tab=\"cards\"]')\n```\n\n**図鑑の21件表示を判定するより前に、カードタブを押す操作で止まっています。** 固定ソースでも、このクリックが当該テストの最初の操作になっていることを確認しました。したがって、ログから「カードが21件なくなった」「二択UIが直接壊した」とは判断できません。\n\nまず、**同じ候補・同じ試験の起動からカードタブ操作まで**に絞って切り分けてください。ページの起動・読込・操作可能状態の待機と、実際の製品不具合を区別するためです。タイムアウトだけで試験の不安定さを確定せず、逆に図鑑全体の作り直しへ広げる必要もありません。\n\n原attempt 1を保持し、assertion削除・skip・一律の長いsleep・成功するまでの反復は行わないでください。切り分け後、**コード・テスト無変更なら失敗Chrome jobだけの再実行を一度まで**とし、根拠と結果を追記してください。変更が必要なら新SHAで再提出します。\n\n**B1の補完結果でHOLD解除を判断します。同じSHAのままなら、全16ファイルの再送は不要です。**\n\n## NOTES\n\n### 二択への仕様変更は、そのまま進めてよい内容です\n\n固定差分では、**「相手を待つ」は既存recruit、「待っている相手に参加」は既存find**へ分離され、空の検索結果から自動募集する処理が削除されています。これは最新の本人要望に沿った明示的な仕様変更であり、旧自動募集の復活を求めません。待機取消も残されています。\n\n二つのnative buttonを同時表示し、従来の文字に見えるdetailsを外す変更も適切です。既存のID・応答喪失時の復帰・操作中の制限を保つ範囲で、今回の操作導線を簡素化しています。**このコードレビューから、新たなUI設計変更やサーバー変更は要求しません。** \n\n999/999、局所Chrome／Edge、画像目視はCodexの実施報告として受領します。**こちらでは試験を再実行しておらず、ローカル画像も確認していません。** 今回確認したのは固定仕様・差分・CI結果と失敗ログです。\n\n### 親70eの公開条件は、今回のCIとは別に維持する\n\nHOLD解除後も、**親70eの正規公開完了→fresh mainが70e→同じ845をforceなしで公開**という順序が必要です。親のEdgeソース取得不足を、古いZIP・拒否された経路・今回のUI成功で代替しないでください。\n\n一方、今回のChrome失敗を理由に、**親042の承認待ちを作り直したり、066の過去の限定受入を取り消したりする必要はありません。** 今回の候補で発生した回帰試験の不合格として扱います。\n\n### 追加liveなしの確認範囲は妥当です\n\n**今回も追加プロフィール・対局・本番find／recruit・実対局canaryは0件で構いません。** 公開可能になった後の確認は、同一SHAのPages成功、既存のwrite-free preflight、**HTML・app45・ui-diet4の厳密byte一致**までとし、親のcut-in JS2／CSS1も維持してください。\n\nその記録は「公開・配信内容の確認」であり、**本番マッチング挙動の実測や物理端末受入ではありません。** fixtureの成功と区別し、本番の募集・参加は未観測、物理端末は`NOT_RUN`のまま残します。\n\n**本返信は845の公開許可でも、共有GOVへの`APPROVE_DOCS`でもありません。** 今回の有限待機予算はリセットせず、B1の局所切り分けを進めてください。親70eの既存作業、独立したCPU作業、過去の失敗・部分受入の区分は変更しません。"
+      },
+      "recorded_at_utc": "2026-09-13T06:35:31Z",
+      "evidence_sha": "58f2cac4745fd349aa402670cee262ef67cee7a4",
+      "blockers": [
+        "SameSHA Windows Chrome job failed; no publication until genuine supplemental HOLD disposition and required Windows gate.",
+        "Astra B1 cites UDL066 catalog startup failure and148/149. Fresh once-only retrieval of the exact same job103679089219 instead proves catalogPASS and Half/TripleShift row4 timeout150/151. Preserve original response and correct this evidence mismatch before implementing its catalog diagnosis."
+      ],
+      "conditions": [
+        "No full16file resend needed for same845. If code/test changes, require newSHA and exact review; original finite budget must not reset.",
+        "One unchanged failedChromejob retry is conditional on diagnosis; no retry has been attempted and none is authorized by an inferred correction of Astra's wrong B1.",
+        "Parent70e/042 source hold and release order remain separate. Additional profiles/matches/production find/recruit/live0.",
+        "No APPROVE_RELEASE or APPROVE_DOCS granted; physical and actual production matchmaking NOT_RUN."
+      ],
+      "bounds": {
+        "additional_profiles": 0,
+        "additional_matches": 0,
+        "additional_live_attempts": 0,
+        "failed_chrome_job_retry_maximum_after_diagnosis": 1,
+        "failed_chrome_job_retries_attempted": 0
+      },
+      "evidence_discrepancy": {
+        "status": "CONFIRMED_WRONG_FAILURE_IDENTITY_IN_REVIEW_NOT_SELF_CLEARED",
+        "exact_job_id": "103679089219",
+        "run_id": "34740424933",
+        "attempt": 1,
+        "same_full_log_equal": true,
+        "full_log_characters": 424292,
+        "evidence_path": "docs/UI_PUBLIC_MATCH_ACTIONS_REVIEW_CORRECTION_20260913.md",
+        "raw_review_preserved": true
+      },
+      "notes": [
+        "Astra reports no mandatory defect in the two-action UI fixed code/specification. This does not waive Windows failure.",
+        "Local controlled resize proves a stale geometry mechanism, not original CI cause. Frozen845 product/test unchanged. CPU100/039 and040/067/062/F3 unchanged."
       ]
     }
   ]

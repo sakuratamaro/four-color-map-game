@@ -1,0 +1,633 @@
+{
+  "kind": "local_fixture_geometry_counterexperiment_not_actual_ci_cause_proof",
+  "candidate_sha": "84587830730c1f62cf8c502daac4d768886a3f4d",
+  "original_ci": {
+    "run": "34740424933",
+    "job": "103679089219",
+    "conclusion": "failure",
+    "cause": "NOT_PROVEN"
+  },
+  "normal": [
+    {
+      "exit_code": 0,
+      "tests": 1,
+      "pass": 1,
+      "fail": 0,
+      "duration_ms": 7725.6433,
+      "detail": "Initial full observer output truncated; observed304->328 but do not claim complete saved trace."
+    },
+    {
+      "exit_code": 0,
+      "diagnostic": {
+        "measurements": [
+          {
+            "kind": "measured-box",
+            "at": 1789280168511,
+            "result": {
+              "x": 31,
+              "y": -412,
+              "width": 328,
+              "height": 328
+            }
+          },
+          {
+            "kind": "requested-native-click",
+            "at": 1789280168511,
+            "options": [
+              {
+                "position": {
+                  "x": 147.6,
+                  "y": 123
+                }
+              }
+            ]
+          }
+        ],
+        "boardEvents": [
+          {
+            "kind": "capture",
+            "time": 2223,
+            "eventType": "pointerdown",
+            "target": "board",
+            "client": [
+              181.60000610351562,
+              424
+            ],
+            "pointerId": 1,
+            "isPrimary": true,
+            "rect": {
+              "x": 31,
+              "y": 298,
+              "width": 328,
+              "height": 328
+            },
+            "mapped": [
+              5,
+              4
+            ],
+            "scroll": [
+              0,
+              238,
+              0,
+              0
+            ],
+            "focus": "",
+            "targetText": "半マスシフト — 対象を指定★4横の行か縦の列を選び、盤面で動かす帯をタップしてください。横の行を選ぶ縦の列を選ぶ対象：まだ盤面で選んでいません盤面で対象を選ぶこの対象で使うキャンセル"
+          },
+          {
+            "kind": "capture",
+            "time": 2229,
+            "eventType": "pointerup",
+            "target": "board",
+            "client": [
+              181.60000610351562,
+              424
+            ],
+            "pointerId": 1,
+            "isPrimary": true,
+            "rect": {
+              "x": 31,
+              "y": 298,
+              "width": 328,
+              "height": 328
+            },
+            "mapped": [
+              5,
+              4
+            ],
+            "scroll": [
+              0,
+              238,
+              0,
+              0
+            ],
+            "focus": "board",
+            "targetText": "半マスシフト — 対象を指定★4横の行か縦の列を選び、盤面で動かす帯をタップしてください。横の行を選ぶ縦の列を選ぶ対象：まだ盤面で選んでいません盤面で対象を選ぶこの対象で使うキャンセル"
+          },
+          {
+            "kind": "capture",
+            "time": 2249,
+            "eventType": "click",
+            "target": "board",
+            "client": [
+              181,
+              424
+            ],
+            "pointerId": 1,
+            "isPrimary": false,
+            "rect": {
+              "x": 31,
+              "y": 298,
+              "width": 328,
+              "height": 328
+            },
+            "mapped": [
+              5,
+              4
+            ],
+            "scroll": [
+              0,
+              238,
+              0,
+              0
+            ],
+            "focus": "board",
+            "targetText": "半マスシフト — 対象を指定★4横の行か縦の列を選び、盤面で動かす帯をタップしてください。横の行を選ぶ縦の列を選ぶ対象：上から4行目盤面で対象を選ぶ← 左へ右へ →上から4行目を選びました。盤面の帯を確認して、動かす方向を選んでください。この対象で使うキャンセル"
+          }
+        ],
+        "boardSizes": [
+          304,
+          328
+        ],
+        "final": {
+          "kind": "second-frame",
+          "time": 3355,
+          "client": null,
+          "rect": {
+            "x": 31,
+            "y": -249.4375,
+            "width": 328,
+            "height": 328
+          },
+          "mapped": null,
+          "scroll": [
+            0,
+            934,
+            0,
+            0
+          ],
+          "focus": "",
+          "targetText": ""
+        }
+      },
+      "duration_ms": 5958.5788
+    },
+    {
+      "exit_code": 0,
+      "diagnostic": {
+        "measurements": [
+          {
+            "kind": "measured-box",
+            "at": 1789280218120,
+            "result": {
+              "x": 31,
+              "y": -412,
+              "width": 328,
+              "height": 328
+            }
+          },
+          {
+            "kind": "requested-native-click",
+            "at": 1789280218120,
+            "options": [
+              {
+                "position": {
+                  "x": 147.6,
+                  "y": 123
+                }
+              }
+            ]
+          }
+        ],
+        "boardEvents": [
+          {
+            "kind": "capture",
+            "time": 2108,
+            "eventType": "pointerdown",
+            "target": "board",
+            "client": [
+              181.60000610351562,
+              424
+            ],
+            "pointerId": 1,
+            "isPrimary": true,
+            "rect": {
+              "x": 31,
+              "y": 298,
+              "width": 328,
+              "height": 328
+            },
+            "mapped": [
+              5,
+              4
+            ],
+            "scroll": [
+              0,
+              238,
+              0,
+              0
+            ],
+            "focus": "",
+            "targetText": "半マスシフト — 対象を指定★4横の行か縦の列を選び、盤面で動かす帯をタップしてください。横の行を選ぶ縦の列を選ぶ対象：まだ盤面で選んでいません盤面で対象を選ぶこの対象で使うキャンセル"
+          },
+          {
+            "kind": "capture",
+            "time": 2112,
+            "eventType": "pointerup",
+            "target": "board",
+            "client": [
+              181.60000610351562,
+              424
+            ],
+            "pointerId": 1,
+            "isPrimary": true,
+            "rect": {
+              "x": 31,
+              "y": 298,
+              "width": 328,
+              "height": 328
+            },
+            "mapped": [
+              5,
+              4
+            ],
+            "scroll": [
+              0,
+              238,
+              0,
+              0
+            ],
+            "focus": "board",
+            "targetText": "半マスシフト — 対象を指定★4横の行か縦の列を選び、盤面で動かす帯をタップしてください。横の行を選ぶ縦の列を選ぶ対象：まだ盤面で選んでいません盤面で対象を選ぶこの対象で使うキャンセル"
+          },
+          {
+            "kind": "capture",
+            "time": 2129,
+            "eventType": "click",
+            "target": "board",
+            "client": [
+              181,
+              424
+            ],
+            "pointerId": 1,
+            "isPrimary": false,
+            "rect": {
+              "x": 31,
+              "y": 298,
+              "width": 328,
+              "height": 328
+            },
+            "mapped": [
+              5,
+              4
+            ],
+            "scroll": [
+              0,
+              238,
+              0,
+              0
+            ],
+            "focus": "board",
+            "targetText": "半マスシフト — 対象を指定★4横の行か縦の列を選び、盤面で動かす帯をタップしてください。横の行を選ぶ縦の列を選ぶ対象：上から4行目盤面で対象を選ぶ← 左へ右へ →上から4行目を選びました。盤面の帯を確認して、動かす方向を選んでください。この対象で使うキャンセル"
+          }
+        ],
+        "boardSizes": [
+          304,
+          328
+        ],
+        "final": {
+          "kind": "second-frame",
+          "time": 3023,
+          "client": null,
+          "rect": {
+            "x": 31,
+            "y": -233.8125,
+            "width": 328,
+            "height": 328
+          },
+          "mapped": null,
+          "scroll": [
+            0,
+            868,
+            0,
+            0
+          ],
+          "focus": "",
+          "targetText": ""
+        }
+      },
+      "duration_ms": 5756.4612
+    }
+  ],
+  "stale_resize": {
+    "exit_code": 1,
+    "diagnostic": {
+      "measurements": [
+        {
+          "kind": "measured-box",
+          "at": 1789280513483,
+          "result": {
+            "x": 31,
+            "y": -412,
+            "width": 328,
+            "height": 328
+          }
+        },
+        {
+          "kind": "controlled-viewport-resize",
+          "at": 1789280513573,
+          "current": {
+            "x": 49,
+            "y": 169,
+            "width": 292,
+            "height": 292
+          },
+          "refreshAfterResize": false,
+          "oldCoordinatesIntentionallyKept": true
+        },
+        {
+          "kind": "requested-native-click",
+          "at": 1789280513573,
+          "options": [
+            {
+              "position": {
+                "x": 147.6,
+                "y": 123
+              }
+            }
+          ]
+        }
+      ],
+      "boardEvents": [
+        {
+          "kind": "capture",
+          "time": 2587,
+          "eventType": "pointerdown",
+          "target": "board",
+          "client": [
+            199.60000610351562,
+            295
+          ],
+          "pointerId": 1,
+          "isPrimary": true,
+          "rect": {
+            "x": 49,
+            "y": 169,
+            "width": 292,
+            "height": 292
+          },
+          "mapped": [
+            6,
+            5
+          ],
+          "scroll": [
+            0,
+            367,
+            0,
+            0
+          ],
+          "focus": "",
+          "targetText": "半マスシフト — 対象を指定★4横の行か縦の列を選び、盤面で動かす帯をタップしてください。横の行を選ぶ縦の列を選ぶ対象：まだ盤面で選んでいません盤面で対象を選ぶこの対象で使うキャンセル"
+        },
+        {
+          "kind": "capture",
+          "time": 2596,
+          "eventType": "pointerup",
+          "target": "board",
+          "client": [
+            199.60000610351562,
+            295
+          ],
+          "pointerId": 1,
+          "isPrimary": true,
+          "rect": {
+            "x": 49,
+            "y": 169,
+            "width": 292,
+            "height": 292
+          },
+          "mapped": [
+            6,
+            5
+          ],
+          "scroll": [
+            0,
+            367,
+            0,
+            0
+          ],
+          "focus": "board",
+          "targetText": "半マスシフト — 対象を指定★4横の行か縦の列を選び、盤面で動かす帯をタップしてください。横の行を選ぶ縦の列を選ぶ対象：まだ盤面で選んでいません盤面で対象を選ぶこの対象で使うキャンセル"
+        },
+        {
+          "kind": "capture",
+          "time": 2628,
+          "eventType": "click",
+          "target": "board",
+          "client": [
+            199,
+            295
+          ],
+          "pointerId": 1,
+          "isPrimary": false,
+          "rect": {
+            "x": 49,
+            "y": 169,
+            "width": 292,
+            "height": 292
+          },
+          "mapped": [
+            6,
+            5
+          ],
+          "scroll": [
+            0,
+            367,
+            0,
+            0
+          ],
+          "focus": "board",
+          "targetText": "半マスシフト — 対象を指定★4横の行か縦の列を選び、盤面で動かす帯をタップしてください。横の行を選ぶ縦の列を選ぶ対象：上から5行目盤面で対象を選ぶ← 左へ右へ →上から5行目を選びました。盤面の帯を確認して、動かす方向を選んでください。この対象で使うキャンセル"
+        }
+      ],
+      "boardSizes": [
+        304,
+        328,
+        292
+      ],
+      "final": {
+        "kind": "second-frame",
+        "time": 2640,
+        "client": null,
+        "rect": {
+          "x": 49,
+          "y": 169,
+          "width": 292,
+          "height": 292
+        },
+        "mapped": null,
+        "scroll": [
+          0,
+          367,
+          0,
+          0
+        ],
+        "focus": "board",
+        "targetText": "半マスシフト — 対象を指定★4横の行か縦の列を選び、盤面で動かす帯をタップしてください。横の行を選ぶ縦の列を選ぶ対象：上から5行目盤面で対象を選ぶ← 左へ右へ →上から5行目を選びました。盤面の帯を確認して、動かす方向を選んでください。この対象で使うキャンセル"
+      }
+    },
+    "duration_ms": 35296.7592
+  },
+  "refreshed_resize": {
+    "exit_code": 0,
+    "diagnostic": {
+      "measurements": [
+        {
+          "kind": "measured-box",
+          "at": 1789280556317,
+          "result": {
+            "x": 31,
+            "y": -412,
+            "width": 328,
+            "height": 328
+          }
+        },
+        {
+          "kind": "controlled-viewport-resize",
+          "at": 1789280556409,
+          "current": {
+            "x": 49,
+            "y": 169,
+            "width": 292,
+            "height": 292
+          },
+          "refreshAfterResize": true,
+          "oldCoordinatesIntentionallyKept": false
+        },
+        {
+          "kind": "requested-native-click",
+          "at": 1789280556409,
+          "options": [
+            {
+              "position": {
+                "x": 131.4,
+                "y": 109.5
+              }
+            }
+          ]
+        }
+      ],
+      "boardEvents": [
+        {
+          "kind": "capture",
+          "time": 2298,
+          "eventType": "pointerdown",
+          "target": "board",
+          "client": [
+            183.39999389648438,
+            281.5
+          ],
+          "pointerId": 1,
+          "isPrimary": true,
+          "rect": {
+            "x": 49,
+            "y": 169,
+            "width": 292,
+            "height": 292
+          },
+          "mapped": [
+            5,
+            4
+          ],
+          "scroll": [
+            0,
+            367,
+            0,
+            0
+          ],
+          "focus": "",
+          "targetText": "半マスシフト — 対象を指定★4横の行か縦の列を選び、盤面で動かす帯をタップしてください。横の行を選ぶ縦の列を選ぶ対象：まだ盤面で選んでいません盤面で対象を選ぶこの対象で使うキャンセル"
+        },
+        {
+          "kind": "capture",
+          "time": 2303,
+          "eventType": "pointerup",
+          "target": "board",
+          "client": [
+            183.39999389648438,
+            281.5
+          ],
+          "pointerId": 1,
+          "isPrimary": true,
+          "rect": {
+            "x": 49,
+            "y": 169,
+            "width": 292,
+            "height": 292
+          },
+          "mapped": [
+            5,
+            4
+          ],
+          "scroll": [
+            0,
+            367,
+            0,
+            0
+          ],
+          "focus": "board",
+          "targetText": "半マスシフト — 対象を指定★4横の行か縦の列を選び、盤面で動かす帯をタップしてください。横の行を選ぶ縦の列を選ぶ対象：まだ盤面で選んでいません盤面で対象を選ぶこの対象で使うキャンセル"
+        },
+        {
+          "kind": "capture",
+          "time": 2323,
+          "eventType": "click",
+          "target": "board",
+          "client": [
+            183,
+            281
+          ],
+          "pointerId": 1,
+          "isPrimary": false,
+          "rect": {
+            "x": 49,
+            "y": 169,
+            "width": 292,
+            "height": 292
+          },
+          "mapped": [
+            5,
+            4
+          ],
+          "scroll": [
+            0,
+            367,
+            0,
+            0
+          ],
+          "focus": "board",
+          "targetText": "半マスシフト — 対象を指定★4横の行か縦の列を選び、盤面で動かす帯をタップしてください。横の行を選ぶ縦の列を選ぶ対象：上から4行目盤面で対象を選ぶ← 左へ右へ →上から4行目を選びました。盤面の帯を確認して、動かす方向を選んでください。この対象で使うキャンセル"
+        }
+      ],
+      "boardSizes": [
+        304,
+        328,
+        292,
+        280
+      ],
+      "final": {
+        "kind": "second-frame",
+        "time": 3292,
+        "client": null,
+        "rect": {
+          "x": 55,
+          "y": -362.8125,
+          "width": 280,
+          "height": 280
+        },
+        "mapped": null,
+        "scroll": [
+          0,
+          997,
+          0,
+          0
+        ],
+        "focus": "",
+        "targetText": ""
+      }
+    },
+    "duration_ms": 6282.59
+  },
+  "interpretation": "Controlled viewport height844->630 changed measured board328 to292. Old click147.6/123 actually selected col6,row5 and timed out awaiting row4. Re-measuring after native scroll returned292; click131.4/109.5 selectedcol5,row4 and the unchanged full expected actions passed. Original CI had no geometry trace, so its exact cause remains unproven.",
+  "non_change": "Frozen845/70e/9590 sources unchanged; no real production profile/match or CI rerun. This is not a newWindows result or approval."
+}
