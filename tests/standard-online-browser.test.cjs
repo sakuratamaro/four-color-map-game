@@ -6,6 +6,7 @@ const http = require("node:http");
 const path = require("node:path");
 const test = require("node:test");
 const { closeOwnedBrowserServer } = require("./helpers/browser-server-cleanup.cjs");
+const { clickCanvasFraction } = require("./helpers/canvas-native-pointer.cjs");
 
 let chromium;
 try { ({ chromium } = require("playwright")); } catch { /* explicit actual-browser gate */ }
@@ -3442,8 +3443,7 @@ test("actual browser selects Half Shift and Triple Shift bands on the board at 3
     assert.equal(await page.getByRole("button", { name: "半マスシフト ×1" }).evaluate((node) => node === document.activeElement), true);
     await page.getByRole("button", { name: "半マスシフト ×1" }).click();
     const board = page.locator("#board");
-    const box = await board.boundingBox();
-    await board.click({ position: { x: box.width * 0.45, y: box.height * (4.5 / 12) } });
+    await clickCanvasFraction(board, { x: 0.45, y: 4.5 / 12 });
     await target.getByText("対象：上から4行目").waitFor();
     assert.ok((await page.evaluate(() => globalThis.__shiftFrames.filter((color) => color === "#fde047").length)) >= 1);
     const right = target.getByRole("button", { name: "右へ →" });
@@ -3480,6 +3480,60 @@ test("actual browser selects Half Shift and Triple Shift bands on the board at 3
       { skill: "areaHalfShift", axis: "ROW", index: 4, direction: "plus" },
       { skill: "areaTripleShift", axis: "COLUMN", index: 3, direction: "plus" },
     ]);
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth), false);
+  }, { viewport: { width: 390, height: 844 } });
+});
+
+test("actual browser keeps the Shift row when actionability resizes the canvas at 390px", { timeout: 130000 }, async () => {
+  await withPage("playing", async (page) => {
+    await page.evaluate(() => {
+      const runtime = globalThis.__standardOnlineRuntime;
+      runtime.room.public_state = { ...runtime.room.public_state,
+        playableBounds: { macroWidth: 12, microScale: 1, minCol: 1, minRow: 1, maxCol: 10, maxRow: 10 } };
+      runtime.view = { ...runtime.view, private_state: { ...runtime.view.private_state,
+        hand: { ...runtime.view.private_state.hand, areaHalfShift: 1 } } };
+      runtime.onInvalidate?.({});
+      globalThis.__shiftNativePointers = [];
+      document.querySelector("#board").addEventListener("pointerdown", event => {
+        const rect = event.currentTarget.getBoundingClientRect();
+        globalThis.__shiftNativePointers.push({ trusted: event.isTrusted,
+          row: Math.floor((event.clientY - rect.top) / rect.height * 12), width: rect.width });
+      });
+    });
+    await page.getByRole("button", { name: "半マスシフト ×1" }).click();
+    const board = page.locator("#board"), target = page.locator("#skillTargetControls");
+    await board.click({ trial: true });
+    const before = await board.boundingBox();
+    let resized = false;
+    // Deterministically put a real resize inside actionability, before measurement.
+    // Both trial and final input still use the real Playwright locator.
+    const resizeOnActionability = {
+      evaluate: measure => board.evaluate(measure),
+      async click(options) {
+        if (options.trial && !resized) {
+          resized = true;
+          await page.setViewportSize({ width: 390, height: 630 });
+        }
+        return board.click(options);
+      },
+    };
+    const selected = await clickCanvasFraction(resizeOnActionability, { x: 0.45, y: 4.5 / 12 });
+    assert.equal(resized, true);
+    assert.ok(selected.width < before.width, JSON.stringify({ before, selected }));
+    const pointers = await page.evaluate(() => globalThis.__shiftNativePointers);
+    assert.equal(pointers.length, 1, "trial must not create a pointerdown");
+    assert.equal(pointers[0].trusted, true, "selection must use native input");
+    assert.equal(pointers[0].row, 4, JSON.stringify(pointers));
+    assert.equal(pointers[0].width, selected.width, "no stale dimensions at pointerdown");
+    await target.getByText("対象：上から4行目").waitFor();
+    assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls
+      .filter(entry => entry.body?.operation === "action").length), 0);
+    await target.getByRole("button", { name: "右へ →" }).click();
+    await target.getByRole("button", { name: "この対象で使う" }).click();
+    await page.getByText("操作を保存しました。").waitFor();
+    assert.deepEqual(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls
+      .filter(entry => entry.body?.operation === "action").map(entry => entry.body.action.payload)),
+      [{ skill: "areaHalfShift", axis: "ROW", index: 4, direction: "plus" }]);
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth), false);
   }, { viewport: { width: 390, height: 844 } });
 });

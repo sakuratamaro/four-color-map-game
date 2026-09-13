@@ -2,7 +2,7 @@ name: Standard browser gate
 
 on:
   push:
-    branches: [codex/standard-release-command, codex/quiz-memo-calculator-20260912, codex/ui-diet-20260912, codex/ui-play-surface-20260912, codex/ui-result-20260912, codex/ui-cosmetics-20260912, codex/ui-player-copy-20260912, codex/skill-cutin-20260912, codex/ui-flat-entry-20260912, codex/skill-catalog-20260912, codex/surrender-confirmation-20260913, codex/cpu-split-rescue-20260913, codex/skill-cutin-readability-20260913, codex/skill-cutin-public-names-20260913, codex/ui-public-match-actions-20260913]
+    branches: [codex/standard-release-command, codex/quiz-memo-calculator-20260912, codex/ui-diet-20260912, codex/ui-play-surface-20260912, codex/ui-result-20260912, codex/ui-cosmetics-20260912, codex/ui-player-copy-20260912, codex/skill-cutin-20260912, codex/ui-flat-entry-20260912, codex/skill-catalog-20260912, codex/surrender-confirmation-20260913, codex/cpu-split-rescue-20260913, codex/skill-cutin-readability-20260913, codex/skill-cutin-public-names-20260913, codex/ui-public-match-actions-20260913, codex/ui-public-match-actions-pointer-20260913]
     paths:
       - .github/workflows/standard-browser-gate.yml
       - online/supabase-config.js
@@ -30,6 +30,8 @@ on:
       - tests/standard-online-engine-bundle.test.cjs
       - tests/standard-online-browser.test.cjs
       - tests/browser-server-cleanup.test.cjs
+      - tests/canvas-native-pointer.test.cjs
+      - tests/helpers/canvas-native-pointer.cjs
       - tests/helpers/browser-server-cleanup.cjs
       - tests/helpers/cpu-sql-runtime.cjs
       - tests/helpers/public-skill-fixture.cjs
@@ -64,6 +66,8 @@ on:
       - tests/standard-online-engine-bundle.test.cjs
       - tests/standard-online-browser.test.cjs
       - tests/browser-server-cleanup.test.cjs
+      - tests/canvas-native-pointer.test.cjs
+      - tests/helpers/canvas-native-pointer.cjs
       - tests/helpers/browser-server-cleanup.cjs
       - tests/helpers/cpu-sql-runtime.cjs
       - tests/helpers/public-skill-fixture.cjs
@@ -123,6 +127,7 @@ jobs:
           tests/standard-browser-gate-workflow.test.cjs
           tests/standard-online-browser-harness-static.test.cjs
           tests/browser-server-cleanup.test.cjs
+          tests/canvas-native-pointer.test.cjs
           tests/standard-legal-recolor-lab.test.cjs
           tests/standard-live-legal-recolor-lab-canary-static.test.cjs
           tests/standard-live-color-response-canary-static.test.cjs
