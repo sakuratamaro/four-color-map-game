@@ -3469,6 +3469,45 @@
         "state": "LOCAL_CODE_VERIFIED_ADOPTION_SOURCE_GAP",
         "report_path": "docs/REWARD_RANGE_AUDIT_20260913.md",
         "economy_changes_authorized": false
+      },
+      "cutin_readability_preparation": {
+        "request_id": "UDL-20260912-065",
+        "alias": "ADD-20260913-CUTIN-READABILITY-RESULT",
+        "source_message_id": "bbb2135e-cfd1-4da8-845b-9e3d07d8b29a",
+        "owner_thread_id": "01a07b56-616e-7733-9aae-90575659688e",
+        "state": "LOCAL_VERIFIED_ORDERED_INTEGRATION_PENDING",
+        "worktree": ".codex-worktrees/skill-cutin-readability-20260913",
+        "branch": "codex/skill-cutin-readability-20260913",
+        "base_sha": "d9ce111d7d97019d55b3e90842602001e045ea04",
+        "candidate_sha": "01a8735d81b005c2ee1f9b699f355f00e2f6222e",
+        "spec_path": "docs/SKILL_CUTIN_READABILITY_20260913.md",
+        "spec_version": "UDL-065-readability-v1",
+        "spec_snapshot_sha": "f24956add3c2111008a086199af604e6a8d4f104",
+        "implementation_state": "implemented_partial",
+        "verification_state": "local_pass",
+        "release_state": "not_merged",
+        "push_status": "PUSHED_EXACT_BRANCH",
+        "review_status": "NOT_REQUESTED_FOR_ORDERED_INTEGRATION_CANDIDATE",
+        "windows_status": "NOT_RUN_BRANCH_NOT_CONFIGURED",
+        "publication": "NOT_RUN",
+        "tests": {
+          "nonbrowser_files": 145,
+          "nonbrowser_pass": 976,
+          "nonbrowser_fail": 0,
+          "nonbrowser_skipped": 0,
+          "nonbrowser_duration_ms": 68726.0759,
+          "chrome_pass": 7,
+          "edge_pass": 7,
+          "browser_skipped": 0,
+          "browser_evidence_scope": "Four UI asset bytes unchanged from final 7/7 browser runs; successor commit only raises two new test outer budgets to existing120s minimum. Final clean976includes timeout contract."
+        },
+        "evidence": "docs/SKILL_CUTIN_READABILITY_LOCAL_20260913.md",
+        "remaining": "Public named opponent skill event and hidden-effect descriptions are not implemented; no inference from private state.",
+        "next_action": "PreserveCPU9590/039 exact CI manual restart boundary. Integrate the intended next public base force-free into this branch; configure its own existing Windows gate and submit a new exact review before Pages. This branch's tests never substitute for CPU039.",
+        "no_live_attempt_reserved": true,
+        "db_change_set": [],
+        "edge_change_set": [],
+        "managed_setting_change_set": []
       }
     },
     "limited_attachment_intake": {
@@ -3705,13 +3744,13 @@
         "recovered_without_new_user_wait": true
       },
       "end_turn_guard": {
-        "checked_at_utc": "2026-09-12T23:47:08Z",
+        "checked_at_utc": "2026-09-13T00:26:39Z",
         "result": "PASS",
         "phase": "STOP",
         "subject_sha": "9590a4212d69185fc93df31b552d9bd870d5a9a3",
         "at_utc": null,
         "errors": [],
-        "tests": "73/73 PASS981.9193ms skip0 after exact039 binding and PAUSED readback; initial72/73 retained in evidence",
+        "tests": "74/74 PASS863.6331ms skip0; independent065 source/gate boundaries checked. CPU039 STOP remains recorded; no new scheduler or claimed scheduled origin.",
         "scheduled_origin_claimed": false
       },
       "latest_receive_schedule_observation": {
@@ -3847,15 +3886,18 @@
       "current_goal_turn_classification": {
         "turn_id": null,
         "classification": "PROGRESS",
-        "source": "Normal goal continuation; individual turn id unavailable, not fabricated",
+        "source": "Normal goal continuation; exact individual turn ID unavailable, not invented",
         "actual_goal_status": "active",
+        "previous_turn": {
+          "classification": "PROGRESS",
+          "evidence_commit": "36998082177e9ea5b5933a7389cbf87820b5d11c"
+        },
         "evidence": [
-          "Prior fixed9590/998PASS/source-pairedv14/review delivery preserved; no product edits",
-          "CI latest terminal attempt1 verified; rerun remains NOT_STARTED after connector403, UI timeout and auto-review rejection. Manual exact-job action requested; no bypass",
-          "Independent UDL046 v14 reward code/history audit documented: 26/26 unchanged tests, stable original/base/candidate module blob, original numeric adoption source gap retained",
-          "Original first20minute review slot consumed once; genuine fd9b3fa2 conditional approval039 bound exactly, original expiry kept. No release until same-SHA exactEdge rerun passes; no renewedapproval then.",
-          "New exact039 one-shot API harness implemented and12/12 fixture tests PASS; no live reservation/profile/room creation. Goal not complete; current slice publication needs manual CI restart.",
-          "Heartbeat reply wait closed and actual same automation PAUSED via API/TOML exact readback. No recurring terminal-CI polling; next required user action explicitly requested."
+          "Independent adopted v14 UDL065 implemented in clean d9ce worktree:1800ms shared timer/CSS, observed results, ordinary-update hold and fresh replacement animation.",
+          "Red tests preserved: initial four pure failures; real-browser replacement animation1072ms instead of restart; full suite failures recorded and harness clean/budget requirements respected.",
+          "Final clean145files976/976PASS; Chrome7/7 andEdge7/7, four screenshots inspected and1800-1810ms real DOM measured; generated outputs unchanged.",
+          "Exact01a8735 dedicated branch pushed and origin readback matched; images excluded. Windows/new review/main/Pages/live NOT_RUN, named-opponent follow-up retained.",
+          "FixedCPU9590 clean and genuine039 conditions preserved; no repeated failed-job polling, denied-operation retry, release or new live reservation."
         ],
         "production_executed": false,
         "scheduled_origin_claimed": false

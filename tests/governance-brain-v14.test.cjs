@@ -1,6 +1,19 @@
 "use strict";
 const assert=require("node:assert/strict"),test=require("node:test"),fs=require("node:fs"),path=require("node:path");
 const read=p=>JSON.parse(fs.readFileSync(path.join(__dirname,"..",p),"utf8"));
+test("v14 cut-in follow-up stays separate from published065 and the fixed CPU039 approval",()=>{
+ const c=read("docs/CHATGPT_REVIEW_DECISIONS.json").coordination,p=c.remaining_brain_work.cutin_readability_preparation;
+ assert.equal(p.request_id,"UDL-20260912-065");assert.equal(p.source_message_id,"bbb2135e-cfd1-4da8-845b-9e3d07d8b29a");
+ assert.equal(p.candidate_sha,"01a8735d81b005c2ee1f9b699f355f00e2f6222e");
+ assert.equal(p.spec_version,"UDL-065-readability-v1");assert.equal(p.spec_snapshot_sha,"f24956add3c2111008a086199af604e6a8d4f104");
+ assert.equal(p.implementation_state,"implemented_partial");assert.equal(p.verification_state,"local_pass");
+ assert.equal(p.release_state,"not_merged");assert.equal(p.publication,"NOT_RUN");assert.equal(p.no_live_attempt_reserved,true);
+ assert.equal(p.tests.nonbrowser_pass,976);assert.equal(p.tests.chrome_pass,7);assert.equal(p.tests.edge_pass,7);
+ assert.equal(p.windows_status,"NOT_RUN_BRANCH_NOT_CONFIGURED");assert.deepEqual(p.db_change_set,[]);assert.deepEqual(p.edge_change_set,[]);
+ assert.ok(fs.existsSync(path.join(__dirname,"..",p.evidence)));
+ assert.equal(c.preparing_next_slice.candidate_sha,"9590a4212d69185fc93df31b552d9bd870d5a9a3");
+ assert.equal(c.preparing_next_slice.review_id,"CHATGPT-REVIEW-20260913-039");
+});
 test("v14 maps twelve additions to one canonical ledger with genuine source and nonduplicated repeats",()=>{
  const d=read("docs/BRAIN_V14_DELTA_INTAKE_20260913.json");
  const ledger=fs.readFileSync(path.join(__dirname,"../docs/PROJECT_COMMAND_CENTER.md"),"utf8");
