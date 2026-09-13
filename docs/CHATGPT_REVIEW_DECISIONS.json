@@ -3736,14 +3736,32 @@
           "live_reexecution_authorized": false
         },
         "result_report_delivery": {
-          "state": "READY_TO_SEND",
+          "state": "API_ACCEPTED_READBACK_UNCONFIRMED",
           "kind": "INFORMATIONAL_NO_REVIEW_WAIT",
-          "attempts": 0,
+          "attempts": 1,
           "max_attempts": 1,
           "target_thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
           "artifact": "docs/ASTRA_CUTIN_READABILITY_RESULT_20260913.md",
           "availability_checked_at_utc": "2026-09-13T02:09:19Z",
-          "availability": "Idle; latestcomplete040 unchanged. One availabilityread for newresultreport, not reprocessing040 or reopening its wait."
+          "availability": "Idle; latestcomplete040 unchanged. One availabilityread for newresultreport, not reprocessing040 or reopening its wait.",
+          "reserved_at_utc": "2026-09-13T02:23:27Z",
+          "evidence_sha": "51d02523a298b016ae799851a34974eea85bc27c",
+          "outbound_body": "UI カットイン可読性候補 954e の実行結果をご報告します。新しい公開審査・再試行の依頼ではなく、040 の承認待ちを再開するものでもありません。\n\n固定報告 SHA: 51d02523a298b016ae799851a34974eea85bc27c\n結果報告: https://github.com/sakuratamaro/four-color-map-game/blob/51d02523a298b016ae799851a34974eea85bc27c/docs/ASTRA_CUTIN_READABILITY_RESULT_20260913.md\n変更差分: https://github.com/sakuratamaro/four-color-map-game/compare/d7f9951354ed6a1668b89cd0bffdb0b8f82390ce...51d02523a298b016ae799851a34974eea85bc27c\n実行ハーネス固定 SHA: e13eea2cdabc359de803c16e97f4f01c29093b57\n\n公開部分: 候補 954e1c5c52d5453fc9fee9872b2d7e922f850a39 / BASE d9ce111d7d97019d55b3e90842602001e045ea04 / shared-canon-v1.1 / UDL-065-readability-v1.1 / spec blob 2af5d73528a35edc29f45b3be5b700f6ceaf4688 / Pages_only / DB・Edge・managed 変更各 []。真正 040 応答 fb1e2e48-53e5-4a1a-b34a-2fa2e66f862d の対象を維持しました。Windows 34728306768 attempt 1 は Chrome・Edge SUCCESS、main は 954e、Pages 34730074280 は同 SHA で SUCCESS、4 公開アセットはバイト一致です。\n\n許可された 1 回の実対局確認は FAIL でした。2026-09-13 02:03:39.138–02:03:50.199 UTC、共通時間 11,061 ms。signup・profile seed・Yuzu match・setup・initialize 各 1、CPU 1、自分の技 1、SURRENDER 0、再送 0、再対局 0。自分の技が HTTP 400 となり、ハーネスは送信結果不明として後続 mutation を停止しました。本人対局の整合した最終 snapshot-v2 は PLAYING_OBSERVED、独立した本人プロフィール読戻しは READ_VERIFIED、精算は NOT_VERIFIED。自分・相手のカットインはいずれも NOT_OBSERVED です。ゼロ観測時の UI サブ項目 ok:true は合格根拠にしていません。全体 ok:false、console error 1、route failure 1、プロセス終了コード 1 を保存しました。\n\n生の失敗記録: https://github.com/sakuratamaro/four-color-map-game/blob/51d02523a298b016ae799851a34974eea85bc27c/docs/SKILL_CUTIN_READABILITY_LIVE_20260913.json\n一回限りの実行記録: https://github.com/sakuratamaro/four-color-map-game/blob/51d02523a298b016ae799851a34974eea85bc27c/docs/SKILL_CUTIN_READABILITY_LIVE_20260913.attempt.json\nトークンや生の room/user/action/match ID は共有していません。試行は消費済みです。認証付き一時プロセスは終了しており、追加試行、特権的な回収、期限後の後始末は実施していません。\n\n原因の確度を区別します。「色拾い・乱」は盤面に色がないと NO_BOARD_COLORS となることを現行ハンドラで再現しましたが、実際のサーバー詳細コードは保存できておらず、今回の厳密な原因とは断定しません。検証側では合法手の確認と、非 2xx の実応答・安全なエラーコードの保持が不足していました。既知の未確定前拒否と真の結果不明を区別すべきことを記録しています。修正を追加試行の許可とは扱いません。\n\nハーネスの事前ローカル検証 98/98 PASS と、試行後の証拠・継続経路の選択検証 64/64 PASS は、実対局合格とは分離しています。試行後の最初の 63/64（古い「未試行」期待値 1 件の失敗）も隠していません。\n\nUDL-065 は未完了のままです。既採用の「相手が実際に使用した技の名前を、公的イベントで伝える」小スライスを次のローカル作業へ接続しました。\n計画: https://github.com/sakuratamaro/four-color-map-game/blob/51d02523a298b016ae799851a34974eea85bc27c/docs/SKILL_PUBLIC_EVENT_PLAN_20260913.md\n未使用手札・持ち色・非公開対象は出さず、旧 trace 互換・約 1,800 ms の可読時間・入力非遮断を維持します。新しい製品差分には新しい固定 SHA・仕様版・変更セット・テスト・Windows・真正レビューを必要とし、040/039 を流用しません。クロガネ 100 回候補と CPU 039/067/F3 の既存状態も維持します。新しい確認ループや承認待ちは作らず、同じ司令塔の既存再開手段で独立したローカル改修を続けます。",
+          "review_wait_reopened": false,
+          "api_accepted": true,
+          "api_response": {
+            "threadId": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
+            "isError": false
+          },
+          "readback_checked_at_utc": "2026-09-13T02:24:11Z",
+          "readback_attempts": 1,
+          "readback_matched": false,
+          "message_id": null,
+          "readback_latest_completed_request": "3e6efd53-710a-45ed-9de4-05627ca5f40e",
+          "readback_latest_completed_response": "fb1e2e48-53e5-4a1a-b34a-2fa2e66f862d",
+          "resend_allowed": false,
+          "blocks_independent_work": false,
+          "note": "One API send was accepted. One bounded readback returned only the prior completed 040/039 turns; exact new body and message ID were not visible. Delivery confirmation remains uncertain; no resend, no approval inference and no reopened review wait."
         }
       }
     },
@@ -3903,7 +3921,7 @@
         "phase": "NORMAL_WORK",
         "subject_sha": "954e1c5c52d5453fc9fee9872b2d7e922f850a39",
         "at_utc": "2026-09-13T02:35:00Z",
-        "reason": "Exact040 approved UI alreadyPagespublished; finish newbounded harness and one-shot acceptance. No selfsend."
+        "reason": "The exact040 trial has finished FAIL and its one attempt is consumed. Continue the adopted named-opponent public skill event in a new clean worktree based on fresh main; no live retry, no self-send, no reopened040 review."
       },
       "first_scheduled_normal_run": {
         "status": "OBSERVED",
@@ -3927,7 +3945,8 @@
         "prompt_exact_equal": true,
         "scheduled_for_utc": "2026-09-13T02:35:00Z",
         "readback_verified": true,
-        "verification_source": "ActualAPI ACTIVE/fullTOML exactprompt/id/name/target/created_at. Nextnormal names implementation; exhausted040trial cannot rerun. Futureexecution not claimed."
+        "verification_source": "Fresh actual full TOML matches exact saved prompt, ACTIVE/id/name/target/created_at and 11:35 JST. Next normal work is named public skill event; the failed040 trial cannot execute again. Future scheduled execution is not claimed.",
+        "verified_at_utc": "2026-09-13T02:26:12Z"
       },
       "normal_work_claim": "UI040_TRIAL_FAILED_CONSUMED_NEXT_NAMED_PUBLIC_EVENT_LOCAL",
       "review_scope": "Fixed9590/v1.1/SQL002/Edge2/newpalette managed value only; CIhold preserved, oldF3/docs approval not reused.",
@@ -3944,7 +3963,9 @@
         "started_at_utc": "2026-09-13T01:38:45Z",
         "worktree": ".codex-worktrees/skill-cutin-readability-20260913",
         "request": "Complete and locallyverify the new040 bounded browser/API live harness, then execute its single permitted trial.",
-        "canon_receipt": "shared-canon-v1.1;base=d9ce111d7d97019d55b3e90842602001e045ea04;candidate=954e1c5c52d5453fc9fee9872b2d7e922f850a39;spec=UDL-065-readability-v1.1/blob2af5d73528a35edc29f45b3be5b700f6ceaf4688;request=UDL-20260912-065;tests=976local,Windows34728306768,85governance;Pages34730074280+4byteassets"
+        "canon_receipt": "shared-canon-v1.1;base=d9ce111d7d97019d55b3e90842602001e045ea04;candidate=954e1c5c52d5453fc9fee9872b2d7e922f850a39;spec=UDL-065-readability-v1.1/blob2af5d73528a35edc29f45b3be5b700f6ceaf4688;request=UDL-20260912-065;tests=976local,Windows34728306768,85governance;Pages34730074280+4byteassets",
+        "completed_receipt_at_utc": "2026-09-13T02:26:12Z",
+        "result": "One allowed trial FAIL preserved at51d02523a298b016ae799851a34974eea85bc27c; one report send API accepted but bounded readback unconfirmed; independent named-skill local continuation retained."
       },
       "missed_schedule_observation": {
         "scheduled_at_utc": "2026-09-12T06:25:12Z",
@@ -3981,14 +4002,14 @@
         "recovered_without_new_user_wait": true
       },
       "end_turn_guard": {
-        "checked_at_utc": "2026-09-13T02:15:45Z",
+        "checked_at_utc": "2026-09-13T02:26:12Z",
         "result": "PASS",
         "phase": "NORMAL_WORK",
         "action": "PREPARE_PUBLIC_SKILL_EVENT",
         "subject_sha": "954e1c5c52d5453fc9fee9872b2d7e922f850a39",
         "at_utc": "2026-09-13T02:35:00Z",
         "errors": [],
-        "tests": "Pre-live98/98PASS7913.9856ms. Post-live64/64PASS764.3009ms; prior63/64FAIL692.4136ms retained because old fixture still expected reservation0. Replaced with strict actual failed receipt/count1 assertions, not weaker game gates.",
+        "tests": "Pre-live98/98PASS7913.9856ms. Post-live64/64PASS764.3009ms; prior63/64FAIL692.4136ms retained because old fixture still expected reservation0. Replaced with strict actual failed receipt/count1 assertions, not weaker game gates. After report delivery metadata: focused three files46/46PASS513.1ms, fail/skip/cancel0; actual end-turn checkerPASS.",
         "scheduled_origin_claimed": false
       },
       "latest_receive_schedule_observation": {
