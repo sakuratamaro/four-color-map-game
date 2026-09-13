@@ -41,7 +41,7 @@
     }
   ],
   "coordination": {
-    "status": "review_pending",
+    "status": "review_received_normal_work_pending",
     "latest_v8_intake": {
       "state": "PAIRED_SOURCE_AND_ZIP_VERIFIED_ALIASES_MAPPED",
       "source_thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
@@ -188,8 +188,8 @@
       "normal_owner_observation": "Previous normal turn completed after branch push; stored normal_work_receipt waiting. This heartbeat is the same task, not a second active owner."
     },
     "reviewer_thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
-    "last_consumed_review_message_id": "7b766746-5cc1-4778-b247-1ad6a906f097",
-    "last_received_message_id": "7b766746-5cc1-4778-b247-1ad6a906f097",
+    "last_consumed_review_message_id": "747e7144-a155-44f7-9173-8175bd45c115",
+    "last_received_message_id": "747e7144-a155-44f7-9173-8175bd45c115",
     "pending_user_intake_message_ids": [
       "ea61f25f-bebf-499a-81e9-029712a96f99",
       "bbb216f0-9194-45cf-acd6-504a9a55d40a",
@@ -1073,7 +1073,7 @@
     "wait_budget": {
       "subject_sha": "70e691b6f8f1d808476e80990d20df7862bfb782",
       "root_request_message_id": "18888286-8407-426f-8be7-23d3b2556e71",
-      "status": "review_pending",
+      "status": "closed_response_received",
       "start_basis": "Original first send reservation for genuinely new named-skill70e691b. Save-format issue delayed actual send; original anchor/slots/expiry retained, not reset. Old040 remains closed.",
       "started_at_utc": "2026-09-13T03:43:31Z",
       "expires_at_utc": "2026-09-13T05:43:31.000Z",
@@ -1083,17 +1083,29 @@
         100
       ],
       "max_automatic_checks": 3,
-      "automatic_checks": 0,
-      "next_check_utc": "2026-09-13T04:03:31.000Z",
-      "remaining_scheduled_slots": 3,
-      "consumed_slots_utc": [],
+      "automatic_checks": 1,
+      "next_check_utc": null,
+      "remaining_scheduled_slots": 0,
+      "consumed_slots_utc": [
+        "2026-09-13T04:03:31.000Z"
+      ],
       "skipped_slots_utc": [],
       "reset_on_candidate_revision": false,
       "reset_on_restart_or_unrelated_message": false,
       "delivery_readback_checks": 2,
       "delivery_confirmed_at_utc": "2026-09-13T03:51:01Z",
       "confirmed_delivery_reminders": 0,
-      "max_age_minutes": 120
+      "max_age_minutes": 120,
+      "last_automatic_check_utc": "2026-09-13T04:08:35Z",
+      "last_reserved_slot_utc": "2026-09-13T04:03:31.000Z",
+      "response_message_id": "747e7144-a155-44f7-9173-8175bd45c115",
+      "review_id": "CHATGPT-REVIEW-20260913-042",
+      "closed_at_utc": "2026-09-13T04:12:25Z",
+      "closed_reason": "Genuine exact042 APPROVE_RELEASE received; original start/deadline and one consumed slot retained, no further review polling.",
+      "closed_unused_slots_utc": [
+        "2026-09-13T04:23:31.000Z",
+        "2026-09-13T05:23:31.000Z"
+      ]
     },
     "pending_review_subject": {
       "subject_sha": "70e691b6f8f1d808476e80990d20df7862bfb782",
@@ -1118,7 +1130,7 @@
     "initial_interval_minutes": 20,
     "pending_subject_sha": "70e691b6f8f1d808476e80990d20df7862bfb782",
     "pending_scope": "Pages_Edge",
-    "pending_delivery_status": "delivery_verified_response_pending",
+    "pending_delivery_status": "delivery_verified_response_completed",
     "last_confirmed_sent_message_id": "18888286-8407-426f-8be7-23d3b2556e71",
     "last_sent_message_id": "18888286-8407-426f-8be7-23d3b2556e71",
     "self_sent_message_ids": [
@@ -1161,7 +1173,7 @@
       "18888286-8407-426f-8be7-23d3b2556e71"
     ],
     "sent_at_utc": "2026-09-13T00:49:56Z",
-    "last_check_utc": "2026-09-13T00:52:02Z",
+    "last_check_utc": "2026-09-13T04:12:25Z",
     "unchanged_checks": 0,
     "reminder_count": 0,
     "max_reminders_per_request": 1,
@@ -3752,7 +3764,7 @@
           "diagnosis": "NO_BOARD_COLORS is locally reproducible but actual safe semantic code was not saved; no confirmed production root cause."
         },
         "named_skill_followup": {
-          "state": "REVIEW_PENDING",
+          "state": "APPROVED_UNPUBLISHED",
           "owner_thread_id": "01a07b56-616e-7733-9aae-90575659688e",
           "request_id": "UDL-20260912-065",
           "source_message_id": "bbb2135e-cfd1-4da8-845b-9e3d07d8b29a",
@@ -3760,7 +3772,7 @@
           "spec_path": "docs/SKILL_PUBLIC_EVENT_20260913.md",
           "planned_branch": "codex/skill-cutin-public-names-20260913",
           "worktree_created": true,
-          "publication_authorized": false,
+          "publication_authorized": true,
           "live_reexecution_authorized": false,
           "worktree": ".codex-worktrees/skill-cutin-public-names-20260913",
           "created_from_fresh_main_at_utc": "2026-09-13T02:30:15Z",
@@ -3789,10 +3801,10 @@
           "local_verification": "PASS",
           "test_evidence": "docs/SKILL_PUBLIC_EVENT_LOCAL_20260913.md",
           "windows_status": "SUCCESS",
-          "review_status": "REVIEW_PENDING",
+          "review_status": "APPROVE_RELEASE",
           "review_send_attempts": 1,
           "review_request_message_id": "18888286-8407-426f-8be7-23d3b2556e71",
-          "review_response_message_id": null,
+          "review_response_message_id": "747e7144-a155-44f7-9173-8175bd45c115",
           "live_canary_attempts": 0,
           "live_canary_state": "NOT_AUTHORIZED",
           "production_gates": {
@@ -3801,7 +3813,7 @@
             "pages": "NOT_RUN",
             "live": "NOT_AUTHORIZED"
           },
-          "next_action": "Wait only for genuine18888286 response within original finite slots; new70e Windows is already SUCCESS. Receipt phase does not publish. No resend, no old041/040/039 reuse.",
+          "next_action": "Separate normal run: fresh main AND actual current Edge, preserve baseline sources; approvedbundle plus unchangedindex strictpostdeploy fullbyte readback; same70e forcefree main/Pages and preflight/assets. No extra live. CPU100 remains preserved separate future integration/newSHA/gates/review.",
           "windows_run": "34735790923",
           "windows_attempt": 1,
           "windows_observed_at_utc": "2026-09-13T03:50:14Z",
@@ -3825,7 +3837,22 @@
           "send_api_target_thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
           "review_body_equality": true,
           "review_body_characters": 4001,
-          "windows_evidence": "docs/SKILL_PUBLIC_EVENT_WINDOWS_20260913.json"
+          "windows_evidence": "docs/SKILL_PUBLIC_EVENT_WINDOWS_20260913.json",
+          "review_id": "CHATGPT-REVIEW-20260913-042",
+          "review_received_at_utc": "2026-09-13T04:12:25Z",
+          "review_scope_bounds": {
+            "review_id": "CHATGPT-REVIEW-20260913-042",
+            "additional_live": 0,
+            "sql_changes": 0,
+            "managed_changes": 0,
+            "jwt_changes": 0,
+            "main_and_current_edge_fresh_check": true,
+            "unchanged_index_paired_deployment": true,
+            "postdeploy_complete_both_source_byte_equality": true,
+            "public_verified_from_deploy_only": false,
+            "actual_skill_observation": "NOT_RUN",
+            "physical_acceptance": "NOT_RUN"
+          }
         },
         "result_report_delivery": {
           "state": "CONFIRMED_WITH_COMPLETED_RESULT_DISPOSITION",
@@ -4020,10 +4047,10 @@
       "checker": "scripts/check-commander-continuation.cjs",
       "tests": "tests/governance-commander-continuation.test.cjs",
       "next_run": {
-        "phase": "RECEIVE",
+        "phase": "NORMAL_WORK",
         "subject_sha": "70e691b6f8f1d808476e80990d20df7862bfb782",
-        "at_utc": "2026-09-13T04:03:31.000Z",
-        "reason": "Exact4001-character new review18888286 delivered after2readbacks; original03:43:31Z reservation and20/40/100slots retained. Windows completedSUCCESS. Await genuine response, not approval by silence."
+        "at_utc": "2026-09-13T04:23:00.000Z",
+        "reason": "Genuine042 and sameSHA WindowsSUCCESS; separate normalrun performs fresh main/currentEdge then approved exact70e release sequence. Receive turn itself has production0/live0."
       },
       "first_scheduled_normal_run": {
         "status": "OBSERVED",
@@ -4041,17 +4068,17 @@
         "id": "automation",
         "status": "ACTIVE",
         "target_thread_id": "01a07b56-616e-7733-9aae-90575659688e",
-        "rrule": "FREQ=DAILY;BYHOUR=13;BYMINUTE=3;BYSECOND=31",
-        "updated_at": 1789271117447,
+        "rrule": "FREQ=DAILY;BYHOUR=13;BYMINUTE=23;BYSECOND=0",
+        "updated_at": 1789272855618,
         "created_at": 1789048677730,
         "prompt_exact_equal": true,
-        "scheduled_for_utc": "2026-09-13T04:03:31.000Z",
+        "scheduled_for_utc": "2026-09-13T04:23:00.000Z",
         "readback_verified": true,
-        "verification_source": "Actual update and full TOML readback; same automation only. Earlier12:45 slot was reached during active turn before update receipt; no separate execution observed or claimed.",
-        "verified_at_utc": "2026-09-13T03:48:48Z"
+        "verification_source": "Actual existing heartbeat update API ACTIVE plus entire TOML prompt/schedule/target readback exact. No self-send; separate execution not yet observed.",
+        "verified_at_utc": "2026-09-13T04:15:53Z"
       },
-      "normal_work_claim": "FIXED70E_REVIEW_DELIVERED_WINDOWS_SUCCESS_NEW_FINITE_RECEIVE",
-      "review_scope": "Fixed9590/v1.1/SQL002/Edge2/newpalette managed value only; CIhold preserved, oldF3/docs approval not reused.",
+      "normal_work_claim": "GENUINE042_APPROVED70E_RELEASE_CHECKS_NEXT_SEPARATE_RUN",
+      "review_scope": "042 only: exact70e/base954e/UDL-065-public-skill-v1/blob97d/Pages_Edge/bundle1/DB,managed[]; unchangedindex pair included; live0. CPU039 separate hold unchanged.",
       "verification": {
         "regression_tests": "42/42 PASS; skip0;638.46ms",
         "old_paused_state_guard": "Previously reproduced ORPHANED_ACTIONABLE_WORK; now also rejects past/under2minute calendar reservations and schedule-time mismatch.",
@@ -4059,15 +4086,16 @@
         "latest_tests": "Final five focused governance files66/66PASS796.2179ms skip0; source-bound038 acceptance, no old trial/review reset, actual scopedlive preserved."
       },
       "current_run": {
-        "phase": "NORMAL_WORK",
+        "phase": "RECEIVE",
         "turn_id": null,
-        "source": "automatic_goal_continuation",
-        "started_at_utc": "2026-09-13T02:28:54Z",
-        "worktree": ".codex-worktrees/skill-cutin-public-names-20260913",
-        "request": "Implement actual used public skill identity for UDL065 on freshly fetched main954e; preserve UI040 rawFAIL and consumed attempt.",
-        "canon_receipt": "shared-canon-v1.1;governance=d82bdb6647a12b0d30b6859d04b464a15ac94c22;base=954e1c5c52d5453fc9fee9872b2d7e922f850a39;request=UDL-20260912-065;source=bbb2135e-cfd1-4da8-845b-9e3d07d8b29a;plan=docs/SKILL_PUBLIC_EVENT_PLAN_20260913.md;spec=docs/SKILL_CUTIN_READABILITY_20260913.md;tests=standard-skill-cutin,standard-online-browser,standard-match,standard-online-engine-bundle",
-        "time_precision": "First adjacent clock observed this turn; not exact execution start.",
-        "result": "Fixed70e pushed, exact Windows success, real041 saved, new4001-character review18888286 delivered. New production and live0. Next original finite RECEIVE slot04:03:31Z."
+        "source": "context_continuation_due_original_slot",
+        "started_at_utc": "2026-09-13T04:08:35Z",
+        "time_precision": "Adjacent clock observed before reservation; scheduled origin not established.",
+        "worktree": ".codex-worktrees/dev-brain-current-20260910",
+        "request": "One due bounded genuine review read for fixed70e; preserve Kurogane100/9590 and original CPU039 hold.",
+        "canon_receipt": "CANON_RECEIPT version=shared-canon-v1.1 governance=854e640dde326814e457edfa8026b0ef3f697497 base=954e1c5c52d5453fc9fee9872b2d7e922f850a39 request=UDL-20260912-065,UDL-20260910-051 specs=AGENTS.md,docs/SHARED_CANON.md,docs/CHATGPT_COLLABORATION_OPERATION.md,docs/CHATGPT_REVIEW_DECISIONS.json checks=exact-review-binding-only",
+        "scheduled_origin_claimed": false,
+        "result": "Genuine0423788characters and4001exact request saved; originalslot1 used, waitclosed; sameheartbeat NORMAL_WORK04:23Z actualACTIVE readback. Production/live0; actual separate run not yet observed."
       },
       "missed_schedule_observation": {
         "scheduled_at_utc": "2026-09-12T06:25:12Z",
@@ -4104,14 +4132,15 @@
         "recovered_without_new_user_wait": true
       },
       "end_turn_guard": {
-        "checked_at_utc": "2026-09-13T03:56:15Z",
+        "checked_at_utc": "2026-09-13T04:17:38Z",
         "result": "PASS",
-        "phase": "WAIT_REVIEW",
-        "action": "ONE_BOUNDED_READ_ONLY_NO_RESEND",
+        "phase": "NORMAL_WORK",
+        "action": "RELEASE_CHECKS",
         "subject_sha": "70e691b6f8f1d808476e80990d20df7862bfb782",
-        "at_utc": "2026-09-13T04:03:31.000Z",
+        "review_id": "CHATGPT-REVIEW-20260913-042",
+        "at_utc": "2026-09-13T04:23:00.000Z",
         "errors": [],
-        "tests": "Productclean998/998; Chrome/Edge9/9; final selected governance52/52PASS700.8236ms. Initial49/51FAIL665.4047ms retained and fixed exact nested scope/max_age without relaxing limits.",
+        "tests": "This RECEIVE: exactJSON/binding/all prior decisions+closedwaits/CPU+parent040 preservation PASS; gitdiffcheck PASS. No product or fullgovernance rerun claimed.",
         "scheduled_origin_claimed": false
       },
       "latest_receive_schedule_observation": {
@@ -4148,12 +4177,12 @@
         "phase": "NORMAL_WORK",
         "turn_id": null,
         "source": "automatic_goal_continuation",
-        "started_at_utc": "2026-09-13T01:38:45Z",
-        "worktree": ".codex-worktrees/skill-cutin-readability-20260913",
-        "request": "Complete and locallyverify the new040 bounded browser/API live harness, then execute its single permitted trial.",
-        "canon_receipt": "shared-canon-v1.1;base=d9ce111d7d97019d55b3e90842602001e045ea04;candidate=954e1c5c52d5453fc9fee9872b2d7e922f850a39;spec=UDL-065-readability-v1.1/blob2af5d73528a35edc29f45b3be5b700f6ceaf4688;request=UDL-20260912-065;tests=976local,Windows34728306768,85governance;Pages34730074280+4byteassets",
-        "completed_receipt_at_utc": "2026-09-13T02:26:12Z",
-        "result": "One allowed trial FAIL preserved at51d02523a298b016ae799851a34974eea85bc27c; one report send API accepted but bounded readback unconfirmed; independent named-skill local continuation retained."
+        "started_at_utc": "2026-09-13T02:28:54Z",
+        "worktree": ".codex-worktrees/skill-cutin-public-names-20260913",
+        "request": "Implement actual used public skill identity for UDL065 on freshly fetched main954e; preserve UI040 rawFAIL and consumed attempt.",
+        "canon_receipt": "shared-canon-v1.1;governance=d82bdb6647a12b0d30b6859d04b464a15ac94c22;base=954e1c5c52d5453fc9fee9872b2d7e922f850a39;request=UDL-20260912-065;source=bbb2135e-cfd1-4da8-845b-9e3d07d8b29a;plan=docs/SKILL_PUBLIC_EVENT_PLAN_20260913.md;spec=docs/SKILL_CUTIN_READABILITY_20260913.md;tests=standard-skill-cutin,standard-online-browser,standard-match,standard-online-engine-bundle",
+        "time_precision": "First adjacent clock observed this turn; not exact execution start.",
+        "result": "Fixed70e pushed, exact Windows success, real041 saved, new4001-character review18888286 delivered. New production and live0. Next original finite RECEIVE slot04:03:31Z."
       },
       "goal_blocked_audit_history": [
         {
@@ -4248,7 +4277,7 @@
       "current_goal_turn_classification": {
         "previous_turn": "PROGRESS",
         "current_turn": "PROGRESS",
-        "evidence": "Real named-skill engine/UI implementation22files fixed70e691b, clean998/998, browser9/9each, actualSQL7/7 and fixedbase16cases64combinations. Genuine result disposition041 saved. New production writes0.",
+        "evidence": "Genuine exact042 release approval received and boundedwait closed; next separate normalwork is actionable. Product and CPU100 unchanged.",
         "whole_goal_complete": false
       },
       "documentation_review_followup_history": [
@@ -4299,6 +4328,10 @@
         ],
         "production_executed": false,
         "scheduled_origin_claimed": false
+      },
+      "receipt_validation_followup": {
+        "request": "Add fixed042 source/SHA/spec/Edge/live0 case to existing governance fixture during normal work; current receipt uses JSON/exactbinding/endguard only.",
+        "game_release_blocker": false
       }
     },
     "latest_brain_transfer": {
@@ -4470,7 +4503,7 @@
         }
       }
     ],
-    "last_consumed_message_id": "7b766746-5cc1-4778-b247-1ad6a906f097"
+    "last_consumed_message_id": "747e7144-a155-44f7-9173-8175bd45c115"
   },
   "decisions": [
     {
@@ -5830,6 +5863,62 @@
       "notes": [
         "Do not rollback954e based on this result alone. Trial ended is not match ended.",
         "No new trial, cleanup, privileged search, late surrender, old040 wait or CPU039/067/F3 status change."
+      ]
+    },
+    {
+      "review_id": "CHATGPT-REVIEW-20260913-042",
+      "subject_sha": "70e691b6f8f1d808476e80990d20df7862bfb782",
+      "base_sha": "954e1c5c52d5453fc9fee9872b2d7e922f850a39",
+      "canon_version": "shared-canon-v1.1",
+      "feature_spec_version": "UDL-065-public-skill-v1",
+      "spec_snapshot_sha": "97d434d32c67741e73b8eb4f73602186d83e2d3e",
+      "scope": "Pages_Edge",
+      "db_change_set": [],
+      "edge_change_set": [
+        "supabase/functions/standard-game-action/standard-engine.bundle.js"
+      ],
+      "managed_setting_change_set": [],
+      "spec_snapshot_kind": "git_blob",
+      "review_kind": "game_production_release_approval",
+      "decision": "APPROVE_RELEASE",
+      "source": {
+        "kind": "chatgpt",
+        "thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
+        "message_id": "747e7144-a155-44f7-9173-8175bd45c115",
+        "request_message_id": "18888286-8407-426f-8be7-23d3b2556e71",
+        "request_body_equality": true,
+        "verified_request_characters": 4001,
+        "response_full_characters": 3788,
+        "response_complete": true,
+        "retrieval": "One original20minute slot consumed before one bounded paired read; completed response, actual thread idle. No resend or supplementary read.",
+        "response_text": "## DECISION\n\n**APPROVE_RELEASE — 固定候補70eの、使用済みスキル名を公開イベントで伝える改修を承認します。**\n\n**同一SHAのWindows Chrome／Edge両jobは、今回の取得時点で既に最終SUCCESSです。** 公開直前の照合後、互換Edgeの配備・厳密読戻し→同一SHAのmain／Pages公開へ進めてください。**今回は追加live試行0件のままでよく、新規プロフィール・対局の作成を公開条件にはしません。** \n\n## 固定対象\n\n```text\nDECISION: APPROVE_RELEASE\nSUBJECT_SHA: 70e691b6f8f1d808476e80990d20df7862bfb782\nBASE_SHA: 954e1c5c52d5453fc9fee9872b2d7e922f850a39\nCANON_VERSION: shared-canon-v1.1\nFEATURE_SPEC_VERSION: UDL-065-public-skill-v1\nSPEC_PATH: docs/SKILL_PUBLIC_EVENT_20260913.md\nSPEC_BLOB: 97d434d32c67741e73b8eb4f73602186d83e2d3e\nREVIEW_KIND: game_production_release_approval\nSCOPE: Pages_Edge\nDB_CHANGE_SET: []\nEDGE_CHANGE_SET:\n  - supabase/functions/standard-game-action/standard-engine.bundle.js\nMANAGED_SETTING_CHANGE_SET: []\nBLOCKERS: []\n```\n\n固定仕様の版・blobは取得結果と一致しています。**変更のない`index.ts`を、承認したbundleと組み合わせて同じ配備物に含めることも、この公開手順の範囲です。** その内容の変更、SQL適用、管理設定・JWT設定の変更は含みません。\n\n## BLOCKERS\n\n**読んだ固定差分について、公開前に修正必須の欠陥は見つかりませんでした。**\n\n全22ファイルの固定パッチを末尾まで読み、GitHubの比較結果で変更一覧とBASEとの関係を照合しました。主要な生成処理・ブラウザー処理は、候補SHAのファイルも直接確認しています。\n\nWindows `34735790923`、attempt 1の最終状態は次のとおりです。両jobの`head_sha`は70eに一致しています。\n\n| 対象 | Job ID | 最終結果 |\n|---|---|---|\n| Chrome | `103666861611` | `completed / success` |\n| Edge | `103666861545` | `completed / success` |\n\nChromeのlocal lifecycleは既存条件によるskip、Edgeの同段階は成功です。**全workflowがskip0とは記録せず、CPU039の失敗解消にも流用しない**扱いを維持してください。\n\n## NOTES\n\n### 1．公開する情報と、公開しない情報の境界を確認しました\n\n生成処理は、`applyStandardAction`が受理した後に、実dispatchの定義とregistryの一致、actor・version・event ID・trace種別を確認して、公開投影へ**`eventId / version / actor / skillId`の4項目だけ**を追加しています。入力payloadから技名や非公開対象をそのままコピーする変更ではなく、ゲームの正規stateや従来の`lastPublicTrace`も変更していません。\n\nブラウザー側も、4項目の厳密な形、現在のtraceとの一致、実装済みのcanonical IDを検査し、名前は既存registryから取得しています。不正・古い・未知の注釈は汎用名等へ戻るため、**「技名がないので相手の手札から推測する」経路はありません。** \n\n受理された空振りについて、**「その技を使用・試行した」と「その効果が成功した」を分ける**扱いも維持されています。相手側へ空振りを推測表示せず、自分の一致したACKだけを空振り判定に使う現行方針で進めてください。\n\n### 2．保存・再送・旧新互換の検証は、今回の変更に対応しています\n\n追加テストは、実handler・生成engine・既存SQLを通して、本人両席からの保存済み注釈の取得、CPU経路、受理された空振り、拒否時の無変更、SQL失敗時の原子rollback、応答喪失後のsnapshot／同一receipt再送を検査しています。**公開注釈だけ先に見せて、保存失敗を成功表示にする構造ではないことを確認する内容です。** \n\n旧954eと新候補の互換記録も、対象16ケース・viewerモジュール64組合せについて、正規state・RNG・private・効果が一致し、名前だけが新engine＋新viewerで表示される結果になっています。ただし、**全本番worker・全ブラウザー・全スキルの実戦組合せを検証した証拠ではありません。** \n\n998/998、Chrome／Edge各9/9、PGlite7/7と画像目視は、固定されたCodex実施報告として受領します。**こちらではテストを再実行しておらず、ローカルPNGも確認していません。** 初期失敗、fixtureの境界、共有検査の既存2件SKIPは、そのまま区別して保存してください。\n\n### 3．公開は、提示されたEdge先行の順序で進めてください\n\n今回取得したmainはBASEの954eでした。これは取得時点の状態なので、**公開直前にはmainだけでなく、現行Edgeにも別候補の配備が割り込んでいないことを確認**してください。特にCPU候補との並行作業で、Pagesのmainは同じでもEdgeだけ先に変わっている状態を見落とさないことが必要です。\n\n公開手順は次の範囲で承認します。\n\n1. **現行成果物を保存し、fresh main・候補SHA・現行Edgeを照合する。** 想定外の先行変更があれば、古い成果物で上書きせず再照合する。\n2. **承認した生成bundleと未変更indexを配備し、配備完了後に両ファイルを新しく取得して全byte一致を確認する。** 配備・読戻しが失敗または不明なら、Pagesへ進めない。\n3. **forceなしで同じ70eをmainへ反映し、同一SHAのPages成功、既存preflight、HTML・app44・cut-in JS2の厳密byte一致を確認する。** cut-in CSS1と既存機能は維持する。\n\n今回の追加は、旧viewerが無視できる公開投影の注釈で、保存済みの正規stateやpolicyを移行する改修ではありません。**CPU便のような新しい管理flagや460秒の有効化待機は追加しません。** 旧workerが処理した操作では技名が汎用表示になることを許容し、全worker同時切替や過去イベントへの技名の遡及付与を主張しない扱いです。\n\nrollbackが必要になった場合も、保存した互換成果物と既存手順を使い、対局・receiptを書き換えないでください。**同じ70eと承認済み手順のままなら、公開途中で追加の承認待ちを挟む必要はありません。** 候補・仕様・変更セットが変われば別レビューです。\n\n### 4．追加liveは0件。配備確認と本番受入は分けて残します\n\n**今回は、プロフィール・対局・ゲーム操作・再戦・cleanupの追加実行を求めませんし、許可枠も新設しません。** 040の失敗した試行は消費済みのままです。未整備のハーネスを使って、技名を観測するためだけに新しい対局を作る必要はありません。\n\n公開後の記録は、次の区分にしてください。\n\n> 新候補70eのEdge配備・ソース読戻し・Pages反映・配信byte確認を完了。技名の生成・保存・旧新互換・UI表示はローカル／Windowsで検証。本番対局での実スキル名表示は未実測。\n\n**配備確認だけで`PUBLIC_VERIFIED`やUDL065全体完了へ繰り上げず、実本番スキル観測と物理端末は`NOT_RUN`として残す**扱いです。040の最終`PLAYING_OBSERVED`、精算`NOT_VERIFIED`、原`ok:false`も変更しません。\n\n今回のゲーム承認は、別証拠ブランチの継続経路・文書導入への`APPROVE_DOCS`ではありません。CPU9590／039、067の部分受入、F3も別記録のままです。**本返信を対象付きで保存したら、このレビュー待機を閉じ、70eの公開直前照合へ進めてください。**",
+        "read_started_at_utc": "2026-09-13T04:08:35Z",
+        "receipt_save_confirmed_by_utc": "2026-09-13T04:12:25Z"
+      },
+      "recorded_at_utc": "2026-09-13T04:12:25Z",
+      "record_time_basis": "Adjacent clock after complete genuine response; exact first retrieval instant separately recorded.",
+      "evidence_sha": "b786a1ed29f2c44fed71bcc638973e708cecdc35",
+      "blockers": [],
+      "conditions": [
+        "Before publication verify fresh main and current Edge both still match the saved expected compatible baseline. Preserve actual existing artifacts and do not overwrite unexpected intervening changes.",
+        "Deploy the approved bundle with byte-unchanged index.ts, then freshly retrieve both complete deployed sources and require exact byte equality before main/Pages.",
+        "Force-free main70e and sameSHA Pages success, fresh preflight, exact HTML/app44/cut-inJS2/CSS1 bytes.",
+        "No SQL, managed settings or JWT changes; no CPU-style activation delay or global-worker-convergence claim.",
+        "Additional live0; no profiles/matches/game operations/replays/cleanup or extension of consumed040 trial.",
+        "Retain NOT_RUN actual production skill-name observation and physical acceptance; deployment evidence alone is not PUBLIC_VERIFIED or UDL065 whole completion."
+      ],
+      "bounds": {
+        "additional_profiles": 0,
+        "additional_matches": 0,
+        "additional_game_operations": 0,
+        "additional_cleanup": 0,
+        "old_040_trial_reopened": false
+      },
+      "notes": [
+        "Astra independently read full22file fixed patch, compared file list/base and important fixed source files, and verified sameSHA Windows34735790923 attempt1 both finalSUCCESS.",
+        "Chrome local lifecycle remains skipped; CPU039 Edge failure is separate. Local998/998, browser9/9each, SQL7/7 and PNG review are Codex reports, not Astra reexecution or PNG inspection.",
+        "Actual040 rawFAIL, finalPLAYING, settlementNOT_VERIFIED and cutinsNOT_OBSERVED remain unchanged; old CPU9590/039,067/F3 unaffected.",
+        "This is not APPROVE_DOCS for the separate governance continuation changes. Same fixed candidate and procedure need no additional interim approval."
       ]
     }
   ]
