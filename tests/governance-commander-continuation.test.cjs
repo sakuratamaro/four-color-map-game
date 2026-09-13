@@ -101,6 +101,12 @@ test("published v14 retains only its exact bounded unused acceptance, never CPU 
  ui.live_canary_attempts=1;ui.live_canary_state="RESERVED_BEFORE_EXECUTION";
  assert.equal(planContinuation(log).action,"INSPECT_RESERVED_UI_CANARY_READ_ONLY");
  ui.live_canary_state="ATTEMPT_FINISHED";assert.equal(planContinuation(log).phase,"STOP");
+ ui.named_skill_followup={state:"LOCAL_PREPARATION_PENDING",owner_thread_id:ui.owner_thread_id,
+  request_id:"UDL-20260912-065",source_message_id:"bbb2135e-cfd1-4da8-845b-9e3d07d8b29a",base_sha:ui.candidate_sha,
+  spec_path:"docs/SKILL_PUBLIC_EVENT_PLAN_20260913.md",publication_authorized:false,live_reexecution_authorized:false};
+ assert.equal(planContinuation(log).action,"PREPARE_PUBLIC_SKILL_EVENT");
+ for(const key of ["owner_thread_id","source_message_id","base_sha"]){const old=ui.named_skill_followup[key];ui.named_skill_followup[key]="wrong";assert.equal(planContinuation(log).phase,"STOP");ui.named_skill_followup[key]=old;}
+ ui.named_skill_followup.live_reexecution_authorized=true;assert.equal(planContinuation(log).phase,"STOP");ui.named_skill_followup.live_reexecution_authorized=false;
  for(const mutate of [s=>s.pages_sha="d".repeat(40),s=>s.live_canary_authorization.explicitly_authorized=false,
   s=>s.live_canary_authorization.source_response_message_id="old",s=>s.live_canary_authorization.bounds.cpu_sends=9,
   s=>s.live_canary_attempts=2,s=>s.production_gates.pages="NOT_RUN"]){

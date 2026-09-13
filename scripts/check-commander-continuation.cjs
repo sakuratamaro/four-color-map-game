@@ -147,6 +147,14 @@ function planContinuation(log, {now = new Date().toISOString(), otherOwnerActive
     if(readyUiLive && s.live_canary_attempts===1 && s.live_canary_state==="RESERVED_BEFORE_EXECUTION")
       return {phase:"NORMAL_WORK",action:"INSPECT_RESERVED_UI_CANARY_READ_ONLY",ref,subject_sha:s.candidate_sha,
         review_id:r.review_id,reason:"RESERVED_TRIAL_REQUIRES_EVIDENCE_NOT_REEXECUTION"};
+    const names=s.named_skill_followup;
+    if(readyUiLive&&s.live_canary_attempts===1&&s.live_canary_state==="ATTEMPT_FINISHED"
+      &&names?.state==="LOCAL_PREPARATION_PENDING"&&names.owner_thread_id===OWNER
+      &&names.request_id==="UDL-20260912-065"&&names.source_message_id==="bbb2135e-cfd1-4da8-845b-9e3d07d8b29a"
+      &&names.base_sha===s.candidate_sha&&names.spec_path==="docs/SKILL_PUBLIC_EVENT_PLAN_20260913.md"
+      &&names.publication_authorized===false&&names.live_reexecution_authorized===false)
+      return {phase:"NORMAL_WORK",action:"PREPARE_PUBLIC_SKILL_EVENT",ref,subject_sha:s.candidate_sha,
+        reason:"ADOPTED_NAMED_SKILL_REQUEST_REMAINS_LOCAL_WORK_NOT_NEW_LIVE_AUTHORITY"};
     // A review is a gate, not a release command: fresh main/CI/Pages/live checks remain mandatory.
     if (r && ["APPROVE_RELEASE","APPROVE","APPROVE_WITH_CONDITIONS"].includes(r.decision) &&
         ["NOT_RUN","NOT_MERGED","not_merged"].includes(s.publication) &&

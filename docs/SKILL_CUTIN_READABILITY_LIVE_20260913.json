@@ -1,0 +1,240 @@
+{
+  "candidate": "954e1c5c52d5453fc9fee9872b2d7e922f850a39",
+  "review": "CHATGPT-REVIEW-20260913-040",
+  "mode": "REAL_PUBLIC_CHROME_AND_OWN_API",
+  "startedAt": "2026-09-13T02:03:39.138Z",
+  "profileCreated": true,
+  "matchCreated": true,
+  "ui": {
+    "ok": true,
+    "self": "NOT_OBSERVED",
+    "opponent": "NOT_OBSERVED",
+    "events": [],
+    "observer": "PASS_THROUGH_ONLY_NO_GAME_STATE_INJECTION",
+    "inputDuringVisibleCard": "NOT_RUN",
+    "physicalDevices": "NOT_RUN",
+    "console": {
+      "errors": 1,
+      "warnings": 0
+    },
+    "routeFailures": 1
+  },
+  "terminalRead": "PLAYING_OBSERVED",
+  "profileRead": "READ_VERIFIED",
+  "settlement": "NOT_VERIFIED",
+  "physicalDevices": "NOT_RUN",
+  "failures": [],
+  "playStop": "UNKNOWN_SEND",
+  "surrenderSkipped": "UNRESOLVED_PRIOR_SEND",
+  "finishedAt": "2026-09-13T02:03:50.199Z",
+  "elapsedMs": 11061,
+  "withinDeadline": true,
+  "attemptCounts": {
+    "signup": 1,
+    "profileSeed": 1,
+    "match": 1,
+    "setup": 1,
+    "initialize": 1,
+    "cpu": 1,
+    "own": 1,
+    "surrender": 0
+  },
+  "network": {
+    "requests": [
+      {
+        "source": "api",
+        "operation": "signup",
+        "kind": "signup",
+        "status": 200,
+        "result": "RECEIVED"
+      },
+      {
+        "source": "api",
+        "operation": "profile",
+        "kind": "profileSeed",
+        "status": 200,
+        "result": "RECEIVED"
+      },
+      {
+        "source": "api",
+        "operation": "cpu-start",
+        "kind": "match",
+        "status": 200,
+        "result": "RECEIVED"
+      },
+      {
+        "source": "api",
+        "operation": "setup",
+        "kind": "setup",
+        "status": 200,
+        "result": "RECEIVED"
+      },
+      {
+        "source": "api",
+        "operation": "initialize",
+        "kind": "initialize",
+        "status": 200,
+        "result": "RECEIVED"
+      },
+      {
+        "source": "api",
+        "operation": "owned-snapshot-v2",
+        "kind": "read",
+        "status": 200,
+        "result": "RECEIVED"
+      },
+      {
+        "source": "browser",
+        "operation": "own-auth-user",
+        "kind": "read",
+        "status": 200,
+        "result": "RECEIVED"
+      },
+      {
+        "source": "browser",
+        "operation": "own-profile",
+        "kind": "read",
+        "status": 200,
+        "result": "RECEIVED"
+      },
+      {
+        "source": "browser",
+        "operation": "owned-snapshot-v2",
+        "kind": "read",
+        "status": 200,
+        "result": "RECEIVED"
+      },
+      {
+        "source": "browser",
+        "operation": "cosmetic-catalog",
+        "kind": "read",
+        "status": 200,
+        "result": "RECEIVED"
+      },
+      {
+        "source": "browser",
+        "operation": "own-read-rpc",
+        "kind": "read",
+        "status": 200,
+        "result": "RECEIVED"
+      },
+      {
+        "source": "api",
+        "operation": "owned-snapshot-v2",
+        "kind": "read",
+        "status": 200,
+        "result": "RECEIVED"
+      },
+      {
+        "source": "browser",
+        "operation": "cpu-action",
+        "kind": "cpu",
+        "status": 200,
+        "result": "RECEIVED"
+      },
+      {
+        "source": "browser",
+        "operation": "owned-snapshot-v2",
+        "kind": "read",
+        "status": 200,
+        "result": "RECEIVED"
+      },
+      {
+        "source": "api",
+        "operation": "owned-snapshot-v2",
+        "kind": "read",
+        "status": 200,
+        "result": "RECEIVED"
+      },
+      {
+        "source": "browser",
+        "operation": "action",
+        "kind": "own",
+        "status": 400,
+        "result": "HTTP_400"
+      },
+      {
+        "source": "browser",
+        "operation": "owned-snapshot-v2",
+        "kind": "read",
+        "status": 200,
+        "result": "RECEIVED"
+      },
+      {
+        "source": "browser",
+        "operation": "owned-snapshot-v2",
+        "kind": "read",
+        "status": 200,
+        "result": "RECEIVED"
+      },
+      {
+        "source": "api",
+        "operation": "owned-snapshot-v2",
+        "kind": "read",
+        "status": 200,
+        "result": "RECEIVED"
+      },
+      {
+        "source": "api",
+        "operation": "owned-snapshot-v2",
+        "kind": "read",
+        "status": 200,
+        "result": "RECEIVED"
+      },
+      {
+        "source": "api",
+        "operation": "owned-snapshot-v2",
+        "kind": "read",
+        "status": 200,
+        "result": "RECEIVED"
+      },
+      {
+        "source": "api",
+        "operation": "own-profile",
+        "kind": "read",
+        "status": 200,
+        "result": "RECEIVED"
+      }
+    ],
+    "blocked": []
+  },
+  "gameplayOk": false,
+  "networkClean": false,
+  "ok": false,
+  "preMutationAssets": [
+    {
+      "file": "index.html",
+      "sha256": "2b8a30fea7a93555a71740127d13d34aaa5bcdb2cf2a4986b0ceae39feb14182",
+      "byteExact": true
+    },
+    {
+      "file": "app.js",
+      "sha256": "ed5a95e7ec358ea82c3fe0e47b0e9180e360841409061ab2b9465f5fa589a6cb",
+      "byteExact": true
+    },
+    {
+      "file": "skill-cutin.js",
+      "sha256": "cb13a2eaf2ff59826eedae2cae975365364999c79aa5ad0232df68cd967f233c",
+      "byteExact": true
+    },
+    {
+      "file": "skill-cutin.css",
+      "sha256": "88d93153f4c36744d5b7af17cfa99d9d20d3af01e8f4189584f26593744c197a",
+      "byteExact": true
+    }
+  ],
+  "harnessFiles": [
+    {
+      "file": "live-standard-cutin-readability-guard.cjs",
+      "sha256": "99bd9529f55ff2641be0b6f06dc939e0853a213353e0e7a04cc1c3af1cf92272"
+    },
+    {
+      "file": "live-standard-cutin-readability-canary.cjs",
+      "sha256": "9bd1b1b1bf7b396ceee61c4fcc589e05f33cb8f13b08c78bc8bf34f4faedb375"
+    },
+    {
+      "file": "live-standard-cutin-readability-browser.cjs",
+      "sha256": "3953658e5e21a1f4fb29db26ee59bd5e177746d49dd9830547c3e32e168fab90"
+    }
+  ]
+}

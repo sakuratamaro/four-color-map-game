@@ -3518,7 +3518,7 @@
         "alias": "ADD-20260913-CUTIN-READABILITY-RESULT",
         "source_message_id": "bbb2135e-cfd1-4da8-845b-9e3d07d8b29a",
         "owner_thread_id": "01a07b56-616e-7733-9aae-90575659688e",
-        "state": "PAGES_PUBLISHED_LIVE_READY",
+        "state": "PAGES_PUBLISHED_LIVE_FAILED_SCOPED",
         "worktree": ".codex-worktrees/skill-cutin-readability-20260913",
         "branch": "codex/skill-cutin-readability-20260913",
         "base_sha": "d9ce111d7d97019d55b3e90842602001e045ea04",
@@ -3555,8 +3555,8 @@
         },
         "evidence": "docs/SKILL_CUTIN_READABILITY_LOCAL_20260913.md",
         "remaining": "Public named opponent skill event and hidden-effect descriptions are not implemented; no inference from private state.",
-        "next_action": "Durably reserve genuine040 new1trial; recheck exactcurrentmain and4publicbytes before firstmutation; run one bounded harness, save every scoped outcome; neverretry.",
-        "no_live_attempt_reserved": true,
+        "next_action": "Preserve/report failed040 trial; prepare adopted named-skill public event in a new clean worktree from freshmain. No rerun, privileged cleanup or old approval reuse.",
+        "no_live_attempt_reserved": false,
         "db_change_set": [],
         "edge_change_set": [],
         "managed_setting_change_set": [],
@@ -3592,8 +3592,8 @@
           "retries": 0,
           "rematches": 0
         },
-        "live_canary_state": "HARNESS_LOCAL_VERIFIED_NOT_RESERVED",
-        "live_canary_attempts": 0,
+        "live_canary_state": "ATTEMPT_FINISHED",
+        "live_canary_attempts": 1,
         "review_send_reserved_before_api": true,
         "review_send_reserved_at_utc": "2026-09-13T00:49:56Z",
         "review_request_message_id": "3e6efd53-710a-45ed-9de4-05627ca5f40e",
@@ -3680,6 +3680,70 @@
           ],
           "non_changes": "Product954e unchanged; no live profile/match/attempt file yet; no old allowance reused",
           "evidence": "docs/SKILL_CUTIN_READABILITY_CANARY_PREPARATION_20260913.md"
+        },
+        "live_canary_reservation": {
+          "reserved_before_execute": true,
+          "reserved_at_utc": "2026-09-13T02:02:53Z",
+          "attempt": 1,
+          "review_id": "CHATGPT-REVIEW-20260913-040",
+          "candidate_sha": "954e1c5c52d5453fc9fee9872b2d7e922f850a39",
+          "harness_commit": "e13eea2",
+          "receipt_path": "docs/SKILL_CUTIN_READABILITY_LIVE_20260913.attempt.json",
+          "report_path": "docs/SKILL_CUTIN_READABILITY_LIVE_20260913.json",
+          "reexecution_authorized": false,
+          "note": "One exclusive runtime receipt must also precede firstmutation. Any interrupted execution is inspected read-only, never re-executed."
+        },
+        "live_canary_result": {
+          "ok": false,
+          "report": "docs/SKILL_CUTIN_READABILITY_LIVE_20260913.json",
+          "receipt": "docs/SKILL_CUTIN_READABILITY_LIVE_20260913.attempt.json",
+          "harness_sha": "e13eea2cdabc359de803c16e97f4f01c29093b57",
+          "started_at": "2026-09-13T02:03:39.138Z",
+          "finished_at": "2026-09-13T02:03:50.199Z",
+          "elapsed_ms": 11061,
+          "counts": {
+            "signup": 1,
+            "profileSeed": 1,
+            "match": 1,
+            "setup": 1,
+            "initialize": 1,
+            "cpu": 1,
+            "own": 1,
+            "surrender": 0
+          },
+          "terminal": "PLAYING_OBSERVED",
+          "profile": "READ_VERIFIED",
+          "settlement": "NOT_VERIFIED",
+          "self": "NOT_OBSERVED",
+          "opponent": "NOT_OBSERVED",
+          "own_send": "HTTP_400",
+          "process_handle": "exec68964 exited1",
+          "process_id": 42096,
+          "process_terminal_verified": true,
+          "reexecution_authorized": false,
+          "diagnosis": "NO_BOARD_COLORS is locally reproducible but actual safe semantic code was not saved; no confirmed production root cause."
+        },
+        "named_skill_followup": {
+          "state": "LOCAL_PREPARATION_PENDING",
+          "owner_thread_id": "01a07b56-616e-7733-9aae-90575659688e",
+          "request_id": "UDL-20260912-065",
+          "source_message_id": "bbb2135e-cfd1-4da8-845b-9e3d07d8b29a",
+          "base_sha": "954e1c5c52d5453fc9fee9872b2d7e922f850a39",
+          "spec_path": "docs/SKILL_PUBLIC_EVENT_PLAN_20260913.md",
+          "planned_branch": "codex/skill-cutin-public-names-20260913",
+          "worktree_created": false,
+          "publication_authorized": false,
+          "live_reexecution_authorized": false
+        },
+        "result_report_delivery": {
+          "state": "READY_TO_SEND",
+          "kind": "INFORMATIONAL_NO_REVIEW_WAIT",
+          "attempts": 0,
+          "max_attempts": 1,
+          "target_thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
+          "artifact": "docs/ASTRA_CUTIN_READABILITY_RESULT_20260913.md",
+          "availability_checked_at_utc": "2026-09-13T02:09:19Z",
+          "availability": "Idle; latestcomplete040 unchanged. One availabilityread for newresultreport, not reprocessing040 or reopening its wait."
         }
       }
     },
@@ -3838,7 +3902,7 @@
       "next_run": {
         "phase": "NORMAL_WORK",
         "subject_sha": "954e1c5c52d5453fc9fee9872b2d7e922f850a39",
-        "at_utc": "2026-09-13T01:45:00Z",
+        "at_utc": "2026-09-13T02:35:00Z",
         "reason": "Exact040 approved UI alreadyPagespublished; finish newbounded harness and one-shot acceptance. No selfsend."
       },
       "first_scheduled_normal_run": {
@@ -3857,20 +3921,15 @@
         "id": "automation",
         "status": "ACTIVE",
         "target_thread_id": "01a07b56-616e-7733-9aae-90575659688e",
-        "rrule": "FREQ=DAILY;BYHOUR=10;BYMINUTE=45;BYSECOND=0",
-        "updated_at": 1789263312106,
+        "rrule": "FREQ=DAILY;BYHOUR=11;BYMINUTE=35;BYSECOND=0",
+        "updated_at": 1789265737807,
         "created_at": 1789048677730,
         "prompt_exact_equal": true,
-        "scheduled_for_utc": "2026-09-13T01:45:00Z",
+        "scheduled_for_utc": "2026-09-13T02:35:00Z",
         "readback_verified": true,
-        "verification_source": "Actual update API ACTIVE and full saved TOML equal to preserved prompt/id/name/target/created_at at 01:35:14Z. Normal work slot moved from10:35 to10:45JST for end-turn margin; closed review budget unchanged; future execution not claimed."
+        "verification_source": "ActualAPI ACTIVE/fullTOML exactprompt/id/name/target/created_at. Nextnormal names implementation; exhausted040trial cannot rerun. Futureexecution not claimed."
       },
-      "normal_work_claim": {
-        "state": "UI_PAGES_PUBLISHED_NEW_LIVE_HARNESS_INCOMPLETE",
-        "turn_id": null,
-        "subject_sha": "954e1c5c52d5453fc9fee9872b2d7e922f850a39",
-        "request_id": "UDL-20260912-065"
-      },
+      "normal_work_claim": "UI040_TRIAL_FAILED_CONSUMED_NEXT_NAMED_PUBLIC_EVENT_LOCAL",
       "review_scope": "Fixed9590/v1.1/SQL002/Edge2/newpalette managed value only; CIhold preserved, oldF3/docs approval not reused.",
       "verification": {
         "regression_tests": "42/42 PASS; skip0;638.46ms",
@@ -3922,16 +3981,15 @@
         "recovered_without_new_user_wait": true
       },
       "end_turn_guard": {
-        "checked_at_utc": "2026-09-13T01:35:44Z",
+        "checked_at_utc": "2026-09-13T02:15:45Z",
         "result": "PASS",
         "phase": "NORMAL_WORK",
-        "action": "PREPARE_BOUNDED_UI_CANARY",
+        "action": "PREPARE_PUBLIC_SKILL_EVENT",
         "subject_sha": "954e1c5c52d5453fc9fee9872b2d7e922f850a39",
-        "at_utc": "2026-09-13T01:45:00Z",
+        "at_utc": "2026-09-13T02:35:00Z",
         "errors": [],
-        "tests": "85/85 PASS1039.7766ms skip0. Prior84/85 FAIL1585.3933ms missing explicit040 binding; intermediate84/85 FAIL988.6936ms expected blob transcription typo; corrected to actual exact spec blob. No product assertion or release gate weakened.",
-        "scheduled_origin_claimed": false,
-        "normal_work_slot_adjustment": "After evidence push4947da6,10:35 slot no longer had the required2minute end-turn margin. Same automation updated to10:45 and full TOML verified; no review wait deadline or consumed slot reset."
+        "tests": "Pre-live98/98PASS7913.9856ms. Post-live64/64PASS764.3009ms; prior63/64FAIL692.4136ms retained because old fixture still expected reservation0. Replaced with strict actual failed receipt/count1 assertions, not weaker game gates.",
+        "scheduled_origin_claimed": false
       },
       "latest_receive_schedule_observation": {
         "scheduled_at_utc": "2026-09-12T07:45:12Z",
@@ -4066,7 +4124,7 @@
       "current_goal_turn_classification": {
         "previous_turn": "PROGRESS",
         "current_turn": "PROGRESS",
-        "evidence": "Completed passive-browser and shared API/send-boundary harness;98/98PASS. Live not yetreserved/executed.",
+        "evidence": "Completed98localtests and executed1 genuine040 live trial; preserved rawFAIL/11061ms/HTTP400/terminalPLAYING/profileREAD. Next is local named-skill implementation, not another trial.",
         "whole_goal_complete": false
       },
       "documentation_review_followup_history": [

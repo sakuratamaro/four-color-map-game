@@ -37,7 +37,10 @@ test("v14 cut-in follow-up stays separate from published065 and the fixed CPU039
  assert.equal(p.candidate_sha,"954e1c5c52d5453fc9fee9872b2d7e922f850a39");
  assert.equal(p.spec_version,"UDL-065-readability-v1.1");assert.equal(p.spec_snapshot_sha,"2af5d73528a35edc29f45b3be5b700f6ceaf4688");
  assert.equal(p.implementation_state,"implemented_partial");assert.equal(p.verification_state,"windows_gate_pass");
- assert.equal(p.release_state,"pages_published");assert.equal(p.publication,"PAGES_PUBLISHED");assert.equal(p.no_live_attempt_reserved,true);
+ assert.equal(p.release_state,"pages_published");assert.equal(p.publication,"PAGES_PUBLISHED");assert.equal(p.no_live_attempt_reserved,false);
+ assert.equal(p.live_canary_attempts,1);assert.equal(p.live_canary_state,"ATTEMPT_FINISHED");
+ assert.equal(p.live_canary_result.ok,false);assert.equal(p.live_canary_result.terminal,"PLAYING_OBSERVED");
+ assert.equal(read(p.live_canary_result.report).ok,false);assert.equal(p.named_skill_followup.publication_authorized,false);
  assert.equal(p.review_id,"CHATGPT-REVIEW-20260913-040");assert.equal(p.pages_run,"34730074280");
  assert.equal(p.main_sha,p.candidate_sha);assert.equal(p.pages_sha,p.candidate_sha);
  const published=read(p.public_asset_evidence);assert.equal(published.public_preflight.ok,true);

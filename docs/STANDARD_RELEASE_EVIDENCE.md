@@ -1,5 +1,9 @@
 # Standard公開候補 証拠台帳
 
+## 2026-09-13 UDL065 可読性954e / 新有限live失敗・試行消費済み
+
+製品954e/main/Pages34730074280は公開済みのまま。ハーネスe13eea2cdabc359de803c16e97f4f01c29093b57の98/98局所PASS後、実040で認められた新1試行を排他予約し、2026-09-13T02:03:39.138Z–02:03:50.199Zの11061msで終了。実行直前にもremote main954eと公開4fileの厳密byte一致を確認した。signup/profile seed/ユズ部屋/setup/initialize各1、CPU1/本人1/SURRENDER0、再送/再戦0。本人の色拾い・乱リクエストがHTTP400になり、harnessはUNKNOWN_SENDとして以後のmutationを止めた。最終snapshot-v2は本人membership/seat/room/versionを照合したPLAYING_OBSERVED、本人profile READ_VERIFIED、精算NOT_VERIFIED、self/opponent表示はNOT_OBSERVED。raw ok:false、console errors1、routeFailures1を保全する。UI小項目ok:trueを本番表示の合格へ拡大しない。プロセスsession68964はexit1、既に終了。保存report/attemptはSKILL_CUTIN_READABILITY_LIVE_20260913.*、診断境界と次実装はSKILL_PUBLIC_EVENT_PLAN_20260913.md。消費枠や失敗を消して再試行しない。物理受入・UDL065全体完了・相手技名の実装・CPU100公開は成立していない。
+
 ## 2026-09-13 UDL065 可読性954e / Pages公開・live未実施
 
 実Astra040（fb1e2e48、依頼3e6efd53、全文5467字/4443字一致）で、954e1c5c52d5453fc9fee9872b2d7e922f850a39/UDL-065-readability-v1.1/blob2af5d73528a35edc29f45b3be5b700f6ceaf4688/Pages_only/DB・Edge・管理各[]をAPPROVE_RELEASE。CPU先行は不要、harness未実装はlive前条件でPages停止条件ではない。clean976/976、Windows34728306768 attempt1両最終SUCCESS（両契約634/634・online147/147、Edge lifecycle79/79、Chrome lifecycle stepは既定skip）。fresh main=d9ceとclean954e確認後forceなしpush、remote main exact954e読戻し、Pages34730074280同SHA completed/success。2026-09-13T01:17:08.358Zにfreshcandidatepreflight ok:trueと公開HTML/app43/cutinJS1/CSS1をGit blob bytesへ厳密比較し4/4一致。詳細SKILL_CUTIN_READABILITY_PUBLICATION_20260913.json、WINDOWS_20260913.json、ASTRA_CUTIN_READABILITY_REVIEW_20260913.md。

@@ -1,5 +1,9 @@
 # New UI canary preparation
 
+## Actual trial completed — current checkpoint
+
+Executed the single040 trial with harness e13eea2cdabc359de803c16e97f4f01c29093b57. Raw overall FAIL is retained in SKILL_CUTIN_READABILITY_LIVE_20260913.json; the attempt receipt is immutable.11061ms,profile1/Yuzu1/CPU1/own1/SURRENDER0,ownHTTP400,terminalPLAYING/profileREAD/settlementNOT_VERIFIED,self/opponentNOT_OBSERVED. No retry or privileged recovery occurred. See ASTRA_CUTIN_READABILITY_RESULT_20260913.md and SKILL_PUBLIC_EVENT_PLAN_20260913.md. Post-trial64/64PASS764.3009ms covers preservation and next local routing; preceding63/64FAIL692.4136ms was the stale fixture that expected reservation0, corrected to require the real failed one-shot receipt, not a relaxed game gate. Same actual ACTIVE heartbeat now targets11:35JST NORMAL_WORK for the adopted named-skill implementation; full prompt/id/target/created_at/TOML equality and end-turn PASS checked by02:15:45Z. No future scheduled execution is claimed.
+
 ## Full harness local verification (2026-09-13T01:59:46Z)
 
 The new guard/core/browser adapter is implemented. Initial core+guard16/16PASS299.7976ms; real headless Chrome passive observer fixture1/1PASS8393.7016ms; combined17/17PASS6739.9507ms; final nine selected governance files98/98PASS7913.9856ms,fail/cancel/skip0. The latter includes19 UI harness/guard tests, actual DOM lifetime measurement, original callback forwarding, eligible-but-missing FAIL, priority interruption, shared concurrent browser/API admission, unknown sends, independent terminal/profile channels, strict member/seat/room/public-view versions,150/240 limits and exclusive restart reservation. No live trial has been executed at this checkpoint.

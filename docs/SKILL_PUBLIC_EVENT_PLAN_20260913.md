@@ -1,0 +1,21 @@
+# UDL065 public skill identity follow-up — local draft
+
+CANON_RECEIPT version=shared-canon-v1.1 base=954e1c5c52d5453fc9fee9872b2d7e922f850a39 request=UDL-20260912-065 source=bbb2135e-cfd1-4da8-845b-9e3d07d8b29a specs=docs/SHARED_CANON.md,docs/SKILL_CUTIN_READABILITY_20260913.md,docs/ASTRA_CUTIN_READABILITY_REVIEW_20260913.md tests=tests/standard-skill-cutin.test.cjs,tests/standard-online-browser.test.cjs,tests/governance-cutin-readability-canary.test.cjs owner=01a07b56-616e-7733-9aae-90575659688e
+
+This is local preparation for the existing unfulfilled user request, not a new publication or live authorization. Product954e, its exact040 approval and failed one-shot live remain historical evidence. A new clean worktree/branch codex/skill-cutin-public-names-20260913 is planned, not yet created; fetch current main before creating it and reconcile a changed base. Never modify the reviewed/readability worktree, CPU9590/039, dirty root or BRAIN_V9_TRANSFER.
+
+## Scope to implement and review
+
+- Publish only the canonical identity of a skill that was actually and successfully used, via the existing authoritative public event. Do not derive the name from CPU stock, unused hand, palette, bonus roles or secret effect targets.
+- Feed that public identity to the existing self/opponent cut-in title, while preserving the observed-result explanation,1800ms design, ordinary-update lifetime, priority interruptions, claim deduplication and neutral fallback for old/unknown events.
+- Review the projection/trace validation, old browser/Edge combinations, persisted JSON state, retry identities and generated bundles before fixing the exact rollout order. Whether additive SQL or an activation flag is necessary is not decided by this draft; do not assert DB changes are[] without inspecting the implementation.
+- Tests must prove success-only public identity, rejection/no-op semantics, no private payload leakage, old trace compatibility, correct self/opponent catalog title, exactly-once retry/version behavior, unchanged input/timers and optional-module failure. Regenerate derived bundles from sources, not manual edits.
+- A new fixed candidate, changed-file inventory, spec blob, Windows results and genuine Astra review must precede production.040 and039 do not approve the new candidate. No live slot exists for this follow-up yet.
+
+## Preserved live result and diagnostic boundary
+
+The954e trial ran once at2026-09-13T02:03:39.138Z–02:03:50.199Z (11061ms), after fresh main and4assetbyte matches. Runtime exclusive receipt was saved at02:03:39.120Z. One signup/profile seed/Yuzu room/setup/initialize, CPU1/own1/SURRENDER0; no resend/rematch. Own skill HTTP400 caused the harness to stop as UNKNOWN_SEND. Later exact owned snapshots still read PLAYING and the own profile read succeeded; terminal and settlement are NOT_VERIFIED. Both cut-in sides had no observed event; UI sub-object ok:true only means no captured visual failure and is not acceptance. Overall raw ok:false,console errors1,route failures1. Process session68964 exited1 and process42096 was no longer present. Tokens and raw IDs were only in the terminated process, not saved for later privileged recovery. No current cleanup authority or recovery session is claimed.
+
+The executed harness is fixed at e13eea2cdabc359de803c16e97f4f01c29093b57; preserve raw report and receipt. No one may erase or reset this attempt to retry. The current source handler returns NO_BOARD_COLORS, without RNG/commit, when no colored region exists. That is a locally reproducible explanation consistent with the sequence, not a confirmed live error code: the live harness retained only HTTP400.
+
+Harness follow-up lessons (not applied retroactively): check the actual legal own-action set before clicking a skill; preserve the genuine non-2xx response to the browser instead of converting it to a network abort; retain only a safe enumerated server code; distinguish a positively known pre-commit rule rejection from a genuinely unknown send. A new harness may permit the one approved final surrender after a verified rejection and fresh coherent read, but never after an unresolved send. These changes do not create an extra live attempt. No game rollback or public API defect is established solely by this failed trial.

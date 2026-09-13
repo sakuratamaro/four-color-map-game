@@ -100,3 +100,19 @@ test("actual genuine040 binds one reserved trial; changed public main is rejecte
  s.live_canary_attempts=1;s.live_canary_state="RESERVED_BEFORE_EXECUTION";assert.equal(G.validateGate(doc).review_id,"CHATGPT-REVIEW-20260913-040");
  s.main_sha="a".repeat(40);assert.throws(()=>G.validateGate(doc));
 });
+test("real failed UI040 trial is preserved, bounded and cannot prove cut-in or settlement acceptance",()=>{
+ const raw=JSON.parse(fs.readFileSync(path.join(__dirname,"../docs/SKILL_CUTIN_READABILITY_LIVE_20260913.json"),"utf8"));
+ assert.equal(raw.candidate,G.CANDIDATE);assert.equal(raw.ok,false);assert.equal(raw.elapsedMs,11061);
+ assert.deepEqual(raw.attemptCounts,{signup:1,profileSeed:1,match:1,setup:1,initialize:1,cpu:1,own:1,surrender:0});
+ assert.equal(raw.network.requests.find(x=>x.kind==="own").result,"HTTP_400");assert.equal(raw.terminalRead,"PLAYING_OBSERVED");
+ assert.equal(raw.profileRead,"READ_VERIFIED");assert.equal(raw.settlement,"NOT_VERIFIED");assert.equal(raw.ui.self,"NOT_OBSERVED");assert.equal(raw.ui.opponent,"NOT_OBSERVED");
+ assert.equal(raw.ui.console.errors,1);assert.equal(raw.ui.routeFailures,1);assert.equal(raw.preMutationAssets.filter(x=>x.byteExact).length,4);
+ assert.doesNotMatch(JSON.stringify(raw),/access_token|refresh_token|private_state|p_room_id|user_id/);
+});
+test("no-board-color rejection is reproducible locally but the live semantic code remains unknown",()=>{
+ const {applyColorRandomBorrow}=require(path.resolve(__dirname,"../../skill-cutin-readability-20260913/standard/standard-skill-handlers.js"));
+ const state={regions:{first:{color:null}}},result=applyColorRandomBorrow({state,actor:"A",random:()=>assert.fail("rejection must not draw RNG")});
+ assert.equal(result.ok,false);assert.equal(result.code,"NO_BOARD_COLORS");assert.equal(result.state,state);
+ const raw=JSON.parse(fs.readFileSync(path.join(__dirname,"../docs/SKILL_CUTIN_READABILITY_LIVE_20260913.json"),"utf8"));
+ assert.equal(raw.network.requests.find(x=>x.kind==="own").serverCode,undefined);
+});
