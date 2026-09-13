@@ -41,7 +41,7 @@
     }
   ],
   "coordination": {
-    "status": "WAITING_ASTRA_UI_READABILITY_REVIEW",
+    "status": "UI_APPROVED_NORMAL_PUBLICATION_WORK",
     "latest_v8_intake": {
       "state": "PAIRED_SOURCE_AND_ZIP_VERIFIED_ALIASES_MAPPED",
       "source_thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
@@ -188,8 +188,8 @@
       "normal_owner_observation": "Previous normal turn completed after branch push; stored normal_work_receipt waiting. This heartbeat is the same task, not a second active owner."
     },
     "reviewer_thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
-    "last_consumed_review_message_id": "fd9b3fa2-dd74-4379-a0e7-7cf05ad31ff9",
-    "last_received_message_id": "fd9b3fa2-dd74-4379-a0e7-7cf05ad31ff9",
+    "last_consumed_review_message_id": "fb1e2e48-53e5-4a1a-b34a-2fa2e66f862d",
+    "last_received_message_id": "fb1e2e48-53e5-4a1a-b34a-2fa2e66f862d",
     "pending_user_intake_message_ids": [
       "ea61f25f-bebf-499a-81e9-029712a96f99",
       "bbb216f0-9194-45cf-acd6-504a9a55d40a",
@@ -393,10 +393,10 @@
     },
     "automation_id": "automation",
     "automation_status_at_recording": "ACTIVE",
-    "automation_readback_updated_at": 1789260963027,
+    "automation_readback_updated_at": 1789262510866,
     "automation_prompt_readback_equal": true,
     "automation_pause_reason": null,
-    "automation_active_reason": "Independent954e review delivered with exact fullbody, original20/40/100 finite wait. No old CPU/F3/067 wait reopened.",
+    "automation_active_reason": "Approved unusedUI acceptance remains after actualPages publication; sameheartbeatNORMAL_WORK01:35Z, no review wait reset.",
     "completed_review_waits": [
       {
         "root_request_message_id": "8464f659-ad62-4c09-83d9-44e1cc91316b",
@@ -1027,7 +1027,7 @@
       "started_at_utc": "2026-09-13T00:49:56Z",
       "expires_at_utc": "2026-09-13T02:49:56.000Z",
       "start_basis": "Reservation before sole send of new independent v14 readability954e; prior065 and CPU039 closed waits retained, not reopened.",
-      "automatic_checks": 0,
+      "automatic_checks": 1,
       "max_automatic_checks": 3,
       "offset_minutes": [
         20,
@@ -1040,15 +1040,35 @@
       "confirmed_delivery_reminders": 0,
       "root_request_message_id": "3e6efd53-710a-45ed-9de4-05627ca5f40e",
       "subject_sha": "954e1c5c52d5453fc9fee9872b2d7e922f850a39",
-      "status": "review_pending",
-      "next_check_utc": "2026-09-13T01:09:56.000Z",
-      "remaining_scheduled_slots": 3,
+      "status": "response_received_closed",
+      "next_check_utc": null,
+      "remaining_scheduled_slots": 0,
       "delivery_readback_checks": 2,
-      "consumed_slots_utc": [],
+      "consumed_slots_utc": [
+        "2026-09-13T01:09:56.000Z"
+      ],
       "skipped_slots_utc": [],
-      "check_receipts": [],
+      "check_receipts": [
+        {
+          "slot_utc": "2026-09-13T01:09:56.000Z",
+          "reserved_at_utc": "2026-09-13T01:10:11Z",
+          "status": "COMPLETED_REVIEW_RECEIVED",
+          "origin": "normal_goal_continuation_due_slot",
+          "scheduled_origin_claimed": false,
+          "actual_reads": 1,
+          "completed_at_utc": "2026-09-13T01:12:58Z",
+          "response_message_id": "fb1e2e48-53e5-4a1a-b34a-2fa2e66f862d"
+        }
+      ],
       "new_scope": "UDL-065-readability-v1.1",
-      "prior_budgets_reopened": false
+      "prior_budgets_reopened": false,
+      "closed_at_utc": "2026-09-13T01:12:58Z",
+      "closed_by_review_id": "CHATGPT-REVIEW-20260913-040",
+      "response_message_id": "fb1e2e48-53e5-4a1a-b34a-2fa2e66f862d",
+      "closed_unexecuted_slots_utc": [
+        "2026-09-13T01:29:56.000Z",
+        "2026-09-13T02:29:56.000Z"
+      ]
     },
     "pending_review_subject": {
       "subject_sha": "954e1c5c52d5453fc9fee9872b2d7e922f850a39",
@@ -1072,7 +1092,7 @@
     "initial_interval_minutes": 20,
     "pending_subject_sha": "954e1c5c52d5453fc9fee9872b2d7e922f850a39",
     "pending_scope": "Pages_only",
-    "pending_delivery_status": "delivery_verified_response_pending",
+    "pending_delivery_status": "review_received_closed",
     "last_confirmed_sent_message_id": "3e6efd53-710a-45ed-9de4-05627ca5f40e",
     "last_sent_message_id": "3e6efd53-710a-45ed-9de4-05627ca5f40e",
     "self_sent_message_ids": [
@@ -3350,6 +3370,13 @@
           "source": "docs/CPU_PALETTE_FULL_TEST_20260913.md; original failure/local focused pass and exact-job rerun403/UI timeout/auto-review rejection recorded. Reserved rerun started0; manual exact-job action requested. Terminalfailedrun is not an in-progress wait; no unchangedpoll.",
           "recorded_at_utc": "2026-09-12T23:40:00Z"
         }
+      },
+      "new_base_integration_required": {
+        "base_sha": "954e1c5c52d5453fc9fee9872b2d7e922f850a39",
+        "source_review_id": "CHATGPT-REVIEW-20260913-040",
+        "source_response_message_id": "fb1e2e48-53e5-4a1a-b34a-2fa2e66f862d",
+        "status": "NOT_STARTED",
+        "note": "Old9590/039 and failed34723536140 stay historical/exact; UI publication changed freshmain. New real CPU integration requires newcandidate,gates,review; no reuseofUI gateor039, no deniedrerunroute."
       }
     },
     "remaining_brain_work": {
@@ -3491,7 +3518,7 @@
         "alias": "ADD-20260913-CUTIN-READABILITY-RESULT",
         "source_message_id": "bbb2135e-cfd1-4da8-845b-9e3d07d8b29a",
         "owner_thread_id": "01a07b56-616e-7733-9aae-90575659688e",
-        "state": "WINDOWS_PASSED_REVIEW_PENDING",
+        "state": "PAGES_PUBLISHED_LIVE_HARNESS_PENDING",
         "worktree": ".codex-worktrees/skill-cutin-readability-20260913",
         "branch": "codex/skill-cutin-readability-20260913",
         "base_sha": "d9ce111d7d97019d55b3e90842602001e045ea04",
@@ -3500,12 +3527,12 @@
         "spec_version": "UDL-065-readability-v1.1",
         "spec_snapshot_sha": "2af5d73528a35edc29f45b3be5b700f6ceaf4688",
         "implementation_state": "implemented_partial",
-        "verification_state": "local_pass",
-        "release_state": "not_merged",
+        "verification_state": "windows_gate_pass",
+        "release_state": "pages_published",
         "push_status": "PUSHED_EXACT_BRANCH",
-        "review_status": "REVIEW_PENDING",
+        "review_status": "APPROVE_RELEASE",
         "windows_status": "SUCCESS",
-        "publication": "NOT_RUN",
+        "publication": "PAGES_PUBLISHED",
         "tests": {
           "nonbrowser_files": 145,
           "nonbrowser_pass": 976,
@@ -3528,7 +3555,7 @@
         },
         "evidence": "docs/SKILL_CUTIN_READABILITY_LOCAL_20260913.md",
         "remaining": "Public named opponent skill event and hidden-effect descriptions are not implemented; no inference from private state.",
-        "next_action": "Deliver new exact independent UI review and ask whether UI can publish first. Preserve CPU9590/039 failed-job restriction; new main integration for CPU requires a new exact SHA/review, no approval reuse.",
+        "next_action": "Implement/locallyverify newexact040 one-shot browser/API harness then reserve/run once. Neverdelay actualPages publication for preparation; nowPages already verified. FullUDL065 and named opponent event remain incomplete.",
         "no_live_attempt_reserved": true,
         "db_change_set": [],
         "edge_change_set": [],
@@ -3565,7 +3592,7 @@
           "retries": 0,
           "rematches": 0
         },
-        "live_canary_state": "PROPOSED_NOT_RESERVED",
+        "live_canary_state": "AUTHORIZED_HARNESS_INCOMPLETE",
         "live_canary_attempts": 0,
         "review_send_reserved_before_api": true,
         "review_send_reserved_at_utc": "2026-09-13T00:49:56Z",
@@ -3601,7 +3628,48 @@
             "completed_at": "2026-09-13T00:48:30Z"
           }
         ],
-        "windows_evidence": "docs/SKILL_CUTIN_READABILITY_WINDOWS_20260913.json"
+        "windows_evidence": "docs/SKILL_CUTIN_READABILITY_WINDOWS_20260913.json",
+        "review_id": "CHATGPT-REVIEW-20260913-040",
+        "review_response_message_id": "fb1e2e48-53e5-4a1a-b34a-2fa2e66f862d",
+        "review_received_at_utc": "2026-09-13T01:12:58Z",
+        "live_canary_authorization": {
+          "source_review_id": "CHATGPT-REVIEW-20260913-040",
+          "source_response_message_id": "fb1e2e48-53e5-4a1a-b34a-2fa2e66f862d",
+          "source_request_message_id": "3e6efd53-710a-45ed-9de4-05627ca5f40e",
+          "explicitly_authorized": true,
+          "bounds": {
+            "additional_profiles": 1,
+            "matches": 1,
+            "character_id": "yuzu",
+            "wall_ms": 240000,
+            "ordinary_play_ms": 150000,
+            "final_read_and_teardown_reserve_ms": 90000,
+            "cpu_sends": 8,
+            "own_game_sends": 6,
+            "surrender_sends": 1,
+            "attempts": 1,
+            "retries": 0,
+            "rematches": 0
+          },
+          "conditions": [
+            "Newbounded live only after harness tested including ambiguous sends,150/240sec,terminal/snapshot mismatch/durable reservation; serviceWorkers:block; pre-send shared admission; noresends.",
+            "No natural skill => NOT_OBSERVED; eligibleevent missing/wrong/blocked => FAIL, intentionalpriority suppression separate. Self/opponent/content/time recorded independently."
+          ]
+        },
+        "production_gates": {
+          "main": "EXACT_SHA_PUBLISHED",
+          "pages": "SUCCESS_PREFLIGHT_BYTE_EXACT"
+        },
+        "main_sha": "954e1c5c52d5453fc9fee9872b2d7e922f850a39",
+        "main_pushed_at_utc": "2026-09-13T01:15:10Z",
+        "main_push_time_precision": "Adjacent clock before successful push; exact push completion not captured",
+        "fresh_main_before_push": "d9ce111d7d97019d55b3e90842602001e045ea04",
+        "main_readback_exact": true,
+        "pages_run": "34730074280",
+        "pages_status": "SUCCESS",
+        "pages_sha": "954e1c5c52d5453fc9fee9872b2d7e922f850a39",
+        "public_asset_evidence": "docs/SKILL_CUTIN_READABILITY_PUBLICATION_20260913.json",
+        "public_byte_verified_at_utc": "2026-09-13T01:17:08.358Z"
       }
     },
     "limited_attachment_intake": {
@@ -3757,10 +3825,10 @@
       "checker": "scripts/check-commander-continuation.cjs",
       "tests": "tests/governance-commander-continuation.test.cjs",
       "next_run": {
-        "phase": "RECEIVE",
+        "phase": "NORMAL_WORK",
         "subject_sha": "954e1c5c52d5453fc9fee9872b2d7e922f850a39",
-        "at_utc": "2026-09-13T01:09:56.000Z",
-        "reason": "Original first20-minute slot of independently delivered v14 UI review; no CPU wait reset"
+        "at_utc": "2026-09-13T01:35:00Z",
+        "reason": "Exact040 approved UI alreadyPagespublished; finish newbounded harness and one-shot acceptance. No selfsend."
       },
       "first_scheduled_normal_run": {
         "status": "OBSERVED",
@@ -3778,16 +3846,16 @@
         "id": "automation",
         "status": "ACTIVE",
         "target_thread_id": "01a07b56-616e-7733-9aae-90575659688e",
-        "rrule": "FREQ=DAILY;BYHOUR=10;BYMINUTE=9;BYSECOND=56",
-        "updated_at": 1789260963027,
+        "rrule": "FREQ=DAILY;BYHOUR=10;BYMINUTE=35;BYSECOND=0",
+        "updated_at": 1789262510866,
         "created_at": 1789048677730,
         "prompt_exact_equal": true,
-        "scheduled_for_utc": "2026-09-13T01:09:56.000Z",
+        "scheduled_for_utc": "2026-09-13T01:35:00Z",
         "readback_verified": true,
-        "verification_source": "Update API ACTIVE plus full actual saved TOML exact prompt/status/name/id/target/rrule/created_at; configuration only, not future execution proof."
+        "verification_source": "Actual API ACTIVE and saved TOML exact fullprompt/id/name/target/time/created_at. Not proof of future scheduled origin."
       },
       "normal_work_claim": {
-        "state": "UI_WINDOWS_SUCCESS_REVIEW_DELIVERED_FINITE_WAIT",
+        "state": "UI_PAGES_PUBLISHED_NEW_LIVE_HARNESS_INCOMPLETE",
         "turn_id": null,
         "subject_sha": "954e1c5c52d5453fc9fee9872b2d7e922f850a39",
         "request_id": "UDL-20260912-065"
@@ -3803,9 +3871,9 @@
         "phase": "NORMAL_WORK",
         "turn_id": null,
         "source": "automatic_goal_continuation",
-        "started_at_utc": "2026-09-13T00:29:34Z",
+        "started_at_utc": "2026-09-13T01:03:16Z",
         "worktree": ".codex-worktrees/skill-cutin-readability-20260913",
-        "request": "Complete new independent UI Windows gate and fixed review delivery; preserve CPU039 boundary and existing finite continuation.",
+        "request": "Save genuine040; publish exact UI954e main/Pages with byte evidence; prepare guard-only bounded live acceptance without a new profile or match.",
         "canon_receipt": "shared-canon-v1.1;base=d9ce111d7d97019d55b3e90842602001e045ea04;candidate=954e1c5c52d5453fc9fee9872b2d7e922f850a39;spec=UDL-065-readability-v1.1/blob2af5d73528a35edc29f45b3be5b700f6ceaf4688;request=UDL-20260912-065;tests=976local,Windows34728306768,78governance"
       },
       "missed_schedule_observation": {
@@ -3843,13 +3911,14 @@
         "recovered_without_new_user_wait": true
       },
       "end_turn_guard": {
-        "checked_at_utc": "2026-09-13T01:01:05Z",
+        "checked_at_utc": "2026-09-13T01:32:07Z",
         "result": "PASS",
-        "phase": "WAIT_REVIEW",
+        "phase": "NORMAL_WORK",
+        "action": "PREPARE_BOUNDED_UI_CANARY",
         "subject_sha": "954e1c5c52d5453fc9fee9872b2d7e922f850a39",
-        "at_utc": "2026-09-13T01:09:56.000Z",
+        "at_utc": "2026-09-13T01:35:00Z",
         "errors": [],
-        "tests": "78/78 PASS881.3785ms skip0. Prior77/78 governanceFAIL905.6845ms retained; old two-slice test enumeration aligned to the same strict existing v14 preparation route, canonical delivery status retained. No game assertion changed.",
+        "tests": "85/85 PASS1039.7766ms skip0. Prior84/85 FAIL1585.3933ms missing explicit040 binding; intermediate84/85 FAIL988.6936ms expected blob transcription typo; corrected to actual exact spec blob. No product assertion or release gate weakened.",
         "scheduled_origin_claimed": false
       },
       "latest_receive_schedule_observation": {
@@ -3985,19 +4054,21 @@
       "current_goal_turn_classification": {
         "turn_id": null,
         "classification": "PROGRESS",
-        "source": "Normal goal continuation; exact individual turn ID unavailable, not invented",
+        "source": "Normal goal continuation at01:03:16Z, not scheduledRECEIVE",
         "actual_goal_status": "active",
         "previous_turn": {
           "classification": "PROGRESS",
-          "evidence_commit": "bc08078109a3c528d0f37cb1936d7e5dbd456b31"
+          "evidence_commit": "d18b24848c9267f26057ef6dc261b7fd36faeb1b"
         },
         "evidence": [
-          "Fixed954e UI candidate/specv1.1 pushed; clean976/976PASS and independentWindows34728306768 attempt1 SUCCESS onChrome/Edge.",
-          "Full49934characterpatch publiclyreadback; newAstrareview4443characters sentonce and exactlyconfirmed3e6efd53-710a-45ed-9de4-05627ca5f40e.",
-          "CPU-first was commanderplanning; newrealreview asksUI-first while preservingCPU039/manualretryboundary. No productionorUIliveattempt.",
-          "Existingheartbeat updatedACTIVE exactfirst20minuteslot01:09:56Z and savedTOML verified. Newwaitmax3/120min; oldCPUclosedwait movedintact tohistory."
+          "New UI shared attempted-send guard andcurrent snapshot parser locally6/6PASS; fullbrowseradapter notyetimplemented.",
+          "Originalfirst20minute reviewread consumedonce: exact4443request paired completed5467response; genuine040APPROVE_RELEASE and newbounded live authorization saved.",
+          "Freshmain d9ce andclean954e checked, forcefree mainpushconfirmed; sameSHA Pages34730074280SUCCESS, freshpreflight and4strict publicbyte matches.",
+          "PublishedUI liveacceptance kept inexistingmetadata with exactauthority/limits; no newqueue, oldreservedtrials readonlyrecovery; source-linkedgovernance38/38PASS.",
+          "Existingheartbeat10:35JST NORMAL_WORK exactsavedTOMLreadback, originalreviewwait closedwitholddeadlines/counters preserved."
         ],
-        "production_executed": false,
+        "production_executed": true,
+        "production_scope": "Pages_only; DB/Edge/managed/profile/match0",
         "scheduled_origin_claimed": false
       },
       "documentation_review_followup_history": [
@@ -4219,7 +4290,7 @@
         }
       }
     ],
-    "last_consumed_message_id": "fd9b3fa2-dd74-4379-a0e7-7cf05ad31ff9"
+    "last_consumed_message_id": "fb1e2e48-53e5-4a1a-b34a-2fa2e66f862d"
   },
   "decisions": [
     {
@@ -5473,6 +5544,64 @@
       },
       "notes": "Kurogane exempt from F1 filtering, exact new initial equipped palette100 finite uses, old policy/retry/restore no refill. No assertion100samewindow or measuredwinrate. Other9boundedheuristic limitations retained. Newcanary only afterCI/staging; no secondprofile/room/surrender resend or private CPUhand inference. F3/067 spentbudgets and partial acceptance unchanged. v14 intake not docs/economy approval.",
       "record_time_basis": "Conservative reservation time from clock before actual read; completed source/save verified by clock23:37:00Z. Earlier approximate23:35:08 replaced; never extends a wait."
+    },
+    {
+      "review_id": "CHATGPT-REVIEW-20260913-040",
+      "subject_sha": "954e1c5c52d5453fc9fee9872b2d7e922f850a39",
+      "base_sha": "d9ce111d7d97019d55b3e90842602001e045ea04",
+      "canon_version": "shared-canon-v1.1",
+      "feature_spec_version": "UDL-065-readability-v1.1",
+      "spec_snapshot_sha": "2af5d73528a35edc29f45b3be5b700f6ceaf4688",
+      "spec_snapshot_kind": "git_blob",
+      "scope": "Pages_only",
+      "review_kind": "game_production_release_approval",
+      "db_change_set": [],
+      "edge_change_set": [],
+      "managed_setting_change_set": [],
+      "decision": "APPROVE_RELEASE",
+      "source": {
+        "kind": "chatgpt",
+        "thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
+        "message_id": "fb1e2e48-53e5-4a1a-b34a-2fa2e66f862d",
+        "request_message_id": "3e6efd53-710a-45ed-9de4-05627ca5f40e",
+        "request_body_equality": true,
+        "verified_request_characters": 4443,
+        "response_full_characters": 5467,
+        "response_complete": true,
+        "retrieval": "One bounded first20minute read during normal goal continuation; completed paired response, idle. No new send.",
+        "response_text": "## DECISION\n\n**APPROVE_RELEASE — 固定候補954eのPages-only公開を承認します。CPU候補9590の公開を待たず、このUIを先に公開して構いません。**\n\n今回取得したGitHubの状態では、**954eのWindowsは既に両ブラウザーとも成功しています。** 提出時の`IN_PROGRESS`から進んでおり、この候補についてCI待ちを続ける必要はありません。公開直前のmain再照合、同一SHAのPages成功、配信byte確認は引き続き必要です。\n\n```text\nDECISION: APPROVE_RELEASE\nSUBJECT_SHA: 954e1c5c52d5453fc9fee9872b2d7e922f850a39\nBASE_SHA: d9ce111d7d97019d55b3e90842602001e045ea04\nCANON_VERSION: shared-canon-v1.1\nFEATURE_SPEC_VERSION: UDL-065-readability-v1.1\nSPEC_PATH: docs/SKILL_CUTIN_READABILITY_20260913.md\nSPEC_BLOB: 2af5d73528a35edc29f45b3be5b700f6ceaf4688\nSCOPE: Pages_only\nREVIEW_KIND: game_production_release_approval\nDB_CHANGE_SET: []\nEDGE_CHANGE_SET: []\nMANAGED_SETTING_CHANGE_SET: []\nBLOCKERS: []\n```\n\n固定仕様の版・blobは取得結果と一致しています。承認対象はこの候補と変更セットであり、CPU039、別の運用文書差分、後続の相手技名公開イベントを含みません。\n\n## BLOCKERS\n\n**今回読んだ固定差分について、公開を止めるコード・仕様上の問題は認めません。**\n\nWindows run `34728306768`、attempt 1、head SHA `954e1c5…`の取得結果は次のとおりです。\n\n| 対象 | Job ID | 最終結果 | 完了時刻・UTC |\n|---|---|---|---|\n| Chrome | `103646336438` | `completed / success` | 2026-09-13 00:45:50 |\n| Edge | `103646336560` | `completed / success` | 2026-09-13 00:48:30 |\n\nrun全体も`completed / success`です。Chromeのlocal lifecycleは既存構成による`skipped`、Edgeの同段階は`success`なので、**「全workflow skip 0」とは記録しないでください。** この成功はあくまで954eのもので、CPU9590の失敗を解消するものではありません。\n\n新liveハーネスの未実装・未検証は、**live実行前に満たす条件**として残します。Pages公開そのものを、その準備完了待ちにする必要はありません。\n\n## NOTES\n\n### 1．表示時間だけでなく、「更新で読み時間が消える問題」に対応できています\n\n固定パッチは分割取得して最終hunkまで読みました。加えて、固定SHAの仕様、`skill-cutin.js`全文、`app.js`の表示・中断・観測処理を確認しています。\n\n今回の変更では、`DISPLAY_MS = 1800`をJSの消去タイマーとCSSへ共通で渡し、通常アニメーションの10～90％を静止区間にしています。**1.8秒を今回の設計値として採用する判断は妥当です。** ただし、ユーザー指定値や「誰でも必ず読み切れることを確認した値」には読み替えません。\n\n特に、連続する通常更新では表示済みカードを消さず、同時に`generation`を進めて**未表示の遅延claimだけを無効化する**処理を評価します。通常更新でタイマーを設定し直していないため、読み時間を保持しながら無期限延長を避けています。新しい技では旧表示を解除し、非表示状態のレイアウトを確定してから再表示するため、カードのCSSアニメーションも再開始する構造です。\n\n表示中の塗り操作、通常更新後の同一イベント維持、新しい技による置換と時間の再開始は、追加されたブラウザーテストにも対応しています。今回の時間assertionは、旧仕様の時間判定を単に緩めるだけでなく、**表示開始から消去までの実測に下限・上限を設ける変更**になっています。\n\nなお、実測1800～1810msはその試験条件での記録です。ブラウザーのタイマーは指定より遅れて実行され得るため、全環境で厳密に1800msになる保証とはしません。citeturn875319search0\n\n### 2．結果説明の範囲と、相手技名の未実装を分けた扱いを承認します\n\n結果説明は、閲覧者本人の持ち色・封印と公開盤面の差分に限定されています。持ち色は順序・重複を正規化し、隣接条件から「塗れる色が増えた」と推測する処理はありません。空振りも、同じscope・event IDに対応する自分のACKでのみ確定し、不明な効果は中立表現に残しています。\n\n**「相手の技名が取得できないから、相手の秘密情報から推測して埋める」方向へ進めない判断は正しいです。** 今回は「読み時間の改善＋確認できた結果の一言説明」として公開し、相手技名は同じUDL065の未達項目として残してください。汎用タイトルのまま公開することは認めますが、それをもって元の「使った技・結果を一言」という要望全体の完成にはしません。\n\nまた、表示中に後続の通常操作が行われても、この説明は**直前に起きた出来事の説明**です。「現在もその持ち色・盤面のままである」という保証として扱わない、という仕様上の区別を維持してください。\n\n### 3．UI先行公開の条件\n\n今回取得した`main`は、申告どおり`d9ce111d7d97019d55b3e90842602001e045ea04`でした。ただし、これは取得時点の確認であり、公開直前の再確認を代替しません。\n\n公開は次の3段階で進めてください。\n\n1. **公開直前にfresh mainがd9ceのまま、候補が正確な954e・cleanであることを確認する。** 他の公開処理と競合してmainが変わっていれば停止し、新base・新候補として再照合する。\n2. **forceなしでmainを954eへ進め、同じ954eのPages成功を確認する。** この便のためのDB適用・Edge配備・管理設定変更は行わない。\n3. **fresh candidate preflightと、HTML／app43／cut-in JS1／cut-in CSS1の厳密byte一致を確認する。** バージョン文字列が表示されているだけで、byte一致の代用にしない。\n\n対象アセットは`index.html`、`app.js?v=20260913-43`、`skill-cutin.js?v=20260913-1`、`skill-cutin.css?v=20260913-1`です。固定差分ではpreflightにも新しいcut-inのJS／CSS marker確認が追加されています。\n\n**上記が揃えば、同じ954eについて公開許可を取り直す必要はありません。** CPU先行という以前の作業予定は解除してよく、今回のUIを独立して公開してください。\n\nその後のCPU統合は、提案どおりfresh base上の新SHA・必要なテスト・新レビューへ進めます。CPU039の条件付き承認は新しい統合対象へ流用せず、逆に、このUIの成功をCPUの失敗ジョブの代替にも使いません。\n\n### 4．新UI liveは、提案された有限枠で承認します\n\n**今回の954e専用として、下記の一回だけを認めます。** ハーネスが既に実装・検証済みという承認ではなく、固定製品を変更せず、この制限を実装・局所検証してから実行する条件です。\n\n| 項目 | 承認する上限・範囲 |\n|---|---|\n| 対象 | 新規匿名プロフィール1件・ユズ対局1件 |\n| 試行 | 1回。再実行・再戦なし |\n| 全体時間 | 最初の本番mutation直前から、終了処理を含む共通240秒 |\n| 通常プレイ | 150秒で打切り。残り90秒を終局・独立読戻し・teardownに確保 |\n| CPU操作 | ブラウザー／API合算で、送信試行最大8回 |\n| 自分の通常ゲーム操作 | 送信試行最大6回 |\n| 投了 | 上記6回とは別に、SURRENDER送信最大1回 |\n| 再送 | 0回。結果不明時も追加送信で解決しない |\n\nこの枠は提出仕様の提案に対応するもので、旧065・067・F3・CPU039の枠を移したものではありません。\n\n実行条件は次のとおりです。\n\n**試行予約と送信制御。** 最初のmutation前に候補SHAへ結び付けた排他的な試行予約を永続化し、プロセス再起動でも再実行できないようにすること。CPUと自分の操作は、ハーネスの操作ループだけでなく、**ブラウザー側の自動送信を含む実送信前の境界**で計数・制限してください。上限に達してからログで発見する実装では不十分です。\n\nブラウザーの通信制御にPlaywrightのrouteを使う場合は、Service Workerにより捕捉できない経路も考慮してください。公式資料でも、その用途では`serviceWorkers: 'block'`が案内されています。これはハーネス側の実装上の注意で、製品への新機能追加を求めるものではありません。citeturn875319search3\n\n**終局優先。** 通常プレイの時間・操作上限に達したら、新たな技の観測を狙わず終了経路へ進むこと。投了前に終局状態を読み、既に終了していれば送信しないでください。結果不明のCPU操作を抱えたまま別操作を重ねず、読戻しを優先します。SURRENDER送信後の応答喪失も再送せず、終局snapshot-v2と本人プロフィールを独立して確認してください。\n\n**取得範囲。** 現行snapshot-v2の本人membership・対局・seat・version整合性を検査し、finishedの読戻しに`initialize`を使わないこと。CPU秘密情報、クイズ・ガチャ・売買、直接DB操作、特権回復、状態注入は範囲外です。トークンや対局等の生IDを共有報告へ出さず、失敗記録も安全な段階名・HTTPコード等で残してください。\n\n**局所検証。** 上限超過、150秒打切り、共通240秒期限、送信結果不明、既存終局、snapshot不一致、試行予約済みでの再起動を検査してから実行すること。検証用ハーネスだけの準備・証拠保存であれば、新しい製品SHAを作る必要はありません。製品へ変更を入れる場合は今回の承認対象外です。\n\n### 5．自然に技が出なかった場合と、受入範囲\n\n**技が自然発生しなければ`NOT_OBSERVED`で終了してよく、追加対局・追試は認めません。** ただし、次の区別は必要です。\n\n| 実際に起きたこと | 記録する扱い |\n|---|---|\n| 対象の技が発生しなかった | 該当する自分／相手の表示検査を`NOT_OBSERVED` |\n| 技は発生したが、仕様どおりモーダル・終局等で抑止／中断された | 抑止・中断理由を記録。通常表示時間の検証とは分ける |\n| 表示条件を満たす技を観測したのに表示されない、説明が誤る、操作を妨げる | `FAIL`。`NOT_OBSERVED`へ置き換えない |\n\nゲーム進行・終局・本人精算が成功しても、**それだけでカットインの本番表示まで検証済みにしないでください。** 自分側と相手側、表示内容と表示時間を分け、観測できた項目だけを受け入れる扱いです。正常な投了による敗北数・戦績・通常報酬の更新は、許可した対局の通常精算として確認し、それ自体を禁止された別の経済操作とは扱いません。\n\n976/976、局所Chrome／Edge各7/7、4枚のスクリーンショット目視は、固定されたCodex実施記録として受領しています。こちらでは全テストの再実行や、そのローカルPNGの再目視はしていません。今回独立に確認したのは、固定差分・主要ソース・仕様blob・GitHubの最終CI結果・取得時点のmainです。\n\n**この返答の受領後は本レビュー待機を閉じ、954eの公開直前照合へ進めてください。** 相手技名の後続、067の部分受入、CPU039の原失敗・別承認、物理端末`NOT_RUN`、別系統の文書導入は、それぞれ現在の区分を維持します。",
+        "read_started_at_utc": "2026-09-13T01:10:11Z",
+        "receipt_save_confirmed_by_utc": "2026-09-13T01:12:58Z"
+      },
+      "recorded_at_utc": "2026-09-13T01:10:11Z",
+      "blockers": [],
+      "conditions": [
+        "Fresh main remains d9ce, exact954e clean; forcefree sameSHA main/Pages then fresh candidate preflight and4asset exactbytes.",
+        "Pages publication need not wait for live harness; DB/Edge/managed changes forbidden in this slice.",
+        "Newbounded live only after harness tested including ambiguous sends,150/240sec,terminal/snapshot mismatch/durable reservation; serviceWorkers:block; pre-send shared admission; noresends.",
+        "No natural skill => NOT_OBSERVED; eligibleevent missing/wrong/blocked => FAIL, intentionalpriority suppression separate. Self/opponent/content/time recorded independently.",
+        "CPU039/old065/067/F3 attempts and partial states preserved; changedCPUintegration requires freshSHA/base/tests/review."
+      ],
+      "bounds": {
+        "additional_profiles": 1,
+        "matches": 1,
+        "character_id": "yuzu",
+        "wall_ms": 240000,
+        "ordinary_play_ms": 150000,
+        "final_read_and_teardown_reserve_ms": 90000,
+        "cpu_sends": 8,
+        "own_game_sends": 6,
+        "surrender_sends": 1,
+        "attempts": 1,
+        "retries": 0,
+        "rematches": 0
+      },
+      "notes": [
+        "Astra read complete fixed patch in chunks, key source/spec/blob and actualWindows/main; local976/browser7/images received as Codex report, not re-executed/re-viewed.",
+        "Chrome lifecycle workflow step intentionally skipped; executedtestskip0 not entireworkflow skip0.",
+        "UI-first explicitly approved. Named opponent skill event remains unmet UDL065, not full request completion."
+      ],
+      "record_time_basis": "Actual bounded read reservation, not inferred response timestamp."
     }
   ]
 }

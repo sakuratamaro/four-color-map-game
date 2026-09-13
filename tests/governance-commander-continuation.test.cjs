@@ -82,6 +82,33 @@ test("v14 preparation approval still requires genuine exact scope and cannot bor
  ui.candidate_sha="a".repeat(40);log.decisions[0].scope="Pages_Edge_DB_managed_activation";
  assert.equal(planContinuation(log).reason,"RECONCILE_INVALID_REVIEW");
 });
+test("published v14 retains only its exact bounded unused acceptance, never CPU or an old attempt",()=>{
+ const log=fixture();approve(log);const c=log.coordination,ui=c.active_slice,r=log.decisions[0];
+ const bounds={additional_profiles:1,matches:1,character_id:"yuzu",wall_ms:240000,ordinary_play_ms:150000,
+  final_read_and_teardown_reserve_ms:90000,cpu_sends:8,own_game_sends:6,surrender_sends:1,attempts:1,retries:0,rematches:0};
+ Object.assign(ui,{request_id:"UDL-20260912-065",branch:"codex/skill-cutin-readability-20260913",
+  worktree:".codex-worktrees/skill-cutin-readability-20260913",publication:"PAGES_PUBLISHED",
+  main_sha:ui.candidate_sha,pages_sha:ui.candidate_sha,pages_status:"SUCCESS",live_canary_attempts:0,
+  live_canary_state:"AUTHORIZED_HARNESS_INCOMPLETE",live_canary_bounds:bounds,
+  production_gates:{main:"EXACT_SHA_PUBLISHED",pages:"SUCCESS_PREFLIGHT_BYTE_EXACT"},
+  live_canary_authorization:{explicitly_authorized:true,source_review_id:r.review_id,
+   source_request_message_id:r.source.request_message_id,source_response_message_id:r.source.message_id,bounds}});
+ Object.assign(r.source,{response_complete:true,request_body_equality:true});
+ c.remaining_brain_work={cutin_readability_preparation:ui};delete c.active_slice;
+ const before=JSON.stringify(log);assert.equal(planContinuation(log).action,"PREPARE_BOUNDED_UI_CANARY");
+ assert.equal(JSON.stringify(log),before);
+ ui.live_canary_state="HARNESS_LOCAL_VERIFIED_NOT_RESERVED";assert.equal(planContinuation(log).action,"EXECUTE_BOUNDED_UI_CANARY");
+ ui.live_canary_attempts=1;ui.live_canary_state="RESERVED_BEFORE_EXECUTION";
+ assert.equal(planContinuation(log).action,"INSPECT_RESERVED_UI_CANARY_READ_ONLY");
+ ui.live_canary_state="ATTEMPT_FINISHED";assert.equal(planContinuation(log).phase,"STOP");
+ for(const mutate of [s=>s.pages_sha="d".repeat(40),s=>s.live_canary_authorization.explicitly_authorized=false,
+  s=>s.live_canary_authorization.source_response_message_id="old",s=>s.live_canary_authorization.bounds.cpu_sends=9,
+  s=>s.live_canary_attempts=2,s=>s.production_gates.pages="NOT_RUN"]){
+  const x=JSON.parse(before);mutate(x.coordination.remaining_brain_work.cutin_readability_preparation);
+  assert.equal(planContinuation(x).phase,"STOP");
+ }
+});
+
 test("accepted send with unconfirmed delivery gets only its original finite read, never an invented message ID",()=>{
   for(const followup of [false,true]){
     const log=fixture(),c=log.coordination,s=c.active_slice,w=c.wait_budget;

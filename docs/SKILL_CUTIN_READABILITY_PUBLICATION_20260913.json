@@ -1,0 +1,127 @@
+{
+  "schema_version": 1,
+  "request_id": "UDL-20260912-065",
+  "scope": "Pages_only",
+  "candidate_sha": "954e1c5c52d5453fc9fee9872b2d7e922f850a39",
+  "base_sha": "d9ce111d7d97019d55b3e90842602001e045ea04",
+  "review_id": "CHATGPT-REVIEW-20260913-040",
+  "source_response_message_id": "fb1e2e48-53e5-4a1a-b34a-2fa2e66f862d",
+  "feature_spec_version": "UDL-065-readability-v1.1",
+  "spec_snapshot_sha": "2af5d73528a35edc29f45b3be5b700f6ceaf4688",
+  "windows_run": "34728306768",
+  "windows_evidence": "docs/SKILL_CUTIN_READABILITY_WINDOWS_20260913.json",
+  "main": {
+    "previous_sha": "d9ce111d7d97019d55b3e90842602001e045ea04",
+    "sha": "954e1c5c52d5453fc9fee9872b2d7e922f850a39",
+    "force": false,
+    "readback": "git ls-remote origin refs/heads/main matched exact954e",
+    "adjacent_push_clock_utc": "2026-09-13T01:15:10Z"
+  },
+  "pages": {
+    "id": "34730074280",
+    "url": "https://github.com/sakuratamaro/four-color-map-game/actions/runs/34730074280",
+    "head_sha": "954e1c5c52d5453fc9fee9872b2d7e922f850a39",
+    "status": "completed",
+    "conclusion": "success",
+    "created_at": "2026-09-13T01:15:25Z",
+    "run_started_at": "2026-09-13T01:15:25Z"
+  },
+  "public_preflight": {
+    "ok": true,
+    "expectedPhase": "candidate",
+    "publicPage": {
+      "status": 200,
+      "title": "Four Color Map Game v5.0 Standard Online",
+      "hasPublicMatchmaking": true,
+      "hasCpuRoster": true,
+      "hasCosmetics": true,
+      "hasPregameAbandon": true,
+      "hasActiveRoomRecovery": true,
+      "hasLegalRecolorLab": true,
+      "hasWaitingOpponentNotice": true,
+      "hasAlpha3SkillCategoryWindow": true,
+      "hasAlpha4ColoredCornerBloom": true,
+      "hasRegistryRarityUi": true,
+      "hasCpuPortraits": true,
+      "hasWholeButtonQuizPhysics": true,
+      "hasBoardFirstCandidateGuidance": true,
+      "hasPerCellContactFeedback": true,
+      "hasApprovedGachaOddsUi": true,
+      "hasApprovedEdgeGachaOdds": true,
+      "hasDeferredCurseLocalBundle": true,
+      "hasRegionSplitDirectTarget": true,
+      "hasCompactCpuRecords": true,
+      "hasQuizAccuracyRecords": true,
+      "hasCpuSealTimingPolicy": true,
+      "hasMatchRewardEconomy": true,
+      "hasCandidateAssetGeneration": true
+    },
+    "database": {
+      "snapshotV1": "protected",
+      "snapshotV2": "protected",
+      "matchmaking": "protected",
+      "matchmakingAvailability": "protected",
+      "pregameAbandon": "protected",
+      "activeRoom": "protected",
+      "setupLoadV3": "protected",
+      "initializeRoomV3": "protected"
+    }
+  },
+  "public_bytes": {
+    "candidateSha": "954e1c5c52d5453fc9fee9872b2d7e922f850a39",
+    "checkedAt": "2026-09-13T01:17:08.358Z",
+    "ok": true,
+    "assets": [
+      {
+        "file": "index.html",
+        "url": "https://sakuratamaro.github.io/four-color-map-game/standard-online-v5/",
+        "httpStatus": 200,
+        "bytes": 41447,
+        "sha256": "2b8a30fea7a93555a71740127d13d34aaa5bcdb2cf2a4986b0ceae39feb14182",
+        "candidateByteExact": true
+      },
+      {
+        "file": "app.js",
+        "url": "https://sakuratamaro.github.io/four-color-map-game/standard-online-v5/app.js?v=20260913-43",
+        "httpStatus": 200,
+        "bytes": 352665,
+        "sha256": "ed5a95e7ec358ea82c3fe0e47b0e9180e360841409061ab2b9465f5fa589a6cb",
+        "candidateByteExact": true
+      },
+      {
+        "file": "skill-cutin.js",
+        "url": "https://sakuratamaro.github.io/four-color-map-game/standard-online-v5/skill-cutin.js?v=20260913-1",
+        "httpStatus": 200,
+        "bytes": 8109,
+        "sha256": "cb13a2eaf2ff59826eedae2cae975365364999c79aa5ad0232df68cd967f233c",
+        "candidateByteExact": true
+      },
+      {
+        "file": "skill-cutin.css",
+        "url": "https://sakuratamaro.github.io/four-color-map-game/standard-online-v5/skill-cutin.css?v=20260913-1",
+        "httpStatus": 200,
+        "bytes": 3267,
+        "sha256": "88d93153f4c36744d5b7af17cfa99d9d20d3af01e8f4189584f26593744c197a",
+        "candidateByteExact": true
+      }
+    ]
+  },
+  "state": "PAGES_PUBLISHED_LIVE_ACCEPTANCE_PENDING",
+  "live": {
+    "profile_reservations": 0,
+    "match_reservations": 0,
+    "attempts": 0,
+    "harness": "PARTIAL_GUARD_ONLY",
+    "browser": "NOT_RUN",
+    "self_display": "NOT_RUN",
+    "opponent_display": "NOT_RUN",
+    "physical": "NOT_RUN"
+  },
+  "non_changes": {
+    "db": [],
+    "edge": [],
+    "managed_settings": [],
+    "cpu039_not_published": true,
+    "named_opponent_event_unimplemented": true
+  }
+}

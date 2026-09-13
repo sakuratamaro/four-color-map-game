@@ -349,6 +349,7 @@ test("ChatGPT review records require an exact subject and cannot imply productio
       assert.match(decision.subject_sha, /^[0-9a-f]{40}$/);
       assert.match(decision.spec_snapshot_sha, /^[0-9a-f]{40}$/);
       const bindings = {
+        "CHATGPT-REVIEW-20260913-040": ["954e1c5c52d5453fc9fee9872b2d7e922f850a39", "d9ce111d7d97019d55b3e90842602001e045ea04", "UDL-065-readability-v1.1", "2af5d73528a35edc29f45b3be5b700f6ceaf4688", "Pages_only"],
         "CHATGPT-REVIEW-20260913-039": ["9590a4212d69185fc93df31b552d9bd870d5a9a3", "d9ce111d7d97019d55b3e90842602001e045ea04", "UDL-051-palette-v1.1", "de0cc9e2299a8a69dd1bfbc9368cd98042ca9b9f", "Pages_Edge_DB_managed_activation"],
         "CHATGPT-REVIEW-20260913-038": ["d9ce111d7d97019d55b3e90842602001e045ea04", "f507c0b2dd9701f3ac1867131150b5e48d0ada8d", "UDL-051-split-v1.1", "5b4b137769f1be7736ded6a187e438ccb6d9a702", "Pages_Edge_DB_managed_activation"],
         "CHATGPT-REVIEW-20260913-036": ["d9ce111d7d97019d55b3e90842602001e045ea04", "f507c0b2dd9701f3ac1867131150b5e48d0ada8d", "UDL-051-split-v1.1", "5b4b137769f1be7736ded6a187e438ccb6d9a702", "Pages_Edge_DB_managed_activation"],
@@ -385,7 +386,19 @@ test("ChatGPT review records require an exact subject and cannot imply productio
       assert.ok(bindings[decision.review_id], "each genuine review needs an explicit exact binding");
       assert.deepEqual([decision.subject_sha, decision.base_sha, decision.feature_spec_version,
         decision.spec_snapshot_sha, decision.scope], bindings[decision.review_id]);
-      if(decision.review_id==="CHATGPT-REVIEW-20260913-039") {
+      if(decision.review_id==="CHATGPT-REVIEW-20260913-040") {
+        assert.equal(decision.decision,"APPROVE_RELEASE");
+        assert.equal(decision.source.message_id,"fb1e2e48-53e5-4a1a-b34a-2fa2e66f862d");
+        assert.equal(decision.source.request_message_id,"3e6efd53-710a-45ed-9de4-05627ca5f40e");
+        assert.equal(decision.source.response_text.length,5467);
+        assert.equal(decision.source.request_body_equality,true);
+        assert.equal(decision.source.response_complete,true);
+        assert.deepEqual(decision.db_change_set,[]);
+        assert.deepEqual(decision.edge_change_set,[]);
+        assert.deepEqual(decision.managed_setting_change_set,[]);
+        assert.deepEqual(decision.blockers,[]);
+        assert.deepEqual(decision.bounds,{additional_profiles:1,matches:1,character_id:"yuzu",wall_ms:240000,ordinary_play_ms:150000,final_read_and_teardown_reserve_ms:90000,cpu_sends:8,own_game_sends:6,surrender_sends:1,attempts:1,retries:0,rematches:0});
+      } else if(decision.review_id==="CHATGPT-REVIEW-20260913-039") {
         assert.equal(decision.decision,"APPROVE_WITH_CONDITIONS");
         assert.equal(decision.source.message_id,"fd9b3fa2-dd74-4379-a0e7-7cf05ad31ff9");
         assert.equal(decision.source.request_message_id,"718d0bfa-6d26-4931-ac81-22a21542ec50");

@@ -124,6 +124,29 @@ function planContinuation(log, {now = new Date().toISOString(), otherOwnerActive
       return {phase:"NORMAL_WORK", action:"BOUNDED_LIVE_FOLLOWUP", ref, subject_sha:s.candidate_sha,
         review_id:f.source_review_id, reason:"EXPLICIT_REVIEW_DISPOSITION_WITH_ORIGINAL_FAILURE_PRESERVED"};
     if (s.review_id && !r) issues.push(ref + ":EXACT_REVIEW_BINDING_REQUIRED");
+    // Existing UI metadata retains its separately approved one-shot acceptance after Pages.
+    // Routing never reserves a trial, sends a request, or reopens the closed review wait.
+    const live=s.live_canary_authorization,b=live?.bounds;
+    const readyUiLive=ref==="remaining_brain_work.cutin_readability_preparation" && r &&
+      ["APPROVE_RELEASE","APPROVE","APPROVE_WITH_CONDITIONS"].includes(r.decision) &&
+      r.source.response_complete===true && r.source.request_body_equality===true &&
+      s.publication==="PAGES_PUBLISHED" && s.main_sha===s.candidate_sha && s.pages_sha===s.candidate_sha &&
+      s.pages_status==="SUCCESS" && s.production_gates?.main==="EXACT_SHA_PUBLISHED" &&
+      s.production_gates?.pages==="SUCCESS_PREFLIGHT_BYTE_EXACT" &&
+      live?.explicitly_authorized===true && live.source_review_id===r.review_id &&
+      live.source_request_message_id===r.source.request_message_id && live.source_response_message_id===r.source.message_id &&
+      b?.additional_profiles===1 && b.matches===1 && b.character_id==="yuzu" &&
+      b.wall_ms===240000 && b.ordinary_play_ms===150000 && b.final_read_and_teardown_reserve_ms===90000 &&
+      b.cpu_sends===8 && b.own_game_sends===6 && b.surrender_sends===1 && b.attempts===1 &&
+      b.retries===0 && b.rematches===0 && equal(b,s.live_canary_bounds);
+    if(readyUiLive && s.live_canary_attempts===0 &&
+      ["AUTHORIZED_HARNESS_INCOMPLETE","HARNESS_LOCAL_VERIFIED_NOT_RESERVED"].includes(s.live_canary_state))
+      return {phase:"NORMAL_WORK",action:s.live_canary_state==="AUTHORIZED_HARNESS_INCOMPLETE"?
+        "PREPARE_BOUNDED_UI_CANARY":"EXECUTE_BOUNDED_UI_CANARY",ref,subject_sha:s.candidate_sha,
+        review_id:r.review_id,reason:"PUBLISHED_UI_HAS_EXACT_APPROVED_UNUSED_ACCEPTANCE"};
+    if(readyUiLive && s.live_canary_attempts===1 && s.live_canary_state==="RESERVED_BEFORE_EXECUTION")
+      return {phase:"NORMAL_WORK",action:"INSPECT_RESERVED_UI_CANARY_READ_ONLY",ref,subject_sha:s.candidate_sha,
+        review_id:r.review_id,reason:"RESERVED_TRIAL_REQUIRES_EVIDENCE_NOT_REEXECUTION"};
     // A review is a gate, not a release command: fresh main/CI/Pages/live checks remain mandatory.
     if (r && ["APPROVE_RELEASE","APPROVE","APPROVE_WITH_CONDITIONS"].includes(r.decision) &&
         ["NOT_RUN","NOT_MERGED","not_merged"].includes(s.publication) &&

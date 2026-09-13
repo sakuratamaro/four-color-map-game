@@ -36,8 +36,12 @@ test("v14 cut-in follow-up stays separate from published065 and the fixed CPU039
  assert.equal(p.previous_preparation.candidate_sha,"01a8735d81b005c2ee1f9b699f355f00e2f6222e");
  assert.equal(p.candidate_sha,"954e1c5c52d5453fc9fee9872b2d7e922f850a39");
  assert.equal(p.spec_version,"UDL-065-readability-v1.1");assert.equal(p.spec_snapshot_sha,"2af5d73528a35edc29f45b3be5b700f6ceaf4688");
- assert.equal(p.implementation_state,"implemented_partial");assert.equal(p.verification_state,"local_pass");
- assert.equal(p.release_state,"not_merged");assert.equal(p.publication,"NOT_RUN");assert.equal(p.no_live_attempt_reserved,true);
+ assert.equal(p.implementation_state,"implemented_partial");assert.equal(p.verification_state,"windows_gate_pass");
+ assert.equal(p.release_state,"pages_published");assert.equal(p.publication,"PAGES_PUBLISHED");assert.equal(p.no_live_attempt_reserved,true);
+ assert.equal(p.review_id,"CHATGPT-REVIEW-20260913-040");assert.equal(p.pages_run,"34730074280");
+ assert.equal(p.main_sha,p.candidate_sha);assert.equal(p.pages_sha,p.candidate_sha);
+ const published=read(p.public_asset_evidence);assert.equal(published.public_preflight.ok,true);
+ assert.equal(published.public_bytes.assets.length,4);assert.ok(published.public_bytes.assets.every(x=>x.candidateByteExact));
  assert.equal(p.tests.nonbrowser_pass,976);assert.equal(p.tests.chrome_pass,7);assert.equal(p.tests.edge_pass,7);
  assert.equal(p.windows_run,"34728306768");assert.ok(["IN_PROGRESS","SUCCESS","FAILURE"].includes(p.windows_status));
  assert.equal(p.scope,"Pages_only");assert.deepEqual(p.db_change_set,[]);assert.deepEqual(p.edge_change_set,[]);

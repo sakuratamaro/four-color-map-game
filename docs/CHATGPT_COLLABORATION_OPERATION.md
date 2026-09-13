@@ -4,6 +4,8 @@
 
 2026-09-13 v14追補: 既存 `remaining_brain_work.cutin_readability_preparation` も同じ照合・有限待機・通常作業の参照対象とする。別キューを新設せず、旧067 partialとCPU9590/039の条件付きCI停止を移動/削除しない。UIのowner/要望/専用branch/worktreeを限定し、同一の候補/base/仕様/DB/Edge/実レビュー照合を使う。UIのCIや承認はCPUへ流用しない。CPU先行は作業上の案であり独立UIの技術依存ではないため、UI先行可否を新候補の実アストラ審査へ含める。
 
+2026-09-13 公開後追補: 実040による954e UI先行公開と専用有限live承認は、同じmetadata上で保持する。Pages成功/同SHA/byte確認と実承認の出典・完全上限が一致する未使用試行だけ、既存helperが通常harness準備→局所検証後の1回実行へ振り分ける。試行予約済みは読取回復だけへ分け、再実行しない。helper自身はprofile作成・試行予約・公開・送信を行わず、旧CPU039や旧065/067/F3へ権限を与えない。本経路修正は別系統の文書導入承認に含めず、製品954eを変えない。
+
 ユーザーの直接指示「作業を再開し、また、このような不毛な停止が起きないように再発防止策を施してください」によるローカル運用修正。以下の履歴にある「受信後PAUSED＋自分宛て送信」を置換する。旧APPROVE_DOCSを本修正への承認と表示せず、固定差分を別途レビュー可能にする。独立したゲーム便の停止条件にはしない。
 
 `CANON_RECEIPT version=shared-canon-v1.1 base=a757c126e1325532bb11a719cf92d0d13401d3ae request=REG-20260912-SELF-HANDOFF-01,UDL-20260912-061/062 specs=AGENTS.md,docs/SHARED_CANON.md,docs/CHATGPT_COLLABORATION_OPERATION.md tests=tests/governance-commander-continuation.test.cjs,tests/governance-shared-canon.test.cjs`
