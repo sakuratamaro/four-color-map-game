@@ -1,0 +1,955 @@
+diff --git a/.github/workflows/standard-browser-gate.yml b/.github/workflows/standard-browser-gate.yml
+index ee75d58..4a9b7a4 100644
+--- a/.github/workflows/standard-browser-gate.yml
++++ b/.github/workflows/standard-browser-gate.yml
+@@ -2,7 +2,7 @@ name: Standard browser gate
+ 
+ on:
+   push:
+-    branches: [codex/standard-release-command, codex/quiz-memo-calculator-20260912, codex/ui-diet-20260912, codex/ui-play-surface-20260912, codex/ui-result-20260912, codex/ui-cosmetics-20260912, codex/ui-player-copy-20260912, codex/skill-cutin-20260912, codex/ui-flat-entry-20260912, codex/skill-catalog-20260912, codex/surrender-confirmation-20260913, codex/cpu-split-rescue-20260913, codex/skill-cutin-readability-20260913]
++    branches: [codex/standard-release-command, codex/quiz-memo-calculator-20260912, codex/ui-diet-20260912, codex/ui-play-surface-20260912, codex/ui-result-20260912, codex/ui-cosmetics-20260912, codex/ui-player-copy-20260912, codex/skill-cutin-20260912, codex/ui-flat-entry-20260912, codex/skill-catalog-20260912, codex/surrender-confirmation-20260913, codex/cpu-split-rescue-20260913, codex/skill-cutin-readability-20260913, codex/skill-cutin-public-names-20260913]
+     paths:
+       - .github/workflows/standard-browser-gate.yml
+       - online/supabase-config.js
+@@ -32,6 +32,9 @@ on:
+       - tests/browser-server-cleanup.test.cjs
+       - tests/helpers/browser-server-cleanup.cjs
+       - tests/helpers/cpu-sql-runtime.cjs
++      - tests/helpers/public-skill-fixture.cjs
++      - scripts/check-standard-public-skill-compat.cjs
++      - docs/SKILL_PUBLIC_EVENT_20260913.md
+       - tests/sql-runtime/**
+   pull_request:
+     paths:
+@@ -63,6 +66,9 @@ on:
+       - tests/browser-server-cleanup.test.cjs
+       - tests/helpers/browser-server-cleanup.cjs
+       - tests/helpers/cpu-sql-runtime.cjs
++      - tests/helpers/public-skill-fixture.cjs
++      - scripts/check-standard-public-skill-compat.cjs
++      - docs/SKILL_PUBLIC_EVENT_20260913.md
+       - tests/sql-runtime/**
+   workflow_dispatch:
+ 
+@@ -169,6 +175,8 @@ jobs:
+           tests/standard-cosmetic-item-action.test.cjs
+           tests/standard-player-copy-static.test.cjs
+           tests/standard-skill-cutin.test.cjs
++          tests/standard-public-skill-event.test.cjs
++          tests/standard-public-skill-persistence.test.cjs
+           tests/standard-skill-catalog.test.cjs
+           tests/standard-surrender-confirmation.test.cjs
+           tests/standard-recolor.test.cjs
+diff --git a/docs/SKILL_PUBLIC_EVENT_20260913.md b/docs/SKILL_PUBLIC_EVENT_20260913.md
+new file mode 100644
+index 0000000..97d434d
+--- /dev/null
++++ b/docs/SKILL_PUBLIC_EVENT_20260913.md
+@@ -0,0 +1,47 @@
++# Public identity of the skill just used
++
++Version: `UDL-065-public-skill-v1`
++
++CANON_RECEIPT version=shared-canon-v1.1 base=954e1c5c52d5453fc9fee9872b2d7e922f850a39 request=UDL-20260912-065 source=bbb2135e-cfd1-4da8-845b-9e3d07d8b29a specs=docs/SKILL_CUTIN_READABILITY_20260913.md,docs/STANDARD_MODE_SPEC.md tests=tests/standard-public-skill-event.test.cjs,tests/standard-skill-cutin.test.cjs,tests/standard-online-browser.test.cjs,tests/standard-online-engine-bundle.test.cjs worktree=.codex-worktrees/skill-cutin-public-names-20260913
++
++The existing commander's routing, request ledger and genuine review040 were read on `codex/dev-brain-current-20260910@d82bdb6647a12b0d30b6859d04b464a15ac94c22`. The freshly fetched product base above is separate. Preserve the published954e UI, its failed/consumed one-shot trial, old062/067 partial acceptances and CPU9590/039. None approves this new candidate.
++
++## Adopted outcome and privacy
++
++The user's v14 request asks for a little more reading time and the used skill/result in one short line. The prior UI shipped the reading time and observable-result explanation; the opponent's catalog name is the remaining part of this slice.
++
++After the authoritative engine resolves a USE_SKILL action, its server adapter adds optional `publicState.lastPublicSkill` containing exactly `eventId`, `version`, `actor`, and `skillId`. The ID comes from the dispatched registry definition, not from an unvalidated payload, CPU stock or private hand. It is bound to the same existing public trace. No private target, selected color, slot, unused card, palette, outcome inference or arbitrary name is copied.
++
++This is public presentation metadata for the committed action, not a new authoritative game-state field or an independent event stream. The original `lastPublicTrace` shape, state/RNG snapshot, private projections, skill/category consumption, rules, CPU policy and rewards remain unchanged. Rejected/cancelled actions emit no new annotation. A committed accepted no-op may identify the attempted skill but does not assert that its effect succeeded. Only the matching own ACK may label a hidden outcome as 空振り.
++
++The browser accepts only the exact four-key annotation matching the current validated trace's event/version/actor and an implemented canonical ID in its existing generated registry. It uses that registry's display name for either participant. Unknown, malformed, stale, mismatched or absent metadata falls back to the previous generic title (or the matching own ACK), never to a guess. All text remains textContent, with no HTML interpretation. Old trace-only clients keep their generic cut-in because the trace itself is unchanged.
++
++## Storage, compatibility and release boundary
++
++The existing service-only commit RPC atomically stores the supplied public JSON together with the unchanged authoritative JSON, private projections, version and receipt. The existing snapshot-v2 returns that public JSON. No SQL schema/function change or new management flag is planned. This must be verified by tests of the actual Edge handler/commit boundary, not prose alone. A later projection of authoritative state alone is allowed to omit the ephemeral annotation; it must not reconstruct or replay old names from private state.
++
++The server engine builder and generated Edge bundle change; the shared rule module and local bundle do not. Old/new server-state compatibility will be checked against the exact base engine, and old/new viewer combinations must keep generic or named output without changing action semantics. A retry uses the existing action receipt/version identity; no additional event ID, write or replay is introduced.
++
++Preserve 1800ms, observed-result wording, ordinary-update lifetime, scope/version guards, locks/storage deduplication, priority interruption, reduced motion, input and focus behavior, and optional-module failure handling. No new images, quiz/gacha/economy operation or production trial is included.
++
++A fixed new SHA/spec blob, complete changed-file inventory, executable local/Windows evidence and genuine Astra review are required before release. DB/managed changes are []; Edge has the generated standard-game-action bundle only (the unchanged index must still be paired and byte-checked at deployment). Local implementation is complete; executed results, the fixed SHA and later review/publication status belong to the existing governance evidence record, not a prediction in this specification.
++
++## Executable acceptance and limits
++
++`tests/standard-public-skill-event.test.cjs` runs the actual generated adapter and shared engine. Both actors, work/palette/accepted-no-op/recolor, all implemented catalog entries, alpha.1 through alpha.4, malformed/stale/unknown metadata and locked identity deduplication are covered. The added annotation is the only allowed public difference; authoritative state, RNG, effects, private output and input immutability remain identical.
++
++`tests/standard-public-skill-persistence.test.cjs` executes the unchanged full TypeScript handler, real generated engine and existing application migrations through F3 in isolated PGlite0.5.8. Actual commit/snapshot-v2/replay SQL covers both human seats, an authored CPU-selected action, accepted no-op, real rule rejection, atomic profile-conflict rollback, and lost commit response followed by snapshot and duplicate receipt. CPU selection is explicitly a fixture; this does not prove stock policy selection, production authentication, multi-worker races or native Supabase operation. No production RPC is called. The volatile snapshot `server_time` is excluded only from rollback equality; all persisted authority/public/private/profile/receipt data remain asserted.
++
++`scripts/check-standard-public-skill-compat.cjs --base=954e1c5c52d5453fc9fee9872b2d7e922f850a39` reads the exact fixed-base Git objects, not the candidate's expected output. It checks 16 actor/scenario/version cases and 64 old/new engine/viewer combinations, including alternating old/new workers after the new action. This is separate local compatibility evidence; CI's shallow checkout is not silently assumed to contain that base.
++
++The two added UDL065 browser cases use the generated registry and actual UI at390/1280 for both participants. They check readable names, 1800ms animation, unchanged focus, pointer-transparent hit testing, normal coloring while the card is visible, stale/unknown fallback, deduplication and no extra action. All seven prior UDL065 cases stay in the Chrome/Edge gate. Physical devices and genuine production skill observations remain NOT_RUN unless separately evidenced.
++
++## Publication and rollback sequence
++
++1. Freeze the candidate, feature-spec blob and exact base above; require the same candidate's successful Windows Chrome and Edge gate plus genuine Astra approval. Re-fetch main and reconcile any advancement without reusing this candidate's approval for a changed SHA. Old CPU039 and UI040 approvals and their failed/consumed trial evidence remain separate.
++2. Record the current production artifacts and deploy only the approved compatible generated Edge bundle paired with the unchanged approved index. Read back both complete deployed files and compare exact hashes/bytes. Preserve existing JWT, CPU managed flags, SQL, secrets and other functions. Failed or uncertain deployment/readback stops Pages promotion; do not infer success from an HTTP capability probe or toast alone.
++3. The fixed-base compatibility evidence permits either old or new worker/viewer without changing game semantics. There is no new persisted policy/state format or activation flag, and no global worker-convergence claim. New names may remain generic on an old worker. No CPU-style activation timer is invented for this presentation-only annotation.
++4. Force-free publish the same approved candidate to main/Pages and require the same-SHA successful Pages run, existing protected-RPC preflight and exact served index/app44/cutinJS2 bytes. CSS1 and all other previously published features remain unchanged. This is asset/deployment verification, not a production match acceptance result.
++5. No production profile, match, action, purchase, rematch or cleanup is authorized by this document. A requested genuine-play test requires a separately explicit fixed-candidate review scope and locally tested finite harness; the already-consumed040 allowance cannot be reopened. Physical acceptance is separate.
++
++If rollback is necessary, both the fixed-base viewer and engine remain compatible because authoritative state and the old trace are unchanged and old viewers ignore the optional field. Use only the recorded exact compatible artifacts through the existing runbook, preserve committed actions/receipts, and never rewrite game rows or substitute another candidate's approval. An independently discovered code defect requires a new fixed correction and review.
+diff --git a/docs/STANDARD_PUBLIC_RELEASE_RUNBOOK.md b/docs/STANDARD_PUBLIC_RELEASE_RUNBOOK.md
+index 10c1fb6..35be09e 100644
+--- a/docs/STANDARD_PUBLIC_RELEASE_RUNBOOK.md
++++ b/docs/STANDARD_PUBLIC_RELEASE_RUNBOOK.md
+@@ -161,6 +161,15 @@ rollbackも「旧version番号へ戻った」という目視だけでは完了
+ 
+ ## EdgeとPagesの順序
+ 
++### UDL-065: 使用済みスキル名の公開表示
++
++`docs/SKILL_PUBLIC_EVENT_20260913.md`（`UDL-065-public-skill-v1`）が正本の独立後続便。基準は公開954e、DB/管理設定は各 `[]`。変更Edgeは生成 `standard-engine.bundle.js` だけで、変更なしの `index.ts` も同じ配備物へ含めて厳密読戻しする。online `app.js?v=20260913-44`、`skill-cutin.js?v=20260913-2`、CSSは `skill-cutin.css?v=20260913-1` を維持。
++
++1. 固定候補SHA・仕様blob・全差分・同一SHAのWindows Chrome/Edge成功と実Astra判定をそろえる。CPU039とUI040、旧失敗・部分受入は流用/書換しない。
++2. 実engine/handler/commit/snapshot/replay SQLと旧新viewerの互換試験後、互換Edge → 完全2file読戻し → Pages の順に公開する。管理設定・SQL・JWTは変更しない。旧workerでは汎用名へfallbackするが、正規state/RNG/private/旧traceと操作意味は不変。
++3. fresh mainを照合し、forceなしの同SHA main/Pages、既存preflightと候補の公開byte一致を確認する。配信確認だけを本番対局受入にしない。新プロフィール・対局・本番操作は本便の文書では0件、040の消費済み試行を再使用しない。
++4. rollback時も記録した互換artifactと既存runbookを使い、保存済み対局・receiptを書き換えない。物理端末と実本番スキル観測は未実施ならNOT_RUN。
++
+ ### UDL-065: v14カットイン可読性・実結果説明
+ 
+ `docs/SKILL_CUTIN_READABILITY_20260913.md`（`UDL-065-readability-v1.1`）を参照する独立Pages-only便。JS/CSSは `skill-cutin.js?v=20260913-1` / `skill-cutin.css?v=20260913-1`、online appは `app.js?v=20260913-43`。DB/Edge/管理設定の変更は各 `[]`。現在の候補参照markerの更新であり、古い便の実配信証拠をapp43へ書き換えるものではない。
+@@ -288,7 +297,7 @@ Pages表示の退行は直前Pagesへ戻せる。適用済みcounterは旧client
+ 
+ ### alpha.4彩色済みエリア角膨張便
+ 
+-完了履歴。この便は新payloadを旧Edgeが拒否する一方、新Edgeは旧UIのoutgoing payloadを継続できるため、`alpha.4対応Edge → live canary → Pages`の順で公開した。後続の対戦報酬便、CPU台詞／地の文分離便、CPU選択前portrait便、終局復帰時の開始告知抑止便、パレット属性識別便、クイズ報酬券レベル引継ぎ候補を含む現在のPages候補assetはonline app `app.js?v=20260913-43`、CPU commentary `cpu-commentary.js?v=20260910-1`、progression `progression.css?v=20260910-2`、style `style.css?v=20260910-12`、intents `standard-online-skill-intents.js?v=20260911-21`、client `standard-online-client.js?v=20260910-1`、portrait `cpu-portraits.js?v=20260908-1`、Local bundle `app.bundle.js?v=20260913-9-4f66b9b284ba`である。このalpha.4便自体ではDB、migration、RPC、secret、cleanup scheduleは変更しない。
++完了履歴。この便は新payloadを旧Edgeが拒否する一方、新Edgeは旧UIのoutgoing payloadを継続できるため、`alpha.4対応Edge → live canary → Pages`の順で公開した。後続の対戦報酬便、CPU台詞／地の文分離便、CPU選択前portrait便、終局復帰時の開始告知抑止便、パレット属性識別便、クイズ報酬券レベル引継ぎ候補を含む現在のPages候補assetはonline app `app.js?v=20260913-44`、CPU commentary `cpu-commentary.js?v=20260910-1`、progression `progression.css?v=20260910-2`、style `style.css?v=20260910-12`、intents `standard-online-skill-intents.js?v=20260911-21`、client `standard-online-client.js?v=20260910-1`、portrait `cpu-portraits.js?v=20260908-1`、Local bundle `app.bundle.js?v=20260913-9-4f66b9b284ba`である。このalpha.4便自体ではDB、migration、RPC、secret、cleanup scheduleは変更しない。
+ 
+ 1. `origin/main@63972b6`起点の専用clean worktreeで両bundleを2回生成し、2回目のSHAが不変、正式全製品試験、Windows Chrome/Edge CI、対象実browserのskip 0を確認する。
+ 2. alpha.4対応bundleを保持したまま新規対局だけを`5.0.0-alpha.3`へ戻す互換rollback branchを作成・GitHub保全する。既存alpha.4 stateの読込み・継続と、alpha.3新規stateが彩色済みpayloadをwrite-free拒否することを確認する。
+diff --git a/scripts/build-standard-online-engine.mjs b/scripts/build-standard-online-engine.mjs
+index 768c2bd..71d4b81 100644
+--- a/scripts/build-standard-online-engine.mjs
++++ b/scripts/build-standard-online-engine.mjs
+@@ -295,6 +295,16 @@ function apply({state,rngSnapshot,actor,action,expectedVersion,debugMode=false,l
+     next.hands[actor][skill]=(next.hands[actor][skill]||0)+1;
+     match.validateStandardState(next);
+   }
++  const projection=projections(next,debugMode,labMode);
++  const trace=projection.publicState.lastPublicTrace;
++  // Annotate only a resolved action's public projection. Keep authoritative state
++  // and the legacy trace shape unchanged for old workers, saves and viewers.
++  if(action.type==="USE_SKILL"&&applied.definition===registry[action.payload?.skill]
++      &&applied.definition?.implemented===true&&trace?.actor===actor
++      &&trace.version===next.version&&trace.eventId===(next.matchId+":"+next.version)
++      &&trace.type===(applied.definition.id==="legalRecolor"?"LEGAL_RECOLOR":"USE_SKILL")){
++    projection.publicState.lastPublicSkill={eventId:trace.eventId,version:trace.version,actor:trace.actor,skillId:applied.definition.id};
++  }
+   return {
+     ok:true,
+     code:applied.code,
+@@ -303,7 +313,7 @@ function apply({state,rngSnapshot,actor,action,expectedVersion,debugMode=false,l
+     contactColorCount:action.type==="CREATE_REGION"?applied.contactColorCount:null,
+     state:next,
+     rngSnapshot:engine.snapshotRngDomains(streams,match.REQUIRED_RNG_STREAMS),
+-    ...projections(next,debugMode,labMode),
++    ...projection,
+     finished:next.status==="FINISHED",
+     winnerSeat:next.winner||null,
+     terminalReason:next.terminalReason||null,
+diff --git a/scripts/check-standard-public-skill-compat.cjs b/scripts/check-standard-public-skill-compat.cjs
+new file mode 100644
+index 0000000..b75e76e
+--- /dev/null
++++ b/scripts/check-standard-public-skill-compat.cjs
+@@ -0,0 +1,51 @@
++"use strict";
++// Read-only local check against the declared Git base; no network or live calls.
++const assert = require("node:assert/strict");
++const fs = require("node:fs");
++const path = require("node:path");
++const vm = require("node:vm");
++const { execFileSync } = require("node:child_process");
++const { createHash } = require("node:crypto");
++const { loadEngine, fixture, plain, root } = require("../tests/helpers/public-skill-fixture.cjs");
++const registry = require("../standard-online-v5/standard-skill-registry.generated.js");
++const args = process.argv.slice(2), base = args[0]?.slice(7);
++assert.ok(args.length === 1 && args[0].startsWith("--base=") && /^[0-9a-f]{40}$/.test(base || ""), "One exact --base=SHA is required");
++const readBase = file => execFileSync("git", ["-c", "safe.directory=" + root.replaceAll("\\", "/"), "show", base + ":" + file],
++  { cwd: root, encoding: "utf8", maxBuffer: 8 * 1024 * 1024, timeout: 15000 });
++const hash = text => createHash("sha256").update(text).digest("hex");
++const bundlePath = "supabase/functions/standard-game-action/standard-engine.bundle.js", cutinPath = "standard-online-v5/skill-cutin.js";
++const oldSource = readBase(bundlePath), newSource = fs.readFileSync(path.join(root, bundlePath), "utf8");
++const oldEngine = loadEngine(oldSource), newEngine = loadEngine(newSource);
++function viewer(source) { const ctx = vm.createContext({}); vm.runInContext(source, ctx, { timeout: 10000 }); return ctx.FourColorSkillCutin; }
++const oldCutinSource = readBase(cutinPath), oldViewer = viewer(oldCutinSource), newViewer = require("../standard-online-v5/skill-cutin.js");
++const cases = [];
++const variations = [...["work", "palette", "miss", "recolor"].map(scenario => ({ scenario })),
++  ...["5.0.0-alpha.1", "5.0.0-alpha.2", "5.0.0-alpha.3", "5.0.0-alpha.4"].map(engineVersion => ({ scenario: "work", engineVersion }))];
++for (const actor of ["A", "B"]) for (const variation of variations) {
++  const input = fixture(oldEngine, { actor, ...variation });
++  const before = plain(input), oldResult = plain(oldEngine.apply(input)), newResult = plain(newEngine.apply(input));
++  assert.equal(oldResult.ok, true); assert.equal(newResult.ok, true);
++  const withoutName = plain(newResult); delete withoutName.publicState.lastPublicSkill;
++  assert.deepEqual(withoutName, oldResult, "Only the public annotation may differ");
++  assert.deepEqual(input, before, "Both executions leave input unchanged");
++  assert.equal(oldEngine.validateState(newResult.state), true);
++  const resume = state => ({ ...input, state, rngSnapshot: newResult.rngSnapshot, expectedVersion: 1,
++    action: { type: "SURRENDER", payload: {} } });
++  assert.deepEqual(plain(oldEngine.apply(resume(newResult.state))), plain(newEngine.apply(resume(oldResult.state))));
++  const baseline = { roomId: "room", seat: "A", visible: true, ownColors: input.state.basicPalettes.A,
++    skillRegistry: registry, state: plain(oldEngine.project(input.state, false, input.labMode).publicState) };
++  const combinations = [];
++  for (const [serverName, result] of [["old", oldResult], ["new", newResult]]) for (const [viewerName, ui] of [["old", oldViewer], ["new", newViewer]]) {
++    const after = { ...baseline, state: result.publicState };
++    const event = ui.describe(ui.snapshot(baseline), ui.snapshot(after), after);
++    const expected = serverName === "new" && viewerName === "new" ? registry.skills[input.action.payload.skill].displayName : "スキルを使用";
++    assert.equal(event?.title, expected, serverName + "/" + viewerName);
++    assert.equal(event.eventId, input.state.matchId + ":1");
++    combinations.push({ server: serverName, viewer: viewerName, title: event.title });
++  }
++  cases.push({ actor, scenario: variation.scenario, engineVersion: input.state.engineVersion,
++    sameStateRngPrivateAndEffects: true, alternatingWorkersCompatible: true, combinations });
++}
++console.log(JSON.stringify({ ok: true, base, scope: "isolated actual fixed-base engines and viewer modules; not live or physical acceptance",
++  oldBundleSha256: hash(oldSource), newBundleSha256: hash(newSource), oldCutinSha256: hash(oldCutinSource),
++  newCutinSha256: hash(fs.readFileSync(path.join(root, cutinPath), "utf8")), cases }, null, 2));
+diff --git a/scripts/live-standard-release-preflight.mjs b/scripts/live-standard-release-preflight.mjs
+index dc407d2..58173e9 100644
+--- a/scripts/live-standard-release-preflight.mjs
++++ b/scripts/live-standard-release-preflight.mjs
+@@ -14,7 +14,7 @@ const publicEdgeBundleUrl = new URL("../supabase/functions/standard-game-action/
+ const expectedPhase = process.argv.find((argument) => argument.startsWith("--expect="))?.slice("--expect=".length) || null;
+ const zeroUuid = "00000000-0000-0000-0000-000000000000";
+ const candidateAssetMarkers = Object.freeze({
+-app: "app.js?v=20260913-43",
++app: "app.js?v=20260913-44",
+   commentary: "cpu-commentary.js?v=20260910-1",
+   style: "style.css?v=20260910-12",
+   client: "standard-online-client.js?v=20260910-1",
+@@ -22,7 +22,7 @@ app: "app.js?v=20260913-43",
+   registry: "standard-skill-registry.generated.js?v=20260912-2",
+   portraits: "cpu-portraits.js?v=20260908-1",
+   feedback: "basic-feedback.js?v=20260908-2",
+-  cutin: "skill-cutin.js?v=20260913-1",
++  cutin: "skill-cutin.js?v=20260913-2",
+   cutinStyle: "skill-cutin.css?v=20260913-1",
+ });
+ 
+diff --git a/scripts/standard-release-preflight-contracts.mjs b/scripts/standard-release-preflight-contracts.mjs
+index 2ac4e87..67dc6a3 100644
+--- a/scripts/standard-release-preflight-contracts.mjs
++++ b/scripts/standard-release-preflight-contracts.mjs
+@@ -143,7 +143,7 @@ export function hasCompactCpuRecords(pageText, appText, progressionCssText) {
+ 
+ export function hasQuizAccuracyRecords(pageText, appText, progressionCssText) {
+   return includesAll(pageText, [
+-'app.js?v=20260913-43',
++'app.js?v=20260913-44',
+     'progression.css?v=20260910-2',
+     'id="quizAccuracyRecords" class="quiz-accuracy-records" role="list"',
+     "記録開始以降に、サーバーで採点が確定した回答だけを集計します。",
+diff --git a/standard-online-v5/app.js b/standard-online-v5/app.js
+index f025c65..ff26bee 100644
+--- a/standard-online-v5/app.js
++++ b/standard-online-v5/app.js
+@@ -939,7 +939,8 @@ function observeSkillCutin(state, privateState) {
+     const visible = activeAppTab === "battle" && document.visibilityState === "visible";
+     const blocked = skillCutinBlocked();
+     void skillCutin.observe({ state, roomId: roomModel?.room?.id, seat: roomModel?.view?.seat,
+-      ownColors: skillIntents.availableColorChoices(privateState), ack: lastOwnSkillAck, visible, blocked });
++      ownColors: skillIntents.availableColorChoices(privateState), ack: lastOwnSkillAck,
++      skillRegistry: STANDARD_SKILL_REGISTRY, visible, blocked });
+   } catch { clearSkillCutin(); } // An optional visual must never interrupt a game action.
+ }
+ function nextPublicJudgment(state) {
+diff --git a/standard-online-v5/index.html b/standard-online-v5/index.html
+index 5b2638a..df27952 100644
+--- a/standard-online-v5/index.html
++++ b/standard-online-v5/index.html
+@@ -543,8 +543,8 @@
+     </div>
+   </div>
+   <p id="skillCutinAnnouncement" class="visually-hidden" role="status" aria-live="polite" aria-atomic="true"></p>
+-  <script src="skill-cutin.js?v=20260913-1"></script>
++  <script src="skill-cutin.js?v=20260913-2"></script>
+   <script src="surrender-confirmation.js?v=20260913-1"></script>
+-  <script type="module" src="app.js?v=20260913-43"></script>
++  <script type="module" src="app.js?v=20260913-44"></script>
+ </body>
+ </html>
+diff --git a/standard-online-v5/skill-cutin.js b/standard-online-v5/skill-cutin.js
+index bb89cb4..31767c3 100644
+--- a/standard-online-v5/skill-cutin.js
++++ b/standard-online-v5/skill-cutin.js
+@@ -19,6 +19,18 @@
+     if (t.type === "LEGAL_RECOLOR" && (!COLORS.includes(t.color) || !safeId(t.regionId))) return null;
+     return t;
+   }
++  function publicSkillName(state, registry) {
++    const trace = traceFor(state), used = state?.lastPublicSkill;
++    if (!trace || !used || typeof used !== "object" || Array.isArray(used)
++      || Object.keys(used).sort().join("|") !== "actor|eventId|skillId|version"
++      || used.eventId !== trace.eventId || used.version !== trace.version || used.actor !== trace.actor
++      || typeof used.skillId !== "string" || !registry?.skills || !Object.hasOwn(registry.skills, used.skillId)) return null;
++    const definition = registry.skills[used.skillId];
++    if (!definition || definition.id !== used.skillId || definition.standardEngineImplemented !== true
++      || (trace.type === "LEGAL_RECOLOR") !== (used.skillId === "legalRecolor")
++      || typeof definition.displayName !== "string" || !definition.displayName.trim() || definition.displayName.length > 48) return null;
++    return definition.displayName;
++  }
+   function snapshot(input) {
+     const { state, roomId, seat } = input || {};
+     if (!safeId(roomId) || !safeId(state?.matchId) || !["A", "B"].includes(seat)
+@@ -70,7 +82,7 @@
+     const paletteChanged = previous.palette !== current.palette || previous.seals !== current.seals;
+     const boardChanged = previous.board !== current.board;
+     return { eventId: trace.eventId, scope: current.scope, version: current.version, actor: own ? "self" : "opponent",
+-      title: ack?.name ? String(ack.name).slice(0, 48) : "スキルを使用",
++      title: publicSkillName(input.state, input.skillRegistry) || (ack?.name ? String(ack.name).slice(0, 48) : "スキルを使用"),
+       detail: noOp ? "空振り" : resultDetail(previous, current, trace),
+       destination: noOp ? null : paletteChanged ? "palette" : boardChanged ? "board" : null,
+       noOp };
+@@ -123,5 +135,5 @@
+     }
+     return { observe, interrupt };
+   }
+-  return Object.freeze({ VERSION: "skill-cutin-v1", DISPLAY_MS, STORAGE_KEY, traceFor, snapshot, describe, claim, createObserver });
++  return Object.freeze({ VERSION: "skill-cutin-v1", DISPLAY_MS, STORAGE_KEY, traceFor, publicSkillName, snapshot, describe, claim, createObserver });
+ });
+diff --git a/supabase/functions/standard-game-action/standard-engine.bundle.js b/supabase/functions/standard-game-action/standard-engine.bundle.js
+index f344e62..aeba8a7 100644
+--- a/supabase/functions/standard-game-action/standard-engine.bundle.js
++++ b/supabase/functions/standard-game-action/standard-engine.bundle.js
+@@ -4082,6 +4082,16 @@ function apply({state,rngSnapshot,actor,action,expectedVersion,debugMode=false,l
+     next.hands[actor][skill]=(next.hands[actor][skill]||0)+1;
+     match.validateStandardState(next);
+   }
++  const projection=projections(next,debugMode,labMode);
++  const trace=projection.publicState.lastPublicTrace;
++  // Annotate only a resolved action's public projection. Keep authoritative state
++  // and the legacy trace shape unchanged for old workers, saves and viewers.
++  if(action.type==="USE_SKILL"&&applied.definition===registry[action.payload?.skill]
++      &&applied.definition?.implemented===true&&trace?.actor===actor
++      &&trace.version===next.version&&trace.eventId===(next.matchId+":"+next.version)
++      &&trace.type===(applied.definition.id==="legalRecolor"?"LEGAL_RECOLOR":"USE_SKILL")){
++    projection.publicState.lastPublicSkill={eventId:trace.eventId,version:trace.version,actor:trace.actor,skillId:applied.definition.id};
++  }
+   return {
+     ok:true,
+     code:applied.code,
+@@ -4090,7 +4100,7 @@ function apply({state,rngSnapshot,actor,action,expectedVersion,debugMode=false,l
+     contactColorCount:action.type==="CREATE_REGION"?applied.contactColorCount:null,
+     state:next,
+     rngSnapshot:engine.snapshotRngDomains(streams,match.REQUIRED_RNG_STREAMS),
+-    ...projections(next,debugMode,labMode),
++    ...projection,
+     finished:next.status==="FINISHED",
+     winnerSeat:next.winner||null,
+     terminalReason:next.terminalReason||null,
+diff --git a/tests/helpers/public-skill-fixture.cjs b/tests/helpers/public-skill-fixture.cjs
+new file mode 100644
+index 0000000..b6e3312
+--- /dev/null
++++ b/tests/helpers/public-skill-fixture.cjs
+@@ -0,0 +1,45 @@
++"use strict";
++const fs = require("node:fs");
++const path = require("node:path");
++const vm = require("node:vm");
++const root = path.resolve(__dirname, "../..");
++const plain = value => JSON.parse(JSON.stringify(value));
++function loadEngine(source = fs.readFileSync(path.join(root, "supabase/functions/standard-game-action/standard-engine.bundle.js"), "utf8")) {
++  const context = vm.createContext({});
++  vm.runInContext(source, context, { filename: "standard-engine.bundle.js", timeout: 10_000 });
++  return context.FourColorStandardServerEngine;
++}
++function fixture(api, { actor = "A", engineVersion = api.ENGINE_VERSION, scenario = "work" } = {}) {
++  const loadout = { color: ["colorPaletteChange", "colorRandomBorrow"], area: ["areaDiePlus", "areaResize"],
++    disrupt: ["disruptPaletteChoice", "disruptChoiceOne"] };
++  const labMode = scenario === "recolor";
++  const created = api.create({ matchId: "public-skill-fixture", loadouts: { A: loadout, B: loadout },
++    seed: 100, firstSeat: actor, engineVersion, labMode });
++  const state = plain(created.state), other = actor === "A" ? "B" : "A";
++  state.requiredSize = state.baseRequiredSize = state.rolledSize = 1;
++  let action = { type: "USE_SKILL", payload: { skill: "areaDiePlus" } };
++  if (scenario === "miss") {
++    state.phase = "WORK";
++    state.basicPalettes[other] = ["red", "red"]; state.bonusColors[other] = "red";
++    action = { type: "USE_SKILL", payload: { skill: "disruptPaletteChoice", color: "red" } };
++  } else if (["palette", "borrow-reject"].includes(scenario)) {
++    const { macroWidth: width, microScale: scale } = state.playableBounds, macro = width + 1;
++    const micro = Array.from({ length: scale * scale }, (_, i) =>
++      (scale + Math.floor(i / scale)) * width * scale + scale + i % scale);
++    state.phase = "COLOR"; state.pending = "R1";
++    state.regions = { R1: { id: "R1", micro, sourceMacros: [macro], controllers: [other], color: null, isPending: true } };
++    const color = ["red", "blue", "green", "yellow"].find(value => !state.basicPalettes[actor].includes(value) && value !== state.bonusColors[actor]);
++    action = scenario === "palette" ? { type: "USE_SKILL", payload: { skill: "colorPaletteChange", slot: 0, color } }
++      : { type: "USE_SKILL", payload: { skill: "colorRandomBorrow" } };
++  } else if (scenario === "recolor") {
++    state.phase = "WORK";
++    state.regions = {
++      R1: { id: "R1", micro: [48], sourceMacros: [], controllers: [actor], color: "red", isPending: false },
++      R2: { id: "R2", micro: [49], sourceMacros: [], controllers: [other], color: "blue", isPending: false },
++    };
++    action = { type: "USE_SKILL", payload: { skill: "legalRecolor", regionId: "R1" } };
++  } else if (scenario === "surrender") action = { type: "SURRENDER", payload: {} };
++  api.validateState(state);
++  return { state, rngSnapshot: plain(created.rngSnapshot), actor, action, expectedVersion: state.version, labMode };
++}
++module.exports = { loadEngine, fixture, plain, root };
+diff --git a/tests/standard-browser-gate-workflow.test.cjs b/tests/standard-browser-gate-workflow.test.cjs
+index fc92ead..6c08183 100644
+--- a/tests/standard-browser-gate-workflow.test.cjs
++++ b/tests/standard-browser-gate-workflow.test.cjs
+@@ -16,7 +16,7 @@ test("Standard browser gate YAML text uses stable whitespace", () => {
+ });
+ 
+ test("Standard browser gate is candidate-push, manual, or pull-request only and least-privileged", () => {
+-  assert.match(workflow, /^on:\r?\n  push:\r?\n    branches: \[codex\/standard-release-command, codex\/quiz-memo-calculator-20260912, codex\/ui-diet-20260912, codex\/ui-play-surface-20260912, codex\/ui-result-20260912, codex\/ui-cosmetics-20260912, codex\/ui-player-copy-20260912, codex\/skill-cutin-20260912, codex\/ui-flat-entry-20260912, codex\/skill-catalog-20260912, codex\/surrender-confirmation-20260913, codex\/cpu-split-rescue-20260913, codex\/skill-cutin-readability-20260913\][\s\S]+?  pull_request:[\s\S]+?  workflow_dispatch:/m);
++  assert.match(workflow, /^on:\r?\n  push:\r?\n    branches: \[codex\/standard-release-command, codex\/quiz-memo-calculator-20260912, codex\/ui-diet-20260912, codex\/ui-play-surface-20260912, codex\/ui-result-20260912, codex\/ui-cosmetics-20260912, codex\/ui-player-copy-20260912, codex\/skill-cutin-20260912, codex\/ui-flat-entry-20260912, codex\/skill-catalog-20260912, codex\/surrender-confirmation-20260913, codex\/cpu-split-rescue-20260913, codex\/skill-cutin-readability-20260913, codex\/skill-cutin-public-names-20260913\][\s\S]+?  pull_request:[\s\S]+?  workflow_dispatch:/m);
+   assert.equal((workflow.match(/      - online\/supabase-config\.js/g) || []).length, 2);
+   assert.equal((workflow.match(/      - online-v5\/style\.css/g) || []).length, 2);
+   assert.equal((workflow.match(/      - standard-online-v5\/\*\*/g) || []).length, 2);
+@@ -29,6 +29,8 @@ test("Standard browser gate is candidate-push, manual, or pull-request only and
+   assert.equal((workflow.match(/      - tests\/browser-server-cleanup\.test\.cjs/g) || []).length, 2);
+   assert.equal((workflow.match(/      - tests\/helpers\/browser-server-cleanup\.cjs/g) || []).length, 2);
+   assert.equal((workflow.match(/      - tests\/helpers\/cpu-sql-runtime\.cjs/g) || []).length, 2);
++  for (const entry of ["tests/helpers/public-skill-fixture.cjs", "scripts/check-standard-public-skill-compat.cjs", "docs/SKILL_PUBLIC_EVENT_20260913.md"])
++    assert.equal(workflow.replaceAll("\r\n", "\n").split("      - " + entry + "\n").length - 1, 2, entry);
+   assert.equal((workflow.match(/      - tests\/sql-runtime\/\*\*/g) || []).length, 2);
+   assert.equal((workflow.match(/      - tests\/standard-online-browser\.test\.cjs/g) || []).length, 2);
+   assert.equal((workflow.match(/      - tests\/standard-browser-gate-workflow\.test\.cjs/g) || []).length, 2);
+@@ -69,6 +71,8 @@ test("Standard browser gate runs CPU contracts and the scoped browser file seria
+   assert.match(workflow, /tests\/standard-online-basic-feedback-static\.test\.cjs/);
+   assert.match(workflow, /tests\/standard-online-contact-feedback\.test\.cjs/);
+   assert.match(workflow, /tests\/standard-online-skill-registry\.test\.cjs/);
++  assert.match(workflow, /tests\/standard-public-skill-event\.test\.cjs/);
++  assert.match(workflow, /tests\/standard-public-skill-persistence\.test\.cjs/);
+   for (const file of ["standard-cpu.test.cjs", "standard-cpu-colored-corner-bloom.test.cjs", "standard-cpu-roster.test.cjs", "standard-no-color-rescue.test.cjs", "standard-color-region-split.test.cjs", "standard-area-colored-corner-bloom.test.cjs", "standard-local-ui-static.test.cjs", "standard-live-color-response-canary-static.test.cjs", "standard-decision-reconciliation.test.cjs"]) {
+     assert.match(workflow, new RegExp(`tests/${file.replaceAll(".", "\\.")}`));
+   }
+diff --git a/tests/standard-live-release-preflight-static.test.cjs b/tests/standard-live-release-preflight-static.test.cjs
+index 733c21c..56f5003 100644
+--- a/tests/standard-live-release-preflight-static.test.cjs
++++ b/tests/standard-live-release-preflight-static.test.cjs
+@@ -78,7 +78,7 @@ test("release preflight is read-only, secret-free, finite, and stage-aware", ()
+   assert.match(source, /MATCH_REWARD_ECONOMY_MISMATCH/);
+   assert.match(source, /app\.text\.includes\('★\$\{meta\.rarity\}'\)/);
+   assert.match(source, /CANDIDATE_ASSET_GENERATION_UI_PHASE_MISMATCH/);
+-assert.match(source, /app\.js\?v=20260913-43/);
++assert.match(source, /app\.js\?v=20260913-44/);
+   assert.match(source, /cpu-commentary\.js\?v=20260910-1/);
+   assert.match(source, /progression\.css/);
+   assert.match(source, /style\.css\?v=20260910-12/);
+@@ -87,7 +87,7 @@ assert.match(source, /app\.js\?v=20260913-43/);
+   assert.match(source, /standard-skill-registry\.generated\.js\?v=20260912-2/);
+   assert.match(source, /cpu-portraits\.js\?v=20260908-1/);
+   assert.match(source, /basic-feedback\.js\?v=20260908-2/);
+-  assert.match(source, /skill-cutin\.js\?v=20260913-1/);
++assert.match(source, /skill-cutin\.js\?v=20260913-2/);
+   assert.match(source, /skill-cutin\.css\?v=20260913-1/);
+   assert.match(source, /getOptionalBytes\(`\$\{publicUrl\}assets\/cpu-portraits\/cpu-portrait-atlas\.png`\)/);
+   assert.match(source, /getOptionalText\(publicEdgeBundleUrl\)/);
+@@ -229,7 +229,7 @@ test("candidate app satisfies the waiting-opponent release marker", () => {
+ });
+ 
+ test("candidate page and app satisfy the alpha.4 cache generation marker", () => {
+-  assert.equal(candidateHtml.includes("app.js?v=20260913-43"), true);
++  assert.equal(candidateHtml.includes("app.js?v=20260913-44"), true);
+   assert.equal(candidateHtml.includes("cpu-commentary.js?v=20260910-1"), true);
+   assert.equal(candidateHtml.includes("style.css?v=20260910-12"), true);
+   assert.equal(candidateHtml.includes("standard-online-client.js?v=20260910-1"), true);
+@@ -237,7 +237,7 @@ test("candidate page and app satisfy the alpha.4 cache generation marker", () =>
+   assert.equal(candidateHtml.includes("standard-skill-registry.generated.js?v=20260912-2"), true);
+   assert.equal(candidateHtml.includes("cpu-portraits.js?v=20260908-1"), true);
+   assert.equal(candidateHtml.includes("basic-feedback.js?v=20260908-2"), true);
+-  assert.equal(candidateHtml.includes("skill-cutin.js?v=20260913-1"), true);
++  assert.equal(candidateHtml.includes("skill-cutin.js?v=20260913-2"), true);
+   assert.equal(candidateHtml.includes("skill-cutin.css?v=20260913-1"), true);
+   assert.equal(candidateApp.includes("skillCategoryWindow"), true);
+   assert.equal(candidateApp.includes("SKILL_CATEGORY_ALREADY_USED_IN_WINDOW"), true);
+diff --git a/tests/standard-online-basic-feedback-static.test.cjs b/tests/standard-online-basic-feedback-static.test.cjs
+index 6665e54..a0ab534 100644
+--- a/tests/standard-online-basic-feedback-static.test.cjs
++++ b/tests/standard-online-basic-feedback-static.test.cjs
+@@ -26,7 +26,7 @@ test("online feedback settings are explicit, separate, persistent, and keyboard-
+ 
+ test("feedback script is cache-busted before the matching app generation", () => {
+   const controllerScript = html.indexOf('<script src="basic-feedback.js?v=20260908-2"></script>');
+-const appScript = html.indexOf('<script type="module" src="app.js?v=20260913-43"></script>');
++const appScript = html.indexOf('<script type="module" src="app.js?v=20260913-44"></script>');
+   assert.ok(controllerScript >= 0 && appScript > controllerScript);
+   assert.match(html, /style\.css\?v=20260910-12/);
+   assert.doesNotMatch(html, /app\.js\?v=20260906-(?:36|38)|style\.css\?v=20260906-(?:36|37)/);
+diff --git a/tests/standard-online-browser.test.cjs b/tests/standard-online-browser.test.cjs
+index 237002d..3733528 100644
+--- a/tests/standard-online-browser.test.cjs
++++ b/tests/standard-online-browser.test.cjs
+@@ -1546,19 +1546,20 @@ async function installMock(context, mode) {
+   }, { connectionKey, saveKey, roomId, pendingId: pendingRematchId, mode });
+ }
+ 
+-async function cutinAdvance(page, { actor="B", change="board", skip=1, finished=false }={}) {
+-  await page.evaluate(({actor,change,skip,finished})=>{
++async function cutinAdvance(page, { actor="B", change="board", skip=1, finished=false, skillId=null }={}) {
++  await page.evaluate(({actor,change,skip,finished,skillId})=>{
+     const r=globalThis.__standardOnlineRuntime,version=r.room.version+skip,s=r.room.public_state;
+     r.room={...r.room,version, status:finished?"finished":"playing",public_state:{...s,version,turn:version,
+       status:finished?"FINISHED":"ACTIVE",phase:finished?"GAME_OVER":s.phase,
+       winner:finished?"A":null,terminalReason:finished?"SURRENDER":null,
+       requiredSize:change==="board"?s.requiredSize+1:s.requiredSize,
+       publicEffects:change==="seal"?{...s.publicEffects,A:{...s.publicEffects?.A,seals:{red:1}}}:s.publicEffects,
+-      lastPublicTrace:change==="ordinary"?null:{eventId:`${s.matchId}:${version}`,version,type:"USE_SKILL",actor}}};
++      lastPublicTrace:change==="ordinary"?null:{eventId:`${s.matchId}:${version}`,version,type:"USE_SKILL",actor},
++      lastPublicSkill:skillId?{eventId:`${s.matchId}:${version}`,version,actor,skillId}:null}};
+     r.view={...r.view,version,private_state:{...r.view.private_state,
+       ...(change==="palette"?{basicPalette:["green","yellow"]}:{})}};
+     r.onInvalidate();
+-  },{actor,change,skip,finished});
++  },{actor,change,skip,finished,skillId});
+   await page.waitForFunction(()=>document.querySelector("#versionText").textContent===String(globalThis.__standardOnlineRuntime.room.public_state.turn));
+ }
+ async function cutinReady(page) {
+@@ -1622,6 +1623,63 @@ test("UDL065 self and opponent cut-ins animate from each source with real pointe
+   },{viewport:{width:390,height:900},bodyTimeout:45000});
+ });
+ 
++test("UDL065 named public skills render for both participants at390/1280 without exposing payloads", { timeout: 120000 }, async () => {
++  await withPage("colorResponse",async page=>{
++    await cutinReady(page);
++    for(const width of [390,1280]) for(const actor of ["A","B"]){
++      await page.setViewportSize({width,height:844});
++      await page.locator("#board").focus();
++      const focus=await page.evaluate(()=>document.activeElement?.id);
++      const skillId=actor==="B"?"disruptPaletteChoice":"areaDiePlus";
++      await cutinAdvance(page,{actor,change:"none",skillId});
++      await page.locator("#skillCutin").waitFor({state:"visible"});
++      await page.waitForFunction(()=>document.querySelector(".skill-cutin-card").getAnimations()[0]?.currentTime>=260);
++      const info=await page.locator(".skill-cutin-card").evaluate((el,skillId)=>{
++        const r=el.getBoundingClientRect(),root=document.getElementById("skillCutin"),title=document.getElementById("skillCutinTitle");
++        return {left:r.left,right:r.right,top:r.top,bottom:r.bottom,title:title.textContent,
++          expected:globalThis.FourColorStandardSkillRegistry.skills[skillId].displayName,
++          detail:document.getElementById("skillCutinDetail").textContent,focus:document.activeElement?.id,
++          pointer:getComputedStyle(root).pointerEvents,transparent:!root.contains(document.elementFromPoint(r.x+r.width/2,r.y+r.height/2)),
++          duration:el.getAnimations()[0]?.effect.getTiming().duration,titleFits:title.scrollWidth<=title.clientWidth};
++      },skillId);
++      assert.equal(info.title,info.expected);assert.equal(info.detail,"スキルを使用");
++      assert.equal(info.pointer,"none");assert.equal(info.transparent,true);assert.equal(info.focus,focus);
++      assert.equal(info.titleFits,true);assert.equal(info.duration,1800);
++      assert.ok(info.left>=0&&info.right<=width&&info.top>=0&&info.bottom<=844,JSON.stringify(info));
++      if(process.env.STANDARD_CUTIN_ARTIFACT_DIR){fs.mkdirSync(process.env.STANDARD_CUTIN_ARTIFACT_DIR,{recursive:true});
++        await page.screenshot({path:path.join(process.env.STANDARD_CUTIN_ARTIFACT_DIR,`named-${browserName}-${width}-${actor}.png`)});}
++      await page.locator("#skillCutin").waitFor({state:"hidden"});
++      const duration=await page.evaluate(()=>{const e=globalThis.__cutinEvents.at(-1);return e.hiddenAt-e.at;});
++      assert.ok(duration>=1700&&duration<2300,String(duration));
++      await page.evaluate(()=>globalThis.__standardOnlineRuntime.onInvalidate());
++    }
++    assert.equal(await page.evaluate(()=>globalThis.__cutinEvents.length),4);
++    assert.equal(await page.evaluate(()=>globalThis.__standardOnlineRuntime.calls.filter(c=>c.body?.operation==="action").length),0);
++  },{viewport:{width:390,height:844},bodyTimeout:45000});
++});
++
++test("UDL065 named card permits ordinary coloring and unknown metadata stays generic", { timeout: 120000 }, async () => {
++  await withPage("colorResponse",async page=>{
++    await cutinReady(page);await cutinAdvance(page,{change:"none",skillId:"disruptPaletteChoice"});
++    await page.locator("#skillCutin").waitFor({state:"visible"});
++    const event=await page.locator("#skillCutin").getAttribute("data-event-id");
++    const name=await page.locator("#skillCutinTitle").textContent();assert.notEqual(name,"スキルを使用");
++    const red=page.locator('#paletteControls .color-button[data-color="red"]').first();
++    assert.equal(await red.isEnabled(),true);await red.click();
++    await page.waitForFunction(()=>globalThis.__standardOnlineRuntime.calls.some(c=>c.body?.action?.type==="COLOR_REGION"));
++    await cutinAdvance(page,{change:"ordinary"});
++    assert.equal(await page.locator("#skillCutin").isVisible(),true);
++    assert.equal(await page.locator("#skillCutin").getAttribute("data-event-id"),event);
++    assert.equal(await page.locator("#skillCutinTitle").textContent(),name);
++    await page.locator("#skillCutin").waitFor({state:"hidden"});
++    await cutinAdvance(page,{change:"none",skillId:"future-unrecognized-skill"});
++    await page.locator("#skillCutin").waitFor({state:"visible"});
++    assert.equal(await page.locator("#skillCutinTitle").textContent(),"スキルを使用");
++    assert.equal(await page.evaluate(()=>globalThis.__cutinEvents.length),2);
++    assert.deepEqual(await page.evaluate(()=>globalThis.__standardOnlineRuntime.calls.filter(c=>c.body?.operation==="action").map(c=>c.body.action.type)),["COLOR_REGION"]);
++  },{viewport:{width:390,height:844}});
++});
++
+ test("UDL065 reading interval survives ordinary input and an update without replay or deadline extension", { timeout: 120000 }, async () => {
+   await withPage("colorResponse",async page=>{
+     await cutinReady(page);await cutinAdvance(page,{change:"board"});
+diff --git a/tests/standard-online-quiz-polish.test.cjs b/tests/standard-online-quiz-polish.test.cjs
+index 8a3f8e1..e7f3046 100644
+--- a/tests/standard-online-quiz-polish.test.cjs
++++ b/tests/standard-online-quiz-polish.test.cjs
+@@ -197,7 +197,7 @@ test("only overflowing quiz math receives a persistent horizontal position bar",
+   assert.match(css, /\.quiz-overflow-scrollbar\[hidden\]\{display:none\}/);
+   assert.match(html, /style\.css\?v=20260910-12/);
+   assert.match(html, /standard-online-client\.js\?v=20260910-1/);
+-  assert.match(html, /app\.js\?v=20260913-43/);
++  assert.match(html, /app\.js\?v=20260913-44/);
+ });
+ 
+ test("per-question feedback is server-acknowledged, retryable, brief in motion, and followed by an optional review", () => {
+diff --git a/tests/standard-online-ui-static.test.cjs b/tests/standard-online-ui-static.test.cjs
+index b737dfa..a21d7f7 100644
+--- a/tests/standard-online-ui-static.test.cjs
++++ b/tests/standard-online-ui-static.test.cjs
+@@ -82,7 +82,7 @@ test("CPU commentary is public-event-only, bounded, non-blocking, and terminal-p
+   assert.match(html, /standard-online-client\.js\?v=20260910-1/);
+   assert.match(html, /standard-online-skill-intents\.js\?v=20260911-21/);
+   assert.match(html, /cpu-commentary\.js\?v=20260910-1/);
+-assert.match(html, /app\.js\?v=20260913-43/);
++assert.match(html, /app\.js\?v=20260913-44/);
+   assert.match(app, /cpuCommentary\?\.VERSION !== "standard-cpu-commentary-v3"/);
+   assert.ok(html.indexOf("cpu-commentary.js") < html.indexOf('type="module" src="app.js'));
+   assert.match(html, /id="cpuCommentaryStage"[^>]+aria-hidden="true"/);
+@@ -469,7 +469,7 @@ test("existing online progression is hydrated from the server rather than re-upl
+ 
+ test("UI derives its canonical and experimental card metadata from the generated registry", () => {
+   assert.equal(Object.values(STANDARD_SKILLS).filter((skill) => skill.v49Catalogued).length, 19);
+-  assert.match(html, /standard-skill-registry\.generated\.js\?v=20260912-2[\s\S]+app\.js\?v=20260913-43/);
++  assert.match(html, /standard-skill-registry\.generated\.js\?v=20260912-2[\s\S]+app\.js\?v=20260913-44/);
+   assert.match(app, /const STANDARD_SKILL_REGISTRY = globalThis\.FourColorStandardSkillRegistry/);
+   assert.match(app, /STANDARD_SKILL_REGISTRY\.v49SkillIds\.map/);
+   assert.match(app, /Object\.entries\(STANDARD_SKILL_REGISTRY\.skills\)/);
+diff --git a/tests/standard-public-release-runbook.test.cjs b/tests/standard-public-release-runbook.test.cjs
+index 04bf756..32b11f4 100644
+--- a/tests/standard-public-release-runbook.test.cjs
++++ b/tests/standard-public-release-runbook.test.cjs
+@@ -15,6 +15,14 @@ function assetReference(source, pattern, label) {
+   return reference;
+ }
+ 
++test("UDL065 named-skill lane binds Edge-first compatibility and forbids borrowing a consumed live trial", () => {
++  const section = runbook.slice(runbook.indexOf("### UDL-065: 使用済みスキル名の公開表示"), runbook.indexOf("### UDL-065: v14カットイン可読性・実結果説明"));
++  for (const phrase of ["UDL-065-public-skill-v1", "DB/管理設定は各 `[]`", "standard-engine.bundle.js", "index.ts",
++    "互換Edge → 完全2file読戻し → Pages", "CPU039とUI040", "040の消費済み試行を再使用しない", "NOT_RUN"]) assert.ok(section.includes(phrase), phrase);
++  for (const pattern of [/src="(app\.js\?v=[^"]+)"/, /src="(skill-cutin\.js\?v=[^"]+)"/, /href="(skill-cutin\.css\?v=[^"]+)"/])
++    assert.ok(section.includes(assetReference(onlineIndex, pattern, "named-skill lane")));
++});
++
+ test("current alpha.4 release lane deploys the compatible Edge before Pages and preserves active rooms", () => {
+   const releaseSection = runbook.slice(runbook.indexOf("### alpha.4彩色済みエリア角膨張便"), runbook.indexOf("### alpha.3カテゴリ制限便"));
+   const edge = releaseSection.indexOf("alpha.4対応Edge");
+diff --git a/tests/standard-public-skill-event.test.cjs b/tests/standard-public-skill-event.test.cjs
+new file mode 100644
+index 0000000..4db6edc
+--- /dev/null
++++ b/tests/standard-public-skill-event.test.cjs
+@@ -0,0 +1,128 @@
++"use strict";
++const assert = require("node:assert/strict");
++const test = require("node:test");
++const { loadEngine, fixture, plain } = require("./helpers/public-skill-fixture.cjs");
++const match = require("../standard/standard-match.js");
++const engine = require("../standard/standard-engine.js");
++const cutin = require("../standard-online-v5/skill-cutin.js");
++const registry = require("../standard-online-v5/standard-skill-registry.generated.js");
++
++for (const actor of ["A", "B"]) for (const scenario of ["work", "palette", "miss", "recolor"]) {
++  test(`public skill annotation is resolved, canonical and projection-only: ${actor}/${scenario}`, () => {
++    const api = loadEngine(), input = fixture(api, { actor, scenario }), before = plain(input);
++    // Poison unused payload fields; none may enter the public annotation.
++    input.action.payload.unusedHand = ["private-sentinel"];
++    input.action.payload.displayName = "forged-name";
++    const streams = engine.createRngDomainsFromSnapshot(input.rngSnapshot, match.REQUIRED_RNG_STREAMS);
++    const direct = match.applyStandardAction({ ...input, rngStreams: streams });
++    const applied = plain(api.apply(input));
++    assert.equal(applied.ok, true, applied.code);
++    assert.equal(direct.ok, true, direct.code);
++    assert.deepEqual(applied.publicState.lastPublicSkill, {
++      eventId: `${input.state.matchId}:1`, version: 1, actor, skillId: input.action.payload.skill,
++    });
++    assert.deepEqual(applied.publicState.lastPublicTrace, plain(direct.state.lastPublicTrace));
++    const publicWithoutName = { ...applied.publicState }; delete publicWithoutName.lastPublicSkill;
++    if (input.labMode) delete publicWithoutName.labRuleSetId;
++    assert.deepEqual(publicWithoutName, plain(direct.publicState));
++    assert.deepEqual(applied.state, plain(direct.state));
++    assert.deepEqual(applied.privateA, plain(match.projectStandardPrivateState(direct.state, "A")));
++    assert.deepEqual(applied.privateB, plain(match.projectStandardPrivateState(direct.state, "B")));
++    assert.deepEqual(applied.rngSnapshot, engine.snapshotRngDomains(streams, match.REQUIRED_RNG_STREAMS));
++    assert.equal(Object.hasOwn(applied.state, "lastPublicSkill"), false);
++    assert.equal(Object.hasOwn(api.project(applied.state, false, input.labMode).publicState, "lastPublicSkill"), false);
++    assert.deepEqual(input.state, before.state); assert.deepEqual(input.rngSnapshot, before.rngSnapshot);
++    assert.doesNotMatch(JSON.stringify(applied.publicState.lastPublicSkill), /private-sentinel|forged-name|slot|color":|noOp|hands|payload/);
++    assert.equal(cutin.publicSkillName(applied.publicState, registry), registry.skills[input.action.payload.skill].displayName);
++    if (scenario === "miss") {
++      assert.equal(applied.noOp, true); assert.equal(applied.cardConsumed, false);
++      assert.equal(applied.state.hands[actor].disruptPaletteChoice, input.state.hands[actor].disruptPaletteChoice);
++    }
++  });
++}
++
++test("rejection, stale retry and ordinary terminal action emit no new skill identity", () => {
++  const api = loadEngine(), input = fixture(api, { scenario: "borrow-reject" }), before = plain(input);
++  const rejected = plain(api.apply(input));
++  assert.deepEqual(rejected, { ok: false, code: "NO_BOARD_COLORS" });
++  assert.deepEqual(input, before);
++  const skill = fixture(api), applied = api.apply(skill);
++  const retry = plain(api.apply({ ...skill, state: applied.state }));
++  assert.deepEqual(retry, { ok: false, code: "VERSION_CONFLICT" });
++  const terminal = api.apply({ ...skill, state: applied.state, rngSnapshot: applied.rngSnapshot, expectedVersion: 1,
++    action: { type: "SURRENDER", payload: { skill: "areaDiePlus" } } });
++  assert.equal(terminal.ok, true);
++  assert.equal(Object.hasOwn(terminal.publicState, "lastPublicSkill"), false);
++  assert.equal(Object.hasOwn(api.create({ matchId: "new", loadouts: skill.state.loadouts, seed: 1 }).publicState, "lastPublicSkill"), false);
++});
++
++test("the public annotation leaves every supported saved engine version valid", () => {
++  const api = loadEngine();
++  for (const engineVersion of match.SUPPORTED_ENGINE_VERSIONS) {
++    const input = fixture(api, { engineVersion }), applied = api.apply(input);
++    assert.equal(applied.ok, true, engineVersion);
++    assert.equal(api.validateState(applied.state), true);
++    assert.equal(applied.state.engineVersion, engineVersion);
++    assert.equal(applied.publicState.lastPublicSkill.skillId, "areaDiePlus");
++    const restored = match.decodeStandardMatch(match.encodeStandardMatch(applied.state, applied.rngSnapshot));
++    assert.deepEqual(restored.state, plain(applied.state));
++  }
++});
++
++function view(version, { actor = "B", skillId = "areaDiePlus", annotation = true } = {}) {
++  const lastPublicTrace = { eventId: `m:${version}`, version, type: skillId === "legalRecolor" ? "LEGAL_RECOLOR" : "USE_SKILL", actor,
++    ...(skillId === "legalRecolor" ? { regionId: "R1", color: "green" } : {}) };
++  return { roomId: "room", seat: "A", visible: true, ownColors: ["red"], skillRegistry: registry,
++    state: { matchId: "m", version, status: "ACTIVE", regions: {}, requiredSize: 1, lastPublicTrace,
++      ...(annotation ? { lastPublicSkill: { eventId: `m:${version}`, version, actor, skillId } } : {}) } };
++}
++function describe(after, before = view(1, { annotation: false })) { return cutin.describe(cutin.snapshot(before), cutin.snapshot(after), after); }
++
++test("self and opponent names use only implemented catalog IDs, not own ACK for the opponent", () => {
++  for (const actor of ["A", "B"]) for (const definition of Object.values(registry.skills).filter(s => s.standardEngineImplemented)) {
++    const after = view(2, { actor, skillId: definition.id });
++    after.ack = { scope: "room:m:A", eventId: "m:2", name: "forged-name" };
++    const result = describe(after);
++    assert.equal(result.title, definition.displayName, definition.id);
++    assert.equal(result.detail, "スキルを使用"); assert.equal(result.destination, null);
++  }
++});
++
++test("malformed, extra-key, stale, mismatched and unknown annotations preserve neutral legacy output", () => {
++  for (const patch of [{ secret: true }, { eventId: "other:2" }, { version: 1 }, { actor: "A" },
++    { skillId: "unknown" }, { skillId: "toString" }, { skillId: "__proto__" }, { skillId: "legalRecolor" }, { skillId: 2 }]) {
++    const after = view(2); Object.assign(after.state.lastPublicSkill, patch);
++    assert.equal(describe(after).title, "スキルを使用", JSON.stringify(patch));
++  }
++  for (const annotation of [null, [], "areaDiePlus", undefined]) {
++    const after = view(2); after.state.lastPublicSkill = annotation;
++    assert.equal(describe(after).title, "スキルを使用");
++  }
++  const after = view(2); delete after.skillRegistry;
++  assert.equal(describe(after).title, "スキルを使用");
++  after.skillRegistry = { skills: Object.create({ areaDiePlus: registry.skills.areaDiePlus }) };
++  assert.equal(describe(after).title, "スキルを使用");
++});
++
++test("named accepted no-op still needs the matching own ACK before claiming a failed effect", () => {
++  for (const actor of ["A", "B"]) {
++    const after = view(2, { actor, skillId: "disruptPaletteChoice" });
++    after.ack = { scope: "room:m:A", eventId: "m:2", name: "irrelevant", noOp: true };
++    assert.equal(describe(after).title, registry.skills.disruptPaletteChoice.displayName);
++    assert.equal(describe(after).detail, actor === "A" ? "空振り" : "スキルを使用");
++    assert.equal(describe(after).destination, null);
++  }
++});
++
++test("named events keep the same locked identity across retries, reloads and changed annotation", async () => {
++  const data = new Map(), storage = { getItem: k => data.get(k) || null, setItem: (k, v) => data.set(k, v) };
++  const locks = { request: async (_key, _opts, fn) => fn() }, shown = [];
++  const observer = cutin.createObserver({ storage, locks, show: e => shown.push(e), clear() {} });
++  await observer.observe(view(1)); await observer.observe(view(2));
++  await observer.observe(view(2, { skillId: "colorPrism" }));
++  assert.equal(shown.length, 1); assert.equal(shown[0].title, registry.skills.areaDiePlus.displayName);
++  const reloaded = cutin.createObserver({ storage, locks, show: e => shown.push(e), clear() {} });
++  await reloaded.observe(view(1)); await reloaded.observe(view(2));
++  assert.equal(shown.length, 1);
++  assert.equal(cutin.DISPLAY_MS, 1800);
++});
+diff --git a/tests/standard-public-skill-persistence.test.cjs b/tests/standard-public-skill-persistence.test.cjs
+new file mode 100644
+index 0000000..afd90b9
+--- /dev/null
++++ b/tests/standard-public-skill-persistence.test.cjs
+@@ -0,0 +1,176 @@
++"use strict";
++// Full TS handler + generated engine + actual isolated PostgreSQL/WASM functions.
++// Supabase authentication, network and native multi-connection races are not simulated acceptance.
++const assert = require("node:assert/strict");
++const fs = require("node:fs");
++const path = require("node:path");
++const vm = require("node:vm");
++const { stripTypeScriptTypes } = require("node:module");
++const { webcrypto, randomUUID, createHash } = require("node:crypto");
++const test = require("node:test");
++const { createCpuSqlDatabase } = require("./helpers/cpu-sql-runtime.cjs");
++const { loadEngine, fixture, plain, root } = require("./helpers/public-skill-fixture.cjs");
++const roster = require("../standard/standard-cpu-roster.js");
++const source = fs.readFileSync(path.join(root, "supabase/functions/standard-game-action/index.ts"), "utf8");
++const runnable = stripTypeScriptTypes(source.replace(/^import .*;\r?\n/gm, ""));
++const allowedRpc = new Set(["fcg_standard_server_load_room_v3", "fcg_standard_server_load_room_v2",
++  "fcg_standard_server_replay_action", "fcg_standard_server_commit_action"]);
++const api = loadEngine();
++let db;
++test.before(async () => { const setup = await createCpuSqlDatabase(); db = setup.db; await db.exec(setup.migration); });
++test.after(async () => { if (db) await db.close(); });
++
++async function seed(input, cpu = false) {
++  const ids = { A: randomUUID(), B: randomUUID(), room: randomUUID() }, projection = api.project(input.state);
++  for (const seat of ["A", "B"]) {
++    const profile = plain(api.createStarterProfile("Fixture " + seat));
++    profile.inventory = Object.fromEntries(Object.keys(input.state.hands[seat]).map(id => [id, 3]));
++    api.validateProfile(profile);
++    await db.query("insert into auth.users(id) values ($1)", [ids[seat]]);
++    await db.query("insert into public.fcg_standard_profiles(user_id, revision, display_name, profile_state) values ($1,1,$2,$3::jsonb)",
++      [ids[seat], profile.displayName, JSON.stringify(profile)]);
++  }
++  await db.query("insert into public.fcg_rooms(id,code_hash,host_user_id,status,game_mode,public_state,opponent_kind,cpu_user_id,cpu_character_id,cpu_policy_version) values ($1,$2,$3,'playing','standard_v5',$4::jsonb,$5,$6,$7,$8)",
++    [ids.room, ids.room, ids.A, JSON.stringify(projection.publicState), cpu ? "cpu" : "human", cpu ? ids.B : null,
++      cpu ? "rei" : null, cpu ? roster.CPU_CHARACTERS.rei.policyVersion : null]);
++  for (const seat of ["A", "B"]) {
++    await db.query("insert into public.fcg_room_members(room_id,user_id,seat,display_name) values ($1,$2,$3,$4)", [ids.room, ids[seat], seat, "Fixture " + seat]);
++    const loadout = JSON.stringify(input.state.loadouts[seat]);
++    await db.query("insert into fcg_private.standard_room_setups(room_id,user_id,seat,profile_revision,quote_id,quote_expires_at,loadout,loadout_fingerprint) values ($1,$2,$3,1,$4,now()+interval '1 hour',$5::jsonb,$6)",
++      [ids.room, ids[seat], seat, randomUUID(), loadout, createHash("sha256").update(loadout).digest("hex")]);
++    await db.query("insert into public.fcg_player_views(room_id,user_id,seat,private_state) values ($1,$2,$3,$4::jsonb)",
++      [ids.room, ids[seat], seat, JSON.stringify(seat === "A" ? projection.privateA : projection.privateB)]);
++  }
++  await db.query("insert into fcg_private.authoritative_matches(room_id,version,state,game_mode) values ($1,0,$2::jsonb,'standard_v5')",
++    [ids.room, JSON.stringify({ state: input.state, rngSnapshot: input.rngSnapshot })]);
++  return ids;
++}
++
++function worker(ids, { caller = "A", cpuChoice = null, conflict = false, loseReply = false } = {}) {
++  const calls = [], errors = []; let handler, didLose = false, choiceObservation = null;
++  const token = "eyJhbGciOiJIUzI1NiJ9." + Buffer.from(JSON.stringify({ sub: ids[caller], role: "authenticated" })).toString("base64url") + ".fixture";
++  const env = { SUPABASE_URL: "https://fixture.invalid", SUPABASE_SERVICE_ROLE_KEY: "isolated-test-not-a-credential",
++    FCG_CPU_SPLIT_RESCUE: roster.SPLIT_RESCUE_POLICY_VERSION };
++  const sandbox = { Request, Response, Headers, TextEncoder, TextDecoder, atob, crypto: webcrypto,
++    console: { error: (...args) => errors.push(args) },
++    Deno: { env: { get: name => env[name] }, serve: fn => { handler = fn; } },
++    FourColorStandardServerEngine: { ...Object.fromEntries(Object.entries(api).map(([name, value]) => [name,
++      typeof value === "function" ? (...args) => { try { return value(...args); } catch (error) {
++        errors.push({ stage: name, message: error.message }); throw error;
++      } } : value])), ...(cpuChoice ? { chooseCpuAction: observation => {
++      choiceObservation = plain(observation); return plain(cpuChoice);
++    } } : {}) },
++    createClient: () => ({ rpc: async (name, rawArgs) => {
++      assert.ok(allowedRpc.has(name), "unexpected RPC " + name);
++      const args = plain(rawArgs); calls.push({ name, args: plain(args) });
++      if (name === "fcg_standard_server_commit_action" && conflict) args.p_profile_a_expected_revision = 0;
++      await db.exec("set role service_role");
++      try {
++        const keys = Object.keys(args), params = keys.map(key => args[key] !== null && typeof args[key] === "object" ? JSON.stringify(args[key]) : args[key]);
++        const result = await db.query(`select * from public.${name}(${keys.map((key, i) => `${key} => $${i + 1}`).join(",")})`, params);
++        if (name === "fcg_standard_server_commit_action" && loseReply && !didLose) { didLose = true; return { error: new Error("isolated lost commit response") }; }
++        return { data: result.rows };
++      } catch (error) { errors.push({ stage: name, code: error.code, message: error.message }); return { error }; }
++      finally { await db.exec("reset role"); }
++    } }),
++  };
++  vm.runInNewContext(runnable, sandbox, { filename: "standard-game-action.ts" });
++  return { calls, errors, observation: () => choiceObservation, post: async body => {
++    const response = await handler(new Request("https://fixture.invalid/functions/v1/standard-game-action", {
++      method: "POST", headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" }, body: JSON.stringify(body),
++    }));
++    return { status: response.status, body: await response.json(), diagnostics: plain(errors) };
++  } };
++}
++function body(ids, input, actionId = randomUUID()) {
++  return { operation: "action", roomId: ids.room, action: { ...input.action, id: actionId, expectedVersion: input.expectedVersion },
++    lastPublicSkill: { skillId: "forged-name" } };
++}
++async function snapshot(ids, seat) {
++  await db.query("select set_config('request.jwt.claim.sub',$1,false)", [ids[seat]]);
++  await db.exec("set role authenticated");
++  try { return (await db.query("select public.fcg_standard_room_snapshot_v2($1,null) as value", [ids.room])).rows[0].value; }
++  finally { await db.exec("reset role"); await db.query("select set_config('request.jwt.claim.sub','',false)"); }
++}
++async function stored(ids) {
++  return (await db.query("select r.version,r.public_state,a.state,(select count(*)::int from fcg_private.standard_action_receipts x where x.room_id=r.id) as receipts from public.fcg_rooms r join fcg_private.authoritative_matches a on a.room_id=r.id where r.id=$1", [ids.room])).rows[0];
++}
++
++for (const [actor, scenario] of [["A", "work"], ["B", "palette"]]) test(`actual human handler commits one named public action and one receipt: ${actor}`, async () => {
++  const input = fixture(api, { actor, scenario }), ids = await seed(input), w = worker(ids, { caller: actor }), request = body(ids, input);
++  const result = await w.post(request);
++  assert.equal(result.status, 200, JSON.stringify(result));
++  const expected = { eventId: `${input.state.matchId}:1`, version: 1, actor, skillId: input.action.payload.skill };
++  assert.deepEqual(result.body.room.publicState.lastPublicSkill, expected);
++  const first = await stored(ids); assert.equal(first.receipts, 1); assert.equal(Number(first.version), 1);
++  assert.equal(Object.hasOwn(first.state.state, "lastPublicSkill"), false);
++  for (const seat of ["A", "B"]) {
++    const read = await snapshot(ids, seat);
++    assert.deepEqual(read.room.public_state.lastPublicSkill, expected);
++    assert.equal(read.view.seat, seat);
++    assert.deepEqual(read.view.private_state, plain(api.privateState(first.state.state, seat)));
++  }
++  const retry = await w.post(request);
++  assert.equal(retry.status, 200); assert.equal(retry.body.duplicate, true);
++  assert.deepEqual(retry.body.room.publicState.lastPublicSkill, expected);
++  assert.deepEqual(await stored(ids), first);
++  assert.equal(w.calls.filter(call => call.name === "fcg_standard_server_commit_action").length, 1);
++});
++
++test("actual CPU handler publishes only its executed ID through the same SQL boundary", async () => {
++  const input = fixture(api, { actor: "B" }), ids = await seed(input, true);
++  // The choice is an authored fixture; the actual handler, engine, SQL and projections run unchanged.
++  const w = worker(ids, { cpuChoice: input.action });
++  const result = await w.post({ operation: "cpu-action", roomId: ids.room, expectedVersion: 0 });
++  assert.equal(result.status, 200, JSON.stringify(result));
++  assert.equal(result.body.room.publicState.lastPublicSkill.skillId, "areaDiePlus");
++  assert.equal(result.body.room.publicState.lastPublicSkill.actor, "B");
++  assert.deepEqual(w.observation().ownPrivateState, plain(api.privateState(input.state, "B")));
++  assert.equal(Object.hasOwn(w.observation(), "opponentPrivateState"), false);
++  assert.equal((await snapshot(ids, "A")).room.public_state.lastPublicSkill.skillId, "areaDiePlus");
++  assert.equal((await stored(ids)).receipts, 1);
++});
++
++test("accepted no-op names its attempted skill without exposing the private miss or consuming inventory", async () => {
++  const input = fixture(api, { scenario: "miss" }), ids = await seed(input), w = worker(ids);
++  const before = (await snapshot(ids, "A")).profile;
++  const result = await w.post(body(ids, input));
++  assert.equal(result.status, 200, JSON.stringify(result));
++  assert.equal(result.body.result.noOp, true); assert.equal(result.body.result.cardConsumed, false);
++  assert.deepEqual(Object.keys(result.body.room.publicState.lastPublicSkill).sort(), ["actor", "eventId", "skillId", "version"]);
++  assert.deepEqual((await snapshot(ids, "A")).profile, before);
++});
++
++test("rule rejection leaves SQL and public metadata unchanged and preserves the true HTTP400 code", async () => {
++  const input = fixture(api, { scenario: "borrow-reject" }), ids = await seed(input), w = worker(ids), before = await stored(ids);
++  const result = await w.post(body(ids, input));
++  assert.equal(result.status, 400); assert.equal(result.body.error.code, "NO_BOARD_COLORS");
++  assert.equal(w.calls.some(call => call.name === "fcg_standard_server_commit_action"), false);
++  assert.deepEqual(await stored(ids), before);
++});
++
++test("actual failed SQL profile revision rolls back authority, event, private views and receipt together", async () => {
++  const input = fixture(api), ids = await seed(input), w = worker(ids, { conflict: true }), before = await stored(ids);
++  const beforeView = await snapshot(ids, "B"), result = await w.post(body(ids, input));
++  assert.notEqual(result.status, 200);
++  assert.equal(w.calls.filter(call => call.name === "fcg_standard_server_commit_action").length, 1);
++  assert.deepEqual(await stored(ids), before);
++  const afterView = await snapshot(ids, "B");
++  // Fresh server wall time is not persisted game/profile/view state.
++  delete beforeView.server_time; delete afterView.server_time;
++  assert.deepEqual(afterView, beforeView);
++  assert.equal(Object.hasOwn(result.body, "room"), false);
++});
++
++test("lost commit response is observable once through snapshot and a duplicate receipt, never a second event", async () => {
++  const input = fixture(api), ids = await seed(input), w = worker(ids, { loseReply: true }), request = body(ids, input);
++  const lost = await w.post(request); assert.notEqual(lost.status, 200);
++  const committed = await stored(ids), read = await snapshot(ids, "B");
++  assert.equal(committed.receipts, 1); assert.equal(Number(committed.version), 1);
++  assert.equal(read.room.public_state.lastPublicSkill.skillId, "areaDiePlus");
++  const retry = await w.post(request);
++  assert.equal(retry.status, 200); assert.equal(retry.body.duplicate, true);
++  assert.deepEqual(retry.body.room.publicState.lastPublicSkill, read.room.public_state.lastPublicSkill);
++  assert.deepEqual(await stored(ids), committed);
++  assert.equal(w.calls.filter(call => call.name === "fcg_standard_server_commit_action").length, 1);
++});
+diff --git a/tests/standard-surrender-confirmation.test.cjs b/tests/standard-surrender-confirmation.test.cjs
+index 8305218..7f2fe5a 100644
+--- a/tests/standard-surrender-confirmation.test.cjs
++++ b/tests/standard-surrender-confirmation.test.cjs
+@@ -4,7 +4,7 @@ const {dialogueFor,makeIntent,isCurrentIntent}=require("../standard-online-v5/su
+ test("UDL067 native safe-first dialog and its scoped focus style load before app41",()=>{
+   const fs=require("node:fs"),path=require("node:path"),root=path.join(__dirname,"../standard-online-v5");
+   const html=fs.readFileSync(path.join(root,"index.html"),"utf8"),css=fs.readFileSync(path.join(root,"surrender-confirmation.css"),"utf8");
+-  assert.ok(html.indexOf('surrender-confirmation.js?v=20260913-1')<html.indexOf('app.js?v=20260913-43'));
++  assert.ok(html.indexOf('surrender-confirmation.js?v=20260913-1')<html.indexOf('app.js?v=20260913-44'));
+   assert.ok(html.includes('surrender-confirmation.css?v=20260913-1'));
+   const dialog=html.slice(html.indexOf('<dialog id="surrenderDialog"'),html.indexOf('<dialog id="abandonRoomDialog"'));
+   assert.match(dialog,/aria-labelledby="surrenderTitle" aria-describedby="surrenderSpeaker surrenderDescription"/);

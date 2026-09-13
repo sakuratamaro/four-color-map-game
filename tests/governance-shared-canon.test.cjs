@@ -320,6 +320,19 @@ test("ChatGPT review records require an exact subject and cannot imply productio
         assert.equal(slice.acceptance_review_id,decision.review_id);
         assert.equal(slice.review_id,"CHATGPT-REVIEW-20260913-034","post-publication disposition must not replace the original release gate");
         assert.equal(JSON.parse(read("docs/SURRENDER_LIVE_20260913.json")).ok,false);
+      } else if (decision.review_id === "CHATGPT-REVIEW-20260913-041") {
+        assert.equal(decision.review_kind,"public_acceptance_disposition");
+        assert.equal(decision.decision,"RECEIVE_FAILURE_CONTINUE_LOCAL");
+        assert.equal(decision.evidence_sha,"51d02523a298b016ae799851a34974eea85bc27c");
+        assert.equal(decision.source.message_id,"7b766746-5cc1-4778-b247-1ad6a906f097");
+        assert.equal(decision.source.request_message_id,"d8f4ef3e-b6f7-471c-911f-65ce3dabc3c0");
+        assert.equal(decision.source.request_body_equality,true);
+        assert.equal(decision.source.response_text.length,1888);
+        assert.deepEqual(decision.bounds,{additional_profiles:0,additional_matches:0,additional_canary_attempts:0,additional_deployments:0});
+        const ui=log.coordination.remaining_brain_work.cutin_readability_preparation;
+        assert.equal(ui.review_id,"CHATGPT-REVIEW-20260913-040");
+        assert.equal(ui.live_canary_attempts,1);assert.equal(ui.live_canary_state,"ATTEMPT_FINISHED");
+        assert.equal(JSON.parse(read("docs/SKILL_CUTIN_READABILITY_LIVE_20260913.json")).ok,false);
       } else if (decision.review_id === "CHATGPT-REVIEW-20260913-038") {
         assert.equal(decision.review_kind,"public_acceptance_disposition");
         assert.equal(decision.decision,"ACCEPT_SCOPED");
@@ -349,6 +362,7 @@ test("ChatGPT review records require an exact subject and cannot imply productio
       assert.match(decision.subject_sha, /^[0-9a-f]{40}$/);
       assert.match(decision.spec_snapshot_sha, /^[0-9a-f]{40}$/);
       const bindings = {
+        "CHATGPT-REVIEW-20260913-041": ["954e1c5c52d5453fc9fee9872b2d7e922f850a39", "d9ce111d7d97019d55b3e90842602001e045ea04", "UDL-065-readability-v1.1", "2af5d73528a35edc29f45b3be5b700f6ceaf4688", "Pages_only"],
         "CHATGPT-REVIEW-20260913-040": ["954e1c5c52d5453fc9fee9872b2d7e922f850a39", "d9ce111d7d97019d55b3e90842602001e045ea04", "UDL-065-readability-v1.1", "2af5d73528a35edc29f45b3be5b700f6ceaf4688", "Pages_only"],
         "CHATGPT-REVIEW-20260913-039": ["9590a4212d69185fc93df31b552d9bd870d5a9a3", "d9ce111d7d97019d55b3e90842602001e045ea04", "UDL-051-palette-v1.1", "de0cc9e2299a8a69dd1bfbc9368cd98042ca9b9f", "Pages_Edge_DB_managed_activation"],
         "CHATGPT-REVIEW-20260913-038": ["d9ce111d7d97019d55b3e90842602001e045ea04", "f507c0b2dd9701f3ac1867131150b5e48d0ada8d", "UDL-051-split-v1.1", "5b4b137769f1be7736ded6a187e438ccb6d9a702", "Pages_Edge_DB_managed_activation"],

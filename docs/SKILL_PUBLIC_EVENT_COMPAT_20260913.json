@@ -1,0 +1,475 @@
+{
+  "ok": true,
+  "base": "954e1c5c52d5453fc9fee9872b2d7e922f850a39",
+  "scope": "isolated actual fixed-base engines and viewer modules; not live or physical acceptance",
+  "oldBundleSha256": "91bc29ecb53775eae6df11690852246c04ae8453e2a91c84210b40aa8efc0d6f",
+  "newBundleSha256": "e7f4fc1158c2f3679c7337ae56805fadb0e5f029d88db82212ff022e66db468b",
+  "oldCutinSha256": "cb13a2eaf2ff59826eedae2cae975365364999c79aa5ad0232df68cd967f233c",
+  "newCutinSha256": "fc5096b166b1b54565a26e54d4cb1c23e649a154e3d5f380223ad7fb90b5adbe",
+  "cases": [
+    {
+      "actor": "A",
+      "scenario": "work",
+      "engineVersion": "5.0.0-alpha.4",
+      "sameStateRngPrivateAndEffects": true,
+      "alternatingWorkersCompatible": true,
+      "combinations": [
+        {
+          "server": "old",
+          "viewer": "old",
+          "title": "スキルを使用"
+        },
+        {
+          "server": "old",
+          "viewer": "new",
+          "title": "スキルを使用"
+        },
+        {
+          "server": "new",
+          "viewer": "old",
+          "title": "スキルを使用"
+        },
+        {
+          "server": "new",
+          "viewer": "new",
+          "title": "エリア拡張"
+        }
+      ]
+    },
+    {
+      "actor": "A",
+      "scenario": "palette",
+      "engineVersion": "5.0.0-alpha.4",
+      "sameStateRngPrivateAndEffects": true,
+      "alternatingWorkersCompatible": true,
+      "combinations": [
+        {
+          "server": "old",
+          "viewer": "old",
+          "title": "スキルを使用"
+        },
+        {
+          "server": "old",
+          "viewer": "new",
+          "title": "スキルを使用"
+        },
+        {
+          "server": "new",
+          "viewer": "old",
+          "title": "スキルを使用"
+        },
+        {
+          "server": "new",
+          "viewer": "new",
+          "title": "持ち色変更"
+        }
+      ]
+    },
+    {
+      "actor": "A",
+      "scenario": "miss",
+      "engineVersion": "5.0.0-alpha.4",
+      "sameStateRngPrivateAndEffects": true,
+      "alternatingWorkersCompatible": true,
+      "combinations": [
+        {
+          "server": "old",
+          "viewer": "old",
+          "title": "スキルを使用"
+        },
+        {
+          "server": "old",
+          "viewer": "new",
+          "title": "スキルを使用"
+        },
+        {
+          "server": "new",
+          "viewer": "old",
+          "title": "スキルを使用"
+        },
+        {
+          "server": "new",
+          "viewer": "new",
+          "title": "持ち色汚染"
+        }
+      ]
+    },
+    {
+      "actor": "A",
+      "scenario": "recolor",
+      "engineVersion": "5.0.0-alpha.4",
+      "sameStateRngPrivateAndEffects": true,
+      "alternatingWorkersCompatible": true,
+      "combinations": [
+        {
+          "server": "old",
+          "viewer": "old",
+          "title": "スキルを使用"
+        },
+        {
+          "server": "old",
+          "viewer": "new",
+          "title": "スキルを使用"
+        },
+        {
+          "server": "new",
+          "viewer": "old",
+          "title": "スキルを使用"
+        },
+        {
+          "server": "new",
+          "viewer": "new",
+          "title": "塗り直し・乱"
+        }
+      ]
+    },
+    {
+      "actor": "A",
+      "scenario": "work",
+      "engineVersion": "5.0.0-alpha.1",
+      "sameStateRngPrivateAndEffects": true,
+      "alternatingWorkersCompatible": true,
+      "combinations": [
+        {
+          "server": "old",
+          "viewer": "old",
+          "title": "スキルを使用"
+        },
+        {
+          "server": "old",
+          "viewer": "new",
+          "title": "スキルを使用"
+        },
+        {
+          "server": "new",
+          "viewer": "old",
+          "title": "スキルを使用"
+        },
+        {
+          "server": "new",
+          "viewer": "new",
+          "title": "エリア拡張"
+        }
+      ]
+    },
+    {
+      "actor": "A",
+      "scenario": "work",
+      "engineVersion": "5.0.0-alpha.2",
+      "sameStateRngPrivateAndEffects": true,
+      "alternatingWorkersCompatible": true,
+      "combinations": [
+        {
+          "server": "old",
+          "viewer": "old",
+          "title": "スキルを使用"
+        },
+        {
+          "server": "old",
+          "viewer": "new",
+          "title": "スキルを使用"
+        },
+        {
+          "server": "new",
+          "viewer": "old",
+          "title": "スキルを使用"
+        },
+        {
+          "server": "new",
+          "viewer": "new",
+          "title": "エリア拡張"
+        }
+      ]
+    },
+    {
+      "actor": "A",
+      "scenario": "work",
+      "engineVersion": "5.0.0-alpha.3",
+      "sameStateRngPrivateAndEffects": true,
+      "alternatingWorkersCompatible": true,
+      "combinations": [
+        {
+          "server": "old",
+          "viewer": "old",
+          "title": "スキルを使用"
+        },
+        {
+          "server": "old",
+          "viewer": "new",
+          "title": "スキルを使用"
+        },
+        {
+          "server": "new",
+          "viewer": "old",
+          "title": "スキルを使用"
+        },
+        {
+          "server": "new",
+          "viewer": "new",
+          "title": "エリア拡張"
+        }
+      ]
+    },
+    {
+      "actor": "A",
+      "scenario": "work",
+      "engineVersion": "5.0.0-alpha.4",
+      "sameStateRngPrivateAndEffects": true,
+      "alternatingWorkersCompatible": true,
+      "combinations": [
+        {
+          "server": "old",
+          "viewer": "old",
+          "title": "スキルを使用"
+        },
+        {
+          "server": "old",
+          "viewer": "new",
+          "title": "スキルを使用"
+        },
+        {
+          "server": "new",
+          "viewer": "old",
+          "title": "スキルを使用"
+        },
+        {
+          "server": "new",
+          "viewer": "new",
+          "title": "エリア拡張"
+        }
+      ]
+    },
+    {
+      "actor": "B",
+      "scenario": "work",
+      "engineVersion": "5.0.0-alpha.4",
+      "sameStateRngPrivateAndEffects": true,
+      "alternatingWorkersCompatible": true,
+      "combinations": [
+        {
+          "server": "old",
+          "viewer": "old",
+          "title": "スキルを使用"
+        },
+        {
+          "server": "old",
+          "viewer": "new",
+          "title": "スキルを使用"
+        },
+        {
+          "server": "new",
+          "viewer": "old",
+          "title": "スキルを使用"
+        },
+        {
+          "server": "new",
+          "viewer": "new",
+          "title": "エリア拡張"
+        }
+      ]
+    },
+    {
+      "actor": "B",
+      "scenario": "palette",
+      "engineVersion": "5.0.0-alpha.4",
+      "sameStateRngPrivateAndEffects": true,
+      "alternatingWorkersCompatible": true,
+      "combinations": [
+        {
+          "server": "old",
+          "viewer": "old",
+          "title": "スキルを使用"
+        },
+        {
+          "server": "old",
+          "viewer": "new",
+          "title": "スキルを使用"
+        },
+        {
+          "server": "new",
+          "viewer": "old",
+          "title": "スキルを使用"
+        },
+        {
+          "server": "new",
+          "viewer": "new",
+          "title": "持ち色変更"
+        }
+      ]
+    },
+    {
+      "actor": "B",
+      "scenario": "miss",
+      "engineVersion": "5.0.0-alpha.4",
+      "sameStateRngPrivateAndEffects": true,
+      "alternatingWorkersCompatible": true,
+      "combinations": [
+        {
+          "server": "old",
+          "viewer": "old",
+          "title": "スキルを使用"
+        },
+        {
+          "server": "old",
+          "viewer": "new",
+          "title": "スキルを使用"
+        },
+        {
+          "server": "new",
+          "viewer": "old",
+          "title": "スキルを使用"
+        },
+        {
+          "server": "new",
+          "viewer": "new",
+          "title": "持ち色汚染"
+        }
+      ]
+    },
+    {
+      "actor": "B",
+      "scenario": "recolor",
+      "engineVersion": "5.0.0-alpha.4",
+      "sameStateRngPrivateAndEffects": true,
+      "alternatingWorkersCompatible": true,
+      "combinations": [
+        {
+          "server": "old",
+          "viewer": "old",
+          "title": "スキルを使用"
+        },
+        {
+          "server": "old",
+          "viewer": "new",
+          "title": "スキルを使用"
+        },
+        {
+          "server": "new",
+          "viewer": "old",
+          "title": "スキルを使用"
+        },
+        {
+          "server": "new",
+          "viewer": "new",
+          "title": "塗り直し・乱"
+        }
+      ]
+    },
+    {
+      "actor": "B",
+      "scenario": "work",
+      "engineVersion": "5.0.0-alpha.1",
+      "sameStateRngPrivateAndEffects": true,
+      "alternatingWorkersCompatible": true,
+      "combinations": [
+        {
+          "server": "old",
+          "viewer": "old",
+          "title": "スキルを使用"
+        },
+        {
+          "server": "old",
+          "viewer": "new",
+          "title": "スキルを使用"
+        },
+        {
+          "server": "new",
+          "viewer": "old",
+          "title": "スキルを使用"
+        },
+        {
+          "server": "new",
+          "viewer": "new",
+          "title": "エリア拡張"
+        }
+      ]
+    },
+    {
+      "actor": "B",
+      "scenario": "work",
+      "engineVersion": "5.0.0-alpha.2",
+      "sameStateRngPrivateAndEffects": true,
+      "alternatingWorkersCompatible": true,
+      "combinations": [
+        {
+          "server": "old",
+          "viewer": "old",
+          "title": "スキルを使用"
+        },
+        {
+          "server": "old",
+          "viewer": "new",
+          "title": "スキルを使用"
+        },
+        {
+          "server": "new",
+          "viewer": "old",
+          "title": "スキルを使用"
+        },
+        {
+          "server": "new",
+          "viewer": "new",
+          "title": "エリア拡張"
+        }
+      ]
+    },
+    {
+      "actor": "B",
+      "scenario": "work",
+      "engineVersion": "5.0.0-alpha.3",
+      "sameStateRngPrivateAndEffects": true,
+      "alternatingWorkersCompatible": true,
+      "combinations": [
+        {
+          "server": "old",
+          "viewer": "old",
+          "title": "スキルを使用"
+        },
+        {
+          "server": "old",
+          "viewer": "new",
+          "title": "スキルを使用"
+        },
+        {
+          "server": "new",
+          "viewer": "old",
+          "title": "スキルを使用"
+        },
+        {
+          "server": "new",
+          "viewer": "new",
+          "title": "エリア拡張"
+        }
+      ]
+    },
+    {
+      "actor": "B",
+      "scenario": "work",
+      "engineVersion": "5.0.0-alpha.4",
+      "sameStateRngPrivateAndEffects": true,
+      "alternatingWorkersCompatible": true,
+      "combinations": [
+        {
+          "server": "old",
+          "viewer": "old",
+          "title": "スキルを使用"
+        },
+        {
+          "server": "old",
+          "viewer": "new",
+          "title": "スキルを使用"
+        },
+        {
+          "server": "new",
+          "viewer": "old",
+          "title": "スキルを使用"
+        },
+        {
+          "server": "new",
+          "viewer": "new",
+          "title": "エリア拡張"
+        }
+      ]
+    }
+  ]
+}

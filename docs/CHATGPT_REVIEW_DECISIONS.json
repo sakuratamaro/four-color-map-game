@@ -188,8 +188,8 @@
       "normal_owner_observation": "Previous normal turn completed after branch push; stored normal_work_receipt waiting. This heartbeat is the same task, not a second active owner."
     },
     "reviewer_thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
-    "last_consumed_review_message_id": "fb1e2e48-53e5-4a1a-b34a-2fa2e66f862d",
-    "last_received_message_id": "fb1e2e48-53e5-4a1a-b34a-2fa2e66f862d",
+    "last_consumed_review_message_id": "7b766746-5cc1-4778-b247-1ad6a906f097",
+    "last_received_message_id": "7b766746-5cc1-4778-b247-1ad6a906f097",
     "pending_user_intake_message_ids": [
       "ea61f25f-bebf-499a-81e9-029712a96f99",
       "bbb216f0-9194-45cf-acd6-504a9a55d40a",
@@ -1130,7 +1130,8 @@
       "c566e41e-1282-4603-8c56-1f3a46e2db9c",
       "6d2304e2-a209-468b-9ba1-bea3f2a65e58",
       "718d0bfa-6d26-4931-ac81-22a21542ec50",
-      "3e6efd53-710a-45ed-9de4-05627ca5f40e"
+      "3e6efd53-710a-45ed-9de4-05627ca5f40e",
+      "d8f4ef3e-b6f7-471c-911f-65ce3dabc3c0"
     ],
     "sent_at_utc": "2026-09-13T00:49:56Z",
     "last_check_utc": "2026-09-13T00:52:02Z",
@@ -3724,19 +3725,73 @@
           "diagnosis": "NO_BOARD_COLORS is locally reproducible but actual safe semantic code was not saved; no confirmed production root cause."
         },
         "named_skill_followup": {
-          "state": "LOCAL_PREPARATION_PENDING",
+          "state": "LOCAL_VERIFIED_REVIEW_PREPARATION",
           "owner_thread_id": "01a07b56-616e-7733-9aae-90575659688e",
           "request_id": "UDL-20260912-065",
           "source_message_id": "bbb2135e-cfd1-4da8-845b-9e3d07d8b29a",
           "base_sha": "954e1c5c52d5453fc9fee9872b2d7e922f850a39",
-          "spec_path": "docs/SKILL_PUBLIC_EVENT_PLAN_20260913.md",
+          "spec_path": "docs/SKILL_PUBLIC_EVENT_20260913.md",
           "planned_branch": "codex/skill-cutin-public-names-20260913",
-          "worktree_created": false,
+          "worktree_created": true,
           "publication_authorized": false,
-          "live_reexecution_authorized": false
+          "live_reexecution_authorized": false,
+          "worktree": ".codex-worktrees/skill-cutin-public-names-20260913",
+          "created_from_fresh_main_at_utc": "2026-09-13T02:30:15Z",
+          "time_precision": "First adjacent post-creation readback clock; not exact worktree creation instant.",
+          "latest_guidance": {
+            "source_review_id": "CHATGPT-REVIEW-20260913-041",
+            "source_request_message_id": "d8f4ef3e-b6f7-471c-911f-65ce3dabc3c0",
+            "source_response_message_id": "7b766746-5cc1-4778-b247-1ad6a906f097",
+            "release_approval": false,
+            "new_live_authority": false,
+            "note": "Continue local named public event candidate; fix actual failed harness path locally without reopening040."
+          },
+          "branch": "codex/skill-cutin-public-names-20260913",
+          "candidate_sha": "70e691b6f8f1d808476e80990d20df7862bfb782",
+          "plan_path": "docs/SKILL_PUBLIC_EVENT_PLAN_20260913.md",
+          "spec_version": "UDL-065-public-skill-v1",
+          "spec_snapshot_sha": "97d434d32c67741e73b8eb4f73602186d83e2d3e",
+          "scope": "Pages_Edge",
+          "db_change_set": [],
+          "edge_change_set": [
+            "supabase/functions/standard-game-action/standard-engine.bundle.js"
+          ],
+          "managed_setting_change_set": [],
+          "publication": "NOT_RUN",
+          "push_status": "PUSHED_EXACT_BRANCH",
+          "local_verification": "PASS",
+          "test_evidence": "docs/SKILL_PUBLIC_EVENT_LOCAL_20260913.md",
+          "windows_status": "IN_PROGRESS",
+          "review_status": "NOT_SENT",
+          "review_send_attempts": 0,
+          "review_request_message_id": null,
+          "review_response_message_id": null,
+          "live_canary_attempts": 0,
+          "live_canary_state": "NOT_AUTHORIZED",
+          "production_gates": {
+            "edge": "NOT_RUN",
+            "main": "NOT_RUN",
+            "pages": "NOT_RUN",
+            "live": "NOT_AUTHORIZED"
+          },
+          "next_action": "Read exact new Windows status; send genuinely new fixed-candidate review once with full diff and retained failures. Preserve old041/040/039.",
+          "windows_run": "34735790923",
+          "windows_attempt": 1,
+          "windows_observed_at_utc": "2026-09-13T03:34:17Z",
+          "review_packet": "docs/SKILL_PUBLIC_EVENT_LOCAL_20260913.md",
+          "full_diff_path": "docs/SKILL_PUBLIC_EVENT_REVIEW_20260913.patch",
+          "full_diff_sha256": "0cb30690848d73457eeb945087376db4a38adf93110ee344e3f3cb6745ef6275",
+          "full_diff_characters": 72688,
+          "review_availability": {
+            "checked_at_utc": "2026-09-13T03:21:30Z",
+            "status": "idle",
+            "purpose": "One new fixed-candidate availability check, not reopened040 wait",
+            "latest_request": "d8f4ef3e-b6f7-471c-911f-65ce3dabc3c0",
+            "latest_response": "7b766746-5cc1-4778-b247-1ad6a906f097"
+          }
         },
         "result_report_delivery": {
-          "state": "API_ACCEPTED_READBACK_UNCONFIRMED",
+          "state": "CONFIRMED_WITH_COMPLETED_RESULT_DISPOSITION",
           "kind": "INFORMATIONAL_NO_REVIEW_WAIT",
           "attempts": 1,
           "max_attempts": 1,
@@ -3755,14 +3810,24 @@
           },
           "readback_checked_at_utc": "2026-09-13T02:24:11Z",
           "readback_attempts": 1,
-          "readback_matched": false,
-          "message_id": null,
+          "readback_matched": true,
+          "message_id": "d8f4ef3e-b6f7-471c-911f-65ce3dabc3c0",
           "readback_latest_completed_request": "3e6efd53-710a-45ed-9de4-05627ca5f40e",
           "readback_latest_completed_response": "fb1e2e48-53e5-4a1a-b34a-2fa2e66f862d",
           "resend_allowed": false,
           "blocks_independent_work": false,
-          "note": "One API send was accepted. One bounded readback returned only the prior completed 040/039 turns; exact new body and message ID were not visible. Delivery confirmation remains uncertain; no resend, no approval inference and no reopened review wait."
-        }
+          "note": "Prior02:24 unconfirmed readback remains historical. Completed real result response1888characters saved as041; no new release/live authority.",
+          "prior_unconfirmed_readback": {
+            "state": "API_ACCEPTED_READBACK_UNCONFIRMED",
+            "at_utc": "2026-09-13T02:24:11Z",
+            "attempts": 1,
+            "matched": false
+          },
+          "response_message_id": "7b766746-5cc1-4778-b247-1ad6a906f097",
+          "confirmed_at_utc": "2026-09-13T03:23:42Z",
+          "confirmation_basis": "One availability read for genuinely new fixed70e691b review also returned complete paired old result report; exact2521-character body match. No resend or old040 wait restarted."
+        },
+        "acceptance_review_id": "CHATGPT-REVIEW-20260913-041"
       }
     },
     "limited_attachment_intake": {
@@ -3919,9 +3984,9 @@
       "tests": "tests/governance-commander-continuation.test.cjs",
       "next_run": {
         "phase": "NORMAL_WORK",
-        "subject_sha": "954e1c5c52d5453fc9fee9872b2d7e922f850a39",
-        "at_utc": "2026-09-13T02:35:00Z",
-        "reason": "The exact040 trial has finished FAIL and its one attempt is consumed. Continue the adopted named-opponent public skill event in a new clean worktree based on fresh main; no live retry, no self-send, no reopened040 review."
+        "subject_sha": "70e691b6f8f1d808476e80990d20df7862bfb782",
+        "at_utc": "2026-09-13T03:45:00Z",
+        "reason": "Fixed70e691b local998/998 and Chrome/Edge9/9 complete. Continue same candidate Windows and exact new Astra review; no old failure or trial reuse."
       },
       "first_scheduled_normal_run": {
         "status": "OBSERVED",
@@ -3939,16 +4004,16 @@
         "id": "automation",
         "status": "ACTIVE",
         "target_thread_id": "01a07b56-616e-7733-9aae-90575659688e",
-        "rrule": "FREQ=DAILY;BYHOUR=11;BYMINUTE=35;BYSECOND=0",
-        "updated_at": 1789265737807,
+        "rrule": "FREQ=DAILY;BYHOUR=12;BYMINUTE=45;BYSECOND=0",
+        "updated_at": 1789269380253,
         "created_at": 1789048677730,
         "prompt_exact_equal": true,
-        "scheduled_for_utc": "2026-09-13T02:35:00Z",
+        "scheduled_for_utc": "2026-09-13T03:45:00Z",
         "readback_verified": true,
-        "verification_source": "Fresh actual full TOML matches exact saved prompt, ACTIVE/id/name/target/created_at and 11:35 JST. Next normal work is named public skill event; the failed040 trial cannot execute again. Future scheduled execution is not claimed.",
-        "verified_at_utc": "2026-09-13T02:26:12Z"
+        "verification_source": "Actual update ACTIVE and full TOML exact prompt/id/name/target/created_at readback. Same normal slot moved to12:45 JST to prevent overlapping active owner; old closed review budgets unchanged.",
+        "verified_at_utc": "2026-09-13T03:16:29Z"
       },
-      "normal_work_claim": "UI040_TRIAL_FAILED_CONSUMED_NEXT_NAMED_PUBLIC_EVENT_LOCAL",
+      "normal_work_claim": "NAMED_PUBLIC_EVENT_FIXED_70E691B_LOCAL_PASS_NEW_REVIEW_PREPARATION",
       "review_scope": "Fixed9590/v1.1/SQL002/Edge2/newpalette managed value only; CIhold preserved, oldF3/docs approval not reused.",
       "verification": {
         "regression_tests": "42/42 PASS; skip0;638.46ms",
@@ -3960,12 +4025,11 @@
         "phase": "NORMAL_WORK",
         "turn_id": null,
         "source": "automatic_goal_continuation",
-        "started_at_utc": "2026-09-13T01:38:45Z",
-        "worktree": ".codex-worktrees/skill-cutin-readability-20260913",
-        "request": "Complete and locallyverify the new040 bounded browser/API live harness, then execute its single permitted trial.",
-        "canon_receipt": "shared-canon-v1.1;base=d9ce111d7d97019d55b3e90842602001e045ea04;candidate=954e1c5c52d5453fc9fee9872b2d7e922f850a39;spec=UDL-065-readability-v1.1/blob2af5d73528a35edc29f45b3be5b700f6ceaf4688;request=UDL-20260912-065;tests=976local,Windows34728306768,85governance;Pages34730074280+4byteassets",
-        "completed_receipt_at_utc": "2026-09-13T02:26:12Z",
-        "result": "One allowed trial FAIL preserved at51d02523a298b016ae799851a34974eea85bc27c; one report send API accepted but bounded readback unconfirmed; independent named-skill local continuation retained."
+        "started_at_utc": "2026-09-13T02:28:54Z",
+        "worktree": ".codex-worktrees/skill-cutin-public-names-20260913",
+        "request": "Implement actual used public skill identity for UDL065 on freshly fetched main954e; preserve UI040 rawFAIL and consumed attempt.",
+        "canon_receipt": "shared-canon-v1.1;governance=d82bdb6647a12b0d30b6859d04b464a15ac94c22;base=954e1c5c52d5453fc9fee9872b2d7e922f850a39;request=UDL-20260912-065;source=bbb2135e-cfd1-4da8-845b-9e3d07d8b29a;plan=docs/SKILL_PUBLIC_EVENT_PLAN_20260913.md;spec=docs/SKILL_CUTIN_READABILITY_20260913.md;tests=standard-skill-cutin,standard-online-browser,standard-match,standard-online-engine-bundle",
+        "time_precision": "First adjacent clock observed this turn; not exact execution start."
       },
       "missed_schedule_observation": {
         "scheduled_at_utc": "2026-09-12T06:25:12Z",
@@ -4044,13 +4108,14 @@
       },
       "previous_run": {
         "phase": "NORMAL_WORK",
-        "turn_id": "01a09769-bcfd-7bf1-aee8-ba0f9b6ecb60",
+        "turn_id": null,
         "source": "automatic_goal_continuation",
-        "started_at_utc": "2026-09-12T20:58:04.000Z",
-        "worktree": ".codex-worktrees/cpu-split-rescue-20260913",
-        "request": "Completed genuine036 CPU staged release and bounded API smoke; prepared next adopted F1 slice without reopening old waits.",
-        "canon_receipt": "shared-canon-v1.1;freshMain=f507c0b2dd9701f3ac1867131150b5e48d0ada8d;candidate=d9ce111d7d97019d55b3e90842602001e045ea04;request=UDL-20260910-051;spec=UDL-051-split-v1.1/blob5b4b137769f1be7736ded6a187e438ccb6d9a702;genuineReview036;tests=exact-gates/staged-SQL-Edge-activation-and-bounded-smoke",
-        "completed_receipt_at_utc": "2026-09-12T21:55:31Z"
+        "started_at_utc": "2026-09-13T01:38:45Z",
+        "worktree": ".codex-worktrees/skill-cutin-readability-20260913",
+        "request": "Complete and locallyverify the new040 bounded browser/API live harness, then execute its single permitted trial.",
+        "canon_receipt": "shared-canon-v1.1;base=d9ce111d7d97019d55b3e90842602001e045ea04;candidate=954e1c5c52d5453fc9fee9872b2d7e922f850a39;spec=UDL-065-readability-v1.1/blob2af5d73528a35edc29f45b3be5b700f6ceaf4688;request=UDL-20260912-065;tests=976local,Windows34728306768,85governance;Pages34730074280+4byteassets",
+        "completed_receipt_at_utc": "2026-09-13T02:26:12Z",
+        "result": "One allowed trial FAIL preserved at51d02523a298b016ae799851a34974eea85bc27c; one report send API accepted but bounded readback unconfirmed; independent named-skill local continuation retained."
       },
       "goal_blocked_audit_history": [
         {
@@ -4145,7 +4210,7 @@
       "current_goal_turn_classification": {
         "previous_turn": "PROGRESS",
         "current_turn": "PROGRESS",
-        "evidence": "Completed98localtests and executed1 genuine040 live trial; preserved rawFAIL/11061ms/HTTP400/terminalPLAYING/profileREAD. Next is local named-skill implementation, not another trial.",
+        "evidence": "Real named-skill engine/UI implementation22files fixed70e691b, clean998/998, browser9/9each, actualSQL7/7 and fixedbase16cases64combinations. Genuine result disposition041 saved. New production writes0.",
         "whole_goal_complete": false
       },
       "documentation_review_followup_history": [
@@ -4367,7 +4432,7 @@
         }
       }
     ],
-    "last_consumed_message_id": "fb1e2e48-53e5-4a1a-b34a-2fa2e66f862d"
+    "last_consumed_message_id": "7b766746-5cc1-4778-b247-1ad6a906f097"
   },
   "decisions": [
     {
@@ -5679,6 +5744,55 @@
         "UI-first explicitly approved. Named opponent skill event remains unmet UDL065, not full request completion."
       ],
       "record_time_basis": "Actual bounded read reservation, not inferred response timestamp."
+    },
+    {
+      "review_id": "CHATGPT-REVIEW-20260913-041",
+      "review_kind": "public_acceptance_disposition",
+      "subject_sha": "954e1c5c52d5453fc9fee9872b2d7e922f850a39",
+      "base_sha": "d9ce111d7d97019d55b3e90842602001e045ea04",
+      "canon_version": "shared-canon-v1.1",
+      "feature_spec_version": "UDL-065-readability-v1.1",
+      "spec_snapshot_sha": "2af5d73528a35edc29f45b3be5b700f6ceaf4688",
+      "spec_snapshot_kind": "git_blob",
+      "scope": "Pages_only",
+      "db_change_set": [],
+      "edge_change_set": [],
+      "managed_setting_change_set": [],
+      "decision": "RECEIVE_FAILURE_CONTINUE_LOCAL",
+      "decision_normalization": "Normalized prose disposition, not a literal DECISION label or new release/live approval.",
+      "recorded_at_utc": "2026-09-13T03:23:42Z",
+      "evidence_sha": "51d02523a298b016ae799851a34974eea85bc27c",
+      "source": {
+        "kind": "chatgpt",
+        "thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
+        "message_id": "7b766746-5cc1-4778-b247-1ad6a906f097",
+        "request_message_id": "d8f4ef3e-b6f7-471c-911f-65ce3dabc3c0",
+        "request_body_equality": true,
+        "verified_request_characters": 2521,
+        "response_complete": true,
+        "response_characters": 1888,
+        "response_text": "**固定報告・raw JSON・試行記録・後続計画を確認しました。954eは公開済み、今回の本番対局検証はFAIL、UDL065は未完了という区分を維持してください。** 新しい公開審査・追加試行・040の待機再開は行いません。\n\n対象製品：`954e1c5c52d5453fc9fee9872b2d7e922f850a39`  \n固定証拠：`51d02523a298b016ae799851a34974eea85bc27c`\n\n### 公開と本番受入は、この区分で残す\n\n| 項目 | 今回の扱い |\n|---|---|\n| main／Pagesへの反映 | 固定報告に記録された同一SHAの公開成功 |\n| 配信内容 | 試行前の4アセット厳密byte一致をrawでも確認 |\n| 自分・相手のカットイン | 両方`NOT_OBSERVED`。表示時間・結果説明・表示中の操作性は今回の本番試行では受入不可 |\n| 対局の最終状態 | 最終読取時点で`PLAYING_OBSERVED` |\n| 本人プロフィール | `READ_VERIFIED`。精算は`NOT_VERIFIED` |\n| 総合結果 | `ok:false`、console error 1、route failure 1、試行消費済み |\n\n**`ui.ok:true`は、観測イベントが0件だった中での集計値にすぎず、カットインが正常に動いた証拠にはしません。** 一方、技のHTTP 400で検証が止まった今回の結果だけでは、954eの表示改修に回帰があるとも確定できません。この報告だけを理由に公開版を巻き戻す指示は出しません。\n\n### 今回は「試行終了」と「対局終了」を明確に分ける\n\nここは特に重要です。**今回は終局を読めなかっただけではなく、最後の整合したsnapshotで、試験対局がまだ進行中だったことを観測しています。** 「試行は終了・認証付きプロセスも終了」と、「対局を終局まで片付けた」は別です。試験対局1件が最終読取時点で未終局だった事実を、同じ受入記録に残してください。その後の状態は未確認です。\n\n本人プロフィールの読戻し成功も、プロフィール不変や精算完了の証明にはしません。消費済み枠の再利用、追加プロフィール・対局、特権的な探索、期限後の追加投了を今回の返信で認めるものではありません。\n\n### 原因は未確定のまま、検証側の不足を局所的に直す\n\n報告されている`NO_BOARD_COLORS`の再現は、今回の操作順と整合する説明候補です。しかし、**実際の応答でそのコードを保存できていない以上、今回の確定原因にはしない**整理で正しいです。HTTP 400だけを根拠に、未成立の確定拒否だったと遡って判断することもしません。\n\n次のハーネス準備では、提示計画の次の点を優先してください。\n\n**実際に使う技の適用条件を確認すること、受け取った非2xx応答をネットワーク障害へ変換せずブラウザーへ渡すこと、安全なエラーコードを保持すること、そして確定した未成立と真の結果不明を分けること。** 局所テストの件数を増やすだけでなく、今回実際に通った失敗経路を検査対象にする、という意味です。これは検証側の改善であり、原失敗の書換えや追加live枠にはなりません。\n\n今回、結果不明と分類した後にmutationを重ねなかったことは保持してください。ただし、それで終局・精算まで完了したことにはしない、という区別です。\n\n### 相手技名の公開イベント追加は、独立したローカル改修として続行する\n\n提示された後続計画は、**実際に使われた技の識別情報をauthoritativeな公開イベントから受け取り、未使用手札・持ち色・非公開対象を推測しない**方針になっています。旧trace互換、空振り・拒否の区別、約1,800msの表示、入力非遮断も、次候補で保護する対象として記録されています。\n\nこの既採用項目のローカル実装・検証は続けてください。**今回の受領返信は、その新候補の公開承認でも、DB／Edge変更や次のlive試行の許可でもありません。** 固定候補ができた時点で、その実体に対応するレビューへ進める扱いです。\n\n**040の待機と今回の試行は閉じたまま、公開済み954e・失敗した本番受入・未達の相手技名を区別して保持し、次の独立作業を進めてください。** CPU039・クロガネ100回候補、067の部分受入、F3の受入状態も変更しません。",
+        "retrieval": "One availability read for genuinely new fixed70e691b review found the completed paired result response. Not a poll or restart of040; old delivery uncertainty preserved historically."
+      },
+      "bounds": {
+        "additional_profiles": 0,
+        "additional_matches": 0,
+        "additional_canary_attempts": 0,
+        "additional_deployments": 0
+      },
+      "accepted": [
+        "Published954e and recorded asset equality remain separate from failed trial."
+      ],
+      "remaining": [
+        "Both cut-ins NOT_OBSERVED, last snapshot PLAYING_OBSERVED, own profile READ_VERIFIED, settlement NOT_VERIFIED.",
+        "Actual HTTP400 semantic code unrecorded; local NO_BOARD_COLORS is a candidate explanation only.",
+        "Improve live harness applied-skill preconditions, real non2xx pass-through, safe semantic-code capture, definite-rejection versus unknown classification before any new authorized trial.",
+        "Continue adopted named public skill identity as independent local candidate; new release review required."
+      ],
+      "notes": [
+        "Do not rollback954e based on this result alone. Trial ended is not match ended.",
+        "No new trial, cleanup, privileged search, late surrender, old040 wait or CPU039/067/F3 status change."
+      ]
     }
   ]
 }

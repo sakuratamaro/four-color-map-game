@@ -72,6 +72,31 @@ test("existing v14 preparation receives a bound review without moving partial or
  ui.branch="main";assert.equal(planContinuation(log).phase,"STOP");
 });
 
+test("fixed named successor uses the existing bounded review route without borrowing published parent authority",()=>{
+ const log=fixture(),c=log.coordination,n=c.active_slice;delete c.active_slice;
+ Object.assign(n,{request_id:"UDL-20260912-065",source_message_id:"bbb2135e-cfd1-4da8-845b-9e3d07d8b29a",
+  branch:"codex/skill-cutin-public-names-20260913",worktree:".codex-worktrees/skill-cutin-public-names-20260913",
+  spec_path:"docs/SKILL_PUBLIC_EVENT_20260913.md"});
+ const ui={owner_thread_id:OWNER,request_id:n.request_id,branch:"codex/skill-cutin-readability-20260913",
+  worktree:".codex-worktrees/skill-cutin-readability-20260913",candidate_sha:n.base_sha,publication:"PAGES_PUBLISHED",
+  live_canary_attempts:1,live_canary_state:"ATTEMPT_FINISHED",named_skill_followup:n};
+ c.remaining_brain_work={cutin_readability_preparation:ui};
+ const original=JSON.stringify(log);assert.equal(pendingBinding(c),true);
+ assert.equal(planContinuation(log,{now:"2026-09-12T00:10:00Z"}).phase,"WAIT_REVIEW");
+ assert.equal(JSON.stringify(log),original);
+ for(const key of ["owner_thread_id","source_message_id","branch","worktree","spec_path","base_sha"]){
+  const copy=JSON.parse(original);copy.coordination.remaining_brain_work.cutin_readability_preparation.named_skill_followup[key]="wrong";
+  assert.equal(pendingBinding(copy.coordination),false);
+ }
+ n.state="LOCAL_VERIFIED_REVIEW_PREPARATION";n.local_verification="PASS";n.review_send_attempts=0;
+ n.review_status="NOT_SENT";n.windows_status="IN_PROGRESS";c.wait_budget.status="closed";
+ assert.equal(planContinuation(log).action,"PREPARE_FIXED_PUBLIC_SKILL_REVIEW");
+ n.windows_status="SUCCESS";assert.equal(planContinuation(log).action,"SEND_REVIEW");
+ n.review_id="parent-only";assert.equal(matchingReview(log,n),null);
+ n.review_status="REVIEW_PENDING";n.review_send_attempts=1;
+ assert.equal(planContinuation(log).reason,"RECONCILE_INVALID_REVIEW");
+});
+
 test("v14 preparation approval still requires genuine exact scope and cannot borrow CPU approval",()=>{
  const log=fixture();approve(log);const c=log.coordination,ui=c.active_slice;
  Object.assign(ui,{request_id:"UDL-20260912-065",branch:"codex/skill-cutin-readability-20260913",

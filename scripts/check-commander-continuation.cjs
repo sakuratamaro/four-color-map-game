@@ -13,7 +13,20 @@ const slices = c => {
   if(ui?.owner_thread_id===OWNER && ui.request_id==="UDL-20260912-065"
     &&ui.branch==="codex/skill-cutin-readability-20260913"
     &&ui.worktree===".codex-worktrees/skill-cutin-readability-20260913")
+  {
+    const names=ui.named_skill_followup;
+    // Same request's fixed successor only. Never reuse the parent's review or trial.
+    if(names?.owner_thread_id===OWNER && names.request_id==="UDL-20260912-065"
+      &&names.source_message_id==="bbb2135e-cfd1-4da8-845b-9e3d07d8b29a"
+      &&names.branch==="codex/skill-cutin-public-names-20260913"
+      &&names.worktree===".codex-worktrees/skill-cutin-public-names-20260913"
+      &&names.spec_path==="docs/SKILL_PUBLIC_EVENT_20260913.md"
+      &&SHA.test(names.candidate_sha||"")&&names.candidate_sha!==ui.candidate_sha
+      &&names.base_sha===ui.candidate_sha&&ui.publication==="PAGES_PUBLISHED"
+      &&ui.live_canary_attempts===1&&ui.live_canary_state==="ATTEMPT_FINISHED")
+      current.push({ref:"remaining_brain_work.cutin_readability_preparation.named_skill_followup",slice:names});
     current.push({ref:"remaining_brain_work.cutin_readability_preparation",slice:ui});
+  }
   return current;
 };
 const equal = (a,b) => JSON.stringify(a) === JSON.stringify(b);
@@ -173,6 +186,11 @@ function planContinuation(log, {now = new Date().toISOString(), otherOwnerActive
         s.windows_status === "SUCCESS" && s.push_status === "PUSHED_EXACT_BRANCH")
       return {phase:"NORMAL_WORK", action:"SEND_REVIEW", ref, subject_sha:s.candidate_sha,
         reason:"READY_UNSENT_IS_WORK_NOT_A_REVIEW_WAIT"};
+    if(ref==="remaining_brain_work.cutin_readability_preparation.named_skill_followup"
+      &&s.state==="LOCAL_VERIFIED_REVIEW_PREPARATION"&&s.local_verification==="PASS"
+      &&s.review_send_attempts===0&&s.review_status==="NOT_SENT"&&s.publication==="NOT_RUN")
+      return {phase:"NORMAL_WORK",action:"PREPARE_FIXED_PUBLIC_SKILL_REVIEW",ref,subject_sha:s.candidate_sha,
+        reason:"FIXED_LOCAL_SUCCESSOR_NEEDS_OWN_PUSH_GATE_AND_GENUINE_REVIEW_NOT_PARENT_AUTHORITY"};
   }
   if (issues.length) return {phase:"STOP", reason:"RECONCILE_INVALID_REVIEW", issues};
   const independent=c.successor_goal?.preparing_independent_slice;
