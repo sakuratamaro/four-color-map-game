@@ -1,5 +1,13 @@
 # Standard公開候補 証拠台帳
 
+## 2026-09-13 Authorized evidence publication4ab510f / genuine b9 approval045 / c9 send accepted
+
+本人が明示許可した12テキストだけをcodex/dev-brain-current-20260910へforceなし公開、4ab510f1f64384cbd3534ea198e5c6a533506089。固定c9全差分はGitHub raw46620字がローカルと完全一致、48529bytes/SHA256db56f314ef944df01a73e6714ffd77aaf74507b1029dce2407f361887f2b96f1。資料の公開であってゲーム本番反映ではない。
+
+新規c9依頼の送信前取得でb9への実APPROVE_RELEASE（045/返答2c241dc4/依頼7a2f6fc2）を保存。本文2959字一致・返答3187字完了を確認し、固定b9/base70e/仕様blob468dad9e/Pages_only/DBEdge管理[]に限定。親70e正規公開先行・freshmain70e・同SHA Pages/配信byte/write-freepreflight条件と追加live0を維持。旧845FAIL/043/044/CPU039を変更せず、b9未公開。
+
+c9初回依頼は11:10:58Z事前予約、11:11:46Z API受付、送信1回。2回の送達読戻しは旧b9pair/activeで新本文未確認。未回答を承認にせず、c9自身の原有限枠のみを予約した。親Pages正規起動とb9/c9公開順は実Astraへの質問に含めた。c9本番・追加live・DBEdge管理は未実行。詳細SURRENDER_CPU_FACE_MAIN70E_LOCAL_20260913.mdと既存CHATGPT_REVIEW_DECISIONS.json。
+
 ## 2026-09-13 c9 exact Windows SUCCESS / direct-user document export permission
 
 投了顔c9e4ea2dc43137c055ae0a9de954bbaa16413360のWindows34751690674 attempt1は10:37:31ZにSUCCESS。事前消費した原20分枠で取得し、両job全文ログのexactSHA・Chrome contracts660/660とonline153/153・Edge contracts660/660とlifecycle79/79とonline153/153PASSを確認。Chromeの既存lifecycle stepSKIPを全workflow skip0としない。顔10人/代替表示/投了同意/座標resizeの実回帰は両ブラウザーPASS。原3bb失敗は保存し、CPU9590の独立gateへ流用しない。

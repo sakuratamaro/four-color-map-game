@@ -2,6 +2,8 @@
 
 更新日: 2026-09-13
 
+2026-09-13 20:15JST 現行: 本人許可の12資料を既存GOV4ab510fへ公開し、remote固定全差分の全文一致を確認。アストラ送信前の小範囲取得で実b9公開承認045を受領（依頼7a2f6fc2/返答2c241dc4、保存送信2959字一致）。原b9期限を再開せず、親70e Pages先行とfreshmain70e条件を保持。独立c9顔表示の初回依頼3373字を1回送信API受付、直後2回は旧b9/activeだけでc9本文・ID未確認。再送せず、原20:30:58/20:50:58/21:50:58JST・期限22:10:58の最大3回受信を同じheartbeatへ実ACTIVE設定・全文読戻し一致。ゲーム本番変更0、c9/クロガネ100は未公開、親Pages未起動の解消と候補間の公開順も今回実Astraへ質問済み。以下は時点別履歴。
+
 2026-09-13 後続本人許可: 「公開の明示確認 って僕待ち？いいよ！」を受領し、開示済みの共有資料12テキストだけの公開停止を解除。既存branch codex/dev-brain-current-20260910へ固定証拠を共有して実Astraへc9を新規依頼する通常作業へ戻す。過去2回の拒否は保存し、画像/ZIP/認証情報/無関係BRAIN差分は含めない。c9のWindows34751690674 attempt1はChrome/Edge両SUCCESS、contracts各660/660・online各153/153、Edge lifecycle79/79を完全ログで確認済み。c9製品の本番公開と実レビューはまだNOT_RUN/NOT_SENT。クロガネ100回・好きな技の加点維持・抑制除外、9590固有CI停止、親70e Pages未起動、旧b9期限、追加live0を維持する。停止理由の局所修正は原失敗を残して65/65PASS。以下は時点別履歴。
 
 2026-09-13 19:30JST 現行: 投了通常顔3bbのWindowsはChrome成功・Edgeオンライン151/152FAIL（Half/TripleShift行4表示待ち）と確定し、旧候補と原失敗を保全。既存の座標安定化helperと決定的resize回帰だけを5テスト/CIファイルへ移植した後継c9e4ea2dc43137c055ae0a9de954bbaa16413360を同専用branchへpush。製品/仕様は3bb同一、局所14/14・Chrome/Edge各2/2・clean1002/1002PASS。実Windows34751690674 attempt1が進行中、旧gate/レビュー承認は流用しない。共有資料12件は公開安全審査2回拒否後の本人確認待ちで、共有branch8582のままcommit/pushなし。保留資料の迂回送信はせず、同じheartbeatを原20分枠19:42:44JSTへ更新。設定は将来実行の証拠ではない。親70eのEdge/main部分反映・Pages未起動、CPU100/9590/039の独立停止、b9の期限終了、追加live0は不変。詳細SURRENDER_CPU_FACE_MAIN70E_LOCAL_20260913.md、PUBLIC_EXPORT_PERMISSION_20260913.md。以下は時点別履歴。

@@ -67,6 +67,12 @@ test("an active review wait stays bound to the delivered current candidate, not 
       "public actions must satisfy exact owner/source/branch/worktree/parent/spec and empty change-set guards");
     slices.push(publicActions);
   }
+  const face = c.remaining_brain_work?.surrender_face_preparation;
+  if (face?.candidate_sha === waitSubject) {
+    assert.equal(require("../scripts/check-commander-continuation.cjs").pendingBinding(c), true,
+      "surrender face must satisfy exact owner/source/branch/worktree/spec and empty change-set guards");
+    slices.push(face);
+  }
   const matches = slices.filter(s => s?.candidate_sha === waitSubject);
   assert.equal(matches.length, 1, "the pending review resolves exactly one existing slice");
   const pendingSlice = matches[0];
@@ -374,6 +380,7 @@ test("ChatGPT review records require an exact subject and cannot imply productio
       assert.match(decision.subject_sha, /^[0-9a-f]{40}$/);
       assert.match(decision.spec_snapshot_sha, /^[0-9a-f]{40}$/);
       const bindings = {
+        "CHATGPT-REVIEW-20260913-045": ["b9c91af38986d96b226906ab5485aa1fe0b64088", "70e691b6f8f1d808476e80990d20df7862bfb782", "UDL-023-public-actions-v1", "468dad9e85fa633e47ea75a79628d18a0ad10565", "Pages_only"],
         "CHATGPT-REVIEW-20260913-044": ["84587830730c1f62cf8c502daac4d768886a3f4d", "70e691b6f8f1d808476e80990d20df7862bfb782", "UDL-023-public-actions-v1", "468dad9e85fa633e47ea75a79628d18a0ad10565", "Pages_only"],
         "CHATGPT-REVIEW-20260913-043": ["84587830730c1f62cf8c502daac4d768886a3f4d", "70e691b6f8f1d808476e80990d20df7862bfb782", "UDL-023-public-actions-v1", "468dad9e85fa633e47ea75a79628d18a0ad10565", "Pages_only"],
         "CHATGPT-REVIEW-20260913-042": ["70e691b6f8f1d808476e80990d20df7862bfb782", "954e1c5c52d5453fc9fee9872b2d7e922f850a39", "UDL-065-public-skill-v1", "97d434d32c67741e73b8eb4f73602186d83e2d3e", "Pages_Edge"],
@@ -415,7 +422,20 @@ test("ChatGPT review records require an exact subject and cannot imply productio
       assert.ok(bindings[decision.review_id], "each genuine review needs an explicit exact binding");
       assert.deepEqual([decision.subject_sha, decision.base_sha, decision.feature_spec_version,
         decision.spec_snapshot_sha, decision.scope], bindings[decision.review_id]);
-      if(decision.review_id==="CHATGPT-REVIEW-20260913-044") {
+      if(decision.review_id==="CHATGPT-REVIEW-20260913-045") {
+        assert.equal(decision.decision,"APPROVE_RELEASE");
+        assert.equal(decision.source.message_id,"2c241dc4-b86e-4473-b659-dfcac07c7c36");
+        assert.equal(decision.source.request_message_id,"7a2f6fc2-4bec-443a-b0a6-d765dfdac8ab");
+        assert.equal(decision.source.response_text.length,3187);
+        assert.equal(decision.source.verified_request_characters,2959);
+        assert.equal(decision.source.request_body_equality,true);
+        assert.equal(decision.source.response_complete,true);
+        for(const key of ["db_change_set","edge_change_set","managed_setting_change_set"]) assert.deepEqual(decision[key],[]);
+        assert.equal(decision.bounds.additional_live_attempts,0);
+        assert.equal(decision.bounds.new_review_budget,false);
+        assert.equal(log.delivery_attempts.some(row=>row.review_id===decision.review_id),false,
+          "genuine reviews belong only to the canonical decisions array");
+      } else if(decision.review_id==="CHATGPT-REVIEW-20260913-044") {
         assert.equal(decision.decision,"HOLD");
         assert.equal(decision.corrects_review_id,"CHATGPT-REVIEW-20260913-043");
         assert.equal(decision.source.message_id,"e1d16e25-92cb-487e-83ca-14f0dce042a3");
