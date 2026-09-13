@@ -32,8 +32,8 @@ const slices = c => {
   if(publicActions?.owner_thread_id===OWNER && publicActions.request_id==="UDL-20260907-023"
     &&publicActions.alias==="ADD-20260913-PUBLIC-MATCH-TWO-ACTIONS"
     &&publicActions.source_message_id==="bbb2135e-cfd1-4da8-845b-9e3d07d8b29a"
-    &&publicActions.branch==="codex/ui-public-match-actions-20260913"
-    &&publicActions.worktree===".codex-worktrees/ui-public-match-actions-20260913"
+    &&["ui-public-match-actions-20260913","ui-public-match-actions-pointer-20260913"].some(name=>
+      publicActions.branch==="codex/"+name&&publicActions.worktree===".codex-worktrees/"+name)
     &&publicActions.spec_path==="docs/UI_PUBLIC_MATCH_ACTIONS_20260913.md"
     &&SHA.test(publicActions.candidate_sha||"")&&SHA.test(publicActions.base_sha||"")
     &&SHA.test(publicActions.spec_snapshot_sha||"")
@@ -268,8 +268,28 @@ function planContinuation(log, {now = new Date().toISOString(), otherOwnerActive
       ref:"successor_goal.preparing_independent_slice",subject_sha:independent.checkpoint_sha,
       request_id:independent.request_id,reason:"CLOSED_REVIEW_MUST_NOT_ORPHAN_ADOPTED_LOCAL_WORK"}:null;
   const independentPlan=palettePlan||legacyIndependentPlan;
+  const repairParent=slices(c).find(row=>row.ref==="remaining_brain_work.current_local_preparation.public_match_followup")?.slice;
+  const repair=repairParent?.pointer_diagnosis?.repair;
+  // Reuse the existing repair record; preparation grants no review, wait or release authority.
+  const pointerRepairPlan=repair?.owner_thread_id===OWNER
+    &&repair.branch==="codex/ui-public-match-actions-pointer-20260913"
+    &&repair.worktree===".codex-worktrees/ui-public-match-actions-pointer-20260913"
+    &&repair.state==="LOCAL_VERIFIED_WINDOWS_RUNNING_REVIEW_PACKET_READY"&&repair.local_verification==="PASS"
+    &&SHA.test(repair.candidate_sha||"")&&repair.candidate_sha!==repairParent.candidate_sha
+    &&repair.base_sha===repairParent.candidate_sha&&repair.release_base_sha===repairParent.base_sha
+    &&repair.spec_snapshot_sha===repairParent.spec_snapshot_sha&&repair.spec_version===repairParent.spec_version
+    &&repair.product_source_unchanged_from_845===true&&repair.review_scope==="Pages_only"
+    &&equal(repair.db_change_set,[])&&equal(repair.edge_change_set,[])&&equal(repair.managed_setting_change_set,[])
+    &&repair.publication==="NOT_RUN"&&repair.publication_authorized===false
+    &&repair.push_status==="PUSHED_EXACT_BRANCH"&&repair.review_send_attempts===0
+    &&repair.review_status==="NOT_SENT_PENDING_EXISTING_SUPPLEMENT_DISPOSITION"
+    ?{phase:"NORMAL_WORK",action:"PREPARE_FIXED_POINTER_REVIEW",
+      ref:"remaining_brain_work.current_local_preparation.public_match_followup.pointer_diagnosis.repair",
+      subject_sha:repair.candidate_sha,run_id:repair.windows_run,
+      reason:"READY_TEST_REPAIR_NEEDS_OWN_GATES_NO_OLD_APPROVAL_OR_NEW_WAIT_BUDGET"}:null;
+  const remainingLocalWork=independentPlan||pointerRepairPlan;
   const w = c.wait_budget || {}, pending = ["review_pending","delivery_unconfirmed_api_accepted_no_resend_while_active"].includes(w.followup_status || w.status);
-  if (!pending) return independentPlan || recordedReleaseStop || recordedCiStop || {phase:"STOP", reason:"NO_ELIGIBLE_REVIEW_OR_READY_WORK"};
+  if (!pending) return remainingLocalWork || recordedReleaseStop || recordedCiStop || {phase:"STOP", reason:"NO_ELIGIBLE_REVIEW_OR_READY_WORK"};
   if (!pendingBinding(c)) return {phase:"STOP", reason:"INVALID_PENDING_BINDING"};
   const start = Date.parse(w.started_at_utc), expiry = Date.parse(w.expires_at_utc), time = Date.parse(now);
   const checks = w.automatic_checks;
@@ -279,7 +299,7 @@ function planContinuation(log, {now = new Date().toISOString(), otherOwnerActive
       !Number.isInteger(checks) || checks < 0 || checks > 3)
     return {phase:"STOP", reason:"INVALID_FINITE_BUDGET"};
   if (time >= expiry || checks >= 3 || w.remaining_scheduled_slots === 0)
-    return independentPlan || {phase:"STOP", reason:"FINITE_WAIT_ENDED_NO_SILENCE_APPROVAL"};
+    return remainingLocalWork || {phase:"STOP", reason:"FINITE_WAIT_ENDED_NO_SILENCE_APPROVAL"};
   const at = Date.parse(w.next_check_utc);
   const validSlots = w.offset_minutes.map(m => start + m*60_000);
   if (!validSlots.includes(at) || at >= expiry)

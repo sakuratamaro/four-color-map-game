@@ -1,0 +1,237 @@
+diff --git a/.github/workflows/standard-browser-gate.yml b/.github/workflows/standard-browser-gate.yml
+index fa9b3bc..8783c60 100644
+--- a/.github/workflows/standard-browser-gate.yml
++++ b/.github/workflows/standard-browser-gate.yml
+@@ -2,7 +2,7 @@ name: Standard browser gate
+ 
+ on:
+   push:
+-    branches: [codex/standard-release-command, codex/quiz-memo-calculator-20260912, codex/ui-diet-20260912, codex/ui-play-surface-20260912, codex/ui-result-20260912, codex/ui-cosmetics-20260912, codex/ui-player-copy-20260912, codex/skill-cutin-20260912, codex/ui-flat-entry-20260912, codex/skill-catalog-20260912, codex/surrender-confirmation-20260913, codex/cpu-split-rescue-20260913, codex/skill-cutin-readability-20260913, codex/skill-cutin-public-names-20260913, codex/ui-public-match-actions-20260913]
++    branches: [codex/standard-release-command, codex/quiz-memo-calculator-20260912, codex/ui-diet-20260912, codex/ui-play-surface-20260912, codex/ui-result-20260912, codex/ui-cosmetics-20260912, codex/ui-player-copy-20260912, codex/skill-cutin-20260912, codex/ui-flat-entry-20260912, codex/skill-catalog-20260912, codex/surrender-confirmation-20260913, codex/cpu-split-rescue-20260913, codex/skill-cutin-readability-20260913, codex/skill-cutin-public-names-20260913, codex/ui-public-match-actions-20260913, codex/ui-public-match-actions-pointer-20260913]
+     paths:
+       - .github/workflows/standard-browser-gate.yml
+       - online/supabase-config.js
+@@ -30,6 +30,8 @@ on:
+       - tests/standard-online-engine-bundle.test.cjs
+       - tests/standard-online-browser.test.cjs
+       - tests/browser-server-cleanup.test.cjs
++      - tests/canvas-native-pointer.test.cjs
++      - tests/helpers/canvas-native-pointer.cjs
+       - tests/helpers/browser-server-cleanup.cjs
+       - tests/helpers/cpu-sql-runtime.cjs
+       - tests/helpers/public-skill-fixture.cjs
+@@ -64,6 +66,8 @@ on:
+       - tests/standard-online-engine-bundle.test.cjs
+       - tests/standard-online-browser.test.cjs
+       - tests/browser-server-cleanup.test.cjs
++      - tests/canvas-native-pointer.test.cjs
++      - tests/helpers/canvas-native-pointer.cjs
+       - tests/helpers/browser-server-cleanup.cjs
+       - tests/helpers/cpu-sql-runtime.cjs
+       - tests/helpers/public-skill-fixture.cjs
+@@ -123,6 +127,7 @@ jobs:
+           tests/standard-browser-gate-workflow.test.cjs
+           tests/standard-online-browser-harness-static.test.cjs
+           tests/browser-server-cleanup.test.cjs
++          tests/canvas-native-pointer.test.cjs
+           tests/standard-legal-recolor-lab.test.cjs
+           tests/standard-live-legal-recolor-lab-canary-static.test.cjs
+           tests/standard-live-color-response-canary-static.test.cjs
+diff --git a/tests/canvas-native-pointer.test.cjs b/tests/canvas-native-pointer.test.cjs
+new file mode 100644
+index 0000000..7e0b232
+--- /dev/null
++++ b/tests/canvas-native-pointer.test.cjs
+@@ -0,0 +1,46 @@
++"use strict";
++
++const assert = require("node:assert/strict");
++const test = require("node:test");
++const { clickCanvasFraction } = require("./helpers/canvas-native-pointer.cjs");
++
++test("canvas pointer measures after native actionability and retains one unforced click", async () => {
++  const calls = [];
++  let width = 328;
++  const canvas = {
++    async click(options) {
++      calls.push(["click", options]);
++      if (options.trial) width = 292;
++    },
++    async evaluate(measure) {
++      calls.push(["measure"]);
++      return measure({ getBoundingClientRect: () => ({ width, height: width }), clientLeft: 3, clientTop: 3 });
++    },
++  };
++  const result = await clickCanvasFraction(canvas, { x: 0.45, y: 4.5 / 12 });
++  assert.deepEqual(calls, [
++    ["click", { trial: true }], ["measure"],
++    ["click", { position: { x: 292 * 0.45 - 3, y: 292 * (4.5 / 12) - 3 } }],
++  ]);
++  assert.equal(result.width, 292);
++});
++
++test("canvas pointer rejects outside or nonfinite fractions before any browser input", async () => {
++  const canvas = { click() { assert.fail("invalid point must not reach native input"); } };
++  for (const fraction of [null, { x: 0, y: 0.5 }, { x: 1, y: 0.5 }, { x: 0.5, y: -1 },
++    { x: Infinity, y: 0.5 }, { x: 0.5, y: NaN }]) {
++    await assert.rejects(clickCanvasFraction(canvas, fraction), RangeError);
++  }
++});
++
++test("canvas pointer never turns unmeasurable geometry into a real click", async () => {
++  for (const geometry of [null, { width: 0, height: 100, borderLeft: 0, borderTop: 0 },
++    { width: 100, height: 100, borderLeft: -1, borderTop: 0 }]) {
++    const clicks = [];
++    await assert.rejects(clickCanvasFraction({
++      async click(options) { clicks.push(options); },
++      async evaluate() { return geometry; },
++    }, { x: 0.45, y: 4.5 / 12 }), /measurable geometry/);
++    assert.deepEqual(clicks, [{ trial: true }]);
++  }
++});
+diff --git a/tests/helpers/canvas-native-pointer.cjs b/tests/helpers/canvas-native-pointer.cjs
+new file mode 100644
+index 0000000..4598456
+--- /dev/null
++++ b/tests/helpers/canvas-native-pointer.cjs
+@@ -0,0 +1,27 @@
++"use strict";
++
++// Read dimensions only after native actionability/scroll checks settle the canvas.
++// This test helper does not force an action, dispatch a DOM event or retry a click.
++async function clickCanvasFraction(canvas, fraction) {
++  for (const key of ["x", "y"]) {
++    if (!Number.isFinite(fraction?.[key]) || fraction[key] <= 0 || fraction[key] >= 1)
++      throw new RangeError("Canvas fraction must be strictly inside the canvas");
++  }
++  await canvas.click({ trial: true });
++  const box = await canvas.evaluate(el => {
++    const rect = el.getBoundingClientRect();
++    return { width: rect.width, height: rect.height,
++      borderLeft: el.clientLeft, borderTop: el.clientTop };
++  });
++  if (!box || ![box.width, box.height, box.borderLeft, box.borderTop].every(Number.isFinite)
++      || box.width <= 0 || box.height <= 0 || box.borderLeft < 0 || box.borderTop < 0)
++    throw new Error("Canvas has no measurable geometry");
++  // Locator positions are padding-box relative; the game's grid uses the border box.
++  const position = { x: box.width * fraction.x - box.borderLeft,
++    y: box.height * fraction.y - box.borderTop };
++  if (position.x < 0 || position.y < 0) throw new RangeError("Canvas point is within its border");
++  await canvas.click({ position });
++  return { ...box, position };
++}
++
++module.exports = { clickCanvasFraction };
+diff --git a/tests/standard-browser-gate-workflow.test.cjs b/tests/standard-browser-gate-workflow.test.cjs
+index 65b91bf..ff9ff69 100644
+--- a/tests/standard-browser-gate-workflow.test.cjs
++++ b/tests/standard-browser-gate-workflow.test.cjs
+@@ -16,7 +16,7 @@ test("Standard browser gate YAML text uses stable whitespace", () => {
+ });
+ 
+ test("Standard browser gate is candidate-push, manual, or pull-request only and least-privileged", () => {
+-  assert.match(workflow, /^on:\r?\n  push:\r?\n    branches: \[codex\/standard-release-command, codex\/quiz-memo-calculator-20260912, codex\/ui-diet-20260912, codex\/ui-play-surface-20260912, codex\/ui-result-20260912, codex\/ui-cosmetics-20260912, codex\/ui-player-copy-20260912, codex\/skill-cutin-20260912, codex\/ui-flat-entry-20260912, codex\/skill-catalog-20260912, codex\/surrender-confirmation-20260913, codex\/cpu-split-rescue-20260913, codex\/skill-cutin-readability-20260913, codex\/skill-cutin-public-names-20260913, codex\/ui-public-match-actions-20260913\][\s\S]+?  pull_request:[\s\S]+?  workflow_dispatch:/m);
++  assert.match(workflow, /^on:\r?\n  push:\r?\n    branches: \[codex\/standard-release-command, codex\/quiz-memo-calculator-20260912, codex\/ui-diet-20260912, codex\/ui-play-surface-20260912, codex\/ui-result-20260912, codex\/ui-cosmetics-20260912, codex\/ui-player-copy-20260912, codex\/skill-cutin-20260912, codex\/ui-flat-entry-20260912, codex\/skill-catalog-20260912, codex\/surrender-confirmation-20260913, codex\/cpu-split-rescue-20260913, codex\/skill-cutin-readability-20260913, codex\/skill-cutin-public-names-20260913, codex\/ui-public-match-actions-20260913, codex\/ui-public-match-actions-pointer-20260913\][\s\S]+?  pull_request:[\s\S]+?  workflow_dispatch:/m);
+   assert.equal((workflow.match(/      - online\/supabase-config\.js/g) || []).length, 2);
+   assert.equal((workflow.match(/      - online-v5\/style\.css/g) || []).length, 2);
+   assert.equal((workflow.match(/      - standard-online-v5\/\*\*/g) || []).length, 2);
+@@ -29,7 +29,7 @@ test("Standard browser gate is candidate-push, manual, or pull-request only and
+   assert.equal((workflow.match(/      - tests\/browser-server-cleanup\.test\.cjs/g) || []).length, 2);
+   assert.equal((workflow.match(/      - tests\/helpers\/browser-server-cleanup\.cjs/g) || []).length, 2);
+   assert.equal((workflow.match(/      - tests\/helpers\/cpu-sql-runtime\.cjs/g) || []).length, 2);
+-  for (const entry of ["tests/helpers/public-skill-fixture.cjs", "scripts/check-standard-public-skill-compat.cjs", "docs/SKILL_PUBLIC_EVENT_20260913.md"])
++  for (const entry of ["tests/canvas-native-pointer.test.cjs", "tests/helpers/canvas-native-pointer.cjs", "tests/helpers/public-skill-fixture.cjs", "scripts/check-standard-public-skill-compat.cjs", "docs/SKILL_PUBLIC_EVENT_20260913.md"])
+     assert.equal(workflow.replaceAll("\r\n", "\n").split("      - " + entry + "\n").length - 1, 2, entry);
+   assert.equal((workflow.match(/      - tests\/sql-runtime\/\*\*/g) || []).length, 2);
+   assert.equal((workflow.match(/      - tests\/standard-online-browser\.test\.cjs/g) || []).length, 2);
+@@ -61,6 +61,7 @@ test("Standard browser gate runs CPU contracts and the scoped browser file seria
+   assert.match(workflow, /tests\/standard-browser-gate-workflow\.test\.cjs/);
+   assert.match(workflow, /tests\/standard-online-browser-harness-static\.test\.cjs/);
+   assert.match(workflow, /tests\/browser-server-cleanup\.test\.cjs/);
++  assert.match(workflow, /          tests\/canvas-native-pointer\.test\.cjs/);
+   assert.match(workflow, /tests\/standard-online-quiz-generator-runtime\.test\.cjs/);
+   assert.match(workflow, /tests\/standard-matchmaking-availability-migration\.test\.cjs/);
+   assert.match(workflow, /tests\/standard-cpu-commentary\.test\.cjs/);
+diff --git a/tests/standard-online-browser.test.cjs b/tests/standard-online-browser.test.cjs
+index 56f19a2..c862d9d 100644
+--- a/tests/standard-online-browser.test.cjs
++++ b/tests/standard-online-browser.test.cjs
+@@ -6,6 +6,7 @@ const http = require("node:http");
+ const path = require("node:path");
+ const test = require("node:test");
+ const { closeOwnedBrowserServer } = require("./helpers/browser-server-cleanup.cjs");
++const { clickCanvasFraction } = require("./helpers/canvas-native-pointer.cjs");
+ 
+ let chromium;
+ try { ({ chromium } = require("playwright")); } catch { /* explicit actual-browser gate */ }
+@@ -3442,8 +3443,7 @@ test("actual browser selects Half Shift and Triple Shift bands on the board at 3
+     assert.equal(await page.getByRole("button", { name: "半マスシフト ×1" }).evaluate((node) => node === document.activeElement), true);
+     await page.getByRole("button", { name: "半マスシフト ×1" }).click();
+     const board = page.locator("#board");
+-    const box = await board.boundingBox();
+-    await board.click({ position: { x: box.width * 0.45, y: box.height * (4.5 / 12) } });
++    await clickCanvasFraction(board, { x: 0.45, y: 4.5 / 12 });
+     await target.getByText("対象：上から4行目").waitFor();
+     assert.ok((await page.evaluate(() => globalThis.__shiftFrames.filter((color) => color === "#fde047").length)) >= 1);
+     const right = target.getByRole("button", { name: "右へ →" });
+@@ -3484,6 +3484,60 @@ test("actual browser selects Half Shift and Triple Shift bands on the board at 3
+   }, { viewport: { width: 390, height: 844 } });
+ });
+ 
++test("actual browser keeps the Shift row when actionability resizes the canvas at 390px", { timeout: 130000 }, async () => {
++  await withPage("playing", async (page) => {
++    await page.evaluate(() => {
++      const runtime = globalThis.__standardOnlineRuntime;
++      runtime.room.public_state = { ...runtime.room.public_state,
++        playableBounds: { macroWidth: 12, microScale: 1, minCol: 1, minRow: 1, maxCol: 10, maxRow: 10 } };
++      runtime.view = { ...runtime.view, private_state: { ...runtime.view.private_state,
++        hand: { ...runtime.view.private_state.hand, areaHalfShift: 1 } } };
++      runtime.onInvalidate?.({});
++      globalThis.__shiftNativePointers = [];
++      document.querySelector("#board").addEventListener("pointerdown", event => {
++        const rect = event.currentTarget.getBoundingClientRect();
++        globalThis.__shiftNativePointers.push({ trusted: event.isTrusted,
++          row: Math.floor((event.clientY - rect.top) / rect.height * 12), width: rect.width });
++      });
++    });
++    await page.getByRole("button", { name: "半マスシフト ×1" }).click();
++    const board = page.locator("#board"), target = page.locator("#skillTargetControls");
++    await board.click({ trial: true });
++    const before = await board.boundingBox();
++    let resized = false;
++    // Deterministically put a real resize inside actionability, before measurement.
++    // Both trial and final input still use the real Playwright locator.
++    const resizeOnActionability = {
++      evaluate: measure => board.evaluate(measure),
++      async click(options) {
++        if (options.trial && !resized) {
++          resized = true;
++          await page.setViewportSize({ width: 390, height: 630 });
++        }
++        return board.click(options);
++      },
++    };
++    const selected = await clickCanvasFraction(resizeOnActionability, { x: 0.45, y: 4.5 / 12 });
++    assert.equal(resized, true);
++    assert.ok(selected.width < before.width, JSON.stringify({ before, selected }));
++    const pointers = await page.evaluate(() => globalThis.__shiftNativePointers);
++    assert.equal(pointers.length, 1, "trial must not create a pointerdown");
++    assert.equal(pointers[0].trusted, true, "selection must use native input");
++    assert.equal(pointers[0].row, 4, JSON.stringify(pointers));
++    assert.equal(pointers[0].width, selected.width, "no stale dimensions at pointerdown");
++    await target.getByText("対象：上から4行目").waitFor();
++    assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls
++      .filter(entry => entry.body?.operation === "action").length), 0);
++    await target.getByRole("button", { name: "右へ →" }).click();
++    await target.getByRole("button", { name: "この対象で使う" }).click();
++    await page.getByText("操作を保存しました。").waitFor();
++    assert.deepEqual(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls
++      .filter(entry => entry.body?.operation === "action").map(entry => entry.body.action.payload)),
++      [{ skill: "areaHalfShift", axis: "ROW", index: 4, direction: "plus" }]);
++    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth), false);
++  }, { viewport: { width: 390, height: 844 } });
++});
++
+ test("actual browser activates a two-cell legacy corner bloom from the keyboard without a target list", { timeout: 130000 }, async () => {
+   await withPage("playing", async (page) => {
+     await page.evaluate(() => {

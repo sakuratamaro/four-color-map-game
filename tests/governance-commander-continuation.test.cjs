@@ -76,6 +76,55 @@ function publicActionSuccessor(log){
   return s;
 }
 
+test("the exact pointer successor uses the same review queue without pairing a different worktree or reviving spent slots",()=>{
+  const log=fixture();approve(log);sourceArtifactHold(log);const s=publicActionSuccessor(log);
+  s.branch="codex/ui-public-match-actions-pointer-20260913";
+  s.worktree=".codex-worktrees/ui-public-match-actions-pointer-20260913";
+  s.push_status="PUSHED_EXACT_BRANCH";s.windows_status="SUCCESS";
+  const before=JSON.stringify(log);
+  assert.equal(planContinuation(log).action,"SEND_REVIEW");
+  assert.equal(JSON.stringify(log),before);
+  s.worktree=".codex-worktrees/ui-public-match-actions-20260913";
+  assert.equal(planContinuation(log).reason,"CURRENT_EDGE_SOURCE_REQUIRES_USER_ARTIFACT");
+  s.worktree=".codex-worktrees/ui-public-match-actions-pointer-20260913";
+  s.review_send_attempts=1;s.review_status="REVIEW_PENDING";s.review_request_message_id="new-pointer-request";
+  const c=log.coordination;c.pending_subject_sha=s.candidate_sha;c.last_confirmed_sent_message_id=s.review_request_message_id;
+  c.self_sent_message_ids.push(s.review_request_message_id);
+  c.pending_review_subject={subject_sha:s.candidate_sha,base_sha:s.base_sha,feature_spec_version:s.spec_version,
+    spec_snapshot_sha:s.spec_snapshot_sha,scope:s.scope,db_change_set:[],edge_change_set:[],managed_setting_change_set:[]};
+  Object.assign(c.wait_budget,{followup_subject_sha:s.candidate_sha,followup_request_message_id:s.review_request_message_id,
+    followup_status:"review_pending",automatic_checks:2,remaining_scheduled_slots:0});
+  assert.equal(pendingBinding(c),true);
+  assert.equal(planContinuation(log,{now:"2026-09-12T01:45:00Z"}).reason,"FINITE_WAIT_ENDED_NO_SILENCE_APPROVAL");
+});
+
+test("a fixed test repair remains normal preparation after its old review closes without gaining approval or a fresh budget",()=>{
+  const log=fixture();approve(log);sourceArtifactHold(log);const s=publicActionSuccessor(log);
+  s.state="HOLD_SUPPLEMENT_REVIEW_PENDING";s.review_send_attempts=1;s.review_status="PENDING";
+  s.pointer_diagnosis={repair:{owner_thread_id:OWNER,branch:"codex/ui-public-match-actions-pointer-20260913",
+    worktree:".codex-worktrees/ui-public-match-actions-pointer-20260913",candidate_sha:"9".repeat(40),
+    base_sha:s.candidate_sha,release_base_sha:s.base_sha,spec_snapshot_sha:s.spec_snapshot_sha,spec_version:s.spec_version,
+    state:"LOCAL_VERIFIED_WINDOWS_RUNNING_REVIEW_PACKET_READY",local_verification:"PASS",
+    product_source_unchanged_from_845:true,review_scope:"Pages_only",db_change_set:[],edge_change_set:[],managed_setting_change_set:[],
+    publication:"NOT_RUN",publication_authorized:false,push_status:"PUSHED_EXACT_BRANCH",review_send_attempts:0,
+    review_status:"NOT_SENT_PENDING_EXISTING_SUPPLEMENT_DISPOSITION",windows_run:"123"}};
+  const original=JSON.stringify(log),p=planContinuation(log);
+  assert.equal(p.phase,"NORMAL_WORK");assert.equal(p.action,"PREPARE_FIXED_POINTER_REVIEW");
+  assert.equal(p.subject_sha,"9".repeat(40));assert.equal(p.review_id,undefined);
+  assert.equal(JSON.stringify(log),original,"routing cannot edit approval, original wait budget or source hold");
+  const due=JSON.parse(original);due.coordination.wait_budget.status="review_pending";
+  assert.equal(planContinuation(due,{now:"2026-09-12T00:20:01Z"}).reason,"INVALID_PENDING_BINDING");
+  due.coordination.pending_review_subject.scope=due.coordination.active_slice.scope;
+  due.coordination.pending_review_subject.edge_change_set=due.coordination.active_slice.edge_change_set;
+  assert.equal(planContinuation(due,{now:"2026-09-12T00:20:01Z"}).phase,"RECEIVE");
+  for(const [key,value] of [["owner_thread_id","other"],["base_sha","0".repeat(40)],
+    ["candidate_sha",s.candidate_sha],["publication_authorized",true],["product_source_unchanged_from_845",false],
+    ["review_send_attempts",1],["managed_setting_change_set",[{}]],["spec_snapshot_sha","0".repeat(40)]]){
+    const copy=JSON.parse(original);copy.coordination.remaining_brain_work.current_local_preparation.public_match_followup.pointer_diagnosis.repair[key]=value;
+    assert.equal(planContinuation(copy).reason,"CURRENT_EDGE_SOURCE_REQUIRES_USER_ARTIFACT",key);
+  }
+});
+
 test("adopted v14 public actions progress locally without reopening a parent source hold or inheriting approval",()=>{
   const log=fixture();approve(log);sourceArtifactHold(log);publicActionSuccessor(log);
   const original=JSON.stringify(log),p=planContinuation(log);
