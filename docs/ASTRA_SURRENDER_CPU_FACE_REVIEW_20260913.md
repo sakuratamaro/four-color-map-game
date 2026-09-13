@@ -1,5 +1,7 @@
 # Fixed review preparation: normal CPU face in surrender dialog
 
+HISTORICAL / NOT_SENT:5f44 was superseded before review because main advanced to70e. Its Windows gate completed successfully, but the current subject is3bb2b988cee5347d98906004c92c3695411a02c4. Use ASTRA_SURRENDER_CPU_FACE_MAIN70E_REVIEW_20260913.md and its new fixed patch; do not send this older packet or transfer its gate.
+
 Delivery status: NOT_SENT. This is prepared evidence, not an Astra approval or a delivered request.
 
 Subject SHA:5f44efb61b101c3f3f2bd0e1b36f2658a500c1c2

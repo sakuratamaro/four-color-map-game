@@ -149,7 +149,7 @@ function planContinuation(log, {now = new Date().toISOString(), otherOwnerActive
   if (!c || c.automation_id !== "automation") return {phase:"STOP", reason:"INVALID_EXISTING_COORDINATION"};
   if (otherOwnerActive) return {phase:"OWNER_ACTIVE", reason:"NO_CONCURRENT_LEDGER_WRITE"};
   const issues = [];
-  let recordedCiStop, recordedReleaseStop;
+  let recordedCiStop, recordedReleaseStop, recordedPublicExportStop;
   for (const {ref,slice:s} of slices(c)) {
     if (s.owner_thread_id !== OWNER) continue;
     const r = matchingReview(log,s);
@@ -195,6 +195,30 @@ function planContinuation(log, {now = new Date().toISOString(), otherOwnerActive
       &&names.publication_authorized===false&&names.live_reexecution_authorized===false)
       return {phase:"NORMAL_WORK",action:"PREPARE_PUBLIC_SKILL_EVENT",ref,subject_sha:s.candidate_sha,
         reason:"ADOPTED_NAMED_SKILL_REQUEST_REMAINS_LOCAL_WORK_NOT_NEW_LIVE_AUTHORITY"};
+    // A partially completed release must never fall back to its pre-deployment lane.
+    if (s.publication === "MERGED_PAGES_PENDING") {
+      const d=s.deployment_attempt,p=s.pages_followup;
+      if (!r || !["APPROVE_RELEASE","APPROVE","APPROVE_WITH_CONDITIONS"].includes(r.decision) ||
+          r.source.response_complete!==true || r.source.request_body_equality!==true ||
+          s.scope!=="Pages_Edge" || s.windows_status!=="SUCCESS" || s.push_status!=="PUSHED_EXACT_BRANCH" ||
+          s.main_sha!==s.candidate_sha || !equal(s.db_change_set,[]) ||
+          !equal(s.edge_change_set,["supabase/functions/standard-game-action/standard-engine.bundle.js"]) ||
+          !managedChangesMatch(s.managed_setting_change_set,[]) ||
+          d?.candidate_sha!==s.candidate_sha || d.review_id!==r.review_id ||
+          d.state!=="POST_SOURCE_RAW_BYTE_EXACT" || d.main_state!=="PUSHED_EXACT_SHA" ||
+          d.both_post_sources_raw_byte_exact!==true || d.post_jwt_verified!==true ||
+          d.attempts!==1 || d.main_mutations!==1 || d.db_mutations!==0 || d.managed_mutations!==0 || d.live_operations!==0 ||
+          s.production_gates?.edge!=="DEPLOYED_POST_SOURCE_RAW_BYTE_EXACT" ||
+          s.production_gates?.main!=="PUSHED_EXACT_SHA" || s.production_gates?.pages!=="NOT_RUN" ||
+          p?.state!=="NO_RUN_DISCOVERY_ENDED" || p.subject_sha!==s.candidate_sha ||
+          p.main_confirmed_at_utc!==d.main_confirmed_by_utc || !Number.isFinite(Date.parse(p.consumed_at_utc)) ||
+          !Number.isFinite(Date.parse(p.completed_at_utc)) || p.remaining_checks!==0 ||
+          p.reset_on_restart_or_revision!==false || p.writes_allowed!==0 || !p.evidence_path) {
+        issues.push(ref+":EXACT_PARTIAL_RELEASE_HOLD_REQUIRED");
+      } else recordedReleaseStop={phase:"STOP",ref,subject_sha:s.candidate_sha,review_id:r.review_id,
+        reason:"CURRENT_MAIN_PAGES_BUILD_NOT_TRIGGERED_NO_AUTOMATIC_REDEPLOY",evidence_path:p.evidence_path};
+      continue;
+    }
     // A review is a gate, not a release command: fresh main/CI/Pages/live checks remain mandatory.
     if (r && ["APPROVE_RELEASE","APPROVE","APPROVE_WITH_CONDITIONS"].includes(r.decision) &&
         ["NOT_RUN","NOT_MERGED","not_merged"].includes(s.publication) &&
@@ -235,6 +259,17 @@ function planContinuation(log, {now = new Date().toISOString(), otherOwnerActive
     if (r?.decision === "REQUEST_CHANGES" && s.state === "REVISION_REQUIRED_NOT_PUBLISHED")
       return {phase:"NORMAL_WORK", action:"REVISE_EXACT_SLICE", ref, subject_sha:s.candidate_sha,
         review_id:r.review_id, reason:"RECEIVED_CHANGES_NEED_NORMAL_WORK"};
+    if(s.review_send_attempts===0 && s.review_status==="NOT_SENT" && s.windows_status==="SUCCESS" &&
+        s.review_artifact_export_hold) {
+      const h=s.review_artifact_export_hold;
+      if(h.state!=="AWAITING_EXPLICIT_PUBLIC_EXPORT_APPROVAL" || h.subject_sha!==s.candidate_sha ||
+          h.repository!=="sakuratamaro/four-color-map-game" || h.branch!=="codex/dev-brain-current-20260910" ||
+          h.denied_attempts!==2 || h.automatic_retry_allowed!==false || !h.evidence_path)
+        issues.push(ref+":EXACT_PUBLIC_EXPORT_HOLD_REQUIRED");
+      else recordedPublicExportStop={phase:"STOP",ref,subject_sha:s.candidate_sha,
+        reason:"EXPLICIT_PUBLIC_DOCUMENT_EXPORT_APPROVAL_REQUIRED",evidence_path:h.evidence_path};
+      continue;
+    }
     if (s.review_send_attempts === 0 && s.review_status === "NOT_SENT" &&
         s.windows_status === "SUCCESS" && s.push_status === "PUSHED_EXACT_BRANCH")
       return {phase:"NORMAL_WORK", action:"SEND_REVIEW", ref, subject_sha:s.candidate_sha,
@@ -309,7 +344,7 @@ function planContinuation(log, {now = new Date().toISOString(), otherOwnerActive
       reason:"READY_TEST_REPAIR_NEEDS_OWN_GATES_NO_OLD_APPROVAL_OR_NEW_WAIT_BUDGET"}:null;
   const remainingLocalWork=independentPlan||pointerRepairPlan;
   const w = c.wait_budget || {}, pending = ["review_pending","delivery_unconfirmed_api_accepted_no_resend_while_active"].includes(w.followup_status || w.status);
-  if (!pending) return remainingLocalWork || recordedReleaseStop || recordedCiStop || {phase:"STOP", reason:"NO_ELIGIBLE_REVIEW_OR_READY_WORK"};
+  if (!pending) return remainingLocalWork || recordedPublicExportStop || recordedReleaseStop || recordedCiStop || {phase:"STOP", reason:"NO_ELIGIBLE_REVIEW_OR_READY_WORK"};
   if (!pendingBinding(c)) return {phase:"STOP", reason:"INVALID_PENDING_BINDING"};
   const start = Date.parse(w.started_at_utc), expiry = Date.parse(w.expires_at_utc), time = Date.parse(now);
   const checks = w.automatic_checks;
@@ -319,7 +354,7 @@ function planContinuation(log, {now = new Date().toISOString(), otherOwnerActive
       !Number.isInteger(checks) || checks < 0 || checks > 3)
     return {phase:"STOP", reason:"INVALID_FINITE_BUDGET"};
   if (time >= expiry || checks >= 3 || w.remaining_scheduled_slots === 0)
-    return remainingLocalWork || {phase:"STOP", reason:"FINITE_WAIT_ENDED_NO_SILENCE_APPROVAL"};
+    return remainingLocalWork || recordedPublicExportStop || {phase:"STOP", reason:"FINITE_WAIT_ENDED_NO_SILENCE_APPROVAL"};
   const at = Date.parse(w.next_check_utc);
   const validSlots = w.offset_minutes.map(m => start + m*60_000);
   if (!validSlots.includes(at) || at >= expiry)

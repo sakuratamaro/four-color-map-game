@@ -1,0 +1,627 @@
+diff --git a/.github/workflows/standard-browser-gate.yml b/.github/workflows/standard-browser-gate.yml
+index 4a9b7a40e6bbe4f304d93eb060e61ad1548a3aa0..863b51c78c7adce5ed98a3288b8a4e4d5c568a77 100644
+--- a/.github/workflows/standard-browser-gate.yml
++++ b/.github/workflows/standard-browser-gate.yml
+@@ -2,7 +2,7 @@ name: Standard browser gate
+ 
+ on:
+   push:
+-    branches: [codex/standard-release-command, codex/quiz-memo-calculator-20260912, codex/ui-diet-20260912, codex/ui-play-surface-20260912, codex/ui-result-20260912, codex/ui-cosmetics-20260912, codex/ui-player-copy-20260912, codex/skill-cutin-20260912, codex/ui-flat-entry-20260912, codex/skill-catalog-20260912, codex/surrender-confirmation-20260913, codex/cpu-split-rescue-20260913, codex/skill-cutin-readability-20260913, codex/skill-cutin-public-names-20260913]
++    branches: [codex/standard-release-command, codex/quiz-memo-calculator-20260912, codex/ui-diet-20260912, codex/ui-play-surface-20260912, codex/ui-result-20260912, codex/ui-cosmetics-20260912, codex/ui-player-copy-20260912, codex/skill-cutin-20260912, codex/ui-flat-entry-20260912, codex/skill-catalog-20260912, codex/surrender-confirmation-20260913, codex/cpu-split-rescue-20260913, codex/skill-cutin-readability-20260913, codex/skill-cutin-public-names-20260913, codex/surrender-cpu-face-20260913]
+     paths:
+       - .github/workflows/standard-browser-gate.yml
+       - online/supabase-config.js
+@@ -30,6 +30,8 @@ on:
+       - tests/standard-online-engine-bundle.test.cjs
+       - tests/standard-online-browser.test.cjs
+       - tests/browser-server-cleanup.test.cjs
++      - tests/canvas-native-pointer.test.cjs
++      - tests/helpers/canvas-native-pointer.cjs
+       - tests/helpers/browser-server-cleanup.cjs
+       - tests/helpers/cpu-sql-runtime.cjs
+       - tests/helpers/public-skill-fixture.cjs
+@@ -64,6 +66,8 @@ on:
+       - tests/standard-online-engine-bundle.test.cjs
+       - tests/standard-online-browser.test.cjs
+       - tests/browser-server-cleanup.test.cjs
++      - tests/canvas-native-pointer.test.cjs
++      - tests/helpers/canvas-native-pointer.cjs
+       - tests/helpers/browser-server-cleanup.cjs
+       - tests/helpers/cpu-sql-runtime.cjs
+       - tests/helpers/public-skill-fixture.cjs
+@@ -123,6 +127,7 @@ jobs:
+           tests/standard-browser-gate-workflow.test.cjs
+           tests/standard-online-browser-harness-static.test.cjs
+           tests/browser-server-cleanup.test.cjs
++          tests/canvas-native-pointer.test.cjs
+           tests/standard-legal-recolor-lab.test.cjs
+           tests/standard-live-legal-recolor-lab-canary-static.test.cjs
+           tests/standard-live-color-response-canary-static.test.cjs
+diff --git a/docs/STANDARD_PUBLIC_RELEASE_RUNBOOK.md b/docs/STANDARD_PUBLIC_RELEASE_RUNBOOK.md
+index 35be09ebad82edf5b663db699ab431c18551ac12..a498d4f3b9479497baf73a86654559b8fb106a44 100644
+--- a/docs/STANDARD_PUBLIC_RELEASE_RUNBOOK.md
++++ b/docs/STANDARD_PUBLIC_RELEASE_RUNBOOK.md
+@@ -163,7 +163,7 @@ rollbackも「旧version番号へ戻った」という目視だけでは完了
+ 
+ ### UDL-065: 使用済みスキル名の公開表示
+ 
+-`docs/SKILL_PUBLIC_EVENT_20260913.md`（`UDL-065-public-skill-v1`）が正本の独立後続便。基準は公開954e、DB/管理設定は各 `[]`。変更Edgeは生成 `standard-engine.bundle.js` だけで、変更なしの `index.ts` も同じ配備物へ含めて厳密読戻しする。online `app.js?v=20260913-44`、`skill-cutin.js?v=20260913-2`、CSSは `skill-cutin.css?v=20260913-1` を維持。
++`docs/SKILL_PUBLIC_EVENT_20260913.md`（`UDL-065-public-skill-v1`）が正本の独立後続便。基準は公開954e、DB/管理設定は各 `[]`。変更Edgeは生成 `standard-engine.bundle.js` だけで、変更なしの `index.ts` も同じ配備物へ含めて厳密読戻しする。初回70eのonlineは `app.js?v=20260913-44`。後続の投了CPU顔表示統合候補は `app.js?v=20260913-47` で、`skill-cutin.js?v=20260913-2`、CSSは `skill-cutin.css?v=20260913-1` を維持する。後続候補は別のWindows・実レビュー対象であり、70eの公開証拠や042承認を流用しない。
+ 
+ 1. 固定候補SHA・仕様blob・全差分・同一SHAのWindows Chrome/Edge成功と実Astra判定をそろえる。CPU039とUI040、旧失敗・部分受入は流用/書換しない。
+ 2. 実engine/handler/commit/snapshot/replay SQLと旧新viewerの互換試験後、互換Edge → 完全2file読戻し → Pages の順に公開する。管理設定・SQL・JWTは変更しない。旧workerでは汎用名へfallbackするが、正規state/RNG/private/旧traceと操作意味は不変。
+@@ -297,7 +297,7 @@ Pages表示の退行は直前Pagesへ戻せる。適用済みcounterは旧client
+ 
+ ### alpha.4彩色済みエリア角膨張便
+ 
+-完了履歴。この便は新payloadを旧Edgeが拒否する一方、新Edgeは旧UIのoutgoing payloadを継続できるため、`alpha.4対応Edge → live canary → Pages`の順で公開した。後続の対戦報酬便、CPU台詞／地の文分離便、CPU選択前portrait便、終局復帰時の開始告知抑止便、パレット属性識別便、クイズ報酬券レベル引継ぎ候補を含む現在のPages候補assetはonline app `app.js?v=20260913-44`、CPU commentary `cpu-commentary.js?v=20260910-1`、progression `progression.css?v=20260910-2`、style `style.css?v=20260910-12`、intents `standard-online-skill-intents.js?v=20260911-21`、client `standard-online-client.js?v=20260910-1`、portrait `cpu-portraits.js?v=20260908-1`、Local bundle `app.bundle.js?v=20260913-9-4f66b9b284ba`である。このalpha.4便自体ではDB、migration、RPC、secret、cleanup scheduleは変更しない。
++完了履歴。この便は新payloadを旧Edgeが拒否する一方、新Edgeは旧UIのoutgoing payloadを継続できるため、`alpha.4対応Edge → live canary → Pages`の順で公開した。後続の対戦報酬便、CPU台詞／地の文分離便、CPU選択前portrait便、終局復帰時の開始告知抑止便、パレット属性識別便、クイズ報酬券レベル引継ぎ候補を含む現在のPages候補assetはonline app `app.js?v=20260913-47`、CPU commentary `cpu-commentary.js?v=20260910-1`、progression `progression.css?v=20260910-2`、style `style.css?v=20260910-12`、intents `standard-online-skill-intents.js?v=20260911-21`、client `standard-online-client.js?v=20260910-1`、portrait `cpu-portraits.js?v=20260908-1`、Local bundle `app.bundle.js?v=20260913-9-4f66b9b284ba`である。このalpha.4便自体ではDB、migration、RPC、secret、cleanup scheduleは変更しない。
+ 
+ 1. `origin/main@63972b6`起点の専用clean worktreeで両bundleを2回生成し、2回目のSHAが不変、正式全製品試験、Windows Chrome/Edge CI、対象実browserのskip 0を確認する。
+ 2. alpha.4対応bundleを保持したまま新規対局だけを`5.0.0-alpha.3`へ戻す互換rollback branchを作成・GitHub保全する。既存alpha.4 stateの読込み・継続と、alpha.3新規stateが彩色済みpayloadをwrite-free拒否することを確認する。
+diff --git a/docs/SURRENDER_CPU_FACE_20260913.md b/docs/SURRENDER_CPU_FACE_20260913.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..19cec2fd18429c9d9b48a1320c2032db29fec55f
+--- /dev/null
++++ b/docs/SURRENDER_CPU_FACE_20260913.md
+@@ -0,0 +1,18 @@
++# CPU face in the surrender confirmation
++
++Version: UDL-067-face-v1
++CANON_RECEIPT version=shared-canon-v1.1 governance=8582d67c0532f6efc7f29ed51ab7269573c49677 base=70e691b6f8f1d808476e80990d20df7862bfb782 prior_candidate=5f44efb61b101c3f3f2bd0e1b36f2658a500c1c2 request=UDL-20260912-067,ADD-20260913-SURRENDER-CPU-FACE specs=docs/SURRENDER_CONFIRMATION_20260913.md,docs/SKILL_PUBLIC_EVENT_20260913.md,docs/BRAIN_V14_DELTA_INTAKE_20260913.json@codex/dev-brain-current-20260910 tests=tests/standard-surrender-confirmation.test.cjs,tests/standard-cpu-portraits.test.cjs,tests/standard-online-browser.test.cjs,tests/standard-public-skill-event.test.cjs worktree=.codex-worktrees/surrender-cpu-face-20260913
++
++## Source and exact scope
++
++Adopted v14 user message bbb2135e-cfd1-4da8-845b-9e3d07d8b29a in actual ChatGPT task6aa229e7-e098-83ee-ac5e-d366a12653a4: 「ここのウィンドウでもCPUの顔のイラストが見られると嬉しいです。」 Package5339aea3-bc6b-4fb2-9467-ef8a082c0538, canonical UDL067. The existing root commander owns this independent Pages-only slice. No new asset bytes; reuse the current public portrait presenter and normal face selected by the same validated public CPU ID as the dialogue. This is not completion or substitution of the separately requested Wataokiba replacement.
++
++Place the normal face next to the existing CPU name/line in the surrender dialog. Portrait is decorative because the visible name already identifies the opponent; no extra focus stop, live announcement, victory/loss treatment or reward-only full-body art. The frame is76px on desktop,64px at390px (AI layout choice, not user-stated number). Unknown CPU and PvP retain generic confirmation with no portrait. Missing module, missing/failed atlas or presentation error must fall back without preventing cancel/confirm.
++
++Keep native dialog, safe initial cancel focus, both44px actions, existing room/match/version/seat/current-state guards, exactly-one SURRENDER and exact pending retry. Cancel/Escape/open/portrait loading do not send operations. Closing or stale-scope cancellation clears the portrait; same-snapshot refresh must keep it stable. Existing fixed CPU lines, skill cut-ins, gameplay, CPU decisions, counts, saved rooms, DB/Edge/managed settings and all image bytes remain unchanged.
++
++## Required evidence and release boundary
++
++Executable tests cover all10 public IDs with matching name/line/normal atlas cell; unknown/PvP, missing module/atlas and loading/fallback;390/768/1280 plus short landscape; keyboard focus/cancel/Enter/Escape and exact-one affirmative; unchanged-snapshot stable portrait and stale CPU/room/version invalidation; no extra game/profile/match operation. Check rendered screenshots and scoped portrait/confirmation regressions. Existing Windows Chrome/Edge gate and own genuine exact review are required before release. If the base changes, reconcile and rebind the candidate rather than borrowing an old approval.
++
++Base is now main70e, advanced from954e after the initial5f44 candidate completed Windows Chrome/Edge successfully. A force-free local merge preserves both existing histories and the public skill names; its cache contract is app20260913-47, cutinJS2/CSS1, surrenderJS1/CSS2. Rules, CPU decisions, all generated engine bundles and images are exact70e bytes. The old5f44 tests and patch remain historical; the new merged candidate requires its own exact Windows gate and genuine review. Main70e's Pages publication is still pending at preparation time and must be confirmed before this candidate is released; its042 approval is not this candidate's approval. Old067f507 publication/partial acceptance/rawFAIL and its used live allowance remain unchanged. This candidate grants no new profile/match/live test. CPU100/9590/039 and UIb9 delivery-unconfirmed expiredwait remain frozen; this new independent request does not restart that review. This face candidate's production/main/Pages/DB/Edge/managed changes are NOT_RUN. This specification and implementation are not self-approval.
+diff --git a/scripts/live-standard-release-preflight.mjs b/scripts/live-standard-release-preflight.mjs
+index 58173e936d206f73d75801fbb5a2e86dc8473ce8..d31d9579548a813978b72dafe549f344774c1e28 100644
+--- a/scripts/live-standard-release-preflight.mjs
++++ b/scripts/live-standard-release-preflight.mjs
+@@ -14,7 +14,7 @@ const publicEdgeBundleUrl = new URL("../supabase/functions/standard-game-action/
+ const expectedPhase = process.argv.find((argument) => argument.startsWith("--expect="))?.slice("--expect=".length) || null;
+ const zeroUuid = "00000000-0000-0000-0000-000000000000";
+ const candidateAssetMarkers = Object.freeze({
+-app: "app.js?v=20260913-44",
++app: "app.js?v=20260913-47",
+   commentary: "cpu-commentary.js?v=20260910-1",
+   style: "style.css?v=20260910-12",
+   client: "standard-online-client.js?v=20260910-1",
+diff --git a/scripts/standard-release-preflight-contracts.mjs b/scripts/standard-release-preflight-contracts.mjs
+index 67dc6a3cd0142df5c214b2228b7a7468752a183c..007b83b5634a2111572555048376cd9560f0c332 100644
+--- a/scripts/standard-release-preflight-contracts.mjs
++++ b/scripts/standard-release-preflight-contracts.mjs
+@@ -143,7 +143,7 @@ export function hasCompactCpuRecords(pageText, appText, progressionCssText) {
+ 
+ export function hasQuizAccuracyRecords(pageText, appText, progressionCssText) {
+   return includesAll(pageText, [
+-'app.js?v=20260913-44',
++'app.js?v=20260913-47',
+     'progression.css?v=20260910-2',
+     'id="quizAccuracyRecords" class="quiz-accuracy-records" role="list"',
+     "記録開始以降に、サーバーで採点が確定した回答だけを集計します。",
+diff --git a/standard-online-v5/app.js b/standard-online-v5/app.js
+index ff26bee67c502f144b53e8adeb334092ac3c342d..7759d1d29fb3eef5e9e404d4f376d96dc563a3ec 100644
+--- a/standard-online-v5/app.js
++++ b/standard-online-v5/app.js
+@@ -6081,12 +6081,26 @@ function isSurrenderIntentCurrent() {
+   try { return globalThis.FourColorSurrenderConfirmation?.isCurrentIntent(surrenderIntent, surrenderContext()) === true; }
+   catch { return false; }
+ }
++function renderSurrenderCpuPortrait(characterId = null) {
++  const ids = ["surrenderCpuPortraitFrame", "surrenderCpuPortrait", "surrenderCpuPortraitFallback"];
++  const elements = cpuPortraitElements(...ids);
++  show(ids[0], Boolean(characterId));
++  try {
++    clearCpuPortrait(...ids);
++    if (characterId) renderCpuPortrait(...ids, { characterId }); // Normal face, never a terminal/reward image.
++  } catch {
++    // Optional artwork cannot prevent the existing safe confirmation or show a stale face.
++    elements.art.hidden = true;
++    elements.fallback.hidden = false;
++  }
++}
+ function closeSurrenderDialog(restoreFocus = true) {
+   const trigger = surrenderDialogTrigger;
+   const mayRestore = restoreFocus && isSurrenderIntentCurrent();
+   surrenderIntent = null; surrenderDialogTrigger = null;
+   const dialog = $("surrenderDialog");
+   if (dialog?.open) dialog.close();
++  renderSurrenderCpuPortrait();
+   if (mayRestore && trigger?.isConnected && !trigger.disabled && trigger.getClientRects().length) trigger.focus({ preventScroll: true });
+ }
+ function openSurrenderDialog(trigger = document.activeElement) {
+@@ -6097,6 +6111,7 @@ function openSurrenderDialog(trigger = document.activeElement) {
+     $("surrenderSpeaker").textContent = intent.opponentKind === "cpu" ? publicActorLabel("B") : "";
+     show("surrenderSpeaker", intent.opponentKind === "cpu");
+     $("surrenderDescription").textContent = voice.line;
++    renderSurrenderCpuPortrait(voice.characterId);
+     surrenderIntent = intent;
+     surrenderDialogTrigger = trigger instanceof HTMLElement ? trigger : $("surrender");
+     skillCutin.interrupt();
+diff --git a/standard-online-v5/index.html b/standard-online-v5/index.html
+index df27952cae9c82c6e45274c177b985b0cfdec5d3..8e18965fc8f544f3d7b328bb9ecfcad3b8c5d1dc 100644
+--- a/standard-online-v5/index.html
++++ b/standard-online-v5/index.html
+@@ -12,7 +12,7 @@
+   <link rel="stylesheet" href="quiz-memo.css?v=20260912-2">
+   <link rel="stylesheet" href="ui-diet.css?v=20260912-3">
+   <link rel="stylesheet" href="skill-catalog.css?v=20260912-1">
+-  <link rel="stylesheet" href="surrender-confirmation.css?v=20260913-1">
++  <link rel="stylesheet" href="surrender-confirmation.css?v=20260913-2">
+   <link rel="stylesheet" href="play-surface.css?v=20260912-1">
+   <link rel="stylesheet" href="result-continuation.css?v=20260912-1">
+   <link rel="stylesheet" href="skill-cutin.css?v=20260913-1">
+@@ -475,8 +475,16 @@
+   <dialog id="surrenderDialog" class="room-abandon-dialog" aria-labelledby="surrenderTitle" aria-describedby="surrenderSpeaker surrenderDescription">
+     <form method="dialog">
+       <h2 id="surrenderTitle">投了しますか？</h2>
+-      <p id="surrenderSpeaker" class="muted"></p>
+-      <p id="surrenderDescription"></p>
++      <div class="surrender-dialogue">
++        <span id="surrenderCpuPortraitFrame" class="cpu-portrait-frame hidden" aria-hidden="true">
++          <span id="surrenderCpuPortrait" class="cpu-portrait-art" hidden></span>
++          <span id="surrenderCpuPortraitFallback" class="cpu-portrait-fallback">CPU</span>
++        </span>
++        <div class="surrender-dialogue-copy">
++          <p id="surrenderSpeaker" class="muted"></p>
++          <p id="surrenderDescription"></p>
++        </div>
++      </div>
+       <div class="room-abandon-dialog-actions">
+         <button id="cancelSurrender" type="button" class="ghost" autofocus>対戦を続ける</button>
+         <button id="confirmSurrender" type="button" class="danger">投了する</button>
+@@ -545,6 +553,6 @@
+   <p id="skillCutinAnnouncement" class="visually-hidden" role="status" aria-live="polite" aria-atomic="true"></p>
+   <script src="skill-cutin.js?v=20260913-2"></script>
+   <script src="surrender-confirmation.js?v=20260913-1"></script>
+-  <script type="module" src="app.js?v=20260913-44"></script>
++  <script type="module" src="app.js?v=20260913-47"></script>
+ </body>
+ </html>
+diff --git a/standard-online-v5/surrender-confirmation.css b/standard-online-v5/surrender-confirmation.css
+index 65a30d9ba2e56bba3e2efc7f7be8fe77d5d97e7d..fb3ff6099e1684e9bf4353e82059c51ba231038f 100644
+--- a/standard-online-v5/surrender-confirmation.css
++++ b/standard-online-v5/surrender-confirmation.css
+@@ -1,2 +1,12 @@
+ /* UDL067: keep the safe initial choice visible on the dark native dialog. */
+ #surrenderDialog button:focus-visible { outline: 3px solid #67e8f9; outline-offset: 3px; }
++.surrender-dialogue { display: flex; align-items: flex-start; gap: 14px; margin-block: 16px; }
++.surrender-dialogue-copy { flex: 1; min-width: 0; overflow-wrap: anywhere; }
++.surrender-dialogue-copy p { margin: 0; }
++.surrender-dialogue-copy #surrenderSpeaker:not(.hidden) { margin-bottom: 8px; }
++#surrenderCpuPortraitFrame { width: 76px; height: 76px; }
++#surrenderCpuPortraitFallback { font-size: 12px; }
++@media (max-width: 390px) {
++  .surrender-dialogue { gap: 10px; }
++  #surrenderCpuPortraitFrame { width: 64px; height: 64px; }
++}
+diff --git a/tests/canvas-native-pointer.test.cjs b/tests/canvas-native-pointer.test.cjs
+new file mode 100644
+index 0000000000000000000000000000000000000000..7e0b2325ce7a9489d75dd5360ec82edad8b8a5c9
+--- /dev/null
++++ b/tests/canvas-native-pointer.test.cjs
+@@ -0,0 +1,46 @@
++"use strict";
++
++const assert = require("node:assert/strict");
++const test = require("node:test");
++const { clickCanvasFraction } = require("./helpers/canvas-native-pointer.cjs");
++
++test("canvas pointer measures after native actionability and retains one unforced click", async () => {
++  const calls = [];
++  let width = 328;
++  const canvas = {
++    async click(options) {
++      calls.push(["click", options]);
++      if (options.trial) width = 292;
++    },
++    async evaluate(measure) {
++      calls.push(["measure"]);
++      return measure({ getBoundingClientRect: () => ({ width, height: width }), clientLeft: 3, clientTop: 3 });
++    },
++  };
++  const result = await clickCanvasFraction(canvas, { x: 0.45, y: 4.5 / 12 });
++  assert.deepEqual(calls, [
++    ["click", { trial: true }], ["measure"],
++    ["click", { position: { x: 292 * 0.45 - 3, y: 292 * (4.5 / 12) - 3 } }],
++  ]);
++  assert.equal(result.width, 292);
++});
++
++test("canvas pointer rejects outside or nonfinite fractions before any browser input", async () => {
++  const canvas = { click() { assert.fail("invalid point must not reach native input"); } };
++  for (const fraction of [null, { x: 0, y: 0.5 }, { x: 1, y: 0.5 }, { x: 0.5, y: -1 },
++    { x: Infinity, y: 0.5 }, { x: 0.5, y: NaN }]) {
++    await assert.rejects(clickCanvasFraction(canvas, fraction), RangeError);
++  }
++});
++
++test("canvas pointer never turns unmeasurable geometry into a real click", async () => {
++  for (const geometry of [null, { width: 0, height: 100, borderLeft: 0, borderTop: 0 },
++    { width: 100, height: 100, borderLeft: -1, borderTop: 0 }]) {
++    const clicks = [];
++    await assert.rejects(clickCanvasFraction({
++      async click(options) { clicks.push(options); },
++      async evaluate() { return geometry; },
++    }, { x: 0.45, y: 4.5 / 12 }), /measurable geometry/);
++    assert.deepEqual(clicks, [{ trial: true }]);
++  }
++});
+diff --git a/tests/helpers/canvas-native-pointer.cjs b/tests/helpers/canvas-native-pointer.cjs
+new file mode 100644
+index 0000000000000000000000000000000000000000..4598456f8d0cfc9899435d31b1c06bc05e50f7b2
+--- /dev/null
++++ b/tests/helpers/canvas-native-pointer.cjs
+@@ -0,0 +1,27 @@
++"use strict";
++
++// Read dimensions only after native actionability/scroll checks settle the canvas.
++// This test helper does not force an action, dispatch a DOM event or retry a click.
++async function clickCanvasFraction(canvas, fraction) {
++  for (const key of ["x", "y"]) {
++    if (!Number.isFinite(fraction?.[key]) || fraction[key] <= 0 || fraction[key] >= 1)
++      throw new RangeError("Canvas fraction must be strictly inside the canvas");
++  }
++  await canvas.click({ trial: true });
++  const box = await canvas.evaluate(el => {
++    const rect = el.getBoundingClientRect();
++    return { width: rect.width, height: rect.height,
++      borderLeft: el.clientLeft, borderTop: el.clientTop };
++  });
++  if (!box || ![box.width, box.height, box.borderLeft, box.borderTop].every(Number.isFinite)
++      || box.width <= 0 || box.height <= 0 || box.borderLeft < 0 || box.borderTop < 0)
++    throw new Error("Canvas has no measurable geometry");
++  // Locator positions are padding-box relative; the game's grid uses the border box.
++  const position = { x: box.width * fraction.x - box.borderLeft,
++    y: box.height * fraction.y - box.borderTop };
++  if (position.x < 0 || position.y < 0) throw new RangeError("Canvas point is within its border");
++  await canvas.click({ position });
++  return { ...box, position };
++}
++
++module.exports = { clickCanvasFraction };
+diff --git a/tests/standard-browser-gate-workflow.test.cjs b/tests/standard-browser-gate-workflow.test.cjs
+index 6c081837dab2963942db6e5ca87946b60a0b5c3d..9c4ea5f5f4d91221d690d98c0af783d6ec14ce30 100644
+--- a/tests/standard-browser-gate-workflow.test.cjs
++++ b/tests/standard-browser-gate-workflow.test.cjs
+@@ -16,7 +16,7 @@ test("Standard browser gate YAML text uses stable whitespace", () => {
+ });
+ 
+ test("Standard browser gate is candidate-push, manual, or pull-request only and least-privileged", () => {
+-  assert.match(workflow, /^on:\r?\n  push:\r?\n    branches: \[codex\/standard-release-command, codex\/quiz-memo-calculator-20260912, codex\/ui-diet-20260912, codex\/ui-play-surface-20260912, codex\/ui-result-20260912, codex\/ui-cosmetics-20260912, codex\/ui-player-copy-20260912, codex\/skill-cutin-20260912, codex\/ui-flat-entry-20260912, codex\/skill-catalog-20260912, codex\/surrender-confirmation-20260913, codex\/cpu-split-rescue-20260913, codex\/skill-cutin-readability-20260913, codex\/skill-cutin-public-names-20260913\][\s\S]+?  pull_request:[\s\S]+?  workflow_dispatch:/m);
++  assert.match(workflow, /^on:\r?\n  push:\r?\n    branches: \[codex\/standard-release-command, codex\/quiz-memo-calculator-20260912, codex\/ui-diet-20260912, codex\/ui-play-surface-20260912, codex\/ui-result-20260912, codex\/ui-cosmetics-20260912, codex\/ui-player-copy-20260912, codex\/skill-cutin-20260912, codex\/ui-flat-entry-20260912, codex\/skill-catalog-20260912, codex\/surrender-confirmation-20260913, codex\/cpu-split-rescue-20260913, codex\/skill-cutin-readability-20260913, codex\/skill-cutin-public-names-20260913, codex\/surrender-cpu-face-20260913\][\s\S]+?  pull_request:[\s\S]+?  workflow_dispatch:/m);
+   assert.equal((workflow.match(/      - online\/supabase-config\.js/g) || []).length, 2);
+   assert.equal((workflow.match(/      - online-v5\/style\.css/g) || []).length, 2);
+   assert.equal((workflow.match(/      - standard-online-v5\/\*\*/g) || []).length, 2);
+@@ -29,7 +29,7 @@ test("Standard browser gate is candidate-push, manual, or pull-request only and
+   assert.equal((workflow.match(/      - tests\/browser-server-cleanup\.test\.cjs/g) || []).length, 2);
+   assert.equal((workflow.match(/      - tests\/helpers\/browser-server-cleanup\.cjs/g) || []).length, 2);
+   assert.equal((workflow.match(/      - tests\/helpers\/cpu-sql-runtime\.cjs/g) || []).length, 2);
+-  for (const entry of ["tests/helpers/public-skill-fixture.cjs", "scripts/check-standard-public-skill-compat.cjs", "docs/SKILL_PUBLIC_EVENT_20260913.md"])
++  for (const entry of ["tests/canvas-native-pointer.test.cjs", "tests/helpers/canvas-native-pointer.cjs", "tests/helpers/public-skill-fixture.cjs", "scripts/check-standard-public-skill-compat.cjs", "docs/SKILL_PUBLIC_EVENT_20260913.md"])
+     assert.equal(workflow.replaceAll("\r\n", "\n").split("      - " + entry + "\n").length - 1, 2, entry);
+   assert.equal((workflow.match(/      - tests\/sql-runtime\/\*\*/g) || []).length, 2);
+   assert.equal((workflow.match(/      - tests\/standard-online-browser\.test\.cjs/g) || []).length, 2);
+@@ -61,6 +61,7 @@ test("Standard browser gate runs CPU contracts and the scoped browser file seria
+   assert.match(workflow, /tests\/standard-browser-gate-workflow\.test\.cjs/);
+   assert.match(workflow, /tests\/standard-online-browser-harness-static\.test\.cjs/);
+   assert.match(workflow, /tests\/browser-server-cleanup\.test\.cjs/);
++  assert.match(workflow, /          tests\/canvas-native-pointer\.test\.cjs/);
+   assert.match(workflow, /tests\/standard-online-quiz-generator-runtime\.test\.cjs/);
+   assert.match(workflow, /tests\/standard-matchmaking-availability-migration\.test\.cjs/);
+   assert.match(workflow, /tests\/standard-cpu-commentary\.test\.cjs/);
+diff --git a/tests/standard-live-release-preflight-static.test.cjs b/tests/standard-live-release-preflight-static.test.cjs
+index 56f50031903fe49898f4944112680486bbe268c9..f6b0b769a75b0371e2de07b9fba49e7730b670f1 100644
+--- a/tests/standard-live-release-preflight-static.test.cjs
++++ b/tests/standard-live-release-preflight-static.test.cjs
+@@ -78,7 +78,7 @@ test("release preflight is read-only, secret-free, finite, and stage-aware", ()
+   assert.match(source, /MATCH_REWARD_ECONOMY_MISMATCH/);
+   assert.match(source, /app\.text\.includes\('★\$\{meta\.rarity\}'\)/);
+   assert.match(source, /CANDIDATE_ASSET_GENERATION_UI_PHASE_MISMATCH/);
+-assert.match(source, /app\.js\?v=20260913-44/);
++assert.match(source, /app\.js\?v=20260913-47/);
+   assert.match(source, /cpu-commentary\.js\?v=20260910-1/);
+   assert.match(source, /progression\.css/);
+   assert.match(source, /style\.css\?v=20260910-12/);
+@@ -229,7 +229,7 @@ test("candidate app satisfies the waiting-opponent release marker", () => {
+ });
+ 
+ test("candidate page and app satisfy the alpha.4 cache generation marker", () => {
+-  assert.equal(candidateHtml.includes("app.js?v=20260913-44"), true);
++  assert.equal(candidateHtml.includes("app.js?v=20260913-47"), true);
+   assert.equal(candidateHtml.includes("cpu-commentary.js?v=20260910-1"), true);
+   assert.equal(candidateHtml.includes("style.css?v=20260910-12"), true);
+   assert.equal(candidateHtml.includes("standard-online-client.js?v=20260910-1"), true);
+diff --git a/tests/standard-online-basic-feedback-static.test.cjs b/tests/standard-online-basic-feedback-static.test.cjs
+index a0ab534c03c4d52eb863574e8279b4dc1b730dee..59a9daae4d46639cf8f7986b1c0a783bc8503147 100644
+--- a/tests/standard-online-basic-feedback-static.test.cjs
++++ b/tests/standard-online-basic-feedback-static.test.cjs
+@@ -26,7 +26,7 @@ test("online feedback settings are explicit, separate, persistent, and keyboard-
+ 
+ test("feedback script is cache-busted before the matching app generation", () => {
+   const controllerScript = html.indexOf('<script src="basic-feedback.js?v=20260908-2"></script>');
+-const appScript = html.indexOf('<script type="module" src="app.js?v=20260913-44"></script>');
++const appScript = html.indexOf('<script type="module" src="app.js?v=20260913-47"></script>');
+   assert.ok(controllerScript >= 0 && appScript > controllerScript);
+   assert.match(html, /style\.css\?v=20260910-12/);
+   assert.doesNotMatch(html, /app\.js\?v=20260906-(?:36|38)|style\.css\?v=20260906-(?:36|37)/);
+diff --git a/tests/standard-online-browser.test.cjs b/tests/standard-online-browser.test.cjs
+index 37335288a0fb6bd8d28ba81cf8485bc96795ae18..235b4e87f676dc1e502906550a6c106451269006 100644
+--- a/tests/standard-online-browser.test.cjs
++++ b/tests/standard-online-browser.test.cjs
+@@ -6,6 +6,7 @@ const http = require("node:http");
+ const path = require("node:path");
+ const test = require("node:test");
+ const { closeOwnedBrowserServer } = require("./helpers/browser-server-cleanup.cjs");
++const { clickCanvasFraction } = require("./helpers/canvas-native-pointer.cjs");
+ 
+ let chromium;
+ try { ({ chromium } = require("playwright")); } catch { /* explicit actual-browser gate */ }
+@@ -3366,8 +3367,7 @@ test("actual browser selects Half Shift and Triple Shift bands on the board at 3
+     assert.equal(await page.getByRole("button", { name: "半マスシフト ×1" }).evaluate((node) => node === document.activeElement), true);
+     await page.getByRole("button", { name: "半マスシフト ×1" }).click();
+     const board = page.locator("#board");
+-    const box = await board.boundingBox();
+-    await board.click({ position: { x: box.width * 0.45, y: box.height * (4.5 / 12) } });
++    await clickCanvasFraction(board, { x: 0.45, y: 4.5 / 12 });
+     await target.getByText("対象：上から4行目").waitFor();
+     assert.ok((await page.evaluate(() => globalThis.__shiftFrames.filter((color) => color === "#fde047").length)) >= 1);
+     const right = target.getByRole("button", { name: "右へ →" });
+@@ -3408,6 +3408,60 @@ test("actual browser selects Half Shift and Triple Shift bands on the board at 3
+   }, { viewport: { width: 390, height: 844 } });
+ });
+ 
++test("actual browser keeps the Shift row when actionability resizes the canvas at 390px", { timeout: 130000 }, async () => {
++  await withPage("playing", async (page) => {
++    await page.evaluate(() => {
++      const runtime = globalThis.__standardOnlineRuntime;
++      runtime.room.public_state = { ...runtime.room.public_state,
++        playableBounds: { macroWidth: 12, microScale: 1, minCol: 1, minRow: 1, maxCol: 10, maxRow: 10 } };
++      runtime.view = { ...runtime.view, private_state: { ...runtime.view.private_state,
++        hand: { ...runtime.view.private_state.hand, areaHalfShift: 1 } } };
++      runtime.onInvalidate?.({});
++      globalThis.__shiftNativePointers = [];
++      document.querySelector("#board").addEventListener("pointerdown", event => {
++        const rect = event.currentTarget.getBoundingClientRect();
++        globalThis.__shiftNativePointers.push({ trusted: event.isTrusted,
++          row: Math.floor((event.clientY - rect.top) / rect.height * 12), width: rect.width });
++      });
++    });
++    await page.getByRole("button", { name: "半マスシフト ×1" }).click();
++    const board = page.locator("#board"), target = page.locator("#skillTargetControls");
++    await board.click({ trial: true });
++    const before = await board.boundingBox();
++    let resized = false;
++    // Deterministically put a real resize inside actionability, before measurement.
++    // Both trial and final input still use the real Playwright locator.
++    const resizeOnActionability = {
++      evaluate: measure => board.evaluate(measure),
++      async click(options) {
++        if (options.trial && !resized) {
++          resized = true;
++          await page.setViewportSize({ width: 390, height: 630 });
++        }
++        return board.click(options);
++      },
++    };
++    const selected = await clickCanvasFraction(resizeOnActionability, { x: 0.45, y: 4.5 / 12 });
++    assert.equal(resized, true);
++    assert.ok(selected.width < before.width, JSON.stringify({ before, selected }));
++    const pointers = await page.evaluate(() => globalThis.__shiftNativePointers);
++    assert.equal(pointers.length, 1, "trial must not create a pointerdown");
++    assert.equal(pointers[0].trusted, true, "selection must use native input");
++    assert.equal(pointers[0].row, 4, JSON.stringify(pointers));
++    assert.equal(pointers[0].width, selected.width, "no stale dimensions at pointerdown");
++    await target.getByText("対象：上から4行目").waitFor();
++    assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls
++      .filter(entry => entry.body?.operation === "action").length), 0);
++    await target.getByRole("button", { name: "右へ →" }).click();
++    await target.getByRole("button", { name: "この対象で使う" }).click();
++    await page.getByText("操作を保存しました。").waitFor();
++    assert.deepEqual(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls
++      .filter(entry => entry.body?.operation === "action").map(entry => entry.body.action.payload)),
++      [{ skill: "areaHalfShift", axis: "ROW", index: 4, direction: "plus" }]);
++    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth), false);
++  }, { viewport: { width: 390, height: 844 } });
++});
++
+ test("actual browser activates a two-cell legacy corner bloom from the keyboard without a target list", { timeout: 130000 }, async () => {
+   await withPage("playing", async (page) => {
+     await page.evaluate(() => {
+@@ -6816,6 +6870,97 @@ test("actual browser never draws removed current or previous region history outl
+   }, { viewport: { width: 390, height: 844 } });
+ });
+ 
++test("UDL067 face follows all ten public CPU identities and clears without a game write", { timeout: 120000 }, async () => {
++  await withPage("colorResponse", async page => {
++    const names = { yuzu:"ユズ", ren:"レン", minato:"ミナト", koharu:"コハル", aoi:"アオイ",
++      kai:"カイ", tsubasa:"ツバサ", shion:"シオン", rei:"レイ", kurogane:"クロガネ" };
++    const dialogue = require("../standard-online-v5/surrender-confirmation.js");
++    const portraits = require("../standard-online-v5/cpu-portraits.js");
++    const commands = () => page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter(c => c.body).map(c => c.body));
++    const before = await commands();
++    for (const [id, name] of Object.entries(names)) {
++      await page.evaluate(id => {
++        const r = globalThis.__standardOnlineRuntime;
++        r.room = { ...r.room, opponent_kind:"cpu", cpu_character_id:id }; r.onInvalidate();
++      }, id);
++      await page.waitForFunction(name => document.querySelector("#cpuCommentaryName")?.textContent.includes(name), name);
++      await page.locator("#colorSurrender:not([disabled])").click();
++      await page.locator("#surrenderDialog[open]").waitFor();
++      const frame = page.locator("#surrenderCpuPortraitFrame");
++      await page.waitForFunction(() => document.querySelector("#surrenderCpuPortraitFrame").dataset.portraitStatus === "ready");
++      assert.equal(await frame.getAttribute("data-portrait-key"), id + ":normal");
++      assert.equal(await frame.getAttribute("data-portrait-mode"), "normal");
++      assert.equal(await frame.getAttribute("data-portrait-reason"), null);
++      assert.equal(await frame.getAttribute("aria-hidden"), "true");
++      assert.equal(await frame.isVisible(), true);
++      assert.equal(await frame.locator("button,a,[tabindex]").count(), 0);
++      assert.match(await page.locator("#surrenderSpeaker").textContent(), new RegExp(name));
++      assert.equal(await page.locator("#surrenderDescription").textContent(), dialogue.dialogueFor("cpu", id).line);
++      const selection = portraits.selectCpuPortrait({ characterId:id });
++      assert.deepEqual(await page.locator("#surrenderCpuPortrait").evaluate(el => ({
++        x:el.style.getPropertyValue("--cpu-portrait-x"), y:el.style.getPropertyValue("--cpu-portrait-y"), hidden:el.hidden
++      })), { x:selection.x, y:selection.y, hidden:false });
++      await page.evaluate(() => { globalThis.__faceBefore = document.querySelector("#surrenderCpuPortrait"); globalThis.__standardOnlineRuntime.onInvalidate(); });
++      assert.equal(await page.evaluate(() => document.querySelector("#surrenderCpuPortrait") === globalThis.__faceBefore), true);
++      assert.equal(await page.evaluate(() => document.activeElement.id), "cancelSurrender");
++      await page.keyboard.press("Escape");
++      assert.equal(await frame.isHidden(), true);
++      assert.equal(await frame.getAttribute("data-portrait-key"), null);
++    }
++    await page.locator("#colorSurrender:not([disabled])").click();
++    await page.evaluate(() => { const r=globalThis.__standardOnlineRuntime;
++      r.room={...r.room,cpu_character_id:"rei"};r.onInvalidate(); });
++    await page.locator("#surrenderDialog").waitFor({state:"hidden"});
++    assert.equal(await page.locator("#surrenderCpuPortraitFrame").isHidden(),true);
++    assert.equal(await page.locator("#surrenderCpuPortraitFrame").getAttribute("data-portrait-key"),null);
++    for (const kind of ["human","cpu"]) {
++      const expectedTurn = await page.evaluate(kind => { const r=globalThis.__standardOnlineRuntime,version=r.room.version+1;
++        // Both generic variants hide commentary; that unchanged node is not a refresh barrier.
++        // Exercise a delayed snapshot without suppressing the product's stale-consent guard.
++        globalThis.__randomRevealSnapshotDelayMs=kind==="cpu"?500:0;
++        r.room={...r.room,version,opponent_kind:kind,cpu_character_id:"unknown",
++          public_state:{...r.room.public_state,version,turn:version}};
++        r.view={...r.view,version};r.onInvalidate();return version; }, kind);
++      await page.waitForFunction(() => document.querySelector("#cpuCommentaryStage").classList.contains("hidden"));
++      await page.waitForFunction(turn => document.querySelector("#versionText").textContent===String(turn),expectedTurn);
++      assert.equal(await page.locator("#versionText").textContent(),String(expectedTurn));
++      await page.evaluate(()=>{globalThis.__randomRevealSnapshotDelayMs=0;});
++      await page.locator("#colorSurrender:not([disabled])").click();
++      await page.locator("#surrenderDialog[open]").waitFor();
++      assert.equal(await page.locator("#surrenderCpuPortraitFrame").isHidden(), true);
++      assert.equal(await page.locator("#surrenderDescription").textContent(), dialogue.dialogueFor(kind,"unknown").line);
++      await page.locator("#cancelSurrender").click();
++    }
++    assert.deepEqual(await commands(), before);
++  }, { viewport:{width:390,height:844}, bodyTimeout:70000 });
++});
++
++for (const unavailable of ["atlas", "module"]) {
++  test("UDL067 face " + unavailable + " failure keeps visible fallback and safe explicit confirmation", { timeout: 120000 }, async () => {
++    const errors=[];
++    await withPage("colorResponse", async page => {
++      await page.evaluate(() => { const r=globalThis.__standardOnlineRuntime;
++        r.room={...r.room,opponent_kind:"cpu",cpu_character_id:"rei"};r.onInvalidate(); });
++      await page.waitForFunction(() => document.querySelector("#cpuCommentaryName")?.textContent.includes("レイ"));
++      const count=()=>page.evaluate(()=>globalThis.__standardOnlineRuntime.calls.filter(c=>c.body?.operation==="action").length);
++      const before=await count();
++      await page.locator("#colorSurrender:not([disabled])").click();
++      await page.locator("#surrenderDialog[open]").waitFor();
++      assert.equal(await page.locator("#surrenderCpuPortraitFrame").isVisible(),true);
++      assert.equal(await page.locator("#surrenderCpuPortrait").isHidden(),true);
++      assert.equal(await page.locator("#surrenderCpuPortraitFallback").isVisible(),true);
++      assert.equal(await page.evaluate(()=>document.activeElement.id),"cancelSurrender");
++      await page.keyboard.press("Enter");assert.equal(await count(),before);
++      await page.locator("#colorSurrender").click();await page.locator("#confirmSurrender").click();
++      await page.locator("#terminalOverlay").waitFor({state:"visible"});
++      assert.equal(await count(),before+1);assert.deepEqual(errors,[]);
++    }, {viewport:{width:390,height:844},beforeNavigate:async page=>{
++      page.on("pageerror",error=>errors.push(error.message));
++      await page.route(unavailable==="atlas"?"**/cpu-portrait-atlas.png":"**/cpu-portraits.js*",route=>route.abort("failed"));
++    }});
++  });
++}
++
+ test("UDL067 CPU surrender is cancel-first, stable, keyboard-safe and one explicit terminal write", { timeout: 120000 }, async () => {
+   await withPage("colorResponse", async page => {
+     await page.emulateMedia({ reducedMotion: "reduce" });
+@@ -6827,13 +6972,15 @@ test("UDL067 CPU surrender is cancel-first, stable, keyboard-safe and one explic
+     await page.locator("#colorSurrender:not([disabled])").waitFor();
+     const count=()=>page.evaluate(()=>globalThis.__standardOnlineRuntime.calls.filter(c=>c.body?.operation==="action").length);
+     const before=await count();
+-    for(const width of [390,768,1280]){
+-      await page.setViewportSize({width,height:900});
++    for(const [width,height] of [[390,844],[768,900],[1280,900],[844,390]]){
++      await page.setViewportSize({width,height});
+       await page.locator("#colorSurrender").focus();await page.keyboard.press("Enter");
+       await page.locator("#surrenderDialog[open]").waitFor();
+       assert.equal(await page.evaluate(()=>document.activeElement.id),"cancelSurrender");
+       assert.equal(await page.locator("#cancelSurrender").evaluate(el=>getComputedStyle(el).outlineColor),"rgb(103, 232, 249)");
+       assert.match(await page.locator("#surrenderSpeaker").textContent(),/レイ/);
++      assert.equal(await page.locator("#surrenderCpuPortraitFrame").isVisible(),true);
++      assert.equal(await page.locator("#surrenderCpuPortraitFrame").getAttribute("data-portrait-key"),"rei:normal");
+       assert.equal(await page.locator("#surrenderDescription").textContent(),"ここまでにしますか？ もう少し、あなたの選択を観察したかったです。");
+       const geometry=await page.locator("#surrenderDialog").evaluate(el=>{
+         const r=el.getBoundingClientRect();return {fit:r.x>=0&&r.right<=innerWidth&&r.y>=0&&r.bottom<=innerHeight,
+diff --git a/tests/standard-online-quiz-polish.test.cjs b/tests/standard-online-quiz-polish.test.cjs
+index e7f3046d4a1670b4b0c2c03fd66b264dbe958234..414f2915b2c3724636d099a497505c61c59c0f2e 100644
+--- a/tests/standard-online-quiz-polish.test.cjs
++++ b/tests/standard-online-quiz-polish.test.cjs
+@@ -197,7 +197,7 @@ test("only overflowing quiz math receives a persistent horizontal position bar",
+   assert.match(css, /\.quiz-overflow-scrollbar\[hidden\]\{display:none\}/);
+   assert.match(html, /style\.css\?v=20260910-12/);
+   assert.match(html, /standard-online-client\.js\?v=20260910-1/);
+-  assert.match(html, /app\.js\?v=20260913-44/);
++  assert.match(html, /app\.js\?v=20260913-47/);
+ });
+ 
+ test("per-question feedback is server-acknowledged, retryable, brief in motion, and followed by an optional review", () => {
+diff --git a/tests/standard-online-ui-static.test.cjs b/tests/standard-online-ui-static.test.cjs
+index a21d7f7291db98da5c45a28d6e6b9d90b643f3d2..8718cef8c4e36f6980d97329f4cf4b24de65ae58 100644
+--- a/tests/standard-online-ui-static.test.cjs
++++ b/tests/standard-online-ui-static.test.cjs
+@@ -82,7 +82,7 @@ test("CPU commentary is public-event-only, bounded, non-blocking, and terminal-p
+   assert.match(html, /standard-online-client\.js\?v=20260910-1/);
+   assert.match(html, /standard-online-skill-intents\.js\?v=20260911-21/);
+   assert.match(html, /cpu-commentary\.js\?v=20260910-1/);
+-assert.match(html, /app\.js\?v=20260913-44/);
++assert.match(html, /app\.js\?v=20260913-47/);
+   assert.match(app, /cpuCommentary\?\.VERSION !== "standard-cpu-commentary-v3"/);
+   assert.ok(html.indexOf("cpu-commentary.js") < html.indexOf('type="module" src="app.js'));
+   assert.match(html, /id="cpuCommentaryStage"[^>]+aria-hidden="true"/);
+@@ -469,7 +469,7 @@ test("existing online progression is hydrated from the server rather than re-upl
+ 
+ test("UI derives its canonical and experimental card metadata from the generated registry", () => {
+   assert.equal(Object.values(STANDARD_SKILLS).filter((skill) => skill.v49Catalogued).length, 19);
+-  assert.match(html, /standard-skill-registry\.generated\.js\?v=20260912-2[\s\S]+app\.js\?v=20260913-44/);
++  assert.match(html, /standard-skill-registry\.generated\.js\?v=20260912-2[\s\S]+app\.js\?v=20260913-47/);
+   assert.match(app, /const STANDARD_SKILL_REGISTRY = globalThis\.FourColorStandardSkillRegistry/);
+   assert.match(app, /STANDARD_SKILL_REGISTRY\.v49SkillIds\.map/);
+   assert.match(app, /Object\.entries\(STANDARD_SKILL_REGISTRY\.skills\)/);
+diff --git a/tests/standard-surrender-confirmation.test.cjs b/tests/standard-surrender-confirmation.test.cjs
+index 7f2fe5ad63b8969746922ee1eeba3d95055a73e8..59041c7a502370bcc3cf64d957ae2a6ac9963f58 100644
+--- a/tests/standard-surrender-confirmation.test.cjs
++++ b/tests/standard-surrender-confirmation.test.cjs
+@@ -4,8 +4,8 @@ const {dialogueFor,makeIntent,isCurrentIntent}=require("../standard-online-v5/su
+ test("UDL067 native safe-first dialog and its scoped focus style load before app41",()=>{
+   const fs=require("node:fs"),path=require("node:path"),root=path.join(__dirname,"../standard-online-v5");
+   const html=fs.readFileSync(path.join(root,"index.html"),"utf8"),css=fs.readFileSync(path.join(root,"surrender-confirmation.css"),"utf8");
+-  assert.ok(html.indexOf('surrender-confirmation.js?v=20260913-1')<html.indexOf('app.js?v=20260913-44'));
+-  assert.ok(html.includes('surrender-confirmation.css?v=20260913-1'));
++  assert.ok(html.indexOf('surrender-confirmation.js?v=20260913-1')<html.indexOf('app.js?v=20260913-47'));
++  assert.ok(html.includes('surrender-confirmation.css?v=20260913-2'));
+   const dialog=html.slice(html.indexOf('<dialog id="surrenderDialog"'),html.indexOf('<dialog id="abandonRoomDialog"'));
+   assert.match(dialog,/aria-labelledby="surrenderTitle" aria-describedby="surrenderSpeaker surrenderDescription"/);
+   assert.match(dialog,/id="cancelSurrender"[^>]+autofocus>対戦を続ける/);
+@@ -15,6 +15,20 @@ test("UDL067 native safe-first dialog and its scoped focus style load before app
+ function context() { return {connected:true,activeTab:"battle",busy:false,pending:null,clientRoomId:"room",
+   model:{room:{id:"room",status:"playing",version:7,opponent_kind:"cpu",cpu_character_id:"yuzu",
+     public_state:{status:"ACTIVE",active:"A",version:4,matchId:"match"}},view:{seat:"A",version:7}}}; }
++test("UDL067 face is a decorative normal portrait beside existing copy, not a reward or consent control",()=>{
++  const fs=require("node:fs"),path=require("node:path"),root=path.join(__dirname,"../standard-online-v5");
++  const html=fs.readFileSync(path.join(root,"index.html"),"utf8"),app=fs.readFileSync(path.join(root,"app.js"),"utf8");
++  const dialog=html.slice(html.indexOf('<dialog id="surrenderDialog"'),html.indexOf('<dialog id="abandonRoomDialog"'));
++  assert.match(dialog,/id="surrenderCpuPortraitFrame" class="cpu-portrait-frame hidden" aria-hidden="true"/);
++  assert.match(dialog,/id="surrenderCpuPortrait" class="cpu-portrait-art" hidden/);
++  assert.match(dialog,/id="surrenderCpuPortraitFallback" class="cpu-portrait-fallback">CPU/);
++  assert.equal((dialog.match(/<button/g)||[]).length,2);
++  assert.doesNotMatch(dialog,/<img|tabindex|reward|full.body/i);
++  assert.ok(app.includes("renderSurrenderCpuPortrait(voice.characterId)"));
++  const render=app.slice(app.indexOf("function renderSurrenderCpuPortrait("),app.indexOf("function closeSurrenderDialog("));
++  assert.match(render,/if \(characterId\) renderCpuPortrait\(\.\.\.ids, \{ characterId \}\)/);
++  assert.doesNotMatch(render,/sendAction|client\.|private|Math\.random|setTimeout|terminal-loss/);
++});
+ test("UDL067 fixed voice follows each exact existing CPU id, never appearance or list position",()=>{
+   const ids=["yuzu","ren","minato","koharu","aoi","kai","tsubasa","shion","rei","kurogane"];
+   const lines=ids.map(id=>dialogueFor("cpu",id));

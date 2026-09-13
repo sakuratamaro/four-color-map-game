@@ -62,6 +62,76 @@ function sourceArtifactHold(log){
     no_production_mutation:true,automatic_retries:0};
 }
 
+test("completed local gates do not bypass an explicit public-document export denial",()=>{
+  const log=fixture(),s=log.coordination.active_slice;log.coordination.wait_budget.status="review_received_closed";
+  s.review_send_attempts=0;s.review_status="NOT_SENT";
+  s.review_artifact_export_hold={state:"AWAITING_EXPLICIT_PUBLIC_EXPORT_APPROVAL",subject_sha:s.candidate_sha,
+    repository:"sakuratamaro/four-color-map-game",branch:"codex/dev-brain-current-20260910",
+    denied_attempts:2,automatic_retry_allowed:false,evidence_path:"docs/export-permission-fixture.md"};
+  const before=JSON.stringify(log);assert.equal(planContinuation(log).reason,"EXPLICIT_PUBLIC_DOCUMENT_EXPORT_APPROVAL_REQUIRED");
+  assert.equal(JSON.stringify(log),before);
+  s.review_artifact_export_hold.subject_sha="d".repeat(40);
+  assert.equal(planContinuation(log).reason,"RECONCILE_INVALID_REVIEW");
+});
+
+test("expired unrelated review cannot hide the current public export hold or reopen its wait",()=>{
+  const log=fixture(),old=log.coordination.active_slice;
+  const held={...old,candidate_sha:"d".repeat(40),review_send_attempts:0,review_status:"NOT_SENT",
+    review_request_message_id:null,review_response_message_id:null};
+  held.review_artifact_export_hold={state:"AWAITING_EXPLICIT_PUBLIC_EXPORT_APPROVAL",subject_sha:held.candidate_sha,
+    repository:"sakuratamaro/four-color-map-game",branch:"codex/dev-brain-current-20260910",
+    denied_attempts:2,automatic_retry_allowed:false,evidence_path:"docs/export-permission-fixture.md"};
+  log.coordination.preparing_next_slice=held;
+  const before=JSON.stringify(log),p=planContinuation(log,{now:"2026-09-12T02:00:01Z"});
+  assert.equal(p.phase,"STOP");
+  assert.equal(p.reason,"EXPLICIT_PUBLIC_DOCUMENT_EXPORT_APPROVAL_REQUIRED");
+  assert.equal(p.subject_sha,held.candidate_sha);
+  assert.equal(p.evidence_path,held.review_artifact_export_hold.evidence_path);
+  assert.equal(JSON.stringify(log),before,"neither old finite budget nor held candidate changes");
+  assert.equal(planContinuation(log,{now:"2026-09-12T00:20:01Z"}).phase,"RECEIVE",
+    "a genuinely due bound review keeps its existing read, not a new slot");
+  log.coordination.pending_subject_sha="e".repeat(40);
+  assert.equal(planContinuation(log,{now:"2026-09-12T02:00:01Z"}).reason,"INVALID_PENDING_BINDING",
+    "the concrete hold cannot hide invalid authority metadata");
+});
+
+
+function mergedPagesHold(log){
+  sourceArtifactHold(log);const s=log.coordination.active_slice,r=log.decisions[0];delete s.release_preflight_hold;
+  Object.assign(r.source,{response_complete:true,request_body_equality:true});
+  s.publication="MERGED_PAGES_PENDING";s.main_sha=s.candidate_sha;
+  s.production_gates={edge:"DEPLOYED_POST_SOURCE_RAW_BYTE_EXACT",main:"PUSHED_EXACT_SHA",pages:"NOT_RUN"};
+  s.deployment_attempt={candidate_sha:s.candidate_sha,review_id:r.review_id,state:"POST_SOURCE_RAW_BYTE_EXACT",
+    main_state:"PUSHED_EXACT_SHA",both_post_sources_raw_byte_exact:true,post_jwt_verified:true,
+    attempts:1,main_mutations:1,db_mutations:0,managed_mutations:0,live_operations:0,main_confirmed_by_utc:"2026-09-13T09:09:49Z"};
+  s.pages_followup={state:"NO_RUN_DISCOVERY_ENDED",subject_sha:s.candidate_sha,
+    main_confirmed_at_utc:"2026-09-13T09:09:49Z",consumed_at_utc:"2026-09-13T09:30:06Z",completed_at_utc:"2026-09-13T09:30:28Z",
+    remaining_checks:0,reset_on_restart_or_revision:false,writes_allowed:0,evidence_path:"docs/partial-release-fixture.md"};
+}
+test("completed Edge and main stay a scoped Pages hold, never an automatic redeployment",()=>{
+  const log=fixture();approve(log);mergedPagesHold(log);const before=JSON.stringify(log);
+  const p=planContinuation(log);assert.equal(p.phase,"STOP");
+  assert.equal(p.reason,"CURRENT_MAIN_PAGES_BUILD_NOT_TRIGGERED_NO_AUTOMATIC_REDEPLOY");
+  assert.equal(JSON.stringify(log),before);
+  assert.equal(planContinuation(log,{now:"2026-09-15T00:00:00Z"}).reason,p.reason,"restart never resets the completed discovery");
+});
+test("partial publication fails closed if candidate, approval, main, source or no-more-checks evidence differs",()=>{
+  const log=fixture();approve(log);mergedPagesHold(log);
+  for(const mutate of [s=>s.main_sha="d".repeat(40),s=>s.review_response_message_id="other",
+    s=>s.deployment_attempt.candidate_sha="d".repeat(40),s=>s.deployment_attempt.both_post_sources_raw_byte_exact=false,
+    s=>s.deployment_attempt.post_jwt_verified=false,s=>s.deployment_attempt.attempts=2,s=>s.deployment_attempt.live_operations=1,
+    s=>s.pages_followup.subject_sha="d".repeat(40),s=>s.pages_followup.remaining_checks=1,
+    s=>s.pages_followup.reset_on_restart_or_revision=true,s=>s.pages_followup.main_confirmed_at_utc="different"]){
+    const copy=JSON.parse(JSON.stringify(log));mutate(copy.coordination.active_slice);
+    assert.equal(planContinuation(copy).reason,"RECONCILE_INVALID_REVIEW");
+  }
+});
+test("partial Pages hold does not hide independent local work or grant its publication",()=>{
+  const log=fixture();approve(log);mergedPagesHold(log);const s=publicActionSuccessor(log),before=JSON.stringify(log);
+  const p=planContinuation(log);assert.equal(p.action,"PREPARE_FIXED_PUBLIC_MATCH_REVIEW");
+  assert.equal(p.subject_sha,s.candidate_sha);assert.equal(JSON.stringify(log),before);
+});
+
 function publicActionSuccessor(log){
   const c=log.coordination,s={owner_thread_id:OWNER,request_id:"UDL-20260907-023",
     alias:"ADD-20260913-PUBLIC-MATCH-TWO-ACTIONS",source_message_id:"bbb2135e-cfd1-4da8-845b-9e3d07d8b29a",

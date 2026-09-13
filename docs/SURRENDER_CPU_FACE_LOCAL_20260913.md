@@ -1,5 +1,7 @@
 # UDL067 normal CPU face: independent local candidate
 
+Historical5f44/base954e evidence below is preserved. Both Windows jobs of34748004151 completedSUCCESS08:49:38Z and were read at the reserved original20minute slot. Main then advanced to70e; the current separate merge/fix candidate3bb2 and its complete original failures/gates are in SURRENDER_CPU_FACE_MAIN70E_LOCAL_20260913.md. The5f44 patch and success do not certify3bb2.
+
 CANON_RECEIPT version=shared-canon-v1.1 governance=7592ee57695299b77d00d876abc13fa1737b4fb8 base=954e1c5c52d5453fc9fee9872b2d7e922f850a39 request=UDL-20260912-067,ADD-20260913-SURRENDER-CPU-FACE specs=docs/SURRENDER_CPU_FACE_20260913.md,docs/SURRENDER_CONFIRMATION_20260913.md tests=tests/standard-surrender-confirmation.test.cjs,tests/standard-cpu-portraits.test.cjs,tests/standard-online-browser.test.cjs worktree=.codex-worktrees/surrender-cpu-face-20260913
 
 ## Fixed subject and authority

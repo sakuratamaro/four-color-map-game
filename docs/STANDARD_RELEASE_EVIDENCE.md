@@ -1,5 +1,23 @@
 # Standard公開候補 証拠台帳
 
+## 2026-09-13 c9 exact Windows SUCCESS / direct-user document export permission
+
+投了顔c9e4ea2dc43137c055ae0a9de954bbaa16413360のWindows34751690674 attempt1は10:37:31ZにSUCCESS。事前消費した原20分枠で取得し、両job全文ログのexactSHA・Chrome contracts660/660とonline153/153・Edge contracts660/660とlifecycle79/79とonline153/153PASSを確認。Chromeの既存lifecycle stepSKIPを全workflow skip0としない。顔10人/代替表示/投了同意/座標resizeの実回帰は両ブラウザーPASS。原3bb失敗は保存し、CPU9590の独立gateへ流用しない。
+
+後続の本人発言「公開の明示確認 って僕待ち？いいよ！」が、開示済み12テキスト資料の公開を明示許可した。既存GOV branchへの共有・固定c9の真正レビュー依頼を続行する。許可はゲーム公開判定ではなく、c9は未公開・レビュー未送信時点。資料公開の過去2拒否、原待機期限、親70eのEdge/main部分反映とPages未起動、全消費済みlive/原FAILを保全。局所共有テスト65/65PASS1278.1461ms。以下は前時点の履歴。
+
+## 2026-09-13 UDL067 c9 test-only successor / not published
+
+3bb exact Windows34750139272 attempt1はChrome成功、Edge contracts657/657・lifecycle79/79成功・online151/152原FAIL（Half/TripleShift行4wait30000ms）。全ログから一回診断し、過去の制御resizeで示されたテスト座標の弱点を既存helper/unitと回帰で修正。後継c9e4ea2dc43137c055ae0a9de954bbaa16413360は3bbから5テスト/CIファイルだけの変更、製品・仕様・画像同一。helper/workflow/harness14/14、実Chrome/Edge各2/2、clean148/164非browserfiles1002/1002PASS73893.1966ms。16実Playwrightファイル除外を合格に数えず、原失敗と修正前結合Edge17/18も保全した。
+
+専用branchへforceなしexact c9push、実Windows34751690674 attempt1作成10:22:44Z/IN_PROGRESS。新候補の最終Windows・真正レビューは未取得、本番/main/Pages/Edge/DB/管理/live未実行。原5分枠は未読放棄、次は10:42:44Z。固定17text diffは48529byte/SHA256db56f314ef944df01a73e6714ffd77aaf74507b1029dce2407f361887f2b96f1でローカル保管。共有12資料は安全審査拒否後の公開明示確認待ち、GOV HEAD8582でcommit/pushしていない。親70e/042 Pages未起動、CPU100/9590/039、b9期限終了と旧040/067/062/F3の境界は不変。詳細SURRENDER_CPU_FACE_MAIN70E_LOCAL_20260913.md。
+
+## 2026-09-13 UDL065 技名表示70e / Edge・main反映、Pages未起動
+
+実Astra042の候補70e691b6f8f1d808476e80990d20df7862bfb782、仕様UDL-065-public-skill-v1/blob97d434d32c67741e73b8eb4f73602186d83e2d3e、DB/管理[]・Edge生成bundleのみ。Windows34735790923両成功は保持。fresh Dashboard ZIP12（08:53:24.4879257Z）でbase954eのindex82533byte/SHA67228bc8e73276c8aff482e46fe263a3e00ef4b3669aa183f692bdf275cd7603、bundle210287byte/SHA91bc29ecb53775eae6df11690852246c04ae8453e2a91c84210b40aa8efc0d6fを完全照合。通常確認を経た実配備1回09:04:35.298Z、reload後ZIP13（09:05:48.6975592Z）のindex同一/bundle211007byte/SHAe7f4fc1158c2f3679c7337ae56805fadb0e5f029d88db82212ff022e66db468bが承認70eのraw bytesと完全一致。postJWT ON・Save無効、通常TLSのOPTIONS200/current/split-rescue-v1。control-plane id/version/ezbr非露出、汎用live証明なしは保全。
+
+mainは09:09:49Zにforceなしで70eへ反映し、GitHub public refも09:20:05Z一致。Pagesは09:30:28Zの有限最終確認でも新runなし、既存34730074280/954e配信。公開元main/rootは正常表示で無変更、未起動原因は未証明。main反映をPages/public_verifiedへ繰り上げず、旧954eの再実行・Edge再配備・空commit・設定変更・unsupported API迂回をしない。現行mainの正規ビルド手段か新しい外部run証拠が必要。新profile/対局/本番操作/cleanup0、実対局の技名とphysical NOT_RUN。040のrawFAIL/PLAYING/精算NOT_VERIFIEDと消費済み試行はそのまま。詳細EDGE_SOURCE_ARCHIVE_RECOVERY_20260913.md、正確な実042はCHATGPT_REVIEW_DECISIONS.json。
+
 ## 2026-09-13 UDL065 可読性954e / 新有限live失敗・試行消費済み
 
 製品954e/main/Pages34730074280は公開済みのまま。ハーネスe13eea2cdabc359de803c16e97f4f01c29093b57の98/98局所PASS後、実040で認められた新1試行を排他予約し、2026-09-13T02:03:39.138Z–02:03:50.199Zの11061msで終了。実行直前にもremote main954eと公開4fileの厳密byte一致を確認した。signup/profile seed/ユズ部屋/setup/initialize各1、CPU1/本人1/SURRENDER0、再送/再戦0。本人の色拾い・乱リクエストがHTTP400になり、harnessはUNKNOWN_SENDとして以後のmutationを止めた。最終snapshot-v2は本人membership/seat/room/versionを照合したPLAYING_OBSERVED、本人profile READ_VERIFIED、精算NOT_VERIFIED、self/opponent表示はNOT_OBSERVED。raw ok:false、console errors1、routeFailures1を保全する。UI小項目ok:trueを本番表示の合格へ拡大しない。プロセスsession68964はexit1、既に終了。保存report/attemptはSKILL_CUTIN_READABILITY_LIVE_20260913.*、診断境界と次実装はSKILL_PUBLIC_EVENT_PLAN_20260913.md。消費枠や失敗を消して再試行しない。物理受入・UDL065全体完了・相手技名の実装・CPU100公開は成立していない。

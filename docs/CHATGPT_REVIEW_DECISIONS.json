@@ -392,11 +392,11 @@
       "acceptance_response_message_id": "1bb33ef7-814c-41eb-a4bd-06009842f65d"
     },
     "automation_id": "automation",
-    "automation_status_at_recording": "ACTIVE",
-    "automation_readback_updated_at": 1789288744582,
+    "automation_status_at_recording": "PAUSED",
+    "automation_readback_updated_at": 1789296495488,
     "automation_prompt_readback_equal": true,
-    "automation_pause_reason": null,
-    "automation_active_reason": "Independent adopted v14 face exactcandidate normal CI/review preparation; closed b9 wait and CPU/source holds unchanged.",
+    "automation_pause_reason": "Terminal c9 CI ended; actual pause preceded the direct user's new explicit 12-document export approval. Current owner proceeds with authorized publication/review preparation.",
+    "automation_active_reason": null,
     "completed_review_waits": [
       {
         "root_request_message_id": "8464f659-ad62-4c09-83d9-44e1cc91316b",
@@ -4100,7 +4100,7 @@
           "diagnosis": "NO_BOARD_COLORS is locally reproducible but actual safe semantic code was not saved; no confirmed production root cause."
         },
         "named_skill_followup": {
-          "state": "APPROVED_UNPUBLISHED_SOURCE_ARTIFACT_WAIT",
+          "state": "EDGE_MAIN_COMPLETE_PAGES_TRIGGER_UNAVAILABLE",
           "owner_thread_id": "01a07b56-616e-7733-9aae-90575659688e",
           "request_id": "UDL-20260912-065",
           "source_message_id": "bbb2135e-cfd1-4da8-845b-9e3d07d8b29a",
@@ -4132,7 +4132,7 @@
             "supabase/functions/standard-game-action/standard-engine.bundle.js"
           ],
           "managed_setting_change_set": [],
-          "publication": "NOT_RUN",
+          "publication": "MERGED_PAGES_PENDING",
           "push_status": "PUSHED_EXACT_BRANCH",
           "local_verification": "PASS",
           "test_evidence": "docs/SKILL_PUBLIC_EVENT_LOCAL_20260913.md",
@@ -4144,12 +4144,12 @@
           "live_canary_attempts": 0,
           "live_canary_state": "NOT_AUTHORIZED",
           "production_gates": {
-            "edge": "NOT_RUN",
-            "main": "NOT_RUN",
+            "edge": "DEPLOYED_POST_SOURCE_RAW_BYTE_EXACT",
+            "main": "PUSHED_EXACT_SHA",
             "pages": "NOT_RUN",
             "live": "NOT_AUTHORIZED"
           },
-          "next_action": "User-saved current sourceZIP needed before any deploy; inspect exact2entries and freshbaseline bytes/main/Edge. Resolve and archive this preflight hold explicitly after verified artifact, then resume same042 exact release gates. No automatic download retry, internal-browser-page bypass, oldZIP reuse or new review wait.",
+          "next_action": "Await genuinely available current-main Pages build operation or new external run evidence; automatic discovery remaining0. Never rerun954e, repush, redeploy Edge, change sources/security or bypass unsupported endpoint. Independent face integration proceeds.",
           "windows_run": "34735790923",
           "windows_attempt": 1,
           "windows_observed_at_utc": "2026-09-13T03:50:14Z",
@@ -4189,21 +4189,113 @@
             "actual_skill_observation": "NOT_RUN",
             "physical_acceptance": "NOT_RUN"
           },
-          "release_preflight_hold": {
-            "state": "AWAITING_USER_ARTIFACT",
-            "kind": "current_edge_source_unavailable",
-            "subject_sha": "70e691b6f8f1d808476e80990d20df7862bfb782",
-            "spec_snapshot_sha": "97d434d32c67741e73b8eb4f73602186d83e2d3e",
-            "review_id": "CHATGPT-REVIEW-20260913-042",
-            "review_response_message_id": "747e7144-a155-44f7-9173-8175bd45c115",
-            "observed_at_utc": "2026-09-13T04:39:17Z",
-            "evidence_path": "docs/SKILL_PUBLIC_EVENT_RELEASE_PREFLIGHT_20260913.json",
-            "user_request_sent": true,
+          "release_preflight_evidence": "docs/SKILL_PUBLIC_EVENT_RELEASE_PREFLIGHT_20260913.json",
+          "release_preflight_hold_history": [
+            {
+              "state": "AWAITING_USER_ARTIFACT",
+              "kind": "current_edge_source_unavailable",
+              "subject_sha": "70e691b6f8f1d808476e80990d20df7862bfb782",
+              "spec_snapshot_sha": "97d434d32c67741e73b8eb4f73602186d83e2d3e",
+              "review_id": "CHATGPT-REVIEW-20260913-042",
+              "review_response_message_id": "747e7144-a155-44f7-9173-8175bd45c115",
+              "observed_at_utc": "2026-09-13T04:39:17Z",
+              "evidence_path": "docs/SKILL_PUBLIC_EVENT_RELEASE_PREFLIGHT_20260913.json",
+              "user_request_sent": true,
+              "no_production_mutation": true,
+              "automatic_retries": 0,
+              "download_attempts": 2,
+              "resolved_at_utc": "2026-09-13T08:54:03Z",
+              "resolution": "Historical archives10/11 discovered exactbaseline; a newly completed ordinary current-source download12 now exacttwofiles/baseline; no bypass or production mutation.",
+              "resolution_evidence": "docs/EDGE_SOURCE_ARCHIVE_RECOVERY_20260913.md"
+            }
+          ],
+          "current_source_preflight": {
+            "observed_at_utc": "2026-09-13T08:54:03Z",
+            "method": "signed-in Dashboard current Download as ZIP; ordinary named control",
+            "download_started_at_utc": "2026-09-13T08:53:21.567Z",
+            "download_file_time_utc": "2026-09-13T08:53:24.4879257Z",
+            "archive_path": "C:\\Users\\user\\Downloads\\standard-game-action (12).zip",
+            "archive_sha256": "7c63e9b4a57d495eef65efe6ad33f693d52f6a2ba3946008d66c2b57c04527d9",
+            "file_set": [
+              "index.ts",
+              "standard-engine.bundle.js"
+            ],
+            "both_baseline_bytes_exact": true,
+            "verify_jwt": true,
+            "updated_label": "12 hours ago",
+            "control_plane_id": "NOT_EXPOSED",
+            "control_plane_version": "NOT_EXPOSED",
             "no_production_mutation": true,
-            "automatic_retries": 0,
-            "download_attempts": 2
+            "evidence": "docs/EDGE_SOURCE_ARCHIVE_RECOVERY_20260913.md"
           },
-          "release_preflight_evidence": "docs/SKILL_PUBLIC_EVENT_RELEASE_PREFLIGHT_20260913.json"
+          "deployment_attempt": {
+            "state": "POST_SOURCE_RAW_BYTE_EXACT",
+            "candidate_sha": "70e691b6f8f1d808476e80990d20df7862bfb782",
+            "review_id": "CHATGPT-REVIEW-20260913-042",
+            "baseline_archive": "standard-game-action (12).zip",
+            "baseline_hash": "7c63e9b4a57d495eef65efe6ad33f693d52f6a2ba3946008d66c2b57c04527d9",
+            "baseline_at_utc": "2026-09-13T08:53:24.4879257Z",
+            "reserved_clock": "2026-09-13 09:03:28 UTC",
+            "index_sha256": "67228bc8e73276c8aff482e46fe263a3e00ef4b3669aa183f692bdf275cd7603",
+            "bundle_sha256": "e7f4fc1158c2f3679c7337ae56805fadb0e5f029d88db82212ff022e66db468b",
+            "editor_full_text_lf_equal": true,
+            "clipboard_line_ending_difference": "Observed Windows copy CRLF only; postdownload raw bundle must still be byteexact.",
+            "file_set": [
+              "index.ts",
+              "standard-engine.bundle.js"
+            ],
+            "expected_modified_files": [
+              "standard-engine.bundle.js"
+            ],
+            "attempts": 1,
+            "main_mutations": 1,
+            "pages_mutations": 0,
+            "db_mutations": 0,
+            "managed_mutations": 0,
+            "live_operations": 0,
+            "evidence_path": "docs/EDGE_SOURCE_ARCHIVE_RECOVERY_20260913.md",
+            "confirmed_at_utc": "2026-09-13T09:04:35.298Z",
+            "completion_observed_by_utc": "2026-09-13T09:05:24.436Z",
+            "post_download_started_at_utc": "2026-09-13T09:05:46.443Z",
+            "post_download_file_time_utc": "2026-09-13T09:05:48.6975592Z",
+            "post_archive_path": "C:\\Users\\user\\Downloads\\standard-game-action (13).zip",
+            "post_archive_sha256": "559dacad971411b9491e885c52cab7456e78a7d48b80ed537469a1fe332b09d0",
+            "post_archive_bytes": 65137,
+            "both_post_sources_raw_byte_exact": true,
+            "post_jwt_verified": true,
+            "post_jwt_observed_at_utc": "2026-09-13T09:07:57.246Z",
+            "control_plane_id": "NOT_EXPOSED",
+            "control_plane_version": "NOT_EXPOSED",
+            "ezbr_sha256": "NOT_EXPOSED",
+            "write_free_options": {
+              "status": 200,
+              "body": "ok",
+              "capability": "standard-character-split-rescue-v1",
+              "generation": "current",
+              "tls_validation": "DEFAULT_ENABLED",
+              "prior_powershell_attempt": "CLIENT_TLS_FAILURE_NO_HTTP_RESPONSE"
+            },
+            "main_state": "PUSHED_EXACT_SHA",
+            "pages_state": "RUN_DISCOVERY_PENDING",
+            "generic_live_certificate": "NOT_CREATED_ADDITIONAL_LIVE_ZERO_BY042",
+            "main_confirmed_by_utc": "2026-09-13T09:09:49Z"
+          },
+          "main_sha": "70e691b6f8f1d808476e80990d20df7862bfb782",
+          "pages_followup": {
+            "state": "NO_RUN_DISCOVERY_ENDED",
+            "subject_sha": "70e691b6f8f1d808476e80990d20df7862bfb782",
+            "main_confirmed_at_utc": "2026-09-13T09:09:49Z",
+            "next_check_utc": "2026-09-13T09:29:49Z",
+            "expires_at_utc": "2026-09-13T09:39:49Z",
+            "remaining_checks": 0,
+            "reset_on_restart_or_revision": false,
+            "observed_before_reservation": "09:12 initial API/UI diagnosis and09:20/09:21 exact-ref/status/site confirm no new Pages run; old siteapp43/cutin1. GitHub API main70e exact. Pages main/root unchanged; ordinary UI has no current-main run button.",
+            "writes_allowed": 0,
+            "consumed_at_utc": "2026-09-13T09:30:06Z",
+            "completed_at_utc": "2026-09-13T09:30:28Z",
+            "evidence_path": "docs/EDGE_SOURCE_ARCHIVE_RECOVERY_20260913.md",
+            "result": "Exact70e query contains only originalWindows34735790923; Pages run absent. NormalUI has no buildcurrentmain control; gh not on PATH. Trigger cause unproven."
+          }
         },
         "result_report_delivery": {
           "state": "CONFIRMED_WITH_COMPLETED_RESULT_DISPOSITION",
@@ -4251,7 +4343,7 @@
         "owner_thread_id": "01a07b56-616e-7733-9aae-90575659688e",
         "branch": "codex/surrender-cpu-face-20260913",
         "worktree": ".codex-worktrees/surrender-cpu-face-20260913",
-        "base_sha": "954e1c5c52d5453fc9fee9872b2d7e922f850a39",
+        "base_sha": "70e691b6f8f1d808476e80990d20df7862bfb782",
         "spec_path": "docs/SURRENDER_CPU_FACE_20260913.md",
         "spec_version": "UDL-067-face-v1",
         "state": "LOCAL_VERIFIED_REVIEW_PREPARATION",
@@ -4266,24 +4358,45 @@
         "live_canary_attempts": 0,
         "review_status": "NOT_SENT",
         "review_send_attempts": 0,
-        "next_action": "Collect own exact Windows run with bounded same-run checks; prepare fixed15-file review. Only genuine exact review plus all gates may authorize production; no inherited CPU/b9 review or live allowance.",
-        "candidate_sha": "5f44efb61b101c3f3f2bd0e1b36f2658a500c1c2",
-        "spec_snapshot_sha": "b2a5ad7dde6e590fb8122e3f4167de3ba4d744ff",
+        "next_action": "Publish exactly the authorized 12-text-file evidence set to the existing GOV branch, verify immutable remote artifacts, then send the new exact c9 review once to the genuine existing Astra chat. Preserve old budgets, parent Pages hold and CPU039; no game-publication authority inferred.",
+        "candidate_sha": "c9e4ea2dc43137c055ae0a9de954bbaa16413360",
+        "spec_snapshot_sha": "19cec2fd18429c9d9b48a1320c2032db29fec55f",
         "local_verification": "PASS",
         "local_tests": {
-          "full_nonbrowser": "977/977 PASS;145/161 files;skip/cancel0;46242.2412ms;clean candidate",
-          "focused_static": "34/34 PASS",
-          "affected_marker_contracts": "74/74 PASS",
-          "chrome": "9/9 PASS plus final identity1/1",
-          "edge": "8/8 PASS plus final identity1/1",
-          "builder_tracked_diff": "ZERO",
-          "failed_checkpoints_preserved": "docs/SURRENDER_CPU_FACE_LOCAL_20260913.md"
+          "full_nonbrowser": {
+            "selected": 148,
+            "total": 164,
+            "tests": 1002,
+            "pass": 1002,
+            "duration_ms": 73893.1966,
+            "skip": 0,
+            "cancel": 0
+          },
+          "merged_product_chrome": "18/18PASS208948.2843ms",
+          "merged_product_edge": "17/18PASS1FAIL228521.7422ms",
+          "test_fix_only_identity": {
+            "chrome": "1/1PASS14984.853ms",
+            "edge": "1/1PASS15411.2537ms"
+          },
+          "source": "docs/SURRENDER_CPU_FACE_MAIN70E_LOCAL_20260913.md",
+          "initial_failure_preserved": true,
+          "native_pointer_repair": {
+            "source_commit": "b9c91af38986d96b226906ab5485aa1fe0b64088",
+            "changed_test_ci_files": 5,
+            "product_spec_unchanged_from": "3bb2b988cee5347d98906004c92c3695411a02c4",
+            "helper_and_unit_byte_identical": true,
+            "focused": "14/14PASS465.1574ms",
+            "chrome": "2/2PASS11228.9085ms",
+            "edge": "2/2PASS11373.6272ms",
+            "original_ci_root_cause": "NOT_PROVEN",
+            "old_assertions_timeouts_native_input": "PRESERVED"
+          }
         },
         "push_status": "PUSHED_EXACT_BRANCH",
-        "windows_status": "IN_PROGRESS",
-        "windows_run": 34748004151,
-        "windows_discovery": "Exact successor run34748004151 attempt1 observed in_progress2026-09-13T08:35:28Z; no inheritedgate.",
-        "evidence": "docs/SURRENDER_CPU_FACE_LOCAL_20260913.md",
+        "windows_status": "SUCCESS",
+        "windows_run": 34751690674,
+        "windows_discovery": "Exact candidate run34751690674 attempt1 discovered IN_PROGRESS; actual created10:22:44Z; old3bb failure preserved.",
+        "evidence": "docs/SURRENDER_CPU_FACE_MAIN70E_LOCAL_20260913.md",
         "superseded_candidates": [
           {
             "candidate_sha": "03a4a3bc0555c9c30dbdd0af9d44c7f90ddb0fd6",
@@ -4299,31 +4412,224 @@
             "rerun_attempts": 0
           }
         ],
-        "windows_created_at_utc": "2026-09-13T08:33:58Z",
+        "windows_created_at_utc": "2026-09-13T10:22:44Z",
         "windows_attempt": 1,
-        "review_patch": "docs/SURRENDER_CPU_FACE_REVIEW_20260913.patch",
+        "review_patch": "docs/SURRENDER_CPU_FACE_MAIN70E_REVIEW_20260913.patch",
+        "review_patch_sha256": "db56f314ef944df01a73e6714ffd77aaf74507b1029dce2407f361887f2b96f1",
+        "review_patch_bytes": 48529,
+        "review_patch_exact_git_diff": true,
+        "review_packet": "docs/ASTRA_SURRENDER_CPU_FACE_MAIN70E_REVIEW_20260913.md",
+        "base_reconciliation": {
+          "state": "FINAL_TEST_FIX_COMMITTED_AND_PUSHED",
+          "from_candidate_sha": "5f44efb61b101c3f3f2bd0e1b36f2658a500c1c2",
+          "from_base_sha": "954e1c5c52d5453fc9fee9872b2d7e922f850a39",
+          "target_base_sha": "70e691b6f8f1d808476e80990d20df7862bfb782",
+          "main_evidence": "GitHub public git/ref/heads/main09:20:05Z exact70e; Pages still pending",
+          "reason": "Preserve the now-merged public skill names and corresponding tests; old5f44 Windows remains historical, no approval borrowed.",
+          "governance_sha": "8582d67c0532f6efc7f29ed51ab7269573c49677",
+          "source_request_ids": [
+            "UDL-20260912-067",
+            "ADD-20260913-SURRENDER-CPU-FACE"
+          ],
+          "db_edge_managed_changes": [],
+          "new_image_bytes": 0,
+          "publication_authorized": false,
+          "candidate_sha": "c9e4ea2dc43137c055ae0a9de954bbaa16413360",
+          "spec_snapshot_sha": "19cec2fd18429c9d9b48a1320c2032db29fec55f",
+          "conflicts": "Only exact asset refs and union of existing branch gate lists; merged app and browser regressions keep both features. Current cacheapp47.",
+          "first_focused": "122/123 one stale named-skill runbook reference; documented initial44 and current47, originalassertion retained.",
+          "final_focused": "123/123PASS1248.1283ms",
+          "generated_sources": "Three builders done before tests; all generated bundles/registry exact70e.",
+          "full_session": 99794,
+          "merge_sha": "e6017123e64a6f43d7398728147a4dee0b9bc21a",
+          "local_chrome": "18/18 then fixedidentity1/1PASS",
+          "local_edge": "17/18FAIL then fixedidentity1/1PASS; originalfailedrun retained",
+          "final_test_only_parent_sha": "3bb2b988cee5347d98906004c92c3695411a02c4"
+        },
+        "public_base_sha": "70e691b6f8f1d808476e80990d20df7862bfb782",
+        "release_after_sha": "70e691b6f8f1d808476e80990d20df7862bfb782",
+        "review_request_message_id": null,
+        "review_response_message_id": null,
+        "review_id": null,
+        "full_nonbrowser": {
+          "state": "PASS",
+          "selected_files": 148,
+          "total_files": 164,
+          "excluded_actual_playwright": 16,
+          "tests": 1002,
+          "pass": 1002,
+          "fail": 0,
+          "skip": 0,
+          "cancel": 0,
+          "duration_ms": 73893.1966,
+          "session_id": 29498
+        },
         "ci_followup": {
-          "run_id": 34748004151,
-          "subject_sha": "5f44efb61b101c3f3f2bd0e1b36f2658a500c1c2",
-          "started_at_utc": "2026-09-13T08:33:58.000Z",
-          "expires_at_utc": "2026-09-13T09:33:58.000Z",
+          "run_id": 34751690674,
+          "subject_sha": "c9e4ea2dc43137c055ae0a9de954bbaa16413360",
+          "started_at_utc": "2026-09-13T10:22:44Z",
+          "expires_at_utc": "2026-09-13T11:22:44.000Z",
           "offset_minutes": [
             5,
             20,
             50
           ],
           "max_checks": 3,
-          "consumed_slots_utc": [],
+          "consumed_slots_utc": [
+            "2026-09-13T10:42:44.000Z"
+          ],
           "skipped_slots_utc": [
-            "2026-09-13T08:38:58.000Z"
+            "2026-09-13T10:27:44.000Z"
           ],
           "reset_on_restart_or_candidate_revision": false,
-          "skip_reason": "First original slot forfeited without a check: current owner's end-turn minimum2-minute margin could not be met. Original20minute slot unchanged."
+          "state": "TERMINAL_SUCCESS",
+          "first_slot_disposition": "Forfeited before any read; evidence and actual automation readback need conservative2minute margin. Next is this real run original20minute slot.",
+          "predecessor_gate": {
+            "subject_sha": "3bb2b988cee5347d98906004c92c3695411a02c4",
+            "run_id": 34750139272,
+            "state": "TERMINAL_FAILURE",
+            "reason": "Actual5file coordinate-repair successor, not rerun or reset of the old run/review budget; old evidence and consumed slot remain in candidate_revision_history."
+          },
+          "latest_check": {
+            "slot_utc": "2026-09-13T10:42:44.000Z",
+            "reserved_at_utc": "2026-09-13T10:43:22Z",
+            "reserved_before_api": true,
+            "origin": "automatic_goal_continuation_active_owner",
+            "scheduled_origin_claimed": false,
+            "result": "Exact c9 attempt1 terminal SUCCESS; fulllogs fetchedonce perjob; both contracts660/660 and online153/153, Edge lifecycle79/79, Chrome lifecycle existingSKIP."
+          },
+          "completed_at_utc": "2026-09-13T10:37:31Z",
+          "remaining_checks_after_terminal": 0
         },
-        "review_patch_sha256": "e2176537a93daa9c2db2579a5aa3c7abc129658fcaa5bee637757c5cc3d37205",
-        "review_patch_bytes": 33347,
-        "review_patch_exact_git_diff": true,
-        "review_packet": "docs/ASTRA_SURRENDER_CPU_FACE_REVIEW_20260913.md"
+        "review_patch_characters": 46620,
+        "windows_evidence": {
+          "run_id": 34751690674,
+          "attempt": 1,
+          "head_sha": "c9e4ea2dc43137c055ae0a9de954bbaa16413360",
+          "status": "SUCCESS",
+          "completed_at_utc": "2026-09-13T10:37:31Z",
+          "retrieved_at_utc": "2026-09-13T10:43:27Z",
+          "full_logs_retrieved_by_utc": "2026-09-13T10:44:43Z",
+          "chrome": {
+            "job": 103709215558,
+            "status": "SUCCESS",
+            "head_sha_verified_in_log": true,
+            "log_characters": 426771,
+            "contracts": {
+              "tests": 660,
+              "pass": 660,
+              "duration_ms": 55262.3539
+            },
+            "online": {
+              "tests": 153,
+              "pass": 153,
+              "duration_ms": 584768.1193
+            },
+            "lifecycle": "EXISTING_STEP_SKIPPED"
+          },
+          "edge": {
+            "job": 103709215617,
+            "status": "SUCCESS",
+            "head_sha_verified_in_log": true,
+            "log_characters": 436541,
+            "contracts": {
+              "tests": 660,
+              "pass": 660,
+              "duration_ms": 54847.7019
+            },
+            "lifecycle": {
+              "tests": 79,
+              "pass": 79,
+              "duration_ms": 106702.0269
+            },
+            "online": {
+              "tests": 153,
+              "pass": 153,
+              "duration_ms": 696434.4787
+            }
+          },
+          "scope_checks": [
+            "original Half/TripleShift row4/column3",
+            "deterministic native resize",
+            "all10 public CPU identity faces",
+            "atlas and optional module fallback",
+            "cancel-first/keyboard/stale consent/exactretry",
+            "blocked COLOR remains voluntary"
+          ],
+          "not_inferred": [
+            "CPU9590 approval or gate",
+            "old3bb repaired retrospectively",
+            "real production match/physical acceptance",
+            "genuine Astra approval",
+            "parent70e Pages completion"
+          ]
+        },
+        "review_artifact_export_hold_history": [
+          {
+            "state": "AWAITING_EXPLICIT_PUBLIC_EXPORT_APPROVAL",
+            "subject_sha": "c9e4ea2dc43137c055ae0a9de954bbaa16413360",
+            "repository": "sakuratamaro/four-color-map-game",
+            "branch": "codex/dev-brain-current-20260910",
+            "denied_attempts": 2,
+            "automatic_retry_allowed": false,
+            "evidence_path": "docs/PUBLIC_EXPORT_PERMISSION_20260913.md",
+            "outgoing_files": [
+              "docs/CHATGPT_REVIEW_DECISIONS.json",
+              "docs/EDGE_SOURCE_ARCHIVE_RECOVERY_20260913.md",
+              "scripts/check-commander-continuation.cjs",
+              "tests/governance-commander-continuation.test.cjs",
+              "docs/CHATGPT_COLLABORATION_OPERATION.md",
+              "docs/PROJECT_COMMAND_CENTER.md",
+              "docs/STANDARD_RELEASE_EVIDENCE.md",
+              "docs/SURRENDER_CPU_FACE_MAIN70E_REVIEW_20260913.patch",
+              "docs/SURRENDER_CPU_FACE_MAIN70E_LOCAL_20260913.md",
+              "docs/ASTRA_SURRENDER_CPU_FACE_MAIN70E_REVIEW_20260913.md",
+              "docs/ASTRA_SURRENDER_CPU_FACE_REVIEW_20260913.md",
+              "docs/SURRENDER_CPU_FACE_LOCAL_20260913.md"
+            ],
+            "public_content_risk": "Review bodies/task IDs/operational records are public, beyond credential regex checks.",
+            "read_only_checks_completed": true,
+            "push_executed": false,
+            "denial_subject_sha": "3bb2b988cee5347d98906004c92c3695411a02c4",
+            "successor_inherits_no_export_without_new_permission": true,
+            "resolved_at_utc": "2026-09-13T11:02:38Z",
+            "resolution": "Direct user explicitly approved the previously disclosed 12-document public export."
+          }
+        ],
+        "review_artifact_export_authorization": {
+          "state": "AUTHORIZED_BY_DIRECT_USER",
+          "source": {
+            "kind": "direct_user",
+            "thread_id": "01a07b56-616e-7733-9aae-90575659688e",
+            "turn_id": "01a09a55-a635-79a0-bb17-278e87b9ea41",
+            "message_id": null,
+            "message_id_status": "NOT_EXPOSED_BY_CURRENT_READ_THREAD",
+            "quote": "＞公開の明示確認 って僕待ち？いいよ！",
+            "received_at_utc": "2026-09-13T11:02:38Z"
+          },
+          "repository": "sakuratamaro/four-color-map-game",
+          "branch": "codex/dev-brain-current-20260910",
+          "governance_base_sha": "8582d67c0532f6efc7f29ed51ab7269573c49677",
+          "game_subject_sha": "c9e4ea2dc43137c055ae0a9de954bbaa16413360",
+          "outgoing_files": [
+            "docs/CHATGPT_REVIEW_DECISIONS.json",
+            "docs/EDGE_SOURCE_ARCHIVE_RECOVERY_20260913.md",
+            "scripts/check-commander-continuation.cjs",
+            "tests/governance-commander-continuation.test.cjs",
+            "docs/CHATGPT_COLLABORATION_OPERATION.md",
+            "docs/PROJECT_COMMAND_CENTER.md",
+            "docs/STANDARD_RELEASE_EVIDENCE.md",
+            "docs/SURRENDER_CPU_FACE_MAIN70E_REVIEW_20260913.patch",
+            "docs/SURRENDER_CPU_FACE_MAIN70E_LOCAL_20260913.md",
+            "docs/ASTRA_SURRENDER_CPU_FACE_MAIN70E_REVIEW_20260913.md",
+            "docs/ASTRA_SURRENDER_CPU_FACE_REVIEW_20260913.md",
+            "docs/SURRENDER_CPU_FACE_LOCAL_20260913.md"
+          ],
+          "includes": "The disclosed 12 text updates: canonical ledger, genuine review bodies and task IDs, operational/test/release records, local worktree paths and fixed full patch.",
+          "excludes": "Images, ZIPs, credentials/private keys, unrelated BRAIN_V9_TRANSFER changes and the local permission/readiness artifacts.",
+          "production_release_approval": false,
+          "previous_denials_preserved": true
+        }
       }
     },
     "limited_attachment_intake": {
@@ -4505,14 +4811,7 @@
       "regression_id": "REG-20260912-SELF-HANDOFF-01",
       "checker": "scripts/check-commander-continuation.cjs",
       "tests": "tests/governance-commander-continuation.test.cjs",
-      "next_run": {
-        "phase": "NORMAL_WORK",
-        "action": "CHECK_CI",
-        "subject_sha": "5f44efb61b101c3f3f2bd0e1b36f2658a500c1c2",
-        "run_id": 34748004151,
-        "at_utc": "2026-09-13T08:53:58.000Z",
-        "reason": "Original20minute same-run slot; firstforfeited withoutread; no oldreviewbudget reset."
-      },
+      "next_run": null,
       "first_scheduled_normal_run": {
         "status": "OBSERVED",
         "automation_id": "automation",
@@ -4527,33 +4826,53 @@
       },
       "automation_readback": {
         "id": "automation",
-        "status": "ACTIVE",
+        "status": "PAUSED",
         "target_thread_id": "01a07b56-616e-7733-9aae-90575659688e",
-        "rrule": "FREQ=DAILY;BYHOUR=17;BYMINUTE=53;BYSECOND=58",
-        "updated_at": 1789288744582,
+        "rrule": "FREQ=DAILY;BYHOUR=19;BYMINUTE=42;BYSECOND=44",
+        "updated_at": 1789296495488,
         "created_at": 1789048677730,
         "prompt_exact_equal": true,
-        "scheduled_for_utc": "2026-09-13T08:53:58.000Z",
+        "scheduled_for_utc": null,
         "readback_verified": true,
-        "verification_source": "Same existingheartbeat updateAPI and actualTOML fullprompt/calendar/target equality. FutureexecutionNOT_OBSERVED."
+        "verification_source": "Actual saved TOML full prompt/status/target/calendar checked; this pause preceded the later direct-user export permission."
       },
-      "normal_work_claim": "Independent v14 face implemented and exact candidate pushed; latest Kurogane100 preference preserved. Pending genuine face review, not self-approved.",
-      "review_scope": "Face5f44/base954e/UDL-067-face-v1/blob b2a5/Pages_only/DBEdgeManaged[]; no CPU or expiredb9 authority.",
+      "normal_work_claim": "Exact c9 Windows SUCCESS. Direct user resolved the precise 12-document public export hold; existing commander resumes authorized fixed artifact publication and genuine review submission, not game publication.",
+      "review_scope": "c9/base70e/UDL-067-face-v1/blob19cec2fd/Pages_only/DBEdgeManaged[]; old3bb/5f44/042/044 results do not approve this successor.",
       "verification": {
         "regression_tests": "42/42 PASS; skip0;638.46ms",
         "old_paused_state_guard": "Previously reproduced ORPHANED_ACTIONABLE_WORK; now also rejects past/under2minute calendar reservations and schedule-time mismatch.",
         "actual_scheduler_execution": "OBSERVED_SEPARATE_NORMAL_RUN_WITH_LIVE_WORK_RESULT",
-        "latest_tests": "60/60PASS544.6369ms skip/cancel0; exactface owner/source/base/spec/emptychangesets and unreviewed finiteCI route; actualendguardPASS."
+        "latest_tests": "65/65PASS1278.1461ms,skip/cancel0. Initial new case RED248.7202ms; broad first fix64/65FAIL1026.7638ms preserved. Final fix scopes precedence to explicit public export only; original source/expired-review expectation unchanged."
       },
       "current_run": {
         "phase": "NORMAL_WORK",
-        "source": "automatic_goal_continuation_latest_user_policy_preserved",
-        "first_clock_observed_at_utc": "2026-09-13T08:23:30Z",
+        "source": "automatic_goal_continuation",
+        "started_at_utc": "2026-09-13T10:35:13Z",
         "scheduled_origin_claimed": false,
-        "worktree": ".codex-worktrees/surrender-cpu-face-20260913",
-        "request": "Adopted v14 UDL067 normal CPU face; preserve latest UDL051 Kurogane100 user policy.",
-        "canon_receipt": "CANON_RECEIPT version=shared-canon-v1.1 governance=7592ee57695299b77d00d876abc13fa1737b4fb8 public_base=954e1c5c52d5453fc9fee9872b2d7e922f850a39 candidate=5f44efb61b101c3f3f2bd0e1b36f2658a500c1c2 request=UDL-20260912-067,UDL-20260910-051 specs=docs/SURRENDER_CPU_FACE_20260913.md,docs/CPU_PALETTE_EFFICIENCY_20260913.md tests=tests/standard-online-browser.test.cjs,tests/standard-kurogane-palette-charges.test.cjs",
-        "result": "PROGRESS: implemented normal-face matching/fallback/guards; localbrowser success and8preserved screenshots. Initial03a4 Windows4marker failures preserved; exact3file followup5f44 product unchanged; clean977/977PASS and exact dedicatedpush. CPU9590 policy and5/5focusedPASS verified; originalCIattempt1failure unchanged. No production or new review read/send. Own Windows34748004151 attempt1 actuallyIN_PROGRESS; original08:33:58Z run anchor preserved, no Astra read budget changed. Prepared exact33347-byte15file patch, sameheartbeatACTIVE original17:53:58JST slot with fullTOML strictreadback, updated_at1789288744582; configuration not futureexecution."
+        "request": "Exact c9 Windows at reserved slot; bounded existing CPU033 asset readiness audit",
+        "canon_receipt": "CANON_RECEIPT version=shared-canon-v1.1 governance=8582d67c0532f6efc7f29ed51ab7269573c49677 base=70e691b6f8f1d808476e80990d20df7862bfb782 candidate=c9e4ea2dc43137c055ae0a9de954bbaa16413360 request=UDL-20260912-067,UDL-20260908-033,UDL-20260910-051 specs=docs/SURRENDER_CPU_FACE_20260913.md,docs/CPU_SUCCESSOR_PREPARATION_20260912.md tests=tests/standard-online-browser.test.cjs",
+        "result": "PROGRESS: original20minute slot consumed before API; exactc9 Windows34751690674 attempt1 terminalSUCCESS and fullbothlogs/checkout/660+153/Edge79 proof saved; oldfailuresretained. Bounded033readiness confirmed existingID/atlas API and officialsitecredit, while originalgenderhandoff stillmarksfullsettingsunverified; no inference/newassets. Own reviewNOT_SENT, exporthold unchanged, production0. Later direct user explicitly approved the disclosed 12-document public export; no prior denial deleted. Local stop-reason regression fixed without changing other finite hold semantics.",
+        "artwork_readiness_evidence": "artifacts/cpu-wataokiba-preparation-20260913/readiness.json",
+        "user_resumption": {
+          "received_at_utc": "2026-09-13T11:02:38Z",
+          "kind": "direct_user_public_export_approval",
+          "source_quote": "＞公開の明示確認 って僕待ち？いいよ！",
+          "scope": [
+            "docs/CHATGPT_REVIEW_DECISIONS.json",
+            "docs/EDGE_SOURCE_ARCHIVE_RECOVERY_20260913.md",
+            "scripts/check-commander-continuation.cjs",
+            "tests/governance-commander-continuation.test.cjs",
+            "docs/CHATGPT_COLLABORATION_OPERATION.md",
+            "docs/PROJECT_COMMAND_CENTER.md",
+            "docs/STANDARD_RELEASE_EVIDENCE.md",
+            "docs/SURRENDER_CPU_FACE_MAIN70E_REVIEW_20260913.patch",
+            "docs/SURRENDER_CPU_FACE_MAIN70E_LOCAL_20260913.md",
+            "docs/ASTRA_SURRENDER_CPU_FACE_MAIN70E_REVIEW_20260913.md",
+            "docs/ASTRA_SURRENDER_CPU_FACE_REVIEW_20260913.md",
+            "docs/SURRENDER_CPU_FACE_LOCAL_20260913.md"
+          ],
+          "game_publication_approval": false
+        }
       },
       "missed_schedule_observation": {
         "scheduled_at_utc": "2026-09-12T06:25:12Z",
@@ -4590,18 +4909,18 @@
         "recovered_without_new_user_wait": true
       },
       "end_turn_guard": {
-        "checked_at_utc": "2026-09-13T08:40:35Z",
-        "record_time_basis": "Adjacent clock after actual checker and tests",
+        "checked_at_utc": "2026-09-13T10:33:58Z",
+        "record_time_basis": "Adjacent clock after actual64tests/end-turn guard; finalguard repeated after receipt saving.",
         "result": "PASS",
         "phase": "NORMAL_WORK",
         "action": "CHECK_CI",
-        "subject_sha": "5f44efb61b101c3f3f2bd0e1b36f2658a500c1c2",
-        "run_id": 34748004151,
+        "subject_sha": "c9e4ea2dc43137c055ae0a9de954bbaa16413360",
+        "run_id": 34751690674,
         "review_id": null,
-        "at_utc": "2026-09-13T08:53:58.000Z",
+        "at_utc": "2026-09-13T10:42:44.000Z",
         "errors": [],
         "scheduled_origin_claimed": false,
-        "note": "Actual existingheartbeatACTIVE/fullTOML strictmatch. Originalfirstslotforfeited, original20minuteslot and60min deadline unchanged;no publicationauthority."
+        "note": "Sameexistingheartbeat actualfullTOML exact/ACTIVE; originalfirstslotforfeited. No publicGOV export/review send; 3bb failurehistoryandallholds retained."
       },
       "latest_receive_schedule_observation": {
         "scheduled_at_utc": "2026-09-12T07:45:12Z",
@@ -4636,12 +4955,12 @@
       "previous_run": {
         "phase": "NORMAL_WORK",
         "source": "automatic_goal_continuation",
-        "started_at_utc": "2026-09-13T06:52:44Z",
+        "started_at_utc": "2026-09-13T10:03:43Z",
         "scheduled_origin_claimed": false,
-        "worktree": ".codex-worktrees/ui-public-match-actions-pointer-20260913",
-        "request": "UDL014/054 regression repair supporting exactUDL023 UI release. Existing normal commander; no earlyreview read.",
-        "canon_receipt": "CANON_RECEIPT version=shared-canon-v1.1 governance=e85a504d3e44015e15c00134fdea0c8980e1ea38 public_base=954e1c5c52d5453fc9fee9872b2d7e922f850a39 candidate_base=84587830730c1f62cf8c502daac4d768886a3f4d request=UDL-20260906-014,UDL-20260910-054,UDL-20260907-023 specs=docs/UI_PLAY_SURFACE_20260912.md,docs/UI_PUBLIC_MATCH_ACTIONS_20260913.md tests=tests/standard-online-browser.test.cjs,tests/canvas-native-pointer.test.cjs",
-        "result": "PROGRESS: derivative b9c91af committed, original845 and feature spec unchanged; correct native readiness-before-measure helper, native resize regression, exact Windowsbranch+helper paths. Chrome2/2, Edge2/2, unit/workflow/harness14/14PASS. Controlled order mutation rejected by unit and nativebrowser then restored. Clean148-file fullnonbrowser run session98187 now live. Fullclean148/164files1002/1002PASS74901.551ms; threebuilders unchanged; exactb9c91af force-freepush. ActualWindows34744571394 attempt1 bothjobsIN_PROGRESS at07:15:59Z. Full18file54028char/57353byte patch equals aggregate70e..b9 rawdiff. TerminalWindows bothSUCCESS07:24:51Z, genuine044 saved, fivefile15336bytepatch exact+applycheckPASS, b9 promoted within samecurrentrecord; old845/HOLD/CI retained as history. Genuine044 correctedlogidentity; b9WindowsfinalbothSUCCESS. Fixedfivefilepatch+proof published inad566d6; one substantive review sendaccepted, two deliveryreads returnedold044 whiletaskactive. DeliveryNOT_CONFIRMED. Originalslots exhausted/deadlineended; actualPAUSE being applied. Existingautomation actualPAUSED; fullTOML strict equality verified."
+        "request": "UDL067 face exact Windows result; retain UDL051 Kurogane100 and all release/export holds",
+        "worktree": ".codex-worktrees/surrender-cpu-face-20260913",
+        "canon_receipt": "CANON_RECEIPT version=shared-canon-v1.1 governance=8582d67c0532f6efc7f29ed51ab7269573c49677 base=70e691b6f8f1d808476e80990d20df7862bfb782 candidate=c9e4ea2dc43137c055ae0a9de954bbaa16413360 request=UDL-20260912-067,UDL-20260910-051 specs=docs/SURRENDER_CPU_FACE_20260913.md tests=tests/standard-online-browser.test.cjs,.github/workflows/standard-browser-gate.yml",
+        "result": "PROGRESS: exact3bb ChromePASS/Edge151of152FAIL preserved; reused only existing5file native pointer repair, sameproduct/spec and normalinput; local14/14,Chrome2/2,Edge2/2,clean1002/1002PASS; exactc9 dedicatedpush, realnewWindowsIN_PROGRESS. GOVexport deniedboundary retained, no export/review/main/Pages/Edge/DB/managed/live. SameheartbeatACTIVE original10:42:44Z slot/fullTOML exact,updated_at1789295412835. Current48529bytepatch and archived3bb36743bytepatch are exactgitdiff. No futureexecutionclaim; finalgovernance64/64PASS662.0275ms."
       },
       "goal_blocked_audit_history": [
         {
@@ -4735,12 +5054,11 @@
       },
       "current_goal_turn_classification": {
         "previous_turn": "PROGRESS",
-        "previous_turn_reason": "b9 fixed pointer evidence and finite original delivery handling",
+        "previous_turn_reason": "Exactfailed3bb diagnosis,5fileknownrepair,c9full1002/1002 and nativeboth2/2,actualdedicatedpush/newrun34751690674",
         "current_turn": "PROGRESS",
         "whole_goal_complete": false,
         "verified_wait": false,
-        "live_external_job_handle_confirmed": true,
-        "evidence": "New independent adoptedface candidate5f44 implemented/tested/pushed. Own Windows discoverypending; raw failures preserved. No expiredAstra polling or production changes."
+        "evidence": "PROGRESS: original20minute slot consumed before API; exactc9 Windows34751690674 attempt1 terminalSUCCESS and fullbothlogs/checkout/660+153/Edge79 proof saved; oldfailuresretained. Bounded033readiness confirmed existingID/atlas API and officialsitecredit, while originalgenderhandoff stillmarksfullsettingsunverified; no inference/newassets. Own reviewNOT_SENT, exporthold unchanged, production0. Later direct user explicitly approved the disclosed 12-document public export; no prior denial deleted. Local stop-reason regression fixed without changing other finite hold semantics."
       },
       "documentation_review_followup_history": [
         {
@@ -4836,19 +5154,47 @@
           "errors": [],
           "scheduled_origin_claimed": false,
           "note": "Finiteoriginalwait exhausted andexpired;actualexistingheartbeatPAUSED/fullTOML strictmatch. b9deliverynotconfirmed,no newapproval."
+        },
+        {
+          "checked_at_utc": "2026-09-13T08:40:35Z",
+          "record_time_basis": "Adjacent clock after actual checker and tests",
+          "result": "PASS",
+          "phase": "NORMAL_WORK",
+          "action": "CHECK_CI",
+          "subject_sha": "5f44efb61b101c3f3f2bd0e1b36f2658a500c1c2",
+          "run_id": 34748004151,
+          "review_id": null,
+          "at_utc": "2026-09-13T08:53:58.000Z",
+          "errors": [],
+          "scheduled_origin_claimed": false,
+          "note": "Actual existingheartbeatACTIVE/fullTOML strictmatch. Originalfirstslotforfeited, original20minuteslot and60min deadline unchanged;no publicationauthority."
+        },
+        {
+          "checked_at_utc": "2026-09-13T09:52:10Z",
+          "record_time_basis": "Adjacent clock after actual checker",
+          "result": "PASS",
+          "phase": "NORMAL_WORK",
+          "action": "CHECK_CI",
+          "subject_sha": "3bb2b988cee5347d98906004c92c3695411a02c4",
+          "run_id": 34750139272,
+          "review_id": null,
+          "at_utc": "2026-09-13T10:04:23.000Z",
+          "errors": [],
+          "scheduled_origin_claimed": false,
+          "note": "ActualsameheartbeatACTIVE/fullTOML exact; originalfirstslotforfeited withoutread, original20minuteslot+60minexpiry. Pagespartialhold and oldCPU/b9 retained."
         }
       ],
       "previous_automation_readback": {
         "id": "automation",
-        "status": "PAUSED",
+        "status": "ACTIVE",
         "target_thread_id": "01a07b56-616e-7733-9aae-90575659688e",
-        "rrule": "FREQ=DAILY;BYHOUR=16;BYMINUTE=26;BYSECOND=14",
-        "updated_at": 1789285754548,
+        "rrule": "FREQ=DAILY;BYHOUR=19;BYMINUTE=42;BYSECOND=44",
+        "updated_at": 1789295412835,
         "created_at": 1789048677730,
         "prompt_exact_equal": true,
-        "scheduled_for_utc": null,
+        "scheduled_for_utc": "2026-09-13T10:42:44.000Z",
         "readback_verified": true,
-        "verification_source": "Same existingheartbeat pauseAPI and fullactualTOML strict prompt/calendar/target equality; no scheduledexecution claim."
+        "verification_source": "Same existingheartbeat API update and actual savedTOML entireprompt/target/calendar equality; futureexecution NOT_OBSERVED."
       }
     },
     "latest_brain_transfer": {
@@ -5164,6 +5510,367 @@
         },
         "successor_sha": "b9c91af38986d96b226906ab5485aa1fe0b64088",
         "wait_reset": false
+      },
+      {
+        "recorded_at_utc": "2026-09-13T09:28:39Z",
+        "kind": "surrender_face_current_main_reconciliation",
+        "reason": "Main advanced to70e; preserve old5f44 WindowsSUCCESS and oldspec rather than borrowing its gate for mergedcode.",
+        "previous_slice": {
+          "request_id": "UDL-20260912-067",
+          "alias": "ADD-20260913-SURRENDER-CPU-FACE",
+          "source_message_id": "bbb2135e-cfd1-4da8-845b-9e3d07d8b29a",
+          "owner_thread_id": "01a07b56-616e-7733-9aae-90575659688e",
+          "branch": "codex/surrender-cpu-face-20260913",
+          "worktree": ".codex-worktrees/surrender-cpu-face-20260913",
+          "base_sha": "954e1c5c52d5453fc9fee9872b2d7e922f850a39",
+          "spec_path": "docs/SURRENDER_CPU_FACE_20260913.md",
+          "spec_version": "UDL-067-face-v1",
+          "state": "LOCAL_VERIFIED_REVIEW_PREPARATION",
+          "implementation_authority": "adopted_v14_user_request",
+          "scope": "Pages_only",
+          "db_change_set": [],
+          "edge_change_set": [],
+          "managed_setting_change_set": [],
+          "new_image_bytes": 0,
+          "publication": "NOT_RUN",
+          "publication_authorized": false,
+          "live_canary_attempts": 0,
+          "review_status": "NOT_SENT",
+          "review_send_attempts": 0,
+          "next_action": "Collect own exact Windows run with bounded same-run checks; prepare fixed15-file review. Only genuine exact review plus all gates may authorize production; no inherited CPU/b9 review or live allowance.",
+          "candidate_sha": "5f44efb61b101c3f3f2bd0e1b36f2658a500c1c2",
+          "spec_snapshot_sha": "b2a5ad7dde6e590fb8122e3f4167de3ba4d744ff",
+          "local_verification": "PASS",
+          "local_tests": {
+            "full_nonbrowser": "977/977 PASS;145/161 files;skip/cancel0;46242.2412ms;clean candidate",
+            "focused_static": "34/34 PASS",
+            "affected_marker_contracts": "74/74 PASS",
+            "chrome": "9/9 PASS plus final identity1/1",
+            "edge": "8/8 PASS plus final identity1/1",
+            "builder_tracked_diff": "ZERO",
+            "failed_checkpoints_preserved": "docs/SURRENDER_CPU_FACE_LOCAL_20260913.md"
+          },
+          "push_status": "PUSHED_EXACT_BRANCH",
+          "windows_status": "SUCCESS",
+          "windows_run": 34748004151,
+          "windows_discovery": "Exact successor run34748004151 attempt1 observed in_progress2026-09-13T08:35:28Z; no inheritedgate.",
+          "evidence": "docs/SURRENDER_CPU_FACE_LOCAL_20260913.md",
+          "superseded_candidates": [
+            {
+              "candidate_sha": "03a4a3bc0555c9c30dbdd0af9d44c7f90ddb0fd6",
+              "windows_run": 34747391707,
+              "windows_status": "FAILURE",
+              "attempt": 1,
+              "chrome_job": 103697714769,
+              "edge_job": 103697714861,
+              "both_contracts": "631/635;four exact stale asset-reference failures",
+              "review_status": "NOT_SENT",
+              "publication": "NOT_RUN",
+              "successor_diff": "3 text files,4 exact reference replacements;product/spec/images unchanged",
+              "rerun_attempts": 0
+            }
+          ],
+          "windows_created_at_utc": "2026-09-13T08:33:58Z",
+          "windows_attempt": 1,
+          "review_patch": "docs/SURRENDER_CPU_FACE_REVIEW_20260913.patch",
+          "ci_followup": {
+            "run_id": 34748004151,
+            "subject_sha": "5f44efb61b101c3f3f2bd0e1b36f2658a500c1c2",
+            "started_at_utc": "2026-09-13T08:33:58.000Z",
+            "expires_at_utc": "2026-09-13T09:33:58.000Z",
+            "offset_minutes": [
+              5,
+              20,
+              50
+            ],
+            "max_checks": 3,
+            "consumed_slots_utc": [
+              "2026-09-13T08:53:58.000Z"
+            ],
+            "skipped_slots_utc": [
+              "2026-09-13T08:38:58.000Z"
+            ],
+            "reset_on_restart_or_candidate_revision": false,
+            "skip_reason": "First original slot forfeited without a check: current owner's end-turn minimum2-minute margin could not be met. Original20minute slot unchanged.",
+            "last_check_reserved_at_utc": "2026-09-13T08:54:03Z",
+            "state": "TERMINAL_SUCCESS",
+            "completed_at_utc": "2026-09-13T08:54:45Z",
+            "terminal_run_updated_at_utc": "2026-09-13T08:49:38Z"
+          },
+          "review_patch_sha256": "e2176537a93daa9c2db2579a5aa3c7abc129658fcaa5bee637757c5cc3d37205",
+          "review_patch_bytes": 33347,
+          "review_patch_exact_git_diff": true,
+          "review_packet": "docs/ASTRA_SURRENDER_CPU_FACE_REVIEW_20260913.md",
+          "windows_verified_at_utc": "2026-09-13T08:54:45Z",
+          "windows_jobs": [
+            {
+              "id": 103699363927,
+              "browser": "chrome",
+              "conclusion": "success",
+              "existing_lifecycle": "SKIPPED"
+            },
+            {
+              "id": 103699364144,
+              "browser": "edge",
+              "conclusion": "success",
+              "existing_lifecycle": "SUCCESS"
+            }
+          ],
+          "base_reconciliation": {
+            "state": "REQUIRED_CURRENT_MAIN_CHANGED",
+            "from_candidate_sha": "5f44efb61b101c3f3f2bd0e1b36f2658a500c1c2",
+            "from_base_sha": "954e1c5c52d5453fc9fee9872b2d7e922f850a39",
+            "target_base_sha": "70e691b6f8f1d808476e80990d20df7862bfb782",
+            "main_evidence": "GitHub public git/ref/heads/main09:20:05Z exact70e; Pages still pending",
+            "reason": "Preserve the now-merged public skill names and corresponding tests; old5f44 Windows remains historical, no approval borrowed.",
+            "governance_sha": "8582d67c0532f6efc7f29ed51ab7269573c49677",
+            "source_request_ids": [
+              "UDL-20260912-067",
+              "ADD-20260913-SURRENDER-CPU-FACE"
+            ],
+            "db_edge_managed_changes": [],
+            "new_image_bytes": 0,
+            "publication_authorized": false
+          }
+        }
+      },
+      {
+        "kind": "UDL067_TEST_COORDINATE_REPAIR_AFTER_EXACT_3BB_FAILURE",
+        "recorded_at_utc": "2026-09-13T10:24:34Z",
+        "slice_ref": "remaining_brain_work.surrender_face_preparation",
+        "previous_slice": {
+          "request_id": "UDL-20260912-067",
+          "alias": "ADD-20260913-SURRENDER-CPU-FACE",
+          "source_message_id": "bbb2135e-cfd1-4da8-845b-9e3d07d8b29a",
+          "owner_thread_id": "01a07b56-616e-7733-9aae-90575659688e",
+          "branch": "codex/surrender-cpu-face-20260913",
+          "worktree": ".codex-worktrees/surrender-cpu-face-20260913",
+          "base_sha": "70e691b6f8f1d808476e80990d20df7862bfb782",
+          "spec_path": "docs/SURRENDER_CPU_FACE_20260913.md",
+          "spec_version": "UDL-067-face-v1",
+          "state": "LOCAL_VERIFIED_REVIEW_PREPARATION",
+          "implementation_authority": "adopted_v14_user_request",
+          "scope": "Pages_only",
+          "db_change_set": [],
+          "edge_change_set": [],
+          "managed_setting_change_set": [],
+          "new_image_bytes": 0,
+          "publication": "NOT_RUN",
+          "publication_authorized": false,
+          "live_canary_attempts": 0,
+          "review_status": "NOT_SENT",
+          "review_send_attempts": 0,
+          "next_action": "Reuse the already diagnosed native-coordinate repair in a test-only successor; exact successor gates required. PublicGOV export remains held after2 safety denials; no new Astra read/send or oldCIrerun.",
+          "candidate_sha": "3bb2b988cee5347d98906004c92c3695411a02c4",
+          "spec_snapshot_sha": "19cec2fd18429c9d9b48a1320c2032db29fec55f",
+          "local_verification": "PASS",
+          "local_tests": {
+            "full_nonbrowser": {
+              "selected": 147,
+              "total": 163,
+              "tests": 999,
+              "pass": 999,
+              "duration_ms": 46967.8821,
+              "skip": 0,
+              "cancel": 0
+            },
+            "merged_product_chrome": "18/18PASS208948.2843ms",
+            "merged_product_edge": "17/18PASS1FAIL228521.7422ms",
+            "test_fix_only_identity": {
+              "chrome": "1/1PASS14984.853ms",
+              "edge": "1/1PASS15411.2537ms"
+            },
+            "source": "docs/SURRENDER_CPU_FACE_MAIN70E_LOCAL_20260913.md",
+            "initial_failure_preserved": true
+          },
+          "push_status": "PUSHED_EXACT_BRANCH",
+          "windows_status": "FAILURE",
+          "windows_run": 34750139272,
+          "windows_discovery": "09:45:20Z: exact3bb Windows34750139272 attempt1 IN_PROGRESS; originalcreated09:44:23Z.",
+          "evidence": "docs/SURRENDER_CPU_FACE_MAIN70E_LOCAL_20260913.md",
+          "superseded_candidates": [
+            {
+              "candidate_sha": "03a4a3bc0555c9c30dbdd0af9d44c7f90ddb0fd6",
+              "windows_run": 34747391707,
+              "windows_status": "FAILURE",
+              "attempt": 1,
+              "chrome_job": 103697714769,
+              "edge_job": 103697714861,
+              "both_contracts": "631/635;four exact stale asset-reference failures",
+              "review_status": "NOT_SENT",
+              "publication": "NOT_RUN",
+              "successor_diff": "3 text files,4 exact reference replacements;product/spec/images unchanged",
+              "rerun_attempts": 0
+            }
+          ],
+          "windows_created_at_utc": "2026-09-13T09:44:23Z",
+          "windows_attempt": 1,
+          "review_patch": "docs/SURRENDER_CPU_FACE_MAIN70E_REVIEW_20260913.patch",
+          "review_patch_sha256": "edd9c072a52de529635b2cff8d2e9756d9ccd3fb70c4355ba7265c0bbf36148d",
+          "review_patch_bytes": 36743,
+          "review_patch_exact_git_diff": true,
+          "review_packet": "docs/ASTRA_SURRENDER_CPU_FACE_MAIN70E_REVIEW_20260913.md",
+          "base_reconciliation": {
+            "state": "FINAL_TEST_FIX_COMMITTED_AND_PUSHED",
+            "from_candidate_sha": "5f44efb61b101c3f3f2bd0e1b36f2658a500c1c2",
+            "from_base_sha": "954e1c5c52d5453fc9fee9872b2d7e922f850a39",
+            "target_base_sha": "70e691b6f8f1d808476e80990d20df7862bfb782",
+            "main_evidence": "GitHub public git/ref/heads/main09:20:05Z exact70e; Pages still pending",
+            "reason": "Preserve the now-merged public skill names and corresponding tests; old5f44 Windows remains historical, no approval borrowed.",
+            "governance_sha": "8582d67c0532f6efc7f29ed51ab7269573c49677",
+            "source_request_ids": [
+              "UDL-20260912-067",
+              "ADD-20260913-SURRENDER-CPU-FACE"
+            ],
+            "db_edge_managed_changes": [],
+            "new_image_bytes": 0,
+            "publication_authorized": false,
+            "candidate_sha": "3bb2b988cee5347d98906004c92c3695411a02c4",
+            "spec_snapshot_sha": "19cec2fd18429c9d9b48a1320c2032db29fec55f",
+            "conflicts": "Only exact asset refs and union of existing branch gate lists; merged app and browser regressions keep both features. Current cacheapp47.",
+            "first_focused": "122/123 one stale named-skill runbook reference; documented initial44 and current47, originalassertion retained.",
+            "final_focused": "123/123PASS1248.1283ms",
+            "generated_sources": "Three builders done before tests; all generated bundles/registry exact70e.",
+            "full_session": 99794,
+            "merge_sha": "e6017123e64a6f43d7398728147a4dee0b9bc21a",
+            "local_chrome": "18/18 then fixedidentity1/1PASS",
+            "local_edge": "17/18FAIL then fixedidentity1/1PASS; originalfailedrun retained"
+          },
+          "public_base_sha": "70e691b6f8f1d808476e80990d20df7862bfb782",
+          "release_after_sha": "70e691b6f8f1d808476e80990d20df7862bfb782",
+          "review_request_message_id": null,
+          "review_response_message_id": null,
+          "review_id": null,
+          "full_nonbrowser": {
+            "state": "PASS",
+            "selected_files": 147,
+            "total_files": 163,
+            "excluded_actual_playwright": 16,
+            "tests": 999,
+            "pass": 999,
+            "fail": 0,
+            "skip": 0,
+            "cancel": 0,
+            "duration_ms": 46967.8821,
+            "session_id": 99794
+          },
+          "ci_followup": {
+            "run_id": 34750139272,
+            "subject_sha": "3bb2b988cee5347d98906004c92c3695411a02c4",
+            "started_at_utc": "2026-09-13T09:44:23Z",
+            "expires_at_utc": "2026-09-13T10:44:23.000Z",
+            "offset_minutes": [
+              5,
+              20,
+              50
+            ],
+            "max_checks": 3,
+            "consumed_slots_utc": [
+              "2026-09-13T10:04:23.000Z"
+            ],
+            "skipped_slots_utc": [
+              "2026-09-13T09:49:23.000Z"
+            ],
+            "reset_on_restart_or_candidate_revision": false,
+            "state": "TERMINAL_FAILURE",
+            "first_slot_disposition": "Forfeited before any read: final evidence/export/schedule checks cannot conservatively finish with the2minute end-turn margin before09:49:23Z. Use the original20minute slot; no new wait or retry.",
+            "latest_check": {
+              "slot_utc": "2026-09-13T10:04:23.000Z",
+              "reserved_at_utc": "2026-09-13T10:10:36Z",
+              "reserved_before_api": true,
+              "origin": "existing active goal owner, not a claimed scheduled worker",
+              "result": "Exact run3bb attempt1 terminal FAILURE; ChromeSUCCESS, Edge151/152 onlineFAIL; no rerun"
+            },
+            "completed_at_utc": "2026-09-13T10:03:48Z",
+            "investigation": {
+              "status": "RECORDED",
+              "reason": "CI_FAILED_OR_UNKNOWN",
+              "subject_sha": "3bb2b988cee5347d98906004c92c3695411a02c4",
+              "run_id": 34750139272,
+              "reserved_before_logs": false,
+              "read_once_full_job_logs": true,
+              "chrome_job": 103705086273,
+              "edge_job": 103705086374,
+              "evidence_path": "docs/SURRENDER_CPU_FACE_MAIN70E_LOCAL_20260913.md",
+              "failure": "tests/standard-online-browser.test.cjs:3338; waitFor row4 at3371 timeout30000ms; Half Shift/Triple Shift native board test. Originalrootcause notproven.",
+              "prior_controlled_diagnosis": "docs/SHIFT_BAND_POINTER_DIAGNOSIS_20260913.md",
+              "available_repair": "b9c91af38986d96b226906ab5485aa1fe0b64088 five test/CI files; importonlysafe repair without originalpublic-actions UI or anyapproval",
+              "reservation_note": "Original CI20minute check reserved before API. Explicit investigation metadata is recorded after fetching terminal logs; do not claim separate pre-reservation."
+            }
+          },
+          "review_patch_characters": 34951,
+          "review_artifact_export_hold": {
+            "state": "AWAITING_EXPLICIT_PUBLIC_EXPORT_APPROVAL",
+            "subject_sha": "3bb2b988cee5347d98906004c92c3695411a02c4",
+            "repository": "sakuratamaro/four-color-map-game",
+            "branch": "codex/dev-brain-current-20260910",
+            "denied_attempts": 2,
+            "automatic_retry_allowed": false,
+            "evidence_path": "docs/PUBLIC_EXPORT_PERMISSION_20260913.md",
+            "outgoing_files": [
+              "docs/CHATGPT_REVIEW_DECISIONS.json",
+              "docs/EDGE_SOURCE_ARCHIVE_RECOVERY_20260913.md",
+              "scripts/check-commander-continuation.cjs",
+              "tests/governance-commander-continuation.test.cjs",
+              "docs/CHATGPT_COLLABORATION_OPERATION.md",
+              "docs/PROJECT_COMMAND_CENTER.md",
+              "docs/STANDARD_RELEASE_EVIDENCE.md",
+              "docs/SURRENDER_CPU_FACE_MAIN70E_REVIEW_20260913.patch",
+              "docs/SURRENDER_CPU_FACE_MAIN70E_LOCAL_20260913.md",
+              "docs/ASTRA_SURRENDER_CPU_FACE_MAIN70E_REVIEW_20260913.md",
+              "docs/ASTRA_SURRENDER_CPU_FACE_REVIEW_20260913.md",
+              "docs/SURRENDER_CPU_FACE_LOCAL_20260913.md"
+            ],
+            "public_content_risk": "Review bodies/task IDs/operational records are public, beyond credential regex checks.",
+            "read_only_checks_completed": true,
+            "push_executed": false
+          },
+          "windows_evidence": {
+            "run_id": 34750139272,
+            "attempt": 1,
+            "head_sha": "3bb2b988cee5347d98906004c92c3695411a02c4",
+            "status": "FAILURE",
+            "completed_at_utc": "2026-09-13T10:03:48Z",
+            "chrome": {
+              "job": 103705086273,
+              "status": "SUCCESS",
+              "contracts": {
+                "tests": 657,
+                "pass": 657,
+                "duration_ms": 54367.3707
+              },
+              "online": {
+                "tests": 152,
+                "pass": 152,
+                "duration_ms": 641974.2817
+              },
+              "lifecycle": "EXISTING_STEP_SKIPPED"
+            },
+            "edge": {
+              "job": 103705086374,
+              "status": "FAILURE",
+              "contracts": {
+                "tests": 657,
+                "pass": 657,
+                "duration_ms": 58448.2838
+              },
+              "lifecycle": {
+                "tests": 79,
+                "pass": 79,
+                "duration_ms": 97603.5409
+              },
+              "online": {
+                "tests": 152,
+                "pass": 151,
+                "fail": 1,
+                "duration_ms": 966913.1416
+              }
+            }
+          }
+        },
+        "successor_sha": "c9e4ea2dc43137c055ae0a9de954bbaa16413360",
+        "old_ci_result_preserved": true,
+        "no_old_review_or_ci_approval_reused": true
       }
     ],
     "last_consumed_message_id": "e1d16e25-92cb-487e-83ca-14f0dce042a3"
