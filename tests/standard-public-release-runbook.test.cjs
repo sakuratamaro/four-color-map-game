@@ -35,23 +35,36 @@ test("UDL023 v14 is a separate Pages-only successor with explicit actions and no
 });
 
 test("UDL060 terminal hierarchy binds its own asset versions and keeps release gates separate", () => {
-  const section = runbook.slice(runbook.indexOf("## 完了の定義"), runbook.indexOf("入口UIのv13後続便"));
+  const section = runbook.slice(runbook.indexOf("この候補の厳密asset marker"), runbook.indexOf("入口UIのv13後続便"));
   for (const phrase of ["UDL-060-terminal-v2", "docs/UI_TERMINAL_HIERARCHY_20260914.md", "最大3操作",
     "旧pending申請の復旧", "独自Windowsゲート", "真正Astraレビュー", "fresh mainと配信byte確認",
     "CPU/DB/Edge/経済は変更しない", "公開確認は未実行"])
     assert.ok(section.includes(phrase), phrase);
-  for (const pattern of [/src="(app\.js\?v=[^"]+)"/, /href="(terminal-result\.css\?v=[^"]+)"/])
+  // The reviewed terminal parent keeps app v1; the new gacha lane checks the current app.
+  assert.ok(section.includes("app.js?v=20260914-1"));
+  for (const pattern of [/href="(terminal-result\.css\?v=[^"]+)"/])
     assert.ok(section.includes(assetReference(onlineIndex, pattern, "terminal hierarchy lane")));
   const app = fs.readFileSync(path.join(__dirname, "..", "standard-online-v5", "app.js"), "utf8");
   assert.ok(section.includes(assetReference(app, /from "\.\/(result-continuation\.js\?v=[^"]+)"/, "terminal reward model")));
 });
 
-test("quiz entry has its own current marker and preserves terminal parents without live writes", () => {
+test("quiz parent keeps its frozen markers and terminal dependencies without live writes", () => {
   const section = runbook.slice(runbook.indexOf("クイズ入口の後続候補"), runbook.indexOf("この候補の厳密asset marker"));
   for (const text of ["UDL-062-quiz-entry-v1.1", "docs/QUIZ_LEVEL_START_20260914.md", "親70e→b9→87→df62", "fresh maindf62", "3asset厳密byte一致", "DIRECT_QUIZ_ENTRY_REQUIRED", "追加liveはこの手順では許可しない", "旧承認を新クイズ候補へ流用せず"])
     assert.ok(section.includes(text), text);
-  for (const pattern of [/src="(app\.js\?v=[^"]+)"/, /href="(style\.css\?v=[^"]+)"/])
-    assert.ok(section.includes(assetReference(onlineIndex, pattern, "quiz entry lane")));
+  for (const marker of ["app.js?v=20260914-2", "style.css?v=20260914-2"]) assert.ok(section.includes(marker));
+});
+
+test("gacha entry binds every current asset and its exact quiz parent without new live authority", () => {
+  const section = runbook.slice(runbook.indexOf("ガチャ入口の後続候補"), runbook.indexOf("クイズ入口の後続候補"));
+  for (const text of ["UDL-062-gacha-entry-v1", "docs/GACHA_ENTRY_DIET_20260914.md", "03bc21f6ba927f71ce05efc438827d547993b21c",
+    "親70e→b9→87→df62→03bc", "fresh main03bc", "4asset厳密byte一致", "GACHA_ENTRY_DIET_REQUIRED", "DIRECT_QUIZ_ENTRY_REQUIRED",
+    "新候補固有", "Windows", "真正Astraレビュー", "100枚上限", "busy/pending/Lv/actionId/count/reload/retry",
+    "DB/Edge/管理設定は各 `[]`", "確率・報酬・経済変更なし", "liveはこの手順では許可しない", "親049承認", "具体的保留を迂回しない"])
+    assert.ok(section.includes(text), text);
+  for (const pattern of [/src="(app\.js\?v=[^"]+)"/, /href="(style\.css\?v=[^"]+)"/,
+    /src="(standard-skill-registry\.generated\.js\?v=[^"]+)"/])
+    assert.ok(section.includes(assetReference(onlineIndex, pattern, "gacha entry lane")));
 });
 
 test("current alpha.4 release lane deploys the compatible Edge before Pages and preserves active rooms", () => {
