@@ -1,6 +1,35 @@
 "use strict";
 const assert=require("node:assert/strict"),test=require("node:test"),fs=require("node:fs"),path=require("node:path");
 const read=p=>JSON.parse(fs.readFileSync(path.join(__dirname,"..",p),"utf8"));
+test("v14 fixed UI Windows evidence is exact and cannot satisfy the different CPU039 gate",()=>{
+ const w=read("docs/SKILL_CUTIN_READABILITY_WINDOWS_20260913.json");
+ assert.equal(w.candidate_sha,"954e1c5c52d5453fc9fee9872b2d7e922f850a39");
+ assert.equal(w.run.head_sha,w.candidate_sha);assert.equal(w.run.id,"34728306768");
+ assert.equal(w.run.attempt,1);assert.equal(w.run.status,"completed");assert.equal(w.run.conclusion,"success");
+ assert.deepEqual(w.jobs.map(j=>j.id),["103646336438","103646336560"]);
+ for(const j of w.jobs){assert.equal(j.conclusion,"success");assert.equal(j.cutin_browser_log_lines.length,7);
+  assert.ok(j.summary_log_lines.some(l=>l.endsWith("pass 634")));
+  assert.ok(j.summary_log_lines.some(l=>l.endsWith("pass 147")));
+  for(const l of j.summary_log_lines.filter(l=>/ (fail|cancelled|skipped) /.test(l)))assert.ok(l.endsWith(" 0"));}
+ assert.ok(w.jobs[1].summary_log_lines.some(l=>l.endsWith("pass 79")));
+ assert.equal(w.interpretation.not_cpu039_rerun_or_substitute,true);
+ assert.equal(w.interpretation.production_not_run,true);assert.equal(w.interpretation.live_profile_reservations,0);
+});
+test("v14 delivery keeps its exact source and finite new wait without resetting closed CPU039",()=>{
+ const c=read("docs/CHATGPT_REVIEW_DECISIONS.json").coordination;
+ const text=fs.readFileSync(path.join(__dirname,"../docs/ASTRA_CUTIN_READABILITY_REQUEST_20260913.md"),"utf8");
+ const marker="\n\nアストラ先生へ。",at=text.indexOf(marker);assert.ok(at>0);
+ assert.equal(text.slice(at+2).trimEnd().length,4443);
+ assert.ok(text.includes("3e6efd53-710a-45ed-9de4-05627ca5f40e"));
+ const waits=[...c.completed_review_waits,c.wait_budget];
+ const w=waits.find(x=>x.root_request_message_id==="3e6efd53-710a-45ed-9de4-05627ca5f40e");assert.ok(w);
+ assert.equal(w.started_at_utc,"2026-09-13T00:49:56Z");assert.equal(w.expires_at_utc,"2026-09-13T02:49:56.000Z");
+ assert.deepEqual(w.offset_minutes,[20,40,100]);assert.equal(w.max_automatic_checks,3);
+ assert.equal(w.reset_on_candidate_revision,false);assert.equal(w.reset_on_restart_or_unrelated_message,false);
+ const old=c.completed_review_waits.find(x=>x.root_request_message_id==="718d0bfa-6d26-4931-ac81-22a21542ec50");
+ assert.equal(old.started_at_utc,"2026-09-12T23:14:20Z");assert.equal(old.expires_at_utc,"2026-09-13T01:14:20.000Z");
+ assert.equal(old.automatic_checks,1);assert.equal(old.status,"response_received_closed");
+});
 test("v14 cut-in follow-up stays separate from published065 and the fixed CPU039 approval",()=>{
  const c=read("docs/CHATGPT_REVIEW_DECISIONS.json").coordination,p=c.remaining_brain_work.cutin_readability_preparation;
  assert.equal(p.request_id,"UDL-20260912-065");assert.equal(p.source_message_id,"bbb2135e-cfd1-4da8-845b-9e3d07d8b29a");

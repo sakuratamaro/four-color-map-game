@@ -1,0 +1,239 @@
+{
+  "schema_version": 1,
+  "request_id": "UDL-20260912-065",
+  "scope": "Pages_only",
+  "candidate_sha": "954e1c5c52d5453fc9fee9872b2d7e922f850a39",
+  "base_sha": "d9ce111d7d97019d55b3e90842602001e045ea04",
+  "spec_version": "UDL-065-readability-v1.1",
+  "spec_snapshot_sha": "2af5d73528a35edc29f45b3be5b700f6ceaf4688",
+  "observed_at_utc": "2026-09-13T00:54:43Z",
+  "run": {
+    "id": "34728306768",
+    "url": "https://github.com/sakuratamaro/four-color-map-game/actions/runs/34728306768",
+    "status": "completed",
+    "conclusion": "success",
+    "attempt": 1,
+    "head_sha": "954e1c5c52d5453fc9fee9872b2d7e922f850a39",
+    "started_at_utc": "2026-09-13T00:34:17Z"
+  },
+  "jobs": [
+    {
+      "id": "103646336438",
+      "name": "Standard online browser (chrome)",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at_utc": "2026-09-13T00:34:19Z",
+      "completed_at_utc": "2026-09-13T00:45:50Z",
+      "steps": [
+        {
+          "number": 1,
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 2,
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 3,
+          "name": "Run actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 4,
+          "name": "Install browser test dependency",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 5,
+          "name": "Verify generated Standard bundles",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 6,
+          "name": "Run Standard CPU policy contract tests",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 7,
+          "name": "Run Standard local lifecycle browser tests serially",
+          "status": "completed",
+          "conclusion": "skipped"
+        },
+        {
+          "number": 8,
+          "name": "Run Standard online browser test serially",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 15,
+          "name": "Post Run actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 16,
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 17,
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ],
+      "summary_log_lines": [
+        "2026-09-13T00:35:32.6547752Z ℹ tests 634",
+        "2026-09-13T00:35:32.6548245Z ℹ suites 0",
+        "2026-09-13T00:35:32.6548591Z ℹ pass 634",
+        "2026-09-13T00:35:32.6548930Z ℹ fail 0",
+        "2026-09-13T00:35:32.6549241Z ℹ cancelled 0",
+        "2026-09-13T00:35:32.6549516Z ℹ skipped 0",
+        "2026-09-13T00:35:32.6549972Z ℹ duration_ms 54257.9886",
+        "2026-09-13T00:45:46.9828396Z ℹ tests 147",
+        "2026-09-13T00:45:46.9829125Z ℹ suites 0",
+        "2026-09-13T00:45:46.9829665Z ℹ pass 147",
+        "2026-09-13T00:45:46.9830140Z ℹ fail 0",
+        "2026-09-13T00:45:46.9830595Z ℹ cancelled 0",
+        "2026-09-13T00:45:46.9831075Z ℹ skipped 0",
+        "2026-09-13T00:45:46.9831995Z ℹ duration_ms 613888.6227"
+      ],
+      "cutin_browser_log_lines": [
+        "2026-09-13T00:37:14.9072625Z ✔ UDL065 self and opponent cut-ins animate from each source with real pointer transparency at390/1280 (9512.1581ms)",
+        "2026-09-13T00:37:21.5001940Z ✔ UDL065 reading interval survives ordinary input and an update without replay or deadline extension (6593.073ms)",
+        "2026-09-13T00:37:28.8842223Z ✔ UDL065 a new skill replaces the old card with its own full reading interval (7383.7358ms)",
+        "2026-09-13T00:37:36.9651194Z ✔ UDL065 actual submit ACK names self skill, no-op has no effect, definite rejection never celebrates (8081.1472ms)",
+        "2026-09-13T00:37:43.2259299Z ✔ UDL065 reduced motion, other tabs, gaps, terminal and reload preserve no replay (6260.7455ms)",
+        "2026-09-13T00:37:58.7537738Z ✔ UDL065 missing or failed cut-in initialization leaves connection, ordinary action and contact feedback working (15527.432ms)",
+        "2026-09-13T00:38:05.1795958Z ✔ UDL065 same-version dialogs cancel visible and real Web Lock queued cut-ins without replay (6426.0307ms)"
+      ]
+    },
+    {
+      "id": "103646336560",
+      "name": "Standard online browser (edge)",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at_utc": "2026-09-13T00:34:19Z",
+      "completed_at_utc": "2026-09-13T00:48:30Z",
+      "steps": [
+        {
+          "number": 1,
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 2,
+          "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 3,
+          "name": "Run actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 4,
+          "name": "Install browser test dependency",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 5,
+          "name": "Verify generated Standard bundles",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 6,
+          "name": "Run Standard CPU policy contract tests",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 7,
+          "name": "Run Standard local lifecycle browser tests serially",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 8,
+          "name": "Run Standard online browser test serially",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 15,
+          "name": "Post Run actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 16,
+          "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "number": 17,
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ],
+      "summary_log_lines": [
+        "2026-09-13T00:35:34.9486324Z ℹ tests 634",
+        "2026-09-13T00:35:34.9487260Z ℹ suites 0",
+        "2026-09-13T00:35:34.9487760Z ℹ pass 634",
+        "2026-09-13T00:35:34.9488196Z ℹ fail 0",
+        "2026-09-13T00:35:34.9488617Z ℹ cancelled 0",
+        "2026-09-13T00:35:34.9489094Z ℹ skipped 0",
+        "2026-09-13T00:35:34.9490024Z ℹ duration_ms 53251.4867",
+        "2026-09-13T00:37:22.4276913Z ℹ tests 79",
+        "2026-09-13T00:37:22.4277403Z ℹ suites 0",
+        "2026-09-13T00:37:22.4277833Z ℹ pass 79",
+        "2026-09-13T00:37:22.4278177Z ℹ fail 0",
+        "2026-09-13T00:37:22.4278559Z ℹ cancelled 0",
+        "2026-09-13T00:37:22.4278936Z ℹ skipped 0",
+        "2026-09-13T00:37:22.4279690Z ℹ duration_ms 107031.8825",
+        "2026-09-13T00:48:26.6999963Z ℹ tests 147",
+        "2026-09-13T00:48:26.7000242Z ℹ suites 0",
+        "2026-09-13T00:48:26.7000475Z ℹ pass 147",
+        "2026-09-13T00:48:26.7000666Z ℹ fail 0",
+        "2026-09-13T00:48:26.7000864Z ℹ cancelled 0",
+        "2026-09-13T00:48:26.7001076Z ℹ skipped 0",
+        "2026-09-13T00:48:26.7001480Z ℹ duration_ms 663806.0065"
+      ],
+      "cutin_browser_log_lines": [
+        "2026-09-13T00:38:56.3499311Z ✔ UDL065 self and opponent cut-ins animate from each source with real pointer transparency at390/1280 (10064.0012ms)",
+        "2026-09-13T00:39:02.7553953Z ✔ UDL065 reading interval survives ordinary input and an update without replay or deadline extension (6405.334ms)",
+        "2026-09-13T00:39:09.8464161Z ✔ UDL065 a new skill replaces the old card with its own full reading interval (7090.8977ms)",
+        "2026-09-13T00:39:17.8188160Z ✔ UDL065 actual submit ACK names self skill, no-op has no effect, definite rejection never celebrates (7972.1222ms)",
+        "2026-09-13T00:39:23.8516542Z ✔ UDL065 reduced motion, other tabs, gaps, terminal and reload preserve no replay (6032.7063ms)",
+        "2026-09-13T00:39:32.8117447Z ✔ UDL065 missing or failed cut-in initialization leaves connection, ordinary action and contact feedback working (8959.8393ms)",
+        "2026-09-13T00:39:39.9498384Z ✔ UDL065 same-version dialogs cancel visible and real Web Lock queued cut-ins without replay (7138.1367ms)"
+      ]
+    }
+  ],
+  "interpretation": {
+    "new_ui_gate_only": true,
+    "not_cpu039_rerun_or_substitute": true,
+    "chrome_lifecycle_step_intentionally_not_in_matrix": true,
+    "all_executed_tests_skipped": 0,
+    "production_not_run": true,
+    "live_profile_reservations": 0,
+    "review_response_not_observed_at_receipt": true
+  }
+}

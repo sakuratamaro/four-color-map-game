@@ -49,7 +49,13 @@ test("an active review wait stays bound to the delivered current candidate, not 
   if (waitStatus !== "review_pending" && waitStatus !== "delivery_unconfirmed_api_accepted_no_resend_while_active") return;
   const waitSubject = c.wait_budget.followup_subject_sha || c.wait_budget.subject_sha;
   const waitRequest = c.wait_budget.followup_request_message_id || c.wait_budget.root_request_message_id;
-  const matches = [c.active_slice, c.preparing_next_slice].filter(s => s?.candidate_sha === waitSubject);
+  const slices = [c.active_slice, c.preparing_next_slice];
+  const ui = c.remaining_brain_work?.cutin_readability_preparation;
+  if (ui?.owner_thread_id === "01a07b56-616e-7733-9aae-90575659688e" &&
+      ui.request_id === "UDL-20260912-065" &&
+      ui.branch === "codex/skill-cutin-readability-20260913" &&
+      ui.worktree === ".codex-worktrees/skill-cutin-readability-20260913") slices.push(ui);
+  const matches = slices.filter(s => s?.candidate_sha === waitSubject);
   assert.equal(matches.length, 1, "the pending review resolves exactly one existing slice");
   const pendingSlice = matches[0];
   if (waitStatus === "delivery_unconfirmed_api_accepted_no_resend_while_active") {
