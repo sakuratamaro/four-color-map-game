@@ -1,21 +1,155 @@
 {
-  "kind": "same_candidate_windows_observation_not_final_result",
+  "kind": "same_candidate_windows_final_result",
   "subject_sha": "84587830730c1f62cf8c502daac4d768886a3f4d",
   "run_id": "34740424933",
   "attempt": 1,
-  "status": "in_progress",
-  "conclusion": null,
-  "observed_at_utc": null,
-  "time_precision": "Fetched during this turn; adjacent exact timestamp not captured.",
-  "created_at_utc": "2026-09-13T05:29:34Z",
+  "status": "completed",
+  "conclusion": "failure",
+  "observed_at_utc": "2026-09-13T05:53:33Z",
+  "time_precision": "Clock immediately before final GET; per-job completed times from GitHub API.",
+  "initial_observation": {
+    "kind": "same_candidate_windows_observation_not_final_result",
+    "subject_sha": "84587830730c1f62cf8c502daac4d768886a3f4d",
+    "run_id": "34740424933",
+    "attempt": 1,
+    "status": "in_progress",
+    "conclusion": null,
+    "observed_at_utc": null,
+    "time_precision": "Fetched during this turn; adjacent exact timestamp not captured.",
+    "created_at_utc": "2026-09-13T05:29:34Z",
+    "jobs": [
+      {
+        "id": "103679089219",
+        "name": "Standard online browser (chrome)",
+        "status": "in_progress",
+        "conclusion": null,
+        "started_at_utc": "2026-09-13T05:29:36Z",
+        "completed_at_utc": null,
+        "steps": [
+          {
+            "name": "Set up job",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Install browser test dependency",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify generated Standard bundles",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run Standard CPU policy contract tests",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run Standard local lifecycle browser tests serially",
+            "status": "completed",
+            "conclusion": "skipped"
+          },
+          {
+            "name": "Run Standard online browser test serially",
+            "status": "in_progress",
+            "conclusion": null
+          },
+          {
+            "name": "Post Run actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
+            "status": "pending",
+            "conclusion": null
+          },
+          {
+            "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+            "status": "pending",
+            "conclusion": null
+          }
+        ]
+      },
+      {
+        "id": "103679089313",
+        "name": "Standard online browser (edge)",
+        "status": "in_progress",
+        "conclusion": null,
+        "started_at_utc": "2026-09-13T05:29:38Z",
+        "completed_at_utc": null,
+        "steps": [
+          {
+            "name": "Set up job",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Install browser test dependency",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Verify generated Standard bundles",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run Standard CPU policy contract tests",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run Standard local lifecycle browser tests serially",
+            "status": "completed",
+            "conclusion": "success"
+          },
+          {
+            "name": "Run Standard online browser test serially",
+            "status": "in_progress",
+            "conclusion": null
+          },
+          {
+            "name": "Post Run actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
+            "status": "pending",
+            "conclusion": null
+          },
+          {
+            "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+            "status": "pending",
+            "conclusion": null
+          }
+        ]
+      }
+    ],
+    "not_cpu039_evidence": true,
+    "no_rerun_requested": true
+  },
   "jobs": [
     {
       "id": "103679089219",
       "name": "Standard online browser (chrome)",
-      "status": "in_progress",
-      "conclusion": null,
+      "status": "completed",
+      "conclusion": "failure",
       "started_at_utc": "2026-09-13T05:29:36Z",
-      "completed_at_utc": null,
+      "completed_at_utc": "2026-09-13T05:43:29Z",
       "steps": [
         {
           "name": "Set up job",
@@ -54,28 +188,33 @@
         },
         {
           "name": "Run Standard online browser test serially",
-          "status": "in_progress",
-          "conclusion": null
+          "status": "completed",
+          "conclusion": "failure"
         },
         {
           "name": "Post Run actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
-          "status": "pending",
-          "conclusion": null
+          "status": "completed",
+          "conclusion": "skipped"
         },
         {
           "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
-          "status": "pending",
-          "conclusion": null
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success"
         }
       ]
     },
     {
       "id": "103679089313",
       "name": "Standard online browser (edge)",
-      "status": "in_progress",
-      "conclusion": null,
+      "status": "completed",
+      "conclusion": "success",
       "started_at_utc": "2026-09-13T05:29:38Z",
-      "completed_at_utc": null,
+      "completed_at_utc": "2026-09-13T05:44:14Z",
       "steps": [
         {
           "name": "Set up job",
@@ -114,22 +253,83 @@
         },
         {
           "name": "Run Standard online browser test serially",
-          "status": "in_progress",
-          "conclusion": null
+          "status": "completed",
+          "conclusion": "success"
         },
         {
           "name": "Post Run actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
-          "status": "pending",
-          "conclusion": null
+          "status": "completed",
+          "conclusion": "success"
         },
         {
           "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
-          "status": "pending",
-          "conclusion": null
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success"
         }
       ]
     }
   ],
+  "chrome": {
+    "contract": {
+      "tests": 657,
+      "pass": 657,
+      "fail": 0,
+      "skip": 0,
+      "duration_ms": 56644.5264
+    },
+    "online_browser": {
+      "tests": 151,
+      "pass": 150,
+      "fail": 1,
+      "skip": 0,
+      "duration_ms": 737435.1145
+    },
+    "failure": {
+      "title": "actual browser selects Half Shift and Triple Shift bands on the board at 390px",
+      "path": "tests/standard-online-browser.test.cjs",
+      "test_line": 3414,
+      "failing_line": 3447,
+      "error_type": "TimeoutError",
+      "locator": "#skillTargetControls >> text=対象：上から4行目",
+      "limit_ms": 30000,
+      "log_excerpt": "waiting for locator('#skillTargetControls').getByText('対象：上から4行目') to be visible",
+      "cause": "NOT_PROVEN; failing test body unchanged from70e. The same locator previously failed inCPU039's separate Edge run. Do not infer harmless flakiness or waive either gate."
+    }
+  },
+  "new_ui_tests": "Newv14 assertions passed in Chrome's151-test run; overall is150/151 FAIL, not accepted as gate pass.",
+  "raw_source_urls": [
+    "https://github.com/sakuratamaro/four-color-map-game/actions/runs/34740424933/job/103679089219",
+    "https://github.com/sakuratamaro/four-color-map-game/actions/runs/34740424933/job/103679089313"
+  ],
+  "no_rerun_requested": true,
   "not_cpu039_evidence": true,
-  "no_rerun_requested": true
+  "publication": "NOT_RUN",
+  "edge": {
+    "contract": {
+      "tests": 657,
+      "pass": 657,
+      "fail": 0,
+      "skip": 0,
+      "duration_ms": 55713.7933
+    },
+    "local_lifecycle": {
+      "tests": 79,
+      "pass": 79,
+      "fail": 0,
+      "skip": 0,
+      "duration_ms": 105371.5583
+    },
+    "online_browser": {
+      "tests": 151,
+      "pass": 151,
+      "fail": 0,
+      "skip": 0,
+      "duration_ms": 676307.9215
+    }
+  }
 }

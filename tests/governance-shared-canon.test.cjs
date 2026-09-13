@@ -61,6 +61,12 @@ test("an active review wait stays bound to the delivered current candidate, not 
       "the named successor must satisfy exact owner/source/branch/worktree/base and envelope guards");
     slices.push(named);
   }
+  const publicActions = c.remaining_brain_work?.current_local_preparation?.public_match_followup;
+  if (publicActions?.candidate_sha === waitSubject) {
+    assert.equal(require("../scripts/check-commander-continuation.cjs").pendingBinding(c), true,
+      "public actions must satisfy exact owner/source/branch/worktree/parent/spec and empty change-set guards");
+    slices.push(publicActions);
+  }
   const matches = slices.filter(s => s?.candidate_sha === waitSubject);
   assert.equal(matches.length, 1, "the pending review resolves exactly one existing slice");
   const pendingSlice = matches[0];
