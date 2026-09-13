@@ -3518,7 +3518,7 @@
         "alias": "ADD-20260913-CUTIN-READABILITY-RESULT",
         "source_message_id": "bbb2135e-cfd1-4da8-845b-9e3d07d8b29a",
         "owner_thread_id": "01a07b56-616e-7733-9aae-90575659688e",
-        "state": "PAGES_PUBLISHED_LIVE_HARNESS_PENDING",
+        "state": "PAGES_PUBLISHED_LIVE_READY",
         "worktree": ".codex-worktrees/skill-cutin-readability-20260913",
         "branch": "codex/skill-cutin-readability-20260913",
         "base_sha": "d9ce111d7d97019d55b3e90842602001e045ea04",
@@ -3555,7 +3555,7 @@
         },
         "evidence": "docs/SKILL_CUTIN_READABILITY_LOCAL_20260913.md",
         "remaining": "Public named opponent skill event and hidden-effect descriptions are not implemented; no inference from private state.",
-        "next_action": "Implement/locallyverify newexact040 one-shot browser/API harness then reserve/run once. Neverdelay actualPages publication for preparation; nowPages already verified. FullUDL065 and named opponent event remain incomplete.",
+        "next_action": "Durably reserve genuine040 new1trial; recheck exactcurrentmain and4publicbytes before firstmutation; run one bounded harness, save every scoped outcome; neverretry.",
         "no_live_attempt_reserved": true,
         "db_change_set": [],
         "edge_change_set": [],
@@ -3592,7 +3592,7 @@
           "retries": 0,
           "rematches": 0
         },
-        "live_canary_state": "AUTHORIZED_HARNESS_INCOMPLETE",
+        "live_canary_state": "HARNESS_LOCAL_VERIFIED_NOT_RESERVED",
         "live_canary_attempts": 0,
         "review_send_reserved_before_api": true,
         "review_send_reserved_at_utc": "2026-09-13T00:49:56Z",
@@ -3669,7 +3669,18 @@
         "pages_status": "SUCCESS",
         "pages_sha": "954e1c5c52d5453fc9fee9872b2d7e922f850a39",
         "public_asset_evidence": "docs/SKILL_CUTIN_READABILITY_PUBLICATION_20260913.json",
-        "public_byte_verified_at_utc": "2026-09-13T01:17:08.358Z"
+        "public_byte_verified_at_utc": "2026-09-13T01:17:08.358Z",
+        "live_harness": {
+          "state": "LOCAL_VERIFIED",
+          "tests": "98/98 PASS7913.9856ms fail/cancel/skip0; includes19new UI harness/guard tests and real Chrome passive-observer fixture",
+          "files": [
+            "scripts/live-standard-cutin-readability-guard.cjs",
+            "scripts/live-standard-cutin-readability-canary.cjs",
+            "scripts/live-standard-cutin-readability-browser.cjs"
+          ],
+          "non_changes": "Product954e unchanged; no live profile/match/attempt file yet; no old allowance reused",
+          "evidence": "docs/SKILL_CUTIN_READABILITY_CANARY_PREPARATION_20260913.md"
+        }
       }
     },
     "limited_attachment_intake": {
@@ -3871,9 +3882,9 @@
         "phase": "NORMAL_WORK",
         "turn_id": null,
         "source": "automatic_goal_continuation",
-        "started_at_utc": "2026-09-13T01:03:16Z",
+        "started_at_utc": "2026-09-13T01:38:45Z",
         "worktree": ".codex-worktrees/skill-cutin-readability-20260913",
-        "request": "Save genuine040; publish exact UI954e main/Pages with byte evidence; prepare guard-only bounded live acceptance without a new profile or match.",
+        "request": "Complete and locallyverify the new040 bounded browser/API live harness, then execute its single permitted trial.",
         "canon_receipt": "shared-canon-v1.1;base=d9ce111d7d97019d55b3e90842602001e045ea04;candidate=954e1c5c52d5453fc9fee9872b2d7e922f850a39;spec=UDL-065-readability-v1.1/blob2af5d73528a35edc29f45b3be5b700f6ceaf4688;request=UDL-20260912-065;tests=976local,Windows34728306768,85governance;Pages34730074280+4byteassets"
       },
       "missed_schedule_observation": {
@@ -4053,24 +4064,10 @@
         "production_executed": true
       },
       "current_goal_turn_classification": {
-        "turn_id": null,
-        "classification": "PROGRESS",
-        "source": "Normal goal continuation at01:03:16Z, not scheduledRECEIVE",
-        "actual_goal_status": "active",
-        "previous_turn": {
-          "classification": "PROGRESS",
-          "evidence_commit": "d18b24848c9267f26057ef6dc261b7fd36faeb1b"
-        },
-        "evidence": [
-          "New UI shared attempted-send guard andcurrent snapshot parser locally6/6PASS; fullbrowseradapter notyetimplemented.",
-          "Originalfirst20minute reviewread consumedonce: exact4443request paired completed5467response; genuine040APPROVE_RELEASE and newbounded live authorization saved.",
-          "Freshmain d9ce andclean954e checked, forcefree mainpushconfirmed; sameSHA Pages34730074280SUCCESS, freshpreflight and4strict publicbyte matches.",
-          "PublishedUI liveacceptance kept inexistingmetadata with exactauthority/limits; no newqueue, oldreservedtrials readonlyrecovery; source-linkedgovernance38/38PASS.",
-          "Existingheartbeat10:35JST NORMAL_WORK exactsavedTOMLreadback, originalreviewwait closedwitholddeadlines/counters preserved."
-        ],
-        "production_executed": true,
-        "production_scope": "Pages_only; DB/Edge/managed/profile/match0",
-        "scheduled_origin_claimed": false
+        "previous_turn": "PROGRESS",
+        "current_turn": "PROGRESS",
+        "evidence": "Completed passive-browser and shared API/send-boundary harness;98/98PASS. Live not yetreserved/executed.",
+        "whole_goal_complete": false
       },
       "documentation_review_followup_history": [
         {

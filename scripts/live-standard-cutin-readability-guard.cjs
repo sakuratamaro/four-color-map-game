@@ -14,8 +14,8 @@ const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const fail=code=>{throw new Error(code);};
 function createBudget(now=Date.now){
  const started=now(),deadline=started+BOUNDS.wall_ms,playDeadline=started+BOUNDS.ordinary_play_ms;
- const used={signup:0,match:0,setup:0,initialize:0,cpu:0,own:0,surrender:0};
- const limits={signup:1,match:1,setup:1,initialize:1,cpu:8,own:6,surrender:1};
+ const used={signup:0,profileSeed:0,match:0,setup:0,initialize:0,cpu:0,own:0,surrender:0};
+ const limits={signup:1,profileSeed:1,match:1,setup:1,initialize:1,cpu:8,own:6,surrender:1};
  let final=false;
  function remaining(){const ms=(final?deadline:playDeadline)-now();if(ms<=0)fail("DEADLINE");return ms;}
  function spend(kind){
@@ -28,7 +28,12 @@ function createBudget(now=Date.now){
  return Object.freeze({started,deadline,playDeadline,remaining,spend,beginFinal(){final=true;},
   get final(){return final;},get counts(){return Object.freeze({...used});}});
 }
-function classify(method,endpoint,body,owned){
+function classify(method,endpoint,body,owned,viewer){
+ const url=new URL(endpoint,ORIGIN);if(url.origin!==ORIGIN)return null;
+ if(method==="GET"&&url.pathname==="/rest/v1/fcg_standard_profiles"&&UUID.test(viewer||"")
+  &&url.searchParams.get("user_id")==="eq."+viewer&&url.searchParams.get("select")==="revision,display_name,profile_state"
+  &&[...url.searchParams.keys()].sort().join(",")==="select,user_id")return "read";
+ if(url.search)return null;
  if(method==="OPTIONS")return "read";
  if(method==="GET"&&endpoint==="/auth/v1/user")return "read";
  if(method!=="POST")return null;
@@ -36,10 +41,12 @@ function classify(method,endpoint,body,owned){
  if(endpoint===SNAPSHOT&&UUID.test(owned||"")&&body?.p_room_id===owned
    &&Number.isSafeInteger(body.p_known_profile_revision)&&body.p_known_profile_revision>=0
    &&Object.keys(body).every(k=>["p_room_id","p_known_profile_revision"].includes(k)))return "read";
+ if(["/rest/v1/rpc/fcg_standard_active_room","/rest/v1/rpc/fcg_standard_matchmaking_availability"].includes(endpoint)
+  &&isDeepStrictEqual(body,{}))return "read";
  if(endpoint!==EDGE)return null;
- if(body?.operation==="profile"&&body.expectedRevision===0&&body.displayName==="CutinReadabilityCanary"
-   &&isDeepStrictEqual(body.profileState,{}))return "read";
- if(body?.operation==="cpu-roster"&&Object.keys(body).length===1)return "read";
+ if(body?.operation==="profile"&&body.expectedRevision===0&&body.displayName==="CutinReadCanary"
+   &&isDeepStrictEqual(body.profileState,{})&&Object.keys(body).length===4)return "profileSeed";
+ if(["cpu-roster","cosmetic-catalog"].includes(body?.operation)&&Object.keys(body).length===1)return "read";
  if(body?.operation==="cpu-start"&&!owned&&body.characterId==="yuzu"&&body.confirmed===true&&UUID.test(body.actionId))return "match";
  if(!UUID.test(owned||"")||body?.roomId!==owned)return null;
  if(body.operation==="setup"&&body.expectedSetupRevision===0&&UUID.test(body.setupActionId)
@@ -53,20 +60,26 @@ function classify(method,endpoint,body,owned){
  if(a.type==="USE_SKILL"&&a.payload?.skill==="colorRandomBorrow")return "own";
  return null;
 }
-function parseSnapshot(raw,owned){
+function parseSnapshot(raw,owned,viewer){
  const s=Array.isArray(raw)?raw[0]:raw,r=s?.room,v=s?.view;
- if(!(s?.snapshot_schema_version===2&&r?.id===owned&&Number.isSafeInteger(Number(r.version))
+ const members=Array.isArray(s?.members)?s.members:[],own=members.filter(m=>m.user_id===viewer),cpu=members.filter(m=>m.seat==="B");
+ if(!(UUID.test(viewer||"")&&s?.snapshot_schema_version===2&&r?.id===owned&&r.game_mode==="standard_v5"
+  &&Number.isSafeInteger(Number(s.profile_revision))&&Number(s.profile_revision)>0
+  &&Array.isArray(members)&&members.length===2&&own.length===1&&own[0].seat==="A"&&own[0].is_cpu===false
+  &&cpu.length===1&&cpu[0].is_cpu===true&&cpu[0].user_id!==viewer
+  &&Number.isSafeInteger(Number(r.version))&&Number(r.version)>=0
   &&Number(r.version)===Number(s.snapshot_version)&&v?.seat==="A"&&Number(v.version)===Number(r.version)
   &&v.private_state&&r.public_state&&r.cpu_character_id==="yuzu"&&r.opponent_kind==="cpu"
-  &&["playing","finished"].includes(r.status)))fail("OWNED_SNAPSHOT_REQUIRED");
+  &&Number(r.public_state.version)===Number(r.version)
+  &&((r.status==="playing"&&r.public_state.status==="ACTIVE")||(r.status==="finished"&&r.public_state.status==="FINISHED"))))fail("OWNED_SNAPSHOT_REQUIRED");
  // This is the viewer's private state only. Consumers must never serialize it into reports.
- return {status:r.status,version:Number(r.version),publicState:r.public_state,
+ return {status:r.status,version:Number(r.version),profileRevision:Number(s.profile_revision),publicState:r.public_state,
   privateState:{...v.private_state,seat:"A"}};
 }
 function createAdmission(budget){
  const sent=new Set();
- return (method,endpoint,body,owned)=>{
-  const kind=classify(method,endpoint,body,owned);if(!kind)fail("UNPERMITTED_OPERATION");
+ return (method,endpoint,body,owned,viewer)=>{
+  const kind=classify(method,endpoint,body,owned,viewer);if(!kind)fail("UNPERMITTED_OPERATION");
   budget.remaining();
   if(kind!=="read"){
    const identity=kind==="cpu"?"cpu:"+body.expectedVersion:kind==="own"||kind==="surrender"?"action:"+body.action.id:kind;
@@ -92,6 +105,8 @@ function validateGate(doc){
  assert.deepEqual(a.bounds,BOUNDS);assert.deepEqual(s.live_canary_bounds,BOUNDS);
  assert.equal(s.live_canary_attempts,1);assert.equal(s.live_canary_state,"RESERVED_BEFORE_EXECUTION");
  assert.equal(s.windows_status,"SUCCESS");assert.equal(s.windows_run,"34728306768");assert.equal(s.windows_attempt,1);
+ assert.equal(s.main_sha,CANDIDATE);assert.equal(s.pages_sha,CANDIDATE);assert.equal(s.pages_status,"SUCCESS");
+ assert.equal(s.pages_run,"34730074280");assert.equal(s.publication,"PAGES_PUBLISHED");
  const g=s.production_gates;
  assert.ok(g?.main==="EXACT_SHA_PUBLISHED"&&g.pages==="SUCCESS_PREFLIGHT_BYTE_EXACT","PUBLICATION_GATES_REQUIRED");
  return r;

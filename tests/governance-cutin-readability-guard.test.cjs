@@ -16,7 +16,7 @@ test("new cut-in browser and API share attempted sends and immutable 150/240 sec
 });
 test("unknown outcomes still consume each one-shot admission",()=>{
  const b=createBudget(()=>0);
- for(const k of ["signup","match","setup","initialize"]){b.spend(k);assert.equal(b.counts[k],1);assert.throws(()=>b.spend(k),/OPERATION_BUDGET/);}
+ for(const k of ["signup","profileSeed","match","setup","initialize"]){b.spend(k);assert.equal(b.counts[k],1);assert.throws(()=>b.spend(k),/OPERATION_BUDGET/);}
 });
 test("shared transport rejects a browser or API retry after an unknown outcome",()=>{
  const budget=createBudget(()=>0),admit=createAdmission(budget);
@@ -43,12 +43,13 @@ test("cut-in transport permits only current owned snapshot and narrow ordinary a
  assert.equal(classify("POST",EDGE,{operation:"setup",roomId:ROOM,setupActionId:ID,expectedSetupRevision:0,loadout:LOADOUT,debugMode:true},ROOM),null);
 });
 test("current snapshot-v2 is required; only own private state is passed to the ordinary planner",()=>{
- const raw={snapshot_schema_version:2,snapshot_version:3,room:{id:ROOM,status:"playing",version:3,cpu_character_id:"yuzu",opponent_kind:"cpu",public_state:{active:"A"}},
+ const raw={snapshot_schema_version:2,snapshot_version:3,profile_revision:1,members:[{user_id:ID,seat:"A",is_cpu:false},{user_id:ROOM,seat:"B",is_cpu:true}],
+  room:{id:ROOM,status:"playing",game_mode:"standard_v5",version:3,cpu_character_id:"yuzu",opponent_kind:"cpu",public_state:{active:"A",status:"ACTIVE",version:3}},
   view:{seat:"A",version:3,private_state:{hand:{colorRandomBorrow:1}}},opponent_private_state:{secret:"never read"}};
- const r=parseSnapshot(raw,ROOM);assert.equal(r.privateState.seat,"A");assert.equal(r.version,3);
+ const r=parseSnapshot(raw,ROOM,ID);assert.equal(r.privateState.seat,"A");assert.equal(r.version,3);
  assert.doesNotMatch(JSON.stringify(r),/never read|opponent_private/);
- for(const mutate of [x=>x.view.seat="B",x=>x.room.id=ID,x=>x.snapshot_version++,x=>x.room.cpu_character_id="kurogane"]){
-  const x=structuredClone(raw);mutate(x);assert.throws(()=>parseSnapshot(x,ROOM),/OWNED_SNAPSHOT_REQUIRED/);
+ for(const mutate of [x=>x.view.seat="B",x=>x.room.id=ID,x=>x.snapshot_version++,x=>x.room.cpu_character_id="kurogane",x=>x.members=[],x=>x.members={},x=>x.members[0].is_cpu=true,x=>x.members[0].user_id=ROOM,x=>x.room.public_state.version++]){
+  const x=structuredClone(raw);mutate(x);assert.throws(()=>parseSnapshot(x,ROOM,ID),/OWNED_SNAPSHOT_REQUIRED/);
  }
 });
 test("the current sent request and successful Windows gate are not live authorization",()=>{
