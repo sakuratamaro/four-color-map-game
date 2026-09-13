@@ -37,10 +37,154 @@ RESTORED_ROOM_MODES.add("resultRewardHuman");
 
 async function startMemoQuiz(page, level = "5") {
   await page.getByRole("button", { name: "クイズ・ガチャ", exact: true }).click();
-  await page.locator("#quizLevel").selectOption(level);
-  await page.locator("#quizStart").click();
+  await page.locator(`[data-quiz-start-level="${level}"]`).click();
   await page.locator("#quizOptions button[data-quiz-option]").first().waitFor();
 }
+
+for (const level of [1, 2, 3, 4, 5]) {
+  test(`${browserName} quiz entry starts Lv.${level} exactly once and keeps the chosen session`, { timeout: 130000 }, async () => {
+    await withPage("quiz", async (page) => {
+      await page.getByRole("button", { name: "クイズ・ガチャ", exact: true }).click();
+      const buttons = page.locator("[data-quiz-start-level]");
+      assert.equal(await buttons.count(), 5);
+      for (const button of await buttons.all()) {
+        assert.equal(await button.isVisible(), true);
+        assert.equal(await button.isEnabled(), true);
+      }
+      const start = page.getByRole("button", { name: `Lv.${level} 10問チャレンジ`, exact: true });
+      if (level % 2 === 0) { await start.focus(); await page.keyboard.press("Enter"); }
+      else await start.click();
+      await page.locator("#quizOptions button[data-quiz-option]").first().waitFor();
+      const saved = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)), pendingQuizKey);
+      assert.equal(saved.selectedLevel, level);
+      assert.equal(saved.questions.length, 10);
+      assert.equal(saved.answers.length, 0);
+      assert.equal(await page.locator("#quizSetup").isHidden(), true);
+      assert.equal(await page.locator("#quizRewardHelp").isHidden(), true);
+      assert.equal(await page.locator("#quizLevelBadge").textContent(), `Lv.${level}`);
+      if (level === 4) {
+        await page.reload({ waitUntil: "load" });
+        await page.locator("#connectionBadge.good").waitFor();
+        await page.getByRole("button", { name: "クイズ・ガチャ", exact: true }).click();
+        await page.locator("#quizOptions button[data-quiz-option]").first().waitFor();
+        const restored = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)), pendingQuizKey);
+        assert.equal(restored.sessionId, saved.sessionId);
+        assert.equal(restored.selectedLevel, 4);
+        assert.equal(await page.locator("#quizSetup").isHidden(), true);
+      }
+      const calls = await page.evaluate(() => globalThis.__standardOnlineLifetimeInvocations());
+      const starts = calls.filter((entry) => entry.operation === "quiz-start");
+      assert.equal(starts.length, 1);
+      assert.equal(starts[0].selectedLevel, level);
+      assert.equal(calls.filter((entry) => ["quiz-finish", "gacha", "profile"].includes(entry.operation)).length, 0);
+    }, { viewport: { width: 390, height: 844 } });
+  });
+}
+
+test(`${browserName} quiz entry disables every start while busy and recovers from a rejected start`, { timeout: 130000 }, async () => {
+  await withPage("quiz", async (page) => {
+    await page.getByRole("button", { name: "クイズ・ガチャ", exact: true }).click();
+    await page.evaluate(() => { globalThis.__standardOnlineRuntime.failNextQuizStart = true; });
+    await page.locator('[data-quiz-start-level="2"]').click();
+    await page.getByText("クイズを開始できませんでした。少し待って再試行してください。", { exact: true }).waitFor();
+    assert.equal(await page.evaluate((key) => localStorage.getItem(key), pendingQuizKey), null);
+    for (const button of await page.locator("[data-quiz-start-level]").all()) assert.equal(await button.isEnabled(), true);
+    await page.evaluate(() => {
+      const runtime = globalThis.__standardOnlineRuntime;
+      runtime.delayedOperation = "quiz-start";
+      runtime.operationDelayMs = 1500;
+    });
+    await page.locator('[data-quiz-start-level="4"]').click();
+    await page.waitForFunction(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "quiz-start").length === 2);
+    for (const button of await page.locator("[data-quiz-start-level]").all()) assert.equal(await button.isDisabled(), true);
+    // Native extra pointer clicks on disabled controls must not create other requests.
+    await page.locator('[data-quiz-start-level="1"]').click({ force: true });
+    await page.locator('[data-quiz-start-level="4"]').click({ force: true });
+    await page.locator("#quizOptions button[data-quiz-option]").first().waitFor();
+    const calls = await page.evaluate(() => globalThis.__standardOnlineLifetimeInvocations());
+    assert.deepEqual(calls.filter((entry) => entry.operation === "quiz-start").map((entry) => entry.selectedLevel), [2, 4]);
+    assert.equal(await page.evaluate((key) => JSON.parse(localStorage.getItem(key)).selectedLevel, pendingQuizKey), 4);
+    assert.equal(calls.filter((entry) => ["quiz-finish", "gacha", "profile"].includes(entry.operation)).length, 0);
+  });
+});
+
+test(`${browserName} quiz entry reward help is keyboard accessible, responsive and write-free across reload`, { timeout: 150000 }, async () => {
+  await withPage("quiz", async (page) => {
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(error.message));
+    await page.getByRole("button", { name: "クイズ・ガチャ", exact: true }).click();
+    const initialProfile = await page.evaluate(() => JSON.stringify(globalThis.__standardOnlineRuntime.profile));
+    const help = page.locator("#quizRewardHelp"), summary = help.locator("summary");
+    assert.equal(await help.evaluate((node) => node.open), false);
+    assert.equal(await page.locator("#quizStatus").isHidden(), true);
+    for (const view of [
+      { width: 390, height: 844, textScale: 1 },
+      { width: 768, height: 1024, textScale: 1 },
+      { width: 1280, height: 900, textScale: 1 },
+      { width: 640, height: 360, textScale: 1 },
+      { width: 320, height: 640, textScale: 2 },
+    ]) {
+      await page.setViewportSize({ width: view.width, height: view.height });
+      await page.evaluate((scale) => { document.documentElement.style.fontSize = `${16 * scale}px`; }, view.textScale);
+      await page.locator('[data-quiz-start-level="1"]').focus();
+      await page.keyboard.press("Tab");
+      await page.keyboard.press("Shift+Tab");
+      for (const level of [1, 2, 3, 4, 5]) {
+        assert.equal(await page.evaluate(() => document.activeElement.dataset.quizStartLevel), String(level));
+        const button = page.locator(`[data-quiz-start-level="${level}"]`);
+        const box = await button.boundingBox();
+        assert.ok(box && box.height >= 44 && box.width >= 44, JSON.stringify({ view, level, box }));
+        assert.equal(await button.evaluate((node) => node.scrollWidth <= node.clientWidth), true);
+        assert.equal(await button.evaluate((node) => {
+          const rect = node.getBoundingClientRect();
+          return node.contains(document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2));
+        }), true, JSON.stringify({ view, level, reason: "focused button must not be covered" }));
+        assert.equal(await button.evaluate((node) => getComputedStyle(node).outlineStyle), "solid", JSON.stringify({ view, level }));
+        await page.keyboard.press("Tab");
+      }
+      assert.equal(await summary.evaluate((node) => document.activeElement === node), true);
+      await page.keyboard.press("Enter");
+      assert.equal(await help.evaluate((node) => node.open), true);
+      assert.equal(await help.locator("tbody tr").count(), 4);
+      await help.locator("table").scrollIntoViewIfNeeded();
+      const layout = await page.evaluate(() => ({
+        documentFits: document.documentElement.scrollWidth <= document.documentElement.clientWidth,
+        tableFits: document.querySelector("#quizRewardHelp table").getBoundingClientRect().width <= document.querySelector("#quizRewardHelp").clientWidth + 1,
+        cellsFit: [...document.querySelectorAll("#quizRewardHelp th, #quizRewardHelp td")].every((node) => node.scrollWidth <= node.clientWidth),
+      }));
+      assert.deepEqual(layout, { documentFits: true, tableFits: true, cellsFit: true }, JSON.stringify({ view, layout }));
+      const finalRow = help.locator("tbody tr").last();
+      await finalRow.scrollIntoViewIfNeeded();
+      assert.equal(await finalRow.evaluate((node) => {
+        const rect = node.getBoundingClientRect();
+        return node.contains(document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2));
+      }), true, JSON.stringify({ view, reason: "last reward row must be reachable above fixed navigation" }));
+      if (process.env.QUIZ_ENTRY_SCREENSHOTS) {
+        fs.mkdirSync(process.env.QUIZ_ENTRY_SCREENSHOTS, { recursive: true });
+        await page.screenshot({ path: path.join(process.env.QUIZ_ENTRY_SCREENSHOTS, `${browserName}-quiz-help-${view.width}-${view.textScale}x.png`) });
+      }
+      await summary.focus();
+      await page.keyboard.press("Space");
+      assert.equal(await help.evaluate((node) => node.open), false);
+      if (process.env.QUIZ_ENTRY_SCREENSHOTS && view.textScale === 1 && view.height > 360) {
+        await page.locator("#quizPanel").scrollIntoViewIfNeeded();
+        await page.screenshot({ path: path.join(process.env.QUIZ_ENTRY_SCREENSHOTS, `${browserName}-quiz-entry-${view.width}.png`), fullPage: true });
+      }
+      assert.equal(await page.evaluate((key) => localStorage.getItem(key), pendingQuizKey), null);
+      assert.equal(await page.evaluate(() => JSON.stringify(globalThis.__standardOnlineRuntime.profile)), initialProfile);
+    }
+    await summary.click();
+    await page.reload({ waitUntil: "load" });
+    await page.locator("#connectionBadge.good").waitFor();
+    await page.getByRole("button", { name: "クイズ・ガチャ", exact: true }).click();
+    assert.equal(await help.evaluate((node) => node.open), false);
+    assert.equal(await page.evaluate((key) => localStorage.getItem(key), pendingQuizKey), null);
+    const calls = await page.evaluate(() => globalThis.__standardOnlineLifetimeInvocations());
+    assert.equal(calls.filter((entry) => ["quiz-start", "quiz-answer", "quiz-finish", "gacha", "profile"].includes(entry.operation)).length, 0);
+    assert.equal(await page.evaluate(() => JSON.stringify(globalThis.__standardOnlineRuntime.profile)), initialProfile);
+    assert.deepEqual(pageErrors, []);
+  }, { viewport: { width: 390, height: 844 }, bodyTimeout: 50_000 });
+});
 
 async function drawMemoStroke(page) {
   await page.mouse.move(25, 350);
@@ -1063,6 +1207,7 @@ async function installMock(context, mode) {
       failNextRegionSplitAction: false,
       rejectNextCornerBloomAction: false,
       failNextGacha: false,
+      failNextQuizStart: false,
       failNextQuizAnswer: false,
       failNextAbandonResponse: initialMode === "abandonLost" && sessionStorage.getItem("mock-standard-abandon-response-lost") !== id,
       abandonRpcIds: JSON.parse(sessionStorage.getItem("mock-standard-abandon-rpc-ids") || "[]"),
@@ -1188,6 +1333,10 @@ async function installMock(context, mode) {
           return { data: { revision: 1, displayName: request.body.displayName, profileState: request.body.profileState } };
         }
         if (request.body.operation === "quiz-start") {
+          if (runtime.failNextQuizStart) {
+            runtime.failNextQuizStart = false;
+            return functionError(503, "SERVER_BUSY", "simulated quiz start rejection");
+          }
           if (initialMode === "handoffStart") await new Promise((resolve) => setTimeout(resolve, 800));
           const polishQuestions = [
             { templateId: "speed-distance", category: "速さ", prompt: "時速12kmで8時間進むと何km？", math: { kind: "story" } },
@@ -4153,7 +4302,7 @@ test("actual Edge quiz freezes for the hint, resumes without room polling, and a
   await withPage("quiz", async (page) => {
     await page.getByRole("button", { name: "クイズ・ガチャ" }).click();
     await page.locator("#quizPanel").waitFor({ state: "visible" });
-    await page.getByRole("button", { name: "10問チャレンジ開始" }).click();
+    await page.locator('[data-quiz-start-level="1"]').click();
     await page.locator("#quizOptions button").first().waitFor();
     assert.equal(await page.locator("#quizOptions button").count(), 6);
     assert.equal(await page.locator("#quizQuestion math").count(), 1);
@@ -4184,7 +4333,7 @@ test("actual Edge quiz freezes for the hint, resumes without room polling, and a
 test(`${browserName} moves whole quiz buttons in one collision arena and pauses every interaction safely`, { timeout: 130000 }, async () => {
   await withPage("quizPhysics", async (page) => {
     await page.getByRole("button", { name: "クイズ・ガチャ" }).click();
-    await page.getByRole("button", { name: "10問チャレンジ開始" }).click();
+    await page.locator('[data-quiz-start-level="1"]').click();
     const arena = page.locator("#quizOptions");
     const options = arena.locator("button[data-quiz-option]");
     await options.first().waitFor();
@@ -4386,7 +4535,7 @@ test(`${browserName} moves whole quiz buttons in one collision arena and pauses 
 test("per-question quiz feedback commits before advancing, retries the same answer, and keeps only brief motion", { timeout: 130000 }, async () => {
   await withPage("quiz", async (page) => {
     await page.getByRole("button", { name: "クイズ・ガチャ" }).click();
-    await page.getByRole("button", { name: "10問チャレンジ開始" }).click();
+    await page.locator('[data-quiz-start-level="1"]').click();
     await page.locator("#quizOptions button").first().waitFor();
     await page.evaluate(() => { globalThis.__standardOnlineRuntime.failNextQuizAnswer = true; });
     await clickMovingQuizOption(page.locator("#quizOptions button").first());
@@ -4436,8 +4585,7 @@ test("per-question quiz feedback commits before advancing, retries the same answ
 test("quadratic names the smaller root visibly and restored progress counts only acknowledged answers", { timeout: 130000 }, async () => {
   await withPage("quizQuadratic", async (page) => {
     await page.getByRole("button", { name: "クイズ・ガチャ" }).click();
-    await page.locator("#quizLevel").selectOption("4");
-    await page.getByRole("button", { name: "10問チャレンジ開始" }).click();
+    await page.locator('[data-quiz-start-level="4"]').click();
     await page.locator("#quizOptions button").first().waitFor();
     const math = page.locator("#quizQuestion math");
     assert.match((await math.textContent()).replace(/\s+/g, ""), /x²−5x\+6=0小さい方の解x=\?/);
@@ -4501,8 +4649,7 @@ test("quadratic names the smaller root visibly and restored progress counts only
 test("Level 5 matrix trace and three-variable mission stay exact and visible at 390px", { timeout: 130000 }, async () => {
   await withPage("quizLevel5", async (page) => {
     await page.getByRole("button", { name: "クイズ・ガチャ" }).click();
-    await page.locator("#quizLevel").selectOption("5");
-    await page.getByRole("button", { name: "10問チャレンジ開始" }).click();
+    await page.locator('[data-quiz-start-level="5"]').click();
     await page.locator("#quizOptions button").first().waitFor();
 
     const question = page.locator("#quizQuestion");
@@ -4546,7 +4693,7 @@ test("actual Edge presents prompt-only stories, dimension diagrams, structured m
         }
       };
     });
-    await page.getByRole("button", { name: "10問チャレンジ開始" }).click();
+    await page.locator('[data-quiz-start-level="1"]').click();
     await page.locator("#quizOptions button").first().waitFor();
 
     assert.equal(await page.locator("#quizMission").textContent(), "条件を整理して、速さの答えを求めよう");
@@ -5094,7 +5241,7 @@ test("waiting-opponent notice follows availability without repeated announcement
 test("waiting-opponent arrival does not move or announce over a focused timed-quiz choice", { timeout: 130000 }, async () => {
   await withPage("lobby", async (page) => {
     await page.getByRole("button", { name: "クイズ・ガチャ", exact: true }).click();
-    await page.getByRole("button", { name: "10問チャレンジ開始" }).click();
+    await page.locator('[data-quiz-start-level="1"]').click();
     const option = page.locator("#quizOptions button").first();
     await option.waitFor();
     await option.focus();
@@ -5229,7 +5376,7 @@ test("waiting-opponent notice does not interrupt quiz answers or gacha draws", {
   for (const scenario of [
     { mode: "lobby", operation: "quiz-answer", start: async (page) => {
       await page.getByRole("button", { name: "クイズ・ガチャ", exact: true }).click();
-      await page.getByRole("button", { name: "10問チャレンジ開始" }).click();
+      await page.locator('[data-quiz-start-level="1"]').click();
       await clickMovingQuizOption(page.locator("#quizOptions button").first());
     } },
     { mode: "lobby", operation: "gacha", start: async (page) => {
@@ -5292,7 +5439,7 @@ test("actual Edge finishes one quiz answer and its feedback before handing a wai
     });
     await choosePublicWaiting(page);
     await page.getByRole("button", { name: "クイズ・ガチャ", exact: true }).click();
-    await page.getByRole("button", { name: "10問チャレンジ開始" }).click();
+    await page.locator('[data-quiz-start-level="1"]').click();
     await clickMovingQuizOption(page.locator("#quizOptions button").first());
     await page.evaluate(() => {
       globalThis.__standardOnlineRuntime.matchNow = true;
@@ -5329,7 +5476,7 @@ test("actual Edge settles an in-flight quiz start without starting a hidden ques
   await withPage("handoffStart", async (page) => {
     await choosePublicWaiting(page);
     await page.getByRole("button", { name: "クイズ・ガチャ", exact: true }).click();
-    await page.getByRole("button", { name: "10問チャレンジ開始" }).click();
+    await page.locator('[data-quiz-start-level="1"]').click();
     await page.evaluate(() => {
       globalThis.__standardOnlineRuntime.matchNow = true;
       document.dispatchEvent(new Event("visibilitychange"));
@@ -5343,6 +5490,8 @@ test("actual Edge settles an in-flight quiz start without starting a hidden ques
     assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "quiz-answer").length), 0);
     await page.getByRole("button", { name: "クイズ・ガチャ", exact: true }).click();
     assert.equal(await page.locator("#quizOptions button:not([disabled])").count(), 0);
+    assert.equal(await page.locator("[data-quiz-start-level]:not([disabled])").count(), 0);
+    assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "quiz-start").length), 1);
     assert.match(await page.locator("#quizStatus").textContent(), /一時停止/);
   }, { viewport: { width: 390, height: 844 } });
 });
@@ -5351,7 +5500,7 @@ test("actual Edge waits for a pending quiz from another tab and locks later answ
   await withPage("handoffActivity", async (page) => {
     await choosePublicWaiting(page);
     await page.getByRole("button", { name: "クイズ・ガチャ", exact: true }).click();
-    await page.getByRole("button", { name: "10問チャレンジ開始" }).click();
+    await page.locator('[data-quiz-start-level="1"]').click();
     await page.getByRole("button", { name: "カード", exact: true }).click();
     await page.evaluate(() => {
       globalThis.__standardOnlineRuntime.matchNow = true;
@@ -5452,7 +5601,7 @@ test("actual Edge preserves paused quiz time across finish and missing-room clea
     await withPage("handoffStart", async (page) => {
       await choosePublicWaiting(page);
       await page.getByRole("button", { name: "クイズ・ガチャ", exact: true }).click();
-      await page.getByRole("button", { name: "10問チャレンジ開始" }).click();
+      await page.locator('[data-quiz-start-level="1"]').click();
       await page.evaluate(() => {
         globalThis.__standardOnlineRuntime.matchNow = true;
         document.dispatchEvent(new Event("visibilitychange"));
@@ -7747,7 +7896,7 @@ test("actual browser presents CPU commentary once from public events and keeps t
     });
 
     await page.locator('[data-app-tab="quiz"]').click();
-    await page.locator("#quizStart").click();
+    await page.locator('[data-quiz-start-level="1"]').click();
     const quizOption = page.locator("#quizOptions button").first();
     await quizOption.waitFor({ state: "visible" });
     await quizOption.focus();

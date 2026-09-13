@@ -3081,10 +3081,12 @@ function renderQuiz() {
     $('quizStatus').textContent = "前回のクイズは期限切れです。新しく開始してください。";
   }
   show("quizSetup", !pendingQuiz);
+  show("quizRewardHelp", !pendingQuiz);
   show("quizPlay", Boolean(pendingQuiz));
   show("quizResult", Boolean(lastQuizResult));
-  $("quizStart").disabled = quizBusy || hasMatchedRoomHandoff() || !synced;
-  $("quizLevel").disabled = quizBusy;
+  document.querySelectorAll("[data-quiz-start-level]").forEach(button => {
+    button.disabled = quizBusy || Boolean(pendingQuiz) || hasMatchedRoomHandoff() || !synced || !profile();
+  });
   if (lastQuizResult) renderQuizResult();
   renderQuizAnswerFeedback();
   renderQuizStreak();
@@ -3163,14 +3165,14 @@ function renderQuiz() {
   syncQuizOptionMotion(questionState);
 }
 
-async function startOnlineQuiz() {
-  if (quizBusy || !synced || !profile()) return;
+async function startOnlineQuiz(selectedLevel) {
+  if (!Number.isInteger(selectedLevel) || selectedLevel < 1 || selectedLevel > 5) return;
+  if (quizBusy || !synced || !profile() || pendingQuiz || hasMatchedRoomHandoff()) return;
   quizBusy = true;
   lastQuizResult = null;
-  $("quizStatus").textContent = "サーバーで10問を用意しています…";
+  $("quizStatus").textContent = "10問を用意しています…";
   renderQuiz();
   try {
-    const selectedLevel = Number($("quizLevel").value || 1);
     const result = await client.startQuiz({ actionId: crypto.randomUUID(), selectedLevel });
     pendingQuiz = {
       sessionId: result.sessionId,
@@ -6289,7 +6291,9 @@ function goToGacha(ticketLevel = null) {
 $("profileSelect").onchange = () => { selectedProfileId = $("profileSelect").value; synced = false; renderProfile(); render(); };
 $("createStarterProfile").onclick = createStarterProfile;
 $("syncProfile").onclick = syncSelectedProfile;
-$("quizStart").onclick = startOnlineQuiz;
+document.querySelectorAll("[data-quiz-start-level]").forEach(button => {
+  button.onclick = () => startOnlineQuiz(Number(button.dataset.quizStartLevel));
+});
 $("quizHint").onclick = openQuizHint;
 $("quizGoGacha").onclick = () => {
   const ticketLevel = lastQuizResult?.reward?.ticketLevel;

@@ -1,0 +1,19 @@
+# Quiz level start buttons
+
+Version: UDL-062-quiz-entry-v1
+Normal-work continuation began at 2026-09-13T17:57:11Z on the same base87 and request aliases below. Receipt target: compact entry and default-closed reward help only; source contract is standard-game-action quiz-finish -> finish_quiz_v2 -> latest 202609100001_standard_quiz_accuracy.sql. No reward or server changes.
+CANON_RECEIPT version=shared-canon-v1.1 base=87f12c0a2da3da3563824d22a2e3c1dc2c645c90 request=UDL-20260912-062,ADD-20260913-QUIZ-FIVE-DIRECT-STARTS,ADD-20260913-QUIZ-REWARD-RULES-ON-DEMAND specs=docs/BRAIN_V14_DELTA_INTAKE_20260913.json tests=tests/standard-quiz-level-start.test.cjs worktree=.codex-worktrees/quiz-level-buttons-20260914
+
+The original local start receipt used guessed alias QUIZ-LEVEL-START-BUTTONS. This draft and existing coordination now use the exact v14 intake aliases above; the original receipt is historical evidence, not another request.
+
+Existing commander owner01a07b56-616e-7733-9aae-90575659688e. Adopted v14 user sourcebbb2135e-cfd1-4da8-845b-9e3d07d8b29a in genuine ChatGPT6aa229e7-e098-83ee-ac5e-d366a12653a4 requests five direct Lv1-5 ten-question start buttons instead of a difficulty dropdown plus a shared start button. The immutable intake is provenance, not current implementation status.
+
+All five levels must be visible as real, keyboard-operable buttons. One click starts exactly the chosen level through the existing startQuiz client operation. Busy, unsynced, absent profile, existing pending quiz and matched-room handoff must not start another quiz. Restore, server questions/answers, timer/hint/memo, reward settlement and saved ticket level remain unchanged.
+
+The compact entry and optional reward explanation are implemented. Five equally styled native buttons replace the dropdown and shared start. Native details is initially closed and hidden during a pending quiz. Its four rows describe the highest applicable completed-ten-answer tier: ten correct = 10 same-level tickets; five consecutive = 5 same-level; seven total = 3 same-level; otherwise one ticket one level lower (minimum Lv.1). Rows are not added together. Server code and reward values are unchanged.
+
+All existing browser fixtures now use real direct-level clicks. New executable coverage checks every level, keyboard/pointer start, repeated clicks while busy, rejected-start retry, restoring the same Lv.4 session, disclosure toggling/reload with zero quiz or economic writes, 390/768/1280 widths, 640x360 landscape and 320px with 200% root text. Focus and the final reward row remain reachable around fixed navigation. The reward estimate test exhausts 1024 ten-answer patterns at all five levels and checks the latest SQL source thresholds; it does not execute production SQL.
+
+Local evidence before integration: focused source contracts 104/104 PASS. Chrome initially passed six start/recovery cases and failed one keyboard fixture that used programmatic focus immediately after pointer input. Real Tab/Shift+Tab fixed that test without weakening its focus assertion. Reward-help checks then passed, including the later fixed-navigation hit test. Raw first failure remains in commander artifacts. Full suites, own Windows and own genuine review are still NOT_RUN. Before fixing a release candidate, incorporate already reviewed terminal df62 into this dedicated branch and issue a new base receipt; never publish over it or borrow its approval.
+
+Current work is IMPLEMENTING_UNVERIFIED. Source base87 is immutable but not claimed to be fresh public main. Terminal candidatedf62 and its review03afcfd5 remain unchanged. No commits/push/review/production are authorized by this document itself. Own fixed candidate, exact review, all gates and fresh integration will be needed. No new images, CPU policy, DB/Edge, reward values, game rules, profiles/matches or live attempts.

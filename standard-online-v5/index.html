@@ -6,7 +6,7 @@
   <title>Four Color Map Game v5.0 Standard Online</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='30' height='30' x='1' y='1' rx='8' fill='%23ef476f'/%3E%3Crect width='30' height='30' x='33' y='1' rx='8' fill='%23ffd166'/%3E%3Crect width='30' height='30' x='1' y='33' rx='8' fill='%2306d6a0'/%3E%3Crect width='30' height='30' x='33' y='33' rx='8' fill='%231182e8'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="../online-v5/style.css">
-  <link rel="stylesheet" href="style.css?v=20260910-12">
+  <link rel="stylesheet" href="style.css?v=20260914-2">
   <link rel="stylesheet" href="debug-mode.css">
   <link rel="stylesheet" href="progression.css?v=20260910-2">
   <link rel="stylesheet" href="quiz-memo.css?v=20260912-2">
@@ -134,19 +134,28 @@
     </section>
 
     <section id="quizPanel" class="card quiz-panel hidden" data-app-tab-panel="quiz">
-      <div class="row between wrap">
-        <div><h2>ガチャ券クイズ</h2><p class="muted">10問に挑戦。問題と採点はサーバー管理なので、獲得券がそのままオンラインガチャに入ります。</p></div>
-        <span class="quiz-prize">🎫 1・3・5・10枚</span>
-      </div>
+      <h2>ガチャ券クイズ</h2>
       <div id="quizSetup" class="quiz-setup">
-        <label>難易度／獲得券レベル
-          <select id="quizLevel">
-            <option value="1">Lv.1 基礎</option><option value="2">Lv.2 標準</option><option value="3">Lv.3 発展</option>
-            <option value="4">Lv.4 上級</option><option value="5">Lv.5 最上級</option>
-          </select>
-        </label>
-        <button id="quizStart" class="primary">10問チャレンジ開始</button>
+        <button type="button" class="primary" data-quiz-start-level="1"><span class="quiz-start-level">Lv.1</span> <span class="quiz-start-label">10問チャレンジ</span></button>
+        <button type="button" class="primary" data-quiz-start-level="2"><span class="quiz-start-level">Lv.2</span> <span class="quiz-start-label">10問チャレンジ</span></button>
+        <button type="button" class="primary" data-quiz-start-level="3"><span class="quiz-start-level">Lv.3</span> <span class="quiz-start-label">10問チャレンジ</span></button>
+        <button type="button" class="primary" data-quiz-start-level="4"><span class="quiz-start-level">Lv.4</span> <span class="quiz-start-label">10問チャレンジ</span></button>
+        <button type="button" class="primary" data-quiz-start-level="5"><span class="quiz-start-level">Lv.5</span> <span class="quiz-start-label">10問チャレンジ</span></button>
       </div>
+      <details id="quizRewardHelp" class="quiz-reward-help">
+        <summary>もらえる券</summary>
+        <p>10問を終えると、当てはまる条件のうち一番上の報酬がもらえます。枚数は合算しません。</p>
+        <table>
+          <caption>クイズの報酬</caption>
+          <thead><tr><th scope="col">正解の条件</th><th scope="col">枚数</th><th scope="col">券のLv</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">10問すべて正解</th><td>10枚</td><td>挑戦したLv</td></tr>
+            <tr><th scope="row">5問以上を連続正解</th><td>5枚</td><td>挑戦したLv</td></tr>
+            <tr><th scope="row">合計7問以上を正解</th><td>3枚</td><td>挑戦したLv</td></tr>
+            <tr><th scope="row">それ以外</th><td>1枚</td><td>1つ下のLv（最低Lv.1）</td></tr>
+          </tbody>
+        </table>
+      </details>
       <div id="quizPlay" class="quiz-play hidden">
         <div class="row between quiz-meta"><strong id="quizProgress">1 / 10</strong><span id="quizLevelBadge" class="badge"></span><strong id="quizStreak" class="quiz-streak hidden" data-tier="0"></strong><strong id="quizTimer" class="quiz-timer" aria-live="off">残り --秒</strong></div>
         <span id="quizTimerAnnouncement" class="visually-hidden" role="status" aria-live="polite" aria-atomic="true"></span>
@@ -168,7 +177,7 @@
         <div class="quiz-controls"><button id="quizHint" type="button">💡 ヒントを見る</button><span class="muted small">各問題で1回だけ使えます。表示中は残り時間が止まります。</span></div>
         <p id="quizHintText" class="quiz-hint hidden" role="status"></p>
       </div>
-      <p id="quizStatus" class="callout" aria-live="polite">難易度を選んで始めてください。</p>
+      <p id="quizStatus" class="callout" aria-live="polite"></p>
       <section id="quizResult" class="quiz-result hidden" aria-live="polite">
         <p id="quizRewardSummary"></p>
         <button id="quizGoGacha" class="primary" type="button">ガチャへ</button>
@@ -553,6 +562,6 @@
   <p id="skillCutinAnnouncement" class="visually-hidden" role="status" aria-live="polite" aria-atomic="true"></p>
   <script src="skill-cutin.js?v=20260913-2"></script>
   <script src="surrender-confirmation.js?v=20260913-1"></script>
-  <script type="module" src="app.js?v=20260913-48"></script>
+  <script type="module" src="app.js?v=20260914-2"></script>
 </body>
 </html>
