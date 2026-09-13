@@ -288,7 +288,7 @@ Pages表示の退行は直前Pagesへ戻せる。適用済みcounterは旧client
 
 ### alpha.4彩色済みエリア角膨張便
 
-完了履歴。この便は新payloadを旧Edgeが拒否する一方、新Edgeは旧UIのoutgoing payloadを継続できるため、`alpha.4対応Edge → live canary → Pages`の順で公開した。後続の対戦報酬便、CPU台詞／地の文分離便、CPU選択前portrait便、終局復帰時の開始告知抑止便、パレット属性識別便、クイズ報酬券レベル引継ぎ候補を含む現在のPages候補assetはonline app `app.js?v=20260913-43`、CPU commentary `cpu-commentary.js?v=20260910-1`、progression `progression.css?v=20260910-2`、style `style.css?v=20260910-12`、intents `standard-online-skill-intents.js?v=20260911-21`、client `standard-online-client.js?v=20260910-1`、portrait `cpu-portraits.js?v=20260908-1`、Local bundle `app.bundle.js?v=20260913-9-4f66b9b284ba`である。このalpha.4便自体ではDB、migration、RPC、secret、cleanup scheduleは変更しない。
+完了履歴。この便は新payloadを旧Edgeが拒否する一方、新Edgeは旧UIのoutgoing payloadを継続できるため、`alpha.4対応Edge → live canary → Pages`の順で公開した。後続の対戦報酬便、CPU台詞／地の文分離便、CPU選択前portrait便、終局復帰時の開始告知抑止便、パレット属性識別便、クイズ報酬券レベル引継ぎ候補を含む現在のPages候補assetはonline app `app.js?v=20260913-46`、CPU commentary `cpu-commentary.js?v=20260910-1`、progression `progression.css?v=20260910-2`、style `style.css?v=20260910-12`、intents `standard-online-skill-intents.js?v=20260911-21`、client `standard-online-client.js?v=20260910-1`、portrait `cpu-portraits.js?v=20260908-1`、Local bundle `app.bundle.js?v=20260913-9-4f66b9b284ba`である。このalpha.4便自体ではDB、migration、RPC、secret、cleanup scheduleは変更しない。
 
 1. `origin/main@63972b6`起点の専用clean worktreeで両bundleを2回生成し、2回目のSHAが不変、正式全製品試験、Windows Chrome/Edge CI、対象実browserのskip 0を確認する。
 2. alpha.4対応bundleを保持したまま新規対局だけを`5.0.0-alpha.3`へ戻す互換rollback branchを作成・GitHub保全する。既存alpha.4 stateの読込み・継続と、alpha.3新規stateが彩色済みpayloadをwrite-free拒否することを確認する。
