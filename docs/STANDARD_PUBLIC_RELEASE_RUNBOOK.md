@@ -163,9 +163,9 @@ rollbackも「旧version番号へ戻った」という目視だけでは完了�
 
 ### UDL-065: v14カットイン可読性・実結果説明
 
-`docs/SKILL_CUTIN_READABILITY_20260913.md`（`UDL-065-readability-v1`）を参照する独立Pages-only便。JS/CSSは `skill-cutin.js?v=20260913-1` / `skill-cutin.css?v=20260913-1`、online appは `app.js?v=20260913-43`。DB/Edge/管理設定の変更は各 `[]`。現在の候補参照markerの更新であり、古い便の実配信証拠をapp43へ書き換えるものではない。
+`docs/SKILL_CUTIN_READABILITY_20260913.md`（`UDL-065-readability-v1.1`）を参照する独立Pages-only便。JS/CSSは `skill-cutin.js?v=20260913-1` / `skill-cutin.css?v=20260913-1`、online appは `app.js?v=20260913-43`。DB/Edge/管理設定の変更は各 `[]`。現在の候補参照markerの更新であり、古い便の実配信証拠をapp43へ書き換えるものではない。
 
-1. 公開順を司令塔の既存台帳で照合し、fresh main起点の候補SHAと仕様blobを固定する。別候補9590/実039のCPU CI待ちを、この便のWindows実行で代用しない。CPUの公開順が先ならその統合後に新baseで整合を取り、古いSHAのテスト/承認を流用しない。
+1. fresh main起点の候補SHAと仕様blobを固定し、このUIを独立したWindows・実Astra審査へ出す。CPU先行は技術的依存ではなく、UI先行可否も同レビューへ明示する。別9590/039の失敗Edgeジョブ条件はこの便で代用しない。どちらかのmain統合で後続候補が変われば、新SHA・新baseで必要なゲートと実レビューを取り直す。
 2. 既存bundle/registryの生成差分ゼロ、非browser回帰と両browserのUDL065実DOM試験を実行する。通常更新中の1800ms維持、連続技のタイマーとCSS再開始、実塗り操作、空振り、非公開境界、優先画面中断を含む。Windows同一SHAと、この候補そのものに対する実アストラ判定が必要。
 3. forceなしのmain統合と同一SHA Pages成功後、HTML/app/cutin JS/CSSを全byteで固定候補と比較し、candidate preflightを確認する。Pages-onlyのためEdge再配備やDB再適用をしない。
 4. 本番対局を必要とする確認は新候補へ有限の対象/回数/時間を明示してから行う。旧065/067/F3/039の試験枠を再使用しない。追加プロフィール・対局はこの文書では作らない。

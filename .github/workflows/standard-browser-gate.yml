@@ -2,7 +2,7 @@ name: Standard browser gate
 
 on:
   push:
-    branches: [codex/standard-release-command, codex/quiz-memo-calculator-20260912, codex/ui-diet-20260912, codex/ui-play-surface-20260912, codex/ui-result-20260912, codex/ui-cosmetics-20260912, codex/ui-player-copy-20260912, codex/skill-cutin-20260912, codex/ui-flat-entry-20260912, codex/skill-catalog-20260912, codex/surrender-confirmation-20260913, codex/cpu-split-rescue-20260913]
+    branches: [codex/standard-release-command, codex/quiz-memo-calculator-20260912, codex/ui-diet-20260912, codex/ui-play-surface-20260912, codex/ui-result-20260912, codex/ui-cosmetics-20260912, codex/ui-player-copy-20260912, codex/skill-cutin-20260912, codex/ui-flat-entry-20260912, codex/skill-catalog-20260912, codex/surrender-confirmation-20260913, codex/cpu-split-rescue-20260913, codex/skill-cutin-readability-20260913]
     paths:
       - .github/workflows/standard-browser-gate.yml
       - online/supabase-config.js

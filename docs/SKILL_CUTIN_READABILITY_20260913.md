@@ -1,6 +1,6 @@
 # Skill cut-in readability and observed results
 
-Version: `UDL-065-readability-v1`
+Version: `UDL-065-readability-v1.1`
 
 Owner: existing Codex commander. Request: `UDL-20260912-065`, alias `ADD-20260913-CUTIN-READABILITY-RESULT`.
 
@@ -33,3 +33,17 @@ Executable coverage must demonstrate result selection and privacy, order/duplica
 No new image, game rule, CPU policy/charge, hand, reward, DB, Edge, managed flag or live-test entitlement. Preserve the fixed CPU candidate `9590a4212d69185fc93df31b552d9bd870d5a9a3` and review039's separate CI/release conditions. This new candidate needs its own fixed review, Windows gate and publication evidence; old025/026/028/039 approvals do not apply.
 
 Initial state: implementation in progress; tests not yet run; commit/push/review/main/Pages/live not run. Follow-up evidence is recorded without amending a reviewed candidate.
+
+## v1.1 independent release gate
+
+`CANON_RECEIPT version=shared-canon-v1.1 base=d9ce111d7d97019d55b3e90842602001e045ea04 request=UDL-20260912-065 specs=AGENTS.md,docs/SHARED_CANON.md,docs/SKILL_CUTIN_READABILITY_20260913.md tests=tests/standard-browser-gate-workflow.test.cjs,tests/standard-online-browser-harness-static.test.cjs,tests/standard-skill-cutin.test.cjs,tests/standard-online-browser.test.cjs worktree=.codex-worktrees/skill-cutin-readability-20260913`
+
+Governance reference: codex/dev-brain-current-20260910@bc08078109a3c528d0f37cb1936d7e5dbd456b31. Product main was freshly read as the same d9ce base.
+
+The earlier CPU-first ordering was commander planning, not a user requirement or technical dependency. The existing Windows workflow gains only this exact UI branch in the push allowlist; tests, permissions, timeout and deployment behavior are unchanged. This is a distinct candidate run, never a rerun or substitute result for CPU9590/039.
+
+Request genuine Astra review of this exact Pages-only candidate, including whether to publish the UI first. CPU9590 and its failure/conditional approval stay unchanged. If main changes first, later CPU integration needs a new SHA, fresh gates and genuine matching review; old039 does not authorize changed content. Likewise, reconcile/review this UI again if its base or content changes. Never force a branch or overwrite newer public code.
+
+Proposed new live acceptance, subject to exact genuine review: one new anonymous profile, one Yuzu match,240 seconds total, at most8 CPU-action sends,6 own game-action sends plus one SURRENDER send, no retries/rematches. Stop ordinary play by150 seconds to reserve90 for terminal/profile/snapshot readback and teardown; all paths share the240-second limit. Count attempted sends across browser and API before sending. A new durable exclusive reservation must precede the first mutation. Capture real cut-in timing if a skill occurs naturally; do not force server state or create another match when absent. Keep missing self/opponent cases as NOT_OBSERVED. No hidden opponent information, quiz/gacha/sale/purchase/DB edits. No current reservation or execution.
+
+The old065,067,F3 and039 reservations remain consumed or unused exactly as recorded. Existing canary scripts are reference material only: a separately verified harness must enforce the above bounds and current snapshot-v2 read contract before running. Named-opponent event work stays an unresolved follow-up.
