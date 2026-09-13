@@ -14,7 +14,7 @@ const publicEdgeBundleUrl = new URL("../supabase/functions/standard-game-action/
 const expectedPhase = process.argv.find((argument) => argument.startsWith("--expect="))?.slice("--expect=".length) || null;
 const zeroUuid = "00000000-0000-0000-0000-000000000000";
 const candidateAssetMarkers = Object.freeze({
-app: "app.js?v=20260913-44",
+app: "app.js?v=20260913-45",
   commentary: "cpu-commentary.js?v=20260910-1",
   style: "style.css?v=20260910-12",
   client: "standard-online-client.js?v=20260910-1",

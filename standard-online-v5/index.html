@@ -10,7 +10,7 @@
   <link rel="stylesheet" href="debug-mode.css">
   <link rel="stylesheet" href="progression.css?v=20260910-2">
   <link rel="stylesheet" href="quiz-memo.css?v=20260912-2">
-  <link rel="stylesheet" href="ui-diet.css?v=20260912-3">
+  <link rel="stylesheet" href="ui-diet.css?v=20260913-4">
   <link rel="stylesheet" href="skill-catalog.css?v=20260912-1">
   <link rel="stylesheet" href="surrender-confirmation.css?v=20260913-1">
   <link rel="stylesheet" href="play-surface.css?v=20260912-1">
@@ -101,14 +101,14 @@
         <section id="matchmakingPanel" class="lobby-choice public-matchmaking hidden" aria-labelledby="publicBattleTitle">
           <h3 id="publicBattleTitle" tabindex="-1">だれかと対戦</h3>
           <p class="muted small">相手が見つかるまで、クイズやガチャで遊べます。</p>
-          <div class="controls">
-            <button id="findOpponent" class="primary">相手を探す</button>
-            <button id="cancelMatchmaking" class="ghost hidden">募集を取り消す</button>
+          <div class="public-match-actions" role="group" aria-label="だれとでも対戦の始め方">
+            <button id="recruitOpponent" type="button">相手を待つ</button>
+            <button id="findOpponent" type="button" class="primary">待っている相手に参加</button>
           </div>
-          <details id="publicWaitingOptions"><summary>相手を待つだけにする</summary><button id="recruitOpponent" type="button">対戦相手を募集</button></details>
+          <button id="cancelMatchmaking" type="button" class="ghost hidden">募集を取り消す</button>
           <div id="matchmakingWait" class="matchmaking-wait hidden">
             <span class="searching-pulse" aria-hidden="true"></span>
-            <div><strong>対戦相手を探しています</strong><p id="matchmakingElapsed" class="muted small">待機 0秒</p></div>
+            <div><strong>対戦相手を待っています</strong><p id="matchmakingElapsed" class="muted small">待機 0秒</p></div>
           </div>
           <div id="cpuOpponentOffer" class="cpu-opponent-offer hidden">
             <div><strong>🤖 CPUと対戦できます</strong><p id="cpuOfferMessage" class="muted small">人間の対戦相手を待ち続けることもできます。</p></div>
@@ -117,7 +117,7 @@
               <button id="keepWaitingForHuman" class="ghost">このまま人を待つ</button>
             </div>
           </div>
-          <p id="matchmakingStatus" class="callout" aria-live="polite" tabindex="-1">「相手を探す」で対戦相手を見つけます。</p>
+          <p id="matchmakingStatus" class="callout" aria-live="polite" tabindex="-1">待つ・参加するを選んでください。</p>
         </section>
     </section>
 
@@ -545,6 +545,6 @@
   <p id="skillCutinAnnouncement" class="visually-hidden" role="status" aria-live="polite" aria-atomic="true"></p>
   <script src="skill-cutin.js?v=20260913-2"></script>
   <script src="surrender-confirmation.js?v=20260913-1"></script>
-  <script type="module" src="app.js?v=20260913-44"></script>
+  <script type="module" src="app.js?v=20260913-45"></script>
 </body>
 </html>

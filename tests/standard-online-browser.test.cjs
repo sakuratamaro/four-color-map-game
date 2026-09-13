@@ -53,7 +53,6 @@ async function readScratch(page) { return page.evaluate((key) => JSON.parse(sess
 
 async function choosePublicWaiting(page) {
   await page.locator("#choosePublicBattle").click();
-  await page.locator("#publicWaitingOptions summary").click();
   await page.locator("#recruitOpponent").click();
 }
 
@@ -307,14 +306,73 @@ test("UDL-023 compact quiz layout keeps every focused option clear of existing n
   }
 });
 
-test("UDL-023 explicit public search waits only after a successful empty result", { timeout: 120000 }, async () => {
+test("UDL-023 v14 shows two obvious native public actions at three widths without starting a match", { timeout: 120000 }, async () => {
+  await withPage("lobby", async (page) => {
+    const errors = []; page.on("pageerror", error => errors.push(error.message));
+    await page.locator("#choosePublicBattle").click();
+    assert.equal(await page.locator("#publicWaitingOptions").count(), 0);
+    const actions = page.getByRole("group", { name: "だれとでも対戦の始め方" }).getByRole("button");
+    assert.deepEqual(await actions.allTextContents(), ["相手を待つ", "待っている相手に参加"]);
+    for (const width of [390, 768, 1280]) {
+      await page.setViewportSize({ width, height: 900 });
+      await actions.first().scrollIntoViewIfNeeded();
+      const layout = await actions.evaluateAll(els => ({ overflow: document.documentElement.scrollWidth > innerWidth,
+        buttons: els.map(el => { const r = el.getBoundingClientRect(), s = getComputedStyle(el);
+          return { tag: el.tagName, width: r.width, height: r.height, top: r.top,
+            clips: el.scrollWidth > el.clientWidth, border: parseFloat(s.borderTopWidth),
+            hit: el.contains(document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2)) }; }) }));
+      assert.equal(layout.overflow, false, JSON.stringify(layout));
+      assert.equal(layout.buttons[0].top, layout.buttons[1].top);
+      assert.ok(layout.buttons.every(b => b.tag === "BUTTON" && b.width >= 44 && b.height >= 44 && b.border > 0 && !b.clips && b.hit), JSON.stringify(layout));
+      if (process.env.PUBLIC_MATCH_SCREENSHOTS) {
+        fs.mkdirSync(process.env.PUBLIC_MATCH_SCREENSHOTS, { recursive: true });
+        await page.screenshot({ path: path.join(process.env.PUBLIC_MATCH_SCREENSHOTS, `${browserName}-public-actions-${width}.png`), fullPage: true });
+      }
+    }
+    await actions.first().focus(); await page.keyboard.press("Tab");
+    assert.equal(await actions.last().evaluate(el => el === document.activeElement), true);
+    assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter(c =>
+      /fcg_standard_(create_room|join_room|matchmaking_find|matchmaking_recruit)$/.test(c.name) ||
+      ["cpu-start", "cpu-accept"].includes(c.body?.operation)).length), 0);
+    await page.setViewportSize({ width: 320, height: 900 });
+    await page.addStyleTag({ content: ".public-match-actions > button { font-size: 28px !important; }" });
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+    assert.equal(await actions.evaluateAll(els => els.some(el => el.scrollWidth > el.clientWidth)), false);
+    assert.deepEqual(errors, []);
+  }, { viewport: { width: 390, height: 900 } });
+});
+
+test("UDL-023 v14 empty join stays find-only across duplicate pending clicks and reload", { timeout: 120000 }, async () => {
+  await withPage("lobby", async (page) => {
+    await page.locator("#choosePublicBattle").click();
+    await page.evaluate(() => { globalThis.__standardOnlineRuntime.findDelayMs = 400; });
+    await page.locator("#findOpponent").focus();
+    await page.keyboard.press("Space"); await page.keyboard.press("Space");
+    await page.getByText("待っている相手はいませんでした。「相手を待つ」で募集できます。", { exact: true }).waitFor();
+    const result = await page.evaluate(key => ({ calls: globalThis.__standardOnlineRuntime.calls.filter(c =>
+      /fcg_standard_matchmaking_(find|recruit)$/.test(c.name)), saved: JSON.parse(localStorage.getItem(key)) }), connectionKey);
+    assert.deepEqual(result.calls.map(c => c.name), ["fcg_standard_matchmaking_find"]);
+    assert.equal(result.saved.matchmakingTicketId, null);
+    assert.equal(result.saved.matchmakingFindActionId, null);
+    assert.equal(await page.locator("#matchmakingWait").isHidden(), true);
+    assert.equal(await page.locator("#recruitOpponent").isEnabled(), true);
+    assert.equal(await page.locator("#findOpponent").isEnabled(), true);
+    await page.reload(); await page.locator("#choosePublicBattle").click();
+    assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter(c =>
+      /fcg_standard_matchmaking_(find|recruit)$/.test(c.name)).length), 0);
+  });
+});
+
+test("UDL-023 v14 waiting uses recruit only and preserves one ticket across reload and cancellation", { timeout: 120000 }, async () => {
   await withPage("lobby", async (page) => {
     await page.locator("#choosePublicBattle").click();
     const entries = () => page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((call) => /fcg_standard_matchmaking_(find|recruit)$/.test(call.name)));
     assert.equal((await entries()).length, 0);
-    await page.locator("#findOpponent").dblclick();
+    await page.evaluate(() => { globalThis.__standardOnlineRuntime.recruitDelayMs = 400; });
+    await page.locator("#recruitOpponent").focus();
+    await page.keyboard.press("Enter"); await page.keyboard.press("Enter");
     await page.locator("#matchmakingWait:not(.hidden)").waitFor();
-    assert.deepEqual((await entries()).map((call) => call.name), ["fcg_standard_matchmaking_find", "fcg_standard_matchmaking_recruit"]);
+    assert.deepEqual((await entries()).map((call) => call.name), ["fcg_standard_matchmaking_recruit"]);
     const saved = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)), connectionKey);
     assert.ok(saved.matchmakingTicketId);
     await page.locator("#chooseFriendBattle").click();
@@ -325,6 +383,10 @@ test("UDL-023 explicit public search waits only after a successful empty result"
     assert.equal(await page.evaluate((key) => JSON.parse(localStorage.getItem(key)).matchmakingTicketId, connectionKey), saved.matchmakingTicketId);
     await page.locator("#cancelMatchmaking").click();
     await page.waitForFunction((key) => !JSON.parse(localStorage.getItem(key)).matchmakingTicketId, connectionKey);
+    const afterReload = await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter(c =>
+      /fcg_standard_matchmaking_(find|recruit|cancel)$/.test(c.name)));
+    assert.deepEqual(afterReload.map(c => c.name), ["fcg_standard_matchmaking_cancel"]);
+    assert.equal(afterReload[0].args.p_ticket_id, saved.matchmakingTicketId);
   });
 });
 
@@ -339,6 +401,17 @@ test("UDL-023 failed public search does not recruit and keeps recovery visible",
     assert.deepEqual(calls.map((call) => call.name), ["fcg_standard_matchmaking_find"]);
     assert.equal(await page.locator("#matchmakingStatus").isVisible(), true);
     assert.equal(await page.locator("#friendBattlePanel").isVisible(), false);
+    const saved = await page.evaluate(key => JSON.parse(localStorage.getItem(key)), connectionKey);
+    assert.equal(await page.locator("#recruitOpponent").isDisabled(), true);
+    assert.equal(await page.locator("#findOpponent").isDisabled(), true);
+    await page.reload();
+    await page.waitForFunction(key => !JSON.parse(localStorage.getItem(key))?.matchmakingFindActionId &&
+      globalThis.__standardOnlineRuntime.calls.some(c => c.name === "fcg_standard_matchmaking_find"), connectionKey);
+    const resumed = await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter(c =>
+      /fcg_standard_matchmaking_(find|recruit)$/.test(c.name)));
+    assert.equal(resumed.length, 1);
+    assert.equal(resumed[0].args.p_action_id, saved.matchmakingFindActionId);
+    assert.equal(resumed[0].name, "fcg_standard_matchmaking_find");
   });
 });
 
@@ -1473,12 +1546,14 @@ async function installMock(context, mode) {
           }) };
         }
         if (name === "fcg_standard_matchmaking_recruit") {
+          if (runtime.recruitDelayMs) await new Promise(resolve => setTimeout(resolve, runtime.recruitDelayMs));
           runtime.ticketId = args.p_ticket_id;
           return { data: [{ ticket_id: args.p_ticket_id, matchmaking_status: "searching", room_id: null, seat: null, wait_started_at: runtime.waitStartedAt, server_time: new Date().toISOString() }] };
         }
         if (name === "fcg_standard_matchmaking_status") return { data: [{ ticket_id: args.p_ticket_id, matchmaking_status: runtime.matchNow ? "matched" : "searching", room_id: runtime.matchNow ? id : null, seat: runtime.matchNow ? "A" : null, wait_started_at: runtime.waitStartedAt, server_time: new Date().toISOString() }] };
         if (name === "fcg_standard_matchmaking_cancel") return { data: [{ ticket_id: args.p_ticket_id, matchmaking_status: "cancelled", room_id: null, seat: null, server_time: new Date().toISOString() }] };
         if (name === "fcg_standard_matchmaking_find") {
+          if (runtime.findDelayMs) await new Promise(resolve => setTimeout(resolve, runtime.findDelayMs));
           if (runtime.failNextFindResponse) {
             runtime.failNextFindResponse = false;
             return { error: new Error("simulated lost find response") };
@@ -2027,7 +2102,8 @@ test("UDL-023 three battle choices fit mobile, intermediate and desktop without 
     assert.equal(await page.locator("#friendBattlePanel").isVisible(), false);
     assert.equal(await page.locator("#matchmakingPanel").isVisible(), true);
     assert.equal(await page.locator("#choosePublicBattle").getAttribute("aria-expanded"), "true");
-    assert.equal(await page.locator("#publicWaitingOptions").getAttribute("open"), null);
+    assert.equal(await page.locator("#publicWaitingOptions").count(), 0);
+    assert.equal(await page.locator(".public-match-actions > button").count(), 2);
     const writes = await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((call) => /fcg_standard_(create_room|join_room|matchmaking_find|matchmaking_recruit)$/.test(call.name) || ["cpu-start", "cpu-accept"].includes(call.body?.operation)));
     assert.deepEqual(writes, []);
     assert.equal(await page.locator('a[href*="solo-v5"], a[href*="standard-v5"]').count(), 0);
@@ -2469,7 +2545,7 @@ test("hidden new-match handlers allocate no action and make no RPC while another
   await withPage("lobby", async (page) => {
     await page.evaluate(() => { globalThis.__standardOnlineRuntime.failNextFindResponse = true; });
     await page.locator("#choosePublicBattle").click();
-    await page.getByRole("button", { name: "相手を探す", exact: true }).click();
+    await page.getByRole("button", { name: "待っている相手に参加", exact: true }).click();
     await page.getByText("検索結果を確認できませんでした。前回の検索結果をもう一度確認します。").waitFor();
     await page.evaluate(async () => {
       for (const id of ["startStandardCpuHome", "startStandardCpuLobby"]) {
@@ -4821,7 +4897,7 @@ test("actual Edge recruits and cancels with one persisted public matchmaking tic
     await page.locator("#matchmakingWait:not(.hidden)").waitFor();
     const beforeCancel = await page.evaluate(({ key }) => JSON.parse(localStorage.getItem(key)), { key: connectionKey });
     assert.match(beforeCancel.matchmakingTicketId, /^[0-9a-f-]{36}$/i);
-    assert.equal(await page.getByRole("button", { name: "相手を探す", exact: true }).isDisabled(), true);
+    assert.equal(await page.getByRole("button", { name: "待っている相手に参加", exact: true }).isDisabled(), true);
     await page.getByRole("button", { name: "募集を取り消す" }).click();
     await page.getByText("募集を取り消しました。").waitFor();
     const afterCancel = await page.evaluate(({ key }) => JSON.parse(localStorage.getItem(key)), { key: connectionKey });
@@ -5593,7 +5669,7 @@ test("actual Edge keeps a finished CPU room until another CPU is chosen", { time
 test("actual Edge finds a public opponent and enters setup without exposing a code", { timeout: 130000 }, async () => {
   await withPage("publicFind", async (page) => {
     await page.locator("#choosePublicBattle").click();
-    await page.getByRole("button", { name: "相手を探す", exact: true }).click();
+    await page.getByRole("button", { name: "待っている相手に参加", exact: true }).click();
     await page.locator("#room:not(.hidden)").waitFor();
     assert.equal(await page.locator("#roomIdentityLabel").textContent(), "対戦形式");
     assert.equal(await page.locator("#shownCode").textContent(), "野良対戦");
@@ -5608,7 +5684,7 @@ test("actual Edge finds a public opponent and enters setup without exposing a co
 test("actual Edge makes the six-card setup explicit, constrained, and keyboard-safe on mobile", { timeout: 150000 }, async () => {
   await withPage("publicFind", async (page) => {
     await page.locator("#choosePublicBattle").click();
-    await page.getByRole("button", { name: "相手を探す", exact: true }).click();
+    await page.getByRole("button", { name: "待っている相手に参加", exact: true }).click();
     await page.locator("#setupCard:not(.hidden)").waitFor();
     const summary = page.locator("#loadoutSummary");
     await summary.getByText("選択 6/6｜色 2/2｜エリア 2/2｜妨害 2/2｜準備OK", { exact: true }).waitFor();

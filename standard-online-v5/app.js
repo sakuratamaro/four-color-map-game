@@ -5903,7 +5903,7 @@ async function recruitPublicOpponent() {
   try {
     const result = await client.recruitOpponent({ displayName: displayName() });
     if (result?.matchmaking_status === "matched") return await enterPublicMatch();
-    $("matchmakingStatus").textContent = "対戦相手を探しています。待っている間もクイズやガチャで遊べます。";
+    $("matchmakingStatus").textContent = "対戦相手を待っています。待っている間もクイズやガチャで遊べます。";
     scheduleMatchmakingStatus();
   } catch (error) {
     if (await recoverServerActiveRoom({ focusOnSuccess: true }).catch(() => false)) return;
@@ -5913,23 +5913,19 @@ async function recruitPublicOpponent() {
   } finally { matchmakingBusy = false; render(); }
 }
 
-async function findPublicOpponent({ resumePending = false, waitIfNone = false } = {}) {
+async function findPublicOpponent({ resumePending = false } = {}) {
   if (guardNewMatchEntry({ allowFindResume: resumePending }) || matchmakingBusy || !profile()) return;
   matchmakingBusy = true; $("matchmakingStatus").textContent = "相手を探しています…"; renderMatchmaking();
-  let startWaiting = false;
   try {
     const result = await client.findOpponent({ displayName: displayName() });
     if (result?.matchmaking_status === "matched") return await enterPublicMatch();
-    startWaiting = waitIfNone && result?.matchmaking_status === "none_available";
-    $("matchmakingStatus").textContent = startWaiting ? "相手が来るのを待っています…" : "今は相手が見つかりませんでした。もう一度探せます。";
+    $("matchmakingStatus").textContent = "待っている相手はいませんでした。「相手を待つ」で募集できます。";
   } catch (error) {
     if (await recoverServerActiveRoom({ focusOnSuccess: true }).catch(() => false)) return;
     $("matchmakingStatus").textContent = "検索結果を確認できませんでした。前回の検索結果をもう一度確認します。";
     toast(error.message || "今入れる試合を探せませんでした。");
   } finally { matchmakingBusy = false; render(); }
-  // Only a successful empty search from this explicit click may start waiting.
-  // Lost responses and resumed searches retain their original identity instead.
-  if (startWaiting) return recruitPublicOpponent();
+  // v14: joining and waiting are separate explicit choices, including after resume.
 }
 
 async function cancelPublicMatchmaking() {
@@ -6307,7 +6303,7 @@ $("chooseFriendBattle").onclick = () => chooseBattleRoute("friend");
 $("choosePublicBattle").onclick = () => chooseBattleRoute("public");
 $("joinRoom").onclick = joinRoom;
 $("recruitOpponent").onclick = recruitPublicOpponent;
-$("findOpponent").onclick = () => findPublicOpponent({ waitIfNone: true });
+$("findOpponent").onclick = () => findPublicOpponent();
 $("cancelMatchmaking").onclick = cancelPublicMatchmaking;
 $("startStandardCpuHome").onclick = (event) => beginImmediateCpuEntry(event.currentTarget);
 $("startStandardCpuLobby").onclick = (event) => beginImmediateCpuEntry(event.currentTarget);

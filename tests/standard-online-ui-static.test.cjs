@@ -82,7 +82,7 @@ test("CPU commentary is public-event-only, bounded, non-blocking, and terminal-p
   assert.match(html, /standard-online-client\.js\?v=20260910-1/);
   assert.match(html, /standard-online-skill-intents\.js\?v=20260911-21/);
   assert.match(html, /cpu-commentary\.js\?v=20260910-1/);
-assert.match(html, /app\.js\?v=20260913-44/);
+assert.match(html, /app\.js\?v=20260913-45/);
   assert.match(app, /cpuCommentary\?\.VERSION !== "standard-cpu-commentary-v3"/);
   assert.ok(html.indexOf("cpu-commentary.js") < html.indexOf('type="module" src="app.js'));
   assert.match(html, /id="cpuCommentaryStage"[^>]+aria-hidden="true"/);
@@ -255,7 +255,7 @@ test("UDL023 entrance routes are presentational and protect pending public recov
   assert.match(html, /id="startStandardCpuLobby"[^>]+aria-haspopup="dialog"[^>]+aria-label="CPUと対戦">CPU<\/button>/);
   assert.match(html, /id="chooseFriendBattle"[^>]+aria-label="友だちと対戦">友だち<\/button>/);
   assert.match(html, /id="choosePublicBattle"[^>]+aria-label="だれとでも対戦">だれとでも<\/button>/);
-  assert.match(html, /ui-diet\.css\?v=20260912-3/);
+  assert.match(html, /ui-diet\.css\?v=20260913-4/);
   for (const [button, panel] of [["chooseFriendBattle", "friendBattlePanel"], ["choosePublicBattle", "matchmakingPanel"]]) {
     assert.match(html, new RegExp('id="' + button + '"[^>]*aria-expanded="false"[^>]*aria-controls="' + panel + '"'));
   }
@@ -264,8 +264,13 @@ test("UDL023 entrance routes are presentational and protect pending public recov
   assert.match(app, /snapshot\.matchmakingTicketId \|\| snapshot\.matchmakingFindActionId \? "public" : battleEntranceRoute/);
   const route = app.slice(app.indexOf("function chooseBattleRoute("), app.indexOf("function safeJson("));
   assert.doesNotMatch(route, /client\.(?:createRoom|joinRoom|findOpponent|recruitOpponent)/);
-  assert.match(app, /startWaiting = waitIfNone && result\?\.matchmaking_status === "none_available"/);
-  assert.match(app, /if \(startWaiting\) return recruitPublicOpponent\(\)/);
+  // v14 explicitly replaces the old successful-empty-find -> automatic recruit rule.
+  const find = app.slice(app.indexOf("async function findPublicOpponent("), app.indexOf("async function cancelPublicMatchmaking("));
+  assert.doesNotMatch(find, /recruitPublicOpponent|waitIfNone|startWaiting/);
+  assert.match(find, /client\.findOpponent/);
+  assert.match(html, /<button id="recruitOpponent" type="button">相手を待つ<\/button>/);
+  assert.match(html, /<button id="findOpponent" type="button" class="primary">待っている相手に参加<\/button>/);
+  assert.doesNotMatch(html, /publicWaitingOptions|相手を待つだけにする/);
 });
 
 test("UDL023 flat entrance keeps three peer columns and a keyboard heading without a yellow frame", () => {
@@ -469,7 +474,7 @@ test("existing online progression is hydrated from the server rather than re-upl
 
 test("UI derives its canonical and experimental card metadata from the generated registry", () => {
   assert.equal(Object.values(STANDARD_SKILLS).filter((skill) => skill.v49Catalogued).length, 19);
-  assert.match(html, /standard-skill-registry\.generated\.js\?v=20260912-2[\s\S]+app\.js\?v=20260913-44/);
+  assert.match(html, /standard-skill-registry\.generated\.js\?v=20260912-2[\s\S]+app\.js\?v=20260913-45/);
   assert.match(app, /const STANDARD_SKILL_REGISTRY = globalThis\.FourColorStandardSkillRegistry/);
   assert.match(app, /STANDARD_SKILL_REGISTRY\.v49SkillIds\.map/);
   assert.match(app, /Object\.entries\(STANDARD_SKILL_REGISTRY\.skills\)/);
