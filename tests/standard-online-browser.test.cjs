@@ -6860,10 +6860,19 @@ test("UDL067 face follows all ten public CPU identities and clears without a gam
     assert.equal(await page.locator("#surrenderCpuPortraitFrame").isHidden(),true);
     assert.equal(await page.locator("#surrenderCpuPortraitFrame").getAttribute("data-portrait-key"),null);
     for (const kind of ["human","cpu"]) {
-      await page.evaluate(kind => { const r=globalThis.__standardOnlineRuntime;
-        r.room={...r.room,opponent_kind:kind,cpu_character_id:"unknown"}; r.onInvalidate(); }, kind);
+      const expectedTurn = await page.evaluate(kind => { const r=globalThis.__standardOnlineRuntime,version=r.room.version+1;
+        // Both generic variants hide commentary; that unchanged node is not a refresh barrier.
+        // Exercise a delayed snapshot without suppressing the product's stale-consent guard.
+        globalThis.__randomRevealSnapshotDelayMs=kind==="cpu"?500:0;
+        r.room={...r.room,version,opponent_kind:kind,cpu_character_id:"unknown",
+          public_state:{...r.room.public_state,version,turn:version}};
+        r.view={...r.view,version};r.onInvalidate();return version; }, kind);
       await page.waitForFunction(() => document.querySelector("#cpuCommentaryStage").classList.contains("hidden"));
+      await page.waitForFunction(turn => document.querySelector("#versionText").textContent===String(turn),expectedTurn);
+      assert.equal(await page.locator("#versionText").textContent(),String(expectedTurn));
+      await page.evaluate(()=>{globalThis.__randomRevealSnapshotDelayMs=0;});
       await page.locator("#colorSurrender:not([disabled])").click();
+      await page.locator("#surrenderDialog[open]").waitFor();
       assert.equal(await page.locator("#surrenderCpuPortraitFrame").isHidden(), true);
       assert.equal(await page.locator("#surrenderDescription").textContent(), dialogue.dialogueFor(kind,"unknown").line);
       await page.locator("#cancelSurrender").click();
