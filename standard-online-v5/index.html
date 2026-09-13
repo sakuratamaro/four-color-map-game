@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="quiz-memo.css?v=20260912-2">
   <link rel="stylesheet" href="ui-diet.css?v=20260912-3">
   <link rel="stylesheet" href="skill-catalog.css?v=20260912-1">
-  <link rel="stylesheet" href="surrender-confirmation.css?v=20260913-1">
+  <link rel="stylesheet" href="surrender-confirmation.css?v=20260913-2">
   <link rel="stylesheet" href="play-surface.css?v=20260912-1">
   <link rel="stylesheet" href="result-continuation.css?v=20260912-1">
   <link rel="stylesheet" href="skill-cutin.css?v=20260913-1">
@@ -475,8 +475,16 @@
   <dialog id="surrenderDialog" class="room-abandon-dialog" aria-labelledby="surrenderTitle" aria-describedby="surrenderSpeaker surrenderDescription">
     <form method="dialog">
       <h2 id="surrenderTitle">投了しますか？</h2>
-      <p id="surrenderSpeaker" class="muted"></p>
-      <p id="surrenderDescription"></p>
+      <div class="surrender-dialogue">
+        <span id="surrenderCpuPortraitFrame" class="cpu-portrait-frame hidden" aria-hidden="true">
+          <span id="surrenderCpuPortrait" class="cpu-portrait-art" hidden></span>
+          <span id="surrenderCpuPortraitFallback" class="cpu-portrait-fallback">CPU</span>
+        </span>
+        <div class="surrender-dialogue-copy">
+          <p id="surrenderSpeaker" class="muted"></p>
+          <p id="surrenderDescription"></p>
+        </div>
+      </div>
       <div class="room-abandon-dialog-actions">
         <button id="cancelSurrender" type="button" class="ghost" autofocus>対戦を続ける</button>
         <button id="confirmSurrender" type="button" class="danger">投了する</button>
@@ -545,6 +553,6 @@
   <p id="skillCutinAnnouncement" class="visually-hidden" role="status" aria-live="polite" aria-atomic="true"></p>
   <script src="skill-cutin.js?v=20260913-1"></script>
   <script src="surrender-confirmation.js?v=20260913-1"></script>
-  <script type="module" src="app.js?v=20260913-43"></script>
+  <script type="module" src="app.js?v=20260913-46"></script>
 </body>
 </html>

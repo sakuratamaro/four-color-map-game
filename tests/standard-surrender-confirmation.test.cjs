@@ -4,8 +4,8 @@ const {dialogueFor,makeIntent,isCurrentIntent}=require("../standard-online-v5/su
 test("UDL067 native safe-first dialog and its scoped focus style load before app41",()=>{
   const fs=require("node:fs"),path=require("node:path"),root=path.join(__dirname,"../standard-online-v5");
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8"),css=fs.readFileSync(path.join(root,"surrender-confirmation.css"),"utf8");
-  assert.ok(html.indexOf('surrender-confirmation.js?v=20260913-1')<html.indexOf('app.js?v=20260913-43'));
-  assert.ok(html.includes('surrender-confirmation.css?v=20260913-1'));
+  assert.ok(html.indexOf('surrender-confirmation.js?v=20260913-1')<html.indexOf('app.js?v=20260913-46'));
+  assert.ok(html.includes('surrender-confirmation.css?v=20260913-2'));
   const dialog=html.slice(html.indexOf('<dialog id="surrenderDialog"'),html.indexOf('<dialog id="abandonRoomDialog"'));
   assert.match(dialog,/aria-labelledby="surrenderTitle" aria-describedby="surrenderSpeaker surrenderDescription"/);
   assert.match(dialog,/id="cancelSurrender"[^>]+autofocus>対戦を続ける/);
@@ -15,6 +15,20 @@ test("UDL067 native safe-first dialog and its scoped focus style load before app
 function context() { return {connected:true,activeTab:"battle",busy:false,pending:null,clientRoomId:"room",
   model:{room:{id:"room",status:"playing",version:7,opponent_kind:"cpu",cpu_character_id:"yuzu",
     public_state:{status:"ACTIVE",active:"A",version:4,matchId:"match"}},view:{seat:"A",version:7}}}; }
+test("UDL067 face is a decorative normal portrait beside existing copy, not a reward or consent control",()=>{
+  const fs=require("node:fs"),path=require("node:path"),root=path.join(__dirname,"../standard-online-v5");
+  const html=fs.readFileSync(path.join(root,"index.html"),"utf8"),app=fs.readFileSync(path.join(root,"app.js"),"utf8");
+  const dialog=html.slice(html.indexOf('<dialog id="surrenderDialog"'),html.indexOf('<dialog id="abandonRoomDialog"'));
+  assert.match(dialog,/id="surrenderCpuPortraitFrame" class="cpu-portrait-frame hidden" aria-hidden="true"/);
+  assert.match(dialog,/id="surrenderCpuPortrait" class="cpu-portrait-art" hidden/);
+  assert.match(dialog,/id="surrenderCpuPortraitFallback" class="cpu-portrait-fallback">CPU/);
+  assert.equal((dialog.match(/<button/g)||[]).length,2);
+  assert.doesNotMatch(dialog,/<img|tabindex|reward|full.body/i);
+  assert.ok(app.includes("renderSurrenderCpuPortrait(voice.characterId)"));
+  const render=app.slice(app.indexOf("function renderSurrenderCpuPortrait("),app.indexOf("function closeSurrenderDialog("));
+  assert.match(render,/if \(characterId\) renderCpuPortrait\(\.\.\.ids, \{ characterId \}\)/);
+  assert.doesNotMatch(render,/sendAction|client\.|private|Math\.random|setTimeout|terminal-loss/);
+});
 test("UDL067 fixed voice follows each exact existing CPU id, never appearance or list position",()=>{
   const ids=["yuzu","ren","minato","koharu","aoi","kai","tsubasa","shion","rei","kurogane"];
   const lines=ids.map(id=>dialogueFor("cpu",id));

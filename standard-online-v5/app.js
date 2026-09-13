@@ -6080,12 +6080,26 @@ function isSurrenderIntentCurrent() {
   try { return globalThis.FourColorSurrenderConfirmation?.isCurrentIntent(surrenderIntent, surrenderContext()) === true; }
   catch { return false; }
 }
+function renderSurrenderCpuPortrait(characterId = null) {
+  const ids = ["surrenderCpuPortraitFrame", "surrenderCpuPortrait", "surrenderCpuPortraitFallback"];
+  const elements = cpuPortraitElements(...ids);
+  show(ids[0], Boolean(characterId));
+  try {
+    clearCpuPortrait(...ids);
+    if (characterId) renderCpuPortrait(...ids, { characterId }); // Normal face, never a terminal/reward image.
+  } catch {
+    // Optional artwork cannot prevent the existing safe confirmation or show a stale face.
+    elements.art.hidden = true;
+    elements.fallback.hidden = false;
+  }
+}
 function closeSurrenderDialog(restoreFocus = true) {
   const trigger = surrenderDialogTrigger;
   const mayRestore = restoreFocus && isSurrenderIntentCurrent();
   surrenderIntent = null; surrenderDialogTrigger = null;
   const dialog = $("surrenderDialog");
   if (dialog?.open) dialog.close();
+  renderSurrenderCpuPortrait();
   if (mayRestore && trigger?.isConnected && !trigger.disabled && trigger.getClientRects().length) trigger.focus({ preventScroll: true });
 }
 function openSurrenderDialog(trigger = document.activeElement) {
@@ -6096,6 +6110,7 @@ function openSurrenderDialog(trigger = document.activeElement) {
     $("surrenderSpeaker").textContent = intent.opponentKind === "cpu" ? publicActorLabel("B") : "";
     show("surrenderSpeaker", intent.opponentKind === "cpu");
     $("surrenderDescription").textContent = voice.line;
+    renderSurrenderCpuPortrait(voice.characterId);
     surrenderIntent = intent;
     surrenderDialogTrigger = trigger instanceof HTMLElement ? trigger : $("surrender");
     skillCutin.interrupt();

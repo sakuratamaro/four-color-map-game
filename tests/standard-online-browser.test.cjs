@@ -6758,6 +6758,88 @@ test("actual browser never draws removed current or previous region history outl
   }, { viewport: { width: 390, height: 844 } });
 });
 
+test("UDL067 face follows all ten public CPU identities and clears without a game write", { timeout: 120000 }, async () => {
+  await withPage("colorResponse", async page => {
+    const names = { yuzu:"ユズ", ren:"レン", minato:"ミナト", koharu:"コハル", aoi:"アオイ",
+      kai:"カイ", tsubasa:"ツバサ", shion:"シオン", rei:"レイ", kurogane:"クロガネ" };
+    const dialogue = require("../standard-online-v5/surrender-confirmation.js");
+    const portraits = require("../standard-online-v5/cpu-portraits.js");
+    const commands = () => page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter(c => c.body).map(c => c.body));
+    const before = await commands();
+    for (const [id, name] of Object.entries(names)) {
+      await page.evaluate(id => {
+        const r = globalThis.__standardOnlineRuntime;
+        r.room = { ...r.room, opponent_kind:"cpu", cpu_character_id:id }; r.onInvalidate();
+      }, id);
+      await page.waitForFunction(name => document.querySelector("#cpuCommentaryName")?.textContent.includes(name), name);
+      await page.locator("#colorSurrender:not([disabled])").click();
+      await page.locator("#surrenderDialog[open]").waitFor();
+      const frame = page.locator("#surrenderCpuPortraitFrame");
+      await page.waitForFunction(() => document.querySelector("#surrenderCpuPortraitFrame").dataset.portraitStatus === "ready");
+      assert.equal(await frame.getAttribute("data-portrait-key"), id + ":normal");
+      assert.equal(await frame.getAttribute("data-portrait-mode"), "normal");
+      assert.equal(await frame.getAttribute("data-portrait-reason"), null);
+      assert.equal(await frame.getAttribute("aria-hidden"), "true");
+      assert.equal(await frame.isVisible(), true);
+      assert.equal(await frame.locator("button,a,[tabindex]").count(), 0);
+      assert.match(await page.locator("#surrenderSpeaker").textContent(), new RegExp(name));
+      assert.equal(await page.locator("#surrenderDescription").textContent(), dialogue.dialogueFor("cpu", id).line);
+      const selection = portraits.selectCpuPortrait({ characterId:id });
+      assert.deepEqual(await page.locator("#surrenderCpuPortrait").evaluate(el => ({
+        x:el.style.getPropertyValue("--cpu-portrait-x"), y:el.style.getPropertyValue("--cpu-portrait-y"), hidden:el.hidden
+      })), { x:selection.x, y:selection.y, hidden:false });
+      await page.evaluate(() => { globalThis.__faceBefore = document.querySelector("#surrenderCpuPortrait"); globalThis.__standardOnlineRuntime.onInvalidate(); });
+      assert.equal(await page.evaluate(() => document.querySelector("#surrenderCpuPortrait") === globalThis.__faceBefore), true);
+      assert.equal(await page.evaluate(() => document.activeElement.id), "cancelSurrender");
+      await page.keyboard.press("Escape");
+      assert.equal(await frame.isHidden(), true);
+      assert.equal(await frame.getAttribute("data-portrait-key"), null);
+    }
+    await page.locator("#colorSurrender:not([disabled])").click();
+    await page.evaluate(() => { const r=globalThis.__standardOnlineRuntime;
+      r.room={...r.room,cpu_character_id:"rei"};r.onInvalidate(); });
+    await page.locator("#surrenderDialog").waitFor({state:"hidden"});
+    assert.equal(await page.locator("#surrenderCpuPortraitFrame").isHidden(),true);
+    assert.equal(await page.locator("#surrenderCpuPortraitFrame").getAttribute("data-portrait-key"),null);
+    for (const kind of ["human","cpu"]) {
+      await page.evaluate(kind => { const r=globalThis.__standardOnlineRuntime;
+        r.room={...r.room,opponent_kind:kind,cpu_character_id:"unknown"}; r.onInvalidate(); }, kind);
+      await page.waitForFunction(() => document.querySelector("#cpuCommentaryStage").classList.contains("hidden"));
+      await page.locator("#colorSurrender:not([disabled])").click();
+      assert.equal(await page.locator("#surrenderCpuPortraitFrame").isHidden(), true);
+      assert.equal(await page.locator("#surrenderDescription").textContent(), dialogue.dialogueFor(kind,"unknown").line);
+      await page.locator("#cancelSurrender").click();
+    }
+    assert.deepEqual(await commands(), before);
+  }, { viewport:{width:390,height:844}, bodyTimeout:70000 });
+});
+
+for (const unavailable of ["atlas", "module"]) {
+  test("UDL067 face " + unavailable + " failure keeps visible fallback and safe explicit confirmation", { timeout: 120000 }, async () => {
+    const errors=[];
+    await withPage("colorResponse", async page => {
+      await page.evaluate(() => { const r=globalThis.__standardOnlineRuntime;
+        r.room={...r.room,opponent_kind:"cpu",cpu_character_id:"rei"};r.onInvalidate(); });
+      await page.waitForFunction(() => document.querySelector("#cpuCommentaryName")?.textContent.includes("レイ"));
+      const count=()=>page.evaluate(()=>globalThis.__standardOnlineRuntime.calls.filter(c=>c.body?.operation==="action").length);
+      const before=await count();
+      await page.locator("#colorSurrender:not([disabled])").click();
+      await page.locator("#surrenderDialog[open]").waitFor();
+      assert.equal(await page.locator("#surrenderCpuPortraitFrame").isVisible(),true);
+      assert.equal(await page.locator("#surrenderCpuPortrait").isHidden(),true);
+      assert.equal(await page.locator("#surrenderCpuPortraitFallback").isVisible(),true);
+      assert.equal(await page.evaluate(()=>document.activeElement.id),"cancelSurrender");
+      await page.keyboard.press("Enter");assert.equal(await count(),before);
+      await page.locator("#colorSurrender").click();await page.locator("#confirmSurrender").click();
+      await page.locator("#terminalOverlay").waitFor({state:"visible"});
+      assert.equal(await count(),before+1);assert.deepEqual(errors,[]);
+    }, {viewport:{width:390,height:844},beforeNavigate:async page=>{
+      page.on("pageerror",error=>errors.push(error.message));
+      await page.route(unavailable==="atlas"?"**/cpu-portrait-atlas.png":"**/cpu-portraits.js*",route=>route.abort("failed"));
+    }});
+  });
+}
+
 test("UDL067 CPU surrender is cancel-first, stable, keyboard-safe and one explicit terminal write", { timeout: 120000 }, async () => {
   await withPage("colorResponse", async page => {
     await page.emulateMedia({ reducedMotion: "reduce" });
@@ -6769,13 +6851,15 @@ test("UDL067 CPU surrender is cancel-first, stable, keyboard-safe and one explic
     await page.locator("#colorSurrender:not([disabled])").waitFor();
     const count=()=>page.evaluate(()=>globalThis.__standardOnlineRuntime.calls.filter(c=>c.body?.operation==="action").length);
     const before=await count();
-    for(const width of [390,768,1280]){
-      await page.setViewportSize({width,height:900});
+    for(const [width,height] of [[390,844],[768,900],[1280,900],[844,390]]){
+      await page.setViewportSize({width,height});
       await page.locator("#colorSurrender").focus();await page.keyboard.press("Enter");
       await page.locator("#surrenderDialog[open]").waitFor();
       assert.equal(await page.evaluate(()=>document.activeElement.id),"cancelSurrender");
       assert.equal(await page.locator("#cancelSurrender").evaluate(el=>getComputedStyle(el).outlineColor),"rgb(103, 232, 249)");
       assert.match(await page.locator("#surrenderSpeaker").textContent(),/レイ/);
+      assert.equal(await page.locator("#surrenderCpuPortraitFrame").isVisible(),true);
+      assert.equal(await page.locator("#surrenderCpuPortraitFrame").getAttribute("data-portrait-key"),"rei:normal");
       assert.equal(await page.locator("#surrenderDescription").textContent(),"ここまでにしますか？ もう少し、あなたの選択を観察したかったです。");
       const geometry=await page.locator("#surrenderDialog").evaluate(el=>{
         const r=el.getBoundingClientRect();return {fit:r.x>=0&&r.right<=innerWidth&&r.y>=0&&r.bottom<=innerHeight,
