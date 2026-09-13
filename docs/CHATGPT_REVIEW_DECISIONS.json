@@ -41,7 +41,7 @@
     }
   ],
   "coordination": {
-    "status": "public_actions_043_hold_evidence_correction_preparation",
+    "status": "public_actions_hold043_evidence_correction_delivered_review_pending",
     "latest_v8_intake": {
       "state": "PAIRED_SOURCE_AND_ZIP_VERIFIED_ALIASES_MAPPED",
       "source_thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
@@ -393,10 +393,10 @@
     },
     "automation_id": "automation",
     "automation_status_at_recording": "ACTIVE",
-    "automation_readback_updated_at": 1789279604546,
+    "automation_readback_updated_at": 1789281934375,
     "automation_prompt_readback_equal": true,
     "automation_pause_reason": null,
-    "automation_active_reason": "Actual sameheartbeat ACTIVE at original second slot06:26:14Z; first unexecuted slot forfeited, two remaining, original expiry unchanged.",
+    "automation_active_reason": "One exact delivered same845 evidence-correction supplement, only original100minute slot remains; HOLD and immutable deadline retained.",
     "completed_review_waits": [
       {
         "root_request_message_id": "8464f659-ad62-4c09-83d9-44e1cc91316b",
@@ -1162,7 +1162,14 @@
       "closed_at_utc": "2026-09-13T06:27:21Z",
       "closed_review_id": "CHATGPT-REVIEW-20260913-043",
       "closed_response_message_id": "23050cab-6dd2-494a-a14f-707f79a6a517",
-      "closing_note": "Original043 response received. A same-logical-subject evidence correction may use only original remaining100minute slot and07:46:14Z expiry, never a new wait budget."
+      "closing_note": "Original043 response received. A same-logical-subject evidence correction may use only original remaining100minute slot and07:46:14Z expiry, never a new wait budget.",
+      "followup_subject_sha": "84587830730c1f62cf8c502daac4d768886a3f4d",
+      "followup_request_message_id": "e547dc5b-3f8a-4b02-80ad-7add9d3ab93e",
+      "followup_status": "review_pending",
+      "followup_kind": "same_candidate_043_log_evidence_correction",
+      "followup_original_expiry_unchanged": true,
+      "followup_delivery_readback_checks": 2,
+      "followup_delivery_confirmed_at_utc": "2026-09-13T06:48:31Z"
     },
     "pending_review_subject": {
       "subject_sha": "84587830730c1f62cf8c502daac4d768886a3f4d",
@@ -1186,8 +1193,8 @@
     "pending_subject_sha": "84587830730c1f62cf8c502daac4d768886a3f4d",
     "pending_scope": "Pages_only",
     "pending_delivery_status": "delivery_verified_response_pending",
-    "last_confirmed_sent_message_id": "ef4742c7-afbb-478b-8965-0210ef000f5e",
-    "last_sent_message_id": "ef4742c7-afbb-478b-8965-0210ef000f5e",
+    "last_confirmed_sent_message_id": "e547dc5b-3f8a-4b02-80ad-7add9d3ab93e",
+    "last_sent_message_id": "e547dc5b-3f8a-4b02-80ad-7add9d3ab93e",
     "self_sent_message_ids": [
       "ef6f161d-f2b9-40c0-ab06-f6eacf4c4d38",
       "cefaccf8-2648-4d63-b7fe-5a4a78023ec2",
@@ -1226,9 +1233,10 @@
       "3e6efd53-710a-45ed-9de4-05627ca5f40e",
       "d8f4ef3e-b6f7-471c-911f-65ce3dabc3c0",
       "18888286-8407-426f-8be7-23d3b2556e71",
-      "ef4742c7-afbb-478b-8965-0210ef000f5e"
+      "ef4742c7-afbb-478b-8965-0210ef000f5e",
+      "e547dc5b-3f8a-4b02-80ad-7add9d3ab93e"
     ],
-    "sent_at_utc": "2026-09-13T05:48:19Z",
+    "sent_at_utc": "2026-09-13T06:43:36Z",
     "last_check_utc": "2026-09-13T06:27:21Z",
     "unchanged_checks": 0,
     "reminder_count": 0,
@@ -3562,7 +3570,7 @@
           "public_base_sha": "954e1c5c52d5453fc9fee9872b2d7e922f850a39",
           "release_after_sha": "70e691b6f8f1d808476e80990d20df7862bfb782",
           "candidate_sha": "84587830730c1f62cf8c502daac4d768886a3f4d",
-          "state": "HOLD_CI_LOG_RECONCILIATION",
+          "state": "HOLD_SUPPLEMENT_REVIEW_PENDING",
           "spec_path": "docs/UI_PUBLIC_MATCH_ACTIONS_20260913.md",
           "spec_version": "UDL-023-public-actions-v1",
           "spec_snapshot_sha": "468dad9e85fa633e47ea75a79628d18a0ad10565",
@@ -3574,10 +3582,10 @@
           "publication_authorized": false,
           "live_reexecution_authorized": false,
           "live_canary_attempts": 0,
-          "review_status": "HOLD",
-          "review_id": "CHATGPT-REVIEW-20260913-043",
-          "review_request_message_id": "ef4742c7-afbb-478b-8965-0210ef000f5e",
-          "review_response_message_id": "23050cab-6dd2-494a-a14f-707f79a6a517",
+          "review_status": "PENDING",
+          "review_id": null,
+          "review_request_message_id": "e547dc5b-3f8a-4b02-80ad-7add9d3ab93e",
+          "review_response_message_id": null,
           "review_send_attempts": 1,
           "push_status": "PUSHED_EXACT_BRANCH",
           "local_verification": "PASS",
@@ -3590,7 +3598,7 @@
           "review_patch_path": "docs/UI_PUBLIC_MATCH_ACTIONS_REVIEW_20260913.patch",
           "evidence_path": "docs/UI_PUBLIC_MATCH_ACTIONS_LOCAL_20260913.md",
           "non_change": "Parent70e, CPU100/9590/039, old040FAIL/067partial/062/F3; game/client/RPC/DB/Edge/managed/artwork unchanged. No new test profile/match or real-user find/recruit.",
-          "next_action": "Save genuine043 HOLD and send one same-candidate evidence correction for wrong B1 test identity. No candidate mutation or CI retry.",
+          "next_action": "Read genuine same845 supplement at original07:26:14Z slot only. HOLD043 and actualWindowsFAIL remain; no candidate change or CI retry.",
           "windows_jobs": [
             {
               "id": "103679089219",
@@ -3608,22 +3616,22 @@
           "review_patch_sha256": "d68fa62cd96c0e74fa872371bdafcbd782c65f255d1dbf9625c2eb06ef5d163d",
           "review_delivery_readback_checks": 2,
           "review_reserved_before_api": true,
-          "review_reserved_at_utc": "2026-09-13T05:46:14Z",
+          "review_reserved_at_utc": "2026-09-13T06:42:48Z",
           "review_packet_path": "docs/ASTRA_UI_PUBLIC_MATCH_ACTIONS_REVIEW_20260913.md",
-          "review_body_characters": 3852,
-          "review_evidence_sha": "58f2cac4745fd349aa402670cee262ef67cee7a4",
+          "review_body_characters": 2308,
+          "review_evidence_sha": "d992a81035410a224ef07657c044b7b5209e73ee",
           "review_patch_remote_full_equal": true,
           "send_api_accepted": true,
           "send_api_target_thread_id": "6aa229e7-e098-83ee-ac5e-d366a12653a4",
-          "send_api_observed_at_utc": "2026-09-13T05:48:19Z",
+          "send_api_observed_at_utc": "2026-09-13T06:43:36Z",
           "review_first_delivery_read_reserved_before_api": true,
           "review_second_delivery_read_reserved_before_api": true,
-          "review_first_delivery_result": "Read1 returned old completed042 pair while destination active; no resend and no review consumption.",
+          "review_first_delivery_result": "Read1 returned old completed043 pair while actual threadactive. New body not yet visible; no resend and no new review consumption.",
           "review_delivery_verified": true,
-          "review_delivery_verified_at_utc": "2026-09-13T05:50:13Z",
-          "review_delivery_characters": 3852,
-          "review_response_observed": true,
-          "review_delivery_result": "Read2 exact3852-character delivered request in active genuine chat; no assistant response yet. Two bounded delivery reads total; no resend.",
+          "review_delivery_verified_at_utc": "2026-09-13T06:48:31Z",
+          "review_delivery_characters": 2308,
+          "review_response_observed": false,
+          "review_delivery_result": "Read2 exact2308-character supplement delivered to same genuine active ChatGPT task; no assistant response present. Read1 old043 pair; two bounded delivery reads total, no resend.",
           "windows_completed_observed_at_utc": "2026-09-13T05:53:33Z",
           "windows_verification": "Final attempt1: Chrome contract657/657, online150/151 FAIL; Edge contract657/657, lifecycle79/79, online151/151 PASS. Chrome lifecycle existingSKIP. See saved final JSON; no retry.",
           "windows_failure": {
@@ -3654,7 +3662,54 @@
             "product_changed": false,
             "ci_reruns": 0
           },
-          "review_received_at_utc": "2026-09-13T06:27:21Z"
+          "review_received_at_utc": null,
+          "review_request_history": [
+            {
+              "request_message_id": "ef4742c7-afbb-478b-8965-0210ef000f5e",
+              "response_message_id": "23050cab-6dd2-494a-a14f-707f79a6a517",
+              "review_id": "CHATGPT-REVIEW-20260913-043",
+              "status": "HOLD",
+              "send_attempts": 1,
+              "delivery_reads": 2,
+              "body_characters": 3852,
+              "delivery_exact": true,
+              "evidence_sha": "58f2cac4745fd349aa402670cee262ef67cee7a4",
+              "received_at_utc": "2026-09-13T06:27:21Z"
+            }
+          ],
+          "review_supplement": {
+            "kind": "CI_FAILURE_IDENTITY_CORRECTION",
+            "source_review_id": "CHATGPT-REVIEW-20260913-043",
+            "source_response_message_id": "23050cab-6dd2-494a-a14f-707f79a6a517",
+            "original_request_message_id": "ef4742c7-afbb-478b-8965-0210ef000f5e",
+            "candidate_unchanged": true,
+            "evidence_sha": "d992a81035410a224ef07657c044b7b5209e73ee",
+            "evidence_path": "docs/UI_PUBLIC_MATCH_ACTIONS_REVIEW_CORRECTION_20260913.md",
+            "send_attempts": 1,
+            "reserved_before_api": true,
+            "reserved_at_utc": "2026-09-13T06:42:48Z",
+            "request_body": "アストラ先生へ。返答23050cabを真正043/HOLDとして原文保存しました。保留を自己解除せず、B1の失敗対象が同じjobの実ログと一致しない点について、証拠の訂正と次作業の補完判定をお願いします。全16ファイル再送や新しい公開申請ではありません。\n\nSUBJECT_SHA: 84587830730c1f62cf8c502daac4d768886a3f4d\nBASE_SHA / RELEASE_AFTER_SHA: 70e691b6f8f1d808476e80990d20df7862bfb782\nCANON_VERSION: shared-canon-v1.1\nFEATURE_SPEC_VERSION: UDL-023-public-actions-v1\nSPEC_BLOB: 468dad9e85fa633e47ea75a79628d18a0ad10565\nSCOPE: Pages_only\nDB_CHANGE_SET: []\nEDGE_CHANGE_SET: []\nMANAGED_SETTING_CHANGE_SET: []\n候補845の製品コード・テスト・SHAは無変更、CI再実行0、本番変更0です。\n\n043には「図鑑カードタブtimeout・148/149」とありますが、指定された同じChrome job103679089219/run34740424933 attempt1を受領後に一度だけ再取得した全424292字は、前回取得と全文一致でした。そのログはcheckout845、contract657/657、online150/151です。\n05:31:19Z: ✔ UDL066 fresh catalog exposes all 21 native detail buttons without creating a profile or spending (3542.1235ms)\n05:37:09Z: ✖ actual browser selects Half Shift and Triple Shift bands on the board at 390px\n05:43:26Z: tests151/pass150/fail1、失敗locatorは「#skillTargetControls >> 対象：上から4行目」30000ms。\nしたがって図鑑起動の改修には進めず、実際のShift失敗に絞りました。原FAILは維持しています。\n\n原job:\nhttps://github.com/sakuratamaro/four-color-map-game/actions/runs/34740424933/job/103679089219\n公開済み固定証拠（GOV d992a81035410a224ef07657c044b7b5209e73ee、本文取得可能確認済み）:\nhttps://raw.githubusercontent.com/sakuratamaro/four-color-map-game/d992a81035410a224ef07657c044b7b5209e73ee/docs/UI_PUBLIC_MATCH_ACTIONS_REVIEW_CORRECTION_20260913.md\n同commitのSHIFT_BAND_POINTER_DIAGNOSIS_20260913.md/.jsonに局所実験と数値、scripts/diagnose-shift-band-pointer.cjsにfixture専用観測器があります。真正043全文・台帳・厳密binding検査も保存。共有検査は初回17/18の新043binding未登録FAILを保持し、追加登録後57/57PASSです。\n\n局所実験では、無変更の元Shift試験は通常Chrome3回とも1/1PASS。CI原因は再現できていません。一方、測定後にviewport390x844→390x630へ変える制御実験では、盤面328→292pxになり、古い位置でnative clickすると行5を押して製品は正しく行5を表示、元の行4assertionがFAIL。同じ条件で座標を取り直すと行4を押して、元のhighlightとHalf/TripleShift両payload判定までPASSでした。製品の誤動作や原CIの原因を証明したとは扱いません。\n\n次案は、図鑑や製品UIを変えず、対象選択テストのscroll/geometry安定待機→現在の盤面寸法からnative入力し、決定的resize回帰を加える狭い修正です。原行番号・highlight・payload・timeoutは維持し、新SHAになれば対象付きWindowsとレビューを別途通します。成功までのCI反復や043の条件付き再実行は、まだ行っていません。B1の失敗identity訂正と、この根拠に基づく次作業の判定をお願いします。043HOLDは補完判定まで維持します。\n\n親70e/042のsource本人受渡し・公開順、クロガネ100回9590/039、040原FAIL/消費済み試行、067/062/F3は不変。追加profile/対局/find/recruit/live0。今回補完でも原起点05:46:14Zと期限07:46:14Zを動かさず、最初の06:06枠は放棄、06:26枠を1回消費済み、残る読取は原07:26:14Z枠だけです。返答や修正で新120分を作らず、未回答は承認にしません。",
+            "request_characters": 2308,
+            "request_message_id": "e547dc5b-3f8a-4b02-80ad-7add9d3ab93e",
+            "delivery_readback_checks": 2,
+            "total_logical_subject_sends": 2,
+            "reminder": false,
+            "old_hold_preserved": true,
+            "finite_wait_reset": false,
+            "send_api_accepted": true,
+            "send_api_observed_at_utc": "2026-09-13T06:43:36Z",
+            "first_delivery_read_reserved_at_utc": "2026-09-13T06:43:36Z",
+            "first_delivery_result": "Read1 returned old completed043 pair while actual threadactive. New body not yet visible; no resend and no new review consumption.",
+            "second_delivery_read_reserved_at_utc": "2026-09-13T06:46:13Z",
+            "delivery_verified": true,
+            "body_exact_equal": true,
+            "delivery_verified_at_utc": "2026-09-13T06:48:31Z",
+            "destination_status": "active",
+            "observed_turn_status": "completed",
+            "assistant_response_present": false,
+            "delivery_result": "Read2 exact2308-character supplement delivered to same genuine active ChatGPT task; no assistant response present. Read1 old043 pair; two bounded delivery reads total, no resend."
+          },
+          "review_hold_id": "CHATGPT-REVIEW-20260913-043"
         }
       },
       "catalog_preparation": {
@@ -4091,7 +4146,7 @@
       "evidence": "docs/QUIZ_QUESTION_IDENTITY_INTAKE_20260912.md",
       "note": "Genuine completed text subsequently received in normal authorized reviewer-chat reading; no image viewed or forwarded and no original session identified."
     },
-    "sent_at_precision": "Conservative original send reservation; never move deadline to later delivery confirmation",
+    "sent_at_precision": "Adjacent clock after supplement sendAPI, not exact delivery instant; original reservation retained.",
     "publication_report_history": [
       {
         "subject_sha": "d6f745d3f1291457539dd2f3476e9a749a547069",
@@ -4242,8 +4297,8 @@
       "next_run": {
         "phase": "RECEIVE",
         "subject_sha": "84587830730c1f62cf8c502daac4d768886a3f4d",
-        "at_utc": "2026-09-13T06:26:14.000Z",
-        "reason": "Original40minute slot; first unexecuted20minute slot forfeited on final safety margin failure. Budget/expiry unchanged."
+        "at_utc": "2026-09-13T07:26:14.000Z",
+        "reason": "Same logical845 correction uses only remaining original100minute slot; first slot forfeited, second consumed, original expiry07:46:14Z unchanged."
       },
       "first_scheduled_normal_run": {
         "status": "OBSERVED",
@@ -4261,15 +4316,15 @@
         "id": "automation",
         "status": "ACTIVE",
         "target_thread_id": "01a07b56-616e-7733-9aae-90575659688e",
-        "rrule": "FREQ=DAILY;BYHOUR=15;BYMINUTE=26;BYSECOND=14",
-        "updated_at": 1789279604546,
+        "rrule": "FREQ=DAILY;BYHOUR=16;BYMINUTE=26;BYSECOND=14",
+        "updated_at": 1789281934375,
         "created_at": 1789048677730,
         "prompt_exact_equal": true,
-        "scheduled_for_utc": "2026-09-13T06:26:14.000Z",
+        "scheduled_for_utc": "2026-09-13T07:26:14.000Z",
         "readback_verified": true,
-        "verification_source": "Same heartbeat update API ACTIVE and full actual TOML readback; exact prompt/calendar/target preserved. Configuration only, no future execution claim.",
-        "verified_at_utc": "2026-09-13T06:06:52Z",
-        "verification_time_precision": "Clock immediately after successful full-file readback."
+        "verification_source": "Same heartbeat updateAPI and complete actualTOML readback exact prompt/calendar/target; no future scheduled execution claim.",
+        "verified_at_utc": "2026-09-13T06:48:31Z",
+        "verification_time_precision": "Adjacent clock after fullTOML strict string comparison."
       },
       "normal_work_claim": "New845 implementation and sole exact review delivery completed; awaiting first original finite response slot. Parent70e current-source handoff and CPU100 remain separate.",
       "review_scope": "New845 only: base70e, UDL-023-public-actions-v1, blob468d, Pages_only, DB/Edge/managed[], additional live0. Not parent042 or CPU039.",
@@ -4287,7 +4342,7 @@
         "worktree": ".codex-worktrees/ui-public-match-actions-20260913",
         "request": "UDL014/054: bounded diagnosis of frozen845 Windows shift-band pointer failure; no CI rerun or product revision yet.",
         "canon_receipt": "CANON_RECEIPT version=shared-canon-v1.1 governance=888e8ae7e62ed002a7eaae21d4a52776af1dc5a8 candidate=84587830730c1f62cf8c502daac4d768886a3f4d base=70e691b6f8f1d808476e80990d20df7862bfb782 request=UDL-20260906-014,UDL-20260910-054,REG-20260913-SHIFT-BAND-POINTER specs=docs/UI_PLAY_SURFACE_20260912.md tests=existing151-suite-exact-single-case",
-        "result": "PROGRESS: 3 ordinary local1/1PASS; controlled328->292 stale click mappedrow5 andFAIL, freshgeometry mappedrow4 andPASS exactassertions. OriginalCIcauseNOT_PROVEN. Original40minute read returned genuine043HOLD; exactsamejob freshlog proves its catalogfailure identity wrong. No product/CI/production mutation."
+        "result": "PROGRESS: 3 ordinary local1/1PASS; controlled328->292 stale click mappedrow5 andFAIL, freshgeometry mappedrow4 andPASS exactassertions. OriginalCIcauseNOT_PROVEN. Original40minute read returned genuine043HOLD; exactsamejob freshlog proves its catalogfailure identity wrong. No product/CI/production mutation. Genuine043/evidence committed and pushed asd992a810; supplement e547dc5b2308chars delivered once and matched on second bounded delivery read. Actualexistingheartbeat16:26:14JST fullreadback equal, original07:46:14Z expiry. No actualfutureexecution claim."
       },
       "missed_schedule_observation": {
         "scheduled_at_utc": "2026-09-12T06:25:12Z",
@@ -4324,15 +4379,16 @@
         "recovered_without_new_user_wait": true
       },
       "end_turn_guard": {
-        "checked_at_utc": "2026-09-13T06:08:12Z",
+        "checked_at_utc": "2026-09-13T06:49:19Z",
+        "record_time_basis": "Adjacent clock after actual end-turn check, not precise checker invocation",
         "result": "PASS",
         "phase": "WAIT_REVIEW",
         "subject_sha": "84587830730c1f62cf8c502daac4d768886a3f4d",
-        "request_message_id": "ef4742c7-afbb-478b-8965-0210ef000f5e",
-        "at_utc": "2026-09-13T06:26:14.000Z",
+        "request_message_id": "e547dc5b-3f8a-4b02-80ad-7add9d3ab93e",
+        "at_utc": "2026-09-13T07:26:14.000Z",
         "errors": [],
         "scheduled_origin_claimed": false,
-        "note": "Actual end-turn guard passed after conservative forfeiture of first unexecuted slot; next original40minute slot, immutable120minute deadline."
+        "note": "Exact same845 supplement uses original lastslot; actualsameheartbeat fullreadback matched. No wait reset or new controller."
       },
       "latest_receive_schedule_observation": {
         "scheduled_at_utc": "2026-09-12T07:45:12Z",
@@ -4471,9 +4527,9 @@
         "previous_turn_reason": "Implemented/pushed845, exactgenuine review delivered, WindowsFAIL evidence changed release next action; finite existing schedule.",
         "current_turn": "PROGRESS",
         "whole_goal_complete": false,
-        "verified_wait": false,
-        "live_external_job_handle_confirmed": false,
-        "evidence": "docs/SHIFT_BAND_POINTER_DIAGNOSIS_20260913.md and genuine043 plus fresh exact-job evidence discrepancy"
+        "verified_wait": true,
+        "live_external_job_handle_confirmed": true,
+        "evidence": "Controlled localgeometry evidence changed next action; genuine043HOLD saved with exactlog correction; supplement e547dc5b exact2308characters visible in active genuine chat with no assistant response. One original finite slot and actualsameheartbeat verified."
       },
       "documentation_review_followup_history": [
         {
@@ -4545,7 +4601,20 @@
         "action": "Forfeit original first slot without a check; configure original second slot, no reset or added slot.",
         "next_guard": "PASS_ACTUAL_END_TURN",
         "verified_at_utc": "2026-09-13T06:08:12Z"
-      }
+      },
+      "end_turn_guard_history": [
+        {
+          "checked_at_utc": "2026-09-13T06:08:12Z",
+          "result": "PASS",
+          "phase": "WAIT_REVIEW",
+          "subject_sha": "84587830730c1f62cf8c502daac4d768886a3f4d",
+          "request_message_id": "ef4742c7-afbb-478b-8965-0210ef000f5e",
+          "at_utc": "2026-09-13T06:26:14.000Z",
+          "errors": [],
+          "scheduled_origin_claimed": false,
+          "note": "Actual end-turn guard passed after conservative forfeiture of first unexecuted slot; next original40minute slot, immutable120minute deadline."
+        }
+      ]
     },
     "latest_brain_transfer": {
       "version_observed": "v10",

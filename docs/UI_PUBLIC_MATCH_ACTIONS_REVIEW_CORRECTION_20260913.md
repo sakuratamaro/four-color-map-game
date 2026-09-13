@@ -60,3 +60,15 @@ A same-logical845 supplement uses the original05:46:14Z start and07:46:14Z expir
 Parent70e/042 source-artifact hold, release order, CPU100/9590/039, old040 rawFAIL and consumed trial,067/062/F3 remain unchanged. Additional live/profile/match/find/recruit0. Documentation export is not APPROVE_DOCS or game publication.
 
 Governance verification: first shared-canon run17/18PASS failed because the new genuine043 had not yet been added to the explicit exact-binding fixture. Added that exact subject/base/spec/source binding and HOLD/raw-discrepancy preservation assertions without weakening the gate. The combined continuation/shared-canon/v14 suite then passed57/57, fail/skip/cancel0,397.0655ms. Observer syntax and git diff checks passed. Product845 remains clean; unrelated BRAIN_V9_TRANSFER SHA256 remains0c4e4c51074ed2a8f491144014ec57f133960f8748f6e88a1d96d47d4d0fa782.
+
+## Supplement delivery and retained finite resume
+
+Evidence commit d992a81035410a224ef07657c044b7b5209e73ee was pushed force-free to the explicitly authorized codex/dev-brain-current-20260910 branch; its correction document was fetched successfully from the fixed GitHub URL. Seven text files only, no images. This is evidence publication, not main/Pages or game publication.
+
+One2308-character substantive supplement was reserved before send at2026-09-13T06:42:48Z and accepted by the same real ChatGPT task. Bounded delivery read1 returned only old043 while the task was active. Read2 found request e547dc5b-3f8a-4b02-80ad-7add9d3ab93e with the entire2308-character body exactly equal; actual task active and no assistant response in the retrieved turn. Verified by2026-09-13T06:48:31Z. No resend, new review consumption or approval inference. Exact body and source are in the existing public_match_followup.review_supplement; original request/reply043 remain in history and decisions.
+
+The existing heartbeat automation alone is ACTIVE for2026-09-13T07:26:14Z (16:26:14JST), updated_at1789281934375, original target01a07b56-616e-7733-9aae-90575659688e. Complete actual TOML prompt/calendar/target were compared exactly after the API update. Original start05:46:14Z, expiry07:46:14Z, firstslot forfeiture and secondslot consumption are unchanged. This schedule is configuration evidence, not future execution evidence.
+
+After saving the delivered supplement, the focused governance suite again passed57/57, fail/skip/cancel0,445.6497ms. The real end-turn checker returned WAIT_REVIEW for exact e547dc5b/845/original07:26slot with no errors and more than two minutes' margin. No extra reviewer read, old CI polling, product mutation, profile/match/live or production operation followed.
+
+Current broad goal turn made PROGRESS through controlled diagnosis, genuine043 receipt, exact log reconciliation and delivered substantive supplement. The whole goal is not complete. Parent70e fresh-source and CPU039 human-operation holds are unchanged, not new approval requests. Kurogane100 remains adopted and implemented in frozen9590, not yet published.
