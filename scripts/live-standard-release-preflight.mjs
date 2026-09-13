@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { LOCAL_STANDARD_BUNDLE_MARKER, hasApprovedEdgeGachaOdds, hasApprovedGachaOddsUi, hasBoardFirstCandidateGuidance, hasCompactCpuRecords, hasCpuSealTimingPolicy, hasDeferredCurseLocalBundle, hasDirectQuizEntry, hasGachaEntryDiet, hasMatchRewardEconomy, hasPerCellContactFeedback, hasQuizAccuracyRecords, hasRegionSplitDirectTarget, hasWholeButtonQuizPhysics } from "./standard-release-preflight-contracts.mjs";
+import { LOCAL_STANDARD_BUNDLE_MARKER, hasApprovedEdgeGachaOdds, hasApprovedGachaOddsUi, hasBoardFirstCandidateGuidance, hasCompactCpuRecords, hasCpuSealTimingPolicy, hasDeferredCurseLocalBundle, hasDirectQuizEntry, hasGachaEntryDiet, hasHomeRules, hasMatchRewardEconomy, hasPerCellContactFeedback, hasQuizAccuracyRecords, hasRegionSplitDirectTarget, hasWholeButtonQuizPhysics } from "./standard-release-preflight-contracts.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const configSource = fs.readFileSync(path.join(root, "online", "supabase-config.js"), "utf8");
@@ -14,7 +14,8 @@ const publicEdgeBundleUrl = new URL("../supabase/functions/standard-game-action/
 const expectedPhase = process.argv.find((argument) => argument.startsWith("--expect="))?.slice("--expect=".length) || null;
 const zeroUuid = "00000000-0000-0000-0000-000000000000";
 const candidateAssetMarkers = Object.freeze({
-app: "app.js?v=20260914-3",
+app: "app.js?v=20260914-4",
+  homeStyle: "ui-diet.css?v=20260914-1",
   terminalStyle: "terminal-result.css?v=20260914-1",
   commentary: "cpu-commentary.js?v=20260910-1",
   style: "style.css?v=20260914-3",
@@ -107,6 +108,7 @@ const [page, app, resultModel, progressionCss, intents, registry, portraits, por
   }),
 ]);
 
+const homeCss = await getOptionalText(`${publicUrl}ui-diet.css`);
 const portraitAtlasDimensions = pngDimensions(portraitAtlas.bytes);
 
 const result = {
@@ -150,6 +152,7 @@ const result = {
     hasWholeButtonQuizPhysics: hasWholeButtonQuizPhysics(page.text, app.text),
     hasDirectQuizEntry: hasDirectQuizEntry(page.text, app.text),
     hasGachaEntryDiet: hasGachaEntryDiet(page.text, app.text),
+    hasHomeRules: hasHomeRules(page.text, app.text, homeCss.text),
     hasBoardFirstCandidateGuidance: hasBoardFirstCandidateGuidance(page.text, app.text),
     hasPerCellContactFeedback: hasPerCellContactFeedback(app.text),
     hasApprovedGachaOddsUi: hasApprovedGachaOddsUi(page.text, app.text, registry.text),
@@ -161,6 +164,7 @@ const result = {
     hasCpuSealTimingPolicy: publicEdgeBundle.status === 200 && hasCpuSealTimingPolicy(publicEdgeBundle.text),
     hasMatchRewardEconomy: publicEdgeBundle.status === 200 && hasMatchRewardEconomy(page.text, app.text, publicEdgeBundle.text, resultModel.text),
     hasCandidateAssetGeneration: page.text.includes(candidateAssetMarkers.app)
+      && page.text.includes(candidateAssetMarkers.homeStyle)
       && page.text.includes(candidateAssetMarkers.commentary)
       && page.text.includes(candidateAssetMarkers.style)
       && page.text.includes(candidateAssetMarkers.client)
@@ -200,6 +204,10 @@ if (expectedPhase) {
   if (expectedPhase === "candidate") {
     assert.equal(result.publicPage.hasDirectQuizEntry, true, "DIRECT_QUIZ_ENTRY_REQUIRED");
     assert.equal(result.publicPage.hasGachaEntryDiet, true, "GACHA_ENTRY_DIET_REQUIRED");
+    assert.equal(result.publicPage.hasHomeRules, true, "HOME_RULES_REQUIRED");
+    for (const [file, response] of [["index.html", page], ["app.js", app], ["ui-diet.css", homeCss]]) {
+      assert.equal(response.text, fs.readFileSync(path.join(root, "standard-online-v5", file), "utf8"), `HOME_RULES_ASSET_EXACT_${file}`);
+    }
     assert.ok(app.text.includes('result-continuation.js?v=20260914-1'), "TERMINAL_RESULT_MODEL_GENERATION_REQUIRED");
     for (const file of ["terminal-result.css", "result-continuation.js"]) {
       const response = file === "result-continuation.js" ? resultModel : await getText(`${publicUrl}${file}`);

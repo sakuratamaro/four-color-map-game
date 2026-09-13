@@ -1,4 +1,36 @@
 /* UDL023 v2: three peer destinations; preserve route/recovery behavior. */
+/* UDL062/068: two ordinary Home entries; errors and session recovery remain conditional. */
+body[data-active-tab="home"] .connection-card.connection-ready:not(.has-matched-room) { display: none; }
+body[data-active-tab="home"] .connection-card.connection-ready #connectionStatus { display: none; }
+.home-hero { max-width: 820px; width: 100%; box-sizing: border-box; margin-inline: auto; min-width: 0; }
+.home-hero h2 { margin-top: 0; }
+.home-hero .home-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.home-actions > button { min-width: 0; min-height: 52px; margin: 0; padding: 12px 8px; white-space: normal; overflow-wrap: anywhere; }
+.home-actions > button[aria-expanded="true"] { border-color: #67e8f9; background: #164e63; }
+.home-hero .feedback-settings { margin-top: 18px; padding-top: 18px; border-top: 1px solid #334155; }
+.home-hero .feedback-settings.hidden { display: none; }
+.home-hero .feedback-settings h2 { font-size: 1.1rem; }
+.home-hero .feedback-settings-controls { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.home-hero .feedback-toggle { min-width: 0; min-height: 56px; }
+.home-session-recovery { max-width: 820px; width: 100%; box-sizing: border-box; margin-inline: auto; }
+.home-session-recovery > button { min-height: 48px; width: 100%; white-space: normal; }
+.tutorial-dialog { box-sizing: border-box; width: min(720px, calc(100vw - 24px)); max-width: calc(100vw - 24px); max-height: calc(100dvh - 24px); padding: 0 20px 20px; overflow: auto; color: #e2e8f0; background: #0f172a; border: 1px solid #475569; border-radius: 18px; line-height: 1.8; overflow-wrap: anywhere; }
+.tutorial-dialog::backdrop { background: rgb(2 6 23 / .78); }
+.tutorial-header { position: sticky; top: 0; display: flex; justify-content: space-between; align-items: start; gap: 12px; padding-block: 14px; background: #0f172a; border-bottom: 1px solid #334155; z-index: 1; }
+.tutorial-header h2 { margin: 0; font-size: 1.25rem; min-width: 0; }
+.tutorial-header button { flex: 0 0 auto; min-height: 44px; margin: 0; }
+.tutorial-steps { margin: 18px 0; padding-left: 1.6em; }
+.tutorial-steps li + li { margin-top: 20px; }
+.tutorial-steps h3 { margin: 0 0 6px; font-size: 1.05rem; }
+.tutorial-steps p { margin: 0; }
+.tutorial-ending { padding: 12px; border-radius: 10px; background: #172554; }
+.home-actions > button:focus-visible, .feedback-toggle:focus-within, .tutorial-dialog button:focus-visible { outline: 3px solid #fde047; outline-offset: 3px; }
+#tutorialTitle:focus { outline: none; }
+@media (max-width: 420px) {
+  .home-hero { padding: 16px; }
+  .home-hero .feedback-settings-controls { grid-template-columns: minmax(0, 1fr); }
+  .tutorial-dialog { padding-inline: 14px; }
+}
 /* Native focus reserves room for existing fixed notices before they arrive. */
 #quizOptions button { scroll-margin-block: 90px; }
 .battle-entrance { box-sizing: border-box; width: 100%; max-width: 820px; margin-inline: auto; }

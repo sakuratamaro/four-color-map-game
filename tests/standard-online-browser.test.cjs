@@ -41,6 +41,133 @@ async function startMemoQuiz(page, level = "5") {
   await page.locator("#quizOptions button[data-quiz-option]").first().waitFor();
 }
 
+
+for (const mode of ["empty", "lobby"]) {
+  test(`${browserName} Home rules are optional profile-free and close with native focus restoration (${mode})`, {timeout:120000}, async()=>{
+    await withPage(mode,async page=>{
+      await page.getByRole("button",{name:"ホーム",exact:true}).click();
+      assert.equal(await page.locator(".home-actions > button:visible").count(),2);
+      assert.equal(await page.locator("#profileCard").isVisible(),false);
+      assert.equal(await page.locator("#homeSessionRecovery").isVisible(),false);
+      assert.equal(await page.locator("#connectionCard").isVisible(),false);
+      assert.equal(await page.locator("#feedbackSettings").isVisible(),false);
+      const before=await page.evaluate(()=>globalThis.__standardOnlineLifetimeInvocations());
+      await page.locator("#openTutorial").focus();await page.keyboard.press("Enter");
+      await page.locator("#tutorialDialog[open]").waitFor();
+      assert.equal(await page.evaluate(()=>document.activeElement.id),"tutorialTitle");
+      assert.equal(await page.locator(".tutorial-steps > li").count(),4);
+      await page.keyboard.press("Escape");
+      assert.equal(await page.locator("#tutorialDialog").isVisible(),false);
+      assert.equal(await page.evaluate(()=>document.activeElement.id),"openTutorial");
+      await page.keyboard.press("Space");await page.locator("#tutorialDialog[open]").waitFor();
+      await page.locator("#closeTutorial").click();
+      assert.equal(await page.evaluate(()=>document.activeElement.id),"openTutorial");
+      assert.deepEqual(await page.evaluate(()=>globalThis.__standardOnlineLifetimeInvocations()),before);
+      await page.locator("#openTutorial").click();
+      await page.evaluate(()=>{location.hash="profile";});
+      await page.locator("#tutorialDialog").waitFor({state:"hidden"});
+      assert.equal(await page.locator("body").getAttribute("data-active-tab"),"profile");
+    },{viewport:{width:390,height:844}});
+  });
+}
+
+test(`${browserName} Home rules yield to a newly matched room without creating a second game`, { timeout: 120000 }, async () => {
+  await withPage("handoffActivity", async (page) => {
+    await choosePublicWaiting(page);
+    await page.getByRole("button", { name: "ホーム", exact: true }).click();
+    await page.locator("#openTutorial").click();
+    assert.equal(await page.locator("#tutorialDialog").isVisible(), true);
+    const before = await page.evaluate(() => globalThis.__standardOnlineLifetimeInvocations());
+    await page.evaluate(() => {
+      globalThis.__standardOnlineRuntime.matchNow = true;
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+    await page.locator("#tutorialDialog").waitFor({ state: "hidden" });
+    await page.locator("body[data-active-tab='battle']").waitFor();
+    assert.equal(await page.locator("#setupCard").isVisible(), true);
+    assert.equal(await page.locator("#matchedRoomAnnouncement").textContent(), "対戦相手が見つかりました。6枚セットを選んでください。");
+    const after = await page.evaluate(() => globalThis.__standardOnlineLifetimeInvocations());
+    const gameWrites = calls => calls.filter(call => ["profile", "cpu-start", "cpu-accept", "setup", "action", "quiz-start", "gacha"].includes(call.operation));
+    assert.deepEqual(gameWrites(after), gameWrites(before));
+    assert.notEqual(await page.evaluate(() => document.activeElement.id), "openTutorial");
+  }, { viewport: { width: 390, height: 844 } });
+});
+
+test(`${browserName} Home settings preserve consent and storage through close tab and reload`, { timeout: 120000 }, async () => {
+  await withPage("lobby",async page=>{
+    await page.getByRole("button",{name:"ホーム",exact:true}).click();
+    const prefs="fourColorMapGame.standard.online.v5.basic-feedback-settings-v1";
+    const before=await page.evaluate(()=>globalThis.__standardOnlineLifetimeInvocations());
+    await page.locator("#openHomeSettings").focus();await page.keyboard.press("Enter");
+    assert.equal(await page.locator("#openHomeSettings").getAttribute("aria-expanded"),"true");
+    assert.equal(await page.locator("#soundEffectsEnabled").isChecked(),false);
+    assert.equal(await page.locator("#vibrationEnabled").isChecked(),false);
+    await page.locator("#soundEffectsEnabled").focus();await page.keyboard.press("Space");
+    await page.locator("#vibrationEnabled").focus();await page.keyboard.press("Space");
+    const saved=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),prefs);
+    assert.deepEqual(saved,{schemaVersion:1,sound:true,vibration:true});
+    await page.locator("#openHomeSettings").click();
+    assert.equal(await page.locator("#feedbackSettings").isVisible(),false);
+    await page.getByRole("button",{name:"マイページ",exact:true}).click();
+    assert.equal(await page.locator("#feedbackSettings").isVisible(),false);
+    await page.getByRole("button",{name:"ホーム",exact:true}).click();
+    assert.equal(await page.locator("#openHomeSettings").getAttribute("aria-expanded"),"false");
+    assert.deepEqual(await page.evaluate(()=>globalThis.__standardOnlineLifetimeInvocations()),before);
+    await page.reload({waitUntil:"load"});
+    await page.locator("#connectionBadge.good").waitFor({state:"attached"});
+    // Reload legitimately reads the cosmetic catalog once; opening settings must not write.
+    const afterReload=await page.evaluate(()=>globalThis.__standardOnlineLifetimeInvocations());
+    assert.deepEqual(afterReload.slice(before.length),[{operation:"cosmetic-catalog"}]);
+    assert.equal(await page.locator("#feedbackSettings").isVisible(),false);
+    await page.locator("#openHomeSettings").click();
+    assert.equal(await page.locator("#soundEffectsEnabled").isChecked(),true);
+    assert.equal(await page.locator("#vibrationEnabled").isChecked(),true);
+    assert.deepEqual(await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),prefs),saved);
+    assert.deepEqual(await page.evaluate(()=>globalThis.__standardOnlineLifetimeInvocations()),afterReload);
+    await page.context().setOffline(true);
+    await page.getByText("オフライン（復帰待ち）",{exact:true}).waitFor();
+    assert.equal(await page.locator("#connectionCard").isVisible(),true);
+    await page.context().setOffline(false);
+  },{viewport:{width:390,height:844}});
+});
+
+test(`${browserName} Home rules layout remains readable at narrow enlarged text and short landscape`, { timeout: 130000 }, async () => {
+  await withPage("lobby",async page=>{
+    await page.getByRole("button",{name:"ホーム",exact:true}).click();
+    for(const [width,height,zoom] of [[390,844,1],[768,900,1],[1280,900,1],[640,360,1],[320,640,2]]){
+      await page.setViewportSize({width,height});
+      await page.evaluate(z=>{document.documentElement.style.fontSize=(16*z)+"px";window.scrollTo(0,0);},zoom);
+      for(const id of ["openHomeSettings","openTutorial"]){
+        const button=page.locator("#"+id);await button.scrollIntoViewIfNeeded();
+        const r=await button.boundingBox();assert.ok(r.width>=44&&r.height>=44,JSON.stringify({id,r}));
+      }
+      assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
+      await page.locator("#openHomeSettings").click();
+      assert.equal(await page.locator("#feedbackSettings").isVisible(),true);
+      assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
+      await page.locator("#openHomeSettings").click();
+      await page.locator("#openTutorial").click();
+      const dialog=page.locator("#tutorialDialog");
+      const r=await dialog.boundingBox();assert.ok(r.x>=0&&r.y>=0&&r.x+r.width<=width&&r.y+r.height<=height,JSON.stringify({width,height,r}));
+      assert.equal(await dialog.evaluate(el=>el.scrollWidth>el.clientWidth),false);
+      await dialog.locator(".tutorial-ending").scrollIntoViewIfNeeded();
+      assert.equal(await dialog.locator(".tutorial-ending").isVisible(),true);
+      const endingReadable=await dialog.locator(".tutorial-ending").evaluate(el=>{
+        const r=el.getBoundingClientRect();const heading=document.querySelector(".tutorial-header").getBoundingClientRect();
+        const y=Math.min(innerHeight-1,Math.max(r.y,heading.bottom)+8);
+        return y<r.bottom&&el.contains(document.elementFromPoint(r.x+r.width/2,y));
+      });
+      assert.equal(endingReadable,true,JSON.stringify({width,height,zoom}));
+      const close=page.locator("#closeTutorial");const rect=await close.boundingBox();
+      const hit=await close.evaluate(el=>{const r=el.getBoundingClientRect();return el.contains(document.elementFromPoint(r.x+r.width/2,r.y+r.height/2));});
+      assert.ok(rect.height>=44&&hit,JSON.stringify({rect,hit}));
+      if(process.env.HOME_RULES_SCREENSHOTS){fs.mkdirSync(process.env.HOME_RULES_SCREENSHOTS,{recursive:true});await page.screenshot({path:path.join(process.env.HOME_RULES_SCREENSHOTS,`${browserName}-tutorial-${width}-${zoom}x.png`)});}
+      await close.click();
+      if(process.env.HOME_RULES_SCREENSHOTS&&width===390)await page.screenshot({path:path.join(process.env.HOME_RULES_SCREENSHOTS,`${browserName}-home-390.png`)});
+    }
+  },{viewport:{width:390,height:844}});
+});
+
 for (const level of [1, 2, 3, 4, 5]) {
   test(`${browserName} quiz entry starts Lv.${level} exactly once and keeps the chosen session`, { timeout: 130000 }, async () => {
     await withPage("quiz", async (page) => {
@@ -2116,7 +2243,8 @@ async function withPage(mode, run, { bodyTimeout = 35_000, viewport = { width: 9
     await bounded("navigation-ready", page.goto(`${url}/standard-online-v5/index.html`, { timeout: 20_000 }), 20_000);
     browserStage("navigation-ready");
     browserStage("badge-start");
-    await bounded("badge-ready", page.locator("#connectionBadge.good").waitFor({ state: "visible", timeout: 20_000 }), 20_000);
+    // Connection success is intentionally hidden on Home; this is boot readiness, not a visibility assertion.
+    await bounded("badge-ready", page.locator("#connectionBadge.good").waitFor({ state: "attached", timeout: 20_000 }), 20_000);
     browserStage("badge-ready");
     if (RESTORED_ROOM_MODES.has(mode)) {
       browserStage("room-ready-start");
@@ -2153,12 +2281,14 @@ async function withPage(mode, run, { bodyTimeout = 35_000, viewport = { width: 9
   if (teardownError) throw teardownError;
 }
 
-test("actual Edge carries a fresh player from the home CPU CTA through profile sync to ten explicit choices", { timeout: 130000 }, async () => {
+test("actual Edge carries a fresh player from the battle tab through profile sync to ten explicit CPU choices", { timeout: 130000 }, async () => {
   await withPage("empty", async (page) => {
+    assert.equal(await page.locator("#profileCard").isVisible(), false);
+    assert.equal(await page.locator("#startStandardCpuHome").isVisible(), false);
+    await page.getByRole("button", { name: "対戦", exact: true }).click();
     await page.locator("#starterCreator:not(.hidden)").waitFor();
     assert.equal(await page.locator("#profileSelect option").count(), 0);
     assert.equal(await page.locator("#syncProfile").isDisabled(), true);
-    await page.getByRole("button", { name: "CPUとすぐStandard対戦" }).click();
     await page.locator("#starterName").waitFor({ state: "visible" });
     assert.equal(await page.locator("body").getAttribute("data-active-tab"), "battle");
     assert.equal(await page.locator("#profileCard").isVisible(), true);
@@ -2176,6 +2306,7 @@ test("actual Edge carries a fresh player from the home CPU CTA through profile s
     assert.deepEqual(Object.values(evidence.inventory), [3, 3, 3, 3, 3, 3]);
     await page.locator("#lobby").waitFor({ state: "visible" });
     assert.equal(await page.locator("#profileCard").isVisible(), false);
+    await page.getByRole("button", { name: "CPUと対戦", exact: true }).click();
     await page.locator("#cpuRosterDialog[open]").waitFor();
     assert.equal(await page.locator("#cpuRosterGrid .cpu-character-card").count(), 10);
     await page.locator("#cpuRosterGrid .cpu-roster-portrait[data-portrait-status=\"ready\"]").first().waitFor();
@@ -2891,7 +3022,7 @@ test("boot prioritizes a lost CPU start saga over generic active-room recovery a
 
 test("actual Edge keeps the first-time setup write-free when the name is empty", { timeout: 130000 }, async () => {
   await withPage("empty", async (page) => {
-    await page.getByRole("button", { name: "CPUとすぐStandard対戦" }).click();
+    await page.getByRole("button", { name: "対戦", exact: true }).click();
     await page.getByRole("button", { name: "この名前で対戦準備へ" }).click();
     assert.equal(await page.evaluate(() => localStorage.getItem("fourColorMapGame.standard.online.v5.starter-profile")), null);
     assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "profile").length), 0);
@@ -2900,7 +3031,7 @@ test("actual Edge keeps the first-time setup write-free when the name is empty",
   });
 });
 
-test("actual Edge keeps one connection status visible across tabs and reflects offline lobby state", { timeout: 130000 }, async () => {
+test("actual Edge hides only Home connection success and preserves status elsewhere and offline", { timeout: 130000 }, async () => {
   await withPage("lobby", async (page) => {
     const badgeNode = page.locator("#connectionBadge");
     const messageNode = page.locator("#connectionMessage");
@@ -2909,10 +3040,10 @@ test("actual Edge keeps one connection status visible across tabs and reflects o
     assert.equal(await messageNode.textContent(), "ゲームに接続できました。");
     for (const [label, tab] of [["ホーム", "home"], ["対戦", "battle"], ["クイズ・ガチャ", "quiz"], ["カード", "cards"], ["マイページ", "profile"]]) {
       await page.getByRole("button", { name: label, exact: true }).click();
-      await badgeNode.waitFor({ state: "visible" });
+      await badgeNode.waitFor({ state: tab === "home" ? "hidden" : "visible" });
       assert.equal(await page.locator("body").getAttribute("data-active-tab"), tab);
       assert.equal(await badgeNode.count(), 1);
-      assert.equal(await messageNode.isVisible(), tab === "home");
+      assert.equal(await messageNode.isVisible(), false);
       assert.equal(await page.locator(".connection-card").evaluate((node) => getComputedStyle(node).position), tab === "home" ? "static" : "fixed");
     }
     await page.setViewportSize({ width: 390, height: 844 });

@@ -16,6 +16,7 @@ const candidateEdgeBundle = fs.readFileSync(path.join(__dirname, "..", "supabase
 const candidateLocalHtml = fs.readFileSync(path.join(__dirname, "..", "standard-v5", "index.html"), "utf8");
 const candidateLocalBundle = fs.readFileSync(path.join(__dirname, "..", "standard-v5", "app.bundle.js"), "utf8");
 const candidateProgressionCss = fs.readFileSync(path.join(__dirname, "..", "standard-online-v5", "progression.css"), "utf8");
+const candidateHomeCss = fs.readFileSync(path.join(__dirname, "..", "standard-online-v5", "ui-diet.css"), "utf8");
 const contractsPromise = import(pathToFileURL(path.join(__dirname, "..", "scripts", "standard-release-preflight-contracts.mjs")).href);
 
 test("release preflight is read-only, secret-free, finite, and stage-aware", () => {
@@ -80,7 +81,7 @@ test("release preflight is read-only, secret-free, finite, and stage-aware", () 
   assert.match(source, /MATCH_REWARD_ECONOMY_MISMATCH/);
   assert.match(source, /app\.text\.includes\('★\$\{meta\.rarity\}'\)/);
   assert.match(source, /CANDIDATE_ASSET_GENERATION_UI_PHASE_MISMATCH/);
-assert.match(source, /app\.js\?v=20260914-3/);
+assert.match(source, /app\.js\?v=20260914-4/);
   assert.match(source, /cpu-commentary\.js\?v=20260910-1/);
   assert.match(source, /progression\.css/);
   assert.match(source, /style\.css\?v=20260914-3/);
@@ -106,6 +107,19 @@ assert.match(source, /skill-cutin\.js\?v=20260913-2/);
   assert.match(source, /SNAPSHOT_V2_BASELINE_MISSING/);
   assert.match(source, /PUBLIC_BASELINE_UI_MISSING/);
   assert.doesNotMatch(source, /console\.log\([^\n]*(?:publishableKey|authorization)/);
+});
+
+test("Home preflight rejects missing disclosure, optional rules, recovery or scoped status hiding", async () => {
+  const { hasHomeRules } = await contractsPromise;
+  assert.equal(hasHomeRules(candidateHtml, candidateApp, candidateHomeCss), true);
+  for (const [from, to] of [['id="openHomeSettings"', 'id="missingSettings"'], ['aria-expanded="false" aria-controls="feedbackSettings"', 'aria-expanded="true" aria-controls="feedbackSettings"'], ['<dialog id="tutorialDialog"', '<dialog open id="tutorialDialog"'], ['id="homeSessionRecovery"', 'id="missingRecovery"']]) {
+    assert.equal(hasHomeRules(candidateHtml.replace(from, to), candidateApp, candidateHomeCss), false, from);
+  }
+  assert.equal(hasHomeRules(candidateHtml, candidateApp.replace('$("tutorialTitle").focus({ preventScroll: true })', 'void 0'), candidateHomeCss), false);
+  assert.equal(hasHomeRules(candidateHtml, candidateApp, candidateHomeCss.replace(':not(.has-matched-room)', '')), false);
+  assert.match(source, /HOME_RULES_REQUIRED/);
+  assert.match(source, /HOME_RULES_ASSET_EXACT_/);
+  assert.match(source, /ui-diet\.css\?v=20260914-1/);
 });
 
 test("candidate preflight rejects a stale local Standard bundle marker or missing deferred curse code", async () => {
@@ -245,7 +259,7 @@ test("candidate app satisfies the waiting-opponent release marker", () => {
 });
 
 test("candidate page and app satisfy the alpha.4 cache generation marker", () => {
-  assert.equal(candidateHtml.includes("app.js?v=20260914-3"), true);
+  assert.equal(candidateHtml.includes("app.js?v=20260914-4"), true);
   assert.equal(candidateHtml.includes("terminal-result.css?v=20260914-1"), true);
   assert.equal(candidateApp.includes("result-continuation.js?v=20260914-1"), true);
   assert.equal(candidateHtml.includes("cpu-commentary.js?v=20260910-1"), true);

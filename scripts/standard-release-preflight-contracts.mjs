@@ -81,6 +81,27 @@ export function hasPerCellContactFeedback(appText) {
   ]);
 }
 
+export function hasHomeRules(pageText, appText, cssText) {
+  if (![pageText, appText, cssText].every(value => typeof value === "string")) return false;
+  const actions = pageText.match(/<div class="home-actions">([\s\S]*?)<\/div>/)?.[1] || "";
+  const dialog = pageText.match(/<dialog id="tutorialDialog"[^>]*>/)?.[0] || "";
+  return (actions.match(/<button\b/g) || []).length === 2
+    && !actions.includes("data-tab-jump")
+    && includesAll(actions, ['id="openHomeSettings"', 'aria-expanded="false"', 'aria-controls="feedbackSettings"',
+      'id="openTutorial"', 'aria-haspopup="dialog"', 'aria-controls="tutorialDialog"'])
+    && dialog.length > 0 && !/\bopen(?:\s|=|>)/.test(dialog)
+    && includesAll(pageText, ['id="feedbackSettings" class="feedback-settings hidden"',
+      'id="homeSessionRecovery"', 'id="startStandardCpuHome"', 'id="tutorialTitle"', 'id="closeTutorial"', 'method="dialog"'])
+    && ["soundEffectsEnabled", "vibrationEnabled"].every(id => pageText.split('id="' + id + '"').length === 2)
+    && includesAll(appText, ['$("tutorialDialog").showModal()', '$("tutorialTitle").focus({ preventScroll: true })',
+      '$("tutorialDialog").close()', 'show("feedbackSettings", false)',
+      'cpuDraftOwnsRoomlessEntry || Boolean(snapshot.roomId) || hasCpuEntryIntent()',
+      'activeAppTab === "home" && !hasMatchedRoomHandoff()',
+      '!snapshot.roomId && !cpuDraftOwnsRoomlessEntry && synced'])
+    && includesAll(cssText, ['body[data-active-tab="home"] .connection-card.connection-ready:not(.has-matched-room) { display: none; }',
+      '.home-hero .feedback-settings.hidden { display: none; }', 'max-height: calc(100dvh - 24px)', 'overflow: auto;', '.tutorial-header { position: sticky;']);
+}
+
 export function hasGachaEntryDiet(pageText, appText) {
   if (typeof pageText !== "string" || typeof appText !== "string") return false;
   const levels = [...pageText.matchAll(/data-gacha-level="(\d)"/g)].map(match => match[1]).join(",");
@@ -175,7 +196,7 @@ export function hasCompactCpuRecords(pageText, appText, progressionCssText) {
 
 export function hasQuizAccuracyRecords(pageText, appText, progressionCssText) {
   return includesAll(pageText, [
-'app.js?v=20260914-3',
+'app.js?v=20260914-4',
     'progression.css?v=20260910-2',
     'id="quizAccuracyRecords" class="quiz-accuracy-records" role="list"',
     "記録開始以降に、サーバーで採点が確定した回答だけを集計します。",

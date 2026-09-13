@@ -379,7 +379,11 @@ function restorePaletteImpactPresentation() {
 let presentedPaletteImpactEvents = restorePaletteImpactPresentation();
 
 function show(id, value) { $(id).classList.toggle("hidden", !value); }
-function badge(text, tone = "warn") { $("connectionBadge").textContent = text; $("connectionBadge").className = `badge ${tone}`; }
+function badge(text, tone = "warn") {
+  $("connectionBadge").textContent = text;
+  $("connectionBadge").className = `badge ${tone}`;
+  $("connectionCard").classList.toggle("connection-ready", tone === "good");
+}
 function toast(message) { const node = $("toast"); node.textContent = message; node.classList.add("show"); clearTimeout(toast.timer); toast.timer = setTimeout(() => node.classList.remove("show"), 2400); }
 function operationFeedback(id, message, tone = "") {
   const node = $(id);
@@ -577,7 +581,7 @@ function persistCpuStartSaga(value) {
 }
 function hasCpuEntryIntent() { return sessionStorage.getItem(CPU_ENTRY_INTENT_KEY) === "direct"; }
 function setCpuEntryIntent(active) { if (active) sessionStorage.setItem(CPU_ENTRY_INTENT_KEY, "direct"); else sessionStorage.removeItem(CPU_ENTRY_INTENT_KEY); }
-function renderProfileCardVisibility() { show("profileCard", activeAppTab === "profile" || (!synced && activeAppTab !== "cards")); }
+function renderProfileCardVisibility() { show("profileCard", activeAppTab === "profile" || (!synced && !["home", "cards"].includes(activeAppTab))); }
 
 function renderBattleEntrance() {
   const snapshot = client.snapshot();
@@ -649,6 +653,11 @@ function activateAppTab(requestedTab, { updateHash = true, scrollTop = true } = 
     && (!client.snapshot().roomId || roomModel);
   if (resumePausedQuiz) resumeQuizClockOnQuizTab();
   activeAppTab = tab;
+  if (tab !== "home") {
+    $("openHomeSettings").setAttribute("aria-expanded", "false");
+    show("feedbackSettings", false);
+    if ($("tutorialDialog").open) $("tutorialDialog").close();
+  }
   if (tab !== "battle") closeSurrenderDialog(false);
   if (tab !== "battle") observeSkillCutin(roomModel?.room?.public_state, roomModel?.view?.private_state);
   if (tab !== "battle") clearCpuCommentaryBubble();
@@ -743,6 +752,7 @@ function renderMatchedRoomHandoff() {
     matchedRoomHandoff = null;
   }
   const visible = hasMatchedRoomHandoff() && activeAppTab !== "battle";
+  if (visible && $("tutorialDialog").open) $("tutorialDialog").close();
   if (visible) quizMemo.deactivate({ lockAnswers: false, restoreFocus: false });
   show("matchedRoomHandoff", visible);
   $("connectionCard").classList.toggle("has-matched-room", visible);
@@ -3561,6 +3571,7 @@ function render() {
     || replacesShownFinishedCpu
   ));
   const activeRoom = Boolean(snapshot.roomId && !roomFinished);
+  show("homeSessionRecovery", cpuDraftOwnsRoomlessEntry || Boolean(snapshot.roomId) || hasCpuEntryIntent());
   if (snapshot.roomId && roomModel?.room?.status !== "abandoned") clearRoomLifecycleAnnouncement();
   $("startStandardCpuHome").textContent = cpuDraftOwnsRoomlessEntry
     ? "CPU戦の開始確認へ戻る"
@@ -3570,7 +3581,6 @@ function render() {
   $("editNextLoadout").textContent = cpuDraftOwnsRoomlessEntry
     ? "CPU戦の開始確認へ戻る"
     : activeRoom ? "進行中の対戦へ戻る" : roomFinished ? "対戦結果を見る" : "次の対戦用6枚を編集";
-  document.querySelector('.home-actions [data-tab-jump="battle"]')?.classList.toggle("hidden", cpuDraftOwnsRoomlessEntry);
   document.querySelector(".mode-callout")?.classList.toggle("hidden", cpuDraftOwnsRoomlessEntry);
   show("quizPanel", synced && Boolean(profile()));
   renderQuiz();
@@ -3583,7 +3593,7 @@ function render() {
   show("progressionPanel", synced && Boolean(profile()));
   show("cosmeticPanel", synced && Boolean(profile()));
   renderCosmetics();
-  show("lobby", !snapshot.roomId && !cpuDraftOwnsRoomlessEntry && (synced || !hasCpuEntryIntent()));
+  show("lobby", !snapshot.roomId && !cpuDraftOwnsRoomlessEntry && synced);
   renderMatchmaking();
   show("room", Boolean(snapshot.roomId));
   const setupVisible = Boolean(profile()) && !roomStatePending && ((Boolean(snapshot.roomId) && !["playing", "finished"].includes(roomModel?.room?.status))
@@ -6317,6 +6327,18 @@ $("joinRoom").onclick = joinRoom;
 $("recruitOpponent").onclick = recruitPublicOpponent;
 $("findOpponent").onclick = () => findPublicOpponent();
 $("cancelMatchmaking").onclick = cancelPublicMatchmaking;
+$("openHomeSettings").onclick = () => {
+  const open = $("openHomeSettings").getAttribute("aria-expanded") !== "true";
+  $("openHomeSettings").setAttribute("aria-expanded", String(open));
+  show("feedbackSettings", open);
+};
+$("openTutorial").onclick = () => {
+  if (!$("tutorialDialog").open) $("tutorialDialog").showModal();
+  $("tutorialTitle").focus({ preventScroll: true });
+};
+$("tutorialDialog").addEventListener("close", () => {
+  if (activeAppTab === "home" && !hasMatchedRoomHandoff()) $("openTutorial").focus({ preventScroll: true });
+});
 $("startStandardCpuHome").onclick = (event) => beginImmediateCpuEntry(event.currentTarget);
 $("startStandardCpuLobby").onclick = (event) => beginImmediateCpuEntry(event.currentTarget);
 $("chooseCpuOpponent").onclick = (event) => openCpuRoster("fallback", event.currentTarget);

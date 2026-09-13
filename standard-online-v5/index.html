@@ -10,7 +10,7 @@
   <link rel="stylesheet" href="debug-mode.css">
   <link rel="stylesheet" href="progression.css?v=20260910-2">
   <link rel="stylesheet" href="quiz-memo.css?v=20260912-2">
-  <link rel="stylesheet" href="ui-diet.css?v=20260913-4">
+  <link rel="stylesheet" href="ui-diet.css?v=20260914-1">
   <link rel="stylesheet" href="skill-catalog.css?v=20260912-1">
   <link rel="stylesheet" href="surrender-confirmation.css?v=20260913-2">
   <link rel="stylesheet" href="play-surface.css?v=20260912-1">
@@ -50,27 +50,19 @@
     </section>
 
     <section class="card home-hero" data-app-tab-panel="home">
-      <p class="home-kicker">YOUR NEXT MOVE</p>
-      <h2>今日は何をする？</h2>
-      <p class="muted">好きな相手と対戦。クイズでカードを集めよう。</p>
+      <h2>ホーム</h2>
       <div class="home-actions">
-        <button id="startStandardCpuHome" type="button" class="primary">CPUとすぐStandard対戦</button>
-        <button type="button" data-tab-jump="battle">友だち・だれかと対戦</button>
-        <button type="button" data-tab-jump="quiz">クイズでガチャ券を獲得</button>
-        <button type="button" data-tab-jump="cards">カードを確認</button>
+        <button id="openHomeSettings" type="button" aria-expanded="false" aria-controls="feedbackSettings"><span aria-hidden="true">⚙</span> 設定</button>
+        <button id="openTutorial" type="button" aria-haspopup="dialog" aria-controls="tutorialDialog">チュートリアル</button>
       </div>
-    </section>
-
-    <section id="feedbackSettings" class="card feedback-settings" aria-labelledby="feedbackSettingsTitle" data-app-tab-panel="home profile">
+      <section id="feedbackSettings" class="feedback-settings hidden" aria-labelledby="feedbackSettingsTitle">
       <div>
-        <p class="section-kicker">FEEDBACK</p>
         <h2 id="feedbackSettingsTitle">効果音と振動</h2>
-        <p class="muted small">どちらも初期状態はOFFです。効果音はONにしたあとの操作で有効になり、端末が対応していない機能は何も起こさず対戦を続けます。</p>
       </div>
       <div class="feedback-settings-controls" role="group" aria-label="効果音と振動の設定">
         <label class="feedback-toggle">
           <input id="soundEffectsEnabled" type="checkbox">
-          <span><strong>効果音</strong><small>確定接触・手番・勝敗</small></span>
+          <span><strong>効果音</strong></span>
         </label>
         <label class="feedback-toggle">
           <input id="vibrationEnabled" type="checkbox">
@@ -78,6 +70,11 @@
         </label>
       </div>
       <p id="feedbackSettingsStatus" class="muted small" role="status" aria-live="polite" aria-atomic="true">効果音 OFF｜振動 OFF</p>
+      </section>
+    </section>
+
+    <section id="homeSessionRecovery" class="card home-session-recovery hidden" data-app-tab-panel="home" aria-label="対戦の続き">
+      <button id="startStandardCpuHome" type="button" class="primary">進行中の対戦へ戻る</button>
     </section>
 
     <section id="lobby" class="card battle-entrance hidden" data-app-tab-panel="battle">
@@ -517,6 +514,20 @@
       </div>
     </form>
   </dialog>
+  <dialog id="tutorialDialog" class="tutorial-dialog" aria-labelledby="tutorialTitle">
+    <form method="dialog">
+      <div class="tutorial-header"><h2 id="tutorialTitle" tabindex="-1" autofocus>遊び方</h2><button id="closeTutorial" type="submit" value="close">閉じる</button></div>
+      <p>相手に塗ってもらうエリアを作り合う、2人の対戦ゲームです。</p>
+      <ol class="tutorial-steps">
+        <li><h3>エリアを渡す</h3><p>先手は、まずエリアを作ります。表示された数のマスを辺でつなげて選び、「選んだエリアを渡す」で確定します。2つ目からは、すでにあるエリアに接する形で作ります。</p></li>
+        <li><h3>受け取ったエリアを塗る</h3><p>持ち色から1色を選びます。辺で接しているエリアと同じ色を塗ると負けです。角で触れるだけなら同じ色でもかまいません。持ち色は基本2枠と、残り回数つきのおまけ色です。</p></li>
+        <li><h3>塗ったら、次のエリアを作る</h3><p>画面に表示された必要マス数で、次は相手へエリアを渡します。「塗る→作る」を交互に続けます。スキルで手順が変わるときは、盤面近くの案内を確認してください。</p></li>
+        <li><h3>困ったらスキルも使おう</h3><p>対戦には「色・エリア・妨害」から2枚ずつ、6枚のスキルを準備します。カードを選ぶと使い方を確認できます。使用が確定するとカードを消費します。塗れる色がないときも、自動で負けにはなりません。使えるスキルで切り抜けるか、「投了」を選びます。</p></li>
+      </ol>
+      <p class="tutorial-ending">正しく塗ったあと、盤面に次のエリアを作れる場所がなくなれば、塗った人の勝ちです。</p>
+      <p class="muted small">対戦は下の「対戦」タブから。説明を読むだけでは、対戦もカードの消費も始まりません。</p>
+    </form>
+  </dialog>
   <dialog id="cpuRosterDialog" class="cpu-roster-dialog" aria-labelledby="cpuRosterTitle" aria-describedby="cpuRosterDescription">
     <form method="dialog">
       <div id="cpuRosterHeader" class="row between wrap cpu-roster-header"><div><p class="dialog-kicker">CPU SELECT</p><h2 id="cpuRosterTitle" tabindex="-1">Standard CPU対戦 — 相手を選ぶ</h2></div><button id="closeCpuRoster" class="ghost" type="button">ロビーに戻る</button></div>
@@ -567,6 +578,6 @@
   <p id="skillCutinAnnouncement" class="visually-hidden" role="status" aria-live="polite" aria-atomic="true"></p>
   <script src="skill-cutin.js?v=20260913-2"></script>
   <script src="surrender-confirmation.js?v=20260913-1"></script>
-  <script type="module" src="app.js?v=20260914-3"></script>
+  <script type="module" src="app.js?v=20260914-4"></script>
 </body>
 </html>

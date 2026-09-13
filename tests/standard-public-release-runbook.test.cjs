@@ -55,16 +55,28 @@ test("quiz parent keeps its frozen markers and terminal dependencies without liv
   for (const marker of ["app.js?v=20260914-2", "style.css?v=20260914-2"]) assert.ok(section.includes(marker));
 });
 
-test("gacha entry binds every current asset and its exact quiz parent without new live authority", () => {
+test("gacha parent keeps frozen assets and its exact quiz parent without new live authority", () => {
   const section = runbook.slice(runbook.indexOf("ガチャ入口の後続候補"), runbook.indexOf("クイズ入口の後続候補"));
   for (const text of ["UDL-062-gacha-entry-v1", "docs/GACHA_ENTRY_DIET_20260914.md", "03bc21f6ba927f71ce05efc438827d547993b21c",
     "親70e→b9→87→df62→03bc", "fresh main03bc", "4asset厳密byte一致", "GACHA_ENTRY_DIET_REQUIRED", "DIRECT_QUIZ_ENTRY_REQUIRED",
     "新候補固有", "Windows", "真正Astraレビュー", "100枚上限", "busy/pending/Lv/actionId/count/reload/retry",
     "DB/Edge/管理設定は各 `[]`", "確率・報酬・経済変更なし", "liveはこの手順では許可しない", "親049承認", "具体的保留を迂回しない"])
     assert.ok(section.includes(text), text);
-  for (const pattern of [/src="(app\.js\?v=[^"]+)"/, /href="(style\.css\?v=[^"]+)"/,
+  assert.ok(section.includes("app.js?v=20260914-3")); // Fixed gacha parent, not the new Home candidate.
+  for (const pattern of [/href="(style\.css\?v=[^"]+)"/,
     /src="(standard-skill-registry\.generated\.js\?v=[^"]+)"/])
     assert.ok(section.includes(assetReference(onlineIndex, pattern, "gacha entry lane")));
+});
+
+test("Home rules lane binds the exact gacha parent and own assets without inheriting approval", () => {
+  const section = runbook.slice(runbook.indexOf("ホーム設定・ルールの後続候補"), runbook.indexOf("ガチャ入口の後続候補"));
+  for (const text of ["UDL-062-068-home-rules-v1", "docs/HOME_RULES_DIET_20260914.md", "7c1b7f3dfaa925b423dcc90a3e4f3d0f32beeecb",
+    "親70e→b9→87→df62→03bc→7c1", "fresh main7c1", "3asset厳密byte一致", "HOME_RULES_REQUIRED", "GACHA_ENTRY_DIET_REQUIRED", "DIRECT_QUIZ_ENTRY_REQUIRED",
+    "Windowsログ", "真正Astraレビュー", "DB/Edge/管理設定は各 `[]`", "初回プロフィール", "対戦復帰・成立通知",
+    "liveはこの手順では許可しない", "具体的保留を迂回せず", "古い承認や閉じたPages/CI/review枠を流用しない"])
+    assert.ok(section.includes(text), text);
+  for (const pattern of [/src="(app\.js\?v=[^"]+)"/, /href="(ui-diet\.css\?v=[^"]+)"/])
+    assert.ok(section.includes(assetReference(onlineIndex, pattern, "Home rules lane")));
 });
 
 test("current alpha.4 release lane deploys the compatible Edge before Pages and preserves active rooms", () => {
