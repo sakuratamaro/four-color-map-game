@@ -3645,7 +3645,7 @@ function render() {
   }));
   const setupReady = client.snapshot().setupRevision > 0;
   $("waitingMessage").textContent = roomFinished
-    ? "対戦は終了しました。下の勝敗理由と再戦メニューを確認してください。"
+    ? "対戦は終了しました。下の対戦結果を確認できます。"
     : roomModel?.room?.status === "playing"
       ? cpuRoom ? "CPUとの対戦中です。盤面と手番案内を確認してください。" : "対戦中です。盤面と手番案内を確認してください。"
       : setupReady ? "あなたは準備完了です。相手の準備を待っています。" : "対戦で使う6枚を決めて、準備完了にしてください。";
