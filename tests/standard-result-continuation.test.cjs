@@ -41,3 +41,37 @@ test("UDL060 invalid levels, missing receipt and limited or experimental rewards
   assert.equal(savedResultReward({...room,public_state:{...room.public_state,debugUnlimitedSkills:true}},"A",profile),null);
   assert.equal(savedResultReward({...room,public_state:{...room.public_state,labRuleSetId:"STANDARD_V5_LEGAL_RECOLOR_LAB_V1"}},"A",profile),null);
 });
+
+test("UDL060 v2 reward copy uses all five saved levels and counts even when tickets have been spent",async()=>{
+  const {terminalRewardPresentation}=await modulePromise;
+  for(const kind of ["cpu","human"])for(const seat of ["A","B"])for(const winner of ["A","B"])
+    for(const level of [1,2,3,4,5])for(const count of [1,2,4]){
+      const r={...room,opponent_kind:kind,public_state:{...room.public_state,winner}};
+      const p=structuredClone(profile);p.matchHistory[0]={matchId:room.public_state.matchId,result:seat===winner?"WIN":"LOSS",onlineOpponentKind:kind,matchReward:{awarded:true,ticketLevel:level,ticketCount:count}};
+      p.gachaTickets={};const before=JSON.stringify({r,p});
+      assert.deepEqual(terminalRewardPresentation(r,seat,p),{kind:"reward",text:`完了報酬\nLv.${level}ガチャ券 ×${count}`});
+      assert.equal(JSON.stringify({r,p}),before);
+    }
+});
+test("UDL060 v2 missing, mismatched or malformed rewards cannot be inferred from stats or ticket balances",async()=>{
+  const {terminalRewardPresentation}=await modulePromise;
+  for(const edit of [p=>p.matchHistory=[],p=>p.matchHistory[0].matchId="other",p=>p.matchHistory[0].result="LOSS",
+    p=>p.matchHistory[0].onlineOpponentKind="human",p=>delete p.matchHistory[0].matchReward,
+    p=>p.matchHistory[0].matchReward.ticketLevel="3",p=>p.matchHistory[0].matchReward.ticketCount=0]){
+    const p=structuredClone(profile);p.cpuStats={wins:99};p.gachaTickets={1:99,2:99,3:99};edit(p);
+    assert.deepEqual(terminalRewardPresentation(room,"A",p),{kind:"pending",text:"報酬を確認中です。"});
+  }
+  for(const r of [null,{...room,status:"playing"}])assert.equal(terminalRewardPresentation(r,"A",profile).kind,"pending");
+  assert.equal(terminalRewardPresentation(room,"spectator",profile).kind,"pending");
+});
+test("UDL060 v2 explicit no-reward and lab states stay truthful without routine save or balance copy",async()=>{
+  const {terminalRewardPresentation}=await modulePromise;
+  const p=structuredClone(profile);p.matchHistory[0].matchReward={awarded:false,reason:"PVP_REWARD_LIMIT"};
+  assert.equal(terminalRewardPresentation({...room,opponent_kind:"human"},"A",p).text,"今回は報酬なし（受取上限）。");
+  assert.equal(terminalRewardPresentation(room,"A",p).text,"この対戦の報酬はありません。");
+  for(const flag of [{debugUnlimitedSkills:true},{labRuleSetId:"STANDARD_V5_LEGAL_RECOLOR_LAB_V1"}]){
+    const r={...room,public_state:{...room.public_state,...flag}};
+    assert.equal(terminalRewardPresentation(r,"A",profile).kind,"lab");
+    assert.doesNotMatch(terminalRewardPresentation(r,"A",profile).text,/完了報酬|×|→|保存しました/);
+  }
+});

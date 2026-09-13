@@ -2,7 +2,7 @@ import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 import "../online/supabase-config.js";
 import { createQuizMemo } from "./quiz-memo.js?v=20260912-1";
 import { paletteRoleSlots, stableHandSlots } from "./play-surface-model.js?v=20260912-1";
-import { savedResultReward } from "./result-continuation.js?v=20260912-1";
+import { savedResultReward, terminalRewardPresentation } from "./result-continuation.js?v=20260914-1";
 import { displayedCosmeticIntent, cosmeticQuoteMatchesIntent, pendingCosmeticPresentation, definiteCosmeticRejection } from "./cosmetic-item-action.js?v=20260912-2";
 
 const cfg = globalThis.FourColorSupabaseConfig;
@@ -1306,7 +1306,7 @@ function renderPersistentTerminalResult(state, privateState) {
   if (!finished) return;
   const won = state.winner === roomModel?.view?.seat;
   $("terminalSummary").classList.toggle("is-defeat", !won);
-  const title = won ? "勝利：決着理由" : "敗北：敗因";
+  const title = won ? "勝利" : "敗北";
   const reason = terminalReasonDetail(state, privateState);
   if ($("terminalOutcomeTitle").textContent !== title) $("terminalOutcomeTitle").textContent = title;
   if ($("terminalOutcomeReason").textContent !== reason) $("terminalOutcomeReason").textContent = reason;
@@ -1321,32 +1321,23 @@ function resultContinuationPending() {
 function renderResultContinuation() {
   const room = roomModel?.room;
   const reward = savedResultReward(room, roomModel?.view?.seat, profile());
+  const rewardPresentation = terminalRewardPresentation(room, roomModel?.view?.seat, profile());
   const blocked = resultContinuationPending();
   show("resultGoGacha", Boolean(reward));
-  show("resultRewardSummary", Boolean(reward));
+  show("resultRewardSummary", true);
+  $("resultRewardSummary").textContent = rewardPresentation.text;
+  $("resultRewardSummary").dataset.rewardState = rewardPresentation.kind;
   if (reward) {
     $("resultGoGacha").textContent = `Lv.${reward.ticketLevel}券のガチャを開く`;
-    $("resultRewardSummary").textContent = `この対戦で獲得：Lv.${reward.ticketLevel}ガチャ券 ×${reward.ticketCount}`;
+    $("resultRewardSummary").textContent = `完了報酬：Lv.${reward.ticketLevel}ガチャ券 ×${reward.ticketCount}`;
   }
-  show("chooseDifferentHuman", room?.opponent_kind !== "cpu");
-  $("terminalChooseAnother").textContent = room?.opponent_kind === "cpu" ? "別のCPUを選ぶ" : "結果を閉じて別の相手を選ぶ";
-  for (const id of ["chooseDifferentCpu", "chooseDifferentHuman", "resultGoLobby", "terminalChooseAnother", "terminalGoLobby"]) $(id).disabled = blocked;
-  $("terminalRematch").disabled = rematchBusy || room?.status !== "finished";
+  for (const id of ["resultGoLobby", "terminalGoLobby"]) $(id).disabled = blocked;
 }
 
-function leaveFinishedResult({ publicChoice = false } = {}) {
+function leaveFinishedResult() {
   if (roomModel?.room?.status !== "finished" || resultContinuationPending()) return;
   dismissTerminalResult();
   closeDisplayedRoom();
-  if (publicChoice) chooseBattleRoute("public");
-}
-
-function chooseAnotherResultOpponent(trigger) {
-  if (roomModel?.room?.status !== "finished" || resultContinuationPending()) return;
-  dismissTerminalResult();
-  const returnTrigger = trigger?.closest("#terminalOverlay") ? $("chooseDifferentCpu") : trigger;
-  if (roomModel.room.opponent_kind === "cpu") return beginImmediateCpuEntry(returnTrigger, { replaceFinished: true });
-  leaveFinishedResult({ publicChoice: true });
 }
 
 function openSavedResultGacha() {
@@ -1447,42 +1438,11 @@ function renderTerminalResult(state) {
   $("terminalTitle").textContent = won ? "勝利！" : "敗北";
   $("terminalMessage").textContent = won ? `${playerName(mySeat)} の勝利です！` : `${playerName(state.winner)} の勝利です`;
   $("terminalReasonText").textContent = terminalReasonDetail(state, roomModel?.view?.private_state || {});
-  const opponentKind = roomModel?.room?.opponent_kind;
-  const experimentalMatch = state.debugUnlimitedSkills === true || isLegalRecolorLab(state);
-  const stats = opponentKind === "cpu" ? profile()?.cpuStats : profile()?.stats;
-  const resultCount = Number(stats?.[won ? "wins" : "losses"]);
-  const resultLabel = opponentKind === "cpu" ? "CPU戦" : "対人戦";
-  const settledMatch = profile()?.matchHistory?.find((entry) => entry?.matchId === state.matchId);
-  const resultWasSaved = settledMatch?.result === (won ? "WIN" : "LOSS")
-    && (opponentKind !== "cpu" || settledMatch.onlineOpponentKind === "cpu");
-  const progressWasSaved = roomModel?.room?.status === "finished"
-    && ["A", "B"].includes(mySeat)
-    && settledMatch?.matchId === state.matchId
-    && resultWasSaved
-    && Number.isSafeInteger(resultCount)
-    && resultCount >= 0;
-  const matchReward = settledMatch?.matchReward;
-  const rewardTicketLevel = Number(matchReward?.ticketLevel);
-  const rewardTicketCount = Number(matchReward?.ticketCount);
-  const rewardTicketTotal = Number(profile()?.gachaTickets?.[String(rewardTicketLevel)]);
-  const rewardWasSaved = progressWasSaved && !experimentalMatch && matchReward?.awarded === true
-    && Number.isSafeInteger(rewardTicketLevel) && rewardTicketLevel >= 1 && rewardTicketLevel <= 5
-    && Number.isSafeInteger(rewardTicketCount) && rewardTicketCount >= 1
-    && Number.isSafeInteger(rewardTicketTotal) && rewardTicketTotal >= rewardTicketCount;
-  const rewardWasLimited = progressWasSaved && !experimentalMatch && opponentKind !== "cpu"
-    && matchReward?.awarded === false && matchReward?.reason === "PVP_REWARD_LIMIT";
+  const rewardPresentation = terminalRewardPresentation(roomModel?.room, mySeat, profile());
   const resultReward = savedResultReward(roomModel?.room, mySeat, profile());
-  const rewardText = rewardWasSaved
-    ? `\n完了報酬：Lv.${rewardTicketLevel}ガチャ券 +${rewardTicketCount}（所持 ${rewardTicketTotal - rewardTicketCount}→${rewardTicketTotal}）`
-    : rewardWasLimited
-    ? "\n完了報酬：直近60分の付与済み10試合に達したため、今回はありません。"
-    : "";
-  $("terminalProgressText").textContent = experimentalMatch
-    ? "実験対戦のため、戦績・報酬・在庫は変わりません。"
-    : progressWasSaved
-    ? `戦績を保存しました：${resultLabel} ${won ? "勝利" : "敗北"} ${resultCount}${rewardText}`
-    : "戦績を確認しています。マイページでも確認できます。";
-  if (resultReward) $("terminalGoGacha").textContent = `獲得したLv.${resultReward.ticketLevel}券でガチャへ`;
+  $("terminalProgressText").textContent = rewardPresentation.text;
+  $("terminalProgressText").dataset.rewardState = rewardPresentation.kind;
+  if (resultReward) $("terminalGoGacha").textContent = "ガチャへ";
   show("terminalGoGacha", Boolean(resultReward));
   try { localStorage.setItem(TERMINAL_PRESENTED_KEY, eventKey); } catch { /* presentation still works when storage is unavailable */ }
   show("terminalOverlay", true);
@@ -3639,7 +3599,6 @@ function render() {
     return;
   }
   const cpuRoom = roomModel?.room?.opponent_kind === "cpu";
-  show("chooseDifferentCpu", cpuRoom && roomModel?.room?.status === "finished");
   const accessMode = roomModel?.room?.access_mode || (snapshot.roomCode ? "private_code" : "public_queue");
   const debugAllowed = accessMode === "private_code" && !cpuRoom;
   const debugToggle = $("debugUnlimitedMode");
@@ -3670,10 +3629,12 @@ function render() {
   show("abandonRoomHint", roomAbandonable);
   $("abandonRoom").textContent = pendingAbandon ? "取りやめ結果を再確認" : "開始前の対戦を取りやめる";
   $("abandonRoom").disabled = abandonBusy;
-  const rematchPending = snapshot.rematchExpectedVersion === roomModel?.room?.version;
-  $("requestRematch").textContent = rematchPending ? "前回の再戦申請を確認" : cpuRoom ? "同じCPUと再戦する" : "再戦を申し込む";
+  const rematchPending = Boolean(snapshot.rematchActionId) && snapshot.rematchExpectedVersion === roomModel?.room?.version;
+  show("requestRematch", rematchPending);
+  $("requestRematch").textContent = "前回の再戦申請を確認";
   $("requestRematch").disabled = rematchBusy || roomModel?.room?.status !== "finished";
-  $("rematchStatus").textContent = cpuRoom ? "CPUの状態だけを初期化し、あなたは6枚セットを選び直します。" : rematchPending ? "再戦を申請済みです。相手の申請を待っています。" : "両プレイヤーの申請後、6枚セットを選び直します。";
+  $("rematchStatus").textContent = rematchPending ? "前回の再戦申請を確認してください。" : "";
+  show("rematchStatus", rematchPending);
   $("members").replaceChildren(...(roomModel?.members || []).map((member) => {
     const node = document.createElement("span");
     const gold = member.appearance?.nameplate === "nameplateGold";
@@ -6250,7 +6211,7 @@ async function requestRematch() {
     rematchBusy = false; render();
     if (activeAppTab === "battle") {
       if (roomModel?.room?.status === "ready") focusMatchedRoom();
-      else if (roomModel?.room?.status === "finished") $("requestRematch").focus();
+      else if (roomModel?.room?.status === "finished") $(resultContinuationPending() ? "requestRematch" : "terminalSummary").focus();
     }
   }
 }
@@ -6269,6 +6230,12 @@ async function continueCpuRewardRematch() {
 function dismissTerminalResult() {
   dismissedTerminalEventKey = shownTerminalEventKey;
   show("terminalOverlay", false);
+}
+
+function returnToTerminalSummary() {
+  dismissTerminalResult();
+  $("terminalSummary").scrollIntoView({ block: "center", behavior: "instant" });
+  $("terminalSummary").focus({ preventScroll: true });
 }
 
 function goToGacha(ticketLevel = null) {
@@ -6388,21 +6355,21 @@ $("surrenderDialog").addEventListener("close", () => {
   if (!$("surrenderDialog").open) { surrenderIntent = null; surrenderDialogTrigger = null; }
 });
 $("retryAction").onclick = () => pendingAction && sendAction(pendingAction.type, pendingAction.payload, true);
-$("requestRematch").onclick = requestRematch;
-$("chooseDifferentCpu").onclick = (event) => chooseAnotherResultOpponent(event.currentTarget);
-$("chooseDifferentHuman").onclick = (event) => chooseAnotherResultOpponent(event.currentTarget);
+$("requestRematch").onclick = () => { if (resultContinuationPending()) requestRematch(); };
 $("resultGoLobby").onclick = () => leaveFinishedResult();
 $("resultGoGacha").onclick = openSavedResultGacha;
-$("terminalRematch").onclick = () => { if (roomModel?.room?.status !== "finished" || rematchBusy) return; dismissTerminalResult(); requestRematch(); };
-$("terminalChooseAnother").onclick = (event) => chooseAnotherResultOpponent(event.currentTarget);
 $("terminalGoLobby").onclick = () => leaveFinishedResult();
 $("closeSkillInfo").onclick = () => $("skillInfoDialog").close();
 $("terminalGoGacha").onclick = openSavedResultGacha;
-$("terminalClose").onclick = () => {
-  dismissTerminalResult();
-  $("terminalSummary").scrollIntoView({ block: "center", behavior: "instant" });
-  $("requestRematch").focus({ preventScroll: true });
-};
+$("terminalClose").onclick = returnToTerminalSummary;
+$("terminalOverlay").addEventListener("keydown", (event) => {
+  if (event.key === "Escape") { event.preventDefault(); returnToTerminalSummary(); }
+  if (event.key !== "Tab") return;
+  const buttons = [...$("terminalOverlay").querySelectorAll("button:not(:disabled)")].filter(node => node.getClientRects().length);
+  if (!buttons.length) return;
+  if (event.shiftKey && document.activeElement === buttons[0]) { event.preventDefault(); buttons.at(-1).focus(); }
+  else if (!event.shiftKey && document.activeElement === buttons.at(-1)) { event.preventDefault(); buttons[0].focus(); }
+});
 $("leaveRoom").onclick = closeDisplayedRoom;
 $("abandonRoom").onclick = (event) => openRoomAbandonDialog(event.currentTarget);
 $("confirmAbandonRoom").onclick = confirmRoomAbandon;

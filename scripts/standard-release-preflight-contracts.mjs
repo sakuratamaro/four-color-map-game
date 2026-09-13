@@ -143,7 +143,7 @@ export function hasCompactCpuRecords(pageText, appText, progressionCssText) {
 
 export function hasQuizAccuracyRecords(pageText, appText, progressionCssText) {
   return includesAll(pageText, [
-'app.js?v=20260913-48',
+'app.js?v=20260914-1',
     'progression.css?v=20260910-2',
     'id="quizAccuracyRecords" class="quiz-accuracy-records" role="list"',
     "記録開始以降に、サーバーで採点が確定した回答だけを集計します。",
@@ -173,16 +173,21 @@ export function hasCpuSealTimingPolicy(bundleText) {
   ]);
 }
 
-export function hasMatchRewardEconomy(pageText, appText, bundleText) {
-  return includesAll(pageText, [
-    "対人勝利はLv.2、敗北はLv.1（直近60分で10試合まで）",
-    "CPU勝利は強さに応じLv.1〜3、敗北はLv.1",
-  ]) && includesAll(appText, [
+export function hasMatchRewardEconomy(pageText, appText, bundleText, resultModelText = "") {
+  const legacyResultUi = includesAll(appText, [
     "const matchReward = settledMatch?.matchReward;",
     "matchReward?.reason === \"PVP_REWARD_LIMIT\"",
     "完了報酬：Lv.${rewardTicketLevel}ガチャ券 +${rewardTicketCount}",
     "直近60分の付与済み10試合に達したため、今回はありません。",
-  ]) && includesAll(bundleText, [
+  ]);
+  const compactResultUi = appText.includes("terminalRewardPresentation(roomModel?.room, mySeat, profile())")
+    && includesAll(resultModelText, ["const reward = savedResultReward(room, seat, profile);",
+      "reward?.awarded !== true", "Number.isSafeInteger(reward.ticketLevel)", "Number.isSafeInteger(reward.ticketCount)",
+      "PVP_REWARD_LIMIT", "完了報酬\\nLv.${reward.ticketLevel}ガチャ券 ×${reward.ticketCount}", "報酬を確認中です。"]);
+  return includesAll(pageText, [
+    "対人勝利はLv.2、敗北はLv.1（直近60分で10試合まで）",
+    "CPU勝利は強さに応じLv.1〜3、敗北はLv.1",
+  ]) && (legacyResultUi || compactResultUi) && includesAll(bundleText, [
     'const ECONOMY_VERSION = "standard-match-reward-v2";',
     "const PVP_REWARD_WINDOW_MS = 60 * 60 * 1000;",
     "const PVP_REWARD_LIMIT = 10;",

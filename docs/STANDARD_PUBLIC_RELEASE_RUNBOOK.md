@@ -10,6 +10,10 @@ CPU分割救済の候補手順（2026-09-13、未公開）は `docs/CPU_SPLIT_RE
 
 ## 完了の定義
 
+この候補の厳密asset markerは `app.js?v=20260914-1` / `terminal-result.css?v=20260914-1` / `result-continuation.js?v=20260914-1`。公開確認は未実行。
+
+終局UIの後続候補（UDL-060-terminal-v2）は `docs/UI_TERMINAL_HIERARCHY_20260914.md` を参照する。app `20260914-1`、terminal-result.css `20260914-1`、result-continuation.js `20260914-1` の新候補固有の検証が必要。勝敗/台詞/短い理由/保存済み券Lv・枚数、最大3操作、通常結果から直接再戦しない、旧pending申請の復旧、再読込のwrite0を確認する。下記alpha.4や投了顔87のキャッシュ記録は各固定候補の履歴であり書き換えない。新画像21cc31aの個別承認や8dd9の送付許可を借用せず、親70e→b9→87の公開依存を保つ。この便のprepare/commitだけでは公開できず、独自Windowsゲート・真正Astraレビュー・fresh mainと配信byte確認を要する。CPU/DB/Edge/経済は変更しない。
+
 入口UIのv13後続便（UDL-023-entrance-v2）は、先行065の承認・公開後にfresh mainとの祖先関係を確認する。HTMLと `ui-diet.css?v=20260912-3` の厳密byte一致を追加確認し、既存app39/skill-cutinJS2/CSS1と他の公開marker・回帰を維持する。3択の同列配置・390/768/1280・44px・keyboard・route-only write0・pending復帰を確認し、文章仕様と自動試験を混同しない。ゲームルール/DB/Edge変更なし、物理NOT_RUNは別管理。公開前のローカル準備や専用branchのWindows成功だけをmain/Pages反映済みとしない。
 
 migrationやコードの配置だけでは完了にしない。最新の公開URLと別々の二端末で、合言葉対戦と野良対戦を最後まで行い、再読込、再戦、新しい試合を確認する。さらに実時間90秒待機後に明示同意したCPU戦を完走し、報酬、ガチャ、カード、対人/CPU別戦績、トロフィー、見た目が再読込後も保持されること、private情報が漏れないこと、軽量化の呼出数とbytesを実測して初めて公開完了とする。

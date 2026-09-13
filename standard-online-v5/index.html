@@ -15,6 +15,7 @@
   <link rel="stylesheet" href="surrender-confirmation.css?v=20260913-2">
   <link rel="stylesheet" href="play-surface.css?v=20260912-1">
   <link rel="stylesheet" href="result-continuation.css?v=20260912-1">
+  <link rel="stylesheet" href="terminal-result.css?v=20260914-1">
   <link rel="stylesheet" href="skill-cutin.css?v=20260913-1">
 </head>
 <body>
@@ -321,7 +322,7 @@
           <div><strong id="cpuCommentaryName"></strong><p id="cpuCommentaryText"></p></div>
         </aside>
       </div>
-      <section id="terminalSummary" class="terminal-summary hidden" aria-labelledby="terminalOutcomeTitle">
+      <section id="terminalSummary" class="terminal-summary hidden" aria-labelledby="terminalOutcomeTitle" tabindex="-1">
         <strong id="terminalOutcomeTitle"></strong>
         <div id="cpuTerminalCommentarySummaryCard" class="cpu-terminal-commentary-card hidden">
           <span id="cpuTerminalPortraitSummaryFrame" class="cpu-portrait-frame cpu-terminal-portrait" aria-hidden="true">
@@ -332,13 +333,10 @@
         </div>
         <p id="terminalOutcomeReason" data-terminal-copy="narration"></p>
         <div id="rematchControls" class="hidden result-next-actions">
-          <strong>次はどうする？</strong>
           <p id="resultRewardSummary" class="small hidden"></p>
-          <p id="rematchStatus" class="muted">両プレイヤーの申請後、6枚セットを選び直します。</p>
+          <p id="rematchStatus" class="muted hidden"></p>
           <div class="controls">
-            <button id="requestRematch" class="primary">再戦を申し込む</button>
-            <button id="chooseDifferentCpu" class="ghost hidden" type="button">別のCPUを選んで新しく対戦</button>
-            <button id="chooseDifferentHuman" class="ghost hidden" type="button">結果を閉じて別の相手を選ぶ</button>
+            <button id="requestRematch" class="primary hidden" type="button" data-pending-recovery="rematch">前回の再戦申請を確認</button>
             <button id="resultGoGacha" class="primary hidden" type="button">獲得券のガチャを開く</button>
             <button id="resultGoLobby" class="ghost" type="button">結果を閉じる・ロビーへ</button>
           </div>
@@ -424,9 +422,9 @@
         <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
       </div>
       <div id="terminalIcon" class="terminal-icon" aria-hidden="true">🏆</div>
-      <p id="terminalEyebrow" class="terminal-eyebrow">対戦終了</p>
+      <p id="terminalEyebrow" class="terminal-eyebrow visually-hidden">対戦終了</p>
       <h2 id="terminalTitle">勝利！</h2>
-      <p id="terminalMessage" class="terminal-message"></p>
+      <p id="terminalMessage" class="terminal-message visually-hidden"></p>
       <div id="cpuTerminalCommentaryOverlayCard" class="cpu-terminal-commentary-card hidden">
         <span id="cpuTerminalPortraitOverlayFrame" class="cpu-portrait-frame cpu-terminal-portrait" aria-hidden="true">
           <span id="cpuTerminalPortraitOverlay" class="cpu-portrait-art" hidden></span>
@@ -437,11 +435,9 @@
       <p id="terminalReasonText" class="terminal-reason" data-terminal-copy="narration"></p>
       <p id="terminalProgressText" class="terminal-progress"></p>
       <div class="terminal-actions">
-        <button id="terminalRematch" class="primary" type="button">もう一度対戦</button>
-        <button id="terminalChooseAnother" class="ghost" type="button">結果を閉じて別の相手を選ぶ</button>
-        <button id="terminalGoGacha" class="primary hidden" type="button">獲得した券でガチャへ</button>
-        <button id="terminalGoLobby" class="ghost" type="button">結果を閉じる・ロビーへ</button>
-        <button id="terminalClose" class="ghost terminal-close" type="button">再戦・対戦結果へ戻る</button>
+        <button id="terminalGoGacha" class="primary hidden" type="button">ガチャへ</button>
+        <button id="terminalGoLobby" class="ghost" type="button">結果を閉じてロビーへ</button>
+        <button id="terminalClose" class="ghost terminal-close" type="button">対戦結果へ戻る</button>
       </div>
     </section>
   </div>
@@ -553,6 +549,6 @@
   <p id="skillCutinAnnouncement" class="visually-hidden" role="status" aria-live="polite" aria-atomic="true"></p>
   <script src="skill-cutin.js?v=20260913-2"></script>
   <script src="surrender-confirmation.js?v=20260913-1"></script>
-  <script type="module" src="app.js?v=20260913-48"></script>
+  <script type="module" src="app.js?v=20260914-1"></script>
 </body>
 </html>

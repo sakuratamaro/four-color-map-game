@@ -8,6 +8,7 @@ const { pathToFileURL } = require("node:url");
 
 const source = fs.readFileSync(path.join(__dirname, "..", "scripts", "live-standard-release-preflight.mjs"), "utf8");
 const candidateApp = fs.readFileSync(path.join(__dirname, "..", "standard-online-v5", "app.js"), "utf8");
+const candidateResultModel = fs.readFileSync(path.join(__dirname, "..", "standard-online-v5", "result-continuation.js"), "utf8");
 const candidateHtml = fs.readFileSync(path.join(__dirname, "..", "standard-online-v5", "index.html"), "utf8");
 const candidateIntents = fs.readFileSync(path.join(__dirname, "..", "standard-online-v5", "standard-online-skill-intents.js"), "utf8");
 const candidateEdgeBundle = fs.readFileSync(path.join(__dirname, "..", "supabase", "functions", "standard-game-action", "standard-engine.bundle.js"), "utf8");
@@ -78,7 +79,7 @@ test("release preflight is read-only, secret-free, finite, and stage-aware", () 
   assert.match(source, /MATCH_REWARD_ECONOMY_MISMATCH/);
   assert.match(source, /app\.text\.includes\('★\$\{meta\.rarity\}'\)/);
   assert.match(source, /CANDIDATE_ASSET_GENERATION_UI_PHASE_MISMATCH/);
-assert.match(source, /app\.js\?v=20260913-48/);
+assert.match(source, /app\.js\?v=20260914-1/);
   assert.match(source, /cpu-commentary\.js\?v=20260910-1/);
   assert.match(source, /progression\.css/);
   assert.match(source, /style\.css\?v=20260910-12/);
@@ -208,10 +209,12 @@ test("candidate preflight requires the public-only CPU seal timing policy", asyn
 
 test("candidate preflight requires the complete match reward economy", async () => {
   const { hasMatchRewardEconomy } = await contractsPromise;
-  assert.equal(hasMatchRewardEconomy(candidateHtml, candidateApp, candidateEdgeBundle), true);
-  assert.equal(hasMatchRewardEconomy(candidateHtml, candidateApp, candidateEdgeBundle.replace("const PVP_REWARD_LIMIT = 10;", "const PVP_REWARD_LIMIT = 11;")), false);
-  assert.equal(hasMatchRewardEconomy(candidateHtml, candidateApp, candidateEdgeBundle.replace("Date.parse(entry.endedAt) > cutoff", "Date.parse(entry.endedAt) >= cutoff")), false);
-  assert.equal(hasMatchRewardEconomy(candidateHtml.replace("対人勝利はLv.2", "対人勝利はLv.1"), candidateApp, candidateEdgeBundle), false);
+  assert.equal(hasMatchRewardEconomy(candidateHtml, candidateApp, candidateEdgeBundle, candidateResultModel), true);
+  assert.equal(hasMatchRewardEconomy(candidateHtml, candidateApp, candidateEdgeBundle.replace("const PVP_REWARD_LIMIT = 10;", "const PVP_REWARD_LIMIT = 11;"), candidateResultModel), false);
+  assert.equal(hasMatchRewardEconomy(candidateHtml, candidateApp, candidateEdgeBundle.replace("Date.parse(entry.endedAt) > cutoff", "Date.parse(entry.endedAt) >= cutoff"), candidateResultModel), false);
+  assert.equal(hasMatchRewardEconomy(candidateHtml.replace("対人勝利はLv.2", "対人勝利はLv.1"), candidateApp, candidateEdgeBundle, candidateResultModel), false);
+  assert.equal(hasMatchRewardEconomy(candidateHtml, candidateApp, candidateEdgeBundle, ""), false);
+  assert.equal(hasMatchRewardEconomy(candidateHtml, candidateApp, candidateEdgeBundle, candidateResultModel.replace("reward?.awarded !== true", "reward?.awarded === true")), false);
 });
 
 test("candidate app satisfies the complete legal-recolor LAB release marker", () => {
@@ -229,7 +232,9 @@ test("candidate app satisfies the waiting-opponent release marker", () => {
 });
 
 test("candidate page and app satisfy the alpha.4 cache generation marker", () => {
-  assert.equal(candidateHtml.includes("app.js?v=20260913-48"), true);
+  assert.equal(candidateHtml.includes("app.js?v=20260914-1"), true);
+  assert.equal(candidateHtml.includes("terminal-result.css?v=20260914-1"), true);
+  assert.equal(candidateApp.includes("result-continuation.js?v=20260914-1"), true);
   assert.equal(candidateHtml.includes("cpu-commentary.js?v=20260910-1"), true);
   assert.equal(candidateHtml.includes("style.css?v=20260910-12"), true);
   assert.equal(candidateHtml.includes("standard-online-client.js?v=20260910-1"), true);
