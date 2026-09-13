@@ -8,6 +8,7 @@ const { pathToFileURL } = require("node:url");
 
 const source = fs.readFileSync(path.join(__dirname, "..", "scripts", "live-standard-release-preflight.mjs"), "utf8");
 const candidateApp = fs.readFileSync(path.join(__dirname, "..", "standard-online-v5", "app.js"), "utf8");
+const candidateResultModel = fs.readFileSync(path.join(__dirname, "..", "standard-online-v5", "result-continuation.js"), "utf8");
 const candidateHtml = fs.readFileSync(path.join(__dirname, "..", "standard-online-v5", "index.html"), "utf8");
 const candidateIntents = fs.readFileSync(path.join(__dirname, "..", "standard-online-v5", "standard-online-skill-intents.js"), "utf8");
 const candidateEdgeBundle = fs.readFileSync(path.join(__dirname, "..", "supabase", "functions", "standard-game-action", "standard-engine.bundle.js"), "utf8");
@@ -142,6 +143,17 @@ test("candidate preflight requires exact tracked quiz accuracy UI", async () => 
   assert.equal(hasQuizAccuracyRecords(candidateHtml, candidateApp.replace("level <= 5", "level <= 4"), candidateProgressionCss), false);
 });
 
+test("candidate preflight rejects missing direct quiz levels, open reward help and missing session guards", async () => {
+  const { hasDirectQuizEntry } = await contractsPromise;
+  assert.equal(hasDirectQuizEntry(candidateHtml, candidateApp), true);
+  for (const html of [candidateHtml.replace('data-quiz-start-level="5"', 'data-quiz-start-level="4"'),
+    candidateHtml.replace('id="quizRewardHelp"', 'id="quizRewardHelp" open'),
+    candidateHtml.replace('合計7問以上を正解</th><td>3枚', '合計7問以上を正解</th><td>5枚'),
+    candidateHtml + '<select id="quizLevel"></select>']) assert.equal(hasDirectQuizEntry(html, candidateApp), false);
+  assert.equal(hasDirectQuizEntry(candidateHtml, candidateApp.replace('!profile() || pendingQuiz || hasMatchedRoomHandoff()', '!profile()')), false);
+  assert.match(source, /assert\.equal\(result\.publicPage\.hasDirectQuizEntry, true, "DIRECT_QUIZ_ENTRY_REQUIRED"\)/);
+});
+
 test("candidate preflight accepts only whole-button AABB physics with abortable listener cleanup", async () => {
   const { hasWholeButtonQuizPhysics } = await contractsPromise;
   assert.equal(hasWholeButtonQuizPhysics(candidateHtml, candidateApp), true);
@@ -208,10 +220,12 @@ test("candidate preflight requires the public-only CPU seal timing policy", asyn
 
 test("candidate preflight requires the complete match reward economy", async () => {
   const { hasMatchRewardEconomy } = await contractsPromise;
-  assert.equal(hasMatchRewardEconomy(candidateHtml, candidateApp, candidateEdgeBundle), true);
-  assert.equal(hasMatchRewardEconomy(candidateHtml, candidateApp, candidateEdgeBundle.replace("const PVP_REWARD_LIMIT = 10;", "const PVP_REWARD_LIMIT = 11;")), false);
-  assert.equal(hasMatchRewardEconomy(candidateHtml, candidateApp, candidateEdgeBundle.replace("Date.parse(entry.endedAt) > cutoff", "Date.parse(entry.endedAt) >= cutoff")), false);
-  assert.equal(hasMatchRewardEconomy(candidateHtml.replace("対人勝利はLv.2", "対人勝利はLv.1"), candidateApp, candidateEdgeBundle), false);
+  assert.equal(hasMatchRewardEconomy(candidateHtml, candidateApp, candidateEdgeBundle, candidateResultModel), true);
+  assert.equal(hasMatchRewardEconomy(candidateHtml, candidateApp, candidateEdgeBundle.replace("const PVP_REWARD_LIMIT = 10;", "const PVP_REWARD_LIMIT = 11;"), candidateResultModel), false);
+  assert.equal(hasMatchRewardEconomy(candidateHtml, candidateApp, candidateEdgeBundle.replace("Date.parse(entry.endedAt) > cutoff", "Date.parse(entry.endedAt) >= cutoff"), candidateResultModel), false);
+  assert.equal(hasMatchRewardEconomy(candidateHtml.replace("対人勝利はLv.2", "対人勝利はLv.1"), candidateApp, candidateEdgeBundle, candidateResultModel), false);
+  assert.equal(hasMatchRewardEconomy(candidateHtml, candidateApp, candidateEdgeBundle, ""), false);
+  assert.equal(hasMatchRewardEconomy(candidateHtml, candidateApp, candidateEdgeBundle, candidateResultModel.replace("reward?.awarded !== true", "reward?.awarded === true")), false);
 });
 
 test("candidate app satisfies the complete legal-recolor LAB release marker", () => {
@@ -230,6 +244,8 @@ test("candidate app satisfies the waiting-opponent release marker", () => {
 
 test("candidate page and app satisfy the alpha.4 cache generation marker", () => {
   assert.equal(candidateHtml.includes("app.js?v=20260914-2"), true);
+  assert.equal(candidateHtml.includes("terminal-result.css?v=20260914-1"), true);
+  assert.equal(candidateApp.includes("result-continuation.js?v=20260914-1"), true);
   assert.equal(candidateHtml.includes("cpu-commentary.js?v=20260910-1"), true);
   assert.equal(candidateHtml.includes("style.css?v=20260914-2"), true);
   assert.equal(candidateHtml.includes("standard-online-client.js?v=20260910-1"), true);

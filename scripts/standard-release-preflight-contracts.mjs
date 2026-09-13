@@ -16,6 +16,17 @@ function includesAll(source, markers) {
   return typeof source === "string" && markers.every((marker) => source.includes(marker));
 }
 
+export function hasDirectQuizEntry(pageText, appText) {
+  if (typeof pageText !== "string" || typeof appText !== "string") return false;
+  const levels = [...pageText.matchAll(/data-quiz-start-level="(\d)"/g)].map(match => match[1]).join(",");
+  const help = pageText.match(/<details id="quizRewardHelp"[^>]*>[\s\S]*?<\/details>/)?.[0] || "";
+  return levels === "1,2,3,4,5"
+    && !/id="quiz(?:Level|Start)"/.test(pageText)
+    && !/\bopen\b/.test(help.split(">")[0])
+    && includesAll(help, ["もらえる券", "10問すべて正解</th><td>10枚", "5問以上を連続正解</th><td>5枚", "合計7問以上を正解</th><td>3枚", "それ以外</th><td>1枚", "1つ下のLv（最低Lv.1）"])
+    && includesAll(appText, ["async function startOnlineQuiz(selectedLevel)", "Number.isInteger(selectedLevel)", "selectedLevel < 1 || selectedLevel > 5", "!profile() || pendingQuiz || hasMatchedRoomHandoff()", "startOnlineQuiz(Number(button.dataset.quizStartLevel))"]);
+}
+
 export function hasWholeButtonQuizPhysics(pageText, appText) {
   return includesAll(pageText, [
     'id="quizOptions"',
@@ -173,16 +184,21 @@ export function hasCpuSealTimingPolicy(bundleText) {
   ]);
 }
 
-export function hasMatchRewardEconomy(pageText, appText, bundleText) {
-  return includesAll(pageText, [
-    "対人勝利はLv.2、敗北はLv.1（直近60分で10試合まで）",
-    "CPU勝利は強さに応じLv.1〜3、敗北はLv.1",
-  ]) && includesAll(appText, [
+export function hasMatchRewardEconomy(pageText, appText, bundleText, resultModelText = "") {
+  const legacyResultUi = includesAll(appText, [
     "const matchReward = settledMatch?.matchReward;",
     "matchReward?.reason === \"PVP_REWARD_LIMIT\"",
     "完了報酬：Lv.${rewardTicketLevel}ガチャ券 +${rewardTicketCount}",
     "直近60分の付与済み10試合に達したため、今回はありません。",
-  ]) && includesAll(bundleText, [
+  ]);
+  const compactResultUi = appText.includes("terminalRewardPresentation(roomModel?.room, mySeat, profile())")
+    && includesAll(resultModelText, ["const reward = savedResultReward(room, seat, profile);",
+      "reward?.awarded !== true", "Number.isSafeInteger(reward.ticketLevel)", "Number.isSafeInteger(reward.ticketCount)",
+      "PVP_REWARD_LIMIT", "完了報酬\\nLv.${reward.ticketLevel}ガチャ券 ×${reward.ticketCount}", "報酬を確認中です。"]);
+  return includesAll(pageText, [
+    "対人勝利はLv.2、敗北はLv.1（直近60分で10試合まで）",
+    "CPU勝利は強さに応じLv.1〜3、敗北はLv.1",
+  ]) && (legacyResultUi || compactResultUi) && includesAll(bundleText, [
     'const ECONOMY_VERSION = "standard-match-reward-v2";',
     "const PVP_REWARD_WINDOW_MS = 60 * 60 * 1000;",
     "const PVP_REWARD_LIMIT = 10;",

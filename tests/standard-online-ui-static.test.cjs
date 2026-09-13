@@ -9,6 +9,7 @@ const { STANDARD_SKILLS } = require("../standard/standard-skill-registry.js");
 const root = path.join(__dirname, "..");
 const html = fs.readFileSync(path.join(root, "standard-online-v5", "index.html"), "utf8");
 const app = fs.readFileSync(path.join(root, "standard-online-v5", "app.js"), "utf8");
+const resultContinuationSource = fs.readFileSync(path.join(root, "standard-online-v5", "result-continuation.js"), "utf8");
 const skillIntents = fs.readFileSync(path.join(root, "standard-online-v5", "standard-online-skill-intents.js"), "utf8");
 
 test("Standard Online declares its own four-color favicon", () => {
@@ -366,12 +367,13 @@ test("PvP and CPU records are visibly separate and CPU rematch uses its dedicate
   assert.match(progressionCss, /\.cpu-character-record-copy strong \{[^}]*overflow-wrap: anywhere/);
   assert.match(app, /対人戦 勝利/);
   assert.match(app, /CPU戦 勝利/);
-  assert.match(app, /完了報酬：Lv\.\$\{rewardTicketLevel\}ガチャ券 \+\$\{rewardTicketCount\}/);
-  assert.match(app, /直近60分の付与済み10試合に達したため、今回はありません/);
-  assert.match(app, /opponentKind === "cpu"/);
+  assert.match(resultContinuationSource, /完了報酬\\nLv\.\$\{reward\.ticketLevel\}ガチャ券 ×\$\{reward\.ticketCount\}/);
+  assert.match(resultContinuationSource, /PVP_REWARD_LIMIT/);
+  assert.match(resultContinuationSource, /room\.opponent_kind === "cpu"/);
   assert.match(css, /\.terminal-progress\{[^}]*white-space:pre-line/);
   assert.match(app, /entry\.onlineOpponentKind === "cpu"/);
-  assert.match(app, /roomModel\?\.room\?\.status === "finished"[\s\S]+?settledMatch\?\.matchId === state\.matchId[\s\S]+?Number\.isSafeInteger\(resultCount\)/);
+  assert.ok(app.includes('terminalRewardPresentation(roomModel?.room, mySeat, profile())'));
+  assert.match(resultContinuationSource, /item\?\.matchId === state\.matchId/);
   assert.ok(app.includes('const resultReward = savedResultReward(roomModel?.room, mySeat, profile())'));
   assert.ok(app.includes('show("terminalGoGacha", Boolean(resultReward))'));
   assert.ok(app.includes('$("terminalGoGacha").onclick = openSavedResultGacha'));
@@ -383,7 +385,8 @@ test("PvP and CPU records are visibly separate and CPU rematch uses its dedicate
   assert.match(css, /\.gacha-panel h2:focus,\.gacha-result-summary h3:focus\{[^}]*outline:3px solid #fde047/);
   assert.match(css, /\.terminal-confetti\{[^}]*overflow:hidden/);
   assert.match(app, /client\.requestCpuRematch\(\{ expectedVersion: roomModel\.room\.version \}\)/);
-  assert.match(app, /同じCPUと再戦する/);
+  assert.match(app, /show\("requestRematch", rematchPending\)/);
+  assert.doesNotMatch(html, /id="(?:terminalRematch|terminalChooseAnother|chooseDifferentCpu|chooseDifferentHuman)"/);
 });
 
 test("palette-change help explains permanent scope and bonus-use carryover", () => {
@@ -418,13 +421,15 @@ test("gacha persists its action identity before sending and hydrates the committ
   assert.match(app, /runGacha\(1, true\)/);
 });
 
-test("CPU completion reward copy is bound to the saved match reward and hydrated ticket total", () => {
-  assert.match(app, /const matchReward = settledMatch\?\.matchReward/);
-  assert.match(app, /const rewardTicketTotal = Number\(profile\(\)\?\.gachaTickets\?\.\[String\(rewardTicketLevel\)\]\)/);
-  assert.match(app, /rewardTicketTotal >= rewardTicketCount/);
+test("CPU completion result copy uses saved reward while subsequent gacha retains its balance checks", () => {
+  assert.match(resultContinuationSource, /const reward = entry\?\.matchReward/);
+  assert.match(resultContinuationSource, /Number\.isSafeInteger\(reward\.ticketLevel\)/);
+  assert.match(resultContinuationSource, /Number\.isSafeInteger\(reward\.ticketCount\)/);
   assert.match(app, /ticketLevel: reward\.ticketLevel/);
   assert.match(app, /ticketCount: reward\.ticketCount/);
-  assert.match(app, /完了報酬：Lv\.\$\{rewardTicketLevel\}ガチャ券 \+\$\{rewardTicketCount\}（所持 \$\{rewardTicketTotal - rewardTicketCount\}→\$\{rewardTicketTotal\}）/);
+  const terminalRender = app.slice(app.indexOf('function renderTerminalResult('),app.indexOf('function colorName('));
+  assert.doesNotMatch(terminalRender,/所持|戦績を保存しました|rewardTicketTotal/);
+  assert.match(terminalRender,/rewardPresentation\.text/);
   assert.match(app, /現在、Lv\.\$\{level\}券を\$\{available\}枚所持しています。1枚引くと券を1枚消費します。/);
   assert.match(app, /CPU戦の完了報酬を反映済み：Lv\.\$\{origin\.ticketLevel\}券 所持 ×\$\{origin\.ticketTotal\}/);
   assert.match(app, /1枚引くと所持券は\$\{origin\.ticketTotal - 1\}枚になります/);
@@ -928,7 +933,8 @@ test("skill target cancel is write-free and clears only transient selection", ()
 test("finished rooms expose a reconnect-safe rematch request", () => {
   assert.match(app, /show\("rematchControls", !cpuDraftOwnsRoomlessEntry && roomModel\?\.room\?\.status === "finished"\)/);
   assert.match(app, /client\.requestRematch\(\{ expectedVersion: roomModel\.room\.version \}\)/);
-  assert.match(app, /rematchPending \? "前回の再戦申請を確認"/);
+  assert.match(app, /Boolean\(snapshot\.rematchActionId\) && snapshot\.rematchExpectedVersion === roomModel\?\.room\?\.version/);
+  assert.match(html, /id="requestRematch"[^>]*data-pending-recovery="rematch"/);
   assert.match(app, /await roomSync\.refreshNow\(\)/);
   assert.match(app, /roomModel\.room\.status === "ready" && client\.snapshot\(\)\.setupRevision > 0/);
 });

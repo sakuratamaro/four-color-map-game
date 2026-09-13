@@ -1050,6 +1050,10 @@ async function installMock(context, mode) {
           roomId: id, roomCode: "A1B2C3", profileRevision: 1, setupRevision: initialMode === "setupLabMismatch" ? 3 : setupPending || pregameMode ? 0 : 3,
           rematchActionId: initialMode === "finished" && !resultRewardKind ? pendingId : null,
           rematchExpectedVersion: initialMode === "finished" && !resultRewardKind ? 9 : null,
+          ...(initialMode === "finishedCpu" && restoredConnection?.roomId === id ? {
+            rematchActionId: restoredConnection.rematchActionId,
+            rematchExpectedVersion: restoredConnection.rematchExpectedVersion,
+          } : {}),
           ...(initialMode === "abandonLost" && restoredConnection ? {
             abandonRoomId: restoredConnection.abandonRoomId,
             abandonActionId: restoredConnection.abandonActionId,
@@ -3013,13 +3017,20 @@ test("UDL060 result-local next actions fit mobile and desktop and route saved ze
           const dialog=document.querySelector(".terminal-celebration");
           const r=dialog.getBoundingClientRect();
           const buttons=[...document.querySelectorAll(".terminal-actions button")].filter(e=>e.getClientRects().length);
+          const title=document.querySelector("#terminalTitle"),quote=document.querySelector("#cpuTerminalCommentaryOverlay"),reason=document.querySelector("#terminalReasonText");
           return {overflow:document.documentElement.scrollWidth>innerWidth,
+            hierarchy:{title:parseFloat(getComputedStyle(title).fontSize),quote:parseFloat(getComputedStyle(quote).fontSize),reason:parseFloat(getComputedStyle(reason).fontSize)},
             fits:r.top>=0&&r.bottom<=innerHeight&&dialog.scrollHeight<=dialog.clientHeight+1,
             targets:buttons.map(e=>{const b=e.getBoundingClientRect();return {id:e.id,w:b.width,h:b.height,hit:e.contains(document.elementFromPoint(b.x+b.width/2,b.y+b.height/2))};})};
         });
         assert.equal(geometry.overflow,false);
+        assert.ok(geometry.hierarchy.title>=geometry.hierarchy.quote*2,JSON.stringify(geometry.hierarchy));
+        assert.ok(geometry.hierarchy.quote>geometry.hierarchy.reason,JSON.stringify(geometry.hierarchy));
         assert.equal(geometry.fits,true,JSON.stringify(geometry));
-        assert.equal(geometry.targets.length,5);
+        assert.equal(geometry.targets.length,3);
+        assert.deepEqual(geometry.targets.map(x=>x.id),["terminalGoGacha","terminalGoLobby","terminalClose"]);
+        assert.equal(await page.locator("#terminalProgressText").textContent(),"完了報酬\nLv.3ガチャ券 ×2");
+        assert.doesNotMatch(await page.locator("#terminalOverlay").textContent(),/戦績を保存しました|所持.*→/);
         assert.ok(geometry.targets.every(x=>x.w>=44&&x.h>=44&&x.hit),JSON.stringify(geometry));
         if (process.env.STANDARD_UI_ARTIFACT_DIR) {
           fs.mkdirSync(process.env.STANDARD_UI_ARTIFACT_DIR,{recursive:true});
@@ -3072,17 +3083,47 @@ test("UDL060 saved result navigation retains an unresolved draw level and exact 
   },{viewport:{width:390,height:844}});
 });
 
-test("UDL060 overlay rematch is explicit and double activation retains one CPU request", { timeout: 130000 }, async () => {
-  await withPage("finishedCpu",async page=>{
-    await page.locator("#terminalRematch").waitFor();
+test("UDL060 v2 actual saved reward levels and counts update without balance or stats copy", { timeout: 130000 }, async () => {
+  await withPage("resultRewardCpu",async page=>{
+    await page.locator("#terminalOverlay:not(.hidden)").waitFor();
+    for(const level of [1,2,3,4,5]){
+      await page.evaluate(level=>{const r=globalThis.__standardOnlineRuntime;const p=structuredClone(r.profile.profile_state);
+        p.matchHistory.find(x=>x.matchId===r.room.public_state.matchId).matchReward={awarded:true,ticketLevel:level,ticketCount:level};
+        p.gachaTickets={1:0,2:0,3:0,4:0,5:0};r.profile={...r.profile,revision:r.profile.revision+1,profile_state:p};r.onInvalidate();},level);
+      await page.waitForFunction(level=>document.querySelector("#terminalProgressText").textContent===`完了報酬\nLv.${level}ガチャ券 ×${level}`,level);
+    }
+    await page.locator("#terminalGoGacha").click();
+    assert.equal(await page.locator("#gachaLevel").inputValue(),"5");
+    assert.equal(await page.locator("#gachaDrawOne").isDisabled(),true);
     assert.deepEqual(await resultWriteCalls(page),[]);
-    await page.evaluate(()=>{document.querySelector("#terminalRematch").click();document.querySelector("#terminalRematch").click();});
-    await page.locator("#setupCard:not(.hidden)").waitFor();
-    const calls=(await resultWriteCalls(page)).filter(c=>c.body?.operation==="cpu-rematch");
-    assert.equal(calls.length,1);
-    assert.equal(calls[0].body.expectedVersion,9);
-    assert.match(calls[0].body.actionId,/^[0-9a-f-]{36}$/i);
-    await page.waitForFunction(()=>document.activeElement?.id==="setupTitle");
+    assert.equal(await page.evaluate(key=>JSON.parse(localStorage.getItem(key)).roomId,connectionKey),roomId);
+  },{viewport:{width:390,height:844}});
+});
+
+test("UDL060 v2 short landscape and enlarged result text keep every action reachable", { timeout: 130000 }, async () => {
+  for(const viewport of [{width:844,height:390},{width:390,height:844}])await withPage("resultRewardCpu",async page=>{
+    await page.locator("#terminalOverlay:not(.hidden)").waitFor();
+    if(viewport.width===390)await page.addStyleTag({content:"#terminalOverlay p,#terminalOverlay button {font-size:200%!important}"});
+    for(const id of ["terminalGoGacha","terminalGoLobby","terminalClose"]){
+      const button=page.locator("#"+id);await button.scrollIntoViewIfNeeded();
+      assert.equal(await button.evaluate(e=>{const r=e.getBoundingClientRect();return r.top>=0&&r.bottom<=innerHeight&&r.width>=44&&r.height>=44&&e.contains(document.elementFromPoint(r.x+r.width/2,r.y+r.height/2));}),true,id);
+    }
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
+    if(process.env.STANDARD_UI_ARTIFACT_DIR)await page.screenshot({path:path.join(process.env.STANDARD_UI_ARTIFACT_DIR,`terminal-stress-${viewport.width}.png`)});
+    await page.locator("#terminalClose").click();
+    assert.equal(await page.locator("#terminalOverlay").isVisible(),false);
+    assert.deepEqual(await resultWriteCalls(page),[]);
+  },{viewport});
+});
+
+test("UDL060 v2 CPU result does not offer direct rematch and returns without writes", { timeout: 130000 }, async () => {
+  await withPage("finishedCpu",async page=>{
+    await page.locator("#terminalOverlay:not(.hidden)").waitFor();
+    assert.equal(await page.locator("#terminalRematch,#terminalChooseAnother").count(),0);
+    await page.locator("#terminalClose").click();
+    await page.waitForFunction(()=>document.activeElement?.id==="terminalSummary");
+    assert.equal(await page.locator("#requestRematch").isVisible(),false);
+    assert.deepEqual(await resultWriteCalls(page),[]);
     assert.equal(await page.evaluate(key=>JSON.parse(localStorage.getItem(key)).roomId,connectionKey),roomId);
   });
 });
@@ -3091,33 +3132,34 @@ test("UDL060 explicit human next-opponent exit keeps server history and starts n
   await withPage("resultRewardHuman",async page=>{
     await page.locator("#terminalClose").click();
     const before=await page.evaluate(()=>JSON.stringify({room:globalThis.__standardOnlineRuntime.room,profile:globalThis.__standardOnlineRuntime.profile}));
-    await page.locator("#chooseDifferentHuman").click();
+    await page.locator("#resultGoLobby").click();
     assert.equal(await page.evaluate(key=>JSON.parse(localStorage.getItem(key)).roomId,connectionKey),null);
     assert.equal(await page.evaluate(()=>JSON.stringify({room:globalThis.__standardOnlineRuntime.room,profile:globalThis.__standardOnlineRuntime.profile})),before);
     assert.deepEqual(await resultWriteCalls(page),[]);
-    assert.equal(await page.locator("#findOpponent").isVisible(),true);
+    assert.equal(await page.locator("#choosePublicBattle").isVisible(),true);
   },{viewport:{width:390,height:844}});
 });
 
 test("UDL060 human overlay explicitly closes the displayed result before another opponent without server writes", { timeout: 130000 }, async () => {
   await withPage("resultRewardHuman",async page=>{
-    const next=page.locator("#terminalChooseAnother");
+    const next=page.locator("#terminalGoLobby");
     await next.waitFor();
-    assert.equal(await next.textContent(),"結果を閉じて別の相手を選ぶ");
+    assert.equal(await next.textContent(),"結果を閉じてロビーへ");
     const before=await page.evaluate(()=>JSON.stringify({room:globalThis.__standardOnlineRuntime.room,profile:globalThis.__standardOnlineRuntime.profile}));
     await next.click();
     assert.equal(await page.locator("#terminalOverlay").isVisible(),false);
     assert.equal(await page.evaluate(key=>JSON.parse(localStorage.getItem(key)).roomId,connectionKey),null);
     assert.equal(await page.evaluate(()=>JSON.stringify({room:globalThis.__standardOnlineRuntime.room,profile:globalThis.__standardOnlineRuntime.profile})),before);
     assert.deepEqual(await resultWriteCalls(page),[]);
-    assert.equal(await page.locator("#findOpponent").isVisible(),true);
+    assert.equal(await page.locator("#choosePublicBattle").isVisible(),true);
   },{viewport:{width:390,height:844}});
 });
 
 test("UDL060 pending rematch blocks competing result exits but retains the same retry", { timeout: 130000 }, async () => {
   await withPage("finished",async page=>{
     await page.locator("#terminalClose").click();
-    for(const id of ["resultGoLobby","chooseDifferentHuman"])assert.equal(await page.locator("#"+id).isDisabled(),true);
+    assert.equal(await page.locator("#resultGoLobby").isDisabled(),true);
+    assert.equal(await page.locator("#chooseDifferentHuman").count(),0);
     assert.deepEqual(await resultWriteCalls(page),[]);
     await page.locator("#requestRematch").click();
     await page.locator("#setupCard:not(.hidden)").waitFor();
@@ -3127,14 +3169,16 @@ test("UDL060 pending rematch blocks competing result exits but retains the same 
 });
 
 
-test("UDL060 canceling the overlay CPU picker restores a visible result control", { timeout: 130000 }, async () => {
+test("UDL060 v2 keyboard focus stays in the three actions and Escape preserves the room", { timeout: 130000 }, async () => {
   await withPage("finishedCpu",async page=>{
-    assert.equal(await page.locator("#terminalChooseAnother").textContent(),"別のCPUを選ぶ");
-    await page.locator("#terminalChooseAnother").click();
-    await page.locator("#cpuRosterDialog[open]").waitFor();
+    await page.locator("#terminalClose").focus();
+    await page.keyboard.press("Tab");
+    assert.equal(await page.evaluate(()=>document.activeElement?.id),"terminalGoLobby");
+    await page.keyboard.press("Shift+Tab");
+    assert.equal(await page.evaluate(()=>document.activeElement?.id),"terminalClose");
     await page.keyboard.press("Escape");
-    await page.waitForFunction(()=>document.activeElement?.id==="chooseDifferentCpu");
-    assert.equal(await page.locator("#chooseDifferentCpu").isVisible(),true);
+    await page.waitForFunction(()=>document.activeElement?.id==="terminalSummary");
+    assert.equal(await page.locator("#terminalOverlay").isVisible(),false);
     assert.equal(await page.evaluate(key=>JSON.parse(localStorage.getItem(key)).roomId,connectionKey),roomId);
     assert.deepEqual(await resultWriteCalls(page),[]);
   },{viewport:{width:390,height:844}});
@@ -3188,12 +3232,21 @@ test("UDL-055 actual browser never flashes random setup on finished resume, relo
       await freshTab.close();
 
       if (mode === "finishedCpu") {
-        await page.locator("#requestRematch").click();
+        assert.equal(await page.locator("#requestRematch").isVisible(), false);
+        await page.locator("#resultGoLobby").click();
+        assert.deepEqual(await resultWriteCalls(page), [], "closing a result must not start the next match");
+        await page.locator("#startStandardCpuLobby").click();
+        await page.getByRole("button", { name: "うっかりユズを選んで6枚を確認" }).click();
         await page.locator("#setupCard:not(.hidden)").waitFor();
-        await page.locator("#submitSetup").click();
+        assert.deepEqual((await resultWriteCalls(page)).filter(c => c.body?.operation !== "cpu-roster"), []);
+        await page.getByRole("button", { name: "このCPU・6枚で対戦開始" }).click();
         await page.waitForFunction(() => globalThis.__randomRevealShows === 1);
-        assert.equal(await page.locator("#randomReveal").isVisible(), true, "explicit rematch still reveals its new setup");
+        assert.equal(await page.locator("#randomReveal").isVisible(), true, "a deliberately started next match still reveals its new setup");
         assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.room.public_state.matchId), `${roomId}:10`);
+        const writes = await resultWriteCalls(page);
+        for (const operation of ["cpu-start", "setup", "initialize"])
+          assert.equal(writes.filter(c => c.body?.operation === operation).length, 1, operation);
+        assert.equal(writes.filter(c => c.body?.operation === "cpu-rematch").length, 0);
       }
     }, { beforeNavigate: auditRandomSetupReveal, viewport: { width: 390, height: 844 } });
   }
@@ -3230,7 +3283,7 @@ test("actual Edge celebrates an opponent surrender and presents defeat from the 
     assert.equal(await overlay.evaluate((node) => node.classList.contains("is-victory")), true);
     assert.equal(await page.locator("#terminalClose").evaluate((node) => node === document.activeElement), true);
 
-    await page.getByRole("button", { name: "再戦・対戦結果へ戻る" }).click();
+    await page.getByRole("button", { name: "対戦結果へ戻る", exact:true }).click();
     assert.equal(await page.locator("#chooseDifferentCpu").isVisible(), false);
     await page.evaluate(() => {
       const runtime = globalThis.__standardOnlineRuntime;
@@ -3253,15 +3306,15 @@ test("actual browser clears stale CPU/setup status and keeps the exact no-color 
   await withPage("cpuTurnNoColor", async (page) => {
     await page.locator("#terminalOverlay:not(.hidden)").waitFor();
     const expectedDetail = "A は塗れる色がなくなりました。\n敗因の内訳：残っていた色 青 は、受け取った灰色エリアの隣接色 青 と重なるため置けませんでした。 封印中：黄・緑。";
-    assert.equal(await page.locator("#waitingMessage").textContent(), "対戦は終了しました。下の勝敗理由と再戦メニューを確認してください。");
+    assert.equal(await page.locator("#waitingMessage").textContent(), "対戦は終了しました。下の対戦結果を確認できます。");
     assert.equal(await page.locator("#actionStatus").textContent(), "");
     assert.equal(await page.locator("#retryAction").isVisible(), false);
-    assert.equal(await page.locator("#terminalOutcomeTitle").textContent(), "敗北：敗因");
+    assert.equal(await page.locator("#terminalOutcomeTitle").textContent(), "敗北");
     assert.equal(await page.locator("#terminalOutcomeReason").textContent(), expectedDetail);
     assert.equal(await page.locator("#terminalReasonText").textContent(), expectedDetail);
     assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "cpu-action").length), 1);
 
-    await page.getByRole("button", { name: "再戦・対戦結果へ戻る" }).click();
+    await page.getByRole("button", { name: "対戦結果へ戻る", exact:true }).click();
     assert.equal(await page.locator("#terminalOverlay").isVisible(), false);
     assert.equal(await page.locator("#terminalSummary").isVisible(), true);
     assert.equal(await page.locator("#terminalOutcomeReason").textContent(), expectedDetail);
@@ -3274,7 +3327,7 @@ test("actual browser clears stale CPU/setup status and keeps the exact no-color 
     await page.waitForTimeout(900);
     assert.equal(await page.locator("#terminalOverlay").isVisible(), false);
     assert.equal(await page.locator("#terminalOutcomeReason").textContent(), expectedDetail);
-    assert.equal(await page.locator("#waitingMessage").textContent(), "対戦は終了しました。下の勝敗理由と再戦メニューを確認してください。");
+    assert.equal(await page.locator("#waitingMessage").textContent(), "対戦は終了しました。下の対戦結果を確認できます。");
     assert.equal(await page.locator("#actionStatus").textContent(), "");
     assert.equal(await page.evaluate(() => globalThis.__standardOnlineCpuActionCount()), 1);
   });
@@ -3296,7 +3349,7 @@ test("actual browser clears stale CPU/setup status and keeps the exact no-color 
       runtime.onInvalidate();
     });
     await page.locator("#terminalOverlay:not(.hidden)").waitFor();
-    assert.equal(await page.locator("#terminalOutcomeTitle").textContent(), "勝利：決着理由");
+    assert.equal(await page.locator("#terminalOutcomeTitle").textContent(), "勝利");
     assert.equal(await page.locator("#terminalOutcomeReason").textContent(), "B は塗れる色がなくなりました。");
     assert.equal((await page.locator("#terminalSummary").textContent()).includes("OPPONENT-PRIVATE-SENTINEL"), false);
   });
@@ -5670,7 +5723,7 @@ test("actual Edge hydrates a CPU win once, routes its earned ticket deliberately
   await withPage("cpuWin", async (page) => {
     await page.locator("#board").click({ position: { x: 50, y: 50 } });
     await page.getByRole("button", { name: "このエリアを渡す" }).click();
-    await page.getByText("戦績を保存しました：CPU戦 勝利 1\n完了報酬：Lv.1ガチャ券 +2（所持 2→4）").waitFor();
+    await page.locator("#terminalProgressText").filter({hasText:"完了報酬\nLv.1ガチャ券 ×2"}).waitFor();
     const first = await page.evaluate(({ key }) => ({
       profile: JSON.parse(localStorage.getItem(key)),
       actionCalls: globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "action").length,
@@ -5681,8 +5734,9 @@ test("actual Edge hydrates a CPU win once, routes its earned ticket deliberately
     assert.equal(first.profile.gachaTickets["1"], 4);
     assert.equal(first.profile.matchHistory.filter((entry) => entry.matchId === `${roomId}:9`).length, 1);
     assert.equal(first.actionCalls, 1);
-    const rewardCta = page.getByRole("button", { name: "獲得したLv.1券でガチャへ" });
+    const rewardCta = page.locator("#terminalGoGacha");
     await rewardCta.waitFor();
+    assert.equal(await rewardCta.textContent(), "ガチャへ");
     await page.waitForFunction(() => document.activeElement?.id === "terminalClose");
     const terminalLayout = await page.evaluate(() => {
       const dialog = document.querySelector(".terminal-celebration").getBoundingClientRect();
@@ -5786,12 +5840,12 @@ test("actual Edge hydrates a CPU win once, routes its earned ticket deliberately
 
 test("CPU reward copy requires a saved CPU settlement", { timeout: 150000 }, async () => {
   await withPage("finished", async (page) => {
-    await page.getByText("戦績を保存しました：対人戦 勝利 4").waitFor();
+    await page.locator("#terminalProgressText").filter({hasText:"報酬を確認中です。"}).waitFor();
     assert.doesNotMatch(await page.locator("#terminalProgressText").textContent(), /完了報酬/);
     assert.equal(await page.locator("#terminalGoGacha").isHidden(), true);
   });
   await withPage("finishedCpu", async (page) => {
-    await page.getByText("戦績を確認しています。マイページでも確認できます。").waitFor();
+    await page.locator("#terminalProgressText").filter({hasText:"報酬を確認中です。"}).waitFor();
     assert.doesNotMatch(await page.locator("#terminalProgressText").textContent(), /完了報酬/);
     assert.equal(await page.locator("#terminalGoGacha").isHidden(), true);
     await page.evaluate(() => {
@@ -5805,16 +5859,19 @@ test("CPU reward copy requires a saved CPU settlement", { timeout: 150000 }, asy
       runtime.room = { ...runtime.room, public_state: { ...runtime.room.public_state, debugUnlimitedSkills: true } };
       runtime.onInvalidate();
     });
-    await page.locator("#terminalProgressText").filter({ hasText: "実験対戦のため、戦績・報酬・在庫は変わりません。" }).waitFor();
+    await page.locator("#terminalProgressText").filter({ hasText: "実験対戦のため報酬はありません。" }).waitFor();
     assert.doesNotMatch(await page.locator("#terminalProgressText").textContent(), /完了報酬/);
     assert.equal(await page.locator("#terminalGoGacha").isHidden(), true);
   });
 });
 
-test("actual Edge rematches the same visible CPU and returns the human to fresh setup", { timeout: 130000 }, async () => {
+test("UDL060 v2 recovers an already pending CPU rematch with its original identity", { timeout: 130000 }, async () => {
   await withPage("finishedCpu", async (page) => {
-    await page.getByRole("button", { name: "再戦・対戦結果へ戻る" }).click();
-    await page.getByRole("button", { name: "同じCPUと再戦する" }).click();
+    await page.locator("#terminalClose").click();
+    assert.equal(await page.locator("#requestRematch").isVisible(),false);
+    await page.evaluate(({key,id})=>{const saved=JSON.parse(localStorage.getItem(key));saved.rematchActionId=id;saved.rematchExpectedVersion=globalThis.__standardOnlineRuntime.room.version;localStorage.setItem(key,JSON.stringify(saved));},{key:connectionKey,id:pendingRematchId});
+    await page.reload();
+    await page.getByRole("button", { name: "前回の再戦申請を確認" }).click();
     await page.locator("#setupCard:not(.hidden)").waitFor();
     assert.equal(await page.locator("#shownCode").textContent(), "CPU：うっかりユズ");
     const evidence = await page.evaluate(({ key }) => ({
@@ -5823,26 +5880,27 @@ test("actual Edge rematches the same visible CPU and returns the human to fresh 
     }), { key: connectionKey });
     assert.equal(evidence.calls.length, 1);
     assert.equal(evidence.calls[0].expectedVersion, 9);
-    assert.match(evidence.calls[0].actionId, /^[0-9a-f-]{36}$/i);
+    assert.equal(evidence.calls[0].actionId, pendingRematchId);
     assert.equal(evidence.stored.setupRevision, 0);
     assert.equal(evidence.stored.rematchActionId, null);
   });
 });
 
-test("actual Edge keeps a finished CPU room until another CPU is chosen", { timeout: 130000 }, async () => {
+test("UDL060 v2 starts another CPU from the lobby only after explicit result close", { timeout: 130000 }, async () => {
   await withPage("finishedCpu", async (page) => {
-    await page.getByRole("button", { name: "再戦・対戦結果へ戻る" }).click();
-    const chooseAnother = page.getByRole("button", { name: "別のCPUを選んで新しく対戦" });
+    await page.locator("#terminalGoLobby").click();
+    assert.equal(await page.evaluate(key=>JSON.parse(localStorage.getItem(key))?.roomId,connectionKey),null);
+    assert.deepEqual(await resultWriteCalls(page),[]);
+    const chooseAnother = page.locator("#startStandardCpuLobby");
     await chooseAnother.click();
     await page.locator("#cpuRosterDialog[open]").waitFor();
-    assert.equal(await page.locator("#closeCpuRoster").textContent(), "対戦結果に戻る");
     const roomBeforeCancel = await page.evaluate(({ key }) => JSON.parse(localStorage.getItem(key))?.roomId, { key: connectionKey });
-    assert.equal(roomBeforeCancel, "11111111-1111-4111-8111-111111111111");
+    assert.equal(roomBeforeCancel, null);
 
     await page.keyboard.press("Escape");
     await page.locator("#cpuRosterDialog").waitFor({ state: "hidden" });
-    assert.equal(await page.evaluate(() => document.activeElement?.id), "chooseDifferentCpu");
-    assert.equal(await page.locator("#room").isVisible(), true);
+    assert.equal(await page.evaluate(() => document.activeElement?.id), "startStandardCpuLobby");
+    assert.equal(await page.locator("#room").isVisible(), false);
     assert.equal(await page.evaluate(({ key }) => JSON.parse(localStorage.getItem(key))?.roomId, { key: connectionKey }), roomBeforeCancel);
 
     await chooseAnother.click();
