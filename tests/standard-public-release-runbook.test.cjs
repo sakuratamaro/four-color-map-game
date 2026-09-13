@@ -29,8 +29,21 @@ test("UDL023 v14 is a separate Pages-only successor with explicit actions and no
   for (const phrase of ["UDL-023-public-actions-v1", "70e691b6f8f1d808476e80990d20df7862bfb782", "Pages_only",
     "DB/Edge/管理設定は各 `[]`", "真正Astra判定", "recruitだけ", "findだけ", "同一ID再送",
     "実ユーザーへのfind/recruit", "ここでは許可しない", "NOT_RUN"]) assert.ok(section.includes(phrase), phrase);
-  for (const pattern of [/src="(app\.js\?v=[^"]+)"/, /href="(ui-diet\.css\?v=[^"]+)"/])
-    assert.ok(section.includes(assetReference(onlineIndex, pattern, "public-actions lane")));
+  // The approved parent lane is historical evidence, not the successor's asset versions.
+  for (const marker of ["app.js?v=20260913-48", "ui-diet.css?v=20260913-4"])
+    assert.ok(section.includes(marker));
+});
+
+test("UDL060 terminal hierarchy binds its own asset versions and keeps release gates separate", () => {
+  const section = runbook.slice(runbook.indexOf("## 完了の定義"), runbook.indexOf("入口UIのv13後続便"));
+  for (const phrase of ["UDL-060-terminal-v2", "docs/UI_TERMINAL_HIERARCHY_20260914.md", "最大3操作",
+    "旧pending申請の復旧", "独自Windowsゲート", "真正Astraレビュー", "fresh mainと配信byte確認",
+    "CPU/DB/Edge/経済は変更しない", "公開確認は未実行"])
+    assert.ok(section.includes(phrase), phrase);
+  for (const pattern of [/src="(app\.js\?v=[^"]+)"/, /href="(terminal-result\.css\?v=[^"]+)"/])
+    assert.ok(section.includes(assetReference(onlineIndex, pattern, "terminal hierarchy lane")));
+  const app = fs.readFileSync(path.join(__dirname, "..", "standard-online-v5", "app.js"), "utf8");
+  assert.ok(section.includes(assetReference(app, /from "\.\/(result-continuation\.js\?v=[^"]+)"/, "terminal reward model")));
 });
 
 test("current alpha.4 release lane deploys the compatible Edge before Pages and preserves active rooms", () => {
@@ -40,7 +53,7 @@ test("current alpha.4 release lane deploys the compatible Edge before Pages and 
   const pages = releaseSection.indexOf("Pages候補asset", canary);
   assert.ok(edge >= 0 && canary > edge && pages > canary);
   const candidateAssets = [
-    assetReference(onlineIndex, /src="(app\.js\?v=[^"]+)"/, "online app"),
+    "app.js?v=20260913-48", // Frozen parent evidence; the terminal successor has its own lane above.
     assetReference(onlineIndex, /href="(style\.css\?v=[^"]+)"/, "online style"),
     assetReference(onlineIndex, /src="(standard-online-skill-intents\.js\?v=[^"]+)"/, "online skill intents"),
     assetReference(onlineIndex, /src="(standard-online-client\.js\?v=[^"]+)"/, "online client"),

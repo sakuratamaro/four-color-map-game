@@ -2934,7 +2934,7 @@ test("UDL060 saved result navigation retains an unresolved draw level and exact 
   },{viewport:{width:390,height:844}});
 });
 
-test("UDL060 v2 actual saved reward levels and counts update without balance or stats copy", {timeout:130000}, async()=>{
+test("UDL060 v2 actual saved reward levels and counts update without balance or stats copy", { timeout: 130000 }, async () => {
   await withPage("resultRewardCpu",async page=>{
     await page.locator("#terminalOverlay:not(.hidden)").waitFor();
     for(const level of [1,2,3,4,5]){
@@ -2951,7 +2951,7 @@ test("UDL060 v2 actual saved reward levels and counts update without balance or 
   },{viewport:{width:390,height:844}});
 });
 
-test("UDL060 v2 short landscape and enlarged result text keep every action reachable", {timeout:130000}, async()=>{
+test("UDL060 v2 short landscape and enlarged result text keep every action reachable", { timeout: 130000 }, async () => {
   for(const viewport of [{width:844,height:390},{width:390,height:844}])await withPage("resultRewardCpu",async page=>{
     await page.locator("#terminalOverlay:not(.hidden)").waitFor();
     if(viewport.width===390)await page.addStyleTag({content:"#terminalOverlay p,#terminalOverlay button {font-size:200%!important}"});
