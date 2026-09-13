@@ -78,7 +78,7 @@ test("release preflight is read-only, secret-free, finite, and stage-aware", () 
   assert.match(source, /MATCH_REWARD_ECONOMY_MISMATCH/);
   assert.match(source, /app\.text\.includes\('★\$\{meta\.rarity\}'\)/);
   assert.match(source, /CANDIDATE_ASSET_GENERATION_UI_PHASE_MISMATCH/);
-assert.match(source, /app\.js\?v=20260913-43/);
+assert.match(source, /app\.js\?v=20260913-44/);
   assert.match(source, /cpu-commentary\.js\?v=20260910-1/);
   assert.match(source, /progression\.css/);
   assert.match(source, /style\.css\?v=20260910-12/);
@@ -87,7 +87,7 @@ assert.match(source, /app\.js\?v=20260913-43/);
   assert.match(source, /standard-skill-registry\.generated\.js\?v=20260912-2/);
   assert.match(source, /cpu-portraits\.js\?v=20260908-1/);
   assert.match(source, /basic-feedback\.js\?v=20260908-2/);
-  assert.match(source, /skill-cutin\.js\?v=20260913-1/);
+assert.match(source, /skill-cutin\.js\?v=20260913-2/);
   assert.match(source, /skill-cutin\.css\?v=20260913-1/);
   assert.match(source, /getOptionalBytes\(`\$\{publicUrl\}assets\/cpu-portraits\/cpu-portrait-atlas\.png`\)/);
   assert.match(source, /getOptionalText\(publicEdgeBundleUrl\)/);
@@ -229,7 +229,7 @@ test("candidate app satisfies the waiting-opponent release marker", () => {
 });
 
 test("candidate page and app satisfy the alpha.4 cache generation marker", () => {
-  assert.equal(candidateHtml.includes("app.js?v=20260913-43"), true);
+  assert.equal(candidateHtml.includes("app.js?v=20260913-44"), true);
   assert.equal(candidateHtml.includes("cpu-commentary.js?v=20260910-1"), true);
   assert.equal(candidateHtml.includes("style.css?v=20260910-12"), true);
   assert.equal(candidateHtml.includes("standard-online-client.js?v=20260910-1"), true);
@@ -237,7 +237,7 @@ test("candidate page and app satisfy the alpha.4 cache generation marker", () =>
   assert.equal(candidateHtml.includes("standard-skill-registry.generated.js?v=20260912-2"), true);
   assert.equal(candidateHtml.includes("cpu-portraits.js?v=20260908-1"), true);
   assert.equal(candidateHtml.includes("basic-feedback.js?v=20260908-2"), true);
-  assert.equal(candidateHtml.includes("skill-cutin.js?v=20260913-1"), true);
+  assert.equal(candidateHtml.includes("skill-cutin.js?v=20260913-2"), true);
   assert.equal(candidateHtml.includes("skill-cutin.css?v=20260913-1"), true);
   assert.equal(candidateApp.includes("skillCategoryWindow"), true);
   assert.equal(candidateApp.includes("SKILL_CATEGORY_ALREADY_USED_IN_WINDOW"), true);

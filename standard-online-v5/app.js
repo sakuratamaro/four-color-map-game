@@ -939,7 +939,8 @@ function observeSkillCutin(state, privateState) {
     const visible = activeAppTab === "battle" && document.visibilityState === "visible";
     const blocked = skillCutinBlocked();
     void skillCutin.observe({ state, roomId: roomModel?.room?.id, seat: roomModel?.view?.seat,
-      ownColors: skillIntents.availableColorChoices(privateState), ack: lastOwnSkillAck, visible, blocked });
+      ownColors: skillIntents.availableColorChoices(privateState), ack: lastOwnSkillAck,
+      skillRegistry: STANDARD_SKILL_REGISTRY, visible, blocked });
   } catch { clearSkillCutin(); } // An optional visual must never interrupt a game action.
 }
 function nextPublicJudgment(state) {

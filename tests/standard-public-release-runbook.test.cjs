@@ -15,6 +15,14 @@ function assetReference(source, pattern, label) {
   return reference;
 }
 
+test("UDL065 named-skill lane binds Edge-first compatibility and forbids borrowing a consumed live trial", () => {
+  const section = runbook.slice(runbook.indexOf("### UDL-065: 使用済みスキル名の公開表示"), runbook.indexOf("### UDL-065: v14カットイン可読性・実結果説明"));
+  for (const phrase of ["UDL-065-public-skill-v1", "DB/管理設定は各 `[]`", "standard-engine.bundle.js", "index.ts",
+    "互換Edge → 完全2file読戻し → Pages", "CPU039とUI040", "040の消費済み試行を再使用しない", "NOT_RUN"]) assert.ok(section.includes(phrase), phrase);
+  for (const pattern of [/src="(app\.js\?v=[^"]+)"/, /src="(skill-cutin\.js\?v=[^"]+)"/, /href="(skill-cutin\.css\?v=[^"]+)"/])
+    assert.ok(section.includes(assetReference(onlineIndex, pattern, "named-skill lane")));
+});
+
 test("current alpha.4 release lane deploys the compatible Edge before Pages and preserves active rooms", () => {
   const releaseSection = runbook.slice(runbook.indexOf("### alpha.4彩色済みエリア角膨張便"), runbook.indexOf("### alpha.3カテゴリ制限便"));
   const edge = releaseSection.indexOf("alpha.4対応Edge");

@@ -19,6 +19,18 @@
     if (t.type === "LEGAL_RECOLOR" && (!COLORS.includes(t.color) || !safeId(t.regionId))) return null;
     return t;
   }
+  function publicSkillName(state, registry) {
+    const trace = traceFor(state), used = state?.lastPublicSkill;
+    if (!trace || !used || typeof used !== "object" || Array.isArray(used)
+      || Object.keys(used).sort().join("|") !== "actor|eventId|skillId|version"
+      || used.eventId !== trace.eventId || used.version !== trace.version || used.actor !== trace.actor
+      || typeof used.skillId !== "string" || !registry?.skills || !Object.hasOwn(registry.skills, used.skillId)) return null;
+    const definition = registry.skills[used.skillId];
+    if (!definition || definition.id !== used.skillId || definition.standardEngineImplemented !== true
+      || (trace.type === "LEGAL_RECOLOR") !== (used.skillId === "legalRecolor")
+      || typeof definition.displayName !== "string" || !definition.displayName.trim() || definition.displayName.length > 48) return null;
+    return definition.displayName;
+  }
   function snapshot(input) {
     const { state, roomId, seat } = input || {};
     if (!safeId(roomId) || !safeId(state?.matchId) || !["A", "B"].includes(seat)
@@ -70,7 +82,7 @@
     const paletteChanged = previous.palette !== current.palette || previous.seals !== current.seals;
     const boardChanged = previous.board !== current.board;
     return { eventId: trace.eventId, scope: current.scope, version: current.version, actor: own ? "self" : "opponent",
-      title: ack?.name ? String(ack.name).slice(0, 48) : "スキルを使用",
+      title: publicSkillName(input.state, input.skillRegistry) || (ack?.name ? String(ack.name).slice(0, 48) : "スキルを使用"),
       detail: noOp ? "空振り" : resultDetail(previous, current, trace),
       destination: noOp ? null : paletteChanged ? "palette" : boardChanged ? "board" : null,
       noOp };
@@ -123,5 +135,5 @@
     }
     return { observe, interrupt };
   }
-  return Object.freeze({ VERSION: "skill-cutin-v1", DISPLAY_MS, STORAGE_KEY, traceFor, snapshot, describe, claim, createObserver });
+  return Object.freeze({ VERSION: "skill-cutin-v1", DISPLAY_MS, STORAGE_KEY, traceFor, publicSkillName, snapshot, describe, claim, createObserver });
 });
