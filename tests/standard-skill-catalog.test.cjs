@@ -36,5 +36,5 @@ test("UDL066 renderer uses native keyed read-only buttons and keeps unowned prof
   assert.match(render,/document\.createElement\("button"\)/);assert.match(render,/existing\.get\(id\)/);
   assert.match(render,/card\.onclick = \(\) => openSkillInfo\(id\)/);
   assert.match(app,/show\("cardLibraryPanel", true\)/);assert.match(app,/show\("cardSaleBox", synced && Boolean\(profile\(\)\)\)/);
-  assert.match(app,/activeAppTab !== "cards"/);
+  assert.match(app,/!\["home", "cards"\]\.includes\(activeAppTab\)/);
 });

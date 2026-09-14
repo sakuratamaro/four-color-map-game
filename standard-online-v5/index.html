@@ -6,15 +6,16 @@
   <title>Four Color Map Game v5.0 Standard Online</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='30' height='30' x='1' y='1' rx='8' fill='%23ef476f'/%3E%3Crect width='30' height='30' x='33' y='1' rx='8' fill='%23ffd166'/%3E%3Crect width='30' height='30' x='1' y='33' rx='8' fill='%2306d6a0'/%3E%3Crect width='30' height='30' x='33' y='33' rx='8' fill='%231182e8'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="../online-v5/style.css">
-  <link rel="stylesheet" href="style.css?v=20260910-12">
+  <link rel="stylesheet" href="style.css?v=20260914-4">
   <link rel="stylesheet" href="debug-mode.css">
-  <link rel="stylesheet" href="progression.css?v=20260910-2">
+  <link rel="stylesheet" href="progression.css?v=20260914-1">
   <link rel="stylesheet" href="quiz-memo.css?v=20260912-2">
-  <link rel="stylesheet" href="ui-diet.css?v=20260912-3">
+  <link rel="stylesheet" href="ui-diet.css?v=20260914-2">
   <link rel="stylesheet" href="skill-catalog.css?v=20260912-1">
-  <link rel="stylesheet" href="surrender-confirmation.css?v=20260913-1">
+  <link rel="stylesheet" href="surrender-confirmation.css?v=20260913-2">
   <link rel="stylesheet" href="play-surface.css?v=20260912-1">
   <link rel="stylesheet" href="result-continuation.css?v=20260912-1">
+  <link rel="stylesheet" href="terminal-result.css?v=20260914-1">
   <link rel="stylesheet" href="skill-cutin.css?v=20260913-1">
 </head>
 <body>
@@ -49,27 +50,19 @@
     </section>
 
     <section class="card home-hero" data-app-tab-panel="home">
-      <p class="home-kicker">YOUR NEXT MOVE</p>
-      <h2>今日は何をする？</h2>
-      <p class="muted">好きな相手と対戦。クイズでカードを集めよう。</p>
+      <h2>ホーム</h2>
       <div class="home-actions">
-        <button id="startStandardCpuHome" type="button" class="primary">CPUとすぐStandard対戦</button>
-        <button type="button" data-tab-jump="battle">友だち・だれかと対戦</button>
-        <button type="button" data-tab-jump="quiz">クイズでガチャ券を獲得</button>
-        <button type="button" data-tab-jump="cards">カードを確認</button>
+        <button id="openHomeSettings" type="button" aria-expanded="false" aria-controls="feedbackSettings"><span aria-hidden="true">⚙</span> 設定</button>
+        <button id="openTutorial" type="button" aria-haspopup="dialog" aria-controls="tutorialDialog">チュートリアル</button>
       </div>
-    </section>
-
-    <section id="feedbackSettings" class="card feedback-settings" aria-labelledby="feedbackSettingsTitle" data-app-tab-panel="home profile">
+      <section id="feedbackSettings" class="feedback-settings hidden" aria-labelledby="feedbackSettingsTitle">
       <div>
-        <p class="section-kicker">FEEDBACK</p>
         <h2 id="feedbackSettingsTitle">効果音と振動</h2>
-        <p class="muted small">どちらも初期状態はOFFです。効果音はONにしたあとの操作で有効になり、端末が対応していない機能は何も起こさず対戦を続けます。</p>
       </div>
       <div class="feedback-settings-controls" role="group" aria-label="効果音と振動の設定">
         <label class="feedback-toggle">
           <input id="soundEffectsEnabled" type="checkbox">
-          <span><strong>効果音</strong><small>確定接触・手番・勝敗</small></span>
+          <span><strong>効果音</strong></span>
         </label>
         <label class="feedback-toggle">
           <input id="vibrationEnabled" type="checkbox">
@@ -77,6 +70,11 @@
         </label>
       </div>
       <p id="feedbackSettingsStatus" class="muted small" role="status" aria-live="polite" aria-atomic="true">効果音 OFF｜振動 OFF</p>
+      </section>
+    </section>
+
+    <section id="homeSessionRecovery" class="card home-session-recovery hidden" data-app-tab-panel="home" aria-label="対戦の続き">
+      <button id="startStandardCpuHome" type="button" class="primary">進行中の対戦へ戻る</button>
     </section>
 
     <section id="lobby" class="card battle-entrance hidden" data-app-tab-panel="battle">
@@ -101,14 +99,14 @@
         <section id="matchmakingPanel" class="lobby-choice public-matchmaking hidden" aria-labelledby="publicBattleTitle">
           <h3 id="publicBattleTitle" tabindex="-1">だれかと対戦</h3>
           <p class="muted small">相手が見つかるまで、クイズやガチャで遊べます。</p>
-          <div class="controls">
-            <button id="findOpponent" class="primary">相手を探す</button>
-            <button id="cancelMatchmaking" class="ghost hidden">募集を取り消す</button>
+          <div class="public-match-actions" role="group" aria-label="だれとでも対戦の始め方">
+            <button id="recruitOpponent" type="button">相手を待つ</button>
+            <button id="findOpponent" type="button" class="primary">待っている相手に参加</button>
           </div>
-          <details id="publicWaitingOptions"><summary>相手を待つだけにする</summary><button id="recruitOpponent" type="button">対戦相手を募集</button></details>
+          <button id="cancelMatchmaking" type="button" class="ghost hidden">募集を取り消す</button>
           <div id="matchmakingWait" class="matchmaking-wait hidden">
             <span class="searching-pulse" aria-hidden="true"></span>
-            <div><strong>対戦相手を探しています</strong><p id="matchmakingElapsed" class="muted small">待機 0秒</p></div>
+            <div><strong>対戦相手を待っています</strong><p id="matchmakingElapsed" class="muted small">待機 0秒</p></div>
           </div>
           <div id="cpuOpponentOffer" class="cpu-opponent-offer hidden">
             <div><strong>🤖 CPUと対戦できます</strong><p id="cpuOfferMessage" class="muted small">人間の対戦相手を待ち続けることもできます。</p></div>
@@ -117,36 +115,64 @@
               <button id="keepWaitingForHuman" class="ghost">このまま人を待つ</button>
             </div>
           </div>
-          <p id="matchmakingStatus" class="callout" aria-live="polite" tabindex="-1">「相手を探す」で対戦相手を見つけます。</p>
+          <p id="matchmakingStatus" class="callout" aria-live="polite" tabindex="-1">待つ・参加するを選んでください。</p>
         </section>
     </section>
 
     <section id="profileCard" class="card hidden" data-app-tab-panel="home battle quiz cards profile">
-      <h2>プレイヤープロフィール</h2>
-      <label>プロフィール<select id="profileSelect"></select></label>
-      <p id="profileSummary" class="muted"></p>
-      <div id="starterCreator" class="join-box hidden">
-        <input id="starterName" maxlength="20" autocomplete="nickname" placeholder="あなたの名前（20文字まで）">
-        <button id="createStarterProfile" class="primary">この名前で対戦準備へ</button>
+      <div class="profile-heading">
+        <h2>プロフィール</h2>
+        <button id="toggleProfileOptions" type="button" class="ghost hidden" aria-label="プロフィールを切り替える" aria-expanded="false" aria-controls="profileOptions">切替</button>
       </div>
-      <button id="syncProfile" class="primary">オンライン対戦の準備をする</button>
-      <p class="muted small">この端末のStandardセーブから選べます。初めての場合は、名前とスターター6枚をこのオンライン画面だけに保存して対戦準備まで進みます。相手には名前と対戦中の公開情報だけが表示されます。</p>
+      <p id="profileSummary" class="profile-summary"></p>
+      <div id="profileOptions">
+        <label id="profilePickerLabel">プロフィール<select id="profileSelect" aria-describedby="profilePublicNameHelp"></select></label>
+        <p id="profilePublicNameHelp" class="profile-name-help">この名前は対戦相手に表示されます。ニックネームを入力してください。</p>
+        <div id="starterCreator" class="join-box hidden">
+          <label for="starterName">ニックネーム（20文字まで）</label>
+          <input id="starterName" maxlength="20" autocomplete="nickname" aria-describedby="profilePublicNameHelp" placeholder="ニックネーム">
+          <button id="createStarterProfile" class="primary">この名前で対戦準備へ</button>
+        </div>
+        <button id="syncProfile" class="primary">このプロフィールを使う</button>
+      </div>
+      <p id="profileSaveStatus" class="small hidden" role="status" aria-live="polite"></p>
+      <section id="techniqueEquipment" class="technique-equipment hidden" aria-labelledby="techniqueEquipmentTitle">
+        <h3 id="techniqueEquipmentTitle">伝授技</h3>
+        <p id="techniqueEquipmentSummary"></p>
+        <button id="equipTechnique" type="button" class="ghost">解封を装備する</button>
+        <p id="techniqueEquipmentStatus" class="small" role="status"></p>
+      </section>
+    </section>
+
+    <section id="progressionRecovery" class="card hidden" data-app-tab-panel="home battle profile" aria-label="試練・装備の再確認">
+      <p id="progressionRecoveryMessage" tabindex="-1" role="status"></p>
+      <button id="resumeTrialStart" type="button" class="primary hidden">同じ試練の開始結果を確認</button>
+      <button id="resumeTechniqueEquip" type="button" class="primary hidden">同じ装備変更の結果を確認</button>
     </section>
 
     <section id="quizPanel" class="card quiz-panel hidden" data-app-tab-panel="quiz">
-      <div class="row between wrap">
-        <div><h2>ガチャ券クイズ</h2><p class="muted">10問に挑戦。問題と採点はサーバー管理なので、獲得券がそのままオンラインガチャに入ります。</p></div>
-        <span class="quiz-prize">🎫 1・3・5・10枚</span>
-      </div>
+      <h2>ガチャ券クイズ</h2>
       <div id="quizSetup" class="quiz-setup">
-        <label>難易度／獲得券レベル
-          <select id="quizLevel">
-            <option value="1">Lv.1 基礎</option><option value="2">Lv.2 標準</option><option value="3">Lv.3 発展</option>
-            <option value="4">Lv.4 上級</option><option value="5">Lv.5 最上級</option>
-          </select>
-        </label>
-        <button id="quizStart" class="primary">10問チャレンジ開始</button>
+        <button type="button" class="primary" data-quiz-start-level="1"><span class="quiz-start-level">Lv.1</span> <span class="quiz-start-label">10問チャレンジ</span></button>
+        <button type="button" class="primary" data-quiz-start-level="2"><span class="quiz-start-level">Lv.2</span> <span class="quiz-start-label">10問チャレンジ</span></button>
+        <button type="button" class="primary" data-quiz-start-level="3"><span class="quiz-start-level">Lv.3</span> <span class="quiz-start-label">10問チャレンジ</span></button>
+        <button type="button" class="primary" data-quiz-start-level="4"><span class="quiz-start-level">Lv.4</span> <span class="quiz-start-label">10問チャレンジ</span></button>
+        <button type="button" class="primary" data-quiz-start-level="5"><span class="quiz-start-level">Lv.5</span> <span class="quiz-start-label">10問チャレンジ</span></button>
       </div>
+      <details id="quizRewardHelp" class="quiz-reward-help">
+        <summary>もらえる券</summary>
+        <p>10問を終えると、当てはまる条件のうち一番上の報酬がもらえます。枚数は合算しません。</p>
+        <table>
+          <caption>クイズの報酬</caption>
+          <thead><tr><th scope="col">正解の条件</th><th scope="col">枚数</th><th scope="col">券のLv</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">10問すべて正解</th><td>10枚</td><td>挑戦したLv</td></tr>
+            <tr><th scope="row">5問以上を連続正解</th><td>5枚</td><td>挑戦したLv</td></tr>
+            <tr><th scope="row">合計7問以上を正解</th><td>3枚</td><td>挑戦したLv</td></tr>
+            <tr><th scope="row">それ以外</th><td>1枚</td><td>1つ下のLv（最低Lv.1）</td></tr>
+          </tbody>
+        </table>
+      </details>
       <div id="quizPlay" class="quiz-play hidden">
         <div class="row between quiz-meta"><strong id="quizProgress">1 / 10</strong><span id="quizLevelBadge" class="badge"></span><strong id="quizStreak" class="quiz-streak hidden" data-tier="0"></strong><strong id="quizTimer" class="quiz-timer" aria-live="off">残り --秒</strong></div>
         <span id="quizTimerAnnouncement" class="visually-hidden" role="status" aria-live="polite" aria-atomic="true"></span>
@@ -168,7 +194,7 @@
         <div class="quiz-controls"><button id="quizHint" type="button">💡 ヒントを見る</button><span class="muted small">各問題で1回だけ使えます。表示中は残り時間が止まります。</span></div>
         <p id="quizHintText" class="quiz-hint hidden" role="status"></p>
       </div>
-      <p id="quizStatus" class="callout" aria-live="polite">難易度を選んで始めてください。</p>
+      <p id="quizStatus" class="callout" aria-live="polite"></p>
       <section id="quizResult" class="quiz-result hidden" aria-live="polite">
         <p id="quizRewardSummary"></p>
         <button id="quizGoGacha" class="primary" type="button">ガチャへ</button>
@@ -180,23 +206,32 @@
     </section>
 
     <section id="gachaPanel" class="card gacha-panel hidden" data-app-tab-panel="quiz">
-      <div class="row between wrap">
-        <div><h2 id="gachaTitle" tabindex="-1">カードガチャ</h2><p class="muted">対人勝利はLv.2、敗北はLv.1（直近60分で10試合まで）。CPU勝利は強さに応じLv.1〜3、敗北はLv.1の券を獲得します。</p></div>
-        <strong id="gachaTickets">Lv.1 ×0 / Lv.2 ×0 / Lv.3 ×0 / Lv.4 ×0 / Lv.5 ×0</strong>
+      <h2 id="gachaTitle" tabindex="-1">カードガチャ</h2>
+      <div id="gachaLevels" class="gacha-levels" role="group" aria-label="使うガチャ券のLv">
+        <button type="button" data-gacha-level="1" aria-pressed="true"><span>Lv.1</span><small data-gacha-count>0枚</small></button>
+        <button type="button" data-gacha-level="2" aria-pressed="false"><span>Lv.2</span><small data-gacha-count>0枚</small></button>
+        <button type="button" data-gacha-level="3" aria-pressed="false"><span>Lv.3</span><small data-gacha-count>0枚</small></button>
+        <button type="button" data-gacha-level="4" aria-pressed="false"><span>Lv.4</span><small data-gacha-count>0枚</small></button>
+        <button type="button" data-gacha-level="5" aria-pressed="false"><span>Lv.5</span><small data-gacha-count>0枚</small></button>
       </div>
       <div class="gacha-setup">
-        <label>券レベル
-          <select id="gachaLevel">
-            <option value="1">Lv.1</option><option value="2">Lv.2</option><option value="3">Lv.3</option>
-            <option value="4">Lv.4</option><option value="5">Lv.5</option>
-          </select>
-        </label>
-        <button id="gachaDrawOne" class="primary">1枚引く</button>
-        <button id="gachaDrawAll">このLv.を全部引く</button>
-        <button id="gachaRetry" class="ghost hidden">同じ抽選を再確認</button>
+        <button id="gachaDrawOne" class="primary" type="button">1枚引く</button>
+        <button id="gachaDrawAll" type="button" aria-describedby="gachaLimitNote">全部引く</button>
       </div>
-      <p id="gachaOdds" class="gacha-odds" aria-live="polite">Lv.1 排出率：★1 65% / ★2 29% / ★3 5% / ★4 0.9% / ★5 0.1%　★4・★5も排出されます（合計1%）。</p>
-      <p id="gachaStatus" class="muted" aria-live="polite">スターターはLv.1券を3枚持っています。</p>
+      <p id="gachaLimitNote" class="muted small hidden">一度に引けるのは100枚までです。</p>
+      <button id="gachaRetry" class="ghost hidden" type="button">同じ抽選を再確認</button>
+      <details id="gachaOdds" class="gacha-odds">
+        <summary>排出率</summary>
+        <div class="gacha-odds-table-wrap" tabindex="0" role="region" aria-label="券のLv別排出率">
+          <table><thead><tr><th scope="col">券Lv</th><th scope="col">★1</th><th scope="col">★2</th><th scope="col">★3</th><th scope="col">★4</th><th scope="col">★5</th></tr></thead><tbody id="gachaOddsRows"></tbody></table>
+        </div>
+        <p class="muted small">実験用カードは含みません。</p>
+      </details>
+      <details id="gachaHelp" class="gacha-help">
+        <summary>券の入手方法</summary>
+        <p>クイズでもらえる券は「もらえる券」で確認できます。対人勝利はLv.2、敗北はLv.1（直近60分で10試合まで）。CPU勝利は強さに応じLv.1〜3、敗北はLv.1の券を獲得します。スターターはLv.1券を3枚持っています。</p>
+      </details>
+      <p id="gachaStatus" class="muted" aria-live="polite"></p>
       <p id="gachaResultAnnouncement" class="visually-hidden" role="status" aria-live="polite" aria-atomic="true"></p>
       <section id="gachaResultSummary" class="gacha-result-summary hidden">
         <h3 id="gachaResultTitle">次の対戦へ</h3>
@@ -209,12 +244,13 @@
     <section id="cardLibraryPanel" class="card card-library-panel hidden" data-app-tab-panel="cards">
       <div class="row between wrap">
         <div><h2>スキル図鑑</h2><p class="muted small">持っていないカードも、タップで効果を確認できます。</p></div>
-        <button id="editNextLoadout" type="button" class="primary">次の対戦用6枚を編集</button>
+        <button id="editNextLoadout" type="button" class="primary" aria-describedby="loadoutRecoveryStatus">次の対戦用6枚を編集</button>
       </div>
+      <p id="loadoutRecoveryStatus" class="muted small hidden" aria-live="polite"></p>
       <div id="cardInventory" class="skill-catalog" aria-label="実装済みスキル図鑑"></div>
       <div id="cardSaleBox" class="card-sale-box">
         <h3>余ったカードを売る</h3>
-        <p class="muted small">各カードを必ず1枚残します。保護カードと、6枚セット確認後・対戦中のカードは売れません。</p>
+        <p class="muted small">各1枚は残します。保護カードは売れません。</p>
         <div class="card-sale-controls">
           <label>カード<select id="cardSaleSkill"></select></label>
           <label>枚数<input id="cardSaleCount" type="number" min="1" max="100" value="1" inputmode="numeric"></label>
@@ -223,35 +259,51 @@
           <button id="cardSaleRetry" class="ghost hidden">前回の売却結果を確認</button>
           <button id="cardSaleReset" class="ghost hidden">売却をやり直す</button>
         </div>
-        <p id="cardSaleStatus" class="callout" aria-live="polite">カードと枚数を選んでください。</p>
+        <p id="cardSaleRestriction" class="muted small hidden" aria-live="polite"></p>
+        <button id="cardSaleRecovery" type="button" class="ghost hidden" aria-describedby="cardSaleRestriction"></button>
+        <p id="cardSaleStatus" class="callout card-sale-status" data-state="idle" aria-live="polite">カードと枚数を選んでください。</p>
       </div>
     </section>
 
     <section id="progressionPanel" class="card progression-panel hidden" data-app-tab-panel="profile">
       <div class="row between wrap">
-        <div><h2>戦績とトロフィー</h2><p class="muted">対戦終了時にサーバーへ保存された記録です。</p></div>
+        <h2>戦績</h2>
         <strong id="profileCoins" class="coin-badge">🪙 0コイン</strong>
       </div>
-      <div id="profileStats" class="profile-stats" aria-label="対人戦成績"></div>
-      <h3>CPU対戦成績</h3>
-      <div id="cpuProfileStats" class="profile-stats" aria-label="CPU対戦成績"></div>
-      <h3 id="cpuCharacterRecordsTitle">CPU別成績</h3>
-      <p id="cpuCharacterRecordsHelp" class="muted small">10人全員の勝敗です。まだ対戦していないCPUも0戦で表示します。</p>
-      <div id="cpuCharacterRecords" class="cpu-character-records" role="list" aria-labelledby="cpuCharacterRecordsTitle" aria-describedby="cpuCharacterRecordsHelp"></div>
-      <h3 id="quizAccuracyTitle">クイズ正答率</h3>
-      <p id="quizAccuracyHelp" class="muted small">この表示の記録開始以降に、サーバーで採点が確定した回答だけを集計します。</p>
-      <div id="quizAccuracyRecords" class="quiz-accuracy-records" role="list" aria-labelledby="quizAccuracyTitle" aria-describedby="quizAccuracyHelp"></div>
-      <h3>トロフィー</h3>
-      <div id="trophyList" class="trophy-list"></div>
-      <details class="history-details">
+      <div class="profile-record-overview" aria-label="勝敗の概要">
+        <p><span>対人戦</span><strong id="profileHumanOverview">0勝 0敗</strong></p>
+        <p><span>CPU戦</span><strong id="profileCpuOverview">0勝 0敗</strong></p>
+      </div>
+      <details id="profileStatsDetails" class="profile-disclosure">
+        <summary>戦績の詳細</summary>
+        <div id="profileStats" class="profile-stats" aria-label="対人戦成績"></div>
+        <h3>CPU対戦成績</h3>
+        <div id="cpuProfileStats" class="profile-stats" aria-label="CPU対戦成績"></div>
+      </details>
+      <details id="cpuRecordsDetails" class="profile-disclosure">
+        <summary id="cpuCharacterRecordsTitle">CPU別成績</summary>
+        <p id="cpuCharacterRecordsHelp" class="muted small">10人全員の勝敗です。まだ対戦していないCPUも0戦で表示します。</p>
+        <div id="cpuCharacterRecords" class="cpu-character-records" role="list" aria-labelledby="cpuCharacterRecordsTitle" aria-describedby="cpuCharacterRecordsHelp"></div>
+      </details>
+      <details id="quizAccuracyDetails" class="profile-disclosure">
+        <summary id="quizAccuracyTitle">クイズ正答率</summary>
+        <p id="quizAccuracyHelp" class="muted small">この表示の記録開始以降に、サーバーで採点が確定した回答だけを集計します。</p>
+        <div id="quizAccuracyRecords" class="quiz-accuracy-records" role="list" aria-labelledby="quizAccuracyTitle" aria-describedby="quizAccuracyHelp"></div>
+      </details>
+      <details id="profileTrophiesDetails" class="profile-disclosure">
+        <summary>トロフィー</summary>
+        <div id="trophyList" class="trophy-list"></div>
+      </details>
+      <details class="history-details profile-disclosure">
         <summary>最近の対戦履歴</summary>
         <ol id="matchHistory" class="match-history"></ol>
       </details>
     </section>
 
-    <section id="cosmeticPanel" class="card cosmetic-panel hidden" data-app-tab-panel="profile">
+    <details id="cosmeticPanel" class="card cosmetic-panel profile-disclosure hidden" data-app-tab-panel="profile">
+      <summary>見た目を変える</summary>
       <div class="row between wrap">
-        <div><h2>見た目コレクション</h2><p class="muted">商品を選ぶと購入・装備できます。対戦能力には影響しません。</p></div>
+        <p class="muted small">対戦能力には影響しません。</p>
         <strong id="cosmeticCoins" class="coin-badge">🪙 0コイン</strong>
       </div>
       <div id="collectionIdentity" class="collection-identity">PLAYER</div>
@@ -267,7 +319,7 @@
         </div>
       </div>
       <p id="cosmeticStatus" class="callout" aria-live="polite">見た目一覧を読み込んでいます…</p>
-    </section>
+    </details>
 
     <section id="room" class="card hidden" data-app-tab-panel="battle">
       <div class="row between wrap">
@@ -321,7 +373,7 @@
           <div><strong id="cpuCommentaryName"></strong><p id="cpuCommentaryText"></p></div>
         </aside>
       </div>
-      <section id="terminalSummary" class="terminal-summary hidden" aria-labelledby="terminalOutcomeTitle">
+      <section id="terminalSummary" class="terminal-summary hidden" aria-labelledby="terminalOutcomeTitle" tabindex="-1">
         <strong id="terminalOutcomeTitle"></strong>
         <div id="cpuTerminalCommentarySummaryCard" class="cpu-terminal-commentary-card hidden">
           <span id="cpuTerminalPortraitSummaryFrame" class="cpu-portrait-frame cpu-terminal-portrait" aria-hidden="true">
@@ -332,13 +384,10 @@
         </div>
         <p id="terminalOutcomeReason" data-terminal-copy="narration"></p>
         <div id="rematchControls" class="hidden result-next-actions">
-          <strong>次はどうする？</strong>
           <p id="resultRewardSummary" class="small hidden"></p>
-          <p id="rematchStatus" class="muted">両プレイヤーの申請後、6枚セットを選び直します。</p>
+          <p id="rematchStatus" class="muted hidden"></p>
           <div class="controls">
-            <button id="requestRematch" class="primary">再戦を申し込む</button>
-            <button id="chooseDifferentCpu" class="ghost hidden" type="button">別のCPUを選んで新しく対戦</button>
-            <button id="chooseDifferentHuman" class="ghost hidden" type="button">結果を閉じて別の相手を選ぶ</button>
+            <button id="requestRematch" class="primary hidden" type="button" data-pending-recovery="rematch">前回の再戦申請を確認</button>
             <button id="resultGoGacha" class="primary hidden" type="button">獲得券のガチャを開く</button>
             <button id="resultGoLobby" class="ghost" type="button">結果を閉じる・ロビーへ</button>
           </div>
@@ -383,6 +432,12 @@
       <h3 class="hand-heading">あなたの6枚</h3>
       <div id="skillControls" class="skills"></div>
       <div id="skillTargetControls" class="target-panel hidden"></div>
+      <section id="techniqueControls" class="technique-controls hidden" aria-label="別枠の伝授技">
+        <button id="useTechnique" type="button" class="ghost" aria-expanded="false" aria-controls="techniqueTargets"></button>
+        <p id="techniqueStatus" class="small"></p>
+        <div id="techniqueTargets" class="controls hidden" role="group" aria-label="解封する現在の持ち色"></div>
+        <p class="small">封印を解く色を選ぶと使用します。おまけ色の回数は増えません。隣の色の制限は変わりません。</p>
+      </section>
       <details id="matchSetupDetails" class="random-summary" aria-labelledby="randomSummaryTitle">
         <summary id="randomSummaryTitle">この対局の設定</summary>
         <dl>
@@ -424,9 +479,9 @@
         <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
       </div>
       <div id="terminalIcon" class="terminal-icon" aria-hidden="true">🏆</div>
-      <p id="terminalEyebrow" class="terminal-eyebrow">対戦終了</p>
+      <p id="terminalEyebrow" class="terminal-eyebrow visually-hidden">対戦終了</p>
       <h2 id="terminalTitle">勝利！</h2>
-      <p id="terminalMessage" class="terminal-message"></p>
+      <p id="terminalMessage" class="terminal-message visually-hidden"></p>
       <div id="cpuTerminalCommentaryOverlayCard" class="cpu-terminal-commentary-card hidden">
         <span id="cpuTerminalPortraitOverlayFrame" class="cpu-portrait-frame cpu-terminal-portrait" aria-hidden="true">
           <span id="cpuTerminalPortraitOverlay" class="cpu-portrait-art" hidden></span>
@@ -437,11 +492,9 @@
       <p id="terminalReasonText" class="terminal-reason" data-terminal-copy="narration"></p>
       <p id="terminalProgressText" class="terminal-progress"></p>
       <div class="terminal-actions">
-        <button id="terminalRematch" class="primary" type="button">もう一度対戦</button>
-        <button id="terminalChooseAnother" class="ghost" type="button">結果を閉じて別の相手を選ぶ</button>
-        <button id="terminalGoGacha" class="primary hidden" type="button">獲得した券でガチャへ</button>
-        <button id="terminalGoLobby" class="ghost" type="button">結果を閉じる・ロビーへ</button>
-        <button id="terminalClose" class="ghost terminal-close" type="button">再戦・対戦結果へ戻る</button>
+        <button id="terminalGoGacha" class="primary hidden" type="button">ガチャへ</button>
+        <button id="terminalGoLobby" class="ghost" type="button">結果を閉じてロビーへ</button>
+        <button id="terminalClose" class="ghost terminal-close" type="button">対戦結果へ戻る</button>
       </div>
     </section>
   </div>
@@ -475,8 +528,16 @@
   <dialog id="surrenderDialog" class="room-abandon-dialog" aria-labelledby="surrenderTitle" aria-describedby="surrenderSpeaker surrenderDescription">
     <form method="dialog">
       <h2 id="surrenderTitle">投了しますか？</h2>
-      <p id="surrenderSpeaker" class="muted"></p>
-      <p id="surrenderDescription"></p>
+      <div class="surrender-dialogue">
+        <span id="surrenderCpuPortraitFrame" class="cpu-portrait-frame hidden" aria-hidden="true">
+          <span id="surrenderCpuPortrait" class="cpu-portrait-art" hidden></span>
+          <span id="surrenderCpuPortraitFallback" class="cpu-portrait-fallback">CPU</span>
+        </span>
+        <div class="surrender-dialogue-copy">
+          <p id="surrenderSpeaker" class="muted"></p>
+          <p id="surrenderDescription"></p>
+        </div>
+      </div>
       <div class="room-abandon-dialog-actions">
         <button id="cancelSurrender" type="button" class="ghost" autofocus>対戦を続ける</button>
         <button id="confirmSurrender" type="button" class="danger">投了する</button>
@@ -493,6 +554,20 @@
         <button id="cancelAbandonRoom" type="submit" value="cancel" class="ghost">戻る（対戦を続ける）</button>
         <button id="confirmAbandonRoom" type="button" class="danger">無報酬で対戦を取りやめる</button>
       </div>
+    </form>
+  </dialog>
+  <dialog id="tutorialDialog" class="tutorial-dialog" aria-labelledby="tutorialTitle">
+    <form method="dialog">
+      <div class="tutorial-header"><h2 id="tutorialTitle" tabindex="-1" autofocus>遊び方</h2><button id="closeTutorial" type="submit" value="close">閉じる</button></div>
+      <p>相手に塗ってもらうエリアを作り合う、2人の対戦ゲームです。</p>
+      <ol class="tutorial-steps">
+        <li><h3>エリアを渡す</h3><p>先手は、まずエリアを作ります。表示された数のマスを辺でつなげて選び、「選んだエリアを渡す」で確定します。2つ目からは、すでにあるエリアに接する形で作ります。</p></li>
+        <li><h3>受け取ったエリアを塗る</h3><p>持ち色から1色を選びます。辺で接しているエリアと同じ色を塗ると負けです。角で触れるだけなら同じ色でもかまいません。持ち色は基本2枠と、残り回数つきのおまけ色です。</p></li>
+        <li><h3>塗ったら、次のエリアを作る</h3><p>画面に表示された必要マス数で、次は相手へエリアを渡します。「塗る→作る」を交互に続けます。スキルで手順が変わるときは、盤面近くの案内を確認してください。</p></li>
+        <li><h3>困ったらスキルも使おう</h3><p>対戦には「色・エリア・妨害」から2枚ずつ、6枚のスキルを準備します。カードを選ぶと使い方を確認できます。使用が確定するとカードを消費します。塗れる色がないときも、自動で負けにはなりません。使えるスキルで切り抜けるか、「投了」を選びます。</p></li>
+      </ol>
+      <p class="tutorial-ending">正しく塗ったあと、盤面に次のエリアを作れる場所がなくなれば、塗った人の勝ちです。</p>
+      <p class="muted small">対戦は下の「対戦」タブから。説明を読むだけでは、対戦もカードの消費も始まりません。</p>
     </form>
   </dialog>
   <dialog id="cpuRosterDialog" class="cpu-roster-dialog" aria-labelledby="cpuRosterTitle" aria-describedby="cpuRosterDescription">
@@ -529,8 +604,8 @@
       <p id="quizMemoStatus" role="status" aria-live="polite"></p>
     </section>
   </div>
-  <script src="standard-skill-registry.generated.js?v=20260912-2"></script>
-  <script src="standard-online-client.js?v=20260910-1"></script>
+  <script src="standard-skill-registry.generated.js?v=20260914-2"></script>
+  <script src="standard-online-client.js?v=20260914-1"></script>
   <script src="standard-online-sync.js"></script>
   <script src="standard-online-skill-intents.js?v=20260911-21"></script>
   <script src="cpu-portraits.js?v=20260908-1"></script>
@@ -545,6 +620,6 @@
   <p id="skillCutinAnnouncement" class="visually-hidden" role="status" aria-live="polite" aria-atomic="true"></p>
   <script src="skill-cutin.js?v=20260913-2"></script>
   <script src="surrender-confirmation.js?v=20260913-1"></script>
-  <script type="module" src="app.js?v=20260913-44"></script>
+  <script type="module" src="app.js?v=20260914-10"></script>
 </body>
 </html>

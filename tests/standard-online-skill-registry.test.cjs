@@ -19,7 +19,10 @@ test("browser skill metadata is generated exactly from the authoritative Standar
   assert.deepEqual(generated.v49SkillIds, V49_SKILL_IDS);
   assert.deepEqual(Object.keys(generated.skills), Object.keys(STANDARD_SKILLS));
   for (const [id, definition] of Object.entries(STANDARD_SKILLS)) {
-    assert.deepEqual(generated.skills[id], Object.fromEntries(publicFields.map((field) => [field, definition[field]])));
+    assert.deepEqual(generated.skills[id], {
+      ...Object.fromEntries(publicFields.map((field) => [field, definition[field]])),
+      ...(definition.acquisitionType ? { acquisitionType: definition.acquisitionType, displayRarity: definition.displayRarity } : {}),
+    });
     assert.equal(Number.isInteger(generated.skills[id].rarity), true, id);
     assert.equal(generated.skills[id].rarity >= 1 && generated.skills[id].rarity <= 5, true, id);
     assert.equal(Object.isFrozen(generated.skills[id]), true, id);

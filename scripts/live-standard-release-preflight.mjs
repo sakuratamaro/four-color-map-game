@@ -2,7 +2,8 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { LOCAL_STANDARD_BUNDLE_MARKER, hasApprovedEdgeGachaOdds, hasApprovedGachaOddsUi, hasBoardFirstCandidateGuidance, hasCompactCpuRecords, hasCpuSealTimingPolicy, hasDeferredCurseLocalBundle, hasMatchRewardEconomy, hasPerCellContactFeedback, hasQuizAccuracyRecords, hasRegionSplitDirectTarget, hasWholeButtonQuizPhysics } from "./standard-release-preflight-contracts.mjs";
+import { hasCardActionRecovery } from "./standard-release-preflight-contracts.mjs";
+import { LOCAL_STANDARD_BUNDLE_MARKER, hasApprovedEdgeGachaOdds, hasApprovedGachaOddsUi, hasBoardFirstCandidateGuidance, hasCompactCpuRecords, hasCompactProfile, hasCpuSealTimingPolicy, hasDeferredCurseLocalBundle, hasDirectQuizEntry, hasGachaEntryDiet, hasHomeRules, hasMatchRewardEconomy, hasPerCellContactFeedback, hasQuizAccuracyRecords, hasRegionSplitDirectTarget, hasWholeButtonQuizPhysics } from "./standard-release-preflight-contracts.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const configSource = fs.readFileSync(path.join(root, "online", "supabase-config.js"), "utf8");
@@ -14,12 +15,14 @@ const publicEdgeBundleUrl = new URL("../supabase/functions/standard-game-action/
 const expectedPhase = process.argv.find((argument) => argument.startsWith("--expect="))?.slice("--expect=".length) || null;
 const zeroUuid = "00000000-0000-0000-0000-000000000000";
 const candidateAssetMarkers = Object.freeze({
-app: "app.js?v=20260913-44",
+app: "app.js?v=20260914-10",
+  homeStyle: "ui-diet.css?v=20260914-2",
+  terminalStyle: "terminal-result.css?v=20260914-1",
   commentary: "cpu-commentary.js?v=20260910-1",
-  style: "style.css?v=20260910-12",
-  client: "standard-online-client.js?v=20260910-1",
+  style: "style.css?v=20260914-4",
+  client: "standard-online-client.js?v=20260914-1",
   intents: "standard-online-skill-intents.js?v=20260911-21",
-  registry: "standard-skill-registry.generated.js?v=20260912-2",
+  registry: "standard-skill-registry.generated.js?v=20260914-2",
   portraits: "cpu-portraits.js?v=20260908-1",
   feedback: "basic-feedback.js?v=20260908-2",
   cutin: "skill-cutin.js?v=20260913-2",
@@ -72,9 +75,10 @@ async function probeProtectedRpc(name, body) {
   throw new Error(`UNEXPECTED_RPC_PROBE_${name}_${response.status}_${String(data?.code || "UNKNOWN")}`);
 }
 
-const [page, app, progressionCss, intents, registry, portraits, portraitAtlas, localStandardPage, localStandardBundle, publicEdgeBundle, snapshotV1, snapshotV2, matchmaking, matchmakingAvailability, pregameAbandon, activeRoom, setupLoadV3, initializeRoomV3] = await Promise.all([
+const [page, app, resultModel, progressionCss, intents, registry, portraits, portraitAtlas, localStandardPage, localStandardBundle, publicEdgeBundle, snapshotV1, snapshotV2, matchmaking, matchmakingAvailability, pregameAbandon, activeRoom, setupLoadV3, initializeRoomV3] = await Promise.all([
   getText(publicUrl),
   getText(`${publicUrl}app.js`),
+  getOptionalText(`${publicUrl}result-continuation.js`),
   getText(`${publicUrl}progression.css`),
   getText(`${publicUrl}standard-online-skill-intents.js`),
   getText(`${publicUrl}standard-skill-registry.generated.js`),
@@ -105,6 +109,7 @@ const [page, app, progressionCss, intents, registry, portraits, portraitAtlas, l
   }),
 ]);
 
+const homeCss = await getOptionalText(`${publicUrl}ui-diet.css`);
 const portraitAtlasDimensions = pngDimensions(portraitAtlas.bytes);
 
 const result = {
@@ -146,17 +151,23 @@ const result = {
       && portraitAtlasDimensions?.width === 1448
       && portraitAtlasDimensions?.height === 1086,
     hasWholeButtonQuizPhysics: hasWholeButtonQuizPhysics(page.text, app.text),
+    hasDirectQuizEntry: hasDirectQuizEntry(page.text, app.text),
+    hasGachaEntryDiet: hasGachaEntryDiet(page.text, app.text),
+    hasCardActionRecovery: hasCardActionRecovery(page.text, app.text),
+    hasHomeRules: hasHomeRules(page.text, app.text, homeCss.text),
+    hasCompactProfile: hasCompactProfile(page.text, app.text, homeCss.text),
     hasBoardFirstCandidateGuidance: hasBoardFirstCandidateGuidance(page.text, app.text),
     hasPerCellContactFeedback: hasPerCellContactFeedback(app.text),
-    hasApprovedGachaOddsUi: hasApprovedGachaOddsUi(page.text, app.text),
+    hasApprovedGachaOddsUi: hasApprovedGachaOddsUi(page.text, app.text, registry.text),
     hasApprovedEdgeGachaOdds: publicEdgeBundle.status === 200 && hasApprovedEdgeGachaOdds(publicEdgeBundle.text),
     hasDeferredCurseLocalBundle: hasDeferredCurseLocalBundle(localStandardPage.text, localStandardBundle.text),
     hasRegionSplitDirectTarget: hasRegionSplitDirectTarget(app.text, localStandardBundle.text),
     hasCompactCpuRecords: hasCompactCpuRecords(page.text, app.text, progressionCss.text),
     hasQuizAccuracyRecords: hasQuizAccuracyRecords(page.text, app.text, progressionCss.text),
     hasCpuSealTimingPolicy: publicEdgeBundle.status === 200 && hasCpuSealTimingPolicy(publicEdgeBundle.text),
-    hasMatchRewardEconomy: publicEdgeBundle.status === 200 && hasMatchRewardEconomy(page.text, app.text, publicEdgeBundle.text),
+    hasMatchRewardEconomy: publicEdgeBundle.status === 200 && hasMatchRewardEconomy(page.text, app.text, publicEdgeBundle.text, resultModel.text),
     hasCandidateAssetGeneration: page.text.includes(candidateAssetMarkers.app)
+      && page.text.includes(candidateAssetMarkers.homeStyle)
       && page.text.includes(candidateAssetMarkers.commentary)
       && page.text.includes(candidateAssetMarkers.style)
       && page.text.includes(candidateAssetMarkers.client)
@@ -194,6 +205,20 @@ if (expectedPhase) {
   assert.equal(result.publicPage.hasLegalRecolorLab, expected.legalRecolorLabUi, "LEGAL_RECOLOR_LAB_UI_PHASE_MISMATCH");
   assert.equal(result.publicPage.hasWaitingOpponentNotice, expected.waitingOpponentUi, "WAITING_OPPONENT_UI_PHASE_MISMATCH");
   if (expectedPhase === "candidate") {
+    assert.equal(result.publicPage.hasDirectQuizEntry, true, "DIRECT_QUIZ_ENTRY_REQUIRED");
+    assert.equal(result.publicPage.hasGachaEntryDiet, true, "GACHA_ENTRY_DIET_REQUIRED");
+    assert.equal(result.publicPage.hasCardActionRecovery, true, "CARD_ACTION_RECOVERY_REQUIRED");
+    assert.equal(result.publicPage.hasHomeRules, true, "HOME_RULES_REQUIRED");
+    assert.equal(result.publicPage.hasCompactProfile, true, "COMPACT_PROFILE_REQUIRED");
+    for (const [file, response] of [["index.html", page], ["app.js", app], ["ui-diet.css", homeCss], ["progression.css", progressionCss]]) {
+      assert.equal(response.text, fs.readFileSync(path.join(root, "standard-online-v5", file), "utf8"), `HOME_RULES_ASSET_EXACT_${file}`);
+    }
+    assert.ok(app.text.includes('result-continuation.js?v=20260914-2'), "TERMINAL_RESULT_MODEL_GENERATION_REQUIRED");
+    assert.ok(app.text.includes('cpu-progression-model.js?v=20260914-1'), "CPU_PROGRESSION_MODEL_GENERATION_REQUIRED");
+    for (const file of ["terminal-result.css", "result-continuation.js", "action-recovery.js", "cpu-progression-model.js"]) {
+      const response = file === "result-continuation.js" ? resultModel : await getText(`${publicUrl}${file}`);
+      assert.equal(response.text, fs.readFileSync(path.join(root, "standard-online-v5", file), "utf8"), `TERMINAL_RESULT_ASSET_EXACT_${file}`);
+    }
     assert.equal(result.publicPage.hasAlpha3SkillCategoryWindow, expected.alpha3SkillCategoryUi, "ALPHA3_SKILL_CATEGORY_UI_PHASE_MISMATCH");
     assert.equal(result.publicPage.hasAlpha4ColoredCornerBloom, expected.alpha4ColoredCornerBloomUi, "ALPHA4_COLORED_CORNER_BLOOM_UI_PHASE_MISMATCH");
     assert.equal(result.publicPage.hasRegistryRarityUi, expected.registryRarityUi, "REGISTRY_RARITY_UI_PHASE_MISMATCH");

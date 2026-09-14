@@ -9,6 +9,7 @@ const { STANDARD_SKILLS } = require("../standard/standard-skill-registry.js");
 const root = path.join(__dirname, "..");
 const html = fs.readFileSync(path.join(root, "standard-online-v5", "index.html"), "utf8");
 const app = fs.readFileSync(path.join(root, "standard-online-v5", "app.js"), "utf8");
+const resultContinuationSource = fs.readFileSync(path.join(root, "standard-online-v5", "result-continuation.js"), "utf8");
 const skillIntents = fs.readFileSync(path.join(root, "standard-online-v5", "standard-online-skill-intents.js"), "utf8");
 
 test("Standard Online declares its own four-color favicon", () => {
@@ -41,7 +42,7 @@ test("Standard online setup UI exposes the complete reconnect path", () => {
     "publicProjection", "privateProjection", "leaveRoom", "leaveRoomDescription", "abandonRoom", "abandonRoomHint", "abandonRoomDialog", "abandonRoomTitle", "abandonRoomDescription", "abandonRoomStatus", "cancelAbandonRoom", "confirmAbandonRoom", "lobbyTitle",
     "turnGuide", "turnGuideStep", "turnGuideTitle", "turnGuideDetail", "boardViewport", "board", "boardKeyboardHelp", "boardKeyboardStatus", "toggleBoardZoom", "regionControls", "selectionCount", "submitRegion", "paletteControls", "skillControls", "skillTargetControls",
     "surrender", "retryAction", "actionStatus", "rematchControls", "rematchStatus", "requestRematch",
-    "gachaPanel", "gachaTitle", "gachaTickets", "gachaLevel", "gachaOdds", "gachaDrawOne", "gachaDrawAll", "gachaRetry", "gachaStatus", "gachaResults",
+    "gachaPanel", "gachaTitle", "gachaLevels", "gachaOdds", "gachaOddsRows", "gachaHelp", "gachaLimitNote", "gachaDrawOne", "gachaDrawAll", "gachaRetry", "gachaStatus", "gachaResults",
     "gachaResultSummary", "gachaResultTitle", "gachaResultAnnouncement", "gachaCpuRematch", "gachaCpuRematchNote",
     "quizAnswerFeedback", "quizRewardSummary", "quizGoGacha", "quizReview", "quizReviewList",
     "progressionPanel", "profileCoins", "profileStats", "cpuProfileStats", "cpuCharacterRecords", "quizAccuracyRecords", "trophyList", "matchHistory",
@@ -57,15 +58,15 @@ test("Standard online setup UI exposes the complete reconnect path", () => {
   assert.match(html, /type="module" src="app\.js(?:\?v=[0-9-]+)?"/);
 });
 
-test("gacha UI discloses the selected ticket odds and its guaranteed rarity floor", () => {
-  assert.match(app, /1: Object\.freeze\(\{ 1: 65, 2: 29, 3: 5, 4: 0\.9, 5: 0\.1 \}\)/);
-  assert.match(app, /2: Object\.freeze\(\{ 1: 40, 2: 35, 3: 19, 4: 5\.5, 5: 0\.5 \}\)/);
-  assert.match(app, /3: Object\.freeze\(\{ 1: 25, 2: 35, 3: 28, 4: 10, 5: 2 \}\)/);
-  assert.match(app, /4: Object\.freeze\(\{ 1: 0, 2: 35, 3: 35, 4: 24, 5: 6 \}\)/);
-  assert.match(app, /5: Object\.freeze\(\{ 1: 0, 2: 0, 3: 40, 4: 40, 5: 20 \}\)/);
-  assert.match(app, /★4・★5も排出されます（合計1%）/);
-  assert.match(app, /`★\$\{rarityFloor\}以上確定。`/);
-  assert.match(css, /\.gacha-odds\{/);
+test("gacha UI compares every level using the generated authoritative odds", () => {
+  const { GACHA_ODDS } = require("../standard/standard-gacha-transaction.js");
+  const { gachaOdds } = require("../standard-online-v5/standard-skill-registry.generated.js");
+  assert.deepEqual(gachaOdds, GACHA_ODDS);
+  assert.match(app, /const GACHA_ODDS = globalThis\.FourColorStandardSkillRegistry\.gachaOdds/);
+  assert.match(app, /GACHA_ODDS\[ticketLevel\]\[rarity\]/);
+  assert.match(html, /<details id="gachaOdds" class="gacha-odds">/);
+  assert.doesNotMatch(app, /以上確定|★4・★5も排出されます/);
+  assert.match(css, /\.gacha-odds table\{/);
 });
 
 test("online alpha.3 UI understands category windows and the experimental bonus-refill loan", () => {
@@ -78,11 +79,11 @@ test("online alpha.3 UI understands category windows and the experimental bonus-
 });
 
 test("CPU commentary is public-event-only, bounded, non-blocking, and terminal-persistent", () => {
-  assert.match(html, /style\.css\?v=20260910-12/);
-  assert.match(html, /standard-online-client\.js\?v=20260910-1/);
+  assert.match(html, /style\.css\?v=20260914-4/);
+  assert.match(html, /standard-online-client\.js\?v=20260914-1/);
   assert.match(html, /standard-online-skill-intents\.js\?v=20260911-21/);
   assert.match(html, /cpu-commentary\.js\?v=20260910-1/);
-assert.match(html, /app\.js\?v=20260913-44/);
+assert.match(html, /app\.js\?v=20260914-10/);
   assert.match(app, /cpuCommentary\?\.VERSION !== "standard-cpu-commentary-v3"/);
   assert.ok(html.indexOf("cpu-commentary.js") < html.indexOf('type="module" src="app.js'));
   assert.match(html, /id="cpuCommentaryStage"[^>]+aria-hidden="true"/);
@@ -149,7 +150,7 @@ test("waiting-opponent notice is global, privacy-finite, and non-interrupting", 
 
 test("fresh players can finish profile setup inside the battle tab without automatic matchmaking", () => {
   assert.match(html, /id="profileCard"[^>]+data-app-tab-panel="[^"]*\bbattle\b[^"]*"/);
-  assert.match(app, /function renderProfileCardVisibility\(\) \{ show\("profileCard", activeAppTab === "profile" \|\| \(!synced && activeAppTab !== "cards"\)\); \}/);
+  assert.match(app, /function renderProfileCardVisibility\(\) \{ show\("profileCard", activeAppTab === "profile" \|\| \(!synced && !\["home", "cards"\]\.includes\(activeAppTab\)\)\); \}/);
   assert.match(app, /document\.body\.dataset\.activeTab = tab;\s*renderProfileCardVisibility\(\);/);
   assert.match(app, /function render\(\) \{\s*if \(surrenderIntent && !isSurrenderIntentCurrent\(\)\) closeSurrenderDialog\(false\);\s*renderProfileCardVisibility\(\);/);
   assert.match(app, /synced = true; badge\("プレイヤー情報を保存しました", "good"\); renderProfile\(\); render\(\);/);
@@ -159,7 +160,7 @@ test("fresh players can finish profile setup inside the battle tab without autom
 
 test("fresh players create their starter and prepare online play with one clear action", () => {
   assert.match(html, /id="createStarterProfile"[^>]*>この名前で対戦準備へ<\/button>/);
-  assert.match(html, /id="syncProfile"[^>]*>オンライン対戦の準備をする<\/button>/);
+  assert.match(html, /id="syncProfile"[^>]*>このプロフィールを使う<\/button>/);
   const createStarter = app.slice(app.indexOf("async function createStarterProfile()"), app.indexOf("function renderLoadout()"));
   assert.match(createStarter, /localStorage\.setItem\(STARTER_PROFILE_KEY/);
   assert.match(createStarter, /if \(!connected\) return toast/);
@@ -167,8 +168,8 @@ test("fresh players create their starter and prepare online play with one clear 
   assert.match(createStarter, /if \(synced\) toast\("対戦準備ができました。遊び方を選んでください。"\)/);
   assert.doesNotMatch(createStarter, /(?:createRoom|joinRoom|recruitPublicOpponent|findPublicOpponent|acceptCpuCharacter)\s*\(/);
   assert.match(app, /if \(!remoteProfile && starterProfile[^\n]+profiles\.push\(\[STARTER_PROFILE_ID, starterProfile\]\)/);
-  assert.match(app, /const value = profile\(\); if \(!value \|\| profileSyncBusy\) return;\s*profileSyncBusy = true;\s*renderProfile\(\);/);
-  assert.match(app, /finally \{ profileSyncBusy = false; renderProfile\(\); \}/);
+  assert.match(app, /const value = profile\(\); if \(!value \|\| profileSyncBusy\) return;\s*profileSyncBusy = true;\s*profileSyncError = "";[\s\S]+?renderProfile\(\);/);
+  assert.match(app, /finally \{\s*profileSyncBusy = false;\s*renderProfile\(\);[\s\S]+?returnProfileFocus[\s\S]+?toggleProfileOptions/);
 });
 
 test("connection status stays singular, live, and visible across every app tab", () => {
@@ -255,7 +256,7 @@ test("UDL023 entrance routes are presentational and protect pending public recov
   assert.match(html, /id="startStandardCpuLobby"[^>]+aria-haspopup="dialog"[^>]+aria-label="CPUと対戦">CPU<\/button>/);
   assert.match(html, /id="chooseFriendBattle"[^>]+aria-label="友だちと対戦">友だち<\/button>/);
   assert.match(html, /id="choosePublicBattle"[^>]+aria-label="だれとでも対戦">だれとでも<\/button>/);
-  assert.match(html, /ui-diet\.css\?v=20260912-3/);
+  assert.match(html, /ui-diet\.css\?v=20260914-2/);
   for (const [button, panel] of [["chooseFriendBattle", "friendBattlePanel"], ["choosePublicBattle", "matchmakingPanel"]]) {
     assert.match(html, new RegExp('id="' + button + '"[^>]*aria-expanded="false"[^>]*aria-controls="' + panel + '"'));
   }
@@ -264,8 +265,13 @@ test("UDL023 entrance routes are presentational and protect pending public recov
   assert.match(app, /snapshot\.matchmakingTicketId \|\| snapshot\.matchmakingFindActionId \? "public" : battleEntranceRoute/);
   const route = app.slice(app.indexOf("function chooseBattleRoute("), app.indexOf("function safeJson("));
   assert.doesNotMatch(route, /client\.(?:createRoom|joinRoom|findOpponent|recruitOpponent)/);
-  assert.match(app, /startWaiting = waitIfNone && result\?\.matchmaking_status === "none_available"/);
-  assert.match(app, /if \(startWaiting\) return recruitPublicOpponent\(\)/);
+  // v14 explicitly replaces the old successful-empty-find -> automatic recruit rule.
+  const find = app.slice(app.indexOf("async function findPublicOpponent("), app.indexOf("async function cancelPublicMatchmaking("));
+  assert.doesNotMatch(find, /recruitPublicOpponent|waitIfNone|startWaiting/);
+  assert.match(find, /client\.findOpponent/);
+  assert.match(html, /<button id="recruitOpponent" type="button">相手を待つ<\/button>/);
+  assert.match(html, /<button id="findOpponent" type="button" class="primary">待っている相手に参加<\/button>/);
+  assert.doesNotMatch(html, /publicWaitingOptions|相手を待つだけにする/);
 });
 
 test("UDL023 flat entrance keeps three peer columns and a keyboard heading without a yellow frame", () => {
@@ -355,18 +361,19 @@ test("PvP and CPU records are visibly separate and CPU rematch uses its dedicate
   assert.doesNotMatch(app, /Object\.entries\(value\.cpuCharacterStats \|\| \{\}\)\.filter/);
   assert.match(html, /id="cpuCharacterRecords"[^>]*role="list"[^>]*aria-labelledby="cpuCharacterRecordsTitle"/);
   assert.match(html, /10人全員の勝敗です。まだ対戦していないCPUも0戦で表示します。/);
-  assert.match(html, /progression\.css\?v=20260910-2/);
+  assert.match(html, /progression\.css\?v=20260914-1/);
   assert.match(progressionCss, /\.cpu-character-records \{[^}]*grid-template-columns: repeat\(5, minmax\(0, 1fr\)\)/);
   assert.match(progressionCss, /@media \(max-width: 760px\)[\s\S]*?\.cpu-character-records \{ grid-template-columns: repeat\(2, minmax\(0, 1fr\)\); \}/);
   assert.match(progressionCss, /\.cpu-character-record-copy strong \{[^}]*overflow-wrap: anywhere/);
   assert.match(app, /対人戦 勝利/);
   assert.match(app, /CPU戦 勝利/);
-  assert.match(app, /完了報酬：Lv\.\$\{rewardTicketLevel\}ガチャ券 \+\$\{rewardTicketCount\}/);
-  assert.match(app, /直近60分の付与済み10試合に達したため、今回はありません/);
-  assert.match(app, /opponentKind === "cpu"/);
+  assert.match(resultContinuationSource, /完了報酬\\nLv\.\$\{reward\.ticketLevel\}ガチャ券 ×\$\{reward\.ticketCount\}/);
+  assert.match(resultContinuationSource, /PVP_REWARD_LIMIT/);
+  assert.match(resultContinuationSource, /room\.opponent_kind === "cpu"/);
   assert.match(css, /\.terminal-progress\{[^}]*white-space:pre-line/);
   assert.match(app, /entry\.onlineOpponentKind === "cpu"/);
-  assert.match(app, /roomModel\?\.room\?\.status === "finished"[\s\S]+?settledMatch\?\.matchId === state\.matchId[\s\S]+?Number\.isSafeInteger\(resultCount\)/);
+  assert.ok(app.includes('terminalRewardPresentation(roomModel?.room, mySeat, profile())'));
+  assert.match(resultContinuationSource, /item\?\.matchId === state\.matchId/);
   assert.ok(app.includes('const resultReward = savedResultReward(roomModel?.room, mySeat, profile())'));
   assert.ok(app.includes('show("terminalGoGacha", Boolean(resultReward))'));
   assert.ok(app.includes('$("terminalGoGacha").onclick = openSavedResultGacha'));
@@ -378,7 +385,8 @@ test("PvP and CPU records are visibly separate and CPU rematch uses its dedicate
   assert.match(css, /\.gacha-panel h2:focus,\.gacha-result-summary h3:focus\{[^}]*outline:3px solid #fde047/);
   assert.match(css, /\.terminal-confetti\{[^}]*overflow:hidden/);
   assert.match(app, /client\.requestCpuRematch\(\{ expectedVersion: roomModel\.room\.version \}\)/);
-  assert.match(app, /同じCPUと再戦する/);
+  assert.match(app, /show\("requestRematch", rematchPending\)/);
+  assert.doesNotMatch(html, /id="(?:terminalRematch|terminalChooseAnother|chooseDifferentCpu|chooseDifferentHuman)"/);
 });
 
 test("palette-change help explains permanent scope and bonus-use carryover", () => {
@@ -413,16 +421,18 @@ test("gacha persists its action identity before sending and hydrates the committ
   assert.match(app, /runGacha\(1, true\)/);
 });
 
-test("CPU completion reward copy is bound to the saved match reward and hydrated ticket total", () => {
-  assert.match(app, /const matchReward = settledMatch\?\.matchReward/);
-  assert.match(app, /const rewardTicketTotal = Number\(profile\(\)\?\.gachaTickets\?\.\[String\(rewardTicketLevel\)\]\)/);
-  assert.match(app, /rewardTicketTotal >= rewardTicketCount/);
+test("CPU completion result copy uses saved reward while subsequent gacha retains its balance checks", () => {
+  assert.match(resultContinuationSource, /const reward = entry\?\.matchReward/);
+  assert.match(resultContinuationSource, /Number\.isSafeInteger\(reward\.ticketLevel\)/);
+  assert.match(resultContinuationSource, /Number\.isSafeInteger\(reward\.ticketCount\)/);
   assert.match(app, /ticketLevel: reward\.ticketLevel/);
   assert.match(app, /ticketCount: reward\.ticketCount/);
-  assert.match(app, /完了報酬：Lv\.\$\{rewardTicketLevel\}ガチャ券 \+\$\{rewardTicketCount\}（所持 \$\{rewardTicketTotal - rewardTicketCount\}→\$\{rewardTicketTotal\}）/);
-  assert.match(app, /現在、Lv\.\$\{level\}券を\$\{available\}枚所持しています。1枚引くと券を1枚消費します。/);
-  assert.match(app, /CPU戦の完了報酬を反映済み：Lv\.\$\{origin\.ticketLevel\}券 所持 ×\$\{origin\.ticketTotal\}/);
-  assert.match(app, /1枚引くと所持券は\$\{origin\.ticketTotal - 1\}枚になります/);
+  const terminalRender = app.slice(app.indexOf('function renderTerminalResult('),app.indexOf('function colorName('));
+  assert.doesNotMatch(terminalRender,/所持|戦績を保存しました|rewardTicketTotal/);
+  assert.match(terminalRender,/rewardPresentation\.text/);
+  assert.match(app, /const available = Number\(tickets\[String\(level\)\] \|\| 0\)/);
+  assert.match(app, /対戦でもらったLv\.\$\{origin\.ticketLevel\}券を選びました。/);
+  assert.match(app, /button\.setAttribute\("aria-label", `Lv\.\$\{ticketLevel\}、ガチャ券\$\{count\}枚`\)/);
 });
 
 test("CPU completion gacha offers one explicit loadout rematch without crossing progression boundaries", () => {
@@ -469,7 +479,7 @@ test("existing online progression is hydrated from the server rather than re-upl
 
 test("UI derives its canonical and experimental card metadata from the generated registry", () => {
   assert.equal(Object.values(STANDARD_SKILLS).filter((skill) => skill.v49Catalogued).length, 19);
-  assert.match(html, /standard-skill-registry\.generated\.js\?v=20260912-2[\s\S]+app\.js\?v=20260913-44/);
+  assert.match(html, /standard-skill-registry\.generated\.js\?v=20260914-2[\s\S]+app\.js\?v=20260914-10/);
   assert.match(app, /const STANDARD_SKILL_REGISTRY = globalThis\.FourColorStandardSkillRegistry/);
   assert.match(app, /STANDARD_SKILL_REGISTRY\.v49SkillIds\.map/);
   assert.match(app, /Object\.entries\(STANDARD_SKILL_REGISTRY\.skills\)/);
@@ -923,7 +933,8 @@ test("skill target cancel is write-free and clears only transient selection", ()
 test("finished rooms expose a reconnect-safe rematch request", () => {
   assert.match(app, /show\("rematchControls", !cpuDraftOwnsRoomlessEntry && roomModel\?\.room\?\.status === "finished"\)/);
   assert.match(app, /client\.requestRematch\(\{ expectedVersion: roomModel\.room\.version \}\)/);
-  assert.match(app, /rematchPending \? "前回の再戦申請を確認"/);
+  assert.match(app, /Boolean\(snapshot\.rematchActionId\) && snapshot\.rematchExpectedVersion === roomModel\?\.room\?\.version/);
+  assert.match(html, /id="requestRematch"[^>]*data-pending-recovery="rematch"/);
   assert.match(app, /await roomSync\.refreshNow\(\)/);
   assert.match(app, /roomModel\.room\.status === "ready" && client\.snapshot\(\)\.setupRevision > 0/);
 });

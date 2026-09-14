@@ -111,6 +111,7 @@ test("client restores only finite reconnect identities from its own storage key"
     abandonRoomId: null, abandonActionId: null, abandonExpectedVersion: null,
     matchmakingTicketId: null, matchmakingStartedAt: null, matchmakingFindActionId: null,
     cpuStartActionId: null, cpuStartCharacterId: null,
+    pendingCpuTrial: null, pendingTechniqueEquip: null,
   });
 });
 

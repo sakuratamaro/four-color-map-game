@@ -17,7 +17,15 @@ const allowedRpc = new Set(["fcg_standard_server_load_room_v3", "fcg_standard_se
   "fcg_standard_server_replay_action", "fcg_standard_server_commit_action"]);
 const api = loadEngine();
 let db;
-test.before(async () => { const setup = await createCpuSqlDatabase(); db = setup.db; await db.exec(setup.migration); });
+test.before(async () => {
+  const setup = await createCpuSqlDatabase(); db = setup.db; await db.exec(setup.migration);
+  // Legacy action/settlement/retry behavior must also hold with the additive
+  // learned-profile protection installed (pilot remains disabled in this worker).
+  await db.exec(fs.readFileSync(path.join(root, "supabase/migrations/202609140001_standard_learned_technique_profiles.sql"), "utf8"));
+  for (const name of ["202609140002_standard_ren_trial_template.sql", "202609140003_standard_cpu_trial_runtime.sql"]) {
+    await db.exec(fs.readFileSync(path.join(root, "supabase/migrations", name), "utf8"));
+  }
+});
 test.after(async () => { if (db) await db.close(); });
 
 async function seed(input, cpu = false) {

@@ -12,10 +12,11 @@ const css = fs.readFileSync(path.join(root, "standard-online-v5", "style.css"), 
 const feedback = fs.readFileSync(path.join(root, "standard-online-v5", "basic-feedback.js"), "utf8");
 
 test("online feedback settings are explicit, separate, persistent, and keyboard-sized", () => {
-  assert.match(html, /id="feedbackSettings"[^>]+data-app-tab-panel="home profile"/);
+  assert.match(html, /id="openHomeSettings"[^>]+aria-expanded="false"[^>]+aria-controls="feedbackSettings"/);
+  assert.match(html, /id="feedbackSettings" class="feedback-settings hidden"/);
   assert.match(html, /id="soundEffectsEnabled" type="checkbox"/);
   assert.match(html, /id="vibrationEnabled" type="checkbox"/);
-  assert.match(html, /どちらも初期状態はOFFです/);
+  assert.match(html, /効果音 OFF｜振動 OFF/);
   assert.match(html, /id="feedbackSettingsStatus"[^>]+role="status"[^>]+aria-live="polite"[^>]+aria-atomic="true"/);
   assert.match(css, /\.feedback-toggle\{[^}]*min-height:52px/);
   assert.match(css, /@media\(max-width:420px\)\{\.feedback-settings-controls\{grid-template-columns:1fr\}\.feedback-toggle\{min-height:56px\}\}/);
@@ -26,9 +27,9 @@ test("online feedback settings are explicit, separate, persistent, and keyboard-
 
 test("feedback script is cache-busted before the matching app generation", () => {
   const controllerScript = html.indexOf('<script src="basic-feedback.js?v=20260908-2"></script>');
-const appScript = html.indexOf('<script type="module" src="app.js?v=20260913-44"></script>');
+const appScript = html.indexOf('<script type="module" src="app.js?v=20260914-10"></script>');
   assert.ok(controllerScript >= 0 && appScript > controllerScript);
-  assert.match(html, /style\.css\?v=20260910-12/);
+  assert.match(html, /style\.css\?v=20260914-4/);
   assert.doesNotMatch(html, /app\.js\?v=20260906-(?:36|38)|style\.css\?v=20260906-(?:36|37)/);
   assert.match(app, /basicFeedbackFactory\?\.VERSION === "standard-basic-feedback-v1"/);
 });

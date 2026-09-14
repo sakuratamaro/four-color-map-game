@@ -9,6 +9,7 @@ const ids = [
   "standard/standard-profile.js",
   "standard/standard-cosmetics.js",
   "standard/standard-skill-registry.js",
+  "standard/standard-technique-state.js",
   "standard/standard-skill-handlers.js",
   "standard/standard-skill-dispatcher.js",
   "standard/standard-region-geometry.js",

@@ -43,7 +43,7 @@ test("withPage emits deterministic stages and bounds every setup and test-body a
   assert.match(withPage, /bounded\("page-ready", context\.newPage\(\), 5_000\)/);
   assert.match(withPage, /if \(beforeNavigate\) await bounded\("before-navigation", beforeNavigate\(page\), 5_000\)/);
   assert.match(withPage, /bounded\("navigation-ready", page\.goto\([\s\S]+?timeout: 20_000[\s\S]+?\), 20_000\)/);
-  assert.match(withPage, /bounded\("badge-ready", page\.locator\("#connectionBadge\.good"\)\.waitFor\(\{ state: "visible", timeout: 20_000 \}\), 20_000\)/);
+  assert.match(withPage, /bounded\("badge-ready", page\.locator\("#connectionBadge\.good"\)\.waitFor\(\{ state: "attached", timeout: 20_000 \}\), 20_000\)/);
   assert.match(withPage, /RESTORED_ROOM_MODES\.has\(mode\)[\s\S]+?bounded\("room-ready", page\.locator\("#room:not\(\.hidden\)"\)\.waitFor\(\{ timeout: 15_000 \}\), 15_000\)/);
   assert.match(withPage, /bounded\("test-body", run\(page\), bodyTimeout\)/);
 });
@@ -77,4 +77,19 @@ test("withPage releases partial startup resources and every HTTP connection", ()
 
 test("the long CPU action keeps its existing wait inside a finite body bound", () => {
   assert.match(source, /withPage\("cpuTurn",[\s\S]+?waitForFunction\([\s\S]+?timeout: 45000[\s\S]+?\}, \{ bodyTimeout: 50_000 \}\)/);
+});
+
+test("startup evidence is local, bounded, failure-only and detached before the test body", () => {
+  assert.match(source, /const \{ observeStartupPage \} = require\("\.\/helpers\/browser-startup-diagnostics\.cjs"\)/);
+  assert.match(withPage, /startupDiagnostics = observeStartupPage\(page, url\)/);
+  assert.ok(withPage.indexOf("observeStartupPage(page, url)") < withPage.indexOf("beforeNavigate(page)"));
+  assert.match(withPage, /startupComplete = true;\s*startupDiagnostics\.stop\(\);\s*browserStage\("test-body-start"\)/);
+  assert.match(withPage, /primaryError = error;\s*if \(!startupComplete && startupDiagnostics\)/);
+  assert.match(withPage, /bounded\("startup-state", page\.evaluate\([\s\S]+?\), 1_000\)/);
+  assert.match(withPage, /startupDiagnostics\.snapshot\(state\)/);
+  assert.match(withPage, /Object\.defineProperty\(error, "startupDiagnostics", \{ value: evidence \}\)/);
+  assert.match(withPage, /BROWSER_STARTUP_EVIDENCE \$\{JSON\.stringify\(evidence\)\}/);
+  assert.match(withPage, /finally \{\s*startupDiagnostics\?\.stop\(\)/);
+  assert.match(withPage, /if \(primaryError\) throw primaryError/);
+  assert.doesNotMatch(withPage, /error\.message|error\.stack|\.textContent|localStorage|sessionStorage/);
 });

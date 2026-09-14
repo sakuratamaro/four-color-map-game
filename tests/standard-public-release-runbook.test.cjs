@@ -19,8 +19,101 @@ test("UDL065 named-skill lane binds Edge-first compatibility and forbids borrowi
   const section = runbook.slice(runbook.indexOf("### UDL-065: 使用済みスキル名の公開表示"), runbook.indexOf("### UDL-065: v14カットイン可読性・実結果説明"));
   for (const phrase of ["UDL-065-public-skill-v1", "DB/管理設定は各 `[]`", "standard-engine.bundle.js", "index.ts",
     "互換Edge → 完全2file読戻し → Pages", "CPU039とUI040", "040の消費済み試行を再使用しない", "NOT_RUN"]) assert.ok(section.includes(phrase), phrase);
-  for (const pattern of [/src="(app\.js\?v=[^"]+)"/, /src="(skill-cutin\.js\?v=[^"]+)"/, /href="(skill-cutin\.css\?v=[^"]+)"/])
-    assert.ok(section.includes(assetReference(onlineIndex, pattern, "named-skill lane")));
+  // This is the frozen parent70e lane, not a moving UI successor's cache markers.
+  for (const marker of ["app.js?v=20260913-44", "skill-cutin.js?v=20260913-2", "skill-cutin.css?v=20260913-1"])
+    assert.ok(section.includes(marker));
+});
+
+test("UDL023 v14 is a separate Pages-only successor with explicit actions and no live authority", () => {
+  const section = runbook.slice(runbook.indexOf("### UDL-023: v14公開対戦の二操作"), runbook.indexOf("### UDL-065: 使用済みスキル名の公開表示"));
+  for (const phrase of ["UDL-023-public-actions-v1", "70e691b6f8f1d808476e80990d20df7862bfb782", "Pages_only",
+    "DB/Edge/管理設定は各 `[]`", "真正Astra判定", "recruitだけ", "findだけ", "同一ID再送",
+    "実ユーザーへのfind/recruit", "ここでは許可しない", "NOT_RUN"]) assert.ok(section.includes(phrase), phrase);
+  // The approved parent lane is historical evidence, not the successor's asset versions.
+  for (const marker of ["app.js?v=20260913-48", "ui-diet.css?v=20260913-4"])
+    assert.ok(section.includes(marker));
+});
+
+test("UDL060 terminal hierarchy binds its own asset versions and keeps release gates separate", () => {
+  const section = runbook.slice(runbook.indexOf("この候補の厳密asset marker"), runbook.indexOf("入口UIのv13後続便"));
+  for (const phrase of ["UDL-060-terminal-v2", "docs/UI_TERMINAL_HIERARCHY_20260914.md", "最大3操作",
+    "旧pending申請の復旧", "独自Windowsゲート", "真正Astraレビュー", "fresh mainと配信byte確認",
+    "CPU/DB/Edge/経済は変更しない", "公開確認は未実行"])
+    assert.ok(section.includes(phrase), phrase);
+  // The reviewed terminal parent keeps app v1; the new gacha lane checks the current app.
+  assert.ok(section.includes("app.js?v=20260914-1"));
+  for (const pattern of [/href="(terminal-result\.css\?v=[^"]+)"/])
+    assert.ok(section.includes(assetReference(onlineIndex, pattern, "terminal hierarchy lane")));
+  const app = fs.readFileSync(path.join(__dirname, "..", "standard-online-v5", "app.js"), "utf8");
+  // Fixed parent evidence is not rewritten for the later trial result model.
+  assert.ok(section.includes("result-continuation.js?v=20260914-1"));
+});
+
+test("CPU progression UI binds current assets without rewriting parent publication evidence", () => {
+  const section = runbook.slice(runbook.indexOf("## Local CPU progression UI checkpoint"), runbook.indexOf("更新日:"));
+  for (const pattern of [/src="(app\.js\?v=[^"]+)"/, /href="(style\.css\?v=[^"]+)"/, /src="(standard-online-client\.js\?v=[^"]+)"/])
+    assert.ok(section.includes(assetReference(onlineIndex, pattern, "pilot UI")));
+  const app = fs.readFileSync(path.join(__dirname, "..", "standard-online-v5", "app.js"), "utf8");
+  for (const pattern of [/from "\.\/(result-continuation\.js\?v=[^"]+)"/, /from "\.\/(cpu-progression-model\.js\?v=[^"]+)"/])
+    assert.ok(section.includes(assetReference(app, pattern, "pilot model")));
+  assert.match(section, /default OFF/); assert.match(section, /do not establish publication/);
+});
+
+test("quiz parent keeps its frozen markers and terminal dependencies without live writes", () => {
+  const section = runbook.slice(runbook.indexOf("クイズ入口の後続候補"), runbook.indexOf("この候補の厳密asset marker"));
+  for (const text of ["UDL-062-quiz-entry-v1.1", "docs/QUIZ_LEVEL_START_20260914.md", "親70e→b9→87→df62", "fresh maindf62", "3asset厳密byte一致", "DIRECT_QUIZ_ENTRY_REQUIRED", "追加liveはこの手順では許可しない", "旧承認を新クイズ候補へ流用せず"])
+    assert.ok(section.includes(text), text);
+  for (const marker of ["app.js?v=20260914-2", "style.css?v=20260914-2"]) assert.ok(section.includes(marker));
+});
+
+test("gacha parent keeps its frozen assets and exact quiz parent without new live authority", () => {
+  const section = runbook.slice(runbook.indexOf("ガチャ入口の後続候補"), runbook.indexOf("クイズ入口の後続候補"));
+  for (const text of ["UDL-062-gacha-entry-v1", "docs/GACHA_ENTRY_DIET_20260914.md", "03bc21f6ba927f71ce05efc438827d547993b21c",
+    "親70e→b9→87→df62→03bc", "fresh main03bc", "4asset厳密byte一致", "GACHA_ENTRY_DIET_REQUIRED", "DIRECT_QUIZ_ENTRY_REQUIRED",
+    "新候補固有", "Windows", "真正Astraレビュー", "100枚上限", "busy/pending/Lv/actionId/count/reload/retry",
+    "DB/Edge/管理設定は各 `[]`", "確率・報酬・経済変更なし", "liveはこの手順では許可しない", "親049承認", "具体的保留を迂回しない"])
+    assert.ok(section.includes(text), text);
+  for (const marker of ["app.js?v=20260914-6", "style.css?v=20260914-3", "standard-skill-registry.generated.js?v=20260914-2"])
+    assert.ok(section.includes(marker));
+});
+
+test("card action recovery binds current assets and retains every local-only parent hold", () => {
+  const section = runbook.slice(runbook.indexOf("カード操作の復帰導線"), runbook.indexOf("プロフィール圧縮のローカル後続候補"));
+  for (const text of ["UDL-062-action-recovery-v1.1", "docs/BLOCKED_ACTION_RECOVERY_20260914.md", "c6b8ef5ca1df84aad182bf140304affee6595f68",
+    "親70e→b9→87→df62→03bc→af1472d→45e6940→c6b8ef5", "fresh main一致", "5asset厳密byte一致", "CARD_ACTION_RECOVERY_REQUIRED", "action-recovery.js全文一致", "COMPACT_PROFILE_REQUIRED", "HOME_RULES_REQUIRED",
+    "移動だけでのgame/economy write 0", "CPU/準備/売却pending ID保持", "ローカル限定", "未push", "独自Windows", "真正Astra",
+    "Homeの元CI失敗", "親Pages保留", "新CI/取得/レビュー送受信/本番/追加liveはこのスライスでは許可しない", "旧予算や21cc/8dd9/GOV保留を迂回しない"])
+    assert.ok(section.includes(text), text);
+  assert.ok(section.includes("app.js?v=20260914-9")); // Fixed recovery parent.
+  for (const pattern of [/href="(progression\.css\?v=[^"]+)"/, /href="(ui-diet\.css\?v=[^"]+)"/])
+    assert.ok(section.includes(assetReference(onlineIndex, pattern, "card action recovery lane")));
+  const app = fs.readFileSync(path.join(__dirname, "..", "standard-online-v5", "app.js"), "utf8");
+  assert.ok(section.includes(assetReference(app, /from "\.\/(action-recovery\.js\?v=[^"]+)"/, "card action recovery model")));
+});
+
+test("Home rules lane binds the exact gacha parent and own assets without inheriting approval", () => {
+  const section = runbook.slice(runbook.indexOf("ホーム設定・ルールの後続候補"), runbook.indexOf("ガチャ入口の後続候補"));
+  for (const text of ["UDL-062-068-home-rules-v1.1", "docs/HOME_RULES_DIET_20260914.md", "af1472d10044431be01665e122ea126da9b458a9",
+    "親70e→b9→87→df62→03bc→af1472d", "fresh mainaf1472d", "3asset厳密byte一致", "HOME_RULES_REQUIRED", "GACHA_ENTRY_DIET_REQUIRED", "DIRECT_QUIZ_ENTRY_REQUIRED",
+    "Windowsログ", "真正Astraレビュー", "DB/Edge/管理設定は各 `[]`", "初回プロフィール", "対戦復帰・成立通知",
+    "pending/busy", "Lv/actionId/count", "34787425617 attempt1", "Chrome171/172 FAIL", "原因未特定", "checkpoint1695064", "診断・再試行枠をリセットしない",
+    "liveはこの手順では許可しない", "具体的保留を迂回せず", "古い承認や閉じたPages/CI/review枠を流用しない"])
+    assert.ok(section.includes(text), text);
+  // Home45 remains frozen; old d9's failed Windows gate is not cleared by this successor.
+  for (const marker of ["app.js?v=20260914-7", "ui-diet.css?v=20260914-1"])
+    assert.ok(section.includes(marker));
+});
+
+test("compact profile keeps failed Home gate separate and binds only its own assets", () => {
+  const section = runbook.slice(runbook.indexOf("プロフィール圧縮のローカル後続候補"), runbook.indexOf("ホーム設定・ルールの後続候補"));
+  for (const text of ["UDL-062-profile-compact-v1.1", "docs/PROFILE_COMPACT_20260914.md", "45e69401e735c2aad01b9471c4c202ddd365381f",
+    "親HomeのWindows失敗", "新CIの作成・予算リセットは許可しない", "固有WindowsはNOT_RUN", "真正Astraレビュー", "fresh main",
+    "親70e→b9→87→df62→03bc→af1472d→45e6940", "pending/busy", "Lv/actionId/count", "checkpoint1695064", "旧profile3b97",
+    "3asset厳密byte一致", "COMPACT_PROFILE_REQUIRED", "HOME_RULES_REQUIRED", "DB/Edge/管理設定は各 `[]`", "追加liveは許可しない", "プロフィールAPI変更なし"])
+    assert.ok(section.includes(text), text);
+  // Profilec6 remains a fixed parent; the recovery successor has its own current-asset contract.
+  for (const marker of ["app.js?v=20260914-8", "ui-diet.css?v=20260914-2"])
+    assert.ok(section.includes(marker));
 });
 
 test("current alpha.4 release lane deploys the compatible Edge before Pages and preserves active rooms", () => {
@@ -30,10 +123,10 @@ test("current alpha.4 release lane deploys the compatible Edge before Pages and 
   const pages = releaseSection.indexOf("Pages候補asset", canary);
   assert.ok(edge >= 0 && canary > edge && pages > canary);
   const candidateAssets = [
-    assetReference(onlineIndex, /src="(app\.js\?v=[^"]+)"/, "online app"),
-    assetReference(onlineIndex, /href="(style\.css\?v=[^"]+)"/, "online style"),
+    "app.js?v=20260913-48", // Frozen parent evidence; the terminal successor has its own lane above.
+    "style.css?v=20260910-12", // Frozen parent evidence; the quiz successor is checked in its own lane.
     assetReference(onlineIndex, /src="(standard-online-skill-intents\.js\?v=[^"]+)"/, "online skill intents"),
-    assetReference(onlineIndex, /src="(standard-online-client\.js\?v=[^"]+)"/, "online client"),
+    "standard-online-client.js?v=20260910-1", // Fixed parent; pilot is checked separately.
     assetReference(onlineIndex, /src="(cpu-portraits\.js\?v=[^"]+)"/, "CPU portraits"),
     assetReference(localIndex, /src="(app\.bundle\.js\?v=[^"]+)"/, "local bundle"),
   ];

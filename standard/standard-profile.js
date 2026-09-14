@@ -82,7 +82,7 @@ function validateProgressionFields(profile) {
       assertProfile(/^[a-z][a-z0-9-]{1,31}$/.test(characterId) && isRecord(record), "INVALID_CPU_CHARACTER_STAT");
       for (const key of ["matches", "wins", "losses"]) nonnegativeInteger(record[key], "INVALID_CPU_CHARACTER_STAT");
       assertProfile(record.matches === record.wins + record.losses, "INVALID_CPU_CHARACTER_STAT");
-      assertProfile(record.firstWinAt === null || (typeof record.firstWinAt === "string" && Number.isFinite(Date.parse(record.firstWinAt))), "INVALID_CPU_CHARACTER_STAT");
+      assertProfile(!Object.hasOwn(record, "firstWinAt") || record.firstWinAt === null || (typeof record.firstWinAt === "string" && Number.isFinite(Date.parse(record.firstWinAt))), "INVALID_CPU_CHARACTER_STAT");
     }
   }
   assertProfile(Array.isArray(profile.matchHistory) && profile.matchHistory.length <= MAX_MATCH_HISTORY, "INVALID_MATCH_HISTORY");
@@ -251,7 +251,9 @@ function recordCpuMatchOutcome({ profile, matchId, cpuCharacterId, won, terminal
   const character = next.cpuCharacterStats[cpuCharacterId] || { matches: 0, wins: 0, losses: 0, firstWinAt: null };
   character.matches += 1;
   character[won ? "wins" : "losses"] += 1;
-  if (won && character.firstWinAt === null) character.firstWinAt = endedAt;
+  // Older valid records can lack the date. A later win must not invent the
+  // historical first-win date; only a genuine first win gets today's timestamp.
+  if (won && character.wins === 1 && character.firstWinAt == null) character.firstWinAt = endedAt;
   next.cpuCharacterStats[cpuCharacterId] = character;
   if (won && fullPaint) {
     next.cpuStats.fullPaints += 1;

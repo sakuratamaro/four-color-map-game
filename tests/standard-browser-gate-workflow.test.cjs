@@ -16,7 +16,7 @@ test("Standard browser gate YAML text uses stable whitespace", () => {
 });
 
 test("Standard browser gate is candidate-push, manual, or pull-request only and least-privileged", () => {
-  assert.match(workflow, /^on:\r?\n  push:\r?\n    branches: \[codex\/standard-release-command, codex\/quiz-memo-calculator-20260912, codex\/ui-diet-20260912, codex\/ui-play-surface-20260912, codex\/ui-result-20260912, codex\/ui-cosmetics-20260912, codex\/ui-player-copy-20260912, codex\/skill-cutin-20260912, codex\/ui-flat-entry-20260912, codex\/skill-catalog-20260912, codex\/surrender-confirmation-20260913, codex\/cpu-split-rescue-20260913, codex\/skill-cutin-readability-20260913, codex\/skill-cutin-public-names-20260913\][\s\S]+?  pull_request:[\s\S]+?  workflow_dispatch:/m);
+  assert.match(workflow, /^on:\r?\n  push:\r?\n    branches: \[codex\/standard-release-command, codex\/quiz-memo-calculator-20260912, codex\/ui-diet-20260912, codex\/ui-play-surface-20260912, codex\/ui-result-20260912, codex\/ui-cosmetics-20260912, codex\/ui-player-copy-20260912, codex\/skill-cutin-20260912, codex\/ui-flat-entry-20260912, codex\/skill-catalog-20260912, codex\/surrender-confirmation-20260913, codex\/cpu-split-rescue-20260913, codex\/skill-cutin-readability-20260913, codex\/skill-cutin-public-names-20260913, codex\/ui-public-match-actions-20260913, codex\/ui-public-match-actions-pointer-20260913, codex\/surrender-cpu-face-20260913, codex\/quiz-level-buttons-20260914, codex\/gacha-entry-diet-20260914, codex\/home-rules-diet-20260914\][\s\S]+?  pull_request:[\s\S]+?  workflow_dispatch:/m);
   assert.equal((workflow.match(/      - online\/supabase-config\.js/g) || []).length, 2);
   assert.equal((workflow.match(/      - online-v5\/style\.css/g) || []).length, 2);
   assert.equal((workflow.match(/      - standard-online-v5\/\*\*/g) || []).length, 2);
@@ -29,7 +29,7 @@ test("Standard browser gate is candidate-push, manual, or pull-request only and 
   assert.equal((workflow.match(/      - tests\/browser-server-cleanup\.test\.cjs/g) || []).length, 2);
   assert.equal((workflow.match(/      - tests\/helpers\/browser-server-cleanup\.cjs/g) || []).length, 2);
   assert.equal((workflow.match(/      - tests\/helpers\/cpu-sql-runtime\.cjs/g) || []).length, 2);
-  for (const entry of ["tests/helpers/public-skill-fixture.cjs", "scripts/check-standard-public-skill-compat.cjs", "docs/SKILL_PUBLIC_EVENT_20260913.md"])
+  for (const entry of ["tests/canvas-native-pointer.test.cjs", "tests/helpers/canvas-native-pointer.cjs", "tests/helpers/public-skill-fixture.cjs", "scripts/check-standard-public-skill-compat.cjs", "docs/SKILL_PUBLIC_EVENT_20260913.md"])
     assert.equal(workflow.replaceAll("\r\n", "\n").split("      - " + entry + "\n").length - 1, 2, entry);
   assert.equal((workflow.match(/      - tests\/sql-runtime\/\*\*/g) || []).length, 2);
   assert.equal((workflow.match(/      - tests\/standard-online-browser\.test\.cjs/g) || []).length, 2);
@@ -49,10 +49,22 @@ test("Standard browser gate uses finite Windows Chrome and Edge jobs", () => {
   assert.match(workflow, /STANDARD_BROWSER: \$\{\{ matrix\.STANDARD_BROWSER \}\}/);
 });
 
+test("compact profile contracts are in the existing Windows step without enabling a new push branch", () => {
+  const contracts = workflow.match(/- name: Run Standard CPU policy contract tests\r?\n\s+run: >-\r?\n([\s\S]*?)(?=\r?\n\s+- name:)/)?.[1];
+  assert.ok(contracts, "existing contract step must be present");
+  assert.equal((contracts.match(/^\s+tests\/standard-profile-compact\.test\.cjs\s*$/gm) || []).length, 1);
+  for (const file of ["standard-learned-technique.test.cjs", "standard-technique-profile-sql-runtime.test.cjs", "standard-ren-trial.test.cjs", "standard-cpu-trial-sql-runtime.test.cjs", "standard-cpu-progression-fixture.test.cjs", "standard-cpu-progression-client.test.cjs", "standard-cpu-progression-ui.test.cjs"]) {
+    assert.equal(contracts.split("tests/" + file).length - 1, 1, file);
+  }
+  const push = workflow.slice(workflow.indexOf("  push:"), workflow.indexOf("  pull_request:"));
+  assert.doesNotMatch(push, /branches:.*codex\/profile-compact-20260914/);
+  assert.doesNotMatch(push, /branches:.*codex\/cpu-progression-pilot-20260914/);
+});
+
 test("Standard browser gate pins its tools and disables package-manager caching and install scripts", () => {
   assert.match(workflow, /uses: actions\/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7\.0\.1[\s\S]*?persist-credentials: false/);
   assert.match(workflow, /uses: actions\/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7\.0\.0[\s\S]*?node-version: "24"[\s\S]*?package-manager-cache: false/);
-  assert.match(workflow, /run: npm install --no-save --no-package-lock --ignore-scripts playwright@1\.62\.1 @electric-sql\/pglite@0\.5\.8\r?$/m);
+  assert.match(workflow, /run: npm install --no-save --no-package-lock --ignore-scripts playwright@1\.62\.1 @electric-sql\/pglite@0\.5\.8 pg@8\.23\.0\r?$/m);
 });
 
 test("Standard browser gate runs CPU contracts and the scoped browser file serially without release integration", () => {
@@ -61,7 +73,13 @@ test("Standard browser gate runs CPU contracts and the scoped browser file seria
   assert.match(workflow, /tests\/standard-browser-gate-workflow\.test\.cjs/);
   assert.match(workflow, /tests\/standard-online-browser-harness-static\.test\.cjs/);
   assert.match(workflow, /tests\/browser-server-cleanup\.test\.cjs/);
+  assert.match(workflow, /          tests\/canvas-native-pointer\.test\.cjs/);
   assert.match(workflow, /tests\/standard-online-quiz-generator-runtime\.test\.cjs/);
+  assert.match(workflow, /tests\/standard-quiz-level-start\.test\.cjs/);
+  assert.match(workflow, /tests\/standard-home-rules\.test\.cjs/);
+  for (const file of ["standard-gacha-entry.test.cjs", "standard-gacha-transaction.test.cjs", "standard-quiz-reward-gacha.test.cjs"]) {
+    assert.match(workflow, new RegExp("tests/" + file.replaceAll(".", "\\.")));
+  }
   assert.match(workflow, /tests\/standard-matchmaking-availability-migration\.test\.cjs/);
   assert.match(workflow, /tests\/standard-cpu-commentary\.test\.cjs/);
   for (const file of ["standard-cpu-split-rescue.test.cjs", "standard-cpu-split-policy-migration.test.cjs", "standard-cpu-rollout.test.cjs", "standard-cpu-split-sql-runtime.test.cjs"]) {
@@ -78,6 +96,16 @@ test("Standard browser gate runs CPU contracts and the scoped browser file seria
   }
   assert.match(workflow, /if: matrix\.STANDARD_BROWSER == 'edge'[\s\S]+?tests\/standard-color-seal-browser-lifecycle\.test\.cjs[\s\S]+?tests\/standard-no-color-browser-terminal\.test\.cjs/);
   assert.match(workflow, /node --test --test-concurrency=1[\s\S]+?tests\/standard-basic-feedback-browser\.test\.cjs[\s\S]+?tests\/standard-online-browser\.test\.cjs/);
-  assert.equal((workflow.match(/^\s+run:/gm) || []).length, 5);
+  assert.equal((workflow.match(/^\s+run:/gm) || []).length, 6);
   assert.doesNotMatch(workflow, /^\s+(?:uses|run):.*(?:supabase|deploy|github-pages|pages\/|upload-pages|npm test)/im);
+});
+
+test("pilot native journey and real PostgreSQL races join the existing gate without a production connection", () => {
+  for (const file of ["cpu-progression-runtime.cjs", "cpu-progression-browser.cjs", "native-postgres.cjs", "static-server.cjs"])
+    assert.equal(workflow.replaceAll("\r\n", "\n").split("      - tests/helpers/" + file + "\n").length - 1, 2, file);
+  assert.match(workflow, /name: Run Standard isolated PostgreSQL race tests\r?\n\s+if: matrix\.STANDARD_BROWSER == 'chrome'\r?\n\s+run: \|\r?\n\s+\$env:FCG_TEST_POSTGRES_BIN = 'C:\\Program Files\\PostgreSQL\\17\\bin'\r?\n\s+node --test --test-concurrency=1 tests\/standard-cpu-progression-postgres\.test\.cjs/);
+  assert.match(workflow, /tests\/standard-online-browser\.test\.cjs\r?\n\s+tests\/standard-cpu-progression-browser\.test\.cjs/);
+  assert.doesNotMatch(workflow, /(?:DATABASE_URL|SUPABASE_DB_URL|Start-Service|pg_ctl.*register)/i);
+  assert.match(workflow, /fetch-depth: 0/);
+  assert.equal(workflow.split("tests/standard-cpu-progression-rollout.test.cjs").length-1,1);
 });

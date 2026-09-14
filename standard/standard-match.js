@@ -8,14 +8,15 @@ const {
 const { dispatchStandardSkillAction } = require("./standard-skill-dispatcher.js");
 const { applyCurseBacklashOnEnterColor, consumeDeferredCurseBacklashAfterColor, preparedOutgoingCandidates, tickPaletteDebuffsAfterColor, tickSealsAfterColor } = require("./standard-skill-handlers.js");
 const { createRegionGeometryContext } = require("./standard-region-geometry.js");
-const { COLORED_CORNER_BLOOM_ENGINE_VERSION, SKILL_USAGE_CATEGORIES } = require("./standard-skill-registry.js");
+const { COLORED_CORNER_BLOOM_ENGINE_VERSION, LEARNED_TECHNIQUE_ENGINE_VERSION, SKILL_USAGE_CATEGORIES } = require("./standard-skill-registry.js");
+const { usesTechniques, initialTechniqueFields, validateTechniqueState, projectTechniques } = require("./standard-technique-state.js");
 
 const SCHEMA_VERSION = 1;
 const LEGACY_ENGINE_VERSION = "5.0.0-alpha.1";
 const PREVIOUS_ENGINE_VERSION = "5.0.0-alpha.2";
 const CATEGORY_WINDOW_ENGINE_VERSION = "5.0.0-alpha.3";
 const ENGINE_VERSION = COLORED_CORNER_BLOOM_ENGINE_VERSION;
-const SUPPORTED_ENGINE_VERSIONS = Object.freeze([LEGACY_ENGINE_VERSION, PREVIOUS_ENGINE_VERSION, CATEGORY_WINDOW_ENGINE_VERSION, ENGINE_VERSION]);
+const SUPPORTED_ENGINE_VERSIONS = Object.freeze([LEGACY_ENGINE_VERSION, PREVIOUS_ENGINE_VERSION, CATEGORY_WINDOW_ENGINE_VERSION, ENGINE_VERSION, LEARNED_TECHNIQUE_ENGINE_VERSION]);
 const SAVE_KEY = "fourColorMapGame.standard.v5.save";
 const PHASES = Object.freeze(["CREATE_FIRST", "COLOR", "WORK", "GAME_OVER"]);
 const ACTIONS = Object.freeze(["CREATE_REGION", "COLOR_REGION", "USE_SKILL", "DECLARE_NO_COLOR", "SURRENDER"]);
@@ -48,7 +49,7 @@ function assertState(condition, code) {
 }
 
 function usesSkillCategoryWindow(engineVersion) {
-  return engineVersion === CATEGORY_WINDOW_ENGINE_VERSION || engineVersion === ENGINE_VERSION;
+  return engineVersion === CATEGORY_WINDOW_ENGINE_VERSION || engineVersion === ENGINE_VERSION || usesTechniques(engineVersion);
 }
 
 function nextRandom(rngStreams, name) {
@@ -141,6 +142,7 @@ function createStandardMatch(config = {}, rngStreams = {}) {
     bonusUsesRemaining: { A: A.uses, B: B.uses },
     hands: config.hands ? clone(config.hands) : { A: handFromLoadout(loadouts.A), B: handFromLoadout(loadouts.B) },
     loadouts,
+    ...initialTechniqueFields(config, engineVersion),
     publicEffects: clone(config.publicEffects || { A: { seals: {} }, B: { seals: {} } }),
     privateEffects: clone(config.privateEffects || { A: {}, B: {} }),
     interferenceLock: false,
@@ -184,6 +186,7 @@ function validateStandardState(state) {
   const worldMicroCount = state.microWidth * bounds.macroWidth * bounds.microScale;
   assertState(Boolean(state.regions) && typeof state.regions === "object", "INVALID_REGIONS");
   assertState(Boolean(state.hands) && Boolean(state.loadouts), "INVALID_CARDS");
+  validateTechniqueState(state);
   assertState(typeof state.interferenceLock === "boolean", "INVALID_INTERFERENCE_LOCK");
   if (usesSkillCategoryWindow(state.engineVersion)) {
     const window = state.skillCategoryWindow;
@@ -336,9 +339,11 @@ function projectStandardPublicState(state) {
   validateStandardState(state);
   const keys = ["schemaVersion", "engineVersion", "mode", "matchId", "status", "version", "turn", "active", "phase", "regions", "pending", "reserved", "preparedOutgoing", "playableBounds", "trophyTargetMacros", "requiredSize", "rolledSize", "baseRequiredSize", "publicEffects", "interferenceLock", "winner", "terminalReason", "lastPublicTrace", "publicLog"];
   if (usesSkillCategoryWindow(state.engineVersion)) keys.push("skillCategoryWindow");
-  return Object.freeze(Object.fromEntries(keys.map((key) => [key, clone(key === "trophyTargetMacros"
+  return Object.freeze({ ...Object.fromEntries(keys.map((key) => [key, clone(key === "trophyTargetMacros"
     ? (state.trophyTargetMacros || playableMacroIndices(state.playableBounds))
-    : key === "lastPublicTrace" ? (state.lastPublicTrace ?? null) : state[key])] )));
+    : key === "lastPublicTrace" ? (state.lastPublicTrace ?? null) : state[key])] )),
+    ...(usesTechniques(state.engineVersion) ? { techniqueRule: clone(state.techniqueRule), techniques: projectTechniques(state) } : {}),
+  });
 }
 
 function projectStandardPrivateState(state, seat) {
@@ -354,6 +359,7 @@ function projectStandardPrivateState(state, seat) {
     hand: clone(state.hands[seat]),
     loadout: clone(state.loadouts[seat]),
     privateEffects: clone(state.privateEffects[seat]),
+    ...(usesTechniques(state.engineVersion) ? { technique: projectTechniques(state)[seat] } : {}),
   });
 }
 

@@ -2,7 +2,7 @@ name: Standard browser gate
 
 on:
   push:
-    branches: [codex/standard-release-command, codex/quiz-memo-calculator-20260912, codex/ui-diet-20260912, codex/ui-play-surface-20260912, codex/ui-result-20260912, codex/ui-cosmetics-20260912, codex/ui-player-copy-20260912, codex/skill-cutin-20260912, codex/ui-flat-entry-20260912, codex/skill-catalog-20260912, codex/surrender-confirmation-20260913, codex/cpu-split-rescue-20260913, codex/skill-cutin-readability-20260913, codex/skill-cutin-public-names-20260913]
+    branches: [codex/standard-release-command, codex/quiz-memo-calculator-20260912, codex/ui-diet-20260912, codex/ui-play-surface-20260912, codex/ui-result-20260912, codex/ui-cosmetics-20260912, codex/ui-player-copy-20260912, codex/skill-cutin-20260912, codex/ui-flat-entry-20260912, codex/skill-catalog-20260912, codex/surrender-confirmation-20260913, codex/cpu-split-rescue-20260913, codex/skill-cutin-readability-20260913, codex/skill-cutin-public-names-20260913, codex/ui-public-match-actions-20260913, codex/ui-public-match-actions-pointer-20260913, codex/surrender-cpu-face-20260913, codex/quiz-level-buttons-20260914, codex/gacha-entry-diet-20260914, codex/home-rules-diet-20260914]
     paths:
       - .github/workflows/standard-browser-gate.yml
       - online/supabase-config.js
@@ -30,8 +30,14 @@ on:
       - tests/standard-online-engine-bundle.test.cjs
       - tests/standard-online-browser.test.cjs
       - tests/browser-server-cleanup.test.cjs
+      - tests/canvas-native-pointer.test.cjs
+      - tests/helpers/canvas-native-pointer.cjs
       - tests/helpers/browser-server-cleanup.cjs
       - tests/helpers/cpu-sql-runtime.cjs
+      - tests/helpers/cpu-progression-runtime.cjs
+      - tests/helpers/cpu-progression-browser.cjs
+      - tests/helpers/native-postgres.cjs
+      - tests/helpers/static-server.cjs
       - tests/helpers/public-skill-fixture.cjs
       - scripts/check-standard-public-skill-compat.cjs
       - docs/SKILL_PUBLIC_EVENT_20260913.md
@@ -64,8 +70,14 @@ on:
       - tests/standard-online-engine-bundle.test.cjs
       - tests/standard-online-browser.test.cjs
       - tests/browser-server-cleanup.test.cjs
+      - tests/canvas-native-pointer.test.cjs
+      - tests/helpers/canvas-native-pointer.cjs
       - tests/helpers/browser-server-cleanup.cjs
       - tests/helpers/cpu-sql-runtime.cjs
+      - tests/helpers/cpu-progression-runtime.cjs
+      - tests/helpers/cpu-progression-browser.cjs
+      - tests/helpers/native-postgres.cjs
+      - tests/helpers/static-server.cjs
       - tests/helpers/public-skill-fixture.cjs
       - scripts/check-standard-public-skill-compat.cjs
       - docs/SKILL_PUBLIC_EVENT_20260913.md
@@ -94,17 +106,19 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          fetch-depth: 0 # Exact public-baseline worker/bundle for rollout rehearsal.
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: "24"
           package-manager-cache: false
       - name: Install browser test dependency
-        run: npm install --no-save --no-package-lock --ignore-scripts playwright@1.62.1 @electric-sql/pglite@0.5.8
+        run: npm install --no-save --no-package-lock --ignore-scripts playwright@1.62.1 @electric-sql/pglite@0.5.8 pg@8.23.0
       - name: Verify generated Standard bundles
         run: |
           node scripts/build-standard-v5-bundle.mjs
           node scripts/build-standard-online-engine.mjs
           node scripts/build-standard-online-skill-registry.mjs
+          node scripts/build-standard-trial-template.cjs --check
           git diff --exit-code -- standard-v5/app.bundle.js supabase/functions/standard-game-action/standard-engine.bundle.js standard-online-v5/standard-skill-registry.generated.js
       - name: Run Standard CPU policy contract tests
         run: >-
@@ -114,6 +128,14 @@ jobs:
           tests/standard-cpu-split-policy-migration.test.cjs
           tests/standard-cpu-rollout.test.cjs
           tests/standard-cpu-split-sql-runtime.test.cjs
+          tests/standard-learned-technique.test.cjs
+          tests/standard-technique-profile-sql-runtime.test.cjs
+          tests/standard-ren-trial.test.cjs
+          tests/standard-cpu-trial-sql-runtime.test.cjs
+          tests/standard-cpu-progression-fixture.test.cjs
+          tests/standard-cpu-progression-rollout.test.cjs
+          tests/standard-cpu-progression-client.test.cjs
+          tests/standard-cpu-progression-ui.test.cjs
           tests/standard-kurogane-policy-migration.test.cjs
           tests/standard-edge-handler.test.cjs
           tests/standard-online-engine-bundle.test.cjs
@@ -123,6 +145,7 @@ jobs:
           tests/standard-browser-gate-workflow.test.cjs
           tests/standard-online-browser-harness-static.test.cjs
           tests/browser-server-cleanup.test.cjs
+          tests/canvas-native-pointer.test.cjs
           tests/standard-legal-recolor-lab.test.cjs
           tests/standard-live-legal-recolor-lab-canary-static.test.cjs
           tests/standard-live-color-response-canary-static.test.cjs
@@ -165,6 +188,13 @@ jobs:
           tests/standard-online-client.test.cjs
           tests/standard-online-quiz-generator-runtime.test.cjs
           tests/standard-online-quiz-polish.test.cjs
+          tests/standard-quiz-level-start.test.cjs
+          tests/standard-gacha-entry.test.cjs
+          tests/standard-action-recovery.test.cjs
+          tests/standard-home-rules.test.cjs
+          tests/standard-profile-compact.test.cjs
+          tests/standard-gacha-transaction.test.cjs
+          tests/standard-quiz-reward-gacha.test.cjs
           tests/standard-quiz-scratch.test.cjs
           tests/standard-online-random-info-ui.test.cjs
           tests/standard-online-skill-registry.test.cjs
@@ -181,6 +211,11 @@ jobs:
           tests/standard-surrender-confirmation.test.cjs
           tests/standard-recolor.test.cjs
           tests/standard-cpu-browser.test.cjs
+      - name: Run Standard isolated PostgreSQL race tests
+        if: matrix.STANDARD_BROWSER == 'chrome'
+        run: |
+          $env:FCG_TEST_POSTGRES_BIN = 'C:\Program Files\PostgreSQL\17\bin'
+          node --test --test-concurrency=1 tests/standard-cpu-progression-postgres.test.cjs
       - name: Run Standard local lifecycle browser tests serially
         if: matrix.STANDARD_BROWSER == 'edge'
         run: >-
@@ -192,3 +227,4 @@ jobs:
           node --test --test-concurrency=1
           tests/standard-basic-feedback-browser.test.cjs
           tests/standard-online-browser.test.cjs
+          tests/standard-cpu-progression-browser.test.cjs

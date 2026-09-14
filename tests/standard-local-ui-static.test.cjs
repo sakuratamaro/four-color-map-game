@@ -24,7 +24,7 @@ const contactPressureBrowserGate = fs.readFileSync(path.join(root, "tests", "sta
 const bundleBuilder = fs.readFileSync(path.join(root, "scripts", "build-standard-v5-bundle.mjs"), "utf8");
 
 test("local alpha has a bundled offline entry point", () => {
-  assert.match(html, /app\.bundle\.js\?v=20260913-9-4f66b9b284ba/);
+  assert.match(html, /app\.bundle\.js\?v=20260914-11-63d4f2b526f1/);
   for (const id of ["profileA", "profileB", "firstPlayer", "startMatch", "handover", "privatePanel", "resultPanel"]) {
     assert.match(html, new RegExp(`id="${id}"`));
   }
@@ -39,8 +39,8 @@ test("local alpha has a bundled offline entry point", () => {
 
 test("local cache marker publishes the rebuilt alpha.4 and deferred-curse bundle", () => {
   const bundleHash = createHash("sha256").update(bundle).digest("hex");
-  assert.equal(bundleHash, "4f66b9b284ba6df6a03cfc1458ad49847d9f30f7d916ded929ee5986f6f3e9cd");
-  assert.match(html, new RegExp(`app\\.bundle\\.js\\?v=20260913-9-${bundleHash.slice(0, 12)}`));
+  assert.equal(bundleHash, "63d4f2b526f172d6eb2388c0f669beb1c6aee1b04cdd4053e623b705b2ff8d74");
+  assert.match(html, new RegExp(`app\\.bundle\\.js\\?v=20260914-11-${bundleHash.slice(0, 12)}`));
   assert.match(bundle, /SKILL_CATEGORY_ALREADY_USED_IN_WINDOW/);
   assert.match(bundle, /COLORED_CORNER_BLOOM_ENGINE_VERSION/);
   assert.match(bundle, /colorBonusRefill/);

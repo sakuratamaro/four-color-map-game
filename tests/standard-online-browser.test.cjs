@@ -6,6 +6,8 @@ const http = require("node:http");
 const path = require("node:path");
 const test = require("node:test");
 const { closeOwnedBrowserServer } = require("./helpers/browser-server-cleanup.cjs");
+const { clickCanvasFraction } = require("./helpers/canvas-native-pointer.cjs");
+const { observeStartupPage } = require("./helpers/browser-startup-diagnostics.cjs");
 
 let chromium;
 try { ({ chromium } = require("playwright")); } catch { /* explicit actual-browser gate */ }
@@ -36,10 +38,393 @@ RESTORED_ROOM_MODES.add("resultRewardHuman");
 
 async function startMemoQuiz(page, level = "5") {
   await page.getByRole("button", { name: "クイズ・ガチャ", exact: true }).click();
-  await page.locator("#quizLevel").selectOption(level);
-  await page.locator("#quizStart").click();
+  await page.locator(`[data-quiz-start-level="${level}"]`).click();
   await page.locator("#quizOptions button[data-quiz-option]").first().waitFor();
 }
+
+
+test("UDL062 profile compact first name shows its public audience before one explicit save", { timeout: 120000 }, async () => {
+  await withPage("empty",async page=>{
+    await page.getByRole("button",{name:"マイページ",exact:true}).click();
+    const input=page.getByRole("textbox",{name:"ニックネーム（20文字まで）",exact:true});
+    await input.waitFor();
+    assert.equal(await input.getAttribute("maxlength"),"20");
+    assert.equal(await input.getAttribute("aria-describedby"),"profilePublicNameHelp");
+    assert.match(await page.locator("#profilePublicNameHelp").textContent(),/対戦相手に表示されます。ニックネーム/);
+    assert.doesNotMatch(await page.locator("#profileCard").innerText(),/この端末のStandardセーブ|オンライン画面だけに保存/);
+    assert.deepEqual(await page.evaluate(()=>globalThis.__standardOnlineRuntime.calls.filter(c=>c.body?.operation==="profile")),[]);
+    await input.fill("みどり");
+    await page.locator("#createStarterProfile").click();
+    await page.locator("#toggleProfileOptions:not(.hidden):not([disabled])").waitFor({timeout:4000});
+    assert.equal(await page.locator("#profileOptions").isHidden(),true);
+    const result=await page.evaluate(()=>globalThis.__standardOnlineRuntime.calls.filter(c=>c.body?.operation==="profile").map(c=>c.body));
+    assert.equal(result.length,1); assert.equal(result[0].displayName,"みどり");
+    assert.match(await page.locator("#profileSummary").textContent(),/みどり.*18枚/);
+    assert.equal(await page.evaluate(()=>document.activeElement.id),"toggleProfileOptions");
+    assert.equal(await page.evaluate(()=>globalThis.__standardOnlineRuntime.calls.filter(c=>["cpu-start","setup","action","gacha"].includes(c.body?.operation)).length),0);
+  },{viewport:{width:390,height:844}});
+});
+
+test("UDL062 profile compact hydrated overview and disclosures are complete and write-free", { timeout: 120000 }, async () => {
+  await withPage("cosmetic",async page=>{
+    await page.locator("#cosmeticCatalog .collection-card").first().waitFor({state:"attached"});
+    await page.locator("#toggleProfileOptions:not(.hidden)").waitFor({timeout:3000});
+    const before=await page.evaluate(key=>({saved:localStorage.getItem(key),profile:globalThis.__standardOnlineRuntime.profile,calls:globalThis.__standardOnlineRuntime.calls.filter(c=>c.body).map(c=>c.body)}),remoteProfileKey);
+    assert.equal(await page.locator("#profileOptions").isHidden(),true);
+    assert.match(await page.locator("#profileSummary").textContent(),/^A — 所持カード/);
+    assert.equal(await page.locator("#profileCoins").textContent(),"🪙 1000コイン");
+    assert.equal(await page.locator("#profileHumanOverview").textContent(),"4勝 2敗");
+    assert.equal(await page.locator("#profileCpuOverview").textContent(),"0勝 0敗");
+    for(const [id,content,count] of [["profileStatsDetails","#profileStats > div",5],["cpuRecordsDetails","#cpuCharacterRecords > article",10],["quizAccuracyDetails","#quizAccuracyRecords > div",6],["profileTrophiesDetails","#trophyList > article",3],["cosmeticPanel","#cosmeticCatalog > article",3]]){
+      const details=page.locator("#"+id),summary=details.locator(":scope > summary");
+      assert.equal(await details.getAttribute("open"),null,id);
+      await summary.focus(); await page.keyboard.press("Enter");
+      assert.equal(await details.getAttribute("open"),"",id);
+      assert.equal(await page.locator(content).count(),count,id);
+      assert.equal(await page.locator(content).first().isVisible(),true,id);
+      await page.keyboard.press("Enter");
+      assert.equal(await details.getAttribute("open"),null,id);
+    }
+    const toggle=page.locator("#toggleProfileOptions");
+    await toggle.focus();await page.keyboard.press("Space");
+    assert.equal(await toggle.getAttribute("aria-expanded"),"true");
+    assert.equal(await page.locator("#profileSelect").isVisible(),true);
+    await page.keyboard.press("Enter");
+    assert.equal(await toggle.getAttribute("aria-expanded"),"false");
+    assert.equal(await page.evaluate(()=>document.activeElement.id),"toggleProfileOptions");
+    const after=await page.evaluate(key=>({saved:localStorage.getItem(key),profile:globalThis.__standardOnlineRuntime.profile,calls:globalThis.__standardOnlineRuntime.calls.filter(c=>c.body).map(c=>c.body)}),remoteProfileKey);
+    assert.deepEqual(after,before);
+    await page.reload();
+    await page.locator("#toggleProfileOptions:not(.hidden)").waitFor({timeout:3000});
+    assert.equal(await page.locator("#profileOptions").isHidden(),true);
+    assert.equal(await page.locator("#cosmeticPanel").getAttribute("open"),null);
+    assert.equal(await page.evaluate(key=>localStorage.getItem(key),remoteProfileKey),before.saved);
+  },{viewport:{width:390,height:844},bodyTimeout:45000});
+});
+
+test("UDL062 profile compact preserves saving controls error and explicit retry", { timeout: 120000 }, async () => {
+  await withPage("empty",async page=>{
+    await page.getByRole("button",{name:"マイページ",exact:true}).click();
+    await page.evaluate(()=>{
+      const mock=globalThis.__standardOnlineMockSupabase,original=mock.from;
+      globalThis.__restoreProfileReads=()=>{mock.from=original;};
+      mock.from=table=>{
+        if(table!=="fcg_standard_profiles")return original(table);
+        const chain={eq:()=>chain,maybeSingle:()=>new Promise(resolve=>{globalThis.__finishProfileRead=()=>resolve({data:null,error:new Error("fixture profile read failed")});})};
+        return {select:()=>chain};
+      };
+    });
+    await page.locator("#starterName").fill("保存テスト");
+    await page.locator("#createStarterProfile").click();
+    await page.waitForFunction(()=>typeof globalThis.__finishProfileRead==="function");
+    assert.equal(await page.locator("#profileSaveStatus").textContent(),"保存中…");
+    for(const id of ["profileSelect","starterName","createStarterProfile","syncProfile"])assert.equal(await page.locator("#"+id).isDisabled(),true,id);
+    await page.evaluate(()=>globalThis.__finishProfileRead());
+    await page.locator("#profileSaveStatus").filter({hasText:"保存できませんでした。"}).waitFor();
+    assert.equal(await page.locator("#profileOptions").isVisible(),true);
+    assert.equal(await page.locator("#syncProfile").isEnabled(),true);
+    assert.equal(await page.evaluate(()=>globalThis.__standardOnlineRuntime.calls.filter(c=>c.body?.operation==="profile").length),0);
+    await page.evaluate(()=>globalThis.__restoreProfileReads());
+    await page.locator("#syncProfile").click();
+    await page.locator("#toggleProfileOptions:not(.hidden):not([disabled])").waitFor({timeout:4000});
+    assert.equal(await page.locator("#profileSaveStatus").isHidden(),true);
+    assert.equal(await page.locator("#profileOptions").isHidden(),true);
+    assert.equal(await page.evaluate(()=>globalThis.__standardOnlineRuntime.calls.filter(c=>c.body?.operation==="profile").length),1);
+    assert.equal(await page.evaluate(()=>document.activeElement.id),"toggleProfileOptions");
+  },{viewport:{width:390,height:844}});
+});
+
+test("UDL062 profile compact remains readable at three widths and enlarged text", { timeout: 120000 }, async () => {
+  await withPage("cosmetic",async page=>{
+    await page.locator("#toggleProfileOptions:not(.hidden)").waitFor({timeout:3000});
+    for(const [width,height,zoom] of [[390,844,1],[768,900,1],[1280,900,1],[320,640,2]]){
+      await page.setViewportSize({width,height});
+      await page.evaluate(z=>{document.documentElement.style.fontSize=(16*z)+"px";window.scrollTo(0,0);},zoom);
+      assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
+      for(const selector of ["#toggleProfileOptions",...["profileStatsDetails","cpuRecordsDetails","quizAccuracyDetails","profileTrophiesDetails","cosmeticPanel"].map(id=>"#"+id+" > summary")]){
+        const control=page.locator(selector);await control.scrollIntoViewIfNeeded();
+        const r=await control.boundingBox();assert.ok(r.width>=44&&r.height>=44,JSON.stringify({selector,r,width,zoom}));
+        assert.equal(await control.evaluate(el=>el.scrollWidth>el.clientWidth),false,selector);
+      }
+      await page.locator("#toggleProfileOptions").click();
+      assert.equal(await page.locator("#profileOptions").isVisible(),true);
+      assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
+      await page.locator("#toggleProfileOptions").click();
+      if(process.env.PROFILE_COMPACT_SCREENSHOTS){fs.mkdirSync(process.env.PROFILE_COMPACT_SCREENSHOTS,{recursive:true});await page.evaluate(()=>window.scrollTo(0,0));await page.screenshot({path:path.join(process.env.PROFILE_COMPACT_SCREENSHOTS,`${browserName}-profile-${width}-${zoom}x.png`),fullPage:true});}
+    }
+  },{viewport:{width:390,height:844},bodyTimeout:45000});
+});
+
+for (const mode of ["empty", "lobby"]) {
+  test(`${browserName} Home rules are optional profile-free and close with native focus restoration (${mode})`, {timeout:120000}, async()=>{
+    await withPage(mode,async page=>{
+      await page.getByRole("button",{name:"ホーム",exact:true}).click();
+      assert.equal(await page.locator(".home-actions > button:visible").count(),2);
+      assert.equal(await page.locator("#profileCard").isVisible(),false);
+      assert.equal(await page.locator("#homeSessionRecovery").isVisible(),false);
+      assert.equal(await page.locator("#connectionCard").isVisible(),false);
+      assert.equal(await page.locator("#feedbackSettings").isVisible(),false);
+      const before=await page.evaluate(()=>globalThis.__standardOnlineLifetimeInvocations());
+      await page.locator("#openTutorial").focus();await page.keyboard.press("Enter");
+      await page.locator("#tutorialDialog[open]").waitFor();
+      assert.equal(await page.evaluate(()=>document.activeElement.id),"tutorialTitle");
+      assert.equal(await page.locator(".tutorial-steps > li").count(),4);
+      await page.keyboard.press("Escape");
+      assert.equal(await page.locator("#tutorialDialog").isVisible(),false);
+      assert.equal(await page.evaluate(()=>document.activeElement.id),"openTutorial");
+      await page.keyboard.press("Space");await page.locator("#tutorialDialog[open]").waitFor();
+      await page.locator("#closeTutorial").click();
+      assert.equal(await page.evaluate(()=>document.activeElement.id),"openTutorial");
+      assert.deepEqual(await page.evaluate(()=>globalThis.__standardOnlineLifetimeInvocations()),before);
+      await page.locator("#openTutorial").click();
+      await page.evaluate(()=>{location.hash="profile";});
+      await page.locator("#tutorialDialog").waitFor({state:"hidden"});
+      assert.equal(await page.locator("body").getAttribute("data-active-tab"),"profile");
+    },{viewport:{width:390,height:844}});
+  });
+}
+
+test(`${browserName} Home rules yield to a newly matched room without creating a second game`, { timeout: 120000 }, async () => {
+  await withPage("handoffActivity", async (page) => {
+    await choosePublicWaiting(page);
+    await page.getByRole("button", { name: "ホーム", exact: true }).click();
+    await page.locator("#openTutorial").click();
+    assert.equal(await page.locator("#tutorialDialog").isVisible(), true);
+    const before = await page.evaluate(() => globalThis.__standardOnlineLifetimeInvocations());
+    await page.evaluate(() => {
+      globalThis.__standardOnlineRuntime.matchNow = true;
+      document.dispatchEvent(new Event("visibilitychange"));
+    });
+    await page.locator("#tutorialDialog").waitFor({ state: "hidden" });
+    await page.locator("body[data-active-tab='battle']").waitFor();
+    assert.equal(await page.locator("#setupCard").isVisible(), true);
+    assert.equal(await page.locator("#matchedRoomAnnouncement").textContent(), "対戦相手が見つかりました。6枚セットを選んでください。");
+    const after = await page.evaluate(() => globalThis.__standardOnlineLifetimeInvocations());
+    const gameWrites = calls => calls.filter(call => ["profile", "cpu-start", "cpu-accept", "setup", "action", "quiz-start", "gacha"].includes(call.operation));
+    assert.deepEqual(gameWrites(after), gameWrites(before));
+    assert.notEqual(await page.evaluate(() => document.activeElement.id), "openTutorial");
+  }, { viewport: { width: 390, height: 844 } });
+});
+
+test(`${browserName} Home settings preserve consent and storage through close tab and reload`, { timeout: 120000 }, async () => {
+  await withPage("lobby",async page=>{
+    await page.getByRole("button",{name:"ホーム",exact:true}).click();
+    const prefs="fourColorMapGame.standard.online.v5.basic-feedback-settings-v1";
+    const before=await page.evaluate(()=>globalThis.__standardOnlineLifetimeInvocations());
+    await page.locator("#openHomeSettings").focus();await page.keyboard.press("Enter");
+    assert.equal(await page.locator("#openHomeSettings").getAttribute("aria-expanded"),"true");
+    assert.equal(await page.locator("#soundEffectsEnabled").isChecked(),false);
+    assert.equal(await page.locator("#vibrationEnabled").isChecked(),false);
+    await page.locator("#soundEffectsEnabled").focus();await page.keyboard.press("Space");
+    await page.locator("#vibrationEnabled").focus();await page.keyboard.press("Space");
+    const saved=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),prefs);
+    assert.deepEqual(saved,{schemaVersion:1,sound:true,vibration:true});
+    await page.locator("#openHomeSettings").click();
+    assert.equal(await page.locator("#feedbackSettings").isVisible(),false);
+    await page.getByRole("button",{name:"マイページ",exact:true}).click();
+    assert.equal(await page.locator("#feedbackSettings").isVisible(),false);
+    await page.getByRole("button",{name:"ホーム",exact:true}).click();
+    assert.equal(await page.locator("#openHomeSettings").getAttribute("aria-expanded"),"false");
+    assert.deepEqual(await page.evaluate(()=>globalThis.__standardOnlineLifetimeInvocations()),before);
+    await page.reload({waitUntil:"load"});
+    await page.locator("#connectionBadge.good").waitFor({state:"attached"});
+    // Reload legitimately reads the cosmetic catalog once; opening settings must not write.
+    const afterReload=await page.evaluate(()=>globalThis.__standardOnlineLifetimeInvocations());
+    assert.deepEqual(afterReload.slice(before.length),[{operation:"cosmetic-catalog"}]);
+    assert.equal(await page.locator("#feedbackSettings").isVisible(),false);
+    await page.locator("#openHomeSettings").click();
+    assert.equal(await page.locator("#soundEffectsEnabled").isChecked(),true);
+    assert.equal(await page.locator("#vibrationEnabled").isChecked(),true);
+    assert.deepEqual(await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),prefs),saved);
+    assert.deepEqual(await page.evaluate(()=>globalThis.__standardOnlineLifetimeInvocations()),afterReload);
+    await page.context().setOffline(true);
+    await page.getByText("オフライン（復帰待ち）",{exact:true}).waitFor();
+    assert.equal(await page.locator("#connectionCard").isVisible(),true);
+    await page.context().setOffline(false);
+  },{viewport:{width:390,height:844}});
+});
+
+test(`${browserName} Home rules layout remains readable at narrow enlarged text and short landscape`, { timeout: 130000 }, async () => {
+  await withPage("lobby",async page=>{
+    await page.getByRole("button",{name:"ホーム",exact:true}).click();
+    for(const [width,height,zoom] of [[390,844,1],[768,900,1],[1280,900,1],[640,360,1],[320,640,2]]){
+      await page.setViewportSize({width,height});
+      await page.evaluate(z=>{document.documentElement.style.fontSize=(16*z)+"px";window.scrollTo(0,0);},zoom);
+      for(const id of ["openHomeSettings","openTutorial"]){
+        const button=page.locator("#"+id);await button.scrollIntoViewIfNeeded();
+        const r=await button.boundingBox();assert.ok(r.width>=44&&r.height>=44,JSON.stringify({id,r}));
+      }
+      assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
+      await page.locator("#openHomeSettings").click();
+      assert.equal(await page.locator("#feedbackSettings").isVisible(),true);
+      assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
+      await page.locator("#openHomeSettings").click();
+      await page.locator("#openTutorial").click();
+      const dialog=page.locator("#tutorialDialog");
+      const r=await dialog.boundingBox();assert.ok(r.x>=0&&r.y>=0&&r.x+r.width<=width&&r.y+r.height<=height,JSON.stringify({width,height,r}));
+      assert.equal(await dialog.evaluate(el=>el.scrollWidth>el.clientWidth),false);
+      await dialog.locator(".tutorial-ending").scrollIntoViewIfNeeded();
+      assert.equal(await dialog.locator(".tutorial-ending").isVisible(),true);
+      const endingReadable=await dialog.locator(".tutorial-ending").evaluate(el=>{
+        const r=el.getBoundingClientRect();const heading=document.querySelector(".tutorial-header").getBoundingClientRect();
+        const y=Math.min(innerHeight-1,Math.max(r.y,heading.bottom)+8);
+        return y<r.bottom&&el.contains(document.elementFromPoint(r.x+r.width/2,y));
+      });
+      assert.equal(endingReadable,true,JSON.stringify({width,height,zoom}));
+      const close=page.locator("#closeTutorial");const rect=await close.boundingBox();
+      const hit=await close.evaluate(el=>{const r=el.getBoundingClientRect();return el.contains(document.elementFromPoint(r.x+r.width/2,r.y+r.height/2));});
+      assert.ok(rect.height>=44&&hit,JSON.stringify({rect,hit}));
+      if(process.env.HOME_RULES_SCREENSHOTS){fs.mkdirSync(process.env.HOME_RULES_SCREENSHOTS,{recursive:true});await page.screenshot({path:path.join(process.env.HOME_RULES_SCREENSHOTS,`${browserName}-tutorial-${width}-${zoom}x.png`)});}
+      await close.click();
+      if(process.env.HOME_RULES_SCREENSHOTS&&width===390)await page.screenshot({path:path.join(process.env.HOME_RULES_SCREENSHOTS,`${browserName}-home-390.png`)});
+    }
+  },{viewport:{width:390,height:844}});
+});
+
+for (const level of [1, 2, 3, 4, 5]) {
+  test(`${browserName} quiz entry starts Lv.${level} exactly once and keeps the chosen session`, { timeout: 130000 }, async () => {
+    await withPage("quiz", async (page) => {
+      await page.getByRole("button", { name: "クイズ・ガチャ", exact: true }).click();
+      const buttons = page.locator("[data-quiz-start-level]");
+      assert.equal(await buttons.count(), 5);
+      for (const button of await buttons.all()) {
+        assert.equal(await button.isVisible(), true);
+        assert.equal(await button.isEnabled(), true);
+      }
+      const start = page.getByRole("button", { name: `Lv.${level} 10問チャレンジ`, exact: true });
+      if (level % 2 === 0) { await start.focus(); await page.keyboard.press("Enter"); }
+      else await start.click();
+      await page.locator("#quizOptions button[data-quiz-option]").first().waitFor();
+      const saved = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)), pendingQuizKey);
+      assert.equal(saved.selectedLevel, level);
+      assert.equal(saved.questions.length, 10);
+      assert.equal(saved.answers.length, 0);
+      assert.equal(await page.locator("#quizSetup").isHidden(), true);
+      assert.equal(await page.locator("#quizRewardHelp").isHidden(), true);
+      assert.equal(await page.locator("#quizLevelBadge").textContent(), `Lv.${level}`);
+      if (level === 4) {
+        await page.reload({ waitUntil: "load" });
+        await page.locator("#connectionBadge.good").waitFor();
+        await page.getByRole("button", { name: "クイズ・ガチャ", exact: true }).click();
+        await page.locator("#quizOptions button[data-quiz-option]").first().waitFor();
+        const restored = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)), pendingQuizKey);
+        assert.equal(restored.sessionId, saved.sessionId);
+        assert.equal(restored.selectedLevel, 4);
+        assert.equal(await page.locator("#quizSetup").isHidden(), true);
+      }
+      const calls = await page.evaluate(() => globalThis.__standardOnlineLifetimeInvocations());
+      const starts = calls.filter((entry) => entry.operation === "quiz-start");
+      assert.equal(starts.length, 1);
+      assert.equal(starts[0].selectedLevel, level);
+      assert.equal(calls.filter((entry) => ["quiz-finish", "gacha", "profile"].includes(entry.operation)).length, 0);
+    }, { viewport: { width: 390, height: 844 } });
+  });
+}
+
+test(`${browserName} quiz entry disables every start while busy and recovers from a rejected start`, { timeout: 130000 }, async () => {
+  await withPage("quiz", async (page) => {
+    await page.getByRole("button", { name: "クイズ・ガチャ", exact: true }).click();
+    await page.evaluate(() => { globalThis.__standardOnlineRuntime.failNextQuizStart = true; });
+    await page.locator('[data-quiz-start-level="2"]').click();
+    await page.getByText("クイズを開始できませんでした。少し待って再試行してください。", { exact: true }).waitFor();
+    assert.equal(await page.evaluate((key) => localStorage.getItem(key), pendingQuizKey), null);
+    for (const button of await page.locator("[data-quiz-start-level]").all()) assert.equal(await button.isEnabled(), true);
+    await page.evaluate(() => {
+      const runtime = globalThis.__standardOnlineRuntime;
+      runtime.delayedOperation = "quiz-start";
+      runtime.operationDelayMs = 1500;
+    });
+    await page.locator('[data-quiz-start-level="4"]').click();
+    await page.waitForFunction(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "quiz-start").length === 2);
+    for (const button of await page.locator("[data-quiz-start-level]").all()) assert.equal(await button.isDisabled(), true);
+    // Native extra pointer clicks on disabled controls must not create other requests.
+    await page.locator('[data-quiz-start-level="1"]').click({ force: true });
+    await page.locator('[data-quiz-start-level="4"]').click({ force: true });
+    await page.locator("#quizOptions button[data-quiz-option]").first().waitFor();
+    const calls = await page.evaluate(() => globalThis.__standardOnlineLifetimeInvocations());
+    assert.deepEqual(calls.filter((entry) => entry.operation === "quiz-start").map((entry) => entry.selectedLevel), [2, 4]);
+    assert.equal(await page.evaluate((key) => JSON.parse(localStorage.getItem(key)).selectedLevel, pendingQuizKey), 4);
+    assert.equal(calls.filter((entry) => ["quiz-finish", "gacha", "profile"].includes(entry.operation)).length, 0);
+  });
+});
+
+test(`${browserName} quiz entry reward help is keyboard accessible, responsive and write-free across reload`, { timeout: 150000 }, async () => {
+  await withPage("quiz", async (page) => {
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(error.message));
+    await page.getByRole("button", { name: "クイズ・ガチャ", exact: true }).click();
+    const initialProfile = await page.evaluate(() => JSON.stringify(globalThis.__standardOnlineRuntime.profile));
+    const help = page.locator("#quizRewardHelp"), summary = help.locator("summary");
+    assert.equal(await help.evaluate((node) => node.open), false);
+    assert.equal(await page.locator("#quizStatus").isHidden(), true);
+    for (const view of [
+      { width: 390, height: 844, textScale: 1 },
+      { width: 768, height: 1024, textScale: 1 },
+      { width: 1280, height: 900, textScale: 1 },
+      { width: 640, height: 360, textScale: 1 },
+      { width: 320, height: 640, textScale: 2 },
+    ]) {
+      await page.setViewportSize({ width: view.width, height: view.height });
+      await page.evaluate((scale) => { document.documentElement.style.fontSize = `${16 * scale}px`; }, view.textScale);
+      await page.locator('[data-quiz-start-level="1"]').focus();
+      await page.keyboard.press("Tab");
+      await page.keyboard.press("Shift+Tab");
+      for (const level of [1, 2, 3, 4, 5]) {
+        assert.equal(await page.evaluate(() => document.activeElement.dataset.quizStartLevel), String(level));
+        const button = page.locator(`[data-quiz-start-level="${level}"]`);
+        const box = await button.boundingBox();
+        assert.ok(box && box.height >= 44 && box.width >= 44, JSON.stringify({ view, level, box }));
+        assert.equal(await button.evaluate((node) => node.scrollWidth <= node.clientWidth), true);
+        assert.equal(await button.evaluate((node) => {
+          const rect = node.getBoundingClientRect();
+          return node.contains(document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2));
+        }), true, JSON.stringify({ view, level, reason: "focused button must not be covered" }));
+        assert.equal(await button.evaluate((node) => getComputedStyle(node).outlineStyle), "solid", JSON.stringify({ view, level }));
+        await page.keyboard.press("Tab");
+      }
+      assert.equal(await summary.evaluate((node) => document.activeElement === node), true);
+      await page.keyboard.press("Enter");
+      assert.equal(await help.evaluate((node) => node.open), true);
+      assert.equal(await help.locator("tbody tr").count(), 4);
+      await help.locator("table").scrollIntoViewIfNeeded();
+      const layout = await page.evaluate(() => ({
+        documentFits: document.documentElement.scrollWidth <= document.documentElement.clientWidth,
+        tableFits: document.querySelector("#quizRewardHelp table").getBoundingClientRect().width <= document.querySelector("#quizRewardHelp").clientWidth + 1,
+        cellsFit: [...document.querySelectorAll("#quizRewardHelp th, #quizRewardHelp td")].every((node) => node.scrollWidth <= node.clientWidth),
+      }));
+      assert.deepEqual(layout, { documentFits: true, tableFits: true, cellsFit: true }, JSON.stringify({ view, layout }));
+      const finalRow = help.locator("tbody tr").last();
+      await finalRow.scrollIntoViewIfNeeded();
+      assert.equal(await finalRow.evaluate((node) => {
+        const rect = node.getBoundingClientRect();
+        return node.contains(document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2));
+      }), true, JSON.stringify({ view, reason: "last reward row must be reachable above fixed navigation" }));
+      if (process.env.QUIZ_ENTRY_SCREENSHOTS) {
+        fs.mkdirSync(process.env.QUIZ_ENTRY_SCREENSHOTS, { recursive: true });
+        await page.screenshot({ path: path.join(process.env.QUIZ_ENTRY_SCREENSHOTS, `${browserName}-quiz-help-${view.width}-${view.textScale}x.png`) });
+      }
+      await summary.focus();
+      await page.keyboard.press("Space");
+      assert.equal(await help.evaluate((node) => node.open), false);
+      if (process.env.QUIZ_ENTRY_SCREENSHOTS && view.textScale === 1 && view.height > 360) {
+        await page.locator("#quizPanel").scrollIntoViewIfNeeded();
+        await page.screenshot({ path: path.join(process.env.QUIZ_ENTRY_SCREENSHOTS, `${browserName}-quiz-entry-${view.width}.png`), fullPage: true });
+      }
+      assert.equal(await page.evaluate((key) => localStorage.getItem(key), pendingQuizKey), null);
+      assert.equal(await page.evaluate(() => JSON.stringify(globalThis.__standardOnlineRuntime.profile)), initialProfile);
+    }
+    await summary.click();
+    await page.reload({ waitUntil: "load" });
+    await page.locator("#connectionBadge.good").waitFor();
+    await page.getByRole("button", { name: "クイズ・ガチャ", exact: true }).click();
+    assert.equal(await help.evaluate((node) => node.open), false);
+    assert.equal(await page.evaluate((key) => localStorage.getItem(key), pendingQuizKey), null);
+    const calls = await page.evaluate(() => globalThis.__standardOnlineLifetimeInvocations());
+    assert.equal(calls.filter((entry) => ["quiz-start", "quiz-answer", "quiz-finish", "gacha", "profile"].includes(entry.operation)).length, 0);
+    assert.equal(await page.evaluate(() => JSON.stringify(globalThis.__standardOnlineRuntime.profile)), initialProfile);
+    assert.deepEqual(pageErrors, []);
+  }, { viewport: { width: 390, height: 844 }, bodyTimeout: 50_000 });
+});
 
 async function drawMemoStroke(page) {
   await page.mouse.move(25, 350);
@@ -53,7 +438,6 @@ async function readScratch(page) { return page.evaluate((key) => JSON.parse(sess
 
 async function choosePublicWaiting(page) {
   await page.locator("#choosePublicBattle").click();
-  await page.locator("#publicWaitingOptions summary").click();
   await page.locator("#recruitOpponent").click();
 }
 
@@ -307,14 +691,73 @@ test("UDL-023 compact quiz layout keeps every focused option clear of existing n
   }
 });
 
-test("UDL-023 explicit public search waits only after a successful empty result", { timeout: 120000 }, async () => {
+test("UDL-023 v14 shows two obvious native public actions at three widths without starting a match", { timeout: 120000 }, async () => {
+  await withPage("lobby", async (page) => {
+    const errors = []; page.on("pageerror", error => errors.push(error.message));
+    await page.locator("#choosePublicBattle").click();
+    assert.equal(await page.locator("#publicWaitingOptions").count(), 0);
+    const actions = page.getByRole("group", { name: "だれとでも対戦の始め方" }).getByRole("button");
+    assert.deepEqual(await actions.allTextContents(), ["相手を待つ", "待っている相手に参加"]);
+    for (const width of [390, 768, 1280]) {
+      await page.setViewportSize({ width, height: 900 });
+      await actions.first().scrollIntoViewIfNeeded();
+      const layout = await actions.evaluateAll(els => ({ overflow: document.documentElement.scrollWidth > innerWidth,
+        buttons: els.map(el => { const r = el.getBoundingClientRect(), s = getComputedStyle(el);
+          return { tag: el.tagName, width: r.width, height: r.height, top: r.top,
+            clips: el.scrollWidth > el.clientWidth, border: parseFloat(s.borderTopWidth),
+            hit: el.contains(document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2)) }; }) }));
+      assert.equal(layout.overflow, false, JSON.stringify(layout));
+      assert.equal(layout.buttons[0].top, layout.buttons[1].top);
+      assert.ok(layout.buttons.every(b => b.tag === "BUTTON" && b.width >= 44 && b.height >= 44 && b.border > 0 && !b.clips && b.hit), JSON.stringify(layout));
+      if (process.env.PUBLIC_MATCH_SCREENSHOTS) {
+        fs.mkdirSync(process.env.PUBLIC_MATCH_SCREENSHOTS, { recursive: true });
+        await page.screenshot({ path: path.join(process.env.PUBLIC_MATCH_SCREENSHOTS, `${browserName}-public-actions-${width}.png`), fullPage: true });
+      }
+    }
+    await actions.first().focus(); await page.keyboard.press("Tab");
+    assert.equal(await actions.last().evaluate(el => el === document.activeElement), true);
+    assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter(c =>
+      /fcg_standard_(create_room|join_room|matchmaking_find|matchmaking_recruit)$/.test(c.name) ||
+      ["cpu-start", "cpu-accept"].includes(c.body?.operation)).length), 0);
+    await page.setViewportSize({ width: 320, height: 900 });
+    await page.addStyleTag({ content: ".public-match-actions > button { font-size: 28px !important; }" });
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+    assert.equal(await actions.evaluateAll(els => els.some(el => el.scrollWidth > el.clientWidth)), false);
+    assert.deepEqual(errors, []);
+  }, { viewport: { width: 390, height: 900 } });
+});
+
+test("UDL-023 v14 empty join stays find-only across duplicate pending clicks and reload", { timeout: 120000 }, async () => {
+  await withPage("lobby", async (page) => {
+    await page.locator("#choosePublicBattle").click();
+    await page.evaluate(() => { globalThis.__standardOnlineRuntime.findDelayMs = 400; });
+    await page.locator("#findOpponent").focus();
+    await page.keyboard.press("Space"); await page.keyboard.press("Space");
+    await page.getByText("待っている相手はいませんでした。「相手を待つ」で募集できます。", { exact: true }).waitFor();
+    const result = await page.evaluate(key => ({ calls: globalThis.__standardOnlineRuntime.calls.filter(c =>
+      /fcg_standard_matchmaking_(find|recruit)$/.test(c.name)), saved: JSON.parse(localStorage.getItem(key)) }), connectionKey);
+    assert.deepEqual(result.calls.map(c => c.name), ["fcg_standard_matchmaking_find"]);
+    assert.equal(result.saved.matchmakingTicketId, null);
+    assert.equal(result.saved.matchmakingFindActionId, null);
+    assert.equal(await page.locator("#matchmakingWait").isHidden(), true);
+    assert.equal(await page.locator("#recruitOpponent").isEnabled(), true);
+    assert.equal(await page.locator("#findOpponent").isEnabled(), true);
+    await page.reload(); await page.locator("#choosePublicBattle").click();
+    assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter(c =>
+      /fcg_standard_matchmaking_(find|recruit)$/.test(c.name)).length), 0);
+  });
+});
+
+test("UDL-023 v14 waiting uses recruit only and preserves one ticket across reload and cancellation", { timeout: 120000 }, async () => {
   await withPage("lobby", async (page) => {
     await page.locator("#choosePublicBattle").click();
     const entries = () => page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((call) => /fcg_standard_matchmaking_(find|recruit)$/.test(call.name)));
     assert.equal((await entries()).length, 0);
-    await page.locator("#findOpponent").dblclick();
+    await page.evaluate(() => { globalThis.__standardOnlineRuntime.recruitDelayMs = 400; });
+    await page.locator("#recruitOpponent").focus();
+    await page.keyboard.press("Enter"); await page.keyboard.press("Enter");
     await page.locator("#matchmakingWait:not(.hidden)").waitFor();
-    assert.deepEqual((await entries()).map((call) => call.name), ["fcg_standard_matchmaking_find", "fcg_standard_matchmaking_recruit"]);
+    assert.deepEqual((await entries()).map((call) => call.name), ["fcg_standard_matchmaking_recruit"]);
     const saved = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)), connectionKey);
     assert.ok(saved.matchmakingTicketId);
     await page.locator("#chooseFriendBattle").click();
@@ -325,6 +768,10 @@ test("UDL-023 explicit public search waits only after a successful empty result"
     assert.equal(await page.evaluate((key) => JSON.parse(localStorage.getItem(key)).matchmakingTicketId, connectionKey), saved.matchmakingTicketId);
     await page.locator("#cancelMatchmaking").click();
     await page.waitForFunction((key) => !JSON.parse(localStorage.getItem(key)).matchmakingTicketId, connectionKey);
+    const afterReload = await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter(c =>
+      /fcg_standard_matchmaking_(find|recruit|cancel)$/.test(c.name)));
+    assert.deepEqual(afterReload.map(c => c.name), ["fcg_standard_matchmaking_cancel"]);
+    assert.equal(afterReload[0].args.p_ticket_id, saved.matchmakingTicketId);
   });
 });
 
@@ -339,6 +786,17 @@ test("UDL-023 failed public search does not recruit and keeps recovery visible",
     assert.deepEqual(calls.map((call) => call.name), ["fcg_standard_matchmaking_find"]);
     assert.equal(await page.locator("#matchmakingStatus").isVisible(), true);
     assert.equal(await page.locator("#friendBattlePanel").isVisible(), false);
+    const saved = await page.evaluate(key => JSON.parse(localStorage.getItem(key)), connectionKey);
+    assert.equal(await page.locator("#recruitOpponent").isDisabled(), true);
+    assert.equal(await page.locator("#findOpponent").isDisabled(), true);
+    await page.reload();
+    await page.waitForFunction(key => !JSON.parse(localStorage.getItem(key))?.matchmakingFindActionId &&
+      globalThis.__standardOnlineRuntime.calls.some(c => c.name === "fcg_standard_matchmaking_find"), connectionKey);
+    const resumed = await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter(c =>
+      /fcg_standard_matchmaking_(find|recruit)$/.test(c.name)));
+    assert.equal(resumed.length, 1);
+    assert.equal(resumed[0].args.p_action_id, saved.matchmakingFindActionId);
+    assert.equal(resumed[0].name, "fcg_standard_matchmaking_find");
   });
 });
 
@@ -832,6 +1290,10 @@ async function installMock(context, mode) {
           roomId: id, roomCode: "A1B2C3", profileRevision: 1, setupRevision: initialMode === "setupLabMismatch" ? 3 : setupPending || pregameMode ? 0 : 3,
           rematchActionId: initialMode === "finished" && !resultRewardKind ? pendingId : null,
           rematchExpectedVersion: initialMode === "finished" && !resultRewardKind ? 9 : null,
+          ...(initialMode === "finishedCpu" && restoredConnection?.roomId === id ? {
+            rematchActionId: restoredConnection.rematchActionId,
+            rematchExpectedVersion: restoredConnection.rematchExpectedVersion,
+          } : {}),
           ...(initialMode === "abandonLost" && restoredConnection ? {
             abandonRoomId: restoredConnection.abandonRoomId,
             abandonActionId: restoredConnection.abandonActionId,
@@ -969,7 +1431,7 @@ async function installMock(context, mode) {
       view: pregameMode || ["publicFind", "handoffActivity", "handoffStart", "handoffReload"].includes(initialMode) || setupPending ? null : { seat: "A", version: restoredRoomVersion, private_state: { hand: initialMode === "labPlaying" ? { areaDiePlus: 1, legalRecolor: 1 } : initialMode === "colorResponse" ? { colorPrism: 1, areaDiePlus: 1 } : initialMode === "alpha3CategoryWindow" ? { colorBonusRefill: 1, legalRecolor: 1, areaResize: 1, disruptChoiceOne: 1 } : { areaDiePlus: 1, areaResize: 1 }, basicPalette: initialMode === "cpuTurnNoColor" ? ["yellow", "green"] : ["red", "blue"], bonusColor: initialMode === "cpuTurnNoColor" ? "blue" : "yellow", bonusUsesRemaining: initialMode === "cpuTurnNoColor" ? 3 : 2, privateEffects: {} } },
       profile: initialMode === "empty" ? null : { revision: Number(sessionStorage.getItem("mock-standard-cosmetic-profile-revision") || 1), display_name: "A", profile_state: profileState },
       gachaReceipts: {},
-      cardSaleReceipts: {},
+      cardSaleReceipts: JSON.parse(sessionStorage.getItem("mock-standard-card-sale-receipts") || "{}"),
       cosmeticReceipts: JSON.parse(sessionStorage.getItem("mock-standard-cosmetic-receipts") || "{}"),
       quizAnswerReceipts: {},
       quizFinishReceipts: {},
@@ -989,6 +1451,7 @@ async function installMock(context, mode) {
       failNextRegionSplitAction: false,
       rejectNextCornerBloomAction: false,
       failNextGacha: false,
+      failNextQuizStart: false,
       failNextQuizAnswer: false,
       failNextAbandonResponse: initialMode === "abandonLost" && sessionStorage.getItem("mock-standard-abandon-response-lost") !== id,
       abandonRpcIds: JSON.parse(sessionStorage.getItem("mock-standard-abandon-rpc-ids") || "[]"),
@@ -997,6 +1460,8 @@ async function installMock(context, mode) {
       activeRecoverySuccessfulReads: 0,
       calls: [],
     };
+    const savedSaleProfile = JSON.parse(sessionStorage.getItem("mock-standard-card-sale-profile") || "null");
+    if (savedSaleProfile && savedSaleProfile.revision > (runtime.profile?.revision || 0)) runtime.profile = savedSaleProfile;
     if (initialMode === "cpuCommentary") {
       try {
         const restoredCommentaryState = JSON.parse(sessionStorage.getItem("mock-standard-cpu-commentary-state") || "null");
@@ -1114,6 +1579,10 @@ async function installMock(context, mode) {
           return { data: { revision: 1, displayName: request.body.displayName, profileState: request.body.profileState } };
         }
         if (request.body.operation === "quiz-start") {
+          if (runtime.failNextQuizStart) {
+            runtime.failNextQuizStart = false;
+            return functionError(503, "SERVER_BUSY", "simulated quiz start rejection");
+          }
           if (initialMode === "handoffStart") await new Promise((resolve) => setTimeout(resolve, 800));
           const polishQuestions = [
             { templateId: "speed-distance", category: "速さ", prompt: "時速12kmで8時間進むと何km？", math: { kind: "story" } },
@@ -1239,6 +1708,12 @@ async function installMock(context, mode) {
           runtime.profile = { ...runtime.profile, revision: runtime.profile.revision + 1, profile_state: next };
           const result = { revision: runtime.profile.revision, duplicate: false, quote: { earnedCoins: request.body.count * 10 }, profileState: next };
           runtime.cardSaleReceipts[request.body.actionId] = result;
+          sessionStorage.setItem("mock-standard-card-sale-receipts", JSON.stringify(runtime.cardSaleReceipts));
+          sessionStorage.setItem("mock-standard-card-sale-profile", JSON.stringify(runtime.profile));
+          if (runtime.failNextCardSaleResponse) {
+            runtime.failNextCardSaleResponse = false;
+            return { error: new Error("simulated lost card sale response after commit") };
+          }
           return { data: result };
         }
         if (request.body.operation === "cosmetic-catalog") return { data: { revision: runtime.profile.revision, cosmetics: cosmeticProjection() } };
@@ -1473,12 +1948,14 @@ async function installMock(context, mode) {
           }) };
         }
         if (name === "fcg_standard_matchmaking_recruit") {
+          if (runtime.recruitDelayMs) await new Promise(resolve => setTimeout(resolve, runtime.recruitDelayMs));
           runtime.ticketId = args.p_ticket_id;
           return { data: [{ ticket_id: args.p_ticket_id, matchmaking_status: "searching", room_id: null, seat: null, wait_started_at: runtime.waitStartedAt, server_time: new Date().toISOString() }] };
         }
         if (name === "fcg_standard_matchmaking_status") return { data: [{ ticket_id: args.p_ticket_id, matchmaking_status: runtime.matchNow ? "matched" : "searching", room_id: runtime.matchNow ? id : null, seat: runtime.matchNow ? "A" : null, wait_started_at: runtime.waitStartedAt, server_time: new Date().toISOString() }] };
         if (name === "fcg_standard_matchmaking_cancel") return { data: [{ ticket_id: args.p_ticket_id, matchmaking_status: "cancelled", room_id: null, seat: null, server_time: new Date().toISOString() }] };
         if (name === "fcg_standard_matchmaking_find") {
+          if (runtime.findDelayMs) await new Promise(resolve => setTimeout(resolve, runtime.findDelayMs));
           if (runtime.failNextFindResponse) {
             runtime.failNextFindResponse = false;
             return { error: new Error("simulated lost find response") };
@@ -1857,12 +2334,123 @@ test("UDL065 same-version dialogs cancel visible and real Web Lock queued cut-in
   }, { viewport: { width: 390, height: 844 }, bodyTimeout: 45000 });
 });
 
+// UI acceptance uses real engine projections, with fixture auth/transport. Real
+// Edge + SQL commits are separately covered by standard-cpu-trial-sql-runtime.
+async function installRenTrialUi(page, { learned = false, loseStart = false, loseEquip = false } = {}) {
+  const trial = require("../standard/standard-cpu-progression.js"), {loadEngine,plain}=require("./helpers/public-skill-fixture.cjs"),api=loadEngine();
+  const initial=plain(trial.createRenTrial({matchId:`${roomId}:0`,seed:1}));
+  const used=plain(api.apply({state:initial.state,rngSnapshot:initial.rngSnapshot,actor:"A",expectedVersion:0,action:{type:"USE_SKILL",payload:{skill:"techUnsealOne",color:"red"}}}));
+  assert.equal(used.ok,true);
+  const data={roomId,learned,loseStart,loseEquip,initial:{publicState:initial.publicState,privateA:initial.privateA},used:{publicState:used.publicState,privateA:used.privateA},info:api.getRenTrial({cpuCharacterStats:{ren:{matches:1,wins:1}}})};
+  function install(data) {
+    const base=globalThis.__standardOnlineMockSupabase,r=globalThis.__standardOnlineRuntime;
+    const key="mock-ren-pilot-ui",saved=JSON.parse(sessionStorage.getItem(key)||"null")||{started:false,used:false,startReceipt:null,equipReceipt:null,equipped:false};
+    const persist=()=>sessionStorage.setItem(key,JSON.stringify(saved));
+    r.profile.profile_state.cpuCharacterStats={ren:{matches:1,wins:1,losses:0}};
+    if(data.learned){r.profile.profile_state.learnedTechniques=["techUnsealOne"];r.profile.profile_state.equippedTechniqueId=saved.equipped?"techUnsealOne":null;}
+    const reflect=()=>{
+      if(!saved.started)return;
+      const projection=saved.used?data.used:data.initial;
+      r.room={...r.room,id:data.roomId,status:"playing",version:projection.publicState.version,access_mode:"cpu",opponent_kind:"cpu",cpu_character_id:"ren",public_state:projection.publicState};
+      r.view={seat:"A",version:r.room.version,private_state:projection.privateA};
+      r.members=[{user_id:"33333333-3333-4333-8333-333333333333",seat:"A",display_name:"A"},{user_id:"55555555-5555-4555-8555-555555555555",seat:"B",display_name:"せっかちレン",is_cpu:true}];
+    };reflect();
+    const original=base.functions.invoke;
+    base.functions.invoke=async(name,request)=>{
+      const b=request.body;
+      if(b.operation==="cpu-roster"){const response=await original(name,request);response.data.cpuProgressionVersion="ren-unseal-v1";return response;}
+      if(!["cpu-trial-info","cpu-trial-start","technique-equip","action"].includes(b.operation))return original(name,request);
+      r.calls.push({kind:"invoke",name,body:b});await globalThis.__standardOnlineRecordInvoke(b);
+      if(b.operation==="cpu-trial-info")return {data:data.info};
+      if(b.operation==="cpu-trial-start"){
+        if(b.confirmed!==true||b.trialId!=="ren-unseal"||b.trialVersion!==1)throw new Error("invalid trial disclosure");
+        const duplicate=Boolean(saved.startReceipt);if(duplicate&&saved.startReceipt!==b.actionId)throw new Error("duplicate start identity changed");
+        saved.started=true;saved.startReceipt=b.actionId;persist();reflect();
+        if(data.loseStart&&!duplicate)return {error:new Error("fixture committed start ACK lost")};
+        return {data:{roomId:data.roomId,seat:"A",opponentKind:"cpu",characterId:"ren",trialId:"ren-unseal",trialVersion:1,duplicate}};
+      }
+      if(b.operation==="technique-equip"){
+        const duplicate=Boolean(saved.equipReceipt);if(duplicate&&saved.equipReceipt!==b.actionId)throw new Error("duplicate equip identity changed");
+        saved.equipReceipt=b.actionId;saved.equipped=b.techniqueId==="techUnsealOne";persist();r.profile.profile_state.equippedTechniqueId=b.techniqueId;r.profile.revision=2;
+        if(data.loseEquip&&!duplicate)return {error:new Error("fixture committed equip ACK lost")};
+        return {data:{revision:2,profileState:r.profile.profile_state,receipt:{actionId:b.actionId,techniqueId:b.techniqueId},duplicate}};
+      }
+      if(b.action?.type!=="USE_SKILL"||b.action.payload?.skill!=="techUnsealOne"||b.action.payload?.color!=="red"||b.action.expectedVersion!==0)throw new Error("unexpected UI technique payload");
+      saved.used=true;persist();reflect();return {data:{room:{version:r.room.version},result:{code:"OK",techniqueConsumed:true}}};
+    };
+    return base;
+  }
+  await page.route("https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm",route=>route.fulfill({status:200,contentType:"text/javascript",body:`export function createClient(){return (${install.toString()})(${JSON.stringify(data)})}`}));
+}
+async function openRenTrialDisclosure(page) {
+  await page.getByRole("button",{name:"対戦",exact:true}).click();
+  await page.locator("#startStandardCpuLobby").click();
+  const details=page.locator(".cpu-trial-details");await details.locator("summary").click();return details;
+}
+for(const width of [390,900]) test(`${browserName} AC064 Ren trial native disclosure, two-key use and reload at ${width}px`,{timeout:130000},async()=>{
+  await withPage("cosmetic",async page=>{
+    const details=await openRenTrialDisclosure(page);
+    assert.match(await details.innerText(),/通常戦績.*券.*コイン/);assert.match(await details.innerText(),/貸与する6枚/);
+    assert.equal(await page.evaluate(()=>globalThis.__standardOnlineRuntime.calls.filter(c=>c.body?.operation==="cpu-trial-start").length),0);
+    await details.getByRole("button",{name:"この条件で試練を始める",exact:true}).click();
+    const use=page.locator("#useTechnique:not([disabled])");await use.waitFor();
+    assert.equal(await page.locator("#skillControls .skill-entry").count(),6);assert.equal(await page.locator("#randomReveal").isHidden(),true);
+    assert.doesNotMatch(await page.locator("#techniqueControls").innerText(),/★|価格/);
+    await use.focus();await page.keyboard.press("Enter");
+    const red=page.locator('[data-technique-color="red"]');await red.waitFor();assert.equal(await red.evaluate(el=>el===document.activeElement),true);
+    assert.equal(await page.locator('[data-technique-color="blue"]').isDisabled(),true);
+    // Same-version refreshes replace the buttons. Measure the current focused
+    // DOM node atomically: a remote boundingBox handle can detach mid-call.
+    const beforeRefresh=await red.elementHandle();
+    await page.evaluate(()=>globalThis.__standardOnlineRuntime.onInvalidate());
+    await page.waitForFunction(node=>!node.isConnected,beforeRefresh,{timeout:10000});
+    const rect=await (await page.waitForFunction(()=>{
+      const node=document.querySelector('[data-technique-color="red"]');
+      if(!node||node.disabled||document.activeElement!==node)return false;
+      const {height,width}=node.getBoundingClientRect();
+      return height>=44&&width>=44?{height,width}:false;
+    },null,{timeout:10000})).jsonValue();
+    assert.ok(rect.height>=44&&rect.width>=44);await beforeRefresh.dispose();
+    await page.keyboard.press("Escape");assert.equal(await use.evaluate(el=>el===document.activeElement),true);
+    await page.keyboard.press("Enter");await page.keyboard.press("Enter");
+    await page.waitForFunction(()=>document.querySelector("#useTechnique").textContent.includes("×0"));
+    assert.equal(await page.locator("#skillControls .skill-entry").count(),6);
+    const calls=await page.evaluate(()=>globalThis.__standardOnlineRuntime.calls.filter(c=>c.body?.operation==="action").map(c=>c.body));assert.equal(calls.length,1);assert.equal(calls[0].action.payload.skill,"techUnsealOne");
+    await page.reload();await page.getByRole("button",{name:"対戦",exact:true}).click();
+    await page.locator("#techniqueControls:not(.hidden)").waitFor();assert.match(await page.locator("#useTechnique").innerText(),/×0/);assert.equal(await page.locator("#useTechnique").isDisabled(),true);
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),true);
+  },{viewport:{width,height:844},beforeNavigate:page=>installRenTrialUi(page)});
+});
+test(`${browserName} AC064 lost trial start shows an explicit same-ID retry and never submits six owned cards`,{timeout:130000},async()=>{
+  await withPage("cosmetic",async page=>{
+    const details=await openRenTrialDisclosure(page);await details.locator("button").click();
+    await page.locator("#resumeTrialStart:not([disabled]):not(.hidden)").waitFor();await page.locator("#closeCpuRoster").click();
+    await page.reload();await page.getByRole("button",{name:"ホーム",exact:true}).click();
+    await page.locator("#resumeTrialStart").click();await page.locator("#useTechnique:not([disabled])").waitFor();
+    const all=await page.evaluate(()=>globalThis.__standardOnlineLifetimeInvocations()),starts=all.filter(c=>c.operation==="cpu-trial-start");
+    assert.equal(starts.length,2);assert.deepEqual(starts[0],starts[1]);assert.equal(all.some(c=>["cpu-start","setup"].includes(c.operation)),false);
+  },{viewport:{width:390,height:844},beforeNavigate:page=>installRenTrialUi(page,{loseStart:true})});
+});
+test(`${browserName} AC064 learned equipment lost ACK stays recoverable through Home and reload without extra writes`,{timeout:130000},async()=>{
+  await withPage("cosmetic",async page=>{
+    await page.locator("#equipTechnique:not([disabled])").waitFor();assert.match(await page.locator("#techniqueEquipmentSummary").innerText(),/未装備/);
+    await page.locator("#equipTechnique").click();await page.locator("#resumeTechniqueEquip:not([disabled]):not(.hidden)").waitFor();
+    await page.getByRole("button",{name:"ホーム",exact:true}).click();await page.reload();await page.getByRole("button",{name:"ホーム",exact:true}).click();
+    const before=await page.evaluate(()=>globalThis.__standardOnlineLifetimeInvocations());assert.equal(before.filter(c=>c.operation==="technique-equip").length,1);
+    await page.locator("#resumeTechniqueEquip").click();await page.waitForFunction(()=>document.querySelector("#progressionRecovery").classList.contains("hidden"));
+    await page.getByRole("button",{name:"マイページ",exact:true}).click();assert.match(await page.locator("#techniqueEquipmentSummary").innerText(),/装備中/);
+    const requests=(await page.evaluate(()=>globalThis.__standardOnlineLifetimeInvocations())).filter(c=>c.operation==="technique-equip");assert.equal(requests.length,2);assert.deepEqual(requests[0],requests[1]);
+  },{viewport:{width:390,height:844},beforeNavigate:page=>installRenTrialUi(page,{learned:true,loseEquip:true})});
+});
 async function withPage(mode, run, { bodyTimeout = 35_000, viewport = { width: 900, height: 800 }, beforeNavigate = null, deviceScaleFactor = 1 } = {}) {
   assert.ok(chromium, "Playwright is required");
   assert.ok(fs.existsSync(browserPath), `${browserName} browser is required`);
   let browserServer;
   let browser;
   let context;
+  let page = null;
+  let startupDiagnostics = null;
+  let startupComplete = false;
   let primaryError = null;
   let teardownError = null;
   browserStage("server-start");
@@ -1880,25 +2468,48 @@ async function withPage(mode, run, { bodyTimeout = 35_000, viewport = { width: 9
     browserStage("context-ready");
     await bounded("mock-ready", installMock(context, mode), 5_000);
     browserStage("page-start");
-    const page = await bounded("page-ready", context.newPage(), 5_000);
+    page = await bounded("page-ready", context.newPage(), 5_000);
     browserStage("page-ready");
+    startupDiagnostics = observeStartupPage(page, url);
     if (beforeNavigate) await bounded("before-navigation", beforeNavigate(page), 5_000);
     browserStage("navigation-start");
     await bounded("navigation-ready", page.goto(`${url}/standard-online-v5/index.html`, { timeout: 20_000 }), 20_000);
     browserStage("navigation-ready");
     browserStage("badge-start");
-    await bounded("badge-ready", page.locator("#connectionBadge.good").waitFor({ state: "visible", timeout: 20_000 }), 20_000);
+    // Connection success is intentionally hidden on Home; this is boot readiness, not a visibility assertion.
+    await bounded("badge-ready", page.locator("#connectionBadge.good").waitFor({ state: "attached", timeout: 20_000 }), 20_000);
     browserStage("badge-ready");
     if (RESTORED_ROOM_MODES.has(mode)) {
       browserStage("room-ready-start");
       await bounded("room-ready", page.locator("#room:not(.hidden)").waitFor({ timeout: 15_000 }), 15_000);
       browserStage("room-ready");
     }
+    startupComplete = true;
+    startupDiagnostics.stop();
     browserStage("test-body-start");
     await bounded("test-body", run(page), bodyTimeout);
     browserStage("test-body-ready");
   } catch (error) {
     primaryError = error;
+    if (!startupComplete && startupDiagnostics) {
+      let state = {};
+      try {
+        state = await bounded("startup-state", page.evaluate(() => {
+          const badge = document.getElementById("connectionBadge");
+          return {
+            documentReady: document.readyState,
+            badge: !badge ? "missing" : badge.classList.contains("good") ? "good" : badge.classList.contains("warn") ? "warn" : "other",
+            fixturePresent: typeof globalThis.__standardOnlineRuntime === "object",
+            captureAvailable: true,
+          };
+        }), 1_000);
+      } catch { /* A closed/unresponsive page must not replace the original failure. */ }
+      const evidence = startupDiagnostics.snapshot(state);
+      try { Object.defineProperty(error, "startupDiagnostics", { value: evidence }); } catch { /* Preserve non-extensible primary errors. */ }
+      console.error(`BROWSER_STARTUP_EVIDENCE ${JSON.stringify(evidence)}`);
+    }
+  } finally {
+    startupDiagnostics?.stop();
   }
   try {
     browserStage("teardown-start");
@@ -1924,12 +2535,49 @@ async function withPage(mode, run, { bodyTimeout = 35_000, viewport = { width: 9
   if (teardownError) throw teardownError;
 }
 
-test("actual Edge carries a fresh player from the home CPU CTA through profile sync to ten explicit choices", { timeout: 130000 }, async () => {
+test(`${browserName} startup evidence captures controlled boot and request failures`, { timeout: 150000 }, async () => {
+  for (const fault of ["boot", "network"]) {
+    let caught = null;
+    let bodyRan = false;
+    try {
+      await withPage("finished", async () => { bodyRan = true; }, {
+        beforeNavigate: async (page) => {
+          await page.route("**/standard-online-v5/app.js*", (route) => fault === "boot"
+            ? route.fulfill({ status: 200, contentType: "application/javascript", body: 'console.error("DO_NOT_LOG_SECRET_boot"); throw new TypeError("DO_NOT_LOG_SECRET_boot");' })
+            : route.abort("connectionreset"));
+        },
+      });
+    } catch (error) {
+      caught = error;
+    }
+    assert.ok(caught, `${fault} must retain its startup failure`);
+    assert.match(caught.message, /BROWSER_STAGE_TIMEOUT badge-ready|Timeout 20000ms exceeded/);
+    assert.equal(bodyRan, false);
+    const evidence = caught.startupDiagnostics;
+    assert.ok(evidence, `${fault} must attach sanitized startup evidence`);
+    assert.equal(evidence.state.document_ready, "complete");
+    assert.equal(evidence.state.capture_available, true);
+    assert.equal(evidence.state.fixture_present, true);
+    assert.notEqual(evidence.state.badge, "good");
+    assert.ok(evidence.events.length > 0 && evidence.events.length <= 16);
+    assert.doesNotMatch(JSON.stringify(evidence), /DO_NOT_LOG_SECRET|https?:|message|stack|args|token|\?/);
+    if (fault === "boot") {
+      assert.ok(evidence.events.some((row) => row.kind === "pageerror" && row.error_class === "TypeError"));
+      assert.ok(evidence.events.some((row) => row.kind === "console-error" && row.pathname === "/standard-online-v5/app.js"));
+    } else {
+      assert.ok(evidence.events.some((row) => row.kind === "requestfailed" && row.pathname === "/standard-online-v5/app.js" && row.network_error === "net::ERR_CONNECTION_RESET"));
+    }
+  }
+});
+
+test("actual Edge carries a fresh player from the battle tab through profile sync to ten explicit CPU choices", { timeout: 130000 }, async () => {
   await withPage("empty", async (page) => {
+    assert.equal(await page.locator("#profileCard").isVisible(), false);
+    assert.equal(await page.locator("#startStandardCpuHome").isVisible(), false);
+    await page.getByRole("button", { name: "対戦", exact: true }).click();
     await page.locator("#starterCreator:not(.hidden)").waitFor();
     assert.equal(await page.locator("#profileSelect option").count(), 0);
     assert.equal(await page.locator("#syncProfile").isDisabled(), true);
-    await page.getByRole("button", { name: "CPUとすぐStandard対戦" }).click();
     await page.locator("#starterName").waitFor({ state: "visible" });
     assert.equal(await page.locator("body").getAttribute("data-active-tab"), "battle");
     assert.equal(await page.locator("#profileCard").isVisible(), true);
@@ -1947,6 +2595,7 @@ test("actual Edge carries a fresh player from the home CPU CTA through profile s
     assert.deepEqual(Object.values(evidence.inventory), [3, 3, 3, 3, 3, 3]);
     await page.locator("#lobby").waitFor({ state: "visible" });
     assert.equal(await page.locator("#profileCard").isVisible(), false);
+    await page.getByRole("button", { name: "CPUと対戦", exact: true }).click();
     await page.locator("#cpuRosterDialog[open]").waitFor();
     assert.equal(await page.locator("#cpuRosterGrid .cpu-character-card").count(), 10);
     await page.locator("#cpuRosterGrid .cpu-roster-portrait[data-portrait-status=\"ready\"]").first().waitFor();
@@ -2027,7 +2676,8 @@ test("UDL-023 three battle choices fit mobile, intermediate and desktop without 
     assert.equal(await page.locator("#friendBattlePanel").isVisible(), false);
     assert.equal(await page.locator("#matchmakingPanel").isVisible(), true);
     assert.equal(await page.locator("#choosePublicBattle").getAttribute("aria-expanded"), "true");
-    assert.equal(await page.locator("#publicWaitingOptions").getAttribute("open"), null);
+    assert.equal(await page.locator("#publicWaitingOptions").count(), 0);
+    assert.equal(await page.locator(".public-match-actions > button").count(), 2);
     const writes = await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((call) => /fcg_standard_(create_room|join_room|matchmaking_find|matchmaking_recruit)$/.test(call.name) || ["cpu-start", "cpu-accept"].includes(call.body?.operation)));
     assert.deepEqual(writes, []);
     assert.equal(await page.locator('a[href*="solo-v5"], a[href*="standard-v5"]').count(), 0);
@@ -2469,7 +3119,7 @@ test("hidden new-match handlers allocate no action and make no RPC while another
   await withPage("lobby", async (page) => {
     await page.evaluate(() => { globalThis.__standardOnlineRuntime.failNextFindResponse = true; });
     await page.locator("#choosePublicBattle").click();
-    await page.getByRole("button", { name: "相手を探す", exact: true }).click();
+    await page.getByRole("button", { name: "待っている相手に参加", exact: true }).click();
     await page.getByText("検索結果を確認できませんでした。前回の検索結果をもう一度確認します。").waitFor();
     await page.evaluate(async () => {
       for (const id of ["startStandardCpuHome", "startStandardCpuLobby"]) {
@@ -2661,7 +3311,7 @@ test("boot prioritizes a lost CPU start saga over generic active-room recovery a
 
 test("actual Edge keeps the first-time setup write-free when the name is empty", { timeout: 130000 }, async () => {
   await withPage("empty", async (page) => {
-    await page.getByRole("button", { name: "CPUとすぐStandard対戦" }).click();
+    await page.getByRole("button", { name: "対戦", exact: true }).click();
     await page.getByRole("button", { name: "この名前で対戦準備へ" }).click();
     assert.equal(await page.evaluate(() => localStorage.getItem("fourColorMapGame.standard.online.v5.starter-profile")), null);
     assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "profile").length), 0);
@@ -2670,7 +3320,7 @@ test("actual Edge keeps the first-time setup write-free when the name is empty",
   });
 });
 
-test("actual Edge keeps one connection status visible across tabs and reflects offline lobby state", { timeout: 130000 }, async () => {
+test("actual Edge hides only Home connection success and preserves status elsewhere and offline", { timeout: 130000 }, async () => {
   await withPage("lobby", async (page) => {
     const badgeNode = page.locator("#connectionBadge");
     const messageNode = page.locator("#connectionMessage");
@@ -2679,10 +3329,10 @@ test("actual Edge keeps one connection status visible across tabs and reflects o
     assert.equal(await messageNode.textContent(), "ゲームに接続できました。");
     for (const [label, tab] of [["ホーム", "home"], ["対戦", "battle"], ["クイズ・ガチャ", "quiz"], ["カード", "cards"], ["マイページ", "profile"]]) {
       await page.getByRole("button", { name: label, exact: true }).click();
-      await badgeNode.waitFor({ state: "visible" });
+      await badgeNode.waitFor({ state: tab === "home" ? "hidden" : "visible" });
       assert.equal(await page.locator("body").getAttribute("data-active-tab"), tab);
       assert.equal(await badgeNode.count(), 1);
-      assert.equal(await messageNode.isVisible(), tab === "home");
+      assert.equal(await messageNode.isVisible(), false);
       assert.equal(await page.locator(".connection-card").evaluate((node) => getComputedStyle(node).position), tab === "home" ? "static" : "fixed");
     }
     await page.setViewportSize({ width: 390, height: 844 });
@@ -2787,13 +3437,20 @@ test("UDL060 result-local next actions fit mobile and desktop and route saved ze
           const dialog=document.querySelector(".terminal-celebration");
           const r=dialog.getBoundingClientRect();
           const buttons=[...document.querySelectorAll(".terminal-actions button")].filter(e=>e.getClientRects().length);
+          const title=document.querySelector("#terminalTitle"),quote=document.querySelector("#cpuTerminalCommentaryOverlay"),reason=document.querySelector("#terminalReasonText");
           return {overflow:document.documentElement.scrollWidth>innerWidth,
+            hierarchy:{title:parseFloat(getComputedStyle(title).fontSize),quote:parseFloat(getComputedStyle(quote).fontSize),reason:parseFloat(getComputedStyle(reason).fontSize)},
             fits:r.top>=0&&r.bottom<=innerHeight&&dialog.scrollHeight<=dialog.clientHeight+1,
             targets:buttons.map(e=>{const b=e.getBoundingClientRect();return {id:e.id,w:b.width,h:b.height,hit:e.contains(document.elementFromPoint(b.x+b.width/2,b.y+b.height/2))};})};
         });
         assert.equal(geometry.overflow,false);
+        assert.ok(geometry.hierarchy.title>=geometry.hierarchy.quote*2,JSON.stringify(geometry.hierarchy));
+        assert.ok(geometry.hierarchy.quote>geometry.hierarchy.reason,JSON.stringify(geometry.hierarchy));
         assert.equal(geometry.fits,true,JSON.stringify(geometry));
-        assert.equal(geometry.targets.length,5);
+        assert.equal(geometry.targets.length,3);
+        assert.deepEqual(geometry.targets.map(x=>x.id),["terminalGoGacha","terminalGoLobby","terminalClose"]);
+        assert.equal(await page.locator("#terminalProgressText").textContent(),"完了報酬\nLv.3ガチャ券 ×2");
+        assert.doesNotMatch(await page.locator("#terminalOverlay").textContent(),/戦績を保存しました|所持.*→/);
         assert.ok(geometry.targets.every(x=>x.w>=44&&x.h>=44&&x.hit),JSON.stringify(geometry));
         if (process.env.STANDARD_UI_ARTIFACT_DIR) {
           fs.mkdirSync(process.env.STANDARD_UI_ARTIFACT_DIR,{recursive:true});
@@ -2807,7 +3464,7 @@ test("UDL060 result-local next actions fit mobile and desktop and route saved ze
             return r.width>=44&&r.height>=44&&r.top>=0&&r.bottom<=innerHeight&&e.contains(document.elementFromPoint(r.x+r.width/2,r.y+r.height/2));}));
         if (process.env.STANDARD_UI_ARTIFACT_DIR) await page.screenshot({path:path.join(process.env.STANDARD_UI_ARTIFACT_DIR,`${mode}-${viewport.width}-persistent.png`)});
         await page.locator("#resultGoGacha").click();
-        assert.equal(await page.locator("#gachaLevel").inputValue(),"3");
+        assert.equal(await page.locator('[data-gacha-level][aria-pressed="true"]').getAttribute("data-gacha-level"),"3");
         assert.equal(await page.locator("#gachaDrawOne").isDisabled(),true);
         assert.deepEqual(await resultWriteCalls(page),[]);
         assert.equal(await page.evaluate(() => JSON.stringify({room:globalThis.__standardOnlineRuntime.room,profile:globalThis.__standardOnlineRuntime.profile})),before);
@@ -2827,7 +3484,7 @@ test("UDL060 saved result navigation retains an unresolved draw level and exact 
   await withPage("resultRewardCpu",async page=>{
     await page.locator("#terminalClose").click();
     await page.locator("#resultGoGacha").click();
-    await page.locator("#gachaLevel").selectOption("5");
+    await page.locator('[data-gacha-level="5"]').click();
     await page.evaluate(()=>{globalThis.__standardOnlineRuntime.failNextGacha=true;});
     await page.locator("#gachaDrawAll").click();
     await page.locator("#gachaRetry:not(.hidden)").waitFor();
@@ -2835,7 +3492,7 @@ test("UDL060 saved result navigation retains an unresolved draw level and exact 
     const pending=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),pendingKey);
     await page.locator('[data-app-tab="battle"]').click();
     await page.locator("#resultGoGacha").click();
-    assert.equal(await page.locator("#gachaLevel").inputValue(),"5");
+    assert.equal(await page.locator('[data-gacha-level][aria-pressed="true"]').getAttribute("data-gacha-level"),"5");
     assert.deepEqual(await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),pendingKey),pending);
     assert.equal((await resultWriteCalls(page)).filter(c=>c.body?.operation==="gacha").length,1);
     await page.locator("#gachaRetry").click();
@@ -2846,17 +3503,196 @@ test("UDL060 saved result navigation retains an unresolved draw level and exact 
   },{viewport:{width:390,height:844}});
 });
 
-test("UDL060 overlay rematch is explicit and double activation retains one CPU request", { timeout: 130000 }, async () => {
-  await withPage("finishedCpu",async page=>{
-    await page.locator("#terminalRematch").waitFor();
+async function setB1SavedCpuReward(page) {
+  await page.evaluate(() => {
+    const runtime = globalThis.__standardOnlineRuntime;
+    const state = structuredClone(runtime.profile.profile_state);
+    state.gachaTickets = { "1": 3, "5": 2 };
+    state.matchHistory.find(entry => entry.matchId === runtime.room.public_state.matchId).matchReward = {
+      awarded: true, ticketLevel: 1, ticketCount: 2,
+    };
+    runtime.profile = { ...runtime.profile, revision: runtime.profile.revision + 1, profile_state: state };
+    runtime.onInvalidate();
+  });
+  await page.waitForFunction(key => document.querySelector("#terminalProgressText").textContent === "完了報酬\nLv.1ガチャ券 ×2"
+    && JSON.parse(localStorage.getItem(key))?.gachaTickets?.["1"] === 3, remoteProfileKey);
+}
+
+test(`${browserName} profile Home B1 integration retains saved details and the pending draw`, { timeout: 130000 }, async () => {
+  const key = "fourColorMapGame.standard.online.v5.pending-gacha";
+  const pending = { actionId: "33333333-3333-4333-8333-333333333333", ticketLevel: 5, count: 2 };
+  await withPage("resultRewardCpu", async page => {
+    await setB1SavedCpuReward(page);
+    await page.locator("#terminalClose").click();
+    const saved = await page.evaluate(key => localStorage.getItem(key), remoteProfileKey);
+    await page.getByRole("button", { name: "マイページ", exact: true }).click();
+    await page.locator("#toggleProfileOptions:not(.hidden)").waitFor();
+    await page.locator("#toggleProfileOptions").click();
+    assert.equal(await page.locator("#profileSelect").isVisible(), true);
+    await page.locator("#toggleProfileOptions").click();
+    for (const [id, selector, count] of [
+      ["cpuRecordsDetails", "#cpuCharacterRecords > article", 10],
+      ["quizAccuracyDetails", "#quizAccuracyRecords > div", 6],
+    ]) {
+      await page.locator("#" + id + " > summary").click();
+      assert.equal(await page.locator(selector).count(), count);
+      assert.equal(await page.locator(selector).first().isVisible(), true);
+    }
+    await page.getByRole("button", { name: "ホーム", exact: true }).click();
+    await page.locator("#openTutorial").click();
+    await page.locator("#tutorialDialog[open]").waitFor();
+    await page.keyboard.press("Escape");
+    await page.locator('[data-app-tab="battle"]').click();
+    await page.locator("#resultGoGacha").click();
+    assert.equal(await page.locator("#gachaStatus").textContent(), "前回の抽選結果を確認してください。");
+    assert.equal(await page.locator('[data-gacha-level][aria-pressed="true"]').getAttribute("data-gacha-level"), "5");
+    assert.deepEqual(await page.evaluate(key => JSON.parse(localStorage.getItem(key)), key), pending);
+    assert.equal(await page.evaluate(key => localStorage.getItem(key), remoteProfileKey), saved);
+    assert.deepEqual(await resultWriteCalls(page), [], "profile and Home navigation do not write");
+    await page.locator("#gachaRetry").click();
+    await page.waitForFunction(key => localStorage.getItem(key) === null, key);
+    const calls = (await resultWriteCalls(page)).filter(call => call.body?.operation === "gacha");
+    assert.equal(calls.length, 1);
+    for (const field of ["actionId", "ticketLevel", "count"]) assert.equal(calls[0].body[field], pending[field]);
+    assert.equal(await page.evaluate(key => JSON.parse(localStorage.getItem(key)).gachaTickets["1"], remoteProfileKey), 3);
+  }, { viewport: { width: 390, height: 844 }, beforeNavigate: page => page.addInitScript(({ key, pending }) => {
+    localStorage.setItem(key, JSON.stringify(pending));
+  }, { key, pending }) });
+});
+
+test(`${browserName} Home B1 round trip preserves pending recovery and exact retry without navigation writes`, { timeout: 130000 }, async () => {
+  const key = "fourColorMapGame.standard.online.v5.pending-gacha";
+  const pending = { actionId: "33333333-3333-4333-8333-333333333333", ticketLevel: 5, count: 2 };
+  await withPage("resultRewardCpu", async page => {
+    await setB1SavedCpuReward(page);
+    await page.locator("#terminalClose").click();
+    const before = await page.evaluate(() => globalThis.__standardOnlineLifetimeInvocations());
+    const recovery = await page.locator("#gachaStatus").textContent();
+    assert.equal(recovery, "前回の抽選結果を確認してください。");
+    await page.getByRole("button", { name: "ホーム", exact: true }).click();
+    await page.locator("#openHomeSettings").click();
+    assert.equal(await page.locator("#feedbackSettings").isVisible(), true);
+    await page.locator("#openHomeSettings").click();
+    await page.locator("#openTutorial").click();
+    await page.locator("#tutorialDialog[open]").waitFor();
+    await page.keyboard.press("Escape");
+    assert.equal(await page.evaluate(() => document.activeElement.id), "openTutorial");
+    await page.locator('[data-app-tab="battle"]').click();
+    await page.locator("#resultGoGacha").click();
+    assert.equal(await page.locator('[data-gacha-level][aria-pressed="true"]').getAttribute("data-gacha-level"), "5");
+    assert.equal(await page.locator("#gachaStatus").textContent(), recovery);
+    assert.deepEqual(await page.evaluate(key => JSON.parse(localStorage.getItem(key)), key), pending);
+    assert.deepEqual(await page.evaluate(() => globalThis.__standardOnlineLifetimeInvocations()), before);
+    assert.deepEqual(await resultWriteCalls(page), [], "Home and reward navigation must not draw");
+    await page.locator("#gachaRetry").click();
+    await page.waitForFunction(key => localStorage.getItem(key) === null, key);
+    const calls = (await resultWriteCalls(page)).filter(call => call.body?.operation === "gacha");
+    assert.equal(calls.length, 1);
+    for (const field of ["actionId", "ticketLevel", "count"]) assert.equal(calls[0].body[field], pending[field]);
+    assert.equal(await page.evaluate(key => JSON.parse(localStorage.getItem(key)).gachaTickets["1"], remoteProfileKey), 3);
+  }, { viewport: { width: 390, height: 844 }, beforeNavigate: page => page.addInitScript(({ key, pending }) => {
+    localStorage.setItem(key, JSON.stringify(pending));
+  }, { key, pending }) });
+});
+
+// REG-UDL062-GACHA-PENDING-REWARD-COPY: nonzero stock makes the CPU reward origin valid.
+for (const entry of ["overlay", "permanent"]) {
+  test(`${browserName} B1 pending reward entry ${entry} preserves recovery and exact retry`, { timeout: 130000 }, async () => {
+    const key = "fourColorMapGame.standard.online.v5.pending-gacha";
+    const pending = { actionId: "33333333-3333-4333-8333-333333333333", ticketLevel: 5, count: 2 };
+    await withPage("resultRewardCpu", async page => {
+      await setB1SavedCpuReward(page);
+      const recovery = await page.locator("#gachaStatus").textContent();
+      assert.equal(recovery, "前回の抽選結果を確認してください。");
+      if (entry === "permanent") await page.locator("#terminalClose").click();
+      await page.locator(entry === "overlay" ? "#terminalGoGacha" : "#resultGoGacha").click();
+      assert.equal(await page.locator('[data-gacha-level][aria-pressed="true"]').getAttribute("data-gacha-level"), "5");
+      assert.deepEqual(await page.evaluate(key => JSON.parse(localStorage.getItem(key)), key), pending);
+      assert.equal(await page.locator("#gachaStatus").textContent(), recovery);
+      assert.deepEqual(await resultWriteCalls(page), [], "reward navigation draws nothing");
+
+      await page.evaluate(() => { globalThis.__standardOnlineRuntime.failNextGacha = true; });
+      await page.locator("#gachaRetry").click();
+      const errorCopy = "抽選結果を確認できませんでした。前回の抽選結果をもう一度確認できます。";
+      await page.getByText(errorCopy, { exact: true }).waitFor();
+      await page.locator('[data-app-tab="battle"]').click();
+      await page.locator("#resultGoGacha").click();
+      assert.equal(await page.locator("#gachaStatus").textContent(), errorCopy, "existing error copy is not replaced by the reward selection message");
+      assert.equal(await page.locator('[data-gacha-level][aria-pressed="true"]').getAttribute("data-gacha-level"), "5");
+      assert.deepEqual(await page.evaluate(key => JSON.parse(localStorage.getItem(key)), key), pending);
+      assert.equal((await resultWriteCalls(page)).filter(c => c.body?.operation === "gacha").length, 1);
+
+      await page.locator("#gachaRetry").click();
+      await page.waitForFunction(key => localStorage.getItem(key) === null, key);
+      const calls = (await resultWriteCalls(page)).filter(c => c.body?.operation === "gacha").map(c => c.body);
+      assert.equal(calls.length, 2);
+      for (const call of calls) for (const field of ["actionId", "ticketLevel", "count"]) assert.equal(call[field], pending[field]);
+      assert.equal(await page.evaluate(key => JSON.parse(localStorage.getItem(key)).gachaTickets["1"], remoteProfileKey), 3);
+    }, { viewport: { width: 390, height: 844 }, beforeNavigate: page => page.addInitScript(({ key, pending }) => {
+      localStorage.setItem(key, JSON.stringify(pending));
+    }, { key, pending }) });
+  });
+
+  test(`${browserName} B1 ordinary reward entry ${entry} selects saved Lv1 without drawing`, { timeout: 130000 }, async () => {
+    await withPage("resultRewardCpu", async page => {
+      await setB1SavedCpuReward(page);
+      if (entry === "permanent") {
+        await page.locator("#terminalClose").click();
+        await page.locator('[data-app-tab="quiz"]').click();
+        await page.locator('[data-gacha-level="5"]').click();
+        await page.locator('[data-app-tab="battle"]').click();
+      }
+      await page.locator(entry === "overlay" ? "#terminalGoGacha" : "#resultGoGacha").click();
+      assert.equal(await page.locator('[data-gacha-level][aria-pressed="true"]').getAttribute("data-gacha-level"), "1");
+      assert.equal(await page.locator("#gachaStatus").textContent(), "対戦でもらったLv.1券を選びました。");
+      assert.deepEqual(await resultWriteCalls(page), []);
+      assert.equal(await page.evaluate(() => localStorage.getItem("fourColorMapGame.standard.online.v5.pending-gacha")), null);
+      assert.equal(await page.locator('[data-gacha-level="1"] [data-gacha-count]').textContent(), "3枚");
+    }, { viewport: { width: 390, height: 844 } });
+  });
+}
+
+test("UDL060 v2 actual saved reward levels and counts update without balance or stats copy", { timeout: 130000 }, async () => {
+  await withPage("resultRewardCpu",async page=>{
+    await page.locator("#terminalOverlay:not(.hidden)").waitFor();
+    for(const level of [1,2,3,4,5]){
+      await page.evaluate(level=>{const r=globalThis.__standardOnlineRuntime;const p=structuredClone(r.profile.profile_state);
+        p.matchHistory.find(x=>x.matchId===r.room.public_state.matchId).matchReward={awarded:true,ticketLevel:level,ticketCount:level};
+        p.gachaTickets={1:0,2:0,3:0,4:0,5:0};r.profile={...r.profile,revision:r.profile.revision+1,profile_state:p};r.onInvalidate();},level);
+      await page.waitForFunction(level=>document.querySelector("#terminalProgressText").textContent===`完了報酬\nLv.${level}ガチャ券 ×${level}`,level);
+    }
+    await page.locator("#terminalGoGacha").click();
+    assert.equal(await page.locator('[data-gacha-level][aria-pressed="true"]').getAttribute("data-gacha-level"),"5");
+    assert.equal(await page.locator("#gachaDrawOne").isDisabled(),true);
     assert.deepEqual(await resultWriteCalls(page),[]);
-    await page.evaluate(()=>{document.querySelector("#terminalRematch").click();document.querySelector("#terminalRematch").click();});
-    await page.locator("#setupCard:not(.hidden)").waitFor();
-    const calls=(await resultWriteCalls(page)).filter(c=>c.body?.operation==="cpu-rematch");
-    assert.equal(calls.length,1);
-    assert.equal(calls[0].body.expectedVersion,9);
-    assert.match(calls[0].body.actionId,/^[0-9a-f-]{36}$/i);
-    await page.waitForFunction(()=>document.activeElement?.id==="setupTitle");
+    assert.equal(await page.evaluate(key=>JSON.parse(localStorage.getItem(key)).roomId,connectionKey),roomId);
+  },{viewport:{width:390,height:844}});
+});
+
+test("UDL060 v2 short landscape and enlarged result text keep every action reachable", { timeout: 130000 }, async () => {
+  for(const viewport of [{width:844,height:390},{width:390,height:844}])await withPage("resultRewardCpu",async page=>{
+    await page.locator("#terminalOverlay:not(.hidden)").waitFor();
+    if(viewport.width===390)await page.addStyleTag({content:"#terminalOverlay p,#terminalOverlay button {font-size:200%!important}"});
+    for(const id of ["terminalGoGacha","terminalGoLobby","terminalClose"]){
+      const button=page.locator("#"+id);await button.scrollIntoViewIfNeeded();
+      assert.equal(await button.evaluate(e=>{const r=e.getBoundingClientRect();return r.top>=0&&r.bottom<=innerHeight&&r.width>=44&&r.height>=44&&e.contains(document.elementFromPoint(r.x+r.width/2,r.y+r.height/2));}),true,id);
+    }
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
+    if(process.env.STANDARD_UI_ARTIFACT_DIR)await page.screenshot({path:path.join(process.env.STANDARD_UI_ARTIFACT_DIR,`terminal-stress-${viewport.width}.png`)});
+    await page.locator("#terminalClose").click();
+    assert.equal(await page.locator("#terminalOverlay").isVisible(),false);
+    assert.deepEqual(await resultWriteCalls(page),[]);
+  },{viewport});
+});
+
+test("UDL060 v2 CPU result does not offer direct rematch and returns without writes", { timeout: 130000 }, async () => {
+  await withPage("finishedCpu",async page=>{
+    await page.locator("#terminalOverlay:not(.hidden)").waitFor();
+    assert.equal(await page.locator("#terminalRematch,#terminalChooseAnother").count(),0);
+    await page.locator("#terminalClose").click();
+    await page.waitForFunction(()=>document.activeElement?.id==="terminalSummary");
+    assert.equal(await page.locator("#requestRematch").isVisible(),false);
+    assert.deepEqual(await resultWriteCalls(page),[]);
     assert.equal(await page.evaluate(key=>JSON.parse(localStorage.getItem(key)).roomId,connectionKey),roomId);
   });
 });
@@ -2865,33 +3701,34 @@ test("UDL060 explicit human next-opponent exit keeps server history and starts n
   await withPage("resultRewardHuman",async page=>{
     await page.locator("#terminalClose").click();
     const before=await page.evaluate(()=>JSON.stringify({room:globalThis.__standardOnlineRuntime.room,profile:globalThis.__standardOnlineRuntime.profile}));
-    await page.locator("#chooseDifferentHuman").click();
+    await page.locator("#resultGoLobby").click();
     assert.equal(await page.evaluate(key=>JSON.parse(localStorage.getItem(key)).roomId,connectionKey),null);
     assert.equal(await page.evaluate(()=>JSON.stringify({room:globalThis.__standardOnlineRuntime.room,profile:globalThis.__standardOnlineRuntime.profile})),before);
     assert.deepEqual(await resultWriteCalls(page),[]);
-    assert.equal(await page.locator("#findOpponent").isVisible(),true);
+    assert.equal(await page.locator("#choosePublicBattle").isVisible(),true);
   },{viewport:{width:390,height:844}});
 });
 
 test("UDL060 human overlay explicitly closes the displayed result before another opponent without server writes", { timeout: 130000 }, async () => {
   await withPage("resultRewardHuman",async page=>{
-    const next=page.locator("#terminalChooseAnother");
+    const next=page.locator("#terminalGoLobby");
     await next.waitFor();
-    assert.equal(await next.textContent(),"結果を閉じて別の相手を選ぶ");
+    assert.equal(await next.textContent(),"結果を閉じてロビーへ");
     const before=await page.evaluate(()=>JSON.stringify({room:globalThis.__standardOnlineRuntime.room,profile:globalThis.__standardOnlineRuntime.profile}));
     await next.click();
     assert.equal(await page.locator("#terminalOverlay").isVisible(),false);
     assert.equal(await page.evaluate(key=>JSON.parse(localStorage.getItem(key)).roomId,connectionKey),null);
     assert.equal(await page.evaluate(()=>JSON.stringify({room:globalThis.__standardOnlineRuntime.room,profile:globalThis.__standardOnlineRuntime.profile})),before);
     assert.deepEqual(await resultWriteCalls(page),[]);
-    assert.equal(await page.locator("#findOpponent").isVisible(),true);
+    assert.equal(await page.locator("#choosePublicBattle").isVisible(),true);
   },{viewport:{width:390,height:844}});
 });
 
 test("UDL060 pending rematch blocks competing result exits but retains the same retry", { timeout: 130000 }, async () => {
   await withPage("finished",async page=>{
     await page.locator("#terminalClose").click();
-    for(const id of ["resultGoLobby","chooseDifferentHuman"])assert.equal(await page.locator("#"+id).isDisabled(),true);
+    assert.equal(await page.locator("#resultGoLobby").isDisabled(),true);
+    assert.equal(await page.locator("#chooseDifferentHuman").count(),0);
     assert.deepEqual(await resultWriteCalls(page),[]);
     await page.locator("#requestRematch").click();
     await page.locator("#setupCard:not(.hidden)").waitFor();
@@ -2901,14 +3738,16 @@ test("UDL060 pending rematch blocks competing result exits but retains the same 
 });
 
 
-test("UDL060 canceling the overlay CPU picker restores a visible result control", { timeout: 130000 }, async () => {
+test("UDL060 v2 keyboard focus stays in the three actions and Escape preserves the room", { timeout: 130000 }, async () => {
   await withPage("finishedCpu",async page=>{
-    assert.equal(await page.locator("#terminalChooseAnother").textContent(),"別のCPUを選ぶ");
-    await page.locator("#terminalChooseAnother").click();
-    await page.locator("#cpuRosterDialog[open]").waitFor();
+    await page.locator("#terminalClose").focus();
+    await page.keyboard.press("Tab");
+    assert.equal(await page.evaluate(()=>document.activeElement?.id),"terminalGoLobby");
+    await page.keyboard.press("Shift+Tab");
+    assert.equal(await page.evaluate(()=>document.activeElement?.id),"terminalClose");
     await page.keyboard.press("Escape");
-    await page.waitForFunction(()=>document.activeElement?.id==="chooseDifferentCpu");
-    assert.equal(await page.locator("#chooseDifferentCpu").isVisible(),true);
+    await page.waitForFunction(()=>document.activeElement?.id==="terminalSummary");
+    assert.equal(await page.locator("#terminalOverlay").isVisible(),false);
     assert.equal(await page.evaluate(key=>JSON.parse(localStorage.getItem(key)).roomId,connectionKey),roomId);
     assert.deepEqual(await resultWriteCalls(page),[]);
   },{viewport:{width:390,height:844}});
@@ -2962,12 +3801,21 @@ test("UDL-055 actual browser never flashes random setup on finished resume, relo
       await freshTab.close();
 
       if (mode === "finishedCpu") {
-        await page.locator("#requestRematch").click();
+        assert.equal(await page.locator("#requestRematch").isVisible(), false);
+        await page.locator("#resultGoLobby").click();
+        assert.deepEqual(await resultWriteCalls(page), [], "closing a result must not start the next match");
+        await page.locator("#startStandardCpuLobby").click();
+        await page.getByRole("button", { name: "うっかりユズを選んで6枚を確認" }).click();
         await page.locator("#setupCard:not(.hidden)").waitFor();
-        await page.locator("#submitSetup").click();
+        assert.deepEqual((await resultWriteCalls(page)).filter(c => c.body?.operation !== "cpu-roster"), []);
+        await page.getByRole("button", { name: "このCPU・6枚で対戦開始" }).click();
         await page.waitForFunction(() => globalThis.__randomRevealShows === 1);
-        assert.equal(await page.locator("#randomReveal").isVisible(), true, "explicit rematch still reveals its new setup");
+        assert.equal(await page.locator("#randomReveal").isVisible(), true, "a deliberately started next match still reveals its new setup");
         assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.room.public_state.matchId), `${roomId}:10`);
+        const writes = await resultWriteCalls(page);
+        for (const operation of ["cpu-start", "setup", "initialize"])
+          assert.equal(writes.filter(c => c.body?.operation === operation).length, 1, operation);
+        assert.equal(writes.filter(c => c.body?.operation === "cpu-rematch").length, 0);
       }
     }, { beforeNavigate: auditRandomSetupReveal, viewport: { width: 390, height: 844 } });
   }
@@ -3004,7 +3852,7 @@ test("actual Edge celebrates an opponent surrender and presents defeat from the 
     assert.equal(await overlay.evaluate((node) => node.classList.contains("is-victory")), true);
     assert.equal(await page.locator("#terminalClose").evaluate((node) => node === document.activeElement), true);
 
-    await page.getByRole("button", { name: "再戦・対戦結果へ戻る" }).click();
+    await page.getByRole("button", { name: "対戦結果へ戻る", exact:true }).click();
     assert.equal(await page.locator("#chooseDifferentCpu").isVisible(), false);
     await page.evaluate(() => {
       const runtime = globalThis.__standardOnlineRuntime;
@@ -3027,15 +3875,15 @@ test("actual browser clears stale CPU/setup status and keeps the exact no-color 
   await withPage("cpuTurnNoColor", async (page) => {
     await page.locator("#terminalOverlay:not(.hidden)").waitFor();
     const expectedDetail = "A は塗れる色がなくなりました。\n敗因の内訳：残っていた色 青 は、受け取った灰色エリアの隣接色 青 と重なるため置けませんでした。 封印中：黄・緑。";
-    assert.equal(await page.locator("#waitingMessage").textContent(), "対戦は終了しました。下の勝敗理由と再戦メニューを確認してください。");
+    assert.equal(await page.locator("#waitingMessage").textContent(), "対戦は終了しました。下の対戦結果を確認できます。");
     assert.equal(await page.locator("#actionStatus").textContent(), "");
     assert.equal(await page.locator("#retryAction").isVisible(), false);
-    assert.equal(await page.locator("#terminalOutcomeTitle").textContent(), "敗北：敗因");
+    assert.equal(await page.locator("#terminalOutcomeTitle").textContent(), "敗北");
     assert.equal(await page.locator("#terminalOutcomeReason").textContent(), expectedDetail);
     assert.equal(await page.locator("#terminalReasonText").textContent(), expectedDetail);
     assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "cpu-action").length), 1);
 
-    await page.getByRole("button", { name: "再戦・対戦結果へ戻る" }).click();
+    await page.getByRole("button", { name: "対戦結果へ戻る", exact:true }).click();
     assert.equal(await page.locator("#terminalOverlay").isVisible(), false);
     assert.equal(await page.locator("#terminalSummary").isVisible(), true);
     assert.equal(await page.locator("#terminalOutcomeReason").textContent(), expectedDetail);
@@ -3048,7 +3896,7 @@ test("actual browser clears stale CPU/setup status and keeps the exact no-color 
     await page.waitForTimeout(900);
     assert.equal(await page.locator("#terminalOverlay").isVisible(), false);
     assert.equal(await page.locator("#terminalOutcomeReason").textContent(), expectedDetail);
-    assert.equal(await page.locator("#waitingMessage").textContent(), "対戦は終了しました。下の勝敗理由と再戦メニューを確認してください。");
+    assert.equal(await page.locator("#waitingMessage").textContent(), "対戦は終了しました。下の対戦結果を確認できます。");
     assert.equal(await page.locator("#actionStatus").textContent(), "");
     assert.equal(await page.evaluate(() => globalThis.__standardOnlineCpuActionCount()), 1);
   });
@@ -3070,7 +3918,7 @@ test("actual browser clears stale CPU/setup status and keeps the exact no-color 
       runtime.onInvalidate();
     });
     await page.locator("#terminalOverlay:not(.hidden)").waitFor();
-    assert.equal(await page.locator("#terminalOutcomeTitle").textContent(), "勝利：決着理由");
+    assert.equal(await page.locator("#terminalOutcomeTitle").textContent(), "勝利");
     assert.equal(await page.locator("#terminalOutcomeReason").textContent(), "B は塗れる色がなくなりました。");
     assert.equal((await page.locator("#terminalSummary").textContent()).includes("OPPONENT-PRIVATE-SENTINEL"), false);
   });
@@ -3366,8 +4214,7 @@ test("actual browser selects Half Shift and Triple Shift bands on the board at 3
     assert.equal(await page.getByRole("button", { name: "半マスシフト ×1" }).evaluate((node) => node === document.activeElement), true);
     await page.getByRole("button", { name: "半マスシフト ×1" }).click();
     const board = page.locator("#board");
-    const box = await board.boundingBox();
-    await board.click({ position: { x: box.width * 0.45, y: box.height * (4.5 / 12) } });
+    await clickCanvasFraction(board, { x: 0.45, y: 4.5 / 12 });
     await target.getByText("対象：上から4行目").waitFor();
     assert.ok((await page.evaluate(() => globalThis.__shiftFrames.filter((color) => color === "#fde047").length)) >= 1);
     const right = target.getByRole("button", { name: "右へ →" });
@@ -3404,6 +4251,60 @@ test("actual browser selects Half Shift and Triple Shift bands on the board at 3
       { skill: "areaHalfShift", axis: "ROW", index: 4, direction: "plus" },
       { skill: "areaTripleShift", axis: "COLUMN", index: 3, direction: "plus" },
     ]);
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth), false);
+  }, { viewport: { width: 390, height: 844 } });
+});
+
+test("actual browser keeps the Shift row when actionability resizes the canvas at 390px", { timeout: 130000 }, async () => {
+  await withPage("playing", async (page) => {
+    await page.evaluate(() => {
+      const runtime = globalThis.__standardOnlineRuntime;
+      runtime.room.public_state = { ...runtime.room.public_state,
+        playableBounds: { macroWidth: 12, microScale: 1, minCol: 1, minRow: 1, maxCol: 10, maxRow: 10 } };
+      runtime.view = { ...runtime.view, private_state: { ...runtime.view.private_state,
+        hand: { ...runtime.view.private_state.hand, areaHalfShift: 1 } } };
+      runtime.onInvalidate?.({});
+      globalThis.__shiftNativePointers = [];
+      document.querySelector("#board").addEventListener("pointerdown", event => {
+        const rect = event.currentTarget.getBoundingClientRect();
+        globalThis.__shiftNativePointers.push({ trusted: event.isTrusted,
+          row: Math.floor((event.clientY - rect.top) / rect.height * 12), width: rect.width });
+      });
+    });
+    await page.getByRole("button", { name: "半マスシフト ×1" }).click();
+    const board = page.locator("#board"), target = page.locator("#skillTargetControls");
+    await board.click({ trial: true });
+    const before = await board.boundingBox();
+    let resized = false;
+    // Deterministically put a real resize inside actionability, before measurement.
+    // Both trial and final input still use the real Playwright locator.
+    const resizeOnActionability = {
+      evaluate: measure => board.evaluate(measure),
+      async click(options) {
+        if (options.trial && !resized) {
+          resized = true;
+          await page.setViewportSize({ width: 390, height: 630 });
+        }
+        return board.click(options);
+      },
+    };
+    const selected = await clickCanvasFraction(resizeOnActionability, { x: 0.45, y: 4.5 / 12 });
+    assert.equal(resized, true);
+    assert.ok(selected.width < before.width, JSON.stringify({ before, selected }));
+    const pointers = await page.evaluate(() => globalThis.__shiftNativePointers);
+    assert.equal(pointers.length, 1, "trial must not create a pointerdown");
+    assert.equal(pointers[0].trusted, true, "selection must use native input");
+    assert.equal(pointers[0].row, 4, JSON.stringify(pointers));
+    assert.equal(pointers[0].width, selected.width, "no stale dimensions at pointerdown");
+    await target.getByText("対象：上から4行目").waitFor();
+    assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls
+      .filter(entry => entry.body?.operation === "action").length), 0);
+    await target.getByRole("button", { name: "右へ →" }).click();
+    await target.getByRole("button", { name: "この対象で使う" }).click();
+    await page.getByText("操作を保存しました。").waitFor();
+    assert.deepEqual(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls
+      .filter(entry => entry.body?.operation === "action").map(entry => entry.body.action.payload)),
+      [{ skill: "areaHalfShift", axis: "ROW", index: 4, direction: "plus" }]);
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth), false);
   }, { viewport: { width: 390, height: 844 } });
 });
@@ -3904,33 +4805,206 @@ test("actual Edge keeps a lab mismatch visible with the exact recovery instructi
   });
 });
 
-test("actual browser shows the approved odds and rarity floor for each selected ticket level", { timeout: 120000 }, async () => {
+test("gacha entry shows all authoritative Lv odds on demand without drawing", { timeout: 130000 }, async () => {
   await withPage("gacha", async (page) => {
     await page.locator("#gachaPanel:not(.hidden):not(.tab-panel-hidden)").waitFor();
     const odds = page.locator("#gachaOdds");
-    assert.equal(await odds.textContent(), "Lv.1 排出率：★1 65% / ★2 29% / ★3 5% / ★4 0.9% / ★5 0.1%　★4・★5も排出されます（合計1%）。");
-    await page.locator("#gachaLevel").selectOption("4");
-    assert.equal(await odds.textContent(), "Lv.4 排出率：★1 0% / ★2 35% / ★3 35% / ★4 24% / ★5 6%　★2以上確定。");
-    await page.locator("#gachaLevel").selectOption("5");
-    assert.equal(await odds.textContent(), "Lv.5 排出率：★1 0% / ★2 0% / ★3 40% / ★4 40% / ★5 20%　★3以上確定。");
-    assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "gacha").length), 0);
-    const layout = await odds.evaluate((node) => {
-      const box = node.getBoundingClientRect();
-      return { left: box.left, right: box.right, viewport: innerWidth, overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth };
-    });
-    assert.ok(layout.left >= 0 && layout.right <= layout.viewport, JSON.stringify(layout));
-    assert.equal(layout.overflow, false);
+    assert.equal(await odds.getAttribute("open"), null);
+    assert.equal(await page.locator("#gachaOddsRows").isVisible(), false);
+    await odds.locator("summary").focus(); await page.keyboard.press("Enter");
+    const expected = require("../standard/standard-gacha-transaction.js").GACHA_ODDS;
+    for (const level of [1, 2, 3, 4, 5]) {
+      const row = page.locator("#gachaOddsRows tr").nth(level - 1);
+      assert.equal(await row.locator("th").textContent(), `Lv.${level}`);
+      assert.deepEqual(await row.locator("td").allTextContents(), [1,2,3,4,5].map(rarity => `${expected[level][rarity]}%`));
+    }
+    assert.doesNotMatch(await odds.textContent(), /以上確定|★4・★5も|合計1%/);
+    await odds.locator("summary").click();
+    for (const level of [4, 5]) await page.locator(`[data-gacha-level="${level}"]`).click();
+    assert.equal(await page.locator('[data-gacha-level][aria-pressed="true"]').getAttribute("data-gacha-level"), "5");
+    assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter(entry => entry.body?.operation === "gacha").length), 0);
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth), false);
   }, { viewport: { width: 390, height: 844 } });
+});
+
+test("gacha entry keeps keyboard targets and odds readable at narrow, enlarged and landscape sizes", { timeout: 150000 }, async () => {
+  await withPage("gacha", async (page) => {
+    const errors = [];
+    page.on("pageerror", (error) => errors.push(error.message));
+    await page.locator("#gachaPanel:not(.hidden):not(.tab-panel-hidden)").waitFor();
+    await page.locator(".random-reveal:not(.hidden)").waitFor({ state: "hidden" });
+    const odds = page.locator("#gachaOdds"), summary = odds.locator("summary");
+    const before = await page.evaluate(() => JSON.stringify(globalThis.__standardOnlineRuntime.profile));
+    for (const view of [
+      { width: 390, height: 844, textScale: 1 },
+      { width: 768, height: 1024, textScale: 1 },
+      { width: 1280, height: 900, textScale: 1 },
+      { width: 640, height: 360, textScale: 1 },
+      { width: 320, height: 640, textScale: 2 },
+    ]) {
+      await page.setViewportSize({ width: view.width, height: view.height });
+      await page.evaluate((scale) => { document.documentElement.style.fontSize = String(16 * scale) + "px"; }, view.textScale);
+      await page.locator('[data-gacha-level="1"]').focus();
+      await page.keyboard.press("Tab"); await page.keyboard.press("Shift+Tab");
+      for (const level of [1, 2, 3, 4, 5]) {
+        const button = page.locator('[data-gacha-level="' + level + '"]');
+        assert.equal(await button.evaluate((node) => document.activeElement === node), true);
+        const box = await button.boundingBox();
+        assert.ok(box && box.width >= 44 && box.height >= 44, JSON.stringify({ view, level, box }));
+        assert.equal(await button.evaluate((node) => node.scrollWidth <= node.clientWidth), true, JSON.stringify({ view, level }));
+        assert.equal(await button.evaluate((node) => getComputedStyle(node).outlineStyle), "solid");
+        assert.equal(await button.evaluate((node) => {
+          const r = node.getBoundingClientRect();
+          return node.contains(document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2));
+        }), true, JSON.stringify({ view, level, reason: "focused target unobstructed" }));
+        await page.keyboard.press("Tab");
+      }
+      for (const id of ["gachaDrawOne", "gachaDrawAll"]) {
+        assert.equal(await page.evaluate(() => document.activeElement.id), id);
+        const button = page.locator("#" + id), box = await button.boundingBox();
+        assert.ok(box && box.width >= 44 && box.height >= 44);
+        assert.equal(await button.evaluate((node) => node.scrollWidth <= node.clientWidth), true);
+        await page.keyboard.press("Tab");
+      }
+      assert.equal(await summary.evaluate((node) => document.activeElement === node), true);
+      await page.keyboard.press("Enter");
+      assert.equal(await odds.evaluate((node) => node.open), true);
+      const wrap = odds.locator(".gacha-odds-table-wrap");
+      await page.keyboard.press("Tab");
+      assert.equal(await wrap.evaluate((node) => document.activeElement === node), true);
+      if (await wrap.evaluate((node) => node.scrollWidth > node.clientWidth)) {
+        for (let i = 0; i < 12; i += 1) await page.keyboard.press("ArrowRight");
+        await page.waitForFunction(() => {
+          const node = document.querySelector(".gacha-odds-table-wrap");
+          return node.scrollLeft >= node.scrollWidth - node.clientWidth - 1;
+        });
+      }
+      const layout = await page.evaluate(() => ({
+        documentFits: document.documentElement.scrollWidth <= document.documentElement.clientWidth,
+        regionFits: document.querySelector(".gacha-odds-table-wrap").getBoundingClientRect().width <= document.querySelector("#gachaOdds").clientWidth + 1,
+        cellsFit: [...document.querySelectorAll("#gachaOdds th,#gachaOdds td")].every((node) => node.scrollWidth <= node.clientWidth),
+      }));
+      const overflow = !layout.documentFits ? await page.evaluate(() => [...document.querySelectorAll("body *")]
+        .filter((node) => node.getBoundingClientRect().right > innerWidth && !node.closest(".gacha-odds-table-wrap"))
+        .slice(0, 12).map((node) => ({ tag: node.tagName, id: node.id, className: node.className,
+          width: node.getBoundingClientRect().width, minWidth: getComputedStyle(node).minWidth }))) : [];
+      if (!layout.documentFits && process.env.GACHA_SCREENSHOTS) await page.screenshot({ path: path.join(process.env.GACHA_SCREENSHOTS, browserName + "-gacha-overflow.png") });
+      assert.deepEqual(layout, { documentFits: true, regionFits: true, cellsFit: true }, JSON.stringify({ view, layout, overflow }));
+      const last = odds.locator("tbody tr").last();
+      await last.scrollIntoViewIfNeeded();
+      const rowReachable = await last.evaluate((node) => {
+        const r = node.getBoundingClientRect();
+        const region = node.closest(".gacha-odds-table-wrap").getBoundingClientRect();
+        const x = (Math.max(r.left, region.left) + Math.min(r.right, region.right)) / 2;
+        return node.contains(document.elementFromPoint(x, r.y + r.height / 2));
+      });
+      if (!rowReachable && process.env.GACHA_SCREENSHOTS) await page.screenshot({ path: path.join(process.env.GACHA_SCREENSHOTS, browserName + "-gacha-row-covered.png") });
+      assert.equal(rowReachable, true, JSON.stringify({ view, reason: "last odds row reachable within scroll region and above navigation" }));
+      if (process.env.GACHA_SCREENSHOTS) {
+        fs.mkdirSync(process.env.GACHA_SCREENSHOTS, { recursive: true });
+        await page.screenshot({ path: path.join(process.env.GACHA_SCREENSHOTS, browserName + "-gacha-odds-" + view.width + "-" + view.textScale + "x.png") });
+      }
+      await summary.focus(); await page.keyboard.press("Space");
+      assert.equal(await odds.evaluate((node) => node.open), false);
+      assert.equal(await page.locator("#gachaStatus").textContent(), "");
+      assert.equal(await page.evaluate(() => JSON.stringify(globalThis.__standardOnlineRuntime.profile)), before);
+      if (process.env.GACHA_SCREENSHOTS && view.height > 360) {
+        await page.locator("#gachaLevels").scrollIntoViewIfNeeded();
+        await page.screenshot({ path: path.join(process.env.GACHA_SCREENSHOTS, browserName + "-gacha-entry-" + view.width + "-" + view.textScale + "x.png") });
+      }
+    }
+    await summary.click();
+    await page.reload({ waitUntil: "load" });
+    await page.locator("#connectionBadge.good").waitFor();
+    assert.equal(await odds.evaluate((node) => node.open), false);
+    const writes = await page.evaluate(async () => (await globalThis.__standardOnlineLifetimeInvocations())
+      .filter((entry) => ["gacha", "quiz-start", "quiz-answer", "quiz-finish", "profile"].includes(entry.operation)));
+    assert.deepEqual(writes, []);
+    assert.deepEqual(errors, []);
+  }, { bodyTimeout: 55_000 });
+});
+
+test("gacha entry caps all at 100, blocks busy double activation and keeps zero stock selected", { timeout: 130000 }, async () => {
+  await withPage("gacha", async (page) => {
+    await page.evaluate(() => {
+      const runtime = globalThis.__standardOnlineRuntime;
+      runtime.profile = { ...runtime.profile, revision: runtime.profile.revision + 1,
+        profile_state: { ...runtime.profile.profile_state, gachaTickets: { "1": 2, "2": 0, "3": 103, "4": 0, "5": 0 } } };
+      runtime.onInvalidate();
+    });
+    await page.waitForFunction(() => document.querySelector('[data-gacha-level="3"] [data-gacha-count]').textContent === "103枚");
+    await page.locator('[data-gacha-level="3"]').click();
+    assert.equal(await page.locator("#gachaLimitNote").isVisible(), true);
+    await page.evaluate(() => {
+      globalThis.__standardOnlineRuntime.delayedOperation = "gacha";
+      globalThis.__standardOnlineRuntime.operationDelayMs = 3000;
+    });
+    await page.locator("#gachaDrawAll").click();
+    await page.waitForFunction(() => globalThis.__standardOnlineRuntime.calls.some((entry) => entry.body?.operation === "gacha"));
+    for (const target of ['[data-gacha-level="1"]', '[data-gacha-level="5"]', "#gachaDrawOne", "#gachaDrawAll"]) {
+      assert.equal(await page.locator(target).isDisabled(), true);
+      await page.locator(target).click({ force: true });
+    }
+    await page.waitForFunction(() => document.querySelector("#gachaStatus").textContent === "100枚を獲得しました。");
+    const first = await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "gacha").map((entry) => entry.body));
+    assert.equal(first.length, 1);
+    assert.equal(first[0].count, 100); assert.equal(first[0].ticketLevel, 3);
+    assert.equal(await page.locator('[data-gacha-level="3"] [data-gacha-count]').textContent(), "3枚");
+    assert.equal(await page.locator("#gachaLimitNote").isHidden(), true);
+    await page.evaluate(() => { globalThis.__standardOnlineRuntime.operationDelayMs = 0; });
+    await page.locator("#gachaDrawAll").click();
+    await page.waitForFunction(() => document.querySelector("#gachaStatus").textContent === "3枚を獲得しました。");
+    assert.equal(await page.locator('[data-gacha-level][aria-pressed="true"]').getAttribute("data-gacha-level"), "3");
+    assert.equal(await page.locator('[data-gacha-level="3"] [data-gacha-count]').textContent(), "0枚");
+    for (const target of ["#gachaDrawOne", "#gachaDrawAll"]) {
+      assert.equal(await page.locator(target).isDisabled(), true);
+      await page.locator(target).click({ force: true });
+    }
+    const counts = await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "gacha").map((entry) => entry.body.count));
+    assert.deepEqual(counts, [100, 3]);
+  });
+});
+
+test("gacha entry restores the same Lv5 pending draw across reload and retries without replacement", { timeout: 130000 }, async () => {
+  await withPage("quizReward", async (page) => {
+    const key = "fourColorMapGame.standard.online.v5.pending-gacha";
+    await page.locator('[data-gacha-level="5"]').click();
+    await page.evaluate(() => { globalThis.__standardOnlineRuntime.failNextGacha = true; });
+    await page.locator("#gachaDrawAll").click();
+    await page.getByText("抽選結果を確認できませんでした。前回の抽選結果をもう一度確認できます。").waitFor();
+    const pending = await page.evaluate((key) => JSON.parse(localStorage.getItem(key)), key);
+    assert.equal(pending.ticketLevel, 5); assert.equal(pending.count, 2);
+    await page.reload({ waitUntil: "load" });
+    await page.locator("#connectionBadge.good").waitFor();
+    assert.equal(await page.locator('[data-gacha-level][aria-pressed="true"]').getAttribute("data-gacha-level"), "5");
+    assert.match(await page.locator("#gachaStatus").textContent(), /前回の抽選結果を確認/);
+    for (const target of ['[data-gacha-level="2"]', "#gachaDrawOne", "#gachaDrawAll"]) {
+      assert.equal(await page.locator(target).isDisabled(), true);
+      await page.locator(target).click({ force: true });
+    }
+    await page.locator("#quizGoGacha").click();
+    assert.deepEqual(await page.evaluate((key) => JSON.parse(localStorage.getItem(key)), key), pending);
+    await page.locator("#gachaRetry").click();
+    await page.waitForFunction((key) => localStorage.getItem(key) === null, key);
+    const calls = await page.evaluate(async () => (await globalThis.__standardOnlineLifetimeInvocations()).filter((entry) => entry.operation === "gacha"));
+    assert.equal(calls.length, 2);
+    for (const field of ["actionId", "ticketLevel", "count"]) {
+      assert.equal(calls[0][field], pending[field]); assert.equal(calls[1][field], pending[field]);
+    }
+    assert.equal(await page.locator('[data-gacha-level][aria-pressed="true"]').getAttribute("data-gacha-level"), "5");
+    assert.equal(await page.locator('[data-gacha-level="5"] [data-gacha-count]').textContent(), "0枚");
+    assert.equal(await page.locator("#gachaRetry").isHidden(), true);
+  });
 });
 
 test("UDL-059 quiz reward navigation uses the saved level, survives hydration and manual changes, and preserves zero stock", { timeout: 130000 }, async () => {
   await withPage("quizReward", async (page) => {
-    await page.locator("#gachaLevel").selectOption("5");
+    await page.locator('[data-gacha-level="5"]').click();
     assert.match(await page.locator("#quizLevelBadge").textContent(), /Lv\.5/);
     await page.locator("#quizResult:not(.hidden)").waitFor();
     await page.locator("#quizGoGacha").click();
-    assert.equal(await page.locator("#gachaLevel").inputValue(), "2");
-    assert.match(await page.locator("#gachaOdds").textContent(), /^Lv\.2 排出率/);
+    assert.equal(await page.locator('[data-gacha-level][aria-pressed="true"]').getAttribute("data-gacha-level"), "2");
+    assert.match(await page.locator("#gachaOddsRows").textContent(), /Lv\.2/);
     assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter(c => c.body?.operation === "gacha").length), 0);
     await page.locator("#gachaDrawOne").click();
     await page.waitForFunction(() => document.querySelector("#gachaStatus").textContent.includes("1枚を獲得"));
@@ -3942,17 +5016,17 @@ test("UDL-059 quiz reward navigation uses the saved level, survives hydration an
     assert.equal(drawn.calls[0].ticketLevel, 2);
     assert.equal(drawn.tickets["2"], 0);
     assert.equal(drawn.tickets["5"], 2);
-    await page.locator("#gachaLevel").selectOption("3");
+    await page.locator('[data-gacha-level="3"]').click();
     await page.locator('[data-app-tab="battle"]').click();
     await page.locator('[data-app-tab="quiz"]').click();
-    assert.equal(await page.locator("#gachaLevel").inputValue(), "3");
+    assert.equal(await page.locator('[data-gacha-level][aria-pressed="true"]').getAttribute("data-gacha-level"), "3");
     await page.locator("#gachaDrawOne").click();
     await page.waitForFunction(key => JSON.parse(localStorage.getItem(key)).gachaTickets["3"] === 1, remoteProfileKey);
-    assert.equal(await page.locator("#gachaLevel").inputValue(), "3", "profile hydration does not reapply the old reward");
-    assert.match(await page.locator("#gachaOdds").textContent(), /^Lv\.3 排出率/);
+    assert.equal(await page.locator('[data-gacha-level][aria-pressed="true"]').getAttribute("data-gacha-level"), "3", "profile hydration does not reapply the old reward");
+    assert.match(await page.locator("#gachaOddsRows").textContent(), /Lv\.3/);
     await page.locator("#quizGoGacha").click();
-    assert.equal(await page.locator("#gachaLevel").inputValue(), "2");
-    assert.match(await page.locator("#gachaStatus").textContent(), /Lv\.2券を0枚/);
+    assert.equal(await page.locator('[data-gacha-level][aria-pressed="true"]').getAttribute("data-gacha-level"), "2");
+    assert.match(await page.locator('[data-gacha-level="2"] [data-gacha-count]').textContent(), /0枚/);
     assert.equal(await page.locator("#gachaDrawOne").isDisabled(), true);
     assert.equal(await page.locator("#gachaDrawAll").isDisabled(), true);
     assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter(c => c.body?.operation === "gacha").length), 2);
@@ -3961,7 +5035,7 @@ test("UDL-059 quiz reward navigation uses the saved level, survives hydration an
 
 test("UDL-059 quiz reward link cannot replace an unresolved draw or its retry payload", { timeout: 130000 }, async () => {
   await withPage("quizReward", async (page) => {
-    await page.locator("#gachaLevel").selectOption("5");
+    await page.locator('[data-gacha-level="5"]').click();
     await page.evaluate(() => { globalThis.__standardOnlineRuntime.failNextGacha = true; });
     await page.locator("#gachaDrawAll").click();
     await page.locator("#gachaRetry:not(.hidden)").waitFor();
@@ -3971,7 +5045,7 @@ test("UDL-059 quiz reward link cannot replace an unresolved draw or its retry pa
     assert.equal(pending.count, 2);
     await page.locator("#quizResult:not(.hidden)").waitFor();
     await page.locator("#quizGoGacha").click();
-    assert.equal(await page.locator("#gachaLevel").inputValue(), "5", "the existing unresolved draw takes precedence");
+    assert.equal(await page.locator('[data-gacha-level][aria-pressed="true"]').getAttribute("data-gacha-level"), "5", "the existing unresolved draw takes precedence");
     assert.deepEqual(await page.evaluate(key => JSON.parse(localStorage.getItem(key)), pendingKey), pending);
     assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter(c => c.body?.operation === "gacha").length), 1);
     await page.locator("#gachaRetry").click();
@@ -4001,7 +5075,7 @@ test("actual Edge gacha persists one server draw and immediately hydrates invent
     assert.equal(await page.locator("#gachaDrawOne").isDisabled(), true);
     assert.equal(await page.locator("#gachaDrawAll").isDisabled(), true);
     await page.getByRole("button", { name: "同じ抽選を再確認" }).click();
-    await page.getByText("1枚を獲得しました。券消費とカード付与は一度だけ保存済みです。").waitFor();
+    await page.getByText("1枚を獲得しました。").waitFor();
     const evidence = await page.evaluate(({ key }) => {
       const calls = globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "gacha").map((entry) => entry.body);
       return { calls, profile: JSON.parse(localStorage.getItem(key)) };
@@ -4023,7 +5097,7 @@ test("actual Edge quiz freezes for the hint, resumes without room polling, and a
   await withPage("quiz", async (page) => {
     await page.getByRole("button", { name: "クイズ・ガチャ" }).click();
     await page.locator("#quizPanel").waitFor({ state: "visible" });
-    await page.getByRole("button", { name: "10問チャレンジ開始" }).click();
+    await page.locator('[data-quiz-start-level="1"]').click();
     await page.locator("#quizOptions button").first().waitFor();
     assert.equal(await page.locator("#quizOptions button").count(), 6);
     assert.equal(await page.locator("#quizQuestion math").count(), 1);
@@ -4054,7 +5128,7 @@ test("actual Edge quiz freezes for the hint, resumes without room polling, and a
 test(`${browserName} moves whole quiz buttons in one collision arena and pauses every interaction safely`, { timeout: 130000 }, async () => {
   await withPage("quizPhysics", async (page) => {
     await page.getByRole("button", { name: "クイズ・ガチャ" }).click();
-    await page.getByRole("button", { name: "10問チャレンジ開始" }).click();
+    await page.locator('[data-quiz-start-level="1"]').click();
     const arena = page.locator("#quizOptions");
     const options = arena.locator("button[data-quiz-option]");
     await options.first().waitFor();
@@ -4256,7 +5330,7 @@ test(`${browserName} moves whole quiz buttons in one collision arena and pauses 
 test("per-question quiz feedback commits before advancing, retries the same answer, and keeps only brief motion", { timeout: 130000 }, async () => {
   await withPage("quiz", async (page) => {
     await page.getByRole("button", { name: "クイズ・ガチャ" }).click();
-    await page.getByRole("button", { name: "10問チャレンジ開始" }).click();
+    await page.locator('[data-quiz-start-level="1"]').click();
     await page.locator("#quizOptions button").first().waitFor();
     await page.evaluate(() => { globalThis.__standardOnlineRuntime.failNextQuizAnswer = true; });
     await clickMovingQuizOption(page.locator("#quizOptions button").first());
@@ -4306,8 +5380,7 @@ test("per-question quiz feedback commits before advancing, retries the same answ
 test("quadratic names the smaller root visibly and restored progress counts only acknowledged answers", { timeout: 130000 }, async () => {
   await withPage("quizQuadratic", async (page) => {
     await page.getByRole("button", { name: "クイズ・ガチャ" }).click();
-    await page.locator("#quizLevel").selectOption("4");
-    await page.getByRole("button", { name: "10問チャレンジ開始" }).click();
+    await page.locator('[data-quiz-start-level="4"]').click();
     await page.locator("#quizOptions button").first().waitFor();
     const math = page.locator("#quizQuestion math");
     assert.match((await math.textContent()).replace(/\s+/g, ""), /x²−5x\+6=0小さい方の解x=\?/);
@@ -4371,8 +5444,7 @@ test("quadratic names the smaller root visibly and restored progress counts only
 test("Level 5 matrix trace and three-variable mission stay exact and visible at 390px", { timeout: 130000 }, async () => {
   await withPage("quizLevel5", async (page) => {
     await page.getByRole("button", { name: "クイズ・ガチャ" }).click();
-    await page.locator("#quizLevel").selectOption("5");
-    await page.getByRole("button", { name: "10問チャレンジ開始" }).click();
+    await page.locator('[data-quiz-start-level="5"]').click();
     await page.locator("#quizOptions button").first().waitFor();
 
     const question = page.locator("#quizQuestion");
@@ -4416,7 +5488,7 @@ test("actual Edge presents prompt-only stories, dimension diagrams, structured m
         }
       };
     });
-    await page.getByRole("button", { name: "10問チャレンジ開始" }).click();
+    await page.locator('[data-quiz-start-level="1"]').click();
     await page.locator("#quizOptions button").first().waitFor();
 
     assert.equal(await page.locator("#quizMission").textContent(), "条件を整理して、速さの答えを求めよう");
@@ -4513,6 +5585,7 @@ test("actual browser presents all ten CPU records as a two-column portrait list 
     const callsBefore = await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.length);
     await page.getByRole("button", { name: "マイページ" }).click();
     const list = page.getByRole("list", { name: "CPU別成績" });
+    await page.locator("#cpuRecordsDetails > summary").click();
     await list.waitFor();
     const records = list.getByRole("listitem");
     assert.equal(await records.count(), 10);
@@ -4554,6 +5627,7 @@ test("actual browser shows overall and Lv1-5 quiz accuracy from tracked adjudica
     const callsBefore = await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.length);
     await page.getByRole("button", { name: "マイページ" }).click();
     const list = page.getByRole("list", { name: "クイズ正答率" });
+    await page.locator("#quizAccuracyDetails > summary").click();
     const records = list.getByRole("listitem");
     await list.waitFor();
     assert.equal(await records.count(), 6);
@@ -4580,6 +5654,202 @@ test("actual Edge hides onboarding after restoring a synced profile into the sav
   });
 });
 
+async function cardRecoverySnapshot(page) {
+  return page.evaluate(({ connection, sale }) => ({
+    connection: JSON.parse(localStorage.getItem(connection)),
+    sale: localStorage.getItem(sale),
+    cpuSaga: localStorage.getItem("fourColorMapGame.standard.online.v5.cpu-start-saga"),
+    room: globalThis.__standardOnlineRuntime.room,
+    profile: globalThis.__standardOnlineRuntime.profile,
+    writes: globalThis.__standardOnlineRuntime.calls.filter(c =>
+      ["setup", "initialize", "action", "cpu-start", "cpu-rematch", "cpu-accept", "card-sale", "gacha", "quiz-start", "quiz-answer", "quiz-finish"].includes(c.body?.operation)
+      || /fcg_standard_.*(?:create|join|abandon|rematch|find|recruit)$/.test(c.name)),
+  }), { connection: connectionKey, sale: "fourColorMapGame.standard.online.v5.pending-card-sale" });
+}
+
+for (const [mode, label, heading] of [["readyGuestAbandon", "準備に戻る", "setupTitle"], ["playing", "対戦に戻る", "matchTitle"], ["finished", "対戦結果へ", "terminalSummary"]]) {
+  test(`${browserName} UDL062 recovery navigates ${mode} without game or economy writes`, { timeout: 130000 }, async () => {
+    await withPage(mode, async page => {
+      if (mode === "finished") await page.locator("#terminalClose").click();
+      await page.getByRole("button", { name: "カード", exact: true }).click();
+      assert.equal(await page.locator("#cardSaleRecovery").textContent(), label);
+      assert.equal(await page.locator("#editNextLoadout").textContent(), label);
+      assert.equal(await page.locator("#cardSaleQuote").isDisabled(), true);
+      const before = await cardRecoverySnapshot(page);
+      for (const [id, key] of [["cardSaleRecovery", "Enter"], ["editNextLoadout", "Space"]]) {
+        await page.locator(`#${id}`).focus();
+        await page.keyboard.press(key);
+        await page.waitForFunction(id => document.activeElement?.id === id, heading);
+        assert.equal(await page.locator("body").getAttribute("data-active-tab"), "battle");
+        assert.equal(await page.locator(`#${heading}`).isVisible(), true);
+        assert.deepEqual(await cardRecoverySnapshot(page), before);
+        await page.getByRole("button", { name: "カード", exact: true }).click();
+      }
+    }, { viewport: { width: 390, height: 844 } });
+  });
+}
+
+test(`${browserName} UDL062 recovery preserves the roomless CPU draft and pending start identity`, { timeout: 130000 }, async () => {
+  await withPage("lobby", async page => {
+    await page.getByRole("button", { name: "CPUと対戦", exact: true }).click();
+    await page.getByRole("button", { name: "うっかりユズを選んで6枚を確認" }).click();
+    const draft = await page.locator('#loadoutGrid input:checked').evaluateAll(nodes => nodes.map(n => n.value));
+    const before = await cardRecoverySnapshot(page);
+    await page.getByRole("button", { name: "カード", exact: true }).click();
+    await page.locator("#editNextLoadout").click();
+    await page.waitForFunction(() => document.activeElement?.id === "setupTitle");
+    assert.match(await page.locator("#cpuStartReview").textContent(), /うっかりユズ/);
+    assert.deepEqual(await page.locator('#loadoutGrid input:checked').evaluateAll(nodes => nodes.map(n => n.value)), draft);
+    assert.deepEqual(await cardRecoverySnapshot(page), before);
+    await page.evaluate(() => { globalThis.__standardOnlineRuntime.failNextCpuStartResponse = true; });
+    await page.getByRole("button", { name: "このCPU・6枚で対戦開始" }).click();
+    await page.getByRole("button", { name: "同じ開始処理を再確認" }).waitFor();
+    const pending = await cardRecoverySnapshot(page);
+    assert.ok(pending.cpuSaga);
+    await page.getByRole("button", { name: "カード", exact: true }).click();
+    assert.equal(await page.locator("#cardSaleRecovery").textContent(), "CPU戦の開始確認へ戻る");
+    await page.locator("#cardSaleRecovery").click();
+    await page.waitForFunction(() => document.activeElement?.id === "setupTitle");
+    assert.deepEqual(await cardRecoverySnapshot(page), pending);
+    assert.equal(await page.getByRole("button", { name: "同じ開始処理を再確認" }).isVisible(), true);
+  }, { viewport: { width: 390, height: 844 } });
+});
+
+test(`${browserName} UDL062 recovery preserves pending setup and offers its original explicit retry`, { timeout: 130000 }, async () => {
+  await withPage("setupLabLostResponse", async page => {
+    await page.locator("#setupCard:not(.hidden)").waitFor();
+    await page.locator("#legalRecolorLabMode").check();
+    await page.getByRole("button", { name: "この6枚で準備完了" }).click();
+    await page.getByRole("button", { name: "前回の準備結果を確認" }).waitFor();
+    const before = await cardRecoverySnapshot(page);
+    assert.ok(before.connection.pendingSetup);
+    await page.getByRole("button", { name: "カード", exact: true }).click();
+    assert.match(await page.locator("#loadoutRecoveryStatus").textContent(), /前回の準備結果/);
+    assert.equal(await page.locator("#cardSaleQuote").isDisabled(), true);
+    await page.locator("#cardSaleRecovery").click();
+    await page.waitForFunction(() => document.activeElement?.id === "setupTitle");
+    assert.deepEqual(await cardRecoverySnapshot(page), before);
+    await page.getByRole("button", { name: "カード", exact: true }).click();
+    await page.locator("#editNextLoadout").click();
+    await page.waitForFunction(() => document.activeElement?.id === "setupTitle");
+    assert.deepEqual(await cardRecoverySnapshot(page), before);
+    assert.equal(await page.locator("#legalRecolorLabMode").isChecked(), true);
+    assert.equal(await page.locator("#legalRecolorLabMode").isDisabled(), true);
+    assert.equal(await page.getByRole("button", { name: "前回の準備結果を確認" }).isVisible(), true);
+  });
+});
+
+test(`${browserName} UDL062 recovery keeps an unknown sale across compact Profile Home and reload with one debit`, { timeout: 130000 }, async () => {
+  await withPage("lobby", async page => {
+    const pendingKey = "fourColorMapGame.standard.online.v5.pending-card-sale";
+    await page.getByRole("button", { name: "カード", exact: true }).click();
+    await page.locator("#cardSaleSkill").selectOption("colorRandomBorrow");
+    await page.locator("#cardSaleCount").fill("1");
+    await page.locator("#cardSaleQuote").click();
+    await page.getByText(/1枚 → 10コイン/).waitFor();
+    await page.evaluate(() => { globalThis.__standardOnlineRuntime.failNextCardSaleResponse = true; });
+    await page.locator("#cardSaleCommit").click();
+    await page.locator("#cardSaleRetry:not(.hidden)").waitFor();
+    const pending = await page.evaluate(key => localStorage.getItem(key), pendingKey);
+    assert.ok(pending);
+    const before = await cardRecoverySnapshot(page);
+    assert.equal(before.profile.profile_state.coins, 10);
+    assert.equal(before.profile.profile_state.inventory.colorRandomBorrow, 1);
+    assert.equal(await page.locator("#cardSaleRecovery").isHidden(), true);
+    assert.equal(await page.locator("#cardSaleQuote").isDisabled(), true);
+    assert.equal(await page.locator("#cardSaleStatus").getAttribute("data-state"), "pending");
+    await page.getByRole("button", { name: "マイページ", exact: true }).click();
+    assert.equal(await page.locator("#profileOptions").isHidden(), true);
+    await page.locator("#toggleProfileOptions").click();
+    assert.equal(await page.locator("#profileSelect").isVisible(), true);
+    await page.locator("#toggleProfileOptions").click();
+    for (const [id, selector, count] of [
+      ["cpuRecordsDetails", "#cpuCharacterRecords > article", 10],
+      ["quizAccuracyDetails", "#quizAccuracyRecords > div", 6],
+    ]) {
+      await page.locator("#" + id + " > summary").click();
+      assert.equal(await page.locator(selector).count(), count);
+      assert.equal(await page.locator(selector).first().isVisible(), true);
+    }
+    await page.getByRole("button", { name: "ホーム", exact: true }).click();
+    assert.equal(await page.locator(".home-actions > button:visible").count(), 2);
+    await page.locator("#openTutorial").click();
+    await page.locator("#tutorialDialog[open]").waitFor();
+    await page.keyboard.press("Escape");
+    await page.getByRole("button", { name: "カード", exact: true }).click();
+    assert.deepEqual(await cardRecoverySnapshot(page), before);
+    assert.equal(await page.locator("#cardSaleStatus").getAttribute("data-state"), "pending");
+    assert.equal(await page.locator("#cardSaleRetry").isVisible(), true);
+    await page.reload({ waitUntil: "load" });
+    await page.locator("#connectionBadge.good").waitFor();
+    await page.getByRole("button", { name: "カード", exact: true }).click();
+    await page.locator("#cardSaleRetry:not(.hidden)").waitFor();
+    assert.equal(await page.evaluate(key => localStorage.getItem(key), pendingKey), pending);
+    assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter(c => c.body?.operation === "card-sale").length), 0);
+    assert.equal(await page.locator("#cardSaleRecovery").isHidden(), true);
+    await page.locator("#cardSaleRetry").click();
+    await page.getByText("10コインを獲得しました。", { exact: true }).waitFor();
+    const after = await page.evaluate(async key => ({
+      pending: localStorage.getItem(key), profile: globalThis.__standardOnlineRuntime.profile.profile_state,
+      sales: (await globalThis.__standardOnlineLifetimeInvocations()).filter(c => c.operation === "card-sale"),
+      receipts: Object.keys(globalThis.__standardOnlineRuntime.cardSaleReceipts),
+    }), pendingKey);
+    assert.equal(after.pending, null);
+    assert.equal(after.profile.coins, 10);
+    assert.equal(after.profile.inventory.colorRandomBorrow, 1);
+    assert.equal(after.sales.length, 2);
+    assert.deepEqual(after.sales[0], after.sales[1]);
+    assert.deepEqual(after.receipts, [JSON.parse(pending).actionId]);
+    assert.equal(await page.locator("#cardSaleStatus").getAttribute("data-state"), "success");
+  });
+});
+
+for (const protectedOnly of [false, true]) {
+  test(`${browserName} UDL062 recovery has a short ${protectedOnly ? "protected-only" : "no-surplus"} restriction without a false destination`, { timeout: 130000 }, async () => {
+    await withPage("lobby", async page => {
+      await page.getByRole("button", { name: "カード", exact: true }).click();
+      await page.getByText(protectedOnly ? "余ったカードはすべて保護されています。" : "売れる余剰カードはありません（各1枚は残します）。", { exact: true }).waitFor();
+      assert.equal(await page.locator("#cardSaleRecovery").isHidden(), true);
+      assert.equal(await page.locator("#cardSaleQuote").isDisabled(), true);
+      assert.equal(await page.locator("#cardSaleCommit").isHidden(), true);
+      assert.equal((await cardRecoverySnapshot(page)).writes.length, 0);
+    }, { beforeNavigate: page => page.addInitScript(protectedOnly => {
+      const p = globalThis.__standardOnlineRuntime.profile;
+      p.profile_state.inventory = { colorRandomBorrow: protectedOnly ? 2 : 1 };
+      p.profile_state.protectedSkills = { colorRandomBorrow: protectedOnly };
+    }, protectedOnly) });
+  });
+}
+
+test(`${browserName} UDL062 recovery controls fit narrow and enlarged views with reachable targets`, { timeout: 130000 }, async () => {
+  await withPage("playing", async page => {
+    await page.locator("#randomReveal").waitFor({ state: "hidden", timeout: 5000 });
+    await page.getByRole("button", { name: "カード", exact: true }).click();
+    for (const width of [390, 768, 1280, 320]) {
+      await page.setViewportSize({ width, height: 844 });
+      await page.evaluate(enlarged => { document.documentElement.style.fontSize = enlarged ? "200%" : ""; }, width === 320);
+      await page.locator("#cardSaleRecovery").scrollIntoViewIfNeeded();
+      const sizes = await page.evaluate(() => ({
+        overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+        controls: ["cardSaleRecovery", "editNextLoadout"].map(id => {
+          const r = document.getElementById(id).getBoundingClientRect();
+          return { id, height: r.height, left: r.left, right: r.right, viewport: innerWidth };
+        }),
+      }));
+      assert.equal(sizes.overflow, false, JSON.stringify({ width, sizes }));
+      for (const r of sizes.controls) { assert.ok(r.height >= 44, JSON.stringify(r)); assert.ok(r.left >= 0 && r.right <= r.viewport, JSON.stringify(r)); }
+      if (process.env.ACTION_RECOVERY_SCREENSHOTS) {
+        fs.mkdirSync(process.env.ACTION_RECOVERY_SCREENSHOTS, { recursive: true });
+        await page.screenshot({ path: path.join(process.env.ACTION_RECOVERY_SCREENSHOTS, `${browserName}-card-recovery-${width}.png`) });
+      }
+      await page.locator("#cardSaleRecovery").click();
+      await page.waitForFunction(() => document.activeElement?.id === "matchTitle");
+      await page.getByRole("button", { name: "カード", exact: true }).click();
+    }
+    assert.equal((await cardRecoverySnapshot(page)).writes.length, 0);
+  });
+});
+
 test("actual Edge quotes and commits one server-authoritative card sale", { timeout: 130000 }, async () => {
   await withPage("lobby", async (page) => {
     await page.getByRole("button", { name: "カード" }).click();
@@ -4589,7 +5859,7 @@ test("actual Edge quotes and commits one server-authoritative card sale", { time
     await page.getByRole("button", { name: "売却内容を確認" }).click();
     await page.getByText(/1枚 → 10コイン/).waitFor();
     await page.getByRole("button", { name: "この内容で売る" }).click();
-    await page.getByText("10コインを獲得しました。カード減算とコイン加算は一度だけ保存済みです。").waitFor();
+    await page.getByText("10コインを獲得しました。", { exact: true }).waitFor();
     const evidence = await page.evaluate(({ key }) => ({
       calls: globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation?.startsWith("card-sale")).map((entry) => entry.body),
       profile: JSON.parse(localStorage.getItem(key)),
@@ -4602,8 +5872,15 @@ test("actual Edge quotes and commits one server-authoritative card sale", { time
   });
 });
 
+async function openCosmeticDetails(page) {
+  const details = page.locator("#cosmeticPanel");
+  await details.waitFor();
+  if (await details.getAttribute("open") === null) await details.locator(":scope > summary").click();
+}
+
 test("UDL061 actual browser purchases at the item, persists and restores online appearance", { timeout: 130000 }, async () => {
   await withPage("cosmetic", async (page) => {
+    await openCosmeticDetails(page);
     await page.locator("#cosmeticPanel:not(.hidden)").waitFor();
     const aurora = page.locator("#cosmeticCatalog .collection-card", { hasText: "オーロラ盤面" });
     await aurora.getByRole("button", { name: "購入して装備" }).click();
@@ -4633,6 +5910,7 @@ test("UDL061 actual browser purchases at the item, persists and restores online 
 
 test("UDL061 changed quote confirms or cancels on the same item without silent purchase", { timeout: 130000 }, async () => {
   await withPage("cosmetic",async page=>{
+    await openCosmeticDetails(page);
     const item=page.locator('[data-cosmetic-id="boardAurora"]');
     await item.waitFor();
     await page.evaluate(()=>{globalThis.__standardOnlineRuntime.cosmeticQuotePrice=650;});
@@ -4665,6 +5943,7 @@ test("UDL061 changed quote confirms or cancels on the same item without silent p
 
 test("UDL061 lost purchase ACK and reload preserve one exact retry without automatic resubmission", { timeout: 130000 }, async () => {
   await withPage("cosmetic",async page=>{
+    await openCosmeticDetails(page);
     const item=page.locator('[data-cosmetic-id="boardAurora"]'),key="fourColorMapGame.standard.online.v5.pending-cosmetic";
     await item.waitFor();await page.evaluate(()=>{globalThis.__standardOnlineRuntime.failNextCosmeticAck=true;});
     await item.getByRole("button",{name:"購入して装備",exact:true}).click();
@@ -4686,6 +5965,7 @@ test("UDL061 lost purchase ACK and reload preserve one exact retry without autom
 
 test("UDL061 stale revision reload recovers at the same item with a fresh explicit purchase", { timeout: 130000 }, async () => {
   await withPage("cosmetic",async page=>{
+    await openCosmeticDetails(page);
     const item=page.locator('[data-cosmetic-id="boardAurora"]'),key="fourColorMapGame.standard.online.v5.pending-cosmetic";
     await item.waitFor();
     await page.evaluate(()=>{globalThis.__standardOnlineRuntime.advanceCosmeticRevisionBeforeCommit=true;});
@@ -4723,6 +6003,7 @@ test("UDL061 stale revision reload recovers at the same item with a fresh explic
 
 test("UDL061 definitely rejected purchase can cancel and choose another item without a debit", { timeout: 130000 }, async () => {
   await withPage("cosmetic",async page=>{
+    await openCosmeticDetails(page);
     const item=page.locator('[data-cosmetic-id="boardAurora"]');await item.waitFor();
     await page.evaluate(()=>{globalThis.__standardOnlineRuntime.advanceCosmeticRevisionBeforeCommit=true;});
     await item.getByRole("button",{name:"購入して装備",exact:true}).click();
@@ -4740,11 +6021,12 @@ test("UDL061 definitely rejected purchase can cancel and choose another item wit
 
 test("UDL061 repeat pointer Enter and Space stay single-action and44px at each width", { timeout: 130000 }, async () => {
   for(const [method,width,height] of [["pointer",390,844],["Enter",768,900],["Space",1280,900]])await withPage("cosmetic",async page=>{
+    await openCosmeticDetails(page);
     const item=page.locator('[data-cosmetic-id="boardAurora"]'),button=item.getByRole("button",{name:"購入して装備",exact:true});
     await button.waitFor();await button.scrollIntoViewIfNeeded();
     const b=await button.boundingBox();assert.ok(b.width>=44&&b.height>=44);
     const before=await page.evaluate(()=>JSON.stringify({inventory:globalThis.__standardOnlineRuntime.profile.profile_state.inventory,tickets:globalThis.__standardOnlineRuntime.profile.profile_state.gachaTickets}));
-    if(method==="pointer")await button.evaluate(e=>{e.click();e.click();});
+    if(method==="pointer")await button.dblclick({delay:20});
     else{await button.focus();await page.keyboard.down(method);await page.keyboard.down(method);await page.keyboard.up(method);}
     await item.locator(".cosmetic-item-status").getByText("オーロラ盤面を装備しました。",{exact:true}).waitFor();
     assert.equal(await page.evaluate(()=>globalThis.__standardOnlineRuntime.calls.filter(c=>c.body?.operation==="cosmetic-action").length),1);
@@ -4760,6 +6042,7 @@ test("UDL061 repeat pointer Enter and Space stay single-action and44px at each w
 
 test("UDL061 legacy unsent pending restores confirmation on its item without auto-purchase", { timeout: 130000 }, async () => {
   await withPage("cosmetic",async page=>{
+    await openCosmeticDetails(page);
     const key="fourColorMapGame.standard.online.v5.pending-cosmetic";
     await page.locator('[data-cosmetic-id="boardAurora"]').waitFor();
     await page.evaluate(key=>localStorage.setItem(key,JSON.stringify({actionId:"11111111-1111-4111-8111-111111111111",expectedRevision:1,cosmeticId:"boardAurora",quote:{cosmeticId:"boardAurora",name:"オーロラ盤面",purchaseRequired:true,price:600,coinsAfter:400},failed:false})),key);
@@ -4774,6 +6057,7 @@ test("UDL061 legacy unsent pending restores confirmation on its item without aut
 
 test("UDL061 local intent storage failure prevents any purchase before explicit recovery", { timeout: 130000 }, async () => {
   await withPage("cosmetic",async page=>{
+    await openCosmeticDetails(page);
     const item=page.locator('[data-cosmetic-id="boardAurora"]');await item.waitFor();
     await page.evaluate(()=>{const original=Storage.prototype.setItem;let fail=true;Storage.prototype.setItem=function(key,value){if(key.endsWith("pending-cosmetic")&&fail){fail=false;throw new DOMException("fixture-storage-failure","QuotaExceededError");}return original.call(this,key,value);};});
     await item.getByRole("button",{name:"購入して装備",exact:true}).click();
@@ -4787,6 +6071,7 @@ test("UDL061 local intent storage failure prevents any purchase before explicit 
 
 test("actual Edge disables unaffordable cosmetics and enables them after a saved card sale", { timeout: 130000 }, async () => {
   await withPage("cosmetic", async (page) => {
+    await openCosmeticDetails(page);
     await page.locator("#cosmeticPanel:not(.hidden)").waitFor();
     await page.evaluate(() => { globalThis.__standardOnlineRuntime.profile.profile_state.coins = 590; });
     await page.getByRole("button", { name: "見た目一覧を更新" }).click();
@@ -4803,7 +6088,7 @@ test("actual Edge disables unaffordable cosmetics and enables them after a saved
     await page.locator("#cardSaleCount").fill("1");
     await page.getByRole("button", { name: "売却内容を確認" }).click();
     await page.getByRole("button", { name: "この内容で売る" }).click();
-    await page.getByText("10コインを獲得しました。カード減算とコイン加算は一度だけ保存済みです。").waitFor();
+    await page.getByText("10コインを獲得しました。", { exact: true }).waitFor();
 
     await page.getByRole("button", { name: "マイページ", exact: true }).click();
     await page.locator("#cosmeticPanel:not(.hidden)").waitFor();
@@ -4821,7 +6106,7 @@ test("actual Edge recruits and cancels with one persisted public matchmaking tic
     await page.locator("#matchmakingWait:not(.hidden)").waitFor();
     const beforeCancel = await page.evaluate(({ key }) => JSON.parse(localStorage.getItem(key)), { key: connectionKey });
     assert.match(beforeCancel.matchmakingTicketId, /^[0-9a-f-]{36}$/i);
-    assert.equal(await page.getByRole("button", { name: "相手を探す", exact: true }).isDisabled(), true);
+    assert.equal(await page.getByRole("button", { name: "待っている相手に参加", exact: true }).isDisabled(), true);
     await page.getByRole("button", { name: "募集を取り消す" }).click();
     await page.getByText("募集を取り消しました。").waitFor();
     const afterCancel = await page.evaluate(({ key }) => JSON.parse(localStorage.getItem(key)), { key: connectionKey });
@@ -4964,7 +6249,7 @@ test("waiting-opponent notice follows availability without repeated announcement
 test("waiting-opponent arrival does not move or announce over a focused timed-quiz choice", { timeout: 130000 }, async () => {
   await withPage("lobby", async (page) => {
     await page.getByRole("button", { name: "クイズ・ガチャ", exact: true }).click();
-    await page.getByRole("button", { name: "10問チャレンジ開始" }).click();
+    await page.locator('[data-quiz-start-level="1"]').click();
     const option = page.locator("#quizOptions button").first();
     await option.waitFor();
     await option.focus();
@@ -5099,7 +6384,7 @@ test("waiting-opponent notice does not interrupt quiz answers or gacha draws", {
   for (const scenario of [
     { mode: "lobby", operation: "quiz-answer", start: async (page) => {
       await page.getByRole("button", { name: "クイズ・ガチャ", exact: true }).click();
-      await page.getByRole("button", { name: "10問チャレンジ開始" }).click();
+      await page.locator('[data-quiz-start-level="1"]').click();
       await clickMovingQuizOption(page.locator("#quizOptions button").first());
     } },
     { mode: "lobby", operation: "gacha", start: async (page) => {
@@ -5162,7 +6447,7 @@ test("actual Edge finishes one quiz answer and its feedback before handing a wai
     });
     await choosePublicWaiting(page);
     await page.getByRole("button", { name: "クイズ・ガチャ", exact: true }).click();
-    await page.getByRole("button", { name: "10問チャレンジ開始" }).click();
+    await page.locator('[data-quiz-start-level="1"]').click();
     await clickMovingQuizOption(page.locator("#quizOptions button").first());
     await page.evaluate(() => {
       globalThis.__standardOnlineRuntime.matchNow = true;
@@ -5199,7 +6484,7 @@ test("actual Edge settles an in-flight quiz start without starting a hidden ques
   await withPage("handoffStart", async (page) => {
     await choosePublicWaiting(page);
     await page.getByRole("button", { name: "クイズ・ガチャ", exact: true }).click();
-    await page.getByRole("button", { name: "10問チャレンジ開始" }).click();
+    await page.locator('[data-quiz-start-level="1"]').click();
     await page.evaluate(() => {
       globalThis.__standardOnlineRuntime.matchNow = true;
       document.dispatchEvent(new Event("visibilitychange"));
@@ -5213,6 +6498,8 @@ test("actual Edge settles an in-flight quiz start without starting a hidden ques
     assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "quiz-answer").length), 0);
     await page.getByRole("button", { name: "クイズ・ガチャ", exact: true }).click();
     assert.equal(await page.locator("#quizOptions button:not([disabled])").count(), 0);
+    assert.equal(await page.locator("[data-quiz-start-level]:not([disabled])").count(), 0);
+    assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "quiz-start").length), 1);
     assert.match(await page.locator("#quizStatus").textContent(), /一時停止/);
   }, { viewport: { width: 390, height: 844 } });
 });
@@ -5221,7 +6508,7 @@ test("actual Edge waits for a pending quiz from another tab and locks later answ
   await withPage("handoffActivity", async (page) => {
     await choosePublicWaiting(page);
     await page.getByRole("button", { name: "クイズ・ガチャ", exact: true }).click();
-    await page.getByRole("button", { name: "10問チャレンジ開始" }).click();
+    await page.locator('[data-quiz-start-level="1"]').click();
     await page.getByRole("button", { name: "カード", exact: true }).click();
     await page.evaluate(() => {
       globalThis.__standardOnlineRuntime.matchNow = true;
@@ -5322,7 +6609,7 @@ test("actual Edge preserves paused quiz time across finish and missing-room clea
     await withPage("handoffStart", async (page) => {
       await choosePublicWaiting(page);
       await page.getByRole("button", { name: "クイズ・ガチャ", exact: true }).click();
-      await page.getByRole("button", { name: "10問チャレンジ開始" }).click();
+      await page.locator('[data-quiz-start-level="1"]').click();
       await page.evaluate(() => {
         globalThis.__standardOnlineRuntime.matchNow = true;
         document.dispatchEvent(new Event("visibilitychange"));
@@ -5391,7 +6678,7 @@ test("actual Edge hydrates a CPU win once, routes its earned ticket deliberately
   await withPage("cpuWin", async (page) => {
     await page.locator("#board").click({ position: { x: 50, y: 50 } });
     await page.getByRole("button", { name: "このエリアを渡す" }).click();
-    await page.getByText("戦績を保存しました：CPU戦 勝利 1\n完了報酬：Lv.1ガチャ券 +2（所持 2→4）").waitFor();
+    await page.locator("#terminalProgressText").filter({hasText:"完了報酬\nLv.1ガチャ券 ×2"}).waitFor();
     const first = await page.evaluate(({ key }) => ({
       profile: JSON.parse(localStorage.getItem(key)),
       actionCalls: globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "action").length,
@@ -5402,8 +6689,9 @@ test("actual Edge hydrates a CPU win once, routes its earned ticket deliberately
     assert.equal(first.profile.gachaTickets["1"], 4);
     assert.equal(first.profile.matchHistory.filter((entry) => entry.matchId === `${roomId}:9`).length, 1);
     assert.equal(first.actionCalls, 1);
-    const rewardCta = page.getByRole("button", { name: "獲得したLv.1券でガチャへ" });
+    const rewardCta = page.locator("#terminalGoGacha");
     await rewardCta.waitFor();
+    assert.equal(await rewardCta.textContent(), "ガチャへ");
     await page.waitForFunction(() => document.activeElement?.id === "terminalClose");
     const terminalLayout = await page.evaluate(() => {
       const dialog = document.querySelector(".terminal-celebration").getBoundingClientRect();
@@ -5423,8 +6711,8 @@ test("actual Edge hydrates a CPU win once, routes its earned ticket deliberately
     assert.ok(terminalLayout.dialogScrollHeight <= terminalLayout.dialogClientHeight + 1, JSON.stringify(terminalLayout));
     await rewardCta.click();
     await page.locator("#gachaPanel:not(.hidden)").waitFor();
-    await page.getByText("CPU戦の完了報酬を反映済み：Lv.1券 所持 ×4。1枚引くと所持券は3枚になります。").waitFor();
-    assert.match(await page.locator("#gachaTickets").textContent(), /Lv\.1 ×4/);
+    await page.getByText("対戦でもらったLv.1券を選びました。").waitFor();
+    assert.match(await page.locator('[data-gacha-level="1"] [data-gacha-count]').textContent(), /4枚/);
     await page.waitForFunction(() => document.activeElement?.id === "gachaTitle");
     await page.waitForFunction(() => {
       const draw = document.querySelector("#gachaDrawOne").getBoundingClientRect();
@@ -5436,7 +6724,7 @@ test("actual Edge hydrates a CPU win once, routes its earned ticket deliberately
       const tabs = document.querySelector(".app-tabs").getBoundingClientRect();
       return {
         activeTab: document.body.dataset.activeTab,
-        level: document.querySelector("#gachaLevel").value,
+        level: document.querySelector('[data-gacha-level][aria-pressed="true"]')?.dataset.gachaLevel,
         roomStatus: globalThis.__standardOnlineRuntime.room.status,
         storedRoomId: JSON.parse(localStorage.getItem(key)).roomId,
         gachaCalls: globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "gacha").length,
@@ -5448,7 +6736,7 @@ test("actual Edge hydrates a CPU win once, routes its earned ticket deliberately
     const selectedBeforeDraw = await page.locator('input[name="loadout-color"]:checked').evaluateAll((nodes) => nodes.map((node) => node.value));
     assert.equal(selectedBeforeDraw.includes("colorPrism"), false);
     await page.getByRole("button", { name: "1枚引く" }).click();
-    await page.getByText("1枚を獲得しました。券消費とカード付与は一度だけ保存済みです。").waitFor();
+    await page.getByText("1枚を獲得しました。").waitFor();
     await page.waitForFunction(() => document.activeElement?.id === "gachaResults");
     assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "gacha").length), 1);
     assert.equal(await page.locator("#gachaResultAnnouncement").textContent(), "1枚獲得。1種類、最高レアリティ星1。詳しくは獲得カード一覧で確認できます。");
@@ -5473,8 +6761,8 @@ test("actual Edge hydrates a CPU win once, routes its earned ticket deliberately
     await page.locator("#connectionBadge.good").waitFor();
     await page.locator("#gachaPanel:not(.hidden):not(.tab-panel-hidden)").waitFor();
     await page.getByRole("button", { name: "6枚を選び直して同じCPUと再戦" }).waitFor();
-    assert.match(await page.locator("#gachaTickets").textContent(), /Lv\.1 ×3/);
-    assert.equal(await page.locator("#gachaStatus").textContent(), "1枚を獲得しました。券消費とカード付与は一度だけ保存済みです。");
+    assert.match(await page.locator('[data-gacha-level="1"] [data-gacha-count]').textContent(), /3枚/);
+    assert.equal(await page.locator("#gachaStatus").textContent(), "1枚を獲得しました。");
     assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "gacha").length), 0);
     await page.evaluate(() => {
       document.querySelector("#gachaCpuRematch").click();
@@ -5507,12 +6795,12 @@ test("actual Edge hydrates a CPU win once, routes its earned ticket deliberately
 
 test("CPU reward copy requires a saved CPU settlement", { timeout: 150000 }, async () => {
   await withPage("finished", async (page) => {
-    await page.getByText("戦績を保存しました：対人戦 勝利 4").waitFor();
+    await page.locator("#terminalProgressText").filter({hasText:"報酬を確認中です。"}).waitFor();
     assert.doesNotMatch(await page.locator("#terminalProgressText").textContent(), /完了報酬/);
     assert.equal(await page.locator("#terminalGoGacha").isHidden(), true);
   });
   await withPage("finishedCpu", async (page) => {
-    await page.getByText("戦績を確認しています。マイページでも確認できます。").waitFor();
+    await page.locator("#terminalProgressText").filter({hasText:"報酬を確認中です。"}).waitFor();
     assert.doesNotMatch(await page.locator("#terminalProgressText").textContent(), /完了報酬/);
     assert.equal(await page.locator("#terminalGoGacha").isHidden(), true);
     await page.evaluate(() => {
@@ -5526,16 +6814,19 @@ test("CPU reward copy requires a saved CPU settlement", { timeout: 150000 }, asy
       runtime.room = { ...runtime.room, public_state: { ...runtime.room.public_state, debugUnlimitedSkills: true } };
       runtime.onInvalidate();
     });
-    await page.locator("#terminalProgressText").filter({ hasText: "実験対戦のため、戦績・報酬・在庫は変わりません。" }).waitFor();
+    await page.locator("#terminalProgressText").filter({ hasText: "実験対戦のため報酬はありません。" }).waitFor();
     assert.doesNotMatch(await page.locator("#terminalProgressText").textContent(), /完了報酬/);
     assert.equal(await page.locator("#terminalGoGacha").isHidden(), true);
   });
 });
 
-test("actual Edge rematches the same visible CPU and returns the human to fresh setup", { timeout: 130000 }, async () => {
+test("UDL060 v2 recovers an already pending CPU rematch with its original identity", { timeout: 130000 }, async () => {
   await withPage("finishedCpu", async (page) => {
-    await page.getByRole("button", { name: "再戦・対戦結果へ戻る" }).click();
-    await page.getByRole("button", { name: "同じCPUと再戦する" }).click();
+    await page.locator("#terminalClose").click();
+    assert.equal(await page.locator("#requestRematch").isVisible(),false);
+    await page.evaluate(({key,id})=>{const saved=JSON.parse(localStorage.getItem(key));saved.rematchActionId=id;saved.rematchExpectedVersion=globalThis.__standardOnlineRuntime.room.version;localStorage.setItem(key,JSON.stringify(saved));},{key:connectionKey,id:pendingRematchId});
+    await page.reload();
+    await page.getByRole("button", { name: "前回の再戦申請を確認" }).click();
     await page.locator("#setupCard:not(.hidden)").waitFor();
     assert.equal(await page.locator("#shownCode").textContent(), "CPU：うっかりユズ");
     const evidence = await page.evaluate(({ key }) => ({
@@ -5544,26 +6835,27 @@ test("actual Edge rematches the same visible CPU and returns the human to fresh 
     }), { key: connectionKey });
     assert.equal(evidence.calls.length, 1);
     assert.equal(evidence.calls[0].expectedVersion, 9);
-    assert.match(evidence.calls[0].actionId, /^[0-9a-f-]{36}$/i);
+    assert.equal(evidence.calls[0].actionId, pendingRematchId);
     assert.equal(evidence.stored.setupRevision, 0);
     assert.equal(evidence.stored.rematchActionId, null);
   });
 });
 
-test("actual Edge keeps a finished CPU room until another CPU is chosen", { timeout: 130000 }, async () => {
+test("UDL060 v2 starts another CPU from the lobby only after explicit result close", { timeout: 130000 }, async () => {
   await withPage("finishedCpu", async (page) => {
-    await page.getByRole("button", { name: "再戦・対戦結果へ戻る" }).click();
-    const chooseAnother = page.getByRole("button", { name: "別のCPUを選んで新しく対戦" });
+    await page.locator("#terminalGoLobby").click();
+    assert.equal(await page.evaluate(key=>JSON.parse(localStorage.getItem(key))?.roomId,connectionKey),null);
+    assert.deepEqual(await resultWriteCalls(page),[]);
+    const chooseAnother = page.locator("#startStandardCpuLobby");
     await chooseAnother.click();
     await page.locator("#cpuRosterDialog[open]").waitFor();
-    assert.equal(await page.locator("#closeCpuRoster").textContent(), "対戦結果に戻る");
     const roomBeforeCancel = await page.evaluate(({ key }) => JSON.parse(localStorage.getItem(key))?.roomId, { key: connectionKey });
-    assert.equal(roomBeforeCancel, "11111111-1111-4111-8111-111111111111");
+    assert.equal(roomBeforeCancel, null);
 
     await page.keyboard.press("Escape");
     await page.locator("#cpuRosterDialog").waitFor({ state: "hidden" });
-    assert.equal(await page.evaluate(() => document.activeElement?.id), "chooseDifferentCpu");
-    assert.equal(await page.locator("#room").isVisible(), true);
+    assert.equal(await page.evaluate(() => document.activeElement?.id), "startStandardCpuLobby");
+    assert.equal(await page.locator("#room").isVisible(), false);
     assert.equal(await page.evaluate(({ key }) => JSON.parse(localStorage.getItem(key))?.roomId, { key: connectionKey }), roomBeforeCancel);
 
     await chooseAnother.click();
@@ -5593,7 +6885,7 @@ test("actual Edge keeps a finished CPU room until another CPU is chosen", { time
 test("actual Edge finds a public opponent and enters setup without exposing a code", { timeout: 130000 }, async () => {
   await withPage("publicFind", async (page) => {
     await page.locator("#choosePublicBattle").click();
-    await page.getByRole("button", { name: "相手を探す", exact: true }).click();
+    await page.getByRole("button", { name: "待っている相手に参加", exact: true }).click();
     await page.locator("#room:not(.hidden)").waitFor();
     assert.equal(await page.locator("#roomIdentityLabel").textContent(), "対戦形式");
     assert.equal(await page.locator("#shownCode").textContent(), "野良対戦");
@@ -5608,7 +6900,7 @@ test("actual Edge finds a public opponent and enters setup without exposing a co
 test("actual Edge makes the six-card setup explicit, constrained, and keyboard-safe on mobile", { timeout: 150000 }, async () => {
   await withPage("publicFind", async (page) => {
     await page.locator("#choosePublicBattle").click();
-    await page.getByRole("button", { name: "相手を探す", exact: true }).click();
+    await page.getByRole("button", { name: "待っている相手に参加", exact: true }).click();
     await page.locator("#setupCard:not(.hidden)").waitFor();
     const summary = page.locator("#loadoutSummary");
     await summary.getByText("選択 6/6｜色 2/2｜エリア 2/2｜妨害 2/2｜準備OK", { exact: true }).waitFor();
@@ -6816,6 +8108,97 @@ test("actual browser never draws removed current or previous region history outl
   }, { viewport: { width: 390, height: 844 } });
 });
 
+test("UDL067 face follows all ten public CPU identities and clears without a game write", { timeout: 120000 }, async () => {
+  await withPage("colorResponse", async page => {
+    const names = { yuzu:"ユズ", ren:"レン", minato:"ミナト", koharu:"コハル", aoi:"アオイ",
+      kai:"カイ", tsubasa:"ツバサ", shion:"シオン", rei:"レイ", kurogane:"クロガネ" };
+    const dialogue = require("../standard-online-v5/surrender-confirmation.js");
+    const portraits = require("../standard-online-v5/cpu-portraits.js");
+    const commands = () => page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter(c => c.body).map(c => c.body));
+    const before = await commands();
+    for (const [id, name] of Object.entries(names)) {
+      await page.evaluate(id => {
+        const r = globalThis.__standardOnlineRuntime;
+        r.room = { ...r.room, opponent_kind:"cpu", cpu_character_id:id }; r.onInvalidate();
+      }, id);
+      await page.waitForFunction(name => document.querySelector("#cpuCommentaryName")?.textContent.includes(name), name);
+      await page.locator("#colorSurrender:not([disabled])").click();
+      await page.locator("#surrenderDialog[open]").waitFor();
+      const frame = page.locator("#surrenderCpuPortraitFrame");
+      await page.waitForFunction(() => document.querySelector("#surrenderCpuPortraitFrame").dataset.portraitStatus === "ready");
+      assert.equal(await frame.getAttribute("data-portrait-key"), id + ":normal");
+      assert.equal(await frame.getAttribute("data-portrait-mode"), "normal");
+      assert.equal(await frame.getAttribute("data-portrait-reason"), null);
+      assert.equal(await frame.getAttribute("aria-hidden"), "true");
+      assert.equal(await frame.isVisible(), true);
+      assert.equal(await frame.locator("button,a,[tabindex]").count(), 0);
+      assert.match(await page.locator("#surrenderSpeaker").textContent(), new RegExp(name));
+      assert.equal(await page.locator("#surrenderDescription").textContent(), dialogue.dialogueFor("cpu", id).line);
+      const selection = portraits.selectCpuPortrait({ characterId:id });
+      assert.deepEqual(await page.locator("#surrenderCpuPortrait").evaluate(el => ({
+        x:el.style.getPropertyValue("--cpu-portrait-x"), y:el.style.getPropertyValue("--cpu-portrait-y"), hidden:el.hidden
+      })), { x:selection.x, y:selection.y, hidden:false });
+      await page.evaluate(() => { globalThis.__faceBefore = document.querySelector("#surrenderCpuPortrait"); globalThis.__standardOnlineRuntime.onInvalidate(); });
+      assert.equal(await page.evaluate(() => document.querySelector("#surrenderCpuPortrait") === globalThis.__faceBefore), true);
+      assert.equal(await page.evaluate(() => document.activeElement.id), "cancelSurrender");
+      await page.keyboard.press("Escape");
+      assert.equal(await frame.isHidden(), true);
+      assert.equal(await frame.getAttribute("data-portrait-key"), null);
+    }
+    await page.locator("#colorSurrender:not([disabled])").click();
+    await page.evaluate(() => { const r=globalThis.__standardOnlineRuntime;
+      r.room={...r.room,cpu_character_id:"rei"};r.onInvalidate(); });
+    await page.locator("#surrenderDialog").waitFor({state:"hidden"});
+    assert.equal(await page.locator("#surrenderCpuPortraitFrame").isHidden(),true);
+    assert.equal(await page.locator("#surrenderCpuPortraitFrame").getAttribute("data-portrait-key"),null);
+    for (const kind of ["human","cpu"]) {
+      const expectedTurn = await page.evaluate(kind => { const r=globalThis.__standardOnlineRuntime,version=r.room.version+1;
+        // Both generic variants hide commentary; that unchanged node is not a refresh barrier.
+        // Exercise a delayed snapshot without suppressing the product's stale-consent guard.
+        globalThis.__randomRevealSnapshotDelayMs=kind==="cpu"?500:0;
+        r.room={...r.room,version,opponent_kind:kind,cpu_character_id:"unknown",
+          public_state:{...r.room.public_state,version,turn:version}};
+        r.view={...r.view,version};r.onInvalidate();return version; }, kind);
+      await page.waitForFunction(() => document.querySelector("#cpuCommentaryStage").classList.contains("hidden"));
+      await page.waitForFunction(turn => document.querySelector("#versionText").textContent===String(turn),expectedTurn);
+      assert.equal(await page.locator("#versionText").textContent(),String(expectedTurn));
+      await page.evaluate(()=>{globalThis.__randomRevealSnapshotDelayMs=0;});
+      await page.locator("#colorSurrender:not([disabled])").click();
+      await page.locator("#surrenderDialog[open]").waitFor();
+      assert.equal(await page.locator("#surrenderCpuPortraitFrame").isHidden(), true);
+      assert.equal(await page.locator("#surrenderDescription").textContent(), dialogue.dialogueFor(kind,"unknown").line);
+      await page.locator("#cancelSurrender").click();
+    }
+    assert.deepEqual(await commands(), before);
+  }, { viewport:{width:390,height:844}, bodyTimeout:70000 });
+});
+
+for (const unavailable of ["atlas", "module"]) {
+  test("UDL067 face " + unavailable + " failure keeps visible fallback and safe explicit confirmation", { timeout: 120000 }, async () => {
+    const errors=[];
+    await withPage("colorResponse", async page => {
+      await page.evaluate(() => { const r=globalThis.__standardOnlineRuntime;
+        r.room={...r.room,opponent_kind:"cpu",cpu_character_id:"rei"};r.onInvalidate(); });
+      await page.waitForFunction(() => document.querySelector("#cpuCommentaryName")?.textContent.includes("レイ"));
+      const count=()=>page.evaluate(()=>globalThis.__standardOnlineRuntime.calls.filter(c=>c.body?.operation==="action").length);
+      const before=await count();
+      await page.locator("#colorSurrender:not([disabled])").click();
+      await page.locator("#surrenderDialog[open]").waitFor();
+      assert.equal(await page.locator("#surrenderCpuPortraitFrame").isVisible(),true);
+      assert.equal(await page.locator("#surrenderCpuPortrait").isHidden(),true);
+      assert.equal(await page.locator("#surrenderCpuPortraitFallback").isVisible(),true);
+      assert.equal(await page.evaluate(()=>document.activeElement.id),"cancelSurrender");
+      await page.keyboard.press("Enter");assert.equal(await count(),before);
+      await page.locator("#colorSurrender").click();await page.locator("#confirmSurrender").click();
+      await page.locator("#terminalOverlay").waitFor({state:"visible"});
+      assert.equal(await count(),before+1);assert.deepEqual(errors,[]);
+    }, {viewport:{width:390,height:844},beforeNavigate:async page=>{
+      page.on("pageerror",error=>errors.push(error.message));
+      await page.route(unavailable==="atlas"?"**/cpu-portrait-atlas.png":"**/cpu-portraits.js*",route=>route.abort("failed"));
+    }});
+  });
+}
+
 test("UDL067 CPU surrender is cancel-first, stable, keyboard-safe and one explicit terminal write", { timeout: 120000 }, async () => {
   await withPage("colorResponse", async page => {
     await page.emulateMedia({ reducedMotion: "reduce" });
@@ -6827,13 +8210,15 @@ test("UDL067 CPU surrender is cancel-first, stable, keyboard-safe and one explic
     await page.locator("#colorSurrender:not([disabled])").waitFor();
     const count=()=>page.evaluate(()=>globalThis.__standardOnlineRuntime.calls.filter(c=>c.body?.operation==="action").length);
     const before=await count();
-    for(const width of [390,768,1280]){
-      await page.setViewportSize({width,height:900});
+    for(const [width,height] of [[390,844],[768,900],[1280,900],[844,390]]){
+      await page.setViewportSize({width,height});
       await page.locator("#colorSurrender").focus();await page.keyboard.press("Enter");
       await page.locator("#surrenderDialog[open]").waitFor();
       assert.equal(await page.evaluate(()=>document.activeElement.id),"cancelSurrender");
       assert.equal(await page.locator("#cancelSurrender").evaluate(el=>getComputedStyle(el).outlineColor),"rgb(103, 232, 249)");
       assert.match(await page.locator("#surrenderSpeaker").textContent(),/レイ/);
+      assert.equal(await page.locator("#surrenderCpuPortraitFrame").isVisible(),true);
+      assert.equal(await page.locator("#surrenderCpuPortraitFrame").getAttribute("data-portrait-key"),"rei:normal");
       assert.equal(await page.locator("#surrenderDescription").textContent(),"ここまでにしますか？ もう少し、あなたの選択を観察したかったです。");
       const geometry=await page.locator("#surrenderDialog").evaluate(el=>{
         const r=el.getBoundingClientRect();return {fit:r.x>=0&&r.right<=innerWidth&&r.y>=0&&r.bottom<=innerHeight,
@@ -7524,7 +8909,7 @@ test("actual browser presents CPU commentary once from public events and keeps t
     });
 
     await page.locator('[data-app-tab="quiz"]').click();
-    await page.locator("#quizStart").click();
+    await page.locator('[data-quiz-start-level="1"]').click();
     const quizOption = page.locator("#quizOptions button").first();
     await quizOption.waitFor({ state: "visible" });
     await quizOption.focus();

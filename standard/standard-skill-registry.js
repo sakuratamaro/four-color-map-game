@@ -2,6 +2,11 @@
 
 const SKILL_USAGE_CATEGORIES = Object.freeze(["color", "area", "disrupt"]);
 const COLORED_CORNER_BLOOM_ENGINE_VERSION = "5.0.0-alpha.4";
+const LEARNED_TECHNIQUE_ENGINE_VERSION = "5.0.0-alpha.5";
+
+function supportsColoredCornerBloom(engineVersion) {
+  return engineVersion === COLORED_CORNER_BLOOM_ENGINE_VERSION || engineVersion === LEARNED_TECHNIQUE_ENGINE_VERSION;
+}
 
 function skill(id, displayName, category, rarity, timing, options = {}) {
   const implemented = Boolean(options.implemented);
@@ -28,10 +33,23 @@ function skill(id, displayName, category, rarity, timing, options = {}) {
     consumptionPolicy: options.consumptionPolicy || "RESOLVED_V49",
     handlerVersion: options.handlerVersion ?? null,
     v49Catalogued,
+    ...(options.acquisitionType ? { acquisitionType: options.acquisitionType, displayRarity: options.displayRarity !== false } : {}),
   });
 }
 
 const STANDARD_SKILLS = Object.freeze({
+  techUnsealOne: skill("techUnsealOne", "解封", "color", 1, "COLOR", {
+    targetSchema: { color: "current-owned-sealed-color" },
+    implemented: true,
+    acquisitionType: "LEARNED",
+    displayRarity: false,
+    gachaEnabled: false,
+    v49Catalogued: false,
+    standardUiEnabled: false,
+    privateInformationEffect: true,
+    consumptionPolicy: "RESOLVED_ONLY_SEPARATE_MATCH_TECHNIQUE_USE",
+    handlerVersion: "unseal-v1",
+  }),
   colorRandomBorrow: skill("colorRandomBorrow", "色拾い・乱", "color", 1, "COLOR", {
     implemented: true,
     privateInformationEffect: true,
@@ -179,4 +197,4 @@ const STANDARD_SKILLS = Object.freeze({
 const V49_SKILL_IDS = Object.freeze(Object.values(STANDARD_SKILLS).filter((entry) => entry.v49Catalogued).map((entry) => entry.id));
 const IMPLEMENTED_SKILL_IDS = Object.freeze(Object.values(STANDARD_SKILLS).filter((entry) => entry.implemented).map((entry) => entry.id));
 
-module.exports = { COLORED_CORNER_BLOOM_ENGINE_VERSION, IMPLEMENTED_SKILL_IDS, SKILL_USAGE_CATEGORIES, STANDARD_SKILLS, V49_SKILL_IDS };
+module.exports = { COLORED_CORNER_BLOOM_ENGINE_VERSION, LEARNED_TECHNIQUE_ENGINE_VERSION, supportsColoredCornerBloom, IMPLEMENTED_SKILL_IDS, SKILL_USAGE_CATEGORIES, STANDARD_SKILLS, V49_SKILL_IDS };

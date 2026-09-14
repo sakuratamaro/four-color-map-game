@@ -28,6 +28,14 @@
 .card-sale-controls { display: flex; align-items: end; gap: 9px; flex-wrap: wrap; }
 .card-sale-controls label { display: grid; gap: 4px; color: #cbd5e1; font-size: 12px; font-weight: 800; }
 .card-sale-controls input { width: 86px; }
+.card-sale-controls label { min-width: 0; max-width: 100%; }
+.card-sale-controls select { min-width: 0; max-width: 100%; }
+.card-sale-controls button, #cardSaleRecovery, #editNextLoadout { min-height: 44px; max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
+#cardSaleRestriction, #loadoutRecoveryStatus { overflow-wrap: anywhere; }
+#cardSaleRecovery { margin-top: 4px; }
+.card-sale-status[data-state="success"] { border-left: 4px solid #4ade80; }
+.card-sale-status[data-state="error"] { border-left: 4px solid #fb7185; }
+.card-sale-status[data-state="pending"] { border-left: 4px solid #facc15; }
 .cpu-character-records { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; margin: 8px 0 16px; }
 .cpu-character-record { display: grid; grid-template-columns: 48px minmax(0, 1fr); align-items: center; gap: 8px; min-width: 0; padding: 8px; border: 1px solid #334155; border-radius: 12px; background: #0f172a; }
 .cpu-character-record.is-unplayed { background: #0b1220; }

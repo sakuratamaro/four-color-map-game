@@ -1,0 +1,53 @@
+{
+  "base_sha": "172c35651b2e6c5afd44179733d34ed269e88daf",
+  "cases": [
+    {
+      "engineVersion": "5.0.0-alpha.1",
+      "seed": 902,
+      "snapshots": 7,
+      "sha256": "a0349a5d3cc46c1f9d813492c1b804eb3b5a9bf5884b43d95ecba26c1a6ae316"
+    },
+    {
+      "engineVersion": "5.0.0-alpha.1",
+      "seed": 1902,
+      "snapshots": 7,
+      "sha256": "4955fd5043aaacc6c08943d9b407fd8271e2009f136176789d6125084b423704"
+    },
+    {
+      "engineVersion": "5.0.0-alpha.2",
+      "seed": 902,
+      "snapshots": 7,
+      "sha256": "1a5b1a7650158fb355be952172be9a0332f0260719abc3cbdaa19fdd3a743f64"
+    },
+    {
+      "engineVersion": "5.0.0-alpha.2",
+      "seed": 1902,
+      "snapshots": 7,
+      "sha256": "92b174d9103d4d5d928ffa50da12c6f3bb2cda5c612f18fa0b834fad86611fad"
+    },
+    {
+      "engineVersion": "5.0.0-alpha.3",
+      "seed": 902,
+      "snapshots": 7,
+      "sha256": "c125ba9881e89277c472afdc45116b67feae09ce58e78d2de6de74044766189d"
+    },
+    {
+      "engineVersion": "5.0.0-alpha.3",
+      "seed": 1902,
+      "snapshots": 7,
+      "sha256": "83fd20908ac30445190a32f523a9df55620042ce0db6eb8073d45aa51b5b7908"
+    },
+    {
+      "engineVersion": "5.0.0-alpha.4",
+      "seed": 902,
+      "snapshots": 7,
+      "sha256": "3a15f5cd24f285aa2289e4777dfb129359c01884210bb846e485ed84a51763b8"
+    },
+    {
+      "engineVersion": "5.0.0-alpha.4",
+      "seed": 1902,
+      "snapshots": 7,
+      "sha256": "79baae1827d5b9b321c60eab4daec194d37b08a8272806d1022eed0deeecd02a"
+    }
+  ]
+}

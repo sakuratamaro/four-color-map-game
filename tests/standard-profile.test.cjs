@@ -116,3 +116,15 @@ test("progression fields survive standard save round-trip and reject malformed d
   invalidCoins.profiles.player.coins = "100";
   assert.throws(() => profileModel.applyCardSale({ profile: invalidCoins.profiles.player, skillId: "colorPrism", count: 1 }), /INVALID_COINS/);
 });
+
+test("AC-064-01: valid historic wins can lack a date and later wins never invent that first-win date", () => {
+  for (const date of [undefined, null]) {
+    const before = JSON.parse(JSON.stringify(profile()));
+    before.cpuCharacterStats.ren = { matches: 1, wins: 1, losses: 0, ...(date === null ? { firstWinAt: null } : {}) };
+    assert.equal(profileModel.validateProgressionFields(before), true);
+    const after = profileModel.recordCpuMatchOutcome({ profile: before, matchId: "later-win", cpuCharacterId: "ren", won: true, terminalReason: "SURRENDER", endedAt: "2026-09-14T00:00:00Z" });
+    assert.equal(after.cpuCharacterStats.ren.wins, 2);
+    assert.equal(after.cpuCharacterStats.ren.firstWinAt, date);
+    assert.equal(Object.hasOwn(after.cpuCharacterStats.ren, "firstWinAt"), date === null);
+  }
+});
