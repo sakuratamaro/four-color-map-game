@@ -20,6 +20,7 @@ const moduleIds = [
   "standard/standard-engine.js",
   "standard/standard-region-geometry.js",
   "standard/standard-skill-registry.js",
+  "standard/standard-technique-state.js",
   "standard/standard-skill-handlers.js",
   "standard/standard-skill-dispatcher.js",
   "standard/standard-match.js",
@@ -40,7 +41,7 @@ function browserBundle() {
   return `"use strict";(()=>{const modules={${modules}};const cache={};function normalize(parts){const out=[];for(const part of parts){if(!part||part===".")continue;if(part==="..")out.pop();else out.push(part);}return out.join("/");}function load(id){if(cache[id])return cache[id].exports;if(!modules[id])throw new Error("Unknown module: "+id);const module={exports:{}};cache[id]=module;const base=id.split("/").slice(0,-1);const localRequire=(request)=>load(request.startsWith(".")?normalize([...base,...request.split("/")]):request);modules[id](localRequire,module,module.exports);return module.exports;}globalThis.__standardCpuBrowser={cpu:load("standard/standard-cpu.js"),selfplay:load("scripts/standard-cpu-selfplay.cjs")};})();`;
 }
 
-test("actual Edge reproduces canonical CPU skill, interaction, dominance, and privacy gates", { timeout: 60000 }, async (t) => {
+test(`actual ${browserName} reproduces canonical CPU skill, interaction, dominance, and privacy gates`, { timeout: 60000 }, async (t) => {
   assert.ok(chromium, "Playwright is required");
   const executablePath = browserExecutable();
   assert.ok(executablePath, "Edge or Chromium is required");
@@ -51,6 +52,7 @@ test("actual Edge reproduces canonical CPU skill, interaction, dominance, and pr
   page.on("pageerror", (error) => pageErrors.push(String(error)));
   await page.setContent("<!doctype html><html><body><main>Standard CPU browser gate</main></body></html>");
   await page.addScriptTag({ content: browserBundle() });
+  assert.deepEqual(pageErrors, [], "CPU test bundle must load all canonical dependencies before simulation");
 
   const result = await page.evaluate(() => {
     const { selfplay } = globalThis.__standardCpuBrowser;

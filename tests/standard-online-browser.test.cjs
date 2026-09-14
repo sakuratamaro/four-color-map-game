@@ -2421,7 +2421,7 @@ for(const width of [390,900]) test(`${browserName} AC064 Ren trial native disclo
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),true);
   },{viewport:{width,height:844},beforeNavigate:page=>installRenTrialUi(page)});
 });
-test(`${browserName} AC064 lost trial start shows an explicit same-ID retry and never submits six owned cards`,{timeout:130000},async()=>{
+test(`${browserName} AC064 lost trial start shows an explicit same-ID retry and never submits six owned cards`, { timeout: 130000 }, async () => {
   await withPage("cosmetic",async page=>{
     const details=await openRenTrialDisclosure(page);await details.locator("button").click();
     await page.locator("#resumeTrialStart:not([disabled]):not(.hidden)").waitFor();await page.locator("#closeCpuRoster").click();
@@ -2431,7 +2431,7 @@ test(`${browserName} AC064 lost trial start shows an explicit same-ID retry and 
     assert.equal(starts.length,2);assert.deepEqual(starts[0],starts[1]);assert.equal(all.some(c=>["cpu-start","setup"].includes(c.operation)),false);
   },{viewport:{width:390,height:844},beforeNavigate:page=>installRenTrialUi(page,{loseStart:true})});
 });
-test(`${browserName} AC064 learned equipment lost ACK stays recoverable through Home and reload without extra writes`,{timeout:130000},async()=>{
+test(`${browserName} AC064 learned equipment lost ACK stays recoverable through Home and reload without extra writes`, { timeout: 130000 }, async () => {
   await withPage("cosmetic",async page=>{
     await page.locator("#equipTechnique:not([disabled])").waitFor();assert.match(await page.locator("#techniqueEquipmentSummary").innerText(),/未装備/);
     await page.locator("#equipTechnique").click();await page.locator("#resumeTechniqueEquip:not([disabled]):not(.hidden)").waitFor();
