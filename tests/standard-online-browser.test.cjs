@@ -6967,7 +6967,9 @@ test("actual Edge hands one submitted setup to the visible first-move guide with
       tabs: rect(".app-tabs"),
       overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
       actionOrder: Boolean(document.querySelector("#playSurface > #regionControls + #colorResponse"))
-        && Boolean(document.querySelector("#playSurface + #actionStatus + #retryAction + .hand-heading + #skillControls + #skillTargetControls + #matchSetupDetails + #paletteHistoryPanel + #tacticalTrace")),
+        && Boolean(document.querySelector("#playSurface + #actionStatus + #retryAction + .hand-heading + #skillControls + #skillTargetControls + #techniqueControls + #matchSetupDetails + #paletteHistoryPanel + #tacticalTrace")),
+      ordinaryTechniqueHidden: document.querySelector("#techniqueControls").classList.contains("hidden")
+        && getComputedStyle(document.querySelector("#techniqueControls")).display === "none",
       playableHit: document.elementFromPoint(
         document.querySelector("#board").getBoundingClientRect().left + document.querySelector("#board").getBoundingClientRect().width * 10.5 / 12,
         document.querySelector("#board").getBoundingClientRect().top + document.querySelector("#board").getBoundingClientRect().height * 1.5 / 12,
@@ -6986,6 +6988,7 @@ test("actual Edge hands one submitted setup to the visible first-move guide with
     assert.ok(layout.connection.bottom <= layout.tabs.top - 4, JSON.stringify(layout));
     assert.equal(layout.overflow, false);
     assert.equal(layout.actionOrder, true);
+    assert.equal(layout.ordinaryTechniqueHidden, true, JSON.stringify(layout));
     assert.equal(layout.playableHit, "board");
   };
 
@@ -7036,6 +7039,7 @@ test("actual Edge hands one submitted setup to the visible first-move guide with
     assert.ok(cpuFirstLayout.connection.bottom <= cpuFirstLayout.tabs.top - 4, JSON.stringify(cpuFirstLayout));
     assert.equal(cpuFirstLayout.overflow, false);
     assert.equal(cpuFirstLayout.actionOrder, true);
+    assert.equal(cpuFirstLayout.ordinaryTechniqueHidden, true, JSON.stringify(cpuFirstLayout));
     const handoff = await page.evaluate(() => globalThis.__handoffScrolls.at(-1));
     assert.deepEqual(handoff, { id: "matchCard", options: { block: "start", behavior: "auto" } });
   }, { viewport: { width: 390, height: 844 } });
