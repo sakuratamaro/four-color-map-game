@@ -43,7 +43,8 @@ test("Standard browser gate is candidate-push, manual, or pull-request only and 
 
 test("Standard browser gate uses finite Windows Chrome and Edge jobs", () => {
   assert.match(workflow, /runs-on: windows-2025/);
-  assert.match(workflow, /timeout-minutes: 20/);
+  assert.match(workflow, /^    timeout-minutes: 30$/m);
+  assert.equal((workflow.match(/timeout-minutes:/g) || []).length, 1, "one finite job cap, no per-step override");
   assert.match(workflow, /fail-fast: false/);
   assert.match(workflow, /STANDARD_BROWSER: \[chrome, edge\]/);
   assert.match(workflow, /STANDARD_BROWSER: \$\{\{ matrix\.STANDARD_BROWSER \}\}/);
