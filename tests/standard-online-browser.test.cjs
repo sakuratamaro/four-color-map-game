@@ -191,7 +191,13 @@ test("UDL063 compact hand keeps3x2 and inline44px information targets without or
     let compact390;
     for (const viewport of [{ width: 390, height: 844 }, { width: 320, height: 740 }, { width: 768, height: 900 }, { width: 1280, height: 900 }]) {
       await page.setViewportSize(viewport);
-      await page.locator("#skillControls").evaluate(el => window.scrollBy(0, el.getBoundingClientRect().top - 105));
+      // Native actionability waits for resize/reflow before measuring pointer reachability.
+      await page.locator("#skillControls").scrollIntoViewIfNeeded();
+      await page.locator("#skillControls").evaluate(async el => {
+        el.scrollIntoView({ block: "start", behavior: "instant" });
+        window.scrollBy({ top: -105, behavior: "instant" });
+        await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      });
       const l = await layout();
       assert.equal(l.overflow, false); assert.equal(l.entries.length, 6);
       assert.equal(new Set(l.entries.slice(0,3).map(e=>e.card.y)).size, 1);
@@ -3359,6 +3365,8 @@ test("actual browser exposes the alpha.3 category window, refill loan, and accep
     await page.getByText("色封じ — 対象を指定", { exact: true }).waitFor();
     assert.equal(await page.evaluate(() => document.activeElement?.textContent), "色封じ — 対象を指定");
     await page.keyboard.press("Tab");
+    assert.equal(await page.evaluate(() => document.activeElement?.classList.contains("skill-target-info-button")), true);
+    await page.keyboard.press("Tab");
     assert.equal(await page.evaluate(() => document.activeElement?.textContent), "赤");
     await page.keyboard.press("Space");
     assert.equal(await page.getByRole("button", { name: "赤", exact: true }).getAttribute("aria-pressed"), "true");
@@ -3910,6 +3918,8 @@ test("actual browser exposes one keyboard-safe recolor lab loan while catalog st
     assert.equal(await page.evaluate(() => document.activeElement?.textContent), "塗り直し・乱 — 対象を指定");
     assert.match(await page.getByText(/不成立でもカード・手番は減りません/).textContent(), /成功可否は確定するまで分かりません/);
     await page.keyboard.press("Tab");
+    assert.equal(await page.evaluate(() => document.activeElement?.classList.contains("skill-target-info-button")), true);
+    await page.keyboard.press("Tab");
     assert.equal(await page.evaluate(() => document.activeElement?.textContent), "エリア1・赤");
     await page.keyboard.press("Space");
     assert.equal(await page.getByRole("button", { name: "エリア1・赤" }).getAttribute("aria-pressed"), "true");
@@ -3924,11 +3934,15 @@ test("actual browser exposes one keyboard-safe recolor lab loan while catalog st
     assert.equal(await page.evaluate(() => document.activeElement?.textContent), "キャンセル");
     await page.keyboard.press("Enter");
     await page.waitForFunction(() => document.activeElement?.dataset?.skill === "legalRecolor");
-    assert.equal(await page.evaluate(() => document.activeElement?.textContent), "塗り直し・乱 ×1（★3）");
+    assert.equal(await skillButton.evaluate(node => node === document.activeElement), true);
+    assert.match(await skillButton.getAttribute("aria-label"), /塗り直し・乱 ×1/);
+    assert.equal(await skillButton.textContent(), "塗り直し・乱 ×1（★3）");
     assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "action").length), 0);
 
     await page.keyboard.press("Enter");
     await page.getByText("塗り直し・乱 — 対象を指定").waitFor();
+    await page.keyboard.press("Tab");
+    assert.equal(await page.evaluate(() => document.activeElement?.classList.contains("skill-target-info-button")), true);
     await page.keyboard.press("Tab");
     await page.keyboard.press("Tab");
     assert.equal(await page.evaluate(() => document.activeElement?.textContent), "エリア2・青");
@@ -6597,7 +6611,8 @@ test("actual browser keeps both basic colors through a torn CPU-turn projection 
     await update({ version: 10, active: "A", phase: "COLOR", basicPalette: ["red", "green"] });
     await page.waitForFunction(() => document.querySelector("#versionText")?.textContent === "10"
       && document.querySelector('#paletteControls .color-button[data-color="green"]')?.disabled === false);
-    assert.equal(await page.locator("#basicPaletteValue").textContent(), "赤・緑");
+    const visibleBasics = () => page.locator('#paletteControls .color-button[data-role^="basic"]').evaluateAll(nodes => nodes.map(node => node.dataset.color));
+    assert.deepEqual(await visibleBasics(), ["red", "green"]);
 
     await update({ version: 11, active: "B", phase: "WORK", basicPalette: ["red"], viewVersion: 10 });
     await page.getByText("再接続中（自動再試行）", { exact: true }).waitFor();
@@ -6610,7 +6625,7 @@ test("actual browser keeps both basic colors through a torn CPU-turn projection 
 
     await update({ version: 11, active: "B", phase: "WORK", basicPalette: ["red", "green"] });
     await page.waitForFunction(() => document.querySelector("#versionText")?.textContent === "11");
-    assert.equal(await page.locator("#basicPaletteValue").textContent(), "赤・緑");
+    assert.deepEqual(await visibleBasics(), ["red", "green"]);
     assert.equal(await page.locator("#colorResponse").isVisible(), true);
     assert.equal(await page.locator("#paletteControls .color-button:enabled").count(), 0, "own palette stays visible but cannot paint outside the color turn");
 
@@ -7516,8 +7531,9 @@ test("actual browser separates a private palette source slot from its destinatio
         hand: {}, basicPalette: ["blue", "blue"] } };
       runtime.onInvalidate?.({});
     });
-    await page.waitForFunction(() => document.querySelector("#basicPaletteValue")?.textContent === "青・青");
-    assert.equal(await page.locator("#basicPaletteValue").textContent(), "青・青");
+    await page.waitForFunction(() => [...document.querySelectorAll('#paletteControls .color-button[data-role^="basic"]')]
+      .map(node => node.dataset.color).join(",") === "blue,blue");
+    assert.deepEqual(await page.locator('#paletteControls .color-button[data-role^="basic"]').evaluateAll(nodes => nodes.map(node => node.dataset.color)), ["blue", "blue"]);
     const layout = await target.evaluate((node) => ({
       hidden: node.classList.contains("hidden"), overflow: document.documentElement.scrollWidth > innerWidth,
     }));
