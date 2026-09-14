@@ -80,7 +80,7 @@ test("release preflight is read-only, secret-free, finite, and stage-aware", () 
   assert.match(source, /MATCH_REWARD_ECONOMY_MISMATCH/);
   assert.match(source, /app\.text\.includes\('★\$\{meta\.rarity\}'\)/);
   assert.match(source, /CANDIDATE_ASSET_GENERATION_UI_PHASE_MISMATCH/);
-assert.match(source, /app\.js\?v=20260914-3/);
+assert.match(source, /app\.js\?v=20260914-6/);
   assert.match(source, /cpu-commentary\.js\?v=20260910-1/);
   assert.match(source, /progression\.css/);
   assert.match(source, /style\.css\?v=20260914-3/);
@@ -201,6 +201,10 @@ test("candidate preflight rejects missing or stale Lv.1-5 gacha UI odds", async 
     assert.equal(hasGachaEntryDiet(html,candidateApp),false);
   }
   assert.equal(hasGachaEntryDiet(candidateHtml, candidateApp.replace('(!retry && pendingGacha)', 'false')),false);
+  for (const weakened of ["origin", "origin && !pendingGacha", "origin && !gachaBusy"]) {
+    assert.equal(hasGachaEntryDiet(candidateHtml, candidateApp.replace(
+      "origin && !pendingGacha && !gachaBusy", weakened)), false, "B1 pending and busy copy guards are both required");
+  }
 });
 
 test("candidate preflight rejects an old public Edge bundle odds table", async () => {
@@ -245,7 +249,7 @@ test("candidate app satisfies the waiting-opponent release marker", () => {
 });
 
 test("candidate page and app satisfy the alpha.4 cache generation marker", () => {
-  assert.equal(candidateHtml.includes("app.js?v=20260914-3"), true);
+  assert.equal(candidateHtml.includes("app.js?v=20260914-6"), true);
   assert.equal(candidateHtml.includes("terminal-result.css?v=20260914-1"), true);
   assert.equal(candidateApp.includes("result-continuation.js?v=20260914-1"), true);
   assert.equal(candidateHtml.includes("cpu-commentary.js?v=20260910-1"), true);

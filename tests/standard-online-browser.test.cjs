@@ -3083,6 +3083,78 @@ test("UDL060 saved result navigation retains an unresolved draw level and exact 
   },{viewport:{width:390,height:844}});
 });
 
+async function setB1SavedCpuReward(page) {
+  await page.evaluate(() => {
+    const runtime = globalThis.__standardOnlineRuntime;
+    const state = structuredClone(runtime.profile.profile_state);
+    state.gachaTickets = { "1": 3, "5": 2 };
+    state.matchHistory.find(entry => entry.matchId === runtime.room.public_state.matchId).matchReward = {
+      awarded: true, ticketLevel: 1, ticketCount: 2,
+    };
+    runtime.profile = { ...runtime.profile, revision: runtime.profile.revision + 1, profile_state: state };
+    runtime.onInvalidate();
+  });
+  await page.waitForFunction(key => document.querySelector("#terminalProgressText").textContent === "完了報酬\nLv.1ガチャ券 ×2"
+    && JSON.parse(localStorage.getItem(key))?.gachaTickets?.["1"] === 3, remoteProfileKey);
+}
+
+// REG-UDL062-GACHA-PENDING-REWARD-COPY: nonzero stock makes the CPU reward origin valid.
+for (const entry of ["overlay", "permanent"]) {
+  test(`${browserName} B1 pending reward entry ${entry} preserves recovery and exact retry`, { timeout: 130000 }, async () => {
+    const key = "fourColorMapGame.standard.online.v5.pending-gacha";
+    const pending = { actionId: "33333333-3333-4333-8333-333333333333", ticketLevel: 5, count: 2 };
+    await withPage("resultRewardCpu", async page => {
+      await setB1SavedCpuReward(page);
+      const recovery = await page.locator("#gachaStatus").textContent();
+      assert.equal(recovery, "前回の抽選結果を確認してください。");
+      if (entry === "permanent") await page.locator("#terminalClose").click();
+      await page.locator(entry === "overlay" ? "#terminalGoGacha" : "#resultGoGacha").click();
+      assert.equal(await page.locator('[data-gacha-level][aria-pressed="true"]').getAttribute("data-gacha-level"), "5");
+      assert.deepEqual(await page.evaluate(key => JSON.parse(localStorage.getItem(key)), key), pending);
+      assert.equal(await page.locator("#gachaStatus").textContent(), recovery);
+      assert.deepEqual(await resultWriteCalls(page), [], "reward navigation draws nothing");
+
+      await page.evaluate(() => { globalThis.__standardOnlineRuntime.failNextGacha = true; });
+      await page.locator("#gachaRetry").click();
+      const errorCopy = "抽選結果を確認できませんでした。前回の抽選結果をもう一度確認できます。";
+      await page.getByText(errorCopy, { exact: true }).waitFor();
+      await page.locator('[data-app-tab="battle"]').click();
+      await page.locator("#resultGoGacha").click();
+      assert.equal(await page.locator("#gachaStatus").textContent(), errorCopy, "existing error copy is not replaced by the reward selection message");
+      assert.equal(await page.locator('[data-gacha-level][aria-pressed="true"]').getAttribute("data-gacha-level"), "5");
+      assert.deepEqual(await page.evaluate(key => JSON.parse(localStorage.getItem(key)), key), pending);
+      assert.equal((await resultWriteCalls(page)).filter(c => c.body?.operation === "gacha").length, 1);
+
+      await page.locator("#gachaRetry").click();
+      await page.waitForFunction(key => localStorage.getItem(key) === null, key);
+      const calls = (await resultWriteCalls(page)).filter(c => c.body?.operation === "gacha").map(c => c.body);
+      assert.equal(calls.length, 2);
+      for (const call of calls) for (const field of ["actionId", "ticketLevel", "count"]) assert.equal(call[field], pending[field]);
+      assert.equal(await page.evaluate(key => JSON.parse(localStorage.getItem(key)).gachaTickets["1"], remoteProfileKey), 3);
+    }, { viewport: { width: 390, height: 844 }, beforeNavigate: page => page.addInitScript(({ key, pending }) => {
+      localStorage.setItem(key, JSON.stringify(pending));
+    }, { key, pending }) });
+  });
+
+  test(`${browserName} B1 ordinary reward entry ${entry} selects saved Lv1 without drawing`, { timeout: 130000 }, async () => {
+    await withPage("resultRewardCpu", async page => {
+      await setB1SavedCpuReward(page);
+      if (entry === "permanent") {
+        await page.locator("#terminalClose").click();
+        await page.locator('[data-app-tab="quiz"]').click();
+        await page.locator('[data-gacha-level="5"]').click();
+        await page.locator('[data-app-tab="battle"]').click();
+      }
+      await page.locator(entry === "overlay" ? "#terminalGoGacha" : "#resultGoGacha").click();
+      assert.equal(await page.locator('[data-gacha-level][aria-pressed="true"]').getAttribute("data-gacha-level"), "1");
+      assert.equal(await page.locator("#gachaStatus").textContent(), "対戦でもらったLv.1券を選びました。");
+      assert.deepEqual(await resultWriteCalls(page), []);
+      assert.equal(await page.evaluate(() => localStorage.getItem("fourColorMapGame.standard.online.v5.pending-gacha")), null);
+      assert.equal(await page.locator('[data-gacha-level="1"] [data-gacha-count]').textContent(), "3枚");
+    }, { viewport: { width: 390, height: 844 } });
+  });
+}
+
 test("UDL060 v2 actual saved reward levels and counts update without balance or stats copy", { timeout: 130000 }, async () => {
   await withPage("resultRewardCpu",async page=>{
     await page.locator("#terminalOverlay:not(.hidden)").waitFor();

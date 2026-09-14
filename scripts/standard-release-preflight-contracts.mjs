@@ -90,7 +90,8 @@ export function hasGachaEntryDiet(pageText, appText) {
     && includesAll(odds, ['id="gachaOddsRows"', 'scope="col">★5', '<summary>排出率</summary>'])
     && includesAll(pageText, ['id="gachaLevels"', 'id="gachaDrawOne"', 'id="gachaDrawAll"', 'id="gachaHelp"'])
     && includesAll(appText, ["pendingGacha?.ticketLevel ?? selectedGachaLevel", "(!retry && pendingGacha)",
-      "selectGachaLevel(Number(button.dataset.gachaLevel))", "GACHA_ODDS[ticketLevel][rarity]"]);
+      "selectGachaLevel(Number(button.dataset.gachaLevel))", "GACHA_ODDS[ticketLevel][rarity]",
+      'if (origin && !pendingGacha && !gachaBusy) $("gachaStatus").textContent =']);
 }
 
 export function hasApprovedGachaOddsUi(pageText, appText, registryText = "") {
@@ -175,7 +176,7 @@ export function hasCompactCpuRecords(pageText, appText, progressionCssText) {
 
 export function hasQuizAccuracyRecords(pageText, appText, progressionCssText) {
   return includesAll(pageText, [
-'app.js?v=20260914-3',
+'app.js?v=20260914-6',
     'progression.css?v=20260910-2',
     'id="quizAccuracyRecords" class="quiz-accuracy-records" role="list"',
     "記録開始以降に、サーバーで採点が確定した回答だけを集計します。",

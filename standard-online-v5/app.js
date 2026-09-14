@@ -1345,7 +1345,7 @@ function openSavedResultGacha() {
   dismissTerminalResult();
   goToGacha(reward.ticketLevel);
   armedCpuRewardGachaOrigin = origin;
-  if (origin) $("gachaStatus").textContent = `対戦でもらったLv.${origin.ticketLevel}券を選びました。`;
+  if (origin && !pendingGacha && !gachaBusy) $("gachaStatus").textContent = `対戦でもらったLv.${origin.ticketLevel}券を選びました。`;
 }
 
 function clearContactReveal({ clearAnnouncement = true } = {}) {

@@ -58,3 +58,40 @@ test("gacha responsive controls and optional odds remain focusable without fixed
   assert.match(css,/\.gacha-levels button:focus-visible/);
   assert.match(html,/class="gacha-odds-table-wrap" tabindex="0" role="region"/);
 });
+
+// REG-UDL062-GACHA-PENDING-REWARD-COPY: execute both actual navigation functions.
+for (const scenario of [
+  { name: "pending recovery", pending: true, status: "前回の抽選結果を確認してください。" },
+  { name: "pending error", pending: true, status: "抽選結果を確認できませんでした。前回の抽選結果をもう一度確認できます。" },
+  { name: "pending empty status", pending: true, status: "", expected: "前回の抽選結果を確認してください。" },
+  { name: "busy pending", pending: true, busy: true, status: "抽選中…" },
+  { name: "busy without pending", pending: false, busy: true, status: "抽選中…" },
+  { name: "ordinary saved reward", pending: false, status: "", expected: "対戦でもらったLv.1券を選びました。" },
+]) {
+  test(`B1 saved reward message respects ${scenario.name}`, () => {
+    const pending = scenario.pending ? { actionId: "33333333-3333-4333-8333-333333333333", ticketLevel: 5, count: 2 } : null;
+    const reward = { opponentKind: "cpu", ticketLevel: 1, ticketCount: 2, ticketTotal: 3,
+      roomId: "saved-room", roomVersion: 9, matchId: "saved-match" };
+    const status = { textContent: scenario.status }, effects = [];
+    const context = { pendingGacha: pending, gachaBusy: Boolean(scenario.busy), selectedGachaLevel: 5,
+      roomModel: { room: {}, view: { seat: "A" } }, profile: () => ({ gachaTickets: { 1: 3, 5: 2 } }),
+      savedResultReward: () => reward, armedCpuRewardGachaOrigin: null,
+      $: id => { assert.equal(id, "gachaStatus"); return status; },
+      dismissTerminalResult: () => effects.push("dismiss"), activateAppTab: tab => effects.push(tab),
+      clearCpuRewardGachaResult: () => effects.push("clear-result"), requestAnimationFrame: () => {},
+      renderGacha: () => {
+        if (!context.gachaBusy && !context.pendingGacha) status.textContent = "";
+        else if (!context.gachaBusy && context.pendingGacha && !status.textContent) status.textContent = "前回の抽選結果を確認してください。";
+      },
+      runGacha: () => assert.fail("navigation must not draw"),
+    };
+    const go = app.slice(app.indexOf("function goToGacha("), app.indexOf('\n$("profileSelect").onchange'));
+    const pendingBefore = JSON.stringify(pending);
+    vm.runInNewContext(go + "\n" + fn("openSavedResultGacha", "clearContactReveal") + "\nopenSavedResultGacha();", context);
+    assert.equal(context.selectedGachaLevel, scenario.pending ? 5 : 1);
+    assert.equal(JSON.stringify(context.pendingGacha), pendingBefore);
+    assert.equal(status.textContent, scenario.expected ?? scenario.status);
+    assert.equal(context.armedCpuRewardGachaOrigin.ticketLevel, 1, "valid origin exercises the formerly unconditional copy");
+    assert.deepEqual(effects, scenario.pending ? ["dismiss", "quiz"] : ["dismiss", "clear-result", "quiz"]);
+  });
+}
