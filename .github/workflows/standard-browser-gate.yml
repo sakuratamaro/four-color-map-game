@@ -2,7 +2,7 @@ name: Standard browser gate
 
 on:
   push:
-    branches: [codex/standard-release-command, codex/quiz-memo-calculator-20260912, codex/ui-diet-20260912, codex/ui-play-surface-20260912, codex/ui-result-20260912, codex/ui-cosmetics-20260912, codex/ui-player-copy-20260912, codex/skill-cutin-20260912, codex/ui-flat-entry-20260912, codex/skill-catalog-20260912, codex/surrender-confirmation-20260913, codex/cpu-split-rescue-20260913, codex/skill-cutin-readability-20260913, codex/skill-cutin-public-names-20260913]
+    branches: [codex/standard-release-command, codex/quiz-memo-calculator-20260912, codex/ui-diet-20260912, codex/ui-play-surface-20260912, codex/ui-result-20260912, codex/ui-cosmetics-20260912, codex/ui-player-copy-20260912, codex/skill-cutin-20260912, codex/ui-flat-entry-20260912, codex/skill-catalog-20260912, codex/surrender-confirmation-20260913, codex/cpu-split-rescue-20260913, codex/skill-cutin-readability-20260913, codex/skill-cutin-public-names-20260913, codex/ui-diet-release-20260915]
     paths:
       - .github/workflows/standard-browser-gate.yml
       - online/supabase-config.js
@@ -30,6 +30,8 @@ on:
       - tests/standard-online-engine-bundle.test.cjs
       - tests/standard-online-browser.test.cjs
       - tests/browser-server-cleanup.test.cjs
+      - tests/helpers/board-affordance-fixture.cjs
+      - tests/helpers/canvas-native-pointer.cjs
       - tests/helpers/browser-server-cleanup.cjs
       - tests/helpers/cpu-sql-runtime.cjs
       - tests/helpers/public-skill-fixture.cjs
@@ -64,6 +66,8 @@ on:
       - tests/standard-online-engine-bundle.test.cjs
       - tests/standard-online-browser.test.cjs
       - tests/browser-server-cleanup.test.cjs
+      - tests/helpers/board-affordance-fixture.cjs
+      - tests/helpers/canvas-native-pointer.cjs
       - tests/helpers/browser-server-cleanup.cjs
       - tests/helpers/cpu-sql-runtime.cjs
       - tests/helpers/public-skill-fixture.cjs
@@ -83,7 +87,7 @@ jobs:
   browser:
     name: Standard online browser (${{ matrix.STANDARD_BROWSER }})
     runs-on: windows-2025
-    timeout-minutes: 20
+    timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
@@ -171,6 +175,11 @@ jobs:
           tests/standard-online-skill-intents.test.cjs
           tests/standard-online-ui-static.test.cjs
           tests/standard-play-surface-model.test.cjs
+          tests/standard-palette-notice-lifecycle.test.cjs
+          tests/standard-board-affordance.test.cjs
+          tests/standard-turn-guide-diet.test.cjs
+          tests/standard-hand-compact.test.cjs
+          tests/standard-half-shift-candidate-parity.test.cjs
           tests/standard-result-continuation.test.cjs
           tests/standard-cosmetic-item-action.test.cjs
           tests/standard-player-copy-static.test.cjs

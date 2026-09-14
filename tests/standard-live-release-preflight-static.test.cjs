@@ -78,10 +78,10 @@ test("release preflight is read-only, secret-free, finite, and stage-aware", () 
   assert.match(source, /MATCH_REWARD_ECONOMY_MISMATCH/);
   assert.match(source, /app\.text\.includes\('★\$\{meta\.rarity\}'\)/);
   assert.match(source, /CANDIDATE_ASSET_GENERATION_UI_PHASE_MISMATCH/);
-assert.match(source, /app\.js\?v=20260913-44/);
+assert.match(source, /app\.js\?v=20260915-5/);
   assert.match(source, /cpu-commentary\.js\?v=20260910-1/);
   assert.match(source, /progression\.css/);
-  assert.match(source, /style\.css\?v=20260910-12/);
+  assert.match(source, /style\.css\?v=20260915-5/);
   assert.match(source, /standard-online-client\.js\?v=20260910-1/);
   assert.match(source, /standard-online-skill-intents\.js\?v=20260911-21/);
   assert.match(source, /standard-skill-registry\.generated\.js\?v=20260912-2/);
@@ -161,7 +161,11 @@ test("candidate preflight rejects missing all-start-candidate guidance or stale 
   assert.equal(hasBoardFirstCandidateGuidance(candidateHtml.replace("必要数まで完成できる全候補", "選択開始位置"), candidateApp), false);
   assert.equal(hasBoardFirstCandidateGuidance(candidateHtml, candidateApp.replace("function startCandidateMacros(state)", "function oldCandidateMacros(state)")), false);
   assert.equal(hasBoardFirstCandidateGuidance(candidateHtml, candidateApp.replace("canvas.dataset.startCandidateMacros", "canvas.dataset.oneStartCandidate")), false);
-  assert.equal(hasBoardFirstCandidateGuidance(candidateHtml, candidateApp.replace('color: "#86efac", cssWidth: 2.5, cssDash: [5, 4]', 'color: "#38bdf8", cssWidth: 3, cssDash: [3, 3]')), false);
+  assert.equal(hasBoardFirstCandidateGuidance(candidateHtml, candidateApp.replace('startGuidedMacros.size ? startGuidedMacros : connectedGuidedMacros', 'startGuidedMacros')), false);
+  for (const id of ["phaseText", "turnGuideStep", "turnGuideDetail", "toggleBoardZoom", "playViewportHint", "matchSetupDetails"])
+    assert.equal(hasBoardFirstCandidateGuidance(candidateHtml + `<div id="${id}"></div>`, candidateApp), false, id);
+  assert.equal(hasBoardFirstCandidateGuidance(candidateHtml.replace('id="submitRegion"', 'id="oldSubmitRegion"'), candidateApp), false);
+  assert.equal(hasBoardFirstCandidateGuidance(candidateHtml, candidateApp + '\nlet boardZoomed = true;'), false);
 });
 
 test("candidate preflight rejects completed-selection-only contact feedback", async () => {
@@ -229,9 +233,11 @@ test("candidate app satisfies the waiting-opponent release marker", () => {
 });
 
 test("candidate page and app satisfy the alpha.4 cache generation marker", () => {
-  assert.equal(candidateHtml.includes("app.js?v=20260913-44"), true);
+  assert.equal(candidateHtml.includes("app.js?v=20260915-5"), true);
   assert.equal(candidateHtml.includes("cpu-commentary.js?v=20260910-1"), true);
-  assert.equal(candidateHtml.includes("style.css?v=20260910-12"), true);
+  assert.equal(candidateHtml.includes("style.css?v=20260915-5"), true);
+  assert.equal(candidateHtml.includes("play-surface.css?v=20260915-3"), true);
+  assert.ok(source.includes("page.text.includes(candidateAssetMarkers.playStyle)"));
   assert.equal(candidateHtml.includes("standard-online-client.js?v=20260910-1"), true);
   assert.equal(candidateHtml.includes("standard-online-skill-intents.js?v=20260911-21"), true);
   assert.equal(candidateHtml.includes("standard-skill-registry.generated.js?v=20260912-2"), true);

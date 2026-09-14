@@ -303,7 +303,6 @@ let shownTerminalEventKey = null;
 let dismissedTerminalEventKey = null;
 let userInteractionRevision = 0;
 const selectedMacros = new Set();
-let boardZoomed = false;
 let boardKeyboardMacro = null;
 let boardKeyboardMicro = null;
 let boardInteractionScope = null;
@@ -422,6 +421,24 @@ function validPaletteImpactEvent(state, privateState) {
   return validPaletteImpactEntry(state, roomModel?.view?.seat, privateState?.privateEffects?.paletteImpactEvent);
 }
 
+// The event is history, not a ticking effect. Reconcile the latest change against
+// this seat's current coherent projection before presentation deduplication.
+function currentPaletteImpact(state, privateState) {
+  const seat = roomModel?.view?.seat;
+  if (state?.status !== "ACTIVE" || privateState?.seat !== seat) return null;
+  const event = validPaletteImpactEvent(state, privateState);
+  if (!event) return null;
+  const currentColor = event.slot < 2 ? privateState.basicPalette?.[event.slot] : privateState.bonusColor;
+  if (currentColor !== event.injectedColor) return null;
+  const debuffs = privateState.privateEffects?.paletteDebuffs;
+  if (debuffs !== undefined && (!Array.isArray(debuffs) || debuffs.length > 3)) return null;
+  const active = (debuffs || []).filter((effect) => effect?.slot === event.slot);
+  if (["self", "forced"].includes(event.kind)) return active.length ? null : { ...event, remaining: 0 };
+  if (active.length !== 1 || active[0].injectedColor !== event.injectedColor
+    || !Number.isSafeInteger(active[0].remaining) || active[0].remaining < 1 || active[0].remaining > event.remaining) return null;
+  return { ...event, remaining: active[0].remaining };
+}
+
 function validPaletteImpactHistory(state, privateState) {
   const seat = roomModel?.view?.seat;
   const history = privateState?.privateEffects?.paletteImpactHistory;
@@ -464,17 +481,21 @@ function observePaletteImpact(state, privateState) {
     observedPaletteImpactScope = scope;
     hidePaletteImpactNotice();
   }
-  const event = validPaletteImpactEvent(state, privateState);
-  if (!event || event.eventId === presentedPaletteImpactEventId || presentedPaletteImpactEvents.includes(event.eventId)
-    || document.visibilityState !== "visible" || activeAppTab !== "battle") return;
-  rememberPaletteImpact(event.eventId);
+  const event = currentPaletteImpact(state, privateState);
+  if (!event || document.visibilityState !== "visible" || activeAppTab !== "battle") {
+    hidePaletteImpactNotice();
+    return;
+  }
+  if (!presentedPaletteImpactEvents.includes(event.eventId)) rememberPaletteImpact(event.eventId);
   presentedPaletteImpactEventId = event.eventId;
   const slot = event.slot < 2 ? `基本色${event.slot + 1}` : "おまけ色";
   const actor = event.actor === seat ? "あなた" : playerName(event.actor);
   const skill = SKILL_META[event.skill]?.name || event.skill;
-  $("paletteImpactTitle").textContent = event.kind === "self" ? "持ち色を変更しました"
+  const title = event.kind === "self" ? "持ち色を変更しました"
     : event.kind === "forced" ? "強制持ち替えを受けました" : "持ち色汚染を受けました";
-  $("paletteImpactDetail").textContent = `${actor}が「${skill}」で、${slot}を${COLOR_JA[event.previousColor]}から${COLOR_JA[event.injectedColor]}へ変更しました。${event.kind === "forced" || event.kind === "self" ? "この変更は対戦終了まで続きます。" : `次の${event.remaining}回の彩色後に元へ戻ります。`}`;
+  const detail = `${slot} ${COLOR_JA[event.previousColor]}→${COLOR_JA[event.injectedColor]}（${actor}の「${skill}」）。${event.kind === "forced" || event.kind === "self" ? "対戦終了まで。" : `あと${event.remaining}回の彩色で戻ります。`}`;
+  if ($("paletteImpactTitle").textContent !== title) $("paletteImpactTitle").textContent = title;
+  if ($("paletteImpactDetail").textContent !== detail) $("paletteImpactDetail").textContent = detail;
   show("paletteImpactNotice", true);
 }
 function pendingSetupForCurrentRoom(snapshot = client.snapshot()) {
@@ -1498,11 +1519,6 @@ function renderTerminalResult(state) {
 
 function colorName(color) { return COLOR_JA[color] || "不明"; }
 
-function renderColorValue(id, color, suffix = "") {
-  const node = $(id); node.replaceChildren();
-  const chip = document.createElement("span"); chip.className = `color-chip ${color || "unknown"}`; chip.setAttribute("aria-hidden", "true"); node.appendChild(chip);
-  const label = document.createElement("span"); label.textContent = `${colorName(color)}${suffix}`; node.appendChild(label);
-}
 
 function appendColorValue(node, color, suffix = "") {
   const value = document.createElement("span");
@@ -1514,19 +1530,6 @@ function appendColorValue(node, color, suffix = "") {
   label.textContent = `${colorName(color)}${suffix}`;
   value.append(chip, label);
   node.appendChild(value);
-}
-
-function renderRandomSummary(publicState, privateState) {
-  const changedSize = publicState.requiredSize !== publicState.rolledSize;
-  $("rolledSizeValue").textContent = `${publicState.rolledSize}マス${changedSize ? `（スキル効果で現在${publicState.requiredSize}マス）` : ""}`;
-  $("basicPaletteValue").replaceChildren();
-  for (const [index, color] of (privateState.basicPalette || []).entries()) {
-    if (index) $("basicPaletteValue").append("・");
-    appendColorValue($("basicPaletteValue"), color);
-  }
-  if (!(privateState.basicPalette || []).length) $("basicPaletteValue").textContent = "確認中";
-  renderColorValue("bonusColorValue", privateState.bonusColor, `（残り${privateState.bonusUsesRemaining || 0}回）`);
-  renderPaletteHistory(publicState, privateState);
 }
 
 function paletteText(basic, bonus) {
@@ -3703,10 +3706,9 @@ function render() {
     $("turnBadge").textContent = publicState.status === "FINISHED"
       ? `勝者 Player ${publicState.winner}`
       : publicState.active === roomModel?.view?.seat ? "あなたの手番" : cpuRoom && publicState.active === "B" ? "CPUの手番" : `Player ${publicState.active} の手番`;
-    $("phaseText").textContent = phaseLabelFor(publicState, roomModel?.view?.seat, cpuRoom);
     $("publicProjection").textContent = safeJson(publicState);
     $("privateProjection").textContent = safeJson(privateState);
-    renderRandomSummary(publicState, privateState);
+    renderPaletteHistory(publicState, privateState);
     revealRandomSetup(publicState, privateState);
     syncContactSelectionScope(publicState);
     observeTurnArrival(publicState);
@@ -3764,7 +3766,8 @@ function renderSkills(state, privateState) {
     const node = button("", () => beginSkill(skill), "skill");
     const name = document.createElement("strong"); name.textContent = meta.name;
     const status = document.createElement("span"); status.className = "skill-card-status";
-    status.textContent = `★${meta.rarity} · ${used ? "使用済み" : state.debugUnlimitedSkills ? "∞" : `×${count}`}`;
+    const countLabel = used ? "使用済み" : state.debugUnlimitedSkills ? "∞" : !extra && count === 1 ? "" : `×${count}`;
+    status.textContent = [`★${meta.rarity}`, countLabel].filter(Boolean).join("\n");
     node.append(name, status);
     if (extra || skill === "legalRecolor") node.textContent = `${meta.name} ${used ? "使用済み" : state.debugUnlimitedSkills ? "∞" : `×${count}`}（★${meta.rarity}）`;
     node.setAttribute("aria-label", `${meta.name} ${used ? "使用済み" : state.debugUnlimitedSkills ? "∞" : `×${count}`}（★${meta.rarity}）`);
@@ -3792,7 +3795,6 @@ function beginSkill(skill) {
   targetDraft = { skill, kind, input: {}, feedback: "", roomId: roomModel?.room?.id, matchId: state?.matchId, version: state?.version };
   if (kind === "band-shift") targetDraft.input.axis = "ROW";
   if (!["corner-bloom", "source-macros"].includes(kind)) selectedMacros.clear();
-  if (kind === "corner-bloom") boardZoomed = true;
   render();
   if (["corner-bloom", "region-split"].includes(kind)) {
     const scheduledTarget = targetDraft;
@@ -3803,11 +3805,9 @@ function beginSkill(skill) {
       board?.focus({ preventScroll: true });
       board?.scrollIntoView({ block: "center", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
       if (kind === "corner-bloom") {
-        const micro = ensureBoardKeyboardMicro(state);
-        scrollBoardMacroIntoView(state, macroForMicro(state, micro), scheduledTarget, scheduledKind);
+        ensureBoardKeyboardMicro(state);
       } else {
-        const macro = ensureBoardKeyboardMacro(state);
-        scrollBoardMacroIntoView(state, macro, scheduledTarget, scheduledKind);
+        ensureBoardKeyboardMacro(state);
       }
     });
   } else $("skillTargetControls")?.querySelector("strong")?.focus({ preventScroll: true });
@@ -3899,10 +3899,10 @@ function selectBandShiftMacro(state, macro) {
 
 function cornerBloomSelectionMessage(state) {
   if (supportsColoredCornerBloom(state)) {
-    return "紫の枠が対象セルです。色のついたセル、または白い枠で選択済みの渡すエリア内の空きセルをタップすると、すぐ発動します。広がる角がない場合もカードと手番は減らず、別の紫枠を選び直せます。";
+    return "灰色の枠が対象セルです。色のついたセル、または白い枠で選択済みの渡すエリア内の空きセルをタップすると、すぐ発動します。広がる角がない場合もカードと手番は減らず、別の灰色枠を選び直せます。";
   }
   return currentOutgoingMacros(state).length === state.requiredSize
-    ? "紫の枠が対象セルです。白い枠で選択済みの渡すエリア内の空きセルをタップすると、すぐ発動します。"
+    ? "灰色の枠が対象セルです。白い枠で選択済みの渡すエリア内の空きセルをタップすると、すぐ発動します。"
     : `先に相手へ渡すエリアを${state.requiredSize}マス選び、その後で角膨張カードをタップしてください。`;
 }
 
@@ -3973,6 +3973,10 @@ function renderSkillTarget(state, privateState) {
   const heading = document.createElement("div"); heading.className = "row between wrap skill-target-heading";
   const title = document.createElement("strong"); title.tabIndex = -1; title.textContent = `${targetMeta.name} — 対象を指定`; heading.appendChild(title);
   const rarity = document.createElement("span"); rarity.className = "skill-rarity"; rarity.textContent = `★${targetMeta.rarity}`; rarity.setAttribute("aria-label", `レア度 星${targetMeta.rarity}`); heading.appendChild(rarity);
+  const targetSkill = targetDraft.skill;
+  const info = button("説明", () => openSkillInfo(targetSkill), "ghost skill-target-info-button");
+  info.type = "button"; info.setAttribute("aria-label", `${targetMeta.name}の説明`);
+  heading.appendChild(info);
   panel.appendChild(heading);
   const controls = document.createElement("div"); controls.className = "controls";
   if (targetDraft.kind === "color") {
@@ -3983,7 +3987,7 @@ function renderSkillTarget(state, privateState) {
     const guide = document.createElement("p");
     guide.id = "regionSplitTargetGuide";
     guide.className = "skill-target-guide";
-    guide.textContent = "紫枠の受取エリアで、先に彩色したい側の1マスを選ぶと即発動します。盤面の1マスだけで選べます。";
+    guide.textContent = "灰色枠の受取エリアで、先に彩色したい側の1マスを選ぶと即発動します。盤面の1マスだけで選べます。";
     controls.appendChild(guide);
   }
   if (targetDraft.kind === "existing-region") {
@@ -4005,11 +4009,11 @@ function renderSkillTarget(state, privateState) {
     if (targetDraft.kind === "source-macros") {
       const connectedCount = connectedCandidateMacros(state).size;
       note.textContent = `盤面選択 ${selectedMacros.size}マス。${selectedMacros.size
-        ? `緑の破線は次に辺でつなげて選べる候補です（${connectedCount}か所）。`
-        : `水色の破線は選択を開始できる全候補です（${startCandidateMacros(state).size}か所）。自動選択ではありません。`}`;
+        ? `明るい灰色は次に辺でつなげて選べる候補です（${connectedCount}か所）。`
+        : `明るい灰色は選択を開始できる全候補です（${startCandidateMacros(state).size}か所）。自動選択ではありません。`}`;
     } else note.textContent = selectedMacros.size
       ? "選んだ1マスを先に彩色する側として、サーバーで成立可否を確認しています。"
-      : `紫枠の対象 ${regionSplitTargetMacros(state).length}マス。対象外を選んでも通信しません。`;
+      : `灰色枠の対象 ${regionSplitTargetMacros(state).length}マス。対象外を選んでも通信しません。`;
     controls.appendChild(note);
   }
   if (targetDraft.kind === "corner-bloom") {
@@ -4134,16 +4138,9 @@ function resetBoardSelectionAssist({ clearSelection = false } = {}) {
     selectedMacros.clear();
     announceBoardSelection("");
   }
-  boardZoomed = false;
   boardKeyboardMacro = null;
   boardKeyboardMicro = null;
   boardPointerGesture = null;
-  $("boardViewport")?.classList.remove("is-zoomed");
-  const toggle = $("toggleBoardZoom");
-  if (toggle) {
-    toggle.setAttribute("aria-pressed", "false");
-    toggle.textContent = "盤面を拡大";
-  }
   const viewport = $("boardViewport");
   if (viewport) { viewport.scrollLeft = 0; viewport.scrollTop = 0; }
 }
@@ -4161,17 +4158,10 @@ function syncBoardSelectionAssist(state) {
   const interactive = boardSelectionAvailable(state);
   const preserveCornerTarget = cornerBloomCellTargetActive();
   if (!interactive && !preserveCornerTarget
-      && (boardZoomed || boardKeyboardMacro !== null || boardKeyboardMicro !== null)) resetBoardSelectionAssist();
-  const viewport = $("boardViewport");
+      && (boardKeyboardMacro !== null || boardKeyboardMicro !== null)) resetBoardSelectionAssist();
   const canvas = $("board");
-  const toggle = $("toggleBoardZoom");
-  toggle.classList.toggle("hidden", !interactive);
-  viewport.classList.toggle("is-zoomed", interactive && boardZoomed);
   canvas.classList.toggle("corner-bloom-cell-target", cornerBloomCellTargetActive());
   canvas.tabIndex = interactive ? 0 : -1;
-  toggle.disabled = !interactive;
-  toggle.setAttribute("aria-pressed", String(interactive && boardZoomed));
-  toggle.textContent = interactive && boardZoomed ? "全体表示" : "盤面を拡大";
   return interactive;
 }
 
@@ -4544,7 +4534,7 @@ function activateRegionSplitMacro(state, macro) {
   if (targetDraft?.kind !== "region-split" || actionBusy || pendingAction) return false;
   boardKeyboardMacro = macro;
   if (!playableMacro(state, macro) || !regionSplitTargetMacros(state).includes(macro)) {
-    return rejectRegionSplitMacro("紫枠の受取エリアから対象マスを選んでください。");
+    return rejectRegionSplitMacro("灰色枠の受取エリアから対象マスを選んでください。");
   }
   selectedMacros.clear();
   selectedMacros.add(macro);
@@ -4616,36 +4606,6 @@ function selectCornerBloomMacro(state, macro) {
   }
 }
 
-function scrollBoardMacroIntoView(state, macro, scheduledTarget = null, scheduledKind = null) {
-  if (!boardZoomed) return;
-  requestAnimationFrame(() => {
-    if (scheduledTarget && (targetDraft !== scheduledTarget || targetDraft?.kind !== scheduledKind)) return;
-    const viewport = $("boardViewport");
-    const canvas = $("board");
-    const width = state.playableBounds.macroWidth;
-    const cell = canvas.getBoundingClientRect().width / width;
-    const left = (macro % width) * cell;
-    const top = Math.floor(macro / width) * cell;
-    const margin = Math.min(24, cell / 2);
-    if (left < viewport.scrollLeft + margin) viewport.scrollLeft = Math.max(0, left - margin);
-    else if (left + cell > viewport.scrollLeft + viewport.clientWidth - margin) viewport.scrollLeft = left + cell - viewport.clientWidth + margin;
-    if (top < viewport.scrollTop + margin) viewport.scrollTop = Math.max(0, top - margin);
-    else if (top + cell > viewport.scrollTop + viewport.clientHeight - margin) viewport.scrollTop = top + cell - viewport.clientHeight + margin;
-  });
-}
-
-function setBoardZoom(value) {
-  const state = roomModel?.room?.public_state;
-  if (!boardSelectionAvailable(state)) return;
-  boardZoomed = Boolean(value);
-  const macro = ensureBoardKeyboardMacro(state);
-  syncBoardSelectionAssist(state);
-  requestAnimationFrame(() => {
-    renderBoard(state);
-    if (boardZoomed) scrollBoardMacroIntoView(state, macro);
-    else { $("boardViewport").scrollLeft = 0; $("boardViewport").scrollTop = 0; }
-  });
-}
 
 function rejectBoardSelection(message) {
   toast(message);
@@ -4712,13 +4672,11 @@ function boardKeydown(event) {
       boardKeyboardMacro = macroForMicro(state, boardKeyboardMicro);
       announceBoardSelection(boardMicroDescription(state, boardKeyboardMicro));
       renderBoard(state);
-      scrollBoardMacroIntoView(state, boardKeyboardMacro);
       return;
     }
     if ([" ", "Enter"].includes(event.key)) {
       event.preventDefault();
       activateCornerBloomCell(state, micro);
-      scrollBoardMacroIntoView(state, macroForMicro(state, micro));
       return;
     }
     if (event.key === "Escape") {
@@ -4741,7 +4699,6 @@ function boardKeydown(event) {
     boardKeyboardMacro = row * width + col;
     announceBoardSelection(boardMacroDescription(state, boardKeyboardMacro));
     renderBoard(state);
-    scrollBoardMacroIntoView(state, boardKeyboardMacro);
     return;
   }
   if ([" ", "Enter"].includes(event.key)) {
@@ -4749,7 +4706,6 @@ function boardKeydown(event) {
     if (targetDraft?.kind === "region-split") activateRegionSplitMacro(state, macro);
     else if (targetDraft?.kind === "band-shift") selectBandShiftMacro(state, macro);
     else toggleBoardMacro(state, macro);
-    scrollBoardMacroIntoView(state, macro);
     return;
   }
   if (event.key === "Escape") {
@@ -4779,7 +4735,21 @@ function boardKeydown(event) {
   }
 }
 
-function strokeMacroFrame(ctx, macro, macroWidth, microScale, cell, { color, cssWidth, cssDash, cssInset = 3 }) {
+const BOARD_AFFORDANCE = Object.freeze({
+  outside: "#080808", empty: "#202020", candidate: "#707070", selected: "#f2f2f2",
+  pending: "#999999", grid: "#404040", target: "#bcbcbc", focus: "#ffffff", shadow: "#080808",
+});
+
+function paintFreeMacroAffordance(ctx, state, macros, cell, color) {
+  const microWidth = state.playableBounds.macroWidth * state.playableBounds.microScale;
+  ctx.fillStyle = color;
+  for (const macro of macros) for (const micro of macroFreeMicros(state, macro)) {
+    const x = micro % microWidth, y = Math.floor(micro / microWidth);
+    ctx.fillRect(x * cell, y * cell, cell, cell);
+  }
+}
+
+function strokeMacroFrame(ctx, macro, macroWidth, microScale, cell, { color, cssWidth, cssDash, cssInset = .5 }) {
   const displayedWidth = ctx.canvas.getBoundingClientRect().width;
   const cssScale = displayedWidth > 0 ? ctx.canvas.width / displayedWidth : 1;
   const col = macro % macroWidth;
@@ -4790,8 +4760,8 @@ function strokeMacroFrame(ctx, macro, macroWidth, microScale, cell, { color, css
   const inset = cssInset * cssScale;
   ctx.save();
   ctx.setLineDash(cssDash.map((part) => part * cssScale));
-  ctx.strokeStyle = "#020617";
-  ctx.lineWidth = (cssWidth + 4) * cssScale;
+  ctx.strokeStyle = BOARD_AFFORDANCE.shadow;
+  ctx.lineWidth = (cssWidth + 2) * cssScale;
   ctx.strokeRect(left + inset, top + inset, Math.max(1, size - (2 * inset)), Math.max(1, size - (2 * inset)));
   ctx.strokeStyle = color;
   ctx.lineWidth = cssWidth * cssScale;
@@ -4804,15 +4774,15 @@ function strokeMicroTargetFrame(ctx, micro, microWidth, cell) {
   const cssScale = displayedWidth > 0 ? ctx.canvas.width / displayedWidth : 1;
   const x = micro % microWidth;
   const y = Math.floor(micro / microWidth);
-  const inset = 3 * cssScale;
+  const inset = .5 * cssScale;
   const size = Math.max(1, cell - (2 * inset));
   ctx.save();
-  ctx.setLineDash([5 * cssScale, 3 * cssScale]);
-  ctx.strokeStyle = "#020617";
-  ctx.lineWidth = 5 * cssScale;
+  ctx.setLineDash([]);
+  ctx.strokeStyle = BOARD_AFFORDANCE.shadow;
+  ctx.lineWidth = 3 * cssScale;
   ctx.strokeRect(x * cell + inset, y * cell + inset, size, size);
-  ctx.strokeStyle = "#f0abfc";
-  ctx.lineWidth = 2.5 * cssScale;
+  ctx.strokeStyle = BOARD_AFFORDANCE.target;
+  ctx.lineWidth = 1 * cssScale;
   ctx.strokeRect(x * cell + inset, y * cell + inset, size, size);
   ctx.restore();
 }
@@ -4835,50 +4805,44 @@ function renderBoard(state) {
     : cornerBloomCellTargetActive()
       ? "角膨張の対象セルを選択。矢印キーで細分セルを移動し、SpaceまたはEnterで即発動、Escapeでキャンセルできます。"
     : targetDraft?.kind === "region-split"
-      ? `エリア二分の対象を選択。紫枠の受取エリア${splitTargets.size}マスから矢印キーで移動し、SpaceまたはEnterで即発動、Escapeでキャンセルできます。`
+      ? `エリア二分の対象を選択。灰色枠の受取エリア${splitTargets.size}マスから矢印キーで移動し、SpaceまたはEnterで即発動、Escapeでキャンセルできます。`
     : targetDraft?.kind === "band-shift"
       ? `${targetDraft.input.axis === "ROW" ? "動かす横の行" : "動かす縦の列"}を選択。矢印キーで移動し、SpaceまたはEnterで対象を決め、Escapeで対象を解除できます。`
     : boardInteractive
       ? "四色地図の対戦盤面。矢印キーでマスを移動し、SpaceまたはEnterで選択、Escapeで全解除できます。"
       : "四色地図の対戦盤面";
   canvas.setAttribute("aria-label", `${boardLabel}${guidanceMode === "start"
-    ? ` 水色の破線は選択を開始できる全候補${startGuidedMacros.size}か所です。`
-    : guidanceMode === "connected" ? " 緑の破線は次に辺でつなげて選べる候補です。" : ""}`);
+    ? ` 明るい灰色は選択を開始できる全候補${startGuidedMacros.size}か所です。`
+    : guidanceMode === "connected" ? " 明るい灰色は次に辺でつなげて選べる候補です。" : ""}`);
   const macroWidth = state.playableBounds.macroWidth; const microScale = state.playableBounds.microScale;
   const microWidth = macroWidth * microScale; const cell = canvas.width / microWidth;
-  ctx.fillStyle = "#020617"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = BOARD_AFFORDANCE.outside; ctx.fillRect(0, 0, canvas.width, canvas.height);
   const bounds = state.playableBounds;
-  ctx.fillStyle = "#0f172a";
+  ctx.fillStyle = BOARD_AFFORDANCE.empty;
   ctx.fillRect(bounds.minCol * microScale * cell, bounds.minRow * microScale * cell,
     (bounds.maxCol - bounds.minCol + 1) * microScale * cell, (bounds.maxRow - bounds.minRow + 1) * microScale * cell);
+  // Only free micro cells receive candidate/selection fills. Paint authoritative
+  // regions afterwards, so partly occupied Half Shift macros retain their colors.
+  paintFreeMacroAffordance(ctx, state, startGuidedMacros.size ? startGuidedMacros : connectedGuidedMacros, cell, BOARD_AFFORDANCE.candidate);
+  paintFreeMacroAffordance(ctx, state, visibleOutgoingMacros(state), cell, BOARD_AFFORDANCE.selected);
   for (const region of Object.values(state.regions || {})) {
-    ctx.fillStyle = region.color ? COLOR_HEX[region.color] : "#94a3b8";
+    ctx.fillStyle = region.color ? COLOR_HEX[region.color] : BOARD_AFFORDANCE.pending;
     for (const micro of region.micro || []) {
       const x = micro % microWidth; const y = Math.floor(micro / microWidth);
       ctx.fillRect(x * cell, y * cell, cell + .2, cell + .2);
     }
   }
-  ctx.strokeStyle = "#334155"; ctx.lineWidth = 1;
+  ctx.strokeStyle = BOARD_AFFORDANCE.grid; ctx.lineWidth = 1;
   for (let index = 0; index <= macroWidth; index += 1) {
     const offset = index * microScale * cell;
     ctx.beginPath(); ctx.moveTo(offset, 0); ctx.lineTo(offset, canvas.height); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(0, offset); ctx.lineTo(canvas.width, offset); ctx.stroke();
   }
-  if (boardInteractive && outgoingSelectionGuidanceActive()) {
-    if (startGuidedMacros.size) {
-      for (const macro of startGuidedMacros) strokeMacroFrame(ctx, macro, macroWidth, microScale, cell, { color: "#38bdf8", cssWidth: 3, cssDash: [3, 3] });
-    } else for (const macro of connectedGuidedMacros) {
-      strokeMacroFrame(ctx, macro, macroWidth, microScale, cell, { color: "#86efac", cssWidth: 2.5, cssDash: [5, 4] });
-    }
-  }
   if (targetDraft?.kind === "region-split") {
-    for (const macro of splitTargets) strokeMacroFrame(ctx, macro, macroWidth, microScale, cell, { color: "#c084fc", cssWidth: 3.5, cssDash: [] });
+    for (const macro of splitTargets) strokeMacroFrame(ctx, macro, macroWidth, microScale, cell, { color: BOARD_AFFORDANCE.target, cssWidth: 1.5, cssDash: [] });
   }
-  ctx.fillStyle = "#ffffff38"; ctx.strokeStyle = "#f8fafc"; ctx.lineWidth = 3;
   for (const macro of visibleOutgoingMacros(state)) {
-    const col = macro % macroWidth; const row = Math.floor(macro / macroWidth);
-    ctx.fillRect(col * microScale * cell, row * microScale * cell, microScale * cell, microScale * cell);
-    ctx.strokeRect(col * microScale * cell + 1, row * microScale * cell + 1, microScale * cell - 2, microScale * cell - 2);
+    strokeMacroFrame(ctx, macro, macroWidth, microScale, cell, { color: BOARD_AFFORDANCE.selected, cssWidth: 1, cssDash: [] });
   }
   if (cornerBloomCellTargetActive()) {
     for (const micro of cornerBloomSelectableMicros(state)) strokeMicroTargetFrame(ctx, micro, microWidth, cell);
@@ -4891,25 +4855,12 @@ function renderBoard(state) {
     const last = triple ? selectedIndex + 1 : selectedIndex;
     for (let index = first; index <= last; index += 1) {
       const center = index === selectedIndex;
-      if (axis === "ROW") {
-        const top = index * microScale * cell;
-        const left = bounds.minCol * microScale * cell;
-        const width = (bounds.maxCol - bounds.minCol + 1) * microScale * cell;
-        ctx.fillStyle = center ? "#facc1538" : "#c084fc24";
-        ctx.fillRect(left, top, width, microScale * cell);
-      } else {
-        const top = bounds.minRow * microScale * cell;
-        const left = index * microScale * cell;
-        const height = (bounds.maxRow - bounds.minRow + 1) * microScale * cell;
-        ctx.fillStyle = center ? "#facc1538" : "#c084fc24";
-        ctx.fillRect(left, top, microScale * cell, height);
-      }
       for (let cross = axis === "ROW" ? bounds.minCol : bounds.minRow; cross <= (axis === "ROW" ? bounds.maxCol : bounds.maxRow); cross += 1) {
         const macro = axis === "ROW" ? index * macroWidth + cross : cross * macroWidth + index;
         strokeMacroFrame(ctx, macro, macroWidth, microScale, cell, {
-          color: center ? "#fde047" : "#d8b4fe",
-          cssWidth: center ? 3.5 : 2,
-          cssDash: center ? [] : [5, 4],
+          color: center ? BOARD_AFFORDANCE.selected : BOARD_AFFORDANCE.target,
+          cssWidth: center ? 2 : 1,
+          cssDash: [],
         });
       }
     }
@@ -4917,7 +4868,7 @@ function renderBoard(state) {
   if (targetDraft?.kind === "existing-region") {
     for (const [index, region] of eligibleRecolorRegions(state).entries()) {
       const selected = targetDraft.input.regionId === region.id;
-      ctx.strokeStyle = selected ? "#ffffff" : "#e2e8f0";
+      ctx.strokeStyle = selected ? BOARD_AFFORDANCE.focus : BOARD_AFFORDANCE.target;
       ctx.lineWidth = selected ? 3 : 1.5;
       for (const micro of region.micro || []) {
         const x = micro % microWidth; const y = Math.floor(micro / microWidth);
@@ -4927,9 +4878,9 @@ function renderBoard(state) {
       if (!cells.length) continue;
       const centerX = cells.reduce((sum, micro) => sum + (micro % microWidth) + .5, 0) / cells.length * cell;
       const centerY = cells.reduce((sum, micro) => sum + Math.floor(micro / microWidth) + .5, 0) / cells.length * cell;
-      ctx.fillStyle = selected ? "#ffffff" : "#0f172a";
+      ctx.fillStyle = selected ? BOARD_AFFORDANCE.focus : BOARD_AFFORDANCE.empty;
       ctx.beginPath(); ctx.arc(centerX, centerY, 11, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = selected ? "#0f172a" : "#ffffff";
+      ctx.fillStyle = selected ? BOARD_AFFORDANCE.empty : BOARD_AFFORDANCE.focus;
       ctx.font = "bold 13px system-ui"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
       ctx.fillText(String(index + 1), centerX, centerY + .5);
     }
@@ -4941,17 +4892,16 @@ function renderBoard(state) {
       const x = micro % microWidth;
       const y = Math.floor(micro / microWidth);
       ctx.save();
-      ctx.strokeStyle = "#020617";
+      ctx.strokeStyle = BOARD_AFFORDANCE.shadow;
       ctx.lineWidth = Math.max(5, cell * .22);
       ctx.strokeRect(x * cell + 1, y * cell + 1, Math.max(1, cell - 2), Math.max(1, cell - 2));
-      ctx.strokeStyle = "#fdf4ff";
+      ctx.strokeStyle = BOARD_AFFORDANCE.focus;
       ctx.lineWidth = Math.max(2, cell * .1);
       ctx.strokeRect(x * cell + 1, y * cell + 1, Math.max(1, cell - 2), Math.max(1, cell - 2));
       ctx.restore();
     } else {
       const macro = ensureBoardKeyboardMacro(state);
-      strokeMacroFrame(ctx, macro, macroWidth, microScale, cell, { color: "#f0abfc", cssWidth: 4, cssDash: [] });
-      strokeMacroFrame(ctx, macro, macroWidth, microScale, cell, { color: "#fdf4ff", cssWidth: 1.5, cssDash: [], cssInset: 8 });
+      strokeMacroFrame(ctx, macro, macroWidth, microScale, cell, { color: BOARD_AFFORDANCE.focus, cssWidth: 2, cssDash: [] });
     }
   }
 }
@@ -4969,55 +4919,25 @@ function phaseLabelFor(state, seat, cpuRoom) {
 
 function renderTurnGuide(state) {
   const guide = $("turnGuide");
-  const seat = roomModel?.view?.seat;
-  const cpuRoom = roomModel?.room?.opponent_kind === "cpu";
-  const myTurn = state.status === "ACTIVE" && state.active === seat;
-  const opponent = cpuRoom ? "CPU" : "相手";
-  const outgoingMacros = visibleOutgoingMacros(state);
-  const hasPreparedOutgoing = preparedOutgoingSourceMacros(state).length > 0;
-  const makerIsMe = ["CREATE_FIRST", "WORK"].includes(state.phase) ? myTurn : state.phase === "COLOR" && !myTurn;
-  const rolePath = makerIsMe ? `あなたが作る → ${opponent}が塗る` : `${opponent}が作る → あなたが塗る`;
-  const connectedHint = outgoingMacros.length
-    ? hasPreparedOutgoing
-      ? "カード効果を反映したエリアです。白い枠をそのまま相手へ渡してください。"
-      : "緑の破線は辺でつなげて選べる位置の目印です。確定できるかはサーバーが判定します。"
-    : "選んだエリアは相手が塗ります。相手が困る形や接し方を考えてみましょう。";
-  const startCount = startCandidateMacros(state).size;
-  const startHint = startCount
-    ? `水色の破線は選択を開始できる全候補です（${startCount}か所）。自動選択ではないので、盤面を見て選んでください。`
-    : "空きのある盤面マスから選択を始めてください。";
-  const setText = (id, value) => { if ($(id).textContent !== value) $(id).textContent = value; };
-  const present = (kind, step, title, detail) => {
-    guide.dataset.state = kind;
-    setText("turnGuideStep", step);
-    setText("turnGuideTitle", title);
-    setText("turnGuideDetail", detail);
-    show("turnGuide", true);
-  };
   if (state.status !== "ACTIVE" || targetDraft) return show("turnGuide", false);
-  if (actionBusy) return present("wait", "送信中", "サーバーで操作を確認しています", "結果が返るまで、そのままお待ちください。");
-  if (pendingAction) return present("ready", "結果確認", "前の操作の結果を確認します", "下の「前回の操作結果を確認」で、前の操作が反映されたか確かめられます。");
-  if (!myTurn && cpuRoom && state.active === "B" && state.phase === "CREATE_FIRST") {
-    return present("wait", rolePath, "CPUが最初のエリアを選んでいます", "次は、受け取った灰色エリアを盤面の下にある持ち色から塗ります。");
+  const seat = roomModel?.view?.seat;
+  const myTurn = state.active === seat;
+  const outgoingMacros = visibleOutgoingMacros(state);
+  let kind = "wait", title;
+  if (actionBusy) title = "操作を送信中です";
+  else if (pendingAction) title = "前回の操作結果を確認してください";
+  else if (myTurn && ["CREATE_FIRST", "WORK"].includes(state.phase)) {
+    const ready = outgoingMacros.length === state.requiredSize;
+    kind = ready ? "ready" : "select";
+    title = ready ? "選択したエリアを渡してください" : "相手に渡すエリアを選択してください";
+  } else {
+    if (myTurn && state.phase === "COLOR") kind = "color";
+    title = phaseLabelFor(state, seat, roomModel?.room?.opponent_kind === "cpu");
   }
-  if (!myTurn && ["CREATE_FIRST", "WORK"].includes(state.phase)) return present("wait", rolePath, `${opponent}があなたへ渡すエリアを作っています`, "次に受け取るエリアを、どの色で塗るか考えながら待ちましょう。");
-  if (!myTurn && state.phase === "COLOR") return present("wait", rolePath, `${opponent}が受け取ったエリアを塗っています`, "あなたが作った灰色エリアの彩色を待っています。");
-  if (state.phase === "CREATE_FIRST") {
-    const remaining = Math.max(0, state.requiredSize - outgoingMacros.length);
-    if (remaining > 0) return present("select", rolePath, `白い盤面をタップして、あと${remaining}マス選ぶ`, outgoingMacros.length
-      ? connectedHint
-      : `${startHint} 選べたら「このエリアを渡す」を押します。選んだエリアは相手が塗ります。`);
-    return present("ready", rolePath, "選べました。「このエリアを渡す」へ", "選んだマスは白い枠で表示されています。下のボタンで相手へ渡します。");
-  }
-  if (state.phase === "WORK") {
-    const remaining = Math.max(0, state.requiredSize - outgoingMacros.length);
-    if (remaining > 0) return present("select", rolePath, `盤面をタップ／クリックして、あと${remaining}マス選ぶ`, outgoingMacros.length
-      ? connectedHint
-      : `${startHint} 選んだエリアは相手が塗ります。相手が困る形や接し方を考えてみましょう。`);
-    return present("ready", rolePath, "選べました。「このエリアを渡す」へ", "選んだマスは白い枠で表示されています。下のボタンで相手へ渡します。");
-  }
-  if (state.phase === "COLOR") return present("color", rolePath, "受け取った灰色エリアを塗る", "盤面の下にある持ち色から選びます。同じ色が辺で接しないように塗りましょう。");
-  show("turnGuide", false);
+  guide.dataset.state = kind;
+  const label = $("turnGuideTitle");
+  if (label.textContent !== title) label.textContent = title;
+  show("turnGuide", true);
 }
 
 function isColorSealed(state, seat, color) {
@@ -5057,14 +4977,14 @@ function fitPlaySurface() {
   const controls = $("regionControls").getBoundingClientRect();
   const notice = $("paletteImpactNotice").getBoundingClientRect();
   const guide = $("turnGuide").getBoundingClientRect();
-  const start = notice.height ? notice.top : guide.height ? guide.top : board.top;
-  const end = response.height ? response.bottom : controls.height ? controls.bottom : board.bottom;
+  const visible = [board, response, controls, notice, guide].filter(rect => rect.height > 0);
+  const start = Math.min(...visible.map(rect => rect.top));
+  const end = Math.max(...visible.map(rect => rect.bottom));
   // Measure real flow gaps rather than reserving a guessed 48px again. Font
   // metrics differ between Windows installations; double-counting shrank the board.
   const otherContentHeight = Math.max(0, end - start - board.height);
   const room = Math.floor(innerHeight - top - bottom - otherContentHeight - 8);
   $("playSurface").style.setProperty("--play-board-max", `${Math.max(280, Math.min(560, room))}px`);
-  show("playViewportHint", room < 280);
 }
 
 function schedulePlaySurfaceFit() {
@@ -5080,7 +5000,7 @@ function alignColorResponseAboveBattleChrome() {
   const boardRect = $("boardViewport").getBoundingClientRect();
   const noticeRect = $("paletteImpactNotice").getBoundingClientRect();
   const guideRect = $("turnGuide").getBoundingClientRect();
-  const surfaceTop = noticeRect.height ? noticeRect.top : guideRect.height ? guideRect.top : boardRect.top;
+  const surfaceTop = Math.min(...[boardRect, noticeRect, guideRect].filter(rect => rect.height > 0).map(rect => rect.top));
   const responseRect = response.getBoundingClientRect();
   const fits = responseRect.bottom - surfaceTop <= innerHeight - top - bottom;
   const adjustment = responseRect.bottom > innerHeight - bottom
@@ -5294,7 +5214,7 @@ async function sendAction(type, payload = {}, retry = false) {
         setSkillTargetFeedback(`${safeMessage} カードと手番は減っていません。別のセルを選べます。`, "error");
       }
       if (type === "USE_SKILL" && payload?.skill === "colorRegionSplit" && targetDraft?.kind === "region-split") {
-        setSkillTargetFeedback(`${safeMessage} カードと手番は減っていません。別の紫枠を選べます。`, "error");
+        setSkillTargetFeedback(`${safeMessage} カードと手番は減っていません。別の灰色枠を選べます。`, "error");
       }
     } else {
       operationFeedback("actionStatus", `${safeMessage} 下の「前回の操作結果を確認」で結果を確認してください。`, "retry");
@@ -6355,7 +6275,6 @@ $("board").addEventListener("blur", () => {
   const state = roomModel?.room?.public_state;
   if (hasStandardPublicState(state)) renderBoard(state);
 });
-$("toggleBoardZoom").onclick = () => setBoardZoom(!boardZoomed);
 $("clearSelection").onclick = () => {
   const state = roomModel?.room?.public_state;
   if (preparedOutgoingSourceMacros(state).length) return;
@@ -6453,10 +6372,6 @@ window.addEventListener("online", () => { roomSync.handleConnectivityChange(); r
 window.addEventListener("offline", () => { roomSync.handleConnectivityChange(); reflectBrowserConnectivity(); stopMatchmakingWatch(); stopMatchmakingAvailabilityWatch({ hide: true }); stopCpuTurnWatch(); });
 
 for (const button of document.querySelectorAll("[data-app-tab]")) button.onclick = () => activateAppTab(button.dataset.appTab);
-$(`dismissPaletteImpact`).onclick = () => {
-  hidePaletteImpactNotice();
-  $("matchTitle").focus({ preventScroll: true });
-};
 for (const button of document.querySelectorAll("[data-tab-jump]")) button.onclick = () => activateAppTab(button.dataset.tabJump);
 $("openWaitingOpponent").onclick = () => {
   if ($("openWaitingOpponent").disabled || $("openWaitingOpponent").classList.contains("hidden")) return;

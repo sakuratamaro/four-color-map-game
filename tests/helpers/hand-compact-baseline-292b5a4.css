@@ -1,3 +1,5 @@
+/* Immutable CSS snapshot from 292b5a4907bf4260263a3316149b3e0563810d67.
+ * Used only for a same-DOM height comparison; not a production acceptance result. */
 /* UDL052/054/063: focus the play surface; keep identity and safety text. */
 #playSurface .board-stage { width: min(100%, var(--play-board-max, 560px)); margin: 8px auto; }
 #playSurface #regionControls { justify-content: flex-end; margin: 0; }
@@ -16,20 +18,18 @@
 #colorResponseActions button { flex: 1 1 120px; width: auto; min-height: 48px; padding: 6px; margin: 0; font-size: 12px; }
 .hand-heading { margin: 16px 0 8px; font-size: 15px; }
 #skillControls { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
-#skillControls .skill-entry { position: relative; display: block; border: 1px solid #475569; border-radius: 12px; overflow: hidden; background: #07111f; }
-#skillControls .skill { display: grid; grid-template-rows: auto 44px; align-content: center; gap: 0; width: 100%; min-width: 0; min-height: 76px; padding: 6px; border: 0; border-radius: 0; white-space: normal; overflow-wrap: anywhere; font-size: 13px; line-height: 1.35; }
+#skillControls .skill-entry { grid-template-columns: 1fr; gap: 0; border: 1px solid #475569; border-radius: 12px; overflow: hidden; background: #07111f; }
+#skillControls .skill { display: grid; align-content: center; gap: 5px; width: 100%; min-width: 0; min-height: 76px; padding: 8px 5px; border: 0; border-radius: 0; white-space: normal; overflow-wrap: anywhere; font-size: 13px; line-height: 1.35; }
 #skillControls .skill strong { font-size: inherit; }
 #skillControls .skill:disabled { opacity: 1; color: #94a3b8; background: #0f172a; }
-.skill-card-status { display: flex; align-items: center; justify-content: center; padding-right: 44px; white-space: pre-line; text-align: center; font-size: 11px; line-height: 1.2; color: #fde68a; }
-#skillControls .skill-info-button { position: absolute; right: 4px; bottom: 6px; display: grid; place-items: center; width: 44px; height: 44px; min-width: 44px; min-height: 44px; padding: 0; border: 0; border-radius: 8px; background: transparent; font-size: 18px; }
-.skill-target-info-button { min-width: 44px; min-height: 44px; padding: 6px 10px; }
+.skill-card-status { font-size: 11px; color: #fde68a; }
+#skillControls .skill-info-button { min-width: 44px; min-height: 44px; padding: 4px; border: 0; border-top: 1px solid #334155; border-radius: 0; background: transparent; font-size: 17px; }
 #skillControls .is-used { border-style: dashed; }
 #skillControls .is-used .skill { opacity: 1; color: #94a3b8; background: #0f172a; }
 #skillControls .is-used .skill-card-status { color: #94a3b8; }
 #skillControls .skill-category-note, #skillControls .lab-skill-label, #skillControls .is-extra { grid-column: 1 / -1; }
-#skillControls .is-extra { display: grid; grid-template-columns: minmax(0, 1fr) 48px; }
-#skillControls .is-extra .skill { display: block; padding: 8px; }
-#skillControls .is-extra .skill-info-button { position: static; align-self: center; border-left: 1px solid #334155; }
+#skillControls .is-extra { grid-template-columns: minmax(0, 1fr) 48px; }
+#skillControls .is-extra .skill-info-button { border-top: 0; border-left: 1px solid #334155; }
 #tacticalTrace > summary, #paletteHistoryPanel > summary { display: flex; align-items: center; gap: 8px; min-height: 44px; cursor: pointer; color: #cbd5e1; font-size: 13px; font-weight: 800; }
 #tacticalTrace { padding-block: 0; box-shadow: none; }
 #tacticalTrace.hidden { display: none; }

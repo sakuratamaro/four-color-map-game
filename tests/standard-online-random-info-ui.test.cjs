@@ -23,10 +23,11 @@ test("game-facing labels replace internal version, phase, room, and setup revisi
 });
 
 test("random setup reveal uses only public state and the current player's private projection", () => {
-  for (const id of ["randomSummaryTitle", "rolledSizeValue", "basicPaletteValue", "bonusColorValue", "randomReveal", "randomRevealTitle", "randomRevealDetail"]) {
+  for (const id of ["paletteHistoryPanel", "initialPaletteValue", "randomReveal", "randomRevealTitle", "randomRevealDetail"]) {
     assert.match(html, new RegExp(`id="${id}"`));
   }
-  assert.match(app, /renderRandomSummary\(publicState, privateState\)/);
+  assert.match(app, /renderPaletteHistory\(publicState, privateState\)/);
+  assert.doesNotMatch(html, /id="(?:matchSetupDetails|randomSummaryTitle|rolledSizeValue|basicPaletteValue|bonusColorValue)"/);
   assert.match(app, /publicState\.rolledSize/);
   assert.match(app, /privateState\.basicPalette/);
   assert.match(app, /privateState\.bonusColor/);

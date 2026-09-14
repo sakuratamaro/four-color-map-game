@@ -8,6 +8,10 @@ const test = require("node:test");
 const runbook = fs.readFileSync(path.join(__dirname, "..", "docs", "STANDARD_PUBLIC_RELEASE_RUNBOOK.md"), "utf8");
 const onlineIndex = fs.readFileSync(path.join(__dirname, "..", "standard-online-v5", "index.html"), "utf8");
 const localIndex = fs.readFileSync(path.join(__dirname, "..", "standard-v5", "index.html"), "utf8");
+// Freeze only the two superseded cache labels in main70e's historical release lanes.
+// Current UI generation is checked independently below; no old approval is reused.
+const priorOnlineIndex = onlineIndex.replace("app.js?v=20260915-5", "app.js?v=20260913-44")
+  .replace("style.css?v=20260915-5", "style.css?v=20260910-12");
 
 function assetReference(source, pattern, label) {
   const reference = source.match(pattern)?.[1];
@@ -15,12 +19,22 @@ function assetReference(source, pattern, label) {
   return reference;
 }
 
+test("independent current UI lane binds its own assets, exact review and no DB or Edge operation", () => {
+  const section=runbook.slice(runbook.indexOf("## 2026-09-15 独立UIダイエット便"),runbook.indexOf("更新日:"));
+  for(const phrase of ["UI_PLAY_SURFACE_20260912.md", "v1.5", "70e691b6f8f1d808476e80990d20df7862bfb782",
+    "codex/ui-diet-release-20260915", "DB/Edge/管理設定は各 `[]`", "own Windows", "新しい実Astra承認",
+    "同SHA Pages", "全byte一致", "有限45分", "過去のlive試行枠は流用しない", "NOT_RUN", "旧052を流用したmain上書きは禁止"])
+    assert.ok(section.includes(phrase),phrase);
+  for(const pattern of [/src="(app\.js\?v=[^"]+)"/,/href="(style\.css\?v=[^"]+)"/,/href="(play-surface\.css\?v=[^"]+)"/])
+    assert.ok(section.includes(assetReference(onlineIndex,pattern,"independent UI current asset")));
+});
+
 test("UDL065 named-skill lane binds Edge-first compatibility and forbids borrowing a consumed live trial", () => {
   const section = runbook.slice(runbook.indexOf("### UDL-065: 使用済みスキル名の公開表示"), runbook.indexOf("### UDL-065: v14カットイン可読性・実結果説明"));
   for (const phrase of ["UDL-065-public-skill-v1", "DB/管理設定は各 `[]`", "standard-engine.bundle.js", "index.ts",
     "互換Edge → 完全2file読戻し → Pages", "CPU039とUI040", "040の消費済み試行を再使用しない", "NOT_RUN"]) assert.ok(section.includes(phrase), phrase);
   for (const pattern of [/src="(app\.js\?v=[^"]+)"/, /src="(skill-cutin\.js\?v=[^"]+)"/, /href="(skill-cutin\.css\?v=[^"]+)"/])
-    assert.ok(section.includes(assetReference(onlineIndex, pattern, "named-skill lane")));
+    assert.ok(section.includes(assetReference(priorOnlineIndex, pattern, "frozen main70e named-skill lane")));
 });
 
 test("current alpha.4 release lane deploys the compatible Edge before Pages and preserves active rooms", () => {
@@ -30,8 +44,8 @@ test("current alpha.4 release lane deploys the compatible Edge before Pages and 
   const pages = releaseSection.indexOf("Pages候補asset", canary);
   assert.ok(edge >= 0 && canary > edge && pages > canary);
   const candidateAssets = [
-    assetReference(onlineIndex, /src="(app\.js\?v=[^"]+)"/, "online app"),
-    assetReference(onlineIndex, /href="(style\.css\?v=[^"]+)"/, "online style"),
+    assetReference(priorOnlineIndex, /src="(app\.js\?v=[^"]+)"/, "frozen main70e online app"),
+    assetReference(priorOnlineIndex, /href="(style\.css\?v=[^"]+)"/, "frozen main70e online style"),
     assetReference(onlineIndex, /src="(standard-online-skill-intents\.js\?v=[^"]+)"/, "online skill intents"),
     assetReference(onlineIndex, /src="(standard-online-client\.js\?v=[^"]+)"/, "online client"),
     assetReference(onlineIndex, /src="(cpu-portraits\.js\?v=[^"]+)"/, "CPU portraits"),

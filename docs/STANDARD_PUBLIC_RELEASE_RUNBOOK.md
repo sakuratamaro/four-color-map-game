@@ -1,5 +1,15 @@
 # Standard公開版 段階リリース手順
 
+## 2026-09-15 独立UIダイエット便
+
+正本は `docs/UI_PLAY_SURFACE_20260912.md` v1.5 と `docs/UI_DIET_RELEASE_20260915.md`。基準は本番 `70e691b6f8f1d808476e80990d20df7862bfb782`、対象branchは `codex/ui-diet-release-20260915`。4つの採用済みUI修正を独立再構成し、DB/Edge/管理設定は各 `[]`、新画像0。親2e30のDB拒否を再試行せず、現在の互換Edgeも再配備・降格しない。
+
+現行候補の資産は `app.js?v=20260915-5`、`style.css?v=20260915-5`、`play-surface.css?v=20260915-3`。他のscript/engine/client/registryはmain70eから不変。下記のUDL065・alpha.4等に残るapp44/style12は旧公開laneの履歴であり、このUI候補の現行markerではない。
+
+clean固定候補 → own Windows全必須step成功 → 新しい実Astra承認（UI先行と将来CPU再統合を含む） → fresh main70e一致 → forceなしmain統合 → 同SHA Pages → 変更HTML/app/style/play-surface全byte一致・read-only preflight の順で進める。既存ゲートの同じChrome/Edgeジョブを有限45分とし、失敗条件・比較閾値・skipを弱めない。
+
+公開確認のために新規profile/対局が必要なら、候補にひも付く有限承認を先に確認する。過去のlive試行枠は流用しない。物理端末はNOT_RUNを維持し、公開byte確認と混同しない。UIを先行公開した後、CPU2e30は新UIを統合した候補と新レビューが必要で、旧052を流用したmain上書きは禁止。
+
 更新日: 2026-09-10
 
 CPU分割救済の候補手順（2026-09-13、未公開）は `docs/CPU_SPLIT_RESCUE_20260913.md` の UDL-051-split-v1.1 を参照する。DB/Edge/管理設定/Pagesの別承認・互換Edge先行・460秒以上の旧worker待機・新方策を保存した対局を壊さないrollbackを固定している。下記の過去版状態を、このCPU候補の適用証拠として再利用しない。

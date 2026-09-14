@@ -44,19 +44,23 @@ export function hasWholeButtonQuizPhysics(pageText, appText) {
 export function hasBoardFirstCandidateGuidance(pageText, appText) {
   return includesAll(pageText, [
     'aria-describedby="boardKeyboardHelp boardKeyboardStatus"',
-    "0マス選択時の水色の破線は、既存ルールで選択を開始して必要数まで完成できる全候補です。自動選択ではありません。",
-    "1マス以上選択した後の緑の破線は次に辺でつなげて選べる候補",
+    "0マス選択時の明るい灰色は、既存ルールで選択を開始して必要数まで完成できる全候補です。自動選択ではありません。",
+    "1マス以上選択した後の明るい灰色は次に辺でつなげて選べる候補",
   ]) && includesAll(appText, [
     "function outgoingSelectionCanComplete(state, selectedInput)",
     "function startCandidateMacros(state)",
     "if (!boardSelectionAvailable(state) || !outgoingSelectionGuidanceActive() || selectedMacros.size) return result;",
     'canvas.dataset.selectionGuidance = guidanceMode;',
     'canvas.dataset.startCandidateMacros = [...startGuidedMacros].sort((left, right) => left - right).join(",");',
-    'color: "#38bdf8", cssWidth: 3, cssDash: [3, 3]',
-    'color: "#86efac", cssWidth: 2.5, cssDash: [5, 4]',
+    'candidate: "#707070", selected: "#f2f2f2"',
+    'paintFreeMacroAffordance(ctx, state, startGuidedMacros.size ? startGuidedMacros : connectedGuidedMacros, cell, BOARD_AFFORDANCE.candidate);',
+    'paintFreeMacroAffordance(ctx, state, visibleOutgoingMacros(state), cell, BOARD_AFFORDANCE.selected);',
     'firstSelected ?? firstStartCandidate',
-    "水色の破線は選択を開始できる全候補です",
-  ]);
+    "明るい灰色は選択を開始できる全候補です",
+    'title = ready ? "選択したエリアを渡してください" : "相手に渡すエリアを選択してください"',
+  ]) && /id="turnGuide"[\s\S]*?id="regionControls"[\s\S]*?id="submitRegion"[\s\S]*?<\/section>[\s\S]*?id="boardViewport"/.test(pageText)
+    && !/id="(?:phaseText|turnGuideStep|turnGuideDetail|toggleBoardZoom|playViewportHint|matchSetupDetails)"/.test(pageText)
+    && !/boardZoomed|setBoardZoom/.test(appText);
 }
 
 export function hasPerCellContactFeedback(appText) {
@@ -143,7 +147,7 @@ export function hasCompactCpuRecords(pageText, appText, progressionCssText) {
 
 export function hasQuizAccuracyRecords(pageText, appText, progressionCssText) {
   return includesAll(pageText, [
-'app.js?v=20260913-44',
+'app.js?v=20260915-5',
     'progression.css?v=20260910-2',
     'id="quizAccuracyRecords" class="quiz-accuracy-records" role="list"',
     "記録開始以降に、サーバーで採点が確定した回答だけを集計します。",

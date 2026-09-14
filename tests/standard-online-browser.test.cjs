@@ -6,6 +6,7 @@ const http = require("node:http");
 const path = require("node:path");
 const test = require("node:test");
 const { closeOwnedBrowserServer } = require("./helpers/browser-server-cleanup.cjs");
+const { clickCanvasFraction } = require("./helpers/canvas-native-pointer.cjs");
 
 let chromium;
 try { ({ chromium } = require("playwright")); } catch { /* explicit actual-browser gate */ }
@@ -164,6 +165,114 @@ test("UDL052 role palette keeps duplicates and temporary alternatives independen
   }, { viewport: { width: 390, height: 844 } });
 });
 
+test("UDL063 compact hand keeps3x2 and inline44px information targets without ordinary x1 or overlap", { timeout: 150000 }, async () => {
+  await withPage("colorResponse", async page => {
+    const ids = ["colorRandomBorrow", "colorChoiceBorrow", "areaDiePlus", "areaCornerBloom", "disruptChoiceOne", "disruptRandomOne"];
+    await page.locator("#randomReveal").waitFor({ state: "hidden" });
+    await page.evaluate(ids => {
+      const r = globalThis.__standardOnlineRuntime;
+      r.view.private_state = { ...r.view.private_state, loadout: { color: ids.slice(0, 2), area: ids.slice(2, 4), disrupt: ids.slice(4) },
+        hand: Object.fromEntries(ids.map((id, i) => [id, i === 4 ? 0 : 1])) };
+      r.onInvalidate();
+    }, ids);
+    await page.waitForFunction(() => document.querySelectorAll("#skillControls .skill-entry:not(.is-extra)").length === 6);
+    const layout = () => page.evaluate(() => {
+      const box = n => { const r = n.getBoundingClientRect(); return { x:r.x, y:r.y, top:r.top, bottom:r.bottom, left:r.left, right:r.right, width:r.width, height:r.height }; };
+      const hit = n => { const r = n.getBoundingClientRect(), h = document.elementFromPoint(r.x+r.width/2,r.y+r.height/2); return h===n || n.contains(h); };
+      return { height: document.getElementById("skillControls").getBoundingClientRect().height, overflow: document.documentElement.scrollWidth > innerWidth,
+        entries: [...document.querySelectorAll("#skillControls .skill-entry:not(.is-extra)")].map(entry => {
+          const action = entry.querySelector(".skill"), info = entry.querySelector(".skill-info-button"), name = action.querySelector("strong"), status = action.querySelector(".skill-card-status");
+          const range = document.createRange(); range.selectNodeContents(status);
+          return { card:box(entry), action:box(action), name:box(name), info:box(info), statusText:status.textContent, statusRight:range.getBoundingClientRect().right,
+            infoHit:hit(info), nameHit: (()=>{const r=name.getBoundingClientRect(),h=document.elementFromPoint(r.x+r.width/2,r.y+r.height/2);return h===action||action.contains(h);})(),
+            skill:action.dataset.skill, used:entry.classList.contains("is-used"), infoDisabled:info.disabled };
+        }) };
+    });
+    let compact390;
+    for (const viewport of [{ width: 390, height: 844 }, { width: 320, height: 740 }, { width: 768, height: 900 }, { width: 1280, height: 900 }]) {
+      await page.setViewportSize(viewport);
+      await page.locator("#skillControls").evaluate(el => window.scrollBy(0, el.getBoundingClientRect().top - 105));
+      const l = await layout();
+      assert.equal(l.overflow, false); assert.equal(l.entries.length, 6);
+      assert.equal(new Set(l.entries.slice(0,3).map(e=>e.card.y)).size, 1);
+      assert.equal(new Set(l.entries.slice(3).map(e=>e.card.y)).size, 1);
+      assert.equal(new Set(l.entries.map(e=>e.card.x)).size, 3);
+      assert.deepEqual(l.entries.map(e=>e.skill), ids);
+      for (const e of l.entries) {
+        assert.ok(e.info.width>=44 && e.info.height>=44 && e.infoHit && e.nameHit, JSON.stringify(e));
+        assert.ok(e.info.top>=e.name.bottom-1, JSON.stringify(e));
+        assert.ok(e.statusRight<=e.info.left+1, JSON.stringify(e));
+        assert.ok(e.info.bottom<=e.action.bottom && e.info.right<=e.card.right, JSON.stringify(e));
+        assert.equal(e.infoDisabled, false); assert.doesNotMatch(e.statusText, /×1/); assert.match(e.statusText, /★/);
+      }
+      assert.match(l.entries[4].statusText, /使用済み/);
+      if (viewport.width===390) compact390 = l.height;
+      if (process.env.UI_DIET_SCREENSHOTS) await page.screenshot({path:path.join(process.env.UI_DIET_SCREENSHOTS,browserName+"-hand-compact-"+viewport.width+".png")});
+    }
+    await page.setViewportSize({width:390,height:844});
+    const priorCss = fs.readFileSync(path.join(__dirname,"helpers/hand-compact-baseline-292b5a4.css"),"utf8");
+    const currentStyle = page.locator('link[href^="play-surface.css"]');
+    await currentStyle.evaluate(el=>{el.disabled=true;});
+    const priorStyle = await page.addStyleTag({content:priorCss});
+    const priorHeight = await page.locator("#skillControls").evaluate(el=>el.getBoundingClientRect().height);
+    await priorStyle.evaluate(el=>el.remove());
+    await currentStyle.evaluate(el=>{el.disabled=false;});
+    assert.ok(compact390 < priorHeight - 40, JSON.stringify({compact390,priorHeight,note:"Same current DOM with previous CSS; presentation comparison only."}));
+    console.log("HAND_COMPACT_CSS_COMPARISON " + JSON.stringify({browser:browserName,width:390,compactHeight:compact390,previousCssHeight:priorHeight,reductionPx:priorHeight-compact390,scope:"same current DOM, previous CSS fixture"}));
+    await page.setViewportSize({width:1280,height:900});
+    await page.evaluate(()=>{document.documentElement.style.zoom="2";window.dispatchEvent(new Event("resize"));});
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
+    assert.equal(await page.locator("#skillControls .skill-info-button").count(),6);
+    assert.equal(await page.evaluate(()=>globalThis.__standardOnlineRuntime.calls.filter(c=>c.body?.operation==="action").length),0);
+  }, {viewport:{width:390,height:844}});
+});
+
+test("UDL063 hand and selected-target descriptions are read-only for used, timing-locked and category-locked cards", { timeout: 150000 }, async () => {
+  await withPage("playing", async page => {
+    const ids = ["colorRandomBorrow", "colorChoiceBorrow", "areaDiePlus", "areaCornerBloom", "disruptChoiceOne", "disruptRandomOne"];
+    await page.evaluate(ids => {
+      const r=globalThis.__standardOnlineRuntime;
+      r.view.private_state={...r.view.private_state,loadout:{color:ids.slice(0,2),area:ids.slice(2,4),disrupt:ids.slice(4)},hand:Object.fromEntries(ids.map(id=>[id,1]))};
+      r.onInvalidate();
+    },ids);
+    const actionCalls = () => page.evaluate(()=>globalThis.__standardOnlineRuntime.calls.filter(c=>c.body?.operation==="action").length);
+    for (const mode of ["used","timing","category","otherSeat"]) {
+      await page.evaluate(mode=>{
+        const r=globalThis.__standardOnlineRuntime;
+        r.view.private_state.hand.areaCornerBloom=mode==="used"?0:1;
+        r.room.public_state={...r.room.public_state,status:"ACTIVE",active:mode==="otherSeat"?"B":"A",phase:mode==="timing"?"COLOR":"WORK",
+          skillCategoryWindow:{categories:mode==="category"?["area"]:[]}};
+        r.onInvalidate();
+      },mode);
+      const entry=page.locator("#skillControls .skill-entry").filter({has:page.locator('.skill[data-skill="areaCornerBloom"]')});
+      assert.equal(await entry.locator(".skill").isDisabled(),true);
+      await entry.locator(".skill-info-button").focus(); await page.keyboard.press("Enter");
+      await page.locator("#skillInfoDialog[open]").waitFor();
+      assert.equal(await page.locator("#skillInfoTitle").textContent(),"角膨張");
+      assert.ok((await page.locator("#skillInfoBody").textContent()).length>10);
+      await page.keyboard.press("Escape"); assert.equal(await actionCalls(),0);
+    }
+    await page.evaluate(()=>{
+      const r=globalThis.__standardOnlineRuntime;r.view.private_state.hand.areaCornerBloom=1;
+      r.room.public_state={...r.room.public_state,active:"A",phase:"WORK",skillCategoryWindow:{categories:[]}};r.onInvalidate();
+    });
+    await page.locator('.skill[data-skill="disruptChoiceOne"]').click();
+    const target=page.locator("#skillTargetControls"); await target.waitFor({state:"visible"});
+    const before=await page.evaluate(()=>JSON.stringify([globalThis.__standardOnlineRuntime.room.public_state,globalThis.__standardOnlineRuntime.view.private_state]));
+    await target.locator(".skill-target-info-button").click();
+    await page.locator("#skillInfoDialog[open]").waitFor(); await page.keyboard.press("Escape");
+    assert.equal(await target.isVisible(),true);
+    assert.equal(await page.evaluate(()=>JSON.stringify([globalThis.__standardOnlineRuntime.room.public_state,globalThis.__standardOnlineRuntime.view.private_state])),before);
+    assert.equal(await actionCalls(),0);
+    await target.getByRole("button",{name:"キャンセル",exact:true}).click(); await target.waitFor({state:"hidden"});
+    await page.locator('.skill[data-skill="areaDiePlus"]').click();
+    await page.getByText("操作を保存しました。",{exact:true}).waitFor();
+    const actions=await page.evaluate(()=>globalThis.__standardOnlineRuntime.calls.filter(c=>c.body?.operation==="action").map(c=>c.body.action));
+    assert.equal(actions.length,1); assert.equal(actions[0].type,"USE_SKILL"); assert.deepEqual(actions[0].payload,{skill:"areaDiePlus"});
+    assert.equal(await page.locator("#skillInfoDialog").evaluate(el=>el.open),false);
+  },{viewport:{width:390,height:844}});
+});
+
 test("UDL054 UDL063 board palette viewport and stable three-by-two hand", { timeout: 150000 }, async () => {
   await withPage("colorResponse", async (page) => {
     const ids = ["colorRandomBorrow", "colorChoiceBorrow", "areaDiePlus", "areaResize", "disruptChoiceOne", "disruptRandomOne"];
@@ -196,7 +305,7 @@ test("UDL054 UDL063 board palette viewport and stable three-by-two hand", { time
         });
         const cards = [...document.querySelectorAll("#skillControls .skill-entry")].map(el => { const r=el.getBoundingClientRect();return {x:r.x,y:r.y}; });
         return { board:rect("boardViewport"), palette:rect("paletteControls"), buttons, cards,
-          overflow:document.documentElement.scrollWidth>innerWidth, randomOpen:document.getElementById("matchSetupDetails").open };
+          overflow:document.documentElement.scrollWidth>innerWidth, settingsPresent:Boolean(document.getElementById("matchSetupDetails")) };
       });
       assert.equal(layout.overflow, false);
       assert.ok(layout.board.width >= 280, JSON.stringify(layout));
@@ -205,7 +314,7 @@ test("UDL054 UDL063 board palette viewport and stable three-by-two hand", { time
       assert.equal(new Set(layout.cards.slice(0,3).map(c=>c.y)).size, 1);
       assert.equal(new Set(layout.cards.slice(3).map(c=>c.y)).size, 1);
       assert.equal(new Set(layout.cards.map(c=>c.x)).size, 3);
-      assert.equal(layout.randomOpen, false);
+      assert.equal(layout.settingsPresent, false);
       if (process.env.UI_DIET_SCREENSHOTS) {
         fs.mkdirSync(process.env.UI_DIET_SCREENSHOTS,{recursive:true});
         await page.screenshot({path:path.join(process.env.UI_DIET_SCREENSHOTS,`${browserName}-play-${viewport.width}.png`)});
@@ -242,7 +351,7 @@ test("UDL054 UDL063 board palette viewport and stable three-by-two hand", { time
   }, {viewport:{width:390,height:844}});
 });
 
-test("UDL054 keeps a palette-change cause visible with the board and has a short-screen fallback", { timeout: 130000 }, async () => {
+test("UDL054 keeps a palette-change cause visible with the board without permanent short-screen fallback prose", { timeout: 130000 }, async () => {
   await withPage("colorResponse",async page=>{
     await page.locator("#paletteControls .color-button").first().waitFor();
     await page.locator("#randomReveal").waitFor({state:"hidden"});
@@ -250,7 +359,7 @@ test("UDL054 keeps a palette-change cause visible with the board and has a short
       const r=globalThis.__standardOnlineRuntime,version=r.room.version+1,matchId=r.room.public_state.matchId;
       r.room={...r.room,version,public_state:{...r.room.public_state,version,turn:version,
         lastPublicTrace:{eventId:`${matchId}:${version}`,version,type:"USE_SKILL",actor:"B"}}};
-      r.view={...r.view,version,private_state:{...r.view.private_state,bonusColor:"green",
+      r.view={...r.view,version,private_state:{...r.view.private_state,seat:"A",bonusColor:"green",
         privateEffects:{paletteImpactEvent:{eventId:`${matchId}:${version}:palette-impact:A`,version,kind:"forced",slot:2,
           previousColor:"yellow",injectedColor:"green",remaining:0}}}};
       r.onInvalidate();
@@ -268,10 +377,14 @@ test("UDL054 keeps a palette-change cause visible with the board and has a short
     });
     assert.ok(layout.notice.bottom<=layout.board.top&&layout.board.bottom<=layout.palette.top,JSON.stringify(layout));
     assert.ok(layout.board.width>=280,JSON.stringify(layout));
-    assert.match(layout.text,/おまけ色を黄から緑へ変更/);
-    await page.locator("#dismissPaletteImpact").click();
+    assert.match(layout.text,/おまけ色 黄→緑/);
+    assert.equal(await page.locator("#dismissPaletteImpact").count(),0);
+    if (process.env.UI_DIET_SCREENSHOTS) {
+      await page.locator("#skillCutin").waitFor({state:"hidden"});
+      await page.screenshot({path:path.join(process.env.UI_DIET_SCREENSHOTS,`${browserName}-palette-notice-board-390.png`)});
+    }
     await page.setViewportSize({width:844,height:390});
-    await page.locator("#playViewportHint").waitFor();
+    assert.equal(await page.locator("#playViewportHint").count(), 0);
     assert.ok(await page.locator("#boardViewport").evaluate(el=>el.getBoundingClientRect().width>=280));
     await page.setViewportSize({width:1280,height:900});
     await page.evaluate(()=>{document.documentElement.style.zoom="2";window.dispatchEvent(new Event("resize"));});
@@ -3145,7 +3258,7 @@ test("actual browser activates Region Split from one normal board cell without I
       const originalStrokeRect = CanvasRenderingContext2D.prototype.strokeRect;
       globalThis.__regionSplitTargetFrames = [];
       CanvasRenderingContext2D.prototype.strokeRect = function recordedRegionSplitFrame(...args) {
-        if (String(this.strokeStyle) === "#c084fc") globalThis.__regionSplitTargetFrames.push([...args]);
+        if (String(this.strokeStyle) === "#bcbcbc") globalThis.__regionSplitTargetFrames.push([...args]);
         return originalStrokeRect.apply(this, args);
       };
       const runtime = globalThis.__standardOnlineRuntime;
@@ -3179,7 +3292,7 @@ test("actual browser activates Region Split from one normal board cell without I
     assert.equal(await target.getByText(/^R\d+$/).count(), 0);
     const box = await board.boundingBox();
     await board.click({ position: { x: box.width * (.5 / 4), y: box.height * (.5 / 4) } });
-    await target.locator('.skill-target-feedback[data-tone="error"]').getByText(/紫枠の受取エリア/).waitFor();
+    await target.locator('.skill-target-feedback[data-tone="error"]').getByText(/灰色枠の受取エリア/).waitFor();
     assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "action").length), 0);
     await page.keyboard.press("Escape");
     await target.waitFor({ state: "hidden" });
@@ -3301,7 +3414,8 @@ test("actual browser activates legacy outgoing corner bloom from the selected bo
     await page.waitForFunction(() => document.activeElement?.id === "board");
     assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "action").length), 0);
     const box = await board.boundingBox();
-    assert.ok(box.width / 48 >= 44);
+    // v13 withdraws custom 2112px enlargement; exact micro pointer/retry checks below remain.
+    assert.ok(Math.abs(box.width - await page.locator("#boardViewport").evaluate(el => el.getBoundingClientRect().width)) < 2);
     await board.click({ position: { x: box.width * (.5 / 48), y: box.height * (.5 / 48) } });
     await target.locator('.skill-target-feedback[data-tone="error"]').getByText(/このセルのエリア.*対象にできません/).waitFor();
     assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "action").length), 0);
@@ -3341,7 +3455,7 @@ test("actual browser selects Half Shift and Triple Shift bands on the board at 3
       const originalStrokeRect = CanvasRenderingContext2D.prototype.strokeRect;
       globalThis.__shiftFrames = [];
       CanvasRenderingContext2D.prototype.strokeRect = function recordedStrokeRect(...args) {
-        if (["#fde047", "#d8b4fe"].includes(String(this.strokeStyle))) globalThis.__shiftFrames.push(String(this.strokeStyle));
+        if (["#f2f2f2", "#bcbcbc"].includes(String(this.strokeStyle))) globalThis.__shiftFrames.push(String(this.strokeStyle));
         return originalStrokeRect.apply(this, args);
       };
       const runtime = globalThis.__standardOnlineRuntime;
@@ -3369,7 +3483,7 @@ test("actual browser selects Half Shift and Triple Shift bands on the board at 3
     const box = await board.boundingBox();
     await board.click({ position: { x: box.width * 0.45, y: box.height * (4.5 / 12) } });
     await target.getByText("対象：上から4行目").waitFor();
-    assert.ok((await page.evaluate(() => globalThis.__shiftFrames.filter((color) => color === "#fde047").length)) >= 1);
+    assert.ok((await page.evaluate(() => globalThis.__shiftFrames.filter((color) => color === "#f2f2f2").length)) >= 1);
     const right = target.getByRole("button", { name: "右へ →" });
     assert.ok((await right.boundingBox()).height >= 48);
     await right.click();
@@ -3389,8 +3503,8 @@ test("actual browser selects Half Shift and Triple Shift bands on the board at 3
     await page.keyboard.press("Enter");
     await target.getByText("対象：左から3列目").waitFor();
     const frames = await page.evaluate(() => [...globalThis.__shiftFrames]);
-    assert.ok(frames.includes("#fde047"));
-    assert.ok(frames.includes("#d8b4fe"));
+    assert.ok(frames.includes("#f2f2f2"));
+    assert.ok(frames.includes("#bcbcbc"));
     await target.getByRole("button", { name: "下へ ↓" }).focus();
     await page.keyboard.press("Enter");
     await target.getByRole("button", { name: "この対象で使う" }).click();
@@ -3411,11 +3525,11 @@ test("actual browser selects Half Shift and Triple Shift bands on the board at 3
 test("actual browser activates a two-cell legacy corner bloom from the keyboard without a target list", { timeout: 130000 }, async () => {
   await withPage("playing", async (page) => {
     await page.evaluate(() => {
-      const originalStrokeRect = CanvasRenderingContext2D.prototype.strokeRect;
-      globalThis.__cornerCandidateFrames = [];
-      CanvasRenderingContext2D.prototype.strokeRect = function recordedStrokeRect(...args) {
-        if (String(this.strokeStyle) === "#86efac") globalThis.__cornerCandidateFrames.push([...args]);
-        return originalStrokeRect.apply(this, args);
+      const originalFillRect = CanvasRenderingContext2D.prototype.fillRect;
+      globalThis.__cornerCandidateFills = [];
+      CanvasRenderingContext2D.prototype.fillRect = function recordedFillRect(...args) {
+        if (String(this.fillStyle) === "#707070") globalThis.__cornerCandidateFills.push([...args]);
+        return originalFillRect.apply(this, args);
       };
       const runtime = globalThis.__standardOnlineRuntime;
       runtime.room.public_state = {
@@ -3433,10 +3547,10 @@ test("actual browser activates a two-cell legacy corner bloom from the keyboard 
     });
     const board = page.locator("#board");
     await board.focus();
-    await page.evaluate(() => { globalThis.__cornerCandidateFrames = []; });
+    await page.evaluate(() => { globalThis.__cornerCandidateFills = []; });
     await page.keyboard.press("Space");
     await page.getByText("1 / 2マス").waitFor();
-    assert.ok(await page.evaluate(() => globalThis.__cornerCandidateFrames.length > 0));
+    assert.ok(await page.evaluate(() => globalThis.__cornerCandidateFills.length > 0));
     await page.keyboard.press("ArrowRight");
     await page.keyboard.press("Space");
     await page.getByText("2 / 2マス").waitFor();
@@ -3465,7 +3579,7 @@ test("actual browser sends alpha.4 corner bloom from one pointer cell, ignores o
       const originalStrokeRect = CanvasRenderingContext2D.prototype.strokeRect;
       globalThis.__cornerTargetFrames = [];
       CanvasRenderingContext2D.prototype.strokeRect = function recordedCornerTargetFrame(...args) {
-        if (String(this.strokeStyle) === "#f0abfc") globalThis.__cornerTargetFrames.push([...args]);
+        if (String(this.strokeStyle) === "#bcbcbc") globalThis.__cornerTargetFrames.push([...args]);
         return originalStrokeRect.apply(this, args);
       };
       const runtime = globalThis.__standardOnlineRuntime;
@@ -3498,7 +3612,8 @@ test("actual browser sends alpha.4 corner bloom from one pointer cell, ignores o
     assert.equal(await target.locator('[data-corner-bloom-mode], [data-corner-bloom-region], [data-corner-bloom-macro], .corner-bloom-targets').count(), 0);
     assert.equal(await target.getByRole("button", { name: "この対象で使う" }).count(), 0);
     const box = await board.boundingBox();
-    assert.ok(box.width / 48 >= 44);
+    // v13 withdraws custom 2112px enlargement; exact micro pointer/retry checks below remain.
+    assert.ok(Math.abs(box.width - await page.locator("#boardViewport").evaluate(el => el.getBoundingClientRect().width)) < 2);
     await board.click({ position: { x: box.width * (2.5 / 48), y: box.height * (.5 / 48) } });
     await target.locator('.skill-target-feedback[data-tone="error"]').getByText(/このセルのエリア.*対象にできません/).waitFor();
     assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "action").length), 0);
@@ -3640,7 +3755,9 @@ test("actual browser keeps alpha.4 corner bloom targeting after a non-retryable 
     await skill.click();
     await page.waitForFunction(() => document.activeElement?.id === "board");
     const box = await board.boundingBox();
-    assert.ok(Math.min(box.width, box.height) / 48 >= 44, JSON.stringify(box));
+    // Adopted v13 removes automatic fine-cell zoom, not pointer payload or retry checks.
+    assert.ok(box.width >= 280, JSON.stringify(box));
+    assert.equal(box.width, (await page.locator("#boardViewport").boundingBox()).width);
     await board.click({ position: { x: box.width / 96, y: box.height / 96 } });
     await target.locator('.skill-target-feedback[data-tone="error"]')
       .getByText(/広げられる角.*カード・手番は減っていません.*別のセルを選べます/).waitFor();
@@ -3648,7 +3765,8 @@ test("actual browser keeps alpha.4 corner bloom targeting after a non-retryable 
     assert.equal(await page.locator("#retryAction").isHidden(), true);
     await page.waitForFunction(() => document.activeElement?.id === "board");
     const retryBox = await board.boundingBox();
-    assert.ok(Math.min(retryBox.width, retryBox.height) / 48 >= 44, JSON.stringify(retryBox));
+    assert.ok(retryBox.width >= 280, JSON.stringify(retryBox));
+    assert.equal(retryBox.width, (await page.locator("#boardViewport").boundingBox()).width);
     let actions = await page.evaluate(() => globalThis.__standardOnlineRuntime.calls
       .filter((entry) => entry.body?.operation === "action").map((entry) => entry.body.action));
     assert.equal(actions.length, 1);
@@ -5666,16 +5784,15 @@ test("actual Edge hands one submitted setup to the visible first-move guide with
     };
     return {
       guide: rect("#turnGuide"),
-      step: rect("#turnGuideStep"),
-      statusText: rect("#turnGuide > div[role=status]"),
-      zoom: rect("#toggleBoardZoom"),
+      statusText: rect("#turnGuideTitle"),
+      give: rect("#submitRegion"),
       board: rect("#board"),
       controls: rect("#regionControls"),
       connection: rect(".connection-card"),
       tabs: rect(".app-tabs"),
       overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
-      actionOrder: Boolean(document.querySelector("#playSurface > #regionControls + #colorResponse"))
-        && Boolean(document.querySelector("#playSurface + #actionStatus + #retryAction + .hand-heading + #skillControls + #skillTargetControls + #matchSetupDetails + #paletteHistoryPanel + #tacticalTrace")),
+      actionOrder: Boolean(document.querySelector("#playSurface > #turnGuide > #regionControls"))
+        && Boolean(document.querySelector("#playSurface + #actionStatus + #retryAction + .hand-heading + #skillControls + #skillTargetControls + #paletteHistoryPanel + #tacticalTrace")),
       playableHit: document.elementFromPoint(
         document.querySelector("#board").getBoundingClientRect().left + document.querySelector("#board").getBoundingClientRect().width * 10.5 / 12,
         document.querySelector("#board").getBoundingClientRect().top + document.querySelector("#board").getBoundingClientRect().height * 1.5 / 12,
@@ -5685,11 +5802,10 @@ test("actual Edge hands one submitted setup to the visible first-move guide with
   const assertFirstMoveLayout = (layout) => {
     assert.ok(layout.guide.top >= 0, JSON.stringify(layout));
     assert.ok(layout.guide.bottom <= layout.board.top, JSON.stringify(layout));
-    assert.ok(layout.zoom.bottom <= layout.board.top, JSON.stringify(layout));
-    assert.ok(layout.zoom.width >= 44 && layout.zoom.height >= 44, JSON.stringify(layout));
-    assert.ok(layout.step.top < layout.zoom.bottom && layout.zoom.top < layout.step.bottom, JSON.stringify(layout));
-    assert.ok(Math.max(layout.step.bottom, layout.zoom.bottom) <= layout.statusText.top, JSON.stringify(layout));
-    assert.ok(layout.board.bottom <= layout.controls.top, JSON.stringify(layout));
+    assert.ok(layout.give.bottom <= layout.board.top, JSON.stringify(layout));
+    assert.ok(layout.give.width >= 44 && layout.give.height >= 44, JSON.stringify(layout));
+    assert.ok(layout.statusText.bottom <= layout.controls.top, JSON.stringify(layout));
+    assert.ok(layout.controls.bottom <= layout.board.top, JSON.stringify(layout));
     assert.ok(layout.controls.bottom <= layout.connection.top, JSON.stringify(layout));
     assert.ok(layout.connection.bottom <= layout.tabs.top - 4, JSON.stringify(layout));
     assert.equal(layout.overflow, false);
@@ -5712,8 +5828,8 @@ test("actual Edge hands one submitted setup to the visible first-move guide with
     await page.waitForFunction(() => document.activeElement?.id === "matchTitle");
     assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "setup").length), 1);
     assert.equal(await page.locator("#matchTitle").textContent(), "Standard対戦スタート");
-    assert.equal(await page.locator("#turnGuideStep").textContent(), "あなたが作る → CPUが塗る");
-    assert.match(await page.locator("#turnGuideTitle").textContent(), /白い盤面をタップして、あと1マス選ぶ/);
+    assert.equal(await page.locator("#turnGuideStep").count(), 0);
+    assert.equal(await page.locator("#turnGuideTitle").textContent(), "相手に渡すエリアを選択してください");
     await page.waitForFunction(() => document.querySelector("#regionControls").getBoundingClientRect().bottom <= document.querySelector(".connection-card").getBoundingClientRect().top);
     assertFirstMoveLayout(await firstMoveLayout(page));
     const handoff = await page.evaluate(() => globalThis.__handoffScrolls.at(-1));
@@ -5736,9 +5852,9 @@ test("actual Edge hands one submitted setup to the visible first-move guide with
     });
     await page.getByRole("button", { name: "この6枚で準備完了" }).click();
     await page.waitForFunction(() => document.activeElement?.id === "matchTitle");
-    assert.equal(await page.locator("#turnGuideStep").textContent(), "CPUが作る → あなたが塗る");
+    assert.equal(await page.locator("#turnGuideStep").count(), 0);
     assert.equal(await page.locator("#turnGuideTitle").textContent(), "CPUが最初のエリアを選んでいます");
-    assert.match(await page.locator("#turnGuideDetail").textContent(), /次は、受け取った灰色エリア/);
+    assert.equal(await page.locator("#turnGuideDetail").count(), 0);
     const cpuFirstLayout = await firstMoveLayout(page);
     assert.ok(cpuFirstLayout.guide.top >= 0 && cpuFirstLayout.board.bottom <= cpuFirstLayout.connection.top, JSON.stringify(cpuFirstLayout));
     assert.ok(cpuFirstLayout.connection.bottom <= cpuFirstLayout.tabs.top - 4, JSON.stringify(cpuFirstLayout));
@@ -5784,13 +5900,13 @@ test("actual Edge hands one submitted setup to the visible first-move guide with
 test("actual Edge guides a player from board selection through one CREATE_REGION intent", { timeout: 130000 }, async () => {
   await withPage("playing", async (page) => {
     await page.locator("#turnGuide:not(.hidden)").waitFor();
-    assert.equal(await page.locator("#turnGuideStep").textContent(), "あなたが作る → 相手が塗る");
-    assert.match(await page.locator("#turnGuideTitle").textContent(), /あと1マス選ぶ/);
-    assert.match(await page.locator("#turnGuideDetail").textContent(), /選んだエリアは相手が塗ります/);
+    assert.equal(await page.locator("#turnGuideStep").count(), 0);
+    assert.equal(await page.locator("#turnGuideTitle").textContent(), "相手に渡すエリアを選択してください");
+    assert.equal(await page.locator("#turnGuideDetail").count(), 0);
     await page.locator("#board").click({ position: { x: 50, y: 50 } });
     assert.equal(await page.locator("#selectionCount").textContent(), "1 / 1マス");
-    assert.equal(await page.locator("#turnGuideStep").textContent(), "あなたが作る → 相手が塗る");
-    assert.equal(await page.locator("#turnGuideTitle").textContent(), "選べました。「このエリアを渡す」へ");
+    assert.equal(await page.locator("#turnGuideStep").count(), 0);
+    assert.equal(await page.locator("#turnGuideTitle").textContent(), "選択したエリアを渡してください");
     await page.getByRole("button", { name: "このエリアを渡す" }).click();
     await page.getByText("操作を保存しました。").waitFor();
     const calls = await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "action").map((entry) => entry.body));
@@ -5800,7 +5916,7 @@ test("actual Edge guides a player from board selection through one CREATE_REGION
   });
 });
 
-test("actual browser enlarges a 12-column board and completes connected selection by keyboard without pan misfires", { timeout: 130000 }, async () => {
+test("actual browser keeps a 12-column board unzoomed and completes connected selection by keyboard without drag misfires", { timeout: 130000 }, async () => {
   await withPage("playing", async (page) => {
     await page.evaluate(() => {
       const runtime = globalThis.__standardOnlineRuntime;
@@ -5817,7 +5933,7 @@ test("actual browser enlarges a 12-column board and completes connected selectio
       runtime.onInvalidate?.({});
     });
     await page.waitForFunction(() => document.querySelector("#selectionCount")?.textContent === "0 / 2マス");
-    assert.match(await page.locator("#turnGuideDetail").textContent(), /水色の破線.*選んだエリアは相手が塗ります/);
+    assert.equal(await page.locator("#turnGuideTitle").textContent(), "相手に渡すエリアを選択してください");
     const before = await page.evaluate(() => ({
       viewport: document.querySelector("#boardViewport").getBoundingClientRect().width,
       board: document.querySelector("#board").getBoundingClientRect().width,
@@ -5826,27 +5942,16 @@ test("actual browser enlarges a 12-column board and completes connected selectio
     assert.equal(before.tabIndex, 0);
     assert.ok(before.board / 12 < 44, JSON.stringify(before));
 
-    await page.getByRole("button", { name: "盤面を拡大" }).click();
-    await page.waitForFunction(() => document.querySelector("#boardViewport").classList.contains("is-zoomed"));
-    const zoomed = await page.evaluate(() => ({
-      viewport: document.querySelector("#boardViewport").getBoundingClientRect().width,
-      board: document.querySelector("#board").getBoundingClientRect().width,
-      clientWidth: document.querySelector("#boardViewport").clientWidth,
-      scrollWidth: document.querySelector("#boardViewport").scrollWidth,
-      pressed: document.querySelector("#toggleBoardZoom").getAttribute("aria-pressed"),
-      overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
-    }));
-    assert.ok(Math.abs(zoomed.viewport - before.viewport) < 2, JSON.stringify({ before, zoomed }));
-    assert.ok(zoomed.board / 12 >= 44, JSON.stringify(zoomed));
-    assert.ok(zoomed.scrollWidth > zoomed.clientWidth * 1.8, JSON.stringify(zoomed));
-    assert.equal(zoomed.pressed, "true");
-    assert.equal(zoomed.overflow, false);
+    assert.equal(await page.locator("#toggleBoardZoom").count(), 0);
+    assert.ok(Math.abs(before.viewport - before.board) < 2, JSON.stringify(before));
+    assert.ok(before.board >= 280);
+    assert.match(await page.locator("#board").evaluate(el => getComputedStyle(el).touchAction), /^(?:manipulation|pan-x pan-y pinch-zoom)$/);
 
     const board = page.locator("#board");
     await board.focus();
     assert.match(await board.getAttribute("aria-label"), /矢印キー.*Space.*Escape/);
     await page.keyboard.press("Space");
-    assert.match(await page.locator("#turnGuideDetail").textContent(), /緑の破線.*サーバーが判定/);
+    assert.equal(await page.locator("#turnGuideTitle").textContent(), "相手に渡すエリアを選択してください");
     const canvasBox = await board.boundingBox();
     await page.mouse.move(canvasBox.x + 80, canvasBox.y + 80);
     await page.mouse.down();
@@ -5872,7 +5977,7 @@ test("actual browser enlarges a 12-column board and completes connected selectio
     await page.locator('[data-app-tab="quiz"]').click();
     await page.locator('[data-app-tab="battle"]').click();
     assert.equal(await page.locator("#boardViewport").evaluate((node) => node.classList.contains("is-zoomed")), false);
-    assert.equal(await page.locator("#toggleBoardZoom").getAttribute("aria-pressed"), "false");
+    assert.equal(await page.locator("#toggleBoardZoom").count(), 0);
     assert.deepEqual(await page.locator("#boardViewport").evaluate((node) => ({ left: node.scrollLeft, top: node.scrollTop })), { left: 0, top: 0 });
     await board.focus();
     await page.keyboard.press("ArrowRight");
@@ -5907,6 +6012,70 @@ test("actual browser enlarges a 12-column board and completes connected selectio
   }, { viewport: { width: 390, height: 844 } });
 });
 
+test("actual browser uses gray free candidates and white selection after a real Half Shift at 390px", { timeout: 120000 }, async () => {
+  const match = require("../standard/standard-match.js");
+  const { halfShiftScenario, acceptedShapes } = require("./helpers/board-affordance-fixture.cjs");
+  const scenario = halfShiftScenario(), state = { ...scenario.after, requiredSize: 2, version: 10 };
+  const legal = acceptedShapes(state, scenario.rng), occupied = new Set(Object.values(state.regions).flatMap(r => r.micro));
+  const width = state.playableBounds.macroWidth, scale = state.playableBounds.microScale, microWidth = width * scale;
+  const macroOf = micro => Math.floor(micro / microWidth / scale) * width + Math.floor(micro % microWidth / scale);
+  const starts = [...new Set(legal.flatMap(shape => shape.sourceMacros))].sort((a, b) => a - b);
+  const partial = starts.find(macro => [...occupied].some(micro => macroOf(micro) === macro));
+  assert.notEqual(partial, undefined);
+  const shape = legal.find(candidate => candidate.sourceMacros.includes(partial));
+  const next = shape.sourceMacros.find(macro => macro !== partial);
+  const freeMicro = shape.micro.find(micro => macroOf(micro) === partial);
+  const painted = Object.values(state.regions).flatMap(region => region.micro.map(micro => ({ micro, color: region.color })));
+  await withPage("playing", async page => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.evaluate(({ publicState, privateState }) => {
+      const runtime = globalThis.__standardOnlineRuntime;
+      runtime.room = { ...runtime.room, version: publicState.version, public_state: publicState };
+      runtime.view = { ...runtime.view, seat: "A", version: publicState.version, private_state: privateState };
+      runtime.onInvalidate?.({});
+    }, { publicState: match.projectStandardPublicState(state), privateState: match.projectStandardPrivateState(state, "A") });
+    const board = page.locator("#board");
+    await page.waitForFunction(expected => document.querySelector("#board").dataset.startCandidateMacros === expected, starts.join(","));
+    const pixels = async micros => board.evaluate((canvas, { micros, microWidth }) => {
+      const ctx = canvas.getContext("2d"), cell = canvas.width / microWidth;
+      return micros.map(micro => [...ctx.getImageData(Math.floor((micro % microWidth + .5) * cell), Math.floor((Math.floor(micro / microWidth) + .5) * cell), 1, 1).data]);
+    }, { micros, microWidth });
+    const exactColors = { red: [239, 68, 68, 255], blue: [59, 130, 246, 255], yellow: [234, 179, 8, 255], green: [34, 197, 94, 255] };
+    assert.deepEqual(await pixels([freeMicro]), [[112, 112, 112, 255]]);
+    assert.deepEqual(await pixels(painted.map(cell => cell.micro)), painted.map(cell => exactColors[cell.color]));
+    assert.equal(await page.locator("#selectionCount").textContent(), "0 / 2マス");
+    if (process.env.UI_DIET_SCREENSHOTS) {
+      await page.locator("#skillCutin").waitFor({ state: "hidden" });
+      await page.screenshot({ path: path.join(process.env.UI_DIET_SCREENSHOTS, `${browserName}-board-gray-candidates-390.png`) });
+    }
+    await clickCanvasFraction(board, { x: (partial % width + .5) / width, y: (Math.floor(partial / width) + .5) / width });
+    assert.equal(await page.locator("#selectionCount").textContent(), "1 / 2マス");
+    assert.deepEqual(await pixels([freeMicro]), [[242, 242, 242, 255]]);
+    assert.deepEqual(await pixels(painted.map(cell => cell.micro)), painted.map(cell => exactColors[cell.color]));
+    assert.ok((await board.getAttribute("data-connected-guided-macros")).split(",").map(Number).includes(next));
+    await board.focus();
+    const direction = next - partial;
+    await page.keyboard.press(direction === 1 ? "ArrowRight" : direction === -1 ? "ArrowLeft" : direction === width ? "ArrowDown" : "ArrowUp");
+    await page.keyboard.press("Space");
+    assert.equal(await page.locator("#selectionCount").textContent(), "2 / 2マス");
+    assert.deepEqual(await pixels(shape.micro), shape.micro.map(() => [242, 242, 242, 255]));
+    assert.deepEqual(await pixels(painted.map(cell => cell.micro)), painted.map(cell => exactColors[cell.color]));
+    if (process.env.UI_DIET_SCREENSHOTS) {
+      await page.locator("#skillCutin").waitFor({ state: "hidden" });
+      await page.screenshot({ path: path.join(process.env.UI_DIET_SCREENSHOTS, `${browserName}-board-half-shift-gray-390-final.png`) });
+    }
+    await page.locator("#submitRegion").click();
+    await page.getByText("操作を保存しました。", { exact: true }).waitFor();
+    const actions = await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter(call => call.body?.operation === "action").map(call => call.body.action));
+    assert.equal(actions.length, 1);
+    assert.equal(actions[0].type, "CREATE_REGION");
+    assert.deepEqual(actions[0].payload.sourceMacros, shape.sourceMacros);
+    const committed = match.applyStandardAction({ state, actor: "A", action: actions[0], expectedVersion: 10, rngStreams: scenario.rng });
+    assert.equal(committed.ok, true);
+    assert.deepEqual(committed.state.regions[committed.state.pending].micro, shape.micro);
+  }, { viewport: { width: 390, height: 844 }, bodyTimeout: 45_000 });
+});
+
 test("actual browser guides every public legal start then switches fully to connected candidates", { timeout: 180000 }, async () => {
   await withPage("playing", async (page) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
@@ -5935,9 +6104,10 @@ test("actual browser guides every public legal start then switches fully to conn
     assert.equal(await board.getAttribute("data-guided-macro"), null);
     assert.equal(await board.getAttribute("data-connected-guided-macros"), null);
     assert.equal(await board.getAttribute("aria-describedby"), "boardKeyboardHelp boardKeyboardStatus");
-    assert.match(await board.getAttribute("aria-label"), /水色の破線は選択を開始できる全候補5か所/);
+    assert.match(await board.getAttribute("aria-label"), /明るい灰色は選択を開始できる全候補5か所/);
     assert.match(await page.locator("#boardKeyboardHelp").textContent(), /必要数まで完成できる全候補.*自動選択ではありません/);
-    assert.match(await page.locator("#turnGuideDetail").textContent(), /水色の破線.*全候補.*5か所.*自動選択ではない.*選んだエリアは相手が塗ります/);
+    assert.match(await board.getAttribute("aria-label"), /明るい灰色.*全候補5か所/);
+    assert.equal(await page.locator("#turnGuideTitle").textContent(), "相手に渡すエリアを選択してください");
     assert.equal(await page.locator("#selectionCount").textContent(), "0 / 2マス");
     assert.equal(await board.evaluate((node) => getComputedStyle(node).animationName), "none");
 
@@ -5950,16 +6120,16 @@ test("actual browser guides every public legal start then switches fully to conn
     assert.equal(await board.getAttribute("data-guided-macro"), null);
     assert.equal(await board.getAttribute("data-connected-guided-macros"), "11");
     assert.doesNotMatch(await board.getAttribute("aria-label"), /最初のおすすめ/);
-    assert.match(await board.getAttribute("aria-label"), /緑の破線は次に辺でつなげて選べる候補/);
-    assert.doesNotMatch(await page.locator("#turnGuideDetail").textContent(), /水色|最初のおすすめ/);
-    assert.match(await page.locator("#turnGuideDetail").textContent(), /緑の破線.*サーバーが判定/);
+    assert.match(await board.getAttribute("aria-label"), /明るい灰色は次に辺でつなげて選べる候補/);
+    assert.doesNotMatch(await page.locator("#turnGuideTitle").textContent(), /水色|最初のおすすめ/);
+    assert.match(await board.getAttribute("aria-label"), /明るい灰色.*次に辺でつなげて選べる候補/);
 
     await page.keyboard.press("Escape");
     await page.locator('#skillControls button[data-skill="areaMicroBloom"]').click();
     await page.waitForFunction(() => document.querySelector("#board")?.dataset.startCandidateMacros === "5,6,7,9,10,11,13,14");
     assert.equal(await board.getAttribute("data-selection-guidance"), "start");
     assert.equal(await board.getAttribute("data-start-candidate-macros"), "5,6,7,9,10,11,13,14");
-    assert.match(await page.locator("#skillTargetControls").textContent(), /水色の破線は選択を開始できる全候補.*8か所/);
+    assert.match(await page.locator("#skillTargetControls").textContent(), /明るい灰色は選択を開始できる全候補.*8か所/);
     await page.getByRole("button", { name: "キャンセル", exact: true }).click();
 
     await page.locator('#skillControls button[data-skill="areaCornerBloom"]').click();
@@ -6071,11 +6241,11 @@ test("actual browser clears transient board selection when the authoritative tur
     });
     await page.waitForFunction(() => document.querySelector("#selectionCount")?.textContent === "0 / 2マス");
     const board = page.locator("#board");
-    await page.getByRole("button", { name: "盤面を拡大" }).click();
+    assert.equal(await page.locator("#toggleBoardZoom").count(), 0);
     await board.focus();
     await page.keyboard.press("Space");
     assert.equal(await page.locator("#selectionCount").textContent(), "1 / 2マス");
-    assert.match(await page.locator("#turnGuideDetail").textContent(), /緑の破線.*サーバーが判定/);
+    assert.equal(await page.locator("#turnGuideTitle").textContent(), "相手に渡すエリアを選択してください");
 
     await page.evaluate(() => {
       const runtime = globalThis.__standardOnlineRuntime;
@@ -6088,7 +6258,7 @@ test("actual browser clears transient board selection when the authoritative tur
     });
     await page.waitForFunction(() => document.querySelector("#board").tabIndex === -1);
     assert.equal(await page.locator("#boardViewport").evaluate((node) => node.classList.contains("is-zoomed")), false);
-    assert.equal(await page.locator("#toggleBoardZoom").isHidden(), true);
+    assert.equal(await page.locator("#toggleBoardZoom").count(), 0);
     assert.equal(await page.locator("#regionControls").isHidden(), true);
 
     await page.evaluate(() => {
@@ -6459,15 +6629,15 @@ test("actual browser keeps both basic colors through a torn CPU-turn projection 
   }, { viewport: { width: 390, height: 844 }, bodyTimeout: 50_000 });
 });
 
-test("actual Edge names the maker and painter across every handoff state", { timeout: 130000 }, async () => {
+test("actual Edge keeps one short actor-specific guide across every handoff state", { timeout: 130000 }, async () => {
   await withPage("handoffGuide", async (page) => {
     const states = [
-      { active: "A", phase: "CREATE_FIRST", role: "あなたが作る → 相手が塗る", title: "白い盤面をタップして、あと1マス選ぶ" },
-      { active: "B", phase: "CREATE_FIRST", role: "相手が作る → あなたが塗る", title: "相手があなたへ渡すエリアを作っています" },
-      { active: "A", phase: "WORK", role: "あなたが作る → 相手が塗る", title: "盤面をタップ／クリックして、あと1マス選ぶ" },
-      { active: "B", phase: "WORK", role: "相手が作る → あなたが塗る", title: "相手があなたへ渡すエリアを作っています" },
-      { active: "A", phase: "COLOR", role: "相手が作る → あなたが塗る", title: "受け取った灰色エリアを塗る" },
-      { active: "B", phase: "COLOR", role: "あなたが作る → 相手が塗る", title: "相手が受け取ったエリアを塗っています" },
+      { active: "A", phase: "CREATE_FIRST", title: "相手に渡すエリアを選択してください" },
+      { active: "B", phase: "CREATE_FIRST", title: "相手が最初のエリアを選んでいます" },
+      { active: "A", phase: "WORK", title: "相手に渡すエリアを選択してください" },
+      { active: "B", phase: "WORK", title: "相手が渡すエリアを選んでいます" },
+      { active: "A", phase: "COLOR", title: "受け取ったエリアを塗ってください" },
+      { active: "B", phase: "COLOR", title: "相手が受け取ったエリアを塗っています" },
     ];
     for (const expected of states) {
       await page.evaluate(({ active, phase }) => {
@@ -6481,10 +6651,8 @@ test("actual Edge names the maker and painter across every handoff state", { tim
         runtime.view = { ...runtime.view, version };
         runtime.onInvalidate();
       }, expected);
-      await page.waitForFunction(({ role, title }) => (
-        document.querySelector("#turnGuideStep")?.textContent === role
-        && document.querySelector("#turnGuideTitle")?.textContent === title
-      ), expected);
+      await page.waitForFunction(({ title }) => document.querySelector("#turnGuideTitle")?.textContent === title, expected);
+      assert.equal(await page.locator("#turnGuideStep, #turnGuideDetail, #phaseText").count(), 0);
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth), false);
     }
 
@@ -6497,7 +6665,7 @@ test("actual Edge names the maker and painter across every handoff state", { tim
       runtime.view = { ...runtime.view, version };
       runtime.onInvalidate();
     });
-    await page.getByText("盤面をタップ／クリックして、あと1マス選ぶ", { exact: true }).waitFor();
+    await page.getByText("相手に渡すエリアを選択してください", { exact: true }).waitFor();
     await page.locator("#board").click({ position: { x: 50, y: 50 } });
     await page.getByRole("button", { name: "このエリアを渡す" }).click();
     await page.getByText("操作を保存しました。").waitFor();
@@ -6509,7 +6677,7 @@ test("actual Edge names the maker and painter across every handoff state", { tim
       overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
     }));
     assert.deepEqual(afterCreate, { active: "B", phase: "COLOR", pending: "R1", overflow: false });
-    assert.equal(await page.locator("#turnGuideStep").textContent(), "あなたが作る → 相手が塗る");
+    assert.equal(await page.locator("#regionControls").isHidden(), true);
   }, { viewport: { width: 390, height: 844 } });
 });
 
@@ -6519,10 +6687,13 @@ test("actual Edge explains private random setup and every visible skill without 
     assert.equal(await page.locator("#members .member-nameplate-gold").count(), 1);
     assert.equal(await page.locator("#roomStatus").textContent(), "対戦中");
     assert.equal(await page.locator("#versionText").textContent(), "3");
-    assert.equal(await page.locator("#phaseText").textContent(), "相手に渡すエリアを選んでください");
-    assert.equal(await page.locator("#rolledSizeValue").textContent(), "1マス");
-    assert.equal(await page.locator("#basicPaletteValue").textContent(), "赤・青");
-    assert.equal(await page.locator("#bonusColorValue").textContent(), "黄（残り2回）");
+    assert.equal(await page.locator("#turnGuideTitle").textContent(), "相手に渡すエリアを選択してください");
+    assert.equal(await page.locator("#selectionCount").textContent(), "0 / 1マス");
+    assert.equal(await page.locator("#matchSetupDetails, #phaseText").count(), 0);
+    const colors = await page.locator("#paletteControls .color-button").evaluateAll(nodes => nodes.map(node => ({ label: node.getAttribute("aria-label"), mark: node.querySelector(".palette-role-mark").textContent.trim() })));
+    assert.match(colors[0].label, /赤/); assert.equal(colors[0].mark, "∞");
+    assert.match(colors[1].label, /青/); assert.equal(colors[1].mark, "∞");
+    assert.match(colors[2].label, /黄/); assert.equal(colors[2].mark, "2");
     assert.equal(await page.locator("#randomRevealTitle").textContent(), "サイコロは 1マス！");
     await page.getByRole("button", { name: "エリア拡張の説明" }).click();
     await page.locator("#skillInfoDialog[open]").waitFor();
@@ -7115,13 +7286,14 @@ test("actual browser plays one finite turn-arrival beat without hydration reload
   }, { viewport: { width: 390, height: 844 }, bodyTimeout: 45_000 });
 });
 
-test("actual browser presents current-seat palette impacts once across poll, background, and reload at 390px", { timeout: 120000 }, async () => {
+test("actual browser reconciles current-seat palette notice lifetime across poll, background, and reload at 390px", { timeout: 120000 }, async () => {
   await withPage("playing", async (page) => {
     const notice = page.locator("#paletteImpactNotice");
     const presentationKey = "fourColorMapGame.standard.online.v5.palette-impact-presentation-v1";
     await notice.waitFor({ state: "hidden" });
     assert.equal(await notice.getAttribute("role"), "status");
     assert.equal(await notice.getAttribute("aria-live"), "polite");
+    assert.equal(await page.locator("#dismissPaletteImpact").count(), 0, "current status needs no acknowledgment");
     await page.evaluate(() => {
       globalThis.__paletteImpactPresentations = 0;
       let visible = !document.querySelector("#paletteImpactNotice").classList.contains("hidden");
@@ -7151,13 +7323,18 @@ test("actual browser presents current-seat palette impacts once across poll, bac
         const event = { eventId: `${matchId}:${nextVersion}:palette-impact:A`, version: nextVersion,
           actor, skill, kind: nextKind, slot: nextSlot, previousColor: before, injectedColor: after, remaining: nextRemaining };
         const priorHistory = runtime.view.private_state.privateEffects?.paletteImpactHistory || [];
+        const basicPalette = [...runtime.view.private_state.basicPalette];
+        let bonusColor = runtime.view.private_state.bonusColor;
+        if (nextSlot < 2) basicPalette[nextSlot] = after; else bonusColor = after;
+        const paletteDebuffs = nextRemaining > 0
+          ? [{ slot: nextSlot, previousColor: before, injectedColor: after, remaining: nextRemaining }] : [];
         runtime.room = { ...runtime.room, version: nextVersion, opponent_kind: cpuRoom ? "cpu" : "human",
           access_mode: cpuRoom ? "cpu" : "private_code", cpu_character_id: cpuRoom ? "yuzu" : null,
           public_state: { ...runtime.room.public_state, version: nextVersion, turn: nextVersion,
             lastPublicTrace: { eventId: `${matchId}:${nextVersion}`, version: nextVersion, type: "USE_SKILL", actor } } };
         runtime.view = { ...runtime.view, seat: "A", version: nextVersion, private_state: { ...runtime.view.private_state,
-          initialBasicPalette: ["red", "blue"], initialBonusColor: "yellow",
-          privateEffects: { paletteImpactEvent: event, paletteImpactHistory: [...priorHistory, event].slice(-12) } } };
+          seat: "A", basicPalette, bonusColor, initialBasicPalette: ["red", "blue"], initialBonusColor: "yellow",
+          privateEffects: { paletteDebuffs, paletteImpactEvent: event, paletteImpactHistory: [...priorHistory, event].slice(-12) } } };
         runtime.onInvalidate?.({});
       }, { nextVersion: version, nextKind: kind, nextSlot: slot, before: previousColor, after: injectedColor, nextRemaining: remaining, cpuRoom: cpu, selfImpact: self });
       if (waitForRefresh) await page.waitForFunction((expected) => document.querySelector("#versionText")?.textContent === String(expected), version);
@@ -7166,33 +7343,38 @@ test("actual browser presents current-seat palette impacts once across poll, bac
     await impact(10, "random", 0, "red", "green", 1);
     await notice.waitFor({ state: "visible" });
     assert.equal(await page.locator("#paletteImpactTitle").textContent(), "持ち色汚染を受けました");
-    assert.equal(await page.locator("#paletteImpactDetail").textContent(), "Bが「持ち色汚染・乱」で、基本色1を赤から緑へ変更しました。次の1回の彩色後に元へ戻ります。");
+    assert.equal(await page.locator("#paletteImpactDetail").textContent(), "基本色1 赤→緑（Bの「持ち色汚染・乱」）。あと1回の彩色で戻ります。");
     assert.equal(await page.locator("#paletteHistoryCount").textContent(), "1件");
     assert.match(await page.locator("#paletteHistoryList").textContent(), /B「持ち色汚染・乱」｜基本色1 赤 → 緑/);
     assert.equal(await page.locator("#publicProjection").textContent().then((text) => /paletteImpact|previousColor|injectedColor/.test(text)), false);
+    await page.evaluate(() => {
+      globalThis.__paletteImpactTextWrites = 0;
+      new MutationObserver(records => { globalThis.__paletteImpactTextWrites += records.length; })
+        .observe(document.querySelector("#paletteImpactDetail"), { childList: true, characterData: true, subtree: true });
+    });
     await page.evaluate(() => { globalThis.__standardOnlineRuntime.onInvalidate?.({}); globalThis.__standardOnlineRuntime.onInvalidate?.({}); });
     await page.waitForTimeout(150);
     assert.equal(await page.evaluate(() => globalThis.__paletteImpactPresentations), 1);
-    await page.locator("#dismissPaletteImpact").focus();
-    await page.keyboard.press("Enter");
-    await notice.waitFor({ state: "hidden" });
-    assert.equal(await page.evaluate(() => document.activeElement?.id), "matchTitle");
+    assert.equal(await page.evaluate(() => globalThis.__paletteImpactTextWrites), 0, "identical polls do not rewrite the live status");
 
     await page.reload({ waitUntil: "load" });
     await page.locator("#connectionBadge.good").waitFor({ state: "visible" });
     await impact(10, "random", 0, "red", "green", 1);
-    await page.waitForTimeout(150);
-    assert.equal(await notice.isHidden(), true, "reload must not replay an already presented event");
+    await notice.waitFor({ state: "visible" });
+    assert.match(await page.locator("#paletteImpactDetail").textContent(), /あと1回/);
+    assert.equal(await page.evaluate(key => JSON.parse(localStorage.getItem(key)).presented.filter(id => id.endsWith(":10:palette-impact:A")).length, presentationKey), 1,
+      "reload restores active status without duplicating historical admission");
 
     await page.evaluate(() => {
       const runtime = globalThis.__standardOnlineRuntime;
       runtime.room = { ...runtime.room, version: 11, public_state: { ...runtime.room.public_state, version: 11, turn: 11 } };
       runtime.view = { ...runtime.view, version: 11, private_state: { ...runtime.view.private_state,
-        basicPalette: ["blue", "green"], privateEffects: runtime.view.private_state.privateEffects } };
+        basicPalette: ["red", "blue"], privateEffects: { ...runtime.view.private_state.privateEffects, paletteDebuffs: [] } } };
       runtime.onInvalidate?.({});
     });
     await page.waitForFunction(() => document.querySelector("#versionText")?.textContent === "11");
-    assert.equal(await notice.isHidden(), true, "an ordinary palette update must not look like an opponent impact");
+    assert.equal(await notice.isHidden(), true, "expired actual effect hides even while the old historical event remains");
+    assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.view.private_state.privateEffects.paletteImpactEvent.remaining), 1);
 
     await page.evaluate(() => {
       globalThis.__paletteImpactPresentations = 0;
@@ -7214,13 +7396,25 @@ test("actual browser presents current-seat palette impacts once across poll, bac
       document.dispatchEvent(new Event("visibilitychange"));
     });
     await notice.waitFor({ state: "visible" });
-    assert.equal(await page.locator("#paletteImpactDetail").textContent(), "Bが「持ち色汚染」で、おまけ色を黄から青へ変更しました。次の2回の彩色後に元へ戻ります。");
-    await page.locator("#dismissPaletteImpact").click();
+    assert.equal(await page.locator("#paletteImpactDetail").textContent(), "おまけ色 黄→青（Bの「持ち色汚染」）。あと2回の彩色で戻ります。");
+    for (const [version, remaining] of [[13, 1], [14, 0]]) {
+      await page.evaluate(({ version, remaining }) => {
+        const runtime = globalThis.__standardOnlineRuntime, own = runtime.view.private_state;
+        runtime.room = { ...runtime.room, version, public_state: { ...runtime.room.public_state, version, turn: version } };
+        runtime.view = { ...runtime.view, version, private_state: { ...own, bonusColor: remaining ? "blue" : "yellow",
+          privateEffects: { ...own.privateEffects, paletteDebuffs: remaining ? [{ ...own.privateEffects.paletteDebuffs[0], remaining }] : [] } } };
+        runtime.onInvalidate?.({});
+      }, { version, remaining });
+      await page.waitForFunction(expected => document.querySelector("#versionText")?.textContent === String(expected), version);
+      if (remaining) assert.match(await page.locator("#paletteImpactDetail").textContent(), /あと1回/);
+      else assert.equal(await notice.isHidden(), true, "2-to1-to0 expires without a click");
+    }
+    assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.view.private_state.privateEffects.paletteImpactHistory.at(-1).remaining), 2);
 
-    await impact(13, "forced", 1, "blue", "red", 0, { cpu: true });
+    await impact(15, "forced", 1, "blue", "red", 0, { cpu: true });
     await notice.waitFor({ state: "visible" });
     assert.equal(await page.locator("#paletteImpactTitle").textContent(), "強制持ち替えを受けました");
-    assert.match(await page.locator("#paletteImpactDetail").textContent(), /Bが「強制持ち替え」で、基本色2を青から赤へ変更.*対戦終了まで/);
+    assert.match(await page.locator("#paletteImpactDetail").textContent(), /基本色2 青→赤（Bの「強制持ち替え」）。対戦終了まで/);
     assert.equal(await page.locator("#paletteHistoryCount").textContent(), "3件");
     await page.evaluate(() => globalThis.__standardOnlineRuntime.onInvalidate?.({}));
     await page.waitForTimeout(150);
@@ -7232,12 +7426,15 @@ test("actual browser presents current-seat palette impacts once across poll, bac
       return { left: box.left, right: box.right, viewport: innerWidth, overflow: document.documentElement.scrollWidth > innerWidth };
     });
     assert.ok(layout.left >= 0 && layout.right <= layout.viewport && !layout.overflow, JSON.stringify(layout));
+    if (process.env.UI_DIET_SCREENSHOTS) {
+      await page.locator("#skillCutin").waitFor({ state: "hidden" });
+      await page.screenshot({ path: path.join(process.env.UI_DIET_SCREENSHOTS, `${browserName}-palette-notice-clear-390.png`) });
+    }
 
-    await page.locator("#dismissPaletteImpact").click();
-    await impact(14, "self", 2, "yellow", "green", 0, { self: true });
+    await impact(16, "self", 2, "yellow", "green", 0, { self: true });
     await notice.waitFor({ state: "visible" });
     assert.equal(await page.locator("#paletteImpactTitle").textContent(), "持ち色を変更しました");
-    assert.equal(await page.locator("#paletteImpactDetail").textContent(), "あなたが「持ち色変更」で、おまけ色を黄から緑へ変更しました。この変更は対戦終了まで続きます。");
+    assert.equal(await page.locator("#paletteImpactDetail").textContent(), "おまけ色 黄→緑（あなたの「持ち色変更」）。対戦終了まで。");
     assert.match(await page.locator("#paletteHistoryList").textContent(), /あなた「持ち色変更」｜おまけ色 黄 → 緑/);
 
     await page.evaluate(() => {
@@ -7335,7 +7532,7 @@ test("actual browser keeps the private palette-impact notice inside a desktop vi
       const matchId = runtime.room.public_state.matchId;
       runtime.room = { ...runtime.room, version: 10, public_state: { ...runtime.room.public_state, version: 10, turn: 10,
         lastPublicTrace: { eventId: `${matchId}:10`, version: 10, type: "USE_SKILL", actor: "B" } } };
-      runtime.view = { ...runtime.view, version: 10, private_state: { ...runtime.view.private_state,
+      runtime.view = { ...runtime.view, version: 10, private_state: { ...runtime.view.private_state, seat: "A", bonusColor: "green",
         privateEffects: { paletteImpactEvent: { eventId: `${matchId}:10:palette-impact:A`, version: 10,
           kind: "forced", slot: 2, previousColor: "yellow", injectedColor: "green", remaining: 0 } } } };
       runtime.onInvalidate?.({});
@@ -7360,6 +7557,7 @@ test("actual browser presents a deferred palette impact when returning to battle
       runtime.room = { ...runtime.room, version: 20, public_state: { ...runtime.room.public_state, version: 20, turn: 20,
         lastPublicTrace: { eventId: `${matchId}:20`, version: 20, type: "USE_SKILL", actor: "B" } } };
       runtime.view = { ...runtime.view, seat: "A", version: 20, private_state: { ...runtime.view.private_state,
+        seat: "A", basicPalette: ["blue", runtime.view.private_state.basicPalette[1]],
         privateEffects: { paletteImpactEvent: { eventId: `${matchId}:20:palette-impact:A`, version: 20,
           kind: "forced", slot: 0, previousColor: "red", injectedColor: "blue", remaining: 0 } } } };
       runtime.onInvalidate?.({});
@@ -7372,12 +7570,12 @@ test("actual browser presents a deferred palette impact when returning to battle
     });
     await page.locator('[data-app-tab="battle"]').click();
     await notice.waitFor({ state: "visible" });
-    assert.equal(await page.locator("#paletteImpactDetail").textContent(), "Bが「強制持ち替え」で、基本色1を赤から青へ変更しました。この変更は対戦終了まで続きます。");
-    await page.locator("#dismissPaletteImpact").click();
+    assert.equal(await page.locator("#paletteImpactDetail").textContent(), "基本色1 赤→青（Bの「強制持ち替え」）。対戦終了まで。");
     await page.locator('[data-app-tab="cards"]').click();
     await page.locator('[data-app-tab="battle"]').click();
     await page.waitForTimeout(150);
-    assert.equal(await notice.isHidden(), true, "re-entering battle must not replay the same private event");
+    assert.equal(await notice.isVisible(), true, "re-entering battle restores ongoing current status");
+    assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem("fourColorMapGame.standard.online.v5.palette-impact-presentation-v1")).presented.filter(id => id.endsWith(":20:palette-impact:A")).length), 1);
   }, { viewport: { width: 390, height: 844 }, bodyTimeout: 45_000 });
 });
 
@@ -7455,8 +7653,8 @@ test("actual browser presents CPU commentary once from public events and keeps t
     await page.locator("#matchCard:not(.hidden)").waitFor();
     assert.equal(await page.locator("#cpuCommentaryStage").isVisible(), true);
     assert.equal(await page.locator("#cpuCommentaryBubble").evaluate((node) => node.classList.contains("is-silent")), true);
-    await page.locator("#toggleBoardZoom").focus();
-    const baselineLayout = await page.evaluate(() => Object.fromEntries(["phaseText", "turnGuide", "toggleBoardZoom", "board", "regionControls"].map((id) => {
+    await page.locator("#clearSelection").focus();
+    const baselineLayout = await page.evaluate(() => Object.fromEntries(["turnGuide", "clearSelection", "board", "regionControls"].map((id) => {
       const rect = document.getElementById(id).getBoundingClientRect();
       return [id, [rect.top, rect.right, rect.bottom, rect.left]];
     })));
@@ -7484,14 +7682,14 @@ test("actual browser presents CPU commentary once from public events and keeps t
       const guide = document.querySelector("#turnGuide").getBoundingClientRect();
       const board = document.querySelector("#board").getBoundingClientRect();
       const tabs = document.querySelector(".app-tabs").getBoundingClientRect();
-      const zoom = document.querySelector("#toggleBoardZoom").getBoundingClientRect();
-      const zoomHit = document.elementFromPoint(zoom.left + zoom.width / 2, zoom.top + zoom.height / 2);
+      const control = document.querySelector("#clearSelection").getBoundingClientRect();
+      const controlHit = document.elementFromPoint(control.left + control.width / 2, control.top + control.height / 2);
       const motion = getComputedStyle(document.querySelector("#cpuCommentaryBubble"));
       return {
         withinViewport: bubble.left >= 0 && bubble.right <= innerWidth && bubble.top >= 0 && bubble.bottom <= innerHeight,
-        leavesGuideAndZoomVisible: bubble.bottom <= guide.top && Boolean(zoomHit?.closest?.("#toggleBoardZoom")),
+        leavesGuideAndControlsVisible: bubble.bottom <= guide.top && Boolean(controlHit?.closest?.("#clearSelection")),
         boardClearsNavigation: board.bottom <= tabs.top,
-        stableHitboxes: Object.fromEntries(["phaseText", "turnGuide", "toggleBoardZoom", "board", "regionControls"].map((id) => {
+        stableHitboxes: Object.fromEntries(["turnGuide", "clearSelection", "board", "regionControls"].map((id) => {
           const rect = document.getElementById(id).getBoundingClientRect();
           return [id, [rect.top, rect.right, rect.bottom, rect.left]];
         })),
@@ -7503,7 +7701,7 @@ test("actual browser presents CPU commentary once from public events and keeps t
         transform: motion.transform,
       };
     });
-    assert.deepEqual(activeLayout, { withinViewport: true, leavesGuideAndZoomVisible: true, boardClearsNavigation: true, stableHitboxes: baselineLayout, overflow: false, stagePosition: "fixed", stagePointerEvents: "none", focusedControl: "toggleBoardZoom", transitionDuration: "0s", transform: "none" });
+    assert.deepEqual(activeLayout, { withinViewport: true, leavesGuideAndControlsVisible: true, boardClearsNavigation: true, stableHitboxes: baselineLayout, overflow: false, stagePosition: "fixed", stagePointerEvents: "none", focusedControl: "clearSelection", transitionDuration: "0s", transform: "none" });
 
     await page.evaluate(() => globalThis.__standardOnlineRuntime.onInvalidate?.({}));
     await page.waitForTimeout(250);

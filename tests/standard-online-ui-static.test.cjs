@@ -39,7 +39,7 @@ test("Standard online setup UI exposes the complete reconnect path", () => {
     "profileSelect", "starterCreator", "starterName", "createStarterProfile", "syncProfile", "createRoom", "roomCode", "joinRoom",
     "shownCode", "cpuCommentaryStage", "cpuCommentaryBubble", "cpuCommentaryPortraitFrame", "cpuCommentaryPortrait", "cpuCommentaryPortraitFallback", "cpuCommentaryName", "cpuCommentaryText", "cpuCommentaryAnnouncement", "members", "editNextLoadout", "setupTitle", "setupDescription", "cpuStartReview", "loadoutSummary", "loadoutGrid", "setupCommitBar", "setupCommitTitle", "submitSetup", "cancelCpuDraft", "setupStatus", "matchCard",
     "publicProjection", "privateProjection", "leaveRoom", "leaveRoomDescription", "abandonRoom", "abandonRoomHint", "abandonRoomDialog", "abandonRoomTitle", "abandonRoomDescription", "abandonRoomStatus", "cancelAbandonRoom", "confirmAbandonRoom", "lobbyTitle",
-    "turnGuide", "turnGuideStep", "turnGuideTitle", "turnGuideDetail", "boardViewport", "board", "boardKeyboardHelp", "boardKeyboardStatus", "toggleBoardZoom", "regionControls", "selectionCount", "submitRegion", "paletteControls", "skillControls", "skillTargetControls",
+    "turnGuide", "turnGuideTitle", "boardViewport", "board", "boardKeyboardHelp", "boardKeyboardStatus", "regionControls", "selectionCount", "submitRegion", "paletteControls", "skillControls", "skillTargetControls",
     "surrender", "retryAction", "actionStatus", "rematchControls", "rematchStatus", "requestRematch",
     "gachaPanel", "gachaTitle", "gachaTickets", "gachaLevel", "gachaOdds", "gachaDrawOne", "gachaDrawAll", "gachaRetry", "gachaStatus", "gachaResults",
     "gachaResultSummary", "gachaResultTitle", "gachaResultAnnouncement", "gachaCpuRematch", "gachaCpuRematchNote",
@@ -78,11 +78,11 @@ test("online alpha.3 UI understands category windows and the experimental bonus-
 });
 
 test("CPU commentary is public-event-only, bounded, non-blocking, and terminal-persistent", () => {
-  assert.match(html, /style\.css\?v=20260910-12/);
+  assert.match(html, /style\.css\?v=20260915-5/);
   assert.match(html, /standard-online-client\.js\?v=20260910-1/);
   assert.match(html, /standard-online-skill-intents\.js\?v=20260911-21/);
   assert.match(html, /cpu-commentary\.js\?v=20260910-1/);
-assert.match(html, /app\.js\?v=20260913-44/);
+assert.match(html, /app\.js\?v=20260915-5/);
   assert.match(app, /cpuCommentary\?\.VERSION !== "standard-cpu-commentary-v3"/);
   assert.ok(html.indexOf("cpu-commentary.js") < html.indexOf('type="module" src="app.js'));
   assert.match(html, /id="cpuCommentaryStage"[^>]+aria-hidden="true"/);
@@ -469,7 +469,7 @@ test("existing online progression is hydrated from the server rather than re-upl
 
 test("UI derives its canonical and experimental card metadata from the generated registry", () => {
   assert.equal(Object.values(STANDARD_SKILLS).filter((skill) => skill.v49Catalogued).length, 19);
-  assert.match(html, /standard-skill-registry\.generated\.js\?v=20260912-2[\s\S]+app\.js\?v=20260913-44/);
+  assert.match(html, /standard-skill-registry\.generated\.js\?v=20260912-2[\s\S]+app\.js\?v=20260915-5/);
   assert.match(app, /const STANDARD_SKILL_REGISTRY = globalThis\.FourColorStandardSkillRegistry/);
   assert.match(app, /STANDARD_SKILL_REGISTRY\.v49SkillIds\.map/);
   assert.match(app, /Object\.entries\(STANDARD_SKILL_REGISTRY\.skills\)/);
@@ -602,29 +602,19 @@ test("server rule errors are safe, persistent, and never offered as an idempoten
   assert.match(app, /client\.clearRoom\(\);\s*roomModel = null;\s*setupFailure = null;\s*pendingAction = null/);
 });
 
-test("turn guide moves from selection to handoff without exposing a legality oracle", () => {
-  assert.match(html, /id="turnGuide"[^>]*>\s*<span[^>]+id="turnGuideStep"[\s\S]{0,180}<div role="status" aria-live="polite" aria-atomic="true"/);
-  assert.match(app, /function renderTurnGuide\(state\)/);
-  assert.match(app, /if \(state\.status !== "ACTIVE" \|\| targetDraft\) return show\("turnGuide", false\)/);
-  assert.match(app, /盤面をタップ／クリックして、あと\$\{remaining\}マス選ぶ/);
-  assert.match(app, /選んだエリアは相手が塗ります。相手が困る形や接し方を考えてみましょう。/);
-  assert.match(app, /state\.phase === "CREATE_FIRST"[\s\S]+`\$\{startHint\} 選べたら「このエリアを渡す」を押します。選んだエリアは相手が塗ります。`/);
-  assert.match(app, /state\.phase === "WORK"[\s\S]+`\$\{startHint\} 選んだエリアは相手が塗ります。相手が困る形や接し方を考えてみましょう。`/);
-  assert.match(app, /makerIsMe \? `あなたが作る → \$\{opponent\}が塗る` : `\$\{opponent\}が作る → あなたが塗る`/);
-  assert.match(app, /\["CREATE_FIRST", "WORK"\]\.includes\(state\.phase\) \? myTurn : state\.phase === "COLOR" && !myTurn/);
-  assert.match(app, /\${opponent}があなたへ渡すエリアを作っています/);
-  assert.match(app, /あなたが作った灰色エリアの彩色を待っています/);
-  assert.match(app, /選べました。「このエリアを渡す」へ/);
-  assert.match(app, /受け取った灰色エリアを塗る/);
-  assert.match(app, /if \(actionBusy\) return present\("wait", "送信中"/);
-  assert.match(app, /if \(pendingAction\) return present\("ready", "結果確認"/);
+test("turn guide is one compact instruction with the guarded give control and no legality oracle", () => {
+  const guide = app.slice(app.indexOf("function renderTurnGuide("), app.indexOf("function isColorSealed("));
+  assert.match(html, /id="turnGuideTitle" role="status" aria-live="polite" aria-atomic="true"/);
+  assert.match(html, /id="turnGuide"[\s\S]*id="regionControls"[\s\S]*id="submitRegion"[\s\S]*id="boardViewport"/);
+  assert.ok(guide.includes('if (state.status !== "ACTIVE" || targetDraft) return show("turnGuide", false)'));
+  assert.ok(guide.includes('if (actionBusy) title = "操作を送信中です"'));
+  assert.ok(guide.includes('else if (pendingAction) title = "前回の操作結果を確認してください"'));
+  assert.ok(guide.includes('if (label.textContent !== title) label.textContent = title'));
   assert.match(app, /function phaseLabelFor\(state, seat, cpuRoom\)/);
-  assert.match(app, /WORK: `\$\{actor\}が渡すエリアを選んでいます`/);
   assert.match(app, /submitRegion"\)\.disabled = !canCreate \|\| actionBusy/);
   assert.match(app, /roomModel\?\.room\?\.status !== "playing" \|\| state\.status !== "ACTIVE"/);
-  assert.match(app, /if \(\$\(id\)\.textContent !== value\) \$\(id\)\.textContent = value/);
-  assert.doesNotMatch(app, /turnGuide[^\n]+(?:legalColors|adjacentColors|使用可能な色)/);
-  assert.match(css, /\.turn-guide\{display:grid/);
+  assert.doesNotMatch(guide, /legalColors|adjacentColors|privateState|startCandidateMacros|あなたが作る|白い枠|下のボタン/);
+  assert.match(css, /\.turn-guide\{display:flex/);
 });
 
 test("board omits historical region spotlights while keeping current selection and a local one-shot turn beat", () => {
@@ -633,9 +623,9 @@ test("board omits historical region spotlights while keeping current selection a
   assert.doesNotMatch(app, /#facc15[^\n]+cssDash: \[8, 5\]|#22d3ee[^\n]+cssWidth: 3\.5/);
   assert.doesNotMatch(html, /boardSpotlightLegend|lastMoveSpotlightLegend|pendingSpotlightLegend|金破線：直前|水色実線：今回/);
   assert.doesNotMatch(css, /board-spotlight-legend|board-spotlight-line|padding-bottom:34px/);
-  assert.match(app, /for \(const macro of selectedMacros\)[\s\S]+ctx\.strokeRect/);
-  assert.match(app, /connectedCandidateMacros\(state\)[\s\S]+color: "#86efac"/);
-  assert.match(app, /targetDraft\?\.kind === "corner-bloom"[\s\S]+color: "#f0abfc"[\s\S]+color: "#fdf4ff"/);
+  assert.match(app, /paintFreeMacroAffordance\(ctx, state, visibleOutgoingMacros\(state\), cell, BOARD_AFFORDANCE\.selected\)/);
+  assert.match(app, /startGuidedMacros\.size \? startGuidedMacros : connectedGuidedMacros, cell, BOARD_AFFORDANCE\.candidate/);
+  assert.match(app, /cornerBloomCellTargetActive\(\)[\s\S]+strokeMicroTargetFrame/);
   assert.match(app, /const cssScale = displayedWidth > 0 \? ctx\.canvas\.width \/ displayedWidth : 1/);
   assert.match(app, /if \(hasStandardPublicState\(publicState\)\) \{\s*renderBoard\(publicState\);\s*observePaletteImpact\(publicState, roomModel\?\.view\?\.private_state \|\| \{\}\);\s*\}/);
   assert.match(observer, /previousStatus === "ACTIVE" && previousActive !== seat && active === seat/);
@@ -647,19 +637,19 @@ test("board omits historical region spotlights while keeping current selection a
   assert.match(css, /@media\(prefers-reduced-motion:reduce\)\{\.turn-guide\.turn-arrival-beat,#board\.turn-arrival-beat\{animation:none!important;transition:none!important\}\}/);
 });
 
-test("board selection assist enlarges targets and supports connected keyboard selection without becoming a legality oracle", () => {
+test("board selection assist preserves connected keyboard selection without custom zoom or a legality oracle", () => {
   assert.match(html, /id="boardViewport" class="board-viewport"/);
   assert.match(html, /id="board"[^>]+tabindex="-1"[^>]+aria-describedby="boardKeyboardHelp boardKeyboardStatus"/);
   assert.match(html, /id="boardKeyboardStatus"[^>]+role="status"[^>]+aria-live="polite"/);
-  assert.match(html, /id="toggleBoardZoom"[^>]+aria-pressed="false"[^>]*>盤面を拡大<\/button>/);
-  assert.match(html, /id="turnGuide"[\s\S]{0,450}<button id="toggleBoardZoom"/);
-  assert.doesNotMatch(html, /id="regionControls"[\s\S]{0,180}id="toggleBoardZoom"/);
-  assert.match(css, /body\[data-active-tab="battle"\] \.board-viewport\.is-zoomed #board\{width:200%;max-width:none\}/);
+  assert.doesNotMatch(html, /toggleBoardZoom|turnGuideStep|turnGuideDetail/);
+
+
+  assert.doesNotMatch(css, /is-zoomed|board-zoom-toggle/);
   assert.match(css, /\.board-viewport #board\{[^}]*touch-action:pan-x pan-y/);
-  assert.match(css, /\.board-viewport:focus-within\{outline:3px solid #f0abfc/);
-  assert.match(css, /\.board-zoom-toggle\{min-width:64px;min-height:44px/);
-  assert.doesNotMatch(css, /\.board-zoom-toggle\{[^}]*position:absolute/);
-  assert.match(css, /\.turn-guide-step\{grid-column:1;grid-row:1;[^}]*\}\.turn-guide>\.board-zoom-toggle\{grid-column:2;grid-row:1\}\.turn-guide>div\{grid-column:1\/-1;grid-row:2\}/);
+  assert.match(css, /\.board-viewport:focus-within\{outline:3px solid #ffffff/);
+
+
+
   const assist = app.slice(app.indexOf("function boardSelectionAvailable"), app.indexOf("function strokeMacroFrame"));
   const macroAssist = assist.slice(0, assist.indexOf("function macroForMicro"));
   assert.match(assist, /function connectedMacros\(macros, width\)/);
@@ -677,22 +667,22 @@ test("board selection assist enlarges targets and supports connected keyboard se
   assert.match(assist, /\[" ", "Enter"\]\.includes\(event\.key\)/);
   assert.match(assist, /event\.key === "Escape"/);
   assert.match(app, /moved <= 10 && scrolled <= 4\) boardPointer\(event\)/);
-  assert.match(app, /strokeMacroFrame\(ctx, macro[\s\S]+color: "#f0abfc"/);
-  assert.match(app, /strokeMacroFrame\(ctx, macro[\s\S]+color: "#86efac"/);
-  assert.match(app, /for \(const macro of startGuidedMacros\) strokeMacroFrame\(ctx, macro[\s\S]+color: "#38bdf8"/);
+  assert.match(app, /strokeMacroFrame\(ctx, macro[\s\S]+color: BOARD_AFFORDANCE\.focus/);
+  assert.match(app, /paintFreeMacroAffordance\(ctx, state, startGuidedMacros\.size \? startGuidedMacros : connectedGuidedMacros/);
+  assert.match(app, /for \(const macro of macros\) for \(const micro of macroFreeMicros\(state, macro\)\)/);
   assert.match(app, /canvas\.dataset\.selectionGuidance = guidanceMode/);
   assert.match(app, /canvas\.dataset\.startCandidateMacros = \[\.\.\.startGuidedMacros\]\.sort/);
   assert.match(app, /canvas\.dataset\.connectedGuidedMacros/);
-  assert.match(app, /color: "#fdf4ff", cssWidth: 1\.5, cssDash: \[\], cssInset: 8/);
-  assert.match(html, /0マス選択時の水色の破線は、既存ルールで選択を開始して必要数まで完成できる全候補です。自動選択ではありません/);
-  assert.match(html, /1マス以上選択した後の緑の破線は次に辺でつなげて選べる候補/);
+  assert.match(app, /color: BOARD_AFFORDANCE\.focus, cssWidth: 2, cssDash: \[\]/);
+  assert.match(html, /0マス選択時の明るい灰色は、既存ルールで選択を開始して必要数まで完成できる全候補です。自動選択ではありません/);
+  assert.match(html, /1マス以上選択した後の明るい灰色は次に辺でつなげて選べる候補/);
   assert.match(app, /if \(tab !== "battle"\) resetBoardSelectionAssist\(\)/);
-  assert.match(assist, /toggle\.classList\.toggle\("hidden", !interactive\)/);
+  assert.match(assist, /canvas\.tabIndex = interactive \? 0 : -1/);
   assert.match(app, /ensureMoveControlsVisible = false/);
   assert.match(app, /function battleViewportInsets\(\)/);
   assert.match(app, /style\.bottom !== "auto"[\s\S]+style\.top !== "auto"/);
   assert.match(app, /behavior: "auto", ensureMoveControlsVisible: true/);
-  assert.match(app, /緑の破線は辺でつなげて選べる位置の目印です。確定できるかはサーバーが判定します。/);
+  assert.match(app, /明るい灰色は次に辺でつなげて選べる候補です/);
   assert.match(css, /\.skin-board-aurora \.board-viewport\{outline:3px solid #22d3ee/);
   assert.match(css, /\.skin-board-aurora \.board-viewport #board,[^}]+\{outline:none;box-shadow:none\}/);
   assert.match(css, /\.board-viewport:has\(#board\.turn-arrival-beat\)\{animation:turn-arrival-board-frame/);
@@ -780,8 +770,8 @@ test("palette change separates the private source slot from the destination colo
   assert.match(css, /@media\(max-width:520px\)\{\.palette-change-options,\.palette-change-colors\{grid-template-columns:1fr\}/);
 });
 
-test("private basic colors keep a readable text separator between visual swatches", () => {
-  assert.match(app, /for \(const \[index, color\] of \(privateState\.basicPalette \|\| \[\]\)\.entries\(\)\) \{\s*if \(index\) \$\("basicPaletteValue"\)\.append\("・"\);\s*appendColorValue\(\$\("basicPaletteValue"\), color\);\s*\}/);
+test("initial private palette reveal retains readable separators after duplicate settings removal", () => {
+  assert.match(app, /\(privateState\.basicPalette \|\| \[\]\)\.forEach\(\(color, index\) => \{\s*if \(index\) detail\.append\("・"\);\s*appendColorValue\(detail, color\);/);
 });
 
 test("basic board actions keep blocked COLOR voluntary and projection-bounded", () => {
@@ -824,9 +814,9 @@ test("all 19 skill target kinds route through the reviewed intent builder", () =
 
 test("corner bloom is card then board cell then immediate action without a chooser or confirmation", () => {
   const target = app.slice(app.indexOf("function beginSkill"), app.indexOf("function bandShiftAxisBounds"));
-  const resolver = app.slice(app.indexOf("function regionsAtMicro"), app.indexOf("function scrollBoardMacroIntoView"));
+  const resolver = app.slice(app.indexOf("function regionsAtMicro"), app.indexOf("function rejectBoardSelection"));
   const renderTarget = app.slice(app.indexOf("function renderSkillTarget"), app.indexOf("function submitSkillTarget"));
-  assert.match(target, /kind === "corner-bloom"[\s\S]+board\?\.focus\(\{ preventScroll: true \}\)[\s\S]+board\?\.scrollIntoView/);
+  assert.match(target, /\["corner-bloom", "region-split"\]\.includes\(kind\)[\s\S]+board\?\.focus\(\{ preventScroll: true \}\)[\s\S]+board\?\.scrollIntoView/);
   assert.match(target, /const scheduledTarget = targetDraft;[\s\S]+const scheduledKind = kind;[\s\S]+requestAnimationFrame\(\(\) => \{[\s\S]+targetDraft !== scheduledTarget \|\| targetDraft\?\.kind !== scheduledKind[\s\S]+board\?\.focus/);
   assert.match(app, /色のついたセル[\s\S]+すぐ発動/);
   assert.match(resolver, /function activateCornerBloomCell\(state, micro\)/);
@@ -837,12 +827,12 @@ test("corner bloom is card then board cell then immediate action without a choos
   assert.doesNotMatch(css, /\.corner-bloom-mode-controls|\.corner-bloom-targets/);
   assert.doesNotMatch(renderTarget, /角を広げる基準マス|盤面で色のついたエリアを選ぶ|盤面で渡すエリアを選ぶ/);
   assert.match(css, /\.skill-target-feedback\[data-tone="error"\]/);
-  assert.match(css, /#board\.corner-bloom-cell-target\{width:2112px\}/);
+  assert.doesNotMatch(css, /#board\.corner-bloom-cell-target\{width:2112px\}/);
   assert.match(css, /@media\(max-width:390px\)\{\.corner-bloom-cancel\{width:100%;min-height:48px\}\}/);
 });
 
 test("alpha.4 corner bloom resolves one public micro cell without a client legality oracle", () => {
-  const resolver = app.slice(app.indexOf("function regionsAtMicro"), app.indexOf("function scrollBoardMacroIntoView"));
+  const resolver = app.slice(app.indexOf("function regionsAtMicro"), app.indexOf("function rejectBoardSelection"));
   const board = app.slice(app.indexOf("function boardKeydown"), app.indexOf("async function sendAction"));
   const pointer = app.slice(app.indexOf("function boardPointer(event)"), app.indexOf("function boardPointerDown"));
   assert.match(app, /state\?\.engineVersion === "5\.0\.0-alpha\.4"/);
@@ -867,7 +857,7 @@ test("alpha.4 corner bloom resolves one public micro cell without a client legal
   assert.match(board, /event\.key === "Escape"[\s\S]+cancelSkillTarget\(\)/);
   assert.match(board, /entry\.micro\?\.includes\(micro\)/);
   assert.doesNotMatch(resolver, /createElement\("select"\)|input\.type = "number"/);
-  assert.match(app, /function scrollBoardMacroIntoView\(state, macro, scheduledTarget = null, scheduledKind = null\)[\s\S]+if \(scheduledTarget && \(targetDraft !== scheduledTarget \|\| targetDraft\?\.kind !== scheduledKind\)\) return/);
+  assert.match(app, /if \(targetDraft !== scheduledTarget \|\| targetDraft\?\.kind !== scheduledKind\) return;[\s\S]+board\?\.focus/);
 });
 
 test("half shift and triple shift select their bands on the board without raw position controls", () => {
@@ -883,7 +873,7 @@ test("half shift and triple shift select their bands on the board without raw po
   assert.match(target, /useTarget\.disabled = !bandShiftTargetReady\(state\)/);
   assert.doesNotMatch(target, /input\.type = "number"|createElement\("select"\)|正方向|負方向/);
   assert.match(board, /targetDraft\?\.kind === "band-shift"\) selectBandShiftMacro\(state, macro\)/);
-  assert.match(board, /color: center \? "#fde047" : "#d8b4fe"/);
+  assert.match(board, /color: center \? BOARD_AFFORDANCE\.selected : BOARD_AFFORDANCE\.target/);
   assert.match(app, /\["source-macros", "corner-bloom", "band-shift", "region-split"\]\.includes\(targetDraft\.kind\)/);
   assert.match(css, /@media\(max-width:390px\)\{\.shift-axis-controls button,[^}]*min-height:48px/);
 });
@@ -907,7 +897,7 @@ test("region split is card then one normal board cell then an authoritative imme
   assert.match(pointer, /targetDraft\?\.kind === "region-split"\) return activateRegionSplitMacro\(state, macro\)/);
   assert.match(board, /targetDraft\?\.kind === "region-split"\) activateRegionSplitMacro\(state, macro\)/);
   assert.match(board, /targetDraft\?\.kind === "region-split"[\s\S]+cancelSkillTarget\(\)/);
-  assert.match(board, /color: "#c084fc", cssWidth: 3\.5/);
+  assert.match(board, /color: BOARD_AFFORDANCE\.target, cssWidth: 1\.5/);
 });
 
 test("skill target cancel is write-free and clears only transient selection", () => {
