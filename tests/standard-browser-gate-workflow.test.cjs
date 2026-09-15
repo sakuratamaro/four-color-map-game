@@ -16,7 +16,7 @@ test("Standard browser gate YAML text uses stable whitespace", () => {
 });
 
 test("Standard browser gate is candidate-push, manual, or pull-request only and least-privileged", () => {
-  assert.match(workflow, /^on:\r?\n  push:\r?\n    branches: \[codex\/standard-release-command, codex\/quiz-memo-calculator-20260912, codex\/ui-diet-20260912, codex\/ui-play-surface-20260912, codex\/ui-result-20260912, codex\/ui-cosmetics-20260912, codex\/ui-player-copy-20260912, codex\/skill-cutin-20260912, codex\/ui-flat-entry-20260912, codex\/skill-catalog-20260912, codex\/surrender-confirmation-20260913, codex\/cpu-split-rescue-20260913, codex\/skill-cutin-readability-20260913, codex\/skill-cutin-public-names-20260913, codex\/ui-diet-release-20260915\][\s\S]+?  pull_request:[\s\S]+?  workflow_dispatch:/m);
+  assert.match(workflow, /^on:\r?\n  push:\r?\n    branches: \[codex\/standard-release-command, codex\/quiz-memo-calculator-20260912, codex\/ui-diet-20260912, codex\/ui-play-surface-20260912, codex\/ui-result-20260912, codex\/ui-cosmetics-20260912, codex\/ui-player-copy-20260912, codex\/skill-cutin-20260912, codex\/ui-flat-entry-20260912, codex\/skill-catalog-20260912, codex\/surrender-confirmation-20260913, codex\/cpu-split-rescue-20260913, codex\/skill-cutin-readability-20260913, codex\/skill-cutin-public-names-20260913, codex\/ui-diet-release-20260915, codex\/ui-followup-release-20260915\][\s\S]+?  pull_request:[\s\S]+?  workflow_dispatch:/m);
   assert.equal((workflow.match(/      - online\/supabase-config\.js/g) || []).length, 2);
   assert.equal((workflow.match(/      - online-v5\/style\.css/g) || []).length, 2);
   assert.equal((workflow.match(/      - standard-online-v5\/\*\*/g) || []).length, 2);
@@ -54,6 +54,12 @@ test("independent UI diet adds its exact branch and five contracts to the existi
   for (const name of ["standard-palette-notice-lifecycle.test.cjs", "standard-board-affordance.test.cjs", "standard-half-shift-candidate-parity.test.cjs", "standard-turn-guide-diet.test.cjs", "standard-hand-compact.test.cjs"])
     assert.equal(workflow.split("tests/" + name).length - 1, 1, name);
   assert.equal(workflow.replaceAll("\r\n", "\n").split("      - tests/helpers/board-affordance-fixture.cjs\n").length - 1, 2);
+});
+
+test("two UI follow-ups use only their exact branch and the existing bounded gate", () => {
+  assert.equal(workflow.split("codex/ui-followup-release-20260915").length-1,1);
+  for (const name of ["standard-palette-origin-rim.test.cjs", "standard-gacha-lobby.test.cjs"])
+    assert.equal(workflow.split("tests/"+name).length-1,1,name);
 });
 
 test("Standard browser gate pins its tools and disables package-manager caching and install scripts", () => {

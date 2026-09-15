@@ -1,5 +1,15 @@
 # Standard公開版 段階リリース手順
 
+## 2026-09-15 UI後続便（元色リム・ガチャ後ロビー）
+
+正本は `docs/UI_FOLLOWUP_RELEASE_20260915.md` の `UDL-052-060-followup-v1` と `docs/UI_PLAY_SURFACE_20260912.md` v1.6。基準は `98d23900f1b8cac25f73740dfe8ae31674268cb9`、branchは `codex/ui-followup-release-20260915`。先行98dの実公開が先であり、ここで旧053を流用しない。DB/Edge/管理設定は各 `[]`、新画像0。先行4つのUI修正を保持し、CPU/未公開の別UI/私的レビュー記録を混ぜない。
+
+現行資産は `app.js?v=20260915-8`、`style.css?v=20260915-8`、`play-surface.css?v=20260915-5`、`play-surface-model.js?v=20260915-1` とindex.html。下記の独立UIダイエット便は98dの凍結履歴であり、そこに記載された資産・承認をこの候補に付け替えない。
+
+clean固定候補 → own Windows全必須step成功 → 新しい実Astra承認 → 先行98dの実公開確認とfresh main98d一致 → forceなしmain統合 → 同SHA Pages → 5変更資産の全byte一致 → 承認済み有限preflight。既存Chrome/Edgeは有限45分を維持する。過去のlive試行枠は流用しない。5asset GET + 10GET/8未認証negative POSTは新承認を求める提案で、未予約・未実行。profile/対局等の追加作成は含まない。物理端末NOT_RUN。
+
+既存Pages停止案件をこの便で再試行・設定変更しない。新しい候補自身のCI/レビュー確認も既存連携で回数・期限を固定し、期限切れ後に自動再開しない。詳しい非変更範囲・受入条件・証拠対応は正本を参照する。
+
 ## 2026-09-15 独立UIダイエット便
 
 正本は `docs/UI_PLAY_SURFACE_20260912.md` v1.5 と `docs/UI_DIET_RELEASE_20260915.md`。基準は本番 `70e691b6f8f1d808476e80990d20df7862bfb782`、対象branchは `codex/ui-diet-release-20260915`。4つの採用済みUI修正を独立再構成し、DB/Edge/管理設定は各 `[]`、新画像0。親2e30のDB拒否を再試行せず、現在の互換Edgeも再配備・降格しない。

@@ -1,7 +1,7 @@
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 import "../online/supabase-config.js";
 import { createQuizMemo } from "./quiz-memo.js?v=20260912-1";
-import { paletteRoleSlots, stableHandSlots } from "./play-surface-model.js?v=20260912-1";
+import { paletteRoleSlots, stableHandSlots } from "./play-surface-model.js?v=20260915-1";
 import { savedResultReward } from "./result-continuation.js?v=20260912-1";
 import { displayedCosmeticIntent, cosmeticQuoteMatchesIntent, pendingCosmeticPresentation, definiteCosmeticRejection } from "./cosmetic-item-action.js?v=20260912-2";
 
@@ -308,7 +308,6 @@ let boardKeyboardMicro = null;
 let boardInteractionScope = null;
 let boardPointerGesture = null;
 let observedColorResponseScope = null;
-let remainingColorSelection = { scope: null, color: null };
 let playSurfaceFitFrame = null;
 let initialHydrationPending = true;
 const COLOR_HEX = { red: "#ef4444", blue: "#3b82f6", yellow: "#eab308", green: "#22c55e" };
@@ -2161,9 +2160,13 @@ function renderGacha() {
   if (lastGachaContinuation && roomModel && !isCurrentCpuRewardGachaContinuation(lastGachaContinuation)) clearCpuRewardGachaResult();
   const canContinueCpuReward = hasResults && !pendingGacha && !gachaBusy && isCurrentCpuRewardGachaContinuation(lastGachaContinuation);
   show("gachaResultSummary", canContinueCpuReward);
-  show("gachaCpuRematch", canContinueCpuReward);
-  show("gachaCpuRematchNote", canContinueCpuReward);
-  $("gachaCpuRematch").disabled = rematchBusy;
+  const pendingRematch = resultContinuationPending();
+  show("gachaGoLobby", canContinueCpuReward);
+  show("gachaGoLobbyNote", canContinueCpuReward);
+  $("gachaGoLobby").textContent = pendingRematch ? "前回の申請を確認する画面へ" : "結果を閉じてロビーへ";
+  $("gachaGoLobbyNote").textContent = pendingRematch
+    ? "前回の再戦申請を確認してから、次へ進めます。" : "対戦相手と6枚のカードは、ロビーで選べます。";
+  $("gachaGoLobby").disabled = rematchBusy || !synced || profileSyncBusy || hasMatchedRoomHandoff();
 }
 
 function clearCpuRewardGachaResult({ clearDraws = false } = {}) {
@@ -5020,7 +5023,9 @@ function renderBasicActions(state, privateState) {
   $("selectionCount").textContent = `${outgoingMacros.length} / ${state.requiredSize}マス`;
   $("clearSelection").disabled = !canCreate || actionBusy || Boolean(pendingAction) || hasPreparedOutgoing;
   $("submitRegion").disabled = !canCreate || actionBusy || Boolean(pendingAction) || outgoingMacros.length !== state.requiredSize;
-  const palette = $("paletteControls"); palette.replaceChildren();
+  const palette = $("paletteControls");
+  const focusedPalette = palette.contains(document.activeElement) ? { ...document.activeElement.dataset } : null;
+  palette.replaceChildren();
   const canRespondToColor = myTurn && state.phase === "COLOR" && !targetDraft;
   show("colorResponse", state.status === "ACTIVE");
   show("colorResponseActions", canRespondToColor);
@@ -5035,59 +5040,55 @@ function renderBasicActions(state, privateState) {
     });
   }
   if (state.status === "ACTIVE") {
-    const scope = `${state.matchId}:${seat}`;
-    if (remainingColorSelection.scope !== scope) remainingColorSelection = { scope, color: null };
     const seals = state.publicEffects?.[seat]?.seals || {};
-    const choices = paletteRoleSlots(privateState, seals, remainingColorSelection.color);
-    remainingColorSelection.color = choices[3].color;
+    const choices = paletteRoleSlots(privateState, seals);
     const labels = { basic1: "基本①", basic2: "基本②", bonus: "おまけ", remaining: "残り色" };
-    for (const choice of choices) {
-      const { color } = choice;
-      const sealed = isColorSealed(state, seat, color);
-      const sealRemaining = Number(state?.publicEffects?.[seat]?.seals?.[color] || 0);
+    for (const slot of choices) {
       const item = document.createElement("div"); item.className = "palette-role";
-      item.dataset.role = choice.role;
+      item.dataset.role = slot.role;
+      item.setAttribute("role", "group"); item.setAttribute("aria-label", labels[slot.role]);
       const roleLabel = document.createElement("span"); roleLabel.className = "palette-role-label";
-      roleLabel.textContent = labels[choice.role];
-      const button = document.createElement("button");
-      button.className = `color-button${sealed ? " is-sealed" : ""}${choice.available ? "" : " is-exhausted"}`;
-      if (color) button.dataset.color = color;
-      button.dataset.role = choice.role;
-      const mark = document.createElement("span"); mark.className = "palette-role-mark";
-      mark.setAttribute("aria-hidden", "true"); mark.textContent = choice.mark;
-      const name = document.createElement("strong");
-      name.className = "color-button-name visually-hidden";
-      name.textContent = `${sealed ? "🔒 " : ""}${COLOR_JA[color] || color}`;
-      const details = [];
-      if (choice.role.startsWith("basic")) details.push("基本色・回数無制限");
-      if (choice.role === "bonus") details.push(`おまけ色 残り${choice.uses}回`);
-      if (choice.role === "remaining") details.push(choice.available ? "一時色・この手で使用可" : "いまは使えません");
-      if (sealed) details.push(`封印 残り${sealRemaining}回`);
-      const meta = document.createElement("span");
-      meta.className = "color-button-meta visually-hidden";
-      meta.textContent = details.join("・");
-      button.append(mark, name, meta);
-      button.disabled = !canRespondToColor || actionBusy || !choice.selectable;
-      button.setAttribute("aria-label", `${labels[choice.role]}。${COLOR_JA[color] || "未所持"}。${meta.textContent}${sealed ? "。使用できません" : choice.available ? "。使用できます" : "。残り回数がないため使用できません"}`);
-      button.title = button.getAttribute("aria-label");
-      button.onclick = () => sendAction("COLOR_REGION", { color });
-      item.append(roleLabel, button);
-      if (choice.options?.length > 1) {
-        const select = document.createElement("select"); select.id = "remainingColorSelect";
-        select.setAttribute("aria-label", "残り色を選ぶ");
-        for (const option of choice.options) {
-          const node = document.createElement("option"); node.value = option.color;
-          node.textContent = `${COLOR_JA[option.color]}${option.sealed ? " 🔒" : option.available ? "" : " ❌"}`;
-          node.disabled = !option.selectable; node.selected = option.color === color; select.appendChild(node);
+      roleLabel.textContent = labels[slot.role];
+      const colors = document.createElement("div"); colors.className = "palette-role-colors";
+      for (const choice of slot.displayOptions || [slot]) {
+        const { color } = choice;
+        const sealed = isColorSealed(state, seat, color);
+        const sealRemaining = Number(state?.publicEffects?.[seat]?.seals?.[color] || 0);
+        const button = document.createElement("button"); button.type = "button";
+        button.className = `color-button${sealed ? " is-sealed" : ""}${choice.available ? "" : " is-exhausted"}`;
+        if (color) button.dataset.color = color;
+        button.dataset.role = choice.role;
+        if (choice.originColor) {
+          button.dataset.originColor = choice.originColor;
+          button.style.setProperty("--palette-origin", COLOR_HEX[choice.originColor]);
         }
-        select.disabled = actionBusy || Boolean(pendingAction) || !choice.options.some(option => option.selectable);
-        select.onchange = () => {
-          remainingColorSelection = { scope, color: select.value }; render();
-          $("remainingColorSelect")?.focus({ preventScroll: true });
-        };
-        item.appendChild(select);
+        button.classList.toggle("is-polluted", choice.pollutionRemaining > 0);
+        const mark = document.createElement("span"); mark.className = "palette-role-mark";
+        mark.setAttribute("aria-hidden", "true");
+        if (choice.mark === "lock") mark.classList.add("palette-role-lock");
+        else mark.textContent = choice.mark;
+        const name = document.createElement("strong");
+        name.className = "color-button-name visually-hidden"; name.textContent = COLOR_JA[color] || "未所持";
+        const details = [];
+        if (choice.role.startsWith("basic")) details.push("基本色・回数無制限");
+        if (choice.role === "bonus") details.push(`おまけ色 残り${choice.uses}回`);
+        if (choice.role === "remaining") details.push(choice.available ? "一時色・この手で使用可" : "いまは使えません");
+        if (choice.pollutionRemaining) details.push(`汚染前は${COLOR_JA[choice.originColor]}・あと${choice.pollutionRemaining}回`);
+        if (sealed) details.push(`封印 残り${sealRemaining}回`);
+        const meta = document.createElement("span"); meta.className = "color-button-meta visually-hidden";
+        meta.textContent = details.join("・"); button.append(mark, name, meta);
+        button.disabled = !canRespondToColor || actionBusy || !choice.selectable;
+        button.setAttribute("aria-label", `${labels[choice.role]}。${COLOR_JA[color] || "未所持"}。${meta.textContent}${sealed ? "。使用できません" : choice.available ? "。使用できます" : "。残り回数がないため使用できません"}`);
+        button.title = button.getAttribute("aria-label");
+        button.onclick = () => sendAction("COLOR_REGION", { color });
+        colors.appendChild(button);
       }
-      palette.appendChild(item);
+      item.append(roleLabel, colors); palette.appendChild(item);
+    }
+    if (focusedPalette) {
+      const restored = [...palette.querySelectorAll(".color-button")].find(button =>
+        button.dataset.role === focusedPalette.role && button.dataset.color === focusedPalette.color);
+      if (restored && !restored.disabled) restored.focus({ preventScroll: true });
     }
   }
   schedulePlaySurfaceFit();
@@ -6164,15 +6165,16 @@ async function requestRematch() {
   }
 }
 
-async function continueCpuRewardRematch() {
-  if (!isCurrentCpuRewardGachaContinuation(lastGachaContinuation) || rematchBusy) return;
-  const expectedRoomId = lastGachaContinuation.roomId;
-  await requestRematch();
-  if (client.snapshot().roomId !== expectedRoomId || roomModel?.room?.status !== "ready") return renderGacha();
-  clearCpuRewardGachaResult();
+function leaveRewardGachaResult() {
+  if (!lastGachaDraws.length || gachaBusy || pendingGacha || rematchBusy || !synced
+    || profileSyncBusy || hasMatchedRoomHandoff() || !isCurrentCpuRewardGachaContinuation(lastGachaContinuation)) return;
   activateAppTab("battle");
-  render();
-  focusMatchedRoom();
+  if (resultContinuationPending()) {
+    render();
+    $("requestRematch").focus({ preventScroll: true });
+    return;
+  }
+  leaveFinishedResult();
 }
 
 function dismissTerminalResult() {
@@ -6209,7 +6211,7 @@ $("gachaLevel").onchange = () => { armedCpuRewardGachaOrigin = null; clearCpuRew
 $("gachaDrawOne").onclick = () => runGacha(1);
 $("gachaDrawAll").onclick = () => runGacha(null);
 $("gachaRetry").onclick = () => runGacha(1, true);
-$("gachaCpuRematch").onclick = continueCpuRewardRematch;
+$("gachaGoLobby").onclick = leaveRewardGachaResult;
 $("returnToMatchedRoom").onclick = goToMatchedRoom;
 $("cardSaleSkill").onchange = () => { cardSaleQuote = null; $("cardSaleStatus").textContent = "枚数を選び、売却内容を確認してください。"; renderCardSale(); };
 $("cardSaleCount").oninput = () => { cardSaleQuote = null; $("cardSaleStatus").textContent = "売却内容をもう一度確認してください。"; renderCardSale(); };

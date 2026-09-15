@@ -11,7 +11,7 @@ test("UDL052 same-color base and bonus remain three independent resource roles",
   const slots = paletteRoleSlots({ basicPalette: ["red", "red"], bonusColor: "red", bonusUsesRemaining: 0 });
   assert.deepEqual(slots.map(s => s.role), ["basic1", "basic2", "bonus", "remaining"]);
   assert.deepEqual(slots.slice(0, 3).map(s => [s.color, s.mark, s.selectable]),
-    [["red", "∞", true], ["red", "∞", true], ["red", "❌", false]]);
+    [["red", "∞", true], ["red", "∞", true], ["red", "×", false]]);
   assert.deepEqual(slots[3].options.map(s => s.color), ["blue", "yellow", "green"]);
 });
 
@@ -20,12 +20,12 @@ test("UDL052 exhausted bonus can still be selected through an independent tempor
   const own = { basicPalette: ["red", "blue"], bonusColor: "yellow", bonusUsesRemaining: 0,
     privateEffects: { temporaryColors: ["yellow", "green"] } };
   const slots = paletteRoleSlots(own, {}, "green");
-  assert.equal(slots[2].mark, "❌");
+  assert.equal(slots[2].mark, "×");
   assert.deepEqual(slots[3].options.map(s => [s.color, s.mark, s.selectable]), [["yellow", "1", true], ["green", "1", true]]);
   assert.equal(slots[3].color, "green");
   assert.equal(paletteRoleSlots({ ...own, privateEffects: { temporaryColors: ["yellow"] } }, {}, "green")[3].color, "yellow",
     "a previously unowned remaining color does not obscure a newly granted playable color");
-  assert.equal(paletteRoleSlots(own, { green: 1 }, "green")[3].mark, "🔒");
+  assert.equal(paletteRoleSlots(own, { green: 1 }, "green")[3].mark, "lock");
   assert.equal(paletteRoleSlots(own, { green: 1 }, "green")[3].selectable, false);
 });
 
@@ -40,6 +40,9 @@ test("UDL052 all role options preserve the existing available color set across 6
         const before = JSON.stringify(own), slots = paletteRoleSlots(own);
         const available = [...new Set([...slots.slice(0, 3), ...slots[3].options].filter(s => s.selectable).map(s => s.color))].sort();
         assert.deepEqual(available, [...intents.availableColorChoices(own)].sort());
+        const displayed = [...new Set([...slots.slice(0, 3), ...slots[3].displayOptions]
+          .filter(s => s.selectable).map(s => s.color))].sort();
+        assert.deepEqual(displayed, available, "the direct UI must expose every legitimate color, not only retain it in model metadata");
         assert.equal(JSON.stringify(own), before);
         assert.equal(slots.length, 4);
         checked++;
@@ -49,9 +52,9 @@ test("UDL052 all role options preserve the existing available color set across 6
 
 test("UDL052 role model never receives board adjacency and keeps missing colors unavailable", async () => {
   const { paletteRoleSlots } = await model;
-  assert.ok(paletteRoleSlots(null).every(s => !s.available && s.mark === "❌"));
+  assert.ok(paletteRoleSlots(null).every(s => !s.available && s.mark === "×"));
   const own = { basicPalette: ["red", "blue"], bonusColor: "yellow", bonusUsesRemaining: 1 };
-  assert.equal(paletteRoleSlots(own, { red: 2 })[0].mark, "🔒");
+  assert.equal(paletteRoleSlots(own, { red: 2 })[0].mark, "lock");
   assert.equal(paletteRoleSlots({ ...own, adjacentColors: ["red", "blue", "yellow", "green"] })[0].mark, "∞");
 });
 

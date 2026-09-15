@@ -6,14 +6,14 @@
   <title>Four Color Map Game v5.0 Standard Online</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='30' height='30' x='1' y='1' rx='8' fill='%23ef476f'/%3E%3Crect width='30' height='30' x='33' y='1' rx='8' fill='%23ffd166'/%3E%3Crect width='30' height='30' x='1' y='33' rx='8' fill='%2306d6a0'/%3E%3Crect width='30' height='30' x='33' y='33' rx='8' fill='%231182e8'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="../online-v5/style.css">
-  <link rel="stylesheet" href="style.css?v=20260915-5">
+  <link rel="stylesheet" href="style.css?v=20260915-8">
   <link rel="stylesheet" href="debug-mode.css">
   <link rel="stylesheet" href="progression.css?v=20260910-2">
   <link rel="stylesheet" href="quiz-memo.css?v=20260912-2">
   <link rel="stylesheet" href="ui-diet.css?v=20260912-3">
   <link rel="stylesheet" href="skill-catalog.css?v=20260912-1">
   <link rel="stylesheet" href="surrender-confirmation.css?v=20260913-1">
-  <link rel="stylesheet" href="play-surface.css?v=20260915-3">
+  <link rel="stylesheet" href="play-surface.css?v=20260915-5">
   <link rel="stylesheet" href="result-continuation.css?v=20260912-1">
   <link rel="stylesheet" href="skill-cutin.css?v=20260913-1">
 </head>
@@ -200,8 +200,8 @@
       <p id="gachaResultAnnouncement" class="visually-hidden" role="status" aria-live="polite" aria-atomic="true"></p>
       <section id="gachaResultSummary" class="gacha-result-summary hidden">
         <h3 id="gachaResultTitle">次の対戦へ</h3>
-        <button id="gachaCpuRematch" class="primary hidden" type="button">6枚を選び直して同じCPUと再戦</button>
-        <p id="gachaCpuRematchNote" class="muted small hidden">カードは自動で6枚には入りません。次の画面で、各カテゴリ2枚ずつを自分で選べます。</p>
+        <button id="gachaGoLobby" class="primary hidden" type="button" aria-describedby="gachaGoLobbyNote">結果を閉じてロビーへ</button>
+        <p id="gachaGoLobbyNote" class="muted small hidden">対戦相手と6枚のカードは、ロビーで選べます。</p>
       </section>
       <div id="gachaResults" class="gacha-results" role="list" aria-label="獲得カード一覧" tabindex="-1"></div>
     </section>
@@ -532,6 +532,6 @@
   <p id="skillCutinAnnouncement" class="visually-hidden" role="status" aria-live="polite" aria-atomic="true"></p>
   <script src="skill-cutin.js?v=20260913-2"></script>
   <script src="surrender-confirmation.js?v=20260913-1"></script>
-  <script type="module" src="app.js?v=20260915-5"></script>
+  <script type="module" src="app.js?v=20260915-8"></script>
 </body>
 </html>

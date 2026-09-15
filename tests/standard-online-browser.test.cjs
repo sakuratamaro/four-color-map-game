@@ -138,6 +138,109 @@ test("UDL066 catalog reuses focused cards across real snapshot hydration and rem
   }, { bodyTimeout: 65000 });
 });
 
+test("UDL052 origin rim follows actual pollution through poll expiry and reloaded projection", { timeout: 130000 }, async () => {
+  await withPage("colorResponse",async page=>{
+    const basic=page.locator('#paletteControls .color-button[data-role="basic1"]');
+    await basic.waitFor();
+    await page.locator("#randomReveal").waitFor({state:"hidden"});
+    await page.evaluate(()=>{
+      const r=globalThis.__standardOnlineRuntime;
+      r.view.private_state={...r.view.private_state,basicPalette:["green","red"],bonusColor:"yellow",bonusUsesRemaining:2,
+        initialBasicPalette:["yellow","green"],privateEffects:{paletteDebuffs:[{slot:0,previousColor:"blue",injectedColor:"green",remaining:2}]}};
+      r.onInvalidate();
+    });
+    await page.waitForFunction(()=>document.querySelector('#paletteControls .color-button[data-role="basic1"]')?.dataset.originColor==="blue");
+    assert.equal(await basic.getAttribute("data-color"),"green");
+    assert.match(await basic.getAttribute("aria-label"),/汚染前は青・あと2回/);
+    assert.equal(await basic.evaluate(b=>getComputedStyle(b).borderTopColor),"rgb(59, 130, 246)");
+    assert.match(await basic.evaluate(b=>getComputedStyle(b).backgroundImage),/radial-gradient/);
+    if(process.env.PALETTE_RIM_SCREENSHOTS){fs.mkdirSync(process.env.PALETTE_RIM_SCREENSHOTS,{recursive:true});
+      await basic.scrollIntoViewIfNeeded();
+      await page.waitForFunction(()=>{
+        const b=document.querySelector('#paletteControls .color-button[data-role="basic1"]'),r=b.getBoundingClientRect();
+        return b.contains(document.elementFromPoint(r.x+r.width/2,r.y+r.height/2));
+      });
+      await page.screenshot({path:path.join(process.env.PALETTE_RIM_SCREENSHOTS,browserName+"-origin-active-390.png"),animations:"disabled"});}
+    assert.equal(await page.locator("#paletteControls > .palette-role").count(),4);
+    assert.equal(await page.locator("#paletteControls .color-button").count(),4);
+    assert.equal(await page.locator("#paletteControls select").count(),0);
+    assert.equal(await page.locator('#paletteControls [data-role="remaining"] .palette-role-mark').textContent(),"×");
+    assert.equal(await page.locator('#paletteControls .color-button[data-role="remaining"]').getAttribute("data-color"),"green");
+    await basic.focus();
+    await page.evaluate(()=>{const r=globalThis.__standardOnlineRuntime;r.view.private_state.privateEffects.paletteDebuffs[0].remaining=1;r.onInvalidate();});
+    await page.waitForFunction(()=>document.querySelector('#paletteControls .color-button[data-role="basic1"]')?.getAttribute("aria-label").includes("あと1回"));
+    assert.equal(await basic.evaluate(b=>b===document.activeElement),true,"coherent polls preserve the same palette focus");
+    const savedProjection=await page.evaluate(()=>globalThis.__standardOnlineRuntime.view.private_state);
+    await page.reload();await page.locator("#connectionBadge.good").waitFor();
+    // Restore the same authoritative mock projection, not client-side rim history.
+    await page.evaluate(own=>{const r=globalThis.__standardOnlineRuntime;r.view.private_state=own;r.onInvalidate();},savedProjection);
+    await page.waitForFunction(()=>document.querySelector('#paletteControls .color-button[data-role="basic1"]')?.dataset.originColor==="blue");
+    assert.match(await basic.getAttribute("aria-label"),/あと1回/);
+    await page.evaluate(()=>{
+      const r=globalThis.__standardOnlineRuntime;
+      r.view.private_state={...r.view.private_state,basicPalette:["blue","red"],
+        privateEffects:{paletteDebuffs:[],paletteImpactEvent:{previousColor:"yellow",injectedColor:"green",remaining:2}}};
+      r.onInvalidate();
+    });
+    await page.waitForFunction(()=>document.querySelector('#paletteControls .color-button[data-role="basic1"]')?.dataset.color==="blue");
+    assert.equal(await basic.getAttribute("data-origin-color"),"blue");
+    assert.equal(await page.locator("#paletteControls .is-polluted").count(),0);
+    assert.equal(await page.evaluate(()=>globalThis.__standardOnlineRuntime.calls.filter(c=>c.body?.operation==="action").length),0);
+  },{viewport:{width:390,height:844},bodyTimeout:45_000});
+});
+
+test("UDL052 four roles expose direct temporary colors at narrow enlarged and landscape sizes", { timeout: 240000 }, async () => {
+  for(const view of [{width:320,height:740,scale:1},{width:390,height:844,scale:1},{width:844,height:390,scale:1},{width:390,height:844,scale:1.6}]){
+    await withPage("colorResponse",async page=>{
+      await page.locator("#paletteControls .color-button").first().waitFor();
+      await page.locator("#randomReveal").waitFor({state:"hidden"});
+      await page.evaluate(()=>{
+        const r=globalThis.__standardOnlineRuntime;
+        const version=r.room.version+1;
+        r.room={...r.room,version,public_state:{...r.room.public_state,version}};
+        r.view={...r.view,version};
+        r.view.private_state={...r.view.private_state,basicPalette:["red","red"],bonusColor:"red",bonusUsesRemaining:0,
+          privateEffects:{prism:true,temporaryColors:["blue","yellow","green"]}};
+        r.onInvalidate();
+      });
+      await page.waitForFunction(()=>document.querySelectorAll('#paletteControls .color-button[data-role="remaining"]').length===3);
+      if(view.scale!==1)await page.addStyleTag({content:".palette-role-label,.palette-role-mark{font-size:160%!important}"});
+      assert.equal(await page.locator("#paletteControls > .palette-role").count(),4);
+      assert.equal(await page.locator("#paletteControls select").count(),0);
+      assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
+      const labelTops=await page.locator("#paletteControls .palette-role-label").evaluateAll(nodes=>nodes.map(n=>n.getBoundingClientRect().top));
+      assert.ok(Math.max(...labelTops)-Math.min(...labelTops)<=1,"all four role labels remain on one row");
+      const buttonTops=await page.locator("#paletteControls .palette-role-colors").evaluateAll(nodes=>nodes.map(n=>n.getBoundingClientRect().top));
+      assert.ok(Math.max(...buttonTops)-Math.min(...buttonTops)<=1,"wrapped role labels keep the first color buttons aligned");
+      for(const color of ["blue","yellow","green"]){
+        const b=page.locator('#paletteControls .color-button[data-role="remaining"][data-color="'+color+'"]');
+        assert.equal(await b.isEnabled(),true);await b.scrollIntoViewIfNeeded();
+        // Ordinary scrolling keeps the entire hit target above existing fixed chrome.
+        await b.evaluate(b=>{
+          const r=b.getBoundingClientRect(),chrome=[...document.querySelectorAll("#connectionCard,.app-tabs")];
+          const bottom=Math.min(innerHeight,...chrome.filter(n=>getComputedStyle(n).bottom!=="auto").map(n=>n.getBoundingClientRect().top));
+          if(r.bottom>bottom-8)scrollBy(0,r.bottom-bottom+8);
+        });
+        await page.waitForFunction(color=>{
+          const b=document.querySelector('#paletteControls .color-button[data-role="remaining"][data-color="'+color+'"]'),r=b.getBoundingClientRect();
+          return r.top>=0&&r.bottom<=innerHeight&&[4,r.width/2,r.width-4].every(x=>
+            [4,r.height/2,r.height-4].every(y=>b.contains(document.elementFromPoint(r.x+x,r.y+y))));
+        },color);
+        const box=await b.boundingBox();assert.ok(box.width>=44&&box.height>=44);
+      }
+      if(process.env.PALETTE_RIM_SCREENSHOTS){fs.mkdirSync(process.env.PALETTE_RIM_SCREENSHOTS,{recursive:true});
+        await page.screenshot({path:path.join(process.env.PALETTE_RIM_SCREENSHOTS,browserName+"-"+view.width+"x"+view.height+"-"+view.scale+".png")});}
+      assert.equal(await page.evaluate(()=>globalThis.__standardOnlineRuntime.calls.filter(c=>c.body?.operation==="action").length),0);
+      const blue=page.locator('#paletteControls .color-button[data-role="remaining"][data-color="blue"]');
+      await blue.focus();await page.keyboard.press("Enter");
+      await page.getByText("操作を保存しました。",{exact:true}).waitFor();
+      const calls=await page.evaluate(()=>globalThis.__standardOnlineRuntime.calls.filter(c=>c.body?.operation==="action").map(c=>c.body));
+      assert.equal(calls.length,1);assert.equal(calls[0].action.type,"COLOR_REGION");
+      assert.deepEqual(calls[0].action.payload,{color:"blue"});
+    },{viewport:{width:view.width,height:view.height},bodyTimeout:45_000});
+  }
+});
+
 test("UDL052 role palette keeps duplicates and temporary alternatives independently reachable", { timeout: 130000 }, async () => {
   await withPage("colorResponse", async (page) => {
     await page.locator('#paletteControls [data-role="basic1"].color-button').waitFor();
@@ -147,16 +250,18 @@ test("UDL052 role palette keeps duplicates and temporary alternatives independen
         privateEffects: { temporaryColors: ["yellow", "green"] } };
       r.onInvalidate();
     });
-    await page.waitForFunction(() => document.querySelector('#paletteControls [data-role="bonus"] .palette-role-mark')?.textContent === "❌");
-    assert.equal(await page.locator("#paletteControls .color-button").count(), 4);
+    await page.waitForFunction(() => document.querySelector('#paletteControls [data-role="bonus"] .palette-role-mark')?.textContent === "×");
+    assert.equal(await page.locator("#paletteControls > .palette-role").count(), 4);
+    assert.equal(await page.locator("#paletteControls .color-button").count(), 5);
     assert.equal(await page.locator('#paletteControls .color-button[data-color="red"]').count(), 3);
     assert.equal(await page.locator('#paletteControls .color-button[data-role="basic1"]').isEnabled(), true);
     assert.equal(await page.locator('#paletteControls .color-button[data-role="basic2"]').isEnabled(), true);
     assert.equal(await page.locator('#paletteControls .color-button[data-role="bonus"]').isDisabled(), true);
-    await page.locator("#remainingColorSelect").selectOption("green");
-    assert.equal(await page.locator('#paletteControls .color-button[data-role="remaining"]').getAttribute("data-color"), "green");
+    assert.equal(await page.locator("#paletteControls select").count(), 0);
+    assert.equal(await page.locator('#paletteControls .color-button[data-role="remaining"][data-color="yellow"]').isEnabled(), true);
+    assert.equal(await page.locator('#paletteControls .color-button[data-role="remaining"][data-color="green"]').isEnabled(), true);
     assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter(c => c.body?.operation === "action").length), 0);
-    await page.locator('#paletteControls .color-button[data-role="remaining"]').click();
+    await page.locator('#paletteControls .color-button[data-role="remaining"][data-color="green"]').click();
     await page.getByText("操作を保存しました。", { exact: true }).waitFor();
     const calls = await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter(c => c.body?.operation === "action").map(c => c.body));
     assert.equal(calls.length, 1);
@@ -951,6 +1056,11 @@ async function installMock(context, mode) {
           roomId: id, roomCode: "A1B2C3", profileRevision: 1, setupRevision: initialMode === "setupLabMismatch" ? 3 : setupPending || pregameMode ? 0 : 3,
           rematchActionId: initialMode === "finished" && !resultRewardKind ? pendingId : null,
           rematchExpectedVersion: initialMode === "finished" && !resultRewardKind ? 9 : null,
+          // Reload must retain the unresolved request just as the real client storage does.
+          ...(initialMode === "finishedCpu" && restoredConnection?.roomId === id ? {
+            rematchActionId: restoredConnection.rematchActionId,
+            rematchExpectedVersion: restoredConnection.rematchExpectedVersion,
+          } : {}),
           ...(initialMode === "abandonLost" && restoredConnection ? {
             abandonRoomId: restoredConnection.abandonRoomId,
             abandonActionId: restoredConnection.abandonActionId,
@@ -5519,7 +5629,120 @@ test("actual Edge asks the server for exactly one CPU action then returns contro
   }, { bodyTimeout: 50_000 });
 });
 
-test("actual Edge hydrates a CPU win once, routes its earned ticket deliberately, and keeps progression after reload", { timeout: 150000 }, async () => {
+async function setFollowupSavedCpuReward(page) {
+  await page.evaluate(() => {
+    const runtime = globalThis.__standardOnlineRuntime;
+    const state = structuredClone(runtime.profile.profile_state);
+    state.gachaTickets = { "1": 3, "5": 2 };
+    state.matchHistory.find(entry => entry.matchId === runtime.room.public_state.matchId).matchReward = {
+      awarded: true, ticketLevel: 1, ticketCount: 2,
+    };
+    runtime.profile = { ...runtime.profile, revision: runtime.profile.revision + 1, profile_state: state };
+    runtime.onInvalidate();
+  });
+  await page.waitForFunction(key => document.querySelector("#terminalProgressText").textContent.includes("完了報酬：Lv.1ガチャ券 +2")
+    && JSON.parse(localStorage.getItem(key))?.gachaTickets?.["1"] === 3, remoteProfileKey);
+}
+
+async function drawSavedCpuReward(page) {
+  await setFollowupSavedCpuReward(page);
+  await page.locator("#terminalGoGacha").click();
+  await page.locator("#gachaDrawOne").click();
+  await page.locator("#gachaGoLobby:not(.hidden):not([disabled])").waitFor();
+}
+
+test("UDL060 gacha lobby return is keyboard accessible and write-free at narrow enlarged and landscape sizes", { timeout: 240000 }, async () => {
+  for(const view of [{width:320,height:740,scale:1},{width:390,height:844,scale:1},{width:844,height:390,scale:1},{width:390,height:844,scale:1.6}]) {
+    await withPage("resultRewardCpu",async page=>{
+      await drawSavedCpuReward(page);
+      if(view.scale!==1)await page.addStyleTag({content:".gacha-result-summary button,.gacha-result-summary p{font-size:"+view.scale+"em}"});
+      const cta=page.locator("#gachaGoLobby");await cta.scrollIntoViewIfNeeded();
+      await page.waitForFunction(()=>{
+        const b=document.querySelector("#gachaGoLobby"),r=b.getBoundingClientRect();
+        return r.top>=0&&r.bottom<=innerHeight&&[4,r.height/2,r.height-4].every(y=>
+          b.contains(document.elementFromPoint(r.x+r.width/2,r.y+y)));
+      });
+      const box=await cta.boundingBox();assert.ok(box.width>=44&&box.height>=44);
+      assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
+      assert.equal(await cta.getAttribute("aria-describedby"),"gachaGoLobbyNote");
+      if(process.env.GACHA_LOBBY_SCREENSHOTS){
+        fs.mkdirSync(process.env.GACHA_LOBBY_SCREENSHOTS,{recursive:true});
+        await page.screenshot({path:path.join(process.env.GACHA_LOBBY_SCREENSHOTS,browserName+"-"+view.width+"x"+view.height+"-"+view.scale+".png")});
+      }
+      const before=await resultWriteCalls(page),savedProfile=await page.evaluate(key=>localStorage.getItem(key),remoteProfileKey);
+      await cta.focus();await page.keyboard.press("Enter");
+      await page.waitForFunction(()=>document.body.dataset.activeTab==="battle"&&document.activeElement?.id==="lobbyTitle");
+      assert.equal(await page.evaluate(key=>JSON.parse(localStorage.getItem(key)).roomId,connectionKey),null);
+      assert.deepEqual(await resultWriteCalls(page),before);
+      assert.equal(await page.evaluate(key=>localStorage.getItem(key),remoteProfileKey),savedProfile);
+      assert.equal(await page.evaluate(()=>globalThis.__standardOnlineRuntime.room.status),"finished");
+    },{viewport:{width:view.width,height:view.height},bodyTimeout:40_000});
+  }
+});
+
+test("UDL060 gacha pending rematch returns to saved-request recovery without a new request", { timeout: 130000 }, async () => {
+  await withPage("resultRewardCpu",async page=>{
+    await drawSavedCpuReward(page);
+    await page.evaluate(({key,id})=>{
+      const saved=JSON.parse(localStorage.getItem(key));saved.rematchActionId=id;
+      saved.rematchExpectedVersion=globalThis.__standardOnlineRuntime.room.version;localStorage.setItem(key,JSON.stringify(saved));
+    },{key:connectionKey,id:pendingRematchId});
+    await page.reload();
+    const cta=page.locator("#gachaGoLobby").filter({hasText:"前回の申請を確認する画面へ"});await cta.waitFor();
+    const before=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),connectionKey);
+    assert.deepEqual(await resultWriteCalls(page),[]);
+    await cta.focus();await page.keyboard.press("Space");
+    await page.waitForFunction(()=>document.body.dataset.activeTab==="battle"&&document.activeElement?.id==="requestRematch");
+    assert.deepEqual(await resultWriteCalls(page),[]);
+    const after=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),connectionKey);
+    assert.equal(after.roomId,before.roomId);assert.equal(after.rematchActionId,pendingRematchId);
+    assert.equal(after.rematchExpectedVersion,before.rematchExpectedVersion);
+    assert.equal(await page.locator("#resultGoLobby").isDisabled(),true);
+    await page.locator("#requestRematch").click();
+    await page.locator("#setupCard:not(.hidden):not(.tab-panel-hidden)").waitFor();
+    const calls=(await resultWriteCalls(page)).filter(c=>c.body?.operation==="cpu-rematch").map(c=>c.body);
+    assert.equal(calls.length,1);assert.equal(calls[0].actionId,pendingRematchId);
+    assert.equal(calls[0].expectedVersion,before.rematchExpectedVersion);
+    assert.equal((await resultWriteCalls(page)).filter(c=>c.body?.operation==="gacha").length,0);
+  },{viewport:{width:390,height:844},bodyTimeout:45_000});
+});
+
+test("UDL060 gacha lobby shortcut cannot discard a failed pending draw and retry keeps the same identity", { timeout: 130000 }, async () => {
+  await withPage("resultRewardCpu",async page=>{
+    await drawSavedCpuReward(page);
+    await page.evaluate(()=>{globalThis.__standardOnlineRuntime.failNextGacha=true;});
+    await page.locator("#gachaDrawOne").click();
+    await page.locator("#gachaRetry:not(.hidden):not([disabled])").waitFor();
+    const key="fourColorMapGame.standard.online.v5.pending-gacha";
+    const pending=await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),key);
+    assert.equal(await page.locator("#gachaGoLobby").isHidden(),true);
+    const before=await resultWriteCalls(page);
+    const savedServerProfile=await page.evaluate(()=>globalThis.__standardOnlineRuntime.profile);
+    await page.evaluate(()=>document.querySelector("#gachaGoLobby").click());
+    assert.equal(await page.evaluate(()=>document.body.dataset.activeTab),"quiz");
+    assert.equal(await page.evaluate(key=>JSON.parse(localStorage.getItem(key)).roomId,connectionKey),roomId);
+    assert.deepEqual(await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),key),pending);
+    assert.deepEqual(await resultWriteCalls(page),before);
+    await page.reload();
+    await page.locator("#gachaRetry:not(.hidden):not([disabled])").waitFor();
+    assert.deepEqual(await page.evaluate(key=>JSON.parse(localStorage.getItem(key)),key),pending);
+    // This fixture normally resets to spent Lv3 tickets on reload. Restore the
+    // same saved mock server profile; do not fabricate another reward or draw.
+    await page.evaluate(saved=>{
+      const runtime=globalThis.__standardOnlineRuntime;
+      runtime.profile={...saved,revision:runtime.profile.revision+1};runtime.onInvalidate();
+    },savedServerProfile);
+    await page.waitForFunction(({key,level,total})=>JSON.parse(localStorage.getItem(key)).gachaTickets[level]===total,
+      {key:remoteProfileKey,level:String(pending.ticketLevel),total:savedServerProfile.profile_state.gachaTickets[String(pending.ticketLevel)]});
+    await page.locator("#gachaRetry").click();
+    await page.waitForFunction(key=>localStorage.getItem(key)===null,key);
+    const calls=(await resultWriteCalls(page)).filter(c=>c.body?.operation==="gacha").map(c=>c.body);
+    assert.equal(calls.length,1);
+    for(const field of ["actionId","ticketLevel","count"])assert.equal(calls[0][field],pending[field]);
+  },{viewport:{width:390,height:844},bodyTimeout:45_000});
+});
+
+test("actual Edge hydrates a CPU win once and returns from reward gacha to the lobby after reload", { timeout: 150000 }, async () => {
   await withPage("cpuWin", async (page) => {
     await page.locator("#board").click({ position: { x: 50, y: 50 } });
     await page.getByRole("button", { name: "このエリアを渡す" }).click();
@@ -5593,10 +5816,10 @@ test("actual Edge hydrates a CPU win once, routes its earned ticket deliberately
     await page.keyboard.press("Enter");
     await page.keyboard.press("Space");
     assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "cpu-rematch").length), 0);
-    const resultCta = page.getByRole("button", { name: "6枚を選び直して同じCPUと再戦" });
+    const resultCta = page.getByRole("button", { name: "結果を閉じてロビーへ" });
     await resultCta.waitFor();
     await page.waitForFunction(() => {
-      const cta = document.querySelector("#gachaCpuRematch").getBoundingClientRect();
+      const cta = document.querySelector("#gachaGoLobby").getBoundingClientRect();
       const tabs = document.querySelector(".app-tabs").getBoundingClientRect();
       return cta.top >= 0 && cta.bottom <= tabs.top;
     });
@@ -5604,16 +5827,16 @@ test("actual Edge hydrates a CPU win once, routes its earned ticket deliberately
     await page.reload();
     await page.locator("#connectionBadge.good").waitFor();
     await page.locator("#gachaPanel:not(.hidden):not(.tab-panel-hidden)").waitFor();
-    await page.getByRole("button", { name: "6枚を選び直して同じCPUと再戦" }).waitFor();
+    await page.getByRole("button", { name: "結果を閉じてロビーへ" }).waitFor();
     assert.match(await page.locator("#gachaTickets").textContent(), /Lv\.1 ×3/);
     assert.equal(await page.locator("#gachaStatus").textContent(), "1枚を獲得しました。券消費とカード付与は一度だけ保存済みです。");
     assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "gacha").length), 0);
     await page.evaluate(() => {
-      document.querySelector("#gachaCpuRematch").click();
-      document.querySelector("#gachaCpuRematch").click();
+      document.querySelector("#gachaGoLobby").click();
+      document.querySelector("#gachaGoLobby").click();
     });
-    await page.locator("#setupCard:not(.hidden):not(.tab-panel-hidden)").waitFor();
-    await page.waitForFunction(() => document.activeElement?.id === "setupTitle");
+    await page.locator("#lobby:not(.hidden):not(.tab-panel-hidden)").waitFor();
+    await page.waitForFunction(() => document.activeElement?.id === "lobbyTitle");
     const continuation = await page.evaluate(({ key }) => ({
       activeTab: document.body.dataset.activeTab,
       roomStatus: globalThis.__standardOnlineRuntime.room.status,
@@ -5623,10 +5846,10 @@ test("actual Edge hydrates a CPU win once, routes its earned ticket deliberately
       continuationResult: sessionStorage.getItem("fourColorMapGame.standard.online.v5.cpu-reward-gacha-result"),
     }), { key: connectionKey });
     assert.equal(continuation.activeTab, "battle");
-    assert.equal(continuation.roomStatus, "ready");
-    assert.equal(continuation.cpuRematches, 1);
+    assert.equal(continuation.roomStatus, "finished");
+    assert.equal(continuation.cpuRematches, 0);
     assert.equal(continuation.gachaCalls, 0);
-    assert.equal(continuation.stored.setupRevision, 0);
+    assert.equal(continuation.stored.roomId, null);
     assert.equal(continuation.stored.rematchActionId, null);
     assert.equal(continuation.continuationResult, null);
     const restored = await page.evaluate(({ key }) => JSON.parse(localStorage.getItem(key)), { key: remoteProfileKey });
@@ -6395,7 +6618,7 @@ test("actual Edge presents public seals and blocks every stale paint path withou
       const style = getComputedStyle(node);
       return { background: style.backgroundColor, border: style.borderTopColor };
     });
-    assert.deepEqual(unsealedRedStyle, { background: "rgb(127, 29, 29)", border: "rgb(252, 165, 165)" });
+    assert.deepEqual(unsealedRedStyle, { background: "rgb(127, 29, 29)", border: "rgb(239, 68, 68)" });
 
     await page.evaluate(() => { globalThis.__standardOnlineRuntime.failNextColorAction = true; });
     await red.click();
@@ -6415,8 +6638,9 @@ test("actual Edge presents public seals and blocks every stale paint path withou
       runtime.onInvalidate();
     });
     const sealedRed = page.locator('#paletteControls .color-button[data-color="red"]');
-    await page.waitForFunction(() => document.querySelector('#paletteControls .color-button[data-color="red"]')?.disabled === true);
-    assert.match(await sealedRed.textContent(), /🔒 赤.*封印 残り1回/);
+    await page.waitForFunction(() => document.querySelector('#paletteControls .color-button[data-color="red"]')?.classList.contains("is-sealed"));
+    assert.match(await sealedRed.textContent(), /赤.*封印 残り1回/);
+    assert.equal(await sealedRed.locator(".palette-role-lock").count(), 1);
     assert.equal(await sealedRed.isDisabled(), true);
     assert.equal(await sealedRed.evaluate((node) => node.classList.contains("is-sealed")), true);
     assert.deepEqual(await sealedRed.evaluate((node) => {
@@ -6444,8 +6668,9 @@ test("actual Edge presents public seals and blocks every stale paint path withou
       runtime.onInvalidate();
     });
     const cpuBlue = page.locator('#paletteControls .color-button[data-color="blue"]');
-    await page.waitForFunction(() => document.querySelector('#paletteControls .color-button[data-color="blue"]')?.disabled === true);
-    assert.match(await cpuBlue.textContent(), /🔒 青.*封印 残り1回/);
+    await page.waitForFunction(() => document.querySelector('#paletteControls .color-button[data-color="blue"]')?.classList.contains("is-sealed"));
+    assert.match(await cpuBlue.textContent(), /青.*封印 残り1回/);
+    assert.equal(await cpuBlue.locator(".palette-role-lock").count(), 1);
     assert.equal(await page.locator('#paletteControls .color-button[data-color="red"]').isEnabled(), true);
     await page.locator('#paletteControls .color-button[data-color="red"]').click();
     await page.getByText("操作を保存しました。").waitFor();
@@ -6510,10 +6735,10 @@ test("actual Edge presents public seals and blocks every stale paint path withou
       const style = getComputedStyle(node);
       return [node.dataset.color, { background: style.backgroundColor, border: style.borderTopColor, opacity: style.opacity }];
     }))), {
-      red: { background: "rgb(127, 29, 29)", border: "rgb(252, 165, 165)", opacity: "1" },
-      blue: { background: "rgb(30, 58, 138)", border: "rgb(147, 197, 253)", opacity: "1" },
-      yellow: { background: "rgb(113, 63, 18)", border: "rgb(253, 224, 71)", opacity: "1" },
-      green: { background: "rgb(20, 83, 45)", border: "rgb(134, 239, 172)", opacity: "1" },
+      red: { background: "rgb(127, 29, 29)", border: "rgb(239, 68, 68)", opacity: "1" },
+      blue: { background: "rgb(30, 58, 138)", border: "rgb(59, 130, 246)", opacity: "1" },
+      yellow: { background: "rgb(113, 63, 18)", border: "rgb(234, 179, 8)", opacity: "1" },
+      green: { background: "rgb(20, 83, 45)", border: "rgb(34, 197, 94)", opacity: "1" },
     });
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
 

@@ -42,7 +42,7 @@ test("Standard online setup UI exposes the complete reconnect path", () => {
     "turnGuide", "turnGuideTitle", "boardViewport", "board", "boardKeyboardHelp", "boardKeyboardStatus", "regionControls", "selectionCount", "submitRegion", "paletteControls", "skillControls", "skillTargetControls",
     "surrender", "retryAction", "actionStatus", "rematchControls", "rematchStatus", "requestRematch",
     "gachaPanel", "gachaTitle", "gachaTickets", "gachaLevel", "gachaOdds", "gachaDrawOne", "gachaDrawAll", "gachaRetry", "gachaStatus", "gachaResults",
-    "gachaResultSummary", "gachaResultTitle", "gachaResultAnnouncement", "gachaCpuRematch", "gachaCpuRematchNote",
+    "gachaResultSummary", "gachaResultTitle", "gachaResultAnnouncement", "gachaGoLobby", "gachaGoLobbyNote",
     "quizAnswerFeedback", "quizRewardSummary", "quizGoGacha", "quizReview", "quizReviewList",
     "progressionPanel", "profileCoins", "profileStats", "cpuProfileStats", "cpuCharacterRecords", "quizAccuracyRecords", "trophyList", "matchHistory",
     "cardSaleSkill", "cardSaleCount", "cardSaleQuote", "cardSaleCommit", "cardSaleRetry", "cardSaleReset", "cardSaleStatus",
@@ -78,11 +78,11 @@ test("online alpha.3 UI understands category windows and the experimental bonus-
 });
 
 test("CPU commentary is public-event-only, bounded, non-blocking, and terminal-persistent", () => {
-  assert.match(html, /style\.css\?v=20260915-5/);
+  assert.match(html, /style\.css\?v=20260915-8/);
   assert.match(html, /standard-online-client\.js\?v=20260910-1/);
   assert.match(html, /standard-online-skill-intents\.js\?v=20260911-21/);
   assert.match(html, /cpu-commentary\.js\?v=20260910-1/);
-assert.match(html, /app\.js\?v=20260915-5/);
+assert.match(html, /app\.js\?v=20260915-8/);
   assert.match(app, /cpuCommentary\?\.VERSION !== "standard-cpu-commentary-v3"/);
   assert.ok(html.indexOf("cpu-commentary.js") < html.indexOf('type="module" src="app.js'));
   assert.match(html, /id="cpuCommentaryStage"[^>]+aria-hidden="true"/);
@@ -425,12 +425,12 @@ test("CPU completion reward copy is bound to the saved match reward and hydrated
   assert.match(app, /1枚引くと所持券は\$\{origin\.ticketTotal - 1\}枚になります/);
 });
 
-test("CPU completion gacha offers one explicit loadout rematch without crossing progression boundaries", () => {
+test("CPU completion gacha offers one explicit lobby return without crossing progression boundaries", () => {
   assert.match(html, /id="gachaResultTitle"[^>]*>次の対戦へ<\/h3>/);
   assert.match(html, /id="gachaResultAnnouncement"[^>]+visually-hidden[^>]+role="status"[^>]+aria-live="polite"[^>]+aria-atomic="true"/);
   assert.match(html, /id="gachaResults"[^>]+role="list"[^>]+aria-label="獲得カード一覧"[^>]+tabindex="-1"/);
-  assert.match(html, /id="gachaCpuRematch"[^>]+type="button"[^>]*>6枚を選び直して同じCPUと再戦<\/button>/);
-  assert.match(html, /カードは自動で6枚には入りません/);
+  assert.match(html, /id="gachaGoLobby"[^>]+type="button"[^>]*>結果を閉じてロビーへ<\/button>/);
+  assert.match(html, /対戦相手と6枚のカードは、ロビーで選べます/);
   assert.match(app, /source: "cpu-completion-reward"/);
   assert.match(app, /value\.roomId === roomModel\?\.room\?\.id[\s\S]+value\.roomVersion === Number\(roomModel\?\.room\?\.version\)[\s\S]+value\.matchId === state\?\.matchId/);
   assert.match(app, /roomModel\?\.room\?\.opponent_kind === "cpu"/);
@@ -447,13 +447,13 @@ test("CPU completion gacha offers one explicit loadout rematch without crossing 
   assert.match(app, /\$\("gachaResults"\)\.focus\(\{ preventScroll: true \}\)/);
   assert.match(app, /\$\("gachaResults"\)\.scrollIntoView/);
   assert.match(app, /show\("gachaResultSummary", canContinueCpuReward\)/);
-  const continuation = app.slice(app.indexOf("async function continueCpuRewardRematch()"), app.indexOf("function dismissTerminalResult()"));
-  assert.match(continuation, /if \(!isCurrentCpuRewardGachaContinuation\(lastGachaContinuation\) \|\| rematchBusy\) return/);
-  assert.match(continuation, /await requestRematch\(\)/);
-  assert.match(continuation, /roomModel\?\.room\?\.status !== "ready"/);
+  const continuation = app.slice(app.indexOf("function leaveRewardGachaResult()"), app.indexOf("function dismissTerminalResult()"));
+  assert.match(continuation, /!isCurrentCpuRewardGachaContinuation\(lastGachaContinuation\)\) return/);
+  assert.match(continuation, /if \(resultContinuationPending\(\)\)/);
+  assert.match(continuation, /leaveFinishedResult\(\)/);
   assert.match(continuation, /activateAppTab\("battle"\)/);
-  assert.doesNotMatch(continuation, /drawGacha|submitSetup|beginImmediateCpuEntry|inventory\[[^\]]+\]\s*=|\.checked\s*=/);
-  assert.match(app, /\$\("gachaCpuRematch"\)\.onclick = continueCpuRewardRematch/);
+  assert.doesNotMatch(continuation, /requestRematch\(|drawGacha|submitSetup|beginImmediateCpuEntry|inventory\[[^\]]+\]\s*=|\.checked\s*=/);
+  assert.match(app, /\$\("gachaGoLobby"\)\.onclick = leaveRewardGachaResult/);
   assert.match(css, /\.gacha-result-summary\{[^}]*scroll-margin-block-end:104px/);
 });
 
@@ -469,7 +469,7 @@ test("existing online progression is hydrated from the server rather than re-upl
 
 test("UI derives its canonical and experimental card metadata from the generated registry", () => {
   assert.equal(Object.values(STANDARD_SKILLS).filter((skill) => skill.v49Catalogued).length, 19);
-  assert.match(html, /standard-skill-registry\.generated\.js\?v=20260912-2[\s\S]+app\.js\?v=20260915-5/);
+  assert.match(html, /standard-skill-registry\.generated\.js\?v=20260912-2[\s\S]+app\.js\?v=20260915-8/);
   assert.match(app, /const STANDARD_SKILL_REGISTRY = globalThis\.FourColorStandardSkillRegistry/);
   assert.match(app, /STANDARD_SKILL_REGISTRY\.v49SkillIds\.map/);
   assert.match(app, /Object\.entries\(STANDARD_SKILL_REGISTRY\.skills\)/);
@@ -724,7 +724,7 @@ test("UI does not expose an adjacency or legal-color oracle", () => {
 test("public color seals disable only paint intents before an action identity is allocated", () => {
   assert.match(app, /function isColorSealed\(state, seat, color\)/);
   assert.match(app, /state\?\.publicEffects\?\.\[seat\]\?\.seals\?\.\[color\]/);
-  assert.match(app, /name\.textContent = `\$\{sealed \? "🔒 " : ""\}\$\{COLOR_JA\[color\] \|\| color\}`/);
+  assert.match(app, /name\.textContent = COLOR_JA\[color\] \|\| "未所持"/);
   assert.match(app, /button\.disabled = !canRespondToColor \|\| actionBusy \|\| !choice\.selectable/);
   assert.match(app, /button\.className = `color-button\$\{sealed \? " is-sealed" : ""\}\$\{choice\.available \? "" : " is-exhausted"\}`/);
   const sendAction = app.slice(app.indexOf("async function sendAction"), app.indexOf("async function syncSelectedProfile"));
@@ -742,7 +742,7 @@ test("public color seals disable only paint intents before an action identity is
   assert.match(css, /\.color-button\.is-sealed:disabled\{[^}]*border-color:var\(--color-border\)[^}]*background:var\(--color-surface\)[^}]*color:var\(--color-ink\)[^}]*opacity:1/);
   const sealedRule = css.match(/\.color-button\.is-sealed:disabled\{[^}]+\}/)?.[0] || "";
   assert.doesNotMatch(sealedRule, /#fb7185|background:#1e293b/);
-  assert.match(app, /paletteRoleSlots\(privateState, seals, remainingColorSelection\.color\)/);
+  assert.match(app, /paletteRoleSlots\(privateState, seals\)/);
   assert.match(app, /おまけ色 残り\$\{choice\.uses\}回/);
   assert.match(app, /封印 残り\$\{sealRemaining\}回/);
   assert.match(app, /button\.disabled = !canRespondToColor \|\| actionBusy \|\| !choice\.selectable/);

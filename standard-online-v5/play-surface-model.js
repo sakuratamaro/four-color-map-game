@@ -11,28 +11,40 @@ export function paletteRoleSlots(privateState = {}, ownSeals = {}, selectedRemai
   const temporary = new Set(Array.isArray(own.privateEffects?.temporaryColors)
     ? own.privateEffects.temporaryColors.filter(validColor) : []);
   const prism = own.privateEffects?.prism === true;
-  function choice(role, color, uses, available) {
+  function choice(role, color, uses, available, slot = null) {
     const sealed = validColor(color) && safeCount(ownSeals?.[color]) > 0;
+    const matches = Number.isInteger(slot) && Array.isArray(own.privateEffects?.paletteDebuffs)
+      ? own.privateEffects.paletteDebuffs.filter(effect => effect?.slot === slot) : [];
+    const effect = matches.length === 1 ? matches[0] : null;
+    const polluted = effect && validColor(effect.previousColor) && effect.previousColor !== color
+      && effect.injectedColor === color && validColor(color)
+      && Number.isSafeInteger(effect.remaining) && effect.remaining >= 1 && effect.remaining <= 2;
     return Object.freeze({
       role, color: validColor(color) ? color : null, uses, available,
+      originColor: polluted ? effect.previousColor : validColor(color) ? color : null,
+      pollutionRemaining: polluted ? effect.remaining : 0,
       sealed, selectable: available && !sealed,
-      mark: !available ? "❌" : sealed ? "🔒" : uses === null ? "∞" : String(uses),
+      mark: !available ? "×" : sealed ? "lock" : uses === null ? "∞" : String(uses),
     });
   }
-  const slots = [0, 1].map(index => choice("basic" + (index + 1), basic[index], null, validColor(basic[index])));
-  slots.push(choice("bonus", bonus, bonusUses, Boolean(bonus && bonusUses > 0)));
+  const slots = [0, 1].map(index => choice("basic" + (index + 1), basic[index], null, validColor(basic[index]), index));
+  slots.push(choice("bonus", bonus, bonusUses, Boolean(bonus && bonusUses > 0), 2));
   // Keep resource roles separate. If an exhausted bonus is temporarily granted
   // by borrow/prism, its usable grant belongs in slot4 instead of disappearing.
   const covered = new Set(basic.filter(validColor));
   if (bonus && bonusUses > 0) covered.add(bonus);
   const remaining = PALETTE_COLORS.filter(color => !covered.has(color))
     .map(color => choice("remaining", color, 1, prism || temporary.has(color)));
+  const grants = remaining.filter(item => item.available);
+  // The idle fourth role is not a menu of every color lost to pollution.
+  // Actual temporary grants stay distinct, including exhausted bonus grants.
+  const idleColor = PALETTE_COLORS.find(color => !slots.some(item => item.originColor === color)) || null;
   const selected = remaining.find(item => item.color === selectedRemaining && item.available)
     || remaining.find(item => item.selectable)
     || remaining.find(item => item.available)
-    || remaining[0]
-    || choice("remaining", null, 0, false);
-  slots.push(Object.freeze({ ...selected, options: Object.freeze(remaining) }));
+    || choice("remaining", idleColor, 0, false);
+  slots.push(Object.freeze({ ...selected, options: Object.freeze(remaining),
+    displayOptions: Object.freeze(grants.length ? grants : [selected]) }));
   return Object.freeze(slots);
 }
 

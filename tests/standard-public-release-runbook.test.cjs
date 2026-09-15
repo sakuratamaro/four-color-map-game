@@ -10,8 +10,8 @@ const onlineIndex = fs.readFileSync(path.join(__dirname, "..", "standard-online-
 const localIndex = fs.readFileSync(path.join(__dirname, "..", "standard-v5", "index.html"), "utf8");
 // Freeze only the two superseded cache labels in main70e's historical release lanes.
 // Current UI generation is checked independently below; no old approval is reused.
-const priorOnlineIndex = onlineIndex.replace("app.js?v=20260915-5", "app.js?v=20260913-44")
-  .replace("style.css?v=20260915-5", "style.css?v=20260910-12");
+const priorOnlineIndex = onlineIndex.replace("app.js?v=20260915-8", "app.js?v=20260913-44")
+  .replace("style.css?v=20260915-8", "style.css?v=20260910-12");
 
 function assetReference(source, pattern, label) {
   const reference = source.match(pattern)?.[1];
@@ -19,14 +19,27 @@ function assetReference(source, pattern, label) {
   return reference;
 }
 
-test("independent current UI lane binds its own assets, exact review and no DB or Edge operation", () => {
+test("frozen parent UI lane retains its original assets and release boundary", () => {
   const section=runbook.slice(runbook.indexOf("## 2026-09-15 独立UIダイエット便"),runbook.indexOf("更新日:"));
   for(const phrase of ["UI_PLAY_SURFACE_20260912.md", "v1.5", "70e691b6f8f1d808476e80990d20df7862bfb782",
     "codex/ui-diet-release-20260915", "DB/Edge/管理設定は各 `[]`", "own Windows", "新しい実Astra承認",
     "同SHA Pages", "全byte一致", "有限45分", "過去のlive試行枠は流用しない", "NOT_RUN", "旧052を流用したmain上書きは禁止"])
     assert.ok(section.includes(phrase),phrase);
+  for(const asset of ["app.js?v=20260915-5", "style.css?v=20260915-5", "play-surface.css?v=20260915-3"])
+    assert.ok(section.includes(asset), asset);
+});
+
+test("current UI follow-up requires own review, parent publication and exact new assets", () => {
+  const section=runbook.slice(runbook.indexOf("## 2026-09-15 UI後続便"),runbook.indexOf("## 2026-09-15 独立UIダイエット便"));
+  for(const phrase of ["UI_FOLLOWUP_RELEASE_20260915.md", "UDL-052-060-followup-v1", "v1.6",
+    "98d23900f1b8cac25f73740dfe8ae31674268cb9", "codex/ui-followup-release-20260915",
+    "DB/Edge/管理設定は各 `[]`", "own Windows", "新しい実Astra承認", "先行98dの実公開", "旧053を流用しない",
+    "同SHA Pages", "全byte一致", "有限45分", "過去のlive試行枠は流用しない", "NOT_RUN", "未予約・未実行"])
+    assert.ok(section.includes(phrase),phrase);
   for(const pattern of [/src="(app\.js\?v=[^"]+)"/,/href="(style\.css\?v=[^"]+)"/,/href="(play-surface\.css\?v=[^"]+)"/])
-    assert.ok(section.includes(assetReference(onlineIndex,pattern,"independent UI current asset")));
+    assert.ok(section.includes(assetReference(onlineIndex,pattern,"current follow-up asset")));
+  const app=fs.readFileSync(path.join(__dirname,"..","standard-online-v5","app.js"),"utf8");
+  assert.ok(section.includes(assetReference(app,/import[^\n]+"\.\/(play-surface-model\.js\?v=[^"]+)"/,"current follow-up model")));
 });
 
 test("UDL065 named-skill lane binds Edge-first compatibility and forbids borrowing a consumed live trial", () => {
