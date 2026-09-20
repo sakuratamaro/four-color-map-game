@@ -62,7 +62,7 @@ test("question choices use one whole-button physics arena with safe pause contra
   assert.doesNotMatch(css, /quiz-option-drift|quiz-option-float/);
   assert.match(css, /@media\(max-width:620px\)\{\.quiz-options\.is-physics\{height:290px/);
   assert.match(css, /@media\(prefers-reduced-motion:reduce\)\{\.quiz-options\.is-physics button\[data-quiz-option\]/);
-  const render = app.slice(app.indexOf("function renderQuiz()"), app.indexOf("async function startOnlineQuiz()"));
+  const render = app.slice(app.indexOf("function renderQuiz()"), app.indexOf("async function startOnlineQuiz("));
   assert.match(render, /button\.dataset\.quizOption = option\.id/);
   assert.match(render, /button\.textContent = option\.label/);
   assert.match(render, /initializeQuizOptionPhysics\(optionButtons/);
@@ -195,9 +195,9 @@ test("only overflowing quiz math receives a persistent horizontal position bar",
   assert.match(css, /\.quiz-math-scroll\{[^}]*overflow-x:auto/);
   assert.match(css, /\.quiz-question \.quiz-math-scroll math\{[^}]*white-space:nowrap/);
   assert.match(css, /\.quiz-overflow-scrollbar\[hidden\]\{display:none\}/);
-  assert.match(html, /style\.css\?v=20260915-8/);
+  assert.match(html, /style\.css\?v=20260920-1/);
   assert.match(html, /standard-online-client\.js\?v=20260910-1/);
-  assert.match(html, /app\.js\?v=20260915-8/);
+  assert.match(html, /app\.js\?v=20260920-1/);
 });
 
 test("per-question feedback is server-acknowledged, retryable, brief in motion, and followed by an optional review", () => {

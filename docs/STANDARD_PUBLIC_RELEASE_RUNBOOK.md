@@ -1,5 +1,13 @@
 # Standard公開版 段階リリース手順
 
+## 2026-09-20 UI導線統合候補（ローカル準備）
+
+正本は `docs/UI_NAVIGATION_RELEASE_20260920.md` / `UDL-023-060-062-067-068-navigation-v1`。基準は `fc089450e3a4e41e6c287f5359fc076f085f2903`、branchは `codex/ui-navigation-release-20260920`。旧UI tree172の採用済み導線をfcの配色・盤面・手札・ガチャ後ロビーと統合する。DB/Edge/管理設定は各 `[]`、画像0。旧候補の承認・失敗・保留・公開順を変更せず、新候補の公開順は真正Astraレビューの対象とする。
+
+この統合候補の現行資産は `app.js?v=20260920-1`、`style.css?v=20260920-1`。依存資産は `play-surface.css?v=20260915-5`、`play-surface-model.js?v=20260915-1`、`ui-diet.css?v=20260914-2`、`progression.css?v=20260914-1`、`terminal-result.css?v=20260914-1`、`surrender-confirmation.css?v=20260913-2`、`result-continuation.js?v=20260914-1`、`action-recovery.js?v=20260914-1`、`standard-skill-registry.generated.js?v=20260914-1`。下の各資産・候補記録は凍結履歴。
+
+現在はローカル統合・検証だけ。固定候補 → own Windows全必須step → 新しい実Astra承認（統合範囲・公開順を含む） → Pages技術保留解消 → fresh main互換確認 → forceなしmain統合 → 同SHA Pages → 変更全asset byte一致 → 別途承認済み有限live の順を提案する。Windows/レビュー/push/main/Pages/live/物理端末はNOT_RUN。旧053/054やsource親承認の流用、過去の閉じた試行枠のリセットはしない。この文書は新しい外部操作の許可ではない。
+
 ## 2026-09-15 UI後続便（元色リム・ガチャ後ロビー）
 
 正本は `docs/UI_FOLLOWUP_RELEASE_20260915.md` の `UDL-052-060-followup-v1` と `docs/UI_PLAY_SURFACE_20260912.md` v1.6。基準は `98d23900f1b8cac25f73740dfe8ae31674268cb9`、branchは `codex/ui-followup-release-20260915`。先行98dの実公開が先であり、ここで旧053を流用しない。DB/Edge/管理設定は各 `[]`、新画像0。先行4つのUI修正を保持し、CPU/未公開の別UI/私的レビュー記録を混ぜない。
@@ -29,6 +37,20 @@ CPU分割救済の候補手順（2026-09-13、未公開）は `docs/CPU_SPLIT_RE
 実行中の状態、数値、識別子、失敗は `docs/STANDARD_RELEASE_EVIDENCE.md` に追記する。根拠のない項目を`VERIFIED`や`PASS`へ変更しない。
 
 ## 完了の定義
+
+カード操作の復帰導線（UDL-062-action-recovery-v1.1）は `docs/BLOCKED_ACTION_RECOVERY_20260914.md` に固定する。基準は統合profile c6b8ef5ca1df84aad182bf140304affee6595f68（Home45・ガチャaf1472dを含む）。現候補assetは `app.js?v=20260914-9` / `ui-diet.css?v=20260914-2` / `progression.css?v=20260914-1` / `action-recovery.js?v=20260914-1` / index.htmlの5asset。準備・対戦・結果への移動、元のCPU/準備/売却pending ID保持、移動だけでのgame/economy write 0、最後の1枚と保護、確認売却、390/768/1280/320拡大表示を検証する。コンパクトなプロフィールとHome/チュートリアル往復中も未確認売却を保持し、明示再確認だけが同じIDを再送する。現スライスはローカル限定、未push・独自Windows・真正Astra・main/PagesはNOT_RUN。公開には独自Windows・正確な真正レビュー・親70e→b9→87→df62→03bc→af1472d→45e6940→c6b8ef5の公開確認・fresh main一致・5asset厳密byte一致が別途必要。候補preflightはCARD_ACTION_RECOVERY_REQUIREDとaction-recovery.js全文一致、COMPACT_PROFILE_REQUIRED・HOME_RULES_REQUIRED・既存ガチャB1・終局contractを要求するが、今回は実行しない。Homeの元CI失敗・profile局所候補・親Pages保留は未解消。DB/Edge/管理設定は各 `[]`、画像0。新CI/取得/レビュー送受信/本番/追加liveはこのスライスでは許可しない。旧予算や21cc/8dd9/GOV保留を迂回しない。元47f4370は履歴保存し、下記のprofile・Home・ガチャ等のmarkerは各固定親候補の記録であり書き換えない。
+
+プロフィール圧縮のローカル後続候補（UDL-062-profile-compact-v1.1）は `docs/PROFILE_COMPACT_20260914.md` に固定する。基準は統合Home45e69401e735c2aad01b9471c4c202ddd365381f。厳密assetは `app.js?v=20260914-8` / `ui-diet.css?v=20260914-2` / index.htmlの3asset。通常は概要だけを示し、プロフィール切替と詳細は明示操作で開く。初回の公開名注意、保存中・失敗・再試行、全戦績・所持品とpending購入の復元を保持する。プロフィールAPI変更なし、DB/Edge/管理設定は各 `[]`、新画像0。これはローカル準備であり、親HomeのWindows失敗を解除せず、新CIの作成・予算リセットは許可しない。固有WindowsはNOT_RUN、CI routeも未追加。公開には親70e→b9→87→df62→03bc→af1472d→45e6940のゲート解消・公開確認、候補固有のWindowsと真正Astraレビュー、fresh main照合が別途必要。公開後は同SHA Pages成功、3asset厳密byte一致とCOMPACT_PROFILE_REQUIRED・HOME_RULES_REQUIRED・既存ガチャ/クイズ/終局contractを確認する。ここではpush・送付・本番操作・追加liveは許可しない。旧Homeの失敗と取得期限、別候補の保留や承認を流用しない。B1のpending/busy案内保護、元Lv/actionId/count、診断checkpoint1695064を引き継ぐ。旧profile3b97と旧Home d9の失敗・検証を履歴保全し、新候補のWindows成功や根因解消とは扱わない。下記のHome assetは固定親45e6940の記録のまま保持する。
+
+ホーム設定・ルールの後続候補（UDL-062-068-home-rules-v1.1）は `docs/HOME_RULES_DIET_20260914.md` に固定する。基準は修正ガチャaf1472d10044431be01665e122ea126da9b458a9。厳密assetは `app.js?v=20260914-7` / `ui-diet.css?v=20260914-1` / index.htmlの3asset。Homeの通常入口は設定・チュートリアルの2つで、設定は初期閉鎖、実エラーと進行中対戦の復帰は残す。B1のpending/busy中は保存済み報酬の案内で復旧・エラー表示を上書きせず、元のLv/actionId/countを維持する。候補固有のテスト・Windowsログ・真正Astraレビューを必要とし、親70e→b9→87→df62→03bc→af1472dの公開確認とfresh mainaf1472dの照合後にのみ公開する。公開後は同SHA Pages成功、3asset厳密byte一致とHOME_RULES_REQUIRED、既存GACHA_ENTRY_DIET_REQUIRED・DIRECT_QUIZ_ENTRY_REQUIRED・終局contractを確認する。初回プロフィール、既存設定保存、native dialogのキーボード・短画面・拡大文字、対戦復帰・成立通知とB1の局所実browserおよび候補固有Windows証拠を保存する。旧Home d9a66f0のWindows 34787425617 attempt1はChrome171/172 FAIL・Edge172/172 PASS、原因未特定のまま保全し、診断checkpoint1695064も残す。本統合は旧Windows失敗の解消証拠ではなく、診断・再試行枠をリセットしない。DB/Edge/管理設定は各 `[]`、新画像0、ゲームルール・経済・確率・報酬変更なし。追加profile・クイズ・抽選・対局・liveはこの手順では許可しない。af1472dの真正レビュー待ちや21cc/8dd9/GOVの具体的保留を迂回せず、古い承認や閉じたPages/CI/review枠を流用しない。下記は各固定親候補の履歴であり、本Home候補の版へ書き換えない。
+
+ガチャ入口の後続候補（UDL-062-gacha-entry-v1）は `docs/GACHA_ENTRY_DIET_20260914.md` に固定する。基準はクイズ03bc21f6ba927f71ce05efc438827d547993b21c。厳密assetは `app.js?v=20260914-6` / `style.css?v=20260914-3` / `standard-skill-registry.generated.js?v=20260914-1` / index.htmlの4assetで、実際の定義から生成した全5Lvの率を確認する。新候補固有の全テスト・Windows・真正Astraレビューの後も、親70e→b9→87→df62→03bcの公開確認とfresh main03bcを先に要求する。公開後は同SHA Pages成功、4asset厳密byte一致、write-free preflightのGACHA_ENTRY_DIET_REQUIRED・DIRECT_QUIZ_ENTRY_REQUIREDと既存終局contractを確認する。terminal-result.css / result-continuation.jsは `20260914-1` のまま。5選択と1枚/全部、全Lv比較、100枚上限、0枚、busy/pending/Lv/actionId/count/reload/retryの局所実browser・Windows証拠を保存する。DB/Edge/管理設定は各 `[]`、新画像0、確率・報酬・経済変更なし。追加profile・クイズ・抽選・対局・liveはこの手順では許可しない。親049承認や終了済みPages/CI/レビュー枠を流用せず、21cc/8dd9/GOVの具体的保留を迂回しない。下記のクイズ・終局assetは各固定候補の記録であり、新ガチャのmarkerへ書き換えない。
+
+クイズ入口の後続候補（UDL-062-quiz-entry-v1.1）は `docs/QUIZ_LEVEL_START_20260914.md` に固定する。基準df62を含み、厳密assetは `app.js?v=20260914-2` / `style.css?v=20260914-2` / index.html。既存terminal-result.cssとresult-continuation.jsは `20260914-1` のまま保持する。固有の全テスト・Windows・真正レビュー後、親70e→b9→87→df62の公開確認とfresh maindf62を確認した場合だけ公開する。公開後は候補SHAのPages成功、3asset厳密byte一致、write-free preflightのDIRECT_QUIZ_ENTRY_REQUIREDと既存終局contractを検証する。新しいprofile・対局・クイズ開始・回答・ガチャ・DB/Edge変更・追加liveはこの手順では許可しない。5開始操作、任意の報酬説明、keyboard/スマホ、再開/排他の検証はローカル実browserとWindowsで区別して記録する。終局の旧承認を新クイズ候補へ流用せず、親の終了済み取得予算や別payloadの保留も再開しない。
+
+この候補の厳密asset markerは `app.js?v=20260914-1` / `terminal-result.css?v=20260914-1` / `result-continuation.js?v=20260914-1`。公開確認は未実行。
+
+終局UIの後続候補（UDL-060-terminal-v2）は `docs/UI_TERMINAL_HIERARCHY_20260914.md` を参照する。app `20260914-1`、terminal-result.css `20260914-1`、result-continuation.js `20260914-1` の新候補固有の検証が必要。勝敗/台詞/短い理由/保存済み券Lv・枚数、最大3操作、通常結果から直接再戦しない、旧pending申請の復旧、再読込のwrite0を確認する。下記alpha.4や投了顔87のキャッシュ記録は各固定候補の履歴であり書き換えない。新画像21cc31aの個別承認や8dd9の送付許可を借用せず、親70e→b9→87の公開依存を保つ。この便のprepare/commitだけでは公開できず、独自Windowsゲート・真正Astraレビュー・fresh mainと配信byte確認を要する。CPU/DB/Edge/経済は変更しない。
 
 入口UIのv13後続便（UDL-023-entrance-v2）は、先行065の承認・公開後にfresh mainとの祖先関係を確認する。HTMLと `ui-diet.css?v=20260912-3` の厳密byte一致を追加確認し、既存app39/skill-cutinJS2/CSS1と他の公開marker・回帰を維持する。3択の同列配置・390/768/1280・44px・keyboard・route-only write0・pending復帰を確認し、文章仕様と自動試験を混同しない。ゲームルール/DB/Edge変更なし、物理NOT_RUNは別管理。公開前のローカル準備や専用branchのWindows成功だけをmain/Pages反映済みとしない。
 
@@ -181,9 +203,17 @@ rollbackも「旧version番号へ戻った」という目視だけでは完了�
 
 ## EdgeとPagesの順序
 
+### UDL-023: v14公開対戦の二操作
+
+`docs/UI_PUBLIC_MATCH_ACTIONS_20260913.md`（`UDL-023-public-actions-v1`）を正本とするPages_only便。固定親 `70e691b6f8f1d808476e80990d20df7862bfb782` の公開後にだけ進め、fresh mainがその基準SHAであることを再確認する。親70eの承認・source取得停止を変更せず、このUI自身のWindows Chrome/Edge成功と真正Astra判定が必要。DB/Edge/管理設定は各 `[]`、既存client/RPCを変更しない。
+
+「相手を待つ」はrecruitだけ、「待っている相手に参加」はfindだけ。相手なし・応答不明・reloadを新たな募集へ変換しない。既存ticket/room/CPU saga排他、同一ID再送、取消、成立時の6枚確認を保持する。公開後は同じ候補のmain/Pages最終成功、既存preflight、HTMLと変更アセットの厳密byte一致を確認する。二択UI単独b9は `app.js?v=20260913-45`、後続のb9基準顔表示統合は `app.js?v=20260913-48`、両方とも `ui-diet.css?v=20260913-4` を使う。これらは別の候補・ゲート・承認対象であり、統合はfresh main=b9を必要とする。これは親70eのEdge再配備指示ではない。
+
+実ユーザーへのfind/recruit、試験profile/対局、旧065/067/062の追加試行はここでは許可しない。ローカルfixtureの実ブラウザーと配信byte確認を、本番対人マッチングの観測や物理受入へ拡張しない。公開/物理はNOT_RUN。
+
 ### UDL-065: 使用済みスキル名の公開表示
 
-`docs/SKILL_PUBLIC_EVENT_20260913.md`（`UDL-065-public-skill-v1`）が正本の独立後続便。基準は公開954e、DB/管理設定は各 `[]`。変更Edgeは生成 `standard-engine.bundle.js` だけで、変更なしの `index.ts` も同じ配備物へ含めて厳密読戻しする。online `app.js?v=20260913-44`、`skill-cutin.js?v=20260913-2`、CSSは `skill-cutin.css?v=20260913-1` を維持。
+`docs/SKILL_PUBLIC_EVENT_20260913.md`（`UDL-065-public-skill-v1`）が正本の独立後続便。基準は公開954e、DB/管理設定は各 `[]`。変更Edgeは生成 `standard-engine.bundle.js` だけで、変更なしの `index.ts` も同じ配備物へ含めて厳密読戻しする。初回70eのonlineは `app.js?v=20260913-44`。後続の二択UI基準の投了CPU顔表示統合候補は `app.js?v=20260913-48` で、`ui-diet.css?v=20260913-4`、`skill-cutin.js?v=20260913-2`、`skill-cutin.css?v=20260913-1`、surrender JS1/CSS2を維持する。仕様は `docs/SURRENDER_CPU_FACE_20260913.md`（`UDL-067-face-v1.1`）。親70e配信完了→045対象のb9公開→別SHAの顔表示統合、の順とし、統合のfresh baseはb9。後続候補は別のWindows・実レビュー対象であり、042・045・046の承認を流用しない。追加live/profile/match/find/recruit/cleanupは0。
 
 1. 固定候補SHA・仕様blob・全差分・同一SHAのWindows Chrome/Edge成功と実Astra判定をそろえる。CPU039とUI040、旧失敗・部分受入は流用/書換しない。
 2. 実engine/handler/commit/snapshot/replay SQLと旧新viewerの互換試験後、互換Edge → 完全2file読戻し → Pages の順に公開する。管理設定・SQL・JWTは変更しない。旧workerでは汎用名へfallbackするが、正規state/RNG/private/旧traceと操作意味は不変。

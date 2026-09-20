@@ -2,7 +2,7 @@ name: Standard browser gate
 
 on:
   push:
-    branches: [codex/standard-release-command, codex/quiz-memo-calculator-20260912, codex/ui-diet-20260912, codex/ui-play-surface-20260912, codex/ui-result-20260912, codex/ui-cosmetics-20260912, codex/ui-player-copy-20260912, codex/skill-cutin-20260912, codex/ui-flat-entry-20260912, codex/skill-catalog-20260912, codex/surrender-confirmation-20260913, codex/cpu-split-rescue-20260913, codex/skill-cutin-readability-20260913, codex/skill-cutin-public-names-20260913, codex/ui-diet-release-20260915, codex/ui-followup-release-20260915]
+    branches: [codex/standard-release-command, codex/quiz-memo-calculator-20260912, codex/ui-diet-20260912, codex/ui-play-surface-20260912, codex/ui-result-20260912, codex/ui-cosmetics-20260912, codex/ui-player-copy-20260912, codex/skill-cutin-20260912, codex/ui-flat-entry-20260912, codex/skill-catalog-20260912, codex/surrender-confirmation-20260913, codex/cpu-split-rescue-20260913, codex/skill-cutin-readability-20260913, codex/skill-cutin-public-names-20260913, codex/ui-diet-release-20260915, codex/ui-followup-release-20260915, codex/ui-public-match-actions-20260913, codex/ui-public-match-actions-pointer-20260913, codex/surrender-cpu-face-20260913, codex/quiz-level-buttons-20260914, codex/gacha-entry-diet-20260914, codex/home-rules-diet-20260914, codex/ui-navigation-release-20260920]
     paths:
       - .github/workflows/standard-browser-gate.yml
       - online/supabase-config.js
@@ -30,8 +30,11 @@ on:
       - tests/standard-online-engine-bundle.test.cjs
       - tests/standard-online-browser.test.cjs
       - tests/browser-server-cleanup.test.cjs
+      - tests/browser-startup-diagnostics.test.cjs
+      - tests/helpers/browser-startup-diagnostics.cjs
       - tests/helpers/board-affordance-fixture.cjs
       - tests/helpers/canvas-native-pointer.cjs
+      - tests/canvas-native-pointer.test.cjs
       - tests/helpers/browser-server-cleanup.cjs
       - tests/helpers/cpu-sql-runtime.cjs
       - tests/helpers/public-skill-fixture.cjs
@@ -66,8 +69,11 @@ on:
       - tests/standard-online-engine-bundle.test.cjs
       - tests/standard-online-browser.test.cjs
       - tests/browser-server-cleanup.test.cjs
+      - tests/browser-startup-diagnostics.test.cjs
+      - tests/helpers/browser-startup-diagnostics.cjs
       - tests/helpers/board-affordance-fixture.cjs
       - tests/helpers/canvas-native-pointer.cjs
+      - tests/canvas-native-pointer.test.cjs
       - tests/helpers/browser-server-cleanup.cjs
       - tests/helpers/cpu-sql-runtime.cjs
       - tests/helpers/public-skill-fixture.cjs
@@ -125,8 +131,11 @@ jobs:
           tests/standard-debug-room-access.test.cjs
           tests/standard-decision-reconciliation.test.cjs
           tests/standard-browser-gate-workflow.test.cjs
+          tests/standard-ui-navigation-integration.test.cjs
           tests/standard-online-browser-harness-static.test.cjs
           tests/browser-server-cleanup.test.cjs
+          tests/browser-startup-diagnostics.test.cjs
+          tests/canvas-native-pointer.test.cjs
           tests/standard-legal-recolor-lab.test.cjs
           tests/standard-live-legal-recolor-lab-canary-static.test.cjs
           tests/standard-live-color-response-canary-static.test.cjs
@@ -169,6 +178,13 @@ jobs:
           tests/standard-online-client.test.cjs
           tests/standard-online-quiz-generator-runtime.test.cjs
           tests/standard-online-quiz-polish.test.cjs
+          tests/standard-quiz-level-start.test.cjs
+          tests/standard-gacha-entry.test.cjs
+          tests/standard-action-recovery.test.cjs
+          tests/standard-home-rules.test.cjs
+          tests/standard-profile-compact.test.cjs
+          tests/standard-gacha-transaction.test.cjs
+          tests/standard-quiz-reward-gacha.test.cjs
           tests/standard-quiz-scratch.test.cjs
           tests/standard-online-random-info-ui.test.cjs
           tests/standard-online-skill-registry.test.cjs

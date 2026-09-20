@@ -2,7 +2,8 @@ import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 import "../online/supabase-config.js";
 import { createQuizMemo } from "./quiz-memo.js?v=20260912-1";
 import { paletteRoleSlots, stableHandSlots } from "./play-surface-model.js?v=20260915-1";
-import { savedResultReward } from "./result-continuation.js?v=20260912-1";
+import { savedResultReward, terminalRewardPresentation } from "./result-continuation.js?v=20260914-1";
+import { cardActionRecovery } from "./action-recovery.js?v=20260914-1";
 import { displayedCosmeticIntent, cosmeticQuoteMatchesIntent, pendingCosmeticPresentation, definiteCosmeticRejection } from "./cosmetic-item-action.js?v=20260912-2";
 
 const cfg = globalThis.FourColorSupabaseConfig;
@@ -29,13 +30,7 @@ const REMOTE_PROFILE_KEY = "fourColorMapGame.standard.online.v5.remote-profile";
 const REMOTE_PROFILE_ID = "online-server";
 const GACHA_PENDING_KEY = "fourColorMapGame.standard.online.v5.pending-gacha";
 const CPU_REWARD_GACHA_RESULT_KEY = "fourColorMapGame.standard.online.v5.cpu-reward-gacha-result";
-const GACHA_ODDS = Object.freeze({
-  1: Object.freeze({ 1: 65, 2: 29, 3: 5, 4: 0.9, 5: 0.1 }),
-  2: Object.freeze({ 1: 40, 2: 35, 3: 19, 4: 5.5, 5: 0.5 }),
-  3: Object.freeze({ 1: 25, 2: 35, 3: 28, 4: 10, 5: 2 }),
-  4: Object.freeze({ 1: 0, 2: 35, 3: 35, 4: 24, 5: 6 }),
-  5: Object.freeze({ 1: 0, 2: 0, 3: 40, 4: 40, 5: 20 }),
-});
+const GACHA_ODDS = globalThis.FourColorStandardSkillRegistry.gachaOdds;
 const QUIZ_PENDING_KEY = "fourColorMapGame.standard.online.v5.pending-quiz";
 const TERMINAL_PRESENTED_KEY = "fourColorMapGame.standard.online.v5.last-terminal-presentation";
 const APP_TAB_KEY = "fourColorMapGame.standard.online.v5.active-tab";
@@ -134,6 +129,8 @@ let selectedProfileId = null;
 let synced = false;
 let connected = false;
 let profileSyncBusy = false;
+let profilePickerOpen = false;
+let profileSyncError = "";
 let hydratedProfileRevision = -1;
 let roomModel = null;
 let initializeBusy = false;
@@ -154,6 +151,7 @@ let setupModeRoomId = client.snapshot().roomId;
 let setupModeRevision = Number(client.snapshot().setupRevision) || 0;
 let rematchBusy = false;
 let gachaBusy = false;
+let selectedGachaLevel = 1;
 let quizBusy = false;
 let cardSaleBusy = false;
 let cosmeticBusy = false;
@@ -382,7 +380,11 @@ function restorePaletteImpactPresentation() {
 let presentedPaletteImpactEvents = restorePaletteImpactPresentation();
 
 function show(id, value) { $(id).classList.toggle("hidden", !value); }
-function badge(text, tone = "warn") { $("connectionBadge").textContent = text; $("connectionBadge").className = `badge ${tone}`; }
+function badge(text, tone = "warn") {
+  $("connectionBadge").textContent = text;
+  $("connectionBadge").className = `badge ${tone}`;
+  $("connectionCard").classList.toggle("connection-ready", tone === "good");
+}
 function toast(message) { const node = $("toast"); node.textContent = message; node.classList.add("show"); clearTimeout(toast.timer); toast.timer = setTimeout(() => node.classList.remove("show"), 2400); }
 function operationFeedback(id, message, tone = "") {
   const node = $(id);
@@ -602,7 +604,7 @@ function persistCpuStartSaga(value) {
 }
 function hasCpuEntryIntent() { return sessionStorage.getItem(CPU_ENTRY_INTENT_KEY) === "direct"; }
 function setCpuEntryIntent(active) { if (active) sessionStorage.setItem(CPU_ENTRY_INTENT_KEY, "direct"); else sessionStorage.removeItem(CPU_ENTRY_INTENT_KEY); }
-function renderProfileCardVisibility() { show("profileCard", activeAppTab === "profile" || (!synced && activeAppTab !== "cards")); }
+function renderProfileCardVisibility() { show("profileCard", activeAppTab === "profile" || (!synced && !["home", "cards"].includes(activeAppTab))); }
 
 function renderBattleEntrance() {
   const snapshot = client.snapshot();
@@ -660,7 +662,7 @@ function alignPlayingViewport({ expectedInteractionRevision = null, focusHeading
   });
 }
 
-function activateAppTab(requestedTab, { updateHash = true, scrollTop = true } = {}) {
+function activateAppTab(requestedTab, { updateHash = true, scrollTop = true, refreshRoom = true } = {}) {
   const tab = APP_TABS.has(requestedTab) ? requestedTab : "home";
   if (requestedTab === "battle" && hasMatchedRoomHandoff() && matchedRoomHandoffBlockReason()) {
     renderMatchedRoomHandoff();
@@ -674,6 +676,11 @@ function activateAppTab(requestedTab, { updateHash = true, scrollTop = true } = 
     && (!client.snapshot().roomId || roomModel);
   if (resumePausedQuiz) resumeQuizClockOnQuizTab();
   activeAppTab = tab;
+  if (tab !== "home") {
+    $("openHomeSettings").setAttribute("aria-expanded", "false");
+    show("feedbackSettings", false);
+    if ($("tutorialDialog").open) $("tutorialDialog").close();
+  }
   if (tab !== "battle") closeSurrenderDialog(false);
   if (tab !== "battle") observeSkillCutin(roomModel?.room?.public_state, roomModel?.view?.private_state);
   if (tab !== "battle") clearCpuCommentaryBubble();
@@ -702,7 +709,7 @@ function activateAppTab(requestedTab, { updateHash = true, scrollTop = true } = 
       renderBoard(publicState);
       observePaletteImpact(publicState, roomModel?.view?.private_state || {});
     }
-    roomSync?.invalidate?.();
+    if (refreshRoom) roomSync?.invalidate?.();
   }
   if (scrollTop) window.scrollTo({ top: 0, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
   if (tab === "battle" && roomModel?.room?.status === "playing") {
@@ -768,6 +775,7 @@ function renderMatchedRoomHandoff() {
     matchedRoomHandoff = null;
   }
   const visible = hasMatchedRoomHandoff() && activeAppTab !== "battle";
+  if (visible && $("tutorialDialog").open) $("tutorialDialog").close();
   if (visible) quizMemo.deactivate({ lockAnswers: false, restoreFocus: false });
   show("matchedRoomHandoff", visible);
   $("connectionCard").classList.toggle("has-matched-room", visible);
@@ -1326,7 +1334,7 @@ function renderPersistentTerminalResult(state, privateState) {
   if (!finished) return;
   const won = state.winner === roomModel?.view?.seat;
   $("terminalSummary").classList.toggle("is-defeat", !won);
-  const title = won ? "勝利：決着理由" : "敗北：敗因";
+  const title = won ? "勝利" : "敗北";
   const reason = terminalReasonDetail(state, privateState);
   if ($("terminalOutcomeTitle").textContent !== title) $("terminalOutcomeTitle").textContent = title;
   if ($("terminalOutcomeReason").textContent !== reason) $("terminalOutcomeReason").textContent = reason;
@@ -1341,32 +1349,23 @@ function resultContinuationPending() {
 function renderResultContinuation() {
   const room = roomModel?.room;
   const reward = savedResultReward(room, roomModel?.view?.seat, profile());
+  const rewardPresentation = terminalRewardPresentation(room, roomModel?.view?.seat, profile());
   const blocked = resultContinuationPending();
   show("resultGoGacha", Boolean(reward));
-  show("resultRewardSummary", Boolean(reward));
+  show("resultRewardSummary", true);
+  $("resultRewardSummary").textContent = rewardPresentation.text;
+  $("resultRewardSummary").dataset.rewardState = rewardPresentation.kind;
   if (reward) {
     $("resultGoGacha").textContent = `Lv.${reward.ticketLevel}券のガチャを開く`;
-    $("resultRewardSummary").textContent = `この対戦で獲得：Lv.${reward.ticketLevel}ガチャ券 ×${reward.ticketCount}`;
+    $("resultRewardSummary").textContent = `完了報酬：Lv.${reward.ticketLevel}ガチャ券 ×${reward.ticketCount}`;
   }
-  show("chooseDifferentHuman", room?.opponent_kind !== "cpu");
-  $("terminalChooseAnother").textContent = room?.opponent_kind === "cpu" ? "別のCPUを選ぶ" : "結果を閉じて別の相手を選ぶ";
-  for (const id of ["chooseDifferentCpu", "chooseDifferentHuman", "resultGoLobby", "terminalChooseAnother", "terminalGoLobby"]) $(id).disabled = blocked;
-  $("terminalRematch").disabled = rematchBusy || room?.status !== "finished";
+  for (const id of ["resultGoLobby", "terminalGoLobby"]) $(id).disabled = blocked;
 }
 
-function leaveFinishedResult({ publicChoice = false } = {}) {
+function leaveFinishedResult() {
   if (roomModel?.room?.status !== "finished" || resultContinuationPending()) return;
   dismissTerminalResult();
   closeDisplayedRoom();
-  if (publicChoice) chooseBattleRoute("public");
-}
-
-function chooseAnotherResultOpponent(trigger) {
-  if (roomModel?.room?.status !== "finished" || resultContinuationPending()) return;
-  dismissTerminalResult();
-  const returnTrigger = trigger?.closest("#terminalOverlay") ? $("chooseDifferentCpu") : trigger;
-  if (roomModel.room.opponent_kind === "cpu") return beginImmediateCpuEntry(returnTrigger, { replaceFinished: true });
-  leaveFinishedResult({ publicChoice: true });
 }
 
 function openSavedResultGacha() {
@@ -1379,7 +1378,7 @@ function openSavedResultGacha() {
   dismissTerminalResult();
   goToGacha(reward.ticketLevel);
   armedCpuRewardGachaOrigin = origin;
-  if (origin) $("gachaStatus").textContent = `CPU戦の完了報酬を反映済み：Lv.${origin.ticketLevel}券 所持 ×${origin.ticketTotal}。1枚引くと所持券は${origin.ticketTotal - 1}枚になります。`;
+  if (origin && !pendingGacha && !gachaBusy) $("gachaStatus").textContent = `対戦でもらったLv.${origin.ticketLevel}券を選びました。`;
 }
 
 function clearContactReveal({ clearAnnouncement = true } = {}) {
@@ -1467,42 +1466,11 @@ function renderTerminalResult(state) {
   $("terminalTitle").textContent = won ? "勝利！" : "敗北";
   $("terminalMessage").textContent = won ? `${playerName(mySeat)} の勝利です！` : `${playerName(state.winner)} の勝利です`;
   $("terminalReasonText").textContent = terminalReasonDetail(state, roomModel?.view?.private_state || {});
-  const opponentKind = roomModel?.room?.opponent_kind;
-  const experimentalMatch = state.debugUnlimitedSkills === true || isLegalRecolorLab(state);
-  const stats = opponentKind === "cpu" ? profile()?.cpuStats : profile()?.stats;
-  const resultCount = Number(stats?.[won ? "wins" : "losses"]);
-  const resultLabel = opponentKind === "cpu" ? "CPU戦" : "対人戦";
-  const settledMatch = profile()?.matchHistory?.find((entry) => entry?.matchId === state.matchId);
-  const resultWasSaved = settledMatch?.result === (won ? "WIN" : "LOSS")
-    && (opponentKind !== "cpu" || settledMatch.onlineOpponentKind === "cpu");
-  const progressWasSaved = roomModel?.room?.status === "finished"
-    && ["A", "B"].includes(mySeat)
-    && settledMatch?.matchId === state.matchId
-    && resultWasSaved
-    && Number.isSafeInteger(resultCount)
-    && resultCount >= 0;
-  const matchReward = settledMatch?.matchReward;
-  const rewardTicketLevel = Number(matchReward?.ticketLevel);
-  const rewardTicketCount = Number(matchReward?.ticketCount);
-  const rewardTicketTotal = Number(profile()?.gachaTickets?.[String(rewardTicketLevel)]);
-  const rewardWasSaved = progressWasSaved && !experimentalMatch && matchReward?.awarded === true
-    && Number.isSafeInteger(rewardTicketLevel) && rewardTicketLevel >= 1 && rewardTicketLevel <= 5
-    && Number.isSafeInteger(rewardTicketCount) && rewardTicketCount >= 1
-    && Number.isSafeInteger(rewardTicketTotal) && rewardTicketTotal >= rewardTicketCount;
-  const rewardWasLimited = progressWasSaved && !experimentalMatch && opponentKind !== "cpu"
-    && matchReward?.awarded === false && matchReward?.reason === "PVP_REWARD_LIMIT";
+  const rewardPresentation = terminalRewardPresentation(roomModel?.room, mySeat, profile());
   const resultReward = savedResultReward(roomModel?.room, mySeat, profile());
-  const rewardText = rewardWasSaved
-    ? `\n完了報酬：Lv.${rewardTicketLevel}ガチャ券 +${rewardTicketCount}（所持 ${rewardTicketTotal - rewardTicketCount}→${rewardTicketTotal}）`
-    : rewardWasLimited
-    ? "\n完了報酬：直近60分の付与済み10試合に達したため、今回はありません。"
-    : "";
-  $("terminalProgressText").textContent = experimentalMatch
-    ? "実験対戦のため、戦績・報酬・在庫は変わりません。"
-    : progressWasSaved
-    ? `戦績を保存しました：${resultLabel} ${won ? "勝利" : "敗北"} ${resultCount}${rewardText}`
-    : "戦績を確認しています。マイページでも確認できます。";
-  if (resultReward) $("terminalGoGacha").textContent = `獲得したLv.${resultReward.ticketLevel}券でガチャへ`;
+  $("terminalProgressText").textContent = rewardPresentation.text;
+  $("terminalProgressText").dataset.rewardState = rewardPresentation.kind;
+  if (resultReward) $("terminalGoGacha").textContent = "ガチャへ";
   show("terminalGoGacha", Boolean(resultReward));
   try { localStorage.setItem(TERMINAL_PRESENTED_KEY, eventKey); } catch { /* presentation still works when storage is unavailable */ }
   show("terminalOverlay", true);
@@ -1643,9 +1611,24 @@ function hydrateProfileRow(row) {
 function renderProfile() {
   const value = profile();
   renderProfileCardVisibility();
+  const optionsOpen = !synced || profilePickerOpen || profileSyncBusy;
+  show("profileOptions", optionsOpen);
+  show("toggleProfileOptions", synced);
+  $("toggleProfileOptions").setAttribute("aria-expanded", String(optionsOpen));
+  $("toggleProfileOptions").disabled = profileSyncBusy;
+  $("toggleProfileOptions").textContent = profilePickerOpen ? "閉じる" : "切替";
+  $("toggleProfileOptions").setAttribute("aria-label", profilePickerOpen ? "プロフィール選択を閉じる" : "プロフィールを切り替える");
+  show("profilePickerLabel", Boolean(value));
+  $("profileSelect").disabled = profileSyncBusy;
   show("starterCreator", !value);
+  $("starterName").disabled = profileSyncBusy;
+  $("createStarterProfile").disabled = profileSyncBusy;
   $("syncProfile").disabled = !value || !connected || profileSyncBusy;
-  $("profileSummary").textContent = value ? `${value.displayName} — 所持カード ${Object.values(value.inventory || {}).reduce((sum, count) => sum + count, 0)}枚` : "名前を入力して、はじめて用プロフィールを作成してください。";
+  show("syncProfile", Boolean(value));
+  $("profileSummary").textContent = value ? `${value.displayName} — 所持カード ${Object.values(value.inventory || {}).reduce((sum, count) => sum + count, 0)}枚` : "";
+  $("profilePublicNameHelp").textContent = value ? "この名前は対戦相手に表示されます。" : "この名前は対戦相手に表示されます。ニックネームを入力してください。";
+  $("profileSaveStatus").textContent = profileSyncBusy ? "保存中…" : profileSyncError;
+  show("profileSaveStatus", profileSyncBusy || Boolean(profileSyncError));
   if (value) { renderLoadout(); renderGacha(); renderProgression(); renderCosmetics(); }
 }
 
@@ -1747,6 +1730,8 @@ function renderProgression() {
   appendStat("総合 完塗り", Number(stats.fullPaints || 0));
 
   const cpuStats = value.cpuStats || {};
+  $("profileHumanOverview").textContent = `${Number(stats.wins || 0)}勝 ${Number(stats.losses || 0)}敗`;
+  $("profileCpuOverview").textContent = `${Number(cpuStats.wins || 0)}勝 ${Number(cpuStats.losses || 0)}敗`;
   $("cpuProfileStats").replaceChildren();
   appendStat("CPU戦 勝利", Number(cpuStats.wins || 0), "cpuProfileStats");
   appendStat("CPU戦 敗北", Number(cpuStats.losses || 0), "cpuProfileStats");
@@ -1866,6 +1851,7 @@ function renderCosmetics() {
 function renderCosmeticPendingControls() {
   const pending = pendingCosmeticAction;
   const stage = pendingCosmeticPresentation(pending);
+  if (pending) $("cosmeticPanel").open = true;
   show("cosmeticConfirmation", Boolean(pending));
   show("cosmeticCommit", stage === "confirm" || stage === "rejected");
   $("cosmeticCommit").textContent = stage === "rejected" ? "最新の内容を確認" : "この内容で購入・装備";
@@ -2019,6 +2005,50 @@ async function renewRejectedCosmetic() {
   focusCosmeticItem(cosmeticId);
 }
 
+function currentCardActionRecovery() {
+  const snapshot = client.snapshot();
+  const room = roomModel?.room;
+  const cpuDraft = pendingCpuStartSaga || cpuEntryDraft;
+  const cpuDraftOwnsEntry = Boolean(cpuDraft && !snapshot.matchmakingTicketId && !snapshot.matchmakingFindActionId && (
+    !snapshot.roomId
+    || (pendingCpuStartSaga?.stage === "setup" && pendingCpuStartSaga.roomId === snapshot.roomId)
+    || (room?.id === snapshot.roomId && room.status === "finished" && room.opponent_kind === "cpu"
+      && (pendingCpuStartSaga?.replaceRoomId === snapshot.roomId || cpuEntryDraft?.replaceRoomId === snapshot.roomId))
+  ));
+  const value = profile();
+  return cardActionRecovery({
+    roomId: snapshot.roomId, roomLoaded: Boolean(snapshot.roomId && room?.id === snapshot.roomId),
+    roomStatus: room?.status, setupRevision: snapshot.setupRevision, cpuDraftOwnsEntry,
+    pendingCpuStart: Boolean(pendingCpuStartSaga), pendingSetup: Boolean(pendingSetupForCurrentRoom(snapshot)),
+    saleBusy: cardSaleBusy, salePending: Boolean(pendingCardSale),
+    hasSurplus: SKILLS.some(([id]) => (value?.inventory?.[id] || 0) > 1),
+    hasSellable: SKILLS.some(([id]) => (value?.inventory?.[id] || 0) > 1 && value?.protectedSkills?.[id] !== true),
+  });
+}
+
+function navigateCardRecovery(action) {
+  const recovery = currentCardActionRecovery()[action];
+  if (!recovery?.target || recovery.disabled) return false;
+  const target = recovery.target;
+  activateAppTab("battle", { scrollTop: false, refreshRoom: false });
+  if (activeAppTab !== "battle") return false;
+  render();
+  requestAnimationFrame(() => {
+    if (activeAppTab !== "battle" || currentCardActionRecovery()[action]?.target !== target) return;
+    const heading = $(target === "setup" ? "setupTitle" : target === "result" ? "terminalSummary" : "matchTitle");
+    if (!heading || heading.closest(".hidden, .tab-panel-hidden")) return;
+    heading.focus({ preventScroll: true });
+    heading.scrollIntoView({ block: "start", behavior: "auto" });
+  });
+  return true;
+}
+
+function setCardSaleStatus(text, state = "idle") {
+  const status = $("cardSaleStatus");
+  if (status.textContent !== text) status.textContent = text;
+  status.dataset.state = state;
+}
+
 function renderCardSale() {
   renderWaitingOpponentNotice();
   const value = profile();
@@ -2033,24 +2063,29 @@ function renderCardSale() {
   if (sellable.some(([id]) => id === previous)) select.value = previous;
   const selectedOwned = Number(value.inventory?.[select.value] || 0);
   $("cardSaleCount").max = String(Math.max(1, Math.min(100, selectedOwned - 1)));
-  const roomLocked = Boolean(client.snapshot().roomId
-    && (client.snapshot().setupRevision > 0 || ["ready", "playing"].includes(roomModel?.room?.status)));
-  select.disabled = cardSaleBusy || roomLocked || !sellable.length;
+  const recovery = currentCardActionRecovery().sale;
+  select.disabled = cardSaleBusy || recovery.locked || !sellable.length;
   $("cardSaleCount").disabled = select.disabled;
   $("cardSaleQuote").disabled = select.disabled;
-  $("cardSaleCommit").disabled = cardSaleBusy || roomLocked || !cardSaleQuote;
+  $("cardSaleCommit").disabled = cardSaleBusy || recovery.locked || !cardSaleQuote;
   show("cardSaleCommit", Boolean(cardSaleQuote) && !pendingCardSale);
   show("cardSaleRetry", Boolean(pendingCardSale) && !cardSaleBusy);
   show("cardSaleReset", Boolean(pendingCardSale) && !cardSaleBusy);
-  if (roomLocked && !pendingCardSale) $("cardSaleStatus").textContent = "6枚セット確認後または対戦中は売却できません。対戦終了後に利用できます。";
-  else if (!sellable.length && !pendingCardSale) $("cardSaleStatus").textContent = "いま売れる余剰カードはありません（各カードを1枚残します）。";
+  const restriction = $("cardSaleRestriction");
+  if (restriction.textContent !== (recovery.message || "")) restriction.textContent = recovery.message || "";
+  show("cardSaleRestriction", recovery.kind === "blocked");
+  const button = $("cardSaleRecovery");
+  if (button.textContent !== recovery.label) button.textContent = recovery.label;
+  show("cardSaleRecovery", Boolean(recovery.target));
+  if (pendingCardSale && !cardSaleBusy) setCardSaleStatus(recovery.message, "pending");
+  show("cardSaleStatus", recovery.kind !== "blocked" || ["success", "error", "pending"].includes($("cardSaleStatus").dataset.state));
 }
 
 function clearCardSaleDraft() {
   cardSaleQuote = null;
   pendingCardSale = null;
   localStorage.removeItem(CARD_SALE_PENDING_KEY);
-  $("cardSaleStatus").textContent = "カードと枚数を選んでください。";
+  setCardSaleStatus("カードと枚数を選んでください。");
   renderCardSale();
 }
 
@@ -2059,16 +2094,16 @@ async function quoteOnlineCardSale() {
   const skillId = $("cardSaleSkill").value;
   const count = Number($("cardSaleCount").value);
   if (!skillId || !Number.isSafeInteger(count) || count < 1) return toast("売るカードと枚数を確認してください。");
-  cardSaleBusy = true; cardSaleQuote = null; $("cardSaleStatus").textContent = "サーバーで売却内容を確認中…"; renderCardSale();
+  cardSaleBusy = true; cardSaleQuote = null; setCardSaleStatus("売却内容を確認中…", "pending"); renderCardSale();
   try {
     const result = await client.quoteCardSale({ skillId, count });
     cardSaleQuote = { ...result.quote, expectedRevision: Number(result.revision) };
     const reasons = [];
     if (cardSaleQuote.confirmationReasons?.includes("HIGH_RARITY")) reasons.push("高レアカード");
     if (cardSaleQuote.confirmationReasons?.includes("LAST_SELLABLE_COPY")) reasons.push("売れる最後の余剰分");
-    $("cardSaleStatus").textContent = `${cardSaleQuote.count}枚 → ${cardSaleQuote.earnedCoins}コイン（売却後${cardSaleQuote.remaining}枚）${reasons.length ? `。注意：${reasons.join("・")}` : ""}`;
+    setCardSaleStatus(`${cardSaleQuote.count}枚 → ${cardSaleQuote.earnedCoins}コイン（売却後${cardSaleQuote.remaining}枚）${reasons.length ? `。注意：${reasons.join("・")}` : ""}`, "quote");
   } catch (error) {
-    $("cardSaleStatus").textContent = "この内容では売却できません。所持枚数や保護設定を確認してください。";
+    setCardSaleStatus("所持枚数や保護設定を確認してください。", "error");
     toast(error.message || "売却内容を確認できませんでした。");
   } finally { cardSaleBusy = false; renderCardSale(); }
 }
@@ -2084,17 +2119,17 @@ async function commitOnlineCardSale(retry = false) {
     localStorage.setItem(CARD_SALE_PENDING_KEY, JSON.stringify(pendingCardSale));
   }
   if (!pendingCardSale) return;
-  cardSaleBusy = true; $("cardSaleStatus").textContent = "サーバーで売却を保存中…"; renderCardSale();
+  cardSaleBusy = true; setCardSaleStatus("売却を保存中…", "pending"); renderCardSale();
   try {
     const result = await client.sellCards(pendingCardSale);
     persistRemoteProfile(result.profileState, displayName(), Number(result.revision));
     const earned = Number(result.quote?.earnedCoins || 0);
     pendingCardSale = null; cardSaleQuote = null; localStorage.removeItem(CARD_SALE_PENDING_KEY);
-    $("cardSaleStatus").textContent = `${earned}コインを獲得しました。カード減算とコイン加算は一度だけ保存済みです。`;
+    setCardSaleStatus(`${earned}コインを獲得しました。`, "success");
   } catch (error) {
     const remote = await client.readProfile().catch(() => null);
     if (remote) hydrateProfileRow(remote);
-    $("cardSaleStatus").textContent = "売却結果を確認できませんでした。「前回の売却結果を確認」で確かめてください。";
+    setCardSaleStatus("前回の売却結果を確認してください。", "pending");
     toast(error.message || "カード売却に失敗しました。");
   } finally { cardSaleBusy = false; renderProgression(); render(); }
 }
@@ -2119,29 +2154,56 @@ function starterProfile(displayName) {
   };
 }
 
+function currentGachaLevel() {
+  const level = pendingGacha?.ticketLevel ?? selectedGachaLevel;
+  return Number.isSafeInteger(level) && level >= 1 && level <= 5 ? level : null;
+}
+
+function selectGachaLevel(level) {
+  if (!Number.isSafeInteger(level) || level < 1 || level > 5 || gachaBusy || pendingGacha
+    || !profile() || !synced || profileSyncBusy || hasMatchedRoomHandoff()) return;
+  selectedGachaLevel = level;
+  armedCpuRewardGachaOrigin = null;
+  clearCpuRewardGachaResult({ clearDraws: true });
+  renderGacha();
+}
+
 function renderGacha() {
   renderWaitingOpponentNotice();
   const value = profile();
   if (!value || !$("gachaPanel")) return;
   const tickets = value.gachaTickets || {};
-  const level = Number($("gachaLevel").value || 1);
+  const level = currentGachaLevel();
   const available = Number(tickets[String(level)] || 0);
-  $("gachaTickets").textContent = [1, 2, 3, 4, 5].map((item) => `Lv.${item} ×${tickets[String(item)] || 0}`).join(" / ");
-  const odds = GACHA_ODDS[level];
-  const rarityFloor = [1, 2, 3, 4, 5].find((rarity) => odds[rarity] > 0);
-  const guarantee = level === 1
-    ? "★4・★5も排出されます（合計1%）。"
-    : `★${rarityFloor}以上確定。`;
-  $("gachaOdds").textContent = `Lv.${level} 排出率：${[1, 2, 3, 4, 5].map((rarity) => `★${rarity} ${odds[rarity]}%`).join(" / ")}　${guarantee}`;
+  for (const button of document.querySelectorAll("[data-gacha-level]")) {
+    const ticketLevel = Number(button.dataset.gachaLevel);
+    const count = Number(tickets[String(ticketLevel)] || 0);
+    button.querySelector("[data-gacha-count]").textContent = `${count}枚`;
+    button.setAttribute("aria-pressed", String(ticketLevel === level));
+    button.setAttribute("aria-label", `Lv.${ticketLevel}、ガチャ券${count}枚`);
+    button.disabled = gachaBusy || Boolean(pendingGacha) || !synced || profileSyncBusy || hasMatchedRoomHandoff();
+  }
+  if (!$("gachaOddsRows").children.length) {
+    for (const ticketLevel of [1, 2, 3, 4, 5]) {
+      const row = document.createElement("tr");
+      const title = document.createElement("th"); title.scope = "row"; title.textContent = `Lv.${ticketLevel}`; row.appendChild(title);
+      for (const rarity of [1, 2, 3, 4, 5]) {
+        const cell = document.createElement("td"); cell.textContent = `${GACHA_ODDS[ticketLevel][rarity]}%`; row.appendChild(cell);
+      }
+      $("gachaOddsRows").appendChild(row);
+    }
+  }
+  show("gachaLimitNote", available > 100);
   if (!gachaBusy && !pendingGacha) {
     $("gachaStatus").textContent = lastGachaDraws.length > 0
-      ? `${lastGachaDraws.length}枚を獲得しました。券消費とカード付与は一度だけ保存済みです。`
-      : `現在、Lv.${level}券を${available}枚所持しています。1枚引くと券を1枚消費します。`;
+      ? `${lastGachaDraws.length}枚を獲得しました。` : "";
+  } else if (!gachaBusy && pendingGacha && !$("gachaStatus").textContent) {
+    $("gachaStatus").textContent = "前回の抽選結果を確認してください。";
   }
-  $("gachaDrawOne").disabled = gachaBusy || Boolean(pendingGacha) || hasMatchedRoomHandoff() || available < 1;
-  $("gachaDrawAll").disabled = gachaBusy || Boolean(pendingGacha) || hasMatchedRoomHandoff() || available < 1;
+  $("gachaDrawOne").disabled = gachaBusy || Boolean(pendingGacha) || hasMatchedRoomHandoff() || !synced || profileSyncBusy || available < 1;
+  $("gachaDrawAll").disabled = gachaBusy || Boolean(pendingGacha) || hasMatchedRoomHandoff() || !synced || profileSyncBusy || available < 1;
   $("gachaRetry").classList.toggle("hidden", !pendingGacha);
-  $("gachaRetry").disabled = gachaBusy || hasMatchedRoomHandoff();
+  $("gachaRetry").disabled = gachaBusy || hasMatchedRoomHandoff() || !synced || profileSyncBusy;
   $("gachaResults").replaceChildren();
   for (const draw of lastGachaDraws) {
     const card = document.createElement("article"); card.className = `gacha-card r${draw.rarity}`; card.setAttribute("role", "listitem");
@@ -3087,10 +3149,12 @@ function renderQuiz() {
     $('quizStatus').textContent = "前回のクイズは期限切れです。新しく開始してください。";
   }
   show("quizSetup", !pendingQuiz);
+  show("quizRewardHelp", !pendingQuiz);
   show("quizPlay", Boolean(pendingQuiz));
   show("quizResult", Boolean(lastQuizResult));
-  $("quizStart").disabled = quizBusy || hasMatchedRoomHandoff() || !synced;
-  $("quizLevel").disabled = quizBusy;
+  document.querySelectorAll("[data-quiz-start-level]").forEach(button => {
+    button.disabled = quizBusy || Boolean(pendingQuiz) || hasMatchedRoomHandoff() || !synced || !profile();
+  });
   if (lastQuizResult) renderQuizResult();
   renderQuizAnswerFeedback();
   renderQuizStreak();
@@ -3169,14 +3233,14 @@ function renderQuiz() {
   syncQuizOptionMotion(questionState);
 }
 
-async function startOnlineQuiz() {
-  if (quizBusy || !synced || !profile()) return;
+async function startOnlineQuiz(selectedLevel) {
+  if (!Number.isInteger(selectedLevel) || selectedLevel < 1 || selectedLevel > 5) return;
+  if (quizBusy || !synced || !profile() || pendingQuiz || hasMatchedRoomHandoff()) return;
   quizBusy = true;
   lastQuizResult = null;
-  $("quizStatus").textContent = "サーバーで10問を用意しています…";
+  $("quizStatus").textContent = "10問を用意しています…";
   renderQuiz();
   try {
-    const selectedLevel = Number($("quizLevel").value || 1);
     const result = await client.startQuiz({ actionId: crypto.randomUUID(), selectedLevel });
     pendingQuiz = {
       sessionId: result.sessionId,
@@ -3303,8 +3367,9 @@ async function finishOnlineQuiz() {
 }
 
 async function runGacha(requestedCount = 1, retry = false) {
-  if (gachaBusy || !profile()) return;
-  const level = Number($("gachaLevel").value || 1);
+  if (gachaBusy || !profile() || !synced || profileSyncBusy || hasMatchedRoomHandoff() || (!retry && pendingGacha)) return;
+  const level = currentGachaLevel();
+  if (level === null) return;
   const available = Number(profile().gachaTickets?.[String(level)] || 0);
   if (!retry) {
     const count = requestedCount === null ? Math.min(available, 100) : requestedCount;
@@ -3318,7 +3383,7 @@ async function runGacha(requestedCount = 1, retry = false) {
     localStorage.setItem(GACHA_PENDING_KEY, JSON.stringify(pendingGacha));
   }
   if (!pendingGacha) return;
-  gachaBusy = true; $("gachaStatus").textContent = "サーバーで抽選中…"; renderGacha();
+  gachaBusy = true; $("gachaStatus").textContent = "抽選中…"; renderGacha();
   try {
     const completedContinuation = pendingGacha.continuation || null;
     const result = await client.drawGacha(pendingGacha);
@@ -3327,7 +3392,8 @@ async function runGacha(requestedCount = 1, retry = false) {
     lastGachaContinuation = isCurrentCpuRewardGachaContinuation(completedContinuation) ? completedContinuation : null;
     persistCpuRewardGachaResult();
     pendingGacha = null; localStorage.removeItem(GACHA_PENDING_KEY);
-    $("gachaStatus").textContent = `${lastGachaDraws.length}枚を獲得しました。券消費とカード付与は一度だけ保存済みです。`;
+    selectedGachaLevel = level;
+    $("gachaStatus").textContent = `${lastGachaDraws.length}枚を獲得しました。`;
     requestAnimationFrame(() => {
       $("gachaResults").focus({ preventScroll: true });
       $("gachaResults").scrollIntoView({ block: "start", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
@@ -3581,16 +3647,18 @@ function render() {
     || replacesShownFinishedCpu
   ));
   const activeRoom = Boolean(snapshot.roomId && !roomFinished);
+  show("homeSessionRecovery", cpuDraftOwnsRoomlessEntry || Boolean(snapshot.roomId) || hasCpuEntryIntent());
   if (snapshot.roomId && roomModel?.room?.status !== "abandoned") clearRoomLifecycleAnnouncement();
   $("startStandardCpuHome").textContent = cpuDraftOwnsRoomlessEntry
     ? "CPU戦の開始確認へ戻る"
     : !snapshot.roomId
     ? "CPUとすぐStandard対戦"
     : roomFinished ? "対戦結果を見る" : "進行中の対戦へ戻る";
-  $("editNextLoadout").textContent = cpuDraftOwnsRoomlessEntry
-    ? "CPU戦の開始確認へ戻る"
-    : activeRoom ? "進行中の対戦へ戻る" : roomFinished ? "対戦結果を見る" : "次の対戦用6枚を編集";
-  document.querySelector('.home-actions [data-tab-jump="battle"]')?.classList.toggle("hidden", cpuDraftOwnsRoomlessEntry);
+  const loadoutRecovery = currentCardActionRecovery().loadout;
+  $("editNextLoadout").textContent = loadoutRecovery.label;
+  $("editNextLoadout").disabled = loadoutRecovery.disabled;
+  if ($("loadoutRecoveryStatus").textContent !== loadoutRecovery.message) $("loadoutRecoveryStatus").textContent = loadoutRecovery.message;
+  show("loadoutRecoveryStatus", synced && Boolean(profile()) && Boolean(loadoutRecovery.message));
   document.querySelector(".mode-callout")?.classList.toggle("hidden", cpuDraftOwnsRoomlessEntry);
   show("quizPanel", synced && Boolean(profile()));
   renderQuiz();
@@ -3600,10 +3668,11 @@ function render() {
   show("cardSaleBox", synced && Boolean(profile()));
   show("editNextLoadout", synced && Boolean(profile()));
   renderCardLibrary();
+  renderCardSale();
   show("progressionPanel", synced && Boolean(profile()));
   show("cosmeticPanel", synced && Boolean(profile()));
   renderCosmetics();
-  show("lobby", !snapshot.roomId && !cpuDraftOwnsRoomlessEntry && (synced || !hasCpuEntryIntent()));
+  show("lobby", !snapshot.roomId && !cpuDraftOwnsRoomlessEntry && synced);
   renderMatchmaking();
   show("room", Boolean(snapshot.roomId));
   const setupVisible = Boolean(profile()) && !roomStatePending && ((Boolean(snapshot.roomId) && !["playing", "finished"].includes(roomModel?.room?.status))
@@ -3645,7 +3714,6 @@ function render() {
     return;
   }
   const cpuRoom = roomModel?.room?.opponent_kind === "cpu";
-  show("chooseDifferentCpu", cpuRoom && roomModel?.room?.status === "finished");
   const accessMode = roomModel?.room?.access_mode || (snapshot.roomCode ? "private_code" : "public_queue");
   const debugAllowed = accessMode === "private_code" && !cpuRoom;
   const debugToggle = $("debugUnlimitedMode");
@@ -3676,10 +3744,12 @@ function render() {
   show("abandonRoomHint", roomAbandonable);
   $("abandonRoom").textContent = pendingAbandon ? "取りやめ結果を再確認" : "開始前の対戦を取りやめる";
   $("abandonRoom").disabled = abandonBusy;
-  const rematchPending = snapshot.rematchExpectedVersion === roomModel?.room?.version;
-  $("requestRematch").textContent = rematchPending ? "前回の再戦申請を確認" : cpuRoom ? "同じCPUと再戦する" : "再戦を申し込む";
+  const rematchPending = Boolean(snapshot.rematchActionId) && snapshot.rematchExpectedVersion === roomModel?.room?.version;
+  show("requestRematch", rematchPending);
+  $("requestRematch").textContent = "前回の再戦申請を確認";
   $("requestRematch").disabled = rematchBusy || roomModel?.room?.status !== "finished";
-  $("rematchStatus").textContent = cpuRoom ? "CPUの状態だけを初期化し、あなたは6枚セットを選び直します。" : rematchPending ? "再戦を申請済みです。相手の申請を待っています。" : "両プレイヤーの申請後、6枚セットを選び直します。";
+  $("rematchStatus").textContent = rematchPending ? "前回の再戦申請を確認してください。" : "";
+  show("rematchStatus", rematchPending);
   $("members").replaceChildren(...(roomModel?.members || []).map((member) => {
     const node = document.createElement("span");
     const gold = member.appearance?.nameplate === "nameplateGold";
@@ -3690,7 +3760,7 @@ function render() {
   }));
   const setupReady = client.snapshot().setupRevision > 0;
   $("waitingMessage").textContent = roomFinished
-    ? "対戦は終了しました。下の勝敗理由と再戦メニューを確認してください。"
+    ? "対戦は終了しました。下の対戦結果を確認できます。"
     : roomModel?.room?.status === "playing"
       ? cpuRoom ? "CPUとの対戦中です。盤面と手番案内を確認してください。" : "対戦中です。盤面と手番案内を確認してください。"
       : setupReady ? "あなたは準備完了です。相手の準備を待っています。" : "対戦で使う6枚を決めて、準備完了にしてください。";
@@ -5242,6 +5312,8 @@ async function sendAction(type, payload = {}, retry = false) {
 async function syncSelectedProfile() {
   const value = profile(); if (!value || profileSyncBusy) return;
   profileSyncBusy = true;
+  profileSyncError = "";
+  const returnProfileFocus = activeAppTab === "profile" && Boolean(document.activeElement?.closest("#profileOptions"));
   renderProfile();
   try {
     const remote = await client.readProfile();
@@ -5250,11 +5322,20 @@ async function syncSelectedProfile() {
       const created = await client.syncProfile({ displayName: displayName(), profileState: value });
       persistRemoteProfile(created.profileState || value, created.displayName || displayName(), Number(created.revision));
     }
+    profilePickerOpen = false;
     synced = true; badge("プレイヤー情報を保存しました", "good"); renderProfile(); render();
     await refreshOnlineCosmetics({ quiet: true });
     if (hasCpuEntryIntent()) await openCpuRoster("direct", $("startStandardCpuHome"));
-  } catch (error) { toast(error.message || "保存できませんでした。通信環境を確認して、もう一度お試しください。"); }
-  finally { profileSyncBusy = false; renderProfile(); }
+  } catch (error) {
+    profileSyncError = "保存できませんでした。通信環境を確認して、もう一度お試しください。";
+    profilePickerOpen = true;
+    toast(error.message || profileSyncError);
+  }
+  finally {
+    profileSyncBusy = false;
+    renderProfile();
+    if (synced && !profileSyncError && returnProfileFocus && activeAppTab === "profile" && !profilePickerOpen) $("toggleProfileOptions").focus({ preventScroll: true });
+  }
 }
 
 function matchmakingWaitSeconds() {
@@ -5824,7 +5905,7 @@ async function recruitPublicOpponent() {
   try {
     const result = await client.recruitOpponent({ displayName: displayName() });
     if (result?.matchmaking_status === "matched") return await enterPublicMatch();
-    $("matchmakingStatus").textContent = "対戦相手を探しています。待っている間もクイズやガチャで遊べます。";
+    $("matchmakingStatus").textContent = "対戦相手を待っています。待っている間もクイズやガチャで遊べます。";
     scheduleMatchmakingStatus();
   } catch (error) {
     if (await recoverServerActiveRoom({ focusOnSuccess: true }).catch(() => false)) return;
@@ -5834,23 +5915,19 @@ async function recruitPublicOpponent() {
   } finally { matchmakingBusy = false; render(); }
 }
 
-async function findPublicOpponent({ resumePending = false, waitIfNone = false } = {}) {
+async function findPublicOpponent({ resumePending = false } = {}) {
   if (guardNewMatchEntry({ allowFindResume: resumePending }) || matchmakingBusy || !profile()) return;
   matchmakingBusy = true; $("matchmakingStatus").textContent = "相手を探しています…"; renderMatchmaking();
-  let startWaiting = false;
   try {
     const result = await client.findOpponent({ displayName: displayName() });
     if (result?.matchmaking_status === "matched") return await enterPublicMatch();
-    startWaiting = waitIfNone && result?.matchmaking_status === "none_available";
-    $("matchmakingStatus").textContent = startWaiting ? "相手が来るのを待っています…" : "今は相手が見つかりませんでした。もう一度探せます。";
+    $("matchmakingStatus").textContent = "待っている相手はいませんでした。「相手を待つ」で募集できます。";
   } catch (error) {
     if (await recoverServerActiveRoom({ focusOnSuccess: true }).catch(() => false)) return;
     $("matchmakingStatus").textContent = "検索結果を確認できませんでした。前回の検索結果をもう一度確認します。";
     toast(error.message || "今入れる試合を探せませんでした。");
   } finally { matchmakingBusy = false; render(); }
-  // Only a successful empty search from this explicit click may start waiting.
-  // Lost responses and resumed searches retain their original identity instead.
-  if (startWaiting) return recruitPublicOpponent();
+  // v14: joining and waiting are separate explicit choices, including after resume.
 }
 
 async function cancelPublicMatchmaking() {
@@ -6002,12 +6079,26 @@ function isSurrenderIntentCurrent() {
   try { return globalThis.FourColorSurrenderConfirmation?.isCurrentIntent(surrenderIntent, surrenderContext()) === true; }
   catch { return false; }
 }
+function renderSurrenderCpuPortrait(characterId = null) {
+  const ids = ["surrenderCpuPortraitFrame", "surrenderCpuPortrait", "surrenderCpuPortraitFallback"];
+  const elements = cpuPortraitElements(...ids);
+  show(ids[0], Boolean(characterId));
+  try {
+    clearCpuPortrait(...ids);
+    if (characterId) renderCpuPortrait(...ids, { characterId }); // Normal face, never a terminal/reward image.
+  } catch {
+    // Optional artwork cannot prevent the existing safe confirmation or show a stale face.
+    elements.art.hidden = true;
+    elements.fallback.hidden = false;
+  }
+}
 function closeSurrenderDialog(restoreFocus = true) {
   const trigger = surrenderDialogTrigger;
   const mayRestore = restoreFocus && isSurrenderIntentCurrent();
   surrenderIntent = null; surrenderDialogTrigger = null;
   const dialog = $("surrenderDialog");
   if (dialog?.open) dialog.close();
+  renderSurrenderCpuPortrait();
   if (mayRestore && trigger?.isConnected && !trigger.disabled && trigger.getClientRects().length) trigger.focus({ preventScroll: true });
 }
 function openSurrenderDialog(trigger = document.activeElement) {
@@ -6018,6 +6109,7 @@ function openSurrenderDialog(trigger = document.activeElement) {
     $("surrenderSpeaker").textContent = intent.opponentKind === "cpu" ? publicActorLabel("B") : "";
     show("surrenderSpeaker", intent.opponentKind === "cpu");
     $("surrenderDescription").textContent = voice.line;
+    renderSurrenderCpuPortrait(voice.characterId);
     surrenderIntent = intent;
     surrenderDialogTrigger = trigger instanceof HTMLElement ? trigger : $("surrender");
     skillCutin.interrupt();
@@ -6160,7 +6252,7 @@ async function requestRematch() {
     rematchBusy = false; render();
     if (activeAppTab === "battle") {
       if (roomModel?.room?.status === "ready") focusMatchedRoom();
-      else if (roomModel?.room?.status === "finished") $("requestRematch").focus();
+      else if (roomModel?.room?.status === "finished") $(resultContinuationPending() ? "requestRematch" : "terminalSummary").focus();
     }
   }
 }
@@ -6182,10 +6274,16 @@ function dismissTerminalResult() {
   show("terminalOverlay", false);
 }
 
+function returnToTerminalSummary() {
+  dismissTerminalResult();
+  $("terminalSummary").scrollIntoView({ block: "center", behavior: "instant" });
+  $("terminalSummary").focus({ preventScroll: true });
+}
+
 function goToGacha(ticketLevel = null) {
   const destinationLevel = pendingGacha?.ticketLevel ?? ticketLevel;
-  if (destinationLevel !== null) {
-    $("gachaLevel").value = String(destinationLevel);
+  if (Number.isSafeInteger(destinationLevel) && destinationLevel >= 1 && destinationLevel <= 5) {
+    selectedGachaLevel = destinationLevel;
   }
   if (!pendingGacha && ticketLevel !== null) {
     clearCpuRewardGachaResult({ clearDraws: true });
@@ -6197,29 +6295,43 @@ function goToGacha(ticketLevel = null) {
     $("gachaTitle").focus({ preventScroll: true });
   });
 }
-$("profileSelect").onchange = () => { selectedProfileId = $("profileSelect").value; synced = false; renderProfile(); render(); };
+$("toggleProfileOptions").onclick = () => {
+  if (profileSyncBusy) return;
+  profilePickerOpen = !profilePickerOpen;
+  renderProfile();
+};
+$("profileSelect").onchange = () => { if (profileSyncBusy) return; selectedProfileId = $("profileSelect").value; synced = false; profileSyncError = ""; renderProfile(); render(); };
 $("createStarterProfile").onclick = createStarterProfile;
 $("syncProfile").onclick = syncSelectedProfile;
-$("quizStart").onclick = startOnlineQuiz;
+document.querySelectorAll("[data-quiz-start-level]").forEach(button => {
+  button.onclick = () => startOnlineQuiz(Number(button.dataset.quizStartLevel));
+});
 $("quizHint").onclick = openQuizHint;
 $("quizGoGacha").onclick = () => {
   const ticketLevel = lastQuizResult?.reward?.ticketLevel;
   if (!Number.isSafeInteger(ticketLevel) || ticketLevel < 1 || ticketLevel > 5) return;
   goToGacha(ticketLevel);
 };
-$("gachaLevel").onchange = () => { armedCpuRewardGachaOrigin = null; clearCpuRewardGachaResult({ clearDraws: true }); renderGacha(); };
+document.querySelectorAll("[data-gacha-level]").forEach(button => {
+  button.onclick = () => selectGachaLevel(Number(button.dataset.gachaLevel));
+});
 $("gachaDrawOne").onclick = () => runGacha(1);
 $("gachaDrawAll").onclick = () => runGacha(null);
 $("gachaRetry").onclick = () => runGacha(1, true);
 $("gachaGoLobby").onclick = leaveRewardGachaResult;
 $("returnToMatchedRoom").onclick = goToMatchedRoom;
-$("cardSaleSkill").onchange = () => { cardSaleQuote = null; $("cardSaleStatus").textContent = "枚数を選び、売却内容を確認してください。"; renderCardSale(); };
-$("cardSaleCount").oninput = () => { cardSaleQuote = null; $("cardSaleStatus").textContent = "売却内容をもう一度確認してください。"; renderCardSale(); };
+$("cardSaleSkill").onchange = () => { cardSaleQuote = null; setCardSaleStatus("枚数を選び、売却内容を確認してください。"); renderCardSale(); };
+$("cardSaleCount").oninput = () => { cardSaleQuote = null; setCardSaleStatus("売却内容をもう一度確認してください。"); renderCardSale(); };
 $("cardSaleQuote").onclick = quoteOnlineCardSale;
 $("cardSaleCommit").onclick = () => commitOnlineCardSale(false);
 $("cardSaleRetry").onclick = () => commitOnlineCardSale(true);
 $("cardSaleReset").onclick = clearCardSaleDraft;
-$("editNextLoadout").onclick = openLoadoutWorkshop;
+$("cardSaleRecovery").onclick = () => navigateCardRecovery("sale");
+$("editNextLoadout").onclick = () => {
+  const recovery = currentCardActionRecovery().loadout;
+  if (recovery.target) navigateCardRecovery("loadout");
+  else if (!recovery.disabled) openLoadoutWorkshop();
+};
 $("refreshCosmetics").onclick = () => refreshOnlineCosmetics();
 $("cosmeticCommit").onclick = confirmOnlineCosmetic;
 $("cosmeticRetry").onclick = commitOnlineCosmetic;
@@ -6229,8 +6341,20 @@ $("chooseFriendBattle").onclick = () => chooseBattleRoute("friend");
 $("choosePublicBattle").onclick = () => chooseBattleRoute("public");
 $("joinRoom").onclick = joinRoom;
 $("recruitOpponent").onclick = recruitPublicOpponent;
-$("findOpponent").onclick = () => findPublicOpponent({ waitIfNone: true });
+$("findOpponent").onclick = () => findPublicOpponent();
 $("cancelMatchmaking").onclick = cancelPublicMatchmaking;
+$("openHomeSettings").onclick = () => {
+  const open = $("openHomeSettings").getAttribute("aria-expanded") !== "true";
+  $("openHomeSettings").setAttribute("aria-expanded", String(open));
+  show("feedbackSettings", open);
+};
+$("openTutorial").onclick = () => {
+  if (!$("tutorialDialog").open) $("tutorialDialog").showModal();
+  $("tutorialTitle").focus({ preventScroll: true });
+};
+$("tutorialDialog").addEventListener("close", () => {
+  if (activeAppTab === "home" && !hasMatchedRoomHandoff()) $("openTutorial").focus({ preventScroll: true });
+});
 $("startStandardCpuHome").onclick = (event) => beginImmediateCpuEntry(event.currentTarget);
 $("startStandardCpuLobby").onclick = (event) => beginImmediateCpuEntry(event.currentTarget);
 $("chooseCpuOpponent").onclick = (event) => openCpuRoster("fallback", event.currentTarget);
@@ -6298,21 +6422,21 @@ $("surrenderDialog").addEventListener("close", () => {
   if (!$("surrenderDialog").open) { surrenderIntent = null; surrenderDialogTrigger = null; }
 });
 $("retryAction").onclick = () => pendingAction && sendAction(pendingAction.type, pendingAction.payload, true);
-$("requestRematch").onclick = requestRematch;
-$("chooseDifferentCpu").onclick = (event) => chooseAnotherResultOpponent(event.currentTarget);
-$("chooseDifferentHuman").onclick = (event) => chooseAnotherResultOpponent(event.currentTarget);
+$("requestRematch").onclick = () => { if (resultContinuationPending()) requestRematch(); };
 $("resultGoLobby").onclick = () => leaveFinishedResult();
 $("resultGoGacha").onclick = openSavedResultGacha;
-$("terminalRematch").onclick = () => { if (roomModel?.room?.status !== "finished" || rematchBusy) return; dismissTerminalResult(); requestRematch(); };
-$("terminalChooseAnother").onclick = (event) => chooseAnotherResultOpponent(event.currentTarget);
 $("terminalGoLobby").onclick = () => leaveFinishedResult();
 $("closeSkillInfo").onclick = () => $("skillInfoDialog").close();
 $("terminalGoGacha").onclick = openSavedResultGacha;
-$("terminalClose").onclick = () => {
-  dismissTerminalResult();
-  $("terminalSummary").scrollIntoView({ block: "center", behavior: "instant" });
-  $("requestRematch").focus({ preventScroll: true });
-};
+$("terminalClose").onclick = returnToTerminalSummary;
+$("terminalOverlay").addEventListener("keydown", (event) => {
+  if (event.key === "Escape") { event.preventDefault(); returnToTerminalSummary(); }
+  if (event.key !== "Tab") return;
+  const buttons = [...$("terminalOverlay").querySelectorAll("button:not(:disabled)")].filter(node => node.getClientRects().length);
+  if (!buttons.length) return;
+  if (event.shiftKey && document.activeElement === buttons[0]) { event.preventDefault(); buttons.at(-1).focus(); }
+  else if (!event.shiftKey && document.activeElement === buttons.at(-1)) { event.preventDefault(); buttons[0].focus(); }
+});
 $("leaveRoom").onclick = closeDisplayedRoom;
 $("abandonRoom").onclick = (event) => openRoomAbandonDialog(event.currentTarget);
 $("confirmAbandonRoom").onclick = confirmRoomAbandon;
@@ -6438,6 +6562,7 @@ try {
     if (!recoveredAtBoot && synced && hasCpuEntryIntent()) await openCpuRoster("direct", $("startStandardCpuHome"));
   }
   initialHydrationPending = false;
+  renderProfile();
   render();
   alignPlayingViewport({ expectedInteractionRevision: bootInteractionRevision, behavior: "auto", ensureMoveControlsVisible: true });
   if (synced && !cosmeticCatalogLoaded) await refreshOnlineCosmetics({ quiet: true });

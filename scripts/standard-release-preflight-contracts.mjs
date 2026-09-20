@@ -16,6 +16,17 @@ function includesAll(source, markers) {
   return typeof source === "string" && markers.every((marker) => source.includes(marker));
 }
 
+export function hasDirectQuizEntry(pageText, appText) {
+  if (typeof pageText !== "string" || typeof appText !== "string") return false;
+  const levels = [...pageText.matchAll(/data-quiz-start-level="(\d)"/g)].map(match => match[1]).join(",");
+  const help = pageText.match(/<details id="quizRewardHelp"[^>]*>[\s\S]*?<\/details>/)?.[0] || "";
+  return levels === "1,2,3,4,5"
+    && !/id="quiz(?:Level|Start)"/.test(pageText)
+    && !/\bopen\b/.test(help.split(">")[0])
+    && includesAll(help, ["もらえる券", "10問すべて正解</th><td>10枚", "5問以上を連続正解</th><td>5枚", "合計7問以上を正解</th><td>3枚", "それ以外</th><td>1枚", "1つ下のLv（最低Lv.1）"])
+    && includesAll(appText, ["async function startOnlineQuiz(selectedLevel)", "Number.isInteger(selectedLevel)", "selectedLevel < 1 || selectedLevel > 5", "!profile() || pendingQuiz || hasMatchedRoomHandoff()", "startOnlineQuiz(Number(button.dataset.quizStartLevel))"]);
+}
+
 export function hasWholeButtonQuizPhysics(pageText, appText) {
   return includesAll(pageText, [
     'id="quizOptions"',
@@ -74,7 +85,68 @@ export function hasPerCellContactFeedback(appText) {
   ]);
 }
 
-export function hasApprovedGachaOddsUi(pageText, appText) {
+export function hasCompactProfile(pageText, appText, cssText) {
+  if (![pageText, appText, cssText].every(value => typeof value === "string")) return false;
+  const ids = ["profileStatsDetails", "cpuRecordsDetails", "quizAccuracyDetails", "profileTrophiesDetails", "cosmeticPanel"];
+  return ids.every(id => {
+    const tag = pageText.match(new RegExp('<details id="' + id + '"[^>]*>'))?.[0] || "";
+    return tag.length > 0 && !/\bopen(?:\s|=|>)/.test(tag);
+  })
+    && !pageText.includes("この端末のStandardセーブから選べます")
+    && includesAll(pageText, ['id="toggleProfileOptions"', 'aria-controls="profileOptions"',
+      'aria-describedby="profilePublicNameHelp"', 'id="profileHumanOverview"', 'id="profileCpuOverview"',
+      'id="profileSaveStatus"', 'id="profileSelect"', 'id="syncProfile"', 'id="matchHistory"'])
+    && includesAll(appText, ['let profilePickerOpen = false;', 'const optionsOpen = !synced || profilePickerOpen || profileSyncBusy;',
+      'show("profileOptions", optionsOpen)', 'この名前は対戦相手に表示されます。',
+      'if (pending) $("cosmeticPanel").open = true;', 'profileSyncError = "";'])
+    && /initialHydrationPending = false;\s*renderProfile\(\);/.test(appText)
+    && includesAll(cssText, ['.profile-record-overview', '.profile-disclosure > summary', 'min-height: 48px', 'min-height: 44px']);
+}
+
+export function hasHomeRules(pageText, appText, cssText) {
+  if (![pageText, appText, cssText].every(value => typeof value === "string")) return false;
+  const actions = pageText.match(/<div class="home-actions">([\s\S]*?)<\/div>/)?.[1] || "";
+  const dialog = pageText.match(/<dialog id="tutorialDialog"[^>]*>/)?.[0] || "";
+  return (actions.match(/<button\b/g) || []).length === 2
+    && !actions.includes("data-tab-jump")
+    && includesAll(actions, ['id="openHomeSettings"', 'aria-expanded="false"', 'aria-controls="feedbackSettings"',
+      'id="openTutorial"', 'aria-haspopup="dialog"', 'aria-controls="tutorialDialog"'])
+    && dialog.length > 0 && !/\bopen(?:\s|=|>)/.test(dialog)
+    && includesAll(pageText, ['id="feedbackSettings" class="feedback-settings hidden"',
+      'id="homeSessionRecovery"', 'id="startStandardCpuHome"', 'id="tutorialTitle"', 'id="closeTutorial"', 'method="dialog"'])
+    && ["soundEffectsEnabled", "vibrationEnabled"].every(id => pageText.split('id="' + id + '"').length === 2)
+    && includesAll(appText, ['$("tutorialDialog").showModal()', '$("tutorialTitle").focus({ preventScroll: true })',
+      '$("tutorialDialog").close()', 'show("feedbackSettings", false)',
+      'cpuDraftOwnsRoomlessEntry || Boolean(snapshot.roomId) || hasCpuEntryIntent()',
+      'activeAppTab === "home" && !hasMatchedRoomHandoff()',
+      '!snapshot.roomId && !cpuDraftOwnsRoomlessEntry && synced'])
+    && includesAll(cssText, ['body[data-active-tab="home"] .connection-card.connection-ready:not(.has-matched-room) { display: none; }',
+      '.home-hero .feedback-settings.hidden { display: none; }', 'max-height: calc(100dvh - 24px)', 'overflow: auto;', '.tutorial-header { position: sticky;']);
+}
+
+export function hasGachaEntryDiet(pageText, appText) {
+  if (typeof pageText !== "string" || typeof appText !== "string") return false;
+  const levels = [...pageText.matchAll(/data-gacha-level="(\d)"/g)].map(match => match[1]).join(",");
+  const odds = pageText.match(/<details id="gachaOdds"[^>]*>[\s\S]*?<\/details>/)?.[0] || "";
+  return levels === "1,2,3,4,5" && !/<select[^>]*id="gachaLevel"/.test(pageText)
+    && !/\bopen\b/.test(odds.split(">")[0])
+    && includesAll(odds, ['id="gachaOddsRows"', 'scope="col">★5', '<summary>排出率</summary>'])
+    && includesAll(pageText, ['id="gachaLevels"', 'id="gachaDrawOne"', 'id="gachaDrawAll"', 'id="gachaHelp"'])
+    && includesAll(appText, ["pendingGacha?.ticketLevel ?? selectedGachaLevel", "(!retry && pendingGacha)",
+      "selectGachaLevel(Number(button.dataset.gachaLevel))", "GACHA_ODDS[ticketLevel][rarity]",
+      'if (origin && !pendingGacha && !gachaBusy) $("gachaStatus").textContent =']);
+}
+
+export function hasApprovedGachaOddsUi(pageText, appText, registryText = "") {
+  if (hasGachaEntryDiet(pageText, appText)
+    && includesAll(appText, ["const GACHA_ODDS = globalThis.FourColorStandardSkillRegistry.gachaOdds;"])) {
+    try {
+      const encoded = registryText.match(/const gachaOdds = (\{[\s\S]*?\});/)?.[1];
+      const expected = JSON.parse(EDGE_GACHA_ODDS_MARKER.slice("const gachaOdds = ".length, -1));
+      return JSON.stringify(JSON.parse(encoded)) === JSON.stringify(expected)
+        && includesAll(registryText, ["gachaOdds: Object.freeze(gachaOdds)", "Object.freeze(odds)"]);
+    } catch { return false; }
+  }
   return includesAll(pageText, [
     'id="gachaOdds"',
     "Lv.1 排出率：★1 65% / ★2 29% / ★3 5% / ★4 0.9% / ★5 0.1%",
@@ -123,9 +195,22 @@ export function hasRegionSplitDirectTarget(appText, localBundleText) {
     && !localBundleText.includes("エリア二分を確定");
 }
 
+export function hasCardActionRecovery(pageText, appText) {
+  return includesAll(pageText, [
+    'progression.css?v=20260914-1', 'id="cardSaleRecovery" type="button"',
+    'id="loadoutRecoveryStatus"', 'id="cardSaleRestriction"',
+    'id="cardSaleCommit"', 'この内容で売る', '前回の売却結果を確認',
+  ]) && includesAll(appText, [
+    'from "./action-recovery.js?v=20260914-1"',
+    'function currentCardActionRecovery()', 'function navigateCardRecovery(action)',
+    'currentCardActionRecovery()[action]', 'refreshRoom: false',
+    'navigateCardRecovery("sale")', 'navigateCardRecovery("loadout")',
+  ]);
+}
+
 export function hasCompactCpuRecords(pageText, appText, progressionCssText) {
   return includesAll(pageText, [
-    'progression.css?v=20260910-2',
+    'progression.css?v=20260914-1',
     'id="cpuCharacterRecords" class="cpu-character-records" role="list"',
     "10人全員の勝敗です。まだ対戦していないCPUも0戦で表示します。",
   ])
@@ -147,8 +232,8 @@ export function hasCompactCpuRecords(pageText, appText, progressionCssText) {
 
 export function hasQuizAccuracyRecords(pageText, appText, progressionCssText) {
   return includesAll(pageText, [
-'app.js?v=20260915-8',
-    'progression.css?v=20260910-2',
+'app.js?v=20260920-1',
+    'progression.css?v=20260914-1',
     'id="quizAccuracyRecords" class="quiz-accuracy-records" role="list"',
     "記録開始以降に、サーバーで採点が確定した回答だけを集計します。",
   ])
@@ -177,16 +262,21 @@ export function hasCpuSealTimingPolicy(bundleText) {
   ]);
 }
 
-export function hasMatchRewardEconomy(pageText, appText, bundleText) {
-  return includesAll(pageText, [
-    "対人勝利はLv.2、敗北はLv.1（直近60分で10試合まで）",
-    "CPU勝利は強さに応じLv.1〜3、敗北はLv.1",
-  ]) && includesAll(appText, [
+export function hasMatchRewardEconomy(pageText, appText, bundleText, resultModelText = "") {
+  const legacyResultUi = includesAll(appText, [
     "const matchReward = settledMatch?.matchReward;",
     "matchReward?.reason === \"PVP_REWARD_LIMIT\"",
     "完了報酬：Lv.${rewardTicketLevel}ガチャ券 +${rewardTicketCount}",
     "直近60分の付与済み10試合に達したため、今回はありません。",
-  ]) && includesAll(bundleText, [
+  ]);
+  const compactResultUi = appText.includes("terminalRewardPresentation(roomModel?.room, mySeat, profile())")
+    && includesAll(resultModelText, ["const reward = savedResultReward(room, seat, profile);",
+      "reward?.awarded !== true", "Number.isSafeInteger(reward.ticketLevel)", "Number.isSafeInteger(reward.ticketCount)",
+      "PVP_REWARD_LIMIT", "完了報酬\\nLv.${reward.ticketLevel}ガチャ券 ×${reward.ticketCount}", "報酬を確認中です。"]);
+  return includesAll(pageText, [
+    "対人勝利はLv.2、敗北はLv.1（直近60分で10試合まで）",
+    "CPU勝利は強さに応じLv.1〜3、敗北はLv.1",
+  ]) && (legacyResultUi || compactResultUi) && includesAll(bundleText, [
     'const ECONOMY_VERSION = "standard-match-reward-v2";',
     "const PVP_REWARD_WINDOW_MS = 60 * 60 * 1000;",
     "const PVP_REWARD_LIMIT = 10;",

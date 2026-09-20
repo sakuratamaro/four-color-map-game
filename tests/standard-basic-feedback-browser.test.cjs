@@ -32,6 +32,8 @@ const fixtureHtml = `${productHtml.slice(0, scriptStart)}
       status: document.querySelector("#feedbackSettingsStatus"),
     });
     globalThis.__feedbackController.installGestureUnlock(document);
+    // Isolated controller fixture exposes its existing inputs. Product Home disclosure is tested in the full app suite.
+    document.querySelector("#feedbackSettings").classList.remove("hidden");
     addEventListener("storage", (event) => globalThis.__feedbackController.handleStorageEvent(event));
   </script>
 </body>

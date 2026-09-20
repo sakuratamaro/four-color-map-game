@@ -1,2 +1,12 @@
 /* UDL067: keep the safe initial choice visible on the dark native dialog. */
 #surrenderDialog button:focus-visible { outline: 3px solid #67e8f9; outline-offset: 3px; }
+.surrender-dialogue { display: flex; align-items: flex-start; gap: 14px; margin-block: 16px; }
+.surrender-dialogue-copy { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.surrender-dialogue-copy p { margin: 0; }
+.surrender-dialogue-copy #surrenderSpeaker:not(.hidden) { margin-bottom: 8px; }
+#surrenderCpuPortraitFrame { width: 76px; height: 76px; }
+#surrenderCpuPortraitFallback { font-size: 12px; }
+@media (max-width: 390px) {
+  .surrender-dialogue { gap: 10px; }
+  #surrenderCpuPortraitFrame { width: 64px; height: 64px; }
+}

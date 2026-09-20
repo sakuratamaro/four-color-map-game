@@ -16,7 +16,7 @@ test("Standard browser gate YAML text uses stable whitespace", () => {
 });
 
 test("Standard browser gate is candidate-push, manual, or pull-request only and least-privileged", () => {
-  assert.match(workflow, /^on:\r?\n  push:\r?\n    branches: \[codex\/standard-release-command, codex\/quiz-memo-calculator-20260912, codex\/ui-diet-20260912, codex\/ui-play-surface-20260912, codex\/ui-result-20260912, codex\/ui-cosmetics-20260912, codex\/ui-player-copy-20260912, codex\/skill-cutin-20260912, codex\/ui-flat-entry-20260912, codex\/skill-catalog-20260912, codex\/surrender-confirmation-20260913, codex\/cpu-split-rescue-20260913, codex\/skill-cutin-readability-20260913, codex\/skill-cutin-public-names-20260913, codex\/ui-diet-release-20260915, codex\/ui-followup-release-20260915\][\s\S]+?  pull_request:[\s\S]+?  workflow_dispatch:/m);
+  assert.match(workflow, /^on:\r?\n  push:\r?\n    branches: \[codex\/standard-release-command, codex\/quiz-memo-calculator-20260912, codex\/ui-diet-20260912, codex\/ui-play-surface-20260912, codex\/ui-result-20260912, codex\/ui-cosmetics-20260912, codex\/ui-player-copy-20260912, codex\/skill-cutin-20260912, codex\/ui-flat-entry-20260912, codex\/skill-catalog-20260912, codex\/surrender-confirmation-20260913, codex\/cpu-split-rescue-20260913, codex\/skill-cutin-readability-20260913, codex\/skill-cutin-public-names-20260913, codex\/ui-diet-release-20260915, codex\/ui-followup-release-20260915, codex\/ui-public-match-actions-20260913, codex\/ui-public-match-actions-pointer-20260913, codex\/surrender-cpu-face-20260913, codex\/quiz-level-buttons-20260914, codex\/gacha-entry-diet-20260914, codex\/home-rules-diet-20260914, codex\/ui-navigation-release-20260920\][\s\S]+?  pull_request:[\s\S]+?  workflow_dispatch:/m);
   assert.equal((workflow.match(/      - online\/supabase-config\.js/g) || []).length, 2);
   assert.equal((workflow.match(/      - online-v5\/style\.css/g) || []).length, 2);
   assert.equal((workflow.match(/      - standard-online-v5\/\*\*/g) || []).length, 2);
@@ -29,7 +29,7 @@ test("Standard browser gate is candidate-push, manual, or pull-request only and 
   assert.equal((workflow.match(/      - tests\/browser-server-cleanup\.test\.cjs/g) || []).length, 2);
   assert.equal((workflow.match(/      - tests\/helpers\/browser-server-cleanup\.cjs/g) || []).length, 2);
   assert.equal((workflow.match(/      - tests\/helpers\/cpu-sql-runtime\.cjs/g) || []).length, 2);
-  for (const entry of ["tests/helpers/public-skill-fixture.cjs", "scripts/check-standard-public-skill-compat.cjs", "docs/SKILL_PUBLIC_EVENT_20260913.md"])
+  for (const entry of ["tests/canvas-native-pointer.test.cjs", "tests/helpers/canvas-native-pointer.cjs", "tests/helpers/public-skill-fixture.cjs", "scripts/check-standard-public-skill-compat.cjs", "docs/SKILL_PUBLIC_EVENT_20260913.md"])
     assert.equal(workflow.replaceAll("\r\n", "\n").split("      - " + entry + "\n").length - 1, 2, entry);
   assert.equal((workflow.match(/      - tests\/sql-runtime\/\*\*/g) || []).length, 2);
   assert.equal((workflow.match(/      - tests\/standard-online-browser\.test\.cjs/g) || []).length, 2);
@@ -62,6 +62,14 @@ test("two UI follow-ups use only their exact branch and the existing bounded gat
     assert.equal(workflow.split("tests/"+name).length-1,1,name);
 });
 
+test("compact profile contracts are in the existing Windows step without enabling a new push branch", () => {
+  const contracts = workflow.match(/- name: Run Standard CPU policy contract tests\r?\n\s+run: >-\r?\n([\s\S]*?)(?=\r?\n\s+- name:)/)?.[1];
+  assert.ok(contracts, "existing contract step must be present");
+  assert.equal((contracts.match(/^\s+tests\/standard-profile-compact\.test\.cjs\s*$/gm) || []).length, 1);
+  const push = workflow.slice(workflow.indexOf("  push:"), workflow.indexOf("  pull_request:"));
+  assert.doesNotMatch(push, /branches:.*codex\/profile-compact-20260914/);
+});
+
 test("Standard browser gate pins its tools and disables package-manager caching and install scripts", () => {
   assert.match(workflow, /uses: actions\/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7\.0\.1[\s\S]*?persist-credentials: false/);
   assert.match(workflow, /uses: actions\/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7\.0\.0[\s\S]*?node-version: "24"[\s\S]*?package-manager-cache: false/);
@@ -74,7 +82,13 @@ test("Standard browser gate runs CPU contracts and the scoped browser file seria
   assert.match(workflow, /tests\/standard-browser-gate-workflow\.test\.cjs/);
   assert.match(workflow, /tests\/standard-online-browser-harness-static\.test\.cjs/);
   assert.match(workflow, /tests\/browser-server-cleanup\.test\.cjs/);
+  assert.match(workflow, /          tests\/canvas-native-pointer\.test\.cjs/);
   assert.match(workflow, /tests\/standard-online-quiz-generator-runtime\.test\.cjs/);
+  assert.match(workflow, /tests\/standard-quiz-level-start\.test\.cjs/);
+  assert.match(workflow, /tests\/standard-home-rules\.test\.cjs/);
+  for (const file of ["standard-gacha-entry.test.cjs", "standard-gacha-transaction.test.cjs", "standard-quiz-reward-gacha.test.cjs"]) {
+    assert.match(workflow, new RegExp("tests/" + file.replaceAll(".", "\\.")));
+  }
   assert.match(workflow, /tests\/standard-matchmaking-availability-migration\.test\.cjs/);
   assert.match(workflow, /tests\/standard-cpu-commentary\.test\.cjs/);
   for (const file of ["standard-cpu-split-rescue.test.cjs", "standard-cpu-split-policy-migration.test.cjs", "standard-cpu-rollout.test.cjs", "standard-cpu-split-sql-runtime.test.cjs"]) {
