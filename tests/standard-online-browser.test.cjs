@@ -169,6 +169,10 @@ for (const mode of ["empty", "lobby"]) {
       await page.locator("#tutorialDialog[open]").waitFor();
       assert.equal(await page.evaluate(()=>document.activeElement.id),"tutorialTitle");
       assert.equal(await page.locator(".tutorial-steps > li").count(),4);
+      const skillStep = await page.locator(".tutorial-steps > li").nth(3).innerText();
+      assert.match(skillStep, /効果はカードのⓘで確認でき、読むだけでは消費しません/);
+      assert.match(skillStep, /カード本体は使用ボタンです/);
+      assert.match(skillStep, /押すとすぐ発動するものと、対象を選んでから発動するものがあります/);
       await page.keyboard.press("Escape");
       assert.equal(await page.locator("#tutorialDialog").isVisible(),false);
       assert.equal(await page.evaluate(()=>document.activeElement.id),"openTutorial");

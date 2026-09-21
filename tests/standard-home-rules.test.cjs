@@ -29,6 +29,14 @@ test("UDL068 optional native rules modal is explicit, closeable and free of game
   assert.match(app, /if \(visible && \$\("tutorialDialog"\)\.open\) \$\("tutorialDialog"\)\.close\(\)/);
 });
 
+test("UDL068 tutorial distinguishes read-only skill information from card activation", () => {
+  const tutorial = html.match(/<dialog id="tutorialDialog"[\s\S]*?<\/dialog>/)[0];
+  assert.match(tutorial, /効果はカードのⓘで確認でき、読むだけでは消費しません/);
+  assert.match(tutorial, /カード本体は使用ボタンです/);
+  assert.match(tutorial, /押すとすぐ発動するものと、対象を選んでから発動するものがあります/);
+  assert.doesNotMatch(tutorial, /カードを選ぶと使い方を確認できます/);
+});
+
 test("Home rules explain only normal current rules and preserve active-session recovery", () => {
   const tutorial = html.match(/<dialog id="tutorialDialog"[\s\S]*?<\/dialog>/)[0];
   for(const text of ["先手", "表示された数のマスを辺でつなげて", "辺で接しているエリアと同じ色を塗ると負け", "角で触れるだけ", "基本2枠", "残り回数", "6枚のスキル", "自動で負けにはなりません", "投了", "作れる場所がなくなれば、塗った人の勝ち"])

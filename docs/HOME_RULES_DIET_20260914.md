@@ -1,6 +1,6 @@
 # Home settings and optional rules
 
-Version: `UDL-062-068-home-rules-v1.1`
+Version: `UDL-062-068-home-rules-v1.2`
 
 CANON_RECEIPT version=shared-canon-v1.1 base=af1472d10044431be01665e122ea126da9b458a9 request=UDL-20260912-062,UDL-20260913-068,REG-UDL062-GACHA-PENDING-REWARD-COPY worktree=.codex-worktrees/home-rules-diet-20260914
 
@@ -15,7 +15,7 @@ AI presentation choices: two native buttons, an inline settings disclosure using
 1. Fresh and hydrated ordinary Home have exactly the two primary entries, no repeated connection-success card, and no mandatory profile form. Battle/quiz and My Page retain necessary profile setup. Existing pending CPU/start, active match and finished-result recovery remain reachable without creating a second session.
 2. Gear toggles one settings panel. Both checkboxes preserve the existing storage key, initial OFF, independent consent, trusted-gesture audio unlock and unsupported/offline fallbacks. Tab change/reload closes the panel, not the preferences. Do not create a second settings store or remove the native inputs.
 3. Tutorial opens with one explicit click or keyboard activation without profile/game/economy writes. Focus begins at its heading; Escape and an explicit close return to the opener. Leaving Home or a newly matched-room handoff closes it without hiding the important recovery notice. No forced lesson, reward, live session or legal-color oracle.
-4. Tutorial explains the current normal Standard loop: first create, then receive/color and create; edge adjacency and illegal-color loss; two basic slots plus limited bonus; six equipped skill slots and actual use; rescue/voluntary surrender and board-lock victory. Do not teach unpublished/experimental actions, hidden opponent information or unadopted reward values.
+4. Tutorial explains the current normal Standard loop: first create, then receive/color and create; edge adjacency and illegal-color loss; two basic slots plus limited bonus; six equipped skill slots and actual use; rescue/voluntary surrender and board-lock victory. Explicitly distinguish the card's read-only, non-consuming ⓘ control from the card body, which activates an immediate skill or begins target selection. Preserve immediate one-operation activation and existing read-only information; do not add a confirmation flow to every card. Do not teach unpublished/experimental actions, hidden opponent information or unadopted reward values.
 5. 390/768/1280, 640x360 and320x640 at2x text remain readable with >=44px controls, visible focus, no page horizontal overflow and scrollable unobstructed dialog contents. Necessary errors, matched-room handoff, existing navigation and credits remain available.
 6. Visiting Home settings/tutorial and returning to a saved CPU reward does not discard a pending draw or overwrite its recovery/error copy. The corrected gacha parent guards both pending and busy states; the original ticketLevel/actionId/count remain authoritative for retry, and navigation itself never draws. A non-pending saved reward still selects its saved ticket level.
 

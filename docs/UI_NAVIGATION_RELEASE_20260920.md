@@ -1,6 +1,6 @@
 # UI navigation integration
 
-Version: `UDL-023-060-062-067-068-navigation-v1`
+Version: `UDL-023-060-062-067-068-navigation-v1.1`
 
 Base: `fc089450e3a4e41e6c287f5359fc076f085f2903`
 Source UI tree: `172c35651b2e6c5afd44179733d34ed269e88daf`
@@ -23,7 +23,7 @@ The registry build exposes the existing transaction's GACHA_ODDS solely for a co
 | UDL-20260912-067 CPU face on surrender | SURRENDER_CPU_FACE_20260913.md / UDL-067-face-v1.1 | standard-surrender-confirmation, standard-online-browser |
 | UDL-20260912-060 terminal hierarchy | UI_TERMINAL_HIERARCHY_20260914.md / UDL-060-terminal-v2 | standard-result-continuation, standard-online-browser |
 | UDL-20260912-062 quiz and gacha entry | QUIZ_LEVEL_START_20260914.md / UDL-062-quiz-entry-v1.1; GACHA_ENTRY_DIET_20260914.md / UDL-062-gacha-entry-v1 | standard-quiz-level-start, standard-gacha-entry, standard-quiz-reward-gacha, standard-online-browser |
-| UDL-20260912-062 / UDL-20260913-068 Home and tutorial | HOME_RULES_DIET_20260914.md / UDL-062-068-home-rules-v1.1 | standard-home-rules, standard-online-browser |
+| UDL-20260912-062 / UDL-20260913-068 Home and tutorial | HOME_RULES_DIET_20260914.md / UDL-062-068-home-rules-v1.2 | standard-home-rules, standard-online-browser |
 | UDL-20260912-062 Profile and recovery | PROFILE_COMPACT_20260914.md / UDL-062-profile-compact-v1.1; BLOCKED_ACTION_RECOVERY_20260914.md / UDL-062-action-recovery-v1.1 | standard-profile-compact, standard-action-recovery, standard-online-browser |
 | Retained fc UI | UI_PLAY_SURFACE_20260912.md / v1.6; UI_FOLLOWUP_RELEASE_20260915.md / UDL-052-060-followup-v1 | standard-palette-origin-rim, standard-palette-notice-lifecycle, standard-hand-compact, standard-board-affordance, standard-half-shift-candidate-parity, standard-turn-guide-diet, standard-gacha-lobby, standard-online-browser |
 
@@ -37,6 +37,7 @@ Test names above resolve to `tests/<name>.test.cjs`. The workflow retains the fu
 - Quiz has five direct level starts. Gacha has five level buttons, count feedback and collapsed odds/help; invalid level, 100-card cap, busy/pending, actionId/count, reload and retry guards remain exact.
 - Result-gacha return retains fc's “結果を閉じてロビーへ”. An unresolved rematch returns to its existing recovery control, never creates another rematch, clears a pending ID or accepts an unrelated/stale result.
 - Home settings/tutorial and compact Profile remain navigable at 390/768/1280 widths and 320-wide enlarged layout. Recovery links preserve CPU/setup/sale pending data, last-card/protection constraints and confirmation semantics.
+- Tutorial item 4 distinguishes the non-consuming ⓘ information control from the card body used to activate a skill immediately or select its target. This copy-only clarification preserves existing skill behavior and adds static and native-browser tutorial regression coverage.
 - Existing startup and native-canvas diagnostics are retained. Prior failures remain historical; a new local pass does not erase or replace the failed Home Windows run.
 
 ## Candidate assets and release boundary
