@@ -6717,6 +6717,7 @@ test("actual Edge safely restores a retained public room from another tab", { ti
 });
 
 test("actual Edge resumes a retained quiz after private, CPU, finished-public, and stale rooms are classified", { timeout: 240000 }, async () => {
+  const resumedAt = Date.parse("2026-09-21T00:00:00.000Z");
   for (const mode of ["quizReloadPrivate", "quizReloadCpu", "quizReloadPublicFinished", "quizReloadStale"]) {
     await withPage(mode, async (page) => {
       browserStage(`${mode}-classification-start`);
@@ -6727,22 +6728,29 @@ test("actual Edge resumes a retained quiz after private, CPU, finished-public, a
         && !document.querySelector("#quizStatus")?.textContent.includes("一時停止")
         && document.querySelectorAll("#quizOptions button:not([disabled])").length > 0);
       browserStage(`${mode}-quiz-running`);
+      // CI may observe the resumed timer late. Keep Date fixed, not the real
+      // interval callbacks, and prove an observer delay cannot reset/spend it.
+      await page.waitForTimeout(2000);
       const before = await page.evaluate((key) => ({
         remaining: JSON.parse(localStorage.getItem(key)).questionState.remainingMs,
         answers: JSON.parse(localStorage.getItem(key)).answers,
         calls: globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "quiz-answer").map((entry) => entry.body),
         percent: Number.parseFloat(document.querySelector("#quizTimeBar").style.width),
       }), pendingQuizKey);
-      await page.waitForTimeout(600);
+      assert.equal(before.remaining, 30000, `${mode}: retained remaining time`);
+      assert.equal(before.percent, 50, `${mode}: retained half-minute of one minute`);
+      assert.deepEqual(before.answers, [], `${mode}: no answer during classification`);
+      assert.deepEqual(before.calls, [], `${mode}: no implicit answer request`);
+      await page.clock.setFixedTime(new Date(resumedAt + 600));
+      await page.waitForFunction(() => Number.parseFloat(document.querySelector("#quizTimeBar").style.width) === 49);
       const running = await page.evaluate(() => ({
         percent: Number.parseFloat(document.querySelector("#quizTimeBar").style.width),
         answerCalls: globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "quiz-answer").length,
       }));
-      assert.ok(before.remaining > 29000, `${mode}: ${before.remaining}`);
-      assert.ok(before.percent > 48, `${mode}: ${before.percent}`);
-      assert.ok(running.percent < before.percent - 0.3, `${mode}: ${before.percent} -> ${running.percent}`);
+      assert.equal(running.percent, 49, `${mode}: exactly 600ms deducted by the real timer`);
       assert.equal(running.answerCalls, 0, JSON.stringify({ mode, before, running }));
-    }, { viewport: { width: 390, height: 844 }, bodyTimeout: 30_000 });
+    }, { viewport: { width: 390, height: 844 }, bodyTimeout: 30_000,
+      beforeNavigate: (page) => page.clock.setFixedTime(new Date(resumedAt)) });
   }
 });
 
