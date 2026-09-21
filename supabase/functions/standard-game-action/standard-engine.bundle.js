@@ -588,6 +588,11 @@ module.exports = {
 
 const SKILL_USAGE_CATEGORIES = Object.freeze(["color", "area", "disrupt"]);
 const COLORED_CORNER_BLOOM_ENGINE_VERSION = "5.0.0-alpha.4";
+const LEARNED_TECHNIQUE_ENGINE_VERSION = "5.0.0-alpha.5";
+
+function supportsColoredCornerBloom(engineVersion) {
+  return engineVersion === COLORED_CORNER_BLOOM_ENGINE_VERSION || engineVersion === LEARNED_TECHNIQUE_ENGINE_VERSION;
+}
 
 function skill(id, displayName, category, rarity, timing, options = {}) {
   const implemented = Boolean(options.implemented);
@@ -614,10 +619,23 @@ function skill(id, displayName, category, rarity, timing, options = {}) {
     consumptionPolicy: options.consumptionPolicy || "RESOLVED_V49",
     handlerVersion: options.handlerVersion ?? null,
     v49Catalogued,
+    ...(options.acquisitionType ? { acquisitionType: options.acquisitionType, displayRarity: options.displayRarity !== false } : {}),
   });
 }
 
 const STANDARD_SKILLS = Object.freeze({
+  techUnsealOne: skill("techUnsealOne", "解封", "color", 1, "COLOR", {
+    targetSchema: { color: "current-owned-sealed-color" },
+    implemented: true,
+    acquisitionType: "LEARNED",
+    displayRarity: false,
+    gachaEnabled: false,
+    v49Catalogued: false,
+    standardUiEnabled: false,
+    privateInformationEffect: true,
+    consumptionPolicy: "RESOLVED_ONLY_SEPARATE_MATCH_TECHNIQUE_USE",
+    handlerVersion: "unseal-v1",
+  }),
   colorRandomBorrow: skill("colorRandomBorrow", "色拾い・乱", "color", 1, "COLOR", {
     implemented: true,
     privateInformationEffect: true,
@@ -765,7 +783,111 @@ const STANDARD_SKILLS = Object.freeze({
 const V49_SKILL_IDS = Object.freeze(Object.values(STANDARD_SKILLS).filter((entry) => entry.v49Catalogued).map((entry) => entry.id));
 const IMPLEMENTED_SKILL_IDS = Object.freeze(Object.values(STANDARD_SKILLS).filter((entry) => entry.implemented).map((entry) => entry.id));
 
-module.exports = { COLORED_CORNER_BLOOM_ENGINE_VERSION, IMPLEMENTED_SKILL_IDS, SKILL_USAGE_CATEGORIES, STANDARD_SKILLS, V49_SKILL_IDS };
+module.exports = { COLORED_CORNER_BLOOM_ENGINE_VERSION, LEARNED_TECHNIQUE_ENGINE_VERSION, supportsColoredCornerBloom, IMPLEMENTED_SKILL_IDS, SKILL_USAGE_CATEGORIES, STANDARD_SKILLS, V49_SKILL_IDS };
+
+},
+"standard/standard-technique-state.js":function(require,module,exports){
+"use strict";
+
+const { COLORS, StandardRuleError } = require("./standard-engine.js");
+const { LEARNED_TECHNIQUE_ENGINE_VERSION } = require("./standard-skill-registry.js");
+
+const TECHNIQUE_ID = "techUnsealOne";
+const TECHNIQUE_VERSION = "unseal-v1";
+const TECHNIQUE_RULES = Object.freeze({
+  DISABLED: "PVP_TECHNIQUES_DISABLED_V1",
+  CPU: "CPU_LEARNED_V1",
+  REN_TRIAL: "REN_UNSEAL_TRIAL_V1",
+});
+const clone = (value) => JSON.parse(JSON.stringify(value));
+function requireTechnique(condition, code = "INVALID_TECHNIQUE_SNAPSHOT") {
+  if (!condition) throw new StandardRuleError(code, code);
+}
+function exactKeys(value, keys) {
+  return value && typeof value === "object" && !Array.isArray(value)
+    && Object.keys(value).sort().join("|") === [...keys].sort().join("|");
+}
+function usesTechniques(engineVersion) {
+  return engineVersion === LEARNED_TECHNIQUE_ENGINE_VERSION;
+}
+
+// Internal engine input only. A server start adapter must derive these fields
+// from authoritative ownership or the fixed trial template, never action payload.
+function initialTechniqueFields(config, engineVersion) {
+  if (!usesTechniques(engineVersion)) {
+    requireTechnique(config.techniques === undefined && config.techniqueRule === undefined, "TECHNIQUE_ENGINE_UNSUPPORTED");
+    return {};
+  }
+  const fields = {
+    techniqueRule: clone(config.techniqueRule === undefined
+      ? { id: TECHNIQUE_RULES.DISABLED, playerSeat: null } : config.techniqueRule),
+    techniques: clone(config.techniques === undefined ? { A: null, B: null } : config.techniques),
+  };
+  for (const slot of Object.values(fields.techniques || {})) {
+    if (slot) requireTechnique(slot.usesRemaining === 1, "INVALID_INITIAL_TECHNIQUE_USES");
+  }
+  return fields;
+}
+function validateTechniqueState(state) {
+  if (!usesTechniques(state.engineVersion)) {
+    requireTechnique(!Object.hasOwn(state, "techniqueRule") && !Object.hasOwn(state, "techniques"), "TECHNIQUE_ENGINE_UNSUPPORTED");
+  } else {
+    const rule = state.techniqueRule;
+    requireTechnique(exactKeys(rule, ["id", "playerSeat"]) && Object.values(TECHNIQUE_RULES).includes(rule.id));
+    requireTechnique(rule.id === TECHNIQUE_RULES.DISABLED ? rule.playerSeat === null : ["A", "B"].includes(rule.playerSeat));
+    requireTechnique(exactKeys(state.techniques, ["A", "B"]));
+    for (const seat of ["A", "B"]) {
+      const slot = state.techniques[seat];
+      if (rule.id === TECHNIQUE_RULES.DISABLED || rule.id === TECHNIQUE_RULES.CPU && seat !== rule.playerSeat) {
+        requireTechnique(slot === null);
+        continue;
+      }
+      if (slot === null && rule.id === TECHNIQUE_RULES.CPU) continue;
+      const trial = rule.id === TECHNIQUE_RULES.REN_TRIAL;
+      requireTechnique(exactKeys(slot, ["id", "definitionVersion", "source", "usesRemaining", ...(trial ? ["trialId", "trialVersion"] : [])]));
+      requireTechnique(slot.id === TECHNIQUE_ID && slot.definitionVersion === TECHNIQUE_VERSION
+        && [0, 1].includes(slot.usesRemaining) && slot.source === (trial ? "TRIAL_LOAN" : "LEARNED"));
+      if (trial) requireTechnique(slot.trialId === "ren-unseal" && slot.trialVersion === 1);
+    }
+  }
+  for (const seat of ["A", "B"]) {
+    requireTechnique(!Object.hasOwn(state.hands?.[seat] || {}, TECHNIQUE_ID)
+      && !Object.values(state.loadouts?.[seat] || {}).some((ids) => Array.isArray(ids) && ids.includes(TECHNIQUE_ID)),
+    "TECHNIQUE_IN_ORDINARY_HAND");
+  }
+  return true;
+}
+function projectTechniques(state) {
+  return Object.fromEntries(["A", "B"].map((seat) => {
+    const slot = state.techniques[seat];
+    return [seat, slot === null ? null : { id: slot.id, definitionVersion: slot.definitionVersion, usesRemaining: slot.usesRemaining }];
+  }));
+}
+function techniqueAvailable(state, actor, id) {
+  return usesTechniques(state.engineVersion) && state.techniques?.[actor]?.id === id
+    && state.techniques[actor].usesRemaining === 1;
+}
+function applyTechUnsealOne({ state, actor, payload }) {
+  if (!techniqueAvailable(state, actor, TECHNIQUE_ID)) return { ok: false, code: "TECHNIQUE_UNAVAILABLE", state };
+  const color = payload.color;
+  if (!COLORS.includes(color)) return { ok: false, code: "INVALID_TARGET_SCHEMA", state };
+  if (![...state.basicPalettes[actor], state.bonusColors[actor]].includes(color)) {
+    return { ok: false, code: "TECHNIQUE_COLOR_NOT_OWNED", state };
+  }
+  const seal = state.publicEffects?.[actor]?.seals?.[color];
+  if (!Number.isSafeInteger(seal) || seal <= 0) return { ok: false, code: "TECHNIQUE_COLOR_NOT_SEALED", state };
+  const next = clone(state);
+  next.publicEffects[actor].seals[color] = 0;
+  next.techniques[actor].usesRemaining = 0;
+  next.skillsUsed[actor] = (next.skillsUsed[actor] || 0) + 1;
+  next.version += 1;
+  next.publicLog.push("T" + next.turn + " Player " + actor + " used learned technique 解封.");
+  return Object.freeze({ ok: true, code: "OK", state: next, cardConsumed: false, techniqueConsumed: true });
+}
+module.exports = {
+  TECHNIQUE_ID, TECHNIQUE_VERSION, TECHNIQUE_RULES, usesTechniques,
+  initialTechniqueFields, validateTechniqueState, projectTechniques, techniqueAvailable, applyTechUnsealOne,
+};
 
 },
 "standard/standard-profile.js":function(require,module,exports){
@@ -853,7 +975,7 @@ function validateProgressionFields(profile) {
       assertProfile(/^[a-z][a-z0-9-]{1,31}$/.test(characterId) && isRecord(record), "INVALID_CPU_CHARACTER_STAT");
       for (const key of ["matches", "wins", "losses"]) nonnegativeInteger(record[key], "INVALID_CPU_CHARACTER_STAT");
       assertProfile(record.matches === record.wins + record.losses, "INVALID_CPU_CHARACTER_STAT");
-      assertProfile(record.firstWinAt === null || (typeof record.firstWinAt === "string" && Number.isFinite(Date.parse(record.firstWinAt))), "INVALID_CPU_CHARACTER_STAT");
+      assertProfile(!Object.hasOwn(record, "firstWinAt") || record.firstWinAt === null || (typeof record.firstWinAt === "string" && Number.isFinite(Date.parse(record.firstWinAt))), "INVALID_CPU_CHARACTER_STAT");
     }
   }
   assertProfile(Array.isArray(profile.matchHistory) && profile.matchHistory.length <= MAX_MATCH_HISTORY, "INVALID_MATCH_HISTORY");
@@ -1022,7 +1144,9 @@ function recordCpuMatchOutcome({ profile, matchId, cpuCharacterId, won, terminal
   const character = next.cpuCharacterStats[cpuCharacterId] || { matches: 0, wins: 0, losses: 0, firstWinAt: null };
   character.matches += 1;
   character[won ? "wins" : "losses"] += 1;
-  if (won && character.firstWinAt === null) character.firstWinAt = endedAt;
+  // Older valid records can lack the date. A later win must not invent the
+  // historical first-win date; only a genuine first win gets today's timestamp.
+  if (won && character.wins === 1 && character.firstWinAt == null) character.firstWinAt = endedAt;
   next.cpuCharacterStats[cpuCharacterId] = character;
   if (won && fullPaint) {
     next.cpuStats.fullPaints += 1;
@@ -1062,7 +1186,7 @@ module.exports = {
 
 const { COLORS, StandardRuleError, mergeSameColorComponent } = require("./standard-engine.js");
 const { createRegionGeometryContext } = require("./standard-region-geometry.js");
-const { COLORED_CORNER_BLOOM_ENGINE_VERSION } = require("./standard-skill-registry.js");
+const { supportsColoredCornerBloom } = require("./standard-skill-registry.js");
 
 function clone(value) {
   return JSON.parse(JSON.stringify(value));
@@ -1413,7 +1537,7 @@ function cornerBloomPlan(state, sourceMacros, macro) {
 }
 
 function coloredCornerBloomPlan(state, regionId, macro) {
-  if (state.engineVersion !== COLORED_CORNER_BLOOM_ENGINE_VERSION) {
+  if (!supportsColoredCornerBloom(state.engineVersion)) {
     return Object.freeze({ ok: false, code: "COLORED_CORNER_BLOOM_NOT_SUPPORTED", plan: [], micro: [] });
   }
   const region = state.regions?.[regionId];
@@ -2123,7 +2247,8 @@ module.exports = {
 "use strict";
 
 const { COLORS, StandardRuleError, applyLegalRecolor } = require("./standard-engine.js");
-const { COLORED_CORNER_BLOOM_ENGINE_VERSION, STANDARD_SKILLS } = require("./standard-skill-registry.js");
+const { supportsColoredCornerBloom, STANDARD_SKILLS } = require("./standard-skill-registry.js");
+const { usesTechniques, techniqueAvailable, applyTechUnsealOne } = require("./standard-technique-state.js");
 const { applyAreaCornerBloom, applyAreaDiePlus, applyAreaHalfShift, applyAreaMicroBloom, applyAreaResize, applyAreaTripleShift, applyColorBonusRefill, applyColorChoiceBorrow, applyColorPaletteChange, applyColorRandomBorrow, applyColorPrism, applyColorRegionSplit, applyDisruptChoiceOne, applyDisruptChoiceThree, applyDisruptChoiceTwo, applyDisruptForcedPalette, applyDisruptPaletteChoice, applyDisruptPaletteRandom, applyDisruptRandomOne, applyDisruptRandomTwo } = require("./standard-skill-handlers.js");
 
 const SKILL_RESULT = Object.freeze({ REJECTED: "REJECTED", CANCELLED: "CANCELLED", RESOLVED: "RESOLVED" });
@@ -2143,6 +2268,7 @@ function nextRandom(rngStreams, name, counter) {
 function validateTargetSchema(definition, payload, state) {
   if (!definition.targetSchema) return true;
   if (!payload || typeof payload !== "object" || Array.isArray(payload)) return false;
+  if (definition.id === "techUnsealOne") return Object.keys(payload).sort().join("|") === "color|skill" && COLORS.includes(payload.color);
   if (definition.id === "legalRecolor") return typeof payload.regionId === "string" && payload.regionId.length > 0;
   if (definition.id === "colorPrism") return true;
   if (definition.id === "colorChoiceBorrow") return typeof payload.color === "string" && COLORS.includes(payload.color);
@@ -2153,7 +2279,7 @@ function validateTargetSchema(definition, payload, state) {
   if (definition.id === "areaCornerBloom") {
     const outgoing = Array.isArray(payload.sourceMacros) && payload.sourceMacros.every(Number.isInteger)
       && !Object.hasOwn(payload, "regionId") && Number.isInteger(payload.macro);
-    const coloredRegion = state.engineVersion === COLORED_CORNER_BLOOM_ENGINE_VERSION
+    const coloredRegion = supportsColoredCornerBloom(state.engineVersion)
       && typeof payload.regionId === "string" && payload.regionId.length > 0
       && !Object.hasOwn(payload, "sourceMacros") && Number.isInteger(payload.macro);
     return outgoing || coloredRegion;
@@ -2166,6 +2292,7 @@ function validateTargetSchema(definition, payload, state) {
 }
 
 const HANDLERS = Object.freeze({
+  techUnsealOne: applyTechUnsealOne,
   colorRandomBorrow({ state, actor, rngStreams, draws }) {
     return applyColorRandomBorrow({ state, actor, random: () => nextRandom(rngStreams, "skill-effect", draws) });
   },
@@ -2219,12 +2346,16 @@ function dispatchStandardSkillAction({ state, actor, action, expectedVersion, rn
   const definition = STANDARD_SKILLS[action.payload.skill];
   if (!definition) return rejected("UNKNOWN_SKILL", state);
   if (!definition.implemented || !HANDLERS[definition.id]) return rejected("SKILL_NOT_IMPLEMENTED", state);
+  const learned = definition.acquisitionType === "LEARNED";
+  if (learned && !usesTechniques(state.engineVersion)) return rejected("TECHNIQUE_ENGINE_UNSUPPORTED", state);
   if (state.active !== actor) return rejected("NOT_YOUR_TURN", state);
   const timingMatches = definition.timing === "WORK"
     ? state.phase === "WORK" || state.phase === "CREATE_FIRST"
     : state.phase === definition.timing;
   if (!timingMatches) return rejected("WRONG_PHASE", state);
-  if ((state.hands?.[actor]?.[definition.id] || 0) <= 0) return rejected("SKILL_UNAVAILABLE", state);
+  if (learned ? !techniqueAvailable(state, actor, definition.id) : (state.hands?.[actor]?.[definition.id] || 0) <= 0) {
+    return rejected(learned ? "TECHNIQUE_UNAVAILABLE" : "SKILL_UNAVAILABLE", state);
+  }
   if (definition.experimental && state.interferenceLock) return rejected("INTERFERENCE_CHAINED", state);
   if (!validateTargetSchema(definition, action.payload, state)) return rejected("INVALID_TARGET_SCHEMA", state);
   if (categoryLimitEnabled && state.skillCategoryWindow.categories.includes(definition.usageCategory)) {
@@ -2282,14 +2413,15 @@ const {
 const { dispatchStandardSkillAction } = require("./standard-skill-dispatcher.js");
 const { applyCurseBacklashOnEnterColor, consumeDeferredCurseBacklashAfterColor, preparedOutgoingCandidates, tickPaletteDebuffsAfterColor, tickSealsAfterColor } = require("./standard-skill-handlers.js");
 const { createRegionGeometryContext } = require("./standard-region-geometry.js");
-const { COLORED_CORNER_BLOOM_ENGINE_VERSION, SKILL_USAGE_CATEGORIES } = require("./standard-skill-registry.js");
+const { COLORED_CORNER_BLOOM_ENGINE_VERSION, LEARNED_TECHNIQUE_ENGINE_VERSION, SKILL_USAGE_CATEGORIES } = require("./standard-skill-registry.js");
+const { usesTechniques, initialTechniqueFields, validateTechniqueState, projectTechniques } = require("./standard-technique-state.js");
 
 const SCHEMA_VERSION = 1;
 const LEGACY_ENGINE_VERSION = "5.0.0-alpha.1";
 const PREVIOUS_ENGINE_VERSION = "5.0.0-alpha.2";
 const CATEGORY_WINDOW_ENGINE_VERSION = "5.0.0-alpha.3";
 const ENGINE_VERSION = COLORED_CORNER_BLOOM_ENGINE_VERSION;
-const SUPPORTED_ENGINE_VERSIONS = Object.freeze([LEGACY_ENGINE_VERSION, PREVIOUS_ENGINE_VERSION, CATEGORY_WINDOW_ENGINE_VERSION, ENGINE_VERSION]);
+const SUPPORTED_ENGINE_VERSIONS = Object.freeze([LEGACY_ENGINE_VERSION, PREVIOUS_ENGINE_VERSION, CATEGORY_WINDOW_ENGINE_VERSION, ENGINE_VERSION, LEARNED_TECHNIQUE_ENGINE_VERSION]);
 const SAVE_KEY = "fourColorMapGame.standard.v5.save";
 const PHASES = Object.freeze(["CREATE_FIRST", "COLOR", "WORK", "GAME_OVER"]);
 const ACTIONS = Object.freeze(["CREATE_REGION", "COLOR_REGION", "USE_SKILL", "DECLARE_NO_COLOR", "SURRENDER"]);
@@ -2322,7 +2454,7 @@ function assertState(condition, code) {
 }
 
 function usesSkillCategoryWindow(engineVersion) {
-  return engineVersion === CATEGORY_WINDOW_ENGINE_VERSION || engineVersion === ENGINE_VERSION;
+  return engineVersion === CATEGORY_WINDOW_ENGINE_VERSION || engineVersion === ENGINE_VERSION || usesTechniques(engineVersion);
 }
 
 function nextRandom(rngStreams, name) {
@@ -2415,6 +2547,7 @@ function createStandardMatch(config = {}, rngStreams = {}) {
     bonusUsesRemaining: { A: A.uses, B: B.uses },
     hands: config.hands ? clone(config.hands) : { A: handFromLoadout(loadouts.A), B: handFromLoadout(loadouts.B) },
     loadouts,
+    ...initialTechniqueFields(config, engineVersion),
     publicEffects: clone(config.publicEffects || { A: { seals: {} }, B: { seals: {} } }),
     privateEffects: clone(config.privateEffects || { A: {}, B: {} }),
     interferenceLock: false,
@@ -2458,6 +2591,7 @@ function validateStandardState(state) {
   const worldMicroCount = state.microWidth * bounds.macroWidth * bounds.microScale;
   assertState(Boolean(state.regions) && typeof state.regions === "object", "INVALID_REGIONS");
   assertState(Boolean(state.hands) && Boolean(state.loadouts), "INVALID_CARDS");
+  validateTechniqueState(state);
   assertState(typeof state.interferenceLock === "boolean", "INVALID_INTERFERENCE_LOCK");
   if (usesSkillCategoryWindow(state.engineVersion)) {
     const window = state.skillCategoryWindow;
@@ -2610,9 +2744,11 @@ function projectStandardPublicState(state) {
   validateStandardState(state);
   const keys = ["schemaVersion", "engineVersion", "mode", "matchId", "status", "version", "turn", "active", "phase", "regions", "pending", "reserved", "preparedOutgoing", "playableBounds", "trophyTargetMacros", "requiredSize", "rolledSize", "baseRequiredSize", "publicEffects", "interferenceLock", "winner", "terminalReason", "lastPublicTrace", "publicLog"];
   if (usesSkillCategoryWindow(state.engineVersion)) keys.push("skillCategoryWindow");
-  return Object.freeze(Object.fromEntries(keys.map((key) => [key, clone(key === "trophyTargetMacros"
+  return Object.freeze({ ...Object.fromEntries(keys.map((key) => [key, clone(key === "trophyTargetMacros"
     ? (state.trophyTargetMacros || playableMacroIndices(state.playableBounds))
-    : key === "lastPublicTrace" ? (state.lastPublicTrace ?? null) : state[key])] )));
+    : key === "lastPublicTrace" ? (state.lastPublicTrace ?? null) : state[key])] )),
+    ...(usesTechniques(state.engineVersion) ? { techniqueRule: clone(state.techniqueRule), techniques: projectTechniques(state) } : {}),
+  });
 }
 
 function projectStandardPrivateState(state, seat) {
@@ -2628,6 +2764,7 @@ function projectStandardPrivateState(state, seat) {
     hand: clone(state.hands[seat]),
     loadout: clone(state.loadouts[seat]),
     privateEffects: clone(state.privateEffects[seat]),
+    ...(usesTechniques(state.engineVersion) ? { technique: projectTechniques(state)[seat] } : {}),
   });
 }
 
@@ -3115,7 +3252,7 @@ module.exports = {
 "use strict";
 
 const { COLORS, adjacentRegionIds, legalRecolorCandidates } = require("./standard-engine.js");
-const { COLORED_CORNER_BLOOM_ENGINE_VERSION, STANDARD_SKILLS, V49_SKILL_IDS } = require("./standard-skill-registry.js");
+const { supportsColoredCornerBloom, STANDARD_SKILLS, V49_SKILL_IDS } = require("./standard-skill-registry.js");
 const { createRegionGeometryContext } = require("./standard-region-geometry.js");
 const {
   cornerBloomPlan,
@@ -3491,7 +3628,7 @@ function enumerateWorkSkillActions(publicState, ownPrivateState) {
         if (planned.plan.length && preparedTouchesColoredRegion(state, planned.micro)) actions.push(skillAction("areaCornerBloom", { sourceMacros, macro }, { skillPriority: 20 }));
       }
     }
-    if (publicState.engineVersion === COLORED_CORNER_BLOOM_ENGINE_VERSION) {
+    if (supportsColoredCornerBloom(publicState.engineVersion)) {
       const eligibleRegions = Object.values(publicState.regions || {})
         .filter((region) => region?.color && region.id !== publicState.pending && region.id !== publicState.reserved
           && !region.isPending && !region.isReserved && !region.deleted && !region.delayed && !region.delayState)
@@ -3809,6 +3946,120 @@ module.exports = {
   validateRoster,
 };
 
+},
+"standard/standard-cpu-progression.js":function(require,module,exports){
+"use strict";
+
+const engine = require("./standard-engine.js");
+const match = require("./standard-match.js");
+const roster = require("./standard-cpu-roster.js");
+const technique = require("./standard-technique-state.js");
+const { LEARNED_TECHNIQUE_ENGINE_VERSION } = require("./standard-skill-registry.js");
+
+const TRIAL_ID = "ren-unseal";
+const TRIAL_VERSION = 1;
+const TRIAL_POLICY_VERSION = "ren-unseal-trial-v1";
+const TRIAL_LOADOUT = Object.freeze({
+  color: Object.freeze(["colorPrism", "colorRandomBorrow"]),
+  area: Object.freeze(["areaDiePlus", "areaResize"]),
+  disrupt: Object.freeze(["disruptChoiceOne", "disruptRandomTwo"]),
+});
+const clone = value => JSON.parse(JSON.stringify(value));
+const requireTrial = (ok, code) => { if (!ok) throw new TypeError(code); };
+
+// Read adapter only. Online authority/eligibility must still be checked by SQL.
+function projectRenProgression(profile) {
+  const record = profile?.cpuCharacterStats?.ren;
+  const wins = Number.isSafeInteger(record?.wins) && record.wins >= 0 ? record.wins : 0;
+  const matches = Number.isSafeInteger(record?.matches) && record.matches >= 0 ? record.matches : 0;
+  const learned = Array.isArray(profile?.learnedTechniques) && profile.learnedTechniques.includes(technique.TECHNIQUE_ID);
+  const stage = learned ? "learned" : wins >= 1 ? "trial_unlocked" : matches >= 1 ? "returning" : "first_meeting";
+  const lines = {
+    learned: "教えた解封、使いこなしてるか？ また試してみようぜ！",
+    trial_unlocked: "俺に勝ったな！ 今度は特別な盤面で勝負だ。",
+    returning: "また来たな。今度も先に広げてみせるぜ！",
+    first_meeting: "せっかちレンだ。先に広げた者勝ちだぜ！",
+  };
+  return { characterId: "ren", stage, line: lines[stage], trialUnlocked: wins >= 1,
+    learnedTechniqueId: learned ? technique.TECHNIQUE_ID : null,
+    equippedTechniqueId: learned && profile.equippedTechniqueId === technique.TECHNIQUE_ID ? technique.TECHNIQUE_ID : null };
+}
+
+function trialDescriptor() {
+  return { trialId: TRIAL_ID, trialVersion: TRIAL_VERSION, characterId: "ren", policyVersion: TRIAL_POLICY_VERSION,
+    title: "レンの試練・封印をほどけ", techniqueId: technique.TECHNIQUE_ID,
+    conditions: ["あなたの持ち色は赤・青、おまけ色は黄色1回。赤は2回分の封印中です。",
+      "両者に解封を1回ずつ、通常スキル6種類を1回ずつ貸し出します。所持カードは減りません。",
+      "解封で赤を使うか、黄色で塗って解封を残すか選べます。解封を使わず勝っても合格です。",
+      "初勝利で解封を習得。通常戦績・通常対局の券やコインには加算しません。"],
+    loanLoadout: clone(TRIAL_LOADOUT), loanUses: 1 };
+}
+
+function trialTechnique() {
+  return { id: technique.TECHNIQUE_ID, definitionVersion: technique.TECHNIQUE_VERSION, source: "TRIAL_LOAN",
+    usesRemaining: 1, trialId: TRIAL_ID, trialVersion: TRIAL_VERSION };
+}
+function createRenTrial({ matchId, seed }) {
+  requireTrial(Number.isSafeInteger(seed) && seed >= 0 && seed <= 0xffffffff, "INVALID_SEED");
+  const streams = engine.createRngDomains(seed, match.REQUIRED_RNG_STREAMS);
+  // The diagram occupies a corner of a normal six-by-six playable area.
+  // Retain the standard world's 12-wide grid / 48-wide micro coordinates;
+  // existing public CPU projections rely on that normal coordinate system.
+  const bounds = { minCol: 1, maxCol: 6, minRow: 1, maxRow: 6, macroWidth: 12, microScale: 4 };
+  const state = match.createStandardMatch({ matchId, firstSeat: "A", engineVersion: LEARNED_TECHNIQUE_ENGINE_VERSION,
+    playableBounds: bounds, microWidth: 48, loadouts: { A: clone(TRIAL_LOADOUT), B: clone(TRIAL_LOADOUT) },
+    techniqueRule: { id: technique.TECHNIQUE_RULES.REN_TRIAL, playerSeat: "A" },
+    techniques: { A: trialTechnique(), B: trialTechnique() } }, streams);
+  const cells = macros => macros.flatMap(macro => {
+    const x = (macro % 12) * 4, y = Math.floor(macro / 12) * 4;
+    return Array.from({ length: 16 }, (_, i) => (y + Math.floor(i / 4)) * 48 + x + (i % 4));
+  });
+  state.regions = {
+    R1: { id: "R1", micro: cells([13, 25]), sourceMacros: [13, 25], controllers: ["B"], color: "green", isPending: false },
+    R2: { id: "R2", micro: cells([14, 15]), sourceMacros: [14, 15], controllers: ["B"], color: "blue", isPending: false },
+    R3: { id: "R3", micro: cells([26, 27]), sourceMacros: [26, 27], controllers: ["B"], color: null, isPending: true },
+  };
+  state.basicPalettes = { A: ["red", "blue"], B: ["yellow", "green"] };
+  state.bonusColors = { A: "yellow", B: "blue" };
+  state.initialPalettes = { A: { basic: ["red", "blue"], bonus: "yellow" }, B: { basic: ["yellow", "green"], bonus: "blue" } };
+  state.bonusUsesRemaining = { A: 1, B: 1 };
+  state.publicEffects = { A: { seals: { red: 2 } }, B: { seals: {} } };
+  state.pending = "R3"; state.phase = "COLOR";
+  state.requiredSize = 2; state.rolledSize = 2; state.baseRequiredSize = 2;
+  state.ruleSetId = "STANDARD_V5";
+  state.publicLog = ["Ren trial template v1 loaded."];
+  match.validateStandardState(state);
+  return { state, rngSnapshot: engine.snapshotRngDomains(streams, match.REQUIRED_RNG_STREAMS),
+    publicState: match.projectStandardPublicState(state), privateA: match.projectStandardPrivateState(state, "A"), privateB: match.projectStandardPrivateState(state, "B") };
+}
+
+function isRenTrialState(state) {
+  return state?.engineVersion === LEARNED_TECHNIQUE_ENGINE_VERSION && state?.techniqueRule?.id === technique.TECHNIQUE_RULES.REN_TRIAL;
+}
+function usefulUnsealActions(publicState, ownPrivateState) {
+  const seat = ownPrivateState?.seat;
+  if (!isRenTrialState(publicState) || publicState.status === "FINISHED" || publicState.active !== seat || publicState.phase !== "COLOR"
+      || ownPrivateState.technique?.id !== technique.TECHNIQUE_ID || ownPrivateState.technique.usesRemaining !== 1
+      || publicState.skillCategoryWindow?.categories?.includes("color")) return [];
+  const blocked = new Set(engine.adjacentRegionIds(publicState, publicState.pending).map(id => publicState.regions[id]?.color));
+  const owned = [...ownPrivateState.basicPalette, ...(ownPrivateState.bonusUsesRemaining > 0 ? [ownPrivateState.bonusColor] : [])];
+  return [...new Set(owned)].filter(color => !blocked.has(color) && publicState.publicEffects?.[seat]?.seals?.[color] > 0)
+    .map(color => ({ type: "USE_SKILL", payload: { skill: technique.TECHNIQUE_ID, color }, metrics: { addedLegalColor: true } }));
+}
+function chooseRenTrialAction({ publicState, ownPrivateState, policyVersion, random, tieBreakRandom = random }) {
+  requireTrial(policyVersion === TRIAL_POLICY_VERSION && isRenTrialState(publicState), "UNKNOWN_TRIAL_POLICY_VERSION");
+  requireTrial(ownPrivateState?.seat === "B" && publicState.active === "B", "INVALID_TRIAL_CPU_OBSERVATION");
+  const useful = usefulUnsealActions(publicState, ownPrivateState);
+  if (useful.length) return useful[0];
+  // Reuse the frozen pre-split Ren ranking for ordinary moves only. The trial
+  // policy has its own exact identity; no ordinary character definition changes.
+  return roster.chooseCharacterAction({ publicState, ownPrivateState, characterId: "ren",
+    policyVersion: roster.PRE_SPLIT_POLICY_VERSIONS.ren, random, tieBreakRandom });
+}
+
+module.exports = { TRIAL_ID, TRIAL_VERSION, TRIAL_POLICY_VERSION, TRIAL_LOADOUT,
+  projectRenProgression, trialDescriptor, createRenTrial, isRenTrialState, usefulUnsealActions, chooseRenTrialAction };
+
 }};const cache={};function normalize(parts){const out=[];for(const part of parts){if(!part||part===".")continue;if(part==="..")out.pop();else out.push(part);}return out.join("/");}function load(id){if(cache[id])return cache[id].exports;if(!modules[id])throw new Error("Unknown module: "+id);const module={exports:{}};cache[id]=module;const base=id.split("/").slice(0,-1);const localRequire=(request)=>load(request.startsWith(".")?normalize([...base,...request.split("/")]):request);modules[id](localRequire,module,module.exports);return module.exports;}
 
 const engine = load("standard/standard-engine.js");
@@ -3818,6 +4069,7 @@ const matchReward = load("standard/standard-match-reward.js");
 const cosmetics = load("standard/standard-cosmetics.js");
 const cpu = load("standard/standard-cpu.js");
 const cpuRoster = load("standard/standard-cpu-roster.js");
+const progression = load("standard/standard-cpu-progression.js");
 const registry = load("standard/standard-skill-registry.js").STANDARD_SKILLS;
 const categories = ["color", "area", "disrupt"];
 const starterInventory = {
@@ -3862,6 +4114,11 @@ function chooseCpuAction({publicState,ownPrivateState,characterId,policyVersion,
   if(!Number.isSafeInteger(seed)||seed<0||seed>0xffffffff)throw new Error("INVALID_SEED");
   if(typeof policyVersion!=="string"||!policyVersion)throw new Error("INVALID_CPU_POLICY_VERSION");
   const streams=engine.createRngDomains(seed,match.REQUIRED_RNG_STREAMS);
+  if(progression.isRenTrialState(publicState)){
+    if(characterId!=="ren")throw new Error("INVALID_TRIAL_CPU_CHARACTER");
+    return clone(progression.chooseRenTrialAction({publicState,ownPrivateState,policyVersion,
+      random:()=>streams["cpu-B"].next(),tieBreakRandom:()=>streams["cpu-tie-break"].next()}));
+  }
   return clone(cpuRoster.chooseCharacterAction({
     publicState,ownPrivateState,characterId,policyVersion,
     random:()=>streams["cpu-B"].next(),tieBreakRandom:()=>streams["cpu-tie-break"].next(),
@@ -3905,10 +4162,11 @@ function projections(state,debugMode=false,labMode=false){
   if(labMode)publicState.labRuleSetId=LEGAL_RECOLOR_LAB_RULE_SET_ID;
   return {publicState,privateA:match.projectStandardPrivateState(state,"A"),privateB:match.projectStandardPrivateState(state,"B")};
 }
-function create({matchId,loadouts,profiles=null,seed,firstSeat=null,debugMode=false,labMode=false,cpuSeat=null,engineVersion=match.ENGINE_VERSION}){
+function create({matchId,loadouts,profiles=null,seed,firstSeat=null,debugMode=false,labMode=false,cpuSeat=null,engineVersion=match.ENGINE_VERSION,learnedTechniqueEnabled=false}){
   if(typeof debugMode!=="boolean")throw new Error("INVALID_DEBUG_MODE");
   if(typeof labMode!=="boolean"||debugMode&&labMode)throw new Error("INVALID_LAB_MODE");
   if(cpuSeat!==null&&!['A','B'].includes(cpuSeat))throw new Error("INVALID_CPU_SEAT");
+  if(typeof learnedTechniqueEnabled!=="boolean"||learnedTechniqueEnabled&&(debugMode||labMode||cpuSeat!=="B"))throw new Error("INVALID_TECHNIQUE_MATCH_MODE");
   validateLoadouts(loadouts);
   if(profiles!==null&&!debugMode){
     for(const seat of ["A","B"]){
@@ -3917,7 +4175,10 @@ function create({matchId,loadouts,profiles=null,seed,firstSeat=null,debugMode=fa
   }
   if(!Number.isSafeInteger(seed)||seed<0||seed>0xffffffff)throw new Error("INVALID_SEED");
   const streams=engine.createRngDomains(seed,match.REQUIRED_RNG_STREAMS);
-  let state=match.createStandardMatch({matchId,loadouts,firstSeat,engineVersion},streams);
+  const learned=learnedTechniqueEnabled&&profiles?.A?.equippedTechniqueId==="techUnsealOne"&&profiles.A.learnedTechniques?.includes("techUnsealOne");
+  const techniqueConfig=learned?{engineVersion:"5.0.0-alpha.5",techniqueRule:{id:"CPU_LEARNED_V1",playerSeat:"A"},
+    techniques:{A:{id:"techUnsealOne",definitionVersion:"unseal-v1",source:"LEARNED",usesRemaining:1},B:null}}:{};
+  let state=match.createStandardMatch({matchId,loadouts,firstSeat,engineVersion,...techniqueConfig},streams);
   state=clone(state);
   if(cpuSeat!==null)cpu.applyHardCpuSkillCharges(state,cpuSeat);
   state.ruleSetId=labMode?LEGAL_RECOLOR_LAB_RULE_SET_ID:STANDARD_RULE_SET_ID;
@@ -4029,6 +4290,12 @@ function applyCpuProfiles({profiles,beforeState,nextState,actor,action,finishedA
   for(const seat of ["A","B"])validateProfile(next[seat]);
   if(!cpuRoster.CPU_CHARACTERS[characterId])throw new Error("UNKNOWN_CPU_CHARACTER");
   const changed={A:false,B:false};
+  if(progression.isRenTrialState(beforeState)||progression.isRenTrialState(nextState)){
+    if(!progression.isRenTrialState(beforeState)||!progression.isRenTrialState(nextState)||characterId!=="ren")throw new Error("TRIAL_RULE_MISMATCH");
+    // All hands are loans. SQL alone awards a committed WIN; never debit owned
+    // inventory or fold trial results into ordinary CPU records/rewards here.
+    return {profiles:next,changed};
+  }
   if(action.type==="USE_SKILL"){
     const consumed=[];
     for(const id of new Set([...Object.keys(beforeState.hands[actor]),...Object.keys(nextState.hands[actor])])){
@@ -4119,6 +4386,8 @@ globalThis.FourColorStandardServerEngine=Object.freeze({
   chooseCpuAction,
   create,
   createCpuProfile,
+  createRenTrial:progression.createRenTrial,
+  getRenTrial:profile=>({progression:progression.projectRenProgression(profile),trial:progression.trialDescriptor()}),
   createStarterProfile,
   drawGacha,
   getCpuRoster,

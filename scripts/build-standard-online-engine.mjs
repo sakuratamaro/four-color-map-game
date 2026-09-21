@@ -13,12 +13,14 @@ const ids = [
   "standard/standard-cosmetics.js",
   "standard/standard-match-reward.js",
   "standard/standard-skill-registry.js",
+  "standard/standard-technique-state.js",
   "standard/standard-profile.js",
   "standard/standard-skill-handlers.js",
   "standard/standard-skill-dispatcher.js",
   "standard/standard-match.js",
   "standard/standard-cpu.js",
   "standard/standard-cpu-roster.js",
+  "standard/standard-cpu-progression.js",
 ];
 
 const readModule = (id) => fs.readFileSync(path.join(root, id), "utf8").replace(/\r\n?/g, "\n");
@@ -31,6 +33,7 @@ const matchReward = load("standard/standard-match-reward.js");
 const cosmetics = load("standard/standard-cosmetics.js");
 const cpu = load("standard/standard-cpu.js");
 const cpuRoster = load("standard/standard-cpu-roster.js");
+const progression = load("standard/standard-cpu-progression.js");
 const registry = load("standard/standard-skill-registry.js").STANDARD_SKILLS;
 const categories = ["color", "area", "disrupt"];
 const starterInventory = {
@@ -75,6 +78,11 @@ function chooseCpuAction({publicState,ownPrivateState,characterId,policyVersion,
   if(!Number.isSafeInteger(seed)||seed<0||seed>0xffffffff)throw new Error("INVALID_SEED");
   if(typeof policyVersion!=="string"||!policyVersion)throw new Error("INVALID_CPU_POLICY_VERSION");
   const streams=engine.createRngDomains(seed,match.REQUIRED_RNG_STREAMS);
+  if(progression.isRenTrialState(publicState)){
+    if(characterId!=="ren")throw new Error("INVALID_TRIAL_CPU_CHARACTER");
+    return clone(progression.chooseRenTrialAction({publicState,ownPrivateState,policyVersion,
+      random:()=>streams["cpu-B"].next(),tieBreakRandom:()=>streams["cpu-tie-break"].next()}));
+  }
   return clone(cpuRoster.chooseCharacterAction({
     publicState,ownPrivateState,characterId,policyVersion,
     random:()=>streams["cpu-B"].next(),tieBreakRandom:()=>streams["cpu-tie-break"].next(),
@@ -118,10 +126,11 @@ function projections(state,debugMode=false,labMode=false){
   if(labMode)publicState.labRuleSetId=LEGAL_RECOLOR_LAB_RULE_SET_ID;
   return {publicState,privateA:match.projectStandardPrivateState(state,"A"),privateB:match.projectStandardPrivateState(state,"B")};
 }
-function create({matchId,loadouts,profiles=null,seed,firstSeat=null,debugMode=false,labMode=false,cpuSeat=null,engineVersion=match.ENGINE_VERSION}){
+function create({matchId,loadouts,profiles=null,seed,firstSeat=null,debugMode=false,labMode=false,cpuSeat=null,engineVersion=match.ENGINE_VERSION,learnedTechniqueEnabled=false}){
   if(typeof debugMode!=="boolean")throw new Error("INVALID_DEBUG_MODE");
   if(typeof labMode!=="boolean"||debugMode&&labMode)throw new Error("INVALID_LAB_MODE");
   if(cpuSeat!==null&&!['A','B'].includes(cpuSeat))throw new Error("INVALID_CPU_SEAT");
+  if(typeof learnedTechniqueEnabled!=="boolean"||learnedTechniqueEnabled&&(debugMode||labMode||cpuSeat!=="B"))throw new Error("INVALID_TECHNIQUE_MATCH_MODE");
   validateLoadouts(loadouts);
   if(profiles!==null&&!debugMode){
     for(const seat of ["A","B"]){
@@ -130,7 +139,10 @@ function create({matchId,loadouts,profiles=null,seed,firstSeat=null,debugMode=fa
   }
   if(!Number.isSafeInteger(seed)||seed<0||seed>0xffffffff)throw new Error("INVALID_SEED");
   const streams=engine.createRngDomains(seed,match.REQUIRED_RNG_STREAMS);
-  let state=match.createStandardMatch({matchId,loadouts,firstSeat,engineVersion},streams);
+  const learned=learnedTechniqueEnabled&&profiles?.A?.equippedTechniqueId==="techUnsealOne"&&profiles.A.learnedTechniques?.includes("techUnsealOne");
+  const techniqueConfig=learned?{engineVersion:"5.0.0-alpha.5",techniqueRule:{id:"CPU_LEARNED_V1",playerSeat:"A"},
+    techniques:{A:{id:"techUnsealOne",definitionVersion:"unseal-v1",source:"LEARNED",usesRemaining:1},B:null}}:{};
+  let state=match.createStandardMatch({matchId,loadouts,firstSeat,engineVersion,...techniqueConfig},streams);
   state=clone(state);
   if(cpuSeat!==null)cpu.applyHardCpuSkillCharges(state,cpuSeat);
   state.ruleSetId=labMode?LEGAL_RECOLOR_LAB_RULE_SET_ID:STANDARD_RULE_SET_ID;
@@ -242,6 +254,12 @@ function applyCpuProfiles({profiles,beforeState,nextState,actor,action,finishedA
   for(const seat of ["A","B"])validateProfile(next[seat]);
   if(!cpuRoster.CPU_CHARACTERS[characterId])throw new Error("UNKNOWN_CPU_CHARACTER");
   const changed={A:false,B:false};
+  if(progression.isRenTrialState(beforeState)||progression.isRenTrialState(nextState)){
+    if(!progression.isRenTrialState(beforeState)||!progression.isRenTrialState(nextState)||characterId!=="ren")throw new Error("TRIAL_RULE_MISMATCH");
+    // All hands are loans. SQL alone awards a committed WIN; never debit owned
+    // inventory or fold trial results into ordinary CPU records/rewards here.
+    return {profiles:next,changed};
+  }
   if(action.type==="USE_SKILL"){
     const consumed=[];
     for(const id of new Set([...Object.keys(beforeState.hands[actor]),...Object.keys(nextState.hands[actor])])){
@@ -332,6 +350,8 @@ globalThis.FourColorStandardServerEngine=Object.freeze({
   chooseCpuAction,
   create,
   createCpuProfile,
+  createRenTrial:progression.createRenTrial,
+  getRenTrial:profile=>({progression:progression.projectRenProgression(profile),trial:progression.trialDescriptor()}),
   createStarterProfile,
   drawGacha,
   getCpuRoster,

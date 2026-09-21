@@ -1,7 +1,8 @@
 "use strict";
 
 const { COLORS, StandardRuleError, applyLegalRecolor } = require("./standard-engine.js");
-const { COLORED_CORNER_BLOOM_ENGINE_VERSION, STANDARD_SKILLS } = require("./standard-skill-registry.js");
+const { supportsColoredCornerBloom, STANDARD_SKILLS } = require("./standard-skill-registry.js");
+const { usesTechniques, techniqueAvailable, applyTechUnsealOne } = require("./standard-technique-state.js");
 const { applyAreaCornerBloom, applyAreaDiePlus, applyAreaHalfShift, applyAreaMicroBloom, applyAreaResize, applyAreaTripleShift, applyColorBonusRefill, applyColorChoiceBorrow, applyColorPaletteChange, applyColorRandomBorrow, applyColorPrism, applyColorRegionSplit, applyDisruptChoiceOne, applyDisruptChoiceThree, applyDisruptChoiceTwo, applyDisruptForcedPalette, applyDisruptPaletteChoice, applyDisruptPaletteRandom, applyDisruptRandomOne, applyDisruptRandomTwo } = require("./standard-skill-handlers.js");
 
 const SKILL_RESULT = Object.freeze({ REJECTED: "REJECTED", CANCELLED: "CANCELLED", RESOLVED: "RESOLVED" });
@@ -21,6 +22,7 @@ function nextRandom(rngStreams, name, counter) {
 function validateTargetSchema(definition, payload, state) {
   if (!definition.targetSchema) return true;
   if (!payload || typeof payload !== "object" || Array.isArray(payload)) return false;
+  if (definition.id === "techUnsealOne") return Object.keys(payload).sort().join("|") === "color|skill" && COLORS.includes(payload.color);
   if (definition.id === "legalRecolor") return typeof payload.regionId === "string" && payload.regionId.length > 0;
   if (definition.id === "colorPrism") return true;
   if (definition.id === "colorChoiceBorrow") return typeof payload.color === "string" && COLORS.includes(payload.color);
@@ -31,7 +33,7 @@ function validateTargetSchema(definition, payload, state) {
   if (definition.id === "areaCornerBloom") {
     const outgoing = Array.isArray(payload.sourceMacros) && payload.sourceMacros.every(Number.isInteger)
       && !Object.hasOwn(payload, "regionId") && Number.isInteger(payload.macro);
-    const coloredRegion = state.engineVersion === COLORED_CORNER_BLOOM_ENGINE_VERSION
+    const coloredRegion = supportsColoredCornerBloom(state.engineVersion)
       && typeof payload.regionId === "string" && payload.regionId.length > 0
       && !Object.hasOwn(payload, "sourceMacros") && Number.isInteger(payload.macro);
     return outgoing || coloredRegion;
@@ -44,6 +46,7 @@ function validateTargetSchema(definition, payload, state) {
 }
 
 const HANDLERS = Object.freeze({
+  techUnsealOne: applyTechUnsealOne,
   colorRandomBorrow({ state, actor, rngStreams, draws }) {
     return applyColorRandomBorrow({ state, actor, random: () => nextRandom(rngStreams, "skill-effect", draws) });
   },
@@ -97,12 +100,16 @@ function dispatchStandardSkillAction({ state, actor, action, expectedVersion, rn
   const definition = STANDARD_SKILLS[action.payload.skill];
   if (!definition) return rejected("UNKNOWN_SKILL", state);
   if (!definition.implemented || !HANDLERS[definition.id]) return rejected("SKILL_NOT_IMPLEMENTED", state);
+  const learned = definition.acquisitionType === "LEARNED";
+  if (learned && !usesTechniques(state.engineVersion)) return rejected("TECHNIQUE_ENGINE_UNSUPPORTED", state);
   if (state.active !== actor) return rejected("NOT_YOUR_TURN", state);
   const timingMatches = definition.timing === "WORK"
     ? state.phase === "WORK" || state.phase === "CREATE_FIRST"
     : state.phase === definition.timing;
   if (!timingMatches) return rejected("WRONG_PHASE", state);
-  if ((state.hands?.[actor]?.[definition.id] || 0) <= 0) return rejected("SKILL_UNAVAILABLE", state);
+  if (learned ? !techniqueAvailable(state, actor, definition.id) : (state.hands?.[actor]?.[definition.id] || 0) <= 0) {
+    return rejected(learned ? "TECHNIQUE_UNAVAILABLE" : "SKILL_UNAVAILABLE", state);
+  }
   if (definition.experimental && state.interferenceLock) return rejected("INTERFERENCE_CHAINED", state);
   if (!validateTargetSchema(definition, action.payload, state)) return rejected("INVALID_TARGET_SCHEMA", state);
   if (categoryLimitEnabled && state.skillCategoryWindow.categories.includes(definition.usageCategory)) {

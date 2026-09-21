@@ -57,7 +57,8 @@ test("skill information buttons cover all 19 Standard skills plus two separate e
   assert.doesNotMatch(app, /innerHTML/);
 });
 
-test("UDL-055 terminal and unhydrated setup gates cancel presentation before consulting session storage", () => {
+test("UDL-055 terminal and unhydrated setup gates cancel presentation before consulting session storage", async () => {
+  const { isRenTrial } = await import("../standard-online-v5/cpu-progression-model.js");
   const source = app.slice(app.indexOf("function clearRandomSetupReveal()"), app.indexOf("function openSkillInfo("));
   assert.ok(source.includes("function canRevealRandomSetup("));
   const state = { matchId: "match-1", status: "ACTIVE", phase: "CREATE_FIRST" };
@@ -74,6 +75,7 @@ test("UDL-055 terminal and unhydrated setup gates cancel presentation before con
     const context = vm.createContext({
       ...fixture, client: { snapshot: () => ({ roomId: "room-1" }) },
       randomRevealTimer: 42,
+      isRenTrial,
       clearTimeout: (id) => calls.push(["cancel", id]),
       show: (id, visible) => calls.push([id, visible]),
       sessionStorage: { getItem: () => assert.fail("terminal/pending state must win before the shown receipt") },

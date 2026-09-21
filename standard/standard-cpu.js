@@ -1,7 +1,7 @@
 "use strict";
 
 const { COLORS, adjacentRegionIds, legalRecolorCandidates } = require("./standard-engine.js");
-const { COLORED_CORNER_BLOOM_ENGINE_VERSION, STANDARD_SKILLS, V49_SKILL_IDS } = require("./standard-skill-registry.js");
+const { supportsColoredCornerBloom, STANDARD_SKILLS, V49_SKILL_IDS } = require("./standard-skill-registry.js");
 const { createRegionGeometryContext } = require("./standard-region-geometry.js");
 const {
   cornerBloomPlan,
@@ -377,7 +377,7 @@ function enumerateWorkSkillActions(publicState, ownPrivateState) {
         if (planned.plan.length && preparedTouchesColoredRegion(state, planned.micro)) actions.push(skillAction("areaCornerBloom", { sourceMacros, macro }, { skillPriority: 20 }));
       }
     }
-    if (publicState.engineVersion === COLORED_CORNER_BLOOM_ENGINE_VERSION) {
+    if (supportsColoredCornerBloom(publicState.engineVersion)) {
       const eligibleRegions = Object.values(publicState.regions || {})
         .filter((region) => region?.color && region.id !== publicState.pending && region.id !== publicState.reserved
           && !region.isPending && !region.isReserved && !region.deleted && !region.delayed && !region.delayState)

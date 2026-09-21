@@ -2,8 +2,9 @@ import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 import "../online/supabase-config.js";
 import { createQuizMemo } from "./quiz-memo.js?v=20260912-1";
 import { paletteRoleSlots, stableHandSlots } from "./play-surface-model.js?v=20260915-1";
-import { savedResultReward, terminalRewardPresentation } from "./result-continuation.js?v=20260914-1";
+import { savedResultReward, terminalRewardPresentation } from "./result-continuation.js?v=20260914-2";
 import { cardActionRecovery } from "./action-recovery.js?v=20260914-1";
+import { TECHNIQUE_ID, isRenTrial, techniquePresentation, validRenTrialInfo } from "./cpu-progression-model.js?v=20260914-1";
 import { displayedCosmeticIntent, cosmeticQuoteMatchesIntent, pendingCosmeticPresentation, definiteCosmeticRejection } from "./cosmetic-item-action.js?v=20260912-2";
 
 const cfg = globalThis.FourColorSupabaseConfig;
@@ -181,6 +182,10 @@ let cpuActionBusy = false;
 let loadoutWorkshopOpen = false;
 let cpuEntryDraft = null;
 let cpuStartSagaBusy = false;
+let progressionBusy = false;
+let progressionStatus = "";
+let renTrialInfo = null;
+let techniqueTargetScope = null;
 
 function normalizeLoadout(value, { requireComplete = false, checkOwned = false } = {}) {
   const result = Object.fromEntries(LOADOUT_CATEGORIES.map((category) => [category, []]));
@@ -1537,6 +1542,8 @@ function canRevealRandomSetup(publicState) {
 }
 
 function revealRandomSetup(publicState, privateState) {
+  // The disclosed fixed trial template is not a random palette/board draw.
+  if (isRenTrial(publicState)) return clearRandomSetupReveal();
   // Authoritative terminal/pending state outranks a missing per-tab presentation receipt.
   if (!canRevealRandomSetup(publicState)) return clearRandomSetupReveal();
   const key = `${RANDOM_REVEAL_PREFIX}${publicState.matchId}`;
@@ -1630,6 +1637,82 @@ function renderProfile() {
   $("profileSaveStatus").textContent = profileSyncBusy ? "保存中…" : profileSyncError;
   show("profileSaveStatus", profileSyncBusy || Boolean(profileSyncError));
   if (value) { renderLoadout(); renderGacha(); renderProgression(); renderCosmetics(); }
+  renderProgressionControls();
+}
+
+function progressionPending() {
+  const snapshot = client.snapshot();
+  return progressionBusy || Boolean(snapshot.pendingCpuTrial || snapshot.pendingTechniqueEquip);
+}
+
+function renderProgressionControls() {
+  const snapshot = client.snapshot();
+  const learned = synced && Array.isArray(profile()?.learnedTechniques) && profile().learnedTechniques.includes(TECHNIQUE_ID);
+  const equipPending = snapshot.pendingTechniqueEquip;
+  const locked = Boolean(snapshot.roomId || snapshot.pendingSetup || snapshot.cpuStartActionId || snapshot.rematchActionId
+    || snapshot.matchmakingTicketId || snapshot.matchmakingFindActionId || cpuEntryDraft || pendingCpuStartSaga
+    || matchmakingBusy || setupBusy || rematchBusy || cpuStartSagaBusy || profileSyncBusy);
+  show("techniqueEquipment", learned);
+  const equipped = profile()?.equippedTechniqueId === TECHNIQUE_ID;
+  $("techniqueEquipmentSummary").textContent = `解封（伝授）・${equipped ? "装備中" : "未装備"}。通常CPU戦で1回使えます。手札6枚とは別枠です。`;
+  $("equipTechnique").textContent = equipPending ? "同じ装備変更の結果を確認" : equipped ? "解封の装備を外す" : "解封を装備する";
+  $("equipTechnique").disabled = !connected || !learned || progressionBusy || Boolean(snapshot.pendingCpuTrial) || (!equipPending && locked);
+  $("techniqueEquipmentStatus").textContent = progressionStatus || (locked ? "対戦・募集・開始確認中は変更できません。終了した結果も先に閉じてください。" : "装備は次に始める通常CPU戦から反映されます。人との対戦には持ち込みません。");
+  const pending = Boolean(snapshot.pendingCpuTrial || equipPending);
+  show("progressionRecovery", synced && pending);
+  show("resumeTrialStart", Boolean(snapshot.pendingCpuTrial));
+  show("resumeTechniqueEquip", Boolean(equipPending));
+  $("resumeTrialStart").disabled = progressionBusy;
+  $("resumeTechniqueEquip").disabled = progressionBusy;
+  $("progressionRecoveryMessage").textContent = progressionBusy ? "保存結果を確認中です…" : snapshot.pendingCpuTrial
+    ? "試練の開始結果が未確認です。同じ操作で確認します。新しい対戦は作りません。"
+    : equipPending ? "装備変更の結果が未確認です。同じ操作で確認してから対戦を始めてください。" : "";
+}
+
+async function changeTechniqueEquipment() {
+  if (progressionBusy) return;
+  const saved = client.snapshot().pendingTechniqueEquip;
+  if (!saved && $("equipTechnique").disabled) return;
+  const input = saved || { actionId: crypto.randomUUID(), expectedRevision: client.snapshot().profileRevision,
+    techniqueId: profile()?.equippedTechniqueId === TECHNIQUE_ID ? null : TECHNIQUE_ID };
+  progressionBusy = true; progressionStatus = "装備を保存中…"; render();
+  try {
+    const result = await client.equipTechnique(input);
+    persistRemoteProfile(result.profileState, null, result.revision);
+    progressionStatus = "装備を保存しました。次に始める通常CPU戦から反映されます。";
+  } catch (error) {
+    progressionStatus = error.message || "装備変更の結果を確認できませんでした。同じ変更を再確認できます。";
+    const remote = await client.readProfile().catch(() => null);
+    if (remote) hydrateProfileRow(remote);
+  } finally { progressionBusy = false; render(); }
+}
+
+function renderTechnique(state, own) {
+  const model = techniquePresentation(state, own, roomModel?.view?.seat, actionBusy || Boolean(pendingAction));
+  show("techniqueControls", model.visible);
+  if (!model.visible) { techniqueTargetScope = null; return; }
+  const scope = `${roomModel.room.id}:${model.scope}`;
+  if (!model.usable || techniqueTargetScope !== scope) techniqueTargetScope = null;
+  $("useTechnique").textContent = `${model.sourceLabel}・解封 ×${model.uses}`;
+  $("useTechnique").disabled = !model.usable;
+  $("techniqueStatus").textContent = model.reason;
+  $("useTechnique").setAttribute("aria-expanded", String(Boolean(techniqueTargetScope)));
+  show("techniqueTargets", Boolean(techniqueTargetScope));
+  const target = $("techniqueTargets");
+  // Keep keyboard focus through same-version polling/rendering; never steal it.
+  const focusedColor = target.contains(document.activeElement) ? document.activeElement.dataset.techniqueColor : null;
+  target.replaceChildren();
+  if (!techniqueTargetScope) return;
+  for (const choice of model.colors) {
+    const node = button(`${colorName(choice.color)}${choice.sealed ? "の封印を解く" : "（封印なし）"}${choice.bonusEmpty ? "・おまけ0回のまま" : ""}`, () => {
+      const latest = techniquePresentation(roomModel?.room?.public_state, roomModel?.view?.private_state, roomModel?.view?.seat, actionBusy || Boolean(pendingAction));
+      if (`${roomModel?.room?.id}:${latest.scope}` !== scope || !latest.usable || !latest.colors.some(item => item.color === choice.color && item.sealed)) return render();
+      void sendAction("USE_SKILL", { skill: TECHNIQUE_ID, color: choice.color });
+    }, `color-button ${choice.color}`);
+    node.type = "button"; node.dataset.techniqueColor = choice.color; node.disabled = !choice.sealed;
+    target.appendChild(node);
+    if (focusedColor === choice.color && !node.disabled) node.focus({ preventScroll: true });
+  }
 }
 
 function displayDate(value) {
@@ -3672,6 +3755,7 @@ function render() {
   show("progressionPanel", synced && Boolean(profile()));
   show("cosmeticPanel", synced && Boolean(profile()));
   renderCosmetics();
+  renderProgressionControls();
   show("lobby", !snapshot.roomId && !cpuDraftOwnsRoomlessEntry && synced);
   renderMatchmaking();
   show("room", Boolean(snapshot.roomId));
@@ -3733,11 +3817,13 @@ function render() {
   const debugMatch = roomModel?.room?.public_state?.debugUnlimitedSkills === true;
   const labMatch = isLegalRecolorLab();
   $("roomStatus").textContent = `${ROOM_STATUS_LABEL[roomModel?.room?.status] || "読み込み中"}${debugMatch ? "・デバッグ∞" : labMatch ? "・LAB（無報酬）" : ""}`;
+  if (isRenTrial(roomModel?.room?.public_state)) $("roomStatus").textContent += "・レンの試練";
   const roomAbandonable = ["waiting", "ready"].includes(roomModel?.room?.status);
   const pendingAbandon = roomAbandonable && hasPendingAbandon(snapshot.roomId);
   $("leaveRoom").textContent = roomFinished ? "結果を閉じてロビーへ" : "画面だけ閉じる";
   $("leaveRoomDescription").textContent = roomFinished
-    ? labMatch || debugMatch ? "実験対戦のため、戦績・報酬・在庫は変わりません。" : "対戦結果と戦績は保存されています。"
+    ? isRenTrial(roomModel?.room?.public_state) ? "試練の結果は通常戦績・通常報酬と別に保存されます。"
+      : labMatch || debugMatch ? "実験対戦のため、戦績・報酬・在庫は変わりません。" : "対戦結果と戦績は保存されています。"
     : "ルーム・待機・対戦は継続します。";
   $("leaveRoom").disabled = abandonBusy;
   show("abandonRoom", roomAbandonable);
@@ -3810,6 +3896,7 @@ function button(text, onClick, className = "") {
 }
 
 function renderSkills(state, privateState) {
+  renderTechnique(state, privateState);
   const box = $("skillControls"); box.replaceChildren();
   const myTurn = state.status === "ACTIVE" && state.active === roomModel?.view?.seat;
   const usedCategories = new Set(state.skillCategoryWindow?.categories || []);
@@ -3860,6 +3947,7 @@ function renderSkills(state, privateState) {
 }
 
 function beginSkill(skill) {
+  techniqueTargetScope = null;
   if (skillIntents.isImmediate(skill)) {
     return sendAction("USE_SKILL", skillIntents.buildSkillPayload(skill));
   }
@@ -5582,8 +5670,8 @@ function renderMatchmaking() {
   const snapshot = client.snapshot();
   const searching = Boolean(snapshot.matchmakingTicketId) && !snapshot.roomId;
   const cpuStartPending = Boolean(snapshot.cpuStartActionId && snapshot.cpuStartCharacterId) || Boolean(cpuEntryDraft || pendingCpuStartSaga);
-  const newMatchBlocked = Boolean(snapshot.roomId || searching || snapshot.matchmakingFindActionId || cpuStartPending);
-  $("startStandardCpuLobby").disabled = matchmakingBusy || cpuAcceptBusy || searching || Boolean(snapshot.matchmakingFindActionId);
+  const newMatchBlocked = Boolean(snapshot.roomId || searching || snapshot.matchmakingFindActionId || cpuStartPending || progressionPending());
+  $("startStandardCpuLobby").disabled = matchmakingBusy || cpuAcceptBusy || searching || Boolean(snapshot.matchmakingFindActionId) || progressionBusy;
   $("startStandardCpuLobby").title = searching ? "募集を取り消すか、90秒後のCPU提案を選んでください。" : "";
   $("createRoom").disabled = newMatchBlocked;
   $("joinRoom").disabled = newMatchBlocked;
@@ -5598,6 +5686,7 @@ function renderMatchmaking() {
 
 function newMatchEntryBlock({ allowFindResume = false, allowCpuOwner = false, replaceRoomId = null, allowOwnedSagaRoom = false } = {}) {
   const snapshot = client.snapshot();
+  if (progressionPending()) return { kind: "progression" };
   if (replaceRoomId && replaceRoomId !== snapshot.roomId) return { kind: "cpu" };
   const ownsSagaRoom = allowOwnedSagaRoom && pendingCpuStartSaga?.stage === "setup" && pendingCpuStartSaga.roomId === snapshot.roomId;
   const replaceableFinishedRoom = UUID_PATTERN.test(String(replaceRoomId)) && replaceRoomId === snapshot.roomId
@@ -5616,7 +5705,10 @@ function guardNewMatchEntry(options = {}) {
   if ($("cpuRosterDialog").open) $("cpuRosterDialog").close();
   activateAppTab("battle");
   render();
-  if (block.kind === "room" || block.kind === "cpu") {
+  if (block.kind === "progression") {
+    $("progressionRecoveryMessage").focus({ preventScroll: true });
+    toast("試練・装備の未確認の操作を先に確認してください。");
+  } else if (block.kind === "room" || block.kind === "cpu") {
     focusMatchedRoom();
     toast(block.kind === "room" ? "新しい対戦は作らず、保存済みの対戦へ戻りました。" : "新しい対戦は作らず、CPU戦の開始確認へ戻りました。");
   } else if (block.kind === "ticket") {
@@ -5655,7 +5747,7 @@ function renderCpuRoster(characters) {
     const portraitArt = document.createElement("span"); portraitArt.className = "cpu-portrait-art"; portraitArt.hidden = true;
     const portraitFallback = document.createElement("span"); portraitFallback.className = "cpu-portrait-fallback"; portraitFallback.textContent = "CPU";
     portrait.append(portraitArt, portraitFallback);
-    const line = document.createElement("p"); line.className = "cpu-character-line"; line.textContent = `「${character.line}」`;
+    const line = document.createElement("p"); line.className = "cpu-character-line"; line.textContent = `「${character.id === "ren" && renTrialInfo ? renTrialInfo.progression.line : character.line}」`;
     const strength = document.createElement("p"); strength.textContent = `得意：${character.strength}`;
     const weakness = document.createElement("p"); weakness.textContent = `苦手：${character.weakness}`;
     const favorites = document.createElement("p"); favorites.className = "muted small";
@@ -5666,8 +5758,20 @@ function renderCpuRoster(characters) {
     summary.append(portrait, copy);
     const retrying = pendingCharacter === character.id;
     const choose = button(retrying ? `${character.name}との開始を再確認` : cpuRosterOrigin === "direct" ? `${character.name}を選んで6枚を確認` : `${character.name}と対戦`, () => acceptCpuCharacter(character), "primary");
-    choose.type = "button"; choose.disabled = cpuAcceptBusy || Boolean(pendingCharacter && !retrying);
+    choose.type = "button"; choose.disabled = cpuAcceptBusy || progressionPending() || Boolean(pendingCharacter && !retrying);
     item.append(summary, choose); grid.appendChild(item);
+    if (character.id === "ren" && renTrialInfo && cpuRosterOrigin === "direct") {
+      const details = document.createElement("details"); details.className = "cpu-trial-details";
+      const label = document.createElement("summary"); label.textContent = renTrialInfo.trial.title;
+      const conditions = document.createElement("ul");
+      for (const text of renTrialInfo.trial.conditions) { const li = document.createElement("li"); li.textContent = text; conditions.appendChild(li); }
+      const loans = document.createElement("p"); loans.className = "small";
+      loans.textContent = `貸与する6枚（各1回）：${Object.values(renTrialInfo.trial.loanLoadout).flat().map(id => SKILL_META[id]?.name || id).join("・")}。別枠の解封も各1回です。`;
+      const start = button(renTrialInfo.progression.trialUnlocked ? "この条件で試練を始める" : "通常対局でレンに1勝すると解禁", () => startRenTrial(), "primary");
+      start.type = "button"; start.dataset.trialStart = "ren-unseal";
+      start.disabled = !renTrialInfo.progression.trialUnlocked || progressionPending() || Boolean(pendingCharacter || cpuEntryDraft) || resultContinuationPending();
+      details.append(label, conditions, loans, start); item.appendChild(details);
+    }
     if (cpuPortraits?.VERSION === "standard-cpu-portraits-v2") {
       cpuPortraits.showCpuPortrait({ frame: portrait, art: portraitArt, fallback: portraitFallback, characterId: character.id });
     }
@@ -5703,15 +5807,53 @@ async function openCpuRoster(origin = "fallback", trigger = document.activeEleme
     const result = cpuRosterCache || await client.readCpuRoster();
     if (!Array.isArray(result?.characters) || result.characters.length !== 10) throw new Error("INVALID_CPU_ROSTER");
     cpuRosterCache = result;
+    renTrialInfo = null;
+    let trialInfoFailed = false;
+    if (result.cpuProgressionVersion === "ren-unseal-v1") {
+      try {
+        const info = await client.readRenTrial();
+        if (!validRenTrialInfo(info)) throw new Error("INVALID_TRIAL_INFO");
+        renTrialInfo = info;
+      } catch { trialInfoFailed = true; }
+    }
     renderCpuRoster(result.characters);
     $("cpuRosterStatus").textContent = pendingCpuStartSaga || client.snapshot().cpuStartCharacterId
       ? "前回選んだ同じCPUで、開始結果を安全に再確認できます。"
       : origin === "direct"
         ? "CPUを選んだ後に6枚を確認します。この画面の選択だけでは対戦は始まりません。"
         : "選択したCPUだけが対戦相手になります。人間として表示されることはありません。";
+    if (trialInfoFailed) $("cpuRosterStatus").textContent += " 試練の保存情報は確認できませんでした。通常CPU戦は選べます。";
   } catch (error) {
     $("cpuRosterStatus").textContent = "CPU一覧を読み込めませんでした。閉じてからもう一度お試しください。";
     toast(error.message || "CPU一覧を読み込めませんでした。");
+  }
+}
+async function startRenTrial() {
+  if (progressionBusy) return;
+  const pending = client.snapshot().pendingCpuTrial;
+  if (!pending) {
+    if (!synced || !renTrialInfo?.progression.trialUnlocked || cpuRosterOrigin !== "direct"
+        || setupBusy || rematchBusy || cpuAcceptBusy || matchmakingBusy
+        || newMatchEntryBlock({ replaceRoomId: cpuRosterReplaceRoomId })) return;
+    if (client.snapshot().roomId) closeDisplayedRoom();
+    if (client.snapshot().roomId) return;
+  }
+  const input = pending || { actionId: crypto.randomUUID(), trialId: "ren-unseal", trialVersion: 1, confirmed: true };
+  progressionBusy = true; progressionStatus = "試練を開始中…"; render();
+  for (const node of $("cpuRosterGrid").querySelectorAll("button")) node.disabled = true;
+  try {
+    await client.startCpuTrial(input);
+    cpuEntryDraft = null; loadoutWorkshopOpen = false; setCpuEntryIntent(false);
+    await enterPublicMatch("レンの試練を開始しました。貸与カードで挑戦できます。");
+    progressionStatus = "";
+  } catch (error) {
+    progressionStatus = error.message || "開始結果を確認できませんでした。同じ試練の開始結果を確認できます。";
+    toast(progressionStatus);
+    // A successful start followed by a failed view read is still the same room.
+    if (client.snapshot().roomId) await roomSync.start(client.snapshot().roomId).catch(() => {});
+  } finally {
+    progressionBusy = false; render();
+    if ($("cpuRosterDialog").open && cpuRosterCache) renderCpuRoster(cpuRosterCache.characters);
   }
 }
 
@@ -6237,6 +6379,10 @@ function closeDisplayedRoom() {
 }
 async function requestRematch() {
   if (rematchBusy || roomModel?.room?.status !== "finished") return;
+  if (isRenTrial(roomModel.room.public_state)) {
+    dismissTerminalResult();
+    return openCpuRoster("direct", $("terminalSummary"));
+  }
   rematchBusy = true; render();
   try {
     const cpuRoom = roomModel.room.opponent_kind === "cpu";
@@ -6301,6 +6447,20 @@ $("toggleProfileOptions").onclick = () => {
   renderProfile();
 };
 $("profileSelect").onchange = () => { if (profileSyncBusy) return; selectedProfileId = $("profileSelect").value; synced = false; profileSyncError = ""; renderProfile(); render(); };
+$("equipTechnique").onclick = changeTechniqueEquipment;
+$("resumeTechniqueEquip").onclick = changeTechniqueEquipment;
+$("resumeTrialStart").onclick = startRenTrial;
+$("useTechnique").onclick = () => {
+  const model = techniquePresentation(roomModel?.room?.public_state, roomModel?.view?.private_state, roomModel?.view?.seat, actionBusy || Boolean(pendingAction));
+  if (!model.usable) return;
+  techniqueTargetScope = techniqueTargetScope ? null : `${roomModel.room.id}:${model.scope}`;
+  targetDraft = null; selectedMacros.clear(); render();
+  if (techniqueTargetScope) $("techniqueTargets").querySelector("button:not(:disabled)")?.focus({ preventScroll: true });
+};
+$("techniqueControls").addEventListener("keydown", event => {
+  if (event.key !== "Escape" || !techniqueTargetScope) return;
+  event.preventDefault(); techniqueTargetScope = null; render(); $("useTechnique").focus({ preventScroll: true });
+});
 $("createStarterProfile").onclick = createStarterProfile;
 $("syncProfile").onclick = syncSelectedProfile;
 document.querySelectorAll("[data-quiz-start-level]").forEach(button => {
@@ -6474,7 +6634,7 @@ window.addEventListener("focus", () => {
   syncQuizOptionMotion();
   roomSync.invalidate(); scheduleCpuTurn(250); scheduleMatchmakingAvailability(250);
   const snapshot = client.snapshot();
-  if (connected && !snapshot.roomId && !pendingCpuStartSaga && !snapshot.cpuStartActionId
+  if (connected && !snapshot.roomId && !progressionPending() && !pendingCpuStartSaga && !snapshot.cpuStartActionId
       && !snapshot.matchmakingFindActionId && !snapshot.matchmakingTicketId) {
     void recoverServerActiveRoom().catch(() => false);
   }
@@ -6489,7 +6649,7 @@ window.addEventListener("storage", (event) => {
   basicFeedback.handleStorageEvent(event);
   if (event.key === PALETTE_IMPACT_PRESENTATION_KEY) presentedPaletteImpactEvents = restorePaletteImpactPresentation();
   const snapshot = client.snapshot();
-  if (event.key === globalThis.FourColorStandardOnlineClient.STORAGE_KEY && connected && !snapshot.roomId
+  if (event.key === globalThis.FourColorStandardOnlineClient.STORAGE_KEY && connected && !snapshot.roomId && !progressionPending()
       && !pendingCpuStartSaga && !snapshot.cpuStartActionId && !snapshot.matchmakingFindActionId && !snapshot.matchmakingTicketId) {
     void recoverServerActiveRoom().catch(() => false);
   }
@@ -6552,6 +6712,10 @@ try {
         cpuEntryDraft = null;
       } else await runPendingCpuStartSaga();
     }
+  }
+  else if (client.snapshot().pendingCpuTrial || client.snapshot().pendingTechniqueEquip) {
+    // Display same-ID recovery; a reload never silently creates a trial/equip request.
+    renderProgressionControls();
   }
   else if (pendingCpuStartSaga) await runPendingCpuStartSaga();
   else if (client.snapshot().cpuStartActionId && client.snapshot().cpuStartCharacterId) await resumePendingCpuStart();

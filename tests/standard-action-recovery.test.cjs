@@ -94,7 +94,7 @@ test("UDL062 candidate preflight rejects missing recovery assets or disconnected
   }
   const preflight = fs.readFileSync(path.join(__dirname, "../scripts/live-standard-release-preflight.mjs"), "utf8");
   assert.match(preflight, /hasCardActionRecovery, true, "CARD_ACTION_RECOVERY_REQUIRED"/);
-  assert.match(preflight, /for \(const file of \["terminal-result.css", "result-continuation.js", "action-recovery.js"\]\)/);
+  assert.match(preflight, /for \(const file of \["terminal-result.css", "result-continuation.js", "action-recovery.js", "cpu-progression-model.js"\]\)/);
   assert.match(preflight, /assert.equal\(response.text, fs.readFileSync/);
   assert.match(preflight, /\["progression.css", progressionCss\]/);
   for (const contract of ["CARD_ACTION_RECOVERY_REQUIRED", "HOME_RULES_REQUIRED", "COMPACT_PROFILE_REQUIRED"])

@@ -2574,6 +2574,114 @@ test("UDL065 same-version dialogs cancel visible and real Web Lock queued cut-in
   }, { viewport: { width: 390, height: 844 }, bodyTimeout: 45000 });
 });
 
+// UI acceptance uses real engine projections, with fixture auth/transport. Real
+// Edge + SQL commits are separately covered by standard-cpu-trial-sql-runtime.
+async function installRenTrialUi(page, { learned = false, loseStart = false, loseEquip = false } = {}) {
+  const trial = require("../standard/standard-cpu-progression.js"), {loadEngine,plain}=require("./helpers/public-skill-fixture.cjs"),api=loadEngine();
+  const initial=plain(trial.createRenTrial({matchId:`${roomId}:0`,seed:1}));
+  const used=plain(api.apply({state:initial.state,rngSnapshot:initial.rngSnapshot,actor:"A",expectedVersion:0,action:{type:"USE_SKILL",payload:{skill:"techUnsealOne",color:"red"}}}));
+  assert.equal(used.ok,true);
+  const data={roomId,learned,loseStart,loseEquip,initial:{publicState:initial.publicState,privateA:initial.privateA},used:{publicState:used.publicState,privateA:used.privateA},info:api.getRenTrial({cpuCharacterStats:{ren:{matches:1,wins:1}}})};
+  function install(data) {
+    const base=globalThis.__standardOnlineMockSupabase,r=globalThis.__standardOnlineRuntime;
+    const key="mock-ren-pilot-ui",saved=JSON.parse(sessionStorage.getItem(key)||"null")||{started:false,used:false,startReceipt:null,equipReceipt:null,equipped:false};
+    const persist=()=>sessionStorage.setItem(key,JSON.stringify(saved));
+    r.profile.profile_state.cpuCharacterStats={ren:{matches:1,wins:1,losses:0}};
+    if(data.learned){r.profile.profile_state.learnedTechniques=["techUnsealOne"];r.profile.profile_state.equippedTechniqueId=saved.equipped?"techUnsealOne":null;}
+    const reflect=()=>{
+      if(!saved.started)return;
+      const projection=saved.used?data.used:data.initial;
+      r.room={...r.room,id:data.roomId,status:"playing",version:projection.publicState.version,access_mode:"cpu",opponent_kind:"cpu",cpu_character_id:"ren",public_state:projection.publicState};
+      r.view={seat:"A",version:r.room.version,private_state:projection.privateA};
+      r.members=[{user_id:"33333333-3333-4333-8333-333333333333",seat:"A",display_name:"A"},{user_id:"55555555-5555-4555-8555-555555555555",seat:"B",display_name:"せっかちレン",is_cpu:true}];
+    };reflect();
+    const original=base.functions.invoke;
+    base.functions.invoke=async(name,request)=>{
+      const b=request.body;
+      if(b.operation==="cpu-roster"){const response=await original(name,request);response.data.cpuProgressionVersion="ren-unseal-v1";return response;}
+      if(!["cpu-trial-info","cpu-trial-start","technique-equip","action"].includes(b.operation))return original(name,request);
+      r.calls.push({kind:"invoke",name,body:b});await globalThis.__standardOnlineRecordInvoke(b);
+      if(b.operation==="cpu-trial-info")return {data:data.info};
+      if(b.operation==="cpu-trial-start"){
+        if(b.confirmed!==true||b.trialId!=="ren-unseal"||b.trialVersion!==1)throw new Error("invalid trial disclosure");
+        const duplicate=Boolean(saved.startReceipt);if(duplicate&&saved.startReceipt!==b.actionId)throw new Error("duplicate start identity changed");
+        saved.started=true;saved.startReceipt=b.actionId;persist();reflect();
+        if(data.loseStart&&!duplicate)return {error:new Error("fixture committed start ACK lost")};
+        return {data:{roomId:data.roomId,seat:"A",opponentKind:"cpu",characterId:"ren",trialId:"ren-unseal",trialVersion:1,duplicate}};
+      }
+      if(b.operation==="technique-equip"){
+        const duplicate=Boolean(saved.equipReceipt);if(duplicate&&saved.equipReceipt!==b.actionId)throw new Error("duplicate equip identity changed");
+        saved.equipReceipt=b.actionId;saved.equipped=b.techniqueId==="techUnsealOne";persist();r.profile.profile_state.equippedTechniqueId=b.techniqueId;r.profile.revision=2;
+        if(data.loseEquip&&!duplicate)return {error:new Error("fixture committed equip ACK lost")};
+        return {data:{revision:2,profileState:r.profile.profile_state,receipt:{actionId:b.actionId,techniqueId:b.techniqueId},duplicate}};
+      }
+      if(b.action?.type!=="USE_SKILL"||b.action.payload?.skill!=="techUnsealOne"||b.action.payload?.color!=="red"||b.action.expectedVersion!==0)throw new Error("unexpected UI technique payload");
+      saved.used=true;persist();reflect();return {data:{room:{version:r.room.version},result:{code:"OK",techniqueConsumed:true}}};
+    };
+    return base;
+  }
+  await page.route("https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm",route=>route.fulfill({status:200,contentType:"text/javascript",body:`export function createClient(){return (${install.toString()})(${JSON.stringify(data)})}`}));
+}
+async function openRenTrialDisclosure(page) {
+  await page.getByRole("button",{name:"対戦",exact:true}).click();
+  await page.locator("#startStandardCpuLobby").click();
+  const details=page.locator(".cpu-trial-details");await details.locator("summary").click();return details;
+}
+for(const width of [390,900]) test(`${browserName} AC064 Ren trial native disclosure, two-key use and reload at ${width}px`,{timeout:130000},async()=>{
+  await withPage("cosmetic",async page=>{
+    const details=await openRenTrialDisclosure(page);
+    assert.match(await details.innerText(),/通常戦績.*券.*コイン/);assert.match(await details.innerText(),/貸与する6枚/);
+    assert.equal(await page.evaluate(()=>globalThis.__standardOnlineRuntime.calls.filter(c=>c.body?.operation==="cpu-trial-start").length),0);
+    await details.getByRole("button",{name:"この条件で試練を始める",exact:true}).click();
+    const use=page.locator("#useTechnique:not([disabled])");await use.waitFor();
+    assert.equal(await page.locator("#skillControls .skill-entry").count(),6);assert.equal(await page.locator("#randomReveal").isHidden(),true);
+    assert.doesNotMatch(await page.locator("#techniqueControls").innerText(),/★|価格/);
+    await use.focus();await page.keyboard.press("Enter");
+    const red=page.locator('[data-technique-color="red"]');await red.waitFor();assert.equal(await red.evaluate(el=>el===document.activeElement),true);
+    assert.equal(await page.locator('[data-technique-color="blue"]').isDisabled(),true);
+    // Same-version refreshes replace the buttons. Measure the current focused
+    // DOM node atomically: a remote boundingBox handle can detach mid-call.
+    const beforeRefresh=await red.elementHandle();
+    await page.evaluate(()=>globalThis.__standardOnlineRuntime.onInvalidate());
+    await page.waitForFunction(node=>!node.isConnected,beforeRefresh,{timeout:10000});
+    const rect=await (await page.waitForFunction(()=>{
+      const node=document.querySelector('[data-technique-color="red"]');
+      if(!node||node.disabled||document.activeElement!==node)return false;
+      const {height,width}=node.getBoundingClientRect();
+      return height>=44&&width>=44?{height,width}:false;
+    },null,{timeout:10000})).jsonValue();
+    assert.ok(rect.height>=44&&rect.width>=44);await beforeRefresh.dispose();
+    await page.keyboard.press("Escape");assert.equal(await use.evaluate(el=>el===document.activeElement),true);
+    await page.keyboard.press("Enter");await page.keyboard.press("Enter");
+    await page.waitForFunction(()=>document.querySelector("#useTechnique").textContent.includes("×0"));
+    assert.equal(await page.locator("#skillControls .skill-entry").count(),6);
+    const calls=await page.evaluate(()=>globalThis.__standardOnlineRuntime.calls.filter(c=>c.body?.operation==="action").map(c=>c.body));assert.equal(calls.length,1);assert.equal(calls[0].action.payload.skill,"techUnsealOne");
+    await page.reload();await page.getByRole("button",{name:"対戦",exact:true}).click();
+    await page.locator("#techniqueControls:not(.hidden)").waitFor();assert.match(await page.locator("#useTechnique").innerText(),/×0/);assert.equal(await page.locator("#useTechnique").isDisabled(),true);
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),true);
+  },{viewport:{width,height:844},beforeNavigate:page=>installRenTrialUi(page)});
+});
+test(`${browserName} AC064 lost trial start shows an explicit same-ID retry and never submits six owned cards`, { timeout: 130000 }, async () => {
+  await withPage("cosmetic",async page=>{
+    const details=await openRenTrialDisclosure(page);await details.locator("button").click();
+    await page.locator("#resumeTrialStart:not([disabled]):not(.hidden)").waitFor();await page.locator("#closeCpuRoster").click();
+    await page.reload();await page.getByRole("button",{name:"ホーム",exact:true}).click();
+    await page.locator("#resumeTrialStart").click();await page.locator("#useTechnique:not([disabled])").waitFor();
+    const all=await page.evaluate(()=>globalThis.__standardOnlineLifetimeInvocations()),starts=all.filter(c=>c.operation==="cpu-trial-start");
+    assert.equal(starts.length,2);assert.deepEqual(starts[0],starts[1]);assert.equal(all.some(c=>["cpu-start","setup"].includes(c.operation)),false);
+  },{viewport:{width:390,height:844},beforeNavigate:page=>installRenTrialUi(page,{loseStart:true})});
+});
+test(`${browserName} AC064 learned equipment lost ACK stays recoverable through Home and reload without extra writes`, { timeout: 130000 }, async () => {
+  await withPage("cosmetic",async page=>{
+    await page.locator("#equipTechnique:not([disabled])").waitFor();assert.match(await page.locator("#techniqueEquipmentSummary").innerText(),/未装備/);
+    await page.locator("#equipTechnique").click();await page.locator("#resumeTechniqueEquip:not([disabled]):not(.hidden)").waitFor();
+    await page.getByRole("button",{name:"ホーム",exact:true}).click();await page.reload();await page.getByRole("button",{name:"ホーム",exact:true}).click();
+    const before=await page.evaluate(()=>globalThis.__standardOnlineLifetimeInvocations());assert.equal(before.filter(c=>c.operation==="technique-equip").length,1);
+    await page.locator("#resumeTechniqueEquip").click();await page.waitForFunction(()=>document.querySelector("#progressionRecovery").classList.contains("hidden"));
+    await page.getByRole("button",{name:"マイページ",exact:true}).click();assert.match(await page.locator("#techniqueEquipmentSummary").innerText(),/装備中/);
+    const requests=(await page.evaluate(()=>globalThis.__standardOnlineLifetimeInvocations())).filter(c=>c.operation==="technique-equip");assert.equal(requests.length,2);assert.deepEqual(requests[0],requests[1]);
+  },{viewport:{width:390,height:844},beforeNavigate:page=>installRenTrialUi(page,{learned:true,loseEquip:true})});
+});
 async function withPage(mode, run, { bodyTimeout = 35_000, viewport = { width: 900, height: 800 }, beforeNavigate = null, deviceScaleFactor = 1 } = {}) {
   assert.ok(chromium, "Playwright is required");
   assert.ok(fs.existsSync(browserPath), `${browserName} browser is required`);
@@ -7245,7 +7353,9 @@ test("actual Edge hands one submitted setup to the visible first-move guide with
       tabs: rect(".app-tabs"),
       overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
       actionOrder: Boolean(document.querySelector("#playSurface > #turnGuide > #regionControls"))
-        && Boolean(document.querySelector("#playSurface + #actionStatus + #retryAction + .hand-heading + #skillControls + #skillTargetControls + #paletteHistoryPanel + #tacticalTrace")),
+        && Boolean(document.querySelector("#playSurface + #actionStatus + #retryAction + .hand-heading + #skillControls + #skillTargetControls + #techniqueControls + #paletteHistoryPanel + #tacticalTrace")),
+      ordinaryTechniqueHidden: document.querySelector("#techniqueControls").classList.contains("hidden")
+        && getComputedStyle(document.querySelector("#techniqueControls")).display === "none",
       playableHit: document.elementFromPoint(
         document.querySelector("#board").getBoundingClientRect().left + document.querySelector("#board").getBoundingClientRect().width * 10.5 / 12,
         document.querySelector("#board").getBoundingClientRect().top + document.querySelector("#board").getBoundingClientRect().height * 1.5 / 12,
@@ -7263,6 +7373,7 @@ test("actual Edge hands one submitted setup to the visible first-move guide with
     assert.ok(layout.connection.bottom <= layout.tabs.top - 4, JSON.stringify(layout));
     assert.equal(layout.overflow, false);
     assert.equal(layout.actionOrder, true);
+    assert.equal(layout.ordinaryTechniqueHidden, true, JSON.stringify(layout));
     assert.equal(layout.playableHit, "board");
   };
 
@@ -7313,6 +7424,7 @@ test("actual Edge hands one submitted setup to the visible first-move guide with
     assert.ok(cpuFirstLayout.connection.bottom <= cpuFirstLayout.tabs.top - 4, JSON.stringify(cpuFirstLayout));
     assert.equal(cpuFirstLayout.overflow, false);
     assert.equal(cpuFirstLayout.actionOrder, true);
+    assert.equal(cpuFirstLayout.ordinaryTechniqueHidden, true, JSON.stringify(cpuFirstLayout));
     const handoff = await page.evaluate(() => globalThis.__handoffScrolls.at(-1));
     assert.deepEqual(handoff, { id: "matchCard", options: { block: "start", behavior: "auto" } });
   }, { viewport: { width: 390, height: 844 } });

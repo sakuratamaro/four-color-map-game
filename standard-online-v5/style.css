@@ -97,6 +97,15 @@ body[data-active-tab]:not([data-active-tab="home"]) .connection-card #connection
 .quiz-reward-help th:first-child { width: 45%; }
 .quiz-reward-help th:nth-child(2) { width: 18%; }
 .quiz-reward-help tbody th { font-weight: 500; }
+.technique-controls, .technique-equipment { border-top: 1px solid var(--border, #cbd5e1); margin-top: .75rem; padding-top: .75rem; }
+.technique-controls p, .technique-equipment p { margin: .4rem 0; }
+.technique-controls button, .technique-equipment button, .cpu-trial-details button,
+#progressionRecovery button, .cpu-trial-details summary { min-height: 44px; min-width: 44px; }
+.cpu-trial-details { margin-top: .5rem; overflow-wrap: anywhere; }
+.cpu-trial-details summary { display: list-item; cursor: pointer; padding: .65rem .25rem; }
+.cpu-trial-details ul { padding-left: 1.25rem; }
+.cpu-trial-details li + li { margin-top: .4rem; }
+#techniqueTargets { flex-wrap: wrap; }
 #quizStatus:empty { display: none; }
 @media (max-width: 900px) {
   #quizPanel .quiz-setup { grid-template-columns: repeat(3, minmax(0, 1fr)); }

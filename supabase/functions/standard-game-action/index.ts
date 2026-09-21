@@ -5,7 +5,9 @@ type JsonObject = Record<string, unknown>;
 type Seat = "A" | "B";
 type CpuProfileOptions = { policyGeneration?: "current" | "legacy" };
 type StandardEngineApi = {
-  create(input: { matchId: string; loadouts: Record<Seat, JsonObject>; profiles: Record<Seat, JsonObject>; seed: number; debugMode?: boolean; labMode?: boolean; cpuSeat?: Seat | null; engineVersion?: string }): JsonObject;
+  create(input: { matchId: string; loadouts: Record<Seat, JsonObject>; profiles: Record<Seat, JsonObject>; seed: number; debugMode?: boolean; labMode?: boolean; cpuSeat?: Seat | null; engineVersion?: string; learnedTechniqueEnabled?: boolean }): JsonObject;
+  createRenTrial(input: { matchId: string; seed: number }): JsonObject;
+  getRenTrial(profile: JsonObject): JsonObject;
   apply(input: { state: JsonObject; rngSnapshot: JsonObject; actor: Seat; action: JsonObject; expectedVersion: number; debugMode?: boolean; labMode?: boolean }): JsonObject;
   applyCosmetic(input: { profile: JsonObject; cosmeticId: string }): { profile: JsonObject; quote: JsonObject };
   applyProfiles(input: { profiles: Record<Seat, JsonObject>; beforeState: JsonObject; nextState: JsonObject; actor: Seat; action: JsonObject; finishedAt: string; debugMode?: boolean; labMode?: boolean; cardConsumed?: boolean }): { profiles: Record<Seat, JsonObject>; changed: Record<Seat, boolean> };
@@ -29,6 +31,8 @@ const NEW_STANDARD_MATCH_ENGINE_VERSION = "5.0.0-alpha.4";
 // Ship compatibility first; only an explicitly reviewed managed activation
 // changes new/rematched opponents. Existing rooms always keep their saved policy.
 const CPU_POLICY_GENERATION = Deno.env.get("FCG_CPU_SPLIT_RESCUE") === "standard-character-split-rescue-v1" ? "current" : "legacy";
+// Compatibility-first pilot: no client flag can activate unfinished trial/equip UI.
+const CPU_PROGRESSION_PILOT_ENABLED = Deno.env.get("FCG_CPU_PROGRESSION_PILOT") === "ren-unseal-v1";
 
 declare global {
   // Generated from the reviewed Standard engine and profile modules.
@@ -53,10 +57,11 @@ const RATE_WINDOW_MS = 60_000;
 const RATE_ENTRY_LIMIT = 4096;
 const RATE_GROUP = Object.freeze({
   "cosmetic-catalog": ["read", 120], "cosmetic-quote": ["read", 120], "card-sale-quote": ["read", 120], "cpu-roster": ["read", 120],
-  profile: ["economy", 60], gacha: ["economy", 60], "card-sale": ["economy", 60], "cosmetic-action": ["economy", 60],
+  profile: ["economy", 60], gacha: ["economy", 60], "card-sale": ["economy", 60], "cosmetic-action": ["economy", 60], "technique-equip": ["economy", 60],
   "quiz-start": ["economy", 60], "quiz-answer": ["economy", 60], "quiz-finish": ["economy", 60],
   setup: ["match", 240], initialize: ["match", 240], action: ["match", 240], "cpu-action": ["match", 240],
   "cpu-start": ["match", 240], "cpu-accept": ["match", 240], "cpu-rematch": ["match", 240],
+  "cpu-trial-info": ["read", 120], "cpu-trial-start": ["match", 240],
 } as const);
 const rateEntries = new Map<string, { windowStarted: number; count: number }>();
 
@@ -395,6 +400,13 @@ function roomProjection(row: JsonObject): JsonObject {
 function publicError(error: unknown): { status: number; code: string; message: string } {
   const candidate = error as { code?: string; message?: string };
   const detail = String(candidate?.message || "");
+  if (detail.includes("INVALID_TECHNIQUE_EQUIP")) return { status: 400, code: "INVALID_TECHNIQUE_EQUIP", message: "Technique equipment input is invalid." };
+  if (detail.includes("TECHNIQUE_NOT_LEARNED")) return { status: 403, code: "TECHNIQUE_NOT_LEARNED", message: "This technique has not been learned." };
+  if (detail.includes("TECHNIQUE_EQUIP_MATCH_LOCKED")) return { status: 409, code: "TECHNIQUE_EQUIP_MATCH_LOCKED", message: "Techniques cannot be changed while a match or rematch is pending or active." };
+  if (detail.includes("CPU_TRIAL_LOCKED")) return { status: 403, code: "CPU_TRIAL_LOCKED", message: "A saved ordinary Ren win is required." };
+  if (detail.includes("CPU_TRIAL_MATCH_LOCKED")) return { status: 409, code: "CPU_TRIAL_MATCH_LOCKED", message: "Finish the active or pending match before starting a trial." };
+  if (detail.includes("STANDARD_PROFILE_REQUIRED")) return { status: 409, code: "STANDARD_PROFILE_REQUIRED", message: "Create or recover your profile first." };
+  if (detail.includes("CPU_TRIAL_EXPLICIT_RESTART_REQUIRED")) return { status: 409, code: "CPU_TRIAL_EXPLICIT_RESTART_REQUIRED", message: "Read the trial conditions and explicitly start a new trial." };
   if (detail.includes("QUIZ_RATE_LIMIT")) return { status: 429, code: "QUIZ_RATE_LIMIT", message: "Quiz limit reached; try again later." };
   if (detail.includes("QUIZ_TOO_FAST")) return { status: 409, code: "QUIZ_TOO_FAST", message: "Complete the quiz before claiming the reward." };
   if (detail.includes("QUIZ_EXPIRED")) return { status: 409, code: "QUIZ_EXPIRED", message: "Quiz expired; start a new challenge." };
@@ -444,7 +456,7 @@ Deno.serve(async (request: Request) => {
     });
     const body = await request.json() as JsonObject;
     const operation = body.operation;
-    if (!["profile", "gacha", "card-sale-quote", "card-sale", "cosmetic-catalog", "cosmetic-quote", "cosmetic-action", "quiz-start", "quiz-answer", "quiz-finish", "cpu-roster", "cpu-start", "cpu-accept", "cpu-rematch", "cpu-action", "setup", "initialize", "action"].includes(String(operation))) {
+    if (!["profile", "gacha", "card-sale-quote", "card-sale", "cosmetic-catalog", "cosmetic-quote", "cosmetic-action", "technique-equip", "quiz-start", "quiz-answer", "quiz-finish", "cpu-roster", "cpu-start", "cpu-accept", "cpu-rematch", "cpu-action", "cpu-trial-info", "cpu-trial-start", "setup", "initialize", "action"].includes(String(operation))) {
       return json(400, { error: { code: "INVALID_REQUEST", message: "A valid operation is required." } });
     }
     if (rateLimited(actorId, String(operation))) {
@@ -454,10 +466,42 @@ Deno.serve(async (request: Request) => {
     if (operation === "cpu-roster") {
       return json(200, {
         rosterVersion: "standard-character-roster-v1",
+        cpuProgressionVersion: CPU_PROGRESSION_PILOT_ENABLED ? "ren-unseal-v1" : null,
         cpuPolicyCapabilities: ["standard-character-split-rescue-v1"],
         cpuPolicyGeneration: CPU_POLICY_GENERATION,
         characters: globalThis.FourColorStandardServerEngine.getCpuRoster({ policyGeneration: CPU_POLICY_GENERATION }),
       });
+    }
+
+    if (operation === "cpu-trial-info" || operation === "cpu-trial-start") {
+      if (!CPU_PROGRESSION_PILOT_ENABLED) return json(409, { error: { code: "TECHNIQUE_PILOT_DISABLED", message: "New trials are not enabled." } });
+      if (operation === "cpu-trial-info") {
+        if (Object.keys(body).some(key => key !== "operation")) return json(400, { error: { code: "INVALID_CPU_TRIAL_REQUEST", message: "No profile input is accepted." } });
+        stage = "load-trial-profile";
+        const { data, error } = await service.rpc("fcg_standard_server_load_profile", { p_user_id: actorId });
+        if (error) throw error;
+        const profile = firstRow(data);
+        if (!profile?.profile_state) throw new Error("STANDARD_PROFILE_REQUIRED");
+        return json(200, globalThis.FourColorStandardServerEngine.getRenTrial(profile.profile_state as JsonObject));
+      }
+      if (Object.keys(body).some(key => !["operation", "trialId", "trialVersion", "actionId", "confirmed"].includes(key))
+          || body.trialId !== "ren-unseal" || body.trialVersion !== 1 || body.confirmed !== true
+          || typeof body.actionId !== "string" || !UUID_PATTERN.test(body.actionId)) {
+        return json(400, { error: { code: "INVALID_CPU_TRIAL_START", message: "An explicitly confirmed trial version and action ID are required." } });
+      }
+      // Only worker-generated RNG crosses this RPC. SQL selects the immutable
+      // private template and checks actual saved wins under the actor/profile lock.
+      const template = globalThis.FourColorStandardServerEngine.createRenTrial({ matchId: "server-template", seed: secureSeed() });
+      stage = "start-cpu-trial";
+      const { data, error } = await service.rpc("fcg_standard_server_start_cpu_trial", {
+        p_user_id: actorId, p_action_id: body.actionId, p_cpu_user_id: crypto.randomUUID(),
+        p_trial_id: body.trialId, p_trial_version: body.trialVersion, p_rng_snapshot: template.rngSnapshot,
+      });
+      if (error) throw error;
+      const started = firstRow(data);
+      if (!started?.room_id) throw new Error("Incomplete trial start.");
+      return json(200, { roomId: started.room_id, seat: "A", opponentKind: "cpu", characterId: "ren",
+        trialId: "ren-unseal", trialVersion: 1, duplicate: started.duplicate === true });
     }
 
     if (operation === "cpu-start") {
@@ -524,6 +568,40 @@ Deno.serve(async (request: Request) => {
         characterId: accepted?.cpu_character_id,
         duplicate: accepted?.duplicate === true,
       });
+    }
+
+    if (operation === "technique-equip") {
+      if (!CPU_PROGRESSION_PILOT_ENABLED) {
+        return json(409, { error: { code: "TECHNIQUE_PILOT_DISABLED", message: "Technique equipment is not enabled." } });
+      }
+      const actionId = body.actionId;
+      const expectedRevision = body.expectedRevision;
+      const techniqueId = body.techniqueId;
+      if (Object.keys(body).some(key => !["operation", "actionId", "expectedRevision", "techniqueId"].includes(key))
+          || typeof actionId !== "string" || !UUID_PATTERN.test(actionId)
+          || !Number.isSafeInteger(expectedRevision) || (expectedRevision as number) < 0
+          || (techniqueId !== null && techniqueId !== "techUnsealOne")) {
+        return json(400, { error: { code: "INVALID_TECHNIQUE_EQUIP", message: "A technique choice, profile revision and action ID are required." } });
+      }
+      // Ownership, current equipment, active/pending guards and retry identity
+      // are resolved together under the SQL actor/profile lock, never from JSON.
+      stage = "commit-technique-equip";
+      const { data, error } = await service.rpc("fcg_standard_server_equip_technique", {
+        p_user_id: actorId,
+        p_expected_revision: expectedRevision,
+        p_action_id: actionId,
+        p_technique_id: techniqueId,
+      });
+      if (error) {
+        if (String(error.message || "").includes("STANDARD_PROFILE_REQUIRED")) {
+          return json(409, { error: { code: "STANDARD_PROFILE_REQUIRED", message: "Create or recover your profile first." } });
+        }
+        throw error;
+      }
+      const committed = firstRow(data);
+      if (!committed?.profile_state || !committed.receipt) throw new Error("Technique equipment result was incomplete.");
+      return json(200, { duplicate: committed.duplicate === true, revision: committed.revision,
+        profileState: committed.profile_state, receipt: committed.receipt });
     }
 
     if (operation === "profile") {
@@ -948,6 +1026,7 @@ Deno.serve(async (request: Request) => {
     if (seat !== "A" && seat !== "B") return json(403, { error: { code: "NOT_A_MEMBER", message: "You are not in this room." } });
 
     if (operation === "cpu-rematch") {
+      if (room.cpu_policy_version === "ren-unseal-trial-v1") throw new Error("CPU_TRIAL_EXPLICIT_RESTART_REQUIRED");
       const expectedVersion = body.expectedVersion;
       const actionId = body.actionId;
       if (!Number.isSafeInteger(expectedVersion) || (expectedVersion as number) < 0 || typeof actionId !== "string" || !UUID_PATTERN.test(actionId)) {
@@ -1009,6 +1088,7 @@ Deno.serve(async (request: Request) => {
           labMode,
           cpuSeat: room.opponent_kind === "cpu" ? "B" : null,
           engineVersion: NEW_STANDARD_MATCH_ENGINE_VERSION,
+          learnedTechniqueEnabled: CPU_PROGRESSION_PILOT_ENABLED && room.opponent_kind === "cpu" && !debugMode && !labMode,
         });
         const initialState = { ...(created.state as JsonObject), version: initialVersion };
         const initialProjection = globalThis.FourColorStandardServerEngine.project(initialState, debugMode, labMode);

@@ -4,6 +4,52 @@ Status: Phase S0 frozen draft for local `standard-v5-alpha1` implementation. Thi
 
 Product-loop and complexity priorities are defined in `docs/PRODUCT_CORE_LOOP.md`; those priorities govern player-facing simplification, progression, quiz hints, card sale, cosmetics, and the security boundary.
 
+## CPU progression pilot: release-review specification
+
+This section integrates the adopted `UDL011064-pilot-design-v2` into the existing public technical specification for a fixed candidate review. The canonical design section has SHA256 `d81198558f0e20b4891f1d6082239c42b8dd7815c80ca5ad0f699eb24109a285`; the existing governance ledger retains private provenance and review decisions. This is not a new editable ledger or an approval. Implementation is present in this candidate; hosted Windows, production and physical acceptance must be recorded separately. Historical draft/status paragraphs below do not describe this pilot's current verification.
+
+### Journey and authority
+
+- Stable CPU ID `ren`: only server-saved ordinary `cpuCharacterStats.ren.wins >= 1` unlocks the optional trial. Valid saved wins need no invented `firstWinAt`. Dialogue priority is learned, unlocked, returning, first meeting; no blocking dialogue screen or runtime AI.
+- Before explicit start, disclose special conditions and the six fixed loans. Preserve one active room, pending start/rematch, same-ID retry, surrender and reconnect. Normal Ren records and trial records remain separate.
+- A committed trial WIN grants permanent `techUnsealOne` once per player and technique, atomically with settlement. Versioned trial-clear records are separate. LOSS, player surrender, uncommitted results and repeat clears give no new technique, coins or tickets. Recent-history truncation is not the deduplication mechanism.
+- Keep four separate layers: permanent ownership, one out-of-match equipped ID, immutable match snapshot with validated acquisition/loan provenance, remaining use 1 to 0. Equip only outside active or pending games. Old whole-profile writers cannot add or erase server-owned progress.
+- Ordinary new CPU games grant the player's equipped learned technique. CPU configuration is fixed by character, not mirrored from the player. Ren trial gives both seats one fixed technique loan regardless of ownership/equipment. Pilot PvP gives neither seat a technique. Ordinary hands/loadouts remain six cards.
+- Start authority validates persisted ownership or the server-owned template; client `source: "LEARNED"` cannot grant access or waive inventory. Reload/reconnect/reinitialize/retry cannot refill a use. Only the next eligible new game gets a new use.
+- CPU policy and presentation use legal own/public information only. Technique ID/count and committed technique effects are public under this rule; normal private hands/palettes remain secret. Preserve all ten CPU identities and ordinary policy behavior. Trial Ren evaluates useful unsealing, not a favorite-skill bonus.
+
+### 解封: exact effect and resource contract
+
+`techUnsealOne` is displayed as **解封**, badge **伝授**, without ordinary stars. In `COLOR`, spend the color-category window and the separate one-per-match technique use to choose one currently owned color with positive seal count and set that color's seal count to zero. It uses zero RNG.
+
+- Ownership means current basic 1, basic 2 or bonus color. Duplicate slots share one color seal. During pollution use the current injected color, not the original rim. Temporary borrowed/prism-only colors do not qualify.
+- A sealed bonus color with stock zero qualifies, but its stock stays zero; explain that the bonus count does not increase.
+- Other seals, palette, pollution, adjacency, bonus stock, turn and RNG stay unchanged. Later seals and deferred backlash are not cancelled. Unsealing does not promise a legal coloring or bypass adjacency.
+- Invalid/unsealed/nonowned targets, used technique/category, wrong phase/actor/version change no game resources/state/RNG and create no success, consumption or award receipt. Existing rejection/diagnostic receipts remain permitted.
+- Interaction is technique button, then current-owned-color button, then effect; no extra confirmation. Keep controls separate, keyboard accessible and at least 44px. Exclude the technique from gacha, selling and the ordinary six-card loadout; a trial-loan flag never proves learned ownership. Internal registry rarity is not a displayed star or price.
+
+### Fixed trial and compatibility
+
+The versioned server template embeds a four-by-four logical area in a valid normal board: green A1/A2 is one region, blue B1/C1 another, pending B2/C2 a two-cell region. Player A starts in COLOR with unused category, basic red/blue, bonus yellow stock 1, red seal 2 and one technique loan. Ren has basic yellow/green, bonus blue stock 1 and one technique loan. Neither seat initially has borrowed/prism/pollution effects. Both receive exactly one each of `areaDiePlus`, `areaResize`, `colorPrism`, `colorRandomBorrow`, `disruptChoiceOne`, `disruptRandomTwo`, without owned-card debit. The disclosed initial seals are conditions, not fabricated historic actions or cutins.
+
+Both routes must continue through the actual engine: unseal red and paint red, retaining yellow; or paint yellow, retaining the technique. At least one full committed WIN must be demonstrated; use of 解封 is not mandatory for clearing. The complete acceptance journey is unlock, trial WIN, permanent acquisition, equip, ordinary match use, reload still used, next eligible match one use again. A badge alone does not satisfy it.
+
+Keep alpha1 through alpha4 rooms and replays compatible. Production creation is default OFF until the exact compatible worker, additive DB set and Pages candidate pass the release plan. Disabling new starts must retain support for existing alpha5 rooms and learned/equipped/clear records. Never downgrade those saved snapshots or restore an incompatible pre-pilot worker once they can exist. The exact rollout and bounded live proposal are in `docs/STANDARD_PUBLIC_RELEASE_RUNBOOK.md`.
+
+| Acceptance | Executable evidence in this candidate |
+| --- | --- |
+| AC-064-01 saved-record dialogue, unlock and tamper rejection | `tests/standard-cpu-progression-client.test.cjs`, `tests/standard-cpu-trial-sql-runtime.test.cjs` |
+| AC-064-02 template routes, committed WIN, disclosed loans and start guards | `tests/standard-ren-trial.test.cjs`, `tests/standard-cpu-trial-sql-runtime.test.cjs`, `tests/standard-cpu-progression-browser.test.cjs` |
+| AC-064-03 atomic once-only settlement, lost ACK and real races | `tests/standard-cpu-trial-sql-runtime.test.cjs`, `tests/standard-cpu-progression-postgres.test.cjs` |
+| AC-011-01 exact color-seal/category/RNG effect | `tests/standard-learned-technique.test.cjs`, `tests/standard-skill-dispatcher.test.cjs` |
+| AC-011-02 separate use, six cards, immutable snapshot and next game | `tests/standard-learned-technique.test.cjs`, `tests/standard-cpu-progression-browser.test.cjs` |
+| AC-064-04 equip ownership, old writes, races and retry | `tests/standard-technique-profile-sql-runtime.test.cjs`, `tests/standard-cpu-progression-postgres.test.cjs`, `tests/standard-cpu-progression-browser.test.cjs` |
+| AC-064-05 fixed loans, no ordinary CPU mirror, PvP off, legal trial policy | `tests/standard-ren-trial.test.cjs`, `tests/standard-cpu-trial-sql-runtime.test.cjs` |
+| AC-064-06 responsive/keyboard/pending UI, exclusions and committed public event | `tests/standard-cpu-progression-ui.test.cjs`, `tests/standard-cpu-progression-browser.test.cjs`, `tests/standard-public-skill-persistence.test.cjs` |
+| AC-064-07 old-room compatibility, rollout/disable/recovery | `tests/standard-learned-technique.test.cjs`, `tests/standard-cpu-progression-rollout.test.cjs`; hosted and publication evidence remain separate gates |
+
+These are executable test mappings, not claims that hosted or live acceptance has run. Local browser tests use isolated transport/auth/SQL fixtures; separate real PostgreSQL tests establish local multi-session races, not production gateway behavior. This pilot does not complete all ten trials, all card variety, PvP techniques or artwork.
+
 ## Authority and scope
 
 Behavior is resolved in this order:

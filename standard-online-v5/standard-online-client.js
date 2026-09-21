@@ -8,6 +8,13 @@
   const STORAGE_KEY = "fourColorMapGame.standard.online.v5.connection";
   const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
   const PUBLIC_FUNCTION_ERRORS = Object.freeze({
+    TECHNIQUE_PILOT_DISABLED: "試練・伝授技の新しい設定は現在お休み中です。進行中の対戦は続けられます。",
+    TECHNIQUE_NOT_LEARNED: "この技はまだ習得していません。保存された習得状況を確認してください。",
+    TECHNIQUE_EQUIP_MATCH_LOCKED: "対戦・募集・開始確認中は伝授技の装備を変更できません。",
+    CPU_TRIAL_MATCH_LOCKED: "進行中の対戦や開始確認を先に完了してください。",
+    CPU_TRIAL_LOCKED: "通常対局でレンに1勝すると試練に挑戦できます。",
+    CPU_TRIAL_EXPLICIT_RESTART_REQUIRED: "試練の条件を確認して、新しく挑戦してください。",
+    STANDARD_PROFILE_REQUIRED: "プレイヤー情報を保存してからお試しください。",
     AUTH_REQUIRED: "匿名ログインが必要です。接続を確認して、もう一度お試しください。",
     AUTH_INVALID: "ログイン情報を確認できませんでした。ページを再読み込みしてください。",
     NOT_A_MEMBER: "この対戦への参加を確認できませんでした。ロビーへ戻って入り直してください。",
@@ -154,6 +161,16 @@
     if (!normalized || normalized.length > max) throw Object.assign(new Error(code), { code });
     return normalized;
   }
+  function normalizeProgressionIntent(value, kind) {
+    if (!plainObject(value) || !UUID_PATTERN.test(String(value.actionId))) return null;
+    const keys = kind === "trial" ? ["actionId", "confirmed", "trialId", "trialVersion"]
+      : ["actionId", "expectedRevision", "techniqueId"];
+    if (Object.keys(value).sort().join("|") !== keys.sort().join("|")) return null;
+    if (kind === "trial" ? value.confirmed !== true || value.trialId !== "ren-unseal" || value.trialVersion !== 1
+      : !Number.isSafeInteger(value.expectedRevision) || value.expectedRevision < 0
+        || ![null, "techUnsealOne"].includes(value.techniqueId)) return null;
+    return Object.fromEntries(keys.map(key => [key, value[key]]));
+  }
   function stored(storage) {
     try {
       const value = JSON.parse(storage.getItem(STORAGE_KEY) || "null");
@@ -183,6 +200,8 @@
       matchmakingFindActionId: null,
       cpuStartActionId: null,
       cpuStartCharacterId: null,
+      pendingCpuTrial: null,
+      pendingTechniqueEquip: null,
       ...stored(storage),
     };
     state.committedDebugMode = Number(state.setupRevision) > 0 && state.committedDebugMode === true;
@@ -192,8 +211,67 @@
       state.committedLabMode = false;
     }
     state.pendingSetup = normalizePendingSetup(state.pendingSetup);
+    state.pendingCpuTrial = normalizeProgressionIntent(state.pendingCpuTrial, "trial");
+    state.pendingTechniqueEquip = normalizeProgressionIntent(state.pendingTechniqueEquip, "equip");
     if (state.pendingSetup?.roomId !== state.roomId) state.pendingSetup = null;
     let session = null;
+    let progressionBusy = false;
+    let matchEntryBusy = false;
+
+    function progressionConflict() {
+      return Object.assign(new Error("試練の開始・伝授技の装備結果を先に確認してください。"), { code: "PROGRESSION_ALREADY_PENDING", retryable: false });
+    }
+    function matchEntry(fn) {
+      return async (...args) => {
+        if (progressionBusy || state.pendingCpuTrial || state.pendingTechniqueEquip) throw progressionConflict();
+        // Reserve before the first auth/network await so equip cannot overtake a start.
+        if (matchEntryBusy) throw Object.assign(new Error("開始処理を確認中です。"), { code: "MATCH_ENTRY_BUSY", retryable: false });
+        matchEntryBusy = true;
+        try { return await fn(...args); } finally { matchEntryBusy = false; }
+      };
+    }
+    async function commitProgression(kind, input) {
+      const key = kind === "trial" ? "pendingCpuTrial" : "pendingTechniqueEquip";
+      const other = kind === "trial" ? "pendingTechniqueEquip" : "pendingCpuTrial";
+      if (progressionBusy || matchEntryBusy || state[other]) throw progressionConflict();
+      const intent = normalizeProgressionIntent(input, kind);
+      if (!intent) throw Object.assign(new Error("INVALID_PROGRESSION_REQUEST"), { retryable: false });
+      if (state[key] && JSON.stringify(state[key]) !== JSON.stringify(intent)) throw progressionConflict();
+      if (!state[key] && (state.roomId || state.pendingSetup || state.cpuStartActionId || state.rematchActionId
+          || state.matchmakingTicketId || state.matchmakingFindActionId || state.abandonActionId)) throw progressionConflict();
+      state[key] = intent;
+      progressionBusy = true;
+      try {
+        persist(); // If persistence fails, never send an unrecoverable mutation.
+        await ensureSession();
+        const result = await invoke(kind === "trial" ? "cpu-trial-start" : "technique-equip", intent);
+        if (kind === "trial") {
+          if (!UUID_PATTERN.test(String(result?.roomId)) || result.seat !== "A" || result.opponentKind !== "cpu"
+              || result.characterId !== "ren" || result.trialId !== intent.trialId || result.trialVersion !== intent.trialVersion)
+            throw new Error("INVALID_CPU_TRIAL_RESULT");
+          state.roomId = result.roomId; state.roomCode = null; state.setupRevision = 0;
+          clearCommittedSetupModes(); clearPendingSetup();
+        } else {
+          if (!plainObject(result?.profileState) || !Number.isSafeInteger(result.revision) || result.revision < 0
+              || result.receipt?.actionId !== intent.actionId || result.receipt.techniqueId !== intent.techniqueId)
+            throw new Error("INVALID_TECHNIQUE_EQUIP_RESULT");
+          state.profileRevision = result.revision;
+        }
+        state[key] = null;
+        persist();
+        return clone(result);
+      } catch (error) {
+        if (error?.retryable === false) { state[key] = null; persist(); }
+        throw error;
+      } finally { progressionBusy = false; }
+    }
+    async function readRenTrial() { await ensureSession(); return clone(await invoke("cpu-trial-info")); }
+    function startCpuTrial(options) {
+      return commitProgression("trial", options || state.pendingCpuTrial);
+    }
+    function equipTechnique(options) {
+      return commitProgression("equip", options || state.pendingTechniqueEquip);
+    }
 
     function persist() { storage.setItem(STORAGE_KEY, JSON.stringify(state)); }
     function clearCommittedSetupModes() {
@@ -748,6 +826,7 @@
       persist();
     }
     function resetConnection() {
+      if (progressionBusy || state.pendingCpuTrial || state.pendingTechniqueEquip) throw progressionConflict();
       storage.removeItem(STORAGE_KEY);
       state.roomId = null;
       state.roomCode = null;
@@ -768,35 +847,38 @@
     }
 
     return Object.freeze({
-      acceptCpuOpponent,
+      acceptCpuOpponent: matchEntry(acceptCpuOpponent),
       abandonRoom,
       applyCosmetic,
       answerQuiz,
       cancelMatchmaking,
       clearRoom,
-      createRoom,
+      createRoom: matchEntry(createRoom),
       drawGacha,
       ensureSession,
       finishQuiz,
-      findOpponent,
+      findOpponent: matchEntry(findOpponent),
       initialize,
-      joinRoom,
+      joinRoom: matchEntry(joinRoom),
       readMatchmakingStatus,
       readMatchmakingAvailability,
       readCpuRoster,
+      readRenTrial,
+      startCpuTrial,
+      equipTechnique,
       readCosmetics,
       readProfile,
       readRoom,
       recoverActiveRoom,
-      requestCpuRematch,
-      requestRematch,
+      requestCpuRematch: matchEntry(requestCpuRematch),
+      requestRematch: matchEntry(requestRematch),
       quoteCardSale,
       quoteCosmetic,
-      recruitOpponent,
+      recruitOpponent: matchEntry(recruitOpponent),
       resetConnection,
       snapshot: () => Object.freeze(clone(state)),
       startQuiz,
-      startCpuOpponent,
+      startCpuOpponent: matchEntry(startCpuOpponent),
       sellCards,
       submitAction,
       submitSetup,

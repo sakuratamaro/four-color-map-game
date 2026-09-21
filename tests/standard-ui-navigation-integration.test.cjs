@@ -4,14 +4,17 @@ const root=path.join(__dirname,".."),read=p=>fs.readFileSync(path.join(root,p),"
 const html=read("standard-online-v5/index.html"),app=read("standard-online-v5/app.js"),spec=read("docs/UI_NAVIGATION_RELEASE_20260920.md");
 const workflow=read(".github/workflows/standard-browser-gate.yml"),runbook=read("docs/STANDARD_PUBLIC_RELEASE_RUNBOOK.md");
 const lane=runbook.slice(runbook.indexOf("## 2026-09-20 UI導線統合候補"),runbook.indexOf("## 2026-09-15 UI後続便"));
-test("navigation candidate owns current cache markers while retaining both UI families",()=>{
+test("navigation parent markers stay frozen while both UI families survive in the pilot",()=>{
+  const current=marker=>({"app.js?v=20260920-1":"app.js?v=20260921-1","style.css?v=20260920-1":"style.css?v=20260921-1",
+    "standard-skill-registry.generated.js?v=20260914-1":"standard-skill-registry.generated.js?v=20260914-2",
+    "result-continuation.js?v=20260914-1":"result-continuation.js?v=20260914-2"})[marker]||marker;
   for(const marker of ["app.js?v=20260920-1","style.css?v=20260920-1","play-surface.css?v=20260915-5",
     "ui-diet.css?v=20260914-2","progression.css?v=20260914-1","terminal-result.css?v=20260914-1",
     "surrender-confirmation.css?v=20260913-2","standard-skill-registry.generated.js?v=20260914-1"]){
-    assert.ok(html.includes(marker),marker);assert.ok(spec.includes(marker),marker);assert.ok(lane.includes(marker),marker);
+    assert.ok(html.includes(current(marker)),current(marker));assert.ok(spec.includes(marker),marker);assert.ok(lane.includes(marker),marker);
   }
   for(const marker of ["play-surface-model.js?v=20260915-1","result-continuation.js?v=20260914-1","action-recovery.js?v=20260914-1"]){
-    assert.ok(app.includes(marker),marker);assert.ok(spec.includes(marker),marker);assert.ok(lane.includes(marker),marker);
+    assert.ok(app.includes(current(marker)),current(marker));assert.ok(spec.includes(marker),marker);assert.ok(lane.includes(marker),marker);
   }
   assert.doesNotMatch(html,/app\.js\?v=202609(?:14-9|15-8)|style\.css\?v=202609(?:14-3|15-8)/);
 });

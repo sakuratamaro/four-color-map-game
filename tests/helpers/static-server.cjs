@@ -5,7 +5,6 @@ const http = require("node:http");
 const path = require("node:path");
 
 const root = path.resolve(__dirname, "..", "..");
-const port = Number(process.argv[2] || 4173);
 const mime = {
   ".css": "text/css; charset=utf-8",
   ".html": "text/html; charset=utf-8",
@@ -14,7 +13,8 @@ const mime = {
   ".png": "image/png",
 };
 
-const server = http.createServer((request, response) => {
+function createStaticServer() {
+return http.createServer((request, response) => {
   const requestPath = decodeURIComponent(new URL(request.url, "http://localhost").pathname);
   const relative = requestPath === "/" ? "index.html" : requestPath.replace(/^\/+/, "");
   const target = path.resolve(root, relative);
@@ -37,7 +37,17 @@ const server = http.createServer((request, response) => {
     });
   });
 });
+}
 
-server.listen(port, "127.0.0.1", () => {
-  process.stdout.write(`STATIC_SERVER http://127.0.0.1:${port}\n`);
-});
+function startStaticServer(port = 0) {
+  return new Promise((resolve, reject) => {
+    const server = createStaticServer();
+    server.once("error", reject);
+    server.listen(port, "127.0.0.1", () => resolve({ server, url: `http://127.0.0.1:${server.address().port}` }));
+  });
+}
+
+if (require.main === module) {
+  startStaticServer(Number(process.argv[2] || 4173)).then(({ url }) => process.stdout.write(`STATIC_SERVER ${url}\n`));
+}
+module.exports = { createStaticServer, startStaticServer };

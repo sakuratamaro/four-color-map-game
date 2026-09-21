@@ -2,7 +2,7 @@
 
 const { COLORS, StandardRuleError, mergeSameColorComponent } = require("./standard-engine.js");
 const { createRegionGeometryContext } = require("./standard-region-geometry.js");
-const { COLORED_CORNER_BLOOM_ENGINE_VERSION } = require("./standard-skill-registry.js");
+const { supportsColoredCornerBloom } = require("./standard-skill-registry.js");
 
 function clone(value) {
   return JSON.parse(JSON.stringify(value));
@@ -353,7 +353,7 @@ function cornerBloomPlan(state, sourceMacros, macro) {
 }
 
 function coloredCornerBloomPlan(state, regionId, macro) {
-  if (state.engineVersion !== COLORED_CORNER_BLOOM_ENGINE_VERSION) {
+  if (!supportsColoredCornerBloom(state.engineVersion)) {
     return Object.freeze({ ok: false, code: "COLORED_CORNER_BLOOM_NOT_SUPPORTED", plan: [], micro: [] });
   }
   const region = state.regions?.[regionId];

@@ -6,7 +6,7 @@
   <title>Four Color Map Game v5.0 Standard Online</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='30' height='30' x='1' y='1' rx='8' fill='%23ef476f'/%3E%3Crect width='30' height='30' x='33' y='1' rx='8' fill='%23ffd166'/%3E%3Crect width='30' height='30' x='1' y='33' rx='8' fill='%2306d6a0'/%3E%3Crect width='30' height='30' x='33' y='33' rx='8' fill='%231182e8'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="../online-v5/style.css">
-  <link rel="stylesheet" href="style.css?v=20260920-1">
+  <link rel="stylesheet" href="style.css?v=20260921-1">
   <link rel="stylesheet" href="debug-mode.css">
   <link rel="stylesheet" href="progression.css?v=20260914-1">
   <link rel="stylesheet" href="quiz-memo.css?v=20260912-2">
@@ -136,6 +136,18 @@
         <button id="syncProfile" class="primary">このプロフィールを使う</button>
       </div>
       <p id="profileSaveStatus" class="small hidden" role="status" aria-live="polite"></p>
+      <section id="techniqueEquipment" class="technique-equipment hidden" aria-labelledby="techniqueEquipmentTitle">
+        <h3 id="techniqueEquipmentTitle">伝授技</h3>
+        <p id="techniqueEquipmentSummary"></p>
+        <button id="equipTechnique" type="button" class="ghost">解封を装備する</button>
+        <p id="techniqueEquipmentStatus" class="small" role="status"></p>
+      </section>
+    </section>
+
+    <section id="progressionRecovery" class="card hidden" data-app-tab-panel="home battle profile" aria-label="試練・装備の再確認">
+      <p id="progressionRecoveryMessage" tabindex="-1" role="status"></p>
+      <button id="resumeTrialStart" type="button" class="primary hidden">同じ試練の開始結果を確認</button>
+      <button id="resumeTechniqueEquip" type="button" class="primary hidden">同じ装備変更の結果を確認</button>
     </section>
 
     <section id="quizPanel" class="card quiz-panel hidden" data-app-tab-panel="quiz">
@@ -415,6 +427,12 @@
       <h3 class="hand-heading">あなたの6枚</h3>
       <div id="skillControls" class="skills"></div>
       <div id="skillTargetControls" class="target-panel hidden"></div>
+      <section id="techniqueControls" class="technique-controls hidden" aria-label="別枠の伝授技">
+        <button id="useTechnique" type="button" class="ghost" aria-expanded="false" aria-controls="techniqueTargets"></button>
+        <p id="techniqueStatus" class="small"></p>
+        <div id="techniqueTargets" class="controls hidden" role="group" aria-label="解封する現在の持ち色"></div>
+        <p class="small">封印を解く色を選ぶと使用します。おまけ色の回数は増えません。隣の色の制限は変わりません。</p>
+      </section>
         <details id="paletteHistoryPanel" class="palette-history">
           <summary>持ち色の初期値・変更履歴 <span id="paletteHistoryCount">変更なし</span></summary>
           <p><strong>初期値：</strong><span id="initialPaletteValue">確認中</span></p>
@@ -573,8 +591,8 @@
       <p id="quizMemoStatus" role="status" aria-live="polite"></p>
     </section>
   </div>
-  <script src="standard-skill-registry.generated.js?v=20260914-1"></script>
-  <script src="standard-online-client.js?v=20260910-1"></script>
+  <script src="standard-skill-registry.generated.js?v=20260914-2"></script>
+  <script src="standard-online-client.js?v=20260914-1"></script>
   <script src="standard-online-sync.js"></script>
   <script src="standard-online-skill-intents.js?v=20260911-21"></script>
   <script src="cpu-portraits.js?v=20260908-1"></script>
@@ -589,6 +607,6 @@
   <p id="skillCutinAnnouncement" class="visually-hidden" role="status" aria-live="polite" aria-atomic="true"></p>
   <script src="skill-cutin.js?v=20260913-2"></script>
   <script src="surrender-confirmation.js?v=20260913-1"></script>
-  <script type="module" src="app.js?v=20260920-1"></script>
+  <script type="module" src="app.js?v=20260921-1"></script>
 </body>
 </html>

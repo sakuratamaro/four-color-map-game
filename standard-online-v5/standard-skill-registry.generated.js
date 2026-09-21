@@ -5,6 +5,22 @@
   root.FourColorStandardSkillRegistry = value;
 })(typeof globalThis === "object" ? globalThis : this, () => {
   const skills = {
+  "techUnsealOne": {
+    "id": "techUnsealOne",
+    "displayName": "解封",
+    "category": "color",
+    "usageCategory": "color",
+    "rarity": 1,
+    "timing": "COLOR",
+    "v49Catalogued": false,
+    "standardUiEnabled": false,
+    "alphaUiEnabled": false,
+    "experimental": false,
+    "standardEngineImplemented": true,
+    "gachaEnabled": false,
+    "acquisitionType": "LEARNED",
+    "displayRarity": false
+  },
   "colorRandomBorrow": {
     "id": "colorRandomBorrow",
     "displayName": "色拾い・乱",

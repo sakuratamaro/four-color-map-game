@@ -10,8 +10,8 @@ const onlineIndex = fs.readFileSync(path.join(__dirname, "..", "standard-online-
 const localIndex = fs.readFileSync(path.join(__dirname, "..", "standard-v5", "index.html"), "utf8");
 // Freeze only the two superseded cache labels in main70e's historical release lanes.
 // Current UI generation is checked independently below; no old approval is reused.
-const followupOnlineIndex = onlineIndex.replace("app.js?v=20260920-1", "app.js?v=20260915-8")
-  .replace("style.css?v=20260920-1", "style.css?v=20260915-8");
+const followupOnlineIndex = onlineIndex.replace("app.js?v=20260921-1", "app.js?v=20260915-8")
+  .replace("style.css?v=20260921-1", "style.css?v=20260915-8");
 const priorOnlineIndex = followupOnlineIndex.replace("app.js?v=20260915-8", "app.js?v=20260913-44")
   .replace("style.css?v=20260915-8", "style.css?v=20260910-12");
 
@@ -74,7 +74,18 @@ test("UDL060 terminal hierarchy binds its own asset versions and keeps release g
   for (const pattern of [/href="(terminal-result\.css\?v=[^"]+)"/])
     assert.ok(section.includes(assetReference(onlineIndex, pattern, "terminal hierarchy lane")));
   const app = fs.readFileSync(path.join(__dirname, "..", "standard-online-v5", "app.js"), "utf8");
-  assert.ok(section.includes(assetReference(app, /from "\.\/(result-continuation\.js\?v=[^"]+)"/, "terminal reward model")));
+  // Fixed parent evidence is not rewritten for the later trial result model.
+  assert.ok(section.includes("result-continuation.js?v=20260914-1"));
+});
+
+test("CPU progression UI binds current assets without rewriting parent publication evidence", () => {
+  const section = runbook.slice(runbook.indexOf("## 2026-09-21 CPU試練・伝授技"), runbook.indexOf("## 2026-09-20 UI導線統合候補"));
+  for (const pattern of [/src="(app\.js\?v=[^"]+)"/, /href="(style\.css\?v=[^"]+)"/, /src="(standard-online-client\.js\?v=[^"]+)"/])
+    assert.ok(section.includes(assetReference(onlineIndex, pattern, "pilot UI")));
+  const app = fs.readFileSync(path.join(__dirname, "..", "standard-online-v5", "app.js"), "utf8");
+  for (const pattern of [/from "\.\/(result-continuation\.js\?v=[^"]+)"/, /from "\.\/(cpu-progression-model\.js\?v=[^"]+)"/])
+    assert.ok(section.includes(assetReference(app, pattern, "pilot model")));
+  assert.match(section, /default OFF/); assert.match(section, /do not establish publication/);
 });
 
 test("quiz parent keeps its frozen markers and terminal dependencies without live writes", () => {
@@ -91,7 +102,7 @@ test("gacha parent keeps its frozen assets and exact quiz parent without new liv
     "新候補固有", "Windows", "真正Astraレビュー", "100枚上限", "busy/pending/Lv/actionId/count/reload/retry",
     "DB/Edge/管理設定は各 `[]`", "確率・報酬・経済変更なし", "liveはこの手順では許可しない", "親049承認", "具体的保留を迂回しない"])
     assert.ok(section.includes(text), text);
-  for (const marker of ["app.js?v=20260914-6", "style.css?v=20260914-3", "standard-skill-registry.generated.js?v=20260914-1"])
+  for (const marker of ["app.js?v=20260914-6", "style.css?v=20260914-3", "standard-skill-registry.generated.js?v=20260914-2"])
     assert.ok(section.includes(marker));
 });
 
@@ -133,7 +144,7 @@ test("compact profile keeps failed Home gate separate and binds only its own ass
     assert.ok(section.includes(marker));
 });
 
-test("current alpha.4 release lane deploys the compatible Edge before Pages and preserves active rooms", () => {
+test("frozen alpha.4 release lane deploys the compatible Edge before Pages and preserves active rooms", () => {
   const releaseSection = runbook.slice(runbook.indexOf("### alpha.4彩色済みエリア角膨張便"), runbook.indexOf("### alpha.3カテゴリ制限便"));
   const edge = releaseSection.indexOf("alpha.4対応Edge");
   const canary = releaseSection.indexOf("live canary", edge);
@@ -143,9 +154,9 @@ test("current alpha.4 release lane deploys the compatible Edge before Pages and 
     assetReference(priorOnlineIndex, /src="(app\.js\?v=[^"]+)"/, "frozen main70e online app"),
     assetReference(priorOnlineIndex, /href="(style\.css\?v=[^"]+)"/, "frozen main70e online style"),
     assetReference(onlineIndex, /src="(standard-online-skill-intents\.js\?v=[^"]+)"/, "online skill intents"),
-    assetReference(onlineIndex, /src="(standard-online-client\.js\?v=[^"]+)"/, "online client"),
+    "standard-online-client.js?v=20260910-1", // Fixed parent; pilot is checked separately.
     assetReference(onlineIndex, /src="(cpu-portraits\.js\?v=[^"]+)"/, "CPU portraits"),
-    assetReference(localIndex, /src="(app\.bundle\.js\?v=[^"]+)"/, "local bundle"),
+    "app.bundle.js?v=20260913-9-4f66b9b284ba", // Exact published parent, not the later pilot bundle.
   ];
   for (const asset of candidateAssets) assert.match(releaseSection, new RegExp(asset.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
   for (const phrase of [
