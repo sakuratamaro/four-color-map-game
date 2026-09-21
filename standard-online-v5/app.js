@@ -3897,7 +3897,9 @@ function button(text, onClick, className = "") {
 
 function renderSkills(state, privateState) {
   renderTechnique(state, privateState);
-  const box = $("skillControls"); box.replaceChildren();
+  const box = $("skillControls");
+  const focusedSkill = box.contains(document.activeElement) ? document.activeElement.dataset.skill : null;
+  box.replaceChildren();
   const myTurn = state.status === "ACTIVE" && state.active === roomModel?.view?.seat;
   const usedCategories = new Set(state.skillCategoryWindow?.categories || []);
   let categoryNote = null;
@@ -3944,6 +3946,9 @@ function renderSkills(state, privateState) {
   }
   if (categoryNote) box.appendChild(categoryNote);
   renderSkillTarget(state, privateState);
+  // Same-version updates must not discard keyboard focus after target cancel.
+  if (focusedSkill) [...box.querySelectorAll("button[data-skill]:not(:disabled)")]
+    .find(node => node.dataset.skill === focusedSkill)?.focus({ preventScroll: true });
 }
 
 function beginSkill(skill) {

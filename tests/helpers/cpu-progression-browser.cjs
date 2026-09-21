@@ -19,6 +19,7 @@ const stage = name => console.error("PILOT_NATIVE_STAGE " + name);
 function sdkFixture(id) {
   const listeners = new Set();
   function notify() { queueMicrotask(() => listeners.forEach(fn => fn({}))); }
+  globalThis.__pilotNotifyRealtime = notify;
   return {
     auth: { getSession: async () => ({ data: { session: { user: { id }, access_token: "isolated-platform-fixture" } } }) },
     from(table) {
