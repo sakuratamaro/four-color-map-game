@@ -47,14 +47,14 @@ async function playerAction(page,f,roomId,turn) {
 async function playTrace(page,f,roomId,trace) {
   for(const turn of trace) if(turn.seat==="A") await playerAction(page,f,roomId,turn);
 }
-async function startOrdinary(page,f) {
+async function startOrdinary(page,f,selectedLoadout=loadout) {
   await page.getByRole("button",{name:"対戦",exact:true}).click();
   await page.locator("#startStandardCpuLobby").click();
   await page.getByRole("button",{name:"せっかちレンを選んで6枚を確認",exact:true}).click();
   for(const category of Object.keys(loadout)) {
     const checked=page.locator(`input[name="loadout-${category}"]:checked`);
     while(await checked.count()) await checked.first().uncheck();
-    for(const id of loadout[category]) await page.locator(`input[name="loadout-${category}"][value="${id}"]`).check();
+    for(const id of selectedLoadout[category]) await page.locator(`input[name="loadout-${category}"][value="${id}"]`).check();
   }
   await page.locator("#submitSetup:not([disabled])").click();
   await page.locator("#techniqueControls:not(.hidden)").waitFor();
@@ -128,3 +128,117 @@ test(`${browserName} AC064 native UI -> actual worker/SQL trial WIN, equip, ordi
     assert.equal(f.calls.some(c=>["gacha","card-sale","quiz-start"].includes(c.body?.operation)),false);
   });
 });
+
+const {randomUUID}=require("node:crypto");
+const {api}=require("./helpers/cpu-progression-runtime.cjs");
+const {plain}=require("./helpers/public-skill-fixture.cjs");
+
+// This is an isolated board-position fixture, not a production shortcut.
+// Ownership is earned by legal trial actions through the actual worker/SQL;
+// equipment and ordinary initialization use the real UI. Never replace just
+// engineVersion: the immutable learned snapshot must be created by the worker.
+async function prepareLearnedCornerPosition(page,f) {
+  await f.serial(async()=>{
+    const p=await f.runtime.profile(f.id);
+    p.profile_state.inventory.areaCornerBloom=1;
+    await f.runtime.db.query("update public.fcg_standard_profiles set profile_state=$2::jsonb,revision=revision+1 where user_id=$1",[f.id,JSON.stringify(p.profile_state)]);
+    const started=await f.worker.post({operation:"cpu-trial-start",actionId:randomUUID(),trialId:"ren-unseal",trialVersion:1,confirmed:true});
+    assert.equal(started.status,200,JSON.stringify(started.body));
+    const trialRoom=started.body.roomId;
+    for(const turn of winningEdgeScript(await f.runtime.authority(trialRoom),trialRoom)) {
+      const body=turn.seat==="B"?{operation:"cpu-action",roomId:trialRoom,expectedVersion:turn.version}
+        :{operation:"action",roomId:trialRoom,action:{...turn.action,id:randomUUID(),expectedVersion:turn.version}};
+      const result=await f.worker.post(body);
+      assert.equal(result.status,200,JSON.stringify(result.body));
+    }
+    const won=await f.runtime.snapshot(f.id,trialRoom);
+    assert.equal(won.room.winner_seat,"A");
+    assert.equal(won.standard_learned_techniques.length,1);
+  });
+  await page.reload();
+  await page.getByRole("button",{name:"マイページ",exact:true}).click();
+  await page.locator("#equipTechnique:not([disabled])").click();
+  await page.waitForFunction(()=>document.querySelector("#techniqueEquipmentSummary").textContent.includes("装備中"));
+  assert.equal((await f.profile()).profile_state.equippedTechniqueId,"techUnsealOne");
+  const ordinaryRoom=await startOrdinary(page,f,{...loadout,area:["areaCornerBloom","areaDiePlus"]});
+  const position=await f.serial(async()=>{
+    const current=plain(await f.runtime.authority(ordinaryRoom));
+    assert.equal(current.state.engineVersion,"5.0.0-alpha.5");
+    assert.deepEqual(current.state.techniqueRule,{id:"CPU_LEARNED_V1",playerSeat:"A"});
+    assert.deepEqual(current.state.techniques.A,{id:"techUnsealOne",definitionVersion:"unseal-v1",source:"LEARNED",usesRemaining:1});
+    const snapshot=plain(current.state.techniques);
+    const {macroWidth:width,microScale:scale}=current.state.playableBounds,macro=width*2+2;
+    const micro=Array.from({length:scale*scale},(_,i)=>(2*scale+Math.floor(i/scale))*width*scale+2*scale+i%scale);
+    Object.assign(current.state,{active:"A",phase:"WORK",pending:null,reserved:null,preparedOutgoing:null,
+      requiredSize:1,baseRequiredSize:1,rolledSize:1,skillCategoryWindow:{actor:"A",categories:[]},
+      regions:{R1:{id:"R1",micro,sourceMacros:[macro],controllers:["B"],color:"red",isPending:false}}});
+    api.validateState(current.state);
+    assert.deepEqual(current.state.techniques,snapshot,"board fixture preserves real acquired snapshot");
+    const probe=plain(api.apply({...current,actor:"A",expectedVersion:current.state.version,
+      action:{type:"USE_SKILL",payload:{skill:"areaCornerBloom",regionId:"R1",macro}}}));
+    assert.equal(probe.ok,true,probe.code);
+    await f.runtime.db.query("update fcg_private.authoritative_matches set state=$2::jsonb where room_id=$1",[ordinaryRoom,JSON.stringify(current)]);
+    await f.runtime.db.query("update public.fcg_rooms set public_state=$2::jsonb where id=$1",[ordinaryRoom,JSON.stringify(api.publicState(current.state))]);
+    for(const seat of ["A","B"]) await f.runtime.db.query("update public.fcg_player_views set private_state=$3::jsonb where room_id=$1 and seat=$2",[ordinaryRoom,seat,JSON.stringify(api.privateState(current.state,seat))]);
+    return {roomId:ordinaryRoom,current,macro,micro:micro[0],microWidth:width*scale,expected:probe};
+  });
+  await page.reload();
+  await page.getByRole("button",{name:"対戦",exact:true}).click();
+  await waitVersion(page,ordinaryRoom,position.current.state.version);
+  await page.locator('#skillControls button[data-skill="areaCornerBloom"]:not([disabled])').waitFor();
+  return position;
+}
+for(const gesture of ["pointer","Enter","Space","lost-ACK-retry"]) {
+  test(`${browserName} alpha5 learned snapshot colored corner bloom: ${gesture} real worker/SQL preserves technique`,{timeout:180000},async()=>{
+    await withProgressionPage(async(page,f)=>{
+      const p=await prepareLearnedCornerPosition(page,f),before=await f.snapshot(p.roomId);
+      const actionCalls=()=>f.calls.filter(c=>c.body?.operation==="action"&&c.body.action?.payload?.skill==="areaCornerBloom");
+      const skill=page.locator('#skillControls button[data-skill="areaCornerBloom"]'),board=page.locator("#board");
+      await skill.click();
+      await page.waitForFunction(()=>document.activeElement?.id==="board");
+      // Empty, unselected cells stay invalid and Escape cancels without a write.
+      await clickCanvasFraction(board,{x:0.5/p.microWidth,y:0.5/p.microWidth});
+      await page.locator('#skillTargetControls .skill-target-feedback[data-tone="error"]').waitFor();
+      assert.equal(actionCalls().length,0);
+      assert.deepEqual((await f.authority(p.roomId)).state,p.current.state);
+      await page.keyboard.press("Escape");
+      assert.equal(await skill.evaluate(el=>el===document.activeElement),true);
+      await skill.focus();await page.keyboard.press("Enter");
+      await page.waitForFunction(()=>document.activeElement?.id==="board");
+      // The real snapshot must drive candidate frames and accessible description.
+      assert.match(await page.locator("#boardKeyboardStatus").textContent(),/赤の彩色済みエリア/);
+      assert.equal(await page.locator("#skillTargetControls").getByRole("button",{name:"この対象で使う",exact:true}).count(),0);
+      if(gesture==="lost-ACK-retry")f.drop("action");
+      if(gesture==="pointer"||gesture==="lost-ACK-retry") {
+        await clickCanvasFraction(board,{x:(p.micro%p.microWidth+0.5)/p.microWidth,y:(Math.floor(p.micro/p.microWidth)+0.5)/p.microWidth});
+      } else await page.keyboard.press(gesture);
+      if(gesture==="lost-ACK-retry") {
+        await page.locator("#retryAction:not(.hidden):not([disabled])").waitFor();
+        assert.equal(actionCalls().length,1);
+        await page.locator("#retryAction").click();
+      }
+      await waitVersion(page,p.roomId,p.current.state.version+1);
+      await page.waitForFunction(()=>document.querySelector("#actionStatus").textContent.includes("操作を保存しました"));
+      const calls=actionCalls(),after=await f.snapshot(p.roomId),state=after.authority.state;
+      assert.equal(calls.length,gesture==="lost-ACK-retry"?2:1);
+      assert.deepEqual(calls[0].body.action.payload,{skill:"areaCornerBloom",regionId:"R1",macro:p.macro});
+      assert.equal(calls[0].body.action.type,"USE_SKILL");
+      if(calls.length===2)assert.deepEqual(calls[1].body,calls[0].body,"one pending identity is replayed");
+      assert.equal(state.version,p.current.state.version+1);
+      assert.deepEqual(state.regions,p.expected.state.regions,"actual worker accepted the real engine expansion");
+      assert.equal(state.hands.A.areaCornerBloom,0);
+      assert.deepEqual(state.skillCategoryWindow,{actor:"A",categories:["area"]});
+      assert.deepEqual(state.techniques,p.current.state.techniques);
+      assert.equal(state.skillsUsed.A,p.current.state.skillsUsed.A+1);
+      assert.deepEqual(after.authority.rngSnapshot,p.current.rngSnapshot);
+      assert.equal(after.receipts,before.receipts+1,"one committed mutation even after lost ACK");
+      assert.equal(after.profile.profile_state.inventory.areaCornerBloom,before.profile.profile_state.inventory.areaCornerBloom-1);
+      assert.deepEqual(after.profile.profile_state.learnedTechniques,before.profile.profile_state.learnedTechniques);
+      assert.equal(after.profile.profile_state.equippedTechniqueId,"techUnsealOne");
+      await page.reload();await page.getByRole("button",{name:"対戦",exact:true}).click();
+      await waitVersion(page,p.roomId,state.version);
+      assert.equal((await f.authority(p.roomId)).state.techniques.A.usesRemaining,1);
+      assert.equal((await f.authority(p.roomId)).state.hands.A.areaCornerBloom,0);
+    },{timeout:150000});
+  });
+}

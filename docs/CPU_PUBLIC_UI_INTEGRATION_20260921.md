@@ -1,6 +1,6 @@
 # CPU pilot on the published compact UI
 
-Version: `UDL011064-public-ui-v1`
+Version: `UDL011064-public-ui-v1.1`
 Base: `4d91bbd4ea407be428144fe04ff5eb8821b3a8a0`
 Pilot source: `2e30e9a25db674fe4168bac3ec745fe04641b3c9`
 Branch: `codex/cpu-progression-public-ui-20260921`
@@ -15,9 +15,17 @@ This candidate carries the already adopted `UDL011064-pilot-design-v2` (canonica
 - Demonstrate the existing full saved-win unlock → trial committed WIN → once-only permanent grant → equip → ordinary use → reload consumed → next eligible game reset journey. Both fixed trial initial routes remain legal; 解封 is not mandatory for clearing.
 - Preserve alpha1-4 compatibility and alpha5 provenance; default OFF remains the production policy until separately approved gates. Disabling new starts must retain saved rooms and learned/equipped progress. No new portrait, private-hand exposure, PvP technique, all-ten-trial expansion or adoption of pending069/070.
 
+## Existing colored Corner Bloom compatibility
+
+The online capability is explicitly alpha4 or alpha5, not an open-ended version comparison. Learned-technique equipment must not remove existing colored-region Corner Bloom candidates, accessible descriptions or immediate pointer/keyboard activation. Alpha1–3 and unknown versions keep their prior rejection behavior; outgoing-region use and same-ID retry remain unchanged.
+
+The native browser regression starts from a real worker/SQL-earned and UI-equipped technique, initializes an ordinary alpha5 CPU match, then installs a validated isolated colored-board position without altering its technique snapshot or engine version. Chrome/Edge pointer, Enter, Space and lost-ACK retry must reach the actual worker/engine/SQL with the existing regionId/macro payload. Exactly one committed expansion spends the Corner Bloom card and area category, not the separate technique use or RNG. No extra confirmation, new legality rule, effect, DB or CPU policy is introduced. The earlier fixed ee8 candidate's successful CI did not cover this combination and remains historical evidence, not proof for the repaired candidate.
+
+The candidate preflight checks both alpha4 and alpha5 source markers in addition to exact asset bytes; these static checks do not substitute for native browser execution.
+
 ## Current asset identity
 
-Changed entry assets: `app.js?v=20260921-1`, `style.css?v=20260921-1`, `standard-online-client.js?v=20260914-1`, `standard-skill-registry.generated.js?v=20260914-2`.
+Changed entry assets: `app.js?v=20260921-2`, `style.css?v=20260921-1`, `standard-online-client.js?v=20260914-1`, `standard-skill-registry.generated.js?v=20260914-2`.
 Pilot models: `result-continuation.js?v=20260914-2`, `cpu-progression-model.js?v=20260914-1`.
 Local pilot bundle: `app.bundle.js?v=20260914-11-63d4f2b526f1`. The earlier alpha.4 publication keeps its original local-bundle identifier.
 Retained: `play-surface.css?v=20260915-5`, `play-surface-model.js?v=20260915-1`, `action-recovery.js?v=20260914-1`, `ui-diet.css?v=20260914-2`, `progression.css?v=20260914-1`, `terminal-result.css?v=20260914-1`, `surrender-confirmation.css?v=20260913-2`.

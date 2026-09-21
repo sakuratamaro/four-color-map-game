@@ -883,7 +883,7 @@ function eligibleRecolorRegions(state) {
 }
 
 function supportsColoredCornerBloom(state) {
-  return state?.engineVersion === "5.0.0-alpha.4";
+  return state?.engineVersion === "5.0.0-alpha.4" || state?.engineVersion === "5.0.0-alpha.5";
 }
 
 function cornerBloomCellTargetActive() {

@@ -2,6 +2,14 @@
 const test=require("node:test"),assert=require("node:assert/strict"),fs=require("node:fs"),path=require("node:path"),crypto=require("node:crypto");
 const root=path.join(__dirname,".."),read=p=>fs.readFileSync(path.join(root,p),"utf8").replace(/\r\n/g,"\n");
 const html=read("standard-online-v5/index.html"),app=read("standard-online-v5/app.js"),spec=read("docs/CPU_PUBLIC_UI_INTEGRATION_20260921.md");
+test("combined pilot colored corner capability accepts only alpha4 and legitimate alpha5",()=>{
+ const source=app.match(/function supportsColoredCornerBloom\(state\) \{[^}]+\}/)?.[0];
+ assert.ok(source);
+ const supports=require("node:vm").runInNewContext("("+source+")");
+ for(const version of ["5.0.0-alpha.4","5.0.0-alpha.5"])assert.equal(supports({engineVersion:version}),true,version);
+ for(const version of [undefined,null,"","5.0.0-alpha.1","5.0.0-alpha.2","5.0.0-alpha.3","5.0.0-alpha.6","5.0.0"])assert.equal(supports({engineVersion:version}),false,String(version));
+ assert.equal(supports(null),false);assert.equal(supports(undefined),false);
+});
 test("combined pilot keeps published board/palette model and surface bytes",()=>{
  for(const [p,sha] of Object.entries({
   "standard-online-v5/play-surface-model.js":"579899caca33573667c2b1b0f8c7d21df91868e7d9e4dcaab2af936be9005f09",
@@ -9,7 +17,7 @@ test("combined pilot keeps published board/palette model and surface bytes",()=>
  }))assert.equal(crypto.createHash("sha256").update(read(p)).digest("hex"),sha,p);
 });
 test("combined pilot identifies new assets separately from frozen navigation and CPU parents",()=>{
- for(const marker of ["app.js?v=20260921-1","style.css?v=20260921-1","standard-online-client.js?v=20260914-1","standard-skill-registry.generated.js?v=20260914-2"]){
+ for(const marker of ["app.js?v=20260921-2","style.css?v=20260921-1","standard-online-client.js?v=20260914-1","standard-skill-registry.generated.js?v=20260914-2"]){
   assert.ok(html.includes(marker),marker);assert.ok(spec.includes(marker),marker);
  }
  for(const marker of ["play-surface-model.js?v=20260915-1","result-continuation.js?v=20260914-2","cpu-progression-model.js?v=20260914-1"]){

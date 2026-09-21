@@ -5,7 +5,7 @@ const html=read("standard-online-v5/index.html"),app=read("standard-online-v5/ap
 const workflow=read(".github/workflows/standard-browser-gate.yml"),runbook=read("docs/STANDARD_PUBLIC_RELEASE_RUNBOOK.md");
 const lane=runbook.slice(runbook.indexOf("## 2026-09-20 UI導線統合候補"),runbook.indexOf("## 2026-09-15 UI後続便"));
 test("navigation parent markers stay frozen while both UI families survive in the pilot",()=>{
-  const current=marker=>({"app.js?v=20260920-1":"app.js?v=20260921-1","style.css?v=20260920-1":"style.css?v=20260921-1",
+  const current=marker=>({"app.js?v=20260920-1":"app.js?v=20260921-2","style.css?v=20260920-1":"style.css?v=20260921-1",
     "standard-skill-registry.generated.js?v=20260914-1":"standard-skill-registry.generated.js?v=20260914-2",
     "result-continuation.js?v=20260914-1":"result-continuation.js?v=20260914-2"})[marker]||marker;
   for(const marker of ["app.js?v=20260920-1","style.css?v=20260920-1","play-surface.css?v=20260915-5",

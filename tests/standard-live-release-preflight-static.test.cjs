@@ -41,6 +41,8 @@ test("release preflight is read-only, secret-free, finite, and stage-aware", () 
   assert.match(source, /hasWaitingOpponentNotice/);
   assert.match(source, /hasAlpha3SkillCategoryWindow/);
   assert.match(source, /hasAlpha4ColoredCornerBloom/);
+  assert.match(source, /hasAlpha5ColoredCornerBloom/);
+  assert.match(source, /assert\.equal\(result\.publicPage\.hasAlpha5ColoredCornerBloom, true, "ALPHA5_COLORED_CORNER_BLOOM_UI_REQUIRED"\)/);
   assert.match(source, /hasRegistryRarityUi/);
   assert.match(source, /hasCpuPortraits/);
   assert.match(source, /hasWholeButtonQuizPhysics/);
@@ -81,7 +83,7 @@ test("release preflight is read-only, secret-free, finite, and stage-aware", () 
   assert.match(source, /MATCH_REWARD_ECONOMY_MISMATCH/);
   assert.match(source, /app\.text\.includes\('★\$\{meta\.rarity\}'\)/);
   assert.match(source, /CANDIDATE_ASSET_GENERATION_UI_PHASE_MISMATCH/);
-assert.match(source, /app\.js\?v=20260921-1/);
+assert.match(source, /app\.js\?v=20260921-2/);
   assert.match(source, /cpu-commentary\.js\?v=20260910-1/);
   assert.match(source, /progression\.css/);
   assert.match(source, /style\.css\?v=20260921-1/);
@@ -267,7 +269,7 @@ test("candidate app satisfies the waiting-opponent release marker", () => {
 });
 
 test("candidate page and app satisfy the alpha.4 cache generation marker", () => {
-  assert.equal(candidateHtml.includes("app.js?v=20260921-1"), true);
+  assert.equal(candidateHtml.includes("app.js?v=20260921-2"), true);
   assert.equal(candidateHtml.includes("terminal-result.css?v=20260914-1"), true);
   assert.equal(candidateApp.includes("result-continuation.js?v=20260914-2"), true);
   assert.equal(candidateHtml.includes("cpu-commentary.js?v=20260910-1"), true);

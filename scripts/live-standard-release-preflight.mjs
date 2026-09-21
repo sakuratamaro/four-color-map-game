@@ -15,7 +15,7 @@ const publicEdgeBundleUrl = new URL("../supabase/functions/standard-game-action/
 const expectedPhase = process.argv.find((argument) => argument.startsWith("--expect="))?.slice("--expect=".length) || null;
 const zeroUuid = "00000000-0000-0000-0000-000000000000";
 const candidateAssetMarkers = Object.freeze({
-app: "app.js?v=20260921-1",
+app: "app.js?v=20260921-2",
   homeStyle: "ui-diet.css?v=20260914-2",
   terminalStyle: "terminal-result.css?v=20260914-1",
   commentary: "cpu-commentary.js?v=20260910-1",
@@ -139,6 +139,7 @@ const result = {
       && app.text.includes('sendAction("USE_SKILL", payload)')
       && intents.text.includes('const colored = Object.hasOwn(input, "regionId")')
       && intents.text.includes('Object.freeze({ skill, regionId: regionId(input.regionId), macro: integer(input.macro) })'),
+    hasAlpha5ColoredCornerBloom: app.text.includes('state?.engineVersion === "5.0.0-alpha.4" || state?.engineVersion === "5.0.0-alpha.5"'),
     hasRegistryRarityUi: registry.text.includes('"areaCornerBloom"')
       && registry.text.includes('"rarity": 4')
       && app.text.includes('STANDARD_SKILL_REGISTRY.skills')
@@ -223,6 +224,7 @@ if (expectedPhase) {
     }
     assert.equal(result.publicPage.hasAlpha3SkillCategoryWindow, expected.alpha3SkillCategoryUi, "ALPHA3_SKILL_CATEGORY_UI_PHASE_MISMATCH");
     assert.equal(result.publicPage.hasAlpha4ColoredCornerBloom, expected.alpha4ColoredCornerBloomUi, "ALPHA4_COLORED_CORNER_BLOOM_UI_PHASE_MISMATCH");
+    assert.equal(result.publicPage.hasAlpha5ColoredCornerBloom, true, "ALPHA5_COLORED_CORNER_BLOOM_UI_REQUIRED");
     assert.equal(result.publicPage.hasRegistryRarityUi, expected.registryRarityUi, "REGISTRY_RARITY_UI_PHASE_MISMATCH");
     assert.equal(result.publicPage.hasCpuPortraits, expected.cpuPortraitsUi, "CPU_PORTRAITS_UI_PHASE_MISMATCH");
     assert.equal(result.publicPage.hasWholeButtonQuizPhysics, expected.wholeButtonQuizPhysicsUi, "WHOLE_BUTTON_QUIZ_PHYSICS_UI_PHASE_MISMATCH");

@@ -10,7 +10,7 @@ const onlineIndex = fs.readFileSync(path.join(__dirname, "..", "standard-online-
 const localIndex = fs.readFileSync(path.join(__dirname, "..", "standard-v5", "index.html"), "utf8");
 // Freeze only the two superseded cache labels in main70e's historical release lanes.
 // Current UI generation is checked independently below; no old approval is reused.
-const followupOnlineIndex = onlineIndex.replace("app.js?v=20260921-1", "app.js?v=20260915-8")
+const followupOnlineIndex = onlineIndex.replace("app.js?v=20260921-2", "app.js?v=20260915-8")
   .replace("style.css?v=20260921-1", "style.css?v=20260915-8");
 const priorOnlineIndex = followupOnlineIndex.replace("app.js?v=20260915-8", "app.js?v=20260913-44")
   .replace("style.css?v=20260915-8", "style.css?v=20260910-12");

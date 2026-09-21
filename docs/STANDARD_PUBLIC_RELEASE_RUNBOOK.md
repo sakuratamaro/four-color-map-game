@@ -2,9 +2,13 @@
 
 ## 2026-09-21 CPU試練・伝授技と公開UIの再統合（未公開）
 
-正本は `docs/CPU_PUBLIC_UI_INTEGRATION_20260921.md` / `UDL011064-public-ui-v1` と既存 `UDL011064-pilot-design-v2`。公開UI `4d91bbd4ea407be428144fe04ff5eb8821b3a8a0` を基準に旧CPU `2e30e9a25db674fe4168bac3ec745fe04641b3c9` の採用済み機能を統合する。専用branchは `codex/cpu-progression-public-ui-20260921`。現在はローカル実装・検証で、候補固有Windows・真正Astra・push/main/Pages/liveはNOT_RUN。旧052/057を流用せず、旧DB3本の実行前拒否・別保留は維持し、再試行や別経路で実行しない。
+正本は `docs/CPU_PUBLIC_UI_INTEGRATION_20260921.md` / `UDL011064-public-ui-v1.1` と既存 `UDL011064-pilot-design-v2`。公開UI `4d91bbd4ea407be428144fe04ff5eb8821b3a8a0` を基準に旧CPU `2e30e9a25db674fe4168bac3ec745fe04641b3c9` の採用済み機能を統合する。専用branchは `codex/cpu-progression-public-ui-20260921`。旧ee8は固有Windows成功後、alpha5の既塗角膨張UI回帰にREQUEST_CHANGESを受領した。修正版はその局所補修・回帰検証・必要cache識別子更新に限定し、修正SHA固有のWindows・真正Astra・push/main/Pages/liveはNOT_RUN。旧ee8の成功を流用せず、旧DB3本の実行前拒否・別保留は維持し、再試行や別経路で実行しない。
 
-現行asset: `app.js?v=20260921-1`, `style.css?v=20260921-1`, `standard-online-client.js?v=20260914-1`, `standard-skill-registry.generated.js?v=20260914-2`, `result-continuation.js?v=20260914-2`, `cpu-progression-model.js?v=20260914-1`。保持: `play-surface.css?v=20260915-5`, `play-surface-model.js?v=20260915-1`。下のUI/CPU各laneと古いmarkerは時点別の凍結履歴であり、新候補の現状ではない。Production default OFF is unchanged; these local sources and tests do not establish publication.
+現行asset: `app.js?v=20260921-2`, `style.css?v=20260921-1`, `standard-online-client.js?v=20260914-1`, `standard-skill-registry.generated.js?v=20260914-2`, `result-continuation.js?v=20260914-2`, `cpu-progression-model.js?v=20260914-1`。保持: `play-surface.css?v=20260915-5`, `play-surface-model.js?v=20260915-1`。下のUI/CPU各laneと古いmarkerは時点別の凍結履歴であり、新候補の現状ではない。Production default OFF is unchanged; these local sources and tests do not establish publication.
+
+修正版preflightの全candidate経路は15 GET＋8固定未認証負例POSTで、公開4dの14 GETを流用しない。alpha4のmarker保全とalpha5対応marker・厳密byteを要求し、実操作回帰はChrome/Edgeの正規習得・装備snapshotからのpointer/keyboard→実worker/engine/SQL確認で別に証明する。この計画は本番実行許可ではない。
+
+DB3本は単なる表追加ではなく、3本目に既存 `public.fcg_standard_server_commit_action` の私有schema移設、公開wrapper、trigger、ACL変更を含む。既存の順序・内容・単一transactionとこの影響を含む具体的な本人操作許可を保持し、操作名の読み替えで旧拒否を回避しない。DB保留はローカルUI補修・検証を止める理由にはしない。
 
 新候補を固定 → 独自Windowsの全必須step → 正確な仕様・DB3本/Edge2file/管理設定セットを含む真正Astra審査 → 実行権限とfresh本番の再照合 → 別途承認された手順だけの有限公開・配信byte確認・live受入へ。現在のローカル統合は本番操作を一切行わず、旧期限/消費済み試行を再開しない。
 
