@@ -12,12 +12,23 @@ function fixture({ slots = [{ skill: "areaCornerBloom", count: 1, used: false, e
   const calls = [], nodes = new Map();
   const element = tag => ({ tag, children: [], dataset: {}, attributes: {}, disabled: false, className: "", ownText: "",
     append(...values) { this.children.push(...values); }, appendChild(value) { this.children.push(value); return value; },
-    replaceChildren(...values) { this.children = values; this.ownText = ""; },
+    contains(value) { return value != null && (this === value || this.children.some(child => typeof child === "object" && child.contains(value))); },
+    querySelectorAll(selector) {
+      assert.equal(selector, "button[data-skill]:not(:disabled)");
+      const descendants = node => node.children.flatMap(child => typeof child === "object" ? [child, ...descendants(child)] : []);
+      return descendants(this).filter(child => child.tag === "button" && child.dataset.skill !== undefined && !child.disabled);
+    },
+    focus(options) { if (!this.disabled) { document.activeElement = this; this.focusOptions = options; } },
+    replaceChildren(...values) {
+      if (this.contains(document.activeElement) && document.activeElement !== this) document.activeElement = null;
+      this.children = values; this.ownText = "";
+    },
     setAttribute(key, value) { this.attributes[key] = value; },
     set textContent(value) { this.ownText = value; this.children = []; },
     get textContent() { return this.ownText + this.children.map(x => typeof x === "string" ? x : x.textContent).join(""); } });
   const node = id => { if (!nodes.has(id)) nodes.set(id, element("div")); return nodes.get(id); };
-  const scope = { document: { createElement: element }, $: node, roomModel: { view: { seat: "A" }, room: { id: "room" } },
+  const document = { createElement: element, activeElement: null };
+  const scope = { document, $: node, roomModel: { view: { seat: "A" }, room: { id: "room" } },
     stableHandSlots: () => slots, SKILL_META: {
       areaCornerBloom: { name: "角膨張", rarity: 2, category: "area" },
       colorBonusRefill: { name: "おまけ補充", rarity: 1, category: "color" },
@@ -74,6 +85,26 @@ test("UDL063 card activation and info remain separate; the existing activation p
   info.onclick(); assert.deepEqual(f.calls, [{ kind: "info", skill: "areaCornerBloom" }]);
   action.onclick(); assert.deepEqual(f.calls, [{ kind: "info", skill: "areaCornerBloom" }, { kind: "activate", skill: "areaCornerBloom" }]);
   assert.match(renderSource, /button\("", \(\) => beginSkill\(skill\), "skill"\)/);
+});
+
+test("UDL063 same-version hand refresh restores only the focused enabled card without activation", () => {
+  for (const mode of ["enabled", "disabled", "removed", "outside"]) {
+    const f = fixture(), oldAction = f.render()[0].children[0];
+    const focused = mode === "outside" ? f.node("outside") : oldAction;
+    focused.focus();
+    if (mode === "removed") f.scope.stableHandSlots = () => [];
+    const entries = f.render(mode === "disabled" ? state({ active: "B" }) : state());
+    const nextAction = entries[0]?.children[0];
+    if (mode === "enabled") {
+      assert.notEqual(nextAction, oldAction);
+      assert.equal(f.scope.document.activeElement, nextAction);
+      assert.equal(nextAction.focusOptions.preventScroll, true);
+    } else {
+      assert.equal(f.scope.document.activeElement, mode === "outside" ? focused : null, mode);
+      if (mode === "disabled") assert.equal(nextAction.disabled, true);
+    }
+    assert.deepEqual(f.calls, []);
+  }
 });
 
 test("UDL063 target-panel description captures the selected skill without modifying selection, target, or actions", () => {
