@@ -202,6 +202,7 @@ jobs:
           tests/standard-action-recovery.test.cjs
           tests/standard-home-rules.test.cjs
           tests/standard-profile-compact.test.cjs
+          tests/standard-profile.test.cjs
           tests/standard-gacha-transaction.test.cjs
           tests/standard-quiz-reward-gacha.test.cjs
           tests/standard-quiz-scratch.test.cjs

@@ -67,7 +67,7 @@ test("compact profile contracts are in the existing Windows step without enablin
   const contracts = workflow.match(/- name: Run Standard CPU policy contract tests\r?\n\s+run: >-\r?\n([\s\S]*?)(?=\r?\n\s+- name:)/)?.[1];
   assert.ok(contracts, "existing contract step must be present");
   assert.equal((contracts.match(/^\s+tests\/standard-profile-compact\.test\.cjs\s*$/gm) || []).length, 1);
-  for (const file of ["standard-learned-technique.test.cjs", "standard-technique-profile-sql-runtime.test.cjs", "standard-ren-trial.test.cjs", "standard-cpu-trial-sql-runtime.test.cjs", "standard-cpu-progression-fixture.test.cjs", "standard-cpu-progression-client.test.cjs", "standard-cpu-progression-ui.test.cjs"]) {
+  for (const file of ["standard-profile.test.cjs", "standard-learned-technique.test.cjs", "standard-technique-profile-sql-runtime.test.cjs", "standard-ren-trial.test.cjs", "standard-cpu-trial-sql-runtime.test.cjs", "standard-cpu-progression-fixture.test.cjs", "standard-cpu-progression-client.test.cjs", "standard-cpu-progression-ui.test.cjs"]) {
     assert.equal(contracts.split("tests/" + file).length - 1, 1, file);
   }
   const push = workflow.slice(workflow.indexOf("  push:"), workflow.indexOf("  pull_request:"));
