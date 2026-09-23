@@ -1,0 +1,304 @@
+{
+  "schema_version": 1,
+  "request_id": "UDL-20260908-033",
+  "version": "wataokiba-cpu-v1",
+  "author": "わたおび",
+  "site_name": "わたおきば",
+  "site_url": "https://wataokiba.net/",
+  "terms_url": "https://wataokiba.net/利用規約/",
+  "acquired_at_utc": "2026-09-13T14:36:23.665Z",
+  "pixel_processing": "none; original PNG bytes, CSS face crop and contained full-body display only",
+  "license_notice": "Third-party artwork is not covered by any code license. Obtain reusable source materials from the author, not this game repository.",
+  "files": [
+    {
+      "character_id": "yuzu",
+      "author_label": "女性04",
+      "source_page": "https://wataokiba.net/2018/02/15/7093679/",
+      "source_page_sha256": "9febb54224178bfabfc89c235847438e7aa5829cd2e1c0b1895c9555f92651e0",
+      "face_box": [
+        173,
+        40,
+        215
+      ],
+      "assets": {
+        "normal": {
+          "file": "yuzu-normal.png",
+          "source_url": "https://wataokiba.net/wp-content/uploads/2019/05/josei_04_g.png",
+          "sha256": "a39e482277cdd11c11d3e8693dee9bf000b574aa24366838d7bc50dc1b314270",
+          "bytes": 215974,
+          "width": 500,
+          "height": 1100
+        },
+        "loss": {
+          "file": "yuzu-loss.png",
+          "source_url": "https://wataokiba.net/wp-content/uploads/2019/05/josei_04_e.png",
+          "sha256": "fd6dc254703c536f5beeba2194b0e462d73a1bb9da9c1ad9559c73d6bd6bd5bc",
+          "bytes": 216007,
+          "width": 500,
+          "height": 1100
+        }
+      }
+    },
+    {
+      "character_id": "ren",
+      "author_label": "男性06",
+      "source_page": "https://wataokiba.net/2018/03/17/7815662/",
+      "source_page_sha256": "3fd9179ec3e3231a1a765abaf577b2c458e3468d49e0eb5ded5ee742ad91ce1e",
+      "face_box": [
+        30,
+        0,
+        235
+      ],
+      "assets": {
+        "normal": {
+          "file": "ren-normal.png",
+          "source_url": "https://wataokiba.net/wp-content/uploads/2019/05/dansei_06_g.png",
+          "sha256": "f62f7b188016efdb6b499b2e0c927ba3ba2a9ca0f3bbbd895a7137d5e5d6a43a",
+          "bytes": 148350,
+          "width": 300,
+          "height": 1150
+        },
+        "loss": {
+          "file": "ren-loss.png",
+          "source_url": "https://wataokiba.net/wp-content/uploads/2019/05/dansei_06_e.png",
+          "sha256": "899f63a8869eb3af621f79b0e88a256362c0b1cec094b42b3b25fe42da755faa",
+          "bytes": 148404,
+          "width": 300,
+          "height": 1150
+        }
+      }
+    },
+    {
+      "character_id": "minato",
+      "author_label": "男性03",
+      "source_page": "https://wataokiba.net/2018/02/13/7062203/",
+      "source_page_sha256": "31118ec3b529091cbe5f2326f8fe4d4a6cbd433524b76b2a21f2fbcebac602f4",
+      "face_box": [
+        50,
+        0,
+        250
+      ],
+      "assets": {
+        "normal": {
+          "file": "minato-normal.png",
+          "source_url": "https://wataokiba.net/wp-content/uploads/2019/05/dansei_03_g.png",
+          "sha256": "aa5e0afbfcee1129c8fbd6d604d104c508a46fff0f55472a4d590c8046d7762b",
+          "bytes": 176706,
+          "width": 400,
+          "height": 1200
+        },
+        "loss": {
+          "file": "minato-loss.png",
+          "source_url": "https://wataokiba.net/wp-content/uploads/2019/05/dansei_03_e.png",
+          "sha256": "49fe0c0d1d46baa5e5532a8b409915066dba23f62cdcfbff4611731879e00ee6",
+          "bytes": 176906,
+          "width": 400,
+          "height": 1200
+        }
+      }
+    },
+    {
+      "character_id": "koharu",
+      "author_label": "女性01",
+      "source_page": "https://wataokiba.net/2018/02/06/7000244/",
+      "source_page_sha256": "5126beda06bbae187201e7328e09192216383d9844e69801dba6912d2b11212a",
+      "face_box": [
+        120,
+        0,
+        240
+      ],
+      "assets": {
+        "normal": {
+          "file": "koharu-normal.png",
+          "source_url": "https://wataokiba.net/wp-content/uploads/2019/05/josei_01_a.png",
+          "sha256": "e0ee71a98d1628a787fa4b7063ec262c664ca67d96d8fd15044503395ac9e77f",
+          "bytes": 280056,
+          "width": 400,
+          "height": 1100
+        },
+        "loss": {
+          "file": "koharu-loss.png",
+          "source_url": "https://wataokiba.net/wp-content/uploads/2019/05/josei_01_e.png",
+          "sha256": "ed5ddc20bc274749aa04f93f3941307cdbc065c4103e71b6bfa34c418258dbc8",
+          "bytes": 281237,
+          "width": 400,
+          "height": 1100
+        }
+      }
+    },
+    {
+      "character_id": "aoi",
+      "author_label": "女性08",
+      "source_page": "https://wataokiba.net/2018/05/19/9331637/",
+      "source_page_sha256": "d014d1e6ca5968ac2cf058fbf2a32797f3ffa3ba66e464478c4990d4bf005a05",
+      "face_box": [
+        120,
+        0,
+        260
+      ],
+      "assets": {
+        "normal": {
+          "file": "aoi-normal.png",
+          "source_url": "https://wataokiba.net/wp-content/uploads/2019/05/josei_08_a.png",
+          "sha256": "4bc908ed13ab58669cc1d5fec928e959c5aa0a60126228a2c74957c91ee3b755",
+          "bytes": 292785,
+          "width": 500,
+          "height": 1150
+        },
+        "loss": {
+          "file": "aoi-loss.png",
+          "source_url": "https://wataokiba.net/wp-content/uploads/2019/05/josei_08_e.png",
+          "sha256": "12a566a0407a74f8c61d8154cfb7b1fdbd4f4d33c729d1a096561e2eaa571091",
+          "bytes": 292640,
+          "width": 500,
+          "height": 1150
+        }
+      }
+    },
+    {
+      "character_id": "kai",
+      "author_label": "男性08",
+      "source_page": "https://wataokiba.net/2018/10/09/dansei08/",
+      "source_page_sha256": "0c27d164b40d6379431545cc159b7d03ed44785b4777625c709f002031718888",
+      "face_box": [
+        135,
+        0,
+        260
+      ],
+      "assets": {
+        "normal": {
+          "file": "kai-normal.png",
+          "source_url": "https://wataokiba.net/wp-content/uploads/2019/05/dansei_08_a.png",
+          "sha256": "10e1202c4fd85c4b1e9aa59a2bfff1f871bc385ebc44106bece7ad5d9770e829",
+          "bytes": 228985,
+          "width": 500,
+          "height": 1250
+        },
+        "loss": {
+          "file": "kai-loss.png",
+          "source_url": "https://wataokiba.net/wp-content/uploads/2019/05/dansei_08_h.png",
+          "sha256": "9faee9c64d3ed460718d5874a15d703b5ea6f205142262dbc3c270f6648c0237",
+          "bytes": 228798,
+          "width": 500,
+          "height": 1250
+        }
+      }
+    },
+    {
+      "character_id": "tsubasa",
+      "author_label": "女性20",
+      "source_page": "https://wataokiba.net/2023/05/01/josei20/",
+      "source_page_sha256": "cd4fb9634810051bf2df24a5d3dff3dbab5108a96ada513ad9ffa5b7ce1a72d2",
+      "face_box": [
+        100,
+        0,
+        300
+      ],
+      "assets": {
+        "normal": {
+          "file": "tsubasa-normal.png",
+          "source_url": "https://wataokiba.net/wp-content/uploads/2023/05/josei_20_a-1.png",
+          "sha256": "fbd43eb4063ad8aab713a869e61093ba72453f8dd9cc9cfd49530c532bb94904",
+          "bytes": 433493,
+          "width": 570,
+          "height": 1300
+        },
+        "loss": {
+          "file": "tsubasa-loss.png",
+          "source_url": "https://wataokiba.net/wp-content/uploads/2023/05/josei_20_d-1.png",
+          "sha256": "b0cba0e6f3d957c63a592c3f6197c1ad13df8e093607fcf185c9b50e474a278d",
+          "bytes": 433404,
+          "width": 570,
+          "height": 1300
+        }
+      }
+    },
+    {
+      "character_id": "rei",
+      "author_label": "男性15",
+      "source_page": "https://wataokiba.net/2020/12/07/dansei15/",
+      "source_page_sha256": "bc7cc32800328f10ff6ff8c0ae69d6d01b085551b6dcec3839a45bad9d1a11e3",
+      "face_box": [
+        55,
+        0,
+        265
+      ],
+      "assets": {
+        "normal": {
+          "file": "rei-normal.png",
+          "source_url": "https://wataokiba.net/wp-content/uploads/2020/12/dansei_15_a.png",
+          "sha256": "460f83f1ff3e6b0f2709a515cadb951b3afe26864c07cad2da288b7e37dca25a",
+          "bytes": 364025,
+          "width": 400,
+          "height": 1300
+        },
+        "loss": {
+          "file": "rei-loss.png",
+          "source_url": "https://wataokiba.net/wp-content/uploads/2020/12/dansei_15_e.png",
+          "sha256": "5bf5095dd10c631db24e80b1bb6771a5a8277b214be0f1b2007b7ed64e85de3d",
+          "bytes": 364238,
+          "width": 400,
+          "height": 1300
+        }
+      }
+    },
+    {
+      "character_id": "shion",
+      "author_label": "女性17",
+      "source_page": "https://wataokiba.net/2020/12/04/josei17/",
+      "source_page_sha256": "a5c94cd6665abd8bbb32868300abb4350b2ad78e3487a5952fe8e4a5fd216cda",
+      "face_box": [
+        180,
+        0,
+        310
+      ],
+      "assets": {
+        "normal": {
+          "file": "shion-normal.png",
+          "source_url": "https://wataokiba.net/wp-content/uploads/2020/12/josei_17_a.png",
+          "sha256": "e3908203a050586a0071bf7b760be17d7ba043f01bc2cb586942ce89a05f04fd",
+          "bytes": 774066,
+          "width": 790,
+          "height": 1260
+        },
+        "loss": {
+          "file": "shion-loss.png",
+          "source_url": "https://wataokiba.net/wp-content/uploads/2020/12/josei_17_e.png",
+          "sha256": "811c5282e42d00a94a7499db8eda325db0823b30c3da3553c1adfb7f0ce28d72",
+          "bytes": 774205,
+          "width": 790,
+          "height": 1260
+        }
+      }
+    },
+    {
+      "character_id": "kurogane",
+      "author_label": "男性04",
+      "source_page": "https://wataokiba.net/2018/02/17/7148522/",
+      "source_page_sha256": "19ce232bd9de71bb6ffd34f08518356577a7483076491b0abf20114abfcef7d1",
+      "face_box": [
+        70,
+        0,
+        260
+      ],
+      "assets": {
+        "normal": {
+          "file": "kurogane-normal.png",
+          "source_url": "https://wataokiba.net/wp-content/uploads/2019/05/dansei_04_a.png",
+          "sha256": "a2ac212b7b77c8479952f36e73cbf13caccc6c725510284bb938ccb735461549",
+          "bytes": 226646,
+          "width": 400,
+          "height": 1200
+        },
+        "loss": {
+          "file": "kurogane-loss.png",
+          "source_url": "https://wataokiba.net/wp-content/uploads/2019/05/dansei_04_d.png",
+          "sha256": "8dd26a8137d122050e7b10d64ea4f5cbb13b187d5526ae411666d2fb5133bda6",
+          "bytes": 226355,
+          "width": 400,
+          "height": 1200
+        }
+      }
+    }
+  ]
+}

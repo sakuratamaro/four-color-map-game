@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -15,7 +16,7 @@ const publicEdgeBundleUrl = new URL("../supabase/functions/standard-game-action/
 const expectedPhase = process.argv.find((argument) => argument.startsWith("--expect="))?.slice("--expect=".length) || null;
 const zeroUuid = "00000000-0000-0000-0000-000000000000";
 const candidateAssetMarkers = Object.freeze({
-app: "app.js?v=20260921-2",
+app: "app.js?v=20260923-1",
   homeStyle: "ui-diet.css?v=20260914-2",
   terminalStyle: "terminal-result.css?v=20260914-1",
   commentary: "cpu-commentary.js?v=20260910-1",
@@ -24,7 +25,8 @@ app: "app.js?v=20260921-2",
   client: "standard-online-client.js?v=20260914-1",
   intents: "standard-online-skill-intents.js?v=20260911-21",
   registry: "standard-skill-registry.generated.js?v=20260914-2",
-  portraits: "cpu-portraits.js?v=20260908-1",
+  portraits: "cpu-portraits.js?v=20260913-2",
+  artworkStyle: "cpu-artwork.css?v=20260913-1",
   feedback: "basic-feedback.js?v=20260908-2",
   cutin: "skill-cutin.js?v=20260913-2",
   cutinStyle: "skill-cutin.css?v=20260913-1",
@@ -76,7 +78,7 @@ async function probeProtectedRpc(name, body) {
   throw new Error(`UNEXPECTED_RPC_PROBE_${name}_${response.status}_${String(data?.code || "UNKNOWN")}`);
 }
 
-const [page, app, resultModel, progressionCss, intents, registry, portraits, portraitAtlas, localStandardPage, localStandardBundle, publicEdgeBundle, snapshotV1, snapshotV2, matchmaking, matchmakingAvailability, pregameAbandon, activeRoom, setupLoadV3, initializeRoomV3] = await Promise.all([
+const [page, app, resultModel, progressionCss, intents, registry, portraits, portraitManifest, localStandardPage, localStandardBundle, publicEdgeBundle, snapshotV1, snapshotV2, matchmaking, matchmakingAvailability, pregameAbandon, activeRoom, setupLoadV3, initializeRoomV3] = await Promise.all([
   getText(publicUrl),
   getText(`${publicUrl}app.js`),
   getOptionalText(`${publicUrl}result-continuation.js`),
@@ -84,7 +86,7 @@ const [page, app, resultModel, progressionCss, intents, registry, portraits, por
   getText(`${publicUrl}standard-online-skill-intents.js`),
   getText(`${publicUrl}standard-skill-registry.generated.js`),
   getOptionalText(`${publicUrl}cpu-portraits.js`),
-  getOptionalBytes(`${publicUrl}assets/cpu-portraits/cpu-portrait-atlas.png`),
+  getOptionalText(`${publicUrl}assets/cpu-portraits/wataokiba/manifest.json`),
   getText(localStandardUrl),
   getText(`${localStandardUrl}${LOCAL_STANDARD_BUNDLE_MARKER}`),
   getOptionalText(publicEdgeBundleUrl),
@@ -111,7 +113,18 @@ const [page, app, resultModel, progressionCss, intents, registry, portraits, por
 ]);
 
 const homeCss = await getOptionalText(`${publicUrl}ui-diet.css`);
-const portraitAtlasDimensions = pngDimensions(portraitAtlas.bytes);
+// Only the fixed local manifest chooses image URLs, after exact remote equality.
+const localPortraitManifest = fs.readFileSync(path.join(root, "standard-online-v5/assets/cpu-portraits/wataokiba/manifest.json"), "utf8");
+const portraitManifestMatches = portraitManifest.status === 200 && portraitManifest.text === localPortraitManifest;
+const portraitImages = portraitManifestMatches ? await Promise.all(JSON.parse(localPortraitManifest).files.flatMap(row =>
+  Object.values(row.assets).map(async asset => {
+    assert.match(asset.file, /^[a-z]+-(normal|loss)\.png$/);
+    const fetched = await getOptionalBytes(`${publicUrl}assets/cpu-portraits/wataokiba/${asset.file}`);
+    const dimensions = pngDimensions(fetched.bytes);
+    return { file: asset.file, bytesMatch: fetched.status === 200 && fetched.bytes.length === asset.bytes
+      && crypto.createHash("sha256").update(fetched.bytes).digest("hex") === asset.sha256
+      && dimensions?.width === asset.width && dimensions?.height === asset.height };
+  }))) : [];
 
 const result = {
   ok: true,
@@ -146,12 +159,10 @@ const result = {
       && app.text.includes('★${meta.rarity}')
       && app.text.includes('rarity.textContent = `★${targetMeta.rarity}`'),
     hasCpuPortraits: page.text.includes(candidateAssetMarkers.portraits)
-      && portraits.text.includes('const VERSION = "standard-cpu-portraits-v2"')
-      && portraits.text.includes('cell: 10, column: 1, row: 2')
-      && portraitAtlas.status === 200
-      && portraitAtlas.bytes.length > 500_000
-      && portraitAtlasDimensions?.width === 1448
-      && portraitAtlasDimensions?.height === 1086,
+      && portraits.text.includes('const VERSION = "standard-cpu-portraits-v3"')
+      && page.text.includes(candidateAssetMarkers.artworkStyle)
+      && portraitManifestMatches && portraitImages.length === 20
+      && portraitImages.every(asset => asset.bytesMatch),
     hasWholeButtonQuizPhysics: hasWholeButtonQuizPhysics(page.text, app.text),
     hasDirectQuizEntry: hasDirectQuizEntry(page.text, app.text),
     hasGachaEntryDiet: hasGachaEntryDiet(page.text, app.text),
@@ -177,6 +188,7 @@ const result = {
       && page.text.includes(candidateAssetMarkers.intents)
       && page.text.includes(candidateAssetMarkers.registry)
       && page.text.includes(candidateAssetMarkers.portraits)
+      && page.text.includes(candidateAssetMarkers.artworkStyle)
       && page.text.includes(candidateAssetMarkers.feedback)
       && page.text.includes(candidateAssetMarkers.cutin)
       && page.text.includes(candidateAssetMarkers.cutinStyle),

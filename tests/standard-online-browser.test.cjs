@@ -2682,6 +2682,121 @@ test(`${browserName} AC064 learned equipment lost ACK stays recoverable through 
     const requests=(await page.evaluate(()=>globalThis.__standardOnlineLifetimeInvocations())).filter(c=>c.operation==="technique-equip");assert.equal(requests.length,2);assert.deepEqual(requests[0],requests[1]);
   },{viewport:{width:390,height:844},beforeNavigate:page=>installRenTrialUi(page,{learned:true,loseEquip:true})});
 });
+test("UDL033 credits open without profile/actions/storage changes and restore keyboard focus", { timeout: 120000 }, async () => {
+  await withPage("empty", async page => {
+    const snapshot = () => page.evaluate(() => ({ profile: globalThis.__standardOnlineRuntime.profile,
+      commands: globalThis.__standardOnlineRuntime.calls.filter(c => c.body),
+      storage: Object.fromEntries(Object.keys(localStorage).sort().map(k => [k, localStorage.getItem(k)])) }));
+    const before = await snapshot();
+    for (const size of [{ width: 390, height: 844 }, { width: 844, height: 390 }]) {
+      await page.setViewportSize(size);
+      await page.locator("#openCredits").focus(); await page.keyboard.press("Enter");
+      await page.locator("#creditsDialog[open]").waitFor();
+      assert.equal(await page.evaluate(() => document.activeElement.id), "closeCredits");
+      assert.match(await page.locator("#creditsDialog").textContent(), /わたおきば[\s\S]*わたおび/);
+      assert.deepEqual(await page.locator("#creditsDialog a").evaluateAll(es => es.map(e => ({ href: e.getAttribute("href"), rel: e.rel, target: e.target }))),
+        [{ href: "https://wataokiba.net/", rel: "noopener noreferrer", target: "_blank" },
+          { href: "https://wataokiba.net/利用規約/", rel: "noopener noreferrer", target: "_blank" }]);
+      assert.deepEqual(await page.locator("#creditsDialog").evaluate(e => { const r = e.getBoundingClientRect(); return {
+        fit: r.x >= 0 && r.right <= innerWidth && r.y >= 0 && r.bottom <= innerHeight,
+        overflow: document.documentElement.scrollWidth > innerWidth, target: document.querySelector("#closeCredits").getBoundingClientRect().height >= 44 }; }),
+      { fit: true, overflow: false, target: true });
+      if (process.env.CPU_ARTWORK_SCREENSHOTS) {
+        fs.mkdirSync(process.env.CPU_ARTWORK_SCREENSHOTS, { recursive: true });
+        await page.screenshot({ path: path.join(process.env.CPU_ARTWORK_SCREENSHOTS, browserName + "-credits-" + size.width + ".png") });
+      }
+      await page.keyboard.press("Escape"); assert.equal(await page.locator("#creditsDialog").getAttribute("open"), null);
+      assert.equal(await page.evaluate(() => document.activeElement.id), "openCredits");
+    }
+    await page.locator("#openCredits").click(); await page.locator("#closeCredits").click();
+    assert.equal(await page.evaluate(() => document.activeElement.id), "openCredits");
+    assert.deepEqual(await snapshot(), before);
+  }, { viewport: { width: 390, height: 844 } });
+});
+
+test("UDL033 all ten actual game faces and CPU-loss full bodies retain identity without actions", { timeout: 120000 }, async () => {
+  await withPage("colorResponse", async page => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    const ids = require("../standard-online-v5/cpu-portraits.js").CPU_CHARACTER_IDS;
+    const actions = () => page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter(c => c.body?.operation === "action").length);
+    const before = await actions();
+    await page.evaluate(() => { globalThis.__artworkBaseline = structuredClone(globalThis.__standardOnlineRuntime.room); });
+    for (const [index, id] of ids.entries()) {
+      await page.evaluate(({ id, index }) => {
+        const r = globalThis.__standardOnlineRuntime, b = globalThis.__artworkBaseline, version = 100 + index * 2;
+        r.room = { ...b, status: "playing", opponent_kind: "cpu", cpu_character_id: id, version,
+          public_state: { ...b.public_state, status: "ACTIVE", phase: "COLOR", active: "A", winner: null, terminalReason: null,
+            matchId: b.public_state.matchId + "-" + id, version, lastPublicTrace: null } };
+        r.view = { ...r.view, version }; r.onInvalidate();
+      }, { id, index });
+      await page.waitForFunction(id => document.querySelector("#cpuCommentaryPortraitFrame").dataset.portraitKey === id + ":normal"
+        && document.querySelector("#cpuCommentaryPortraitFrame").dataset.portraitStatus === "ready", id);
+      assert.equal(await page.locator("#cpuCommentaryPortraitFrame").getAttribute("data-portrait-view"), "face");
+      assert.match(await page.locator("#cpuCommentaryPortrait").evaluate(el => getComputedStyle(el).backgroundImage), new RegExp("/" + id + "-normal\\.png"));
+      await page.evaluate(() => {
+        const r = globalThis.__standardOnlineRuntime, version = r.room.version + 1;
+        r.room = { ...r.room, status: "finished", version, winner_seat: "A", public_state: {
+          ...r.room.public_state, status: "FINISHED", phase: "GAME_OVER", version, active: "B", winner: "A",
+          terminalReason: "SURRENDER", lastPublicTrace: null } };
+        r.view = { ...r.view, version }; r.onInvalidate();
+      });
+      await page.waitForFunction(id => ["cpuTerminalPortraitSummaryFrame", "cpuTerminalPortraitOverlayFrame"].every(key => {
+        const frame = document.getElementById(key); return frame.dataset.portraitKey === id + ":SURRENDER"
+          && frame.dataset.portraitStatus === "ready" && frame.dataset.portraitView === "full";
+      }), id);
+      for (const frameId of ["cpuTerminalPortraitSummaryFrame", "cpuTerminalPortraitOverlayFrame"]) {
+        const geometry = await page.locator("#" + frameId).evaluate(el => {
+          const art = el.querySelector(".cpu-portrait-art"), s = getComputedStyle(art), r = el.getBoundingClientRect();
+          return { image: s.backgroundImage.match(/[a-z]+-(normal|loss)\.png/)?.[0], size: s.backgroundSize, position: s.backgroundPosition,
+            filter: s.filter, visible: !art.hidden, width: r.width, height: r.height };
+        });
+        assert.equal(geometry.image, id + "-loss.png"); assert.equal(geometry.size, "contain");
+        assert.equal(geometry.position, "50% 100%"); assert.equal(geometry.filter, "none"); assert.equal(geometry.visible, true);
+        assert.ok(geometry.width > 0 && geometry.height >= 160, JSON.stringify(geometry));
+      }
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+      if (id === "kurogane") {
+        await page.setViewportSize({ width: 844, height: 390 });
+        await page.locator("#cpuTerminalPortraitOverlayFrame").scrollIntoViewIfNeeded();
+        assert.deepEqual(await page.locator(".terminal-celebration").evaluate(el => { const r = el.getBoundingClientRect(); return {
+          fit: r.x >= 0 && r.right <= innerWidth && r.y >= 0 && r.bottom <= innerHeight,
+          overflow: document.documentElement.scrollWidth > innerWidth }; }), { fit: true, overflow: false });
+        assert.equal(await page.locator("#cpuTerminalPortraitOverlayFrame").evaluate(el => {
+          const r=el.getBoundingClientRect(), d=el.closest(".terminal-celebration").getBoundingClientRect();
+          return r.y >= d.y && r.bottom <= d.bottom;
+        }), true, "the complete full body remains scroll-reachable in short landscape");
+      }
+      if (process.env.CPU_ARTWORK_SCREENSHOTS && ["yuzu", "shion", "kurogane"].includes(id)) {
+        fs.mkdirSync(process.env.CPU_ARTWORK_SCREENSHOTS, { recursive: true });
+        await page.screenshot({ path: path.join(process.env.CPU_ARTWORK_SCREENSHOTS, browserName + "-result-" + id + ".png") });
+      }
+      if (await page.locator("#terminalOverlay").isVisible()) await page.locator("#terminalClose").click();
+    }
+    await page.evaluate(() => { const r = globalThis.__standardOnlineRuntime; r.room = { ...r.room, opponent_kind: "human", cpu_character_id: null }; r.onInvalidate(); });
+    await page.waitForFunction(() => document.querySelector("#cpuTerminalCommentarySummaryCard").classList.contains("hidden"));
+    assert.equal(await page.locator("#cpuTerminalPortraitSummaryFrame").getAttribute("data-portrait-view"), null);
+    assert.equal(await page.locator("#cpuTerminalPortraitOverlayFrame").getAttribute("data-portrait-key"), null);
+    assert.equal(await actions(), before);
+  }, { viewport: { width: 390, height: 844 }, bodyTimeout: 65000 });
+});
+
+test("UDL033 a missing selected image does not disable another CPU or the safe surrender controls", { timeout: 120000 }, async () => {
+  await withPage("colorResponse", async page => {
+    await page.evaluate(() => { const r = globalThis.__standardOnlineRuntime; r.room = { ...r.room, opponent_kind: "cpu", cpu_character_id: "yuzu" }; r.onInvalidate(); });
+    await page.waitForFunction(() => document.querySelector("#cpuCommentaryPortraitFrame").dataset.portraitStatus === "error");
+    // The commentary bubble is intentionally silent before a public event. The
+    // loader exposes its fallback; the opened surrender dialog below is visibly usable.
+    assert.equal(await page.locator("#cpuCommentaryPortraitFallback").evaluate(el => el.hidden), false);
+    await page.locator("#colorSurrender").click();
+    assert.equal(await page.locator("#surrenderCpuPortraitFallback").isVisible(), true);
+    assert.equal(await page.locator("#cancelSurrender").isEnabled(), true); await page.locator("#cancelSurrender").click();
+    await page.evaluate(() => { const r = globalThis.__standardOnlineRuntime; r.room = { ...r.room, cpu_character_id: "rei" }; r.onInvalidate(); });
+    await page.waitForFunction(() => document.querySelector("#cpuCommentaryPortraitFrame").dataset.portraitStatus === "ready");
+    assert.match(await page.locator("#cpuCommentaryPortrait").evaluate(el => getComputedStyle(el).backgroundImage), /rei-normal\.png/);
+    assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter(c => c.body?.operation === "action").length), 0);
+  }, { viewport: { width: 390, height: 844 }, beforeNavigate: page => page.route("**/wataokiba/yuzu-normal.png", route => route.abort("failed")) });
+});
+
 async function withPage(mode, run, { bodyTimeout = 35_000, viewport = { width: 900, height: 800 }, beforeNavigate = null, deviceScaleFactor = 1 } = {}) {
   assert.ok(chromium, "Playwright is required");
   assert.ok(fs.existsSync(browserPath), `${browserName} browser is required`);
@@ -2838,7 +2953,7 @@ test("actual Edge carries a fresh player from the battle tab through profile syn
     await page.getByRole("button", { name: "CPUと対戦", exact: true }).click();
     await page.locator("#cpuRosterDialog[open]").waitFor();
     assert.equal(await page.locator("#cpuRosterGrid .cpu-character-card").count(), 10);
-    await page.locator("#cpuRosterGrid .cpu-roster-portrait[data-portrait-status=\"ready\"]").first().waitFor();
+    await page.waitForFunction(() => document.querySelectorAll('#cpuRosterGrid .cpu-roster-portrait[data-portrait-status="ready"]').length === 10);
     assert.equal(await page.locator("#cpuRosterGrid .cpu-roster-portrait").count(), 10);
     assert.equal(await page.locator("#cpuRosterGrid .cpu-roster-portrait[data-portrait-status=\"ready\"]").count(), 10);
     assert.equal(await page.locator("#cpuRosterGrid .cpu-portrait-art:visible").count(), 10);
@@ -5844,7 +5959,7 @@ test("actual browser presents all ten CPU records as a two-column portrait list 
     const records = list.getByRole("listitem");
     assert.equal(await records.count(), 10);
     assert.equal(await page.locator("#cpuCharacterRecords .cpu-record-portrait").count(), 10);
-    await page.locator('#cpuCharacterRecords .cpu-record-portrait[data-portrait-status="ready"]').first().waitFor();
+    await page.waitForFunction(() => document.querySelectorAll('#cpuCharacterRecords .cpu-record-portrait[data-portrait-status="ready"]').length === 10);
     assert.equal(await page.locator('#cpuCharacterRecords .cpu-record-portrait[data-portrait-status="ready"]').count(), 10);
     assert.equal(await records.nth(0).getAttribute("aria-label"), "うっかりユズ、3勝 2敗、合計5戦");
     assert.equal(await records.nth(1).getAttribute("aria-label"), "せっかちレン、0勝 0敗、合計0戦");
@@ -8620,7 +8735,7 @@ test("UDL067 face follows all ten public CPU identities and clears without a gam
   }, { viewport:{width:390,height:844}, bodyTimeout:70000 });
 });
 
-for (const unavailable of ["atlas", "module"]) {
+for (const unavailable of ["image", "module"]) {
   test("UDL067 face " + unavailable + " failure keeps visible fallback and safe explicit confirmation", { timeout: 120000 }, async () => {
     const errors=[];
     await withPage("colorResponse", async page => {
@@ -8641,7 +8756,7 @@ for (const unavailable of ["atlas", "module"]) {
       assert.equal(await count(),before+1);assert.deepEqual(errors,[]);
     }, {viewport:{width:390,height:844},beforeNavigate:async page=>{
       page.on("pageerror",error=>errors.push(error.message));
-      await page.route(unavailable==="atlas"?"**/cpu-portrait-atlas.png":"**/cpu-portraits.js*",route=>route.abort("failed"));
+      await page.route(unavailable==="image"?"**/cpu-portraits/wataokiba/*.png":"**/cpu-portraits.js*",route=>route.abort("failed"));
     }});
   });
 }
@@ -9472,13 +9587,15 @@ test("actual browser presents CPU commentary once from public events and keeps t
     assert.match(await page.locator("#cpuTerminalCommentaryOverlay").textContent(), /^うっかりユズ「.+」$/);
     assert.doesNotMatch(await page.locator("#cpuTerminalCommentaryOverlay").textContent(), /四色に接するエリア|こちら|自分/);
     assert.equal(await page.locator("#terminalReasonText").textContent(), "うっかりユズは、四色に接するエリアを渡されて塗れる色がなくなりました。");
-    await page.waitForFunction(() => globalThis.FourColorStandardCpuPortraits?.getAtlasState() === "ready"
+    await page.waitForFunction(() => document.querySelector("#cpuTerminalPortraitOverlayFrame")?.dataset.portraitStatus === "ready"
       && document.querySelector("#cpuTerminalPortraitOverlay")?.hidden === false);
     assert.deepEqual(await page.locator("#cpuTerminalPortraitOverlayFrame").evaluate((frame) => ({
       mode: frame.dataset.portraitMode,
       reason: frame.dataset.portraitReason,
-      position: getComputedStyle(frame.querySelector(".cpu-portrait-art")).backgroundPosition,
-    })), { mode: "loss", reason: "NO_LEGAL_COLOR", position: "0% 0%" });
+      view: frame.dataset.portraitView,
+      image: getComputedStyle(frame.querySelector(".cpu-portrait-art")).backgroundImage.match(/[a-z]+-(normal|loss)\.png/)?.[0],
+      size: getComputedStyle(frame.querySelector(".cpu-portrait-art")).backgroundSize,
+    })), { mode: "loss", reason: "NO_LEGAL_COLOR", view: "full", image: "yuzu-loss.png", size: "contain" });
     assert.equal(await page.locator("#cpuTerminalPortraitOverlayFallback").isHidden(), true);
     assert.equal(await page.evaluate(() => Math.max(0, document.documentElement.scrollWidth - document.documentElement.clientWidth)), 0);
     const describedText = await page.locator(".terminal-celebration").evaluate((node) => node.getAttribute("aria-describedby").split(/\s+/).map((id) => document.getElementById(id)?.textContent || "").join(" "));
@@ -9576,7 +9693,7 @@ test("actual browser presents CPU commentary once from public events and keeps t
   await withPage("cpuCommentary", async (page) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.locator("#matchCard:not(.hidden)").waitFor();
-    await page.waitForFunction(() => globalThis.FourColorStandardCpuPortraits?.getAtlasState() === "ready"
+    await page.waitForFunction(() => document.querySelector("#cpuCommentaryPortraitFrame")?.dataset.portraitStatus === "ready"
       && document.querySelector("#cpuCommentaryPortrait")?.hidden === false);
     assert.deepEqual(await page.locator("#cpuCommentaryPortraitFrame").evaluate((frame) => {
       const rect = frame.getBoundingClientRect();
@@ -9585,11 +9702,11 @@ test("actual browser presents CPU commentary once from public events and keeps t
         ariaHidden: frame.getAttribute("aria-hidden"),
         height: Math.round(rect.height),
         mode: frame.dataset.portraitMode,
-        position: getComputedStyle(art).backgroundPosition,
+        image: getComputedStyle(art).backgroundImage.match(/[a-z]+-(normal|loss)\.png/)?.[0],
         transition: getComputedStyle(art).transitionDuration,
         width: Math.round(rect.width),
       };
-    }), { ariaHidden: "true", height: 34, mode: "normal", position: "0% 0%", transition: "0s", width: 34 });
+    }), { ariaHidden: "true", height: 34, mode: "normal", image: "yuzu-normal.png", transition: "0s", width: 34 });
     assert.equal(await page.locator("#cpuCommentaryPortraitFallback").isHidden(), true);
     assert.equal(await page.evaluate(() => Math.max(0, document.documentElement.scrollWidth - document.documentElement.clientWidth)), 0);
   }, { viewport: { width: 1280, height: 900 }, bodyTimeout: 20_000 });

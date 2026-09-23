@@ -83,7 +83,7 @@ test("CPU commentary is public-event-only, bounded, non-blocking, and terminal-p
   assert.match(html, /standard-online-client\.js\?v=20260914-1/);
   assert.match(html, /standard-online-skill-intents\.js\?v=20260911-21/);
   assert.match(html, /cpu-commentary\.js\?v=20260910-1/);
-assert.match(html, /app\.js\?v=20260921-2/);
+assert.match(html, /app\.js\?v=20260923-1/);
   assert.match(app, /cpuCommentary\?\.VERSION !== "standard-cpu-commentary-v3"/);
   assert.ok(html.indexOf("cpu-commentary.js") < html.indexOf('type="module" src="app.js'));
   assert.match(html, /id="cpuCommentaryStage"[^>]+aria-hidden="true"/);
@@ -479,7 +479,7 @@ test("existing online progression is hydrated from the server rather than re-upl
 
 test("UI derives its canonical and experimental card metadata from the generated registry", () => {
   assert.equal(Object.values(STANDARD_SKILLS).filter((skill) => skill.v49Catalogued).length, 19);
-  assert.match(html, /standard-skill-registry\.generated\.js\?v=20260914-2[\s\S]+app\.js\?v=20260921-2/);
+  assert.match(html, /standard-skill-registry\.generated\.js\?v=20260914-2[\s\S]+app\.js\?v=20260923-1/);
   assert.match(app, /const STANDARD_SKILL_REGISTRY = globalThis\.FourColorStandardSkillRegistry/);
   assert.match(app, /STANDARD_SKILL_REGISTRY\.v49SkillIds\.map/);
   assert.match(app, /Object\.entries\(STANDARD_SKILL_REGISTRY\.skills\)/);
@@ -544,7 +544,7 @@ test("roomless loadout review defers CPU creation and persists one immutable two
 
 test("CPU roster renders every portrait before the opponent is selected", () => {
   const roster = app.slice(app.indexOf("function clearCpuRosterPortraits"), app.indexOf("async function openCpuRoster"));
-  assert.match(roster, /cpuPortraits\?\.VERSION !== "standard-cpu-portraits-v2"/);
+  assert.match(roster, /cpuPortraits\?\.VERSION !== "standard-cpu-portraits-v3"/);
   assert.match(roster, /querySelectorAll\("\.cpu-roster-portrait"\)[\s\S]+clearCpuPortrait/);
   assert.match(roster, /grid\.replaceChildren\(\)[\s\S]+cpu-portrait-frame cpu-roster-portrait/);
   assert.match(roster, /cpu-portrait-art[\s\S]+cpu-portrait-fallback[\s\S]+showCpuPortrait\(\{ frame: portrait, art: portraitArt, fallback: portraitFallback, characterId: character\.id \}\)/);

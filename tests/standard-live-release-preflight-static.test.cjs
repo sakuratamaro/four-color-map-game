@@ -83,23 +83,25 @@ test("release preflight is read-only, secret-free, finite, and stage-aware", () 
   assert.match(source, /MATCH_REWARD_ECONOMY_MISMATCH/);
   assert.match(source, /app\.text\.includes\('★\$\{meta\.rarity\}'\)/);
   assert.match(source, /CANDIDATE_ASSET_GENERATION_UI_PHASE_MISMATCH/);
-assert.match(source, /app\.js\?v=20260921-2/);
+assert.match(source, /app\.js\?v=20260923-1/);
   assert.match(source, /cpu-commentary\.js\?v=20260910-1/);
   assert.match(source, /progression\.css/);
   assert.match(source, /style\.css\?v=20260921-1/);
   assert.match(source, /standard-online-client\.js\?v=20260914-1/);
   assert.match(source, /standard-online-skill-intents\.js\?v=20260911-21/);
   assert.match(source, /standard-skill-registry\.generated\.js\?v=20260914-2/);
-  assert.match(source, /cpu-portraits\.js\?v=20260908-1/);
+  assert.match(source, /cpu-portraits\.js\?v=20260913-2/);
   assert.match(source, /basic-feedback\.js\?v=20260908-2/);
 assert.match(source, /skill-cutin\.js\?v=20260913-2/);
   assert.match(source, /skill-cutin\.css\?v=20260913-1/);
-  assert.match(source, /getOptionalBytes\(`\$\{publicUrl\}assets\/cpu-portraits\/cpu-portrait-atlas\.png`\)/);
+  assert.match(source, /getOptionalText\(`\$\{publicUrl\}assets\/cpu-portraits\/wataokiba\/manifest\.json`\)/);
   assert.match(source, /getOptionalText\(publicEdgeBundleUrl\)/);
   assert.match(source, /standard-engine\.bundle\.js/);
-  assert.match(source, /portraitAtlas\.bytes\.length > 500_000/);
-  assert.match(source, /portraitAtlasDimensions\?\.width === 1448/);
-  assert.match(source, /portraitAtlasDimensions\?\.height === 1086/);
+  assert.match(source, /portraitManifest\.text === localPortraitManifest/);
+  assert.match(source, /portraitImages\.length === 20/);
+  assert.match(source, /crypto\.createHash\("sha256"\)\.update\(fetched\.bytes\)/);
+  assert.match(source, /portraitImages\.every\(asset => asset\.bytesMatch\)/);
+  assert.match(source, /cpu-artwork\.css\?v=20260913-1/);
   assert.match(source, /skillCategoryWindow/);
   assert.match(source, /SKILL_CATEGORY_ALREADY_USED_IN_WINDOW/);
   assert.match(source, /colorBonusRefill/);
@@ -269,7 +271,7 @@ test("candidate app satisfies the waiting-opponent release marker", () => {
 });
 
 test("candidate page and app satisfy the alpha.4 cache generation marker", () => {
-  assert.equal(candidateHtml.includes("app.js?v=20260921-2"), true);
+  assert.equal(candidateHtml.includes("app.js?v=20260923-1"), true);
   assert.equal(candidateHtml.includes("terminal-result.css?v=20260914-1"), true);
   assert.equal(candidateApp.includes("result-continuation.js?v=20260914-2"), true);
   assert.equal(candidateHtml.includes("cpu-commentary.js?v=20260910-1"), true);
@@ -279,7 +281,8 @@ test("candidate page and app satisfy the alpha.4 cache generation marker", () =>
   assert.equal(candidateHtml.includes("standard-online-client.js?v=20260914-1"), true);
   assert.equal(candidateHtml.includes("standard-online-skill-intents.js?v=20260911-21"), true);
   assert.equal(candidateHtml.includes("standard-skill-registry.generated.js?v=20260914-2"), true);
-  assert.equal(candidateHtml.includes("cpu-portraits.js?v=20260908-1"), true);
+  assert.equal(candidateHtml.includes("cpu-portraits.js?v=20260913-2"), true);
+  assert.equal(candidateHtml.includes("cpu-artwork.css?v=20260913-1"), true);
   assert.equal(candidateHtml.includes("basic-feedback.js?v=20260908-2"), true);
   assert.equal(candidateHtml.includes("skill-cutin.js?v=20260913-2"), true);
   assert.equal(candidateHtml.includes("skill-cutin.css?v=20260913-1"), true);

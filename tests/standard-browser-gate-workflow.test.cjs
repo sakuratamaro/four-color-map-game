@@ -5,6 +5,13 @@ const fs = require("node:fs");
 const path = require("node:path");
 const test = require("node:test");
 
+test("UDL033 artwork contracts join the existing bounded gate without replacing pilot suites",()=>{
+  const source=fs.readFileSync(path.join(__dirname,"..",".github/workflows/standard-browser-gate.yml"),"utf8");
+  for(const name of ["standard-cpu-portraits","standard-cpu-progression-public-ui","standard-ui-navigation-integration"])
+    assert.equal(source.split("          tests/"+name+".test.cjs").length-1,1,name);
+  assert.equal(source.split("codex/cpu-wataokiba-public-ui-20260923").length-1,1);
+});
+
 const workflow = fs.readFileSync(path.join(__dirname, "..", ".github", "workflows", "standard-browser-gate.yml"), "utf8");
 
 test("Standard browser gate YAML text uses stable whitespace", () => {
@@ -16,7 +23,7 @@ test("Standard browser gate YAML text uses stable whitespace", () => {
 });
 
 test("Standard browser gate is candidate-push, manual, or pull-request only and least-privileged", () => {
-  assert.match(workflow, /^on:\r?\n  push:\r?\n    branches: \[codex\/standard-release-command, codex\/quiz-memo-calculator-20260912, codex\/ui-diet-20260912, codex\/ui-play-surface-20260912, codex\/ui-result-20260912, codex\/ui-cosmetics-20260912, codex\/ui-player-copy-20260912, codex\/skill-cutin-20260912, codex\/ui-flat-entry-20260912, codex\/skill-catalog-20260912, codex\/surrender-confirmation-20260913, codex\/cpu-split-rescue-20260913, codex\/skill-cutin-readability-20260913, codex\/skill-cutin-public-names-20260913, codex\/ui-diet-release-20260915, codex\/ui-followup-release-20260915, codex\/ui-public-match-actions-20260913, codex\/ui-public-match-actions-pointer-20260913, codex\/surrender-cpu-face-20260913, codex\/quiz-level-buttons-20260914, codex\/gacha-entry-diet-20260914, codex\/home-rules-diet-20260914, codex\/ui-navigation-release-20260920, codex\/cpu-progression-public-ui-20260921\][\s\S]+?  pull_request:[\s\S]+?  workflow_dispatch:/m);
+  assert.match(workflow, /^on:\r?\n  push:\r?\n    branches: \[codex\/standard-release-command, codex\/quiz-memo-calculator-20260912, codex\/ui-diet-20260912, codex\/ui-play-surface-20260912, codex\/ui-result-20260912, codex\/ui-cosmetics-20260912, codex\/ui-player-copy-20260912, codex\/skill-cutin-20260912, codex\/ui-flat-entry-20260912, codex\/skill-catalog-20260912, codex\/surrender-confirmation-20260913, codex\/cpu-split-rescue-20260913, codex\/skill-cutin-readability-20260913, codex\/skill-cutin-public-names-20260913, codex\/ui-diet-release-20260915, codex\/ui-followup-release-20260915, codex\/ui-public-match-actions-20260913, codex\/ui-public-match-actions-pointer-20260913, codex\/surrender-cpu-face-20260913, codex\/quiz-level-buttons-20260914, codex\/gacha-entry-diet-20260914, codex\/home-rules-diet-20260914, codex\/ui-navigation-release-20260920, codex\/cpu-progression-public-ui-20260921, codex\/cpu-wataokiba-public-ui-20260923\][\s\S]+?  pull_request:[\s\S]+?  workflow_dispatch:/m);
   assert.equal((workflow.match(/      - online\/supabase-config\.js/g) || []).length, 2);
   assert.equal((workflow.match(/      - online-v5\/style\.css/g) || []).length, 2);
   assert.equal((workflow.match(/      - standard-online-v5\/\*\*/g) || []).length, 2);

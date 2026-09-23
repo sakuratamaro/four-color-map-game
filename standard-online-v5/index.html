@@ -17,6 +17,7 @@
   <link rel="stylesheet" href="result-continuation.css?v=20260912-1">
   <link rel="stylesheet" href="terminal-result.css?v=20260914-1">
   <link rel="stylesheet" href="skill-cutin.css?v=20260913-1">
+  <link rel="stylesheet" href="cpu-artwork.css?v=20260913-1">
 </head>
 <body>
   <header>
@@ -459,6 +460,7 @@
       </details>
       <p class="muted small">同じ色が辺で接しないように塗りましょう。直前の操作は「直前の一手」で確認できます。</p>
     </section>
+    <p class="game-credits-entry" data-app-tab-panel="home profile"><button id="openCredits" type="button" class="ghost" aria-haspopup="dialog" aria-controls="creditsDialog">クレジット</button></p>
   </main>
   <div id="terminalOverlay" class="terminal-overlay hidden" aria-live="assertive">
     <section class="terminal-celebration" role="dialog" aria-modal="true" aria-labelledby="terminalTitle" aria-describedby="terminalMessage cpuTerminalCommentaryOverlay terminalReasonText terminalProgressText">
@@ -502,6 +504,15 @@
   </div>
   <p id="contactRevealAnnouncement" class="visually-hidden" role="status" aria-live="polite" aria-atomic="true"></p>
   <p id="cpuCommentaryAnnouncement" class="visually-hidden" role="status" aria-live="polite" aria-atomic="true"></p>
+  <dialog id="creditsDialog" class="game-credits-dialog" aria-labelledby="creditsTitle">
+    <form method="dialog">
+      <h2 id="creditsTitle">クレジット</h2>
+      <p>キャラクターイラスト：<strong>わたおきば</strong><br>作者：<strong>わたおび</strong></p>
+      <p><a href="https://wataokiba.net/" target="_blank" rel="noopener noreferrer">配布元サイト</a><a href="https://wataokiba.net/利用規約/" target="_blank" rel="noopener noreferrer">利用規約</a></p>
+      <p class="muted small">イラストの権利は作者に帰属します。素材をご利用になる場合は、配布元の規約をご確認ください。</p>
+      <button id="closeCredits" type="submit" class="ghost" autofocus>閉じる</button>
+    </form>
+  </dialog>
   <dialog id="skillInfoDialog" class="skill-info-dialog" aria-labelledby="skillInfoTitle">
     <form method="dialog">
       <div class="row between"><span class="info-mark" aria-hidden="true">ⓘ</span><button id="closeSkillInfo" class="ghost" type="button" aria-label="説明を閉じる">閉じる</button></div>
@@ -595,7 +606,7 @@
   <script src="standard-online-client.js?v=20260914-1"></script>
   <script src="standard-online-sync.js"></script>
   <script src="standard-online-skill-intents.js?v=20260911-21"></script>
-  <script src="cpu-portraits.js?v=20260908-1"></script>
+  <script src="cpu-portraits.js?v=20260913-2"></script>
   <script src="cpu-commentary.js?v=20260910-1"></script>
   <script src="basic-feedback.js?v=20260908-2"></script>
   <div id="skillCutin" class="skill-cutin hidden" aria-hidden="true">
@@ -607,6 +618,6 @@
   <p id="skillCutinAnnouncement" class="visually-hidden" role="status" aria-live="polite" aria-atomic="true"></p>
   <script src="skill-cutin.js?v=20260913-2"></script>
   <script src="surrender-confirmation.js?v=20260913-1"></script>
-  <script type="module" src="app.js?v=20260921-2"></script>
+  <script type="module" src="app.js?v=20260923-1"></script>
 </body>
 </html>

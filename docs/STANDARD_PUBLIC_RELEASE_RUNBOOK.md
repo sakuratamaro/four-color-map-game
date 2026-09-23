@@ -1,5 +1,13 @@
 # Standard公開版 段階リリース手順
 
+## 2026-09-23 CPU画像の現公開UIへの統合（未公開）
+
+正本は docs/CPU_WATAOKIBA_INTEGRATION_20260923.md / UDL-033-wataokiba-public-ui-v2。基準b07da70259c776554cb6057a48db49307bd7925fへ、旧21cc31af8ee4ca70f22c25e220c608a0d44d38d5の採用済み画像・クレジットだけを統合する。Pages_only、DB/Edge/管理設定は各 `[]`。元PNG20枚・manifest・NOTICEを保持し、通常6枚/別枠技・CPU方策・数値・台詞・経済を変更しない。
+
+現候補assetは `app.js?v=20260923-1`、`cpu-portraits.js?v=20260913-2`、`cpu-artwork.css?v=20260913-1`。その他はb07を保持する。旧033親87や下記CPU/導線laneは凍結履歴であり、現在の公開状態を示さない。既存本人の素材利用判断を再確認せず、新候補固有のWindows・真正Astra判定・fresh main再照合・同SHA Pages・全byte一致を必要とする。047/060や旧21ccの検証を新候補へ流用しない。
+
+公開後はHTML/JS/CSS/manifest/NOTICE/20PNGのSHA256・寸法を固定候補と照合。preflightの画像取得先は一致済みローカルmanifestの固定20相対名だけを使用し、遠隔metadataでURLを選ばない。元15GETのatlas読取をmanifestへ置換し20画像GETを追加するため、改修版preflightは35GET＋既存8固定未認証負例POSTであり、旧公開便の回数枠では実行しない。別の正確な候補・有限確認計画へ束縛する。追加profile/対局/live/cleanupなし。画像便の問題でDB/Edgeや保存済み試練を巻き戻さない。全本番操作・native/物理受入はこのローカル導入時点でNOT_RUN。
+
 ## 2026-09-21 CPU試練・伝授技と公開UIの再統合（未公開）
 
 正本は `docs/CPU_PUBLIC_UI_INTEGRATION_20260921.md` / `UDL011064-public-ui-v1.1` と既存 `UDL011064-pilot-design-v2`。公開UI `4d91bbd4ea407be428144fe04ff5eb8821b3a8a0` を基準に旧CPU `2e30e9a25db674fe4168bac3ec745fe04641b3c9` の採用済み機能を統合する。専用branchは `codex/cpu-progression-public-ui-20260921`。旧ee8は固有Windows成功後、alpha5の既塗角膨張UI回帰にREQUEST_CHANGESを受領した。修正版はその局所補修・回帰検証・必要cache識別子更新に限定し、修正SHA固有のWindows・真正Astra・push/main/Pages/liveはNOT_RUN。旧ee8の成功を流用せず、旧DB3本の実行前拒否・別保留は維持し、再試行や別経路で実行しない。

@@ -18,7 +18,8 @@ test("combined pilot keeps published board/palette model and surface bytes",()=>
 });
 test("combined pilot identifies new assets separately from frozen navigation and CPU parents",()=>{
  for(const marker of ["app.js?v=20260921-2","style.css?v=20260921-1","standard-online-client.js?v=20260914-1","standard-skill-registry.generated.js?v=20260914-2"]){
-  assert.ok(html.includes(marker),marker);assert.ok(spec.includes(marker),marker);
+  const current=marker==="app.js?v=20260921-2"?"app.js?v=20260923-1":marker;
+  assert.ok(html.includes(current),current);assert.ok(spec.includes(marker),marker);
  }
  for(const marker of ["play-surface-model.js?v=20260915-1","result-continuation.js?v=20260914-2","cpu-progression-model.js?v=20260914-1"]){
   assert.ok(app.includes(marker),marker);assert.ok(spec.includes(marker),marker);

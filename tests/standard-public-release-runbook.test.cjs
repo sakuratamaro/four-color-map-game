@@ -10,7 +10,9 @@ const onlineIndex = fs.readFileSync(path.join(__dirname, "..", "standard-online-
 const localIndex = fs.readFileSync(path.join(__dirname, "..", "standard-v5", "index.html"), "utf8");
 // Freeze only the two superseded cache labels in main70e's historical release lanes.
 // Current UI generation is checked independently below; no old approval is reused.
-const followupOnlineIndex = onlineIndex.replace("app.js?v=20260921-2", "app.js?v=20260915-8")
+const pilotOnlineIndex = onlineIndex.replace("app.js?v=20260923-1", "app.js?v=20260921-2")
+  .replace("cpu-portraits.js?v=20260913-2", "cpu-portraits.js?v=20260908-1");
+const followupOnlineIndex = pilotOnlineIndex.replace("app.js?v=20260921-2", "app.js?v=20260915-8")
   .replace("style.css?v=20260921-1", "style.css?v=20260915-8");
 const priorOnlineIndex = followupOnlineIndex.replace("app.js?v=20260915-8", "app.js?v=20260913-44")
   .replace("style.css?v=20260915-8", "style.css?v=20260910-12");
@@ -20,6 +22,16 @@ function assetReference(source, pattern, label) {
   assert.ok(reference, `${label} asset reference missing from its authoritative index`);
   return reference;
 }
+
+test("UDL033 current-base artwork lane is separate from frozen pilot and source approvals", () => {
+  const section=runbook.slice(runbook.indexOf("## 2026-09-23 CPU画像"),runbook.indexOf("## 2026-09-21 CPU試練"));
+  for(const value of ["UDL-033-wataokiba-public-ui-v2","b07da70259c776554cb6057a48db49307bd7925f",
+    "21cc31af8ee4ca70f22c25e220c608a0d44d38d5","Pages_only","元PNG20枚","35GET","8固定未認証負例POST",
+    "047/060","新候補固有のWindows","真正Astra","NOT_RUN"])assert.ok(section.includes(value),value);
+  for(const marker of ["app.js?v=20260923-1","cpu-portraits.js?v=20260913-2","cpu-artwork.css?v=20260913-1"]){
+    assert.ok(section.includes(marker),marker);assert.ok(onlineIndex.includes(marker),marker);
+  }
+});
 
 test("frozen parent UI lane retains its original assets and release boundary", () => {
   const section=runbook.slice(runbook.indexOf("## 2026-09-15 独立UIダイエット便"),runbook.indexOf("更新日:"));
@@ -81,7 +93,7 @@ test("UDL060 terminal hierarchy binds its own asset versions and keeps release g
 test("CPU progression UI binds current assets without rewriting parent publication evidence", () => {
   const section = runbook.slice(runbook.indexOf("## 2026-09-21 CPU試練・伝授技"), runbook.indexOf("## 2026-09-20 UI導線統合候補"));
   for (const pattern of [/src="(app\.js\?v=[^"]+)"/, /href="(style\.css\?v=[^"]+)"/, /src="(standard-online-client\.js\?v=[^"]+)"/])
-    assert.ok(section.includes(assetReference(onlineIndex, pattern, "pilot UI")));
+    assert.ok(section.includes(assetReference(pilotOnlineIndex, pattern, "frozen pilot UI")));
   const app = fs.readFileSync(path.join(__dirname, "..", "standard-online-v5", "app.js"), "utf8");
   for (const pattern of [/from "\.\/(result-continuation\.js\?v=[^"]+)"/, /from "\.\/(cpu-progression-model\.js\?v=[^"]+)"/])
     assert.ok(section.includes(assetReference(app, pattern, "pilot model")));
@@ -155,7 +167,7 @@ test("frozen alpha.4 release lane deploys the compatible Edge before Pages and p
     assetReference(priorOnlineIndex, /href="(style\.css\?v=[^"]+)"/, "frozen main70e online style"),
     assetReference(onlineIndex, /src="(standard-online-skill-intents\.js\?v=[^"]+)"/, "online skill intents"),
     "standard-online-client.js?v=20260910-1", // Fixed parent; pilot is checked separately.
-    assetReference(onlineIndex, /src="(cpu-portraits\.js\?v=[^"]+)"/, "CPU portraits"),
+    assetReference(pilotOnlineIndex, /src="(cpu-portraits\.js\?v=[^"]+)"/, "frozen CPU portraits"),
     "app.bundle.js?v=20260913-9-4f66b9b284ba", // Exact published parent, not the later pilot bundle.
   ];
   for (const asset of candidateAssets) assert.match(releaseSection, new RegExp(asset.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));

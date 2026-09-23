@@ -1,0 +1,18 @@
+/* Original Wataokiba PNGs; CSS presentation only, no edited image pixels. */
+.cpu-portrait-art{background-image:var(--cpu-portrait-image,none);background-size:var(--cpu-portrait-size,contain)}
+.cpu-portrait-frame[data-portrait-mode="loss"] .cpu-portrait-art{filter:none}
+.cpu-portrait-frame[data-portrait-view="full"]{width:100%;height:clamp(160px,26dvh,240px);border-radius:14px;background:linear-gradient(150deg,#192239,#0b1423);border-color:#64748b}
+.cpu-portrait-frame[data-portrait-view="full"]::after{display:none}
+.cpu-terminal-commentary-card:has([data-portrait-view="full"]){grid-template-columns:minmax(88px,128px) minmax(0,1fr);align-items:center}
+.cpu-terminal-commentary-card:has([data-portrait-view="full"]) .cpu-terminal-commentary{overflow-wrap:anywhere}
+.game-credits-entry{margin:12px 0 20px;text-align:center}
+.game-credits-entry button{min-height:44px;color:#cbd5e1}
+.game-credits-dialog{box-sizing:border-box;width:min(480px,calc(100vw - 24px));max-height:calc(100dvh - 24px);overflow:auto;border:1px solid #64748b;border-radius:18px;background:#101b2e;color:#f1f5f9;padding:24px}
+.game-credits-dialog::backdrop{background:#020617b8}
+.game-credits-dialog h2{margin:0 0 18px}.game-credits-dialog p{line-height:1.65}
+.game-credits-dialog a{color:#67e8f9;display:inline-flex;align-items:center;min-height:44px;margin-right:16px}
+.game-credits-dialog button{width:100%;min-height:44px;margin-top:14px}
+.game-credits-dialog :focus-visible{outline:3px solid #67e8f9;outline-offset:3px}
+@media(max-width:390px){.cpu-terminal-commentary-card:has([data-portrait-view="full"]){grid-template-columns:96px minmax(0,1fr);gap:10px}.game-credits-dialog{padding:18px}}
+@media(max-height:480px){.cpu-portrait-frame[data-portrait-view="full"]{height:160px}}
+@media(prefers-reduced-motion:reduce){.cpu-portrait-frame[data-portrait-view="full"]{animation:none!important;transition:none!important}}

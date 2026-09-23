@@ -1154,7 +1154,7 @@ function cpuPortraitElements(frameId, artId, fallbackId) {
 
 function clearCpuPortrait(frameId, artId, fallbackId) {
   const elements = cpuPortraitElements(frameId, artId, fallbackId);
-  if (cpuPortraits?.VERSION === "standard-cpu-portraits-v2") cpuPortraits.clearCpuPortrait(elements);
+  if (cpuPortraits?.VERSION === "standard-cpu-portraits-v3") cpuPortraits.clearCpuPortrait(elements);
   else {
     elements.art.hidden = true;
     elements.fallback.hidden = false;
@@ -1164,12 +1164,15 @@ function clearCpuPortrait(frameId, artId, fallbackId) {
 function renderCpuPortrait(frameId, artId, fallbackId, context, item = null) {
   const mode = item?.kind === "terminal-loss" && !isLegalRecolorLab(context?.publicState) ? "loss" : "normal";
   const elements = cpuPortraitElements(frameId, artId, fallbackId);
-  return cpuPortraits?.VERSION === "standard-cpu-portraits-v2"
+  return cpuPortraits?.VERSION === "standard-cpu-portraits-v3"
     ? cpuPortraits.showCpuPortrait({
       ...elements,
       characterId: context?.characterId,
       mode,
       reason: mode === "loss" ? item?.reason : null,
+      view: mode === "loss" && context?.publicState?.status === "FINISHED"
+        && context.publicState.winner && context.publicState.winner !== context.cpuSeat
+        && ["cpuTerminalPortraitSummaryFrame", "cpuTerminalPortraitOverlayFrame"].includes(frameId) ? "full" : "face",
     })
     : null;
 }
@@ -1729,7 +1732,7 @@ function appendStat(label, value, targetId = "profileStats") {
 }
 
 function clearCpuCharacterRecordPortraits() {
-  if (cpuPortraits?.VERSION !== "standard-cpu-portraits-v2") return;
+  if (cpuPortraits?.VERSION !== "standard-cpu-portraits-v3") return;
   for (const frame of $("cpuCharacterRecords").querySelectorAll(".cpu-record-portrait")) {
     cpuPortraits.clearCpuPortrait({
       frame,
@@ -1764,7 +1767,7 @@ function appendCpuCharacterRecord(characterId, record) {
   copy.append(name, score, total);
   item.append(portrait, copy);
   $("cpuCharacterRecords").appendChild(item);
-  if (cpuPortraits?.VERSION === "standard-cpu-portraits-v2") {
+  if (cpuPortraits?.VERSION === "standard-cpu-portraits-v3") {
     cpuPortraits.showCpuPortrait({ frame: portrait, art, fallback, characterId });
   }
 }
@@ -5729,7 +5732,7 @@ function guardNewMatchEntry(options = {}) {
 }
 
 function clearCpuRosterPortraits(grid) {
-  if (cpuPortraits?.VERSION !== "standard-cpu-portraits-v2") return;
+  if (cpuPortraits?.VERSION !== "standard-cpu-portraits-v3") return;
   for (const frame of grid.querySelectorAll(".cpu-roster-portrait")) {
     cpuPortraits.clearCpuPortrait({
       frame,
@@ -5777,7 +5780,7 @@ function renderCpuRoster(characters) {
       start.disabled = !renTrialInfo.progression.trialUnlocked || progressionPending() || Boolean(pendingCharacter || cpuEntryDraft) || resultContinuationPending();
       details.append(label, conditions, loans, start); item.appendChild(details);
     }
-    if (cpuPortraits?.VERSION === "standard-cpu-portraits-v2") {
+    if (cpuPortraits?.VERSION === "standard-cpu-portraits-v3") {
       cpuPortraits.showCpuPortrait({ frame: portrait, art: portraitArt, fallback: portraitFallback, characterId: character.id });
     }
   }
@@ -6592,6 +6595,17 @@ $("resultGoLobby").onclick = () => leaveFinishedResult();
 $("resultGoGacha").onclick = openSavedResultGacha;
 $("terminalGoLobby").onclick = () => leaveFinishedResult();
 $("closeSkillInfo").onclick = () => $("skillInfoDialog").close();
+let creditsTrigger = null;
+$("openCredits").onclick = (event) => {
+  if (document.querySelector("dialog[open]")) return;
+  creditsTrigger = event.currentTarget;
+  skillCutin.interrupt();
+  $("creditsDialog").showModal();
+};
+$("creditsDialog").addEventListener("close", () => {
+  if (creditsTrigger?.isConnected && creditsTrigger.getClientRects().length) creditsTrigger.focus({ preventScroll: true });
+  creditsTrigger = null;
+});
 $("terminalGoGacha").onclick = openSavedResultGacha;
 $("terminalClose").onclick = returnToTerminalSummary;
 $("terminalOverlay").addEventListener("keydown", (event) => {
