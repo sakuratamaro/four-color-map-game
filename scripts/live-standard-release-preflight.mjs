@@ -16,15 +16,15 @@ const publicEdgeBundleUrl = new URL("../supabase/functions/standard-game-action/
 const expectedPhase = process.argv.find((argument) => argument.startsWith("--expect="))?.slice("--expect=".length) || null;
 const zeroUuid = "00000000-0000-0000-0000-000000000000";
 const candidateAssetMarkers = Object.freeze({
-app: "app.js?v=20260923-1",
+app: "app.js?v=20260926-1",
   homeStyle: "ui-diet.css?v=20260914-2",
   terminalStyle: "terminal-result.css?v=20260914-1",
   commentary: "cpu-commentary.js?v=20260910-1",
   style: "style.css?v=20260921-1",
   playStyle: "play-surface.css?v=20260915-5",
   client: "standard-online-client.js?v=20260914-1",
-  intents: "standard-online-skill-intents.js?v=20260911-21",
-  registry: "standard-skill-registry.generated.js?v=20260914-2",
+  intents: "standard-online-skill-intents.js?v=20260926-1",
+  registry: "standard-skill-registry.generated.js?v=20260926-1",
   portraits: "cpu-portraits.js?v=20260913-2",
   artworkStyle: "cpu-artwork.css?v=20260913-1",
   feedback: "basic-feedback.js?v=20260908-2",
@@ -229,7 +229,7 @@ if (expectedPhase) {
       assert.equal(response.text, fs.readFileSync(path.join(root, "standard-online-v5", file), "utf8"), `HOME_RULES_ASSET_EXACT_${file}`);
     }
     assert.ok(app.text.includes('result-continuation.js?v=20260914-2'), "TERMINAL_RESULT_MODEL_GENERATION_REQUIRED");
-    assert.ok(app.text.includes('cpu-progression-model.js?v=20260914-1'), "CPU_PROGRESSION_MODEL_GENERATION_REQUIRED");
+    assert.ok(app.text.includes('cpu-progression-model.js?v=20260926-1'), "CPU_PROGRESSION_MODEL_GENERATION_REQUIRED");
     for (const file of ["terminal-result.css", "result-continuation.js", "action-recovery.js", "cpu-progression-model.js"]) {
       const response = file === "result-continuation.js" ? resultModel : await getText(`${publicUrl}${file}`);
       assert.equal(response.text, fs.readFileSync(path.join(root, "standard-online-v5", file), "utf8"), `TERMINAL_RESULT_ASSET_EXACT_${file}`);

@@ -251,8 +251,8 @@ test("UDL033 current-base integration protects compact UI and separate Ren techn
   const html=fs.readFileSync(path.join(root,"standard-online-v5/index.html"),"utf8");
   const spec=fs.readFileSync(path.join(root,"docs/CPU_WATAOKIBA_INTEGRATION_20260923.md"),"utf8");
   for(const marker of ["app.js?v=20260923-1","cpu-portraits.js?v=20260913-2","cpu-artwork.css?v=20260913-1"])
-    assert.ok(html.includes(marker)&&spec.includes(marker),marker);
-  for(const marker of ["standard-online-client.js?v=20260914-1","standard-skill-registry.generated.js?v=20260914-2",
+    assert.ok(html.includes(marker==="app.js?v=20260923-1"?"app.js?v=20260926-1":marker)&&spec.includes(marker),marker);
+  for(const marker of ["standard-online-client.js?v=20260914-1","standard-skill-registry.generated.js?v=20260926-1",
     "play-surface.css?v=20260915-5","terminal-result.css?v=20260914-1"])assert.ok(html.includes(marker),marker);
   for(const code of ["stableHandSlots(","paletteRoleSlots(","cardActionRecovery(","progressionPending()",
     "cpuEntryDraft","resultContinuationPending()","5.0.0-alpha.5"])assert.ok(app.includes(code),code);

@@ -38,13 +38,16 @@ test("random setup reveal uses only public state and the current player's privat
   assert.match(css, /prefers-reduced-motion:reduce/);
 });
 
-test("skill information buttons cover all 19 Standard skills plus two separate experimental loans", () => {
-  const catalogIds = registry.v49SkillIds;
+test("skill information buttons cover 20 current Standard skills while the 19-card v49 snapshot stays frozen", () => {
+  const catalogIds = Object.values(registry.skills).filter((definition) => definition.standardCatalogued).map((definition) => definition.id);
   const experimentalIds = Object.values(registry.skills).filter((definition) => definition.experimental).map((definition) => definition.id);
   const descriptionBlock = app.slice(app.indexOf("const SKILL_DESCRIPTION"), app.indexOf("const RANDOM_SKILLS"));
   const describedIds = [...descriptionBlock.matchAll(/^\s{2}([a-z][A-Za-z0-9]+):\s*"/gm)].map((match) => match[1]);
-  assert.equal(catalogIds.length, 19);
-  assert.equal(new Set(catalogIds).size, 19);
+  assert.equal(catalogIds.length, 20);
+  assert.equal(new Set(catalogIds).size, 20);
+  assert.equal(registry.v49SkillIds.length, 19);
+  assert.ok(catalogIds.includes("colorRegionSplitKeep"));
+  assert.ok(!registry.v49SkillIds.includes("colorRegionSplitKeep"));
   assert.deepEqual(experimentalIds, ["colorBonusRefill", "legalRecolor"]);
   assert.deepEqual([...describedIds].sort(), [...catalogIds, ...experimentalIds].sort());
   assert.match(html, /id="skillInfoDialog"/);

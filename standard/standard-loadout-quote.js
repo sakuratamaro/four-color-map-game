@@ -1,7 +1,7 @@
 "use strict";
 
 const save = require("./standard-save.js");
-const { STANDARD_SKILLS, V49_SKILL_IDS } = require("./standard-skill-registry.js");
+const { STANDARD_SKILLS, STANDARD_SKILL_IDS } = require("./standard-skill-registry.js");
 const { stableHash } = require("./standard-root-transaction.js");
 
 const STANDARD_MODE = "STANDARD_V5";
@@ -45,7 +45,7 @@ function normalizeStandardLoadout(loadout) {
     all.push(...ids);
     for (const skillId of ids) {
       const definition = STANDARD_SKILLS[skillId];
-      if (!definition || definition.category !== category || !definition.v49Catalogued || !definition.standardEngineImplemented || !definition.standardUiEnabled || definition.experimental) {
+      if (!definition || definition.category !== category || !definition.standardCatalogued || !definition.standardEngineImplemented || !definition.standardUiEnabled || definition.experimental) {
         throw Object.assign(new Error("SKILL_NOT_AVAILABLE"), { code: "SKILL_NOT_AVAILABLE" });
       }
     }
@@ -59,7 +59,7 @@ function projectStandardInventory({ root, actorId }) {
     save.validateStandardSave(root);
     if (!ID_PATTERN.test(actorId || "") || !root.profiles[actorId]) return rejected("UNKNOWN_PROFILE");
     const profile = root.profiles[actorId];
-    const items = V49_SKILL_IDS.filter((skillId) => STANDARD_SKILLS[skillId].standardUiEnabled && !STANDARD_SKILLS[skillId].experimental).map((skillId) => {
+    const items = STANDARD_SKILL_IDS.filter((skillId) => STANDARD_SKILLS[skillId].standardUiEnabled && !STANDARD_SKILLS[skillId].experimental).map((skillId) => {
       const definition = STANDARD_SKILLS[skillId];
       const ownedCount = profile.inventory[skillId] || 0;
       const reservedCount = root.reservations[actorId]?.[skillId] || 0;

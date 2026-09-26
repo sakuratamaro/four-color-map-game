@@ -6,7 +6,7 @@ const { createQuizQuestions } = require("../standard/quiz-session.js");
 const { createStandardQuizController } = require("../standard/standard-quiz-controller.js");
 const { createStandardLocalSession } = require("../standard/standard-local-session.js");
 const { RULE_SET_IDS } = require("../standard/standard-match-start.js");
-const { STANDARD_SKILLS, V49_SKILL_IDS } = require("../standard/standard-skill-registry.js");
+const { STANDARD_SKILLS, STANDARD_SKILL_IDS } = require("../standard/standard-skill-registry.js");
 const { ALL_COSMETIC_CLASSES, COSMETIC_CATALOG, COSMETIC_TYPE_LABELS } = require("../standard/standard-cosmetics.js");
 const { buildTerminalPresentation } = require("./terminal-presentation.js");
 const { createStaticTerminalResultRenderer } = require("./static-terminal-result.js");
@@ -697,6 +697,9 @@ function boot() {
     status.textContent = publicState.status === "FINISHED"
       ? "対戦終了。公開結果をご確認ください。"
       : `Turn ${publicState.turn}・Player ${publicState.active}・${publicState.phase}・指定 ${publicState.requiredSize}マス`;
+    if (publicState.retainedSplit && publicState.phase === "COLOR") status.textContent += publicState.retainedSplit.stage === "FIRST"
+      ? "・二分・保持：1つ目を塗ってください（残りも自分で塗ります）"
+      : "・二分・保持：続けて残りを塗ってください";
     board.replaceChildren();
     const bounds = publicState.playableBounds;
     const preparedMacros = new Set(publicState.preparedOutgoing?.sourceMacros || []);
@@ -760,7 +763,7 @@ function boot() {
           selected.clear();
           selected.add(macro);
           renderPublic(session.getPublicProjection());
-          dispatch("USE_SKILL", { skill: "colorRegionSplit", regionId: publicState.pending, sourceMacros: [macro] });
+          dispatch("USE_SKILL", { skill: targetMode.skill || "colorRegionSplit", regionId: publicState.pending, sourceMacros: [macro] });
           return;
         }
         if (targetMode === "legalRecolor" && region?.color) {
@@ -924,11 +927,11 @@ function boot() {
         renderPrivate(own);
       });
     }
-    if (own.hand.colorRegionSplit > 0) {
+    for (const splitSkill of ["colorRegionSplit", "colorRegionSplitKeep"]) if (own.hand[splitSkill] > 0) {
       const pendingRegion = publicState.regions[publicState.pending];
-      appendButton("エリア二分", colorSkillUsed || targetMode !== null || phase !== "COLOR" || !pendingRegion || (pendingRegion.sourceMacros || []).length < 2, () => {
+      appendButton(STANDARD_SKILLS[splitSkill].displayName, colorSkillUsed || targetMode !== null || phase !== "COLOR" || !pendingRegion || (pendingRegion.sourceMacros || []).length < 2 || splitSkill === "colorRegionSplitKeep" && publicState.engineVersion !== "5.0.0-alpha.6", () => {
         selected.clear();
-        targetMode = { kind: "colorRegionSplit" };
+        targetMode = { kind: "colorRegionSplit", skill: splitSkill };
         say("紫枠の受取エリアから、先に彩色する側の1マスを選んでください。選ぶとすぐ発動し、成立可否はゲーム側が判定します。");
         renderPublic(publicState);
         renderPrivate(own);
@@ -939,6 +942,7 @@ function boot() {
       const label = document.createElement("p");
       label.className = "split-target-guide";
       label.textContent = "紫枠の受取エリアで、先に彩色したい側の1マスを選ぶと即発動します。盤面の1マスだけで選べます。";
+      if (targetMode.skill === "colorRegionSplitKeep") label.textContent += " 残りの側も自分で塗ります。";
       privatePanel.appendChild(label);
       appendButton("エリア二分をキャンセル", false, () => {
         targetMode = null;
@@ -1236,7 +1240,7 @@ function boot() {
   function selectedStandardLoadouts() {
     return Object.fromEntries(["A", "B"].map((seat) => [seat, Object.fromEntries(LOADOUT_CATEGORIES.map((category) => [
       category,
-      V49_SKILL_IDS.filter((skillId) => STANDARD_SKILLS[skillId].category === category && selectedLoadouts[seat][category].has(skillId)),
+      STANDARD_SKILL_IDS.filter((skillId) => STANDARD_SKILLS[skillId].category === category && selectedLoadouts[seat][category].has(skillId)),
     ]))]));
   }
 
@@ -1258,7 +1262,7 @@ function boot() {
       const legend = document.createElement("legend");
       legend.textContent = `${LOADOUT_CATEGORY_NAMES[category]}（${selected.size}/2）`;
       fieldset.appendChild(legend);
-      for (const skillId of V49_SKILL_IDS.filter((id) => STANDARD_SKILLS[id].category === category)) {
+      for (const skillId of STANDARD_SKILL_IDS.filter((id) => STANDARD_SKILLS[id].category === category)) {
         const count = profile?.cards[skillId] || { owned: 0, available: 0 };
         const checked = selected.has(skillId);
         const label = document.createElement("label");

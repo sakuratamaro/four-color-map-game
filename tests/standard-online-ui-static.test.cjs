@@ -81,9 +81,9 @@ test("online alpha.3 UI understands category windows and the experimental bonus-
 test("CPU commentary is public-event-only, bounded, non-blocking, and terminal-persistent", () => {
   assert.match(html, /style\.css\?v=20260921-1/);
   assert.match(html, /standard-online-client\.js\?v=20260914-1/);
-  assert.match(html, /standard-online-skill-intents\.js\?v=20260911-21/);
+  assert.match(html, /standard-online-skill-intents\.js\?v=20260926-1/);
   assert.match(html, /cpu-commentary\.js\?v=20260910-1/);
-assert.match(html, /app\.js\?v=20260923-1/);
+assert.match(html, /app\.js\?v=20260926-1/);
   assert.match(app, /cpuCommentary\?\.VERSION !== "standard-cpu-commentary-v3"/);
   assert.ok(html.indexOf("cpu-commentary.js") < html.indexOf('type="module" src="app.js'));
   assert.match(html, /id="cpuCommentaryStage"[^>]+aria-hidden="true"/);
@@ -479,9 +479,9 @@ test("existing online progression is hydrated from the server rather than re-upl
 
 test("UI derives its canonical and experimental card metadata from the generated registry", () => {
   assert.equal(Object.values(STANDARD_SKILLS).filter((skill) => skill.v49Catalogued).length, 19);
-  assert.match(html, /standard-skill-registry\.generated\.js\?v=20260914-2[\s\S]+app\.js\?v=20260923-1/);
+  assert.match(html, /standard-skill-registry\.generated\.js\?v=20260926-1[\s\S]+app\.js\?v=20260926-1/);
   assert.match(app, /const STANDARD_SKILL_REGISTRY = globalThis\.FourColorStandardSkillRegistry/);
-  assert.match(app, /STANDARD_SKILL_REGISTRY\.v49SkillIds\.map/);
+  assert.match(app, /Object\.values\(STANDARD_SKILL_REGISTRY\.skills\)\.filter\(\(definition\) => definition\.standardCatalogued\)/);
   assert.match(app, /Object\.entries\(STANDARD_SKILL_REGISTRY\.skills\)/);
   assert.match(app, /definition\.displayName/);
   assert.match(app, /definition\.usageCategory/);
@@ -845,7 +845,7 @@ test("alpha.4 corner bloom resolves one public micro cell without a client legal
   const resolver = app.slice(app.indexOf("function regionsAtMicro"), app.indexOf("function rejectBoardSelection"));
   const board = app.slice(app.indexOf("function boardKeydown"), app.indexOf("async function sendAction"));
   const pointer = app.slice(app.indexOf("function boardPointer(event)"), app.indexOf("function boardPointerDown"));
-  assert.match(app, /state\?\.engineVersion === "5\.0\.0-alpha\.4"/);
+  assert.match(app, /\["5\.0\.0-alpha\.4", "5\.0\.0-alpha\.5", "5\.0\.0-alpha\.6"\]\.includes\(state\?\.engineVersion\)/);
   assert.match(resolver, /const regions = eligibleOnly \? eligibleRecolorRegions\(state\) : Object\.values\(state\.regions \|\| \{\}\)/);
   assert.match(resolver, /regions\.filter\(\(region\) => Array\.isArray\(region\?\.micro\) && region\.micro\.includes\(micro\)\)/);
   assert.match(resolver, /const occupyingRegions = regionsAtMicro\(state, micro\)[\s\S]+occupyingRegions\.length > 1[\s\S]+return rejectCornerBloomCell/);

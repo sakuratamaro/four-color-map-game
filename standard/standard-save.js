@@ -246,7 +246,7 @@ function validateReceipts(receipts) {
       safeRecord(draw, "INVALID_GACHA_DRAW_RECEIPT");
       const skill = STANDARD_SKILLS[draw.skillId];
       assertSave(draw.ticketLevel === entry.ticketLevel && Number.isSafeInteger(draw.rarity) && draw.rarity >= 1 && draw.rarity <= 5, "INVALID_GACHA_DRAW_RECEIPT");
-      assertSave(["color", "area", "disrupt"].includes(draw.category) && skill?.v49Catalogued && skill.gachaEnabled && !skill.experimental && skill.category === draw.category && skill.rarity === draw.rarity, "INVALID_GACHA_DRAW_RECEIPT");
+      assertSave(["color", "area", "disrupt"].includes(draw.category) && skill?.standardCatalogued && skill.gachaEnabled && !skill.experimental && skill.category === draw.category && skill.rarity === draw.rarity, "INVALID_GACHA_DRAW_RECEIPT");
     }
   }
   for (const [key, entry] of Object.entries(receipts.cosmeticAction || {})) {

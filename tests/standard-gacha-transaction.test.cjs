@@ -5,7 +5,7 @@ const test = require("node:test");
 const engine = require("../standard/standard-engine.js");
 const match = require("../standard/standard-match.js");
 const save = require("../standard/standard-save.js");
-const { STANDARD_SKILLS, V49_SKILL_IDS } = require("../standard/standard-skill-registry.js");
+const { STANDARD_SKILLS, STANDARD_SKILL_IDS } = require("../standard/standard-skill-registry.js");
 const gacha = require("../standard/standard-gacha-transaction.js");
 
 function fixture(seed = 8271) {
@@ -30,11 +30,12 @@ function args(root, overrides = {}) {
   };
 }
 
-test("ordinary gacha pool accounts for exactly the 19 canonical cards by category and rarity", () => {
+test("ordinary gacha pool accounts for the 20 Standard cards by category and rarity", () => {
   const pooled = [];
   for (const category of gacha.CATEGORIES) for (let rarity = 1; rarity <= 5; rarity += 1) pooled.push(...gacha.pool(category, rarity));
-  assert.deepEqual([...pooled].sort(), [...V49_SKILL_IDS].sort());
-  assert.equal(new Set(pooled).size, 19);
+  assert.deepEqual([...pooled].sort(), [...STANDARD_SKILL_IDS].sort());
+  assert.equal(new Set(pooled).size, 20);
+  assert.deepEqual(gacha.pool("color", 5), ["colorRegionSplitKeep", "colorPaletteChange"]);
   assert.ok(pooled.every((id) => STANDARD_SKILLS[id].gachaEnabled && !STANDARD_SKILLS[id].experimental));
 });
 

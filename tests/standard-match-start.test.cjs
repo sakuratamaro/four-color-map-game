@@ -182,9 +182,9 @@ test("official Standard loadout accepts six implemented catalogued UI cards and 
   assert.equal(Object.hasOwn(quote.sources.A, "legalRecolor"), false);
 });
 
-test("every one of the 19 canonical cards can start inside a formal six-card Standard loadout", () => {
-  const canonical = Object.entries(STANDARD_SKILLS).filter(([, definition]) => definition.v49Catalogued);
-  assert.equal(canonical.length, 19);
+test("every one of the 20 ordinary cards can start inside a formal six-card Standard loadout", () => {
+  const canonical = Object.entries(STANDARD_SKILLS).filter(([, definition]) => definition.standardCatalogued);
+  assert.equal(canonical.length, 20);
   for (const [index, [skillId, definition]] of canonical.entries()) {
     const loadout = Object.fromEntries(["color", "area", "disrupt"].map((category) => {
       const ids = canonical.filter(([, entry]) => entry.category === category).map(([id]) => id);
@@ -201,6 +201,7 @@ test("every one of the 19 canonical cards can start inside a formal six-card Sta
     }));
     assert.equal(result.code, "STARTED", skillId);
     assert.equal(result.root.activeMatch.state.hands.A[skillId], 1, skillId);
+    if (Object.values(loadout).flat().includes("colorRegionSplitKeep")) assert.equal(result.root.activeMatch.state.engineVersion, "5.0.0-alpha.6");
   }
 });
 

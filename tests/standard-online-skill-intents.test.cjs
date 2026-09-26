@@ -5,10 +5,10 @@ const test = require("node:test");
 const { STANDARD_SKILLS } = require("../standard/standard-skill-registry.js");
 const intents = require("../standard-online-v5/standard-online-skill-intents.js");
 
-test("intent registry covers exactly the 19 canonical Standard cards", () => {
-  const canonical = Object.values(STANDARD_SKILLS).filter((skill) => skill.v49Catalogued).map((skill) => skill.id).sort();
+test("intent registry covers the 20 ordinary Standard cards", () => {
+  const canonical = Object.values(STANDARD_SKILLS).filter((skill) => skill.standardCatalogued).map((skill) => skill.id).sort();
   assert.deepEqual(Object.keys(intents.TARGET_KIND).sort(), canonical);
-  assert.equal(Object.keys(intents.TARGET_KIND).length, 19);
+  assert.equal(Object.keys(intents.TARGET_KIND).length, 20);
   assert.equal(Object.hasOwn(intents.TARGET_KIND, "legalRecolor"), false);
   assert.deepEqual(intents.LAB_TARGET_KIND, { legalRecolor: "existing-region" });
   assert.deepEqual(intents.EXPERIMENTAL_TARGET_KIND, { colorBonusRefill: "none" });
@@ -31,6 +31,7 @@ test("chosen colors cover borrow and every chosen disruption duration", () => {
 test("palette, geometry, resize, and shift payloads are normalized without legality inference", () => {
   assert.deepEqual(intents.buildSkillPayload("colorPaletteChange", { slot: 2, color: "blue" }), { skill: "colorPaletteChange", slot: 2, color: "blue" });
   assert.deepEqual(intents.buildSkillPayload("colorRegionSplit", { regionId: "R12", sourceMacros: [15, 13] }), { skill: "colorRegionSplit", regionId: "R12", sourceMacros: [13, 15] });
+  assert.deepEqual(intents.buildSkillPayload("colorRegionSplitKeep", { regionId: "R12", sourceMacros: [15, 13] }), { skill: "colorRegionSplitKeep", regionId: "R12", sourceMacros: [13, 15] });
   assert.deepEqual(intents.buildSkillPayload("areaMicroBloom", { sourceMacros: [26, 25] }), { skill: "areaMicroBloom", sourceMacros: [25, 26] });
   assert.deepEqual(intents.buildSkillPayload("areaCornerBloom", { sourceMacros: [26], macro: 26 }), { skill: "areaCornerBloom", sourceMacros: [26], macro: 26 });
   assert.deepEqual(intents.buildSkillPayload("areaCornerBloom", { regionId: "R12", macro: 26 }), { skill: "areaCornerBloom", regionId: "R12", macro: 26 });

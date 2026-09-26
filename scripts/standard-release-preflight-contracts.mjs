@@ -9,8 +9,8 @@ const APP_GACHA_ODDS_MARKERS = Object.freeze([
 ]);
 
 const EDGE_GACHA_ODDS_MARKER = 'const gachaOdds = {"1":{"1":65,"2":29,"3":5,"4":0.9,"5":0.1},"2":{"1":40,"2":35,"3":19,"4":5.5,"5":0.5},"3":{"1":25,"2":35,"3":28,"4":10,"5":2},"4":{"1":0,"2":35,"3":35,"4":24,"5":6},"5":{"1":0,"2":0,"3":40,"4":40,"5":20}};';
-const LOCAL_STANDARD_BUNDLE_SHA256 = "63d4f2b526f172d6eb2388c0f669beb1c6aee1b04cdd4053e623b705b2ff8d74";
-const LOCAL_STANDARD_BUNDLE_MARKER = `app.bundle.js?v=20260914-11-${LOCAL_STANDARD_BUNDLE_SHA256.slice(0, 12)}`;
+const LOCAL_STANDARD_BUNDLE_SHA256 = "f22dfeedbbc468471cd8bc6ed1fdf67e55662a200ff3407e004de3a78db26a29";
+const LOCAL_STANDARD_BUNDLE_MARKER = `app.bundle.js?v=20260926-1-${LOCAL_STANDARD_BUNDLE_SHA256.slice(0, 12)}`;
 
 function includesAll(source, markers) {
   return typeof source === "string" && markers.every((marker) => source.includes(marker));
@@ -189,7 +189,7 @@ export function hasRegionSplitDirectTarget(appText, localBundleText) {
     && !appText.includes('targetChoice(id, "regionId", id)')
     && includesAll(localBundleText, [
       'const regionSplitTarget = targetMode?.kind === "colorRegionSplit";',
-      'dispatch("USE_SKILL", { skill: "colorRegionSplit", regionId: publicState.pending, sourceMacros: [macro] });',
+      'dispatch("USE_SKILL", { skill: targetMode.skill || "colorRegionSplit", regionId: publicState.pending, sourceMacros: [macro] });',
       "盤面の1マスだけで選べます。",
     ])
     && !localBundleText.includes("エリア二分を確定");
@@ -232,7 +232,7 @@ export function hasCompactCpuRecords(pageText, appText, progressionCssText) {
 
 export function hasQuizAccuracyRecords(pageText, appText, progressionCssText) {
   return includesAll(pageText, [
-'app.js?v=20260923-1',
+'app.js?v=20260926-1',
     'progression.css?v=20260914-1',
     'id="quizAccuracyRecords" class="quiz-accuracy-records" role="list"',
     "記録開始以降に、サーバーで採点が確定した回答だけを集計します。",

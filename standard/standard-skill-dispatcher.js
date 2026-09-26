@@ -1,7 +1,7 @@
 "use strict";
 
 const { COLORS, StandardRuleError, applyLegalRecolor } = require("./standard-engine.js");
-const { supportsColoredCornerBloom, STANDARD_SKILLS } = require("./standard-skill-registry.js");
+const { supportsColoredCornerBloom, supportsSplitKeep, STANDARD_SKILLS } = require("./standard-skill-registry.js");
 const { usesTechniques, techniqueAvailable, applyTechUnsealOne } = require("./standard-technique-state.js");
 const { applyAreaCornerBloom, applyAreaDiePlus, applyAreaHalfShift, applyAreaMicroBloom, applyAreaResize, applyAreaTripleShift, applyColorBonusRefill, applyColorChoiceBorrow, applyColorPaletteChange, applyColorRandomBorrow, applyColorPrism, applyColorRegionSplit, applyDisruptChoiceOne, applyDisruptChoiceThree, applyDisruptChoiceTwo, applyDisruptForcedPalette, applyDisruptPaletteChoice, applyDisruptPaletteRandom, applyDisruptRandomOne, applyDisruptRandomTwo } = require("./standard-skill-handlers.js");
 
@@ -27,7 +27,7 @@ function validateTargetSchema(definition, payload, state) {
   if (definition.id === "colorPrism") return true;
   if (definition.id === "colorChoiceBorrow") return typeof payload.color === "string" && COLORS.includes(payload.color);
   if (definition.id === "colorPaletteChange") return Number.isInteger(payload.slot) && payload.slot >= 0 && payload.slot <= 2 && typeof payload.color === "string" && COLORS.includes(payload.color);
-  if (definition.id === "colorRegionSplit") return typeof payload.regionId === "string" && payload.regionId.length > 0
+  if (["colorRegionSplit", "colorRegionSplitKeep"].includes(definition.id)) return typeof payload.regionId === "string" && payload.regionId.length > 0
     && Array.isArray(payload.sourceMacros) && payload.sourceMacros.every(Number.isInteger);
   if (definition.id === "areaMicroBloom") return Array.isArray(payload.sourceMacros) && payload.sourceMacros.every(Number.isInteger);
   if (definition.id === "areaCornerBloom") {
@@ -53,6 +53,7 @@ const HANDLERS = Object.freeze({
   colorChoiceBorrow: applyColorChoiceBorrow,
   colorPaletteChange: applyColorPaletteChange,
   colorRegionSplit: applyColorRegionSplit,
+  colorRegionSplitKeep: (context) => applyColorRegionSplit(context, true),
   colorPrism: applyColorPrism,
   colorBonusRefill: applyColorBonusRefill,
   areaMicroBloom({ state, actor, payload, rngStreams, draws }) {
@@ -100,6 +101,7 @@ function dispatchStandardSkillAction({ state, actor, action, expectedVersion, rn
   const definition = STANDARD_SKILLS[action.payload.skill];
   if (!definition) return rejected("UNKNOWN_SKILL", state);
   if (!definition.implemented || !HANDLERS[definition.id]) return rejected("SKILL_NOT_IMPLEMENTED", state);
+  if (definition.id === "colorRegionSplitKeep" && !supportsSplitKeep(state.engineVersion)) return rejected("SKILL_ENGINE_UNSUPPORTED", state);
   const learned = definition.acquisitionType === "LEARNED";
   if (learned && !usesTechniques(state.engineVersion)) return rejected("TECHNIQUE_ENGINE_UNSUPPORTED", state);
   if (state.active !== actor) return rejected("NOT_YOUR_TURN", state);

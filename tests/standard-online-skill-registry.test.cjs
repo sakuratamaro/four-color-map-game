@@ -10,7 +10,7 @@ const generated = require("../standard-online-v5/standard-skill-registry.generat
 const root = path.resolve(__dirname, "..");
 const publicFields = [
   "id", "displayName", "category", "usageCategory", "rarity", "timing",
-  "v49Catalogued", "standardUiEnabled", "alphaUiEnabled", "experimental",
+  "v49Catalogued", "standardCatalogued", "standardUiEnabled", "alphaUiEnabled", "experimental",
   "standardEngineImplemented", "gachaEnabled",
 ];
 

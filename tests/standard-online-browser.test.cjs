@@ -2063,7 +2063,7 @@ async function installMock(context, mode) {
           runtime.failNextCornerBloomAction = false;
           return { error: new Error("simulated corner bloom network failure") };
         }
-        if (request.body.operation === "action" && request.body.action?.payload?.skill === "colorRegionSplit" && runtime.failNextRegionSplitAction) {
+        if (request.body.operation === "action" && ["colorRegionSplit", "colorRegionSplitKeep"].includes(request.body.action?.payload?.skill) && runtime.failNextRegionSplitAction) {
           runtime.failNextRegionSplitAction = false;
           return { error: new Error("simulated region split network failure") };
         }
@@ -4342,9 +4342,10 @@ test("actual browser selects and submits one usable Micro Bloom target from the 
   }, { viewport: { width: 390, height: 844 } });
 });
 
-test("actual browser activates Region Split from one normal board cell without IDs or confirmation", { timeout: 130000 }, async () => {
+for (const [splitId, splitName, rarity] of [["colorRegionSplit", "エリア二分", 4], ["colorRegionSplitKeep", "エリア二分・保持", 5]]) {
+test(`actual browser activates ${splitId} from one normal board cell without IDs or confirmation`, { timeout: 130000 }, async () => {
   await withPage("playing", async (page) => {
-    await page.evaluate(() => {
+    await page.evaluate((splitId) => {
       const originalStrokeRect = CanvasRenderingContext2D.prototype.strokeRect;
       globalThis.__regionSplitTargetFrames = [];
       CanvasRenderingContext2D.prototype.strokeRect = function recordedRegionSplitFrame(...args) {
@@ -4354,6 +4355,7 @@ test("actual browser activates Region Split from one normal board cell without I
       const runtime = globalThis.__standardOnlineRuntime;
       runtime.room.public_state = {
         ...runtime.room.public_state,
+        engineVersion: splitId === "colorRegionSplitKeep" ? "5.0.0-alpha.6" : "5.0.0-alpha.4",
         active: "A",
         phase: "COLOR",
         pending: "R1",
@@ -4366,12 +4368,12 @@ test("actual browser activates Region Split from one normal board cell without I
       };
       runtime.view = { ...runtime.view, private_state: {
         ...runtime.view.private_state,
-        hand: { ...runtime.view.private_state.hand, colorRegionSplit: 1 },
+        hand: { ...runtime.view.private_state.hand, [splitId]: 1 },
       } };
       runtime.onInvalidate?.({});
-    });
+    }, splitId);
 
-    const skill = page.getByRole("button", { name: /エリア二分 ×1（★4）/ });
+    const skill = page.getByRole("button", { name: `${splitName} ×1（★${rarity}）`, exact: true });
     const target = page.locator("#skillTargetControls");
     const board = page.locator("#board");
     await skill.click();
@@ -4402,7 +4404,7 @@ test("actual browser activates Region Split from one normal board cell without I
     let actions = await page.evaluate(() => globalThis.__standardOnlineRuntime.calls
       .filter((entry) => entry.body?.operation === "action").map((entry) => entry.body.action));
     assert.equal(actions.length, 1);
-    assert.deepEqual(actions[0].payload, { skill: "colorRegionSplit", regionId: "R1", sourceMacros: [5] });
+    assert.deepEqual(actions[0].payload, { skill: splitId, regionId: "R1", sourceMacros: [5] });
     const first = structuredClone(actions[0]);
     assert.equal(await board.getAttribute("tabindex"), "-1");
     await page.locator("#retryAction").click();
@@ -4411,6 +4413,27 @@ test("actual browser activates Region Split from one normal board cell without I
       .filter((entry) => entry.body?.operation === "action").map((entry) => entry.body.action));
     assert.equal(actions.length, 2);
     assert.deepEqual(actions[1], first);
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth), false);
+  }, { viewport: { width: 390, height: 844 } });
+});
+
+}
+test("UDL011 browser shows both retained-split stages and keeps the color category unavailable", { timeout: 130000 }, async () => {
+  await withPage("playing", async (page) => {
+    for (const stage of ["FIRST", "SECOND"]) {
+      await page.evaluate((stage) => {
+        const runtime = globalThis.__standardOnlineRuntime;
+        runtime.room.public_state = { ...runtime.room.public_state, engineVersion: "5.0.0-alpha.6",
+          active: "A", phase: "COLOR", retainedSplit: { actor: "A", firstRegionId: "R1", secondRegionId: "R2", stage },
+          skillCategoryWindow: { actor: "A", categories: ["color"] } };
+        runtime.view.private_state.hand.colorPrism = 1;
+        runtime.onInvalidate?.({});
+      }, stage);
+      await page.locator("#turnGuideTitle").getByText(stage === "FIRST"
+        ? "二分・保持：1つ目のエリアを塗ってください" : "二分・保持：残りのエリアを塗ってください", { exact: true }).waitFor();
+      assert.equal(await page.locator('#skillControls button[data-skill="colorPrism"]').isDisabled(), true);
+    }
+    assert.equal(await page.evaluate(() => globalThis.__standardOnlineRuntime.calls.filter((entry) => entry.body?.operation === "action").length), 0);
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth), false);
   }, { viewport: { width: 390, height: 844 } });
 });
@@ -4428,7 +4451,7 @@ test("actual browser exposes the alpha.3 category window, refill loan, and accep
     // UDL066 supersedes the old hidden-library expectation, not the loan/inventory rules.
     assert.equal(await page.locator('#cardInventory [data-catalog-group="lab"] [data-catalog-skill="colorBonusRefill"].is-unowned').count(), 1);
     assert.equal(await page.locator('#cardInventory [data-catalog-group="lab"] [data-catalog-skill="colorBonusRefill"] .inventory-count').textContent(), "×0");
-    assert.equal(await page.locator('#cardInventory section:not([data-catalog-group="lab"]) button[data-catalog-skill]').count(), 19);
+    assert.equal(await page.locator('#cardInventory section:not([data-catalog-group="lab"]) button[data-catalog-skill]').count(), 20);
     assert.equal(await page.locator('#cardSaleSkill option[value="colorBonusRefill"]').count(), 0);
     assert.equal(await refill.isDisabled(), true);
     assert.equal(await refill.getAttribute("title"), "この手番では同じ種類のスキルはもう使えません");
@@ -5045,7 +5068,7 @@ test("actual browser exposes one keyboard-safe recolor lab loan while catalog st
     await page.getByText("LAB貸与カード（この対戦で1回）").waitFor();
     assert.equal(await page.locator('#cardInventory [data-catalog-group="lab"] [data-catalog-skill="legalRecolor"].is-unowned').count(), 1);
     assert.equal(await page.locator('#cardInventory [data-catalog-skill="legalRecolor"] .inventory-count').textContent(), "×0");
-    assert.equal(await page.locator('#cardInventory section:not([data-catalog-group="lab"]) button[data-catalog-skill]').count(), 19);
+    assert.equal(await page.locator('#cardInventory section:not([data-catalog-group="lab"]) button[data-catalog-skill]').count(), 20);
     assert.equal(await page.locator('#cardSaleSkill option[value="legalRecolor"]').count(), 0);
 
     const skillButton = page.getByRole("button", { name: "塗り直し・乱 ×1" });

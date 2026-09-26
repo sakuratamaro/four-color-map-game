@@ -39,12 +39,12 @@ function quote(root = rootFixture(), overrides = {}) {
   });
 }
 
-test("profile-private Standard inventory projection exposes exactly the 19 canonical cards", () => {
+test("profile-private Standard inventory projection exposes the 20 ordinary cards", () => {
   const root = rootFixture();
   const projection = quoteModel.projectStandardInventory({ root, actorId: "playerA" });
   assert.equal(projection.ok, true);
-  assert.equal(projection.items.length, 19);
-  assert.deepEqual(Object.fromEntries(["color", "area", "disrupt"].map((category) => [category, projection.items.filter((item) => item.category === category).length])), { color: 5, area: 6, disrupt: 8 });
+  assert.equal(projection.items.length, 20);
+  assert.deepEqual(Object.fromEntries(["color", "area", "disrupt"].map((category) => [category, projection.items.filter((item) => item.category === category).length])), { color: 6, area: 6, disrupt: 8 });
   assert.equal(projection.items.some((item) => item.skillId === "legalRecolor"), false);
   assert.equal(JSON.stringify(projection).includes("playerB"), false);
   const selected = projection.items.find((item) => item.skillId === "colorPrism");

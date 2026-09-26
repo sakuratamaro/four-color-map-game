@@ -36,11 +36,11 @@ test("standard match creation is deterministic and validates the authoritative c
   );
 });
 
-test("new-match engine selection keeps category windows from alpha.3 through opt-in alpha.5", () => {
+test("new-match engine selection keeps category windows from alpha.3 through opt-in alpha.6", () => {
   for (const [index, engineVersion] of match.SUPPORTED_ENGINE_VERSIONS.entries()) {
     const state = match.createStandardMatch({ matchId: `compat-create-${index}`, firstSeat: "A", engineVersion }, streams(420 + index));
     assert.equal(state.engineVersion, engineVersion);
-    assert.equal(Object.hasOwn(state, "skillCategoryWindow"), [match.CATEGORY_WINDOW_ENGINE_VERSION, match.ENGINE_VERSION, "5.0.0-alpha.5"].includes(engineVersion));
+    assert.equal(Object.hasOwn(state, "skillCategoryWindow"), [match.CATEGORY_WINDOW_ENGINE_VERSION, match.ENGINE_VERSION, "5.0.0-alpha.5", "5.0.0-alpha.6"].includes(engineVersion));
     assert.equal(match.validateStandardState(state), true);
   }
   assert.throws(

@@ -502,7 +502,7 @@ function validateProgressionFields(profile) {
 
 function coinValueForSkill(skillId) {
   const skill = STANDARD_SKILLS[skillId];
-  assertProfile(Boolean(skill) && skill.v49Catalogued, "UNKNOWN_SELLABLE_SKILL");
+  assertProfile(Boolean(skill) && skill.standardCatalogued, "UNKNOWN_SELLABLE_SKILL");
   return SELL_PRICE_BY_RARITY[skill.rarity];
 }
 
@@ -795,9 +795,20 @@ module.exports = {
 const SKILL_USAGE_CATEGORIES = Object.freeze(["color", "area", "disrupt"]);
 const COLORED_CORNER_BLOOM_ENGINE_VERSION = "5.0.0-alpha.4";
 const LEARNED_TECHNIQUE_ENGINE_VERSION = "5.0.0-alpha.5";
+const SPLIT_KEEP_ENGINE_VERSION = "5.0.0-alpha.6";
+
+function supportsSplitKeep(engineVersion) {
+  return engineVersion === SPLIT_KEEP_ENGINE_VERSION;
+}
+
+// Only a new match carrying this card opts into its continuation contract.
+function engineVersionForLoadouts(loadouts, fallback) {
+  return Object.values(loadouts || {}).some((loadout) => Object.values(loadout || {}).some((ids) => Array.isArray(ids) && ids.includes("colorRegionSplitKeep")))
+    ? SPLIT_KEEP_ENGINE_VERSION : fallback;
+}
 
 function supportsColoredCornerBloom(engineVersion) {
-  return engineVersion === COLORED_CORNER_BLOOM_ENGINE_VERSION || engineVersion === LEARNED_TECHNIQUE_ENGINE_VERSION;
+  return engineVersion === COLORED_CORNER_BLOOM_ENGINE_VERSION || engineVersion === LEARNED_TECHNIQUE_ENGINE_VERSION || supportsSplitKeep(engineVersion);
 }
 
 function skill(id, displayName, category, rarity, timing, options = {}) {
@@ -825,6 +836,7 @@ function skill(id, displayName, category, rarity, timing, options = {}) {
     consumptionPolicy: options.consumptionPolicy || "RESOLVED_V49",
     handlerVersion: options.handlerVersion ?? null,
     v49Catalogued,
+    standardCatalogued: options.standardCatalogued === undefined ? v49Catalogued : Boolean(options.standardCatalogued),
     ...(options.acquisitionType ? { acquisitionType: options.acquisitionType, displayRarity: options.displayRarity !== false } : {}),
   });
 }
@@ -873,6 +885,15 @@ const STANDARD_SKILLS = Object.freeze({
     implemented: true,
     consumptionPolicy: "RESOLVED_ONLY_CONNECTED_BIPARTITION",
     handlerVersion: "color-region-split-v1",
+  }),
+  colorRegionSplitKeep: skill("colorRegionSplitKeep", "エリア二分・保持", "color", 5, "COLOR", {
+    targetSchema: { regionId: "region-id", sourceMacros: "macro-index-array" },
+    implemented: true,
+    v49Catalogued: false,
+    standardCatalogued: true,
+    standardUiEnabled: true,
+    consumptionPolicy: "RESOLVED_ONLY_CONNECTED_BIPARTITION",
+    handlerVersion: "color-region-split-keep-v1",
   }),
   colorPaletteChange: skill("colorPaletteChange", "持ち色変更", "color", 5, "COLOR", {
     targetSchema: { slot: "palette-slot", color: "color-id" },
@@ -987,16 +1008,17 @@ const STANDARD_SKILLS = Object.freeze({
 });
 
 const V49_SKILL_IDS = Object.freeze(Object.values(STANDARD_SKILLS).filter((entry) => entry.v49Catalogued).map((entry) => entry.id));
+const STANDARD_SKILL_IDS = Object.freeze(Object.values(STANDARD_SKILLS).filter((entry) => entry.standardCatalogued).map((entry) => entry.id));
 const IMPLEMENTED_SKILL_IDS = Object.freeze(Object.values(STANDARD_SKILLS).filter((entry) => entry.implemented).map((entry) => entry.id));
 
-module.exports = { COLORED_CORNER_BLOOM_ENGINE_VERSION, LEARNED_TECHNIQUE_ENGINE_VERSION, supportsColoredCornerBloom, IMPLEMENTED_SKILL_IDS, SKILL_USAGE_CATEGORIES, STANDARD_SKILLS, V49_SKILL_IDS };
+module.exports = { COLORED_CORNER_BLOOM_ENGINE_VERSION, LEARNED_TECHNIQUE_ENGINE_VERSION, SPLIT_KEEP_ENGINE_VERSION, supportsSplitKeep, engineVersionForLoadouts, supportsColoredCornerBloom, IMPLEMENTED_SKILL_IDS, SKILL_USAGE_CATEGORIES, STANDARD_SKILLS, STANDARD_SKILL_IDS, V49_SKILL_IDS };
 
 },
 "standard/standard-technique-state.js":function(require,module,exports){
 "use strict";
 
 const { COLORS, StandardRuleError } = require("./standard-engine.js");
-const { LEARNED_TECHNIQUE_ENGINE_VERSION } = require("./standard-skill-registry.js");
+const { LEARNED_TECHNIQUE_ENGINE_VERSION, supportsSplitKeep } = require("./standard-skill-registry.js");
 
 const TECHNIQUE_ID = "techUnsealOne";
 const TECHNIQUE_VERSION = "unseal-v1";
@@ -1014,7 +1036,7 @@ function exactKeys(value, keys) {
     && Object.keys(value).sort().join("|") === [...keys].sort().join("|");
 }
 function usesTechniques(engineVersion) {
-  return engineVersion === LEARNED_TECHNIQUE_ENGINE_VERSION;
+  return engineVersion === LEARNED_TECHNIQUE_ENGINE_VERSION || supportsSplitKeep(engineVersion);
 }
 
 // Internal engine input only. A server start adapter must derive these fields
@@ -1247,13 +1269,13 @@ function nextRegionNumber(state) {
   return Math.max(0, ...Object.keys(state.regions).map((id) => Number(String(id).match(/\d+/)?.[0]) || 0)) + 1;
 }
 
-function applyColorRegionSplit({ state, actor, payload }) {
+function applyColorRegionSplit({ state, actor, payload }, keep = false) {
   const region = state.regions?.[payload.regionId];
   if (!region || payload.regionId !== state.pending || !region.isPending || region.color) {
     return Object.freeze({ ok: false, code: "INVALID_SPLIT_TARGET", state });
   }
   if ((region.controllers || []).includes(actor)) return Object.freeze({ ok: false, code: "SPLIT_REQUIRES_OPPONENT_REGION", state });
-  if (state.reserved) return Object.freeze({ ok: false, code: "SPLIT_ALREADY_RESERVED", state });
+  if (state.reserved || state.retainedSplit) return Object.freeze({ ok: false, code: "SPLIT_ALREADY_RESERVED", state });
   const original = [...new Set(region.sourceMacros || [])].sort((a, b) => a - b);
   const selected = [...new Set(payload.sourceMacros)].sort((a, b) => a - b);
   const originalSet = new Set(original);
@@ -1271,7 +1293,7 @@ function applyColorRegionSplit({ state, actor, payload }) {
   if (!connected(selectedMicro, state.microWidth) || !connected(returnedMicro, state.microWidth)) {
     return Object.freeze({ ok: false, code: "SPLIT_GEOMETRY_NOT_CONNECTED", state });
   }
-  return resolved(state, actor, "colorRegionSplit", (next) => {
+  return resolved(state, actor, keep ? "colorRegionSplitKeep" : "colorRegionSplit", (next) => {
     const firstNumber = nextRegionNumber(next);
     const selectedId = `R${firstNumber}`;
     const returnedId = `R${firstNumber + 1}`;
@@ -1296,7 +1318,10 @@ function applyColorRegionSplit({ state, actor, payload }) {
     };
     next.pending = selectedId;
     next.reserved = returnedId;
-    next.publicLog.push(`T${next.turn} Player ${actor} split ${payload.regionId} into ${selectedId} and reserved ${returnedId}.`);
+    if (keep) next.retainedSplit = { actor, firstRegionId: selectedId, secondRegionId: returnedId, stage: "FIRST" };
+    next.publicLog.push(keep
+      ? `T${next.turn} Player ${actor} split ${payload.regionId}; both ${selectedId} and ${returnedId} will be colored by Player ${actor}.`
+      : `T${next.turn} Player ${actor} split ${payload.regionId} into ${selectedId} and reserved ${returnedId}.`);
   }, { selectedId: `R${nextRegionNumber(state)}`, returnedId: `R${nextRegionNumber(state) + 1}` });
 }
 
@@ -2162,7 +2187,7 @@ module.exports = {
 "use strict";
 
 const { COLORS, StandardRuleError, applyLegalRecolor } = require("./standard-engine.js");
-const { supportsColoredCornerBloom, STANDARD_SKILLS } = require("./standard-skill-registry.js");
+const { supportsColoredCornerBloom, supportsSplitKeep, STANDARD_SKILLS } = require("./standard-skill-registry.js");
 const { usesTechniques, techniqueAvailable, applyTechUnsealOne } = require("./standard-technique-state.js");
 const { applyAreaCornerBloom, applyAreaDiePlus, applyAreaHalfShift, applyAreaMicroBloom, applyAreaResize, applyAreaTripleShift, applyColorBonusRefill, applyColorChoiceBorrow, applyColorPaletteChange, applyColorRandomBorrow, applyColorPrism, applyColorRegionSplit, applyDisruptChoiceOne, applyDisruptChoiceThree, applyDisruptChoiceTwo, applyDisruptForcedPalette, applyDisruptPaletteChoice, applyDisruptPaletteRandom, applyDisruptRandomOne, applyDisruptRandomTwo } = require("./standard-skill-handlers.js");
 
@@ -2188,7 +2213,7 @@ function validateTargetSchema(definition, payload, state) {
   if (definition.id === "colorPrism") return true;
   if (definition.id === "colorChoiceBorrow") return typeof payload.color === "string" && COLORS.includes(payload.color);
   if (definition.id === "colorPaletteChange") return Number.isInteger(payload.slot) && payload.slot >= 0 && payload.slot <= 2 && typeof payload.color === "string" && COLORS.includes(payload.color);
-  if (definition.id === "colorRegionSplit") return typeof payload.regionId === "string" && payload.regionId.length > 0
+  if (["colorRegionSplit", "colorRegionSplitKeep"].includes(definition.id)) return typeof payload.regionId === "string" && payload.regionId.length > 0
     && Array.isArray(payload.sourceMacros) && payload.sourceMacros.every(Number.isInteger);
   if (definition.id === "areaMicroBloom") return Array.isArray(payload.sourceMacros) && payload.sourceMacros.every(Number.isInteger);
   if (definition.id === "areaCornerBloom") {
@@ -2214,6 +2239,7 @@ const HANDLERS = Object.freeze({
   colorChoiceBorrow: applyColorChoiceBorrow,
   colorPaletteChange: applyColorPaletteChange,
   colorRegionSplit: applyColorRegionSplit,
+  colorRegionSplitKeep: (context) => applyColorRegionSplit(context, true),
   colorPrism: applyColorPrism,
   colorBonusRefill: applyColorBonusRefill,
   areaMicroBloom({ state, actor, payload, rngStreams, draws }) {
@@ -2261,6 +2287,7 @@ function dispatchStandardSkillAction({ state, actor, action, expectedVersion, rn
   const definition = STANDARD_SKILLS[action.payload.skill];
   if (!definition) return rejected("UNKNOWN_SKILL", state);
   if (!definition.implemented || !HANDLERS[definition.id]) return rejected("SKILL_NOT_IMPLEMENTED", state);
+  if (definition.id === "colorRegionSplitKeep" && !supportsSplitKeep(state.engineVersion)) return rejected("SKILL_ENGINE_UNSUPPORTED", state);
   const learned = definition.acquisitionType === "LEARNED";
   if (learned && !usesTechniques(state.engineVersion)) return rejected("TECHNIQUE_ENGINE_UNSUPPORTED", state);
   if (state.active !== actor) return rejected("NOT_YOUR_TURN", state);
@@ -2943,7 +2970,7 @@ const {
 const { dispatchStandardSkillAction } = require("./standard-skill-dispatcher.js");
 const { applyCurseBacklashOnEnterColor, consumeDeferredCurseBacklashAfterColor, preparedOutgoingCandidates, tickPaletteDebuffsAfterColor, tickSealsAfterColor } = require("./standard-skill-handlers.js");
 const { createRegionGeometryContext } = require("./standard-region-geometry.js");
-const { COLORED_CORNER_BLOOM_ENGINE_VERSION, LEARNED_TECHNIQUE_ENGINE_VERSION, SKILL_USAGE_CATEGORIES } = require("./standard-skill-registry.js");
+const { COLORED_CORNER_BLOOM_ENGINE_VERSION, LEARNED_TECHNIQUE_ENGINE_VERSION, SPLIT_KEEP_ENGINE_VERSION, supportsSplitKeep, SKILL_USAGE_CATEGORIES } = require("./standard-skill-registry.js");
 const { usesTechniques, initialTechniqueFields, validateTechniqueState, projectTechniques } = require("./standard-technique-state.js");
 
 const SCHEMA_VERSION = 1;
@@ -2951,7 +2978,7 @@ const LEGACY_ENGINE_VERSION = "5.0.0-alpha.1";
 const PREVIOUS_ENGINE_VERSION = "5.0.0-alpha.2";
 const CATEGORY_WINDOW_ENGINE_VERSION = "5.0.0-alpha.3";
 const ENGINE_VERSION = COLORED_CORNER_BLOOM_ENGINE_VERSION;
-const SUPPORTED_ENGINE_VERSIONS = Object.freeze([LEGACY_ENGINE_VERSION, PREVIOUS_ENGINE_VERSION, CATEGORY_WINDOW_ENGINE_VERSION, ENGINE_VERSION, LEARNED_TECHNIQUE_ENGINE_VERSION]);
+const SUPPORTED_ENGINE_VERSIONS = Object.freeze([LEGACY_ENGINE_VERSION, PREVIOUS_ENGINE_VERSION, CATEGORY_WINDOW_ENGINE_VERSION, ENGINE_VERSION, LEARNED_TECHNIQUE_ENGINE_VERSION, SPLIT_KEEP_ENGINE_VERSION]);
 const SAVE_KEY = "fourColorMapGame.standard.v5.save";
 const PHASES = Object.freeze(["CREATE_FIRST", "COLOR", "WORK", "GAME_OVER"]);
 const ACTIONS = Object.freeze(["CREATE_REGION", "COLOR_REGION", "USE_SKILL", "DECLARE_NO_COLOR", "SURRENDER"]);
@@ -3211,6 +3238,19 @@ function validateStandardState(state) {
   assertState(reservedRegionIds.length <= 1, "INVALID_RESERVED_STATE");
   if (state.reserved === null || state.reserved === undefined) assertState(reservedRegionIds.length === 0, "INVALID_RESERVED_STATE");
   else assertState(reservedRegionIds.length === 1 && reservedRegionIds[0] === state.reserved && state.reserved !== state.pending, "INVALID_RESERVED_STATE");
+  if (Object.hasOwn(state, "retainedSplit")) {
+    const split = state.retainedSplit;
+    assertState(supportsSplitKeep(state.engineVersion) && split && typeof split === "object" && !Array.isArray(split)
+      && Object.keys(split).sort().join("|") === "actor|firstRegionId|secondRegionId|stage"
+      && split.actor === state.active && state.status === "ACTIVE" && state.phase === "COLOR"
+      && state.skillCategoryWindow?.categories.includes("color")
+      && split.firstRegionId !== split.secondRegionId, "INVALID_RETAINED_SPLIT");
+    const first = state.regions[split.firstRegionId], second = state.regions[split.secondRegionId];
+    assertState(Boolean(first && second) && (split.stage === "FIRST"
+      ? state.pending === first.id && state.reserved === second.id && !first.color && !second.color
+      : split.stage === "SECOND" && state.pending === second.id && !state.reserved && COLORS.includes(first.color)
+        && first.controllers.includes(split.actor) && !second.color), "INVALID_RETAINED_SPLIT");
+  }
   for (const seat of ["A", "B"]) {
     const basic = state.basicPalettes?.[seat];
     const bonus = state.bonusColors?.[seat];
@@ -3274,6 +3314,7 @@ function projectStandardPublicState(state) {
   validateStandardState(state);
   const keys = ["schemaVersion", "engineVersion", "mode", "matchId", "status", "version", "turn", "active", "phase", "regions", "pending", "reserved", "preparedOutgoing", "playableBounds", "trophyTargetMacros", "requiredSize", "rolledSize", "baseRequiredSize", "publicEffects", "interferenceLock", "winner", "terminalReason", "lastPublicTrace", "publicLog"];
   if (usesSkillCategoryWindow(state.engineVersion)) keys.push("skillCategoryWindow");
+  if (Object.hasOwn(state, "retainedSplit")) keys.push("retainedSplit");
   return Object.freeze({ ...Object.fromEntries(keys.map((key) => [key, clone(key === "trophyTargetMacros"
     ? (state.trophyTargetMacros || playableMacroIndices(state.playableBounds))
     : key === "lastPublicTrace" ? (state.lastPublicTrace ?? null) : state[key])] )),
@@ -3579,6 +3620,7 @@ function colorRegion(state, actor, payload = {}, rngStreams = {}) {
     next.phase = "GAME_OVER";
     next.winner = other(actor);
     next.terminalReason = "ILLEGAL_COLOR";
+    delete next.retainedSplit;
     next.version += 1;
     next.publicLog.push(`T${next.turn} Player ${actor} lost by illegal coloring.`);
     return { ok: true, code: "ILLEGAL_COLOR", state: next };
@@ -3597,17 +3639,21 @@ function colorRegion(state, actor, payload = {}, rngStreams = {}) {
   tickSealsAfterColor(next, actor);
   tickPaletteDebuffsAfterColor(next, actor);
   if (next.reserved) {
+    const keep = next.retainedSplit?.stage === "FIRST";
     const returnedId = next.reserved;
     const returned = next.regions[returnedId];
     next.reserved = null;
     returned.isReserved = false;
     returned.isPending = true;
     next.pending = returnedId;
-    next.active = other(actor);
+    next.active = keep ? actor : other(actor);
     next.phase = "COLOR";
-    next.turn += 1;
-    next.interferenceLock = false;
-    applyCurseBacklashOnEnterColor(next, next.active, () => nextRandom(rngStreams, "skill-effect"));
+    if (keep) next.retainedSplit.stage = "SECOND";
+    else {
+      next.turn += 1;
+      next.interferenceLock = false;
+      applyCurseBacklashOnEnterColor(next, next.active, () => nextRandom(rngStreams, "skill-effect"));
+    }
     next.version += 1;
     next.lastPublicTrace = {
       eventId: `${next.matchId}:${next.version}`,
@@ -3617,11 +3663,14 @@ function colorRegion(state, actor, payload = {}, rngStreams = {}) {
       regionId: target.id,
       color: target.color,
     };
-    next.publicLog.push(`Player ${actor} colored ${target.id}; split region ${returnedId} returned to Player ${next.active}.`);
+    next.publicLog.push(keep
+      ? `Player ${actor} colored ${target.id}; Player ${actor} must also color split region ${returnedId}.`
+      : `Player ${actor} colored ${target.id}; split region ${returnedId} returned to Player ${next.active}.`);
     if (next.engineVersion === LEGACY_ENGINE_VERSION) finishNoColorOnEntry(next, next.active);
     return { ok: true, code: "OK", state: next, returnedRegionId: returnedId };
   }
   next.pending = null;
+  delete next.retainedSplit;
   next.phase = "WORK";
   next.rolledSize = DIE_POOL[Math.floor(nextRandom(rngStreams, "die") * DIE_POOL.length)];
   next.baseRequiredSize = bestLegalSize(next, next.rolledSize);
@@ -3654,6 +3703,7 @@ function surrender(state, actor) {
   next.phase = "GAME_OVER";
   next.winner = other(actor);
   next.terminalReason = "SURRENDER";
+  delete next.retainedSplit;
   next.version += 1;
   next.publicLog.push(`Player ${actor} surrendered.`);
   return { ok: true, code: "OK", state: next };
@@ -4027,7 +4077,7 @@ function validateReceipts(receipts) {
       safeRecord(draw, "INVALID_GACHA_DRAW_RECEIPT");
       const skill = STANDARD_SKILLS[draw.skillId];
       assertSave(draw.ticketLevel === entry.ticketLevel && Number.isSafeInteger(draw.rarity) && draw.rarity >= 1 && draw.rarity <= 5, "INVALID_GACHA_DRAW_RECEIPT");
-      assertSave(["color", "area", "disrupt"].includes(draw.category) && skill?.v49Catalogued && skill.gachaEnabled && !skill.experimental && skill.category === draw.category && skill.rarity === draw.rarity, "INVALID_GACHA_DRAW_RECEIPT");
+      assertSave(["color", "area", "disrupt"].includes(draw.category) && skill?.standardCatalogued && skill.gachaEnabled && !skill.experimental && skill.category === draw.category && skill.rarity === draw.rarity, "INVALID_GACHA_DRAW_RECEIPT");
     }
   }
   for (const [key, entry] of Object.entries(receipts.cosmeticAction || {})) {
@@ -4622,7 +4672,7 @@ module.exports = { CARD_SALE_RECEIPT_LIMIT, COSMETIC_ACTION_RECEIPT_LIMIT, SETTL
 "use strict";
 
 const save = require("./standard-save.js");
-const { STANDARD_SKILLS, V49_SKILL_IDS } = require("./standard-skill-registry.js");
+const { STANDARD_SKILLS, STANDARD_SKILL_IDS } = require("./standard-skill-registry.js");
 const { stableHash } = require("./standard-root-transaction.js");
 
 const STANDARD_MODE = "STANDARD_V5";
@@ -4666,7 +4716,7 @@ function normalizeStandardLoadout(loadout) {
     all.push(...ids);
     for (const skillId of ids) {
       const definition = STANDARD_SKILLS[skillId];
-      if (!definition || definition.category !== category || !definition.v49Catalogued || !definition.standardEngineImplemented || !definition.standardUiEnabled || definition.experimental) {
+      if (!definition || definition.category !== category || !definition.standardCatalogued || !definition.standardEngineImplemented || !definition.standardUiEnabled || definition.experimental) {
         throw Object.assign(new Error("SKILL_NOT_AVAILABLE"), { code: "SKILL_NOT_AVAILABLE" });
       }
     }
@@ -4680,7 +4730,7 @@ function projectStandardInventory({ root, actorId }) {
     save.validateStandardSave(root);
     if (!ID_PATTERN.test(actorId || "") || !root.profiles[actorId]) return rejected("UNKNOWN_PROFILE");
     const profile = root.profiles[actorId];
-    const items = V49_SKILL_IDS.filter((skillId) => STANDARD_SKILLS[skillId].standardUiEnabled && !STANDARD_SKILLS[skillId].experimental).map((skillId) => {
+    const items = STANDARD_SKILL_IDS.filter((skillId) => STANDARD_SKILLS[skillId].standardUiEnabled && !STANDARD_SKILLS[skillId].experimental).map((skillId) => {
       const definition = STANDARD_SKILLS[skillId];
       const ownedCount = profile.inventory[skillId] || 0;
       const reservedCount = root.reservations[actorId]?.[skillId] || 0;
@@ -4788,7 +4838,7 @@ module.exports = {
 const engine = require("./standard-engine.js");
 const match = require("./standard-match.js");
 const save = require("./standard-save.js");
-const { STANDARD_SKILLS } = require("./standard-skill-registry.js");
+const { STANDARD_SKILLS, engineVersionForLoadouts } = require("./standard-skill-registry.js");
 const { stableHash } = require("./standard-root-transaction.js");
 const cpu = require("./standard-cpu.js");
 
@@ -4838,7 +4888,7 @@ function validateRuleSetLoadout(ruleSetId, loadout) {
     if (categories.some((category) => loadout[category]?.length !== 2) || ids.length !== 6) throw Object.assign(new Error("INVALID_STANDARD_LOADOUT"), { code: "INVALID_STANDARD_LOADOUT" });
     for (const category of categories) for (const id of loadout[category]) {
       const definition = STANDARD_SKILLS[id];
-      if (!definition || definition.category !== category || !definition.v49Catalogued || !definition.standardEngineImplemented || !definition.standardUiEnabled) {
+      if (!definition || definition.category !== category || !definition.standardCatalogued || !definition.standardEngineImplemented || !definition.standardUiEnabled) {
         throw Object.assign(new Error("SKILL_NOT_AVAILABLE"), { code: "SKILL_NOT_AVAILABLE" });
       }
     }
@@ -4909,7 +4959,7 @@ function requestFacts({ matchId, ruleSetId, participants, loadouts, firstSeat })
       : { type: "CPU", difficulty: participants[seat].difficulty, policyVersion: participants[seat].policyVersion }])),
     loadouts,
     firstSeat: firstSeat || null,
-    engineVersion: match.ENGINE_VERSION,
+    engineVersion: engineVersionForLoadouts(loadouts, match.ENGINE_VERSION),
     initialConfigVersion: INITIAL_CONFIG_VERSION,
   };
 }
@@ -4973,7 +5023,7 @@ function startStandardMatch(args) {
     const startedAt = clock.now();
     if (typeof startedAt !== "string" || !Number.isFinite(Date.parse(startedAt))) throw Object.assign(new Error("INVALID_CLOCK"), { code: "INVALID_CLOCK" });
     const streams = engine.createRngDomainsFromSnapshot(draft.rngSnapshot, match.REQUIRED_RNG_STREAMS);
-    const state = match.createStandardMatch({ matchId, firstSeat, loadouts: quote.loadouts }, streams);
+    const state = match.createStandardMatch({ matchId, firstSeat, loadouts: quote.loadouts, engineVersion: engineVersionForLoadouts(quote.loadouts, match.ENGINE_VERSION) }, streams);
     for (const seat of ["A", "B"]) {
       if (quote.participants[seat].type === "CPU" && quote.participants[seat].difficulty === "hard") cpu.applyHardCpuSkillCharges(state, seat);
     }
@@ -5198,10 +5248,10 @@ const loadoutQuote = require("./standard-loadout-quote.js");
 const quizTransaction = require("./standard-quiz-transaction.js");
 const gachaTransaction = require("./standard-gacha-transaction.js");
 const cosmetics = require("./standard-cosmetics.js");
-const { STANDARD_SKILLS, V49_SKILL_IDS } = require("./standard-skill-registry.js");
+const { STANDARD_SKILLS, STANDARD_SKILL_IDS } = require("./standard-skill-registry.js");
 
 const ALPHA_INVENTORY_SKILLS = Object.freeze(["colorPrism", "areaHalfShift", "disruptChoiceOne"]);
-const STANDARD_INVENTORY_SKILLS = Object.freeze(V49_SKILL_IDS.filter((skillId) => STANDARD_SKILLS[skillId].standardUiEnabled));
+const STANDARD_INVENTORY_SKILLS = Object.freeze(STANDARD_SKILL_IDS.filter((skillId) => STANDARD_SKILLS[skillId].standardUiEnabled));
 const ALPHA_LOADOUT = Object.freeze({
   color: Object.freeze(["colorPrism", "colorBonusRefill"]),
   area: Object.freeze(["areaHalfShift"]),
@@ -6402,7 +6452,7 @@ module.exports = { QUIZ_RECEIPT_LIMIT, normalizeResult, settleQuizReward };
 const engine = require("./standard-engine.js");
 const match = require("./standard-match.js");
 const save = require("./standard-save.js");
-const { STANDARD_SKILLS, V49_SKILL_IDS } = require("./standard-skill-registry.js");
+const { STANDARD_SKILLS, STANDARD_SKILL_IDS } = require("./standard-skill-registry.js");
 const { stableHash } = require("./standard-root-transaction.js");
 
 const ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/;
@@ -6420,7 +6470,7 @@ function clone(value) { return JSON.parse(JSON.stringify(value)); }
 function rejected(code, root, extra = {}) { return Object.freeze({ ok: false, status: "REJECTED", code, root, saved: false, ...extra }); }
 
 function pool(category, rarity) {
-  return V49_SKILL_IDS.filter((skillId) => {
+  return STANDARD_SKILL_IDS.filter((skillId) => {
     const skill = STANDARD_SKILLS[skillId];
     return skill.gachaEnabled && !skill.experimental && skill.category === category && skill.rarity === rarity;
   });
@@ -6950,7 +7000,7 @@ const { createQuizQuestions } = require("../standard/quiz-session.js");
 const { createStandardQuizController } = require("../standard/standard-quiz-controller.js");
 const { createStandardLocalSession } = require("../standard/standard-local-session.js");
 const { RULE_SET_IDS } = require("../standard/standard-match-start.js");
-const { STANDARD_SKILLS, V49_SKILL_IDS } = require("../standard/standard-skill-registry.js");
+const { STANDARD_SKILLS, STANDARD_SKILL_IDS } = require("../standard/standard-skill-registry.js");
 const { ALL_COSMETIC_CLASSES, COSMETIC_CATALOG, COSMETIC_TYPE_LABELS } = require("../standard/standard-cosmetics.js");
 const { buildTerminalPresentation } = require("./terminal-presentation.js");
 const { createStaticTerminalResultRenderer } = require("./static-terminal-result.js");
@@ -7641,6 +7691,9 @@ function boot() {
     status.textContent = publicState.status === "FINISHED"
       ? "対戦終了。公開結果をご確認ください。"
       : `Turn ${publicState.turn}・Player ${publicState.active}・${publicState.phase}・指定 ${publicState.requiredSize}マス`;
+    if (publicState.retainedSplit && publicState.phase === "COLOR") status.textContent += publicState.retainedSplit.stage === "FIRST"
+      ? "・二分・保持：1つ目を塗ってください（残りも自分で塗ります）"
+      : "・二分・保持：続けて残りを塗ってください";
     board.replaceChildren();
     const bounds = publicState.playableBounds;
     const preparedMacros = new Set(publicState.preparedOutgoing?.sourceMacros || []);
@@ -7704,7 +7757,7 @@ function boot() {
           selected.clear();
           selected.add(macro);
           renderPublic(session.getPublicProjection());
-          dispatch("USE_SKILL", { skill: "colorRegionSplit", regionId: publicState.pending, sourceMacros: [macro] });
+          dispatch("USE_SKILL", { skill: targetMode.skill || "colorRegionSplit", regionId: publicState.pending, sourceMacros: [macro] });
           return;
         }
         if (targetMode === "legalRecolor" && region?.color) {
@@ -7868,11 +7921,11 @@ function boot() {
         renderPrivate(own);
       });
     }
-    if (own.hand.colorRegionSplit > 0) {
+    for (const splitSkill of ["colorRegionSplit", "colorRegionSplitKeep"]) if (own.hand[splitSkill] > 0) {
       const pendingRegion = publicState.regions[publicState.pending];
-      appendButton("エリア二分", colorSkillUsed || targetMode !== null || phase !== "COLOR" || !pendingRegion || (pendingRegion.sourceMacros || []).length < 2, () => {
+      appendButton(STANDARD_SKILLS[splitSkill].displayName, colorSkillUsed || targetMode !== null || phase !== "COLOR" || !pendingRegion || (pendingRegion.sourceMacros || []).length < 2 || splitSkill === "colorRegionSplitKeep" && publicState.engineVersion !== "5.0.0-alpha.6", () => {
         selected.clear();
-        targetMode = { kind: "colorRegionSplit" };
+        targetMode = { kind: "colorRegionSplit", skill: splitSkill };
         say("紫枠の受取エリアから、先に彩色する側の1マスを選んでください。選ぶとすぐ発動し、成立可否はゲーム側が判定します。");
         renderPublic(publicState);
         renderPrivate(own);
@@ -7883,6 +7936,7 @@ function boot() {
       const label = document.createElement("p");
       label.className = "split-target-guide";
       label.textContent = "紫枠の受取エリアで、先に彩色したい側の1マスを選ぶと即発動します。盤面の1マスだけで選べます。";
+      if (targetMode.skill === "colorRegionSplitKeep") label.textContent += " 残りの側も自分で塗ります。";
       privatePanel.appendChild(label);
       appendButton("エリア二分をキャンセル", false, () => {
         targetMode = null;
@@ -8180,7 +8234,7 @@ function boot() {
   function selectedStandardLoadouts() {
     return Object.fromEntries(["A", "B"].map((seat) => [seat, Object.fromEntries(LOADOUT_CATEGORIES.map((category) => [
       category,
-      V49_SKILL_IDS.filter((skillId) => STANDARD_SKILLS[skillId].category === category && selectedLoadouts[seat][category].has(skillId)),
+      STANDARD_SKILL_IDS.filter((skillId) => STANDARD_SKILLS[skillId].category === category && selectedLoadouts[seat][category].has(skillId)),
     ]))]));
   }
 
@@ -8202,7 +8256,7 @@ function boot() {
       const legend = document.createElement("legend");
       legend.textContent = `${LOADOUT_CATEGORY_NAMES[category]}（${selected.size}/2）`;
       fieldset.appendChild(legend);
-      for (const skillId of V49_SKILL_IDS.filter((id) => STANDARD_SKILLS[id].category === category)) {
+      for (const skillId of STANDARD_SKILL_IDS.filter((id) => STANDARD_SKILLS[id].category === category)) {
         const count = profile?.cards[skillId] || { owned: 0, available: 0 };
         const checked = selected.has(skillId);
         const label = document.createElement("label");

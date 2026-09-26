@@ -8,7 +8,7 @@ const {
 const { dispatchStandardSkillAction } = require("./standard-skill-dispatcher.js");
 const { applyCurseBacklashOnEnterColor, consumeDeferredCurseBacklashAfterColor, preparedOutgoingCandidates, tickPaletteDebuffsAfterColor, tickSealsAfterColor } = require("./standard-skill-handlers.js");
 const { createRegionGeometryContext } = require("./standard-region-geometry.js");
-const { COLORED_CORNER_BLOOM_ENGINE_VERSION, LEARNED_TECHNIQUE_ENGINE_VERSION, SKILL_USAGE_CATEGORIES } = require("./standard-skill-registry.js");
+const { COLORED_CORNER_BLOOM_ENGINE_VERSION, LEARNED_TECHNIQUE_ENGINE_VERSION, SPLIT_KEEP_ENGINE_VERSION, supportsSplitKeep, SKILL_USAGE_CATEGORIES } = require("./standard-skill-registry.js");
 const { usesTechniques, initialTechniqueFields, validateTechniqueState, projectTechniques } = require("./standard-technique-state.js");
 
 const SCHEMA_VERSION = 1;
@@ -16,7 +16,7 @@ const LEGACY_ENGINE_VERSION = "5.0.0-alpha.1";
 const PREVIOUS_ENGINE_VERSION = "5.0.0-alpha.2";
 const CATEGORY_WINDOW_ENGINE_VERSION = "5.0.0-alpha.3";
 const ENGINE_VERSION = COLORED_CORNER_BLOOM_ENGINE_VERSION;
-const SUPPORTED_ENGINE_VERSIONS = Object.freeze([LEGACY_ENGINE_VERSION, PREVIOUS_ENGINE_VERSION, CATEGORY_WINDOW_ENGINE_VERSION, ENGINE_VERSION, LEARNED_TECHNIQUE_ENGINE_VERSION]);
+const SUPPORTED_ENGINE_VERSIONS = Object.freeze([LEGACY_ENGINE_VERSION, PREVIOUS_ENGINE_VERSION, CATEGORY_WINDOW_ENGINE_VERSION, ENGINE_VERSION, LEARNED_TECHNIQUE_ENGINE_VERSION, SPLIT_KEEP_ENGINE_VERSION]);
 const SAVE_KEY = "fourColorMapGame.standard.v5.save";
 const PHASES = Object.freeze(["CREATE_FIRST", "COLOR", "WORK", "GAME_OVER"]);
 const ACTIONS = Object.freeze(["CREATE_REGION", "COLOR_REGION", "USE_SKILL", "DECLARE_NO_COLOR", "SURRENDER"]);
@@ -276,6 +276,19 @@ function validateStandardState(state) {
   assertState(reservedRegionIds.length <= 1, "INVALID_RESERVED_STATE");
   if (state.reserved === null || state.reserved === undefined) assertState(reservedRegionIds.length === 0, "INVALID_RESERVED_STATE");
   else assertState(reservedRegionIds.length === 1 && reservedRegionIds[0] === state.reserved && state.reserved !== state.pending, "INVALID_RESERVED_STATE");
+  if (Object.hasOwn(state, "retainedSplit")) {
+    const split = state.retainedSplit;
+    assertState(supportsSplitKeep(state.engineVersion) && split && typeof split === "object" && !Array.isArray(split)
+      && Object.keys(split).sort().join("|") === "actor|firstRegionId|secondRegionId|stage"
+      && split.actor === state.active && state.status === "ACTIVE" && state.phase === "COLOR"
+      && state.skillCategoryWindow?.categories.includes("color")
+      && split.firstRegionId !== split.secondRegionId, "INVALID_RETAINED_SPLIT");
+    const first = state.regions[split.firstRegionId], second = state.regions[split.secondRegionId];
+    assertState(Boolean(first && second) && (split.stage === "FIRST"
+      ? state.pending === first.id && state.reserved === second.id && !first.color && !second.color
+      : split.stage === "SECOND" && state.pending === second.id && !state.reserved && COLORS.includes(first.color)
+        && first.controllers.includes(split.actor) && !second.color), "INVALID_RETAINED_SPLIT");
+  }
   for (const seat of ["A", "B"]) {
     const basic = state.basicPalettes?.[seat];
     const bonus = state.bonusColors?.[seat];
@@ -339,6 +352,7 @@ function projectStandardPublicState(state) {
   validateStandardState(state);
   const keys = ["schemaVersion", "engineVersion", "mode", "matchId", "status", "version", "turn", "active", "phase", "regions", "pending", "reserved", "preparedOutgoing", "playableBounds", "trophyTargetMacros", "requiredSize", "rolledSize", "baseRequiredSize", "publicEffects", "interferenceLock", "winner", "terminalReason", "lastPublicTrace", "publicLog"];
   if (usesSkillCategoryWindow(state.engineVersion)) keys.push("skillCategoryWindow");
+  if (Object.hasOwn(state, "retainedSplit")) keys.push("retainedSplit");
   return Object.freeze({ ...Object.fromEntries(keys.map((key) => [key, clone(key === "trophyTargetMacros"
     ? (state.trophyTargetMacros || playableMacroIndices(state.playableBounds))
     : key === "lastPublicTrace" ? (state.lastPublicTrace ?? null) : state[key])] )),
@@ -644,6 +658,7 @@ function colorRegion(state, actor, payload = {}, rngStreams = {}) {
     next.phase = "GAME_OVER";
     next.winner = other(actor);
     next.terminalReason = "ILLEGAL_COLOR";
+    delete next.retainedSplit;
     next.version += 1;
     next.publicLog.push(`T${next.turn} Player ${actor} lost by illegal coloring.`);
     return { ok: true, code: "ILLEGAL_COLOR", state: next };
@@ -662,17 +677,21 @@ function colorRegion(state, actor, payload = {}, rngStreams = {}) {
   tickSealsAfterColor(next, actor);
   tickPaletteDebuffsAfterColor(next, actor);
   if (next.reserved) {
+    const keep = next.retainedSplit?.stage === "FIRST";
     const returnedId = next.reserved;
     const returned = next.regions[returnedId];
     next.reserved = null;
     returned.isReserved = false;
     returned.isPending = true;
     next.pending = returnedId;
-    next.active = other(actor);
+    next.active = keep ? actor : other(actor);
     next.phase = "COLOR";
-    next.turn += 1;
-    next.interferenceLock = false;
-    applyCurseBacklashOnEnterColor(next, next.active, () => nextRandom(rngStreams, "skill-effect"));
+    if (keep) next.retainedSplit.stage = "SECOND";
+    else {
+      next.turn += 1;
+      next.interferenceLock = false;
+      applyCurseBacklashOnEnterColor(next, next.active, () => nextRandom(rngStreams, "skill-effect"));
+    }
     next.version += 1;
     next.lastPublicTrace = {
       eventId: `${next.matchId}:${next.version}`,
@@ -682,11 +701,14 @@ function colorRegion(state, actor, payload = {}, rngStreams = {}) {
       regionId: target.id,
       color: target.color,
     };
-    next.publicLog.push(`Player ${actor} colored ${target.id}; split region ${returnedId} returned to Player ${next.active}.`);
+    next.publicLog.push(keep
+      ? `Player ${actor} colored ${target.id}; Player ${actor} must also color split region ${returnedId}.`
+      : `Player ${actor} colored ${target.id}; split region ${returnedId} returned to Player ${next.active}.`);
     if (next.engineVersion === LEGACY_ENGINE_VERSION) finishNoColorOnEntry(next, next.active);
     return { ok: true, code: "OK", state: next, returnedRegionId: returnedId };
   }
   next.pending = null;
+  delete next.retainedSplit;
   next.phase = "WORK";
   next.rolledSize = DIE_POOL[Math.floor(nextRandom(rngStreams, "die") * DIE_POOL.length)];
   next.baseRequiredSize = bestLegalSize(next, next.rolledSize);
@@ -719,6 +741,7 @@ function surrender(state, actor) {
   next.phase = "GAME_OVER";
   next.winner = other(actor);
   next.terminalReason = "SURRENDER";
+  delete next.retainedSplit;
   next.version += 1;
   next.publicLog.push(`Player ${actor} surrendered.`);
   return { ok: true, code: "OK", state: next };

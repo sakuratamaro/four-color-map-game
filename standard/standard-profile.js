@@ -124,7 +124,7 @@ function validateProgressionFields(profile) {
 
 function coinValueForSkill(skillId) {
   const skill = STANDARD_SKILLS[skillId];
-  assertProfile(Boolean(skill) && skill.v49Catalogued, "UNKNOWN_SELLABLE_SKILL");
+  assertProfile(Boolean(skill) && skill.standardCatalogued, "UNKNOWN_SELLABLE_SKILL");
   return SELL_PRICE_BY_RARITY[skill.rarity];
 }
 

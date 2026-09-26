@@ -3,9 +3,20 @@
 const SKILL_USAGE_CATEGORIES = Object.freeze(["color", "area", "disrupt"]);
 const COLORED_CORNER_BLOOM_ENGINE_VERSION = "5.0.0-alpha.4";
 const LEARNED_TECHNIQUE_ENGINE_VERSION = "5.0.0-alpha.5";
+const SPLIT_KEEP_ENGINE_VERSION = "5.0.0-alpha.6";
+
+function supportsSplitKeep(engineVersion) {
+  return engineVersion === SPLIT_KEEP_ENGINE_VERSION;
+}
+
+// Only a new match carrying this card opts into its continuation contract.
+function engineVersionForLoadouts(loadouts, fallback) {
+  return Object.values(loadouts || {}).some((loadout) => Object.values(loadout || {}).some((ids) => Array.isArray(ids) && ids.includes("colorRegionSplitKeep")))
+    ? SPLIT_KEEP_ENGINE_VERSION : fallback;
+}
 
 function supportsColoredCornerBloom(engineVersion) {
-  return engineVersion === COLORED_CORNER_BLOOM_ENGINE_VERSION || engineVersion === LEARNED_TECHNIQUE_ENGINE_VERSION;
+  return engineVersion === COLORED_CORNER_BLOOM_ENGINE_VERSION || engineVersion === LEARNED_TECHNIQUE_ENGINE_VERSION || supportsSplitKeep(engineVersion);
 }
 
 function skill(id, displayName, category, rarity, timing, options = {}) {
@@ -33,6 +44,7 @@ function skill(id, displayName, category, rarity, timing, options = {}) {
     consumptionPolicy: options.consumptionPolicy || "RESOLVED_V49",
     handlerVersion: options.handlerVersion ?? null,
     v49Catalogued,
+    standardCatalogued: options.standardCatalogued === undefined ? v49Catalogued : Boolean(options.standardCatalogued),
     ...(options.acquisitionType ? { acquisitionType: options.acquisitionType, displayRarity: options.displayRarity !== false } : {}),
   });
 }
@@ -81,6 +93,15 @@ const STANDARD_SKILLS = Object.freeze({
     implemented: true,
     consumptionPolicy: "RESOLVED_ONLY_CONNECTED_BIPARTITION",
     handlerVersion: "color-region-split-v1",
+  }),
+  colorRegionSplitKeep: skill("colorRegionSplitKeep", "エリア二分・保持", "color", 5, "COLOR", {
+    targetSchema: { regionId: "region-id", sourceMacros: "macro-index-array" },
+    implemented: true,
+    v49Catalogued: false,
+    standardCatalogued: true,
+    standardUiEnabled: true,
+    consumptionPolicy: "RESOLVED_ONLY_CONNECTED_BIPARTITION",
+    handlerVersion: "color-region-split-keep-v1",
   }),
   colorPaletteChange: skill("colorPaletteChange", "持ち色変更", "color", 5, "COLOR", {
     targetSchema: { slot: "palette-slot", color: "color-id" },
@@ -195,6 +216,7 @@ const STANDARD_SKILLS = Object.freeze({
 });
 
 const V49_SKILL_IDS = Object.freeze(Object.values(STANDARD_SKILLS).filter((entry) => entry.v49Catalogued).map((entry) => entry.id));
+const STANDARD_SKILL_IDS = Object.freeze(Object.values(STANDARD_SKILLS).filter((entry) => entry.standardCatalogued).map((entry) => entry.id));
 const IMPLEMENTED_SKILL_IDS = Object.freeze(Object.values(STANDARD_SKILLS).filter((entry) => entry.implemented).map((entry) => entry.id));
 
-module.exports = { COLORED_CORNER_BLOOM_ENGINE_VERSION, LEARNED_TECHNIQUE_ENGINE_VERSION, supportsColoredCornerBloom, IMPLEMENTED_SKILL_IDS, SKILL_USAGE_CATEGORIES, STANDARD_SKILLS, V49_SKILL_IDS };
+module.exports = { COLORED_CORNER_BLOOM_ENGINE_VERSION, LEARNED_TECHNIQUE_ENGINE_VERSION, SPLIT_KEEP_ENGINE_VERSION, supportsSplitKeep, engineVersionForLoadouts, supportsColoredCornerBloom, IMPLEMENTED_SKILL_IDS, SKILL_USAGE_CATEGORIES, STANDARD_SKILLS, STANDARD_SKILL_IDS, V49_SKILL_IDS };

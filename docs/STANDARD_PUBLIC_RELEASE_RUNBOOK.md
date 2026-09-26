@@ -1,5 +1,15 @@
 # Standard公開版 段階リリース手順
 
+## 2026-09-26 新カード便（候補・未公開）
+
+仕様は docs/NEW_SKILLS_SPLIT_KEEP_20260926.md / UDL011-split-keep-draft-v1。
+基準は9cea88bd9e2ac51bd07dbc9c977620548d1e849b。通常カードを1枚追加し、新カードを含む新規対局だけalpha.6へ進める。
+DB変更は202609260001_standard_split_keep_compat.sqlの既存trigger function更新1本、Edge変更は生成bundle1本。index.ts・secret・報酬値・CPUデッキ・画像は不変更。
+候補の配信キーは app.js?v=20260926-1、standard-skill-registry.generated.js?v=20260926-1、
+standard-online-skill-intents.js?v=20260926-1、cpu-progression-model.js?v=20260926-1、app.bundle.js?v=20260926-1-f22dfeedbbc4。
+旧laneは履歴として保持する。今回の候補固有Windows・真正Astra判定・fresh main再照合が必要で、下記の過去承認/試行枠を流用しない。
+本番migration→対応Edge→Pagesの順。alpha.6対局が残る間は旧readerへ戻さない。公開証拠が揃うまでNOT_RUN/未公開を維持する。
+
 ## 2026-09-23 CPU画像の現公開UIへの統合（未公開）
 
 正本は docs/CPU_WATAOKIBA_INTEGRATION_20260923.md / UDL-033-wataokiba-public-ui-v2。基準b07da70259c776554cb6057a48db49307bd7925fへ、旧21cc31af8ee4ca70f22c25e220c608a0d44d38d5の採用済み画像・クレジットだけを統合する。Pages_only、DB/Edge/管理設定は各 `[]`。元PNG20枚・manifest・NOTICEを保持し、通常6枚/別枠技・CPU方策・数値・台詞・経済を変更しない。
