@@ -55,3 +55,27 @@ At the checkpoint, commit and public source push, own remote Windows run, genuin
 Astra review, production migration/Edge/Pages, deployed byte readback and bounded canary were NOT_RUN.
 Native multi-session SQL and physical-device acceptance remain NOT_RUN.
 No images, rewards, existing match rows, CPU decks, secrets or managed settings were changed.
+
+## Post-push Windows failure and bounded test repair
+
+The first fixed candidate `d507aa336cf51e2ac13c8c2982cecc50b3bea8fb` was pushed to
+`codex/new-skills-20260926`. Its own Windows run `36212680895`, attempt 1, finished with
+2,380 PASS / 4 FAIL / 0 skipped: each browser passed 933 contracts and 212/214 online cases;
+Chrome also passed 11 native PostgreSQL race cases, and Edge passed 79 lifecycle cases.
+Both browsers failed the same two stale catalogue-count assertions (actual 22, expected 21),
+not the new-card state transition cases. This failed run remains failed.
+
+The specified catalogue is now 20 ordinary cards plus the two existing experimental cards.
+The first test already checks every registry ID and opens every detail dialog; its count/name
+are corrected to 22 and the new card is asserted exactly once. The optional-module-failure
+test now checks all 22 IDs against the implemented public registry as well as the count.
+No product, specification, migration, bundle, workflow, timeout or test selection is changed.
+
+Before repair, a local Chrome two-case attempt produced one startup `page-ready` timeout and
+one reproduced 22-versus-21 assertion failure (0/2 PASS). That startup failure is preserved
+separately; it is not attributed to the catalogue assertion or erased by the later pass.
+After repair, Chrome passed 5/5 targeted browser cases, 0 skipped, 81.479 s, covering the two
+catalogue cases plus old/new split interaction and retained-stage/category cues.
+Catalogue/harness contracts passed 11/11, 0 skipped, 0.607 s. A repaired remote gate and
+genuine fixed-candidate review remain required before production.
+Edge separately passed the two repaired catalogue cases, 2/2 PASS, 0 skipped, 27.533 s.

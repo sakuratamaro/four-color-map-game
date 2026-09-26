@@ -445,11 +445,12 @@ async function choosePublicWaiting(page) {
   await page.locator("#recruitOpponent").click();
 }
 
-test("UDL066 fresh catalog exposes all 21 native detail buttons without creating a profile or spending", { timeout: 120000 }, async () => {
+test("UDL066 fresh catalog exposes all 22 native detail buttons without creating a profile or spending", { timeout: 120000 }, async () => {
   await withPage("empty", async (page) => {
     await page.locator('[data-app-tab="cards"]').click();
     const cards = page.locator("#cardInventory button[data-catalog-skill]");
-    assert.equal(await cards.count(), 21);
+    assert.equal(await cards.count(), 22);
+    assert.equal(await page.locator('#cardInventory [data-catalog-skill="colorRegionSplitKeep"]').count(), 1);
     assert.equal(await page.locator("#cardInventory section").count(), 4);
     assert.equal(await page.locator("#profileCard").isHidden(), true);
     assert.equal(await page.locator("#cardSaleBox").isHidden(), true);
@@ -8907,7 +8908,11 @@ test("UDL067 missing optional module fails closed without breaking cards or game
     assert.equal(await page.locator("#surrenderDialog").getAttribute("open"),null);
     assert.equal(await page.evaluate(()=>globalThis.__standardOnlineRuntime.calls.filter(c=>c.body?.operation==="action").length),0);
     await page.locator('[data-app-tab="cards"]').click();
-    assert.equal(await page.locator("#cardInventory button[data-catalog-skill]").count(),21);
+    const cards=page.locator("#cardInventory button[data-catalog-skill]");
+    assert.equal(await cards.count(),22);
+    const expected=Object.values(require("../standard/standard-skill-registry.js").STANDARD_SKILLS)
+      .filter(d=>d.standardEngineImplemented&&(d.standardUiEnabled||d.alphaUiEnabled));
+    assert.deepEqual((await cards.evaluateAll(els=>els.map(el=>el.dataset.catalogSkill))).sort(),expected.map(d=>d.id).sort());
     assert.deepEqual(errors,[]);
   },{beforeNavigate:async page=>{
     page.on("pageerror",error=>errors.push(error.message));
