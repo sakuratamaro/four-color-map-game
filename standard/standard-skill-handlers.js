@@ -51,6 +51,33 @@ function applyColorBonusRefill({ state, actor }) {
   }, { addedUses });
 }
 
+function applyColorUnsealOne({ state, actor, payload }) {
+  const color = payload.color;
+  if (![...state.basicPalettes[actor], state.bonusColors[actor]].includes(color)) {
+    return Object.freeze({ ok: false, code: "COLOR_NOT_OWNED", state });
+  }
+  if (!(state.publicEffects[actor].seals[color] > 0)) {
+    return Object.freeze({ ok: false, code: "COLOR_NOT_SEALED", state });
+  }
+  return resolved(state, actor, "colorUnsealOne", (next) => {
+    next.publicEffects[actor].seals[color] = 0;
+    next.publicLog.push(`T${next.turn} Player ${actor} used a seal-removal card.`);
+  });
+}
+
+function applyColorBonusRefillUnseal({ state, actor }) {
+  const color = state.bonusColors[actor];
+  const current = state.bonusUsesRemaining[actor];
+  if (current >= 4 && !(state.publicEffects[actor].seals[color] > 0)) {
+    return Object.freeze({ ok: false, code: "BONUS_FULL_AND_UNSEALED", state });
+  }
+  return resolved(state, actor, "colorBonusRefillUnseal", (next) => {
+    next.bonusUsesRemaining[actor] = Math.min(4, current + 1);
+    if (next.publicEffects[actor].seals[color] > 0) next.publicEffects[actor].seals[color] = 0;
+    next.publicLog.push(`T${next.turn} Player ${actor} used bonus refill and unseal.`);
+  });
+}
+
 function usedBoardColors(state) {
   return [...new Set(Object.values(state.regions).map((region) => region.color).filter((color) => COLORS.includes(color)))];
 }
@@ -1036,6 +1063,8 @@ module.exports = {
   applyAreaResize,
   applyAreaTripleShift,
   applyColorBonusRefill,
+  applyColorUnsealOne,
+  applyColorBonusRefillUnseal,
   applyColorChoiceBorrow,
   applyColorPaletteChange,
   applyColorRandomBorrow,

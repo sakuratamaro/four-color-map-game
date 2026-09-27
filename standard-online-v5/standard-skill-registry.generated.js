@@ -67,6 +67,36 @@
     "standardEngineImplemented": true,
     "gachaEnabled": true
   },
+  "colorUnsealOne": {
+    "id": "colorUnsealOne",
+    "displayName": "封印解除札",
+    "category": "color",
+    "usageCategory": "color",
+    "rarity": 1,
+    "timing": "COLOR",
+    "v49Catalogued": false,
+    "standardCatalogued": true,
+    "standardUiEnabled": true,
+    "alphaUiEnabled": false,
+    "experimental": false,
+    "standardEngineImplemented": true,
+    "gachaEnabled": true
+  },
+  "colorBonusRefillUnseal": {
+    "id": "colorBonusRefillUnseal",
+    "displayName": "おまけ補充・解封",
+    "category": "color",
+    "usageCategory": "color",
+    "rarity": 3,
+    "timing": "COLOR",
+    "v49Catalogued": false,
+    "standardCatalogued": true,
+    "standardUiEnabled": true,
+    "alphaUiEnabled": false,
+    "experimental": false,
+    "standardEngineImplemented": true,
+    "gachaEnabled": true
+  },
   "colorBonusRefill": {
     "id": "colorBonusRefill",
     "displayName": "おまけ色補充",

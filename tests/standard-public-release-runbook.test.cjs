@@ -10,9 +10,9 @@ const onlineIndex = fs.readFileSync(path.join(__dirname, "..", "standard-online-
 const localIndex = fs.readFileSync(path.join(__dirname, "..", "standard-v5", "index.html"), "utf8");
 // Freeze only the two superseded cache labels in main70e's historical release lanes.
 // Current UI generation is checked independently below; no old approval is reused.
-const artworkOnlineIndex = onlineIndex.replace("app.js?v=20260926-1", "app.js?v=20260923-1")
-  .replace("standard-skill-registry.generated.js?v=20260926-1", "standard-skill-registry.generated.js?v=20260914-2")
-  .replace("standard-online-skill-intents.js?v=20260926-1", "standard-online-skill-intents.js?v=20260911-21");
+const artworkOnlineIndex = onlineIndex.replace("app.js?v=20260928-1", "app.js?v=20260923-1")
+  .replace("standard-skill-registry.generated.js?v=20260928-1", "standard-skill-registry.generated.js?v=20260914-2")
+  .replace("standard-online-skill-intents.js?v=20260928-1", "standard-online-skill-intents.js?v=20260911-21");
 const pilotOnlineIndex = artworkOnlineIndex.replace("app.js?v=20260923-1", "app.js?v=20260921-2")
   .replace("cpu-portraits.js?v=20260913-2", "cpu-portraits.js?v=20260908-1");
 const followupOnlineIndex = pilotOnlineIndex.replace("app.js?v=20260921-2", "app.js?v=20260915-8")

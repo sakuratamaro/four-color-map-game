@@ -5,19 +5,19 @@ const test = require("node:test");
 const { STANDARD_SKILLS } = require("../standard/standard-skill-registry.js");
 const intents = require("../standard-online-v5/standard-online-skill-intents.js");
 
-test("intent registry covers the 20 ordinary Standard cards", () => {
+test("intent registry covers the 22 ordinary Standard cards", () => {
   const canonical = Object.values(STANDARD_SKILLS).filter((skill) => skill.standardCatalogued).map((skill) => skill.id).sort();
   assert.deepEqual(Object.keys(intents.TARGET_KIND).sort(), canonical);
-  assert.equal(Object.keys(intents.TARGET_KIND).length, 20);
+  assert.equal(Object.keys(intents.TARGET_KIND).length, 22);
   assert.equal(Object.hasOwn(intents.TARGET_KIND, "legalRecolor"), false);
   assert.deepEqual(intents.LAB_TARGET_KIND, { legalRecolor: "existing-region" });
   assert.deepEqual(intents.EXPERIMENTAL_TARGET_KIND, { colorBonusRefill: "none" });
   assert.deepEqual(intents.buildSkillPayload("colorBonusRefill"), { skill: "colorBonusRefill" });
 });
 
-test("six no-target cards produce finite immediate payloads", () => {
+test("seven no-target cards produce finite immediate payloads", () => {
   const ids = Object.entries(intents.TARGET_KIND).filter(([, kind]) => kind === "none").map(([id]) => id);
-  assert.deepEqual(ids.sort(), ["areaDiePlus", "colorPrism", "colorRandomBorrow", "disruptPaletteRandom", "disruptRandomOne", "disruptRandomTwo"].sort());
+  assert.deepEqual(ids.sort(), ["areaDiePlus", "colorPrism", "colorRandomBorrow", "colorBonusRefillUnseal", "disruptPaletteRandom", "disruptRandomOne", "disruptRandomTwo"].sort());
   for (const skill of ids) assert.deepEqual(intents.buildSkillPayload(skill), { skill });
 });
 

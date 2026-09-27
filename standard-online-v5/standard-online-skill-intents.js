@@ -10,6 +10,8 @@
     colorRandomBorrow: "none",
     colorChoiceBorrow: "color",
     colorPrism: "none",
+    colorUnsealOne: "sealed-color",
+    colorBonusRefillUnseal: "none",
     colorRegionSplit: "region-split",
     colorRegionSplitKeep: "region-split",
     colorPaletteChange: "slot-color",
@@ -75,11 +77,22 @@
     return Object.freeze(colorChoiceDetails(privateState).filter((choice) => choice.available).map((choice) => choice.color));
   }
 
+  // Ownership and public seal duration only; never predict adjacency or paint legality.
+  function sealedOwnedColorChoices(privateState = {}, seals = {}) {
+    const owned = [...(privateState.basicPalette || []), privateState.bonusColor];
+    return Object.freeze(COLORS.filter((color) => owned.includes(color) && seals[color] > 0));
+  }
+
+  function bonusRefillUnsealHasEffect(privateState = {}, seals = {}) {
+    return COLORS.includes(privateState.bonusColor)
+      && (privateState.bonusUsesRemaining < 4 || seals[privateState.bonusColor] > 0);
+  }
+
   function buildSkillPayload(skill, input = {}) {
     const kind = targetKind(skill);
     if (!kind) throw Object.assign(new Error("UNKNOWN_STANDARD_SKILL"), { code: "UNKNOWN_STANDARD_SKILL" });
     if (kind === "none") return Object.freeze({ skill });
-    if (kind === "color") return Object.freeze({ skill, color: color(input.color) });
+    if (kind === "color" || kind === "sealed-color") return Object.freeze({ skill, color: color(input.color) });
     if (kind === "slot-color") {
       if (![0, 1, 2].includes(input.slot)) invalid();
       return Object.freeze({ skill, slot: input.slot, color: color(input.color) });
@@ -106,5 +119,5 @@
     invalid();
   }
 
-  return Object.freeze({ COLORS, EXPERIMENTAL_TARGET_KIND, LAB_TARGET_KIND, TARGET_KIND, availableColorChoices, buildSkillPayload, colorChoiceDetails, isImmediate: (skill) => targetKind(skill) === "none", targetKind });
+  return Object.freeze({ COLORS, EXPERIMENTAL_TARGET_KIND, LAB_TARGET_KIND, TARGET_KIND, availableColorChoices, sealedOwnedColorChoices, bonusRefillUnsealHasEffect, buildSkillPayload, colorChoiceDetails, isImmediate: (skill) => targetKind(skill) === "none", targetKind });
 });

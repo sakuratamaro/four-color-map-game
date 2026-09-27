@@ -9,9 +9,15 @@ function supportsSplitKeep(engineVersion) {
   return engineVersion === SPLIT_KEEP_ENGINE_VERSION;
 }
 
+const RESCUE_CARD_IDS = Object.freeze(["colorUnsealOne", "colorBonusRefillUnseal"]);
+function supportsRescueCards(engineVersion) {
+  return engineVersion === SPLIT_KEEP_ENGINE_VERSION;
+}
+
 // Only a new match carrying this card opts into its continuation contract.
 function engineVersionForLoadouts(loadouts, fallback) {
-  return Object.values(loadouts || {}).some((loadout) => Object.values(loadout || {}).some((ids) => Array.isArray(ids) && ids.includes("colorRegionSplitKeep")))
+  return Object.values(loadouts || {}).some((loadout) => Object.values(loadout || {}).some((ids) => Array.isArray(ids)
+    && ids.some((id) => id === "colorRegionSplitKeep" || RESCUE_CARD_IDS.includes(id))))
     ? SPLIT_KEEP_ENGINE_VERSION : fallback;
 }
 
@@ -78,6 +84,25 @@ const STANDARD_SKILLS = Object.freeze({
     handlerVersion: "color-choice-borrow-v1",
   }),
   colorPrism: skill("colorPrism", "四色解放", "color", 3, "COLOR", { implemented: true, handlerVersion: "color-prism-v1" }),
+  colorUnsealOne: skill("colorUnsealOne", "封印解除札", "color", 1, "COLOR", {
+    targetSchema: { color: "current-owned-sealed-color" },
+    implemented: true,
+    v49Catalogued: false,
+    standardCatalogued: true,
+    standardUiEnabled: true,
+    privateInformationEffect: true,
+    consumptionPolicy: "RESOLVED_ONLY_OWNED_SEALED_COLOR",
+    handlerVersion: "color-unseal-one-v1",
+  }),
+  colorBonusRefillUnseal: skill("colorBonusRefillUnseal", "おまけ補充・解封", "color", 3, "COLOR", {
+    implemented: true,
+    v49Catalogued: false,
+    standardCatalogued: true,
+    standardUiEnabled: true,
+    privateInformationEffect: true,
+    consumptionPolicy: "RESOLVED_ONLY_REFILL_OR_UNSEAL",
+    handlerVersion: "color-bonus-refill-unseal-v1",
+  }),
   colorBonusRefill: skill("colorBonusRefill", "おまけ色補充", "color", 2, "COLOR", {
     implemented: true,
     alphaUiEnabled: true,
@@ -219,4 +244,4 @@ const V49_SKILL_IDS = Object.freeze(Object.values(STANDARD_SKILLS).filter((entry
 const STANDARD_SKILL_IDS = Object.freeze(Object.values(STANDARD_SKILLS).filter((entry) => entry.standardCatalogued).map((entry) => entry.id));
 const IMPLEMENTED_SKILL_IDS = Object.freeze(Object.values(STANDARD_SKILLS).filter((entry) => entry.implemented).map((entry) => entry.id));
 
-module.exports = { COLORED_CORNER_BLOOM_ENGINE_VERSION, LEARNED_TECHNIQUE_ENGINE_VERSION, SPLIT_KEEP_ENGINE_VERSION, supportsSplitKeep, engineVersionForLoadouts, supportsColoredCornerBloom, IMPLEMENTED_SKILL_IDS, SKILL_USAGE_CATEGORIES, STANDARD_SKILLS, STANDARD_SKILL_IDS, V49_SKILL_IDS };
+module.exports = { COLORED_CORNER_BLOOM_ENGINE_VERSION, LEARNED_TECHNIQUE_ENGINE_VERSION, SPLIT_KEEP_ENGINE_VERSION, supportsSplitKeep, RESCUE_CARD_IDS, supportsRescueCards, engineVersionForLoadouts, supportsColoredCornerBloom, IMPLEMENTED_SKILL_IDS, SKILL_USAGE_CATEGORIES, STANDARD_SKILLS, STANDARD_SKILL_IDS, V49_SKILL_IDS };

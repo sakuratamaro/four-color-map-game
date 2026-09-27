@@ -801,9 +801,15 @@ function supportsSplitKeep(engineVersion) {
   return engineVersion === SPLIT_KEEP_ENGINE_VERSION;
 }
 
+const RESCUE_CARD_IDS = Object.freeze(["colorUnsealOne", "colorBonusRefillUnseal"]);
+function supportsRescueCards(engineVersion) {
+  return engineVersion === SPLIT_KEEP_ENGINE_VERSION;
+}
+
 // Only a new match carrying this card opts into its continuation contract.
 function engineVersionForLoadouts(loadouts, fallback) {
-  return Object.values(loadouts || {}).some((loadout) => Object.values(loadout || {}).some((ids) => Array.isArray(ids) && ids.includes("colorRegionSplitKeep")))
+  return Object.values(loadouts || {}).some((loadout) => Object.values(loadout || {}).some((ids) => Array.isArray(ids)
+    && ids.some((id) => id === "colorRegionSplitKeep" || RESCUE_CARD_IDS.includes(id))))
     ? SPLIT_KEEP_ENGINE_VERSION : fallback;
 }
 
@@ -870,6 +876,25 @@ const STANDARD_SKILLS = Object.freeze({
     handlerVersion: "color-choice-borrow-v1",
   }),
   colorPrism: skill("colorPrism", "四色解放", "color", 3, "COLOR", { implemented: true, handlerVersion: "color-prism-v1" }),
+  colorUnsealOne: skill("colorUnsealOne", "封印解除札", "color", 1, "COLOR", {
+    targetSchema: { color: "current-owned-sealed-color" },
+    implemented: true,
+    v49Catalogued: false,
+    standardCatalogued: true,
+    standardUiEnabled: true,
+    privateInformationEffect: true,
+    consumptionPolicy: "RESOLVED_ONLY_OWNED_SEALED_COLOR",
+    handlerVersion: "color-unseal-one-v1",
+  }),
+  colorBonusRefillUnseal: skill("colorBonusRefillUnseal", "おまけ補充・解封", "color", 3, "COLOR", {
+    implemented: true,
+    v49Catalogued: false,
+    standardCatalogued: true,
+    standardUiEnabled: true,
+    privateInformationEffect: true,
+    consumptionPolicy: "RESOLVED_ONLY_REFILL_OR_UNSEAL",
+    handlerVersion: "color-bonus-refill-unseal-v1",
+  }),
   colorBonusRefill: skill("colorBonusRefill", "おまけ色補充", "color", 2, "COLOR", {
     implemented: true,
     alphaUiEnabled: true,
@@ -1011,7 +1036,7 @@ const V49_SKILL_IDS = Object.freeze(Object.values(STANDARD_SKILLS).filter((entry
 const STANDARD_SKILL_IDS = Object.freeze(Object.values(STANDARD_SKILLS).filter((entry) => entry.standardCatalogued).map((entry) => entry.id));
 const IMPLEMENTED_SKILL_IDS = Object.freeze(Object.values(STANDARD_SKILLS).filter((entry) => entry.implemented).map((entry) => entry.id));
 
-module.exports = { COLORED_CORNER_BLOOM_ENGINE_VERSION, LEARNED_TECHNIQUE_ENGINE_VERSION, SPLIT_KEEP_ENGINE_VERSION, supportsSplitKeep, engineVersionForLoadouts, supportsColoredCornerBloom, IMPLEMENTED_SKILL_IDS, SKILL_USAGE_CATEGORIES, STANDARD_SKILLS, STANDARD_SKILL_IDS, V49_SKILL_IDS };
+module.exports = { COLORED_CORNER_BLOOM_ENGINE_VERSION, LEARNED_TECHNIQUE_ENGINE_VERSION, SPLIT_KEEP_ENGINE_VERSION, supportsSplitKeep, RESCUE_CARD_IDS, supportsRescueCards, engineVersionForLoadouts, supportsColoredCornerBloom, IMPLEMENTED_SKILL_IDS, SKILL_USAGE_CATEGORIES, STANDARD_SKILLS, STANDARD_SKILL_IDS, V49_SKILL_IDS };
 
 },
 "standard/standard-technique-state.js":function(require,module,exports){
@@ -1170,6 +1195,33 @@ function applyColorBonusRefill({ state, actor }) {
     next.bonusUsesRemaining[actor] = current + addedUses;
     next.publicLog.push(`T${next.turn} Player ${actor} refilled their private bonus color uses.`);
   }, { addedUses });
+}
+
+function applyColorUnsealOne({ state, actor, payload }) {
+  const color = payload.color;
+  if (![...state.basicPalettes[actor], state.bonusColors[actor]].includes(color)) {
+    return Object.freeze({ ok: false, code: "COLOR_NOT_OWNED", state });
+  }
+  if (!(state.publicEffects[actor].seals[color] > 0)) {
+    return Object.freeze({ ok: false, code: "COLOR_NOT_SEALED", state });
+  }
+  return resolved(state, actor, "colorUnsealOne", (next) => {
+    next.publicEffects[actor].seals[color] = 0;
+    next.publicLog.push(`T${next.turn} Player ${actor} used a seal-removal card.`);
+  });
+}
+
+function applyColorBonusRefillUnseal({ state, actor }) {
+  const color = state.bonusColors[actor];
+  const current = state.bonusUsesRemaining[actor];
+  if (current >= 4 && !(state.publicEffects[actor].seals[color] > 0)) {
+    return Object.freeze({ ok: false, code: "BONUS_FULL_AND_UNSEALED", state });
+  }
+  return resolved(state, actor, "colorBonusRefillUnseal", (next) => {
+    next.bonusUsesRemaining[actor] = Math.min(4, current + 1);
+    if (next.publicEffects[actor].seals[color] > 0) next.publicEffects[actor].seals[color] = 0;
+    next.publicLog.push(`T${next.turn} Player ${actor} used bonus refill and unseal.`);
+  });
 }
 
 function usedBoardColors(state) {
@@ -2157,6 +2209,8 @@ module.exports = {
   applyAreaResize,
   applyAreaTripleShift,
   applyColorBonusRefill,
+  applyColorUnsealOne,
+  applyColorBonusRefillUnseal,
   applyColorChoiceBorrow,
   applyColorPaletteChange,
   applyColorRandomBorrow,
@@ -2187,7 +2241,8 @@ module.exports = {
 "use strict";
 
 const { COLORS, StandardRuleError, applyLegalRecolor } = require("./standard-engine.js");
-const { supportsColoredCornerBloom, supportsSplitKeep, STANDARD_SKILLS } = require("./standard-skill-registry.js");
+const { supportsColoredCornerBloom, supportsSplitKeep, RESCUE_CARD_IDS, supportsRescueCards, STANDARD_SKILLS } = require("./standard-skill-registry.js");
+const { applyColorUnsealOne, applyColorBonusRefillUnseal } = require("./standard-skill-handlers.js");
 const { usesTechniques, techniqueAvailable, applyTechUnsealOne } = require("./standard-technique-state.js");
 const { applyAreaCornerBloom, applyAreaDiePlus, applyAreaHalfShift, applyAreaMicroBloom, applyAreaResize, applyAreaTripleShift, applyColorBonusRefill, applyColorChoiceBorrow, applyColorPaletteChange, applyColorRandomBorrow, applyColorPrism, applyColorRegionSplit, applyDisruptChoiceOne, applyDisruptChoiceThree, applyDisruptChoiceTwo, applyDisruptForcedPalette, applyDisruptPaletteChoice, applyDisruptPaletteRandom, applyDisruptRandomOne, applyDisruptRandomTwo } = require("./standard-skill-handlers.js");
 
@@ -2208,7 +2263,7 @@ function nextRandom(rngStreams, name, counter) {
 function validateTargetSchema(definition, payload, state) {
   if (!definition.targetSchema) return true;
   if (!payload || typeof payload !== "object" || Array.isArray(payload)) return false;
-  if (definition.id === "techUnsealOne") return Object.keys(payload).sort().join("|") === "color|skill" && COLORS.includes(payload.color);
+  if (["techUnsealOne", "colorUnsealOne"].includes(definition.id)) return Object.keys(payload).sort().join("|") === "color|skill" && COLORS.includes(payload.color);
   if (definition.id === "legalRecolor") return typeof payload.regionId === "string" && payload.regionId.length > 0;
   if (definition.id === "colorPrism") return true;
   if (definition.id === "colorChoiceBorrow") return typeof payload.color === "string" && COLORS.includes(payload.color);
@@ -2233,6 +2288,8 @@ function validateTargetSchema(definition, payload, state) {
 
 const HANDLERS = Object.freeze({
   techUnsealOne: applyTechUnsealOne,
+  colorUnsealOne: applyColorUnsealOne,
+  colorBonusRefillUnseal: applyColorBonusRefillUnseal,
   colorRandomBorrow({ state, actor, rngStreams, draws }) {
     return applyColorRandomBorrow({ state, actor, random: () => nextRandom(rngStreams, "skill-effect", draws) });
   },
@@ -2288,6 +2345,8 @@ function dispatchStandardSkillAction({ state, actor, action, expectedVersion, rn
   if (!definition) return rejected("UNKNOWN_SKILL", state);
   if (!definition.implemented || !HANDLERS[definition.id]) return rejected("SKILL_NOT_IMPLEMENTED", state);
   if (definition.id === "colorRegionSplitKeep" && !supportsSplitKeep(state.engineVersion)) return rejected("SKILL_ENGINE_UNSUPPORTED", state);
+  if (RESCUE_CARD_IDS.includes(definition.id) && !supportsRescueCards(state.engineVersion)) return rejected("SKILL_ENGINE_UNSUPPORTED", state);
+  if (definition.id === "colorBonusRefillUnseal" && Object.keys(action.payload).join("|") !== "skill") return rejected("INVALID_TARGET_SCHEMA", state);
   const learned = definition.acquisitionType === "LEARNED";
   if (learned && !usesTechniques(state.engineVersion)) return rejected("TECHNIQUE_ENGINE_UNSUPPORTED", state);
   if (state.active !== actor) return rejected("NOT_YOUR_TURN", state);
@@ -7962,6 +8021,28 @@ function boot() {
       });
     }
     appendButton("四色解放", colorSkillUsed || targetMode !== null || phase !== "COLOR" || !(own.hand.colorPrism > 0), () => dispatch("USE_SKILL", { skill: "colorPrism" }));
+    const rescueSupported = publicState.engineVersion === "5.0.0-alpha.6";
+    const ownSeals = publicState.publicEffects?.[own.seat]?.seals || {};
+    const sealedOwned = [...new Set([...own.basicPalette, own.bonusColor])].filter(color => ownSeals[color] > 0);
+    if (own.hand.colorUnsealOne > 0) appendButton("封印解除札", !rescueSupported || colorSkillUsed || targetMode !== null || phase !== "COLOR" || !sealedOwned.length, () => {
+      targetMode = "colorUnsealOne";
+      say("封印中の持ち色を1色選んでください。色の残り回数は増えません。");
+      renderPrivate(own);
+    });
+    if (targetMode === "colorUnsealOne") {
+      for (const color of sealedOwned) appendButton(`解除する：${COLOR_NAMES[color]}`, false, () => {
+        targetMode = null;
+        dispatch("USE_SKILL", { skill: "colorUnsealOne", color });
+      });
+      appendButton("封印解除札をキャンセル", false, () => {
+        targetMode = null;
+        say("封印解除札の選択を解除しました。");
+        renderPrivate(own);
+      });
+    }
+    if (own.hand.colorBonusRefillUnseal > 0) appendButton("おまけ補充・解封（残数＋1／上限4）", !rescueSupported || colorSkillUsed || targetMode !== null || phase !== "COLOR" || (own.bonusUsesRemaining >= 4 && !(ownSeals[own.bonusColor] > 0)), () => {
+      dispatch("USE_SKILL", { skill: "colorBonusRefillUnseal" });
+    });
     if (own.hand.colorBonusRefill > 0) appendButton("おまけ色補充（残数＋2／上限4）", colorSkillUsed || targetMode !== null || phase !== "COLOR" || own.bonusUsesRemaining >= 4, () => {
       dispatch("USE_SKILL", { skill: "colorBonusRefill" });
     });

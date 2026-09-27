@@ -104,6 +104,8 @@ const SKILL_DESCRIPTION = Object.freeze({
   colorChoiceBorrow: "盤面ですでに使われている色を1色選び、この彩色中だけ借ります。借りた色は色ボタンに追加されます。",
   colorPrism: "この彩色中だけ、赤・青・黄・緑の4色を使えるようにします。",
   colorBonusRefill: "現在のおまけ色の残り回数を2回増やします（上限4回）。残り4回では使えません。",
+  colorUnsealOne: "現在の基本色・おまけ色から、封印中の1色を選んで解除します。おまけ色の回数は増えません。隣接色などの彩色条件はそのままです。伝授技「解封」とは別の消費カードです。",
+  colorBonusRefillUnseal: "現在のおまけ色を1回補充（上限4回）し、その色の封印を解除します。残り4回でも封印中なら使えます。隣接色などの彩色条件は変わりません。",
   colorRegionSplit: "いま塗る相手のエリアを、つながった2つのエリアに分けます。分けた片方を先に塗ります。",
   colorRegionSplitKeep: "受け取ったエリアを2つに分け、選んだ側・残りの側を続けて自分で塗ります。両側それぞれで隣接色・封印・色の残数を判定します。同じ手番の色操作スキルは追加で使えません。",
   colorPaletteChange: "持ち色の3枠から1枠を、対戦終了まで好きな色に変えます。基本色2枠は回数無制限。おまけ色枠を変えても回数は増えず、今の残り回数を新しい色が引き継ぎます。",
@@ -3942,8 +3944,11 @@ function renderSkills(state, privateState) {
       : meta.category === "color" ? state.phase === "COLOR" : ["CREATE_FIRST", "WORK"].includes(state.phase);
     const categoryUsed = usedCategories.has(meta.usageCategory || meta.category);
     const refillFull = skill === "colorBonusRefill" && (privateState.bonusUsesRemaining || 0) >= 4;
-    const unsupported = skill === "colorRegionSplitKeep" && state.engineVersion !== "5.0.0-alpha.6";
-    node.disabled = used || actionBusy || Boolean(pendingAction) || !myTurn || !timingOkay || categoryUsed || refillFull || unsupported;
+    const unsupported = ["colorRegionSplitKeep", "colorUnsealOne", "colorBonusRefillUnseal"].includes(skill) && state.engineVersion !== "5.0.0-alpha.6";
+    const seals = state.publicEffects?.[privateState.seat]?.seals || {};
+    const rescueNoEffect = skill === "colorUnsealOne" ? skillIntents.sealedOwnedColorChoices(privateState, seals).length === 0
+      : skill === "colorBonusRefillUnseal" && !skillIntents.bonusRefillUnsealHasEffect(privateState, seals);
+    node.disabled = used || actionBusy || Boolean(pendingAction) || !myTurn || !timingOkay || categoryUsed || refillFull || unsupported || rescueNoEffect;
     if (unsupported) node.title = "このカードに対応した新規対戦で使えます";
     if (categoryUsed) node.title = "この手番では同じ種類のスキルはもう使えません";
     const info = button("ⓘ", () => openSkillInfo(skill), "skill-info-button");
@@ -4154,6 +4159,11 @@ function renderSkillTarget(state, privateState) {
   if (targetDraft.kind === "color") {
     for (const color of skillIntents.COLORS) controls.appendChild(targetChoice(COLOR_JA[color], "color", color));
   }
+  if (targetDraft.kind === "sealed-color") {
+    for (const color of skillIntents.sealedOwnedColorChoices(privateState, state.publicEffects?.[privateState.seat]?.seals || {})) {
+      controls.appendChild(targetChoice(COLOR_JA[color], "color", color));
+    }
+  }
   if (targetDraft.kind === "slot-color") appendPaletteChangeTargeting(controls, privateState);
   if (targetDraft.kind === "region-split") {
     const guide = document.createElement("p");
@@ -4269,6 +4279,7 @@ function renderSkillTarget(state, privateState) {
       useTarget.setAttribute("aria-describedby", "bandShiftTargetGuide");
     }
     if (targetDraft.kind === "source-macros") useTarget.disabled = selectedMacros.size !== state.requiredSize;
+    if (targetDraft.kind === "sealed-color") useTarget.disabled = !skillIntents.sealedOwnedColorChoices(privateState, state.publicEffects?.[privateState.seat]?.seals || {}).includes(targetDraft.input.color);
     if (targetDraft.kind === "slot-color") {
       const slot = paletteChangeSlotOptions(privateState).find((entry) => entry.slot === targetDraft.input.slot);
       useTarget.disabled = !slot || !skillIntents.COLORS.includes(targetDraft.input.color) || slot.color === targetDraft.input.color;
@@ -6477,6 +6488,10 @@ $("useTechnique").onclick = () => {
 $("techniqueControls").addEventListener("keydown", event => {
   if (event.key !== "Escape" || !techniqueTargetScope) return;
   event.preventDefault(); techniqueTargetScope = null; render(); $("useTechnique").focus({ preventScroll: true });
+});
+$("skillTargetControls").addEventListener("keydown", event => {
+  if (event.key !== "Escape" || targetDraft?.kind !== "sealed-color") return;
+  event.preventDefault(); cancelSkillTarget();
 });
 $("createStarterProfile").onclick = createStarterProfile;
 $("syncProfile").onclick = syncSelectedProfile;

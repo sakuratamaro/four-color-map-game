@@ -2798,6 +2798,36 @@ test("UDL033 a missing selected image does not disable another CPU or the safe s
   }, { viewport: { width: 390, height: 844 }, beforeNavigate: page => page.route("**/wataokiba/yuzu-normal.png", route => route.abort("failed")) });
 });
 
+for(const id of ["colorUnsealOne","colorBonusRefillUnseal"]) test(`UDL011 rescue-card native ${id} -> actual engine -> paint -> reload`,{timeout:130000},async()=>{
+  let fixture;
+  await withPage("colorResponse",async page=>{
+    const skill=page.locator(`#skillControls button[data-skill="${id}"]:not([disabled])`);
+    await skill.waitFor();
+    if(id==="colorUnsealOne") {
+      await skill.focus(); await page.keyboard.press("Enter");
+      const target=page.locator("#skillTargetControls");
+      assert.deepEqual(await target.locator('[data-target-key="color"]').evaluateAll(nodes=>nodes.map(n=>n.dataset.targetValue)),["red","green"]);
+      await page.keyboard.press("Escape"); await target.waitFor({state:"hidden"});
+      assert.equal(fixture.calls.length,0);
+      await skill.click(); await target.locator('[data-target-value="red"]').click();
+      await target.getByRole("button",{name:"この対象で使う",exact:true}).click();
+    } else await skill.click();
+    await page.waitForFunction(()=>JSON.parse(document.querySelector("#publicProjection")?.textContent||"{}").version===1);
+    assert.equal(fixture.calls.length,1);
+    assert.deepEqual(fixture.calls[0].action.payload,id==="colorUnsealOne"?{skill:id,color:"red"}:{skill:id});
+    assert.equal(fixture.state().hands.A[id],0);
+    assert.equal(await page.locator('#skillControls button[data-skill="'+(id==="colorUnsealOne"?"colorBonusRefillUnseal":"colorUnsealOne")+'"]').isDisabled(),true);
+    const color=id==="colorUnsealOne"?"red":"green";
+    await page.locator(`#paletteControls button[data-color="${color}"]:not([disabled])`).click();
+    await page.waitForFunction(()=>JSON.parse(document.querySelector("#publicProjection")?.textContent||"{}").version===2);
+    assert.equal(fixture.calls.length,2); assert.equal(fixture.state().phase,"WORK");
+    assert.equal(fixture.state().regions.R1.color,color);
+    await page.reload();await page.waitForFunction(()=>JSON.parse(document.querySelector("#publicProjection")?.textContent||"{}").version===2);
+    assert.equal(fixture.calls.length,2,"reload sends no skill or paint again");
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>document.documentElement.clientWidth),false);
+  },{viewport:{width:390,height:844},beforeNavigate:async page=>{fixture=await require("./helpers/rescue-cards-ui.cjs").installRescueUi(page,roomId);}});
+});
+
 async function withPage(mode, run, { bodyTimeout = 35_000, viewport = { width: 900, height: 800 }, beforeNavigate = null, deviceScaleFactor = 1 } = {}) {
   assert.ok(chromium, "Playwright is required");
   assert.ok(fs.existsSync(browserPath), `${browserName} browser is required`);
@@ -4471,7 +4501,7 @@ test("actual browser exposes the alpha.3 category window, refill loan, and accep
     // UDL066 supersedes the old hidden-library expectation, not the loan/inventory rules.
     assert.equal(await page.locator('#cardInventory [data-catalog-group="lab"] [data-catalog-skill="colorBonusRefill"].is-unowned').count(), 1);
     assert.equal(await page.locator('#cardInventory [data-catalog-group="lab"] [data-catalog-skill="colorBonusRefill"] .inventory-count').textContent(), "×0");
-    assert.equal(await page.locator('#cardInventory section:not([data-catalog-group="lab"]) button[data-catalog-skill]').count(), 20);
+    assert.equal(await page.locator('#cardInventory section:not([data-catalog-group="lab"]) button[data-catalog-skill]').count(), 22);
     assert.equal(await page.locator('#cardSaleSkill option[value="colorBonusRefill"]').count(), 0);
     assert.equal(await refill.isDisabled(), true);
     assert.equal(await refill.getAttribute("title"), "この手番では同じ種類のスキルはもう使えません");
@@ -5088,7 +5118,7 @@ test("actual browser exposes one keyboard-safe recolor lab loan while catalog st
     await page.getByText("LAB貸与カード（この対戦で1回）").waitFor();
     assert.equal(await page.locator('#cardInventory [data-catalog-group="lab"] [data-catalog-skill="legalRecolor"].is-unowned').count(), 1);
     assert.equal(await page.locator('#cardInventory [data-catalog-skill="legalRecolor"] .inventory-count').textContent(), "×0");
-    assert.equal(await page.locator('#cardInventory section:not([data-catalog-group="lab"]) button[data-catalog-skill]').count(), 20);
+    assert.equal(await page.locator('#cardInventory section:not([data-catalog-group="lab"]) button[data-catalog-skill]').count(), 22);
     assert.equal(await page.locator('#cardSaleSkill option[value="legalRecolor"]').count(), 0);
 
     const skillButton = page.getByRole("button", { name: "塗り直し・乱 ×1" });

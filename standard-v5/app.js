@@ -954,6 +954,28 @@ function boot() {
       });
     }
     appendButton("四色解放", colorSkillUsed || targetMode !== null || phase !== "COLOR" || !(own.hand.colorPrism > 0), () => dispatch("USE_SKILL", { skill: "colorPrism" }));
+    const rescueSupported = publicState.engineVersion === "5.0.0-alpha.6";
+    const ownSeals = publicState.publicEffects?.[own.seat]?.seals || {};
+    const sealedOwned = [...new Set([...own.basicPalette, own.bonusColor])].filter(color => ownSeals[color] > 0);
+    if (own.hand.colorUnsealOne > 0) appendButton("封印解除札", !rescueSupported || colorSkillUsed || targetMode !== null || phase !== "COLOR" || !sealedOwned.length, () => {
+      targetMode = "colorUnsealOne";
+      say("封印中の持ち色を1色選んでください。色の残り回数は増えません。");
+      renderPrivate(own);
+    });
+    if (targetMode === "colorUnsealOne") {
+      for (const color of sealedOwned) appendButton(`解除する：${COLOR_NAMES[color]}`, false, () => {
+        targetMode = null;
+        dispatch("USE_SKILL", { skill: "colorUnsealOne", color });
+      });
+      appendButton("封印解除札をキャンセル", false, () => {
+        targetMode = null;
+        say("封印解除札の選択を解除しました。");
+        renderPrivate(own);
+      });
+    }
+    if (own.hand.colorBonusRefillUnseal > 0) appendButton("おまけ補充・解封（残数＋1／上限4）", !rescueSupported || colorSkillUsed || targetMode !== null || phase !== "COLOR" || (own.bonusUsesRemaining >= 4 && !(ownSeals[own.bonusColor] > 0)), () => {
+      dispatch("USE_SKILL", { skill: "colorBonusRefillUnseal" });
+    });
     if (own.hand.colorBonusRefill > 0) appendButton("おまけ色補充（残数＋2／上限4）", colorSkillUsed || targetMode !== null || phase !== "COLOR" || own.bonusUsesRemaining >= 4, () => {
       dispatch("USE_SKILL", { skill: "colorBonusRefill" });
     });
