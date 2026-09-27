@@ -32,6 +32,7 @@ test("weather retains geometry, transfers the coloring duty, and ordinary colori
   const next = accepted(use(before, "labWeather", ["R1"]));
   assert.equal(snapshots(before), bytes);
   assert.deepEqual(next.state.regions.R1.micro, before.state.regions.R1.micro);
+  assert.deepEqual(next.state.regions.R1.controllers, before.state.regions.R1.controllers);
   assert.equal(next.state.regions.R1.color, null);
   assert.deepEqual([next.state.pending, next.state.active, next.state.phase], ["R1", "B", "COLOR"]);
   assert.equal(next.charges.A.labWeather, 0);

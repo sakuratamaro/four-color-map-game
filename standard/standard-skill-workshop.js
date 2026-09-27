@@ -64,6 +64,7 @@ function validate(session) {
       && region.sourceMacros.every((macro) => Number.isInteger(macro) && macro % 12 >= 1 && macro % 12 <= 10 && Math.floor(macro / 12) >= 1 && Math.floor(macro / 12) <= 10)
       && JSON.stringify([...region.micro].sort((a,b) => a-b)) === JSON.stringify(region.sourceMacros.flatMap(micro).sort((a,b) => a-b)), "INVALID_WORKSHOP_GEOMETRY");
     check(region.color === null || engine.COLORS.includes(region.color), "INVALID_WORKSHOP_COLOR");
+    check(region.color !== null || region.isPending && state.pending === region.id, "ORPHANED_UNCOLORED_REGION");
     if (region.labColors !== undefined) check(Array.isArray(region.labColors) && region.labColors.length === 2
       && region.labColors[0] === region.color && new Set(region.labColors).size === 2
       && region.labColors.every((color) => engine.COLORS.includes(color)), "INVALID_WORKSHOP_COLOR");
@@ -138,7 +139,7 @@ function skill(session, actor, payload, rng) {
     const target = state.regions[pool[id === "labWhiteout" ? Math.floor(draw() * pool.length) : 0]];
     setColors(target, []);
     target.isPending = true;
-    target.controllers = [actor];
+    target.workshopDesignator = actor;
     state.pending = target.id;
     state.phase = "COLOR";
     state.active = other(actor);
@@ -162,7 +163,8 @@ function skill(session, actor, payload, rng) {
     message += `：${ids[0]}の場所は再指定できる空白になりました。`;
   } else if (id === "labCancelRegion") {
     const target = state.regions[ids[0]];
-    check(target.isPending && target.id === state.pending && target.controllers.length === 1 && target.controllers[0] === other(actor), "RECEIVED_REGION_REQUIRED");
+    const designator = target.workshopDesignator || (target.controllers.length === 1 ? target.controllers[0] : null);
+    check(target.isPending && target.id === state.pending && designator === other(actor), "RECEIVED_REGION_REQUIRED");
     check(target.sourceMacros.length >= 1 && target.sourceMacros.length <= 4, "CANCEL_SIZE_LIMIT");
     state.requiredSize = state.baseRequiredSize = target.sourceMacros.length;
     state.active = other(actor);

@@ -23,6 +23,7 @@ jobs:
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
           node-version: "24"
+          package-manager-cache: false
       - name: Install browser test dependency without install scripts
         run: npm install --no-save --no-package-lock --ignore-scripts playwright@1.62.1
       - name: Check isolated generated bundle
