@@ -75,6 +75,8 @@ test("bundle exposes a deterministic server-only Standard engine", () => {
   const second = api.create({ matchId: "online-match-1", loadouts, seed: 0x12345678, firstSeat: "A" });
   assert.deepEqual(first, second);
   assert.equal(first.state.version, 0);
+  assert.equal(first.state.diePoolVersion, "small-v2");
+  assert.equal(api.project(first.state).publicState.diePoolVersion, "small-v2");
   assert.equal(first.state.active, "A");
   assert.equal(Object.keys(first.rngSnapshot).length, api.REQUIRED_RNG_STREAMS.length);
 });

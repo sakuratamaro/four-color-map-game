@@ -5,7 +5,7 @@ module.exports = function legacyTrace(engine, match, engineVersion, seed) {
   const rngStreams = engine.createRngDomains(seed, match.REQUIRED_RNG_STREAMS);
   const loadout = { color: ["colorPrism", "colorRandomBorrow"], area: ["areaDiePlus", "areaResize"], disrupt: ["disruptChoiceOne", "disruptRandomTwo"] };
   let state = match.createStandardMatch({ matchId: "legacy-trace-" + seed, firstSeat: "A", engineVersion,
-    loadouts: { A: loadout, B: loadout } }, rngStreams);
+    diePoolVersion: "small-v1", loadouts: { A: loadout, B: loadout } }, rngStreams);
   const transcript = [];
   function record() {
     transcript.push({ state, publicState: match.projectStandardPublicState(state),

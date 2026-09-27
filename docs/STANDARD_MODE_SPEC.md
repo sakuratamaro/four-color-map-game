@@ -77,7 +77,7 @@ The standard/thoughtful mode is the main game. Quick mode remains a tutorial. In
 ## v4.9 behavior retained
 
 - Board: 12×12 macros, each split into 4×4 internal cells; initial writable bounds are 10×10.
-- Ordinary die/required-size pool: `[1,1,2,2,3,4]`; area expansion may raise the current requirement to 5.
+- Ordinary die/required-size pool for new matches: `[1,1,2,2,2,2,3,3,4]` (`diePoolVersion: small-v2`). Matches saved without this field, or explicitly using `small-v1`, retain `[1,1,2,2,3,4]` on subsequent rolls. One die-stream sample is consumed per roll. Area expansion may raise the current requirement to 5. See `SMALL_AREA_DICE_20260927.md`.
 - Standard palette: three distinct colors drawn from four. One random palette slot is limited, leaving two ordinary unlimited slots plus one limited bonus-color slot.
 - Limited-use pool: `[1,1,2,2,3,4]`, so P(1)=1/3, P(2)=1/3, P(3)=1/6, P(4)=1/6.
 - Each player brings at most two distinct cards from each of color, area, and disruption: six cards total. A card appears once in the match hand only when inventory was positive at match creation.

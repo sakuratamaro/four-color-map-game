@@ -1,0 +1,38 @@
+name: Small area balance Windows gate
+on:
+  push:
+    branches: [codex/small-balance-tables-20260927]
+  pull_request:
+    paths: ["standard/standard-match.js", "docs/SMALL_AREA_DICE_20260927.md", "tests/standard-die-pool.test.cjs", ".github/workflows/small-area-balance-windows.yml"]
+permissions:
+  contents: read
+jobs:
+  balance:
+    runs-on: windows-2025
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chrome, edge]
+    env:
+      STANDARD_BROWSER: ${{ matrix.browser }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: "24"
+          package-manager-cache: false
+      - name: Install pinned test dependencies without install scripts
+        run: npm install --no-save --no-package-lock --ignore-scripts playwright@1.62.1 @electric-sql/pglite@0.5.8
+      - name: Verify generated local, Edge and workshop bundles
+        run: |
+          node scripts/build-standard-v5-bundle.mjs
+          node scripts/build-standard-online-engine.mjs
+          node scripts/build-skill-workshop.mjs --check
+          git diff --exit-code -- standard-v5/app.bundle.js supabase/functions/standard-game-action/standard-engine.bundle.js
+      - name: Dice, legacy replay, geometry, CPU, persistence and unchanged economy
+        run: node --test --test-concurrency=1 tests/standard-die-pool.test.cjs tests/standard-match.test.cjs tests/standard-match-start.test.cjs tests/standard-match-transaction.test.cjs tests/standard-save.test.cjs tests/standard-local-session.test.cjs tests/standard-skill-dispatcher.test.cjs tests/standard-area-corner-bloom.test.cjs tests/standard-area-colored-corner-bloom.test.cjs tests/standard-area-die-plus.test.cjs tests/standard-area-half-shift-invariants.test.cjs tests/standard-area-resize.test.cjs tests/standard-area-triple-shift.test.cjs tests/standard-color-region-split.test.cjs tests/standard-no-color-rescue.test.cjs tests/standard-cpu.test.cjs tests/standard-cpu-colored-corner-bloom.test.cjs tests/standard-cpu-split-rescue.test.cjs tests/standard-cpu-selfplay.test.cjs tests/standard-online-engine-bundle.test.cjs tests/standard-cpu-roster.test.cjs tests/standard-learned-technique.test.cjs tests/standard-ren-trial.test.cjs tests/standard-cpu-progression-fixture.test.cjs tests/standard-skill-workshop.test.cjs tests/standard-gacha-transaction.test.cjs tests/standard-match-reward.test.cjs tests/standard-local-ui-static.test.cjs tests/standard-live-release-preflight-static.test.cjs tests/standard-cpu-progression-public-ui.test.cjs
+      - name: Browser trial controls and isolation
+        run: node --test --test-concurrency=1 tests/standard-skill-workshop-browser.test.cjs

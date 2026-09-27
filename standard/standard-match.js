@@ -25,7 +25,10 @@ const REQUIRED_RNG_STREAMS = Object.freeze([
   "cpu-A", "cpu-B", "cpu-tie-break", "quiz-structure", "quiz-content",
   "quiz-choice-order", "quiz-choice-rank", "quiz-cosmetic-motion", "gacha",
 ]);
-const DIE_POOL = Object.freeze([1, 1, 2, 2, 3, 4]);
+const DIE_POOL_VERSION = "small-v2";
+const LEGACY_DIE_POOL_VERSION = "small-v1";
+const DIE_POOL = Object.freeze([1, 1, 2, 2, 2, 2, 3, 3, 4]);
+const LEGACY_DIE_POOL = Object.freeze([1, 1, 2, 2, 3, 4]);
 const BONUS_USE_POOL = Object.freeze([1, 1, 2, 2, 3, 4]);
 const TERMINAL_REASONS = Object.freeze(["ILLEGAL_COLOR", "BOARD_LOCK", "SURRENDER", "SEALED_OUT", "NO_LEGAL_COLOR"]);
 const ENGINE_TERMINAL_REASONS = TERMINAL_REASONS;
@@ -100,6 +103,9 @@ function createStandardMatch(config = {}, rngStreams = {}) {
   assertState(typeof config.matchId === "string" && config.matchId.length > 0, "MATCH_ID_REQUIRED");
   const engineVersion = config.engineVersion === undefined ? ENGINE_VERSION : config.engineVersion;
   assertState(SUPPORTED_ENGINE_VERSIONS.includes(engineVersion), "INVALID_ENGINE_VERSION");
+  const diePoolVersion = config.diePoolVersion === undefined ? DIE_POOL_VERSION : config.diePoolVersion;
+  assertState([DIE_POOL_VERSION, LEGACY_DIE_POOL_VERSION].includes(diePoolVersion), "INVALID_DIE_POOL_VERSION");
+  const diePool = diePoolVersion === DIE_POOL_VERSION ? DIE_POOL : LEGACY_DIE_POOL;
   const A = initialSeatSecrets(rngStreams);
   let B = initialSeatSecrets(rngStreams);
   for (let retries = 0; paletteSignature(B) === paletteSignature(A) && retries < 15; retries += 1) {
@@ -110,12 +116,13 @@ function createStandardMatch(config = {}, rngStreams = {}) {
     B = { ...B, basic: [B.basic[1], missing] };
   }
   const active = config.firstSeat || (nextRandom(rngStreams, "match-init") < 0.5 ? "A" : "B");
-  const rolledSize = DIE_POOL[Math.floor(nextRandom(rngStreams, "die") * DIE_POOL.length)];
+  const rolledSize = diePool[Math.floor(nextRandom(rngStreams, "die") * diePool.length)];
   const loadouts = clone(config.loadouts || { A: {}, B: {} });
   const playableBounds = clone(config.playableBounds || { minCol: 1, maxCol: 10, minRow: 1, maxRow: 10, macroWidth: 12, microScale: 4 });
   const state = {
     schemaVersion: SCHEMA_VERSION,
     engineVersion,
+    ...(diePoolVersion === DIE_POOL_VERSION ? { diePoolVersion } : {}),
     mode: "standard",
     matchId: config.matchId,
     status: "ACTIVE",
@@ -161,6 +168,7 @@ function validateStandardState(state) {
   assertState(state && typeof state === "object", "INVALID_STATE");
   assertState(state.schemaVersion === SCHEMA_VERSION, "INVALID_SCHEMA_VERSION");
   assertState(SUPPORTED_ENGINE_VERSIONS.includes(state.engineVersion), "INVALID_ENGINE_VERSION");
+  assertState(state.diePoolVersion === undefined || [DIE_POOL_VERSION, LEGACY_DIE_POOL_VERSION].includes(state.diePoolVersion), "INVALID_DIE_POOL_VERSION");
   assertState(state.mode === "standard", "WRONG_MODE");
   assertState(typeof state.matchId === "string" && state.matchId.length > 0, "INVALID_MATCH_ID");
   assertState(Number.isInteger(state.version) && state.version >= 0, "INVALID_VERSION");
@@ -339,6 +347,7 @@ function projectStandardPublicState(state) {
   validateStandardState(state);
   const keys = ["schemaVersion", "engineVersion", "mode", "matchId", "status", "version", "turn", "active", "phase", "regions", "pending", "reserved", "preparedOutgoing", "playableBounds", "trophyTargetMacros", "requiredSize", "rolledSize", "baseRequiredSize", "publicEffects", "interferenceLock", "winner", "terminalReason", "lastPublicTrace", "publicLog"];
   if (usesSkillCategoryWindow(state.engineVersion)) keys.push("skillCategoryWindow");
+  if (state.diePoolVersion !== undefined) keys.push("diePoolVersion");
   return Object.freeze({ ...Object.fromEntries(keys.map((key) => [key, clone(key === "trophyTargetMacros"
     ? (state.trophyTargetMacros || playableMacroIndices(state.playableBounds))
     : key === "lastPublicTrace" ? (state.lastPublicTrace ?? null) : state[key])] )),
@@ -688,7 +697,9 @@ function colorRegion(state, actor, payload = {}, rngStreams = {}) {
   }
   next.pending = null;
   next.phase = "WORK";
-  next.rolledSize = DIE_POOL[Math.floor(nextRandom(rngStreams, "die") * DIE_POOL.length)];
+  // A saved match keeps its starting distribution, including pre-version saves.
+  const diePool = next.diePoolVersion === DIE_POOL_VERSION ? DIE_POOL : LEGACY_DIE_POOL;
+  next.rolledSize = diePool[Math.floor(nextRandom(rngStreams, "die") * diePool.length)];
   next.baseRequiredSize = bestLegalSize(next, next.rolledSize);
   next.requiredSize = next.baseRequiredSize;
   if (next.requiredSize <= 0) {
@@ -821,6 +832,9 @@ module.exports = {
   BONUS_USE_POOL,
   CATEGORY_WINDOW_ENGINE_VERSION,
   DIE_POOL,
+  DIE_POOL_VERSION,
+  LEGACY_DIE_POOL,
+  LEGACY_DIE_POOL_VERSION,
   ENGINE_VERSION,
   LEGACY_ENGINE_VERSION,
   PREVIOUS_ENGINE_VERSION,
