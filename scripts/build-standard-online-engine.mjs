@@ -35,6 +35,7 @@ const cpu = load("standard/standard-cpu.js");
 const cpuRoster = load("standard/standard-cpu-roster.js");
 const progression = load("standard/standard-cpu-progression.js");
 const registry = load("standard/standard-skill-registry.js").STANDARD_SKILLS;
+const {engineVersionForLoadouts} = load("standard/standard-skill-registry.js");
 const categories = ["color", "area", "disrupt"];
 const starterInventory = {
   colorRandomBorrow:3,colorChoiceBorrow:3,
@@ -96,7 +97,7 @@ function validateSeatLoadout({loadout,profile=null}){
     if(!Array.isArray(entries)||entries.length!==2)throw new Error("INVALID_STANDARD_LOADOUT");
     for(const id of entries){
       const definition=registry[id];
-      if(typeof id!=="string"||!definition||definition.category!==category||!definition.v49Catalogued||!definition.standardEngineImplemented||!definition.standardUiEnabled)throw new Error("SKILL_NOT_AVAILABLE");
+      if(typeof id!=="string"||!definition||definition.category!==category||!definition.standardCatalogued||!definition.standardEngineImplemented||!definition.standardUiEnabled)throw new Error("SKILL_NOT_AVAILABLE");
       ids.push(id);
     }
   }
@@ -140,7 +141,8 @@ function create({matchId,loadouts,profiles=null,seed,firstSeat=null,debugMode=fa
   if(!Number.isSafeInteger(seed)||seed<0||seed>0xffffffff)throw new Error("INVALID_SEED");
   const streams=engine.createRngDomains(seed,match.REQUIRED_RNG_STREAMS);
   const learned=learnedTechniqueEnabled&&profiles?.A?.equippedTechniqueId==="techUnsealOne"&&profiles.A.learnedTechniques?.includes("techUnsealOne");
-  const techniqueConfig=learned?{engineVersion:"5.0.0-alpha.5",techniqueRule:{id:"CPU_LEARNED_V1",playerSeat:"A"},
+  engineVersion=engineVersionForLoadouts(loadouts,learned?"5.0.0-alpha.5":engineVersion);
+  const techniqueConfig=learned?{techniqueRule:{id:"CPU_LEARNED_V1",playerSeat:"A"},
     techniques:{A:{id:"techUnsealOne",definitionVersion:"unseal-v1",source:"LEARNED",usesRemaining:1},B:null}}:{};
   let state=match.createStandardMatch({matchId,loadouts,firstSeat,engineVersion,...techniqueConfig},streams);
   state=clone(state);
@@ -170,7 +172,7 @@ function drawGacha({profile,ticketLevel,count,seed}){
   for(let index=0;index<count;index+=1){
     const rarity=gachaRarity(stream.next(),ticketLevel);
     const category=categories[Math.floor(stream.next()*categories.length)];
-    const pool=Object.values(registry).filter((skill)=>skill.gachaEnabled&&!skill.experimental&&skill.v49Catalogued&&skill.category===category&&skill.rarity===rarity);
+    const pool=Object.values(registry).filter((skill)=>skill.gachaEnabled&&!skill.experimental&&skill.standardCatalogued&&skill.category===category&&skill.rarity===rarity);
     if(!pool.length)throw new Error("EMPTY_GACHA_POOL");
     const skill=pool[Math.floor(stream.next()*pool.length)];
     draws.push({ticketLevel,rarity,category,skillId:skill.id,displayName:skill.displayName});

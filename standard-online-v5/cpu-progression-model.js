@@ -6,7 +6,7 @@ export function isRenTrial(state) {
 }
 export function techniquePresentation(state, own, seat, pending = false) {
   const slot = own?.technique;
-  const visible = state?.engineVersion === "5.0.0-alpha.5" && ["A", "B"].includes(seat)
+  const visible = ["5.0.0-alpha.5", "5.0.0-alpha.6"].includes(state?.engineVersion) && ["A", "B"].includes(seat)
     && own?.seat === seat && slot?.id === TECHNIQUE_ID && slot.definitionVersion === "unseal-v1"
     && [0, 1].includes(slot.usesRemaining)
     // The validated provenance stays in server authority, not the seat projection.

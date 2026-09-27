@@ -10,7 +10,10 @@ const onlineIndex = fs.readFileSync(path.join(__dirname, "..", "standard-online-
 const localIndex = fs.readFileSync(path.join(__dirname, "..", "standard-v5", "index.html"), "utf8");
 // Freeze only the two superseded cache labels in main70e's historical release lanes.
 // Current UI generation is checked independently below; no old approval is reused.
-const pilotOnlineIndex = onlineIndex.replace("app.js?v=20260923-1", "app.js?v=20260921-2")
+const artworkOnlineIndex = onlineIndex.replace("app.js?v=20260926-1", "app.js?v=20260923-1")
+  .replace("standard-skill-registry.generated.js?v=20260926-1", "standard-skill-registry.generated.js?v=20260914-2")
+  .replace("standard-online-skill-intents.js?v=20260926-1", "standard-online-skill-intents.js?v=20260911-21");
+const pilotOnlineIndex = artworkOnlineIndex.replace("app.js?v=20260923-1", "app.js?v=20260921-2")
   .replace("cpu-portraits.js?v=20260913-2", "cpu-portraits.js?v=20260908-1");
 const followupOnlineIndex = pilotOnlineIndex.replace("app.js?v=20260921-2", "app.js?v=20260915-8")
   .replace("style.css?v=20260921-1", "style.css?v=20260915-8");
@@ -29,7 +32,7 @@ test("UDL033 current-base artwork lane is separate from frozen pilot and source 
     "21cc31af8ee4ca70f22c25e220c608a0d44d38d5","Pages_only","元PNG20枚","35GET","8固定未認証負例POST",
     "047/060","新候補固有のWindows","真正Astra","NOT_RUN"])assert.ok(section.includes(value),value);
   for(const marker of ["app.js?v=20260923-1","cpu-portraits.js?v=20260913-2","cpu-artwork.css?v=20260913-1"]){
-    assert.ok(section.includes(marker),marker);assert.ok(onlineIndex.includes(marker),marker);
+    assert.ok(section.includes(marker),marker);assert.ok(artworkOnlineIndex.includes(marker),marker);
   }
 });
 
@@ -96,7 +99,7 @@ test("CPU progression UI binds current assets without rewriting parent publicati
     assert.ok(section.includes(assetReference(pilotOnlineIndex, pattern, "frozen pilot UI")));
   const app = fs.readFileSync(path.join(__dirname, "..", "standard-online-v5", "app.js"), "utf8");
   for (const pattern of [/from "\.\/(result-continuation\.js\?v=[^"]+)"/, /from "\.\/(cpu-progression-model\.js\?v=[^"]+)"/])
-    assert.ok(section.includes(assetReference(app, pattern, "pilot model")));
+    assert.ok(section.includes(assetReference(app.replace("cpu-progression-model.js?v=20260926-1", "cpu-progression-model.js?v=20260914-1"), pattern, "frozen pilot model")));
   assert.match(section, /default OFF/); assert.match(section, /do not establish publication/);
 });
 
@@ -165,7 +168,7 @@ test("frozen alpha.4 release lane deploys the compatible Edge before Pages and p
   const candidateAssets = [
     assetReference(priorOnlineIndex, /src="(app\.js\?v=[^"]+)"/, "frozen main70e online app"),
     assetReference(priorOnlineIndex, /href="(style\.css\?v=[^"]+)"/, "frozen main70e online style"),
-    assetReference(onlineIndex, /src="(standard-online-skill-intents\.js\?v=[^"]+)"/, "online skill intents"),
+    assetReference(artworkOnlineIndex, /src="(standard-online-skill-intents\.js\?v=[^"]+)"/, "frozen online skill intents"),
     "standard-online-client.js?v=20260910-1", // Fixed parent; pilot is checked separately.
     assetReference(pilotOnlineIndex, /src="(cpu-portraits\.js\?v=[^"]+)"/, "frozen CPU portraits"),
     "app.bundle.js?v=20260913-9-4f66b9b284ba", // Exact published parent, not the later pilot bundle.

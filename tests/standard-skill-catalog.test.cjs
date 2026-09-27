@@ -9,7 +9,7 @@ const {catalogDefinitions,catalogAvailability}=vm.runInNewContext(app.slice(star
 test("UDL066 catalog equals the full implemented public registry, with both experiments and no hand-list duplication",()=>{
   const expected=Object.values(STANDARD_SKILLS).filter(d=>d.standardEngineImplemented&&(d.standardUiEnabled||d.alphaUiEnabled));
   const actual=[...catalogDefinitions(registry)];
-  assert.equal(actual.length,21);assert.equal(new Set(actual.map(d=>d.id)).size,21);
+  assert.equal(actual.length,22);assert.equal(new Set(actual.map(d=>d.id)).size,22);
   assert.deepEqual(actual.map(d=>d.id).sort(),expected.map(d=>d.id).sort());
   assert.deepEqual(actual.filter(d=>!d.standardUiEnabled).map(d=>d.id),["colorBonusRefill","legalRecolor"]);
   assert.ok(actual.every(d=>d.rarity>=1&&d.rarity<=5));

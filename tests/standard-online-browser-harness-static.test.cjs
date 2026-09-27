@@ -93,3 +93,14 @@ test("startup evidence is local, bounded, failure-only and detached before the t
   assert.match(withPage, /if \(primaryError\) throw primaryError/);
   assert.doesNotMatch(withPage, /error\.message|error\.stack|\.textContent|localStorage|sessionStorage/);
 });
+
+test("interaction failures preserve the original error and emit only bounded fixture geometry", () => {
+  const interaction = withPage.split("    if (startupComplete && page) {")[1]?.split("  } finally {")[0];
+  assert.ok(interaction, "separate body-failure diagnostic block");
+  assert.match(withPage, /if \(startupComplete && page\)/);
+  assert.match(withPage, /bounded\("interaction-state", page\.evaluate\([\s\S]+?\), 1_000\)/);
+  assert.match(withPage, /BROWSER_INTERACTION_EVIDENCE/);
+  assert.match(withPage, /document\.elementFromPoint/);
+  assert.match(withPage, /if \(primaryError\) throw primaryError/);
+  assert.doesNotMatch(interaction, /error\.message|error\.stack|\.textContent|localStorage|sessionStorage|__standardOnlineRuntime/);
+});

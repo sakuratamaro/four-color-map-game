@@ -69,13 +69,13 @@ test("setup projection exposes only profile availability and the explicit experi
   assert.equal(JSON.stringify(setup).includes("rngSnapshot"), false);
 });
 
-test("formal Standard setup projects all 19 canonical inventories without the experimental loan or secrets", () => {
+test("formal Standard setup projects all 20 ordinary inventories without the experimental loan or secrets", () => {
   const root = rootFixture();
   const session = makeSession(memoryStorage(save.encodeStandardSave(root)));
   const setup = session.getSetupProjection(matchStart.RULE_SET_IDS.STANDARD);
   assert.equal(setup.ruleSetId, matchStart.RULE_SET_IDS.STANDARD);
   assert.equal(setup.ruleLabel, "標準・熟考モード");
-  assert.equal(Object.keys(setup.profiles[0].cards).length, 19);
+  assert.equal(Object.keys(setup.profiles[0].cards).length, 20);
   assert.equal(Object.hasOwn(setup.profiles[0].cards, "legalRecolor"), false);
   assert.equal(Object.hasOwn(setup, "experimentalLoan"), false);
   assert.equal(JSON.stringify(setup).includes("basicPalettes"), false);

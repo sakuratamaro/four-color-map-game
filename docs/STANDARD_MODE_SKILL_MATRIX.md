@@ -58,6 +58,13 @@ Source: verified v4.9 `SKILLS`, `SKILL_POOL_BY_CATEGORY_RARITY`, `QUICK_LOANED_S
 
 `legalRecolor` is explicitly **experimental** and **not in ordinary gacha**. Its alpha UI may expose it only as an experimental test card. This does not change the 19-card v4.9 catalog or the six-card standard loadout rule.
 
+## New ordinary card slice (review/publication tracked separately)
+
+`colorRegionSplitKeep` / エリア二分・保持 is implemented in the 2026-09-26 candidate with
+an alpha.6 compatibility boundary. The old v4.9 set remains 19 cards; the current ordinary set is 20.
+See [the exact contract and executable acceptance mapping](NEW_SKILLS_SPLIT_KEEP_20260926.md).
+Implementation here is not Astra approval or a production publication claim.
+
 ## Explicitly not implemented
 
 | Candidate | Status | Reason |
@@ -67,7 +74,6 @@ Source: verified v4.9 `SKILLS`, `SKILL_POOL_BY_CATEGORY_RARITY`, `QUICK_LOANED_S
 | Color swap | `implemented: false` | Requires two-target atomic legality and merge semantics. |
 | Delayed recolor | `implemented: false` | Requires deterministic delayed-event ownership and cancellation rules. |
 | Chain rotation | `implemented: false` | Requires multi-region atomic validation and merge behavior. |
-| `colorRegionSplitKeep` / エリア二分・保持（仮） | `implemented: false` | User-requested counterpart to エリア二分: after splitting the received region, the user colors both components instead of returning one. Timing, second-color choice, and action economy need a small balance decision before it enters the 19-card pool. |
 
 ## Test obligations before implementation is accepted
 

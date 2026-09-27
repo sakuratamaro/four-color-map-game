@@ -11,6 +11,7 @@
     colorChoiceBorrow: "color",
     colorPrism: "none",
     colorRegionSplit: "region-split",
+    colorRegionSplitKeep: "region-split",
     colorPaletteChange: "slot-color",
     areaMicroBloom: "source-macros",
     areaDiePlus: "none",

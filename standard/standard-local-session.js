@@ -10,10 +10,10 @@ const loadoutQuote = require("./standard-loadout-quote.js");
 const quizTransaction = require("./standard-quiz-transaction.js");
 const gachaTransaction = require("./standard-gacha-transaction.js");
 const cosmetics = require("./standard-cosmetics.js");
-const { STANDARD_SKILLS, V49_SKILL_IDS } = require("./standard-skill-registry.js");
+const { STANDARD_SKILLS, STANDARD_SKILL_IDS } = require("./standard-skill-registry.js");
 
 const ALPHA_INVENTORY_SKILLS = Object.freeze(["colorPrism", "areaHalfShift", "disruptChoiceOne"]);
-const STANDARD_INVENTORY_SKILLS = Object.freeze(V49_SKILL_IDS.filter((skillId) => STANDARD_SKILLS[skillId].standardUiEnabled));
+const STANDARD_INVENTORY_SKILLS = Object.freeze(STANDARD_SKILL_IDS.filter((skillId) => STANDARD_SKILLS[skillId].standardUiEnabled));
 const ALPHA_LOADOUT = Object.freeze({
   color: Object.freeze(["colorPrism", "colorBonusRefill"]),
   area: Object.freeze(["areaHalfShift"]),

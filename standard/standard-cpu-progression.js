@@ -57,6 +57,8 @@ function createRenTrial({ matchId, seed }) {
   // existing public CPU projections rely on that normal coordinate system.
   const bounds = { minCol: 1, maxCol: 6, minRow: 1, maxRow: 6, macroWidth: 12, microScale: 4 };
   const state = match.createStandardMatch({ matchId, firstSeat: "A", engineVersion: LEARNED_TECHNIQUE_ENGINE_VERSION,
+    // Version1 is a published fixed SQL template, not a newly balanced ordinary match.
+    diePoolVersion: "small-v1",
     playableBounds: bounds, microWidth: 48, loadouts: { A: clone(TRIAL_LOADOUT), B: clone(TRIAL_LOADOUT) },
     techniqueRule: { id: technique.TECHNIQUE_RULES.REN_TRIAL, playerSeat: "A" },
     techniques: { A: trialTechnique(), B: trialTechnique() } }, streams);

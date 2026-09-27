@@ -1,7 +1,7 @@
 "use strict";
 
 const { COLORS, StandardRuleError } = require("./standard-engine.js");
-const { LEARNED_TECHNIQUE_ENGINE_VERSION } = require("./standard-skill-registry.js");
+const { LEARNED_TECHNIQUE_ENGINE_VERSION, supportsSplitKeep } = require("./standard-skill-registry.js");
 
 const TECHNIQUE_ID = "techUnsealOne";
 const TECHNIQUE_VERSION = "unseal-v1";
@@ -19,7 +19,7 @@ function exactKeys(value, keys) {
     && Object.keys(value).sort().join("|") === [...keys].sort().join("|");
 }
 function usesTechniques(engineVersion) {
-  return engineVersion === LEARNED_TECHNIQUE_ENGINE_VERSION;
+  return engineVersion === LEARNED_TECHNIQUE_ENGINE_VERSION || supportsSplitKeep(engineVersion);
 }
 
 // Internal engine input only. A server start adapter must derive these fields

@@ -49,6 +49,22 @@ test("AC-064-02 path A: unseal red, then red retains the yellow bonus and contin
   assert.equal(value.state.bonusUsesRemaining.A, 1); assert.equal(value.state.techniques.A.usesRemaining, 0);
 });
 
+test("fixed Ren trial v1 retains legacy fieldless dice while ordinary new matches use small-v2", () => {
+  const value = fixture();
+  assert.equal(Object.hasOwn(value.state, "diePoolVersion"), false);
+  assert.equal(Object.hasOwn(value.publicState, "diePoolVersion"), false);
+  act(value, "USE_SKILL", { skill: "techUnsealOne", color: "red" });
+  let draws = 0;
+  value.streams = { ...value.streams, die: { next() { draws++; return 0.25; } } };
+  act(value, "COLOR_REGION", { color: "red" });
+  assert.equal(value.state.rolledSize, 1);
+  assert.equal(draws, 1);
+  const ordinaryStreams = { ...engine.createRngDomains(7, match.REQUIRED_RNG_STREAMS), die: { next() { return 0.25; } } };
+  const ordinary = match.createStandardMatch({ matchId: "ordinary", firstSeat: "A", hands: { A: {}, B: {} } }, ordinaryStreams);
+  assert.equal(ordinary.diePoolVersion, "small-v2");
+  assert.equal(ordinary.rolledSize, 2);
+});
+
 test("AC-064-02 path B: yellow spends the bonus and preserves unseal; no forced technique objective", () => {
   const value = fixture();
   act(value, "COLOR_REGION", { color: "yellow" });

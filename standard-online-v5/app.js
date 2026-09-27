@@ -4,7 +4,7 @@ import { createQuizMemo } from "./quiz-memo.js?v=20260912-1";
 import { paletteRoleSlots, stableHandSlots } from "./play-surface-model.js?v=20260915-1";
 import { savedResultReward, terminalRewardPresentation } from "./result-continuation.js?v=20260914-2";
 import { cardActionRecovery } from "./action-recovery.js?v=20260914-1";
-import { TECHNIQUE_ID, isRenTrial, techniquePresentation, validRenTrialInfo } from "./cpu-progression-model.js?v=20260914-1";
+import { TECHNIQUE_ID, isRenTrial, techniquePresentation, validRenTrialInfo } from "./cpu-progression-model.js?v=20260926-1";
 import { displayedCosmeticIntent, cosmeticQuoteMatchesIntent, pendingCosmeticPresentation, definiteCosmeticRejection } from "./cosmetic-item-action.js?v=20260912-2";
 
 const cfg = globalThis.FourColorSupabaseConfig;
@@ -52,7 +52,7 @@ const STARTER_INVENTORY = Object.freeze({
 });
 const STANDARD_SKILL_REGISTRY = globalThis.FourColorStandardSkillRegistry;
 if (STANDARD_SKILL_REGISTRY?.VERSION !== "standard-skill-registry-generated-v1") throw new Error("STANDARD_SKILL_REGISTRY_REQUIRED");
-const SKILLS = Object.freeze(STANDARD_SKILL_REGISTRY.v49SkillIds.map((id) => {
+const SKILLS = Object.freeze(Object.values(STANDARD_SKILL_REGISTRY.skills).filter((definition) => definition.standardCatalogued).map(({ id }) => {
   const definition = STANDARD_SKILL_REGISTRY.skills[id];
   return Object.freeze([definition.id, definition.displayName, definition.category]);
 }));
@@ -105,6 +105,7 @@ const SKILL_DESCRIPTION = Object.freeze({
   colorPrism: "この彩色中だけ、赤・青・黄・緑の4色を使えるようにします。",
   colorBonusRefill: "現在のおまけ色の残り回数を2回増やします（上限4回）。残り4回では使えません。",
   colorRegionSplit: "いま塗る相手のエリアを、つながった2つのエリアに分けます。分けた片方を先に塗ります。",
+  colorRegionSplitKeep: "受け取ったエリアを2つに分け、選んだ側・残りの側を続けて自分で塗ります。両側それぞれで隣接色・封印・色の残数を判定します。同じ手番の色操作スキルは追加で使えません。",
   colorPaletteChange: "持ち色の3枠から1枠を、対戦終了まで好きな色に変えます。基本色2枠は回数無制限。おまけ色枠を変えても回数は増えず、今の残り回数を新しい色が引き継ぎます。",
   areaMicroBloom: "これから渡すエリアの角をランダムに少しふくらませ、斜めのエリアと接触させます。",
   areaDiePlus: "この手番で相手に渡すエリアを1マス増やします。置ける場所がある時だけ使えます。",
@@ -883,7 +884,7 @@ function eligibleRecolorRegions(state) {
 }
 
 function supportsColoredCornerBloom(state) {
-  return state?.engineVersion === "5.0.0-alpha.4" || state?.engineVersion === "5.0.0-alpha.5";
+  return ["5.0.0-alpha.4", "5.0.0-alpha.5", "5.0.0-alpha.6"].includes(state?.engineVersion);
 }
 
 function cornerBloomCellTargetActive() {
@@ -3941,7 +3942,9 @@ function renderSkills(state, privateState) {
       : meta.category === "color" ? state.phase === "COLOR" : ["CREATE_FIRST", "WORK"].includes(state.phase);
     const categoryUsed = usedCategories.has(meta.usageCategory || meta.category);
     const refillFull = skill === "colorBonusRefill" && (privateState.bonusUsesRemaining || 0) >= 4;
-    node.disabled = used || actionBusy || Boolean(pendingAction) || !myTurn || !timingOkay || categoryUsed || refillFull;
+    const unsupported = skill === "colorRegionSplitKeep" && state.engineVersion !== "5.0.0-alpha.6";
+    node.disabled = used || actionBusy || Boolean(pendingAction) || !myTurn || !timingOkay || categoryUsed || refillFull || unsupported;
+    if (unsupported) node.title = "このカードに対応した新規対戦で使えます";
     if (categoryUsed) node.title = "この手番では同じ種類のスキルはもう使えません";
     const info = button("ⓘ", () => openSkillInfo(skill), "skill-info-button");
     info.type = "button"; info.setAttribute("aria-label", `${meta.name}の説明`); info.title = `${meta.name}の説明`;
@@ -4157,6 +4160,7 @@ function renderSkillTarget(state, privateState) {
     guide.id = "regionSplitTargetGuide";
     guide.className = "skill-target-guide";
     guide.textContent = "灰色枠の受取エリアで、先に彩色したい側の1マスを選ぶと即発動します。盤面の1マスだけで選べます。";
+    if (targetDraft.skill === "colorRegionSplitKeep") guide.textContent += " 残りの側も、続けて自分で塗ります。";
     controls.appendChild(guide);
   }
   if (targetDraft.kind === "existing-region") {
@@ -5077,6 +5081,11 @@ function renderBoard(state) {
 
 function phaseLabelFor(state, seat, cpuRoom) {
   if (state.status === "FINISHED" || state.phase === "GAME_OVER") return "対戦終了";
+  if (state.retainedSplit && state.phase === "COLOR") {
+    const step = state.retainedSplit.stage === "FIRST" ? "1つ目" : "残り";
+    return state.active === seat ? `二分・保持：${step}のエリアを塗ってください`
+      : `${cpuRoom && state.active === "B" ? "CPU" : "相手"}が二分・保持の${step}を塗っています`;
+  }
   if (state.active === seat) return PHASE_LABEL[state.phase] || "あなたの手番です";
   const actor = cpuRoom && state.active === "B" ? "CPU" : "相手";
   return {
@@ -5380,7 +5389,7 @@ async function sendAction(type, payload = {}, retry = false) {
       if (type === "USE_SKILL" && payload?.skill === "areaCornerBloom" && targetDraft?.kind === "corner-bloom") {
         setSkillTargetFeedback(`${safeMessage} カードと手番は減っていません。別のセルを選べます。`, "error");
       }
-      if (type === "USE_SKILL" && payload?.skill === "colorRegionSplit" && targetDraft?.kind === "region-split") {
+      if (type === "USE_SKILL" && ["colorRegionSplit", "colorRegionSplitKeep"].includes(payload?.skill) && targetDraft?.kind === "region-split") {
         setSkillTargetFeedback(`${safeMessage} カードと手番は減っていません。別の灰色枠を選べます。`, "error");
       }
     } else {

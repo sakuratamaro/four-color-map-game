@@ -7,7 +7,7 @@ const {loadEngine,root,plain}=require("./helpers/public-skill-fixture.cjs");
 const {createProgressionRuntime,applyProgressionMigrations,api,winningEdgeScript}=require("./helpers/cpu-progression-runtime.cjs");
 const roster=require("../standard/standard-cpu-roster.js");
 const BASE_SHA="70e691b6f8f1d808476e80990d20df7862bfb782";
-const gitFile=file=>execFileSync("git",["-c","safe.directory="+root,"show",BASE_SHA+":"+file],{cwd:root,encoding:"utf8",maxBuffer:8*1024*1024});
+const gitFile=file=>execFileSync("git",["-c","safe.directory="+root.replaceAll("\\","/"),"show",BASE_SHA+":"+file],{cwd:root,encoding:"utf8",maxBuffer:8*1024*1024});
 const oldSource=stripTypeScriptTypes(gitFile("supabase/functions/standard-game-action/index.ts").replace(/^import .*;\r?\n/gm,""));
 const oldApi=loadEngine(gitFile("supabase/functions/standard-game-action/standard-engine.bundle.js"));
 const loadout={color:["colorRandomBorrow","colorChoiceBorrow"],area:["areaMicroBloom","areaDiePlus"],disrupt:["disruptRandomOne","disruptChoiceOne"]};

@@ -44,9 +44,9 @@ function dispatch(state, action, rngStreams = streams(1300)) {
   });
 }
 
-test("registry fixes 19 v4.9 cards plus two experimental cards and one separate learned technique", () => {
+test("registry fixes 19 v4.9 cards plus one new card, two experimental cards and one separate learned technique", () => {
   assert.equal(V49_SKILL_IDS.length, 19);
-  assert.equal(Object.keys(STANDARD_SKILLS).length, 22);
+  assert.equal(Object.keys(STANDARD_SKILLS).length, 23);
   assert.deepEqual(Object.values(STANDARD_SKILLS).filter((skill) => skill.acquisitionType === "LEARNED").map((skill) => skill.id), ["techUnsealOne"]);
   const required = ["id", "displayName", "category", "usageCategory", "rarity", "timing", "targetSchema", "implemented", "alphaUiEnabled", "standardUiEnabled", "gachaEnabled", "experimental", "privateInformationEffect", "rngStream", "expectedRngDraws", "consumptionPolicy", "handlerVersion"];
   for (const definition of Object.values(STANDARD_SKILLS)) for (const key of required) assert.equal(Object.hasOwn(definition, key), true, `${definition.id}.${key}`);

@@ -3,7 +3,7 @@
 const engine = require("./standard-engine.js");
 const match = require("./standard-match.js");
 const save = require("./standard-save.js");
-const { STANDARD_SKILLS, V49_SKILL_IDS } = require("./standard-skill-registry.js");
+const { STANDARD_SKILLS, STANDARD_SKILL_IDS } = require("./standard-skill-registry.js");
 const { stableHash } = require("./standard-root-transaction.js");
 
 const ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/;
@@ -21,7 +21,7 @@ function clone(value) { return JSON.parse(JSON.stringify(value)); }
 function rejected(code, root, extra = {}) { return Object.freeze({ ok: false, status: "REJECTED", code, root, saved: false, ...extra }); }
 
 function pool(category, rarity) {
-  return V49_SKILL_IDS.filter((skillId) => {
+  return STANDARD_SKILL_IDS.filter((skillId) => {
     const skill = STANDARD_SKILLS[skillId];
     return skill.gachaEnabled && !skill.experimental && skill.category === category && skill.rarity === rarity;
   });

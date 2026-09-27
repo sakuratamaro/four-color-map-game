@@ -148,13 +148,13 @@ function nextRegionNumber(state) {
   return Math.max(0, ...Object.keys(state.regions).map((id) => Number(String(id).match(/\d+/)?.[0]) || 0)) + 1;
 }
 
-function applyColorRegionSplit({ state, actor, payload }) {
+function applyColorRegionSplit({ state, actor, payload }, keep = false) {
   const region = state.regions?.[payload.regionId];
   if (!region || payload.regionId !== state.pending || !region.isPending || region.color) {
     return Object.freeze({ ok: false, code: "INVALID_SPLIT_TARGET", state });
   }
   if ((region.controllers || []).includes(actor)) return Object.freeze({ ok: false, code: "SPLIT_REQUIRES_OPPONENT_REGION", state });
-  if (state.reserved) return Object.freeze({ ok: false, code: "SPLIT_ALREADY_RESERVED", state });
+  if (state.reserved || state.retainedSplit) return Object.freeze({ ok: false, code: "SPLIT_ALREADY_RESERVED", state });
   const original = [...new Set(region.sourceMacros || [])].sort((a, b) => a - b);
   const selected = [...new Set(payload.sourceMacros)].sort((a, b) => a - b);
   const originalSet = new Set(original);
@@ -172,7 +172,7 @@ function applyColorRegionSplit({ state, actor, payload }) {
   if (!connected(selectedMicro, state.microWidth) || !connected(returnedMicro, state.microWidth)) {
     return Object.freeze({ ok: false, code: "SPLIT_GEOMETRY_NOT_CONNECTED", state });
   }
-  return resolved(state, actor, "colorRegionSplit", (next) => {
+  return resolved(state, actor, keep ? "colorRegionSplitKeep" : "colorRegionSplit", (next) => {
     const firstNumber = nextRegionNumber(next);
     const selectedId = `R${firstNumber}`;
     const returnedId = `R${firstNumber + 1}`;
@@ -197,7 +197,10 @@ function applyColorRegionSplit({ state, actor, payload }) {
     };
     next.pending = selectedId;
     next.reserved = returnedId;
-    next.publicLog.push(`T${next.turn} Player ${actor} split ${payload.regionId} into ${selectedId} and reserved ${returnedId}.`);
+    if (keep) next.retainedSplit = { actor, firstRegionId: selectedId, secondRegionId: returnedId, stage: "FIRST" };
+    next.publicLog.push(keep
+      ? `T${next.turn} Player ${actor} split ${payload.regionId}; both ${selectedId} and ${returnedId} will be colored by Player ${actor}.`
+      : `T${next.turn} Player ${actor} split ${payload.regionId} into ${selectedId} and reserved ${returnedId}.`);
   }, { selectedId: `R${nextRegionNumber(state)}`, returnedId: `R${nextRegionNumber(state) + 1}` });
 }
 

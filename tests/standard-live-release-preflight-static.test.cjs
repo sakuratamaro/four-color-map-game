@@ -83,13 +83,13 @@ test("release preflight is read-only, secret-free, finite, and stage-aware", () 
   assert.match(source, /MATCH_REWARD_ECONOMY_MISMATCH/);
   assert.match(source, /app\.text\.includes\('★\$\{meta\.rarity\}'\)/);
   assert.match(source, /CANDIDATE_ASSET_GENERATION_UI_PHASE_MISMATCH/);
-assert.match(source, /app\.js\?v=20260923-1/);
+assert.match(source, /app\.js\?v=20260926-1/);
   assert.match(source, /cpu-commentary\.js\?v=20260910-1/);
   assert.match(source, /progression\.css/);
   assert.match(source, /style\.css\?v=20260921-1/);
   assert.match(source, /standard-online-client\.js\?v=20260914-1/);
-  assert.match(source, /standard-online-skill-intents\.js\?v=20260911-21/);
-  assert.match(source, /standard-skill-registry\.generated\.js\?v=20260914-2/);
+  assert.match(source, /standard-online-skill-intents\.js\?v=20260926-1/);
+  assert.match(source, /standard-skill-registry\.generated\.js\?v=20260926-1/);
   assert.match(source, /cpu-portraits\.js\?v=20260913-2/);
   assert.match(source, /basic-feedback\.js\?v=20260908-2/);
 assert.match(source, /skill-cutin\.js\?v=20260913-2/);
@@ -128,8 +128,8 @@ test("Home preflight rejects missing disclosure, optional rules, recovery or sco
 
 test("candidate preflight rejects a stale local Standard bundle marker or missing deferred curse code", async () => {
   const { LOCAL_STANDARD_BUNDLE_MARKER, LOCAL_STANDARD_BUNDLE_SHA256, hasDeferredCurseLocalBundle } = await contractsPromise;
-  assert.equal(LOCAL_STANDARD_BUNDLE_MARKER, "app.bundle.js?v=20260927-1-beda137a9f6e");
-  assert.equal(LOCAL_STANDARD_BUNDLE_SHA256, "beda137a9f6eb135d562196886a93fc01d9d89cdfd97801d8dd4fdc9dbfde21c");
+  assert.equal(LOCAL_STANDARD_BUNDLE_MARKER, "app.bundle.js?v=20260928-1-020e32145362");
+  assert.equal(LOCAL_STANDARD_BUNDLE_SHA256, "020e321453625b85e25aa869f73cfe06b878a04dd1e178562008dd6664c7d5e6");
   assert.equal(hasDeferredCurseLocalBundle(candidateLocalHtml, candidateLocalBundle), true);
   assert.equal(hasDeferredCurseLocalBundle(candidateLocalHtml.replace(LOCAL_STANDARD_BUNDLE_MARKER, "app.bundle.js?v=20260907-5"), candidateLocalBundle), false);
   assert.equal(hasDeferredCurseLocalBundle(candidateLocalHtml, candidateLocalBundle.replace("consumeDeferredCurseBacklashAfterColor(next, actor);", "void next;")), false);
@@ -271,7 +271,7 @@ test("candidate app satisfies the waiting-opponent release marker", () => {
 });
 
 test("candidate page and app satisfy the alpha.4 cache generation marker", () => {
-  assert.equal(candidateHtml.includes("app.js?v=20260923-1"), true);
+  assert.equal(candidateHtml.includes("app.js?v=20260926-1"), true);
   assert.equal(candidateHtml.includes("terminal-result.css?v=20260914-1"), true);
   assert.equal(candidateApp.includes("result-continuation.js?v=20260914-2"), true);
   assert.equal(candidateHtml.includes("cpu-commentary.js?v=20260910-1"), true);
@@ -279,8 +279,8 @@ test("candidate page and app satisfy the alpha.4 cache generation marker", () =>
   assert.equal(candidateHtml.includes("play-surface.css?v=20260915-5"), true);
   assert.ok(source.includes("page.text.includes(candidateAssetMarkers.playStyle)"));
   assert.equal(candidateHtml.includes("standard-online-client.js?v=20260914-1"), true);
-  assert.equal(candidateHtml.includes("standard-online-skill-intents.js?v=20260911-21"), true);
-  assert.equal(candidateHtml.includes("standard-skill-registry.generated.js?v=20260914-2"), true);
+  assert.equal(candidateHtml.includes("standard-online-skill-intents.js?v=20260926-1"), true);
+  assert.equal(candidateHtml.includes("standard-skill-registry.generated.js?v=20260926-1"), true);
   assert.equal(candidateHtml.includes("cpu-portraits.js?v=20260913-2"), true);
   assert.equal(candidateHtml.includes("cpu-artwork.css?v=20260913-1"), true);
   assert.equal(candidateHtml.includes("basic-feedback.js?v=20260908-2"), true);
@@ -289,7 +289,7 @@ test("candidate page and app satisfy the alpha.4 cache generation marker", () =>
   assert.equal(candidateApp.includes("skillCategoryWindow"), true);
   assert.equal(candidateApp.includes("SKILL_CATEGORY_ALREADY_USED_IN_WINDOW"), true);
   assert.equal(candidateApp.includes("colorBonusRefill"), true);
-  assert.equal(candidateApp.includes('state?.engineVersion === "5.0.0-alpha.4"'), true);
+  assert.equal(candidateApp.includes('["5.0.0-alpha.4", "5.0.0-alpha.5", "5.0.0-alpha.6"].includes(state?.engineVersion)'), true);
   assert.equal(candidateApp.includes("function activateCornerBloomCell(state, micro)"), true);
   assert.equal(candidateApp.includes("regionAtMicro(state, micro, { eligibleOnly: true })"), true);
   assert.equal(candidateApp.includes('sendAction("USE_SKILL", payload)'), true);

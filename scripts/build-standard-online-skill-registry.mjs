@@ -17,6 +17,7 @@ const publicFields = [
   "rarity",
   "timing",
   "v49Catalogued",
+  "standardCatalogued",
   "standardUiEnabled",
   "alphaUiEnabled",
   "experimental",

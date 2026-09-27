@@ -3,7 +3,7 @@
 const engine = require("./standard-engine.js");
 const match = require("./standard-match.js");
 const save = require("./standard-save.js");
-const { STANDARD_SKILLS } = require("./standard-skill-registry.js");
+const { STANDARD_SKILLS, engineVersionForLoadouts } = require("./standard-skill-registry.js");
 const { stableHash } = require("./standard-root-transaction.js");
 const cpu = require("./standard-cpu.js");
 
@@ -53,7 +53,7 @@ function validateRuleSetLoadout(ruleSetId, loadout) {
     if (categories.some((category) => loadout[category]?.length !== 2) || ids.length !== 6) throw Object.assign(new Error("INVALID_STANDARD_LOADOUT"), { code: "INVALID_STANDARD_LOADOUT" });
     for (const category of categories) for (const id of loadout[category]) {
       const definition = STANDARD_SKILLS[id];
-      if (!definition || definition.category !== category || !definition.v49Catalogued || !definition.standardEngineImplemented || !definition.standardUiEnabled) {
+      if (!definition || definition.category !== category || !definition.standardCatalogued || !definition.standardEngineImplemented || !definition.standardUiEnabled) {
         throw Object.assign(new Error("SKILL_NOT_AVAILABLE"), { code: "SKILL_NOT_AVAILABLE" });
       }
     }
@@ -124,7 +124,7 @@ function requestFacts({ matchId, ruleSetId, participants, loadouts, firstSeat })
       : { type: "CPU", difficulty: participants[seat].difficulty, policyVersion: participants[seat].policyVersion }])),
     loadouts,
     firstSeat: firstSeat || null,
-    engineVersion: match.ENGINE_VERSION,
+    engineVersion: engineVersionForLoadouts(loadouts, match.ENGINE_VERSION),
     initialConfigVersion: INITIAL_CONFIG_VERSION,
   };
 }
@@ -188,7 +188,7 @@ function startStandardMatch(args) {
     const startedAt = clock.now();
     if (typeof startedAt !== "string" || !Number.isFinite(Date.parse(startedAt))) throw Object.assign(new Error("INVALID_CLOCK"), { code: "INVALID_CLOCK" });
     const streams = engine.createRngDomainsFromSnapshot(draft.rngSnapshot, match.REQUIRED_RNG_STREAMS);
-    const state = match.createStandardMatch({ matchId, firstSeat, loadouts: quote.loadouts }, streams);
+    const state = match.createStandardMatch({ matchId, firstSeat, loadouts: quote.loadouts, engineVersion: engineVersionForLoadouts(quote.loadouts, match.ENGINE_VERSION) }, streams);
     for (const seat of ["A", "B"]) {
       if (quote.participants[seat].type === "CPU" && quote.participants[seat].difficulty === "hard") cpu.applyHardCpuSkillCharges(state, seat);
     }

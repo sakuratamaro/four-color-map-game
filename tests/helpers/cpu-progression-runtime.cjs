@@ -22,7 +22,7 @@ function postgrestRpcResult(name,rows) {
 }
 
 async function applyProgressionMigrations(db) {
-  for (const file of fs.readdirSync(path.join(root,"supabase/migrations")).filter(f => /^20260914000[123]_/.test(f)).sort())
+  for (const file of fs.readdirSync(path.join(root,"supabase/migrations")).filter(f => /^20260914000[123]_/.test(f) || f === "202609260001_standard_split_keep_compat.sql").sort())
     await db.exec(fs.readFileSync(path.join(root,"supabase/migrations",file),"utf8"));
 }
 

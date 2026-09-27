@@ -24,7 +24,7 @@ const contactPressureBrowserGate = fs.readFileSync(path.join(root, "tests", "sta
 const bundleBuilder = fs.readFileSync(path.join(root, "scripts", "build-standard-v5-bundle.mjs"), "utf8");
 
 test("local alpha has a bundled offline entry point", () => {
-  assert.match(html, /app\.bundle\.js\?v=20260927-1-beda137a9f6e/);
+  assert.match(html, /app\.bundle\.js\?v=20260928-1-020e32145362/);
   for (const id of ["profileA", "profileB", "firstPlayer", "startMatch", "handover", "privatePanel", "resultPanel"]) {
     assert.match(html, new RegExp(`id="${id}"`));
   }
@@ -39,8 +39,8 @@ test("local alpha has a bundled offline entry point", () => {
 
 test("local cache marker publishes the rebuilt alpha.4 and deferred-curse bundle", () => {
   const bundleHash = createHash("sha256").update(bundle).digest("hex");
-  assert.equal(bundleHash, "beda137a9f6eb135d562196886a93fc01d9d89cdfd97801d8dd4fdc9dbfde21c");
-  assert.match(html, new RegExp(`app\\.bundle\\.js\\?v=20260927-1-${bundleHash.slice(0, 12)}`));
+  assert.equal(bundleHash, "020e321453625b85e25aa869f73cfe06b878a04dd1e178562008dd6664c7d5e6");
+  assert.match(html, new RegExp(`app\\.bundle\\.js\\?v=20260928-1-${bundleHash.slice(0, 12)}`));
   assert.match(bundle, /SKILL_CATEGORY_ALREADY_USED_IN_WINDOW/);
   assert.match(bundle, /COLORED_CORNER_BLOOM_ENGINE_VERSION/);
   assert.match(bundle, /colorBonusRefill/);
@@ -89,10 +89,10 @@ test("local shift targets are selected on the board with keyboard support and na
 
 test("local Region Split uses one normal board cell with no ID or confirmation control", () => {
   const boardFlow = app.slice(app.indexOf("function renderPublic"), app.indexOf("function appendButton"));
-  const controls = app.slice(app.indexOf('if (own.hand.colorRegionSplit > 0)'), app.indexOf('appendButton("四色解放"'));
+  const controls = app.slice(app.indexOf('for (const splitSkill of ["colorRegionSplit", "colorRegionSplitKeep"])'), app.indexOf('appendButton("四色解放"'));
   assert.match(boardFlow, /const regionSplitTarget = targetMode\?\.kind === "colorRegionSplit"/);
   assert.match(boardFlow, /region\?\.id === publicState\.pending[\s\S]+classList\.add\("split-target"\)/);
-  assert.match(boardFlow, /dispatch\("USE_SKILL", \{ skill: "colorRegionSplit", regionId: publicState\.pending, sourceMacros: \[macro\] \}\)/);
+  assert.match(boardFlow, /dispatch\("USE_SKILL", \{ skill: targetMode\.skill \|\| "colorRegionSplit", regionId: publicState\.pending, sourceMacros: \[macro\] \}\)/);
   assert.match(boardFlow, /targetMode\?\.kind === "colorRegionSplit" && event\.key === "Escape"/);
   assert.match(controls, /1マスを選ぶと即発動/);
   assert.match(controls, /エリア二分をキャンセル/);
