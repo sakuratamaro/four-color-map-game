@@ -445,11 +445,21 @@ async function choosePublicWaiting(page) {
   await page.locator("#recruitOpponent").click();
 }
 
-test("UDL066 fresh catalog exposes all 22 native detail buttons without creating a profile or spending", { timeout: 120000 }, async () => {
+function assertVisibleCatalogDefinitions(definitions) {
+  assert.equal(definitions.length, 24);
+  assert.equal(definitions.filter(d => d.standardUiEnabled && !d.experimental).length, 22);
+  assert.deepEqual(definitions.filter(d => d.experimental).map(d => d.id).sort(),
+    ["colorBonusRefill", "legalRecolor"]);
+  for (const id of ["colorRegionSplitKeep", "colorUnsealOne", "colorBonusRefillUnseal"]) {
+    assert.equal(definitions.filter(d => d.id === id && d.standardUiEnabled && !d.experimental).length, 1);
+  }
+}
+
+test("UDL066 fresh catalog exposes 22 ordinary and 2 experimental native detail buttons without creating a profile or spending", { timeout: 120000 }, async () => {
   await withPage("empty", async (page) => {
     await page.locator('[data-app-tab="cards"]').click();
     const cards = page.locator("#cardInventory button[data-catalog-skill]");
-    assert.equal(await cards.count(), 22);
+    assert.equal(await cards.count(), 24);
     assert.equal(await page.locator('#cardInventory [data-catalog-skill="colorRegionSplitKeep"]').count(), 1);
     assert.equal(await page.locator("#cardInventory section").count(), 4);
     assert.equal(await page.locator("#profileCard").isHidden(), true);
@@ -457,6 +467,7 @@ test("UDL066 fresh catalog exposes all 22 native detail buttons without creating
     assert.equal(await page.locator("#editNextLoadout").isHidden(), true);
     const expected = Object.values(require("../standard/standard-skill-registry.js").STANDARD_SKILLS)
       .filter(d => d.standardEngineImplemented && (d.standardUiEnabled || d.alphaUiEnabled));
+    assertVisibleCatalogDefinitions(expected);
     assert.deepEqual((await cards.evaluateAll(els => els.map(el => el.dataset.catalogSkill))).sort(), expected.map(d => d.id).sort());
     const before = await page.evaluate(() => ({ profile: globalThis.__standardOnlineRuntime.profile,
       commands: globalThis.__standardOnlineRuntime.calls.filter(c => c.body).map(c => c.body) }));
@@ -8958,9 +8969,10 @@ test("UDL067 missing optional module fails closed without breaking cards or game
     assert.equal(await page.evaluate(()=>globalThis.__standardOnlineRuntime.calls.filter(c=>c.body?.operation==="action").length),0);
     await page.locator('[data-app-tab="cards"]').click();
     const cards=page.locator("#cardInventory button[data-catalog-skill]");
-    assert.equal(await cards.count(),22);
+    assert.equal(await cards.count(),24);
     const expected=Object.values(require("../standard/standard-skill-registry.js").STANDARD_SKILLS)
       .filter(d=>d.standardEngineImplemented&&(d.standardUiEnabled||d.alphaUiEnabled));
+    assertVisibleCatalogDefinitions(expected);
     assert.deepEqual((await cards.evaluateAll(els=>els.map(el=>el.dataset.catalogSkill))).sort(),expected.map(d=>d.id).sort());
     assert.deepEqual(errors,[]);
   },{beforeNavigate:async page=>{
