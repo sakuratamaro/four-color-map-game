@@ -190,3 +190,14 @@ test("standalone browser bundle exposes the same trial engine and no online tran
   const app=fs.readFileSync(path.join(__dirname,"../skill-workshop/app.js"),"utf8");
   assert.doesNotMatch(app,/fetch\(|supabase|WebSocket|XMLHttpRequest/);
 });
+
+test("bundle freshness accepts Windows checkout line endings but rejects an actual byte change", () => {
+  const {spawnSync}=require("node:child_process");
+  const script=path.resolve(__dirname,"../scripts/build-skill-workshop.mjs");
+  for(const corrupt of [false,true]) {
+    const code=`const fs=require('node:fs'); const read=fs.readFileSync; fs.readFileSync=function(p,...args){const v=read.call(this,p,...args); return typeof v==='string'&&String(p).endsWith('engine.bundle.js')?v.replace(/\\r\\n?/g,'\\n').replace(/\\n/g,'\\r\\n')+(${corrupt}?' CORRUPT':''):v;}; fs.writeFileSync=()=>{throw Error('CHECK_MUST_NOT_WRITE');}; process.argv.push('--check'); import(require('node:url').pathToFileURL(${JSON.stringify(script)}).href);`;
+    const result=spawnSync(process.execPath,["-e",code],{encoding:"utf8"});
+    if(corrupt){assert.notEqual(result.status,0);assert.match(result.stderr,/STALE_WORKSHOP_BUNDLE/);}
+    else assert.equal(result.status,0,result.stderr);
+  }
+});
