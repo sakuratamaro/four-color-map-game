@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="新しいスキルを無料貸出の練習盤面で試す、四色地図の実験室。通常の対戦・所持品・報酬には影響しません。">
+  <title>スキル実験室 · 四色地図</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="engine.bundle.js" defer></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+<main>
+  <header><div><p class="eyebrow">FOUR COLOR MAP / WORKSHOP</p><h1>スキル実験室 <span>試作 v1</span></h1></div><a href="../standard-online-v5/">通常のゲームへ</a></header>
+  <p class="intro">色を落とす、形を壊す、二色で塗る。新しい手を、すぐ試そう。</p>
+  <p class="boundary">無料の貸出カード・この端末だけの二人練習です。A / B を自分で操作します。通常対戦の所持品・勝敗・報酬には影響せず、CPUやオンライン接続は使いません。</p>
+  <section class="launch" aria-label="練習盤面を選ぶ">
+    <label for="scenario">試してみるカード</label><select id="scenario"></select>
+    <button id="loadScenario">このカードの練習盤面</button><button id="freePlay" class="secondary">空盤面から二人で遊ぶ</button>
+    <span class="small">盤面の切替で、実験室の続きだけを置き換えます。</span>
+  </section>
+  <p id="saveNotice" role="status" class="small"></p>
+  <div class="play-layout">
+    <section class="board-panel" aria-label="試遊盤面">
+      <div class="turn-heading"><h2 id="turnTitle"></h2><span id="phaseTag"></span></div>
+      <p id="turnHelp"></p>
+      <div id="board" role="group" aria-label="盤面・行と列でマスを選択"></div>
+      <p id="selectionHelp" class="small"></p>
+      <div class="board-actions"><button id="createRegion">選んだ形を相手へ渡す</button><button id="clearSelection" class="secondary">選択を消す</button></div>
+      <div id="palette" role="group" aria-label="普通に彩色する"></div>
+      <p id="opponentPalette" class="small"></p>
+    </section>
+    <section class="card-panel" aria-labelledby="cardsTitle">
+      <h2 id="cardsTitle">貸出スキル</h2><p class="small">双方に各1回。カテゴリは各操作区間に1回ずつ。</p>
+      <label for="skill">使うスキル</label><select id="skill"></select>
+      <p id="skillHelp"></p>
+      <label id="colorLabel" for="effectColor">効果に使う色</label><select id="effectColor"><option value="red">赤</option><option value="blue">青</option><option value="yellow">黄</option><option value="green">緑</option></select>
+      <p id="targetHelp" class="small"></p><p id="chargeInfo" class="small"></p>
+      <button id="useSkill">このスキルを使う</button>
+      <p id="message" role="status" aria-live="polite"></p>
+      <details><summary>予約・履歴を見る</summary><p id="scheduled"></p><ol id="history"></ol></details>
+      <details><summary>試作のルールと未対応</summary><p>色落としは形を残して相手が再彩色。破壊は空きマスへ。指定の爆破は現在受け取った形を取り消します。二色市松は一つの領域として外周すべてで両色を判定します。</p><p>「妨害封じ」は救済カードを止めない代案です。全スキル禁止原案、レア度・ガチャ・CPU判断・通常対戦のバランスはまだ確定していません。</p><p>使えない対象・不合法な変更ではカードも乱数も消費しません。通常の誤彩色は終局します。</p><a href="../docs/SKILL_WORKSHOP_SPEC.md">仮仕様と出典</a></details>
+    </section>
+  </div>
+</main>
+</body>
+</html>

@@ -1,0 +1,3163 @@
+"use strict";(()=>{const modules={"standard/standard-engine.js":function(require,module,exports){
+"use strict";
+
+const COLORS = Object.freeze(["red", "blue", "yellow", "green"]);
+const MICRO_WIDTH = 48;
+
+class StandardRuleError extends Error {
+  constructor(code, message) {
+    super(message);
+    this.name = "StandardRuleError";
+    this.code = code;
+  }
+}
+
+function assertRule(condition, code, message) {
+  if (!condition) throw new StandardRuleError(code, message);
+}
+
+function clone(value) {
+  return JSON.parse(JSON.stringify(value));
+}
+
+function other(seat) {
+  return seat === "A" ? "B" : "A";
+}
+
+function numericRegionId(id) {
+  const match = String(id).match(/(\d+)/);
+  return match ? Number(match[1]) : Number.POSITIVE_INFINITY;
+}
+
+function compareRegionIds(left, right) {
+  const delta = numericRegionId(left) - numericRegionId(right);
+  return Number.isFinite(delta) && delta !== 0 ? delta : String(left).localeCompare(String(right));
+}
+
+function microNeighbors(index, width = MICRO_WIDTH) {
+  const x = index % width;
+  const y = Math.floor(index / width);
+  const result = [];
+  if (x > 0) result.push(index - 1);
+  if (x < width - 1) result.push(index + 1);
+  if (y > 0) result.push(index - width);
+  result.push(index + width);
+  return result;
+}
+
+function ownerMap(state) {
+  const result = new Map();
+  for (const region of Object.values(state.regions || {})) {
+    for (const micro of region.micro || []) {
+      assertRule(Number.isInteger(micro) && micro >= 0, "INVALID_STATE", "Region geometry contains an invalid cell");
+      assertRule(!result.has(micro), "INVALID_STATE", "Regions overlap");
+      result.set(micro, region.id);
+    }
+  }
+  return result;
+}
+
+function adjacentRegionIds(state, regionId) {
+  const region = state.regions?.[regionId];
+  assertRule(region, "INVALID_TARGET", "Target region does not exist");
+  const width = state.microWidth || MICRO_WIDTH;
+  const owners = ownerMap(state);
+  const adjacent = new Set();
+  for (const micro of region.micro || []) {
+    for (const neighbor of microNeighbors(micro, width)) {
+      const owner = owners.get(neighbor);
+      if (owner && owner !== regionId) adjacent.add(owner);
+    }
+  }
+  return [...adjacent].sort(compareRegionIds);
+}
+
+function legalRecolorCandidates(state, regionId) {
+  const region = state.regions?.[regionId];
+  assertRule(region, "INVALID_TARGET", "Target region does not exist");
+  const blocked = new Set([region.color]);
+  for (const adjacentId of adjacentRegionIds(state, regionId)) {
+    const color = state.regions[adjacentId]?.color;
+    if (color) blocked.add(color);
+  }
+  return Object.freeze(COLORS.filter((color) => !blocked.has(color)));
+}
+
+function sameColorAdjacentCount(state, regionId) {
+  const region = state.regions?.[regionId];
+  assertRule(region, "INVALID_TARGET", "Target region does not exist");
+  if (!region.color) return 0;
+  return adjacentRegionIds(state, regionId).filter((adjacentId) => state.regions[adjacentId]?.color === region.color).length;
+}
+
+function mergeSameColorComponent(state, startRegionId) {
+  const start = state.regions[startRegionId];
+  if (!start?.color) return Object.freeze({ keptId: startRegionId, droppedIds: [] });
+  const component = new Set([startRegionId]);
+  const queue = [startRegionId];
+  while (queue.length) {
+    const current = queue.shift();
+    for (const adjacentId of adjacentRegionIds(state, current)) {
+      if (!component.has(adjacentId) && state.regions[adjacentId]?.color === start.color) {
+        component.add(adjacentId);
+        queue.push(adjacentId);
+      }
+    }
+  }
+  const ids = [...component].sort(compareRegionIds);
+  const keptId = ids[0];
+  const droppedIds = ids.slice(1);
+  if (!droppedIds.length) return Object.freeze({ keptId, droppedIds: [] });
+  const kept = state.regions[keptId];
+  kept.micro = [...new Set(ids.flatMap((id) => state.regions[id].micro || []))].sort((a, b) => a - b);
+  kept.sourceMacros = [...new Set(ids.flatMap((id) => state.regions[id].sourceMacros || []))].sort((a, b) => a - b);
+  kept.controllers = [...new Set(ids.flatMap((id) => state.regions[id].controllers || []))].sort();
+  kept.color = start.color;
+  kept.isPending = false;
+  for (const id of droppedIds) delete state.regions[id];
+  if (droppedIds.includes(state.pending)) state.pending = keptId;
+  return Object.freeze({ keptId, droppedIds: Object.freeze(droppedIds) });
+}
+
+function validateLegalRecolorTarget(state, actor, regionId) {
+  assertRule(actor === "A" || actor === "B", "NOT_A_PLAYER", "Actor must occupy a seat");
+  assertRule(state.mode === "standard", "WRONG_MODE", "Legal recolor is standard-mode only");
+  assertRule(state.phase === "WORK", "WRONG_PHASE", "Legal recolor is a work-phase skill");
+  assertRule(state.active === actor, "NOT_YOUR_TURN", "It is not this player's turn");
+  assertRule(!state.winner, "MATCH_FINISHED", "Match is already finished");
+  assertRule(!state.interferenceLock, "INTERFERENCE_CHAINED", "Existing-region interference is locked until COLOR");
+  assertRule((state.hands?.[actor]?.legalRecolor || 0) > 0, "SKILL_UNAVAILABLE", "Legal recolor is unavailable");
+  const region = state.regions?.[regionId];
+  assertRule(region, "INVALID_TARGET", "Target region does not exist");
+  assertRule(Boolean(region.color), "INVALID_TARGET", "Target must already be colored");
+  assertRule(state.pending !== regionId && state.reserved !== regionId && !region.isPending, "INVALID_TARGET", "Pending or reserved region cannot be recolored");
+  assertRule(!region.deleted && !region.delayed && !region.delayState, "INVALID_TARGET", "Deleted or delayed region cannot be recolored");
+  return region;
+}
+
+function applyLegalRecolor(currentState, actor, regionId, options = {}) {
+  validateLegalRecolorTarget(currentState, actor, regionId);
+  const sameColorBefore = sameColorAdjacentCount(currentState, regionId);
+  const candidates = legalRecolorCandidates(currentState, regionId);
+  if (!candidates.length) return Object.freeze({ ok: false, code: "NO_LEGAL_RECOLOR", state: currentState, candidates });
+  const effectRandom = options.effectRandom;
+  assertRule(typeof effectRandom === "function", "RNG_REQUIRED", "Effect RNG is required");
+  const draw = Number(effectRandom());
+  assertRule(Number.isFinite(draw) && draw >= 0 && draw < 1, "INVALID_RANDOM", "Effect RNG must return [0, 1)");
+  const color = candidates[Math.floor(draw * candidates.length)];
+  const state = clone(currentState);
+  state.regions[regionId].color = color;
+  const sameColorAfter = sameColorAdjacentCount(state, regionId);
+  assertRule(sameColorAfter === 0 && sameColorAfter <= sameColorBefore, "RECOLOR_ADJACENCY_INVARIANT", "Legal recolor created same-color adjacency");
+  state.hands[actor].legalRecolor -= 1;
+  state.skillsUsed = state.skillsUsed || { A: 0, B: 0 };
+  state.skillsUsed[actor] = (state.skillsUsed[actor] || 0) + 1;
+  const merge = Object.freeze({ keptId: regionId, droppedIds: Object.freeze([]) });
+  state.active = other(actor);
+  state.phase = "WORK";
+  state.interferenceLock = true;
+  state.version += 1;
+  const logKey = Array.isArray(state.publicLog) ? "publicLog" : "log";
+  state[logKey] = Array.isArray(state[logKey]) ? state[logKey] : [];
+  state[logKey].push(`T${state.turn}  Player ${actor} legally recolored ${regionId} ${color}; WORK passed to Player ${state.active}.`);
+  return Object.freeze({ ok: true, code: "OK", state, color, candidates, merge });
+}
+
+function onEnterColor(currentState) {
+  if (!currentState.interferenceLock) return currentState;
+  const state = clone(currentState);
+  state.interferenceLock = false;
+  return state;
+}
+
+function hashSeed(seed, name) {
+  let value = (Number(seed) >>> 0) ^ 0x811c9dc5;
+  for (const char of String(name)) {
+    value ^= char.codePointAt(0);
+    value = Math.imul(value, 0x01000193) >>> 0;
+  }
+  return value || 0x6d2b79f5;
+}
+
+function createStream(seed) {
+  let state = seed >>> 0;
+  return Object.freeze({
+    next() {
+      state = (state + 0x6d2b79f5) >>> 0;
+      let value = state;
+      value = Math.imul(value ^ (value >>> 15), value | 1);
+      value ^= value + Math.imul(value ^ (value >>> 7), value | 61);
+      return ((value ^ (value >>> 14)) >>> 0) / 4294967296;
+    },
+    snapshot() {
+      return state >>> 0;
+    },
+  });
+}
+
+function createRngDomains(seed, names = ["setup", "roll", "effect", "quizContent", "quizPlacement", "cpuDecision"]) {
+  const streams = {};
+  for (const name of names) streams[name] = createStream(hashSeed(seed, name));
+  return Object.freeze(streams);
+}
+
+function createRngDomainsFromSnapshot(snapshot, names) {
+  assertRule(snapshot && typeof snapshot === "object" && !Array.isArray(snapshot), "INVALID_RNG_SNAPSHOT", "RNG snapshot must be an object");
+  const streams = {};
+  for (const name of names) {
+    assertRule(Number.isSafeInteger(snapshot[name]) && snapshot[name] >= 0 && snapshot[name] <= 0xffffffff, "INVALID_RNG_SNAPSHOT", `Missing RNG stream: ${name}`);
+    streams[name] = createStream(snapshot[name]);
+  }
+  return Object.freeze(streams);
+}
+
+function snapshotRngDomains(streams, names) {
+  const snapshot = {};
+  for (const name of names) {
+    const value = streams?.[name]?.snapshot?.();
+    assertRule(Number.isSafeInteger(value) && value >= 0 && value <= 0xffffffff, "INVALID_RNG_STREAM", `RNG stream cannot be snapshotted: ${name}`);
+    snapshot[name] = value;
+  }
+  return Object.freeze(snapshot);
+}
+
+module.exports = {
+  COLORS,
+  StandardRuleError,
+  adjacentRegionIds,
+  applyLegalRecolor,
+  compareRegionIds,
+  createRngDomains,
+  createRngDomainsFromSnapshot,
+  createStream,
+  hashSeed,
+  legalRecolorCandidates,
+  mergeSameColorComponent,
+  onEnterColor,
+  sameColorAdjacentCount,
+  snapshotRngDomains,
+};
+
+},
+"standard/standard-match.js":function(require,module,exports){
+"use strict";
+
+const {
+  COLORS,
+  StandardRuleError,
+  adjacentRegionIds,
+} = require("./standard-engine.js");
+const { dispatchStandardSkillAction } = require("./standard-skill-dispatcher.js");
+const { applyCurseBacklashOnEnterColor, consumeDeferredCurseBacklashAfterColor, preparedOutgoingCandidates, tickPaletteDebuffsAfterColor, tickSealsAfterColor } = require("./standard-skill-handlers.js");
+const { createRegionGeometryContext } = require("./standard-region-geometry.js");
+const { COLORED_CORNER_BLOOM_ENGINE_VERSION, LEARNED_TECHNIQUE_ENGINE_VERSION, SPLIT_KEEP_ENGINE_VERSION, supportsSplitKeep, SKILL_USAGE_CATEGORIES } = require("./standard-skill-registry.js");
+const { usesTechniques, initialTechniqueFields, validateTechniqueState, projectTechniques } = require("./standard-technique-state.js");
+
+const SCHEMA_VERSION = 1;
+const LEGACY_ENGINE_VERSION = "5.0.0-alpha.1";
+const PREVIOUS_ENGINE_VERSION = "5.0.0-alpha.2";
+const CATEGORY_WINDOW_ENGINE_VERSION = "5.0.0-alpha.3";
+const ENGINE_VERSION = COLORED_CORNER_BLOOM_ENGINE_VERSION;
+const SUPPORTED_ENGINE_VERSIONS = Object.freeze([LEGACY_ENGINE_VERSION, PREVIOUS_ENGINE_VERSION, CATEGORY_WINDOW_ENGINE_VERSION, ENGINE_VERSION, LEARNED_TECHNIQUE_ENGINE_VERSION, SPLIT_KEEP_ENGINE_VERSION]);
+const SAVE_KEY = "fourColorMapGame.standard.v5.save";
+const PHASES = Object.freeze(["CREATE_FIRST", "COLOR", "WORK", "GAME_OVER"]);
+const ACTIONS = Object.freeze(["CREATE_REGION", "COLOR_REGION", "USE_SKILL", "DECLARE_NO_COLOR", "SURRENDER"]);
+const REQUIRED_RNG_STREAMS = Object.freeze([
+  "match-init", "palette", "bonus-color", "bonus-use-count", "die", "skill-effect",
+  "cpu-A", "cpu-B", "cpu-tie-break", "quiz-structure", "quiz-content",
+  "quiz-choice-order", "quiz-choice-rank", "quiz-cosmetic-motion", "gacha",
+]);
+const DIE_POOL = Object.freeze([1, 1, 2, 2, 3, 4]);
+const BONUS_USE_POOL = Object.freeze([1, 1, 2, 2, 3, 4]);
+const TERMINAL_REASONS = Object.freeze(["ILLEGAL_COLOR", "BOARD_LOCK", "SURRENDER", "SEALED_OUT", "NO_LEGAL_COLOR"]);
+const ENGINE_TERMINAL_REASONS = TERMINAL_REASONS;
+const FINISHED_STATE_TERMINAL_REASONS = TERMINAL_REASONS;
+const PALETTE_IMPACT_HISTORY_LIMIT = 12;
+
+function clone(value) {
+  return JSON.parse(JSON.stringify(value));
+}
+
+function fail(code, state) {
+  return Object.freeze({ ok: false, code, state });
+}
+
+function other(seat) {
+  return seat === "A" ? "B" : "A";
+}
+
+function assertState(condition, code) {
+  if (!condition) throw new StandardRuleError(code, code);
+}
+
+function usesSkillCategoryWindow(engineVersion) {
+  return engineVersion === CATEGORY_WINDOW_ENGINE_VERSION || engineVersion === ENGINE_VERSION || usesTechniques(engineVersion);
+}
+
+function nextRandom(rngStreams, name) {
+  const source = rngStreams?.[name];
+  const value = typeof source === "function" ? source() : source?.next?.();
+  assertState(Number.isFinite(value) && value >= 0 && value < 1, "RNG_REQUIRED_" + name.toUpperCase().replaceAll("-", "_"));
+  return value;
+}
+
+function shuffledColors(rngStreams) {
+  const values = [...COLORS];
+  for (let index = values.length - 1; index > 0; index -= 1) {
+    const target = Math.floor(nextRandom(rngStreams, "palette") * (index + 1));
+    [values[index], values[target]] = [values[target], values[index]];
+  }
+  return values.slice(0, 3);
+}
+
+function initialSeatSecrets(rngStreams) {
+  const palette = shuffledColors(rngStreams);
+  const bonus = palette[Math.floor(nextRandom(rngStreams, "bonus-color") * palette.length)];
+  const basic = palette.filter((color) => color !== bonus);
+  const uses = BONUS_USE_POOL[Math.floor(nextRandom(rngStreams, "bonus-use-count") * BONUS_USE_POOL.length)];
+  return { basic, bonus, uses };
+}
+
+function paletteSignature(secrets) {
+  return [...secrets.basic, secrets.bonus].sort().join("|");
+}
+
+function handFromLoadout(loadout = {}) {
+  const hand = {};
+  for (const entries of Object.values(loadout)) {
+    for (const skill of Array.isArray(entries) ? entries : []) hand[skill] = 1;
+  }
+  return hand;
+}
+
+function playableMacroIndices(bounds) {
+  const result = [];
+  for (let row = bounds.minRow; row <= bounds.maxRow; row += 1) {
+    for (let col = bounds.minCol; col <= bounds.maxCol; col += 1) result.push(row * bounds.macroWidth + col);
+  }
+  return result;
+}
+
+function createStandardMatch(config = {}, rngStreams = {}) {
+  assertState(typeof config.matchId === "string" && config.matchId.length > 0, "MATCH_ID_REQUIRED");
+  const engineVersion = config.engineVersion === undefined ? ENGINE_VERSION : config.engineVersion;
+  assertState(SUPPORTED_ENGINE_VERSIONS.includes(engineVersion), "INVALID_ENGINE_VERSION");
+  const A = initialSeatSecrets(rngStreams);
+  let B = initialSeatSecrets(rngStreams);
+  for (let retries = 0; paletteSignature(B) === paletteSignature(A) && retries < 15; retries += 1) {
+    B = initialSeatSecrets(rngStreams);
+  }
+  if (paletteSignature(B) === paletteSignature(A)) {
+    const missing = COLORS.find((color) => ![...B.basic, B.bonus].includes(color));
+    B = { ...B, basic: [B.basic[1], missing] };
+  }
+  const active = config.firstSeat || (nextRandom(rngStreams, "match-init") < 0.5 ? "A" : "B");
+  const rolledSize = DIE_POOL[Math.floor(nextRandom(rngStreams, "die") * DIE_POOL.length)];
+  const loadouts = clone(config.loadouts || { A: {}, B: {} });
+  const playableBounds = clone(config.playableBounds || { minCol: 1, maxCol: 10, minRow: 1, maxRow: 10, macroWidth: 12, microScale: 4 });
+  const state = {
+    schemaVersion: SCHEMA_VERSION,
+    engineVersion,
+    mode: "standard",
+    matchId: config.matchId,
+    status: "ACTIVE",
+    version: 0,
+    turn: 1,
+    active,
+    phase: "CREATE_FIRST",
+    regions: {},
+    pending: null,
+    reserved: null,
+    preparedOutgoing: null,
+    playableBounds,
+    trophyTargetMacros: playableMacroIndices(playableBounds),
+    microWidth: Number(config.microWidth) || 48,
+    requiredSize: rolledSize,
+    rolledSize,
+    baseRequiredSize: rolledSize,
+    basicPalettes: { A: A.basic, B: B.basic },
+    bonusColors: { A: A.bonus, B: B.bonus },
+    initialPalettes: {
+      A: { basic: clone(A.basic), bonus: A.bonus },
+      B: { basic: clone(B.basic), bonus: B.bonus },
+    },
+    bonusUsesRemaining: { A: A.uses, B: B.uses },
+    hands: config.hands ? clone(config.hands) : { A: handFromLoadout(loadouts.A), B: handFromLoadout(loadouts.B) },
+    loadouts,
+    ...initialTechniqueFields(config, engineVersion),
+    publicEffects: clone(config.publicEffects || { A: { seals: {} }, B: { seals: {} } }),
+    privateEffects: clone(config.privateEffects || { A: {}, B: {} }),
+    interferenceLock: false,
+    skillsUsed: { A: 0, B: 0 },
+    ...(usesSkillCategoryWindow(engineVersion) ? { skillCategoryWindow: { actor: active, categories: [] } } : {}),
+    winner: null,
+    terminalReason: null,
+    lastPublicTrace: null,
+    publicLog: ["Standard match created."],
+  };
+  validateStandardState(state);
+  return state;
+}
+
+function validateStandardState(state) {
+  assertState(state && typeof state === "object", "INVALID_STATE");
+  assertState(state.schemaVersion === SCHEMA_VERSION, "INVALID_SCHEMA_VERSION");
+  assertState(SUPPORTED_ENGINE_VERSIONS.includes(state.engineVersion), "INVALID_ENGINE_VERSION");
+  assertState(state.mode === "standard", "WRONG_MODE");
+  assertState(typeof state.matchId === "string" && state.matchId.length > 0, "INVALID_MATCH_ID");
+  assertState(Number.isInteger(state.version) && state.version >= 0, "INVALID_VERSION");
+  assertState(Number.isInteger(state.turn) && state.turn >= 1, "INVALID_TURN");
+  assertState(state.active === "A" || state.active === "B", "INVALID_ACTIVE_SEAT");
+  assertState(PHASES.includes(state.phase), "INVALID_PHASE");
+  assertState(state.status === "ACTIVE" || state.status === "FINISHED", "INVALID_STATUS");
+  assertState(Number.isInteger(state.rolledSize) && state.rolledSize >= 1 && state.rolledSize <= 4, "INVALID_ROLLED_SIZE");
+  assertState(Number.isInteger(state.baseRequiredSize) && state.baseRequiredSize >= 0 && state.baseRequiredSize <= 4, "INVALID_BASE_REQUIRED_SIZE");
+  assertState(Number.isInteger(state.requiredSize) && state.requiredSize >= 0 && state.requiredSize <= 5, "INVALID_REQUIRED_SIZE");
+  if (state.status === "ACTIVE") assertState(state.baseRequiredSize >= 1 && state.requiredSize >= 1, "INVALID_REQUIRED_SIZE");
+  const bounds = state.playableBounds;
+  assertState(bounds && [bounds.minCol, bounds.maxCol, bounds.minRow, bounds.maxRow, bounds.macroWidth, bounds.microScale].every(Number.isInteger)
+    && bounds.macroWidth >= 6 && bounds.microScale >= 1 && state.microWidth === bounds.macroWidth * bounds.microScale
+    && bounds.minCol >= 0 && bounds.minCol <= bounds.maxCol && bounds.maxCol < bounds.macroWidth
+    && bounds.minRow >= 0 && bounds.minRow <= bounds.maxRow && bounds.maxRow < bounds.macroWidth
+    && bounds.maxCol - bounds.minCol + 1 >= 6 && bounds.maxRow - bounds.minRow + 1 >= 6, "INVALID_PLAYABLE_BOUNDS");
+  assertState(state.trophyTargetMacros === undefined || (Array.isArray(state.trophyTargetMacros)
+    && new Set(state.trophyTargetMacros).size === state.trophyTargetMacros.length
+    && state.trophyTargetMacros.every((macro) => Number.isInteger(macro) && macro >= 0 && macro < bounds.macroWidth * bounds.macroWidth)), "INVALID_TROPHY_TARGETS");
+  const trophyTargets = new Set(state.trophyTargetMacros || playableMacroIndices(bounds));
+  assertState(playableMacroIndices(bounds).every((macro) => trophyTargets.has(macro)), "INVALID_TROPHY_TARGETS");
+  const worldMicroCount = state.microWidth * bounds.macroWidth * bounds.microScale;
+  assertState(Boolean(state.regions) && typeof state.regions === "object", "INVALID_REGIONS");
+  assertState(Boolean(state.hands) && Boolean(state.loadouts), "INVALID_CARDS");
+  validateTechniqueState(state);
+  assertState(typeof state.interferenceLock === "boolean", "INVALID_INTERFERENCE_LOCK");
+  if (usesSkillCategoryWindow(state.engineVersion)) {
+    const window = state.skillCategoryWindow;
+    assertState(Boolean(window) && typeof window === "object" && !Array.isArray(window), "INVALID_SKILL_CATEGORY_WINDOW");
+    assertState(Object.keys(window).sort().join("|") === "actor|categories", "INVALID_SKILL_CATEGORY_WINDOW");
+    assertState(window.actor === state.active && Array.isArray(window.categories), "INVALID_SKILL_CATEGORY_WINDOW");
+    assertState(window.categories.length === new Set(window.categories).size
+      && window.categories.every((category) => SKILL_USAGE_CATEGORIES.includes(category)), "INVALID_SKILL_CATEGORY_WINDOW");
+  } else {
+    assertState(state.skillCategoryWindow === undefined, "LEGACY_SKILL_CATEGORY_WINDOW");
+  }
+  assertState(Array.isArray(state.publicLog), "INVALID_PUBLIC_LOG");
+  if (state.lastPublicTrace !== undefined && state.lastPublicTrace !== null) {
+    const trace = state.lastPublicTrace;
+    const commonKeys = ["actor", "eventId", "type", "version"];
+    const typeKeys = trace.type === "CREATE_REGION"
+      ? ["contactColorCount", "regionId", "sourceMacroCount"]
+      : trace.type === "COLOR_REGION" || trace.type === "LEGAL_RECOLOR" ? ["color", "regionId"] : trace.type === "USE_SKILL" ? [] : ["invalid"];
+    const expectedKeys = [...commonKeys, ...typeKeys].sort();
+    assertState(JSON.stringify(Object.keys(trace).sort()) === JSON.stringify(expectedKeys), "INVALID_PUBLIC_TRACE");
+    assertState((trace.actor === "A" || trace.actor === "B")
+      && Number.isInteger(trace.version) && trace.version >= 1 && trace.version <= state.version
+      && trace.eventId === `${state.matchId}:${trace.version}`, "INVALID_PUBLIC_TRACE");
+    if (trace.type === "CREATE_REGION") {
+      const region = state.regions?.[trace.regionId];
+      const committedContactCount = region ? new Set(adjacentRegionIds(state, trace.regionId)
+        .map((regionId) => state.regions[regionId])
+        .filter((entry) => entry && !entry.isPending && entry.color)
+        .map((entry) => entry.color)).size : -1;
+      assertState(typeof trace.regionId === "string" && trace.regionId.length > 0
+        && Number.isInteger(trace.sourceMacroCount) && trace.sourceMacroCount >= 1 && trace.sourceMacroCount <= 5
+        && Number.isInteger(trace.contactColorCount) && trace.contactColorCount >= 0 && trace.contactColorCount <= 4, "INVALID_PUBLIC_TRACE");
+      if (trace.version === state.version) assertState(Boolean(region) && region.sourceMacros?.length === trace.sourceMacroCount
+        && committedContactCount === trace.contactColorCount, "INVALID_PUBLIC_TRACE");
+    } else if (trace.type === "COLOR_REGION" || trace.type === "LEGAL_RECOLOR") {
+      assertState(typeof trace.regionId === "string" && trace.regionId.length > 0 && COLORS.includes(trace.color), "INVALID_PUBLIC_TRACE");
+      if (trace.version === state.version) assertState(state.regions?.[trace.regionId]?.color === trace.color, "INVALID_PUBLIC_TRACE");
+    }
+  }
+  if (state.preparedOutgoing !== null && state.preparedOutgoing !== undefined) {
+    const prepared = state.preparedOutgoing;
+    assertState((prepared.actor === "A" || prepared.actor === "B") && Array.isArray(prepared.sourceMacros)
+      && prepared.sourceMacros.length > 0 && new Set(prepared.sourceMacros).size === prepared.sourceMacros.length
+      && prepared.sourceMacros.every((macro) => Number.isInteger(macro) && macro >= 0)
+      && Array.isArray(prepared.micro) && prepared.micro.length > 0 && new Set(prepared.micro).size === prepared.micro.length
+      && prepared.micro.every((cell) => Number.isInteger(cell) && cell >= 0)
+      && Array.isArray(prepared.skills) && prepared.skills.length > 0
+      && new Set(prepared.skills).size === prepared.skills.length
+      && prepared.skills.every((skill) => ["areaMicroBloom", "areaCornerBloom"].includes(skill)), "INVALID_PREPARED_OUTGOING");
+    const microHeight = bounds.macroWidth * bounds.microScale;
+    assertState(state.status === "ACTIVE" && ["CREATE_FIRST", "WORK"].includes(state.phase)
+      && prepared.actor === state.active && state.pending === null
+      && prepared.sourceMacros.length === state.requiredSize
+      && isConnected(prepared.sourceMacros, bounds.macroWidth)
+      && prepared.sourceMacros.every((macro) => {
+        const col = macro % bounds.macroWidth;
+        const row = Math.floor(macro / bounds.macroWidth);
+        return col >= bounds.minCol && col <= bounds.maxCol && row >= bounds.minRow && row <= bounds.maxRow;
+      })
+      && prepared.micro.every((cell) => cell < state.microWidth * microHeight), "INVALID_PREPARED_OUTGOING");
+    const uncoloredOccupied = new Set(Object.values(state.regions).filter((region) => !region.color).flatMap((region) => region.micro || []));
+    assertState(prepared.micro.every((cell) => !uncoloredOccupied.has(cell)) && isConnected(prepared.micro, state.microWidth), "INVALID_PREPARED_OUTGOING");
+    const candidates = preparedOutgoingCandidates({ ...state, preparedOutgoing: null }, prepared.sourceMacros, prepared.skills);
+    assertState(candidates.some((candidate) => JSON.stringify(candidate) === JSON.stringify(prepared.micro)), "INVALID_PREPARED_OUTGOING");
+  }
+  const occupied = new Set();
+  const pendingRegionIds = [];
+  const reservedRegionIds = [];
+  for (const [id, region] of Object.entries(state.regions)) {
+    assertState(region?.id === id && Array.isArray(region.micro), "INVALID_REGION");
+    if (region.isPending) {
+      pendingRegionIds.push(id);
+      assertState(region.color === null || region.color === undefined, "INVALID_PENDING_STATE");
+    }
+    if (region.isReserved) {
+      reservedRegionIds.push(id);
+      assertState(!region.isPending && (region.color === null || region.color === undefined), "INVALID_RESERVED_STATE");
+    }
+    for (const cell of region.micro) {
+      assertState(Number.isInteger(cell) && cell >= 0 && cell < worldMicroCount && !occupied.has(cell), "INVALID_REGION_GEOMETRY");
+      occupied.add(cell);
+    }
+  }
+  assertState(pendingRegionIds.length <= 1, "INVALID_PENDING_STATE");
+  if (state.pending === null) assertState(pendingRegionIds.length === 0, "INVALID_PENDING_STATE");
+  else assertState(pendingRegionIds.length === 1 && pendingRegionIds[0] === state.pending, "INVALID_PENDING_STATE");
+  assertState(reservedRegionIds.length <= 1, "INVALID_RESERVED_STATE");
+  if (state.reserved === null || state.reserved === undefined) assertState(reservedRegionIds.length === 0, "INVALID_RESERVED_STATE");
+  else assertState(reservedRegionIds.length === 1 && reservedRegionIds[0] === state.reserved && state.reserved !== state.pending, "INVALID_RESERVED_STATE");
+  if (Object.hasOwn(state, "retainedSplit")) {
+    const split = state.retainedSplit;
+    assertState(supportsSplitKeep(state.engineVersion) && split && typeof split === "object" && !Array.isArray(split)
+      && Object.keys(split).sort().join("|") === "actor|firstRegionId|secondRegionId|stage"
+      && split.actor === state.active && state.status === "ACTIVE" && state.phase === "COLOR"
+      && state.skillCategoryWindow?.categories.includes("color")
+      && split.firstRegionId !== split.secondRegionId, "INVALID_RETAINED_SPLIT");
+    const first = state.regions[split.firstRegionId], second = state.regions[split.secondRegionId];
+    assertState(Boolean(first && second) && (split.stage === "FIRST"
+      ? state.pending === first.id && state.reserved === second.id && !first.color && !second.color
+      : split.stage === "SECOND" && state.pending === second.id && !state.reserved && COLORS.includes(first.color)
+        && first.controllers.includes(split.actor) && !second.color), "INVALID_RETAINED_SPLIT");
+  }
+  for (const seat of ["A", "B"]) {
+    const basic = state.basicPalettes?.[seat];
+    const bonus = state.bonusColors?.[seat];
+    assertState(Array.isArray(basic) && basic.length === 2, "INVALID_PALETTE");
+    assertState([...basic, bonus].every((color) => COLORS.includes(color)), "INVALID_PALETTE");
+    const initialPalette = state.initialPalettes?.[seat];
+    assertState(state.initialPalettes === undefined || (initialPalette && Array.isArray(initialPalette.basic)
+      && initialPalette.basic.length === 2 && [...initialPalette.basic, initialPalette.bonus].every((color) => COLORS.includes(color))
+      && new Set([...initialPalette.basic, initialPalette.bonus]).size === 3), "INVALID_INITIAL_PALETTE");
+    assertState(Number.isInteger(state.bonusUsesRemaining?.[seat]) && state.bonusUsesRemaining[seat] >= 0, "INVALID_BONUS_USES");
+    const temporaryColors = state.privateEffects?.[seat]?.temporaryColors;
+    assertState(temporaryColors === undefined || (Array.isArray(temporaryColors)
+      && temporaryColors.every((color) => COLORS.includes(color))
+      && new Set(temporaryColors).size === temporaryColors.length), "INVALID_TEMPORARY_COLORS");
+    const paletteDebuffs = state.privateEffects?.[seat]?.paletteDebuffs;
+    assertState(paletteDebuffs === undefined || (Array.isArray(paletteDebuffs)
+      && new Set(paletteDebuffs.map((effect) => effect.slot)).size === paletteDebuffs.length
+      && paletteDebuffs.every((effect) => effect && Number.isInteger(effect.slot) && effect.slot >= 0 && effect.slot <= 2
+        && COLORS.includes(effect.previousColor) && COLORS.includes(effect.injectedColor)
+        && Number.isInteger(effect.remaining) && effect.remaining >= 1 && effect.remaining <= 2
+        && (effect.slot < 2 ? state.basicPalettes[seat][effect.slot] : state.bonusColors[seat]) === effect.injectedColor)), "INVALID_PALETTE_DEBUFFS");
+    const paletteImpact = state.privateEffects?.[seat]?.paletteImpactEvent;
+    assertState(paletteImpact === undefined || (paletteImpact && typeof paletteImpact === "object" && !Array.isArray(paletteImpact)
+      && Number.isSafeInteger(paletteImpact.version) && paletteImpact.version >= 1 && paletteImpact.version <= state.version
+      && paletteImpact.eventId === `${state.matchId}:${paletteImpact.version}:palette-impact:${seat}`
+      && ["self", "random", "chosen", "forced"].includes(paletteImpact.kind)
+      && Number.isInteger(paletteImpact.slot) && paletteImpact.slot >= 0 && paletteImpact.slot <= 2
+      && COLORS.includes(paletteImpact.previousColor) && COLORS.includes(paletteImpact.injectedColor)
+      && paletteImpact.previousColor !== paletteImpact.injectedColor
+      && Number.isInteger(paletteImpact.remaining) && paletteImpact.remaining >= 0 && paletteImpact.remaining <= 2
+      && (paletteImpact.kind === "random" ? paletteImpact.remaining === 1
+        : paletteImpact.kind === "chosen" ? paletteImpact.remaining === 2 : paletteImpact.remaining === 0)
+      && (paletteImpact.actor === undefined || ["A", "B"].includes(paletteImpact.actor))
+      && (paletteImpact.skill === undefined || ["colorPaletteChange", "disruptPaletteRandom", "disruptPaletteChoice", "disruptForcedPalette"].includes(paletteImpact.skill))
+      && ((paletteImpact.kind !== "self" && paletteImpact.actor === undefined && paletteImpact.skill === undefined)
+        || (paletteImpact.actor === (paletteImpact.kind === "self" ? seat : other(seat))
+          && paletteImpact.skill === ({ self: "colorPaletteChange", random: "disruptPaletteRandom", chosen: "disruptPaletteChoice", forced: "disruptForcedPalette" })[paletteImpact.kind]))), "INVALID_PALETTE_IMPACT_EVENT");
+    const paletteHistory = state.privateEffects?.[seat]?.paletteImpactHistory;
+    assertState(paletteHistory === undefined || (Array.isArray(paletteHistory) && paletteHistory.length <= PALETTE_IMPACT_HISTORY_LIMIT
+      && new Set(paletteHistory.map((event) => event?.eventId)).size === paletteHistory.length
+      && paletteHistory.every((event, index) => event && typeof event === "object" && !Array.isArray(event)
+        && Number.isSafeInteger(event.version) && event.version >= 1 && event.version <= state.version
+        && event.eventId === `${state.matchId}:${event.version}:palette-impact:${seat}`
+        && ["self", "random", "chosen", "forced"].includes(event.kind)
+        && Number.isInteger(event.slot) && event.slot >= 0 && event.slot <= 2
+        && COLORS.includes(event.previousColor) && COLORS.includes(event.injectedColor) && event.previousColor !== event.injectedColor
+        && Number.isInteger(event.remaining) && (event.kind === "random" ? event.remaining === 1
+          : event.kind === "chosen" ? event.remaining === 2 : event.remaining === 0)
+        && event.actor === (event.kind === "self" ? seat : other(seat))
+        && event.skill === ({ self: "colorPaletteChange", random: "disruptPaletteRandom", chosen: "disruptPaletteChoice", forced: "disruptForcedPalette" })[event.kind]
+        && (index === 0 || paletteHistory[index - 1].version < event.version))
+      && (!paletteHistory.length || (paletteImpact && ["eventId", "version", "actor", "skill", "kind", "slot", "previousColor", "injectedColor", "remaining"]
+        .every((key) => paletteHistory.at(-1)[key] === paletteImpact[key])))), "INVALID_PALETTE_IMPACT_HISTORY");
+  }
+  if (state.status === "FINISHED") assertState(state.phase === "GAME_OVER" && ["A", "B"].includes(state.winner) && FINISHED_STATE_TERMINAL_REASONS.includes(state.terminalReason), "INVALID_TERMINAL_STATE");
+  if (state.phase === "GAME_OVER") assertState(state.status === "FINISHED", "INVALID_TERMINAL_STATE");
+  return true;
+}
+
+function projectStandardPublicState(state) {
+  validateStandardState(state);
+  const keys = ["schemaVersion", "engineVersion", "mode", "matchId", "status", "version", "turn", "active", "phase", "regions", "pending", "reserved", "preparedOutgoing", "playableBounds", "trophyTargetMacros", "requiredSize", "rolledSize", "baseRequiredSize", "publicEffects", "interferenceLock", "winner", "terminalReason", "lastPublicTrace", "publicLog"];
+  if (usesSkillCategoryWindow(state.engineVersion)) keys.push("skillCategoryWindow");
+  if (Object.hasOwn(state, "retainedSplit")) keys.push("retainedSplit");
+  return Object.freeze({ ...Object.fromEntries(keys.map((key) => [key, clone(key === "trophyTargetMacros"
+    ? (state.trophyTargetMacros || playableMacroIndices(state.playableBounds))
+    : key === "lastPublicTrace" ? (state.lastPublicTrace ?? null) : state[key])] )),
+    ...(usesTechniques(state.engineVersion) ? { techniqueRule: clone(state.techniqueRule), techniques: projectTechniques(state) } : {}),
+  });
+}
+
+function projectStandardPrivateState(state, seat) {
+  validateStandardState(state);
+  assertState(seat === "A" || seat === "B", "NOT_A_PLAYER");
+  return Object.freeze({
+    seat,
+    initialBasicPalette: state.initialPalettes?.[seat] ? clone(state.initialPalettes[seat].basic) : null,
+    initialBonusColor: state.initialPalettes?.[seat]?.bonus || null,
+    basicPalette: clone(state.basicPalettes[seat]),
+    bonusColor: state.bonusColors[seat],
+    bonusUsesRemaining: state.bonusUsesRemaining[seat],
+    hand: clone(state.hands[seat]),
+    loadout: clone(state.loadouts[seat]),
+    privateEffects: clone(state.privateEffects[seat]),
+    ...(usesTechniques(state.engineVersion) ? { technique: projectTechniques(state)[seat] } : {}),
+  });
+}
+
+function isMapCompleteWin(state) {
+  validateStandardState(state);
+  if (state.status !== "FINISHED" || state.terminalReason !== "BOARD_LOCK" || !["A", "B"].includes(state.winner)) return false;
+  const coloredOwners = new Set(Object.values(state.regions).filter((region) => region.color).flatMap((region) => region.micro || []));
+  for (const macro of state.trophyTargetMacros || playableMacroIndices(state.playableBounds)) {
+    if (macroMicroCells(macro, state.playableBounds, state.microWidth).some((cell) => !coloredOwners.has(cell))) return false;
+  }
+  return Object.values(state.regions).every((region) => Boolean(region.color) && !region.isPending);
+}
+
+function regionNumber(id) {
+  const match = String(id).match(/(\d+)/);
+  return match ? Number(match[1]) : 0;
+}
+
+function isConnected(cellsInput, width) {
+  if (!cellsInput.length) return false;
+  const cells = new Set(cellsInput);
+  const seen = new Set([cellsInput[0]]);
+  const queue = [cellsInput[0]];
+  while (queue.length) {
+    const cell = queue.shift();
+    const x = cell % width;
+    const neighbors = [cell - width, cell + width];
+    if (x > 0) neighbors.push(cell - 1);
+    if (x < width - 1) neighbors.push(cell + 1);
+    for (const neighbor of neighbors) if (cells.has(neighbor) && !seen.has(neighbor)) { seen.add(neighbor); queue.push(neighbor); }
+  }
+  return seen.size === cells.size;
+}
+
+function connectedComponents(cellsInput, width) {
+  const remaining = new Set(cellsInput);
+  const parts = [];
+  while (remaining.size) {
+    const start = Math.min(...remaining);
+    const part = [];
+    const queue = [start];
+    remaining.delete(start);
+    while (queue.length) {
+      const cell = queue.shift();
+      part.push(cell);
+      const x = cell % width;
+      const neighbors = [cell - width, cell + width];
+      if (x > 0) neighbors.push(cell - 1);
+      if (x < width - 1) neighbors.push(cell + 1);
+      for (const neighbor of neighbors) if (remaining.delete(neighbor)) queue.push(neighbor);
+    }
+    parts.push(part.sort((left, right) => left - right));
+  }
+  return parts.sort((left, right) => left[0] - right[0]);
+}
+
+function sourceMacrosFromMicro(cells, state) {
+  const scale = state.playableBounds.microScale;
+  const macroWidth = state.playableBounds.macroWidth;
+  return [...new Set(cells.map((cell) => {
+    const x = cell % state.microWidth;
+    const y = Math.floor(cell / state.microWidth);
+    return Math.floor(y / scale) * macroWidth + Math.floor(x / scale);
+  }))].sort((left, right) => left - right);
+}
+
+function geometryTouchesExisting(micro, regions, microWidth) {
+  const shape = new Set(micro);
+  const occupied = new Set(Object.values(regions).flatMap((region) => region.micro || []));
+  for (const cell of shape) {
+    const x = cell % microWidth;
+    const neighbors = [cell - microWidth, cell + microWidth];
+    if (x > 0) neighbors.push(cell - 1);
+    if (x < microWidth - 1) neighbors.push(cell + 1);
+    if (neighbors.some((neighbor) => !shape.has(neighbor) && occupied.has(neighbor))) return true;
+  }
+  return false;
+}
+
+function transferPreparedIntrusions(state, micro, firstSplitNumber) {
+  const owners = new Map(Object.values(state.regions).flatMap((region) => (region.micro || []).map((cell) => [cell, region.id])));
+  const donors = new Set();
+  for (const cell of micro) {
+    const donorId = owners.get(cell);
+    if (!donorId) continue;
+    assertState(Boolean(state.regions[donorId]?.color), "PREPARED_OVERLAP_UNCOLORED");
+    state.regions[donorId].micro = state.regions[donorId].micro.filter((candidate) => candidate !== cell);
+    donors.add(donorId);
+  }
+  let nextNumber = firstSplitNumber;
+  let splitCount = 0;
+  let removedCount = 0;
+  for (const donorId of [...donors].sort((left, right) => regionNumber(left) - regionNumber(right))) {
+    const donor = state.regions[donorId];
+    if (!donor.micro.length) {
+      delete state.regions[donorId];
+      removedCount += 1;
+      continue;
+    }
+    const parts = connectedComponents(donor.micro, state.microWidth);
+    donor.micro = parts[0];
+    donor.sourceMacros = sourceMacrosFromMicro(parts[0], state);
+    for (const part of parts.slice(1)) {
+      const id = `R${nextNumber}`;
+      nextNumber += 1;
+      state.regions[id] = {
+        ...donor,
+        id,
+        micro: part,
+        sourceMacros: sourceMacrosFromMicro(part, state),
+        controllers: [...(donor.controllers || [])],
+        isPending: false,
+        isReserved: false,
+      };
+      splitCount += 1;
+    }
+  }
+  return Object.freeze({ donorCount: donors.size, splitCount, removedCount });
+}
+
+function macroMicroCells(macro, bounds, microWidth) {
+  const macroWidth = bounds.macroWidth;
+  const scale = bounds.microScale;
+  const col = macro % macroWidth;
+  const row = Math.floor(macro / macroWidth);
+  const result = [];
+  for (let dy = 0; dy < scale; dy += 1) {
+    for (let dx = 0; dx < scale; dx += 1) result.push((row * scale + dy) * microWidth + col * scale + dx);
+  }
+  return result;
+}
+
+function hasLegalRegionOfSize(state, size) {
+  if (!Number.isInteger(size) || size < 1) return false;
+  const bounds = state.playableBounds;
+  const width = bounds.macroWidth;
+  const geometry = createRegionGeometryContext(state);
+  const free = [];
+  for (let row = bounds.minRow; row <= bounds.maxRow; row += 1) {
+    for (let col = bounds.minCol; col <= bounds.maxCol; col += 1) {
+      const macro = row * width + col;
+      if (geometry.analyze([macro]).everyMacroHasFree) free.push(macro);
+    }
+  }
+  if (free.length < size) return false;
+  const freeSet = new Set(free);
+  const seen = new Set();
+  function search(selected, frontier) {
+    const signature = [...selected].sort((a, b) => a - b).join(",");
+    if (seen.has(signature)) return false;
+    seen.add(signature);
+    if (selected.size === size) {
+      const candidate = geometry.analyze([...selected].sort((left, right) => left - right));
+      return candidate.everyMacroHasFree && candidate.connected
+        && (!Object.keys(state.regions).length || candidate.touchesExisting);
+    }
+    for (const macro of frontier) {
+      const nextSelected = new Set(selected).add(macro);
+      const nextFrontier = new Set(frontier);
+      nextFrontier.delete(macro);
+      const col = macro % width;
+      const around = [macro - width, macro + width];
+      if (col > 0) around.push(macro - 1);
+      if (col < width - 1) around.push(macro + 1);
+      for (const next of around) if (freeSet.has(next) && !nextSelected.has(next)) nextFrontier.add(next);
+      if (search(nextSelected, nextFrontier)) return true;
+    }
+    return false;
+  }
+  for (const start of free) {
+    const col = start % width;
+    const around = [start - width, start + width];
+    if (col > 0) around.push(start - 1);
+    if (col < width - 1) around.push(start + 1);
+    if (search(new Set([start]), new Set(around.filter((macro) => freeSet.has(macro))))) return true;
+  }
+  return false;
+}
+
+function bestLegalSize(state, maximum) {
+  for (let size = maximum; size >= 1; size -= 1) if (hasLegalRegionOfSize(state, size)) return size;
+  return 0;
+}
+
+function createRegion(state, actor, payload = {}, rngStreams = {}) {
+  assertState(state.active === actor, "NOT_YOUR_TURN");
+  assertState(state.phase === "CREATE_FIRST" || state.phase === "WORK", "WRONG_PHASE");
+  assertState(!state.pending, "PENDING_EXISTS");
+  const rawSourceMacros = Array.isArray(payload.sourceMacros) ? payload.sourceMacros : [];
+  const sourceMacros = [...new Set(rawSourceMacros)].sort((a, b) => a - b);
+  assertState(rawSourceMacros.length === sourceMacros.length, "DUPLICATE_REGION_CELL");
+  const prepared = state.preparedOutgoing;
+  if (prepared) {
+    assertState(prepared.actor === actor, "PREPARED_WRONG_ACTOR");
+    assertState(JSON.stringify(sourceMacros) === JSON.stringify(prepared.sourceMacros), "PREPARED_SELECTION_MISMATCH");
+  }
+  assertState(sourceMacros.length === state.requiredSize, "WRONG_REGION_SIZE");
+  const bounds = state.playableBounds;
+  assertState(sourceMacros.every((macro) => {
+    if (!Number.isInteger(macro) || macro < 0) return false;
+    const col = macro % bounds.macroWidth;
+    const row = Math.floor(macro / bounds.macroWidth);
+    return col >= bounds.minCol && col <= bounds.maxCol && row >= bounds.minRow && row <= bounds.maxRow;
+  }), "OUTSIDE_PLAYABLE_BOUNDS");
+  assertState(isConnected(sourceMacros, bounds.macroWidth), "REGION_NOT_CONNECTED");
+  const candidate = prepared ? null : createRegionGeometryContext(state).analyze(sourceMacros);
+  const micro = prepared ? [...prepared.micro] : [...candidate.micro];
+  if (!prepared) assertState(candidate.everyMacroHasFree, "REGION_OVERLAP");
+  assertState(isConnected(micro, state.microWidth), "REGION_NOT_CONNECTED");
+  if (Object.keys(state.regions).length) {
+    assertState(prepared ? geometryTouchesExisting(micro, state.regions, state.microWidth) : candidate.touchesExisting, "REGION_NOT_ADJACENT");
+  }
+  const idNumber = Math.max(0, ...Object.keys(state.regions).map(regionNumber)) + 1;
+  const id = `R${idNumber}`;
+  const next = clone(state);
+  const intrusion = prepared ? transferPreparedIntrusions(next, micro, idNumber + 1) : { donorCount: 0, splitCount: 0, removedCount: 0 };
+  next.regions[id] = { id, micro, sourceMacros, controllers: [actor], color: null, isPending: true };
+  next.pending = id;
+  next.preparedOutgoing = null;
+  next.active = other(actor);
+  next.phase = "COLOR";
+  next.turn += 1;
+  next.interferenceLock = false;
+  next.version += 1;
+  next.publicLog.push(`T${next.turn - 1} Player ${actor} created ${id}${intrusion.donorCount ? ` with ${intrusion.donorCount} colored-region intrusion${intrusion.splitCount ? ` and ${intrusion.splitCount} donor split` : ""}${intrusion.removedCount ? ` and ${intrusion.removedCount} donor removal` : ""}` : ""}; Player ${next.active} must color it.`);
+  applyCurseBacklashOnEnterColor(next, next.active, () => nextRandom(rngStreams, "skill-effect"));
+  if (next.engineVersion === LEGACY_ENGINE_VERSION) finishNoColorOnEntry(next, next.active);
+  const contactColorCount = new Set(adjacentRegionIds(next, id)
+    .map((regionId) => next.regions[regionId])
+    .filter((region) => region && !region.isPending && region.color)
+    .map((region) => region.color)).size;
+  next.lastPublicTrace = {
+    eventId: `${next.matchId}:${next.version}`,
+    version: next.version,
+    type: "CREATE_REGION",
+    actor,
+    regionId: id,
+    sourceMacroCount: sourceMacros.length,
+    contactColorCount,
+  };
+  return { ok: true, code: "OK", state: next, regionId: id, contactColorCount };
+}
+
+function availableColors(state, actor) {
+  const colors = new Set(state.basicPalettes[actor]);
+  if (state.bonusUsesRemaining[actor] > 0) colors.add(state.bonusColors[actor]);
+  for (const color of state.privateEffects[actor]?.temporaryColors || []) colors.add(color);
+  if (state.privateEffects[actor]?.prism) for (const color of COLORS) colors.add(color);
+  const seals = state.publicEffects?.[actor]?.seals || {};
+  return [...colors].filter((color) => !(seals[color] > 0));
+}
+
+function noColorTerminalReason(state, actor) {
+  const usable = availableColors(state, actor);
+  const blocked = new Set(adjacentRegionIds(state, state.pending).map((id) => state.regions[id]?.color).filter(Boolean));
+  if (!usable.every((color) => blocked.has(color))) return null;
+  return usable.length === 0 ? "SEALED_OUT" : "NO_LEGAL_COLOR";
+}
+
+function finishNoColorOnEntry(state, actor, logMessage = `Player ${actor} has no usable color.`) {
+  const reason = noColorTerminalReason(state, actor);
+  if (!reason) return false;
+  if (state.privateEffects[actor]?.temporaryColors) delete state.privateEffects[actor].temporaryColors;
+  state.status = "FINISHED";
+  state.phase = "GAME_OVER";
+  state.winner = other(actor);
+  state.terminalReason = reason;
+  state.publicLog.push(logMessage);
+  return true;
+}
+
+function colorRegion(state, actor, payload = {}, rngStreams = {}) {
+  assertState(state.active === actor, "NOT_YOUR_TURN");
+  assertState(state.phase === "COLOR" && state.pending, "WRONG_PHASE");
+  const color = payload.color;
+  assertState(COLORS.includes(color) && availableColors(state, actor).includes(color), "COLOR_UNAVAILABLE");
+  const next = clone(state);
+  if (adjacentRegionIds(state, state.pending).some((id) => state.regions[id].color === color)) {
+    if (next.privateEffects[actor]?.prism) delete next.privateEffects[actor].prism;
+    if (next.privateEffects[actor]?.temporaryColors) delete next.privateEffects[actor].temporaryColors;
+    next.status = "FINISHED";
+    next.phase = "GAME_OVER";
+    next.winner = other(actor);
+    next.terminalReason = "ILLEGAL_COLOR";
+    delete next.retainedSplit;
+    next.version += 1;
+    next.publicLog.push(`T${next.turn} Player ${actor} lost by illegal coloring.`);
+    return { ok: true, code: "ILLEGAL_COLOR", state: next };
+  }
+  const target = next.regions[next.pending];
+  target.color = color;
+  target.isPending = false;
+  if (!target.controllers.includes(actor)) target.controllers.push(actor);
+  const prism = Boolean(next.privateEffects[actor]?.prism);
+  const temporary = (next.privateEffects[actor]?.temporaryColors || []).includes(color);
+  const hasUnlimitedBasicSlot = next.basicPalettes[actor].includes(color);
+  if (!prism && !temporary && !hasUnlimitedBasicSlot && color === next.bonusColors[actor]) next.bonusUsesRemaining[actor] -= 1;
+  if (prism) delete next.privateEffects[actor].prism;
+  if (next.privateEffects[actor]?.temporaryColors) delete next.privateEffects[actor].temporaryColors;
+  consumeDeferredCurseBacklashAfterColor(next, actor);
+  tickSealsAfterColor(next, actor);
+  tickPaletteDebuffsAfterColor(next, actor);
+  if (next.reserved) {
+    const keep = next.retainedSplit?.stage === "FIRST";
+    const returnedId = next.reserved;
+    const returned = next.regions[returnedId];
+    next.reserved = null;
+    returned.isReserved = false;
+    returned.isPending = true;
+    next.pending = returnedId;
+    next.active = keep ? actor : other(actor);
+    next.phase = "COLOR";
+    if (keep) next.retainedSplit.stage = "SECOND";
+    else {
+      next.turn += 1;
+      next.interferenceLock = false;
+      applyCurseBacklashOnEnterColor(next, next.active, () => nextRandom(rngStreams, "skill-effect"));
+    }
+    next.version += 1;
+    next.lastPublicTrace = {
+      eventId: `${next.matchId}:${next.version}`,
+      version: next.version,
+      type: "COLOR_REGION",
+      actor,
+      regionId: target.id,
+      color: target.color,
+    };
+    next.publicLog.push(keep
+      ? `Player ${actor} colored ${target.id}; Player ${actor} must also color split region ${returnedId}.`
+      : `Player ${actor} colored ${target.id}; split region ${returnedId} returned to Player ${next.active}.`);
+    if (next.engineVersion === LEGACY_ENGINE_VERSION) finishNoColorOnEntry(next, next.active);
+    return { ok: true, code: "OK", state: next, returnedRegionId: returnedId };
+  }
+  next.pending = null;
+  delete next.retainedSplit;
+  next.phase = "WORK";
+  next.rolledSize = DIE_POOL[Math.floor(nextRandom(rngStreams, "die") * DIE_POOL.length)];
+  next.baseRequiredSize = bestLegalSize(next, next.rolledSize);
+  next.requiredSize = next.baseRequiredSize;
+  if (next.requiredSize <= 0) {
+    next.status = "FINISHED";
+    next.phase = "GAME_OVER";
+    next.winner = actor;
+    next.terminalReason = "BOARD_LOCK";
+  }
+  next.version += 1;
+  next.lastPublicTrace = {
+    eventId: `${next.matchId}:${next.version}`,
+    version: next.version,
+    type: "COLOR_REGION",
+    actor,
+    regionId: target.id,
+    color: target.color,
+  };
+  next.publicLog.push(`Player ${actor} colored ${target.id}.`);
+  return { ok: true, code: "OK", state: next };
+}
+
+function surrender(state, actor) {
+  assertState(state.active === actor, "NOT_YOUR_TURN");
+  const next = clone(state);
+  if (next.privateEffects[actor]?.temporaryColors) delete next.privateEffects[actor].temporaryColors;
+  next.preparedOutgoing = null;
+  next.status = "FINISHED";
+  next.phase = "GAME_OVER";
+  next.winner = other(actor);
+  next.terminalReason = "SURRENDER";
+  delete next.retainedSplit;
+  next.version += 1;
+  next.publicLog.push(`Player ${actor} surrendered.`);
+  return { ok: true, code: "OK", state: next };
+}
+
+function declareNoColor(state, actor) {
+  assertState(state.engineVersion === LEGACY_ENGINE_VERSION, "NO_COLOR_DECLARATION_RETIRED");
+  assertState(state.active === actor, "NOT_YOUR_TURN");
+  assertState(state.phase === "COLOR", "WRONG_PHASE");
+  assertState(Boolean(noColorTerminalReason(state, actor)), "COLOR_AVAILABLE");
+  const next = clone(state);
+  finishNoColorOnEntry(next, actor, `Player ${actor} declared no usable color.`);
+  next.version += 1;
+  return { ok: true, code: "OK", state: next };
+}
+
+function applyStandardAction({ state, actor, action, expectedVersion, rngStreams = {} }) {
+  validateStandardState(state);
+  if (expectedVersion !== state.version) return fail("VERSION_CONFLICT", state);
+  if (!action || !ACTIONS.includes(action.type)) return fail("UNKNOWN_ACTION", state);
+  if (state.status === "FINISHED") return fail("MATCH_FINISHED", state);
+  try {
+    let result;
+    if (action.type === "CREATE_REGION") result = createRegion(state, actor, action.payload, rngStreams);
+    else if (action.type === "COLOR_REGION") result = colorRegion(state, actor, action.payload, rngStreams);
+    else if (action.type === "DECLARE_NO_COLOR") result = declareNoColor(state, actor);
+    else if (action.type === "SURRENDER") result = surrender(state, actor);
+    else {
+      result = dispatchStandardSkillAction({
+        state,
+        actor,
+        action,
+        expectedVersion,
+        rngStreams,
+        validateState: validateStandardState,
+        projectPublic: projectStandardPublicState,
+        projectPrivate: projectStandardPrivateState,
+        hasLegalRegionOfSize,
+        bestLegalSize,
+        enforceUsageCategory: usesSkillCategoryWindow(state.engineVersion),
+      });
+      if (result.ok) {
+        const next = clone(result.state);
+        next.lastPublicTrace = action.payload.skill === "legalRecolor" ? {
+          eventId: `${next.matchId}:${next.version}`,
+          version: next.version,
+          type: "LEGAL_RECOLOR",
+          actor,
+          regionId: action.payload.regionId,
+          color: result.color,
+        } : {
+          eventId: `${next.matchId}:${next.version}`,
+          version: next.version,
+          type: "USE_SKILL",
+          actor,
+        };
+        result = {
+          ...result,
+          state: next,
+          publicState: projectStandardPublicState(next),
+          privateState: projectStandardPrivateState(next, actor),
+        };
+      }
+    }
+    if (result.ok) {
+      if (usesSkillCategoryWindow(result.state.engineVersion) && result.state.active !== state.active) {
+        const next = clone(result.state);
+        next.skillCategoryWindow = { actor: next.active, categories: [] };
+        result = {
+          ...result,
+          state: next,
+          ...(result.publicState ? { publicState: projectStandardPublicState(next) } : {}),
+          ...(result.privateState ? { privateState: projectStandardPrivateState(next, actor) } : {}),
+        };
+      }
+      assertState(result.state.version === state.version + 1, "VERSION_INCREMENT_INVARIANT");
+      validateStandardState(result.state);
+    }
+    return Object.freeze(result);
+  } catch (error) {
+    if (error instanceof StandardRuleError) return fail(error.code, state);
+    throw error;
+  }
+}
+
+function encodeStandardMatch(state, rngSnapshot) {
+  validateStandardState(state);
+  return JSON.stringify({ schemaVersion: SCHEMA_VERSION, state, rngSnapshot: clone(rngSnapshot || {}) });
+}
+
+function decodeStandardMatch(payload) {
+  const decoded = typeof payload === "string" ? JSON.parse(payload) : clone(payload);
+  assertState(decoded?.schemaVersion === SCHEMA_VERSION, "INVALID_SAVE_SCHEMA");
+  validateStandardState(decoded.state);
+  return Object.freeze({ state: decoded.state, rngSnapshot: decoded.rngSnapshot || {} });
+}
+
+module.exports = {
+  ACTIONS,
+  BONUS_USE_POOL,
+  CATEGORY_WINDOW_ENGINE_VERSION,
+  DIE_POOL,
+  ENGINE_VERSION,
+  LEGACY_ENGINE_VERSION,
+  PREVIOUS_ENGINE_VERSION,
+  ENGINE_TERMINAL_REASONS,
+  FINISHED_STATE_TERMINAL_REASONS,
+  PHASES,
+  REQUIRED_RNG_STREAMS,
+  SAVE_KEY,
+  SCHEMA_VERSION,
+  SUPPORTED_ENGINE_VERSIONS,
+  TERMINAL_REASONS,
+  applyStandardAction,
+  createStandardMatch,
+  decodeStandardMatch,
+  encodeStandardMatch,
+  isMapCompleteWin,
+  projectStandardPrivateState,
+  projectStandardPublicState,
+  validateStandardState,
+};
+
+},
+"standard/standard-match-reward.js":function(require,module,exports){
+"use strict";
+
+const ECONOMY_VERSION = "standard-match-reward-v2";
+const PVP_REWARD_WINDOW_MS = 60 * 60 * 1000;
+const PVP_REWARD_LIMIT = 10;
+
+const CPU_REWARD_BANDS = Object.freeze({
+  yuzu: Object.freeze({ ticketLevel: 1, ticketCount: 2, band: "BEGINNER" }),
+  ren: Object.freeze({ ticketLevel: 2, ticketCount: 1, band: "STANDARD" }),
+  minato: Object.freeze({ ticketLevel: 2, ticketCount: 1, band: "STANDARD" }),
+  koharu: Object.freeze({ ticketLevel: 2, ticketCount: 1, band: "STANDARD" }),
+  aoi: Object.freeze({ ticketLevel: 2, ticketCount: 1, band: "STANDARD" }),
+  kai: Object.freeze({ ticketLevel: 2, ticketCount: 1, band: "STANDARD" }),
+  tsubasa: Object.freeze({ ticketLevel: 2, ticketCount: 2, band: "ADVANCED" }),
+  shion: Object.freeze({ ticketLevel: 2, ticketCount: 2, band: "ADVANCED" }),
+  rei: Object.freeze({ ticketLevel: 2, ticketCount: 2, band: "ADVANCED" }),
+  kurogane: Object.freeze({ ticketLevel: 3, ticketCount: 2, band: "MASTER" }),
+});
+
+function clone(value) { return JSON.parse(JSON.stringify(value)); }
+
+function rewardError(code) {
+  throw Object.assign(new Error(code), { code });
+}
+
+function isFiniteDate(value) {
+  return typeof value === "string" && Number.isFinite(Date.parse(value));
+}
+
+function validateMatchReward(reward) {
+  if (!reward || typeof reward !== "object" || Array.isArray(reward)) rewardError("INVALID_MATCH_REWARD");
+  if (reward.economyVersion !== ECONOMY_VERSION || !["pvp", "cpu"].includes(reward.mode)
+      || typeof reward.awarded !== "boolean" || typeof reward.reason !== "string") rewardError("INVALID_MATCH_REWARD");
+  if (reward.awarded) {
+    if (!Number.isSafeInteger(reward.ticketLevel) || reward.ticketLevel < 1 || reward.ticketLevel > 5
+        || !Number.isSafeInteger(reward.ticketCount) || reward.ticketCount < 1 || reward.ticketCount > 2) rewardError("INVALID_MATCH_REWARD");
+  } else if (reward.ticketLevel !== null || reward.ticketCount !== 0 || reward.reason !== "PVP_REWARD_LIMIT") {
+    rewardError("INVALID_MATCH_REWARD");
+  }
+  if (reward.mode === "pvp") {
+    if (!Number.isSafeInteger(reward.rewardedPvpMatchesInWindow)
+        || reward.rewardedPvpMatchesInWindow < 0 || reward.rewardedPvpMatchesInWindow > PVP_REWARD_LIMIT) rewardError("INVALID_MATCH_REWARD");
+    if (reward.cpuCharacterId !== null || reward.cpuBand !== null) rewardError("INVALID_MATCH_REWARD");
+    if (reward.awarded) {
+      const expected = reward.reason === "PVP_WIN" ? [2, 1] : reward.reason === "PVP_LOSS" ? [1, 1] : null;
+      if (!expected || reward.ticketLevel !== expected[0] || reward.ticketCount !== expected[1]) rewardError("INVALID_MATCH_REWARD");
+    }
+  } else if (reward.rewardedPvpMatchesInWindow !== null || !Object.hasOwn(CPU_REWARD_BANDS, reward.cpuCharacterId)) {
+    rewardError("INVALID_MATCH_REWARD");
+  } else {
+    const band = CPU_REWARD_BANDS[reward.cpuCharacterId];
+    const won = reward.reason === `CPU_WIN_${band.band}`;
+    const lost = reward.reason === "CPU_LOSS";
+    if ((!won && !lost) || reward.cpuBand !== band.band
+        || reward.ticketLevel !== (won ? band.ticketLevel : 1)
+        || reward.ticketCount !== (won ? band.ticketCount : 1)) rewardError("INVALID_MATCH_REWARD");
+  }
+  return true;
+}
+
+function priorRewardedPvpMatches(profile, finishedAt, matchId) {
+  const cutoff = Date.parse(finishedAt) - PVP_REWARD_WINDOW_MS;
+  return (profile.matchHistory || []).filter((entry) => entry?.matchId !== matchId
+    && entry?.matchReward?.economyVersion === ECONOMY_VERSION
+    && entry.matchReward.mode === "pvp"
+    && entry.matchReward.awarded === true
+    && isFiniteDate(entry.endedAt)
+    && Date.parse(entry.endedAt) > cutoff
+    && Date.parse(entry.endedAt) <= Date.parse(finishedAt)).length;
+}
+
+function quoteMatchReward({ profile, matchId, won, opponentKind, cpuCharacterId = null, finishedAt }) {
+  if (!profile || typeof profile !== "object" || !Array.isArray(profile.matchHistory)
+      || typeof matchId !== "string" || !matchId || typeof won !== "boolean" || !isFiniteDate(finishedAt)) rewardError("INVALID_MATCH_REWARD_INPUT");
+  if (opponentKind === "pvp") {
+    const previous = priorRewardedPvpMatches(profile, finishedAt, matchId);
+    const awarded = previous < PVP_REWARD_LIMIT;
+    const reward = {
+      economyVersion: ECONOMY_VERSION,
+      mode: "pvp",
+      awarded,
+      ticketLevel: awarded ? (won ? 2 : 1) : null,
+      ticketCount: awarded ? 1 : 0,
+      reason: awarded ? (won ? "PVP_WIN" : "PVP_LOSS") : "PVP_REWARD_LIMIT",
+      rewardedPvpMatchesInWindow: previous + (awarded ? 1 : 0),
+      cpuCharacterId: null,
+      cpuBand: null,
+    };
+    validateMatchReward(reward);
+    return Object.freeze(reward);
+  }
+  if (opponentKind !== "cpu" || !Object.hasOwn(CPU_REWARD_BANDS, cpuCharacterId)) rewardError("INVALID_MATCH_REWARD_INPUT");
+  const band = CPU_REWARD_BANDS[cpuCharacterId];
+  const reward = {
+    economyVersion: ECONOMY_VERSION,
+    mode: "cpu",
+    awarded: true,
+    ticketLevel: won ? band.ticketLevel : 1,
+    ticketCount: won ? band.ticketCount : 1,
+    reason: won ? `CPU_WIN_${band.band}` : "CPU_LOSS",
+    rewardedPvpMatchesInWindow: null,
+    cpuCharacterId,
+    cpuBand: band.band,
+  };
+  validateMatchReward(reward);
+  return Object.freeze(reward);
+}
+
+function applyMatchReward({ profile, matchId, reward }) {
+  validateMatchReward(reward);
+  const next = clone(profile);
+  const matches = next.matchHistory.filter((entry) => entry?.matchId === matchId);
+  if (matches.length !== 1 || matches[0].matchReward !== undefined) rewardError("MATCH_REWARD_ALREADY_RECORDED");
+  matches[0].matchReward = clone(reward);
+  if (reward.awarded) {
+    const key = String(reward.ticketLevel);
+    const current = next.gachaTickets?.[key] || 0;
+    if (!Number.isSafeInteger(current) || current < 0 || !Number.isSafeInteger(current + reward.ticketCount)) rewardError("TICKET_COUNT_OVERFLOW");
+    next.gachaTickets[key] = current + reward.ticketCount;
+  }
+  return Object.freeze(next);
+}
+
+module.exports = {
+  CPU_REWARD_BANDS,
+  ECONOMY_VERSION,
+  PVP_REWARD_LIMIT,
+  PVP_REWARD_WINDOW_MS,
+  applyMatchReward,
+  priorRewardedPvpMatches,
+  quoteMatchReward,
+  validateMatchReward,
+};
+
+},
+"standard/standard-skill-registry.js":function(require,module,exports){
+"use strict";
+
+const SKILL_USAGE_CATEGORIES = Object.freeze(["color", "area", "disrupt"]);
+const COLORED_CORNER_BLOOM_ENGINE_VERSION = "5.0.0-alpha.4";
+const LEARNED_TECHNIQUE_ENGINE_VERSION = "5.0.0-alpha.5";
+const SPLIT_KEEP_ENGINE_VERSION = "5.0.0-alpha.6";
+
+function supportsSplitKeep(engineVersion) {
+  return engineVersion === SPLIT_KEEP_ENGINE_VERSION;
+}
+
+// Only a new match carrying this card opts into its continuation contract.
+function engineVersionForLoadouts(loadouts, fallback) {
+  return Object.values(loadouts || {}).some((loadout) => Object.values(loadout || {}).some((ids) => Array.isArray(ids) && ids.includes("colorRegionSplitKeep")))
+    ? SPLIT_KEEP_ENGINE_VERSION : fallback;
+}
+
+function supportsColoredCornerBloom(engineVersion) {
+  return engineVersion === COLORED_CORNER_BLOOM_ENGINE_VERSION || engineVersion === LEARNED_TECHNIQUE_ENGINE_VERSION || supportsSplitKeep(engineVersion);
+}
+
+function skill(id, displayName, category, rarity, timing, options = {}) {
+  const implemented = Boolean(options.implemented);
+  const v49Catalogued = options.v49Catalogued !== false;
+  const usageCategory = options.usageCategory || category;
+  if (!SKILL_USAGE_CATEGORIES.includes(usageCategory)) throw new TypeError("INVALID_SKILL_USAGE_CATEGORY");
+  return Object.freeze({
+    id,
+    displayName,
+    category,
+    usageCategory,
+    rarity,
+    timing,
+    targetSchema: options.targetSchema ?? null,
+    implemented,
+    standardEngineImplemented: implemented,
+    alphaUiEnabled: Boolean(options.alphaUiEnabled),
+    standardUiEnabled: options.standardUiEnabled === undefined ? implemented && v49Catalogued : Boolean(options.standardUiEnabled),
+    gachaEnabled: options.gachaEnabled !== false,
+    experimental: Boolean(options.experimental),
+    privateInformationEffect: Boolean(options.privateInformationEffect),
+    rngStream: options.rngStream ?? null,
+    expectedRngDraws: options.expectedRngDraws ?? 0,
+    consumptionPolicy: options.consumptionPolicy || "RESOLVED_V49",
+    handlerVersion: options.handlerVersion ?? null,
+    v49Catalogued,
+    standardCatalogued: options.standardCatalogued === undefined ? v49Catalogued : Boolean(options.standardCatalogued),
+    ...(options.acquisitionType ? { acquisitionType: options.acquisitionType, displayRarity: options.displayRarity !== false } : {}),
+  });
+}
+
+const STANDARD_SKILLS = Object.freeze({
+  techUnsealOne: skill("techUnsealOne", "解封", "color", 1, "COLOR", {
+    targetSchema: { color: "current-owned-sealed-color" },
+    implemented: true,
+    acquisitionType: "LEARNED",
+    displayRarity: false,
+    gachaEnabled: false,
+    v49Catalogued: false,
+    standardUiEnabled: false,
+    privateInformationEffect: true,
+    consumptionPolicy: "RESOLVED_ONLY_SEPARATE_MATCH_TECHNIQUE_USE",
+    handlerVersion: "unseal-v1",
+  }),
+  colorRandomBorrow: skill("colorRandomBorrow", "色拾い・乱", "color", 1, "COLOR", {
+    implemented: true,
+    privateInformationEffect: true,
+    rngStream: "skill-effect",
+    expectedRngDraws: 1,
+    consumptionPolicy: "RESOLVED_ONLY_NO_CANDIDATE_REJECTED",
+    handlerVersion: "color-random-borrow-v1",
+  }),
+  colorChoiceBorrow: skill("colorChoiceBorrow", "色借り", "color", 2, "COLOR", {
+    targetSchema: { color: "color-id" },
+    implemented: true,
+    privateInformationEffect: true,
+    consumptionPolicy: "RESOLVED_ONLY_VALID_BOARD_COLOR",
+    handlerVersion: "color-choice-borrow-v1",
+  }),
+  colorPrism: skill("colorPrism", "四色解放", "color", 3, "COLOR", { implemented: true, handlerVersion: "color-prism-v1" }),
+  colorBonusRefill: skill("colorBonusRefill", "おまけ色補充", "color", 2, "COLOR", {
+    implemented: true,
+    alphaUiEnabled: true,
+    gachaEnabled: false,
+    experimental: true,
+    privateInformationEffect: true,
+    consumptionPolicy: "RESOLVED_ONLY_BELOW_BONUS_CAP",
+    handlerVersion: "color-bonus-refill-v1",
+    v49Catalogued: false,
+  }),
+  colorRegionSplit: skill("colorRegionSplit", "エリア二分", "color", 4, "COLOR", {
+    targetSchema: { regionId: "region-id", sourceMacros: "macro-index-array" },
+    implemented: true,
+    consumptionPolicy: "RESOLVED_ONLY_CONNECTED_BIPARTITION",
+    handlerVersion: "color-region-split-v1",
+  }),
+  colorRegionSplitKeep: skill("colorRegionSplitKeep", "エリア二分・保持", "color", 5, "COLOR", {
+    targetSchema: { regionId: "region-id", sourceMacros: "macro-index-array" },
+    implemented: true,
+    v49Catalogued: false,
+    standardCatalogued: true,
+    standardUiEnabled: true,
+    consumptionPolicy: "RESOLVED_ONLY_CONNECTED_BIPARTITION",
+    handlerVersion: "color-region-split-keep-v1",
+  }),
+  colorPaletteChange: skill("colorPaletteChange", "持ち色変更", "color", 5, "COLOR", {
+    targetSchema: { slot: "palette-slot", color: "color-id" },
+    implemented: true,
+    privateInformationEffect: true,
+    consumptionPolicy: "RESOLVED_ONLY_CHANGED_SLOT",
+    handlerVersion: "color-palette-change-v1",
+  }),
+  areaMicroBloom: skill("areaMicroBloom", "ひとふくらみ", "area", 1, "WORK", {
+    targetSchema: { sourceMacros: "macro-index-array" },
+    implemented: true,
+    rngStream: "skill-effect",
+    expectedRngDraws: 1,
+    consumptionPolicy: "RESOLVED_ONLY_POINT_CONTACT_CANDIDATE",
+    handlerVersion: "area-micro-bloom-v1",
+  }),
+  areaDiePlus: skill("areaDiePlus", "エリア拡張", "area", 2, "WORK", {
+    implemented: true,
+    consumptionPolicy: "RESOLVED_ONLY_LEGAL_SIZE_PLUS_ONE",
+    handlerVersion: "area-die-plus-v1",
+  }),
+  areaResize: skill("areaResize", "拡大縮小", "area", 3, "WORK", {
+    targetSchema: { mode: "expand-or-shrink", side: "board-side" },
+    implemented: true,
+    consumptionPolicy: "RESOLVED_ONLY_AVAILABLE_BOARD_SIDE",
+    handlerVersion: "area-resize-v1",
+  }),
+  areaCornerBloom: skill("areaCornerBloom", "角膨張", "area", 4, "WORK", {
+    targetSchema: {
+      outgoing: { sourceMacros: "macro-index-array", macro: "macro-index" },
+      coloredRegionAlpha4: { regionId: "region-id", macro: "macro-index" },
+    },
+    implemented: true,
+    consumptionPolicy: "RESOLVED_ONLY_AVAILABLE_CORNER_EXPANSION",
+    handlerVersion: "area-corner-bloom-v2",
+  }),
+  areaHalfShift: skill("areaHalfShift", "半マスシフト", "area", 4, "WORK", { targetSchema: { axis: "row-or-column", index: "integer", direction: "minus-or-plus" }, implemented: true, handlerVersion: "area-half-shift-v1" }),
+  areaTripleShift: skill("areaTripleShift", "三層断層", "area", 5, "WORK", {
+    targetSchema: { axis: "row-or-column", index: "integer", direction: "minus-or-plus" },
+    implemented: true,
+    consumptionPolicy: "RESOLVED_ONLY_CONNECTED_THREE_BAND_SHIFT",
+    handlerVersion: "area-triple-shift-v1",
+  }),
+  disruptRandomOne: skill("disruptRandomOne", "色封じ・乱", "disrupt", 1, "WORK", {
+    implemented: true,
+    rngStream: "skill-effect",
+    expectedRngDraws: 1,
+    consumptionPolicy: "RESOLVED_RANDOM_COLOR_INCLUDING_MISS",
+    handlerVersion: "disrupt-random-one-v1",
+  }),
+  disruptChoiceOne: skill("disruptChoiceOne", "色封じ", "disrupt", 2, "WORK", { targetSchema: { color: "color-id" }, privateInformationEffect: true, implemented: true, handlerVersion: "disrupt-choice-one-v1" }),
+  disruptRandomTwo: skill("disruptRandomTwo", "二重封じ・乱", "disrupt", 3, "WORK", {
+    implemented: true,
+    rngStream: "skill-effect",
+    expectedRngDraws: 2,
+    consumptionPolicy: "RESOLVED_TWO_DISTINCT_RANDOM_COLORS_INCLUDING_MISS",
+    handlerVersion: "disrupt-random-two-v1",
+  }),
+  disruptPaletteRandom: skill("disruptPaletteRandom", "持ち色汚染・乱", "disrupt", 3, "WORK", {
+    implemented: true,
+    rngStream: "skill-effect",
+    expectedRngDraws: 2,
+    privateInformationEffect: true,
+    consumptionPolicy: "RESOLVED_RANDOM_COLOR_AND_PRIVATE_SLOT",
+    handlerVersion: "disrupt-palette-random-v1",
+  }),
+  disruptChoiceTwo: skill("disruptChoiceTwo", "追封", "disrupt", 4, "WORK", {
+    targetSchema: { color: "color-id" },
+    privateInformationEffect: true,
+    implemented: true,
+    consumptionPolicy: "RESOLVED_CHOSEN_COLOR_TWO_COLORINGS",
+    handlerVersion: "disrupt-choice-two-v1",
+  }),
+  disruptPaletteChoice: skill("disruptPaletteChoice", "持ち色汚染", "disrupt", 4, "WORK", {
+    targetSchema: { color: "color-id" },
+    implemented: true,
+    rngStream: "skill-effect",
+    expectedRngDraws: 1,
+    privateInformationEffect: true,
+    consumptionPolicy: "RESOLVED_CHOSEN_COLOR_AND_PRIVATE_RANDOM_SLOT",
+    handlerVersion: "disrupt-palette-choice-v1",
+  }),
+  disruptChoiceThree: skill("disruptChoiceThree", "長封", "disrupt", 5, "WORK", {
+    targetSchema: { color: "color-id" },
+    privateInformationEffect: true,
+    implemented: true,
+    consumptionPolicy: "RESOLVED_CHOSEN_COLOR_THREE_COLORINGS",
+    handlerVersion: "disrupt-choice-three-v1",
+  }),
+  disruptForcedPalette: skill("disruptForcedPalette", "強制持ち替え", "disrupt", 5, "WORK", {
+    targetSchema: { color: "color-id" },
+    implemented: true,
+    rngStream: "skill-effect",
+    expectedRngDraws: 1,
+    privateInformationEffect: true,
+    consumptionPolicy: "RESOLVED_CHOSEN_COLOR_AND_PRIVATE_RANDOM_SLOT_PERMANENT",
+    handlerVersion: "disrupt-forced-palette-v1",
+  }),
+  legalRecolor: skill("legalRecolor", "塗り直し・乱", "experimental", 3, "WORK", {
+    usageCategory: "color",
+    targetSchema: { regionId: "region-id" },
+    implemented: true,
+    alphaUiEnabled: true,
+    gachaEnabled: false,
+    experimental: true,
+    rngStream: "skill-effect",
+    expectedRngDraws: 1,
+    consumptionPolicy: "RESOLVED_ONLY_NO_CANDIDATE_REJECTED",
+    handlerVersion: "legal-recolor-v1",
+    v49Catalogued: false,
+  }),
+});
+
+const V49_SKILL_IDS = Object.freeze(Object.values(STANDARD_SKILLS).filter((entry) => entry.v49Catalogued).map((entry) => entry.id));
+const STANDARD_SKILL_IDS = Object.freeze(Object.values(STANDARD_SKILLS).filter((entry) => entry.standardCatalogued).map((entry) => entry.id));
+const IMPLEMENTED_SKILL_IDS = Object.freeze(Object.values(STANDARD_SKILLS).filter((entry) => entry.implemented).map((entry) => entry.id));
+
+module.exports = { COLORED_CORNER_BLOOM_ENGINE_VERSION, LEARNED_TECHNIQUE_ENGINE_VERSION, SPLIT_KEEP_ENGINE_VERSION, supportsSplitKeep, engineVersionForLoadouts, supportsColoredCornerBloom, IMPLEMENTED_SKILL_IDS, SKILL_USAGE_CATEGORIES, STANDARD_SKILLS, STANDARD_SKILL_IDS, V49_SKILL_IDS };
+
+},
+"standard/standard-technique-state.js":function(require,module,exports){
+"use strict";
+
+const { COLORS, StandardRuleError } = require("./standard-engine.js");
+const { LEARNED_TECHNIQUE_ENGINE_VERSION, supportsSplitKeep } = require("./standard-skill-registry.js");
+
+const TECHNIQUE_ID = "techUnsealOne";
+const TECHNIQUE_VERSION = "unseal-v1";
+const TECHNIQUE_RULES = Object.freeze({
+  DISABLED: "PVP_TECHNIQUES_DISABLED_V1",
+  CPU: "CPU_LEARNED_V1",
+  REN_TRIAL: "REN_UNSEAL_TRIAL_V1",
+});
+const clone = (value) => JSON.parse(JSON.stringify(value));
+function requireTechnique(condition, code = "INVALID_TECHNIQUE_SNAPSHOT") {
+  if (!condition) throw new StandardRuleError(code, code);
+}
+function exactKeys(value, keys) {
+  return value && typeof value === "object" && !Array.isArray(value)
+    && Object.keys(value).sort().join("|") === [...keys].sort().join("|");
+}
+function usesTechniques(engineVersion) {
+  return engineVersion === LEARNED_TECHNIQUE_ENGINE_VERSION || supportsSplitKeep(engineVersion);
+}
+
+// Internal engine input only. A server start adapter must derive these fields
+// from authoritative ownership or the fixed trial template, never action payload.
+function initialTechniqueFields(config, engineVersion) {
+  if (!usesTechniques(engineVersion)) {
+    requireTechnique(config.techniques === undefined && config.techniqueRule === undefined, "TECHNIQUE_ENGINE_UNSUPPORTED");
+    return {};
+  }
+  const fields = {
+    techniqueRule: clone(config.techniqueRule === undefined
+      ? { id: TECHNIQUE_RULES.DISABLED, playerSeat: null } : config.techniqueRule),
+    techniques: clone(config.techniques === undefined ? { A: null, B: null } : config.techniques),
+  };
+  for (const slot of Object.values(fields.techniques || {})) {
+    if (slot) requireTechnique(slot.usesRemaining === 1, "INVALID_INITIAL_TECHNIQUE_USES");
+  }
+  return fields;
+}
+function validateTechniqueState(state) {
+  if (!usesTechniques(state.engineVersion)) {
+    requireTechnique(!Object.hasOwn(state, "techniqueRule") && !Object.hasOwn(state, "techniques"), "TECHNIQUE_ENGINE_UNSUPPORTED");
+  } else {
+    const rule = state.techniqueRule;
+    requireTechnique(exactKeys(rule, ["id", "playerSeat"]) && Object.values(TECHNIQUE_RULES).includes(rule.id));
+    requireTechnique(rule.id === TECHNIQUE_RULES.DISABLED ? rule.playerSeat === null : ["A", "B"].includes(rule.playerSeat));
+    requireTechnique(exactKeys(state.techniques, ["A", "B"]));
+    for (const seat of ["A", "B"]) {
+      const slot = state.techniques[seat];
+      if (rule.id === TECHNIQUE_RULES.DISABLED || rule.id === TECHNIQUE_RULES.CPU && seat !== rule.playerSeat) {
+        requireTechnique(slot === null);
+        continue;
+      }
+      if (slot === null && rule.id === TECHNIQUE_RULES.CPU) continue;
+      const trial = rule.id === TECHNIQUE_RULES.REN_TRIAL;
+      requireTechnique(exactKeys(slot, ["id", "definitionVersion", "source", "usesRemaining", ...(trial ? ["trialId", "trialVersion"] : [])]));
+      requireTechnique(slot.id === TECHNIQUE_ID && slot.definitionVersion === TECHNIQUE_VERSION
+        && [0, 1].includes(slot.usesRemaining) && slot.source === (trial ? "TRIAL_LOAN" : "LEARNED"));
+      if (trial) requireTechnique(slot.trialId === "ren-unseal" && slot.trialVersion === 1);
+    }
+  }
+  for (const seat of ["A", "B"]) {
+    requireTechnique(!Object.hasOwn(state.hands?.[seat] || {}, TECHNIQUE_ID)
+      && !Object.values(state.loadouts?.[seat] || {}).some((ids) => Array.isArray(ids) && ids.includes(TECHNIQUE_ID)),
+    "TECHNIQUE_IN_ORDINARY_HAND");
+  }
+  return true;
+}
+function projectTechniques(state) {
+  return Object.fromEntries(["A", "B"].map((seat) => {
+    const slot = state.techniques[seat];
+    return [seat, slot === null ? null : { id: slot.id, definitionVersion: slot.definitionVersion, usesRemaining: slot.usesRemaining }];
+  }));
+}
+function techniqueAvailable(state, actor, id) {
+  return usesTechniques(state.engineVersion) && state.techniques?.[actor]?.id === id
+    && state.techniques[actor].usesRemaining === 1;
+}
+function applyTechUnsealOne({ state, actor, payload }) {
+  if (!techniqueAvailable(state, actor, TECHNIQUE_ID)) return { ok: false, code: "TECHNIQUE_UNAVAILABLE", state };
+  const color = payload.color;
+  if (!COLORS.includes(color)) return { ok: false, code: "INVALID_TARGET_SCHEMA", state };
+  if (![...state.basicPalettes[actor], state.bonusColors[actor]].includes(color)) {
+    return { ok: false, code: "TECHNIQUE_COLOR_NOT_OWNED", state };
+  }
+  const seal = state.publicEffects?.[actor]?.seals?.[color];
+  if (!Number.isSafeInteger(seal) || seal <= 0) return { ok: false, code: "TECHNIQUE_COLOR_NOT_SEALED", state };
+  const next = clone(state);
+  next.publicEffects[actor].seals[color] = 0;
+  next.techniques[actor].usesRemaining = 0;
+  next.skillsUsed[actor] = (next.skillsUsed[actor] || 0) + 1;
+  next.version += 1;
+  next.publicLog.push("T" + next.turn + " Player " + actor + " used learned technique 解封.");
+  return Object.freeze({ ok: true, code: "OK", state: next, cardConsumed: false, techniqueConsumed: true });
+}
+module.exports = {
+  TECHNIQUE_ID, TECHNIQUE_VERSION, TECHNIQUE_RULES, usesTechniques,
+  initialTechniqueFields, validateTechniqueState, projectTechniques, techniqueAvailable, applyTechUnsealOne,
+};
+
+},
+"standard/standard-skill-handlers.js":function(require,module,exports){
+"use strict";
+
+const { COLORS, StandardRuleError, mergeSameColorComponent } = require("./standard-engine.js");
+const { createRegionGeometryContext } = require("./standard-region-geometry.js");
+const { supportsColoredCornerBloom } = require("./standard-skill-registry.js");
+
+function clone(value) {
+  return JSON.parse(JSON.stringify(value));
+}
+
+function other(seat) {
+  return seat === "A" ? "B" : "A";
+}
+
+function consume(state, actor, skill) {
+  state.hands[actor][skill] -= 1;
+  state.skillsUsed[actor] = (state.skillsUsed[actor] || 0) + 1;
+  state.version += 1;
+}
+
+function resolved(currentState, actor, skill, mutate, details = {}) {
+  const state = clone(currentState);
+  mutate(state);
+  consume(state, actor, skill);
+  return Object.freeze({ ok: true, code: "OK", state, cardConsumed: true, ...details });
+}
+
+function resolvedWithoutCard(currentState, actor, mutate, details = {}) {
+  const state = clone(currentState);
+  mutate(state);
+  state.skillsUsed[actor] = (state.skillsUsed[actor] || 0) + 1;
+  state.version += 1;
+  return Object.freeze({ ok: true, code: "OK", state, cardConsumed: false, ...details });
+}
+
+function applyColorPrism({ state, actor }) {
+  return resolved(state, actor, "colorPrism", (next) => {
+    next.privateEffects[actor] = next.privateEffects[actor] || {};
+    next.privateEffects[actor].prism = true;
+    next.publicLog.push(`T${next.turn} Player ${actor} enabled all four colors for this coloring.`);
+  });
+}
+
+function applyColorBonusRefill({ state, actor }) {
+  const current = state.bonusUsesRemaining[actor];
+  if (current >= 4) return Object.freeze({ ok: false, code: "BONUS_USES_ALREADY_FULL", state });
+  const addedUses = Math.min(2, 4 - current);
+  return resolved(state, actor, "colorBonusRefill", (next) => {
+    next.bonusUsesRemaining[actor] = current + addedUses;
+    next.publicLog.push(`T${next.turn} Player ${actor} refilled their private bonus color uses.`);
+  }, { addedUses });
+}
+
+function usedBoardColors(state) {
+  return [...new Set(Object.values(state.regions).map((region) => region.color).filter((color) => COLORS.includes(color)))];
+}
+
+function addTemporaryColor(state, actor, color) {
+  state.privateEffects[actor] = state.privateEffects[actor] || {};
+  const temporaryColors = new Set(state.privateEffects[actor].temporaryColors || []);
+  temporaryColors.add(color);
+  state.privateEffects[actor].temporaryColors = [...temporaryColors];
+}
+
+function applyColorRandomBorrow({ state, actor, random }) {
+  const candidates = usedBoardColors(state);
+  if (!candidates.length) return Object.freeze({ ok: false, code: "NO_BOARD_COLORS", state });
+  const draw = Number(random());
+  if (!Number.isFinite(draw) || draw < 0 || draw >= 1) throw new StandardRuleError("RNG_REQUIRED_SKILL_EFFECT", "Named RNG stream is required");
+  const color = candidates[Math.floor(draw * candidates.length)];
+  return resolved(state, actor, "colorRandomBorrow", (next) => {
+    addTemporaryColor(next, actor, color);
+    next.publicLog.push(`T${next.turn} Player ${actor} used random color borrow; the added color is private.`);
+  });
+}
+
+function applyColorChoiceBorrow({ state, actor, payload }) {
+  if (!COLORS.includes(payload.color)) return Object.freeze({ ok: false, code: "INVALID_TARGET_SCHEMA", state });
+  if (!usedBoardColors(state).includes(payload.color)) return Object.freeze({ ok: false, code: "COLOR_NOT_USED_ON_BOARD", state });
+  return resolved(state, actor, "colorChoiceBorrow", (next) => {
+    addTemporaryColor(next, actor, payload.color);
+    next.publicLog.push(`T${next.turn} Player ${actor} used chosen color borrow; the added color is private.`);
+  });
+}
+
+function paletteColorAt(state, actor, slot) {
+  return slot < 2 ? state.basicPalettes[actor][slot] : state.bonusColors[actor];
+}
+
+function setPaletteColorAt(state, actor, slot, color) {
+  if (slot < 2) state.basicPalettes[actor][slot] = color;
+  else state.bonusColors[actor] = color;
+}
+
+function clearPaletteDebuffAtSlot(state, actor, slot) {
+  state.privateEffects[actor] = state.privateEffects[actor] || {};
+  state.privateEffects[actor].paletteDebuffs = (state.privateEffects[actor].paletteDebuffs || []).filter((effect) => effect.slot !== slot);
+  if (!state.privateEffects[actor].paletteDebuffs.length) delete state.privateEffects[actor].paletteDebuffs;
+}
+
+const PALETTE_IMPACT_HISTORY_LIMIT = 12;
+
+function recordPaletteImpact(state, target, { actor, skill, kind, slot, previousColor, injectedColor, remaining }) {
+  if (previousColor === injectedColor) return;
+  state.privateEffects[target] = state.privateEffects[target] || {};
+  const version = state.version + 1;
+  const event = {
+    eventId: `${state.matchId}:${version}:palette-impact:${target}`,
+    version,
+    actor,
+    skill,
+    kind,
+    slot,
+    previousColor,
+    injectedColor,
+    remaining,
+  };
+  state.privateEffects[target].paletteImpactEvent = event;
+  state.privateEffects[target].paletteImpactHistory = [
+    ...(state.privateEffects[target].paletteImpactHistory || []).filter((entry) => entry.eventId !== event.eventId),
+    event,
+  ].slice(-PALETTE_IMPACT_HISTORY_LIMIT);
+}
+
+function applyColorPaletteChange({ state, actor, payload }) {
+  if (!Number.isInteger(payload.slot) || payload.slot < 0 || payload.slot > 2 || !COLORS.includes(payload.color)) {
+    return Object.freeze({ ok: false, code: "INVALID_TARGET_SCHEMA", state });
+  }
+  if (paletteColorAt(state, actor, payload.slot) === payload.color) return Object.freeze({ ok: false, code: "PALETTE_COLOR_UNCHANGED", state });
+  return resolved(state, actor, "colorPaletteChange", (next) => {
+    const previousColor = paletteColorAt(next, actor, payload.slot);
+    clearPaletteDebuffAtSlot(next, actor, payload.slot);
+    setPaletteColorAt(next, actor, payload.slot, payload.color);
+    recordPaletteImpact(next, actor, { actor, skill: "colorPaletteChange", kind: "self", slot: payload.slot,
+      previousColor, injectedColor: payload.color, remaining: 0 });
+    next.publicLog.push(`T${next.turn} Player ${actor} permanently changed one private palette slot.`);
+  });
+}
+
+function microToMacro(cell, state) {
+  const x = cell % state.microWidth;
+  const y = Math.floor(cell / state.microWidth);
+  const scale = state.playableBounds.microScale;
+  return Math.floor(y / scale) * state.playableBounds.macroWidth + Math.floor(x / scale);
+}
+
+function nextRegionNumber(state) {
+  return Math.max(0, ...Object.keys(state.regions).map((id) => Number(String(id).match(/\d+/)?.[0]) || 0)) + 1;
+}
+
+function applyColorRegionSplit({ state, actor, payload }, keep = false) {
+  const region = state.regions?.[payload.regionId];
+  if (!region || payload.regionId !== state.pending || !region.isPending || region.color) {
+    return Object.freeze({ ok: false, code: "INVALID_SPLIT_TARGET", state });
+  }
+  if ((region.controllers || []).includes(actor)) return Object.freeze({ ok: false, code: "SPLIT_REQUIRES_OPPONENT_REGION", state });
+  if (state.reserved || state.retainedSplit) return Object.freeze({ ok: false, code: "SPLIT_ALREADY_RESERVED", state });
+  const original = [...new Set(region.sourceMacros || [])].sort((a, b) => a - b);
+  const selected = [...new Set(payload.sourceMacros)].sort((a, b) => a - b);
+  const originalSet = new Set(original);
+  if (selected.length !== payload.sourceMacros.length || !selected.every((macro) => originalSet.has(macro))) {
+    return Object.freeze({ ok: false, code: "INVALID_SPLIT_SELECTION", state });
+  }
+  const selectedSet = new Set(selected);
+  const returned = original.filter((macro) => !selectedSet.has(macro));
+  if (!selected.length || !returned.length) return Object.freeze({ ok: false, code: "SPLIT_SIDE_EMPTY", state });
+  if (!connected(selected, state.playableBounds.macroWidth) || !connected(returned, state.playableBounds.macroWidth)) {
+    return Object.freeze({ ok: false, code: "SPLIT_SIDE_NOT_CONNECTED", state });
+  }
+  const selectedMicro = region.micro.filter((cell) => selectedSet.has(microToMacro(cell, state))).sort((a, b) => a - b);
+  const returnedMicro = region.micro.filter((cell) => !selectedSet.has(microToMacro(cell, state))).sort((a, b) => a - b);
+  if (!connected(selectedMicro, state.microWidth) || !connected(returnedMicro, state.microWidth)) {
+    return Object.freeze({ ok: false, code: "SPLIT_GEOMETRY_NOT_CONNECTED", state });
+  }
+  return resolved(state, actor, keep ? "colorRegionSplitKeep" : "colorRegionSplit", (next) => {
+    const firstNumber = nextRegionNumber(next);
+    const selectedId = `R${firstNumber}`;
+    const returnedId = `R${firstNumber + 1}`;
+    delete next.regions[payload.regionId];
+    next.regions[selectedId] = {
+      id: selectedId,
+      micro: selectedMicro,
+      sourceMacros: selected,
+      controllers: [],
+      color: null,
+      isPending: true,
+      isReserved: false,
+    };
+    next.regions[returnedId] = {
+      id: returnedId,
+      micro: returnedMicro,
+      sourceMacros: returned,
+      controllers: [],
+      color: null,
+      isPending: false,
+      isReserved: true,
+    };
+    next.pending = selectedId;
+    next.reserved = returnedId;
+    if (keep) next.retainedSplit = { actor, firstRegionId: selectedId, secondRegionId: returnedId, stage: "FIRST" };
+    next.publicLog.push(keep
+      ? `T${next.turn} Player ${actor} split ${payload.regionId}; both ${selectedId} and ${returnedId} will be colored by Player ${actor}.`
+      : `T${next.turn} Player ${actor} split ${payload.regionId} into ${selectedId} and reserved ${returnedId}.`);
+  }, { selectedId: `R${nextRegionNumber(state)}`, returnedId: `R${nextRegionNumber(state) + 1}` });
+}
+
+function macroMicroCells(macro, state) {
+  const scale = state.playableBounds.microScale;
+  const macroWidth = state.playableBounds.macroWidth;
+  const col = macro % macroWidth;
+  const row = Math.floor(macro / macroWidth);
+  const cells = [];
+  for (let dy = 0; dy < scale; dy += 1) {
+    for (let dx = 0; dx < scale; dx += 1) cells.push((row * scale + dy) * state.microWidth + col * scale + dx);
+  }
+  return cells;
+}
+
+function validOutgoingMacros(state, sourceMacros) {
+  const bounds = state.playableBounds;
+  if (sourceMacros.length !== state.requiredSize || !connected(sourceMacros, bounds.macroWidth)) return false;
+  if (!sourceMacros.every((macro) => {
+    if (!Number.isInteger(macro) || macro < 0) return false;
+    const col = macro % bounds.macroWidth;
+    const row = Math.floor(macro / bounds.macroWidth);
+    return col >= bounds.minCol && col <= bounds.maxCol && row >= bounds.minRow && row <= bounds.maxRow;
+  })) return false;
+  const candidate = createRegionGeometryContext(state).analyze(sourceMacros);
+  return candidate.everyMacroHasFree && candidate.connected;
+}
+
+function microCoordinateInPlayable(state, x, y) {
+  const macroCol = Math.floor(x / state.playableBounds.microScale);
+  const macroRow = Math.floor(y / state.playableBounds.microScale);
+  const bounds = state.playableBounds;
+  return x >= 0 && x < state.microWidth && y >= 0 && y < bounds.macroWidth * bounds.microScale
+    && macroCol >= bounds.minCol && macroCol <= bounds.maxCol && macroRow >= bounds.minRow && macroRow <= bounds.maxRow;
+}
+
+function regionOwners(state) {
+  return new Map(Object.values(state.regions).flatMap((region) => (region.micro || []).map((cell) => [cell, region.id])));
+}
+
+function shapeTouchesRegion(shape, regionId, owners, width) {
+  for (const cell of shape) {
+    const x = cell % width;
+    const neighbors = [cell - width, cell + width];
+    if (x > 0) neighbors.push(cell - 1);
+    if (x < width - 1) neighbors.push(cell + 1);
+    if (neighbors.some((neighbor) => !shape.has(neighbor) && owners.get(neighbor) === regionId)) return true;
+  }
+  return false;
+}
+
+function microBloomCandidates(state, sourceMacros) {
+  if (!validOutgoingMacros(state, sourceMacros)) return Object.freeze({ ok: false, code: "INVALID_OUTGOING_SELECTION", candidates: [] });
+  const prepared = state.preparedOutgoing;
+  if (prepared && (prepared.actor !== state.active || JSON.stringify(prepared.sourceMacros) !== JSON.stringify(sourceMacros))) {
+    return Object.freeze({ ok: false, code: "PREPARED_SELECTION_MISMATCH", candidates: [] });
+  }
+  const base = new Set(prepared?.micro || createRegionGeometryContext(state).analyze(sourceMacros).micro);
+  const owners = regionOwners(state);
+  const scale = state.playableBounds.microScale;
+  const width = state.microWidth;
+  const corners = [
+    { name: "top-left", diagonal: [-1, -1], plan: [[-1, 0], [0, -1], [-1, -1]] },
+    { name: "top-right", diagonal: [scale, -1], plan: [[scale, 0], [scale - 1, -1], [scale, -1]] },
+    { name: "bottom-left", diagonal: [-1, scale], plan: [[-1, scale - 1], [0, scale], [-1, scale]] },
+    { name: "bottom-right", diagonal: [scale, scale], plan: [[scale, scale - 1], [scale - 1, scale], [scale, scale]] },
+  ];
+  const candidates = [];
+  for (const macro of sourceMacros) {
+    const macroCol = macro % state.playableBounds.macroWidth;
+    const macroRow = Math.floor(macro / state.playableBounds.macroWidth);
+    const x0 = macroCol * scale;
+    const y0 = macroRow * scale;
+    for (const corner of corners) {
+      const diagonalX = x0 + corner.diagonal[0];
+      const diagonalY = y0 + corner.diagonal[1];
+      if (!microCoordinateInPlayable(state, diagonalX, diagonalY)) continue;
+      const diagonalCell = diagonalY * width + diagonalX;
+      const diagonalRegion = owners.get(diagonalCell);
+      if (!diagonalRegion || !state.regions[diagonalRegion]?.color || shapeTouchesRegion(base, diagonalRegion, owners, width)) continue;
+      const plan = new Set();
+      for (const [dx, dy] of corner.plan) {
+        const x = x0 + dx;
+        const y = y0 + dy;
+        if (!microCoordinateInPlayable(state, x, y)) continue;
+        const cell = y * width + x;
+        if (base.has(cell) || plan.has(cell)) continue;
+        const owner = owners.get(cell);
+        if (owner && !state.regions[owner]?.color) continue;
+        const cellX = cell % width;
+        const neighbors = [cell - width, cell + width];
+        if (cellX > 0) neighbors.push(cell - 1);
+        if (cellX < width - 1) neighbors.push(cell + 1);
+        if (neighbors.some((neighbor) => base.has(neighbor) || plan.has(neighbor))) plan.add(cell);
+      }
+      if (!plan.size) continue;
+      const expanded = new Set([...base, ...plan]);
+      if (shapeTouchesRegion(expanded, diagonalRegion, owners, width)) {
+        candidates.push(Object.freeze({ macro, corner: corner.name, diagonalRegion, plan: Object.freeze([...plan].sort((a, b) => a - b)), micro: Object.freeze([...expanded].sort((a, b) => a - b)) }));
+      }
+    }
+  }
+  return Object.freeze({ ok: true, candidates: Object.freeze(candidates) });
+}
+
+function cornerBloomPlan(state, sourceMacros, macro) {
+  if (!validOutgoingMacros(state, sourceMacros)) return Object.freeze({ ok: false, code: "INVALID_OUTGOING_SELECTION", plan: [], micro: [] });
+  const prepared = state.preparedOutgoing;
+  if (prepared && (prepared.actor !== state.active || JSON.stringify(prepared.sourceMacros) !== JSON.stringify(sourceMacros))) {
+    return Object.freeze({ ok: false, code: "PREPARED_SELECTION_MISMATCH", plan: [], micro: [] });
+  }
+  if (!sourceMacros.includes(macro)) return Object.freeze({ ok: false, code: "INVALID_CORNER_BLOOM_TARGET", plan: [], micro: [] });
+  const shape = new Set(prepared?.micro || createRegionGeometryContext(state).analyze(sourceMacros).micro);
+  const owners = regionOwners(state);
+  const scale = state.playableBounds.microScale;
+  const width = state.microWidth;
+  const macroCol = macro % state.playableBounds.macroWidth;
+  const macroRow = Math.floor(macro / state.playableBounds.macroWidth);
+  const x0 = macroCol * scale;
+  const y0 = macroRow * scale;
+  const corners = [
+    [[-1, 0], [0, -1], [-1, -1]],
+    [[scale, 0], [scale - 1, -1], [scale, -1]],
+    [[-1, scale - 1], [0, scale], [-1, scale]],
+    [[scale, scale - 1], [scale - 1, scale], [scale, scale]],
+  ];
+  const planned = new Set();
+  for (const corner of corners) {
+    const cornerPlan = new Set();
+    for (let pass = 0; pass < 3; pass += 1) {
+      for (const [dx, dy] of corner) {
+        const x = x0 + dx;
+        const y = y0 + dy;
+        if (!microCoordinateInPlayable(state, x, y)) continue;
+        const cell = y * width + x;
+        if (shape.has(cell) || planned.has(cell) || cornerPlan.has(cell)) continue;
+        const owner = owners.get(cell);
+        if (owner && !state.regions[owner]?.color) continue;
+        const cellX = cell % width;
+        const neighbors = [cell - width, cell + width];
+        if (cellX > 0) neighbors.push(cell - 1);
+        if (cellX < width - 1) neighbors.push(cell + 1);
+        if (neighbors.some((neighbor) => shape.has(neighbor) || planned.has(neighbor) || cornerPlan.has(neighbor))) cornerPlan.add(cell);
+      }
+    }
+    for (const cell of cornerPlan) planned.add(cell);
+  }
+  return Object.freeze({
+    ok: true,
+    plan: Object.freeze([...planned].sort((a, b) => a - b)),
+    micro: Object.freeze([...new Set([...shape, ...planned])].sort((a, b) => a - b)),
+  });
+}
+
+function coloredCornerBloomPlan(state, regionId, macro) {
+  if (!supportsColoredCornerBloom(state.engineVersion)) {
+    return Object.freeze({ ok: false, code: "COLORED_CORNER_BLOOM_NOT_SUPPORTED", plan: [], micro: [] });
+  }
+  const region = state.regions?.[regionId];
+  if (!region || !region.color || regionId === state.pending || regionId === state.reserved
+    || region.isPending || region.isReserved || region.deleted || region.delayed || region.delayState
+    || !connected(region.micro || [], state.microWidth)) {
+    return Object.freeze({ ok: false, code: "INVALID_COLORED_CORNER_BLOOM_TARGET", plan: [], micro: [] });
+  }
+  if (!Number.isInteger(macro) || !(region.micro || []).some((cell) => microToMacro(cell, state) === macro)) {
+    return Object.freeze({ ok: false, code: "INVALID_COLORED_CORNER_BLOOM_MACRO", plan: [], micro: [] });
+  }
+  const macroCol = macro % state.playableBounds.macroWidth;
+  const macroRow = Math.floor(macro / state.playableBounds.macroWidth);
+  const bounds = state.playableBounds;
+  if (macroCol < bounds.minCol || macroCol > bounds.maxCol || macroRow < bounds.minRow || macroRow > bounds.maxRow) {
+    return Object.freeze({ ok: false, code: "INVALID_COLORED_CORNER_BLOOM_MACRO", plan: [], micro: [] });
+  }
+
+  const shape = new Set(region.micro);
+  const owners = regionOwners(state);
+  const scale = bounds.microScale;
+  const width = state.microWidth;
+  const x0 = macroCol * scale;
+  const y0 = macroRow * scale;
+  const corners = [
+    [[-1, 0], [0, -1], [-1, -1]],
+    [[scale, 0], [scale - 1, -1], [scale, -1]],
+    [[-1, scale - 1], [0, scale], [-1, scale]],
+    [[scale, scale - 1], [scale - 1, scale], [scale, scale]],
+  ];
+  const planned = new Set();
+  for (const corner of corners) {
+    const cornerPlan = new Set();
+    for (let pass = 0; pass < 3; pass += 1) {
+      for (const [dx, dy] of corner) {
+        const x = x0 + dx;
+        const y = y0 + dy;
+        if (!microCoordinateInPlayable(state, x, y)) continue;
+        const cell = y * width + x;
+        if (shape.has(cell) || planned.has(cell) || cornerPlan.has(cell)) continue;
+        const owner = owners.get(cell);
+        if (owner && !state.regions[owner]?.color) continue;
+        const cellX = cell % width;
+        const neighbors = [cell - width, cell + width];
+        if (cellX > 0) neighbors.push(cell - 1);
+        if (cellX < width - 1) neighbors.push(cell + 1);
+        if (neighbors.some((neighbor) => shape.has(neighbor) || planned.has(neighbor) || cornerPlan.has(neighbor))) cornerPlan.add(cell);
+      }
+    }
+    for (const cell of cornerPlan) planned.add(cell);
+  }
+  return Object.freeze({
+    ok: true,
+    plan: Object.freeze([...planned].sort((a, b) => a - b)),
+    micro: Object.freeze([...new Set([...shape, ...planned])].sort((a, b) => a - b)),
+  });
+}
+
+function transferColoredCornerIntrusions(state, targetRegionId, cells) {
+  const owners = regionOwners(state);
+  const donors = new Set();
+  let transferredCount = 0;
+  let emptyAddedCount = 0;
+  for (const cell of cells) {
+    const donorId = owners.get(cell);
+    if (!donorId) {
+      emptyAddedCount += 1;
+      continue;
+    }
+    if (donorId === targetRegionId) continue;
+    if (!state.regions[donorId]?.color) {
+      throw new StandardRuleError("COLORED_CORNER_BLOOM_OVERLAP_UNCOLORED", "Colored corner bloom cannot intrude into an uncolored region");
+    }
+    state.regions[donorId].micro = state.regions[donorId].micro.filter((candidate) => candidate !== cell);
+    donors.add(donorId);
+    transferredCount += 1;
+  }
+
+  let nextNumber = nextRegionNumber(state);
+  let splitCount = 0;
+  let removedCount = 0;
+  const affectedRegionIds = [];
+  for (const donorId of [...donors].sort((left, right) => Number(left.slice(1)) - Number(right.slice(1)))) {
+    const donor = state.regions[donorId];
+    if (!donor.micro.length) {
+      delete state.regions[donorId];
+      removedCount += 1;
+      continue;
+    }
+    const parts = connectedComponents(donor.micro, state.microWidth);
+    donor.micro = parts[0];
+    donor.sourceMacros = sourceMacrosFromMicro(parts[0], state);
+    affectedRegionIds.push(donorId);
+    for (const part of parts.slice(1)) {
+      const id = `R${nextNumber}`;
+      nextNumber += 1;
+      state.regions[id] = {
+        ...donor,
+        id,
+        micro: part,
+        sourceMacros: sourceMacrosFromMicro(part, state),
+        controllers: [...(donor.controllers || [])],
+        isPending: false,
+        isReserved: false,
+      };
+      affectedRegionIds.push(id);
+      splitCount += 1;
+    }
+  }
+  return Object.freeze({
+    donorCount: donors.size,
+    transferredCount,
+    emptyAddedCount,
+    splitCount,
+    removedCount,
+    affectedRegionIds: Object.freeze(affectedRegionIds),
+  });
+}
+
+function preparedOutgoingCandidates(state, sourceMacros, skills) {
+  let shapes = [null];
+  for (const skill of skills) {
+    const nextShapes = [];
+    for (const micro of shapes) {
+      const candidateState = { ...state, preparedOutgoing: micro ? { actor: state.active, sourceMacros, micro, skills: [] } : null };
+      if (skill === "areaMicroBloom") {
+        const result = microBloomCandidates(candidateState, sourceMacros);
+        if (result.ok) for (const candidate of result.candidates) nextShapes.push([...candidate.micro]);
+      } else if (skill === "areaCornerBloom") {
+        for (const macro of sourceMacros) {
+          const result = cornerBloomPlan(candidateState, sourceMacros, macro);
+          if (result.ok && result.plan.length) nextShapes.push([...result.micro]);
+        }
+      }
+    }
+    const unique = new Map(nextShapes.map((micro) => [JSON.stringify(micro), micro]));
+    shapes = [...unique.values()];
+  }
+  return Object.freeze(shapes.map((micro) => Object.freeze(micro)));
+}
+
+function applyAreaMicroBloom({ state, actor, payload, random }) {
+  const sourceMacros = [...new Set(payload.sourceMacros)].sort((a, b) => a - b);
+  if (sourceMacros.length !== payload.sourceMacros.length) return Object.freeze({ ok: false, code: "INVALID_OUTGOING_SELECTION", state });
+  const planned = microBloomCandidates(state, sourceMacros);
+  if (!planned.ok) return Object.freeze({ ok: false, code: planned.code, state });
+  if (!planned.candidates.length) return Object.freeze({ ok: false, code: "NO_MICRO_BLOOM_CANDIDATE", state });
+  const draw = Number(random());
+  if (!Number.isFinite(draw) || draw < 0 || draw >= 1) throw new StandardRuleError("RNG_REQUIRED_SKILL_EFFECT", "Named RNG stream is required");
+  const picked = planned.candidates[Math.floor(draw * planned.candidates.length)];
+  return resolved(state, actor, "areaMicroBloom", (next) => {
+    next.preparedOutgoing = {
+      actor,
+      sourceMacros,
+      micro: [...picked.micro],
+      skills: [...new Set([...(next.preparedOutgoing?.skills || []), "areaMicroBloom"])],
+    };
+    next.publicLog.push(`T${next.turn} Player ${actor} used micro bloom at ${picked.macro} ${picked.corner}, creating edge contact with ${picked.diagonalRegion}.`);
+  }, { macro: picked.macro, corner: picked.corner, diagonalRegion: picked.diagonalRegion, addedCount: picked.plan.length });
+}
+
+function applyAreaCornerBloom({ state, actor, payload }) {
+  if (typeof payload.regionId === "string") {
+    const planned = coloredCornerBloomPlan(state, payload.regionId, payload.macro);
+    if (!planned.ok) return Object.freeze({ ok: false, code: planned.code, state });
+    if (!planned.plan.length) return Object.freeze({ ok: false, code: "NO_COLORED_CORNER_BLOOM_CANDIDATE", state });
+    let intrusion;
+    let merge;
+    const result = resolved(state, actor, "areaCornerBloom", (next) => {
+      intrusion = transferColoredCornerIntrusions(next, payload.regionId, planned.plan);
+      const target = next.regions[payload.regionId];
+      target.micro = [...planned.micro];
+      target.sourceMacros = sourceMacrosFromMicro(target.micro, next);
+      merge = mergeSameColorComponent(next, payload.regionId);
+      next.publicLog.push(`T${next.turn} Player ${actor} expanded the current colored region at macro ${payload.macro}, adding ${planned.plan.length} microcells.`);
+    });
+    return Object.freeze({
+      ...result,
+      regionId: payload.regionId,
+      keptRegionId: merge.keptId,
+      macro: payload.macro,
+      addedCount: planned.plan.length,
+      intrusion,
+      merge,
+    });
+  }
+  const sourceMacros = [...new Set(payload.sourceMacros)].sort((a, b) => a - b);
+  if (sourceMacros.length !== payload.sourceMacros.length) return Object.freeze({ ok: false, code: "INVALID_OUTGOING_SELECTION", state });
+  const planned = cornerBloomPlan(state, sourceMacros, payload.macro);
+  if (!planned.ok) return Object.freeze({ ok: false, code: planned.code, state });
+  if (!planned.plan.length) return Object.freeze({ ok: false, code: "NO_CORNER_BLOOM_CANDIDATE", state });
+  return resolved(state, actor, "areaCornerBloom", (next) => {
+    next.preparedOutgoing = {
+      actor,
+      sourceMacros,
+      micro: [...planned.micro],
+      skills: [...new Set([...(next.preparedOutgoing?.skills || []), "areaCornerBloom"])],
+    };
+    next.publicLog.push(`T${next.turn} Player ${actor} expanded all available corners of macro ${payload.macro}, adding ${planned.plan.length} microcells.`);
+  }, { macro: payload.macro, addedCount: planned.plan.length });
+}
+
+function applyAreaDiePlus({ state, actor, hasLegalRegionOfSize }) {
+  const desired = state.requiredSize + 1;
+  if (desired > 5) return Object.freeze({ ok: false, code: "AREA_SIZE_MAX", state });
+  if (state.preparedOutgoing) return Object.freeze({ ok: false, code: "PREPARED_OUTGOING_EXISTS", state });
+  if (typeof hasLegalRegionOfSize !== "function" || !hasLegalRegionOfSize(state, desired)) {
+    return Object.freeze({ ok: false, code: "NO_LEGAL_REGION_SIZE", state });
+  }
+  return resolved(state, actor, "areaDiePlus", (next) => {
+    next.requiredSize = desired;
+    next.publicLog.push(`T${next.turn} Player ${actor} increased this turn's required area size to ${desired}.`);
+  }, { requiredSize: desired });
+}
+
+function resizedBounds(state, mode, side) {
+  if (!["expand", "shrink"].includes(mode) || !["top", "bottom", "left", "right"].includes(side)) return null;
+  const bounds = state.playableBounds;
+  const width = bounds.maxCol - bounds.minCol + 1;
+  const height = bounds.maxRow - bounds.minRow + 1;
+  const next = { ...bounds };
+  if (mode === "expand") {
+    if (side === "left" && bounds.minCol > 0) next.minCol -= 1;
+    else if (side === "right" && bounds.maxCol < bounds.macroWidth - 1) next.maxCol += 1;
+    else if (side === "top" && bounds.minRow > 0) next.minRow -= 1;
+    else if (side === "bottom" && bounds.maxRow < bounds.macroWidth - 1) next.maxRow += 1;
+    else return null;
+  } else {
+    if (["left", "right"].includes(side) && width <= 6) return null;
+    if (["top", "bottom"].includes(side) && height <= 6) return null;
+    if (side === "left") next.minCol += 1;
+    else if (side === "right") next.maxCol -= 1;
+    else if (side === "top") next.minRow += 1;
+    else next.maxRow -= 1;
+  }
+  return next;
+}
+
+function playableMacros(bounds) {
+  const result = [];
+  for (let row = bounds.minRow; row <= bounds.maxRow; row += 1) {
+    for (let col = bounds.minCol; col <= bounds.maxCol; col += 1) result.push(row * bounds.macroWidth + col);
+  }
+  return result;
+}
+
+function applyAreaResize({ state, actor, payload, bestLegalSize }) {
+  const nextBounds = resizedBounds(state, payload.mode, payload.side);
+  if (!nextBounds) return Object.freeze({ ok: false, code: "BOARD_SIDE_UNAVAILABLE", state });
+  if (state.preparedOutgoing) return Object.freeze({ ok: false, code: "PREPARED_OUTGOING_EXISTS", state });
+  if (typeof bestLegalSize !== "function") return Object.freeze({ ok: false, code: "LEGAL_SIZE_SERVICE_REQUIRED", state });
+  const bonus = Math.max(0, state.requiredSize - state.baseRequiredSize);
+  return resolved(state, actor, "areaResize", (next) => {
+    const targets = new Set(next.trophyTargetMacros || playableMacros(state.playableBounds));
+    next.playableBounds = nextBounds;
+    if (payload.mode === "expand") {
+      for (const macro of playableMacros(nextBounds)) targets.add(macro);
+    }
+    next.trophyTargetMacros = [...targets].sort((left, right) => left - right);
+    const base = bestLegalSize(next, next.rolledSize);
+    next.baseRequiredSize = base;
+    if (base <= 0) {
+      next.requiredSize = 0;
+      next.status = "FINISHED";
+      next.phase = "GAME_OVER";
+      next.winner = actor;
+      next.terminalReason = "BOARD_LOCK";
+    } else {
+      next.requiredSize = bestLegalSize(next, Math.min(5, base + bonus)) || base;
+    }
+    next.publicLog.push(`T${next.turn} Player ${actor} ${payload.mode === "expand" ? "expanded" : "shrunk"} the ${payload.side} writable board edge; colored geometry remains.`);
+  }, { playableBounds: nextBounds });
+}
+
+function normalizeHalfShift(payload) {
+  const axis = String(payload.axis || "").toUpperCase();
+  const direction = String(payload.direction || "").toLowerCase();
+  const index = Number(payload.index);
+  if (!Number.isInteger(index) || !["ROW", "COLUMN"].includes(axis)) return null;
+  const minus = ["minus", "left", "up", "-"].includes(direction);
+  const plus = ["plus", "right", "down", "+"].includes(direction);
+  if (!minus && !plus) return null;
+  return { axis, index, delta: minus ? -2 : 2, direction: minus ? "minus" : "plus" };
+}
+
+function connected(cells, width) {
+  if (!cells.length) return false;
+  const remaining = new Set(cells);
+  const queue = [cells[0]];
+  remaining.delete(cells[0]);
+  while (queue.length) {
+    const cell = queue.shift();
+    const x = cell % width;
+    const neighbors = [cell - width, cell + width];
+    if (x > 0) neighbors.push(cell - 1);
+    if (x < width - 1) neighbors.push(cell + 1);
+    for (const neighbor of neighbors) if (remaining.delete(neighbor)) queue.push(neighbor);
+  }
+  return remaining.size === 0;
+}
+
+function connectedComponents(cells, width) {
+  const remaining = new Set(cells);
+  const parts = [];
+  while (remaining.size) {
+    const start = Math.min(...remaining);
+    const part = [];
+    const queue = [start];
+    remaining.delete(start);
+    while (queue.length) {
+      const cell = queue.shift();
+      part.push(cell);
+      const x = cell % width;
+      const neighbors = [cell - width, cell + width];
+      if (x > 0) neighbors.push(cell - 1);
+      if (x < width - 1) neighbors.push(cell + 1);
+      for (const neighbor of neighbors) if (remaining.delete(neighbor)) queue.push(neighbor);
+    }
+    parts.push(part.sort((a, b) => a - b));
+  }
+  return parts.sort((a, b) => a[0] - b[0]);
+}
+
+function sourceMacrosFromMicro(cells, state) {
+  const scale = state.playableBounds.microScale;
+  const macroWidth = state.playableBounds.macroWidth;
+  return [...new Set(cells.map((cell) => {
+    const x = cell % state.microWidth;
+    const y = Math.floor(cell / state.microWidth);
+    return Math.floor(y / scale) * macroWidth + Math.floor(x / scale);
+  }))].sort((a, b) => a - b);
+}
+
+function planHalfShift(state, payload) {
+  const request = normalizeHalfShift(payload);
+  if (!request) return Object.freeze({ ok: false, code: "INVALID_TARGET_SCHEMA", state });
+  const scale = state.playableBounds.microScale;
+  const macroWidth = state.playableBounds.macroWidth;
+  const width = state.microWidth;
+  const height = macroWidth * scale;
+  if (request.index < 0 || request.index >= macroWidth) return Object.freeze({ ok: false, code: "INVALID_SHIFT_BAND", state });
+  const sets = {};
+  let movedCount = 0;
+  for (const [id, region] of Object.entries(state.regions)) {
+    sets[id] = region.micro.map((cell) => {
+      const x = cell % width;
+      const y = Math.floor(cell / width);
+      const inBand = request.axis === "ROW"
+        ? Math.floor(y / scale) === request.index
+        : Math.floor(x / scale) === request.index;
+      if (!inBand) return cell;
+      movedCount += 1;
+      return request.axis === "ROW" ? cell + request.delta : cell + request.delta * width;
+    });
+  }
+  if (!movedCount) return Object.freeze({ ok: false, code: "EMPTY_SHIFT_BAND", state });
+  const occupied = new Set();
+  let splitCount = 0;
+  for (const cells of Object.values(sets)) {
+    splitCount += Math.max(0, connectedComponents(cells, width).length - 1);
+    for (const cell of cells) {
+      const x = cell % width;
+      const y = Math.floor(cell / width);
+      if (!Number.isInteger(cell) || x < 0 || x >= width || y < 0 || y >= height) return Object.freeze({ ok: false, code: "SHIFT_OUT_OF_WORLD", state });
+      if (occupied.has(cell)) return Object.freeze({ ok: false, code: "SHIFT_OVERLAP", state });
+      occupied.add(cell);
+    }
+  }
+  return Object.freeze({ ok: true, ...request, movedCount, splitCount, sets });
+}
+
+function applyAreaHalfShift({ state, actor, payload }) {
+  const plan = planHalfShift(state, payload);
+  if (!plan.ok) return plan;
+  return resolved(state, actor, "areaHalfShift", (next) => {
+    for (const [id, cells] of Object.entries(plan.sets)) {
+      next.regions[id].micro = [...cells].sort((a, b) => a - b);
+      next.regions[id].sourceMacros = sourceMacrosFromMicro(cells, next);
+    }
+    let nextNumber = Math.max(0, ...Object.keys(next.regions).map((id) => Number(String(id).match(/\d+/)?.[0]) || 0)) + 1;
+    for (const id of Object.keys(plan.sets).sort()) {
+      const region = next.regions[id];
+      const parts = connectedComponents(region.micro, next.microWidth);
+      region.micro = parts[0];
+      region.sourceMacros = sourceMacrosFromMicro(parts[0], next);
+      for (const part of parts.slice(1)) {
+        const newId = `R${nextNumber}`;
+        nextNumber += 1;
+        next.regions[newId] = {
+          ...region,
+          id: newId,
+          micro: part,
+          sourceMacros: sourceMacrosFromMicro(part, next),
+          controllers: [...(region.controllers || [])],
+          isPending: false,
+        };
+      }
+    }
+    const ids = Object.keys(next.regions).sort();
+    for (const id of ids) if (next.regions[id]) mergeSameColorComponent(next, id);
+    next.publicLog.push(`T${next.turn} Player ${actor} shifted ${plan.axis} ${plan.index} ${plan.direction} by half a macro cell${plan.splitCount ? `; split into ${plan.splitCount + 1} components` : ""}.`);
+  }, { movedCount: plan.movedCount, splitCount: plan.splitCount, axis: plan.axis, index: plan.index, direction: plan.direction });
+}
+
+function planTripleShift(state, payload) {
+  const request = normalizeHalfShift(payload);
+  if (!request) return Object.freeze({ ok: false, code: "INVALID_TARGET_SCHEMA", state });
+  const scale = state.playableBounds.microScale;
+  const macroWidth = state.playableBounds.macroWidth;
+  const width = state.microWidth;
+  const height = macroWidth * scale;
+  if (request.index <= 0 || request.index >= macroWidth - 1) return Object.freeze({ ok: false, code: "INVALID_SHIFT_BAND", state });
+  if (state.preparedOutgoing) return Object.freeze({ ok: false, code: "PREPARED_OUTGOING_EXISTS", state });
+  const deltaByBand = new Map([
+    [request.index - 1, request.delta],
+    [request.index, request.delta * 2],
+    [request.index + 1, request.delta],
+  ]);
+  const sets = {};
+  let movedCount = 0;
+  let outsideWorld = false;
+  for (const [id, region] of Object.entries(state.regions)) {
+    const cells = region.micro.map((cell) => {
+      const x = cell % width;
+      const y = Math.floor(cell / width);
+      const band = request.axis === "ROW" ? Math.floor(y / scale) : Math.floor(x / scale);
+      const delta = deltaByBand.get(band) || 0;
+      if (!delta) return cell;
+      movedCount += 1;
+      const nextX = request.axis === "ROW" ? x + delta : x;
+      const nextY = request.axis === "COLUMN" ? y + delta : y;
+      if (nextX < 0 || nextX >= width || nextY < 0 || nextY >= height) outsideWorld = true;
+      return nextY * width + nextX;
+    });
+    if (outsideWorld) return Object.freeze({ ok: false, code: "SHIFT_OUT_OF_WORLD", state });
+    if (!connected(cells, width)) return Object.freeze({ ok: false, code: "SHIFT_DISCONNECTS_REGION", state });
+    sets[id] = cells;
+  }
+  if (!movedCount) return Object.freeze({ ok: false, code: "EMPTY_SHIFT_BAND", state });
+  const occupied = new Set();
+  for (const cells of Object.values(sets)) {
+    for (const cell of cells) {
+      const x = cell % width;
+      const y = Math.floor(cell / width);
+      if (!Number.isInteger(cell) || x < 0 || x >= width || y < 0 || y >= height) return Object.freeze({ ok: false, code: "SHIFT_OUT_OF_WORLD", state });
+      if (occupied.has(cell)) return Object.freeze({ ok: false, code: "SHIFT_OVERLAP", state });
+      occupied.add(cell);
+    }
+  }
+  return Object.freeze({ ok: true, ...request, movedCount, sets });
+}
+
+function applyAreaTripleShift({ state, actor, payload }) {
+  const plan = planTripleShift(state, payload);
+  if (!plan.ok) return plan;
+  return resolved(state, actor, "areaTripleShift", (next) => {
+    for (const [id, cells] of Object.entries(plan.sets)) {
+      next.regions[id].micro = [...cells].sort((a, b) => a - b);
+      next.regions[id].sourceMacros = sourceMacrosFromMicro(cells, next);
+    }
+    const ids = Object.keys(next.regions).sort();
+    for (const id of ids) if (next.regions[id]) mergeSameColorComponent(next, id);
+    next.publicLog.push(`T${next.turn} Player ${actor} shifted ${plan.axis} ${plan.index} ${plan.direction}; the center band moved one macro and both adjacent bands moved half a macro.`);
+  }, { movedCount: plan.movedCount, axis: plan.axis, index: plan.index, direction: plan.direction });
+}
+
+function applyDisruptChoiceOne({ state, actor, payload }) {
+  if (!COLORS.includes(payload.color)) return Object.freeze({ ok: false, code: "INVALID_TARGET_SCHEMA", state });
+  return resolved(state, actor, "disruptChoiceOne", (next) => {
+    const target = other(actor);
+    next.publicEffects[target] = next.publicEffects[target] || { seals: {} };
+    next.publicEffects[target].seals = next.publicEffects[target].seals || {};
+    next.publicEffects[target].seals[payload.color] = Math.max(next.publicEffects[target].seals[payload.color] || 0, 1);
+    next.privateEffects[actor] = next.privateEffects[actor] || {};
+    next.privateEffects[actor].curseBacklash = (next.privateEffects[actor].curseBacklash || 0) + 1;
+    next.publicLog.push(`T${next.turn} Player ${actor} sealed ${payload.color} for Player ${target}; curse backlash is pending.`);
+  }, { color: payload.color, target: other(actor) });
+}
+
+function applyDisruptChoiceTwo({ state, actor, payload }) {
+  if (!COLORS.includes(payload.color)) return Object.freeze({ ok: false, code: "INVALID_TARGET_SCHEMA", state });
+  return resolved(state, actor, "disruptChoiceTwo", (next) => {
+    const target = other(actor);
+    next.publicEffects[target] = next.publicEffects[target] || { seals: {} };
+    next.publicEffects[target].seals = next.publicEffects[target].seals || {};
+    next.publicEffects[target].seals[payload.color] = Math.max(next.publicEffects[target].seals[payload.color] || 0, 2);
+    next.publicLog.push(`T${next.turn} Player ${actor} sealed ${payload.color} for Player ${target} for the next two colorings.`);
+  }, { color: payload.color, target: other(actor) });
+}
+
+function applyDisruptChoiceThree({ state, actor, payload }) {
+  if (!COLORS.includes(payload.color)) return Object.freeze({ ok: false, code: "INVALID_TARGET_SCHEMA", state });
+  return resolved(state, actor, "disruptChoiceThree", (next) => {
+    const target = other(actor);
+    next.publicEffects[target] = next.publicEffects[target] || { seals: {} };
+    next.publicEffects[target].seals = next.publicEffects[target].seals || {};
+    next.publicEffects[target].seals[payload.color] = Math.max(next.publicEffects[target].seals[payload.color] || 0, 3);
+    next.publicLog.push(`T${next.turn} Player ${actor} sealed ${payload.color} for Player ${target} for the next three colorings.`);
+  }, { color: payload.color, target: other(actor) });
+}
+
+function applyDisruptRandomOne({ state, actor, random }) {
+  const draw = Number(random());
+  if (!Number.isFinite(draw) || draw < 0 || draw >= 1) throw new StandardRuleError("RNG_REQUIRED_SKILL_EFFECT", "Named RNG stream is required");
+  const color = COLORS[Math.floor(draw * COLORS.length)];
+  return resolved(state, actor, "disruptRandomOne", (next) => {
+    const target = other(actor);
+    next.publicEffects[target] = next.publicEffects[target] || { seals: {} };
+    next.publicEffects[target].seals = next.publicEffects[target].seals || {};
+    next.publicEffects[target].seals[color] = Math.max(next.publicEffects[target].seals[color] || 0, 1);
+    next.publicLog.push(`T${next.turn} Player ${actor} randomly sealed ${color} for Player ${target} for the next coloring.`);
+  }, { color, target: other(actor) });
+}
+
+function applyDisruptRandomTwo({ state, actor, random }) {
+  const firstDraw = Number(random());
+  const secondDraw = Number(random());
+  if (![firstDraw, secondDraw].every((draw) => Number.isFinite(draw) && draw >= 0 && draw < 1)) {
+    throw new StandardRuleError("RNG_REQUIRED_SKILL_EFFECT", "Named RNG stream is required");
+  }
+  const remaining = [...COLORS];
+  const colors = [remaining.splice(Math.floor(firstDraw * remaining.length), 1)[0]];
+  colors.push(remaining[Math.floor(secondDraw * remaining.length)]);
+  return resolved(state, actor, "disruptRandomTwo", (next) => {
+    const target = other(actor);
+    next.publicEffects[target] = next.publicEffects[target] || { seals: {} };
+    next.publicEffects[target].seals = next.publicEffects[target].seals || {};
+    for (const color of colors) next.publicEffects[target].seals[color] = Math.max(next.publicEffects[target].seals[color] || 0, 1);
+    next.publicLog.push(`T${next.turn} Player ${actor} randomly sealed ${colors.join(",")} for Player ${target} for the next coloring.`);
+  }, { colors, target: other(actor) });
+}
+
+function applyDisruptPaletteRandom({ state, actor, random }) {
+  const colorDraw = Number(random());
+  const slotDraw = Number(random());
+  if (![colorDraw, slotDraw].every((draw) => Number.isFinite(draw) && draw >= 0 && draw < 1)) {
+    throw new StandardRuleError("RNG_REQUIRED_SKILL_EFFECT", "Named RNG stream is required");
+  }
+  const color = COLORS[Math.floor(colorDraw * COLORS.length)];
+  const target = other(actor);
+  const palette = [state.basicPalettes[target][0], state.basicPalettes[target][1], state.bonusColors[target]];
+  const differing = palette.map((current, slot) => current !== color ? slot : -1).filter((slot) => slot >= 0);
+  const slots = differing.length ? differing : [0, 1, 2];
+  const slot = slots[Math.floor(slotDraw * slots.length)];
+  return resolved(state, actor, "disruptPaletteRandom", (next) => {
+    next.privateEffects[target] = next.privateEffects[target] || {};
+    const displayedColor = paletteColorAt(next, target, slot);
+    const existing = (next.privateEffects[target].paletteDebuffs || []).filter((effect) => effect.slot === slot).sort((left, right) => right.remaining - left.remaining);
+    for (const effect of existing) if (paletteColorAt(next, target, slot) === effect.injectedColor) setPaletteColorAt(next, target, slot, effect.previousColor);
+    clearPaletteDebuffAtSlot(next, target, slot);
+    const previousColor = paletteColorAt(next, target, slot);
+    setPaletteColorAt(next, target, slot, color);
+    next.privateEffects[target].paletteDebuffs = [{ slot, previousColor, injectedColor: color, remaining: 1 }, ...(next.privateEffects[target].paletteDebuffs || [])];
+    recordPaletteImpact(next, target, { actor, skill: "disruptPaletteRandom", kind: "random", slot, previousColor: displayedColor, injectedColor: color, remaining: 1 });
+    next.publicLog.push(`T${next.turn} Player ${actor} used a skill; its private result is hidden.`);
+  }, { color, target });
+}
+
+function applyDisruptPaletteChoice({ state, actor, payload, random }) {
+  if (!COLORS.includes(payload.color)) return Object.freeze({ ok: false, code: "INVALID_TARGET_SCHEMA", state });
+  const slotDraw = Number(random());
+  if (!Number.isFinite(slotDraw) || slotDraw < 0 || slotDraw >= 1) {
+    throw new StandardRuleError("RNG_REQUIRED_SKILL_EFFECT", "Named RNG stream is required");
+  }
+  const color = payload.color;
+  const target = other(actor);
+  const palette = [state.basicPalettes[target][0], state.basicPalettes[target][1], state.bonusColors[target]];
+  const differing = palette.map((current, slot) => current !== color ? slot : -1).filter((slot) => slot >= 0);
+  if (!differing.length && state.skillCategoryWindow) {
+    return resolvedWithoutCard(state, actor, (next) => {
+      next.publicLog.push(`T${next.turn} Player ${actor} used a skill; its private result is hidden.`);
+    }, { color, target, noOp: true });
+  }
+  const slots = differing.length ? differing : [0, 1, 2];
+  const slot = slots[Math.floor(slotDraw * slots.length)];
+  return resolved(state, actor, "disruptPaletteChoice", (next) => {
+    next.privateEffects[target] = next.privateEffects[target] || {};
+    const displayedColor = paletteColorAt(next, target, slot);
+    const existing = (next.privateEffects[target].paletteDebuffs || []).filter((effect) => effect.slot === slot).sort((left, right) => right.remaining - left.remaining);
+    for (const effect of existing) if (paletteColorAt(next, target, slot) === effect.injectedColor) setPaletteColorAt(next, target, slot, effect.previousColor);
+    clearPaletteDebuffAtSlot(next, target, slot);
+    const previousColor = paletteColorAt(next, target, slot);
+    setPaletteColorAt(next, target, slot, color);
+    next.privateEffects[target].paletteDebuffs = [{ slot, previousColor, injectedColor: color, remaining: 2 }, ...(next.privateEffects[target].paletteDebuffs || [])];
+    recordPaletteImpact(next, target, { actor, skill: "disruptPaletteChoice", kind: "chosen", slot, previousColor: displayedColor, injectedColor: color, remaining: 2 });
+    next.publicLog.push(`T${next.turn} Player ${actor} used a skill; its private result is hidden.`);
+  }, { color, target });
+}
+
+function applyDisruptForcedPalette({ state, actor, payload, random }) {
+  if (!COLORS.includes(payload.color)) return Object.freeze({ ok: false, code: "INVALID_TARGET_SCHEMA", state });
+  const slotDraw = Number(random());
+  if (!Number.isFinite(slotDraw) || slotDraw < 0 || slotDraw >= 1) {
+    throw new StandardRuleError("RNG_REQUIRED_SKILL_EFFECT", "Named RNG stream is required");
+  }
+  const color = payload.color;
+  const target = other(actor);
+  const palette = [state.basicPalettes[target][0], state.basicPalettes[target][1], state.bonusColors[target]];
+  const differing = palette.map((current, slot) => current !== color ? slot : -1).filter((slot) => slot >= 0);
+  const slots = differing.length ? differing : [0, 1, 2];
+  const slot = slots[Math.floor(slotDraw * slots.length)];
+  return resolved(state, actor, "disruptForcedPalette", (next) => {
+    next.privateEffects[target] = next.privateEffects[target] || {};
+    const displayedColor = paletteColorAt(next, target, slot);
+    const existing = (next.privateEffects[target].paletteDebuffs || []).filter((effect) => effect.slot === slot).sort((left, right) => right.remaining - left.remaining);
+    for (const effect of existing) if (paletteColorAt(next, target, slot) === effect.injectedColor) setPaletteColorAt(next, target, slot, effect.previousColor);
+    clearPaletteDebuffAtSlot(next, target, slot);
+    setPaletteColorAt(next, target, slot, color);
+    recordPaletteImpact(next, target, { actor, skill: "disruptForcedPalette", kind: "forced", slot, previousColor: displayedColor, injectedColor: color, remaining: 0 });
+    next.publicLog.push(`T${next.turn} Player ${actor} used a skill; its private result is hidden.`);
+  }, { color, target });
+}
+
+function paletteBeforeSeals(state, actor) {
+  const colors = new Set(state.basicPalettes[actor]);
+  if (state.bonusUsesRemaining[actor] > 0) colors.add(state.bonusColors[actor]);
+  if (state.privateEffects[actor]?.prism) for (const color of COLORS) colors.add(color);
+  return [...colors];
+}
+
+function applyCurseBacklashOnEnterColor(state, actor, random) {
+  const count = Math.max(0, Number(state.privateEffects[actor]?.curseBacklash) || 0);
+  if (!count) return state;
+  const sealed = [];
+  let remaining = count;
+  for (let index = 0; index < count; index += 1) {
+    const seals = state.publicEffects[actor]?.seals || {};
+    const candidates = paletteBeforeSeals(state, actor).filter((color) => !(seals[color] > 0));
+    if (!candidates.length) break;
+    const draw = Number(random());
+    if (!Number.isFinite(draw) || draw < 0 || draw >= 1) throw new StandardRuleError("RNG_REQUIRED_SKILL_EFFECT", "Named RNG stream is required");
+    const color = candidates[Math.floor(draw * candidates.length)];
+    state.publicEffects[actor] = state.publicEffects[actor] || { seals: {} };
+    state.publicEffects[actor].seals = state.publicEffects[actor].seals || {};
+    state.publicEffects[actor].seals[color] = Math.max(state.publicEffects[actor].seals[color] || 0, 1);
+    sealed.push(color);
+    remaining -= 1;
+  }
+  if (remaining > 0) state.privateEffects[actor].curseBacklash = remaining;
+  else delete state.privateEffects[actor].curseBacklash;
+  if (sealed.length) state.publicLog.push(`Curse backlash sealed ${sealed.join(",")} for Player ${actor} for this coloring.`);
+  return state;
+}
+
+function consumeDeferredCurseBacklashAfterColor(state, actor) {
+  const count = Math.max(0, Number(state.privateEffects[actor]?.curseBacklash) || 0);
+  if (!count) return state;
+  delete state.privateEffects[actor].curseBacklash;
+  state.publicLog.push(`Curse backlash resolved after Player ${actor} completed coloring.`);
+  return state;
+}
+
+function tickSealsAfterColor(state, actor) {
+  const seals = state.publicEffects?.[actor]?.seals || {};
+  for (const color of COLORS) if (seals[color] > 0) seals[color] -= 1;
+  return state;
+}
+
+function tickPaletteDebuffsAfterColor(state, actor) {
+  const effects = state.privateEffects?.[actor]?.paletteDebuffs || [];
+  const remaining = [];
+  for (const effect of effects) {
+    const nextRemaining = effect.remaining - 1;
+    if (nextRemaining > 0) remaining.push({ ...effect, remaining: nextRemaining });
+    else if (paletteColorAt(state, actor, effect.slot) === effect.injectedColor) setPaletteColorAt(state, actor, effect.slot, effect.previousColor);
+  }
+  if (remaining.length) state.privateEffects[actor].paletteDebuffs = remaining;
+  else if (state.privateEffects?.[actor]) delete state.privateEffects[actor].paletteDebuffs;
+  return state;
+}
+
+module.exports = {
+  applyAreaCornerBloom,
+  applyAreaDiePlus,
+  applyAreaHalfShift,
+  applyAreaMicroBloom,
+  applyAreaResize,
+  applyAreaTripleShift,
+  applyColorBonusRefill,
+  applyColorChoiceBorrow,
+  applyColorPaletteChange,
+  applyColorRandomBorrow,
+  applyColorPrism,
+  applyColorRegionSplit,
+  applyCurseBacklashOnEnterColor,
+  consumeDeferredCurseBacklashAfterColor,
+  applyDisruptChoiceOne,
+  applyDisruptChoiceThree,
+  applyDisruptChoiceTwo,
+  applyDisruptForcedPalette,
+  applyDisruptPaletteChoice,
+  applyDisruptRandomOne,
+  applyDisruptRandomTwo,
+  applyDisruptPaletteRandom,
+  microBloomCandidates,
+  cornerBloomPlan,
+  coloredCornerBloomPlan,
+  preparedOutgoingCandidates,
+  planHalfShift,
+  planTripleShift,
+  tickSealsAfterColor,
+  tickPaletteDebuffsAfterColor,
+};
+
+},
+"standard/standard-skill-dispatcher.js":function(require,module,exports){
+"use strict";
+
+const { COLORS, StandardRuleError, applyLegalRecolor } = require("./standard-engine.js");
+const { supportsColoredCornerBloom, supportsSplitKeep, STANDARD_SKILLS } = require("./standard-skill-registry.js");
+const { usesTechniques, techniqueAvailable, applyTechUnsealOne } = require("./standard-technique-state.js");
+const { applyAreaCornerBloom, applyAreaDiePlus, applyAreaHalfShift, applyAreaMicroBloom, applyAreaResize, applyAreaTripleShift, applyColorBonusRefill, applyColorChoiceBorrow, applyColorPaletteChange, applyColorRandomBorrow, applyColorPrism, applyColorRegionSplit, applyDisruptChoiceOne, applyDisruptChoiceThree, applyDisruptChoiceTwo, applyDisruptForcedPalette, applyDisruptPaletteChoice, applyDisruptPaletteRandom, applyDisruptRandomOne, applyDisruptRandomTwo } = require("./standard-skill-handlers.js");
+
+const SKILL_RESULT = Object.freeze({ REJECTED: "REJECTED", CANCELLED: "CANCELLED", RESOLVED: "RESOLVED" });
+
+function rejected(code, state) {
+  return Object.freeze({ ok: false, status: SKILL_RESULT.REJECTED, code, state });
+}
+
+function nextRandom(rngStreams, name, counter) {
+  const source = rngStreams?.[name];
+  const value = typeof source === "function" ? source() : source?.next?.();
+  if (!Number.isFinite(value) || value < 0 || value >= 1) throw new StandardRuleError(`RNG_REQUIRED_${name.toUpperCase().replaceAll("-", "_")}`, "Named RNG stream is required");
+  counter.count += 1;
+  return value;
+}
+
+function validateTargetSchema(definition, payload, state) {
+  if (!definition.targetSchema) return true;
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) return false;
+  if (definition.id === "techUnsealOne") return Object.keys(payload).sort().join("|") === "color|skill" && COLORS.includes(payload.color);
+  if (definition.id === "legalRecolor") return typeof payload.regionId === "string" && payload.regionId.length > 0;
+  if (definition.id === "colorPrism") return true;
+  if (definition.id === "colorChoiceBorrow") return typeof payload.color === "string" && COLORS.includes(payload.color);
+  if (definition.id === "colorPaletteChange") return Number.isInteger(payload.slot) && payload.slot >= 0 && payload.slot <= 2 && typeof payload.color === "string" && COLORS.includes(payload.color);
+  if (["colorRegionSplit", "colorRegionSplitKeep"].includes(definition.id)) return typeof payload.regionId === "string" && payload.regionId.length > 0
+    && Array.isArray(payload.sourceMacros) && payload.sourceMacros.every(Number.isInteger);
+  if (definition.id === "areaMicroBloom") return Array.isArray(payload.sourceMacros) && payload.sourceMacros.every(Number.isInteger);
+  if (definition.id === "areaCornerBloom") {
+    const outgoing = Array.isArray(payload.sourceMacros) && payload.sourceMacros.every(Number.isInteger)
+      && !Object.hasOwn(payload, "regionId") && Number.isInteger(payload.macro);
+    const coloredRegion = supportsColoredCornerBloom(state.engineVersion)
+      && typeof payload.regionId === "string" && payload.regionId.length > 0
+      && !Object.hasOwn(payload, "sourceMacros") && Number.isInteger(payload.macro);
+    return outgoing || coloredRegion;
+  }
+  if (definition.id === "areaResize") return ["expand", "shrink"].includes(payload.mode) && ["top", "bottom", "left", "right"].includes(payload.side);
+  if (["disruptChoiceOne", "disruptChoiceTwo", "disruptChoiceThree", "disruptPaletteChoice", "disruptForcedPalette"].includes(definition.id)) return typeof payload.color === "string";
+  if (definition.id === "areaHalfShift") return typeof payload.axis === "string" && Number.isInteger(payload.index) && typeof payload.direction === "string";
+  if (definition.id === "areaTripleShift") return typeof payload.axis === "string" && Number.isInteger(payload.index) && typeof payload.direction === "string";
+  return true;
+}
+
+const HANDLERS = Object.freeze({
+  techUnsealOne: applyTechUnsealOne,
+  colorRandomBorrow({ state, actor, rngStreams, draws }) {
+    return applyColorRandomBorrow({ state, actor, random: () => nextRandom(rngStreams, "skill-effect", draws) });
+  },
+  colorChoiceBorrow: applyColorChoiceBorrow,
+  colorPaletteChange: applyColorPaletteChange,
+  colorRegionSplit: applyColorRegionSplit,
+  colorRegionSplitKeep: (context) => applyColorRegionSplit(context, true),
+  colorPrism: applyColorPrism,
+  colorBonusRefill: applyColorBonusRefill,
+  areaMicroBloom({ state, actor, payload, rngStreams, draws }) {
+    return applyAreaMicroBloom({ state, actor, payload, random: () => nextRandom(rngStreams, "skill-effect", draws) });
+  },
+  areaCornerBloom: applyAreaCornerBloom,
+  areaDiePlus: applyAreaDiePlus,
+  areaResize: applyAreaResize,
+  areaHalfShift: applyAreaHalfShift,
+  areaTripleShift: applyAreaTripleShift,
+  disruptChoiceOne: applyDisruptChoiceOne,
+  disruptChoiceTwo: applyDisruptChoiceTwo,
+  disruptChoiceThree: applyDisruptChoiceThree,
+  disruptRandomOne({ state, actor, rngStreams, draws }) {
+    return applyDisruptRandomOne({ state, actor, random: () => nextRandom(rngStreams, "skill-effect", draws) });
+  },
+  disruptRandomTwo({ state, actor, rngStreams, draws }) {
+    return applyDisruptRandomTwo({ state, actor, random: () => nextRandom(rngStreams, "skill-effect", draws) });
+  },
+  disruptPaletteRandom({ state, actor, rngStreams, draws }) {
+    return applyDisruptPaletteRandom({ state, actor, random: () => nextRandom(rngStreams, "skill-effect", draws) });
+  },
+  disruptPaletteChoice({ state, actor, payload, rngStreams, draws }) {
+    return applyDisruptPaletteChoice({ state, actor, payload, random: () => nextRandom(rngStreams, "skill-effect", draws) });
+  },
+  disruptForcedPalette({ state, actor, payload, rngStreams, draws }) {
+    return applyDisruptForcedPalette({ state, actor, payload, random: () => nextRandom(rngStreams, "skill-effect", draws) });
+  },
+  legalRecolor({ state, actor, payload, rngStreams, draws }) {
+    return applyLegalRecolor(state, actor, payload.regionId, {
+      effectRandom: () => nextRandom(rngStreams, "skill-effect", draws),
+    });
+  },
+});
+
+function dispatchStandardSkillAction({ state, actor, action, expectedVersion, rngStreams = {}, validateState, projectPublic, projectPrivate, hasLegalRegionOfSize, bestLegalSize, enforceUsageCategory }) {
+  validateState(state);
+  const categoryLimitEnabled = enforceUsageCategory === undefined
+    ? Boolean(state.skillCategoryWindow)
+    : enforceUsageCategory;
+  if (!action || action.type !== "USE_SKILL" || !action.payload || typeof action.payload.skill !== "string") return rejected("INVALID_SKILL_ACTION", state);
+  if (actor !== "A" && actor !== "B") return rejected("NOT_A_PLAYER", state);
+  if (expectedVersion !== state.version) return rejected("VERSION_CONFLICT", state);
+  if (state.status === "FINISHED") return rejected("MATCH_FINISHED", state);
+  const definition = STANDARD_SKILLS[action.payload.skill];
+  if (!definition) return rejected("UNKNOWN_SKILL", state);
+  if (!definition.implemented || !HANDLERS[definition.id]) return rejected("SKILL_NOT_IMPLEMENTED", state);
+  if (definition.id === "colorRegionSplitKeep" && !supportsSplitKeep(state.engineVersion)) return rejected("SKILL_ENGINE_UNSUPPORTED", state);
+  const learned = definition.acquisitionType === "LEARNED";
+  if (learned && !usesTechniques(state.engineVersion)) return rejected("TECHNIQUE_ENGINE_UNSUPPORTED", state);
+  if (state.active !== actor) return rejected("NOT_YOUR_TURN", state);
+  const timingMatches = definition.timing === "WORK"
+    ? state.phase === "WORK" || state.phase === "CREATE_FIRST"
+    : state.phase === definition.timing;
+  if (!timingMatches) return rejected("WRONG_PHASE", state);
+  if (learned ? !techniqueAvailable(state, actor, definition.id) : (state.hands?.[actor]?.[definition.id] || 0) <= 0) {
+    return rejected(learned ? "TECHNIQUE_UNAVAILABLE" : "SKILL_UNAVAILABLE", state);
+  }
+  if (definition.experimental && state.interferenceLock) return rejected("INTERFERENCE_CHAINED", state);
+  if (!validateTargetSchema(definition, action.payload, state)) return rejected("INVALID_TARGET_SCHEMA", state);
+  if (categoryLimitEnabled && state.skillCategoryWindow.categories.includes(definition.usageCategory)) {
+    return rejected("SKILL_CATEGORY_ALREADY_USED_IN_WINDOW", state);
+  }
+
+  const draws = { count: 0 };
+  try {
+    const applied = HANDLERS[definition.id]({ state, actor, payload: action.payload, rngStreams, draws, hasLegalRegionOfSize, bestLegalSize });
+    if (!applied.ok) {
+      if (draws.count !== 0) throw new Error("REJECTED_SKILL_CONSUMED_RNG");
+      return rejected(applied.code, state);
+    }
+    if (applied.state.version !== state.version + 1) throw new Error("VERSION_INCREMENT_INVARIANT");
+    if (typeof definition.expectedRngDraws === "number" && draws.count !== definition.expectedRngDraws) throw new Error("RNG_DRAW_COUNT_INVARIANT");
+    let resolvedState = applied.state;
+    if (categoryLimitEnabled) {
+      resolvedState = JSON.parse(JSON.stringify(applied.state));
+      resolvedState.skillCategoryWindow = resolvedState.active === actor
+        ? { actor, categories: [...new Set([...state.skillCategoryWindow.categories, definition.usageCategory])] }
+        : { actor: resolvedState.active, categories: [] };
+    }
+    validateState(resolvedState);
+    return Object.freeze({
+      ...applied,
+      state: resolvedState,
+      ok: true,
+      status: SKILL_RESULT.RESOLVED,
+      definition,
+      rngDraws: draws.count,
+      publicState: projectPublic(resolvedState),
+      privateState: projectPrivate(resolvedState, actor),
+    });
+  } catch (error) {
+    if (error instanceof StandardRuleError) return rejected(error.code, state);
+    throw error;
+  }
+}
+
+function cancelStandardSkillSelection() {
+  return Object.freeze({ ok: false, status: SKILL_RESULT.CANCELLED, dispatched: false, actionIdIssued: false });
+}
+
+module.exports = { SKILL_RESULT, cancelStandardSkillSelection, dispatchStandardSkillAction };
+
+},
+"standard/standard-region-geometry.js":function(require,module,exports){
+"use strict";
+
+function connected(cellsInput, width) {
+  if (!cellsInput.length) return false;
+  const cells = new Set(cellsInput);
+  const seen = new Set([cellsInput[0]]);
+  const queue = [cellsInput[0]];
+  while (queue.length) {
+    const cell = queue.shift();
+    const x = cell % width;
+    const neighbors = [cell - width, cell + width];
+    if (x > 0) neighbors.push(cell - 1);
+    if (x < width - 1) neighbors.push(cell + 1);
+    for (const neighbor of neighbors) {
+      if (cells.has(neighbor) && !seen.has(neighbor)) {
+        seen.add(neighbor);
+        queue.push(neighbor);
+      }
+    }
+  }
+  return seen.size === cells.size;
+}
+
+function macroMicroCells(macro, bounds, microWidth) {
+  const col = macro % bounds.macroWidth;
+  const row = Math.floor(macro / bounds.macroWidth);
+  const result = [];
+  for (let dy = 0; dy < bounds.microScale; dy += 1) {
+    for (let dx = 0; dx < bounds.microScale; dx += 1) {
+      result.push((row * bounds.microScale + dy) * microWidth + col * bounds.microScale + dx);
+    }
+  }
+  return result;
+}
+
+function createRegionGeometryContext(state) {
+  const bounds = state.playableBounds;
+  const microWidth = state.microWidth || bounds.macroWidth * bounds.microScale;
+  const ownerByMicro = new Map();
+  for (const region of Object.values(state.regions || {})) {
+    for (const cell of region.micro || []) ownerByMicro.set(cell, region.id);
+  }
+
+  function analyze(sourceMacros) {
+    const micro = [];
+    let everyMacroHasFree = true;
+    for (const macro of sourceMacros) {
+      const free = macroMicroCells(macro, bounds, microWidth).filter((cell) => !ownerByMicro.has(cell));
+      if (!free.length) everyMacroHasFree = false;
+      micro.push(...free);
+    }
+    const shape = new Set(micro);
+    const adjacentIds = new Set();
+    for (const cell of micro) {
+      const x = cell % microWidth;
+      const neighbors = [cell - microWidth, cell + microWidth];
+      if (x > 0) neighbors.push(cell - 1);
+      if (x < microWidth - 1) neighbors.push(cell + 1);
+      for (const neighbor of neighbors) {
+        if (shape.has(neighbor)) continue;
+        const regionId = ownerByMicro.get(neighbor);
+        if (!regionId) continue;
+        adjacentIds.add(regionId);
+      }
+    }
+    const contactColors = [...new Set([...adjacentIds]
+      .map((id) => state.regions?.[id]?.color)
+      .filter(Boolean))].sort();
+    return Object.freeze({
+      micro: Object.freeze(micro),
+      everyMacroHasFree,
+      connected: connected(micro, microWidth),
+      touchesExisting: adjacentIds.size > 0,
+      adjacentRegionIds: Object.freeze([...adjacentIds].sort()),
+      contactColors: Object.freeze(contactColors),
+    });
+  }
+
+  return Object.freeze({ analyze });
+}
+
+module.exports = { createRegionGeometryContext };
+
+},
+"standard/standard-skill-workshop.js":function(require,module,exports){
+"use strict";
+
+// Explicitly offline-only. Never add these IDs to the ordinary card registry.
+const engine = require("./standard-engine.js");
+const match = require("./standard-match.js");
+const RULE_SET = "SKILL_WORKSHOP_V1";
+const SAVE_KEY = "fourColorMapGame.skillWorkshop.v1";
+const clone = (value) => JSON.parse(JSON.stringify(value));
+const other = (seat) => seat === "A" ? "B" : "A";
+const card = (name, phase, category, targets, help) => Object.freeze({ name, phase, category, targets, help });
+const CARDS = Object.freeze({
+  labWeather: card("色落とし・風化", "WORK", "disrupt", 1, "塗られた形をそのまま無色にし、指定の代わりに相手へ渡します。"),
+  labWhiteout: card("白化・乱", "WORK", "disrupt", 0, "適格な既塗エリアをランダムに無色化して相手へ渡します。"),
+  labSwap: card("色交換", "WORK", "disrupt", 2, "辺で接していない2エリアの色を同時交換します。交換後に隣接違反があれば不消費です。"),
+  labRotate: card("地層反転", "WORK", "disrupt", 3, "順に隣接する3エリアの色を①→②→③→①へ回します。"),
+  labRecolorNext: card("再彩色予約", "WORK", "disrupt", 1, "相手の次の成功彩色後に、対象を合法な別色へ。形や色が変わると不発です。"),
+  labDemolish: card("エリア破壊", "WORK", "disrupt", 1, "4マス以下の既塗エリアを形ごと消し、普通の空きマスへ戻します。"),
+  labCancelRegion: card("指定の爆破", "COLOR", "color", 1, "受け取った未塗エリアを取り消し、相手が同じマス数で指定し直します。分割中は使えません。"),
+  labChecker: card("二色市松", "WORK", "disrupt", 1, "既塗エリアへ第二色を加えます。一つのエリアのまま、隣接判定では両色が効きます。"),
+  labSilence: card("妨害封じ", "WORK", "disrupt", 0, "相手の次の操作区間だけ妨害カテゴリを禁止。救済COLORカードは使えます。全スキル禁止とは異なる試作です。"),
+  labUnseal: card("封印解除札", "COLOR", "color", 0, "現在の持ち色のうち1色の封印を解除します。隣接違反は解除しません。"),
+  labRefillUnseal: card("おまけ補充・解封", "COLOR", "color", 0, "おまけ色を1回補充（最大4回）し、その色の封印も解除します。"),
+});
+const IDS = Object.freeze(Object.keys(CARDS));
+function check(ok, code) { if (!ok) throw new engine.StandardRuleError(code, code); }
+function colors(region) { return region?.color ? region.labColors || [region.color] : []; }
+function setColors(region, values) {
+  region.color = values[0] || null;
+  if (values.length === 2) region.labColors = [...values];
+  else delete region.labColors;
+}
+function adjacentConflict(state) {
+  return Object.values(state.regions).some((region) => colors(region).length
+    && engine.adjacentRegionIds(state, region.id).some((id) => colors(state.regions[id]).some((color) => colors(region).includes(color))));
+}
+function candidates(state, id) {
+  const blocked = new Set([...colors(state.regions[id]), ...engine.adjacentRegionIds(state, id).flatMap((neighbor) => colors(state.regions[neighbor]))]);
+  return engine.COLORS.filter((color) => !blocked.has(color));
+}
+function fingerprint(region) { return JSON.stringify({ micro: region.micro, colors: colors(region) }); }
+function eligible(session, id) {
+  const state = session.state, region = state.regions[id];
+  return Boolean(region?.color && !region.isPending && !region.isReserved && state.pending !== id && state.reserved !== id
+    && session.createdTurn[id] !== state.turn && !session.scheduled.some((item) => item.regionId === id));
+}
+function micro(macro) {
+  return Array.from({ length: 16 }, (_, i) => (Math.floor(macro / 12) * 4 + Math.floor(i / 4)) * 48 + macro % 12 * 4 + i % 4);
+}
+function addRegion(state, id, macros, color = null, controller = "B") {
+  state.regions[id] = { id, sourceMacros: macros, micro: macros.flatMap(micro), color, controllers: [controller], isPending: !color };
+  if (!color) state.pending = id;
+}
+function validate(session) {
+  check(session?.ruleSetId === RULE_SET && session.schemaVersion === 1, "WORKSHOP_RULESET_REQUIRED");
+  match.validateStandardState(session.state);
+  check(session.state.ruleSetId === RULE_SET, "WORKSHOP_RULESET_REQUIRED");
+  const state = session.state;
+  check(state.microWidth === 48 && state.playableBounds.macroWidth === 12 && state.playableBounds.microScale === 4
+    && state.playableBounds.minCol === 1 && state.playableBounds.maxCol === 10
+    && state.playableBounds.minRow === 1 && state.playableBounds.maxRow === 10, "INVALID_WORKSHOP_BOUNDS");
+  for (const region of Object.values(state.regions)) {
+    check(region.micro.length > 0 && Array.isArray(region.sourceMacros) && Array.isArray(region.controllers), "INVALID_WORKSHOP_REGION");
+    check(region.sourceMacros.length > 0 && new Set(region.sourceMacros).size === region.sourceMacros.length
+      && region.sourceMacros.every((macro) => Number.isInteger(macro) && macro % 12 >= 1 && macro % 12 <= 10 && Math.floor(macro / 12) >= 1 && Math.floor(macro / 12) <= 10)
+      && JSON.stringify([...region.micro].sort((a,b) => a-b)) === JSON.stringify(region.sourceMacros.flatMap(micro).sort((a,b) => a-b)), "INVALID_WORKSHOP_GEOMETRY");
+    check(region.color === null || engine.COLORS.includes(region.color), "INVALID_WORKSHOP_COLOR");
+    if (region.labColors !== undefined) check(Array.isArray(region.labColors) && region.labColors.length === 2
+      && region.labColors[0] === region.color && new Set(region.labColors).size === 2
+      && region.labColors.every((color) => engine.COLORS.includes(color)), "INVALID_WORKSHOP_COLOR");
+  }
+  check(!adjacentConflict(state), "WORKSHOP_ADJACENCY_CONFLICT");
+  for (const seat of ["A", "B"]) {
+    check(session.charges?.[seat] && Object.keys(session.charges[seat]).sort().join() === [...IDS].sort().join()
+      && IDS.every((id) => [0, 1].includes(session.charges[seat][id])), "INVALID_WORKSHOP_CHARGES");
+    check(["NONE", "QUEUED", "ACTIVE"].includes(session.silence?.[seat]), "INVALID_WORKSHOP_SILENCE");
+  }
+  check(session.createdTurn && typeof session.createdTurn === "object" && !Array.isArray(session.createdTurn)
+    && Object.values(session.createdTurn).every((turn) => Number.isInteger(turn) && turn >= 0 && turn <= state.turn), "INVALID_WORKSHOP_CREATED_TURN");
+  check(Array.isArray(session.scheduled) && session.scheduled.length <= 2
+    && new Set(session.scheduled.map((item) => item.regionId)).size === session.scheduled.length
+    && session.scheduled.every((item) => ["A", "B"].includes(item.actor) && typeof item.regionId === "string"
+      && typeof item.fingerprint === "string" && Number.isInteger(item.version) && item.version <= state.version), "INVALID_WORKSHOP_SCHEDULE");
+  check(session.receipts && typeof session.receipts === "object" && !Array.isArray(session.receipts)
+    && Object.values(session.receipts).every((item) => typeof item === "string"), "INVALID_WORKSHOP_RECEIPTS");
+  engine.createRngDomainsFromSnapshot(session.rngSnapshot, match.REQUIRED_RNG_STREAMS);
+  return true;
+}
+function create({ seed = 110927, scenario = "labWeather" } = {}) {
+  check(Number.isSafeInteger(seed) && seed >= 0 && seed <= 0xffffffff, "INVALID_SEED");
+  check(scenario === "free" || IDS.includes(scenario), "UNKNOWN_SCENARIO");
+  const rng = engine.createRngDomains(seed, match.REQUIRED_RNG_STREAMS);
+  const state = match.createStandardMatch({ matchId: `workshop-${seed}-${scenario}`, firstSeat: "A" }, rng);
+  state.ruleSetId = RULE_SET;
+  for (const seat of ["A", "B"]) {
+    state.basicPalettes[seat] = ["red", "blue"];
+    state.bonusColors[seat] = "green";
+    state.bonusUsesRemaining[seat] = 3;
+    state.initialPalettes[seat] = { basic: ["red", "blue"], bonus: "green" };
+  }
+  const session = { schemaVersion: 1, ruleSetId: RULE_SET, state, rngSnapshot: {},
+    charges: Object.fromEntries(["A", "B"].map((seat) => [seat, Object.fromEntries(IDS.map((id) => [id, 1]))])),
+    silence: { A: "NONE", B: "NONE" }, scheduled: [], createdTurn: {}, receipts: {}, lastEvent: "練習盤面を用意しました。" };
+  if (scenario !== "free") {
+    Object.assign(state, { phase: CARDS[scenario].phase, requiredSize: 2, rolledSize: 2, baseRequiredSize: 2 });
+    addRegion(state, "R1", [26, 27], "red");
+    addRegion(state, "R2", [28, 29], "blue");
+    addRegion(state, "R3", [30, 31], "green");
+    if (CARDS[scenario].phase === "COLOR") {
+      state.regions = {};
+      addRegion(state, "R1", [26], "red");
+      addRegion(state, "R2", [38, 39], null);
+      state.publicEffects.A.seals = { blue: 2, green: 1 };
+      if (scenario === "labRefillUnseal") state.bonusUsesRemaining.A = 0;
+    }
+  }
+  session.rngSnapshot = engine.snapshotRngDomains(rng, match.REQUIRED_RNG_STREAMS);
+  validate(session);
+  return session;
+}
+function skill(session, actor, payload, rng) {
+  const state = session.state, id = payload.skill, definition = CARDS[id];
+  check(Boolean(definition), "UNKNOWN_WORKSHOP_SKILL");
+  check(state.phase === definition.phase, "WRONG_PHASE");
+  check(session.charges[actor][id] > 0, "SKILL_UNAVAILABLE");
+  check(!state.skillCategoryWindow.categories.includes(definition.category), "SKILL_CATEGORY_ALREADY_USED_IN_WINDOW");
+  check(!(session.silence[actor] === "ACTIVE" && definition.category === "disrupt"), "DISRUPT_CATEGORY_SILENCED");
+  check(!state.preparedOutgoing && !state.reserved && !state.retainedSplit, "ACTIVE_FLOW_CONFLICT");
+  const ids = payload.regionIds || [];
+  check(Array.isArray(ids) && ids.length === definition.targets && new Set(ids).size === ids.length
+    && ids.every((regionId) => typeof regionId === "string" && Object.hasOwn(state.regions, regionId)), "INVALID_TARGETS");
+  if (id !== "labCancelRegion") check(ids.every((regionId) => eligible(session, regionId)), "INELIGIBLE_REGION");
+  if (definition.phase === "WORK") check(!state.pending, "PENDING_EXISTS");
+  let message = definition.name;
+  const draw = () => rng["skill-effect"].next();
+  if (["labWeather", "labWhiteout"].includes(id)) {
+    const pool = id === "labWhiteout" ? Object.keys(state.regions).filter((regionId) => eligible(session, regionId)).sort(engine.compareRegionIds) : ids;
+    check(pool.length > 0, "NO_ELIGIBLE_REGION");
+    const target = state.regions[pool[id === "labWhiteout" ? Math.floor(draw() * pool.length) : 0]];
+    setColors(target, []);
+    target.isPending = true;
+    target.controllers = [actor];
+    state.pending = target.id;
+    state.phase = "COLOR";
+    state.active = other(actor);
+    state.turn += 1;
+    state.interferenceLock = false;
+    message += `：${target.id}の形を残し、${state.active}が再彩色します。`;
+  } else if (id === "labSwap" || id === "labRotate") {
+    if (id === "labSwap") check(!engine.adjacentRegionIds(state, ids[0]).includes(ids[1]), "SWAP_REQUIRES_NONADJACENT");
+    else check(engine.adjacentRegionIds(state, ids[0]).includes(ids[1]) && engine.adjacentRegionIds(state, ids[1]).includes(ids[2]), "ROTATION_REQUIRES_CHAIN");
+    const before = ids.map((regionId) => colors(state.regions[regionId]));
+    ids.forEach((regionId, i) => setColors(state.regions[regionId], before[(i + ids.length - 1) % ids.length]));
+    check(!adjacentConflict(state), "RECOLOR_ADJACENCY_CONFLICT");
+    check(ids.some((regionId, i) => JSON.stringify(colors(state.regions[regionId])) !== JSON.stringify(before[i])), "NO_EFFECT");
+    message += `：${ids.join(" → ")}を同時に変更しました。`;
+  } else if (id === "labRecolorNext") {
+    session.scheduled.push({ regionId: ids[0], actor, fingerprint: fingerprint(state.regions[ids[0]]), version: state.version + 1 });
+    message += `：${ids[0]}を公開予約しました。`;
+  } else if (id === "labDemolish") {
+    check(state.regions[ids[0]].micro.length <= 4 * state.playableBounds.microScale ** 2, "DESTRUCTION_AREA_LIMIT");
+    delete state.regions[ids[0]];
+    message += `：${ids[0]}の場所は再指定できる空白になりました。`;
+  } else if (id === "labCancelRegion") {
+    const target = state.regions[ids[0]];
+    check(target.isPending && target.id === state.pending && target.controllers.length === 1 && target.controllers[0] === other(actor), "RECEIVED_REGION_REQUIRED");
+    check(target.sourceMacros.length >= 1 && target.sourceMacros.length <= 4, "CANCEL_SIZE_LIMIT");
+    state.requiredSize = state.baseRequiredSize = target.sourceMacros.length;
+    state.active = other(actor);
+    delete state.regions[target.id];
+    state.pending = null;
+    state.phase = "WORK";
+    message += `：${state.active}が${state.requiredSize}マスを指定し直します。封印は残ります。`;
+  } else if (id === "labChecker") {
+    const target = state.regions[ids[0]];
+    check(!target.labColors && engine.COLORS.includes(payload.color) && payload.color !== target.color, "INVALID_SECOND_COLOR");
+    setColors(target, [target.color, payload.color]);
+    check(!adjacentConflict(state), "RECOLOR_ADJACENCY_CONFLICT");
+    message += `：${target.id}は${target.color}と${payload.color}の両方に接触する扱いです。`;
+  } else if (id === "labSilence") {
+    check(session.silence[other(actor)] === "NONE", "SILENCE_ALREADY_QUEUED");
+    session.silence[other(actor)] = "QUEUED";
+    message += "：次の相手の妨害だけ禁止。救済COLORは使用できます。";
+  } else if (id === "labUnseal") {
+    const color = payload.color;
+    check([...state.basicPalettes[actor], state.bonusColors[actor]].includes(color) && state.publicEffects[actor].seals[color] > 0, "OWN_SEALED_COLOR_REQUIRED");
+    state.publicEffects[actor].seals[color] = 0;
+    message += `：${color}の封印を解除しました。`;
+  } else if (id === "labRefillUnseal") {
+    const color = state.bonusColors[actor];
+    check(state.bonusUsesRemaining[actor] < 4 || state.publicEffects[actor].seals[color] > 0, "NO_EFFECT");
+    state.bonusUsesRemaining[actor] = Math.min(4, state.bonusUsesRemaining[actor] + 1);
+    state.publicEffects[actor].seals[color] = 0;
+    message += `：${color}は残り${state.bonusUsesRemaining[actor]}回、封印なしです。`;
+  }
+  session.charges[actor][id] -= 1;
+  state.skillsUsed[actor] += 1;
+  state.version += 1;
+  state.skillCategoryWindow.categories.push(definition.category);
+  state.lastPublicTrace = { eventId: `${state.matchId}:${state.version}`, version: state.version, type: "USE_SKILL", actor };
+  state.publicLog.push(message);
+  session.lastEvent = message;
+}
+function enterSeat(session, previous) {
+  if (session.state.active === previous) return;
+  if (session.silence[previous] === "ACTIVE") session.silence[previous] = "NONE";
+  if (session.silence[session.state.active] === "QUEUED") session.silence[session.state.active] = "ACTIVE";
+  session.state.skillCategoryWindow = { actor: session.state.active, categories: [] };
+}
+function settleScheduled(session, actor, rng) {
+  const kept = [];
+  for (const item of session.scheduled) {
+    if (item.actor === actor) { kept.push(item); continue; }
+    const target = session.state.regions[item.regionId];
+    const choices = target && fingerprint(target) === item.fingerprint ? candidates(session.state, target.id) : [];
+    if (choices.length) {
+      setColors(target, [choices[Math.floor(rng["skill-effect"].next() * choices.length)]]);
+      session.state.publicLog.push(`再彩色予約：${target.id}が${target.color}になりました。`);
+    } else session.state.publicLog.push(`再彩色予約：${item.regionId}は対象変更または候補なしで不発です。`);
+    session.lastEvent = session.state.publicLog.at(-1);
+  }
+  session.scheduled = kept;
+}
+function apply(current, action) {
+  validate(current);
+  const rejected = (code) => ({ ok: false, code, session: current });
+  try {
+    check(action && typeof action.id === "string" && /^[A-Za-z0-9_-]{1,100}$/.test(action.id)
+      && !["__proto__", "constructor", "prototype"].includes(action.id), "ACTION_ID_REQUIRED");
+    const signature = JSON.stringify([action.actor, action.expectedVersion, action.type, action.payload]);
+    if (Object.hasOwn(current.receipts, action.id)) return current.receipts[action.id] === signature
+      ? { ok: true, code: "IDEMPOTENT_REPLAY", session: current } : rejected("ACTION_ID_COLLISION");
+    check(action.expectedVersion === current.state.version, "VERSION_CONFLICT");
+    check(current.state.status === "ACTIVE", "MATCH_FINISHED");
+    check(["A", "B"].includes(action.actor) && action.actor === current.state.active, "NOT_YOUR_TURN");
+    const next = clone(current), actor = action.actor;
+    const rng = engine.createRngDomainsFromSnapshot(current.rngSnapshot, match.REQUIRED_RNG_STREAMS);
+    if (action.type === "USE_SKILL") skill(next, actor, action.payload || {}, rng);
+    else {
+      check(["CREATE_REGION", "COLOR_REGION", "SURRENDER"].includes(action.type), "UNKNOWN_ACTION");
+      const result = match.applyStandardAction({ state: next.state, actor, action, expectedVersion: action.expectedVersion, rngStreams: rng });
+      if (!result.ok) return rejected(result.code);
+      next.state = clone(result.state);
+      if (action.type === "COLOR_REGION" && result.code !== "ILLEGAL_COLOR") {
+        const accentConflict = engine.adjacentRegionIds(current.state, current.state.pending)
+          .some((id) => colors(current.state.regions[id]).includes(action.payload.color));
+        if (accentConflict) {
+          next.state = clone(current.state);
+          Object.assign(next.state, { status: "FINISHED", phase: "GAME_OVER", winner: other(actor), terminalReason: "ILLEGAL_COLOR", version: current.state.version + 1 });
+          next.state.publicLog.push(`Player ${actor} lost by two-color adjacency.`);
+          next.lastEvent = "二色市松の第二色と接したため、隣接違反で終局しました。";
+          // A rejected paint must not retain the ordinary successful-paint die draw.
+          next.rngSnapshot = clone(current.rngSnapshot);
+        } else {
+          next.lastEvent = `${actor}が${current.state.pending}を彩色しました。`;
+          if (next.state.status === "ACTIVE") settleScheduled(next, actor, rng);
+        }
+      } else next.lastEvent = result.code === "ILLEGAL_COLOR" ? "隣接する同色を選んだため終局しました。" : next.state.publicLog.at(-1);
+      if (action.type === "CREATE_REGION") next.createdTurn[next.state.pending] = next.state.turn;
+    }
+    enterSeat(next, actor);
+    if (next.state.status === "FINISHED") next.scheduled = [];
+    if (!(action.type === "COLOR_REGION" && next.state.terminalReason === "ILLEGAL_COLOR")) next.rngSnapshot = engine.snapshotRngDomains(rng, match.REQUIRED_RNG_STREAMS);
+    next.receipts[action.id] = signature;
+    check(next.state.version === current.state.version + 1, "VERSION_INCREMENT_INVARIANT");
+    validate(next);
+    return { ok: true, code: "OK", session: next };
+  } catch (error) {
+    if (error instanceof engine.StandardRuleError) return rejected(error.code);
+    throw error;
+  }
+}
+function encode(session) { validate(session); return JSON.stringify(session); }
+function decode(text) { const session = JSON.parse(text); validate(session); return session; }
+module.exports = { RULE_SET, SAVE_KEY, CARDS, IDS, create, apply, validate, encode, decode, colors };
+
+}};const cache={};function load(id){if(cache[id])return cache[id].exports;const module={exports:{}};cache[id]=module;if(!modules[id])throw Error("Unknown workshop dependency "+id);modules[id](request=>load("standard/"+request.replace(/^.\//,"")),module,module.exports);return module.exports;}globalThis.FourColorSkillWorkshop=Object.freeze(load("standard/standard-skill-workshop.js"));})();
