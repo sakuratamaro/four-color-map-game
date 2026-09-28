@@ -29,6 +29,7 @@ function fixture({ slots = [{ skill: "areaCornerBloom", count: 1, used: false, e
   const node = id => { if (!nodes.has(id)) nodes.set(id, element("div")); return nodes.get(id); };
   const document = { createElement: element, activeElement: null };
   const scope = { document, $: node, roomModel: { view: { seat: "A" }, room: { id: "room" } },
+    skillIntents: require("../standard-online-v5/standard-online-skill-intents.js"),
     stableHandSlots: () => slots, SKILL_META: {
       areaCornerBloom: { name: "角膨張", rarity: 2, category: "area" },
       colorBonusRefill: { name: "おまけ補充", rarity: 1, category: "color" },
@@ -41,6 +42,20 @@ function fixture({ slots = [{ skill: "areaCornerBloom", count: 1, used: false, e
   vm.createContext(scope); vm.runInContext(renderSource, scope);
   return { scope, calls, node, render: (s = state(), privateState = {}) => { scope.renderSkills(s, privateState); return node("skillControls").children.filter(x => x.className?.includes("skill-entry")); } };
 }
+
+test("UDL011 permutation hand respects engine, timing, lock and persisted per-actor rotation limit",()=>{
+  for(const skill of ["disruptColorSwap","disruptColorRotate"]){
+    const f=fixture({slots:[{skill,count:1,used:false,extra:false,index:0}]});
+    f.scope.SKILL_META[skill]={name:skill,rarity:skill==="disruptColorSwap"?4:5,category:"disrupt"};
+    const enabled=f.render(state({engineVersion:"5.0.0-alpha.6"}),{seat:"A"})[0];
+    assert.equal(Boolean(enabled.children[0].disabled),false); // Native HTMLButtonElement coerces its disabled IDL property.
+    for(const patch of [{phase:"CREATE_FIRST"},{engineVersion:"5.0.0-alpha.4"},{interferenceLock:true},{preparedOutgoing:{}},
+      ...(skill==="disruptColorRotate"?[{rotationUsedBy:["A"]}]:[])]){
+      assert.equal(Boolean(f.render(state({engineVersion:"5.0.0-alpha.6",...patch}),{seat:"A"})[0].children[0].disabled),true);
+    }
+    assert.deepEqual(f.calls,[]);
+  }
+});
 
 test("UDL063 hides only ordinary visual x1 and retains rarity, used, repeated and debug counts", () => {
   for (const [slot, s, expected] of [

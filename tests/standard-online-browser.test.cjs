@@ -446,11 +446,11 @@ async function choosePublicWaiting(page) {
 }
 
 function assertVisibleCatalogDefinitions(definitions) {
-  assert.equal(definitions.length, 26);
-  assert.equal(definitions.filter(d => d.standardUiEnabled && !d.experimental).length, 24);
+  assert.equal(definitions.length, 28);
+  assert.equal(definitions.filter(d => d.standardUiEnabled && !d.experimental).length, 26);
   assert.deepEqual(definitions.filter(d => d.experimental).map(d => d.id).sort(),
     ["colorBonusRefill", "legalRecolor"]);
-  for (const id of ["colorRegionSplitKeep", "colorUnsealOne", "colorBonusRefillUnseal", "colorCancelRegion", "disruptDemolish"]) {
+  for (const id of ["colorRegionSplitKeep", "colorUnsealOne", "colorBonusRefillUnseal", "colorCancelRegion", "disruptDemolish", "disruptColorSwap", "disruptColorRotate"]) {
     assert.equal(definitions.filter(d => d.id === id && d.standardUiEnabled && !d.experimental).length, 1);
   }
 }
@@ -461,15 +461,15 @@ async function assertNativeOrdinaryCatalog(page) {
   assertVisibleCatalogDefinitions(definitions);
   const expected = definitions.filter(d => d.standardUiEnabled && !d.experimental).map(d => d.id).sort();
   const buttons = page.locator('#cardInventory section:not([data-catalog-group="lab"]) button[data-catalog-skill]');
-  assert.equal(await buttons.count(), 24);
+  assert.equal(await buttons.count(), 26);
   assert.deepEqual((await buttons.evaluateAll(els => els.map(el => el.dataset.catalogSkill))).sort(), expected);
 }
 
-test("UDL066 fresh catalog exposes 24 ordinary and 2 experimental native detail buttons without creating a profile or spending", { timeout: 120000 }, async () => {
+test("UDL066 fresh catalog exposes 26 ordinary and 2 experimental native detail buttons without creating a profile or spending", { timeout: 120000 }, async () => {
   await withPage("empty", async (page) => {
     await page.locator('[data-app-tab="cards"]').click();
     const cards = page.locator("#cardInventory button[data-catalog-skill]");
-    assert.equal(await cards.count(), 26);
+    assert.equal(await cards.count(), 28);
     assert.equal(await page.locator('#cardInventory [data-catalog-skill="colorRegionSplitKeep"]').count(), 1);
     assert.equal(await page.locator("#cardInventory section").count(), 4);
     assert.equal(await page.locator("#profileCard").isHidden(), true);
@@ -2847,6 +2847,37 @@ for(const id of ["colorUnsealOne","colorBonusRefillUnseal"]) test(`UDL011 rescue
     assert.equal(fixture.calls.length,2,"reload sends no skill or paint again");
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>document.documentElement.clientWidth),false);
   },{viewport:{width:390,height:844},beforeNavigate:async page=>{fixture=await require("./helpers/rescue-cards-ui.cjs").installRescueUi(page,roomId);}});
+});
+
+for(const id of ["disruptColorSwap","disruptColorRotate"]) test(`UDL011 permutation native ${id}: ordered selection, cancel, engine and reload`,{timeout:130000},async()=>{
+  let fixture;
+  await withPage("colorResponse",async page=>{
+    const skill=page.locator(`#skillControls button[data-skill="${id}"]:not([disabled])`);await skill.waitFor();
+    const before=fixture.state(),random=fixture.rng(),panel=page.locator("#skillTargetControls");
+    await skill.click();await panel.locator('[data-permutation-region="R1"]').click();
+    await page.keyboard.press("Escape");await panel.waitFor({state:"hidden"});
+    assert.deepEqual(fixture.state(),before);assert.equal(fixture.calls.length,0);
+    await skill.click();await panel.locator('[data-permutation-region="R1"]').click();
+    await page.reload();await skill.waitFor();assert.equal(await panel.isVisible(),false);
+    assert.equal(fixture.calls.length,0,"draft reload does not send");
+    await skill.click();
+    const ids=id==="disruptColorSwap"?["R2","R1"]:["R3","R2","R1"];
+    for(const regionId of ids)await panel.locator(`[data-permutation-region="${regionId}"]`).click();
+    await panel.locator(`[data-permutation-region="${ids.at(-1)}"]`).click();
+    const submit=panel.getByRole("button",{name:"この対象で使う",exact:true});
+    assert.equal(await submit.isDisabled(),true);
+    await panel.locator(`[data-permutation-region="${ids.at(-1)}"]`).click();
+    assert.equal(fixture.calls.length,0,"selection never probes legality");
+    await submit.focus();await page.keyboard.press("Enter");
+    await page.waitForFunction(v=>JSON.parse(document.querySelector("#publicProjection").textContent).version===v,before.version+1);
+    assert.equal(fixture.calls.length,1);assert.deepEqual(fixture.calls[0].action.payload,{skill:id,regionIds:ids});
+    assert.equal(fixture.state().hands.A[id],0);assert.equal(fixture.state().active,"B");assert.deepEqual(fixture.rng(),random);
+    assert.deepEqual(["R1","R2","R3"].map(r=>fixture.state().regions[r].color),id==="disruptColorSwap"?["blue","red","green"]:["blue","green","red"]);
+    await page.reload();await page.waitForFunction(v=>JSON.parse(document.querySelector("#publicProjection").textContent).version===v,before.version+1);
+    assert.equal(fixture.calls.length,1,"committed reload does not resend");
+    if(id==="disruptColorRotate")assert.deepEqual(fixture.state().rotationUsedBy,["A"]);
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>document.documentElement.clientWidth),false);
+  },{viewport:{width:390,height:844},beforeNavigate:async page=>{fixture=await require("./helpers/color-permutation-fixture.cjs").installPermutationUi(page,roomId,id);}});
 });
 
 for(const id of ["colorCancelRegion","disruptDemolish"]) test(`UDL011 destruction native ${id}: select, engine, reload`,{timeout:130000},async()=>{
@@ -9037,7 +9068,7 @@ test("UDL067 missing optional module fails closed without breaking cards or game
     assert.equal(await page.evaluate(()=>globalThis.__standardOnlineRuntime.calls.filter(c=>c.body?.operation==="action").length),0);
     await page.locator('[data-app-tab="cards"]').click();
     const cards=page.locator("#cardInventory button[data-catalog-skill]");
-    assert.equal(await cards.count(),26);
+    assert.equal(await cards.count(),28);
     const expected=Object.values(require("../standard/standard-skill-registry.js").STANDARD_SKILLS)
       .filter(d=>d.standardEngineImplemented&&(d.standardUiEnabled||d.alphaUiEnabled));
     assertVisibleCatalogDefinitions(expected);

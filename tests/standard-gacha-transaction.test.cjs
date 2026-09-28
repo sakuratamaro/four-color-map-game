@@ -30,13 +30,28 @@ function args(root, overrides = {}) {
   };
 }
 
-test("ordinary gacha pool accounts for the 24 Standard cards by category and rarity", () => {
+test("ordinary gacha pool accounts for the 26 Standard cards by category and rarity", () => {
   const pooled = [];
   for (const category of gacha.CATEGORIES) for (let rarity = 1; rarity <= 5; rarity += 1) pooled.push(...gacha.pool(category, rarity));
   assert.deepEqual([...pooled].sort(), [...STANDARD_SKILL_IDS].sort());
-  assert.equal(new Set(pooled).size, 24);
+  assert.equal(new Set(pooled).size, 26);
   assert.deepEqual(gacha.pool("color", 5), ["colorRegionSplitKeep", "colorPaletteChange"]);
   assert.ok(pooled.every((id) => STANDARD_SKILLS[id].gachaEnabled && !STANDARD_SKILLS[id].experimental));
+});
+
+test("both new permutation cards can be acquired through normal committed and replayable gacha",()=>{
+  const remaining=new Set(["disruptColorSwap","disruptColorRotate"]);
+  for(let seed=1;seed<=500 && remaining.size;seed++){
+    const root=fixture(seed);root.profiles.playerA.gachaTickets={5:3};
+    const request=args(root,{ticketLevel:5}),out=gacha.drawGacha(request);
+    assert.equal(out.ok,true);
+    for(const draw of out.draws)if(remaining.has(draw.skillId)){
+      assert.ok(out.root.profiles.playerA.inventory[draw.skillId]>=1);
+      assert.equal(gacha.drawGacha({...request,root:out.root}).code,"ALREADY_DRAWN");
+      save.validateStandardSave(out.root);remaining.delete(draw.skillId);
+    }
+  }
+  assert.deepEqual([...remaining],[]);
 });
 
 test("ticket levels use the approved rarity floors and visible long-shot chances", () => {

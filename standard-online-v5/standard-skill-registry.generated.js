@@ -397,6 +397,36 @@
     "standardEngineImplemented": true,
     "gachaEnabled": true
   },
+  "disruptColorSwap": {
+    "id": "disruptColorSwap",
+    "displayName": "色交換",
+    "category": "disrupt",
+    "usageCategory": "disrupt",
+    "rarity": 4,
+    "timing": "WORK",
+    "v49Catalogued": false,
+    "standardCatalogued": true,
+    "standardUiEnabled": true,
+    "alphaUiEnabled": false,
+    "experimental": false,
+    "standardEngineImplemented": true,
+    "gachaEnabled": true
+  },
+  "disruptColorRotate": {
+    "id": "disruptColorRotate",
+    "displayName": "地層反転",
+    "category": "disrupt",
+    "usageCategory": "disrupt",
+    "rarity": 5,
+    "timing": "WORK",
+    "v49Catalogued": false,
+    "standardCatalogued": true,
+    "standardUiEnabled": true,
+    "alphaUiEnabled": false,
+    "experimental": false,
+    "standardEngineImplemented": true,
+    "gachaEnabled": true
+  },
   "legalRecolor": {
     "id": "legalRecolor",
     "displayName": "塗り直し・乱",

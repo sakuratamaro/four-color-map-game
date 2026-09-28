@@ -11,6 +11,7 @@ function supportsSplitKeep(engineVersion) {
 
 const RESCUE_CARD_IDS = Object.freeze(["colorUnsealOne", "colorBonusRefillUnseal"]);
 const DESTRUCTION_CARD_IDS = Object.freeze(["disruptDemolish", "colorCancelRegion"]);
+const PERMUTATION_CARD_IDS = Object.freeze(["disruptColorSwap", "disruptColorRotate"]);
 function supportsRescueCards(engineVersion) {
   return engineVersion === SPLIT_KEEP_ENGINE_VERSION;
 }
@@ -18,7 +19,7 @@ function supportsRescueCards(engineVersion) {
 // Only a new match carrying this card opts into its continuation contract.
 function engineVersionForLoadouts(loadouts, fallback) {
   return Object.values(loadouts || {}).some((loadout) => Object.values(loadout || {}).some((ids) => Array.isArray(ids)
-    && ids.some((id) => id === "colorRegionSplitKeep" || RESCUE_CARD_IDS.includes(id) || DESTRUCTION_CARD_IDS.includes(id))))
+    && ids.some((id) => id === "colorRegionSplitKeep" || RESCUE_CARD_IDS.includes(id) || DESTRUCTION_CARD_IDS.includes(id) || PERMUTATION_CARD_IDS.includes(id))))
     ? SPLIT_KEEP_ENGINE_VERSION : fallback;
 }
 
@@ -243,6 +244,24 @@ const STANDARD_SKILLS = Object.freeze({
     consumptionPolicy: "RESOLVED_CHOSEN_COLOR_AND_PRIVATE_RANDOM_SLOT_PERMANENT",
     handlerVersion: "disrupt-forced-palette-v1",
   }),
+  disruptColorSwap: skill("disruptColorSwap", "色交換", "disrupt", 4, "WORK", {
+    targetSchema: { regionIds: "two-nonadjacent-colored-regions" },
+    implemented: true,
+    v49Catalogued: false,
+    standardCatalogued: true,
+    standardUiEnabled: true,
+    consumptionPolicy: "RESOLVED_ONLY_SIMULTANEOUS_LEGAL_SWAP",
+    handlerVersion: "color-swap-v1",
+  }),
+  disruptColorRotate: skill("disruptColorRotate", "地層反転", "disrupt", 5, "WORK", {
+    targetSchema: { regionIds: "ordered-three-colored-region-chain" },
+    implemented: true,
+    v49Catalogued: false,
+    standardCatalogued: true,
+    standardUiEnabled: true,
+    consumptionPolicy: "RESOLVED_ONLY_LEGAL_ROTATION_ONCE_PER_MATCH",
+    handlerVersion: "color-rotate-v1",
+  }),
   legalRecolor: skill("legalRecolor", "塗り直し・乱", "experimental", 3, "WORK", {
     usageCategory: "color",
     targetSchema: { regionId: "region-id" },
@@ -262,4 +281,4 @@ const V49_SKILL_IDS = Object.freeze(Object.values(STANDARD_SKILLS).filter((entry
 const STANDARD_SKILL_IDS = Object.freeze(Object.values(STANDARD_SKILLS).filter((entry) => entry.standardCatalogued).map((entry) => entry.id));
 const IMPLEMENTED_SKILL_IDS = Object.freeze(Object.values(STANDARD_SKILLS).filter((entry) => entry.implemented).map((entry) => entry.id));
 
-module.exports = { COLORED_CORNER_BLOOM_ENGINE_VERSION, LEARNED_TECHNIQUE_ENGINE_VERSION, SPLIT_KEEP_ENGINE_VERSION, supportsSplitKeep, RESCUE_CARD_IDS, DESTRUCTION_CARD_IDS, supportsRescueCards, engineVersionForLoadouts, supportsColoredCornerBloom, IMPLEMENTED_SKILL_IDS, SKILL_USAGE_CATEGORIES, STANDARD_SKILLS, STANDARD_SKILL_IDS, V49_SKILL_IDS };
+module.exports = { COLORED_CORNER_BLOOM_ENGINE_VERSION, LEARNED_TECHNIQUE_ENGINE_VERSION, SPLIT_KEEP_ENGINE_VERSION, supportsSplitKeep, RESCUE_CARD_IDS, DESTRUCTION_CARD_IDS, PERMUTATION_CARD_IDS, supportsRescueCards, engineVersionForLoadouts, supportsColoredCornerBloom, IMPLEMENTED_SKILL_IDS, SKILL_USAGE_CATEGORIES, STANDARD_SKILLS, STANDARD_SKILL_IDS, V49_SKILL_IDS };

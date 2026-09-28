@@ -14,6 +14,7 @@ const ids = [
   "standard/standard-skill-dispatcher.js",
   "standard/standard-region-geometry.js",
   "standard/standard-redesignation.js",
+  "standard/standard-color-permutation.js",
   "standard/standard-cpu.js",
   "standard/standard-match.js",
   "standard/standard-save.js",

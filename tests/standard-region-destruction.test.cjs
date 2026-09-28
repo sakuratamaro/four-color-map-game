@@ -27,7 +27,7 @@ function use(state,rng,skill,payload={}) { return act(state,rng,"USE_SKILL",{ski
 function restored(state) { const copy=match.decodeStandardMatch(match.encodeStandardMatch(state)).state;assert.deepEqual(copy,state);return copy; }
 
 test("UDL011 destruction cards are separate ordinary cards and opt in only new loadouts",()=>{
-  assert.equal(registry.V49_SKILL_IDS.length,19);assert.equal(registry.STANDARD_SKILL_IDS.length,24);
+  assert.equal(registry.V49_SKILL_IDS.length,19);assert.equal(registry.STANDARD_SKILL_IDS.length,26);
   for(const id of [CANCEL,DEMOLISH]) {
     const d=registry.STANDARD_SKILLS[id];assert.equal(d.rarity,4);assert.equal(d.gachaEnabled,true);
     assert.equal(d.experimental,false);assert.equal(d.standardUiEnabled,true);assert.equal(d.v49Catalogued,false);

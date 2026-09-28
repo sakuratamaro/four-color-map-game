@@ -14,6 +14,8 @@
     colorBonusRefillUnseal: "none",
     colorCancelRegion: "none",
     disruptDemolish: "existing-region",
+    disruptColorSwap: "region-permutation",
+    disruptColorRotate: "region-permutation",
     colorRegionSplit: "region-split",
     colorRegionSplitKeep: "region-split",
     colorPaletteChange: "slot-color",
@@ -102,6 +104,11 @@
     if (kind === "source-macros") return Object.freeze({ skill, sourceMacros: macros(input.sourceMacros) });
     if (kind === "region-split") return Object.freeze({ skill, regionId: regionId(input.regionId), sourceMacros: macros(input.sourceMacros) });
     if (kind === "existing-region") return Object.freeze({ skill, regionId: regionId(input.regionId) });
+    if (kind === "region-permutation") {
+      if (!Array.isArray(input.regionIds) || input.regionIds.length !== permutationTargetCount(skill)
+        || new Set(input.regionIds).size !== input.regionIds.length) invalid();
+      return Object.freeze({ skill, regionIds: Object.freeze(input.regionIds.map(regionId)) });
+    }
     if (kind === "corner-bloom") {
       const outgoing = Object.hasOwn(input, "sourceMacros");
       const colored = Object.hasOwn(input, "regionId");
@@ -121,5 +128,11 @@
     invalid();
   }
 
-  return Object.freeze({ COLORS, EXPERIMENTAL_TARGET_KIND, LAB_TARGET_KIND, TARGET_KIND, availableColorChoices, sealedOwnedColorChoices, bonusRefillUnsealHasEffect, buildSkillPayload, colorChoiceDetails, isImmediate: (skill) => targetKind(skill) === "none", targetKind });
+  function permutationTargetCount(skill) { return skill === "disruptColorSwap" ? 2 : skill === "disruptColorRotate" ? 3 : 0; }
+  function togglePermutationTarget(skill, selected = [], id) {
+    regionId(id);
+    return selected.includes(id) ? selected.filter(entry => entry !== id)
+      : selected.length < permutationTargetCount(skill) ? [...selected, id] : [...selected];
+  }
+  return Object.freeze({ COLORS, EXPERIMENTAL_TARGET_KIND, LAB_TARGET_KIND, TARGET_KIND, availableColorChoices, sealedOwnedColorChoices, bonusRefillUnsealHasEffect, buildSkillPayload, colorChoiceDetails, permutationTargetCount, togglePermutationTarget, isImmediate: (skill) => targetKind(skill) === "none", targetKind });
 });

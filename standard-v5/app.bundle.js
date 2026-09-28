@@ -803,6 +803,7 @@ function supportsSplitKeep(engineVersion) {
 
 const RESCUE_CARD_IDS = Object.freeze(["colorUnsealOne", "colorBonusRefillUnseal"]);
 const DESTRUCTION_CARD_IDS = Object.freeze(["disruptDemolish", "colorCancelRegion"]);
+const PERMUTATION_CARD_IDS = Object.freeze(["disruptColorSwap", "disruptColorRotate"]);
 function supportsRescueCards(engineVersion) {
   return engineVersion === SPLIT_KEEP_ENGINE_VERSION;
 }
@@ -810,7 +811,7 @@ function supportsRescueCards(engineVersion) {
 // Only a new match carrying this card opts into its continuation contract.
 function engineVersionForLoadouts(loadouts, fallback) {
   return Object.values(loadouts || {}).some((loadout) => Object.values(loadout || {}).some((ids) => Array.isArray(ids)
-    && ids.some((id) => id === "colorRegionSplitKeep" || RESCUE_CARD_IDS.includes(id) || DESTRUCTION_CARD_IDS.includes(id))))
+    && ids.some((id) => id === "colorRegionSplitKeep" || RESCUE_CARD_IDS.includes(id) || DESTRUCTION_CARD_IDS.includes(id) || PERMUTATION_CARD_IDS.includes(id))))
     ? SPLIT_KEEP_ENGINE_VERSION : fallback;
 }
 
@@ -1035,6 +1036,24 @@ const STANDARD_SKILLS = Object.freeze({
     consumptionPolicy: "RESOLVED_CHOSEN_COLOR_AND_PRIVATE_RANDOM_SLOT_PERMANENT",
     handlerVersion: "disrupt-forced-palette-v1",
   }),
+  disruptColorSwap: skill("disruptColorSwap", "色交換", "disrupt", 4, "WORK", {
+    targetSchema: { regionIds: "two-nonadjacent-colored-regions" },
+    implemented: true,
+    v49Catalogued: false,
+    standardCatalogued: true,
+    standardUiEnabled: true,
+    consumptionPolicy: "RESOLVED_ONLY_SIMULTANEOUS_LEGAL_SWAP",
+    handlerVersion: "color-swap-v1",
+  }),
+  disruptColorRotate: skill("disruptColorRotate", "地層反転", "disrupt", 5, "WORK", {
+    targetSchema: { regionIds: "ordered-three-colored-region-chain" },
+    implemented: true,
+    v49Catalogued: false,
+    standardCatalogued: true,
+    standardUiEnabled: true,
+    consumptionPolicy: "RESOLVED_ONLY_LEGAL_ROTATION_ONCE_PER_MATCH",
+    handlerVersion: "color-rotate-v1",
+  }),
   legalRecolor: skill("legalRecolor", "塗り直し・乱", "experimental", 3, "WORK", {
     usageCategory: "color",
     targetSchema: { regionId: "region-id" },
@@ -1054,7 +1073,7 @@ const V49_SKILL_IDS = Object.freeze(Object.values(STANDARD_SKILLS).filter((entry
 const STANDARD_SKILL_IDS = Object.freeze(Object.values(STANDARD_SKILLS).filter((entry) => entry.standardCatalogued).map((entry) => entry.id));
 const IMPLEMENTED_SKILL_IDS = Object.freeze(Object.values(STANDARD_SKILLS).filter((entry) => entry.implemented).map((entry) => entry.id));
 
-module.exports = { COLORED_CORNER_BLOOM_ENGINE_VERSION, LEARNED_TECHNIQUE_ENGINE_VERSION, SPLIT_KEEP_ENGINE_VERSION, supportsSplitKeep, RESCUE_CARD_IDS, DESTRUCTION_CARD_IDS, supportsRescueCards, engineVersionForLoadouts, supportsColoredCornerBloom, IMPLEMENTED_SKILL_IDS, SKILL_USAGE_CATEGORIES, STANDARD_SKILLS, STANDARD_SKILL_IDS, V49_SKILL_IDS };
+module.exports = { COLORED_CORNER_BLOOM_ENGINE_VERSION, LEARNED_TECHNIQUE_ENGINE_VERSION, SPLIT_KEEP_ENGINE_VERSION, supportsSplitKeep, RESCUE_CARD_IDS, DESTRUCTION_CARD_IDS, PERMUTATION_CARD_IDS, supportsRescueCards, engineVersionForLoadouts, supportsColoredCornerBloom, IMPLEMENTED_SKILL_IDS, SKILL_USAGE_CATEGORIES, STANDARD_SKILLS, STANDARD_SKILL_IDS, V49_SKILL_IDS };
 
 },
 "standard/standard-technique-state.js":function(require,module,exports){
@@ -2301,7 +2320,8 @@ module.exports = {
 "use strict";
 
 const { COLORS, StandardRuleError, applyLegalRecolor } = require("./standard-engine.js");
-const { supportsColoredCornerBloom, supportsSplitKeep, RESCUE_CARD_IDS, DESTRUCTION_CARD_IDS, supportsRescueCards, STANDARD_SKILLS } = require("./standard-skill-registry.js");
+const { supportsColoredCornerBloom, supportsSplitKeep, RESCUE_CARD_IDS, DESTRUCTION_CARD_IDS, PERMUTATION_CARD_IDS, supportsRescueCards, STANDARD_SKILLS } = require("./standard-skill-registry.js");
+const { applyColorPermutation } = require("./standard-color-permutation.js");
 const { applyDisruptDemolish, applyColorCancelRegion } = require("./standard-skill-handlers.js");
 const { applyColorUnsealOne, applyColorBonusRefillUnseal } = require("./standard-skill-handlers.js");
 const { usesTechniques, techniqueAvailable, applyTechUnsealOne } = require("./standard-technique-state.js");
@@ -2324,6 +2344,10 @@ function nextRandom(rngStreams, name, counter) {
 function validateTargetSchema(definition, payload, state) {
   if (!definition.targetSchema) return true;
   if (!payload || typeof payload !== "object" || Array.isArray(payload)) return false;
+  if (PERMUTATION_CARD_IDS.includes(definition.id)) return Object.keys(payload).sort().join("|") === "regionIds|skill"
+    && Array.isArray(payload.regionIds) && payload.regionIds.length === (definition.id === "disruptColorSwap" ? 2 : 3)
+    && new Set(payload.regionIds).size === payload.regionIds.length
+    && payload.regionIds.every(id => typeof id === "string" && /^R[1-9][0-9]*$/.test(id));
   if (definition.id === "disruptDemolish") return Object.keys(payload).sort().join("|") === "regionId|skill"
     && typeof payload.regionId === "string" && /^R[1-9][0-9]*$/.test(payload.regionId);
   if (["techUnsealOne", "colorUnsealOne"].includes(definition.id)) return Object.keys(payload).sort().join("|") === "color|skill" && COLORS.includes(payload.color);
@@ -2350,6 +2374,8 @@ function validateTargetSchema(definition, payload, state) {
 }
 
 const HANDLERS = Object.freeze({
+  disruptColorSwap: applyColorPermutation,
+  disruptColorRotate: applyColorPermutation,
   disruptDemolish: applyDisruptDemolish,
   colorCancelRegion: applyColorCancelRegion,
   techUnsealOne: applyTechUnsealOne,
@@ -2412,6 +2438,7 @@ function dispatchStandardSkillAction({ state, actor, action, expectedVersion, rn
   if (definition.id === "colorRegionSplitKeep" && !supportsSplitKeep(state.engineVersion)) return rejected("SKILL_ENGINE_UNSUPPORTED", state);
   if (RESCUE_CARD_IDS.includes(definition.id) && !supportsRescueCards(state.engineVersion)) return rejected("SKILL_ENGINE_UNSUPPORTED", state);
   if (DESTRUCTION_CARD_IDS.includes(definition.id) && !supportsSplitKeep(state.engineVersion)) return rejected("SKILL_ENGINE_UNSUPPORTED", state);
+  if (PERMUTATION_CARD_IDS.includes(definition.id) && !supportsSplitKeep(state.engineVersion)) return rejected("SKILL_ENGINE_UNSUPPORTED", state);
   if (definition.id === "colorCancelRegion" && Object.keys(action.payload).join("|") !== "skill") return rejected("INVALID_TARGET_SCHEMA", state);
   if (definition.id === "colorBonusRefillUnseal" && Object.keys(action.payload).join("|") !== "skill") return rejected("INVALID_TARGET_SCHEMA", state);
   const learned = definition.acquisitionType === "LEARNED";
@@ -2425,7 +2452,7 @@ function dispatchStandardSkillAction({ state, actor, action, expectedVersion, rn
   if (learned ? !techniqueAvailable(state, actor, definition.id) : (state.hands?.[actor]?.[definition.id] || 0) <= 0) {
     return rejected(learned ? "TECHNIQUE_UNAVAILABLE" : "SKILL_UNAVAILABLE", state);
   }
-  if (definition.experimental && state.interferenceLock) return rejected("INTERFERENCE_CHAINED", state);
+  if ((definition.experimental || PERMUTATION_CARD_IDS.includes(definition.id)) && state.interferenceLock) return rejected("INTERFERENCE_CHAINED", state);
   if (!validateTargetSchema(definition, action.payload, state)) return rejected("INVALID_TARGET_SCHEMA", state);
   if (categoryLimitEnabled && state.skillCategoryWindow.categories.includes(definition.usageCategory)) {
     return rejected("SKILL_CATEGORY_ALREADY_USED_IN_WINDOW", state);
@@ -2609,6 +2636,59 @@ function validateRedesignation(state) {
 }
 
 module.exports = { sameDesignation, validateRedesignation };
+
+},
+"standard/standard-color-permutation.js":function(require,module,exports){
+"use strict";
+
+const { COLORS, StandardRuleError, adjacentRegionIds } = require("./standard-engine.js");
+const { supportsSplitKeep } = require("./standard-skill-registry.js");
+
+function validateColorPermutationState(state) {
+  if (!Object.hasOwn(state, "rotationUsedBy")) return;
+  const used = state.rotationUsedBy;
+  if (!supportsSplitKeep(state.engineVersion) || !Array.isArray(used) || used.length < 1 || used.length > 2
+    || new Set(used).size !== used.length || used.some(seat => !["A", "B"].includes(seat))) {
+    throw new StandardRuleError("INVALID_ROTATION_HISTORY", "Invalid public rotation history");
+  }
+}
+
+// Uses only public geometry/colors. No candidate filtering consults either player's palette.
+function applyColorPermutation({ state, actor, payload }) {
+  const rotating = payload.skill === "disruptColorRotate", ids = payload.regionIds;
+  const reject = code => ({ ok: false, code, state });
+  if (state.phase !== "WORK") return reject("WRONG_PHASE");
+  if (state.pending || state.reserved || state.retainedSplit || state.preparedOutgoing || state.redesignation) {
+    return reject("ACTIVE_FLOW_CONFLICT");
+  }
+  if (rotating && state.rotationUsedBy?.includes(actor)) return reject("ROTATION_ALREADY_USED");
+  if (ids.some(id => !COLORS.includes(state.regions[id]?.color) || state.regions[id].isPending
+    || state.regions[id].isReserved || state.regions[id].deleted || state.regions[id].delayed || state.regions[id].delayState || !state.regions[id].micro?.length)) {
+    return reject("INELIGIBLE_PERMUTATION_REGION");
+  }
+  const adjacent = ids.map(id => adjacentRegionIds(state, id));
+  if (rotating ? !adjacent[0].includes(ids[1]) || !adjacent[1].includes(ids[2]) : adjacent[0].includes(ids[1])) {
+    return reject(rotating ? "ROTATION_REQUIRES_CHAIN" : "SWAP_REQUIRES_NONADJACENT");
+  }
+  const colors = ids.map(id => state.regions[id].color);
+  if (colors.every(color => color === colors[0])) return reject("NO_EFFECT");
+  const next = JSON.parse(JSON.stringify(state));
+  ids.forEach((id, index) => { next.regions[id].color = colors[(index + ids.length - 1) % ids.length]; });
+  if (ids.some((id, index) => adjacent[index].some(neighbor => next.regions[neighbor].color === next.regions[id].color))) {
+    return reject("RECOLOR_ADJACENCY_CONFLICT");
+  }
+  next.hands[actor][payload.skill] -= 1;
+  next.skillsUsed[actor] = (next.skillsUsed[actor] || 0) + 1;
+  next.version += 1;
+  if (rotating) next.rotationUsedBy = [...(next.rotationUsedBy || []), actor];
+  next.active = actor === "A" ? "B" : "A";
+  next.phase = "WORK";
+  next.interferenceLock = true;
+  next.publicLog.push(`Player ${actor} ${rotating ? "rotated" : "swapped"} the colors of ${ids.join(" -> ")}; Player ${next.active} must designate a region.`);
+  return { ok: true, code: "OK", state: next, cardConsumed: true, regionIds: [...ids] };
+}
+
+module.exports = { applyColorPermutation, validateColorPermutationState };
 
 },
 "standard/standard-cpu.js":function(require,module,exports){
@@ -3148,6 +3228,7 @@ module.exports = {
 "use strict";
 
 const { sameDesignation, validateRedesignation } = require("./standard-redesignation.js");
+const { validateColorPermutationState } = require("./standard-color-permutation.js");
 
 const {
   COLORS,
@@ -3357,6 +3438,7 @@ function validateStandardState(state) {
   }
   assertState(Array.isArray(state.publicLog), "INVALID_PUBLIC_LOG");
   validateRedesignation(state);
+  validateColorPermutationState(state);
   if (state.lastPublicTrace !== undefined && state.lastPublicTrace !== null) {
     const trace = state.lastPublicTrace;
     const commonKeys = ["actor", "eventId", "type", "version"];
@@ -3513,6 +3595,7 @@ function projectStandardPublicState(state) {
   if (state.diePoolVersion !== undefined) keys.push("diePoolVersion");
   if (Object.hasOwn(state, "retainedSplit")) keys.push("retainedSplit");
   if (Object.hasOwn(state, "redesignation")) keys.push("redesignation");
+  if (Object.hasOwn(state, "rotationUsedBy")) keys.push("rotationUsedBy");
   return Object.freeze({ ...Object.fromEntries(keys.map((key) => [key, clone(key === "trophyTargetMacros"
     ? (state.trophyTargetMacros || playableMacroIndices(state.playableBounds))
     : key === "lastPublicTrace" ? (state.lastPublicTrace ?? null) : state[key])] )),
@@ -8015,7 +8098,7 @@ function boot() {
       });
       board.appendChild(cell);
     }
-    commitRegion.disabled = !revealedSeat || targetMode?.kind === "colorRegionSplit" || targetMode?.kind === "areaResize" || targetMode?.kind === "areaCornerBloom" || targetMode?.kind === "bandShift" || !["CREATE_FIRST", "WORK"].includes(publicState.phase);
+    commitRegion.disabled = !revealedSeat || targetMode?.kind === "region-permutation" || targetMode?.kind === "colorRegionSplit" || targetMode?.kind === "areaResize" || targetMode?.kind === "areaCornerBloom" || targetMode?.kind === "bandShift" || !["CREATE_FIRST", "WORK"].includes(publicState.phase);
     if (publicState.redesignation?.stage === "RESELECT" && [...selected].sort((a,b)=>a-b).join(",") === publicState.redesignation.sourceMacros.join(",")) commitRegion.disabled = true;
     surrender.disabled = !revealedSeat || publicState.status === "FINISHED";
   }
@@ -8160,6 +8243,35 @@ function boot() {
     }
     appendButton("四色解放", colorSkillUsed || targetMode !== null || phase !== "COLOR" || !(own.hand.colorPrism > 0), () => dispatch("USE_SKILL", { skill: "colorPrism" }));
     const rescueSupported = publicState.engineVersion === "5.0.0-alpha.6";
+    for (const skill of ["disruptColorSwap", "disruptColorRotate"]) if (own.hand[skill] > 0) {
+      appendButton(STANDARD_SKILLS[skill].displayName, !rescueSupported || disruptSkillUsed || targetMode !== null || phase !== "WORK"
+        || Boolean(publicState.interferenceLock || publicState.pending || publicState.reserved || publicState.preparedOutgoing || publicState.retainedSplit || publicState.redesignation)
+        || skill === "disruptColorRotate" && publicState.rotationUsedBy?.includes(own.seat), () => {
+        selected.clear(); targetMode = {kind:"region-permutation",skill,regionIds:[]};
+        renderPublic(publicState); renderPrivate(own);
+      });
+    }
+    if (targetMode?.kind === "region-permutation") {
+      const {skill,regionIds} = targetMode, count = skill === "disruptColorSwap" ? 2 : 3;
+      const note = document.createElement("p");
+      note.setAttribute("role","status");
+      note.textContent = (count === 2 ? "辺で接しない2領域を選択。" : "辺でつながる3領域を順に選択。色は1→2→3→1。")
+        + " 再選択で解除。確定時に成立判定。不成立なら消費しません。選択順：" + (regionIds.join(" → ") || "未選択");
+      privatePanel.appendChild(note);
+      for (const region of Object.values(publicState.regions).filter(r=>r.color && !r.isPending && !r.isReserved && !r.delayed && !r.delayState)) {
+        const position = regionIds.indexOf(region.id);
+        appendButton(`${region.id}・${COLOR_NAMES[region.color]}${position < 0 ? "" : `（選択${position+1}）`}`, position < 0 && regionIds.length >= count, () => {
+          targetMode.regionIds = position < 0 ? [...regionIds,region.id] : regionIds.filter(id=>id!==region.id);
+          renderPrivate(own);
+        });
+      }
+      appendButton("この順で色を移す", regionIds.length !== count, () => {
+        targetMode = null; dispatch("USE_SKILL",{skill,regionIds});
+      });
+      appendButton("色の移動をキャンセル", false, () => {
+        targetMode=null; selected.clear(); renderPublic(publicState); renderPrivate(own);
+      });
+    }
     if (own.hand.colorCancelRegion > 0) appendButton("指定の爆破", !rescueSupported || colorSkillUsed || targetMode !== null || phase !== "COLOR"
       || Boolean(publicState.reserved || publicState.retainedSplit || publicState.redesignation) || publicState.lastPublicTrace?.type !== "CREATE_REGION", () => {
       dispatch("USE_SKILL", { skill: "colorCancelRegion" });

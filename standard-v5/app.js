@@ -811,7 +811,7 @@ function boot() {
       });
       board.appendChild(cell);
     }
-    commitRegion.disabled = !revealedSeat || targetMode?.kind === "colorRegionSplit" || targetMode?.kind === "areaResize" || targetMode?.kind === "areaCornerBloom" || targetMode?.kind === "bandShift" || !["CREATE_FIRST", "WORK"].includes(publicState.phase);
+    commitRegion.disabled = !revealedSeat || targetMode?.kind === "region-permutation" || targetMode?.kind === "colorRegionSplit" || targetMode?.kind === "areaResize" || targetMode?.kind === "areaCornerBloom" || targetMode?.kind === "bandShift" || !["CREATE_FIRST", "WORK"].includes(publicState.phase);
     if (publicState.redesignation?.stage === "RESELECT" && [...selected].sort((a,b)=>a-b).join(",") === publicState.redesignation.sourceMacros.join(",")) commitRegion.disabled = true;
     surrender.disabled = !revealedSeat || publicState.status === "FINISHED";
   }
@@ -956,6 +956,35 @@ function boot() {
     }
     appendButton("四色解放", colorSkillUsed || targetMode !== null || phase !== "COLOR" || !(own.hand.colorPrism > 0), () => dispatch("USE_SKILL", { skill: "colorPrism" }));
     const rescueSupported = publicState.engineVersion === "5.0.0-alpha.6";
+    for (const skill of ["disruptColorSwap", "disruptColorRotate"]) if (own.hand[skill] > 0) {
+      appendButton(STANDARD_SKILLS[skill].displayName, !rescueSupported || disruptSkillUsed || targetMode !== null || phase !== "WORK"
+        || Boolean(publicState.interferenceLock || publicState.pending || publicState.reserved || publicState.preparedOutgoing || publicState.retainedSplit || publicState.redesignation)
+        || skill === "disruptColorRotate" && publicState.rotationUsedBy?.includes(own.seat), () => {
+        selected.clear(); targetMode = {kind:"region-permutation",skill,regionIds:[]};
+        renderPublic(publicState); renderPrivate(own);
+      });
+    }
+    if (targetMode?.kind === "region-permutation") {
+      const {skill,regionIds} = targetMode, count = skill === "disruptColorSwap" ? 2 : 3;
+      const note = document.createElement("p");
+      note.setAttribute("role","status");
+      note.textContent = (count === 2 ? "辺で接しない2領域を選択。" : "辺でつながる3領域を順に選択。色は1→2→3→1。")
+        + " 再選択で解除。確定時に成立判定。不成立なら消費しません。選択順：" + (regionIds.join(" → ") || "未選択");
+      privatePanel.appendChild(note);
+      for (const region of Object.values(publicState.regions).filter(r=>r.color && !r.isPending && !r.isReserved && !r.delayed && !r.delayState)) {
+        const position = regionIds.indexOf(region.id);
+        appendButton(`${region.id}・${COLOR_NAMES[region.color]}${position < 0 ? "" : `（選択${position+1}）`}`, position < 0 && regionIds.length >= count, () => {
+          targetMode.regionIds = position < 0 ? [...regionIds,region.id] : regionIds.filter(id=>id!==region.id);
+          renderPrivate(own);
+        });
+      }
+      appendButton("この順で色を移す", regionIds.length !== count, () => {
+        targetMode = null; dispatch("USE_SKILL",{skill,regionIds});
+      });
+      appendButton("色の移動をキャンセル", false, () => {
+        targetMode=null; selected.clear(); renderPublic(publicState); renderPrivate(own);
+      });
+    }
     if (own.hand.colorCancelRegion > 0) appendButton("指定の爆破", !rescueSupported || colorSkillUsed || targetMode !== null || phase !== "COLOR"
       || Boolean(publicState.reserved || publicState.retainedSplit || publicState.redesignation) || publicState.lastPublicTrace?.type !== "CREATE_REGION", () => {
       dispatch("USE_SKILL", { skill: "colorCancelRegion" });

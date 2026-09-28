@@ -18,8 +18,8 @@ test("combined pilot keeps published board/palette model and surface bytes",()=>
 });
 test("combined pilot identifies new assets separately from frozen navigation and CPU parents",()=>{
  for(const marker of ["app.js?v=20260921-2","style.css?v=20260921-1","standard-online-client.js?v=20260914-1","standard-skill-registry.generated.js?v=20260914-2"]){
-  const current=marker==="app.js?v=20260921-2"?"app.js?v=20260928-destruction-1"
-    :marker==="standard-skill-registry.generated.js?v=20260914-2"?"standard-skill-registry.generated.js?v=20260928-destruction-1":marker;
+  const current=marker==="app.js?v=20260921-2"?"app.js?v=20260928-permutation-1"
+    :marker==="standard-skill-registry.generated.js?v=20260914-2"?"standard-skill-registry.generated.js?v=20260928-permutation-1":marker;
   assert.ok(html.includes(current),current);assert.ok(spec.includes(marker),marker);
  }
  for(const marker of ["play-surface-model.js?v=20260915-1","result-continuation.js?v=20260914-2","cpu-progression-model.js?v=20260914-1"]){
@@ -28,7 +28,7 @@ test("combined pilot identifies new assets separately from frozen navigation and
  }
  const localMarker="app.bundle.js?v=20260914-11-63d4f2b526f1";
  assert.ok(spec.includes(localMarker)); // Preserve the historical pilot's asset identity.
- assert.ok(read("standard-v5/index.html").includes("app.bundle.js?v=20260928-destruction-1-42dcf9e5cd3e"));
+ assert.ok(read("standard-v5/index.html").includes("app.bundle.js?v=20260928-permutation-1-19df084a8f0e"));
  for(const phrase of ["4d91bbd4ea407be428144fe04ff5eb8821b3a8a0","2e30e9a25db674fe4168bac3ec745fe04641b3c9","UDL011064-pilot-design-v2","NOT_RUN","Old052/057","default OFF"])assert.ok(spec.includes(phrase),phrase);
 });
 test("separate technique control does not restore removed setup clutter or replace the hand",()=>{

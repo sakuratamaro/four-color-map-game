@@ -5,14 +5,26 @@ const test = require("node:test");
 const { STANDARD_SKILLS } = require("../standard/standard-skill-registry.js");
 const intents = require("../standard-online-v5/standard-online-skill-intents.js");
 
-test("intent registry covers the 24 ordinary Standard cards", () => {
+test("intent registry covers the 26 ordinary Standard cards", () => {
   const canonical = Object.values(STANDARD_SKILLS).filter((skill) => skill.standardCatalogued).map((skill) => skill.id).sort();
   assert.deepEqual(Object.keys(intents.TARGET_KIND).sort(), canonical);
-  assert.equal(Object.keys(intents.TARGET_KIND).length, 24);
+  assert.equal(Object.keys(intents.TARGET_KIND).length, 26);
   assert.equal(Object.hasOwn(intents.TARGET_KIND, "legalRecolor"), false);
   assert.deepEqual(intents.LAB_TARGET_KIND, { legalRecolor: "existing-region" });
   assert.deepEqual(intents.EXPERIMENTAL_TARGET_KIND, { colorBonusRefill: "none" });
   assert.deepEqual(intents.buildSkillPayload("colorBonusRefill"), { skill: "colorBonusRefill" });
+});
+
+test("permutation targeting retains order, supports deselection, and validates only shape", () => {
+  let ids=[];
+  for(const id of ["R3","R2","R1","R4"])ids=intents.togglePermutationTarget("disruptColorRotate",ids,id);
+  assert.deepEqual(ids,["R3","R2","R1"]);
+  assert.deepEqual(intents.buildSkillPayload("disruptColorRotate",{regionIds:ids}),{skill:"disruptColorRotate",regionIds:ids});
+  ids=intents.togglePermutationTarget("disruptColorRotate",ids,"R2");
+  assert.deepEqual(ids,["R3","R1"]);
+  for(const regionIds of [[],["R1","R1"],["R1","R2","R3"],["R0","R1"]])
+    assert.throws(()=>intents.buildSkillPayload("disruptColorSwap",{regionIds}),/INVALID_SKILL_TARGET/);
+  assert.deepEqual(intents.buildSkillPayload("disruptColorSwap",{regionIds:["R3","R1"]}),{skill:"disruptColorSwap",regionIds:["R3","R1"]});
 });
 
 test("eight no-target cards produce finite immediate payloads", () => {
