@@ -1271,6 +1271,69 @@ async function assertPaletteChangeUse(browser, gesture) {
   }
 }
 
+test("UDL011 local destruction native preserves handover, replay, categories and geometry",{timeout:120000},async()=>{
+  assert.ok(chromium && installedBrowserExecutable(),"requested native browser is required");
+  const server=await startServer();let browser,context;
+  try {
+    browser=await chromium.launch({headless:true,executablePath:installedBrowserExecutable()});
+    const measured=await newMeasuredPage(browser),{page,metrics}=measured;context=measured.context;
+    await bootToBWork(page);
+    // Test-owned inventory/state setup. Subsequent interactions use the real local UI and save transaction.
+    const rootValue=await persistedRoot(page),prior=rootValue.activeMatch.state;
+    const rng=standardEngine.createRngDomains(923,standardMatch.REQUIRED_RNG_STREAMS),hands=structuredClone(prior.hands);
+    for(const id of ["colorCancelRegion","disruptDemolish"]) {
+      hands.B[id]=1;rootValue.activeMatch.cardSources.B[id]="INVENTORY_BACKED";
+      rootValue.profiles.playerB.inventory[id]=1;rootValue.reservations.playerB[id]=1;
+    }
+    const fresh=standardMatch.createStandardMatch({matchId:prior.matchId,engineVersion:"5.0.0-alpha.6",hands,firstSeat:"A"},rng);
+    Object.assign(fresh,{requiredSize:2,baseRequiredSize:2,rolledSize:2,version:prior.version});
+    fresh.basicPalettes.B=["green","yellow"];
+    const received=standardMatch.applyStandardAction({state:fresh,rngStreams:rng,actor:"A",expectedVersion:fresh.version,action:{type:"CREATE_REGION",payload:{sourceMacros:[13,14]}}});
+    assert.equal(received.ok,true);rootValue.activeMatch.state=received.state;
+    rootValue.activeMatch.rngSnapshot=Object.fromEntries(Object.entries(rng).map(([k,v])=>[k,v.snapshot()]));
+    require("../standard/standard-save.js").validateStandardSave(rootValue);
+    await page.evaluate(({key,value})=>localStorage.setItem(key,value),{key:saveKey,value:JSON.stringify(rootValue)});
+    await page.reload();await assertHandoverIsPrivate(page);
+    const reveal=page.getByRole("button",{name:"自分の情報を表示"});
+    await reveal.click();const before=await persistedSnapshot(page);
+    await page.getByRole("button",{name:"指定の爆破",exact:true}).click();
+    await assertHandoverIsPrivate(page);
+    let saved=await persistedRoot(page),s=saved.activeMatch.state;
+    assert.equal(s.redesignation.stage,"RESELECT");assert.equal(s.active,"A");
+    assert.equal(s.version,before.matchVersion+1);assert.equal(s.hands.B.colorCancelRegion,0);
+    assert.equal(saved.profiles.playerB.inventory.colorCancelRegion,0);
+    assert.deepEqual(saved.activeMatch.rngSnapshot,rootValue.activeMatch.rngSnapshot);
+    await assertReloadStable(page,metrics,"cancelled designation");await reveal.click();
+    assert.equal(await page.locator("#privatePanel button.skill:not([disabled])").count(),0);
+    const cells=page.locator('[aria-label="盤面"] button'),submit=page.getByRole("button",{name:"選んだエリアを渡す"});
+    for(const m of [13,14])await cells.nth(m).click();
+    assert.equal(await submit.isDisabled(),true);
+    for(const m of [13,14,25,26])await cells.nth(m).click();
+    assert.equal(await submit.isEnabled(),true);await submit.click();await assertHandoverIsPrivate(page);
+    saved=await persistedRoot(page);s=saved.activeMatch.state;
+    assert.equal(s.redesignation.stage,"COLOR");assert.equal(s.active,"B");
+    assert.equal(s.turn,rootValue.activeMatch.state.turn);assert.deepEqual(saved.activeMatch.rngSnapshot,rootValue.activeMatch.rngSnapshot);
+    assert.deepEqual(s.skillCategoryWindow.categories,["color"]);
+    await assertReloadStable(page,metrics,"different designation");await reveal.click();
+    assert.equal(await page.getByRole("button",{name:"四色解放",exact:true}).isDisabled(),true);
+    await page.getByRole("button",{name:"緑",exact:true}).first().click();
+    saved=await persistedRoot(page);s=saved.activeMatch.state;
+    assert.equal(s.phase,"WORK");assert.equal(s.redesignation,undefined);
+    const regionId=Object.keys(s.regions)[0],beforeDemolition=await persistedSnapshot(page);
+    await page.getByRole("button",{name:"エリア破壊",exact:true}).click();
+    await page.getByRole("button",{name:"破壊をキャンセル",exact:true}).click();
+    assert.deepEqual(await persistedSnapshot(page),beforeDemolition,"cancel is write-free");
+    await page.getByRole("button",{name:"エリア破壊",exact:true}).click();
+    await page.getByRole("button",{name:regionId+"・緑を破壊",exact:true}).click();
+    saved=await persistedRoot(page);s=saved.activeMatch.state;
+    assert.deepEqual(s.regions,{});assert.equal(s.hands.B.disruptDemolish,0);
+    assert.equal(saved.profiles.playerB.inventory.disruptDemolish,0);
+    assert.deepEqual(s.skillCategoryWindow.categories,["color","disrupt"]);
+    assert.equal((await persistedSnapshot(page)).consumptionReceipts,before.consumptionReceipts+2);
+    await assertReloadStable(page,metrics,"demolished geometry");
+  } finally {if(context)await context.close();if(browser)await browser.close();server.kill();}
+});
+
 test("color-seal native keyboard and normal-URL lifecycle gates", { skip: !chromium || !installedBrowserExecutable() }, async (t) => {
   const server = await startServer();
   let browser;

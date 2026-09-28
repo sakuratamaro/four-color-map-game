@@ -1,5 +1,7 @@
 "use strict";
 
+const { sameDesignation } = require("./standard-redesignation.js");
+
 const { COLORS, adjacentRegionIds, legalRecolorCandidates } = require("./standard-engine.js");
 const { supportsColoredCornerBloom, STANDARD_SKILLS, V49_SKILL_IDS } = require("./standard-skill-registry.js");
 const { createRegionGeometryContext } = require("./standard-region-geometry.js");
@@ -101,7 +103,7 @@ function enumerateRegionActions(publicState, limit = 64, requiredSize = publicSt
     if (selected.size === needed) {
       const sourceMacros = [...selected].sort((a, b) => a - b);
       const candidate = geometry.analyze(sourceMacros);
-      if (candidate.everyMacroHasFree && candidate.connected && (!hasMap || allowDetached || candidate.touchesExisting)) {
+      if (!sameDesignation(publicState, sourceMacros) && candidate.everyMacroHasFree && candidate.connected && (!hasMap || allowDetached || candidate.touchesExisting)) {
         found.set(sourceMacros.join(","), { type: "CREATE_REGION", payload: { sourceMacros }, metrics: { contacts: candidate.adjacentRegionIds.length, colorPressure: candidate.contactColors.length } });
       }
       return;
@@ -360,6 +362,7 @@ function enumerateShiftActions(publicState, ownPrivateState, skill, planner) {
 }
 
 function enumerateWorkSkillActions(publicState, ownPrivateState) {
+  if (publicState.redesignation?.stage === "RESELECT") return [];
   const actions = [];
   const state = planningState(publicState);
   const outgoing = enumerateRegionActions(publicState, 96, publicState.requiredSize, true);

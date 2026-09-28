@@ -812,6 +812,7 @@ function boot() {
       board.appendChild(cell);
     }
     commitRegion.disabled = !revealedSeat || targetMode?.kind === "colorRegionSplit" || targetMode?.kind === "areaResize" || targetMode?.kind === "areaCornerBloom" || targetMode?.kind === "bandShift" || !["CREATE_FIRST", "WORK"].includes(publicState.phase);
+    if (publicState.redesignation?.stage === "RESELECT" && [...selected].sort((a,b)=>a-b).join(",") === publicState.redesignation.sourceMacros.join(",")) commitRegion.disabled = true;
     surrender.disabled = !revealedSeat || publicState.status === "FINISHED";
   }
 
@@ -820,7 +821,7 @@ function boot() {
     button.type = "button";
     button.className = className;
     button.textContent = text;
-    button.disabled = disabled;
+    button.disabled = disabled || (className === "skill" && session.getPublicProjection()?.redesignation?.stage === "RESELECT");
     suppressRepeatedActivation(button);
     const controlGeneration = interactionGeneration;
     button.onclick = () => {
@@ -955,6 +956,29 @@ function boot() {
     }
     appendButton("四色解放", colorSkillUsed || targetMode !== null || phase !== "COLOR" || !(own.hand.colorPrism > 0), () => dispatch("USE_SKILL", { skill: "colorPrism" }));
     const rescueSupported = publicState.engineVersion === "5.0.0-alpha.6";
+    if (own.hand.colorCancelRegion > 0) appendButton("指定の爆破", !rescueSupported || colorSkillUsed || targetMode !== null || phase !== "COLOR"
+      || Boolean(publicState.reserved || publicState.retainedSplit || publicState.redesignation) || publicState.lastPublicTrace?.type !== "CREATE_REGION", () => {
+      dispatch("USE_SKILL", { skill: "colorCancelRegion" });
+    });
+    if (publicState.redesignation?.stage === "RESELECT") {
+      const note = document.createElement("p");
+      note.textContent = `取消された場所とは別の${publicState.requiredSize}マスを指定し直してください。振り直し・追加スキルはありません。`;
+      privatePanel.appendChild(note);
+    }
+    if (own.hand.disruptDemolish > 0) appendButton("エリア破壊", !rescueSupported || disruptSkillUsed || targetMode !== null || !["WORK","CREATE_FIRST"].includes(phase)
+      || Boolean(publicState.pending || publicState.reserved || publicState.preparedOutgoing), () => {
+      targetMode = "disruptDemolish";
+      say("4マス分以下の彩色済みエリアを選んで破壊します。形ごと消え、空きマスになります。");
+      renderPrivate(own);
+    });
+    if (targetMode === "disruptDemolish") {
+      for (const region of Object.values(publicState.regions).filter(r=>r.color && !r.isPending && !r.isReserved && r.micro.length <= 4 * publicState.playableBounds.microScale ** 2)) {
+        appendButton(`${region.id}・${COLOR_NAMES[region.color]}を破壊`, false, () => {
+          targetMode = null;dispatch("USE_SKILL",{skill:"disruptDemolish",regionId:region.id});
+        });
+      }
+      appendButton("破壊をキャンセル", false, () => {targetMode=null;renderPrivate(own);});
+    }
     const ownSeals = publicState.publicEffects?.[own.seat]?.seals || {};
     const sealedOwned = [...new Set([...own.basicPalette, own.bonusColor])].filter(color => ownSeals[color] > 0);
     if (own.hand.colorUnsealOne > 0) appendButton("封印解除札", !rescueSupported || colorSkillUsed || targetMode !== null || phase !== "COLOR" || !sealedOwned.length, () => {

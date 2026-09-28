@@ -33,6 +33,46 @@ function resolvedWithoutCard(currentState, actor, mutate, details = {}) {
   return Object.freeze({ ok: true, code: "OK", state, cardConsumed: false, ...details });
 }
 
+function applyDisruptDemolish({ state, actor, payload }) {
+  const region = state.regions[payload.regionId];
+  if (!region?.color || region.isPending || region.isReserved || state.pending || state.reserved
+    || state.retainedSplit || state.preparedOutgoing) return { ok: false, code: "INVALID_DESTRUCTION_TARGET", state };
+  if (!region.micro.length || region.micro.length > 4 * state.playableBounds.microScale ** 2) {
+    return { ok: false, code: "DESTRUCTION_AREA_LIMIT", state };
+  }
+  return resolved(state, actor, "disruptDemolish", next => {
+    delete next.regions[payload.regionId];
+    next.publicLog.push(`T${next.turn} Player ${actor} destroyed ${payload.regionId}; its cells are free for designation.`);
+  }, { regionId: payload.regionId });
+}
+
+function applyColorCancelRegion({ state, actor, hasLegalRegionOfSize }) {
+  const region = state.regions[state.pending];
+  if (!region?.isPending || region.color || region.controllers?.length !== 1 || region.controllers[0] !== other(actor)
+    || state.reserved || state.retainedSplit || state.preparedOutgoing || state.redesignation
+    || state.lastPublicTrace?.type !== "CREATE_REGION" || state.lastPublicTrace.regionId !== region.id
+    || region.sourceMacros.length !== state.requiredSize) return { ok: false, code: "RECEIVED_REGION_REQUIRED", state };
+  const candidate = clone(state);
+  delete candidate.regions[region.id];
+  candidate.pending = null;
+  candidate.active = other(actor);
+  candidate.phase = "WORK";
+  candidate.redesignation = {
+    designator: other(actor), receiver: actor, stage: "RESELECT",
+    sourceMacros: [...region.sourceMacros].sort((a, b) => a - b),
+    receiverCategories: [...new Set([...state.skillCategoryWindow.categories, "color"])],
+  };
+  if (!hasLegalRegionOfSize(candidate, state.requiredSize)) return { ok: false, code: "NO_ALTERNATIVE_DESIGNATION", state };
+  return resolved(state, actor, "colorCancelRegion", next => {
+    delete next.regions[region.id];
+    next.pending = null;
+    next.active = candidate.active;
+    next.phase = "WORK";
+    next.redesignation = candidate.redesignation;
+    next.publicLog.push(`T${next.turn} Player ${actor} cancelled ${region.id}; Player ${next.active} must designate a different ${next.requiredSize}-cell area without skills or reroll. Seals remain.`);
+  });
+}
+
 function applyColorPrism({ state, actor }) {
   return resolved(state, actor, "colorPrism", (next) => {
     next.privateEffects[actor] = next.privateEffects[actor] || {};
@@ -1056,6 +1096,8 @@ function tickPaletteDebuffsAfterColor(state, actor) {
 }
 
 module.exports = {
+  applyDisruptDemolish,
+  applyColorCancelRegion,
   applyAreaCornerBloom,
   applyAreaDiePlus,
   applyAreaHalfShift,

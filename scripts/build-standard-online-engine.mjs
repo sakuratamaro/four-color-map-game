@@ -10,6 +10,7 @@ const output = path.join(root, "supabase", "functions", "standard-game-action", 
 const ids = [
   "standard/standard-engine.js",
   "standard/standard-region-geometry.js",
+  "standard/standard-redesignation.js",
   "standard/standard-cosmetics.js",
   "standard/standard-match-reward.js",
   "standard/standard-skill-registry.js",

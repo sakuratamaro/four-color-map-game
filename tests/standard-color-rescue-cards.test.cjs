@@ -26,7 +26,7 @@ function use(state,rng,id=ONE,color="red",extra={}) {
 }
 
 test("UDL011 rescue cards are new ordinary ★1/★3 cards; legacy, technique and odds stay distinct",()=>{
-  assert.equal(registry.V49_SKILL_IDS.length,19); assert.equal(registry.STANDARD_SKILL_IDS.length,22);
+  assert.equal(registry.V49_SKILL_IDS.length,19); assert.equal(registry.STANDARD_SKILL_IDS.length,24);
   for(const [id,rarity] of [[ONE,1],[BONUS,3]]) {
     const d=registry.STANDARD_SKILLS[id];
     assert.equal(d.rarity,rarity); assert.equal(d.standardCatalogued,true); assert.equal(d.standardUiEnabled,true);

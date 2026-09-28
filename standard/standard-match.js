@@ -1,5 +1,7 @@
 "use strict";
 
+const { sameDesignation, validateRedesignation } = require("./standard-redesignation.js");
+
 const {
   COLORS,
   StandardRuleError,
@@ -207,6 +209,7 @@ function validateStandardState(state) {
     assertState(state.skillCategoryWindow === undefined, "LEGACY_SKILL_CATEGORY_WINDOW");
   }
   assertState(Array.isArray(state.publicLog), "INVALID_PUBLIC_LOG");
+  validateRedesignation(state);
   if (state.lastPublicTrace !== undefined && state.lastPublicTrace !== null) {
     const trace = state.lastPublicTrace;
     const commonKeys = ["actor", "eventId", "type", "version"];
@@ -362,6 +365,7 @@ function projectStandardPublicState(state) {
   if (usesSkillCategoryWindow(state.engineVersion)) keys.push("skillCategoryWindow");
   if (state.diePoolVersion !== undefined) keys.push("diePoolVersion");
   if (Object.hasOwn(state, "retainedSplit")) keys.push("retainedSplit");
+  if (Object.hasOwn(state, "redesignation")) keys.push("redesignation");
   return Object.freeze({ ...Object.fromEntries(keys.map((key) => [key, clone(key === "trophyTargetMacros"
     ? (state.trophyTargetMacros || playableMacroIndices(state.playableBounds))
     : key === "lastPublicTrace" ? (state.lastPublicTrace ?? null) : state[key])] )),
@@ -536,7 +540,7 @@ function hasLegalRegionOfSize(state, size) {
     seen.add(signature);
     if (selected.size === size) {
       const candidate = geometry.analyze([...selected].sort((left, right) => left - right));
-      return candidate.everyMacroHasFree && candidate.connected
+      return !sameDesignation(state, [...selected]) && candidate.everyMacroHasFree && candidate.connected
         && (!Object.keys(state.regions).length || candidate.touchesExisting);
     }
     for (const macro of frontier) {
@@ -574,6 +578,7 @@ function createRegion(state, actor, payload = {}, rngStreams = {}) {
   const rawSourceMacros = Array.isArray(payload.sourceMacros) ? payload.sourceMacros : [];
   const sourceMacros = [...new Set(rawSourceMacros)].sort((a, b) => a - b);
   assertState(rawSourceMacros.length === sourceMacros.length, "DUPLICATE_REGION_CELL");
+  assertState(!sameDesignation(state, sourceMacros), "SAME_CANCELLED_DESIGNATION");
   const prepared = state.preparedOutgoing;
   if (prepared) {
     assertState(prepared.actor === actor, "PREPARED_WRONG_ACTOR");
@@ -604,11 +609,13 @@ function createRegion(state, actor, payload = {}, rngStreams = {}) {
   next.preparedOutgoing = null;
   next.active = other(actor);
   next.phase = "COLOR";
-  next.turn += 1;
+  const redesignating = next.redesignation?.stage === "RESELECT";
+  if (redesignating) next.redesignation.stage = "COLOR";
+  else next.turn += 1;
   next.interferenceLock = false;
   next.version += 1;
-  next.publicLog.push(`T${next.turn - 1} Player ${actor} created ${id}${intrusion.donorCount ? ` with ${intrusion.donorCount} colored-region intrusion${intrusion.splitCount ? ` and ${intrusion.splitCount} donor split` : ""}${intrusion.removedCount ? ` and ${intrusion.removedCount} donor removal` : ""}` : ""}; Player ${next.active} must color it.`);
-  applyCurseBacklashOnEnterColor(next, next.active, () => nextRandom(rngStreams, "skill-effect"));
+  next.publicLog.push(`T${redesignating ? next.turn : next.turn - 1} Player ${actor} ${redesignating ? "redesignated" : "created"} ${id}${intrusion.donorCount ? ` with ${intrusion.donorCount} colored-region intrusion${intrusion.splitCount ? ` and ${intrusion.splitCount} donor split` : ""}${intrusion.removedCount ? ` and ${intrusion.removedCount} donor removal` : ""}` : ""}; Player ${next.active} must color it.`);
+  if (!redesignating) applyCurseBacklashOnEnterColor(next, next.active, () => nextRandom(rngStreams, "skill-effect"));
   if (next.engineVersion === LEGACY_ENGINE_VERSION) finishNoColorOnEntry(next, next.active);
   const contactColorCount = new Set(adjacentRegionIds(next, id)
     .map((regionId) => next.regions[regionId])
@@ -668,6 +675,7 @@ function colorRegion(state, actor, payload = {}, rngStreams = {}) {
     next.winner = other(actor);
     next.terminalReason = "ILLEGAL_COLOR";
     delete next.retainedSplit;
+    delete next.redesignation;
     next.version += 1;
     next.publicLog.push(`T${next.turn} Player ${actor} lost by illegal coloring.`);
     return { ok: true, code: "ILLEGAL_COLOR", state: next };
@@ -718,6 +726,7 @@ function colorRegion(state, actor, payload = {}, rngStreams = {}) {
   }
   next.pending = null;
   delete next.retainedSplit;
+  delete next.redesignation;
   next.phase = "WORK";
   // A saved match keeps its starting distribution, including pre-version saves.
   const diePool = next.diePoolVersion === DIE_POOL_VERSION ? DIE_POOL : LEGACY_DIE_POOL;
@@ -753,6 +762,7 @@ function surrender(state, actor) {
   next.winner = other(actor);
   next.terminalReason = "SURRENDER";
   delete next.retainedSplit;
+  delete next.redesignation;
   next.version += 1;
   next.publicLog.push(`Player ${actor} surrendered.`);
   return { ok: true, code: "OK", state: next };
@@ -820,7 +830,8 @@ function applyStandardAction({ state, actor, action, expectedVersion, rngStreams
     if (result.ok) {
       if (usesSkillCategoryWindow(result.state.engineVersion) && result.state.active !== state.active) {
         const next = clone(result.state);
-        next.skillCategoryWindow = { actor: next.active, categories: [] };
+        next.skillCategoryWindow = { actor: next.active, categories: next.redesignation?.stage === "COLOR"
+          ? [...next.redesignation.receiverCategories] : [] };
         result = {
           ...result,
           state: next,

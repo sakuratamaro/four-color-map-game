@@ -106,6 +106,8 @@ const SKILL_DESCRIPTION = Object.freeze({
   colorBonusRefill: "現在のおまけ色の残り回数を2回増やします（上限4回）。残り4回では使えません。",
   colorUnsealOne: "現在の基本色・おまけ色から、封印中の1色を選んで解除します。おまけ色の回数は増えません。隣接色などの彩色条件はそのままです。伝授技「解封」とは別の消費カードです。",
   colorBonusRefillUnseal: "現在のおまけ色を1回補充（上限4回）し、その色の封印を解除します。残り4回でも封印中なら使えます。隣接色などの彩色条件は変わりません。",
+  colorCancelRegion: "受取エリアを取り消し、相手に同じマス数の別の場所を指定し直させます。振り直し・追加スキルはなく、封印と彩色スキル使用済みは残ります。二分中・他の指定がない場合は使えません。",
+  disruptDemolish: "4マス分以下の彩色済みエリアを形ごと消し、普通の空きマスに戻します。その後、通常どおり相手へ渡すエリアを指定します。未塗りエリアや準備中の指定は対象外です。",
   colorRegionSplit: "いま塗る相手のエリアを、つながった2つのエリアに分けます。分けた片方を先に塗ります。",
   colorRegionSplitKeep: "受け取ったエリアを2つに分け、選んだ側・残りの側を続けて自分で塗ります。両側それぞれで隣接色・封印・色の残数を判定します。同じ手番の色操作スキルは追加で使えません。",
   colorPaletteChange: "持ち色の3枠から1枠を、対戦終了まで好きな色に変えます。基本色2枠は回数無制限。おまけ色枠を変えても回数は増えず、今の残り回数を新しい色が引き継ぎます。",
@@ -887,6 +889,14 @@ function eligibleRecolorRegions(state) {
 
 function supportsColoredCornerBloom(state) {
   return ["5.0.0-alpha.4", "5.0.0-alpha.5", "5.0.0-alpha.6"].includes(state?.engineVersion);
+}
+
+function eligibleExistingRegionTargets(state) {
+  // Only public geometry is used to select demolition targets.
+  const regions = eligibleRecolorRegions(state);
+  return targetDraft?.skill === "disruptDemolish"
+    ? regions.filter(region => region.micro.length <= 4 * state.playableBounds.microScale ** 2)
+    : regions;
 }
 
 function cornerBloomCellTargetActive() {
@@ -3944,11 +3954,15 @@ function renderSkills(state, privateState) {
       : meta.category === "color" ? state.phase === "COLOR" : ["CREATE_FIRST", "WORK"].includes(state.phase);
     const categoryUsed = usedCategories.has(meta.usageCategory || meta.category);
     const refillFull = skill === "colorBonusRefill" && (privateState.bonusUsesRemaining || 0) >= 4;
-    const unsupported = ["colorRegionSplitKeep", "colorUnsealOne", "colorBonusRefillUnseal"].includes(skill) && state.engineVersion !== "5.0.0-alpha.6";
+    const unsupported = ["colorRegionSplitKeep", "colorUnsealOne", "colorBonusRefillUnseal", "colorCancelRegion", "disruptDemolish"].includes(skill) && state.engineVersion !== "5.0.0-alpha.6";
     const seals = state.publicEffects?.[privateState.seat]?.seals || {};
     const rescueNoEffect = skill === "colorUnsealOne" ? skillIntents.sealedOwnedColorChoices(privateState, seals).length === 0
       : skill === "colorBonusRefillUnseal" && !skillIntents.bonusRefillUnsealHasEffect(privateState, seals);
-    node.disabled = used || actionBusy || Boolean(pendingAction) || !myTurn || !timingOkay || categoryUsed || refillFull || unsupported || rescueNoEffect;
+    const destructionUnavailable = skill === "colorCancelRegion"
+      ? Boolean(state.reserved || state.retainedSplit || state.redesignation) || state.lastPublicTrace?.type !== "CREATE_REGION"
+      : skill === "disruptDemolish" && Boolean(state.pending || state.reserved || state.preparedOutgoing);
+    node.disabled = used || actionBusy || Boolean(pendingAction) || !myTurn || !timingOkay || categoryUsed || refillFull || unsupported || rescueNoEffect
+      || state.redesignation?.stage === "RESELECT" || destructionUnavailable;
     if (unsupported) node.title = "このカードに対応した新規対戦で使えます";
     if (categoryUsed) node.title = "この手番では同じ種類のスキルはもう使えません";
     const info = button("ⓘ", () => openSkillInfo(skill), "skill-info-button");
@@ -4174,7 +4188,7 @@ function renderSkillTarget(state, privateState) {
     controls.appendChild(guide);
   }
   if (targetDraft.kind === "existing-region") {
-    const regions = eligibleRecolorRegions(state);
+    const regions = eligibleExistingRegionTargets(state);
     for (const [index, region] of regions.entries()) {
       controls.appendChild(targetChoice(`エリア${index + 1}・${COLOR_JA[region.color] || region.color}`, "regionId", region.id));
     }
@@ -4184,6 +4198,9 @@ function renderSkillTarget(state, privateState) {
     note.textContent = regions.length
       ? "盤面または一覧から選択。変更後の色と成功可否は確定するまで分かりません。不成立でもカード・手番は減りません。"
       : "現在選べる彩色済みエリアはありません。カード・手番は減りません。";
+    if (targetDraft.skill === "disruptDemolish") note.textContent = regions.length
+      ? "4マス分以下の彩色済みエリアを選択。確定すると形ごと消え、空きマスになります。"
+      : "現在壊せる4マス分以下の彩色済みエリアはありません。";
     controls.appendChild(note);
     for (const choice of controls.querySelectorAll("button")) choice.setAttribute("aria-describedby", note.id);
   }
@@ -4268,7 +4285,8 @@ function renderSkillTarget(state, privateState) {
     }, "ghost"));
   }
   if (!["corner-bloom", "region-split"].includes(targetDraft.kind)) {
-    const useTarget = button(targetDraft.kind === "existing-region" ? "このエリアをランダムに塗り直す"
+    const useTarget = button(targetDraft.skill === "disruptDemolish" ? "このエリアを破壊する"
+      : targetDraft.kind === "existing-region" ? "このエリアをランダムに塗り直す"
       : targetDraft.kind === "slot-color" ? "この変更を使う" : "この対象で使う", submitSkillTarget, "primary");
     if (targetDraft.kind === "existing-region") {
       useTarget.disabled = !targetDraft.input.regionId;
@@ -4985,7 +5003,7 @@ function renderBoard(state) {
   if (connectedGuidedMacros.size) canvas.dataset.connectedGuidedMacros = [...connectedGuidedMacros].sort((left, right) => left - right).join(",");
   else delete canvas.dataset.connectedGuidedMacros;
   const boardLabel = targetDraft?.kind === "existing-region"
-    ? "塗り直す彩色済みエリアを選択。番号と色名は下の対象一覧でも選べます。"
+    ? `${targetDraft.skill === "disruptDemolish" ? "破壊する" : "塗り直す"}彩色済みエリアを選択。番号と色名は下の対象一覧でも選べます。`
     : cornerBloomCellTargetActive()
       ? "角膨張の対象セルを選択。矢印キーで細分セルを移動し、SpaceまたはEnterで即発動、Escapeでキャンセルできます。"
     : targetDraft?.kind === "region-split"
@@ -5050,7 +5068,7 @@ function renderBoard(state) {
     }
   }
   if (targetDraft?.kind === "existing-region") {
-    for (const [index, region] of eligibleRecolorRegions(state).entries()) {
+    for (const [index, region] of eligibleExistingRegionTargets(state).entries()) {
       const selected = targetDraft.input.regionId === region.id;
       ctx.strokeStyle = selected ? BOARD_AFFORDANCE.focus : BOARD_AFFORDANCE.target;
       ctx.lineWidth = selected ? 3 : 1.5;
@@ -5207,8 +5225,10 @@ function renderBasicActions(state, privateState) {
   renderTurnGuide(state);
   show("regionControls", canCreate);
   $("selectionCount").textContent = `${outgoingMacros.length} / ${state.requiredSize}マス`;
+  if (state.redesignation?.stage === "RESELECT") $("selectionCount").textContent += "・別の場所を指定し直す（スキル不可）";
   $("clearSelection").disabled = !canCreate || actionBusy || Boolean(pendingAction) || hasPreparedOutgoing;
   $("submitRegion").disabled = !canCreate || actionBusy || Boolean(pendingAction) || outgoingMacros.length !== state.requiredSize;
+  if (state.redesignation?.stage === "RESELECT" && [...outgoingMacros].sort((a,b)=>a-b).join(",") === state.redesignation.sourceMacros.join(",")) $("submitRegion").disabled = true;
   const palette = $("paletteControls");
   const focusedPalette = palette.contains(document.activeElement) ? { ...document.activeElement.dataset } : null;
   palette.replaceChildren();
@@ -5309,7 +5329,7 @@ function boardPointer(event) {
     if (cornerBloomCellTargetActive()) {
       activateCornerBloomCell(state, micro);
     } else {
-      const region = eligibleRecolorRegions(state).find((entry) => entry.micro?.includes(micro));
+      const region = eligibleExistingRegionTargets(state).find((entry) => entry.micro?.includes(micro));
       if (region) targetDraft.input.regionId = region.id;
       render();
     }
@@ -6490,7 +6510,7 @@ $("techniqueControls").addEventListener("keydown", event => {
   event.preventDefault(); techniqueTargetScope = null; render(); $("useTechnique").focus({ preventScroll: true });
 });
 $("skillTargetControls").addEventListener("keydown", event => {
-  if (event.key !== "Escape" || targetDraft?.kind !== "sealed-color") return;
+  if (event.key !== "Escape" || (targetDraft?.kind !== "sealed-color" && targetDraft?.skill !== "disruptDemolish")) return;
   event.preventDefault(); cancelSkillTarget();
 });
 $("createStarterProfile").onclick = createStarterProfile;

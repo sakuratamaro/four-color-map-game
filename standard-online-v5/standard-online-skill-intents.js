@@ -12,6 +12,8 @@
     colorPrism: "none",
     colorUnsealOne: "sealed-color",
     colorBonusRefillUnseal: "none",
+    colorCancelRegion: "none",
+    disruptDemolish: "existing-region",
     colorRegionSplit: "region-split",
     colorRegionSplitKeep: "region-split",
     colorPaletteChange: "slot-color",

@@ -446,20 +446,20 @@ async function choosePublicWaiting(page) {
 }
 
 function assertVisibleCatalogDefinitions(definitions) {
-  assert.equal(definitions.length, 24);
-  assert.equal(definitions.filter(d => d.standardUiEnabled && !d.experimental).length, 22);
+  assert.equal(definitions.length, 26);
+  assert.equal(definitions.filter(d => d.standardUiEnabled && !d.experimental).length, 24);
   assert.deepEqual(definitions.filter(d => d.experimental).map(d => d.id).sort(),
     ["colorBonusRefill", "legalRecolor"]);
-  for (const id of ["colorRegionSplitKeep", "colorUnsealOne", "colorBonusRefillUnseal"]) {
+  for (const id of ["colorRegionSplitKeep", "colorUnsealOne", "colorBonusRefillUnseal", "colorCancelRegion", "disruptDemolish"]) {
     assert.equal(definitions.filter(d => d.id === id && d.standardUiEnabled && !d.experimental).length, 1);
   }
 }
 
-test("UDL066 fresh catalog exposes 22 ordinary and 2 experimental native detail buttons without creating a profile or spending", { timeout: 120000 }, async () => {
+test("UDL066 fresh catalog exposes 24 ordinary and 2 experimental native detail buttons without creating a profile or spending", { timeout: 120000 }, async () => {
   await withPage("empty", async (page) => {
     await page.locator('[data-app-tab="cards"]').click();
     const cards = page.locator("#cardInventory button[data-catalog-skill]");
-    assert.equal(await cards.count(), 24);
+    assert.equal(await cards.count(), 26);
     assert.equal(await page.locator('#cardInventory [data-catalog-skill="colorRegionSplitKeep"]').count(), 1);
     assert.equal(await page.locator("#cardInventory section").count(), 4);
     assert.equal(await page.locator("#profileCard").isHidden(), true);
@@ -2837,6 +2837,64 @@ for(const id of ["colorUnsealOne","colorBonusRefillUnseal"]) test(`UDL011 rescue
     assert.equal(fixture.calls.length,2,"reload sends no skill or paint again");
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>document.documentElement.clientWidth),false);
   },{viewport:{width:390,height:844},beforeNavigate:async page=>{fixture=await require("./helpers/rescue-cards-ui.cjs").installRescueUi(page,roomId);}});
+});
+
+for(const id of ["colorCancelRegion","disruptDemolish"]) test(`UDL011 destruction native ${id}: select, engine, reload`,{timeout:130000},async()=>{
+  let fixture;
+  await withPage("colorResponse",async page=>{
+    const skill=page.locator(`#skillControls button[data-skill="${id}"]:not([disabled])`);await skill.waitFor();
+    const initialVersion=fixture.state().version;
+    await skill.focus();await page.keyboard.press("Enter");
+    if(id==="disruptDemolish") {
+      const panel=page.locator("#skillTargetControls");await panel.waitFor();
+      assert.match(await panel.innerText(),/形ごと消え/);await page.keyboard.press("Escape");await panel.waitFor({state:"hidden"});
+      assert.equal(fixture.calls.length,0);await skill.click();
+      await panel.locator('[data-target-value="R1"]').click();await panel.getByRole("button",{name:"このエリアを破壊する",exact:true}).click();
+    }
+    await page.waitForFunction(v=>JSON.parse(document.querySelector("#publicProjection").textContent).version===v,initialVersion+1);
+    assert.equal(fixture.calls.length,1);assert.equal(fixture.state().hands.A[id],0);
+    assert.deepEqual(fixture.calls[0].action.payload,id==="disruptDemolish"?{skill:id,regionId:"R1"}:{skill:id});
+    await page.reload();await page.waitForFunction(v=>JSON.parse(document.querySelector("#publicProjection").textContent).version===v,initialVersion+1);
+    assert.equal(fixture.calls.length,1,"reload does not resend a card");
+    if(id==="disruptDemolish") assert.deepEqual(fixture.state().regions,{});
+    else {
+      assert.equal(fixture.state().redesignation.stage,"RESELECT");fixture.redesignate();
+      await page.reload();await page.waitForFunction(v=>JSON.parse(document.querySelector("#publicProjection").textContent).version===v,initialVersion+2);
+      assert.equal(await page.locator('#skillControls button[data-skill="colorChoiceBorrow"]').isDisabled(),true);
+      await page.locator('#paletteControls button[data-color="red"]:not([disabled])').click();
+      await page.waitForFunction(v=>JSON.parse(document.querySelector("#publicProjection").textContent).version===v,initialVersion+3);
+      assert.equal(fixture.state().redesignation,undefined);assert.equal(fixture.state().phase,"WORK");assert.equal(fixture.calls.length,2);
+    }
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>document.documentElement.clientWidth),false);
+  },{viewport:{width:390,height:844},beforeNavigate:async page=>{fixture=await require("./helpers/region-destruction-ui.cjs").installDestructionUi(page,roomId,id);}});
+});
+
+test("UDL070 redesignator native rejects same cells, disables skills, then persists a different designation", { timeout: 130000 }, async () => {
+  let fixture;
+  await withPage("colorResponse",async page=>{
+    const before=fixture.state(),rng=fixture.rng(),board=page.locator("#board");
+    await page.waitForFunction(()=>document.querySelector("#selectionCount")?.textContent.includes("指定し直す"));
+    assert.equal(await page.locator("#skillControls button[data-skill]:not([disabled])").count(),0);
+    const choose=async macro=>clickCanvasFraction(board,{x:(macro%12+.5)/12,y:(Math.floor(macro/12)+.5)/12});
+    for(const m of [13,14])await choose(m);
+    assert.match(await page.locator("#selectionCount").textContent(),/2 \/ 2マス/);
+    assert.equal(await page.locator("#submitRegion").isDisabled(),true);
+    assert.equal(fixture.calls.length,0);
+    for(const m of [13,14,25,26])await choose(m);
+    assert.equal(await page.locator("#submitRegion").isEnabled(),true);
+    await page.locator("#submitRegion").click();
+    await page.waitForFunction(v=>JSON.parse(document.querySelector("#publicProjection").textContent).version===v,before.version+1);
+    assert.equal(fixture.calls.length,1);
+    assert.equal(fixture.calls[0].action.type,"CREATE_REGION");
+    assert.deepEqual(fixture.calls[0].action.payload,{sourceMacros:[25,26]});
+    assert.equal(fixture.calls[0].action.expectedVersion,before.version);
+    assert.ok(fixture.calls[0].action.id);
+    assert.equal(fixture.state().redesignation.stage,"COLOR");assert.equal(fixture.state().active,"B");
+    assert.equal(fixture.state().turn,before.turn);assert.deepEqual(fixture.rng(),rng);
+    await page.reload();await page.waitForFunction(v=>JSON.parse(document.querySelector("#publicProjection").textContent).version===v,before.version+1);
+    assert.equal(fixture.calls.length,1);assert.equal(await page.locator("#skillControls button[data-skill]:not([disabled])").count(),0);
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>document.documentElement.clientWidth),false);
+  },{viewport:{width:390,height:844},beforeNavigate:async page=>{fixture=await require("./helpers/region-destruction-ui.cjs").installDestructionUi(page,roomId,"colorCancelRegion",{reselect:true});}});
 });
 
 async function withPage(mode, run, { bodyTimeout = 35_000, viewport = { width: 900, height: 800 }, beforeNavigate = null, deviceScaleFactor = 1 } = {}) {

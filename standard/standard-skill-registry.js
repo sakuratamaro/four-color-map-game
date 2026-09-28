@@ -10,6 +10,7 @@ function supportsSplitKeep(engineVersion) {
 }
 
 const RESCUE_CARD_IDS = Object.freeze(["colorUnsealOne", "colorBonusRefillUnseal"]);
+const DESTRUCTION_CARD_IDS = Object.freeze(["disruptDemolish", "colorCancelRegion"]);
 function supportsRescueCards(engineVersion) {
   return engineVersion === SPLIT_KEEP_ENGINE_VERSION;
 }
@@ -17,7 +18,7 @@ function supportsRescueCards(engineVersion) {
 // Only a new match carrying this card opts into its continuation contract.
 function engineVersionForLoadouts(loadouts, fallback) {
   return Object.values(loadouts || {}).some((loadout) => Object.values(loadout || {}).some((ids) => Array.isArray(ids)
-    && ids.some((id) => id === "colorRegionSplitKeep" || RESCUE_CARD_IDS.includes(id))))
+    && ids.some((id) => id === "colorRegionSplitKeep" || RESCUE_CARD_IDS.includes(id) || DESTRUCTION_CARD_IDS.includes(id))))
     ? SPLIT_KEEP_ENGINE_VERSION : fallback;
 }
 
@@ -118,6 +119,23 @@ const STANDARD_SKILLS = Object.freeze({
     implemented: true,
     consumptionPolicy: "RESOLVED_ONLY_CONNECTED_BIPARTITION",
     handlerVersion: "color-region-split-v1",
+  }),
+  colorCancelRegion: skill("colorCancelRegion", "指定の爆破", "color", 4, "COLOR", {
+    implemented: true,
+    v49Catalogued: false,
+    standardCatalogued: true,
+    standardUiEnabled: true,
+    consumptionPolicy: "RESOLVED_ONLY_ALTERNATIVE_REDESIGNATION",
+    handlerVersion: "color-cancel-region-v1",
+  }),
+  disruptDemolish: skill("disruptDemolish", "エリア破壊", "disrupt", 4, "WORK", {
+    targetSchema: { regionId: "region-id" },
+    implemented: true,
+    v49Catalogued: false,
+    standardCatalogued: true,
+    standardUiEnabled: true,
+    consumptionPolicy: "RESOLVED_ONLY_COLORED_AREA_MAX_FOUR",
+    handlerVersion: "disrupt-demolish-v1",
   }),
   colorRegionSplitKeep: skill("colorRegionSplitKeep", "エリア二分・保持", "color", 5, "COLOR", {
     targetSchema: { regionId: "region-id", sourceMacros: "macro-index-array" },
@@ -244,4 +262,4 @@ const V49_SKILL_IDS = Object.freeze(Object.values(STANDARD_SKILLS).filter((entry
 const STANDARD_SKILL_IDS = Object.freeze(Object.values(STANDARD_SKILLS).filter((entry) => entry.standardCatalogued).map((entry) => entry.id));
 const IMPLEMENTED_SKILL_IDS = Object.freeze(Object.values(STANDARD_SKILLS).filter((entry) => entry.implemented).map((entry) => entry.id));
 
-module.exports = { COLORED_CORNER_BLOOM_ENGINE_VERSION, LEARNED_TECHNIQUE_ENGINE_VERSION, SPLIT_KEEP_ENGINE_VERSION, supportsSplitKeep, RESCUE_CARD_IDS, supportsRescueCards, engineVersionForLoadouts, supportsColoredCornerBloom, IMPLEMENTED_SKILL_IDS, SKILL_USAGE_CATEGORIES, STANDARD_SKILLS, STANDARD_SKILL_IDS, V49_SKILL_IDS };
+module.exports = { COLORED_CORNER_BLOOM_ENGINE_VERSION, LEARNED_TECHNIQUE_ENGINE_VERSION, SPLIT_KEEP_ENGINE_VERSION, supportsSplitKeep, RESCUE_CARD_IDS, DESTRUCTION_CARD_IDS, supportsRescueCards, engineVersionForLoadouts, supportsColoredCornerBloom, IMPLEMENTED_SKILL_IDS, SKILL_USAGE_CATEGORIES, STANDARD_SKILLS, STANDARD_SKILL_IDS, V49_SKILL_IDS };

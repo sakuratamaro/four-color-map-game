@@ -1,7 +1,8 @@
 "use strict";
 
 const { COLORS, StandardRuleError, applyLegalRecolor } = require("./standard-engine.js");
-const { supportsColoredCornerBloom, supportsSplitKeep, RESCUE_CARD_IDS, supportsRescueCards, STANDARD_SKILLS } = require("./standard-skill-registry.js");
+const { supportsColoredCornerBloom, supportsSplitKeep, RESCUE_CARD_IDS, DESTRUCTION_CARD_IDS, supportsRescueCards, STANDARD_SKILLS } = require("./standard-skill-registry.js");
+const { applyDisruptDemolish, applyColorCancelRegion } = require("./standard-skill-handlers.js");
 const { applyColorUnsealOne, applyColorBonusRefillUnseal } = require("./standard-skill-handlers.js");
 const { usesTechniques, techniqueAvailable, applyTechUnsealOne } = require("./standard-technique-state.js");
 const { applyAreaCornerBloom, applyAreaDiePlus, applyAreaHalfShift, applyAreaMicroBloom, applyAreaResize, applyAreaTripleShift, applyColorBonusRefill, applyColorChoiceBorrow, applyColorPaletteChange, applyColorRandomBorrow, applyColorPrism, applyColorRegionSplit, applyDisruptChoiceOne, applyDisruptChoiceThree, applyDisruptChoiceTwo, applyDisruptForcedPalette, applyDisruptPaletteChoice, applyDisruptPaletteRandom, applyDisruptRandomOne, applyDisruptRandomTwo } = require("./standard-skill-handlers.js");
@@ -23,6 +24,8 @@ function nextRandom(rngStreams, name, counter) {
 function validateTargetSchema(definition, payload, state) {
   if (!definition.targetSchema) return true;
   if (!payload || typeof payload !== "object" || Array.isArray(payload)) return false;
+  if (definition.id === "disruptDemolish") return Object.keys(payload).sort().join("|") === "regionId|skill"
+    && typeof payload.regionId === "string" && /^R[1-9][0-9]*$/.test(payload.regionId);
   if (["techUnsealOne", "colorUnsealOne"].includes(definition.id)) return Object.keys(payload).sort().join("|") === "color|skill" && COLORS.includes(payload.color);
   if (definition.id === "legalRecolor") return typeof payload.regionId === "string" && payload.regionId.length > 0;
   if (definition.id === "colorPrism") return true;
@@ -47,6 +50,8 @@ function validateTargetSchema(definition, payload, state) {
 }
 
 const HANDLERS = Object.freeze({
+  disruptDemolish: applyDisruptDemolish,
+  colorCancelRegion: applyColorCancelRegion,
   techUnsealOne: applyTechUnsealOne,
   colorUnsealOne: applyColorUnsealOne,
   colorBonusRefillUnseal: applyColorBonusRefillUnseal,
@@ -106,10 +111,13 @@ function dispatchStandardSkillAction({ state, actor, action, expectedVersion, rn
   if (!definition.implemented || !HANDLERS[definition.id]) return rejected("SKILL_NOT_IMPLEMENTED", state);
   if (definition.id === "colorRegionSplitKeep" && !supportsSplitKeep(state.engineVersion)) return rejected("SKILL_ENGINE_UNSUPPORTED", state);
   if (RESCUE_CARD_IDS.includes(definition.id) && !supportsRescueCards(state.engineVersion)) return rejected("SKILL_ENGINE_UNSUPPORTED", state);
+  if (DESTRUCTION_CARD_IDS.includes(definition.id) && !supportsSplitKeep(state.engineVersion)) return rejected("SKILL_ENGINE_UNSUPPORTED", state);
+  if (definition.id === "colorCancelRegion" && Object.keys(action.payload).join("|") !== "skill") return rejected("INVALID_TARGET_SCHEMA", state);
   if (definition.id === "colorBonusRefillUnseal" && Object.keys(action.payload).join("|") !== "skill") return rejected("INVALID_TARGET_SCHEMA", state);
   const learned = definition.acquisitionType === "LEARNED";
   if (learned && !usesTechniques(state.engineVersion)) return rejected("TECHNIQUE_ENGINE_UNSUPPORTED", state);
   if (state.active !== actor) return rejected("NOT_YOUR_TURN", state);
+  if (state.redesignation?.stage === "RESELECT") return rejected("REDESIGNATION_ONLY", state);
   const timingMatches = definition.timing === "WORK"
     ? state.phase === "WORK" || state.phase === "CREATE_FIRST"
     : state.phase === definition.timing;

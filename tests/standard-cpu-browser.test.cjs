@@ -21,6 +21,7 @@ const moduleIds = [
   "standard/standard-region-geometry.js",
   "standard/standard-skill-registry.js",
   "standard/standard-technique-state.js",
+  "standard/standard-redesignation.js",
   "standard/standard-skill-handlers.js",
   "standard/standard-skill-dispatcher.js",
   "standard/standard-match.js",

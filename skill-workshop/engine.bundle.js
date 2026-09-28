@@ -242,6 +242,8 @@ module.exports = {
 "standard/standard-match.js":function(require,module,exports){
 "use strict";
 
+const { sameDesignation, validateRedesignation } = require("./standard-redesignation.js");
+
 const {
   COLORS,
   StandardRuleError,
@@ -449,6 +451,7 @@ function validateStandardState(state) {
     assertState(state.skillCategoryWindow === undefined, "LEGACY_SKILL_CATEGORY_WINDOW");
   }
   assertState(Array.isArray(state.publicLog), "INVALID_PUBLIC_LOG");
+  validateRedesignation(state);
   if (state.lastPublicTrace !== undefined && state.lastPublicTrace !== null) {
     const trace = state.lastPublicTrace;
     const commonKeys = ["actor", "eventId", "type", "version"];
@@ -604,6 +607,7 @@ function projectStandardPublicState(state) {
   if (usesSkillCategoryWindow(state.engineVersion)) keys.push("skillCategoryWindow");
   if (state.diePoolVersion !== undefined) keys.push("diePoolVersion");
   if (Object.hasOwn(state, "retainedSplit")) keys.push("retainedSplit");
+  if (Object.hasOwn(state, "redesignation")) keys.push("redesignation");
   return Object.freeze({ ...Object.fromEntries(keys.map((key) => [key, clone(key === "trophyTargetMacros"
     ? (state.trophyTargetMacros || playableMacroIndices(state.playableBounds))
     : key === "lastPublicTrace" ? (state.lastPublicTrace ?? null) : state[key])] )),
@@ -778,7 +782,7 @@ function hasLegalRegionOfSize(state, size) {
     seen.add(signature);
     if (selected.size === size) {
       const candidate = geometry.analyze([...selected].sort((left, right) => left - right));
-      return candidate.everyMacroHasFree && candidate.connected
+      return !sameDesignation(state, [...selected]) && candidate.everyMacroHasFree && candidate.connected
         && (!Object.keys(state.regions).length || candidate.touchesExisting);
     }
     for (const macro of frontier) {
@@ -816,6 +820,7 @@ function createRegion(state, actor, payload = {}, rngStreams = {}) {
   const rawSourceMacros = Array.isArray(payload.sourceMacros) ? payload.sourceMacros : [];
   const sourceMacros = [...new Set(rawSourceMacros)].sort((a, b) => a - b);
   assertState(rawSourceMacros.length === sourceMacros.length, "DUPLICATE_REGION_CELL");
+  assertState(!sameDesignation(state, sourceMacros), "SAME_CANCELLED_DESIGNATION");
   const prepared = state.preparedOutgoing;
   if (prepared) {
     assertState(prepared.actor === actor, "PREPARED_WRONG_ACTOR");
@@ -846,11 +851,13 @@ function createRegion(state, actor, payload = {}, rngStreams = {}) {
   next.preparedOutgoing = null;
   next.active = other(actor);
   next.phase = "COLOR";
-  next.turn += 1;
+  const redesignating = next.redesignation?.stage === "RESELECT";
+  if (redesignating) next.redesignation.stage = "COLOR";
+  else next.turn += 1;
   next.interferenceLock = false;
   next.version += 1;
-  next.publicLog.push(`T${next.turn - 1} Player ${actor} created ${id}${intrusion.donorCount ? ` with ${intrusion.donorCount} colored-region intrusion${intrusion.splitCount ? ` and ${intrusion.splitCount} donor split` : ""}${intrusion.removedCount ? ` and ${intrusion.removedCount} donor removal` : ""}` : ""}; Player ${next.active} must color it.`);
-  applyCurseBacklashOnEnterColor(next, next.active, () => nextRandom(rngStreams, "skill-effect"));
+  next.publicLog.push(`T${redesignating ? next.turn : next.turn - 1} Player ${actor} ${redesignating ? "redesignated" : "created"} ${id}${intrusion.donorCount ? ` with ${intrusion.donorCount} colored-region intrusion${intrusion.splitCount ? ` and ${intrusion.splitCount} donor split` : ""}${intrusion.removedCount ? ` and ${intrusion.removedCount} donor removal` : ""}` : ""}; Player ${next.active} must color it.`);
+  if (!redesignating) applyCurseBacklashOnEnterColor(next, next.active, () => nextRandom(rngStreams, "skill-effect"));
   if (next.engineVersion === LEGACY_ENGINE_VERSION) finishNoColorOnEntry(next, next.active);
   const contactColorCount = new Set(adjacentRegionIds(next, id)
     .map((regionId) => next.regions[regionId])
@@ -910,6 +917,7 @@ function colorRegion(state, actor, payload = {}, rngStreams = {}) {
     next.winner = other(actor);
     next.terminalReason = "ILLEGAL_COLOR";
     delete next.retainedSplit;
+    delete next.redesignation;
     next.version += 1;
     next.publicLog.push(`T${next.turn} Player ${actor} lost by illegal coloring.`);
     return { ok: true, code: "ILLEGAL_COLOR", state: next };
@@ -960,6 +968,7 @@ function colorRegion(state, actor, payload = {}, rngStreams = {}) {
   }
   next.pending = null;
   delete next.retainedSplit;
+  delete next.redesignation;
   next.phase = "WORK";
   // A saved match keeps its starting distribution, including pre-version saves.
   const diePool = next.diePoolVersion === DIE_POOL_VERSION ? DIE_POOL : LEGACY_DIE_POOL;
@@ -995,6 +1004,7 @@ function surrender(state, actor) {
   next.winner = other(actor);
   next.terminalReason = "SURRENDER";
   delete next.retainedSplit;
+  delete next.redesignation;
   next.version += 1;
   next.publicLog.push(`Player ${actor} surrendered.`);
   return { ok: true, code: "OK", state: next };
@@ -1062,7 +1072,8 @@ function applyStandardAction({ state, actor, action, expectedVersion, rngStreams
     if (result.ok) {
       if (usesSkillCategoryWindow(result.state.engineVersion) && result.state.active !== state.active) {
         const next = clone(result.state);
-        next.skillCategoryWindow = { actor: next.active, categories: [] };
+        next.skillCategoryWindow = { actor: next.active, categories: next.redesignation?.stage === "COLOR"
+          ? [...next.redesignation.receiverCategories] : [] };
         result = {
           ...result,
           state: next,
@@ -1271,6 +1282,7 @@ function supportsSplitKeep(engineVersion) {
 }
 
 const RESCUE_CARD_IDS = Object.freeze(["colorUnsealOne", "colorBonusRefillUnseal"]);
+const DESTRUCTION_CARD_IDS = Object.freeze(["disruptDemolish", "colorCancelRegion"]);
 function supportsRescueCards(engineVersion) {
   return engineVersion === SPLIT_KEEP_ENGINE_VERSION;
 }
@@ -1278,7 +1290,7 @@ function supportsRescueCards(engineVersion) {
 // Only a new match carrying this card opts into its continuation contract.
 function engineVersionForLoadouts(loadouts, fallback) {
   return Object.values(loadouts || {}).some((loadout) => Object.values(loadout || {}).some((ids) => Array.isArray(ids)
-    && ids.some((id) => id === "colorRegionSplitKeep" || RESCUE_CARD_IDS.includes(id))))
+    && ids.some((id) => id === "colorRegionSplitKeep" || RESCUE_CARD_IDS.includes(id) || DESTRUCTION_CARD_IDS.includes(id))))
     ? SPLIT_KEEP_ENGINE_VERSION : fallback;
 }
 
@@ -1379,6 +1391,23 @@ const STANDARD_SKILLS = Object.freeze({
     implemented: true,
     consumptionPolicy: "RESOLVED_ONLY_CONNECTED_BIPARTITION",
     handlerVersion: "color-region-split-v1",
+  }),
+  colorCancelRegion: skill("colorCancelRegion", "指定の爆破", "color", 4, "COLOR", {
+    implemented: true,
+    v49Catalogued: false,
+    standardCatalogued: true,
+    standardUiEnabled: true,
+    consumptionPolicy: "RESOLVED_ONLY_ALTERNATIVE_REDESIGNATION",
+    handlerVersion: "color-cancel-region-v1",
+  }),
+  disruptDemolish: skill("disruptDemolish", "エリア破壊", "disrupt", 4, "WORK", {
+    targetSchema: { regionId: "region-id" },
+    implemented: true,
+    v49Catalogued: false,
+    standardCatalogued: true,
+    standardUiEnabled: true,
+    consumptionPolicy: "RESOLVED_ONLY_COLORED_AREA_MAX_FOUR",
+    handlerVersion: "disrupt-demolish-v1",
   }),
   colorRegionSplitKeep: skill("colorRegionSplitKeep", "エリア二分・保持", "color", 5, "COLOR", {
     targetSchema: { regionId: "region-id", sourceMacros: "macro-index-array" },
@@ -1505,7 +1534,7 @@ const V49_SKILL_IDS = Object.freeze(Object.values(STANDARD_SKILLS).filter((entry
 const STANDARD_SKILL_IDS = Object.freeze(Object.values(STANDARD_SKILLS).filter((entry) => entry.standardCatalogued).map((entry) => entry.id));
 const IMPLEMENTED_SKILL_IDS = Object.freeze(Object.values(STANDARD_SKILLS).filter((entry) => entry.implemented).map((entry) => entry.id));
 
-module.exports = { COLORED_CORNER_BLOOM_ENGINE_VERSION, LEARNED_TECHNIQUE_ENGINE_VERSION, SPLIT_KEEP_ENGINE_VERSION, supportsSplitKeep, RESCUE_CARD_IDS, supportsRescueCards, engineVersionForLoadouts, supportsColoredCornerBloom, IMPLEMENTED_SKILL_IDS, SKILL_USAGE_CATEGORIES, STANDARD_SKILLS, STANDARD_SKILL_IDS, V49_SKILL_IDS };
+module.exports = { COLORED_CORNER_BLOOM_ENGINE_VERSION, LEARNED_TECHNIQUE_ENGINE_VERSION, SPLIT_KEEP_ENGINE_VERSION, supportsSplitKeep, RESCUE_CARD_IDS, DESTRUCTION_CARD_IDS, supportsRescueCards, engineVersionForLoadouts, supportsColoredCornerBloom, IMPLEMENTED_SKILL_IDS, SKILL_USAGE_CATEGORIES, STANDARD_SKILLS, STANDARD_SKILL_IDS, V49_SKILL_IDS };
 
 },
 "standard/standard-technique-state.js":function(require,module,exports){
@@ -1612,6 +1641,61 @@ module.exports = {
 };
 
 },
+"standard/standard-redesignation.js":function(require,module,exports){
+"use strict";
+
+const { StandardRuleError } = require("./standard-engine.js");
+const { supportsSplitKeep, SKILL_USAGE_CATEGORIES } = require("./standard-skill-registry.js");
+
+function connectedMacros(macros, width) {
+  const remaining = new Set(macros), queue = [macros[0]];
+  remaining.delete(macros[0]);
+  while (queue.length) {
+    const m = queue.pop(), col = m % width;
+    for (const n of [m-width,m+width,...(col>0?[m-1]:[]),...(col<width-1?[m+1]:[])]) {
+      if (remaining.delete(n)) queue.push(n);
+    }
+  }
+  return remaining.size === 0;
+}
+
+function sameDesignation(state, macros) {
+  const retry = state.redesignation;
+  return retry?.stage === "RESELECT"
+    && [...macros].sort((a, b) => a - b).join(",") === retry.sourceMacros.join(",");
+}
+
+// Entirely public obligation state. No palette, hand, history snapshot or RNG.
+function validateRedesignation(state) {
+  if (!Object.hasOwn(state, "redesignation")) return;
+  const r = state.redesignation, b = state.playableBounds;
+  const valid = supportsSplitKeep(state.engineVersion) && r && typeof r === "object" && !Array.isArray(r)
+    && Object.keys(r).sort().join("|") === "designator|receiver|receiverCategories|sourceMacros|stage"
+    && ["A", "B"].includes(r.designator) && ["A", "B"].includes(r.receiver) && r.designator !== r.receiver
+    && ["RESELECT", "COLOR"].includes(r.stage) && state.status === "ACTIVE"
+    && !state.reserved && !state.retainedSplit && !state.preparedOutgoing
+    && Array.isArray(r.sourceMacros) && r.sourceMacros.length === state.requiredSize
+    && r.sourceMacros.every((m, i) => Number.isSafeInteger(m) && m >= 0
+      && (i === 0 || r.sourceMacros[i - 1] < m)
+      && m % b.macroWidth >= b.minCol && m % b.macroWidth <= b.maxCol
+      && Math.floor(m / b.macroWidth) >= b.minRow && Math.floor(m / b.macroWidth) <= b.maxRow)
+    && connectedMacros(r.sourceMacros, b.macroWidth)
+    && Array.isArray(r.receiverCategories) && r.receiverCategories.includes("color")
+    && new Set(r.receiverCategories).size === r.receiverCategories.length
+    && r.receiverCategories.every(c => SKILL_USAGE_CATEGORIES.includes(c))
+    && (r.stage === "RESELECT"
+      ? state.active === r.designator && state.phase === "WORK" && state.pending === null
+      : state.active === r.receiver && state.phase === "COLOR" && Boolean(state.pending)
+        && state.regions[state.pending]?.sourceMacros?.length === state.requiredSize
+        && state.regions[state.pending]?.controllers?.length === 1 && state.regions[state.pending].controllers[0] === r.designator
+        && [...state.regions[state.pending].sourceMacros].sort((a,b)=>a-b).join(",") !== r.sourceMacros.join(",")
+        && JSON.stringify(state.skillCategoryWindow?.categories) === JSON.stringify(r.receiverCategories));
+  if (!valid) throw new StandardRuleError("INVALID_REDESIGNATION", "Invalid region redesignation obligation");
+}
+
+module.exports = { sameDesignation, validateRedesignation };
+
+},
 "standard/standard-skill-handlers.js":function(require,module,exports){
 "use strict";
 
@@ -1646,6 +1730,46 @@ function resolvedWithoutCard(currentState, actor, mutate, details = {}) {
   state.skillsUsed[actor] = (state.skillsUsed[actor] || 0) + 1;
   state.version += 1;
   return Object.freeze({ ok: true, code: "OK", state, cardConsumed: false, ...details });
+}
+
+function applyDisruptDemolish({ state, actor, payload }) {
+  const region = state.regions[payload.regionId];
+  if (!region?.color || region.isPending || region.isReserved || state.pending || state.reserved
+    || state.retainedSplit || state.preparedOutgoing) return { ok: false, code: "INVALID_DESTRUCTION_TARGET", state };
+  if (!region.micro.length || region.micro.length > 4 * state.playableBounds.microScale ** 2) {
+    return { ok: false, code: "DESTRUCTION_AREA_LIMIT", state };
+  }
+  return resolved(state, actor, "disruptDemolish", next => {
+    delete next.regions[payload.regionId];
+    next.publicLog.push(`T${next.turn} Player ${actor} destroyed ${payload.regionId}; its cells are free for designation.`);
+  }, { regionId: payload.regionId });
+}
+
+function applyColorCancelRegion({ state, actor, hasLegalRegionOfSize }) {
+  const region = state.regions[state.pending];
+  if (!region?.isPending || region.color || region.controllers?.length !== 1 || region.controllers[0] !== other(actor)
+    || state.reserved || state.retainedSplit || state.preparedOutgoing || state.redesignation
+    || state.lastPublicTrace?.type !== "CREATE_REGION" || state.lastPublicTrace.regionId !== region.id
+    || region.sourceMacros.length !== state.requiredSize) return { ok: false, code: "RECEIVED_REGION_REQUIRED", state };
+  const candidate = clone(state);
+  delete candidate.regions[region.id];
+  candidate.pending = null;
+  candidate.active = other(actor);
+  candidate.phase = "WORK";
+  candidate.redesignation = {
+    designator: other(actor), receiver: actor, stage: "RESELECT",
+    sourceMacros: [...region.sourceMacros].sort((a, b) => a - b),
+    receiverCategories: [...new Set([...state.skillCategoryWindow.categories, "color"])],
+  };
+  if (!hasLegalRegionOfSize(candidate, state.requiredSize)) return { ok: false, code: "NO_ALTERNATIVE_DESIGNATION", state };
+  return resolved(state, actor, "colorCancelRegion", next => {
+    delete next.regions[region.id];
+    next.pending = null;
+    next.active = candidate.active;
+    next.phase = "WORK";
+    next.redesignation = candidate.redesignation;
+    next.publicLog.push(`T${next.turn} Player ${actor} cancelled ${region.id}; Player ${next.active} must designate a different ${next.requiredSize}-cell area without skills or reroll. Seals remain.`);
+  });
 }
 
 function applyColorPrism({ state, actor }) {
@@ -2671,6 +2795,8 @@ function tickPaletteDebuffsAfterColor(state, actor) {
 }
 
 module.exports = {
+  applyDisruptDemolish,
+  applyColorCancelRegion,
   applyAreaCornerBloom,
   applyAreaDiePlus,
   applyAreaHalfShift,
@@ -2710,7 +2836,8 @@ module.exports = {
 "use strict";
 
 const { COLORS, StandardRuleError, applyLegalRecolor } = require("./standard-engine.js");
-const { supportsColoredCornerBloom, supportsSplitKeep, RESCUE_CARD_IDS, supportsRescueCards, STANDARD_SKILLS } = require("./standard-skill-registry.js");
+const { supportsColoredCornerBloom, supportsSplitKeep, RESCUE_CARD_IDS, DESTRUCTION_CARD_IDS, supportsRescueCards, STANDARD_SKILLS } = require("./standard-skill-registry.js");
+const { applyDisruptDemolish, applyColorCancelRegion } = require("./standard-skill-handlers.js");
 const { applyColorUnsealOne, applyColorBonusRefillUnseal } = require("./standard-skill-handlers.js");
 const { usesTechniques, techniqueAvailable, applyTechUnsealOne } = require("./standard-technique-state.js");
 const { applyAreaCornerBloom, applyAreaDiePlus, applyAreaHalfShift, applyAreaMicroBloom, applyAreaResize, applyAreaTripleShift, applyColorBonusRefill, applyColorChoiceBorrow, applyColorPaletteChange, applyColorRandomBorrow, applyColorPrism, applyColorRegionSplit, applyDisruptChoiceOne, applyDisruptChoiceThree, applyDisruptChoiceTwo, applyDisruptForcedPalette, applyDisruptPaletteChoice, applyDisruptPaletteRandom, applyDisruptRandomOne, applyDisruptRandomTwo } = require("./standard-skill-handlers.js");
@@ -2732,6 +2859,8 @@ function nextRandom(rngStreams, name, counter) {
 function validateTargetSchema(definition, payload, state) {
   if (!definition.targetSchema) return true;
   if (!payload || typeof payload !== "object" || Array.isArray(payload)) return false;
+  if (definition.id === "disruptDemolish") return Object.keys(payload).sort().join("|") === "regionId|skill"
+    && typeof payload.regionId === "string" && /^R[1-9][0-9]*$/.test(payload.regionId);
   if (["techUnsealOne", "colorUnsealOne"].includes(definition.id)) return Object.keys(payload).sort().join("|") === "color|skill" && COLORS.includes(payload.color);
   if (definition.id === "legalRecolor") return typeof payload.regionId === "string" && payload.regionId.length > 0;
   if (definition.id === "colorPrism") return true;
@@ -2756,6 +2885,8 @@ function validateTargetSchema(definition, payload, state) {
 }
 
 const HANDLERS = Object.freeze({
+  disruptDemolish: applyDisruptDemolish,
+  colorCancelRegion: applyColorCancelRegion,
   techUnsealOne: applyTechUnsealOne,
   colorUnsealOne: applyColorUnsealOne,
   colorBonusRefillUnseal: applyColorBonusRefillUnseal,
@@ -2815,10 +2946,13 @@ function dispatchStandardSkillAction({ state, actor, action, expectedVersion, rn
   if (!definition.implemented || !HANDLERS[definition.id]) return rejected("SKILL_NOT_IMPLEMENTED", state);
   if (definition.id === "colorRegionSplitKeep" && !supportsSplitKeep(state.engineVersion)) return rejected("SKILL_ENGINE_UNSUPPORTED", state);
   if (RESCUE_CARD_IDS.includes(definition.id) && !supportsRescueCards(state.engineVersion)) return rejected("SKILL_ENGINE_UNSUPPORTED", state);
+  if (DESTRUCTION_CARD_IDS.includes(definition.id) && !supportsSplitKeep(state.engineVersion)) return rejected("SKILL_ENGINE_UNSUPPORTED", state);
+  if (definition.id === "colorCancelRegion" && Object.keys(action.payload).join("|") !== "skill") return rejected("INVALID_TARGET_SCHEMA", state);
   if (definition.id === "colorBonusRefillUnseal" && Object.keys(action.payload).join("|") !== "skill") return rejected("INVALID_TARGET_SCHEMA", state);
   const learned = definition.acquisitionType === "LEARNED";
   if (learned && !usesTechniques(state.engineVersion)) return rejected("TECHNIQUE_ENGINE_UNSUPPORTED", state);
   if (state.active !== actor) return rejected("NOT_YOUR_TURN", state);
+  if (state.redesignation?.stage === "RESELECT") return rejected("REDESIGNATION_ONLY", state);
   const timingMatches = definition.timing === "WORK"
     ? state.phase === "WORK" || state.phase === "CREATE_FIRST"
     : state.phase === definition.timing;

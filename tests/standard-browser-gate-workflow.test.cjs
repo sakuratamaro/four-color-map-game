@@ -30,6 +30,14 @@ test("ordinary rescue cards use the existing two-browser gate with engine and SQ
   assert.match(workflow, /STANDARD_BROWSER: \[chrome, edge\]/);
 });
 
+test("region destruction retains the existing gate and covers both ordinary cards", () => {
+  assert.equal(workflow.split("codex/region-destruction-20260928").length-1,1);
+  for(const file of ["standard-region-destruction.test.cjs","standard-region-destruction-sql-runtime.test.cjs"])
+    assert.equal(workflow.split("          tests/"+file).length-1,1);
+  assert.equal(workflow.split("      - tests/helpers/region-destruction-ui.cjs").length-1,2);
+  assert.match(workflow,/STANDARD_BROWSER: \[chrome, edge\]/);
+});
+
 test("Standard browser gate YAML text uses stable whitespace", () => {
   assert.equal(workflow.endsWith("\n"), true);
   assert.doesNotMatch(workflow, /\t|\r(?!\n)/);
@@ -39,7 +47,7 @@ test("Standard browser gate YAML text uses stable whitespace", () => {
 });
 
 test("Standard browser gate is candidate-push, manual, or pull-request only and least-privileged", () => {
-  assert.match(workflow, /^on:\r?\n  push:\r?\n    branches: \[codex\/standard-release-command, codex\/quiz-memo-calculator-20260912, codex\/ui-diet-20260912, codex\/ui-play-surface-20260912, codex\/ui-result-20260912, codex\/ui-cosmetics-20260912, codex\/ui-player-copy-20260912, codex\/skill-cutin-20260912, codex\/ui-flat-entry-20260912, codex\/skill-catalog-20260912, codex\/surrender-confirmation-20260913, codex\/cpu-split-rescue-20260913, codex\/skill-cutin-readability-20260913, codex\/skill-cutin-public-names-20260913, codex\/ui-diet-release-20260915, codex\/ui-followup-release-20260915, codex\/ui-public-match-actions-20260913, codex\/ui-public-match-actions-pointer-20260913, codex\/surrender-cpu-face-20260913, codex\/quiz-level-buttons-20260914, codex\/gacha-entry-diet-20260914, codex\/home-rules-diet-20260914, codex\/ui-navigation-release-20260920, codex\/cpu-progression-public-ui-20260921, codex\/cpu-wataokiba-public-ui-20260923, codex\/new-skills-20260926, codex\/split-keep-current-20260928, codex\/rescue-cards-20260928\][\s\S]+?  pull_request:[\s\S]+?  workflow_dispatch:/m);
+  assert.match(workflow, /^on:\r?\n  push:\r?\n    branches: \[codex\/standard-release-command, codex\/quiz-memo-calculator-20260912, codex\/ui-diet-20260912, codex\/ui-play-surface-20260912, codex\/ui-result-20260912, codex\/ui-cosmetics-20260912, codex\/ui-player-copy-20260912, codex\/skill-cutin-20260912, codex\/ui-flat-entry-20260912, codex\/skill-catalog-20260912, codex\/surrender-confirmation-20260913, codex\/cpu-split-rescue-20260913, codex\/skill-cutin-readability-20260913, codex\/skill-cutin-public-names-20260913, codex\/ui-diet-release-20260915, codex\/ui-followup-release-20260915, codex\/ui-public-match-actions-20260913, codex\/ui-public-match-actions-pointer-20260913, codex\/surrender-cpu-face-20260913, codex\/quiz-level-buttons-20260914, codex\/gacha-entry-diet-20260914, codex\/home-rules-diet-20260914, codex\/ui-navigation-release-20260920, codex\/cpu-progression-public-ui-20260921, codex\/cpu-wataokiba-public-ui-20260923, codex\/new-skills-20260926, codex\/split-keep-current-20260928, codex\/rescue-cards-20260928, codex\/region-destruction-20260928\][\s\S]+?  pull_request:[\s\S]+?  workflow_dispatch:/m);
   assert.equal((workflow.match(/      - online\/supabase-config\.js/g) || []).length, 2);
   assert.equal((workflow.match(/      - online-v5\/style\.css/g) || []).length, 2);
   assert.equal((workflow.match(/      - standard-online-v5\/\*\*/g) || []).length, 2);

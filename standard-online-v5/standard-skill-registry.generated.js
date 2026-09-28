@@ -127,6 +127,36 @@
     "standardEngineImplemented": true,
     "gachaEnabled": true
   },
+  "colorCancelRegion": {
+    "id": "colorCancelRegion",
+    "displayName": "指定の爆破",
+    "category": "color",
+    "usageCategory": "color",
+    "rarity": 4,
+    "timing": "COLOR",
+    "v49Catalogued": false,
+    "standardCatalogued": true,
+    "standardUiEnabled": true,
+    "alphaUiEnabled": false,
+    "experimental": false,
+    "standardEngineImplemented": true,
+    "gachaEnabled": true
+  },
+  "disruptDemolish": {
+    "id": "disruptDemolish",
+    "displayName": "エリア破壊",
+    "category": "disrupt",
+    "usageCategory": "disrupt",
+    "rarity": 4,
+    "timing": "WORK",
+    "v49Catalogued": false,
+    "standardCatalogued": true,
+    "standardUiEnabled": true,
+    "alphaUiEnabled": false,
+    "experimental": false,
+    "standardEngineImplemented": true,
+    "gachaEnabled": true
+  },
   "colorRegionSplitKeep": {
     "id": "colorRegionSplitKeep",
     "displayName": "エリア二分・保持",

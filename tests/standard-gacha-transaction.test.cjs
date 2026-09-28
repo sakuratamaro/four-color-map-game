@@ -30,11 +30,11 @@ function args(root, overrides = {}) {
   };
 }
 
-test("ordinary gacha pool accounts for the 22 Standard cards by category and rarity", () => {
+test("ordinary gacha pool accounts for the 24 Standard cards by category and rarity", () => {
   const pooled = [];
   for (const category of gacha.CATEGORIES) for (let rarity = 1; rarity <= 5; rarity += 1) pooled.push(...gacha.pool(category, rarity));
   assert.deepEqual([...pooled].sort(), [...STANDARD_SKILL_IDS].sort());
-  assert.equal(new Set(pooled).size, 22);
+  assert.equal(new Set(pooled).size, 24);
   assert.deepEqual(gacha.pool("color", 5), ["colorRegionSplitKeep", "colorPaletteChange"]);
   assert.ok(pooled.every((id) => STANDARD_SKILLS[id].gachaEnabled && !STANDARD_SKILLS[id].experimental));
 });
