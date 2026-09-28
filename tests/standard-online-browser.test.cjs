@@ -455,6 +455,16 @@ function assertVisibleCatalogDefinitions(definitions) {
   }
 }
 
+async function assertNativeOrdinaryCatalog(page) {
+  const definitions = Object.values(require("../standard/standard-skill-registry.js").STANDARD_SKILLS)
+    .filter(d => d.standardEngineImplemented && (d.standardUiEnabled || d.alphaUiEnabled));
+  assertVisibleCatalogDefinitions(definitions);
+  const expected = definitions.filter(d => d.standardUiEnabled && !d.experimental).map(d => d.id).sort();
+  const buttons = page.locator('#cardInventory section:not([data-catalog-group="lab"]) button[data-catalog-skill]');
+  assert.equal(await buttons.count(), 24);
+  assert.deepEqual((await buttons.evaluateAll(els => els.map(el => el.dataset.catalogSkill))).sort(), expected);
+}
+
 test("UDL066 fresh catalog exposes 24 ordinary and 2 experimental native detail buttons without creating a profile or spending", { timeout: 120000 }, async () => {
   await withPage("empty", async (page) => {
     await page.locator('[data-app-tab="cards"]').click();
@@ -4570,7 +4580,7 @@ test("actual browser exposes the alpha.3 category window, refill loan, and accep
     // UDL066 supersedes the old hidden-library expectation, not the loan/inventory rules.
     assert.equal(await page.locator('#cardInventory [data-catalog-group="lab"] [data-catalog-skill="colorBonusRefill"].is-unowned').count(), 1);
     assert.equal(await page.locator('#cardInventory [data-catalog-group="lab"] [data-catalog-skill="colorBonusRefill"] .inventory-count').textContent(), "×0");
-    assert.equal(await page.locator('#cardInventory section:not([data-catalog-group="lab"]) button[data-catalog-skill]').count(), 22);
+    await assertNativeOrdinaryCatalog(page);
     assert.equal(await page.locator('#cardSaleSkill option[value="colorBonusRefill"]').count(), 0);
     assert.equal(await refill.isDisabled(), true);
     assert.equal(await refill.getAttribute("title"), "この手番では同じ種類のスキルはもう使えません");
@@ -5187,7 +5197,7 @@ test("actual browser exposes one keyboard-safe recolor lab loan while catalog st
     await page.getByText("LAB貸与カード（この対戦で1回）").waitFor();
     assert.equal(await page.locator('#cardInventory [data-catalog-group="lab"] [data-catalog-skill="legalRecolor"].is-unowned').count(), 1);
     assert.equal(await page.locator('#cardInventory [data-catalog-skill="legalRecolor"] .inventory-count').textContent(), "×0");
-    assert.equal(await page.locator('#cardInventory section:not([data-catalog-group="lab"]) button[data-catalog-skill]').count(), 22);
+    await assertNativeOrdinaryCatalog(page);
     assert.equal(await page.locator('#cardSaleSkill option[value="legalRecolor"]').count(), 0);
 
     const skillButton = page.getByRole("button", { name: "塗り直し・乱 ×1" });
@@ -9027,7 +9037,7 @@ test("UDL067 missing optional module fails closed without breaking cards or game
     assert.equal(await page.evaluate(()=>globalThis.__standardOnlineRuntime.calls.filter(c=>c.body?.operation==="action").length),0);
     await page.locator('[data-app-tab="cards"]').click();
     const cards=page.locator("#cardInventory button[data-catalog-skill]");
-    assert.equal(await cards.count(),24);
+    assert.equal(await cards.count(),26);
     const expected=Object.values(require("../standard/standard-skill-registry.js").STANDARD_SKILLS)
       .filter(d=>d.standardEngineImplemented&&(d.standardUiEnabled||d.alphaUiEnabled));
     assertVisibleCatalogDefinitions(expected);
