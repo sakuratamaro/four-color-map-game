@@ -7226,6 +7226,11 @@ const TROPHY_PRESENTATION = Object.freeze({
   noSkillFullPaint: Object.freeze({ name: "四色の匠", icon: "✨", description: "スキルを使わず完塗りして勝利", reward: "称号・四色の匠" }),
 });
 
+function describeStandardSetupProfile(profile) {
+  const available = STANDARD_SKILL_IDS.filter((id) => profile.cards[id]?.available > 0).length;
+  return `${profile.displayName}: 使用可能 ${available}/${STANDARD_SKILL_IDS.length}種類`;
+}
+
 function boot() {
   const byId = (id) => document.getElementById(id);
   const board = byId("board");
@@ -8574,7 +8579,7 @@ function boot() {
     renderCosmeticProfiles(projection);
     const standard = ruleSet.value === RULE_SET_IDS.STANDARD;
     const details = projection.profiles.map((profile) => standard
-      ? `${profile.displayName}: 使用可能 ${Object.values(profile.cards).filter((count) => count.available > 0).length}/19枚`
+      ? describeStandardSetupProfile(profile)
       : `${profile.displayName}: ${Object.entries(profile.cards).map(([id, count]) => `${id} ${count.available}/${count.owned}`).join("・")}`).join(" / ");
     setupDetails.textContent = projection.code === "NO_LOCAL_SAVE" ? "標準モードのローカルプロフィールがありません。テストでは起動前fixtureを使用します。" : `${projection.ruleLabel} / ${details}${standard ? "" : " / おまけ色補充・legalRecolorは実験貸与"}`;
     startMatch.textContent = standard ? "熟考モード対戦を開始" : "標準α対戦を開始";
@@ -8751,6 +8756,6 @@ function boot() {
   renderStage(session.getStageProjection());
 }
 
-module.exports = { boot };
+module.exports = { boot, describeStandardSetupProfile };
 
 }};const cache={};function normalize(parts){const out=[];for(const part of parts){if(!part||part===".")continue;if(part==="..")out.pop();else out.push(part);}return out.join("/");}function load(id){if(cache[id])return cache[id].exports;if(!modules[id])throw new Error("Unknown module: "+id);const module={exports:{}};cache[id]=module;const base=id.split("/").slice(0,-1);const localRequire=(request)=>{const resolved=request.startsWith(".")?normalize([...base,...request.split("/")]):request;return load(resolved);};modules[id](localRequire,module,module.exports);return module.exports;}load("standard-v5/app.js").boot();})();

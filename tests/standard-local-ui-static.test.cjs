@@ -24,7 +24,7 @@ const contactPressureBrowserGate = fs.readFileSync(path.join(root, "tests", "sta
 const bundleBuilder = fs.readFileSync(path.join(root, "scripts", "build-standard-v5-bundle.mjs"), "utf8");
 
 test("local alpha has a bundled offline entry point", () => {
-  assert.match(html, /app\.bundle\.js\?v=20260928-destruction-1-42dcf9e5cd3e/);
+  assert.match(html, /app\.bundle\.js\?v=20260928-card-count-1-987551b1ee39/);
   for (const id of ["profileA", "profileB", "firstPlayer", "startMatch", "handover", "privatePanel", "resultPanel"]) {
     assert.match(html, new RegExp(`id="${id}"`));
   }
@@ -39,8 +39,8 @@ test("local alpha has a bundled offline entry point", () => {
 
 test("local cache marker publishes the rebuilt alpha.4 and deferred-curse bundle", () => {
   const bundleHash = createHash("sha256").update(bundle).digest("hex");
-  assert.equal(bundleHash, "42dcf9e5cd3ea36b9ed9b1c5911bce990c691ec7570929b9bb09a7bf2a752b0b");
-  assert.match(html, new RegExp(`app\\.bundle\\.js\\?v=20260928-destruction-1-${bundleHash.slice(0, 12)}`));
+  assert.equal(bundleHash, "987551b1ee39b40b41e4e135d0267da4cda30a3568cd1b681c4f09f62dd635c0");
+  assert.match(html, new RegExp(`app\\.bundle\\.js\\?v=20260928-card-count-1-${bundleHash.slice(0, 12)}`));
   assert.match(bundle, /SKILL_CATEGORY_ALREADY_USED_IN_WINDOW/);
   assert.match(bundle, /COLORED_CORNER_BLOOM_ENGINE_VERSION/);
   assert.match(bundle, /colorBonusRefill/);
@@ -116,6 +116,44 @@ test("formal Standard setup requires a complete owned two-per-category loadout b
   assert.ok(sameProfileGuard >= 0 && sameProfileGuard < identityIssue);
   assert.ok(incompleteGuard >= 0 && incompleteGuard < identityIssue);
   assert.doesNotMatch(app, /innerHTML|outerHTML|insertAdjacentHTML/);
+});
+
+test("local setup counts available ordinary card types, not copies or experimental entries", () => {
+  const { describeStandardSetupProfile } = require("../standard-v5/app.js");
+  const { STANDARD_SKILL_IDS } = require("../standard/standard-skill-registry.js");
+  const cards = Object.freeze({
+    colorPrism: Object.freeze({ owned: 9, available: 7 }),
+    areaHalfShift: Object.freeze({ owned: 2, available: 0 }),
+    disruptDemolish: Object.freeze({ owned: 1, available: 1 }),
+    legalRecolor: Object.freeze({ owned: 10, available: 10 }),
+    unknownOldCard: Object.freeze({ owned: 3, available: 3 }),
+  });
+  assert.equal(describeStandardSetupProfile(Object.freeze({ displayName: "Alice", cards })), `Alice: 使用可能 2/${STANDARD_SKILL_IDS.length}種類`);
+  assert.equal(describeStandardSetupProfile({ displayName: "Bob", cards: {} }), `Bob: 使用可能 0/${STANDARD_SKILL_IDS.length}種類`);
+  assert.match(app, /\? describeStandardSetupProfile\(profile\)/);
+  assert.doesNotMatch(app, /\/19枚/);
+});
+
+test("local setup counts every current ordinary type once without changing projected inventory", () => {
+  const { describeStandardSetupProfile } = require("../standard-v5/app.js");
+  const { STANDARD_SKILL_IDS } = require("../standard/standard-skill-registry.js");
+  const cards = Object.fromEntries(STANDARD_SKILL_IDS.map((id) => [id, { owned: 100, available: 99 }]));
+  const before = JSON.stringify(cards);
+  assert.equal(describeStandardSetupProfile({ displayName: "All", cards }), `All: 使用可能 ${STANDARD_SKILL_IDS.length}/${STANDARD_SKILL_IDS.length}種類`);
+  assert.equal(JSON.stringify(cards), before);
+});
+
+test("local setup denominator follows smaller and expanded ordinary catalogs without numeric literals", () => {
+  const vm = require("node:vm"), { createRequire } = require("node:module");
+  const appRequire = createRequire(path.join(root, "standard-v5", "app.js"));
+  for (const size of [1, 19, 24, 25, 31]) {
+    const ids = Object.freeze(Array.from({ length: size }, (_, i) => "fixtureCard" + i));
+    const context = { module: { exports: {} }, require: (id) => id === "../standard/standard-skill-registry.js"
+      ? { STANDARD_SKILLS: {}, STANDARD_SKILL_IDS: ids } : appRequire(id) };
+    vm.runInNewContext(app, context);
+    const cards = Object.fromEntries(ids.map((id) => [id, { available: 3 }]));
+    assert.equal(context.module.exports.describeStandardSetupProfile({ displayName: "Fixture", cards }), `Fixture: 使用可能 ${size}/${size}種類`);
+  }
 });
 
 test("UI consumes only the session projections and transaction boundaries", () => {

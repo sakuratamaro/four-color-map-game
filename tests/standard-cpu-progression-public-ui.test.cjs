@@ -28,7 +28,7 @@ test("combined pilot identifies new assets separately from frozen navigation and
  }
  const localMarker="app.bundle.js?v=20260914-11-63d4f2b526f1";
  assert.ok(spec.includes(localMarker)); // Preserve the historical pilot's asset identity.
- assert.ok(read("standard-v5/index.html").includes("app.bundle.js?v=20260928-destruction-1-42dcf9e5cd3e"));
+ assert.ok(read("standard-v5/index.html").includes("app.bundle.js?v=20260928-card-count-1-987551b1ee39"));
  for(const phrase of ["4d91bbd4ea407be428144fe04ff5eb8821b3a8a0","2e30e9a25db674fe4168bac3ec745fe04641b3c9","UDL011064-pilot-design-v2","NOT_RUN","Old052/057","default OFF"])assert.ok(spec.includes(phrase),phrase);
 });
 test("separate technique control does not restore removed setup clutter or replace the hand",()=>{

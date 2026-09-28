@@ -128,8 +128,8 @@ test("Home preflight rejects missing disclosure, optional rules, recovery or sco
 
 test("candidate preflight rejects a stale local Standard bundle marker or missing deferred curse code", async () => {
   const { LOCAL_STANDARD_BUNDLE_MARKER, LOCAL_STANDARD_BUNDLE_SHA256, hasDeferredCurseLocalBundle } = await contractsPromise;
-  assert.equal(LOCAL_STANDARD_BUNDLE_MARKER, "app.bundle.js?v=20260928-destruction-1-42dcf9e5cd3e");
-  assert.equal(LOCAL_STANDARD_BUNDLE_SHA256, "42dcf9e5cd3ea36b9ed9b1c5911bce990c691ec7570929b9bb09a7bf2a752b0b");
+  assert.equal(LOCAL_STANDARD_BUNDLE_MARKER, "app.bundle.js?v=20260928-card-count-1-987551b1ee39");
+  assert.equal(LOCAL_STANDARD_BUNDLE_SHA256, "987551b1ee39b40b41e4e135d0267da4cda30a3568cd1b681c4f09f62dd635c0");
   assert.equal(hasDeferredCurseLocalBundle(candidateLocalHtml, candidateLocalBundle), true);
   assert.equal(hasDeferredCurseLocalBundle(candidateLocalHtml.replace(LOCAL_STANDARD_BUNDLE_MARKER, "app.bundle.js?v=20260907-5"), candidateLocalBundle), false);
   assert.equal(hasDeferredCurseLocalBundle(candidateLocalHtml, candidateLocalBundle.replace("consumeDeferredCurseBacklashAfterColor(next, actor);", "void next;")), false);

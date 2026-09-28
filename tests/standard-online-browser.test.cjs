@@ -2907,6 +2907,46 @@ test("UDL070 redesignator native rejects same cells, disables skills, then persi
   },{viewport:{width:390,height:844},beforeNavigate:async page=>{fixture=await require("./helpers/region-destruction-ui.cjs").installDestructionUi(page,roomId,"colorCancelRegion",{reselect:true});}});
 });
 
+test("local ordinary card count shows registry totals and stays read-only across modes and reload", { timeout: 120000 }, async () => {
+  const save = require("../standard/standard-save.js"), engine = require("../standard/standard-engine.js"), match = require("../standard/standard-match.js");
+  const { STANDARD_SKILL_IDS } = require("../standard/standard-skill-registry.js");
+  const fixture = save.createStandardSave({
+    profiles: {
+      playerA: save.createProfile({ name: "<b>Alice</b>", inventory: { colorPrism: 7, areaHalfShift: 0, disruptDemolish: 2 } }),
+      playerB: save.createProfile({ name: "Bob", inventory: {} }),
+    },
+    rngSnapshot: engine.snapshotRngDomains(engine.createRngDomains(928, match.REQUIRED_RNG_STREAMS), match.REQUIRED_RNG_STREAMS),
+  });
+  const payload = save.encodeStandardSave(fixture);
+  await withPage("empty", async (page) => {
+    const errors = []; page.on("pageerror", (error) => errors.push(error.message));
+    await page.evaluate(({ key, value }) => localStorage.setItem(key, value), { key: saveKey, value: payload });
+    const url = new URL("/standard-v5/index.html", page.url()).href;
+    assert.equal((await page.goto(url)).status(), 200);
+    await page.locator("#ruleSet").selectOption("STANDARD_V5");
+    const expected = `標準・熟考モード / <b>Alice</b>: 使用可能 2/${STANDARD_SKILL_IDS.length}種類 / Bob: 使用可能 0/${STANDARD_SKILL_IDS.length}種類`;
+    assert.equal(await page.locator("#setupDetails").textContent(), expected);
+    assert.equal(await page.locator("#setupDetails b").count(), 0);
+    assert.equal(await page.locator("#loadoutA input:not([disabled])").count(), 2);
+    assert.equal(await page.locator("#loadoutB input:not([disabled])").count(), 0);
+    assert.equal(await page.locator("#startMatch").isDisabled(), true);
+    for (const width of [390, 1280]) {
+      await page.setViewportSize({ width, height: 844 });
+      assert.equal(await page.locator("#setupDetails").evaluate((node) => node.scrollWidth > node.clientWidth), false);
+    }
+    await page.locator("#ruleSet").selectOption("STANDARD_V5_ALPHA_SLICE");
+    assert.match(await page.locator("#setupDetails").textContent(), /おまけ色補充・legalRecolorは実験貸与/);
+    await page.locator("#ruleSet").selectOption("STANDARD_V5");
+    assert.equal(await page.locator("#setupDetails").textContent(), expected);
+    assert.equal(await page.evaluate((key) => localStorage.getItem(key), saveKey), payload);
+    await page.reload();
+    await page.locator("#ruleSet").selectOption("STANDARD_V5");
+    assert.equal(await page.locator("#setupDetails").textContent(), expected);
+    assert.equal(await page.evaluate((key) => localStorage.getItem(key), saveKey), payload);
+    assert.deepEqual(errors, []);
+  }, { viewport: { width: 390, height: 844 } });
+});
+
 async function withPage(mode, run, { bodyTimeout = 35_000, viewport = { width: 900, height: 800 }, beforeNavigate = null, deviceScaleFactor = 1 } = {}) {
   assert.ok(chromium, "Playwright is required");
   assert.ok(fs.existsSync(browserPath), `${browserName} browser is required`);
