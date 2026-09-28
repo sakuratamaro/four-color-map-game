@@ -11,6 +11,7 @@ const { ALL_COSMETIC_CLASSES, COSMETIC_CATALOG, COSMETIC_TYPE_LABELS } = require
 const { buildTerminalPresentation } = require("./terminal-presentation.js");
 const { createStaticTerminalResultRenderer } = require("./static-terminal-result.js");
 const { createTerminalRevealController } = require("./terminal-reveal.js");
+const { delayedRecolorNotice } = require("../standard-online-v5/standard-online-skill-intents.js");
 
 const COLOR_NAMES = Object.freeze({ red: "赤", blue: "青", yellow: "黄", green: "緑" });
 const PRESENTATION_KEY = "fourColorMapGame.standard.v5.presentation";
@@ -700,6 +701,8 @@ function boot() {
     if (publicState.retainedSplit && publicState.phase === "COLOR") status.textContent += publicState.retainedSplit.stage === "FIRST"
       ? "・二分・保持：1つ目を塗ってください（残りも自分で塗ります）"
       : "・二分・保持：続けて残りを塗ってください";
+    const delayedNotice = delayedRecolorNotice(publicState);
+    if (delayedNotice) status.textContent += `・${delayedNotice}`;
     board.replaceChildren();
     const bounds = publicState.playableBounds;
     const preparedMacros = new Set(publicState.preparedOutgoing?.sourceMacros || []);
@@ -764,6 +767,11 @@ function boot() {
           selected.add(macro);
           renderPublic(session.getPublicProjection());
           dispatch("USE_SKILL", { skill: targetMode.skill || "colorRegionSplit", regionId: publicState.pending, sourceMacros: [macro] });
+          return;
+        }
+        if (targetMode === "disruptDelayedRecolor" && region?.color && !(publicState.delayedRecolors || []).some(e => e.regionId === region.id)) {
+          targetMode = null;
+          dispatch("USE_SKILL", { skill: "disruptDelayedRecolor", regionId: region.id });
           return;
         }
         if (targetMode === "legalRecolor" && region?.color) {
@@ -978,6 +986,16 @@ function boot() {
         });
       }
       appendButton("破壊をキャンセル", false, () => {targetMode=null;renderPrivate(own);});
+    }
+    if (own.hand.disruptDelayedRecolor > 0) appendButton("再彩色予約", !rescueSupported || disruptSkillUsed || targetMode !== null || phase !== "WORK"
+      || publicState.interferenceLock || publicState.pending || publicState.reserved || publicState.preparedOutgoing || publicState.retainedSplit || publicState.redesignation
+      || (publicState.delayedRecolors || []).some(e => e.actor === own.seat), () => {
+        targetMode = "disruptDelayedRecolor";say("彩色済みエリアを選びます。相手の次の正常な彩色後に変化し、不発でも返金されません。");renderPrivate(own);
+      });
+    if (targetMode === "disruptDelayedRecolor") {
+      for (const region of Object.values(publicState.regions).filter(r=>r.color && !r.isPending && !r.isReserved && !(publicState.delayedRecolors || []).some(e=>e.regionId === r.id)))
+        appendButton(`${region.id}に再彩色を予約`,false,()=>{targetMode=null;dispatch("USE_SKILL",{skill:"disruptDelayedRecolor",regionId:region.id});});
+      appendButton("再彩色予約をキャンセル",false,()=>{targetMode=null;renderPrivate(own);});
     }
     const ownSeals = publicState.publicEffects?.[own.seat]?.seals || {};
     const sealedOwned = [...new Set([...own.basicPalette, own.bonusColor])].filter(color => ownSeals[color] > 0);

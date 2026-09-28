@@ -108,6 +108,7 @@ const SKILL_DESCRIPTION = Object.freeze({
   colorBonusRefillUnseal: "現在のおまけ色を1回補充（上限4回）し、その色の封印を解除します。残り4回でも封印中なら使えます。隣接色などの彩色条件は変わりません。",
   colorCancelRegion: "受取エリアを取り消し、相手に同じマス数の別の場所を指定し直させます。振り直し・追加スキルはなく、封印と彩色スキル使用済みは残ります。二分中・他の指定がない場合は使えません。",
   disruptDemolish: "4マス分以下の彩色済みエリアを形ごと消し、普通の空きマスに戻します。その後、通常どおり相手へ渡すエリアを指定します。未塗りエリアや準備中の指定は対象外です。",
+  disruptDelayedRecolor: "彩色済みエリアの再彩色を予約し、指定の代わりに相手へ手番を渡します。相手の次の正常な彩色後、合法な別色へランダムに変化。対象の形・色が変わった場合や別色がない場合は不発・返金なし。各自の予約は1件までです。",
   colorRegionSplit: "いま塗る相手のエリアを、つながった2つのエリアに分けます。分けた片方を先に塗ります。",
   colorRegionSplitKeep: "受け取ったエリアを2つに分け、選んだ側・残りの側を続けて自分で塗ります。両側それぞれで隣接色・封印・色の残数を判定します。同じ手番の色操作スキルは追加で使えません。",
   colorPaletteChange: "持ち色の3枠から1枠を、対戦終了まで好きな色に変えます。基本色2枠は回数無制限。おまけ色枠を変えても回数は増えず、今の残り回数を新しい色が引き継ぎます。",
@@ -894,6 +895,7 @@ function supportsColoredCornerBloom(state) {
 function eligibleExistingRegionTargets(state) {
   // Only public geometry is used to select demolition targets.
   const regions = eligibleRecolorRegions(state);
+  if (targetDraft?.skill === "disruptDelayedRecolor") return regions.filter(region => !(state.delayedRecolors || []).some(e => e.regionId === region.id));
   return targetDraft?.skill === "disruptDemolish"
     ? regions.filter(region => region.micro.length <= 4 * state.playableBounds.microScale ** 2)
     : regions;
@@ -3950,19 +3952,21 @@ function renderSkills(state, privateState) {
     if (extra || skill === "legalRecolor") node.textContent = `${meta.name} ${used ? "使用済み" : state.debugUnlimitedSkills ? "∞" : `×${count}`}（★${meta.rarity}）`;
     node.setAttribute("aria-label", `${meta.name} ${used ? "使用済み" : state.debugUnlimitedSkills ? "∞" : `×${count}`}（★${meta.rarity}）`);
     node.dataset.skill = skill;
-    const timingOkay = skill === "legalRecolor" ? state.phase === "WORK"
+    const timingOkay = ["legalRecolor", "disruptDelayedRecolor"].includes(skill) ? state.phase === "WORK"
       : meta.category === "color" ? state.phase === "COLOR" : ["CREATE_FIRST", "WORK"].includes(state.phase);
     const categoryUsed = usedCategories.has(meta.usageCategory || meta.category);
     const refillFull = skill === "colorBonusRefill" && (privateState.bonusUsesRemaining || 0) >= 4;
-    const unsupported = ["colorRegionSplitKeep", "colorUnsealOne", "colorBonusRefillUnseal", "colorCancelRegion", "disruptDemolish"].includes(skill) && state.engineVersion !== "5.0.0-alpha.6";
+    const unsupported = ["colorRegionSplitKeep", "colorUnsealOne", "colorBonusRefillUnseal", "colorCancelRegion", "disruptDemolish", "disruptDelayedRecolor"].includes(skill) && state.engineVersion !== "5.0.0-alpha.6";
     const seals = state.publicEffects?.[privateState.seat]?.seals || {};
     const rescueNoEffect = skill === "colorUnsealOne" ? skillIntents.sealedOwnedColorChoices(privateState, seals).length === 0
       : skill === "colorBonusRefillUnseal" && !skillIntents.bonusRefillUnsealHasEffect(privateState, seals);
     const destructionUnavailable = skill === "colorCancelRegion"
       ? Boolean(state.reserved || state.retainedSplit || state.redesignation) || state.lastPublicTrace?.type !== "CREATE_REGION"
       : skill === "disruptDemolish" && Boolean(state.pending || state.reserved || state.preparedOutgoing);
+    const delayedUnavailable = skill === "disruptDelayedRecolor" && (state.interferenceLock || state.pending || state.reserved || state.preparedOutgoing
+      || state.retainedSplit || state.redesignation || (state.delayedRecolors || []).some(e => e.actor === privateState.seat));
     node.disabled = used || actionBusy || Boolean(pendingAction) || !myTurn || !timingOkay || categoryUsed || refillFull || unsupported || rescueNoEffect
-      || state.redesignation?.stage === "RESELECT" || destructionUnavailable;
+      || state.redesignation?.stage === "RESELECT" || destructionUnavailable || Boolean(delayedUnavailable);
     if (unsupported) node.title = "このカードに対応した新規対戦で使えます";
     if (categoryUsed) node.title = "この手番では同じ種類のスキルはもう使えません";
     const info = button("ⓘ", () => openSkillInfo(skill), "skill-info-button");
@@ -4201,6 +4205,9 @@ function renderSkillTarget(state, privateState) {
     if (targetDraft.skill === "disruptDemolish") note.textContent = regions.length
       ? "4マス分以下の彩色済みエリアを選択。確定すると形ごと消え、空きマスになります。"
       : "現在壊せる4マス分以下の彩色済みエリアはありません。";
+    if (targetDraft.skill === "disruptDelayedRecolor") note.textContent = regions.length
+      ? "相手の次の正常な彩色後に変化する予約です。変更色は未確定。対象の変化や合法な別色なしでは不発・返金なしです。"
+      : "現在予約できる彩色済みエリアはありません。";
     controls.appendChild(note);
     for (const choice of controls.querySelectorAll("button")) choice.setAttribute("aria-describedby", note.id);
   }
@@ -4286,6 +4293,7 @@ function renderSkillTarget(state, privateState) {
   }
   if (!["corner-bloom", "region-split"].includes(targetDraft.kind)) {
     const useTarget = button(targetDraft.skill === "disruptDemolish" ? "このエリアを破壊する"
+      : targetDraft.skill === "disruptDelayedRecolor" ? "このエリアに再彩色を予約"
       : targetDraft.kind === "existing-region" ? "このエリアをランダムに塗り直す"
       : targetDraft.kind === "slot-color" ? "この変更を使う" : "この対象で使う", submitSkillTarget, "primary");
     if (targetDraft.kind === "existing-region") {
@@ -5003,7 +5011,7 @@ function renderBoard(state) {
   if (connectedGuidedMacros.size) canvas.dataset.connectedGuidedMacros = [...connectedGuidedMacros].sort((left, right) => left - right).join(",");
   else delete canvas.dataset.connectedGuidedMacros;
   const boardLabel = targetDraft?.kind === "existing-region"
-    ? `${targetDraft.skill === "disruptDemolish" ? "破壊する" : "塗り直す"}彩色済みエリアを選択。番号と色名は下の対象一覧でも選べます。`
+    ? `${targetDraft.skill === "disruptDemolish" ? "破壊する" : targetDraft.skill === "disruptDelayedRecolor" ? "再彩色を予約する" : "塗り直す"}彩色済みエリアを選択。番号と色名は下の対象一覧でも選べます。`
     : cornerBloomCellTargetActive()
       ? "角膨張の対象セルを選択。矢印キーで細分セルを移動し、SpaceまたはEnterで即発動、Escapeでキャンセルできます。"
     : targetDraft?.kind === "region-split"
@@ -5142,6 +5150,10 @@ function renderTurnGuide(state) {
     title = phaseLabelFor(state, seat, roomModel?.room?.opponent_kind === "cpu");
   }
   guide.dataset.state = kind;
+  if (state.delayedRecolors || state.lastDelayedRecolor) {
+    const delayedNotice = skillIntents.delayedRecolorNotice(state, id => publicRegionLabel(state, id));
+    if (delayedNotice) title += ` ／ ${delayedNotice}`;
+  }
   const label = $("turnGuideTitle");
   if (label.textContent !== title) label.textContent = title;
   show("turnGuide", true);
@@ -6510,7 +6522,7 @@ $("techniqueControls").addEventListener("keydown", event => {
   event.preventDefault(); techniqueTargetScope = null; render(); $("useTechnique").focus({ preventScroll: true });
 });
 $("skillTargetControls").addEventListener("keydown", event => {
-  if (event.key !== "Escape" || (targetDraft?.kind !== "sealed-color" && targetDraft?.skill !== "disruptDemolish")) return;
+  if (event.key !== "Escape" || (targetDraft?.kind !== "sealed-color" && !["disruptDemolish", "disruptDelayedRecolor"].includes(targetDraft?.skill))) return;
   event.preventDefault(); cancelSkillTarget();
 });
 $("createStarterProfile").onclick = createStarterProfile;

@@ -810,7 +810,7 @@ function supportsRescueCards(engineVersion) {
 // Only a new match carrying this card opts into its continuation contract.
 function engineVersionForLoadouts(loadouts, fallback) {
   return Object.values(loadouts || {}).some((loadout) => Object.values(loadout || {}).some((ids) => Array.isArray(ids)
-    && ids.some((id) => id === "colorRegionSplitKeep" || RESCUE_CARD_IDS.includes(id) || DESTRUCTION_CARD_IDS.includes(id))))
+    && ids.some((id) => id === "colorRegionSplitKeep" || id === "disruptDelayedRecolor" || RESCUE_CARD_IDS.includes(id) || DESTRUCTION_CARD_IDS.includes(id))))
     ? SPLIT_KEEP_ENGINE_VERSION : fallback;
 }
 
@@ -928,6 +928,15 @@ const STANDARD_SKILLS = Object.freeze({
     standardUiEnabled: true,
     consumptionPolicy: "RESOLVED_ONLY_COLORED_AREA_MAX_FOUR",
     handlerVersion: "disrupt-demolish-v1",
+  }),
+  disruptDelayedRecolor: skill("disruptDelayedRecolor", "再彩色予約", "disrupt", 4, "WORK", {
+    targetSchema: { regionId: "region-id" },
+    implemented: true,
+    v49Catalogued: false,
+    standardCatalogued: true,
+    standardUiEnabled: true,
+    consumptionPolicy: "RESOLVED_ONLY_ONE_PENDING_RESERVATION_PER_ACTOR",
+    handlerVersion: "delayed-recolor-v1",
   }),
   colorRegionSplitKeep: skill("colorRegionSplitKeep", "エリア二分・保持", "color", 5, "COLOR", {
     targetSchema: { regionId: "region-id", sourceMacros: "macro-index-array" },
@@ -2301,6 +2310,7 @@ module.exports = {
 "use strict";
 
 const { COLORS, StandardRuleError, applyLegalRecolor } = require("./standard-engine.js");
+const { applyDelayedRecolor, invalidateDelayedRecolors } = require("./standard-delayed-recolor.js");
 const { supportsColoredCornerBloom, supportsSplitKeep, RESCUE_CARD_IDS, DESTRUCTION_CARD_IDS, supportsRescueCards, STANDARD_SKILLS } = require("./standard-skill-registry.js");
 const { applyDisruptDemolish, applyColorCancelRegion } = require("./standard-skill-handlers.js");
 const { applyColorUnsealOne, applyColorBonusRefillUnseal } = require("./standard-skill-handlers.js");
@@ -2324,7 +2334,7 @@ function nextRandom(rngStreams, name, counter) {
 function validateTargetSchema(definition, payload, state) {
   if (!definition.targetSchema) return true;
   if (!payload || typeof payload !== "object" || Array.isArray(payload)) return false;
-  if (definition.id === "disruptDemolish") return Object.keys(payload).sort().join("|") === "regionId|skill"
+  if (["disruptDemolish", "disruptDelayedRecolor"].includes(definition.id)) return Object.keys(payload).sort().join("|") === "regionId|skill"
     && typeof payload.regionId === "string" && /^R[1-9][0-9]*$/.test(payload.regionId);
   if (["techUnsealOne", "colorUnsealOne"].includes(definition.id)) return Object.keys(payload).sort().join("|") === "color|skill" && COLORS.includes(payload.color);
   if (definition.id === "legalRecolor") return typeof payload.regionId === "string" && payload.regionId.length > 0;
@@ -2350,6 +2360,7 @@ function validateTargetSchema(definition, payload, state) {
 }
 
 const HANDLERS = Object.freeze({
+  disruptDelayedRecolor: applyDelayedRecolor,
   disruptDemolish: applyDisruptDemolish,
   colorCancelRegion: applyColorCancelRegion,
   techUnsealOne: applyTechUnsealOne,
@@ -2412,6 +2423,7 @@ function dispatchStandardSkillAction({ state, actor, action, expectedVersion, rn
   if (definition.id === "colorRegionSplitKeep" && !supportsSplitKeep(state.engineVersion)) return rejected("SKILL_ENGINE_UNSUPPORTED", state);
   if (RESCUE_CARD_IDS.includes(definition.id) && !supportsRescueCards(state.engineVersion)) return rejected("SKILL_ENGINE_UNSUPPORTED", state);
   if (DESTRUCTION_CARD_IDS.includes(definition.id) && !supportsSplitKeep(state.engineVersion)) return rejected("SKILL_ENGINE_UNSUPPORTED", state);
+  if (definition.id === "disruptDelayedRecolor" && !supportsSplitKeep(state.engineVersion)) return rejected("SKILL_ENGINE_UNSUPPORTED", state);
   if (definition.id === "colorCancelRegion" && Object.keys(action.payload).join("|") !== "skill") return rejected("INVALID_TARGET_SCHEMA", state);
   if (definition.id === "colorBonusRefillUnseal" && Object.keys(action.payload).join("|") !== "skill") return rejected("INVALID_TARGET_SCHEMA", state);
   const learned = definition.acquisitionType === "LEARNED";
@@ -2447,6 +2459,7 @@ function dispatchStandardSkillAction({ state, actor, action, expectedVersion, rn
         ? { actor, categories: [...new Set([...state.skillCategoryWindow.categories, definition.usageCategory])] }
         : { actor: resolvedState.active, categories: [] };
     }
+    invalidateDelayedRecolors(resolvedState);
     validateState(resolvedState);
     return Object.freeze({
       ...applied,
@@ -2609,6 +2622,233 @@ function validateRedesignation(state) {
 }
 
 module.exports = { sameDesignation, validateRedesignation };
+
+},
+"standard/standard-delayed-recolor.js":function(require,module,exports){
+"use strict";
+
+const { COLORS, StandardRuleError, legalRecolorCandidates } = require("./standard-engine.js");
+const { supportsSplitKeep } = require("./standard-skill-registry.js");
+const ID = "disruptDelayedRecolor";
+const clone = value => JSON.parse(JSON.stringify(value));
+const assert = value => { if (!value) throw new StandardRuleError("INVALID_DELAYED_RECOLOR", "Invalid delayed recolor state"); };
+const exactKeys = (value, keys) => value && typeof value === "object" && !Array.isArray(value)
+  && Object.keys(value).sort().join("|") === keys.slice().sort().join("|");
+const sameTarget = (region, effect) => Boolean(region && !region.isPending && !region.isReserved
+  && region.color === effect.color && Array.isArray(region.micro)
+  && JSON.stringify([...region.micro].sort((a,b)=>a-b)) === JSON.stringify(effect.micro));
+
+function validateDelayedRecolor(state) {
+  if (Object.hasOwn(state, "delayedRecolors")) {
+    const list = state.delayedRecolors, world = state.microWidth * state.playableBounds.macroWidth * state.playableBounds.microScale;
+    assert(supportsSplitKeep(state.engineVersion) && state.status === "ACTIVE" && Array.isArray(list) && list.length > 0 && list.length <= 2);
+    assert(new Set(list.map(e=>e?.actor)).size === list.length && new Set(list.map(e=>e?.regionId)).size === list.length);
+    for (const [index,e] of list.entries()) {
+      assert(exactKeys(e,["actor","regionId","version","color","micro","invalidated"])
+        && ["A","B"].includes(e.actor) && typeof e.regionId === "string" && /^R[1-9][0-9]*$/.test(e.regionId) && COLORS.includes(e.color)
+        && Number.isSafeInteger(e.version) && e.version >= 1 && e.version <= state.version
+        && (index === 0 || list[index-1].version < e.version) && typeof e.invalidated === "boolean"
+        && Array.isArray(e.micro) && e.micro.length > 0 && e.micro.length <= world
+        && e.micro.every((cell,i)=>Number.isSafeInteger(cell) && cell >= 0 && cell < world && (i === 0 || e.micro[i-1] < cell)));
+    }
+  }
+  if (Object.hasOwn(state, "lastDelayedRecolor")) {
+    const e=state.lastDelayedRecolor;
+    assert(supportsSplitKeep(state.engineVersion) && exactKeys(e,["version","actor","regionId","outcome","color"])
+      && Number.isSafeInteger(e.version) && e.version >= 1 && e.version <= state.version
+      && ["A","B"].includes(e.actor) && typeof e.regionId === "string" && /^R[1-9][0-9]*$/.test(e.regionId)
+      && ["APPLIED","TARGET_CHANGED","NO_LEGAL_COLOR"].includes(e.outcome)
+      && (e.outcome === "APPLIED" ? COLORS.includes(e.color) : e.color === null));
+    if (e.version === state.version && e.outcome === "APPLIED") assert(state.regions[e.regionId]?.color === e.color);
+  }
+}
+
+function applyDelayedRecolor({state,actor,payload}) {
+  if (state.phase !== "WORK") return {ok:false,code:"WRONG_PHASE",state};
+  if (state.interferenceLock) return {ok:false,code:"INTERFERENCE_CHAINED",state};
+  const r=state.regions[payload.regionId],list=state.delayedRecolors || [];
+  if (!r || !COLORS.includes(r.color) || !r.micro.length || r.isPending || r.isReserved || r.deleted || r.delayed || r.delayState
+    || state.pending || state.reserved || state.retainedSplit || state.preparedOutgoing || state.redesignation)
+    return {ok:false,code:"INVALID_DELAYED_RECOLOR_TARGET",state};
+  if (list.some(e=>e.actor === actor || e.regionId === r.id)) return {ok:false,code:"RECOLOR_ALREADY_SCHEDULED",state};
+  const next=clone(state);
+  next.delayedRecolors=[...clone(list),{actor,regionId:r.id,version:state.version+1,color:r.color,micro:[...r.micro].sort((a,b)=>a-b),invalidated:false}];
+  next.hands[actor][ID]-=1;next.skillsUsed[actor]=(next.skillsUsed[actor]||0)+1;next.version+=1;
+  next.active=actor === "A" ? "B" : "A";next.interferenceLock=true;
+  next.publicLog.push(`T${next.turn} 再彩色予約: Player ${actor} → ${r.id}。相手の次の正常な彩色後に解決します。`);
+  return {ok:true,code:"OK",state:next,cardConsumed:true,regionId:r.id};
+}
+
+// Mark historical changes immediately so deleting/recreating an ID or changing
+// a color back later cannot revive a reservation.
+function invalidateDelayedRecolors(state) {
+  for (const e of state.delayedRecolors || []) if (!sameTarget(state.regions[e.regionId],e)) e.invalidated=true;
+}
+
+// Called inside the accepted COLOR transaction, never on skill use/illegal paint.
+function resolveDelayedRecolors(state,painter,random) {
+  if (!state.delayedRecolors) return;
+  const keep=[];
+  for (const e of state.delayedRecolors) {
+    if (e.actor === painter) {keep.push(e);continue;}
+    const r=state.regions[e.regionId];
+    let outcome="TARGET_CHANGED",color=null;
+    if (!e.invalidated && sameTarget(r,e)) {
+      const candidates=legalRecolorCandidates(state,e.regionId);
+      outcome="NO_LEGAL_COLOR";
+      if (candidates.length) {
+        const draw=random();
+        if (!Number.isFinite(draw) || draw < 0 || draw >= 1) throw new StandardRuleError("INVALID_RANDOM", "Invalid delayed recolor draw");
+        color=candidates[Math.floor(draw*candidates.length)];r.color=color;outcome="APPLIED";
+      }
+    }
+    state.lastDelayedRecolor={version:state.version+1,actor:e.actor,regionId:e.regionId,outcome,color};
+    state.publicLog.push(outcome === "APPLIED" ? `再彩色予約 ${e.regionId}: ${color} に変わりました。`
+      : `再彩色予約 ${e.regionId}: 不発（${outcome === "TARGET_CHANGED" ? "対象が変化・消失" : "合法な別色なし"}）。`);
+  }
+  if (keep.length) state.delayedRecolors=keep;else delete state.delayedRecolors;
+}
+
+module.exports={ID,validateDelayedRecolor,applyDelayedRecolor,invalidateDelayedRecolors,resolveDelayedRecolors};
+
+},
+"standard-online-v5/standard-online-skill-intents.js":function(require,module,exports){
+(function initStandardOnlineSkillIntents(root, factory) {
+  const api = factory();
+  if (typeof module === "object" && module.exports) module.exports = api;
+  if (root) root.FourColorStandardOnlineSkillIntents = api;
+})(typeof globalThis !== "undefined" ? globalThis : this, function standardOnlineSkillIntentFactory() {
+  "use strict";
+
+  const COLORS = Object.freeze(["red", "blue", "yellow", "green"]);
+  const TARGET_KIND = Object.freeze({
+    colorRandomBorrow: "none",
+    colorChoiceBorrow: "color",
+    colorPrism: "none",
+    colorUnsealOne: "sealed-color",
+    colorBonusRefillUnseal: "none",
+    colorCancelRegion: "none",
+    disruptDemolish: "existing-region",
+    disruptDelayedRecolor: "existing-region",
+    colorRegionSplit: "region-split",
+    colorRegionSplitKeep: "region-split",
+    colorPaletteChange: "slot-color",
+    areaMicroBloom: "source-macros",
+    areaDiePlus: "none",
+    areaResize: "resize",
+    areaCornerBloom: "corner-bloom",
+    areaHalfShift: "band-shift",
+    areaTripleShift: "band-shift",
+    disruptRandomOne: "none",
+    disruptChoiceOne: "color",
+    disruptRandomTwo: "none",
+    disruptPaletteRandom: "none",
+    disruptChoiceTwo: "color",
+    disruptPaletteChoice: "color",
+    disruptChoiceThree: "color",
+    disruptForcedPalette: "color",
+  });
+  const LAB_TARGET_KIND = Object.freeze({ legalRecolor: "existing-region" });
+  const EXPERIMENTAL_TARGET_KIND = Object.freeze({ colorBonusRefill: "none" });
+
+  function targetKind(skill) { return TARGET_KIND[skill] || LAB_TARGET_KIND[skill] || EXPERIMENTAL_TARGET_KIND[skill] || null; }
+
+  function invalid() { throw Object.assign(new Error("INVALID_SKILL_TARGET"), { code: "INVALID_SKILL_TARGET" }); }
+  function color(value) { if (!COLORS.includes(value)) invalid(); return value; }
+  function integer(value) { if (!Number.isSafeInteger(value) || value < 0) invalid(); return value; }
+  function macros(value) {
+    if (!Array.isArray(value) || !value.length || value.some((entry) => !Number.isSafeInteger(entry) || entry < 0) || new Set(value).size !== value.length) invalid();
+    return [...value].sort((a, b) => a - b);
+  }
+  function regionId(value) { if (typeof value !== "string" || !/^R[1-9][0-9]*$/.test(value)) invalid(); return value; }
+
+  function colorChoiceDetails(privateState = {}) {
+    const basic = (Array.isArray(privateState.basicPalette) ? privateState.basicPalette : []).filter((color) => COLORS.includes(color));
+    const bonusColor = COLORS.includes(privateState.bonusColor) ? privateState.bonusColor : null;
+    const bonusUsesRemaining = Number.isSafeInteger(privateState.bonusUsesRemaining) && privateState.bonusUsesRemaining >= 0
+      ? privateState.bonusUsesRemaining : 0;
+    const temporary = new Set((Array.isArray(privateState.privateEffects?.temporaryColors)
+      ? privateState.privateEffects.temporaryColors : []).filter((color) => COLORS.includes(color)));
+    const prism = privateState.privateEffects?.prism === true;
+    return Object.freeze(COLORS.flatMap((color) => {
+      const basicSlotCount = basic.filter((entry) => entry === color).length;
+      const isBasic = basicSlotCount > 0;
+      const isBonus = color === bonusColor;
+      const isTemporary = temporary.has(color);
+      const isPrism = prism;
+      const owned = isBasic || isBonus || isTemporary || isPrism;
+      if (!owned) return [];
+      return [Object.freeze({
+        color,
+        isBasic,
+        basicSlotCount,
+        isBonus,
+        bonusUsesRemaining: isBonus ? bonusUsesRemaining : null,
+        isTemporary,
+        isPrism,
+        available: isBasic || isTemporary || isPrism || (isBonus && bonusUsesRemaining > 0),
+      })];
+    }));
+  }
+
+  function availableColorChoices(privateState = {}) {
+    return Object.freeze(colorChoiceDetails(privateState).filter((choice) => choice.available).map((choice) => choice.color));
+  }
+
+  // Ownership and public seal duration only; never predict adjacency or paint legality.
+  function sealedOwnedColorChoices(privateState = {}, seals = {}) {
+    const owned = [...(privateState.basicPalette || []), privateState.bonusColor];
+    return Object.freeze(COLORS.filter((color) => owned.includes(color) && seals[color] > 0));
+  }
+
+  function bonusRefillUnsealHasEffect(privateState = {}, seals = {}) {
+    return COLORS.includes(privateState.bonusColor)
+      && (privateState.bonusUsesRemaining < 4 || seals[privateState.bonusColor] > 0);
+  }
+
+  // Public reservations/outcomes only. No legal-color preview or private hand read.
+  function delayedRecolorNotice(state, label = id => id) {
+    const names = {red:"赤",blue:"青",green:"緑",yellow:"黄"};
+    const e=state?.lastDelayedRecolor;
+    if (e && e.version === state.version) return e.outcome === "APPLIED"
+      ? `再彩色予約：${label(e.regionId)}が${names[e.color] || e.color}に変化`
+      : `再彩色予約：${label(e.regionId)}は不発（${e.outcome === "TARGET_CHANGED" ? "対象が変化・消失" : "合法な別色なし"}）`;
+    return (state?.delayedRecolors || []).map(r=>`再彩色予約：${label(r.regionId)}${r.invalidated ? "（対象変更で不発予定）" : `（Player ${r.actor === "A" ? "B" : "A"}の次の彩色後）`}`).join(" ／ ");
+  }
+
+  function buildSkillPayload(skill, input = {}) {
+    const kind = targetKind(skill);
+    if (!kind) throw Object.assign(new Error("UNKNOWN_STANDARD_SKILL"), { code: "UNKNOWN_STANDARD_SKILL" });
+    if (kind === "none") return Object.freeze({ skill });
+    if (kind === "color" || kind === "sealed-color") return Object.freeze({ skill, color: color(input.color) });
+    if (kind === "slot-color") {
+      if (![0, 1, 2].includes(input.slot)) invalid();
+      return Object.freeze({ skill, slot: input.slot, color: color(input.color) });
+    }
+    if (kind === "source-macros") return Object.freeze({ skill, sourceMacros: macros(input.sourceMacros) });
+    if (kind === "region-split") return Object.freeze({ skill, regionId: regionId(input.regionId), sourceMacros: macros(input.sourceMacros) });
+    if (kind === "existing-region") return Object.freeze({ skill, regionId: regionId(input.regionId) });
+    if (kind === "corner-bloom") {
+      const outgoing = Object.hasOwn(input, "sourceMacros");
+      const colored = Object.hasOwn(input, "regionId");
+      if (outgoing === colored) invalid();
+      return outgoing
+        ? Object.freeze({ skill, sourceMacros: macros(input.sourceMacros), macro: integer(input.macro) })
+        : Object.freeze({ skill, regionId: regionId(input.regionId), macro: integer(input.macro) });
+    }
+    if (kind === "resize") {
+      if (!["expand", "shrink"].includes(input.mode) || !["top", "right", "bottom", "left"].includes(input.side)) invalid();
+      return Object.freeze({ skill, mode: input.mode, side: input.side });
+    }
+    if (kind === "band-shift") {
+      if (!["ROW", "COLUMN"].includes(input.axis) || !["minus", "plus"].includes(input.direction)) invalid();
+      return Object.freeze({ skill, axis: input.axis, index: integer(input.index), direction: input.direction });
+    }
+    invalid();
+  }
+
+  return Object.freeze({ COLORS, EXPERIMENTAL_TARGET_KIND, LAB_TARGET_KIND, TARGET_KIND, availableColorChoices, sealedOwnedColorChoices, bonusRefillUnsealHasEffect, delayedRecolorNotice, buildSkillPayload, colorChoiceDetails, isImmediate: (skill) => targetKind(skill) === "none", targetKind });
+});
 
 },
 "standard/standard-cpu.js":function(require,module,exports){
@@ -3148,6 +3388,7 @@ module.exports = {
 "use strict";
 
 const { sameDesignation, validateRedesignation } = require("./standard-redesignation.js");
+const { validateDelayedRecolor, invalidateDelayedRecolors, resolveDelayedRecolors } = require("./standard-delayed-recolor.js");
 
 const {
   COLORS,
@@ -3357,6 +3598,7 @@ function validateStandardState(state) {
   }
   assertState(Array.isArray(state.publicLog), "INVALID_PUBLIC_LOG");
   validateRedesignation(state);
+  validateDelayedRecolor(state);
   if (state.lastPublicTrace !== undefined && state.lastPublicTrace !== null) {
     const trace = state.lastPublicTrace;
     const commonKeys = ["actor", "eventId", "type", "version"];
@@ -3513,6 +3755,8 @@ function projectStandardPublicState(state) {
   if (state.diePoolVersion !== undefined) keys.push("diePoolVersion");
   if (Object.hasOwn(state, "retainedSplit")) keys.push("retainedSplit");
   if (Object.hasOwn(state, "redesignation")) keys.push("redesignation");
+  if (Object.hasOwn(state, "delayedRecolors")) keys.push("delayedRecolors");
+  if (Object.hasOwn(state, "lastDelayedRecolor")) keys.push("lastDelayedRecolor");
   return Object.freeze({ ...Object.fromEntries(keys.map((key) => [key, clone(key === "trophyTargetMacros"
     ? (state.trophyTargetMacros || playableMacroIndices(state.playableBounds))
     : key === "lastPublicTrace" ? (state.lastPublicTrace ?? null) : state[key])] )),
@@ -3840,6 +4084,7 @@ function colorRegion(state, actor, payload = {}, rngStreams = {}) {
   consumeDeferredCurseBacklashAfterColor(next, actor);
   tickSealsAfterColor(next, actor);
   tickPaletteDebuffsAfterColor(next, actor);
+  resolveDelayedRecolors(next, actor, () => nextRandom(rngStreams, "skill-effect"));
   if (next.reserved) {
     const keep = next.retainedSplit?.stage === "FIRST";
     const returnedId = next.reserved;
@@ -3986,6 +4231,8 @@ function applyStandardAction({ state, actor, action, expectedVersion, rngStreams
           ...(result.privateState ? { privateState: projectStandardPrivateState(next, actor) } : {}),
         };
       }
+      if (result.state.status === "FINISHED") delete result.state.delayedRecolors;
+      else invalidateDelayedRecolors(result.state);
       assertState(result.state.version === state.version + 1, "VERSION_INCREMENT_INVARIANT");
       validateStandardState(result.state);
     }
@@ -7215,6 +7462,7 @@ const { ALL_COSMETIC_CLASSES, COSMETIC_CATALOG, COSMETIC_TYPE_LABELS } = require
 const { buildTerminalPresentation } = require("./terminal-presentation.js");
 const { createStaticTerminalResultRenderer } = require("./static-terminal-result.js");
 const { createTerminalRevealController } = require("./terminal-reveal.js");
+const { delayedRecolorNotice } = require("../standard-online-v5/standard-online-skill-intents.js");
 
 const COLOR_NAMES = Object.freeze({ red: "赤", blue: "青", yellow: "黄", green: "緑" });
 const PRESENTATION_KEY = "fourColorMapGame.standard.v5.presentation";
@@ -7904,6 +8152,8 @@ function boot() {
     if (publicState.retainedSplit && publicState.phase === "COLOR") status.textContent += publicState.retainedSplit.stage === "FIRST"
       ? "・二分・保持：1つ目を塗ってください（残りも自分で塗ります）"
       : "・二分・保持：続けて残りを塗ってください";
+    const delayedNotice = delayedRecolorNotice(publicState);
+    if (delayedNotice) status.textContent += `・${delayedNotice}`;
     board.replaceChildren();
     const bounds = publicState.playableBounds;
     const preparedMacros = new Set(publicState.preparedOutgoing?.sourceMacros || []);
@@ -7968,6 +8218,11 @@ function boot() {
           selected.add(macro);
           renderPublic(session.getPublicProjection());
           dispatch("USE_SKILL", { skill: targetMode.skill || "colorRegionSplit", regionId: publicState.pending, sourceMacros: [macro] });
+          return;
+        }
+        if (targetMode === "disruptDelayedRecolor" && region?.color && !(publicState.delayedRecolors || []).some(e => e.regionId === region.id)) {
+          targetMode = null;
+          dispatch("USE_SKILL", { skill: "disruptDelayedRecolor", regionId: region.id });
           return;
         }
         if (targetMode === "legalRecolor" && region?.color) {
@@ -8182,6 +8437,16 @@ function boot() {
         });
       }
       appendButton("破壊をキャンセル", false, () => {targetMode=null;renderPrivate(own);});
+    }
+    if (own.hand.disruptDelayedRecolor > 0) appendButton("再彩色予約", !rescueSupported || disruptSkillUsed || targetMode !== null || phase !== "WORK"
+      || publicState.interferenceLock || publicState.pending || publicState.reserved || publicState.preparedOutgoing || publicState.retainedSplit || publicState.redesignation
+      || (publicState.delayedRecolors || []).some(e => e.actor === own.seat), () => {
+        targetMode = "disruptDelayedRecolor";say("彩色済みエリアを選びます。相手の次の正常な彩色後に変化し、不発でも返金されません。");renderPrivate(own);
+      });
+    if (targetMode === "disruptDelayedRecolor") {
+      for (const region of Object.values(publicState.regions).filter(r=>r.color && !r.isPending && !r.isReserved && !(publicState.delayedRecolors || []).some(e=>e.regionId === r.id)))
+        appendButton(`${region.id}に再彩色を予約`,false,()=>{targetMode=null;dispatch("USE_SKILL",{skill:"disruptDelayedRecolor",regionId:region.id});});
+      appendButton("再彩色予約をキャンセル",false,()=>{targetMode=null;renderPrivate(own);});
     }
     const ownSeals = publicState.publicEffects?.[own.seat]?.seals || {};
     const sealedOwned = [...new Set([...own.basicPalette, own.bonusColor])].filter(color => ownSeals[color] > 0);

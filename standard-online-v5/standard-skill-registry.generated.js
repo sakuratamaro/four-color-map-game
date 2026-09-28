@@ -157,6 +157,21 @@
     "standardEngineImplemented": true,
     "gachaEnabled": true
   },
+  "disruptDelayedRecolor": {
+    "id": "disruptDelayedRecolor",
+    "displayName": "再彩色予約",
+    "category": "disrupt",
+    "usageCategory": "disrupt",
+    "rarity": 4,
+    "timing": "WORK",
+    "v49Catalogued": false,
+    "standardCatalogued": true,
+    "standardUiEnabled": true,
+    "alphaUiEnabled": false,
+    "experimental": false,
+    "standardEngineImplemented": true,
+    "gachaEnabled": true
+  },
   "colorRegionSplitKeep": {
     "id": "colorRegionSplitKeep",
     "displayName": "エリア二分・保持",
