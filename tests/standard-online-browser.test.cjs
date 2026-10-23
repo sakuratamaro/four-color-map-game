@@ -446,11 +446,11 @@ async function choosePublicWaiting(page) {
 }
 
 function assertVisibleCatalogDefinitions(definitions) {
-  assert.equal(definitions.length, 26);
-  assert.equal(definitions.filter(d => d.standardUiEnabled && !d.experimental).length, 24);
+  assert.equal(definitions.length, 27);
+  assert.equal(definitions.filter(d => d.standardUiEnabled && !d.experimental).length, 25);
   assert.deepEqual(definitions.filter(d => d.experimental).map(d => d.id).sort(),
     ["colorBonusRefill", "legalRecolor"]);
-  for (const id of ["colorRegionSplitKeep", "colorUnsealOne", "colorBonusRefillUnseal", "colorCancelRegion", "disruptDemolish"]) {
+  for (const id of ["colorRegionSplitKeep", "colorUnsealOne", "colorBonusRefillUnseal", "colorCancelRegion", "disruptDemolish", "disruptDelayedRecolor"]) {
     assert.equal(definitions.filter(d => d.id === id && d.standardUiEnabled && !d.experimental).length, 1);
   }
 }
@@ -461,15 +461,15 @@ async function assertNativeOrdinaryCatalog(page) {
   assertVisibleCatalogDefinitions(definitions);
   const expected = definitions.filter(d => d.standardUiEnabled && !d.experimental).map(d => d.id).sort();
   const buttons = page.locator('#cardInventory section:not([data-catalog-group="lab"]) button[data-catalog-skill]');
-  assert.equal(await buttons.count(), 24);
+  assert.equal(await buttons.count(), 25);
   assert.deepEqual((await buttons.evaluateAll(els => els.map(el => el.dataset.catalogSkill))).sort(), expected);
 }
 
-test("UDL066 fresh catalog exposes 24 ordinary and 2 experimental native detail buttons without creating a profile or spending", { timeout: 120000 }, async () => {
+test("UDL066 fresh catalog exposes 25 ordinary and 2 experimental native detail buttons without creating a profile or spending", { timeout: 120000 }, async () => {
   await withPage("empty", async (page) => {
     await page.locator('[data-app-tab="cards"]').click();
     const cards = page.locator("#cardInventory button[data-catalog-skill]");
-    assert.equal(await cards.count(), 26);
+    assert.equal(await cards.count(), 27);
     assert.equal(await page.locator('#cardInventory [data-catalog-skill="colorRegionSplitKeep"]').count(), 1);
     assert.equal(await page.locator("#cardInventory section").count(), 4);
     assert.equal(await page.locator("#profileCard").isHidden(), true);
