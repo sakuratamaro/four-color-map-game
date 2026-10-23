@@ -1,7 +1,8 @@
 "use strict";
 
 const { COLORS, StandardRuleError, applyLegalRecolor } = require("./standard-engine.js");
-const { supportsColoredCornerBloom, supportsSplitKeep, RESCUE_CARD_IDS, DESTRUCTION_CARD_IDS, supportsRescueCards, STANDARD_SKILLS } = require("./standard-skill-registry.js");
+const { supportsColoredCornerBloom, supportsSplitKeep, RESCUE_CARD_IDS, DESTRUCTION_CARD_IDS, PERMUTATION_CARD_IDS, supportsRescueCards, STANDARD_SKILLS } = require("./standard-skill-registry.js");
+const { applyColorPermutation } = require("./standard-color-permutation.js");
 const { applyDisruptDemolish, applyColorCancelRegion } = require("./standard-skill-handlers.js");
 const { applyColorUnsealOne, applyColorBonusRefillUnseal } = require("./standard-skill-handlers.js");
 const { usesTechniques, techniqueAvailable, applyTechUnsealOne } = require("./standard-technique-state.js");
@@ -24,6 +25,10 @@ function nextRandom(rngStreams, name, counter) {
 function validateTargetSchema(definition, payload, state) {
   if (!definition.targetSchema) return true;
   if (!payload || typeof payload !== "object" || Array.isArray(payload)) return false;
+  if (PERMUTATION_CARD_IDS.includes(definition.id)) return Object.keys(payload).sort().join("|") === "regionIds|skill"
+    && Array.isArray(payload.regionIds) && payload.regionIds.length === (definition.id === "disruptColorSwap" ? 2 : 3)
+    && new Set(payload.regionIds).size === payload.regionIds.length
+    && payload.regionIds.every(id => typeof id === "string" && /^R[1-9][0-9]*$/.test(id));
   if (definition.id === "disruptDemolish") return Object.keys(payload).sort().join("|") === "regionId|skill"
     && typeof payload.regionId === "string" && /^R[1-9][0-9]*$/.test(payload.regionId);
   if (["techUnsealOne", "colorUnsealOne"].includes(definition.id)) return Object.keys(payload).sort().join("|") === "color|skill" && COLORS.includes(payload.color);
@@ -50,6 +55,8 @@ function validateTargetSchema(definition, payload, state) {
 }
 
 const HANDLERS = Object.freeze({
+  disruptColorSwap: applyColorPermutation,
+  disruptColorRotate: applyColorPermutation,
   disruptDemolish: applyDisruptDemolish,
   colorCancelRegion: applyColorCancelRegion,
   techUnsealOne: applyTechUnsealOne,
@@ -112,6 +119,7 @@ function dispatchStandardSkillAction({ state, actor, action, expectedVersion, rn
   if (definition.id === "colorRegionSplitKeep" && !supportsSplitKeep(state.engineVersion)) return rejected("SKILL_ENGINE_UNSUPPORTED", state);
   if (RESCUE_CARD_IDS.includes(definition.id) && !supportsRescueCards(state.engineVersion)) return rejected("SKILL_ENGINE_UNSUPPORTED", state);
   if (DESTRUCTION_CARD_IDS.includes(definition.id) && !supportsSplitKeep(state.engineVersion)) return rejected("SKILL_ENGINE_UNSUPPORTED", state);
+  if (PERMUTATION_CARD_IDS.includes(definition.id) && !supportsSplitKeep(state.engineVersion)) return rejected("SKILL_ENGINE_UNSUPPORTED", state);
   if (definition.id === "colorCancelRegion" && Object.keys(action.payload).join("|") !== "skill") return rejected("INVALID_TARGET_SCHEMA", state);
   if (definition.id === "colorBonusRefillUnseal" && Object.keys(action.payload).join("|") !== "skill") return rejected("INVALID_TARGET_SCHEMA", state);
   const learned = definition.acquisitionType === "LEARNED";
@@ -125,7 +133,7 @@ function dispatchStandardSkillAction({ state, actor, action, expectedVersion, rn
   if (learned ? !techniqueAvailable(state, actor, definition.id) : (state.hands?.[actor]?.[definition.id] || 0) <= 0) {
     return rejected(learned ? "TECHNIQUE_UNAVAILABLE" : "SKILL_UNAVAILABLE", state);
   }
-  if (definition.experimental && state.interferenceLock) return rejected("INTERFERENCE_CHAINED", state);
+  if ((definition.experimental || PERMUTATION_CARD_IDS.includes(definition.id)) && state.interferenceLock) return rejected("INTERFERENCE_CHAINED", state);
   if (!validateTargetSchema(definition, action.payload, state)) return rejected("INVALID_TARGET_SCHEMA", state);
   if (categoryLimitEnabled && state.skillCategoryWindow.categories.includes(definition.usageCategory)) {
     return rejected("SKILL_CATEGORY_ALREADY_USED_IN_WINDOW", state);

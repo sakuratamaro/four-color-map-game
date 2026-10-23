@@ -11,6 +11,7 @@ const ids = [
   "standard/standard-engine.js",
   "standard/standard-region-geometry.js",
   "standard/standard-redesignation.js",
+  "standard/standard-color-permutation.js",
   "standard/standard-cosmetics.js",
   "standard/standard-match-reward.js",
   "standard/standard-skill-registry.js",

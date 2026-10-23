@@ -182,9 +182,9 @@ test("official Standard loadout accepts six implemented catalogued UI cards and 
   assert.equal(Object.hasOwn(quote.sources.A, "legalRecolor"), false);
 });
 
-test("every one of the 24 ordinary cards can start inside a formal six-card Standard loadout", () => {
+test("every one of the 26 ordinary cards can start inside a formal six-card Standard loadout", () => {
   const canonical = Object.entries(STANDARD_SKILLS).filter(([, definition]) => definition.standardCatalogued);
-  assert.equal(canonical.length, 24);
+  assert.equal(canonical.length, 26);
   for (const [index, [skillId, definition]] of canonical.entries()) {
     const loadout = Object.fromEntries(["color", "area", "disrupt"].map((category) => {
       const ids = canonical.filter(([, entry]) => entry.category === category).map(([id]) => id);

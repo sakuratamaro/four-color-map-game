@@ -1,6 +1,7 @@
 "use strict";
 
 const { sameDesignation, validateRedesignation } = require("./standard-redesignation.js");
+const { validateColorPermutationState } = require("./standard-color-permutation.js");
 
 const {
   COLORS,
@@ -210,6 +211,7 @@ function validateStandardState(state) {
   }
   assertState(Array.isArray(state.publicLog), "INVALID_PUBLIC_LOG");
   validateRedesignation(state);
+  validateColorPermutationState(state);
   if (state.lastPublicTrace !== undefined && state.lastPublicTrace !== null) {
     const trace = state.lastPublicTrace;
     const commonKeys = ["actor", "eventId", "type", "version"];
@@ -366,6 +368,7 @@ function projectStandardPublicState(state) {
   if (state.diePoolVersion !== undefined) keys.push("diePoolVersion");
   if (Object.hasOwn(state, "retainedSplit")) keys.push("retainedSplit");
   if (Object.hasOwn(state, "redesignation")) keys.push("redesignation");
+  if (Object.hasOwn(state, "rotationUsedBy")) keys.push("rotationUsedBy");
   return Object.freeze({ ...Object.fromEntries(keys.map((key) => [key, clone(key === "trophyTargetMacros"
     ? (state.trophyTargetMacros || playableMacroIndices(state.playableBounds))
     : key === "lastPublicTrace" ? (state.lastPublicTrace ?? null) : state[key])] )),

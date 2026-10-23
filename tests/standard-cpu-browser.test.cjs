@@ -22,6 +22,7 @@ const moduleIds = [
   "standard/standard-skill-registry.js",
   "standard/standard-technique-state.js",
   "standard/standard-redesignation.js",
+  "standard/standard-color-permutation.js",
   "standard/standard-skill-handlers.js",
   "standard/standard-skill-dispatcher.js",
   "standard/standard-match.js",

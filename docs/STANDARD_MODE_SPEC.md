@@ -2,6 +2,8 @@
 
 Status: Phase S0 frozen draft for local `standard-v5-alpha1` implementation. This document does not change the frozen solo v5 RC1, v4.9 baseline, online deployment, or Supabase state.
 
+2026-09-28 additive candidate: ordinary 色交換 / 地層反転 are specified in [NEW_SKILLS_COLOR_PERMUTATION_20260928.md](NEW_SKILLS_COLOR_PERMUTATION_20260928.md), version UDL011-color-permutation-v1. That document explicitly distinguishes the proposed normal-card handoff tempo from the workshop prototype. It is not a release approval and does not clear the existing blanking implementation hold below. The frozen historical sections are retained.
+
 Product-loop and complexity priorities are defined in `docs/PRODUCT_CORE_LOOP.md`; those priorities govern player-facing simplification, progression, quiz hints, card sale, cosmetics, and the security boundary.
 
 ## CPU progression pilot: release-review specification

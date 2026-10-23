@@ -1271,6 +1271,44 @@ async function assertPaletteChangeUse(browser, gesture) {
   }
 }
 
+for(const skill of ["disruptColorSwap","disruptColorRotate"])test(`UDL011 local permutation native ${skill}: cancel, inventory, handover and resume`,{timeout:120000},async()=>{
+  assert.ok(chromium && installedBrowserExecutable(),"requested native browser is required");
+  const server=await startServer();let browser,context;
+  try {
+    browser=await chromium.launch({headless:true,executablePath:installedBrowserExecutable()});
+    const measured=await newMeasuredPage(browser),{page,metrics}=measured;context=measured.context;
+    await bootToBWork(page);
+    const rootValue=await persistedRoot(page),prior=rootValue.activeMatch.state;
+    const rng=standardEngine.createRngDomains(928,standardMatch.REQUIRED_RNG_STREAMS),hands=structuredClone(prior.hands);
+    hands.B[skill]=1;rootValue.activeMatch.cardSources.B[skill]="INVENTORY_BACKED";
+    rootValue.profiles.playerB.inventory[skill]=1;rootValue.reservations.playerB[skill]=1;
+    const fresh=standardMatch.createStandardMatch({matchId:prior.matchId,engineVersion:"5.0.0-alpha.6",hands,firstSeat:"B"},rng);
+    fresh.version=prior.version;
+    rootValue.activeMatch.state=require("./helpers/color-permutation-fixture.cjs").prepare(fresh,skill,"B");
+    rootValue.activeMatch.rngSnapshot=Object.fromEntries(Object.entries(rng).map(([k,v])=>[k,v.snapshot()]));
+    require("../standard/standard-save.js").validateStandardSave(rootValue);
+    await page.evaluate(({key,value})=>localStorage.setItem(key,value),{key:saveKey,value:JSON.stringify(rootValue)});
+    await page.reload();await assertHandoverIsPrivate(page);await page.getByRole("button",{name:"自分の情報を表示"}).click();
+    const before=await persistedSnapshot(page),label=skill==="disruptColorSwap"?"色交換":"地層反転";
+    await page.getByRole("button",{name:label,exact:true}).click();
+    await page.getByRole("button",{name:"R1・赤",exact:true}).click();
+    await page.getByRole("button",{name:"色の移動をキャンセル",exact:true}).click();
+    assert.deepEqual(await persistedSnapshot(page),before);
+    await page.getByRole("button",{name:label,exact:true}).click();
+    const ids=skill==="disruptColorSwap"?["R1","R2"]:["R1","R2","R3"];
+    for(const id of ids)await page.getByRole("button",{name:id+"・"+colorNames[fresh.regions[id].color],exact:true}).click();
+    await page.getByRole("button",{name:"この順で色を移す",exact:true}).click();await assertHandoverIsPrivate(page);
+    const saved=await persistedRoot(page),s=saved.activeMatch.state;
+    assert.equal(s.version,before.matchVersion+1);assert.equal(s.active,"A");
+    assert.equal(s.hands.B[skill],0);assert.equal(saved.profiles.playerB.inventory[skill],0);
+    assert.deepEqual(["R1","R2","R3"].map(id=>s.regions[id].color),skill==="disruptColorSwap"?["blue","red","green"]:["green","red","blue"]);
+    assert.deepEqual(saved.activeMatch.rngSnapshot,rootValue.activeMatch.rngSnapshot);
+    if(skill==="disruptColorRotate")assert.deepEqual(s.rotationUsedBy,["B"]);
+    assert.equal((await persistedSnapshot(page)).consumptionReceipts,before.consumptionReceipts+1);
+    await assertReloadStable(page,metrics,"color permutation");
+  }finally{if(context)await context.close();if(browser)await browser.close();server.kill();}
+});
+
 test("UDL011 local destruction native preserves handover, replay, categories and geometry",{timeout:120000},async()=>{
   assert.ok(chromium && installedBrowserExecutable(),"requested native browser is required");
   const server=await startServer();let browser,context;
