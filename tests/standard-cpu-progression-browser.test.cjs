@@ -202,11 +202,17 @@ for(const gesture of ["pointer","Enter","Space","lost-ACK-retry"]) {
       assert.equal(actionCalls().length,0);
       assert.deepEqual((await f.authority(p.roomId)).state,p.current.state);
       await page.keyboard.press("Escape");
-      assert.equal(await skill.evaluate(el=>el===document.activeElement),true);
-      // A same-version realtime refresh may race the cancellation focus handoff.
-      // Exercise it deterministically without another action or a forced focus.
+      // Read the current card and focus in one browser task. Locator.evaluate
+      // can retain a card detached by a same-version refresh before evaluation.
+      assert.equal(await page.evaluate(()=>document.querySelector('#skillControls button[data-skill="areaCornerBloom"]')===document.activeElement),true);
+      // Prove that the same-version notification really replaces this card and
+      // that the replacement keeps focus, without another action or forced focus.
+      const beforeRefresh=await skill.elementHandle();
+      assert.ok(beforeRefresh);
       await page.evaluate(()=>{ globalThis.__pilotLastSnapshot=null; globalThis.__pilotNotifyRealtime(); });
       await waitVersion(page,p.roomId,p.current.state.version);
+      await page.waitForFunction(el=>!el.isConnected,beforeRefresh,{timeout:2000});
+      await beforeRefresh.dispose();
       await page.waitForFunction(()=>document.activeElement?.dataset.skill==="areaCornerBloom",null,{timeout:2000});
       assert.equal(actionCalls().length,0);
       await skill.focus();await page.keyboard.press("Enter");
