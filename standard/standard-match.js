@@ -2,6 +2,7 @@
 
 const { sameDesignation, validateRedesignation } = require("./standard-redesignation.js");
 const { validateColorPermutationState } = require("./standard-color-permutation.js");
+const { validateDelayedRecolor, invalidateDelayedRecolors, resolveDelayedRecolors } = require("./standard-delayed-recolor.js");
 
 const {
   COLORS,
@@ -212,6 +213,7 @@ function validateStandardState(state) {
   assertState(Array.isArray(state.publicLog), "INVALID_PUBLIC_LOG");
   validateRedesignation(state);
   validateColorPermutationState(state);
+  validateDelayedRecolor(state);
   if (state.lastPublicTrace !== undefined && state.lastPublicTrace !== null) {
     const trace = state.lastPublicTrace;
     const commonKeys = ["actor", "eventId", "type", "version"];
@@ -369,6 +371,8 @@ function projectStandardPublicState(state) {
   if (Object.hasOwn(state, "retainedSplit")) keys.push("retainedSplit");
   if (Object.hasOwn(state, "redesignation")) keys.push("redesignation");
   if (Object.hasOwn(state, "rotationUsedBy")) keys.push("rotationUsedBy");
+  if (Object.hasOwn(state, "delayedRecolors")) keys.push("delayedRecolors");
+  if (Object.hasOwn(state, "lastDelayedRecolor")) keys.push("lastDelayedRecolor");
   return Object.freeze({ ...Object.fromEntries(keys.map((key) => [key, clone(key === "trophyTargetMacros"
     ? (state.trophyTargetMacros || playableMacroIndices(state.playableBounds))
     : key === "lastPublicTrace" ? (state.lastPublicTrace ?? null) : state[key])] )),
@@ -696,6 +700,7 @@ function colorRegion(state, actor, payload = {}, rngStreams = {}) {
   consumeDeferredCurseBacklashAfterColor(next, actor);
   tickSealsAfterColor(next, actor);
   tickPaletteDebuffsAfterColor(next, actor);
+  resolveDelayedRecolors(next, actor, () => nextRandom(rngStreams, "skill-effect"));
   if (next.reserved) {
     const keep = next.retainedSplit?.stage === "FIRST";
     const returnedId = next.reserved;
@@ -842,6 +847,8 @@ function applyStandardAction({ state, actor, action, expectedVersion, rngStreams
           ...(result.privateState ? { privateState: projectStandardPrivateState(next, actor) } : {}),
         };
       }
+      if (result.state.status === "FINISHED") delete result.state.delayedRecolors;
+      else invalidateDelayedRecolors(result.state);
       assertState(result.state.version === state.version + 1, "VERSION_INCREMENT_INVARIANT");
       validateStandardState(result.state);
     }

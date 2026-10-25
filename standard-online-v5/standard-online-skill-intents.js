@@ -16,6 +16,7 @@
     disruptDemolish: "existing-region",
     disruptColorSwap: "region-permutation",
     disruptColorRotate: "region-permutation",
+    disruptDelayedRecolor: "existing-region",
     colorRegionSplit: "region-split",
     colorRegionSplitKeep: "region-split",
     colorPaletteChange: "slot-color",
@@ -92,6 +93,16 @@
       && (privateState.bonusUsesRemaining < 4 || seals[privateState.bonusColor] > 0);
   }
 
+  // Public reservations/outcomes only. No legal-color preview or private hand read.
+  function delayedRecolorNotice(state, label = id => id) {
+    const names = {red:"赤",blue:"青",green:"緑",yellow:"黄"};
+    const e=state?.lastDelayedRecolor;
+    if (e && e.version === state.version) return e.outcome === "APPLIED"
+      ? `再彩色予約：${label(e.regionId)}が${names[e.color] || e.color}に変化`
+      : `再彩色予約：${label(e.regionId)}は不発（${e.outcome === "TARGET_CHANGED" ? "対象が変化・消失" : "合法な別色なし"}）`;
+    return (state?.delayedRecolors || []).map(r=>`再彩色予約：${label(r.regionId)}${r.invalidated ? "（対象変更で不発予定）" : `（Player ${r.actor === "A" ? "B" : "A"}の次の彩色後）`}`).join(" ／ ");
+  }
+
   function buildSkillPayload(skill, input = {}) {
     const kind = targetKind(skill);
     if (!kind) throw Object.assign(new Error("UNKNOWN_STANDARD_SKILL"), { code: "UNKNOWN_STANDARD_SKILL" });
@@ -134,5 +145,5 @@
     return selected.includes(id) ? selected.filter(entry => entry !== id)
       : selected.length < permutationTargetCount(skill) ? [...selected, id] : [...selected];
   }
-  return Object.freeze({ COLORS, EXPERIMENTAL_TARGET_KIND, LAB_TARGET_KIND, TARGET_KIND, availableColorChoices, sealedOwnedColorChoices, bonusRefillUnsealHasEffect, buildSkillPayload, colorChoiceDetails, permutationTargetCount, togglePermutationTarget, isImmediate: (skill) => targetKind(skill) === "none", targetKind });
+  return Object.freeze({ COLORS, EXPERIMENTAL_TARGET_KIND, LAB_TARGET_KIND, TARGET_KIND, availableColorChoices, sealedOwnedColorChoices, bonusRefillUnsealHasEffect, delayedRecolorNotice, buildSkillPayload, colorChoiceDetails, permutationTargetCount, togglePermutationTarget, isImmediate: (skill) => targetKind(skill) === "none", targetKind });
 });

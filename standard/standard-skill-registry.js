@@ -19,7 +19,7 @@ function supportsRescueCards(engineVersion) {
 // Only a new match carrying this card opts into its continuation contract.
 function engineVersionForLoadouts(loadouts, fallback) {
   return Object.values(loadouts || {}).some((loadout) => Object.values(loadout || {}).some((ids) => Array.isArray(ids)
-    && ids.some((id) => id === "colorRegionSplitKeep" || RESCUE_CARD_IDS.includes(id) || DESTRUCTION_CARD_IDS.includes(id) || PERMUTATION_CARD_IDS.includes(id))))
+    && ids.some((id) => id === "colorRegionSplitKeep" || id === "disruptDelayedRecolor" || RESCUE_CARD_IDS.includes(id) || DESTRUCTION_CARD_IDS.includes(id) || PERMUTATION_CARD_IDS.includes(id))))
     ? SPLIT_KEEP_ENGINE_VERSION : fallback;
 }
 
@@ -137,6 +137,15 @@ const STANDARD_SKILLS = Object.freeze({
     standardUiEnabled: true,
     consumptionPolicy: "RESOLVED_ONLY_COLORED_AREA_MAX_FOUR",
     handlerVersion: "disrupt-demolish-v1",
+  }),
+  disruptDelayedRecolor: skill("disruptDelayedRecolor", "再彩色予約", "disrupt", 4, "WORK", {
+    targetSchema: { regionId: "region-id" },
+    implemented: true,
+    v49Catalogued: false,
+    standardCatalogued: true,
+    standardUiEnabled: true,
+    consumptionPolicy: "RESOLVED_ONLY_ONE_PENDING_RESERVATION_PER_ACTOR",
+    handlerVersion: "delayed-recolor-v1",
   }),
   colorRegionSplitKeep: skill("colorRegionSplitKeep", "エリア二分・保持", "color", 5, "COLOR", {
     targetSchema: { regionId: "region-id", sourceMacros: "macro-index-array" },

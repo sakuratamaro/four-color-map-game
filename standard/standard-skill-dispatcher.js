@@ -3,6 +3,7 @@
 const { COLORS, StandardRuleError, applyLegalRecolor } = require("./standard-engine.js");
 const { supportsColoredCornerBloom, supportsSplitKeep, RESCUE_CARD_IDS, DESTRUCTION_CARD_IDS, PERMUTATION_CARD_IDS, supportsRescueCards, STANDARD_SKILLS } = require("./standard-skill-registry.js");
 const { applyColorPermutation } = require("./standard-color-permutation.js");
+const { applyDelayedRecolor, invalidateDelayedRecolors } = require("./standard-delayed-recolor.js");
 const { applyDisruptDemolish, applyColorCancelRegion } = require("./standard-skill-handlers.js");
 const { applyColorUnsealOne, applyColorBonusRefillUnseal } = require("./standard-skill-handlers.js");
 const { usesTechniques, techniqueAvailable, applyTechUnsealOne } = require("./standard-technique-state.js");
@@ -29,7 +30,7 @@ function validateTargetSchema(definition, payload, state) {
     && Array.isArray(payload.regionIds) && payload.regionIds.length === (definition.id === "disruptColorSwap" ? 2 : 3)
     && new Set(payload.regionIds).size === payload.regionIds.length
     && payload.regionIds.every(id => typeof id === "string" && /^R[1-9][0-9]*$/.test(id));
-  if (definition.id === "disruptDemolish") return Object.keys(payload).sort().join("|") === "regionId|skill"
+  if (["disruptDemolish", "disruptDelayedRecolor"].includes(definition.id)) return Object.keys(payload).sort().join("|") === "regionId|skill"
     && typeof payload.regionId === "string" && /^R[1-9][0-9]*$/.test(payload.regionId);
   if (["techUnsealOne", "colorUnsealOne"].includes(definition.id)) return Object.keys(payload).sort().join("|") === "color|skill" && COLORS.includes(payload.color);
   if (definition.id === "legalRecolor") return typeof payload.regionId === "string" && payload.regionId.length > 0;
@@ -57,6 +58,7 @@ function validateTargetSchema(definition, payload, state) {
 const HANDLERS = Object.freeze({
   disruptColorSwap: applyColorPermutation,
   disruptColorRotate: applyColorPermutation,
+  disruptDelayedRecolor: applyDelayedRecolor,
   disruptDemolish: applyDisruptDemolish,
   colorCancelRegion: applyColorCancelRegion,
   techUnsealOne: applyTechUnsealOne,
@@ -120,6 +122,7 @@ function dispatchStandardSkillAction({ state, actor, action, expectedVersion, rn
   if (RESCUE_CARD_IDS.includes(definition.id) && !supportsRescueCards(state.engineVersion)) return rejected("SKILL_ENGINE_UNSUPPORTED", state);
   if (DESTRUCTION_CARD_IDS.includes(definition.id) && !supportsSplitKeep(state.engineVersion)) return rejected("SKILL_ENGINE_UNSUPPORTED", state);
   if (PERMUTATION_CARD_IDS.includes(definition.id) && !supportsSplitKeep(state.engineVersion)) return rejected("SKILL_ENGINE_UNSUPPORTED", state);
+  if (definition.id === "disruptDelayedRecolor" && !supportsSplitKeep(state.engineVersion)) return rejected("SKILL_ENGINE_UNSUPPORTED", state);
   if (definition.id === "colorCancelRegion" && Object.keys(action.payload).join("|") !== "skill") return rejected("INVALID_TARGET_SCHEMA", state);
   if (definition.id === "colorBonusRefillUnseal" && Object.keys(action.payload).join("|") !== "skill") return rejected("INVALID_TARGET_SCHEMA", state);
   const learned = definition.acquisitionType === "LEARNED";
@@ -155,6 +158,10 @@ function dispatchStandardSkillAction({ state, actor, action, expectedVersion, rn
         ? { actor, categories: [...new Set([...state.skillCategoryWindow.categories, definition.usageCategory])] }
         : { actor: resolvedState.active, categories: [] };
     }
+    // Terminal skills must discard queued effects before validation/projection,
+    // just like terminal non-skill actions in applyStandardAction.
+    if (resolvedState.status === "FINISHED") delete resolvedState.delayedRecolors;
+    else invalidateDelayedRecolors(resolvedState);
     validateState(resolvedState);
     return Object.freeze({
       ...applied,

@@ -9,8 +9,8 @@ const APP_GACHA_ODDS_MARKERS = Object.freeze([
 ]);
 
 const EDGE_GACHA_ODDS_MARKER = 'const gachaOdds = {"1":{"1":65,"2":29,"3":5,"4":0.9,"5":0.1},"2":{"1":40,"2":35,"3":19,"4":5.5,"5":0.5},"3":{"1":25,"2":35,"3":28,"4":10,"5":2},"4":{"1":0,"2":35,"3":35,"4":24,"5":6},"5":{"1":0,"2":0,"3":40,"4":40,"5":20}};';
-const LOCAL_STANDARD_BUNDLE_SHA256 = "47b6699d2913983c3b9e110f5e83e097318c388a0fec53668da14926243c46f1";
-const LOCAL_STANDARD_BUNDLE_MARKER = `app.bundle.js?v=20261023-permutation-count-1-${LOCAL_STANDARD_BUNDLE_SHA256.slice(0, 12)}`;
+const LOCAL_STANDARD_BUNDLE_SHA256 = "d86cb6cc4963b9621d05285d7990dff318a8bca2f5274b71792c064036259bd2";
+const LOCAL_STANDARD_BUNDLE_MARKER = `app.bundle.js?v=20261025-new-skills-1-${LOCAL_STANDARD_BUNDLE_SHA256.slice(0, 12)}`;
 
 function includesAll(source, markers) {
   return typeof source === "string" && markers.every((marker) => source.includes(marker));
@@ -232,7 +232,7 @@ export function hasCompactCpuRecords(pageText, appText, progressionCssText) {
 
 export function hasQuizAccuracyRecords(pageText, appText, progressionCssText) {
   return includesAll(pageText, [
-'app.js?v=20260928-permutation-1',
+'app.js?v=20261025-new-skills-1',
     'progression.css?v=20260914-1',
     'id="quizAccuracyRecords" class="quiz-accuracy-records" role="list"',
     "記録開始以降に、サーバーで採点が確定した回答だけを集計します。",

@@ -22,7 +22,7 @@ function rejected(f,skill,ids,code,extra={}){
 function roundTrip(state){const after=match.decodeStandardMatch(match.encodeStandardMatch(state)).state;assert.deepEqual(after,state);return after;}
 
 test("UDL011 two ordinary permutation cards opt in only new alpha6 loadouts and preserve frozen catalog",()=>{
- assert.equal(registry.V49_SKILL_IDS.length,19);assert.equal(registry.STANDARD_SKILL_IDS.length,26);
+ assert.equal(registry.V49_SKILL_IDS.length,19);assert.equal(registry.STANDARD_SKILL_IDS.length,27);
  for(const [id,rarity]of [[SWAP,4],[ROTATE,5]]){
   const card=registry.STANDARD_SKILLS[id];assert.equal(card.rarity,rarity);assert.equal(card.category,"disrupt");
   assert.equal(card.experimental,false);assert.equal(card.gachaEnabled,true);assert.equal(card.standardUiEnabled,true);assert.equal(card.expectedRngDraws,0);
@@ -149,4 +149,30 @@ test("UDL011 a shifted micro shape is kept byte-identical during color permutati
  const f=fixture();f.state.regions.R1.micro=f.state.regions.R1.micro.map(cell=>cell+1);
  const shape=structuredClone(f.state.regions.R1),out=use(f,SWAP,["R1","R2"]);assert.equal(out.ok,true);
  assert.deepEqual({...out.state.regions.R1,color:shape.color},shape);
+});
+
+
+for(const [skill,chain,ids] of [[SWAP,false,["R1","R2"]],[ROTATE,true,["R1","R2","R3"]]]) test("UDL011 combined "+skill+" rejects a real pending reservation after ordinary play without consuming",()=>{
+ const f=fixture(chain);f.state.hands.A.disruptDelayedRecolor=1;
+ const scheduled=act(f,"USE_SKILL",{skill:"disruptDelayedRecolor",regionId:"R1"});assert.equal(scheduled.ok,true,scheduled.code);f.state=scheduled.state;
+ const designated=act(f,"CREATE_REGION",{sourceMacros:[25,26]});assert.equal(designated.ok,true,designated.code);f.state=designated.state;
+ const painted=act(f,"COLOR_REGION",{color:"yellow"});assert.equal(painted.ok,true,painted.code);f.state=roundTrip(painted.state);
+ assert.equal(f.state.active,"A");assert.equal(f.state.phase,"WORK");assert.equal(f.state.interferenceLock,false);assert.equal(f.state.delayedRecolors.length,1);
+ rejected(f,skill,ids,"INELIGIBLE_PERMUTATION_REGION");roundTrip(f.state);
+});
+
+function withUnrelatedReservation(){
+ const f=fixture(true);f.state.regions.R4=region("R4",30,"red");f.state.version=1;
+ f.state.delayedRecolors=[{actor:"B",regionId:"R4",version:1,color:"red",micro:micro(30),invalidated:false}];
+ match.validateStandardState(f.state);f.state=roundTrip(f.state);return f;
+}
+test("UDL011 combined rotation preserves an unrelated reservation and its geometry without RNG",()=>{
+ const f=withUnrelatedReservation(),before=structuredClone(f.state),random=snapshots(f.rng),out=use(f,ROTATE,["R1","R2","R3"]);
+ assert.equal(out.ok,true,out.code);const s=roundTrip(out.state);assert.deepEqual(s.delayedRecolors,before.delayedRecolors);assert.deepEqual(s.regions.R4,before.regions.R4);
+ assert.deepEqual(s.rotationUsedBy,["A"]);assert.equal(s.version,before.version+1);assert.equal(s.active,"B");assert.deepEqual(snapshots(f.rng),random);
+});
+test("UDL011 combined terminal clears queued recolor while preserving actual rotation history",()=>{
+ const f=withUnrelatedReservation(),rotated=use(f,ROTATE,["R1","R2","R3"]);assert.equal(rotated.ok,true);f.state=rotated.state;
+ const random=snapshots(f.rng),terminal=act(f,"SURRENDER",{});assert.equal(terminal.ok,true,terminal.code);const s=roundTrip(terminal.state);
+ assert.equal(s.status,"FINISHED");assert.equal(s.delayedRecolors,undefined);assert.equal(s.lastDelayedRecolor,undefined);assert.deepEqual(s.rotationUsedBy,["A"]);assert.deepEqual(snapshots(f.rng),random);
 });

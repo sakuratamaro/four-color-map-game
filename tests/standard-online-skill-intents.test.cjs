@@ -5,10 +5,10 @@ const test = require("node:test");
 const { STANDARD_SKILLS } = require("../standard/standard-skill-registry.js");
 const intents = require("../standard-online-v5/standard-online-skill-intents.js");
 
-test("intent registry covers the 26 ordinary Standard cards", () => {
+test("intent registry covers the 27 ordinary Standard cards", () => {
   const canonical = Object.values(STANDARD_SKILLS).filter((skill) => skill.standardCatalogued).map((skill) => skill.id).sort();
   assert.deepEqual(Object.keys(intents.TARGET_KIND).sort(), canonical);
-  assert.equal(Object.keys(intents.TARGET_KIND).length, 26);
+  assert.equal(Object.keys(intents.TARGET_KIND).length, 27);
   assert.equal(Object.hasOwn(intents.TARGET_KIND, "legalRecolor"), false);
   assert.deepEqual(intents.LAB_TARGET_KIND, { legalRecolor: "existing-region" });
   assert.deepEqual(intents.EXPERIMENTAL_TARGET_KIND, { colorBonusRefill: "none" });

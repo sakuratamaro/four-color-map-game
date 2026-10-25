@@ -244,6 +244,7 @@ module.exports = {
 
 const { sameDesignation, validateRedesignation } = require("./standard-redesignation.js");
 const { validateColorPermutationState } = require("./standard-color-permutation.js");
+const { validateDelayedRecolor, invalidateDelayedRecolors, resolveDelayedRecolors } = require("./standard-delayed-recolor.js");
 
 const {
   COLORS,
@@ -454,6 +455,7 @@ function validateStandardState(state) {
   assertState(Array.isArray(state.publicLog), "INVALID_PUBLIC_LOG");
   validateRedesignation(state);
   validateColorPermutationState(state);
+  validateDelayedRecolor(state);
   if (state.lastPublicTrace !== undefined && state.lastPublicTrace !== null) {
     const trace = state.lastPublicTrace;
     const commonKeys = ["actor", "eventId", "type", "version"];
@@ -611,6 +613,8 @@ function projectStandardPublicState(state) {
   if (Object.hasOwn(state, "retainedSplit")) keys.push("retainedSplit");
   if (Object.hasOwn(state, "redesignation")) keys.push("redesignation");
   if (Object.hasOwn(state, "rotationUsedBy")) keys.push("rotationUsedBy");
+  if (Object.hasOwn(state, "delayedRecolors")) keys.push("delayedRecolors");
+  if (Object.hasOwn(state, "lastDelayedRecolor")) keys.push("lastDelayedRecolor");
   return Object.freeze({ ...Object.fromEntries(keys.map((key) => [key, clone(key === "trophyTargetMacros"
     ? (state.trophyTargetMacros || playableMacroIndices(state.playableBounds))
     : key === "lastPublicTrace" ? (state.lastPublicTrace ?? null) : state[key])] )),
@@ -938,6 +942,7 @@ function colorRegion(state, actor, payload = {}, rngStreams = {}) {
   consumeDeferredCurseBacklashAfterColor(next, actor);
   tickSealsAfterColor(next, actor);
   tickPaletteDebuffsAfterColor(next, actor);
+  resolveDelayedRecolors(next, actor, () => nextRandom(rngStreams, "skill-effect"));
   if (next.reserved) {
     const keep = next.retainedSplit?.stage === "FIRST";
     const returnedId = next.reserved;
@@ -1084,6 +1089,8 @@ function applyStandardAction({ state, actor, action, expectedVersion, rngStreams
           ...(result.privateState ? { privateState: projectStandardPrivateState(next, actor) } : {}),
         };
       }
+      if (result.state.status === "FINISHED") delete result.state.delayedRecolors;
+      else invalidateDelayedRecolors(result.state);
       assertState(result.state.version === state.version + 1, "VERSION_INCREMENT_INVARIANT");
       validateStandardState(result.state);
     }
@@ -1294,7 +1301,7 @@ function supportsRescueCards(engineVersion) {
 // Only a new match carrying this card opts into its continuation contract.
 function engineVersionForLoadouts(loadouts, fallback) {
   return Object.values(loadouts || {}).some((loadout) => Object.values(loadout || {}).some((ids) => Array.isArray(ids)
-    && ids.some((id) => id === "colorRegionSplitKeep" || RESCUE_CARD_IDS.includes(id) || DESTRUCTION_CARD_IDS.includes(id) || PERMUTATION_CARD_IDS.includes(id))))
+    && ids.some((id) => id === "colorRegionSplitKeep" || id === "disruptDelayedRecolor" || RESCUE_CARD_IDS.includes(id) || DESTRUCTION_CARD_IDS.includes(id) || PERMUTATION_CARD_IDS.includes(id))))
     ? SPLIT_KEEP_ENGINE_VERSION : fallback;
 }
 
@@ -1412,6 +1419,15 @@ const STANDARD_SKILLS = Object.freeze({
     standardUiEnabled: true,
     consumptionPolicy: "RESOLVED_ONLY_COLORED_AREA_MAX_FOUR",
     handlerVersion: "disrupt-demolish-v1",
+  }),
+  disruptDelayedRecolor: skill("disruptDelayedRecolor", "再彩色予約", "disrupt", 4, "WORK", {
+    targetSchema: { regionId: "region-id" },
+    implemented: true,
+    v49Catalogued: false,
+    standardCatalogued: true,
+    standardUiEnabled: true,
+    consumptionPolicy: "RESOLVED_ONLY_ONE_PENDING_RESERVATION_PER_ACTOR",
+    handlerVersion: "delayed-recolor-v1",
   }),
   colorRegionSplitKeep: skill("colorRegionSplitKeep", "エリア二分・保持", "color", 5, "COLOR", {
     targetSchema: { regionId: "region-id", sourceMacros: "macro-index-array" },
@@ -1743,6 +1759,7 @@ function applyColorPermutation({ state, actor, payload }) {
   }
   if (rotating && state.rotationUsedBy?.includes(actor)) return reject("ROTATION_ALREADY_USED");
   if (ids.some(id => !COLORS.includes(state.regions[id]?.color) || state.regions[id].isPending
+    || (state.delayedRecolors || []).some(effect => effect.regionId === id)
     || state.regions[id].isReserved || state.regions[id].deleted || state.regions[id].delayed || state.regions[id].delayState || !state.regions[id].micro?.length)) {
     return reject("INELIGIBLE_PERMUTATION_REGION");
   }
@@ -1769,6 +1786,94 @@ function applyColorPermutation({ state, actor, payload }) {
 }
 
 module.exports = { applyColorPermutation, validateColorPermutationState };
+
+},
+"standard/standard-delayed-recolor.js":function(require,module,exports){
+"use strict";
+
+const { COLORS, StandardRuleError, legalRecolorCandidates } = require("./standard-engine.js");
+const { supportsSplitKeep } = require("./standard-skill-registry.js");
+const ID = "disruptDelayedRecolor";
+const clone = value => JSON.parse(JSON.stringify(value));
+const assert = value => { if (!value) throw new StandardRuleError("INVALID_DELAYED_RECOLOR", "Invalid delayed recolor state"); };
+const exactKeys = (value, keys) => value && typeof value === "object" && !Array.isArray(value)
+  && Object.keys(value).sort().join("|") === keys.slice().sort().join("|");
+const sameTarget = (region, effect) => Boolean(region && !region.isPending && !region.isReserved
+  && region.color === effect.color && Array.isArray(region.micro)
+  && JSON.stringify([...region.micro].sort((a,b)=>a-b)) === JSON.stringify(effect.micro));
+
+function validateDelayedRecolor(state) {
+  if (Object.hasOwn(state, "delayedRecolors")) {
+    const list = state.delayedRecolors, world = state.microWidth * state.playableBounds.macroWidth * state.playableBounds.microScale;
+    assert(supportsSplitKeep(state.engineVersion) && state.status === "ACTIVE" && Array.isArray(list) && list.length > 0 && list.length <= 2);
+    assert(new Set(list.map(e=>e?.actor)).size === list.length && new Set(list.map(e=>e?.regionId)).size === list.length);
+    for (const [index,e] of list.entries()) {
+      assert(exactKeys(e,["actor","regionId","version","color","micro","invalidated"])
+        && ["A","B"].includes(e.actor) && typeof e.regionId === "string" && /^R[1-9][0-9]*$/.test(e.regionId) && COLORS.includes(e.color)
+        && Number.isSafeInteger(e.version) && e.version >= 1 && e.version <= state.version
+        && (index === 0 || list[index-1].version < e.version) && typeof e.invalidated === "boolean"
+        && Array.isArray(e.micro) && e.micro.length > 0 && e.micro.length <= world
+        && e.micro.every((cell,i)=>Number.isSafeInteger(cell) && cell >= 0 && cell < world && (i === 0 || e.micro[i-1] < cell)));
+    }
+  }
+  if (Object.hasOwn(state, "lastDelayedRecolor")) {
+    const e=state.lastDelayedRecolor;
+    assert(supportsSplitKeep(state.engineVersion) && exactKeys(e,["version","actor","regionId","outcome","color"])
+      && Number.isSafeInteger(e.version) && e.version >= 1 && e.version <= state.version
+      && ["A","B"].includes(e.actor) && typeof e.regionId === "string" && /^R[1-9][0-9]*$/.test(e.regionId)
+      && ["APPLIED","TARGET_CHANGED","NO_LEGAL_COLOR"].includes(e.outcome)
+      && (e.outcome === "APPLIED" ? COLORS.includes(e.color) : e.color === null));
+    if (e.version === state.version && e.outcome === "APPLIED") assert(state.regions[e.regionId]?.color === e.color);
+  }
+}
+
+function applyDelayedRecolor({state,actor,payload}) {
+  if (state.phase !== "WORK") return {ok:false,code:"WRONG_PHASE",state};
+  if (state.interferenceLock) return {ok:false,code:"INTERFERENCE_CHAINED",state};
+  const r=state.regions[payload.regionId],list=state.delayedRecolors || [];
+  if (!r || !COLORS.includes(r.color) || !r.micro.length || r.isPending || r.isReserved || r.deleted || r.delayed || r.delayState
+    || state.pending || state.reserved || state.retainedSplit || state.preparedOutgoing || state.redesignation)
+    return {ok:false,code:"INVALID_DELAYED_RECOLOR_TARGET",state};
+  if (list.some(e=>e.actor === actor || e.regionId === r.id)) return {ok:false,code:"RECOLOR_ALREADY_SCHEDULED",state};
+  const next=clone(state);
+  next.delayedRecolors=[...clone(list),{actor,regionId:r.id,version:state.version+1,color:r.color,micro:[...r.micro].sort((a,b)=>a-b),invalidated:false}];
+  next.hands[actor][ID]-=1;next.skillsUsed[actor]=(next.skillsUsed[actor]||0)+1;next.version+=1;
+  next.active=actor === "A" ? "B" : "A";next.interferenceLock=true;
+  next.publicLog.push(`T${next.turn} 再彩色予約: Player ${actor} → ${r.id}。相手の次の正常な彩色後に解決します。`);
+  return {ok:true,code:"OK",state:next,cardConsumed:true,regionId:r.id};
+}
+
+// Mark historical changes immediately so deleting/recreating an ID or changing
+// a color back later cannot revive a reservation.
+function invalidateDelayedRecolors(state) {
+  for (const e of state.delayedRecolors || []) if (!sameTarget(state.regions[e.regionId],e)) e.invalidated=true;
+}
+
+// Called inside the accepted COLOR transaction, never on skill use/illegal paint.
+function resolveDelayedRecolors(state,painter,random) {
+  if (!state.delayedRecolors) return;
+  const keep=[];
+  for (const e of state.delayedRecolors) {
+    if (e.actor === painter) {keep.push(e);continue;}
+    const r=state.regions[e.regionId];
+    let outcome="TARGET_CHANGED",color=null;
+    if (!e.invalidated && sameTarget(r,e)) {
+      const candidates=legalRecolorCandidates(state,e.regionId);
+      outcome="NO_LEGAL_COLOR";
+      if (candidates.length) {
+        const draw=random();
+        if (!Number.isFinite(draw) || draw < 0 || draw >= 1) throw new StandardRuleError("INVALID_RANDOM", "Invalid delayed recolor draw");
+        color=candidates[Math.floor(draw*candidates.length)];r.color=color;outcome="APPLIED";
+      }
+    }
+    state.lastDelayedRecolor={version:state.version+1,actor:e.actor,regionId:e.regionId,outcome,color};
+    state.publicLog.push(outcome === "APPLIED" ? `再彩色予約 ${e.regionId}: ${color} に変わりました。`
+      : `再彩色予約 ${e.regionId}: 不発（${outcome === "TARGET_CHANGED" ? "対象が変化・消失" : "合法な別色なし"}）。`);
+  }
+  if (keep.length) state.delayedRecolors=keep;else delete state.delayedRecolors;
+}
+
+module.exports={ID,validateDelayedRecolor,applyDelayedRecolor,invalidateDelayedRecolors,resolveDelayedRecolors};
 
 },
 "standard/standard-skill-handlers.js":function(require,module,exports){
@@ -2913,6 +3018,7 @@ module.exports = {
 const { COLORS, StandardRuleError, applyLegalRecolor } = require("./standard-engine.js");
 const { supportsColoredCornerBloom, supportsSplitKeep, RESCUE_CARD_IDS, DESTRUCTION_CARD_IDS, PERMUTATION_CARD_IDS, supportsRescueCards, STANDARD_SKILLS } = require("./standard-skill-registry.js");
 const { applyColorPermutation } = require("./standard-color-permutation.js");
+const { applyDelayedRecolor, invalidateDelayedRecolors } = require("./standard-delayed-recolor.js");
 const { applyDisruptDemolish, applyColorCancelRegion } = require("./standard-skill-handlers.js");
 const { applyColorUnsealOne, applyColorBonusRefillUnseal } = require("./standard-skill-handlers.js");
 const { usesTechniques, techniqueAvailable, applyTechUnsealOne } = require("./standard-technique-state.js");
@@ -2939,7 +3045,7 @@ function validateTargetSchema(definition, payload, state) {
     && Array.isArray(payload.regionIds) && payload.regionIds.length === (definition.id === "disruptColorSwap" ? 2 : 3)
     && new Set(payload.regionIds).size === payload.regionIds.length
     && payload.regionIds.every(id => typeof id === "string" && /^R[1-9][0-9]*$/.test(id));
-  if (definition.id === "disruptDemolish") return Object.keys(payload).sort().join("|") === "regionId|skill"
+  if (["disruptDemolish", "disruptDelayedRecolor"].includes(definition.id)) return Object.keys(payload).sort().join("|") === "regionId|skill"
     && typeof payload.regionId === "string" && /^R[1-9][0-9]*$/.test(payload.regionId);
   if (["techUnsealOne", "colorUnsealOne"].includes(definition.id)) return Object.keys(payload).sort().join("|") === "color|skill" && COLORS.includes(payload.color);
   if (definition.id === "legalRecolor") return typeof payload.regionId === "string" && payload.regionId.length > 0;
@@ -2967,6 +3073,7 @@ function validateTargetSchema(definition, payload, state) {
 const HANDLERS = Object.freeze({
   disruptColorSwap: applyColorPermutation,
   disruptColorRotate: applyColorPermutation,
+  disruptDelayedRecolor: applyDelayedRecolor,
   disruptDemolish: applyDisruptDemolish,
   colorCancelRegion: applyColorCancelRegion,
   techUnsealOne: applyTechUnsealOne,
@@ -3030,6 +3137,7 @@ function dispatchStandardSkillAction({ state, actor, action, expectedVersion, rn
   if (RESCUE_CARD_IDS.includes(definition.id) && !supportsRescueCards(state.engineVersion)) return rejected("SKILL_ENGINE_UNSUPPORTED", state);
   if (DESTRUCTION_CARD_IDS.includes(definition.id) && !supportsSplitKeep(state.engineVersion)) return rejected("SKILL_ENGINE_UNSUPPORTED", state);
   if (PERMUTATION_CARD_IDS.includes(definition.id) && !supportsSplitKeep(state.engineVersion)) return rejected("SKILL_ENGINE_UNSUPPORTED", state);
+  if (definition.id === "disruptDelayedRecolor" && !supportsSplitKeep(state.engineVersion)) return rejected("SKILL_ENGINE_UNSUPPORTED", state);
   if (definition.id === "colorCancelRegion" && Object.keys(action.payload).join("|") !== "skill") return rejected("INVALID_TARGET_SCHEMA", state);
   if (definition.id === "colorBonusRefillUnseal" && Object.keys(action.payload).join("|") !== "skill") return rejected("INVALID_TARGET_SCHEMA", state);
   const learned = definition.acquisitionType === "LEARNED";
@@ -3065,6 +3173,10 @@ function dispatchStandardSkillAction({ state, actor, action, expectedVersion, rn
         ? { actor, categories: [...new Set([...state.skillCategoryWindow.categories, definition.usageCategory])] }
         : { actor: resolvedState.active, categories: [] };
     }
+    // Terminal skills must discard queued effects before validation/projection,
+    // just like terminal non-skill actions in applyStandardAction.
+    if (resolvedState.status === "FINISHED") delete resolvedState.delayedRecolors;
+    else invalidateDelayedRecolors(resolvedState);
     validateState(resolvedState);
     return Object.freeze({
       ...applied,

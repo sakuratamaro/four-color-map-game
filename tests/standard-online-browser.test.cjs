@@ -446,11 +446,11 @@ async function choosePublicWaiting(page) {
 }
 
 function assertVisibleCatalogDefinitions(definitions) {
-  assert.equal(definitions.length, 28);
-  assert.equal(definitions.filter(d => d.standardUiEnabled && !d.experimental).length, 26);
+  assert.equal(definitions.length, 29);
+  assert.equal(definitions.filter(d => d.standardUiEnabled && !d.experimental).length, 27);
   assert.deepEqual(definitions.filter(d => d.experimental).map(d => d.id).sort(),
     ["colorBonusRefill", "legalRecolor"]);
-  for (const id of ["colorRegionSplitKeep", "colorUnsealOne", "colorBonusRefillUnseal", "colorCancelRegion", "disruptDemolish", "disruptColorSwap", "disruptColorRotate"]) {
+  for (const id of ["colorRegionSplitKeep", "colorUnsealOne", "colorBonusRefillUnseal", "colorCancelRegion", "disruptDemolish", "disruptColorSwap", "disruptColorRotate", "disruptDelayedRecolor"]) {
     assert.equal(definitions.filter(d => d.id === id && d.standardUiEnabled && !d.experimental).length, 1);
   }
 }
@@ -461,11 +461,11 @@ async function assertNativeOrdinaryCatalog(page) {
   assertVisibleCatalogDefinitions(definitions);
   const expected = definitions.filter(d => d.standardUiEnabled && !d.experimental).map(d => d.id).sort();
   const buttons = page.locator('#cardInventory section:not([data-catalog-group="lab"]) button[data-catalog-skill]');
-  assert.equal(await buttons.count(), 26);
+  assert.equal(await buttons.count(), 27);
   assert.deepEqual((await buttons.evaluateAll(els => els.map(el => el.dataset.catalogSkill))).sort(), expected);
 }
 
-test("UDL066 fresh catalog exposes 26 ordinary and 2 experimental native detail buttons without creating a profile or spending", { timeout: 120000 }, async () => {
+test("UDL066 fresh catalog exposes 27 ordinary and 2 experimental native detail buttons without creating a profile or spending", { timeout: 120000 }, async () => {
   await withPage("empty", async (page) => {
     await page.locator('[data-app-tab="cards"]').click();
     const cards = page.locator("#cardInventory button[data-catalog-skill]");
@@ -2908,6 +2908,78 @@ for(const id of ["colorCancelRegion","disruptDemolish"]) test(`UDL011 destructio
     }
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>document.documentElement.clientWidth),false);
   },{viewport:{width:390,height:844},beforeNavigate:async page=>{fixture=await require("./helpers/region-destruction-ui.cjs").installDestructionUi(page,roomId,id);}});
+});
+
+test("UDL011 delayed recolor native: cancel, schedule, reload, own paint, opponent trigger and notice", { timeout: 130000 }, async () => {
+  let fixture;
+  await withPage("colorResponse",async page=>{
+    const skill=page.locator('#skillControls button[data-skill="disruptDelayedRecolor"]:not([disabled])');await skill.waitFor();
+    await skill.focus();await page.keyboard.press("Enter");const panel=page.locator("#skillTargetControls");await panel.waitFor();
+    assert.match(await panel.innerText(),/不発・返金なし/);await page.keyboard.press("Escape");await panel.waitFor({state:"hidden"});assert.equal(fixture.calls.length,0);
+    await skill.click();await panel.locator('[data-target-value="R1"]').click();await panel.getByRole("button",{name:"このエリアに再彩色を予約",exact:true}).click();
+    await page.waitForFunction(()=>JSON.parse(document.querySelector("#publicProjection").textContent).version===1);
+    assert.equal(fixture.calls.length,1);assert.deepEqual(fixture.calls[0].action.payload,{skill:"disruptDelayedRecolor",regionId:"R1"});
+    await page.reload();await page.waitForFunction(()=>document.querySelector("#turnGuideTitle")?.textContent.includes("再彩色予約"));assert.equal(fixture.calls.length,1);
+    fixture.opponentDesignates();await page.reload();await page.waitForFunction(()=>JSON.parse(document.querySelector("#publicProjection").textContent).version===2);
+    await page.locator('#paletteControls button[data-color="blue"][data-role="basic1"]:not([disabled])').click();
+    await page.waitForFunction(()=>JSON.parse(document.querySelector("#publicProjection").textContent).version===3);assert.equal(fixture.state().delayedRecolors.length,1);
+    const board=page.locator("#board");for(let i=0;i<fixture.state().requiredSize;i++){
+      const macro=25+i;await clickCanvasFraction(board,{x:(macro%12+.5)/12,y:(Math.floor(macro/12)+.5)/12});
+    }
+    await page.locator("#submitRegion").click();await page.waitForFunction(()=>JSON.parse(document.querySelector("#publicProjection").textContent).version===4);
+    fixture.opponentPaint();await page.reload();await page.waitForFunction(()=>JSON.parse(document.querySelector("#publicProjection").textContent).version===5);
+    assert.equal(fixture.state().regions.R1.color,"green");assert.equal(fixture.state().delayedRecolors,undefined);
+    assert.match(await page.locator("#turnGuideTitle").textContent(),/再彩色予約.*緑に変化/);assert.equal(fixture.calls.length,3);
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>document.documentElement.clientWidth),false);
+  },{viewport:{width:390,height:844},beforeNavigate:async page=>{fixture=await require("./helpers/delayed-recolor-ui.cjs").installDelayedUi(page,roomId);}});
+});
+
+test("UDL011 delayed recolor local native: cancellation, handover, persistence and opponent-triggered notice", { timeout: 130000 }, async () => {
+  const fixture=require("./helpers/delayed-recolor-ui.cjs").localDelayedFixture();
+  await withPage("empty",async page=>{
+    await page.evaluate(data=>{
+      localStorage.setItem(data.key,data.payload);
+      localStorage.setItem("fourColorMapGame.standard.v5.presentation",JSON.stringify({sizeReveal:false,paletteReveal:false}));
+    },fixture);
+    const response=await page.goto(new URL("/standard-v5/index.html",page.url()).href);
+    assert.equal(response.status(),200);
+    const saved=()=>page.evaluate(key=>JSON.parse(localStorage.getItem(key)),fixture.key);
+    const version=async expected=>page.waitForFunction(({key,expected})=>JSON.parse(localStorage.getItem(key)).activeMatch.state.version===expected,{key:fixture.key,expected});
+    const reveal=async seat=>{
+      await page.locator("#handover").waitFor();
+      assert.match(await page.locator("#handoverSeat").textContent(),new RegExp("Player "+seat));
+      assert.equal(await page.locator("#privatePanel button").count(),0,"handover removes the preceding private controls");
+      await page.locator("#revealTurn").click();
+      await page.locator("#handover").waitFor({state:"hidden"});
+    };
+    await reveal("A");
+    const before=await saved();
+    const skill=()=>page.getByRole("button",{name:"再彩色予約",exact:true});
+    await skill().click();await page.getByRole("button",{name:"再彩色予約をキャンセル",exact:true}).click();
+    assert.deepEqual(await saved(),before,"target selection and cancel have no persistence or charge");
+    await skill().click();await page.getByRole("button",{name:"R1に再彩色を予約",exact:true}).click();
+    await version(1);let root=await saved();
+    assert.equal(root.activeMatch.state.hands.A.disruptDelayedRecolor,0);
+    assert.equal(root.activeMatch.state.skillsUsed.A,1);
+    assert.deepEqual(root.rngSnapshot,before.rngSnapshot,"scheduling consumes no RNG");
+    assert.match(await page.locator("#status").textContent(),/再彩色予約.*R1/);
+    const scheduled=root;await page.reload();await reveal("B");
+    assert.deepEqual(await saved(),scheduled,"reload and reveal do not replay the card");
+    await page.locator("#board button.cell").nth(14).click();await page.locator("#commitRegion").click();await version(2);
+    await reveal("A");await page.locator("#privatePanel .palette button.blue").click();await version(3);
+    root=await saved();assert.equal(root.activeMatch.state.delayedRecolors.length,1,"own paint does not trigger");
+    assert.equal(root.activeMatch.state.regions.R1.color,"red");
+    for(let i=0;i<root.activeMatch.state.requiredSize;i++)await page.locator("#board button.cell").nth(25+i).click();
+    await page.locator("#commitRegion").click();await version(4);await reveal("B");
+    await page.locator("#privatePanel .palette button.yellow").click();await version(5);
+    root=await saved();assert.equal(root.activeMatch.state.delayedRecolors,undefined);
+    assert.equal(root.activeMatch.state.regions.R1.color,"green");
+    assert.equal(root.activeMatch.state.lastDelayedRecolor.outcome,"APPLIED");
+    assert.match(await page.locator("#status").textContent(),/再彩色予約.*緑に変化/);
+    await page.reload();await reveal("B");assert.deepEqual(await saved(),root,"resolved event is not re-applied on resume");
+    assert.match(await page.locator("#status").textContent(),/再彩色予約.*緑に変化/);
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>document.documentElement.clientWidth),false);
+  },{viewport:{width:390,height:844},bodyTimeout:55000});
 });
 
 test("UDL070 redesignator native rejects same cells, disables skills, then persists a different designation", { timeout: 130000 }, async () => {
@@ -9108,7 +9180,7 @@ test("UDL067 missing optional module fails closed without breaking cards or game
     assert.equal(await page.evaluate(()=>globalThis.__standardOnlineRuntime.calls.filter(c=>c.body?.operation==="action").length),0);
     await page.locator('[data-app-tab="cards"]').click();
     const cards=page.locator("#cardInventory button[data-catalog-skill]");
-    assert.equal(await cards.count(),28);
+    assert.equal(await cards.count(),29);
     const expected=Object.values(require("../standard/standard-skill-registry.js").STANDARD_SKILLS)
       .filter(d=>d.standardEngineImplemented&&(d.standardUiEnabled||d.alphaUiEnabled));
     assertVisibleCatalogDefinitions(expected);

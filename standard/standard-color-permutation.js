@@ -22,6 +22,7 @@ function applyColorPermutation({ state, actor, payload }) {
   }
   if (rotating && state.rotationUsedBy?.includes(actor)) return reject("ROTATION_ALREADY_USED");
   if (ids.some(id => !COLORS.includes(state.regions[id]?.color) || state.regions[id].isPending
+    || (state.delayedRecolors || []).some(effect => effect.regionId === id)
     || state.regions[id].isReserved || state.regions[id].deleted || state.regions[id].delayed || state.regions[id].delayState || !state.regions[id].micro?.length)) {
     return reject("INELIGIBLE_PERMUTATION_REGION");
   }
