@@ -469,7 +469,7 @@ test("UDL066 fresh catalog exposes 27 ordinary and 2 experimental native detail 
   await withPage("empty", async (page) => {
     await page.locator('[data-app-tab="cards"]').click();
     const cards = page.locator("#cardInventory button[data-catalog-skill]");
-    assert.equal(await cards.count(), 28);
+    assert.equal(await cards.count(), 29);
     assert.equal(await page.locator('#cardInventory [data-catalog-skill="colorRegionSplitKeep"]').count(), 1);
     assert.equal(await page.locator("#cardInventory section").count(), 4);
     assert.equal(await page.locator("#profileCard").isHidden(), true);
