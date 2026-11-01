@@ -129,7 +129,7 @@
       <p id="profileSummary" class="profile-summary"></p>
       <div id="profileOptions">
         <label id="profilePickerLabel">プロフィール<select id="profileSelect" aria-describedby="profilePublicNameHelp"></select></label>
-        <p id="profilePublicNameHelp" class="profile-name-help">この名前は対戦相手に表示されます。ニックネームを入力してください。</p>
+        <p id="profilePublicNameHelp" class="profile-name-help">対戦相手に表示されるニックネームを入力してください。</p>
         <div id="starterCreator" class="join-box hidden">
           <label for="starterName">ニックネーム（20文字まで）</label>
           <input id="starterName" maxlength="20" autocomplete="nickname" aria-describedby="profilePublicNameHelp" placeholder="ニックネーム">
@@ -180,7 +180,7 @@
         <span id="quizTimerAnnouncement" class="visually-hidden" role="status" aria-live="polite" aria-atomic="true"></span>
         <div id="quizOutlook" class="quiz-outlook" role="group" aria-label="回答と報酬の途中経過" aria-live="off">
           <div class="quiz-outlook-row"><strong id="quizConfirmedProgress">採点済み履歴 0/0正解</strong><span id="quizRewardPreview">見込み Lv.1券1枚（未確定）</span></div>
-          <p id="quizRewardTarget">次：5連続まであと5（5枚）｜10問後にサーバーが確定・保存</p>
+          <p id="quizRewardTarget">次：5連続まであと5（5枚）｜10問後に結果を確定・保存</p>
         </div>
         <p id="quizAnswerFeedback" class="quiz-answer-feedback hidden" role="status" aria-live="polite" aria-atomic="true"></p>
         <div class="quiz-time" role="progressbar" aria-label="この問題の残り時間" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><div id="quizTimeBar"></div></div>
@@ -192,7 +192,7 @@
         <button id="quizMemoOn" class="quiz-memo-entry" type="button" hidden aria-controls="quizMemoOverlay">✎ Memo ON・電卓</button>
         <div id="quizQuestion" class="quiz-question"></div>
         <div id="quizOptions" class="quiz-options" role="group" aria-label="答えの選択肢" aria-describedby="quizMotionHelp"></div>
-        <p id="quizMotionHelp" class="quiz-motion-help">選択肢はボタン全体が大きく漂い、位置が入れ替わります。触れる・ポイントする・キーボードで選ぶ間は安全に停止します。</p>
+        <p id="quizMotionHelp" class="quiz-motion-help">選択肢は動きながら位置が入れ替わります。触れる・ポインターを重ねる・キーボードで選ぶ間は止まります。</p>
         <div class="quiz-controls"><button id="quizHint" type="button">💡 ヒントを見る</button><span class="muted small">各問題で1回だけ使えます。表示中は残り時間が止まります。</span></div>
         <p id="quizHintText" class="quiz-hint hidden" role="status"></p>
       </div>
@@ -231,7 +231,10 @@
       </details>
       <details id="gachaHelp" class="gacha-help">
         <summary>券の入手方法</summary>
-        <p>クイズでもらえる券は「もらえる券」で確認できます。対人勝利はLv.2、敗北はLv.1（直近60分で10試合まで）。CPU勝利は強さに応じLv.1〜3、敗北はLv.1の券を獲得します。スターターはLv.1券を3枚持っています。</p>
+        <p><strong>クイズ：</strong>「もらえる券」で確認できます。</p>
+        <p><strong>対人戦：</strong>勝利はLv.2、敗北はLv.1（直近60分で10試合まで）。</p>
+        <p><strong>CPU戦：</strong>勝利は強さに応じLv.1〜3、敗北はLv.1。</p>
+        <p><strong>スターター：</strong>Lv.1券を3枚持っています。</p>
       </details>
       <p id="gachaStatus" class="muted" aria-live="polite"></p>
       <p id="gachaResultAnnouncement" class="visually-hidden" role="status" aria-live="polite" aria-atomic="true"></p>
@@ -252,7 +255,7 @@
       <div id="cardInventory" class="skill-catalog" aria-label="実装済みスキル図鑑"></div>
       <div id="cardSaleBox" class="card-sale-box">
         <h3>余ったカードを売る</h3>
-        <p class="muted small">各1枚は残します。保護カードは売れません。</p>
+        <p class="muted small">各カードの最後の1枚と、保護カードは売れません。</p>
         <div class="card-sale-controls">
           <label>カード<select id="cardSaleSkill"></select></label>
           <label>枚数<input id="cardSaleCount" type="number" min="1" max="100" value="1" inputmode="numeric"></label>
@@ -289,7 +292,7 @@
       </details>
       <details id="quizAccuracyDetails" class="profile-disclosure">
         <summary id="quizAccuracyTitle">クイズ正答率</summary>
-        <p id="quizAccuracyHelp" class="muted small">この表示の記録開始以降に、サーバーで採点が確定した回答だけを集計します。</p>
+        <p id="quizAccuracyHelp" class="muted small">記録開始以降の回答で、採点が確定したものだけを集計します。</p>
         <div id="quizAccuracyRecords" class="quiz-accuracy-records" role="list" aria-labelledby="quizAccuracyTitle" aria-describedby="quizAccuracyHelp"></div>
       </details>
       <details id="profileTrophiesDetails" class="profile-disclosure">
@@ -342,7 +345,7 @@
 
     <section id="setupCard" class="card hidden" data-app-tab-panel="battle cards">
       <h2 id="setupTitle" tabindex="-1">対戦で使う6枚</h2>
-      <p id="setupDescription" class="muted">色は塗り方、エリアは形や大きさ、妨害は相手への働きかけを担当します。3つの役割を使えるよう、各2枚・合計6枚を選びます。</p>
+      <p id="setupDescription" class="muted">色は塗り方、エリアは形や大きさ、妨害は相手への働きかけです。各2枚、計6枚を選びます。</p>
       <p id="cpuStartReview" class="callout hidden"></p>
       <label class="debug-mode-option">
         <input id="debugUnlimitedMode" type="checkbox">
@@ -547,7 +550,7 @@
     <form method="dialog">
       <p class="dialog-kicker">BEFORE MATCH</p>
       <h2 id="abandonRoomTitle" tabindex="-1">対戦開始前に取りやめますか？</h2>
-      <p id="abandonRoomDescription">参加者全員の開始前対戦を終了します。戦績・報酬は発生せず、送信済みの6枚や所持カードも消費されません。この操作は元に戻せません。</p>
+      <p id="abandonRoomDescription">参加者全員の対戦準備を取りやめます。戦績・報酬はなく、選んだ6枚も所持カードも消費しません。この操作は元に戻せません。</p>
       <p id="abandonRoomStatus" class="operation-feedback" role="status" aria-live="polite" aria-atomic="true"></p>
       <div class="room-abandon-dialog-actions">
         <button id="cancelAbandonRoom" type="submit" value="cancel" class="ghost">戻る（対戦を続ける）</button>
@@ -560,19 +563,19 @@
       <div class="tutorial-header"><h2 id="tutorialTitle" tabindex="-1" autofocus>遊び方</h2><button id="closeTutorial" type="submit" value="close">閉じる</button></div>
       <p>相手に塗ってもらうエリアを作り合う、2人の対戦ゲームです。</p>
       <ol class="tutorial-steps">
-        <li><h3>エリアを渡す</h3><p>先手は、まずエリアを作ります。表示された数のマスを辺でつなげて選び、「選んだエリアを渡す」で確定します。2つ目からは、すでにあるエリアに接する形で作ります。</p></li>
-        <li><h3>受け取ったエリアを塗る</h3><p>持ち色から1色を選びます。辺で接しているエリアと同じ色を塗ると負けです。角で触れるだけなら同じ色でもかまいません。持ち色は基本2枠と、残り回数つきのおまけ色です。</p></li>
-        <li><h3>塗ったら、次のエリアを作る</h3><p>画面に表示された必要マス数で、次は相手へエリアを渡します。「塗る→作る」を交互に続けます。スキルで手順が変わるときは、盤面近くの案内を確認してください。</p></li>
-        <li><h3>困ったらスキルも使おう</h3><p>対戦には「色・エリア・妨害」から2枚ずつ、6枚のスキルを準備します。効果はカードのⓘで確認でき、読むだけでは消費しません。カード本体は使用ボタンです。押すとすぐ発動するものと、対象を選んでから発動するものがあります。塗れる色がないときも、自動で負けにはなりません。使えるスキルで切り抜けるか、「投了」を選びます。</p></li>
+        <li><h3>エリアを渡す</h3><p>先手は、表示された数のマスを辺でつなげてエリアを作ります。「選んだエリアを渡す」で確定し、2つ目からは、ほかのエリアに接するように作ります。</p></li>
+        <li><h3>受け取ったエリアを塗る</h3><p>持ち色から1色を選びます。辺で接しているエリアと同じ色を塗ると負けです。角で触れるだけなら同じ色でもかまいません。</p><p>持ち色は基本2枠と、残り回数つきのおまけ色です。</p></li>
+        <li><h3>塗ったら、次のエリアを作る</h3><p>表示されたマス数で、次は相手に渡すエリアを作ります。「塗る→作る」を交互に続けます。スキルで手順が変わるときは、盤面近くの案内を確認してください。</p></li>
+        <li><h3>困ったらスキルも使おう</h3><p>「色・エリア・妨害」から2枚ずつ、計6枚のスキルを準備します。効果はカードのⓘで確認でき、読むだけでは消費しません。</p><p>カード本体は使用ボタンです。押すとすぐ発動するものと、対象を選んでから発動するものがあります。</p><p>塗れる色がないときも、自動で負けにはなりません。使えるスキルで切り抜けるか、「投了」を選びます。</p></li>
       </ol>
-      <p class="tutorial-ending">正しく塗ったあと、盤面に次のエリアを作れる場所がなくなれば、塗った人の勝ちです。</p>
+      <p class="tutorial-ending">正しく塗ったあと、次のエリアを作れる場所がなくなれば、塗った人の勝ちです。</p>
       <p class="muted small">対戦は下の「対戦」タブから。説明を読むだけでは、対戦もカードの消費も始まりません。</p>
     </form>
   </dialog>
   <dialog id="cpuRosterDialog" class="cpu-roster-dialog" aria-labelledby="cpuRosterTitle" aria-describedby="cpuRosterDescription">
     <form method="dialog">
       <div id="cpuRosterHeader" class="row between wrap cpu-roster-header"><div><p class="dialog-kicker">CPU SELECT</p><h2 id="cpuRosterTitle" tabindex="-1">Standard CPU対戦 — 相手を選ぶ</h2></div><button id="closeCpuRoster" class="ghost" type="button">ロビーに戻る</button></div>
-      <p id="cpuRosterDescription" class="muted">正式6枚のStandardルールで対戦します。キャラクターごとに、得意・苦手・よく使うスキルが違います。</p>
+      <p id="cpuRosterDescription" class="muted">6枚のカードで対戦します。CPUごとに、得意・苦手・よく使うスキルが違います。</p>
       <div id="cpuRosterGrid" class="cpu-roster-grid"></div>
       <p id="cpuRosterStatus" class="callout" aria-live="polite">CPU一覧を読み込んでいます…</p>
     </form>
@@ -582,7 +585,7 @@
     <canvas id="quizMemoCanvas" aria-hidden="true"></canvas>
     <section id="quizMemoTools" class="quiz-memo-tools" hidden>
       <div class="quiz-memo-heading"><h2 id="quizMemoTitle">考えるメモ</h2><button id="quizMemoOff" type="button">Memo OFF・回答へ</button></div>
-      <p id="quizMemoHelp">時間は進みます。回答は Memo OFF（Esc）で。メモはこの問題だけ端末内に保存します。</p>
+      <p id="quizMemoHelp">メモ中も時間は進みます。Memo OFF（Esc）で回答に戻ります。メモはこの問題だけ端末内に保存します。</p>
       <div class="quiz-memo-drawing" role="group" aria-label="手書き道具">
         <button id="quizMemoPen" type="button" aria-pressed="true">ペン</button><button id="quizMemoEraser" type="button" aria-pressed="false">消す</button>
         <button id="quizMemoUndo" type="button">戻す</button><button id="quizMemoClear" type="button">全消去</button>
@@ -619,6 +622,6 @@
   <p id="skillCutinAnnouncement" class="visually-hidden" role="status" aria-live="polite" aria-atomic="true"></p>
   <script src="skill-cutin.js?v=20260913-2"></script>
   <script src="surrender-confirmation.js?v=20260913-1"></script>
-  <script type="module" src="app.js?v=20261025-new-skills-1"></script>
+  <script type="module" src="app.js?v=20261101-ui-copy-1"></script>
 </body>
 </html>

@@ -1653,7 +1653,7 @@ function renderProfile() {
   $("syncProfile").disabled = !value || !connected || profileSyncBusy;
   show("syncProfile", Boolean(value));
   $("profileSummary").textContent = value ? `${value.displayName} — 所持カード ${Object.values(value.inventory || {}).reduce((sum, count) => sum + count, 0)}枚` : "";
-  $("profilePublicNameHelp").textContent = value ? "この名前は対戦相手に表示されます。" : "この名前は対戦相手に表示されます。ニックネームを入力してください。";
+  $("profilePublicNameHelp").textContent = value ? "この名前は対戦相手に表示されます。" : "対戦相手に表示されるニックネームを入力してください。";
   $("profileSaveStatus").textContent = profileSyncBusy ? "保存中…" : profileSyncError;
   show("profileSaveStatus", profileSyncBusy || Boolean(profileSyncError));
   if (value) { renderLoadout(); renderGacha(); renderProgression(); renderCosmetics(); }
@@ -2854,7 +2854,7 @@ function quizRewardEstimate(progress, selectedLevel) {
 }
 
 function quizNextRewardTarget(progress, estimate) {
-  if (progress.answered >= 10) return "10問回答済み｜最終結果はサーバーが確定・保存";
+  if (progress.answered >= 10) return "10問回答済み｜結果の確定と保存を待っています";
   const remaining = 10 - progress.answered;
   const candidates = [];
   const add = (needed, draws, label) => {
@@ -2866,15 +2866,15 @@ function quizNextRewardTarget(progress, estimate) {
   candidates.sort((left, right) => left.needed - right.needed || right.draws - left.draws);
   const next = candidates[0];
   return next
-    ? `次：${next.label}（${next.draws}枚）｜10問後にサーバーが確定・保存`
-    : "残り問題では上位条件に届きません｜10問後にサーバーが確定・保存";
+    ? `次：${next.label}（${next.draws}枚）｜10問後に結果を確定・保存`
+    : "残り問題では上位条件に届きません｜10問後に結果を確定・保存";
 }
 
 function quizProgressCopy(quiz) {
   const progress = quizConfirmedProgress(quiz);
   if (!progress) return {
     summary: "正答数・見込みは採点後に表示",
-    target: "10問後にサーバーが確定・保存",
+    target: "10問後に結果を確定・保存",
     progress: null,
   };
   const estimate = quizRewardEstimate(progress, quiz.selectedLevel);
@@ -3267,7 +3267,7 @@ function renderQuiz() {
   const lockedByMatch = quizLockedByMatchedRoom();
   if (lockedByMatch) $("quizStatus").textContent = quizRoomClassificationPending
     ? QUIZ_ROOM_CHECK_STATUS
-    : "対戦が成立したため、このクイズはここで一時停止しました。対戦終了後に同じ状態から再開できます。";
+    : "対戦が成立したため、クイズを一時停止しました。対戦終了後に同じ状態から再開できます。";
   const index = pendingQuiz.answers.length;
   $("quizProgress").textContent = `${Math.min(index + 1, 10)} / 10`;
   $("quizLevelBadge").textContent = `Lv.${pendingQuiz.selectedLevel}`;
@@ -3404,7 +3404,7 @@ async function submitPendingQuizAnswer() {
   const question = pendingQuiz.questions[pending.questionIndex];
   quizBusy = true;
   stopQuizClock();
-  $("quizStatus").textContent = "回答をサーバーへ保存しています…";
+  $("quizStatus").textContent = "回答を保存しています…";
   renderQuiz();
   let shouldFinish = false;
   try {
@@ -3464,7 +3464,7 @@ async function finishOnlineQuiz() {
     persistRemoteProfile(result.profileState, displayName(), Number(result.revision));
     $("quizStatus").textContent = result.duplicate ? "採点済みの結果を復元しました。" : "採点とガチャ券の保存が完了しました。";
   } catch (error) {
-    $("quizStatus").textContent = "採点結果を保存できませんでした。同じ回答で安全に再試行できます。";
+    $("quizStatus").textContent = "採点結果を保存できませんでした。同じ回答で再試行できます。";
     toast(error.message || "クイズ採点に失敗しました。");
   } finally { quizBusy = false; markQuizBoundaryForMatchedRoom(); renderQuiz(); renderGacha(); render(); flushMatchedRoomHandoff(); }
 }

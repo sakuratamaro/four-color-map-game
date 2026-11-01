@@ -83,7 +83,7 @@ test("CPU commentary is public-event-only, bounded, non-blocking, and terminal-p
   assert.match(html, /standard-online-client\.js\?v=20260914-1/);
   assert.match(html, /standard-online-skill-intents\.js\?v=20261025-new-skills-1/);
   assert.match(html, /cpu-commentary\.js\?v=20260910-1/);
-  assert.match(html, /app\.js\?v=20261025-new-skills-1/);
+  assert.match(html, /app\.js\?v=20261101-ui-copy-1/);
   assert.match(app, /cpuCommentary\?\.VERSION !== "standard-cpu-commentary-v3"/);
   assert.ok(html.indexOf("cpu-commentary.js") < html.indexOf('type="module" src="app.js'));
   assert.match(html, /id="cpuCommentaryStage"[^>]+aria-hidden="true"/);
@@ -198,7 +198,7 @@ test("server-hydrated progression renders stats, three trophies, and recent hist
 
 test("quiz accuracy presents overall and every level from exact tracked counters", () => {
   assert.match(html, /id="quizAccuracyRecords"[^>]+role="list"/);
-  assert.match(html, /記録開始以降に、サーバーで採点が確定した回答だけを集計/);
+  assert.match(html, /記録開始以降の回答で、採点が確定したものだけを集計/);
   assert.match(app, /function quizAccuracyCounts\(record\)/);
   assert.match(app, /record\?\.trackedAnswered/);
   assert.match(app, /record\?\.trackedCorrect/);
@@ -333,7 +333,7 @@ test("pregame abandon confirmation is safe-first, retryable, responsive, and sin
   assert.ok(dialog.indexOf('id="cancelAbandonRoom"') < dialog.indexOf('id="confirmAbandonRoom"'));
   assert.match(dialog, /戻る（対戦を続ける）/);
   assert.match(dialog, /無報酬で対戦を取りやめる/);
-  assert.match(dialog, /戦績・報酬は発生せず[^<]+6枚や所持カードも消費されません[^<]+元に戻せません/);
+  assert.match(dialog, /参加者全員の対戦準備を取りやめます。戦績・報酬はなく、選んだ6枚も所持カードも消費しません。この操作は元に戻せません/);
   assert.match(html, /id="roomLifecycleAnnouncement"[^>]+room-lifecycle-announcement[^>]+role="status"[^>]+aria-live="polite"[^>]+aria-atomic="true"/);
   assert.doesNotMatch(html, /id="roomLifecycleAnnouncement"[^>]+visually-hidden/);
   assert.match(html, /id="abandonRoomStatus"[^>]+role="status"[^>]+aria-live="polite"[^>]+aria-atomic="true"/);
@@ -479,7 +479,7 @@ test("existing online progression is hydrated from the server rather than re-upl
 
 test("UI derives its canonical and experimental card metadata from the generated registry", () => {
   assert.equal(Object.values(STANDARD_SKILLS).filter((skill) => skill.v49Catalogued).length, 19);
-  assert.match(html, /standard-skill-registry\.generated\.js\?v=20261025-new-skills-1[\s\S]+app\.js\?v=20261025-new-skills-1/);
+  assert.match(html, /standard-skill-registry\.generated\.js\?v=20261025-new-skills-1[\s\S]+app\.js\?v=20261101-ui-copy-1/);
   assert.match(app, /const STANDARD_SKILL_REGISTRY = globalThis\.FourColorStandardSkillRegistry/);
   assert.match(app, /Object\.values\(STANDARD_SKILL_REGISTRY\.skills\)\.filter\(\(definition\) => definition\.standardCatalogued\)/);
   assert.match(app, /Object\.entries\(STANDARD_SKILL_REGISTRY\.skills\)/);

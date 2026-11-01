@@ -10,7 +10,7 @@ test("UDL062 public nickname warning and existing profile identities are preserv
   assert.doesNotMatch(html, /この端末のStandardセーブから選べます|このオンライン画面だけに保存/);
   assert.match(html, /<label for="starterName">ニックネーム（20文字まで）<\/label>/);
   assert.match(html, /id="starterName"[^>]+maxlength="20"[^>]+aria-describedby="profilePublicNameHelp"/);
-  assert.match(html, /id="profilePublicNameHelp"[^>]*>この名前は対戦相手に表示されます。ニックネームを入力してください。/);
+  assert.match(html, /id="profilePublicNameHelp"[^>]*>対戦相手に表示されるニックネームを入力してください。/);
   for (const id of ["profileSelect", "starterCreator", "starterName", "createStarterProfile", "syncProfile", "toggleProfileOptions", "profileSaveStatus"]) assert.equal(html.split(`id="${id}"`).length, 2, id);
   assert.match(app, /if \(remote\) hydrateProfileRow\(remote\);\s*else \{\s*const created = await client\.syncProfile/);
   assert.match(app, /created\.displayName \|\| displayName\(\)/);

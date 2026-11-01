@@ -18,7 +18,7 @@ test("combined pilot keeps published board/palette model and surface bytes",()=>
 });
 test("combined pilot identifies new assets separately from frozen navigation and CPU parents",()=>{
  for(const marker of ["app.js?v=20260921-2","style.css?v=20260921-1","standard-online-client.js?v=20260914-1","standard-skill-registry.generated.js?v=20260914-2"]){
-  const current=marker==="app.js?v=20260921-2"?"app.js?v=20261025-new-skills-1"
+  const current=marker==="app.js?v=20260921-2"?"app.js?v=20261101-ui-copy-1"
     :marker==="standard-skill-registry.generated.js?v=20260914-2"?"standard-skill-registry.generated.js?v=20261025-new-skills-1":marker;
   assert.ok(html.includes(current),current);assert.ok(spec.includes(marker),marker);
  }

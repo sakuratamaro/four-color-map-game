@@ -31,7 +31,8 @@ export function hasWholeButtonQuizPhysics(pageText, appText) {
   return includesAll(pageText, [
     'id="quizOptions"',
     'id="quizMotionHelp"',
-    "選択肢はボタン全体が大きく漂い、位置が入れ替わります。",
+    "選択肢は動きながら位置が入れ替わります。",
+    "触れる・ポインターを重ねる・キーボードで選ぶ間は止まります。",
   ]) && includesAll(appText, [
     "const QUIZ_OPTION_VELOCITY_ANGLES = Object.freeze([0.9, 2.2, -0.7, 2.5, -0.8, -2.3]);",
     "const speed = 56 + index % 3 * 5;",
@@ -232,10 +233,10 @@ export function hasCompactCpuRecords(pageText, appText, progressionCssText) {
 
 export function hasQuizAccuracyRecords(pageText, appText, progressionCssText) {
   return includesAll(pageText, [
-'app.js?v=20261025-new-skills-1',
+'app.js?v=20261101-ui-copy-1',
     'progression.css?v=20260914-1',
     'id="quizAccuracyRecords" class="quiz-accuracy-records" role="list"',
-    "記録開始以降に、サーバーで採点が確定した回答だけを集計します。",
+    "記録開始以降の回答で、採点が確定したものだけを集計します。",
   ])
     && includesAll(appText, [
       "function quizAccuracyCounts(record)",
@@ -274,8 +275,8 @@ export function hasMatchRewardEconomy(pageText, appText, bundleText, resultModel
       "reward?.awarded !== true", "Number.isSafeInteger(reward.ticketLevel)", "Number.isSafeInteger(reward.ticketCount)",
       "PVP_REWARD_LIMIT", "完了報酬\\nLv.${reward.ticketLevel}ガチャ券 ×${reward.ticketCount}", "報酬を確認中です。"]);
   return includesAll(pageText, [
-    "対人勝利はLv.2、敗北はLv.1（直近60分で10試合まで）",
-    "CPU勝利は強さに応じLv.1〜3、敗北はLv.1",
+    "対人戦：</strong>勝利はLv.2、敗北はLv.1（直近60分で10試合まで）",
+    "CPU戦：</strong>勝利は強さに応じLv.1〜3、敗北はLv.1",
   ]) && (legacyResultUi || compactResultUi) && includesAll(bundleText, [
     'const ECONOMY_VERSION = "standard-match-reward-v2";',
     "const PVP_REWARD_WINDOW_MS = 60 * 60 * 1000;",

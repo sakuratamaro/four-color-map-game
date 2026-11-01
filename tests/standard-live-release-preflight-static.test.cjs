@@ -83,7 +83,7 @@ test("release preflight is read-only, secret-free, finite, and stage-aware", () 
   assert.match(source, /MATCH_REWARD_ECONOMY_MISMATCH/);
   assert.match(source, /app\.text\.includes\('★\$\{meta\.rarity\}'\)/);
   assert.match(source, /CANDIDATE_ASSET_GENERATION_UI_PHASE_MISMATCH/);
-assert.match(source, /app\.js\?v=20261025-new-skills-1/);
+assert.match(source, /app\.js\?v=20261101-ui-copy-1/);
   assert.match(source, /cpu-commentary\.js\?v=20260910-1/);
   assert.match(source, /progression\.css/);
   assert.match(source, /style\.css\?v=20260921-1/);
@@ -251,7 +251,7 @@ test("candidate preflight requires the complete match reward economy", async () 
   assert.equal(hasMatchRewardEconomy(candidateHtml, candidateApp, candidateEdgeBundle, candidateResultModel), true);
   assert.equal(hasMatchRewardEconomy(candidateHtml, candidateApp, candidateEdgeBundle.replace("const PVP_REWARD_LIMIT = 10;", "const PVP_REWARD_LIMIT = 11;"), candidateResultModel), false);
   assert.equal(hasMatchRewardEconomy(candidateHtml, candidateApp, candidateEdgeBundle.replace("Date.parse(entry.endedAt) > cutoff", "Date.parse(entry.endedAt) >= cutoff"), candidateResultModel), false);
-  assert.equal(hasMatchRewardEconomy(candidateHtml.replace("対人勝利はLv.2", "対人勝利はLv.1"), candidateApp, candidateEdgeBundle, candidateResultModel), false);
+  assert.equal(hasMatchRewardEconomy(candidateHtml.replace("対人戦：</strong>勝利はLv.2", "対人戦：</strong>勝利はLv.1"), candidateApp, candidateEdgeBundle, candidateResultModel), false);
   assert.equal(hasMatchRewardEconomy(candidateHtml, candidateApp, candidateEdgeBundle, ""), false);
   assert.equal(hasMatchRewardEconomy(candidateHtml, candidateApp, candidateEdgeBundle, candidateResultModel.replace("reward?.awarded !== true", "reward?.awarded === true")), false);
 });
@@ -271,7 +271,7 @@ test("candidate app satisfies the waiting-opponent release marker", () => {
 });
 
 test("candidate page and app satisfy the alpha.4 cache generation marker", () => {
-  assert.equal(candidateHtml.includes("app.js?v=20261025-new-skills-1"), true);
+  assert.equal(candidateHtml.includes("app.js?v=20261101-ui-copy-1"), true);
   assert.equal(candidateHtml.includes("terminal-result.css?v=20260914-1"), true);
   assert.equal(candidateApp.includes("result-continuation.js?v=20260914-2"), true);
   assert.equal(candidateHtml.includes("cpu-commentary.js?v=20260910-1"), true);

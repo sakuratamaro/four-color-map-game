@@ -50,7 +50,7 @@ test("UDL062 profile compact first name shows its public audience before one exp
     await input.waitFor();
     assert.equal(await input.getAttribute("maxlength"),"20");
     assert.equal(await input.getAttribute("aria-describedby"),"profilePublicNameHelp");
-    assert.match(await page.locator("#profilePublicNameHelp").textContent(),/対戦相手に表示されます。ニックネーム/);
+    assert.match(await page.locator("#profilePublicNameHelp").textContent(),/対戦相手に表示されるニックネーム/);
     assert.doesNotMatch(await page.locator("#profileCard").innerText(),/この端末のStandardセーブ|オンライン画面だけに保存/);
     assert.deepEqual(await page.evaluate(()=>globalThis.__standardOnlineRuntime.calls.filter(c=>c.body?.operation==="profile")),[]);
     await input.fill("みどり");
@@ -6077,7 +6077,7 @@ test("quadratic names the smaller root visibly and restored progress counts only
     await page.getByRole("button", { name: "クイズ・ガチャ" }).click();
     await page.locator("#quizOptions button").first().waitFor();
     assert.match(await page.locator("#quizConfirmedProgress").textContent(), /0\/1正解/);
-    assert.match(await page.locator("#quizRewardTarget").textContent(), /10問後にサーバーが確定・保存/);
+    assert.match(await page.locator("#quizRewardTarget").textContent(), /10問後に結果を確定・保存/);
     outlookLayouts.push(await readOutlookLayout());
     for (let answered = 2; answered <= 9; answered += 1) {
       await clickMovingQuizOption(page.locator("#quizOptions button").nth(1));

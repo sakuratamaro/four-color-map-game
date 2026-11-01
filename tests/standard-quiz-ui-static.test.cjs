@@ -13,7 +13,7 @@ test("formal Number Rush UI exposes level, profile, score, timer, hint, six-choi
   for (const id of ["quizPanel", "quizProfile", "quizLevel", "startQuiz", "quizStatus", "quizPlay", "quizCounter", "quizScore", "quizTimeBar", "quizQuestion", "quizOptions", "quizHint", "quizNext", "quizHintText", "quizResult", "quizSaveReward"]) {
     assert.match(html, new RegExp(`id="${id}"`));
   }
-  assert.match(html, /ヒント表示中は解答時間が完全に停止/);
+  assert.match(html, /ヒント表示中は解答時間が止まります/);
 });
 
 test("formal gacha UI exposes profile, level, one/all draw, retry, ticket, status, and result regions", () => {
