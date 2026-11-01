@@ -6298,7 +6298,7 @@ test("actual browser shows overall and Lv1-5 quiz accuracy from tracked adjudica
     assert.deepEqual(await records.allTextContents(), ["全体65%32/49問正解", "Lv.170%21/30問正解", "Lv.2—0/0問正解", "Lv.358%11/19問正解", "Lv.4—0/0問正解", "Lv.5—0/0問正解"]);
     assert.equal(await records.nth(0).getAttribute("aria-label"), "全体、正答率65%、32/49問正解");
     assert.equal(await records.nth(5).getAttribute("aria-label"), "Lv.5、正答率—、0/0問正解");
-    assert.match(await page.locator("#quizAccuracyHelp").textContent(), /記録開始以降.*採点が確定した回答だけ/);
+    assert.match(await page.locator("#quizAccuracyHelp").textContent(), /記録開始以降の回答で、採点が確定したものだけを集計します。/);
     const layout = await list.evaluate((node) => ({
       columns: new Set([...node.children].slice(0, 2).map((item) => Math.round(item.getBoundingClientRect().left))).size,
       cardOverflow: [...node.children].some((item) => item.scrollWidth > item.clientWidth),
